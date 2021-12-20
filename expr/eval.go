@@ -163,7 +163,7 @@ func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-		_, err = i.vals.Coerce(*elem, zed.Value{typ, zv})
+		_, err = i.vals.Coerce(elem, &zed.Value{typ, zv})
 		if err == nil && i.vals.Equal() {
 			return zed.True
 		}
@@ -179,7 +179,7 @@ func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-		_, err = i.vals.Coerce(*elem, zed.Value{keyType, zv})
+		_, err = i.vals.Coerce(elem, &zed.Value{keyType, zv})
 		if err == nil && i.vals.Equal() {
 			return zed.True
 		}
@@ -187,7 +187,7 @@ func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-		_, err = i.vals.Coerce(*elem, zed.Value{valType, zv})
+		_, err = i.vals.Coerce(elem, &zed.Value{valType, zv})
 		if err == nil && i.vals.Equal() {
 			return zed.True
 		}
@@ -283,10 +283,16 @@ func enumify(v *zed.Value) *zed.Value {
 func (n *numeric) eval(this *zed.Value, scope *Scope) (int, error) {
 	//XXX need valOf too...
 	lhs := n.lhs.Eval(this, scope)
+	if lhs == zed.Missing {
+		return 0, zed.ErrMissing
+	}
 	lhs = enumify(lhs)
 	rhs := n.rhs.Eval(this, scope)
+	if rhs == zed.Missing {
+		return 0, zed.ErrMissing
+	}
 	rhs = enumify(rhs)
-	return n.vals.Coerce(*lhs, *rhs)
+	return n.vals.Coerce(lhs, rhs)
 }
 
 func (n *numeric) floats() (float64, float64) {
@@ -363,7 +369,7 @@ func (c *Compare) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	if rhs.IsError() {
 		return lhs
 	}
-	id, err := c.vals.Coerce(*lhs, *rhs)
+	id, err := c.vals.Coerce(lhs, rhs)
 	if err != nil {
 		// If coercion fails due to overflow, then we know there is a
 		// mixed signed and unsigned situation and either the unsigned
@@ -477,6 +483,9 @@ func NewArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
 func (a *Add) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	id, err := a.operands.eval(this, scope)
 	if err != nil {
+		if err == zed.ErrMissing {
+			return zed.Missing
+		}
 		return a.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
@@ -503,6 +512,9 @@ func (a *Add) Eval(this *zed.Value, scope *Scope) *zed.Value {
 func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	id, err := s.operands.eval(this, scope)
 	if err != nil {
+		if err == zed.ErrMissing {
+			return zed.Missing
+		}
 		return s.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
@@ -523,6 +535,9 @@ func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
 func (m *Multiply) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	id, err := m.operands.eval(this, scope)
 	if err != nil {
+		if err == zed.ErrMissing {
+			return zed.Missing
+		}
 		return m.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
@@ -543,6 +558,9 @@ func (m *Multiply) Eval(this *zed.Value, scope *Scope) *zed.Value {
 func (d *Divide) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	id, err := d.operands.eval(this, scope)
 	if err != nil {
+		if err == zed.ErrMissing {
+			return zed.Missing
+		}
 		return d.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
@@ -572,6 +590,9 @@ func (d *Divide) Eval(this *zed.Value, scope *Scope) *zed.Value {
 func (m *Modulo) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	id, err := m.operands.eval(this, scope)
 	if err != nil {
+		if err == zed.ErrMissing {
+			return zed.Missing
+		}
 		return m.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)

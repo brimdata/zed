@@ -14,4 +14,4 @@ input: |
 
 output: |
   {r:true,rb:false,both:false,div0:"divide by zero"(error),add1:true,s:true,array:true,arraynot:false}
-  {r:true,rb:true,both:true,div0:"incompatible types"(error),add1:false,s:false,array:false,arraynot:false}
+  {r:true,rb:true,both:true,div0:false,add1:false,s:false,array:false,arraynot:false}

@@ -486,14 +486,10 @@ func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	// should put this in a table
 	cast := LookupPrimitiveCaster(toType)
 	v := cast(&zed.Value{s.fromType, in})
-	if v.IsError() {
-		b.AppendNull()
-		return nil
-	}
 	if v.Type != toType {
 		// v isn't the "to" type, so we can't safely append v.Bytes to
 		// the builder. See https://github.com/brimdata/zed/issues/2710.
-		if v.Type == zed.TypeError {
+		if v.IsError() {
 			return v
 		}
 		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))

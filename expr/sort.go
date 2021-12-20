@@ -97,7 +97,7 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 	abytes, bbytes := a.Bytes, b.Bytes
 	if a.Type.ID() != b.Type.ID() {
 		//XXX coerce take ptr?
-		id, err := pair.Coerce(*a, *b)
+		id, err := pair.Coerce(a, b)
 		typ = zed.LookupPrimitiveByID(id)
 		if err != nil || typ == nil {
 			// If values cannot be coerced, just compare the native

@@ -5,4 +5,4 @@ input: |
   {f1:"WellWhatDoYouThinkOfThis",f2:"NotMuch"}
 
 output: |
-  {error:"Could not find format for \"WellWhatDoYouThinkOfThis\""(error)}
+  {error:"cannot cast \"WellWhatDoYouThinkOfThis\" to type time"(error)}
