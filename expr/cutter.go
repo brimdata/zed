@@ -45,21 +45,18 @@ func NewCutter(zctx *zed.Context, fieldRefs field.List, fieldExprs []Evaluator) 
 			return nil, err
 		}
 	}
+	n := len(fieldRefs)
 	return &Cutter{
-		zctx:        zctx,
-		builder:     b,
-		fieldRefs:   fieldRefs,
-		fieldExprs:  fieldExprs,
-		typeCache:   make([]zed.Type, len(fieldRefs)),
-		outTypes:    zed.NewTypeVectorTable(),
-		recordTypes: make(map[int]*zed.TypeRecord),
+		zctx:         zctx,
+		builder:      b,
+		fieldRefs:    fieldRefs,
+		fieldExprs:   fieldExprs,
+		typeCache:    make([]zed.Type, len(fieldRefs)),
+		outTypes:     zed.NewTypeVectorTable(),
+		recordTypes:  make(map[int]*zed.TypeRecord),
+		droppers:     make([]*Dropper, n),
+		dropperCache: make([]*Dropper, n),
 	}, nil
-}
-
-func (c *Cutter) AllowPartialCuts() {
-	n := len(c.fieldRefs)
-	c.droppers = make([]*Dropper, n)
-	c.dropperCache = make([]*Dropper, n)
 }
 
 func (c *Cutter) Quiet() {
@@ -80,7 +77,7 @@ func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	droppers := c.dropperCache[:0]
 	for k, e := range c.fieldExprs {
 		val := e.Eval(in, scope)
-		if val == zed.Missing {
+		if val.IsError() {
 			if c.droppers != nil {
 				if c.droppers[k] == nil {
 					c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
@@ -89,11 +86,16 @@ func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 				// ignore this record
 				b.Append(val.Bytes, false)
 				types[k] = zed.TypeNull
+				continue
 			}
-		} else {
-			b.Append(val.Bytes, val.IsContainer())
-			types[k] = val.Type
+			if val.IsQuiet() {
+				b.Append(val.Bytes, false)
+				types[k] = zed.TypeNull
+				continue
+			}
 		}
+		b.Append(val.Bytes, val.IsContainer())
+		types[k] = val.Type
 	}
 	bytes, err := b.Encode()
 	if err != nil {
@@ -103,10 +105,8 @@ func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	for _, d := range droppers {
 		rec = d.Eval(rec, scope)
 	}
-	if rec != nil {
+	if !rec.IsError() {
 		c.dirty = true
-	} else {
-		rec = zed.Missing
 	}
 	return rec
 }

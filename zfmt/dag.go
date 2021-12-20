@@ -264,10 +264,6 @@ func (c *canonDAG) op(p dag.Op) {
 		c.next()
 		c.write("cut ")
 		c.assignments(p.Args)
-	case *dag.Pick:
-		c.next()
-		c.open("pick ")
-		c.assignments(p.Args)
 	case *dag.Drop:
 		c.next()
 		c.write("drop ")

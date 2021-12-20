@@ -195,12 +195,6 @@ type (
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
-	// A Pick proc is like a Cut but skips records that do not
-	// match all of the field expressions.
-	Pick struct {
-		Kind string       `json:"kind" unpack:""`
-		Args []Assignment `json:"args"`
-	}
 	// A Drop proc represents a proc that removes fields from each
 	// input record.
 	Drop struct {
@@ -463,7 +457,6 @@ func (*Parallel) ProcAST()     {}
 func (*Switch) ProcAST()       {}
 func (*Sort) ProcAST()         {}
 func (*Cut) ProcAST()          {}
-func (*Pick) ProcAST()         {}
 func (*Drop) ProcAST()         {}
 func (*Head) ProcAST()         {}
 func (*Tail) ProcAST()         {}

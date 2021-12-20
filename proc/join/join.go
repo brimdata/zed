@@ -36,7 +36,6 @@ func New(pctx *proc.Context, anti, inner bool, left, right proc.Interface, leftK
 	if err != nil {
 		return nil, err
 	}
-	cutter.AllowPartialCuts()
 	ctx, cancel := context.WithCancel(pctx.Context)
 	return &Proc{
 		pctx:        pctx,

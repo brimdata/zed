@@ -143,9 +143,6 @@ type LenFn struct {
 
 func (l *LenFn) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
-	if zv.Bytes == nil {
-		return zed.NullInt64
-	}
 	var length int
 	switch typ := zed.AliasOf(args[0].Type).(type) {
 	case *zed.TypeRecord:

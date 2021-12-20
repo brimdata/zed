@@ -266,7 +266,6 @@ Operator
   = SortProc
   / TopProc
   / CutProc
-  / PickProc
   / DropProc
   / HeadProc
   / TailProc
@@ -324,11 +323,6 @@ TopProc
 CutProc
   = "cut"i _ args:FlexAssignments {
       RETURN(MAP("kind": "Cut", "args": args))
-    }
-
-PickProc
-  = "pick"i _ args:FlexAssignments {
-      RETURN(MAP("kind": "Pick", "args": args))
     }
 
 DropProc
@@ -552,7 +546,7 @@ OverProc
     }
 
 WithProc
-  = "with"i _ locals:FlexAssigments __ "=>" __ "(" __ seq:Sequential ")" {
+  = "with"i _ locals:FlexAssignments __ "=>" __ "(" __ seq:Sequential ")" {
 	  RETURN(MAP("kind":"Scope", "locals":locals, "seq":seq))
     }
 

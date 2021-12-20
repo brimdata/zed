@@ -366,15 +366,6 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Kind: "Cut",
 			Args: assignments,
 		}, nil
-	case *ast.Pick:
-		assignments, err := semAssignments(scope, p.Args)
-		if err != nil {
-			return nil, err
-		}
-		return &dag.Pick{
-			Kind: "Pick",
-			Args: assignments,
-		}, nil
 	case *ast.Drop:
 		args, err := semFields(scope, p.Args)
 		if err != nil {

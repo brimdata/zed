@@ -9,9 +9,9 @@ script: |
   echo ===
 
   # Verify that output flags are honored.
-  zed ls -f zson | zq -i zson -f zson "pick name | sort name" -
+  zed ls -f zson | zq -i zson -f zson "cut name | sort name" -
   echo ===
-  zed ls -f zng | zq -i zng -f table "pick name | sort name" -
+  zed ls -f zng | zq -i zng -f table "cut name | sort name" -
   echo ===
 
 inputs:

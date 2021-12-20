@@ -260,7 +260,6 @@ All other operators are explicitly named.
 * [`fuse`](operators.md#fuse)
 * [`head`](operators.md#head)
 * [`join`](operators.md#join)
-* [`pick`](operators.md#pick)
 * [`put`](operators.md#put)
 * [`rename`](operators.md#rename)
 * [`sort`](operators.md#sort)

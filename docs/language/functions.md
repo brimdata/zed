@@ -24,7 +24,6 @@
 - [Records](#records)
   - [`cut`](#cut)
   - [`fields`](#fields)
-  - [`pick`](#pick)
   - [`unflatten`](#unflatten)
 - [Strings](#strings)
   - [`join`](#join)
@@ -423,28 +422,6 @@ echo '{foo:{a:1,b:2,c:3}}' | zq -z 'cut foo := fields(foo)' -
 **Output:**
 ```mdtest-output
 {foo:["a","b","c"]}
-```
-
-### `pick`
-
-```
-pick(f ...<fields>) -> record
-```
-
-`pick` accepts one or more [field expressions](expressions.md) `f` and returns
-a record with only these fields. `pick` is similar to `cut` but only returns
-a value if all field expressions are matched. This is functionally equivalent
-to the [`pick` operator](operators.md#cut)
-
-#### Example:
-
-```mdtest-command
-echo '{foo:{a:1,b:2,c:3}}' | zq -z 'yield pick(foo.a,foo.c)' -
-```
-
-**Output:**
-```mdtest-output
-{foo:{a:1,c:3}}
 ```
 
 ### `unflatten`

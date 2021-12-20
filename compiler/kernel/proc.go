@@ -100,22 +100,10 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		if err != nil {
 			return nil, err
 		}
-		cutter.AllowPartialCuts()
 		if v.Quiet {
 			cutter.Quiet()
 		}
 		return proc.NewApplier(b.pctx, parent, cutter), nil
-	case *dag.Pick:
-		assignments, err := compileAssignments(v.Args, b.pctx.Zctx, b.scope)
-		if err != nil {
-			return nil, err
-		}
-		lhs, rhs := splitAssignments(assignments)
-		cutter, err := expr.NewCutter(b.pctx.Zctx, lhs, rhs)
-		if err != nil {
-			return nil, err
-		}
-		return proc.NewApplier(b.pctx, parent, &picker{cutter}), nil
 	case *dag.Drop:
 		if len(v.Args) == 0 {
 			return nil, errors.New("drop: no fields given")
@@ -261,10 +249,6 @@ func (f filterFunction) Eval(this *zed.Value, scope *expr.Scope) *zed.Value {
 func (_ filterFunction) String() string { return "filter" }
 
 func (_ filterFunction) Warning() string { return "" }
-
-type picker struct{ *expr.Cutter }
-
-func (_ *picker) String() string { return "pick" }
 
 func compileAssignments(assignments []dag.Assignment, zctx *zed.Context, scope *Scope) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))

@@ -345,10 +345,7 @@ func compileCall(zctx *zed.Context, scope *Scope, call dag.Call) (expr.Evaluator
 		if err != nil {
 			return nil, err
 		}
-		cut.AllowPartialCuts()
 		return cut, nil
-	case call.Name == "pick":
-		return compileCutter(zctx, scope, call)
 	case call.Name == "missing":
 		exprs, err := compileExprs(zctx, scope, call.Args)
 		if err != nil {
