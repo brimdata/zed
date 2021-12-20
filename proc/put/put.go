@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 // Put is a proc that modifies the record stream with computed values.
@@ -81,7 +82,7 @@ func (p *Proc) maybeWarn(err error) {
 	}
 }
 
-func (p *Proc) eval(in *zed.Value, scope *expr.Scope) ([]zed.Value, error) {
+func (p *Proc) eval(in *zed.Value, scope *expr.Scope) []zed.Value {
 	vals := p.vals[:0]
 	for _, cl := range p.clauses {
 		val := *cl.RHS.Eval(in, scope)
@@ -90,7 +91,7 @@ func (p *Proc) eval(in *zed.Value, scope *expr.Scope) ([]zed.Value, error) {
 		}
 		vals = append(vals, val)
 	}
-	return vals, nil
+	return vals
 }
 
 // A step is a recursive data structure encoding a series of steps to be
@@ -116,18 +117,18 @@ const (
 	record               // recurse into record below us
 )
 
-func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) (zcode.Bytes, error) {
+func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) zcode.Bytes {
 	switch s.op {
 	case root:
 		bytes := make(zcode.Bytes, len(vals[s.index].Bytes))
 		copy(bytes, vals[s.index].Bytes)
-		return bytes, nil
+		return bytes
 	case record:
 		b.Reset()
 		if err := s.buildRecord(in, b, vals); err != nil {
-			return nil, err
+			return nil
 		}
-		return b.Bytes(), nil
+		return b.Bytes()
 	default:
 		// top-level op should be root or record
 		panic(fmt.Sprintf("put: unexpected step %v", s.op))
@@ -215,11 +216,11 @@ func findOverwriteClause(path field.Path, clauses []expr.Assignment) (int, field
 	return -1, nil, false
 }
 
-func (p *Proc) deriveSteps(inType *zed.TypeRecord, vals []zed.Value) (step, zed.Type, error) {
+func (p *Proc) deriveSteps(inType *zed.TypeRecord, vals []zed.Value) (step, zed.Type) {
 	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
 }
 
-func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value) (step, *zed.TypeRecord, error) {
+func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value) (step, *zed.TypeRecord) {
 	s := step{op: record}
 	cols := make([]zed.Column, 0)
 
@@ -248,24 +249,18 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, val
 			cols = append(cols, zed.Column{inCol.Name, vals[matchIndex].Type})
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zed.IsRecordType(inCol.Type):
-			nestedStep, typ, err := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Columns, vals)
-			if err != nil {
-				return step{}, nil, err
-			}
+			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Columns, vals)
 			nestedStep.index = i
 			s.append(nestedStep)
 			cols = append(cols, zed.Column{inCol.Name, typ})
 		// input non-record field overwritten by nested assignment(s): recurse.
 		case len(path) < len(matchPath) && !zed.IsRecordType(inCol.Type):
-			nestedStep, typ, err := p.deriveRecordSteps(path, []zed.Column{}, vals)
-			if err != nil {
-				return step{}, nil, err
-			}
+			nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals)
 			nestedStep.index = i
 			s.append(nestedStep)
 			cols = append(cols, zed.Column{inCol.Name, typ})
 		default:
-			panic("faulty logic")
+			panic("put: internal error computing record steps")
 		}
 	}
 
@@ -290,10 +285,7 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, val
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(cl.LHS) > len(parentPath)+1:
 				path := append(parentPath, cl.LHS[len(parentPath)])
-				nestedStep, typ, err := p.deriveRecordSteps(path, []zed.Column{}, vals)
-				if err != nil {
-					return step{}, nil, err
-				}
+				nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals)
 				nestedStep.index = -1
 				cols = append(cols, zed.Column{cl.LHS[len(parentPath)], typ})
 				s.append(nestedStep)
@@ -302,7 +294,10 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, val
 	}
 
 	typ, err := p.pctx.Zctx.LookupTypeRecord(cols)
-	return s, typ, err
+	if err != nil {
+		panic(err)
+	}
+	return s, typ
 }
 
 func hasField(name string, cols []zed.Column) bool {
@@ -323,37 +318,36 @@ func sameTypes(types []zed.Type, vals []zed.Value) bool {
 	return true
 }
 
-func (p *Proc) lookupRule(inType *zed.TypeRecord, vals []zed.Value) (putRule, error) {
+func (p *Proc) lookupRule(inType *zed.TypeRecord, vals []zed.Value) putRule {
 	rule, ok := p.rules[inType.ID()]
 	if ok && sameTypes(rule.clauseTypes, vals) {
-		return rule, nil
+		return rule
 	}
-	step, typ, err := p.deriveSteps(inType, vals)
+	step, typ := p.deriveSteps(inType, vals)
 	var clauseTypes []zed.Type
 	for _, val := range vals {
 		clauseTypes = append(clauseTypes, val.Type)
 	}
 	rule = putRule{typ, clauseTypes, step}
 	p.rules[inType.ID()] = rule
-	return rule, err
+	return rule
 }
 
-func (p *Proc) put(in *zed.Value, scope *expr.Scope) (*zed.Value, error) {
-	vals, err := p.eval(in, scope)
-	if err != nil {
-		p.maybeWarn(err)
-		return in, nil
+func (p *Proc) put(in *zed.Value, scope *expr.Scope) *zed.Value {
+	recType := zed.TypeRecordOf(in.Type)
+	if recType == nil {
+		if in.IsError() {
+			// propagate errors
+			return in
+		}
+		//XXX
+		val := zed.NewErrorf("put: not a record: %s", zson.MustFormatValue(*in))
+		return &val
 	}
-	rule, err := p.lookupRule(zed.TypeRecordOf(in.Type), vals)
-	if err != nil {
-		return nil, err
-	}
-
-	bytes, err := rule.step.build(in.Bytes, &p.builder, vals)
-	if err != nil {
-		return nil, err
-	}
-	return zed.NewValue(rule.typ, bytes), nil
+	vals := p.eval(in, scope)
+	rule := p.lookupRule(recType, vals)
+	bytes := rule.step.build(in.Bytes, &p.builder, vals)
+	return zed.NewValue(rule.typ, bytes)
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
@@ -365,9 +359,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	vals := batch.Values()
 	recs := make([]zed.Value, 0, len(vals))
 	for i := range vals {
-		rec, err := p.put(&vals[i], scope)
-		if err != nil {
-			return nil, err
+		rec := p.put(&vals[i], scope)
+		if rec.IsQuiet() {
+			continue
 		}
 		// Copy is necessary because put can return its argument.
 		recs = append(recs, *rec.Copy())
