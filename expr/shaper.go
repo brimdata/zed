@@ -68,9 +68,7 @@ func (s *Shaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
 		s.shapers[shapeTo] = shaper
 	}
-	v := shaper.Eval(ctx, this)
-	fmt.Println("SHAPER RETURN", zson.MustFormatValue(*v))
-	return v
+	return shaper.Eval(ctx, this)
 }
 
 type ConstShaper struct {
@@ -104,38 +102,27 @@ func (s *ConstShaper) Apply(ctx Context, this *zed.Value) *zed.Value {
 }
 
 func (c *ConstShaper) Eval(ctx Context, this *zed.Value) *zed.Value {
-	fmt.Println("CONST EVAL")
-	inVal := c.expr.Eval(ctx, this)
-	if inVal.IsError() {
-		fmt.Println("CONST RET1")
-		return inVal
+	val := c.expr.Eval(ctx, this)
+	if val.IsError() {
+		return val
 	}
 	id := this.Type.ID()
 	s, ok := c.shapers[id]
 	if !ok {
 		var err error
-		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, inVal.Type)
+		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, val.Type)
 		if err != nil {
-			fmt.Println("CONST RET2")
 			return ctx.CopyValue(zed.NewError(err))
 		}
 		c.shapers[id] = s
 	}
 	if s.typ.ID() == id {
-		fmt.Println("CONST RET3")
-		return ctx.NewValue(s.typ, inVal.Bytes)
+		return ctx.NewValue(s.typ, val.Bytes)
 	}
 	c.b.Reset()
-	if zerr := s.step.buildRecord(ctx, inVal.Bytes, &c.b); zerr != nil {
-		typ, err := c.zctx.LookupTypeRecord([]zed.Column{{Name: "error", Type: zerr.Type}})
-		if err != nil {
-			panic(err)
-		}
-		c.b.AppendPrimitive(zerr.Bytes)
-		fmt.Println("CONST RET4")
-		return ctx.NewValue(typ, c.b.Bytes())
+	if zerr := s.step.buildRecord(ctx, val.Bytes, &c.b); zerr != nil {
+		return zerr
 	}
-	fmt.Println("CONST RET5")
 	return ctx.NewValue(s.typ, c.b.Bytes())
 }
 
@@ -487,13 +474,11 @@ func (s *step) castPrimitive(ctx Context, in zcode.Bytes, b *zcode.Builder) *zed
 	}
 	toType := zed.AliasOf(s.toType)
 	cast := LookupPrimitiveCaster(toType)
-	fmt.Println("LOOKUP CASTER", toType)
 	v := cast(ctx, &zed.Value{s.fromType, in})
 	if v.Type != toType {
 		// v isn't the "to" type, so we can't safely append v.Bytes to
 		// the builder. See https://github.com/brimdata/zed/issues/2710.
 		if v.IsError() {
-			fmt.Println("CASTER ERR", zson.MustFormatValue(*v))
 			return v
 		}
 		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))

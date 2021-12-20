@@ -11,4 +11,4 @@ input: |
 
 output: |
   {id:{orig_h:ff02::fb,orig_p:5353(port=(uint16)),resp_p:5353(port),resp_h:1.2.3.4},other:123.,id2:{orig_h:ff02::fb,orig_p:5353(port),resp_p:5353(port),resp_h:1.2.3.4}}
-  {id:{orig_h:ff02::fb,orig_p:5353(port=(uint16)),resp_p:5353(port),resp_h:null(ip)},other:123.,id2:{orig_h:ff02::fb,orig_p:5353(port),resp_p:5353(port),resp_h:null(ip)}}
+  {id:"cannot cast \"notanip\" to type ip"(error),other:123.,id2:"cannot cast \"notanip\" to type ip"(error)}
