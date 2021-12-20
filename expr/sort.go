@@ -11,7 +11,7 @@ import (
 
 type CompareFn func(a *zed.Value, b *zed.Value) int
 type ValueCompareFn func(a *zed.Value, b *zed.Value) int
-type KeyCompareFn func(*zed.Value, *Scope) int
+type KeyCompareFn func(Context, *zed.Value) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
@@ -33,7 +33,7 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 	return func(ra *zed.Value, rb *zed.Value) int {
 		for _, resolver := range fields {
 			// XXX return errors?
-			a := resolver.Eval(ra, nil)
+			a := resolver.Eval(nil, ra)
 			// XXX We should compute a vector of sort keys then
 			// sort the pointers and then generate the batches
 			// on demand from the sorted pointers.  And we should
@@ -49,7 +49,7 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 				a.Bytes = aBytesBuf
 			}
 
-			b := resolver.Eval(rb, nil)
+			b := resolver.Eval(nil, rb)
 			v := compareValues(a, b, comparefns, &pair, nullsMax)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
@@ -135,10 +135,10 @@ func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
 		keyval = append(keyval, val)
 		accessors = append(accessors, NewDottedExpr(name))
 	}
-	return func(this *zed.Value, scope *Scope) int {
+	return func(ctx Context, this *zed.Value) int {
 		for k, access := range accessors {
 			// XXX error
-			a := access.Eval(this, scope)
+			a := access.Eval(ctx, this)
 			if a.IsNull() {
 				// we know the key value is not null
 				return -1

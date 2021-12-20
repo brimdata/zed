@@ -63,7 +63,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	var out []zed.Value
 	// XXX Right now scopes don't work in join because zio.Peeker hides
 	// the batches.  We need to fix peeker or reimplement.
-	var scope *expr.Scope
+	var ctx expr.Context
 	for {
 		leftRec, err := p.left.Read()
 		if err != nil {
@@ -75,7 +75,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			}
 			return zbuf.NewArray(out), nil
 		}
-		key := p.getLeftKey.Eval(leftRec, scope)
+		key := p.getLeftKey.Eval(ctx, leftRec)
 		if key == zed.Missing {
 			// If the left key isn't present (which is not a thing
 			// in a sql join), then drop the record and return only
@@ -107,7 +107,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		// Batch and lives in a pool so the downstream user can
 		// release the batch with and bypass GC.
 		for _, rightRec := range rightRecs {
-			cutRec := p.cutter.Eval(rightRec, scope)
+			cutRec := p.cutter.Eval(ctx, rightRec)
 			rec, err := p.splice(leftRec, cutRec)
 			if err != nil {
 				return nil, err
@@ -125,14 +125,14 @@ func (p *Proc) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
 	if p.joinKey != nil && p.compare(leftKey, p.joinKey) == 0 {
 		return p.joinSet, nil
 	}
-	//XXX need to fix scope
-	var scope *expr.Scope
+	//XXX need to fix
+	var ctx expr.Context
 	for {
 		rec, err := p.right.Peek()
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		rightKey := p.getRightKey.Eval(rec, scope)
+		rightKey := p.getRightKey.Eval(ctx, rec)
 		if rightKey == zed.Missing {
 			p.right.Read()
 			continue
@@ -167,7 +167,7 @@ func (p *Proc) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
 func (p *Proc) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
 	var recs []*zed.Value
 	// XXX need to fix scope and actually there's a left and a right scope
-	var scope *expr.Scope
+	var ctx expr.Context
 	for {
 		rec, err := p.right.Peek()
 		if err != nil {
@@ -176,7 +176,7 @@ func (p *Proc) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
 		if rec == nil {
 			return recs, nil
 		}
-		key := p.getRightKey.Eval(rec, scope)
+		key := p.getRightKey.Eval(ctx, rec)
 		if key == zed.Missing {
 			p.right.Read()
 			continue

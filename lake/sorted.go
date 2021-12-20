@@ -102,7 +102,7 @@ func (r *rangeWrapper) AsFilter() (expr.Filter, error) {
 		return nil, err
 	}
 	compare := extent.CompareFunc(r.layout.Order)
-	return func(rec *zed.Value, scope *expr.Scope) bool {
+	return func(ctx expr.Context, rec *zed.Value) bool {
 		keyVal, err := rec.Deref(r.layout.Keys[0])
 		if err != nil {
 			// XXX match keyless records.
@@ -112,7 +112,7 @@ func (r *rangeWrapper) AsFilter() (expr.Filter, error) {
 		if compare(&keyVal, r.first) < 0 || compare(&keyVal, r.last) > 0 {
 			return false
 		}
-		return f == nil || f(rec, scope)
+		return f == nil || f(ctx, rec)
 	}, nil
 }
 

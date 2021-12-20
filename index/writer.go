@@ -160,7 +160,7 @@ func (w *Writer) Write(val *zed.Value) error {
 		if err != nil {
 			return err
 		}
-		keys := w.cutter.Eval(val, nil)
+		keys := w.cutter.Eval(nil, val)
 		if keys.IsError() {
 			return fmt.Errorf("key(s) not found in record: %q", w.keys)
 		}
@@ -341,7 +341,7 @@ func (w *indexWriter) write(rec *zed.Value) error {
 		// (or until we know it's the last frame in the file).
 		// So we build the frame key record from the current record
 		// here ahead of its use and save it in the frameKey variable.
-		key := w.base.cutter.Eval(rec, nil)
+		key := w.base.cutter.Eval(nil, rec)
 		// If the key isn't here flag an error.  All keys must be
 		// present to build a proper index.
 		// XXX We also need to check that they are in order.

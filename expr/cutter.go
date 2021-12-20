@@ -70,13 +70,13 @@ func (c *Cutter) FoundCut() bool {
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns zed.Missing.
-func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
+func (c *Cutter) Eval(ctx Context, in *zed.Value) *zed.Value {
 	types := c.typeCache
 	b := c.builder
 	b.Reset()
 	droppers := c.dropperCache[:0]
 	for k, e := range c.fieldExprs {
-		val := e.Eval(in, scope)
+		val := e.Eval(ctx, in)
 		if val.IsQuiet() {
 			// ignore this field
 			if c.droppers[k] == nil {
@@ -96,7 +96,7 @@ func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	}
 	rec := &zed.Value{c.lookupTypeRecord(types), bytes}
 	for _, d := range droppers {
-		rec = d.Eval(rec, scope)
+		rec = d.Eval(ctx, rec)
 	}
 	if !rec.IsError() {
 		c.dirty = true

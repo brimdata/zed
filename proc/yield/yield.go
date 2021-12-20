@@ -25,12 +25,12 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
-		scope := batch.Scope()
+		ctx := batch.Context()
 		vals := batch.Values()
 		recs := make([]zed.Value, 0, len(p.exprs)*len(vals))
 		for i := range vals {
 			for _, e := range p.exprs {
-				out := e.Eval(&vals[i], scope)
+				out := e.Eval(ctx, &vals[i])
 				if out == zed.Missing {
 					continue
 				}

@@ -24,7 +24,7 @@ var ErrNotContainer = errors.New("cannot apply in to a non-container")
 var ErrBadCast = errors.New("bad cast")
 
 type Evaluator interface {
-	Eval(*zed.Value, *Scope) *zed.Value
+	Eval(Context, *zed.Value) *zed.Value
 }
 
 type Not struct {
@@ -37,8 +37,8 @@ func NewLogicalNot(e Evaluator) *Not {
 	return &Not{e}
 }
 
-func (n *Not) Eval(val *zed.Value, scope *Scope) *zed.Value {
-	zv := evalBool(n.expr, val, scope)
+func (n *Not) Eval(ctx Context, val *zed.Value) *zed.Value {
+	zv := evalBool(ctx, n.expr, val)
 	if zed.IsTrue(zv.Bytes) {
 		return zed.False
 	}
@@ -63,8 +63,8 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 	return &Or{lhs, rhs}
 }
 
-func evalBool(e Evaluator, rec *zed.Value, scope *Scope) *zed.Value {
-	val := e.Eval(rec, scope)
+func evalBool(ctx Context, e Evaluator, rec *zed.Value) *zed.Value {
+	val := e.Eval(ctx, rec)
 	if zed.AliasOf(val.Type) != zed.TypeBool {
 		//XXX stash
 		v := zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val))
@@ -73,26 +73,26 @@ func evalBool(e Evaluator, rec *zed.Value, scope *Scope) *zed.Value {
 	return val
 }
 
-func (a *And) Eval(rec *zed.Value, scope *Scope) *zed.Value {
-	lhs := evalBool(a.lhs, rec, scope)
+func (a *And) Eval(ctx Context, this *zed.Value) *zed.Value {
+	lhs := evalBool(ctx, a.lhs, this)
 	if lhs.IsError() {
 		return lhs
 	}
 	if !zed.IsTrue(lhs.Bytes) {
 		return zed.False
 	}
-	return evalBool(a.rhs, rec, scope)
+	return evalBool(ctx, a.rhs, this)
 }
 
-func (o *Or) Eval(rec *zed.Value, scope *Scope) *zed.Value {
-	lhs := evalBool(o.lhs, rec, scope)
+func (o *Or) Eval(ctx Context, this *zed.Value) *zed.Value {
+	lhs := evalBool(ctx, o.lhs, this)
 	if lhs.IsError() {
 		return lhs
 	}
 	if zed.IsTrue(lhs.Bytes) {
 		return zed.True
 	}
-	return evalBool(o.rhs, rec, scope)
+	return evalBool(ctx, o.rhs, this)
 }
 
 type In struct {
@@ -108,12 +108,12 @@ func NewIn(elem, container Evaluator) *In {
 	}
 }
 
-func (i *In) Eval(rec *zed.Value, scope *Scope) *zed.Value {
-	elem := i.elem.Eval(rec, scope)
+func (i *In) Eval(ctx Context, this *zed.Value) *zed.Value {
+	elem := i.elem.Eval(ctx, this)
 	if elem.IsError() {
 		return elem
 	}
-	container := i.container.Eval(rec, scope)
+	container := i.container.Eval(ctx, this)
 	if container.IsError() {
 		return container
 	}
@@ -212,8 +212,8 @@ func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 	return e, nil
 }
 
-func (e *Equal) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	_, err := e.numeric.eval(this, scope)
+func (e *Equal) Eval(ctx Context, this *zed.Value) *zed.Value {
+	_, err := e.numeric.eval(ctx, this)
 	if err != nil {
 		//XXX need to compare have coerce return zed error?
 		if err == coerce.ErrOverflow {
@@ -246,8 +246,8 @@ func NewRegexpMatch(re *regexp.Regexp, e Evaluator) *RegexpMatch {
 	return &RegexpMatch{re, e}
 }
 
-func (r *RegexpMatch) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	zv := r.expr.Eval(this, scope)
+func (r *RegexpMatch) Eval(ctx Context, this *zed.Value) *zed.Value {
+	zv := r.expr.Eval(ctx, this)
 	if !zed.IsStringy(zv.Type.ID()) {
 		//XXX change from missing to false right?
 		return zed.False
@@ -280,14 +280,14 @@ func enumify(v *zed.Value) *zed.Value {
 	return v
 }
 
-func (n *numeric) eval(this *zed.Value, scope *Scope) (int, error) {
+func (n *numeric) eval(ctx Context, this *zed.Value) (int, error) {
 	//XXX need valOf too...
-	lhs := n.lhs.Eval(this, scope)
+	lhs := n.lhs.Eval(ctx, this)
 	if lhs == zed.Missing {
 		return 0, zed.ErrMissing
 	}
 	lhs = enumify(lhs)
-	rhs := n.rhs.Eval(this, scope)
+	rhs := n.rhs.Eval(ctx, this)
 	if rhs == zed.Missing {
 		return 0, zed.ErrMissing
 	}
@@ -360,12 +360,12 @@ func (c *Compare) result(result int) *zed.Value {
 	return zed.False
 }
 
-func (c *Compare) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	lhs := c.lhs.Eval(this, scope)
+func (c *Compare) Eval(ctx Context, this *zed.Value) *zed.Value {
+	lhs := c.lhs.Eval(ctx, this)
 	if lhs.IsError() {
 		return lhs
 	}
-	rhs := c.rhs.Eval(this, scope)
+	rhs := c.rhs.Eval(ctx, this)
 	if rhs.IsError() {
 		return lhs
 	}
@@ -480,8 +480,8 @@ func NewArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
 	return nil, fmt.Errorf("unknown arithmetic operator: %s", op)
 }
 
-func (a *Add) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	id, err := a.operands.eval(this, scope)
+func (a *Add) Eval(ctx Context, this *zed.Value) *zed.Value {
+	id, err := a.operands.eval(ctx, this)
 	if err != nil {
 		if err == zed.ErrMissing {
 			return zed.Missing
@@ -509,8 +509,8 @@ func (a *Add) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	return a.result.Errorf("type %s incompatible with '+' operator", typ)
 }
 
-func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	id, err := s.operands.eval(this, scope)
+func (s *Subtract) Eval(ctx Context, this *zed.Value) *zed.Value {
+	id, err := s.operands.eval(ctx, this)
 	if err != nil {
 		if err == zed.ErrMissing {
 			return zed.Missing
@@ -532,8 +532,8 @@ func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	return s.result.Errorf("type %s incompatible with '-' operator", typ)
 }
 
-func (m *Multiply) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	id, err := m.operands.eval(this, scope)
+func (m *Multiply) Eval(ctx Context, this *zed.Value) *zed.Value {
+	id, err := m.operands.eval(ctx, this)
 	if err != nil {
 		if err == zed.ErrMissing {
 			return zed.Missing
@@ -555,8 +555,8 @@ func (m *Multiply) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	return m.result.Errorf("type %s incompatible with '*' operator", typ)
 }
 
-func (d *Divide) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	id, err := d.operands.eval(this, scope)
+func (d *Divide) Eval(ctx Context, this *zed.Value) *zed.Value {
+	id, err := d.operands.eval(ctx, this)
 	if err != nil {
 		if err == zed.ErrMissing {
 			return zed.Missing
@@ -587,8 +587,8 @@ func (d *Divide) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	return d.result.Errorf("type %s incompatible with '/' operator", typ)
 }
 
-func (m *Modulo) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	id, err := m.operands.eval(this, scope)
+func (m *Modulo) Eval(ctx Context, this *zed.Value) *zed.Value {
+	id, err := m.operands.eval(ctx, this)
 	if err != nil {
 		if err == zed.ErrMissing {
 			return zed.Missing
@@ -658,9 +658,9 @@ func NewIndexExpr(zctx *zed.Context, container, index Evaluator) Evaluator {
 	return &Index{zctx, container, index}
 }
 
-func (i *Index) Eval(rec *zed.Value, scope *Scope) *zed.Value {
-	container := i.container.Eval(rec, scope)
-	index := i.index.Eval(rec, scope)
+func (i *Index) Eval(ctx Context, this *zed.Value) *zed.Value {
+	container := i.container.Eval(ctx, this)
+	index := i.index.Eval(ctx, this)
 	switch typ := container.Type.(type) {
 	case *zed.TypeArray:
 		return indexArray(typ, container.Bytes, index)
@@ -752,16 +752,16 @@ func NewConditional(predicate, thenExpr, elseExpr Evaluator) *Conditional {
 	}
 }
 
-func (c *Conditional) Eval(rec *zed.Value, scope *Scope) *zed.Value {
-	val := c.predicate.Eval(rec, scope)
+func (c *Conditional) Eval(ctx Context, this *zed.Value) *zed.Value {
+	val := c.predicate.Eval(ctx, this)
 	if val.Type.ID() != zed.IDBool {
 		val := zed.NewErrorf("?-operator: bool predicate required")
 		return &val
 	}
 	if zed.IsTrue(val.Bytes) {
-		return c.thenExpr.Eval(rec, scope)
+		return c.thenExpr.Eval(ctx, this)
 	}
-	return c.elseExpr.Eval(rec, scope)
+	return c.elseExpr.Eval(ctx, this)
 }
 
 type Call struct {
@@ -781,10 +781,9 @@ func NewCall(zctx *zed.Context, fn function.Interface, exprs []Evaluator) *Call 
 	}
 }
 
-func (c *Call) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+func (c *Call) Eval(ctx Context, this *zed.Value) *zed.Value {
 	for k, e := range c.exprs {
-		//XXX check error?
-		c.args[k] = *e.Eval(rec, scope)
+		c.args[k] = *e.Eval(ctx, this)
 	}
 	return c.fn.Call(c.args)
 }
@@ -804,7 +803,7 @@ func NewTypeFunc(zctx *zed.Context, name string) *TypeFunc {
 	}
 }
 
-func (t *TypeFunc) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+func (t *TypeFunc) Eval(ctx Context, this *zed.Value) *zed.Value {
 	if t.val.Bytes == nil {
 		typ := t.zctx.LookupTypeDef(t.name)
 		if typ == nil {
@@ -824,9 +823,9 @@ func NewHas(exprs []Evaluator) *Has {
 	return &Has{exprs}
 }
 
-func (h *Has) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+func (h *Has) Eval(ctx Context, this *zed.Value) *zed.Value {
 	for _, e := range h.exprs {
-		val := e.Eval(rec, scope)
+		val := e.Eval(ctx, this)
 		if val.IsError() {
 			if val.IsMissing() || val.IsQuiet() {
 				return zed.False
@@ -847,8 +846,8 @@ func NewMissing(exprs []Evaluator) *Missing {
 	return &Missing{NewHas(exprs)}
 }
 
-func (m *Missing) Eval(rec *zed.Value, scope *Scope) *zed.Value {
-	val := m.has.Eval(rec, scope)
+func (m *Missing) Eval(ctx Context, this *zed.Value) *zed.Value {
+	val := m.has.Eval(ctx, this)
 	if val.Type == zed.TypeBool {
 		val = zed.Not(val.Bytes)
 	}
@@ -873,8 +872,8 @@ type evalCast struct {
 	typ    zed.Type
 }
 
-func (c *evalCast) Eval(rec *zed.Value, scope *Scope) *zed.Value {
-	val := c.expr.Eval(rec, scope)
+func (c *evalCast) Eval(ctx Context, this *zed.Value) *zed.Value {
+	val := c.expr.Eval(ctx, this)
 	if val.IsNull() {
 		// Take care of null here so the casters don't have to
 		// worry about it.  Any value can be null after all.

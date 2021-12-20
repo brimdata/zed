@@ -23,7 +23,7 @@ type Proc struct {
 	agg      *Aggregator
 	once     sync.Once
 	resultCh chan proc.Result
-	scope    *expr.Scope
+	ectx     expr.Context
 }
 
 // Aggregator performs the core aggregation computation for a
@@ -174,7 +174,7 @@ func (p *Proc) Done() {
 func (p *Proc) run() {
 	sendResults := func(p *Proc) error {
 		for {
-			b, err := p.agg.Results(true, p.scope)
+			b, err := p.agg.Results(true, p.ectx)
 			if err != nil {
 				return err
 			}
@@ -198,22 +198,22 @@ func (p *Proc) run() {
 			}
 			// Reset scope on EOS and after we've sent all the
 			// results out.
-			p.scope = nil
+			p.ectx = nil
 			eof = true
 			continue
 		}
-		scope := batch.Scope()
-		if p.scope == nil {
-			p.scope = scope
-		} else if scope != p.scope {
+		ctx := batch.Context()
+		if p.ectx == nil {
+			p.ectx = ctx
+		} else if ctx != p.ectx {
 			// The operator contract is that scope can only change
 			// after EOS and we reset scope at each EOS.
-			panic("summarize: scope changed")
+			panic("summarize: ectx changed")
 		}
 		eof = false
 		vals := batch.Values()
 		for i := range vals {
-			p.agg.Consume(&vals[i], scope)
+			p.agg.Consume(ctx, &vals[i])
 		}
 		batch.Unref()
 		if p.agg.inputDir == 0 {
@@ -221,7 +221,7 @@ func (p *Proc) run() {
 		}
 		// sorted input: see if we have any completed keys we can emit.
 		for {
-			res, err := p.agg.Results(false, scope)
+			res, err := p.agg.Results(false, ctx)
 			if err != nil {
 				p.shutdown(err)
 				return
@@ -254,7 +254,7 @@ func (p *Proc) shutdown(err error) {
 
 // Consume adds a value to an aggregation.
 // XXX seems like this should return do add non-missing Zed errors to a column...
-func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) {
+func (a *Aggregator) Consume(ctx expr.Context, this *zed.Value) {
 	// First check if we've seen this descriptor and whether it is blocked.
 	if _, ok := a.block[this.Type]; ok {
 		// descriptor blocked since it doesn't have all the group-by keys
@@ -287,7 +287,7 @@ func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) {
 	keyBytes := a.keyCache[:0]
 	var prim *zed.Value
 	for i, keyExpr := range a.keyExprs {
-		key := keyExpr.Eval(this, scope)
+		key := keyExpr.Eval(ctx, this)
 		if key.IsError() && !key.IsMissing() {
 			// XXX Silently ignore errors.  We should add
 			// an error column and collect up the errors to
@@ -312,7 +312,7 @@ func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) {
 	row, ok := a.table[string(keyBytes)]
 	if !ok {
 		if len(a.table) >= a.limit {
-			if err := a.spillTable(false, scope); err != nil {
+			if err := a.spillTable(false, ctx); err != nil {
 				//XXX check that this is ok
 				panic(err)
 			}
@@ -326,12 +326,12 @@ func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) {
 	}
 
 	if a.partialsIn {
-		row.reducers.consumeAsPartial(this, a.aggRefs, scope)
+		row.reducers.consumeAsPartial(this, a.aggRefs, ctx)
 	}
-	row.reducers.apply(a.aggs, this, scope)
+	row.reducers.apply(a.aggs, this, ctx)
 }
 
-func (a *Aggregator) spillTable(eof bool, scope *expr.Scope) error {
+func (a *Aggregator) spillTable(eof bool, ctx expr.Context) error {
 	batch, err := a.readTable(true, true)
 	if err != nil || batch == nil {
 		return err
@@ -348,7 +348,7 @@ func (a *Aggregator) spillTable(eof bool, scope *expr.Scope) error {
 		return err
 	}
 	if !eof && a.inputDir != 0 {
-		val := a.keyExprs[0].Eval(&recs[len(recs)-1], scope)
+		val := a.keyExprs[0].Eval(ctx, &recs[len(recs)-1])
 		//XXX check for error?
 
 		// pass volatile zed.Value since updateMaxSpillKey will make
@@ -377,20 +377,20 @@ func (a *Aggregator) updateMaxSpillKey(v *zed.Value) {
 // this should be called repeatedly until a nil batch is returned. If
 // the input is sorted in the primary key, Results can be called
 // before eof, and keys that are completed will returned.
-func (a *Aggregator) Results(eof bool, scope *expr.Scope) (zbuf.Batch, error) {
+func (a *Aggregator) Results(eof bool, ctx expr.Context) (zbuf.Batch, error) {
 	if a.spiller == nil {
 		return a.readTable(eof, a.partialsOut)
 	}
 	if eof {
 		// EOF: spill in-memory table before merging all files for output.
-		if err := a.spillTable(true, scope); err != nil {
+		if err := a.spillTable(true, ctx); err != nil {
 			return nil, err
 		}
 	}
-	return a.readSpills(eof, scope)
+	return a.readSpills(eof, ctx)
 }
 
-func (a *Aggregator) readSpills(eof bool, scope *expr.Scope) (zbuf.Batch, error) {
+func (a *Aggregator) readSpills(eof bool, ctx expr.Context) (zbuf.Batch, error) {
 	recs := make([]zed.Value, 0, proc.BatchLen)
 	if !eof && a.inputDir == 0 {
 		return nil, nil
@@ -404,13 +404,13 @@ func (a *Aggregator) readSpills(eof bool, scope *expr.Scope) (zbuf.Batch, error)
 			if rec == nil {
 				break
 			}
-			keyVal := a.keyExprs[0].Eval(rec, scope)
+			keyVal := a.keyExprs[0].Eval(ctx, rec)
 			//XXX check for error?
 			if a.valueCompare(keyVal, a.maxSpillKey) >= 0 {
 				break
 			}
 		}
-		rec, err := a.nextResultFromSpills(scope)
+		rec, err := a.nextResultFromSpills(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -425,7 +425,7 @@ func (a *Aggregator) readSpills(eof bool, scope *expr.Scope) (zbuf.Batch, error)
 	return zbuf.NewArray(recs), nil
 }
 
-func (a *Aggregator) nextResultFromSpills(scope *expr.Scope) (*zed.Value, error) {
+func (a *Aggregator) nextResultFromSpills(ctx expr.Context) (*zed.Value, error) {
 	// This loop pulls records from the spiller in key order.
 	// The spiller is doing a merge across all of the spills and
 	// here we merge the decomposed aggregations across the batch
@@ -448,7 +448,7 @@ func (a *Aggregator) nextResultFromSpills(scope *expr.Scope) (*zed.Value, error)
 		} else if a.keysCompare(firstRec, rec) != 0 {
 			break
 		}
-		row.consumeAsPartial(rec, a.aggRefs, scope)
+		row.consumeAsPartial(rec, a.aggRefs, ctx)
 		if _, err := a.spiller.Read(); err != nil {
 			return nil, err
 		}
@@ -460,7 +460,7 @@ func (a *Aggregator) nextResultFromSpills(scope *expr.Scope) (*zed.Value, error)
 	a.builder.Reset()
 	types := a.typeCache[:0]
 	for _, e := range a.keyRefs {
-		keyVal := e.Eval(firstRec, scope)
+		keyVal := e.Eval(ctx, firstRec)
 		types = append(types, keyVal.Type)
 		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}

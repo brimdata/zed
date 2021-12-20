@@ -44,9 +44,9 @@ func NewShaper(zctx *zed.Context, expr, typExpr Evaluator, tf ShaperTransform) *
 	}
 }
 
-func (s *Shaper) Eval(this *zed.Value, scope *Scope) *zed.Value {
+func (s *Shaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 	//XXX should have a fast path for constant types
-	typVal := s.typExpr.Eval(this, scope)
+	typVal := s.typExpr.Eval(ctx, this)
 	if typVal.IsError() {
 		return typVal
 	}
@@ -71,7 +71,7 @@ func (s *Shaper) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
 		s.shapers[shapeTo] = shaper
 	}
-	return shaper.Eval(this, scope)
+	return shaper.Eval(ctx, this)
 }
 
 type ConstShaper struct {
@@ -96,8 +96,8 @@ func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf Shap
 	}
 }
 
-func (s *ConstShaper) Apply(in *zed.Value, scope *Scope) *zed.Value {
-	val := s.Eval(in, scope)
+func (s *ConstShaper) Apply(ctx Context, this *zed.Value) *zed.Value {
+	val := s.Eval(ctx, this)
 	if !zed.IsRecordType(val.Type) {
 		// XXX use structured error
 		return s.stash.Errorf("shaper returned non-record value %s", zson.MustFormatValue(*val))
@@ -105,12 +105,12 @@ func (s *ConstShaper) Apply(in *zed.Value, scope *Scope) *zed.Value {
 	return val
 }
 
-func (c *ConstShaper) Eval(in *zed.Value, scope *Scope) *zed.Value {
-	inVal := c.expr.Eval(in, scope)
+func (c *ConstShaper) Eval(ctx Context, this *zed.Value) *zed.Value {
+	inVal := c.expr.Eval(ctx, this)
 	if inVal.IsError() {
 		return inVal
 	}
-	id := in.Type.ID()
+	id := this.Type.ID()
 	s, ok := c.shapers[id]
 	if !ok {
 		var err error

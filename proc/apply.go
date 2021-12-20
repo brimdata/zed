@@ -36,11 +36,11 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 			}
 			return nil, err
 		}
-		scope := batch.Scope()
+		ctx := batch.Context()
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
-			val := a.expr.Eval(&vals[i], scope)
+			val := a.expr.Eval(ctx, &vals[i])
 			if val.IsQuiet() {
 				continue
 			}

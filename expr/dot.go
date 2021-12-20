@@ -9,7 +9,7 @@ import (
 
 type This struct{}
 
-func (*This) Eval(this *zed.Value, _ *Scope) *zed.Value {
+func (*This) Eval(_ Context, this *zed.Value) *zed.Value {
 	return this
 }
 
@@ -57,8 +57,8 @@ func valOf(val *zed.Value) *zed.Value {
 	}
 }
 
-func (d *DotExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	rec := d.record.Eval(this, scope)
+func (d *DotExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
+	rec := d.record.Eval(ctx, this)
 	val := valOf(rec)
 	recType, ok := val.Type.(*zed.TypeRecord)
 	if !ok {

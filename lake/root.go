@@ -188,7 +188,7 @@ func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Filt
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(rec, nil) {
+		if f == nil || f(nil, rec) {
 			batch = append(batch, *rec)
 		}
 	}
@@ -451,7 +451,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 			if err != nil {
 				return nil, err
 			}
-			if f == nil || f(rec, nil) {
+			if f == nil || f(nil, rec) {
 				batch = append(batch, *rec)
 			}
 		}

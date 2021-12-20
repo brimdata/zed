@@ -11,29 +11,29 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-type Filter func(*zed.Value, *Scope) bool
+type Filter func(Context, *zed.Value) bool
 
 func LogicalAnd(left, right Filter) Filter {
-	return func(val *zed.Value, scope *Scope) bool {
-		return left(val, scope) && right(val, scope)
+	return func(ctx Context, val *zed.Value) bool {
+		return left(ctx, val) && right(ctx, val)
 	}
 }
 
 func LogicalOr(left, right Filter) Filter {
-	return func(val *zed.Value, scope *Scope) bool {
-		return left(val, scope) || right(val, scope)
+	return func(ctx Context, val *zed.Value) bool {
+		return left(ctx, val) || right(ctx, val)
 	}
 }
 
 func LogicalNot(expr Filter) Filter {
-	return func(val *zed.Value, scope *Scope) bool {
-		return !expr(val, scope)
+	return func(ctx Context, val *zed.Value) bool {
+		return !expr(ctx, val)
 	}
 }
 
 func Apply(e Evaluator, pred Boolean) Filter {
-	return func(val *zed.Value, scope *Scope) bool {
-		v := e.Eval(val, scope)
+	return func(ctx Context, val *zed.Value) bool {
+		v := e.Eval(ctx, val)
 		if v.IsError() {
 			// There's no wy to propagate errors in a filter
 			// because the predicate never lands anywhere.
@@ -53,7 +53,7 @@ func Apply(e Evaluator, pred Boolean) Filter {
 
 func EvalAny(eval Boolean, recursive bool) Filter {
 	if !recursive {
-		return func(val *zed.Value, scope *Scope) bool {
+		return func(ctx Context, val *zed.Value) bool {
 			it := val.Bytes.Iter()
 			for _, c := range val.Columns() {
 				val, _, err := it.Next()
@@ -88,7 +88,7 @@ func EvalAny(eval Boolean, recursive bool) Filter {
 		}
 		return false
 	}
-	return func(val *zed.Value, _ *Scope) bool {
+	return func(_ Context, val *zed.Value) bool {
 		return fn(val.Bytes, val.Columns())
 	}
 }
@@ -127,7 +127,7 @@ func SearchRecordOther(searchtext string, searchval astzed.Primitive) (Filter, e
 	if err != nil {
 		return nil, err
 	}
-	return func(val *zed.Value, scope *Scope) bool {
+	return func(_ Context, val *zed.Value) bool {
 		return errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 			if zed.IsStringy(typ.ID()) {
 				if stringSearch(byteconv.UnsafeString(body), searchtext) {
@@ -148,7 +148,7 @@ func SearchRecordOther(searchtext string, searchval astzed.Primitive) (Filter, e
 func SearchRecordString(term string) Filter {
 	fieldNameCheck := make(map[zed.Type]bool)
 	var nameIter stringsearch.FieldNameIter
-	return func(val *zed.Value, _ *Scope) bool {
+	return func(_ Context, val *zed.Value) bool {
 		// Memoize the result of a search across the names in the
 		// record columns for each unique record type.
 		match, ok := fieldNameCheck[val.Type]
@@ -177,8 +177,8 @@ func SearchRecordString(term string) Filter {
 
 type FilterEvaluator Filter
 
-func (f FilterEvaluator) Eval(rec *zed.Value, scope *Scope) *zed.Value {
-	if f(rec, scope) {
+func (f FilterEvaluator) Eval(ctx Context, this *zed.Value) *zed.Value {
+	if f(ctx, this) {
 		return zed.True
 	}
 	return zed.False

@@ -13,6 +13,6 @@ func NewLiteral(val *zed.Value) *Literal {
 	return &Literal{val: val}
 }
 
-func (l Literal) Eval(*zed.Value, *Scope) *zed.Value {
+func (l Literal) Eval(Context, *zed.Value) *zed.Value {
 	return l.val
 }

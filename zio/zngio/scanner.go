@@ -235,7 +235,7 @@ func (w *worker) wantRecord(rec *zed.Value, stats *zbuf.ScannerStats) bool {
 	// We pass nil to filter for the scope since a scanner cannot appear
 	// inside of a nested scope obviously and buffer filters cannot include
 	// scoped references.
-	if w.filter == nil || w.filter(rec, nil) {
+	if w.filter == nil || w.filter(nil, rec) {
 		stats.BytesMatched += int64(len(rec.Bytes))
 		stats.RecordsMatched++
 		return true

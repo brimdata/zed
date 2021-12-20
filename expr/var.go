@@ -12,7 +12,7 @@ func NewVar(ref *zed.Value) *Var {
 	return &Var{ref}
 }
 
-func (v *Var) Eval(*zed.Value, *Scope) *zed.Value {
+func (v *Var) Eval(Context, *zed.Value) *zed.Value {
 	val := v.ref
 	if val == nil || val.Type == nil {
 		return zed.Missing

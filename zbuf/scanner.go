@@ -113,7 +113,7 @@ func (s *scanner) Read() (*zed.Value, error) {
 		}
 		atomic.AddInt64(&s.stats.BytesRead, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.stats.RecordsRead, 1)
-		if s.filter != nil && !s.filter(this, nil) {
+		if s.filter != nil && !s.filter(nil, this) {
 			continue
 		}
 		atomic.AddInt64(&s.stats.BytesMatched, int64(len(this.Bytes)))

@@ -76,7 +76,7 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value
 			}
 			return prev, err
 		}
-		if cmp := fn(rec, nil); cmp >= 0 {
+		if cmp := fn(nil, rec); cmp >= 0 {
 			if cmp == 0 && op.hasEqual() {
 				return rec, nil
 			}
@@ -104,7 +104,7 @@ func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Valu
 			}
 			return prev, err
 		}
-		if cmp := fn(rec, nil); cmp <= 0 {
+		if cmp := fn(nil, rec); cmp <= 0 {
 			if cmp == 0 && op.hasEqual() {
 				return rec, nil
 			}
@@ -199,9 +199,9 @@ func compareFn(kvs []KeyValue) expr.KeyCompareFn {
 		values[i] = kvs[i].Value
 	}
 	fn := expr.NewValueCompareFn(false)
-	return func(this *zed.Value, scope *expr.Scope) int {
+	return func(ctx expr.Context, this *zed.Value) int {
 		for i := range kvs {
-			val := accessors[i].Eval(this, scope)
+			val := accessors[i].Eval(ctx, this)
 			if c := fn(val, &values[i]); c != 0 {
 				return c
 			}

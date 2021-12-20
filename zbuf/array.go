@@ -3,19 +3,20 @@ package zbuf
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 )
 
 // Array is a slice of of records that implements the Batch and
 // the Reader interfaces.
 type Array struct {
-	scope  *expr.Scope
 	values []zed.Value
 }
 
 var _ Batch = (*Array)(nil)
 var _ zio.Reader = (*Array)(nil)
 var _ zio.Writer = (*Array)(nil)
+var _ expr.Context = (*Array)(nil)
 
 //XXX this should take the frame arg too and the procs that create
 // new arrays need to propagate their frames downstream.
@@ -39,8 +40,9 @@ func (a *Array) Append(r *zed.Value) {
 	a.values = append(a.values, *r)
 }
 
-func (a *Array) Scope() *expr.Scope {
-	return a.scope
+func (a *Array) Scope() []zed.Value {
+	// XXX TBD
+	return nil
 }
 
 func (a *Array) Write(r *zed.Value) error {
@@ -61,4 +63,13 @@ func (a *Array) Read() (*zed.Value, error) {
 
 func (a Array) NewReader() zio.Reader {
 	return &a
+}
+
+func (a *Array) Context() expr.Context {
+	return a
+}
+
+func (*Array) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
+	// XXX can make this more efficient later
+	return zed.NewValue(typ, bytes)
 }

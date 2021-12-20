@@ -38,12 +38,12 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
-		scope := batch.Scope()
+		ctx := batch.Context()
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
 			for _, arg := range p.args {
-				val := arg.Eval(&vals[i], scope)
+				val := arg.Eval(ctx, &vals[i])
 				if val.IsError() {
 					if val != zed.Missing {
 						out = append(out, *val.Copy())

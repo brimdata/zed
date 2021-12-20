@@ -121,7 +121,7 @@ func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTa
 		if rec == nil {
 			break
 		}
-		k := cutter.Eval(rec, nil)
+		k := cutter.Eval(nil, rec)
 		if k.IsError() {
 			// if the key doesn't exist, just skip it
 			continue

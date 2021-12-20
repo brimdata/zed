@@ -19,14 +19,14 @@ type dropper struct {
 	fieldRefs []Evaluator
 }
 
-func (d *dropper) drop(in *zed.Value, scope *Scope) *zed.Value {
+func (d *dropper) drop(ctx Context, in *zed.Value) *zed.Value {
 	if d.typ == in.Type {
 		return in
 	}
 	b := d.builder
 	b.Reset()
 	for _, e := range d.fieldRefs {
-		val := e.Eval(in, scope)
+		val := e.Eval(ctx, in)
 		b.Append(val.Bytes, val.IsContainer())
 	}
 	zv, err := b.Encode()
@@ -121,7 +121,7 @@ func (_ *Dropper) Warning() string { return "" }
 
 // Apply implements proc.Function and returns a new record comprising fields
 // that are not specified in the set of drop targets.
-func (d *Dropper) Eval(in *zed.Value, scope *Scope) *zed.Value {
+func (d *Dropper) Eval(ctx Context, in *zed.Value) *zed.Value {
 	id := in.Type.ID()
 	dropper, ok := d.droppers[id]
 	if !ok {
@@ -131,5 +131,5 @@ func (d *Dropper) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	if dropper == nil {
 		return zed.Quiet
 	}
-	return dropper.drop(in, scope)
+	return dropper.drop(ctx, in)
 }

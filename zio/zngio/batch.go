@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zcode"
 )
 
 type batch struct {
@@ -34,6 +35,11 @@ func (b *batch) add(r *zed.Value) { b.vals = append(b.vals, *r) }
 
 func (b *batch) Values() []zed.Value { return b.vals }
 
+//XXX
+func (b *batch) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
+	return zed.NewValue(typ, bytes)
+}
+
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
 
 func (b *batch) Unref() {
@@ -50,4 +56,6 @@ func (b *batch) Unref() {
 
 //XXX this should be ok, but we should handle nil receiver in scope so push
 // will do the right thing
-func (*batch) Scope() *expr.Scope { return nil }
+func (*batch) Scope() []zed.Value { return nil }
+
+func (b *batch) Context() expr.Context { return b }

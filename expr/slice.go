@@ -28,12 +28,12 @@ func NewSlice(elem, from, to Evaluator) *Slice {
 var ErrSliceIndex = errors.New("array slice is not a number")
 var ErrSliceIndexEmpty = errors.New("array slice is empty") //XXX ???
 
-func sliceIndex(slot Evaluator, elem *zed.Value, this *zed.Value, scope *Scope) (int, error) {
+func sliceIndex(ctx Context, this *zed.Value, slot Evaluator, elem *zed.Value) (int, error) {
 	if slot == nil {
 		//XXX
 		return 0, ErrSliceIndexEmpty
 	}
-	zv := slot.Eval(this, scope)
+	zv := slot.Eval(ctx, this)
 	v, ok := coerce.ToInt(*zv)
 	if !ok {
 		return 0, ErrSliceIndex
@@ -49,8 +49,8 @@ func sliceIndex(slot Evaluator, elem *zed.Value, this *zed.Value, scope *Scope) 
 	return index, nil
 }
 
-func (s *Slice) Eval(this *zed.Value, scope *Scope) *zed.Value {
-	elem := s.elem.Eval(this, scope)
+func (s *Slice) Eval(ctx Context, this *zed.Value) *zed.Value {
+	elem := s.elem.Eval(ctx, this)
 	if elem.IsError() {
 		return elem
 	}
@@ -63,12 +63,12 @@ func (s *Slice) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		// If array is null, just return the null array.
 		return elem
 	}
-	from, err := sliceIndex(s.from, elem, this, scope)
+	from, err := sliceIndex(ctx, this, s.from, elem)
 	if err != nil && err != ErrSliceIndexEmpty {
 		val := zed.NewError(err)
 		return &val
 	}
-	to, err := sliceIndex(s.to, elem, this, scope)
+	to, err := sliceIndex(ctx, this, s.to, elem)
 	if err != nil {
 		if err != ErrSliceIndexEmpty {
 			val := zed.NewError(err)

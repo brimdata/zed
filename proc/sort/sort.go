@@ -32,7 +32,7 @@ type Proc struct {
 	resultCh           chan proc.Result
 	compareFn          expr.CompareFn
 	unseenFieldTracker *unseenFieldTracker
-	scope              *expr.Scope
+	ectx               expr.Context
 }
 
 func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
@@ -113,11 +113,11 @@ func (p *Proc) recordsForOneRun() ([]zed.Value, bool, error) {
 		if batch == nil {
 			return out, true, nil
 		}
-		scope := batch.Scope()
+		ctx := batch.Context()
 		vals := batch.Values()
 		for i := range vals {
 			val := &vals[i]
-			p.unseenFieldTracker.update(val, scope)
+			p.unseenFieldTracker.update(ctx, val)
 			nbytes += len(val.Bytes)
 			// We're keeping records owned by batch so don't call Unref.
 			out = append(out, *val)

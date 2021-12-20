@@ -28,7 +28,8 @@ type Batch interface {
 	Ref()
 	Unref()
 	Values() []zed.Value
-	Scope() *expr.Scope
+	//XXX Should we have a regular batch and a runtime batch?
+	Context() expr.Context
 }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch

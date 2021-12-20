@@ -148,7 +148,7 @@ func CompileFilter(zctx *zed.Context, scope *Scope, node dag.Expr) (expr.Filter,
 		default:
 			return nil, fmt.Errorf("bad boolean value in dag.Literal: %s", v.Text)
 		}
-		return func(*zed.Value, *expr.Scope) bool { return b }, nil
+		return func(expr.Context, *zed.Value) bool { return b }, nil
 
 	case *dag.Search:
 		return compileSearch(v)
@@ -194,8 +194,8 @@ func compileExprPredicate(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Fil
 	if err != nil {
 		return nil, err
 	}
-	return func(this *zed.Value, scope *expr.Scope) bool {
-		val := predicate.Eval(this, scope)
+	return func(ctx expr.Context, this *zed.Value) bool {
+		val := predicate.Eval(ctx, this)
 		return val.Type == zed.TypeBool && zed.IsTrue(val.Bytes)
 	}, nil
 }

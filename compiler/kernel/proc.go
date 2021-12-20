@@ -238,8 +238,8 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 
 type filterFunction expr.Filter
 
-func (f filterFunction) Eval(this *zed.Value, scope *expr.Scope) *zed.Value {
-	if f(this, scope) {
+func (f filterFunction) Eval(ctx expr.Context, this *zed.Value) *zed.Value {
+	if f(ctx, this) {
 		return this
 	}
 	// Return missing so the applier operator drop values that don't match the filter.
@@ -654,7 +654,7 @@ func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (*zed.Value
 		return nil, err
 	}
 	// Pass Zed null for this and nil for compile-time scope.
-	return e.Eval(zed.Null, nil), nil
+	return e.Eval(nil, zed.Null), nil
 }
 
 type readerScheduler struct {

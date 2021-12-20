@@ -55,10 +55,10 @@ func (s *ExprSwitch) run() {
 			s.err = err
 			return
 		}
-		scope := batch.Scope()
+		ctx := batch.Context()
 		vals := batch.Values()
 		for i := range vals {
-			val := s.evaluator.Eval(&vals[i], scope)
+			val := s.evaluator.Eval(ctx, &vals[i])
 			if val == zed.Missing {
 				continue
 			}

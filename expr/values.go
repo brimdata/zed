@@ -28,12 +28,12 @@ func NewRecordExpr(zctx *zed.Context, names []string, exprs []Evaluator) *Record
 	}
 }
 
-func (r *RecordExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
+func (r *RecordExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 	var changed bool
 	b := r.builder
 	b.Reset()
 	for k, e := range r.exprs {
-		zv := e.Eval(this, scope)
+		zv := e.Eval(ctx, this)
 		if r.columns[k].Type != zv.Type {
 			r.columns[k].Type = zv.Type
 			changed = true
@@ -71,14 +71,14 @@ func NewArrayExpr(zctx *zed.Context, exprs []Evaluator) *ArrayExpr {
 	}
 }
 
-func (a *ArrayExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
+func (a *ArrayExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 	inner := a.typ.Type
 	container := zed.IsContainerType(inner)
 	b := a.builder
 	b.Reset()
 	var first zed.Type
 	for _, e := range a.exprs {
-		zv := e.Eval(this, scope)
+		zv := e.Eval(ctx, this)
 		typ := zv.Type
 		if first == nil {
 			first = typ
@@ -124,14 +124,14 @@ func NewSetExpr(zctx *zed.Context, exprs []Evaluator) *SetExpr {
 	}
 }
 
-func (s *SetExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
+func (s *SetExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 	var inner zed.Type
 	var container bool
 	b := s.builder
 	b.Reset()
 	var first zed.Type
 	for _, e := range s.exprs {
-		val := e.Eval(this, scope)
+		val := e.Eval(ctx, this)
 		typ := val.Type
 		if first == nil {
 			first = typ
@@ -182,14 +182,14 @@ func NewMapExpr(zctx *zed.Context, entries []Entry) *MapExpr {
 	}
 }
 
-func (m *MapExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
+func (m *MapExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 	var containerKey, containerVal bool
 	var keyType, valType zed.Type
 	b := m.builder
 	b.Reset()
 	for _, e := range m.entries {
-		key := e.Key.Eval(this, scope)
-		val := e.Val.Eval(this, scope)
+		key := e.Key.Eval(ctx, this)
+		val := e.Val.Eval(ctx, this)
 		if keyType == nil {
 			if m.typ == nil || m.typ.KeyType != key.Type || m.typ.ValType != val.Type {
 				keyType = key.Type

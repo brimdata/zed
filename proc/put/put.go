@@ -82,10 +82,10 @@ func (p *Proc) maybeWarn(err error) {
 	}
 }
 
-func (p *Proc) eval(in *zed.Value, scope *expr.Scope) []zed.Value {
+func (p *Proc) eval(ctx expr.Context, this *zed.Value) []zed.Value {
 	vals := p.vals[:0]
 	for _, cl := range p.clauses {
-		val := *cl.RHS.Eval(in, scope)
+		val := *cl.RHS.Eval(ctx, this)
 		if val.IsQuiet() {
 			continue
 		}
@@ -333,20 +333,20 @@ func (p *Proc) lookupRule(inType *zed.TypeRecord, vals []zed.Value) putRule {
 	return rule
 }
 
-func (p *Proc) put(in *zed.Value, scope *expr.Scope) *zed.Value {
-	recType := zed.TypeRecordOf(in.Type)
+func (p *Proc) put(ctx expr.Context, this *zed.Value) *zed.Value {
+	recType := zed.TypeRecordOf(this.Type)
 	if recType == nil {
-		if in.IsError() {
+		if this.IsError() {
 			// propagate errors
-			return in
+			return this
 		}
 		//XXX
-		val := zed.NewErrorf("put: not a record: %s", zson.MustFormatValue(*in))
+		val := zed.NewErrorf("put: not a record: %s", zson.MustFormatValue(*this))
 		return &val
 	}
-	vals := p.eval(in, scope)
+	vals := p.eval(ctx, this)
 	rule := p.lookupRule(recType, vals)
-	bytes := rule.step.build(in.Bytes, &p.builder, vals)
+	bytes := rule.step.build(this.Bytes, &p.builder, vals)
 	return zed.NewValue(rule.typ, bytes)
 }
 
@@ -355,11 +355,11 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
-	scope := batch.Scope()
+	ctx := batch.Context()
 	vals := batch.Values()
 	recs := make([]zed.Value, 0, len(vals))
 	for i := range vals {
-		rec := p.put(&vals[i], scope)
+		rec := p.put(ctx, &vals[i])
 		if rec.IsQuiet() {
 			continue
 		}

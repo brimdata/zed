@@ -65,7 +65,7 @@ func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuild
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (u *Unflattener) Eval(this *zed.Value, scope *Scope) *zed.Value {
+func (u *Unflattener) Eval(ctx Context, this *zed.Value) *zed.Value {
 	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
 	if err != nil {
 		//XXX check this ok

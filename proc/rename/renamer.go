@@ -59,14 +59,14 @@ func (r *Function) computeType(typ *zed.TypeRecord) *zed.TypeRecord {
 	return typ
 }
 
-func (r *Function) Eval(in *zed.Value, scope *expr.Scope) *zed.Value {
-	id := in.Type.ID()
+func (r *Function) Eval(ctx expr.Context, this *zed.Value) *zed.Value {
+	id := this.Type.ID()
 	typ, ok := r.typeMap[id]
 	if !ok {
-		typ = r.computeType(zed.TypeRecordOf(in.Type))
+		typ = r.computeType(zed.TypeRecordOf(this.Type))
 		r.typeMap[id] = typ
 	}
-	out := in.Copy()
+	out := this.Copy()
 	return zed.NewValue(typ, out.Bytes)
 }
 

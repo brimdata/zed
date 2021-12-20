@@ -96,7 +96,7 @@ func (f *Fuser) Read() (*zed.Value, error) {
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	return f.shaper.Apply(rec, nil), nil
+	return f.shaper.Apply(nil, rec), nil
 }
 
 func (f *Fuser) next() (*zed.Value, error) {
