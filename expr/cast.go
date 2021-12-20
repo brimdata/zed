@@ -63,6 +63,7 @@ var castToInt32 = castToIntN(zed.TypeInt32, math.MinInt32, math.MaxInt32)
 var castToInt64 = castToIntN(zed.TypeInt64, 0, 0)
 
 func castToIntN(typ zed.Type, min, max int64) Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		v, ok := coerce.ToInt(*val)
@@ -79,6 +80,7 @@ var castToUint32 = castToUintN(zed.TypeUint32, math.MaxUint32)
 var castToUint64 = castToUintN(zed.TypeUint64, 0)
 
 func castToUintN(typ zed.Type, max uint64) Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		v, ok := coerce.ToUint(*val)
@@ -90,6 +92,7 @@ func castToUintN(typ zed.Type, max uint64) Caster {
 }
 
 func newBoolCaster() Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		b, ok := coerce.ToBool(*val)
@@ -101,6 +104,7 @@ func newBoolCaster() Caster {
 }
 
 func newFloat32Caster() Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		f, ok := coerce.ToFloat(*val)
@@ -112,6 +116,7 @@ func newFloat32Caster() Caster {
 }
 
 func newFloat64Caster() Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		f, ok := coerce.ToFloat(*val)
@@ -123,6 +128,7 @@ func newFloat64Caster() Caster {
 }
 
 func newIPCaster() Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		//XXX move same type check above with the null check?
@@ -142,6 +148,7 @@ func newIPCaster() Caster {
 }
 
 func newNetCaster() Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		if !val.IsStringy() {
@@ -157,6 +164,7 @@ func newNetCaster() Caster {
 }
 
 func newDurationCaster() Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		id := val.Type.ID()
@@ -189,6 +197,7 @@ func newDurationCaster() Caster {
 }
 
 func newTimeCaster() Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		id := val.Type.ID()
@@ -228,6 +237,7 @@ func newTimeCaster() Caster {
 }
 
 func newStringyCaster(typ zed.Type) Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(zv *zed.Value) *zed.Value {
 		id := zv.Type.ID()
@@ -259,6 +269,7 @@ func newStringyCaster(typ zed.Type) Caster {
 }
 
 func newBytesCaster() Caster {
+	//XXX should use context
 	var stash result.Value
 	return func(zv *zed.Value) *zed.Value {
 		return stash.CopyVal(zed.Value{zed.TypeBytes, zed.EncodeBytes(zv.Bytes)})

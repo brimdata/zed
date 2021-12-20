@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/anymath"
-	"github.com/brimdata/zed/expr/result"
+	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -18,7 +18,7 @@ var (
 )
 
 type Interface interface {
-	Call([]zed.Value) *zed.Value
+	Call(zed.Allocator, []zed.Value) *zed.Value
 }
 
 func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
@@ -46,10 +46,10 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 		f = &Log{}
 	case "max":
 		argmax = -1
-		f = &reducer{fn: anymath.Max}
+		f = &reducer{fn: anymath.Max, name: name}
 	case "min":
 		argmax = -1
-		f = &reducer{fn: anymath.Min}
+		f = &reducer{fn: anymath.Min, name: name}
 	case "now":
 		argmax = 0
 		argmin = 0
@@ -137,11 +137,11 @@ func HasBoolResult(name string) bool {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
-type LenFn struct {
-	stash result.Value
-}
+type LenFn struct{}
 
-func (l *LenFn) Call(args []zed.Value) *zed.Value {
+var _ Interface = (*LenFn)(nil)
+
+func (l *LenFn) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	var length int
 	switch typ := zed.AliasOf(args[0].Type).(type) {
@@ -158,44 +158,36 @@ func (l *LenFn) Call(args []zed.Value) *zed.Value {
 		length = len(val.Bytes)
 	default:
 		err := fmt.Errorf("len: bad type: %s", zson.FormatType(typ))
-		return l.stash.Error(err)
+		return ctx.CopyValue(zed.NewError(err))
 	}
-	return l.stash.Int64(int64(length))
+	return newInt64(ctx, int64(length))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typeof
 type TypeOf struct {
-	zctx  *zed.Context
-	stash zed.Value
+	zctx *zed.Context
 }
 
-func (t *TypeOf) Call(args []zed.Value) *zed.Value {
-	t.stash = t.zctx.LookupTypeValue(args[0].Type)
-	return &t.stash
+func (t *TypeOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+	return ctx.CopyValue(t.zctx.LookupTypeValue(args[0].Type))
 }
 
 type typeUnder struct {
-	zctx  *zed.Context
-	stash zed.Value
+	zctx *zed.Context
 }
 
-func (t *typeUnder) Call(args []zed.Value) *zed.Value {
+func (t *typeUnder) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	typ := zed.AliasOf(args[0].Type)
-	t.stash = t.zctx.LookupTypeValue(typ)
-	return &t.stash
+	return ctx.CopyValue(t.zctx.LookupTypeValue(typ))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nameof
-type NameOf struct {
-	stash zed.Value
-}
+type NameOf struct{}
 
-func (n *NameOf) Call(args []zed.Value) *zed.Value {
+func (n *NameOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	typ := args[0].Type
 	if alias, ok := typ.(*zed.TypeAlias); ok {
-		// XXX GC
-		n.stash = zed.Value{zed.TypeString, zed.EncodeString(alias.Name)}
-		return &n.stash
+		return newString(ctx, alias.Name)
 	}
 	return zed.Missing
 }
@@ -203,7 +195,7 @@ func (n *NameOf) Call(args []zed.Value) *zed.Value {
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr
 type IsErr struct{}
 
-func (*IsErr) Call(args []zed.Value) *zed.Value {
+func (*IsErr) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	if args[0].IsError() {
 		return zed.True
 	}
@@ -215,7 +207,7 @@ type Is struct {
 	zctx *zed.Context
 }
 
-func (i *Is) Call(args []zed.Value) *zed.Value {
+func (i *Is) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	zvSubject := args[0]
 	zvTypeVal := args[1]
 	if len(args) == 3 {
@@ -241,10 +233,54 @@ type Quiet struct {
 	zctx *zed.Context
 }
 
-func (q *Quiet) Call(args []zed.Value) *zed.Value {
+func (q *Quiet) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	if val.IsMissing() {
 		return zed.Quiet
 	}
 	return &val
+}
+
+// XXX
+
+func newInt64(ctx zed.Allocator, native int64) *zed.Value {
+	return newInt(ctx, zed.TypeInt64, native)
+}
+
+func newInt(ctx zed.Allocator, typ zed.Type, native int64) *zed.Value {
+	//XXX we should have an interface to allocator where we can
+	// append into some new bytes; for now, the byte slice goes through GC.
+	return ctx.NewValue(typ, zed.EncodeInt(native))
+}
+
+func newUint64(ctx zed.Allocator, native uint64) *zed.Value {
+	return newUint(ctx, zed.TypeUint64, native)
+}
+
+func newUint(ctx zed.Allocator, typ zed.Type, native uint64) *zed.Value {
+	return ctx.NewValue(typ, zed.EncodeUint(native))
+}
+
+func newFloat64(ctx zed.Allocator, native float64) *zed.Value {
+	return ctx.NewValue(zed.TypeFloat64, zed.EncodeFloat64(native))
+}
+
+func newDuration(ctx zed.Allocator, native nano.Duration) *zed.Value {
+	return ctx.NewValue(zed.TypeDuration, zed.EncodeDuration(native))
+}
+
+func newTime(ctx zed.Allocator, native nano.Ts) *zed.Value {
+	return ctx.NewValue(zed.TypeTime, zed.EncodeTime(native))
+}
+
+func newString(ctx zed.Allocator, native string) *zed.Value {
+	return ctx.NewValue(zed.TypeString, zed.EncodeString(native))
+}
+
+func newError(ctx zed.Allocator, err error) *zed.Value {
+	return ctx.CopyValue(zed.NewError(err))
+}
+
+func newErrorf(ctx zed.Allocator, format string, args ...interface{}) *zed.Value {
+	return ctx.CopyValue(zed.NewErrorf(format, args...))
 }

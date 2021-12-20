@@ -5,16 +5,14 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
 
 type Slice struct {
-	elem  Evaluator
-	from  Evaluator
-	to    Evaluator
-	stash result.Value
+	elem Evaluator
+	from Evaluator
+	to   Evaluator
 }
 
 func NewSlice(elem, from, to Evaluator) *Slice {
@@ -93,5 +91,5 @@ func (s *Slice) Eval(ctx Context, this *zed.Value) *zed.Value {
 			panic(err)
 		}
 	}
-	return s.stash.CopyVal(zed.Value{elem.Type, bytes[:len(bytes)-len(it)]})
+	return ctx.NewValue(elem.Type, bytes[:len(bytes)-len(it)])
 }

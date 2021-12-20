@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
@@ -81,7 +80,6 @@ type ConstShaper struct {
 	shapeTo    zed.Type
 	shapers    map[int]*shaper // map from input type ID to shaper
 	transforms ShaperTransform
-	stash      result.Value
 }
 
 // NewConstShaper returns a shaper that will shape the result of expr
@@ -100,7 +98,7 @@ func (s *ConstShaper) Apply(ctx Context, this *zed.Value) *zed.Value {
 	val := s.Eval(ctx, this)
 	if !zed.IsRecordType(val.Type) {
 		// XXX use structured error
-		return s.stash.Errorf("shaper returned non-record value %s", zson.MustFormatValue(*val))
+		return ctx.CopyValue(zed.NewErrorf("shaper returned non-record value %s", zson.MustFormatValue(*val)))
 	}
 	return val
 }
@@ -116,12 +114,12 @@ func (c *ConstShaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 		var err error
 		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, inVal.Type)
 		if err != nil {
-			return c.stash.Error(err)
+			return ctx.CopyValue(zed.NewError(err))
 		}
 		c.shapers[id] = s
 	}
 	if s.typ.ID() == id {
-		return c.stash.CopyVal(zed.Value{s.typ, inVal.Bytes})
+		return ctx.NewValue(s.typ, inVal.Bytes)
 	}
 	c.b.Reset()
 	if zerr := s.step.buildRecord(inVal.Bytes, &c.b); zerr != nil {
@@ -130,9 +128,9 @@ func (c *ConstShaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 			panic(err)
 		}
 		c.b.AppendPrimitive(zerr.Bytes)
-		return c.stash.CopyVal(zed.Value{typ, c.b.Bytes()})
+		return ctx.NewValue(typ, c.b.Bytes())
 	}
-	return c.stash.CopyVal(zed.Value{s.typ, c.b.Bytes()})
+	return ctx.NewValue(s.typ, c.b.Bytes())
 }
 
 // A shaper is a per-input type ID "spec" that contains the output

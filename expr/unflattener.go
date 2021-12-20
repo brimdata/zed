@@ -2,7 +2,6 @@ package expr
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/field"
 )
 
@@ -11,7 +10,6 @@ type Unflattener struct {
 	builders    map[int]*zed.ColumnBuilder
 	recordTypes map[int]*zed.TypeRecord
 	fieldExpr   Evaluator
-	stash       result.Value
 }
 
 var _ Evaluator = (*Unflattener)(nil)
@@ -86,5 +84,5 @@ func (u *Unflattener) Eval(ctx Context, this *zed.Value) *zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	return u.stash.CopyVal(zed.Value{typ, zbytes})
+	return ctx.NewValue(typ, zbytes)
 }

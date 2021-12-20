@@ -2,34 +2,29 @@ package function
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 
 	"github.com/brimdata/zed"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#network_of
-type NetworkOf struct {
-	stash zed.Value
-}
+type NetworkOf struct{}
 
-func (n *NetworkOf) Call(args []zed.Value) *zed.Value {
+func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	id := args[0].Type.ID()
 	if id != zed.IDIP {
-		n.stash = zed.NewErrorf("network_of: not an IP")
-		return &n.stash
+		return newErrorf(ctx, "network_of: not an IP")
 	}
 	// XXX GC
 	ip, err := zed.DecodeIP(args[0].Bytes)
 	if err != nil {
-		panic(fmt.Errorf("network_of: corrupt Zed bytes: %w", err))
+		panic(err)
 	}
 	var mask net.IPMask
 	if len(args) == 1 {
 		mask = ip.DefaultMask()
 		if mask == nil {
-			n.stash = zed.NewErrorf("network_of: not an IP")
-			return &n.stash
+			return newErrorf(ctx, "network_of: not an IP")
 		}
 	} else {
 		// two args
@@ -39,11 +34,10 @@ func (n *NetworkOf) Call(args []zed.Value) *zed.Value {
 			var err error
 			cidrMask, err := zed.DecodeNet(body)
 			if err != nil {
-				panic(fmt.Errorf("network_of: corrupt Zed bytes: %w", err))
+				panic(err)
 			}
 			if !bytes.Equal(cidrMask.IP, cidrMask.Mask) {
-				n.stash = zed.NewErrorf("network_of: network arg not a cidr mask")
-				return &n.stash
+				return newErrorf(ctx, "network_of: network arg not a cidr mask")
 			}
 			mask = cidrMask.Mask
 		} else if zed.IsInteger(id) {
@@ -51,29 +45,26 @@ func (n *NetworkOf) Call(args []zed.Value) *zed.Value {
 			if zed.IsSigned(id) {
 				v, err := zed.DecodeInt(body)
 				if err != nil {
-					panic(fmt.Errorf("network_of: corrupt Zed bytes: %w", err))
+					panic(err)
 				}
 				nbits = uint(v)
 			} else {
 				v, err := zed.DecodeUint(body)
 				if err != nil {
-					panic(fmt.Errorf("network_of: corrupt Zed bytes: %w", err))
+					panic(err)
 				}
 				nbits = uint(v)
 			}
 			if nbits > 64 {
-				n.stash = zed.NewErrorf("network_of: cidr bit count out of range")
-				return &n.stash
+				return newErrorf(ctx, "network_of: cidr bit count out of range")
 			}
 			mask = net.CIDRMask(int(nbits), 8*len(ip))
 		} else {
-			n.stash = zed.NewErrorf("network_of: bad arg for cidr mask")
-			return &n.stash
+			return newErrorf(ctx, "network_of: bad arg for cidr mask")
 		}
 	}
 	// XXX GC
 	netIP := ip.Mask(mask)
 	v := &net.IPNet{netIP, mask}
-	n.stash = zed.Value{zed.TypeNet, zed.EncodeNet(v)}
-	return &n.stash
+	return ctx.NewValue(zed.TypeNet, zed.EncodeNet(v))
 }

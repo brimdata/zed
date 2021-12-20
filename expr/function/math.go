@@ -1,114 +1,103 @@
 package function
 
 import (
-	"errors"
-	"fmt"
 	"math"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/anymath"
 	"github.com/brimdata/zed/expr/coerce"
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zson"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#abs.md
-type Abs struct {
-	stash result.Value
-}
+type Abs struct{}
 
-func (a *Abs) Call(args []zed.Value) *zed.Value {
+func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	if zed.IsFloat(id) {
 		f, err := zed.DecodeFloat64(v.Bytes)
 		if err != nil {
-			panic(fmt.Errorf("abs: corrupt Zed bytes: %w", err))
+			panic(err)
 		}
 		f = math.Abs(f)
-		return a.stash.Float64(f)
+		return newFloat64(ctx, f)
 	}
 	if !zed.IsInteger(id) {
-		return a.stash.Error(fmt.Errorf("abs: not a number: %s", zson.MustFormatValue(args[0])))
+		return newErrorf(ctx, "abs: not a number: %s", zson.MustFormatValue(args[0]))
 	}
 	if !zed.IsSigned(id) {
-		return a.stash.Copy(&args[0])
+		return ctx.CopyValue(args[0])
 	}
 	x, err := zed.DecodeInt(v.Bytes)
 	if err != nil {
-		panic(fmt.Errorf("abs: corrupt Zed bytes: %w", err))
+		panic(err)
 	}
 	if x < 0 {
 		x = -x
 	}
-	return a.stash.Int64(x)
+	return newInt64(ctx, x)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
-type Ceil struct {
-	stash result.Value
-}
+type Ceil struct{}
 
-func (c *Ceil) Call(args []zed.Value) *zed.Value {
+func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	switch {
 	case zed.IsFloat(id):
 		f, err := zed.DecodeFloat64(v.Bytes)
 		if err != nil {
-			panic(fmt.Errorf("floor: corrupt Zed bytes: %w", err))
+			panic(err)
 		}
 		f = math.Ceil(f)
-		return c.stash.Float64(f)
+		return newFloat64(ctx, f)
 	case zed.IsInteger(id):
-		return c.stash.Copy(&args[0])
+		return ctx.CopyValue(args[0])
 	default:
-		return c.stash.Error(errors.New("ceil: not a number"))
+		return newErrorf(ctx, "ceil: not a number")
 	}
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#floor
-type Floor struct {
-	stash result.Value
-}
+type Floor struct{}
 
-func (f *Floor) Call(args []zed.Value) *zed.Value {
+func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	switch {
 	case zed.IsFloat(id):
 		v, _ := zed.DecodeFloat64(v.Bytes)
 		v = math.Floor(v)
-		return f.stash.Float64(v)
+		return newFloat64(ctx, v)
 	case zed.IsInteger(id):
-		return f.stash.Copy(&args[0])
+		return ctx.CopyValue(args[0])
 	default:
-		return f.stash.Error(errors.New("floor: not a number"))
+		return newErrorf(ctx, "floor: not a number")
 	}
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#log
-type Log struct {
-	stash result.Value
-}
+type Log struct{}
 
-func (l *Log) Call(args []zed.Value) *zed.Value {
+func (l *Log) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return l.stash.Error(errors.New("log: numeric argument required"))
+		return newErrorf(ctx, "log: numeric argument required")
 	}
 	if x <= 0 {
-		return l.stash.Errorf("log: illegal argument: %s", zson.MustFormatValue(args[0]))
+		return newErrorf(ctx, "log: illegal argument: %s", zson.MustFormatValue(args[0]))
 	}
-	return l.stash.Float64(math.Log(x))
+	return newFloat64(ctx, math.Log(x))
 }
 
 type reducer struct {
-	stash result.Value
-	fn    *anymath.Function
+	name string
+	fn   *anymath.Function
 }
 
-func (r *reducer) Call(args []zed.Value) *zed.Value {
+func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	typ := zv.Type
 	id := typ.ID()
@@ -116,90 +105,83 @@ func (r *reducer) Call(args []zed.Value) *zed.Value {
 		//XXX this is wrong like math aggregators...
 		// need to be more robust and adjust type as new types encountered
 		result, _ := zed.DecodeFloat64(zv.Bytes)
-		for _, zv := range args[1:] {
+		for _, val := range args[1:] {
 			v, ok := coerce.ToFloat(zv)
 			if !ok {
-				return r.stash.Error(errors.New("not a number"))
+				return newErrorf(ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
 			}
 			result = r.fn.Float64(result, v)
 		}
-		return r.stash.Float64(result)
+		return newFloat64(ctx, result)
 	}
 	if !zed.IsNumber(id) {
-		return r.stash.Error(errors.New("not a number"))
+		return newErrorf(ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(zv))
 	}
 	if zed.IsSigned(id) {
 		result, _ := zed.DecodeInt(zv.Bytes)
-		for _, zv := range args[1:] {
+		for _, val := range args[1:] {
 			//XXX this is really bad because we silently coerce
 			// floats to ints if we hit a float first
-			v, ok := coerce.ToInt(zv)
+			v, ok := coerce.ToInt(val)
 			if !ok {
-				return r.stash.Error(errors.New("not a number"))
+				return newErrorf(ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
 			}
 			result = r.fn.Int64(result, v)
 		}
-		return r.stash.Int64(result)
+		return newInt64(ctx, result)
 	}
 	result, _ := zed.DecodeUint(zv.Bytes)
-	for _, zv := range args[1:] {
-		v, ok := coerce.ToUint(zv)
+	for _, val := range args[1:] {
+		v, ok := coerce.ToUint(val)
 		if !ok {
-			//XXX this is bad
-			return r.stash.Error(errors.New("not a number"))
+			return newErrorf(ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
 		}
 		result = r.fn.Uint64(result, v)
 	}
-	return r.stash.Uint64(result)
+	return newUint64(ctx, result)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
-type Round struct {
-	stash result.Value
-}
+type Round struct{}
 
-func (r *Round) Call(args []zed.Value) *zed.Value {
+func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
 		f, err := zed.DecodeFloat64(zv.Bytes)
 		if err != nil {
-			panic(fmt.Errorf("round: corrupt Zed bytes: %w", err))
+			panic(err)
 		}
-		return r.stash.Float64(math.Round(f))
+		return newFloat64(ctx, math.Round(f))
 	}
 	if !zed.IsNumber(id) {
-		return r.stash.Error(errors.New("round: not a number"))
+		return newErrorf(ctx, "round: not a number: %s", zson.MustFormatValue(zv))
 	}
-	return r.stash.Copy(&args[0])
+	return ctx.CopyValue(args[0])
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#pow
-type Pow struct {
-	stash result.Value
-}
+type Pow struct{}
 
-func (p *Pow) Call(args []zed.Value) *zed.Value {
+func (p *Pow) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return p.stash.Error(errors.New("pow: not a number"))
+		return newErrorf(ctx, "pow: not a number: %s", zson.MustFormatValue(args[0]))
 	}
 	y, ok := coerce.ToFloat(args[1])
 	if !ok {
-		return p.stash.Error(errors.New("pow: not a number"))
+		return newErrorf(ctx, "pow: not a number: %s", zson.MustFormatValue(args[1]))
 	}
-	return p.stash.Float64(math.Pow(x, y))
+	return newFloat64(ctx, math.Pow(x, y))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#sqrt
-type Sqrt struct {
-	stash result.Value
-}
+type Sqrt struct{}
 
-func (s *Sqrt) Call(args []zed.Value) *zed.Value {
+func (s *Sqrt) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return s.stash.Error(errors.New("sqrt: not a number"))
+		return newErrorf(ctx, "sqrt: not a number: %s", zson.MustFormatValue(args[0]))
 	}
-	return s.stash.Float64(math.Sqrt(x))
+	return newFloat64(ctx, math.Sqrt(x))
 }

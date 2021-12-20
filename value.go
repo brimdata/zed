@@ -43,6 +43,11 @@ type Value struct {
 	Bytes zcode.Bytes
 }
 
+type Allocator interface {
+	NewValue(Type, zcode.Bytes) *Value
+	CopyValue(Value) *Value
+}
+
 func NewValue(zt Type, zb zcode.Bytes) *Value {
 	return &Value{zt, zb}
 }

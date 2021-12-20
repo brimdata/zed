@@ -2,7 +2,6 @@ package expr
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -12,7 +11,6 @@ type RecordExpr struct {
 	builder *zcode.Builder
 	columns []zed.Column
 	exprs   []Evaluator
-	stash   result.Value
 }
 
 func NewRecordExpr(zctx *zed.Context, names []string, exprs []Evaluator) *RecordExpr {
@@ -51,7 +49,7 @@ func (r *RecordExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 			panic(err)
 		}
 	}
-	return r.stash.CopyVal(zed.Value{r.typ, b.Bytes()})
+	return ctx.NewValue(r.typ, b.Bytes())
 }
 
 type ArrayExpr struct {
@@ -59,7 +57,6 @@ type ArrayExpr struct {
 	typ     *zed.TypeArray
 	builder *zcode.Builder
 	exprs   []Evaluator
-	stash   result.Value
 }
 
 func NewArrayExpr(zctx *zed.Context, exprs []Evaluator) *ArrayExpr {
@@ -90,7 +87,7 @@ func (a *ArrayExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 				container = zed.IsContainerType(inner)
 			} else {
 				//XXX should make a union... this is pretty easy
-				return a.stash.Errorf("mixed-type array expressions not yet supported")
+				return ctx.CopyValue(zed.NewErrorf("mixed-type array expressions not yet supported"))
 			}
 		}
 		if container {
@@ -104,7 +101,7 @@ func (a *ArrayExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 		// Return empty array instead of null array.
 		bytes = []byte{}
 	}
-	return a.stash.CopyVal(zed.Value{a.typ, bytes})
+	return ctx.NewValue(a.typ, bytes)
 }
 
 type SetExpr struct {
@@ -112,7 +109,6 @@ type SetExpr struct {
 	typ     *zed.TypeSet
 	builder *zcode.Builder
 	exprs   []Evaluator
-	stash   result.Value
 }
 
 func NewSetExpr(zctx *zed.Context, exprs []Evaluator) *SetExpr {
@@ -143,7 +139,7 @@ func (s *SetExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 				container = zed.IsContainerType(inner)
 			} else {
 				//XXX should make a union... this is pretty easy
-				return s.stash.Errorf("mixed-type set expressions not yet supported")
+				return ctx.CopyValue(zed.NewErrorf("mixed-type set expressions not yet supported"))
 			}
 		}
 		if container {
@@ -157,7 +153,7 @@ func (s *SetExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 		// Return empty set instead of null set.
 		bytes = []byte{}
 	}
-	return s.stash.CopyVal(zed.Value{s.typ, zed.NormalizeSet(bytes)})
+	return ctx.NewValue(s.typ, zed.NormalizeSet(bytes))
 }
 
 type Entry struct {
@@ -170,7 +166,6 @@ type MapExpr struct {
 	typ     *zed.TypeMap
 	builder *zcode.Builder
 	entries []Entry
-	stash   result.Value
 }
 
 func NewMapExpr(zctx *zed.Context, entries []Entry) *MapExpr {
@@ -203,7 +198,7 @@ func (m *MapExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 			containerVal = zed.IsContainerType(valType)
 		} else if keyType != m.typ.KeyType || valType != m.typ.ValType {
 			//XXX should make a union... this is pretty easy
-			return m.stash.Errorf("mixed-type map expressions not yet supported")
+			return ctx.CopyValue(zed.NewErrorf("mixed-type map expressions not yet supported"))
 		}
 		if containerKey {
 			b.AppendContainer(key.Bytes)
@@ -221,5 +216,5 @@ func (m *MapExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 		// Return empty map instead of null map.
 		bytes = []byte{}
 	}
-	return m.stash.CopyVal(zed.Value{m.typ, zed.NormalizeMap(bytes)})
+	return ctx.CopyValue(zed.Value{m.typ, zed.NormalizeMap(bytes)})
 }

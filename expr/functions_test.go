@@ -74,10 +74,10 @@ func TestMinMax(t *testing.T) {
 	testSuccessful(t, "max(2.0, -1)", record, zfloat64(2))
 
 	// Fails on invalid types
-	testSuccessful(t, `min("hello", 2)`, record, ZSON(`"not a number"(error)`))
-	testSuccessful(t, `max("hello", 2)`, record, ZSON(`"not a number"(error)`))
-	testSuccessful(t, `min(1.2.3.4, 2)`, record, ZSON(`"not a number"(error)`))
-	testSuccessful(t, `max(1.2.3.4, 2)`, record, ZSON(`"not a number"(error)`))
+	testSuccessful(t, `min("hello", 2)`, record, ZSON(`"min: not a number: \"hello\""(error)`))
+	testSuccessful(t, `max("hello", 2)`, record, ZSON(`"max: not a number: \"hello\""(error)`))
+	testSuccessful(t, `min(1.2.3.4, 2)`, record, ZSON(`"min: not a number: 1.2.3.4"(error)`))
+	testSuccessful(t, `max(1.2.3.4, 2)`, record, ZSON(`"max: not a number: 1.2.3.4"(error)`))
 }
 
 func TestCeilFloorRound(t *testing.T) {

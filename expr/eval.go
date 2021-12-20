@@ -66,9 +66,7 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 func evalBool(ctx Context, e Evaluator, rec *zed.Value) *zed.Value {
 	val := e.Eval(ctx, rec)
 	if zed.AliasOf(val.Type) != zed.TypeBool {
-		//XXX stash
-		v := zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val))
-		val = &v
+		return ctx.CopyValue(zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val)))
 	}
 	return val
 }
@@ -663,22 +661,20 @@ func (i *Index) Eval(ctx Context, this *zed.Value) *zed.Value {
 	index := i.index.Eval(ctx, this)
 	switch typ := container.Type.(type) {
 	case *zed.TypeArray:
-		return indexArray(typ, container.Bytes, index)
+		return indexArray(ctx, typ, container.Bytes, index)
 	case *zed.TypeRecord:
-		return indexRecord(typ, container.Bytes, index)
+		return indexRecord(ctx, typ, container.Bytes, index)
 	case *zed.TypeMap:
-		return indexMap(typ, container.Bytes, index)
+		return indexMap(ctx, typ, container.Bytes, index)
 	default:
 		return zed.Missing
 	}
 }
 
-func indexArray(typ *zed.TypeArray, array zcode.Bytes, index *zed.Value) *zed.Value {
+func indexArray(ctx Context, typ *zed.TypeArray, array zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsInteger(id) {
-		//XXX stash
-		val := zed.NewErrorf("array index is not an integer")
-		return &val
+		return ctx.CopyValue(zed.NewErrorf("array index is not an integer"))
 	}
 	var idx uint
 	if zed.IsSigned(id) {
@@ -698,27 +694,23 @@ func indexArray(typ *zed.TypeArray, array zcode.Bytes, index *zed.Value) *zed.Va
 	if zv == nil {
 		return zed.Missing
 	}
-	//XXX stash
-	val := zed.Value{typ.Type, zv}
-	return &val
+	return ctx.NewValue(typ.Type, zv)
 }
 
-func indexRecord(typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
+func indexRecord(ctx Context, typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsStringy(id) {
-		//XXX stash
-		val := zed.NewErrorf("record index is not a string")
-		return &val
+		return ctx.CopyValue(zed.NewErrorf("record index is not a string"))
 	}
 	field, _ := zed.DecodeString(index.Bytes)
 	val, err := zed.NewValue(typ, record).ValueByField(string(field))
 	if err != nil {
 		return zed.Missing
 	}
-	return &val
+	return ctx.CopyValue(val)
 }
 
-func indexMap(typ *zed.TypeMap, mapBytes zcode.Bytes, key *zed.Value) *zed.Value {
+func indexMap(ctx Context, typ *zed.TypeMap, mapBytes zcode.Bytes, key *zed.Value) *zed.Value {
 	if key == zed.Missing {
 		return zed.Missing
 	}
@@ -726,14 +718,10 @@ func indexMap(typ *zed.TypeMap, mapBytes zcode.Bytes, key *zed.Value) *zed.Value
 		//XXX coerce numeric index?
 		//XXX seems like we should jut return missing here as
 		// a wrong-type key is simply not present in the map
-		//XXX stash
-		val := zed.NewErrorf("incompatible map key type")
-		return &val
+		return ctx.CopyValue(zed.NewErrorf("incompatible map key type"))
 	}
 	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
-		// XXX stash
-		val := zed.Value{typ.ValType, valBytes}
-		return &val
+		return ctx.NewValue(typ.ValType, valBytes)
 	}
 	return zed.Missing
 }
@@ -785,7 +773,7 @@ func (c *Call) Eval(ctx Context, this *zed.Value) *zed.Value {
 	for k, e := range c.exprs {
 		c.args[k] = *e.Eval(ctx, this)
 	}
-	return c.fn.Call(c.args)
+	return c.fn.Call(ctx, c.args)
 }
 
 // A TyepFunc returns a type value of the named type (where the name is
@@ -877,9 +865,7 @@ func (c *evalCast) Eval(ctx Context, this *zed.Value) *zed.Value {
 	if val.IsNull() {
 		// Take care of null here so the casters don't have to
 		// worry about it.  Any value can be null after all.
-		//XXX stash
-		val := zed.Value{c.typ, nil}
-		return &val
+		return ctx.NewValue(c.typ, nil)
 	}
 	return c.caster(val)
 }

@@ -143,7 +143,8 @@ func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
 				// we know the key value is not null
 				return -1
 			}
-			//XXX
+			//XXX I think we can take this out now that values
+			// are all allocated in the context... (need to hit funcs)
 			a = a.Copy()
 
 			b := keyval[k]

@@ -16,7 +16,6 @@ func (*This) Eval(_ Context, this *zed.Value) *zed.Value {
 type DotExpr struct {
 	record Evaluator
 	field  string
-	stash  zed.Value
 }
 
 func NewDotExpr(record Evaluator, field string) *DotExpr {
@@ -71,14 +70,11 @@ func (d *DotExpr) Eval(ctx Context, this *zed.Value) *zed.Value {
 	typ := recType.Columns[idx].Type
 	if val.IsNull() {
 		// The record is null.  Return null value of the field type.
-		//XXX could lookup singleton
-		d.stash = zed.Value{typ, nil}
-		return &d.stash
+		return ctx.NewValue(typ, nil)
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
 	field := getNthFromContainer(val.Bytes, uint(idx))
-	d.stash = zed.Value{Type: recType.Columns[idx].Type, Bytes: field}
-	return &d.stash
+	return ctx.NewValue(recType.Columns[idx].Type, field)
 }
 
 // DotExprToString returns Zed for the Evaluator assuming it's a field expr.
