@@ -40,7 +40,6 @@ type Aggregator struct {
 	// at the output to track the combined type of the keys and aggregations.
 	keyTypes     *zed.TypeVectorTable
 	outTypes     *zed.TypeVectorTable
-	block        map[zed.Type]struct{}
 	typeCache    []zed.Type
 	keyCache     []byte // Reduces memory allocations in Consume.
 	keyRefs      []expr.Evaluator
@@ -114,7 +113,6 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 		aggRefs:      aggRefs,
 		aggs:         aggs,
 		builder:      builder,
-		block:        make(map[zed.Type]struct{}),
 		typeCache:    make([]zed.Type, nkeys+len(aggs)),
 		keyCache:     make(zcode.Bytes, 0, 128),
 		table:        make(map[string]*Row),
@@ -246,12 +244,6 @@ func (p *Proc) shutdown(err error) {
 // Consume adds a value to an aggregation.
 // XXX seems like this should return do add non-missing Zed errors to a column...
 func (a *Aggregator) Consume(ctx expr.Context, this *zed.Value) {
-	// First check if we've seen this descriptor and whether it is blocked.
-	if _, ok := a.block[this.Type]; ok {
-		// descriptor blocked since it doesn't have all the group-by keys
-		return
-	}
-
 	// See if we've encountered this row before.
 	// We compute a key for this row by exploiting the fact that
 	// a row key is uniquely determined by the inbound descriptor
@@ -279,11 +271,7 @@ func (a *Aggregator) Consume(ctx expr.Context, this *zed.Value) {
 	var prim *zed.Value
 	for i, keyExpr := range a.keyExprs {
 		key := keyExpr.Eval(ctx, this)
-		if key.IsError() && !key.IsMissing() {
-			// XXX Silently ignore errors.  We should add
-			// an error column and collect up the errors to
-			// some limit.
-			a.block[this.Type] = struct{}{}
+		if key.IsQuiet() {
 			return
 		}
 		if i == 0 && a.inputDir != 0 {

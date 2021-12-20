@@ -117,7 +117,7 @@ const nullIn = `
 
 const nullOut = `
 {key:"key1",sum:5}
-{key:"key2",sum:null}
+{key:"key2",sum:null(int64)}
 `
 
 const notPresentIn = `
