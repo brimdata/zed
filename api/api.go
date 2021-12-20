@@ -112,6 +112,11 @@ type QueryRequest struct {
 	Head  lakeparse.Commitish `json:"head"`
 }
 
+type LambdaQueryRequest struct {
+	Branch string              `json:"branch"`
+	Head   lakeparse.Commitish `json:"head"`
+}
+
 type QueryChannelSet struct {
 	ChannelID int `json:"channel_id" zed:"channel_id"`
 }

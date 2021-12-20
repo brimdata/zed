@@ -270,6 +270,15 @@ func (r *Root) Layout(ctx context.Context, src dag.Source) order.Layout {
 	return config.Layout
 }
 
+func (r *Root) OpenPoolByName(ctx context.Context, name string) (*Pool, error) {
+	config := r.pools.LookupByName(ctx, name)
+	if config == nil {
+		return nil, fmt.Errorf("%s: %w", name, pools.ErrNotFound)
+	}
+
+	return r.openPool(ctx, config)
+}
+
 func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
 	config, err := r.pools.LookupByID(ctx, id)
 	if err != nil {

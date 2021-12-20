@@ -1,7 +1,12 @@
 package service
 
 import (
+	"bytes"
+	"context"
 	"errors"
+	"fmt"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zson"
 	"net/http"
 
 	"github.com/brimdata/zed"
@@ -40,6 +45,80 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	d, err := queryio.NewDriver(zio.NopCloser(w), format, !noctrl)
+	if err != nil {
+		w.Error(err)
+	}
+	defer d.Close()
+	err = driver.RunWithLakeAndStats(r.Context(), d, query, zed.NewContext(), c.root, &req.Head, nil, r.Logger, 0)
+	if err != nil && !errors.Is(err, journal.ErrEmpty) {
+		d.Error(err)
+	}
+}
+
+func getLambdaQueryByName(ctx context.Context, root *lake.Root, lambdaName string, branch string) (string, error) {
+	lambdasPool, err := root.OpenPoolByName(ctx, "lambdas")
+	if err != nil {
+		return "", err
+	}
+	if branch == "" {
+		branch = "main"
+	}
+	var buf bytes.Buffer
+	d, err := queryio.NewDriver(zio.NopCloser(&buf), "zng", true)
+	if err != nil {
+		return "", err
+	}
+	q, err := compiler.ParseProc(fmt.Sprintf("from lambdas | name == '%s' | sort -r ts | head 1", lambdaName))
+	if err != nil {
+		return "", zqe.ErrInvalid(err)
+	}
+	driver.RunWithLake(ctx, d, q, zed.NewContext(), root, &lakeparse.Commitish{
+		Pool:   lambdasPool.Name,
+		Branch: branch,
+	})
+	rec, _ := zngio.NewReader(bytes.NewReader(buf.Bytes()), zed.NewContext()).Read()
+	if rec == nil {
+		return "", nil
+	}
+
+	type lambdaRecord struct {
+		Name string `zed:"name"`
+		Zed  string `zed:"zed"`
+		Ts   int64  `zed:"ts"`
+	}
+	var lambdaRec lambdaRecord
+	if err := zson.UnmarshalZNGRecord(rec, &lambdaRec); err != nil {
+		return "", err
+	}
+
+	return lambdaRec.Zed, nil
+}
+
+func handleLambdaQuery(c *Core, w *ResponseWriter, r *Request) {
+	var req api.LambdaQueryRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	lambdaName, ok := r.StringFromPath(w, "lambdaName")
+	if !ok {
+		return
+	}
+	lambdaQuery, err := getLambdaQueryByName(r.Context(), c.root, lambdaName, req.Branch)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	query, err := compiler.ParseProc(lambdaQuery)
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+		return
+	}
+	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"), DefaultZedFormat)
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+		return
+	}
+	d, err := queryio.NewDriver(zio.NopCloser(w), format, true)
 	if err != nil {
 		w.Error(err)
 	}

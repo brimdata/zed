@@ -3,11 +3,14 @@ package service
 import (
 	"context"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/zqe"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
@@ -27,6 +30,35 @@ func requestIDMiddleware() mux.MiddlewareFunc {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func getAllowedOrigins() []string {
+	return []string{"observableusercontent.com", "localhost"}
+}
+
+func originValidator(origin string) bool {
+	valid := false
+	unescapedOrigin, err := url.QueryUnescape(origin)
+	if err != nil {
+		return valid
+	}
+	url, err := url.Parse(unescapedOrigin)
+	if err != nil {
+		return valid
+	}
+	for _, allowedDomain := range getAllowedOrigins() {
+		if strings.HasSuffix(url.Host, allowedDomain) {
+			valid = true
+		}
+	}
+	return valid
+}
+
+func corsMiddleware() mux.MiddlewareFunc {
+	return cors.New(cors.Options{
+		AllowOriginFunc:  originValidator,
+		AllowCredentials: true,
+	}).Handler
 }
 
 func accessLogMiddleware(logger *zap.Logger) mux.MiddlewareFunc {

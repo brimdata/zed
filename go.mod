@@ -26,6 +26,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/client_model v0.2.0
+	github.com/rs/cors v1.8.0
 	github.com/segmentio/ksuid v1.0.2
 	github.com/stretchr/testify v1.7.0
 	github.com/yuin/goldmark v1.2.1
