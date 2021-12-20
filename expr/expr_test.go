@@ -110,24 +110,6 @@ func TestPrimitives(t *testing.T) {
 	testSuccessful(t, "s", record, zstring("hello"))
 }
 
-func TestLogical(t *testing.T) {
-	const record = "{t:true,f:false}"
-
-	testSuccessful(t, "t AND t", record, zbool(true))
-	testSuccessful(t, "t AND f", record, zbool(false))
-	testSuccessful(t, "f AND t", record, zbool(false))
-	testSuccessful(t, "f AND f", record, zbool(false))
-
-	testSuccessful(t, "t OR t", record, zbool(true))
-	testSuccessful(t, "t OR f", record, zbool(true))
-	testSuccessful(t, "f OR t", record, zbool(true))
-	testSuccessful(t, "f OR f", record, zbool(false))
-
-	testSuccessful(t, "!t", record, zbool(false))
-	testSuccessful(t, "!f", record, zbool(true))
-	testSuccessful(t, "!!f", record, zbool(false))
-}
-
 func TestCompareNumbers(t *testing.T) {
 	var numericTypes = []string{
 		"uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float32", "float64"}
