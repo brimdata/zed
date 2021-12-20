@@ -867,7 +867,7 @@ func (c *evalCast) Eval(ctx Context, this *zed.Value) *zed.Value {
 		// worry about it.  Any value can be null after all.
 		return ctx.NewValue(c.typ, nil)
 	}
-	return c.caster(val)
+	return c.caster(ctx, val)
 }
 
 func NewRootField(name string) Evaluator {

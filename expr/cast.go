@@ -8,13 +8,12 @@ import (
 	"github.com/araddon/dateparse"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zson"
 )
 
-type Caster func(zv *zed.Value) *zed.Value
+type Caster func(Context, *zed.Value) *zed.Value
 
 func LookupPrimitiveCaster(typ zed.Type) Caster {
 	switch typ {
@@ -63,14 +62,12 @@ var castToInt32 = castToIntN(zed.TypeInt32, math.MinInt32, math.MaxInt32)
 var castToInt64 = castToIntN(zed.TypeInt64, 0, 0)
 
 func castToIntN(typ zed.Type, min, max int64) Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		v, ok := coerce.ToInt(*val)
 		if !ok || (min != 0 && (v < min || v > max)) {
-			return stash.Errorf("cannot cast %s to type %s", zson.MustFormatValue(*val), zson.FormatType(typ))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type %s", zson.MustFormatValue(*val), zson.FormatType(typ)))
 		}
-		return stash.CopyVal(zed.Value{typ, zed.EncodeInt(v)})
+		return ctx.NewValue(typ, zed.EncodeInt(v))
 	}
 }
 
@@ -80,104 +77,90 @@ var castToUint32 = castToUintN(zed.TypeUint32, math.MaxUint32)
 var castToUint64 = castToUintN(zed.TypeUint64, 0)
 
 func castToUintN(typ zed.Type, max uint64) Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		v, ok := coerce.ToUint(*val)
 		if !ok || (max != 0 && v > max) {
-			return stash.Errorf("cannot cast %s to type %s", zson.MustFormatValue(*val), zson.FormatType(typ))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type %s", zson.MustFormatValue(*val), zson.FormatType(typ)))
 		}
-		return stash.CopyVal(zed.Value{typ, zed.EncodeUint(v)})
+		return ctx.NewValue(typ, zed.EncodeUint(v))
 	}
 }
 
 func newBoolCaster() Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		b, ok := coerce.ToBool(*val)
 		if !ok {
-			return stash.Errorf("cannot cast %s to bool", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to bool", zson.MustFormatValue(*val)))
 		}
-		return stash.CopyVal(zed.Value{zed.TypeBool, zed.EncodeBool(b)})
+		return ctx.NewValue(zed.TypeBool, zed.EncodeBool(b))
 	}
 }
 
 func newFloat32Caster() Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		f, ok := coerce.ToFloat(*val)
 		if !ok {
-			return stash.Errorf("cannot cast %s to type float32", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type float32", zson.MustFormatValue(*val)))
 		}
-		return stash.CopyVal(zed.Value{zed.TypeFloat32, zed.EncodeFloat32(float32(f))})
+		return ctx.NewValue(zed.TypeFloat32, zed.EncodeFloat32(float32(f)))
 	}
 }
 
 func newFloat64Caster() Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		f, ok := coerce.ToFloat(*val)
 		if !ok {
-			return stash.Errorf("cannot cast %s to type float64", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type float64", zson.MustFormatValue(*val)))
 		}
-		return stash.CopyVal(zed.Value{zed.TypeFloat64, zed.EncodeFloat64(f)})
+		return ctx.NewValue(zed.TypeFloat64, zed.EncodeFloat64(f))
 	}
 }
 
 func newIPCaster() Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		//XXX move same type check above with the null check?
 		if _, ok := zed.AliasOf(val.Type).(*zed.TypeOfIP); ok {
 			return val
 		}
 		if !val.IsStringy() {
-			return stash.Errorf("cannot cast %s to type ip", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type ip", zson.MustFormatValue(*val)))
 		}
 		// XXX GC
 		ip := net.ParseIP(string(val.Bytes))
 		if ip == nil {
-			return stash.Errorf("cannot cast %s to type ip", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type ip", zson.MustFormatValue(*val)))
 		}
-		return stash.CopyVal(zed.Value{zed.TypeIP, zed.EncodeIP(ip)})
+		return ctx.NewValue(zed.TypeIP, zed.EncodeIP(ip))
 	}
 }
 
 func newNetCaster() Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		if !val.IsStringy() {
-			return stash.Errorf("cannot cast %s to type net", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type net", zson.MustFormatValue(*val)))
 		}
 		// XXX GC
 		_, net, err := net.ParseCIDR(string(val.Bytes))
 		if err != nil {
-			return stash.Errorf("cannot cast %s to type net", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type net", zson.MustFormatValue(*val)))
 		}
-		return stash.CopyVal(zed.Value{zed.TypeNet, zed.EncodeNet(net)})
+		return ctx.NewValue(zed.TypeNet, zed.EncodeNet(net))
 	}
 }
 
 func newDurationCaster() Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		id := val.Type.ID()
 		if zed.IsStringy(id) {
 			d, err := nano.ParseDuration(byteconv.UnsafeString(val.Bytes))
 			if err != nil {
 				f, ferr := byteconv.ParseFloat64(val.Bytes)
 				if ferr != nil {
-					return stash.Errorf("cannot cast %s to type duration", zson.MustFormatValue(*val))
+					return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type duration", zson.MustFormatValue(*val)))
 				}
 				d = nano.DurationFromFloat(f)
 			}
-			return stash.CopyVal(zed.Value{zed.TypeDuration, zed.EncodeDuration(d)})
+			return ctx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 		}
 		if zed.IsFloat(id) {
 			f, err := zed.DecodeFloat(val.Bytes)
@@ -185,21 +168,19 @@ func newDurationCaster() Caster {
 				panic(err)
 			}
 			d := nano.DurationFromFloat(f)
-			return stash.CopyVal(zed.Value{zed.TypeDuration, zed.EncodeDuration(d)})
+			return ctx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 		}
 		sec, ok := coerce.ToInt(*val)
 		if !ok {
-			return stash.Errorf("cannot cast %s to type duration", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type duration", zson.MustFormatValue(*val)))
 		}
 		d := nano.Duration(sec) * nano.Second
-		return stash.CopyVal(zed.Value{zed.TypeDuration, zed.EncodeDuration(d)})
+		return ctx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
 }
 
 func newTimeCaster() Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(val *zed.Value) *zed.Value {
+	return func(ctx Context, val *zed.Value) *zed.Value {
 		id := val.Type.ID()
 		var ts nano.Ts
 		switch {
@@ -210,7 +191,7 @@ func newTimeCaster() Caster {
 			if err != nil {
 				sec, ferr := byteconv.ParseFloat64(val.Bytes)
 				if ferr != nil {
-					return stash.Errorf("cannot cast %s to type time", zson.MustFormatValue(*val))
+					return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type time", zson.MustFormatValue(*val)))
 				}
 				ts = nano.Ts(1e9 * sec)
 			} else {
@@ -230,48 +211,43 @@ func newTimeCaster() Caster {
 			}
 			ts = nano.Ts(sec * 1e9)
 		default:
-			return stash.Errorf("cannot cast %s to type time", zson.MustFormatValue(*val))
+			return ctx.CopyValue(zed.NewErrorf("cannot cast %s to type time", zson.MustFormatValue(*val)))
 		}
-		return stash.CopyVal(zed.Value{zed.TypeTime, zed.EncodeTime(ts)})
+		return ctx.NewValue(zed.TypeTime, zed.EncodeTime(ts))
 	}
 }
 
 func newStringyCaster(typ zed.Type) Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(zv *zed.Value) *zed.Value {
-		id := zv.Type.ID()
+	return func(ctx Context, val *zed.Value) *zed.Value {
+		id := val.Type.ID()
 		if id == zed.IDBytes || id == zed.IDBstring {
-			if !utf8.Valid(zv.Bytes) {
-				return stash.Errorf("non-UTF-8 bytes cannot be cast to type string")
+			if !utf8.Valid(val.Bytes) {
+				return ctx.CopyValue(zed.NewErrorf("non-UTF-8 bytes cannot be cast to type string"))
 			}
-			return stash.CopyVal(zed.Value{typ, zv.Bytes})
+			return ctx.NewValue(typ, val.Bytes)
 		}
-		if enum, ok := zv.Type.(*zed.TypeEnum); ok {
-			selector, _ := zed.DecodeUint(zv.Bytes)
+		if enum, ok := val.Type.(*zed.TypeEnum); ok {
+			selector, _ := zed.DecodeUint(val.Bytes)
 			symbol, err := enum.Symbol(int(selector))
 			if err != nil {
-				return stash.Error(err)
+				return ctx.CopyValue(zed.NewError(err))
 			}
-			//XXX GC
-			return stash.CopyVal(zed.Value{typ, zed.EncodeString(symbol)})
+			return ctx.NewValue(typ, zed.EncodeString(symbol))
 		}
 		if zed.IsStringy(id) {
 			// If it's already stringy, then the Zed encoding can stay
 			// the same and we just update the stringy type.
-			return stash.CopyVal(zed.Value{typ, zv.Bytes})
+			return ctx.NewValue(typ, val.Bytes)
 		}
 		// Otherwise, we'll use a canonical ZSON value for the string rep
 		// of an arbitrary value cast to a string.
-		result := zson.MustFormatValue(*zv)
-		return stash.CopyVal(zed.Value{typ, zed.EncodeString(result)})
+		result := zson.MustFormatValue(*val)
+		return ctx.NewValue(typ, zed.EncodeString(result))
 	}
 }
 
 func newBytesCaster() Caster {
-	//XXX should use context
-	var stash result.Value
-	return func(zv *zed.Value) *zed.Value {
-		return stash.CopyVal(zed.Value{zed.TypeBytes, zed.EncodeBytes(zv.Bytes)})
+	return func(ctx Context, val *zed.Value) *zed.Value {
+		return ctx.NewValue(zed.TypeBytes, val.Bytes)
 	}
 }

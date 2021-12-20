@@ -69,7 +69,7 @@ func (s *Shaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 		s.shapers[shapeTo] = shaper
 	}
 	v := shaper.Eval(ctx, this)
-	fmt.Printf("SHAPER RETURN", zson.MustFormatValue(*v))
+	fmt.Println("SHAPER RETURN", zson.MustFormatValue(*v))
 	return v
 }
 
@@ -126,7 +126,7 @@ func (c *ConstShaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 		return ctx.NewValue(s.typ, inVal.Bytes)
 	}
 	c.b.Reset()
-	if zerr := s.step.buildRecord(inVal.Bytes, &c.b); zerr != nil {
+	if zerr := s.step.buildRecord(ctx, inVal.Bytes, &c.b); zerr != nil {
 		typ, err := c.zctx.LookupTypeRecord([]zed.Column{{Name: "error", Type: zerr.Type}})
 		if err != nil {
 			panic(err)
@@ -413,7 +413,7 @@ func (s *step) append(step step) {
 	s.children = append(s.children, step)
 }
 
-func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) buildRecord(ctx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	for _, step := range s.children {
 		switch step.op {
 		case null:
@@ -427,21 +427,21 @@ func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 		// zcode.Iter along with keeping track of our
 		// position.
 		bytes := getNthFromContainer(in, uint(step.fromIndex))
-		if zerr := step.build(bytes, b); zerr != nil {
+		if zerr := step.build(ctx, bytes, b); zerr != nil {
 			return zerr
 		}
 	}
 	return nil
 }
 
-func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) build(ctx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	switch s.op {
 	case copyPrimitive:
 		b.AppendPrimitive(in)
 	case copyContainer:
 		b.AppendContainer(in)
 	case castPrimitive:
-		if zerr := s.castPrimitive(in, b); zerr != nil {
+		if zerr := s.castPrimitive(ctx, in, b); zerr != nil {
 			return zerr
 		}
 	case castUnion:
@@ -452,7 +452,7 @@ func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 			return nil
 		}
 		b.BeginContainer()
-		if zerr := s.buildRecord(in, b); zerr != nil {
+		if zerr := s.buildRecord(ctx, in, b); zerr != nil {
 			return zerr
 		}
 		b.EndContainer()
@@ -468,7 +468,7 @@ func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 			if err != nil {
 				panic(err)
 			}
-			if zerr := s.children[0].build(zv, b); zerr != nil {
+			if zerr := s.children[0].build(ctx, zv, b); zerr != nil {
 				return zerr
 			}
 		}
@@ -480,20 +480,20 @@ func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	return nil
 }
 
-func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) castPrimitive(ctx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	if in == nil {
 		b.AppendNull()
 		return nil
 	}
 	toType := zed.AliasOf(s.toType)
-	// XXX this makes a new closure on each call... blah this code was net well thougt out
-	// should put this in a table
 	cast := LookupPrimitiveCaster(toType)
-	v := cast(&zed.Value{s.fromType, in})
+	fmt.Println("LOOKUP CASTER", toType)
+	v := cast(ctx, &zed.Value{s.fromType, in})
 	if v.Type != toType {
 		// v isn't the "to" type, so we can't safely append v.Bytes to
 		// the builder. See https://github.com/brimdata/zed/issues/2710.
 		if v.IsError() {
+			fmt.Println("CASTER ERR", zson.MustFormatValue(*v))
 			return v
 		}
 		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))
