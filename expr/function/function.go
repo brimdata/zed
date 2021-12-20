@@ -142,19 +142,20 @@ type LenFn struct {
 }
 
 func (l *LenFn) Call(args []zed.Value) *zed.Value {
-	zv := args[0]
+	val := args[0]
 	var length int
 	switch typ := zed.AliasOf(args[0].Type).(type) {
+	case *zed.TypeOfNull:
 	case *zed.TypeRecord:
 		length = len(typ.Columns)
 	case *zed.TypeArray, *zed.TypeSet, *zed.TypeMap:
 		var err error
-		length, err = zv.ContainerLength()
+		length, err = val.ContainerLength()
 		if err != nil {
 			panic(fmt.Errorf("len: corrupt Zed bytes: %w", err))
 		}
 	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfError:
-		length = len(zv.Bytes)
+		length = len(val.Bytes)
 	default:
 		err := fmt.Errorf("len: bad type: %s", zson.FormatType(typ))
 		return l.stash.Error(err)

@@ -7,4 +7,6 @@ input: |
   {a:[0],b:{c:1}}
 
 output: |
+  {a:"missing"(error),b:"missing"(error)}
+  {a:"missing"(error),b:1}
   {a:0,b:1}

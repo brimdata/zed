@@ -21,11 +21,8 @@ type ParseURI struct {
 
 func (p *ParseURI) Call(args []zed.Value) *zed.Value {
 	in := args[0]
-	if !in.IsStringy() {
-		return p.stash.Error(errors.New("parse_uri: string arg required"))
-	}
-	if in.Bytes == nil {
-		return zed.Null
+	if !in.IsStringy() || in.Bytes == nil {
+		return p.stash.Error(errors.New("parse_uri: non-empty string arg required"))
 	}
 	s, err := zed.DecodeString(in.Bytes)
 	if err != nil {
@@ -64,7 +61,7 @@ func (p *ParseURI) Call(args []zed.Value) *zed.Value {
 	if ss := u.Port(); ss != "" {
 		u64, err := strconv.ParseUint(ss, 10, 16)
 		if err != nil {
-			return p.stash.Error(fmt.Errorf("parse_uri: %q: invalid port: %s", s, err))
+			return p.stash.Error(fmt.Errorf("parse_uri: %q: invalid port: %s", s, ss))
 		}
 		u16 := uint16(u64)
 		v.Port = &u16

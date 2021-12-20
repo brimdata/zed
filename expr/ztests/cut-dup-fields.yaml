@@ -3,8 +3,6 @@ script: |
   ! zq -z "cut rec.sub1,rec.sub1" in.zson
   ! zq -z "cut rec.sub,rec.sub.sub" in.zson
   ! zq -z "cut rec.sub.sub,rec.sub" in.zson
-  zq -z "cut a,ab" in.zson
-  zq -z "cut ab,a" in.zson
 
 inputs:
   - name: in.zson
@@ -18,5 +16,3 @@ outputs:
       field rec.sub1 is repeated
       field rec.sub.sub is repeated
       field rec.sub is repeated
-      cut: no record found with columns a,ab
-      cut: no record found with columns ab,a
