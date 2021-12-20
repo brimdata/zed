@@ -113,6 +113,7 @@ func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTa
 		return nil, err
 	}
 	table := index.NewMemTable(zctx, c.keys)
+	ctx := expr.NewContext()
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -121,7 +122,7 @@ func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTa
 		if rec == nil {
 			break
 		}
-		k := cutter.Eval(nil, rec)
+		k := cutter.Eval(ctx, rec)
 		if k.IsError() {
 			// if the key doesn't exist, just skip it
 			continue

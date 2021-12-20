@@ -93,6 +93,7 @@ type scanner struct {
 	reader zio.Reader
 	filter expr.Filter
 	ctx    context.Context
+	ectx   expr.Context
 
 	stats ScannerStats
 }
@@ -103,6 +104,9 @@ func (s *scanner) Stats() ScannerStats {
 
 // Read implements Reader.Read.
 func (s *scanner) Read() (*zed.Value, error) {
+	if s.ectx == nil {
+		s.ectx = expr.NewContext()
+	}
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err
@@ -113,7 +117,7 @@ func (s *scanner) Read() (*zed.Value, error) {
 		}
 		atomic.AddInt64(&s.stats.BytesRead, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.stats.RecordsRead, 1)
-		if s.filter != nil && !s.filter(nil, this) {
+		if s.filter != nil && !s.filter(s.ectx, this) {
 			continue
 		}
 		atomic.AddInt64(&s.stats.BytesMatched, int64(len(this.Bytes)))

@@ -182,13 +182,14 @@ func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Filt
 	if err != nil {
 		return nil, err
 	}
+	ectx := expr.NewContext()
 	var batch []zed.Value
 	for k := range pools {
 		rec, err := m.MarshalRecord(&pools[k])
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(nil, rec) {
+		if f == nil || f(ectx, rec) {
 			batch = append(batch, *rec)
 		}
 	}
@@ -435,6 +436,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 		return nil, err
 	}
 	var batch []zed.Value
+	ectx := expr.NewContext()
 	for _, name := range names {
 		rules, err := r.indexRules.Lookup(ctx, name)
 		if err != nil {
@@ -451,7 +453,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 			if err != nil {
 				return nil, err
 			}
-			if f == nil || f(nil, rec) {
+			if f == nil || f(ectx, rec) {
 				batch = append(batch, *rec)
 			}
 		}

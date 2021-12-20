@@ -50,6 +50,7 @@ type Writer struct {
 	uri         *storage.URI
 	keys        field.List
 	zctx        *zed.Context
+	ectx        expr.Context
 	engine      storage.Engine
 	writer      *indexWriter
 	cutter      *expr.Cutter
@@ -64,6 +65,7 @@ type Writer struct {
 type indexWriter struct {
 	base       *Writer
 	parent     *indexWriter
+	ectx       expr.Context
 	name       string
 	buffer     *bufwriter.Writer
 	zng        *zngio.Writer
@@ -89,6 +91,7 @@ func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage
 	w := &Writer{
 		keys:       keys,
 		zctx:       zctx,
+		ectx:       expr.NewContext(),
 		engine:     engine,
 		childField: uniqChildField(keys),
 	}
@@ -156,11 +159,11 @@ func Order(o order.Which) Option {
 func (w *Writer) Write(val *zed.Value) error {
 	if w.writer == nil {
 		var err error
-		w.writer, err = newIndexWriter(w, w.iow, "")
+		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx)
 		if err != nil {
 			return err
 		}
-		keys := w.cutter.Eval(nil, val)
+		keys := w.cutter.Eval(w.ectx, val)
 		if keys.IsError() {
 			return fmt.Errorf("key(s) not found in record: %q", w.keys)
 		}
@@ -292,7 +295,7 @@ func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameTh
 	return w.EndStream()
 }
 
-func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, error) {
+func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Context) (*indexWriter, error) {
 	base.nlevel++
 	if base.nlevel >= MaxLevels {
 		return nil, ErrTooManyLevels
@@ -301,6 +304,7 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, 
 	return &indexWriter{
 		base:     base,
 		buffer:   writer,
+		ectx:     ectx,
 		name:     name,
 		zng:      zngio.NewWriter(writer, zngio.WriterOpts{}),
 		frameEnd: int64(base.frameThresh),
@@ -312,7 +316,7 @@ func (w *indexWriter) newParent() (*indexWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newIndexWriter(w.base, file, file.Name())
+	return newIndexWriter(w.base, file, file.Name(), w.ectx)
 }
 
 func (w *indexWriter) Close() error {
@@ -341,7 +345,7 @@ func (w *indexWriter) write(rec *zed.Value) error {
 		// (or until we know it's the last frame in the file).
 		// So we build the frame key record from the current record
 		// here ahead of its use and save it in the frameKey variable.
-		key := w.base.cutter.Eval(nil, rec)
+		key := w.base.cutter.Eval(w.ectx, rec)
 		// If the key isn't here flag an error.  All keys must be
 		// present to build a proper index.
 		// XXX We also need to check that they are in order.

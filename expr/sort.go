@@ -30,10 +30,11 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 	var aBytesBuf []byte
 	var pair coerce.Pair
 	comparefns := make(map[zed.Type]comparefn)
+	ctx := NewContext() //XXX should be smarter about this... pass it in?
 	return func(ra *zed.Value, rb *zed.Value) int {
 		for _, resolver := range fields {
 			// XXX return errors?
-			a := resolver.Eval(nil, ra)
+			a := resolver.Eval(ctx, ra)
 			// XXX We should compute a vector of sort keys then
 			// sort the pointers and then generate the batches
 			// on demand from the sorted pointers.  And we should
@@ -49,7 +50,7 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 				a.Bytes = aBytesBuf
 			}
 
-			b := resolver.Eval(nil, rb)
+			b := resolver.Eval(ctx, rb)
 			v := compareValues(a, b, comparefns, &pair, nullsMax)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on

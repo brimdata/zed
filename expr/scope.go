@@ -2,6 +2,7 @@ package expr
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
 )
 
 // Context is an interface to a scope and value allocator for expressions.
@@ -14,6 +15,26 @@ type Context interface {
 	// of the context... another when you need to copy those bytes into
 	// this context.
 	zed.Allocator
+}
+
+type allocator struct{}
+
+var _ Context = (*allocator)(nil)
+
+func NewContext() *allocator {
+	return &allocator{}
+}
+
+func (*allocator) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
+	return zed.NewValue(typ, bytes)
+}
+
+func (*allocator) CopyValue(val zed.Value) *zed.Value {
+	return zed.NewValue(val.Type, val.Bytes)
+}
+
+func (*allocator) Scope() []zed.Value {
+	return nil
 }
 
 /*

@@ -654,7 +654,7 @@ func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (*zed.Value
 		return nil, err
 	}
 	// Pass Zed null for this and nil for compile-time scope.
-	return e.Eval(nil, zed.Null), nil
+	return e.Eval(expr.NewContext(), zed.Null), nil
 }
 
 type readerScheduler struct {

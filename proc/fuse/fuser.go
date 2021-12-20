@@ -21,6 +21,8 @@ type Fuser struct {
 	types      map[zed.Type]struct{}
 	uberSchema *agg.Schema
 	shaper     *expr.ConstShaper
+	//XXX this needs to be brought in more cleanly
+	ectx expr.Context
 }
 
 // NewFuser returns a new Fuser.  The Fuser buffers records in memory until
@@ -32,6 +34,7 @@ func NewFuser(zctx *zed.Context, memMaxBytes int) *Fuser {
 		memMaxBytes: memMaxBytes,
 		types:       make(map[zed.Type]struct{}),
 		uberSchema:  agg.NewSchema(zctx),
+		ectx:        expr.NewContext(),
 	}
 }
 
@@ -96,7 +99,7 @@ func (f *Fuser) Read() (*zed.Value, error) {
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	return f.shaper.Apply(nil, rec), nil
+	return f.shaper.Apply(f.ectx, rec), nil
 }
 
 func (f *Fuser) next() (*zed.Value, error) {

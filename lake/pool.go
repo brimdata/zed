@@ -149,13 +149,14 @@ func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.M
 	if err != nil {
 		return nil, err
 	}
+	ectx := expr.NewContext()
 	for _, branchRef := range branches {
 		meta := BranchMeta{p.Config, branchRef}
 		rec, err := m.MarshalRecord(&meta)
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(nil, rec) {
+		if f == nil || f(ectx, rec) {
 			recs = append(recs, *rec)
 		}
 	}
@@ -175,12 +176,13 @@ func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	recs := make([]zed.Value, 0, len(branches))
+	ectx := expr.NewContext()
 	for _, branchRef := range branches {
 		rec, err := m.MarshalRecord(&BranchTip{branchRef.Name, branchRef.Commit})
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(nil, rec) {
+		if f == nil || f(ectx, rec) {
 			recs = append(recs, *rec)
 		}
 	}

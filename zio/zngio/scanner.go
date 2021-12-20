@@ -52,6 +52,7 @@ func (r *Reader) NewScanner(ctx context.Context, filter zbuf.Filter) (zbuf.Scann
 			bufferFilter: bf,
 			filter:       f,
 			scanner:      s,
+			ectx:         expr.NewContext(), //XXX
 		})
 	}
 	return s, nil
@@ -95,6 +96,7 @@ type worker struct {
 	bufferFilter *expr.BufferFilter
 	filter       expr.Filter
 	scanner      *scanner
+	ectx         expr.Context
 }
 
 func (w *worker) run(ctx context.Context) error {
@@ -235,7 +237,8 @@ func (w *worker) wantRecord(rec *zed.Value, stats *zbuf.ScannerStats) bool {
 	// We pass nil to filter for the scope since a scanner cannot appear
 	// inside of a nested scope obviously and buffer filters cannot include
 	// scoped references.
-	if w.filter == nil || w.filter(nil, rec) {
+	//XXX we need a better model for expr.Context here.
+	if w.filter == nil || w.filter(w.ectx, rec) {
 		stats.BytesMatched += int64(len(rec.Bytes))
 		stats.RecordsMatched++
 		return true
