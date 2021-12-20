@@ -38,6 +38,12 @@ const groupSingleOut = `
 {key1:"b",count:1(uint64)}
 `
 
+const groupMissingOut = `
+{key1:"a",count:2(uint64)}
+{key1:"b",count:1(uint64)}
+{key1:"missing"(error),count:2(uint64)}
+`
+
 const groupMultiOut = `
 {key1:"a",key2:"x",count:1(uint64)}
 {key1:"a",key2:"y",count:1(uint64)}
@@ -111,7 +117,7 @@ const nullIn = `
 
 const nullOut = `
 {key:"key1",sum:5}
-{key:"key2",sum:null(int64)}
+{key:"key2",sum:null}
 `
 
 const notPresentIn = `
@@ -184,7 +190,7 @@ func tests() suite {
 	s.add(New("multiple-fields", in, groupMultiOut, "count() by key1,key2 | sort key1, key2"))
 
 	// Test that records missing groupby fields are ignored
-	s.add(New("missing-fields", in+missingField, groupSingleOut, "count() by key1 | sort key1"))
+	s.add(New("missing-fields", in+missingField, groupMissingOut, "count() by key1 | sort key1"))
 
 	// Test that input with different key types works correctly
 	s.add(New("different-key-types", in+differentTypeIn, differentTypeOut, "count() by key1 | sort key1"))

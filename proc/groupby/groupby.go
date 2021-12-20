@@ -196,20 +196,11 @@ func (p *Proc) run() {
 				p.shutdown(err)
 				return
 			}
-			// Reset scope on EOS and after we've sent all the
-			// results out.
-			p.ectx = nil
 			eof = true
 			continue
 		}
 		ctx := batch.Context()
-		if p.ectx == nil {
-			p.ectx = ctx
-		} else if ctx != p.ectx {
-			// The operator contract is that scope can only change
-			// after EOS and we reset scope at each EOS.
-			panic("summarize: ectx changed")
-		}
+		p.ectx = ctx
 		eof = false
 		vals := batch.Values()
 		for i := range vals {
