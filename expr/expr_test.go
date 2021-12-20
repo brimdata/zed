@@ -605,49 +605,49 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, "int16(10)", "", ZSON(`10(int16)`))
 	testSuccessful(t, "int16(-33000)", "", ZSON(`"cannot cast -33000 to type int16"(error)`))
 	testSuccessful(t, "int16(33000)", "", ZSON(`"cannot cast 33000 to type int16"(error)`))
-	//testWarning(t, `int16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int16")
+	testSuccessful(t, `int16("foo")`, "", ZSON(`"cannot cast \"foo\" to type int16"(error)`))
 
 	// Test casts to uint16
 	testSuccessful(t, "uint16(10)", "", zed.Value{zed.TypeUint16, zed.EncodeUint(10)})
-	//testWarning(t, "uint16(-1)", "", expr.ErrBadCast, "out of range cast to uint16")
-	//testWarning(t, "uint16(66000)", "", expr.ErrBadCast, "out of range cast to uint16")
-	//testWarning(t, `uint16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint16")
+	testSuccessful(t, "uint16(-1)", "", ZSON(`"cannot cast -1 to type uint16"(error)`))
+	testSuccessful(t, "uint16(66000)", "", ZSON(`"cannot cast 66000 to type uint16"(error)`))
+	testSuccessful(t, `uint16("foo")`, "", ZSON(`"cannot cast \"foo\" to type uint16"(error)`))
 
 	// Test casts to int32
 	testSuccessful(t, "int32(10)", "", zed.Value{zed.TypeInt32, zed.EncodeInt(10)})
-	//testWarning(t, "int32(-2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
-	//testWarning(t, "int32(2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
-	//testWarning(t, `int32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int32")
+	testSuccessful(t, "int32(-2200000000)", "", ZSON(`"cannot cast -2200000000 to type int32"(error)`))
+	testSuccessful(t, "int32(2200000000)", "", ZSON(`"cannot cast 2200000000 to type int32"(error)`))
+	testSuccessful(t, `int32("foo")`, "", ZSON(`"cannot cast \"foo\" to type int32"(error)`))
 
 	// Test casts to uint32
 	testSuccessful(t, "uint32(10)", "", zed.Value{zed.TypeUint32, zed.EncodeUint(10)})
-	//testWarning(t, "uint32(-1)", "", expr.ErrBadCast, "out of range cast to uint32")
-	//testWarning(t, "uint8(4300000000)", "", expr.ErrBadCast, "out of range cast to uint32")
-	//testWarning(t, `uint32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint32")
+	testSuccessful(t, "uint32(-1)", "", ZSON(`"cannot cast -1 to type uint32"(error)`))
+	testSuccessful(t, "uint32(4300000000)", "", ZSON(`"cannot cast 4300000000 to type uint32"(error)`))
+	testSuccessful(t, `uint32("foo")`, "", ZSON(`"cannot cast \"foo\" to type uint32"(error)`))
 
 	// Test casts to uint64
 	testSuccessful(t, "uint64(10)", "", zuint64(10))
-	//testWarning(t, "uint64(-1)", "", expr.ErrBadCast, "out of range cast to uint64")
-	//testWarning(t, `uint64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint64")
+	testSuccessful(t, "uint64(-1)", "", ZSON(`"cannot cast -1 to type uint64"(error)`))
+	testSuccessful(t, `uint64("foo")`, "", ZSON(`"cannot cast \"foo\" to type uint64"(error)`))
 
 	// Test casts to float32
 	testSuccessful(t, "float32(10)", "", zfloat32(10))
-	//testWarning(t, `float32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
+	testSuccessful(t, `float32("foo")`, "", ZSON(`"cannot cast \"foo\" to type float32"(error)`))
 
 	// Test casts to float64
 	testSuccessful(t, "float64(10)", "", zfloat64(10))
-	//testWarning(t, `float64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
+	testSuccessful(t, `float64("foo")`, "", ZSON(`"cannot cast \"foo\" to type float64"(error)`))
 
 	// Test casts to ip
 	testSuccessful(t, `ip("1.2.3.4")`, "", zip(t, "1.2.3.4"))
-	//testWarning(t, "ip(1234)", "", expr.ErrBadCast, "cast of invalid ip address fails")
-	//testWarning(t, `ip("not an address")`, "", expr.ErrBadCast, "cast of invalid ip address fails")
+	testSuccessful(t, "ip(1234)", "", ZSON(`"cannot cast 1234 to type ip"(error)`))
+	testSuccessful(t, `ip("not an address")`, "", ZSON(`"cannot cast \"not an address\" to type ip"(error)`))
 
 	// Test casts to net
 	testSuccessful(t, `net("1.2.3.0/24")`, "", znet(t, "1.2.3.0/24"))
-	//testWarning(t, "net(1234)", "", expr.ErrBadCast, "cast of invalid net fails")
-	//testWarning(t, `net("not an address")`, "", expr.ErrBadCast, "cast of invalid net fails")
-	//testWarning(t, `net("1.2.3.4")`, "", expr.ErrBadCast, "cast of invalid net fails")
+	testSuccessful(t, "net(1234)", "", ZSON(`"cannot cast 1234 to type net"(error)`))
+	testSuccessful(t, `net("not an address")`, "", ZSON(`"cannot cast \"not an address\" to type net"(error)`))
+	testSuccessful(t, `net(1.2.3.4)`, "", ZSON(`"cannot cast 1.2.3.4 to type net"(error)`))
 
 	// Test casts to time
 	ts := zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(1589126400_000_000_000))}
@@ -665,9 +665,9 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, `float64("5.5")`, "", zfloat64(5.5))
 	testSuccessful(t, `ip("1.2.3.4")`, "", zaddr("1.2.3.4"))
 
-	//testWarning(t, "ip(1)", "", expr.ErrBadCast, "ip cast non-ip arg")
-	//testWarning(t, `int64("abc")`, "", expr.ErrBadCast, "int64 cast with non-parseable string")
-	//testWarning(t, `float32("abc")`, "", expr.ErrBadCast, "float32 cast with non-parseable string")
-	//testWarning(t, `float64("abc")`, "", expr.ErrBadCast, "float64 cast with non-parseable string")
-	//testWarning(t, `ip("abc")`, "", expr.ErrBadCast, "ip cast with non-parseable string")
+	testSuccessful(t, "ip(1)", "", ZSON(`"cannot cast 1 to type ip"(error)`))
+	testSuccessful(t, `int64("abc")`, "", ZSON(`"cannot cast \"abc\" to type int64"(error)`))
+	testSuccessful(t, `float32("abc")`, "", ZSON(`"cannot cast \"abc\" to type float32"(error)`))
+	testSuccessful(t, `float64("abc")`, "", ZSON(`"cannot cast \"abc\" to type float64"(error)`))
+	testSuccessful(t, `ip("abc")`, "", ZSON(`"cannot cast \"abc\" to type ip"(error)`))
 }

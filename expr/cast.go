@@ -105,7 +105,7 @@ func newFloat32Caster() Caster {
 	return func(val *zed.Value) *zed.Value {
 		f, ok := coerce.ToFloat(*val)
 		if !ok {
-			return stash.Errorf("cannot cast %s to float32", zson.MustFormatValue(*val))
+			return stash.Errorf("cannot cast %s to type float32", zson.MustFormatValue(*val))
 		}
 		return stash.CopyVal(zed.Value{zed.TypeFloat32, zed.EncodeFloat32(float32(f))})
 	}
@@ -116,7 +116,7 @@ func newFloat64Caster() Caster {
 	return func(val *zed.Value) *zed.Value {
 		f, ok := coerce.ToFloat(*val)
 		if !ok {
-			return stash.Errorf("cannot cast %s to float64", zson.MustFormatValue(*val))
+			return stash.Errorf("cannot cast %s to type float64", zson.MustFormatValue(*val))
 		}
 		return stash.CopyVal(zed.Value{zed.TypeFloat64, zed.EncodeFloat64(f)})
 	}
@@ -130,12 +130,12 @@ func newIPCaster() Caster {
 			return val
 		}
 		if !val.IsStringy() {
-			return stash.Errorf("cannot cast %s to ip", zson.MustFormatValue(*val))
+			return stash.Errorf("cannot cast %s to type ip", zson.MustFormatValue(*val))
 		}
 		// XXX GC
 		ip := net.ParseIP(string(val.Bytes))
 		if ip == nil {
-			return stash.Errorf("cannot cast %s to ip", zson.MustFormatValue(*val))
+			return stash.Errorf("cannot cast %s to type ip", zson.MustFormatValue(*val))
 		}
 		return stash.CopyVal(zed.Value{zed.TypeIP, zed.EncodeIP(ip)})
 	}
@@ -145,12 +145,12 @@ func newNetCaster() Caster {
 	var stash result.Value
 	return func(val *zed.Value) *zed.Value {
 		if !val.IsStringy() {
-			return stash.Errorf("cannot cast %s to net", zson.MustFormatValue(*val))
+			return stash.Errorf("cannot cast %s to type net", zson.MustFormatValue(*val))
 		}
 		// XXX GC
 		_, net, err := net.ParseCIDR(string(val.Bytes))
 		if err != nil {
-			return stash.Errorf("cannot cast %s to net", zson.MustFormatValue(*val))
+			return stash.Errorf("cannot cast %s to type net", zson.MustFormatValue(*val))
 		}
 		return stash.CopyVal(zed.Value{zed.TypeNet, zed.EncodeNet(net)})
 	}
@@ -165,7 +165,7 @@ func newDurationCaster() Caster {
 			if err != nil {
 				f, ferr := byteconv.ParseFloat64(val.Bytes)
 				if ferr != nil {
-					return stash.Errorf("cannot cast %s to duration", zson.MustFormatValue(*val))
+					return stash.Errorf("cannot cast %s to type duration", zson.MustFormatValue(*val))
 				}
 				d = nano.DurationFromFloat(f)
 			}
@@ -181,7 +181,7 @@ func newDurationCaster() Caster {
 		}
 		sec, ok := coerce.ToInt(*val)
 		if !ok {
-			return stash.Errorf("cannot cast %s to duration", zson.MustFormatValue(*val))
+			return stash.Errorf("cannot cast %s to type duration", zson.MustFormatValue(*val))
 		}
 		d := nano.Duration(sec) * nano.Second
 		return stash.CopyVal(zed.Value{zed.TypeDuration, zed.EncodeDuration(d)})
@@ -201,7 +201,7 @@ func newTimeCaster() Caster {
 			if err != nil {
 				sec, ferr := byteconv.ParseFloat64(val.Bytes)
 				if ferr != nil {
-					return stash.Errorf("cannot cast %s to time", zson.MustFormatValue(*val))
+					return stash.Errorf("cannot cast %s to type time", zson.MustFormatValue(*val))
 				}
 				ts = nano.Ts(1e9 * sec)
 			} else {
@@ -221,7 +221,7 @@ func newTimeCaster() Caster {
 			}
 			ts = nano.Ts(sec * 1e9)
 		default:
-			return stash.Errorf("cannot cast %s to time", zson.MustFormatValue(*val))
+			return stash.Errorf("cannot cast %s to type time", zson.MustFormatValue(*val))
 		}
 		return stash.CopyVal(zed.Value{zed.TypeTime, zed.EncodeTime(ts)})
 	}
@@ -233,7 +233,7 @@ func newStringyCaster(typ zed.Type) Caster {
 		id := zv.Type.ID()
 		if id == zed.IDBytes || id == zed.IDBstring {
 			if !utf8.Valid(zv.Bytes) {
-				return stash.Errorf("non-UTF-8 bytes cannot be cast to string")
+				return stash.Errorf("non-UTF-8 bytes cannot be cast to type string")
 			}
 			return stash.CopyVal(zed.Value{typ, zv.Bytes})
 		}
