@@ -32,7 +32,7 @@ func (u *unseenFieldTracker) update(ctx expr.Context, rec *zed.Value) {
 	u.seenTypes[recType] = true
 	for field := range u.unseenFields {
 		val := field.Eval(ctx, rec)
-		if !val.IsNil() {
+		if !val.IsMissing() {
 			delete(u.unseenFields, field)
 		}
 	}
