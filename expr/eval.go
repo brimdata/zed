@@ -15,6 +15,8 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
+//XXX remove ErrBadCast and other unused Errs
+
 //XXX git rid of these?
 var ErrIncompatibleTypes = coerce.ErrIncompatibleTypes
 var ErrIndexOutOfBounds = errors.New("array index out of bounds")

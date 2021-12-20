@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/anymath"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/expr/result"
+	"github.com/brimdata/zed/zson"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#abs.md
@@ -28,7 +29,7 @@ func (a *Abs) Call(args []zed.Value) *zed.Value {
 		return a.stash.Float64(f)
 	}
 	if !zed.IsInteger(id) {
-		return a.stash.Error(errors.New("abs: not a number"))
+		return a.stash.Error(fmt.Errorf("abs: not a number: %s", zson.MustFormatValue(args[0])))
 	}
 	if !zed.IsSigned(id) {
 		return a.stash.Copy(&args[0])
@@ -97,7 +98,7 @@ func (l *Log) Call(args []zed.Value) *zed.Value {
 		return l.stash.Error(errors.New("log: numeric argument required"))
 	}
 	if x <= 0 {
-		return l.stash.Error(errors.New("log: negative argument"))
+		return l.stash.Errorf("log: illegal argument: %s", zson.MustFormatValue(args[0]))
 	}
 	return l.stash.Float64(math.Log(x))
 }
@@ -187,12 +188,7 @@ func (p *Pow) Call(args []zed.Value) *zed.Value {
 	if !ok {
 		return p.stash.Error(errors.New("pow: not a number"))
 	}
-	r := math.Pow(x, y)
-	//XXX shouldn't we just let IEEE NaN through?
-	if math.IsNaN(r) {
-		return p.stash.Error(errors.New("pow: NaN"))
-	}
-	return p.stash.Float64(r)
+	return p.stash.Float64(math.Pow(x, y))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#sqrt
@@ -205,10 +201,5 @@ func (s *Sqrt) Call(args []zed.Value) *zed.Value {
 	if !ok {
 		return s.stash.Error(errors.New("sqrt: not a number"))
 	}
-	x = math.Sqrt(x)
-	//XXX let NaN through
-	if math.IsNaN(x) {
-		return s.stash.Error(errors.New("sqrt: not a number"))
-	}
-	return s.stash.Float64(x)
+	return s.stash.Float64(math.Sqrt(x))
 }
