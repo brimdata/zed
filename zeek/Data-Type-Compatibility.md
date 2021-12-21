@@ -15,8 +15,8 @@
 
 As the Zed data model was in many ways inspired by the
 [Zeek TSV log format](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs),
-the rich Zed storage formats ([ZSON](../docs/data-model/zson.md),
-[ZNG](../docs/data-model/zng.md), etc.) maintain comprehensive interoperability
+the rich Zed storage formats ([ZSON](../docs/formats/zson.md),
+[ZNG](../docs/formats/zng.md), etc.) maintain comprehensive interoperability
 with Zeek. When Zeek is configured to output its logs in
 NDJSON format, much of the rich type information is lost in translation, but
 this can be restored by following the guidance for [shaping Zeek NDJSON](Shaping-Zeek-NDJSON.md).
@@ -45,20 +45,20 @@ applicable to handling certain types.
 
 | Zeek Type  | Zed Type   | Additional Detail |
 |------------|------------|-------------------|
-| [`bool`](https://docs.zeek.org/en/current/script-reference/types.html#type-bool)         | [`bool`](../docs/data-model/zson.md#33-primitive-values)     | |
-| [`count`](https://docs.zeek.org/en/current/script-reference/types.html#type-count)       | [`uint64`](../docs/data-model/zson.md#33-primitive-values)   | |
-| [`int`](https://docs.zeek.org/en/current/script-reference/types.html#type-int)           | [`int64`](../docs/data-model/zson.md#33-primitive-values)    | |
-| [`double`](https://docs.zeek.org/en/current/script-reference/types.html#type-double)     | [`float64`](../docs/data-model/zson.md#33-primitive-values)  | See [`double` details](#double) |
-| [`time`](https://docs.zeek.org/en/current/script-reference/types.html#type-time)         | [`time`](../docs/data-model/zson.md#33-primitive-values)     | |
-| [`interval`](https://docs.zeek.org/en/current/script-reference/types.html#type-interval) | [`duration`](../docs/data-model/zson.md#33-primitive-values) | |
-| [`string`](https://docs.zeek.org/en/current/script-reference/types.html#type-string)     | [`bstring` or `string`](../docs/data-model/zson.md#33-primitive-values) | See [`string` details](#string) |
-| [`port`](https://docs.zeek.org/en/current/script-reference/types.html#type-port)         | [`uint16`](../docs/data-model/zson.md#33-primitive-values)   | See [`port` details](#port) |
-| [`addr`](https://docs.zeek.org/en/current/script-reference/types.html#type-addr)         | [`ip`](../docs/data-model/zson.md#33-primitive-values)       | |
-| [`subnet`](https://docs.zeek.org/en/current/script-reference/types.html#type-subnet)     | [`net`](../docs/data-model/zson.md#33-primitive-values)      | |
-| [`enum`](https://docs.zeek.org/en/current/script-reference/types.html#type-enum)         | [`string`](../docs/data-model/zson.md#33-primitive-values)   | See [`enum` details](#enum) |
-| [`set`](https://docs.zeek.org/en/current/script-reference/types.html#type-set)           | [`set`](../docs/data-model/zson.md#343-set-value)       | See [`set` details](#set) |
-| [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](../docs/data-model/zson.md#342-array-value)   | |
-| [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](../docs/data-model/zson.md#341-record-value) | See [`record` details](#record) |
+| [`bool`](https://docs.zeek.org/en/current/script-reference/types.html#type-bool)         | [`bool`](../docs/formats/zson.md#33-primitive-values)     | |
+| [`count`](https://docs.zeek.org/en/current/script-reference/types.html#type-count)       | [`uint64`](../docs/formats/zson.md#33-primitive-values)   | |
+| [`int`](https://docs.zeek.org/en/current/script-reference/types.html#type-int)           | [`int64`](../docs/formats/zson.md#33-primitive-values)    | |
+| [`double`](https://docs.zeek.org/en/current/script-reference/types.html#type-double)     | [`float64`](../docs/formats/zson.md#33-primitive-values)  | See [`double` details](#double) |
+| [`time`](https://docs.zeek.org/en/current/script-reference/types.html#type-time)         | [`time`](../docs/formats/zson.md#33-primitive-values)     | |
+| [`interval`](https://docs.zeek.org/en/current/script-reference/types.html#type-interval) | [`duration`](../docs/formats/zson.md#33-primitive-values) | |
+| [`string`](https://docs.zeek.org/en/current/script-reference/types.html#type-string)     | [`bstring` or `string`](../docs/formats/zson.md#33-primitive-values) | See [`string` details](#string) |
+| [`port`](https://docs.zeek.org/en/current/script-reference/types.html#type-port)         | [`uint16`](../docs/formats/zson.md#33-primitive-values)   | See [`port` details](#port) |
+| [`addr`](https://docs.zeek.org/en/current/script-reference/types.html#type-addr)         | [`ip`](../docs/formats/zson.md#33-primitive-values)       | |
+| [`subnet`](https://docs.zeek.org/en/current/script-reference/types.html#type-subnet)     | [`net`](../docs/formats/zson.md#33-primitive-values)      | |
+| [`enum`](https://docs.zeek.org/en/current/script-reference/types.html#type-enum)         | [`string`](../docs/formats/zson.md#33-primitive-values)   | See [`enum` details](#enum) |
+| [`set`](https://docs.zeek.org/en/current/script-reference/types.html#type-set)           | [`set`](../docs/formats/zson.md#343-set-value)       | See [`set` details](#set) |
+| [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](../docs/formats/zson.md#342-array-value)   | |
+| [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](../docs/formats/zson.md#341-record-value) | See [`record` details](#record) |
 
 > **Note:** The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
 > page describes the types in the context of the
@@ -159,8 +159,8 @@ out again in the Zeek TSV log format. Other implementations of the Zed storage
 formats (should they exist) may handle these differently.
 
 Multiple Zeek types discussed below are represented via a
-[type definition](../docs/data-model/zson.md#25-type-definitions) to one of Zed's
-[primitive types](../docs/data-model/zson.md#33-primitive-values). The Zed type
+[type definition](../docs/formats/zson.md#25-type-definitions) to one of Zed's
+[primitive types](../docs/formats/zson.md#33-primitive-values). The Zed type
 definitions maintain the history of the field's original Zeek type name
 such that `zq` may restore it if the field is later output in
 Zeek format. Knowledge of its original Zeek type may also enable special
@@ -214,7 +214,7 @@ _not_ intended to be read or presented as such. Meanwhile, another Zeek
 UTF-8. These details are currently only captured within the Zeek source code
 itself that defines how these values are generated.
 
-Zed includes a [primitive type](../docs/data-model/zson.md#33-primitive-values)
+Zed includes a [primitive type](../docs/formats/zson.md#33-primitive-values)
 called `bytes` that's suited to storing the former "always binary" case and a
 `string` type for the latter "always printable" case. However, Zeek logs do
 not currently communicate details that would allow an implementation to know

@@ -9,4 +9,4 @@
 
 * [Zed Language Overview](language)
 * [Zed Lake Design](lake)
-* [Zed Data Model and Formats](data-model)
+* [Zed Data Model and Formats](data-model.md)

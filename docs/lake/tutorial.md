@@ -34,7 +34,7 @@ indexing and searching Zed data lakes.
 
 ## Test data
 
-We'll use the [ZNG](../data-model/zng.md)-format test data from here:
+We'll use the [ZNG](../formats/zng.md)-format test data from here:
 ```
 https://github.com/brimdata/zed-sample-data/tree/main/zng
 ```
@@ -154,7 +154,7 @@ This is easy. You just say:
 ```
 zed query -Z "id.orig_h=10.10.23.2"
 ```
-which gives this result in the [ZSON](../data-model/zson.md) format.  ZSON
+which gives this result in the [ZSON](../formats/zson.md) format.  ZSON
 describes the complete detail from the ZNG stream as human-readable text.
 ```
 {
@@ -185,7 +185,7 @@ describes the complete detail from the ZNG stream as human-readable text.
 } (=2)
 ```
 (If you want to learn more about this format, check out the
-[ZSON spec](../data-model/zson.md).)
+[ZSON spec](../formats/zson.md).)
 
 You might have noticed that this is kind of slow --- like all the counting above ---
 because every record is read to search for that IP.

@@ -3,18 +3,18 @@
 > **TL;DR** The Zed data model defines a new and easy way to manage, store,
 > and process data utilizing an emerging concept called
 [super-structured data](#2-zed-a-super-structured-pattern).
-> The [data model specification](zed.md) defines the high-level model that is realized
+> The [data model specification](formats/zed.md) defines the high-level model that is realized
 > in a [family of interoperable serialization formats](#3-the-data-model-and-formats),
 > providing a unified approach to row, columnar, and human-readable formats.
 > Zed is a superset of both the dataframe/table model of relational systems and the
 > semi-structured model that is used ubiquitously in development as JSON and by NOSQL
-> data stores.  The ZSON spec has [a few examples](zson.md#3-examples).
+> data stores.  The ZSON spec has [a few examples](formats/zson.md#3-examples).
 
-* [Zed Data Model Spec](zed.md)
-* [ZSON Spec](zson.md)
-* [ZNG Spec](zng.md)
-* [ZST Spec](zst.md)
-* [ZJSON Spec](zjson.md)
+* [Zed Data Model Spec](formats/zed.md)
+* [ZSON Spec](formats/zson.md)
+* [ZNG Spec](formats/zng.md)
+* [ZST Spec](formats/zst.md)
+* [ZJSON Spec](formats/zjson.md)
 
 ---
 
@@ -283,24 +283,24 @@ can be debugged by observing the location of errors in the output results.
 ## 3. The Data Model and Formats
 
 The concept of super-structured data and first-class types and errors
-is solidified in the [Zed data model specification](zed.md),
+is solidified in the [Zed data model specification](formats/zed.md),
 which defines the model but not the serialization formats.
 
 A set of companion documents define a family of tightly integrated
 serialization formats that all adhere to the same Zed data model,
 providing a unified approach to row, columnar, and human-readable formats:
 
-* [ZSON](zson.md) is a JSON-like, human readable format for Zed data.  All JSON
+* [ZSON](formats/zson.md) is a JSON-like, human readable format for Zed data.  All JSON
 documents are Zed values as the ZSON format is a strict superset of the JSON syntax.
-* [ZNG](zng.md) is a row-based, binary representation of Zed data somewhat like
+* [ZNG](formats/zng.md) is a row-based, binary representation of Zed data somewhat like
 Avro but with Zed's more general model to represent a sequence of arbitrarily-typed
 values.
-* [ZST](zst.md) is a columnar version of ZNG like Parquet or ORC but also
+* [ZST](formats/zst.md) is a columnar version of ZNG like Parquet or ORC but also
 embodies Zed's more general model for hetereogeneous and self-describing schemas.
-* [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
+* [Zed over JSON](formats/zjson.md) defines a JSON format for encapsulating Zed data
 in JSON for easy decoding by JSON-based clients, e.g.,
 the [Zealot JavaScript library](https://github.com/brimdata/zealot)
-and the [Zed Python library](../../python/zed).
+and the [Zed Python library](../python/zed).
 
 Because all of the formats conform to the same Zed data model, conversions between
 a human-readable form, a row-based binary form, and a row-based columnar form can
