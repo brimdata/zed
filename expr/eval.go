@@ -63,8 +63,8 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 	return &Or{lhs, rhs}
 }
 
-func evalBool(ctx Context, e Evaluator, rec *zed.Value) *zed.Value {
-	val := e.Eval(ctx, rec)
+func evalBool(ctx Context, e Evaluator, this *zed.Value) *zed.Value {
+	val := e.Eval(ctx, this)
 	if zed.AliasOf(val.Type) != zed.TypeBool {
 		return ctx.CopyValue(zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val)))
 	}
@@ -212,18 +212,22 @@ func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 
 func (e *Equal) Eval(ctx Context, this *zed.Value) *zed.Value {
 	_, err := e.numeric.eval(ctx, this)
+	//XXX need to compare have coerce return zed error?
 	if err != nil {
-		//XXX need to compare have coerce return zed error?
-		if err == coerce.ErrOverflow {
+		switch err {
+		case coerce.ErrOverflow:
 			// If there was overflow converting one to the other,
 			// we know they can't be equal.
 			if e.equality {
 				return zed.False
 			}
 			return zed.True
+		case zed.ErrMissing:
+			return zed.Missing
+		default:
+			//XXX panic?
+			return zed.False
 		}
-		//XXX panic?
-		return zed.False
 	}
 	result := e.vals.Equal()
 	if !e.equality {
@@ -346,7 +350,7 @@ func NewCompareRelative(lhs, rhs Evaluator, operator string) (*Compare, error) {
 	case ">=":
 		c.convert = func(v int) bool { return v >= 0 }
 	default:
-		return nil, fmt.Errorf("unknown comparison operator: %s", operator)
+		return nil, fmt.Errorf("unknown aon operator: %s", operator)
 	}
 	return c, nil
 }
@@ -362,10 +366,11 @@ func (c *Compare) Eval(ctx Context, this *zed.Value) *zed.Value {
 	lhs := c.lhs.Eval(ctx, this)
 	if lhs.IsError() {
 		return lhs
+
 	}
 	rhs := c.rhs.Eval(ctx, this)
 	if rhs.IsError() {
-		return lhs
+		return rhs
 	}
 	id, err := c.vals.Coerce(lhs, rhs)
 	if err != nil {
