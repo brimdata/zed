@@ -1,9 +1,9 @@
 script: |
   # b isn't in the input so this creates a valid Zed index that is empty
-  zed dev indexfile create -o index.zng -k b in.zson
+  ! zed dev indexfile create -o index.zng -k b in.zson
   zq -Z index.zng
   echo ===
-  zed dev indexfile lookup -z -k hello index.zng
+  zed dev indexfile lookup -z -k \"hello\" index.zng
   echo ===
 
 inputs:
@@ -20,7 +20,9 @@ outputs:
           order: "asc",
           child_field: "_child",
           frame_thresh: 32768,
-          sections: null ([int64]),
+          sections: [
+              1
+          ],
           keys: [
               [
                   "b"
@@ -29,3 +31,6 @@ outputs:
       }
       ===
       ===
+  - name: stderr
+    data: |
+      no index key field "b" present in record: {b:"missing"(error)}
