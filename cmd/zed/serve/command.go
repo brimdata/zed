@@ -65,7 +65,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logconf.Mode, "log.filemode", "logger file write mode (values: append, truncate, rotate)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.StringVar(&c.rootContentFile, "rootcontentfile", "", "file to serve for GET /")
-	c.LakeFlags.SetFlags(f)
+	c.LakeFlags.SetFlagsWithDefaultLake(f, "")
 	return c, nil
 }
 
@@ -77,7 +77,7 @@ func (c *Command) Run(args []string) error {
 	defer cleanup()
 	uri, err := c.URI()
 	if err != nil {
-
+		return err
 	}
 	if api.IsLakeService(uri) {
 		return errors.New("serve command available for local lakes only")

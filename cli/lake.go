@@ -23,12 +23,15 @@ type LakeFlags struct {
 }
 
 func (l *LakeFlags) SetFlags(fs *flag.FlagSet) {
+	l.SetFlagsWithDefaultLake(fs, "http://localhost:9867")
+}
+
+func (l *LakeFlags) SetFlagsWithDefaultLake(fs *flag.FlagSet, lake string) {
 	dir, _ := os.UserHomeDir()
 	if dir != "" {
 		dir = filepath.Join(dir, ".zed")
 	}
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
-	lake := "http://localhost:9867"
 	if s, ok := os.LookupEnv("ZED_LAKE"); ok {
 		lake = s
 	}
