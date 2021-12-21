@@ -306,8 +306,9 @@ func (a *Aggregator) Consume(ctx expr.Context, this *zed.Value) {
 
 	if a.partialsIn {
 		row.reducers.consumeAsPartial(this, a.aggRefs, ctx)
+	} else {
+		row.reducers.apply(a.aggs, this, ctx)
 	}
-	row.reducers.apply(a.aggs, this, ctx)
 }
 
 func (a *Aggregator) spillTable(eof bool, ctx expr.Context) error {
