@@ -8,7 +8,7 @@
 
 # The Zed being tested below has been modified from the way it appears in
 # docs/language/README.md, as the "sort" is needed to produce deterministic
-# test output from the aggregation. 
+# test output from the aggregation.
 
 zed: |
   not srcip in 192.168.0.0/16
@@ -36,3 +36,4 @@ output: |
   {srcip:10.0.0.1,dstip:9.10.11.12,bytes:130,maxdur:null,valid:false}
   {srcip:10.0.0.1,dstip:13.14.15.16,bytes:144,maxdur:null,valid:null(bool)}
   {srcip:10.0.0.1,dstip:17.18.19.20,bytes:null,maxdur:null,valid:true}
+  {srcip:10.0.0.1,dstip:"missing"(error),bytes:66,maxdur:null,valid:null(bool)}
