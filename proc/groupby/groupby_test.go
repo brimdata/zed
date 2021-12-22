@@ -12,12 +12,12 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/proc/groupby"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -258,27 +258,20 @@ func (cr *countReader) Read() (*zed.Value, error) {
 	return rec, err
 }
 
-type testGroupByDriver struct {
+type testGroupByWriter struct {
 	n      int
 	writer zio.Writer
 	cb     func(n int)
 }
 
-func (d *testGroupByDriver) Write(cid int, batch zbuf.Batch) error {
-	if err := zbuf.WriteBatch(d.writer, batch); err != nil {
+func (w *testGroupByWriter) Write(val *zed.Value) error {
+	if err := w.writer.Write(val); err != nil {
 		return err
 	}
-	d.n += len(batch.Values())
-	d.cb(d.n)
+	w.n += 1
+	w.cb(w.n)
 	return nil
 }
-
-func (d *testGroupByDriver) Warn(msg string) error {
-	panic("shouldn't warn")
-}
-
-func (d *testGroupByDriver) ChannelEnd(int) error      { return nil }
-func (d *testGroupByDriver) Stats(zbuf.Progress) error { return nil }
 
 func TestGroupbyStreamingSpill(t *testing.T) {
 
@@ -322,7 +315,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
 		zw := zsonio.NewWriter(&nopCloser{&outbuf}, zsonio.WriterOpts{})
-		d := &testGroupByDriver{
+		checker := &testGroupByWriter{
 			writer: zw,
 			cb: func(n int) {
 				if inputSortKey != "" {
@@ -333,7 +326,9 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 			},
 		}
 		layout := order.NewLayout(order.Asc, field.List{field.New(inputSortKey)})
-		err = driver.RunWithOrderedReader(context.Background(), d, proc, zctx, cr, layout, nil)
+		query, err := runtime.NewQueryOnOrderedReader(context.Background(), zctx, proc, cr, layout, nil)
+		require.NoError(t, err)
+		err = zio.Copy(checker, query.AsReader())
 		require.NoError(t, err)
 		outData := strings.Split(outbuf.String(), "\n")
 		sort.Strings(outData)

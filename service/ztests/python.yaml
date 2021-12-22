@@ -150,4 +150,4 @@ outputs:
       ===
       RequestError('test: pool already exists')
       ===
-      QueryError('nosuchpool: pool not found')
+      RequestError('nosuchpool: pool not found')

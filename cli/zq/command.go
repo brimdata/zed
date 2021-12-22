@@ -3,7 +3,6 @@ package zq
 import (
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli"
@@ -12,10 +11,10 @@ import (
 	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/cli/queryflags"
 	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -126,7 +125,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 && len(c.queryFlags.Includes) == 0 {
 		return charm.NeedHelp
 	}
-	paths, query, err := c.queryFlags.ParseSourcesAndInputs(args)
+	paths, flowgraph, err := c.queryFlags.ParseSourcesAndInputs(args)
 	if err != nil {
 		return fmt.Errorf("zq: %w", err)
 	}
@@ -144,19 +143,14 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	d := driver.NewCLI(writer)
-	if !c.quiet {
-		d.SetWarningsWriter(os.Stderr)
+	query, err := runtime.NewQueryOnFileSystem(ctx, zctx, flowgraph, readers, cli.NewFileAdaptor(local))
+	if err != nil {
+		return err
 	}
-	if !c.stopErr {
-		for i, r := range readers {
-			readers[i] = zio.NewWarningReader(r, d)
-		}
-	}
-	stats, err := driver.RunWithFileSystem(ctx, d, query, zctx, readers, cli.NewFileAdaptor(local))
+	err = zio.Copy(writer, query.AsReader())
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}
-	c.queryFlags.PrintStats(stats)
+	c.queryFlags.PrintStats(query.Progress())
 	return err
 }

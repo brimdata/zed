@@ -1,6 +1,6 @@
 # Second input has bad middle line (detection succeeds).
 script: |
-  zq -z -e=false "*" good.zson bad.zson
+  ! zq -z -e=false "*" good.zson bad.zson
 
 inputs:
   - name: good.zson
@@ -16,8 +16,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {_path:"conn",ts:1970-01-01T00:00:01Z}
-      {_path:"conn",ts:1970-01-01T00:00:01Z}
       {_path:"conn",ts:1970-01-01T00:00:01Z}
   - name: stderr
     data: |

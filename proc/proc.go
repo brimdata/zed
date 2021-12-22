@@ -54,10 +54,9 @@ type Result struct {
 // in which they are running.
 type Context struct {
 	context.Context
-	Logger   *zap.Logger
-	Warnings chan string
-	Zctx     *zed.Context
-	cancel   context.CancelFunc
+	Logger *zap.Logger
+	Zctx   *zed.Context
+	cancel context.CancelFunc
 }
 
 func NewContext(ctx context.Context, zctx *zed.Context, logger *zap.Logger) *Context {
@@ -66,11 +65,10 @@ func NewContext(ctx context.Context, zctx *zed.Context, logger *zap.Logger) *Con
 		logger = zap.NewNop()
 	}
 	return &Context{
-		Context:  ctx,
-		cancel:   cancel,
-		Logger:   logger,
-		Warnings: make(chan string, 5),
-		Zctx:     zctx,
+		Context: ctx,
+		cancel:  cancel,
+		Logger:  logger,
+		Zctx:    zctx,
 	}
 }
 

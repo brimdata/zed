@@ -10,4 +10,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      "doesnotexist": branch not found
+      status code 404: "doesnotexist": branch not found

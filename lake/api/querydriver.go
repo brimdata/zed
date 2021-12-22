@@ -1,41 +1,29 @@
 package api
 
 import (
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
 
-type queryDriver struct {
+type buffer struct {
 	unmarshaler *zson.UnmarshalZNGContext
 	results     []interface{}
 }
 
-func newQueryDriver(types ...interface{}) *queryDriver {
+var _ zio.Writer = (*buffer)(nil)
+
+func newBuffer(types ...interface{}) *buffer {
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(types...)
-	return &queryDriver{unmarshaler: u}
+	return &buffer{unmarshaler: u}
 }
 
-func (d *queryDriver) Write(channelID int, batch zbuf.Batch) error {
-	vals := batch.Values()
-	for i := range vals {
-		var v interface{}
-		if err := d.unmarshaler.Unmarshal(vals[i], &v); err != nil {
-			return err
-		}
-		d.results = append(d.results, v)
+func (b *buffer) Write(val *zed.Value) error {
+	var v interface{}
+	if err := b.unmarshaler.Unmarshal(*val, &v); err != nil {
+		return err
 	}
-	return nil
-}
-
-func (*queryDriver) Warn(string) error {
-	return nil
-}
-
-func (*queryDriver) ChannelEnd(int) error {
-	return nil
-}
-
-func (*queryDriver) Stats(zbuf.Progress) error {
+	b.results = append(b.results, v)
 	return nil
 }

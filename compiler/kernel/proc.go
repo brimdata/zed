@@ -73,12 +73,12 @@ func (b *Builder) Build(seq *dag.Sequential) ([]proc.Interface, error) {
 	return b.compile(seq, nil)
 }
 
-func (b *Builder) Schedulers() []proc.Scheduler {
-	out := make([]proc.Scheduler, 0, len(b.schedulers))
+func (b *Builder) Meters() []zbuf.Meter {
+	var meters []zbuf.Meter
 	for _, sched := range b.schedulers {
-		out = append(out, sched)
+		meters = append(meters, sched)
 	}
-	return out
+	return meters
 }
 
 func (b *Builder) CompileFilter(e dag.Expr) (expr.Filter, error) {
@@ -474,11 +474,13 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 	var source proc.Interface
 	switch src := trunk.Source.(type) {
 	case *Reader:
-		source = from.NewScheduler(b.pctx, &readerScheduler{
+		sched := &readerScheduler{
 			ctx:     b.pctx.Context,
 			filter:  pushdown,
 			readers: src.Readers,
-		})
+		}
+		source = from.NewScheduler(b.pctx, sched)
+		b.schedulers[src] = sched
 	case *dag.Pass:
 		source = parent
 	case *dag.Pool:
@@ -665,4 +667,11 @@ func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	return zbuf.ScannerNopCloser(s), nil
 }
 
-func (r *readerScheduler) Progress() zbuf.Progress { return r.scanner.Progress() }
+func (r *readerScheduler) Progress() zbuf.Progress {
+	// Add the cumulative progress to the current scanner's progress.
+	progress := r.progress
+	if r.scanner != nil {
+		progress.Add(r.scanner.Progress())
+	}
+	return progress
+}

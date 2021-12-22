@@ -27,7 +27,7 @@ func testSuccessful(t *testing.T, e string, input string, expectedVal zed.Value)
 
 func testError(t *testing.T, e string, expectErr error, description string) {
 	runZTest(t, e, &ztest.ZTest{
-		Zed:     fmt.Sprintf("cut result := %s", e),
+		Zed:     fmt.Sprintf("yield %s", e),
 		ErrorRE: expectErr.Error(),
 	})
 }

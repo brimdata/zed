@@ -8,62 +8,54 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zson"
 )
 
-func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Response) (zbuf.Progress, error) {
-	run := &runner{driver: d}
-	r := NewZNGReader(zngio.NewReader(res.Body, zed.NewContext()))
-	for ctx.Err() == nil {
-		rec, ctrl, err := r.ReadPayload()
-		if err != nil {
-			return run.stats, err
-		}
-		if ctrl != nil {
-			if err := run.handleCtrl(ctrl); err != nil {
-				return run.stats, err
-			}
-			continue
-		}
-		if rec != nil {
-			if err := run.Write(rec); err != nil {
-				return run.stats, err
-			}
-			continue
-		}
-		return run.stats, nil
+type Query struct {
+	reader *zngio.Reader
+}
+
+// NewClientQuery creates and returns a Query that streams and decodes
+// the result from the response body of res.  The response
+// format is presumed to be ZNG.
+func NewClientQuery(ctx context.Context, res *client.Response) *Query {
+	return &Query{
+		reader: zngio.NewReader(res.Body, zed.NewContext()),
 	}
-	return run.stats, ctx.Err()
 }
 
-type runner struct {
-	driver driver.Driver
-	cid    int
-	stats  zbuf.Progress
+func (q *Query) Read() (*zed.Value, error) {
+	val, ctrl, err := q.reader.ReadPayload()
+	if ctrl != nil {
+		if ctrl.Encoding != zed.AppEncodingZSON {
+			return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Encoding)
+		}
+		value, err := zson.ParseValue(zed.NewContext(), string(ctrl.Bytes))
+		if err != nil {
+			return nil, err
+		}
+		var v interface{}
+		if err := unmarshaler.Unmarshal(value, &v); err != nil {
+			return nil, err
+		}
+		return nil, controlToError(v)
+	}
+	return val, err
 }
 
-func (r *runner) Write(rec *zed.Value) error {
-	// XXX issue #3356
-	return r.driver.Write(r.cid, zbuf.NewArray([]zed.Value{*rec}))
-}
-
-func (r *runner) handleCtrl(ctrl interface{}) error {
+func controlToError(ctrl interface{}) error {
 	switch ctrl := ctrl.(type) {
 	case *api.QueryChannelSet:
-		r.cid = ctrl.ChannelID
+		return &zbuf.Control{zbuf.SetChannel(ctrl.ChannelID)}
 	case *api.QueryChannelEnd:
-		return r.driver.ChannelEnd(ctrl.ChannelID)
+		return &zbuf.Control{zbuf.EndChannel(ctrl.ChannelID)}
 	case *api.QueryStats:
-		r.stats = zbuf.Progress(ctrl.Progress)
-		return r.driver.Stats(ctrl.Progress)
-	case *api.QueryWarning:
-		return r.driver.Warn(ctrl.Warning)
+		return &zbuf.Control{zbuf.Progress(ctrl.Progress)}
 	case *api.QueryError:
 		return errors.New(ctrl.Error)
 	default:
 		return fmt.Errorf("unsupported control message: %T", ctrl)
 	}
-	return nil
 }

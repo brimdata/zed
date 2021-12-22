@@ -4,11 +4,11 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio"
 )
 
 var ls = &charm.Spec{
@@ -48,5 +48,9 @@ func (c *lsCommand) Run(args []string) error {
 		return err
 	}
 	defer w.Close()
-	return api.ScanIndexRules(ctx, lake, driver.NewCLI(w))
+	r, err := api.ScanIndexRules(ctx, lake)
+	if err != nil {
+		return err
+	}
+	return zio.Copy(w, r)
 }

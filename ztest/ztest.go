@@ -135,7 +135,8 @@ import (
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/driver"
+	zruntime "github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/pmezard/go-difflib/difflib"
 	"gopkg.in/yaml.v3"
@@ -505,7 +506,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	}
 	proc, err := compiler.ParseProc(zedProgram)
 	if err != nil {
-		return "", "", err
+		return "", err.Error(), err
 	}
 	var inflags inputflags.Flags
 	var flags flag.FlagSet
@@ -528,9 +529,11 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err != nil {
 		return "", "", err
 	}
-	d := driver.NewCLI(zw)
-	d.SetWarningsWriter(&errbuf)
-	err = driver.RunWithReader(context.Background(), d, proc, zctx, zr, nil)
+	q, err := zruntime.NewQueryOnReader(context.Background(), zctx, proc, zr, nil)
+	if err != nil {
+		return "", err.Error(), err
+	}
+	err = zio.Copy(zw, q.AsReader())
 	if err2 := zw.Close(); err == nil {
 		err = err2
 	}

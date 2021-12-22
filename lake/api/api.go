@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
@@ -19,7 +18,7 @@ import (
 )
 
 type Interface interface {
-	Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Progress, error)
+	Query(ctx context.Context, head *lakeparse.Commitish, ctrl bool, src string, srcfiles ...string) (zbuf.ProgressReader, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.Layout, int, int64) (ksuid.KSUID, error)
@@ -41,25 +40,27 @@ func IsLakeService(u *storage.URI) bool {
 	return u.Scheme == "http" || u.Scheme == "https"
 }
 
-func ScanIndexRules(ctx context.Context, api Interface, d driver.Driver) error {
-	_, err := api.Query(ctx, d, nil, "from :index_rules")
-	return err
+func ScanIndexRules(ctx context.Context, api Interface) (zio.Reader, error) {
+	return api.Query(ctx, nil, false, "from :index_rules")
 }
 
 func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {
-	d := newQueryDriver(pools.Config{})
+	b := newBuffer(pools.Config{})
 	zed := fmt.Sprintf("from :pools | name == '%s'", name)
-	_, err := api.Query(ctx, d, nil, zed)
+	q, err := api.Query(ctx, nil, false, zed)
 	if err != nil {
 		return nil, err
 	}
-	switch len(d.results) {
+	if err := zio.Copy(b, q); err != nil {
+		return nil, err
+	}
+	switch len(b.results) {
 	case 0:
 		return nil, fmt.Errorf("%q: pool not found", name)
 	case 1:
-		pool, ok := d.results[0].(*pools.Config)
+		pool, ok := b.results[0].(*pools.Config)
 		if !ok {
-			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", d.results[0])
+			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", b.results[0])
 		}
 		return pool, nil
 	default:
@@ -68,19 +69,22 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 }
 
 func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.Config, error) {
-	d := newQueryDriver(pools.Config{})
+	b := newBuffer(pools.Config{})
 	zed := fmt.Sprintf("from :pools | id == from_hex('%s')", idToHex(id))
-	_, err := api.Query(ctx, d, nil, zed)
+	q, err := api.Query(ctx, nil, false, zed)
 	if err != nil {
 		return nil, err
 	}
-	switch len(d.results) {
+	if err := zio.Copy(b, q); err != nil {
+		return nil, err
+	}
+	switch len(b.results) {
 	case 0:
 		return nil, fmt.Errorf("%s: pool not found", id)
 	case 1:
-		pool, ok := d.results[0].(*pools.Config)
+		pool, ok := b.results[0].(*pools.Config)
 		if !ok {
-			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", d.results[0])
+			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", b.results[0])
 		}
 		return pool, nil
 	default:
@@ -89,19 +93,22 @@ func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.
 }
 
 func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName string) (*lake.BranchMeta, error) {
-	d := newQueryDriver(lake.BranchMeta{})
+	b := newBuffer(lake.BranchMeta{})
 	zed := fmt.Sprintf("from :branches | pool.name == '%s' branch.name == '%s'", poolName, branchName)
-	_, err := api.Query(ctx, d, nil, zed)
+	q, err := api.Query(ctx, nil, false, zed)
 	if err != nil {
 		return nil, err
 	}
-	switch len(d.results) {
+	if err := zio.Copy(b, q); err != nil {
+		return nil, err
+	}
+	switch len(b.results) {
 	case 0:
 		return nil, fmt.Errorf("%q: branch not found", poolName+"/"+branchName)
 	case 1:
-		branch, ok := d.results[0].(*lake.BranchMeta)
+		branch, ok := b.results[0].(*lake.BranchMeta)
 		if !ok {
-			return nil, fmt.Errorf("internal error: branch record has wrong type: %T", d.results[0])
+			return nil, fmt.Errorf("internal error: branch record has wrong type: %T", b.results[0])
 		}
 		return branch, nil
 	default:
@@ -110,19 +117,19 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 }
 
 func LookupBranchByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake.BranchMeta, error) {
-	d := newQueryDriver(lake.BranchMeta{})
+	b := newBuffer(lake.BranchMeta{})
 	zed := fmt.Sprintf("from :branches | branch.id == 'from_hex(%s)'", idToHex(id))
-	_, err := api.Query(ctx, d, nil, zed)
+	_, err := api.Query(ctx, nil, false, zed)
 	if err != nil {
 		return nil, err
 	}
-	switch len(d.results) {
+	switch len(b.results) {
 	case 0:
 		return nil, fmt.Errorf("%s: branch not found", id)
 	case 1:
-		branch, ok := d.results[0].(*lake.BranchMeta)
+		branch, ok := b.results[0].(*lake.BranchMeta)
 		if !ok {
-			return nil, fmt.Errorf("internal error: branch record has wrong type: %T", d.results[0])
+			return nil, fmt.Errorf("internal error: branch record has wrong type: %T", b.results[0])
 		}
 		return branch, nil
 	default:

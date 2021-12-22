@@ -9,12 +9,13 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
@@ -32,7 +33,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(zqe.ErrInvalid(err))
 		return
 	}
-	noctrl, ok := r.BoolFromQuery("noctrl", w)
+	ctrl, ok := r.BoolFromQuery("ctrl", w)
 	if !ok {
 		return
 	}
@@ -41,20 +42,59 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(zqe.ErrInvalid(err))
 		return
 	}
-	d, err := queryio.NewDriver(w.ResponseWriter, format, !noctrl)
+	flusher, _ := w.ResponseWriter.(http.Flusher)
+	writer, err := queryio.NewWriter(zio.NopCloser(w), format, ctrl, flusher)
 	if err != nil {
 		w.Error(err)
+		return
 	}
-	defer d.Close()
-	var statsTicker <-chan time.Time
-	if !noctrl {
-		t := time.NewTicker(queryStatsInterval)
-		defer t.Stop()
-		statsTicker = t.C
+	defer writer.Close()
+	flowgraph, err := runtime.NewQueryOnLake(r.Context(), zed.NewContext(), query, c.root, &req.Head, r.Logger)
+	if err != nil {
+		w.Error(err)
+		return
 	}
-	err = driver.RunWithLakeAndStats(r.Context(), d, query, zed.NewContext(), c.root, &req.Head, statsTicker, r.Logger, 0)
-	if err != nil && !errors.Is(err, journal.ErrEmpty) {
-		d.Error(err)
+	timer := time.NewTicker(queryStatsInterval)
+	defer timer.Stop()
+	meter := flowgraph.Meter()
+	for {
+		var tick bool
+		select {
+		case <-timer.C:
+			tick = true
+		default:
+		}
+		batch, err := flowgraph.Pull()
+		if err != nil {
+			if !errors.Is(err, journal.ErrEmpty) {
+				writer.Error(err)
+			}
+			return
+		}
+		if batch == nil || tick {
+			if err := writer.WriteProgress(meter.Progress()); err != nil {
+				writer.Error(err)
+				return
+			}
+			if batch == nil {
+				return
+			}
+		}
+		if len(batch.Values()) == 0 {
+			if eoc, ok := batch.(*proc.EndOfChannel); ok {
+				if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
+					writer.Error(err)
+					return
+				}
+			}
+			continue
+		}
+		var cid int
+		batch, cid = proc.Unwrap(batch)
+		if err := writer.Write(cid, batch); err != nil {
+			writer.Error(err)
+			return
+		}
 	}
 }
 
