@@ -19,6 +19,7 @@ require (
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/peterh/liner v1.1.0
 	github.com/pierrec/lz4/v4 v4.1.0

@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sync/atomic"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/auto"
@@ -65,4 +66,67 @@ func (f *Flags) Open(ctx context.Context, zctx *zed.Context, engine storage.Engi
 		readers = append(readers, file)
 	}
 	return readers, nil
+}
+
+func (f *Flags) OpenWithStats(ctx context.Context, zctx *zed.Context, engine storage.Engine, paths []string, stopOnErr bool) ([]*StatsReader, error) {
+	e := &engineWrap{Engine: engine}
+	readers, err := f.Open(ctx, zctx, e, paths, stopOnErr)
+	if err != nil {
+		return nil, err
+	}
+	statsers := make([]*StatsReader, len(readers))
+	for i, r := range readers {
+		sr := e.readers[i]
+		size, err := storage.Size(sr.Reader)
+		if err != nil && !errors.Is(err, storage.ErrNotSupported) {
+			zio.CloseReaders(readers)
+			return nil, err
+		}
+		statsers[i] = &StatsReader{
+			Reader:     r,
+			BytesTotal: size,
+			counter:    sr,
+		}
+	}
+	return statsers, nil
+}
+
+type engineWrap struct {
+	storage.Engine
+	readers []*byteCounter
+}
+
+func (e *engineWrap) Get(ctx context.Context, u *storage.URI) (storage.Reader, error) {
+	r, err := e.Engine.Get(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+	counter := &byteCounter{Reader: r}
+	e.readers = append(e.readers, counter)
+	return counter, nil
+}
+
+type StatsReader struct {
+	zio.Reader
+	BytesTotal int64
+	counter    *byteCounter
+}
+
+func (r *StatsReader) BytesRead() int64 {
+	return r.counter.BytesRead()
+}
+
+type byteCounter struct {
+	storage.Reader
+	n int64
+}
+
+func (r *byteCounter) Read(b []byte) (int, error) {
+	n, err := r.Reader.Read(b)
+	atomic.AddInt64(&r.n, int64(n))
+	return n, err
+}
+
+func (r *byteCounter) BytesRead() int64 {
+	return atomic.LoadInt64(&r.n)
 }

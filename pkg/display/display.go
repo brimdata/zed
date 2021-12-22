@@ -2,6 +2,7 @@ package display
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"sync"
 	"time"
@@ -18,17 +19,24 @@ type Display struct {
 	interval time.Duration
 	updater  Displayer
 	buffer   *bytes.Buffer
-	close    chan struct{}
+	ctx      context.Context
+	cancel   context.CancelFunc
 	done     sync.WaitGroup
 }
 
-func New(updater Displayer, interval time.Duration) *Display {
+func New(updater Displayer, interval time.Duration, out io.Writer) *Display {
+	live := uilive.New()
+	if out != nil {
+		live.Out = out
+	}
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Display{
-		live:     uilive.New(),
+		ctx:      ctx,
+		cancel:   cancel,
+		live:     live,
 		interval: interval,
 		updater:  updater,
 		buffer:   bytes.NewBuffer(nil),
-		close:    make(chan struct{}),
 	}
 }
 
@@ -45,10 +53,10 @@ func (d *Display) Run() {
 	d.done.Add(1)
 	for {
 		if !d.update() {
-			close(d.close)
+			d.cancel()
 		}
 		select {
-		case <-d.close:
+		case <-d.ctx.Done():
 			d.done.Done()
 			return
 		case <-time.After(d.interval):
@@ -61,7 +69,7 @@ func (d *Display) Bypass() io.Writer {
 }
 
 func (d *Display) Close() {
-	close(d.close)
+	d.cancel()
 	d.done.Wait()
 	d.update()
 }
