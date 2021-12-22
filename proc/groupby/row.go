@@ -19,7 +19,7 @@ func newValRow(aggs []*expr.Aggregator) valRow {
 	return cols
 }
 
-func (v valRow) apply(aggs []*expr.Aggregator, this *zed.Value, ectx expr.Context) {
+func (v valRow) apply(ectx expr.Context, aggs []*expr.Aggregator, this *zed.Value) {
 	for k, a := range aggs {
 		a.Apply(ectx, v[k], this)
 	}

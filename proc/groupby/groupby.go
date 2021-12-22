@@ -305,7 +305,7 @@ func (a *Aggregator) Consume(ectx expr.Context, this *zed.Value) {
 	if a.partialsIn {
 		row.reducers.consumeAsPartial(this, a.aggRefs, ectx)
 	} else {
-		row.reducers.apply(a.aggs, this, ectx)
+		row.reducers.apply(ectx, a.aggs, this)
 	}
 }
 

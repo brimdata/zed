@@ -32,18 +32,18 @@ var (
 	NullString   = &Value{Type: TypeString}
 	NullIP       = &Value{Type: TypeIP}
 	NullNet      = &Value{Type: TypeNet}
-	NullTypeType = &Value{Type: TypeNet}
+	NullType     = &Value{Type: TypeType}
 	Null         = &Value{Type: TypeNull}
 )
-
-type Value struct {
-	Type  Type
-	Bytes zcode.Bytes
-}
 
 type Allocator interface {
 	NewValue(Type, zcode.Bytes) *Value
 	CopyValue(Value) *Value
+}
+
+type Value struct {
+	Type  Type
+	Bytes zcode.Bytes
 }
 
 func NewValue(zt Type, zb zcode.Bytes) *Value {
@@ -205,11 +205,11 @@ func (v Value) IsError() bool {
 }
 
 func (v Value) IsMissing() bool {
-	return v.Type == TypeError && bytes.Equal(v.Bytes, missing)
+	return v.Type == Missing.Type && bytes.Equal(v.Bytes, Missing.Bytes)
 }
 
 func (v Value) IsQuiet() bool {
-	return v.Type == TypeError && bytes.Equal(v.Bytes, quiet)
+	return v.Type == Quiet.Type && bytes.Equal(v.Bytes, Quiet.Bytes)
 }
 
 func (v Value) Equal(p Value) bool {

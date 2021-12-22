@@ -17,7 +17,7 @@ func (f *FromBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(ctx, "from_base64: string argument required")
 	}
 	if zv.Bytes == nil {
-		return zed.NullTypeType
+		return zed.NullType
 	}
 	s, _ := zed.DecodeString(zv.Bytes)
 	b, err := base64.StdEncoding.DecodeString(s)
