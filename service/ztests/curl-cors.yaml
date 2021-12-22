@@ -1,0 +1,51 @@
+script: |
+  source service.sh
+  echo "=== OPTIONS: allowed ==="
+  curl -sD - \
+    -X OPTIONS \
+    -H "Access-Control-Request-Method: POST" \
+    -H "Access-Control-Request-Headers: content-type" \
+    -H "Origin: http://test.observableusercontent.com" \
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json" \
+    $ZED_LAKE/query | grep -Fi "Access-Control-Allow"  | tr -d '\015'
+  echo "=== OPTIONS: not allowed ==="
+  curl -sD - \
+    -X OPTIONS \
+    -H "Access-Control-Request-Method: POST" \
+    -H "Access-Control-Request-Headers: content-type" \
+    -H "Origin: http://adversarialobservableusercontent.com" \
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json" \
+    $ZED_LAKE/query | grep -Fi "Access-Control-Allow"  || true
+  echo "=== POST: allowed ==="
+  curl -sD - \
+    -X POST \
+    -H "Origin: http://test.observableusercontent.com" \
+    -H "Accept: application/json" \
+    -d '{"query":"from :pools | *"}' \
+    $ZED_LAKE/query | grep -Fi "Access-Control-Allow"  | tr -d '\015'
+  echo "=== POST: not allowed ==="
+  curl -sD - \
+    -X POST \
+    -H "Origin: http://adversarialobservableusercontent.com" \
+    -H "Accept: application/json" \
+    -d '{"query":"from :pools | *"}' \
+    $ZED_LAKE/query | grep -Fi "Access-Control-Allow"  || true
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      === OPTIONS: allowed ===
+      Access-Control-Allow-Credentials: true
+      Access-Control-Allow-Headers: Content-Type
+      Access-Control-Allow-Methods: POST
+      Access-Control-Allow-Origin: http://test.observableusercontent.com
+      === OPTIONS: not allowed ===
+      === POST: allowed ===
+      Access-Control-Allow-Credentials: true
+      Access-Control-Allow-Origin: http://test.observableusercontent.com
+      === POST: not allowed ===

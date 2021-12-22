@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/brimdata/zed/api"
@@ -32,31 +30,19 @@ func requestIDMiddleware() mux.MiddlewareFunc {
 	}
 }
 
-func getAllowedOrigins() []string {
-	return []string{"observableusercontent.com", "localhost"}
-}
-
-func originValidator(origin string) bool {
-	valid := false
-	unescapedOrigin, err := url.QueryUnescape(origin)
-	if err != nil {
-		return valid
-	}
-	url, err := url.Parse(unescapedOrigin)
-	if err != nil {
-		return valid
-	}
-	for _, allowedDomain := range getAllowedOrigins() {
-		if strings.HasSuffix(url.Host, allowedDomain) {
-			valid = true
-		}
-	}
-	return valid
-}
+var allowedOrigins = []string{"*.observableusercontent.com", "localhost"}
 
 func corsMiddleware() mux.MiddlewareFunc {
 	return cors.New(cors.Options{
-		AllowOriginFunc:  originValidator,
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{
+			http.MethodHead,
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+		},
 		AllowCredentials: true,
 	}).Handler
 }
