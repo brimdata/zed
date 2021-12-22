@@ -36,6 +36,6 @@ func (*queryDriver) ChannelEnd(int) error {
 	return nil
 }
 
-func (*queryDriver) Stats(zbuf.ScannerStats) error {
+func (*queryDriver) Stats(zbuf.Progress) error {
 	return nil
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed/zio/zngio"
 )
 
-func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Response) (zbuf.ScannerStats, error) {
+func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Response) (zbuf.Progress, error) {
 	run := &runner{driver: d}
 	r := NewZNGReader(zngio.NewReader(res.Body, zed.NewContext()))
 	for ctx.Err() == nil {
@@ -41,7 +41,7 @@ func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Respons
 type runner struct {
 	driver driver.Driver
 	cid    int
-	stats  zbuf.ScannerStats
+	stats  zbuf.Progress
 }
 
 func (r *runner) Write(rec *zed.Value) error {
@@ -55,8 +55,8 @@ func (r *runner) handleCtrl(ctrl interface{}) error {
 	case *api.QueryChannelEnd:
 		return r.driver.ChannelEnd(ctrl.ChannelID)
 	case *api.QueryStats:
-		r.stats = zbuf.ScannerStats(ctrl.ScannerStats)
-		return r.driver.Stats(ctrl.ScannerStats)
+		r.stats = zbuf.Progress(ctrl.Progress)
+		return r.driver.Stats(ctrl.Progress)
 	case *api.QueryWarning:
 		return r.driver.Warn(ctrl.Warning)
 	case *api.QueryError:

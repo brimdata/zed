@@ -25,7 +25,7 @@ type Driver interface {
 	Warn(msg string) error
 	Write(channelID int, batch zbuf.Batch) error
 	ChannelEnd(channelID int) error
-	Stats(zbuf.ScannerStats) error
+	Stats(zbuf.Progress) error
 }
 
 func RunWithReader(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, reader zio.Reader, logger *zap.Logger) error {
@@ -48,26 +48,26 @@ func RunWithOrderedReader(ctx context.Context, d Driver, program ast.Proc, zctx 
 	return run(pctx, d, runtime, nil)
 }
 
-func RunWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, readers []zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
+func RunWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, readers []zio.Reader, adaptor proc.DataAdaptor) (zbuf.Progress, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
 	runtime, err := compiler.CompileForFileSystem(pctx, program, readers, adaptor)
 	if err != nil {
 		pctx.Cancel()
-		return zbuf.ScannerStats{}, err
+		return zbuf.Progress{}, err
 	}
 	err = run(pctx, d, runtime, nil)
-	return runtime.Statser().Stats(), err
+	return runtime.Meter().Progress(), err
 }
 
-func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, lake proc.DataAdaptor, head *lakeparse.Commitish) (zbuf.ScannerStats, error) {
+func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, lake proc.DataAdaptor, head *lakeparse.Commitish) (zbuf.Progress, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
 	runtime, err := compiler.CompileForLake(pctx, program, lake, 0, head)
 	if err != nil {
 		pctx.Cancel()
-		return zbuf.ScannerStats{}, err
+		return zbuf.Progress{}, err
 	}
 	err = run(pctx, d, runtime, nil)
-	return runtime.Statser().Stats(), err
+	return runtime.Meter().Progress(), err
 }
 
 func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, lake proc.DataAdaptor, head *lakeparse.Commitish, ticker <-chan time.Time, logger *zap.Logger, parallelism int) error {
@@ -85,8 +85,8 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 	if puller == nil {
 		return errors.New("internal error: driver called with unprepared runtime")
 	}
-	statser := runtime.Statser()
-	if statser == nil && statsTicker != nil {
+	meter := runtime.Meter()
+	if meter == nil && statsTicker != nil {
 		return errors.New("internal error: driver wants live stats but runtime has no statser")
 	}
 	resultCh := make(chan proc.Result)
@@ -121,7 +121,9 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 	for {
 		select {
 		case <-statsTicker:
-			if err := d.Stats(statser.Stats()); err != nil {
+			//XXX not changing driver.Stats since this is going
+			// to go away
+			if err := d.Stats(meter.Progress()); err != nil {
 				return err
 			}
 		case result := <-resultCh:
@@ -144,8 +146,8 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 						err = endErr
 					}
 				}
-				if statser != nil {
-					if statsErr := d.Stats(statser.Stats()); err == nil {
+				if meter != nil {
+					if statsErr := d.Stats(meter.Progress()); err == nil {
 						err = statsErr
 					}
 				}
@@ -225,8 +227,8 @@ func (d *CLI) Warn(msg string) error {
 	return nil
 }
 
-func (d *CLI) ChannelEnd(int) error          { return nil }
-func (d *CLI) Stats(zbuf.ScannerStats) error { return nil }
+func (d *CLI) ChannelEnd(int) error      { return nil }
+func (d *CLI) Stats(zbuf.Progress) error { return nil }
 
 type transformDriver struct {
 	w zio.Writer
@@ -240,9 +242,9 @@ func (d *transformDriver) Write(cid int, batch zbuf.Batch) error {
 	return zbuf.WriteBatch(d.w, batch)
 }
 
-func (d *transformDriver) Warn(warning string) error           { return nil }
-func (d *transformDriver) Stats(stats zbuf.ScannerStats) error { return nil }
-func (d *transformDriver) ChannelEnd(cid int) error            { return nil }
+func (d *transformDriver) Warn(warning string) error       { return nil }
+func (d *transformDriver) Stats(stats zbuf.Progress) error { return nil }
+func (d *transformDriver) ChannelEnd(cid int) error        { return nil }
 
 // Copy applies a proc to all records from a zio.Reader, writing to a
 // single zio.Writer. The proc must have a single tail.
@@ -263,9 +265,9 @@ type Reader struct {
 	err error
 }
 
-func (*Reader) Warn(warning string) error           { return nil }
-func (*Reader) Stats(stats zbuf.ScannerStats) error { return nil }
-func (*Reader) ChannelEnd(cid int) error            { return nil }
+func (*Reader) Warn(warning string) error       { return nil }
+func (*Reader) Stats(stats zbuf.Progress) error { return nil }
+func (*Reader) ChannelEnd(cid int) error        { return nil }
 
 func (r *Reader) Write(_ int, batch zbuf.Batch) error {
 	if batch != nil {

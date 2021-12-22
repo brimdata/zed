@@ -42,7 +42,7 @@ func (s *statScanner) Pull() (zbuf.Batch, error) {
 	}
 	batch, err := s.puller.Pull()
 	if batch == nil || err != nil {
-		s.sched.AddStats(s.Scanner.Stats())
+		s.sched.AddProgress(s.Scanner.Progress())
 		s.puller = nil
 		s.err = err
 	}

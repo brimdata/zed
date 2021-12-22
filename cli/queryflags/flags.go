@@ -58,7 +58,7 @@ func isURLWithKnownScheme(path string, schemes ...string) bool {
 	return false
 }
 
-func (f *Flags) PrintStats(stats zbuf.ScannerStats) {
+func (f *Flags) PrintStats(stats zbuf.Progress) {
 	if f.Stats {
 		out, err := zson.Marshal(stats)
 		if err != nil {

@@ -675,16 +675,16 @@ func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (zed.Value,
 }
 
 type readerScheduler struct {
-	ctx     context.Context
-	filter  *Filter
-	readers []zio.Reader
-	scanner zbuf.Scanner
-	stats   zbuf.ScannerStats
+	ctx      context.Context
+	filter   *Filter
+	readers  []zio.Reader
+	scanner  zbuf.Scanner
+	progress zbuf.Progress
 }
 
 func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	if r.scanner != nil {
-		r.stats.Add(r.scanner.Stats())
+		r.progress.Add(r.scanner.Progress())
 		r.scanner = nil
 	}
 	if len(r.readers) == 0 {
@@ -703,4 +703,4 @@ func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	return zbuf.ScannerNopCloser(s), nil
 }
 
-func (r *readerScheduler) Stats() zbuf.ScannerStats { return r.stats.Copy() }
+func (r *readerScheduler) Progress() zbuf.Progress { return r.scanner.Progress() }

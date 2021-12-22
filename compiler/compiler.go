@@ -144,8 +144,8 @@ func (r *Runtime) Entry() dag.Op {
 	return r.optimizer.Entry()
 }
 
-func (r *Runtime) Statser() zbuf.Statser {
-	return &statser{r.builder.Schedulers()}
+func (r *Runtime) Meter() zbuf.Meter {
+	return &meter{r.builder.Schedulers()}
 }
 
 // This must be called before the zbuf.Filter interface will work.
@@ -214,14 +214,14 @@ func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Ev
 	return kernel.CompileAssignments(dsts, srcs)
 }
 
-type statser struct {
+type meter struct {
 	schedulers []proc.Scheduler
 }
 
-func (s *statser) Stats() zbuf.ScannerStats {
-	var out zbuf.ScannerStats
+func (s *meter) Progress() zbuf.Progress {
+	var out zbuf.Progress
 	for _, sched := range s.schedulers {
-		out.Add(sched.Stats())
+		out.Add(sched.Progress())
 	}
 	return out
 }

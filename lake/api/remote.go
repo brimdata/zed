@@ -104,10 +104,10 @@ func (r *RemoteSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchNa
 	return res.Commit, err
 }
 
-func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
+func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Progress, error) {
 	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
-		return zbuf.ScannerStats{}, err
+		return zbuf.Progress{}, err
 	}
 	defer res.Body.Close()
 	return queryio.RunClientResponse(ctx, d, res)

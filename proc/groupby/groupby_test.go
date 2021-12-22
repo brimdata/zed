@@ -271,8 +271,8 @@ func (d *testGroupByDriver) Warn(msg string) error {
 	panic("shouldn't warn")
 }
 
-func (d *testGroupByDriver) ChannelEnd(int) error          { return nil }
-func (d *testGroupByDriver) Stats(zbuf.ScannerStats) error { return nil }
+func (d *testGroupByDriver) ChannelEnd(int) error      { return nil }
+func (d *testGroupByDriver) Stats(zbuf.Progress) error { return nil }
 
 func TestGroupbyStreamingSpill(t *testing.T) {
 

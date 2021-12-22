@@ -14,8 +14,8 @@ import (
 )
 
 type scanner struct {
-	ctx   context.Context
-	stats zbuf.ScannerStats
+	ctx      context.Context
+	progress zbuf.Progress
 
 	once    sync.Once
 	workers []*worker
@@ -82,12 +82,12 @@ func (s *scanner) start() {
 	}()
 }
 
-func (s *scanner) Stats() zbuf.ScannerStats {
-	return zbuf.ScannerStats{
-		BytesRead:      atomic.LoadInt64(&s.stats.BytesRead),
-		BytesMatched:   atomic.LoadInt64(&s.stats.BytesMatched),
-		RecordsRead:    atomic.LoadInt64(&s.stats.RecordsRead),
-		RecordsMatched: atomic.LoadInt64(&s.stats.RecordsMatched),
+func (s *scanner) Progress() zbuf.Progress {
+	return zbuf.Progress{
+		BytesRead:      atomic.LoadInt64(&s.progress.BytesRead),
+		BytesMatched:   atomic.LoadInt64(&s.progress.BytesMatched),
+		RecordsRead:    atomic.LoadInt64(&s.progress.RecordsRead),
+		RecordsMatched: atomic.LoadInt64(&s.progress.RecordsMatched),
 	}
 }
 
@@ -161,15 +161,15 @@ func (w *worker) run(ctx context.Context) error {
 		// This is the slow path when data isn't compressed.  Create a
 		// batch for every record that passes the filter.
 		rec.Bytes = recBytesCopy
-		var stats zbuf.ScannerStats
-		if w.wantRecord(rec, &stats) {
+		var progress zbuf.Progress
+		if w.wantRecord(rec, &progress) {
 			// Give rec.Bytes ownership to the new batch.
 			recBytesCopy = nil
 			batch := newBatch(nil)
 			batch.add(rec)
 			ch <- batch
 		}
-		w.scanner.stats.Add(stats)
+		w.scanner.progress.Add(progress)
 		close(ch)
 	}
 }
@@ -192,14 +192,14 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 	// If w.bufferFilter evaluates to false, we know buf cannot contain
 	// records matching w.filter.
 	if w.bufferFilter != nil && !w.bufferFilter.Eval(streamZctx, buf.Bytes()) {
-		atomic.AddInt64(&w.scanner.stats.BytesRead, int64(buf.length()))
+		atomic.AddInt64(&w.scanner.progress.BytesRead, int64(buf.length()))
 		buf.free()
 		return nil, nil
 	}
 	// Otherwise, build a batch by reading all records in the buffer.
 	batch := newBatch(buf)
 	var stackRec zed.Value
-	var stats zbuf.ScannerStats
+	var progress zbuf.Progress
 	for buf.length() > 0 {
 		code, err := buf.ReadByte()
 		if err != nil {
@@ -212,11 +212,11 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 		if err != nil {
 			return nil, err
 		}
-		if w.wantRecord(rec, &stats) {
+		if w.wantRecord(rec, &progress) {
 			batch.add(rec)
 		}
 	}
-	w.scanner.stats.Add(stats)
+	w.scanner.progress.Add(progress)
 	if len(batch.Values()) == 0 {
 		batch.Unref()
 		return nil, nil
@@ -224,17 +224,17 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 	return batch, nil
 }
 
-func (w *worker) wantRecord(rec *zed.Value, stats *zbuf.ScannerStats) bool {
-	stats.BytesRead += int64(len(rec.Bytes))
-	stats.RecordsRead++
+func (w *worker) wantRecord(rec *zed.Value, progress *zbuf.Progress) bool {
+	progress.BytesRead += int64(len(rec.Bytes))
+	progress.RecordsRead++
 	// It's tempting to call w.bufferFilter.Eval on rec.Bytes here, but that
 	// might call FieldNameFinder.Find, which could explode or return false
 	// negatives because it expects a buffer of ZNG value messages, and
 	// rec.Bytes is just a ZNG value.  (A ZNG value message is a header
 	// indicating a type ID followed by a value of that type.)
 	if w.filter == nil || w.filter(rec) {
-		stats.BytesMatched += int64(len(rec.Bytes))
-		stats.RecordsMatched++
+		progress.BytesMatched += int64(len(rec.Bytes))
+		progress.RecordsMatched++
 		return true
 	}
 	return false

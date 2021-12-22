@@ -19,7 +19,7 @@ import (
 )
 
 type Interface interface {
-	Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error)
+	Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Progress, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.Layout, int, int64) (ksuid.KSUID, error)
