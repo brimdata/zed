@@ -47,22 +47,14 @@ func (r *Reader) fill(min int) error {
 	r.buffer = r.buffer[:cap(r.buffer)]
 	copy(r.buffer, r.cursor)
 	clen := len(r.cursor)
-	space := len(r.buffer) - clen
-	for space > 0 {
-		cc, err := r.Reader.Read(r.buffer[clen:])
-		if cc > 0 {
-			clen += cc
-			space -= cc
-		}
-		if err != nil {
-			if err == io.EOF {
-				r.eof = true
-				break
-			}
+	n, err := io.ReadAtLeast(r.Reader, r.buffer[clen:], min)
+	if err != nil {
+		if err != io.EOF && err != io.ErrUnexpectedEOF {
 			return err
 		}
+		r.eof = true
 	}
-	r.buffer = r.buffer[:clen]
+	r.buffer = r.buffer[:clen+n]
 	r.cursor = r.buffer
 	return nil
 }
