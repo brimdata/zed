@@ -2,6 +2,7 @@ package queryio
 
 import (
 	"io"
+	"net/http"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/pkg/nano"
@@ -17,29 +18,31 @@ type ControlWriter interface {
 }
 
 type Driver struct {
-	cid    int
-	ctrl   bool
-	start  nano.Ts
-	writer zio.WriteCloser
+	cid     int
+	ctrl    bool
+	start   nano.Ts
+	writer  io.Writer
+	zwriter zio.WriteCloser
 }
 
-func NewDriver(w io.WriteCloser, format string, ctrl bool) (*Driver, error) {
+func NewDriver(w io.Writer, format string, ctrl bool) (*Driver, error) {
 	d := &Driver{
-		cid:   -1,
-		ctrl:  ctrl,
-		start: nano.Now(),
+		cid:    -1,
+		ctrl:   ctrl,
+		start:  nano.Now(),
+		writer: w,
 	}
 	var err error
 	switch format {
 	case "zng":
-		d.writer = NewZNGWriter(w)
+		d.zwriter = NewZNGWriter(w)
 	case "zjson":
-		d.writer = NewZJSONWriter(w)
+		d.zwriter = NewZJSONWriter(w)
 	case "json":
 		// The json response should always be an array, so force array.
-		d.writer = jsonio.NewWriter(w, jsonio.WriterOpts{ForceArray: true})
+		d.zwriter = jsonio.NewWriter(zio.NopCloser(w), jsonio.WriterOpts{ForceArray: true})
 	default:
-		d.writer, err = anyio.NewWriter(w, anyio.WriterOpts{Format: format})
+		d.zwriter, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{Format: format})
 	}
 	return d, err
 }
@@ -56,7 +59,7 @@ func (d *Driver) Write(cid int, batch zbuf.Batch) error {
 		}
 	}
 	defer batch.Unref()
-	return zbuf.WriteBatch(d.writer, batch)
+	return zbuf.WriteBatch(d.zwriter, batch)
 }
 
 func (d *Driver) ChannelEnd(channelID int) error {
@@ -73,8 +76,12 @@ func (d *Driver) Stats(stats zbuf.ScannerStats) error {
 }
 
 func (d *Driver) WriteControl(value interface{}) error {
-	if ctrl, ok := d.writer.(ControlWriter); ok && d.ctrl {
-		return ctrl.WriteControl(value)
+	if ctrl, ok := d.zwriter.(ControlWriter); ok && d.ctrl {
+		err := ctrl.WriteControl(value)
+		if flusher, ok := d.writer.(http.Flusher); ok {
+			flusher.Flush()
+		}
+		return err
 	}
 	return nil
 }
@@ -84,5 +91,5 @@ func (d *Driver) Error(err error) {
 }
 
 func (d *Driver) Close() error {
-	return d.writer.Close()
+	return d.zwriter.Close()
 }
