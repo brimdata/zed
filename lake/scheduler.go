@@ -17,17 +17,17 @@ import (
 )
 
 type Scheduler struct {
-	ctx    context.Context
-	zctx   *zed.Context
-	pool   *Pool
-	snap   commits.View
-	span   extent.Span
-	filter zbuf.Filter
-	index  *index.Filter
-	once   sync.Once
-	ch     chan Partition
-	group  *errgroup.Group
-	stats  zbuf.ScannerStats
+	ctx      context.Context
+	zctx     *zed.Context
+	pool     *Pool
+	snap     commits.View
+	span     extent.Span
+	filter   zbuf.Filter
+	index    *index.Filter
+	once     sync.Once
+	ch       chan Partition
+	group    *errgroup.Group
+	progress zbuf.Progress
 }
 
 var _ proc.Scheduler = (*Scheduler)(nil)
@@ -45,12 +45,12 @@ func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap
 	}
 }
 
-func (s *Scheduler) Stats() zbuf.ScannerStats {
-	return s.stats.Copy()
+func (s *Scheduler) Progress() zbuf.Progress {
+	return s.progress.Copy()
 }
 
-func (s *Scheduler) AddStats(stats zbuf.ScannerStats) {
-	s.stats.Add(stats)
+func (s *Scheduler) AddProgress(progress zbuf.Progress) {
+	s.progress.Add(progress)
 }
 
 func (s *Scheduler) PullScanTask() (zbuf.PullerCloser, error) {
@@ -110,7 +110,7 @@ func (s *Scheduler) newSortedScanner(p Partition) (zbuf.PullerCloser, error) {
 
 type scannerScheduler struct {
 	scanners []zbuf.Scanner
-	stats    zbuf.ScannerStats
+	progress zbuf.Progress
 	last     zbuf.Scanner
 }
 
@@ -124,7 +124,7 @@ func newScannerScheduler(scanners ...zbuf.Scanner) *scannerScheduler {
 
 func (s *scannerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	if s.last != nil {
-		s.stats.Add(s.last.Stats())
+		s.progress.Add(s.last.Progress())
 		s.last = nil
 	}
 	if len(s.scanners) > 0 {
@@ -136,8 +136,8 @@ func (s *scannerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	return nil, nil
 }
 
-func (s *scannerScheduler) Stats() zbuf.ScannerStats {
-	return s.stats.Copy()
+func (s *scannerScheduler) Progress() zbuf.Progress {
+	return s.progress.Copy()
 }
 
 func indexFilterPass(ctx context.Context, snap commits.View, filter *index.Filter, in <-chan Partition, out chan<- Partition) error {

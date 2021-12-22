@@ -94,13 +94,13 @@ func (l *LocalSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) 
 	return l.root.DeleteIndexRules(ctx, ids)
 }
 
-func (l *LocalSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
+func (l *LocalSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Progress, error) {
 	query, err := compiler.ParseProc(src, srcfiles...)
 	if err != nil {
-		return zbuf.ScannerStats{}, err
+		return zbuf.Progress{}, err
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return zbuf.ScannerStats{}, err
+		return zbuf.Progress{}, err
 	}
 	return driver.RunWithLake(ctx, d, query, zed.NewContext(), l.root, head)
 }

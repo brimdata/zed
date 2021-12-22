@@ -22,14 +22,14 @@ type ScannerAble interface {
 	NewScanner(ctx context.Context, filterExpr Filter) (Scanner, error)
 }
 
-// A Statser produces scanner statistics.
-type Statser interface {
-	Stats() ScannerStats
+// A Meter provides Progress statistics.
+type Meter interface {
+	Progress() Progress
 }
 
-// A Scanner is a Batch source that also provides statistics.
+// A Scanner is a Batch source that also provides progress updates.
 type Scanner interface {
-	Statser
+	Meter
 	Puller
 }
 
@@ -38,8 +38,8 @@ type ScannerCloser interface {
 	io.Closer
 }
 
-// ScannerStats holds Scanner statistics.
-type ScannerStats struct {
+// Progress represents progress statistics from a Scanner.
+type Progress struct {
 	BytesRead      int64 `zed:"bytes_read" json:"bytes_read"`
 	BytesMatched   int64 `zed:"bytes_matched" json:"bytes_matched"`
 	RecordsRead    int64 `zed:"records_read" json:"records_read"`
@@ -47,19 +47,19 @@ type ScannerStats struct {
 }
 
 // Add updates its receiver by adding to it the values in ss.
-func (s *ScannerStats) Add(in ScannerStats) {
-	atomic.AddInt64(&s.BytesRead, in.BytesRead)
-	atomic.AddInt64(&s.BytesMatched, in.BytesMatched)
-	atomic.AddInt64(&s.RecordsRead, in.RecordsRead)
-	atomic.AddInt64(&s.RecordsMatched, in.RecordsMatched)
+func (p *Progress) Add(in Progress) {
+	atomic.AddInt64(&p.BytesRead, in.BytesRead)
+	atomic.AddInt64(&p.BytesMatched, in.BytesMatched)
+	atomic.AddInt64(&p.RecordsRead, in.RecordsRead)
+	atomic.AddInt64(&p.RecordsMatched, in.RecordsMatched)
 }
 
-func (s *ScannerStats) Copy() ScannerStats {
-	return ScannerStats{
-		BytesRead:      atomic.LoadInt64(&s.BytesRead),
-		BytesMatched:   atomic.LoadInt64(&s.BytesMatched),
-		RecordsRead:    atomic.LoadInt64(&s.RecordsRead),
-		RecordsMatched: atomic.LoadInt64(&s.RecordsMatched),
+func (p *Progress) Copy() Progress {
+	return Progress{
+		BytesRead:      atomic.LoadInt64(&p.BytesRead),
+		BytesMatched:   atomic.LoadInt64(&p.BytesMatched),
+		RecordsRead:    atomic.LoadInt64(&p.RecordsRead),
+		RecordsMatched: atomic.LoadInt64(&p.RecordsMatched),
 	}
 }
 
@@ -94,11 +94,11 @@ type scanner struct {
 	filter expr.Filter
 	ctx    context.Context
 
-	stats ScannerStats
+	progress Progress
 }
 
-func (s *scanner) Stats() ScannerStats {
-	return s.stats.Copy()
+func (s *scanner) Progress() Progress {
+	return s.progress.Copy()
 }
 
 // Read implements Reader.Read.
@@ -111,13 +111,13 @@ func (s *scanner) Read() (*zed.Value, error) {
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Bytes)))
-		atomic.AddInt64(&s.stats.RecordsRead, 1)
+		atomic.AddInt64(&s.progress.BytesRead, int64(len(rec.Bytes)))
+		atomic.AddInt64(&s.progress.RecordsRead, 1)
 		if s.filter != nil && !s.filter(rec) {
 			continue
 		}
-		atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Bytes)))
-		atomic.AddInt64(&s.stats.RecordsMatched, 1)
+		atomic.AddInt64(&s.progress.BytesMatched, int64(len(rec.Bytes)))
+		atomic.AddInt64(&s.progress.RecordsMatched, 1)
 		// Copy the underlying buffer because the next call to
 		// s.reader.Read will overwrite it.
 		return rec.Copy(), nil
@@ -126,10 +126,10 @@ func (s *scanner) Read() (*zed.Value, error) {
 
 type MultiStats []Scanner
 
-func (m MultiStats) Stats() ScannerStats {
-	var ss ScannerStats
+func (m MultiStats) Progress() Progress {
+	var ss Progress
 	for _, s := range m {
-		ss.Add(s.Stats())
+		ss.Add(s.Progress())
 	}
 	return ss
 }

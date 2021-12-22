@@ -127,7 +127,7 @@ type QueryError struct {
 type QueryStats struct {
 	StartTime  nano.Ts `json:"start_time" zed:"start_time"`
 	UpdateTime nano.Ts `json:"update_time" zed:"update_time"`
-	zbuf.ScannerStats
+	zbuf.Progress
 }
 
 type QueryWarning struct {

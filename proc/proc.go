@@ -40,7 +40,7 @@ type DataAdaptor interface {
 
 type Scheduler interface {
 	PullScanTask() (zbuf.PullerCloser, error)
-	Stats() zbuf.ScannerStats
+	Progress() zbuf.Progress
 }
 
 // Result is a convenient way to bundle the result of Proc.Pull() to
