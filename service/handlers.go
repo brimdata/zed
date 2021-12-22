@@ -21,9 +21,8 @@ import (
 	"github.com/brimdata/zed/zqe"
 )
 
-const queryStatsInterval = time.Second
-
 func handleQuery(c *Core, w *ResponseWriter, r *Request) {
+	const queryStatsInterval = time.Second
 	var req api.QueryRequest
 	if !r.Unmarshal(w, &req) {
 		return
@@ -46,13 +45,13 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if err != nil {
 		w.Error(err)
 	}
+	defer d.Close()
 	var statsTicker <-chan time.Time
 	if !noctrl {
 		t := time.NewTicker(queryStatsInterval)
-		statsTicker = t.C
 		defer t.Stop()
+		statsTicker = t.C
 	}
-	defer d.Close()
 	err = driver.RunWithLakeAndStats(r.Context(), d, query, zed.NewContext(), c.root, &req.Head, statsTicker, r.Logger, 0)
 	if err != nil && !errors.Is(err, journal.ErrEmpty) {
 		d.Error(err)
