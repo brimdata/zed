@@ -40,6 +40,7 @@
   - [`iserr`](#iserr)
   - [`nameof`](#nameof)
   - [`quiet`](#quiet)
+  - [`typename`](#typename)
   - [`typeof`](#typeof)
   - [`typeunder`](#typeunder)
 - [Value Introspection](#value-introspection)
@@ -720,7 +721,29 @@ echo  '{x:"missing"(error),y:"hello"}'  | zq -z 'cut x:=quiet(x), y:=quiet(y)' -
 {y:"hello"}
 ```
 
+### `typename`
+
+```
+typename(name <string>) -> type
+```
+
+`typename` returns the [type](../data-model/zson.md#357-type-type) of the
+named type give by `name` if it exists in the current context.  Otherwise,
+`error("missing")` is returned.
+
+#### Example:
+
+```mdtest-command
+echo  '80(port=(int16))' | zq -z 'yield typename("port")' -
+```
+
+**Output:**
+```mdtest-output
+(port=(int16))
+```
+
 ### `typeof`
+
 
 ```
 typeof(a <any>) -> type

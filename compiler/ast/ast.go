@@ -160,8 +160,9 @@ type (
 	// and each subsequent proc processes the output records from the
 	// previous proc.
 	Sequential struct {
-		Kind  string `json:"kind" unpack:""`
-		Procs []Proc `json:"procs"`
+		Kind   string `json:"kind" unpack:""`
+		Consts []Def  `json:"consts"`
+		Procs  []Proc `json:"procs"`
 	}
 	// A Parallel proc represents a set of procs that each get
 	// a stream of records from their parent.
@@ -314,20 +315,6 @@ type (
 		Args     []Assignment `json:"args"`
 	}
 
-	// XXX This is a quick and dirty way to get constants into Zed.  They are
-	// smuggled in as fake procs.  When we refactor this AST into a parser AST
-	// proper and a separate kernel DSL, we will clean this up.
-	Const struct {
-		Kind string `json:"kind" unpack:""`
-		Name string `json:"name"`
-		Expr Expr   `json:"expr"`
-	}
-
-	TypeProc struct {
-		Kind string      `json:"kind" unpack:""`
-		Name string      `json:"name"`
-		Type astzed.Type `json:"type"`
-	}
 	// A SQLExpr can be a proc, an expression inside of a SQL FROM clause,
 	// or an expression used as a Zed value generator.  Currenly, the "select"
 	// keyword collides with the select() generator function (it can be parsed
@@ -453,6 +440,14 @@ type Assignment struct {
 	RHS  Expr   `json:"rhs"`
 }
 
+// Def is like Assignment but the LHS is an identifier that may be later
+// referenced.  This is used for const blocks in Sequential and var blocks
+// in a let scope.
+type Def struct {
+	Name string `json:"name"`
+	Expr Expr   `json:"expr"`
+}
+
 func (*Sequential) ProcAST()   {}
 func (*Parallel) ProcAST()     {}
 func (*Switch) ProcAST()       {}
@@ -471,8 +466,6 @@ func (*OpAssignment) ProcAST() {}
 func (*Rename) ProcAST()       {}
 func (*Fuse) ProcAST()         {}
 func (*Join) ProcAST()         {}
-func (*Const) ProcAST()        {}
-func (*TypeProc) ProcAST()     {}
 func (*Call) ProcAST()         {}
 func (*Shape) ProcAST()        {}
 func (*From) ProcAST()         {}

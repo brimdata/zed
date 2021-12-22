@@ -1,7 +1,5 @@
 package dag
 
-import astzed "github.com/brimdata/zed/compiler/ast/zed"
-
 type Expr interface {
 	ExprDAG()
 }
@@ -30,9 +28,9 @@ type (
 		Args []Expr `json:"args"`
 	}
 	Cast struct {
-		Kind string      `json:"kind" unpack:""`
-		Expr Expr        `json:"expr"`
-		Type astzed.Type `json:"type"`
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
+		Type string `json:"type"`
 	}
 	Conditional struct {
 		Kind string `json:"kind" unpack:""`
@@ -57,9 +55,14 @@ type (
 		Kind   string  `json:"kind" unpack:""`
 		Fields []Field `json:"fields"`
 	}
-	Ref struct {
+	Literal struct {
+		Kind  string `json:"kind" unpack:""`
+		Value string `json:"value"`
+	}
+	Var struct {
 		Kind string `json:"kind" unpack:""`
 		Name string `json:"name"`
+		Slot int    `json:"slot"`
 	}
 	RegexpMatch struct {
 		Kind    string `json:"kind" unpack:""`
@@ -71,9 +74,9 @@ type (
 		Pattern string `json:"pattern"`
 	}
 	Search struct {
-		Kind  string           `json:"kind" unpack:""`
-		Text  string           `json:"text"`
-		Value astzed.Primitive `json:"value"` //XXX search should be extended to complex types
+		Kind  string `json:"kind" unpack:""`
+		Text  string `json:"text"`
+		Value string `json:"value"`
 	}
 	SetExpr struct {
 		Kind  string `json:"kind" unpack:""`
@@ -107,15 +110,16 @@ func (*Call) ExprDAG()         {}
 func (*Cast) ExprDAG()         {}
 func (*Conditional) ExprDAG()  {}
 func (*Dot) ExprDAG()          {}
+func (*Literal) ExprDAG()      {}
 func (*MapExpr) ExprDAG()      {}
 func (*Path) ExprDAG()         {}
 func (*RecordExpr) ExprDAG()   {}
-func (*Ref) ExprDAG()          {}
 func (*RegexpMatch) ExprDAG()  {}
 func (*RegexpSearch) ExprDAG() {}
 func (*Search) ExprDAG()       {}
 func (*SetExpr) ExprDAG()      {}
 func (*UnaryExpr) ExprDAG()    {}
+func (*Var) ExprDAG()          {}
 
 var This = &Path{Kind: "Path", Name: []string{}}
 

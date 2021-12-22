@@ -13,25 +13,25 @@ outputs:
       from (
         (pushdown
           (scan
-            filter x="hello" or x=1.0)
+            filter x="hello" or x=1.)
           (index
-            filter x="hello" or x=1.0))
+            filter x="hello" or x=1.))
         G2eDzBUfU6IEmUSGCa5kHyXMhoO;
       )
       ===
       from (
         (pushdown
           (scan
-            filter x>1 and y<=1.0)
+            filter x>1 and y<=1.)
           (index
-            filter x>1 and y<=1.0))
+            filter x>1 and y<=1.))
         G2eDzBUfU6IEmUSGCa5kHyXMhoO;
       )
       ===
       from (
         (pushdown
           (scan
-            filter x="hello" or x!=1.0)
+            filter x="hello" or x!=1.)
           (index
             filter x="hello"))
         G2eDzBUfU6IEmUSGCa5kHyXMhoO;

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
@@ -24,7 +24,7 @@ type result struct {
 func compileExpr(node dag.Expr) (expr, error) {
 	e, ok := node.(*dag.BinaryExpr)
 	if !ok {
-		return nil, fmt.Errorf("unsupported expression: %T", node)
+		return nil, fmt.Errorf("index filter: unknown type: %T", node)
 	}
 	switch e.Op {
 	case "or", "and":
@@ -38,12 +38,19 @@ func compileExpr(node dag.Expr) (expr, error) {
 		}
 		return logicalExpr(lhs, rhs, e.Op), nil
 	case "=", "<", "<=", ">", ">=":
-		p := e.RHS.(*astzed.Primitive)
-		zv, err := zson.ParsePrimitive(p.Type, p.Text)
+		literal, ok := e.RHS.(*dag.Literal)
+		if !ok {
+			return nil, fmt.Errorf("index comparator: RHS is not a literal: %T", e.RHS)
+		}
+		zv, err := zson.ParseValue(zed.NewContext(), literal.Value)
 		if err != nil {
 			return nil, err
 		}
-		kv := index.KeyValue{Key: e.LHS.(*dag.Path).Name, Value: zv}
+		path, ok := e.LHS.(*dag.Path)
+		if !ok {
+			return nil, fmt.Errorf("index comparator: LHS is not a field path: %T", e.LHS)
+		}
+		kv := index.KeyValue{Key: path.Name, Value: zv}
 		return compareExpr(kv, e.Op)
 	default:
 		return nil, fmt.Errorf("unsupported binary expression op: %s", e.Op)

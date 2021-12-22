@@ -30,7 +30,6 @@ type Runtime struct {
 
 func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
 	parserAST := ast.Copy(inAST)
-	constsAST := semantic.LiftConsts(parserAST)
 	// An AST always begins with a Sequential proc with at least one
 	// proc.  If the first proc is a From or a Parallel whose branches
 	// are Sequentials with a leading From, then we presume there is
@@ -93,19 +92,15 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lak
 	if from != nil {
 		seq.Prepend(from)
 	}
-	entry, consts, err := semantic.Analyze(pctx.Context, seq, constsAST, adaptor, head)
+	entry, err := semantic.Analyze(pctx.Context, seq, adaptor, head)
 	if err != nil {
 		return nil, err
 	}
 	builder := kernel.NewBuilder(pctx, adaptor)
-	if err := builder.LoadConsts(consts); err != nil {
-		return nil, err
-	}
 	return &Runtime{
 		pctx:      pctx,
 		builder:   builder,
 		optimizer: optimizer.New(pctx.Context, entry, adaptor),
-		consts:    consts,
 		readers:   readers,
 	}, nil
 }

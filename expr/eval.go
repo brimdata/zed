@@ -747,33 +747,6 @@ func (c *Call) Eval(ectx Context, this *zed.Value) *zed.Value {
 	return c.fn.Call(ectx, c.args)
 }
 
-// A TyepFunc returns a type value of the named type (where the name is
-// a Zed typedef).  It returns MISSING if the name doesn't exist.
-type TypeFunc struct {
-	name string
-	zctx *zed.Context
-	val  zed.Value
-}
-
-func NewTypeFunc(zctx *zed.Context, name string) *TypeFunc {
-	return &TypeFunc{
-		name: name,
-		zctx: zctx,
-	}
-}
-
-func (t *TypeFunc) Eval(ectx Context, this *zed.Value) *zed.Value {
-	// XXX This is too sticky. See issue #3361
-	if t.val.Bytes == nil {
-		typ := t.zctx.LookupTypeDef(t.name)
-		if typ == nil {
-			return zed.Missing
-		}
-		t.val = *zed.NewTypeValue(typ)
-	}
-	return &t.val
-}
-
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#has
 type Has struct {
 	exprs []Evaluator

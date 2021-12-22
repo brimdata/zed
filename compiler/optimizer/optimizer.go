@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
@@ -292,7 +291,7 @@ func pushDown(trunk *dag.Trunk) {
 // that can be digested by index.  All parts of the expression tree are removed
 // that are not:
 // - An '=', '>', '>=', '<', '<=', 'and' or 'or' BinaryExpr
-// - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *zed.Primitive
+// - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *dag.Literal
 func indexFilterExpr(node dag.Expr) dag.Expr {
 	e, ok := node.(*dag.BinaryExpr)
 	if !ok {
@@ -313,7 +312,7 @@ func indexFilterExpr(node dag.Expr) dag.Expr {
 			RHS:  rhs,
 		}
 	case "=", ">", ">=", "<", "<=":
-		_, rok := e.RHS.(*zed.Primitive)
+		_, rok := e.RHS.(*dag.Literal)
 		_, lok := e.LHS.(*dag.Path)
 		if lok && rok {
 			return &dag.BinaryExpr{

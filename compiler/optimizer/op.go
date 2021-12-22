@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 )
@@ -24,7 +23,7 @@ func (o *Optimizer) analyzeOp(op dag.Op, layout order.Layout) (order.Layout, err
 		return order.Nil, nil
 	}
 	switch op := op.(type) {
-	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse, *dag.Const:
+	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse:
 		return layout, nil
 	case *dag.Cut:
 		return analyzeCuts(op.Args, layout), nil
@@ -269,9 +268,9 @@ func fieldsOf(e dag.Expr) (field.List, bool) {
 		return nil, false
 	}
 	switch e := e.(type) {
-	case *astzed.Primitive, *astzed.TypeValue, *dag.Search:
+	case *dag.Search, *dag.Literal:
 		return nil, true
-	case *dag.Ref:
+	case *dag.Var:
 		// finish with issue #2756
 		return nil, false
 	case *dag.Path:

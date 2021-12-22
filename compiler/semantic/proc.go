@@ -7,13 +7,13 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -208,11 +208,14 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 	if seq == nil {
 		return nil, nil
 	}
+	scope.Enter()
+	defer scope.Exit()
+	consts, err := semConsts(scope, seq.Consts)
+	if err != nil {
+		return nil, err
+	}
 	var ops []dag.Op
 	for _, p := range seq.Procs {
-		if isConst(p) {
-			continue
-		}
 		converted, err := semProc(ctx, scope, p, adaptor, head)
 		if err != nil {
 			return nil, err
@@ -220,8 +223,9 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 		ops = append(ops, converted)
 	}
 	return &dag.Sequential{
-		Kind: "Sequential",
-		Ops:  ops,
+		Kind:   "Sequential",
+		Ops:    ops,
+		Consts: consts,
 	}, nil
 }
 
@@ -258,10 +262,9 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 							Kind: "Path",
 							Name: field.New("ts"),
 						},
-						&astzed.Primitive{
-							Kind: "Primitive",
-							Type: "duration",
-							Text: d.String(),
+						&dag.Literal{
+							Kind:  "Literal",
+							Value: d.String(),
 						}},
 				},
 			}
@@ -271,13 +274,13 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		if err != nil {
 			return nil, err
 		}
-		var dur *astzed.Primitive
+		var dur string
 		if p.Duration != nil {
-			dur = &astzed.Primitive{
-				Kind: "Primitive",
-				Type: p.Duration.Type,
-				Text: p.Duration.Text,
+			val, err := zson.ParsePrimitive(p.Duration.Type, p.Duration.Text)
+			if err != nil {
+				return nil, err
 			}
+			dur = zson.MustFormatValue(val)
 		}
 		// Note: InputSortDir is copied in here but it's not meaningful
 		// coming from a parser AST, only from a worker using the kernel DSL,
@@ -300,9 +303,6 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 	case *ast.Parallel:
 		var ops []dag.Op
 		for _, p := range p.Procs {
-			if isConst(p) {
-				continue
-			}
 			converted, err := semProc(ctx, scope, p, adaptor, head)
 			if err != nil {
 				return nil, err
@@ -336,10 +336,9 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			} else if p.Expr == nil {
 				// c.Expr == nil indicates the default case,
 				// whose handling depends on p.Expr.
-				e = &astzed.Primitive{
-					Kind: "Primitive",
-					Type: "bool",
-					Text: "true",
+				e = &dag.Literal{
+					Kind:  "Literal",
+					Value: "true",
 				}
 			}
 			op, err := semProc(ctx, scope, c.Proc, adaptor, head)
@@ -553,21 +552,32 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Exprs: exprs,
 		}, nil
 	case *ast.Scope:
-		locals, err := semAssignments(scope, p.Locals)
-		if err != nil {
-			return nil, err
-		}
-		//XXX need to add locals to scope data structure and
-		// extend it to handle local frame as well as consts, etc
-		seq, err := semProc(ctx, scope, p, adaptor, head)
-		if err != nil {
-			return nil, err
-		}
-		return &dag.Scope{
-			Kind:   "Scope",
-			Locals: locals,
-			Seq:    seq,
-		}, nil
+		return nil, errors.New("TBD")
+		/* XXX This will soon be replaced in a subsequent PR.
+		   Please leave for now.
+
+			locals, err := semAssignments(scope, p.Locals)
+			if err != nil {
+				return nil, err
+			}
+			names := make([]string, 0, len(locals))
+			exprs := make([]dag.Expr, 0, len(locals))
+			for _, local := range locals {
+				name := f(local.LHS)
+				exprs = append(exprs, local.RHS)
+			}
+			//XXX need to add locals to scope data structure and
+			// extend it to handle local frame as well as consts, etc
+			seq, err := semProc(ctx, scope, p, adaptor, head)
+			if err != nil {
+				return nil, err
+			}
+			return &dag.Scope{
+				Kind:   "Scope",
+				Locals: locals,
+				Seq:    seq,
+			}, nil
+		*/
 	case *ast.Yield:
 		exprs, err := semExprs(scope, p.Exprs)
 		if err != nil {
@@ -577,53 +587,23 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Kind:  "Yield",
 			Exprs: exprs,
 		}, nil
-	case *ast.Const:
-		return nil, errors.New("const declaration must appear at top level")
-	case *ast.TypeProc:
-		return nil, errors.New("type declaration must appear at top level")
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST type: %v", p)
 }
 
-func semConsts(scope *Scope, constsAST []ast.Proc) ([]dag.Op, error) {
-	var consts []dag.Op
-	for _, p := range constsAST {
-		switch p := p.(type) {
-		case *ast.TypeProc:
-			typ, err := semType(scope, p.Type)
-			if err != nil {
-				return nil, err
-			}
-			converted := &dag.TypeProc{
-				Kind: "TypeProc",
-				Name: p.Name,
-				Type: typ,
-			}
-			scope.Bind(p.Name, converted)
-			consts = append(consts, converted)
-		case *ast.Const:
-			e, err := semExpr(scope, p.Expr)
-			if err != nil {
-				return nil, err
-			}
-			converted := &dag.Const{
-				Kind: "Const",
-				Name: p.Name,
-				Expr: e,
-			}
-			scope.Bind(p.Name, converted)
-			consts = append(consts, converted)
+func semConsts(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
+	var out []dag.Def
+	for _, def := range defs {
+		e, err := semExpr(scope, def.Expr)
+		if err != nil {
+			return nil, err
 		}
+		if err := scope.DefineConst(def.Name, e); err != nil {
+			return nil, err
+		}
+		out = append(out, dag.Def{Name: def.Name, Expr: e})
 	}
-	return consts, nil
-}
-
-func isConst(p ast.Proc) bool {
-	switch p.(type) {
-	case *ast.Const, *ast.TypeProc:
-		return true
-	}
-	return false
+	return out, nil
 }
 
 func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
@@ -653,21 +633,4 @@ func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
 		Kind: "Summarize",
 		Aggs: aggs,
 	}, nil
-}
-
-func LiftConsts(p ast.Proc) []ast.Proc {
-	seq, ok := p.(*ast.Sequential)
-	if !ok {
-		return nil
-	}
-	var consts []ast.Proc
-	for {
-		switch seq.Procs[0].(type) {
-		case *ast.Const, *ast.TypeProc:
-			consts = append(consts, seq.Procs[0])
-			seq.Procs = seq.Procs[1:]
-		default:
-			return consts
-		}
-	}
 }

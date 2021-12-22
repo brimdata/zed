@@ -13,12 +13,12 @@ import (
 	"github.com/brimdata/zed/proc/groupby"
 )
 
-func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, summarize *dag.Summarize) (*groupby.Proc, error) {
-	keys, err := compileAssignments(summarize.Keys, pctx.Zctx, scope)
+func compileGroupBy(pctx *proc.Context, parent proc.Interface, summarize *dag.Summarize) (*groupby.Proc, error) {
+	keys, err := compileAssignments(summarize.Keys, pctx.Zctx)
 	if err != nil {
 		return nil, err
 	}
-	names, reducers, err := compileAggAssignments(summarize.Aggs, scope, pctx.Zctx)
+	names, reducers, err := compileAggAssignments(summarize.Aggs, pctx.Zctx)
 	if err != nil {
 		return nil, err
 	}
@@ -26,11 +26,11 @@ func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, sum
 	return groupby.New(pctx, parent, keys, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut)
 }
 
-func compileAggAssignments(assignments []dag.Assignment, scope *Scope, zctx *zed.Context) (field.List, []*expr.Aggregator, error) {
+func compileAggAssignments(assignments []dag.Assignment, zctx *zed.Context) (field.List, []*expr.Aggregator, error) {
 	names := make(field.List, 0, len(assignments))
 	aggs := make([]*expr.Aggregator, 0, len(assignments))
 	for _, assignment := range assignments {
-		name, agg, err := compileAggAssignment(zctx, scope, assignment)
+		name, agg, err := compileAggAssignment(zctx, assignment)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -40,7 +40,7 @@ func compileAggAssignments(assignments []dag.Assignment, scope *Scope, zctx *zed
 	return names, aggs, nil
 }
 
-func compileAggAssignment(zctx *zed.Context, scope *Scope, assignment dag.Assignment) (field.Path, *expr.Aggregator, error) {
+func compileAggAssignment(zctx *zed.Context, assignment dag.Assignment) (field.Path, *expr.Aggregator, error) {
 	aggAST, ok := assignment.RHS.(*dag.Agg)
 	if !ok {
 		return nil, nil, errors.New("aggregator is not an aggregation expression")
@@ -49,23 +49,23 @@ func compileAggAssignment(zctx *zed.Context, scope *Scope, assignment dag.Assign
 	if err != nil {
 		return nil, nil, fmt.Errorf("lhs of aggregation: %w", err)
 	}
-	m, err := compileAgg(zctx, scope, aggAST)
+	m, err := compileAgg(zctx, aggAST)
 	return lhs, m, err
 }
 
-func compileAgg(zctx *zed.Context, scope *Scope, agg *dag.Agg) (*expr.Aggregator, error) {
+func compileAgg(zctx *zed.Context, agg *dag.Agg) (*expr.Aggregator, error) {
 	name := agg.Name
 	var err error
 	var arg expr.Evaluator
 	if agg.Expr != nil {
-		arg, err = compileExpr(zctx, nil, agg.Expr)
+		arg, err = compileExpr(zctx, agg.Expr)
 		if err != nil {
 			return nil, err
 		}
 	}
 	var where expr.Evaluator
 	if agg.Where != nil {
-		where, err = compileFilter(zctx, scope, agg.Where)
+		where, err = compileFilter(zctx, agg.Where)
 		if err != nil {
 			return nil, err
 		}

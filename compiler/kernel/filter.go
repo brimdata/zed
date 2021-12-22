@@ -5,9 +5,9 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zson"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -23,20 +23,34 @@ func (f *Filter) AsEvaluator() (expr.Evaluator, error) {
 		return nil, nil
 	}
 	b := f.builder
-	return compileFilter(b.pctx.Zctx, b.scope, f.pushdown)
+	return compileFilter(b.pctx.Zctx, f.pushdown)
 }
 
 func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return CompileBufferFilter(f.pushdown)
+	return CompileBufferFilter(f.builder.pctx.Zctx, f.pushdown)
 }
 
-func compileCompareField(zctx *zed.Context, scope *Scope, e *dag.BinaryExpr) (expr.Evaluator, error) {
+func isLiteral(zctx *zed.Context, e dag.Expr) (*zed.Value, error) {
+	if literal, ok := e.(*dag.Literal); ok {
+		val, err := zson.ParseValue(zctx, literal.Value)
+		if err != nil {
+			return nil, err
+		}
+		return &val, nil
+	}
+	return nil, nil
+}
+
+func compileCompareField(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error) {
 	if e.Op == "in" {
-		literal, ok := e.LHS.(*astzed.Primitive)
-		if !ok {
+		literal, err := isLiteral(zctx, e.LHS)
+		if err != nil {
+			return nil, err
+		}
+		if literal == nil {
 			// XXX If the RHS here is a literal container or a subnet,
 			// we should optimize this case.  This is part of
 			// epic #2341.
@@ -46,19 +60,19 @@ func compileCompareField(zctx *zed.Context, scope *Scope, e *dag.BinaryExpr) (ex
 		if _, err := compileLval(e.RHS); err != nil {
 			return nil, nil
 		}
-		field, err := compileExpr(zctx, scope, e.RHS)
+		field, err := compileExpr(zctx, e.RHS)
 		if err != nil {
 			return nil, err
 		}
-		eql, _ := expr.Comparison("=", *literal)
+		eql, _ := expr.Comparison("=", literal)
 		predicate := expr.Contains(eql)
 		return expr.NewFilter(field, predicate), nil
 	}
-	literal, ok := e.RHS.(*astzed.Primitive)
-	if !ok {
-		return nil, nil
+	literal, err := isLiteral(zctx, e.RHS)
+	if literal == nil {
+		return nil, err
 	}
-	comparison, err := expr.Comparison(e.Op, *literal)
+	comparison, err := expr.Comparison(e.Op, literal)
 	if err != nil {
 		// If this fails, return no match instead of the error and
 		// let later-on code detect the error as this could be a
@@ -69,37 +83,40 @@ func compileCompareField(zctx *zed.Context, scope *Scope, e *dag.BinaryExpr) (ex
 	if _, err := compileLval(e.LHS); err != nil {
 		return nil, nil
 	}
-	field, err := compileExpr(zctx, scope, e.LHS)
+	field, err := compileExpr(zctx, e.LHS)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewFilter(field, comparison), nil
 }
 
-func compileSearch(node *dag.Search) (expr.Evaluator, error) {
-	if node.Value.Type == "net" {
-		match, err := expr.Comparison("=", node.Value)
+func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error) {
+	val, err := zson.ParseValue(zctx, search.Value)
+	if err != nil {
+		return nil, err
+	}
+	if val.Type == zed.TypeNet {
+		match, err := expr.Comparison("=", &val)
 		if err != nil {
 			return nil, err
 		}
 		contains := expr.Contains(match)
-		pred := func(zv *zed.Value) bool {
-			return match(zv) || contains(zv)
+		pred := func(val *zed.Value) bool {
+			return match(val) || contains(val)
 		}
-
 		return expr.SearchByPredicate(pred), nil
 	}
-	if node.Value.Type == "string" {
-		term := norm.NFC.Bytes(zed.UnescapeBstring([]byte(node.Value.Text)))
+	if val.Type == zed.TypeString {
+		term := norm.NFC.Bytes(zed.UnescapeBstring(val.Bytes))
 		return expr.NewSearchString(string(term)), nil
 	}
-	return expr.NewSearch(node.Text, node.Value)
+	return expr.NewSearch(search.Text, &val)
 }
 
-func compileFilter(zctx *zed.Context, scope *Scope, node dag.Expr) (expr.Evaluator, error) {
+func compileFilter(zctx *zed.Context, node dag.Expr) (expr.Evaluator, error) {
 	switch v := node.(type) {
 	case *dag.RegexpMatch:
-		e, err := compileExpr(zctx, scope, v.Expr)
+		e, err := compileExpr(zctx, v.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -126,61 +143,45 @@ func compileFilter(zctx *zed.Context, scope *Scope, node dag.Expr) (expr.Evaluat
 		if v.Op != "!" {
 			return nil, fmt.Errorf("unknown unary operator: %s", v.Op)
 		}
-		e, err := compileFilter(zctx, scope, v.Operand)
+		e, err := compileFilter(zctx, v.Operand)
 		if err != nil {
 			return nil, err
 		}
 		return expr.NewLogicalNot(e), nil
 
-	case *astzed.Primitive:
-		// This literal translation should happen elsewhere will
-		// be fixed when we add ZSON literals to Zed, e.g.,
-		// dag.Literal.AsBool() etc methods.
-		if v.Type != "bool" {
-			return nil, fmt.Errorf("bad literal type in filter compiler: %s", v.Type)
-		}
-		switch v.Text {
-		case "true":
-			return expr.NewLiteral(zed.True), nil
-		case "false":
-			return expr.NewLiteral(zed.False), nil
-		default:
-			return nil, fmt.Errorf("bad boolean value in dag.Literal: %s", v.Text)
-		}
-
 	case *dag.Search:
-		return compileSearch(v)
+		return compileSearch(zctx, v)
 
 	case *dag.BinaryExpr:
 		if v.Op == "and" {
-			left, err := compileFilter(zctx, scope, v.LHS)
+			left, err := compileFilter(zctx, v.LHS)
 			if err != nil {
 				return nil, err
 			}
-			right, err := compileFilter(zctx, scope, v.RHS)
+			right, err := compileFilter(zctx, v.RHS)
 			if err != nil {
 				return nil, err
 			}
 			return expr.NewLogicalAnd(left, right), nil
 		}
 		if v.Op == "or" {
-			left, err := compileFilter(zctx, scope, v.LHS)
+			left, err := compileFilter(zctx, v.LHS)
 			if err != nil {
 				return nil, err
 			}
-			right, err := compileFilter(zctx, scope, v.RHS)
+			right, err := compileFilter(zctx, v.RHS)
 			if err != nil {
 				return nil, err
 			}
 			return expr.NewLogicalOr(left, right), nil
 		}
-		if f, err := compileCompareField(zctx, scope, v); f != nil || err != nil {
+		if f, err := compileCompareField(zctx, v); f != nil || err != nil {
 			return f, err
 		}
-		return compileExpr(zctx, scope, v)
+		return compileExpr(zctx, v)
 
-	case *dag.Call:
-		return compileExpr(zctx, scope, v)
+	case *dag.Call, *dag.Literal:
+		return compileExpr(zctx, v)
 
 	default:
 		return nil, fmt.Errorf("unknown filter DAG type: %T", v)

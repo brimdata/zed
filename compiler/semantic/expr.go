@@ -4,13 +4,16 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zson"
 )
 
 func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
@@ -36,10 +39,13 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Pattern: e.Pattern,
 		}, nil
 	case *astzed.Primitive:
-		return &astzed.Primitive{
-			Kind: "Primitive",
-			Type: e.Type,
-			Text: e.Text,
+		val, err := zson.ParsePrimitive(e.Type, e.Text)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.Literal{
+			Kind:  "Literal",
+			Value: zson.MustFormatValue(val),
 		}, nil
 	case *ast.ID:
 		// We use static scoping here to see if an identifier is
@@ -48,26 +54,20 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		// should have no Identifiers in it as they should all be
 		// resolved one way or another.
 		if ref := scope.Lookup(e.Name); ref != nil {
-			// For now, this could only be a literal but
-			// it may refer to other data types down the
-			// road so we call it a "ref" for now.
-			return &dag.Ref{"Ref", e.Name}, nil
-		}
-		if e.Name == "$" {
-			return &dag.Ref{"Ref", "$"}, nil
+			return ref, nil
 		}
 		return semField(scope, e)
 	case *ast.This:
 		return semField(scope, e)
 	case *ast.Search:
+		val, err := zson.ParsePrimitive(e.Value.Type, e.Value.Text)
+		if err != nil {
+			return nil, err
+		}
 		return &dag.Search{
-			Kind: "Search",
-			Text: e.Text,
-			Value: astzed.Primitive{
-				Kind: "Primitive",
-				Type: e.Value.Type,
-				Text: e.Value.Text,
-			},
+			Kind:  "Search",
+			Text:  e.Text,
+			Value: zson.MustFormatValue(val),
 		}, nil
 	case *ast.UnaryExpr:
 		expr, err := semExpr(scope, e.Operand)
@@ -117,13 +117,26 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Type: typ,
 		}, nil
 	case *astzed.TypeValue:
-		tv, err := semType(scope, e.Value)
+		typ, err := semType(scope, e.Value)
 		if err != nil {
+			// If this is a type name, then we check to see if it's in the
+			// context because it has been defined locally.  If not, then
+			// the type needs to come from the data, in which case we replace
+			// the literal reference with a type_by_name() call.
+			// Note that we just check the top value here but there can be
+			// nested dynamic type references inside a complex type but this
+			// is not yet supported and will fail here with a compile-time error
+			// complaining about the type not existing.
+			// XXX See issue #3413
+			if e := semDynamicType(scope, e.Value); e != nil {
+				return e, nil
+			}
 			return nil, err
 		}
-		return &astzed.TypeValue{
-			Kind:  "TypeValue",
-			Value: tv,
+		return &dag.Literal{
+			Kind: "Literal",
+			//XXX flag week: this changes to angle brackets
+			Value: "(" + typ + ")",
 		}, nil
 	case *ast.Agg:
 		expr, err := semExprNullable(scope, e.Expr)
@@ -195,6 +208,27 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 	return nil, fmt.Errorf("invalid expression type %T", e)
 }
 
+func semDynamicType(scope *Scope, tv astzed.Type) *dag.Call {
+	if typeName, ok := tv.(*astzed.TypeName); ok {
+		return dynamicTypeName(typeName.Name)
+	}
+	return nil
+}
+
+func dynamicTypeName(name string) *dag.Call {
+	return &dag.Call{
+		Kind: "Call",
+		Name: "typename",
+		Args: []dag.Expr{
+			// ZSON string literal of type name
+			&dag.Literal{
+				Kind:  "Literal",
+				Value: `"` + name + `"`,
+			},
+		},
+	}
+}
+
 func semBinary(scope *Scope, e *ast.BinaryExpr) (dag.Expr, error) {
 	op := e.Op
 	if op == "." {
@@ -242,6 +276,7 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (dag.Expr, error) {
 	}, nil
 }
 
+//XXX this should work for any path not just this, e.g., this.x["@foo"]
 func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.Path {
 	if path, ok := lhs.(*dag.Path); ok && len(path.Name) == 0 {
 		if s, ok := isStringConst(scope, rhs); ok {
@@ -252,14 +287,10 @@ func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.Path {
 	return nil
 }
 
-func isStringConst(scope *Scope, e dag.Expr) (string, bool) {
-	if p, ok := e.(*astzed.Primitive); ok && p.Type == "string" {
-		return p.Text, true
-	}
-	if ref, ok := e.(*dag.Ref); ok {
-		if c, ok := scope.Lookup(ref.Name).(*dag.Const); ok {
-			return isStringConst(scope, c.Expr)
-		}
+func isStringConst(scope *Scope, e dag.Expr) (field string, ok bool) {
+	val, err := kernel.EvalAtCompileTime(scope.zctx, e)
+	if err == nil && val != nil && val.Type == zed.TypeString {
+		return string(val.Bytes), true
 	}
 	return "", false
 }
@@ -415,14 +446,8 @@ func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			}, nil
 		}
 	case *ast.ID:
-		if scope.Lookup(e.Name) != nil {
-			// For now, this could only be a literal but
-			// it may refer to other data types down the
-			// road so we call it a "ref" for now.
-			return &dag.Ref{"Ref", e.Name}, nil
-		}
-		if e.Name == "$" {
-			return &dag.Ref{"Ref", "$"}, nil
+		if ref := scope.Lookup(e.Name); ref != nil {
+			return ref, nil
 		}
 		return &dag.Path{Kind: "Path", Name: []string{e.Name}}, nil
 	case *ast.This:
@@ -529,4 +554,12 @@ func DotExprToFieldPath(e ast.Expr) *dag.Path {
 	// This includes a null Expr, which can happen if the AST is missing
 	// a field or sets it to null.
 	return nil
+}
+
+func semType(scope *Scope, typ astzed.Type) (string, error) {
+	ztype, err := zson.TranslateType(scope.zctx, typ)
+	if err != nil {
+		return "", err
+	}
+	return zson.FormatType(ztype), nil
 }

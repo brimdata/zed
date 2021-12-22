@@ -3,19 +3,16 @@ package expr
 import "github.com/brimdata/zed"
 
 type Var struct {
-	ref *zed.Value
+	slot int
 }
 
 var _ Evaluator = (*Var)(nil)
 
-func NewVar(ref *zed.Value) *Var {
-	return &Var{ref}
+func NewVar(slot int) *Var {
+	return &Var{slot}
 }
 
-func (v *Var) Eval(Context, *zed.Value) *zed.Value {
-	val := v.ref
-	if val == nil || val.Type == nil {
-		return zed.Missing
-	}
-	return val
+func (v *Var) Eval(ectx Context, _ *zed.Value) *zed.Value {
+	frame := ectx.Scope()
+	return &frame[v.slot]
 }

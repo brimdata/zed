@@ -93,13 +93,13 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.expr(e.Expr, false)
 		c.open(":%s", e.Type)
 	case *dag.Search:
-		c.write("match(")
-		c.literal(e.Value)
-		c.write(")")
+		c.write("match(%s)", e.Value)
 	case *dag.Path:
 		c.fieldpath(e.Name)
-	case *dag.Ref:
+	case *dag.Var:
 		c.write("%s", e.Name)
+	case *dag.Literal:
+		c.write("%s", e.Value)
 	case *astzed.TypeValue:
 		c.write("type(")
 		c.typ(e.Value)
@@ -174,6 +174,7 @@ func (c *canonDAG) op(p dag.Op) {
 		if p == nil {
 			return
 		}
+		//XXX format consts block
 		for _, p := range p.Ops {
 			c.op(p)
 		}
@@ -222,22 +223,11 @@ func (c *canonDAG) op(p dag.Op) {
 		c.write("merge ")
 		c.fieldpath(p.Key)
 		c.write(":" + p.Order.String())
-	case *dag.Const:
-		c.write("const %s=", p.Name)
-		c.expr(p.Expr, false)
-		c.ret()
-		c.flush()
-	case *dag.TypeProc:
-		c.write("type %s=", p.Name)
-		c.typ(p.Type)
-		c.ret()
-		c.flush()
 	case *dag.Summarize:
 		c.next()
 		c.open("summarize")
-		if p.Duration != nil {
-			c.write(" every ")
-			c.literal(*p.Duration)
+		if p.Duration != "" {
+			c.write(" every %s", p.Duration)
 		}
 		if p.PartialsIn {
 			c.write(" partials-in")

@@ -10,18 +10,12 @@ import (
 )
 
 // Analyze analysis the AST and prepares it for runtime compilation.
-func Analyze(ctx context.Context, seq *ast.Sequential, constsAST []ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, []dag.Op, error) {
-	scope := NewScope()
-	scope.Enter()
-	consts, err := semConsts(scope, constsAST)
+func Analyze(ctx context.Context, seq *ast.Sequential, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, error) {
+	entry, err := semSequential(ctx, NewScope(), seq, adaptor, head)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	entry, err := semSequential(ctx, scope, seq, adaptor, head)
-	if err != nil {
-		return nil, nil, err
-	}
-	return entry, consts, nil
+	return entry, nil
 }
 
 func isFrom(seq *ast.Sequential) bool {

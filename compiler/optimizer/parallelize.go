@@ -92,7 +92,7 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		//
 		// Add a merge-by if this a streaming every aggregator.
 		//
-		if ingress.Duration != nil {
+		if ingress.Duration != "" {
 			// We insert a mergeby ts in front of the partialsIn aggregator.
 			// If the inbound layout doesn't match up here then the
 			// every operator won't work right so we flag
