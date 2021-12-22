@@ -32,17 +32,6 @@ func testError(t *testing.T, e string, expectErr error, description string) {
 	})
 }
 
-func testWarning(t *testing.T, e string, record string, expectErr error, description string) {
-	if record == "" {
-		record = "{}"
-	}
-	runZTest(t, e, &ztest.ZTest{
-		Zed:      fmt.Sprintf("cut result := %s", e),
-		Input:    record,
-		Warnings: fmt.Sprintf("cut: %s\ncut: no record found with columns <not a field>\n", expectErr),
-	})
-}
-
 func runZTest(t *testing.T, e string, zt *ztest.ZTest) {
 	t.Run(e, func(t *testing.T) {
 		t.Parallel()

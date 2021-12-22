@@ -54,10 +54,10 @@ func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if s := u.Hostname(); s != "" {
 		v.Host = &s
 	}
-	if ss := u.Port(); ss != "" {
-		u64, err := strconv.ParseUint(ss, 10, 16)
+	if portString := u.Port(); portString != "" {
+		u64, err := strconv.ParseUint(portString, 10, 16)
 		if err != nil {
-			return newErrorf(ctx, "parse_uri: %q: invalid port: %s", s, ss)
+			return newErrorf(ctx, "parse_uri: invalid port: %s (%q)", portString, s)
 		}
 		u16 := uint16(u64)
 		v.Port = &u16

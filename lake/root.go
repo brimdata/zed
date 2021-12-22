@@ -183,17 +183,17 @@ func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Filt
 		return nil, err
 	}
 	ectx := expr.NewContext()
-	var batch []zed.Value
+	var vals []zed.Value
 	for k := range pools {
 		rec, err := m.MarshalRecord(&pools[k])
 		if err != nil {
 			return nil, err
 		}
 		if f == nil || f(ectx, rec) {
-			batch = append(batch, *rec)
+			vals = append(vals, *rec)
 		}
 	}
-	return batch, nil
+	return vals, nil
 }
 
 func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
@@ -203,7 +203,7 @@ func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.F
 	if err != nil {
 		return nil, err
 	}
-	var batch []zed.Value
+	var vals []zed.Value
 	for k := range poolRefs {
 		pool, err := r.openPool(ctx, &poolRefs[k])
 		if err != nil {
@@ -214,12 +214,12 @@ func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.F
 			}
 			return nil, err
 		}
-		batch, err = pool.batchifyBranches(ctx, batch, m, f)
+		vals, err = pool.batchifyBranches(ctx, vals, m, f)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return batch, nil
+	return vals, nil
 }
 
 type BranchMeta struct {
@@ -435,7 +435,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 	if err != nil {
 		return nil, err
 	}
-	var batch []zed.Value
+	var vals []zed.Value
 	ectx := expr.NewContext()
 	for _, name := range names {
 		rules, err := r.indexRules.Lookup(ctx, name)
@@ -454,11 +454,11 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 				return nil, err
 			}
 			if f == nil || f(ectx, rec) {
-				batch = append(batch, *rec)
+				vals = append(vals, *rec)
 			}
 		}
 	}
-	return batch, nil
+	return vals, nil
 }
 
 func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (proc.Scheduler, error) {

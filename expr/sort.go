@@ -187,9 +187,7 @@ func NewRecordSlice(compare CompareFn) *RecordSlice {
 }
 
 // Swap implements sort.Interface for *Record slices.
-func (r *RecordSlice) Len() int {
-	return len(r.vals)
-}
+func (r *RecordSlice) Len() int { return len(r.vals) }
 
 // Swap implements sort.Interface for *Record slices.
 func (r *RecordSlice) Swap(i, j int) { r.vals[i], r.vals[j] = r.vals[j], r.vals[i] }

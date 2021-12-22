@@ -80,5 +80,5 @@ output: |
   }
   {
     s: "scheme://bad-port:1234567",
-    uri: "parse_uri: \"scheme://bad-port:1234567\": invalid port: 1234567" (error)
+    uri: "parse_uri: invalid port: 1234567 (\"scheme://bad-port:1234567\")" (error)
   }
