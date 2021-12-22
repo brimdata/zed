@@ -168,7 +168,6 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
 	c.authhandle("/query", handleQuery).Methods("POST", "OPTIONS")
-	c.authhandle("/lambdas/{lambdaName}/query", handleLambdaQuery).Methods("POST", "OPTIONS")
 }
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
