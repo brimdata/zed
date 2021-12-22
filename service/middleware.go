@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/zqe"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
@@ -27,6 +28,23 @@ func requestIDMiddleware() mux.MiddlewareFunc {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+var allowedOrigins = []string{"*.observableusercontent.com", "localhost"}
+
+func corsMiddleware() mux.MiddlewareFunc {
+	return cors.New(cors.Options{
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{
+			http.MethodHead,
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+		},
+		AllowCredentials: true,
+	}).Handler
 }
 
 func accessLogMiddleware(logger *zap.Logger) mux.MiddlewareFunc {

@@ -102,6 +102,8 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 
 	routerAux := mux.NewRouter()
+	routerAux.Use(corsMiddleware())
+
 	routerAux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeContent(w, r, "", time.Time{}, conf.RootContent)
 	})
@@ -126,6 +128,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	routerAPI.Use(requestIDMiddleware())
 	routerAPI.Use(accessLogMiddleware(conf.Logger))
 	routerAPI.Use(panicCatchMiddleware(conf.Logger))
+	routerAPI.Use(corsMiddleware())
 
 	c := &Core{
 		auth:          authenticator,
@@ -164,7 +167,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
-	c.authhandle("/query", handleQuery).Methods("POST")
+	c.authhandle("/query", handleQuery).Methods("OPTIONS", "POST")
 }
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
