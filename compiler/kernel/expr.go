@@ -272,7 +272,7 @@ func compileCutter(zctx *zed.Context, scope *Scope, node dag.Call) (*expr.Cutter
 		if err != nil {
 			return nil, err
 		}
-		if compiled.LHS.IsRoot() {
+		if compiled.LHS.IsEmpty() {
 			return nil, errors.New("cut(): 'this' not allowed in cut argument (use record literal)")
 		}
 		lhs = append(lhs, compiled.LHS)
@@ -308,7 +308,7 @@ func isShaperFunc(name string) bool {
 func compileShaper(zctx *zed.Context, scope *Scope, node dag.Call) (*expr.Shaper, error) {
 	args := node.Args
 	if len(args) == 1 {
-		args = append([]dag.Expr{dag.Root}, args...)
+		args = append([]dag.Expr{dag.This}, args...)
 	}
 	if len(args) < 2 {
 		return nil, function.ErrTooFewArgs
@@ -366,7 +366,7 @@ func compileCall(zctx *zed.Context, scope *Scope, call dag.Call) (expr.Evaluator
 	}
 	args := call.Args
 	if root {
-		args = append([]dag.Expr{dag.Root}, args...)
+		args = append([]dag.Expr{dag.This}, args...)
 	}
 	exprs, err := compileExprs(zctx, scope, args)
 	if err != nil {

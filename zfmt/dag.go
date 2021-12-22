@@ -114,13 +114,13 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 func (c *canonDAG) binary(e *dag.BinaryExpr) {
 	switch e.Op {
 	case ".":
-		if !isDAGRoot(e.LHS) {
+		if !isDAGThis(e.LHS) {
 			c.expr(e.LHS, false)
 			c.write(".")
 		}
 		c.expr(e.RHS, false)
 	case "[":
-		if isDAGRoot(e.LHS) {
+		if isDAGThis(e.LHS) {
 			c.write(".")
 		} else {
 			c.expr(e.LHS, false)
@@ -144,7 +144,7 @@ func (c *canonDAG) binary(e *dag.BinaryExpr) {
 	}
 }
 
-func isDAGRoot(e dag.Expr) bool {
+func isDAGThis(e dag.Expr) bool {
 	if f, ok := e.(*dag.Path); ok {
 		if f.Name != nil && len(f.Name) == 0 {
 			return true

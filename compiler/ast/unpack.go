@@ -54,7 +54,7 @@ var unpacker = unpack.New(
 	RegexpSearch{},
 	RecordExpr{},
 	Rename{},
-	Root{},
+	This{},
 	Search{},
 	Sequential{},
 	astzed.Set{},

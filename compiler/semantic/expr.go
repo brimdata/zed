@@ -57,7 +57,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			return &dag.Ref{"Ref", "$"}, nil
 		}
 		return semField(scope, e)
-	case *ast.Root:
+	case *ast.This:
 		return semField(scope, e)
 	case *ast.Search:
 		return &dag.Search{
@@ -348,8 +348,8 @@ func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
 		lhs = &dag.Path{"Path", []string{call.Name}}
 	} else if agg, ok := a.RHS.(*ast.Agg); ok {
 		lhs = &dag.Path{"Path", []string{agg.Name}}
-	} else if _, ok := a.RHS.(*ast.Root); ok {
-		lhs = &dag.Path{"Path", []string{"."}}
+	} else if _, ok := a.RHS.(*ast.This); ok {
+		return dag.Assignment{}, errors.New("cannot assign to \"this\"")
 	} else {
 		lhs, err = semField(scope, a.RHS)
 		if err != nil {
@@ -425,7 +425,8 @@ func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			return &dag.Ref{"Ref", "$"}, nil
 		}
 		return &dag.Path{Kind: "Path", Name: []string{e.Name}}, nil
-	case *ast.Root:
+	case *ast.This:
+		//XXX nil? empty path?
 		return &dag.Path{Kind: "Path", Name: []string{}}, nil
 	}
 	// This includes a null Expr, which can happen if the AST is missing
@@ -522,22 +523,10 @@ func DotExprToFieldPath(e ast.Expr) *dag.Path {
 		}
 	case *ast.ID:
 		return &dag.Path{Kind: "Path", Name: []string{e.Name}}
-	case *ast.Root:
+	case *ast.This:
 		return &dag.Path{Kind: "Path", Name: []string{}}
 	}
 	// This includes a null Expr, which can happen if the AST is missing
 	// a field or sets it to null.
 	return nil
-}
-
-func FieldsOf(e ast.Expr) field.List {
-	switch e := e.(type) {
-	default:
-		if f := DotExprToFieldPath(e); f != nil {
-			return field.List{f.Name}
-		}
-		return nil
-	case *ast.Assignment:
-		return append(FieldsOf(e.LHS), FieldsOf(e.RHS)...)
-	}
 }

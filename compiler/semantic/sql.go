@@ -202,10 +202,10 @@ func eligiblePred(aliasID string, e dag.Expr) dag.Expr {
 
 func eligibleFieldRef(aliasID string, e *dag.Dot) dag.Expr {
 	lhs, ok := e.LHS.(*dag.Dot)
-	if ok && dag.IsRoot(lhs) && lhs.RHS == aliasID {
+	if ok && dag.IsThis(lhs) && lhs.RHS == aliasID {
 		return &dag.Dot{
 			Kind: "Dot",
-			LHS:  dag.Root,
+			LHS:  dag.This,
 			RHS:  e.RHS,
 		}
 	}
@@ -220,7 +220,7 @@ func convertSQLTableRef(scope *Scope, e ast.Expr) (dag.Op, error) {
 	// If an identifier name is given with no definition for that name,
 	// then convert it to a type name as it is otherwise expected that
 	// the type name will be defined by the data stream.
-	if id, ok := dag.RootField(converted); ok && scope.Lookup(id) == nil {
+	if id, ok := dag.TopLevelField(converted); ok && scope.Lookup(id) == nil {
 		converted = &astzed.TypeValue{
 			Kind: "TypeValue",
 			Value: &astzed.TypeName{
@@ -254,7 +254,7 @@ func convertSQLAlias(scope *Scope, e ast.Expr) (*dag.Cut, string, error) {
 	assignment := dag.Assignment{
 		Kind: "Assignment",
 		LHS:  fld,
-		RHS:  dag.Root,
+		RHS:  dag.This,
 	}
 	return &dag.Cut{
 		Kind: "Cut",

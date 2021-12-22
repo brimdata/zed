@@ -75,7 +75,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.literal(*e)
 	case *ast.ID:
 		c.write(e.Name)
-	case *ast.Root:
+	case *ast.This:
 		c.write("this")
 	case *ast.UnaryExpr:
 		c.space()
@@ -120,13 +120,13 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 func (c *canon) binary(e *ast.BinaryExpr) {
 	switch e.Op {
 	case ".":
-		if !isRoot(e.LHS) {
+		if !isThis(e.LHS) {
 			c.expr(e.LHS, false)
 			c.write(".")
 		}
 		c.expr(e.RHS, false)
 	case "[":
-		if isRoot(e.LHS) {
+		if isThis(e.LHS) {
 			c.write("this")
 		} else {
 			c.expr(e.LHS, false)
@@ -159,8 +159,8 @@ func (c *canon) sql(e *ast.SQLExpr) {
 	}
 }
 
-func isRoot(e ast.Expr) bool {
-	if _, ok := e.(*ast.Root); ok {
+func isThis(e ast.Expr) bool {
+	if _, ok := e.(*ast.This); ok {
 		return true
 	}
 	return false
