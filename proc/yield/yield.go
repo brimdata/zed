@@ -25,15 +25,13 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
+		ectx := batch.Context()
 		vals := batch.Values()
 		recs := make([]zed.Value, 0, len(p.exprs)*len(vals))
 		for i := range vals {
 			for _, e := range p.exprs {
-				out, err := e.Eval(&vals[i])
-				if err != nil {
-					//XXX ignore error entil we make all erros fatal
-					// and turn all non-fatal errors into zed error values.
-					// We should allow missing values here I think.
+				out := e.Eval(ectx, &vals[i])
+				if out.IsMissing() {
 					continue
 				}
 				// Copy is necessary because argument bytes
@@ -43,7 +41,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		}
 		batch.Unref()
 		if len(recs) > 0 {
-			return zbuf.Array(recs), nil
+			return zbuf.NewArray(recs), nil
 		}
 	}
 }

@@ -195,12 +195,6 @@ type (
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
-	// A Pick proc is like a Cut but skips records that do not
-	// match all of the field expressions.
-	Pick struct {
-		Kind string       `json:"kind" unpack:""`
-		Args []Assignment `json:"args"`
-	}
 	// A Drop proc represents a proc that removes fields from each
 	// input record.
 	Drop struct {
@@ -280,6 +274,11 @@ type (
 	Over struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
+	}
+	Scope struct {
+		Kind   string       `json:"kind" unpack:""`
+		Locals []Assignment `json:"locals"`
+		Seq    *Sequential  `json:"seq"`
 	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`
@@ -458,7 +457,6 @@ func (*Parallel) ProcAST()     {}
 func (*Switch) ProcAST()       {}
 func (*Sort) ProcAST()         {}
 func (*Cut) ProcAST()          {}
-func (*Pick) ProcAST()         {}
 func (*Drop) ProcAST()         {}
 func (*Head) ProcAST()         {}
 func (*Tail) ProcAST()         {}
@@ -479,6 +477,7 @@ func (*Shape) ProcAST()        {}
 func (*From) ProcAST()         {}
 func (*Explode) ProcAST()      {}
 func (*Over) ProcAST()         {}
+func (*Scope) ProcAST()        {}
 func (*Yield) ProcAST()        {}
 
 func (*SQLExpr) ProcAST() {}

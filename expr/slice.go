@@ -6,13 +6,13 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 type Slice struct {
-	elem  Evaluator
-	from  Evaluator
-	to    Evaluator
-	bytes zcode.Bytes
+	elem Evaluator
+	from Evaluator
+	to   Evaluator
 }
 
 func NewSlice(elem, from, to Evaluator) *Slice {
@@ -23,18 +23,16 @@ func NewSlice(elem, from, to Evaluator) *Slice {
 	}
 }
 
-var ErrSliceIndex = errors.New("slice index is not a number")
-var ErrSliceIndexEmpty = errors.New("slice index is empty")
+var ErrSliceIndex = errors.New("array slice is not a number")
+var ErrSliceIndexEmpty = errors.New("array slice is empty")
 
-func sliceIndex(slot Evaluator, elem zed.Value, rec *zed.Value) (int, error) {
+func sliceIndex(ectx Context, this *zed.Value, slot Evaluator, elem *zed.Value) (int, error) {
 	if slot == nil {
+		//XXX
 		return 0, ErrSliceIndexEmpty
 	}
-	zv, err := slot.Eval(rec)
-	if err != nil {
-		return 0, err
-	}
-	v, ok := coerce.ToInt(zv)
+	zv := slot.Eval(ectx, this)
+	v, ok := coerce.ToInt(*zv)
 	if !ok {
 		return 0, ErrSliceIndex
 	}
@@ -49,35 +47,34 @@ func sliceIndex(slot Evaluator, elem zed.Value, rec *zed.Value) (int, error) {
 	return index, nil
 }
 
-func (s *Slice) Eval(rec *zed.Value) (zed.Value, error) {
-	elem, err := s.elem.Eval(rec)
-	if err != nil {
-		return elem, err
+func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
+	elem := s.elem.Eval(ectx, this)
+	if elem.IsError() {
+		return elem
 	}
 	if _, ok := zed.AliasOf(elem.Type).(*zed.TypeArray); !ok {
-		return zed.NewErrorf("sliced value is not an array"), nil
+		// XXX use structured error
+		val := zed.NewErrorf("sliced value is not an array: %s", zson.MustFormatValue(*elem))
+		return &val
 	}
-	if elem.Bytes == nil {
-		return elem, nil
+	if elem.IsNull() {
+		// If array is null, just return the null array.
+		return elem
 	}
-	from, err := sliceIndex(s.from, elem, rec)
+	from, err := sliceIndex(ectx, this, s.from, elem)
 	if err != nil && err != ErrSliceIndexEmpty {
-		if err == ErrSliceIndex {
-			return zed.NewError(err), nil
-		}
-		return zed.Value{}, err
+		val := zed.NewError(err)
+		return &val
 	}
-	to, err := sliceIndex(s.to, elem, rec)
+	to, err := sliceIndex(ectx, this, s.to, elem)
 	if err != nil {
 		if err != ErrSliceIndexEmpty {
-			if err == ErrSliceIndex {
-				return zed.NewError(err), nil
-			}
-			return zed.Value{}, err
+			val := zed.NewError(err)
+			return &val
 		}
 		n, err := elem.ContainerLength()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
 		to = int(n)
 	}
@@ -91,8 +88,8 @@ func (s *Slice) Eval(rec *zed.Value) (zed.Value, error) {
 			bytes = zcode.Bytes(it)
 		}
 		if _, _, err := it.Next(); err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
 	}
-	return zed.Value{elem.Type, bytes[:len(bytes)-len(it)]}, nil
+	return ectx.NewValue(elem.Type, bytes[:len(bytes)-len(it)])
 }

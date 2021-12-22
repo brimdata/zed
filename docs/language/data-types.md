@@ -40,11 +40,12 @@ time-specific operations in Zed, such as this attempt to use
 quantities shipped per day.
 
 ```mdtest-command
-zq -f table 'every 1d sum(quantity) | sort ts' shipments.ndjson
+zq -z 'every 1d sum(quantity) | sort ts' shipments.ndjson
 ```
 
 #### Output:
 ```mdtest-output
+{ts:"trunc: time arg required"(error),sum:9158}
 ```
 
 However, if we cast the `ts` field to the Zed `time` type, now the

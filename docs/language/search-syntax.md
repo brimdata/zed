@@ -414,7 +414,6 @@ zq -Z 'Schools:=union(School) by District | sort | "Lincoln Elementary" in Schoo
 {
     District: "Alpine County Unified",
     Schools: |[
-        "",
         "Woodfords High",
         "Clay Elementary",
         "Bear Valley High",

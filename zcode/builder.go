@@ -78,6 +78,15 @@ func (b *Builder) AppendPrimitive(val []byte) {
 	b.bytes = AppendPrimitive(b.bytes, val)
 }
 
+// Append appends val as either a container or a primitive base on container.
+func (b *Builder) Append(val []byte, container bool) {
+	if container {
+		b.AppendContainer(val)
+	} else {
+		b.AppendPrimitive(val)
+	}
+}
+
 // AppendPrimitive appends val as a primitive value.
 func (b *Builder) AppendNull() {
 	b.bytes = append(b.bytes, tagNull)

@@ -48,7 +48,7 @@ func (c *Pair) Equal() bool {
 	return bytes.Equal(c.A, c.B)
 }
 
-func (c *Pair) Coerce(a, b zed.Value) (int, error) {
+func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
 	c.A = a.Bytes
 	c.B = b.Bytes
 	if a.Type == nil {
@@ -74,18 +74,22 @@ func (c *Pair) Coerce(a, b zed.Value) (int, error) {
 		}
 		return c.coerceNumbers(aid, bid)
 	}
+	// Promote to bstring if they are different
 	if zed.IsStringy(aid) && zed.IsStringy(bid) {
-		// Promote to bstring if they are different
-		id := aid
-		if id != bid {
-			id = zed.IDBstring
+		// XXX don't coerce error strings.  This will go awy
+		// with structured errors and no more bstrings.
+		if aid != zed.IDError || bid != zed.IDError {
+			id := aid
+			if id != bid {
+				id = zed.IDBstring
+			}
+			return id, nil
 		}
-		return id, nil
 	}
 	return 0, ErrIncompatibleTypes
 }
 
-func (c *Pair) compare(lhs, rhs zed.Value) (bool, error) {
+func (c *Pair) compare(lhs, rhs *zed.Value) (bool, error) {
 	if _, err := c.Coerce(lhs, rhs); err != nil {
 		return false, err
 	}

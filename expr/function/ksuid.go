@@ -8,15 +8,15 @@ import (
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ksuid
 type KSUIDToString struct{}
 
-func (*KSUIDToString) Call(args []zed.Value) (zed.Value, error) {
+func (k *KSUIDToString) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if zv.Type.ID() != zed.IDBytes {
-		return zed.NewErrorf("not a bytes type"), nil
+		return newErrorf(ctx, "ksuid: not a bytes type")
 	}
 	// XXX GC
 	id, err := ksuid.FromBytes(zv.Bytes)
 	if err != nil {
-		return zed.NewErrorf("error parsing bytes as ksuid: %s", err), nil
+		panic(err)
 	}
-	return zed.Value{zed.TypeString, zed.EncodeString(id.String())}, nil
+	return newString(ctx, id.String())
 }

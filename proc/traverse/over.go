@@ -38,7 +38,7 @@ func (o *Over) Pull() (zbuf.Batch, error) {
 		return nil, nil
 	}
 	o.eof = true
-	out, err := o.over(&o.vals[0])
+	out, err := o.over(o.batch.Context(), &o.vals[0])
 	o.vals = o.vals[1:]
 	if len(o.vals) == 0 {
 		o.batch.Unref()
@@ -51,48 +51,44 @@ func (o *Over) Pull() (zbuf.Batch, error) {
 // be propagated on an outer scope but not on the inner scope.
 func (o *Over) Done() {}
 
-func (o *Over) over(this *zed.Value) (zbuf.Array, error) {
-	var out zbuf.Array
+func (o *Over) over(ectx expr.Context, this *zed.Value) (*zbuf.Array, error) {
+	var vals []zed.Value
 	for _, e := range o.exprs {
-		zv, err := e.Eval(this)
-		if err != nil {
-			return nil, err
-		}
-		if err := appendOver(&out, &zv); err != nil {
-			return nil, err
+		val := e.Eval(ectx, this)
+		// Propagate errors but skip missing values.
+		if !val.IsMissing() {
+			var err error
+			if vals, err = appendOver(vals, *val); err != nil {
+				return nil, err
+			}
 		}
 	}
-	return out, nil
+	return zbuf.NewArray(vals), nil
 
 }
 
-func appendOver(out *zbuf.Array, zv *zed.Value) error {
+func appendOver(vals []zed.Value, zv zed.Value) ([]zed.Value, error) {
 	if zed.IsPrimitiveType(zv.Type) {
-		out.Append(zv)
-		return nil
+		return append(vals, zv), nil
 	}
 	typ := zed.InnerType(zv.Type)
 	if typ == nil {
 		// XXX Issue #3324: need to support records and maps.
-		return nil
+		return vals, nil
 	}
 	iter := zcode.Iter(zv.Bytes)
 	for {
 		b, _, err := iter.Next()
 		if b == nil {
-			return nil
+			return vals, nil
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
-		//XXX zbuf.Array should be zed.Value not pointer?!
-		// also, we need to copy the value since we the caller
-		// wants to unref the input batch.
-		// In a future batch implementation, we should be able to
-		// refcnt the underlying slice buffers and share the buffers
-		// across different batches.
+		// XXX when we do proper expr.Context, we can allocate
+		// this slice through the batch.
 		bc := make([]byte, len(b))
 		copy(bc, b)
-		out.Append(zed.NewValue(typ, bc))
+		vals = append(vals, zed.Value{typ, bc})
 	}
 }

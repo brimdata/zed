@@ -222,8 +222,7 @@ zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=coll
     Schools: [
         "Auberry Elementary",
         "Balch Camp Elementary",
-        "Pine Ridge Elementary",
-        ""
+        "Pine Ridge Elementary"
     ]
 }
 {
@@ -233,8 +232,7 @@ zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=coll
         "www.bigcreekschool.com"
     ],
     Schools: [
-        "Big Creek Elementary",
-        ""
+        "Big Creek Elementary"
     ]
 }
 ...

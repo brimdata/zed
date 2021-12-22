@@ -85,7 +85,7 @@ func (t *testSeekIndex) Lookup(s nano.Span, expected Range, o order.Which) {
 		first = zed.NewTime(s.End() - 1)
 		last = zed.NewTime(s.Ts)
 	}
-	rg, err := Lookup(r, first, last, cmp)
+	rg, err := Lookup(r, &first, &last, cmp)
 	require.NoError(t, err)
 	assert.Equal(t, expected, rg)
 }

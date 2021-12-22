@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
@@ -48,11 +47,11 @@ import (
 // instead of Close().
 type Writer struct {
 	uri         *storage.URI
-	keys        field.List
+	keyer       *Keyer
 	zctx        *zed.Context
+	ectx        expr.Context
 	engine      storage.Engine
 	writer      *indexWriter
-	cutter      *expr.Cutter
 	tmpdir      string
 	frameThresh int
 	iow         io.WriteCloser
@@ -64,6 +63,7 @@ type Writer struct {
 type indexWriter struct {
 	base       *Writer
 	parent     *indexWriter
+	ectx       expr.Context
 	name       string
 	buffer     *bufwriter.Writer
 	zng        *zngio.Writer
@@ -87,8 +87,8 @@ func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage
 		return nil, errors.New("must specify at least one key")
 	}
 	w := &Writer{
-		keys:       keys,
 		zctx:       zctx,
+		ectx:       expr.NewContext(),
 		engine:     engine,
 		childField: uniqChildField(keys),
 	}
@@ -114,8 +114,7 @@ func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage
 	if err != nil {
 		return nil, err
 	}
-	fields, resolvers := compiler.CompileAssignments(w.keys, w.keys)
-	w.cutter, err = expr.NewCutter(zctx, fields, resolvers)
+	w.keyer, err = NewKeyer(zctx, keys)
 	return w, err
 }
 
@@ -126,20 +125,6 @@ type Option interface {
 type optionFunc func(*Writer)
 
 func (f optionFunc) apply(w *Writer) { f(w) }
-
-func KeyFields(keys ...field.Path) Option {
-	return optionFunc(func(w *Writer) {
-		w.keys = keys
-	})
-}
-
-func Keys(keys ...string) Option {
-	return optionFunc(func(w *Writer) {
-		for _, k := range keys {
-			w.keys = append(w.keys, field.Dotted(k))
-		}
-	})
-}
 
 func FrameThresh(frameThresh int) Option {
 	return optionFunc(func(w *Writer) {
@@ -153,22 +138,19 @@ func Order(o order.Which) Option {
 	})
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
+func (w *Writer) Write(val *zed.Value) error {
 	if w.writer == nil {
 		var err error
-		w.writer, err = newIndexWriter(w, w.iow, "")
+		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx)
 		if err != nil {
 			return err
 		}
-		keys, err := w.cutter.Apply(rec)
-		if err != nil {
+		// Check that key is present... ?!
+		if _, err := w.keyer.KeyOf(w.ectx, val); err != nil {
 			return err
-		}
-		if keys == nil {
-			return fmt.Errorf("key(s) not found in record: %q", w.keys)
 		}
 	}
-	return w.writer.write(rec)
+	return w.writer.write(val)
 }
 
 // Abort closes this writer, deleting any and all objects and/or files associated
@@ -202,7 +184,7 @@ func (w *Writer) Close() error {
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
 		zw := zngio.NewWriter(w.iow, zngio.WriterOpts{})
-		err := writeTrailer(zw, w.zctx, w.childField, w.frameThresh, nil, w.keys, w.order)
+		err := writeTrailer(zw, w.zctx, w.childField, w.frameThresh, nil, w.keyer.Keys(), w.order)
 		if err2 := w.iow.Close(); err == nil {
 			err = err2
 		}
@@ -272,7 +254,7 @@ func (w *Writer) finalize() error {
 			return err
 		}
 	}
-	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keys, w.order)
+	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keyer.Keys(), w.order)
 }
 
 func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameThresh int, sizes []int64, keys field.List, o order.Which) error {
@@ -295,7 +277,7 @@ func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameTh
 	return w.EndStream()
 }
 
-func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, error) {
+func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Context) (*indexWriter, error) {
 	base.nlevel++
 	if base.nlevel >= MaxLevels {
 		return nil, ErrTooManyLevels
@@ -304,6 +286,7 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, 
 	return &indexWriter{
 		base:     base,
 		buffer:   writer,
+		ectx:     ectx,
 		name:     name,
 		zng:      zngio.NewWriter(writer, zngio.WriterOpts{}),
 		frameEnd: int64(base.frameThresh),
@@ -315,7 +298,7 @@ func (w *indexWriter) newParent() (*indexWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newIndexWriter(w.base, file, file.Name())
+	return newIndexWriter(w.base, file, file.Name(), w.ectx)
 }
 
 func (w *indexWriter) Close() error {
@@ -344,15 +327,11 @@ func (w *indexWriter) write(rec *zed.Value) error {
 		// (or until we know it's the last frame in the file).
 		// So we build the frame key record from the current record
 		// here ahead of its use and save it in the frameKey variable.
-		key, err := w.base.cutter.Apply(rec)
-		if err != nil {
-			return err
-		}
+		key, err := w.base.keyer.KeyOf(w.ectx, rec)
 		// If the key isn't here flag an error.  All keys must be
 		// present to build a proper index.
-		// XXX We also need to check that they are in order.
-		if key == nil {
-			return fmt.Errorf("no key field present in record of type: %s", rec.Type)
+		if err != nil {
+			return err
 		}
 		w.frameKey = key
 	}

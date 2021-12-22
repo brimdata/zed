@@ -122,6 +122,11 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
 	}
+	Scope struct {
+		Kind   string       `json:"kind" unpack:""`
+		Locals []Assignment `json:"locals"`
+		Seq    Op           `json:"seq"`
+	}
 	Uniq struct {
 		Kind  string `json:"kind" unpack:""`
 		Cflag bool   `json:"cflag"`
@@ -264,6 +269,7 @@ func (*TypeProc) OpNode()   {}
 func (*Shape) OpNode()      {}
 func (*Explode) OpNode()    {}
 func (*Over) OpNode()       {}
+func (*Scope) OpNode()      {}
 func (*Yield) OpNode()      {}
 func (*Merge) OpNode()      {}
 

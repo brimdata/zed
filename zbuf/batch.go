@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -27,6 +28,7 @@ type Batch interface {
 	Ref()
 	Unref()
 	Values() []zed.Value
+	Context() expr.Context
 }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
@@ -62,7 +64,7 @@ func readBatch(zr zio.Reader, n int) (Batch, error) {
 	if len(recs) == 0 {
 		return nil, nil
 	}
-	return Array(recs), nil
+	return NewArray(recs), nil
 }
 
 // A Puller produces Batches of records, signaling end-of-stream by returning

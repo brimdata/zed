@@ -82,7 +82,7 @@ func compileSearch(node *dag.Search) (expr.Filter, error) {
 			return nil, err
 		}
 		contains := expr.Contains(match)
-		pred := func(zv zed.Value) bool {
+		pred := func(zv *zed.Value) bool {
 			return match(zv) || contains(zv)
 		}
 
@@ -118,8 +118,8 @@ func CompileFilter(zctx *zed.Context, scope *Scope, node dag.Expr) (expr.Filter,
 		}
 		match := expr.NewRegexpBoolean(re)
 		contains := expr.Contains(match)
-		pred := func(zv zed.Value) bool {
-			return match(zv) || contains(zv)
+		pred := func(val *zed.Value) bool {
+			return match(val) || contains(val)
 		}
 		return expr.EvalAny(pred, true), nil
 
@@ -148,7 +148,7 @@ func CompileFilter(zctx *zed.Context, scope *Scope, node dag.Expr) (expr.Filter,
 		default:
 			return nil, fmt.Errorf("bad boolean value in dag.Literal: %s", v.Text)
 		}
-		return func(*zed.Value) bool { return b }, nil
+		return func(expr.Context, *zed.Value) bool { return b }, nil
 
 	case *dag.Search:
 		return compileSearch(v)
@@ -194,8 +194,8 @@ func compileExprPredicate(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Fil
 	if err != nil {
 		return nil, err
 	}
-	return func(rec *zed.Value) bool {
-		zv, err := predicate.Eval(rec)
-		return err == nil && zv.Type == zed.TypeBool && zed.IsTrue(zv.Bytes)
+	return func(ectx expr.Context, this *zed.Value) bool {
+		val := predicate.Eval(ectx, this)
+		return val.Type == zed.TypeBool && zed.IsTrue(val.Bytes)
 	}, nil
 }

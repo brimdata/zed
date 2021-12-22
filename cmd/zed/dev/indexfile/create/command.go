@@ -113,6 +113,7 @@ func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTa
 		return nil, err
 	}
 	table := index.NewMemTable(zctx, c.keys)
+	ectx := expr.NewContext()
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -121,12 +122,12 @@ func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTa
 		if rec == nil {
 			break
 		}
-		k, err := cutter.Apply(rec)
-		if err != nil || k == nil {
+		k := cutter.Eval(ectx, rec)
+		if k.IsError() {
 			// if the key doesn't exist, just skip it
 			continue
 		}
-		if k.Bytes == nil {
+		if k.IsNull() {
 			// The key field is null.  Skip it.  Unless we want to
 			// index nulls, this is the right thing to do.
 			continue

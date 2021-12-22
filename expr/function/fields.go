@@ -7,9 +7,15 @@ import (
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#fields
 type Fields struct {
-	zctx  *zed.Context
-	typ   zed.Type
-	bytes zcode.Bytes
+	zctx *zed.Context
+	typ  zed.Type
+}
+
+func NewFields(zctx *zed.Context) *Fields {
+	return &Fields{
+		zctx: zctx,
+		typ:  zctx.LookupTypeArray(zed.TypeString),
+	}
 }
 
 func fieldNames(typ *zed.TypeRecord) []string {
@@ -26,18 +32,18 @@ func fieldNames(typ *zed.TypeRecord) []string {
 	return out
 }
 
-func (f *Fields) Call(args []zed.Value) (zed.Value, error) {
+func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zvSubject := args[0]
 	typ := isRecordType(zvSubject, f.zctx)
 	if typ == nil {
-		return zed.Missing, nil
+		return zed.Missing
 	}
-	bytes := f.bytes[:0]
+	//XXX should have a way to append into allocator
+	var bytes zcode.Bytes
 	for _, field := range fieldNames(typ) {
 		bytes = zcode.AppendPrimitive(bytes, zcode.Bytes(field))
 	}
-	f.bytes = bytes
-	return zed.Value{f.typ, bytes}, nil
+	return ctx.NewValue(f.typ, bytes)
 }
 
 func isRecordType(zv zed.Value, zctx *zed.Context) *zed.TypeRecord {

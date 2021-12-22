@@ -28,8 +28,12 @@ func (s *Schema) Mixin(t *zed.TypeRecord) error {
 }
 
 // Type returns the fused record type.
-func (s *Schema) Type() (*zed.TypeRecord, error) {
-	return s.zctx.LookupTypeRecord(s.cols)
+func (s *Schema) Type() *zed.TypeRecord {
+	typ, err := s.zctx.LookupTypeRecord(s.cols)
+	if err != nil {
+		panic(err)
+	}
+	return typ
 }
 
 func (s *Schema) fuseColumns(fused, cols []zed.Column) ([]zed.Column, error) {
@@ -48,11 +52,7 @@ func (s *Schema) fuseColumns(fused, cols []zed.Column) ([]zed.Column, error) {
 			if err != nil {
 				return nil, err
 			}
-			t, err := s.zctx.LookupTypeRecord(nestedFused)
-			if err != nil {
-				return nil, err
-			}
-			fused[i].Type = t
+			fused[i].Type = s.zctx.MustLookupTypeRecord(nestedFused)
 		default:
 			fused[i].Type = unify(s.zctx, fused[i].Type, c.Type)
 		}

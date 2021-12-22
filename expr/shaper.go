@@ -43,27 +43,32 @@ func NewShaper(zctx *zed.Context, expr, typExpr Evaluator, tf ShaperTransform) *
 	}
 }
 
-func (s *Shaper) Eval(rec *zed.Value) (zed.Value, error) {
-	typVal, err := s.typExpr.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
+func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
+	//XXX should have a fast path for constant types
+	typVal := s.typExpr.Eval(ectx, this)
+	if typVal.IsError() {
+		return typVal
 	}
+	//XXX aliasof?
 	if typVal.Type != zed.TypeType {
-		return zed.NewErrorf("shaper function type argument is not a type"), nil
+		return ectx.CopyValue(zed.NewErrorf("shaper type argument is not a type: %s", zson.MustFormatValue(*typVal)))
 	}
 	shapeTo, err := s.zctx.LookupByValue(typVal.Bytes)
 	if err != nil {
-		return zed.NewErrorf("shaper encountered unknown type value: %s", err), nil
+		panic(err)
 	}
 	shaper, ok := s.shapers[shapeTo]
 	if !ok {
+		//XXX we should check if this is a cast-only function and
+		// and allocate a primitive caster if warranted
 		if zed.TypeRecordOf(shapeTo) == nil {
-			return zed.NewErrorf("shaper function type argument is not a record type: %q", shapeTo), nil
+			//XXX use structured error
+			return ectx.CopyValue(zed.NewErrorf("shaper function type argument is not a record type: %q", shapeTo))
 		}
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
 		s.shapers[shapeTo] = shaper
 	}
-	return shaper.Eval(rec)
+	return shaper.Eval(ectx, this)
 }
 
 type ConstShaper struct {
@@ -87,44 +92,38 @@ func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf Shap
 	}
 }
 
-func (s *ConstShaper) Apply(in *zed.Value) (*zed.Value, error) {
-	v, err := s.Eval(in)
-	if err != nil {
-		return nil, err
+func (s *ConstShaper) Apply(ectx Context, this *zed.Value) *zed.Value {
+	val := s.Eval(ectx, this)
+	if !zed.IsRecordType(val.Type) {
+		// XXX use structured error
+		return ectx.CopyValue(zed.NewErrorf("shaper returned non-record value %s", zson.MustFormatValue(*val)))
 	}
-	if !zed.IsRecordType(v.Type) {
-		return nil, fmt.Errorf("shaper returned non-record value %s", zson.String(v))
-	}
-	return zed.NewValue(v.Type, v.Bytes), nil
+	return val
 }
 
-func (c *ConstShaper) Eval(in *zed.Value) (zed.Value, error) {
-	inVal, err := c.expr.Eval(in)
-	if err != nil {
-		return zed.Value{}, err
+func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
+	val := c.expr.Eval(ectx, this)
+	if val.IsError() {
+		return val
 	}
-	id := in.Type.ID()
+	id := this.Type.ID()
 	s, ok := c.shapers[id]
 	if !ok {
-		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, inVal.Type)
+		var err error
+		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, val.Type)
 		if err != nil {
-			return zed.Value{}, err
+			return ectx.CopyValue(zed.NewError(err))
 		}
 		c.shapers[id] = s
 	}
 	if s.typ.ID() == id {
-		return zed.Value{s.typ, inVal.Bytes}, nil
+		return ectx.NewValue(s.typ, val.Bytes)
 	}
 	c.b.Reset()
-	if zerr := s.step.buildRecord(inVal.Bytes, &c.b); zerr != nil {
-		typ, err := c.zctx.LookupTypeRecord([]zed.Column{{Name: "error", Type: zerr.Type}})
-		if err != nil {
-			return zed.Value{}, err
-		}
-		c.b.AppendPrimitive(zerr.Bytes)
-		return zed.Value{typ, c.b.Bytes()}, nil
+	if zerr := s.step.buildRecord(ectx, val.Bytes, &c.b); zerr != nil {
+		return zerr
 	}
-	return zed.Value{s.typ, c.b.Bytes()}, nil
+	return ectx.NewValue(s.typ, c.b.Bytes())
 }
 
 // A shaper is a per-input type ID "spec" that contains the output
@@ -401,7 +400,7 @@ func (s *step) append(step step) {
 	s.children = append(s.children, step)
 }
 
-func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) buildRecord(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	for _, step := range s.children {
 		switch step.op {
 		case null:
@@ -414,25 +413,22 @@ func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 		// reordering) would be make direct use of a
 		// zcode.Iter along with keeping track of our
 		// position.
-		bytes, err := getNthFromContainer(in, uint(step.fromIndex))
-		if err != nil {
-			panic(err)
-		}
-		if zerr := step.build(bytes, b); zerr != nil {
+		bytes := getNthFromContainer(in, uint(step.fromIndex))
+		if zerr := step.build(ectx, bytes, b); zerr != nil {
 			return zerr
 		}
 	}
 	return nil
 }
 
-func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) build(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	switch s.op {
 	case copyPrimitive:
 		b.AppendPrimitive(in)
 	case copyContainer:
 		b.AppendContainer(in)
 	case castPrimitive:
-		if zerr := s.castPrimitive(in, b); zerr != nil {
+		if zerr := s.castPrimitive(ectx, in, b); zerr != nil {
 			return zerr
 		}
 	case castUnion:
@@ -443,7 +439,7 @@ func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 			return nil
 		}
 		b.BeginContainer()
-		if zerr := s.buildRecord(in, b); zerr != nil {
+		if zerr := s.buildRecord(ectx, in, b); zerr != nil {
 			return zerr
 		}
 		b.EndContainer()
@@ -459,7 +455,7 @@ func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 			if err != nil {
 				panic(err)
 			}
-			if zerr := s.children[0].build(zv, b); zerr != nil {
+			if zerr := s.children[0].build(ectx, zv, b); zerr != nil {
 				return zerr
 			}
 		}
@@ -471,23 +467,19 @@ func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	return nil
 }
 
-func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) castPrimitive(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	if in == nil {
 		b.AppendNull()
 		return nil
 	}
 	toType := zed.AliasOf(s.toType)
-	pc := LookupPrimitiveCaster(toType)
-	v, err := pc(zed.Value{s.fromType, in})
-	if err != nil {
-		b.AppendNull()
-		return nil
-	}
+	cast := LookupPrimitiveCaster(toType)
+	v := cast(ectx, &zed.Value{s.fromType, in})
 	if v.Type != toType {
 		// v isn't the "to" type, so we can't safely append v.Bytes to
 		// the builder. See https://github.com/brimdata/zed/issues/2710.
-		if v.Type == zed.TypeError {
-			return &v
+		if v.IsError() {
+			return v
 		}
 		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))
 	}

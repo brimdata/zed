@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/lake/mock"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
@@ -60,7 +61,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			f, err := filterMaker.AsFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
-				assert.Equal(t, c.expected, f(rec),
+				assert.Equal(t, c.expected, f(expr.NewContext(), rec),
 					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Bytes))
 			}
 			bf, err := filterMaker.AsBufferFilter()

@@ -11,64 +11,61 @@ import (
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_base64
 type FromBase64 struct{}
 
-func (*FromBase64) Call(args []zed.Value) (zed.Value, error) {
+func (f *FromBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("from_base64")
+		return newErrorf(ctx, "from_base64: string argument required")
 	}
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeBytes, nil}, nil
+		return zed.NullType
 	}
 	s, _ := zed.DecodeString(zv.Bytes)
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
-		return zed.NewError(err), nil
+		panic(err)
 	}
-	return zed.Value{zed.TypeBytes, zed.EncodeBytes(b)}, nil
+	return ctx.NewValue(zed.TypeBytes, zed.EncodeBytes(b))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_base64
 type ToBase64 struct{}
 
-func (*ToBase64) Call(args []zed.Value) (zed.Value, error) {
+func (t *ToBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("from_base64")
+		return ctx.CopyValue(zed.NewErrorf("to_base64: string argument required"))
 	}
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeString, nil}, nil
+		return zed.NullString
 	}
-	s := base64.StdEncoding.EncodeToString(zv.Bytes)
-	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
+	return newString(ctx, base64.StdEncoding.EncodeToString(zv.Bytes))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_hex
 type FromHex struct{}
 
-func (*FromHex) Call(args []zed.Value) (zed.Value, error) {
+func (f *FromHex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return zed.NewErrorf("not a string"), nil
+		return newErrorf(ctx, "to_base64: string argument required")
 	}
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeString, nil}, nil
+		return zed.NullString
 	}
 	b, err := hex.DecodeString(string(zv.Bytes))
 	if err != nil {
-		return zed.NewError(err), nil
+		panic(err)
 	}
-	return zed.Value{zed.TypeBytes, zcode.Bytes(b)}, nil
+	return ctx.NewValue(zed.TypeBytes, zcode.Bytes(b))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_hex
 type ToHex struct{}
 
-func (*ToHex) Call(args []zed.Value) (zed.Value, error) {
+func (t *ToHex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeBytes, nil}, nil
+		return zed.NullBytes
 	}
-	s := hex.EncodeToString(zv.Bytes)
-	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
-
+	return newString(ctx, hex.EncodeToString(zv.Bytes))
 }

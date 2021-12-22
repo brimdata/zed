@@ -26,15 +26,12 @@ func NewRecordExpr(zctx *zed.Context, names []string, exprs []Evaluator) *Record
 	}
 }
 
-func (r *RecordExpr) Eval(rec *zed.Value) (zed.Value, error) {
+func (r *RecordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	var changed bool
 	b := r.builder
 	b.Reset()
 	for k, e := range r.exprs {
-		zv, err := e.Eval(rec)
-		if err != nil {
-			return zed.Value{}, err
-		}
+		zv := e.Eval(ectx, this)
 		if r.columns[k].Type != zv.Type {
 			r.columns[k].Type = zv.Type
 			changed = true
@@ -46,13 +43,9 @@ func (r *RecordExpr) Eval(rec *zed.Value) (zed.Value, error) {
 		}
 	}
 	if changed {
-		var err error
-		r.typ, err = r.zctx.LookupTypeRecord(r.columns)
-		if err != nil {
-			return zed.Value{}, err
-		}
+		r.typ = r.zctx.MustLookupTypeRecord(r.columns)
 	}
-	return zed.Value{r.typ, b.Bytes()}, nil
+	return ectx.NewValue(r.typ, b.Bytes())
 }
 
 type ArrayExpr struct {
@@ -71,17 +64,14 @@ func NewArrayExpr(zctx *zed.Context, exprs []Evaluator) *ArrayExpr {
 	}
 }
 
-func (a *ArrayExpr) Eval(rec *zed.Value) (zed.Value, error) {
+func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	inner := a.typ.Type
 	container := zed.IsContainerType(inner)
 	b := a.builder
 	b.Reset()
 	var first zed.Type
 	for _, e := range a.exprs {
-		zv, err := e.Eval(rec)
-		if err != nil {
-			return zed.Value{}, err
-		}
+		zv := e.Eval(ectx, this)
 		typ := zv.Type
 		if first == nil {
 			first = typ
@@ -92,7 +82,8 @@ func (a *ArrayExpr) Eval(rec *zed.Value) (zed.Value, error) {
 				inner = a.typ.Type
 				container = zed.IsContainerType(inner)
 			} else {
-				return zed.NewErrorf("illegal mixed type array"), nil
+				//XXX issue #3363
+				return ectx.CopyValue(zed.NewErrorf("mixed-type array expressions not yet supported"))
 			}
 		}
 		if container {
@@ -106,7 +97,7 @@ func (a *ArrayExpr) Eval(rec *zed.Value) (zed.Value, error) {
 		// Return empty array instead of null array.
 		bytes = []byte{}
 	}
-	return zed.Value{a.typ, bytes}, nil
+	return ectx.NewValue(a.typ, bytes)
 }
 
 type SetExpr struct {
@@ -125,34 +116,32 @@ func NewSetExpr(zctx *zed.Context, exprs []Evaluator) *SetExpr {
 	}
 }
 
-func (s *SetExpr) Eval(rec *zed.Value) (zed.Value, error) {
+func (s *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	var inner zed.Type
 	var container bool
 	b := s.builder
 	b.Reset()
 	var first zed.Type
 	for _, e := range s.exprs {
-		zv, err := e.Eval(rec)
-		if err != nil {
-			return zed.Value{}, err
-		}
-		typ := zv.Type
+		val := e.Eval(ectx, this)
+		typ := val.Type
 		if first == nil {
 			first = typ
 		}
 		if typ != inner && typ != zed.TypeNull {
 			if typ == first || first == zed.TypeNull {
-				s.typ = s.zctx.LookupTypeSet(zv.Type)
+				s.typ = s.zctx.LookupTypeSet(val.Type)
 				inner = s.typ.Type
 				container = zed.IsContainerType(inner)
 			} else {
-				return zed.NewErrorf("illegal mixed type array"), nil
+				//XXX issue #3363
+				return ectx.CopyValue(zed.NewErrorf("mixed-type set expressions not yet supported"))
 			}
 		}
 		if container {
-			b.AppendContainer(zv.Bytes)
+			b.AppendContainer(val.Bytes)
 		} else {
-			b.AppendPrimitive(zv.Bytes)
+			b.AppendPrimitive(val.Bytes)
 		}
 	}
 	bytes := b.Bytes()
@@ -160,7 +149,7 @@ func (s *SetExpr) Eval(rec *zed.Value) (zed.Value, error) {
 		// Return empty set instead of null set.
 		bytes = []byte{}
 	}
-	return zed.Value{s.typ, zed.NormalizeSet(bytes)}, nil
+	return ectx.NewValue(s.typ, zed.NormalizeSet(bytes))
 }
 
 type Entry struct {
@@ -184,20 +173,14 @@ func NewMapExpr(zctx *zed.Context, entries []Entry) *MapExpr {
 	}
 }
 
-func (m *MapExpr) Eval(rec *zed.Value) (zed.Value, error) {
+func (m *MapExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	var containerKey, containerVal bool
 	var keyType, valType zed.Type
 	b := m.builder
 	b.Reset()
 	for _, e := range m.entries {
-		key, err := e.Key.Eval(rec)
-		if err != nil {
-			return zed.Value{}, err
-		}
-		val, err := e.Val.Eval(rec)
-		if err != nil {
-			return zed.Value{}, err
-		}
+		key := e.Key.Eval(ectx, this)
+		val := e.Val.Eval(ectx, this)
 		if keyType == nil {
 			if m.typ == nil || m.typ.KeyType != key.Type || m.typ.ValType != val.Type {
 				keyType = key.Type
@@ -210,7 +193,8 @@ func (m *MapExpr) Eval(rec *zed.Value) (zed.Value, error) {
 			containerKey = zed.IsContainerType(keyType)
 			containerVal = zed.IsContainerType(valType)
 		} else if keyType != m.typ.KeyType || valType != m.typ.ValType {
-			return zed.NewErrorf("illegal mixed type map"), nil
+			//XXX issue #3363
+			return ectx.CopyValue(zed.NewErrorf("mixed-type map expressions not yet supported"))
 		}
 		if containerKey {
 			b.AppendContainer(key.Bytes)
@@ -228,5 +212,5 @@ func (m *MapExpr) Eval(rec *zed.Value) (zed.Value, error) {
 		// Return empty map instead of null map.
 		bytes = []byte{}
 	}
-	return zed.Value{m.typ, zed.NormalizeMap(bytes)}, nil
+	return ectx.CopyValue(zed.Value{m.typ, zed.NormalizeMap(bytes)})
 }

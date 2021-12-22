@@ -26,7 +26,7 @@ type Proc struct {
 	getRightKey expr.Evaluator
 	compare     expr.ValueCompareFn
 	cutter      *expr.Cutter
-	joinKey     zed.Value
+	joinKey     *zed.Value
 	joinSet     []*zed.Value
 	types       map[int]map[int]*zed.TypeRecord
 }
@@ -36,7 +36,6 @@ func New(pctx *proc.Context, anti, inner bool, left, right proc.Interface, leftK
 	if err != nil {
 		return nil, err
 	}
-	cutter.AllowPartialCuts()
 	ctx, cancel := context.WithCancel(pctx.Context)
 	return &Proc{
 		pctx:        pctx,
@@ -62,6 +61,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		go p.right.Reader.(*puller).run()
 	})
 	var out []zed.Value
+	// See #3366
+	ectx := expr.NewContext()
 	for {
 		leftRec, err := p.left.Read()
 		if err != nil {
@@ -71,17 +72,14 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			if len(out) == 0 {
 				return nil, nil
 			}
-			return zbuf.Array(out), nil
+			return zbuf.NewArray(out), nil
 		}
-		key, err := p.getLeftKey.Eval(leftRec)
-		if err != nil {
+		key := p.getLeftKey.Eval(ectx, leftRec)
+		if key.IsMissing() {
 			// If the left key isn't present (which is not a thing
 			// in a sql join), then drop the record and return only
 			// left records that can eval the key expression.
-			if err == zed.ErrMissing {
-				continue
-			}
-			return nil, err
+			continue
 		}
 		rightRecs, err := p.getJoinSet(key)
 		if err != nil {
@@ -108,10 +106,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		// Batch and lives in a pool so the downstream user can
 		// release the batch with and bypass GC.
 		for _, rightRec := range rightRecs {
-			cutRec, err := p.cutter.Apply(rightRec)
-			if err != nil {
-				return nil, err
-			}
+			cutRec := p.cutter.Eval(ectx, rightRec)
 			rec, err := p.splice(leftRec, cutRec)
 			if err != nil {
 				return nil, err
@@ -125,28 +120,30 @@ func (p *Proc) Done() {
 	p.cancel()
 }
 
-func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Value, error) {
-	if p.joinKey.Type != nil && p.compare(leftKey, p.joinKey) == 0 {
-		// If p.joinKey.Type is nil, p.joinKey hasn't been set.
+func (p *Proc) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
+	if p.joinKey != nil && p.compare(leftKey, p.joinKey) == 0 {
 		return p.joinSet, nil
 	}
+	// See #3366
+	ectx := expr.NewContext()
 	for {
 		rec, err := p.right.Peek()
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		rightKey, err := p.getRightKey.Eval(rec)
-		if err != nil {
-			if err == zed.ErrMissing {
-				p.right.Read()
-				continue
-			}
-			return nil, err
+		rightKey := p.getRightKey.Eval(ectx, rec)
+		if rightKey.IsMissing() {
+			p.right.Read()
+			continue
 		}
 		cmp := p.compare(leftKey, rightKey)
 		if cmp == 0 {
 			// Copy leftKey.Bytes since it might get reused.
-			p.joinKey.CopyFrom(&leftKey)
+			if p.joinKey == nil {
+				p.joinKey = leftKey.Copy()
+			} else {
+				p.joinKey.CopyFrom(leftKey)
+			}
 			p.joinSet, err = p.readJoinSet(p.joinKey)
 			return p.joinSet, err
 		}
@@ -166,8 +163,10 @@ func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Value, error) {
 // fillJoinSet is called when a join key has been found that matches
 // the current lefthand key.  It returns the all the subsequent records
 // from the righthand stream that match this key.
-func (p *Proc) readJoinSet(joinKey zed.Value) ([]*zed.Value, error) {
+func (p *Proc) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
 	var recs []*zed.Value
+	// See #3366
+	ectx := expr.NewContext()
 	for {
 		rec, err := p.right.Peek()
 		if err != nil {
@@ -176,13 +175,10 @@ func (p *Proc) readJoinSet(joinKey zed.Value) ([]*zed.Value, error) {
 		if rec == nil {
 			return recs, nil
 		}
-		key, err := p.getRightKey.Eval(rec)
-		if err != nil {
-			if err == zed.ErrMissing {
-				p.right.Read()
-				continue
-			}
-			return nil, err
+		key := p.getRightKey.Eval(ectx, rec)
+		if key.IsMissing() {
+			p.right.Read()
+			continue
 		}
 		if p.compare(key, joinKey) != 0 {
 			return recs, nil

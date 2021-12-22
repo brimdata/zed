@@ -98,7 +98,7 @@ func (c *Context) Lookup(id int) *TypeRecord {
 // use TranslateTypeRecord.
 func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
 	if name, ok := duplicateField(columns); ok {
-		return nil, fmt.Errorf("duplicate field %s", name)
+		return nil, fmt.Errorf("%w: %s", ErrDuplicateFields, name)
 	}
 	tv := EncodeTypeValue(&TypeRecord{Columns: columns})
 	c.mu.Lock()
@@ -297,7 +297,7 @@ func (c *Context) LookupTypeValue(typ Type) Value {
 	typ, err := c.LookupByValue(tv)
 	if err != nil {
 		// This shouldn't happen...
-		return Missing
+		return *Missing
 	}
 	return c.LookupTypeValue(typ)
 }

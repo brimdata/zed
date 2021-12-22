@@ -29,12 +29,12 @@ func New(parent proc.Interface, e expr.Evaluator) *ExprSwitch {
 	}
 }
 
-func (s *ExprSwitch) NewProc(zv zed.Value) proc.Interface {
+func (s *ExprSwitch) NewProc(val *zed.Value) proc.Interface {
 	ch := make(chan *zed.Value)
-	if zv.IsNil() {
+	if val == nil {
 		s.defaultCh = ch
 	} else {
-		s.cases[string(zv.Bytes)] = ch
+		s.cases[string(val.Bytes)] = ch
 	}
 	return &Proc{s, ch}
 }
@@ -55,15 +55,15 @@ func (s *ExprSwitch) run() {
 			s.err = err
 			return
 		}
+		ectx := batch.Context()
 		vals := batch.Values()
 		for i := range vals {
-			zv, err := s.evaluator.Eval(&vals[i])
-			if err != nil {
-				s.err = err
-				return
+			val := s.evaluator.Eval(ectx, &vals[i])
+			if val.IsMissing() {
+				continue
 			}
 		again:
-			ch, ok := s.cases[string(zv.Bytes)]
+			ch, ok := s.cases[string(val.Bytes)]
 			if !ok {
 				ch = s.defaultCh
 			}
@@ -105,8 +105,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	p.parent.once.Do(func() {
 		go p.parent.run()
 	})
-	if rec, ok := <-p.ch; ok {
-		return zbuf.Array{*rec}, nil
+	if val, ok := <-p.ch; ok {
+		// This should be batchified.  See #3364
+		return zbuf.NewArray([]zed.Value{*val}), nil
 	}
 	return nil, p.parent.err
 }

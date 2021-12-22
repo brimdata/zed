@@ -173,7 +173,7 @@ func indexFilterPass(ctx context.Context, snap commits.View, filter *index.Filte
 
 func ScanSpan(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- data.Object) error {
 	for _, object := range snap.Select(span, o) {
-		if span == nil || span.Overlaps(object.First, object.Last) {
+		if span == nil || span.Overlaps(&object.First, &object.Last) {
 			select {
 			case ch <- *object:
 			case <-ctx.Done():

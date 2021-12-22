@@ -18,11 +18,7 @@ func parse(path string) (astzed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	parser, err := zson.NewParser(file)
-	if err != nil {
-		return nil, err
-	}
-	return parser.ParseValue()
+	return zson.NewParser(file).ParseValue()
 }
 
 const testFile = "test.zson"

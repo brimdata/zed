@@ -5,4 +5,4 @@ input: |
   {x:1(int32)}
 
 output: |
-  {x:1(int32),y:"signed integer divide by 0"(error)}
+  {x:1(int32),y:"divide by zero"(error)}

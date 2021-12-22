@@ -14,6 +14,33 @@ var (
 	ErrTypeSyntax = errors.New("syntax error parsing type string")
 )
 
+var (
+	NullUint8    = &Value{Type: TypeUint8}
+	NullUint16   = &Value{Type: TypeUint16}
+	NullUint32   = &Value{Type: TypeUint32}
+	NullUint64   = &Value{Type: TypeUint64}
+	NullInt8     = &Value{Type: TypeInt8}
+	NullInt16    = &Value{Type: TypeInt16}
+	NullInt32    = &Value{Type: TypeInt32}
+	NullInt64    = &Value{Type: TypeInt64}
+	NullDuration = &Value{Type: TypeDuration}
+	NullTime     = &Value{Type: TypeTime}
+	NullFloat32  = &Value{Type: TypeFloat32}
+	NullFloat64  = &Value{Type: TypeFloat64}
+	NullBool     = &Value{Type: TypeBool}
+	NullBytes    = &Value{Type: TypeBytes}
+	NullString   = &Value{Type: TypeString}
+	NullIP       = &Value{Type: TypeIP}
+	NullNet      = &Value{Type: TypeNet}
+	NullType     = &Value{Type: TypeType}
+	Null         = &Value{Type: TypeNull}
+)
+
+type Allocator interface {
+	NewValue(Type, zcode.Bytes) *Value
+	CopyValue(Value) *Value
+}
+
 type Value struct {
 	Type  Type
 	Bytes zcode.Bytes
@@ -139,10 +166,6 @@ func (v Value) ContainerLength() (int, error) {
 	}
 }
 
-func (v Value) IsNil() bool {
-	return v.Bytes == nil && v.Type == nil
-}
-
 // IsNull returns true if and only if v is a null value of any type.
 func (v *Value) IsNull() bool {
 	return v.Bytes == nil
@@ -178,13 +201,15 @@ func (v Value) IsStringy() bool {
 }
 
 func (v Value) IsError() bool {
-	return v.Type == TypeError
+	return AliasOf(v.Type) == TypeError
 }
 
-var missingAsBytes = []byte(missing)
-
 func (v Value) IsMissing() bool {
-	return v.Type == TypeError && bytes.Equal(v.Bytes, missingAsBytes)
+	return v.Type == Missing.Type && bytes.Equal(v.Bytes, Missing.Bytes)
+}
+
+func (v Value) IsQuiet() bool {
+	return v.Type == Quiet.Type && bytes.Equal(v.Bytes, Quiet.Bytes)
 }
 
 func (v Value) Equal(p Value) bool {

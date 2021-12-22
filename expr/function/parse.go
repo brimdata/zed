@@ -1,8 +1,6 @@
 package function
 
 import (
-	"errors"
-	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -17,21 +15,18 @@ type ParseURI struct {
 	marshaler *zson.MarshalZNGContext
 }
 
-func (p *ParseURI) Call(args []zed.Value) (zed.Value, error) {
+func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	in := args[0]
-	if !in.IsStringy() {
-		return badarg("parse_uri: input must be string")
-	}
-	if in.Bytes == nil {
-		return badarg("parse_uri: input must not be null")
+	if !in.IsStringy() || in.Bytes == nil {
+		return newErrorf(ctx, "parse_uri: non-empty string arg required")
 	}
 	s, err := zed.DecodeString(in.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	u, err := url.Parse(s)
 	if err != nil {
-		return zed.Value{}, fmt.Errorf("parse_uri: %q: %w", s, errors.Unwrap(err))
+		return newErrorf(ctx, "parse_uri: %s (%q)", err, s)
 	}
 	var v struct {
 		Scheme   *string    `zed:"scheme"`
@@ -59,10 +54,10 @@ func (p *ParseURI) Call(args []zed.Value) (zed.Value, error) {
 	if s := u.Hostname(); s != "" {
 		v.Host = &s
 	}
-	if ss := u.Port(); ss != "" {
-		u64, err := strconv.ParseUint(ss, 10, 16)
+	if portString := u.Port(); portString != "" {
+		u64, err := strconv.ParseUint(portString, 10, 16)
 		if err != nil {
-			return zed.Value{}, fmt.Errorf("parse_uri: %q: invalid port: %s", s, errors.Unwrap(err))
+			return newErrorf(ctx, "parse_uri: invalid port: %s (%q)", portString, s)
 		}
 		u16 := uint16(u64)
 		v.Port = &u16
@@ -76,7 +71,11 @@ func (p *ParseURI) Call(args []zed.Value) (zed.Value, error) {
 	if u.Fragment != "" {
 		v.Fragment = &u.Fragment
 	}
-	return p.marshaler.Marshal(v)
+	out, err := p.marshaler.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return ctx.CopyValue(out)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_zson
@@ -84,32 +83,34 @@ type ParseZSON struct {
 	zctx *zed.Context
 }
 
-func (p *ParseZSON) Call(args []zed.Value) (zed.Value, error) {
+func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	in := args[0]
 	if !in.IsStringy() {
-		return badarg("parse_zson: input must be string")
+		return newErrorf(ctx, "parse_zson: string arg required")
 	}
 	if in.Bytes == nil {
-		return badarg("parse_zson: input must not be null")
+		return zed.Null
 	}
 	s, err := zed.DecodeString(in.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
-	parser, err := zson.NewParser(strings.NewReader(s))
-	if err != nil {
-		return zed.Value{}, err
-	}
+	parser := zson.NewParser(strings.NewReader(s))
 	ast, err := parser.ParseValue()
 	if err != nil {
-		return zed.Value{}, err
+		//XXX this will be better as a structured error
+		return newErrorf(ctx, "parse_zson: parse error: %s (%q)", err, s)
 	}
 	if ast == nil {
-		return badarg("parse_zson: input contains no values")
+		return zed.Null
 	}
 	val, err := zson.NewAnalyzer().ConvertValue(p.zctx, ast)
 	if err != nil {
-		return zed.Value{}, err
+		return newErrorf(ctx, "parse_zson: semantic error: %s (%q)", err, s)
 	}
-	return zson.Build(zcode.NewBuilder(), val)
+	result, err := zson.Build(zcode.NewBuilder(), val)
+	if err != nil {
+		return newErrorf(ctx, "parse_zson: build error: %s (%q)", err, s)
+	}
+	return ctx.CopyValue(result)
 }

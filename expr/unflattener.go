@@ -12,6 +12,8 @@ type Unflattener struct {
 	fieldExpr   Evaluator
 }
 
+var _ Evaluator = (*Unflattener)(nil)
+
 // NewUnflattener returns a Unflattener that turns successive dotted
 // field names into nested records.  For example, unflattening {"a.a":
 // 1, "a.b": 1} results in {a:{a:1,b:1}}.  Note that while
@@ -49,10 +51,7 @@ func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuild
 	if err != nil {
 		return nil, nil, err
 	}
-	typ, err := u.zctx.LookupTypeRecord(b.TypedColumns(types))
-	if err != nil {
-		return nil, nil, err
-	}
+	typ := u.zctx.MustLookupTypeRecord(b.TypedColumns(types))
 	u.builders[in.ID()] = b
 	u.recordTypes[in.ID()] = typ
 	return b, typ, nil
@@ -61,36 +60,25 @@ func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuild
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (u *Unflattener) Apply(in *zed.Value) (*zed.Value, error) {
-	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(in.Type))
+func (u *Unflattener) Eval(ectx Context, this *zed.Value) *zed.Value {
+	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
 	if err != nil {
-		return nil, err
+		return ectx.CopyValue(zed.NewErrorf("unflatten: %s", err))
 	}
 	if b == nil {
-		return in, nil
+		return this
 	}
 	b.Reset()
-	for iter := in.Bytes.Iter(); !iter.Done(); {
+	for iter := this.Bytes.Iter(); !iter.Done(); {
 		zv, con, err := iter.Next()
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		b.Append(zv, con)
 	}
 	zbytes, err := b.Encode()
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return zed.NewValue(typ, zbytes), nil
-}
-
-func (c *Unflattener) Eval(rec *zed.Value) (zed.Value, error) {
-	out, err := c.Apply(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
-	if out == nil {
-		return zed.Value{}, zed.ErrMissing
-	}
-	return *out, nil
+	return ectx.NewValue(typ, zbytes)
 }

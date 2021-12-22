@@ -7,21 +7,19 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-// ErrMissing is returned by entities that fail because a referenced field
-// was missing or because an argument to the entity had a missing value.
-// This is used at sites in the code where it is unknown whether the outcome
-// should result in a runtime exit or in continued execution with a
-// Missing value embedded in the Zed results.
-var ErrMissing = errors.New(missing)
+// ErrMissing is a Go error that implies a missing value in the runtime logic
+// whereas Missing is a Zed error value that represents a missing value embedded
+// in the dataflow computation.
+var ErrMissing = errors.New("missing")
 
-const missing = "missing"
-
-// Missing is value that represents the error condition that a field
-// referenced was not present.  The Missing value can be propagated through
-// functions and expressions and each operator must clearly defined its
-// semantics with respect to the Missing value.  For example, "true AND MISSING"
-// is MISSING.
-var Missing = NewError(ErrMissing)
+// Missing is value that represents an error condition arising from a referenced
+// entity not present, e.g., a reference to a non-existent record field, a map
+// lookup for a key not present, an array index that is out of range, etc.
+// The Missing error can be propagated through  functions and expressions and
+// each operator has clearly defined semantics with respect to the Missing value.
+// For example, "true AND MISSING" is MISSING.
+var Missing = &Value{TypeError, zcode.Bytes("missing")}
+var Quiet = &Value{TypeError, zcode.Bytes("quiet")}
 
 type TypeOfError struct{}
 
@@ -59,8 +57,4 @@ func (t *TypeOfError) Marshal(zv zcode.Bytes) (interface{}, error) {
 
 func (t *TypeOfError) Format(zv zcode.Bytes) string {
 	return QuotedString(zv, false)
-}
-
-func IsMissing(zv Value) bool {
-	return zv.Type == TypeError && string(zv.Bytes) == missing
 }

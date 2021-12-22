@@ -1,0 +1,32 @@
+script: |
+  zq -z "yield t AND t" in.zson
+  zq -z "yield t AND f" in.zson
+  zq -z "yield f AND t" in.zson
+  zq -z "yield f AND f" in.zson
+  zq -z "yield t OR t" in.zson
+  zq -z "yield t OR f" in.zson
+  zq -z "yield f OR t" in.zson
+  zq -z "yield f OR f" in.zson
+  zq -z "yield !t" in.zson
+  zq -z "yield !f" in.zson
+  zq -z "yield !!f" in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {t:true,f:false}
+
+outputs:
+  - name: stdout
+    data: |
+      true
+      false
+      false
+      false
+      true
+      true
+      true
+      false
+      false
+      true
+      false

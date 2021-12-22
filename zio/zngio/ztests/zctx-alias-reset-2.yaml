@@ -3,7 +3,7 @@
 script: |
   zq "head 1" in.zson > t1.zng
   zq "tail 2" in.zson > t2.zng
-  cat t1.zng t2.zng | zq -z "count() by proto" -
+  cat t1.zng t2.zng | zq -z "count() by proto:=quiet(proto)" -
 
 inputs:
   - name: in.zson

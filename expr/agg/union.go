@@ -1,8 +1,6 @@
 package agg
 
 import (
-	"errors"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 )
@@ -13,26 +11,29 @@ type Union struct {
 	size int
 }
 
+var _ Function = (*Union)(nil)
+
 func newUnion() *Union {
 	return &Union{
 		val: make(map[string]struct{}),
 	}
 }
 
-func (u *Union) Consume(v zed.Value) error {
-	if v.IsNil() {
-		return nil
+func (u *Union) Consume(val *zed.Value) {
+	if val.IsNull() {
+		return
 	}
 	if u.typ == nil {
-		u.typ = v.Type
-	} else if u.typ != v.Type {
-		//u.TypeMismatch++
-		return nil
+		u.typ = val.Type
+	} else if u.typ != val.Type {
+		// We should make union type for the set-union
+		// instead of silently ignoring.  See #3363.
+		return
 	}
-	return u.update(v.Bytes)
+	u.update(val.Bytes)
 }
 
-func (u *Union) update(b zcode.Bytes) error {
+func (u *Union) update(b zcode.Bytes) {
 	if _, ok := u.val[string(b)]; !ok {
 		u.val[string(b)] = struct{}{}
 		u.size += len(b)
@@ -43,7 +44,6 @@ func (u *Union) update(b zcode.Bytes) error {
 			//return ErrRowTooBig
 		}
 	}
-	return nil
 }
 
 func (u *Union) deleteOne() {
@@ -54,9 +54,9 @@ func (u *Union) deleteOne() {
 	}
 }
 
-func (u *Union) Result(zctx *zed.Context) (zed.Value, error) {
+func (u *Union) Result(zctx *zed.Context) *zed.Value {
 	if u.typ == nil {
-		return zed.Value{Type: zed.TypeNull}, nil
+		return zed.Null
 	}
 	var b zcode.Builder
 	container := zed.IsContainerType(u.typ)
@@ -67,30 +67,26 @@ func (u *Union) Result(zctx *zed.Context) (zed.Value, error) {
 			b.AppendPrimitive([]byte(s))
 		}
 	}
-	setType := zctx.LookupTypeSet(u.typ)
-	return zed.Value{setType, zed.NormalizeSet(b.Bytes())}, nil
+	return zed.NewValue(zctx.LookupTypeSet(u.typ), zed.NormalizeSet(b.Bytes()))
 }
 
-func (u *Union) ConsumeAsPartial(zv zed.Value) error {
+func (u *Union) ConsumeAsPartial(val *zed.Value) {
 	if u.typ == nil {
-		typ, ok := zv.Type.(*zed.TypeSet)
+		typ, ok := val.Type.(*zed.TypeSet)
 		if !ok {
-			return errors.New("partial not a set type")
+			panic("union: partial not a set type")
 		}
 		u.typ = typ.Type
 	}
-	for it := zv.Iter(); !it.Done(); {
+	for it := val.Iter(); !it.Done(); {
 		elem, _, err := it.Next()
 		if err != nil {
-			return err
+			panic(err)
 		}
-		if err := u.update(elem); err != nil {
-			return err
-		}
+		u.update(elem)
 	}
-	return nil
 }
 
-func (u *Union) ResultAsPartial(zctx *zed.Context) (zed.Value, error) {
+func (u *Union) ResultAsPartial(zctx *zed.Context) *zed.Value {
 	return u.Result(zctx)
 }
