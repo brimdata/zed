@@ -282,12 +282,12 @@ func (c *Context) enterWithLock(tv zcode.Bytes, typ Type) {
 	c.byID = append(c.byID, typ)
 }
 
-func (c *Context) LookupTypeValue(typ Type) Value {
+func (c *Context) LookupTypeValue(typ Type) *Value {
 	c.mu.Lock()
 	bytes, ok := c.toValue[typ]
 	c.mu.Unlock()
 	if ok {
-		return Value{TypeType, bytes}
+		return &Value{TypeType, bytes}
 	}
 	// In general, this shouldn't happen except for a foreign
 	// type that wasn't initially created in this context.
@@ -296,8 +296,8 @@ func (c *Context) LookupTypeValue(typ Type) Value {
 	tv := EncodeTypeValue(typ)
 	typ, err := c.LookupByValue(tv)
 	if err != nil {
-		// This shouldn't happen...
-		return *Missing
+		// This shouldn't happen.
+		return Missing
 	}
 	return c.LookupTypeValue(typ)
 }

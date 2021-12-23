@@ -9,8 +9,8 @@ import (
 
 type TypeOfIP struct{}
 
-func NewIP(a net.IP) Value {
-	return Value{TypeIP, EncodeIP(a)}
+func NewIP(a net.IP) *Value {
+	return &Value{TypeIP, EncodeIP(a)}
 }
 
 func AppendIP(zb zcode.Bytes, a net.IP) zcode.Bytes {

@@ -2,7 +2,6 @@ package function
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/anymath"
@@ -157,8 +156,7 @@ func (l *LenFn) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfError:
 		length = len(val.Bytes)
 	default:
-		err := fmt.Errorf("len: bad type: %s", zson.FormatType(typ))
-		return ctx.CopyValue(zed.NewError(err))
+		return zed.NewErrorf("len: bad type: %s", zson.FormatType(typ))
 	}
 	return newInt64(ctx, int64(length))
 }
@@ -169,7 +167,7 @@ type TypeOf struct {
 }
 
 func (t *TypeOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	return ctx.CopyValue(t.zctx.LookupTypeValue(args[0].Type))
+	return ctx.CopyValue(*t.zctx.LookupTypeValue(args[0].Type))
 }
 
 type typeUnder struct {
@@ -178,7 +176,7 @@ type typeUnder struct {
 
 func (t *typeUnder) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	typ := zed.AliasOf(args[0].Type)
-	return ctx.CopyValue(t.zctx.LookupTypeValue(typ))
+	return ctx.CopyValue(*t.zctx.LookupTypeValue(typ))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nameof
@@ -273,9 +271,9 @@ func newString(ctx zed.Allocator, native string) *zed.Value {
 }
 
 func newError(ctx zed.Allocator, err error) *zed.Value {
-	return ctx.CopyValue(zed.NewError(err))
+	return zed.NewError(err)
 }
 
 func newErrorf(ctx zed.Allocator, format string, args ...interface{}) *zed.Value {
-	return ctx.CopyValue(zed.NewErrorf(format, args...))
+	return zed.NewErrorf(format, args...)
 }

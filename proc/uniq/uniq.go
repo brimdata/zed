@@ -33,7 +33,7 @@ func (p *Proc) wrap(t *zed.Value) *zed.Value {
 		// option like "-f foo" to set a field name, at which point we could safely
 		// use a non-underscore field name by default, such as "count".
 		cols := []zed.Column{zed.NewColumn("_uniq", zed.TypeUint64)}
-		vals := []zed.Value{zed.NewUint64(p.count)}
+		vals := []zed.Value{*zed.NewUint64(p.count)}
 		newR, err := p.pctx.Zctx.AddColumns(t, cols, vals)
 		if err != nil {
 			p.pctx.Logger.Error("AddColumns failed", zap.Error(err))

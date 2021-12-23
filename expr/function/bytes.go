@@ -33,7 +33,7 @@ type ToBase64 struct{}
 func (t *ToBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return ctx.CopyValue(zed.NewErrorf("to_base64: string argument required"))
+		return ctx.CopyValue(*zed.NewErrorf("to_base64: string argument required"))
 	}
 	if zv.Bytes == nil {
 		return zed.NullString

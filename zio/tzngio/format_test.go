@@ -35,7 +35,7 @@ func TestFormatting(t *testing.T) {
 	}
 
 	cases := []struct {
-		val      zed.Value
+		val      *zed.Value
 		expected []Expect
 	}{
 		//
@@ -54,7 +54,7 @@ func TestFormatting(t *testing.T) {
 
 		// An null string is represented as -
 		{
-			zed.Value{zed.TypeBstring, nil},
+			&zed.Value{zed.TypeBstring, nil},
 			[]Expect{
 				{tzngio.OutFormatZeek, "-"},
 				{tzngio.OutFormatZeekAscii, "-"},
@@ -84,7 +84,7 @@ func TestFormatting(t *testing.T) {
 
 		// Invalid UTF-8 is escaped
 		{
-			zed.Value{zed.TypeBstring, []byte{0xae, 0x8c, 0x9f, 0xf0}},
+			&zed.Value{zed.TypeBstring, []byte{0xae, 0x8c, 0x9f, 0xf0}},
 			[]Expect{
 				{tzngio.OutFormatZeek, `\xae\x8c\x9f\xf0`},
 				{tzngio.OutFormatZeekAscii, `\xae\x8c\x9f\xf0`},
@@ -233,7 +233,7 @@ func TestFormatting(t *testing.T) {
 
 		// null set
 		{
-			zed.Value{bstringSetType, nil},
+			&zed.Value{bstringSetType, nil},
 			[]Expect{
 				{tzngio.OutFormatZeek, "-"},
 				{tzngio.OutFormatZeekAscii, "-"},
@@ -243,7 +243,7 @@ func TestFormatting(t *testing.T) {
 
 		// empty set
 		{
-			zed.Value{bstringSetType, []byte{}},
+			&zed.Value{bstringSetType, []byte{}},
 			[]Expect{
 				{tzngio.OutFormatZeek, "(empty)"},
 				{tzngio.OutFormatZeekAscii, "(empty)"},
@@ -253,7 +253,7 @@ func TestFormatting(t *testing.T) {
 
 		// simple set
 		{
-			zed.Value{
+			&zed.Value{
 				bstringSetType,
 				makeContainer([]byte("abc"), []byte("xyz")),
 			},
@@ -266,7 +266,7 @@ func TestFormatting(t *testing.T) {
 
 		// A comma inside a string inside a set is escaped in Zeek.
 		{
-			zed.Value{bstringSetType, makeContainer([]byte("a,b"))},
+			&zed.Value{bstringSetType, makeContainer([]byte("a,b"))},
 			[]Expect{
 				{tzngio.OutFormatZeek, `a\x2cb`},
 			},
@@ -274,7 +274,7 @@ func TestFormatting(t *testing.T) {
 
 		// set containing vectors
 		{
-			zed.Value{
+			&zed.Value{
 				setOfVectorsType,
 				makeContainer(
 					makeContainer([]byte("a"), []byte("b")),
@@ -293,7 +293,7 @@ func TestFormatting(t *testing.T) {
 
 		// null vector
 		{
-			zed.Value{bstringVecType, nil},
+			&zed.Value{bstringVecType, nil},
 			[]Expect{
 				{tzngio.OutFormatZeek, "-"},
 				{tzngio.OutFormatZeekAscii, "-"},
@@ -303,7 +303,7 @@ func TestFormatting(t *testing.T) {
 
 		// empty vector
 		{
-			zed.Value{bstringVecType, []byte{}},
+			&zed.Value{bstringVecType, []byte{}},
 			[]Expect{
 				{tzngio.OutFormatZeek, "(empty)"},
 				{tzngio.OutFormatZeekAscii, "(empty)"},
@@ -313,7 +313,7 @@ func TestFormatting(t *testing.T) {
 
 		// simple vector
 		{
-			zed.Value{
+			&zed.Value{
 				bstringVecType,
 				makeContainer([]byte("abc"), []byte("xyz")),
 			},
@@ -326,7 +326,7 @@ func TestFormatting(t *testing.T) {
 
 		// vector containing vectors
 		{
-			zed.Value{
+			&zed.Value{
 				vecOfVectorsType,
 				makeContainer(
 					makeContainer([]byte("a"), []byte("b")),
@@ -341,7 +341,7 @@ func TestFormatting(t *testing.T) {
 
 		// A comma inside a string inside a vector is escaped in Zeek.
 		{
-			zed.Value{bstringVecType, makeContainer([]byte("a,b"))},
+			&zed.Value{bstringVecType, makeContainer([]byte("a,b"))},
 			[]Expect{
 				{tzngio.OutFormatZeek, `a\x2cb`},
 			},
@@ -349,7 +349,7 @@ func TestFormatting(t *testing.T) {
 
 		// vector containing null
 		{
-			zed.Value{
+			&zed.Value{
 				bstringVecType,
 				makeContainer([]byte("-"), nil),
 			},
@@ -361,7 +361,7 @@ func TestFormatting(t *testing.T) {
 
 		// vector containing empty string
 		{
-			zed.Value{bstringVecType, makeContainer([]byte{})},
+			&zed.Value{bstringVecType, makeContainer([]byte{})},
 			[]Expect{
 				{tzngio.OutFormatZeek, ""},
 				{tzngio.OutFormatZNG, `[;]`},
@@ -374,7 +374,7 @@ func TestFormatting(t *testing.T) {
 
 		// Simple record
 		{
-			zed.Value{
+			&zed.Value{
 				recType,
 				makeContainer([]byte("foo"), []byte("bar")),
 			},
@@ -385,7 +385,7 @@ func TestFormatting(t *testing.T) {
 
 		// Record with nils
 		{
-			zed.Value{recType, makeContainer(nil, nil)},
+			&zed.Value{recType, makeContainer(nil, nil)},
 			[]Expect{
 				{tzngio.OutFormatZNG, `[-;-;]`},
 			},
@@ -394,7 +394,7 @@ func TestFormatting(t *testing.T) {
 	for _, tc := range cases {
 		for _, expect := range tc.expected {
 			t.Run(expect.expected, func(t *testing.T) {
-				res := tzngio.FormatValue(tc.val, expect.fmt)
+				res := tzngio.FormatValue(*tc.val, expect.fmt)
 				assert.Equal(t, expect.expected, res)
 			})
 		}

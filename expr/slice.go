@@ -54,8 +54,7 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	if _, ok := zed.AliasOf(elem.Type).(*zed.TypeArray); !ok {
 		// XXX use structured error
-		val := zed.NewErrorf("sliced value is not an array: %s", zson.MustFormatValue(*elem))
-		return &val
+		return zed.NewErrorf("sliced value is not an array: %s", zson.MustFormatValue(*elem))
 	}
 	if elem.IsNull() {
 		// If array is null, just return the null array.
@@ -63,14 +62,12 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	from, err := sliceIndex(ectx, this, s.from, elem)
 	if err != nil && err != ErrSliceIndexEmpty {
-		val := zed.NewError(err)
-		return &val
+		return zed.NewError(err)
 	}
 	to, err := sliceIndex(ectx, this, s.to, elem)
 	if err != nil {
 		if err != ErrSliceIndexEmpty {
-			val := zed.NewError(err)
-			return &val
+			return zed.NewError(err)
 		}
 		n, err := elem.ContainerLength()
 		if err != nil {

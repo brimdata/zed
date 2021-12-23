@@ -341,7 +341,7 @@ func (p *Proc) put(ectx expr.Context, this *zed.Value) *zed.Value {
 			// propagate errors
 			return this
 		}
-		return ectx.CopyValue(zed.NewErrorf("put: not a record: %s", zson.MustFormatValue(*this)))
+		return ectx.CopyValue(*zed.NewErrorf("put: not a record: %s", zson.MustFormatValue(*this)))
 	}
 	vals := p.eval(ectx, this)
 	rule := p.lookupRule(recType, vals)

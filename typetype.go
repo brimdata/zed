@@ -26,8 +26,8 @@ func (t *TypeOfType) Format(zv zcode.Bytes) string {
 	return fmt.Sprintf("(%s)", FormatTypeValue(zv))
 }
 
-func NewTypeValue(t Type) Value {
-	return Value{TypeType, EncodeTypeValue(t)}
+func NewTypeValue(t Type) *Value {
+	return &Value{TypeType, EncodeTypeValue(t)}
 }
 
 func EncodeTypeValue(t Type) zcode.Bytes {
