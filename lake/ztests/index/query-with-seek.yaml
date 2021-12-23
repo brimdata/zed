@@ -9,8 +9,6 @@ script: |
   zed index create -q AvgScrMath field AvgScrMath
   zed index update -q AvgScrMath
   zed query -s -z 'AvgScrMath == 306 | cut dname'
-
-
 inputs:
   - name: testscores.zson
     source: ../../../testdata/edu/testscores.zson
