@@ -14,6 +14,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/api/client/auth0"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/branches"
@@ -42,6 +43,7 @@ var (
 )
 
 type Connection struct {
+	auth          *auth0.Store
 	client        *http.Client
 	defaultHeader http.Header
 	hostURL       string
@@ -73,6 +75,18 @@ func (c *Connection) SetAuthToken(token string) {
 	c.defaultHeader.Set("Authorization", "Bearer "+token)
 }
 
+func (c *Connection) SetAuthStore(store *auth0.Store) error {
+	if store != nil {
+		c.auth = store
+		tokens, err := c.auth.Tokens(c.hostURL)
+		if err != nil || tokens == nil {
+			return err
+		}
+		c.SetAuthToken(tokens.Access)
+	}
+	return nil
+}
+
 func (c *Connection) SetUserAgent(useragent string) {
 	c.defaultHeader.Set("User-Agent", useragent)
 }
@@ -83,21 +97,30 @@ type Response struct {
 }
 
 func (c *Connection) Do(req *Request) (*Response, error) {
-	httpreq, err := req.HTTPRequest()
-	if err != nil {
-		return nil, err
+	for i := 0; ; i++ {
+		httpreq, err := req.HTTPRequest()
+		if err != nil {
+			return nil, err
+		}
+		res, err := c.client.Do(httpreq)
+		if err != nil {
+			return nil, err
+		}
+		if res.StatusCode < 200 || res.StatusCode > 299 {
+			err = parseError(res)
+			if i == 0 && res.StatusCode == 401 && err.(*ErrorResponse).Err.Error() == "invalid token" {
+				var access string
+				if access, err = c.refreshAuthToken(req.ctx); err == nil {
+					req.Header.Set("Authorization", "Bearer "+access)
+					continue
+				}
+			}
+		}
+		return &Response{
+			Response: res,
+			Duration: req.Duration(),
+		}, err
 	}
-	res, err := c.client.Do(httpreq)
-	if err != nil {
-		return nil, err
-	}
-	if res.StatusCode < 200 || res.StatusCode > 299 {
-		err = parseError(res)
-	}
-	return &Response{
-		Response: res,
-		Duration: req.Duration(),
-	}, err
 }
 
 func (c *Connection) doAndUnmarshal(req *Request, v interface{}, templates ...interface{}) error {
@@ -349,6 +372,36 @@ func (c *Connection) AuthIdentity(ctx context.Context) (api.AuthIdentityResponse
 	var ident api.AuthIdentityResponse
 	err := c.doAndUnmarshal(req, &ident)
 	return ident, err
+}
+
+func (c *Connection) refreshAuthToken(ctx context.Context) (string, error) {
+	method, err := c.AuthMethod(ctx)
+	if err != nil {
+		return "", err
+	}
+	if method.Auth0 == nil {
+		return "", fmt.Errorf("auth not available on lake: %s", c.hostURL)
+	}
+	tokens, err := c.auth.Tokens(c.hostURL)
+	if err != nil {
+		return "", err
+	}
+	if tokens == nil {
+		return "", fmt.Errorf("auth credentials not set for lake: %s", c.hostURL)
+	}
+	client, err := auth0.NewClient(*method.Auth0)
+	if err != nil {
+		return "", err
+	}
+	refreshed, err := client.RefreshToken(ctx, tokens.Refresh)
+	if err != nil {
+		return "", err
+	}
+	if err := c.auth.SetTokens(c.hostURL, refreshed); err != nil {
+		return "", err
+	}
+	c.SetAuthToken(refreshed.Access)
+	return refreshed.Access, nil
 }
 
 type ErrorResponse struct {

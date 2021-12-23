@@ -31,9 +31,8 @@ class Client():
         except FileNotFoundError:
             return None
         creds = json.loads(data)
-        for s in creds['services']:
-            if s['url'] == self.base_url:
-                return s['tokens']['access']
+        if self.base_url in creds['services']:
+            return creds['services'][self.base_url]['access']
         return None
 
     def create_pool(self, name, layout={'order': 'desc', 'keys': [['ts']]},

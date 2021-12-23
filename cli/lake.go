@@ -45,13 +45,9 @@ func (l *LakeFlags) Connection() (*client.Connection, error) {
 	if !api.IsLakeService(uri) {
 		return nil, errors.New("cannot open connection on local lake")
 	}
-	tokens, err := l.AuthStore().Tokens(uri.String())
-	if err != nil {
-		return nil, err
-	}
 	conn := client.NewConnectionTo(uri.String())
-	if tokens != nil {
-		conn.SetAuthToken(tokens.Access)
+	if err := conn.SetAuthStore(l.AuthStore()); err != nil {
+		return nil, err
 	}
 	return conn, nil
 }

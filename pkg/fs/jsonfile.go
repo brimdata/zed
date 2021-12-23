@@ -12,7 +12,9 @@ import (
 // it with permissions perm.
 func MarshalJSONFile(v interface{}, filename string, perm os.FileMode) (err error) {
 	return ReplaceFile(filename, perm, func(w io.Writer) error {
-		return json.NewEncoder(w).Encode(v)
+		e := json.NewEncoder(w)
+		e.SetIndent("", "    ")
+		return e.Encode(v)
 	})
 }
 

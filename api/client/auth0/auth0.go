@@ -122,6 +122,29 @@ func (c *Client) getDeviceCodeTokens(ctx context.Context, dcr DeviceCodeResponse
 	}, nil
 }
 
+func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (Tokens, error) {
+	var res tokenResponse
+	err := c.post(ctx, "/oauth/token", tokenRequest{
+		ClientID:     c.config.ClientID,
+		GrantType:    "refresh_token",
+		RefreshToken: refreshToken,
+	}, &res)
+	if err != nil {
+		return Tokens{}, err
+	}
+	if res.RefreshToken != "" {
+		// res.RefreshToken is only set when refresh token rotation is
+		// enabled for the Auth0 application specified by c.config.ClientID.
+		refreshToken = res.RefreshToken
+	}
+	return Tokens{
+		Access:     res.AccessToken,
+		Expiration: time.Now().Add(time.Duration(res.ExpiresIn) * time.Second),
+		ID:         res.IDToken,
+		Refresh:    refreshToken,
+	}, nil
+}
+
 func (c *Client) post(ctx context.Context, path string, body, out interface{}) error {
 	b, err := json.Marshal(body)
 	if err != nil {
