@@ -25,7 +25,7 @@ import (
 type Partition struct {
 	extent.Span
 	compare expr.ValueCompareFn
-	Objects []*data.Object
+	Objects []*data.ObjectScan
 }
 
 func (p Partition) IsZero() bool {
@@ -63,7 +63,7 @@ func PartitionObjects(objects []*data.Object, o order.Which) []Partition {
 		if span.Before(tos.Last()) {
 			s.pushObjectSpan(span, cmp)
 		} else {
-			tos.Objects = append(tos.Objects, span.object)
+			tos.Objects = append(tos.Objects, data.NewObjectScan(*span.object))
 			tos.Extend(span.Last())
 		}
 	}
@@ -78,7 +78,7 @@ func (s *stack) pushObjectSpan(span objectSpan, cmp expr.ValueCompareFn) {
 	s.push(Partition{
 		Span:    span.Span,
 		compare: cmp,
-		Objects: []*data.Object{span.object},
+		Objects: []*data.ObjectScan{data.NewObjectScan(*span.object)},
 	})
 }
 

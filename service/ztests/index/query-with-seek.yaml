@@ -1,0 +1,29 @@
+script: |
+  source service.sh
+  zed create -q -seekstride 1KiB -orderby dname:asc test
+  zed use -q test@main
+  zed load -q  testscores.zson
+  zed query -s -z 'AvgScrMath == 306 | cut dname'
+  echo === | tee >(cat >&2)
+  zed index create -q AvgScrMath field AvgScrMath
+  zed index update -q AvgScrMath
+  zed query -s -z 'AvgScrMath == 306 | cut dname'
+inputs:
+  - name: service.sh
+    source: ../service.sh
+  - name: testscores.zson
+    source: ../../../testdata/edu/testscores.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {dname:"SBE - Lifeline Education Charter"}
+      {dname:"SBE - Lifeline Education Charter"}
+      ===
+      {dname:"SBE - Lifeline Education Charter"}
+      {dname:"SBE - Lifeline Education Charter"}
+  - name: stderr
+    data: |
+      {bytes_read:127768,bytes_matched:136,records_read:2331,records_matched:2}
+      ===
+      {bytes_read:3500,bytes_matched:136,records_read:58,records_matched:2}

@@ -10,9 +10,11 @@ import (
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/zngio"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -80,7 +82,7 @@ func (s *Scheduler) run() {
 		ch = make(chan Partition)
 		s.group.Go(func() error {
 			defer close(s.ch)
-			return indexFilterPass(ctx, s.snap, s.index, ch, s.ch)
+			return indexFilterPass(ctx, s.pool, s.snap, s.index, ch, s.ch)
 		})
 	}
 	s.group.Go(func() error {
@@ -140,21 +142,24 @@ func (s *scannerScheduler) Progress() zbuf.Progress {
 	return s.progress.Copy()
 }
 
-func indexFilterPass(ctx context.Context, snap commits.View, filter *index.Filter, in <-chan Partition, out chan<- Partition) error {
+func indexFilterPass(ctx context.Context, pool *Pool, snap commits.View, filter *index.Filter, in <-chan Partition, out chan<- Partition) error {
 	for p := range in {
-		objects := make([]*data.Object, 0, len(p.Objects))
+		objects := make([]*data.ObjectScan, 0, len(p.Objects))
 		for _, o := range p.Objects {
 			r, err := snap.LookupIndexObjectRules(o.ID)
 			if err != nil && !errors.Is(err, commits.ErrNotFound) {
 				return err
 			}
 			if r != nil {
-				hit, err := filter.Apply(ctx, o.ID, r)
+				span, err := filter.Apply(ctx, o.ID, r)
 				if err != nil {
 					return err
 				}
-				if !hit {
+				if span == nil {
 					continue
+				}
+				if err := seekIndexByCount(ctx, pool, o, span); err != nil {
+					return err
 				}
 			}
 			objects = append(objects, o)
@@ -168,6 +173,22 @@ func indexFilterPass(ctx context.Context, snap commits.View, filter *index.Filte
 			}
 		}
 	}
+	return nil
+}
+
+func seekIndexByCount(ctx context.Context, pool *Pool, o *data.ObjectScan, span extent.Span) error {
+	r, err := pool.engine.Get(ctx, o.SeekObjectPath(pool.DataPath))
+	if err != nil {
+		return err
+
+	}
+	defer r.Close()
+	zr := zngio.NewReader(r, zed.NewContext())
+	rg, err := seekindex.LookupByCount(zr, span.First(), span.Last())
+	if err != nil {
+		return err
+	}
+	o.ScanRange = rg
 	return nil
 }
 
