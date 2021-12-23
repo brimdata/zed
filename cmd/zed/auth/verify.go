@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/pkg/charm"
 )
 
@@ -26,18 +25,6 @@ func NewVerify(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return &VerifyCommand{Command: parent.(*Command)}, nil
 }
 
-func (c *VerifyCommand) loadServiceCredentials(serviceURL string) (cli.ServiceTokens, error) {
-	svccreds, err := c.LoadCredentials()
-	if err != nil {
-		return cli.ServiceTokens{}, fmt.Errorf("failed to load credentials file: %w", err)
-	}
-	creds, ok := svccreds.ServiceTokens(serviceURL)
-	if !ok {
-		return cli.ServiceTokens{}, fmt.Errorf("no stored credentials for %s", serviceURL)
-	}
-	return creds, nil
-}
-
 func (c *VerifyCommand) Run(args []string) error {
 	ctx, cleanup, err := c.Init()
 	if err != nil {
@@ -51,11 +38,6 @@ func (c *VerifyCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	creds, err := c.loadServiceCredentials(c.Lake)
-	if err != nil {
-		return err
-	}
-	conn.SetAuthToken(creds.Access)
 	res, err := conn.AuthIdentity(ctx)
 	if err != nil {
 		return err

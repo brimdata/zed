@@ -5,13 +5,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/brimdata/zed/api/client"
+	"github.com/brimdata/zed/api/client/auth0"
 	"github.com/brimdata/zed/lake/api"
-	zedfs "github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/storage"
 )
 
@@ -43,13 +42,9 @@ func (l *LakeFlags) Connection() (*client.Connection, error) {
 	if !api.IsLakeService(uri) {
 		return nil, errors.New("cannot open connection on local lake")
 	}
-	creds, err := l.LoadCredentials()
-	if err != nil {
-		return nil, err
-	}
 	conn := client.NewConnectionTo(uri.String())
-	if token, ok := creds.ServiceTokens(uri.String()); ok {
-		conn.SetAuthToken(token.Access)
+	if err := conn.SetAuthStore(l.AuthStore()); err != nil {
+		return nil, err
 	}
 	return conn, nil
 }
@@ -69,6 +64,20 @@ func (l *LakeFlags) Open(ctx context.Context) (api.Interface, error) {
 	return api.OpenLocalLake(ctx, uri)
 }
 
+func (l *LakeFlags) AuthStore() *auth0.Store {
+	if path := l.authStorePath(); path != "" {
+		return auth0.NewStore(path)
+	}
+	return nil
+}
+
+func (l *LakeFlags) authStorePath() string {
+	if l.ConfigDir != "" {
+		return filepath.Join(l.ConfigDir, credsFileName)
+	}
+	return ""
+}
+
 func (l *LakeFlags) URI() (*storage.URI, error) {
 	if l.Lake == "" {
 		return nil, errors.New("lake location must be set (either with the -lake flag or ZED_LAKE environment variable)")
@@ -78,72 +87,4 @@ func (l *LakeFlags) URI() (*storage.URI, error) {
 		err = fmt.Errorf("error parsing lake location: %w", err)
 	}
 	return u, err
-}
-
-func (l *LakeFlags) LoadCredentials() (*Credentials, error) {
-	path := filepath.Join(l.ConfigDir, credsFileName)
-	var creds Credentials
-	if err := zedfs.UnmarshalJSONFile(path, &creds); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return &Credentials{}, nil
-		}
-		return nil, err
-	}
-	return &creds, nil
-}
-
-func (l *LakeFlags) SaveCredentials(creds *Credentials) error {
-	if err := os.MkdirAll(l.ConfigDir, 0700); err != nil {
-		return err
-	}
-	return zedfs.MarshalJSONFile(creds, filepath.Join(l.ConfigDir, credsFileName), 0600)
-}
-
-type ServiceInfo struct {
-	URL    string        `json:"url"`
-	Tokens ServiceTokens `json:"tokens"`
-}
-
-type ServiceTokens struct {
-	Access  string `json:"access"`
-	ID      string `json:"id"`
-	Refresh string `json:"refresh"`
-}
-
-type Credentials struct {
-	Version  int           `json:"version"`
-	Services []ServiceInfo `json:"services"`
-}
-
-func (c *Credentials) ServiceTokens(url string) (ServiceTokens, bool) {
-	for _, s := range c.Services {
-		if s.URL == url {
-			return s.Tokens, true
-		}
-	}
-	return ServiceTokens{}, false
-}
-
-func (c *Credentials) AddTokens(url string, tokens ServiceTokens) {
-	svcs := make([]ServiceInfo, 0, len(c.Services)+1)
-	for _, s := range c.Services {
-		if s.URL != url {
-			svcs = append(svcs, s)
-		}
-	}
-	svcs = append(svcs, ServiceInfo{
-		URL:    url,
-		Tokens: tokens,
-	})
-	c.Services = svcs
-}
-
-func (c *Credentials) RemoveTokens(url string) {
-	svcs := make([]ServiceInfo, 0, len(c.Services))
-	for _, s := range c.Services {
-		if s.URL != url {
-			svcs = append(svcs, s)
-		}
-	}
-	c.Services = svcs
 }

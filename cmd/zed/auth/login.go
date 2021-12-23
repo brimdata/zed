@@ -1,16 +1,20 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cmd/zed/auth/devauth"
+	"github.com/brimdata/zed/api/client/auth0"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/pkg/browser"
 )
+
+const deviceCodeScope = "openid email profile offline_access"
 
 var Login = &charm.Spec{
 	Name:  "login",
@@ -40,6 +44,9 @@ func (c *LoginCommand) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("login command takes no arguments")
 	}
+	if err := os.MkdirAll(c.ConfigDir, 0700); err != nil {
+		return err
+	}
 	conn, err := c.Connection()
 	if err != nil {
 		return err
@@ -51,42 +58,55 @@ func (c *LoginCommand) Run(args []string) error {
 	switch method.Kind {
 	case api.AuthMethodAuth0:
 	case api.AuthMethodNone:
-		return fmt.Errorf("Zed lake service at %s does not support authentication", c.Lake)
+		return fmt.Errorf("Zed service at %s does not support authentication", c.Lake)
 	default:
-		return fmt.Errorf("Zed lake service at %s requires unknown authentication method %s", c.Lake, method.Kind)
+		return fmt.Errorf("Zed service at %s requires unknown authentication method %s", c.Lake, method.Kind)
 	}
 	fmt.Println("method", method.Auth0.ClientID)
 	fmt.Println("domain", method.Auth0.Domain)
 	fmt.Println("audience", method.Auth0.Audience)
-	dar, err := devauth.DeviceAuthorizationFlow(ctx, devauth.Config{
-		Audience: method.Auth0.Audience,
-		Domain:   method.Auth0.Domain,
-		ClientID: method.Auth0.ClientID,
-		Scope:    "openid profile email offline_access",
-		UserPrompt: func(res devauth.UserCodePrompt) error {
-			fmt.Println("Complete authentication at:", res.VerificationURL)
-			fmt.Println("User verification code:", res.UserCode)
-			if c.launchBrowser {
-				browser.OpenURL(res.VerificationURL)
-			}
-			return nil
-		},
-	})
+	auth0client, err := auth0.NewClient(*method.Auth0)
 	if err != nil {
 		return err
 	}
-	creds, err := c.LoadCredentials()
+	dcr, err := auth0client.GetDeviceCode(ctx, deviceCodeScope)
 	if err != nil {
-		return fmt.Errorf("failed to load credentials file: %w", err)
+		return err
 	}
-	creds.AddTokens(c.Lake, cli.ServiceTokens{
-		Access:  dar.AccessToken,
-		ID:      dar.IDToken,
-		Refresh: dar.RefreshToken,
-	})
-	if err := c.SaveCredentials(creds); err != nil {
+	fmt.Println("Complete authentication at:", dcr.VerificationURIComplete)
+	fmt.Println("User verification code:", dcr.UserCode)
+	if c.launchBrowser {
+		browser.OpenURL(dcr.VerificationURIComplete)
+	}
+	tokens, err := c.pollForTokens(ctx, auth0client, dcr)
+	if err != nil {
+		return err
+	}
+	if err := c.AuthStore().SetLakeTokens(c.Lake, tokens); err != nil {
 		return fmt.Errorf("failed to save credentials file: %w", err)
 	}
 	fmt.Printf("Login successful, stored credentials for %s\n", c.Lake)
 	return nil
+}
+
+func (c *LoginCommand) pollForTokens(ctx context.Context, client *auth0.Client, dcr auth0.DeviceCodeResponse) (auth0.Tokens, error) {
+	delay := time.Duration(dcr.Interval) * time.Second
+	if delay <= 0 {
+		delay = time.Second
+	}
+	for {
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			return auth0.Tokens{}, ctx.Err()
+		}
+		tokens, err := client.GetAuthTokens(ctx, dcr)
+		if err != nil {
+			var aerr *auth0.APIError
+			if errors.As(err, &aerr) && aerr.Kind == "authorization_pending" {
+				continue
+			}
+		}
+		return tokens, err
+	}
 }
