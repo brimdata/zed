@@ -33,6 +33,20 @@ func makeArgMap(args interface{}) (interface{}, error) {
 	return m, nil
 }
 
+func makeTemplateExprChain(in interface{}) interface{} {
+	rest := in.([]interface{})
+	ret := rest[0]
+	for _, part := range rest[1:] {
+		ret = map[string]interface{}{
+			"kind": "BinaryExpr",
+			"op":   "+",
+			"lhs":  ret,
+			"rhs":  part,
+		}
+	}
+	return ret
+}
+
 func joinChars(in interface{}) string {
 	str := bytes.Buffer{}
 	for _, i := range in.([]interface{}) {

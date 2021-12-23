@@ -1,0 +1,26 @@
+zed: |
+  over this
+  | yield
+    "hello ${this}",
+    'hello ${to_hex(this)}',
+    "hello \${this}",
+    'hello \${to_hex(this)}',
+    'yo ${"dawg ${this}"}',
+    "==="
+
+input: |
+  "world" 127.0.0.1
+
+output: |
+   "hello world"
+   "hello 776f726c64"
+   "hello ${this}"
+   "hello ${to_hex(this)}"
+   "yo dawg world"
+   "==="
+   "incompatible types"(error)
+   "hello 7f000001"
+   "hello ${this}"
+   "hello ${to_hex(this)}"
+   "incompatible types"(error)
+   "==="

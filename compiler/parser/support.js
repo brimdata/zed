@@ -19,6 +19,14 @@ function makeBinaryExprChain(first, rest) {
   return ret
 }
 
+function makeTemplateExprChain(args) {
+  let ret = args[0]
+  for (let part of args.slice(1)) {
+    ret = { kind: "BinaryExpr", op: "+", lhs: ret, rhs: part };
+  }
+  return ret
+}
+
 function joinChars(chars) {
   return chars.join("");
 }
