@@ -92,12 +92,19 @@ func (w *Writer) Write(rec *zed.Value) error {
 }
 
 func (w *Writer) flipBuffers() {
-	oldrecs := <-w.buffer
+	oldvals, ok := <-w.buffer
+	if !ok {
+		return
+	}
 	recs := w.vals
-	w.vals = oldrecs[:0]
+	w.vals = oldvals[:0]
 	w.memBuffered = 0
 	w.errgroup.Go(func() error {
 		err := w.writeObject(w.newObject(), recs)
+		if err != nil {
+			close(w.buffer)
+			return err
+		}
 		w.buffer <- recs
 		return err
 	})
@@ -115,7 +122,16 @@ func (w *Writer) Close() error {
 
 func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if !w.inputSorted {
-		expr.SortStable(recs, importCompareFn(w.pool))
+		done := make(chan struct{})
+		go func() {
+			expr.SortStable(recs, importCompareFn(w.pool))
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-w.ctx.Done():
+			return w.ctx.Err()
+		}
 	}
 	// Set first and last key values after the sort.
 	key := poolKey(w.pool.Layout)
