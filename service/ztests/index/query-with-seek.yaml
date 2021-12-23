@@ -8,8 +8,6 @@ script: |
   zed index create -q AvgScrMath field AvgScrMath
   zed index update -q AvgScrMath
   zed query -s -z 'AvgScrMath == 306 | cut dname'
-
-
 inputs:
   - name: service.sh
     source: ../service.sh
