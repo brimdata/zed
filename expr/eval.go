@@ -59,7 +59,7 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 func evalBool(ectx Context, e Evaluator, this *zed.Value) (*zed.Value, bool) {
 	val := e.Eval(ectx, this)
 	if zed.AliasOf(val.Type) != zed.TypeBool {
-		return ectx.CopyValue(zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val))), false
+		return ectx.CopyValue(*zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val))), false
 	}
 	return val, true
 }
@@ -120,7 +120,7 @@ func (i *In) Eval(ectx Context, this *zed.Value) *zed.Value {
 	case *zed.TypeMap:
 		return i.inMap(typ, elem, container)
 	default:
-		return ectx.CopyValue(zed.NewErrorf("'in' operator applied to non-container type"))
+		return ectx.CopyValue(*zed.NewErrorf("'in' operator applied to non-container type"))
 	}
 }
 
@@ -130,7 +130,7 @@ func inNet(ectx Context, elem, net *zed.Value) *zed.Value {
 		panic(err)
 	}
 	if typ := zed.AliasOf(elem.Type); typ != zed.TypeIP {
-		return ectx.CopyValue(zed.NewErrorf("'in' operator applied to non-container type"))
+		return ectx.CopyValue(*zed.NewErrorf("'in' operator applied to non-container type"))
 	}
 	a, err := zed.DecodeIP(elem.Bytes)
 	if err != nil {
@@ -408,7 +408,7 @@ func (c *Compare) Eval(ectx Context, this *zed.Value) *zed.Value {
 				result = 1
 			}
 		default:
-			return ectx.CopyValue(zed.NewErrorf("bad comparison type ID: %d", id))
+			return ectx.CopyValue(*zed.NewErrorf("bad comparison type ID: %d", id))
 		}
 	}
 	if c.convert(result) {
@@ -465,7 +465,7 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if err == zed.ErrMissing {
 			return zed.Missing
 		}
-		return ectx.CopyValue(zed.NewError(err))
+		return ectx.CopyValue(*zed.NewError(err))
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
@@ -485,7 +485,7 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 		// XXX GC
 		return ectx.NewValue(typ, zed.EncodeString(v1+v2))
 	}
-	return ectx.CopyValue(zed.NewErrorf("type %s incompatible with '+' operator", typ))
+	return ectx.CopyValue(*zed.NewErrorf("type %s incompatible with '+' operator", typ))
 }
 
 func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -494,7 +494,7 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if err == zed.ErrMissing {
 			return zed.Missing
 		}
-		return ectx.CopyValue(zed.NewError(err))
+		return ectx.CopyValue(*zed.NewError(err))
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
@@ -508,7 +508,7 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 		v1, v2 := s.operands.uints()
 		return ectx.NewValue(typ, zed.EncodeUint(v1-v2))
 	}
-	return ectx.CopyValue(zed.NewErrorf("type %s incompatible with '-' operator", typ))
+	return ectx.CopyValue(*zed.NewErrorf("type %s incompatible with '-' operator", typ))
 }
 
 func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -517,7 +517,7 @@ func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if err == zed.ErrMissing {
 			return zed.Missing
 		}
-		return ectx.CopyValue(zed.NewError(err))
+		return ectx.CopyValue(*zed.NewError(err))
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
@@ -531,7 +531,7 @@ func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 		v1, v2 := m.operands.uints()
 		return ectx.NewValue(typ, zed.EncodeUint(v1*v2))
 	}
-	return ectx.CopyValue(zed.NewErrorf("type %s incompatible with '*' operator", typ))
+	return ectx.CopyValue(*zed.NewErrorf("type %s incompatible with '*' operator", typ))
 }
 
 func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -540,7 +540,7 @@ func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if err == zed.ErrMissing {
 			return zed.Missing
 		}
-		return ectx.CopyValue(zed.NewError(err))
+		return ectx.CopyValue(*zed.NewError(err))
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
@@ -563,7 +563,7 @@ func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(typ, zed.EncodeUint(v1/v2))
 	}
-	return ectx.CopyValue(zed.NewErrorf("type %s incompatible with '/' operator", typ))
+	return ectx.CopyValue(*zed.NewErrorf("type %s incompatible with '/' operator", typ))
 }
 
 func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -572,11 +572,11 @@ func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if err == zed.ErrMissing {
 			return zed.Missing
 		}
-		return ectx.CopyValue(zed.NewError(err))
+		return ectx.CopyValue(*zed.NewError(err))
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	if zed.IsFloat(id) || !zed.IsNumber(id) {
-		return ectx.CopyValue(zed.NewErrorf("type %s incompatible with '%%' operator", typ))
+		return ectx.CopyValue(*zed.NewErrorf("type %s incompatible with '%%' operator", typ))
 	}
 	if zed.IsSigned(id) {
 		x, y := m.operands.ints()
@@ -655,7 +655,7 @@ func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 func indexArray(ectx Context, typ *zed.TypeArray, array zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsInteger(id) {
-		return ectx.CopyValue(zed.NewErrorf("array index is not an integer"))
+		return ectx.CopyValue(*zed.NewErrorf("array index is not an integer"))
 	}
 	var idx uint
 	if zed.IsSigned(id) {
@@ -681,7 +681,7 @@ func indexArray(ectx Context, typ *zed.TypeArray, array zcode.Bytes, index *zed.
 func indexRecord(ectx Context, typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsStringy(id) {
-		return ectx.CopyValue(zed.NewErrorf("record index is not a string"))
+		return ectx.CopyValue(*zed.NewErrorf("record index is not a string"))
 	}
 	field, _ := zed.DecodeString(index.Bytes)
 	val, err := zed.NewValue(typ, record).ValueByField(string(field))
@@ -722,7 +722,7 @@ func NewConditional(predicate, thenExpr, elseExpr Evaluator) *Conditional {
 func (c *Conditional) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := c.predicate.Eval(ectx, this)
 	if val.Type.ID() != zed.IDBool {
-		val := zed.NewErrorf("?-operator: bool predicate required")
+		val := *zed.NewErrorf("?-operator: bool predicate required")
 		return &val
 	}
 	if zed.IsTrue(val.Bytes) {
@@ -777,7 +777,7 @@ func (t *TypeFunc) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if typ == nil {
 			return zed.Missing
 		}
-		t.val = zed.NewTypeValue(typ)
+		t.val = *zed.NewTypeValue(typ)
 	}
 	return &t.val
 }

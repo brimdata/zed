@@ -9,8 +9,8 @@ import (
 
 type TypeOfNet struct{}
 
-func NewNet(s *net.IPNet) Value {
-	return Value{TypeNet, EncodeNet(s)}
+func NewNet(s *net.IPNet) *Value {
+	return &Value{TypeNet, EncodeNet(s)}
 }
 
 func AppendNet(zb zcode.Bytes, subnet *net.IPNet) zcode.Bytes {

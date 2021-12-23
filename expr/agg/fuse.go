@@ -50,8 +50,7 @@ func (f *fuse) Result(zctx *zed.Context) *zed.Value {
 	for _, typ := range shapes {
 		schema.Mixin(typ)
 	}
-	val := zctx.LookupTypeValue(schema.Type())
-	return &val
+	return zctx.LookupTypeValue(schema.Type())
 }
 
 func (f *fuse) ConsumeAsPartial(partial *zed.Value) {

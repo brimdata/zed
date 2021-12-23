@@ -63,7 +63,7 @@ func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuild
 func (u *Unflattener) Eval(ectx Context, this *zed.Value) *zed.Value {
 	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
 	if err != nil {
-		return ectx.CopyValue(zed.NewErrorf("unflatten: %s", err))
+		return ectx.CopyValue(*zed.NewErrorf("unflatten: %s", err))
 	}
 	if b == nil {
 		return this

@@ -8,8 +8,8 @@ import (
 
 type TypeOfBytes struct{}
 
-func NewBytes(b []byte) Value {
-	return Value{TypeBytes, EncodeBytes(b)}
+func NewBytes(b []byte) *Value {
+	return &Value{TypeBytes, EncodeBytes(b)}
 }
 
 func EncodeBytes(b []byte) zcode.Bytes {

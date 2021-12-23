@@ -24,8 +24,8 @@ func DecodeFloat(zb zcode.Bytes) (float64, error) {
 
 type TypeOfFloat32 struct{}
 
-func NewFloat32(f float32) Value {
-	return Value{TypeFloat32, EncodeFloat32(f)}
+func NewFloat32(f float32) *Value {
+	return &Value{TypeFloat32, EncodeFloat32(f)}
 }
 
 func AppendFloat32(zb zcode.Bytes, f float32) zcode.Bytes {
@@ -71,8 +71,8 @@ func (t *TypeOfFloat32) Format(zb zcode.Bytes) string {
 
 type TypeOfFloat64 struct{}
 
-func NewFloat64(f float64) Value {
-	return Value{TypeFloat64, EncodeFloat64(f)}
+func NewFloat64(f float64) *Value {
+	return &Value{TypeFloat64, EncodeFloat64(f)}
 }
 
 func AppendFloat64(zb zcode.Bytes, d float64) zcode.Bytes {

@@ -23,13 +23,13 @@ var Quiet = &Value{TypeError, zcode.Bytes("quiet")}
 
 type TypeOfError struct{}
 
-func NewErrorf(format string, args ...interface{}) Value {
+func NewErrorf(format string, args ...interface{}) *Value {
 	msg := fmt.Sprintf(format, args...)
-	return Value{TypeError, zcode.Bytes(msg)}
+	return &Value{TypeError, zcode.Bytes(msg)}
 }
 
-func NewError(err error) Value {
-	return Value{TypeError, zcode.Bytes(err.Error())}
+func NewError(err error) *Value {
+	return &Value{TypeError, zcode.Bytes(err.Error())}
 }
 
 func EncodeError(err error) zcode.Bytes {

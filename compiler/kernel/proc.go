@@ -617,7 +617,7 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 				return err
 			}
 			zv := zed.NewTypeValue(alias)
-			scope.Bind(name, &zv)
+			scope.Bind(name, zv)
 		default:
 			return fmt.Errorf("kernel.LoadConsts: not a const: '%T'", p)
 		}

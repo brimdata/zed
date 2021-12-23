@@ -406,8 +406,7 @@ func compileTypeValue(zctx *zed.Context, scope *Scope, t *astzed.TypeValue) (exp
 	if err != nil {
 		return nil, err
 	}
-	val := zed.NewTypeValue(typ)
-	return expr.NewLiteral(&val), nil
+	return expr.NewLiteral(zed.NewTypeValue(typ)), nil
 }
 
 func compileRegexpMatch(zctx *zed.Context, scope *Scope, match *dag.RegexpMatch) (expr.Evaluator, error) {

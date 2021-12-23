@@ -21,8 +21,8 @@ func Not(zb zcode.Bytes) *Value {
 	return True
 }
 
-func NewBool(b bool) Value {
-	return Value{TypeBool, EncodeBool(b)}
+func NewBool(b bool) *Value {
+	return &Value{TypeBool, EncodeBool(b)}
 }
 
 func AppendBool(zb zcode.Bytes, b bool) zcode.Bytes {

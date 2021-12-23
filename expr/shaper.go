@@ -51,7 +51,8 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	//XXX aliasof?
 	if typVal.Type != zed.TypeType {
-		return ectx.CopyValue(zed.NewErrorf("shaper type argument is not a type: %s", zson.MustFormatValue(*typVal)))
+		return ectx.CopyValue(*zed.NewErrorf(
+			"shaper type argument is not a type: %s", zson.MustFormatValue(*typVal)))
 	}
 	shapeTo, err := s.zctx.LookupByValue(typVal.Bytes)
 	if err != nil {
@@ -63,7 +64,8 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		// and allocate a primitive caster if warranted
 		if zed.TypeRecordOf(shapeTo) == nil {
 			//XXX use structured error
-			return ectx.CopyValue(zed.NewErrorf("shaper function type argument is not a record type: %q", shapeTo))
+			return ectx.CopyValue(*zed.NewErrorf(
+				"shaper function type argument is not a record type: %q", shapeTo))
 		}
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
 		s.shapers[shapeTo] = shaper
@@ -96,7 +98,8 @@ func (s *ConstShaper) Apply(ectx Context, this *zed.Value) *zed.Value {
 	val := s.Eval(ectx, this)
 	if !zed.IsRecordType(val.Type) {
 		// XXX use structured error
-		return ectx.CopyValue(zed.NewErrorf("shaper returned non-record value %s", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*zed.NewErrorf(
+			"shaper returned non-record value %s", zson.MustFormatValue(*val)))
 	}
 	return val
 }
@@ -112,7 +115,7 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		var err error
 		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, val.Type)
 		if err != nil {
-			return ectx.CopyValue(zed.NewError(err))
+			return ectx.CopyValue(*zed.NewError(err))
 		}
 		c.shapers[id] = s
 	}

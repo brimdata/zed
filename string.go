@@ -6,8 +6,8 @@ import (
 
 type TypeOfString struct{}
 
-func NewString(s string) Value {
-	return Value{TypeString, EncodeString(s)}
+func NewString(s string) *Value {
+	return &Value{TypeString, EncodeString(s)}
 }
 
 func EncodeString(s string) zcode.Bytes {

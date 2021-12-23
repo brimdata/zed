@@ -6,8 +6,8 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-func NewUint64(v uint64) Value {
-	return Value{TypeUint64, EncodeUint(v)}
+func NewUint64(v uint64) *Value {
+	return &Value{TypeUint64, EncodeUint(v)}
 }
 
 func EncodeInt(i int64) zcode.Bytes {

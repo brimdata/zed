@@ -9,8 +9,8 @@ import (
 
 type TypeOfTime struct{}
 
-func NewTime(ts nano.Ts) Value {
-	return Value{TypeTime, EncodeTime(ts)}
+func NewTime(ts nano.Ts) *Value {
+	return &Value{TypeTime, EncodeTime(ts)}
 }
 
 func EncodeTime(t nano.Ts) zcode.Bytes {

@@ -77,7 +77,7 @@ type testSeekIndex struct {
 func (t *testSeekIndex) Lookup(s nano.Span, expected Range, o order.Which) {
 	r := zngio.NewReader(bytes.NewReader(t.buffer.Bytes()), zed.NewContext())
 	cmp := extent.CompareFunc(o)
-	var first, last zed.Value
+	var first, last *zed.Value
 	if o == order.Asc {
 		first = zed.NewTime(s.Ts)
 		last = zed.NewTime(s.End() - 1)
@@ -85,7 +85,7 @@ func (t *testSeekIndex) Lookup(s nano.Span, expected Range, o order.Which) {
 		first = zed.NewTime(s.End() - 1)
 		last = zed.NewTime(s.Ts)
 	}
-	rg, err := Lookup(r, &first, &last, cmp)
+	rg, err := Lookup(r, first, last, cmp)
 	require.NoError(t, err)
 	assert.Equal(t, expected, rg)
 }

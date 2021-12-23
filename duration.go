@@ -7,8 +7,8 @@ import (
 
 type TypeOfDuration struct{}
 
-func NewDuration(d nano.Duration) Value {
-	return Value{TypeDuration, EncodeDuration(d)}
+func NewDuration(d nano.Duration) *Value {
+	return &Value{TypeDuration, EncodeDuration(d)}
 }
 
 func EncodeDuration(d nano.Duration) zcode.Bytes {
