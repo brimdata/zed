@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
@@ -21,6 +22,7 @@ import (
 )
 
 func handleQuery(c *Core, w *ResponseWriter, r *Request) {
+	const queryStatsInterval = time.Second
 	var req api.QueryRequest
 	if !r.Unmarshal(w, &req) {
 		return
@@ -39,12 +41,18 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(zqe.ErrInvalid(err))
 		return
 	}
-	d, err := queryio.NewDriver(zio.NopCloser(w), format, !noctrl)
+	d, err := queryio.NewDriver(w.ResponseWriter, format, !noctrl)
 	if err != nil {
 		w.Error(err)
 	}
 	defer d.Close()
-	err = driver.RunWithLakeAndStats(r.Context(), d, query, zed.NewContext(), c.root, &req.Head, nil, r.Logger, 0)
+	var statsTicker <-chan time.Time
+	if !noctrl {
+		t := time.NewTicker(queryStatsInterval)
+		defer t.Stop()
+		statsTicker = t.C
+	}
+	err = driver.RunWithLakeAndStats(r.Context(), d, query, zed.NewContext(), c.root, &req.Head, statsTicker, r.Logger, 0)
 	if err != nil && !errors.Is(err, journal.ErrEmpty) {
 		d.Error(err)
 	}

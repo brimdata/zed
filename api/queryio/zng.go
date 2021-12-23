@@ -17,11 +17,11 @@ type ZNGWriter struct {
 	marshaler *zson.MarshalZNGContext
 }
 
-func NewZNGWriter(w io.WriteCloser) *ZNGWriter {
+func NewZNGWriter(w io.Writer) *ZNGWriter {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
 	return &ZNGWriter{
-		Writer: zngio.NewWriter(w, zngio.WriterOpts{
+		Writer: zngio.NewWriter(zio.NopCloser(w), zngio.WriterOpts{
 			LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 		}),
 		marshaler: m,
