@@ -22,16 +22,22 @@ func NewMapper(out *Context) *Mapper {
 // threads attempt to update the same ID, but it is safe because the
 // outputContext will return the same the pointer so the second update
 // does not change anything.
-func (m *Mapper) Lookup(td int) Type {
+func (m *Mapper) Lookup(id int) Type {
+	if id < IDTypeDef {
+		return LookupPrimitiveByID(id)
+	}
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	if td < len(m.types) {
-		return m.types[td]
+	if id < len(m.types) {
+		return m.types[id]
 	}
 	return nil
 }
 
 func (m *Mapper) Enter(id int, ext Type) (Type, error) {
+	if id < IDTypeDef {
+		return LookupPrimitiveByID(id), nil
+	}
 	typ, err := m.outputCtx.TranslateType(ext)
 	if err != nil {
 		return nil, err
@@ -43,15 +49,18 @@ func (m *Mapper) Enter(id int, ext Type) (Type, error) {
 	return nil, nil
 }
 
-func (m *Mapper) EnterType(td int, typ Type) {
+func (m *Mapper) EnterType(id int, typ Type) {
+	if id < IDTypeDef {
+		return
+	}
 	m.mu.Lock()
-	if td >= cap(m.types) {
-		new := make([]Type, td+1, td*2)
+	if id >= cap(m.types) {
+		new := make([]Type, id+1, id*2)
 		copy(new, m.types)
 		m.types = new
-	} else if td >= len(m.types) {
-		m.types = m.types[:td+1]
+	} else if id >= len(m.types) {
+		m.types = m.types[:id+1]
 	}
-	m.types[td] = typ
+	m.types[id] = typ
 	m.mu.Unlock()
 }

@@ -1,0 +1,16 @@
+script: |
+  zq -i zson - | zq -i zng -z -
+
+inputs:
+  - name: stdin
+    data: |
+      1
+      "hello"
+      "foo"(error)
+
+outputs:
+  - name: stdout
+    data: |
+      1
+      "hello"
+      "foo"(error)
