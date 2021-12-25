@@ -760,6 +760,7 @@ Fields
   = first:Field rest:FieldTail* {
     RETURN(PREPEND(first, rest))
   }
+  / __ { RETURN(ARRAY()) }
 
 FieldTail = __ "," __ f:Field { RETURN(f) }
 
