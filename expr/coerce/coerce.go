@@ -2,7 +2,6 @@ package coerce
 
 import (
 	"bytes"
-	"errors"
 	"math"
 	"strconv"
 
@@ -12,8 +11,8 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-var ErrOverflow = errors.New("integer overflow: uint64 value too large for int64")
-var ErrIncompatibleTypes = errors.New("incompatible types")
+var Overflow = &zed.Value{zed.TypeError, []byte("integer overflow: uint64 value too large for int64")}
+var IncompatibleTypes = &zed.Value{zed.TypeError, []byte("incompatible types")}
 
 // XXX aliases should probably be preserved according to the rank
 // of the underlying number type.
@@ -48,7 +47,7 @@ func (c *Pair) Equal() bool {
 	return bytes.Equal(c.A, c.B)
 }
 
-func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
+func (c *Pair) Coerce(a, b *zed.Value) (int, *zed.Value) {
 	c.A = a.Bytes
 	c.B = b.Bytes
 	if a.Type == nil {
@@ -70,7 +69,7 @@ func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
 	}
 	if zed.IsNumber(aid) {
 		if !zed.IsNumber(bid) {
-			return 0, ErrIncompatibleTypes
+			return 0, IncompatibleTypes
 		}
 		return c.coerceNumbers(aid, bid)
 	}
@@ -86,10 +85,10 @@ func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
 			return id, nil
 		}
 	}
-	return 0, ErrIncompatibleTypes
+	return 0, IncompatibleTypes
 }
 
-func (c *Pair) compare(lhs, rhs *zed.Value) (bool, error) {
+func (c *Pair) compare(lhs, rhs *zed.Value) (bool, *zed.Value) {
 	if _, err := c.Coerce(lhs, rhs); err != nil {
 		return false, err
 	}
@@ -105,28 +104,28 @@ func intToFloat(id int, b zcode.Bytes) float64 {
 	return float64(v)
 }
 
-func (c *Pair) promoteToSigned(in zcode.Bytes) (zcode.Bytes, error) {
+func (c *Pair) promoteToSigned(in zcode.Bytes) (zcode.Bytes, *zed.Value) {
 	v, _ := zed.DecodeUint(in)
 	if v > math.MaxInt64 {
-		return nil, ErrOverflow
+		return nil, Overflow
 	}
 	return c.Int(int64(v)), nil
 }
 
-func (c *Pair) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, error) {
+func (c *Pair) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, *zed.Value) {
 	v, _ := zed.DecodeInt(in)
 	if v < 0 {
-		return nil, ErrOverflow
+		return nil, Overflow
 	}
 	return c.Uint(uint64(v)), nil
 }
 
-func (c *Pair) coerceNumbers(aid, bid int) (int, error) {
+func (c *Pair) coerceNumbers(aid, bid int) (int, *zed.Value) {
 	if zed.IsFloat(aid) {
 		if aid == zed.IDFloat32 {
 			v, err := zed.DecodeFloat32(c.A)
 			if err != nil {
-				return 0, err
+				panic(err)
 			}
 			c.A = c.buf2.Float64(float64(v))
 		}
@@ -137,7 +136,7 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, error) {
 		if bid == zed.IDFloat32 {
 			v, err := zed.DecodeFloat32(c.B)
 			if err != nil {
-				return 0, err
+				panic(err)
 			}
 			c.B = c.buf2.Float64(float64(v))
 		}
@@ -161,13 +160,13 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, error) {
 	// Otherwise, we'll promote mixed signed-ness to signed unless
 	// the unsigned value is greater than signed maxint, in which
 	// case, we report an overflow error.
-	var err error
+	var err *zed.Value
 	if aIsSigned {
 		c.B, err = c.promoteToSigned(c.B)
 	} else {
 		c.A, err = c.promoteToSigned(c.A)
 	}
-	if err == ErrOverflow {
+	if err == Overflow {
 		// We got overflow trying to turn the unsigned to signed,
 		// so try turning the signed into unsigned.
 		if aIsSigned {
