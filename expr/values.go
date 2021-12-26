@@ -18,8 +18,13 @@ func NewRecordExpr(zctx *zed.Context, names []string, exprs []Evaluator) *Record
 	for _, name := range names {
 		columns = append(columns, zed.Column{Name: name})
 	}
+	var typ *zed.TypeRecord
+	if len(exprs) == 0 {
+		typ = zctx.MustLookupTypeRecord([]zed.Column{})
+	}
 	return &RecordExpr{
 		zctx:    zctx,
+		typ:     typ,
 		builder: zcode.NewBuilder(),
 		columns: columns,
 		exprs:   exprs,
@@ -45,7 +50,12 @@ func (r *RecordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if changed {
 		r.typ = r.zctx.MustLookupTypeRecord(r.columns)
 	}
-	return ectx.NewValue(r.typ, b.Bytes())
+	bytes := b.Bytes()
+	if bytes == nil {
+		// Return empty record instead of null record.
+		bytes = []byte{}
+	}
+	return ectx.NewValue(r.typ, bytes)
 }
 
 type ArrayExpr struct {
