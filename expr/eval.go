@@ -152,8 +152,12 @@ func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, &zed.Value{typ, zv})
-		if err == nil && i.vals.Equal() {
+		_, errVal := i.vals.Coerce(elem, &zed.Value{typ, zv})
+		if errVal != nil {
+			if errVal != coerce.IncompatibleTypes {
+				return errVal
+			}
+		} else if i.vals.Equal() {
 			return zed.True
 		}
 	}
@@ -168,16 +172,24 @@ func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, &zed.Value{keyType, zv})
-		if err == nil && i.vals.Equal() {
+		_, errVal := i.vals.Coerce(elem, &zed.Value{keyType, zv})
+		if errVal != nil {
+			if errVal != coerce.IncompatibleTypes {
+				return errVal
+			}
+		} else if i.vals.Equal() {
 			return zed.True
 		}
 		zv, _, err = iter.Next()
 		if err != nil {
 			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, &zed.Value{valType, zv})
-		if err == nil && i.vals.Equal() {
+		_, errVal = i.vals.Coerce(elem, &zed.Value{valType, zv})
+		if errVal != nil {
+			if errVal != coerce.IncompatibleTypes {
+				return errVal
+			}
+		} else if i.vals.Equal() {
 			return zed.True
 		}
 	}
@@ -204,18 +216,17 @@ func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 func (e *Equal) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if _, err := e.numeric.eval(ectx, this); err != nil {
 		switch err {
-		case coerce.ErrOverflow:
+		case coerce.Overflow:
 			// If there was overflow converting one to the other,
 			// we know they can't be equal.
 			if e.equality {
 				return zed.False
 			}
 			return zed.True
-		case zed.ErrMissing:
-			return zed.Missing
-		default:
-			//XXX panic?
+		case coerce.IncompatibleTypes:
 			return zed.False
+		default:
+			return err
 		}
 	}
 	result := e.vals.Equal()
@@ -267,15 +278,15 @@ func enumify(val *zed.Value) *zed.Value {
 	return val
 }
 
-func (n *numeric) eval(ectx Context, this *zed.Value) (int, error) {
+func (n *numeric) eval(ectx Context, this *zed.Value) (int, *zed.Value) {
 	lhs := n.lhs.Eval(ectx, this)
-	if lhs.IsMissing() {
-		return 0, zed.ErrMissing
+	if lhs.IsError() {
+		return 0, lhs
 	}
 	lhs = enumify(lhs)
 	rhs := n.rhs.Eval(ectx, this)
-	if rhs.IsMissing() {
-		return 0, zed.ErrMissing
+	if rhs.IsError() {
+		return 0, rhs
 	}
 	rhs = enumify(rhs)
 	return n.vals.Coerce(lhs, rhs)
@@ -364,7 +375,7 @@ func (c *Compare) Eval(ectx Context, this *zed.Value) *zed.Value {
 		// or the signed value couldn't be converted to a uint64 because
 		// it was negative.  In either case, the unsigned value is bigger
 		// than the signed value.
-		if err == coerce.ErrOverflow {
+		if err == coerce.Overflow {
 			result := 1
 			if zed.IsSigned(lhs.Type.ID()) {
 				result = -1
@@ -462,10 +473,7 @@ func NewArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
 func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 	id, err := a.operands.eval(ectx, this)
 	if err != nil {
-		if err == zed.ErrMissing {
-			return zed.Missing
-		}
-		return ectx.CopyValue(*zed.NewError(err))
+		return err
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
@@ -491,10 +499,7 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 	id, err := s.operands.eval(ectx, this)
 	if err != nil {
-		if err == zed.ErrMissing {
-			return zed.Missing
-		}
-		return ectx.CopyValue(*zed.NewError(err))
+		return err
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
@@ -514,10 +519,7 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 	id, err := m.operands.eval(ectx, this)
 	if err != nil {
-		if err == zed.ErrMissing {
-			return zed.Missing
-		}
-		return ectx.CopyValue(*zed.NewError(err))
+		return err
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
@@ -537,10 +539,7 @@ func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 	id, err := d.operands.eval(ectx, this)
 	if err != nil {
-		if err == zed.ErrMissing {
-			return zed.Missing
-		}
-		return ectx.CopyValue(*zed.NewError(err))
+		return err
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
@@ -569,10 +568,7 @@ func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
 	id, err := m.operands.eval(ectx, this)
 	if err != nil {
-		if err == zed.ErrMissing {
-			return zed.Missing
-		}
-		return ectx.CopyValue(*zed.NewError(err))
+		return err
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	if zed.IsFloat(id) || !zed.IsNumber(id) {
