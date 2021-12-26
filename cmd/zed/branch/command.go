@@ -132,6 +132,7 @@ func (c *Command) list(ctx context.Context, lake api.Interface) error {
 	}
 	q, err := lake.Query(ctx, nil, false, query)
 	if err != nil {
+		w.Close()
 		return err
 	}
 	err = zio.Copy(w, q)

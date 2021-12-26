@@ -202,8 +202,7 @@ func (r *Runtime) Build() error {
 
 func (r *Runtime) Puller() zbuf.Puller {
 	if r.puller == nil {
-		outputs := r.Outputs()
-		switch len(outputs) {
+		switch outputs := r.Outputs(); len(outputs) {
 		case 0:
 			return nil
 		case 1:

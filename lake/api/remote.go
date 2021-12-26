@@ -128,7 +128,7 @@ func (r *RemoteSession) Query(ctx context.Context, head *lakeparse.Commitish, ct
 	if err != nil {
 		return nil, err
 	}
-	reader, err := queryio.NewClientQuery(ctx, res), nil
+	reader, err := queryio.NewQuery(res), nil
 	if err != nil {
 		return nil, err
 	}

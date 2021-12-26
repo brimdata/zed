@@ -74,6 +74,7 @@ func (c *createCommand) Run(args []string) error {
 		query := fmt.Sprintf("from :index_rules | name == '%s'", ruleName)
 		r, err := lake.Query(ctx, nil, false, query)
 		if err != nil {
+			w.Close()
 			return err
 		}
 		err = zio.Copy(w, r)

@@ -81,10 +81,10 @@ func (l *Latcher) Pull() (zbuf.Batch, error) {
 	}
 	for {
 		batch, err := l.parent.Pull()
-		if err == EndOfBatch {
-			continue
-		}
 		if err != nil {
+			if err == EndOfBatch {
+				continue
+			}
 			l.eos = true
 			l.pctx.Cancel()
 			return nil, err

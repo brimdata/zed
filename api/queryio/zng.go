@@ -16,6 +16,8 @@ type ZNGWriter struct {
 	marshaler *zson.MarshalZNGContext
 }
 
+var _ controlWriter = (*ZJSONWriter)(nil)
+
 func NewZNGWriter(w io.Writer) *ZNGWriter {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)

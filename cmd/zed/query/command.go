@@ -67,6 +67,7 @@ func (c *Command) Run(args []string) error {
 	head, _ := c.lakeFlags.HEAD()
 	query, err := lake.Query(ctx, head, true, src, c.queryFlags.Includes...)
 	if err != nil {
+		w.Close()
 		return err
 	}
 	err = zio.Copy(w, query)

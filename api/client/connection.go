@@ -258,11 +258,11 @@ func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, ctrl 
 	if head != nil {
 		body.Head = *head
 	}
-	endpoint := "/query"
+	path := "/query"
 	if ctrl {
-		endpoint += "?ctrl=true"
+		path += "?ctrl=true"
 	}
-	req := c.NewRequest(ctx, http.MethodPost, endpoint, body)
+	req := c.NewRequest(ctx, http.MethodPost, path, body)
 	res, err := c.Do(req)
 	var ae *api.Error
 	if errors.As(err, &ae) {

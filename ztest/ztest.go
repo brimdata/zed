@@ -531,6 +531,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	}
 	q, err := zruntime.NewQueryOnReader(context.Background(), zctx, proc, zr, nil)
 	if err != nil {
+		zw.Close()
 		return "", err.Error(), err
 	}
 	err = zio.Copy(zw, q.AsReader())

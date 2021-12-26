@@ -67,13 +67,13 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		batch, err := flowgraph.Pull()
 		if err != nil {
 			if !errors.Is(err, journal.ErrEmpty) {
-				writer.Error(err)
+				writer.WriteError(err)
 			}
 			return
 		}
 		if batch == nil || tick {
 			if err := writer.WriteProgress(meter.Progress()); err != nil {
-				writer.Error(err)
+				writer.WriteError(err)
 				return
 			}
 			if batch == nil {
@@ -83,7 +83,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		if len(batch.Values()) == 0 {
 			if eoc, ok := batch.(*proc.EndOfChannel); ok {
 				if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
-					writer.Error(err)
+					writer.WriteError(err)
 					return
 				}
 			}
@@ -91,8 +91,8 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		}
 		var cid int
 		batch, cid = proc.Unwrap(batch)
-		if err := writer.Write(cid, batch); err != nil {
-			writer.Error(err)
+		if err := writer.WriteBatch(cid, batch); err != nil {
+			writer.WriteError(err)
 			return
 		}
 	}

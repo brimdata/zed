@@ -86,6 +86,7 @@ func (c *Command) Run(args []string) error {
 	}
 	r, err := lake.Query(ctx, nil, false, query)
 	if err != nil {
+		w.Close()
 		return err
 	}
 	err = zio.Copy(w, r)

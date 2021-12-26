@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/zio/jsonio"
 )
 
-type ControlWriter interface {
+type controlWriter interface {
 	zio.WriteCloser
 	WriteControl(interface{}) error
 }
@@ -47,7 +47,7 @@ func NewWriter(w io.WriteCloser, format string, sendctrl bool, flusher http.Flus
 	return d, err
 }
 
-func (w *Writer) Write(cid int, batch zbuf.Batch) error {
+func (w *Writer) WriteBatch(cid int, batch zbuf.Batch) error {
 	if w.cid != cid {
 		w.cid = cid
 		if err := w.WriteControl(api.QueryChannelSet{cid}, w.ctrl); err != nil {
@@ -71,14 +71,14 @@ func (w *Writer) WriteProgress(stats zbuf.Progress) error {
 	return w.WriteControl(v, w.ctrl)
 }
 
-func (w *Writer) Error(err error) {
+func (w *Writer) WriteError(err error) {
 	w.WriteControl(api.QueryError{err.Error()}, true)
 }
 
 func (w *Writer) WriteControl(value interface{}, ctrl bool) error {
 	var err error
 	if ctrl {
-		if ctrl, ok := w.writer.(ControlWriter); ok {
+		if ctrl, ok := w.writer.(controlWriter); ok {
 			err = ctrl.WriteControl(value)
 			if w.flusher != nil {
 				w.flusher.Flush()

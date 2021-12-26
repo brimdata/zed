@@ -1,7 +1,6 @@
 package queryio
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -17,10 +16,9 @@ type Query struct {
 	reader *zngio.Reader
 }
 
-// NewClientQuery creates and returns a Query that streams and decodes
-// the result from the response body of res.  The response
-// format is presumed to be ZNG.
-func NewClientQuery(ctx context.Context, res *client.Response) *Query {
+//  NewQuery returns a Query that reads ZNG-encoded query response
+// from r and decodes it.
+func NewQuery(res *client.Response) *Query {
 	return &Query{
 		reader: zngio.NewReader(res.Body, zed.NewContext()),
 	}
