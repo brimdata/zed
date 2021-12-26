@@ -64,11 +64,7 @@ func compileExpr(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Evaluator, e
 		}
 		return nil, fmt.Errorf("unknown reference: '%s'", e.Name)
 	case *dag.Search:
-		f, err := compileSearch(e)
-		if err != nil {
-			return nil, err
-		}
-		return expr.FilterEvaluator(f), nil
+		return compileSearch(e)
 	case *dag.Path:
 		return expr.NewDottedExpr(field.Path(e.Name)), nil
 	case *dag.Dot:

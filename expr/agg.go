@@ -15,10 +15,10 @@ var (
 type Aggregator struct {
 	pattern agg.Pattern
 	expr    Evaluator
-	where   Filter
+	where   Evaluator
 }
 
-func NewAggregator(op string, expr Evaluator, where Filter) (*Aggregator, error) {
+func NewAggregator(op string, expr Evaluator, where Evaluator) (*Aggregator, error) {
 	pattern, err := agg.NewPattern(op)
 	if err != nil {
 		return nil, err
@@ -39,21 +39,17 @@ func (a *Aggregator) NewFunction() agg.Function {
 	return a.pattern()
 }
 
-func (a *Aggregator) Apply(ectx Context, f agg.Function, val *zed.Value) {
-	if a.filter(ectx, val) {
-		return
+func (a *Aggregator) Apply(ectx Context, f agg.Function, this *zed.Value) {
+	if a.where != nil {
+		if val, ok := EvalBool(ectx, this, a.where); !ok || val.Bytes == nil || !zed.IsTrue(val.Bytes) {
+			// XXX Issue #3401: do something with "where" errors.
+			return
+		}
 	}
-	v := a.expr.Eval(ectx, val)
+	v := a.expr.Eval(ectx, this)
 	if !v.IsMissing() {
 		f.Consume(v)
 	}
-}
-
-func (a *Aggregator) filter(ectx Context, this *zed.Value) bool {
-	if a.where == nil {
-		return false
-	}
-	return !a.where(ectx, this)
 }
 
 // NewAggregatorExpr returns an Evaluator from agg. The returned Evaluator

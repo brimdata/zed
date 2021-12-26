@@ -175,7 +175,7 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
+func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	pools, err := r.ListPools(ctx)
@@ -189,14 +189,14 @@ func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Filt
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(ectx, rec) {
+		if filter(ectx, rec, f) {
 			vals = append(vals, *rec)
 		}
 	}
 	return vals, nil
 }
 
-func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
+func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	poolRefs, err := r.ListPools(ctx)
@@ -428,7 +428,7 @@ func (r *Root) AllIndexRules(ctx context.Context) ([]index.Rule, error) {
 	return r.indexRules.All(ctx)
 }
 
-func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
+func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	names, err := r.indexRules.Names(ctx)
@@ -453,7 +453,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 			if err != nil {
 				return nil, err
 			}
-			if f == nil || f(ectx, rec) {
+			if filter(ectx, rec, f) {
 				vals = append(vals, *rec)
 			}
 		}

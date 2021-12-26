@@ -144,7 +144,15 @@ func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, erro
 	return p.openBranch(ctx, branchRef)
 }
 
-func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Filter) ([]zed.Value, error) {
+func filter(ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
+	if e == nil {
+		return true
+	}
+	val, ok := expr.EvalBool(ectx, this, e)
+	return ok && val.Bytes != nil && zed.IsTrue(val.Bytes)
+}
+
+func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
@@ -156,7 +164,7 @@ func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.M
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(ectx, rec) {
+		if filter(ectx, rec, f) {
 			recs = append(recs, *rec)
 		}
 	}
@@ -168,7 +176,7 @@ type BranchTip struct {
 	Commit ksuid.KSUID
 }
 
-func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
+func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
@@ -182,7 +190,7 @@ func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(ectx, rec) {
+		if filter(ectx, rec, f) {
 			recs = append(recs, *rec)
 		}
 	}

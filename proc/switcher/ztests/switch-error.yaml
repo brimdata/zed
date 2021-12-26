@@ -1,0 +1,13 @@
+zed: |
+  switch (
+     a == 1 => put v:='one';
+     a / 0 => put v:='xxx';
+     ) | sort this
+
+input: |
+  {a:1,s:"a"}
+  {a:2,s:"b"}
+
+output: |
+  "divide by zero"(error)
+  {a:1,s:"a",v:"one"}

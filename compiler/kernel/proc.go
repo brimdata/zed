@@ -81,10 +81,6 @@ func (b *Builder) Meters() []zbuf.Meter {
 	return meters
 }
 
-func (b *Builder) CompileFilter(e dag.Expr) (expr.Filter, error) {
-	return CompileFilter(b.pctx.Zctx, b.scope, e)
-}
-
 func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface, error) {
 	switch v := op.(type) {
 	case *dag.Summarize:
@@ -144,11 +140,11 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 	case *dag.Pass:
 		return pass.New(parent), nil
 	case *dag.Filter:
-		f, err := CompileFilter(b.pctx.Zctx, b.scope, v.Expr)
+		f, err := compileFilter(b.pctx.Zctx, b.scope, v.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return proc.NewApplier(b.pctx, parent, expr.FilterApplier(f)), nil
+		return proc.NewApplier(b.pctx, parent, expr.NewFilterApplier(f)), nil
 	case *dag.Top:
 		fields, err := CompileExprs(b.pctx.Zctx, b.scope, v.Args)
 		if err != nil {
@@ -337,7 +333,7 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]
 		switcher := switcher.New(parents[0])
 		parents = []proc.Interface{}
 		for _, c := range swtch.Cases {
-			f, err := CompileFilter(b.pctx.Zctx, b.scope, c.Expr)
+			f, err := compileFilter(b.pctx.Zctx, b.scope, c.Expr)
 			if err != nil {
 				return nil, fmt.Errorf("compiling switch case filter: %w", err)
 			}
