@@ -152,8 +152,7 @@ func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-		_, errVal := i.vals.Coerce(elem, &zed.Value{typ, zv})
-		if errVal != nil {
+		if _, errVal := i.vals.Coerce(elem, &zed.Value{typ, zv}); errVal != nil {
 			if errVal != coerce.IncompatibleTypes {
 				return errVal
 			}
@@ -172,8 +171,7 @@ func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-		_, errVal := i.vals.Coerce(elem, &zed.Value{keyType, zv})
-		if errVal != nil {
+		if _, errVal := i.vals.Coerce(elem, &zed.Value{keyType, zv}); errVal != nil {
 			if errVal != coerce.IncompatibleTypes {
 				return errVal
 			}
@@ -184,8 +182,7 @@ func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-		_, errVal = i.vals.Coerce(elem, &zed.Value{valType, zv})
-		if errVal != nil {
+		if _, errVal := i.vals.Coerce(elem, &zed.Value{valType, zv}); errVal != nil {
 			if errVal != coerce.IncompatibleTypes {
 				return errVal
 			}
