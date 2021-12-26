@@ -9,12 +9,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      stdio:stdin: format detection error
-      	zeek: line 1: bad types/fields definition in zeek header
-      	zjson: line 1: invalid character '\x00' looking for beginning of value
-      	zson: zson syntax error
-      	zng: zng type ID out of range
-      	csv: line 1: EOF
-      	json: invalid character '\x00' looking for beginning of value
-      	parquet: auto-detection not supported
-      	zst: auto-detection not supported
+      stdio:stdin: malformed zng record
