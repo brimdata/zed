@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
@@ -15,11 +15,13 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
 type Interface interface {
-	Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Progress, error)
+	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.Reader, error)
+	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.Layout, int, int64) (ksuid.KSUID, error)
@@ -41,25 +43,31 @@ func IsLakeService(u *storage.URI) bool {
 	return u.Scheme == "http" || u.Scheme == "https"
 }
 
-func ScanIndexRules(ctx context.Context, api Interface, d driver.Driver) error {
-	_, err := api.Query(ctx, d, nil, "from :index_rules")
-	return err
-}
-
-func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {
-	d := newQueryDriver(pools.Config{})
-	zed := fmt.Sprintf("from :pools | name == '%s'", name)
-	_, err := api.Query(ctx, d, nil, zed)
+func ScanIndexRules(ctx context.Context, api Interface) (zio.Reader, error) {
+	r, err := api.Query(ctx, nil, "from :index_rules")
 	if err != nil {
 		return nil, err
 	}
-	switch len(d.results) {
+	return zbuf.NoControl(r), nil
+}
+
+func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {
+	b := newBuffer(pools.Config{})
+	zed := fmt.Sprintf("from :pools | name == '%s'", name)
+	q, err := api.Query(ctx, nil, zed)
+	if err != nil {
+		return nil, err
+	}
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+		return nil, err
+	}
+	switch len(b.results) {
 	case 0:
 		return nil, fmt.Errorf("%q: pool not found", name)
 	case 1:
-		pool, ok := d.results[0].(*pools.Config)
+		pool, ok := b.results[0].(*pools.Config)
 		if !ok {
-			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", d.results[0])
+			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", b.results[0])
 		}
 		return pool, nil
 	default:
@@ -68,19 +76,22 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 }
 
 func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.Config, error) {
-	d := newQueryDriver(pools.Config{})
+	b := newBuffer(pools.Config{})
 	zed := fmt.Sprintf("from :pools | id == from_hex('%s')", idToHex(id))
-	_, err := api.Query(ctx, d, nil, zed)
+	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
 		return nil, err
 	}
-	switch len(d.results) {
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+		return nil, err
+	}
+	switch len(b.results) {
 	case 0:
 		return nil, fmt.Errorf("%s: pool not found", id)
 	case 1:
-		pool, ok := d.results[0].(*pools.Config)
+		pool, ok := b.results[0].(*pools.Config)
 		if !ok {
-			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", d.results[0])
+			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", b.results[0])
 		}
 		return pool, nil
 	default:
@@ -89,19 +100,22 @@ func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.
 }
 
 func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName string) (*lake.BranchMeta, error) {
-	d := newQueryDriver(lake.BranchMeta{})
+	b := newBuffer(lake.BranchMeta{})
 	zed := fmt.Sprintf("from :branches | pool.name == '%s' branch.name == '%s'", poolName, branchName)
-	_, err := api.Query(ctx, d, nil, zed)
+	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
 		return nil, err
 	}
-	switch len(d.results) {
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+		return nil, err
+	}
+	switch len(b.results) {
 	case 0:
 		return nil, fmt.Errorf("%q: branch not found", poolName+"/"+branchName)
 	case 1:
-		branch, ok := d.results[0].(*lake.BranchMeta)
+		branch, ok := b.results[0].(*lake.BranchMeta)
 		if !ok {
-			return nil, fmt.Errorf("internal error: branch record has wrong type: %T", d.results[0])
+			return nil, fmt.Errorf("internal error: branch record has wrong type: %T", b.results[0])
 		}
 		return branch, nil
 	default:
@@ -110,19 +124,22 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 }
 
 func LookupBranchByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake.BranchMeta, error) {
-	d := newQueryDriver(lake.BranchMeta{})
+	b := newBuffer(lake.BranchMeta{})
 	zed := fmt.Sprintf("from :branches | branch.id == 'from_hex(%s)'", idToHex(id))
-	_, err := api.Query(ctx, d, nil, zed)
+	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
 		return nil, err
 	}
-	switch len(d.results) {
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+		return nil, err
+	}
+	switch len(b.results) {
 	case 0:
 		return nil, fmt.Errorf("%s: branch not found", id)
 	case 1:
-		branch, ok := d.results[0].(*lake.BranchMeta)
+		branch, ok := b.results[0].(*lake.BranchMeta)
 		if !ok {
-			return nil, fmt.Errorf("internal error: branch record has wrong type: %T", d.results[0])
+			return nil, fmt.Errorf("internal error: branch record has wrong type: %T", b.results[0])
 		}
 		return branch, nil
 	default:
@@ -132,4 +149,26 @@ func LookupBranchByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake
 
 func idToHex(id ksuid.KSUID) string {
 	return hex.EncodeToString(id.Bytes())
+}
+
+type buffer struct {
+	unmarshaler *zson.UnmarshalZNGContext
+	results     []interface{}
+}
+
+var _ zio.Writer = (*buffer)(nil)
+
+func newBuffer(types ...interface{}) *buffer {
+	u := zson.NewZNGUnmarshaler()
+	u.Bind(types...)
+	return &buffer{unmarshaler: u}
+}
+
+func (b *buffer) Write(val *zed.Value) error {
+	var v interface{}
+	if err := b.unmarshaler.Unmarshal(*val, &v); err != nil {
+		return err
+	}
+	b.results = append(b.results, v)
+	return nil
 }

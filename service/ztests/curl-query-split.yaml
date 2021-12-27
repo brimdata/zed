@@ -1,0 +1,21 @@
+# Test the output mux to make sure channel end messages appear in ZJSON
+
+script: |
+  source service.sh
+  zed create -q test
+  zed load -q -use test@main -
+  curl --stderr ignore -H "Accept: application/x-zjson" -d '{"query":"from test | split (=>pass;=>pass;)"}' $ZED_LAKE/query\?ctrl=true |
+      zq -z "QueryChannelEnd | sort value.channel_id" -
+
+inputs:
+  - name: service.sh
+  - name: stdin
+    data: |
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+      {a:"one",b:{c:"two",d:"three"}}
+
+outputs:
+  - name: stdout
+    data: |
+      {kind:"QueryChannelEnd",value:{channel_id:0}}
+      {kind:"QueryChannelEnd",value:{channel_id:1}}

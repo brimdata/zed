@@ -28,10 +28,8 @@ func CompileForLake(pctx *proc.Context, program ast.Proc, lake proc.DataAdaptor,
 	if parallelism > 1 {
 		runtime.Parallelize(parallelism)
 	}
-	outputs, err := runtime.builder.Build(runtime.optimizer.Entry())
-	if err != nil {
+	if err := runtime.Build(); err != nil {
 		return nil, err
 	}
-	runtime.outputs = outputs
-	return runtime, err
+	return runtime, nil
 }

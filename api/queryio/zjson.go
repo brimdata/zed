@@ -16,7 +16,7 @@ type ZJSONWriter struct {
 	stream    *zjsonio.Stream
 }
 
-var _ ControlWriter = (*ZJSONWriter)(nil)
+var _ controlWriter = (*ZJSONWriter)(nil)
 
 func NewZJSONWriter(w io.Writer) *ZJSONWriter {
 	m := zson.NewZNGMarshaler()

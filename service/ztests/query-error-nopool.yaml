@@ -9,4 +9,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      doesnotexit: pool not found
+      status code 404: doesnotexit: pool not found

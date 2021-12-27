@@ -8,9 +8,9 @@ import (
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio"
 )
 
 var Cmd = &charm.Spec{
@@ -71,7 +71,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer w.Close()
-	_, err = lake.Query(ctx, driver.NewCLI(w), nil, query)
+	q, err := lake.Query(ctx, nil, query)
+	if err != nil {
+		return err
+	}
+	err = zio.Copy(w, q)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

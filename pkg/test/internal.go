@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
@@ -58,8 +58,11 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	d := driver.NewCLI(output)
-	if err := driver.RunWithReader(context.Background(), d, program, zctx, reader, nil); err != nil {
+	q, err := runtime.NewQueryOnReader(context.Background(), zctx, program, reader, nil)
+	if err != nil {
+		return "", err
+	}
+	if err := zio.Copy(output, q.AsReader()); err != nil {
 		return "", err
 	}
 	return string(output.Bytes()), nil

@@ -10,11 +10,11 @@ import (
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio"
 )
 
 var Cmd = &charm.Spec{
@@ -126,12 +126,17 @@ func (c *Command) list(ctx context.Context, lake api.Interface) error {
 	if c.outputFlags.Format == "lake" {
 		c.outputFlags.WriterOpts.Lake.Head = head.Branch
 	}
-	zw, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
+	w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
-	_, err = lake.Query(ctx, driver.NewCLI(zw), nil, query)
-	if closeErr := zw.Close(); err == nil {
+	q, err := lake.Query(ctx, nil, query)
+	if err != nil {
+		w.Close()
+		return err
+	}
+	err = zio.Copy(w, q)
+	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}
 	return err

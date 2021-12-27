@@ -7,13 +7,13 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
@@ -94,15 +94,27 @@ func (l *LocalSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) 
 	return l.root.DeleteIndexRules(ctx, ids)
 }
 
-func (l *LocalSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Progress, error) {
-	query, err := compiler.ParseProc(src, srcfiles...)
+func (l *LocalSession) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.Reader, error) {
+	q, err := l.QueryWithControl(ctx, head, src, srcfiles...)
 	if err != nil {
-		return zbuf.Progress{}, err
+		return nil, err
+	}
+	return zbuf.NoControl(q), nil
+}
+
+func (l *LocalSession) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error) {
+	flowgraph, err := compiler.ParseProc(src, srcfiles...)
+	if err != nil {
+		return nil, err
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return zbuf.Progress{}, err
+		return nil, err
 	}
-	return driver.RunWithLake(ctx, d, query, zed.NewContext(), l.root, head)
+	q, err := runtime.NewQueryOnLake(ctx, zed.NewContext(), flowgraph, l.root, head, nil)
+	if err != nil {
+		return nil, err
+	}
+	return q.AsProgressReader(), nil
 }
 
 func (l *LocalSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {

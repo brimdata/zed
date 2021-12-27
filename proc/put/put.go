@@ -69,19 +69,6 @@ func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (
 	}, nil
 }
 
-func (p *Proc) maybeWarn(err error) {
-	s := err.Error()
-	_, alreadyWarned := p.warned[s]
-	if !alreadyWarned {
-		warning := s
-		if err == zed.ErrMissing {
-			warning = "put: a referenced field is missing"
-		}
-		p.pctx.Warnings <- warning
-		p.warned[s] = struct{}{}
-	}
-}
-
 func (p *Proc) eval(ectx expr.Context, this *zed.Value) []zed.Value {
 	vals := p.vals[:0]
 	for _, cl := range p.clauses {

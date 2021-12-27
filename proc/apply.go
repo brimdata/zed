@@ -18,7 +18,7 @@ type applier struct {
 	pctx   *Context
 	parent Interface
 	expr   Applier
-	warned map[string]bool
+	warned map[string]struct{}
 }
 
 func NewApplier(pctx *Context, parent Interface, apply Applier) *applier {
@@ -26,7 +26,7 @@ func NewApplier(pctx *Context, parent Interface, apply Applier) *applier {
 		pctx:   pctx,
 		parent: parent,
 		expr:   apply,
-		warned: map[string]bool{},
+		warned: make(map[string]struct{}),
 	}
 }
 
@@ -34,9 +34,6 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := a.parent.Pull()
 		if EOS(batch, err) {
-			if s := a.expr.Warning(); s != "" {
-				a.maybeWarn(s)
-			}
 			return nil, err
 		}
 		ectx := batch.Context()
@@ -58,13 +55,6 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 			//XXX bug - need to propagate scope
 			return zbuf.NewArray(out), nil
 		}
-	}
-}
-
-func (a *applier) maybeWarn(s string) {
-	if !a.warned[s] {
-		a.pctx.Warnings <- fmt.Sprintf("%s: %s", a.expr, s)
-		a.warned[s] = true
 	}
 }
 

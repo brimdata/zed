@@ -2,7 +2,6 @@ package query
 
 import (
 	"flag"
-	"os"
 
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/lakeflags"
@@ -10,9 +9,10 @@ import (
 	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/cli/queryflags"
 	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 )
 
 var Cmd = &charm.Spec{
@@ -61,21 +61,22 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
+	w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
-	d := driver.NewCLI(writer)
-	if !c.lakeFlags.Quiet {
-		d.SetWarningsWriter(os.Stderr)
-	}
 	head, _ := c.lakeFlags.HEAD()
-	stats, err := lake.Query(ctx, d, head, src, c.queryFlags.Includes...)
-	if closeErr := writer.Close(); err == nil {
+	query, err := lake.QueryWithControl(ctx, head, src, c.queryFlags.Includes...)
+	if err != nil {
+		w.Close()
+		return err
+	}
+	err = zio.Copy(w, zbuf.NoControl(query))
+	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}
 	if err == nil {
-		c.queryFlags.PrintStats(stats)
+		c.queryFlags.PrintStats(query.Progress())
 	}
 	return err
 }

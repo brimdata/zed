@@ -47,7 +47,7 @@ func (c *testClient) TestBranchGet(id ksuid.KSUID) (config lake.BranchMeta) {
 }
 
 func (c *testClient) TestPoolList() []pools.Config {
-	r, err := c.Query(context.Background(), nil, "from [pools]")
+	r, err := c.Query(context.Background(), nil, "from :pools")
 	require.NoError(c, err)
 	defer r.Body.Close()
 	var confs []pools.Config

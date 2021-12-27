@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/proc"
-	"github.com/brimdata/zed/proc/mux"
 	"github.com/brimdata/zed/zbuf"
 )
 
@@ -25,6 +24,8 @@ type Runtime struct {
 	consts    []dag.Op
 	outputs   []proc.Interface
 	readers   []*kernel.Reader
+	puller    zbuf.Puller
+	meter     *meter
 }
 
 func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
@@ -145,7 +146,7 @@ func (r *Runtime) Entry() dag.Op {
 }
 
 func (r *Runtime) Meter() zbuf.Meter {
-	return &meter{r.builder.Schedulers()}
+	return r.meter
 }
 
 // This must be called before the zbuf.Filter interface will work.
@@ -195,19 +196,22 @@ func (r *Runtime) Build() error {
 		return err
 	}
 	r.outputs = outputs
+	r.meter = &meter{r.builder.Meters()}
 	return nil
 }
 
 func (r *Runtime) Puller() zbuf.Puller {
-	outputs := r.Outputs()
-	switch len(outputs) {
-	case 0:
-		return nil
-	case 1:
-		return outputs[0]
-	default:
-		return mux.New(r.pctx, outputs)
+	if r.puller == nil {
+		switch outputs := r.Outputs(); len(outputs) {
+		case 0:
+			return nil
+		case 1:
+			r.puller = proc.NewCatcher(proc.NewLatcher(r.pctx, outputs[0]))
+		default:
+			r.puller = proc.NewMux(r.pctx, outputs)
+		}
 	}
+	return r.puller
 }
 
 func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Evaluator) {
@@ -215,13 +219,13 @@ func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Ev
 }
 
 type meter struct {
-	schedulers []proc.Scheduler
+	meters []zbuf.Meter
 }
 
-func (s *meter) Progress() zbuf.Progress {
+func (m *meter) Progress() zbuf.Progress {
 	var out zbuf.Progress
-	for _, sched := range s.schedulers {
-		out.Add(sched.Progress())
+	for _, meter := range m.meters {
+		out.Add(meter.Progress())
 	}
 	return out
 }

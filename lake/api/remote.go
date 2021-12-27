@@ -5,10 +5,10 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/queryio"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
@@ -104,13 +104,43 @@ func (r *RemoteSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchNa
 	return res.Commit, err
 }
 
-func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Progress, error) {
+type queryReader struct {
+	reader zio.Reader
+	res    *client.Response
+}
+
+var _ zio.Reader = (*queryReader)(nil)
+
+func (q *queryReader) Read() (*zed.Value, error) {
+	val, err := q.reader.Read()
+	if val == nil || err != nil {
+		if _, ok := err.(*zbuf.Control); !ok {
+			if closeErr := q.res.Body.Close(); err == nil {
+				err = closeErr
+			}
+		}
+	}
+	return val, err
+}
+
+func (r *RemoteSession) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.Reader, error) {
+	q, err := r.QueryWithControl(ctx, head, src, srcfiles...)
+	if err != nil {
+		return nil, err
+	}
+	return zbuf.NoControl(q), nil
+}
+
+func (r *RemoteSession) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error) {
 	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
-		return zbuf.Progress{}, err
+		return nil, err
 	}
-	defer res.Body.Close()
-	return queryio.RunClientResponse(ctx, d, res)
+	reader, err := queryio.NewQuery(res), nil
+	if err != nil {
+		return nil, err
+	}
+	return zbuf.MeterReader(&queryReader{reader, res}), nil
 }
 
 func (r *RemoteSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {

@@ -9,11 +9,11 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -120,9 +120,9 @@ func TestNearest(t *testing.T) {
 			runtest(t, desc, "=", c.value, c.eql)
 		}
 	})
-	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zed.NewContext(), reader(records))
+	q, err := runtime.NewQueryOnReader(context.Background(), zed.NewContext(), compiler.MustParseProc("sort ts"), reader(records), nil)
 	require.NoError(t, err)
-	asc := buildAndOpen(t, engine, r, field.DottedList("ts"), index.Order(order.Asc))
+	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.Order(order.Asc))
 	t.Run("Ascending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, asc, ">", c.value, c.gt)

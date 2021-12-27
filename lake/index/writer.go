@@ -7,9 +7,10 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/driver"
+
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -97,10 +98,10 @@ func (a *onceError) Load() error {
 }
 
 type indexer struct {
-	err       onceError
-	flowgraph zio.ReadCloser
-	index     *index.Writer
-	wg        sync.WaitGroup
+	err   onceError
+	query *runtime.Query
+	index *index.Writer
+	wg    sync.WaitGroup
 }
 
 func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, object *Object, r zio.Reader) (*indexer, error) {
@@ -111,7 +112,7 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, o
 		return nil, err
 	}
 	zctx := zed.NewContext()
-	flowgraph, err := driver.NewReader(ctx, p, zctx, r)
+	query, err := runtime.NewQueryOnReader(ctx, zctx, p, r, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -121,15 +122,15 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, o
 		return nil, err
 	}
 	return &indexer{
-		flowgraph: flowgraph,
-		index:     writer,
+		index: writer,
+		query: query,
 	}, nil
 }
 
 func (d *indexer) start() {
 	d.wg.Add(1)
 	go func() {
-		if err := zio.Copy(d, d.flowgraph); err != nil {
+		if err := zio.Copy(d, d.query.AsReader()); err != nil {
 			d.index.Abort()
 			d.err.Store(err)
 		}
@@ -140,7 +141,11 @@ func (d *indexer) start() {
 
 func (d *indexer) Wait() error {
 	d.wg.Wait()
-	return d.err.Load()
+	err := d.query.Close()
+	if indexErr := d.err.Load(); err == nil {
+		err = indexErr
+	}
+	return err
 }
 
 func (d *indexer) Write(rec *zed.Value) error {

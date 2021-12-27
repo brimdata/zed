@@ -9,12 +9,12 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -72,7 +72,12 @@ func (c *createCommand) Run(args []string) error {
 			return err
 		}
 		query := fmt.Sprintf("from :index_rules | name == '%s'", ruleName)
-		_, err = lake.Query(ctx, driver.NewCLI(w), nil, query)
+		q, err := lake.Query(ctx, nil, query)
+		if err != nil {
+			w.Close()
+			return err
+		}
+		err = zio.Copy(w, q)
 		if err2 := w.Close(); err == nil {
 			err = err2
 		}

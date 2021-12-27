@@ -65,10 +65,10 @@ func (p *Proc) sortLoop() {
 	p.setCompareFn(&firstRunRecs[0])
 	if eof {
 		// Just one run so do an in-memory sort.
-		p.warnAboutUnseenFields()
 		expr.SortStable(firstRunRecs, p.compareFn)
 		//XXX bug: we need upstream ectx. See #3367
 		array := zbuf.NewArray(firstRunRecs)
+		p.appendWarnings(array)
 		p.sendResult(array, nil)
 		return
 	}
@@ -79,13 +79,17 @@ func (p *Proc) sortLoop() {
 		return
 	}
 	defer runManager.Cleanup()
-	p.warnAboutUnseenFields()
 	puller := zbuf.NewPuller(runManager, 100)
 	for p.pctx.Err() == nil {
 		// Reading from runManager merges the runs.
 		b, err := puller.Pull()
 		p.sendResult(b, err)
 		if b == nil || err != nil {
+			if err == nil {
+				warnings := zbuf.NewArray(nil)
+				p.appendWarnings(warnings)
+				p.sendResult(warnings, nil)
+			}
 			return
 		}
 	}
@@ -151,10 +155,11 @@ func (p *Proc) createRuns(firstRunRecs []zed.Value) (*spill.MergeSort, error) {
 	}
 }
 
-func (p *Proc) warnAboutUnseenFields() {
+func (p *Proc) appendWarnings(a *zbuf.Array) {
 	for _, f := range p.unseenFieldTracker.unseen() {
 		name, _ := expr.DotExprToString(f)
-		p.pctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", name)
+		e := fmt.Sprintf("warning: sort field %q not present in input", name)
+		a.Append(zed.NewValue(zed.TypeError, []byte(e)))
 	}
 }
 
