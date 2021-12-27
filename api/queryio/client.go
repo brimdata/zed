@@ -16,8 +16,8 @@ type Query struct {
 	reader *zngio.Reader
 }
 
-//  NewQuery returns a Query that reads ZNG-encoded query response
-// from r and decodes it.
+// NewQuery returns a Query that reads a ZNG-encoded query response
+// from res and decodes it.
 func NewQuery(res *client.Response) *Query {
 	return &Query{
 		reader: zngio.NewReader(res.Body, zed.NewContext()),
