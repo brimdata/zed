@@ -12,7 +12,7 @@ import (
 )
 
 type Filter interface {
-	AsFilter() (expr.Filter, error)
+	AsEvaluator() (expr.Evaluator, error)
 	AsBufferFilter() (*expr.BufferFilter, error)
 }
 
@@ -76,10 +76,10 @@ func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 	if sa != nil {
 		return sa.NewScanner(ctx, filterExpr)
 	}
-	var f expr.Filter
+	var f expr.Evaluator
 	if filterExpr != nil {
 		var err error
-		if f, err = filterExpr.AsFilter(); err != nil {
+		if f, err = filterExpr.AsEvaluator(); err != nil {
 			return nil, err
 		}
 	}
@@ -91,7 +91,7 @@ func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 type scanner struct {
 	Puller
 	reader zio.Reader
-	filter expr.Filter
+	filter expr.Evaluator
 	ctx    context.Context
 	ectx   expr.Context
 
@@ -117,8 +117,11 @@ func (s *scanner) Read() (*zed.Value, error) {
 		}
 		atomic.AddInt64(&s.progress.BytesRead, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.progress.RecordsRead, 1)
-		if s.filter != nil && !s.filter(s.ectx, this) {
-			continue
+		if s.filter != nil {
+			val := s.filter.Eval(s.ectx, this)
+			if !(val.Type == zed.TypeBool && zed.IsTrue(val.Bytes)) {
+				continue
+			}
 		}
 		atomic.AddInt64(&s.progress.BytesMatched, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.progress.RecordsMatched, 1)

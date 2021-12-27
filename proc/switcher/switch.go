@@ -18,7 +18,7 @@ type Switcher struct {
 	parent     proc.Interface
 	once       sync.Once
 	n          int
-	filters    []expr.Filter
+	filters    []expr.Evaluator
 	requestsCh chan request
 	requests   []chan<- proc.Result
 }
@@ -30,7 +30,7 @@ func New(parent proc.Interface) *Switcher {
 	}
 }
 
-func (s *Switcher) Add(filt expr.Filter) (chan request, int) {
+func (s *Switcher) Add(filt expr.Evaluator) (chan request, int) {
 	s.filters = append(s.filters, filt)
 	s.requests = append(s.requests, nil)
 	id := s.n
@@ -73,35 +73,35 @@ func (s *Switcher) run() {
 			s.sendEOS(proc.Result{batch, err})
 			continue
 		}
-		ctx := batch.Context()
+		ectx := batch.Context()
 		vals := batch.Values()
 		for i := range vals {
-			if j := s.match(ctx, &vals[i]); j >= 0 {
-				if records[j] == nil {
-					records[j] = make([]zed.Value, 0, len(vals))
+			this := &vals[i]
+			for j, f := range s.filters {
+				val := f.Eval(ectx, this)
+				if val.IsError() {
+					// XXX should use structured here to wrap
+					// the input value with the error
+					records[j] = append(records[j], *val)
+					break
 				}
-				records[j] = append(records[j], vals[i])
+				if val.Type == zed.TypeBool && val.Bytes != nil && zed.IsTrue(val.Bytes) {
+					records[j] = append(records[j], vals[i])
+					break
+				}
+
 			}
 		}
 		for i := range records {
 			if records[i] != nil {
 				results[i] = proc.Result{Batch: zbuf.NewArray(records[i])}
-				records[i] = nil
+				records[i] = records[i][:0]
 			}
 		}
 		s.send(results)
 		batch.Unref()
 	}
 	s.parent.Done()
-}
-
-func (s *Switcher) match(ctx expr.Context, rec *zed.Value) int {
-	for i, f := range s.filters {
-		if f(ctx, rec) {
-			return i
-		}
-	}
-	return -1
 }
 
 func (s *Switcher) sendEOS(result proc.Result) {
@@ -131,7 +131,7 @@ type Proc struct {
 	parent *Switcher
 }
 
-func (s *Switcher) NewProc(filt expr.Filter) *Proc {
+func (s *Switcher) NewProc(filt expr.Evaluator) *Proc {
 	p := &Proc{
 		ch:     make(chan proc.Result),
 		parent: s,

@@ -1,27 +1,19 @@
 package proc
 
 import (
-	"fmt"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
 )
 
-type Applier interface {
-	expr.Evaluator
-	fmt.Stringer
-	Warning() string
-}
-
 type applier struct {
 	pctx   *Context
 	parent Interface
-	expr   Applier
+	expr   expr.Applier
 	warned map[string]struct{}
 }
 
-func NewApplier(pctx *Context, parent Interface, apply Applier) *applier {
+func NewApplier(pctx *Context, parent Interface, apply expr.Applier) *applier {
 	return &applier{
 		pctx:   pctx,
 		parent: parent,

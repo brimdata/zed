@@ -28,11 +28,11 @@ func NewLogicalNot(e Evaluator) *Not {
 }
 
 func (n *Not) Eval(ectx Context, this *zed.Value) *zed.Value {
-	val, ok := evalBool(ectx, n.expr, this)
+	val, ok := EvalBool(ectx, this, n.expr)
 	if !ok {
 		return val
 	}
-	if zed.IsTrue(val.Bytes) {
+	if val.Bytes != nil && zed.IsTrue(val.Bytes) {
 		return zed.False
 	}
 	return zed.True
@@ -56,36 +56,54 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 	return &Or{lhs, rhs}
 }
 
-func evalBool(ectx Context, e Evaluator, this *zed.Value) (*zed.Value, bool) {
+// EvalBool evaluates e with this and if the result is a Zed bool, returns the
+// result and true.  Otherwise, a Zed error (inclusive of missing) and false
+// are returned.
+func EvalBool(ectx Context, this *zed.Value, e Evaluator) (*zed.Value, bool) {
 	val := e.Eval(ectx, this)
-	if zed.AliasOf(val.Type) != zed.TypeBool {
-		return ectx.CopyValue(*zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val))), false
+	if zed.AliasOf(val.Type) == zed.TypeBool {
+		return val, true
 	}
-	return val, true
+	if val.IsError() {
+		return val, false
+	}
+	return ectx.CopyValue(*zed.NewErrorf("not type bool: %s", zson.MustFormatValue(*val))), false
 }
 
 func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
-	lhs, ok := evalBool(ectx, a.lhs, this)
+	lhs, ok := EvalBool(ectx, this, a.lhs)
 	if !ok {
 		return lhs
 	}
-	if !zed.IsTrue(lhs.Bytes) {
+	if lhs.Bytes == nil || !zed.IsTrue(lhs.Bytes) {
 		return zed.False
 	}
-	val, _ := evalBool(ectx, a.rhs, this)
-	return val
+	rhs, ok := EvalBool(ectx, this, a.rhs)
+	if !ok {
+		return rhs
+	}
+	if rhs.Bytes == nil || !zed.IsTrue(rhs.Bytes) {
+		return zed.False
+	}
+	return zed.True
 }
 
 func (o *Or) Eval(ectx Context, this *zed.Value) *zed.Value {
-	lhs, ok := evalBool(ectx, o.lhs, this)
-	if !ok {
-		return lhs
-	}
-	if zed.IsTrue(lhs.Bytes) {
+	lhs, ok := EvalBool(ectx, this, o.lhs)
+	if ok && lhs.Bytes != nil && zed.IsTrue(lhs.Bytes) {
 		return zed.True
 	}
-	val, _ := evalBool(ectx, o.rhs, this)
-	return val
+	if lhs.IsError() && !lhs.IsMissing() {
+		return lhs
+	}
+	rhs, ok := EvalBool(ectx, this, o.rhs)
+	if ok {
+		if rhs.Bytes != nil && zed.IsTrue(rhs.Bytes) {
+			return zed.True
+		}
+		return zed.False
+	}
+	return rhs
 }
 
 type In struct {

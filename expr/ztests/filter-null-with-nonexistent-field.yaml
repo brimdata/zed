@@ -1,4 +1,4 @@
-zed: not (t==null or t!=null)
+zed: not has(t)
 
 input: &input |
   {s:"A=B"}

@@ -96,24 +96,37 @@ type rangeWrapper struct {
 	layout order.Layout
 }
 
-func (r *rangeWrapper) AsFilter() (expr.Filter, error) {
-	f, err := r.Filter.AsFilter()
+var _ zbuf.Filter = (*rangeWrapper)(nil)
+
+func (r *rangeWrapper) AsEvaluator() (expr.Evaluator, error) {
+	f, err := r.Filter.AsEvaluator()
 	if err != nil {
 		return nil, err
 	}
 	compare := extent.CompareFunc(r.layout.Order)
-	return func(ctx expr.Context, rec *zed.Value) bool {
-		keyVal, err := rec.Deref(r.layout.Keys[0])
-		if err != nil {
-			// XXX match keyless records.
-			// See issue #2637.
-			return true
-		}
-		if compare(&keyVal, r.first) < 0 || compare(&keyVal, r.last) > 0 {
-			return false
-		}
-		return f == nil || f(ctx, rec)
-	}, nil
+	return &rangeFilter{r, f, compare}, nil
+}
+
+type rangeFilter struct {
+	r       *rangeWrapper
+	filter  expr.Evaluator
+	compare expr.ValueCompareFn
+}
+
+func (r *rangeFilter) Eval(ectx expr.Context, this *zed.Value) *zed.Value {
+	keyVal, err := this.Deref(r.r.layout.Keys[0])
+	if err != nil {
+		// XXX match keyless records.
+		// See issue #2637.
+		return zed.True
+	}
+	if r.compare(&keyVal, r.r.first) < 0 || r.compare(&keyVal, r.r.last) > 0 {
+		return zed.False
+	}
+	if r.filter == nil {
+		return zed.True
+	}
+	return r.filter.Eval(ectx, this)
 }
 
 func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, first, last zed.Value, layout order.Layout) zbuf.Filter {

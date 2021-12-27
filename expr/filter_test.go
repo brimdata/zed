@@ -33,6 +33,17 @@ func runCasesExpectBufferFilterFalsePositives(t *testing.T, record string, cases
 	runCasesHelper(t, record, cases, true)
 }
 
+func filter(ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
+	if e == nil {
+		return true
+	}
+	val := e.Eval(ectx, this)
+	if val.Type == zed.TypeBool && zed.IsTrue(val.Bytes) {
+		return true
+	}
+	return false
+}
+
 func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferFilterFalsePositives bool) {
 	t.Helper()
 
@@ -58,10 +69,10 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			trunk := &from.Trunks[0]
 			filterMaker, err := runtime.Builder().PushdownOf(trunk)
 			require.NoError(t, err, "filter: %q", c.filter)
-			f, err := filterMaker.AsFilter()
+			f, err := filterMaker.AsEvaluator()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
-				assert.Equal(t, c.expected, f(expr.NewContext(), rec),
+				assert.Equal(t, c.expected, filter(expr.NewContext(), rec, f),
 					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Bytes))
 			}
 			bf, err := filterMaker.AsBufferFilter()

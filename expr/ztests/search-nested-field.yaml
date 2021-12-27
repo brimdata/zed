@@ -1,0 +1,10 @@
+zed: b
+
+input: |
+  {a:[{b:"foo"}]}
+  {a:[{c:"foo"}]}
+  {a:[{c:"foo"},{b:1}]}
+
+output: |
+  {a:[{b:"foo"}]}
+  {a:[{c:"foo"}(({c:string},{b:int64})),{b:1}(({c:string},{b:int64}))]}

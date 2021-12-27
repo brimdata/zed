@@ -36,14 +36,14 @@ func (r *Reader) NewScanner(ctx context.Context, filter zbuf.Filter) (zbuf.Scann
 	}
 	for i := 0; i < n; i++ {
 		var bf *expr.BufferFilter
-		var f expr.Filter
+		var f expr.Evaluator
 		if filter != nil {
 			var err error
 			bf, err = filter.AsBufferFilter()
 			if err != nil {
 				return nil, err
 			}
-			f, err = filter.AsFilter()
+			f, err = filter.AsEvaluator()
 			if err != nil {
 				return nil, err
 			}
@@ -94,7 +94,7 @@ func (s *scanner) Progress() zbuf.Progress {
 
 type worker struct {
 	bufferFilter *expr.BufferFilter
-	filter       expr.Filter
+	filter       expr.Evaluator
 	scanner      *scanner
 	ectx         expr.Context
 }
@@ -164,7 +164,7 @@ func (w *worker) run(ctx context.Context) error {
 		// batch for every record that passes the filter.
 		rec.Bytes = recBytesCopy
 		var progress zbuf.Progress
-		if w.wantRecord(rec, &progress) {
+		if w.wantValue(rec, &progress) {
 			// Give rec.Bytes ownership to the new batch.
 			recBytesCopy = nil
 			batch := newBatch(nil)
@@ -214,7 +214,7 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 		if err != nil {
 			return nil, err
 		}
-		if w.wantRecord(rec, &progress) {
+		if w.wantValue(rec, &progress) {
 			batch.add(rec)
 		}
 	}
@@ -226,18 +226,23 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 	return batch, nil
 }
 
-func (w *worker) wantRecord(rec *zed.Value, progress *zbuf.Progress) bool {
-	progress.BytesRead += int64(len(rec.Bytes))
+func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
+	progress.BytesRead += int64(len(val.Bytes))
 	progress.RecordsRead++
 	// It's tempting to call w.bufferFilter.Eval on rec.Bytes here, but that
 	// might call FieldNameFinder.Find, which could explode or return false
 	// negatives because it expects a buffer of ZNG value messages, and
 	// rec.Bytes is just a ZNG value.  (A ZNG value message is a header
 	// indicating a type ID followed by a value of that type.)
-	if w.filter == nil || w.filter(w.ectx, rec) {
-		progress.BytesMatched += int64(len(rec.Bytes))
+	if w.filter == nil || check(w.ectx, val, w.filter) {
+		progress.BytesMatched += int64(len(val.Bytes))
 		progress.RecordsMatched++
 		return true
 	}
 	return false
+}
+
+func check(ectx expr.Context, this *zed.Value, filter expr.Evaluator) bool {
+	val := filter.Eval(ectx, this)
+	return val.Type == zed.TypeBool && zed.IsTrue(val.Bytes)
 }
