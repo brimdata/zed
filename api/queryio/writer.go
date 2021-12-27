@@ -19,16 +19,14 @@ type controlWriter interface {
 
 type Writer struct {
 	cid     int
-	ctrl    bool
 	start   nano.Ts
 	writer  zio.WriteCloser
 	flusher http.Flusher
 }
 
-func NewWriter(w io.WriteCloser, format string, sendctrl bool, flusher http.Flusher) (*Writer, error) {
+func NewWriter(w io.WriteCloser, format string, flusher http.Flusher) (*Writer, error) {
 	d := &Writer{
 		cid:     -1,
-		ctrl:    sendctrl,
 		start:   nano.Now(),
 		flusher: flusher,
 	}
@@ -50,7 +48,7 @@ func NewWriter(w io.WriteCloser, format string, sendctrl bool, flusher http.Flus
 func (w *Writer) WriteBatch(cid int, batch zbuf.Batch) error {
 	if w.cid != cid {
 		w.cid = cid
-		if err := w.WriteControl(api.QueryChannelSet{cid}, w.ctrl); err != nil {
+		if err := w.WriteControl(api.QueryChannelSet{cid}); err != nil {
 			return err
 		}
 	}
@@ -59,7 +57,7 @@ func (w *Writer) WriteBatch(cid int, batch zbuf.Batch) error {
 }
 
 func (w *Writer) WhiteChannelEnd(channelID int) error {
-	return w.WriteControl(api.QueryChannelEnd{channelID}, w.ctrl)
+	return w.WriteControl(api.QueryChannelEnd{channelID})
 }
 
 func (w *Writer) WriteProgress(stats zbuf.Progress) error {
@@ -68,21 +66,19 @@ func (w *Writer) WriteProgress(stats zbuf.Progress) error {
 		UpdateTime: nano.Now(),
 		Progress:   stats,
 	}
-	return w.WriteControl(v, w.ctrl)
+	return w.WriteControl(v)
 }
 
 func (w *Writer) WriteError(err error) {
-	w.WriteControl(api.QueryError{err.Error()}, true)
+	w.WriteControl(api.QueryError{err.Error()})
 }
 
-func (w *Writer) WriteControl(value interface{}, ctrl bool) error {
+func (w *Writer) WriteControl(value interface{}) error {
 	var err error
-	if ctrl {
-		if ctrl, ok := w.writer.(controlWriter); ok {
-			err = ctrl.WriteControl(value)
-			if w.flusher != nil {
-				w.flusher.Flush()
-			}
+	if ctrl, ok := w.writer.(controlWriter); ok {
+		err = ctrl.WriteControl(value)
+		if w.flusher != nil {
+			w.flusher.Flush()
 		}
 	}
 	return err

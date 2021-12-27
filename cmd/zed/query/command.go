@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -65,12 +66,12 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	head, _ := c.lakeFlags.HEAD()
-	query, err := lake.Query(ctx, head, true, src, c.queryFlags.Includes...)
+	query, err := lake.Query(ctx, head, src, c.queryFlags.Includes...)
 	if err != nil {
 		w.Close()
 		return err
 	}
-	err = zio.Copy(w, query)
+	err = zio.Copy(w, zbuf.NoControl(query))
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

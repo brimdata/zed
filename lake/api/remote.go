@@ -123,8 +123,8 @@ func (q *queryReader) Read() (*zed.Value, error) {
 	return val, err
 }
 
-func (r *RemoteSession) Query(ctx context.Context, head *lakeparse.Commitish, ctrl bool, src string, srcfiles ...string) (zbuf.ProgressReader, error) {
-	res, err := r.conn.Query(ctx, head, ctrl, src, srcfiles...)
+func (r *RemoteSession) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error) {
+	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
 		return nil, err
 	}

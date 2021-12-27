@@ -33,17 +33,13 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(zqe.ErrInvalid(err))
 		return
 	}
-	ctrl, ok := r.BoolFromQuery("ctrl", w)
-	if !ok {
-		return
-	}
 	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"), DefaultZedFormat)
 	if err != nil {
 		w.Error(zqe.ErrInvalid(err))
 		return
 	}
 	flusher, _ := w.ResponseWriter.(http.Flusher)
-	writer, err := queryio.NewWriter(zio.NopCloser(w), format, ctrl, flusher)
+	writer, err := queryio.NewWriter(zio.NopCloser(w), format, flusher)
 	if err != nil {
 		w.Error(err)
 		return

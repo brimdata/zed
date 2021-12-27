@@ -18,6 +18,26 @@ func (c *Control) Error() string {
 type SetChannel int
 type EndChannel int
 
+type noControl struct {
+	zio.Reader
+}
+
+func NoControl(r zio.Reader) *noControl {
+	return &noControl{Reader: r}
+}
+
+func (n *noControl) Read() (*zed.Value, error) {
+	for {
+		val, err := n.Reader.Read()
+		if err != nil {
+			if _, ok := err.(*Control); ok {
+				continue
+			}
+		}
+		return val, err
+	}
+}
+
 type ProgressReader interface {
 	zio.Reader
 	Progress() Progress
@@ -46,7 +66,6 @@ func (m *meterReader) Read() (*zed.Value, error) {
 				if progress, ok := ctrl.Message.(Progress); ok {
 					m.progress = progress
 				}
-				continue
 			}
 		}
 		return val, err

@@ -18,7 +18,7 @@ import (
 )
 
 type Interface interface {
-	Query(ctx context.Context, head *lakeparse.Commitish, ctrl bool, src string, srcfiles ...string) (zbuf.ProgressReader, error)
+	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.Layout, int, int64) (ksuid.KSUID, error)
@@ -41,17 +41,21 @@ func IsLakeService(u *storage.URI) bool {
 }
 
 func ScanIndexRules(ctx context.Context, api Interface) (zio.Reader, error) {
-	return api.Query(ctx, nil, false, "from :index_rules")
+	r, err := api.Query(ctx, nil, "from :index_rules")
+	if err != nil {
+		return nil, err
+	}
+	return zbuf.NoControl(r), nil
 }
 
 func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {
 	b := newBuffer(pools.Config{})
 	zed := fmt.Sprintf("from :pools | name == '%s'", name)
-	q, err := api.Query(ctx, nil, false, zed)
+	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
 		return nil, err
 	}
-	if err := zio.Copy(b, q); err != nil {
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
 		return nil, err
 	}
 	switch len(b.results) {
@@ -71,11 +75,11 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.Config, error) {
 	b := newBuffer(pools.Config{})
 	zed := fmt.Sprintf("from :pools | id == from_hex('%s')", idToHex(id))
-	q, err := api.Query(ctx, nil, false, zed)
+	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
 		return nil, err
 	}
-	if err := zio.Copy(b, q); err != nil {
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
 		return nil, err
 	}
 	switch len(b.results) {
@@ -95,11 +99,11 @@ func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.
 func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName string) (*lake.BranchMeta, error) {
 	b := newBuffer(lake.BranchMeta{})
 	zed := fmt.Sprintf("from :branches | pool.name == '%s' branch.name == '%s'", poolName, branchName)
-	q, err := api.Query(ctx, nil, false, zed)
+	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
 		return nil, err
 	}
-	if err := zio.Copy(b, q); err != nil {
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
 		return nil, err
 	}
 	switch len(b.results) {
@@ -119,8 +123,11 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 func LookupBranchByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake.BranchMeta, error) {
 	b := newBuffer(lake.BranchMeta{})
 	zed := fmt.Sprintf("from :branches | branch.id == 'from_hex(%s)'", idToHex(id))
-	_, err := api.Query(ctx, nil, false, zed)
+	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
+		return nil, err
+	}
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
 		return nil, err
 	}
 	switch len(b.results) {

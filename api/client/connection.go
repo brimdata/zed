@@ -249,7 +249,7 @@ func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return commit, err
 }
 
-func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, ctrl bool, src string, filenames ...string) (*Response, error) {
+func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
 	src, srcInfo, err := parser.ConcatSource(filenames, src)
 	if err != nil {
 		return nil, err
@@ -258,11 +258,7 @@ func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, ctrl 
 	if head != nil {
 		body.Head = *head
 	}
-	path := "/query"
-	if ctrl {
-		path += "?ctrl=true"
-	}
-	req := c.NewRequest(ctx, http.MethodPost, path, body)
+	req := c.NewRequest(ctx, http.MethodPost, "/query", body)
 	res, err := c.Do(req)
 	var ae *api.Error
 	if errors.As(err, &ae) {
