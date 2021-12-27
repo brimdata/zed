@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Query runs a flowgraph as zubf.Puller and implements a Close() method
+// Query runs a flowgraph as a zbuf.Puller and implements a Close() method
 // that gracefully tears down the flowgraph.  Its AsReader() and AsProgressReader()
 // methods provide a convenient means to run a flowgraph as zio.Reader.
 type Query struct {
@@ -24,8 +24,7 @@ type Query struct {
 	flowgraph *compiler.Runtime
 }
 
-var _ zbuf.Puller = (*Query)(nil)
-var _ io.Closer = (*Query)(nil)
+var _ zbuf.PullerCloser = (*Query)(nil)
 
 func NewQuery(pctx *proc.Context, flowgraph *compiler.Runtime, closer io.Closer) *Query {
 	return &Query{

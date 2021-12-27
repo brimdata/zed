@@ -6,9 +6,8 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
-// EndOfBatch signals the end of batch via the error value returned by a Pull()
-// on a Latch. EndOfBatch should be detected and acted upon by a caller of
-// Latch.Pull() and not propagated downstream.
+// EndOfBatch is returned by Latch.Pull to signal the end of a batch.
+// It should be handled by a caller of Latch.Pull() and not propagated downstream.
 var EndOfBatch = errors.New("end of batch")
 
 // Latch is an operator that converts the double EOS protocol into a
@@ -32,11 +31,11 @@ func (l *Latch) Pull() (zbuf.Batch, error) {
 		return nil, l.err
 	}
 	b, err := l.parent.Pull()
-	if err == EndOfBatch {
-		// This breaks the protocol and shouldn't happen so we panic.
-		panic("proc.Latch received EndOfBatch")
-	}
 	if err != nil {
+		if err == EndOfBatch {
+			// This breaks the protocol and shouldn't happen so we panic.
+			panic("proc.Latch received EndOfBatch")
+		}
 		l.err = err
 		l.done = true
 		return nil, err
