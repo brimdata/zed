@@ -69,7 +69,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			trunk := &from.Trunks[0]
 			filterMaker, err := runtime.Builder().PushdownOf(trunk)
 			require.NoError(t, err, "filter: %q", c.filter)
-			f, err := filterMaker.AsFilter()
+			f, err := filterMaker.AsEvaluator()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
 				assert.Equal(t, c.expected, filter(expr.NewContext(), rec, f),

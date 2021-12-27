@@ -96,8 +96,10 @@ type rangeWrapper struct {
 	layout order.Layout
 }
 
-func (r *rangeWrapper) AsFilter() (expr.Evaluator, error) {
-	f, err := r.Filter.AsFilter()
+var _ zbuf.Filter = (*rangeWrapper)(nil)
+
+func (r *rangeWrapper) AsEvaluator() (expr.Evaluator, error) {
+	f, err := r.Filter.AsEvaluator()
 	if err != nil {
 		return nil, err
 	}

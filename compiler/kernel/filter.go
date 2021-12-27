@@ -18,7 +18,7 @@ type Filter struct {
 
 var _ zbuf.Filter = (*Filter)(nil)
 
-func (f *Filter) AsFilter() (expr.Evaluator, error) {
+func (f *Filter) AsEvaluator() (expr.Evaluator, error) {
 	if f == nil {
 		return nil, nil
 	}

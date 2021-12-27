@@ -25,10 +25,7 @@ func SearchByPredicate(pred Boolean) Evaluator {
 
 func (s *searchByPred) Eval(_ Context, this *zed.Value) *zed.Value {
 	if errMatch == this.Walk(func(typ zed.Type, body zcode.Bytes) error {
-		if s.searchType(typ) {
-			return errMatch
-		}
-		if s.pred(&zed.Value{Type: typ, Bytes: body}) {
+		if s.searchType(typ) || s.pred(zed.NewValue(typ, body)) {
 			return errMatch
 		}
 		return nil
@@ -48,8 +45,7 @@ func (s *searchByPred) searchType(typ zed.Type) bool {
 		var nameIter stringsearch.FieldNameIter
 		nameIter.Init(recType)
 		for !nameIter.Done() {
-			body := nameIter.Next()
-			if s.pred(&zed.Value{Type: zed.TypeString, Bytes: body}) {
+			if s.pred(zed.NewValue(zed.TypeString, nameIter.Next())) {
 				match = true
 				break
 			}
@@ -108,7 +104,7 @@ func (s *search) Eval(_ Context, this *zed.Value) *zed.Value {
 			if stringSearch(byteconv.UnsafeString(body), s.text) {
 				return errMatch
 			}
-		} else if s.compare(&zed.Value{Type: typ, Bytes: body}) {
+		} else if s.compare(zed.NewValue(typ, body)) {
 			return errMatch
 		}
 		return nil

@@ -12,7 +12,7 @@ import (
 )
 
 type Filter interface {
-	AsFilter() (expr.Evaluator, error)
+	AsEvaluator() (expr.Evaluator, error)
 	AsBufferFilter() (*expr.BufferFilter, error)
 }
 
@@ -79,7 +79,7 @@ func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 	var f expr.Evaluator
 	if filterExpr != nil {
 		var err error
-		if f, err = filterExpr.AsFilter(); err != nil {
+		if f, err = filterExpr.AsEvaluator(); err != nil {
 			return nil, err
 		}
 	}

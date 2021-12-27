@@ -144,14 +144,6 @@ func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, erro
 	return p.openBranch(ctx, branchRef)
 }
 
-func filter(ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
-	if e == nil {
-		return true
-	}
-	val, ok := expr.EvalBool(ectx, this, e)
-	return ok && val.Bytes != nil && zed.IsTrue(val.Bytes)
-}
-
 func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
@@ -169,6 +161,14 @@ func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.M
 		}
 	}
 	return recs, nil
+}
+
+func filter(ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
+	if e == nil {
+		return true
+	}
+	val, ok := expr.EvalBool(ectx, this, e)
+	return ok && val.Bytes != nil && zed.IsTrue(val.Bytes)
 }
 
 type BranchTip struct {

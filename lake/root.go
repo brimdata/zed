@@ -477,7 +477,7 @@ func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Sour
 }
 
 func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zed.Context, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
-	f, err := filter.AsFilter()
+	f, err := filter.AsEvaluator()
 	if err != nil {
 		return nil, err
 	}
@@ -503,7 +503,7 @@ func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zed.Context, meta
 }
 
 func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, poolID ksuid.KSUID, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
-	f, err := filter.AsFilter()
+	f, err := filter.AsEvaluator()
 	if err != nil {
 		return nil, err
 	}

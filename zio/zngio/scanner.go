@@ -43,7 +43,7 @@ func (r *Reader) NewScanner(ctx context.Context, filter zbuf.Filter) (zbuf.Scann
 			if err != nil {
 				return nil, err
 			}
-			f, err = filter.AsFilter()
+			f, err = filter.AsEvaluator()
 			if err != nil {
 				return nil, err
 			}
@@ -226,11 +226,6 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 	return batch, nil
 }
 
-func check(ectx expr.Context, this *zed.Value, filter expr.Evaluator) bool {
-	val := filter.Eval(ectx, this)
-	return val.Type == zed.TypeBool && zed.IsTrue(val.Bytes)
-}
-
 func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
 	progress.BytesRead += int64(len(val.Bytes))
 	progress.RecordsRead++
@@ -245,4 +240,9 @@ func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
 		return true
 	}
 	return false
+}
+
+func check(ectx expr.Context, this *zed.Value, filter expr.Evaluator) bool {
+	val := filter.Eval(ectx, this)
+	return val.Type == zed.TypeBool && zed.IsTrue(val.Bytes)
 }
