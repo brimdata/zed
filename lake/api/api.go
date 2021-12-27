@@ -18,7 +18,8 @@ import (
 )
 
 type Interface interface {
-	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error)
+	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.Reader, error)
+	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.Layout, int, int64) (ksuid.KSUID, error)

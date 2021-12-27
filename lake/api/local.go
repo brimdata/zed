@@ -94,7 +94,15 @@ func (l *LocalSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) 
 	return l.root.DeleteIndexRules(ctx, ids)
 }
 
-func (l *LocalSession) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error) {
+func (l *LocalSession) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.Reader, error) {
+	q, err := l.QueryWithControl(ctx, head, src, srcfiles...)
+	if err != nil {
+		return nil, err
+	}
+	return zbuf.NoControl(q), nil
+}
+
+func (l *LocalSession) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error) {
 	flowgraph, err := compiler.ParseProc(src, srcfiles...)
 	if err != nil {
 		return nil, err

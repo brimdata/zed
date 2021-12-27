@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -147,7 +148,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	err = zio.Copy(writer, query.AsReader())
+	err = zio.Copy(writer, zbuf.NoControl(query.AsReader()))
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

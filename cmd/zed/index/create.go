@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
@@ -73,12 +72,12 @@ func (c *createCommand) Run(args []string) error {
 			return err
 		}
 		query := fmt.Sprintf("from :index_rules | name == '%s'", ruleName)
-		r, err := lake.Query(ctx, nil, query)
+		q, err := lake.Query(ctx, nil, query)
 		if err != nil {
 			w.Close()
 			return err
 		}
-		err = zio.Copy(w, zbuf.NoControl(r))
+		err = zio.Copy(w, q)
 		if err2 := w.Close(); err == nil {
 			err = err2
 		}

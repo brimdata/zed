@@ -66,7 +66,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	head, _ := c.lakeFlags.HEAD()
-	query, err := lake.Query(ctx, head, src, c.queryFlags.Includes...)
+	query, err := lake.QueryWithControl(ctx, head, src, c.queryFlags.Includes...)
 	if err != nil {
 		w.Close()
 		return err

@@ -123,7 +123,15 @@ func (q *queryReader) Read() (*zed.Value, error) {
 	return val, err
 }
 
-func (r *RemoteSession) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error) {
+func (r *RemoteSession) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.Reader, error) {
+	q, err := r.QueryWithControl(ctx, head, src, srcfiles...)
+	if err != nil {
+		return nil, err
+	}
+	return zbuf.NoControl(q), nil
+}
+
+func (r *RemoteSession) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error) {
 	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
 		return nil, err
