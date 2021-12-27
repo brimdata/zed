@@ -29,10 +29,8 @@ func NoControl(r zio.Reader) *noControl {
 func (n *noControl) Read() (*zed.Value, error) {
 	for {
 		val, err := n.Reader.Read()
-		if err != nil {
-			if _, ok := err.(*Control); ok {
-				continue
-			}
+		if _, ok := err.(*Control); ok {
+			continue
 		}
 		return val, err
 	}
@@ -43,15 +41,13 @@ type ProgressReader interface {
 	Progress() Progress
 }
 
+func MeterReader(r zio.Reader) ProgressReader {
+	return &meterReader{Reader: r}
+}
+
 type meterReader struct {
 	zio.Reader
 	progress Progress
-}
-
-var _ ProgressReader = (*meterReader)(nil)
-
-func MeterReader(r zio.Reader) *meterReader {
-	return &meterReader{Reader: r}
 }
 
 func (m *meterReader) Progress() Progress {
@@ -61,11 +57,9 @@ func (m *meterReader) Progress() Progress {
 func (m *meterReader) Read() (*zed.Value, error) {
 	for {
 		val, err := m.Reader.Read()
-		if err != nil {
-			if ctrl, ok := err.(*Control); ok {
-				if progress, ok := ctrl.Message.(Progress); ok {
-					m.progress = progress
-				}
+		if ctrl, ok := err.(*Control); ok {
+			if progress, ok := ctrl.Message.(Progress); ok {
+				m.progress = progress
 			}
 		}
 		return val, err
