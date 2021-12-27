@@ -113,7 +113,7 @@ var _ zio.Reader = (*queryReader)(nil)
 
 func (q *queryReader) Read() (*zed.Value, error) {
 	val, err := q.reader.Read()
-	if (val == nil || err != nil) && q.res != nil {
+	if val == nil || err != nil {
 		if _, ok := err.(*zbuf.Control); !ok {
 			if closeErr := q.res.Body.Close(); err == nil {
 				err = closeErr

@@ -5,6 +5,10 @@ import (
 	"github.com/brimdata/zed/zqe"
 )
 
+// Catcher wraps an Interface with a Pull method that recovers panics
+// and turns them into errors.  It should be wrapped around the output puller
+// of a flowgraph and the top-level puller of any goroutine created inside
+// of a flowgraph.
 type Catcher struct {
 	parent Interface
 }
@@ -13,19 +17,13 @@ func NewCatcher(parent Interface) *Catcher {
 	return &Catcher{parent}
 }
 
-// SafePull runs a Pull and catches panics and turns them out errors.
-// This should be called out the output puller of a flowgraph and by
-// the top-level puller of all new goroutine created inside of a flowgraph.
 func (c *Catcher) Pull() (b zbuf.Batch, err error) {
 	defer func() {
-		r := recover()
-		if r == nil {
-			return
+		if r := recover(); r != nil {
+			err = zqe.RecoverError(r)
 		}
-		err = zqe.RecoverError(r)
 	}()
-	b, err = c.parent.Pull()
-	return
+	return c.parent.Pull()
 }
 
 func (c *Catcher) Done() {
