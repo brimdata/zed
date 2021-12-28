@@ -360,12 +360,12 @@ func compileCall(zctx *zed.Context, scope *Scope, call dag.Call) (expr.Evaluator
 		return compileShaper(zctx, scope, call)
 	}
 	nargs := len(call.Args)
-	fn, root, err := function.New(zctx, call.Name, nargs)
+	fn, this, err := function.New(zctx, call.Name, nargs)
 	if err != nil {
 		return nil, fmt.Errorf("%s(): %w", call.Name, err)
 	}
 	args := call.Args
-	if root {
+	if this {
 		args = append([]dag.Expr{dag.This}, args...)
 	}
 	exprs, err := compileExprs(zctx, scope, args)

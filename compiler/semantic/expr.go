@@ -227,10 +227,10 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (dag.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	// If we index a root record with a string constant, then just
+	// If we index this with a string constant, then just
 	// extend the path.
 	if op == "[" {
-		if path := isRootIndex(scope, lhs, rhs); path != nil {
+		if path := isIndexOfThis(scope, lhs, rhs); path != nil {
 			return path, nil
 		}
 	}
@@ -242,7 +242,7 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (dag.Expr, error) {
 	}, nil
 }
 
-func isRootIndex(scope *Scope, lhs, rhs dag.Expr) *dag.Path {
+func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.Path {
 	if path, ok := lhs.(*dag.Path); ok && len(path.Name) == 0 {
 		if s, ok := isStringConst(scope, rhs); ok {
 			path.Name = append(path.Name, s)
@@ -349,7 +349,7 @@ func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
 	} else if agg, ok := a.RHS.(*ast.Agg); ok {
 		lhs = &dag.Path{"Path", []string{agg.Name}}
 	} else if _, ok := a.RHS.(*ast.This); ok {
-		return dag.Assignment{}, errors.New("cannot assign to \"this\"")
+		return dag.Assignment{}, errors.New(`cannot assign to "this"`)
 	} else {
 		lhs, err = semField(scope, a.RHS)
 		if err != nil {
@@ -404,7 +404,7 @@ func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			if path := isRootIndex(scope, lhs, rhs); path != nil {
+			if path := isIndexOfThis(scope, lhs, rhs); path != nil {
 				return path, nil
 			}
 			return &dag.BinaryExpr{
