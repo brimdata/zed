@@ -50,11 +50,11 @@ func NewValue(zt Type, zb zcode.Bytes) *Value {
 	return &Value{zt, zb}
 }
 
-func (v Value) IsContainer() bool {
+func (v *Value) IsContainer() bool {
 	return IsContainerType(v.Type)
 }
 
-func (v Value) MarshalJSON() ([]byte, error) {
+func (v *Value) MarshalJSON() ([]byte, error) {
 	if v.Bytes == nil {
 		return json.Marshal(nil)
 	}
@@ -72,21 +72,21 @@ func badZNG(err error, t Type, zv zcode.Bytes) string {
 // String implements fmt.Stringer.String.  It should only be used for logs,
 // debugging, etc.  Any caller that requires a specific output format should use
 // FormatAs() instead.
-func (v Value) String() string {
+func (v *Value) String() string {
 	return fmt.Sprintf("%s: %s", v.Type, v.Encode(nil))
 }
 
 // Encode appends the ZNG representation of this value to the passed in
 // argument and returns the resulting zcode.Bytes (which may or may not
 // be the same underlying buffer, as with append(), depending on its capacity)
-func (v Value) Encode(dst zcode.Bytes) zcode.Bytes {
+func (v *Value) Encode(dst zcode.Bytes) zcode.Bytes {
 	if IsContainerType(v.Type) {
 		return zcode.AppendContainer(dst, v.Bytes)
 	}
 	return zcode.AppendPrimitive(dst, v.Bytes)
 }
 
-func (v Value) Iter() zcode.Iter {
+func (v *Value) Iter() zcode.Iter {
 	return v.Bytes.Iter()
 }
 
@@ -94,7 +94,7 @@ func (v Value) Iter() zcode.Iter {
 // element, and return its type and raw representation.  Returns an
 // error if the passed-in element is not an array or if idx is
 // outside the array bounds.
-func (v Value) ArrayIndex(idx int64) (Value, error) {
+func (v *Value) ArrayIndex(idx int64) (Value, error) {
 	vec, ok := v.Type.(*TypeArray)
 	if !ok {
 		return Value{}, ErrNotArray
@@ -113,7 +113,7 @@ func (v Value) ArrayIndex(idx int64) (Value, error) {
 
 // Elements returns an array of Values for the given container type.
 // Returns an error if the element is not an array or set.
-func (v Value) Elements() ([]Value, error) {
+func (v *Value) Elements() ([]Value, error) {
 	innerType := InnerType(v.Type)
 	if innerType == nil {
 		return nil, ErrNotContainer
@@ -126,7 +126,7 @@ func (v Value) Elements() ([]Value, error) {
 	return elements, nil
 }
 
-func (v Value) ContainerLength() (int, error) {
+func (v *Value) ContainerLength() (int, error) {
 	switch v.Type.(type) {
 	case *TypeSet, *TypeArray:
 		if v.IsNull() {
@@ -161,7 +161,7 @@ func (v *Value) IsNull() bool {
 
 // Copy returns a copy of v that does not share v.Bytes.  The copy's Bytes field
 // is nil if and only if v.Bytes is nil.
-func (v Value) Copy() *Value {
+func (v *Value) Copy() *Value {
 	var b zcode.Bytes
 	if v.Bytes != nil {
 		b = make(zcode.Bytes, len(v.Bytes))
@@ -184,22 +184,22 @@ func (v *Value) CopyFrom(from *Value) {
 	}
 }
 
-func (v Value) IsStringy() bool {
+func (v *Value) IsStringy() bool {
 	return IsStringy(v.Type.ID())
 }
 
-func (v Value) IsError() bool {
+func (v *Value) IsError() bool {
 	return AliasOf(v.Type) == TypeError
 }
 
-func (v Value) IsMissing() bool {
+func (v *Value) IsMissing() bool {
 	return v.Type == Missing.Type && bytes.Equal(v.Bytes, Missing.Bytes)
 }
 
-func (v Value) IsQuiet() bool {
+func (v *Value) IsQuiet() bool {
 	return v.Type == Quiet.Type && bytes.Equal(v.Bytes, Quiet.Bytes)
 }
 
-func (v Value) Equal(p Value) bool {
+func (v *Value) Equal(p Value) bool {
 	return v.Type == p.Type && bytes.Equal(v.Bytes, p.Bytes)
 }
