@@ -418,11 +418,6 @@ type Trunk struct {
 	Seq    *Sequential `json:"seq"`
 }
 
-type Method struct {
-	Name string `json:"name"`
-	Args []Expr `json:"args"`
-}
-
 type Case struct {
 	Expr Expr `json:"expr"`
 	Proc Proc `json:"proc"`
