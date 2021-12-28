@@ -13,11 +13,7 @@ const (
 	tagSep    = ","
 )
 
-var (
-	ErrTag      = errors.New(`unpack tag must have form "", "<value>", ",skip", "<value>,skip"`)
-	ErrSkip     = errors.New("unpack skip tag can only appear once")
-	ErrNeedJSON = errors.New("unpack tag cannot appear without a JSON tag")
-)
+var ErrSkip = errors.New("unpack skip tag can only appear once")
 
 func parseTag(which string, f reflect.StructField) (string, bool, []string) {
 	tag, ok := f.Tag.Lookup(which)

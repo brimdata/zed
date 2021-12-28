@@ -14,10 +14,7 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-var (
-	ErrWriteConflict = errors.New("write conflict")
-	ErrNotInCommit   = errors.New("data object not found in commit object")
-)
+var ErrWriteConflict = errors.New("write conflict")
 
 type View interface {
 	Lookup(ksuid.KSUID) (*data.Object, error)

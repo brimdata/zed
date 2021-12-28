@@ -12,17 +12,14 @@ import (
 )
 
 var (
-	ErrMissingField   = errors.New("record missing a field")
-	ErrExtraField     = errors.New("record with extra field")
-	ErrNotContainer   = errors.New("expected container type, got primitive")
-	ErrNotPrimitive   = errors.New("expected primitive type, got container")
-	ErrTypeIDExists   = errors.New("zng type ID exists")
-	ErrTypeIDInvalid  = errors.New("zng type ID out of range")
-	ErrBadValue       = errors.New("malformed zng value")
-	ErrBadFormat      = errors.New("malformed zng record")
-	ErrTypeMismatch   = errors.New("type/value mismatch")
-	ErrColumnMismatch = errors.New("zng record mismatch between columns in type and columns in value")
-	ErrCorruptColumns = errors.New("wrong number of columns in zng record value")
+	ErrMissingField  = errors.New("record missing a field")
+	ErrExtraField    = errors.New("record with extra field")
+	ErrNotContainer  = errors.New("expected container type, got primitive")
+	ErrNotPrimitive  = errors.New("expected primitive type, got container")
+	ErrTypeIDInvalid = errors.New("zng type ID out of range")
+	ErrBadValue      = errors.New("malformed zng value")
+	ErrBadFormat     = errors.New("malformed zng record")
+	ErrTypeMismatch  = errors.New("type/value mismatch")
 )
 
 type RecordTypeError struct {

@@ -1,12 +1,8 @@
 package zed
 
 import (
-	"errors"
-
 	"github.com/brimdata/zed/zcode"
 )
-
-var ErrIncomplete = errors.New("not enough values supplied to complete record")
 
 // Builder provides a way of easily and efficiently building records
 // of the same type.

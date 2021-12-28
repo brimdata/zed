@@ -8,10 +8,6 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-var (
-	ErrAliasExists = errors.New("alias exists with different type")
-)
-
 const (
 	MaxColumns     = 100_000
 	MaxEnumSymbols = 100_000

@@ -1,7 +1,6 @@
 package agg
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/brimdata/zed"
@@ -17,11 +16,6 @@ type Pattern func() Function
 // and arrays could otherwise grow without limit leading to a single record
 // value that cannot fit in memory.
 const MaxValueSize = 20 * 1024 * 1024
-
-var (
-	ErrBadValue      = errors.New("bad value")
-	ErrFieldRequired = errors.New("field parameter required")
-)
 
 type Function interface {
 	Consume(*zed.Value)

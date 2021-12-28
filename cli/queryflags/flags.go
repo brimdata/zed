@@ -1,7 +1,6 @@
 package queryflags
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"net/url"
@@ -13,8 +12,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
-
-var ErrNoHEAD = errors.New("HEAD not specified: indicate with -use or run the \"use\" command")
 
 type Flags struct {
 	Verbose  bool

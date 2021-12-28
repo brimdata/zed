@@ -1,7 +1,6 @@
 package zeekio
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -11,8 +10,6 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/tzngio"
 )
-
-var ErrDescriptorChanged = errors.New("descriptor changed")
 
 type Writer struct {
 	writer io.WriteCloser
