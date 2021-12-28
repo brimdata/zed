@@ -89,7 +89,7 @@ func DotExprToString(e Evaluator) (string, error) {
 func DotExprToField(e Evaluator) (field.Path, error) {
 	switch e := e.(type) {
 	case *This:
-		return field.NewRoot(), nil
+		return field.NewEmpty(), nil
 	case *DotExpr:
 		lhs, err := DotExprToField(e.record)
 		if err != nil {

@@ -489,10 +489,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		it := zcode.Bytes(key).Iter()
 		a.builder.Reset()
 		for _, typ := range a.keyTypes.Types(row.keyType) {
-			flatVal, _, err := it.Next()
-			if err != nil {
-				panic(err)
-			}
+			flatVal, _ := it.Next()
 			a.builder.Append(flatVal, zed.IsContainerType(typ))
 			types = append(types, typ)
 		}

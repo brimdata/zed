@@ -29,10 +29,7 @@ func (t *TypeArray) Marshal(zv zcode.Bytes) (interface{}, error) {
 	vals := []*Value{}
 	it := zv.Iter()
 	for !it.Done() {
-		val, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		val, _ := it.Next()
 		vals = append(vals, &Value{t.Type, val})
 	}
 	return vals, nil
@@ -44,12 +41,8 @@ func (t *TypeArray) Format(zv zcode.Bytes) string {
 	b.WriteByte('[')
 	it := zv.Iter()
 	for !it.Done() {
-		val, _, err := it.Next()
-		if err != nil {
-			return badZNG(err, t, zv)
-		}
 		b.WriteString(sep)
-		if val == nil {
+		if val, _ := it.Next(); val == nil {
 			b.WriteString("null")
 		} else {
 			b.WriteString(t.Type.Format(val))

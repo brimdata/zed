@@ -1,8 +1,6 @@
 package zed
 
 import (
-	"fmt"
-
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -15,10 +13,7 @@ func Split(elemType Type, b zcode.Bytes) ([]Value, error) {
 	}
 	vals := []Value{}
 	for it := b.Iter(); !it.Done(); {
-		zv, _, err := it.Next()
-		if err != nil {
-			return nil, fmt.Errorf("parsing element type '%s' value %q: %w", elemType, b, err)
-		}
+		zv, _ := it.Next()
 		vals = append(vals, Value{elemType, zv})
 	}
 	return vals, nil

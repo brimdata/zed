@@ -67,10 +67,7 @@ func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 		if it.Done() {
 			return &RecordTypeError{Name: string(col.Name), Type: col.Type.String(), Err: ErrMissingField}
 		}
-		body, container, err := it.Next()
-		if err != nil {
-			return err
-		}
+		body, container := it.Next()
 		if err := checkKind(col.Name, col.Type, body, container); err != nil {
 			return err
 		}
@@ -88,10 +85,7 @@ func walkArray(typ *TypeArray, body zcode.Bytes, visit Visitor) error {
 	inner := InnerType(typ)
 	it := body.Iter()
 	for !it.Done() {
-		body, container, err := it.Next()
-		if err != nil {
-			return err
-		}
+		body, container := it.Next()
 		if err := checkKind("<array element>", inner, body, container); err != nil {
 			return err
 		}
@@ -111,10 +105,7 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 		return &RecordTypeError{Name: "<union type>", Type: typ.String(), Err: err}
 	}
 	it := body.Iter()
-	v, container, err := it.Next()
-	if err != nil {
-		return err
-	}
+	v, container := it.Next()
 	if container {
 		return ErrBadValue
 	}
@@ -126,10 +117,7 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 	if err != nil {
 		return err
 	}
-	body, container, err = it.Next()
-	if err != nil {
-		return err
-	}
+	body, container = it.Next()
 	if !it.Done() {
 		err := errors.New("union value container has more than two items")
 		return &RecordTypeError{Name: "<union>", Type: typ.String(), Err: err}
@@ -147,10 +135,7 @@ func walkSet(typ *TypeSet, body zcode.Bytes, visit Visitor) error {
 	inner := AliasOf(InnerType(typ))
 	it := body.Iter()
 	for !it.Done() {
-		body, container, err := it.Next()
-		if err != nil {
-			return err
-		}
+		body, container := it.Next()
 		if err := checkKind("<set element>", inner, body, container); err != nil {
 			return err
 		}
@@ -169,20 +154,14 @@ func walkMap(typ *TypeMap, body zcode.Bytes, visit Visitor) error {
 	valType := AliasOf(typ.ValType)
 	it := body.Iter()
 	for !it.Done() {
-		body, container, err := it.Next()
-		if err != nil {
-			return err
-		}
+		body, container := it.Next()
 		if err := checkKind("<map key>", keyType, body, container); err != nil {
 			return err
 		}
 		if err := Walk(keyType, body, visit); err != nil {
 			return err
 		}
-		body, container, err = it.Next()
-		if err != nil {
-			return err
-		}
+		body, container = it.Next()
 		if err := checkKind("<map value>", valType, body, container); err != nil {
 			return err
 		}

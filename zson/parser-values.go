@@ -581,6 +581,6 @@ func ParsePrimitive(typeText, valText string) (zed.Value, error) {
 		return zed.Value{}, err
 	}
 	it := b.Bytes().Iter()
-	bytes, _, _ := it.Next()
+	bytes, _ := it.Next()
 	return zed.Value{typ, bytes}, nil
 }

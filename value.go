@@ -103,10 +103,7 @@ func (v *Value) ArrayIndex(idx int64) (Value, error) {
 		return Value{}, ErrIndex
 	}
 	for i, it := 0, v.Iter(); !it.Done(); i++ {
-		zv, _, err := it.Next()
-		if err != nil {
-			return Value{}, err
-		}
+		zv, _ := it.Next()
 		if i == int(idx) {
 			return Value{vec.Type, zv}, nil
 		}
@@ -123,10 +120,7 @@ func (v *Value) Elements() ([]Value, error) {
 	}
 	var elements []Value
 	for it := v.Iter(); !it.Done(); {
-		zv, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		zv, _ := it.Next()
 		elements = append(elements, Value{innerType, zv})
 	}
 	return elements, nil
@@ -140,9 +134,7 @@ func (v *Value) ContainerLength() (int, error) {
 		}
 		var n int
 		for it := v.Iter(); !it.Done(); {
-			if _, _, err := it.Next(); err != nil {
-				return -1, err
-			}
+			it.Next()
 			n++
 		}
 		return n, nil
@@ -152,12 +144,8 @@ func (v *Value) ContainerLength() (int, error) {
 		}
 		var n int
 		for it := v.Iter(); !it.Done(); {
-			if _, _, err := it.Next(); err != nil {
-				return -1, err
-			}
-			if _, _, err := it.Next(); err != nil {
-				return -1, err
-			}
+			it.Next()
+			it.Next()
 			n++
 		}
 		return n, nil

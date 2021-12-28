@@ -23,10 +23,7 @@ var ErrCorruptSegment = errors.New("segmap value corrupt")
 
 func UnmarshalSegment(zv zcode.Bytes, s *Segment) error {
 	it := zv.Iter()
-	zv, isContainer, err := it.Next()
-	if err != nil {
-		return err
-	}
+	zv, isContainer := it.Next()
 	if isContainer {
 		return ErrCorruptSegment
 	}
@@ -35,10 +32,7 @@ func UnmarshalSegment(zv zcode.Bytes, s *Segment) error {
 		return err
 	}
 	s.Offset = v
-	zv, isContainer, err = it.Next()
-	if err != nil {
-		return err
-	}
+	zv, isContainer = it.Next()
 	if isContainer {
 		return ErrCorruptSegment
 	}
@@ -65,10 +59,7 @@ func UnmarshalSegmap(in zed.Value, s *[]Segment) error {
 	*s = []Segment{}
 	it := in.Bytes.Iter()
 	for !it.Done() {
-		zv, isContainer, err := it.Next()
-		if err != nil {
-			return err
-		}
+		zv, isContainer := it.Next()
 		if !isContainer {
 			return ErrCorruptSegment
 		}

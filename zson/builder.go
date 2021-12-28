@@ -21,10 +21,7 @@ func Build(b *zcode.Builder, val Value) (zed.Value, error) {
 		return zed.Value{}, err
 	}
 	it := b.Bytes().Iter()
-	bytes, _, err := it.Next()
-	if err != nil {
-		return zed.Value{}, err
-	}
+	bytes, _ := it.Next()
 	return zed.Value{val.TypeOf(), bytes}, nil
 }
 

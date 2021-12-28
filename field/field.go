@@ -10,8 +10,8 @@ func New(name string) Path {
 	return Path{name}
 }
 
-// A root is an empty slice (not nil).
-func NewRoot() Path {
+// NewEmpty returns a new, empty path.
+func NewEmpty() Path {
 	return Path{}
 }
 
@@ -44,7 +44,7 @@ func (p Path) Equal(to Path) bool {
 	return true
 }
 
-func (p Path) IsRoot() bool {
+func (p Path) IsEmpty() bool {
 	return len(p) == 0
 }
 

@@ -32,18 +32,11 @@ func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
 		return Value{}, Value{}, nil
 	}
 	it := zv.Iter()
-	key, container, err := it.Next()
-	if err != nil {
-		return Value{}, Value{}, err
-	}
+	key, container := it.Next()
 	if container != IsContainerType(t.KeyType) {
 		return Value{}, Value{}, ErrMismatch
 	}
-	var val zcode.Bytes
-	val, container, err = it.Next()
-	if err != nil {
-		return Value{}, Value{}, err
-	}
+	val, container := it.Next()
 	if container != IsContainerType(t.ValType) {
 		return Value{}, Value{}, ErrMismatch
 	}
@@ -55,15 +48,9 @@ func (t *TypeMap) Marshal(zv zcode.Bytes) (interface{}, error) {
 	vals := []*Value{}
 	it := zv.Iter()
 	for !it.Done() {
-		val, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		val, _ := it.Next()
 		vals = append(vals, &Value{t.KeyType, val})
-		val, _, err = it.Next()
-		if err != nil {
-			return nil, err
-		}
+		val, _ = it.Next()
 		vals = append(vals, &Value{t.ValType, val})
 	}
 	return vals, nil
@@ -81,14 +68,8 @@ type keyval struct {
 func NormalizeMap(zv zcode.Bytes) zcode.Bytes {
 	elements := make([]keyval, 0, 8)
 	for it := zv.Iter(); !it.Done(); {
-		key, _, err := it.NextTagAndBody()
-		if err != nil {
-			panic(err)
-		}
-		val, _, err := it.NextTagAndBody()
-		if err != nil {
-			panic(err)
-		}
+		key, _ := it.NextTagAndBody()
+		val, _ := it.NextTagAndBody()
 		elements = append(elements, keyval{key, val})
 	}
 	if len(elements) < 2 {
@@ -116,18 +97,12 @@ func (t *TypeMap) Format(zv zcode.Bytes) string {
 	b.WriteString("|{")
 	sep := ""
 	for !it.Done() {
-		val, _, err := it.Next()
-		if err != nil {
-			return badZNG(err, t, zv)
-		}
+		val, _ := it.Next()
 		b.WriteString(sep)
 		b.WriteByte('{')
 		b.WriteString(t.KeyType.Format(val))
 		b.WriteByte(',')
-		val, _, err = it.Next()
-		if err != nil {
-			return badZNG(err, t, zv)
-		}
+		val, _ = it.Next()
 		b.WriteString(t.ValType.Format(val))
 		b.WriteByte('}')
 		b.WriteString(sep)

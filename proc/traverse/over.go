@@ -5,7 +5,6 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zcode"
 )
 
 type Over struct {
@@ -76,19 +75,13 @@ func appendOver(vals []zed.Value, zv zed.Value) ([]zed.Value, error) {
 		// XXX Issue #3324: need to support records and maps.
 		return vals, nil
 	}
-	iter := zcode.Iter(zv.Bytes)
-	for {
-		b, _, err := iter.Next()
-		if b == nil {
-			return vals, nil
-		}
-		if err != nil {
-			return nil, err
-		}
+	for it := zv.Bytes.Iter(); !it.Done(); {
+		b, _ := it.Next()
 		// XXX when we do proper expr.Context, we can allocate
 		// this slice through the batch.
 		bc := make([]byte, len(b))
 		copy(bc, b)
 		vals = append(vals, zed.Value{typ, bc})
 	}
+	return vals, nil
 }

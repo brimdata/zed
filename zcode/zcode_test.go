@@ -30,8 +30,7 @@ func TestAppendContainer(t *testing.T) {
 		it := Iter(buf)
 		for _, expected := range c {
 			assert.False(t, it.Done())
-			val, container, err := it.Next()
-			assert.NoError(t, err)
+			val, container := it.Next()
 			assert.True(t, val == nil || container)
 			assert.Exactly(t, expected, []byte(val))
 		}
@@ -48,8 +47,7 @@ func TestAppendPrimitive(t *testing.T) {
 		it := Iter(buf)
 		for _, expected := range c {
 			assert.False(t, it.Done())
-			val, container, err := it.Next()
-			assert.NoError(t, err)
+			val, container := it.Next()
 			assert.False(t, container)
 			assert.Exactly(t, expected, []byte(val))
 		}

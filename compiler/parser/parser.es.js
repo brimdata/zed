@@ -646,7 +646,7 @@ function peg$parse(input, options) {
           return {"kind": "OpAssignment", "assignments": a}
         },
       peg$c196 = function(lval) { return lval},
-      peg$c197 = function() { return {"kind":"Root"} },
+      peg$c197 = function() { return {"kind":"This"} },
       peg$c198 = function(source) {
             return {"kind":"From", "trunks": [{"kind": "Trunk","source": source}]}
           },
@@ -786,14 +786,14 @@ function peg$parse(input, options) {
       peg$c294 = function(first, e) { return e },
       peg$c295 = function(e) { return e },
       peg$c296 = function() {
-            return {"kind":"Root"}
+            return {"kind":"This"}
           },
       peg$c297 = "this",
       peg$c298 = peg$literalExpectation("this", false),
       peg$c299 = function(field) {
             return {"kind": "BinaryExpr", "op":".",
                            
-            "lhs":{"kind":"Root"},
+            "lhs":{"kind":"This"},
                            
             "rhs":field}
           
@@ -804,7 +804,7 @@ function peg$parse(input, options) {
       peg$c302 = function(expr) {
             return {"kind": "BinaryExpr", "op":"[",
                            
-            "lhs":{"kind":"Root"},
+            "lhs":{"kind":"This"},
                            
             "rhs":expr}
           
@@ -7770,7 +7770,7 @@ function peg$parse(input, options) {
     }
     if (s0 === peg$FAILED) {
       s0 = peg$currPos;
-      s1 = peg$parseRootRecord();
+      s1 = peg$parseThis();
       if (s1 !== peg$FAILED) {
         s2 = [];
         s3 = peg$parseDeref();
@@ -7833,7 +7833,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseRootRecord() {
+  function peg$parseThis() {
     var s0, s1;
 
     s0 = peg$currPos;

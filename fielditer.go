@@ -31,15 +31,9 @@ func (r *fieldIter) Next() ([]string, Value, error) {
 		return nil, Value{}, ErrExhausted
 	}
 	info := &r.stack[len(r.stack)-1]
-
-	zv, container, err := info.iter.Next()
-	if err != nil {
-		return nil, Value{}, err
-	}
-
 	col := info.typ.Columns[info.offset]
 	fullname := append(info.field, col.Name)
-
+	zv, container := info.iter.Next()
 	recType, isRecord := AliasOf(col.Type).(*TypeRecord)
 	if isRecord {
 		if !container {

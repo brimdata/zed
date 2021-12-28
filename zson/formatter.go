@@ -235,10 +235,7 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 		if it.Done() {
 			return &zed.RecordTypeError{Name: string(field.Name), Type: field.Type.String(), Err: zed.ErrMissingField}
 		}
-		bytes, _, err := it.Next()
-		if err != nil {
-			return err
-		}
+		bytes, _ := it.Next()
 		f.build(sep)
 		f.startColor(color.Blue)
 		f.indent(indent, zed.QuotedName(field.Name))
@@ -271,12 +268,9 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 	sep := f.newline
 	it := zv.Iter()
 	for !it.Done() {
-		bytes, _, err := it.Next()
-		if err != nil {
-			return true, err
-		}
 		f.build(sep)
 		f.indent(indent, "")
+		bytes, _ := it.Next()
 		if err := f.formatValue(indent, inner, bytes, known, parentImplied, true); err != nil {
 			return true, err
 		}
@@ -311,18 +305,12 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 	indent += f.tab
 	sep := f.newline
 	for it := bytes.Iter(); !it.Done(); {
-		keyBytes, _, err := it.Next()
-		if err != nil {
-			return empty, err
-		}
+		keyBytes, _ := it.Next()
 		if it.Done() {
 			return empty, errors.New("truncated map value")
 		}
 		empty = false
-		valBytes, _, err := it.Next()
-		if err != nil {
-			return empty, err
-		}
+		valBytes, _ := it.Next()
 		f.build(sep)
 		f.indent(indent, "")
 		if err := f.formatValue(indent, typ.KeyType, keyBytes, known, parentImplied, true); err != nil {

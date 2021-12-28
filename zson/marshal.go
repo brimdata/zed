@@ -139,10 +139,7 @@ func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
 	if it.Done() {
 		return zed.Value{}, errors.New("no value found")
 	}
-	bytes, _, err = it.Next()
-	if err != nil {
-		return zed.Value{}, err
-	}
+	bytes, _ = it.Next()
 	return zed.Value{typ, bytes}, nil
 }
 
@@ -854,18 +851,12 @@ func (u *UnmarshalZNGContext) decodeMap(zv zed.Value, mapVal reflect.Value) erro
 	keyType := mapVal.Type().Key()
 	valType := mapVal.Type().Elem()
 	for it := zv.Iter(); !it.Done(); {
-		keyzb, _, err := it.Next()
-		if err != nil {
-			return err
-		}
+		keyzb, _ := it.Next()
 		key := reflect.New(keyType).Elem()
 		if err := u.decodeAny(zed.Value{typ.KeyType, keyzb}, key); err != nil {
 			return err
 		}
-		valzb, _, err := it.Next()
-		if err != nil {
-			return err
-		}
+		valzb, _ := it.Next()
 		val := reflect.New(valType).Elem()
 		if err := u.decodeAny(zed.Value{typ.ValType, valzb}, val); err != nil {
 			return err
@@ -891,10 +882,7 @@ func (u *UnmarshalZNGContext) decodeRecord(zv zed.Value, sval reflect.Value) err
 		if i >= len(recType.Columns) {
 			return zed.ErrMismatch
 		}
-		itzv, _, err := it.Next()
-		if err != nil {
-			return err
-		}
+		itzv, _ := it.Next()
 		name := recType.Columns[i].Name
 		if fieldIdx, ok := nameToField[name]; ok {
 			typ := recType.Columns[i].Type
@@ -928,10 +916,7 @@ func (u *UnmarshalZNGContext) decodeArray(zv zed.Value, arrVal reflect.Value) er
 	}
 	i := 0
 	for it := zv.Iter(); !it.Done(); i++ {
-		itzv, _, err := it.Next()
-		if err != nil {
-			return err
-		}
+		itzv, _ := it.Next()
 		if i >= arrVal.Cap() {
 			newcap := arrVal.Cap() + arrVal.Cap()/2
 			if newcap < 4 {

@@ -44,13 +44,11 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 	it := in.Iter()
 	colno := 0
 	for !it.Done() {
-		val, container, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		val, container := it.Next()
 		col := typ.Columns[colno]
 		colno++
 		if childType, ok := zed.AliasOf(col.Type).(*zed.TypeRecord); ok {
+			var err error
 			dst, err = recode(dst, childType, val)
 			if err != nil {
 				return nil, err

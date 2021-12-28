@@ -74,11 +74,11 @@ func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
 }
 
 func isFieldEqualOrIn(e *dag.BinaryExpr) (*astzed.Primitive, string) {
-	if dag.IsRootField(e.LHS) && e.Op == "=" {
+	if dag.IsTopLevelField(e.LHS) && e.Op == "=" {
 		if literal, ok := e.RHS.(*astzed.Primitive); ok {
 			return literal, "="
 		}
-	} else if dag.IsRootField(e.RHS) && e.Op == "in" {
+	} else if dag.IsTopLevelField(e.RHS) && e.Op == "in" {
 		if literal, ok := e.LHS.(*astzed.Primitive); ok && literal.Type != "net" {
 			return literal, "in"
 		}

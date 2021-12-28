@@ -31,10 +31,7 @@ func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
 	vals := []*Value{}
 	it := zv.Iter()
 	for !it.Done() {
-		val, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		val, _ := it.Next()
 		vals = append(vals, &Value{t.Type, val})
 	}
 	return vals, nil
@@ -46,12 +43,8 @@ func (t *TypeSet) Format(zv zcode.Bytes) string {
 	sep := ""
 	it := zv.Iter()
 	for !it.Done() {
-		val, _, err := it.Next()
-		if err != nil {
-			return badZNG(err, t, zv)
-		}
 		b.WriteString(sep)
-		if val == nil {
+		if val, _ := it.Next(); val == nil {
 			b.WriteString("null")
 		} else {
 			b.WriteString(t.Type.Format(val))
@@ -69,10 +62,7 @@ func (t *TypeSet) Format(zv zcode.Bytes) string {
 func NormalizeSet(zv zcode.Bytes) zcode.Bytes {
 	elements := make([]zcode.Bytes, 0, 8)
 	for it := zv.Iter(); !it.Done(); {
-		elem, _, err := it.NextTagAndBody()
-		if err != nil {
-			panic(err)
-		}
+		elem, _ := it.NextTagAndBody()
 		elements = append(elements, elem)
 	}
 	if len(elements) < 2 {
