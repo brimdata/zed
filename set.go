@@ -28,14 +28,14 @@ func (t *TypeSet) String() string {
 
 func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
 	// start out with zero-length container so we get "[]" instead of nil
-	vals := []Value{}
+	vals := []*Value{}
 	it := zv.Iter()
 	for !it.Done() {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
-		vals = append(vals, Value{t.Type, val})
+		vals = append(vals, &Value{t.Type, val})
 	}
 	return vals, nil
 }

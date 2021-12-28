@@ -52,19 +52,19 @@ func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
 
 func (t *TypeMap) Marshal(zv zcode.Bytes) (interface{}, error) {
 	// start out with zero-length container so we get "[]" instead of nil
-	vals := []Value{}
+	vals := []*Value{}
 	it := zv.Iter()
 	for !it.Done() {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
-		vals = append(vals, Value{t.KeyType, val})
+		vals = append(vals, &Value{t.KeyType, val})
 		val, _, err = it.Next()
 		if err != nil {
 			return nil, err
 		}
-		vals = append(vals, Value{t.ValType, val})
+		vals = append(vals, &Value{t.ValType, val})
 	}
 	return vals, nil
 }
