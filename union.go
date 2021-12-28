@@ -32,10 +32,7 @@ func (t *TypeUnion) Type(selector int) (Type, error) {
 // returns the concrete type of the value, its selector, and the value encoding.
 func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	it := zv.Iter()
-	v, container, err := it.Next()
-	if err != nil {
-		return nil, -1, nil, err
-	}
+	v, container := it.Next()
 	if container {
 		return nil, -1, nil, ErrBadValue
 	}
@@ -47,10 +44,7 @@ func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	if err != nil {
 		return nil, -1, nil, err
 	}
-	v, _, err = it.Next()
-	if err != nil {
-		return nil, -1, nil, err
-	}
+	v, _ = it.Next()
 	if !it.Done() {
 		return nil, -1, nil, ErrBadValue
 	}

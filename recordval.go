@@ -82,10 +82,7 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 	it := body.Iter()
 	var prev zcode.Bytes
 	for !it.Done() {
-		tagAndBody, _, err := it.NextTagAndBody()
-		if err != nil {
-			return err
-		}
+		tagAndBody, _ := it.NextTagAndBody()
 		if prev != nil {
 			switch bytes.Compare(prev, tagAndBody) {
 			case 0:
@@ -123,11 +120,7 @@ func (r *Value) Slice(column int) (zcode.Bytes, error) {
 		if it.Done() {
 			return nil, ErrMissing
 		}
-		var err error
-		zv, _, err = it.Next()
-		if err != nil {
-			return nil, err
-		}
+		zv, _ = it.Next()
 	}
 	return zv, nil
 }

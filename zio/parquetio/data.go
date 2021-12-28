@@ -73,10 +73,7 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 func newListData(typ zed.Type, zb zcode.Bytes) (map[string]interface{}, error) {
 	var elements []map[string]interface{}
 	for it := zb.Iter(); !it.Done(); {
-		zb2, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		zb2, _ := it.Next()
 		v, err := newData(typ, zb2)
 		if err != nil {
 			return nil, err
@@ -89,18 +86,12 @@ func newListData(typ zed.Type, zb zcode.Bytes) (map[string]interface{}, error) {
 func newMapData(keyType, valType zed.Type, zb zcode.Bytes) (map[string]interface{}, error) {
 	var elements []map[string]interface{}
 	for i, it := 0, zb.Iter(); !it.Done(); i++ {
-		keyBytes, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		keyBytes, _ := it.Next()
 		key, err := newData(keyType, keyBytes)
 		if err != nil {
 			return nil, err
 		}
-		valBytes, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		valBytes, _ := it.Next()
 		val, err := newData(valType, valBytes)
 		if err != nil {
 			return nil, err
@@ -116,10 +107,7 @@ func newMapData(keyType, valType zed.Type, zb zcode.Bytes) (map[string]interface
 func newRecordData(typ *zed.TypeRecord, zb zcode.Bytes) (map[string]interface{}, error) {
 	m := make(map[string]interface{}, len(typ.Columns))
 	for i, it := 0, zb.Iter(); !it.Done(); i++ {
-		zb2, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		zb2, _ := it.Next()
 		v, err := newData(typ.Columns[i].Type, zb2)
 		if err != nil {
 			return nil, err

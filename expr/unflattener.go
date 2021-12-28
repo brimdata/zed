@@ -70,10 +70,7 @@ func (u *Unflattener) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	b.Reset()
 	for iter := this.Bytes.Iter(); !iter.Done(); {
-		zv, con, err := iter.Next()
-		if err != nil {
-			panic(err)
-		}
+		zv, con := iter.Next()
 		b.Append(zv, con)
 	}
 	zbytes, err := b.Encode()

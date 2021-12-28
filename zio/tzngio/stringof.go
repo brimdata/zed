@@ -122,18 +122,12 @@ func StringOfArray(t *zed.TypeArray, zv zcode.Bytes, fmt OutFmt, _ bool) string 
 	first := true
 	it := zv.Iter()
 	for !it.Done() {
-		val, _, err := it.Next()
-		if err != nil {
-			//XXX
-			b.WriteString("ERR")
-			break
-		}
 		if first {
 			first = false
 		} else {
 			b.WriteByte(separator)
 		}
-		if val == nil {
+		if val, _ := it.Next(); val == nil {
 			b.WriteByte('-')
 		} else {
 			b.WriteString(StringOf(zed.Value{t.Type, val}, fmt, true))
@@ -208,22 +202,12 @@ func StringOfMap(t *zed.TypeMap, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	it := zv.Iter()
 	b.WriteByte('[')
 	for !it.Done() {
-		val, container, err := it.Next()
-		if err != nil {
-			//XXX
-			b.WriteString("ERR")
-			break
-		}
+		val, container := it.Next()
 		b.WriteString(StringOf(zed.Value{t.KeyType, val}, fmt, true))
 		if !container {
 			b.WriteByte(';')
 		}
-		val, container, err = it.Next()
-		if err != nil {
-			//XXX
-			b.WriteString("ERR")
-			break
-		}
+		val, container = it.Next()
 		b.WriteString(StringOf(zed.Value{t.ValType, val}, fmt, true))
 		if !container {
 			b.WriteByte(';')
@@ -253,18 +237,12 @@ func StringOfRecord(t *zed.TypeRecord, zv zcode.Bytes, fmt OutFmt, _ bool) strin
 	first := true
 	it := zv.Iter()
 	for _, col := range t.Columns {
-		val, _, err := it.Next()
-		if err != nil {
-			//XXX
-			b.WriteString("ERR")
-			break
-		}
 		if first {
 			first = false
 		} else {
 			b.WriteByte(separator)
 		}
-		if val == nil {
+		if val, _ := it.Next(); val == nil {
 			b.WriteByte('-')
 		} else {
 			b.WriteString(StringOf(zed.Value{col.Type, val}, fmt, false))
@@ -295,17 +273,12 @@ func StringOfSet(t *zed.TypeSet, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	first := true
 	it := zv.Iter()
 	for !it.Done() {
-		val, _, err := it.Next()
-		if err != nil {
-			//XXX
-			b.WriteString("ERR")
-			break
-		}
 		if first {
 			first = false
 		} else {
 			b.WriteByte(separator)
 		}
+		val, _ := it.Next()
 		b.WriteString(StringOf(zed.Value{t.Type, val}, fmt, true))
 	}
 

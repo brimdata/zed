@@ -79,10 +79,7 @@ func (u *Union) ConsumeAsPartial(val *zed.Value) {
 		u.typ = typ.Type
 	}
 	for it := val.Iter(); !it.Done(); {
-		elem, _, err := it.Next()
-		if err != nil {
-			panic(err)
-		}
+		elem, _ := it.Next()
 		u.update(elem)
 	}
 }

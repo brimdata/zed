@@ -179,10 +179,7 @@ func (j *Join) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	it := zsplits.Bytes.Iter()
 	var sep string
 	for !it.Done() {
-		bytes, _, err := it.Next()
-		if err != nil {
-			panic(err)
-		}
+		bytes, _ := it.Next()
 		s, err := zed.DecodeString(bytes)
 		if err != nil {
 			panic(err)

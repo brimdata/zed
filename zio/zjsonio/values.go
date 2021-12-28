@@ -36,19 +36,14 @@ func encodeMap(zctx *zed.Context, typ *zed.TypeMap, v zcode.Bytes) (interface{},
 	var out []interface{}
 	it := zcode.Bytes(v).Iter()
 	for !it.Done() {
-		key, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		key, _ := it.Next()
 		pair := make([]interface{}, 2)
+		var err error
 		pair[0], err = encodeValue(zctx, typ.KeyType, key)
 		if err != nil {
 			return nil, err
 		}
-		val, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		val, _ := it.Next()
 		pair[1], err = encodeValue(zctx, typ.ValType, val)
 		if err != nil {
 			return nil, err
@@ -114,10 +109,7 @@ func encodeRecord(zctx *zed.Context, typ *zed.TypeRecord, val zcode.Bytes) (inte
 	out := []interface{}{}
 	k := 0
 	for it := val.Iter(); !it.Done(); k++ {
-		zv, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		zv, _ := it.Next()
 		v, err := encodeValue(zctx, typ.Columns[k].Type, zv)
 		if err != nil {
 			return nil, err
@@ -135,10 +127,7 @@ func encodeContainer(zctx *zed.Context, typ zed.Type, bytes zcode.Bytes) (interf
 	// so that an empty container encodes as a JSON empty array [].
 	out := []interface{}{}
 	for it := bytes.Iter(); !it.Done(); {
-		b, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		b, _ := it.Next()
 		v, err := encodeValue(zctx, typ, b)
 		if err != nil {
 			return nil, err

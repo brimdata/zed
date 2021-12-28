@@ -166,10 +166,7 @@ func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 		if iter.Done() {
 			return zed.False
 		}
-		zv, _, err := iter.Next()
-		if err != nil {
-			panic(err)
-		}
+		zv, _ := iter.Next()
 		if _, errVal := i.vals.Coerce(elem, &zed.Value{typ, zv}); errVal != nil {
 			if errVal != coerce.IncompatibleTypes {
 				return errVal
@@ -185,10 +182,7 @@ func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 	valType := zed.AliasOf(typ.ValType)
 	iter := container.Bytes.Iter()
 	for !iter.Done() {
-		zv, _, err := iter.Next()
-		if err != nil {
-			panic(err)
-		}
+		zv, _ := iter.Next()
 		if _, errVal := i.vals.Coerce(elem, &zed.Value{keyType, zv}); errVal != nil {
 			if errVal != coerce.IncompatibleTypes {
 				return errVal
@@ -196,10 +190,7 @@ func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 		} else if i.vals.Equal() {
 			return zed.True
 		}
-		zv, _, err = iter.Next()
-		if err != nil {
-			panic(err)
-		}
+		zv, _ = iter.Next()
 		if _, errVal := i.vals.Coerce(elem, &zed.Value{valType, zv}); errVal != nil {
 			if errVal != coerce.IncompatibleTypes {
 				return errVal
@@ -607,10 +598,7 @@ func getNthFromContainer(container zcode.Bytes, idx uint) zcode.Bytes {
 	iter := container.Iter()
 	var i uint = 0
 	for ; !iter.Done(); i++ {
-		zv, _, err := iter.Next()
-		if err != nil {
-			panic(err)
-		}
+		zv, _ := iter.Next()
 		if i == idx {
 			return zv
 		}
@@ -621,14 +609,8 @@ func getNthFromContainer(container zcode.Bytes, idx uint) zcode.Bytes {
 func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
 	iter := mapBytes.Iter()
 	for !iter.Done() {
-		key, _, err := iter.Next()
-		if err != nil {
-			return nil, false
-		}
-		val, _, err := iter.Next()
-		if err != nil {
-			return nil, false
-		}
+		key, _ := iter.Next()
+		val, _ := iter.Next()
 		if bytes.Compare(key, target) == 0 {
 			return val, true
 		}
