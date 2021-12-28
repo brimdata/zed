@@ -30,12 +30,12 @@ type Cutter struct {
 // specifies the copied field names.
 func NewCutter(zctx *zed.Context, fieldRefs field.List, fieldExprs []Evaluator) (*Cutter, error) {
 	for _, f := range fieldRefs {
-		if f.IsRoot() {
+		if f.IsEmpty() {
 			return nil, errors.New("cut: 'this' not allowed (use record literal)")
 		}
 	}
 	var b *zed.ColumnBuilder
-	if len(fieldRefs) == 0 || !fieldRefs[0].IsRoot() {
+	if len(fieldRefs) == 0 || !fieldRefs[0].IsEmpty() {
 		// A root field will cause NewColumnBuilder to panic.
 		var err error
 		b, err = zed.NewColumnBuilder(zctx, fieldRefs)

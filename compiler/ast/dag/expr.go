@@ -117,16 +117,16 @@ func (*Search) ExprDAG()       {}
 func (*SetExpr) ExprDAG()      {}
 func (*UnaryExpr) ExprDAG()    {}
 
-var Root = &Path{Kind: "Path", Name: []string{}}
+var This = &Path{Kind: "Path", Name: []string{}}
 
-func IsRoot(e Expr) bool {
+func IsThis(e Expr) bool {
 	if p, ok := e.(*Path); ok {
 		return len(p.Name) == 0
 	}
 	return false
 }
 
-func RootField(e Expr) (string, bool) {
+func TopLevelField(e Expr) (string, bool) {
 	if b, ok := e.(*Path); ok {
 		if len(b.Name) == 1 {
 			return b.Name[0], true
@@ -135,7 +135,7 @@ func RootField(e Expr) (string, bool) {
 	return "", false
 }
 
-func IsRootField(e Expr) bool {
-	_, ok := RootField(e)
+func IsTopLevelField(e Expr) bool {
+	_, ok := TopLevelField(e)
 	return ok
 }

@@ -87,8 +87,8 @@ func NewColumnBuilder(zctx *Context, fields field.List) (*ColumnBuilder, error) 
 	fieldInfos := make([]fieldInfo, 0, len(fields))
 	var currentRecord []string
 	for i, field := range fields {
-		if field.IsRoot() {
-			return nil, errors.New("root field")
+		if field.IsEmpty() {
+			return nil, errors.New("empty field path")
 		}
 		names := field
 		// Grab everything except the leaf field name and see if

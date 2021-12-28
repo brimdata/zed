@@ -743,11 +743,10 @@ func (c *Conditional) Eval(ectx Context, this *zed.Value) *zed.Value {
 }
 
 type Call struct {
-	zctx    *zed.Context
-	fn      function.Interface
-	exprs   []Evaluator
-	args    []zed.Value
-	AddRoot bool
+	zctx  *zed.Context
+	fn    function.Interface
+	exprs []Evaluator
+	args  []zed.Value
 }
 
 func NewCall(zctx *zed.Context, fn function.Interface, exprs []Evaluator) *Call {
@@ -858,10 +857,6 @@ func (c *evalCast) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(c.typ, nil)
 	}
 	return c.caster(ectx, val)
-}
-
-func NewRootField(name string) Evaluator {
-	return NewDottedExpr(field.New(name))
 }
 
 type Assignment struct {

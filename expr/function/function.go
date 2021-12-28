@@ -23,7 +23,7 @@ type Interface interface {
 func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	argmin := 1
 	argmax := 1
-	var root bool
+	var wantThis bool
 	var f Interface
 	switch name {
 	default:
@@ -92,7 +92,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	case "is":
 		argmin = 1
 		argmax = 2
-		root = true
+		wantThis = true
 		f = &Is{zctx: zctx}
 	case "iserr":
 		f = &IsErr{}
@@ -120,7 +120,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	if argmax != -1 && narg > argmax {
 		return nil, false, ErrTooManyArgs
 	}
-	return f, root, nil
+	return f, wantThis, nil
 }
 
 // HasBoolResult returns true if the function name returns a Boolean value.

@@ -43,7 +43,7 @@ type putRule struct {
 
 func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (proc.Interface, error) {
 	for i, p := range clauses {
-		if p.LHS.IsRoot() {
+		if p.LHS.IsEmpty() {
 			return nil, fmt.Errorf("put: LHS cannot be 'this' (use 'yield' operator)")
 		}
 		for j, c := range clauses {
@@ -101,16 +101,11 @@ type op int
 const (
 	fromInput  op = iota // copy field from input record
 	fromClause           // copy field from put assignment
-	root                 // values are being copied to the root record (put .=)
 	record               // recurse into record below us
 )
 
 func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) zcode.Bytes {
 	switch s.op {
-	case root:
-		bytes := make(zcode.Bytes, len(vals[s.index].Bytes))
-		copy(bytes, vals[s.index].Bytes)
-		return bytes
 	case record:
 		b.Reset()
 		if err := s.buildRecord(in, b, vals); err != nil {
@@ -118,7 +113,7 @@ func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) zcode.By
 		}
 		return b.Bytes()
 	default:
-		// top-level op should be root or record
+		// top-level op must be a record
 		panic(fmt.Sprintf("put: unexpected step %v", s.op))
 	}
 }
@@ -205,7 +200,7 @@ func findOverwriteClause(path field.Path, clauses []expr.Assignment) (int, field
 }
 
 func (p *Proc) deriveSteps(inType *zed.TypeRecord, vals []zed.Value) (step, zed.Type) {
-	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
+	return p.deriveRecordSteps(field.NewEmpty(), inType.Columns, vals)
 }
 
 func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value) (step, *zed.TypeRecord) {

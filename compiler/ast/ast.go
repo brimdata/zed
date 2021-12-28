@@ -29,9 +29,10 @@ type ID struct {
 	Name string `json:"name"`
 }
 
-// Root refers to the outer record being operated upon.  Field accesses
-// typically begin with the LHS of a "." expression set to a Root.
-type Root struct {
+// This refers to the implied value operated upon in the dataflow context.
+// Field accesses typically begin with the LHS of a "." expression
+// set to a This.
+type This struct {
 	Kind string `json:"kind" unpack:""`
 }
 
@@ -133,7 +134,7 @@ func (*Search) ExprAST()      {}
 func (*Call) ExprAST()        {}
 func (*Cast) ExprAST()        {}
 func (*ID) ExprAST()          {}
-func (*Root) ExprAST()        {}
+func (*This) ExprAST()        {}
 
 func (*Assignment) ExprAST()   {}
 func (*Agg) ExprAST()          {}
@@ -500,7 +501,7 @@ type Agg struct {
 }
 
 func NewDotExpr(f field.Path) Expr {
-	lhs := Expr(&Root{Kind: "Root"})
+	lhs := Expr(&This{Kind: "This"})
 	for _, name := range f {
 		rhs := &ID{
 			Kind: "ID",
