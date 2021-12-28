@@ -4,9 +4,9 @@ script: |
   zed create -q p2
   zed create -q p3
   zed drop -f p3
-  echo === | tee /dev/stderr
+  echo === | tee >(cat >&2)
   zed ls -f zng | zq -z "cut name | sort name" -
-  echo === | tee /dev/stderr
+  echo === | tee >(cat >&2)
   ! zed drop p3
   ! zed drop -lake http://127.0.0.1:1 p3
 

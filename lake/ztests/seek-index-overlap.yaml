@@ -7,7 +7,7 @@ script: |
   zq "tail 900" babble.zson | zed load -q -
   zq "head 250" babble.zson | zed load -q -
   zed query -z -s "from asc | count()"
-  echo === | tee <(cat >&)
+  echo === | tee >(cat >&2)
   zed use -q desc@main
   zq "tail 900" babble.zson | zed load -q -
   zq "head 250" babble.zson | zed load -q -
