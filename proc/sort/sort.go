@@ -182,16 +182,20 @@ func (p *Proc) setCompareFn(r *zed.Value) {
 	}
 }
 
-func GuessSortKey(rec *zed.Value) field.Path {
-	typ := zed.TypeRecordOf(rec.Type)
-	if f := firstMatchingField(typ, zed.IsInteger); f != nil {
+func GuessSortKey(val *zed.Value) field.Path {
+	recType := zed.TypeRecordOf(val.Type)
+	if recType == nil {
+		// A nil field.Path is equivalent to "this".
+		return nil
+	}
+	if f := firstMatchingField(recType, zed.IsInteger); f != nil {
 		return f
 	}
-	if f := firstMatchingField(typ, zed.IsFloat); f != nil {
+	if f := firstMatchingField(recType, zed.IsFloat); f != nil {
 		return f
 	}
 	isNotTime := func(id int) bool { return id != zed.IDTime }
-	if f := firstMatchingField(typ, isNotTime); f != nil {
+	if f := firstMatchingField(recType, isNotTime); f != nil {
 		return f
 	}
 	return field.New("ts")
