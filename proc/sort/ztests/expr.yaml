@@ -1,13 +1,13 @@
-zed: 'sort to_lower(s)'
+zed: sort to_lower(this)
 
 input: |
-  {s:"foo"}
-  {s:"C"}
-  {s:"a"}
-  {s:"Bar"}
+  "foo"
+  "C"
+  "a"
+  "Bar"
 
 output: |
-  {s:"a"}
-  {s:"Bar"}
-  {s:"C"}
-  {s:"foo"}
+  "a"
+  "Bar"
+  "C"
+  "foo"
