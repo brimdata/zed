@@ -397,11 +397,7 @@ func Contains(compare Boolean) Boolean {
 			return false
 		}
 		for it := val.Iter(); !it.Done(); {
-			var err error
-			el.Bytes, _, err = it.Next()
-			if err != nil {
-				return false
-			}
+			el.Bytes, _ = it.Next()
 			if compare(&el) {
 				return true
 			}

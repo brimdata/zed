@@ -84,9 +84,7 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if k == from {
 			bytes = zcode.Bytes(it)
 		}
-		if _, _, err := it.Next(); err != nil {
-			panic(err)
-		}
+		it.Next()
 	}
 	return ectx.NewValue(elem.Type, bytes[:len(bytes)-len(it)])
 }

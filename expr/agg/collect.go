@@ -108,11 +108,7 @@ func (c *Collect) ConsumeAsPartial(val *zed.Value) {
 	typ := arrayType.Type
 	elem := zed.Value{Type: typ}
 	for it := val.Iter(); !it.Done(); {
-		b, _, err := it.Next()
-		if err != nil {
-			panic(err)
-		}
-		elem.Bytes = b
+		elem.Bytes, _ = it.Next()
 		c.update(&elem)
 	}
 }

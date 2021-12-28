@@ -232,13 +232,13 @@ func LookupCompare(typ zed.Type) comparefn {
 				if ib.Done() {
 					return 1
 				}
-				va, container, err := ia.Next()
-				if container || err != nil {
+				va, container := ia.Next()
+				if container {
 					return -1
 				}
 
-				vb, container, err := ib.Next()
-				if container || err != nil {
+				vb, container := ib.Next()
+				if container {
 					return 1
 				}
 				if v := compare(va, vb); v != 0 {

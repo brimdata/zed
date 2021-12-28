@@ -80,8 +80,8 @@ func (p *Primitive) read() (zcode.Bytes, error) {
 			return nil, err
 		}
 	}
-	zv, _, err := p.iter.Next()
-	return zv, err
+	zv, _ := p.iter.Next()
+	return zv, nil
 }
 
 func (p *Primitive) next() error {

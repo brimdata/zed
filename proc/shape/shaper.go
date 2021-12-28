@@ -86,10 +86,7 @@ func (i *integer) check(zv zed.Value) {
 func (a *anchor) updateInts(rec *zed.Value) error {
 	it := rec.Bytes.Iter()
 	for k, c := range rec.Columns() {
-		bytes, _, err := it.Next()
-		if err != nil {
-			return err
-		}
+		bytes, _ := it.Next()
 		zv := zed.Value{c.Type, bytes}
 		a.integers[k].check(zv)
 	}
@@ -280,10 +277,7 @@ func recode(from, to []zed.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 	out := make(zcode.Bytes, 0, len(bytes))
 	it := bytes.Iter()
 	for k, fromCol := range from {
-		b, container, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		b, container := it.Next()
 		toType := to[k].Type
 		if fromCol.Type != toType && b != nil {
 			if fromCol.Type != zed.TypeFloat64 {

@@ -178,10 +178,7 @@ func (ig *getter) nth(n int) (zcode.Bytes, error) {
 		ig.iter = ig.container.Iter()
 	}
 	for !ig.iter.Done() {
-		zv, _, err := ig.iter.Next()
-		if err != nil {
-			return nil, err
-		}
+		zv, _ := ig.iter.Next()
 		ig.cursor++
 		if ig.cursor == n {
 			return zv, nil

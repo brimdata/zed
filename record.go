@@ -36,10 +36,7 @@ func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 	}
 	var vals []Value
 	for i, it := 0, zv.Iter(); !it.Done(); i++ {
-		val, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		val, _ := it.Next()
 		if i >= len(t.Columns) {
 			return nil, fmt.Errorf("too many values for record element %s", val)
 		}
@@ -53,10 +50,7 @@ func (t *TypeRecord) Marshal(zv zcode.Bytes) (interface{}, error) {
 	m := make(map[string]Value)
 	it := zv.Iter()
 	for _, col := range t.Columns {
-		zv, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
+		zv, _ := it.Next()
 		m[col.Name] = Value{col.Type, zv}
 	}
 	return m, nil
@@ -108,14 +102,10 @@ func (t *TypeRecord) Format(zv zcode.Bytes) string {
 	sep := ""
 	it := zv.Iter()
 	for _, c := range t.Columns {
-		val, _, err := it.Next()
-		if err != nil {
-			return badZNG(err, t, zv)
-		}
 		b.WriteString(sep)
 		b.WriteString(QuotedName(c.Name))
 		b.WriteByte(':')
-		if val == nil {
+		if val, _ := it.Next(); val == nil {
 			b.WriteString("null")
 		} else {
 			b.WriteString(c.Type.Format(val))

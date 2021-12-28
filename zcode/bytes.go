@@ -57,16 +57,13 @@ func appendBytes(b, v []byte) []byte {
 
 func (b Bytes) build(dst []byte) ([]byte, error) {
 	for it := b.Iter(); !it.Done(); {
-		v, container, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
-		if container {
+		if v, container := it.Next(); container {
 			if v == nil {
 				dst = append(dst, "(*)"...)
 				continue
 			}
 			dst = append(dst, '[')
+			var err error
 			dst, err = v.build(dst)
 			if err != nil {
 				return nil, err
@@ -86,10 +83,7 @@ func (b Bytes) build(dst []byte) ([]byte, error) {
 // If the receiver is not a single container, ErrNotSingleton is returned.
 func (b Bytes) ContainerBody() (Bytes, error) {
 	it := b.Iter()
-	body, container, err := it.Next()
-	if err != nil {
-		return nil, err
-	}
+	body, container := it.Next()
 	if !container {
 		return nil, ErrNotContainer
 	}
