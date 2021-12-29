@@ -9,14 +9,14 @@ import (
 )
 
 type puller struct {
-	proc  proc.Interface
+	proc  zbuf.Puller
 	ctx   context.Context
 	ch    chan proc.Result
 	batch zbuf.Batch
 	vals  []zed.Value
 }
 
-func newPuller(p proc.Interface, ctx context.Context) *puller {
+func newPuller(p zbuf.Puller, ctx context.Context) *puller {
 	return &puller{
 		proc: p,
 		ctx:  ctx,
@@ -26,7 +26,7 @@ func newPuller(p proc.Interface, ctx context.Context) *puller {
 
 func (p *puller) run() {
 	for {
-		batch, err := p.proc.Pull()
+		batch, err := p.proc.Pull(false)
 		select {
 		case p.ch <- proc.Result{batch, err}:
 			if batch == nil || err != nil {
@@ -34,13 +34,12 @@ func (p *puller) run() {
 				return
 			}
 		case <-p.ctx.Done():
-			p.proc.Done()
 			return
 		}
 	}
 }
 
-func (p *puller) Pull() (zbuf.Batch, error) {
+func (p *puller) Pull(done bool) (zbuf.Batch, error) {
 	select {
 	case res := <-p.ch:
 		return res.Batch, res.Err
@@ -55,7 +54,7 @@ func (p *puller) Read() (*zed.Value, error) {
 			p.batch.Unref()
 		}
 		var err error
-		p.batch, err = p.Pull()
+		p.batch, err = p.Pull(false)
 		if p.batch == nil || err != nil {
 			p.batch = nil
 			return nil, err
@@ -65,8 +64,4 @@ func (p *puller) Read() (*zed.Value, error) {
 	rec := &p.vals[0]
 	p.vals = p.vals[1:]
 	return rec, nil
-}
-
-func (p *puller) Done() {
-	p.proc.Done()
 }

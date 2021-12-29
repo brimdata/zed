@@ -278,13 +278,14 @@ type (
 		Field Expr   `json:"field"`
 	}
 	Over struct {
-		Kind  string `json:"kind" unpack:""`
-		Exprs []Expr `json:"exprs"`
+		Kind  string      `json:"kind" unpack:""`
+		Exprs []Expr      `json:"exprs"`
+		Scope *Sequential `json:"scope"`
 	}
-	Scope struct {
-		Kind   string       `json:"kind" unpack:""`
-		Locals []Assignment `json:"locals"`
-		Seq    *Sequential  `json:"seq"`
+	Let struct {
+		Kind   string `json:"kind" unpack:""`
+		Locals []Def  `json:"locals"`
+		Over   *Over  `json:"over"`
 	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`
@@ -471,7 +472,7 @@ func (*From) ProcAST()         {}
 func (*Explode) ProcAST()      {}
 func (*Merge) ProcAST()        {}
 func (*Over) ProcAST()         {}
-func (*Scope) ProcAST()        {}
+func (*Let) ProcAST()          {}
 func (*Yield) ProcAST()        {}
 
 func (*SQLExpr) ProcAST() {}

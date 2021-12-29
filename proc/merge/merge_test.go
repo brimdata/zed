@@ -98,7 +98,7 @@ func TestParallelOrder(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			zctx := zed.NewContext()
 			pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
-			var parents []proc.Interface
+			var parents []zbuf.Puller
 			for _, input := range c.inputs {
 				r := zsonio.NewReader(strings.NewReader(input), zctx)
 				parents = append(parents, proc.NopDone(zbuf.NewPuller(r, 10)))

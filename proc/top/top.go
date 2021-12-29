@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/sort"
 	"github.com/brimdata/zed/zbuf"
 )
@@ -18,7 +17,7 @@ const defaultTopLimit = 100
 // the top N of the sort.
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
 type Proc struct {
-	parent     proc.Interface
+	parent     zbuf.Puller
 	limit      int
 	fields     []expr.Evaluator
 	records    *expr.RecordSlice
@@ -26,7 +25,7 @@ type Proc struct {
 	flushEvery bool
 }
 
-func New(parent proc.Interface, limit int, fields []expr.Evaluator, flushEvery bool) *Proc {
+func New(parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool) *Proc {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
@@ -38,9 +37,9 @@ func New(parent proc.Interface, limit int, fields []expr.Evaluator, flushEvery b
 	}
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	for {
-		batch, err := p.parent.Pull()
+		batch, err := p.parent.Pull(done)
 		if err != nil {
 			return nil, err
 		}
@@ -56,10 +55,6 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			return p.sorted(), nil
 		}
 	}
-}
-
-func (p *Proc) Done() {
-	p.parent.Done()
 }
 
 func (p *Proc) consume(rec *zed.Value) {

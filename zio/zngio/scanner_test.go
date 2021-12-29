@@ -54,7 +54,7 @@ func TestScannerContext(t *testing.T) {
 	s, err := r.NewScanner(ctx, nil)
 	require.NoError(t, err)
 	for {
-		batch, err := s.Pull()
+		batch, err := s.Pull(false)
 		require.NoError(t, err)
 		if batch == nil {
 			break

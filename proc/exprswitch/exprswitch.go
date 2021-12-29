@@ -17,11 +17,11 @@ type ExprSwitch struct {
 var _ proc.Selector = (*ExprSwitch)(nil)
 
 type switchCase struct {
-	route proc.Interface
+	route zbuf.Puller
 	vals  []zed.Value
 }
 
-func New(pctx *proc.Context, parent proc.Interface, e expr.Evaluator) *ExprSwitch {
+func New(pctx *proc.Context, parent zbuf.Puller, e expr.Evaluator) *ExprSwitch {
 	router := proc.NewRouter(pctx, parent)
 	s := &ExprSwitch{
 		Router: router,
@@ -32,7 +32,7 @@ func New(pctx *proc.Context, parent proc.Interface, e expr.Evaluator) *ExprSwitc
 	return s
 }
 
-func (s *ExprSwitch) AddCase(val *zed.Value) proc.Interface {
+func (s *ExprSwitch) AddCase(val *zed.Value) zbuf.Puller {
 	route := s.Router.AddRoute()
 	if val == nil {
 		s.defaultCase = &switchCase{route: route}
@@ -42,11 +42,10 @@ func (s *ExprSwitch) AddCase(val *zed.Value) proc.Interface {
 	return route
 }
 
-func (s *ExprSwitch) Forward(router *proc.Router, batch zbuf.Batch) error {
-	ectx := batch.Context()
+func (s *ExprSwitch) Forward(router *proc.Router, batch zbuf.Batch) bool {
 	vals := batch.Values()
 	for i := range vals {
-		val := s.expr.Eval(ectx, &vals[i])
+		val := s.expr.Eval(batch, &vals[i])
 		if val.IsMissing() {
 			continue
 		}
@@ -70,14 +69,18 @@ func (s *ExprSwitch) Forward(router *proc.Router, batch zbuf.Batch) error {
 			batch.Ref()
 			out := zbuf.NewArray(c.vals)
 			c.vals = nil
-			router.Send(c.route, out, nil)
+			if ok := router.Send(c.route, out, nil); !ok {
+				return false
+			}
 		}
 	}
 	if c := s.defaultCase; c != nil && len(c.vals) > 0 {
 		batch.Ref()
 		out := zbuf.NewArray(c.vals)
 		c.vals = nil
-		router.Send(c.route, out, nil)
+		if ok := router.Send(c.route, out, nil); !ok {
+			return false
+		}
 	}
-	return nil
+	return true
 }

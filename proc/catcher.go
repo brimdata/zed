@@ -10,22 +10,18 @@ import (
 // of a flowgraph and the top-level puller of any goroutine created inside
 // of a flowgraph.
 type Catcher struct {
-	parent Interface
+	parent zbuf.Puller
 }
 
-func NewCatcher(parent Interface) *Catcher {
+func NewCatcher(parent zbuf.Puller) *Catcher {
 	return &Catcher{parent}
 }
 
-func (c *Catcher) Pull() (b zbuf.Batch, err error) {
+func (c *Catcher) Pull(done bool) (b zbuf.Batch, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = zqe.RecoverError(r)
 		}
 	}()
-	return c.parent.Pull()
-}
-
-func (c *Catcher) Done() {
-	c.parent.Done()
+	return c.parent.Pull(done)
 }

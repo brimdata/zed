@@ -61,7 +61,7 @@ var _ dag.Source = (*Reader)(nil)
 
 func (*Reader) Source() {}
 
-func (b *Builder) Build(seq *dag.Sequential) ([]proc.Interface, error) {
+func (b *Builder) Build(seq *dag.Sequential) ([]zbuf.Puller, error) {
 	if !seq.IsEntry() {
 		return nil, errors.New("internal error: DAG entry point is not a data source")
 	}
@@ -76,7 +76,7 @@ func (b *Builder) Meters() []zbuf.Meter {
 	return meters
 }
 
-func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface, error) {
+func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error) {
 	switch v := op.(type) {
 	case *dag.Summarize:
 		return compileGroupBy(b.pctx, parent, v)
@@ -205,12 +205,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		}
 		return explode.New(b.pctx.Zctx, parent, args, typ, as.Leaf())
 	case *dag.Over:
-		exprs, err := compileExprs(b.pctx.Zctx, v.Exprs)
-		if err != nil {
-			return nil, err
-		}
-		t := traverse.NewOver(parent, exprs)
-		return t, nil
+		return b.compileOver(parent, v, nil, nil)
 	case *dag.Yield:
 		exprs, err := compileExprs(b.pctx.Zctx, v.Exprs)
 		if err != nil {
@@ -218,10 +213,50 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		}
 		t := yield.New(parent, exprs)
 		return t, nil
+	case *dag.Let:
+		if v.Over == nil {
+			return nil, errors.New("let operator missing over expression in DAG")
+		}
+		exprs := make([]expr.Evaluator, 0, len(v.Defs))
+		names := make([]string, 0, len(v.Defs))
+		for _, def := range v.Defs {
+			e, err := compileExpr(b.pctx.Zctx, def.Expr)
+			if err != nil {
+				return nil, err
+			}
+			exprs = append(exprs, e)
+			names = append(names, def.Name)
+		}
+		return b.compileOver(parent, v.Over, names, exprs)
 	default:
-		return nil, fmt.Errorf("unknown AST proc type: %v", v)
+		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 
 	}
+}
+
+func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over, names []string, lets []expr.Evaluator) (zbuf.Puller, error) {
+	exprs, err := compileExprs(b.pctx.Zctx, over.Exprs)
+	if err != nil {
+		return nil, err
+	}
+	enter := traverse.NewOver(b.pctx, parent, exprs)
+	if over.Scope != nil {
+		scope := enter.AddScope(b.pctx.Context, names, lets)
+		exits, err := b.compile(over.Scope, []zbuf.Puller{scope})
+		if err != nil {
+			return nil, err
+		}
+		var exit zbuf.Puller
+		if len(exits) == 1 {
+			exit = exits[0]
+		} else {
+			// This can happen when output of over body
+			// is a split or switch...
+			exit = combine.New(b.pctx, exits)
+		}
+		return scope.NewExit(exit), nil
+	}
+	return enter, nil
 }
 
 func compileAssignments(assignments []dag.Assignment, zctx *zed.Context) ([]expr.Assignment, error) {
@@ -247,7 +282,7 @@ func splitAssignments(assignments []expr.Assignment) (field.List, []expr.Evaluat
 	return lhs, rhs
 }
 
-func (b *Builder) compileSequential(seq *dag.Sequential, parents []proc.Interface) ([]proc.Interface, error) {
+func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	for _, op := range seq.Ops {
 		var err error
 		parents, err = b.compile(op, parents)
@@ -258,9 +293,9 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []proc.Interfac
 	return parents, nil
 }
 
-func (b *Builder) compileParallel(parallel *dag.Parallel, parents []proc.Interface) ([]proc.Interface, error) {
+func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	if len(parents) == 0 {
-		var procs []proc.Interface
+		var procs []zbuf.Puller
 		for _, op := range parallel.Ops {
 			proc, err := b.compile(op, nil)
 			if err != nil {
@@ -278,9 +313,9 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []proc.Interfa
 	if len(parents) != n {
 		return nil, fmt.Errorf("parallel input mismatch: %d parents with %d flowgraph paths", len(parents), len(parallel.Ops))
 	}
-	var procs []proc.Interface
+	var procs []zbuf.Puller
 	for k := 0; k < n; k++ {
-		proc, err := b.compile(parallel.Ops[k], []proc.Interface{parents[k]})
+		proc, err := b.compile(parallel.Ops[k], []zbuf.Puller{parents[k]})
 		if err != nil {
 			return nil, err
 		}
@@ -289,7 +324,7 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []proc.Interfa
 	return procs, nil
 }
 
-func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface) ([]proc.Interface, error) {
+func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	if len(parents) != 1 {
 		return nil, errors.New("expression switch has multiple parents")
 	}
@@ -298,7 +333,7 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 		return nil, err
 	}
 	s := exprswitch.New(b.pctx, parents[0], e)
-	var exits []proc.Interface
+	var exits []zbuf.Puller
 	for _, c := range swtch.Cases {
 		var val *zed.Value
 		if c.Expr != nil {
@@ -307,7 +342,7 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 				return nil, err
 			}
 		}
-		parents, err := b.compile(c.Op, []proc.Interface{s.AddCase(val)})
+		parents, err := b.compile(c.Op, []zbuf.Puller{s.AddCase(val)})
 		if err != nil {
 			return nil, err
 		}
@@ -316,12 +351,12 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 	return exits, nil
 }
 
-func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]proc.Interface, error) {
+func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	n := len(swtch.Cases)
 	if len(parents) == 1 {
 		// Single parent: insert a switcher and wire to each branch.
 		switcher := switcher.New(b.pctx, parents[0])
-		parents = []proc.Interface{}
+		parents = []zbuf.Puller{}
 		for _, c := range swtch.Cases {
 			f, err := compileFilter(b.pctx.Zctx, c.Expr)
 			if err != nil {
@@ -334,9 +369,9 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]
 	if len(parents) != n {
 		return nil, fmt.Errorf("proc.compileSwitch: %d parents for switch proc with %d branches", len(parents), len(swtch.Cases))
 	}
-	var procs []proc.Interface
+	var procs []zbuf.Puller
 	for k := 0; k < n; k++ {
-		proc, err := b.compile(swtch.Cases[k].Op, []proc.Interface{parents[k]})
+		proc, err := b.compile(swtch.Cases[k].Op, []zbuf.Puller{parents[k]})
 		if err != nil {
 			return nil, err
 		}
@@ -347,7 +382,7 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]
 
 // compile compiles a DAG into a graph of runtime operators, and returns
 // the leaves.
-func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface, error) {
+func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	switch op := op.(type) {
 	case *dag.Sequential:
 		if len(op.Ops) == 0 {
@@ -365,7 +400,7 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 		if len(parents) > 1 {
 			return nil, errors.New("'from' operator can have at most one parent")
 		}
-		var parent proc.Interface
+		var parent zbuf.Puller
 		if len(parents) == 1 {
 			parent = parents[0]
 		}
@@ -405,13 +440,13 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 		if err != nil {
 			return nil, err
 		}
-		return []proc.Interface{join}, nil
+		return []zbuf.Puller{join}, nil
 	case *dag.Merge:
 		layout := order.NewLayout(op.Order, field.List{op.Key})
 		cmp := zbuf.NewCompareFn(layout)
-		return []proc.Interface{merge.New(b.pctx, parents, cmp)}, nil
+		return []zbuf.Puller{merge.New(b.pctx, parents, cmp)}, nil
 	default:
-		var parent proc.Interface
+		var parent zbuf.Puller
 		if len(parents) == 1 {
 			parent = parents[0]
 		} else {
@@ -421,12 +456,12 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 		if err != nil {
 			return nil, err
 		}
-		return []proc.Interface{p}, nil
+		return []zbuf.Puller{p}, nil
 	}
 }
 
-func (b *Builder) compileFrom(from *dag.From, parent proc.Interface) ([]proc.Interface, error) {
-	var parents []proc.Interface
+func (b *Builder) compileFrom(from *dag.From, parent zbuf.Puller) ([]zbuf.Puller, error) {
+	var parents []zbuf.Puller
 	var npass int
 	for k := range from.Trunks {
 		outputs, err := b.compileTrunk(&from.Trunks[k], parent)
@@ -452,12 +487,12 @@ func (b *Builder) compileFrom(from *dag.From, parent proc.Interface) ([]proc.Int
 	return parents, nil
 }
 
-func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.Interface, error) {
+func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Puller, error) {
 	pushdown, err := b.PushdownOf(trunk)
 	if err != nil {
 		return nil, err
 	}
-	var source proc.Interface
+	var source zbuf.Puller
 	switch src := trunk.Source.(type) {
 	case *Reader:
 		sched := &readerScheduler{
@@ -538,9 +573,9 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 		return nil, fmt.Errorf("Builder.compileTrunk: unknown type: %T", src)
 	}
 	if trunk.Seq == nil {
-		return []proc.Interface{source}, nil
+		return []zbuf.Puller{source}, nil
 	}
-	return b.compileSequential(trunk.Seq, []proc.Interface{source})
+	return b.compileSequential(trunk.Seq, []zbuf.Puller{source})
 }
 
 func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
@@ -606,6 +641,19 @@ type readerScheduler struct {
 	progress zbuf.Progress
 }
 
+type donePuller struct {
+	zbuf.PullerCloser
+	sched *readerScheduler
+}
+
+func (d *donePuller) Pull(done bool) (zbuf.Batch, error) {
+	if done {
+		d.sched.readers = nil
+		return nil, nil
+	}
+	return d.PullerCloser.Pull(false)
+}
+
 func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	if r.scanner != nil {
 		r.progress.Add(r.scanner.Progress())
@@ -624,7 +672,7 @@ func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	if stringer, ok := zr.(fmt.Stringer); ok {
 		s = zbuf.NamedScanner(s, stringer.String())
 	}
-	return zbuf.ScannerNopCloser(s), nil
+	return &donePuller{zbuf.ScannerNopCloser(s), r}, nil
 }
 
 func (r *readerScheduler) Progress() zbuf.Progress {

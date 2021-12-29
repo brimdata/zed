@@ -14,22 +14,6 @@ import (
 
 const BatchLen = 100
 
-// proc.Interface is the interface to objects that operate on Batches of zed.Records
-// and are arranged into a flowgraph to perform pattern matching and analytics.
-// A proc is generally single-threaded unless lengths are taken to implement
-// concurrency within a Proc.  The model is receiver-driven, stream-oriented
-// data processing.  Downstream procs Pull() batches of data from upstream procs.
-// Normally, a proc pulls data until end of stream (nil batch and nil error)
-// or error (nil batch and non-nil error).  If a proc wants to end before
-// end of stream, it calls the Done() method on its parent.  A proc implementation
-// may assume calls to Pull() and Done() are single threaded so any arrangement
-// of calls to Pull() and Done() cannot be done concurrently.  In short, never
-// call Done() concurrently to another goroutine calling Pull().
-type Interface interface {
-	zbuf.Puller
-	Done()
-}
-
 type DataAdaptor interface {
 	PoolID(context.Context, string) (ksuid.KSUID, error)
 	CommitObject(context.Context, ksuid.KSUID, string) (ksuid.KSUID, error)

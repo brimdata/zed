@@ -118,14 +118,15 @@ type (
 		Args  []Expr `json:"args"`
 		Flush bool   `json:"flush"`
 	}
-	Over struct {
-		Kind  string `json:"kind" unpack:""`
-		Exprs []Expr `json:"exprs"`
+	Let struct {
+		Kind string `json:"kind" unpack:""`
+		Defs []Def  `json:"defs"`
+		Over *Over  `json:"over"`
 	}
-	Scope struct {
-		Kind string      `json:"kind" unpack:""`
-		Lets []Def       `json:"lets"`
-		Seq  *Sequential `json:"seq"`
+	Over struct {
+		Kind  string      `json:"kind" unpack:""`
+		Exprs []Expr      `json:"exprs"`
+		Scope *Sequential `json:"scope"`
 	}
 	Uniq struct {
 		Kind  string `json:"kind" unpack:""`
@@ -271,7 +272,7 @@ func (*Join) OpNode()       {}
 func (*Shape) OpNode()      {}
 func (*Explode) OpNode()    {}
 func (*Over) OpNode()       {}
-func (*Scope) OpNode()      {}
+func (*Let) OpNode()        {}
 func (*Yield) OpNode()      {}
 func (*Merge) OpNode()      {}
 

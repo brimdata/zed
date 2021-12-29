@@ -27,15 +27,13 @@ type Proc struct {
 	// The head-of-line (hol) queue is maintained as a min-heap on cmp of
 	// hol.vals[0] (see Less) so that the next Read always returns
 	// hol[0].vals[0].
-	hol     []*puller
-	blocked map[*puller]struct{}
-	err     error
+	hol []*puller
 }
 
 var _ zbuf.Puller = (*Proc)(nil)
 var _ zio.Reader = (*Proc)(nil)
 
-func New(ctx context.Context, parents []proc.Interface, cmp expr.CompareFn) *Proc {
+func New(ctx context.Context, parents []zbuf.Puller, cmp expr.CompareFn) *Proc {
 	pullers := make([]*puller, 0, len(parents))
 	for _, p := range parents {
 		pullers = append(pullers, newPuller(ctx, p))
@@ -44,31 +42,19 @@ func New(ctx context.Context, parents []proc.Interface, cmp expr.CompareFn) *Pro
 		ctx:     ctx,
 		cmp:     cmp,
 		parents: pullers,
-		blocked: make(map[*puller]struct{}),
 	}
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
-	p.once.Do(p.run)
-	if p.err != nil {
-		return nil, p.err
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+	var err error
+	p.once.Do(func() { err = p.run() })
+	if err != nil {
+		return nil, err
 	}
 	if p.Len() == 0 {
 		// No more batches in head of line.  So, let's resume
 		// everything and return an EOS.
-		for _, parent := range p.parents {
-			parent.resumeCh <- struct{}{}
-			ok, err := p.replenish(parent)
-			if err != nil {
-				p.err = err
-				return nil, err
-			}
-			if ok {
-				heap.Push(p, parent)
-				delete(p.blocked, parent)
-			}
-		}
-		return nil, nil
+		return nil, p.start()
 	}
 	min := heap.Pop(p).(*puller)
 	if p.Len() == 0 || p.cmp(&min.vals[len(min.vals)-1], &p.hol[0].vals[0]) <= 0 {
@@ -79,9 +65,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if len(min.vals) < len(batch.Values()) {
 			batch = zbuf.NewArray(min.vals)
 		}
-		ok, err := p.replenish(min)
+		ok, err := min.replenish()
 		if err != nil {
-			p.err = err
 			return nil, err
 		}
 		if ok {
@@ -91,7 +76,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	}
 	heap.Push(p, min)
 	const batchLen = 100 // XXX
-	return zbuf.NewPuller(p, batchLen).Pull()
+	return zbuf.NewPuller(p, batchLen).Pull(false)
 }
 
 func (p *Proc) Read() (*zed.Value, error) {
@@ -102,7 +87,7 @@ func (p *Proc) Read() (*zed.Value, error) {
 	val := &u.vals[0]
 	u.vals = u.vals[1:]
 	if len(u.vals) == 0 {
-		ok, err := p.replenish(u)
+		ok, err := u.replenish()
 		if err != nil {
 			return nil, err
 		}
@@ -115,19 +100,7 @@ func (p *Proc) Read() (*zed.Value, error) {
 	return val, nil
 }
 
-func (p *Proc) replenish(parent *puller) (bool, error) {
-	ok, err := parent.replenish()
-	if err != nil {
-		return false, err
-	}
-	if ok {
-		return true, nil
-	}
-	p.blocked[parent] = struct{}{}
-	return false, nil
-}
-
-func (p *Proc) run() {
+func (p *Proc) run() error {
 	// Start up all the goroutines before initializing the heap.
 	// If we do one at a time, there is a deadlock for an upstream
 	// split because the split waits for Pulls to arrive before
@@ -135,25 +108,49 @@ func (p *Proc) run() {
 	for _, parent := range p.parents {
 		go parent.run()
 	}
+	return p.start()
+}
+
+// start replenishes each parent's head-of-line batch either at initialization
+// or after an EOS and intializes the blocked table with the status of
+// each parent, e.g., a parent may be immediately blocked because it has
+// no data at (re)start and should not be re-entered into the HOL queue.
+func (p *Proc) start() error {
+	p.hol = p.hol[:0]
 	for _, parent := range p.parents {
-		ok, err := p.replenish(parent)
+		parent.blocked = false
+		ok, err := parent.replenish()
 		if err != nil {
-			p.err = err
-			return
+			return err
 		}
 		if ok {
-			p.Push(parent)
+			heap.Push(p, parent)
 		}
 	}
 	heap.Init(p)
+	return nil
 }
 
-func (p *Proc) Done() {
-	for _, parent := range p.hol {
-		if _, ok := p.blocked[parent]; !ok {
-			parent.doneCh <- struct{}{}
+func (p *Proc) propagateDone() error {
+	// For everything in the HOL queue (i.e., not already blocked),
+	// propagate a done and read until EOS.  This will result in
+	// all parents at EOS and blocked; then we can resume everything
+	// together.
+	for len(p.hol) > 0 {
+		m := p.Pop().(*puller)
+		select {
+		case m.doneCh <- struct{}{}:
+			if m.batch != nil {
+				m.batch.Unref()
+				m.batch = nil
+			}
+		case <-m.ctx.Done():
+			return m.ctx.Err()
 		}
 	}
+	// Now the heap is empty and all pullers are at EOS.
+	// Unblock and initialize them so we can resume on the next bill.
+	return p.start()
 }
 
 func (m *Proc) Len() int { return len(m.hol) }
@@ -173,43 +170,42 @@ func (m *Proc) Pop() interface{} {
 }
 
 type puller struct {
-	proc.Interface
+	zbuf.Puller
 	ctx      context.Context
 	resultCh chan proc.Result
-	resumeCh chan struct{}
 	doneCh   chan struct{}
 	batch    zbuf.Batch
 	vals     []zed.Value
+	// Used only by Proc
+	blocked bool
 }
 
-func newPuller(ctx context.Context, parent proc.Interface) *puller {
+func newPuller(ctx context.Context, parent zbuf.Puller) *puller {
 	return &puller{
-		Interface: proc.NewCatcher(parent),
-		ctx:       ctx,
-		resultCh:  make(chan proc.Result),
-		resumeCh:  make(chan struct{}),
-		doneCh:    make(chan struct{}),
+		Puller:   proc.NewCatcher(parent),
+		ctx:      ctx,
+		resultCh: make(chan proc.Result),
+		doneCh:   make(chan struct{}),
 	}
 }
 
 func (p *puller) run() {
-	defer close(p.resultCh)
 	for {
-		batch, err := p.Pull()
+		batch, err := p.Pull(false)
 		select {
 		case p.resultCh <- proc.Result{batch, err}:
 			if err != nil {
+				//XXX
 				return
-			}
-			if batch == nil {
-				if !p.waitToResume() {
-					return
-				}
 			}
 		case <-p.doneCh:
+			if batch != nil {
+				batch.Unref()
+			}
 			// Drop the pending batch and initiate a done...
-			if !p.propagateDone() {
-				return
+			batch, _ := p.Pull(true) // do something with err
+			if batch != nil {
+				panic("non-nil done batch")
 			}
 		case <-p.ctx.Done():
 			return
@@ -221,39 +217,19 @@ func (p *puller) run() {
 // is encountered and its goroutine will then block until resumed or
 // canceled.
 func (p *puller) replenish() (bool, error) {
-	r := <-p.resultCh
-	if r.Err != nil {
-		return false, r.Err
-	}
-	p.batch = r.Batch
-	if p.batch != nil {
-		p.vals = p.batch.Values()
-		return true, nil
-	}
-	return false, nil
-}
-
-func (p *puller) waitToResume() bool {
 	select {
-	case <-p.resumeCh:
-		return true
+	case r := <-p.resultCh:
+		if r.Err != nil {
+			return false, r.Err
+		}
+		p.batch = r.Batch
+		if p.batch != nil {
+			p.vals = p.batch.Values()
+			return true, nil
+		}
+		p.blocked = true
+		return false, nil
 	case <-p.ctx.Done():
-		return false
-	}
-}
-
-func (p *puller) propagateDone() bool {
-	p.Done()
-	for {
-		batch, err := p.Pull()
-		if err != nil {
-			p.resultCh <- proc.Result{nil, err}
-			return false
-		}
-		if batch == nil {
-			p.resultCh <- proc.Result{nil, nil}
-			return p.waitToResume()
-		}
-		batch.Unref()
+		return false, p.ctx.Err()
 	}
 }

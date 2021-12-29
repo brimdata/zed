@@ -11,13 +11,13 @@ import (
 
 type Proc struct {
 	pctx   *proc.Context
-	parent proc.Interface
+	parent zbuf.Puller
 	cflag  bool
 	count  uint64
 	last   *zed.Value
 }
 
-func New(pctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
+func New(pctx *proc.Context, parent zbuf.Puller, cflag bool) *Proc {
 	return &Proc{
 		pctx:   pctx,
 		parent: parent,
@@ -61,9 +61,9 @@ func (p *Proc) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
 
 // uniq is a little bit complicated because we have to check uniqueness
 // across records between calls to Pull.
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	for {
-		batch, err := p.parent.Pull()
+		batch, err := p.parent.Pull(done)
 		if err != nil {
 			return nil, err
 		}
@@ -85,8 +85,4 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			return zbuf.NewArray(out), nil
 		}
 	}
-}
-
-func (p *Proc) Done() {
-	p.parent.Done()
 }

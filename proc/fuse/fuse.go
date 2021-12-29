@@ -12,14 +12,14 @@ var BatchSize = 100
 
 type Proc struct {
 	pctx   *proc.Context
-	parent proc.Interface
+	parent zbuf.Puller
 
 	fuser    *Fuser
 	once     sync.Once
 	resultCh chan proc.Result
 }
 
-func New(pctx *proc.Context, parent proc.Interface) (*Proc, error) {
+func New(pctx *proc.Context, parent zbuf.Puller) (*Proc, error) {
 	return &Proc{
 		pctx:     pctx,
 		parent:   parent,
@@ -28,7 +28,8 @@ func New(pctx *proc.Context, parent proc.Interface) (*Proc, error) {
 	}, nil
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+	// XXX ignoring the done indicator.  See issue #3436.
 	p.once.Do(func() { go p.run() })
 	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
@@ -49,7 +50,7 @@ func (p *Proc) pullInput() error {
 		if err := p.pctx.Err(); err != nil {
 			return err
 		}
-		batch, err := p.parent.Pull()
+		batch, err := p.parent.Pull(false)
 		if err != nil {
 			return err
 		}
@@ -69,7 +70,7 @@ func (p *Proc) pushOutput() error {
 		if err := p.pctx.Err(); err != nil {
 			return err
 		}
-		batch, err := puller.Pull()
+		batch, err := puller.Pull(false)
 		if err != nil || batch == nil {
 			return err
 		}
@@ -90,8 +91,4 @@ func (p *Proc) shutdown(err error) {
 	}
 	p.sendResult(nil, err)
 	close(p.resultCh)
-}
-
-func (p *Proc) Done() {
-	p.parent.Done()
 }

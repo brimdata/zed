@@ -25,10 +25,10 @@ import (
 // Regardless of reference count or implementation, an unreachable Batch will
 // eventually be reclaimed by the garbage collector.
 type Batch interface {
+	expr.Context
 	Ref()
 	Unref()
 	Values() []zed.Value
-	Context() expr.Context
 }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
@@ -67,10 +67,18 @@ func readBatch(zr zio.Reader, n int) (Batch, error) {
 	return NewArray(recs), nil
 }
 
-// A Puller produces Batches of records, signaling end-of-stream by returning
-// a nil Batch and nil error.
+// A Puller produces Batches of records, signaling end-of-stream (EOS) by returning
+// a nil Batch and nil error.  The done argument to Pull indicates that the stream
+// should be terminated before its natural EOS.  An implementation must return
+// EOS in response to a Pull call when the done parameter is true.  After seneind EOS,
+// (either via done or its natural end), an implementation of an operator that
+// processes pulled data) should respond to additional calls to Pull as if restarting
+// in its initial state.  For original sources of data (e.g., the from operator),
+// once EOS is reached, additional calls to Pull after the first EOS should always
+// return EOS.   Calls to Pull() are presumed to be single threaded
+// and multiple calls to Pull() cannot be issued concurrently.
 type Puller interface {
-	Pull() (Batch, error)
+	Pull(bool) (Batch, error)
 }
 
 type PullerCloser interface {
@@ -90,7 +98,7 @@ type puller struct {
 	eos bool
 }
 
-func (p *puller) Pull() (Batch, error) {
+func (p *puller) Pull(bool) (Batch, error) {
 	if p.eos {
 		return nil, nil
 	}
@@ -103,7 +111,7 @@ func (p *puller) Pull() (Batch, error) {
 
 func CopyPuller(w zio.Writer, p Puller) error {
 	for {
-		b, err := p.Pull()
+		b, err := p.Pull(false)
 		if b == nil || err != nil {
 			return err
 		}
@@ -128,7 +136,7 @@ type pullerReader struct {
 func (r *pullerReader) Read() (*zed.Value, error) {
 	if r.batch == nil {
 		for {
-			batch, err := r.p.Pull()
+			batch, err := r.p.Pull(false)
 			if err != nil || batch == nil {
 				return nil, err
 			}
@@ -150,4 +158,42 @@ func (r *pullerReader) Read() (*zed.Value, error) {
 		r.batch = nil
 	}
 	return rec, nil
+}
+
+// XXX at some point the stacked scopes should not make copies of values
+// but merely refer back to the value in the wrapped batch, and we should
+// ref the wrapped batch then downstream entities will unref it, but how
+// do we carry the var frame through... protocol needs to be that any new
+// batch created by a proc needs to preserve the var frame... we don't
+// do that right now and ref counting needs to account for the dependencies.
+// procs like summarize and sort that unref their input batches merely need
+// to copy the first frame (of each batch) and the contract is that the
+// frame will not change between multiple batches within a single-EOS event.
+
+type batch struct {
+	Batch
+	vars []zed.Value
+}
+
+func NewBatch(b Batch, vals []zed.Value) Batch {
+	return &batch{
+		Batch: NewArray(vals),
+		vars:  CopyVars(b),
+	}
+}
+
+func (b *batch) Vars() []zed.Value {
+	return b.vars
+}
+
+func CopyVars(b Batch) []zed.Value {
+	vars := b.Vars()
+	if len(vars) > 0 {
+		newvars := make([]zed.Value, len(vars))
+		for k, v := range vars {
+			newvars[k] = *v.Copy()
+		}
+		vars = newvars
+	}
+	return vars
 }

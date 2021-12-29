@@ -11,6 +11,6 @@ func NewVar(slot int) *Var {
 }
 
 func (v Var) Eval(ectx Context, _ *zed.Value) *zed.Value {
-	frame := ectx.Scope()
-	return &frame[v]
+	vars := ectx.Vars()
+	return &vars[v]
 }

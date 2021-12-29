@@ -1,35 +1,28 @@
 package proc
 
 import (
+	"context"
 	"sync"
 
 	"github.com/brimdata/zed/zbuf"
 )
 
 type Selector interface {
-	Forward(*Router, zbuf.Batch) error
+	Forward(*Router, zbuf.Batch) bool
 }
 
 type Router struct {
-	pctx     *Context
-	parent   Interface
+	ctx      context.Context
+	parent   zbuf.Puller
 	selector Selector
-	routes   map[Interface]chan<- Result
-	blocked  map[Interface]struct{}
-	doneCh   chan Interface
+	routes   []*route
 	once     sync.Once
-	backlog  []Interface
-	// Router err protected by result channel
-	err error
 }
 
-func NewRouter(pctx *Context, parent Interface) *Router {
+func NewRouter(ctx context.Context, parent zbuf.Puller) *Router {
 	return &Router{
-		pctx:    pctx,
-		parent:  NewCatcher(parent),
-		routes:  make(map[Interface]chan<- Result),
-		blocked: make(map[Interface]struct{}),
-		doneCh:  make(chan Interface),
+		ctx:    ctx,
+		parent: NewCatcher(parent),
 	}
 }
 
@@ -37,167 +30,153 @@ func (r *Router) Link(s Selector) {
 	r.selector = s
 }
 
-func (r *Router) AddRoute() Interface {
-	ch := make(chan Result)
+func (r *Router) AddRoute() zbuf.Puller {
 	child := &route{
 		router:   r,
-		resultCh: ch,
+		resultCh: make(chan Result),
+		doneCh:   make(chan struct{}),
+		id:       len(r.routes),
 	}
-	r.routes[child] = ch
+	r.routes = append(r.routes, child)
 	return child
 }
 
 func (r *Router) run() {
-	defer func() {
-		// At double-EOS completion, we close all channels so the
-		// downstream routes will automatically get their double-EOS completions.
-		for _, ch := range r.routes {
-			close(ch)
-		}
-	}()
-	var eos bool
 	for {
-		batch, err := r.parent.Pull()
-		if err != nil {
-			r.err = err
-			return
+		if r.blocked() {
+			// If everything is blocked, send a done upstream
+			// and unblock everything to resume the next platoon.
+			batch, err := r.parent.Pull(true)
+			if batch != nil {
+				panic("non-nil done batch")
+			}
+			if err != nil {
+				if ok := r.sendEOS(err); !ok {
+					return
+				}
+				continue
+			}
+			r.unblock()
 		}
-		if batch == nil {
-			if eos {
+		batch, err := r.parent.Pull(false)
+		if err != nil || batch == nil {
+			if ok := r.sendEOS(err); !ok {
 				return
 			}
-			r.sendEOS()
-			eos = true
+			r.unblock()
 			continue
 		}
-		eos = false
 		// The selectors decides what if any of the batch it
 		// wants to send to which down stream procs by calling
 		// back the Router.Send() method.  We Unref() the batch here
 		// after calling Forward(), so it is up to the selector to Ref()
-		// the batch if it wants to hold on to it.
-		if err := r.selector.Forward(r, batch); err != nil {
-			r.err = err
+		// the batch before sending to Send() if it wants to hold on to it.
+		if ok := r.selector.Forward(r, batch); !ok {
 			return
 		}
 		batch.Unref()
-		r.drain()
-		if len(r.blocked) == len(r.routes) {
-			// All downstream routes have indicated they are done,
-			// so they have all received exactly one EOS.  Now call
-			// halt to send done to our parent and advance to the
-			// first EOS from upstream (which is already delivered
-			// to all downstream routes).
-			// We set EOS true, then repeat the loop exiting on
-			// a second EOS or resuming the next batch group
-			// to all downstream routes.
-			if err := r.halt(); err != nil {
-				r.err = err
-				return
-			}
-			r.unblock()
-			eos = true
-		}
 	}
 }
 
-// Send an EOS to each unblocked route and unblock the routes that
-// were already blocked (and thus already received their first EOS
-// for this group).
-func (r *Router) sendEOS() {
-	for p := range r.routes {
-		if ok := r.Send(p, nil, nil); !ok {
-			delete(r.blocked, p)
-		}
-	}
-
-}
-
-func (r *Router) unblock() {
-	for p := range r.blocked {
-		delete(r.blocked, p)
-	}
-}
-
-func (r *Router) halt() error {
-	r.parent.Done()
-	for {
-		b, err := r.parent.Pull()
-		if b == nil || err != nil {
-			return err
-		}
-		b.Unref()
-	}
-}
-
-func (r *Router) Send(p Interface, b zbuf.Batch, err error) bool {
-	if _, ok := r.blocked[p]; ok {
-		if b != nil {
-			b.Unref()
-		}
-		return false
-	}
-	for {
-		select {
-		case r.routes[p] <- Result{Batch: b, Err: err}:
-			return true
-		case p := <-r.doneCh:
-			r.backlog = append(r.backlog, p)
-		case <-r.pctx.Done():
+func (r *Router) blocked() bool {
+	for _, p := range r.routes {
+		if !p.blocked {
 			return false
 		}
 	}
+	return true
 }
 
-func (r *Router) drain() {
-	for len(r.backlog) > 0 {
-		p := r.backlog[0]
-		r.backlog = r.backlog[1:]
-		r.block(p)
-	}
-	for {
+// Send an EOS to each unblocked route.  On return evertyhing is unblocked
+// and everything downstream has been sent an EOS.  If a channel is sending
+// done concurrently with the EOS being sent to it, we resolve the done
+// with its matching EOS.  Thus, the invariant holds that everything downstream
+// has EOS either via Done or batch EOS.  If the Route receives a Pull(done)
+// after receiving the EOS, it's done will be captured as soon as we unblock
+// all channels.
+func (r *Router) sendEOS(err error) bool {
+	// First, we need to send EOS to all non-blocked legs and
+	// catch any dones in progress.  This result in all routes
+	// being blocked.
+	for _, p := range r.routes {
+		// XXX If we get done while trying to send an EOS, we need to
+		// ack the done and then send the EOS.  We treat it as if it
+		// happened before the EOS being sent.
 		select {
-		case p := <-r.doneCh:
-			r.block(p)
-		default:
-			return
+		case p.resultCh <- Result{}:
+			// This case sends EOS.  If a done arrives first,
+			// the rooute won't read from its resultCh and the
+			// done case will get captured below.
+			p.blocked = true
+		case <-p.doneCh:
+			// This path was about to be blocked with a done so
+			// just mark it blocked now.
+			p.blocked = true
+		case <-r.ctx.Done():
+			return false
 		}
 	}
+	for _, p := range r.routes {
+		p.blocked = false
+	}
+	return true
 }
 
-func (r *Router) block(p Interface) {
-	// When we get a done, we block the channel to that route
-	// if it's not already blocked.  Since the contract of
-	// Done is the downstream initiator will pull until EOS,
-	// we know we won't deadlock here.  If the channel is
-	// already blocked, it will get its single EOS anyway
-	// and then block in its Pull until we send it the first
-	// batch of the next group or the second EOS.
-	if _, ok := r.blocked[p]; !ok {
-		r.Send(p, nil, nil)
-		r.blocked[p] = struct{}{}
+func (r *Router) unblock() {
+	for _, p := range r.routes {
+		p.blocked = false
 	}
 }
 
-func (r *Router) done(p Interface) {
-	r.doneCh <- p
+func (r *Router) Send(p zbuf.Puller, b zbuf.Batch, err error) bool {
+	if b == nil {
+		panic("EOS sent through router send API")
+	}
+	to := p.(*route)
+	if to.blocked {
+		b.Unref()
+		return true
+	}
+	select {
+	case to.resultCh <- Result{Batch: b, Err: err}:
+		return true
+	case <-to.doneCh:
+		// If we get a done while trying to write,
+		// mark this route blocked and drop the
+		// batch being sent.
+		b.Unref()
+		to.blocked = true
+		return true
+	case <-r.ctx.Done():
+		return false
+	}
 }
 
 type route struct {
 	router   *Router
-	resultCh <-chan Result
+	resultCh chan Result
+	doneCh   chan struct{}
+	id       int
+	// Used only by Router
+	blocked bool
 }
 
-func (r *route) Pull() (zbuf.Batch, error) {
+func (r *route) Pull(done bool) (zbuf.Batch, error) {
 	r.router.once.Do(func() {
 		go r.router.run()
 	})
-	if result, ok := <-r.resultCh; ok {
-		return result.Batch, result.Err
+	if done {
+		select {
+		case r.doneCh <- struct{}{}:
+			return nil, nil
+		case <-r.router.ctx.Done():
+			return nil, r.router.ctx.Err()
+		}
 	}
-	return nil, r.router.err
-}
-
-func (r *route) Done() {
-	r.router.done(r)
+	select {
+	case result := <-r.resultCh:
+		return result.Batch, result.Err
+	case <-r.router.ctx.Done():
+		return nil, r.router.ctx.Err()
+	}
 }

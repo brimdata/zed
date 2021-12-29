@@ -60,6 +60,6 @@ func (b *batch) Unref() {
 
 //XXX this should be ok, but we should handle nil receiver in scope so push
 // will do the right thing
-func (*batch) Scope() []zed.Value { return nil }
+func (*batch) Vars() []zed.Value { return nil }
 
 func (b *batch) Context() expr.Context { return b }

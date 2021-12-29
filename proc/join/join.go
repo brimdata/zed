@@ -31,7 +31,7 @@ type Proc struct {
 	types       map[int]map[int]*zed.TypeRecord
 }
 
-func New(pctx *proc.Context, anti, inner bool, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
+func New(pctx *proc.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
 	cutter, err := expr.NewCutter(pctx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,8 @@ func New(pctx *proc.Context, anti, inner bool, left, right proc.Interface, leftK
 }
 
 // Pull implements the merge logic for returning data from the upstreams.
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+	// XXX see issue #3437 regarding done protocol.
 	p.once.Do(func() {
 		go p.left.run()
 		go p.right.Reader.(*puller).run()
@@ -72,6 +73,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			if len(out) == 0 {
 				return nil, nil
 			}
+			//XXX See issue #3427.
 			return zbuf.NewArray(out), nil
 		}
 		key := p.getLeftKey.Eval(ectx, leftRec)
@@ -114,10 +116,6 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			out = append(out, *rec)
 		}
 	}
-}
-
-func (p *Proc) Done() {
-	p.cancel()
 }
 
 func (p *Proc) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {

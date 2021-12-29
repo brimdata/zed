@@ -10,7 +10,7 @@ import (
 // of Zed values both for let-style temporary variables accessible via
 // the scope and for allocating results.
 type Context interface {
-	Scope() []zed.Value
+	Vars() []zed.Value
 	//XXX there should be two NewValues: one when bytes is already inside
 	// of the context... another when you need to copy those bytes into
 	// this context.
@@ -33,7 +33,7 @@ func (*allocator) CopyValue(val zed.Value) *zed.Value {
 	return zed.NewValue(val.Type, val.Bytes)
 }
 
-func (*allocator) Scope() []zed.Value {
+func (*allocator) Vars() []zed.Value {
 	return nil
 }
 

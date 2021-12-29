@@ -2,19 +2,19 @@ package tail
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 )
 
 type Proc struct {
-	parent proc.Interface
+	parent zbuf.Puller
 	limit  int
 	count  int
 	off    int
 	q      []zed.Value
+	eos    bool
 }
 
-func New(parent proc.Interface, limit int) *Proc {
+func New(parent zbuf.Puller, limit int) *Proc {
 	//XXX should have a limit check on limit
 	return &Proc{
 		parent: parent,
@@ -41,10 +41,15 @@ func (p *Proc) tail() zbuf.Batch {
 
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+	if p.eos || done {
+		p.eos = false
+		return nil, nil
+	}
 	for {
-		batch, err := p.parent.Pull()
+		batch, err := p.parent.Pull(false)
 		if batch == nil || err != nil {
+			p.eos = true
 			return p.tail(), nil
 		}
 		vals := batch.Values()
@@ -58,8 +63,4 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		}
 		batch.Unref()
 	}
-}
-
-func (p *Proc) Done() {
-	p.parent.Done()
 }

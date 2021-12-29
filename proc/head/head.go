@@ -1,35 +1,42 @@
 package head
 
 import (
-	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 )
 
 type Proc struct {
-	parent       proc.Interface
+	parent       zbuf.Puller
 	limit, count int
-	err          error
-	done         bool
 }
 
-func New(parent proc.Interface, limit int) *Proc {
+func New(parent zbuf.Puller, limit int) *Proc {
 	return &Proc{
 		parent: parent,
 		limit:  limit,
 	}
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
-	if p.err != nil {
-		return nil, p.err
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+	if p.count >= p.limit {
+		// If we are at limit we already sent a done upstream,
+		// so for either sense of the done flag, we return EOS
+		// and reset our state.
+		p.count = 0
+		return nil, nil
 	}
-	if p.done {
-		p.done = false
+	if done {
+		b, err := p.parent.Pull(true)
+		if err != nil {
+			return nil, err
+		}
+		if b != nil {
+			panic("non-nil done batch")
+		}
 		p.count = 0
 		return nil, nil
 	}
 again:
-	batch, err := p.parent.Pull()
+	batch, err := p.parent.Pull(false)
 	if batch == nil || err != nil {
 		p.count = 0
 		return nil, err
@@ -47,26 +54,12 @@ again:
 		return batch, nil
 	}
 	// This batch has more than the needed records.
-	// Signal to the upstream that we're done then we will resume
-	// pulling until we hit eof.
-	p.parent.Done()
-	p.count = p.limit
-	return zbuf.NewArray(vals[:remaining]), nil
-}
-
-func (p *Proc) Done() {
-	// If we get a done from downstream, pull until EOS then start over.
-	p.parent.Done()
-	for {
-		batch, err := p.parent.Pull()
-		if err != nil {
-			p.err = err
-			return
-		}
-		if batch == nil {
-			p.done = true
-			return
-		}
-		batch.Unref()
+	// Signal to the parent that we are done and set the done
+	// flag so any downstream dones will not be erroneously
+	// propagated since this path is already done.
+	if _, err := p.parent.Pull(true); err != nil {
+		return nil, err
 	}
+	p.count = p.limit
+	return zbuf.NewBatch(batch, vals[:remaining]), nil
 }
