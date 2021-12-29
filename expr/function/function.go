@@ -82,6 +82,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 		argmax = 2
 		f = &Trunc{}
 	case "typename":
+		argmax = 2
 		f = &typeName{zctx: zctx}
 	case "typeof":
 		f = &TypeOf{zctx: zctx}
@@ -198,8 +199,8 @@ type typeName struct {
 }
 
 func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
-	if args[0].Type != zed.TypeString {
-		return newErrorf(ectx, "typename: first argument not type string")
+	if zed.AliasOf(args[0].Type) != zed.TypeString {
+		return newErrorf(ectx, "typename: first argument not a string")
 	}
 	name := string(args[0].Bytes)
 	if len(args) == 1 {
@@ -209,12 +210,7 @@ func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		return t.zctx.LookupTypeValue(typ)
 	}
-	// XXX second argument is a type value that wants to be named or
-	// if not a type value then we can take the type of the value.
-	//if len(args) == 2 {
-	//	return zctx.
-	//}
-	if args[1].Type != zed.TypeType {
+	if zed.AliasOf(args[1].Type) != zed.TypeType {
 		return newErrorf(ectx, "typename: second argument not a type value")
 	}
 	typ, err := t.zctx.LookupByValue(args[1].Bytes)

@@ -744,7 +744,6 @@ echo  '80(port=(int16))' | zq -z 'yield typename("port")' -
 
 ### `typeof`
 
-
 ```
 typeof(a <any>) -> type
 ```

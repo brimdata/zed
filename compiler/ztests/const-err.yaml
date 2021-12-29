@@ -6,4 +6,4 @@ input: |
 
 output: ""
 
-errorRE: cannot resolve const .* at compile time
+errorRE: const .* cannot have variable dependency

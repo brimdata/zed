@@ -45,7 +45,6 @@ type Builder struct {
 }
 
 func NewBuilder(pctx *proc.Context, adaptor proc.DataAdaptor) *Builder {
-	// Create scope and enter the global scope.
 	return &Builder{
 		pctx:       pctx,
 		adaptor:    adaptor,
@@ -595,7 +594,7 @@ func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err erro
 		return nil, err
 	}
 	// Catch panic as the runtime will panic if there is a
-	// reference to a var not in scope, a field access null this, etc
+	// reference to a var not in scope, a field access null this, etc.
 	defer func() {
 		if recover() != nil {
 			val = nil

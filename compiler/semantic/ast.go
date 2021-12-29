@@ -9,13 +9,11 @@ import (
 	"github.com/brimdata/zed/proc"
 )
 
-// Analyze analysis the AST and prepares it for runtime compilation.
+// Analyze performs a semantic analysis of the AST, translating it from AST
+// to DAG form, resolving syntax ambiguities, and performing constant propagation.
+// After semantic analysis, the DAG is ready for either optimization or compilation.
 func Analyze(ctx context.Context, seq *ast.Sequential, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, error) {
-	entry, err := semSequential(ctx, NewScope(), seq, adaptor, head)
-	if err != nil {
-		return nil, err
-	}
-	return entry, nil
+	return semSequential(ctx, NewScope(), seq, adaptor, head)
 }
 
 func isFrom(seq *ast.Sequential) bool {

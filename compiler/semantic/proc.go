@@ -224,8 +224,8 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 	}
 	return &dag.Sequential{
 		Kind:   "Sequential",
-		Ops:    ops,
 		Consts: consts,
+		Ops:    ops,
 	}, nil
 }
 

@@ -33,17 +33,6 @@ func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 	return CompileBufferFilter(f.builder.pctx.Zctx, f.pushdown)
 }
 
-func isLiteral(zctx *zed.Context, e dag.Expr) (*zed.Value, error) {
-	if literal, ok := e.(*dag.Literal); ok {
-		val, err := zson.ParseValue(zctx, literal.Value)
-		if err != nil {
-			return nil, err
-		}
-		return &val, nil
-	}
-	return nil, nil
-}
-
 func compileCompareField(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error) {
 	if e.Op == "in" {
 		literal, err := isLiteral(zctx, e.LHS)
@@ -90,12 +79,24 @@ func compileCompareField(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, 
 	return expr.NewFilter(field, comparison), nil
 }
 
+func isLiteral(zctx *zed.Context, e dag.Expr) (*zed.Value, error) {
+	if literal, ok := e.(*dag.Literal); ok {
+		val, err := zson.ParseValue(zctx, literal.Value)
+		if err != nil {
+			return nil, err
+		}
+		return &val, nil
+	}
+	return nil, nil
+}
+
 func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error) {
 	val, err := zson.ParseValue(zctx, search.Value)
 	if err != nil {
 		return nil, err
 	}
-	if val.Type == zed.TypeNet {
+	switch zed.AliasOf(val.Type) {
+	case zed.TypeNet:
 		match, err := expr.Comparison("=", &val)
 		if err != nil {
 			return nil, err
@@ -105,8 +106,7 @@ func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error
 			return match(val) || contains(val)
 		}
 		return expr.SearchByPredicate(pred), nil
-	}
-	if val.Type == zed.TypeString {
+	case zed.TypeString:
 		term := norm.NFC.Bytes(zed.UnescapeBstring(val.Bytes))
 		return expr.NewSearchString(string(term)), nil
 	}

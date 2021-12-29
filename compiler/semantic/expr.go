@@ -122,9 +122,9 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			// If this is a type name, then we check to see if it's in the
 			// context because it has been defined locally.  If not, then
 			// the type needs to come from the data, in which case we replace
-			// the literal reference with a type_by_name() call.
+			// the literal reference with a typename() call.
 			// Note that we just check the top value here but there can be
-			// nested dynamic type references inside a complex type but this
+			// nested dynamic type references inside a complex type; this
 			// is not yet supported and will fail here with a compile-time error
 			// complaining about the type not existing.
 			// XXX See issue #3413
@@ -289,7 +289,7 @@ func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.Path {
 
 func isStringConst(scope *Scope, e dag.Expr) (field string, ok bool) {
 	val, err := kernel.EvalAtCompileTime(scope.zctx, e)
-	if err == nil && val != nil && val.Type == zed.TypeString {
+	if err == nil && val != nil && zed.AliasOf(val.Type) == zed.TypeString {
 		return string(val.Bytes), true
 	}
 	return "", false

@@ -96,10 +96,9 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lak
 	if err != nil {
 		return nil, err
 	}
-	builder := kernel.NewBuilder(pctx, adaptor)
 	return &Runtime{
 		pctx:      pctx,
-		builder:   builder,
+		builder:   kernel.NewBuilder(pctx, adaptor),
 		optimizer: optimizer.New(pctx.Context, entry, adaptor),
 		readers:   readers,
 	}, nil

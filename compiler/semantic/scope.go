@@ -54,7 +54,11 @@ func (s *Scope) DefineConst(name string, def dag.Expr) error {
 		return err
 	}
 	if val.IsError() {
-		return fmt.Errorf("cannot resolve const %q at compile time", name)
+		if val.IsMissing() {
+			return fmt.Errorf("const %q: cannot have variable dependency", name)
+		} else {
+			return fmt.Errorf("const %q: %q", name, string(val.Bytes))
+		}
 	}
 	literal := &dag.Literal{
 		Kind:  "Literal",
@@ -76,8 +80,8 @@ func (s *Scope) Lookup(name string) dag.Expr {
 
 func (s *Scope) nvars() int {
 	var n int
-	for k := len(s.stack) - 1; k >= 0; k-- {
-		n += s.stack[k].nvar
+	for _, scope := range s.stack {
+		n += scope.nvar
 	}
 	return n
 }

@@ -410,14 +410,7 @@ func Contains(compare Boolean) Boolean {
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
 func Comparison(op string, val *zed.Value) (Boolean, error) {
-	// String literals inside Zed are parsed as zng bstrings
-	// (since bstrings can represent a wider range of values,
-	// specifically arrays of bytes that do not correspond to
-	// UTF-8 encoded strings).
-	if val.Type == zed.TypeString {
-		val = zed.NewValue(zed.TypeBstring, val.Bytes)
-	}
-	switch val.Type.(type) {
+	switch zed.AliasOf(val.Type).(type) {
 	case *zed.TypeOfNull:
 		return CompareNull(op)
 	case *zed.TypeOfIP:
