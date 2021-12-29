@@ -81,6 +81,9 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 		argmin = 2
 		argmax = 2
 		f = &Trunc{}
+	case "typename":
+		argmax = 2
+		f = &typeName{zctx: zctx}
 	case "typeof":
 		f = &TypeOf{zctx: zctx}
 	case "typeunder":
@@ -188,6 +191,33 @@ func (n *NameOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newString(ctx, alias.Name)
 	}
 	return zed.Missing
+}
+
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typename
+type typeName struct {
+	zctx *zed.Context
+}
+
+func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
+	if zed.AliasOf(args[0].Type) != zed.TypeString {
+		return newErrorf(ectx, "typename: first argument not a string")
+	}
+	name := string(args[0].Bytes)
+	if len(args) == 1 {
+		typ := t.zctx.LookupTypeDef(name)
+		if typ == nil {
+			return zed.Missing
+		}
+		return t.zctx.LookupTypeValue(typ)
+	}
+	if zed.AliasOf(args[1].Type) != zed.TypeType {
+		return newErrorf(ectx, "typename: second argument not a type value")
+	}
+	typ, err := t.zctx.LookupByValue(args[1].Bytes)
+	if err != nil {
+		return newError(ectx, err)
+	}
+	return t.zctx.LookupTypeValue(typ)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr

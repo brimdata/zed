@@ -1,0 +1,23 @@
+zed: |
+  const a = 1
+  switch this.a (
+    1 =>
+      const a = 10
+      const b = 20
+      yield {k:0,a:[101, a, b]};
+    2 =>
+      const b = 30
+      yield {k:1,a:[102, a, b, this.a]};
+    3 =>
+      yield {k:2,a:[103, a, b]};
+  ) | sort k
+
+input: |
+  {a:1,b:1001}
+  {a:2,b:1002}
+  {a:3,b:1003}
+
+output: |
+  {k:0,a:[101,10,20]}
+  {k:1,a:[102,1,30,2]}
+  {k:2,a:[103,1,1003]}

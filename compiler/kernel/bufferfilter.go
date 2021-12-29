@@ -3,7 +3,6 @@ package kernel
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/text/unicode/norm"
@@ -14,18 +13,22 @@ import (
 // encoding of a record matching e. (It may also return true for some byte
 // slices that do not match.) compileBufferFilter returns a nil pointer and nil
 // error if it cannot construct a useful filter.
-func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
+func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, error) {
 	switch e := e.(type) {
 	case *dag.BinaryExpr:
-		if literal, _ := isFieldEqualOrIn(e); literal != nil {
-			return newBufferFilterForLiteral(*literal)
+		literal, err := isFieldEqualOrIn(zctx, e)
+		if err != nil {
+			return nil, err
+		}
+		if literal != nil {
+			return newBufferFilterForLiteral(literal)
 		}
 		if e.Op == "and" {
-			left, err := CompileBufferFilter(e.LHS)
+			left, err := CompileBufferFilter(zctx, e.LHS)
 			if err != nil {
 				return nil, err
 			}
-			right, err := CompileBufferFilter(e.RHS)
+			right, err := CompileBufferFilter(zctx, e.RHS)
 			if err != nil {
 				return nil, err
 			}
@@ -38,11 +41,11 @@ func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
 			return expr.NewAndBufferFilter(left, right), nil
 		}
 		if e.Op == "or" {
-			left, err := CompileBufferFilter(e.LHS)
+			left, err := CompileBufferFilter(zctx, e.LHS)
 			if err != nil {
 				return nil, err
 			}
-			right, err := CompileBufferFilter(e.RHS)
+			right, err := CompileBufferFilter(zctx, e.RHS)
 			if left == nil || right == nil || err != nil {
 				return nil, err
 			}
@@ -50,11 +53,15 @@ func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
 		}
 		return nil, nil
 	case *dag.Search:
-		if e.Value.Type == "net" || e.Value.Type == "regexp" {
-			return nil, nil
+		literal, err := zson.ParseValue(zctx, e.Value)
+		if err != nil {
+			return nil, err
 		}
-		if e.Value.Type == "string" {
-			pattern := norm.NFC.Bytes(zed.UnescapeBstring([]byte(e.Value.Text)))
+		switch zed.AliasOf(literal.Type) {
+		case zed.TypeNet:
+			return nil, nil
+		case zed.TypeString:
+			pattern := norm.NFC.Bytes(zed.UnescapeBstring(literal.Bytes))
 			left := expr.NewBufferFilterForStringCase(string(pattern))
 			if left == nil {
 				return nil, nil
@@ -63,7 +70,7 @@ func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
 			return expr.NewOrBufferFilter(left, right), nil
 		}
 		left := expr.NewBufferFilterForStringCase(e.Text)
-		right, err := newBufferFilterForLiteral(e.Value)
+		right, err := newBufferFilterForLiteral(&literal)
 		if left == nil || right == nil || err != nil {
 			return nil, err
 		}
@@ -73,41 +80,41 @@ func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
 	}
 }
 
-func isFieldEqualOrIn(e *dag.BinaryExpr) (*astzed.Primitive, string) {
+// XXX isFieldEqualOrIn should work for any paths not just top-level fields.
+// See issue #3412
+
+func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) {
 	if dag.IsTopLevelField(e.LHS) && e.Op == "=" {
-		if literal, ok := e.RHS.(*astzed.Primitive); ok {
-			return literal, "="
+		if literal, ok := e.RHS.(*dag.Literal); ok {
+			val, err := zson.ParseValue(zctx, literal.Value)
+			if err != nil {
+				return nil, err
+			}
+			return &val, nil
 		}
 	} else if dag.IsTopLevelField(e.RHS) && e.Op == "in" {
-		if literal, ok := e.LHS.(*astzed.Primitive); ok && literal.Type != "net" {
-			return literal, "in"
+		if literal, ok := e.LHS.(*dag.Literal); ok {
+			val, err := zson.ParseValue(zctx, literal.Value)
+			if err != nil {
+				return nil, err
+			}
+			if val.Type == zed.TypeNet {
+				return nil, err
+			}
+			return &val, nil
 		}
 	}
-	return nil, ""
+	return nil, nil
 }
 
-func newBufferFilterForLiteral(l astzed.Primitive) (*expr.BufferFilter, error) {
-	switch l.Type {
-	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64",
-		"float32", "float64", "time", "duration":
-		// These are all comparable, so they can require up to three
+func newBufferFilterForLiteral(val *zed.Value) (*expr.BufferFilter, error) {
+	if id := val.Type.ID(); zed.IsNumber(id) || id == zed.IDNull {
+		// All numbers are comparable, so they can require up to three
 		// patterns: float, varint, and uvarint.
 		return nil, nil
-	case "null":
-		return nil, nil
-	case "regexp":
-		// Could try to extract a pattern (e.g., "efg" from "(ab|cd)(efg)+[hi]").
-		return nil, nil
-	case "string":
-		// Match the behavior of zed.ParseLiteral.
-		l.Type = "bstring"
-	}
-	v, err := zson.ParsePrimitive(l.Type, l.Text)
-	if err != nil {
-		return nil, err
 	}
 	// We're looking for a complete ZNG value, so we can lengthen the
 	// pattern by calling Encode to add a tag.
-	pattern := string(v.Encode(nil))
+	pattern := string(val.Encode(nil))
 	return expr.NewBufferFilterForString(pattern), nil
 }

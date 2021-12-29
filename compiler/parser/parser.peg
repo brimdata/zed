@@ -44,42 +44,33 @@
 #define VAR(x) let x
 #endif
 
-start = __ ast:Z __ EOF { RETURN(ast) }
-
-// A Zed script can be either a single operation or a chain of operations.
-// For a single operation, we do not need to wrap operator in a Sequential,
-// but we do for everything but FilterProc because the Zed runtime is fragile
-// to this difference right now.  See issue #1809.
-Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
-  = decls:Decl+ __ first:Operation rest:SequentialTail* {
-      VAR(procs) = ASSERT_ARRAY(decls)
-      APPEND(procs, first)
-      FOREACH(ASSERT_ARRAY(rest), p) {
-        APPEND(procs, p)
-      }
-      RETURN(MAP("kind": "Sequential", "procs": procs))
-    }
-  / Sequential
-
-Decl = __ v:AnyDecl { RETURN(v) }
-
-AnyDecl
-  = "const" _ id:IdentifierName __ "=" __ expr:Expr ( __ ";" / EOL ) {
-      RETURN(MAP("kind":"Const","name":id, "expr":expr))
-    }
-  / "type" _ id:IdentifierName __ "=" __ typ:Type ( __ ";" / EOL ) {
-      RETURN(MAP("kind":"TypeProc","name":id, "type":typ))
-    }
+start = __ ast:Sequential __ EOF { RETURN(ast) }
 
 Sequential
-  = first:Operation rest:SequentialTail+ {
-      RETURN(MAP("kind": "Sequential", "procs": PREPEND(first, rest)))
+  = consts:Consts __ first:Operation rest:SequentialTail+ {
+      RETURN(MAP("kind": "Sequential", "procs": PREPEND(first, rest), "consts":consts))
     }
-  / op:Operation {
-      RETURN(MAP("kind": "Sequential", "procs": ARRAY(op)))
+  / consts:Consts __ op:Operation {
+      RETURN(MAP("kind": "Sequential", "procs": ARRAY(op), "consts":consts))
     }
 
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
+
+Consts
+  = Const+
+  / __ { RETURN(ARRAY()) }
+
+Const = __ v:ConstDef { RETURN(v) }
+
+ConstDef
+  = "const" _ id:IdentifierName __ "=" __ expr:Expr __ ";"? {
+      RETURN(MAP("name":id, "expr":expr))
+    }
+  / "type" _ id:IdentifierName __ "=" __ typ:Type __ ";"? {
+      RETURN(MAP(
+        "name":id,
+        "expr":MAP("kind":"TypeValue","value":MAP("kind":"TypeDef","name":id,"type":typ))))
+    }
 
 Parallel
   = __ "=>" __ s:Sequential __ ";" { RETURN(s) }
@@ -409,7 +400,7 @@ JoinKey
 
 SampleProc
   = "sample"i e:SampleExpr {
-      RETURN(MAP("kind": "Sequential", "procs": ARRAY(
+      RETURN(MAP("kind": "Sequential", "consts": ARRAY(), "procs": ARRAY(
         MAP("kind": "Summarize",
           "keys": ARRAY(MAP("kind": "Assignment",
                    "lhs": MAP("kind": "ID", "name": "shape"),

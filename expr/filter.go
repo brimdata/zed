@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/stringsearch"
 	"github.com/brimdata/zed/zcode"
@@ -90,7 +89,7 @@ type search struct {
 // field or inside any set or array.  It also matches a record if the string
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
-func NewSearch(searchtext string, searchval astzed.Primitive) (Evaluator, error) {
+func NewSearch(searchtext string, searchval *zed.Value) (Evaluator, error) {
 	typedCompare, err := Comparison("=", searchval)
 	if err != nil {
 		return nil, err

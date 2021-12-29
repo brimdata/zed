@@ -8,7 +8,6 @@ package dag
 // license that can be found in the LICENSE file.
 
 import (
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
@@ -33,10 +32,10 @@ type (
 		Args []Expr `json:"args"`
 	}
 	Explode struct {
-		Kind string      `json:"kind" unpack:""`
-		Args []Expr      `json:"args"`
-		Type astzed.Type `json:"type"`
-		As   Expr        `json:"as"`
+		Kind string `json:"kind" unpack:""`
+		Args []Expr `json:"args"`
+		Type string `json:"type"`
+		As   Expr   `json:"as"`
 	}
 	Filter struct {
 		Kind string `json:"kind" unpack:""`
@@ -81,8 +80,9 @@ type (
 		Args []Assignment `json:"args"`
 	}
 	Sequential struct {
-		Kind string `json:"kind" unpack:""`
-		Ops  []Op   `json:"ops"`
+		Kind   string `json:"kind" unpack:""`
+		Consts []Def  `json:"consts"`
+		Ops    []Op   `json:"ops"`
 	}
 	Shape struct {
 		Kind string `json:"kind" unpack:""`
@@ -94,14 +94,14 @@ type (
 		NullsFirst bool        `json:"nullsfirst"`
 	}
 	Summarize struct {
-		Kind         string            `json:"kind" unpack:""`
-		Duration     *astzed.Primitive `json:"duration"`
-		Limit        int               `json:"limit"`
-		Keys         []Assignment      `json:"keys"`
-		Aggs         []Assignment      `json:"aggs"`
-		InputSortDir int               `json:"input_sort_dir,omitempty"`
-		PartialsIn   bool              `json:"partials_in,omitempty"`
-		PartialsOut  bool              `json:"partials_out,omitempty"`
+		Kind         string       `json:"kind" unpack:""`
+		Duration     string       `json:"duration"`
+		Limit        int          `json:"limit"`
+		Keys         []Assignment `json:"keys"`
+		Aggs         []Assignment `json:"aggs"`
+		InputSortDir int          `json:"input_sort_dir,omitempty"`
+		PartialsIn   bool         `json:"partials_in,omitempty"`
+		PartialsOut  bool         `json:"partials_out,omitempty"`
 	}
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
@@ -123,9 +123,9 @@ type (
 		Exprs []Expr `json:"exprs"`
 	}
 	Scope struct {
-		Kind   string       `json:"kind" unpack:""`
-		Locals []Assignment `json:"locals"`
-		Seq    Op           `json:"seq"`
+		Kind string      `json:"kind" unpack:""`
+		Lets []Def       `json:"lets"`
+		Seq  *Sequential `json:"seq"`
 	}
 	Uniq struct {
 		Kind  string `json:"kind" unpack:""`
@@ -240,6 +240,10 @@ type (
 		Expr Expr `json:"expr"`
 		Op   Op   `json:"op"`
 	}
+	Def struct {
+		Name string `json:"name"`
+		Expr Expr   `json:"expr"`
+	}
 	Method struct {
 		Name string `json:"name"`
 		Args []Expr `json:"args"`
@@ -264,8 +268,6 @@ func (*Put) OpNode()        {}
 func (*Rename) OpNode()     {}
 func (*Fuse) OpNode()       {}
 func (*Join) OpNode()       {}
-func (*Const) OpNode()      {}
-func (*TypeProc) OpNode()   {}
 func (*Shape) OpNode()      {}
 func (*Explode) OpNode()    {}
 func (*Over) OpNode()       {}
@@ -325,17 +327,4 @@ func FilterToOp(e Expr) *Filter {
 
 func (p *Path) String() string {
 	return field.Path(p.Name).String()
-}
-
-// === THESE WILL BE DEPRECATED ===
-
-type Const struct {
-	Kind string `json:"kind" unpack:""`
-	Name string `json:"name"`
-	Expr Expr   `json:"expr"`
-}
-type TypeProc struct {
-	Kind string      `json:"kind" unpack:""`
-	Name string      `json:"name"`
-	Type astzed.Type `json:"type"`
 }

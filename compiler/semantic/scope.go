@@ -1,18 +1,24 @@
 package semantic
 
 import (
+	"fmt"
+
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/kernel"
+	"github.com/brimdata/zed/zson"
 )
 
 type Scope struct {
-	stack []Binder
+	zctx  *zed.Context
+	stack []*Binder
 }
 
 func NewScope() *Scope {
-	return &Scope{}
+	return &Scope{zctx: zed.NewContext()}
 }
 
-func (s *Scope) tos() Binder {
+func (s *Scope) tos() *Binder {
 	return s.stack[len(s.stack)-1]
 }
 
@@ -24,31 +30,76 @@ func (s *Scope) Exit() {
 	s.stack = s.stack[:len(s.stack)-1]
 }
 
-func (s *Scope) Bind(name string, ref dag.Op) {
-	s.tos().Define(name, ref)
+func (s *Scope) DefineVar(name string) (*dag.Var, error) {
+	b := s.tos()
+	if _, ok := b.symbols[name]; ok {
+		return nil, fmt.Errorf("symbol %q redefined", name)
+	}
+	ref := &dag.Var{
+		Kind: "Var",
+		Slot: s.nvars(),
+	}
+	b.Define(name, ref)
+	b.nvar++
+	return ref, nil
 }
 
-func (s *Scope) Lookup(name string) dag.Op {
+func (s *Scope) DefineConst(name string, def dag.Expr) error {
+	b := s.tos()
+	if _, ok := b.symbols[name]; ok {
+		return fmt.Errorf("symbol %q redefined", name)
+	}
+	val, err := kernel.EvalAtCompileTime(s.zctx, def)
+	if err != nil {
+		return err
+	}
+	if val.IsError() {
+		if val.IsMissing() {
+			return fmt.Errorf("const %q: cannot have variable dependency", name)
+		} else {
+			return fmt.Errorf("const %q: %q", name, string(val.Bytes))
+		}
+	}
+	literal := &dag.Literal{
+		Kind:  "Literal",
+		Value: zson.MustFormatValue(*val),
+	}
+	b.Define(name, literal)
+	return nil
+}
+
+func (s *Scope) Lookup(name string) dag.Expr {
 	for k := len(s.stack) - 1; k >= 0; k-- {
-		if e, ok := s.stack[k][name]; ok {
+		if e, ok := s.stack[k].symbols[name]; ok {
 			e.refcnt++
-			return e.op
+			return e.ref
 		}
 	}
 	return nil
 }
 
+func (s *Scope) nvars() int {
+	var n int
+	for _, scope := range s.stack {
+		n += scope.nvar
+	}
+	return n
+}
+
 type entry struct {
-	op     dag.Op
+	ref    dag.Expr
 	refcnt int
 }
 
-type Binder map[string]*entry
-
-func NewBinder() Binder {
-	return make(map[string]*entry)
+type Binder struct {
+	nvar    int
+	symbols map[string]*entry
 }
 
-func (b Binder) Define(name string, ref dag.Op) {
-	b[name] = &entry{op: ref}
+func NewBinder() *Binder {
+	return &Binder{symbols: make(map[string]*entry)}
+}
+
+func (b *Binder) Define(name string, ref dag.Expr) {
+	b.symbols[name] = &entry{ref: ref}
 }

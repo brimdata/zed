@@ -254,16 +254,6 @@ func (c *canon) proc(p ast.Proc) {
 		c.ret()
 		c.flush()
 		c.write(")")
-	case *ast.Const:
-		c.write("const %s=", p.Name)
-		c.expr(p.Expr, false)
-		c.ret()
-		c.flush()
-	case *ast.TypeProc:
-		c.write("type %s=", p.Name)
-		c.typ(p.Type)
-		c.ret()
-		c.flush()
 	case *ast.SQLExpr:
 		c.next()
 		c.open("SELECT ")

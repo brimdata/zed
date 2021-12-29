@@ -11,9 +11,7 @@ import (
 	//XXX this shouldn't be reaching into the AST but we'll leave it for
 	// now until we factor-in the flow-based package
 	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/zson"
 )
 
 //XXX TBD:
@@ -411,62 +409,51 @@ func Contains(compare Boolean) Boolean {
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
-func Comparison(op string, primitive astzed.Primitive) (Boolean, error) {
-	// String literals inside Zed are parsed as zng bstrings
-	// (since bstrings can represent a wider range of values,
-	// specifically arrays of bytes that do not correspond to
-	// UTF-8 encoded strings).
-	if primitive.Type == "string" {
-		primitive = astzed.Primitive{Kind: "Primitive", Type: "bstring", Text: primitive.Text}
-	}
-	zv, err := zson.ParsePrimitive(primitive.Type, primitive.Text)
-	if err != nil {
-		return nil, err
-	}
-	switch zv.Type.(type) {
+func Comparison(op string, val *zed.Value) (Boolean, error) {
+	switch zed.AliasOf(val.Type).(type) {
 	case *zed.TypeOfNull:
 		return CompareNull(op)
 	case *zed.TypeOfIP:
-		v, err := zed.DecodeIP(zv.Bytes)
+		v, err := zed.DecodeIP(val.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		return CompareIP(op, v)
 	case *zed.TypeOfNet:
-		v, err := zed.DecodeNet(zv.Bytes)
+		v, err := zed.DecodeNet(val.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		return CompareSubnet(op, v)
 	case *zed.TypeOfBool:
-		v, err := zed.DecodeBool(zv.Bytes)
+		v, err := zed.DecodeBool(val.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		return CompareBool(op, v)
 	case *zed.TypeOfFloat64:
-		v, err := zed.DecodeFloat64(zv.Bytes)
+		v, err := zed.DecodeFloat64(val.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		return CompareFloat64(op, v)
 	case *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfType, *zed.TypeOfError:
-		return CompareBstring(op, zv.Bytes)
+		return CompareBstring(op, val.Bytes)
 	case *zed.TypeOfBytes:
-		return CompareBytes(op, zv.Bytes)
+		return CompareBytes(op, val.Bytes)
 	case *zed.TypeOfInt64:
-		v, err := zed.DecodeInt(zv.Bytes)
+		v, err := zed.DecodeInt(val.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		return CompareInt64(op, v)
 	case *zed.TypeOfTime, *zed.TypeOfDuration:
-		v, err := zed.DecodeInt(zv.Bytes)
+		v, err := zed.DecodeInt(val.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		return CompareTime(op, v)
 	default:
-		return nil, fmt.Errorf("literal comparison of type %q unsupported", zv.Type)
+		return nil, fmt.Errorf("literal comparison of type %q unsupported", val.Type)
 	}
 }

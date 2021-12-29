@@ -40,18 +40,13 @@ var ErrJoinParents = errors.New("join requires two upstream parallel query paths
 
 type Builder struct {
 	pctx       *proc.Context
-	scope      *Scope
 	adaptor    proc.DataAdaptor
 	schedulers map[dag.Source]proc.Scheduler
 }
 
 func NewBuilder(pctx *proc.Context, adaptor proc.DataAdaptor) *Builder {
-	// Create scope and enter the global scope.
-	scope := NewScope()
-	scope.Enter()
 	return &Builder{
 		pctx:       pctx,
-		scope:      scope,
 		adaptor:    adaptor,
 		schedulers: make(map[dag.Source]proc.Scheduler),
 	}
@@ -84,9 +79,9 @@ func (b *Builder) Meters() []zbuf.Meter {
 func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface, error) {
 	switch v := op.(type) {
 	case *dag.Summarize:
-		return compileGroupBy(b.pctx, b.scope, parent, v)
+		return compileGroupBy(b.pctx, parent, v)
 	case *dag.Cut:
-		assignments, err := compileAssignments(v.Args, b.pctx.Zctx, b.scope)
+		assignments, err := compileAssignments(v.Args, b.pctx.Zctx)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +109,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		dropper := expr.NewDropper(b.pctx.Zctx, fields)
 		return proc.NewApplier(b.pctx, parent, dropper), nil
 	case *dag.Sort:
-		fields, err := CompileExprs(b.pctx.Zctx, b.scope, v.Args)
+		fields, err := CompileExprs(b.pctx.Zctx, v.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -140,19 +135,19 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 	case *dag.Pass:
 		return pass.New(parent), nil
 	case *dag.Filter:
-		f, err := compileFilter(b.pctx.Zctx, b.scope, v.Expr)
+		f, err := compileFilter(b.pctx.Zctx, v.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
 		return proc.NewApplier(b.pctx, parent, expr.NewFilterApplier(f)), nil
 	case *dag.Top:
-		fields, err := CompileExprs(b.pctx.Zctx, b.scope, v.Args)
+		fields, err := CompileExprs(b.pctx.Zctx, v.Args)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
 		return top.New(parent, v.Limit, fields, v.Flush), nil
 	case *dag.Put:
-		clauses, err := compileAssignments(v.Args, b.pctx.Zctx, b.scope)
+		clauses, err := compileAssignments(v.Args, b.pctx.Zctx)
 		if err != nil {
 			return nil, err
 		}
@@ -196,11 +191,11 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 	case *dag.Join:
 		return nil, ErrJoinParents
 	case *dag.Explode:
-		typ, err := zson.TranslateType(b.pctx.Zctx, v.Type)
+		typ, err := zson.ParseType(b.pctx.Zctx, v.Type)
 		if err != nil {
 			return nil, err
 		}
-		args, err := compileExprs(b.pctx.Zctx, b.scope, v.Args)
+		args, err := compileExprs(b.pctx.Zctx, v.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -210,14 +205,14 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		}
 		return explode.New(b.pctx.Zctx, parent, args, typ, as.Leaf())
 	case *dag.Over:
-		exprs, err := compileExprs(b.pctx.Zctx, b.scope, v.Exprs)
+		exprs, err := compileExprs(b.pctx.Zctx, v.Exprs)
 		if err != nil {
 			return nil, err
 		}
 		t := traverse.NewOver(parent, exprs)
 		return t, nil
 	case *dag.Yield:
-		exprs, err := compileExprs(b.pctx.Zctx, b.scope, v.Exprs)
+		exprs, err := compileExprs(b.pctx.Zctx, v.Exprs)
 		if err != nil {
 			return nil, err
 		}
@@ -229,10 +224,10 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 	}
 }
 
-func compileAssignments(assignments []dag.Assignment, zctx *zed.Context, scope *Scope) ([]expr.Assignment, error) {
+func compileAssignments(assignments []dag.Assignment, zctx *zed.Context) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
 	for _, assignment := range assignments {
-		a, err := CompileAssignment(zctx, scope, &assignment)
+		a, err := CompileAssignment(zctx, &assignment)
 		if err != nil {
 			return nil, err
 		}
@@ -303,7 +298,7 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 	if len(parents) != 1 {
 		return nil, errors.New("expression switch has multiple parents")
 	}
-	e, err := compileExpr(b.pctx.Zctx, b.scope, swtch.Expr)
+	e, err := compileExpr(b.pctx.Zctx, swtch.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +307,7 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 	for _, c := range swtch.Cases {
 		var val *zed.Value
 		if c.Expr != nil {
-			val, err = evalAtCompileTime(b.pctx.Zctx, b.scope, c.Expr)
+			val, err = EvalAtCompileTime(b.pctx.Zctx, c.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -333,7 +328,7 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]
 		switcher := switcher.New(parents[0])
 		parents = []proc.Interface{}
 		for _, c := range swtch.Cases {
-			f, err := compileFilter(b.pctx.Zctx, b.scope, c.Expr)
+			f, err := compileFilter(b.pctx.Zctx, c.Expr)
 			if err != nil {
 				return nil, fmt.Errorf("compiling switch case filter: %w", err)
 			}
@@ -384,16 +379,16 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
 		}
-		assignments, err := compileAssignments(op.Args, b.pctx.Zctx, b.scope)
+		assignments, err := compileAssignments(op.Args, b.pctx.Zctx)
 		if err != nil {
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		leftKey, err := compileExpr(b.pctx.Zctx, b.scope, op.LeftKey)
+		leftKey, err := compileExpr(b.pctx.Zctx, op.LeftKey)
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := compileExpr(b.pctx.Zctx, b.scope, op.RightKey)
+		rightKey, err := compileExpr(b.pctx.Zctx, op.RightKey)
 		if err != nil {
 			return nil, err
 		}
@@ -558,14 +553,14 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 	upper := &zed.Value{zed.TypeNull, nil}
 	if exprLower != nil {
 		var err error
-		lower, err = evalAtCompileTime(b.pctx.Zctx, b.scope, exprLower)
+		lower, err = EvalAtCompileTime(b.pctx.Zctx, exprLower)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if exprUpper != nil {
 		var err error
-		upper, err = evalAtCompileTime(b.pctx.Zctx, b.scope, exprUpper)
+		upper, err = EvalAtCompileTime(b.pctx.Zctx, exprUpper)
 		if err != nil {
 			return nil, err
 		}
@@ -590,47 +585,21 @@ func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {
 	return filter, nil
 }
 
-func (b *Builder) LoadConsts(ops []dag.Op) error {
-	scope := b.scope
-	zctx := b.pctx.Zctx
-	for _, p := range ops {
-		switch p := p.(type) {
-		case *dag.Const:
-			val, err := evalAtCompileTime(zctx, scope, p.Expr)
-			if err != nil {
-				return err
-			}
-			if val.IsError() {
-				return fmt.Errorf("cannot resolve const '%s' at compile time", p.Name)
-			}
-			scope.Bind(p.Name, val)
-		case *dag.TypeProc:
-			name := p.Name
-			typ, err := zson.TranslateType(zctx, p.Type)
-			if err != nil {
-				return err
-			}
-			alias, err := zctx.LookupTypeAlias(name, typ)
-			if err != nil {
-				return err
-			}
-			zv := zed.NewTypeValue(alias)
-			scope.Bind(name, zv)
-		default:
-			return fmt.Errorf("kernel.LoadConsts: not a const: '%T'", p)
-		}
-	}
-	return nil
-}
-
-func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (*zed.Value, error) {
+func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err error) {
 	if in == nil {
 		return zed.Null, nil
 	}
-	e, err := compileExpr(zctx, scope, in)
+	e, err := compileExpr(zctx, in)
 	if err != nil {
 		return nil, err
 	}
+	// Catch panic as the runtime will panic if there is a
+	// reference to a var not in scope, a field access null this, etc.
+	defer func() {
+		if recover() != nil {
+			err = errors.New("panic")
+		}
+	}()
 	return e.Eval(expr.NewContext(), zed.Null), nil
 }
 
