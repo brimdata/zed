@@ -109,7 +109,7 @@ func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) 
 
 func newBufferFilterForLiteral(val *zed.Value) (*expr.BufferFilter, error) {
 	if id := val.Type.ID(); zed.IsNumber(id) || id == zed.IDNull {
-		// All numbers are all comparable, so they can require up to three
+		// All numbers are comparable, so they can require up to three
 		// patterns: float, varint, and uvarint.
 		return nil, nil
 	}

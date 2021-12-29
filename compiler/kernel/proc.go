@@ -597,7 +597,6 @@ func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err erro
 	// reference to a var not in scope, a field access null this, etc.
 	defer func() {
 		if recover() != nil {
-			val = nil
 			err = errors.New("panic")
 		}
 	}()
