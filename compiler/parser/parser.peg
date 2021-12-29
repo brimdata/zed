@@ -47,14 +47,18 @@
 start = __ ast:Sequential __ EOF { RETURN(ast) }
 
 Sequential
-  = consts:Const* __ first:Operation rest:SequentialTail+ {
+  = consts:Consts __ first:Operation rest:SequentialTail+ {
       RETURN(MAP("kind": "Sequential", "procs": PREPEND(first, rest), "consts":consts))
     }
-  / consts:Const* __ op:Operation {
+  / consts:Consts __ op:Operation {
       RETURN(MAP("kind": "Sequential", "procs": ARRAY(op), "consts":consts))
     }
 
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
+
+Consts
+  = Const+
+  / __ { RETURN(ARRAY()) }
 
 Const = __ v:ConstDef { RETURN(v) }
 
