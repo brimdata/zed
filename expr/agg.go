@@ -1,15 +1,8 @@
 package expr
 
 import (
-	"errors"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/agg"
-)
-
-var (
-	ErrBadValue      = errors.New("bad value")
-	ErrFieldRequired = errors.New("field parameter required")
 )
 
 type Aggregator struct {

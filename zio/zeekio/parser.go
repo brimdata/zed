@@ -33,10 +33,7 @@ type Parser struct {
 	sourceFields []int
 }
 
-var (
-	ErrBadRecordDef = errors.New("bad types/fields definition in zeek header")
-	ErrBadEscape    = errors.New("bad escape sequence") //XXX
-)
+var ErrBadRecordDef = errors.New("bad types/fields definition in zeek header")
 
 func NewParser(r *zed.Context) *Parser {
 	return &Parser{

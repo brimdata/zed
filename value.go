@@ -9,10 +9,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-var (
-	ErrNotNumber  = errors.New("not a number")
-	ErrTypeSyntax = errors.New("syntax error parsing type string")
-)
+var ErrTypeSyntax = errors.New("syntax error parsing type string")
 
 var (
 	NullUint8    = &Value{Type: TypeUint8}
