@@ -1,7 +1,6 @@
 package sort
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -59,6 +58,11 @@ func (p *Proc) Done() {
 func (p *Proc) run() {
 	defer close(p.resultCh)
 	var spiller *spill.MergeSort
+	defer func() {
+		if spiller != nil {
+			spiller.Cleanup()
+		}
+	}()
 	var eof bool
 	var nbytes int
 	var out []zed.Value
@@ -86,7 +90,6 @@ func (p *Proc) run() {
 			}
 			if len(out) > 0 {
 				if err := spiller.Spill(p.pctx.Context, out); err != nil {
-					spiller.Cleanup()
 					p.sendResult(nil, err)
 					return
 				}
@@ -118,7 +121,6 @@ func (p *Proc) run() {
 			}
 		}
 		if err := spiller.Spill(p.pctx.Context, out); err != nil {
-			spiller.Cleanup()
 			p.sendResult(nil, err)
 			return
 		}
@@ -136,7 +138,6 @@ func (p *Proc) send(vals []zed.Value) {
 }
 
 func (p *Proc) sendSpills(spiller *spill.MergeSort) error {
-	defer spiller.Cleanup()
 	puller := zbuf.NewPuller(spiller, 100)
 	for {
 		if err := p.pctx.Err(); err != nil {
@@ -144,8 +145,12 @@ func (p *Proc) sendSpills(spiller *spill.MergeSort) error {
 		}
 		// Reading from the spiller merges the spilt files.
 		b, err := puller.Pull()
-		if b == nil || err != nil {
+		if err != nil {
 			return err
+		}
+		if b == nil {
+			spiller.Cleanup()
+			return nil
 		}
 		if len(b.Values()) == 0 {
 			continue
@@ -179,12 +184,9 @@ func (p *Proc) warnings() *zbuf.Array {
 	unseen := p.unseenFieldTracker.unseen()
 	vals := make([]zed.Value, 0, len(unseen))
 	for _, f := range unseen {
-		name, _ := expr.DotExprToString(f)
-		if name == "this" {
-			continue
+		if name, _ := expr.DotExprToString(f); name != "this" {
+			vals = append(vals, *zed.NewErrorf("warning: sort field %q not present in input", name))
 		}
-		e := fmt.Sprintf("warning: sort field %q not present in input", name)
-		vals = append(vals, *zed.NewValue(zed.TypeError, []byte(e)))
 	}
 	if len(vals) == 0 {
 		return nil
