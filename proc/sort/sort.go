@@ -147,6 +147,9 @@ func (p *Proc) sendSpills(spiller *spill.MergeSort) error {
 		if b == nil || err != nil {
 			return err
 		}
+		if len(b.Values()) == 0 {
+			continue
+		}
 		p.sendResult(b, nil)
 	}
 }
@@ -174,14 +177,17 @@ func (p *Proc) append(out []zed.Value, batch zbuf.Batch) ([]zed.Value, int) {
 
 func (p *Proc) warnings() *zbuf.Array {
 	unseen := p.unseenFieldTracker.unseen()
-	if len(unseen) == 0 {
-		return nil
-	}
 	vals := make([]zed.Value, 0, len(unseen))
 	for _, f := range unseen {
 		name, _ := expr.DotExprToString(f)
+		if name == "this" {
+			continue
+		}
 		e := fmt.Sprintf("warning: sort field %q not present in input", name)
 		vals = append(vals, *zed.NewValue(zed.TypeError, []byte(e)))
+	}
+	if len(vals) == 0 {
+		return nil
 	}
 	return zbuf.NewArray(vals)
 }
