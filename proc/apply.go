@@ -25,7 +25,7 @@ func NewApplier(pctx *Context, parent Interface, apply expr.Applier) *applier {
 func (a *applier) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := a.parent.Pull()
-		if EOS(batch, err) {
+		if batch == nil || err != nil {
 			return nil, err
 		}
 		ectx := batch.Context()

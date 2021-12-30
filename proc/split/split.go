@@ -106,7 +106,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	// when it sees that all of us SplitChannels are gone.
 	p.request <- p.ch
 	result := <-p.ch
-	if proc.EOS(result.Batch, result.Err) {
+
+	if result.Batch == nil || result.Err != nil {
 		p.Done()
 	}
 	return result.Batch, result.Err

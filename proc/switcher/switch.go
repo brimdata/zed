@@ -69,7 +69,7 @@ func (s *Switcher) run() {
 			break
 		}
 		batch, err := s.parent.Pull()
-		if proc.EOS(batch, err) {
+		if batch == nil || err != nil {
 			s.sendEOS(proc.Result{batch, err})
 			continue
 		}
@@ -150,7 +150,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	// Send parent a request, then read the result.
 	p.reqCh <- request{p.id, p.ch}
 	result := <-p.ch
-	if proc.EOS(result.Batch, result.Err) {
+	if result.Batch == nil || result.Err != nil {
 		p.Done()
 	}
 	return result.Batch, result.Err

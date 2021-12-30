@@ -44,7 +44,7 @@ func (p *Proc) tail() zbuf.Batch {
 func (p *Proc) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := p.parent.Pull()
-		if proc.EOS(batch, err) {
+		if batch == nil || err != nil {
 			return p.tail(), nil
 		}
 		vals := batch.Values()
