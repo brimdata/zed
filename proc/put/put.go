@@ -330,7 +330,7 @@ func (p *Proc) put(ectx expr.Context, this *zed.Value) *zed.Value {
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
 	batch, err := p.parent.Pull()
-	if proc.EOS(batch, err) {
+	if batch == nil || err != nil {
 		return nil, err
 	}
 	ectx := batch.Context()

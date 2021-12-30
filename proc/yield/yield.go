@@ -22,7 +22,7 @@ func New(parent proc.Interface, exprs []expr.Evaluator) *Proc {
 func (p *Proc) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := p.parent.Pull()
-		if proc.EOS(batch, err) {
+		if batch == nil || err != nil {
 			return nil, err
 		}
 		ectx := batch.Context()

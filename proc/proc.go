@@ -80,10 +80,6 @@ func (c *Context) Cancel() {
 	c.cancel()
 }
 
-func EOS(batch zbuf.Batch, err error) bool {
-	return batch == nil || err != nil
-}
-
 func NopDone(puller zbuf.Puller) *done {
 	return &done{puller}
 }

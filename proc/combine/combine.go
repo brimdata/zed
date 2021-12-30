@@ -29,7 +29,7 @@ func (p *puller) run() {
 		batch, err := p.Pull()
 		select {
 		case p.ch <- proc.Result{batch, err}:
-			if proc.EOS(batch, err) {
+			if batch == nil || err != nil {
 				return
 			}
 		case <-p.ctx.Done():
