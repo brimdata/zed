@@ -98,9 +98,10 @@ func (p *Proc) run() {
 				p.sendResult(nil, err)
 				return
 			}
+			spiller.Cleanup()
+			spiller = nil
 			nbytes = 0
 			out = nil
-			spiller = nil
 			continue
 		}
 		eof = false
@@ -145,12 +146,8 @@ func (p *Proc) sendSpills(spiller *spill.MergeSort) error {
 		}
 		// Reading from the spiller merges the spilt files.
 		b, err := puller.Pull()
-		if err != nil {
+		if b == nil || err != nil {
 			return err
-		}
-		if b == nil {
-			spiller.Cleanup()
-			return nil
 		}
 		if len(b.Values()) == 0 {
 			continue
