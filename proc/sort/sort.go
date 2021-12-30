@@ -29,6 +29,7 @@ type Proc struct {
 	compareFn          expr.CompareFn
 	unseenFieldTracker *unseenFieldTracker
 	ectx               expr.Context
+	eof                bool
 }
 
 func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
@@ -44,7 +45,7 @@ func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, ord
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
-	p.once.Do(func() { go p.sortLoop() })
+	p.once.Do(func() { go p.run() })
 	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
 	}
@@ -55,43 +56,98 @@ func (p *Proc) Done() {
 	p.parent.Done()
 }
 
-func (p *Proc) sortLoop() {
+func (p *Proc) run() {
 	defer close(p.resultCh)
-	firstRunRecs, eof, err := p.recordsForOneRun()
-	if err != nil || len(firstRunRecs) == 0 {
-		p.sendResult(nil, err)
-		return
-	}
-	p.setCompareFn(&firstRunRecs[0])
-	if eof {
-		// Just one run so do an in-memory sort.
-		expr.SortStable(firstRunRecs, p.compareFn)
-		//XXX bug: we need upstream ectx. See #3367
-		array := zbuf.NewArray(firstRunRecs)
-		p.appendWarnings(array)
-		p.sendResult(array, nil)
-		return
-	}
-	// Multiple runs so do an external merge sort.
-	runManager, err := p.createRuns(firstRunRecs)
-	if err != nil {
-		p.sendResult(nil, err)
-		return
-	}
-	defer runManager.Cleanup()
-	puller := zbuf.NewPuller(runManager, 100)
-	for p.pctx.Err() == nil {
-		// Reading from runManager merges the runs.
-		b, err := puller.Pull()
-		p.sendResult(b, err)
-		if b == nil || err != nil {
-			if err == nil {
-				warnings := zbuf.NewArray(nil)
-				p.appendWarnings(warnings)
-				p.sendResult(warnings, nil)
-			}
+	var spiller *spill.MergeSort
+	var eof bool
+	var nbytes int
+	var out []zed.Value
+	for {
+		batch, err := p.parent.Pull()
+		if err != nil {
+			p.sendResult(nil, err)
 			return
 		}
+		if batch == nil {
+			if eof {
+				if warnings := p.warnings(); warnings != nil {
+					p.sendResult(warnings, nil)
+				}
+				return
+			}
+			eof = true
+			if spiller == nil {
+				if len(out) > 0 {
+					p.send(out)
+				}
+				nbytes = 0
+				out = nil
+				continue
+			}
+			if len(out) > 0 {
+				if err := spiller.Spill(p.pctx.Context, out); err != nil {
+					spiller.Cleanup()
+					p.sendResult(nil, err)
+					return
+				}
+			}
+			if err := p.sendSpills(spiller); err != nil {
+				p.sendResult(nil, err)
+				return
+			}
+			nbytes = 0
+			out = nil
+			spiller = nil
+			continue
+		}
+		eof = false
+		var delta int
+		out, delta = p.append(out, batch)
+		if p.compareFn == nil && len(out) > 0 {
+			p.setCompareFn(&out[0])
+		}
+		nbytes += delta
+		if nbytes < MemMaxBytes {
+			continue
+		}
+		if spiller == nil {
+			spiller, err = spill.NewMergeSort(p.compareFn)
+			if err != nil {
+				p.sendResult(nil, err)
+				return
+			}
+		}
+		if err := spiller.Spill(p.pctx.Context, out); err != nil {
+			spiller.Cleanup()
+			p.sendResult(nil, err)
+			return
+		}
+		out = nil
+		nbytes = 0
+	}
+}
+
+// send sorts vals in memory and sends the result downstream.
+func (p *Proc) send(vals []zed.Value) {
+	expr.SortStable(vals, p.compareFn)
+	//XXX bug: we need upstream ectx. See #3367
+	array := zbuf.NewArray(vals)
+	p.sendResult(array, nil)
+}
+
+func (p *Proc) sendSpills(spiller *spill.MergeSort) error {
+	defer spiller.Cleanup()
+	puller := zbuf.NewPuller(spiller, 100)
+	for {
+		if err := p.pctx.Err(); err != nil {
+			return err
+		}
+		// Reading from the spiller merges the spilt files.
+		b, err := puller.Pull()
+		if b == nil || err != nil {
+			return err
+		}
+		p.sendResult(b, nil)
 	}
 }
 
@@ -102,65 +158,32 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	}
 }
 
-func (p *Proc) recordsForOneRun() ([]zed.Value, bool, error) {
+func (p *Proc) append(out []zed.Value, batch zbuf.Batch) ([]zed.Value, int) {
 	var nbytes int
-	var out []zed.Value
-	for {
-		batch, err := p.parent.Pull()
-		if err != nil {
-			return nil, false, err
-		}
-		if batch == nil {
-			return out, true, nil
-		}
-		ctx := batch.Context()
-		vals := batch.Values()
-		for i := range vals {
-			val := &vals[i]
-			p.unseenFieldTracker.update(ctx, val)
-			nbytes += len(val.Bytes)
-			// We're keeping records owned by batch so don't call Unref.
-			out = append(out, *val)
-		}
-		if nbytes >= MemMaxBytes {
-			return out, false, nil
-		}
+	ectx := batch.Context()
+	vals := batch.Values()
+	for i := range vals {
+		val := &vals[i]
+		p.unseenFieldTracker.update(ectx, val)
+		nbytes += len(val.Bytes)
+		// We're keeping records owned by batch so don't call Unref.
+		out = append(out, *val)
 	}
+	return out, nbytes
 }
 
-func (p *Proc) createRuns(firstRunRecs []zed.Value) (*spill.MergeSort, error) {
-	rm, err := spill.NewMergeSort(p.compareFn)
-	if err != nil {
-		return nil, err
+func (p *Proc) warnings() *zbuf.Array {
+	unseen := p.unseenFieldTracker.unseen()
+	if len(unseen) == 0 {
+		return nil
 	}
-	if err := rm.Spill(p.pctx.Context, firstRunRecs); err != nil {
-		rm.Cleanup()
-		return nil, err
-	}
-	for {
-		recs, eof, err := p.recordsForOneRun()
-		if err != nil {
-			rm.Cleanup()
-			return nil, err
-		}
-		if recs != nil {
-			if err := rm.Spill(p.pctx.Context, recs); err != nil {
-				rm.Cleanup()
-				return nil, err
-			}
-		}
-		if eof {
-			return rm, nil
-		}
-	}
-}
-
-func (p *Proc) appendWarnings(a *zbuf.Array) {
-	for _, f := range p.unseenFieldTracker.unseen() {
+	vals := make([]zed.Value, 0, len(unseen))
+	for _, f := range unseen {
 		name, _ := expr.DotExprToString(f)
 		e := fmt.Sprintf("warning: sort field %q not present in input", name)
-		a.Append(zed.NewValue(zed.TypeError, []byte(e)))
+		vals = append(vals, *zed.NewValue(zed.TypeError, []byte(e)))
 	}
+	return zbuf.NewArray(vals)
 }
 
 func (p *Proc) setCompareFn(r *zed.Value) {
