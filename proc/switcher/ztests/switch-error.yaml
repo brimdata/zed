@@ -1,7 +1,7 @@
 zed: |
   switch (
-     a == 1 => put v:='one';
-     a / 0 => put v:='xxx';
+     case a == 1 => put v:='one'
+     case a / 0 => put v:='xxx'
      ) | sort this
 
 input: |

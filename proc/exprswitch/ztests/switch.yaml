@@ -1,8 +1,8 @@
 zed: |
   switch a (
-     2 => put v:='two';
-     1 => put v:='one';
-     3 => filter null;
+     case 2 => put v:='two'
+     case 1 => put v:='one'
+     case 3 => filter null
   ) | sort a
 
 input: |

@@ -1,5 +1,8 @@
 zed: |
-  type port=int64; type prec={p: port}; type parr=[prec]; yield crop(<{a:prec, b:parr}>)
+  type port=int64
+  type prec={p:port}
+  type parr=[prec]
+  yield crop(<{a:prec,b:parr}>)
 
 input: |
   {a:{p:1(=port),q:null(port)},b:[{p:1,q:2(port)}],c:3(port)}

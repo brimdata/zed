@@ -1,45 +1,45 @@
 script: |
-  zc -C "switch ( a => head; c => tail; )"
+  zc -C "switch ( case search(a) => head case search(c) => tail )"
   echo ===
-  zc -C -s "switch ( a => head; c => tail; )"
+  zc -C -s "switch ( case search(a) => head case search(c) => tail )"
   echo ===
-  zc -C "switch ( a => head; default => tail; )"
+  zc -C "switch ( case search(a) => head default => tail )"
   echo ===
-  zc -C -s "switch ( a => head; default => tail; )"
+  zc -C -s "switch ( case search(a) => head default => tail )"
 
 outputs:
   - name: stdout
     data: |
       switch (
-        match("a") =>
+        case search("a") =>
           head 1
-        match("c") =>
+        case search("c") =>
           tail 1
       )
       ===
       from (
-        (internal reader);
+        (internal reader)
       )
       | switch (
-          match("a") =>
+          case search("a") =>
             head 1
-          match("c") =>
+          case search("c") =>
             tail 1
         )
       ===
       switch (
-        match("a") =>
+        case search("a") =>
           head 1
         default =>
           tail 1
       )
       ===
       from (
-        (internal reader);
+        (internal reader)
       )
       | switch (
-          match("a") =>
+          case search("a") =>
             head 1
-          true =>
+          case true =>
             tail 1
         )

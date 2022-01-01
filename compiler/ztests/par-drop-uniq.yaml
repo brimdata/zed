@@ -4,10 +4,10 @@ outputs:
   - name: stdout
     data: |
       from (
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          drop x;
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          drop x;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          drop x
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          drop x
       )
       | merge ts:asc
       | uniq

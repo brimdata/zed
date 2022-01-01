@@ -17,8 +17,8 @@ inputs:
   - name: query.zed
     data: |
       from (
-        :index_rules => sort id;
-        test@main:indexes => sort rule.id | cut o:=this;
+        pool :index_rules => sort id
+        pool test@main:indexes => sort rule.id | cut o:=this
       )
       | left join on id = o.rule.id o
       | count(o) by name,type

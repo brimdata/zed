@@ -11,7 +11,7 @@
 
 zed: |
   SELECT count(), color
-  WHERE match(widget) AND price > 1000
+  WHERE search(widget) AND price > 1000
   GROUP BY color
   | count >= 10 | sort count
 

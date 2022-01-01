@@ -10,8 +10,8 @@
 # docs/language/README.md:
 #
 #   from (
-#     PoolOne => op1 | op2 | ... ;
-#     PoolTwo => op1 | op2 | ... ;
+#     pool PoolOne => op1 | op2 | ...
+#     pool PoolTwo => op1 | op2 | ...
 #   ) | join on key=key | ...
 #
 # Specifically, the "op1", "op2", and "..." have been filled in with real
@@ -43,8 +43,8 @@ inputs:
   - name: join.zed
     data: |
       from (
-        PoolOne => put color:=to_upper(color) | put namelen:=len(key) | sort key;
-        PoolTwo => put price:=price+0.5 | put tag:="mytag" | sort key;
+        pool PoolOne => put color:=to_upper(color) | put namelen:=len(key) | sort key
+        pool PoolTwo => put price:=price+0.5 | put tag:="mytag" | sort key
       ) | join on key=key priceinfo:=this | drop priceinfo.key
 
 outputs:

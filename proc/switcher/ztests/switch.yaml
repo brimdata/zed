@@ -1,10 +1,10 @@
 zed: |
   switch (
-     a == 2 => put v:='two';
-     a == 1 => put v:='one';
-     a == 3 => filter null;
-     * => count() | put a:=-1;
-     ) | sort a
+     case a == 2 => put v:='two'
+     case a == 1 => put v:='one'
+     case a == 3 => filter null
+     case true => count() | put a:=-1
+   ) | sort a
 
 input: |
   {a:1(int32),s:"a"}

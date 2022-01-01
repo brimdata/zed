@@ -1,4 +1,4 @@
-zed: match(a) match(b)
+zed: search(a) search(b)
 
 input: |
   {s1:"a",s2:"b"}

@@ -7,11 +7,11 @@ filter x==1
 _path=='conn'
 _path=='conn' id.resp_p==80
 count(), sum(foo)
-split (=>count() by _path; =>count() by addr;)
-switch (foo => count() by _path; field==1 => count() by addr;)
+split (=>count() by _path =>count() by addr)
+switch (case search(foo) => count() by _path case field==1 => count() by addr)
 count() by _path | count() by addr
-split (=>count() by _path; =>sort;) | split (=>count() by addr;)
-switch (foo => count() by _path; field==1 => sort;) | switch (* =>count() by addr;)
+split (=>count() by _path =>sort) | split (=>count() by addr)
+switch (case search(foo) => count() by _path case field==1 => sort) | switch (default => count() by addr)
 sort -r
 sort -r a, b, c
 sort -r a, b, c
@@ -27,5 +27,5 @@ field==null
 every 3600s count() by _path
 s=="harefoot-raucous"
 s=='/a/b'
-match(_path=='http' and windows)
+search(_path=='http' and windows)
 f(1) and g(2) or h(3)

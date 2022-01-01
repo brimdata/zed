@@ -4,8 +4,8 @@ outputs:
   - name: stdout
     data: |
       from (
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO;
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       | merge ts:asc
       | uniq

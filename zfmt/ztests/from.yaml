@@ -3,38 +3,38 @@ script: |
   echo ===
   zc -C 'get http://host/path'
   echo ===
-  zc -C 'from pool'
+  zc -C 'from foo'
   echo ===
-  zc -C 'from ( file path; get http://host/path; pool; )'
+  zc -C 'from ( file path get http://host/path pool name )'
   echo ===
-  zc -C 'from ( file path => head; get http://host/path => head; pool => head; )'
+  zc -C 'from ( file path => head get http://host/path => head pool name => head )'
 
 outputs:
   - name: stdout
     data: |
       from (
-        file path;
+        file path
       )
       ===
       from (
-        get http://host/path;
+        get http://host/path
       )
       ===
       from (
-        pool;
+        pool foo
       )
       ===
       from (
-        file path;
-        get http://host/path;
-        pool;
+        file path
+        get http://host/path
+        pool name
       )
       ===
       from (
         file path =>
-          head 1;
+          head 1
         get http://host/path =>
-          head 1;
-        pool =>
-          head 1;
+          head 1
+        pool name =>
+          head 1
       )

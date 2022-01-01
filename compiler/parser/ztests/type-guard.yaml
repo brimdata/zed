@@ -7,8 +7,8 @@ inputs:
       {x:1}
   - name: bug.zed
     data: |
-      type netx=uint16 ;
-      type foo={bar:netx} ;
+      type netx=uint16
+      type foo={bar:netx}
       *
 
 outputs:

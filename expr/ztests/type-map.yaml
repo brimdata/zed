@@ -6,8 +6,8 @@ zed: |
     "dns": dns
   }|
   split (
-    => !missing(schemas[_path]) | cut schema:=schemas[_path];
-    => missing(schemas[_path]) | put _UNCLASSIFIED:=true;
+    => !missing(schemas[_path]) | cut schema:=schemas[_path]
+    => missing(schemas[_path]) | put _UNCLASSIFIED:=true
   ) | sort .
 
 input: |

@@ -65,46 +65,29 @@ Consts
 Const = __ v:ConstDef { RETURN(v) }
 
 ConstDef
-  = "const" _ id:IdentifierName __ "=" __ expr:Expr __ ";"? {
+  = "const" _ id:IdentifierName __ "=" __ expr:Expr {
       RETURN(MAP("name":id, "expr":expr))
     }
-  / "type" _ id:IdentifierName __ "=" __ typ:Type __ ";"? {
+  / "type" _ id:IdentifierName __ "=" __ typ:Type {
       RETURN(MAP(
         "name":id,
         "expr":MAP("kind":"TypeValue","value":MAP("kind":"TypeDef","name":id,"type":typ))))
     }
 
-Parallel
-  = __ "=>" __ s:Sequential __ ";" { RETURN(s) }
-
-FromTrunk
-  = __ source:FromSource  seq:FromTrunkSeq? __ ";" {
-      RETURN(MAP("kind": "Trunk", "source": source, "seq": seq))
-    }
-
-FromTrunkSeq
-  = __ "=>" __ seq:Sequential { RETURN(seq) }
-
-FromSource
-  = FileProc
-  / HTTPProc
-  / PassProc
-  / PoolBody
-
 Operation
-  = "split" __ "(" procArray:Parallel+ __ ")" {
+  = "split" __ "(" procArray:SplitLeg+ __ ")" {
       RETURN(MAP("kind": "Parallel", "procs": procArray))
     }
-  / "switch" _ expr:Expr _ "(" cases:SwitchLiteralClause+ __ ")" {
+  / "switch" _ expr:Expr _ "(" cases:SwitchLeg+ __ ")" {
       RETURN(MAP("kind": "Switch", "expr": expr, "cases": cases))
     }
-  / "switch" __ "(" cases:SwitchSearchBooleanClause+ __ ")" {
+  / "switch" __ "(" cases:SwitchLeg+ __ ")" {
       RETURN(MAP("kind": "Switch", "expr": NULL, "cases": cases))
     }
-  / "from" __ "(" trunks:FromTrunk+ __ ")" {
+  / "from" __ "(" trunks:FromLeg+ __ ")" {
       RETURN(MAP("kind": "From", "trunks": trunks))
     }
-  / Operator
+  / op:Operator
   / f:Function &EndOfOp { RETURN(f) }
   / a:OpAssignment &EndOfOp { RETURN(a) }
   / a:Aggregation &EndOfOp  { RETURN(a) }
@@ -112,20 +95,37 @@ Operation
       RETURN(MAP("kind": "Filter", "expr": expr))
     }
 
-SwitchLiteralClause
-  = __ expr:(DefaultToken / Literal / Identifier) __ "=>" __ proc:Sequential __ ";" {
-      RETURN(MAP("expr": expr, "proc": proc))
-    }
-
-SwitchSearchBooleanClause
-  = __ expr:(DefaultToken / SearchBoolean) __ "=>" __ proc:Sequential __ ";" {
-      RETURN(MAP("expr": expr, "proc": proc))
-    }
-
-DefaultToken = "default"i { RETURN(NULL) }
-
-EndOfOp = __ (Pipe / "=>" / [);] / EOF)
+EndOfOp = __ (Pipe / SearchKeywordGuard / "=>" / ")" / EOF)
 Pipe = "|" !("{" / "[")
+
+SplitLeg
+  = __ "=>" __ s:Sequential { RETURN(s) }
+
+SwitchLeg
+  = __ expr:Case __ "=>" __ proc:Sequential {
+      RETURN(MAP("expr": expr, "proc": proc))
+    }
+
+Case
+  = "case" _ expr:Expr { RETURN(expr) }
+  / "default" { RETURN(NULL) }
+
+FromLeg
+  = __ source:FromHead __  seq:Sequential {
+      RETURN(MAP("kind": "Trunk", "source": source, "seq": seq))
+    }
+  / __ source:FromSource {
+      RETURN(MAP("kind": "Trunk", "source": source, "seq": NULL))
+    }
+
+FromHead
+  = src:FromSource __ "=>" { RETURN(src) }
+
+FromSource
+  = File
+  / Get
+  / Pool
+  / PassProc
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "matches")
 
@@ -142,9 +142,13 @@ SearchOrTerm = _ OrToken _ t:SearchAnd { RETURN(ARRAY("or", t)) }
 
 SearchAnd
   = first:SearchFactor
-    rest:((_ AndToken)? _ !OrToken expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
+    rest:((_ AndToken)? _ !(OrToken / SearchKeywordGuard) expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
       RETURN(makeBinaryExprChain(first,rest))
     }
+
+SearchKeywordGuard
+  = FromHead __
+  / Case __
 
 SearchFactor
   = (NotToken _ / "!" __) e:SearchFactor {
@@ -152,7 +156,6 @@ SearchFactor
     }
   / "(" __ expr:SearchBoolean __ ")" { RETURN(expr) }
   / SearchExpr
-
 
 SearchExpr
   = search:PatternSearch { RETURN(search) }
@@ -443,24 +446,27 @@ FromProc
     }
 
 FromAny
-  = FileProc
-  / HTTPProc
-  / PoolProc
+  = File
+  / Get
+  / From
 
-FileProc
+File
   = "file"i _ path:Path format:FormatArg? layout:LayoutArg?  {
       RETURN(MAP("kind": "File", "path": path, "format": format, "layout": layout ))
     }
 
-PoolProc
+From
   = "from"i _ body:PoolBody { RETURN(body) }
+
+Pool
+  = "pool"i _ body:PoolBody { RETURN(body) }
 
 PoolBody
   = spec:PoolSpec at:PoolAt? over:PoolRange? order:OrderArg? {
       RETURN(MAP("kind": "Pool", "spec": spec, "at": at, "range": over, "scan_order": order))
     }
 
-HTTPProc
+Get
   = "get"i _ url:URL format:FormatArg? layout:LayoutArg? {
       RETURN(MAP("kind": "HTTP", "url": url, "format": format, "layout": layout ))
     }
@@ -670,12 +676,12 @@ FuncGuard = NotFuncs __ "("
 
 NotFuncs
   = "not"
-  / "match"
+  / "search"
   / "select"
   / "type"
 
 MatchExpr
-  = "match" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
+  = "search" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
 
 Cast
   = typ:CastType __ "(" __ expr:Expr __ ")" {

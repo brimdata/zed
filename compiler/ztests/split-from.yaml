@@ -5,8 +5,8 @@ inputs:
   - name: query.zed
     data: |
       split (
-        => from (file a.zson => pass;);
-        => from (file b.zson => pass;);
+        => from (file a.zson => pass)
+        => from (file b.zson => pass)
       ) | sort a
   - name: a.zson
     data: |

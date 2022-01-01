@@ -93,7 +93,7 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.expr(e.Expr, false)
 		c.open(":%s", e.Type)
 	case *dag.Search:
-		c.write("match(%s)", e.Value)
+		c.write("search(%s)", e.Value)
 	case *dag.Path:
 		c.fieldpath(e.Name)
 	case *dag.Var:
@@ -204,6 +204,7 @@ func (c *canonDAG) op(p dag.Op) {
 		for _, k := range p.Cases {
 			c.ret()
 			if k.Expr != nil {
+				c.write("case ")
 				c.expr(k.Expr, false)
 			} else {
 				c.write("default")
@@ -357,7 +358,6 @@ func (c *canonDAG) op(p dag.Op) {
 				c.op(trunk.Seq)
 				c.close()
 			}
-			c.write(";")
 		}
 		c.ret()
 		c.close()
@@ -390,11 +390,11 @@ func source(src dag.Source) string {
 	case *dag.HTTP:
 		return fmt.Sprintf("get %s", p.URL)
 	case *dag.Pool:
-		return fmt.Sprintf("%s", p.ID)
+		return fmt.Sprintf("pool %s", p.ID)
 	case *dag.PoolMeta:
-		return fmt.Sprintf("%s:%s", p.ID, p.Meta)
+		return fmt.Sprintf("pool %s:%s", p.ID, p.Meta)
 	case *dag.CommitMeta:
-		return fmt.Sprintf("%s@%s:%s", p.Pool, p.Commit, p.Meta)
+		return fmt.Sprintf("pool %s@%s:%s", p.Pool, p.Commit, p.Meta)
 	case *dag.LakeMeta:
 		return fmt.Sprintf(":%s", p.Meta)
 		//XXX from, to, order

@@ -16,7 +16,7 @@ outputs:
             filter x="hello" or x=1.)
           (index
             filter x="hello" or x=1.))
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       ===
       from (
@@ -25,7 +25,7 @@ outputs:
             filter x>1 and y<=1.)
           (index
             filter x>1 and y<=1.))
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       ===
       from (
@@ -34,7 +34,7 @@ outputs:
             filter x="hello" or x!=1.)
           (index
             filter x="hello"))
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       ===
       from (
@@ -43,5 +43,5 @@ outputs:
             filter x="hello" or  !y=2 or y=3)
           (index
             filter x="hello"))
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )

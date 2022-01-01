@@ -1,4 +1,4 @@
-script: echo {} | zq -z 'const t1 = now(); yield t1, now()' -
+script: echo {} | zq -z 'const t1 = now() yield t1, now()' -
 
 outputs:
   - name: stdout

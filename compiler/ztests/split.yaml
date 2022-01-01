@@ -1,4 +1,4 @@
-zed: split (=> pass; => pass;)
+zed: split (=> pass => pass)
 
 input: |
   {a:1}

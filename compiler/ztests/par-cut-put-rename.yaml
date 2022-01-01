@@ -4,13 +4,13 @@ outputs:
   - name: stdout
     data: |
       from (
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
           cut ts:=ts,y:=y,z:=z
           | put x:=y
-          | rename y:=z;
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          | rename y:=z
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
           cut ts:=ts,y:=y,z:=z
           | put x:=y
-          | rename y:=z;
+          | rename y:=z
       )
       | merge ts:asc

@@ -4,12 +4,12 @@ outputs:
   - name: stdout
     data: |
       from (
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
           summarize partials-out
-              union:=union(s) by n:=len(s);
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+              union:=union(s) by n:=len(s)
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
           summarize partials-out
-              union:=union(s) by n:=len(s);
+              union:=union(s) by n:=len(s)
       )
       | summarize partials-in
           union:=union(s) by n:=n
