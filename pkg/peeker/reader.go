@@ -67,6 +67,9 @@ func (r *Reader) Peek(n int) ([]byte, error) {
 		if err := r.fill(n); err != nil {
 			return nil, err
 		}
+		if len(r.cursor) == 0 && r.eof {
+			return nil, io.EOF
+		}
 	}
 	if n > len(r.cursor) {
 		return r.cursor, ErrTruncated
