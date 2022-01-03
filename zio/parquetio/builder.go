@@ -40,7 +40,7 @@ func (b *builder) appendValue(typ zed.Type, v interface{}) {
 		b.buf = zed.AppendUint(b.buf[:0], v)
 		b.AppendPrimitive(b.buf)
 	case map[string]interface{}:
-		switch typ := zed.AliasOf(typ).(type) {
+		switch typ := zed.TypeUnder(typ).(type) {
 		case *zed.TypeArray:
 			switch v := v["list"].(type) {
 			case nil:

@@ -146,7 +146,7 @@ var _ Interface = (*LenFn)(nil)
 func (l *LenFn) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	var length int
-	switch typ := zed.AliasOf(args[0].Type).(type) {
+	switch typ := zed.TypeUnder(args[0].Type).(type) {
 	case *zed.TypeOfNull:
 	case *zed.TypeRecord:
 		length = len(typ.Columns)
@@ -178,7 +178,7 @@ type typeUnder struct {
 }
 
 func (t *typeUnder) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	typ := zed.AliasOf(args[0].Type)
+	typ := zed.TypeUnder(args[0].Type)
 	return ctx.CopyValue(*t.zctx.LookupTypeValue(typ))
 }
 
@@ -199,7 +199,7 @@ type typeName struct {
 }
 
 func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
-	if zed.AliasOf(args[0].Type) != zed.TypeString {
+	if zed.TypeUnder(args[0].Type) != zed.TypeString {
 		return newErrorf(ectx, "typename: first argument not a string")
 	}
 	name := string(args[0].Bytes)
@@ -210,7 +210,7 @@ func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		return t.zctx.LookupTypeValue(typ)
 	}
-	if zed.AliasOf(args[1].Type) != zed.TypeType {
+	if zed.TypeUnder(args[1].Type) != zed.TypeType {
 		return newErrorf(ectx, "typename: second argument not a type value")
 	}
 	typ, err := t.zctx.LookupByValue(args[1].Bytes)

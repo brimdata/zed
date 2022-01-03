@@ -11,7 +11,7 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	if zb == nil {
 		return nil, nil
 	}
-	switch typ := zed.AliasOf(typ).(type) {
+	switch typ := zed.TypeUnder(typ).(type) {
 	case *zed.TypeOfUint8:
 		v, err := zed.DecodeUint(zb)
 		return uint32(v), err

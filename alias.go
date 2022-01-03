@@ -40,10 +40,10 @@ func (t *TypeAlias) Format(zv zcode.Bytes) string {
 	return t.Type.Format(zv)
 }
 
-func AliasOf(typ Type) Type {
+func TypeUnder(typ Type) Type {
 	alias, ok := typ.(*TypeAlias)
 	if ok {
-		return AliasOf(alias.Type)
+		return TypeUnder(alias.Type)
 	}
 	return typ
 }

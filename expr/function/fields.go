@@ -21,7 +21,7 @@ func NewFields(zctx *zed.Context) *Fields {
 func fieldNames(typ *zed.TypeRecord) []string {
 	var out []string
 	for _, c := range typ.Columns {
-		if typ, ok := zed.AliasOf(c.Type).(*zed.TypeRecord); ok {
+		if typ, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
 			for _, subfield := range fieldNames(typ) {
 				out = append(out, c.Name+"."+subfield)
 			}
@@ -47,7 +47,7 @@ func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 func isRecordType(zv zed.Value, zctx *zed.Context) *zed.TypeRecord {
-	if typ, ok := zed.AliasOf(zv.Type).(*zed.TypeRecord); ok {
+	if typ, ok := zed.TypeUnder(zv.Type).(*zed.TypeRecord); ok {
 		return typ
 	}
 	if zv.Type == zed.TypeType {
@@ -55,7 +55,7 @@ func isRecordType(zv zed.Value, zctx *zed.Context) *zed.TypeRecord {
 		if err != nil {
 			return nil
 		}
-		if typ, ok := zed.AliasOf(typ).(*zed.TypeRecord); ok {
+		if typ, ok := zed.TypeUnder(typ).(*zed.TypeRecord); ok {
 			return typ
 		}
 	}

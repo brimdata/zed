@@ -31,7 +31,7 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(rec *zed.Value) error {
-	recType := zed.AliasOf(rec.Type).(*zed.TypeRecord)
+	recType := zed.TypeUnder(rec.Type).(*zed.TypeRecord)
 	if w.typ == nil {
 		w.typ = recType
 		sd, err := newSchemaDefinition(recType)

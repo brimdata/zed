@@ -316,7 +316,7 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 		if err := f.formatValue(indent, typ.KeyType, keyBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
-		if zed.AliasOf(typ.KeyType) == zed.TypeIP && len(keyBytes) == 16 {
+		if zed.TypeUnder(typ.KeyType) == zed.TypeIP && len(keyBytes) == 16 {
 			// To avoid ambiguity, whitespace must separate an IPv6
 			// map key from the colon that follows it.
 			f.build(" ")
@@ -463,7 +463,7 @@ var colors = map[zed.Type]color.Code{
 
 func (f *Formatter) startColorPrimitive(typ zed.Type) {
 	if f.tab > 0 {
-		c, ok := colors[zed.AliasOf(typ)]
+		c, ok := colors[zed.TypeUnder(typ)]
 		if !ok {
 			c = color.Reset
 		}

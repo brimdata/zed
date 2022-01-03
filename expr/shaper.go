@@ -146,7 +146,7 @@ func createShaper(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (*sh
 }
 
 func shaperType(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (zed.Type, error) {
-	inUnder, specUnder := zed.AliasOf(in), zed.AliasOf(spec)
+	inUnder, specUnder := zed.TypeUnder(in), zed.TypeUnder(spec)
 	if tf&Cast > 0 {
 		if inUnder == specUnder || inUnder == zed.TypeNull {
 			return spec, nil
@@ -245,11 +245,11 @@ func shaperColumns(zctx *zed.Context, tf ShaperTransform, specRec, inRec *zed.Ty
 // its selector.  Finally, bestUnionSelector returns the smallest selector in
 // spec whose type is compatible with in.
 func bestUnionSelector(in, spec zed.Type) int {
-	specUnion, ok := zed.AliasOf(spec).(*zed.TypeUnion)
+	specUnion, ok := zed.TypeUnder(spec).(*zed.TypeUnion)
 	if !ok {
 		return -1
 	}
-	aliasOfIn := zed.AliasOf(in)
+	aliasOfIn := zed.TypeUnder(in)
 	underlying := -1
 	compatible := -1
 	for i, t := range specUnion.Types {
@@ -259,7 +259,7 @@ func bestUnionSelector(in, spec zed.Type) int {
 		if t == aliasOfIn && underlying == -1 {
 			underlying = i
 		}
-		if zed.AliasOf(t) == aliasOfIn && compatible == -1 {
+		if zed.TypeUnder(t) == aliasOfIn && compatible == -1 {
 			compatible = i
 		}
 	}
@@ -358,10 +358,10 @@ func createStep(in, out zed.Type) (step, error) {
 	case zed.IsPrimitiveType(in) && zed.IsPrimitiveType(out):
 		return step{op: castPrimitive, fromType: in, toType: out}, nil
 	case isCollectionType(in):
-		if _, ok := zed.AliasOf(out).(*zed.TypeArray); ok {
+		if _, ok := zed.TypeUnder(out).(*zed.TypeArray); ok {
 			return createStepArray(zed.InnerType(in), zed.InnerType(out))
 		}
-		if _, ok := zed.AliasOf(out).(*zed.TypeSet); ok {
+		if _, ok := zed.TypeUnder(out).(*zed.TypeSet); ok {
 			return createStepSet(zed.InnerType(in), zed.InnerType(out))
 		}
 	}
@@ -372,7 +372,7 @@ func createStep(in, out zed.Type) (step, error) {
 }
 
 func isCollectionType(t zed.Type) bool {
-	switch zed.AliasOf(t).(type) {
+	switch zed.TypeUnder(t).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
 		return true
 	}
@@ -472,7 +472,7 @@ func (s *step) castPrimitive(ectx Context, in zcode.Bytes, b *zcode.Builder) *ze
 		b.AppendNull()
 		return nil
 	}
-	toType := zed.AliasOf(s.toType)
+	toType := zed.TypeUnder(s.toType)
 	cast := LookupPrimitiveCaster(toType)
 	v := cast(ectx, &zed.Value{s.fromType, in})
 	if v.Type != toType {

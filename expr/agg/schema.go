@@ -70,9 +70,9 @@ func columnOfField(cols []zed.Column, name string) (int, bool) {
 }
 
 func unify(zctx *zed.Context, a, b zed.Type) zed.Type {
-	if ua, ok := zed.AliasOf(a).(*zed.TypeUnion); ok {
+	if ua, ok := zed.TypeUnder(a).(*zed.TypeUnion); ok {
 		types := ua.Types
-		if ub, ok := zed.AliasOf(b).(*zed.TypeUnion); ok {
+		if ub, ok := zed.TypeUnder(b).(*zed.TypeUnion); ok {
 			for _, t := range ub.Types {
 				types = appendIfAbsent(types, t)
 			}
@@ -81,7 +81,7 @@ func unify(zctx *zed.Context, a, b zed.Type) zed.Type {
 		}
 		return zctx.LookupTypeUnion(types)
 	}
-	if _, ok := zed.AliasOf(b).(*zed.TypeUnion); ok {
+	if _, ok := zed.TypeUnder(b).(*zed.TypeUnion); ok {
 		return unify(zctx, b, a)
 	}
 	return zctx.LookupTypeUnion([]zed.Type{a, b})

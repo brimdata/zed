@@ -186,7 +186,7 @@ func (v *Value) IsStringy() bool {
 }
 
 func (v *Value) IsError() bool {
-	return AliasOf(v.Type) == TypeError
+	return TypeUnder(v.Type) == TypeError
 }
 
 func (v *Value) IsMissing() bool {

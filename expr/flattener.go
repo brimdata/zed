@@ -29,7 +29,7 @@ func NewFlattener(zctx *zed.Context) *Flattener {
 func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, error) {
 	if in == nil {
 		for _, col := range typ.Columns {
-			if typ, ok := zed.AliasOf(col.Type).(*zed.TypeRecord); ok {
+			if typ, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord); ok {
 				var err error
 				dst, err = recode(dst, typ, nil)
 				if err != nil {
@@ -47,7 +47,7 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 		val, container := it.Next()
 		col := typ.Columns[colno]
 		colno++
-		if childType, ok := zed.AliasOf(col.Type).(*zed.TypeRecord); ok {
+		if childType, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord); ok {
 			var err error
 			dst, err = recode(dst, childType, val)
 			if err != nil {
@@ -75,7 +75,7 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 	// Since we are mapping the input context to itself we can do a
 	// pointer comparison to see if the types are the same and there
 	// is no need to record.
-	if zed.AliasOf(r.Type) == flatType {
+	if zed.TypeUnder(r.Type) == flatType {
 		return r, nil
 	}
 	zv, err := recode(nil, zed.TypeRecordOf(r.Type), r.Bytes)
@@ -90,7 +90,7 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 func FlattenColumns(cols []zed.Column) []zed.Column {
 	ret := []zed.Column{}
 	for _, c := range cols {
-		if recType, ok := zed.AliasOf(c.Type).(*zed.TypeRecord); ok {
+		if recType, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
 			inners := FlattenColumns(recType.Columns)
 			for i := range inners {
 				inners[i].Name = fmt.Sprintf("%s.%s", c.Name, inners[i].Name)

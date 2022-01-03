@@ -11,7 +11,7 @@ type And struct {
 var _ Function = (*And)(nil)
 
 func (a *And) Consume(val *zed.Value) {
-	if val.IsNull() || zed.AliasOf(val.Type) != zed.TypeBool {
+	if val.IsNull() || zed.TypeUnder(val.Type) != zed.TypeBool {
 		return
 	}
 	if a.val == nil {
@@ -49,7 +49,7 @@ type Or struct {
 var _ Function = (*Or)(nil)
 
 func (o *Or) Consume(val *zed.Value) {
-	if val.IsNull() || zed.AliasOf(val.Type) != zed.TypeBool {
+	if val.IsNull() || zed.TypeUnder(val.Type) != zed.TypeBool {
 		return
 	}
 	if o.val == nil {

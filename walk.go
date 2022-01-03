@@ -132,7 +132,7 @@ func walkSet(typ *TypeSet, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
-	inner := AliasOf(InnerType(typ))
+	inner := TypeUnder(InnerType(typ))
 	it := body.Iter()
 	for !it.Done() {
 		body, container := it.Next()
@@ -150,8 +150,8 @@ func walkMap(typ *TypeMap, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
-	keyType := AliasOf(typ.KeyType)
-	valType := AliasOf(typ.ValType)
+	keyType := TypeUnder(typ.KeyType)
+	valType := TypeUnder(typ.ValType)
 	it := body.Iter()
 	for !it.Done() {
 		body, container := it.Next()

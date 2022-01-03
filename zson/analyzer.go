@@ -134,7 +134,7 @@ func (a Analyzer) convertValue(zctx *zed.Context, val astzed.Value, parent zed.T
 			return nil, err
 		}
 		var v Value
-		if union, ok := zed.AliasOf(cast).(*zed.TypeUnion); ok {
+		if union, ok := zed.TypeUnder(cast).(*zed.TypeUnion); ok {
 			v, err = a.convertValue(zctx, val.Of, nil)
 			if err != nil {
 				return nil, err
@@ -146,7 +146,7 @@ func (a Analyzer) convertValue(zctx *zed.Context, val astzed.Value, parent zed.T
 		if err != nil {
 			return nil, err
 		}
-		if union, ok := zed.AliasOf(parent).(*zed.TypeUnion); ok {
+		if union, ok := zed.TypeUnder(parent).(*zed.TypeUnion); ok {
 			v, err = a.convertUnion(zctx, v, union, parent)
 		}
 		return v, err
@@ -158,7 +158,7 @@ func (a Analyzer) typeCheck(cast, parent zed.Type) error {
 	if parent == nil || cast == parent {
 		return nil
 	}
-	if _, ok := zed.AliasOf(parent).(*zed.TypeUnion); ok {
+	if _, ok := zed.TypeUnder(parent).(*zed.TypeUnion); ok {
 		// We let unions through this type check with no further checking
 		// as any union incompability will be caught in convertAnyValue().
 		return nil
@@ -183,7 +183,7 @@ func (a Analyzer) convertAny(zctx *zed.Context, val astzed.Any, cast zed.Type) (
 	// If we're casting something to a union, then the thing inside needs to
 	// describe itself and we can convert the inner value to a union value when
 	// we know its type (so we can code the selector).
-	if union, ok := zed.AliasOf(cast).(*zed.TypeUnion); ok {
+	if union, ok := zed.TypeUnder(cast).(*zed.TypeUnion); ok {
 		v, err := a.convertAny(zctx, val, nil)
 		if err != nil {
 			return nil, err
@@ -261,7 +261,7 @@ func (a Analyzer) convertRecord(zctx *zed.Context, val *astzed.Record, cast zed.
 	var fields []Value
 	var err error
 	if cast != nil {
-		recType, ok := zed.AliasOf(cast).(*zed.TypeRecord)
+		recType, ok := zed.TypeUnder(cast).(*zed.TypeRecord)
 		if !ok {
 			return nil, fmt.Errorf("record decorator not of type record: %T", cast)
 		}
@@ -314,7 +314,7 @@ func arrayElemCast(cast zed.Type) (zed.Type, error) {
 	if cast == nil {
 		return nil, nil
 	}
-	if arrayType, ok := zed.AliasOf(cast).(*zed.TypeArray); ok {
+	if arrayType, ok := zed.TypeUnder(cast).(*zed.TypeArray); ok {
 		return arrayType.Type, nil
 	}
 	return nil, errors.New("array decorator not of type array")
@@ -428,7 +428,7 @@ func differentTypes(vals []Value) []zed.Type {
 func (a Analyzer) convertSet(zctx *zed.Context, set *astzed.Set, cast zed.Type) (Value, error) {
 	var elemType zed.Type
 	if cast != nil {
-		setType, ok := zed.AliasOf(cast).(*zed.TypeSet)
+		setType, ok := zed.TypeUnder(cast).(*zed.TypeSet)
 		if !ok {
 			return nil, fmt.Errorf("set decorator not of type set: %T", cast)
 		}
@@ -485,7 +485,7 @@ func (a Analyzer) convertEnum(zctx *zed.Context, val *astzed.Enum, cast zed.Type
 	if cast == nil {
 		return nil, fmt.Errorf("identifier %q must be enum and requires decorator", val.Name)
 	}
-	enum, ok := zed.AliasOf(cast).(*zed.TypeEnum)
+	enum, ok := zed.TypeUnder(cast).(*zed.TypeEnum)
 	if !ok {
 		return nil, fmt.Errorf("identifier %q is enum and incompatible with type %q", val.Name, cast)
 	}
@@ -503,7 +503,7 @@ func (a Analyzer) convertEnum(zctx *zed.Context, val *astzed.Enum, cast zed.Type
 func (a Analyzer) convertMap(zctx *zed.Context, m *astzed.Map, cast zed.Type) (Value, error) {
 	var keyType, valType zed.Type
 	if cast != nil {
-		typ, ok := zed.AliasOf(cast).(*zed.TypeMap)
+		typ, ok := zed.TypeUnder(cast).(*zed.TypeMap)
 		if !ok {
 			return nil, errors.New("map decorator not of type map")
 		}
@@ -543,7 +543,7 @@ func (a Analyzer) convertMap(zctx *zed.Context, m *astzed.Map, cast zed.Type) (V
 
 func (a Analyzer) convertTypeValue(zctx *zed.Context, tv *astzed.TypeValue, cast zed.Type) (Value, error) {
 	if cast != nil {
-		if _, ok := zed.AliasOf(cast).(*zed.TypeOfType); !ok {
+		if _, ok := zed.TypeUnder(cast).(*zed.TypeOfType); !ok {
 			return nil, fmt.Errorf("cannot apply decorator (%q) to a type value", cast)
 		}
 	}
