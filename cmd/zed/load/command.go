@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/brimdata/zed"
@@ -47,7 +48,7 @@ type Command struct {
 	// status output
 	ctx       context.Context
 	rate      *ratecounter.RateCounter
-	statsers  []*inputflags.StatsReader
+	engine    *engineWrap
 	totalRead int64
 }
 
@@ -80,14 +81,10 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	paths := args
-	local := storage.NewLocalEngine()
-	c.statsers, err = c.inputFlags.OpenWithStats(ctx, zed.NewContext(), local, paths, false)
+	c.engine = &engineWrap{Engine: storage.NewLocalEngine()}
+	readers, err := c.inputFlags.Open(ctx, zed.NewContext(), c.engine, paths, false)
 	if err != nil {
 		return err
-	}
-	readers := make([]zio.Reader, len(c.statsers))
-	for i, r := range c.statsers {
-		readers[i] = r
 	}
 	defer zio.CloseReaders(readers)
 	head, err := c.lakeFlags.HEAD()
@@ -121,27 +118,10 @@ func (c *Command) Run(args []string) error {
 	return nil
 }
 
-type displayer struct {
-	statsers  []*inputflags.StatsReader
-	totalRead int64
-	rate      *ratecounter.RateCounter
-	ctx       context.Context
-}
-
-// (1/1) 1GB/4GB 87%
-
 func (c *Command) Display(w io.Writer) bool {
-	var completed int
-	var totalBytes, readBytes units.Bytes
-	for _, statser := range c.statsers {
-		total, read := statser.BytesTotal, statser.BytesRead()
-		if total == read {
-			completed++
-		}
-		totalBytes += units.Bytes(total)
-		readBytes += units.Bytes(read)
-	}
-	fmt.Fprintf(w, "(%d/%d) ", completed, len(c.statsers))
+	totalBytes := c.engine.bytesTotal
+	readBytes, totalBytes, completed := c.engine.status()
+	fmt.Fprintf(w, "(%d/%d) ", completed, len(c.engine.readers))
 	rate := c.incrRate(readBytes)
 	if totalBytes == 0 {
 		fmt.Fprintf(w, "%s %s/s\n", readBytes.Abbrev(), rate.Abbrev())
@@ -156,4 +136,53 @@ func (c *Command) incrRate(readBytes units.Bytes) units.Bytes {
 	c.rate.Incr(int64(readBytes) - c.totalRead)
 	c.totalRead = int64(readBytes)
 	return units.Bytes(c.rate.Rate())
+}
+
+type engineWrap struct {
+	storage.Engine
+	bytesTotal units.Bytes
+	readers    []*byteCounter
+	completed  int32
+}
+
+func (e *engineWrap) Get(ctx context.Context, u *storage.URI) (storage.Reader, error) {
+	r, err := e.Engine.Get(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+	size, err := storage.Size(r)
+	if err != nil && !errors.Is(err, storage.ErrNotSupported) {
+		return nil, err
+	}
+	e.bytesTotal += units.Bytes(size)
+	counter := &byteCounter{Reader: r, completed: &e.completed}
+	e.readers = append(e.readers, counter)
+	return counter, nil
+}
+
+func (e *engineWrap) status() (units.Bytes, units.Bytes, int) {
+	var read units.Bytes
+	for _, r := range e.readers {
+		read += units.Bytes(r.bytesRead())
+	}
+	return read, e.bytesTotal, int(atomic.LoadInt32(&e.completed))
+}
+
+type byteCounter struct {
+	storage.Reader
+	n         int64
+	completed *int32
+}
+
+func (r *byteCounter) Read(b []byte) (int, error) {
+	n, err := r.Reader.Read(b)
+	atomic.AddInt64(&r.n, int64(n))
+	if errors.Is(err, io.EOF) {
+		atomic.AddInt32(r.completed, 1)
+	}
+	return n, err
+}
+
+func (r *byteCounter) bytesRead() int64 {
+	return atomic.LoadInt64(&r.n)
 }
