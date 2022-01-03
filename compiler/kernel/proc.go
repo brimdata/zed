@@ -273,7 +273,7 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []proc.Interfa
 	n := len(parallel.Ops)
 	if len(parents) == 1 {
 		// Single parent: insert a splitter for n-way fanout.
-		_, parents = split.New(b.pctx, parents[0], n)
+		parents = split.New(b.pctx, parents[0], n)
 	}
 	if len(parents) != n {
 		return nil, fmt.Errorf("parallel input mismatch: %d parents with %d flowgraph paths", len(parents), len(parallel.Ops))

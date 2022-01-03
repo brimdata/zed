@@ -61,8 +61,7 @@ func (s *Selector) Forward(router *proc.Router, batch zbuf.Batch) error {
 	}
 	// Send each case that has vals from this batch.
 	// We have vals that point into the current batch so we
-	// ref the batch for each outgoing new batch, then unref
-	// the batch once after the loop.
+	// ref the batch for each outgoing new batch.
 	for _, c := range s.cases {
 		if len(c.vals) > 0 {
 			// XXX The new slice should come from the

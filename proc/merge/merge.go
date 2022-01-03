@@ -54,7 +54,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		return nil, p.err
 	}
 	if p.Len() == 0 {
-		// No more batches in head of line.  So, lets resume
+		// No more batches in head of line.  So, let's resume
 		// everything and return an EOS.
 		for _, parent := range p.parents {
 			parent.resumeCh <- struct{}{}
@@ -91,23 +91,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	}
 	heap.Push(p, min)
 	const batchLen = 100 // XXX
-	vals := make([]zed.Value, 0, batchLen)
-	for len(vals) < batchLen {
-		val, err := p.Read()
-		if err != nil {
-			return nil, err
-		}
-		if val == nil {
-			break
-		}
-		// Copy the underlying buffer because the next call to
-		// zr.Read may overwrite it.
-		vals = append(vals, *val.Copy())
-	}
-	if len(vals) == 0 {
-		return nil, nil
-	}
-	return zbuf.NewArray(vals), nil
+	return zbuf.NewPuller(p, batchLen).Pull()
 }
 
 func (p *Proc) Read() (*zed.Value, error) {
@@ -124,6 +108,7 @@ func (p *Proc) Read() (*zed.Value, error) {
 		}
 		if !ok {
 			heap.Pop(p)
+			return val, nil
 		}
 	}
 	heap.Fix(p, 0)
@@ -217,13 +202,13 @@ func (p *puller) run() {
 				return
 			}
 			if batch == nil {
-				if ok := p.resume(); !ok {
+				if !p.waitToResume() {
 					return
 				}
 			}
 		case <-p.doneCh:
 			// Drop the pending batch and initiate a done...
-			if ok := p.done(); !ok {
+			if !p.propagateDone() {
 				return
 			}
 		case <-p.ctx.Done():
@@ -248,7 +233,7 @@ func (p *puller) replenish() (bool, error) {
 	return false, nil
 }
 
-func (p *puller) resume() bool {
+func (p *puller) waitToResume() bool {
 	select {
 	case <-p.resumeCh:
 		return true
@@ -257,7 +242,7 @@ func (p *puller) resume() bool {
 	}
 }
 
-func (p *puller) done() bool {
+func (p *puller) propagateDone() bool {
 	p.Done()
 	for {
 		batch, err := p.Pull()
@@ -267,7 +252,7 @@ func (p *puller) done() bool {
 		}
 		if batch == nil {
 			p.resultCh <- proc.Result{nil, nil}
-			return p.resume()
+			return p.waitToResume()
 		}
 		batch.Unref()
 	}

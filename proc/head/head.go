@@ -67,5 +67,6 @@ func (p *Proc) Done() {
 			p.done = true
 			return
 		}
+		batch.Unref()
 	}
 }

@@ -18,8 +18,9 @@ type Router struct {
 	blocked  map[Interface]struct{}
 	doneCh   chan Interface
 	once     sync.Once
-	err      error
 	backlog  []Interface
+	// Router err protected by result channel
+	err error
 }
 
 func NewRouter(pctx *Context, parent Interface) *Router {
@@ -54,7 +55,7 @@ func (r *Router) run() {
 			close(ch)
 		}
 	}()
-	var EOS bool
+	var eos bool
 	for {
 		batch, err := r.parent.Pull()
 		if err != nil {
@@ -62,14 +63,14 @@ func (r *Router) run() {
 			return
 		}
 		if batch == nil {
-			if EOS {
+			if eos {
 				return
 			}
 			r.sendEOS()
-			EOS = true
+			eos = true
 			continue
 		}
-		EOS = false
+		eos = false
 		// The selectors decides what if any of the batch it
 		// wants to send to which down stream procs by calling
 		// back the Router.Send() method.  We Unref() the batch here
@@ -95,7 +96,7 @@ func (r *Router) run() {
 				return
 			}
 			r.unblock()
-			EOS = true
+			eos = true
 		}
 	}
 }
@@ -194,7 +195,6 @@ func (r *route) Pull() (zbuf.Batch, error) {
 	if result, ok := <-r.resultCh; ok {
 		return result.Batch, result.Err
 	}
-	// Router err protected by result channel
 	return nil, r.router.err
 }
 

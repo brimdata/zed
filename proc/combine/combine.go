@@ -51,13 +51,13 @@ func (p *puller) run() {
 				return
 			}
 			if batch == nil {
-				if ok := p.resume(); !ok {
+				if !p.waitToResume() {
 					return
 				}
 			}
 		case <-p.doneCh:
 			// Drop the pending batch and initiate a done...
-			if ok := p.done(); !ok {
+			if !p.propagateDone() {
 				return
 			}
 		case <-p.ctx.Done():
@@ -66,7 +66,7 @@ func (p *puller) run() {
 	}
 }
 
-func (p *puller) done() bool {
+func (p *puller) propagateDone() bool {
 	p.Done()
 	for {
 		batch, err := p.Pull()
@@ -76,13 +76,13 @@ func (p *puller) done() bool {
 		}
 		if batch == nil {
 			p.resultCh <- result{nil, nil, p}
-			return p.resume()
+			return p.waitToResume()
 		}
 		batch.Unref()
 	}
 }
 
-func (p *puller) resume() bool {
+func (p *puller) waitToResume() bool {
 	select {
 	case <-p.resumeCh:
 		return true
