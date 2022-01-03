@@ -542,6 +542,21 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Type: typ,
 			As:   as,
 		}, nil
+	case *ast.Merge:
+		e, err := semField(scope, p.Field)
+		if err != nil {
+			return nil, err
+		}
+		field, ok := e.(*dag.Path)
+		if !ok || len(field.Name) == 0 {
+			//XXX generalize to expr so you can merge this
+			return nil, fmt.Errorf("merge: key must be a field")
+		}
+		return &dag.Merge{
+			Kind:  "Merge",
+			Key:   field.Name,
+			Order: order.Asc, //XXX
+		}, nil
 	case *ast.Over:
 		exprs, err := semExprs(scope, p.Exprs)
 		if err != nil {

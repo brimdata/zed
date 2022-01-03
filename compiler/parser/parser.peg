@@ -274,6 +274,7 @@ Operator
   / FromProc
   / PassProc
   / ExplodeProc
+  / MergeProc
   / OverProc
   / YieldProc
 
@@ -531,6 +532,11 @@ PassProc
 ExplodeProc
   = "explode"i _ args:Exprs typ:TypeArg as:AsArg? {
       RETURN(MAP("kind":"Explode", "args": args, "as": as, "type": typ))
+    }
+
+MergeProc
+  = "merge"i _ field:Expr {
+	  RETURN(MAP("kind":"Merge", "field":field))
     }
 
 OverProc

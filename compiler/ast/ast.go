@@ -273,6 +273,10 @@ type (
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
+	Merge struct {
+		Kind  string `json:"kind" unpack:""`
+		Field Expr   `json:"field"`
+	}
 	Over struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
@@ -465,6 +469,7 @@ func (*Call) ProcAST()         {}
 func (*Shape) ProcAST()        {}
 func (*From) ProcAST()         {}
 func (*Explode) ProcAST()      {}
+func (*Merge) ProcAST()        {}
 func (*Over) ProcAST()         {}
 func (*Scope) ProcAST()        {}
 func (*Yield) ProcAST()        {}

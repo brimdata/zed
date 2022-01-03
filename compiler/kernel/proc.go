@@ -272,13 +272,8 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []proc.Interfa
 	}
 	n := len(parallel.Ops)
 	if len(parents) == 1 {
-		// Single parent: insert a splitter and wire to each branch.
-		splitter := split.New(parents[0])
-		parents = []proc.Interface{}
-		for k := 0; k < n; k++ {
-			sc := splitter.NewProc()
-			parents = append(parents, sc)
-		}
+		// Single parent: insert a splitter for n-way fanout.
+		_, parents = split.New(b.pctx, parents[0], n)
 	}
 	if len(parents) != n {
 		return nil, fmt.Errorf("parallel input mismatch: %d parents with %d flowgraph paths", len(parents), len(parallel.Ops))
@@ -302,8 +297,8 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 	if err != nil {
 		return nil, err
 	}
-	s := exprswitch.New(parents[0], e)
-	var procs []proc.Interface
+	s := exprswitch.New(b.pctx, parents[0], e)
+	var exits []proc.Interface
 	for _, c := range swtch.Cases {
 		var val *zed.Value
 		if c.Expr != nil {
@@ -312,27 +307,27 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 				return nil, err
 			}
 		}
-		proc, err := b.compile(c.Op, []proc.Interface{s.NewProc(val)})
+		parents, err := b.compile(c.Op, []proc.Interface{s.AddCase(val)})
 		if err != nil {
 			return nil, err
 		}
-		procs = append(procs, proc...)
+		exits = append(exits, parents...)
 	}
-	return procs, nil
+	return exits, nil
 }
 
 func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]proc.Interface, error) {
 	n := len(swtch.Cases)
 	if len(parents) == 1 {
 		// Single parent: insert a switcher and wire to each branch.
-		switcher := switcher.New(parents[0])
+		switcher := switcher.New(b.pctx, parents[0])
 		parents = []proc.Interface{}
 		for _, c := range swtch.Cases {
 			f, err := compileFilter(b.pctx.Zctx, c.Expr)
 			if err != nil {
 				return nil, fmt.Errorf("compiling switch case filter: %w", err)
 			}
-			sc := switcher.NewProc(f)
+			sc := switcher.AddCase(f)
 			parents = append(parents, sc)
 		}
 	}

@@ -11,47 +11,98 @@ import (
 
 type Proc struct {
 	ctx      context.Context
-	cancel   context.CancelFunc
 	once     sync.Once
-	ch       <-chan proc.Result
+	resultCh <-chan result
 	parents  []*puller
-	nparents int
+	blocked  map[*puller]struct{}
+	err      error
 }
 
 type puller struct {
 	proc.Interface
-	ctx context.Context
-	ch  chan<- proc.Result
+	ctx      context.Context
+	resultCh chan<- result
+	resumeCh chan struct{}
+	doneCh   chan struct{}
+}
+
+func newPuller(ctx context.Context, parent proc.Interface, resultCh chan<- result) *puller {
+	return &puller{
+		Interface: proc.NewCatcher(parent),
+		ctx:       ctx,
+		resultCh:  resultCh,
+		resumeCh:  make(chan struct{}),
+		doneCh:    make(chan struct{}),
+	}
+}
+
+type result struct {
+	batch  zbuf.Batch
+	err    error
+	puller *puller
 }
 
 func (p *puller) run() {
 	for {
 		batch, err := p.Pull()
 		select {
-		case p.ch <- proc.Result{batch, err}:
-			if batch == nil || err != nil {
+		case p.resultCh <- result{batch, err, p}:
+			if err != nil {
+				return
+			}
+			if batch == nil {
+				if ok := p.resume(); !ok {
+					return
+				}
+			}
+		case <-p.doneCh:
+			// Drop the pending batch and initiate a done...
+			if ok := p.done(); !ok {
 				return
 			}
 		case <-p.ctx.Done():
-			p.Done()
 			return
 		}
 	}
 }
 
+func (p *puller) done() bool {
+	p.Done()
+	for {
+		batch, err := p.Pull()
+		if err != nil {
+			p.resultCh <- result{nil, err, p}
+			return false
+		}
+		if batch == nil {
+			p.resultCh <- result{nil, nil, p}
+			return p.resume()
+		}
+		batch.Unref()
+	}
+}
+
+func (p *puller) resume() bool {
+	select {
+	case <-p.resumeCh:
+		return true
+	case <-p.ctx.Done():
+		return false
+	}
+}
+
 func New(pctx *proc.Context, parents []proc.Interface) *Proc {
-	ch := make(chan proc.Result)
-	ctx, cancel := context.WithCancel(pctx.Context)
+	resultCh := make(chan result)
+	ctx := pctx.Context
 	pullers := make([]*puller, 0, len(parents))
 	for _, parent := range parents {
-		pullers = append(pullers, &puller{parent, ctx, ch})
+		pullers = append(pullers, newPuller(ctx, parent, resultCh))
 	}
 	return &Proc{
 		ctx:      ctx,
-		cancel:   cancel,
-		ch:       ch,
+		resultCh: resultCh,
 		parents:  pullers,
-		nparents: len(parents),
+		blocked:  make(map[*puller]struct{}),
 	}
 }
 
@@ -62,22 +113,38 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			go m.run()
 		}
 	})
+	if p.err != nil {
+		return nil, p.err
+	}
 	for {
-		if p.nparents == 0 {
+		if len(p.blocked) == len(p.parents) {
+			for _, parent := range p.parents {
+				parent.resumeCh <- struct{}{}
+				delete(p.blocked, parent)
+			}
 			return nil, nil
 		}
 		select {
-		case res := <-p.ch:
-			if res.Batch != nil || res.Err != nil {
-				return res.Batch, res.Err
+		case res := <-p.resultCh:
+			if err := res.err; err != nil {
+				p.err = err
+				return nil, err
 			}
-			p.nparents--
+			if res.batch == nil {
+				p.blocked[res.puller] = struct{}{}
+				continue
+			}
+			return res.batch, nil
 		case <-p.ctx.Done():
 			return nil, p.ctx.Err()
 		}
 	}
 }
 
-func (m *Proc) Done() {
-	m.cancel()
+func (p *Proc) Done() {
+	for _, parent := range p.parents {
+		if _, ok := p.blocked[parent]; !ok {
+			parent.doneCh <- struct{}{}
+		}
+	}
 }
