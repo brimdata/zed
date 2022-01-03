@@ -278,7 +278,7 @@ func LookupPrimitiveByID(id int) Type {
 // InnerType returns the element type for the underlying set or array type or
 // nil if the underlying type is not a set or array.
 func InnerType(typ Type) Type {
-	switch typ := AliasOf(typ).(type) {
+	switch typ := TypeUnder(typ).(type) {
 	case *TypeSet:
 		return typ.Type
 	case *TypeArray:
@@ -312,12 +312,12 @@ func IsUnionType(typ Type) bool {
 }
 
 func IsRecordType(typ Type) bool {
-	_, ok := AliasOf(typ).(*TypeRecord)
+	_, ok := TypeUnder(typ).(*TypeRecord)
 	return ok
 }
 
 func TypeRecordOf(typ Type) *TypeRecord {
-	t, _ := AliasOf(typ).(*TypeRecord)
+	t, _ := TypeUnder(typ).(*TypeRecord)
 	return t
 }
 

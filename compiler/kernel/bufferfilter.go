@@ -57,7 +57,7 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 		if err != nil {
 			return nil, err
 		}
-		switch zed.AliasOf(literal.Type) {
+		switch zed.TypeUnder(literal.Type) {
 		case zed.TypeNet:
 			return nil, nil
 		case zed.TypeString:

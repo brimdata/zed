@@ -43,7 +43,7 @@ func valOf(val *zed.Value) *zed.Value {
 	}
 	bytes := val.Bytes
 	for {
-		typ = zed.AliasOf(typ)
+		typ = zed.TypeUnder(typ)
 		union, ok := typ.(*zed.TypeUnion)
 		if !ok {
 			return &zed.Value{typ, bytes}

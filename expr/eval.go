@@ -61,7 +61,7 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 // are returned.
 func EvalBool(ectx Context, this *zed.Value, e Evaluator) (*zed.Value, bool) {
 	val := e.Eval(ectx, this)
-	if zed.AliasOf(val.Type) == zed.TypeBool {
+	if zed.TypeUnder(val.Type) == zed.TypeBool {
 		return val, true
 	}
 	if val.IsError() {
@@ -128,13 +128,13 @@ func (i *In) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if container.IsError() {
 		return container
 	}
-	switch typ := zed.AliasOf(container.Type).(type) {
+	switch typ := zed.TypeUnder(container.Type).(type) {
 	case *zed.TypeOfNet:
 		return inNet(ectx, elem, container)
 	case *zed.TypeArray:
-		return i.inContainer(zed.AliasOf(typ.Type), elem, container)
+		return i.inContainer(zed.TypeUnder(typ.Type), elem, container)
 	case *zed.TypeSet:
-		return i.inContainer(zed.AliasOf(typ.Type), elem, container)
+		return i.inContainer(zed.TypeUnder(typ.Type), elem, container)
 	case *zed.TypeMap:
 		return i.inMap(typ, elem, container)
 	default:
@@ -147,7 +147,7 @@ func inNet(ectx Context, elem, net *zed.Value) *zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	if typ := zed.AliasOf(elem.Type); typ != zed.TypeIP {
+	if typ := zed.TypeUnder(elem.Type); typ != zed.TypeIP {
 		return ectx.CopyValue(*zed.NewErrorf("'in' operator applied to non-container type"))
 	}
 	a, err := zed.DecodeIP(elem.Bytes)
@@ -178,8 +178,8 @@ func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 }
 
 func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
-	keyType := zed.AliasOf(typ.KeyType)
-	valType := zed.AliasOf(typ.ValType)
+	keyType := zed.TypeUnder(typ.KeyType)
+	valType := zed.TypeUnder(typ.ValType)
 	iter := container.Bytes.Iter()
 	for !iter.Done() {
 		zv, _ := iter.Next()

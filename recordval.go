@@ -181,7 +181,7 @@ func (r *Value) AccessString(field string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	switch AliasOf(v.Type).(type) {
+	switch TypeUnder(v.Type).(type) {
 	case *TypeOfString, *TypeOfBstring:
 		return DecodeString(v.Bytes)
 	default:
@@ -194,7 +194,7 @@ func (r *Value) AccessBool(field string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if _, ok := AliasOf(v.Type).(*TypeOfBool); !ok {
+	if _, ok := TypeUnder(v.Type).(*TypeOfBool); !ok {
 		return false, ErrTypeMismatch
 	}
 	return DecodeBool(v.Bytes)
@@ -205,7 +205,7 @@ func (r *Value) AccessInt(field string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	switch AliasOf(v.Type).(type) {
+	switch TypeUnder(v.Type).(type) {
 	case *TypeOfUint8:
 		b, err := DecodeUint(v.Bytes)
 		return int64(b), err
@@ -229,7 +229,7 @@ func (r *Value) AccessIP(field string) (net.IP, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := AliasOf(v.Type).(*TypeOfIP); !ok {
+	if _, ok := TypeUnder(v.Type).(*TypeOfIP); !ok {
 		return nil, ErrTypeMismatch
 	}
 	return DecodeIP(v.Bytes)
@@ -240,7 +240,7 @@ func (r *Value) AccessTime(field string) (nano.Ts, error) {
 	if err != nil {
 		return 0, err
 	}
-	if _, ok := AliasOf(v.Type).(*TypeOfTime); !ok {
+	if _, ok := TypeUnder(v.Type).(*TypeOfTime); !ok {
 		return 0, ErrTypeMismatch
 	}
 	return DecodeTime(v.Bytes)

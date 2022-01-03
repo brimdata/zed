@@ -95,7 +95,7 @@ func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error
 	if err != nil {
 		return nil, err
 	}
-	switch zed.AliasOf(val.Type) {
+	switch zed.TypeUnder(val.Type) {
 	case zed.TypeNet:
 		match, err := expr.Comparison("=", &val)
 		if err != nil {

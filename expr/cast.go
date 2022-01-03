@@ -118,7 +118,7 @@ func castToFloat64(ectx Context, val *zed.Value) *zed.Value {
 }
 
 func castToIP(ectx Context, val *zed.Value) *zed.Value {
-	if _, ok := zed.AliasOf(val.Type).(*zed.TypeOfIP); ok {
+	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeOfIP); ok {
 		return val
 	}
 	if !val.IsStringy() {

@@ -36,7 +36,7 @@ type integer struct {
 }
 
 func nulltype(t zed.Type) bool {
-	return zed.AliasOf(t) == zed.TypeNull
+	return zed.TypeUnder(t) == zed.TypeNull
 }
 
 func (a *anchor) match(cols []zed.Column) bool {

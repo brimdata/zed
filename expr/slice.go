@@ -52,7 +52,7 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if elem.IsError() {
 		return elem
 	}
-	if _, ok := zed.AliasOf(elem.Type).(*zed.TypeArray); !ok {
+	if _, ok := zed.TypeUnder(elem.Type).(*zed.TypeArray); !ok {
 		// XXX use structured error
 		return zed.NewErrorf("sliced value is not an array: %s", zson.MustFormatValue(*elem))
 	}

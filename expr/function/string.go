@@ -155,7 +155,7 @@ type Join struct {
 
 func (j *Join) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zsplits := args[0]
-	typ, ok := zed.AliasOf(zsplits.Type).(*zed.TypeArray)
+	typ, ok := zed.TypeUnder(zsplits.Type).(*zed.TypeArray)
 	if !ok {
 		return newErrorf(ctx, "join: array of string args required")
 	}

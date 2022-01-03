@@ -51,7 +51,7 @@ func buildValue(b *zcode.Builder, val Value) error {
 }
 
 func BuildPrimitive(b *zcode.Builder, val Primitive) error {
-	switch zed.AliasOf(val.Type).(type) {
+	switch zed.TypeUnder(val.Type).(type) {
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
 		v, err := strconv.ParseUint(val.Text, 10, 64)
 		if err != nil {

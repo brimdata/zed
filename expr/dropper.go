@@ -82,7 +82,7 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 			match = true
 			continue
 		}
-		if typ, ok := zed.AliasOf(c.Type).(*zed.TypeRecord); ok {
+		if typ, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
 			if fs, ts, m := complementFields(drops, append(prefix, c.Name), typ); m {
 				fields = append(fields, fs...)
 				types = append(types, ts...)
