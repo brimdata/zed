@@ -67,5 +67,6 @@ func (p *Proc) close(err error) {
 func (p *Proc) Done() {
 	if p.puller != nil {
 		p.close(p.puller.Close())
+		p.puller = nil
 	}
 }

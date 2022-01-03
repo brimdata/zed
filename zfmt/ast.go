@@ -418,6 +418,10 @@ func (c *canon) proc(p ast.Proc) {
 	//	//XXX TBD
 	//	c.open("sql")
 	//	c.close()
+	case *ast.Merge:
+		c.next()
+		c.write("merge ")
+		c.expr(p.Field, false)
 	case *ast.Over:
 		c.next()
 		c.write("over ")

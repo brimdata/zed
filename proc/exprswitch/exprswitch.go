@@ -1,8 +1,6 @@
 package exprswitch
 
 import (
-	"sync"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/proc"
@@ -10,114 +8,76 @@ import (
 )
 
 type ExprSwitch struct {
-	parent    proc.Interface
-	evaluator expr.Evaluator
-
-	cases     map[string]chan<- *zed.Value
-	defaultCh chan<- *zed.Value
-	doneChCh  chan chan<- *zed.Value
-	err       error
-	once      sync.Once
+	*proc.Router
+	expr        expr.Evaluator
+	cases       map[string]*switchCase
+	defaultCase *switchCase
 }
 
-func New(parent proc.Interface, e expr.Evaluator) *ExprSwitch {
-	return &ExprSwitch{
-		parent:    parent,
-		evaluator: e,
-		cases:     make(map[string]chan<- *zed.Value),
-		doneChCh:  make(chan chan<- *zed.Value),
+var _ proc.Selector = (*ExprSwitch)(nil)
+
+type switchCase struct {
+	route proc.Interface
+	vals  []zed.Value
+}
+
+func New(pctx *proc.Context, parent proc.Interface, e expr.Evaluator) *ExprSwitch {
+	router := proc.NewRouter(pctx, parent)
+	s := &ExprSwitch{
+		Router: router,
+		expr:   e,
+		cases:  make(map[string]*switchCase),
 	}
+	router.Link(s)
+	return s
 }
 
-func (s *ExprSwitch) NewProc(val *zed.Value) proc.Interface {
-	ch := make(chan *zed.Value)
+func (s *ExprSwitch) AddCase(val *zed.Value) proc.Interface {
+	route := s.Router.AddRoute()
 	if val == nil {
-		s.defaultCh = ch
+		s.defaultCase = &switchCase{route: route}
 	} else {
-		s.cases[string(val.Bytes)] = ch
+		s.cases[string(val.Bytes)] = &switchCase{route: route}
 	}
-	return &Proc{s, ch}
+	return route
 }
 
-func (s *ExprSwitch) run() {
-	defer func() {
-		for _, ch := range s.cases {
-			close(ch)
+func (s *ExprSwitch) Forward(router *proc.Router, batch zbuf.Batch) error {
+	ectx := batch.Context()
+	vals := batch.Values()
+	for i := range vals {
+		val := s.expr.Eval(ectx, &vals[i])
+		if val.IsMissing() {
+			continue
 		}
-		if s.defaultCh != nil {
-			close(s.defaultCh)
+		which, ok := s.cases[string(val.Bytes)]
+		if !ok {
+			which = s.defaultCase
 		}
-		s.parent.Done()
-	}()
-	for {
-		batch, err := s.parent.Pull()
-		if batch == nil || err != nil {
-			s.err = err
-			return
+		if which == nil {
+			continue
 		}
-		ectx := batch.Context()
-		vals := batch.Values()
-		for i := range vals {
-			val := s.evaluator.Eval(ectx, &vals[i])
-			if val.IsMissing() {
-				continue
-			}
-		again:
-			ch, ok := s.cases[string(val.Bytes)]
-			if !ok {
-				ch = s.defaultCh
-			}
-			if ch == nil {
-				continue
-			}
-			select {
-			case ch <- &vals[i]:
-			case doneCh := <-s.doneChCh:
-				s.handleDoneCh(doneCh)
-				if len(s.cases) == 0 && s.defaultCh == nil {
-					return
-				}
-				goto again
-			}
+		which.vals = append(which.vals, vals[i])
+	}
+	// Send each case that has vals from this batch.
+	// We have vals that point into the current batch so we
+	// ref the batch for each outgoing new batch.
+	for _, c := range s.cases {
+		if len(c.vals) > 0 {
+			// XXX The new slice should come from the
+			// outgoing batch so we don't send these slices
+			// through GC.
+			batch.Ref()
+			out := zbuf.NewArray(c.vals)
+			c.vals = nil
+			router.Send(c.route, out, nil)
 		}
 	}
-}
-
-func (s *ExprSwitch) handleDoneCh(doneCh chan<- *zed.Value) {
-	if s.defaultCh == doneCh {
-		s.defaultCh = nil
-	} else {
-		for k, ch := range s.cases {
-			if ch == doneCh {
-				delete(s.cases, k)
-				break
-			}
-		}
+	if c := s.defaultCase; c != nil && len(c.vals) > 0 {
+		batch.Ref()
+		out := zbuf.NewArray(c.vals)
+		c.vals = nil
+		router.Send(c.route, out, nil)
 	}
-}
-
-type Proc struct {
-	parent *ExprSwitch
-	ch     <-chan *zed.Value
-}
-
-func (p *Proc) Pull() (zbuf.Batch, error) {
-	p.parent.once.Do(func() {
-		go p.parent.run()
-	})
-	if val, ok := <-p.ch; ok {
-		// This should be batchified.  See #3364
-		return zbuf.NewArray([]zed.Value{*val}), nil
-	}
-	return nil, p.parent.err
-}
-
-func (p *Proc) Done() {
-	go func() {
-		for {
-			if _, ok := <-p.ch; !ok {
-				return
-			}
-		}
-	}()
+	return nil
 }

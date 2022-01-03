@@ -8,6 +8,8 @@ import (
 type Proc struct {
 	parent       proc.Interface
 	limit, count int
+	err          error
+	done         bool
 }
 
 func New(parent proc.Interface, limit int) *Proc {
@@ -18,6 +20,15 @@ func New(parent proc.Interface, limit int) *Proc {
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
+	if p.err != nil {
+		return nil, p.err
+	}
+	if p.done {
+		p.done = false
+		p.count = 0
+		return nil, nil
+	}
+again:
 	batch, err := p.parent.Pull()
 	if batch == nil || err != nil {
 		p.count = 0
@@ -26,7 +37,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	remaining := p.limit - p.count
 	if remaining <= 0 {
 		batch.Unref()
-		return nil, nil
+		goto again
 	}
 	vals := batch.Values()
 	if n := len(vals); n < remaining {
@@ -36,13 +47,26 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		return batch, nil
 	}
 	// This batch has more than the needed records.
-	// Signal to the upstream that we're done.  Then
-	// return a batch with only the needed records.
-	p.Done()
+	// Signal to the upstream that we're done then we will resume
+	// pulling until we hit eof.
+	p.parent.Done()
 	p.count = p.limit
 	return zbuf.NewArray(vals[:remaining]), nil
 }
 
 func (p *Proc) Done() {
+	// If we get a done from downstream, pull until EOS then start over.
 	p.parent.Done()
+	for {
+		batch, err := p.parent.Pull()
+		if err != nil {
+			p.err = err
+			return
+		}
+		if batch == nil {
+			p.done = true
+			return
+		}
+		batch.Unref()
+	}
 }
