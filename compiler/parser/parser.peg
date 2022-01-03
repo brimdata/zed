@@ -12,6 +12,7 @@
 #define FOREACH(arr, var) for _, var := range arr
 #define HAS(m, k) _, ok := m[k]; ok
 #define ISNOTNULL(n) n != nil
+#define ISNULL(n) n == nil
 #define MAP(...) map[string]interface{}{__VA_ARGS__}
 #define NULL nil
 #define PREPEND(value, arr) append([]interface{}{value}, (arr.([]interface{}))...)
@@ -34,6 +35,7 @@
 #define FOREACH(arr, var) for(let var of arr)
 #define HAS(m, k) (k in m)
 #define ISNOTNULL(n) (n)
+#define ISNULL(n) (!n)
 #define MAP(...) {__VA_ARGS__}
 #define NULL null
 #define PREPEND(value, arr) [value, ...arr]
@@ -905,7 +907,7 @@ SQLTokenSentinels
 
 Literal
   = TypeLiteral
-  / StringLiteral
+  / TemplateLiteral
   / SubnetLiteral
   / AddressLiteral
   / BytesLiteral
@@ -915,11 +917,6 @@ Literal
   / IntegerLiteral
   / BooleanLiteral
   / NullLiteral
-
-StringLiteral
-  = v:QuotedString {
-      RETURN(MAP("kind": "Primitive", "type": "string", "text": v))
-    }
 
 SubnetLiteral
   = v:IP6Net !IdentifierRest {
@@ -1008,6 +1005,41 @@ ComplexType
   / "|{" __ keyType:Type __ "," __ valType:Type __ "}|" {
       RETURN(MAP("kind":"TypeMap", "key_type":keyType, "val_type": valType))
     }
+
+TemplateLiteral
+  = v:TemplateLiteralParts {
+      if ISNULL(v) {
+        RETURN(MAP("kind": "Primitive", "type": "string", "text": ""))
+      }
+      RETURN(makeTemplateExprChain(v))
+    }
+
+TemplateLiteralParts
+  = '"' v:TemplateDoubleQuotedPart* '"' { RETURN(v) }
+  / "'" v:TemplateSingleQuotedPart* "'" { RETURN(v) }
+
+TemplateDoubleQuotedPart
+  = TemplateExpr
+  / v:TemplateDoubleQuotedChar+ {
+      RETURN(MAP("kind": "Primitive", "type": "string", "text": joinChars(v)))
+    }
+
+TemplateDoubleQuotedChar
+  = "\\" v:"${" { RETURN(v) }
+  / !( "${" ) v:DoubleQuotedChar { RETURN(v) }
+
+TemplateSingleQuotedPart
+  = TemplateExpr
+  / v:TemplateSingleQuotedChar+ {
+      RETURN(MAP("kind": "Primitive", "type": "string", "text": joinChars(v)))
+    }
+
+TemplateSingleQuotedChar
+  = "\\" v:"${" { RETURN(v) }
+  / !( "${" ) v:SingleQuotedChar { RETURN(v) }
+
+TemplateExpr
+  = "${" __ e:Expr __ "}" { RETURN(e) }
 
 PrimitiveType
   = (   "uint8" / "uint16" / "uint32" / "uint64"
@@ -1170,7 +1202,6 @@ ExponentPart = "e"i [+-]? UIntString
 Hex = HexDigit+ { RETURN(TEXT) }
 
 HexDigit = [0-9a-fA-F]
-
 
 QuotedString
   = '"' v:DoubleQuotedChar* '"' { RETURN(joinChars(v)) }
