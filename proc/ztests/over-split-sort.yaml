@@ -1,7 +1,7 @@
 zed: |
   over a | split (
-    => head 1;
-    => yield this+10;
+    => head 1
+    => yield this+10
   ) | sort this
 
 input: |
