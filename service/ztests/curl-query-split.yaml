@@ -4,7 +4,7 @@ script: |
   source service.sh
   zed create -q test
   zed load -q -use test@main -
-  curl --stderr ignore -H "Accept: application/x-zjson" -d '{"query":"from test | split (=>pass;=>pass;)"}' $ZED_LAKE/query\?ctrl=true |
+  curl --stderr ignore -H "Accept: application/x-zjson" -d '{"query":"from test | split (=>pass =>pass)"}' $ZED_LAKE/query\?ctrl=true |
       zq -z "QueryChannelEnd | sort value.channel_id" -
 
 inputs:

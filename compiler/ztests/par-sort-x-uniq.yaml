@@ -4,10 +4,10 @@ outputs:
   - name: stdout
     data: |
       from (
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          sort x;
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          sort x;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          sort x
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          sort x
       )
       | merge x:asc
       | uniq

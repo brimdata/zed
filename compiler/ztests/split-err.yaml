@@ -1,8 +1,8 @@
 script: |
   ! zq '
     split (
-      => pass;
-      => from (file /dev/null => pass;);
+      => pass
+      => from (file /dev/null => pass)
     )
   ' /dev/null
 

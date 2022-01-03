@@ -98,7 +98,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.expr(e.Expr, false)
 		c.open(":%s", e.Type)
 	case *ast.Search:
-		c.write("match(")
+		c.write("search(")
 		c.literal(e.Value)
 		c.write(")")
 	case *ast.SQLExpr:
@@ -220,6 +220,7 @@ func (c *canon) proc(p ast.Proc) {
 		for _, k := range p.Cases {
 			c.ret()
 			if k.Expr != nil {
+				c.write("case ")
 				c.expr(k.Expr, false)
 			} else {
 				c.write("default")
@@ -248,7 +249,6 @@ func (c *canon) proc(p ast.Proc) {
 				c.proc(trunk.Seq)
 				c.close()
 			}
-			c.write(";")
 		}
 		c.close()
 		c.ret()
@@ -445,7 +445,7 @@ func (c *canon) pool(p *ast.Pool) {
 	if p.Spec.Meta != "" {
 		s += ":" + p.Spec.Meta
 	}
-	c.write(s)
+	c.write("pool %s", s)
 }
 
 func (c *canon) http(p *ast.HTTP) {

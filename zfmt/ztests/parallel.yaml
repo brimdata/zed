@@ -1,13 +1,13 @@
 script: |
-  zc -s -C 'file bar | foo | split (=> count() by x:=this["@foo"]; => sum(x); => put a:=b*c;) | cut cake | sort -r x'
+  zc -s -C 'file bar | foo | split (=> count() by x:=this["@foo"] => sum(x) => put a:=b*c) | cut cake | sort -r x'
 
 outputs:
   - name: stdout
     data: |
       from (
-        file bar;
+        file bar
       )
-      | filter match("foo")
+      | filter search("foo")
       | split (
         =>
           summarize

@@ -1,5 +1,8 @@
 zed: |
-  type port=int64; type prec={p: port, q: port}; type parr=[prec]; yield order(<{c: port, b:parr, a:prec}>)
+  type port=int64
+  type prec={p:port,q:port}
+  type parr=[prec]
+  yield order(<{c:port,b:parr,a:prec}>)
 
 input: |
   {a:{q:1(=port),p:2(port)},b:[{q:1,p:2(port)}],c:3(port)}

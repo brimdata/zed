@@ -4,8 +4,8 @@ inputs:
   - name: test.zed
     data: |
       from (
-        file people.ndjson => sort likes;
-        file fruit.ndjson => sort flavor;
+        file people.ndjson => sort likes
+        file fruit.ndjson => sort flavor
       ) | left join on likes=flavor fruit:=name,note:=quiet(note)
   - name: people.ndjson
     data: |

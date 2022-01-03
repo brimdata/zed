@@ -4,7 +4,7 @@ outputs:
   - name: stdout
     data: |
       from (
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       | summarize every 1h sort-dir 1
           count:=count() by ts:=trunc(ts, 1h)

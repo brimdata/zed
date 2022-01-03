@@ -1,5 +1,8 @@
 zed: |
-  type port=int64; type prec={p: port, q: port}; type parr=[prec]; yield fill(<{a:prec, b:parr, c:port}>)
+  type port=int64
+  type prec={p:port,q:port}
+  type parr=[prec]
+  yield fill(<{a:prec,b:parr,c:port}>)
 
 input: |
   {a:{q:1},b:[{p:1}]}

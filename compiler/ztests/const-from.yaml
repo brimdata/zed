@@ -3,10 +3,10 @@ script: zq -z -I src.zed
 inputs:
   - name: src.zed
     data: |
-      const A=1;
+      const A=1
       from (
-        file a.zson => put x:=A+1;
-        file b.zson => put x:=A;
+        file a.zson => put x:=A+1
+        file b.zson => put x:=A
       ) | sort x
 
   - name: a.zson

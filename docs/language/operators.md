@@ -357,8 +357,8 @@ Notice how each input is specified separately within the parentheses-wrapped
 The Zed script `inner-join.zed`:
 ```mdtest-input inner-join.zed
 from (
-  file fruit.ndjson => sort flavor;
-  file people.ndjson => sort likes;
+  file fruit.ndjson => sort flavor
+  file people.ndjson => sort likes
 ) | inner join on flavor=likes eater:=name
 ```
 
@@ -391,8 +391,8 @@ The Zed script `left-join.zed`:
 
 ```mdtest-input left-join.zed
 from (
-  file fruit.ndjson => sort flavor;
-  file people.ndjson => sort likes;
+  file fruit.ndjson => sort flavor
+  file people.ndjson => sort likes
 ) | left join on flavor=likes eater:=name,age
 ```
 
@@ -422,8 +422,8 @@ The Zed script `right-join.zed`:
 
 ```mdtest-input right-join.zed
 from (
-  file fruit.ndjson => sort flavor;
-  file people.ndjson => sort likes;
+  file fruit.ndjson => sort flavor
+  file people.ndjson => sort likes
 ) | right join on flavor=likes fruit:=name
 ```
 
@@ -461,8 +461,8 @@ The Zed script `inner-join-pools.zed`:
 
 ```mdtest-input inner-join-pools.zed
 from (
-  fruit => pass;
-  people => pass;
+  pool fruit
+  pool people
 ) | inner join on flavor=likes eater:=name
 ```
 
@@ -501,8 +501,8 @@ The Zed script `inner-join-streamed.zed`:
 
 ```mdtest-input inner-join-streamed.zed
 switch (
-  has(color) => sort flavor;
-  has(age) => sort likes;
+  case has(color) => sort flavor
+  case has(age) => sort likes
 ) | inner join on flavor=likes eater:=name
 ```
 
@@ -548,8 +548,8 @@ typically [`drop`](#drop) it after the `join` in our Zed pipeline.
 
 ```mdtest-input multi-value-join.zed
 from (
-  file fruit.ndjson => put fruitkey:={name:string(name),color:string(color)} | sort fruitkey;
-  file inventory.ndjson => put invkey:={name:string(name),color:string(color)} | sort invkey;
+  file fruit.ndjson => put fruitkey:={name:string(name),color:string(color)} | sort fruitkey
+  file inventory.ndjson => put invkey:={name:string(name),color:string(color)} | sort invkey
 ) | inner join on fruitkey=invkey quantity
 ```
 
@@ -580,8 +580,8 @@ The Zed script `embed-opposite.zed`:
 
 ```mdtest-input embed-opposite.zed
 from (
-  file fruit.ndjson => sort flavor;
-  file people.ndjson => sort likes;
+  file fruit.ndjson => sort flavor
+  file people.ndjson => sort likes
 ) | inner join on flavor=likes eaterinfo:=this
 ```
 

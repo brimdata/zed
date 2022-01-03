@@ -4,8 +4,8 @@ inputs:
   - name: test.zed
     data: |
       from (
-        file a.zson;
-        file b.zson;
+        file a.zson
+        file b.zson
       ) | left join on a=b vb:=vb
   - name: a.zson
     data: |

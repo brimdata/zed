@@ -1,7 +1,7 @@
 zed: |
   split (
-    => x <= 2 ;
-    => x > 2 ;
+    => x <= 2
+    => x > 2
   ) | merge x
 
 input: |

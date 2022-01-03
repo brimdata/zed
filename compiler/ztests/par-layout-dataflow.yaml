@@ -7,17 +7,17 @@ outputs:
   - name: stdout
     data: |
       from (
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          cut x:=ts,ts:=1;
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          cut x:=ts,ts:=1;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut x:=ts,ts:=1
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut x:=ts,ts:=1
       )
       | merge x:asc
       ===
       from (
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          cut x:=ts,ts:=1;
-        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          cut x:=ts,ts:=1;
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut x:=ts,ts:=1
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut x:=ts,ts:=1
       )
       | merge x:desc

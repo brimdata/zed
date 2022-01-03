@@ -1,9 +1,9 @@
 zed: |
   switch a (
-     2 => put v:='two';
-     1 => put v:='one';
-     3 => filter null;
-     default => count() | put a:=-1;
+     case 2 => put v:='two'
+     case 1 => put v:='one'
+     case 3 => filter null
+     default => count() | put a:=-1
   ) | sort a
 
 input: |
