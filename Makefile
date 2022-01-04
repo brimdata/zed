@@ -6,6 +6,7 @@ ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
+BUILD_COMMANDS = ./cmd/zed ./cmd/zq
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZed/ztests/suite/cut/cut
@@ -83,6 +84,10 @@ build: $(PEG_DEP)
 	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
 
 install:
+	@go install -ldflags='$(LDFLAGS)' $(BUILD_COMMANDS)
+
+.PHONY: installdev
+installdev:
 	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
 create-release-assets:
@@ -91,7 +96,7 @@ create-release-assets:
 		rm -rf dist/$${zeddir} ; \
 		mkdir -p dist/$${zeddir} ; \
 		cp LICENSE.txt acknowledgments.txt dist/$${zeddir} ; \
-		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zeddir} ./cmd/... ; \
+		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zeddir} ./cmd/zed ./cmd/zq ; \
 	done
 	rm -rf dist/release && mkdir -p dist/release
 	cd dist && for d in zed-$(VERSION)* ; do \
