@@ -14,21 +14,24 @@ type Displayer interface {
 }
 
 type Display struct {
-	live     *uilive.Writer
-	interval time.Duration
-	updater  Displayer
-	buffer   *bytes.Buffer
-	close    chan struct{}
-	done     sync.WaitGroup
+	close     chan struct{}
+	closeOnce sync.Once
+	live      *uilive.Writer
+	interval  time.Duration
+	updater   Displayer
+	buffer    *bytes.Buffer
+	done      sync.WaitGroup
 }
 
-func New(updater Displayer, interval time.Duration) *Display {
+func New(updater Displayer, interval time.Duration, out io.Writer) *Display {
+	live := uilive.New()
+	live.Out = out
 	return &Display{
-		live:     uilive.New(),
+		close:    make(chan struct{}),
+		live:     live,
 		interval: interval,
 		updater:  updater,
 		buffer:   bytes.NewBuffer(nil),
-		close:    make(chan struct{}),
 	}
 }
 
@@ -45,7 +48,7 @@ func (d *Display) Run() {
 	d.done.Add(1)
 	for {
 		if !d.update() {
-			close(d.close)
+			d.closeOnce.Do(func() { close(d.close) })
 		}
 		select {
 		case <-d.close:
@@ -61,7 +64,7 @@ func (d *Display) Bypass() io.Writer {
 }
 
 func (d *Display) Close() {
-	close(d.close)
+	d.closeOnce.Do(func() { close(d.close) })
 	d.done.Wait()
 	d.update()
 }
