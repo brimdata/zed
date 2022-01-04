@@ -1,21 +1,18 @@
 script: |
-  zq -z 'split ( => sort a => sort b ) | inner join on a=b hit:=c | sort a' a.zson b.zson
-
+  zq -z 'inner join on a=b' a.zson b.zson
 inputs:
   - name: a.zson
     data: |
       {a:1}(({a:int64},{a:string}))
       {a:2}(({a:int64},{a:string}))
       {a:"bar"}(({a:int64},{a:string}))
-
   - name: b.zson
     data: |
-      {b:1,c:"hit"}
-      {b:"bar",c:"hit"}
-      {b:3,c:"hit"}
-
+      {b:1}
+      {b:3}
+      {b:"bar"}
 outputs:
   - name: stdout
     data: |
-      {a:1,hit:"hit"}
-      {a:"bar",hit:"hit"}
+      {a:1}
+      {a:"bar"}
