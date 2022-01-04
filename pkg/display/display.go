@@ -26,9 +26,7 @@ type Display struct {
 
 func New(updater Displayer, interval time.Duration, out io.Writer) *Display {
 	live := uilive.New()
-	if out != nil {
-		live.Out = out
-	}
+	live.Out = out
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Display{
 		ctx:      ctx,
