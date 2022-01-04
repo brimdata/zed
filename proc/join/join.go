@@ -241,6 +241,8 @@ func (p *Proc) splice(left, right *zed.Value) (*zed.Value, error) {
 		// stream.
 		return left, nil
 	}
+	left = expr.ValueOf(left)
+	right = expr.ValueOf(right)
 	typ, err := p.combinedType(zed.TypeRecordOf(left.Type), zed.TypeRecordOf(right.Type))
 	if err != nil {
 		return nil, err
