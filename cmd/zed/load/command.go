@@ -119,17 +119,15 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) Display(w io.Writer) bool {
-	totalBytes := c.engine.bytesTotal
-	readBytes, totalBytes, completed := c.engine.status()
+	readBytes, completed := c.engine.status()
 	fmt.Fprintf(w, "(%d/%d) ", completed, len(c.engine.readers))
 	rate := c.incrRate(readBytes)
-	if totalBytes == 0 {
+	if totalBytes := c.engine.bytesTotal; totalBytes == 0 {
 		fmt.Fprintf(w, "%s %s/s\n", readBytes.Abbrev(), rate.Abbrev())
 	} else {
 		fmt.Fprintf(w, "%s/%s %s/s %.2f%%\n", readBytes.Abbrev(), totalBytes.Abbrev(), rate.Abbrev(), float64(readBytes)/float64(totalBytes)*100)
 	}
 	return c.ctx.Err() == nil
-
 }
 
 func (c *Command) incrRate(readBytes units.Bytes) units.Bytes {
@@ -160,12 +158,12 @@ func (e *engineWrap) Get(ctx context.Context, u *storage.URI) (storage.Reader, e
 	return counter, nil
 }
 
-func (e *engineWrap) status() (units.Bytes, units.Bytes, int) {
-	var read units.Bytes
+func (e *engineWrap) status() (units.Bytes, int) {
+	var read int64
 	for _, r := range e.readers {
-		read += units.Bytes(r.bytesRead())
+		read += r.bytesRead()
 	}
-	return read, e.bytesTotal, int(atomic.LoadInt32(&e.completed))
+	return units.Bytes(read), int(atomic.LoadInt32(&e.completed))
 }
 
 type byteCounter struct {
