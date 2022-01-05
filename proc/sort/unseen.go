@@ -12,7 +12,7 @@ type unseenFieldTracker struct {
 
 func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
 	unseen := make(map[expr.Evaluator]struct{})
-	// We start out withe unseen map full of all the fields and take
+	// We start with the unseen map full of all the fields and take
 	// them out for each record type we encounter.
 	for _, f := range fields {
 		unseen[f] = struct{}{}
@@ -26,7 +26,7 @@ func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
 func (u *unseenFieldTracker) update(ectx expr.Context, rec *zed.Value) {
 	recType := zed.TypeRecordOf(rec.Type)
 	if len(u.unseenFields) == 0 || u.seenTypes[recType] {
-		// Either have seen this type or nothing to unsee anymore.
+		// We've already seen every field or seen this type.
 		return
 	}
 	u.seenTypes[recType] = true
@@ -39,6 +39,10 @@ func (u *unseenFieldTracker) update(ectx expr.Context, rec *zed.Value) {
 }
 
 func (u *unseenFieldTracker) unseen() []expr.Evaluator {
+	if len(u.seenTypes) == 0 {
+		// We haven't seen any input.
+		return nil
+	}
 	var fields []expr.Evaluator
 	for f := range u.unseenFields {
 		fields = append(fields, f)
