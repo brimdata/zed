@@ -22,24 +22,22 @@ type Proc struct {
 	order      order.Which
 	nullsFirst bool
 
-	fieldResolvers     []expr.Evaluator
-	once               sync.Once
-	resultCh           chan proc.Result
-	compareFn          expr.CompareFn
-	unseenFieldTracker *unseenFieldTracker
-	ectx               expr.Context
-	eof                bool
+	fieldResolvers []expr.Evaluator
+	once           sync.Once
+	resultCh       chan proc.Result
+	compareFn      expr.CompareFn
+	ectx           expr.Context
+	eof            bool
 }
 
 func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
 	return &Proc{
-		pctx:               pctx,
-		parent:             parent,
-		order:              order,
-		nullsFirst:         nullsFirst,
-		fieldResolvers:     fields,
-		resultCh:           make(chan proc.Result),
-		unseenFieldTracker: newUnseenFieldTracker(fields),
+		pctx:           pctx,
+		parent:         parent,
+		order:          order,
+		nullsFirst:     nullsFirst,
+		fieldResolvers: fields,
+		resultCh:       make(chan proc.Result),
 	}, nil
 }
 
@@ -74,9 +72,6 @@ func (p *Proc) run() {
 		}
 		if batch == nil {
 			if eof {
-				if warnings := p.warnings(); warnings != nil {
-					p.sendResult(warnings, nil)
-				}
 				return
 			}
 			eof = true
@@ -165,30 +160,14 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 
 func (p *Proc) append(out []zed.Value, batch zbuf.Batch) ([]zed.Value, int) {
 	var nbytes int
-	ectx := batch.Context()
 	vals := batch.Values()
 	for i := range vals {
 		val := &vals[i]
-		p.unseenFieldTracker.update(ectx, val)
 		nbytes += len(val.Bytes)
 		// We're keeping records owned by batch so don't call Unref.
 		out = append(out, *val)
 	}
 	return out, nbytes
-}
-
-func (p *Proc) warnings() *zbuf.Array {
-	unseen := p.unseenFieldTracker.unseen()
-	vals := make([]zed.Value, 0, len(unseen))
-	for _, f := range unseen {
-		if name, _ := expr.DotExprToString(f); name != "this" {
-			vals = append(vals, *zed.NewErrorf("warning: sort field %q not present in input", name))
-		}
-	}
-	if len(vals) == 0 {
-		return nil
-	}
-	return zbuf.NewArray(vals)
 }
 
 func (p *Proc) setCompareFn(r *zed.Value) {
