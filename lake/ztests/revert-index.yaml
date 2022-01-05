@@ -30,7 +30,6 @@ outputs:
       {name:"IPs",count:1(uint64)}
       {name:"Ys",count:1(uint64)}
       ===
-      "warning: sort field \"name\" not present in input"(error)
       ===
       {name:"IPs",count:1(uint64)}
       {name:"Ys",count:1(uint64)}
