@@ -37,12 +37,7 @@ func (c *LogoutCommand) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("logout command takes no arguments")
 	}
-	creds, err := c.LoadCredentials()
-	if err != nil {
-		return fmt.Errorf("failed to load credentials file: %w", err)
-	}
-	creds.RemoveTokens(c.Lake)
-	if err := c.SaveCredentials(creds); err != nil {
+	if err := c.AuthStore().RemoveTokens(c.Lake); err != nil {
 		return fmt.Errorf("failed to save credentials file: %w", err)
 	}
 	fmt.Printf("Logout successful, cleared credentials for %s\n", c.Lake)

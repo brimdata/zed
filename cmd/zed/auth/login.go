@@ -6,8 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cmd/zed/auth/devauth"
+	"github.com/brimdata/zed/api/client/auth0"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/pkg/browser"
 )
@@ -58,33 +57,24 @@ func (c *LoginCommand) Run(args []string) error {
 	fmt.Println("method", method.Auth0.ClientID)
 	fmt.Println("domain", method.Auth0.Domain)
 	fmt.Println("audience", method.Auth0.Audience)
-	dar, err := devauth.DeviceAuthorizationFlow(ctx, devauth.Config{
-		Audience: method.Auth0.Audience,
-		Domain:   method.Auth0.Domain,
-		ClientID: method.Auth0.ClientID,
-		Scope:    "openid profile email offline_access",
-		UserPrompt: func(res devauth.UserCodePrompt) error {
-			fmt.Println("Complete authentication at:", res.VerificationURL)
-			fmt.Println("User verification code:", res.UserCode)
-			if c.launchBrowser {
-				browser.OpenURL(res.VerificationURL)
-			}
-			return nil
-		},
-	})
+	auth0client, err := auth0.NewClient(*method.Auth0)
 	if err != nil {
 		return err
 	}
-	creds, err := c.LoadCredentials()
+	dcr, err := auth0client.GetDeviceCode(ctx, "openid email profile offline_access")
 	if err != nil {
-		return fmt.Errorf("failed to load credentials file: %w", err)
+		return err
 	}
-	creds.AddTokens(c.Lake, cli.ServiceTokens{
-		Access:  dar.AccessToken,
-		ID:      dar.IDToken,
-		Refresh: dar.RefreshToken,
-	})
-	if err := c.SaveCredentials(creds); err != nil {
+	fmt.Println("Complete authentication at", dcr.VerificationURIComplete)
+	fmt.Println("Verification code:", dcr.UserCode)
+	if c.launchBrowser {
+		browser.OpenURL(dcr.VerificationURIComplete)
+	}
+	tokens, err := auth0client.PollDeviceCodeTokens(ctx, dcr)
+	if err != nil {
+		return err
+	}
+	if err := c.AuthStore().SetTokens(c.Lake, tokens); err != nil {
 		return fmt.Errorf("failed to save credentials file: %w", err)
 	}
 	fmt.Printf("Login successful, stored credentials for %s\n", c.Lake)
