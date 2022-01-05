@@ -23,7 +23,7 @@ func (s Store) Tokens(uri string) (*Tokens, error) {
 	if err != nil || creds == nil {
 		return nil, err
 	}
-	return creds.ServiceTokens(uri), nil
+	return creds.Tokens(uri), nil
 }
 
 func (s Store) SetTokens(uri string, tokens Tokens) error {
@@ -35,11 +35,12 @@ func (s Store) SetTokens(uri string, tokens Tokens) error {
 	return s.save(creds)
 }
 
-func (s Store) RemoveTokens(lake string) error {
+func (s Store) RemoveTokens(uri string) error {
 	creds, err := s.load()
 	if err != nil {
 		return err
 	}
+	creds.RemoveTokens(uri)
 	return s.save(creds)
 }
 
@@ -71,7 +72,7 @@ type Credentials struct {
 	Services []ServiceInfo `json:"services"`
 }
 
-func (c *Credentials) ServiceTokens(uri string) *Tokens {
+func (c *Credentials) Tokens(uri string) *Tokens {
 	for _, s := range c.Services {
 		if s.URL == uri {
 			return &s.Tokens
