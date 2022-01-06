@@ -122,6 +122,7 @@ type pullerReader struct {
 	p     Puller
 	batch Batch
 	idx   int
+	val   zed.Value
 }
 
 func (r *pullerReader) Read() (*zed.Value, error) {
@@ -143,6 +144,9 @@ func (r *pullerReader) Read() (*zed.Value, error) {
 	rec := &vals[r.idx]
 	r.idx++
 	if r.idx == len(vals) {
+		r.val.CopyFrom(rec)
+		rec = &r.val
+		r.batch.Unref()
 		r.batch = nil
 	}
 	return rec, nil
