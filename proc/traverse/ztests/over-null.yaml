@@ -1,0 +1,11 @@
+zed: over this
+
+input: |
+  [null, 0]
+  [null, ""]
+
+output: |
+  null(int64)
+  0
+  null(string)
+  ""
