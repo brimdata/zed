@@ -77,11 +77,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 		}
 		return w.ctx.Err()
 	}
-	// XXX This call leads to a ton of one-off allocations that burden the GC
-	// and slow down import. We should instead copy the raw record bytes into a
-	// recycled buffer and keep around an array of ts + byte-slice structs for
-	// sorting.
-	w.vals = append(w.vals, *rec.Copy())
+	w.append(rec)
 	w.memBuffered += int64(len(rec.Bytes))
 	//XXX change name LogSizeThreshold
 	// XXX the previous logic estimated the object size with divide by 2...?!
@@ -89,6 +85,16 @@ func (w *Writer) Write(rec *zed.Value) error {
 		w.flipBuffers()
 	}
 	return nil
+}
+
+func (w *Writer) append(val *zed.Value) {
+	n := len(w.vals)
+	if n < cap(w.vals) {
+		w.vals = w.vals[:n+1]
+	} else {
+		w.vals = append(w.vals, zed.Value{})
+	}
+	w.vals[n].CopyFrom(val)
 }
 
 func (w *Writer) flipBuffers() {
