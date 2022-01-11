@@ -35,22 +35,36 @@ func (p *Proc) tail() zbuf.Batch {
 	for k := 0; k < p.count; k++ {
 		out[k] = p.q[(start+k)%p.limit]
 	}
-	p.off = 0
-	p.count = 0
 	return zbuf.NewArray(out)
 
 }
 
 func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
-	if p.eos || done {
+	if p.eos {
+		// We don't check done here because if we already got EOS,
+		// we don't propagate done.
 		p.eos = false
 		return nil, nil
 	}
+	if done {
+		p.off = 0
+		p.count = 0
+		p.eos = false
+		return p.parent.Pull(true)
+	}
 	for {
 		batch, err := p.parent.Pull(false)
-		if batch == nil || err != nil {
-			p.eos = true
-			return p.tail(), nil
+		if err != nil {
+			return nil, err
+		}
+		if batch == nil {
+			batch = p.tail()
+			if batch != nil {
+				p.eos = true
+			}
+			p.off = 0
+			p.count = 0
+			return batch, nil
 		}
 		vals := batch.Values()
 		for i := range vals {
