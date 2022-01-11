@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 )
 
 func TestPeeker(t *testing.T) {
@@ -18,7 +18,7 @@ func TestPeeker(t *testing.T) {
 {key:"key5",value:"value5"}
 {key:"key6",value:"value6"}
 `
-	stream := zson.NewReader(strings.NewReader(input), zed.NewContext())
+	stream := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 	peeker := NewPeeker(stream)
 	rec1, err := peeker.Peek()
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,7 +58,7 @@ func TestNDJSONWriter(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
 			w := NewWriter(NopCloser(&out))
-			r := zson.NewReader(strings.NewReader(c.input), zed.NewContext())
+			r := zsonio.NewReader(strings.NewReader(c.input), zed.NewContext())
 			require.NoError(t, zio.Copy(w, r))
 			NDJSONEq(t, c.output, out.String())
 		})

@@ -9,13 +9,13 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/pkg/test"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func mkRecord(t *testing.T, s string) *zed.Value {
-	r := zson.NewReader(strings.NewReader(s), zed.NewContext())
+	r := zsonio.NewReader(strings.NewReader(s), zed.NewContext())
 	rec, err := r.Read()
 	require.NoError(t, err)
 	return rec

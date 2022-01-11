@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,7 +45,7 @@ func babbleReader(t *testing.T) zio.Reader {
 	r, err := os.Open("../../testdata/babble-sorted.zson")
 	require.NoError(t, err)
 	t.Cleanup(func() { r.Close() })
-	return zson.NewReader(r, zed.NewContext())
+	return zsonio.NewReader(r, zed.NewContext())
 }
 
 /* Not yet

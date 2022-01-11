@@ -11,7 +11,7 @@ import (
 	storagemock "github.com/brimdata/zed/pkg/storage/mock"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +33,7 @@ func TestDirS3Source(t *testing.T) {
 	engine.EXPECT().Put(context.Background(), uri.AppendPath("http.zson")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
 
-	r := zson.NewReader(strings.NewReader(input), zed.NewContext())
+	r := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 	require.NoError(t, err)
 	w, err := NewSplit(context.Background(), engine, uri, "", anyio.WriterOpts{Format: "zson"})
 	require.NoError(t, err)

@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +19,7 @@ func TestBuilder(t *testing.T) {
 {a:7,r:{x:3}}
 {a:7,r:null (0=({x:int64}))}
 `
-	r := zson.NewReader(strings.NewReader(input), zed.NewContext())
+	r := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 	r0, err := r.Read()
 	require.NoError(t, err)
 	r1, err := r.Read()

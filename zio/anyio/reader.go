@@ -15,7 +15,7 @@ import (
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 )
 
 type ReaderOpts struct {
@@ -48,9 +48,9 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	}
 	track.Reset()
 
-	zsonErr := match(zson.NewReader(track, zed.NewContext()), "zson")
+	zsonErr := match(zsonio.NewReader(track, zed.NewContext()), "zson")
 	if zsonErr == nil {
-		return zson.NewReader(recorder, zctx), nil
+		return zsonio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 

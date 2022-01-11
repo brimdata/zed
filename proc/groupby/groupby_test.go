@@ -21,7 +21,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -311,7 +310,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		assert.NoError(t, err)
 
 		zctx := zed.NewContext()
-		zr := zson.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
+		zr := zsonio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
 		zw := zsonio.NewWriter(&nopCloser{&outbuf}, zsonio.WriterOpts{})

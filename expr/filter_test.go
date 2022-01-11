@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +48,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	t.Helper()
 
 	zctx := zed.NewContext()
-	batch, err := zbuf.NewPuller(zson.NewReader(strings.NewReader(record), zctx), 2).Pull()
+	batch, err := zbuf.NewPuller(zsonio.NewReader(strings.NewReader(record), zctx), 2).Pull()
 	require.NoError(t, err, "record: %q", record)
 	require.Len(t, batch.Values(), 1, "record: %q", record)
 	rec := &batch.Values()[0]

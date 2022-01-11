@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -74,7 +74,7 @@ func TestRecordTypeCheck(t *testing.T) {
 
 func TestRecordAccessAlias(t *testing.T) {
 	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
-	reader := zson.NewReader(strings.NewReader(input), zed.NewContext())
+	reader := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 	rec, err := reader.Read()
 	require.NoError(t, err)
 	s, err := rec.AccessString("foo")
