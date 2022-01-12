@@ -15,7 +15,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -158,7 +158,7 @@ func build(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, o
 }
 
 func reader(logs string) zio.Reader {
-	return zson.NewReader(strings.NewReader(logs), zed.NewContext())
+	return zsonio.NewReader(strings.NewReader(logs), zed.NewContext())
 }
 
 func newReader(size int) (zio.Reader, error) {

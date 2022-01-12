@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +32,7 @@ func TestCounter(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		for i := 0; i < 22; i++ {
-			stream := zson.NewReader(strings.NewReader(input), zed.NewContext())
+			stream := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 			counter := NewCounter(stream, &count)
 			require.NoError(t, Copy(&sink, counter))
 		}
@@ -40,7 +40,7 @@ func TestCounter(t *testing.T) {
 	}()
 	go func() {
 		for i := 0; i < 17; i++ {
-			stream := zson.NewReader(strings.NewReader(input), zed.NewContext())
+			stream := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 			counter := NewCounter(stream, &count)
 			require.NoError(t, Copy(&sink, counter))
 		}

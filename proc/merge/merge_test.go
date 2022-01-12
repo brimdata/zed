@@ -15,7 +15,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -101,7 +100,7 @@ func TestParallelOrder(t *testing.T) {
 			pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 			var parents []proc.Interface
 			for _, input := range c.inputs {
-				r := zson.NewReader(strings.NewReader(input), zctx)
+				r := zsonio.NewReader(strings.NewReader(input), zctx)
 				parents = append(parents, proc.NopDone(zbuf.NewPuller(r, 10)))
 			}
 			layout := order.NewLayout(c.order, field.DottedList(c.field))

@@ -1,4 +1,4 @@
-package zson_test
+package zsonio_test
 
 import (
 	"io"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +23,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 		// The test needs two records because with a single record the parser
 		// will stall waiting to see if the record has a decorator.
 		reader <- []byte(expected + "\n" + expected)
-		r := zson.NewReader(reader, zed.NewContext())
+		r := zsonio.NewReader(reader, zed.NewContext())
 		rec, err := r.Read()
 		done <- result{zv: rec, err: err}
 	}()

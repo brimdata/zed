@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +29,7 @@ func (o *Output) Close() error {
 // Send logs to ZSON reader -> ZNG writer -> ZNG reader -> ZSON writer.
 func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	zsonSrc := zson.NewReader(bytes.NewReader(in), zed.NewContext())
+	zsonSrc := zsonio.NewReader(bytes.NewReader(in), zed.NewContext())
 	var rawzng Output
 	var zngLZ4BlockSize int
 	if compress {
@@ -50,7 +49,7 @@ func boomerang(t *testing.T, logs string, compress bool) {
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-	zsonSrc := zson.NewReader(strings.NewReader(logs), zed.NewContext())
+	zsonSrc := zsonio.NewReader(strings.NewReader(logs), zed.NewContext())
 	var zjsonOutput Output
 	zjsonDst := zjsonio.NewWriter(&zjsonOutput)
 	err := zio.Copy(zjsonDst, zsonSrc)
@@ -182,7 +181,7 @@ func TestStreams(t *testing.T) {
 {key:1.160.203.191}
 {key:2.12.27.251}
 `
-	r := zson.NewReader(strings.NewReader(in), zed.NewContext())
+	r := zsonio.NewReader(strings.NewReader(in), zed.NewContext())
 	var out Output
 	zw := zngio.NewWriter(&out, zngio.WriterOpts{
 		LZ4BlockSize: zngio.DefaultLZ4BlockSize,

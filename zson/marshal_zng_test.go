@@ -184,7 +184,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	require.Equal(t, expected, toZSON(t, rec))
 
 	zctx := zed.NewContext()
-	rec, err = zson.NewReader(strings.NewReader(expected), zctx).Read()
+	rec, err = zsonio.NewReader(strings.NewReader(expected), zctx).Read()
 	require.NoError(t, err)
 
 	var v2 T1

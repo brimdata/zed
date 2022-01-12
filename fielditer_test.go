@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +15,7 @@ func TestRecordIter(t *testing.T) {
 	// field, record with another record as the last field, non-record
 	// container types inside records...
 	const input = `{r1:{r2:{s:"hello"},a:[1,2,3],r3:{i:1.2.3.4}}}`
-	rec, err := zson.NewReader(strings.NewReader(input), zed.NewContext()).Read()
+	rec, err := zsonio.NewReader(strings.NewReader(input), zed.NewContext()).Read()
 	require.NoError(t, err)
 
 	it := rec.FieldIter()

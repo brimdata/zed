@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio/zsonio"
 )
 
 type Reader struct {
@@ -51,5 +51,5 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := r.encoder.Encode(v); err != nil {
 		return nil, err
 	}
-	return zson.NewReader(r.encoderBuf, r.zctx).Read()
+	return zsonio.NewReader(r.encoderBuf, r.zctx).Read()
 }

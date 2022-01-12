@@ -1,17 +1,18 @@
-package zson
+package zsonio
 
 import (
 	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 type Reader struct {
 	reader   io.Reader
 	zctx     *zed.Context
-	parser   *Parser
-	analyzer Analyzer
+	parser   *zson.Parser
+	analyzer zson.Analyzer
 	builder  *zcode.Builder
 }
 
@@ -19,14 +20,14 @@ func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 	return &Reader{
 		reader:   r,
 		zctx:     zctx,
-		analyzer: NewAnalyzer(),
+		analyzer: zson.NewAnalyzer(),
 		builder:  zcode.NewBuilder(),
 	}
 }
 
 func (r *Reader) Read() (*zed.Value, error) {
 	if r.parser == nil {
-		r.parser = NewParser(r.reader)
+		r.parser = zson.NewParser(r.reader)
 	}
 	ast, err := r.parser.ParseValue()
 	if ast == nil || err != nil {
@@ -36,7 +37,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	zv, err := Build(r.builder, val)
+	zv, err := zson.Build(r.builder, val)
 	if err != nil {
 		return nil, err
 	}
