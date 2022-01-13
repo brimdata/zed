@@ -2,7 +2,7 @@
   "name": "zed",
   "version": "0.33.0-dev",
   "scripts": {
-      "prepare": "node npm/build"
+      "prepack": "node npm/build"
   },
   "files": [
       "dist/**",
