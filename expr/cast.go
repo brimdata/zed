@@ -166,11 +166,11 @@ func castToDuration(ectx Context, val *zed.Value) *zed.Value {
 		d := nano.DurationFromFloat(f)
 		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
-	sec, ok := coerce.ToInt(*val)
+	v, ok := coerce.ToInt(*val)
 	if !ok {
 		return ectx.CopyValue(*zed.NewErrorf("cannot cast %s to type duration", zson.MustFormatValue(*val)))
 	}
-	d := nano.Duration(sec) * nano.Second
+	d := nano.Duration(v)
 	return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 }
 
@@ -200,11 +200,11 @@ func castToTime(ectx Context, val *zed.Value) *zed.Value {
 		ts = nano.Ts(sec * 1e9)
 	case zed.IsInteger(id):
 		//XXX we call coerce here to avoid unsigned/signed decode
-		sec, ok := coerce.ToInt(*val)
+		v, ok := coerce.ToInt(*val)
 		if !ok {
 			panic("coerce int to int failed")
 		}
-		ts = nano.Ts(sec * 1e9)
+		ts = nano.Ts(v)
 	default:
 		return ectx.CopyValue(*zed.NewErrorf("cannot cast %s to type time", zson.MustFormatValue(*val)))
 	}
