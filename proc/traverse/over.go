@@ -31,17 +31,17 @@ func (o *Over) AddScope(ctx context.Context, names []string, exprs []expr.Evalua
 }
 
 func (o *Over) Pull(done bool) (zbuf.Batch, error) {
+	if done {
+		o.outer = nil
+		return o.parent.Pull(true)
+	}
 	if len(o.outer) == 0 {
-		batch, err := o.parent.Pull(done)
+		batch, err := o.parent.Pull(false)
 		if batch == nil || err != nil {
 			return nil, err
 		}
 		o.batch = batch
 		o.outer = batch.Values()
-	}
-	if done {
-		o.outer = nil
-		return nil, nil
 	}
 	this := &o.outer[0]
 	o.outer = o.outer[1:]
@@ -69,7 +69,6 @@ func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 		}
 	}
 	return zbuf.NewBatch(batch, vals)
-
 }
 
 func appendOver(vals []zed.Value, zv zed.Value) []zed.Value {
