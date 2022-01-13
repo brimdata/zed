@@ -1,7 +1,0 @@
-zed: over this => (split (=> head 1))
-
-input: |
-  1
-
-output: |
-  1

@@ -41,6 +41,6 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 			defer batch.Unref()
 			return zbuf.NewBatch(batch, out), nil
 		}
-		defer batch.Unref()
+		batch.Unref()
 	}
 }

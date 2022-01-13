@@ -568,7 +568,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		}
 		scope.Enter()
 		defer scope.Exit()
-		locals, err := semLets(scope, p.Locals)
+		locals, err := semVars(scope, p.Locals)
 		if err != nil {
 			return nil, err
 		}
@@ -628,7 +628,7 @@ func semConsts(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
 	return out, nil
 }
 
-func semLets(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
+func semVars(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
 	var locals []dag.Def
 	for _, def := range defs {
 		e, err := semExpr(scope, def.Expr)
