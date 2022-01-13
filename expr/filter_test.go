@@ -48,7 +48,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	t.Helper()
 
 	zctx := zed.NewContext()
-	batch, err := zbuf.NewPuller(zsonio.NewReader(strings.NewReader(record), zctx), 2).Pull()
+	batch, err := zbuf.NewPuller(zsonio.NewReader(strings.NewReader(record), zctx), 2).Pull(false)
 	require.NoError(t, err, "record: %q", record)
 	require.Len(t, batch.Values(), 1, "record: %q", record)
 	rec := &batch.Values()[0]
