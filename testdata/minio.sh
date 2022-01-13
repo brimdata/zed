@@ -10,11 +10,11 @@ trap "rm -rf $portdir; kill -9 $!" EXIT
 i=0
 until [ -f $portdir/port ]; do
   let i+=1
-  if [ $i -gt 5 ]; then
+  if [ $i -gt 50 ]; then
     echo "timed out waiting for minio to start"
     exit 1
   fi
-  sleep 1
+  sleep 0.1
 done
 
 port=$(cat $portdir/port)
