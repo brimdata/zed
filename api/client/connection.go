@@ -108,12 +108,14 @@ func (c *Connection) Do(req *Request) (*Response, error) {
 		}
 		if res.StatusCode < 200 || res.StatusCode > 299 {
 			err = parseError(res)
-			if i == 0 && res.StatusCode == 401 && err.(*ErrorResponse).Err.Error() == "invalid token" {
-				var access string
-				if access, err = c.refreshAuthToken(req.ctx); err == nil {
-					req.Header.Set("Authorization", "Bearer "+access)
-					continue
+			var reserr *ErrorResponse
+			if i == 0 && res.StatusCode == 401 && errors.As(err, &reserr) && reserr.Err.Error() == "invalid token" {
+				access, err := c.refreshAuthToken(req.ctx)
+				if err != nil {
+					return nil, err
 				}
+				req.Header.Set("Authorization", "Bearer "+access)
+				continue
 			}
 		}
 		return &Response{
