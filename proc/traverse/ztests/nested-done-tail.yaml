@@ -8,7 +8,8 @@ zed: |
       )
       | sort this
       | tail 2
-    ) | sort this
+    )
+    | sort this
   )
 
 input: |

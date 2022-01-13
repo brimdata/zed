@@ -161,13 +161,11 @@ func New(pctx *proc.Context, parent zbuf.Puller, keys []expr.Assignment, aggName
 
 func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	if done {
-		for {
-			select {
-			case p.doneCh <- struct{}{}:
-				return nil, nil
-			case <-p.pctx.Done():
-				return nil, p.pctx.Err()
-			}
+		select {
+		case p.doneCh <- struct{}{}:
+			return nil, nil
+		case <-p.pctx.Done():
+			return nil, p.pctx.Err()
 		}
 	}
 	p.once.Do(func() { go p.run() })
@@ -257,7 +255,7 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) (bool, bool) {
 		}
 		p.reset()
 		b, pullErr := p.parent.Pull(true)
-		if pullErr == nil {
+		if err == nil {
 			err = pullErr
 		}
 		if err != nil {

@@ -70,13 +70,12 @@ func readBatch(zr zio.Reader, n int) (Batch, error) {
 // A Puller produces Batches of records, signaling end-of-stream (EOS) by returning
 // a nil Batch and nil error.  The done argument to Pull indicates that the stream
 // should be terminated before its natural EOS.  An implementation must return
-// EOS in response to a Pull call when the done parameter is true.  After seneind EOS,
+// EOS in response to a Pull call when the done parameter is true.  After seeing EOS,
 // (either via done or its natural end), an implementation of an operator that
-// processes pulled data) should respond to additional calls to Pull as if restarting
+// processes pulled data should respond to additional calls to Pull as if restarting
 // in its initial state.  For original sources of data (e.g., the from operator),
 // once EOS is reached, additional calls to Pull after the first EOS should always
-// return EOS.   Calls to Pull() are presumed to be single threaded
-// and multiple calls to Pull() cannot be issued concurrently.
+// return EOS.  Pull is not safe to call concurrently.
 type Puller interface {
 	Pull(bool) (Batch, error)
 }

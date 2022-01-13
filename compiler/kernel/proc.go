@@ -230,7 +230,6 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 		return b.compileOver(parent, v.Over, names, exprs)
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
-
 	}
 }
 
@@ -240,23 +239,23 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over, names []string
 		return nil, err
 	}
 	enter := traverse.NewOver(b.pctx, parent, exprs)
-	if over.Scope != nil {
-		scope := enter.AddScope(b.pctx.Context, names, lets)
-		exits, err := b.compile(over.Scope, []zbuf.Puller{scope})
-		if err != nil {
-			return nil, err
-		}
-		var exit zbuf.Puller
-		if len(exits) == 1 {
-			exit = exits[0]
-		} else {
-			// This can happen when output of over body
-			// is a split or switch...
-			exit = combine.New(b.pctx, exits)
-		}
-		return scope.NewExit(exit), nil
+	if over.Scope == nil {
+		return enter, nil
 	}
-	return enter, nil
+	scope := enter.AddScope(b.pctx.Context, names, lets)
+	exits, err := b.compile(over.Scope, []zbuf.Puller{scope})
+	if err != nil {
+		return nil, err
+	}
+	var exit zbuf.Puller
+	if len(exits) == 1 {
+		exit = exits[0]
+	} else {
+		// This can happen when output of over body
+		// is a split or switch.
+		exit = combine.New(b.pctx, exits)
+	}
+	return scope.NewExit(exit), nil
 }
 
 func compileAssignments(assignments []dag.Assignment, zctx *zed.Context) ([]expr.Assignment, error) {
@@ -641,12 +640,12 @@ type readerScheduler struct {
 	progress zbuf.Progress
 }
 
-type donePuller struct {
+type donePullerCloser struct {
 	zbuf.PullerCloser
 	sched *readerScheduler
 }
 
-func (d *donePuller) Pull(done bool) (zbuf.Batch, error) {
+func (d *donePullerCloser) Pull(done bool) (zbuf.Batch, error) {
 	if done {
 		d.sched.readers = nil
 		return nil, nil
@@ -672,7 +671,7 @@ func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	if stringer, ok := zr.(fmt.Stringer); ok {
 		s = zbuf.NamedScanner(s, stringer.String())
 	}
-	return &donePuller{zbuf.ScannerNopCloser(s), r}, nil
+	return &donePullerCloser{zbuf.ScannerNopCloser(s), r}, nil
 }
 
 func (r *readerScheduler) Progress() zbuf.Progress {

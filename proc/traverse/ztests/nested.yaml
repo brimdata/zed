@@ -1,9 +1,9 @@
 zed: |
   let TOP=top over outer => (
-      yield {msg:"OUTER", TOP:TOP, inner:inner, b:b}
+    yield {msg:"OUTER", TOP:TOP, inner:inner, b:b}
     | let BOTTOM=b over inner => (
-        yield {top:TOP, bottom:BOTTOM, elem:this}
-      )
+      yield {top:TOP, bottom:BOTTOM, elem:this}
+    )
   )
 
 input: |

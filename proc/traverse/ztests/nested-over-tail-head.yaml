@@ -2,7 +2,7 @@ zed: |
   over this => (
     over this => (
       tail 2 | head 1
-   )
+    )
   )
 
 input: |

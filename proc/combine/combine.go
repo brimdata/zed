@@ -190,7 +190,7 @@ func (p *puller) run() {
 				// thinks we're done, there's nothing to do.
 				// Just continue the loop and reach for the next
 				// platoon.
-				if ok := p.wait(); !ok {
+				if !p.wait() {
 					return
 				}
 				continue
@@ -205,7 +205,7 @@ func (p *puller) run() {
 			// for the propagation to finish across all pullers
 			// so we finish as a group and don't start the next
 			// platoon on our leg before the other legs have finished.
-			if ok := p.wait(); !ok {
+			if !p.wait() {
 				return
 			}
 		case <-p.ctx.Done():

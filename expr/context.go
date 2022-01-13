@@ -10,6 +10,7 @@ import (
 // of Zed values both for let-style temporary variables accessible via
 // the scope and for allocating results.
 type Context interface {
+	// Vars() accesses the variables reachable in the current scope.
 	Vars() []zed.Value
 	//XXX there should be two NewValues: one when bytes is already inside
 	// of the context... another when you need to copy those bytes into

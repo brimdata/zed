@@ -4,7 +4,8 @@ zed: |
       => head 1
       => yield this+10
     )
-  ) | sort this
+  )
+  | sort this
 
 input: |
   {a:[1,3,2]}

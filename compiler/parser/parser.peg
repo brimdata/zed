@@ -549,17 +549,17 @@ MergeProc
 OverProc
   = ScopedOver
   / "over"i _ exprs:Exprs {
-	  RETURN(MAP("kind":"Over", "exprs":exprs, "scope":NULL))
+      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":NULL))
     }
 
 ScopedOver
   = "over"i _ exprs:Exprs __ scope:Scope {
-	  RETURN(MAP("kind":"Over", "exprs":exprs, "scope":scope))
+      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":scope))
     }
 
 LetProc
   = "let"i _ locals:LetAssignments __ over:ScopedOver {
-	  RETURN(MAP("kind":"Let", "locals":locals, "over":over))
+      RETURN(MAP("kind":"Let", "locals":locals, "over":over))
     }
 
 Scope = "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }

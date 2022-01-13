@@ -64,15 +64,9 @@ func (s *Scope) Pull(done bool) (zbuf.Batch, error) {
 func (s *Scope) run() {
 	for {
 		batch, err := s.parent.Pull(false)
-		if err != nil {
+		if batch == nil || err != nil {
 			if ok := s.sendEOS(err); !ok {
 				return
-			}
-		}
-		if batch == nil {
-			if ok := s.sendEOS(nil); !ok {
-				return
-
 			}
 		} else if ok := s.sendBatch(batch); !ok {
 			return

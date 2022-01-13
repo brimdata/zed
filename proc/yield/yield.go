@@ -25,21 +25,22 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 			return nil, err
 		}
 		vals := batch.Values()
-		recs := make([]zed.Value, 0, len(p.exprs)*len(vals))
+		out := make([]zed.Value, 0, len(p.exprs)*len(vals))
 		for i := range vals {
 			for _, e := range p.exprs {
-				out := e.Eval(batch, &vals[i])
-				if out.IsMissing() {
+				val := e.Eval(batch, &vals[i])
+				if val.IsMissing() {
 					continue
 				}
 				// Copy is necessary because argument bytes
 				// can be reused.
-				recs = append(recs, *out.Copy())
+				out = append(out, *val.Copy())
 			}
 		}
-		defer batch.Unref()
-		if len(recs) > 0 {
-			return zbuf.NewBatch(batch, recs), nil
+		if len(out) > 0 {
+			defer batch.Unref()
+			return zbuf.NewBatch(batch, out), nil
 		}
+		defer batch.Unref()
 	}
 }

@@ -8,7 +8,8 @@ zed: |
       )
       | sort this
       | head 1
-    ) | sort this
+    )
+    | sort this
   )
 
 input: |

@@ -43,21 +43,16 @@ func New(pctx *proc.Context, parent zbuf.Puller, fields []expr.Evaluator, order 
 
 func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	p.once.Do(func() { go p.run() })
-	if done {
-		for {
-			r, ok := <-p.resultCh
-			if !ok {
-				return nil, p.pctx.Err()
-			}
-			if r.Batch == nil || r.Err != nil {
-				return nil, r.Err
-			}
+	for {
+		r, ok := <-p.resultCh
+		if !ok {
+			return nil, p.pctx.Err()
 		}
+		if !done || r.Batch == nil || r.Err != nil {
+			return r.Batch, r.Err
+		}
+		r.Batch.Unref()
 	}
-	if r, ok := <-p.resultCh; ok {
-		return r.Batch, r.Err
-	}
-	return nil, p.pctx.Err()
 }
 
 func (p *Proc) run() {
