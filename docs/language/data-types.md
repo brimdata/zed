@@ -45,7 +45,7 @@ zq -z 'every 1d sum(quantity) | sort ts' shipments.ndjson
 
 #### Output:
 ```mdtest-output
-{ts:"trunc: time arg required"(error),sum:9158}
+{ts:"bucket: time arg required"(error),sum:9158}
 ```
 
 However, if we cast the `ts` field to the Zed `time` type, now the

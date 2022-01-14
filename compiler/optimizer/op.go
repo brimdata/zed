@@ -126,7 +126,7 @@ func orderPreservingCall(e dag.Expr, key field.Path) bool {
 		// There are probably other functions we could cover.
 		// It would be good if the function declaration included
 		// the info we need here.  See issue #2660.
-		case "ceil", "floor", "round", "trunc":
+		case "bucket", "ceil", "floor", "round":
 			if len(call.Args) >= 1 && fieldOf(call.Args[0]).Equal(key) {
 				return true
 			}
