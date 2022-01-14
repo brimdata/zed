@@ -50,7 +50,7 @@ func TestClientRedirectReplay(t *testing.T) {
 		body <- string(b)
 	})
 	conn := NewConnectionTo(ts.URL)
-	store := auth0.NewStore(t.TempDir() + "/credentials.json")
+	store := auth0.NewStore(filepath.Join(t.TempDir(), "credentials.json"))
 	store.SetTokens(ts.URL, auth0.Tokens{
 		Access:  "012345",
 		Refresh: "98765",
