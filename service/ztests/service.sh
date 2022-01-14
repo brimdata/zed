@@ -5,12 +5,12 @@ function awaitfile {
   i=0
   until [ -f $file ]; do
     let i+=1
-    if [ $i -gt 5 ]; then
+    if [ $i -gt 50 ]; then
       echo "lake serve log:"
       cat lake.log
       exit 1
     fi
-    sleep 1
+    sleep 0.1
   done
 }
 

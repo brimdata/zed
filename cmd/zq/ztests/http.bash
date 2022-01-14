@@ -8,8 +8,8 @@ i=0
 while :; do
     python3 -c "from urllib.request import *; urlopen('$http_base_url')" &&
         break
-    sleep 0.5
-    if ((i++ >= 10)); then
+    sleep 0.1
+    if ((i++ >= 50)); then
         echo "timed out waiting for HTTP server"
         echo "http.log:"
         cat http.log
