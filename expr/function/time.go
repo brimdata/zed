@@ -14,7 +14,9 @@ func (n *Now) Call(ctx zed.Allocator, _ []zed.Value) *zed.Value {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#bucket
-type Bucket struct{}
+type Bucket struct {
+	name string
+}
 
 func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	tsArg := args[0]
@@ -32,7 +34,7 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	} else {
 		d, ok := coerce.ToInt(binArg)
 		if !ok {
-			return newErrorf(ctx, "bucket: second arg must be duration or number")
+			return newErrorf(ctx, "%s: second arg must be duration or number", b)
 		}
 		bin = nano.Duration(d) * nano.Second
 	}
@@ -45,7 +47,14 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	ts, ok := coerce.ToTime(tsArg)
 	if !ok {
-		return newErrorf(ctx, "bucket: time arg required")
+		return newErrorf(ctx, "%s: time arg required", b)
 	}
 	return newTime(ctx, ts.Trunc(bin))
+}
+
+func (b *Bucket) String() string {
+	if b.name == "" {
+		return "bucket"
+	}
+	return b.name
 }

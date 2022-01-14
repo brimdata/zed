@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/anymath"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zson"
 )
@@ -20,18 +21,21 @@ type Interface interface {
 	Call(zed.Allocator, []zed.Value) *zed.Value
 }
 
-func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
+func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error) {
 	argmin := 1
 	argmax := 1
-	var wantThis bool
+	var path field.Path
 	var f Interface
 	switch name {
 	default:
-		return nil, false, ErrNoSuchFunction
+		return nil, nil, ErrNoSuchFunction
 	case "len":
 		f = &LenFn{}
 	case "abs":
 		f = &Abs{}
+	case "every":
+		path = field.New("ts")
+		f = &Bucket{name: "every"}
 	case "ceil":
 		f = &Ceil{}
 	case "floor":
@@ -95,7 +99,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	case "is":
 		argmin = 1
 		argmax = 2
-		wantThis = true
+		path = field.Path{}
 		f = &Is{zctx: zctx}
 	case "iserr":
 		f = &IsErr{}
@@ -118,12 +122,12 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 		f = &Quiet{}
 	}
 	if argmin != -1 && narg < argmin {
-		return nil, false, ErrTooFewArgs
+		return nil, nil, ErrTooFewArgs
 	}
 	if argmax != -1 && narg > argmax {
-		return nil, false, ErrTooManyArgs
+		return nil, nil, ErrTooManyArgs
 	}
-	return f, wantThis, nil
+	return f, path, nil
 }
 
 // HasBoolResult returns true if the function name returns a Boolean value.

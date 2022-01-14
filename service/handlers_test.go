@@ -62,7 +62,7 @@ func TestQueryGroupByReverse(t *testing.T) {
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	conn.TestLoad(poolID, "main", strings.NewReader(src))
-	require.Equal(t, test.Trim(counts), conn.TestQuery("from test | every 1s count()"))
+	require.Equal(t, test.Trim(counts), conn.TestQuery("from test | count() by every(1s)"))
 }
 
 func TestPoolStats(t *testing.T) {

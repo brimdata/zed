@@ -319,10 +319,6 @@ func (c *canon) proc(p ast.Proc) {
 	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
-		if p.Duration != nil {
-			c.write(" every ")
-			c.literal(*p.Duration)
-		}
 		c.ret()
 		c.open()
 		c.assignments(p.Aggs)

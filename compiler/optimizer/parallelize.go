@@ -90,9 +90,9 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		extend(trunk, egress)
 		seq.Ops[1] = ingress
 		//
-		// Add a merge-by if this a streaming every aggregator.
+		// Add a merge-by if this is a streaming every aggregator.
 		//
-		if ingress.Duration != "" {
+		if canOptimizeEvery(egress) {
 			// We insert a mergeby ts in front of the partialsIn aggregator.
 			// If the inbound layout doesn't match up here then the
 			// every operator won't work right so we flag
@@ -230,6 +230,15 @@ func replicateTrunk(from *dag.From, trunk *dag.Trunk, replicas int) {
 		}
 		from.Trunks = append(from.Trunks, replica)
 	}
+}
+
+func canOptimizeEvery(s *dag.Summarize) bool {
+	for _, assignment := range s.Keys {
+		if call, ok := assignment.RHS.(*dag.Call); ok && call.Name == "every" {
+			return true
+		}
+	}
+	return false
 }
 
 func (o *Optimizer) layoutOfFrom(from *dag.From) (order.Layout, error) {

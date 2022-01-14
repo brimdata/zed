@@ -227,9 +227,6 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Summarize:
 		c.next()
 		c.open("summarize")
-		if p.Duration != "" {
-			c.write(" every %s", p.Duration)
-		}
 		if p.PartialsIn {
 			c.write(" partials-in")
 		}

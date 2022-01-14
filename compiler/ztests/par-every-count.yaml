@@ -1,16 +1,16 @@
-script: zc -C -P 2 "from 'pool-ts' | every 1h count() by y"
+script: zc -C -P 2 "from 'pool-ts' | count() by y, every(1h)"
 
 outputs:
   - name: stdout
     data: |
       from (
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          summarize every 1h partials-out sort-dir 1
-              count:=count() by ts:=bucket(ts, 1h),y:=y
+          summarize partials-out sort-dir 1
+              count:=count() by y:=y,ts:=every(1h)
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
-          summarize every 1h partials-out sort-dir 1
-              count:=count() by ts:=bucket(ts, 1h),y:=y
+          summarize partials-out sort-dir 1
+              count:=count() by y:=y,ts:=every(1h)
       )
       | merge ts:asc
-      | summarize every 1h partials-in sort-dir 1
-          count:=count() by ts:=ts,y:=y
+      | summarize partials-in sort-dir 1
+          count:=count() by y:=y,ts:=ts

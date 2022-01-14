@@ -40,19 +40,19 @@ time-specific operations in Zed, such as this attempt to use
 quantities shipped per day.
 
 ```mdtest-command
-zq -z 'every 1d sum(quantity) | sort ts' shipments.ndjson
+zq -z 'sum(quantity) by every(1d) | sort ts' shipments.ndjson
 ```
 
 #### Output:
 ```mdtest-output
-{ts:"bucket: time arg required"(error),sum:9158}
+{ts:"every: time arg required"(error),sum:9158}
 ```
 
 However, if we cast the `ts` field to the Zed `time` type, now the
 calculation works as expected.
 
 ```mdtest-command
-zq -f table 'ts:=time(ts) | every 1d sum(quantity) | sort ts' shipments.ndjson
+zq -f table 'ts:=time(ts) | sum(quantity) by every(1d) | sort ts' shipments.ndjson
 ```
 
 #### Output:

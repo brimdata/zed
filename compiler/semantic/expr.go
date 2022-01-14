@@ -376,7 +376,13 @@ func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
 			return dag.Assignment{}, fmt.Errorf("lhs of assigment expression: %w", err)
 		}
 	} else if call, ok := a.RHS.(*ast.Call); ok {
-		lhs = &dag.Path{"Path", []string{call.Name}}
+		// If LHS is nil and the call is every() make the LHS field ts since
+		// field ts assumed with every.
+		name := call.Name
+		if name == "every" {
+			name = "ts"
+		}
+		lhs = &dag.Path{"Path", []string{name}}
 	} else if agg, ok := a.RHS.(*ast.Agg); ok {
 		lhs = &dag.Path{"Path", []string{agg.Name}}
 	} else if _, ok := a.RHS.(*ast.This); ok {

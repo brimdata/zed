@@ -95,10 +95,9 @@ func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.Layout) (order.La
 	case *dag.Summarize:
 		//XXX handle only primary key for now
 		key := parent.Primary()
-		if len(op.Keys) > 0 {
-			groupByKey := fieldOf(op.Keys[0].LHS)
-			if groupByKey.Equal(key) {
-				rhsExpr := op.Keys[0].RHS
+		for _, k := range op.Keys {
+			if groupByKey := fieldOf(k.LHS); groupByKey.Equal(key) {
+				rhsExpr := k.RHS
 				rhs := fieldOf(rhsExpr)
 				if rhs.Equal(key) || orderPreservingCall(rhsExpr, groupByKey) {
 					op.InputSortDir = orderAsDirection(parent.Order)

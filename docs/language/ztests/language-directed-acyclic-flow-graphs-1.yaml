@@ -36,7 +36,7 @@ inputs:
   - name: split.zed
     data: |
       from PoolOne | split (
-        => every 5m allfruit:=collect(name),allcolor:=collect(color) | put numfruit:=len(allfruit) | put numcolor:=len(allcolor)
+        => allfruit:=collect(name),allcolor:=collect(color) by every(5m) | put numfruit:=len(allfruit) | put numcolor:=len(allcolor)
         => put color:=to_upper(color) | put namelen:=len(name) | put tag:="mytag"
       ) | sort ts | rename time:=ts
 
