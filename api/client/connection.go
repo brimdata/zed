@@ -76,14 +76,12 @@ func (c *Connection) SetAuthToken(token string) {
 }
 
 func (c *Connection) SetAuthStore(store *auth0.Store) error {
-	if store != nil {
-		c.auth = store
-		tokens, err := c.auth.Tokens(c.hostURL)
-		if err != nil || tokens == nil {
-			return err
-		}
-		c.SetAuthToken(tokens.Access)
+	tokens, err := store.Tokens(c.hostURL)
+	if err != nil || tokens == nil {
+		return err
 	}
+	c.auth = store
+	c.SetAuthToken(tokens.Access)
 	return nil
 }
 

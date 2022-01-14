@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestClientRedirectReplay(t *testing.T) {
 		}{"12345"})
 	})
 	var requests int
-	body := make(chan string, 1)
+	var body string
 	mux.HandleFunc("/pool/", func(w http.ResponseWriter, r *http.Request) {
 		if requests == 0 {
 			requests++
@@ -47,7 +48,7 @@ func TestClientRedirectReplay(t *testing.T) {
 		}
 		b, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		body <- string(b)
+		body = string(b)
 	})
 	conn := NewConnectionTo(ts.URL)
 	store := auth0.NewStore(filepath.Join(t.TempDir(), "credentials.json"))
@@ -58,5 +59,5 @@ func TestClientRedirectReplay(t *testing.T) {
 	conn.SetAuthStore(store)
 	_, err := conn.Load(context.Background(), ksuid.New(), "main", strings.NewReader(expected), api.CommitMessage{})
 	require.NoError(t, err)
-	assert.Equal(t, expected, <-body)
+	assert.Equal(t, expected, body)
 }

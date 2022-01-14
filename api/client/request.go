@@ -53,7 +53,7 @@ func newRequest(ctx context.Context, host string, h http.Header) *Request {
 func (r *Request) HTTPRequest() (*http.Request, error) {
 	r.Header.Set("Content-Type", api.MediaTypeZNG)
 	r.Header.Set("Accept", api.MediaTypeZNG)
-	body, err := r.GetBody()
+	body, err := r.getBody()
 	if err != nil {
 		return nil, err
 	}
@@ -64,47 +64,12 @@ func (r *Request) HTTPRequest() (*http.Request, error) {
 	}
 	// Set GetBody so posted data is preserved on redirects or requests with
 	// expired access tokens.
-	req.GetBody = r.GetBody
+	req.GetBody = r.getBody
 	req.Header = r.Header
 	return req, nil
 }
 
-type recordReader struct {
-	io.Reader
-	buf      *bytes.Buffer
-	limit    int
-	noreplay bool
-}
-
-func (r *recordReader) Read(b []byte) (int, error) {
-	n, err := r.Reader.Read(b)
-	if remaining := r.limit - r.buf.Len(); remaining > 0 {
-		cc := n
-		if n > remaining {
-			cc = remaining
-		}
-		r.buf.Write(b[:cc])
-	} else {
-		// Set noreplay to true so we know that replay has exceeded the buffer
-		// range and therefore the request cannot be replayed.
-		r.noreplay = true
-	}
-	return n, err
-}
-
-type replayReader struct {
-	io.Reader
-	buf *bytes.Reader
-}
-
-func (r *replayReader) Read(b []byte) (int, error) {
-	if r.buf.Len() > 0 {
-		return r.buf.Read(b)
-	}
-	return r.Reader.Read(b)
-}
-
-func (r *Request) GetBody() (io.ReadCloser, error) {
+func (r *Request) getBody() (io.ReadCloser, error) {
 	body, err := r.reader()
 	if err != nil {
 		return nil, err
@@ -112,7 +77,6 @@ func (r *Request) GetBody() (io.ReadCloser, error) {
 	if r.recorder == nil {
 		r.recorder = &recordReader{
 			Reader: body,
-			buf:    new(bytes.Buffer),
 			limit:  1024 * 1024 * 16,
 		}
 		return io.NopCloser(r.recorder), nil
@@ -146,6 +110,41 @@ func (r *Request) reader() (io.Reader, error) {
 		return nil, err
 	}
 	return &buf, nil
+}
+
+type recordReader struct {
+	io.Reader
+	buf      bytes.Buffer
+	limit    int
+	noreplay bool
+}
+
+func (r *recordReader) Read(b []byte) (int, error) {
+	n, err := r.Reader.Read(b)
+	if remaining := r.limit - r.buf.Len(); remaining > 0 {
+		cc := n
+		if n > remaining {
+			cc = remaining
+		}
+		r.buf.Write(b[:cc])
+	} else {
+		// Set noreplay to true so we know that replay has exceeded the buffer
+		// range and therefore the request cannot be replayed.
+		r.noreplay = true
+	}
+	return n, err
+}
+
+type replayReader struct {
+	io.Reader
+	buf *bytes.Reader
+}
+
+func (r *replayReader) Read(b []byte) (int, error) {
+	if r.buf.Len() > 0 {
+		return r.buf.Read(b)
+	}
+	return r.Reader.Read(b)
 }
 
 func (r *Request) Duration() time.Duration {
