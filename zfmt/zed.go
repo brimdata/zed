@@ -12,7 +12,7 @@ type canonZed struct {
 //XXX this needs to change when we use the zson values from the ast
 func (c *canonZed) literal(e astzed.Primitive) {
 	switch e.Type {
-	case "string", "bstring", "error":
+	case "string", "error":
 		c.write("\"%s\"", e.Text)
 	case "regexp":
 		c.write("/%s/", e.Text)

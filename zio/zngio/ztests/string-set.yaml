@@ -1,12 +1,12 @@
 zed: '*'
 
-input: !!binary +BH2AQFmFxgBABgBARgCAwAYBQkIZHVwGAUJBGEEehgFCQRhBHoYChMABGEEeghkdXD/
+input: !!binary +BD2AQFmFxgBABgBARgCAwAYBQkIZHVwGAUJBGEEehgFCQRhBHoYChMABGEEeghkdXD/
 
 output: |
-  {f:null(|[bstring]|)}
-  {f:|[]|(|[bstring]|)}
-  {f:|[null(bstring)]|}
-  {f:|["dup"(bstring)]|}
-  {f:|["a"(bstring),"z"(bstring)]|}
-  {f:|["a"(bstring),"z"(bstring)]|}
-  {f:|[null(bstring),"a"(bstring),"z"(bstring),"dup"(bstring)]|}
+  {f:null(|[string]|)}
+  {f:|[]|(|[string]|)}
+  {f:|[null(string)]|}
+  {f:|["dup"]|}
+  {f:|["a","z"]|}
+  {f:|["a","z"]|}
+  {f:|[null(string),"a","z","dup"]|}

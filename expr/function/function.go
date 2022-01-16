@@ -156,7 +156,7 @@ func (l *LenFn) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfError:
+	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfError:
 		length = len(val.Bytes)
 	default:
 		return zed.NewErrorf("len: bad type: %s", zson.FormatType(typ))

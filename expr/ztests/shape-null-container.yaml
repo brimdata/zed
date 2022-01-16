@@ -3,7 +3,7 @@
 zed: |
   yield shape(<{
     array:[string],
-    record:{c1:int64,c2:bstring,c3:time}
+    record:{c1:int64,c2:string,c3:time}
   }>)
 
 input: |
@@ -14,5 +14,5 @@ output-flags: -pretty=2
 output: |
   {
     array: null ([string]),
-    record: null ({c1:int64,c2:bstring,c3:time})
+    record: null ({c1:int64,c2:string,c3:time})
   }

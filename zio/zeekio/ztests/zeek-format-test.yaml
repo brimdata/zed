@@ -1,0 +1,55 @@
+zed: '*'
+
+input: |
+  {s:"foo"}
+  {s:null(string)}
+  {s:"-"}
+  {s:"--"}
+  {s:"\\"}
+  {s:"\n\t"}
+  {s:"a,b"}
+  {s:"[hello"}
+  {s:"hello["}
+  {s:";"}
+  {s:null(|[string]|)}
+  {s:|[]|(|[string]|)}
+  {s:|["abc","xyz"]|}
+  {s:|["a,b"]|}
+  {s:null([string])}
+  {s:[]([string])}
+  {s:["abc","xyz"]}
+  {s:[""]}
+  {s:["a,b"]}
+
+output-flags: -f zeek
+
+output: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #fields	s
+  #types	string
+  foo
+  -
+  \x2d
+  --
+  \\
+  \x0a\x09
+  a,b
+  [hello
+  hello[
+  ;
+  #fields	s
+  #types	set[string]
+  -
+  (empty)
+  abc,xyz
+  a\x2cb
+  #fields	s
+  #types	vector[string]
+  -
+  (empty)
+  abc,xyz
+  
+  a\x2cb

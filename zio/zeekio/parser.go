@@ -128,7 +128,7 @@ func (p *Parser) parsePrimitiveType(in string) (zed.Type, error) {
 	case "port":
 		return p.zctx.LookupTypeAlias("port", zed.TypeUint16)
 	case "string":
-		return zed.TypeBstring, nil
+		return zed.TypeString, nil
 	case "subnet":
 		return zed.TypeNet, nil
 	case "time":
@@ -147,8 +147,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 		if len(tokens) != 2 {
 			return badfield("separator")
 		}
-		// zed.UnescapeBstring handles \x format escapes
-		p.separator = string(zed.UnescapeBstring([]byte(tokens[1])))
+		p.separator = string(unescapeZeekString([]byte(tokens[1])))
 	case "set_separator":
 		if len(tokens) != 2 {
 			return badfield("set_separator")

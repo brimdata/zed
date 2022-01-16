@@ -742,10 +742,10 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 		}
 		return u.decodeAny(zv, v.Elem())
 	case reflect.String:
-		// XXX We bundle string, bstring, type, error all into string.
+		// XXX We bundle string, type, error all into string.
 		// See issue #1853.
 		switch zed.TypeUnder(zv.Type) {
-		case zed.TypeString, zed.TypeBstring, zed.TypeType, zed.TypeError:
+		case zed.TypeString, zed.TypeType, zed.TypeError:
 		default:
 			return incompatTypeError(zv.Type, v)
 		}
@@ -1096,9 +1096,9 @@ func (u *UnmarshalZNGContext) lookupTypeRecord(typ *zed.TypeRecord) (reflect.Typ
 func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zed.Type) (reflect.Type, error) {
 	var v interface{}
 	switch typ := typ.(type) {
-	// XXX We should have counterparts for bstring, error, and type type.
+	// XXX We should have counterparts error and type type.
 	// See issue #1853.
-	case *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfError, *zed.TypeOfType:
+	case *zed.TypeOfString, *zed.TypeOfError, *zed.TypeOfType:
 		v = ""
 	case *zed.TypeOfBool:
 		v = false

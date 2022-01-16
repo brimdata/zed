@@ -53,15 +53,14 @@ var (
 	TypeFloat32 = &TypeOfFloat32{}
 	TypeFloat64 = &TypeOfFloat64{}
 	// XXX add TypeDecimal
-	TypeBool    = &TypeOfBool{}
-	TypeBytes   = &TypeOfBytes{}
-	TypeString  = &TypeOfString{}
-	TypeBstring = &TypeOfBstring{}
-	TypeIP      = &TypeOfIP{}
-	TypeNet     = &TypeOfNet{}
-	TypeType    = &TypeOfType{}
-	TypeError   = &TypeOfError{}
-	TypeNull    = &TypeOfNull{}
+	TypeBool   = &TypeOfBool{}
+	TypeBytes  = &TypeOfBytes{}
+	TypeString = &TypeOfString{}
+	TypeIP     = &TypeOfIP{}
+	TypeNet    = &TypeOfNet{}
+	TypeType   = &TypeOfType{}
+	TypeError  = &TypeOfError{}
+	TypeNull   = &TypeOfNull{}
 )
 
 const (
@@ -82,7 +81,6 @@ const (
 	IDBool     = 14
 	IDBytes    = 15
 	IDString   = 16
-	IDBstring  = 17
 	IDIP       = 18
 	IDNet      = 19
 	IDType     = 20
@@ -151,7 +149,7 @@ func IsSigned(id int) bool {
 
 // True iff the type id is encoded as a string zcode.Bytes.
 func IsStringy(id int) bool {
-	return id == IDString || id == IDBstring || id == IDError
+	return id == IDString || id == IDError
 }
 
 const (
@@ -209,8 +207,6 @@ func LookupPrimitive(name string) Type {
 		return TypeBytes
 	case "string":
 		return TypeString
-	case "bstring":
-		return TypeBstring
 	case "ip":
 		return TypeIP
 	case "net":
@@ -226,6 +222,10 @@ func LookupPrimitive(name string) Type {
 }
 
 func LookupPrimitiveByID(id int) Type {
+	if id == 17 {
+		// XXX this will be soon removed with Zed formats update
+		panic("bstring type is deprecated")
+	}
 	switch id {
 	case IDBool:
 		return TypeBool
@@ -253,8 +253,6 @@ func LookupPrimitiveByID(id int) Type {
 		return TypeBytes
 	case IDString:
 		return TypeString
-	case IDBstring:
-		return TypeBstring
 	case IDIP:
 		return TypeIP
 	case IDNet:

@@ -19,8 +19,8 @@ count() | sort
 top 1
 top 1 -flush
 foo\tbar
-foo\x11bar
-foo\x11\bar
+foo\\x11bar
+foo\\x11\bar
 *
 *abc*
 field==null

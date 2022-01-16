@@ -3,10 +3,12 @@ package zson
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"regexp"
 	"strings"
 	"unicode"
+	"unicode/utf16"
 	"unicode/utf8"
 
 	"github.com/brimdata/zed"
@@ -258,6 +260,10 @@ func (l *Lexer) skipMultiLine() error {
 
 func (l *Lexer) scanString() (string, error) {
 	var s strings.Builder
+	// We optimistically try to scan the string as a basic ascii string
+	// with standard escapes, \t, \n etc.  If we hit \u or any non-ascii UTF
+	// we read the rest of the string into a bytes buffer and call scanStringBytes()
+	// to finish the job.
 	for {
 		c, err := l.peek()
 		if err != nil {
@@ -265,6 +271,13 @@ func (l *Lexer) scanString() (string, error) {
 		}
 		if c == '"' {
 			return s.String(), nil
+		}
+		if c >= utf8.RuneSelf {
+			bytes, err := l.scanToCloseQuote(nil)
+			if err != nil {
+				return "", err
+			}
+			return parseStringBytes(&s, bytes)
 		}
 		l.skip(1)
 		if c == '\n' {
@@ -278,8 +291,13 @@ func (l *Lexer) scanString() (string, error) {
 				}
 				return "", err
 			}
-			//XXX what about \u{}
 			switch c {
+			case 'u':
+				bytes, err := l.scanToCloseQuote([]byte{'\\', 'u'})
+				if err != nil {
+					return "", err
+				}
+				return parseStringBytes(&s, bytes)
 			case '"', '\\', '/': // nothing
 
 			case 'b':
@@ -300,6 +318,123 @@ func (l *Lexer) scanString() (string, error) {
 	}
 }
 
+// scanToCloseQuote scans the input into the slice appending to the b.
+// It peeks at but does not consume the final end quote character.
+func (l *Lexer) scanToCloseQuote(b []byte) ([]byte, error) {
+	for {
+		c, err := l.peek()
+		if err != nil {
+			return nil, err
+		}
+		if c == '"' {
+			return b, nil
+		}
+		l.skip(1)
+		if c == '\\' {
+			b = append(b, '\\')
+			c, err = l.readByte()
+			if err != nil {
+				return nil, err
+			}
+		}
+		b = append(b, c)
+	}
+}
+
+//XXX inspired by golang package json source
+func parseStringBytes(b *strings.Builder, bytes []byte) (string, error) {
+	k := 0
+	for k < len(bytes) {
+		switch c := bytes[k]; {
+		case c == '\\':
+			k++
+			if k >= len(bytes) {
+				panic("can't happen because string scanner would look for next char")
+			}
+			switch c := bytes[k]; c {
+			default:
+				return "", fmt.Errorf("illegal escape (\\%c) in string", c)
+			case '"', '\\', '/', '\'':
+				b.WriteByte(bytes[k])
+				k++
+			case 'b':
+				b.WriteByte('\b')
+				k++
+			case 'f':
+				b.WriteByte('\f')
+				k++
+			case 'n':
+				b.WriteByte('\n')
+				k++
+			case 'r':
+				b.WriteByte('\r')
+				k++
+			case 't':
+				b.WriteByte('\t')
+				k++
+			case 'u':
+				k++
+				r, err := unhexRune(bytes[k:])
+				if err != nil {
+					return "", err
+				}
+				k += 4
+				if utf16.IsSurrogate(r) {
+					if len(bytes) < 6 || bytes[0] != '\\' || bytes[1] != 'u' {
+						return "", errors.New("illegal surrage utf-16 rune pair")
+					}
+					r2, err := unhexRune(bytes[k+2:])
+					if err != nil {
+						return "", err
+					}
+					k += 6
+					if dec := utf16.DecodeRune(r, r2); dec != unicode.ReplacementChar {
+						// A valid pair; consume.
+						if _, err := b.WriteRune(dec); err != nil {
+							return "", err
+						}
+					}
+					//XXX
+					// Invalid surrogate; fall back to replacement rune.
+					//rr = unicode.ReplacementChar
+				} else if _, err := b.WriteRune(r); err != nil {
+					return "", err
+				}
+			}
+		case c == '"':
+			// This would be a bug as the string scanner should not
+			// allow this to happen.
+			panic("unescaped quote encountered in string")
+		case c < ' ':
+			return "", errors.New("illegal control code in string literal")
+		// ASCII
+		case c < utf8.RuneSelf:
+			b.WriteByte(c)
+			k++
+		// Coerce to well-formed UTF-8.
+		default:
+			r, size := utf8.DecodeRune(bytes[k:])
+			b.WriteRune(r)
+			k += size
+		}
+	}
+	return b.String(), nil
+}
+
+func unhexRune(b []byte) (rune, error) {
+	if len(b) < 4 {
+		return 0, errors.New("short \\u escape at end of string literal")
+	}
+	r0 := rune(zed.Unhex(b[0]))
+	r1 := rune(zed.Unhex(b[1]))
+	r2 := rune(zed.Unhex(b[2]))
+	r3 := rune(zed.Unhex(b[3]))
+	if r0 > 0xf || r1 > 0xf || r2 > 0xf || r3 > 0xf {
+		return 0, errors.New("invalid hex digits in \\u escape in string literal")
+	}
+	return r0<<12 | r1<<8 | r2<<4 | r3, nil
+}
+
 var newline = []byte{'\n'}
 
 func (l *Lexer) scanBacktickString(keepIndentation bool) (string, error) {
@@ -316,6 +451,7 @@ func (l *Lexer) scanBacktickString(keepIndentation bool) (string, error) {
 			b = b[1:]
 		}
 	}
+	//XXX validate UTF-8
 	return string(b), nil
 }
 

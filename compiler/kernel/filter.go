@@ -107,7 +107,7 @@ func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error
 		}
 		return expr.SearchByPredicate(pred), nil
 	case zed.TypeString:
-		term := norm.NFC.Bytes(zed.UnescapeBstring(val.Bytes))
+		term := norm.NFC.Bytes(val.Bytes)
 		return expr.NewSearchString(string(term)), nil
 	}
 	return expr.NewSearch(search.Text, &val)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"net"
+	"unicode/utf8"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
@@ -166,10 +167,30 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 		b.buf = zed.AppendBool(b.buf[:0], v)
 	case zed.IDString:
 		// Zeek's enum type is aliased to string.
+		val = unescapeZeekString(val)
+		if !utf8.Valid(val) {
+			// Zeek has an unusual escaping model for non-valid UTF
+			// strings in their JSON integration: invalid bytes are
+			// formatted as the sequence '\' 'x' h h to indicate
+			// the presence of unexpected, invalid binary data where
+			// a string was expeceted, e.g., in a field of data coming
+			// of the network.  This is a reasonable scheme; however,
+			// they don't also escape the sequence `\` `x` if it
+			// happens to be in the data, so there is no way to distinguish
+			// whether the data was originally in the network or was
+			// escaped.  The proper way to handle all this
+			// would be for Zeek's logging system to identify these
+			// quasi-strings natively (e.g., as a Zed union (string,bytes)),
+			// but the Zeek team didn't seem to accept this as a priority,
+			// so we simply replicate here what Zeek does for JSON.
+			// If there ever is interest, we could create the (strings,bytes)
+			// union here, but given the current code structure, which
+			// assumes a fixed record-type per log type, it is a little
+			// bit involved.  Since the Zeek team doesn't think this is
+			// important, we will let this be.
+			val = escapeZeekHex(val)
+		}
 		b.AppendPrimitive(norm.NFC.Bytes(val))
-		return nil
-	case zed.IDBstring:
-		b.AppendPrimitive(norm.NFC.Bytes(zed.UnescapeBstring(val)))
 		return nil
 	case zed.IDIP:
 		v, err := byteconv.ParseIP(val)

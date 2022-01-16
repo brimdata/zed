@@ -149,7 +149,7 @@ func newColumnDefinition(name string, typ zed.Type) (*parquetschema.ColumnDefini
 	// XXX add TypeDecimal
 	case *zed.TypeOfBool:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BOOLEAN, nil, nil)
-	case *zed.TypeOfBytes, *zed.TypeOfBstring:
+	case *zed.TypeOfBytes:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, nil, nil)
 	case *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfType, *zed.TypeOfError:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedUTF8, logicalString)

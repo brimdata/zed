@@ -1078,7 +1078,6 @@ PrimitiveType
       / "bool" / "string"
       / "duration" / "time"
       / "bytes"
-      / "bstring"
       / "ip" / "net"
       / "type" / "error" / "null" ) {
           RETURN(MAP("kind": "TypePrimitive", "name": TEXT))
@@ -1285,9 +1284,10 @@ SingleQuotedChar
   = !("'" / EscapedChar) . { RETURN(TEXT) }
   / "\\" s:EscapeSequence { RETURN(s) }
 
+//   = "x" HexDigit HexDigit { RETURN("\\" + TEXT) }
+
 EscapeSequence
-  = "x" HexDigit HexDigit { RETURN("\\" + TEXT) }
-  / SingleCharEscape
+  = SingleCharEscape
   / UnicodeEscape
 
 SingleCharEscape

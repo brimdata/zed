@@ -100,15 +100,15 @@ func TestFilters(t *testing.T) {
 	t.Parallel()
 
 	// Test set membership with "in"
-	runCases(t, `{stringset:|["abc" (bstring),"xyz" (bstring)]| (=0)} (=1)`, []testcase{
+	runCases(t, `{stringset:|["abc","xyz"]| (=0)} (=1)`, []testcase{
 		{"'abc' in stringset", true},
 		{"'xyz' in stringset", true},
 		{"'ab'in stringset", false},
 		{"'abcd' in stringset", false},
 	})
 
-	// Test escaped bstrings inside a set
-	runCases(t, `{stringset:|["a;b" (bstring),"xyz" (bstring)]| (=0)} (=1)`, []testcase{
+	// Test escaped strings inside a set
+	runCases(t, `{stringset:|["a;b","xyz"]|}`, []testcase{
 		{"\"a;b\" in stringset", true},
 		{"'a' in stringset", false},
 		{"'b' in stringset", false},
@@ -116,19 +116,11 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test array membership with "in"
-	runCases(t, `{stringvec:["abc" (bstring),"xyz" (bstring)] (=0)} (=1)`, []testcase{
+	runCases(t, `{stringvec:["abc","xyz"]}`, []testcase{
 		{"'abc' in stringvec", true},
 		{"'xyz' in stringvec", true},
 		{"'ab' in stringvec", false},
 		{"'abcd' in stringvec", false},
-	})
-
-	// Test escaped bstrings inside an array
-	runCases(t, `{stringvec:["a;b" (bstring),"xyz" (bstring)] (=0)} (=1)`, []testcase{
-		{"\"a;b\" in stringvec", true},
-		{"'a' in stringvec", false},
-		{"'b' in stringvec", false},
-		{"'xyz' in stringvec", true},
 	})
 
 	// Test membership in set of integers
@@ -195,25 +187,12 @@ func TestFilters(t *testing.T) {
 		{"1", true},
 	})
 
-	// Test escaped chars in a bstring
-	runCases(t, `{s:"begin\x01\x02\xffend" (bstring)} (=0)`, []testcase{
-		{"begin", true},
-		{"s=='begin'", false},
-		{"begin\\x01\\x02\\xffend", true},
-		{"s=='begin\\x01\\x02\\xffend'", true},
-		{"s matches *\\x01\\x02*", true},
-	})
-
 	// Test unicode string comparison.  The following two records
 	// both have the string "Buenos días señor" but one uses
 	// combining characters (e.g., plain n plus combining
 	// tilde) and the other uses composed characters.  Test both
 	// strings against queries written with both formats.
-	runCases(t, `{s:"Buenos di\xcc\x81as sen\xcc\x83or" (bstring)} (=0)`, []testcase{
-		{`s == "Buenos di\u{0301}as sen\u{0303}or"`, true},
-		{`s == "Buenos d\u{ed}as se\u{f1}or"`, true},
-	})
-	runCases(t, `{s:"Buenos d\xc3\xadas se\xc3\xb1or" (bstring)} (=0)`, []testcase{
+	runCases(t, `{s:"Buenos di\u0301as sen\u0303or"}`, []testcase{
 		{`s == "Buenos di\u{0301}as sen\u{0303}or"`, true},
 		{`s == "Buenos d\u{ed}as se\u{f1}or"`, true},
 	})
@@ -225,7 +204,7 @@ func TestFilters(t *testing.T) {
 	// k. The next two records ensure they're handled correctly.
 
 	// Test U+017F LATIN SMALL LETTER LONG S.
-	runCases(t, `{a:"\u{017f}"}`, []testcase{
+	runCases(t, `{a:"\u017f"}`, []testcase{
 		{`a == '\u017F'`, true},
 		{`a == S`, false},
 		{`a == s`, false},
@@ -235,7 +214,7 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test U+212A KELVIN SIGN.
-	runCases(t, `{a:"\u{212a}"}`, []testcase{
+	runCases(t, `{a:"\u212a"}`, []testcase{
 		{`a == '\u212A'`, true},
 		{`a == K`, true}, // True because Unicode NFC replaces U+212A with U+004B.
 		{`a == k`, false},
@@ -376,8 +355,7 @@ func TestFilters(t *testing.T) {
 		{"p == 80", false},
 	})
 
-	// Test coercion from string to bstring
-	runCases(t, `{s:"hello" (bstring)} (=0)`, []testcase{
+	runCases(t, `{s:"hello"} (=0)`, []testcase{
 		{"s == 'hello'", true},
 		{"s != 'hello'", false},
 
@@ -436,8 +414,6 @@ func TestFilters(t *testing.T) {
 
 func TestBadFilter(t *testing.T) {
 	t.Parallel()
-	p, err := compiler.ParseProc(`s matches \xa8*`)
-	require.NoError(t, err)
-	_, err = compiler.New(proc.DefaultContext(), p, mock.NewLake(), nil)
-	assert.Error(t, err, "error parsing regexp: invalid UTF-8: `^\xa8.*$`")
+	_, err := compiler.ParseProc(`s matches \xa8*`)
+	require.Error(t, err)
 }

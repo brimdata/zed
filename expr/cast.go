@@ -49,8 +49,6 @@ func LookupPrimitiveCaster(typ zed.Type) Caster {
 		return castToTime
 	case zed.TypeString:
 		return castToString
-	case zed.TypeBstring:
-		return castToBstring
 	case zed.TypeError:
 		return castToError
 	case zed.TypeBytes:
@@ -212,13 +210,12 @@ func castToTime(ectx Context, val *zed.Value) *zed.Value {
 }
 
 var castToString = castToStringy(zed.TypeString)
-var castToBstring = castToStringy(zed.TypeBstring)
 var castToError = castToStringy(zed.TypeError)
 
 func castToStringy(typ zed.Type) Caster {
 	return func(ectx Context, val *zed.Value) *zed.Value {
 		id := val.Type.ID()
-		if id == zed.IDBytes || id == zed.IDBstring {
+		if id == zed.IDBytes {
 			if !utf8.Valid(val.Bytes) {
 				return ectx.CopyValue(*zed.NewErrorf("non-UTF-8 bytes cannot be cast to type string"))
 			}

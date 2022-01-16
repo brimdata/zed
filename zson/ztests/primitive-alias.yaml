@@ -16,7 +16,6 @@ input: &input |
   false (=mybool)
   0x00 (=mybytes)
   "" (=mystring)
-  "" (mybstring=(bstring))
   0.0.0.0 (=myip)
   0.0.0.0/0 (=mynet)
   "" (myerror=(error))
@@ -37,7 +36,6 @@ input: &input |
     boo: false (=mybool),
     byt: 0x00 (=mybytes),
     str: "" (=mystring),
-    bst: "" (mybstring=(bstring)),
     ip: 0.0.0.0 (=myip),
     net: 0.0.0.0/0 (=mynet),
     typ: ({}) (=mytype),

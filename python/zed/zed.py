@@ -149,7 +149,7 @@ def _decode_value(typ, value):
             return value == 'T'
         if name == 'bytes':
             return binascii.a2b_hex(value[2:])
-        if name in ['string', 'bstring']:
+        if name in ['string']:
             return value
         if name == 'ip':
             return ipaddress.ip_address(value)

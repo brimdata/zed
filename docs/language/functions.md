@@ -59,7 +59,7 @@ used for arguments that accept a range of value types. They are:
 | `<float>` | `float32`, `float64` |
 | `<int>` | `int8`, `int16`, `int32`, `int64`<br />`uint8`, `uint16`, `uint32`, `uint64` |
 | `<number>` | `<int>`, `<float>` |
-| `<stringy>` | `string`, `bstring`, `err` |
+| `<stringy>` | `string`, `err` |
 | `<timey>` | `time`, `<number>` |
 
 ## Bytes
@@ -621,7 +621,7 @@ echo '{ts:2020-05-26T15:27:47Z}' | zq -z 'ts := trunc(ts, 1h)' -
 ### `len`
 
 ```
-len(v (record,array,set,map,bytes,string,bstring,ip,net,error)) -> int64
+len(v (record,array,set,map,bytes,string,ip,net,error)) -> int64
 ```
 
 `len` returns the length of value `v`. Supported types:
@@ -632,7 +632,6 @@ len(v (record,array,set,map,bytes,string,bstring,ip,net,error)) -> int64
 - map
 - bytes
 - string
-- bstring
 - ip
 - net
 - error

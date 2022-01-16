@@ -495,7 +495,7 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 	case zed.IsStringy(id):
 		v1, _ := zed.DecodeString(a.operands.vals.A)
 		v2, _ := zed.DecodeString(a.operands.vals.B)
-		//XXX stringy going away with structure errors and no bstring
+		//XXX stringy going away with structure errors
 		// XXX GC
 		return ectx.NewValue(typ, zed.EncodeString(v1+v2))
 	}

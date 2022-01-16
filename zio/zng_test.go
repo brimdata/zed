@@ -73,9 +73,9 @@ const zson2 = `{foo:{bar:"test"}}`
 
 const zson3 = "{foo:|[null(string)]|}"
 
-const zson4 = `{foo:"-"(bstring)}`
+const zson4 = `{foo:"-"}`
 
-const zson5 = `{foo:"["(bstring),bar:"[-]"(bstring)}`
+const zson5 = `{foo:"[",bar:"[-]"}`
 
 // Make sure we handle null fields and empty sets.
 const zson6 = "{id:{a:null(string),s:|[]|(|[string]|)}}"
