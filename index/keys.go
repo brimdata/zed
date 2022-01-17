@@ -44,7 +44,7 @@ func (k *Keyer) KeyOf(ectx expr.Context, val *zed.Value) (*zed.Value, error) {
 	}
 	if _, ok := k.valid[key.Type]; !ok {
 		for _, col := range recType.Columns {
-			if _, ok := col.Type.(*zed.TypeError); ok {
+			if _, ok := zed.TypeUnder(col.Type).(*zed.TypeError); ok {
 				return nil, fmt.Errorf("no index key field %q present in record: %s", col.Name, zson.MustFormatValue(*val))
 			}
 		}
