@@ -8,13 +8,13 @@ import (
 	"github.com/brimdata/zed"
 )
 
-// ShouldEscape determines if the given code point at the given position
+// shouldEscape determines if the given code point at the given position
 // in a value should be escaped for the given output format.  This function
 // does not account for unprintable characters, its main purpose is to
 // centralize the logic about which characters are syntatically significant
 // in each output format and hence must be escaped.  The inContainer parameter
 // specifies whether this values is inside a set or vector (which is needed
-// to correctly implement  zeek log escaping rules).
+// to correctly implement Zeek log escaping rules).
 func shouldEscape(r rune, inContainer bool) bool {
 	switch r {
 	case '\\', '\t':

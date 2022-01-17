@@ -100,7 +100,7 @@ func TestFilters(t *testing.T) {
 	t.Parallel()
 
 	// Test set membership with "in"
-	runCases(t, `{stringset:|["abc","xyz"]| (=0)} (=1)`, []testcase{
+	runCases(t, `{stringset:|["abc","xyz"]|}`, []testcase{
 		{"'abc' in stringset", true},
 		{"'xyz' in stringset", true},
 		{"'ab'in stringset", false},
@@ -355,7 +355,7 @@ func TestFilters(t *testing.T) {
 		{"p == 80", false},
 	})
 
-	runCases(t, `{s:"hello"} (=0)`, []testcase{
+	runCases(t, `{s:"hello"}`, []testcase{
 		{"s == 'hello'", true},
 		{"s != 'hello'", false},
 

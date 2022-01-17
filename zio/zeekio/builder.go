@@ -174,7 +174,7 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 			// formatted as the sequence '\' 'x' h h to indicate
 			// the presence of unexpected, invalid binary data where
 			// a string was expeceted, e.g., in a field of data coming
-			// of the network.  This is a reasonable scheme; however,
+			// off the network.  This is a reasonable scheme; however,
 			// they don't also escape the sequence `\` `x` if it
 			// happens to be in the data, so there is no way to distinguish
 			// whether the data was originally in the network or was
