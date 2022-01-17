@@ -160,29 +160,29 @@ describes the complete detail from the ZNG stream as human-readable text.
 {
     _path: "conn",
     ts: 2018-03-24T17:15:21.307472Z,
-    uid: "C4NuQHXpLAuXjndmi" (bstring),
+    uid: "C4NuQHXpLAuXjndmi",
     id: {
         orig_h: 10.10.23.2,
         orig_p: 11 (port=(uint16)),
         resp_h: 10.0.0.111,
         resp_p: 0 (port)
-    } (=0),
+    },
     proto: "icmp" (=zenum),
-    service: null (bstring),
+    service: null (string),
     duration: 21m0.819589s,
     orig_bytes: 23184 (uint64),
     resp_bytes: 0 (uint64),
-    conn_state: "OTH" (bstring),
+    conn_state: "OTH",
     local_orig: null (bool),
     local_resp: null (bool),
     missed_bytes: 0 (uint64),
-    history: null (bstring),
+    history: null (string),
     orig_pkts: 828 (uint64),
     orig_ip_bytes: 46368 (uint64),
     resp_pkts: 0 (uint64),
     resp_ip_bytes: 0 (uint64),
-    tunnel_parents: null (1=(|[bstring]|))
-} (=2)
+    tunnel_parents: null (|[string]|)
+}
 ```
 (If you want to learn more about this format, check out the
 [ZSON spec](../data-model/zson.md).)

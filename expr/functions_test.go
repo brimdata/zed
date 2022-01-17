@@ -146,15 +146,12 @@ func TestLen(t *testing.T) {
 	testError(t, `len("foo", "bar")`, function.ErrTooManyArgs, "len() with too many args")
 	testSuccessful(t, "len(5)", record, ZSON(`"len: bad type: int64"(error)`))
 
-	record = `{s:"🍺",bs:"\xf0\x9f\x8d\xba" (bstring),bs2:"\xba\x8d\x9f\xf0" (bstring)} (=0)`
+	record = `{s:"🍺",bs:0xf09f8dba}`
 
 	testSuccessful(t, `len("foo")`, record, zint64(3))
 	testSuccessful(t, `len(s)`, record, zint64(4))
 	testSuccessful(t, `len(bs)`, record, zint64(4))
-	testSuccessful(t, `len(bs2)`, record, zint64(4))
 
 	testSuccessful(t, `rune_len("foo")`, record, zint64(3))
 	testSuccessful(t, `rune_len(s)`, record, zint64(1))
-	testSuccessful(t, `rune_len(bs)`, record, zint64(1))
-	testSuccessful(t, `rune_len(bs2)`, record, zint64(4))
 }

@@ -181,12 +181,10 @@ func (r *Value) AccessString(field string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	switch TypeUnder(v.Type).(type) {
-	case *TypeOfString, *TypeOfBstring:
+	if TypeUnder(v.Type) == TypeString {
 		return DecodeString(v.Bytes)
-	default:
-		return "", ErrTypeMismatch
 	}
+	return "", ErrTypeMismatch
 }
 
 func (r *Value) AccessBool(field string) (bool, error) {

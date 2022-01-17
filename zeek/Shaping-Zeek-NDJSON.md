@@ -93,8 +93,8 @@ specification.
 
 ```
 ...
-type conn={_path:string,ts:time,uid:bstring,id:conn_id,proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:|[bstring]|,_write_ts:time};
-type dce_rpc={_path:string,ts:time,uid:bstring,id:conn_id,rtt:duration,named_pipe:bstring,endpoint:bstring,operation:bstring,_write_ts:time};
+type conn={_path:string,ts:time,uid:string,id:conn_id,proto:zenum,service:string,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:string,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:string,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:|[string]|,_write_ts:time};
+type dce_rpc={_path:string,ts:time,uid:string,id:conn_id,rtt:duration,named_pipe:string,endpoint:string,operation:string,_write_ts:time};
 ...
 ```
 
@@ -108,8 +108,8 @@ The next block of type definitions are exceptions for Zeek v4.1.0 where the
 names of fields for certain log types have changed from prior releases.
 
 ```
-type ssl_4_1_0={_path:string,ts:time,uid:bstring,id:conn_id,version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,ssl_history:bstring,cert_chain_fps:[bstring],client_cert_chain_fps:[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,sni_matches_cert:bool,validation_status:bstring,_write_ts:time};
-type x509_4_1_0={_path:string,ts:time,fingerprint:bstring,certificate:{version:uint64,serial:bstring,subject:bstring,issuer:bstring,not_valid_before:time,not_valid_after:time,key_alg:bstring,sig_alg:bstring,key_type:bstring,key_length:uint64,exponent:bstring,curve:bstring},san:{dns:[bstring],uri:[bstring],email:[bstring],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},host_cert:bool,client_cert:bool,_write_ts:time};
+type ssl_4_1_0={_path:string,ts:time,uid:string,id:conn_id,version:string,cipher:string,curve:string,server_name:string,resumed:bool,last_alert:string,next_protocol:string,established:bool,ssl_history:string,cert_chain_fps:[string],client_cert_chain_fps:[string],subject:string,issuer:string,client_subject:string,client_issuer:string,sni_matches_cert:bool,validation_status:string,_write_ts:time};
+type x509_4_1_0={_path:string,ts:time,fingerprint:string,certificate:{version:uint64,serial:string,subject:string,issuer:string,not_valid_before:time,not_valid_after:time,key_alg:string,sig_alg:string,key_type:string,key_length:uint64,exponent:string,curve:string},san:{dns:[string],uri:[string],email:[string],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},host_cert:bool,client_cert:bool,_write_ts:time};
 ```
 
 ## Mapping From `_path` Values to Types

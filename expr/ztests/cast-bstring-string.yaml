@@ -1,7 +1,0 @@
-zed: 'cut s:=string(b)'
-
-input: |
-  {b:"012"(bstring)}
-
-output: |
-  {s:"012"}

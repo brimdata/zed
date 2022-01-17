@@ -67,8 +67,8 @@ func TestQueryGroupByReverse(t *testing.T) {
 
 func TestPoolStats(t *testing.T) {
 	src := `
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}
-{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"(bstring)}
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"}
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"}
 `
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})

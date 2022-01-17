@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/text/unicode/norm"
 )
 
 func Build(b *zcode.Builder, val Value) (zed.Value, error) {
@@ -129,10 +130,7 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		if !utf8.Valid(body) {
 			return fmt.Errorf("invalid utf8 string: %q", val.Text)
 		}
-		b.AppendPrimitive(body)
-		return nil
-	case *zed.TypeOfBstring:
-		b.AppendPrimitive(unescapeHex([]byte(val.Text)))
+		b.AppendPrimitive(norm.NFC.Bytes(body))
 		return nil
 	case *zed.TypeOfIP:
 		ip := net.ParseIP(val.Text)

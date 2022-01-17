@@ -239,7 +239,7 @@ func (p *Parser) matchString() (string, bool, error) {
 	}
 	s, err := l.scanString()
 	if err != nil {
-		return "", false, p.error("parsing string literal")
+		return "", false, p.errorf("string literal: %s", err)
 	}
 	ok, err = l.match('"')
 	if err != nil {

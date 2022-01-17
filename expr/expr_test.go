@@ -202,7 +202,7 @@ func TestCompareNumbers(t *testing.T) {
 
 		// Test this type against non-numeric types
 		record = fmt.Sprintf(
-			`{x:%s (%s),s:"hello",bs:"world" (bstring),i:10.1.1.1,n:10.1.0.0/16} (=0)`, one, typ)
+			`{x:%s (%s),s:"hello",i:10.1.1.1,n:10.1.0.0/16} (=0)`, one, typ)
 
 		testSuccessful(t, "x == s", record, ZSON("false"))
 		testSuccessful(t, "x != s", record, ZSON("false"))
@@ -210,13 +210,6 @@ func TestCompareNumbers(t *testing.T) {
 		testSuccessful(t, "x <= s", record, ZSON("false"))
 		testSuccessful(t, "x > s", record, ZSON("false"))
 		testSuccessful(t, "x >= s", record, ZSON("false"))
-
-		testSuccessful(t, "x == bs", record, ZSON("false"))
-		testSuccessful(t, "x != bs", record, ZSON("false"))
-		testSuccessful(t, "x < bs", record, ZSON("false"))
-		testSuccessful(t, "x <= bs", record, ZSON("false"))
-		testSuccessful(t, "x > bs", record, ZSON("false"))
-		testSuccessful(t, "x >= bs", record, ZSON("false"))
 
 		testSuccessful(t, "x == i", record, ZSON("false"))
 		testSuccessful(t, "x != i", record, ZSON("false"))
@@ -271,7 +264,6 @@ func TestCompareNonNumbers(t *testing.T) {
 {
     b: true,
     s: "hello",
-    bs: "world" (bstring),
     i: 10.1.1.1,
     p: 443 (port=(uint16)),
     net: 10.1.0.0/16,
@@ -291,12 +283,6 @@ func TestCompareNonNumbers(t *testing.T) {
 	testSuccessful(t, `s != "hello"`, record, zbool(false))
 	testSuccessful(t, `s == "world"`, record, zbool(false))
 	testSuccessful(t, `s != "world"`, record, zbool(true))
-	testSuccessful(t, `bs == "world"`, record, zbool(true))
-	testSuccessful(t, `bs != "world"`, record, zbool(false))
-	testSuccessful(t, `bs == "hello"`, record, zbool(false))
-	testSuccessful(t, `bs != "hello"`, record, zbool(true))
-	testSuccessful(t, "s == bs", record, zbool(false))
-	testSuccessful(t, "s != bs", record, zbool(true))
 
 	// ip
 	testSuccessful(t, "i == 10.1.1.1", record, zbool(true))
@@ -322,7 +308,6 @@ func TestCompareNonNumbers(t *testing.T) {
 	}{
 		{"b", "bool"},
 		{"s", "string"},
-		{"bs", "bstring"},
 		{"i", "ip"},
 		{"p", "port"},
 		{"net", "net"},
@@ -332,7 +317,7 @@ func TestCompareNonNumbers(t *testing.T) {
 
 	for _, t1 := range allTypes {
 		for _, t2 := range allTypes {
-			if t1 == t2 || (t1.typ == "string" && t2.typ == "bstring") || (t1.typ == "bstring" && t2.typ == "string") {
+			if t1 == t2 {
 				continue
 			}
 			for _, op := range allOperators {
@@ -345,7 +330,7 @@ func TestCompareNonNumbers(t *testing.T) {
 	}
 
 	// relative comparisons on strings
-	record = `{s:"abc",bs:"def" (bstring)} (=0)`
+	record = `{s:"abc"}`
 
 	testSuccessful(t, `s < "brim"`, record, zbool(true))
 	testSuccessful(t, `s < "aaa"`, record, zbool(false))
@@ -362,22 +347,6 @@ func TestCompareNonNumbers(t *testing.T) {
 	testSuccessful(t, `s >= "brim"`, record, zbool(false))
 	testSuccessful(t, `s >= "aaa"`, record, zbool(true))
 	testSuccessful(t, `s >= "abc"`, record, zbool(true))
-
-	testSuccessful(t, `bs < "security"`, record, zbool(true))
-	testSuccessful(t, `bs < "aaa"`, record, zbool(false))
-	testSuccessful(t, `bs < "def"`, record, zbool(false))
-
-	testSuccessful(t, `bs > "security"`, record, zbool(false))
-	testSuccessful(t, `bs > "aaa"`, record, zbool(true))
-	testSuccessful(t, `bs > "def"`, record, zbool(false))
-
-	testSuccessful(t, `bs <= "security"`, record, zbool(true))
-	testSuccessful(t, `bs <= "aaa"`, record, zbool(false))
-	testSuccessful(t, `bs <= "def"`, record, zbool(true))
-
-	testSuccessful(t, `bs >= "security"`, record, zbool(false))
-	testSuccessful(t, `bs >= "aaa"`, record, zbool(true))
-	testSuccessful(t, `bs >= "def"`, record, zbool(true))
 }
 
 func TestPattern(t *testing.T) {

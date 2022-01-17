@@ -1,7 +1,7 @@
 /* this is...
       a test */
 {
-    s:"foo" (bstring),
+    s:"foo",
     // implied type arrays!
     a:["1","2","3"],
     host:128.32.1.1/22,

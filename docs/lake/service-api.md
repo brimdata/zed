@@ -101,7 +101,7 @@ POST /pool
 | name | string | body | **Required.** Name of the pool. Must be unique to lake. |
 | layout.order | string | body | Order of value storage in pool. Possible values: desc, asc. Default: asc. |
 | layout.keys | array<string> | body | Primary key(s) of pool. Default: ts. |
-| thresh | int | body | The size in bytes of each seek index. | 
+| thresh | int | body | The size in bytes of each seek index. |
 
 #### Response
 
@@ -300,14 +300,14 @@ curl \
 {
     _path: "http",
     ts: 2018-03-25T01:08:40.752884Z,
-    uid: "Cox5bO350nHiWJ1mzf" (bstring),
+    uid: "Cox5bO350nHiWJ1mzf",
     id: {
         orig_h: 10.47.42.200,
         orig_p: 49967 (port=(uint16)),
         resp_h: 198.189.255.222,
         resp_p: 80 (port)
     } (=0),
-    method: "GET" (bstring),
+    method: "GET",
     host: "gadgets.live.com",
     uri: "/config.xml",
 } (=4)

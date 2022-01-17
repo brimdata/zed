@@ -61,7 +61,7 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 		case zed.TypeNet:
 			return nil, nil
 		case zed.TypeString:
-			pattern := norm.NFC.Bytes(zed.UnescapeBstring(literal.Bytes))
+			pattern := norm.NFC.Bytes(literal.Bytes)
 			left := expr.NewBufferFilterForStringCase(string(pattern))
 			if left == nil {
 				return nil, nil

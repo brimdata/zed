@@ -35,7 +35,7 @@ while non-matching records are dropped.
 
 What it means for a record to "contain a search term" is based on the type of
 the term:
-* For string terms, any string-y field (string, bstring, error) that contains
+* For string terms, any string-y field (string, error) that contains
 the string is matched.
 * For integer terms, any integer field exactly matching the term is matched.
 * For floating point terms, any floating point field exactly matching the term is matched.

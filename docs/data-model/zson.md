@@ -203,21 +203,33 @@ corresponding bytes values.
 #### 2.3.1 Strings
 
 Double-quoted `string` syntax is the same as that of JSON as described
-[RFC 8259](https://tools.ietf.org/html/rfc8259#section-7), specifically:
+in [RFC 8259](https://tools.ietf.org/html/rfc8259#section-7).  Notably,
+the following escape sequences are recognized:
 
-* The sequence `\uhhhh` where each `h` is a hexadecimal digit represents
-  the Unicode code point corresponding to the given
-  4-digit (hexadecimal) number, or:
-* `\u{h*}` where there are from 1 to 6 hexadecimal digits inside the
-  brackets represents the Unicode code point corresponding to the given
-  hexadecimal number.
+| Sequence | Unicode Character      |
+|----------|------------------------|
+| `\"`     | quotation mark  U+0022 |
+| `\\`     | reverse solidus U+005C |
+| `\/`     | solidus         U+002F |
+| `\b`     | backspace       U+0008 |
+| `\f`     | form feed       U+000C |
+| `\n`     | line feed       U+000A |
+| `\r`     | carriage return U+000D |
+| `\t`     | tab             U+0009 |
+| `\uXXXX` |                 U+XXXX |
+
+In `\uXXXX` sequences, each `X` is a hexadecimal digit, and letter
+digits may be uppercase or lowercase.
+
+The behavior of an implementation that encounters an unrecognized escape
+sequence in a `string` type is undefined.
 
 `\u` followed by anything that does not conform to the above syntax
 is not a valid escape sequence.  The behavior of an implementation
 that encounters such invalid sequences in a `string` type is undefined.
 
 These escaping rules apply also to quoted field names in record values and
-record types.
+record types as well as enum symbols.
 
 ### 2.4 Complex Values
 

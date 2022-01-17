@@ -42,7 +42,7 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	// XXX add TypeDecimal
 	case *zed.TypeOfBool:
 		return zed.DecodeBool(zb)
-	case *zed.TypeOfBytes, *zed.TypeOfBstring, *zed.TypeOfString:
+	case *zed.TypeOfBytes, *zed.TypeOfString:
 		return zed.DecodeBytes(zb)
 	case *zed.TypeOfIP:
 		v, err := zed.DecodeIP(zb)

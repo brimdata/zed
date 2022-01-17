@@ -1,9 +1,16 @@
 zed: '*'
 
+# Note the \x syntax is not valid in a ZSON string so there is not a way
+# to get \x Zeek TSV escapes into th TSV output unless we add support
+# for bytes type to zeekio, in which case we can have support functions
+# to parse into and out of \x strings in zeek TSV.  We could also change
+# the ZSON spec to explicitly say \x is allowed and is ignored except for
+# functions that translate such a string to bytes.
+
 input: |
-  {_path:"",foo:"😁"(bstring)}
-  {_path:"magic",foo:"😁"(bstring)}
-  {_path:"",foo:"foo😁bar\x00\x01baz"(bstring)}
+  {_path:"",foo:"😁"}
+  {_path:"magic",foo:"😁"}
+  {_path:"",foo:"foo😁bar\\x00\\x01baz"}
 
 output-flags: -f zeek
 
@@ -18,4 +25,4 @@ output: |
   #path	magic
   😁
   #path	-
-  foo😁bar\x00\x01baz
+  foo😁bar\\x00\\x01baz

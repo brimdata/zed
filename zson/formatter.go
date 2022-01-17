@@ -455,10 +455,9 @@ func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) error {
 }
 
 var colors = map[zed.Type]color.Code{
-	zed.TypeString:  color.Green,
-	zed.TypeBstring: color.Green,
-	zed.TypeError:   color.Red,
-	zed.TypeType:    color.Orange,
+	zed.TypeString: color.Green,
+	zed.TypeError:  color.Red,
+	zed.TypeType:   color.Orange,
 }
 
 func (f *Formatter) startColorPrimitive(typ zed.Type) {

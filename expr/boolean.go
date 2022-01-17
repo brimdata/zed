@@ -240,15 +240,14 @@ var compareString = map[string]func(string, string) bool{
 	"<=": func(a, b string) bool { return a <= b },
 }
 
-func CompareBstring(op string, pattern []byte) (Boolean, error) {
+func CompareString(op string, pattern []byte) (Boolean, error) {
 	compare, ok := compareString[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
 	}
 	s := string(pattern)
 	return func(val *zed.Value) bool {
-		switch val.Type.ID() {
-		case zed.IDBstring, zed.IDString:
+		if val.Type.ID() == zed.IDString {
 			return compare(byteconv.UnsafeString(val.Bytes), s)
 		}
 		return false
@@ -279,7 +278,7 @@ func CompareBytes(op string, pattern []byte) (Boolean, error) {
 }
 
 func CompileRegexp(pattern string) (*regexp.Regexp, error) {
-	re, err := regexp.Compile(string(zed.UnescapeBstring([]byte(pattern))))
+	re, err := regexp.Compile(pattern)
 	if err != nil {
 		if syntaxErr, ok := err.(*syntax.Error); ok {
 			syntaxErr.Expr = pattern
@@ -437,9 +436,9 @@ func Comparison(op string, val *zed.Value) (Boolean, error) {
 			return nil, err
 		}
 		return CompareFloat64(op, v)
-	case *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfType, *zed.TypeOfError:
-		return CompareBstring(op, val.Bytes)
-	case *zed.TypeOfBytes:
+	case *zed.TypeOfString, *zed.TypeOfError:
+		return CompareString(op, val.Bytes)
+	case *zed.TypeOfBytes, *zed.TypeOfType:
 		return CompareBytes(op, val.Bytes)
 	case *zed.TypeOfInt64:
 		v, err := zed.DecodeInt(val.Bytes)
