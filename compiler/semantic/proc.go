@@ -232,7 +232,7 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 // semProc does a semantic analysis on a flowgraph to an
 // intermediate representation that can be compiled into the runtime
 // object.  Currently, it only replaces the group-by duration with
-// a truncation call on the ts and replaces FunctionCall's in proc context
+// a bucket call on the ts and replaces FunctionCall's in proc context
 // with either a group-by or filter-proc based on the function's name.
 func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
 	switch p := p.(type) {
@@ -256,7 +256,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 				},
 				RHS: &dag.Call{
 					Kind: "Call",
-					Name: "trunc",
+					Name: "bucket",
 					Args: []dag.Expr{
 						&dag.Path{
 							Kind: "Path",
@@ -291,7 +291,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		// so this code path isn't hit yet, but it uses this same entry point
 		// and it will soon do other stuff so we need to put in place the
 		// separation... see issue #2163.  Also, we copy Duration even though
-		// above we changed duration to the a trunc(ts) group-by key as the
+		// above we changed duration to the a bucket(ts) group-by key as the
 		// Duration field is used later by the parallelization operator.
 		return &dag.Summarize{
 			Kind:     "Summarize",

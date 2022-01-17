@@ -102,6 +102,10 @@ func writeFixedPoint(b *strings.Builder, ns, scale int64) {
 	}
 }
 
+func (d Duration) Trunc(bin Duration) Duration {
+	return d / bin * bin
+}
+
 func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(Ts(d))
 }

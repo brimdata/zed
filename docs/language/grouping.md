@@ -132,7 +132,7 @@ If a data source includes a field named `ts` of the `time` type, the shorthand
 `every <duration>` can be used before invoking your aggregate function(s) to
 create batches of records that are close together in time. If your data has
 a differently-named field of the `time` type, the same can be achieved with
-a grouping `by <name>:=trunc(<field-name>, <duration>)`.
+a grouping `by <name>:=bucket(<field-name>, <duration>)`.
 
 The `<duration>` may be expressed as a combination of one or more of the
 following units of time. An integer or decimal value must precede the
@@ -191,7 +191,7 @@ which collections of schools opened during each week after the start of year
 2014:
 
 ```mdtest-command dir=testdata/edu
-zq -Z 'OpenDate >= 2014-01-01T00:00:00Z | OpenedThisWeek:=collect(School) by OpenWeek:=trunc(OpenDate, 1w) | sort OpenWeek' schools.zson
+zq -Z 'OpenDate >= 2014-01-01T00:00:00Z | OpenedThisWeek:=collect(School) by OpenWeek:=bucket(OpenDate, 1w) | sort OpenWeek' schools.zson
 ```
 
 #### Output:

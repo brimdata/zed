@@ -6,10 +6,10 @@ outputs:
       from (
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
           summarize every 1h partials-out sort-dir 1
-              count:=count() by ts:=trunc(ts, 1h),y:=y
+              count:=count() by ts:=bucket(ts, 1h),y:=y
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
           summarize every 1h partials-out sort-dir 1
-              count:=count() by ts:=trunc(ts, 1h),y:=y
+              count:=count() by ts:=bucket(ts, 1h),y:=y
       )
       | merge ts:asc
       | summarize every 1h partials-in sort-dir 1

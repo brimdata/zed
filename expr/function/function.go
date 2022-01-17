@@ -77,10 +77,10 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 		argmin = 2
 		argmax = 2
 		f = newSplit(zctx)
-	case "trunc":
+	case "bucket":
 		argmin = 2
 		argmax = 2
-		f = &Trunc{}
+		f = &Bucket{}
 	case "typename":
 		argmax = 2
 		f = &typeName{zctx: zctx}

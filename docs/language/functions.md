@@ -34,7 +34,7 @@
   - [`to_upper`](#to_upper)
   - [`trim`](#trim)
 - [Time](#time)
-  - [`trunc`](#trunc)
+  - [`bucket`](#bucket)
 - [Types](#types)
   - [`is`](#is)
   - [`iserr`](#iserr)
@@ -598,19 +598,19 @@ echo '{}' | zq -z 'yield now()' -
 2021-12-16T23:33:41.680643Z
 ```
 
-### `trunc`
+### `bucket`
 
 ```
-trunc(t <timey>, m (duration,<number>)) -> time
+bucket(t (<timey>,duration), m (duration,<number>)) -> (time,duration)
 ```
 
 <!-- XXX document time coercion rules  and link below-->
 
-`trunc` returns time `t` (or value that can be coerced to time) rounded down to
+`bucket` returns time or duration `t` (or value that can be coerced to time) rounded down to
 the nearest multiple of duration `m`.
 
 ```mdtest-command
-echo '{ts:2020-05-26T15:27:47Z}' | zq -z 'ts := trunc(ts, 1h)' -
+echo '{ts:2020-05-26T15:27:47Z}' | zq -z 'ts := bucket(ts, 1h)' -
 ```
 
 **Output:**
