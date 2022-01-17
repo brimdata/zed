@@ -1284,8 +1284,6 @@ SingleQuotedChar
   = !("'" / EscapedChar) . { RETURN(TEXT) }
   / "\\" s:EscapeSequence { RETURN(s) }
 
-//   = "x" HexDigit HexDigit { RETURN("\\" + TEXT) }
-
 EscapeSequence
   = SingleCharEscape
   / UnicodeEscape
