@@ -53,6 +53,9 @@ func (p *Parser) matchValue() (astzed.Value, error) {
 	if val, err := p.matchPrimitive(); val != nil || err != nil {
 		return p.decorate(val, err)
 	}
+	if val, err := p.matchError(); val != nil || err != nil {
+		return p.decorate(val, err)
+	}
 	// But enum really goes last becase we don't want it to pick up
 	// true, false, or null.
 	if val, err := p.matchEnum(); val != nil || err != nil {
@@ -539,6 +542,10 @@ func (p *Parser) parseEntry() (*astzed.Entry, error) {
 func (p *Parser) matchEnum() (*astzed.Enum, error) {
 	// We only detect identifier-style enum values even though they can
 	// also be strings but we don't know that until the semantic check.
+	l := p.lexer
+	if ok, err := l.match('%'); !ok || err != nil {
+		return nil, noEOF(err)
+	}
 	name, err := p.matchIdentifier()
 	if err != nil || name == "" {
 		return nil, noEOF(err)
@@ -546,6 +553,30 @@ func (p *Parser) matchEnum() (*astzed.Enum, error) {
 	return &astzed.Enum{
 		Kind: "Enum",
 		Name: name,
+	}, nil
+}
+
+func (p *Parser) matchError() (*astzed.Error, error) {
+	// We only detect identifier-style enum values even though they can
+	// also be strings but we don't know that until the semantic check.
+	name, err := p.matchIdentifier()
+	if err != nil || name != "error" {
+		return nil, noEOF(err)
+	}
+	l := p.lexer
+	if ok, err := l.match('('); !ok || err != nil {
+		return nil, noEOF(err)
+	}
+	val, err := p.matchValue()
+	if err != nil {
+		return nil, noEOF(err)
+	}
+	if ok, err := l.match(')'); !ok || err != nil {
+		return nil, noEOF(err)
+	}
+	return &astzed.Error{
+		Kind:  "Error",
+		Value: val,
 	}, nil
 }
 

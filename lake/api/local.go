@@ -140,12 +140,12 @@ func (l *LocalSession) lookupBranch(ctx context.Context, poolID ksuid.KSUID, bra
 	return pool, branch, nil
 }
 
-func (l *LocalSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r zio.Reader, message api.CommitMessage) (ksuid.KSUID, error) {
+func (l *LocalSession) Load(ctx context.Context, ztcx *zed.Context, poolID ksuid.KSUID, branchName string, r zio.Reader, message api.CommitMessage) (ksuid.KSUID, error) {
 	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.Load(ctx, r, message.Author, message.Body, message.Meta)
+	return branch.Load(ctx, ztcx, r, message.Author, message.Body, message.Meta)
 }
 
 func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {

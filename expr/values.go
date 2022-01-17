@@ -93,7 +93,7 @@ func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 				container = zed.IsContainerType(inner)
 			} else {
 				//XXX issue #3363
-				return ectx.CopyValue(*zed.NewErrorf("mixed-type array expressions not yet supported"))
+				return ectx.CopyValue(*a.zctx.NewErrorf("mixed-type array expressions not yet supported"))
 			}
 		}
 		if container {
@@ -145,7 +145,7 @@ func (s *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 				container = zed.IsContainerType(inner)
 			} else {
 				//XXX issue #3363
-				return ectx.CopyValue(*zed.NewErrorf("mixed-type set expressions not yet supported"))
+				return ectx.CopyValue(*s.zctx.NewErrorf("mixed-type set expressions not yet supported"))
 			}
 		}
 		if container {
@@ -204,7 +204,7 @@ func (m *MapExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			containerVal = zed.IsContainerType(valType)
 		} else if keyType != m.typ.KeyType || valType != m.typ.ValType {
 			//XXX issue #3363
-			return ectx.CopyValue(*zed.NewErrorf("mixed-type map expressions not yet supported"))
+			return ectx.CopyValue(*m.zctx.NewErrorf("mixed-type map expressions not yet supported"))
 		}
 		if containerKey {
 			b.AppendContainer(key.Bytes)

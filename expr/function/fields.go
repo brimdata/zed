@@ -36,7 +36,7 @@ func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zvSubject := args[0]
 	typ := isRecordType(zvSubject, f.zctx)
 	if typ == nil {
-		return zed.Missing
+		return f.zctx.Missing()
 	}
 	//XXX should have a way to append into allocator
 	var bytes zcode.Bytes

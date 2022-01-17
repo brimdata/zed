@@ -187,7 +187,7 @@ func (p *Proc) setCompareFn(r *zed.Value) {
 	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
-		resolver := expr.NewDottedExpr(fld)
+		resolver := expr.NewDottedExpr(p.pctx.Zctx, fld)
 		resolvers = []expr.Evaluator{resolver}
 	}
 	nullsMax := !p.nullsFirst

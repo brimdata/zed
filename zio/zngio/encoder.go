@@ -57,6 +57,8 @@ func (e *Encoder) encode(dst []byte, ext zed.Type) ([]byte, zed.Type, error) {
 		return e.encodeTypeEnum(dst, ext)
 	case *zed.TypeAlias:
 		return e.encodeTypeAlias(dst, ext)
+	case *zed.TypeError:
+		return e.encodeTypeError(dst, ext)
 	default:
 		return dst, ext, nil
 	}
@@ -175,5 +177,15 @@ func (e *Encoder) encodeTypeAlias(dst []byte, ext *zed.TypeAlias) ([]byte, zed.T
 	dst = append(dst, zed.TypeDefAlias)
 	dst = zcode.AppendUvarint(dst, uint64(len(typ.Name)))
 	dst = append(dst, typ.Name...)
+	return zcode.AppendUvarint(dst, uint64(zed.TypeID(typ.Type))), typ, nil
+}
+
+func (e *Encoder) encodeTypeError(dst []byte, ext *zed.TypeError) ([]byte, *zed.TypeError, error) {
+	dst, inner, err := e.Encode(dst, ext.Type)
+	if err != nil {
+		return nil, nil, err
+	}
+	typ := e.zctx.LookupTypeError(inner)
+	dst = append(dst, zed.TypeDefError)
 	return zcode.AppendUvarint(dst, uint64(zed.TypeID(typ.Type))), typ, nil
 }

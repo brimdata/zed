@@ -49,6 +49,11 @@ func (e encoder) encodeType(zctx *zed.Context, typ zed.Type) astzed.Type {
 			KeyType: e.encodeType(zctx, typ.KeyType),
 			ValType: e.encodeType(zctx, typ.ValType),
 		}
+	case *zed.TypeError:
+		return &astzed.TypeError{
+			Kind: "error",
+			Type: e.encodeType(zctx, typ.Type),
+		}
 	default:
 		return &astzed.TypePrimitive{
 			Kind: "primitive",
@@ -124,6 +129,12 @@ func (d decoder) decodeType(zctx *zed.Context, typ astzed.Type) (zed.Type, error
 			return t, nil
 		}
 		return zctx.LookupTypeAlias(typ.Name, t)
+	case *astzed.TypeError:
+		t, err := d.decodeType(zctx, typ.Type)
+		if err != nil {
+			return nil, err
+		}
+		return zctx.LookupTypeError(t), nil
 	case *astzed.TypePrimitive:
 		t := zed.LookupPrimitive(typ.Name)
 		if t == nil {

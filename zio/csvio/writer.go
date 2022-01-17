@@ -69,7 +69,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 			switch {
 			case id == zed.IDBytes && len(zb) == 0:
 				// We want "" instead of "0x" from typ.Format.
-			case zed.IsStringy(id):
+			case id == zed.IDString:
 				s = string(zb)
 			default:
 				s = typ.Format(zb)

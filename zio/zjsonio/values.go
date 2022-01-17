@@ -73,7 +73,7 @@ func encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{
 		}
 		return strconv.Itoa(zed.TypeID(typ)), nil
 	}
-	if zed.IsStringy(typ.ID()) {
+	if typ.ID() == zed.IDString {
 		return string(v), nil
 	}
 	return typ.Format(v), nil
@@ -95,6 +95,8 @@ func encodeValue(zctx *zed.Context, typ zed.Type, val zcode.Bytes) (interface{},
 		return encodeContainer(zctx, typ.Type, val)
 	case *zed.TypeMap:
 		return encodeMap(zctx, typ, val)
+	case *zed.TypeError:
+		return encodeValue(zctx, typ.Type, val)
 	default:
 		return encodePrimitive(zctx, typ, val)
 	}
@@ -285,6 +287,8 @@ func decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {
 		b.TransformContainer(zed.NormalizeSet)
 		b.EndContainer()
 		return err
+	case *zed.TypeError:
+		return decodeValue(b, typ.Type, body)
 	default:
 		return decodePrimitive(b, typ, body)
 	}

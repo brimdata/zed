@@ -40,7 +40,7 @@ const groupSingleOut = `
 const groupMissingOut = `
 {key1:"a",count:2(uint64)}
 {key1:"b",count:1(uint64)}
-{key1:"missing"(error),count:2(uint64)}
+{key1:error("missing"),count:2(uint64)}
 `
 
 const groupMultiOut = `

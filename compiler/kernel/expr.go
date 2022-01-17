@@ -58,7 +58,7 @@ func compileExpr(zctx *zed.Context, e dag.Expr) (expr.Evaluator, error) {
 	case *dag.Search:
 		return compileSearch(zctx, e)
 	case *dag.Path:
-		return expr.NewDottedExpr(field.Path(e.Name)), nil
+		return expr.NewDottedExpr(zctx, field.Path(e.Name)), nil
 	case *dag.Dot:
 		return compileDotExpr(zctx, e)
 	case *dag.UnaryExpr:
@@ -125,15 +125,15 @@ func compileBinary(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error)
 	}
 	switch op := e.Op; op {
 	case "and", "or":
-		return compileLogical(lhs, rhs, op)
+		return compileLogical(zctx, lhs, rhs, op)
 	case "in":
-		return expr.NewIn(lhs, rhs), nil
+		return expr.NewIn(zctx, lhs, rhs), nil
 	case "=", "!=":
 		return expr.NewCompareEquality(lhs, rhs, op)
 	case "<", "<=", ">", ">=":
-		return expr.NewCompareRelative(lhs, rhs, op)
+		return expr.NewCompareRelative(zctx, lhs, rhs, op)
 	case "+", "-", "*", "/", "%":
-		return expr.NewArithmetic(lhs, rhs, op)
+		return expr.NewArithmetic(zctx, lhs, rhs, op)
 	case "[":
 		return expr.NewIndexExpr(zctx, lhs, rhs), nil
 	default:
@@ -154,7 +154,7 @@ func compileSlice(zctx *zed.Context, container dag.Expr, slice *dag.BinaryExpr) 
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewSlice(e, from, to), nil
+	return expr.NewSlice(zctx, e, from, to), nil
 }
 
 func compileUnary(zctx *zed.Context, unary dag.UnaryExpr) (expr.Evaluator, error) {
@@ -165,15 +165,15 @@ func compileUnary(zctx *zed.Context, unary dag.UnaryExpr) (expr.Evaluator, error
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewLogicalNot(e), nil
+	return expr.NewLogicalNot(zctx, e), nil
 }
 
-func compileLogical(lhs, rhs expr.Evaluator, operator string) (expr.Evaluator, error) {
+func compileLogical(zctx *zed.Context, lhs, rhs expr.Evaluator, operator string) (expr.Evaluator, error) {
 	switch operator {
 	case "and":
-		return expr.NewLogicalAnd(lhs, rhs), nil
+		return expr.NewLogicalAnd(zctx, lhs, rhs), nil
 	case "or":
-		return expr.NewLogicalOr(lhs, rhs), nil
+		return expr.NewLogicalOr(zctx, lhs, rhs), nil
 	default:
 		return nil, fmt.Errorf("unknown logical operator: %s", operator)
 	}
@@ -192,7 +192,7 @@ func compileConditional(zctx *zed.Context, node dag.Conditional) (expr.Evaluator
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewConditional(predicate, thenExpr, elseExpr), nil
+	return expr.NewConditional(zctx, predicate, thenExpr, elseExpr), nil
 }
 
 func compileDotExpr(zctx *zed.Context, dot *dag.Dot) (expr.Evaluator, error) {
@@ -200,7 +200,7 @@ func compileDotExpr(zctx *zed.Context, dot *dag.Dot) (expr.Evaluator, error) {
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewDotExpr(record, dot.RHS), nil
+	return expr.NewDotExpr(zctx, record, dot.RHS), nil
 }
 
 func compileCast(zctx *zed.Context, node dag.Cast) (expr.Evaluator, error) {
@@ -213,7 +213,7 @@ func compileCast(zctx *zed.Context, node dag.Cast) (expr.Evaluator, error) {
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewCast(e, typ)
+	return expr.NewCast(zctx, e, typ)
 }
 
 func compileLval(e dag.Expr) (field.Path, error) {
@@ -235,7 +235,7 @@ func CompileAssignment(zctx *zed.Context, node *dag.Assignment) (expr.Assignment
 	return expr.Assignment{lhs, rhs}, err
 }
 
-func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Evaluator) {
+func CompileAssignments(zctx *zed.Context, dsts field.List, srcs field.List) (field.List, []expr.Evaluator) {
 	if len(srcs) != len(dsts) {
 		panic("CompileAssignments: argument mismatch")
 	}
@@ -243,7 +243,7 @@ func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Ev
 	var fields field.List
 	for k, dst := range dsts {
 		fields = append(fields, dst)
-		resolvers = append(resolvers, expr.NewDottedExpr(srcs[k]))
+		resolvers = append(resolvers, expr.NewDottedExpr(zctx, srcs[k]))
 	}
 	return fields, resolvers
 }

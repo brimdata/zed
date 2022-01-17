@@ -6,6 +6,6 @@ input: |
   {bar:"bar3"}
 
 output: |
-  {foo:"missing"(error)}
-  {foo:"missing"(error)}
-  {foo:"missing"(error)}
+  {foo:error("missing")}
+  {foo:error("missing")}
+  {foo:error("missing")}

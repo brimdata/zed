@@ -320,7 +320,7 @@ func (p *Proc) put(ectx expr.Context, this *zed.Value) *zed.Value {
 			// propagate errors
 			return this
 		}
-		return ectx.CopyValue(*zed.NewErrorf("put: not a record: %s", zson.MustFormatValue(*this)))
+		return ectx.CopyValue(*p.pctx.Zctx.NewErrorf("put: not a record: %s", zson.MustFormatValue(*this)))
 	}
 	vals := p.eval(ectx, this)
 	rule := p.lookupRule(recType, vals)
@@ -343,6 +343,6 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 		// Copy is necessary because put can return its argument.
 		recs = append(recs, *rec.Copy())
 	}
-	defer batch.Unref()
-	return zbuf.NewBatch(batch, recs), nil
+	batch.Unref()
+	return zbuf.NewArray(recs), nil
 }

@@ -1,6 +1,7 @@
 package zson
 
 import (
+	"errors"
 	"unicode"
 
 	"github.com/brimdata/zed"
@@ -29,9 +30,6 @@ func (p *Parser) matchType() (astzed.Type, error) {
 		return typ, err
 	}
 	if typ, err := p.matchTypeUnion(); typ != nil || err != nil {
-		return typ, err
-	}
-	if typ, err := p.matchTypeEnum(); typ != nil || err != nil {
 		return typ, err
 	}
 	// no match
@@ -65,6 +63,12 @@ func (p *Parser) matchTypeName() (astzed.Type, error) {
 	name, err := l.scanTypeName()
 	if err != nil {
 		return nil, err
+	}
+	if name == "error" {
+		return p.matchTypeErrorBody()
+	}
+	if name == "enum" {
+		return p.matchTypeEnumBody()
 	}
 	if t := zed.LookupPrimitive(name); t != nil {
 		return &astzed.TypePrimitive{"TypePrimitive", name}, nil
@@ -294,7 +298,7 @@ func (p *Parser) matchTypeUnion() (*astzed.TypeUnion, error) {
 	}, nil
 }
 
-func (p *Parser) matchTypeEnum() (*astzed.TypeEnum, error) {
+func (p *Parser) matchTypeEnumBody() (*astzed.TypeEnum, error) {
 	l := p.lexer
 	if ok, err := l.match('<'); !ok || err != nil {
 		return nil, err
@@ -337,4 +341,26 @@ func (p *Parser) matchEnumSymbols() ([]string, error) {
 		}
 	}
 	return symbols, nil
+}
+
+func (p *Parser) matchTypeErrorBody() (*astzed.TypeError, error) {
+	l := p.lexer
+	if ok, err := l.match('<'); !ok || err != nil {
+		return nil, errors.New("no opening angle bracket in error type")
+	}
+	inner, err := p.matchType()
+	if err != nil {
+		return nil, err
+	}
+	ok, err := l.match('>')
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, p.error("mismatched angle brackets while parsing error type")
+	}
+	return &astzed.TypeError{
+		Kind: "TypeError",
+		Type: inner,
+	}, nil
 }

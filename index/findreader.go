@@ -31,7 +31,7 @@ func (f *FinderReader) init() error {
 	if err != nil {
 		return err
 	}
-	f.compare = compareFn(kvs)
+	f.compare = compareFn(f.finder.zctx, kvs)
 	if err != nil {
 		return err
 	}

@@ -4,4 +4,4 @@ input: |
   {}
 
 output: |
-  {x:"incompatible types"(error)}
+  {x:error("incompatible types")}

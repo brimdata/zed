@@ -51,7 +51,7 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	//XXX aliasof?
 	if typVal.Type != zed.TypeType {
-		return ectx.CopyValue(*zed.NewErrorf(
+		return ectx.CopyValue(*s.zctx.NewErrorf(
 			"shaper type argument is not a type: %s", zson.MustFormatValue(*typVal)))
 	}
 	shapeTo, err := s.zctx.LookupByValue(typVal.Bytes)
@@ -64,7 +64,7 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		// and allocate a primitive caster if warranted
 		if zed.TypeRecordOf(shapeTo) == nil {
 			//XXX use structured error
-			return ectx.CopyValue(*zed.NewErrorf(
+			return ectx.CopyValue(*s.zctx.NewErrorf(
 				"shaper function type argument is not a record type: %q", shapeTo))
 		}
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
@@ -98,7 +98,7 @@ func (s *ConstShaper) Apply(ectx Context, this *zed.Value) *zed.Value {
 	val := s.Eval(ectx, this)
 	if !zed.IsRecordType(val.Type) {
 		// XXX use structured error
-		return ectx.CopyValue(*zed.NewErrorf(
+		return ectx.CopyValue(*s.zctx.NewErrorf(
 			"shaper returned non-record value %s", zson.MustFormatValue(*val)))
 	}
 	return val
@@ -115,7 +115,7 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		var err error
 		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, val.Type)
 		if err != nil {
-			return ectx.CopyValue(*zed.NewError(err))
+			return ectx.CopyValue(*c.zctx.NewError(err))
 		}
 		c.shapers[id] = s
 	}
@@ -123,7 +123,7 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(s.typ, val.Bytes)
 	}
 	c.b.Reset()
-	if zerr := s.step.buildRecord(ectx, val.Bytes, &c.b); zerr != nil {
+	if zerr := s.step.buildRecord(c.zctx, ectx, val.Bytes, &c.b); zerr != nil {
 		return zerr
 	}
 	return ectx.NewValue(s.typ, c.b.Bytes())
@@ -156,7 +156,7 @@ func shaperType(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (zed.T
 		}
 		if zed.IsPrimitiveType(inUnder) && zed.IsPrimitiveType(specUnder) {
 			// Matching field is a primitive: output type is cast type.
-			if LookupPrimitiveCaster(specUnder) == nil {
+			if LookupPrimitiveCaster(zctx, specUnder) == nil {
 				return nil, fmt.Errorf("cast to %s not implemented", spec)
 			}
 			return spec, nil
@@ -403,7 +403,7 @@ func (s *step) append(step step) {
 	s.children = append(s.children, step)
 }
 
-func (s *step) buildRecord(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	for _, step := range s.children {
 		switch step.op {
 		case null:
@@ -417,21 +417,21 @@ func (s *step) buildRecord(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.
 		// zcode.Iter along with keeping track of our
 		// position.
 		bytes := getNthFromContainer(in, uint(step.fromIndex))
-		if zerr := step.build(ectx, bytes, b); zerr != nil {
+		if zerr := step.build(zctx, ectx, bytes, b); zerr != nil {
 			return zerr
 		}
 	}
 	return nil
 }
 
-func (s *step) build(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	switch s.op {
 	case copyPrimitive:
 		b.AppendPrimitive(in)
 	case copyContainer:
 		b.AppendContainer(in)
 	case castPrimitive:
-		if zerr := s.castPrimitive(ectx, in, b); zerr != nil {
+		if zerr := s.castPrimitive(zctx, ectx, in, b); zerr != nil {
 			return zerr
 		}
 	case castUnion:
@@ -442,7 +442,7 @@ func (s *step) build(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value 
 			return nil
 		}
 		b.BeginContainer()
-		if zerr := s.buildRecord(ectx, in, b); zerr != nil {
+		if zerr := s.buildRecord(zctx, ectx, in, b); zerr != nil {
 			return zerr
 		}
 		b.EndContainer()
@@ -455,7 +455,7 @@ func (s *step) build(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value 
 		iter := in.Iter()
 		for !iter.Done() {
 			zv, _ := iter.Next()
-			if zerr := s.children[0].build(ectx, zv, b); zerr != nil {
+			if zerr := s.children[0].build(zctx, ectx, zv, b); zerr != nil {
 				return zerr
 			}
 		}
@@ -467,14 +467,15 @@ func (s *step) build(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value 
 	return nil
 }
 
-func (s *step) castPrimitive(ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
+func (s *step) castPrimitive(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	if in == nil {
 		b.AppendNull()
 		return nil
 	}
 	toType := zed.TypeUnder(s.toType)
-	cast := LookupPrimitiveCaster(toType)
-	v := cast(ectx, &zed.Value{s.fromType, in})
+	//XXX We should cache these allocations. See issue #3456.
+	caster := LookupPrimitiveCaster(zctx, toType)
+	v := caster.Eval(ectx, &zed.Value{s.fromType, in})
 	if v.Type != toType {
 		// v isn't the "to" type, so we can't safely append v.Bytes to
 		// the builder. See https://github.com/brimdata/zed/issues/2710.

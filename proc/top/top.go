@@ -18,6 +18,7 @@ const defaultTopLimit = 100
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
 type Proc struct {
 	parent     zbuf.Puller
+	zctx       *zed.Context
 	limit      int
 	fields     []expr.Evaluator
 	records    *expr.RecordSlice
@@ -25,7 +26,7 @@ type Proc struct {
 	flushEvery bool
 }
 
-func New(parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool) *Proc {
+func New(parent zbuf.Puller, zctx *zed.Context, limit int, fields []expr.Evaluator, flushEvery bool) *Proc {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
@@ -60,7 +61,7 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 func (p *Proc) consume(rec *zed.Value) {
 	if p.fields == nil {
 		fld := sort.GuessSortKey(rec)
-		accessor := expr.NewDottedExpr(fld)
+		accessor := expr.NewDottedExpr(p.zctx, fld)
 		p.fields = []expr.Evaluator{accessor}
 	}
 	if p.records == nil {

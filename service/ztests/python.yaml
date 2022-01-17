@@ -51,7 +51,7 @@ inputs:
         str: "" (=mystring),
         ip: 0.0.0.0 (=myip),
         net: 0.0.0.0/0 (=mynet),
-        err: "" (myerror=(error)),
+        err: error("") (=myerror),
         nul: null (mynull=(null))
       } (=primitives)
       {
@@ -71,7 +71,7 @@ inputs:
         str: "" (=mystring),
         ip: 0.0.0.0 (=myip),
         net: 0.0.0.0/0 (=mynet),
-        err: "" (myerror=(error)),
+        err: error("") (=myerror),
         nul: null (mynull=(null))
       } (=primitives)
       {

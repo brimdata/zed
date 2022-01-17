@@ -41,8 +41,6 @@ func formatAny(zv zed.Value, inContainer bool) string {
 		return formatDuration(t, zv.Bytes)
 	case *zed.TypeEnum:
 		return formatAny(zed.Value{zed.TypeUint64, zv.Bytes}, false)
-	case *zed.TypeOfError:
-		return string(zv.Bytes)
 	case *zed.TypeOfFloat32:
 		v, err := zed.DecodeFloat32(zv.Bytes)
 		if err != nil {
@@ -92,8 +90,13 @@ func formatAny(zv zed.Value, inContainer bool) string {
 		return s
 	case *zed.TypeUnion:
 		return formatUnion(t, zv.Bytes)
+	case *zed.TypeError:
+		if zed.TypeUnder(t.Type) == zed.TypeString {
+			return string(zv.Bytes)
+		}
+		return zson.MustFormatValue(zv)
 	default:
-		return fmt.Sprintf("tzngio.StringOf(): unknown type: %T", t)
+		return fmt.Sprintf("zeekio.StringOf(): unknown type: %T", t)
 	}
 }
 

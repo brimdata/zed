@@ -44,6 +44,8 @@ func buildValue(b *zcode.Builder, val Value) error {
 		return buildEnum(b, val)
 	case *TypeValue:
 		return buildTypeValue(b, val)
+	case *Error:
+		return buildValue(b, val.Value)
 	case *Null:
 		b.AppendNull()
 		return nil
@@ -125,7 +127,7 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		}
 		b.AppendPrimitive(zcode.Bytes(bytes))
 		return nil
-	case *zed.TypeOfString, *zed.TypeOfError:
+	case *zed.TypeOfString:
 		body := zed.EncodeString(val.Text)
 		if !utf8.Valid(body) {
 			return fmt.Errorf("invalid utf8 string: %q", val.Text)

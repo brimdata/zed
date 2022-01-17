@@ -9,12 +9,14 @@ import (
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_base64
-type FromBase64 struct{}
+type FromBase64 struct {
+	zctx *zed.Context
+}
 
 func (f *FromBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
-	if !zv.IsStringy() {
-		return newErrorf(ctx, "from_base64: string argument required")
+	if !zv.IsString() {
+		return newErrorf(f.zctx, ctx, "from_base64: string argument required")
 	}
 	if zv.Bytes == nil {
 		return zed.NullType
@@ -28,12 +30,14 @@ func (f *FromBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_base64
-type ToBase64 struct{}
+type ToBase64 struct {
+	zctx *zed.Context
+}
 
 func (t *ToBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
-	if !zv.IsStringy() {
-		return ctx.CopyValue(*zed.NewErrorf("to_base64: string argument required"))
+	if !zv.IsString() {
+		return ctx.CopyValue(*t.zctx.NewErrorf("to_base64: string argument required"))
 	}
 	if zv.Bytes == nil {
 		return zed.NullString
@@ -42,12 +46,14 @@ func (t *ToBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_hex
-type FromHex struct{}
+type FromHex struct {
+	zctx *zed.Context
+}
 
 func (f *FromHex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
-	if !zv.IsStringy() {
-		return newErrorf(ctx, "to_base64: string argument required")
+	if !zv.IsString() {
+		return newErrorf(f.zctx, ctx, "to_base64: string argument required")
 	}
 	if zv.Bytes == nil {
 		return zed.NullString

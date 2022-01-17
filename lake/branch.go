@@ -46,8 +46,8 @@ func OpenBranch(ctx context.Context, config *branches.Config, engine storage.Eng
 	}, nil
 }
 
-func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message, meta string) (ksuid.KSUID, error) {
-	w, err := NewWriter(ctx, b.pool)
+func (b *Branch) Load(ctx context.Context, zctx *zed.Context, r zio.Reader, author, message, meta string) (ksuid.KSUID, error) {
+	w, err := NewWriter(ctx, zctx, b.pool)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -65,7 +65,7 @@ func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message, meta s
 	if message == "" {
 		message = loadMessage(objects)
 	}
-	appMeta, err := loadMeta(meta)
+	appMeta, err := loadMeta(zctx, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -97,13 +97,13 @@ func loadMessage(objects []data.Object) string {
 	return b.String()
 }
 
-func loadMeta(meta string) (*zed.Value, error) {
+func loadMeta(zctx *zed.Context, meta string) (*zed.Value, error) {
 	if meta == "" {
 		return &zed.Value{zed.TypeNull, nil}, nil
 	}
 	zv, err := zson.ParseValue(zed.NewContext(), meta)
 	if err != nil {
-		return zed.Missing, fmt.Errorf("%w %s: %v", ErrInvalidCommitMeta, zv, err)
+		return zctx.Missing(), fmt.Errorf("%w %s: %v", ErrInvalidCommitMeta, zv, err)
 	}
 	return &zv, nil
 }

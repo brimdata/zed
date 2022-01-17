@@ -151,7 +151,7 @@ func newColumnDefinition(name string, typ zed.Type) (*parquetschema.ColumnDefini
 		return newPrimitiveColumnDefinition(name, parquet.Type_BOOLEAN, nil, nil)
 	case *zed.TypeOfBytes:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, nil, nil)
-	case *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfType, *zed.TypeOfError:
+	case *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfType:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedUTF8, logicalString)
 	case *zed.TypeOfNull:
 		return nil, ErrNullType
@@ -167,6 +167,9 @@ func newColumnDefinition(name string, typ zed.Type) (*parquetschema.ColumnDefini
 		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedEnum, logicalEnum)
 	case *zed.TypeMap:
 		return newMapColumnDefinition(name, typ.KeyType, typ.ValType)
+	case *zed.TypeError:
+		// Errors are formatted as string using their ZSON representation.
+		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedUTF8, logicalString)
 	default:
 		panic(fmt.Sprintf("unknown type %T", typ))
 	}

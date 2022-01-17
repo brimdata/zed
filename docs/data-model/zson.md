@@ -321,7 +321,7 @@ contained enum type is defined by the complex type's decorator.
 
 A sequence of enum values might look like this:
 ```
-%HEADS (flip=(%{HEADS,TAILS}))
+%HEADS (flip=(enum<HEADS,TAILS>))
 %TAILS (flip)
 %HEADS (flip)
 ```
@@ -386,11 +386,11 @@ where there are at least two types in the list.
 
 An _enum type_ has the form:
 ```
-%{ <name>, <name>, ... }
+enum< <name>, <name>, ... >
 ```
 where `<name>` is a [ZSON name](#21-names).
 Each enum name must be unique and the order is not significant, e.g.,
-enum type `%{HEADS,TAILS}` is equal to type `%{TAILS,HEADS}`.
+enum type `enum<HEADS,TAILS>` is equal to type `enum<TAILS,HEADS>`.
 
 #### 2.5.7 Named Type
 
@@ -422,7 +422,7 @@ resolve to the most recent definition according to
 
 An _error type_ has the form:
 ```
-error(<type>)
+error< <type> >
 ```
 where `<type>` is the type of the underlying ZSON values wrapped as an error.
 
@@ -576,7 +576,7 @@ the defines their type.
 
 <tlist> = <tlist> "," <type> | <type>
 
-<enum-type> = "%{" <nlist> "}"
+<enum-type> = "enum<" <nlist> ">"
 
 <nlist> = <nlist> "," <name> | <name>
 
@@ -586,5 +586,5 @@ the defines their type.
 
 <name> = as defined above
 
-<error-type> = "error(" <type> ")"
+<error-type> = "error<" <type> ">"
 ```

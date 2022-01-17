@@ -1,6 +1,7 @@
 package zed
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -18,19 +19,8 @@ var ErrMissing = errors.New("missing")
 // The Missing error can be propagated through  functions and expressions and
 // each operator has clearly defined semantics with respect to the Missing value.
 // For example, "true AND MISSING" is MISSING.
-var Missing = &Value{TypeError, zcode.Bytes("missing")}
-var Quiet = &Value{TypeError, zcode.Bytes("quiet")}
-
-type TypeOfError struct{}
-
-func NewErrorf(format string, args ...interface{}) *Value {
-	msg := fmt.Sprintf(format, args...)
-	return &Value{TypeError, zcode.Bytes(msg)}
-}
-
-func NewError(err error) *Value {
-	return &Value{TypeError, zcode.Bytes(err.Error())}
-}
+var Missing = zcode.Bytes("missing")
+var Quiet = zcode.Bytes("quiet")
 
 func EncodeError(err error) zcode.Bytes {
 	return zcode.Bytes(err.Error())
@@ -43,18 +33,42 @@ func DecodeError(zv zcode.Bytes) (error, error) {
 	return errors.New(string(zv)), nil
 }
 
-func (t *TypeOfError) ID() int {
-	return IDError
+type TypeError struct {
+	id   int
+	Type Type
 }
 
-func (t *TypeOfError) String() string {
-	return "error"
+func NewTypeError(id int, typ Type) *TypeError {
+	return &TypeError{id, typ}
 }
 
-func (t *TypeOfError) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.Format(zv), nil
+func (t *TypeError) ID() int {
+	return t.id
 }
 
-func (t *TypeOfError) Format(zv zcode.Bytes) string {
-	return QuotedString(zv, false)
+func (t *TypeError) String() string {
+	return fmt.Sprintf("error<%s>", t.Type)
+}
+
+func (t *TypeError) Marshal(zv zcode.Bytes) (interface{}, error) {
+	// start out with zero-length container so we get "[]" instead of nil
+	val, err := t.Type.Marshal(zv)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]interface{})
+	m["error"] = val
+	return m, nil
+}
+
+func (t *TypeError) Format(zv zcode.Bytes) string {
+	return fmt.Sprintf("error(%s)", t.Type.Format(zv))
+}
+
+func (t *TypeError) IsMissing(zv zcode.Bytes) bool {
+	return t.Type == TypeString && bytes.Compare(zv, Missing) == 0
+}
+
+func (t *TypeError) IsQuiet(zv zcode.Bytes) bool {
+	return t.Type == TypeString && bytes.Compare(zv, Quiet) == 0
 }

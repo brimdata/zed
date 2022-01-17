@@ -18,7 +18,7 @@ input: &input |
   "" (=mystring)
   0.0.0.0 (=myip)
   0.0.0.0/0 (=mynet)
-  "" (myerror=(error))
+  error("") (=myerror)
   null (mynull=(null))
   {
     u8: 0 (myuint8=(uint8)),
@@ -39,7 +39,7 @@ input: &input |
     ip: 0.0.0.0 (=myip),
     net: 0.0.0.0/0 (=mynet),
     typ: ({}) (=mytype),
-    err: "" (myerror=(error)),
+    err: error("") (=myerror),
     nul: null (mynull=(null))
   }
 

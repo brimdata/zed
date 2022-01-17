@@ -33,6 +33,8 @@ func Implied(typ zed.Type) bool {
 		return Implied(typ.Type)
 	case *zed.TypeMap:
 		return Implied(typ.KeyType) && Implied(typ.ValType)
+	case *zed.TypeError:
+		return Implied(typ.Type)
 	}
 	return false
 }

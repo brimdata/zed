@@ -12,13 +12,14 @@ import (
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_uri
 type ParseURI struct {
+	zctx      *zed.Context
 	marshaler *zson.MarshalZNGContext
 }
 
 func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	in := args[0]
-	if !in.IsStringy() || in.Bytes == nil {
-		return newErrorf(ctx, "parse_uri: non-empty string arg required")
+	if !in.IsString() || in.Bytes == nil {
+		return newErrorf(p.zctx, ctx, "parse_uri: non-empty string arg required")
 	}
 	s, err := zed.DecodeString(in.Bytes)
 	if err != nil {
@@ -26,7 +27,7 @@ func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	u, err := url.Parse(s)
 	if err != nil {
-		return newErrorf(ctx, "parse_uri: %s (%q)", err, s)
+		return newErrorf(p.zctx, ctx, "parse_uri: %s (%q)", err, s)
 	}
 	var v struct {
 		Scheme   *string    `zed:"scheme"`
@@ -57,7 +58,7 @@ func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if portString := u.Port(); portString != "" {
 		u64, err := strconv.ParseUint(portString, 10, 16)
 		if err != nil {
-			return newErrorf(ctx, "parse_uri: invalid port: %s (%q)", portString, s)
+			return newErrorf(p.zctx, ctx, "parse_uri: invalid port: %s (%q)", portString, s)
 		}
 		u16 := uint16(u64)
 		v.Port = &u16
@@ -85,8 +86,8 @@ type ParseZSON struct {
 
 func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	in := args[0]
-	if !in.IsStringy() {
-		return newErrorf(ctx, "parse_zson: string arg required")
+	if !in.IsString() {
+		return newErrorf(p.zctx, ctx, "parse_zson: string arg required")
 	}
 	if in.Bytes == nil {
 		return zed.Null
@@ -99,18 +100,18 @@ func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	ast, err := parser.ParseValue()
 	if err != nil {
 		//XXX this will be better as a structured error
-		return newErrorf(ctx, "parse_zson: parse error: %s (%q)", err, s)
+		return newErrorf(p.zctx, ctx, "parse_zson: parse error: %s (%q)", err, s)
 	}
 	if ast == nil {
 		return zed.Null
 	}
 	val, err := zson.NewAnalyzer().ConvertValue(p.zctx, ast)
 	if err != nil {
-		return newErrorf(ctx, "parse_zson: semantic error: %s (%q)", err, s)
+		return newErrorf(p.zctx, ctx, "parse_zson: semantic error: %s (%q)", err, s)
 	}
 	result, err := zson.Build(zcode.NewBuilder(), val)
 	if err != nil {
-		return newErrorf(ctx, "parse_zson: build error: %s (%q)", err, s)
+		return newErrorf(p.zctx, ctx, "parse_zson: build error: %s (%q)", err, s)
 	}
 	return ctx.CopyValue(result)
 }

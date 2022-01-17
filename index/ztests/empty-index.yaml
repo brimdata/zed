@@ -33,4 +33,4 @@ outputs:
       ===
   - name: stderr
     data: |
-      no index key field "b" present in record: {b:"missing"(error)}
+      no index key field "b" present in record: {b:error("missing")}

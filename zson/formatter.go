@@ -175,7 +175,15 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 	case *zed.TypeMap:
 		null, err = f.formatMap(indent, t, bytes, known, parentImplied)
 	case *zed.TypeEnum:
+		f.build("%")
 		f.build(t.Format(bytes))
+	case *zed.TypeError:
+		f.startColor(color.Red)
+		f.build("error")
+		f.endColor()
+		f.build("(")
+		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
+		f.build(")")
 	case *zed.TypeOfType:
 		f.startColorPrimitive(zed.TypeType)
 		f.buildf("(%s)", zed.FormatTypeValue(bytes))
@@ -410,6 +418,10 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 		f.formatTypeUnion(typ)
 	case *zed.TypeEnum:
 		return f.formatTypeEnum(typ)
+	case *zed.TypeError:
+		f.build("error<")
+		formatType(&f.builder, make(typemap), typ.Type)
+		f.build(">")
 	case *zed.TypeOfType:
 		formatType(&f.builder, make(typemap), typ)
 	default:
@@ -443,7 +455,7 @@ func (f *Formatter) formatTypeUnion(typ *zed.TypeUnion) {
 }
 
 func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) error {
-	f.build("<")
+	f.build("enum<")
 	for k, s := range typ.Symbols {
 		if k > 0 {
 			f.build(",")
@@ -456,7 +468,6 @@ func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) error {
 
 var colors = map[zed.Type]color.Code{
 	zed.TypeString: color.Green,
-	zed.TypeError:  color.Red,
 	zed.TypeType:   color.Orange,
 }
 
@@ -569,13 +580,18 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 		}
 		b.WriteByte(')')
 	case *zed.TypeEnum:
-		b.WriteByte('<')
+		// maybe make syntax enum<> to make error<> ?
+		b.WriteString("enum<")
 		for k, s := range t.Symbols {
 			if k > 0 {
 				b.WriteByte(',')
 			}
 			b.WriteString(zed.QuotedName(s))
 		}
+		b.WriteByte('>')
+	case *zed.TypeError:
+		b.WriteString("error<")
+		formatType(b, typedefs, t.Type)
 		b.WriteByte('>')
 	default:
 		b.WriteString(typ.String())

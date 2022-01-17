@@ -15,7 +15,7 @@ outputs:
       stdio:stdin: format detection error
       	zeek: line 1: bad types/fields definition in zeek header
       	zjson: line 1: invalid character 'T' looking for beginning of value
-      	zson: identifier "This" must be enum and requires decorator
+      	zson: zson syntax error
       	zng: malformed zng record
       	csv: line 1: no comma found
       	json: invalid character 'T' looking for beginning of value
