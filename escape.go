@@ -14,6 +14,9 @@ func QuotedName(name string) string {
 
 const hexdigits = "0123456789abcdef"
 
+// QuotedString quotes and escapes a ZSON string for serialization in accordance
+// with the ZSON spec.  It was copied and modified [with attribution](https://github.com/brimdata/zed/blob/main/acknowledgments.txt)
+// from the encoding/json package in the Go source code.
 func QuotedString(s []byte, _ bool) string {
 	var b strings.Builder
 	b.WriteByte('"')
@@ -49,8 +52,7 @@ func QuotedString(s []byte, _ bool) string {
 		}
 		r, size := utf8.DecodeRune(s[k:])
 		if r == utf8.RuneError && size == 1 {
-			//XXX panic instead?  Caller should ensure
-			// string is valid uft8 (e.g., verified ZNG)
+			// XXX return an error.  See issue #3455.
 			b.WriteString(`\ufffd`)
 			k += size
 			continue
@@ -107,14 +109,15 @@ func Unhex(b byte) byte {
 	return 255
 }
 
-//XXX from golang json package
-
 // safeSet holds the value true if the ASCII character with the given array
 // position can be represented inside a JSON string without any further
 // escaping.
 //
 // All values are true except for the ASCII control characters (0-31), the
 // double quote ("), and the backslash character ("\").
+//
+// This code was copied [with attribution](https://github.com/brimdata/zed/blob/main/acknowledgments.txt)
+// from the encoding/json package in the Go source code.
 var safeSet = [utf8.RuneSelf]bool{
 	' ':      true,
 	'!':      true,

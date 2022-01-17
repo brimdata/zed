@@ -281,13 +281,13 @@ func (l *Lexer) scanString() (string, error) {
 		}
 		l.skip(1)
 		if c == '\n' {
-			return "", errors.New("unescaped linebreak in string literal")
+			return "", errors.New("unescaped line break")
 		}
 		if c == '\\' {
 			c, err = l.readByte()
 			if err != nil {
 				if err == io.EOF {
-					err = errors.New("unterminated string")
+					err = errors.New("no end quote")
 				}
 				return "", err
 			}
@@ -298,8 +298,8 @@ func (l *Lexer) scanString() (string, error) {
 					return "", err
 				}
 				return parseStringBytes(&s, bytes)
-			case '"', '\\', '/': // nothing
-
+			case '"', '\\', '/':
+				// Write this byte below as is.
 			case 'b':
 				c = '\b'
 			case 'f':
@@ -311,7 +311,7 @@ func (l *Lexer) scanString() (string, error) {
 			case 't':
 				c = '\t'
 			default:
-				s.WriteByte('\\')
+				return "", fmt.Errorf("illegal escape (\\%c)", c)
 			}
 		}
 		s.WriteByte(c)
@@ -341,7 +341,9 @@ func (l *Lexer) scanToCloseQuote(b []byte) ([]byte, error) {
 	}
 }
 
-//XXX inspired by golang package json source
+// parseStringBytes parse unicode escapes and converts utf-16 surrogage pairs
+// into utf-8 sequences.  It was copied and modified [with attribution](https://github.com/brimdata/zed/blob/main/acknowledgments.txt)
+// from the encoding/json package in the Go source code.
 func parseStringBytes(b *strings.Builder, bytes []byte) (string, error) {
 	k := 0
 	for k < len(bytes) {
@@ -381,7 +383,7 @@ func parseStringBytes(b *strings.Builder, bytes []byte) (string, error) {
 				k += 4
 				if utf16.IsSurrogate(r) {
 					if len(bytes) < 6 || bytes[0] != '\\' || bytes[1] != 'u' {
-						return "", errors.New("illegal surrage utf-16 rune pair")
+						return "", errors.New("illegal surrogate utf-16 rune pair")
 					}
 					r2, err := unhexRune(bytes[k+2:])
 					if err != nil {
@@ -394,9 +396,6 @@ func parseStringBytes(b *strings.Builder, bytes []byte) (string, error) {
 							return "", err
 						}
 					}
-					//XXX
-					// Invalid surrogate; fall back to replacement rune.
-					//rr = unicode.ReplacementChar
 				} else if _, err := b.WriteRune(r); err != nil {
 					return "", err
 				}
@@ -406,7 +405,7 @@ func parseStringBytes(b *strings.Builder, bytes []byte) (string, error) {
 			// allow this to happen.
 			panic("unescaped quote encountered in string")
 		case c < ' ':
-			return "", errors.New("illegal control code in string literal")
+			return "", errors.New("illegal control code")
 		// ASCII
 		case c < utf8.RuneSelf:
 			b.WriteByte(c)
@@ -423,14 +422,14 @@ func parseStringBytes(b *strings.Builder, bytes []byte) (string, error) {
 
 func unhexRune(b []byte) (rune, error) {
 	if len(b) < 4 {
-		return 0, errors.New("short \\u escape at end of string literal")
+		return 0, errors.New("short \\u escape")
 	}
 	r0 := rune(zed.Unhex(b[0]))
 	r1 := rune(zed.Unhex(b[1]))
 	r2 := rune(zed.Unhex(b[2]))
 	r3 := rune(zed.Unhex(b[3]))
 	if r0 > 0xf || r1 > 0xf || r2 > 0xf || r3 > 0xf {
-		return 0, errors.New("invalid hex digits in \\u escape in string literal")
+		return 0, errors.New("invalid hex digits in \\u escape")
 	}
 	return r0<<12 | r1<<8 | r2<<4 | r3, nil
 }
