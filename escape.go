@@ -57,19 +57,6 @@ func QuotedString(s []byte, _ bool) string {
 			k += size
 			continue
 		}
-		// U+2028 is LINE SEPARATOR.
-		// U+2029 is PARAGRAPH SEPARATOR.
-		// They are both technically valid characters in JSON strings,
-		// but don't work in JSONP, which has to be evaluated as JavaScript,
-		// and can lead to security holes there. It is valid JSON to
-		// escape them, so we do so unconditionally.
-		// See http://timelessrepo.com/json-isnt-a-javascript-subset for discussion.
-		if r == '\u2028' || r == '\u2029' {
-			b.WriteString(`\u202`)
-			b.WriteByte(hexdigits[r&0xF])
-			k += size
-			continue
-		}
 		b.WriteRune(r)
 		k += size
 	}

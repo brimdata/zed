@@ -3,8 +3,8 @@ zed: "*"
 # These test inputs are from src/util.cc in the Zeek source code as of Jan 2022.
 # See https://github.com/zeek/zeek/blob/3d9d6e953be5ae8b72336031b6e6659222f52cea/src/util.cc#L2521
 
-# XXX PR question: do we want the funny chars to be u-escaped?  also, our code
-# differs from Zeek on "Private Use Area (E000-F8FF) are always invalid"... "\xee\x8b\xa0
+# Note that our code differs from Zeek on "Private Use Area (E000-F8FF) are always invalid"...
+# e.g., \xee\x8b\xa0.  In Zed (and JSON), these are valid.
 
 
 input: |

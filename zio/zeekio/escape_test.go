@@ -6,8 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//XXX move back to package zng
-func TestUnescapeBstring(t *testing.T) {
+func TestUnescapeZeekString(t *testing.T) {
 	cases := []struct {
 		unescaped string
 		escaped   string
