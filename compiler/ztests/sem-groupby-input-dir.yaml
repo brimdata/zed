@@ -1,4 +1,4 @@
-script: zc -C -O "from 'pool-ts'| every 1h count()"
+script: zc -C -O "from 'pool-ts'| count() by every(1h)"
 
 outputs:
   - name: stdout
@@ -6,5 +6,5 @@ outputs:
       from (
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
-      | summarize every 1h sort-dir 1
-          count:=count() by ts:=bucket(ts, 1h)
+      | summarize sort-dir 1
+          count:=count() by ts:=every(1h)

@@ -95,7 +95,6 @@ type (
 	}
 	Summarize struct {
 		Kind         string       `json:"kind" unpack:""`
-		Duration     string       `json:"duration"`
 		Limit        int          `json:"limit"`
 		Keys         []Assignment `json:"keys"`
 		Aggs         []Assignment `json:"aggs"`

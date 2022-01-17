@@ -11,9 +11,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/proc"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -243,44 +241,9 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		if err != nil {
 			return nil, err
 		}
-		if duration := p.Duration; duration != nil {
-			d, err := nano.ParseDuration(duration.Text)
-			if err != nil {
-				return nil, err
-			}
-			durationKey := dag.Assignment{
-				Kind: "Assignment",
-				LHS: &dag.Path{
-					Kind: "Path",
-					Name: field.New("ts"),
-				},
-				RHS: &dag.Call{
-					Kind: "Call",
-					Name: "bucket",
-					Args: []dag.Expr{
-						&dag.Path{
-							Kind: "Path",
-							Name: field.New("ts"),
-						},
-						&dag.Literal{
-							Kind:  "Literal",
-							Value: d.String(),
-						}},
-				},
-			}
-			keys = append([]dag.Assignment{durationKey}, keys...)
-		}
 		aggs, err := semAssignments(scope, p.Aggs)
 		if err != nil {
 			return nil, err
-		}
-		var dur string
-		if p.Duration != nil {
-			val, err := zson.ParsePrimitive(p.Duration.Type, p.Duration.Text)
-			if err != nil {
-				return nil, err
-			}
-			dur = zson.MustFormatValue(val)
 		}
 		// Note: InputSortDir is copied in here but it's not meaningful
 		// coming from a parser AST, only from a worker using the kernel DSL,
@@ -290,15 +253,12 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		// to execute it.  For now, the worker only uses a filter expression
 		// so this code path isn't hit yet, but it uses this same entry point
 		// and it will soon do other stuff so we need to put in place the
-		// separation... see issue #2163.  Also, we copy Duration even though
-		// above we changed duration to the a bucket(ts) group-by key as the
-		// Duration field is used later by the parallelization operator.
+		// separation... see issue #2163.
 		return &dag.Summarize{
-			Kind:     "Summarize",
-			Duration: dur,
-			Limit:    p.Limit,
-			Keys:     keys,
-			Aggs:     aggs,
+			Kind:  "Summarize",
+			Limit: p.Limit,
+			Keys:  keys,
+			Aggs:  aggs,
 		}, nil
 	case *ast.Parallel:
 		var ops []dag.Op

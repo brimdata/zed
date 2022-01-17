@@ -350,13 +350,14 @@ func compileCall(zctx *zed.Context, call dag.Call) (expr.Evaluator, error) {
 		return compileShaper(zctx, call)
 	}
 	nargs := len(call.Args)
-	fn, this, err := function.New(zctx, call.Name, nargs)
+	fn, path, err := function.New(zctx, call.Name, nargs)
 	if err != nil {
 		return nil, fmt.Errorf("%s(): %w", call.Name, err)
 	}
 	args := call.Args
-	if this {
-		args = append([]dag.Expr{dag.This}, args...)
+	if path != nil {
+		dagPath := &dag.Path{Kind: "Path", Name: path}
+		args = append([]dag.Expr{dagPath}, args...)
 	}
 	exprs, err := compileExprs(zctx, args)
 	if err != nil {

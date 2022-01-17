@@ -237,9 +237,7 @@ type (
 	// A Summarize proc represents a proc that consumes all the records
 	// in its input, partitions the records into groups based on the values
 	// of the fields specified in the keys field (where the first key is the
-	// primary grouping key), and applies aggregators (if any) to each group. If the
-	// Duration field is non-zero, then the groups are further partioned by time
-	// into bins of the duration.  In this case, the primary grouping key is ts.
+	// primary grouping key), and applies aggregators (if any) to each group.
 	// The InputSortDir field indicates that input is sorted (with
 	// direction indicated by the sign of the field) in the primary
 	// grouping key. In this case, the proc outputs the aggregation
@@ -252,11 +250,10 @@ type (
 	// output result; likewise, if PartialsIn is true, the proc will
 	// expect partial results as input.
 	Summarize struct {
-		Kind     string            `json:"kind" unpack:""`
-		Duration *astzed.Primitive `json:"duration"`
-		Limit    int               `json:"limit"`
-		Keys     []Assignment      `json:"keys"`
-		Aggs     []Assignment      `json:"aggs"`
+		Kind  string       `json:"kind" unpack:""`
+		Limit int          `json:"limit"`
+		Keys  []Assignment `json:"keys"`
+		Aggs  []Assignment `json:"aggs"`
 	}
 	// A Top proc is similar to a Sort with a few key differences:
 	// - It only sorts in descending order.

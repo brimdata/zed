@@ -35,6 +35,8 @@
   - [`trim`](#trim)
 - [Time](#time)
   - [`bucket`](#bucket)
+  - [`every`](#every)
+  - [`now`](#now)
 - [Types](#types)
   - [`is`](#is)
   - [`iserr`](#iserr)
@@ -611,6 +613,25 @@ the nearest multiple of duration `m`.
 
 ```mdtest-command
 echo '{ts:2020-05-26T15:27:47Z}' | zq -z 'ts := bucket(ts, 1h)' -
+```
+
+**Output:**
+```mdtest-output
+{ts:2020-05-26T15:00:00Z}
+```
+
+### `every`
+
+```
+every(d duration) -> time
+```
+
+`every` returns time of field `ts` rounded down to the nearest multiple of
+duration `d`. The context value for each call to `every` must be a record with
+a field `ts` in it. `every` is functionally equivalent to `bucket(ts, d)`.
+
+```mdtest-command
+echo '{ts:2020-05-26T15:27:47Z}' | zq -z 'ts := every(1h)' -
 ```
 
 **Output:**

@@ -188,11 +188,11 @@ Pattern = Regexp / Glob
 /// === Aggregations ===
 
 Aggregation
-  = Summarize? every:EveryDur? keys:GroupByKeys limit:LimitArg {
-      RETURN(MAP("kind": "Summarize", "keys": keys, "aggs": NULL, "duration": every, "limit": limit))
+  = Summarize? keys:GroupByKeys limit:LimitArg {
+      RETURN(MAP("kind": "Summarize", "keys": keys, "aggs": NULL, "limit": limit))
     }
-  / Summarize? every:EveryDur? aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
-      VAR(p) = MAP("kind": "Summarize", "keys": NULL, "aggs": aggs, "duration": every, "limit": limit)
+  / Summarize? aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
+      VAR(p) = MAP("kind": "Summarize", "keys": NULL, "aggs": aggs, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
       }
@@ -200,9 +200,6 @@ Aggregation
     }
 
 Summarize = "summarize" _
-
-EveryDur
-  = "every"i _ dur:Duration _ { RETURN(dur) }
 
 GroupByKeys
   = ByToken _ columns:FlexAssignments { RETURN(columns) }
@@ -420,7 +417,7 @@ SampleProc
                                          "name": "any",
                                          "expr": e,
                                          "where": NULL))),
-          "duration": NULL, "limit": 0),
+          "limit": 0),
         MAP("kind": "Cut",
             "args": ARRAY(MAP("kind": "Assignment",
                                 "lhs": NULL,

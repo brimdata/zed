@@ -15,7 +15,7 @@ script: |
   echo ===
   zed query -z 'from logs | count() by g | sort g'
   echo ===
-  zed query -z 'from logs | every 3600s count() by g | sort ts, g'
+  zed query -z 'from logs | count() by every(3600s), g | sort ts, g'
 
 inputs:
   - name: group-by-ts.zson
