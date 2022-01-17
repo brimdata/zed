@@ -60,7 +60,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			tick = true
 		default:
 		}
-		batch, err := flowgraph.Pull()
+		batch, err := flowgraph.Pull(false)
 		if err != nil {
 			if !errors.Is(err, journal.ErrEmpty) {
 				writer.WriteError(err)

@@ -1,8 +1,9 @@
-zed: over a | sum(this)
+zed: over a => (sum(this))
 
 input: |
   {a:[6,5,4]}
   {a:[3,2,1]}
 
 output: |
-  {sum:21}
+  {sum:15}
+  {sum:6}

@@ -30,18 +30,19 @@ func (s *Scope) Exit() {
 	s.stack = s.stack[:len(s.stack)-1]
 }
 
-func (s *Scope) DefineVar(name string) (*dag.Var, error) {
+func (s *Scope) DefineVar(name string) error {
 	b := s.tos()
 	if _, ok := b.symbols[name]; ok {
-		return nil, fmt.Errorf("symbol %q redefined", name)
+		return fmt.Errorf("symbol %q redefined", name)
 	}
 	ref := &dag.Var{
 		Kind: "Var",
+		Name: name,
 		Slot: s.nvars(),
 	}
 	b.Define(name, ref)
 	b.nvar++
-	return ref, nil
+	return nil
 }
 
 func (s *Scope) DefineConst(name string, def dag.Expr) error {

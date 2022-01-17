@@ -3,7 +3,6 @@ package explode
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 )
@@ -12,7 +11,7 @@ import (
 // zng type T, outputs one record for each field of the input record of
 // type T. It is useful for type-based indexing.
 type Proc struct {
-	parent  proc.Interface
+	parent  zbuf.Puller
 	builder zed.Builder
 	typ     zed.Type
 	args    []expr.Evaluator
@@ -20,7 +19,7 @@ type Proc struct {
 
 // New creates a exploder for type typ, where the
 // output records' single column is named name.
-func New(zctx *zed.Context, parent proc.Interface, args []expr.Evaluator, typ zed.Type, name string) (proc.Interface, error) {
+func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string) (zbuf.Puller, error) {
 	cols := []zed.Column{{Name: name, Type: typ}}
 	rectyp := zctx.MustLookupTypeRecord(cols)
 	builder := zed.NewBuilder(rectyp)
@@ -32,18 +31,17 @@ func New(zctx *zed.Context, parent proc.Interface, args []expr.Evaluator, typ ze
 	}, nil
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	for {
-		batch, err := p.parent.Pull()
+		batch, err := p.parent.Pull(done)
 		if batch == nil || err != nil {
 			return nil, err
 		}
-		ectx := batch.Context()
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
 			for _, arg := range p.args {
-				val := arg.Eval(ectx, &vals[i])
+				val := arg.Eval(batch, &vals[i])
 				if val.IsError() {
 					if !val.IsMissing() {
 						out = append(out, *val.Copy())
@@ -59,13 +57,10 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 				})
 			}
 		}
-		batch.Unref()
 		if len(out) > 0 {
-			return zbuf.NewArray(out), nil
+			defer batch.Unref()
+			return zbuf.NewBatch(batch, out), nil
 		}
+		batch.Unref()
 	}
-}
-
-func (p *Proc) Done() {
-	p.parent.Done()
 }

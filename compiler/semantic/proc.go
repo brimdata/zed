@@ -558,41 +558,29 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:
-		exprs, err := semExprs(scope, p.Exprs)
+		return semOver(ctx, scope, p, adaptor, head)
+	case *ast.Let:
+		if p.Over == nil {
+			return nil, errors.New("let operator missing traversal in AST")
+		}
+		if p.Over.Scope == nil {
+			return nil, errors.New("let operator missing scope in AST")
+		}
+		scope.Enter()
+		defer scope.Exit()
+		locals, err := semVars(scope, p.Locals)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Over{
-			Kind:  "Over",
-			Exprs: exprs,
+		over, err := semOver(ctx, scope, p.Over, adaptor, head)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.Let{
+			Kind: "Let",
+			Defs: locals,
+			Over: over,
 		}, nil
-	case *ast.Scope:
-		return nil, errors.New("TBD")
-		/* XXX This will soon be replaced in a subsequent PR.
-		   Please leave for now.
-
-			locals, err := semAssignments(scope, p.Locals)
-			if err != nil {
-				return nil, err
-			}
-			names := make([]string, 0, len(locals))
-			exprs := make([]dag.Expr, 0, len(locals))
-			for _, local := range locals {
-				name := f(local.LHS)
-				exprs = append(exprs, local.RHS)
-			}
-			//XXX need to add locals to scope data structure and
-			// extend it to handle local frame as well as consts, etc
-			seq, err := semProc(ctx, scope, p, adaptor, head)
-			if err != nil {
-				return nil, err
-			}
-			return &dag.Scope{
-				Kind:   "Scope",
-				Locals: locals,
-				Seq:    seq,
-			}, nil
-		*/
 	case *ast.Yield:
 		exprs, err := semExprs(scope, p.Exprs)
 		if err != nil {
@@ -604,6 +592,25 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		}, nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST type: %v", p)
+}
+
+func semOver(ctx context.Context, scope *Scope, in *ast.Over, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Over, error) {
+	exprs, err := semExprs(scope, in.Exprs)
+	if err != nil {
+		return nil, err
+	}
+	var seq *dag.Sequential
+	if in.Scope != nil {
+		seq, err = semSequential(ctx, scope, in.Scope, adaptor, head)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &dag.Over{
+		Kind:  "Over",
+		Exprs: exprs,
+		Scope: seq,
+	}, nil
 }
 
 func semConsts(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
@@ -619,6 +626,25 @@ func semConsts(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
 		out = append(out, dag.Def{Name: def.Name, Expr: e})
 	}
 	return out, nil
+}
+
+func semVars(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
+	var locals []dag.Def
+	for _, def := range defs {
+		e, err := semExpr(scope, def.Expr)
+		if err != nil {
+			return nil, err
+		}
+		name := def.Name
+		if err := scope.DefineVar(name); err != nil {
+			return nil, err
+		}
+		locals = append(locals, dag.Def{
+			Name: name,
+			Expr: e,
+		})
+	}
+	return locals, nil
 }
 
 func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {

@@ -12,13 +12,13 @@ import (
 // This scheme implements flow control since the SplitProc prevents any of
 // the downstream from running ahead, esentially running the parallel paths
 // at the rate of the slowest consumer.
-type splitter []proc.Interface
+type splitter []zbuf.Puller
 
 var _ proc.Selector = (*splitter)(nil)
 
-func New(pctx *proc.Context, parent proc.Interface, n int) []proc.Interface {
+func New(pctx *proc.Context, parent zbuf.Puller, n int) []zbuf.Puller {
 	router := proc.NewRouter(pctx, parent)
-	exits := make([]proc.Interface, 0, n)
+	exits := make([]zbuf.Puller, 0, n)
 	for k := 0; k < n; k++ {
 		exits = append(exits, router.AddRoute())
 	}
@@ -27,10 +27,12 @@ func New(pctx *proc.Context, parent proc.Interface, n int) []proc.Interface {
 }
 
 // Forward copies every batch to every output thus implementing split.
-func (s splitter) Forward(r *proc.Router, b zbuf.Batch) error {
+func (s splitter) Forward(r *proc.Router, b zbuf.Batch) bool {
 	for _, exit := range s {
 		b.Ref()
-		r.Send(exit, b, nil)
+		if ok := r.Send(exit, b, nil); !ok {
+			return false
+		}
 	}
-	return nil
+	return true
 }

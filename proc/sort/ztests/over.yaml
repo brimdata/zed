@@ -1,4 +1,4 @@
-zed: over a | sort this
+zed: over a => (sort this)
 
 input: |
   {a:[10,9,11]}

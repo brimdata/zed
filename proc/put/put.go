@@ -20,7 +20,7 @@ import (
 // in the put expression.
 type Proc struct {
 	pctx    *proc.Context
-	parent  proc.Interface
+	parent  zbuf.Puller
 	builder zcode.Builder
 	clauses []expr.Assignment
 	// vals is a fixed array to avoid re-allocating for every record
@@ -41,7 +41,7 @@ type putRule struct {
 	step        step
 }
 
-func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (proc.Interface, error) {
+func New(pctx *proc.Context, parent zbuf.Puller, clauses []expr.Assignment) (zbuf.Puller, error) {
 	for i, p := range clauses {
 		if p.LHS.IsEmpty() {
 			return nil, fmt.Errorf("put: LHS cannot be 'this' (use 'yield' operator)")
@@ -328,26 +328,21 @@ func (p *Proc) put(ectx expr.Context, this *zed.Value) *zed.Value {
 	return zed.NewValue(rule.typ, bytes)
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
-	batch, err := p.parent.Pull()
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+	batch, err := p.parent.Pull(done)
 	if batch == nil || err != nil {
 		return nil, err
 	}
-	ectx := batch.Context()
 	vals := batch.Values()
 	recs := make([]zed.Value, 0, len(vals))
 	for i := range vals {
-		rec := p.put(ectx, &vals[i])
+		rec := p.put(batch, &vals[i])
 		if rec.IsQuiet() {
 			continue
 		}
 		// Copy is necessary because put can return its argument.
 		recs = append(recs, *rec.Copy())
 	}
-	batch.Unref()
-	return zbuf.NewArray(recs), nil
-}
-
-func (p *Proc) Done() {
-	p.parent.Done()
+	defer batch.Unref()
+	return zbuf.NewBatch(batch, recs), nil
 }

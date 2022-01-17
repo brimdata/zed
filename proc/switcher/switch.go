@@ -16,11 +16,11 @@ var _ proc.Selector = (*Selector)(nil)
 
 type switchCase struct {
 	filter expr.Evaluator
-	route  proc.Interface
+	route  zbuf.Puller
 	vals   []zed.Value
 }
 
-func New(pctx *proc.Context, parent proc.Interface) *Selector {
+func New(pctx *proc.Context, parent zbuf.Puller) *Selector {
 	router := proc.NewRouter(pctx, parent)
 	s := &Selector{
 		Router: router,
@@ -29,19 +29,18 @@ func New(pctx *proc.Context, parent proc.Interface) *Selector {
 	return s
 }
 
-func (s *Selector) AddCase(f expr.Evaluator) proc.Interface {
+func (s *Selector) AddCase(f expr.Evaluator) zbuf.Puller {
 	route := s.Router.AddRoute()
 	s.cases = append(s.cases, &switchCase{filter: f, route: route})
 	return route
 }
 
-func (s *Selector) Forward(router *proc.Router, batch zbuf.Batch) error {
-	ectx := batch.Context()
+func (s *Selector) Forward(router *proc.Router, batch zbuf.Batch) bool {
 	vals := batch.Values()
 	for i := range vals {
 		this := &vals[i]
 		for _, c := range s.cases {
-			val := c.filter.Eval(ectx, this)
+			val := c.filter.Eval(batch, this)
 			if val.IsMissing() {
 				continue
 			}
@@ -70,8 +69,10 @@ func (s *Selector) Forward(router *proc.Router, batch zbuf.Batch) error {
 			batch.Ref()
 			out := zbuf.NewArray(c.vals)
 			c.vals = nil
-			router.Send(c.route, out, nil)
+			if ok := router.Send(c.route, out, nil); !ok {
+				return false
+			}
 		}
 	}
-	return nil
+	return true
 }

@@ -277,6 +277,7 @@ Operator
   / FromProc
   / PassProc
   / ExplodeProc
+  / LetProc
   / MergeProc
   / OverProc
   / YieldProc
@@ -546,13 +547,30 @@ MergeProc
     }
 
 OverProc
-  = "over"i _ exprs:Exprs {
-	  RETURN(MAP("kind":"Over", "exprs":exprs))
+  = ScopedOver
+  / "over"i _ exprs:Exprs {
+      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":NULL))
+    }
+
+ScopedOver
+  = "over"i _ exprs:Exprs __ scope:Scope {
+      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":scope))
     }
 
 LetProc
-  = "let"i _ locals:FlexAssignments __ "=>" __ "(" __ seq:Sequential ")" {
-	  RETURN(MAP("kind":"Scope", "locals":locals, "seq":seq))
+  = "let"i _ locals:LetAssignments __ over:ScopedOver {
+      RETURN(MAP("kind":"Let", "locals":locals, "over":over))
+    }
+
+Scope = "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
+
+LetAssignments
+  = first:LetAssignment rest:(__ "," __ a:LetAssignment { RETURN(a) })* {
+      RETURN(PREPEND(first, rest))
+    }
+
+LetAssignment = id:IdentifierName __ "=" __ expr:Expr {
+      RETURN(MAP("name":id, "expr":expr))
     }
 
 YieldProc

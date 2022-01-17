@@ -22,7 +22,7 @@ type Runtime struct {
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
 	consts    []dag.Op
-	outputs   []proc.Interface
+	outputs   []zbuf.Puller
 	readers   []*kernel.Reader
 	puller    zbuf.Puller
 	meter     *meter
@@ -130,7 +130,7 @@ func (r *Runtime) Context() *proc.Context {
 	return r.pctx
 }
 
-func (r *Runtime) Outputs() []proc.Interface {
+func (r *Runtime) Outputs() []zbuf.Puller {
 	return r.outputs
 }
 
@@ -200,7 +200,7 @@ func (r *Runtime) Puller() zbuf.Puller {
 		case 0:
 			return nil
 		case 1:
-			r.puller = proc.NewCatcher(proc.NewLatcher(r.pctx, outputs[0]))
+			r.puller = proc.NewCatcher(proc.NewSingle(outputs[0]))
 		default:
 			r.puller = proc.NewMux(r.pctx, outputs)
 		}

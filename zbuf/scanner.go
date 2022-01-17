@@ -153,8 +153,8 @@ type namedScanner struct {
 	name string
 }
 
-func (n *namedScanner) Pull() (Batch, error) {
-	b, err := n.Scanner.Pull()
+func (n *namedScanner) Pull(done bool) (Batch, error) {
+	b, err := n.Scanner.Pull(done)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", n.name, err)
 	}

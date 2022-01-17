@@ -18,7 +18,7 @@ var MemMaxBytes = 128 * 1024 * 1024
 
 type Proc struct {
 	pctx       *proc.Context
-	parent     proc.Interface
+	parent     zbuf.Puller
 	order      order.Which
 	nullsFirst bool
 
@@ -30,7 +30,7 @@ type Proc struct {
 	eof            bool
 }
 
-func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
+func New(pctx *proc.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
 	return &Proc{
 		pctx:           pctx,
 		parent:         parent,
@@ -41,16 +41,18 @@ func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, ord
 	}, nil
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	p.once.Do(func() { go p.run() })
-	if r, ok := <-p.resultCh; ok {
-		return r.Batch, r.Err
+	for {
+		r, ok := <-p.resultCh
+		if !ok {
+			return nil, p.pctx.Err()
+		}
+		if !done || r.Batch == nil || r.Err != nil {
+			return r.Batch, r.Err
+		}
+		r.Batch.Unref()
 	}
-	return nil, p.pctx.Err()
-}
-
-func (p *Proc) Done() {
-	p.parent.Done()
 }
 
 func (p *Proc) run() {
@@ -61,23 +63,25 @@ func (p *Proc) run() {
 			spiller.Cleanup()
 		}
 	}()
-	var eof bool
 	var nbytes int
 	var out []zed.Value
 	for {
-		batch, err := p.parent.Pull()
+		batch, err := p.parent.Pull(false)
 		if err != nil {
-			p.sendResult(nil, err)
-			return
-		}
-		if batch == nil {
-			if eof {
+			if ok := p.sendResult(nil, err); !ok {
 				return
 			}
-			eof = true
+			continue
+		}
+		if batch == nil {
 			if spiller == nil {
 				if len(out) > 0 {
-					p.send(out)
+					if ok := p.send(out); !ok {
+						return
+					}
+				}
+				if ok := p.sendResult(nil, nil); !ok {
+					return
 				}
 				nbytes = 0
 				out = nil
@@ -85,12 +89,16 @@ func (p *Proc) run() {
 			}
 			if len(out) > 0 {
 				if err := spiller.Spill(p.pctx.Context, out); err != nil {
-					p.sendResult(nil, err)
-					return
+					if ok := p.sendResult(nil, err); !ok {
+						return
+					}
+					spiller = nil
+					nbytes = 0
+					out = nil
+					continue
 				}
 			}
-			if err := p.sendSpills(spiller); err != nil {
-				p.sendResult(nil, err)
+			if ok := p.sendSpills(spiller); !ok {
 				return
 			}
 			spiller.Cleanup()
@@ -99,7 +107,6 @@ func (p *Proc) run() {
 			out = nil
 			continue
 		}
-		eof = false
 		var delta int
 		out, delta = p.append(out, batch)
 		if p.compareFn == nil && len(out) > 0 {
@@ -112,13 +119,18 @@ func (p *Proc) run() {
 		if spiller == nil {
 			spiller, err = spill.NewMergeSort(p.compareFn)
 			if err != nil {
-				p.sendResult(nil, err)
-				return
+				if ok := p.sendResult(nil, err); !ok {
+					return
+				}
+				out = nil
+				nbytes = 0
+				continue
 			}
 		}
 		if err := spiller.Spill(p.pctx.Context, out); err != nil {
-			p.sendResult(nil, err)
-			return
+			if ok := p.sendResult(nil, err); !ok {
+				return
+			}
 		}
 		out = nil
 		nbytes = 0
@@ -126,35 +138,36 @@ func (p *Proc) run() {
 }
 
 // send sorts vals in memory and sends the result downstream.
-func (p *Proc) send(vals []zed.Value) {
+func (p *Proc) send(vals []zed.Value) bool {
 	expr.SortStable(vals, p.compareFn)
 	//XXX bug: we need upstream ectx. See #3367
 	array := zbuf.NewArray(vals)
-	p.sendResult(array, nil)
+	return p.sendResult(array, nil)
 }
 
-func (p *Proc) sendSpills(spiller *spill.MergeSort) error {
+func (p *Proc) sendSpills(spiller *spill.MergeSort) bool {
 	puller := zbuf.NewPuller(spiller, 100)
 	for {
 		if err := p.pctx.Err(); err != nil {
-			return err
+			return false
 		}
 		// Reading from the spiller merges the spilt files.
-		b, err := puller.Pull()
+		b, err := puller.Pull(false)
+		if ok := p.sendResult(b, err); !ok {
+			return false
+		}
 		if b == nil || err != nil {
-			return err
+			return true
 		}
-		if len(b.Values()) == 0 {
-			continue
-		}
-		p.sendResult(b, nil)
 	}
 }
 
-func (p *Proc) sendResult(b zbuf.Batch, err error) {
+func (p *Proc) sendResult(b zbuf.Batch, err error) bool {
 	select {
 	case p.resultCh <- proc.Result{Batch: b, Err: err}:
+		return true
 	case <-p.pctx.Done():
+		return false
 	}
 }
 

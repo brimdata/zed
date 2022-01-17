@@ -1,0 +1,27 @@
+zed: |
+  over this => (
+    over this => (
+      split (
+        => tail 1 | a:=collect(this)
+        => tail 2 | a:=collect(this)
+        => summarize a:=collect(this)
+      )
+      | sort this
+      | tail 2
+    )
+    | sort this
+  )
+
+input: |
+  [[1,2,3],[4,5,6]]
+  [[7,8,9],[10,11,12]]
+
+output: |
+  {a:[2,3]}
+  {a:[5,6]}
+  {a:[1,2,3]}
+  {a:[4,5,6]}
+  {a:[8,9]}
+  {a:[11,12]}
+  {a:[7,8,9]}
+  {a:[10,11,12]}

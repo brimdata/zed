@@ -1,6 +1,6 @@
 zed: |
   switch (
-    case len(a)==3 => over a | sum(this)
+    case len(a)==3 => over a => (sum(this))
     default => over a | yield {b:this}
   ) | sort this
 

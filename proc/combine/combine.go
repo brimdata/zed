@@ -12,52 +12,200 @@ import (
 type Proc struct {
 	ctx      context.Context
 	once     sync.Once
-	resultCh <-chan result
 	parents  []*puller
-	blocked  map[*puller]struct{}
-	err      error
+	queue    <-chan *puller
+	waitCh   <-chan struct{}
+	nblocked int
 }
 
-type puller struct {
-	proc.Interface
-	ctx      context.Context
-	resultCh chan<- result
-	resumeCh chan struct{}
-	doneCh   chan struct{}
-}
-
-func newPuller(ctx context.Context, parent proc.Interface, resultCh chan<- result) *puller {
-	return &puller{
-		Interface: proc.NewCatcher(parent),
-		ctx:       ctx,
-		resultCh:  resultCh,
-		resumeCh:  make(chan struct{}),
-		doneCh:    make(chan struct{}),
+func New(pctx *proc.Context, parents []zbuf.Puller) *Proc {
+	ctx := pctx.Context
+	queue := make(chan *puller, len(parents))
+	pullers := make([]*puller, 0, len(parents))
+	waitCh := make(chan struct{})
+	for _, parent := range parents {
+		pullers = append(pullers, newPuller(ctx, waitCh, parent, queue))
+	}
+	return &Proc{
+		ctx:     ctx,
+		parents: pullers,
+		queue:   queue,
+		waitCh:  waitCh,
 	}
 }
 
-type result struct {
-	batch  zbuf.Batch
-	err    error
-	puller *puller
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+	p.once.Do(func() {
+		for _, parent := range p.parents {
+			go parent.run()
+		}
+	})
+	if done {
+		return nil, p.propagateDone()
+	}
+	for {
+		next, err := p.next()
+		if err != nil {
+			return nil, err
+		}
+		if next == nil {
+			// Everything is blocked due to EOS received
+			// on all paths.  We unblock everything to get
+			// ready for the next platoon and send an EOS
+			// downstream representing the fact that all fan-in
+			// legs hit their EOS.
+			return nil, p.unwait()
+		}
+		select {
+		case result := <-next.resultCh:
+			if result.Err != nil {
+				return nil, result.Err
+			}
+			if result.Batch == nil {
+				p.block(next)
+				continue
+			}
+			return result.Batch, nil
+		case <-p.ctx.Done():
+			return nil, p.ctx.Err()
+		}
+	}
+}
+
+func (p *Proc) next() (*puller, error) {
+	if p.nblocked >= len(p.parents) {
+		return nil, nil
+	}
+	select {
+	case parent := <-p.queue:
+		return parent, nil
+	case <-p.ctx.Done():
+		return nil, p.ctx.Err()
+	}
+}
+
+func (p *Proc) unwait() error {
+	if len(p.parents) != p.nblocked {
+		panic("unwait called without all parents blocked")
+	}
+	for _, parent := range p.parents {
+		select {
+		case <-p.waitCh:
+		case <-p.ctx.Done():
+			return p.ctx.Err()
+		}
+		parent.blocked = false
+	}
+	p.nblocked = 0
+	return nil
+}
+
+func (p *Proc) block(parent *puller) {
+	if !parent.blocked {
+		parent.blocked = true
+		p.nblocked++
+	}
+}
+
+func (p *Proc) propagateDone() error {
+	for _, parent := range p.parents {
+		if parent.blocked {
+			continue
+		}
+	again:
+		select {
+		case <-p.queue:
+			// If a parent is waiting on the queue, we need to
+			// read the queue to avoid deadlock.  Since we
+			// are going to throw away the batch anyway, we can
+			// simply ignore which parent it is as we will hit all
+			// of them eventually as we loop over each unblocked parent.
+			goto again
+		case parent.doneCh <- struct{}{}:
+			p.block(parent)
+		case <-p.ctx.Done():
+			return p.ctx.Err()
+		}
+	}
+	// Make sure all the dones that canceled pending queue entries
+	// are clear.  Otherwise, this will block the queue on the next
+	// platoon.
+drain:
+	select {
+	case <-p.queue:
+		goto drain
+	default:
+	}
+	// Now that everyone is blocked either because they sent us an EOS,
+	// we sent them a done, or and EOS/done collided at the same time,
+	// we can unblock everything.
+	return p.unwait()
+}
+
+type puller struct {
+	zbuf.Puller
+	ctx      context.Context
+	resultCh chan proc.Result
+	doneCh   chan struct{}
+	waitCh   chan<- struct{}
+	queue    chan<- *puller
+	// used only by Proc
+	blocked bool
+}
+
+func newPuller(ctx context.Context, waitCh chan<- struct{}, parent zbuf.Puller, q chan<- *puller) *puller {
+	return &puller{
+		Puller:   proc.NewCatcher(parent),
+		ctx:      ctx,
+		resultCh: make(chan proc.Result),
+		doneCh:   make(chan struct{}),
+		waitCh:   waitCh,
+		queue:    q,
+	}
 }
 
 func (p *puller) run() {
 	for {
-		batch, err := p.Pull()
+		batch, err := p.Pull(false)
+		p.queue <- p
 		select {
-		case p.resultCh <- result{batch, err, p}:
+		case p.resultCh <- proc.Result{batch, err}:
 			if err != nil {
 				return
 			}
 			if batch == nil {
-				if !p.waitToResume() {
-					return
-				}
+				// We just sent an EOS, so we'll wait until
+				// all the other paths are done before pulling
+				// again.  We also are guaranteed here that the
+				// combiner has our EOS and knows we're done and
+				// will mark us blocked and not raise our doneCh.
+				p.wait()
 			}
 		case <-p.doneCh:
+			if batch == nil {
+				// Combiner tells us we're done but we just
+				// received an EOS from upstream, so we don't want
+				// to call Pull(true) as they would break the contract.
+				// Since the combiner thinks we're done and our parent
+				// thinks we're done, there's nothing to do.
+				// Just continue the loop and reach for the next
+				// platoon.
+				if !p.wait() {
+					return
+				}
+				continue
+			}
+			batch.Unref()
 			// Drop the pending batch and initiate a done...
-			if !p.propagateDone() {
+			batch, _ := p.Pull(true) // do something with err
+			if batch != nil {
+				panic("non-nil done batch")
+			}
+			// After we propagate Pull to our parent, we wait
+			// for the propagation to finish across all pullers
+			// so we finish as a group and don't start the next
+			// platoon on our leg before the other legs have finished.
+			if !p.wait() {
 				return
 			}
 		case <-p.ctx.Done():
@@ -66,85 +214,11 @@ func (p *puller) run() {
 	}
 }
 
-func (p *puller) propagateDone() bool {
-	p.Done()
-	for {
-		batch, err := p.Pull()
-		if err != nil {
-			p.resultCh <- result{nil, err, p}
-			return false
-		}
-		if batch == nil {
-			p.resultCh <- result{nil, nil, p}
-			return p.waitToResume()
-		}
-		batch.Unref()
-	}
-}
-
-func (p *puller) waitToResume() bool {
+func (p *puller) wait() bool {
 	select {
-	case <-p.resumeCh:
+	case p.waitCh <- struct{}{}:
 		return true
 	case <-p.ctx.Done():
 		return false
-	}
-}
-
-func New(pctx *proc.Context, parents []proc.Interface) *Proc {
-	resultCh := make(chan result)
-	ctx := pctx.Context
-	pullers := make([]*puller, 0, len(parents))
-	for _, parent := range parents {
-		pullers = append(pullers, newPuller(ctx, parent, resultCh))
-	}
-	return &Proc{
-		ctx:      ctx,
-		resultCh: resultCh,
-		parents:  pullers,
-		blocked:  make(map[*puller]struct{}),
-	}
-}
-
-// Pull implements the merge logic for returning data from the upstreams.
-func (p *Proc) Pull() (zbuf.Batch, error) {
-	p.once.Do(func() {
-		for _, m := range p.parents {
-			go m.run()
-		}
-	})
-	if p.err != nil {
-		return nil, p.err
-	}
-	for {
-		if len(p.blocked) == len(p.parents) {
-			for _, parent := range p.parents {
-				parent.resumeCh <- struct{}{}
-				delete(p.blocked, parent)
-			}
-			return nil, nil
-		}
-		select {
-		case res := <-p.resultCh:
-			if err := res.err; err != nil {
-				p.err = err
-				return nil, err
-			}
-			if res.batch == nil {
-				p.blocked[res.puller] = struct{}{}
-				continue
-			}
-			return res.batch, nil
-		case <-p.ctx.Done():
-			return nil, p.ctx.Err()
-		}
-	}
-}
-
-func (p *Proc) Done() {
-	for _, parent := range p.parents {
-		if _, ok := p.blocked[parent]; !ok {
-			parent.doneCh <- struct{}{}
-		}
 	}
 }

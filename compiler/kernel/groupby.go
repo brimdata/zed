@@ -11,9 +11,10 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/groupby"
+	"github.com/brimdata/zed/zbuf"
 )
 
-func compileGroupBy(pctx *proc.Context, parent proc.Interface, summarize *dag.Summarize) (*groupby.Proc, error) {
+func compileGroupBy(pctx *proc.Context, parent zbuf.Puller, summarize *dag.Summarize) (*groupby.Proc, error) {
 	keys, err := compileAssignments(summarize.Keys, pctx.Zctx)
 	if err != nil {
 		return nil, err

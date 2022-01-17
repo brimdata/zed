@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zcode"
 )
 
 type labeled struct {
@@ -46,17 +46,14 @@ type result struct {
 }
 
 type puller struct {
-	Interface
+	zbuf.Puller
 	ch    chan<- result
 	label int
 }
 
 func (p *puller) run(ctx context.Context) {
 	for {
-		batch, err := p.Pull()
-		if err == EndOfBatch {
-			continue
-		}
+		batch, err := p.Pull(false)
 		select {
 		case p.ch <- result{batch, p.label, err}:
 			if batch == nil || err != nil {
@@ -68,14 +65,14 @@ func (p *puller) run(ctx context.Context) {
 	}
 }
 
-func NewMux(pctx *Context, parents []Interface) *Mux {
+func NewMux(pctx *Context, parents []zbuf.Puller) *Mux {
 	if len(parents) <= 1 {
 		panic("mux.New() must be called with two or more parents")
 	}
 	ch := make(chan result)
 	pullers := make([]*puller, 0, len(parents))
 	for label, parent := range parents {
-		pullers = append(pullers, &puller{NewLatch(NewCatcher(parent)), ch, label})
+		pullers = append(pullers, &puller{NewCatcher(parent), ch, label})
 	}
 	return &Mux{
 		pctx:     pctx,
@@ -86,10 +83,10 @@ func NewMux(pctx *Context, parents []Interface) *Mux {
 }
 
 // Pull implements the merge logic for returning data from the upstreams.
-func (m *Mux) Pull() (zbuf.Batch, error) {
+func (m *Mux) Pull(bool) (zbuf.Batch, error) {
 	if m.nparents == 0 {
 		// When we get to EOS, we make sure all the flowgraph
-		// goroutines terminate by cacneling the proc context.
+		// goroutines terminate by canceling the proc context.
 		m.pctx.Cancel()
 		return nil, nil
 	}
@@ -125,6 +122,28 @@ func (m *Mux) Done() {
 	panic("proc.Mux.Done() should not be called; instead proc.Context should be canceled.")
 }
 
+type Single struct {
+	zbuf.Puller
+	eos bool
+}
+
+func NewSingle(parent zbuf.Puller) *Single {
+	return &Single{Puller: parent}
+}
+
+func (s *Single) Pull(bool) (zbuf.Batch, error) {
+	if s.eos {
+		return nil, nil
+	}
+	batch, err := s.Puller.Pull(false)
+	if batch == nil {
+		s.eos = true
+		eoc := EndOfChannel(0)
+		batch = &eoc
+	}
+	return batch, err
+}
+
 // EndOfChannel is an empty batch that represents the termination of one
 // of the output paths of a muxed flowgraph and thus will be ignored downstream
 // unless explicitly detected.
@@ -132,7 +151,9 @@ type EndOfChannel int
 
 var _ zbuf.Batch = (*EndOfChannel)(nil)
 
-func (*EndOfChannel) Ref()                  {}
-func (*EndOfChannel) Unref()                {}
-func (*EndOfChannel) Context() expr.Context { return nil }
-func (*EndOfChannel) Values() []zed.Value   { return nil }
+func (*EndOfChannel) Ref()                                      {}
+func (*EndOfChannel) Unref()                                    {}
+func (*EndOfChannel) Values() []zed.Value                       { return nil }
+func (*EndOfChannel) Vars() []zed.Value                         { return nil }
+func (*EndOfChannel) CopyValue(zed.Value) *zed.Value            { return nil }
+func (*EndOfChannel) NewValue(zed.Type, zcode.Bytes) *zed.Value { return nil }

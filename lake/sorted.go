@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/proc/merge"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"go.uber.org/multierr"
@@ -36,11 +37,11 @@ type statScanner struct {
 	err    error
 }
 
-func (s *statScanner) Pull() (zbuf.Batch, error) {
+func (s *statScanner) Pull(done bool) (zbuf.Batch, error) {
 	if s.puller == nil {
 		return nil, s.err
 	}
-	batch, err := s.puller.Pull()
+	batch, err := s.puller.Pull(done)
 	if batch == nil || err != nil {
 		s.sched.AddProgress(s.Scanner.Progress())
 		s.puller = nil
@@ -81,7 +82,7 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zed.Context, filter
 	if len(pullers) == 1 {
 		merger = pullers[0]
 	} else {
-		merger = zbuf.NewMerger(ctx, pullers, importCompareFn(pool))
+		merger = merge.New(ctx, pullers, importCompareFn(pool))
 	}
 	return &sortedPuller{
 		Puller: merger,

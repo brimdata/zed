@@ -19,11 +19,12 @@ var DefaultLimit = 1000000
 // Proc computes aggregations using an Aggregator.
 type Proc struct {
 	pctx     *proc.Context
-	parent   proc.Interface
+	parent   zbuf.Puller
 	agg      *Aggregator
 	once     sync.Once
 	resultCh chan proc.Result
-	ectx     expr.Context
+	doneCh   chan struct{}
+	batch    zbuf.Batch
 }
 
 // Aggregator performs the core aggregation computation for a
@@ -125,7 +126,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	}, nil
 }
 
-func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Proc, error) {
+func New(pctx *proc.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Proc, error) {
 	names := make(field.List, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
 		names = append(names, e.LHS)
@@ -154,10 +155,19 @@ func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggN
 		parent:   parent,
 		agg:      agg,
 		resultCh: make(chan proc.Result),
+		doneCh:   make(chan struct{}),
 	}, nil
 }
 
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+	if done {
+		select {
+		case p.doneCh <- struct{}{}:
+			return nil, nil
+		case <-p.pctx.Done():
+			return nil, p.pctx.Err()
+		}
+	}
 	p.once.Do(func() { go p.run() })
 	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
@@ -165,44 +175,47 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	return nil, p.pctx.Err()
 }
 
-func (p *Proc) Done() {
-	p.parent.Done()
-}
-
 func (p *Proc) run() {
-	sendResults := func(p *Proc) error {
+	sendResults := func(p *Proc) bool {
 		for {
-			b, err := p.agg.Results(true, p.ectx)
-			if err != nil {
-				return err
+			b, err := p.agg.nextResult(true, p.batch)
+			done, ok := p.sendResult(b, err)
+			if !ok {
+				return false
 			}
-			if b == nil {
-				return nil
+			if b == nil || done {
+				return true
 			}
-			p.sendResult(b, nil)
 		}
 	}
-	var eof bool
+	defer func() {
+		close(p.resultCh)
+	}()
 	for {
-		batch, err := p.parent.Pull()
-		if err != nil || (batch == nil && eof) {
-			p.shutdown(err)
-			return
-		}
-		if batch == nil {
-			if err := sendResults(p); err != nil {
-				p.shutdown(err)
+		batch, err := p.parent.Pull(false)
+		if err != nil {
+			if _, ok := p.sendResult(nil, err); !ok {
 				return
 			}
-			eof = true
 			continue
 		}
-		ectx := batch.Context()
-		p.ectx = ectx
-		eof = false
+		if batch == nil {
+			if ok := sendResults(p); !ok {
+				return
+			}
+			if p.batch != nil {
+				p.batch.Unref()
+				p.batch = nil
+			}
+			continue
+		}
+		if p.batch == nil {
+			batch.Ref()
+			p.batch = batch
+		}
 		vals := batch.Values()
 		for i := range vals {
-			p.agg.Consume(ectx, &vals[i])
+			p.agg.Consume(batch, &vals[i])
 		}
 		batch.Unref()
 		if p.agg.inputDir == 0 {
@@ -210,39 +223,73 @@ func (p *Proc) run() {
 		}
 		// sorted input: see if we have any completed keys we can emit.
 		for {
-			res, err := p.agg.Results(false, ectx)
+			res, err := p.agg.nextResult(false, batch)
 			if err != nil {
-				p.shutdown(err)
-				return
+				if _, ok := p.sendResult(nil, err); !ok {
+					return
+				}
+				break
 			}
 			if res == nil {
 				break
 			}
 			expr.SortStable(res.Values(), p.agg.keyCompare)
-			p.sendResult(res, nil)
+			done, ok := p.sendResult(res, nil)
+			if !ok {
+				return
+			}
+			if done {
+				break
+			}
 		}
 	}
 }
 
-func (p *Proc) sendResult(b zbuf.Batch, err error) {
+func (p *Proc) sendResult(b zbuf.Batch, err error) (bool, bool) {
 	select {
 	case p.resultCh <- proc.Result{Batch: b, Err: err}:
+		return false, true
+	case <-p.doneCh:
+		if b != nil {
+			b.Unref()
+		}
+		p.reset()
+		b, pullErr := p.parent.Pull(true)
+		if err == nil {
+			err = pullErr
+		}
+		if err != nil {
+			select {
+			case p.resultCh <- proc.Result{Err: err}:
+				return true, false
+			case <-p.pctx.Done():
+				return false, false
+			}
+		}
+		if b != nil {
+			b.Unref()
+		}
+		return true, true
 	case <-p.pctx.Done():
+		p.reset()
+		return false, false
 	}
 }
 
-func (p *Proc) shutdown(err error) {
-	// Make sure we cleanup before sending EOS.  Otherwise, the process
-	// could exit before we remove the spill directory.
+func (p *Proc) reset() {
 	if p.agg.spiller != nil {
 		p.agg.spiller.Cleanup()
+		p.agg.spiller = nil
 	}
-	p.sendResult(nil, err)
-	close(p.resultCh)
+	p.agg.table = make(map[string]*Row)
+	if p.batch != nil {
+		p.batch.Unref()
+		p.batch = nil
+	}
 }
 
 // Consume adds a value to an aggregation.
-func (a *Aggregator) Consume(ectx expr.Context, this *zed.Value) {
+func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) {
 	// See if we've encountered this row before.
 	// We compute a key for this row by exploiting the fact that
 	// a row key is uniquely determined by the inbound descriptor
@@ -269,7 +316,7 @@ func (a *Aggregator) Consume(ectx expr.Context, this *zed.Value) {
 	keyBytes := a.keyCache[:0]
 	var prim *zed.Value
 	for i, keyExpr := range a.keyExprs {
-		key := keyExpr.Eval(ectx, this)
+		key := keyExpr.Eval(batch, this)
 		if key.IsQuiet() {
 			return
 		}
@@ -290,7 +337,7 @@ func (a *Aggregator) Consume(ectx expr.Context, this *zed.Value) {
 	row, ok := a.table[string(keyBytes)]
 	if !ok {
 		if len(a.table) >= a.limit {
-			if err := a.spillTable(false, ectx); err != nil {
+			if err := a.spillTable(false, batch); err != nil {
 				panic(err)
 			}
 		}
@@ -303,14 +350,14 @@ func (a *Aggregator) Consume(ectx expr.Context, this *zed.Value) {
 	}
 
 	if a.partialsIn {
-		row.reducers.consumeAsPartial(this, a.aggRefs, ectx)
+		row.reducers.consumeAsPartial(this, a.aggRefs, batch)
 	} else {
-		row.reducers.apply(ectx, a.aggs, this)
+		row.reducers.apply(batch, a.aggs, this)
 	}
 }
 
-func (a *Aggregator) spillTable(eof bool, ectx expr.Context) error {
-	batch, err := a.readTable(true, true)
+func (a *Aggregator) spillTable(eof bool, ref zbuf.Batch) error {
+	batch, err := a.readTable(true, true, ref)
 	if err != nil || batch == nil {
 		return err
 	}
@@ -326,7 +373,7 @@ func (a *Aggregator) spillTable(eof bool, ectx expr.Context) error {
 		return err
 	}
 	if !eof && a.inputDir != 0 {
-		val := a.keyExprs[0].Eval(ectx, &recs[len(recs)-1])
+		val := a.keyExprs[0].Eval(batch, &recs[len(recs)-1])
 		if !val.IsError() {
 			// pass volatile zed.Value since updateMaxSpillKey will make
 			// a copy if needed.
@@ -355,20 +402,20 @@ func (a *Aggregator) updateMaxSpillKey(v *zed.Value) {
 // this should be called repeatedly until a nil batch is returned. If
 // the input is sorted in the primary key, Results can be called
 // before eof, and keys that are completed will returned.
-func (a *Aggregator) Results(eof bool, ctx expr.Context) (zbuf.Batch, error) {
+func (a *Aggregator) nextResult(eof bool, batch zbuf.Batch) (zbuf.Batch, error) {
 	if a.spiller == nil {
-		return a.readTable(eof, a.partialsOut)
+		return a.readTable(eof, a.partialsOut, batch)
 	}
 	if eof {
 		// EOF: spill in-memory table before merging all files for output.
-		if err := a.spillTable(true, ctx); err != nil {
+		if err := a.spillTable(true, batch); err != nil {
 			return nil, err
 		}
 	}
-	return a.readSpills(eof, ctx)
+	return a.readSpills(eof, batch)
 }
 
-func (a *Aggregator) readSpills(eof bool, ectx expr.Context) (zbuf.Batch, error) {
+func (a *Aggregator) readSpills(eof bool, batch zbuf.Batch) (zbuf.Batch, error) {
 	recs := make([]zed.Value, 0, proc.BatchLen)
 	if !eof && a.inputDir == 0 {
 		return nil, nil
@@ -382,12 +429,12 @@ func (a *Aggregator) readSpills(eof bool, ectx expr.Context) (zbuf.Batch, error)
 			if rec == nil {
 				break
 			}
-			keyVal := a.keyExprs[0].Eval(ectx, rec)
+			keyVal := a.keyExprs[0].Eval(batch, rec)
 			if !keyVal.IsError() && a.valueCompare(keyVal, a.maxSpillKey) >= 0 {
 				break
 			}
 		}
-		rec, err := a.nextResultFromSpills(ectx)
+		rec, err := a.nextResultFromSpills(batch)
 		if err != nil {
 			return nil, err
 		}
@@ -399,7 +446,7 @@ func (a *Aggregator) readSpills(eof bool, ectx expr.Context) (zbuf.Batch, error)
 	if len(recs) == 0 {
 		return nil, nil
 	}
-	return zbuf.NewArray(recs), nil
+	return zbuf.NewBatch(batch, recs), nil
 }
 
 func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error) {
@@ -467,7 +514,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 // false and input is sorted only completed keys are returned.
 // If partialsOut is true, it returns partial aggregation results as
 // defined by each agg.Function.ResultAsPartial() method.
-func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
+func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.Batch, error) {
 	var recs []zed.Value
 	for key, row := range a.table {
 		if !flush && a.valueCompare == nil {
@@ -523,7 +570,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 	if len(recs) == 0 {
 		return nil, nil
 	}
-	return zbuf.NewArray(recs), nil
+	return zbuf.NewBatch(batch, recs), nil
 }
 
 func (a *Aggregator) lookupRecordType(types []zed.Type) (*zed.TypeRecord, error) {

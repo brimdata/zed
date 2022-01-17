@@ -25,8 +25,15 @@ func NewPuller(pctx *proc.Context, puller zbuf.PullerCloser) *Proc {
 }
 
 // Pull implements the merge logic for returning data from the upstreams.
-func (p *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	if p.done {
+		return nil, p.err
+	}
+	if done {
+		if p.puller != nil {
+			p.close(p.puller.Close())
+			p.puller = nil
+		}
 		return nil, p.err
 	}
 	for {
@@ -42,7 +49,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			}
 			p.puller = puller
 		}
-		batch, err := p.puller.Pull()
+		batch, err := p.puller.Pull(false)
 		if err != nil {
 			p.close(err)
 			p.puller.Close()
@@ -62,11 +69,4 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 func (p *Proc) close(err error) {
 	p.err = err
 	p.done = true
-}
-
-func (p *Proc) Done() {
-	if p.puller != nil {
-		p.close(p.puller.Close())
-		p.puller = nil
-	}
 }

@@ -58,7 +58,7 @@ func (r *Reader) NewScanner(ctx context.Context, filter zbuf.Filter) (zbuf.Scann
 	return s, nil
 }
 
-func (s *scanner) Pull() (zbuf.Batch, error) {
+func (s *scanner) Pull(bool) (zbuf.Batch, error) {
 	s.once.Do(s.start)
 	for {
 		ch, ok := <-s.batchChCh
