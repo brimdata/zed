@@ -13,6 +13,8 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
+//XXX handle new TypeError => marshal as a ZSON string?
+
 var (
 	marshalerTypeZNG   = reflect.TypeOf((*ZNGMarshaler)(nil)).Elem()
 	unmarshalerTypeZNG = reflect.TypeOf((*ZNGUnmarshaler)(nil)).Elem()
@@ -745,7 +747,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 		// XXX We bundle string, type, error all into string.
 		// See issue #1853.
 		switch zed.TypeUnder(zv.Type) {
-		case zed.TypeString, zed.TypeType, zed.TypeError:
+		case zed.TypeString, zed.TypeType:
 		default:
 			return incompatTypeError(zv.Type, v)
 		}
@@ -1096,9 +1098,10 @@ func (u *UnmarshalZNGContext) lookupTypeRecord(typ *zed.TypeRecord) (reflect.Typ
 func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zed.Type) (reflect.Type, error) {
 	var v interface{}
 	switch typ := typ.(type) {
-	// XXX We should have counterparts error and type type.
+	// XXX We should have counterparts for error and type type.
 	// See issue #1853.
-	case *zed.TypeOfString, *zed.TypeOfError, *zed.TypeOfType:
+	// XXX udpate issue?
+	case *zed.TypeOfString, *zed.TypeOfType:
 		v = ""
 	case *zed.TypeOfBool:
 		v = false

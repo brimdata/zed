@@ -4,4 +4,4 @@ input: |
   {foo:"foo1",goo:"goo1"}
 
 output: |
-  {err:"rename: duplicate fields: foo"(error),this:{foo:"foo1",goo:"goo1"}}
+  error({message:"rename: duplicate fields: foo",on:{foo:"foo1",goo:"goo1"}})

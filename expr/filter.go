@@ -99,7 +99,7 @@ func NewSearch(searchtext string, searchval *zed.Value) (Evaluator, error) {
 
 func (s *search) Eval(_ Context, this *zed.Value) *zed.Value {
 	if errMatch == this.Walk(func(typ zed.Type, body zcode.Bytes) error {
-		if zed.IsStringy(typ.ID()) {
+		if typ.ID() == zed.IDString {
 			if stringSearch(byteconv.UnsafeString(body), s.text) {
 				return errMatch
 			}
@@ -159,7 +159,7 @@ func (s *searchString) Eval(_ Context, val *zed.Value) *zed.Value {
 		if s.searchType(typ) {
 			return errMatch
 		}
-		if zed.IsStringy(typ.ID()) &&
+		if typ.ID() == zed.IDString &&
 			stringSearch(byteconv.UnsafeString(body), s.term) {
 			return errMatch
 		}
@@ -191,20 +191,21 @@ func (f *filter) Eval(ectx Context, this *zed.Value) *zed.Value {
 }
 
 type filterApplier struct {
+	zctx *zed.Context
 	expr Evaluator
 }
 
-func NewFilterApplier(e Evaluator) Applier {
-	return &filterApplier{e}
+func NewFilterApplier(zctx *zed.Context, e Evaluator) Applier {
+	return &filterApplier{zctx, e}
 }
 
 func (f *filterApplier) Eval(ectx Context, this *zed.Value) *zed.Value {
-	val, ok := EvalBool(ectx, this, f.expr)
+	val, ok := EvalBool(f.zctx, ectx, this, f.expr)
 	if ok {
 		if zed.IsTrue(val.Bytes) {
 			return this
 		}
-		return zed.Missing
+		return f.zctx.Missing()
 	}
 	return val
 }

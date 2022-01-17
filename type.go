@@ -59,43 +59,44 @@ var (
 	TypeIP     = &TypeOfIP{}
 	TypeNet    = &TypeOfNet{}
 	TypeType   = &TypeOfType{}
-	TypeError  = &TypeOfError{}
 	TypeNull   = &TypeOfNull{}
 )
 
 const (
-	IDUint8    = 0
-	IDUint16   = 1
-	IDUint32   = 2
-	IDUint64   = 3
-	IDInt8     = 4
-	IDInt16    = 5
-	IDInt32    = 6
-	IDInt64    = 7
-	IDDuration = 8
-	IDTime     = 9
-	IDFloat16  = 10
-	IDFloat32  = 11
-	IDFloat64  = 12
-	IDDecimal  = 13
-	IDBool     = 14
-	IDBytes    = 15
-	IDString   = 16
-	IDIP       = 18
-	IDNet      = 19
-	IDType     = 20
-	IDError    = 21
-	IDNull     = 22
+	IDUint8           = 0
+	IDUint16          = 1
+	IDUint32          = 2
+	IDUint64          = 3
+	IDInt8            = 4
+	IDInt16           = 5
+	IDInt32           = 6
+	IDInt64           = 7
+	IDDuration        = 8
+	IDTime            = 9
+	IDFloat16         = 10
+	IDFloat32         = 11
+	IDFloat64         = 12
+	IDDecimal         = 13
+	IDBool            = 14
+	IDBytes           = 15
+	IDString          = 16
+	IDIP              = 18
+	IDNet             = 19
+	IDType            = 20
+	IDErrorDeprecated = 21
+	IDNull            = 22
 
-	IDTypeDef = 23 // 0x17
+	IDTypeDef     = 23 // 0x17
+	IDTypeComplex = 23 // XXXX
 
-	IDTypeName   = 24 // 0x18
-	IDTypeRecord = 25 // 0x19
-	IDTypeArray  = 26 // 0x20
-	IDTypeSet    = 27 // 0x21
-	IDTypeUnion  = 28 // 0x22
-	IDTypeEnum   = 29 // 0x23
-	IDTypeMap    = 30 // 0x24
+	IDTypeName     = 24 // 0x18
+	IDTypeRecord   = 25 // 0x19
+	IDTypeArray    = 26 // 0x20
+	IDTypeSet      = 27 // 0x21
+	IDTypeUnion    = 28 // 0x22
+	IDTypeEnum     = 29 // 0x23
+	IDTypeMap      = 30 // 0x24
+	IDTypeErrorNew = 31 //XXX
 )
 
 var promote = []int{
@@ -147,13 +148,9 @@ func IsSigned(id int) bool {
 	return id >= IDInt8 && id <= IDTime
 }
 
-// True iff the type id is encoded as a string zcode.Bytes.
-func IsStringy(id int) bool {
-	return id == IDString || id == IDError
-}
-
 const (
-	CtrlValueEscape   = 0xf5
+	CtrlValueEscape   = 0xf4
+	TypeDefError      = 0xf5 //XXX
 	TypeDefRecord     = 0xf6
 	TypeDefArray      = 0xf7
 	TypeDefSet        = 0xf8
@@ -213,8 +210,6 @@ func LookupPrimitive(name string) Type {
 		return TypeNet
 	case "type":
 		return TypeType
-	case "error":
-		return TypeError
 	case "null":
 		return TypeNull
 	}
@@ -263,8 +258,6 @@ func LookupPrimitiveByID(id int) Type {
 		return TypeDuration
 	case IDType:
 		return TypeType
-	case IDError:
-		return TypeError
 	case IDNull:
 		return TypeNull
 	}

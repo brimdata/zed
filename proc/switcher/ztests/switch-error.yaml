@@ -9,5 +9,5 @@ input: |
   {a:2,s:"b"}
 
 output: |
-  "divide by zero"(error)
+  error("divide by zero")
   {a:1,s:"a",v:"one"}

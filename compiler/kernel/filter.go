@@ -147,7 +147,7 @@ func compileFilter(zctx *zed.Context, node dag.Expr) (expr.Evaluator, error) {
 		if err != nil {
 			return nil, err
 		}
-		return expr.NewLogicalNot(e), nil
+		return expr.NewLogicalNot(zctx, e), nil
 
 	case *dag.Search:
 		return compileSearch(zctx, v)
@@ -162,7 +162,7 @@ func compileFilter(zctx *zed.Context, node dag.Expr) (expr.Evaluator, error) {
 			if err != nil {
 				return nil, err
 			}
-			return expr.NewLogicalAnd(left, right), nil
+			return expr.NewLogicalAnd(zctx, left, right), nil
 		}
 		if v.Op == "or" {
 			left, err := compileFilter(zctx, v.LHS)
@@ -173,7 +173,7 @@ func compileFilter(zctx *zed.Context, node dag.Expr) (expr.Evaluator, error) {
 			if err != nil {
 				return nil, err
 			}
-			return expr.NewLogicalOr(left, right), nil
+			return expr.NewLogicalOr(zctx, left, right), nil
 		}
 		if f, err := compileCompareField(zctx, v); f != nil || err != nil {
 			return f, err

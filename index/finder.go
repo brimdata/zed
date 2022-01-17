@@ -169,7 +169,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []Ke
 	if f.IsEmpty() {
 		return nil
 	}
-	compare := compareFn(kvs)
+	compare := compareFn(f.zctx, kvs)
 	reader, err := f.search(compare)
 	if err != nil {
 		return err
@@ -193,11 +193,11 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []Ke
 	}
 }
 
-func compareFn(kvs []KeyValue) expr.KeyCompareFn {
+func compareFn(zctx *zed.Context, kvs []KeyValue) expr.KeyCompareFn {
 	accessors := make([]expr.Evaluator, len(kvs))
 	values := make([]zed.Value, len(kvs))
 	for i := range kvs {
-		accessors[i] = expr.NewDottedExpr(kvs[i].Key)
+		accessors[i] = expr.NewDottedExpr(zctx, kvs[i].Key)
 		values[i] = kvs[i].Value
 	}
 	fn := expr.NewValueCompareFn(false)
@@ -222,7 +222,7 @@ func (f *Finder) Nearest(operator string, kvs ...KeyValue) (*zed.Value, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
-	compare := compareFn(kvs)
+	compare := compareFn(f.zctx, kvs)
 	reader, err := f.search(compare)
 	if err != nil {
 		return nil, err

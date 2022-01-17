@@ -6,11 +6,11 @@ inputs:
     data: |
       1
       "hello"
-      "foo"(error)
+      error("foo")
 
 outputs:
   - name: stdout
     data: |
       1
       "hello"
-      "foo"(error)
+      error("foo")

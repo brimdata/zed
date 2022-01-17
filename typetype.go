@@ -88,6 +88,9 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 		b = append(b, IDTypeMap)
 		b = appendTypeValue(b, t.KeyType, typedefs)
 		return appendTypeValue(b, t.ValType, typedefs)
+	case *TypeError:
+		b = append(b, IDTypeErrorNew)
+		return appendTypeValue(b, t.Type, typedefs)
 	default:
 		// Primitive type
 		return append(b, byte(t.ID()))
@@ -199,6 +202,10 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			}
 			b.WriteString(QuotedName(symbol))
 		}
+		b.WriteByte('>')
+	case IDTypeErrorNew:
+		b.WriteString("error<")
+		tv = formatTypeValue(tv, b)
 		b.WriteByte('>')
 	default:
 		if id < 0 || id > IDTypeDef {

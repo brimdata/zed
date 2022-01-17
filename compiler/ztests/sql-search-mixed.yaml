@@ -15,6 +15,6 @@ input: |
   {name:"jim",likes:null([string]),age:30}(=person)
 
 output: |
-  {flavor:"missing"(error),union:|["joe"]|}
+  {flavor:error("missing"),union:|["joe"]|}
   {flavor:"tart",union:|["apple"]|}
   {flavor:"sweet",union:|["strawberry"]|}

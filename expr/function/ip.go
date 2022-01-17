@@ -8,12 +8,14 @@ import (
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#network_of
-type NetworkOf struct{}
+type NetworkOf struct {
+	zctx *zed.Context
+}
 
 func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	id := args[0].Type.ID()
 	if id != zed.IDIP {
-		return newErrorf(ctx, "network_of: not an IP")
+		return newErrorf(n.zctx, ctx, "network_of: not an IP")
 	}
 	// XXX GC
 	ip, err := zed.DecodeIP(args[0].Bytes)
@@ -24,7 +26,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if len(args) == 1 {
 		mask = ip.DefaultMask()
 		if mask == nil {
-			return newErrorf(ctx, "network_of: not an IPv4 address")
+			return newErrorf(n.zctx, ctx, "network_of: not an IPv4 address")
 		}
 	} else {
 		// two args
@@ -37,7 +39,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 				panic(err)
 			}
 			if !bytes.Equal(cidrMask.IP, cidrMask.Mask) {
-				return newErrorf(ctx, "network_of: network arg not a cidr mask")
+				return newErrorf(n.zctx, ctx, "network_of: network arg not a cidr mask")
 			}
 			mask = cidrMask.Mask
 		} else if zed.IsInteger(id) {
@@ -56,11 +58,11 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 				nbits = uint(v)
 			}
 			if nbits > 64 {
-				return newErrorf(ctx, "network_of: cidr bit count out of range")
+				return newErrorf(n.zctx, ctx, "network_of: cidr bit count out of range")
 			}
 			mask = net.CIDRMask(int(nbits), 8*len(ip))
 		} else {
-			return newErrorf(ctx, "network_of: bad arg for cidr mask")
+			return newErrorf(n.zctx, ctx, "network_of: bad arg for cidr mask")
 		}
 	}
 	// XXX GC

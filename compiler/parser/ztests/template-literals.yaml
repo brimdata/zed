@@ -18,9 +18,9 @@ output: |
    "hello ${to_hex(this)}"
    "yo dawg world"
    "==="
-   "incompatible types"(error)
+   error("incompatible types")
    "hello 7f000001"
    "hello ${this}"
    "hello ${to_hex(this)}"
-   "incompatible types"(error)
+   error("incompatible types")
    "==="

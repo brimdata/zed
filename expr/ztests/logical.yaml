@@ -3,7 +3,7 @@ script: |
   zq -z "yield t AND t" in.zson
   zq -z "yield t AND f" in.zson
   zq -z "yield t AND n" in.zson
-  zq -z "yield string(t AND m)" in.zson
+  zq -z "yield missing(t AND m)" in.zson
   echo === FALSE AND ===
   zq -z "yield f AND t" in.zson
   zq -z "yield f AND f" in.zson
@@ -15,10 +15,10 @@ script: |
   zq -z "yield n AND n" in.zson
   zq -z "yield n AND m" in.zson
   echo === MISSING AND ===
-  zq -z "yield string(m AND t)" in.zson
-  zq -z "yield string(m AND f)" in.zson
-  zq -z "yield string(m AND n)" in.zson
-  zq -z "yield string(m AND m)" in.zson
+  zq -z "yield missing(m AND t)" in.zson
+  zq -z "yield missing(m AND f)" in.zson
+  zq -z "yield missing(m AND n)" in.zson
+  zq -z "yield missing(m AND m)" in.zson
   echo === TRUE OR ===
   zq -z "yield t OR t" in.zson
   zq -z "yield t OR f" in.zson
@@ -28,28 +28,28 @@ script: |
   zq -z "yield f OR t" in.zson
   zq -z "yield f OR f" in.zson
   zq -z "yield f OR n" in.zson
-  zq -z "yield string(f OR m)" in.zson
+  zq -z "yield missing(f OR m)" in.zson
   echo === NULL OR ===
   zq -z "yield n OR t" in.zson
   zq -z "yield n OR f" in.zson
   zq -z "yield n OR n" in.zson
-  zq -z "yield string(n OR m)" in.zson
+  zq -z "yield missing(n OR m)" in.zson
   echo === MISSING OR ===
   zq -z "yield m OR t" in.zson
   zq -z "yield m OR f" in.zson
   zq -z "yield m OR n" in.zson
-  zq -z "yield string(m OR m)" in.zson
+  zq -z "yield missing(m OR m)" in.zson
   echo === NOT
   zq -z "yield !t" in.zson
   zq -z "yield !f" in.zson
-  zq -z "yield string(!m)" in.zson
+  zq -z "yield missing(!m)" in.zson
   zq -z "yield !n" in.zson
   zq -z "yield !!f" in.zson
 
 inputs:
   - name: in.zson
     data: |
-      {t:true,f:false,m:"missing"(error),n:null(bool)}
+      {t:true,f:false,m:error("missing"),n:null(bool)}
 
 outputs:
   - name: stdout
@@ -58,7 +58,7 @@ outputs:
       true
       false
       false
-      "missing"
+      true
       === FALSE AND ===
       false
       false
@@ -70,10 +70,10 @@ outputs:
       false
       false
       === MISSING AND ===
-      "missing"
-      "missing"
-      "missing"
-      "missing"
+      true
+      true
+      true
+      true
       === TRUE OR ===
       true
       true
@@ -83,20 +83,20 @@ outputs:
       true
       false
       false
-      "missing"
+      true
       === NULL OR ===
       true
       false
       false
-      "missing"
+      true
       === MISSING OR ===
       true
       false
       false
-      "missing"
+      true
       === NOT
       false
       true
-      "missing"
+      true
       true
       false

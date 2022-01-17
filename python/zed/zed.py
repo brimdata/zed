@@ -125,6 +125,9 @@ def _decode_type(types, typ):
     if kind == 'union':
         typ['types'] = [_decode_type(types, t) for t in typ['types']]
         return typ
+    if kind == 'error':
+        typ['type'] = _decode_type(types, typ['type'])
+        return typ
     raise Exception(f'unknown type kind {kind}')
 
 
@@ -176,6 +179,8 @@ def _decode_value(typ, value):
     if kind == 'union':
         type_index, val = value
         return _decode_value(typ['types'][int(type_index)], val)
+    if kind == 'error':
+        return _decode_value(typ['type'], value)
     raise Exception(f'unknown type kind {kind}')
 
 

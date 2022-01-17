@@ -5,4 +5,4 @@ input: |
   {x:1(int32)}
 
 output: |
-  {x:1(int32),y:"divide by zero"(error)}
+  {x:1(int32),y:error("divide by zero")}

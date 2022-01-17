@@ -338,14 +338,15 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	// Force validation of ZNG when initialing loading into the lake.
 	var opts anyio.ReaderOpts
 	opts.ZNG.Validate = true
-	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zed.NewContext(), opts)
+	zctx := zed.NewContext()
+	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zctx, opts)
 	if err != nil {
 		w.Error(zqe.ErrInvalid(err))
 		return
 	}
 	warnings := warningCollector{}
 	zr = zio.NewWarningReader(zr, &warnings)
-	kommit, err := branch.Load(r.Context(), zr, message.Author, message.Body, message.Meta)
+	kommit, err := branch.Load(r.Context(), zctx, zr, message.Author, message.Body, message.Meta)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = zqe.ErrInvalid("no records in request")

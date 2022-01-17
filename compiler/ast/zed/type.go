@@ -41,6 +41,10 @@ type (
 	TypeNull struct {
 		Kind string `json:"kind" unpack:""`
 	}
+	TypeError struct {
+		Kind string `json:"kind" unpack:""`
+		Type Type   `json:"type"`
+	}
 	TypeName struct {
 		Kind string `json:"kind" unpack:""`
 		Name string `json:"name"`
@@ -60,5 +64,6 @@ func (*TypeUnion) typeNode()     {}
 func (*TypeEnum) typeNode()      {}
 func (*TypeMap) typeNode()       {}
 func (*TypeNull) typeNode()      {}
+func (*TypeError) typeNode()     {}
 func (*TypeName) typeNode()      {}
 func (*TypeDef) typeNode()       {}

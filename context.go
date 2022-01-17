@@ -24,16 +24,19 @@ const (
 // to Types.  This provides an efficient means to translate Type pointers
 // from one context to another.
 type Context struct {
-	mu       sync.RWMutex
-	byID     []Type
-	toType   map[string]Type
-	toValue  map[Type]zcode.Bytes
-	typedefs map[string]*TypeAlias
+	mu        sync.RWMutex
+	byID      []Type
+	toType    map[string]Type
+	toValue   map[Type]zcode.Bytes
+	typedefs  map[string]*TypeAlias
+	stringErr *TypeError
+	missing   *Value
+	quiet     *Value
 }
 
 func NewContext() *Context {
 	return &Context{
-		byID:     make([]Type, IDTypeDef, 2*IDTypeDef),
+		byID:     make([]Type, IDTypeComplex, 2*IDTypeComplex),
 		toType:   make(map[string]Type),
 		toValue:  make(map[Type]zcode.Bytes),
 		typedefs: make(map[string]*TypeAlias),
@@ -43,7 +46,7 @@ func NewContext() *Context {
 func (c *Context) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.byID = c.byID[:IDTypeDef]
+	c.byID = c.byID[:IDTypeComplex]
 	c.toType = make(map[string]Type)
 	c.toValue = make(map[Type]zcode.Bytes)
 	c.typedefs = make(map[string]*TypeAlias)
@@ -57,7 +60,7 @@ func (c *Context) LookupType(id int) (Type, error) {
 	if id < 0 {
 		return nil, fmt.Errorf("type id (%d) cannot be negative", id)
 	}
-	if id < IDTypeDef {
+	if id < IDTypeComplex {
 		return LookupPrimitiveByID(id), nil
 	}
 	c.mu.RLock()
@@ -208,6 +211,21 @@ func (c *Context) LookupTypeAlias(name string, target Type) (*TypeAlias, error) 
 	return typ, nil
 }
 
+func (c *Context) LookupTypeError(inner Type) *TypeError {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	tv := EncodeTypeValue(&TypeError{Type: inner})
+	if typ, ok := c.toType[string(tv)]; ok {
+		return typ.(*TypeError)
+	}
+	typ := NewTypeError(c.nextIDWithLock(), inner)
+	c.enterWithLock(tv, typ)
+	if inner == TypeString {
+		c.stringErr = typ
+	}
+	return typ
+}
+
 // AddColumns returns a new Record with columns equal to the given
 // record along with new rightmost columns as indicated with the given values.
 // If any of the newly provided columns already exists in the specified value,
@@ -293,7 +311,7 @@ func (c *Context) LookupTypeValue(typ Type) *Value {
 	typ, err := c.LookupByValue(tv)
 	if err != nil {
 		// This shouldn't happen.
-		return Missing
+		return c.Missing()
 	}
 	return c.LookupTypeValue(typ)
 }
@@ -423,8 +441,19 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return typ, tv
+	case IDTypeErrorNew:
+		inner, tv := c.decodeTypeValue(tv)
+		if tv == nil {
+			return nil, nil
+		}
+		typ := c.LookupTypeError(inner)
+		if typ == nil {
+			return nil, nil
+		}
+		return typ, tv
 	default:
-		if id < 0 || id > IDTypeDef {
+		if id < 0 || id > IDTypeErrorNew { //XXX
+			// Out of range.
 			return nil, nil
 		}
 		typ := LookupPrimitiveByID(int(id))
@@ -433,4 +462,71 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	}
+}
+
+func (c *Context) Missing() *Value {
+	c.mu.RLock()
+	missing := c.missing
+	if missing != nil {
+		c.mu.RUnlock()
+		return missing
+	}
+	c.mu.RUnlock()
+	missing = c.NewErrorf("missing")
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.missing == nil {
+		c.missing = missing
+	}
+	return c.missing
+}
+
+func (c *Context) Quiet() *Value {
+	c.mu.RLock()
+	quiet := c.quiet
+	if quiet != nil {
+		c.mu.RUnlock()
+		return quiet
+	}
+	c.mu.RUnlock()
+	quiet = c.NewErrorf("quiet")
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.quiet == nil {
+		c.quiet = quiet
+	}
+	return c.quiet
+}
+
+// batch/allocator should handle these?
+
+func (c *Context) NewErrorf(format string, args ...interface{}) *Value {
+	return &Value{c.StringTypeError(), zcode.Bytes(fmt.Sprintf(format, args...))}
+}
+
+func (c *Context) NewError(err error) *Value {
+	return &Value{c.StringTypeError(), zcode.Bytes(err.Error())}
+}
+
+func (c *Context) StringTypeError() *TypeError {
+	c.mu.RLock()
+	typ := c.stringErr
+	c.mu.RUnlock()
+	if typ == nil {
+		typ = c.LookupTypeError(TypeString)
+	}
+	return typ
+}
+
+func (c *Context) WrapError(msg string, val *Value) *Value {
+	cols := []Column{
+		{"message", TypeString},
+		{"on", val.Type},
+	}
+	recType := c.MustLookupTypeRecord(cols)
+	errType := c.LookupTypeError(recType)
+	var b zcode.Builder
+	b.AppendPrimitive(EncodeString(msg))
+	b.Append(val.Bytes, IsContainerType(val.Type))
+	return &Value{errType, b.Bytes()}
 }

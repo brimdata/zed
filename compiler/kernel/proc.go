@@ -139,13 +139,13 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return proc.NewApplier(b.pctx, parent, expr.NewFilterApplier(f)), nil
+		return proc.NewApplier(b.pctx, parent, expr.NewFilterApplier(b.pctx.Zctx, f)), nil
 	case *dag.Top:
 		fields, err := CompileExprs(b.pctx.Zctx, v.Args)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
-		return top.New(parent, v.Limit, fields, v.Flush), nil
+		return top.New(parent, b.pctx.Zctx, v.Limit, fields, v.Flush), nil
 	case *dag.Put:
 		clauses, err := compileAssignments(v.Args, b.pctx.Zctx)
 		if err != nil {
@@ -442,7 +442,7 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 		return []zbuf.Puller{join}, nil
 	case *dag.Merge:
 		layout := order.NewLayout(op.Order, field.List{op.Key})
-		cmp := zbuf.NewCompareFn(layout)
+		cmp := zbuf.NewCompareFn(b.pctx.Zctx, layout)
 		return []zbuf.Puller{merge.New(b.pctx, parents, cmp)}, nil
 	default:
 		var parent zbuf.Puller

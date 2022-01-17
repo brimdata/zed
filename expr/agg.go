@@ -32,9 +32,9 @@ func (a *Aggregator) NewFunction() agg.Function {
 	return a.pattern()
 }
 
-func (a *Aggregator) Apply(ectx Context, f agg.Function, this *zed.Value) {
+func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this *zed.Value) {
 	if a.where != nil {
-		if val, ok := EvalBool(ectx, this, a.where); !ok || val.Bytes == nil || !zed.IsTrue(val.Bytes) {
+		if val, ok := EvalBool(zctx, ectx, this, a.where); !ok || val.Bytes == nil || !zed.IsTrue(val.Bytes) {
 			// XXX Issue #3401: do something with "where" errors.
 			return
 		}
@@ -63,8 +63,8 @@ var _ Evaluator = (*aggregatorExpr)(nil)
 func (s *aggregatorExpr) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if s.fn == nil {
 		s.fn = s.agg.NewFunction()
-		s.zctx = zed.NewContext()
+		s.zctx = zed.NewContext() //XXX
 	}
-	s.agg.Apply(ectx, s.fn, val)
+	s.agg.Apply(s.zctx, ectx, s.fn, val)
 	return s.fn.Result(s.zctx)
 }

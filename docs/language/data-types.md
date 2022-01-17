@@ -45,7 +45,7 @@ zq -z 'sum(quantity) by every(1d) | sort ts' shipments.ndjson
 
 #### Output:
 ```mdtest-output
-{ts:"every: time arg required"(error),sum:9158}
+{ts:error("every: time arg required"),sum:9158}
 ```
 
 However, if we cast the `ts` field to the Zed `time` type, now the

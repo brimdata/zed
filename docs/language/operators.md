@@ -72,8 +72,8 @@ zq -z 'yosemiteuhsd | cut School,Website,addr' *.zson
 
 #### Output:
 ```mdtest-output
-{School:null(string),Website:"www.yosemiteuhsd.com",addr:"missing"(error)}
-{School:"missing"(error),Website:"www.yosemiteuhsd.com",addr:104.253.209.210}
+{School:null(string),Website:"www.yosemiteuhsd.com",addr:error("missing")}
+{School:error("missing"),Website:"www.yosemiteuhsd.com",addr:104.253.209.210}
 ```
 
 #### Example #3:

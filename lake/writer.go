@@ -23,6 +23,7 @@ type Writer struct {
 	objects     []data.Object
 	inputSorted bool
 	ctx         context.Context
+	zctx        *zed.Context
 	//defs          index.Definitions
 	errgroup *errgroup.Group
 	vals     []zed.Value
@@ -49,13 +50,14 @@ type Writer struct {
 //XXX we should make another writer that takes sorted input and is a bit
 // more efficient.  This other writer could have different commit triggers
 // to do useful things like paritioning given the context is a rollup.
-func NewWriter(ctx context.Context, pool *Pool) (*Writer, error) {
+func NewWriter(ctx context.Context, zctx *zed.Context, pool *Pool) (*Writer, error) {
 	g, ctx := errgroup.WithContext(ctx)
 	ch := make(chan []zed.Value, 1)
 	ch <- nil
 	return &Writer{
 		pool:     pool,
 		ctx:      ctx,
+		zctx:     zctx,
 		errgroup: g,
 		buffer:   ch,
 	}, nil
@@ -130,7 +132,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if !w.inputSorted {
 		done := make(chan struct{})
 		go func() {
-			expr.SortStable(recs, importCompareFn(w.pool))
+			expr.SortStable(recs, importCompareFn(w.zctx, w.pool))
 			close(done)
 		}()
 		select {
@@ -194,10 +196,10 @@ func (s *ImportStats) Copy() ImportStats {
 	}
 }
 
-func importCompareFn(pool *Pool) expr.CompareFn {
+func importCompareFn(zctx *zed.Context, pool *Pool) expr.CompareFn {
 	layout := pool.Layout
 	layout.Keys = field.List{poolKey(layout)}
-	return zbuf.NewCompareFn(layout)
+	return zbuf.NewCompareFn(zctx, layout)
 }
 
 func poolKey(layout order.Layout) field.Path {

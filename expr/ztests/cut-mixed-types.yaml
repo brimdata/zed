@@ -5,5 +5,5 @@ input: |
   {addr:10.0.0.1}
 
 output: |
-  {x:"network_of: not an IPv4 address"(error)}
+  {x:error("network_of: not an IPv4 address")}
   {x:10.0.0.0/8}

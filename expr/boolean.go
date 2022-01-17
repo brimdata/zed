@@ -292,7 +292,7 @@ func CompileRegexp(pattern string) (*regexp.Regexp, error) {
 // be a stringy the given regexp.
 func NewRegexpBoolean(re *regexp.Regexp) Boolean {
 	return func(val *zed.Value) bool {
-		if zed.IsStringy(val.Type.ID()) {
+		if val.IsString() {
 			return re.Match(val.Bytes)
 		}
 		return false
@@ -436,7 +436,7 @@ func Comparison(op string, val *zed.Value) (Boolean, error) {
 			return nil, err
 		}
 		return CompareFloat64(op, v)
-	case *zed.TypeOfString, *zed.TypeOfError:
+	case *zed.TypeOfString:
 		return CompareString(op, val.Bytes)
 	case *zed.TypeOfBytes, *zed.TypeOfType:
 		return CompareBytes(op, val.Bytes)

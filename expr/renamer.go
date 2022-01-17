@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zcode"
 )
 
 // Renamer renames one or more fields in a record. A field can only be
@@ -76,19 +75,7 @@ func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
 		var err error
 		typ, err = r.computeType(zed.TypeRecordOf(this.Type))
 		if err != nil {
-			// XXX structured error
-			cols := []zed.Column{
-				{"err", zed.TypeError},
-				{"this", this.Type},
-			}
-			errType, zerr := r.zctx.LookupTypeRecord(cols)
-			if zerr != nil {
-				panic(zerr)
-			}
-			var b zcode.Builder
-			b.AppendPrimitive(zed.EncodeString(fmt.Sprintf("rename: %s", err)))
-			b.Append(this.Bytes, zed.IsContainerType(typ))
-			return ectx.NewValue(errType, b.Bytes())
+			return r.zctx.WrapError(fmt.Sprintf("rename: %s", err), this)
 		}
 		r.typeMap[id] = typ
 	}

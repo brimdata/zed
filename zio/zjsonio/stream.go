@@ -105,6 +105,8 @@ func (s *Stream) hasTypeType(typ zed.Type) bool {
 				break
 			}
 		}
+	case *zed.TypeError:
+		b = s.hasTypeType(t.Type)
 	case *zed.TypeOfType:
 		b = true
 	default:

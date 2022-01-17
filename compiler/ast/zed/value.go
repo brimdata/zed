@@ -67,6 +67,10 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Value Type   `json:"value"`
 	}
+	Error struct {
+		Kind  string `json:"kind" unpack:""`
+		Value Value  `json:"value"`
+	}
 )
 
 func (*Primitive) anyNode() {}
@@ -76,6 +80,7 @@ func (*Set) anyNode()       {}
 func (*Enum) anyNode()      {}
 func (*Map) anyNode()       {}
 func (*TypeValue) anyNode() {}
+func (*Error) anyNode()     {}
 
 func (*Primitive) ExprAST() {}
 func (*TypeValue) ExprAST() {}

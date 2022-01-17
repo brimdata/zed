@@ -50,7 +50,7 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	case *zed.TypeOfNet:
 		v, err := zed.DecodeNet(zb)
 		return []byte(v.String()), err
-	case *zed.TypeOfType, *zed.TypeOfError:
+	case *zed.TypeOfType:
 		return zed.DecodeBytes(zb)
 	case *zed.TypeOfNull:
 		return nil, ErrNullType
@@ -66,6 +66,8 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 		return []byte(typ.Format(zb)), nil
 	case *zed.TypeMap:
 		return newMapData(typ.KeyType, typ.ValType, zb)
+	case *zed.TypeError:
+		return []byte(typ.Format(zb)), nil
 	}
 	panic(fmt.Sprintf("unknown type %T", typ))
 }

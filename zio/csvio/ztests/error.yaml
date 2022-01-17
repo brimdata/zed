@@ -1,20 +1,20 @@
 zed: '*'
 
 input: |
-  {error:null(error)}
-  {error:""(error)}
-  {error:"\""(error)}
-  {error:","(error)}
-  {error:"\\u002d"(error)}
-  {error:"\\u005c"(error)}
+  {error:error(null(string))}
+  {error:error("")}
+  {error:error("\"")}
+  {error:error(",")}
+  {error:error("\\u002d")}
+  {error:error("\\u005c")}
 
 output-flags: -f csv
 
 output: |
   error
 
-
-  """"
-  ","
-  \u002d
-  \u005c
+  "error("""")"
+  "error(""\"""")"
+  "error("","")"
+  "error(""\\u002d"")"
+  "error(""\\u005c"")"

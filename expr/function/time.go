@@ -16,6 +16,7 @@ func (n *Now) Call(ctx zed.Allocator, _ []zed.Value) *zed.Value {
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#bucket
 type Bucket struct {
 	name string
+	zctx *zed.Context
 }
 
 func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {

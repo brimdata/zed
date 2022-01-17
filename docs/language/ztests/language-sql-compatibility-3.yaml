@@ -36,4 +36,4 @@ output: |
   {srcip:10.0.0.1,dstip:9.10.11.12,bytes:130,maxdur:null,valid:false}
   {srcip:10.0.0.1,dstip:13.14.15.16,bytes:144,maxdur:null,valid:null(bool)}
   {srcip:10.0.0.1,dstip:17.18.19.20,bytes:null,maxdur:null,valid:true}
-  {srcip:10.0.0.1,dstip:"missing"(error),bytes:66,maxdur:null,valid:null(bool)}
+  {srcip:10.0.0.1,dstip:error("missing"),bytes:66,maxdur:null,valid:null(bool)}

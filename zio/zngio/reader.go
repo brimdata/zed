@@ -163,6 +163,8 @@ func (r *Reader) readPayload(rec *zed.Value) (*zed.Value, *AppMessage, error) {
 			err = r.readTypeMap()
 		case zed.TypeDefAlias:
 			err = r.readTypeAlias()
+		case zed.TypeDefError:
+			err = r.readTypeError()
 		case zed.CtrlEOS:
 			r.reset()
 		case zed.CtrlCompressed:
@@ -500,6 +502,20 @@ func (r *Reader) readTypeAlias() error {
 	if err != nil {
 		return err
 	}
+	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
+	return err
+}
+
+func (r *Reader) readTypeError() error {
+	id, err := r.readUvarint()
+	if err != nil {
+		return zed.ErrBadFormat
+	}
+	inner, err := r.zctx.LookupType(int(id))
+	if err != nil {
+		return err
+	}
+	typ := r.zctx.LookupTypeError(inner)
 	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }

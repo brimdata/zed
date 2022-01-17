@@ -181,20 +181,28 @@ func (v *Value) CopyFrom(from *Value) {
 	}
 }
 
-func (v *Value) IsStringy() bool {
-	return IsStringy(v.Type.ID())
+func (v *Value) IsString() bool {
+	_, ok := TypeUnder(v.Type).(*TypeOfString)
+	return ok
 }
 
 func (v *Value) IsError() bool {
-	return TypeUnder(v.Type) == TypeError
+	_, ok := TypeUnder(v.Type).(*TypeError)
+	return ok
 }
 
 func (v *Value) IsMissing() bool {
-	return v.Type == Missing.Type && bytes.Equal(v.Bytes, Missing.Bytes)
+	if typ, ok := v.Type.(*TypeError); ok {
+		return typ.IsMissing(v.Bytes)
+	}
+	return false
 }
 
 func (v *Value) IsQuiet() bool {
-	return v.Type == Quiet.Type && bytes.Equal(v.Bytes, Quiet.Bytes)
+	if typ, ok := v.Type.(*TypeError); ok {
+		return typ.IsQuiet(v.Bytes)
+	}
+	return false
 }
 
 func (v *Value) Equal(p Value) bool {

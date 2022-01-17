@@ -138,12 +138,12 @@ func New(pctx *proc.Context, parent zbuf.Puller, keys []expr.Assignment, aggName
 	}
 	valRefs := make([]expr.Evaluator, 0, len(aggNames))
 	for _, fieldName := range aggNames {
-		valRefs = append(valRefs, expr.NewDottedExpr(fieldName))
+		valRefs = append(valRefs, expr.NewDottedExpr(pctx.Zctx, fieldName))
 	}
 	keyRefs := make([]expr.Evaluator, 0, len(keys))
 	keyExprs := make([]expr.Evaluator, 0, len(keys))
 	for _, e := range keys {
-		keyRefs = append(keyRefs, expr.NewDottedExpr(e.LHS))
+		keyRefs = append(keyRefs, expr.NewDottedExpr(pctx.Zctx, e.LHS))
 		keyExprs = append(keyExprs, e.RHS)
 	}
 	agg, err := NewAggregator(pctx.Context, pctx.Zctx, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
@@ -352,7 +352,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) {
 	if a.partialsIn {
 		row.reducers.consumeAsPartial(this, a.aggRefs, batch)
 	} else {
-		row.reducers.apply(batch, a.aggs, this)
+		row.reducers.apply(a.zctx, batch, a.aggs, this)
 	}
 }
 

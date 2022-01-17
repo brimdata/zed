@@ -57,6 +57,10 @@ type (
 		Type  zed.Type
 		Value zed.Type
 	}
+	Error struct {
+		Type  zed.Type
+		Value Value
+	}
 )
 
 func (p *Primitive) TypeOf() zed.Type { return p.Type }
@@ -68,6 +72,7 @@ func (e *Enum) TypeOf() zed.Type      { return e.Type }
 func (m *Map) TypeOf() zed.Type       { return m.Type }
 func (n *Null) TypeOf() zed.Type      { return n.Type }
 func (t *TypeValue) TypeOf() zed.Type { return t.Type }
+func (e *Error) TypeOf() zed.Type     { return e.Type }
 
 func (p *Primitive) SetType(t zed.Type) { p.Type = t }
 func (r *Record) SetType(t zed.Type)    { r.Type = t }
@@ -78,6 +83,7 @@ func (e *Enum) SetType(t zed.Type)      { e.Type = t }
 func (m *Map) SetType(t zed.Type)       { m.Type = t }
 func (n *Null) SetType(t zed.Type)      { n.Type = t }
 func (t *TypeValue) SetType(T zed.Type) { t.Type = T }
+func (e *Error) SetType(t zed.Type)     { e.Type = t }
 
 // An Analyzer transforms an astzed.Value (which has decentralized type decorators)
 // to a typed Value, where every component of a nested Value is explicitly typed.
@@ -205,6 +211,8 @@ func (a Analyzer) convertAny(zctx *zed.Context, val astzed.Any, cast zed.Type) (
 		return a.convertMap(zctx, val, cast)
 	case *astzed.TypeValue:
 		return a.convertTypeValue(zctx, val, cast)
+	case *astzed.Error:
+		return a.convertError(zctx, val, cast)
 	}
 	return nil, fmt.Errorf("internal error: unknown ast type in Analyzer.convertAny(): %T", val)
 }
@@ -250,8 +258,7 @@ func castType(typ, cast zed.Type) (zed.Type, error) {
 	typID, castID := typ.ID(), cast.ID()
 	if typID == castID || typID == zed.IDNull ||
 		zed.IsInteger(typID) && zed.IsInteger(castID) ||
-		zed.IsFloat(typID) && zed.IsFloat(castID) ||
-		zed.IsStringy(typID) && zed.IsStringy(castID) {
+		zed.IsFloat(typID) && zed.IsFloat(castID) {
 		return cast, nil
 	}
 	return nil, fmt.Errorf("type mismatch: %q cannot be used as %q", typ, cast)
@@ -560,6 +567,28 @@ func (a Analyzer) convertTypeValue(zctx *zed.Context, tv *astzed.TypeValue, cast
 	}, nil
 }
 
+func (a Analyzer) convertError(zctx *zed.Context, val *astzed.Error, cast zed.Type) (Value, error) {
+	var inner zed.Type
+	if cast != nil {
+		typ, ok := zed.TypeUnder(cast).(*zed.TypeError)
+		if !ok {
+			return nil, errors.New("error decorator not of type error")
+		}
+		inner = typ.Type
+	}
+	under, err := a.convertValue(zctx, val.Value, inner)
+	if err != nil {
+		return nil, err
+	}
+	if cast == nil {
+		cast = zctx.LookupTypeError(under.TypeOf())
+	}
+	return &Error{
+		Value: under,
+		Type:  cast,
+	}, nil
+}
+
 func (a Analyzer) convertType(zctx *zed.Context, typ astzed.Type) (zed.Type, error) {
 	switch t := typ.(type) {
 	case *astzed.TypePrimitive:
@@ -602,6 +631,12 @@ func (a Analyzer) convertType(zctx *zed.Context, typ astzed.Type) (zed.Type, err
 		return a.convertTypeUnion(zctx, t)
 	case *astzed.TypeEnum:
 		return a.convertTypeEnum(zctx, t)
+	case *astzed.TypeError:
+		typ, err := a.convertType(zctx, t.Type)
+		if err != nil {
+			return nil, err
+		}
+		return zctx.LookupTypeError(typ), nil
 	case *astzed.TypeName:
 		typ, ok := a[t.Name]
 		if !ok {

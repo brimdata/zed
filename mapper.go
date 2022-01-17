@@ -23,7 +23,7 @@ func NewMapper(out *Context) *Mapper {
 // outputContext will return the same the pointer so the second update
 // does not change anything.
 func (m *Mapper) Lookup(id int) Type {
-	if id < IDTypeDef {
+	if id < IDTypeComplex {
 		return LookupPrimitiveByID(id)
 	}
 	m.mu.RLock()
@@ -35,7 +35,7 @@ func (m *Mapper) Lookup(id int) Type {
 }
 
 func (m *Mapper) Enter(id int, ext Type) (Type, error) {
-	if id < IDTypeDef {
+	if id < IDTypeComplex {
 		return LookupPrimitiveByID(id), nil
 	}
 	typ, err := m.outputCtx.TranslateType(ext)
@@ -50,7 +50,7 @@ func (m *Mapper) Enter(id int, ext Type) (Type, error) {
 }
 
 func (m *Mapper) EnterType(id int, typ Type) {
-	if id < IDTypeDef {
+	if id < IDTypeComplex {
 		return
 	}
 	m.mu.Lock()

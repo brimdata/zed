@@ -107,7 +107,7 @@ func (c *Command) parseKey(s string) error {
 }
 
 func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTable, error) {
-	fields, resolvers := compiler.CompileAssignments(c.keys, c.keys)
+	fields, resolvers := compiler.CompileAssignments(zctx, c.keys, c.keys)
 	cutter, err := expr.NewCutter(zctx, fields, resolvers)
 	if err != nil {
 		return nil, err

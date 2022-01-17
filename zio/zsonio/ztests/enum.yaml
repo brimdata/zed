@@ -3,17 +3,17 @@ zed: "*"
 output-flags: -f zson -pretty=4
 
 input: |
-  {flip:HEADS(<HEADS,TAILS>)}
-  {flip:TAILS(<HEADS,TAILS>)}
-  {flip:HEADS(<HEADS,TAILS>)}
+  {flip:%HEADS(enum<HEADS,TAILS>)}
+  {flip:%TAILS(enum<HEADS,TAILS>)}
+  {flip:%HEADS(enum<HEADS,TAILS>)}
 
 output: |
   {
-      flip: HEADS (<HEADS,TAILS>)
+      flip: %HEADS (enum<HEADS,TAILS>)
   }
   {
-      flip: TAILS (<HEADS,TAILS>)
+      flip: %TAILS (enum<HEADS,TAILS>)
   }
   {
-      flip: HEADS (<HEADS,TAILS>)
+      flip: %HEADS (enum<HEADS,TAILS>)
   }

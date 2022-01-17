@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"errors"
 	"math"
 
 	"github.com/brimdata/zed"
@@ -12,18 +13,24 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/semaphore"
 )
 
-var (
-	minExpr = zedexpr.NewDottedExpr(field.Dotted("seek.min"))
-	maxExpr = zedexpr.NewDottedExpr(field.Dotted("seek.max"))
-	MaxSpan = extent.NewGenericFromOrder(*zed.NewUint64(0), *zed.NewUint64(math.MaxUint64), order.Asc)
-)
+func seekDotMin(zctx *zed.Context) zedexpr.Evaluator {
+	return zedexpr.NewDottedExpr(zctx, field.Dotted("seek.min"))
+}
+
+func seekDotMax(zctx *zed.Context) zedexpr.Evaluator {
+	return zedexpr.NewDottedExpr(zctx, field.Dotted("seek.min"))
+}
+
+var MaxSpan = extent.NewGenericFromOrder(*zed.NewUint64(0), *zed.NewUint64(math.MaxUint64), order.Asc)
 
 type Filter struct {
+	zctx   *zed.Context
 	engine storage.Engine
 	path   *storage.URI
 	expr   expr
@@ -36,6 +43,7 @@ func NewFilter(engine storage.Engine, path *storage.URI, dag *dag.Filter) (*Filt
 		return nil, err
 	}
 	return &Filter{
+		zctx:   zed.NewContext(),
 		engine: engine,
 		path:   path,
 		expr:   expr,
@@ -62,19 +70,19 @@ func (f *Filter) find(ctx context.Context, oid, rid ksuid.KSUID, kv index.KeyVal
 	if val == nil || err != nil {
 		return nil, err
 	}
-	return getSpan(val, finder.Order())
+	return getSpan(f.zctx, val, finder.Order())
 }
 
-func getSpan(val *zed.Value, o order.Which) (extent.Span, error) {
+func getSpan(zctx *zed.Context, val *zed.Value, o order.Which) (extent.Span, error) {
 	ectx := zedexpr.NewContext()
-	min := minExpr.Eval(ectx, val)
-	max := maxExpr.Eval(ectx, val)
+	min := seekDotMin(zctx).Eval(ectx, val)
+	max := seekDotMax(zctx).Eval(ectx, val)
 	var err error
-	if min.Type == zed.TypeError {
-		err, _ = zed.DecodeError(min.Bytes)
+	if min.IsError() {
+		err = errors.New(zson.MustFormatValue(*min))
 	}
-	if max.Type == zed.TypeError {
-		err2, _ := zed.DecodeError(max.Bytes)
+	if max.IsError() {
+		err2 := errors.New(zson.MustFormatValue(*min))
 		err = multierr.Combine(err, err2)
 	}
 	if err != nil {

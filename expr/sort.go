@@ -117,7 +117,7 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 	return cfn(abytes, bbytes)
 }
 
-func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
+func NewKeyCompareFn(zctx *zed.Context, key *zed.Value) (KeyCompareFn, error) {
 	comparefns := make(map[zed.Type]comparefn)
 	var accessors []Evaluator
 	var keyval []zed.Value
@@ -132,7 +132,7 @@ func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
 			break
 		}
 		keyval = append(keyval, val)
-		accessors = append(accessors, NewDottedExpr(name))
+		accessors = append(accessors, NewDottedExpr(zctx, name))
 	}
 	return func(ectx Context, this *zed.Value) int {
 		for k, access := range accessors {

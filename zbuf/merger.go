@@ -8,11 +8,11 @@ import (
 	"github.com/brimdata/zed/order"
 )
 
-func NewCompareFn(layout order.Layout) expr.CompareFn {
+func NewCompareFn(zctx *zed.Context, layout order.Layout) expr.CompareFn {
 	nullsMax := layout.Order == order.Asc
 	exprs := make([]expr.Evaluator, len(layout.Keys))
 	for i, key := range layout.Keys {
-		exprs[i] = expr.NewDottedExpr(key)
+		exprs[i] = expr.NewDottedExpr(zctx, key)
 	}
 	fn := expr.NewCompareFn(nullsMax, exprs...)
 	fn = totalOrderCompare(fn)

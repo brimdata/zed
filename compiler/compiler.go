@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/kernel"
@@ -208,8 +209,8 @@ func (r *Runtime) Puller() zbuf.Puller {
 	return r.puller
 }
 
-func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Evaluator) {
-	return kernel.CompileAssignments(dsts, srcs)
+func CompileAssignments(zctx *zed.Context, dsts field.List, srcs field.List) (field.List, []expr.Evaluator) {
+	return kernel.CompileAssignments(zctx, dsts, srcs)
 }
 
 type meter struct {

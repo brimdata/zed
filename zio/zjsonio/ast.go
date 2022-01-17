@@ -17,4 +17,5 @@ func init() {
 	unpacker.AddAs(astzed.TypeUnion{}, "union")
 	unpacker.AddAs(astzed.TypeDef{}, "typedef")
 	unpacker.AddAs(astzed.TypeName{}, "typename")
+	unpacker.AddAs(astzed.TypeError{}, "error")
 }

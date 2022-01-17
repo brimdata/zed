@@ -10,13 +10,15 @@ import (
 )
 
 type Slice struct {
+	zctx *zed.Context
 	elem Evaluator
 	from Evaluator
 	to   Evaluator
 }
 
-func NewSlice(elem, from, to Evaluator) *Slice {
+func NewSlice(zctx *zed.Context, elem, from, to Evaluator) *Slice {
 	return &Slice{
+		zctx: zctx,
 		elem: elem,
 		from: from,
 		to:   to,
@@ -54,7 +56,7 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	if _, ok := zed.TypeUnder(elem.Type).(*zed.TypeArray); !ok {
 		// XXX use structured error
-		return zed.NewErrorf("sliced value is not an array: %s", zson.MustFormatValue(*elem))
+		return s.zctx.NewErrorf("sliced value is not an array: %s", zson.MustFormatValue(*elem))
 	}
 	if elem.IsNull() {
 		// If array is null, just return the null array.
@@ -62,12 +64,12 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	from, err := sliceIndex(ectx, this, s.from, elem)
 	if err != nil && err != ErrSliceIndexEmpty {
-		return zed.NewError(err)
+		return s.zctx.NewError(err)
 	}
 	to, err := sliceIndex(ectx, this, s.to, elem)
 	if err != nil {
 		if err != ErrSliceIndexEmpty {
-			return zed.NewError(err)
+			return s.zctx.NewError(err)
 		}
 		n, err := elem.ContainerLength()
 		if err != nil {

@@ -5,5 +5,5 @@ input: |
   {addr:fe80::215:17ff:fe84:c13f}
 
 output: |
-  {x:"network_of: not an IPv4 address"(error)}
+  {x:error("network_of: not an IPv4 address")}
   {x:10.0.0.0/8}

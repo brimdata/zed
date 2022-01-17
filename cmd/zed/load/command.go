@@ -82,7 +82,8 @@ func (c *Command) Run(args []string) error {
 	}
 	paths := args
 	c.engine = &engineWrap{Engine: storage.NewLocalEngine()}
-	readers, err := c.inputFlags.Open(ctx, zed.NewContext(), c.engine, paths, false)
+	zctx := zed.NewContext()
+	readers, err := c.inputFlags.Open(ctx, zctx, c.engine, paths, false)
 	if err != nil {
 		return err
 	}
@@ -105,7 +106,7 @@ func (c *Command) Run(args []string) error {
 		d = display.New(c, time.Second/2, os.Stderr)
 		go d.Run()
 	}
-	commitID, err := lake.Load(ctx, poolID, head.Branch, zio.ConcatReader(readers...), c.CommitMessage())
+	commitID, err := lake.Load(ctx, zctx, poolID, head.Branch, zio.ConcatReader(readers...), c.CommitMessage())
 	if d != nil {
 		d.Close()
 	}

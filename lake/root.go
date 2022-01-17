@@ -189,7 +189,7 @@ func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Eval
 		if err != nil {
 			return nil, err
 		}
-		if filter(ectx, rec, f) {
+		if filter(zctx, ectx, rec, f) {
 			vals = append(vals, *rec)
 		}
 	}
@@ -214,7 +214,7 @@ func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.E
 			}
 			return nil, err
 		}
-		vals, err = pool.batchifyBranches(ctx, vals, m, f)
+		vals, err = pool.batchifyBranches(ctx, zctx, vals, m, f)
 		if err != nil {
 			return nil, err
 		}
@@ -453,7 +453,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 			if err != nil {
 				return nil, err
 			}
-			if filter(ectx, rec, f) {
+			if filter(zctx, ectx, rec, f) {
 				vals = append(vals, *rec)
 			}
 		}
@@ -516,7 +516,7 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, pool
 	case "branches":
 		m := zson.NewZNGMarshalerWithContext(zctx)
 		m.Decorate(zson.StylePackage)
-		vals, err = p.batchifyBranches(ctx, nil, m, f)
+		vals, err = p.batchifyBranches(ctx, zctx, nil, m, f)
 	default:
 		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
 	}

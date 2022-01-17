@@ -17,7 +17,7 @@ type Keyer struct {
 }
 
 func NewKeyer(zctx *zed.Context, keys []field.Path) (*Keyer, error) {
-	fields, resolvers := compiler.CompileAssignments(keys, keys)
+	fields, resolvers := compiler.CompileAssignments(zctx, keys, keys)
 	cutter, err := expr.NewCutter(zctx, fields, resolvers)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (k *Keyer) KeyOf(ectx expr.Context, val *zed.Value) (*zed.Value, error) {
 	}
 	if _, ok := k.valid[key.Type]; !ok {
 		for _, col := range recType.Columns {
-			if col.Type == zed.TypeError {
+			if _, ok := col.Type.(*zed.TypeError); ok {
 				return nil, fmt.Errorf("no index key field %q present in record: %s", col.Name, zson.MustFormatValue(*val))
 			}
 		}

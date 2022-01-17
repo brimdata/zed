@@ -30,53 +30,56 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 	default:
 		return nil, nil, ErrNoSuchFunction
 	case "len":
-		f = &LenFn{}
+		f = &LenFn{zctx: zctx}
 	case "abs":
-		f = &Abs{}
+		f = &Abs{zctx: zctx}
 	case "every":
 		path = field.New("ts")
-		f = &Bucket{name: "every"}
+		f = &Bucket{
+			zctx: zctx,
+			name: "every",
+		}
 	case "ceil":
-		f = &Ceil{}
+		f = &Ceil{zctx: zctx}
 	case "floor":
-		f = &Floor{}
+		f = &Floor{zctx: zctx}
 	case "join":
 		argmax = 2
-		f = &Join{}
+		f = &Join{zctx: zctx}
 	case "ksuid":
-		f = &KSUIDToString{}
+		f = &KSUIDToString{zctx: zctx}
 	case "log":
-		f = &Log{}
+		f = &Log{zctx: zctx}
 	case "max":
 		argmax = -1
-		f = &reducer{fn: anymath.Max, name: name}
+		f = &reducer{zctx: zctx, fn: anymath.Max, name: name}
 	case "min":
 		argmax = -1
-		f = &reducer{fn: anymath.Min, name: name}
+		f = &reducer{zctx: zctx, fn: anymath.Min, name: name}
 	case "now":
 		argmax = 0
 		argmin = 0
 		f = &Now{}
 	case "round":
-		f = &Round{}
+		f = &Round{zctx: zctx}
 	case "pow":
 		argmin = 2
 		argmax = 2
-		f = &Pow{}
+		f = &Pow{zctx: zctx}
 	case "sqrt":
-		f = &Sqrt{}
+		f = &Sqrt{zctx: zctx}
 	case "replace":
 		argmin = 3
 		argmax = 3
-		f = &Replace{}
+		f = &Replace{zctx: zctx}
 	case "rune_len":
-		f = &RuneLen{}
+		f = &RuneLen{zctx: zctx}
 	case "to_lower":
-		f = &ToLower{}
+		f = &ToLower{zctx: zctx}
 	case "to_upper":
-		f = &ToUpper{}
+		f = &ToUpper{zctx: zctx}
 	case "trim":
-		f = &Trim{}
+		f = &Trim{zctx: zctx}
 	case "split":
 		argmin = 2
 		argmax = 2
@@ -84,7 +87,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 	case "bucket":
 		argmin = 2
 		argmax = 2
-		f = &Bucket{}
+		f = &Bucket{zctx: zctx}
 	case "typename":
 		argmax = 2
 		f = &typeName{zctx: zctx}
@@ -93,7 +96,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 	case "typeunder":
 		f = &typeUnder{zctx: zctx}
 	case "nameof":
-		f = &NameOf{}
+		f = &NameOf{zctx: zctx}
 	case "fields":
 		f = NewFields(zctx)
 	case "is":
@@ -104,22 +107,22 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 	case "iserr":
 		f = &IsErr{}
 	case "to_base64":
-		f = &ToBase64{}
+		f = &ToBase64{zctx: zctx}
 	case "from_base64":
-		f = &FromBase64{}
+		f = &FromBase64{zctx: zctx}
 	case "to_hex":
 		f = &ToHex{}
 	case "from_hex":
-		f = &FromHex{}
+		f = &FromHex{zctx: zctx}
 	case "network_of":
 		argmax = 2
-		f = &NetworkOf{}
+		f = &NetworkOf{zctx: zctx}
 	case "parse_uri":
-		f = &ParseURI{marshaler: zson.NewZNGMarshalerWithContext(zctx)}
+		f = &ParseURI{zctx: zctx, marshaler: zson.NewZNGMarshalerWithContext(zctx)}
 	case "parse_zson":
 		f = &ParseZSON{zctx: zctx}
 	case "quiet":
-		f = &Quiet{}
+		f = &Quiet{zctx: zctx}
 	}
 	if argmin != -1 && narg < argmin {
 		return nil, nil, ErrTooFewArgs
@@ -143,7 +146,9 @@ func HasBoolResult(name string) bool {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
-type LenFn struct{}
+type LenFn struct {
+	zctx *zed.Context
+}
 
 var _ Interface = (*LenFn)(nil)
 
@@ -160,10 +165,12 @@ func (l *LenFn) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if err != nil {
 			panic(err)
 		}
-	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfError:
+	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet:
 		length = len(val.Bytes)
+	case *zed.TypeError:
+		return l.zctx.WrapError("len()", &val)
 	default:
-		return zed.NewErrorf("len: bad type: %s", zson.FormatType(typ))
+		return l.zctx.NewErrorf("len: bad type: %s", zson.FormatType(typ))
 	}
 	return newInt64(ctx, int64(length))
 }
@@ -187,14 +194,16 @@ func (t *typeUnder) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nameof
-type NameOf struct{}
+type NameOf struct {
+	zctx *zed.Context
+}
 
 func (n *NameOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	typ := args[0].Type
 	if alias, ok := typ.(*zed.TypeAlias); ok {
 		return newString(ctx, alias.Name)
 	}
-	return zed.Missing
+	return n.zctx.Missing()
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typename
@@ -204,22 +213,22 @@ type typeName struct {
 
 func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	if zed.TypeUnder(args[0].Type) != zed.TypeString {
-		return newErrorf(ectx, "typename: first argument not a string")
+		return newErrorf(t.zctx, ectx, "typename: first argument not a string")
 	}
 	name := string(args[0].Bytes)
 	if len(args) == 1 {
 		typ := t.zctx.LookupTypeDef(name)
 		if typ == nil {
-			return zed.Missing
+			return t.zctx.Missing()
 		}
 		return t.zctx.LookupTypeValue(typ)
 	}
 	if zed.TypeUnder(args[1].Type) != zed.TypeType {
-		return newErrorf(ectx, "typename: second argument not a type value")
+		return newErrorf(t.zctx, ectx, "typename: second argument not a type value")
 	}
 	typ, err := t.zctx.LookupByValue(args[1].Bytes)
 	if err != nil {
-		return newError(ectx, err)
+		return newError(t.zctx, ectx, err)
 	}
 	return t.zctx.LookupTypeValue(typ)
 }
@@ -248,7 +257,7 @@ func (i *Is) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	var typ zed.Type
 	var err error
-	if zvTypeVal.IsStringy() {
+	if zvTypeVal.IsString() {
 		typ, err = zson.ParseType(i.zctx, string(zvTypeVal.Bytes))
 	} else {
 		typ, err = i.zctx.LookupByValue(zvTypeVal.Bytes)
@@ -260,12 +269,14 @@ func (i *Is) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#quiet
-type Quiet struct{}
+type Quiet struct {
+	zctx *zed.Context
+}
 
 func (q *Quiet) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	if val.IsMissing() {
-		return zed.Quiet
+		return q.zctx.Quiet()
 	}
 	return &val
 }
@@ -304,10 +315,12 @@ func newString(ctx zed.Allocator, native string) *zed.Value {
 	return ctx.NewValue(zed.TypeString, zed.EncodeString(native))
 }
 
-func newError(ctx zed.Allocator, err error) *zed.Value {
-	return zed.NewError(err)
+//XXX this should build the error in the allocator's memory but needs
+// zctx for the type
+func newError(zctx *zed.Context, ectx zed.Allocator, err error) *zed.Value {
+	return zctx.NewError(err)
 }
 
-func newErrorf(ctx zed.Allocator, format string, args ...interface{}) *zed.Value {
-	return zed.NewErrorf(format, args...)
+func newErrorf(zctx *zed.Context, ctx zed.Allocator, format string, args ...interface{}) *zed.Value {
+	return zctx.NewErrorf(format, args...)
 }

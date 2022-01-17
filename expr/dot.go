@@ -14,21 +14,23 @@ func (*This) Eval(_ Context, this *zed.Value) *zed.Value {
 }
 
 type DotExpr struct {
+	zctx   *zed.Context
 	record Evaluator
 	field  string
 }
 
-func NewDotExpr(record Evaluator, field string) *DotExpr {
+func NewDotExpr(zctx *zed.Context, record Evaluator, field string) *DotExpr {
 	return &DotExpr{
+		zctx:   zctx,
 		record: record,
 		field:  field,
 	}
 }
 
-func NewDottedExpr(f field.Path) Evaluator {
+func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 	ret := Evaluator(&This{})
 	for _, name := range f {
-		ret = NewDotExpr(ret, name)
+		ret = NewDotExpr(zctx, ret, name)
 	}
 	return ret
 }
@@ -61,11 +63,11 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := ValueOf(rec)
 	recType, ok := val.Type.(*zed.TypeRecord)
 	if !ok {
-		return zed.Missing
+		return d.zctx.Missing()
 	}
 	idx, ok := recType.ColumnOfField(d.field)
 	if !ok {
-		return zed.Missing
+		return d.zctx.Missing()
 	}
 	typ := recType.Columns[idx].Type
 	if val.IsNull() {

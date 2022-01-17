@@ -704,7 +704,7 @@ iserr(v <any>) -> bool
 #### Example:
 
 ```mdtest-command
-echo '{foo:"this is an error"(error)}' | zq -z 'foo := iserr(foo)' -
+echo '{foo:error("this is an error")}' | zq -z 'foo := iserr(foo)' -
 ```
 
 **Output:**
@@ -733,7 +733,7 @@ it returns `error("quiet")`.  Quiet errors are ignored by operators
 #### Example:
 
 ```mdtest-command
-echo  '{x:"missing"(error),y:"hello"}'  | zq -z 'cut x:=quiet(x), y:=quiet(y)' -
+echo  '{x:error("missing"),y:"hello"}'  | zq -z 'cut x:=quiet(x), y:=quiet(y)' -
 ```
 
 **Output:**

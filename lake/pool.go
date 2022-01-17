@@ -144,7 +144,7 @@ func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, erro
 	return p.openBranch(ctx, branchRef)
 }
 
-func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
+func (p *Pool) batchifyBranches(ctx context.Context, zctx *zed.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
@@ -156,18 +156,18 @@ func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.M
 		if err != nil {
 			return nil, err
 		}
-		if filter(ectx, rec, f) {
+		if filter(zctx, ectx, rec, f) {
 			recs = append(recs, *rec)
 		}
 	}
 	return recs, nil
 }
 
-func filter(ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
+func filter(zctx *zed.Context, ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
 	if e == nil {
 		return true
 	}
-	val, ok := expr.EvalBool(ectx, this, e)
+	val, ok := expr.EvalBool(zctx, ectx, this, e)
 	return ok && val.Bytes != nil && zed.IsTrue(val.Bytes)
 }
 
@@ -190,7 +190,7 @@ func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 		if err != nil {
 			return nil, err
 		}
-		if filter(ectx, rec, f) {
+		if filter(zctx, ectx, rec, f) {
 			recs = append(recs, *rec)
 		}
 	}

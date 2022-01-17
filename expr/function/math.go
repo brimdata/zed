@@ -10,7 +10,9 @@ import (
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#abs.md
-type Abs struct{}
+type Abs struct {
+	zctx *zed.Context
+}
 
 func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
@@ -24,7 +26,7 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newFloat64(ctx, f)
 	}
 	if !zed.IsInteger(id) {
-		return newErrorf(ctx, "abs: not a number: %s", zson.MustFormatValue(args[0]))
+		return newErrorf(a.zctx, ctx, "abs: not a number: %s", zson.MustFormatValue(args[0]))
 	}
 	if !zed.IsSigned(id) {
 		return ctx.CopyValue(args[0])
@@ -40,7 +42,9 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
-type Ceil struct{}
+type Ceil struct {
+	zctx *zed.Context
+}
 
 func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
@@ -56,12 +60,14 @@ func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	case zed.IsInteger(id):
 		return ctx.CopyValue(args[0])
 	default:
-		return newErrorf(ctx, "ceil: not a number")
+		return newErrorf(c.zctx, ctx, "ceil: not a number")
 	}
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#floor
-type Floor struct{}
+type Floor struct {
+	zctx *zed.Context
+}
 
 func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
@@ -74,25 +80,28 @@ func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	case zed.IsInteger(id):
 		return ctx.CopyValue(args[0])
 	default:
-		return newErrorf(ctx, "floor: not a number")
+		return newErrorf(f.zctx, ctx, "floor: not a number")
 	}
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#log
-type Log struct{}
+type Log struct {
+	zctx *zed.Context
+}
 
 func (l *Log) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return newErrorf(ctx, "log: numeric argument required")
+		return newErrorf(l.zctx, ctx, "log: numeric argument required")
 	}
 	if x <= 0 {
-		return newErrorf(ctx, "log: illegal argument: %s", zson.MustFormatValue(args[0]))
+		return newErrorf(l.zctx, ctx, "log: illegal argument: %s", zson.MustFormatValue(args[0]))
 	}
 	return newFloat64(ctx, math.Log(x))
 }
 
 type reducer struct {
+	zctx *zed.Context
 	name string
 	fn   *anymath.Function
 }
@@ -108,14 +117,14 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		for _, val := range args[1:] {
 			v, ok := coerce.ToFloat(zv)
 			if !ok {
-				return newErrorf(ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
+				return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
 			}
 			result = r.fn.Float64(result, v)
 		}
 		return newFloat64(ctx, result)
 	}
 	if !zed.IsNumber(id) {
-		return newErrorf(ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(zv))
+		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(zv))
 	}
 	if zed.IsSigned(id) {
 		result, _ := zed.DecodeInt(zv.Bytes)
@@ -124,7 +133,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			// floats to ints if we hit a float first
 			v, ok := coerce.ToInt(val)
 			if !ok {
-				return newErrorf(ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
+				return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
 			}
 			result = r.fn.Int64(result, v)
 		}
@@ -134,7 +143,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	for _, val := range args[1:] {
 		v, ok := coerce.ToUint(val)
 		if !ok {
-			return newErrorf(ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
+			return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
 		}
 		result = r.fn.Uint64(result, v)
 	}
@@ -142,7 +151,9 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
-type Round struct{}
+type Round struct {
+	zctx *zed.Context
+}
 
 func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
@@ -155,33 +166,37 @@ func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newFloat64(ctx, math.Round(f))
 	}
 	if !zed.IsNumber(id) {
-		return newErrorf(ctx, "round: not a number: %s", zson.MustFormatValue(zv))
+		return newErrorf(r.zctx, ctx, "round: not a number: %s", zson.MustFormatValue(zv))
 	}
 	return ctx.CopyValue(args[0])
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#pow
-type Pow struct{}
+type Pow struct {
+	zctx *zed.Context
+}
 
 func (p *Pow) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return newErrorf(ctx, "pow: not a number: %s", zson.MustFormatValue(args[0]))
+		return newErrorf(p.zctx, ctx, "pow: not a number: %s", zson.MustFormatValue(args[0]))
 	}
 	y, ok := coerce.ToFloat(args[1])
 	if !ok {
-		return newErrorf(ctx, "pow: not a number: %s", zson.MustFormatValue(args[1]))
+		return newErrorf(p.zctx, ctx, "pow: not a number: %s", zson.MustFormatValue(args[1]))
 	}
 	return newFloat64(ctx, math.Pow(x, y))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#sqrt
-type Sqrt struct{}
+type Sqrt struct {
+	zctx *zed.Context
+}
 
 func (s *Sqrt) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return newErrorf(ctx, "sqrt: not a number: %s", zson.MustFormatValue(args[0]))
+		return newErrorf(s.zctx, ctx, "sqrt: not a number: %s", zson.MustFormatValue(args[0]))
 	}
 	return newFloat64(ctx, math.Sqrt(x))
 }
