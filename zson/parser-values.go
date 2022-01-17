@@ -582,14 +582,14 @@ func (p *Parser) matchError() (*astzed.Error, error) {
 
 func (p *Parser) matchTypeValue() (*astzed.TypeValue, error) {
 	l := p.lexer
-	if ok, err := l.match('('); !ok || err != nil {
+	if ok, err := l.match('<'); !ok || err != nil {
 		return nil, noEOF(err)
 	}
 	typ, err := p.parseType()
 	if err != nil {
 		return nil, err
 	}
-	ok, err := l.match(')')
+	ok, err := l.match('>')
 	if err != nil {
 		return nil, err
 	}

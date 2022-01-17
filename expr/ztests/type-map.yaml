@@ -19,7 +19,7 @@ input: |
 
 output: |
   {_path:"unknown",x:"has unknown _path",_UNCLASSIFIED:true}
-  {schema:(conn=({_path:string,id:{src:ip,dst:ip},etc:string}))}
-  {schema:(conn=({_path:string,id:{src:ip,dst:ip},etc:string}))}
-  {schema:(dns=({_path:string,id:{src:ip,dst:ip},query:string,query_size:uint64}))}
+  {schema:<conn=<{_path:string,id:{src:ip,dst:ip},etc:string}>>}
+  {schema:<conn=<{_path:string,id:{src:ip,dst:ip},etc:string}>>}
+  {schema:<dns=<{_path:string,id:{src:ip,dst:ip},query:string,query_size:uint64}>>}
   {y:"has no _path",_UNCLASSIFIED:true}

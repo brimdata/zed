@@ -2,11 +2,11 @@ zed: '*'
 
 input: |
   {type:null(type)}
-  {type:({a:int64})}
+  {type:<{a:int64}>}
 
 output-flags: -f csv
 
 output: |
   type
 
-  ({a:int64})
+  <{a:int64}>

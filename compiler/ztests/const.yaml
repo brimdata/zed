@@ -5,5 +5,5 @@ input: |
   {a:2}
 
 output: |
-  {a:1,x:({a:string})}
-  {a:2,x:({a:string})}
+  {a:1,x:<{a:string}>}
+  {a:2,x:<{a:string}>}

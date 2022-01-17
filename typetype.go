@@ -23,7 +23,7 @@ func (t *TypeOfType) Marshal(zv zcode.Bytes) (interface{}, error) {
 }
 
 func (t *TypeOfType) Format(zv zcode.Bytes) string {
-	return fmt.Sprintf("(%s)", FormatTypeValue(zv))
+	return fmt.Sprintf("<%s>", FormatTypeValue(zv))
 }
 
 func NewTypeValue(t Type) *Value {
@@ -121,9 +121,9 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			return nil
 		}
 		b.WriteString(name)
-		b.WriteString("=(")
+		b.WriteString("=<")
 		tv = formatTypeValue(tv, b)
-		b.WriteByte(')')
+		b.WriteByte('>')
 		return tv
 	case IDTypeName:
 		name, tv := decodeNameAndCheck(tv, b)

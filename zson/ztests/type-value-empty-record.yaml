@@ -1,7 +1,7 @@
 zed: "*"
 
 input: &input |
-  ({})
-  {typ:({})}
+  <{}>
+  {typ:<{}>}
 
 output: *input

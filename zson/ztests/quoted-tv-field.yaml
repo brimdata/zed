@@ -1,8 +1,8 @@
 zed: "*"
 
 input: &input |
-  {T:({"":{}})}
-  {T:({"foo bar":{}})}
-  {T:({"@foo^":{}})}
+  {T:<{"":{}}>}
+  {T:<{"foo bar":{}}>}
+  {T:<{"@foo^":{}}>}
 
 output: *input

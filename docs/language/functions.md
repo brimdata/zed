@@ -754,12 +754,12 @@ named type give by `name` if it exists in the current context.  Otherwise,
 #### Example:
 
 ```mdtest-command
-echo  '80(port=(int16))' | zq -z 'yield typename("port")' -
+echo  '80(port=<int16>)' | zq -z 'yield typename("port")' -
 ```
 
 **Output:**
 ```mdtest-output
-(port=(int16))
+<port=<int16>>
 ```
 
 ### `typeof`
@@ -779,7 +779,7 @@ echo  '{foo:127.0.0.1}' \
 
 **Output:**
 ```mdtest-output
-{foo:(ip)}
+{foo:<ip>}
 ```
 
 ### `typeunder`
@@ -801,7 +801,7 @@ echo  '{flavor:"chocolate"}(=flavor)' \
 
 **Output:**
 ```mdtest-output
-{typeunder:({flavor:string})}
+{typeunder:<{flavor:string}>}
 ```
 
 ## Value Introspection

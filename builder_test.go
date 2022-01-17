@@ -17,7 +17,7 @@ func TestBuilder(t *testing.T) {
 {key:1.2.3.4}
 {a:1,b:2,c:3}
 {a:7,r:{x:3}}
-{a:7,r:null (0=({x:int64}))}
+{a:7,r:null({x:int64})}
 `
 	r := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 	r0, err := r.Read()

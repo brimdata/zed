@@ -151,7 +151,7 @@ func TestCompareNumbers(t *testing.T) {
 		// number-ish types: port, time, duration
 		if !strings.HasPrefix(typ, "float") {
 			record := fmt.Sprintf(
-				"{x:%s (%s),p:80 (port=(uint16)),t:2020-03-09T22:54:12Z,d:16m40s} (=0)", one, typ)
+				"{x:%s (%s),p:80 (port=<uint16>),t:2020-03-09T22:54:12Z,d:16m40s} (=0)", one, typ)
 
 			// port
 			testSuccessful(t, "x == p", record, zbool(false))
@@ -261,7 +261,7 @@ func TestCompareNonNumbers(t *testing.T) {
     b: true,
     s: "hello",
     i: 10.1.1.1,
-    p: 443 (port=(uint16)),
+    p: 443 (port=<uint16>),
     net: 10.1.0.0/16,
     t: 2020-03-09T22:54:12Z,
     d: 16m40s
