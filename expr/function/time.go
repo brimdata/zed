@@ -36,7 +36,7 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		bin = nano.Duration(d) * nano.Second
 	}
-	if tsArg.Type == zed.TypeDuration {
+	if zed.TypeUnder(tsArg.Type) == zed.TypeDuration {
 		dur, err := zed.DecodeDuration(tsArg.Bytes)
 		if err != nil {
 			panic(err)
