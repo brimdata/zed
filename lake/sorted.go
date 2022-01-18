@@ -111,7 +111,7 @@ func (r *rangeWrapper) AsEvaluator() (expr.Evaluator, error) {
 type rangeFilter struct {
 	r       *rangeWrapper
 	filter  expr.Evaluator
-	compare expr.ValueCompareFn
+	compare expr.CompareFn
 }
 
 func (r *rangeFilter) Eval(ectx expr.Context, this *zed.Value) *zed.Value {
@@ -130,7 +130,7 @@ func (r *rangeFilter) Eval(ectx expr.Context, this *zed.Value) *zed.Value {
 	return r.filter.Eval(ectx, this)
 }
 
-func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, first, last zed.Value, layout order.Layout) zbuf.Filter {
+func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.CompareFn, first, last zed.Value, layout order.Layout) zbuf.Filter {
 	scanFirst := scan.First()
 	scanLast := scan.Last()
 	if cmp(scanFirst, &first) <= 0 {

@@ -24,7 +24,7 @@ type Proc struct {
 	right       *zio.Peeker
 	getLeftKey  expr.Evaluator
 	getRightKey expr.Evaluator
-	compare     expr.ValueCompareFn
+	compare     expr.CompareFn
 	cutter      *expr.Cutter
 	joinKey     *zed.Value
 	joinSet     []*zed.Value

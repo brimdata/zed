@@ -51,9 +51,9 @@ type Aggregator struct {
 	recordTypes  map[int]*zed.TypeRecord
 	table        map[string]*Row
 	limit        int
-	valueCompare expr.ValueCompareFn // to compare primary group keys for early key output
-	keyCompare   expr.CompareFn      // compare the first key (used when input sorted)
-	keysCompare  expr.CompareFn      // compare all keys
+	valueCompare expr.CompareFn // to compare primary group keys for early key output
+	keyCompare   expr.CompareFn // compare the first key (used when input sorted)
+	keysCompare  expr.CompareFn // compare all keys
 	maxTableKey  *zed.Value
 	maxSpillKey  *zed.Value
 	inputDir     order.Direction
@@ -72,7 +72,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	if limit == 0 {
 		limit = DefaultLimit
 	}
-	var valueCompare expr.ValueCompareFn
+	var valueCompare expr.CompareFn
 	var keyCompare, keysCompare expr.CompareFn
 
 	nkeys := len(keyExprs)

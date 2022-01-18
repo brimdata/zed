@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-func Lookup(r zio.Reader, from, to *zed.Value, cmp expr.ValueCompareFn) (Range, error) {
+func Lookup(r zio.Reader, from, to *zed.Value, cmp expr.CompareFn) (Range, error) {
 	return lookup(r, field.New("key"), from, to, cmp)
 }
 
@@ -19,7 +19,7 @@ func LookupByCount(r zio.Reader, from, to *zed.Value) (Range, error) {
 	return lookup(r, field.New("count"), from, to, extent.CompareFunc(order.Asc))
 }
 
-func lookup(r zio.Reader, path field.Path, from, to *zed.Value, cmp expr.ValueCompareFn) (Range, error) {
+func lookup(r zio.Reader, path field.Path, from, to *zed.Value, cmp expr.CompareFn) (Range, error) {
 	rg := Range{0, math.MaxInt64}
 	var rec *zed.Value
 	for {
