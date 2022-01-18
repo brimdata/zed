@@ -10,7 +10,6 @@ import (
 )
 
 type CompareFn func(a *zed.Value, b *zed.Value) int
-type ValueCompareFn func(a *zed.Value, b *zed.Value) int
 type KeyCompareFn func(Context, *zed.Value) int
 
 // Internal function that compares two values of compatible types.
@@ -63,7 +62,7 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 	}
 }
 
-func NewValueCompareFn(nullsMax bool) ValueCompareFn {
+func NewValueCompareFn(nullsMax bool) CompareFn {
 	var pair coerce.Pair
 	comparefns := make(map[zed.Type]comparefn)
 	return func(a, b *zed.Value) int {

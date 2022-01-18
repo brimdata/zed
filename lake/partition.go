@@ -24,7 +24,7 @@ import (
 // to only the span involved.
 type Partition struct {
 	extent.Span
-	compare expr.ValueCompareFn
+	compare expr.CompareFn
 	Objects []*data.ObjectScan
 }
 
@@ -74,7 +74,7 @@ func PartitionObjects(objects []*data.Object, o order.Which) []Partition {
 
 type stack []Partition
 
-func (s *stack) pushObjectSpan(span objectSpan, cmp expr.ValueCompareFn) {
+func (s *stack) pushObjectSpan(span objectSpan, cmp expr.CompareFn) {
 	s.push(Partition{
 		Span:    span.Span,
 		compare: cmp,
@@ -102,7 +102,7 @@ type objectSpan struct {
 	object *data.Object
 }
 
-func sortedObjectSpans(objects []*data.Object, cmp expr.ValueCompareFn) []objectSpan {
+func sortedObjectSpans(objects []*data.Object, cmp expr.CompareFn) []objectSpan {
 	spans := make([]objectSpan, 0, len(objects))
 	for _, o := range objects {
 		spans = append(spans, objectSpan{

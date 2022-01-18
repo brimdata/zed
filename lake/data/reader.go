@@ -36,7 +36,7 @@ type Reader struct {
 // NewReader returns a Reader for this data object. If the object has a seek index
 // and if the provided span skips part of the object, the seek index will be used to
 // limit the reading window of the returned reader.
-func (o *ObjectScan) NewReader(ctx context.Context, engine storage.Engine, path *storage.URI, scanRange extent.Span, cmp expr.ValueCompareFn) (*Reader, error) {
+func (o *ObjectScan) NewReader(ctx context.Context, engine storage.Engine, path *storage.URI, scanRange extent.Span, cmp expr.CompareFn) (*Reader, error) {
 	objectPath := o.RowObjectPath(path)
 	reader, err := engine.Get(ctx, objectPath)
 	if err != nil {
