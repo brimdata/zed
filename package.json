@@ -2,13 +2,20 @@
   "name": "zed",
   "version": "0.33.0-dev",
   "scripts": {
-      "prepare": "node npm/build"
+    "prepack": "node npm/build"
   },
   "files": [
-      "dist/**",
-      "**/*.js"
+    "dist/**",
+    "**/*.js"
   ],
+  "publishConfig": {
+    "executableFiles": [
+      "./dist/zq",
+      "./dist/zed"
+    ]
+  },
   "directories": {
-      "bin": "dist"
-  }
+    "bin": "dist"
+  },
+  "packageManager": "yarn@3.1.1"
 }
