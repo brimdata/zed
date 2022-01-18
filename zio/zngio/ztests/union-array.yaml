@@ -1,8 +1,11 @@
-zed: '*'
+script: zq - | zq -z -
 
-input: !!binary |
-  +QIHEPcX9gEBYRgZEhIMAgIJYXNkZmFzZGYABAECyBkBAP8=
+inputs:
+  - name: stdin
+    data: &stdin |
+      {a:["asdfasdf"((int64,string)),null((int64,string)),100((int64,string))]}
+      {a:null([(int64,string)])}
 
-output: |
-  {a:["asdfasdf"((int64,string)),null((int64,string)),100((int64,string))]}
-  {a:null([(int64,string)])}
+outputs:
+  - name: stdout
+    data: *stdin

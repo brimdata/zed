@@ -15,6 +15,7 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/create"
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/lookup"
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/section"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zngdump"
 	_ "github.com/brimdata/zed/cmd/zed/dev/zst"
 	_ "github.com/brimdata/zed/cmd/zed/dev/zst/create"
 	_ "github.com/brimdata/zed/cmd/zed/dev/zst/cut"

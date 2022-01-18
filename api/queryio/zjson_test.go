@@ -25,7 +25,7 @@ func TestZJSONWriter(t *testing.T) {
 	const record = `{x:1}`
 	const expected = `
 {"kind":"QueryChannelSet","value":{"channel_id":1}}
-{"kind":"Object","value":{"schema":"23","types":[{"kind":"typedef","name":"23","type":{"kind":"record","fields":[{"name":"x","type":{"kind":"primitive","name":"int64"}}]}}],"values":["1"]}}
+{"kind":"Object","value":{"schema":"30","types":[{"kind":"typedef","name":"30","type":{"kind":"record","fields":[{"name":"x","type":{"kind":"primitive","name":"int64"}}]}}],"values":["1"]}}
 {"kind":"QueryChannelEnd","value":{"channel_id":1}}
 {"kind":"QueryError","value":{"error":"test.err"}}
 `

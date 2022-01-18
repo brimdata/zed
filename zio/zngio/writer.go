@@ -8,20 +8,20 @@ import (
 	"github.com/pierrec/lz4/v4"
 )
 
-const (
-	// DefaultLZ4BlockSize is a reasonable default for WriterOpts.LZ4BlockSize.
-	DefaultLZ4BlockSize = 16 * 1024
-)
+// DefaultLZ4BlockSize is a reasonable default for WriterOpts.LZ4BlockSize.
+const DefaultLZ4BlockSize = 16 * 1024
 
 type Writer struct {
-	closer io.Closer
-	ow     *offsetWriter // offset never points inside a compressed value message block
-	cw     *compressionWriter
-	opts   WriterOpts
+	writer     io.WriteCloser
+	position   int64
+	flushed    int64
+	compressor *compressor
+	opts       WriterOpts
 
-	encoder       *Encoder
-	buffer        []byte
-	streamRecords int
+	types  *Encoder
+	values []byte
+	thresh int
+	header []byte
 }
 
 type WriterOpts struct {
@@ -29,211 +29,168 @@ type WriterOpts struct {
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
-	ow := &offsetWriter{w: w}
-	var cw *compressionWriter
+	var comp *compressor
 	if opts.LZ4BlockSize > 0 {
-		cw = &compressionWriter{w: ow}
+		comp = &compressor{}
 	}
 	return &Writer{
-		closer:  w,
-		ow:      ow,
-		cw:      cw,
-		opts:    opts,
-		encoder: NewEncoder(),
-		buffer:  make([]byte, 0, 128),
+		writer:     w,
+		compressor: comp,
+		opts:       opts,
+		types:      NewEncoder(),
+		thresh:     opts.LZ4BlockSize, //XXX
 	}
 }
 
+func (w *Writer) DisableCompression() {
+	w.compressor = nil
+}
+
 func (w *Writer) Close() error {
-	err := w.flush()
-	if closeErr := w.closer.Close(); err == nil {
+	err := w.EndStream()
+	if closeErr := w.writer.Close(); err == nil {
 		err = closeErr
 	}
 	return err
 }
 
 func (w *Writer) write(p []byte) error {
-	if w.cw != nil {
-		_, err := w.cw.Write(p)
+	n, err := w.writer.Write(p)
+	if err != nil {
 		return err
 	}
-	return w.writeUncompressed(p)
+	w.position += int64(n)
+	return nil
 }
 
-func (w *Writer) writeUncompressed(p []byte) error {
-	_, err := w.ow.Write(p)
-	return err
-}
-
+// Position may be called after EndStream to get a seekable offset into the
+// output for the next stream.  Calling Position at any other team returns
+// unusable seek offsets.
 func (w *Writer) Position() int64 {
-	return w.ow.off
-}
-
-func (w *Writer) flushCompressor() error {
-	var err error
-	if w.cw != nil {
-		err = w.cw.Flush()
-	}
-	return err
+	return w.position
 }
 
 func (w *Writer) EndStream() error {
 	// Flush any compression state and write the EOS afterward the
 	// compressed block since the buffer-filter may skip entire
 	// compressed before and we would otherwise miss the EOS marker.
-	if err := w.flushCompressor(); err != nil {
+	if err := w.flush(); err != nil {
 		return err
 	}
-	w.encoder.Reset()
-	w.streamRecords = 0
-	if err := w.writeUncompressed([]byte{zed.CtrlEOS}); err != nil {
-		return err
+	if w.flushed != w.position {
+		if err := w.write([]byte{EOS}); err != nil {
+			return err
+		}
+		w.flushed = w.position
 	}
+	w.types.Reset()
 	return nil
 }
 
-func (w *Writer) Write(r *zed.Value) error {
-	// First send any typedefs for unsent types.
-	typ := w.encoder.Lookup(r.Type)
+func (w *Writer) Write(val *zed.Value) error {
+	typ := w.types.Lookup(val.Type)
 	if typ == nil {
-		var b []byte
 		var err error
-		b, typ, err = w.encoder.Encode(w.buffer[:0], r.Type)
+		typ, err = w.types.Encode(val.Type)
 		if err != nil {
 			return err
 		}
-		w.buffer = b
-		// Write any new typedefs in the uncompressed output ahead of the
-		// compressed buffer being built (i.e., we re-order the stream
-		// but its always safe to move typedefs earlier in the stream as
-		// long as the typedef order is preserved and we don't cross
-		// zng stream boundaries). We could conceivably compress these
-		// typedefs too (in a buffer that is not subject to the buffer-filter)
-		// but typedefs are really small compared to the rest of the data
-		// so it's not worth the hassle.
-		if err := w.writeUncompressed(b); err != nil {
-			return err
-		}
 	}
-	dst := w.buffer[:0]
-	id := typ.ID()
-	if typ, ok := typ.(*zed.TypeAlias); ok {
-		id = typ.AliasID()
+	id := zed.TypeID(typ)
+	w.values = zcode.AppendUvarint(w.values, uint64(id))
+	w.values = zcode.Append(w.values, val.Bytes)
+	if len(w.values) >= w.thresh || len(w.types.bytes) >= w.thresh {
+		return w.flush()
 	}
-	if id < zed.CtrlValueEscape {
-		dst = append(dst, byte(id))
-	} else {
-		dst = append(dst, zed.CtrlValueEscape)
-		dst = zcode.AppendUvarint(dst, uint64(id-zed.CtrlValueEscape))
-	}
-	dst = zcode.AppendUvarint(dst, uint64(len(r.Bytes)))
-	w.buffer = dst
-	if w.cw != nil && w.cw.buffered()+len(dst)+len(r.Bytes) > w.opts.LZ4BlockSize {
-		if err := w.cw.Flush(); err != nil {
-			return err
-		}
-	}
-	if err := w.write(dst); err != nil {
-		return err
-	}
-	if err := w.write(r.Bytes); err != nil {
-		return err
-	}
-	w.streamRecords++
 	return nil
 }
 
-func (w *Writer) WriteControl(b []byte, encoding uint8) error {
+func (w *Writer) WriteControl(b []byte, format uint8) error {
 	// Flush the compressor since we need to preserve the interleaving
-	// order of app messages and zng data and we can't store the app
-	// messages in a compressed buffer that is subject to buffer-filter;
-	// otherwise, they could be incorrectly dropped.
-	if err := w.flushCompressor(); err != nil {
+	// order of control messages and ZNG data.
+	if err := w.flush(); err != nil {
 		return err
 	}
-	dst := w.buffer[:0]
-	dst = append(dst, zed.CtrlAppMessage)
-	dst = append(dst, encoding)
-	dst = zcode.AppendUvarint(dst, uint64(len(b)))
-	dst = append(dst, b...)
-	return w.writeUncompressed(dst)
+	// Yuck.
+	bytes := make([]byte, len(b)+1)
+	bytes[0] = format
+	copy(bytes[1:], b)
+	return w.writeBlock(ControlFrame, bytes)
 }
 
 func (w *Writer) flush() error {
-	if w.streamRecords > 0 {
-		return w.EndStream()
+	if err := w.writeBlock(TypesFrame, w.types.bytes); err != nil {
+		return nil
 	}
-	if w.cw != nil {
-		if err := w.cw.Flush(); err != nil {
-			return err
-		}
+	if err := w.writeBlock(ValuesFrame, w.values); err != nil {
+		return nil
 	}
+	w.types.Flush()
+	w.values = w.values[:0]
 	return nil
 }
 
-type offsetWriter struct {
-	w   io.Writer
-	off int64
+func (w *Writer) writeBlock(blockType int, b []byte) error {
+	if len(b) == 0 {
+		return nil
+	}
+	if w.compressor != nil {
+		zbuf, err := w.compressor.compress(b)
+		if err != nil {
+			return err
+		}
+		if zbuf != nil {
+			if err := w.writeCompHeader(blockType, len(b), len(zbuf)); err != nil {
+				return err
+			}
+			return w.write(zbuf)
+		}
+	}
+	if err := w.writeHeader(blockType, len(b)); err != nil {
+		return err
+	}
+	return w.write(b)
 }
 
-func (o *offsetWriter) Write(b []byte) (int, error) {
-	n, err := o.w.Write(b)
-	o.off += int64(n)
-	return n, err
+func (w *Writer) writeHeader(blockType, size int) error {
+	code := blockType<<4 | (size & 0xf)
+	w.header = append(w.header[:0], byte(code))
+	w.header = zcode.AppendUvarint(w.header, uint64(size>>4))
+	return w.write(w.header)
 }
 
-type compressionWriter struct {
-	w          io.Writer
-	blockSize  int
+func (w *Writer) writeCompHeader(blockType, size, zlen int) error {
+	zlen += 1 + zcode.SizeOfUvarint(uint64(size))
+	code := (blockType << 4) | (zlen & 0xf) | 0x40
+	w.header = append(w.header[:0], byte(code))
+	w.header = zcode.AppendUvarint(w.header, uint64(zlen>>4))
+	w.header = append(w.header, byte(CompressionFormatLZ4))
+	w.header = zcode.AppendUvarint(w.header, uint64(size))
+	return w.write(w.header)
+}
+
+type compressor struct {
 	compressor lz4.Compressor
-	header     []byte
-	ubuf       []byte
 	zbuf       []byte
 }
 
-func (c *compressionWriter) buffered() int { return len(c.ubuf) }
-
-func (c *compressionWriter) Flush() error {
-	if len(c.ubuf) == 0 {
-		return nil
+func (c *compressor) compress(b []byte) ([]byte, error) {
+	if c == nil || len(b) == 0 {
+		return nil, nil
 	}
-	if cap(c.zbuf) < len(c.ubuf) {
-		c.zbuf = make([]byte, len(c.ubuf))
+	if cap(c.zbuf) < len(b) {
+		c.zbuf = make([]byte, len(b))
 	}
-	zbuf := c.zbuf[:len(c.ubuf)]
-	zlen, err := c.compressor.CompressBlock(c.ubuf, zbuf)
+	zbuf := c.zbuf[:len(b)]
+	zlen, err := c.compressor.CompressBlock(b, zbuf)
 	if err != nil && err != lz4.ErrInvalidSourceShortBuffer {
-		return err
+		return nil, err
 	}
 	if zlen > 0 {
-		c.header = append(c.header[:0], zed.CtrlCompressed)
-		c.header = zcode.AppendUvarint(c.header, uint64(zed.CompressionFormatLZ4))
-		c.header = zcode.AppendUvarint(c.header, uint64(len(c.ubuf)))
-		c.header = zcode.AppendUvarint(c.header, uint64(zlen))
-	}
-	if zlen > 0 && len(c.header)+zlen < len(c.ubuf) {
 		// Compression succeeded and the compressed value message block
 		// is smaller than the buffered messages, so write the
 		// compressed value message block.
-		if _, err := c.w.Write(c.header); err != nil {
-			return err
-		}
-		if _, err := c.w.Write(zbuf[:zlen]); err != nil {
-			return err
-		}
-	} else {
-		// Compression failed or the compressed value message block
-		// isn't smaller than the buffered messages, so write the
-		// buffered messages without compression.
-		if _, err := c.w.Write(c.ubuf); err != nil {
-			return err
-		}
+		return zbuf[:zlen], nil
 	}
-	c.ubuf = c.ubuf[:0]
-	return nil
-}
-
-func (c *compressionWriter) Write(p []byte) (int, error) {
-	c.ubuf = append(c.ubuf, p...)
-	return len(p), nil
+	return nil, nil
 }

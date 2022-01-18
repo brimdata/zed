@@ -47,7 +47,7 @@ func (b *Builder) EndContainer() {
 	bodyOff := b.containers[len(b.containers)-1]
 	b.containers = b.containers[:len(b.containers)-1]
 	tag := toTag(len(b.bytes) - bodyOff)
-	tagSize := sizeOfUvarint(tag)
+	tagSize := SizeOfUvarint(tag)
 	// BeginContainer allocated one byte for the container tag.
 	tagOff := bodyOff - 1
 	if tagSize > 1 {

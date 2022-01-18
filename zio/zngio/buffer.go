@@ -25,7 +25,16 @@ func newBuffer(length int) *buffer {
 	return &buffer{data: make([]byte, length)}
 }
 
+func newBufferFromBytes(b []byte) *buffer {
+	buf := newBuffer(len(b))
+	copy(buf.data, b)
+	return buf
+}
+
 func (b *buffer) free() {
+	if b == nil {
+		return
+	}
 	if cap(b.data) == DefaultLZ4BlockSize {
 		bufferPool.Put(b)
 	}

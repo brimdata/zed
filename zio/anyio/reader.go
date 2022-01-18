@@ -68,7 +68,10 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	// validation to the user setting in the actual reader returned.
 	zngOpts := opts.ZNG
 	zngOpts.Validate = true
-	zngErr := match(zngio.NewReaderWithOpts(track, zed.NewContext(), zngOpts), "zng")
+	zngReader := zngio.NewReaderWithOpts(track, zed.NewContext(), zngOpts)
+	zngErr := match(zngReader, "zng")
+	// Close zngReader to ensure that it does not continue to call track.Read.
+	zngReader.Close()
 	if zngErr == nil {
 		return zngio.NewReaderWithOpts(recorder, zctx, opts.ZNG), nil
 	}

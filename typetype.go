@@ -41,21 +41,21 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 		if *typedefs == nil {
 			*typedefs = make(map[string]Type)
 		}
-		id := byte(IDTypeDef)
+		id := byte(TypeValueNameDef)
 		if previous := (*typedefs)[t.Name]; previous == t.Type {
-			id = IDTypeName
+			id = TypeValueNameRef
 		} else {
 			(*typedefs)[t.Name] = t.Type
 		}
 		b = append(b, id)
 		b = zcode.AppendUvarint(b, uint64(len(t.Name)))
 		b = append(b, zcode.Bytes(t.Name)...)
-		if id == IDTypeName {
+		if id == TypeValueNameRef {
 			return b
 		}
 		return appendTypeValue(b, t.Type, typedefs)
 	case *TypeRecord:
-		b = append(b, IDTypeRecord)
+		b = append(b, TypeValueRecord)
 		b = zcode.AppendUvarint(b, uint64(len(t.Columns)))
 		for _, col := range t.Columns {
 			b = zcode.AppendUvarint(b, uint64(len(col.Name)))
@@ -64,20 +64,20 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 		}
 		return b
 	case *TypeUnion:
-		b = append(b, IDTypeUnion)
+		b = append(b, TypeValueUnion)
 		b = zcode.AppendUvarint(b, uint64(len(t.Types)))
 		for _, t := range t.Types {
 			b = appendTypeValue(b, t, typedefs)
 		}
 		return b
 	case *TypeSet:
-		b = append(b, IDTypeSet)
+		b = append(b, TypeValueSet)
 		return appendTypeValue(b, t.Type, typedefs)
 	case *TypeArray:
-		b = append(b, IDTypeArray)
+		b = append(b, TypeValueArray)
 		return appendTypeValue(b, t.Type, typedefs)
 	case *TypeEnum:
-		b = append(b, IDTypeEnum)
+		b = append(b, TypeValueEnum)
 		b = zcode.AppendUvarint(b, uint64(len(t.Symbols)))
 		for _, s := range t.Symbols {
 			b = zcode.AppendUvarint(b, uint64(len(s)))
@@ -85,11 +85,11 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 		}
 		return b
 	case *TypeMap:
-		b = append(b, IDTypeMap)
+		b = append(b, TypeValueMap)
 		b = appendTypeValue(b, t.KeyType, typedefs)
 		return appendTypeValue(b, t.ValType, typedefs)
 	case *TypeError:
-		b = append(b, IDTypeErrorNew)
+		b = append(b, TypeValueError)
 		return appendTypeValue(b, t.Type, typedefs)
 	default:
 		// Primitive type
@@ -115,7 +115,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 	id := tv[0]
 	tv = tv[1:]
 	switch id {
-	case IDTypeDef:
+	case TypeValueNameDef:
 		name, tv := decodeNameAndCheck(tv, b)
 		if tv == nil {
 			return nil
@@ -125,14 +125,14 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 		tv = formatTypeValue(tv, b)
 		b.WriteByte('>')
 		return tv
-	case IDTypeName:
+	case TypeValueNameRef:
 		name, tv := decodeNameAndCheck(tv, b)
 		if tv == nil {
 			return nil
 		}
 		b.WriteString(name)
 		return tv
-	case IDTypeRecord:
+	case TypeValueRecord:
 		b.WriteByte('{')
 		var n int
 		n, tv = decodeInt(tv)
@@ -154,21 +154,21 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			}
 		}
 		b.WriteByte('}')
-	case IDTypeArray:
+	case TypeValueArray:
 		b.WriteByte('[')
 		tv = formatTypeValue(tv, b)
 		b.WriteByte(']')
-	case IDTypeSet:
+	case TypeValueSet:
 		b.WriteString("|[")
 		tv = formatTypeValue(tv, b)
 		b.WriteString("]|")
-	case IDTypeMap:
+	case TypeValueMap:
 		b.WriteString("|{")
 		tv = formatTypeValue(tv, b)
 		b.WriteByte(':')
 		tv = formatTypeValue(tv, b)
 		b.WriteString("}|")
-	case IDTypeUnion:
+	case TypeValueUnion:
 		b.WriteByte('(')
 		var n int
 		n, tv = decodeInt(tv)
@@ -183,7 +183,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			tv = formatTypeValue(tv, b)
 		}
 		b.WriteByte(')')
-	case IDTypeEnum:
+	case TypeValueEnum:
 		b.WriteByte('<')
 		var n int
 		n, tv = decodeInt(tv)
@@ -203,12 +203,12 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			b.WriteString(QuotedName(symbol))
 		}
 		b.WriteByte('>')
-	case IDTypeErrorNew:
+	case TypeValueError:
 		b.WriteString("error<")
 		tv = formatTypeValue(tv, b)
 		b.WriteByte('>')
 	default:
-		if id < 0 || id > IDTypeDef {
+		if id < 0 || id > TypeValueMax {
 			b.WriteString(fmt.Sprintf("<ERR bad type ID %d in type value>", id))
 			return nil
 		}

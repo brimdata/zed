@@ -62,115 +62,78 @@ var (
 	TypeNull   = &TypeOfNull{}
 )
 
+// Primary Type IDs
+
 const (
-	IDUint8           = 0
-	IDUint16          = 1
-	IDUint32          = 2
-	IDUint64          = 3
-	IDInt8            = 4
-	IDInt16           = 5
-	IDInt32           = 6
-	IDInt64           = 7
-	IDDuration        = 8
-	IDTime            = 9
-	IDFloat16         = 10
-	IDFloat32         = 11
-	IDFloat64         = 12
-	IDDecimal         = 13
-	IDBool            = 14
-	IDBytes           = 15
-	IDString          = 16
-	IDIP              = 18
-	IDNet             = 19
-	IDType            = 20
-	IDErrorDeprecated = 21
-	IDNull            = 22
-
-	IDTypeDef     = 23 // 0x17
-	IDTypeComplex = 23 // XXXX
-
-	IDTypeName     = 24 // 0x18
-	IDTypeRecord   = 25 // 0x19
-	IDTypeArray    = 26 // 0x20
-	IDTypeSet      = 27 // 0x21
-	IDTypeUnion    = 28 // 0x22
-	IDTypeEnum     = 29 // 0x23
-	IDTypeMap      = 30 // 0x24
-	IDTypeErrorNew = 31 //XXX
+	IDUint8       = 0
+	IDUint16      = 1
+	IDUint32      = 2
+	IDUint64      = 3
+	IDUint128     = 4
+	IDUint256     = 5
+	IDInt8        = 6
+	IDInt16       = 7
+	IDInt32       = 8
+	IDInt64       = 9
+	IDInt128      = 10
+	IDInt256      = 11
+	IDDuration    = 12
+	IDTime        = 13
+	IDFloat16     = 14
+	IDFloat32     = 15
+	IDFloat64     = 16
+	IDFloat128    = 17
+	IDFloat256    = 18
+	IDDecimal32   = 19
+	IDDecimal64   = 20
+	IDDecimal128  = 21
+	IDDecimal256  = 22
+	IDBool        = 23
+	IDBytes       = 24
+	IDString      = 25
+	IDIP          = 26
+	IDNet         = 27
+	IDType        = 28
+	IDNull        = 29
+	IDTypeComplex = 30
 )
 
-var promote = []int{
-	IDInt8,    // IDUint8    = 0
-	IDInt16,   // IDUint16   = 1
-	IDInt32,   // IDUint32   = 2
-	IDInt64,   // IDUint64   = 3
-	IDInt8,    // IDInt8     = 4
-	IDInt16,   // IDInt16    = 5
-	IDInt32,   // IDInt32    = 6
-	IDInt64,   // IDInt64    = 7
-	IDInt64,   // IDDuration = 8
-	IDInt64,   // IDTime     = 9
-	IDFloat16, // IDFloat16  = 10
-	IDFloat32, // IDFloat32  = 11
-	IDFloat64, // IDFloat64  = 12
-	IDDecimal, // IDDecimal  = 13
-}
+// Encodings for complex type values.
 
-// Promote type to the largest signed type where the IDs must both
-// satisfy IsNumber.
-func PromoteInt(aid, bid int) int {
-	id := promote[aid]
-	if bid := promote[bid]; bid > id {
-		id = bid
-	}
-	return id
-}
+const (
+	TypeValueRecord  = 30
+	TypeValueArray   = 31
+	TypeValueSet     = 32
+	TypeValueMap     = 33
+	TypeValueUnion   = 34
+	TypeValueEnum    = 35
+	TypeValueError   = 36
+	TypeValueNameDef = 37
+	TypeValueNameRef = 38
+	TypeValueMax     = TypeValueNameRef
+)
 
 // True iff the type id is encoded as a zng signed or unsigened integer zcode.Bytes.
 func IsInteger(id int) bool {
-	return id <= IDInt64
+	return id <= IDInt256
 }
 
 // True iff the type id is encoded as a zng signed or unsigned integer zcode.Bytes,
 // float32 zcode.Bytes, or float64 zcode.Bytes.
 func IsNumber(id int) bool {
-	return id <= IDDecimal
+	return id <= IDDecimal256
 }
 
 // True iff the type id is encoded as a float encoding.
 // XXX add IDDecimal here when we implement coercible math with it.
 func IsFloat(id int) bool {
-	return id >= IDFloat16 && id <= IDFloat64
+	return id >= IDFloat16 && id <= IDFloat256
 }
 
 // True iff the type id is encoded as a number encoding and is signed.
 func IsSigned(id int) bool {
 	return id >= IDInt8 && id <= IDTime
 }
-
-const (
-	CtrlValueEscape   = 0xf4
-	TypeDefError      = 0xf5 //XXX
-	TypeDefRecord     = 0xf6
-	TypeDefArray      = 0xf7
-	TypeDefSet        = 0xf8
-	TypeDefUnion      = 0xf9
-	TypeDefEnum       = 0xfa
-	TypeDefMap        = 0xfb
-	TypeDefAlias      = 0xfc
-	CtrlCompressed    = 0xfd
-	CtrlAppMessage    = 0xfe
-	CtrlEOS           = 0xff
-	AppEncodingZNG    = 0
-	AppEncodingJSON   = 1
-	AppEncodingZSON   = 2
-	AppEncodingString = 3
-	AppEncodingBinary = 4
-)
-
-type CompressionFormat int
-
-const CompressionFormatLZ4 CompressionFormat = 0x00
 
 func LookupPrimitive(name string) Type {
 	switch name {

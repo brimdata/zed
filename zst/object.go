@@ -137,11 +137,11 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		}
 		assembly.types = append(assembly.types, rec.Type)
 	}
-	var err error
-	assembly.root, err = rec.Access("root")
+	root, err := rec.Access("root")
 	if err != nil {
 		return nil, err
 	}
+	assembly.root = *root.Copy()
 	expectedType, err := zson.ParseType(o.zctx, column.SegmapTypeString)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		if err != nil {
 			return nil, err
 		}
-		assembly.columns = append(assembly.columns, rec)
+		assembly.columns = append(assembly.columns, rec.Copy())
 	}
 	rec, _ = reader.Read()
 	if rec != nil {

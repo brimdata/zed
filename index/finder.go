@@ -79,7 +79,7 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value
 		}
 		if cmp := fn(ectx, rec); cmp >= 0 {
 			if cmp == 0 && op.hasEqual() {
-				return rec, nil
+				return rec.Copy(), nil
 			}
 			if op == LTE || op == LT {
 				return prev, nil
@@ -88,10 +88,10 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value
 				return nil, nil
 			}
 			if !(op == GT && cmp == 0) {
-				return rec, nil
+				return rec.Copy(), nil
 			}
 		}
-		prev = rec
+		prev = rec.Copy()
 	}
 }
 
@@ -108,7 +108,7 @@ func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Valu
 		}
 		if cmp := fn(ectx, rec); cmp <= 0 {
 			if cmp == 0 && op.hasEqual() {
-				return rec, nil
+				return rec.Copy(), nil
 			}
 			if op == GTE || op == GT {
 				return prev, nil
@@ -117,10 +117,10 @@ func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Valu
 				return nil, nil
 			}
 			if !(op == LT && cmp == 0) {
-				return rec, nil
+				return rec.Copy(), nil
 			}
 		}
-		prev = rec
+		prev = rec.Copy()
 	}
 }
 

@@ -1,15 +1,15 @@
 package zngio
 
 import (
+	"context"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
+	"runtime"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/peeker"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/pierrec/lz4/v4"
+	"github.com/brimdata/zed/zio"
 )
 
 const (
@@ -19,18 +19,11 @@ const (
 )
 
 type Reader struct {
-	peeker          *peeker.Reader
-	peekerOffset    int64 // never points inside a compressed value message block
-	uncompressedBuf *buffer
-	// shared/output context
-	sctx *zed.Context
-	// internal context implied by zng file
-	zctx *zed.Context
-	// mapper to map internal to shared type contexts
-	mapper   *zed.Mapper
-	sos      int64
-	validate bool
-	app      AppMessage
+	zctx    *zed.Context
+	reader  io.Reader
+	opts    ReaderOpts
+	scanner zbuf.Scanner
+	wrap    zio.Reader
 }
 
 var _ zbuf.ScannerAble = (*Reader)(nil)
@@ -39,19 +32,19 @@ type ReaderOpts struct {
 	Validate bool
 	Size     int
 	Max      int
+	Threads  int
 }
 
-type AppMessage struct {
-	Code     int
-	Encoding int
-	Bytes    []byte
+type Control struct {
+	Format int
+	Bytes  []byte
 }
 
 func NewReader(reader io.Reader, sctx *zed.Context) *Reader {
 	return NewReaderWithOpts(reader, sctx, ReaderOpts{})
 }
 
-func NewReaderWithOpts(reader io.Reader, sctx *zed.Context, opts ReaderOpts) *Reader {
+func NewReaderWithOpts(reader io.Reader, zctx *zed.Context, opts ReaderOpts) *Reader {
 	if opts.Size == 0 {
 		opts.Size = ReadSize
 	}
@@ -61,124 +54,79 @@ func NewReaderWithOpts(reader io.Reader, sctx *zed.Context, opts ReaderOpts) *Re
 	if opts.Size > opts.Max {
 		opts.Size = opts.Max
 	}
+	if opts.Threads == 0 {
+		opts.Threads = runtime.GOMAXPROCS(0)
+	}
 	return &Reader{
-		peeker:   peeker.NewReader(reader, opts.Size, opts.Max),
-		sctx:     sctx,
-		zctx:     zed.NewContext(),
-		mapper:   zed.NewMapper(sctx),
-		validate: opts.Validate,
+		zctx:   zctx,
+		reader: reader,
+		opts:   opts,
 	}
 }
 
-func (r *Reader) Position() int64 {
-	return r.peekerOffset
+func (r *Reader) NewScanner(ctx context.Context, filter zbuf.Filter) (zbuf.Scanner, error) {
+	if r.opts.Threads == 1 {
+		return newScannerSync(ctx, r.zctx, r.reader, filter, r.opts)
+	}
+	return newScanner(ctx, r.zctx, r.reader, filter, r.opts)
 }
 
-// SkipStream skips over the records in the current stream and returns
-// the first record of the next stream and the start-of-stream position
-// of that record.
-func (r *Reader) SkipStream() (*zed.Value, int64, error) {
-	sos := r.sos
-	for {
-		rec, err := r.Read()
-		if err != nil || sos != r.sos || rec == nil {
-			return rec, r.sos, err
-		}
+// Close guarantees that the underlying io.Reader is not read after it returns.
+func (r *Reader) Close() error {
+	r.scanner.Pull(true)
+	return nil
+}
+
+func (r *Reader) init() error {
+	if r.wrap != nil {
+		return nil
 	}
+	//XXX ctx... seems like all NewReaders should take ctx so they
+	// can have cancellable goroutines?
+	scanner, err := r.NewScanner(context.TODO(), nil)
+	if err != nil {
+		return err
+	}
+	r.scanner = scanner
+	r.wrap = zbuf.PullerReader(scanner)
+	return nil
 }
 
 func (r *Reader) Read() (*zed.Value, error) {
+	// If Read is called, then this Reader is being used as a zio.Reader and
+	// not as a zbuf.Puller.  We just wrap the scanner in a puller to
+	// implement the Reader interface.  If it's used a zbuf.Scanner, then
+	// the NewScanner method will be called and Read will never happen.
+	if err := r.init(); err != nil {
+		return nil, err
+	}
 	for {
-		rec, msg, err := r.ReadPayload()
+		val, err := r.wrap.Read()
 		if err != nil {
+			if _, ok := err.(*zbuf.Control); ok {
+				continue
+			}
 			return nil, err
 		}
-		if msg != nil {
-			continue
-		}
-		return rec, err
+		return val, err
 	}
 }
 
-func (r *Reader) ReadPayload() (*zed.Value, *AppMessage, error) {
-	for {
-		rec, msg, err := r.readPayload(nil)
-		if err != nil {
-			if err == startCompressed {
-				err = r.readCompressedAndUncompress()
-				if err == nil {
-					continue
-				}
+func (r *Reader) ReadPayload() (*zed.Value, *Control, error) {
+	if err := r.init(); err != nil {
+		return nil, nil, err
+	}
+	val, err := r.wrap.Read()
+	if err != nil {
+		if zctrl, ok := err.(*zbuf.Control); ok {
+			ctrl, ok := zctrl.Message.(*Control)
+			if !ok {
+				return nil, nil, fmt.Errorf("zngio internal error: unknown control type: %T", zctrl.Message)
 			}
-			return nil, nil, err
-		}
-		return rec, msg, err
-	}
-}
-
-// LastSOS returns the offset of the most recent Start-of-Stream
-func (r *Reader) LastSOS() int64 {
-	return r.sos
-}
-
-func (r *Reader) reset() {
-	r.zctx = zed.NewContext()
-	r.mapper = zed.NewMapper(r.sctx)
-	r.sos = r.peekerOffset
-}
-
-var startCompressed = errors.New("start of compressed value messaage block")
-
-// ReadPayload returns either data values as zed.Record or app-specific
-// messages .  The record or message is volatile so they must be
-// copied (via copy for message's byte slice or zed.Record.Keep) as
-// subsequent calls to Read or ReadPayload will modify the referenced data.
-func (r *Reader) readPayload(rec *zed.Value) (*zed.Value, *AppMessage, error) {
-	for {
-		b, err := r.read(1)
-		if err != nil {
-			// Having tried to read a single byte above, ErrTruncated means io.EOF.
-			if err == io.EOF || err == peeker.ErrTruncated {
-				return nil, nil, nil
-			}
-			return nil, nil, err
-		}
-		code := b[0]
-		if code <= zed.CtrlValueEscape {
-			rec, err := readValue(r, code, r.mapper, r.validate, rec)
-			return rec, nil, err
-		}
-		switch code {
-		case zed.TypeDefRecord:
-			err = r.readTypeRecord()
-		case zed.TypeDefSet:
-			err = r.readTypeSet()
-		case zed.TypeDefArray:
-			err = r.readTypeArray()
-		case zed.TypeDefUnion:
-			err = r.readTypeUnion()
-		case zed.TypeDefEnum:
-			err = r.readTypeEnum()
-		case zed.TypeDefMap:
-			err = r.readTypeMap()
-		case zed.TypeDefAlias:
-			err = r.readTypeAlias()
-		case zed.TypeDefError:
-			err = r.readTypeError()
-		case zed.CtrlEOS:
-			r.reset()
-		case zed.CtrlCompressed:
-			return nil, nil, startCompressed
-		case zed.CtrlAppMessage:
-			msg, err := r.readAppMessage(int(code))
-			return nil, msg, err
-		default:
-			err = fmt.Errorf("unknown zng control code: %d", code)
-		}
-		if err != nil {
-			return nil, nil, err
+			return nil, ctrl, nil
 		}
 	}
+	return val, nil, err
 }
 
 type reader interface {
@@ -187,335 +135,9 @@ type reader interface {
 	read(n int) ([]byte, error)
 }
 
-var _ reader = (*Reader)(nil)
 var _ reader = (*buffer)(nil)
-
-func readValue(r reader, code byte, m *zed.Mapper, validate bool, rec *zed.Value) (*zed.Value, error) {
-	id := int(code)
-	if code == zed.CtrlValueEscape {
-		var err error
-		id, err = readUvarintAsInt(r)
-		if err != nil {
-			return nil, err
-		}
-		id += zed.CtrlValueEscape
-	}
-	n, err := readUvarintAsInt(r)
-	if err != nil {
-		return nil, zed.ErrBadFormat
-	}
-	b, err := r.read(n)
-	if err != nil && err != io.EOF {
-		if err == peeker.ErrBufferOverflow {
-			return nil, fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
-		}
-		return nil, zed.ErrBadFormat
-	}
-	typ := m.Lookup(id)
-	if typ == nil {
-		return nil, zed.ErrTypeIDInvalid
-	}
-	if rec == nil {
-		rec = zed.NewValue(typ, b)
-	} else {
-		*rec = *zed.NewValue(typ, b)
-	}
-	if validate {
-		if err := rec.TypeCheck(); err != nil {
-			return nil, err
-		}
-	}
-	return rec, nil
-}
 
 func readUvarintAsInt(r io.ByteReader) (int, error) {
 	u64, err := binary.ReadUvarint(r)
 	return int(u64), err
-}
-
-func (r *Reader) readAppMessage(code int) (*AppMessage, error) {
-	encoding, err := r.ReadByte()
-	if err != nil {
-		return nil, zed.ErrBadFormat
-	}
-	len, err := r.readUvarint()
-	if err != nil {
-		return nil, zed.ErrBadFormat
-	}
-	buf, err := r.read(len)
-	if err != nil {
-		return nil, err
-	}
-	r.app.Code = code
-	r.app.Encoding = int(encoding)
-	r.app.Bytes = buf
-	return &r.app, err
-}
-
-// read returns an error if fewer than n bytes are available.
-func (r *Reader) read(n int) ([]byte, error) {
-	if r.uncompressedBuf != nil {
-		if r.uncompressedBuf.length() > 0 {
-			return r.uncompressedBuf.read(n)
-		}
-		r.uncompressedBuf = nil
-	}
-	b, err := r.peeker.Read(n)
-	r.peekerOffset += int64(len(b))
-	return b, err
-}
-
-func (r *Reader) readCompressedAndUncompress() error {
-	if r.uncompressedBuf != nil {
-		return errors.New("zngio: cannot have zng compression inside of compression")
-	}
-	format, uncompressedLen, cbuf, err := r.readCompressed()
-	if err != nil {
-		return nil
-	}
-	r.uncompressedBuf, err = uncompress(format, uncompressedLen, cbuf)
-	return err
-}
-
-func (r *Reader) readCompressed() (zed.CompressionFormat, int, []byte, error) {
-	format, err := r.readUvarint()
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	uncompressedLen, err := r.readUvarint()
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	if uncompressedLen > MaxSize {
-		return 0, 0, nil, errors.New("zngio: uncompressed length exceeds MaxSize")
-	}
-	compressedLen, err := r.readUvarint()
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	cbuf, err := r.read(compressedLen)
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	return zed.CompressionFormat(format), uncompressedLen, cbuf, err
-}
-
-func uncompress(format zed.CompressionFormat, uncompressedLen int, cbuf []byte) (*buffer, error) {
-	if format != zed.CompressionFormatLZ4 {
-		return nil, fmt.Errorf("zngio: unknown compression format 0x%x", format)
-	}
-	ubuf := newBuffer(uncompressedLen)
-	n, err := lz4.UncompressBlock(cbuf, ubuf.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("zngio: %w", err)
-	}
-	if n != uncompressedLen {
-		return nil, fmt.Errorf("zngio: got %d uncompressed bytes, expected %d", n, uncompressedLen)
-	}
-	return ubuf, nil
-}
-
-func (r *Reader) readUvarint() (int, error) {
-	return readUvarintAsInt(r)
-}
-
-// ReadByte implements io.ByteReader.ReadByte.
-func (r *Reader) ReadByte() (byte, error) {
-	if r.uncompressedBuf != nil && r.uncompressedBuf.length() > 0 {
-		return r.uncompressedBuf.ReadByte()
-	}
-	b, err := r.peeker.ReadByte()
-	if err == nil {
-		r.peekerOffset++
-	}
-	return b, err
-}
-
-func (r *Reader) readColumn() (zed.Column, error) {
-	len, err := r.readUvarint()
-	if err != nil {
-		return zed.Column{}, zed.ErrBadFormat
-	}
-	b, err := r.read(len)
-	if err != nil {
-		return zed.Column{}, zed.ErrBadFormat
-	}
-	// pull the name out before the next read which might overwrite the buffer
-	name := string(b)
-	id, err := r.readUvarint()
-	if err != nil {
-		return zed.Column{}, zed.ErrBadFormat
-	}
-	typ, err := r.zctx.LookupType(id)
-	if err != nil {
-		return zed.Column{}, err
-	}
-	return zed.NewColumn(name, typ), nil
-}
-
-func (r *Reader) readTypeRecord() error {
-	ncol, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	var columns []zed.Column
-	for k := 0; k < int(ncol); k++ {
-		col, err := r.readColumn()
-		if err != nil {
-			return err
-		}
-		columns = append(columns, col)
-	}
-	typ, err := r.zctx.LookupTypeRecord(columns)
-	if err != nil {
-		return err
-	}
-	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
-	return err
-}
-
-func (r *Reader) readTypeUnion() error {
-	ntyp, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	if ntyp == 0 {
-		return errors.New("type union: zero columns not allowed")
-	}
-	var types []zed.Type
-	for k := 0; k < int(ntyp); k++ {
-		id, err := r.readUvarint()
-		if err != nil {
-			return zed.ErrBadFormat
-		}
-		typ, err := r.zctx.LookupType(int(id))
-		if err != nil {
-			return err
-		}
-		types = append(types, typ)
-	}
-	typ := r.zctx.LookupTypeUnion(types)
-	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
-	return err
-}
-
-func (r *Reader) readTypeSet() error {
-	id, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	innerType, err := r.zctx.LookupType(int(id))
-	if err != nil {
-		return err
-	}
-	typ := r.zctx.LookupTypeSet(innerType)
-	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
-	return err
-}
-
-func (r *Reader) readTypeEnum() error {
-	nsym, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	var symbols []string
-	for k := 0; k < int(nsym); k++ {
-		s, err := r.readSymbol()
-		if err != nil {
-			return err
-		}
-		symbols = append(symbols, s)
-	}
-	typ := r.zctx.LookupTypeEnum(symbols)
-	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
-	return err
-}
-
-func (r *Reader) readSymbol() (string, error) {
-	n, err := r.readUvarint()
-	if err != nil {
-		return "", zed.ErrBadFormat
-	}
-	b, err := r.read(n)
-	if err != nil {
-		return "", zed.ErrBadFormat
-	}
-	// pull the name out before the next read which might overwrite the buffer
-	return string(b), nil
-}
-
-func (r *Reader) readTypeMap() error {
-	id, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	keyType, err := r.zctx.LookupType(int(id))
-	if err != nil {
-		return err
-	}
-	id, err = r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	valType, err := r.zctx.LookupType(int(id))
-	if err != nil {
-		return err
-	}
-	typ := r.zctx.LookupTypeMap(keyType, valType)
-	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
-	return err
-}
-
-func (r *Reader) readTypeArray() error {
-	id, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	inner, err := r.zctx.LookupType(int(id))
-	if err != nil {
-		return err
-	}
-	typ := r.zctx.LookupTypeArray(inner)
-	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
-	return err
-}
-
-func (r *Reader) readTypeAlias() error {
-	len, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	b, err := r.read(len)
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	name := string(b)
-	id, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	inner, err := r.zctx.LookupType(int(id))
-	if err != nil {
-		return err
-	}
-	typ, err := r.zctx.LookupTypeAlias(name, inner)
-	if err != nil {
-		return err
-	}
-	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
-	return err
-}
-
-func (r *Reader) readTypeError() error {
-	id, err := r.readUvarint()
-	if err != nil {
-		return zed.ErrBadFormat
-	}
-	inner, err := r.zctx.LookupType(int(id))
-	if err != nil {
-		return err
-	}
-	typ := r.zctx.LookupTypeError(inner)
-	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
-	return err
 }

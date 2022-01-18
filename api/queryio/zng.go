@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -39,5 +38,5 @@ func (w *ZNGWriter) WriteControl(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return w.Writer.WriteControl(buf.Bytes(), zed.AppEncodingZSON)
+	return w.Writer.WriteControl(buf.Bytes(), zngio.ControlFormatZSON)
 }

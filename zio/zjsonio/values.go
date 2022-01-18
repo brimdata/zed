@@ -63,7 +63,7 @@ func encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{
 		if err != nil {
 			return nil, err
 		}
-		if zed.TypeID(typ) < zed.IDTypeDef {
+		if zed.TypeID(typ) < zed.IDTypeComplex {
 			return typ.String(), nil
 		}
 		if alias, ok := typ.(*zed.TypeAlias); ok {

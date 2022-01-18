@@ -25,7 +25,7 @@ outputs:
 
           loaded 1 data object
 
-          \w{27} 1 record in 10 data bytes
+          \w{27} 1 record in 14 data bytes
 
       commit \w{27}
       Author: testuser
@@ -33,4 +33,4 @@ outputs:
 
           loaded 1 data object
 
-          \w{27} 1 record in 10 data bytes
+          \w{27} 1 record in 14 data bytes

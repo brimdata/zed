@@ -29,8 +29,8 @@ outputs:
       {"a":"one","b":{"c":"two","d":"three"}}
       === application/x-zjson ===
       {"kind":"QueryChannelSet","value":{"channel_id":0}}
-      {"kind":"Object","value":{"schema":"24","types":[{"kind":"typedef","name":"24","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"primitive","name":"string"}},{"name":"b","type":{"kind":"record","fields":[{"name":"c","type":{"kind":"primitive","name":"string"}},{"name":"d","type":{"kind":"primitive","name":"string"}}]}}]}}],"values":["hello",["world","goodbye"]]}}
-      {"kind":"Object","value":{"schema":"24","values":["one",["two","three"]]}}
+      {"kind":"Object","value":{"schema":"31","types":[{"kind":"typedef","name":"31","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"primitive","name":"string"}},{"name":"b","type":{"kind":"record","fields":[{"name":"c","type":{"kind":"primitive","name":"string"}},{"name":"d","type":{"kind":"primitive","name":"string"}}]}}]}}],"values":["hello",["world","goodbye"]]}}
+      {"kind":"Object","value":{"schema":"31","values":["one",["two","three"]]}}
       {"kind":"QueryChannelEnd","value":{"channel_id":0}}
       {"kind":"QueryStats","value":{"start_time":{"sec":xxx,"ns":xxx},"update_time":{"sec":xxx,"ns":xxx},"bytes_read":36,"bytes_matched":36,"records_read":2,"records_matched":2}}
       === application/x-zson ===

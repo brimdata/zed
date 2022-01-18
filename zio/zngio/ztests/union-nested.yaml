@@ -1,11 +1,13 @@
-zed: '*'
+script: zq - | zq -z -
 
-input: !!binary |
-  9wf3EPkCEAf5BBAXGBn2AQFhGhsKCgEIImhlbGxvIhsICAICBQICAgQbDAwCBAkEImEiBC
-  JiIhsICAIGBQICAvb/
+inputs:
+  - name: stdin
+    data: &stdin |
+      {a:"\"hello\""((string,[int64],[string],(string,int64)))}
+      {a:[1,2]((string,[int64],[string],(string,int64)))}
+      {a:["\"a\"","\"b\""]((string,[int64],[string],(string,int64)))}
+      {a:123((string,int64))((string,[int64],[string],(string,int64)))}
 
-output: |
-  {a:"\"hello\""((string,[int64],[string],(string,int64)))}
-  {a:[1,2]((string,[int64],[string],(string,int64)))}
-  {a:["\"a\"","\"b\""]((string,[int64],[string],(string,int64)))}
-  {a:123((string,int64))((string,[int64],[string],(string,int64)))}
+outputs:
+  - name: stdout
+    data: *stdin

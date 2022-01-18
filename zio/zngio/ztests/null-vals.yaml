@@ -1,0 +1,17 @@
+# do a round-trip into serialized ZNG to make sure top-level nulls encoded properly
+
+script: zq - | zq -z -
+
+inputs:
+  - name: stdin
+    data: &stdin |
+      null(int64)
+      null
+      null({s:string})
+      null([uint8])
+      null({})
+      null(bytes)
+
+outputs:
+  - name: stdout
+    data: *stdin
