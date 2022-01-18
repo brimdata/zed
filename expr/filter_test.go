@@ -242,7 +242,7 @@ func TestFilters(t *testing.T) {
 		{"array", `{a:[{i:123,s1:"456",s2:"hello"}]}`},
 		{"record", `{r:{r2:{i:123,s1:"456",s2:"hello"}}}`},
 		{"set", `{s:|[{i:123,s1:"456",s2:"hello"}]|}`},
-		{"union", `{u:{i:123,s1:"456",s2:"hello, world"} (0=((int64,1=({i:int64,s1:string,s2:string}))))} (=2)`},
+		{"union", `{u:{i:123,s1:"456",s2:"hello, world"}  ((int64,{i:int64,s1:string,s2:string}))}`},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			runCases(t, c.record, []testcase{
@@ -350,7 +350,7 @@ func TestFilters(t *testing.T) {
 
 	// Test comparisons with field of type port (can compare with
 	// a port literal or an integer literal)
-	runCases(t, "{p:443 (port=(uint16))} (=0)", []testcase{
+	runCases(t, "{p:443 (port=<uint16>)}", []testcase{
 		{"p == 443", true},
 		{"p == 80", false},
 	})
@@ -378,7 +378,7 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test comparisons with an aliased type
-	runCases(t, "{i:100 (myint=(int32))} (=0)", []testcase{
+	runCases(t, "{i:100 (myint=<int32>)}", []testcase{
 		{"i == 100", true},
 		{"i > 0", true},
 		{"i < 50", false},
@@ -396,7 +396,7 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test searching for a field name of an null record
-	runCases(t, "{rec:null (0=({str:string}))}", []testcase{
+	runCases(t, "{rec:null ({str:string})}", []testcase{
 		{"rec.str", true},
 	})
 

@@ -6,8 +6,8 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      {a:"hello",b:"world",n:123(int32),f:[1(foo=(uint8)),2(foo),3(foo)]}
-      {a:"goodbye",b:"world",n:456(int32),f:[4(foo=(uint8)),5(foo),6(foo)]}
+      {a:"hello",b:"world",n:123(int32),f:[1(foo=<uint8>),2(foo),3(foo)]}
+      {a:"goodbye",b:"world",n:456(int32),f:[4(foo=<uint8>),5(foo),6(foo)]}
 
 outputs:
   - name: stdout
@@ -17,20 +17,20 @@ outputs:
           b: "world",
           n: 123 (int32),
           f: [
-              1 (foo=(uint8)),
+              1 (foo=<uint8>),
               2 (foo),
               3 (foo)
           ],
-          t: ({a:string,b:string,n:int32,f:[foo=(uint8)]})
+          t: <{a:string,b:string,n:int32,f:[foo=<uint8>]}>
       }
       {
           a: "goodbye",
           b: "world",
           n: 456 (int32),
           f: [
-              4 (foo=(uint8)),
+              4 (foo=<uint8>),
               5 (foo),
               6 (foo)
           ],
-          t: ({a:string,b:string,n:int32,f:[foo=(uint8)]})
+          t: <{a:string,b:string,n:int32,f:[foo=<uint8>]}>
       }

@@ -134,9 +134,8 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			return nil, err
 		}
 		return &dag.Literal{
-			Kind: "Literal",
-			//XXX flag week: this changes to angle brackets
-			Value: "(" + typ + ")",
+			Kind:  "Literal",
+			Value: "<" + typ + ">",
 		}, nil
 	case *ast.Agg:
 		expr, err := semExprNullable(scope, e.Expr)

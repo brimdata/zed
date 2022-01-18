@@ -9,5 +9,5 @@
     ts:2020-11-24T08:44:09.586441-08:00,
     dur:1m20s,
 //  skip: "this field",
-    tv:({a:int8})
+    tv:<{a:int8}>
 }

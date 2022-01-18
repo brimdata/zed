@@ -186,7 +186,7 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 		f.build(")")
 	case *zed.TypeOfType:
 		f.startColorPrimitive(zed.TypeType)
-		f.buildf("(%s)", zed.FormatTypeValue(bytes))
+		f.buildf("<%s>", zed.FormatTypeValue(bytes))
 		f.endColor()
 	}
 	if err == nil && decorate {
@@ -372,9 +372,9 @@ func (f *Formatter) formatType(typ zed.Type) {
 	if alias, ok := typ.(*zed.TypeAlias); ok {
 		f.saveType(alias)
 		f.build(alias.Name)
-		f.build("=(")
+		f.build("=<")
 		f.formatType(alias.Type)
-		f.build(")")
+		f.build(">")
 		return
 	}
 	if typ.ID() < zed.IDTypeDef {
@@ -541,9 +541,9 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 		b.WriteString(name)
 		if _, ok := typedefs[typ]; !ok {
 			typedefs[typ] = name
-			b.WriteString("=(")
+			b.WriteString("=<")
 			formatType(b, typedefs, t.Type)
-			b.WriteByte(')')
+			b.WriteByte('>')
 		}
 	case *zed.TypeRecord:
 		b.WriteByte('{')

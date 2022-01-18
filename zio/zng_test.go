@@ -146,7 +146,7 @@ func TestAlias(t *testing.T) {
 `
 	const recordAlias = `
 {foo:{host:127.0.0.2}(=myrec)}
-{foo:null(myrec=({host:ip}))}
+{foo:null(myrec=<{host:ip}>)}
 `
 	t.Run("ZNG", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {

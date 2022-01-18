@@ -7,4 +7,4 @@ output-flags: -f table
 
 output: |
   typeof
-  ({a:int64})
+  <{a:int64}>
