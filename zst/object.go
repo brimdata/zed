@@ -135,7 +135,7 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		if zv.Bytes != nil {
 			break
 		}
-		assembly.schemas = append(assembly.schemas, rec.Type)
+		assembly.types = append(assembly.types, rec.Type)
 	}
 	var err error
 	assembly.root, err = rec.Access("root")
@@ -150,7 +150,7 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		return nil, fmt.Errorf("zst root reassembly value has wrong type: %s; should be %s", assembly.root.Type, expectedType)
 	}
 
-	for k := 0; k < len(assembly.schemas); k++ {
+	for k := 0; k < len(assembly.types); k++ {
 		rec, err := reader.Read()
 		if err != nil {
 			return nil, err

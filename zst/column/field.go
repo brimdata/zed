@@ -83,7 +83,7 @@ func (f *FieldWriter) Flush(eof bool) error {
 
 type Field struct {
 	isContainer bool
-	column      Interface
+	column      Any
 	presence    *Presence
 }
 
@@ -109,7 +109,7 @@ func (f *Field) UnmarshalZNG(typ zed.Type, in zed.Value, r io.ReaderAt) error {
 	}
 	f.isContainer = zed.IsContainerType(typ)
 	f.presence = NewPresence()
-	if err := f.presence.UnmarshalZNG(zv, r); err != nil {
+	if err := f.presence.UnmarshalZNG(zed.TypeInt64, zv, r); err != nil {
 		return err
 	}
 	if f.presence.IsEmpty() {

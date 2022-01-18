@@ -75,11 +75,15 @@ func (u *UnionWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 }
 
 type Union struct {
-	values   []Interface
+	values   []Any
 	selector *Int
 }
 
-func (u *Union) UnmarshalZNG(typ *zed.TypeUnion, in zed.Value, r io.ReaderAt) error {
+func (u *Union) UnmarshalZNG(utyp zed.Type, in zed.Value, r io.ReaderAt) error {
+	typ, ok := utyp.(*zed.TypeUnion)
+	if !ok {
+		return errors.New("cannot unmarshal non-union into union")
+	}
 	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
 		return errors.New("zst object union_column not a record")
@@ -101,7 +105,7 @@ func (u *Union) UnmarshalZNG(typ *zed.TypeUnion, in zed.Value, r io.ReaderAt) er
 		return err
 	}
 	u.selector = &Int{}
-	return u.selector.UnmarshalZNG(zv, r)
+	return u.selector.UnmarshalZNG(zed.TypeInt64, zv, r)
 }
 
 func (u *Union) Read(b *zcode.Builder) error {
@@ -110,7 +114,7 @@ func (u *Union) Read(b *zcode.Builder) error {
 		return err
 	}
 	if selector < 0 || int(selector) >= len(u.values) {
-		return errors.New("bad selector in zst union reader") //XXX
+		return errors.New("bad selector in zst union reader")
 	}
 	b.BeginContainer()
 	b.AppendPrimitive(zed.EncodeInt(int64(selector)))

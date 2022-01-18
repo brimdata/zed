@@ -32,6 +32,7 @@
 package column
 
 import (
+	"errors"
 	"io"
 
 	"github.com/brimdata/zed"
@@ -72,11 +73,12 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 	}
 }
 
-type Interface interface {
+type Any interface {
+	UnmarshalZNG(zed.Type, zed.Value, io.ReaderAt) error
 	Read(*zcode.Builder) error
 }
 
-func Unmarshal(typ zed.Type, in zed.Value, r io.ReaderAt) (Interface, error) {
+func Unmarshal(typ zed.Type, in zed.Value, r io.ReaderAt) (Any, error) {
 	switch typ := typ.(type) {
 	case *zed.TypeAlias:
 		return Unmarshal(typ.Type, in, r)
@@ -89,18 +91,18 @@ func Unmarshal(typ zed.Type, in zed.Value, r io.ReaderAt) (Interface, error) {
 		err := a.UnmarshalZNG(typ.Type, in, r)
 		return a, err
 	case *zed.TypeSet:
-		// Sets encode the same way as arrays but behave
-		// differently semantically, and we don't care here.
 		a := &Array{}
-		err := a.UnmarshalZNG(typ.Type, in, r)
+		err := a.UnmarshalZNG(typ, in, r)
 		return a, err
 	case *zed.TypeUnion:
 		u := &Union{}
 		err := u.UnmarshalZNG(typ, in, r)
 		return u, err
+	case *zed.TypeMap, *zed.TypeEnum:
+		return nil, errors.New("unsupported")
 	default:
 		p := &Primitive{}
-		err := p.UnmarshalZNG(in, r)
+		err := p.UnmarshalZNG(typ, in, r)
 		return p, err
 	}
 }

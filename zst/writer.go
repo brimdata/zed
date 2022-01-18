@@ -24,8 +24,8 @@ type Writer struct {
 	zctx       *zed.Context
 	writer     io.WriteCloser
 	spiller    *column.Spiller
-	schemaMap  map[int]int
-	schemas    []column.RecordWriter
+	typeMap    map[zed.Type]int
+	columns    []column.Writer
 	types      []zed.Type
 	skewThresh int
 	segThresh  int
@@ -50,7 +50,7 @@ func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
 		zctx:       zed.NewContext(),
 		spiller:    spiller,
 		writer:     w,
-		schemaMap:  make(map[int]int),
+		typeMap:    make(map[zed.Type]int),
 		skewThresh: skewThresh,
 		segThresh:  segThresh,
 		root:       column.NewIntWriter(spiller),
@@ -101,28 +101,28 @@ func checkThresh(which string, max, thresh int) error {
 	return nil
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
-	inputID := zed.TypeID(rec.Type)
-	schemaID, ok := w.schemaMap[inputID]
+func (w *Writer) Write(val *zed.Value) error {
+	// The ZST writer self-organizes around the types that are
+	// written to it.  No need to define the schema up front!
+	// We track the types seen first-come, first-served in the
+	// typeMap table and the ZST serialization structure
+	// follows accordingly.
+	typ := val.Type
+	typeNo, ok := w.typeMap[typ]
 	if !ok {
-		schema, err := w.zctx.TranslateType(rec.Type)
-		if err != nil {
-			return err
-		}
-		recType := zed.TypeRecordOf(schema)
-		schemaID = len(w.schemas)
-		w.schemaMap[inputID] = schemaID
-		rw := column.NewRecordWriter(recType, w.spiller)
-		w.schemas = append(w.schemas, rw)
-		w.types = append(w.types, schema)
+		typeNo = len(w.types)
+		w.typeMap[typ] = typeNo
+		col := column.NewWriter(typ, w.spiller)
+		w.columns = append(w.columns, col)
+		w.types = append(w.types, val.Type)
 	}
-	if err := w.root.Write(int32(schemaID)); err != nil {
+	if err := w.root.Write(int32(typeNo)); err != nil {
 		return err
 	}
-	if err := w.schemas[schemaID].Write(rec.Bytes); err != nil {
+	if err := w.columns[typeNo].Write(val.Bytes); err != nil {
 		return err
 	}
-	w.footprint += len(rec.Bytes)
+	w.footprint += len(val.Bytes)
 	if w.footprint >= w.skewThresh {
 		w.footprint = 0
 		return w.flush(false)
@@ -149,7 +149,7 @@ func (w *WriterURI) Close() error {
 }
 
 func (w *Writer) flush(eof bool) error {
-	for _, col := range w.schemas {
+	for _, col := range w.columns {
 		if err := col.Flush(eof); err != nil {
 			return err
 		}
@@ -165,29 +165,16 @@ func (w *Writer) finalize() error {
 	// to the underlying spiller, so we start writing zng at this point.
 	zw := zngio.NewWriter(w.writer, zngio.WriterOpts{})
 	dataSize := w.spiller.Position()
-	var b zcode.Builder
-	// First, write out empty records for each schemas.  Since these types
-	// are all put here first, in the orde they were originally encountered
-	// in the zng input, when they are read fresh by the zst reader, the
-	// reconstructued type context will exactly match the original context
-	// and the resulting zng output will be byte-equivalent to the original
-	// input.
-	for _, schema := range w.types {
-		b.Reset()
-		for _, col := range zed.TypeRecordOf(schema).Columns {
-			if zed.IsContainerType(col.Type) {
-				b.AppendContainer(nil)
-			} else {
-				b.AppendPrimitive(nil)
-			}
-		}
-		rec := zed.NewValue(schema, b.Bytes())
-		if err := zw.Write(rec); err != nil {
+	// First, we write out empty values for each column corresponding to
+	// a type serialized into the ZST file in the order of it type number.
+	for _, typ := range w.types {
+		val := zed.NewValue(typ, nil)
+		if err := zw.Write(val); err != nil {
 			return err
 		}
 	}
 	// Next, write the root reassembly record.
-	b.Reset()
+	var b zcode.Builder
 	typ, err := w.root.MarshalZNG(w.zctx, &b)
 	if err != nil {
 		return err
@@ -200,12 +187,13 @@ func (w *Writer) finalize() error {
 	if err := zw.Write(rec); err != nil {
 		return err
 	}
-	// Now, write out the reassembly record for each schema.  Each record
-	// is highly nested and encodes all of the segmaps for every column stream
-	// needed to reconstruct all of the records of that schema.
-	for _, schema := range w.schemas {
+	// Now, write out the reassembly record for each top-level type.
+	// Each record here is highly nested and encodes all of the segmaps
+	// for every column stream needed to reconstruct all of the values
+	// for that type.
+	for _, col := range w.columns {
 		b.Reset()
-		typ, err := schema.MarshalZNG(w.zctx, &b)
+		typ, err := col.MarshalZNG(w.zctx, &b)
 		if err != nil {
 			return err
 		}
@@ -213,8 +201,8 @@ func (w *Writer) finalize() error {
 		if err != nil {
 			return err
 		}
-		rec := zed.NewValue(typ.(*zed.TypeRecord), body)
-		if err := zw.Write(rec); err != nil {
+		val := zed.NewValue(typ, body)
+		if err := zw.Write(val); err != nil {
 			return err
 		}
 	}

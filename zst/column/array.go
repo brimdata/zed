@@ -61,7 +61,7 @@ func (a *ArrayWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 }
 
 type Array struct {
-	values  Interface
+	values  Any
 	lengths *Int
 }
 
@@ -84,7 +84,7 @@ func (a *Array) UnmarshalZNG(inner zed.Type, in zed.Value, r io.ReaderAt) error 
 		return err
 	}
 	a.lengths = &Int{}
-	return a.lengths.UnmarshalZNG(zv, r)
+	return a.lengths.UnmarshalZNG(zed.TypeInt64, zv, r)
 }
 
 func (a *Array) Read(b *zcode.Builder) error {

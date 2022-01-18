@@ -68,7 +68,11 @@ func (r RecordWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 
 type Record []*Field
 
-func (r *Record) UnmarshalZNG(typ *zed.TypeRecord, in zed.Value, reader io.ReaderAt) error {
+func (r *Record) UnmarshalZNG(utyp zed.Type, in zed.Value, reader io.ReaderAt) error {
+	typ, ok := zed.TypeUnder(utyp).(*zed.TypeRecord)
+	if !ok {
+		return errors.New("XXX")
+	}
 	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
 		return errors.New("corrupt zst object: record_column is not a record")
@@ -102,7 +106,7 @@ func (r Record) Read(b *zcode.Builder) error {
 
 var ErrNonRecordAccess = errors.New("attempting to access a field in a non-record value")
 
-func (r Record) Lookup(typ *zed.TypeRecord, fields []string) (zed.Type, Interface, error) {
+func (r Record) Lookup(typ *zed.TypeRecord, fields []string) (zed.Type, Any, error) {
 	if len(fields) == 0 {
 		panic("column.Record.Lookup cannot be called with an empty fields argument")
 	}
