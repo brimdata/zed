@@ -18,8 +18,8 @@ func (t *TypeOfType) String() string {
 	return "type"
 }
 
-func (t *TypeOfType) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.Format(zv), nil
+func (t *TypeOfType) Marshal(zv zcode.Bytes) interface{} {
+	return t.Format(zv)
 }
 
 func (t *TypeOfType) Format(zv zcode.Bytes) string {

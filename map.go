@@ -43,7 +43,7 @@ func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
 	return Value{t.KeyType, key}, Value{t.ValType, val}, nil
 }
 
-func (t *TypeMap) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeMap) Marshal(zv zcode.Bytes) interface{} {
 	// start out with zero-length container so we get "[]" instead of nil
 	vals := []*Value{}
 	it := zv.Iter()
@@ -53,7 +53,7 @@ func (t *TypeMap) Marshal(zv zcode.Bytes) (interface{}, error) {
 		val, _ = it.Next()
 		vals = append(vals, &Value{t.ValType, val})
 	}
-	return vals, nil
+	return vals
 }
 
 type keyval struct {

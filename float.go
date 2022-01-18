@@ -2,7 +2,6 @@ package zed
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -10,16 +9,19 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-func DecodeFloat(zb zcode.Bytes) (float64, error) {
+func DecodeFloat(zb zcode.Bytes) float64 {
+	if zb == nil {
+		return 0
+	}
 	switch len(zb) {
 	case 4:
 		bits := binary.LittleEndian.Uint32(zb)
-		return float64(math.Float32frombits(bits)), nil
+		return float64(math.Float32frombits(bits))
 	case 8:
 		bits := binary.LittleEndian.Uint64(zb)
-		return math.Float64frombits(bits), nil
+		return math.Float64frombits(bits)
 	}
-	return 0, errors.New("float encoding is neither 4 nor 8 bytes")
+	panic("float encoding is neither 4 nor 8 bytes")
 }
 
 type TypeOfFloat32 struct{}
@@ -38,12 +40,11 @@ func EncodeFloat32(d float32) zcode.Bytes {
 	return AppendFloat32(nil, d)
 }
 
-func DecodeFloat32(zb zcode.Bytes) (float32, error) {
-	if len(zb) != 4 {
-		return 0, errors.New("byte encoding of float32 not 4 bytes")
+func DecodeFloat32(zb zcode.Bytes) float32 {
+	if zb == nil {
+		return 0
 	}
-	bits := binary.LittleEndian.Uint32(zb)
-	return math.Float32frombits(bits), nil
+	return math.Float32frombits(binary.LittleEndian.Uint32(zb))
 }
 
 func (t *TypeOfFloat32) ID() int {
@@ -54,15 +55,12 @@ func (t *TypeOfFloat32) String() string {
 	return "float32"
 }
 
-func (t *TypeOfFloat32) Marshal(zb zcode.Bytes) (interface{}, error) {
+func (t *TypeOfFloat32) Marshal(zb zcode.Bytes) interface{} {
 	return DecodeFloat32(zb)
 }
 
 func (t *TypeOfFloat32) Format(zb zcode.Bytes) string {
-	f, err := DecodeFloat32(zb)
-	if err != nil {
-		return badZNG(err, t, zb)
-	}
+	f := DecodeFloat32(zb)
 	if f == float32(int64(f)) {
 		return fmt.Sprintf("%d.", int(f))
 	}
@@ -85,12 +83,11 @@ func EncodeFloat64(d float64) zcode.Bytes {
 	return AppendFloat64(nil, d)
 }
 
-func DecodeFloat64(zv zcode.Bytes) (float64, error) {
-	if len(zv) != 8 {
-		return 0, errors.New("byte encoding of double not 8 bytes")
+func DecodeFloat64(zv zcode.Bytes) float64 {
+	if zv == nil {
+		return 0
 	}
-	bits := binary.LittleEndian.Uint64(zv)
-	return math.Float64frombits(bits), nil
+	return math.Float64frombits(binary.LittleEndian.Uint64(zv))
 }
 
 func (t *TypeOfFloat64) ID() int {
@@ -101,15 +98,12 @@ func (t *TypeOfFloat64) String() string {
 	return "float64"
 }
 
-func (t *TypeOfFloat64) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfFloat64) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeFloat64(zv)
 }
 
 func (t *TypeOfFloat64) Format(zv zcode.Bytes) string {
-	d, err := DecodeFloat64(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
+	d := DecodeFloat64(zv)
 	if d == float64(int64(d)) {
 		return fmt.Sprintf("%d.", int64(d))
 	}

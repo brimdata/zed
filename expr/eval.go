@@ -149,18 +149,10 @@ func (i *In) Eval(ectx Context, this *zed.Value) *zed.Value {
 }
 
 func inNet(zctx *zed.Context, ectx Context, elem, net *zed.Value) *zed.Value {
-	n, err := zed.DecodeNet(net.Bytes)
-	if err != nil {
-		panic(err)
-	}
-	if typ := zed.TypeUnder(elem.Type); typ != zed.TypeIP {
+	if zed.TypeUnder(elem.Type) != zed.TypeIP {
 		return ectx.CopyValue(*zctx.NewErrorf("'in' operator applied to non-container type"))
 	}
-	a, err := zed.DecodeIP(elem.Bytes)
-	if err != nil {
-		panic(err)
-	}
-	if n.IP.Equal(a.Mask(n.Mask)) {
+	if zed.DecodeNet(net.Bytes).Contains(zed.DecodeIP(elem.Bytes)) {
 		return zed.True
 	}
 	return zed.False
@@ -310,39 +302,15 @@ func (n *numeric) eval(ectx Context, this *zed.Value) (int, *zed.Value, error) {
 }
 
 func (n *numeric) floats() (float64, float64) {
-	a, err := zed.DecodeFloat(n.vals.A)
-	if err != nil {
-		panic(err)
-	}
-	b, err := zed.DecodeFloat(n.vals.B)
-	if err != nil {
-		panic(err)
-	}
-	return a, b
+	return zed.DecodeFloat(n.vals.A), zed.DecodeFloat(n.vals.B)
 }
 
 func (n *numeric) ints() (int64, int64) {
-	a, err := zed.DecodeInt(n.vals.A)
-	if err != nil {
-		panic(err)
-	}
-	b, err := zed.DecodeInt(n.vals.B)
-	if err != nil {
-		panic(err)
-	}
-	return a, b
+	return zed.DecodeInt(n.vals.A), zed.DecodeInt(n.vals.B)
 }
 
 func (n *numeric) uints() (uint64, uint64) {
-	a, err := zed.DecodeUint(n.vals.A)
-	if err != nil {
-		panic(err)
-	}
-	b, err := zed.DecodeUint(n.vals.B)
-	if err != nil {
-		panic(err)
-	}
-	return a, b
+	return zed.DecodeUint(n.vals.A), zed.DecodeUint(n.vals.B)
 }
 
 type Compare struct {
@@ -428,9 +396,7 @@ func (c *Compare) Eval(ectx Context, this *zed.Value) *zed.Value {
 				result = 1
 			}
 		case id == zed.IDString:
-			v1, _ := zed.DecodeString(c.vals.A)
-			v2, _ := zed.DecodeString(c.vals.B)
-			if v1 < v2 {
+			if zed.DecodeString(c.vals.A) < zed.DecodeString(c.vals.B) {
 				result = -1
 			} else {
 				result = 1
@@ -511,9 +477,7 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 		v1, v2 := a.operands.uints()
 		return ectx.NewValue(typ, zed.EncodeUint(v1+v2))
 	case id == zed.IDString:
-		v1, _ := zed.DecodeString(a.operands.vals.A)
-		v2, _ := zed.DecodeString(a.operands.vals.B)
-		//XXX stringy going away with structure errors and no bstring
+		v1, v2 := zed.DecodeString(a.operands.vals.A), zed.DecodeString(a.operands.vals.B)
 		// XXX GC
 		return ectx.NewValue(typ, zed.EncodeString(v1+v2))
 	}
@@ -682,17 +646,13 @@ func indexArray(zctx *zed.Context, ectx Context, typ *zed.TypeArray, array zcode
 	}
 	var idx uint
 	if zed.IsSigned(id) {
-		v, _ := zed.DecodeInt(index.Bytes)
-		if idx < 0 {
+		v := zed.DecodeInt(index.Bytes)
+		if v < 0 {
 			return zctx.Missing()
 		}
 		idx = uint(v)
 	} else {
-		v, err := zed.DecodeUint(index.Bytes)
-		if err != nil {
-			panic(err)
-		}
-		idx = uint(v)
+		idx = uint(zed.DecodeUint(index.Bytes))
 	}
 	zv := getNthFromContainer(array, idx)
 	if zv == nil {
@@ -706,8 +666,8 @@ func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zc
 	if id != zed.IDString {
 		return ectx.CopyValue(*zctx.NewErrorf("record index is not a string"))
 	}
-	field, _ := zed.DecodeString(index.Bytes)
-	val, err := zed.NewValue(typ, record).ValueByField(string(field))
+	field := zed.DecodeString(index.Bytes)
+	val, err := zed.NewValue(typ, record).ValueByField(field)
 	if err != nil {
 		return zctx.Missing()
 	}

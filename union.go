@@ -36,10 +36,7 @@ func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	if container {
 		return nil, -1, nil, ErrBadValue
 	}
-	selector, err := DecodeInt(v)
-	if err != nil {
-		return nil, -1, nil, err
-	}
+	selector := DecodeInt(v)
 	inner, err := t.Type(int(selector))
 	if err != nil {
 		return nil, -1, nil, err
@@ -48,15 +45,15 @@ func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	if !it.Done() {
 		return nil, -1, nil, ErrBadValue
 	}
-	return inner, int64(selector), v, nil
+	return inner, selector, v, nil
 }
 
-func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeUnion) Marshal(zv zcode.Bytes) interface{} {
 	inner, _, zv, err := t.SplitZNG(zv)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return Value{inner, zv}, nil
+	return Value{inner, zv}
 }
 
 func (t *TypeUnion) String() string {

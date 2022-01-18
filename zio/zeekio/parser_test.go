@@ -115,8 +115,7 @@ func TestLegacyZeekValid(t *testing.T) {
 func assertInt64(t *testing.T, i int64, val zed.Value, what string) {
 	ok := val.Type == zed.TypeInt64
 	assert.Truef(t, ok, "%s is type int", what)
-	v, _ := zed.DecodeInt(val.Bytes)
-	assert.Equalf(t, i, v, "%s has value %d", what, i)
+	assert.Equalf(t, i, zed.DecodeInt(val.Bytes), "%s has value %d", what, i)
 }
 
 func TestNestedRecords(t *testing.T) {

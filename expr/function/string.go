@@ -26,18 +26,9 @@ func (r *Replace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zvold.Bytes == nil || zvnew.Bytes == nil {
 		return newErrorf(r.zctx, ctx, "replace: an input arg is null")
 	}
-	s, err := zed.DecodeString(zvs.Bytes)
-	if err != nil {
-		panic(err)
-	}
-	old, err := zed.DecodeString(zvold.Bytes)
-	if err != nil {
-		panic(err)
-	}
-	new, err := zed.DecodeString(zvnew.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	s := zed.DecodeString(zvs.Bytes)
+	old := zed.DecodeString(zvold.Bytes)
+	new := zed.DecodeString(zvnew.Bytes)
 	return newString(ctx, strings.ReplaceAll(s, old, new))
 }
 
@@ -54,11 +45,8 @@ func (r *RuneLen) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zv.Bytes == nil {
 		return newInt64(ctx, 0)
 	}
-	in, err := zed.DecodeString(zv.Bytes)
-	if err != nil {
-		panic(err)
-	}
-	return newInt64(ctx, int64(utf8.RuneCountInString(in)))
+	s := zed.DecodeString(zv.Bytes)
+	return newInt64(ctx, int64(utf8.RuneCountInString(s)))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_lower
@@ -74,10 +62,7 @@ func (t *ToLower) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zv.IsNull() {
 		return zed.NullString
 	}
-	s, err := zed.DecodeString(zv.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	s := zed.DecodeString(zv.Bytes)
 	return newString(ctx, strings.ToLower(s))
 }
 
@@ -94,10 +79,7 @@ func (t *ToUpper) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zv.IsNull() {
 		return zed.NullString
 	}
-	s, err := zed.DecodeString(zv.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	s := zed.DecodeString(zv.Bytes)
 	return newString(ctx, strings.ToUpper(s))
 }
 
@@ -114,10 +96,7 @@ func (t *Trim) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zv.IsNull() {
 		return zed.NullString
 	}
-	s, err := zed.DecodeString(zv.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	s := zed.DecodeString(zv.Bytes)
 	return newString(ctx, strings.TrimSpace(s))
 }
 
@@ -142,14 +121,8 @@ func (s *Split) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zs.IsNull() || zsep.IsNull() {
 		return ctx.NewValue(s.typ, nil)
 	}
-	str, err := zed.DecodeString(zs.Bytes)
-	if err != nil {
-		panic(err)
-	}
-	sep, err := zed.DecodeString(zsep.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	str := zed.DecodeString(zs.Bytes)
+	sep := zed.DecodeString(zsep.Bytes)
 	splits := strings.Split(str, sep)
 	var b zcode.Bytes
 	for _, substr := range splits {
@@ -179,24 +152,16 @@ func (j *Join) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if !zsep.IsString() {
 			return newErrorf(j.zctx, ctx, "join: separator must be string")
 		}
-		var err error
-		separator, err = zed.DecodeString(zsep.Bytes)
-		if err != nil {
-			panic(err)
-		}
+		separator = zed.DecodeString(zsep.Bytes)
 	}
 	b := j.builder
 	b.Reset()
 	it := zsplits.Bytes.Iter()
 	var sep string
 	for !it.Done() {
-		bytes, _ := it.Next()
-		s, err := zed.DecodeString(bytes)
-		if err != nil {
-			panic(err)
-		}
 		b.WriteString(sep)
-		b.WriteString(s)
+		bytes, _ := it.Next()
+		b.WriteString(zed.DecodeString(bytes))
 		sep = separator
 	}
 	return newString(ctx, b.String())

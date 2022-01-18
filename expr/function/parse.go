@@ -21,10 +21,7 @@ func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !in.IsString() || in.Bytes == nil {
 		return newErrorf(p.zctx, ctx, "parse_uri: non-empty string arg required")
 	}
-	s, err := zed.DecodeString(in.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	s := zed.DecodeString(in.Bytes)
 	u, err := url.Parse(s)
 	if err != nil {
 		return newErrorf(p.zctx, ctx, "parse_uri: %s (%q)", err, s)
@@ -92,10 +89,7 @@ func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if in.Bytes == nil {
 		return zed.Null
 	}
-	s, err := zed.DecodeString(in.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	s := zed.DecodeString(in.Bytes)
 	parser := zson.NewParser(strings.NewReader(s))
 	ast, err := parser.ParseValue()
 	if err != nil {

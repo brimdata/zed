@@ -166,11 +166,7 @@ func decodeSections(rec *zed.Value) ([]int64, error) {
 		if zv.Type != zed.TypeInt64 {
 			return nil, errors.New("section element is not an int64")
 		}
-		size, err := zed.DecodeInt(zv.Bytes)
-		if err != nil {
-			return nil, errors.New("int64 section element could not be decoded")
-		}
-		sizes = append(sizes, size)
+		sizes = append(sizes, zed.DecodeInt(zv.Bytes))
 	}
 	return sizes, nil
 }

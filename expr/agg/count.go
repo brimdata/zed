@@ -20,11 +20,7 @@ func (c *Count) ConsumeAsPartial(partial *zed.Value) {
 	if partial.Type != zed.TypeUint64 {
 		panic("count: partial not uint64")
 	}
-	u, err := zed.DecodeUint(partial.Bytes)
-	if err != nil {
-		panic(err)
-	}
-	*c += Count(u)
+	*c += Count(zed.DecodeUint(partial.Bytes))
 }
 
 func (c Count) ResultAsPartial(*zed.Context) *zed.Value {

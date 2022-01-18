@@ -120,10 +120,7 @@ func ZeekStrings(r *zed.Value) ([]string, error) {
 		if val, _ := it.Next(); val == nil {
 			field = "-"
 		} else if col.Type == zed.TypeTime {
-			ts, err := zed.DecodeTime(val)
-			if err != nil {
-				return nil, err
-			}
+			ts := zed.DecodeTime(val)
 			precision := 6
 			if isHighPrecision(ts) {
 				precision = 9

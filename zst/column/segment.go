@@ -27,17 +27,13 @@ func UnmarshalSegment(zv zcode.Bytes, s *Segment) error {
 	if isContainer {
 		return ErrCorruptSegment
 	}
-	v, err := zed.DecodeInt(zv)
-	if err != nil {
-		return err
-	}
-	s.Offset = v
+	s.Offset = zed.DecodeInt(zv)
 	zv, isContainer = it.Next()
 	if isContainer {
 		return ErrCorruptSegment
 	}
-	s.Length, err = zed.DecodeInt(zv)
-	return err
+	s.Length = zed.DecodeInt(zv)
+	return nil
 }
 
 func checkSegType(col zed.Column, which string, typ zed.Type) bool {

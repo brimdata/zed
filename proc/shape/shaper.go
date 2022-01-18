@@ -70,7 +70,7 @@ func (i *integer) check(zv zed.Value) {
 		i.unsigned = false
 		return
 	}
-	f, _ := zed.DecodeFloat64(zv.Bytes)
+	f := zed.DecodeFloat64(zv.Bytes)
 	//XXX We could track signed vs unsigned and overflow,
 	// but for now, we leave it as float64 unless we can
 	// guarantee int64.
@@ -283,7 +283,7 @@ func recode(from, to []zed.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 			if fromCol.Type != zed.TypeFloat64 {
 				return nil, errors.New("shape: can't recode from non float64")
 			}
-			f, _ := zed.DecodeFloat64(b)
+			f := zed.DecodeFloat64(b)
 			if toType == zed.TypeInt64 {
 				b = zed.EncodeInt(int64(f))
 			} else if toType == zed.TypeUint64 {

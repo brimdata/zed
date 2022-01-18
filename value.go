@@ -55,11 +55,7 @@ func (v *Value) MarshalJSON() ([]byte, error) {
 	if v.Bytes == nil {
 		return json.Marshal(nil)
 	}
-	object, err := v.Type.Marshal(v.Bytes)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(object)
+	return json.Marshal(v.Type.Marshal(v.Bytes))
 }
 
 func badZNG(err error, t Type, zv zcode.Bytes) string {

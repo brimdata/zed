@@ -12,46 +12,30 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 		return nil, nil
 	}
 	switch typ := zed.TypeUnder(typ).(type) {
-	case *zed.TypeOfUint8:
-		v, err := zed.DecodeUint(zb)
-		return uint32(v), err
-	case *zed.TypeOfUint16:
-		v, err := zed.DecodeUint(zb)
-		return uint32(v), err
-	case *zed.TypeOfUint32:
-		v, err := zed.DecodeUint(zb)
-		return uint32(v), err
+	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32:
+		return uint32(zed.DecodeUint(zb)), nil
 	case *zed.TypeOfUint64:
-		return zed.DecodeUint(zb)
-	case *zed.TypeOfInt8:
-		v, err := zed.DecodeInt(zb)
-		return int32(v), err
-	case *zed.TypeOfInt16:
-		v, err := zed.DecodeInt(zb)
-		return int32(v), err
-	case *zed.TypeOfInt32:
-		v, err := zed.DecodeInt(zb)
-		return int32(v), err
+		return zed.DecodeUint(zb), nil
+	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32:
+		return int32(zed.DecodeInt(zb)), nil
 	case *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
-		return zed.DecodeInt(zb)
+		return zed.DecodeInt(zb), nil
 	// XXX add TypeFloat16
 	case *zed.TypeOfFloat32:
-		return zed.DecodeFloat32(zb)
+		return zed.DecodeFloat32(zb), nil
 	case *zed.TypeOfFloat64:
-		return zed.DecodeFloat64(zb)
+		return zed.DecodeFloat64(zb), nil
 	// XXX add TypeDecimal
 	case *zed.TypeOfBool:
-		return zed.DecodeBool(zb)
+		return zed.DecodeBool(zb), nil
 	case *zed.TypeOfBytes, *zed.TypeOfString:
-		return zed.DecodeBytes(zb)
+		return zed.DecodeBytes(zb), nil
 	case *zed.TypeOfIP:
-		v, err := zed.DecodeIP(zb)
-		return []byte(v.String()), err
+		return []byte(zed.DecodeIP(zb).String()), nil
 	case *zed.TypeOfNet:
-		v, err := zed.DecodeNet(zb)
-		return []byte(v.String()), err
+		return []byte(zed.DecodeNet(zb).String()), nil
 	case *zed.TypeOfType:
-		return zed.DecodeBytes(zb)
+		return zed.DecodeBytes(zb), nil
 	case *zed.TypeOfNull:
 		return nil, ErrNullType
 	case *zed.TypeRecord:

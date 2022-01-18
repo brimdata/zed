@@ -21,8 +21,7 @@ func (f *FromBase64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zv.Bytes == nil {
 		return zed.NullType
 	}
-	s, _ := zed.DecodeString(zv.Bytes)
-	b, err := base64.StdEncoding.DecodeString(s)
+	b, err := base64.StdEncoding.DecodeString(zed.DecodeString(zv.Bytes))
 	if err != nil {
 		panic(err)
 	}

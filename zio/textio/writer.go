@@ -40,11 +40,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 			if value.IsNull() {
 				s = "-"
 			} else {
-				ts, err := zed.DecodeTime(value.Bytes)
-				if err != nil {
-					return err
-				}
-				s = ts.Time().UTC().Format(time.RFC3339Nano)
+				s = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
 			}
 		} else {
 			s = zeekio.FormatValue(value)

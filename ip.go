@@ -1,7 +1,6 @@
 package zed
 
 import (
-	"errors"
 	"net"
 
 	"github.com/brimdata/zed/zcode"
@@ -25,15 +24,15 @@ func EncodeIP(a net.IP) zcode.Bytes {
 	return AppendIP(nil, a)
 }
 
-func DecodeIP(zv zcode.Bytes) (net.IP, error) {
+func DecodeIP(zv zcode.Bytes) net.IP {
 	if zv == nil {
-		return nil, nil
+		return nil
 	}
 	switch len(zv) {
 	case 4, 16:
-		return net.IP(zv), nil
+		return net.IP(zv)
 	}
-	return nil, errors.New("failure trying to decode IP address that is not 4 or 16 bytes long")
+	panic("failure trying to decode IP address that is not 4 or 16 bytes long")
 }
 
 func (t *TypeOfIP) ID() int {
@@ -44,18 +43,10 @@ func (t *TypeOfIP) String() string {
 	return "ip"
 }
 
-func (t *TypeOfIP) Marshal(zv zcode.Bytes) (interface{}, error) {
-	ip, err := DecodeIP(zv)
-	if err != nil {
-		return nil, err
-	}
-	return ip.String(), nil
+func (t *TypeOfIP) Marshal(zv zcode.Bytes) interface{} {
+	return DecodeIP(zv).String()
 }
 
-func (t *TypeOfIP) Format(zv zcode.Bytes) string {
-	ip, err := DecodeIP(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return ip.String()
+func (t *TypeOfIP) Format(zb zcode.Bytes) string {
+	return DecodeIP(zb).String()
 }

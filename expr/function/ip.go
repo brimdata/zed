@@ -18,10 +18,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(n.zctx, ctx, "network_of: not an IP")
 	}
 	// XXX GC
-	ip, err := zed.DecodeIP(args[0].Bytes)
-	if err != nil {
-		panic(err)
-	}
+	ip := zed.DecodeIP(args[0].Bytes)
 	var mask net.IPMask
 	if len(args) == 1 {
 		mask = ip.DefaultMask()
@@ -33,11 +30,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		id := args[1].Type.ID()
 		body := args[1].Bytes
 		if id == zed.IDNet {
-			var err error
-			cidrMask, err := zed.DecodeNet(body)
-			if err != nil {
-				panic(err)
-			}
+			cidrMask := zed.DecodeNet(body)
 			if !bytes.Equal(cidrMask.IP, cidrMask.Mask) {
 				return newErrorf(n.zctx, ctx, "network_of: network arg not a cidr mask")
 			}
@@ -45,17 +38,9 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		} else if zed.IsInteger(id) {
 			var nbits uint
 			if zed.IsSigned(id) {
-				v, err := zed.DecodeInt(body)
-				if err != nil {
-					panic(err)
-				}
-				nbits = uint(v)
+				nbits = uint(zed.DecodeInt(body))
 			} else {
-				v, err := zed.DecodeUint(body)
-				if err != nil {
-					panic(err)
-				}
-				nbits = uint(v)
+				nbits = uint(zed.DecodeUint(body))
 			}
 			if nbits > 64 {
 				return newErrorf(n.zctx, ctx, "network_of: cidr bit count out of range")

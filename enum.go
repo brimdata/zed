@@ -36,7 +36,7 @@ func (t *TypeEnum) Lookup(symbol string) int {
 	return -1
 }
 
-func (t *TypeEnum) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeEnum) Marshal(zv zcode.Bytes) interface{} {
 	return TypeUint64.Marshal(zv)
 }
 
@@ -54,12 +54,9 @@ func (t *TypeEnum) String() string {
 }
 
 func (t *TypeEnum) Format(zv zcode.Bytes) string {
-	id, err := DecodeUint(zv)
-	if id >= uint64(len(t.Symbols)) || err != nil {
-		if err == nil {
-			err = errors.New("enum index out of range")
-		}
-		return badZNG(err, t, zv)
+	id := DecodeUint(zv)
+	if id >= uint64(len(t.Symbols)) {
+		return badZNG(errors.New("enum index out of range"), t, zv)
 	}
 	return t.Symbols[id]
 }

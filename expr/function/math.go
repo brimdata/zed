@@ -18,11 +18,7 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	if zed.IsFloat(id) {
-		f, err := zed.DecodeFloat64(v.Bytes)
-		if err != nil {
-			panic(err)
-		}
-		f = math.Abs(f)
+		f := math.Abs(zed.DecodeFloat64(v.Bytes))
 		return newFloat64(ctx, f)
 	}
 	if !zed.IsInteger(id) {
@@ -31,10 +27,7 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !zed.IsSigned(id) {
 		return ctx.CopyValue(args[0])
 	}
-	x, err := zed.DecodeInt(v.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	x := zed.DecodeInt(v.Bytes)
 	if x < 0 {
 		x = -x
 	}
@@ -51,11 +44,7 @@ func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	id := v.Type.ID()
 	switch {
 	case zed.IsFloat(id):
-		f, err := zed.DecodeFloat64(v.Bytes)
-		if err != nil {
-			panic(err)
-		}
-		f = math.Ceil(f)
+		f := math.Ceil(zed.DecodeFloat64(v.Bytes))
 		return newFloat64(ctx, f)
 	case zed.IsInteger(id):
 		return ctx.CopyValue(args[0])
@@ -74,8 +63,7 @@ func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	id := v.Type.ID()
 	switch {
 	case zed.IsFloat(id):
-		v, _ := zed.DecodeFloat64(v.Bytes)
-		v = math.Floor(v)
+		v := math.Floor(zed.DecodeFloat64(v.Bytes))
 		return newFloat64(ctx, v)
 	case zed.IsInteger(id):
 		return ctx.CopyValue(args[0])
@@ -113,7 +101,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zed.IsFloat(id) {
 		//XXX this is wrong like math aggregators...
 		// need to be more robust and adjust type as new types encountered
-		result, _ := zed.DecodeFloat64(zv.Bytes)
+		result := zed.DecodeFloat64(zv.Bytes)
 		for _, val := range args[1:] {
 			v, ok := coerce.ToFloat(zv)
 			if !ok {
@@ -127,7 +115,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(zv))
 	}
 	if zed.IsSigned(id) {
-		result, _ := zed.DecodeInt(zv.Bytes)
+		result := zed.DecodeInt(zv.Bytes)
 		for _, val := range args[1:] {
 			//XXX this is really bad because we silently coerce
 			// floats to ints if we hit a float first
@@ -139,7 +127,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		return newInt64(ctx, result)
 	}
-	result, _ := zed.DecodeUint(zv.Bytes)
+	result := zed.DecodeUint(zv.Bytes)
 	for _, val := range args[1:] {
 		v, ok := coerce.ToUint(val)
 		if !ok {
@@ -159,10 +147,7 @@ func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
-		f, err := zed.DecodeFloat64(zv.Bytes)
-		if err != nil {
-			panic(err)
-		}
+		f := zed.DecodeFloat64(zv.Bytes)
 		return newFloat64(ctx, math.Round(f))
 	}
 	if !zed.IsNumber(id) {
