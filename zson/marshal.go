@@ -145,6 +145,7 @@ func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
 	return zed.Value{typ, it.Next()}, nil
 }
 
+//XXX get rid of this?
 func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zed.Value, error) {
 	m.Builder.Reset()
 	typ, err := m.encodeValue(reflect.ValueOf(v))

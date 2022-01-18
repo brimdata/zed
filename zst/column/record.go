@@ -70,7 +70,7 @@ type Record []*Field
 func (r *Record) UnmarshalZNG(utyp zed.Type, in zed.Value, reader io.ReaderAt) error {
 	typ, ok := zed.TypeUnder(utyp).(*zed.TypeRecord)
 	if !ok {
-		return errors.New("cannot unmarshal non-record into record")
+		return errors.New("corrupt zst object: record_column is not a record")
 	}
 	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {

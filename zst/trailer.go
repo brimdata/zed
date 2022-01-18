@@ -14,8 +14,8 @@ const (
 )
 
 type FileMeta struct {
-	SkewThresh    int
-	SegmentThresh int
+	SkewThresh    int `zed:"skew_thresh"`
+	SegmentThresh int `zed:"segment_thresh"`
 }
 
 func readTrailer(r io.ReaderAt, n int64) (*FileMeta, []int64, error) {
