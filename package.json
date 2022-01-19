@@ -11,7 +11,9 @@
   "publishConfig": {
     "executableFiles": [
       "./dist/zq",
-      "./dist/zed"
+      "./dist/zq.exe",
+      "./dist/zed",
+      "./dist/zed.exe"
     ]
   },
   "directories": {
