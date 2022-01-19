@@ -61,7 +61,7 @@ test-system: build bin/minio
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" go test .
 
 test-run: build bin/minio
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" go test . -run $(TEST)
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" go test . -v -run $(TEST)
 
 test-heavy: build
 	@PATH="$(CURDIR)/dist:$(PATH)" go test -tags=heavy ./mdtest
