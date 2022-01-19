@@ -28,13 +28,12 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	}
 	assembler.columns = make([]column.Any, len(a.types))
 	for k := 0; k < len(a.types); k++ {
-		rec := a.columns[k]
-		record_col := &column.Record{}
-		typ := zed.TypeRecordOf(a.types[k])
-		if err := record_col.UnmarshalZNG(typ, *rec, seeker); err != nil {
+		val := a.columns[k]
+		col, err := column.Unmarshal(a.types[k], *val, seeker)
+		if err != nil {
 			return nil, err
 		}
-		assembler.columns[k] = record_col
+		assembler.columns[k] = col
 	}
 	return assembler, nil
 }
@@ -67,7 +66,7 @@ func (a *Assembler) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := a.builder.Bytes().ContainerBody()
+	body, err := a.builder.Bytes().Body()
 	if err != nil {
 		return nil, err
 	}
