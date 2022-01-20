@@ -28,21 +28,8 @@ func NewBuilder(typ *TypeRecord) *Builder {
 // auto-generated stubs, etc.
 func (b *Builder) Build(zvs ...zcode.Bytes) *Value {
 	b.Reset()
-	cols := b.Type.Columns
-	for k, zv := range zvs {
-		if IsContainerType(cols[k].Type) {
-			b.AppendContainer(zv)
-		} else {
-			b.AppendPrimitive(zv)
-		}
+	for _, zv := range zvs {
+		b.Append(zv)
 	}
 	return NewValue(b.Type, b.Bytes())
-}
-
-func (b *Builder) appendUnset(typ Type) {
-	if IsContainerType(typ) {
-		b.AppendContainer(nil)
-	} else {
-		b.AppendPrimitive(nil)
-	}
 }

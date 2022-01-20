@@ -26,8 +26,7 @@ func (a *ArrayWriter) Write(body zcode.Bytes) error {
 	it := body.Iter()
 	var len int32
 	for !it.Done() {
-		body, _ := it.Next()
-		if err := a.values.Write(body); err != nil {
+		if err := a.values.Write(it.Next()); err != nil {
 			return err
 		}
 		len++

@@ -128,17 +128,9 @@ func (s step) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) er
 			if err != nil {
 				return err
 			}
-			if step.container {
-				b.AppendContainer(bytes)
-			} else {
-				b.AppendPrimitive(bytes)
-			}
+			b.Append(bytes)
 		case fromClause:
-			if step.container {
-				b.AppendContainer(vals[step.index].Bytes)
-			} else {
-				b.AppendPrimitive(vals[step.index].Bytes)
-			}
+			b.Append(vals[step.index].Bytes)
 		case record:
 			b.BeginContainer()
 			bytes, err := in, error(nil)
@@ -178,7 +170,7 @@ func (ig *getter) nth(n int) (zcode.Bytes, error) {
 		ig.iter = ig.container.Iter()
 	}
 	for !ig.iter.Done() {
-		zv, _ := ig.iter.Next()
+		zv := ig.iter.Next()
 		ig.cursor++
 		if ig.cursor == n {
 			return zv, nil

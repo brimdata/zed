@@ -59,13 +59,8 @@ func (u *Union) Result(zctx *zed.Context) *zed.Value {
 		return zed.Null
 	}
 	var b zcode.Builder
-	container := zed.IsContainerType(u.typ)
-	for s := range u.val {
-		if container {
-			b.AppendContainer([]byte(s))
-		} else {
-			b.AppendPrimitive([]byte(s))
-		}
+	for v := range u.val {
+		b.Append([]byte(v))
 	}
 	return zed.NewValue(zctx.LookupTypeSet(u.typ), zed.NormalizeSet(b.Bytes()))
 }
@@ -79,8 +74,7 @@ func (u *Union) ConsumeAsPartial(val *zed.Value) {
 		u.typ = typ.Type
 	}
 	for it := val.Iter(); !it.Done(); {
-		elem, _ := it.Next()
-		u.update(elem)
+		u.update(it.Next())
 	}
 }
 

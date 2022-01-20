@@ -53,13 +53,8 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 func (c *Collect) build(zctx *zed.Context) *zed.Value {
 	typ := c.values[0].Type
 	var b zcode.Builder
-	container := zed.IsContainerType(typ)
 	for _, v := range c.values {
-		if container {
-			b.AppendContainer(v.Bytes)
-		} else {
-			b.AppendPrimitive(v.Bytes)
-		}
+		b.Append(v.Bytes)
 	}
 	arrayType := zctx.LookupTypeArray(typ)
 	return zed.NewValue(arrayType, b.Bytes())
@@ -83,12 +78,8 @@ func (c *Collect) buildUnion(zctx *zed.Context, selectors map[zed.Type]int) *zed
 	for _, v := range c.values {
 		selector := selectors[v.Type]
 		b.BeginContainer()
-		b.AppendPrimitive(zed.EncodeInt(int64(selector)))
-		if zed.IsContainerType(v.Type) {
-			b.AppendContainer(v.Bytes)
-		} else {
-			b.AppendPrimitive(v.Bytes)
-		}
+		b.Append(zed.EncodeInt(int64(selector)))
+		b.Append(v.Bytes)
 		b.EndContainer()
 	}
 	unionType := zctx.LookupTypeUnion(types)
@@ -108,7 +99,7 @@ func (c *Collect) ConsumeAsPartial(val *zed.Value) {
 	typ := arrayType.Type
 	elem := zed.Value{Type: typ}
 	for it := val.Iter(); !it.Done(); {
-		elem.Bytes, _ = it.Next()
+		elem.Bytes = it.Next()
 		c.update(&elem)
 	}
 }

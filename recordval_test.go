@@ -20,8 +20,8 @@ func TestRecordTypeCheck(t *testing.T) {
 	t.Run("set/error/duplicate-element", func(t *testing.T) {
 		var b zcode.Builder
 		b.BeginContainer()
-		b.AppendPrimitive([]byte("dup"))
-		b.AppendPrimitive([]byte("dup"))
+		b.Append([]byte("dup"))
+		b.Append([]byte("dup"))
 		// Don't normalize.
 		b.EndContainer()
 		r.Bytes = b.Bytes()
@@ -30,9 +30,9 @@ func TestRecordTypeCheck(t *testing.T) {
 	t.Run("set/error/unsorted-elements", func(t *testing.T) {
 		var b zcode.Builder
 		b.BeginContainer()
-		b.AppendPrimitive([]byte("a"))
-		b.AppendPrimitive([]byte("z"))
-		b.AppendPrimitive([]byte("b"))
+		b.Append([]byte("a"))
+		b.Append([]byte("z"))
+		b.Append([]byte("b"))
 		// Don't normalize.
 		b.EndContainer()
 		r.Bytes = b.Bytes()
@@ -41,10 +41,10 @@ func TestRecordTypeCheck(t *testing.T) {
 	t.Run("set/primitive-elements", func(t *testing.T) {
 		var b zcode.Builder
 		b.BeginContainer()
-		b.AppendPrimitive([]byte("dup"))
-		b.AppendPrimitive([]byte("dup"))
-		b.AppendPrimitive([]byte("z"))
-		b.AppendPrimitive([]byte("a"))
+		b.Append([]byte("dup"))
+		b.Append([]byte("dup"))
+		b.Append([]byte("z"))
+		b.Append([]byte("a"))
 		b.TransformContainer(zed.NormalizeSet)
 		b.EndContainer()
 		r.Bytes = b.Bytes()
@@ -55,7 +55,7 @@ func TestRecordTypeCheck(t *testing.T) {
 		b.BeginContainer()
 		for _, s := range []string{"dup", "dup", "z", "a"} {
 			b.BeginContainer()
-			b.AppendPrimitive([]byte(s))
+			b.Append([]byte(s))
 			b.EndContainer()
 		}
 		b.TransformContainer(zed.NormalizeSet)

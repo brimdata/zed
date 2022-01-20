@@ -29,7 +29,7 @@ func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, da
 			return nil, errors.New("no _path in column 0")
 		}
 		columns = columns[1:]
-		b.AppendPrimitive(path)
+		b.Append(path)
 	}
 	b.fields = b.fields[:0]
 	var start int
@@ -74,7 +74,7 @@ func (b *builder) appendColumns(columns []zed.Column, fields [][]byte) ([][]byte
 			val := fields[0]
 			fields = fields[1:]
 			if string(val) == "-" {
-				b.AppendContainer(nil)
+				b.Append(nil)
 				continue
 			}
 			b.BeginContainer()
@@ -118,7 +118,7 @@ func (b *builder) appendColumns(columns []zed.Column, fields [][]byte) ([][]byte
 
 func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 	if string(val) == "-" {
-		b.AppendPrimitive(nil)
+		b.Append(nil)
 		return nil
 	}
 	switch typ.ID() {
@@ -190,7 +190,7 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 			// important, we will let this be.
 			val = escapeZeekHex(val)
 		}
-		b.AppendPrimitive(norm.NFC.Bytes(val))
+		b.Append(norm.NFC.Bytes(val))
 		return nil
 	case zed.IDIP:
 		v, err := byteconv.ParseIP(val)
@@ -207,6 +207,6 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 	default:
 		panic(typ)
 	}
-	b.AppendPrimitive(b.buf)
+	b.Append(b.buf)
 	return nil
 }

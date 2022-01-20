@@ -67,7 +67,7 @@ func TestBuilder(t *testing.T) {
 	// of the record and want to build it up, it would be nice to have some
 	// easy way to do it all...
 	var rb zcode.Builder
-	rb.AppendPrimitive(zed.EncodeInt(3))
+	rb.Append(zed.EncodeInt(3))
 	rec = b2.Build(zed.EncodeInt(7), rb.Bytes())
 	assert.Equal(t, r2.Bytes, rec.Bytes)
 

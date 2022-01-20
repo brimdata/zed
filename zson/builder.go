@@ -22,8 +22,7 @@ func Build(b *zcode.Builder, val Value) (zed.Value, error) {
 		return zed.Value{}, err
 	}
 	it := b.Bytes().Iter()
-	bytes, _ := it.Next()
-	return zed.Value{val.TypeOf(), bytes}, nil
+	return zed.Value{val.TypeOf(), it.Next()}, nil
 }
 
 func buildValue(b *zcode.Builder, val Value) error {
@@ -47,7 +46,7 @@ func buildValue(b *zcode.Builder, val Value) error {
 	case *Error:
 		return buildValue(b, val.Value)
 	case *Null:
-		b.AppendNull()
+		b.Append(nil)
 		return nil
 	}
 	return fmt.Errorf("unknown ast type: %T", val)
@@ -60,21 +59,21 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		if err != nil {
 			return fmt.Errorf("invalid unsigned integer: %s", val.Text)
 		}
-		b.AppendPrimitive(zed.EncodeUint(v))
+		b.Append(zed.EncodeUint(v))
 		return nil
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
 		v, err := strconv.ParseInt(val.Text, 10, 64)
 		if err != nil {
 			return fmt.Errorf("invalid integer: %s", val.Text)
 		}
-		b.AppendPrimitive(zed.EncodeInt(v))
+		b.Append(zed.EncodeInt(v))
 		return nil
 	case *zed.TypeOfDuration:
 		d, err := nano.ParseDuration(val.Text)
 		if err != nil {
 			return fmt.Errorf("invalid duration: %s", val.Text)
 		}
-		b.AppendPrimitive(zed.EncodeDuration(d))
+		b.Append(zed.EncodeDuration(d))
 		return nil
 	case *zed.TypeOfTime:
 		t, err := time.Parse(time.RFC3339Nano, val.Text)
@@ -84,21 +83,21 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		if nano.MaxTs.Time().Sub(t) < 0 {
 			return fmt.Errorf("time overflow: %s (max: %s)", val.Text, nano.MaxTs)
 		}
-		b.AppendPrimitive(zed.EncodeTime(nano.TimeToTs(t)))
+		b.Append(zed.EncodeTime(nano.TimeToTs(t)))
 		return nil
 	case *zed.TypeOfFloat32:
 		v, err := strconv.ParseFloat(val.Text, 32)
 		if err != nil {
 			return fmt.Errorf("invalid floating point: %s", val.Text)
 		}
-		b.AppendPrimitive(zed.EncodeFloat32(float32(v)))
+		b.Append(zed.EncodeFloat32(float32(v)))
 		return nil
 	case *zed.TypeOfFloat64:
 		v, err := strconv.ParseFloat(val.Text, 64)
 		if err != nil {
 			return fmt.Errorf("invalid floating point: %s", val.Text)
 		}
-		b.AppendPrimitive(zed.EncodeFloat64(v))
+		b.Append(zed.EncodeFloat64(v))
 		return nil
 	case *zed.TypeOfBool:
 		var v bool
@@ -107,7 +106,7 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		} else if val.Text != "false" {
 			return fmt.Errorf("invalid bool: %s", val.Text)
 		}
-		b.AppendPrimitive(zed.EncodeBool(v))
+		b.Append(zed.EncodeBool(v))
 		return nil
 	case *zed.TypeOfBytes:
 		s := val.Text
@@ -125,34 +124,34 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 				return fmt.Errorf("invalid bytes: %s (%w)", s, err)
 			}
 		}
-		b.AppendPrimitive(zcode.Bytes(bytes))
+		b.Append(zcode.Bytes(bytes))
 		return nil
 	case *zed.TypeOfString:
 		body := zed.EncodeString(val.Text)
 		if !utf8.Valid(body) {
 			return fmt.Errorf("invalid utf8 string: %q", val.Text)
 		}
-		b.AppendPrimitive(norm.NFC.Bytes(body))
+		b.Append(norm.NFC.Bytes(body))
 		return nil
 	case *zed.TypeOfIP:
 		ip := net.ParseIP(val.Text)
 		if ip == nil {
 			return fmt.Errorf("invalid IP: %s", val.Text)
 		}
-		b.AppendPrimitive(zed.EncodeIP(ip))
+		b.Append(zed.EncodeIP(ip))
 		return nil
 	case *zed.TypeOfNet:
 		_, net, err := net.ParseCIDR(val.Text)
 		if err != nil {
 			return fmt.Errorf("invalid network: %s (%w)", val.Text, err)
 		}
-		b.AppendPrimitive(zed.EncodeNet(net))
+		b.Append(zed.EncodeNet(net))
 		return nil
 	case *zed.TypeOfNull:
 		if val.Text != "" {
 			return fmt.Errorf("invalid text body of null value: %q", val.Text)
 		}
-		b.AppendPrimitive(nil)
+		b.Append(nil)
 		return nil
 	case *zed.TypeOfType:
 		return fmt.Errorf("type values should not be encoded as primitives: %q", val.Text)
@@ -234,13 +233,13 @@ func buildMap(b *zcode.Builder, m *Map) error {
 func buildUnion(b *zcode.Builder, union *Union) error {
 	if selector := union.Selector; selector >= 0 {
 		b.BeginContainer()
-		b.AppendPrimitive(zed.EncodeInt(int64(union.Selector)))
+		b.Append(zed.EncodeInt(int64(union.Selector)))
 		if err := buildValue(b, union.Value); err != nil {
 			return err
 		}
 		b.EndContainer()
 	} else {
-		b.AppendNull()
+		b.Append(nil)
 	}
 	return nil
 }
@@ -252,11 +251,11 @@ func buildEnum(b *zcode.Builder, enum *Enum) error {
 		return errors.New("enum value is not of type enum")
 	}
 	selector := typ.Lookup(enum.Name)
-	b.AppendPrimitive(zed.EncodeUint(uint64(selector)))
+	b.Append(zed.EncodeUint(uint64(selector)))
 	return nil
 }
 
 func buildTypeValue(b *zcode.Builder, tv *TypeValue) error {
-	b.AppendPrimitive(zed.EncodeTypeValue(tv.Value))
+	b.Append(zed.EncodeTypeValue(tv.Value))
 	return nil
 }

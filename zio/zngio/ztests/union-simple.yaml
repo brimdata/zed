@@ -1,6 +1,6 @@
 zed: '*'
 
-input: !!binary +QIHEPYBAWEXGAwXBAISYXNkZmFzZGYYBAcCBAIYAQD/
+input: !!binary +QIHEPYBAWEXGAwMAgIJYXNkZmFzZGYYBAQBAgIYAQD/
 
 output: |
   {a:"asdfasdf"((int64,string))}

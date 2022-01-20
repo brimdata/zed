@@ -36,7 +36,7 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 					return nil, err
 				}
 			} else {
-				dst = zcode.AppendNull(dst)
+				dst = zcode.Append(dst, nil)
 			}
 		}
 		return dst, nil
@@ -44,7 +44,7 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 	it := in.Iter()
 	colno := 0
 	for !it.Done() {
-		val, container := it.Next()
+		val := it.Next()
 		col := typ.Columns[colno]
 		colno++
 		if childType, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord); ok {
@@ -54,11 +54,7 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 				return nil, err
 			}
 		} else {
-			if container {
-				dst = zcode.AppendContainer(dst, val)
-			} else {
-				dst = zcode.AppendPrimitive(dst, val)
-			}
+			dst = zcode.Append(dst, val)
 		}
 	}
 	return dst, nil

@@ -86,8 +86,7 @@ func (i *integer) check(zv zed.Value) {
 func (a *anchor) updateInts(rec *zed.Value) error {
 	it := rec.Bytes.Iter()
 	for k, c := range rec.Columns() {
-		bytes, _ := it.Next()
-		zv := zed.Value{c.Type, bytes}
+		zv := zed.Value{c.Type, it.Next()}
 		a.integers[k].check(zv)
 	}
 	return nil
@@ -277,7 +276,7 @@ func recode(from, to []zed.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 	out := make(zcode.Bytes, 0, len(bytes))
 	it := bytes.Iter()
 	for k, fromCol := range from {
-		b, container := it.Next()
+		b := it.Next()
 		toType := to[k].Type
 		if fromCol.Type != toType && b != nil {
 			if fromCol.Type != zed.TypeFloat64 {
@@ -292,7 +291,7 @@ func recode(from, to []zed.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 				return nil, errors.New("internal error: can't recode from to non-integer")
 			}
 		}
-		out = zcode.AppendAs(out, container, b)
+		out = zcode.Append(out, b)
 	}
 	return out, nil
 }

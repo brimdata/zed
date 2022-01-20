@@ -1,8 +1,8 @@
 zed: '*'
 
 input: !!binary |
-  9wf3EPkCEAf5BBAXGBn2AQFhGhsKEwIQImhlbGxvIhsIDwQCCQQCBAQbDBcEBBEIImEiCC
-  JiIhsIDwQGCQQCBPb/
+  9wf3EPkCEAf5BBAXGBn2AQFhGhsKCgEIImhlbGxvIhsICAICBQICAgQbDAwCBAkEImEiBC
+  JiIhsICAIGBQICAvb/
 
 output: |
   {a:"\"hello\""((string,[int64],[string],(string,int64)))}

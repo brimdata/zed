@@ -36,15 +36,13 @@ func encodeMap(zctx *zed.Context, typ *zed.TypeMap, v zcode.Bytes) (interface{},
 	var out []interface{}
 	it := zcode.Bytes(v).Iter()
 	for !it.Done() {
-		key, _ := it.Next()
 		pair := make([]interface{}, 2)
 		var err error
-		pair[0], err = encodeValue(zctx, typ.KeyType, key)
+		pair[0], err = encodeValue(zctx, typ.KeyType, it.Next())
 		if err != nil {
 			return nil, err
 		}
-		val, _ := it.Next()
-		pair[1], err = encodeValue(zctx, typ.ValType, val)
+		pair[1], err = encodeValue(zctx, typ.ValType, it.Next())
 		if err != nil {
 			return nil, err
 		}
@@ -111,8 +109,7 @@ func encodeRecord(zctx *zed.Context, typ *zed.TypeRecord, val zcode.Bytes) (inte
 	out := []interface{}{}
 	k := 0
 	for it := val.Iter(); !it.Done(); k++ {
-		zv, _ := it.Next()
-		v, err := encodeValue(zctx, typ.Columns[k].Type, zv)
+		v, err := encodeValue(zctx, typ.Columns[k].Type, it.Next())
 		if err != nil {
 			return nil, err
 		}
@@ -129,8 +126,7 @@ func encodeContainer(zctx *zed.Context, typ zed.Type, bytes zcode.Bytes) (interf
 	// so that an empty container encodes as a JSON empty array [].
 	out := []interface{}{}
 	for it := bytes.Iter(); !it.Done(); {
-		b, _ := it.Next()
-		v, err := encodeValue(zctx, typ, b)
+		v, err := encodeValue(zctx, typ, it.Next())
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +148,7 @@ func decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface{}) error {
 		}
 		// each column either a string value or an array of string values
 		if val == nil {
-			b.AppendNull()
+			b.Append(nil)
 			continue
 		}
 		if err := decodeValue(b, cols[k].Type, val); err != nil {
@@ -194,7 +190,7 @@ func decodeContainerBody(b *zcode.Builder, typ zed.Type, body interface{}, which
 
 func decodeContainer(b *zcode.Builder, typ zed.Type, body interface{}, which string) error {
 	if body == nil {
-		b.AppendNull()
+		b.Append(nil)
 		return nil
 	}
 	b.BeginContainer()
@@ -205,7 +201,7 @@ func decodeContainer(b *zcode.Builder, typ zed.Type, body interface{}, which str
 
 func decodeUnion(builder *zcode.Builder, typ *zed.TypeUnion, body interface{}) error {
 	if body == nil {
-		builder.AppendNull()
+		builder.Append(nil)
 		return nil
 	}
 	tuple, ok := body.([]interface{})
@@ -228,7 +224,7 @@ func decodeUnion(builder *zcode.Builder, typ *zed.TypeUnion, body interface{}) e
 		return fmt.Errorf("bad selector for ZJSON union value: %w", err)
 	}
 	builder.BeginContainer()
-	builder.AppendPrimitive(zed.EncodeInt(int64(selector)))
+	builder.Append(zed.EncodeInt(int64(selector)))
 	if err := decodeValue(builder, inner, tuple[1]); err != nil {
 		return err
 	}
@@ -238,7 +234,7 @@ func decodeUnion(builder *zcode.Builder, typ *zed.TypeUnion, body interface{}) e
 
 func decodeMap(b *zcode.Builder, typ *zed.TypeMap, body interface{}) error {
 	if body == nil {
-		b.AppendNull()
+		b.Append(nil)
 		return nil
 	}
 	items, ok := body.([]interface{})
@@ -279,7 +275,7 @@ func decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {
 		return err
 	case *zed.TypeSet:
 		if body == nil {
-			b.AppendNull()
+			b.Append(nil)
 			return nil
 		}
 		b.BeginContainer()
@@ -303,6 +299,6 @@ func decodeEnum(b *zcode.Builder, typ *zed.TypeEnum, body interface{}) error {
 	if err != nil {
 		return errors.New("ZJSON enum index value is not a string integer")
 	}
-	b.AppendPrimitive(zed.EncodeUint(uint64(index)))
+	b.Append(zed.EncodeUint(uint64(index)))
 	return nil
 }

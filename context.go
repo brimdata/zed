@@ -526,7 +526,7 @@ func (c *Context) WrapError(msg string, val *Value) *Value {
 	recType := c.MustLookupTypeRecord(cols)
 	errType := c.LookupTypeError(recType)
 	var b zcode.Builder
-	b.AppendPrimitive(EncodeString(msg))
-	b.Append(val.Bytes, IsContainerType(val.Type))
+	b.Append(EncodeString(msg))
+	b.Append(val.Bytes)
 	return &Value{errType, b.Bytes()}
 }

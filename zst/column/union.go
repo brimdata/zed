@@ -117,7 +117,7 @@ func (u *Union) Read(b *zcode.Builder) error {
 		return errors.New("bad selector in zst union reader")
 	}
 	b.BeginContainer()
-	b.AppendPrimitive(zed.EncodeInt(int64(selector)))
+	b.Append(zed.EncodeInt(int64(selector)))
 	if err := u.values[selector].Read(b); err != nil {
 		return err
 	}

@@ -117,7 +117,7 @@ func ZeekStrings(r *zed.Value) ([]string, error) {
 	it := r.Bytes.Iter()
 	for _, col := range zed.TypeRecordOf(r.Type).Columns {
 		var field string
-		if val, _ := it.Next(); val == nil {
+		if val := it.Next(); val == nil {
 			field = "-"
 		} else if col.Type == zed.TypeTime {
 			ts := zed.DecodeTime(val)

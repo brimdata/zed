@@ -1,6 +1,6 @@
 zed: '*'
 
-input: !!binary +BD2AQFmFxgBABgBARgCAwAYBQkIZHVwGAUJBGEEehgFCQRhBHoYChMABGEEeghkdXD/
+input: !!binary +BD2AQFmFxgBABgBARgCAgAYBQUEZHVwGAUFAmECehgFBQJhAnoYCgoAAmECegRkdXD/
 
 output: |
   {f:null(|[string]|)}

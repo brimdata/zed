@@ -3,7 +3,7 @@ zed: 'count()'
 # This is the concatenation of two identical ZNG streams generated with
 # `bash -c '(zq - <<<{a:1}; zq - <<<{a:1}) | base64'`.
 input: !!binary |
-  9gEBYQcXAgQC//YBAWEHFwIEAv8=
+  9gEBYQcXAgIC//YBAWEHFwICAv8=
 
 output: |
   {count:2(uint64)}

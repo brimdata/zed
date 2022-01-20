@@ -46,7 +46,7 @@ func (b *Builder) EndContainer() {
 	// Pop the container body offset off the stack.
 	bodyOff := b.containers[len(b.containers)-1]
 	b.containers = b.containers[:len(b.containers)-1]
-	tag := containerTag(len(b.bytes) - bodyOff)
+	tag := toTag(len(b.bytes) - bodyOff)
 	tagSize := sizeOfUvarint(tag)
 	// BeginContainer allocated one byte for the container tag.
 	tagOff := bodyOff - 1
@@ -68,28 +68,9 @@ func (b *Builder) TransformContainer(transform func(Bytes) Bytes) {
 	b.bytes = append(b.bytes[:bodyOff], body...)
 }
 
-// AppendContainer appends val as a container value.
-func (b *Builder) AppendContainer(val []byte) {
-	b.bytes = AppendContainer(b.bytes, val)
-}
-
-// AppendPrimitive appends val as a primitive value.
-func (b *Builder) AppendPrimitive(val []byte) {
-	b.bytes = AppendPrimitive(b.bytes, val)
-}
-
-// Append appends val as either a container or a primitive base on container.
-func (b *Builder) Append(val []byte, container bool) {
-	if container {
-		b.AppendContainer(val)
-	} else {
-		b.AppendPrimitive(val)
-	}
-}
-
-// AppendPrimitive appends val as a primitive value.
-func (b *Builder) AppendNull() {
-	b.bytes = append(b.bytes, tagNull)
+// Append appends val.
+func (b *Builder) Append(val []byte) {
+	b.bytes = Append(b.bytes, val)
 }
 
 // Bytes returns the constructed value.  It panics if the receiver has an open

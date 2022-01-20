@@ -63,7 +63,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 	cols := rec.Columns()
 	for i, it := 0, rec.Bytes.Iter(); i < len(cols) && !it.Done(); i++ {
 		var s string
-		if zb, _ := it.Next(); zb != nil {
+		if zb := it.Next(); zb != nil {
 			typ := cols[i].Type
 			id := typ.ID()
 			switch {

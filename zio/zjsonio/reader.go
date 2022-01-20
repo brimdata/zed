@@ -65,7 +65,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := decodeValue(r.builder, typ, rec.Values); err != nil {
 		return nil, e(err)
 	}
-	bytes, err := r.builder.Bytes().ContainerBody()
+	bytes, err := r.builder.Bytes().Body()
 	if err != nil {
 		return nil, e(err)
 	}

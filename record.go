@@ -36,7 +36,7 @@ func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 	}
 	var vals []Value
 	for i, it := 0, zv.Iter(); !it.Done(); i++ {
-		val, _ := it.Next()
+		val := it.Next()
 		if i >= len(t.Columns) {
 			return nil, fmt.Errorf("too many values for record element %s", val)
 		}
@@ -50,8 +50,7 @@ func (t *TypeRecord) Marshal(zv zcode.Bytes) interface{} {
 	m := make(map[string]*Value)
 	it := zv.Iter()
 	for _, col := range t.Columns {
-		zv, _ := it.Next()
-		m[col.Name] = &Value{col.Type, zv}
+		m[col.Name] = &Value{col.Type, it.Next()}
 	}
 	return m
 }
@@ -105,7 +104,7 @@ func (t *TypeRecord) Format(zv zcode.Bytes) string {
 		b.WriteString(sep)
 		b.WriteString(QuotedName(c.Name))
 		b.WriteByte(':')
-		if val, _ := it.Next(); val == nil {
+		if val := it.Next(); val == nil {
 			b.WriteString("null")
 		} else {
 			b.WriteString(c.Type.Format(val))

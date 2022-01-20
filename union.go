@@ -32,20 +32,12 @@ func (t *TypeUnion) Type(selector int) (Type, error) {
 // returns the concrete type of the value, its selector, and the value encoding.
 func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	it := zv.Iter()
-	v, container := it.Next()
-	if container {
-		return nil, -1, nil, ErrBadValue
-	}
-	selector := DecodeInt(v)
+	selector := DecodeInt(it.Next())
 	inner, err := t.Type(int(selector))
 	if err != nil {
 		return nil, -1, nil, err
 	}
-	v, _ = it.Next()
-	if !it.Done() {
-		return nil, -1, nil, ErrBadValue
-	}
-	return inner, selector, v, nil
+	return inner, selector, it.Next(), nil
 }
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) interface{} {
@@ -72,18 +64,14 @@ func (t *TypeUnion) Format(zv zcode.Bytes) string {
 	return fmt.Sprintf("%s (%s) %s", typ.Format(iv), typ, t)
 }
 
-// BuildUnion appends to b a union described by selector, val, and container.
-func BuildUnion(b *zcode.Builder, selector int, val zcode.Bytes, container bool) {
+// BuildUnion appends to b a union described by selector and val.
+func BuildUnion(b *zcode.Builder, selector int, val zcode.Bytes) {
 	if val == nil {
-		b.AppendNull()
+		b.Append(nil)
 		return
 	}
 	b.BeginContainer()
-	b.AppendPrimitive(EncodeInt(int64(selector)))
-	if container {
-		b.AppendContainer(val)
-	} else {
-		b.AppendPrimitive(val)
-	}
+	b.Append(EncodeInt(int64(selector)))
+	b.Append(val)
 	b.EndContainer()
 }

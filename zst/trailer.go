@@ -62,7 +62,7 @@ func newTrailerRecord(zctx *zed.Context, skewThresh, segmentThresh int, sections
 func encodeSections(sections []int64) zcode.Bytes {
 	var b zcode.Builder
 	for _, s := range sections {
-		b.AppendPrimitive(zed.EncodeInt(s))
+		b.Append(zed.EncodeInt(s))
 	}
 	return b.Bytes()
 }

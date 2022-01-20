@@ -407,7 +407,7 @@ func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *z
 	for _, step := range s.children {
 		switch step.op {
 		case null:
-			b.AppendNull()
+			b.Append(nil)
 			continue
 		}
 		// Using getNthFromContainer means we iterate from the
@@ -426,19 +426,20 @@ func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *z
 
 func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	switch s.op {
+	//XXX can consolite copyPrimitive and copyContainer
 	case copyPrimitive:
-		b.AppendPrimitive(in)
+		b.Append(in)
 	case copyContainer:
-		b.AppendContainer(in)
+		b.Append(in)
 	case castPrimitive:
 		if zerr := s.castPrimitive(zctx, ectx, in, b); zerr != nil {
 			return zerr
 		}
 	case castUnion:
-		zed.BuildUnion(b, s.toSelector, in, zed.IsContainerType(s.fromType))
+		zed.BuildUnion(b, s.toSelector, in)
 	case record:
 		if in == nil {
-			b.AppendNull()
+			b.Append(nil)
 			return nil
 		}
 		b.BeginContainer()
@@ -448,13 +449,13 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 		b.EndContainer()
 	case array, set:
 		if in == nil {
-			b.AppendNull()
+			b.Append(nil)
 			return nil
 		}
 		b.BeginContainer()
 		iter := in.Iter()
 		for !iter.Done() {
-			zv, _ := iter.Next()
+			zv := iter.Next()
 			if zerr := s.children[0].build(zctx, ectx, zv, b); zerr != nil {
 				return zerr
 			}
@@ -469,7 +470,7 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 
 func (s *step) castPrimitive(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	if in == nil {
-		b.AppendNull()
+		b.Append(nil)
 		return nil
 	}
 	toType := zed.TypeUnder(s.toType)
@@ -484,6 +485,6 @@ func (s *step) castPrimitive(zctx *zed.Context, ectx Context, in zcode.Bytes, b 
 		}
 		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))
 	}
-	b.AppendPrimitive(v.Bytes)
+	b.Append(v.Bytes)
 	return nil
 }

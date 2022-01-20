@@ -12,9 +12,9 @@ inputs:
       #fields	orig_p
       #types	port
       80
-  # {src_port:81 (port=(uint16))} (=0)
+  # {src_port:81(port=<uint16>)}
   - name: b.zng
-    data: !!binary /ARwb3J0AfYBCHNyY19wb3J0FxgCBFH/
+    data: !!binary /ARwb3J0AfYBCHNyY19wb3J0FxgCAlH/
 
 outputs:
   - name: stdout
