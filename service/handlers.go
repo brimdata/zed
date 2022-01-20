@@ -28,6 +28,15 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
+	// A note on error handling here.  If we get an error setting up
+	// before the query starts to run, we call w.Error() and return
+	// an HTTP status error and a JSON formatted error.  If the query
+	// begins running then we encounter an error, we return an HTTP
+	// status OK (triggered as we start to write to the HTTP response body)
+	// and return the error as an embedded ZNG control message.
+	// The client must look at the return code and interpret the result
+	// accordingly and when it sees a ZNG error after underway,
+	// the error should be relay that to the caller/user.
 	query, err := compiler.ParseProc(req.Query)
 	if err != nil {
 		w.Error(zqe.ErrInvalid(err))
@@ -38,18 +47,21 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(zqe.ErrInvalid(err))
 		return
 	}
+	flowgraph, err := runtime.NewQueryOnLake(r.Context(), zed.NewContext(), query, c.root, &req.Head, r.Logger)
+	if err != nil {
+		w.Error(err)
+		return
+	}
 	flusher, _ := w.ResponseWriter.(http.Flusher)
 	writer, err := queryio.NewWriter(zio.NopCloser(w), format, flusher)
 	if err != nil {
 		w.Error(err)
 		return
 	}
+	// Once we defer writer.Close() are going to write ZNG to the HTTP
+	// response body and for errors after this point, we must call
+	// writer.WriterError() isntead of w.Error().
 	defer writer.Close()
-	flowgraph, err := runtime.NewQueryOnLake(r.Context(), zed.NewContext(), query, c.root, &req.Head, r.Logger)
-	if err != nil {
-		w.Error(err)
-		return
-	}
 	timer := time.NewTicker(queryStatsInterval)
 	defer timer.Stop()
 	meter := flowgraph.Meter()
