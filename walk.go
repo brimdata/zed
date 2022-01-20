@@ -41,23 +41,6 @@ func Walk(typ Type, body zcode.Bytes, visit Visitor) error {
 	return nil
 }
 
-func checkKind(name string, typ Type, body zcode.Bytes, container bool) error {
-	if body == nil {
-		return nil
-	}
-	isContainer := IsContainerType(typ)
-	if isContainer == container {
-		return nil
-	}
-	var err error
-	if isContainer {
-		err = ErrNotContainer
-	} else {
-		err = ErrNotPrimitive
-	}
-	return &RecordTypeError{Name: name, Type: typ.String(), Err: err}
-}
-
 func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
@@ -67,11 +50,7 @@ func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 		if it.Done() {
 			return &RecordTypeError{Name: string(col.Name), Type: col.Type.String(), Err: ErrMissingField}
 		}
-		body, container := it.Next()
-		if err := checkKind(col.Name, col.Type, body, container); err != nil {
-			return err
-		}
-		if err := Walk(col.Type, body, visit); err != nil {
+		if err := Walk(col.Type, it.Next(), visit); err != nil {
 			return err
 		}
 	}
@@ -85,11 +64,7 @@ func walkArray(typ *TypeArray, body zcode.Bytes, visit Visitor) error {
 	inner := InnerType(typ)
 	it := body.Iter()
 	for !it.Done() {
-		body, container := it.Next()
-		if err := checkKind("<array element>", inner, body, container); err != nil {
-			return err
-		}
-		if err := Walk(inner, body, visit); err != nil {
+		if err := Walk(inner, it.Next(), visit); err != nil {
 			return err
 		}
 	}
@@ -105,22 +80,15 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 		return &RecordTypeError{Name: "<union type>", Type: typ.String(), Err: err}
 	}
 	it := body.Iter()
-	v, container := it.Next()
-	if container {
-		return ErrBadValue
-	}
-	selector := DecodeInt(v)
+	selector := DecodeInt(it.Next())
 	inner, err := typ.Type(int(selector))
 	if err != nil {
 		return err
 	}
-	body, container = it.Next()
+	body = it.Next()
 	if !it.Done() {
 		err := errors.New("union value container has more than two items")
 		return &RecordTypeError{Name: "<union>", Type: typ.String(), Err: err}
-	}
-	if err := checkKind("<union body>", inner, body, container); err != nil {
-		return err
 	}
 	return Walk(inner, body, visit)
 }
@@ -132,11 +100,7 @@ func walkSet(typ *TypeSet, body zcode.Bytes, visit Visitor) error {
 	inner := TypeUnder(InnerType(typ))
 	it := body.Iter()
 	for !it.Done() {
-		body, container := it.Next()
-		if err := checkKind("<set element>", inner, body, container); err != nil {
-			return err
-		}
-		if err := Walk(inner, body, visit); err != nil {
+		if err := Walk(inner, it.Next(), visit); err != nil {
 			return err
 		}
 	}
@@ -151,18 +115,10 @@ func walkMap(typ *TypeMap, body zcode.Bytes, visit Visitor) error {
 	valType := TypeUnder(typ.ValType)
 	it := body.Iter()
 	for !it.Done() {
-		body, container := it.Next()
-		if err := checkKind("<map key>", keyType, body, container); err != nil {
+		if err := Walk(keyType, it.Next(), visit); err != nil {
 			return err
 		}
-		if err := Walk(keyType, body, visit); err != nil {
-			return err
-		}
-		body, container = it.Next()
-		if err := checkKind("<map value>", valType, body, container); err != nil {
-			return err
-		}
-		if err := Walk(valType, body, visit); err != nil {
+		if err := Walk(valType, it.Next(), visit); err != nil {
 			return err
 		}
 	}

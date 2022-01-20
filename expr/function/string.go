@@ -126,7 +126,7 @@ func (s *Split) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	splits := strings.Split(str, sep)
 	var b zcode.Bytes
 	for _, substr := range splits {
-		b = zcode.AppendPrimitive(b, zed.EncodeString(substr))
+		b = zcode.Append(b, zed.EncodeString(substr))
 	}
 	return ctx.NewValue(s.typ, b)
 }
@@ -160,8 +160,7 @@ func (j *Join) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	var sep string
 	for !it.Done() {
 		b.WriteString(sep)
-		bytes, _ := it.Next()
-		b.WriteString(zed.DecodeString(bytes))
+		b.WriteString(zed.DecodeString(it.Next()))
 		sep = separator
 	}
 	return newString(ctx, b.String())

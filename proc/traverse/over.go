@@ -81,10 +81,9 @@ func appendOver(vals []zed.Value, zv zed.Value) []zed.Value {
 		return vals
 	}
 	for it := zv.Bytes.Iter(); !it.Done(); {
-		b, _ := it.Next()
 		// XXX when we do proper expr.Context, we can allocate
 		// this copy through the batch.
-		vals = append(vals, *zed.NewValue(typ, b).Copy())
+		vals = append(vals, *zed.NewValue(typ, it.Next()).Copy())
 	}
 	return vals
 }

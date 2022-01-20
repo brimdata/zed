@@ -41,7 +41,7 @@ func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	//XXX should have a way to append into allocator
 	var bytes zcode.Bytes
 	for _, field := range fieldNames(typ) {
-		bytes = zcode.AppendPrimitive(bytes, zcode.Bytes(field))
+		bytes = zcode.Append(bytes, zcode.Bytes(field))
 	}
 	return ctx.NewValue(f.typ, bytes)
 }

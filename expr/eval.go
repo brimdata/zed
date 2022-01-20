@@ -159,13 +159,12 @@ func inNet(zctx *zed.Context, ectx Context, elem, net *zed.Value) *zed.Value {
 }
 
 func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
-	iter := container.Bytes.Iter()
+	it := container.Bytes.Iter()
 	for {
-		if iter.Done() {
+		if it.Done() {
 			return zed.False
 		}
-		zv, _ := iter.Next()
-		if _, err := i.vals.Coerce(elem, &zed.Value{typ, zv}); err != nil {
+		if _, err := i.vals.Coerce(elem, &zed.Value{typ, it.Next()}); err != nil {
 			if err != coerce.IncompatibleTypes {
 				return i.zctx.NewError(err)
 			}
@@ -178,18 +177,16 @@ func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 	keyType := zed.TypeUnder(typ.KeyType)
 	valType := zed.TypeUnder(typ.ValType)
-	iter := container.Bytes.Iter()
-	for !iter.Done() {
-		zv, _ := iter.Next()
-		if _, err := i.vals.Coerce(elem, &zed.Value{keyType, zv}); err != nil {
+	it := container.Bytes.Iter()
+	for !it.Done() {
+		if _, err := i.vals.Coerce(elem, &zed.Value{keyType, it.Next()}); err != nil {
 			if err != coerce.IncompatibleTypes {
 				return i.zctx.NewError(err)
 			}
 		} else if i.vals.Equal() {
 			return zed.True
 		}
-		zv, _ = iter.Next()
-		if _, err := i.vals.Coerce(elem, &zed.Value{valType, zv}); err != nil {
+		if _, err := i.vals.Coerce(elem, &zed.Value{valType, it.Next()}); err != nil {
 			if err != coerce.IncompatibleTypes {
 				return i.zctx.NewError(err)
 			}
@@ -592,7 +589,7 @@ func getNthFromContainer(container zcode.Bytes, idx uint) zcode.Bytes {
 	iter := container.Iter()
 	var i uint = 0
 	for ; !iter.Done(); i++ {
-		zv, _ := iter.Next()
+		zv := iter.Next()
 		if i == idx {
 			return zv
 		}
@@ -603,8 +600,8 @@ func getNthFromContainer(container zcode.Bytes, idx uint) zcode.Bytes {
 func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
 	iter := mapBytes.Iter()
 	for !iter.Done() {
-		key, _ := iter.Next()
-		val, _ := iter.Next()
+		key := iter.Next()
+		val := iter.Next()
 		if bytes.Compare(key, target) == 0 {
 			return val, true
 		}

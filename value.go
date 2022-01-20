@@ -73,10 +73,8 @@ func (v *Value) String() string {
 // argument and returns the resulting zcode.Bytes (which may or may not
 // be the same underlying buffer, as with append(), depending on its capacity)
 func (v *Value) Encode(dst zcode.Bytes) zcode.Bytes {
-	if IsContainerType(v.Type) {
-		return zcode.AppendContainer(dst, v.Bytes)
-	}
-	return zcode.AppendPrimitive(dst, v.Bytes)
+	//XXX don't need this...
+	return zcode.Append(dst, v.Bytes)
 }
 
 func (v *Value) Iter() zcode.Iter {
@@ -96,9 +94,9 @@ func (v *Value) ArrayIndex(idx int64) (Value, error) {
 		return Value{}, ErrIndex
 	}
 	for i, it := 0, v.Iter(); !it.Done(); i++ {
-		zv, _ := it.Next()
+		bytes := it.Next()
 		if i == int(idx) {
-			return Value{vec.Type, zv}, nil
+			return Value{vec.Type, bytes}, nil
 		}
 	}
 	return Value{}, ErrIndex
@@ -113,8 +111,7 @@ func (v *Value) Elements() ([]Value, error) {
 	}
 	var elements []Value
 	for it := v.Iter(); !it.Done(); {
-		zv, _ := it.Next()
-		elements = append(elements, Value{innerType, zv})
+		elements = append(elements, Value{innerType, it.Next()})
 	}
 	return elements, nil
 }

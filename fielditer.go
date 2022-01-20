@@ -33,16 +33,12 @@ func (r *fieldIter) Next() ([]string, Value, error) {
 	info := &r.stack[len(r.stack)-1]
 	col := info.typ.Columns[info.offset]
 	fullname := append(info.field, col.Name)
-	zv, container := info.iter.Next()
+	zv := info.iter.Next()
 	recType, isRecord := TypeUnder(col.Type).(*TypeRecord)
 	if isRecord {
-		if !container {
-			return nil, Value{}, ErrMismatch
-		}
 		r.stack = append(r.stack, iterInfo{zv.Iter(), recType, 0, fullname})
 		return r.Next()
 	}
-
 	// we're at a leaf value, assemble it
 	val := Value{col.Type, zv}
 

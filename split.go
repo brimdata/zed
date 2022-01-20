@@ -13,7 +13,7 @@ func Split(elemType Type, b zcode.Bytes) ([]Value, error) {
 	}
 	vals := []Value{}
 	for it := b.Iter(); !it.Done(); {
-		zv, _ := it.Next()
+		zv := it.Next()
 		vals = append(vals, Value{elemType, zv})
 	}
 	return vals, nil

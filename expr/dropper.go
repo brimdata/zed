@@ -19,7 +19,7 @@ func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
 	b.Reset()
 	for _, e := range d.fieldRefs {
 		val := e.Eval(ectx, in)
-		b.Append(val.Bytes, val.IsContainer())
+		b.Append(val.Bytes)
 	}
 	zv, err := b.Encode()
 	if err != nil {

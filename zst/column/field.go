@@ -32,7 +32,7 @@ func (f *FieldWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 	var colType zed.Type
 	if f.vcnt == 0 {
 		colType = zed.TypeNull
-		b.AppendPrimitive(nil)
+		b.Append(nil)
 	} else {
 		var err error
 		colType, err = f.column.MarshalZNG(zctx, b)
@@ -130,10 +130,6 @@ func (f *Field) Read(b *zcode.Builder) error {
 	if isval && f.column != nil {
 		return f.column.Read(b)
 	}
-	if f.isContainer {
-		b.AppendContainer(nil)
-	} else {
-		b.AppendPrimitive(nil)
-	}
+	b.Append(nil)
 	return nil
 }

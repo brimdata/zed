@@ -231,15 +231,8 @@ func LookupCompare(typ zed.Type) comparefn {
 				if ib.Done() {
 					return 1
 				}
-				va, container := ia.Next()
-				if container {
-					return -1
-				}
-
-				vb, container := ib.Next()
-				if container {
-					return 1
-				}
+				va := ia.Next()
+				vb := ib.Next()
 				if v := compare(va, vb); v != 0 {
 					return v
 				}

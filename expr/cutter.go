@@ -81,11 +81,11 @@ func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
 				c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
 			}
 			droppers = append(droppers, c.droppers[k])
-			b.Append(val.Bytes, false)
+			b.Append(val.Bytes)
 			types[k] = zed.TypeNull
 			continue
 		}
-		b.Append(val.Bytes, val.IsContainer())
+		b.Append(val.Bytes)
 		types[k] = val.Type
 	}
 	bytes, err := b.Encode()

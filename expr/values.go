@@ -41,11 +41,7 @@ func (r *RecordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			r.columns[k].Type = zv.Type
 			changed = true
 		}
-		if zed.IsContainerType(zv.Type) {
-			b.AppendContainer(zv.Bytes)
-		} else {
-			b.AppendPrimitive(zv.Bytes)
-		}
+		b.Append(zv.Bytes)
 	}
 	if changed {
 		r.typ = r.zctx.MustLookupTypeRecord(r.columns)
@@ -76,7 +72,6 @@ func NewArrayExpr(zctx *zed.Context, exprs []Evaluator) *ArrayExpr {
 
 func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	inner := a.typ.Type
-	container := zed.IsContainerType(inner)
 	b := a.builder
 	b.Reset()
 	var first zed.Type
@@ -90,17 +85,12 @@ func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			if typ == first || first == zed.TypeNull {
 				a.typ = a.zctx.LookupTypeArray(zv.Type)
 				inner = a.typ.Type
-				container = zed.IsContainerType(inner)
 			} else {
 				//XXX issue #3363
 				return ectx.CopyValue(*a.zctx.NewErrorf("mixed-type array expressions not yet supported"))
 			}
 		}
-		if container {
-			b.AppendContainer(zv.Bytes)
-		} else {
-			b.AppendPrimitive(zv.Bytes)
-		}
+		b.Append(zv.Bytes)
 	}
 	bytes := b.Bytes()
 	if bytes == nil {
@@ -128,7 +118,6 @@ func NewSetExpr(zctx *zed.Context, exprs []Evaluator) *SetExpr {
 
 func (s *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	var inner zed.Type
-	var container bool
 	b := s.builder
 	b.Reset()
 	var first zed.Type
@@ -142,17 +131,12 @@ func (s *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			if typ == first || first == zed.TypeNull {
 				s.typ = s.zctx.LookupTypeSet(val.Type)
 				inner = s.typ.Type
-				container = zed.IsContainerType(inner)
 			} else {
 				//XXX issue #3363
 				return ectx.CopyValue(*s.zctx.NewErrorf("mixed-type set expressions not yet supported"))
 			}
 		}
-		if container {
-			b.AppendContainer(val.Bytes)
-		} else {
-			b.AppendPrimitive(val.Bytes)
-		}
+		b.Append(val.Bytes)
 	}
 	bytes := b.Bytes()
 	if bytes == nil {
@@ -184,7 +168,6 @@ func NewMapExpr(zctx *zed.Context, entries []Entry) *MapExpr {
 }
 
 func (m *MapExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	var containerKey, containerVal bool
 	var keyType, valType zed.Type
 	b := m.builder
 	b.Reset()
@@ -200,22 +183,12 @@ func (m *MapExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 				keyType = m.typ.KeyType
 				valType = m.typ.ValType
 			}
-			containerKey = zed.IsContainerType(keyType)
-			containerVal = zed.IsContainerType(valType)
 		} else if keyType != m.typ.KeyType || valType != m.typ.ValType {
 			//XXX issue #3363
 			return ectx.CopyValue(*m.zctx.NewErrorf("mixed-type map expressions not yet supported"))
 		}
-		if containerKey {
-			b.AppendContainer(key.Bytes)
-		} else {
-			b.AppendPrimitive(key.Bytes)
-		}
-		if containerVal {
-			b.AppendContainer(val.Bytes)
-		} else {
-			b.AppendPrimitive(val.Bytes)
-		}
+		b.Append(key.Bytes)
+		b.Append(val.Bytes)
 	}
 	bytes := b.Bytes()
 	if bytes == nil {

@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zqe"
 )
 
 var (
@@ -54,7 +55,12 @@ func (r *Value) Walk(rv Visitor) error {
 // TypeCheck checks that the Bytes field is structurally consistent
 // with this value's Type.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
-func (r *Value) TypeCheck() error {
+func (r *Value) TypeCheck() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = zqe.RecoverError(r)
+		}
+	}()
 	return r.Walk(func(typ Type, body zcode.Bytes) error {
 		if typset, ok := typ.(*TypeSet); ok {
 			if err := checkSet(typset, body); err != nil {
@@ -79,7 +85,7 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 	it := body.Iter()
 	var prev zcode.Bytes
 	for !it.Done() {
-		tagAndBody, _ := it.NextTagAndBody()
+		tagAndBody := it.NextTagAndBody()
 		if prev != nil {
 			switch bytes.Compare(prev, tagAndBody) {
 			case 0:
@@ -113,7 +119,7 @@ func (r *Value) Slice(column int) (zcode.Bytes, error) {
 		if it.Done() {
 			return nil, ErrMissing
 		}
-		zv, _ = it.Next()
+		zv = it.Next()
 	}
 	return zv, nil
 }

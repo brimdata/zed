@@ -25,13 +25,12 @@ func TestAppendContainer(t *testing.T) {
 	for _, c := range appendCases {
 		var buf []byte
 		for _, val := range c {
-			buf = AppendContainer(buf, val)
+			buf = Append(buf, val)
 		}
 		it := Iter(buf)
 		for _, expected := range c {
 			assert.False(t, it.Done())
-			val, container := it.Next()
-			assert.True(t, val == nil || container)
+			val := it.Next()
 			assert.Exactly(t, expected, []byte(val))
 		}
 		assert.True(t, it.Done())
@@ -42,13 +41,12 @@ func TestAppendPrimitive(t *testing.T) {
 	for _, c := range appendCases {
 		var buf []byte
 		for _, val := range c {
-			buf = AppendPrimitive(buf, val)
+			buf = Append(buf, val)
 		}
 		it := Iter(buf)
 		for _, expected := range c {
 			assert.False(t, it.Done())
-			val, container := it.Next()
-			assert.False(t, container)
+			val := it.Next()
 			assert.Exactly(t, expected, []byte(val))
 		}
 		assert.True(t, it.Done())

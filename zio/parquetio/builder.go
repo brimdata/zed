@@ -15,36 +15,36 @@ type builder struct {
 func (b *builder) appendValue(typ zed.Type, v interface{}) {
 	switch v := v.(type) {
 	case nil:
-		b.AppendNull()
+		b.Append(nil)
 	case []byte:
-		b.AppendPrimitive(v)
+		b.Append(v)
 	case bool:
 		b.buf = zed.AppendBool(b.buf[:0], v)
-		b.AppendPrimitive(b.buf)
+		b.Append(b.buf)
 	case float32:
 		b.buf = zed.AppendFloat32(b.buf[:0], v)
-		b.AppendPrimitive(b.buf)
+		b.Append(b.buf)
 	case float64:
 		b.buf = zed.AppendFloat64(b.buf[:0], v)
-		b.AppendPrimitive(b.buf)
+		b.Append(b.buf)
 	case int32:
 		b.buf = zed.AppendInt(b.buf[:0], int64(v))
-		b.AppendPrimitive(b.buf)
+		b.Append(b.buf)
 	case int64:
 		b.buf = zed.AppendInt(b.buf[:0], v)
-		b.AppendPrimitive(b.buf)
+		b.Append(b.buf)
 	case uint32:
 		b.buf = zed.AppendUint(b.buf[:0], uint64(v))
-		b.AppendPrimitive(b.buf)
+		b.Append(b.buf)
 	case uint64:
 		b.buf = zed.AppendUint(b.buf[:0], v)
-		b.AppendPrimitive(b.buf)
+		b.Append(b.buf)
 	case map[string]interface{}:
 		switch typ := zed.TypeUnder(typ).(type) {
 		case *zed.TypeArray:
 			switch v := v["list"].(type) {
 			case nil:
-				b.AppendNull()
+				b.Append(nil)
 			case []map[string]interface{}:
 				b.BeginContainer()
 				for _, m := range v {
@@ -57,7 +57,7 @@ func (b *builder) appendValue(typ zed.Type, v interface{}) {
 		case *zed.TypeMap:
 			switch v := v["key_value"].(type) {
 			case nil:
-				b.AppendNull()
+				b.Append(nil)
 			case []map[string]interface{}:
 				b.BeginContainer()
 				for _, m := range v {

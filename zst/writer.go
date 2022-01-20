@@ -197,7 +197,7 @@ func (w *Writer) finalize() error {
 		if err != nil {
 			return err
 		}
-		body, err := b.Bytes().ContainerBody()
+		body, err := b.Bytes().Body()
 		if err != nil {
 			return err
 		}

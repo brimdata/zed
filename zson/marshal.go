@@ -141,8 +141,7 @@ func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
 	if it.Done() {
 		return zed.Value{}, errors.New("no value found")
 	}
-	bytes, _ = it.Next()
-	return zed.Value{typ, bytes}, nil
+	return zed.Value{typ, it.Next()}, nil
 }
 
 func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zed.Value, error) {
@@ -154,7 +153,7 @@ func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zed.Value, error) {
 	if !zed.IsRecordType(typ) {
 		return nil, errors.New("not a record")
 	}
-	body, err := m.Builder.Bytes().ContainerBody()
+	body, err := m.Builder.Bytes().Body()
 	if err != nil {
 		return nil, err
 	}
@@ -314,14 +313,14 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zed.Type, error) {
 
 func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 	if !v.IsValid() {
-		m.Builder.AppendPrimitive(nil)
+		m.Builder.Append(nil)
 		return zed.TypeNull, nil
 	}
 	if v.Type().Implements(marshalerTypeZNG) {
 		return v.Interface().(ZNGMarshaler).MarshalZNG(m)
 	}
 	if ts, ok := v.Interface().(nano.Ts); ok {
-		m.Builder.AppendPrimitive(zed.EncodeTime(ts))
+		m.Builder.Append(zed.EncodeTime(ts))
 		return zed.TypeTime, nil
 	}
 	if zv, ok := v.Interface().(zed.Value); ok {
@@ -329,11 +328,7 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		if zed.IsContainerType(typ) {
-			m.Builder.AppendContainer(zv.Bytes)
-		} else {
-			m.Builder.AppendPrimitive(zv.Bytes)
-		}
+		m.Builder.Append(zv.Bytes)
 		return typ, nil
 	}
 	switch v.Kind() {
@@ -352,7 +347,7 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 			return m.encodeNil(v.Type())
 		}
 		if isIP(v.Type()) {
-			m.Builder.AppendPrimitive(zed.EncodeIP(v.Bytes()))
+			m.Builder.Append(zed.EncodeIP(v.Bytes()))
 			return zed.TypeIP, nil
 		}
 		if v.Type().Elem().Kind() == reflect.Uint8 {
@@ -372,30 +367,30 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		}
 		return m.encodeValue(v.Elem())
 	case reflect.String:
-		m.Builder.AppendPrimitive(zed.EncodeString(v.String()))
+		m.Builder.Append(zed.EncodeString(v.String()))
 		return zed.TypeString, nil
 	case reflect.Bool:
-		m.Builder.AppendPrimitive(zed.EncodeBool(v.Bool()))
+		m.Builder.Append(zed.EncodeBool(v.Bool()))
 		return zed.TypeBool, nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		zt, err := m.lookupType(v.Type())
 		if err != nil {
 			return nil, err
 		}
-		m.Builder.AppendPrimitive(zed.EncodeInt(v.Int()))
+		m.Builder.Append(zed.EncodeInt(v.Int()))
 		return zt, nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		zt, err := m.lookupType(v.Type())
 		if err != nil {
 			return nil, err
 		}
-		m.Builder.AppendPrimitive(zed.EncodeUint(v.Uint()))
+		m.Builder.Append(zed.EncodeUint(v.Uint()))
 		return zt, nil
 	case reflect.Float32:
-		m.Builder.AppendPrimitive(zed.EncodeFloat32(float32(v.Float())))
+		m.Builder.Append(zed.EncodeFloat32(float32(v.Float())))
 		return zed.TypeFloat32, nil
 	case reflect.Float64:
-		m.Builder.AppendPrimitive(zed.EncodeFloat64(v.Float()))
+		m.Builder.Append(zed.EncodeFloat64(v.Float()))
 		return zed.TypeFloat64, nil
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", v.Kind())
@@ -452,11 +447,7 @@ func (m *MarshalZNGContext) encodeNil(t reflect.Type) (zed.Type, error) {
 			return nil, err
 		}
 	}
-	if zed.IsContainerType(typ) {
-		m.Builder.AppendContainer(nil)
-	} else {
-		m.Builder.AppendPrimitive(nil)
-	}
+	m.Builder.Append(nil)
 	return typ, nil
 }
 
@@ -495,7 +486,7 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 }
 
 func (m *MarshalZNGContext) encodeSliceBytes(sliceVal reflect.Value) (zed.Type, error) {
-	m.Builder.AppendPrimitive(sliceVal.Bytes())
+	m.Builder.Append(sliceVal.Bytes())
 	return zed.TypeBytes, nil
 }
 
@@ -506,7 +497,7 @@ func (m *MarshalZNGContext) encodeArrayBytes(arrayVal reflect.Value) (zed.Type, 
 		v := arrayVal.Index(k)
 		bytes = append(bytes, v.Interface().(uint8))
 	}
-	m.Builder.AppendPrimitive(bytes)
+	m.Builder.Append(bytes)
 	return zed.TypeBytes, nil
 }
 
@@ -845,14 +836,12 @@ func (u *UnmarshalZNGContext) decodeMap(zv zed.Value, mapVal reflect.Value) erro
 	keyType := mapVal.Type().Key()
 	valType := mapVal.Type().Elem()
 	for it := zv.Iter(); !it.Done(); {
-		keyzb, _ := it.Next()
 		key := reflect.New(keyType).Elem()
-		if err := u.decodeAny(zed.Value{typ.KeyType, keyzb}, key); err != nil {
+		if err := u.decodeAny(zed.Value{typ.KeyType, it.Next()}, key); err != nil {
 			return err
 		}
-		valzb, _ := it.Next()
 		val := reflect.New(valType).Elem()
-		if err := u.decodeAny(zed.Value{typ.ValType, valzb}, val); err != nil {
+		if err := u.decodeAny(zed.Value{typ.ValType, it.Next()}, val); err != nil {
 			return err
 		}
 		mapVal.SetMapIndex(key, val)
@@ -876,7 +865,7 @@ func (u *UnmarshalZNGContext) decodeRecord(zv zed.Value, sval reflect.Value) err
 		if i >= len(recType.Columns) {
 			return zed.ErrMismatch
 		}
-		itzv, _ := it.Next()
+		itzv := it.Next()
 		name := recType.Columns[i].Name
 		if fieldIdx, ok := nameToField[name]; ok {
 			typ := recType.Columns[i].Type
@@ -910,7 +899,7 @@ func (u *UnmarshalZNGContext) decodeArray(zv zed.Value, arrVal reflect.Value) er
 	}
 	i := 0
 	for it := zv.Iter(); !it.Done(); i++ {
-		itzv, _ := it.Next()
+		itzv := it.Next()
 		if i >= arrVal.Cap() {
 			newcap := arrVal.Cap() + arrVal.Cap()/2
 			if newcap < 4 {

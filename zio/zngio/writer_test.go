@@ -38,27 +38,27 @@ f6 03
 # value using type id 23 (0x17), the record defined above
 # total length of this recor is 17 bytes (0x11)
 17 11
-# first column is a primitive value, 2 total bytes
-04
+# first column is a 1-byte value
+02
 # value of the first column is the string "a"
 61
-# second column is a primitive value, 6 total bytes
-0c
+# second column is a 6-byte value
+06
 # time value is encoded in nanoseconds shifted one bit left
 # 2000000000 == 0x04a817c800
 00 c8 17 a8 04
-# third column is a primitive value, 9 total bytes
-12
+# third column is a 9-byte value
+09
 # 8 bytes of float64 data representing 1.0
 00 00 00 00 00 00 f0 3f
 # another encoded value using the same record definition as before
 17 13
 # first column: primitive value of 4 total byte, values xyz
-08 78 79 7a
+04 78 79 7a
 # second column: primitive value of 20 (converted to nanoseconds, encoded <<1)
-0c 00 90 2f 50 09
+06 00 90 2f 50 09
 # third column, primitive value of 9 total bytes, float64 1.5
-12 00 00 00 00 00 00 f8 3f
+09 00 00 00 00 00 00 f8 3f
 # end of stream
 ff
 `

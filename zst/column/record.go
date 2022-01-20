@@ -31,8 +31,7 @@ func (r RecordWriter) Write(body zcode.Bytes) error {
 		if it.Done() {
 			return ErrColumnMismatch
 		}
-		body, _ := it.Next()
-		if err := f.write(body); err != nil {
+		if err := f.write(it.Next()); err != nil {
 			return err
 		}
 	}
@@ -83,9 +82,8 @@ func (r *Record) UnmarshalZNG(utyp zed.Type, in zed.Value, reader io.ReaderAt) e
 			return errors.New("mismatch between record type and record_column") //XXX
 		}
 		fieldType := typ.Columns[k].Type
-		zv, _ := it.Next()
 		f := &Field{}
-		if err := f.UnmarshalZNG(fieldType, zed.Value{rtype.Columns[k].Type, zv}, reader); err != nil {
+		if err := f.UnmarshalZNG(fieldType, zed.Value{rtype.Columns[k].Type, it.Next()}, reader); err != nil {
 			return err
 		}
 		*r = append(*r, f)

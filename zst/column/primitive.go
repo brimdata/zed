@@ -22,7 +22,7 @@ func NewPrimitiveWriter(spiller *Spiller) *PrimitiveWriter {
 }
 
 func (p *PrimitiveWriter) Write(body zcode.Bytes) error {
-	p.bytes = zcode.AppendPrimitive(p.bytes, body)
+	p.bytes = zcode.Append(p.bytes, body)
 	var err error
 	if len(p.bytes) >= p.spiller.Thresh {
 		err = p.Flush(false)
@@ -44,8 +44,8 @@ func (p *PrimitiveWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.T
 	for _, segment := range p.segments {
 		// Add a segmap record to the array for each segment.
 		b.BeginContainer()
-		b.AppendPrimitive(zed.EncodeInt(segment.Offset))
-		b.AppendPrimitive(zed.EncodeInt(segment.Length))
+		b.Append(zed.EncodeInt(segment.Offset))
+		b.Append(zed.EncodeInt(segment.Length))
 		b.EndContainer()
 	}
 	b.EndContainer()
@@ -66,7 +66,7 @@ func (p *Primitive) UnmarshalZNG(_ zed.Type, in zed.Value, reader io.ReaderAt) e
 func (p *Primitive) Read(b *zcode.Builder) error {
 	zv, err := p.read()
 	if err == nil {
-		b.AppendPrimitive(zv)
+		b.Append(zv)
 	}
 	return err
 }
@@ -80,8 +80,7 @@ func (p *Primitive) read() (zcode.Bytes, error) {
 			return nil, err
 		}
 	}
-	zv, _ := p.iter.Next()
-	return zv, nil
+	return p.iter.Next(), nil
 }
 
 func (p *Primitive) next() error {
