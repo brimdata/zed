@@ -23,11 +23,8 @@ func AppendTime(bytes zcode.Bytes, t nano.Ts) zcode.Bytes {
 	return AppendInt(bytes, int64(t))
 }
 
-func DecodeTime(zv zcode.Bytes) (nano.Ts, error) {
-	if zv == nil {
-		return 0, nil
-	}
-	return nano.Ts(zcode.DecodeCountedVarint(zv)), nil
+func DecodeTime(zv zcode.Bytes) nano.Ts {
+	return nano.Ts(zcode.DecodeCountedVarint(zv))
 }
 
 func (t *TypeOfTime) ID() int {
@@ -38,19 +35,10 @@ func (t *TypeOfTime) String() string {
 	return "time"
 }
 
-func (t *TypeOfTime) Marshal(zv zcode.Bytes) (interface{}, error) {
-	ts, err := DecodeTime(zv)
-	if err != nil {
-		return nil, err
-	}
-	return ts.Time().Format(time.RFC3339Nano), nil
+func (t *TypeOfTime) Marshal(zv zcode.Bytes) interface{} {
+	return DecodeTime(zv).Time().Format(time.RFC3339Nano)
 }
 
 func (t *TypeOfTime) Format(zv zcode.Bytes) string {
-	ts, err := DecodeTime(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	b := ts.Time().Format(time.RFC3339Nano)
-	return string(b)
+	return DecodeTime(zv).Time().Format(time.RFC3339Nano)
 }

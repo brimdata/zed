@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 	"unicode"
@@ -16,10 +15,6 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func badZNG(err error, t zed.Type, zv zcode.Bytes) string {
-	return fmt.Sprintf("<ZNG-ERR type %s [%s]: %s>", t, zv, err)
-}
-
 func formatAny(zv zed.Value, inContainer bool) string {
 	switch t := zv.Type.(type) {
 	case *zed.TypeArray:
@@ -27,54 +22,34 @@ func formatAny(zv zed.Value, inContainer bool) string {
 	case *zed.TypeAlias:
 		return formatAny(zed.Value{t.Type, zv.Bytes}, inContainer)
 	case *zed.TypeOfBool:
-		b, err := zed.DecodeBool(zv.Bytes)
-		if err != nil {
-			return badZNG(err, t, zv.Bytes)
-		}
-		if b {
+		if zed.DecodeBool(zv.Bytes) {
 			return "T"
 		}
 		return "F"
 	case *zed.TypeOfBytes:
 		return base64.StdEncoding.EncodeToString(zv.Bytes)
 	case *zed.TypeOfDuration:
-		return formatDuration(t, zv.Bytes)
+		// This format of a fractional second is used by Zeek in logs.
+		// It uses enough precision to fully represent the 64-bit ns
+		// accuracy of a nano Duration. Such values cannot be represented by
+		// float64's without loss of the least significant digits of ns.
+		return nano.Ts(zed.DecodeDuration(zv.Bytes)).StringFloat()
 	case *zed.TypeEnum:
 		return formatAny(zed.Value{zed.TypeUint64, zv.Bytes}, false)
 	case *zed.TypeOfFloat32:
-		v, err := zed.DecodeFloat32(zv.Bytes)
-		if err != nil {
-			return badZNG(err, t, zv.Bytes)
-		}
-		return strconv.FormatFloat(float64(v), 'f', -1, 32)
+		return strconv.FormatFloat(float64(zed.DecodeFloat32(zv.Bytes)), 'f', -1, 32)
 	case *zed.TypeOfFloat64:
-		d, err := zed.DecodeFloat64(zv.Bytes)
-		if err != nil {
-			return badZNG(err, t, zv.Bytes)
-		}
-		return strconv.FormatFloat(d, 'f', -1, 64)
+		return strconv.FormatFloat(zed.DecodeFloat64(zv.Bytes), 'f', -1, 64)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
-		b, err := zed.DecodeInt(zv.Bytes)
-		if err != nil {
-			return badZNG(err, t, zv.Bytes)
-		}
-		return strconv.FormatInt(int64(b), 10)
+		return strconv.FormatInt(zed.DecodeInt(zv.Bytes), 10)
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
-		b, err := zed.DecodeUint(zv.Bytes)
-		if err != nil {
-			return badZNG(err, t, zv.Bytes)
-		}
-		return strconv.FormatUint(uint64(b), 10)
+		return strconv.FormatUint(zed.DecodeUint(zv.Bytes), 10)
 	case *zed.TypeOfIP:
-		ip, err := zed.DecodeIP(zv.Bytes)
-		if err != nil {
-			return badZNG(err, t, zv.Bytes)
-		}
-		return ip.String()
+		return zed.DecodeIP(zv.Bytes).String()
 	case *zed.TypeMap:
 		return formatMap(t, zv.Bytes)
 	case *zed.TypeOfNet:
-		return formatNet(t, zv.Bytes)
+		return zed.DecodeNet(zv.Bytes).String()
 	case *zed.TypeOfNull:
 		return "-"
 	case *zed.TypeRecord:
@@ -84,10 +59,13 @@ func formatAny(zv zed.Value, inContainer bool) string {
 	case *zed.TypeOfString:
 		return formatString(t, zv.Bytes, inContainer)
 	case *zed.TypeOfTime:
-		return formatTime(t, zv.Bytes)
+		// This format of a fractional second is used by Zeek in logs.
+		// It uses enough precision to fully represent the 64-bit ns
+		// accuracy of a nano.Ts.  Such values cannot be representd by
+		// float64's without loss of the least significant digits of ns.
+		return zed.DecodeTime(zv.Bytes).StringFloat()
 	case *zed.TypeOfType:
-		s, _ := zson.FormatValue(zv)
-		return s
+		return zson.String(zv)
 	case *zed.TypeUnion:
 		return formatUnion(t, zv.Bytes)
 	case *zed.TypeError:
@@ -125,18 +103,6 @@ func formatArray(t *zed.TypeArray, zv zcode.Bytes) string {
 	return b.String()
 }
 
-func formatDuration(t *zed.TypeOfDuration, zv zcode.Bytes) string {
-	i, err := zed.DecodeDuration(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	// This format of a fractional second is used by zeek in logs.
-	// It uses enough precision to fully represent the 64-bit ns
-	// accuracy of a nano Duration. Such values cannot be represented by
-	// float64's without loss of the least significant digits of ns,
-	return nano.Ts(i).StringFloat()
-}
-
 func formatMap(t *zed.TypeMap, zv zcode.Bytes) string {
 	var b strings.Builder
 	it := zv.Iter()
@@ -155,15 +121,6 @@ func formatMap(t *zed.TypeMap, zv zcode.Bytes) string {
 	}
 	b.WriteByte(']')
 	return b.String()
-}
-
-func formatNet(t *zed.TypeOfNet, zv zcode.Bytes) string {
-	s, err := zed.DecodeNet(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	ipnet := net.IPNet(*s)
-	return ipnet.String()
 }
 
 func formatRecord(t *zed.TypeRecord, zv zcode.Bytes) string {
@@ -247,18 +204,6 @@ func unescape(r rune) []byte {
 		b.WriteString(code[k : k+2])
 	}
 	return b.Bytes()
-}
-
-func formatTime(t *zed.TypeOfTime, zv zcode.Bytes) string {
-	ts, err := zed.DecodeTime(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	// This format of a fractional second is used by zeek in logs.
-	// It uses enough precision to fully represent the 64-bit ns
-	// accuracy of a nano.Ts.  Such values cannot be representd by
-	// float64's without loss of the least significant digits of ns,
-	return ts.StringFloat()
 }
 
 func formatUnion(t *zed.TypeUnion, zv zcode.Bytes) string {

@@ -99,11 +99,7 @@ func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
 	if body == nil {
 		return nil
 	}
-	selector, err := DecodeUint(body)
-	if err != nil {
-		return err
-	}
-	if int(selector) >= len(typ.Symbols) {
+	if selector := DecodeUint(body); int(selector) >= len(typ.Symbols) {
 		return errors.New("enum selector out of range")
 	}
 	return nil
@@ -182,7 +178,7 @@ func (r *Value) AccessString(field string) (string, error) {
 		return "", err
 	}
 	if TypeUnder(v.Type) == TypeString {
-		return DecodeString(v.Bytes)
+		return DecodeString(v.Bytes), nil
 	}
 	return "", ErrTypeMismatch
 }
@@ -195,7 +191,7 @@ func (r *Value) AccessBool(field string) (bool, error) {
 	if _, ok := TypeUnder(v.Type).(*TypeOfBool); !ok {
 		return false, ErrTypeMismatch
 	}
-	return DecodeBool(v.Bytes)
+	return DecodeBool(v.Bytes), nil
 }
 
 func (r *Value) AccessInt(field string) (int64, error) {
@@ -204,20 +200,16 @@ func (r *Value) AccessInt(field string) (int64, error) {
 		return 0, err
 	}
 	switch TypeUnder(v.Type).(type) {
-	case *TypeOfUint8:
-		b, err := DecodeUint(v.Bytes)
-		return int64(b), err
-	case *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
-		return DecodeInt(v.Bytes)
-	case *TypeOfUint16, *TypeOfUint32:
-		v, err := DecodeUint(v.Bytes)
-		return int64(v), err
+	case *TypeOfUint8, *TypeOfUint16, *TypeOfUint32:
+		return int64(DecodeUint(v.Bytes)), nil
 	case *TypeOfUint64:
-		v, err := DecodeUint(v.Bytes)
+		v := DecodeUint(v.Bytes)
 		if v > math.MaxInt64 {
 			return 0, errors.New("conversion from uint64 to signed int results in overflow")
 		}
 		return int64(v), err
+	case *TypeOfInt8, *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
+		return DecodeInt(v.Bytes), nil
 	}
 	return 0, ErrTypeMismatch
 }
@@ -230,7 +222,7 @@ func (r *Value) AccessIP(field string) (net.IP, error) {
 	if _, ok := TypeUnder(v.Type).(*TypeOfIP); !ok {
 		return nil, ErrTypeMismatch
 	}
-	return DecodeIP(v.Bytes)
+	return DecodeIP(v.Bytes), nil
 }
 
 func (r *Value) AccessTime(field string) (nano.Ts, error) {
@@ -241,7 +233,7 @@ func (r *Value) AccessTime(field string) (nano.Ts, error) {
 	if _, ok := TypeUnder(v.Type).(*TypeOfTime); !ok {
 		return 0, ErrTypeMismatch
 	}
-	return DecodeTime(v.Bytes)
+	return DecodeTime(v.Bytes), nil
 }
 
 func (r *Value) AccessTimeByColumn(colno int) (nano.Ts, error) {
@@ -249,5 +241,5 @@ func (r *Value) AccessTimeByColumn(colno int) (nano.Ts, error) {
 	if err != nil {
 		return 0, err
 	}
-	return DecodeTime(zv)
+	return DecodeTime(zv), nil
 }

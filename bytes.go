@@ -16,8 +16,8 @@ func EncodeBytes(b []byte) zcode.Bytes {
 	return zcode.Bytes(b)
 }
 
-func DecodeBytes(zv zcode.Bytes) ([]byte, error) {
-	return []byte(zv), nil
+func DecodeBytes(zv zcode.Bytes) []byte {
+	return []byte(zv)
 }
 
 func (t *TypeOfBytes) ID() int {
@@ -28,8 +28,8 @@ func (t *TypeOfBytes) String() string {
 	return "bytes"
 }
 
-func (t *TypeOfBytes) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.Format(zv), nil
+func (t *TypeOfBytes) Marshal(zv zcode.Bytes) interface{} {
+	return t.Format(zv)
 }
 
 func (t *TypeOfBytes) Format(zv zcode.Bytes) string {

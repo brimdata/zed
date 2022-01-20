@@ -30,18 +30,12 @@ func AppendUint(bytes zcode.Bytes, i uint64) zcode.Bytes {
 	return zcode.AppendCountedUvarint(bytes, i)
 }
 
-func DecodeInt(zv zcode.Bytes) (int64, error) {
-	if zv == nil {
-		return 0, nil
-	}
-	return zcode.DecodeCountedVarint(zv), nil
+func DecodeInt(zv zcode.Bytes) int64 {
+	return zcode.DecodeCountedVarint(zv)
 }
 
-func DecodeUint(zv zcode.Bytes) (uint64, error) {
-	if zv == nil {
-		return 0, nil
-	}
-	return zcode.DecodeCountedUvarint(zv), nil
+func DecodeUint(zv zcode.Bytes) uint64 {
+	return zcode.DecodeCountedUvarint(zv)
 }
 
 type TypeOfInt8 struct{}
@@ -54,16 +48,12 @@ func (t *TypeOfInt8) String() string {
 	return "int8"
 }
 
-func (t *TypeOfInt8) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfInt8) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeInt(zv)
 }
 
 func (t *TypeOfInt8) Format(zv zcode.Bytes) string {
-	b, err := DecodeInt(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return strconv.FormatInt(int64(b), 10)
+	return strconv.FormatInt(DecodeInt(zv), 10)
 }
 
 type TypeOfUint8 struct{}
@@ -76,16 +66,12 @@ func (t *TypeOfUint8) String() string {
 	return "uint8"
 }
 
-func (t *TypeOfUint8) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfUint8) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeUint(zv)
 }
 
 func (t *TypeOfUint8) Format(zv zcode.Bytes) string {
-	b, err := DecodeUint(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return strconv.FormatUint(uint64(b), 10)
+	return strconv.FormatUint(DecodeUint(zv), 10)
 }
 
 type TypeOfInt16 struct{}
@@ -98,16 +84,12 @@ func (t *TypeOfInt16) String() string {
 	return "int16"
 }
 
-func (t *TypeOfInt16) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfInt16) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeInt(zv)
 }
 
 func (t *TypeOfInt16) Format(zv zcode.Bytes) string {
-	b, err := DecodeInt(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return strconv.FormatInt(int64(b), 10)
+	return strconv.FormatInt(DecodeInt(zv), 10)
 }
 
 type TypeOfUint16 struct{}
@@ -120,16 +102,12 @@ func (t *TypeOfUint16) String() string {
 	return "uint16"
 }
 
-func (t *TypeOfUint16) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfUint16) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeUint(zv)
 }
 
 func (t *TypeOfUint16) Format(zv zcode.Bytes) string {
-	b, err := DecodeUint(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return strconv.FormatUint(uint64(b), 10)
+	return strconv.FormatUint(DecodeUint(zv), 10)
 }
 
 type TypeOfInt32 struct{}
@@ -142,16 +120,12 @@ func (t *TypeOfInt32) String() string {
 	return "int32"
 }
 
-func (t *TypeOfInt32) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfInt32) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeInt(zv)
 }
 
 func (t *TypeOfInt32) Format(zv zcode.Bytes) string {
-	b, err := DecodeInt(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return strconv.FormatInt(int64(b), 10)
+	return strconv.FormatInt(DecodeInt(zv), 10)
 }
 
 type TypeOfUint32 struct{}
@@ -164,16 +138,12 @@ func (t *TypeOfUint32) String() string {
 	return "uint32"
 }
 
-func (t *TypeOfUint32) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfUint32) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeUint(zv)
 }
 
 func (t *TypeOfUint32) Format(zv zcode.Bytes) string {
-	b, err := DecodeUint(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return strconv.FormatUint(uint64(b), 10)
+	return strconv.FormatUint(DecodeUint(zv), 10)
 }
 
 type TypeOfInt64 struct{}
@@ -186,16 +156,12 @@ func (t *TypeOfInt64) String() string {
 	return "int64"
 }
 
-func (t *TypeOfInt64) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfInt64) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeInt(zv)
 }
 
 func (t *TypeOfInt64) Format(zv zcode.Bytes) string {
-	b, err := DecodeInt(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return strconv.FormatInt(int64(b), 10)
+	return strconv.FormatInt(DecodeInt(zv), 10)
 }
 
 type TypeOfUint64 struct{}
@@ -208,14 +174,10 @@ func (t *TypeOfUint64) String() string {
 	return "uint64"
 }
 
-func (t *TypeOfUint64) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfUint64) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeUint(zv)
 }
 
 func (t *TypeOfUint64) Format(zv zcode.Bytes) string {
-	b, err := DecodeUint(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return strconv.FormatUint(uint64(b), 10)
+	return strconv.FormatUint(DecodeUint(zv), 10)
 }

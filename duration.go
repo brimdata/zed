@@ -19,9 +19,8 @@ func AppendDuration(bytes zcode.Bytes, d nano.Duration) zcode.Bytes {
 	return AppendInt(bytes, int64(d))
 }
 
-func DecodeDuration(zv zcode.Bytes) (nano.Duration, error) {
-	i, err := DecodeInt(zv)
-	return nano.Duration(i), err
+func DecodeDuration(zv zcode.Bytes) nano.Duration {
+	return nano.Duration(DecodeInt(zv))
 }
 
 func (t *TypeOfDuration) ID() int {
@@ -32,14 +31,10 @@ func (t *TypeOfDuration) String() string {
 	return "duration"
 }
 
-func (t *TypeOfDuration) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.Format(zv), nil
+func (t *TypeOfDuration) Marshal(zv zcode.Bytes) interface{} {
+	return t.Format(zv)
 }
 
 func (t *TypeOfDuration) Format(zv zcode.Bytes) string {
-	d, err := DecodeDuration(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return d.String()
+	return DecodeDuration(zv).String()
 }

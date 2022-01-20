@@ -28,7 +28,7 @@ func (t *TypeAlias) AliasID() int {
 	return t.id
 }
 
-func (t *TypeAlias) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeAlias) Marshal(zv zcode.Bytes) interface{} {
 	return t.Type.Marshal(zv)
 }
 

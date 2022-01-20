@@ -14,8 +14,8 @@ func EncodeString(s string) zcode.Bytes {
 	return zcode.Bytes(s)
 }
 
-func DecodeString(zv zcode.Bytes) (string, error) {
-	return string(zv), nil
+func DecodeString(zv zcode.Bytes) string {
+	return string(zv)
 }
 
 func (t *TypeOfString) ID() int {
@@ -26,8 +26,8 @@ func (t *TypeOfString) String() string {
 	return "string"
 }
 
-func (t *TypeOfString) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return string(zv), nil
+func (t *TypeOfString) Marshal(zv zcode.Bytes) interface{} {
+	return string(zv)
 }
 
 func (t *TypeOfString) Format(zv zcode.Bytes) string {

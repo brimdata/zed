@@ -14,10 +14,10 @@ func (t *TypeOfNull) String() string {
 	return "null"
 }
 
-func (t *TypeOfNull) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return nil, nil
+func (t *TypeOfNull) Marshal(zcode.Bytes) interface{} {
+	return nil
 }
 
-func (t *TypeOfNull) Format(zv zcode.Bytes) string {
+func (t *TypeOfNull) Format(zcode.Bytes) string {
 	return "null"
 }

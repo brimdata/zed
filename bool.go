@@ -36,14 +36,8 @@ func EncodeBool(b bool) zcode.Bytes {
 	return AppendBool(nil, b)
 }
 
-func DecodeBool(zv zcode.Bytes) (bool, error) {
-	if zv == nil {
-		return false, nil
-	}
-	if zv[0] != 0 {
-		return true, nil
-	}
-	return false, nil
+func DecodeBool(zv zcode.Bytes) bool {
+	return zv != nil && zv[0] != 0
 }
 
 func (t *TypeOfBool) ID() int {
@@ -54,16 +48,12 @@ func (t *TypeOfBool) String() string {
 	return "bool"
 }
 
-func (t *TypeOfBool) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfBool) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeBool(zv)
 }
 
 func (t *TypeOfBool) Format(zv zcode.Bytes) string {
-	b, err := DecodeBool(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	if b {
+	if DecodeBool(zv) {
 		return "true"
 	}
 	return "false"

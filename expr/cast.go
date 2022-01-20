@@ -175,11 +175,7 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
 	if zed.IsFloat(id) {
-		f, err := zed.DecodeFloat(val.Bytes)
-		if err != nil {
-			panic(err)
-		}
-		d := nano.DurationFromFloat(f)
+		d := nano.DurationFromFloat(zed.DecodeFloat(val.Bytes))
 		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
 	v, ok := coerce.ToInt(*val)
@@ -213,11 +209,7 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 			ts = nano.Ts(gotime.UnixNano())
 		}
 	case zed.IsFloat(id):
-		sec, err := zed.DecodeFloat(val.Bytes)
-		if err != nil {
-			panic(err)
-		}
-		ts = nano.Ts(sec * 1e9)
+		ts = nano.Ts(zed.DecodeFloat(val.Bytes) * 1e9)
 	case zed.IsInteger(id):
 		//XXX we call coerce here to avoid unsigned/signed decode
 		v, ok := coerce.ToInt(*val)
@@ -244,7 +236,7 @@ func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
 		return ectx.NewValue(zed.TypeString, val.Bytes)
 	}
 	if enum, ok := val.Type.(*zed.TypeEnum); ok {
-		selector, _ := zed.DecodeUint(val.Bytes)
+		selector := zed.DecodeUint(val.Bytes)
 		symbol, err := enum.Symbol(int(selector))
 		if err != nil {
 			return ectx.CopyValue(*c.zctx.NewError(err))

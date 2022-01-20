@@ -681,9 +681,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zed.DecodeTime(zv.Bytes)
-		v.Set(reflect.ValueOf(x))
-		return err
+		v.Set(reflect.ValueOf(zed.DecodeTime(zv.Bytes)))
+		return nil
 	}
 	if _, ok := v.Interface().(zed.Value); ok {
 		// For zed.Values we simply set the reflect value to the
@@ -755,9 +754,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zed.DecodeString(zv.Bytes)
-		v.SetString(x)
-		return err
+		v.SetString(zed.DecodeString(zv.Bytes))
+		return nil
 	case reflect.Bool:
 		if zed.TypeUnder(zv.Type) != zed.TypeBool {
 			return incompatTypeError(zv.Type, v)
@@ -766,9 +764,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zed.DecodeBool(zv.Bytes)
-		v.SetBool(x)
-		return err
+		v.SetBool(zed.DecodeBool(zv.Bytes))
+		return nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		switch zed.TypeUnder(zv.Type) {
 		case zed.TypeInt8, zed.TypeInt16, zed.TypeInt32, zed.TypeInt64:
@@ -779,9 +776,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zed.DecodeInt(zv.Bytes)
-		v.SetInt(x)
-		return err
+		v.SetInt(zed.DecodeInt(zv.Bytes))
+		return nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		switch zed.TypeUnder(zv.Type) {
 		case zed.TypeUint8, zed.TypeUint16, zed.TypeUint32, zed.TypeUint64:
@@ -792,9 +788,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zed.DecodeUint(zv.Bytes)
-		v.SetUint(x)
-		return err
+		v.SetUint(zed.DecodeUint(zv.Bytes))
+		return nil
 	case reflect.Float32:
 		if zed.TypeUnder(zv.Type) != zed.TypeFloat32 {
 			return incompatTypeError(zv.Type, v)
@@ -803,9 +798,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zed.DecodeFloat32(zv.Bytes)
-		v.SetFloat(float64(x))
-		return err
+		v.SetFloat(float64(zed.DecodeFloat32(zv.Bytes)))
+		return nil
 	case reflect.Float64:
 		if zed.TypeUnder(zv.Type) != zed.TypeFloat64 {
 			return incompatTypeError(zv.Type, v)
@@ -814,9 +808,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zed.DecodeFloat64(zv.Bytes)
-		v.SetFloat(x)
-		return err
+		v.SetFloat(zed.DecodeFloat64(zv.Bytes))
+		return nil
 	default:
 		return fmt.Errorf("unsupported type: %v", v.Kind())
 	}
@@ -834,9 +827,8 @@ func (u *UnmarshalZNGContext) decodeIP(zv zed.Value, v reflect.Value) error {
 		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
-	x, err := zed.DecodeIP(zv.Bytes)
-	v.Set(reflect.ValueOf(x))
-	return err
+	v.Set(reflect.ValueOf(zed.DecodeIP(zv.Bytes)))
+	return nil
 }
 
 func (u *UnmarshalZNGContext) decodeMap(zv zed.Value, mapVal reflect.Value) error {

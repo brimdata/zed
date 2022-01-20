@@ -1,7 +1,6 @@
 package zed
 
 import (
-	"errors"
 	"net"
 
 	"github.com/brimdata/zed/zcode"
@@ -29,27 +28,23 @@ func EncodeNet(subnet *net.IPNet) zcode.Bytes {
 	return AppendNet(nil, subnet)
 }
 
-func DecodeNet(zv zcode.Bytes) (*net.IPNet, error) {
+func DecodeNet(zv zcode.Bytes) *net.IPNet {
 	if zv == nil {
-		return nil, nil
+		return nil
 	}
 	switch len(zv) {
 	case 8:
-		ip := net.IP(zv[:4])
-		mask := net.IPMask(zv[4:])
 		return &net.IPNet{
-			IP:   ip,
-			Mask: mask,
-		}, nil
+			IP:   net.IP(zv[:4]),
+			Mask: net.IPMask(zv[4:]),
+		}
 	case 32:
-		ip := net.IP(zv[:16])
-		mask := net.IPMask(zv[16:])
 		return &net.IPNet{
-			IP:   ip,
-			Mask: mask,
-		}, nil
+			IP:   net.IP(zv[:16]),
+			Mask: net.IPMask(zv[16:]),
+		}
 	}
-	return nil, errors.New("failure trying to decode IP subnet that is not 8 or 32 bytes long")
+	panic("failure trying to decode IP subnet that is not 8 or 32 bytes long")
 }
 
 func (t *TypeOfNet) ID() int {
@@ -60,19 +55,10 @@ func (t *TypeOfNet) String() string {
 	return "net"
 }
 
-func (t *TypeOfNet) Marshal(zv zcode.Bytes) (interface{}, error) {
-	s, err := DecodeNet(zv)
-	if err != nil {
-		return nil, err
-	}
-	return (*s).String(), nil
+func (t *TypeOfNet) Marshal(zb zcode.Bytes) interface{} {
+	return DecodeNet(zb).String()
 }
 
-func (t *TypeOfNet) Format(zv zcode.Bytes) string {
-	s, err := DecodeNet(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	ipnet := net.IPNet(*s)
-	return ipnet.String()
+func (t *TypeOfNet) Format(zb zcode.Bytes) string {
+	return DecodeNet(zb).String()
 }

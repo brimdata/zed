@@ -42,10 +42,7 @@ func lookup(r zio.Reader, path field.Path, from, to *zed.Value, cmp expr.Compare
 		if err != nil {
 			return Range{}, err
 		}
-		rg.Start, err = zed.DecodeInt(off.Bytes)
-		if err != nil {
-			return Range{}, err
-		}
+		rg.Start = zed.DecodeInt(off.Bytes)
 		if cmp(&key, from) == 0 {
 			break
 		}
@@ -60,10 +57,7 @@ func lookup(r zio.Reader, path field.Path, from, to *zed.Value, cmp expr.Compare
 			if err != nil {
 				return Range{}, err
 			}
-			rg.End, err = zed.DecodeInt(off.Bytes)
-			if err != nil {
-				return Range{}, err
-			}
+			rg.End = zed.DecodeInt(off.Bytes)
 			break
 		}
 		rec, err = r.Read()

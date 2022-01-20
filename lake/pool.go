@@ -233,8 +233,8 @@ func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, er
 	if poolSpan != nil {
 		min := poolSpan.First()
 		if min.Type == zed.TypeTime {
-			firstTs, _ := zed.DecodeTime(min.Bytes)
-			lastTs, _ := zed.DecodeTime(poolSpan.Last().Bytes)
+			firstTs := zed.DecodeTime(min.Bytes)
+			lastTs := zed.DecodeTime(poolSpan.Last().Bytes)
 			if lastTs < firstTs {
 				firstTs, lastTs = lastTs, firstTs
 			}

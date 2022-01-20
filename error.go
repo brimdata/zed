@@ -26,11 +26,11 @@ func EncodeError(err error) zcode.Bytes {
 	return zcode.Bytes(err.Error())
 }
 
-func DecodeError(zv zcode.Bytes) (error, error) {
+func DecodeError(zv zcode.Bytes) error {
 	if zv == nil {
-		return nil, nil
+		return nil
 	}
-	return errors.New(string(zv)), nil
+	return errors.New(string(zv))
 }
 
 type TypeError struct {
@@ -50,15 +50,8 @@ func (t *TypeError) String() string {
 	return fmt.Sprintf("error<%s>", t.Type)
 }
 
-func (t *TypeError) Marshal(zv zcode.Bytes) (interface{}, error) {
-	// start out with zero-length container so we get "[]" instead of nil
-	val, err := t.Type.Marshal(zv)
-	if err != nil {
-		return nil, err
-	}
-	m := make(map[string]interface{})
-	m["error"] = val
-	return m, nil
+func (t *TypeError) Marshal(zv zcode.Bytes) interface{} {
+	return map[string]interface{}{"error": t.Type.Marshal(zv)}
 }
 
 func (t *TypeError) Format(zv zcode.Bytes) string {

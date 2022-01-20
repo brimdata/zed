@@ -46,14 +46,14 @@ func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 	return vals, nil
 }
 
-func (t *TypeRecord) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeRecord) Marshal(zv zcode.Bytes) interface{} {
 	m := make(map[string]*Value)
 	it := zv.Iter()
 	for _, col := range t.Columns {
 		zv, _ := it.Next()
 		m[col.Name] = &Value{col.Type, zv}
 	}
-	return m, nil
+	return m
 }
 
 func (t *TypeRecord) ColumnOfField(field string) (int, bool) {

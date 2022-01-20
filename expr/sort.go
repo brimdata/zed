@@ -249,14 +249,7 @@ func LookupCompare(typ zed.Type) comparefn {
 	switch typ.ID() {
 	case zed.IDBool:
 		return func(a, b zcode.Bytes) int {
-			va, err := zed.DecodeBool(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zed.DecodeBool(b)
-			if err != nil {
-				return 1
-			}
+			va, vb := zed.DecodeBool(a), zed.DecodeBool(b)
 			if va == vb {
 				return 0
 			}
@@ -273,14 +266,7 @@ func LookupCompare(typ zed.Type) comparefn {
 
 	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zed.DecodeInt(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zed.DecodeInt(b)
-			if err != nil {
-				return 1
-			}
+			va, vb := zed.DecodeInt(a), zed.DecodeInt(b)
 			if va < vb {
 				return -1
 			} else if va > vb {
@@ -291,14 +277,7 @@ func LookupCompare(typ zed.Type) comparefn {
 
 	case zed.IDUint16, zed.IDUint32, zed.IDUint64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zed.DecodeUint(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zed.DecodeUint(b)
-			if err != nil {
-				return 1
-			}
+			va, vb := zed.DecodeUint(a), zed.DecodeUint(b)
 			if va < vb {
 				return -1
 			} else if va > vb {
@@ -309,14 +288,7 @@ func LookupCompare(typ zed.Type) comparefn {
 
 	case zed.IDFloat32, zed.IDFloat64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zed.DecodeFloat(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zed.DecodeFloat(b)
-			if err != nil {
-				return 1
-			}
+			va, vb := zed.DecodeFloat(a), zed.DecodeFloat(b)
 			if va < vb {
 				return -1
 			} else if va > vb {
@@ -327,14 +299,7 @@ func LookupCompare(typ zed.Type) comparefn {
 
 	case zed.IDTime:
 		return func(a, b zcode.Bytes) int {
-			va, err := zed.DecodeTime(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zed.DecodeTime(b)
-			if err != nil {
-				return 1
-			}
+			va, vb := zed.DecodeTime(a), zed.DecodeTime(b)
 			if va < vb {
 				return -1
 			} else if va > vb {
@@ -345,14 +310,7 @@ func LookupCompare(typ zed.Type) comparefn {
 
 	case zed.IDDuration:
 		return func(a, b zcode.Bytes) int {
-			va, err := zed.DecodeDuration(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zed.DecodeDuration(b)
-			if err != nil {
-				return 1
-			}
+			va, vb := zed.DecodeDuration(a), zed.DecodeDuration(b)
 			if va < vb {
 				return -1
 			} else if va > vb {
@@ -363,14 +321,7 @@ func LookupCompare(typ zed.Type) comparefn {
 
 	case zed.IDIP:
 		return func(a, b zcode.Bytes) int {
-			va, err := zed.DecodeIP(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zed.DecodeIP(b)
-			if err != nil {
-				return 1
-			}
+			va, vb := zed.DecodeIP(a), zed.DecodeIP(b)
 			return bytes.Compare(va.To16(), vb.To16())
 		}
 

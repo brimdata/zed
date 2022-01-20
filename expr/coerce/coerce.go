@@ -99,15 +99,13 @@ func (c *Pair) compare(lhs, rhs *zed.Value) (bool, error) {
 
 func intToFloat(id int, b zcode.Bytes) float64 {
 	if zed.IsSigned(id) {
-		v, _ := zed.DecodeInt(b)
-		return float64(v)
+		return float64(zed.DecodeInt(b))
 	}
-	v, _ := zed.DecodeUint(b)
-	return float64(v)
+	return float64(zed.DecodeUint(b))
 }
 
 func (c *Pair) promoteToSigned(in zcode.Bytes) (zcode.Bytes, bool) {
-	v, _ := zed.DecodeUint(in)
+	v := zed.DecodeUint(in)
 	if v > math.MaxInt64 {
 		return nil, false
 	}
@@ -115,7 +113,7 @@ func (c *Pair) promoteToSigned(in zcode.Bytes) (zcode.Bytes, bool) {
 }
 
 func (c *Pair) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, bool) {
-	v, _ := zed.DecodeInt(in)
+	v := zed.DecodeInt(in)
 	if v < 0 {
 		return nil, false
 	}
@@ -125,22 +123,14 @@ func (c *Pair) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, bool) {
 func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 	if zed.IsFloat(aid) {
 		if aid == zed.IDFloat32 {
-			v, err := zed.DecodeFloat32(c.A)
-			if err != nil {
-				panic(err)
-			}
-			c.A = c.buf2.Float64(float64(v))
+			c.A = c.buf2.Float64(float64(zed.DecodeFloat32(c.A)))
 		}
 		c.B = c.Float64(intToFloat(bid, c.B))
 		return aid, true
 	}
 	if zed.IsFloat(bid) {
 		if bid == zed.IDFloat32 {
-			v, err := zed.DecodeFloat32(c.B)
-			if err != nil {
-				panic(err)
-			}
-			c.B = c.buf2.Float64(float64(v))
+			c.B = c.buf2.Float64(float64(zed.DecodeFloat32(c.B)))
 		}
 		c.A = c.Float64(intToFloat(aid, c.A))
 		return bid, true
@@ -184,21 +174,17 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 func ToFloat(zv zed.Value) (float64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat(zv.Bytes)
-		return f, true
+		return zed.DecodeFloat(zv.Bytes), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			v, _ := zed.DecodeInt(zv.Bytes)
-			return float64(v), true
+			return float64(zed.DecodeInt(zv.Bytes)), true
 		} else {
-			v, _ := zed.DecodeUint(zv.Bytes)
-			return float64(v), true
+			return float64(zed.DecodeUint(zv.Bytes)), true
 		}
 	}
 	if id == zed.IDDuration {
-		v, _ := zed.DecodeInt(zv.Bytes)
-		return 1e-9 * float64(v), true
+		return 1e-9 * float64(zed.DecodeInt(zv.Bytes)), true
 	}
 	if id == zed.IDString {
 		v, err := strconv.ParseFloat(string(zv.Bytes), 64)
@@ -210,24 +196,21 @@ func ToFloat(zv zed.Value) (float64, bool) {
 func ToUint(zv zed.Value) (uint64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat(zv.Bytes)
-		return uint64(f), true
+		return uint64(zed.DecodeFloat(zv.Bytes)), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			v, _ := zed.DecodeInt(zv.Bytes)
+			v := zed.DecodeInt(zv.Bytes)
 			if v < 0 {
 				return 0, false
 			}
 			return uint64(v), true
 		} else {
-			v, _ := zed.DecodeUint(zv.Bytes)
-			return uint64(v), true
+			return uint64(zed.DecodeUint(zv.Bytes)), true
 		}
 	}
 	if id == zed.IDDuration {
-		v, _ := zed.DecodeInt(zv.Bytes)
-		return uint64(v / 1_000_000_000), true
+		return uint64(zed.DecodeInt(zv.Bytes) / 1_000_000_000), true
 	}
 	if id == zed.IDString {
 		v, err := strconv.ParseUint(string(zv.Bytes), 10, 64)
@@ -239,22 +222,18 @@ func ToUint(zv zed.Value) (uint64, bool) {
 func ToInt(zv zed.Value) (int64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat(zv.Bytes)
-		return int64(f), true
+		return int64(zed.DecodeFloat(zv.Bytes)), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			v, _ := zed.DecodeInt(zv.Bytes)
 			// XXX check if negative? should -1:uint64 be maxint64 or an error?
-			return int64(v), true
+			return int64(zed.DecodeInt(zv.Bytes)), true
 		} else {
-			v, _ := zed.DecodeUint(zv.Bytes)
-			return int64(v), true
+			return int64(zed.DecodeUint(zv.Bytes)), true
 		}
 	}
 	if id == zed.IDDuration {
-		v, _ := zed.DecodeInt(zv.Bytes)
-		return int64(v / 1_000_000_000), true
+		return int64(zed.DecodeInt(zv.Bytes) / 1_000_000_000), true
 	}
 	if id == zed.IDString {
 		v, err := strconv.ParseInt(string(zv.Bytes), 10, 64)
@@ -275,15 +254,13 @@ func ToBool(zv zed.Value) (bool, bool) {
 func ToTime(zv zed.Value) (nano.Ts, bool) {
 	id := zv.Type.ID()
 	if id == zed.IDTime {
-		ts, _ := zed.DecodeTime(zv.Bytes)
-		return ts, true
+		return zed.DecodeTime(zv.Bytes), true
 	}
 	if zed.IsSigned(id) {
-		v, _ := zed.DecodeInt(zv.Bytes)
-		return nano.Ts(v) * 1_000_000_000, true
+		return nano.Ts(zed.DecodeInt(zv.Bytes)) * 1_000_000_000, true
 	}
 	if zed.IsInteger(id) {
-		v, _ := zed.DecodeUint(zv.Bytes)
+		v := zed.DecodeUint(zv.Bytes)
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
@@ -291,8 +268,7 @@ func ToTime(zv zed.Value) (nano.Ts, bool) {
 		return nano.Ts(v), true
 	}
 	if zed.IsFloat(id) {
-		v, _ := zed.DecodeFloat(zv.Bytes)
-		return nano.Ts(v * 1e9), true
+		return nano.Ts(zed.DecodeFloat(zv.Bytes) * 1e9), true
 	}
 	return 0, false
 }
@@ -302,33 +278,22 @@ func ToTime(zv zed.Value) (nano.Ts, bool) {
 // written to out, and true is returned. If the value cannot be
 // coerced, then false is returned.
 func ToDuration(in zed.Value) (nano.Duration, bool) {
-	var out nano.Duration
-	var err error
 	switch in.Type.ID() {
 	case zed.IDDuration:
-		out, err = zed.DecodeDuration(in.Bytes)
+		return zed.DecodeDuration(in.Bytes), true
 	case zed.IDUint16, zed.IDUint32, zed.IDUint64:
-		var v uint64
-		v, err = zed.DecodeUint(in.Bytes)
+		v := zed.DecodeUint(in.Bytes)
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
 		}
-		out = nano.Duration(v) * nano.Second
+		return nano.Duration(v) * nano.Second, true
 	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
-		var v int64
-		v, err = zed.DecodeInt(in.Bytes)
+		v := zed.DecodeInt(in.Bytes)
 		//XXX check for overflow here
-		out = nano.Duration(v) * nano.Second
+		return nano.Duration(v) * nano.Second, true
 	case zed.IDFloat32, zed.IDFloat64:
-		var v float64
-		v, err = zed.DecodeFloat(in.Bytes)
-		out = nano.DurationFromFloat(v)
-	default:
-		return 0, false
+		return nano.DurationFromFloat(zed.DecodeFloat(in.Bytes)), true
 	}
-	if err != nil {
-		return 0, false
-	}
-	return out, true
+	return 0, false
 }

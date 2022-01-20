@@ -57,11 +57,7 @@ func (w *Writer) Write(r *zed.Value) error {
 		value := r.ValueByColumn(k)
 		if col.Type == zed.TypeTime {
 			if !value.IsNull() {
-				ts, err := zed.DecodeTime(value.Bytes)
-				if err != nil {
-					return err
-				}
-				v = ts.Time().UTC().Format(time.RFC3339Nano)
+				v = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
 			}
 		} else {
 			v = zeekio.FormatValue(value)

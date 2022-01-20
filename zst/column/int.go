@@ -23,6 +23,5 @@ func (p *Int) Read() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	v, err := zed.DecodeInt(zv)
-	return int32(v), err
+	return int32(zed.DecodeInt(zv)), err
 }
