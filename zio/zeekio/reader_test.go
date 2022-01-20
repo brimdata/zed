@@ -23,8 +23,7 @@ func TestReaderCRLF(t *testing.T) {
 10.000000	1
 `
 	input = strings.ReplaceAll(input, "\n", "\r\n")
-	r, err := NewReader(strings.NewReader(input), zed.NewContext())
-	require.NoError(t, err)
+	r := NewReader(strings.NewReader(input), zed.NewContext())
 	rec, err := r.Read()
 	require.NoError(t, err)
 	ts, err := rec.AccessTime("ts")

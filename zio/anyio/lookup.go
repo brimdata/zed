@@ -21,7 +21,7 @@ func lookupReader(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Reader, 
 	case "csv":
 		return csvio.NewReader(r, zctx), nil
 	case "zeek":
-		return zeekio.NewReader(r, zctx)
+		return zeekio.NewReader(r, zctx), nil
 	case "json":
 		return jsonio.NewReader(r, zctx), nil
 	case "zjson":
