@@ -152,7 +152,7 @@ func inNet(zctx *zed.Context, ectx Context, elem, net *zed.Value) *zed.Value {
 	if zed.TypeUnder(elem.Type) != zed.TypeIP {
 		return ectx.CopyValue(*zctx.NewErrorf("'in' operator applied to non-container type"))
 	}
-	if zed.DecodeNet(net.Bytes).Contains(zed.DecodeIP(elem.Bytes)) {
+	if zed.DecodeNet(net.Bytes).Contains(zed.DecodeIP(elem.Bytes).IPAddr().IP) {
 		return zed.True
 	}
 	return zed.False

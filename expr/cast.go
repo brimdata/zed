@@ -132,9 +132,8 @@ func (c *casterIP) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !val.IsString() {
 		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type ip", zson.MustFormatValue(*val)))
 	}
-	// XXX GC
-	ip := net.ParseIP(string(val.Bytes))
-	if ip == nil {
+	ip, err := byteconv.ParseIP(val.Bytes)
+	if err != nil {
 		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type ip", zson.MustFormatValue(*val)))
 	}
 	return ectx.NewValue(zed.TypeIP, zed.EncodeIP(ip))

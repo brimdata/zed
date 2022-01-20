@@ -3,10 +3,10 @@
 package byteconv
 
 import (
-	"fmt"
-	"net"
 	"strconv"
 	"unsafe"
+
+	"inet.af/netaddr"
 )
 
 // UnsafeString converts a byte slice to a string without copying the underlying
@@ -20,12 +20,8 @@ func ParseBool(b []byte) (bool, error) {
 	return strconv.ParseBool(UnsafeString(b))
 }
 
-func ParseIP(b []byte) (net.IP, error) {
-	ip := net.ParseIP(UnsafeString(b))
-	if ip == nil {
-		return nil, fmt.Errorf("net.ParseIP: parsing %q: syntax error", b)
-	}
-	return ip, nil
+func ParseIP(b []byte) (netaddr.IP, error) {
+	return netaddr.ParseIP(UnsafeString(b))
 }
 
 func ParseInt8(b []byte) (int8, error) {

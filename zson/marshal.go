@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
+	"inet.af/netaddr"
 )
 
 //XXX handle new TypeError => marshal as a ZSON string?
@@ -346,15 +347,16 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		if v.IsNil() {
 			return m.encodeNil(v.Type())
 		}
-		if isIP(v.Type()) {
-			m.Builder.Append(zed.EncodeIP(v.Bytes()))
-			return zed.TypeIP, nil
-		}
 		if v.Type().Elem().Kind() == reflect.Uint8 {
 			return m.encodeSliceBytes(v)
 		}
 		return m.encodeArray(v)
 	case reflect.Struct:
+		if isIP(v.Type()) {
+			ip := v.Interface().(netaddr.IP)
+			m.Builder.Append(zed.EncodeIP(ip))
+			return zed.TypeIP, nil
+		}
 		return m.encodeRecord(v)
 	case reflect.Ptr:
 		if v.IsNil() {
@@ -687,11 +689,11 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 	case reflect.Map:
 		return u.decodeMap(zv, v)
 	case reflect.Slice:
+		return u.decodeArray(zv, v)
+	case reflect.Struct:
 		if isIP(v.Type()) {
 			return u.decodeIP(zv, v)
 		}
-		return u.decodeArray(zv, v)
-	case reflect.Struct:
 		return u.decodeRecord(zv, v)
 	case reflect.Interface:
 		// This is an interface value.  If the underlying zng data
@@ -807,7 +809,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 }
 
 func isIP(typ reflect.Type) bool {
-	return typ.Name() == "IP" && typ.PkgPath() == "net"
+	return typ.Name() == "IP" && typ.PkgPath() == "inet.af/netaddr"
 }
 
 func (u *UnmarshalZNGContext) decodeIP(zv zed.Value, v reflect.Value) error {
@@ -1107,7 +1109,7 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zed.Type) (reflect.Type, e
 	case *zed.TypeOfFloat64:
 		v = float64(0)
 	case *zed.TypeOfIP:
-		v = net.IP{}
+		v = netaddr.IP{}
 	case *zed.TypeOfNet:
 		v = net.IPNet{}
 	case *zed.TypeOfTime:

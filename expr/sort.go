@@ -313,7 +313,7 @@ func LookupCompare(typ zed.Type) comparefn {
 	case zed.IDIP:
 		return func(a, b zcode.Bytes) int {
 			va, vb := zed.DecodeIP(a), zed.DecodeIP(b)
-			return bytes.Compare(va.To16(), vb.To16())
+			return va.Compare(vb)
 		}
 
 	default:

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"math"
-	"net"
 	"strings"
 	"testing"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"inet.af/netaddr"
 )
 
 func toZSON(t *testing.T, rec *zed.Value) string {
@@ -140,13 +140,11 @@ func TestMarshalTime(t *testing.T) {
 }
 
 type TestIP struct {
-	Addr net.IP
+	Addr netaddr.IP
 }
 
 func TestIPType(t *testing.T) {
-	addr := net.ParseIP("192.168.1.1").To4()
-	require.NotNil(t, addr)
-	s := TestIP{Addr: addr}
+	s := TestIP{Addr: netaddr.MustParseIP("192.168.1.1")}
 	zctx := zed.NewContext()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	rec, err := m.MarshalRecord(s)

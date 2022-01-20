@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
+	"inet.af/netaddr"
 )
 
 func testSuccessful(t *testing.T, e string, input string, expectedVal zed.Value) {
@@ -70,9 +71,7 @@ func zstring(s string) zed.Value {
 }
 
 func zip(t *testing.T, s string) zed.Value {
-	ip := net.ParseIP(s)
-	require.NotNil(t, ip, "converted ip")
-	return zed.Value{zed.TypeIP, zed.EncodeIP(ip)}
+	return zed.Value{zed.TypeIP, zed.EncodeIP(netaddr.MustParseIP(s))}
 }
 func znet(t *testing.T, s string) zed.Value {
 	_, net, err := net.ParseCIDR(s)

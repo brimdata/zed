@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"math"
-	"net"
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zqe"
+	"inet.af/netaddr"
 )
 
 var (
@@ -220,13 +220,13 @@ func (r *Value) AccessInt(field string) (int64, error) {
 	return 0, ErrTypeMismatch
 }
 
-func (r *Value) AccessIP(field string) (net.IP, error) {
+func (r *Value) AccessIP(field string) (netaddr.IP, error) {
 	v, err := r.Access(field)
 	if err != nil {
-		return nil, err
+		return netaddr.IP{}, err
 	}
 	if _, ok := TypeUnder(v.Type).(*TypeOfIP); !ok {
-		return nil, ErrTypeMismatch
+		return netaddr.IP{}, ErrTypeMismatch
 	}
 	return DecodeIP(v.Bytes), nil
 }

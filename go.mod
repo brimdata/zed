@@ -40,13 +40,13 @@ require (
 	golang.org/x/sys v0.0.0-20210616045830-e2b7044e8c71
 	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6
 	golang.org/x/text v0.3.4
-	golang.org/x/tools v0.0.0-20201229013931-929a8494cf60 // indirect
 	google.golang.org/protobuf v1.25.1-0.20201020201750-d3470999428b // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210106172901-c476de37821d
 	honnef.co/go/tools v0.1.0 // indirect
+	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 
 replace github.com/fraugster/parquet-go => github.com/brimdata/parquet-go v0.3.1

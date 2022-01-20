@@ -12,6 +12,7 @@ import (
 	// now until we factor-in the flow-based package
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
+	"inet.af/netaddr"
 )
 
 //XXX TBD:
@@ -127,19 +128,19 @@ func CompareTime(op string, pattern int64) (Boolean, error) {
 
 //XXX should just do equality and we should compare in the encoded domain
 // and not make copies and have separate cases for len 4 and len 16
-var compareAddr = map[string]func(net.IP, net.IP) bool{
-	"=":  func(a, b net.IP) bool { return a.Equal(b) },
-	"!=": func(a, b net.IP) bool { return !a.Equal(b) },
-	">":  func(a, b net.IP) bool { return bytes.Compare(a, b) > 0 },
-	">=": func(a, b net.IP) bool { return bytes.Compare(a, b) >= 0 },
-	"<":  func(a, b net.IP) bool { return bytes.Compare(a, b) < 0 },
-	"<=": func(a, b net.IP) bool { return bytes.Compare(a, b) <= 0 },
+var compareAddr = map[string]func(netaddr.IP, netaddr.IP) bool{
+	"=":  func(a, b netaddr.IP) bool { return a.Compare(b) == 0 },
+	"!=": func(a, b netaddr.IP) bool { return a.Compare(b) != 0 },
+	">":  func(a, b netaddr.IP) bool { return a.Compare(b) > 0 },
+	">=": func(a, b netaddr.IP) bool { return a.Compare(b) >= 0 },
+	"<":  func(a, b netaddr.IP) bool { return a.Compare(b) < 0 },
+	"<=": func(a, b netaddr.IP) bool { return a.Compare(b) <= 0 },
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
 // be TypeAddr with the value's address using a comparison based on op.
 // Only equality operands are allowed.
-func CompareIP(op string, pattern net.IP) (Boolean, error) {
+func CompareIP(op string, pattern netaddr.IP) (Boolean, error) {
 	compare, ok := compareAddr[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
@@ -321,7 +322,7 @@ func CompareSubnet(op string, pattern *net.IPNet) (Boolean, error) {
 	return func(val *zed.Value) bool {
 		switch val.Type.ID() {
 		case zed.IDIP:
-			return match(zed.DecodeIP(val.Bytes), pattern)
+			return match(zed.DecodeIP(val.Bytes).IPAddr().IP, pattern)
 		case zed.IDNet:
 			return compare(zed.DecodeNet(val.Bytes), pattern)
 		}

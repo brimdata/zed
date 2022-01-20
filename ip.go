@@ -1,38 +1,37 @@
 package zed
 
 import (
-	"net"
+	"fmt"
 
 	"github.com/brimdata/zed/zcode"
+	"inet.af/netaddr"
 )
 
 type TypeOfIP struct{}
 
-func NewIP(a net.IP) *Value {
+func NewIP(a netaddr.IP) *Value {
 	return &Value{TypeIP, EncodeIP(a)}
 }
 
-func AppendIP(zb zcode.Bytes, a net.IP) zcode.Bytes {
-	ip := a.To4()
-	if ip == nil {
-		ip = net.IP(a)
+func AppendIP(zb zcode.Bytes, a netaddr.IP) zcode.Bytes {
+	if a.Is4() {
+		ip := a.As4()
+		return append(zb, ip[:]...)
 	}
-	return append(zb, ip...)
+	ip := a.As16()
+	return append(zb, ip[:]...)
 }
 
-func EncodeIP(a net.IP) zcode.Bytes {
+func EncodeIP(a netaddr.IP) zcode.Bytes {
 	return AppendIP(nil, a)
 }
 
-func DecodeIP(zv zcode.Bytes) net.IP {
-	if zv == nil {
-		return nil
+func DecodeIP(zv zcode.Bytes) netaddr.IP {
+	var ip netaddr.IP
+	if err := ip.UnmarshalBinary(zv); err != nil {
+		panic(fmt.Errorf("failure trying to decode IP address: %w", err))
 	}
-	switch len(zv) {
-	case 4, 16:
-		return net.IP(zv)
-	}
-	panic("failure trying to decode IP address that is not 4 or 16 bytes long")
+	return ip
 }
 
 func (t *TypeOfIP) ID() int {
