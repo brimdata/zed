@@ -32,11 +32,11 @@ func (q *Query) Read() (*zed.Value, error) {
 		}
 		value, err := zson.ParseValue(zed.NewContext(), string(ctrl.Bytes))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to parse Zed control message: %w (%s)", err, string(ctrl.Bytes))
 		}
 		var v interface{}
 		if err := unmarshaler.Unmarshal(value, &v); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to unmarshal Zed control message: %w (%s)", err, string(ctrl.Bytes))
 		}
 		return nil, controlToError(v)
 	}
