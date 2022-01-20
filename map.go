@@ -60,7 +60,6 @@ type keyval struct {
 func NormalizeMap(zv zcode.Bytes) zcode.Bytes {
 	elements := make([]keyval, 0, 8)
 	for it := zv.Iter(); !it.Done(); {
-		//XXX just use .Body()?
 		key := it.NextTagAndBody()
 		val := it.NextTagAndBody()
 		elements = append(elements, keyval{key, val})
