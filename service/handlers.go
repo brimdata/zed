@@ -60,7 +60,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	}
 	// Once we defer writer.Close() are going to write ZNG to the HTTP
 	// response body and for errors after this point, we must call
-	// writer.WriterError() isntead of w.Error().
+	// writer.WriterError() instead of w.Error().
 	defer writer.Close()
 	timer := time.NewTicker(queryStatsInterval)
 	defer timer.Stop()
