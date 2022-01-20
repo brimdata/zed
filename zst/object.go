@@ -150,7 +150,7 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		return nil, fmt.Errorf("zst root reassembly value has wrong type: %s; should be %s", assembly.root.Type, expectedType)
 	}
 
-	for k := 0; k < len(assembly.types); k++ {
+	for range assembly.types {
 		rec, err := reader.Read()
 		if err != nil {
 			return nil, err

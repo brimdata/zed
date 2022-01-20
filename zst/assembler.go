@@ -27,7 +27,7 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 		return nil, err
 	}
 	assembler.columns = make([]column.Any, len(a.types))
-	for k := 0; k < len(a.types); k++ {
+	for k := range a.types {
 		val := a.columns[k]
 		col, err := column.Unmarshal(a.types[k], *val, seeker)
 		if err != nil {

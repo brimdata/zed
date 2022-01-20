@@ -68,7 +68,7 @@ func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAs
 	for k, typ := range a.types {
 		recType := zed.TypeRecordOf(typ)
 		if typ == nil {
-			return nil, fmt.Errorf("zst cut requires all top-level records to be records: encountered type %s", zson.FormatType(typ))
+			return nil, fmt.Errorf("zst cut requires all top-level values to be records: encountered type %s", zson.FormatType(typ))
 		}
 		topcol := &column.Record{}
 		if err := topcol.UnmarshalZNG(recType, *a.columns[k], object.seeker); err != nil {

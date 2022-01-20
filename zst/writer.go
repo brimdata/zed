@@ -166,7 +166,7 @@ func (w *Writer) finalize() error {
 	zw := zngio.NewWriter(w.writer, zngio.WriterOpts{})
 	dataSize := w.spiller.Position()
 	// First, we write out empty values for each column corresponding to
-	// a type serialized into the ZST file in the order of it type number.
+	// a type serialized into the ZST file in the order of its type number.
 	for _, typ := range w.types {
 		val := zed.NewValue(typ, nil)
 		if err := zw.Write(val); err != nil {
