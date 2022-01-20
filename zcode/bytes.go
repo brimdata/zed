@@ -93,6 +93,15 @@ func (b Bytes) ContainerBody() (Bytes, error) {
 	return body, nil
 }
 
+func (b Bytes) Body() (Bytes, error) {
+	it := b.Iter()
+	body, _ := it.Next()
+	if !it.Done() {
+		return nil, ErrNotSingleton
+	}
+	return body, nil
+}
+
 func AppendAs(dst Bytes, container bool, val []byte) Bytes {
 	if container {
 		return AppendContainer(dst, val)

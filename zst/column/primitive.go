@@ -58,7 +58,7 @@ type Primitive struct {
 	reader io.ReaderAt
 }
 
-func (p *Primitive) UnmarshalZNG(in zed.Value, reader io.ReaderAt) error {
+func (p *Primitive) UnmarshalZNG(_ zed.Type, in zed.Value, reader io.ReaderAt) error {
 	p.reader = reader
 	return UnmarshalSegmap(in, &p.segmap)
 }

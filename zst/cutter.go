@@ -3,11 +3,13 @@ package zst
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
 
@@ -37,47 +39,50 @@ func NewCutterFromPath(ctx context.Context, zctx *zed.Context, engine storage.En
 }
 
 type CutAssembler struct {
-	zctx    *zed.Context
-	root    *column.Int
-	schemas []zed.Type
-	columns []column.Interface
-	types   []*zed.TypeRecord
-	nwrap   []int
-	builder zcode.Builder
-	leaf    string
+	zctx     *zed.Context
+	root     *column.Int
+	types    []zed.Type
+	columns  []column.Any
+	recTypes []*zed.TypeRecord
+	nwrap    []int
+	builder  zcode.Builder
+	leaf     string
 }
 
 func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAssembler, error) {
 	a := object.assembly
 	n := len(a.columns)
 	ca := &CutAssembler{
-		zctx:    zctx,
-		root:    &column.Int{},
-		schemas: a.schemas,
-		columns: make([]column.Interface, n),
-		types:   make([]*zed.TypeRecord, n),
-		nwrap:   make([]int, n),
-		leaf:    fields[len(fields)-1],
+		zctx:     zctx,
+		root:     &column.Int{},
+		types:    a.types,
+		columns:  make([]column.Any, n),
+		recTypes: make([]*zed.TypeRecord, n),
+		nwrap:    make([]int, n),
+		leaf:     fields[len(fields)-1],
 	}
-	if err := ca.root.UnmarshalZNG(a.root, object.seeker); err != nil {
+	if err := ca.root.UnmarshalZNG(zed.TypeInt64, a.root, object.seeker); err != nil {
 		return nil, err
 	}
 	cnt := 0
-	for k, schema := range a.schemas {
-		var err error
+	for k, typ := range a.types {
+		recType := zed.TypeRecordOf(typ)
+		if typ == nil {
+			return nil, fmt.Errorf("zst cut requires all top-level values to be records: encountered type %s", zson.FormatType(typ))
+		}
 		topcol := &column.Record{}
-		typ := zed.TypeRecordOf(schema)
-		if err := topcol.UnmarshalZNG(typ, *a.columns[k], object.seeker); err != nil {
+		if err := topcol.UnmarshalZNG(recType, *a.columns[k], object.seeker); err != nil {
 			return nil, err
 		}
-		_, ca.columns[k], err = topcol.Lookup(typ, fields)
+		var err error
+		_, ca.columns[k], err = topcol.Lookup(recType, fields)
 		if err == zed.ErrMissing || err == column.ErrNonRecordAccess {
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
-		ca.types[k], ca.nwrap[k], err = cutType(zctx, typ, fields)
+		ca.types[k], ca.nwrap[k], err = cutType(zctx, recType, fields)
 		if err != nil {
 			return nil, err
 		}
