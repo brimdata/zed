@@ -21,7 +21,7 @@ var appendCases = [][][]byte{
 	{[]byte("thisisareallylongstringdoyoulikereallylongstrings?Ithoughtyoumightlikethemsoiaddedthistothetest")},
 }
 
-func TestAppendContainer(t *testing.T) {
+func TestAppend(t *testing.T) {
 	for _, c := range appendCases {
 		var buf []byte
 		for _, val := range c {
@@ -30,24 +30,7 @@ func TestAppendContainer(t *testing.T) {
 		it := Iter(buf)
 		for _, expected := range c {
 			assert.False(t, it.Done())
-			val := it.Next()
-			assert.Exactly(t, expected, []byte(val))
-		}
-		assert.True(t, it.Done())
-	}
-}
-
-func TestAppendPrimitive(t *testing.T) {
-	for _, c := range appendCases {
-		var buf []byte
-		for _, val := range c {
-			buf = Append(buf, val)
-		}
-		it := Iter(buf)
-		for _, expected := range c {
-			assert.False(t, it.Done())
-			val := it.Next()
-			assert.Exactly(t, expected, []byte(val))
+			assert.Exactly(t, expected, []byte(it.Next()))
 		}
 		assert.True(t, it.Done())
 	}

@@ -177,8 +177,7 @@ func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 	keyType := zed.TypeUnder(typ.KeyType)
 	valType := zed.TypeUnder(typ.ValType)
-	it := container.Bytes.Iter()
-	for !it.Done() {
+	for it := container.Bytes.Iter(); !it.Done(); {
 		if _, err := i.vals.Coerce(elem, &zed.Value{keyType, it.Next()}); err != nil {
 			if err != coerce.IncompatibleTypes {
 				return i.zctx.NewError(err)

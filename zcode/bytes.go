@@ -39,7 +39,7 @@ func (b Bytes) Body() (Bytes, error) {
 	return body, nil
 }
 
-// Append appends val as a tag-encoded value into dst and returns the
+// Append appends val to dst as a tagged value and returns the
 // extended buffer.
 func Append(dst Bytes, val []byte) Bytes {
 	if val == nil {
@@ -82,7 +82,7 @@ func tagIsNull(t uint64) bool {
 
 func tagLength(t uint64) int {
 	if t == tagNull {
-		panic("tagLength wcalled ith null tag")
+		panic("tagLength called with null tag")
 	}
 	return int(t - 1)
 }

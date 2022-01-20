@@ -68,7 +68,7 @@ func (b *Builder) TransformContainer(transform func(Bytes) Bytes) {
 	b.bytes = append(b.bytes[:bodyOff], body...)
 }
 
-// Append appends val
+// Append appends val.
 func (b *Builder) Append(val []byte) {
 	b.bytes = Append(b.bytes, val)
 }

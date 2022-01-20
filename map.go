@@ -32,9 +32,7 @@ func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
 		return Value{}, Value{}, nil
 	}
 	it := zv.Iter()
-	key := it.Next()
-	val := it.Next()
-	return Value{t.KeyType, key}, Value{t.ValType, val}, nil
+	return Value{t.KeyType, it.Next()}, Value{t.ValType, it.Next()}, nil
 }
 
 func (t *TypeMap) Marshal(zv zcode.Bytes) interface{} {
@@ -89,13 +87,11 @@ func (t *TypeMap) Format(zv zcode.Bytes) string {
 	b.WriteString("|{")
 	sep := ""
 	for !it.Done() {
-		val := it.Next()
 		b.WriteString(sep)
 		b.WriteByte('{')
-		b.WriteString(t.KeyType.Format(val))
+		b.WriteString(t.KeyType.Format(it.Next()))
 		b.WriteByte(',')
-		val = it.Next()
-		b.WriteString(t.ValType.Format(val))
+		b.WriteString(t.ValType.Format(it.Next()))
 		b.WriteByte('}')
 		b.WriteString(sep)
 		sep = ","

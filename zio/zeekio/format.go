@@ -108,18 +108,8 @@ func formatMap(t *zed.TypeMap, zv zcode.Bytes) string {
 	it := zv.Iter()
 	b.WriteByte('[')
 	for !it.Done() {
-		val := it.Next()
-		b.WriteString(formatAny(zed.Value{t.KeyType, val}, true))
-		//XXX
-		//if !container {
-		//	b.WriteByte(';')
-		//}
-		val = it.Next()
-		b.WriteString(formatAny(zed.Value{t.ValType, val}, true))
-		//XXX
-		//if !container {
-		//	b.WriteByte(';')
-		//}
+		b.WriteString(formatAny(zed.Value{t.KeyType, it.Next()}, true))
+		b.WriteString(formatAny(zed.Value{t.ValType, it.Next()}, true))
 	}
 	b.WriteByte(']')
 	return b.String()
@@ -159,8 +149,7 @@ func formatSet(t *zed.TypeSet, zv zcode.Bytes) string {
 		} else {
 			b.WriteByte(separator)
 		}
-		val := it.Next()
-		b.WriteString(formatAny(zed.Value{t.Type, val}, true))
+		b.WriteString(formatAny(zed.Value{t.Type, it.Next()}, true))
 	}
 	return b.String()
 }

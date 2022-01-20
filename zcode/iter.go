@@ -35,11 +35,9 @@ func (i *Iter) Next() Bytes {
 	return Bytes(val)
 }
 
-//XXX
-
 // NextTagAndBody returns the next value as a slice containing the value's
-// undecoded tag followed by its body along with a boolean.
-//  NextTagAndBody panics if the next value is malformed.
+// undecoded tag followed by its body.  NextTagAndBody panics if the next
+// value is malformed.
 func (i *Iter) NextTagAndBody() Bytes {
 	u64, n := binary.Uvarint(*i)
 	if n <= 0 {
