@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 )
@@ -12,7 +11,7 @@ import (
 // FinderReader is zio.Reader version of Finder that streams back all records
 // in a microindex that match the provided key Record.
 type FinderReader struct {
-	compare expr.KeyCompareFn
+	compare keyCompareFn
 	finder  *Finder
 	inputs  []string
 	reader  zio.Reader
