@@ -31,13 +31,9 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
-	zr, err := zeekio.NewReader(track, zed.NewContext())
-	if err != nil {
-		return nil, err
-	}
-	zeekErr := match(zr, "zeek")
+	zeekErr := match(zeekio.NewReader(track, zed.NewContext()), "zeek")
 	if zeekErr == nil {
-		return zeekio.NewReader(recorder, zctx)
+		return zeekio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
