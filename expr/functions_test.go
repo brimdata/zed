@@ -2,12 +2,12 @@ package expr_test
 
 import (
 	"fmt"
-	"net"
 	"testing"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/zson"
+	"inet.af/netaddr"
 )
 
 func namedErrBadArgument(name string) error {
@@ -15,8 +15,7 @@ func namedErrBadArgument(name string) error {
 }
 
 func zaddr(addr string) zed.Value {
-	parsed := net.ParseIP(addr)
-	return zed.Value{zed.TypeIP, zed.EncodeIP(parsed)}
+	return zed.Value{zed.TypeIP, zed.EncodeIP(netaddr.MustParseIP(addr))}
 }
 
 func TestBadFunction(t *testing.T) {

@@ -1,7 +1,6 @@
 package zed_test
 
 import (
-	"net"
 	"strings"
 	"testing"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"inet.af/netaddr"
 )
 
 func TestBuilder(t *testing.T) {
@@ -36,8 +36,7 @@ func TestBuilder(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	b0 := zed.NewBuilder(t0)
-	ip := net.ParseIP("1.2.3.4")
-	rec := b0.Build(zed.EncodeIP(ip))
+	rec := b0.Build(zed.EncodeIP(netaddr.MustParseIP("1.2.3.4")))
 	assert.Equal(t, r0.Bytes, rec.Bytes)
 
 	t1, err := zctx.LookupTypeRecord([]zed.Column{

@@ -21,7 +21,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	ip := zed.DecodeIP(args[0].Bytes)
 	var mask net.IPMask
 	if len(args) == 1 {
-		mask = ip.DefaultMask()
+		mask = ip.IPAddr().IP.DefaultMask()
 		if mask == nil {
 			return newErrorf(n.zctx, ctx, "network_of: not an IPv4 address")
 		}
@@ -45,13 +45,13 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			if nbits > 64 {
 				return newErrorf(n.zctx, ctx, "network_of: cidr bit count out of range")
 			}
-			mask = net.CIDRMask(int(nbits), 8*len(ip))
+			mask = net.CIDRMask(int(nbits), int(ip.BitLen()))
 		} else {
 			return newErrorf(n.zctx, ctx, "network_of: bad arg for cidr mask")
 		}
 	}
 	// XXX GC
-	netIP := ip.Mask(mask)
+	netIP := ip.IPAddr().IP.Mask(mask)
 	v := &net.IPNet{netIP, mask}
 	return ctx.NewValue(zed.TypeNet, zed.EncodeNet(v))
 }
