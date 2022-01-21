@@ -116,60 +116,6 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 	return cfn(abytes, bbytes)
 }
 
-func NewKeyCompareFn(zctx *zed.Context, key *zed.Value) (KeyCompareFn, error) {
-	comparefns := make(map[zed.Type]comparefn)
-	var accessors []Evaluator
-	var keyval []zed.Value
-	for it := key.FieldIter(); !it.Done(); {
-		name, val, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
-		// We got a null  value, so all remaining values in the key
-		// must be null.
-		if val.IsNull() {
-			break
-		}
-		keyval = append(keyval, val)
-		accessors = append(accessors, NewDottedExpr(zctx, name))
-	}
-	return func(ectx Context, this *zed.Value) int {
-		for k, access := range accessors {
-			// XXX error
-			a := access.Eval(ectx, this)
-			if a.IsNull() {
-				// we know the key value is not null
-				return -1
-			}
-			//XXX I think we can take this out now that values
-			// are all allocated in the context... (need to hit funcs)
-			a = a.Copy()
-
-			b := keyval[k]
-			// If the type of a field in the comparison record does
-			// not match the type of the key, behavior is undefined.
-			if a.Type.ID() != b.Type.ID() {
-				return -1
-			}
-			//XXX comparefns should be a slice indexed by ID
-			cfn, ok := comparefns[a.Type]
-			if !ok {
-				cfn = LookupCompare(a.Type)
-				comparefns[a.Type] = cfn
-			}
-			v := cfn(a.Bytes, b.Bytes)
-			// If the fields don't match, then return the sense of
-			// the mismatch.  Otherwise, we continue on
-			// in the loop to the secondary key, etc.
-			if v != 0 {
-				return v
-			}
-		}
-		// All the keys matched with equality.
-		return 0
-	}, nil
-}
-
 // SortStable performs a stable sort on the provided records.
 func SortStable(records []zed.Value, compare CompareFn) {
 	slice := &RecordSlice{records, compare}
