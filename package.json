@@ -4,6 +4,7 @@
   "scripts": {
     "prepack": "node npm/build"
   },
+  "main": "npm/index.js",
   "files": [
     "dist/**",
     "**/*.js"
