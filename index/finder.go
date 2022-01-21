@@ -55,18 +55,20 @@ func NewFinder(ctx context.Context, zctx *zed.Context, engine storage.Engine, ur
 	}, nil
 }
 
+type keyCompareFn func(expr.Context, *zed.Value) int
+
 // lookup searches for a match of the given key compared to the
 // key values in the records read from the reader.  If the op argument is eql
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op Operator) (*zed.Value, error) {
+func lookup(reader zio.Reader, compare keyCompareFn, o order.Which, op Operator) (*zed.Value, error) {
 	if o == order.Asc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
 }
 
-func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value, error) {
+func lookupAsc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, error) {
 	var prev *zed.Value
 	ectx := expr.NewContext()
 	for {
@@ -95,7 +97,7 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value
 	}
 }
 
-func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value, error) {
+func lookupDesc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, error) {
 	ectx := expr.NewContext()
 	var prev *zed.Value
 	for {
@@ -124,7 +126,7 @@ func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Valu
 	}
 }
 
-func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
+func (f *Finder) search(compare keyCompareFn) (zio.Reader, error) {
 	if f.reader == nil {
 		panic("finder hasn't been opened")
 	}
@@ -193,7 +195,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []Ke
 	}
 }
 
-func compareFn(zctx *zed.Context, kvs []KeyValue) expr.KeyCompareFn {
+func compareFn(zctx *zed.Context, kvs []KeyValue) keyCompareFn {
 	accessors := make([]expr.Evaluator, len(kvs))
 	values := make([]zed.Value, len(kvs))
 	for i := range kvs {

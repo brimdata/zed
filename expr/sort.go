@@ -10,7 +10,6 @@ import (
 )
 
 type CompareFn func(a *zed.Value, b *zed.Value) int
-type KeyCompareFn func(Context, *zed.Value) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
