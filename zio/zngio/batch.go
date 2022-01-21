@@ -31,7 +31,21 @@ func newBatch(buf *buffer) *batch {
 	return b
 }
 
-func (b *batch) add(r *zed.Value) { b.vals = append(b.vals, *r) }
+func (b *batch) extend() *zed.Value {
+	n := len(b.vals)
+	if n < cap(b.vals) {
+		b.vals = b.vals[:n+1]
+	} else {
+		// Let the Go runtime figure out how to grow and copy the vals array.
+		b.vals = append(b.vals, zed.Value{})
+	}
+	return &b.vals[n]
+}
+
+// unextend undoes what extend did.
+func (b *batch) unextend() {
+	b.vals = b.vals[:len(b.vals)-1]
+}
 
 func (b *batch) Values() []zed.Value { return b.vals }
 

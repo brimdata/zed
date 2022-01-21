@@ -375,7 +375,7 @@ func (f *Formatter) formatType(typ zed.Type) {
 		f.build(">")
 		return
 	}
-	if typ.ID() < zed.IDTypeDef {
+	if typ.ID() < zed.IDTypeComplex {
 		f.build(typ.String())
 		return
 	}
@@ -517,7 +517,7 @@ func (t typemap) known(typ zed.Type) bool {
 	if _, ok := typ.(*zed.TypeAlias); ok {
 		return false
 	}
-	return typ.ID() < zed.IDTypeDef
+	return typ.ID() < zed.IDTypeComplex
 }
 
 // FormatType formats a type in canonical form to represent type values

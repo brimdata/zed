@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
+	"github.com/brimdata/zed/zcode"
 )
 
 type FieldNameFinder struct {
@@ -24,33 +25,17 @@ func NewFieldNameFinder(pattern string) *FieldNameFinder {
 func (f *FieldNameFinder) Find(zctx *zed.Context, buf []byte) bool {
 	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {
-		code := buf[0]
-		if code > zed.CtrlValueEscape {
-			// Control messages are not expected.
+		id, idLen := binary.Uvarint(buf)
+		if idLen <= 0 {
 			return true
 		}
-		var id int
-		if code == zed.CtrlValueEscape {
-			v, n := binary.Uvarint(buf[1:])
-			if n <= 0 {
-				return true
-			}
-			id = int(v)
-			buf = buf[1+n:]
-		} else {
-			id = int(code)
-			buf = buf[1:]
-		}
-		length, n := binary.Uvarint(buf)
-		if n <= 0 {
-			return true
-		}
-		buf = buf[n+int(length):]
-		if f.checkedIDs.Bit(id) == 1 {
+		valLen := zcode.DecodeTagLength(buf)
+		buf = buf[idLen+valLen:]
+		if f.checkedIDs.Bit(int(id)) == 1 {
 			continue
 		}
-		f.checkedIDs.SetBit(&f.checkedIDs, id, 1)
-		t, err := zctx.LookupType(id)
+		f.checkedIDs.SetBit(&f.checkedIDs, int(id), 1)
+		t, err := zctx.LookupType(int(id))
 		if err != nil {
 			return true
 		}

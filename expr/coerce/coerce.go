@@ -147,7 +147,7 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 		}
 		return id, true
 	}
-	id := zed.PromoteInt(aid, bid)
+	id := promoteInt(aid, bid)
 
 	// Otherwise, we'll promote mixed signed-ness to signed unless
 	// the unsigned value is greater than signed maxint, in which

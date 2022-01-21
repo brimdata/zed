@@ -5,7 +5,6 @@ package zio_test
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"strings"
 	"testing"
 
@@ -170,65 +169,4 @@ func TestAlias(t *testing.T) {
 			boomerangZJSON(t, recordAlias)
 		})
 	})
-}
-
-func TestStreams(t *testing.T) {
-	const in = `
-{key:1.2.3.4}
-{key:::}
-{key:1.39.61.22}
-{key:1.149.119.73}
-{key:1.160.203.191}
-{key:2.12.27.251}
-`
-	r := zsonio.NewReader(strings.NewReader(in), zed.NewContext())
-	var out Output
-	zw := zngio.NewWriter(&out, zngio.WriterOpts{
-		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
-	})
-
-	var recs []*zed.Value
-	for {
-		rec, err := r.Read()
-		require.NoError(t, err)
-		if rec == nil {
-			break
-		}
-		require.NoError(t, zw.Write(rec))
-		recs = append(recs, rec.Copy())
-		if len(recs)%2 == 0 {
-			require.NoError(t, zw.EndStream())
-		}
-	}
-
-	zr := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), zed.NewContext())
-
-	rec, rec2Off, err := zr.SkipStream()
-	require.NoError(t, err)
-	assert.Equal(t, recs[2].Bytes, rec.Bytes)
-
-	rec, rec4Off, err := zr.SkipStream()
-	require.NoError(t, err)
-	assert.Equal(t, recs[4].Bytes, rec.Bytes)
-
-	b := out.Buffer.Bytes()
-	len := int64(len(b))
-
-	sr := io.NewSectionReader(bytes.NewReader(b), rec4Off, len-rec4Off)
-	reader := zngio.NewReader(sr, zed.NewContext())
-	rec, err = reader.Read()
-	require.NoError(t, err)
-	assert.Equal(t, recs[4].Bytes, rec.Bytes)
-
-	sr = io.NewSectionReader(bytes.NewReader(b), rec2Off, len-rec2Off)
-	reader = zngio.NewReader(sr, zed.NewContext())
-	rec, err = reader.Read()
-	require.NoError(t, err)
-	assert.Equal(t, recs[2].Bytes, rec.Bytes)
-
-	sr = io.NewSectionReader(bytes.NewReader(b), 0, len)
-	reader = zngio.NewReader(sr, zed.NewContext())
-	rec, err = reader.Read()
-	require.NoError(t, err)
-	assert.Equal(t, recs[0].Bytes, rec.Bytes)
 }

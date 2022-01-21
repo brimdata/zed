@@ -19,6 +19,7 @@ type Flags struct {
 	anyio.ReaderOpts
 	ReadMax  auto.Bytes
 	ReadSize auto.Bytes
+	Threads  int
 }
 
 func (f *Flags) Options() anyio.ReaderOpts {
@@ -28,6 +29,7 @@ func (f *Flags) Options() anyio.ReaderOpts {
 func (f *Flags) SetFlags(fs *flag.FlagSet, validate bool) {
 	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,zst,json,ndjson,zeek,zjson,csv,parquet]")
 	fs.BoolVar(&f.ZNG.Validate, "validate", validate, "validate the input format when reading ZNG streams")
+	fs.IntVar(&f.ZNG.Threads, "threads", 0, "number of threads used for scanning ZNG input")
 	f.ReadMax = auto.NewBytes(zngio.MaxSize)
 	fs.Var(&f.ReadMax, "readmax", "maximum memory used read buffers in MiB, MB, etc")
 	f.ReadSize = auto.NewBytes(zngio.ReadSize)

@@ -20,4 +20,4 @@ outputs:
   - name: stdout
     data: |
       {key:"a",_child:0}
-      {key:"e",_child:24}
+      {key:"c",_child:25}

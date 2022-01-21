@@ -2,33 +2,28 @@
 
 * [1. Introduction](#1-introduction)
 * [2. The ZNG Format](#2-the-zng-format)
-  + [2.1 Control Messages](#21-control-messages)
-    - [2.1.1 Typedefs](#211-typedefs)
-      - [2.1.1.1 Record Typedef](#2111-record-typedef)
-      - [2.1.1.2 Array Typedef](#2112-array-typedef)
-      - [2.1.1.3 Set Typedef](#2113-set-typedef)
-      - [2.1.1.4 Map Typedef](#2114-map-typedef)
-      - [2.1.1.5 Union Typedef](#2115-union-typedef)
-      - [2.1.1.6 Enum Typedef](#2116-enum-typedef)
-      - [2.1.1.7 Error Typedef](#2117-error-typedef)
-      - [2.1.1.8 Named Type Typedef](#2118-named-type-typedef)
-    - [2.1.2 Compressed Value Message Block](#212-compressed-value-message-block)
-    - [2.1.3 Application-Defined Messages](#213-application-defined-messages)
-    - [2.1.4 End-of-Stream Markers](#214-end-of-stream-markers)
-  + [2.2 Value Messages](#22-value-messages)
+  + [2.1 Types Frame](#21-types-frame)
+    - [2.1.1 Record Typedef](#211-record-typedef)
+    - [2.1.2 Array Typedef](#212-array-typedef)
+    - [2.1.3 Set Typedef](#213-set-typedef)
+    - [2.1.4 Map Typedef](#214-map-typedef)
+    - [2.1.5 Union Typedef](#215-union-typedef)
+    - [2.1.6 Enum Typedef](#216-enum-typedef)
+    - [2.1.7 Error Typedef](#217-error-typedef)
+    - [2.1.8 Named Type Typedef](#218-named-type-typedef)
+  + [2.2 Values Frame](#22-values-frame)
+  + [2.3 Control Frame](#23-control-frame)
+  + [2.4 End of Stream](#24-end-of-stream)
 * [3. Primitive Types](#3-primitive-types)
 * [4. Type Values](#4-type-values)
 
 ## 1. Introduction
 
-ZNG is an efficient, binary serialization
-format conforming to the [Zed data model](zed.md).
-ZNG is ideally suited for streams
-of heterogeneously typed records, e.g., structured logs, where filtering and
-analytics may be applied to a stream in parts without having to fully deserialize
-every value.
+ZNG is an efficient, sequence-oriented serialization format for any data
+conforming to the [Zed data model](zed.md).
 
-ZNG is analogous to [Apache Avro](https://avro.apache.org) but does not
+ZNG is "row oriented" and
+analogous to [Apache Avro](https://avro.apache.org) but does not
 require schema definitions as it instead utilizes the fine-grained type system
 of the Zed data model.
 This binary format is based on machine-readable data types with an
@@ -61,69 +56,58 @@ or otherwise rewritten to be merged in this fashion.
 
 ## 2. The ZNG Format
 
-A ZNG stream comprises a sequence of interleaved control messages and value messages
-that are serialized into a stream of bytes.
+A ZNG stream comprises a sequence of frames where
+each frame contains one of three types of data:
+_types_, _values_, or externally-defined _control_.
 
-Each message is prefixed with a single-byte header code.  Codes `0xf5-0xff`
-are allocated as control messages while codes `0x00-0xf5` indicate a value message.
+A stream is punctuated by the end-of-stream value `0xff`.
 
-### 2.1 Control Messages
+Each frame header includes a length field
+allowing an implementation to easily skip from frame to frame.
 
-Control codes `0xf5` through `0xff` (in hexadecimal) are defined as follows:
+Each frame begins with a single-byte "frame code":
+```
+    7 6 5 4 5 3 1 0
+   +-+-+-+-+-+-+-+-+
+   |V|C|  T|      L|
+   +-+-+-+-+-+-+-+-+
 
-| Code   | Message Type                   |
-|--------|--------------------------------|
-| `0xf5` | record type definition         |
-| `0xf6` | array type definition          |
-| `0xf7` | set type definition            |
-| `0xf8` | map type definiton             |
-| `0xf9` | union type definition          |
-| `0xfa` | enum type definiton            |
-| `0xfb` | named type definition          |
-| `0xfc` | error type definiton           |
-| `0xfd` | compressed value message block |
-| `0xfe` | application-defined message    |
-| `0xff` | end-of-stream                  |
+   V: 1 bit
 
-The application-defined messages are available to higher-layer protocols and
-potential future variations of ZNG.  A ZNG implementation that
-merely skips over all of the application-defined messages is guaranteed by
-this specification to decode all of the data as described herein even if such
-messages provide additional semantics on top of the base ZNG format.
+     Version number.  Must be zero.
 
-Any such application-defined messages not known by
-a ZNG data receiver shall be ignored.
+   C: 1 bit
 
-The body of a application-defined control message is typically a structured
-message in JSON, ZSON, or ZNG.
-These messages are guaranteed to be preserved
-in order within the stream and presented to higher layer components through
-any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
-protocol directives as ZNG control payloads rather than defining additional
-encapsulating protocols.
+     Indicates compressed frame data.
 
-> For example, the [Zed service](../../docs/lake/service-api.md) query endpoint
-> uses application-defined message `0xfe` to embed search and server stats in
-> the return stream of ZNG data, e.g., as a long-running search progresses on
-> the server.
+   T: 2 bits
 
-### 2.1.1 Typedefs
+     Type of frame data.
 
-Following a header byte of `0xf5-0xfb` is a "typedef".  A typedef binds
-the smallest integer type ID not in use to a new type.  As there are
-a total of 30 primitive type IDs, the Type IDs for typedefs
-begin at the value 30 and increase by one for each typedef. These bindings
-are scoped to the stream in which the typedef occurs.
+       00: Types
+       01: Values
+       10: Control
+       11: End of stream
 
-Type IDs for the "primitive types" need not be defined with typedefs and
-are predefined with the IDs shown in the [Primitive Types](#-primitive-types) table.
+   L: 4 bits
 
-A typedef is encoded as a single byte indicating the complex type ID followed by
-the type encoding.  This creates a binding between the implied type ID
-(i.e., 30 plus the count of all previous typedefs in the stream) and the new
-type definition.
+     Low-order bits of frame length.
+```
 
-The type ID is encoded as a `uvarint`, an encoding used throughout the ZNG format.
+Bit 7 of the frame code must be zero as it defines version 0
+of the ZNG stream format.  If a future version of ZNG
+arises, bit 7 of future ZNG frames will be 1.
+ZNG version 0 readers must ignore and skip over such frames using the
+`len` field, which must survive future versions.
+Any future versions of ZNG must be able to integrate version 0 frames
+for backward compatibility.
+
+Following the frame code is its encoded length followed by a "frame payload"
+of bytes of said length:
+```
+<frame code><uvarint><frame payload>
+```
+The length encoding utilizes a variable-length unsigned integer called herein a `uvarint`:
 
 > Inspired by Protocol Buffers,
 > a `uvarint` is an unsigned, variable-length integer encoded as a sequence of
@@ -132,13 +116,91 @@ The type ID is encoded as a `uvarint`, an encoding used throughout the ZNG forma
 > 7 bits of each byte from least-significant digit (byte 0) to
 > most-significant digit (byte N-1).
 
-#### 2.1.1.1 Record Typedef
+The frame payload's length is equal to the value of the `uvarint` following the
+frame code times 16 plus the low 4-bit integer value `L` field in the frame code.
+
+If the `C` bit is set in the frame code, then the frame payload following the
+frame length is compressed and has the form:
+```
+<format><size><compressed payload>
+```
+where
+* `<format>` is a single byte indicating the compression format of the the compressed payload,
+* `<size>` is a `uvarint` encoding the size of the uncompressed payload, and
+* `<compressed payload>` is a bytes sequence whose length equals
+the outer frame length less 1 byte for the compression format and the encoded length
+of the `uvarint` size field.
+
+The `compressed payload` is compressed according to the compression algorithm
+specified by the `format` byte.  Each message block is compressed independently
+such that the compression algorithm's state is not carried from block to block
+(thereby enabling parallel decoding).
+
+The `<size>` value is redundant with the compressed payload
+but is useful to an implementation to deterministically
+size decompression buffers in advance of decoding.
+
+Values for the `format` byte are defined in the
+[ZNG compression format specification](./compression-spec.md).
+
+> This arrangement of message blocks separating types and values allows
+> for efficient scanning and parallelization.  In general, values depend
+> on type definitions but as long as all of the types are known by the
+> time values are used, decoding can be done in parallel.  Likewise, since
+> each block is independently compressed, the blocks can be decompressed
+> in parallel.  Moreover, efficient filtering can be carried out over
+> uncompressed data before it is deserialized into native data structures,
+> e.g., allowing entire message blocks to be discarded based on
+> heuristics, e.g., knowing a filtering predicate can't be true based on a
+> quick scan of the data perhaps using the Boyer-Moore algorithm to determine
+> that a comparison with a string constant would not work for any
+> value in the buffer.
+
+Whether the payload was originally uncompressed or was decompressed, it is
+then interpreted according to the `T` bits of the frame code as a
+* [types frame](#21-types-frame),
+* [values frame](#22-values-frame), or
+* [control frame](#23-control-frame).
+
+### 2.1 Types Frame
+
+A _types message_ encodes a sequence of type definitions for complex Zed types
+and establishes a "type ID" for each such definition.
+Type IDs for the "primitive types"
+are predefined with the IDs listed in the [Primitive Types](#-primitive-types) table.
+
+Each definition, or "typedef",
+consists of a typedef code followed by its type-specific encoding as described below.
+Each type must be decoded in sequence to find the start of the next type definition
+as there is no framing to separate the typedefs.
+
+The typedefs are numbered in the order encountered starting at 30
+(as the largest primary type ID is 29).  Types refer to other types
+by their type ID.  Note that the type ID of a typedef is implied by its
+position in the sequence and is not explicitly encoded.
+
+The typedef codes are defined as follows:
+
+| Code | Complex Type             |
+|------|--------------------------|
+|   0  |  record type definition  |
+|   1  |  array type definition   |
+|   2  |  set type definition     |
+|   3  |  map type definition     |
+|   4  |  union type definition   |
+|   5  |  enum type definition    |
+|   6  |  error type definition   |
+|   7  |  named type definition   |
+
+Any references to a type ID in the body of a typedef are encoded as a `uvarint`,
+
+#### 2.1.1 Record Typedef
 
 A record typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 ---------------------------------------------------------
-|0xf5|<ncolumns>|<name1><type-id-1><name2><type-id-2>...|
+|0x00|<ncolumns>|<name1><type-id-1><name2><type-id-2>...|
 ---------------------------------------------------------
 ```
 Record types consist of an ordered set of columns where each column consists of
@@ -152,7 +214,7 @@ where a field definition is a field name followed by a type ID, i.e.,
 
 The field names in a record must be unique.
 
-The `<ncolumns>` is encoded as a `uvarint`.
+The `<ncolumns>` value is encoded as a `uvarint`.
 
 The field name is encoded as a UTF-8 string defining a "ZNG identifier".
 The UTF-8 string
@@ -167,45 +229,45 @@ by language syntax for identifiers.
 
 The type ID follows the field name and is encoded as a `uvarint`.
 
-#### 2.1.1.2 Array Typedef
+#### 2.1.2 Array Typedef
 
 An array type is encoded as simply the type code of the elements of
 the array encoded as a `uvarint`:
 ```
 ----------------
-|0xf6|<type-id>|
+|0x01|<type-id>|
 ----------------
 ```
 
-#### 2.1.1.3 Set Typedef
+#### 2.1.3 Set Typedef
 
 A set type is encoded as the type ID of the
 elements of the set, encoded as a `uvarint`:
 ```
 ----------------
-|0xf7|<type-id>|
+|0x02|<type-id>|
 ----------------
 ```
 
-#### 2.1.1.4 Map Typedef
+#### 2.1.4 Map Typedef
 
 A map type is encoded as the type code of the key
 followed by the type code of the value.
 ```
 --------------------------
-|0xf8|<type-id>|<type-id>|
+|0x03|<type-id>|<type-id>|
 --------------------------
 ```
 Each `<type-id>` is encoded as `uvarint`.
 
 
-#### 2.1.1.5 Union Typedef
+#### 2.1.5 Union Typedef
 
 A union typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 -----------------------------------------
-|0xf9|<ntypes>|<type-id-1><type-id-2>...|
+|0x04|<ntypes>|<type-id-1><type-id-2>...|
 -----------------------------------------
 ```
 A union type consists of an ordered set of types
@@ -217,38 +279,38 @@ The `<ntypes>` and the type IDs are all encoded as `uvarint`.
 
 `<ntypes>` cannot be 0.
 
-#### 2.1.1.6 Enum Typedef
+#### 2.1.6 Enum Typedef
 
 An enum type is encoded as a `uvarint` representing the number of symbols
 in the enumeration followed by the names of each symbol.
 ```
 --------------------------------
-|0xfa|<nelem>|<name1><name2>...|
+|0x05|<nelem>|<name1><name2>...|
 --------------------------------
 ```
 `<nelem>` is encoded as `uvarint`.
 The names have the same UTF-8 format as record field names and are encoded
 as counted strings following the same convention as record field names.
 
-#### 2.1.1.7 Error Typedef
+#### 2.1.7 Error Typedef
 
 An error type is encoded as follows:
 ```
 ----------------
-|0xfb|<type-id>|
+|0x06|<type-id>|
 ----------------
 ```
 which defines a new error type for error values that have the underlying type
 indicated by `<type-id>`.
 
-#### 2.1.1.8 Named Type Typedef
+#### 2.1.8 Named Type Typedef
 
 A named type defines a new type ID that binds a name to a previously existing type ID.  
 
 A named type is encoded as follows:
 ```
 ----------------------
-|0xfc|<name><type-id>|
+|0x07|<name><type-id>|
 ----------------------
 ```
 where `<name>` is an identifier representing the new type name with a new type ID
@@ -262,114 +324,21 @@ it is an error to define a type name that has the same name as a primitive type,
 and it is permissible to redefine a previously defined type name with a
 type that differs from the previous definition.
 
-### 2.1.2 Compressed Value Message Block
+### 2.2 Values Frame
 
-Following a header byte of `0xf6` is a compressed value message block.
-Such a block comprises a compressed sequence of value messages.  The
-sequence must not include control messages.
+A values frame is a sequence of Zed values each encoded as the value's type ID,
+encoded as a `uvarint`, followed by its tag-encoded serialization as described below.
 
-> The reason control messages are not allowed in compressed blocks is to
-> allow for optimizations that discard entire buffers of data based on
-> heuristics to know a filtering predicate can't be true based on a
-> quick scan of the data (e.g., using the Boyer-Moore algorithm to determine
-> that a comparison with a string constant would not work for any
-> value in the buffer).  Since blocks may be dropped without parsing using
-> such an optimization, any typedefs should be lifted out into the zng data
-> stream in front of the compressed blocks (i.e., the stream is rearranged
-> but it's always safe to move typedefs earlier in the stream as long as
-> the typedef order is preserved and a zng end-of-stream is not crossed).
-> For application-specific messages and end-of-stream, a compressed buffer
-> should be terminated and these messages sent as uncompressed data.
->
-> Since ZNG streams typically consist of a very sparse
-> set of typedefs with very long runs of data, these constraints are not
-> a barrier to performance in practice.
-
-A compressed value message block is encoded as follows:
-```
--------------------------------------------------------------------------------
-|0xfd|<format>|<uncompressed-length>|<compressed-length>|<compressed-messages>|
--------------------------------------------------------------------------------
-```
-where
-* `<format>`, a `uvarint`, identifies the compression algorithm applied to the
-  message sequence,
-* `<uncompressed-length>`, a `uvarint`, is the length in bytes of the
-  uncompressed message sequence, and
-* `<compressed-length>`, a `uvarint`, is the length in bytes of `<compressed-messages>`
-* `<compressed-messages>` is the compressed value message sequence.
-
-Values for `<format>` are defined in the
-[ZNG compression format specification](./compression-spec.md).
-
-### 2.1.3 Application-Defined Messages
-
-An application-defined message has the following form:
-```
-------------------------------
-|0xfe|<encoding>|<len>|<body>|
-------------------------------
-```
-where
-* `<encoding>` is a single byte indicating whether the body is encoded
-as ZNG (0), JSON (1), ZSON (2), an arbitrary UTF-8 string (3), or arbitrary binary data (4),
-* `<len>` is a `uvarint` encoding the length in bytes of the message body
-(exclusive of the length 1 encoding byte), and
-* `<body>` is a data message whose semantics are outside the scope of
-the base ZNG specification.
-
-If the encoding type is ZNG, the embedded ZNG data
-starts and ends a single ZNG stream independent of outer the ZNG stream.
-
-### 2.1.4 End-of-Stream Markers
-
-A ZNG stream must be terminated by an end-of-stream marker.
-A new ZNG stream may begin immediately after an end-of-stream marker.
-Each such stream has its own, independent type context.
-
-In this way, the concatenation of ZNG streams (or ZNG files containing
-ZNG streams) results in a valid ZNG data sequence.
-
-For example, a large ZNG file can be arranged into multiple, smaller streams
-to facilitate random access at stream boundaries.
-This benefit comes at the cost of some additional overhead --
-the space consumed by stream boundary markers and repeated type definitions.
-Choosing an appropriate stream size that balances this overhead with the
-benefit of enabling random access is left up to implementations.
-
-End-of-stream markers are also useful in the context of sending ZNG over Kafka,
-as a receiver can easily resynchronize with a live Kafka topic by
-discarding incomplete messages until a message is found that is terminated
-by an end-of-stream marker (presuming the sender implementation aligns
-the ZNG messages on Kafka message boundaries).
-
-A end-of-stream marker is encoded as follows:
-```
-------
-|0xff|
-------
-```
-
-After this marker, all previously read
-typedefs are invalidated and the "next available type ID" is reset to
-the initial value of 30.  To represent subsequent values that use a
-previously defined type, the appropriate typedef control code must
-be re-emitted
-(and note that the typedef may now be assigned a different ID).
-
-### 2.2 Value Messages
-
-Following a header byte in the range `0x00-0xf5` is a ZNG value.
-The header byte indicates the type ID of the value.  If the type ID
-is larger than `0xf4`, then the type ID is "escaped" with the value `0xf5`
-and the actual type ID is encoded as a `uvarint` of the difference
-of the type ID less the constant `0xf5`.
+Since a single type ID encodes the entire value's structure, no additional
+type information is needed.  Also, the value encoding follows the structure
+of the type explicitly so the type is not needed to parse the structure of the
+value, but rather only its semantics.
 
 It is an error for a value to reference a type ID that has not been
 previously defined by a typedef scoped to the stream in which the value
 appears.
 
-The value is encoded in the subsequent bytes using a "tag-encoding" scheme
+The value is encoded using a "tag-encoding" scheme
 that captures the structure of both primitive types and the recursive
 nature of complex types.  This structure is encoded
 explicitly in every value and the boundaries of each value and its
@@ -381,42 +350,16 @@ whereby the inner loop need not consult and interpret the type ID of each elemen
 #### 2.2.1 Tag-Encoding of Values
 
 Each value is prefixed with a "tag" that defines:
-* whether it is a primitive or complex value,
 * whether it is the null value, and
 * its encoded length in bytes.
 
-The collection of sub-values comprising a complex-type value
-is called a "container".
+The tag is 0 for the null value and `length+1` for non-null values where
+`length` is the encoded length of the value.  Note that this encoding
+differeniates between a null value and a zero-length value.  Many data types
+have a meaningul intepretation of a zero-length value, for example, an
+empty array, the empty record, etc.
 
-To encode the length N of the value, a bit for the complex/primitive type indicator,
-and representation for the null value,
-The tag for a container of length N is
-```
-2*N + 1
-```
-The tag for a primitive of length N is
-```
-2*N + 2
-```
-The tag for the null value is 0.
-
-For example, the following tags have the following meanings:
-
-| Tag |    Meaning          |
-|-----|---------------------|
-|  0  | null                |
-|  1  | length 0 container  |
-|  2  | length 0 primitive  |
-|  3  | length 1 container  |
-|  4  | length 1 primitive  |
-|  5  | length 2 container  |
-|  6  | length 2 primitive  |
-| ... | etc                 |
-
-A container recursively contains a list of tagged values.  Since the container
-encodes its overall length, there is no need to encode the number of elements
-in a container as they are easily discovered by scanning the buffer for each value
-until the last tagged value is encountered.
+The tag itself is encoded as a `uvarint`.
 
 #### 2.2.2 Tag-Encoded Body of Primitive Values
 
@@ -436,7 +379,7 @@ before encoding, are shifted left one bit, and the sign bit stored as bit 0.
 For negative numbers, the remaining bits are negated so that the upper bytes
 tend to be zero-filled for small integers.
 
-#### 2.2.2 Tag-Encoded Body of Complex Values
+#### 2.2.3 Tag-Encoded Body of Complex Values
 
 The body of a length-N container comprises zero or more tag-encoded values,
 where the values are encoded as follows:
@@ -476,6 +419,86 @@ The concatenation of elements must be normalized so that the
 sequence of bytes encoding each tag-counted key (of the key/value pair) is
 lexicographically greater than that of the preceding key (of the preceding
 key/value pair).
+
+### 2.3 Control Frame
+
+Control messages are available to higher-layer protocols and are carried
+in ZNG as a convenient signaling mechanism.  A ZNG implementation
+may skip over all of control messages and is guaranteed by
+this specification to decode all of the data as described herein even if such
+messages provide additional semantics on top of the base ZNG format.
+
+Any such application-defined messages not known by
+a ZNG data receiver shall be ignored.
+
+The body of control message is JSON, ZSON, ZNG, binary, or UTF-8 text.
+The serialization of the control message body is independent
+of the ZNG stream containing the control message.
+The delivery order of any control message with respect to the delivery
+order of values of the ZNG stream should be preserved by an API implementing
+ZNG serialization and deserialization.
+In this way, system endpoints that communicate using ZNG can embed
+protocol directives directly into the ZNG stream as control payloads
+in an order-preserving semantics rather than defining additional
+layers of encapsulation and synchronization between such layers.
+
+> For example, the [Zed service](../../docs/lake/service-api.md) query endpoint
+> uses control messages to embed in-progress query and server stats in
+> the return stream of ZNG data, e.g., as a long-running search progresses on
+> the server.
+
+A control frame has the following form:
+```
+-------------------------
+|<encoding>|<len>|<body>|
+-------------------------
+```
+where
+* `<encoding>` is a single byte indicating whether the body is encoded
+as ZNG (0), JSON (1), ZSON (2), an arbitrary UTF-8 string (3), or arbitrary binary data (4),
+* `<len>` is a `uvarint` encoding the length in bytes of the message body
+(exclusive of the length 1 encoding byte), and
+* `<body>` is a data message whose semantics are outside the scope of
+the base ZNG specification.
+
+If the encoding type is ZNG, the embedded ZNG data
+starts and ends a single ZNG stream independent of outer the ZNG stream.
+
+### 2.4 End of Stream
+
+A ZNG stream must be terminated by an end-of-stream marker.
+A new ZNG stream may begin immediately after an end-of-stream marker.
+Each such stream has its own, independent type context.
+
+In this way, the concatenation of ZNG streams (or ZNG files containing
+ZNG streams) results in a valid ZNG data sequence.
+
+For example, a large ZNG file can be arranged into multiple, smaller streams
+to facilitate random access at stream boundaries.
+This benefit comes at the cost of some additional overhead --
+the space consumed by stream boundary markers and repeated type definitions.
+Choosing an appropriate stream size that balances this overhead with the
+benefit of enabling random access is left up to implementations.
+
+End-of-stream markers are also useful in the context of sending ZNG over Kafka,
+as a receiver can easily resynchronize with a live Kafka topic by
+discarding incomplete messages until a message is found that is terminated
+by an end-of-stream marker (presuming the sender implementation aligns
+the ZNG messages on Kafka message boundaries).
+
+A end-of-stream marker is encoded as follows:
+```
+------
+|0xff|
+------
+```
+
+After this marker, all previously read
+typedefs are invalidated and the "next available type ID" is reset to
+the initial value of 30.  To represent subsequent values that use a
+previously defined type, the appropriate typedef control code must
+be re-emitted
+(and note that the typedef may now be assigned a different ID).
 
 ## 3. Primitive Types
 
@@ -538,9 +561,9 @@ complex type it represents as described below.
 
 A record type value has the form:
 ```
------------------------------------------------------
-|0x19|<ncolumns>|<name1><typeval><name2><typeval>...|
------------------------------------------------------
+---------------------------------------------------
+|30|<ncolumns>|<name1><typeval><name2><typeval>...|
+---------------------------------------------------
 ```
 where `<ncolumns>` is the number of columns in the record encoded as a `uvarint`,
 `<name1>` etc. are the field names encoded as in the
@@ -550,9 +573,9 @@ record typedef, and each `<typeval>` is a recursive encoding of a type value.
 
 An array type value has the form:
 ```
-----------------
-|0x20|<typeval>|
-----------------
+--------------
+|31|<typeval>|
+--------------
 ```
 where `<typeval>` is a recursive encoding of a type value.
 
@@ -560,9 +583,9 @@ where `<typeval>` is a recursive encoding of a type value.
 
 An set type value has the form:
 ```
-----------------
-|0x21|<typeval>|
-----------------
+--------------
+|32|<typeval>|
+--------------
 ```
 where `<typeval>` is a recursive encoding of a type value.
 
@@ -570,9 +593,9 @@ where `<typeval>` is a recursive encoding of a type value.
 
 A map type value has the form:
 ```
-----------------------------
-|0x22|<key-type>|<val-type>|
-----------------------------
+--------------------------
+|33|<key-type>|<val-type>|
+--------------------------
 ```
 where `<key-type>` and `<val-type>` are recursive encodings of type values.
 
@@ -580,9 +603,9 @@ where `<key-type>` and `<val-type>` are recursive encodings of type values.
 
 A union type value has the form:
 ```
--------------------------------------
-|0x23|<ntypes>|<typeval><typeval>...|
--------------------------------------
+-----------------------------------
+|34|<ntypes>|<typeval><typeval>...|
+-----------------------------------
 ```
 where `<ntypes>` is the number of types in the union encoded as a `uvarint`
 and each `<typeval>` is a recursive definition of a type value.
@@ -591,9 +614,9 @@ and each `<typeval>` is a recursive definition of a type value.
 
 An enum type value has the form:
 ```
---------------------------------
-|0x24|<nelem>|<name1><name2>...|
---------------------------------
+------------------------------
+|35|<nelem>|<name1><name2>...|
+------------------------------
 ```
 where `<nelem>` and each symbol name is encoded as in an enum typedef.
 
@@ -601,9 +624,9 @@ where `<nelem>` and each symbol name is encoded as in an enum typedef.
 
 An error type value has the form:
 ```
--------------
-|0x25|<type>|
--------------
+-----------
+|36|<type>|
+-----------
 ```
 where `<type>` is the type value of the error.
 
@@ -616,9 +639,9 @@ traversal of the type.
 
 A named type definition has the form:
 ```
-----------------------
-|0x17|<name><typeval>|
-----------------------
+--------------------
+|37|<name><typeval>|
+--------------------
 ```
 where `<name>` is encoded as in an named type typedef
 and `<typeval>` is a recursive encoding of a type value.  This creates
@@ -629,9 +652,9 @@ of the same name in the same type value according to the DFS order.
 
 An named type reference has the form:
 ```
--------------
-|0x18|<name>|
--------------
+-----------
+|38|<name>|
+-----------
 ```
 It is an error for an named type reference to appear in a type value with a name
 that has not been previously defined according to the DFS order.

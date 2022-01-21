@@ -323,7 +323,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 	id := tv[0]
 	tv = tv[1:]
 	switch id {
-	case IDTypeDef:
+	case TypeValueNameDef:
 		name, tv := decodeName(tv)
 		if tv == nil {
 			return nil, nil
@@ -338,7 +338,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return alias, tv
-	case IDTypeName:
+	case TypeValueNameRef:
 		name, tv := decodeName(tv)
 		if tv == nil {
 			return nil, nil
@@ -348,7 +348,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return typ, tv
-	case IDTypeRecord:
+	case TypeValueRecord:
 		n, tv := decodeInt(tv)
 		if tv == nil || n > MaxColumns {
 			return nil, nil
@@ -372,7 +372,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return typ, tv
-	case IDTypeArray:
+	case TypeValueArray:
 		inner, tv := c.decodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
@@ -382,7 +382,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return typ, tv
-	case IDTypeSet:
+	case TypeValueSet:
 		inner, tv := c.decodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
@@ -392,7 +392,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return typ, tv
-	case IDTypeMap:
+	case TypeValueMap:
 		keyType, tv := c.decodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
@@ -406,7 +406,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return typ, tv
-	case IDTypeUnion:
+	case TypeValueUnion:
 		n, tv := decodeInt(tv)
 		if tv == nil || n > MaxUnionTypes {
 			return nil, nil
@@ -422,7 +422,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return typ, tv
-	case IDTypeEnum:
+	case TypeValueEnum:
 		n, tv := decodeInt(tv)
 		if tv == nil || n > MaxEnumSymbols {
 			return nil, nil
@@ -441,7 +441,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		return typ, tv
-	case IDTypeErrorNew:
+	case TypeValueError:
 		inner, tv := c.decodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
@@ -452,7 +452,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	default:
-		if id < 0 || id > IDTypeErrorNew { //XXX
+		if id < 0 || id > TypeValueMax {
 			// Out of range.
 			return nil, nil
 		}

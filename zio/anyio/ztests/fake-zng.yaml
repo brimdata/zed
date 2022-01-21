@@ -1,10 +1,10 @@
 script: |
-  ! zq -z -
+  ! zq -i zng -z -
 
 inputs:
   - name: stdin
     data: !!binary |
-      AAAAHGZ0eXBtcDQyAAAAAWlzb21tcDQxbXA0MgAA
+      BQAAAQF4CRQAHhACAv8=
 
 outputs:
   - name: stderr

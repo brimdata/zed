@@ -84,32 +84,19 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, error) {
 		// or I/O problems.
 		return nil, fmt.Errorf("couldn't read trailer: expected %d bytes but read %d", n, cc)
 	}
-	for off := int(n) - 3; off >= 0; off-- {
-		// Look for end of stream followed by an array[int64] typedef then
-		// a record typedef indicating the possible presence of the trailer,
-		// which we then try to decode.
-		if bytes.Equal(buf[off:(off+3)], []byte{zed.TypeDefArray, zed.IDInt64, zed.TypeDefRecord}) {
-			if off > 0 && buf[off-1] != zed.CtrlEOS {
-				// If this isn't right after an end-of-stream
-				// (and we're not at the start of index), then
-				// we skip because it can't be a valid trailer.
-				continue
-			}
-			r := bytes.NewReader(buf[off:n])
-			rec, _ := zngio.NewReader(r, zed.NewContext()).Read()
-			if rec == nil {
-				continue
-			}
-			_, err := trailerVersion(rec)
-			if err != nil {
-				return nil, err
-			}
-			trailer, _ := recordToTrailer(rec)
-			if trailer != nil {
-				trailer.Length = int(n) - off
-				return trailer, nil
-			}
-		}
+	stream, err := zngio.FindTrailer(buf)
+	if err != nil {
+		return nil, err
+	}
+	rec, _ := zngio.NewReader(bytes.NewReader(stream), zed.NewContext()).Read()
+	if rec == nil {
+		return nil, errors.New("zst trailer not found")
+	}
+	//XXX This should be simplified and made more robust.  See issue #3476.
+	trailer, _ := recordToTrailer(rec)
+	if trailer != nil {
+		trailer.Length = len(stream)
+		return trailer, nil
 	}
 	return nil, errors.New("zst trailer not found")
 }

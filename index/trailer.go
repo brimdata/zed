@@ -35,16 +35,6 @@ var (
 	ErrTrailerNotFound = errors.New("Zed index trailer not found")
 )
 
-var startOfTrailer = []byte{
-	zed.TypeDefArray,
-	zed.IDInt64,
-	zed.TypeDefArray,
-	zed.IDString,
-	zed.TypeDefArray,
-	zed.IDTypeName,
-	zed.TypeDefRecord,
-}
-
 func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
 	n := size
 	if n > TrailerMaxSize {
@@ -54,20 +44,11 @@ func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
 	if _, err := r.ReadAt(buf, size-n); err != nil {
 		return nil, 0, err
 	}
-	// look for end of stream followed by an array[int64] typedef then
-	// a record typedef indicating the possible presence of the trailer,
-	// which we then try to decode.
-	off := bytes.LastIndex(buf, startOfTrailer)
-	if off == -1 {
+	stream, err := zngio.FindTrailer(buf)
+	if err != nil {
 		return nil, 0, ErrTrailerNotFound
 	}
-	if off > 0 && buf[off-1] != zed.CtrlEOS {
-		// If this isn't right after an end-of-stream
-		// (and we're not at the start of index), then
-		// we skip because it can't be a valid trailer.
-		return nil, 0, ErrTrailerNotFound
-	}
-	rec, _ := zngio.NewReader(bytes.NewReader(buf[off:n]), zed.NewContext()).Read()
+	rec, _ := zngio.NewReader(bytes.NewReader(stream), zed.NewContext()).Read()
 	if rec == nil {
 		return nil, 0, ErrTrailerNotFound
 	}
@@ -81,7 +62,7 @@ func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
 	if trailer.Version != Version {
 		return nil, 0, fmt.Errorf("Zed index version %d found while expecting version %d", trailer.Version, Version)
 	}
-	return &trailer, int(n) - off, nil
+	return &trailer, len(stream), nil
 }
 
 func uniqChildField(keys field.List) string {

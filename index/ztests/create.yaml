@@ -11,4 +11,4 @@ outputs:
   - name: stdout
     data: |
       {a:"hello"}
-      {magic:"zed_index",version:3,order:"asc",child_field:"_child",frame_thresh:32768,sections:[14],keys:[["a"]]}
+      {magic:"zed_index",version:3,order:"asc",child_field:"_child",frame_thresh:32768,sections:[18],keys:[["a"]]}

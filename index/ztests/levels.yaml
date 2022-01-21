@@ -11,19 +11,22 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {magic:"zed_index",version:3,order:"asc",child_field:"_child",frame_thresh:200,sections:[23835,34,396,3185],keys:[["s"]]}
+      {magic:"zed_index",version:3,order:"asc",child_field:"_child",frame_thresh:200,sections:[26133,64,523,3774],keys:[["s"]]}
       ===
       {s:"Algedi-pigeonman",_child:0}
-      {s:"Rupicola-overponderous",_child:220}
-      {s:"antiprohibitionist-sinusoid",_child:436}
-      {s:"caneology-preroyally",_child:662}
-      {s:"curatorship-bose",_child:870}
-      {s:"fontful-korymboi",_child:1082}
-      {s:"horizometer-misogamy",_child:1294}
-      {s:"laevotartaric-pseudohyoscyamine",_child:1501}
-      {s:"monumentally-Manihot",_child:1713}
-      {s:"palinode-penality",_child:1919}
-      {s:"predikant-tentorial",_child:2147}
-      {s:"roborant-ultraparallel",_child:2368}
-      {s:"sorediferous-iliocaudal",_child:2585}
-      {s:"tibourbou-crisper",_child:2808}
+      {s:"Olympionic-concurso",_child:223}
+      {s:"ammonate-amoeboid",_child:451}
+      {s:"betrend-trucidation",_child:675}
+      {s:"clingingness-temulent",_child:888}
+      {s:"dishwiper-washtray",_child:1108}
+      {s:"gephyrocercy-hypopygial",_child:1332}
+      {s:"humility-prolative",_child:1563}
+      {s:"kartometer-trifocal",_child:1788}
+      {s:"misceability-doodler",_child:2003}
+      {s:"otarine-proportionally",_child:2207}
+      {s:"phonestheme-boathead",_child:2420}
+      {s:"pseudembryo-frontsman",_child:2642}
+      {s:"sarcasticness-groovelike",_child:2856}
+      {s:"spherule-phlebenterism",_child:3083}
+      {s:"temperateness-trained",_child:3286}
+      {s:"undersparred-peatwood",_child:3502}

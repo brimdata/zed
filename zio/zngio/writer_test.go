@@ -21,24 +21,29 @@ func TestWriter(t *testing.T) {
 {_path:"xyz",ts:1970-01-01T00:00:20Z,d:1.5}
 `
 	expectedHex := `
-# define a record with 3 columns
-f6 03
+# types block, uncompressed, len = 1*16+0 = 16
+00 01
+# typedef record with 3 columns
+00 03
 # first column name is _path (len 5)
 05 5f 70 61 74 68
-# first column type is string (16)
-10
+# first column type is string (25)
+19
 # second column name is ts (len 2)
 02 74 73
-# second column type is time (9)
-09
+# second column type is time (13)
+0d
 # third column name is d (len 1)
 01 64
-# third column type is float64 (12)
-0c
-# value using type id 23 (0x17), the record defined above
-# total length of this recor is 17 bytes (0x11)
-17 11
-# first column is a 1-byte value
+# third column type is float64 (16)
+10
+# values block, uncompressed, len = 1*16+3 = 19 bytes
+13 01
+# value type id 30 (0x1e), the record type defined above
+1e
+# tag len of this record is 16+2-1=17 bytes
+12
+# first column is a primitive value, 2 total bytes
 02
 # value of the first column is the string "a"
 61
@@ -52,7 +57,10 @@ f6 03
 # 8 bytes of float64 data representing 1.0
 00 00 00 00 00 00 f0 3f
 # another encoded value using the same record definition as before
-17 13
+15 01
+1e
+# tag len = 16+3-1 = 19 bytes
+14
 # first column: primitive value of 4 total byte, values xyz
 04 78 79 7a
 # second column: primitive value of 20 (converted to nanoseconds, encoded <<1)

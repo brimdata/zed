@@ -14,7 +14,10 @@
 package zcode
 
 import (
+	"encoding/binary"
 	"errors"
+	"fmt"
+	"io"
 )
 
 var (
@@ -59,15 +62,36 @@ func AppendUvarint(dst []byte, u64 uint64) []byte {
 	return append(dst, byte(u64))
 }
 
-// sizeOfUvarint returns the number of bytes required by appendUvarint to
+// SizeOfUvarint returns the number of bytes required by appendUvarint to
 // represent u64.
-func sizeOfUvarint(u64 uint64) int {
+func SizeOfUvarint(u64 uint64) int {
 	n := 1
 	for u64 >= 0x80 {
 		n++
 		u64 >>= 7
 	}
 	return n
+}
+
+func ReadTag(r io.ByteReader) (int, error) {
+	// The tag is zero for a null value; otherwise, it is the value's
+	// length plus one.
+	u64, err := binary.ReadUvarint(r)
+	if err != nil {
+		return 0, err
+	}
+	if tagIsNull(u64) {
+		return -1, nil
+	}
+	return tagLength(u64), nil
+}
+
+func DecodeTagLength(b Bytes) int {
+	u64, n := binary.Uvarint(b)
+	if n <= 0 {
+		panic(fmt.Sprintf("bad uvarint: %d", n))
+	}
+	return int(u64) + n
 }
 
 func toTag(length int) uint64 {

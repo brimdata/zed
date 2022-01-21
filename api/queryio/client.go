@@ -27,8 +27,8 @@ func NewQuery(res *client.Response) *Query {
 func (q *Query) Read() (*zed.Value, error) {
 	val, ctrl, err := q.reader.ReadPayload()
 	if ctrl != nil {
-		if ctrl.Encoding != zed.AppEncodingZSON {
-			return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Encoding)
+		if ctrl.Format != zngio.ControlFormatZSON {
+			return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Format)
 		}
 		value, err := zson.ParseValue(zed.NewContext(), string(ctrl.Bytes))
 		if err != nil {

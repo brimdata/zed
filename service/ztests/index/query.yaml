@@ -37,7 +37,7 @@ outputs:
       {count:3(uint64)}
   - name: stderr
     data: |
-      {bytes_read:13,bytes_matched:5,records_read:3,records_matched:1}
+      {bytes_read:17,bytes_matched:5,records_read:1,records_matched:1}
       {bytes_read:5,bytes_matched:5,records_read:1,records_matched:1}
       {bytes_read:2,bytes_matched:2,records_read:1,records_matched:1}
       {bytes_read:6,bytes_matched:6,records_read:1,records_matched:1}

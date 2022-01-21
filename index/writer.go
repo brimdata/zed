@@ -313,12 +313,14 @@ func (w *indexWriter) Close() error {
 func (w *indexWriter) write(rec *zed.Value) error {
 	offset := w.zng.Position()
 	if offset >= w.frameEnd && w.frameKey != nil {
-		w.frameEnd = offset + int64(w.base.frameThresh)
 		// the frame in place is already big enough... flush it and
 		// start going on the next
 		if err := w.endFrame(); err != nil {
 			return err
 		}
+		// endFrame will close the frame which will reset
+		// frameStart
+		w.frameEnd = w.frameStart + int64(w.base.frameThresh)
 	}
 	if w.frameKey == nil {
 		// When we start a new frame, we want to create a key entry
@@ -333,7 +335,7 @@ func (w *indexWriter) write(rec *zed.Value) error {
 		if err != nil {
 			return err
 		}
-		w.frameKey = key
+		w.frameKey = key.Copy()
 	}
 	return w.zng.Write(rec)
 }
