@@ -188,7 +188,7 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 			// assumes a fixed record-type per log type, it is a little
 			// bit involved.  Since the Zeek team doesn't think this is
 			// important, we will let this be.
-			val = escapeZeekHex(val)
+			val = EscapeZeekHex(val)
 		}
 		b.Append(norm.NFC.Bytes(val))
 		return nil
