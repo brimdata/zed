@@ -48,10 +48,6 @@ func (t *TypeOfBool) String() string {
 	return "bool"
 }
 
-func (t *TypeOfBool) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeBool(zv)
-}
-
 func (t *TypeOfBool) Format(zv zcode.Bytes) string {
 	if DecodeBool(zv) {
 		return "true"

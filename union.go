@@ -40,14 +40,6 @@ func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	return inner, selector, it.Next(), nil
 }
 
-func (t *TypeUnion) Marshal(zv zcode.Bytes) interface{} {
-	inner, _, zv, err := t.SplitZNG(zv)
-	if err != nil {
-		panic(err)
-	}
-	return Value{inner, zv}
-}
-
 func (t *TypeUnion) String() string {
 	var ss []string
 	for _, typ := range t.Types {

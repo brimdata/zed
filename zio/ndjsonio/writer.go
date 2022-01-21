@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zio/jsonio"
 )
 
 // Writer implements a Formatter for ndjson
@@ -25,5 +26,5 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(rec *zed.Value) error {
-	return w.encoder.Encode(rec)
+	return w.encoder.Encode(jsonio.Marshal(rec))
 }

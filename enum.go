@@ -36,10 +36,6 @@ func (t *TypeEnum) Lookup(symbol string) int {
 	return -1
 }
 
-func (t *TypeEnum) Marshal(zv zcode.Bytes) interface{} {
-	return TypeUint64.Marshal(zv)
-}
-
 func (t *TypeEnum) String() string {
 	var b strings.Builder
 	b.WriteByte('<')

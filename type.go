@@ -26,7 +26,6 @@ var (
 // Types can be used to infer type compatibility and create new values
 // of the underlying type.
 type Type interface {
-	Marshal(zcode.Bytes) interface{}
 	// ID returns a unique (per Context) identifier that
 	// represents this type.  For an aliased type, this identifier
 	// represents the actual underlying type and not the alias itself.

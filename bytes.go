@@ -28,10 +28,6 @@ func (t *TypeOfBytes) String() string {
 	return "bytes"
 }
 
-func (t *TypeOfBytes) Marshal(zv zcode.Bytes) interface{} {
-	return t.Format(zv)
-}
-
 func (t *TypeOfBytes) Format(zv zcode.Bytes) string {
 	return "0x" + hex.EncodeToString(zv)
 }

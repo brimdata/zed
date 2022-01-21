@@ -28,10 +28,6 @@ func (t *TypeAlias) AliasID() int {
 	return t.id
 }
 
-func (t *TypeAlias) Marshal(zv zcode.Bytes) interface{} {
-	return t.Type.Marshal(zv)
-}
-
 func (t *TypeAlias) String() string {
 	return fmt.Sprintf("%s=(%s)", t.Name, t.Type)
 }

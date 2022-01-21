@@ -30,6 +30,7 @@ func TestNDJSONWriter(t *testing.T) {
 	type testcase struct {
 		name, input, output string
 	}
+	// XXX these should be ztests
 	cases := []testcase{
 		{
 			name:   "null containers",
@@ -42,9 +43,8 @@ func TestNDJSONWriter(t *testing.T) {
 			output: `{"san":{"dns":["google.com"],"email":null,"ip":null,"uri":null}}`,
 		},
 		{
-			name: "empty containers",
-			input: `{dns:["google.com"],uri:[]([string]),email:|[]|(|[string]|),ip:null([ip])}
-`,
+			name:   "empty containers",
+			input:  `{dns:["google.com"],uri:[]([string]),email:|[]|(|[string]|),ip:null([ip])}`,
 			output: `{"dns":["google.com"],"uri":[], "email":[],"ip":null}`,
 		},
 		{
