@@ -82,7 +82,7 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zed.Context, filter
 	if len(pullers) == 1 {
 		merger = pullers[0]
 	} else {
-		merger = merge.New(ctx, pullers, importCompareFn(zctx, pool))
+		merger = merge.New(ctx, pullers, importComparator(zctx, pool).Compare)
 	}
 	return &sortedPuller{
 		Puller: merger,

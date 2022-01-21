@@ -9,6 +9,82 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
+type Sorter struct {
+	items []*item
+}
+
+type item struct {
+	index    int32
+	tmp      zed.Value
+	val0     *zed.Value
+	val0i64  int64
+	val0null bool
+}
+
+func (s *Sorter) SortStable(vals []zed.Value, cmp *Comparator) {
+	if len(cmp.exprs) == 0 {
+		return
+	}
+	n := len(vals)
+	if cap(s.items) < n {
+		s.items = make([]*item, n)
+		items := make([]item, cap(s.items))
+		for i := range s.items[:cap(s.items)] {
+			s.items[i] = &items[i]
+		}
+	}
+	s.items = s.items[:n]
+	ectx := NewContext()
+	native := true
+	for i, item := range s.items {
+		item.index = int32(i)
+		item.val0 = cmp.exprs[0].Eval(ectx, &vals[i])
+		if native {
+			if val0 := item.val0; zed.IsSigned(val0.Type.ID()) {
+				item.val0i64 = zed.DecodeInt(val0.Bytes)
+				item.val0null = val0.IsNull()
+			} else {
+				native = false
+			}
+		}
+	}
+	sort.SliceStable(s.items, func(i, j int) bool {
+		if cmp.reverse {
+			i, j = j, i
+		}
+		iitem, jitem := s.items[i], s.items[j]
+		if native {
+			if inull, jnull := iitem.val0null, jitem.val0null; inull != jnull {
+				return inull && !cmp.nullsMax || jnull && cmp.nullsMax
+			}
+			if i64, j64 := iitem.val0i64, jitem.val0i64; i64 != j64 {
+				return i64 < j64
+			}
+		} else {
+			if v := compareValues(iitem.val0, jitem.val0, cmp.comparefns, &cmp.pair, cmp.nullsMax); v != 0 {
+				return v < 0
+			}
+		}
+		for _, k := range cmp.exprs[1:] {
+			a := k.Eval(ectx, &vals[iitem.index])
+			b := k.Eval(ectx, &vals[jitem.index])
+			if v := compareValues(a, b, cmp.comparefns, &cmp.pair, cmp.nullsMax); v != 0 {
+				return v < 0
+			}
+		}
+		return false
+	})
+	for i, item := range s.items {
+		if i < int(item.index) {
+			item.tmp = vals[i]
+			vals[i] = vals[item.index]
+		} else if i > int(item.index) {
+			item.tmp = vals[i]
+			vals[i] = s.items[item.index].tmp
+		}
+	}
+}
+
 type CompareFn func(a *zed.Value, b *zed.Value) int
 
 // NewCompareFn creates a function that compares two values a and b according to

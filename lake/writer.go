@@ -32,8 +32,9 @@ type Writer struct {
 	// buffer.  This can be later extended to pass a big bytes buffer
 	// back and forth where the bytes buffer holds all of the record
 	// data efficiently in one big backing store.
-	buffer chan []zed.Value
-
+	buffer      chan []zed.Value
+	comparator  *expr.Comparator
+	sorter      expr.Sorter
 	memBuffered int64
 	stats       ImportStats
 }
@@ -55,11 +56,12 @@ func NewWriter(ctx context.Context, zctx *zed.Context, pool *Pool) (*Writer, err
 	ch := make(chan []zed.Value, 1)
 	ch <- nil
 	return &Writer{
-		pool:     pool,
-		ctx:      ctx,
-		zctx:     zctx,
-		errgroup: g,
-		buffer:   ch,
+		pool:       pool,
+		ctx:        ctx,
+		zctx:       zctx,
+		errgroup:   g,
+		buffer:     ch,
+		comparator: importComparator(zctx, pool),
 	}, nil
 }
 
@@ -132,7 +134,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if !w.inputSorted {
 		done := make(chan struct{})
 		go func() {
-			expr.SortStable(recs, importCompareFn(w.zctx, w.pool))
+			w.sorter.SortStable(recs, w.comparator)
 			close(done)
 		}()
 		select {
@@ -196,10 +198,10 @@ func (s *ImportStats) Copy() ImportStats {
 	}
 }
 
-func importCompareFn(zctx *zed.Context, pool *Pool) expr.CompareFn {
+func importComparator(zctx *zed.Context, pool *Pool) *expr.Comparator {
 	layout := pool.Layout
 	layout.Keys = field.List{poolKey(layout)}
-	return zbuf.NewCompareFn(zctx, layout)
+	return zbuf.NewComparator(zctx, layout)
 }
 
 func poolKey(layout order.Layout) field.Path {
