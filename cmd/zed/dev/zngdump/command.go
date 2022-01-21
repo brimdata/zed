@@ -18,7 +18,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "zngdump",
 	Usage: "zngdump file",
-	Short: "prints framing information of ZNG",
+	Short: "print ZNG framing information",
 	Long: `
 This command is used for test and debug of the ZNG format.`,
 	New: New,
@@ -74,7 +74,7 @@ func (c *Command) Run(args []string) error {
 			continue
 		}
 		if (code & 0x80) != 0 {
-			return errors.New("zngio: encountered wrong version bit in framing")
+			return errors.New("encountered wrong version bit in ZNG framing")
 		}
 		switch typ := (code >> 4) & 3; typ {
 		case 0:

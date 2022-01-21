@@ -56,8 +56,8 @@ or otherwise rewritten to be merged in this fashion.
 
 ## 2. The ZNG Format
 
-A ZNG stream comprises a sequence of interleaved frames of data
-where a frame contains one of three types of data:
+A ZNG stream comprises a sequence of frames where
+each frame contains one of three types of data:
 _types_, _values_, or externally-defined _control_.
 
 A stream is punctuated by the end-of-stream value `0xff`.
@@ -65,45 +65,49 @@ A stream is punctuated by the end-of-stream value `0xff`.
 Each frame header includes a length field
 allowing an implementation to easily skip from frame to frame.
 
-Each frame begins with its version bit and a code indicating
-whether it is compressed or not:
+Each frame begins with a single-byte "frame code":
+```
+    7 6 5 4 5 3 1 0
+   +-+-+-+-+-+-+-+-+
+   |V|C|  T|      L|
+   +-+-+-+-+-+-+-+-+
 
-|    code    |  len    | body            |
-|------------|---------|-----------------|
-| `00xxxxxx` | uvarint | uncompressed data |
-| `01xxxxxx` | uvarint | compressed data |
+   V: 1 bit
+
+     Version number.  Must be zero.
+
+   C: 1 bit
+
+     Indicates compressed frame data.
+
+   T: 2 bits
+
+     Type of frame data.
+
+       00: Types
+       01: Values
+       10: Control
+       11: End of stream
+
+   L: 4 bits
+
+     Low-order bits of frame length.
+```
 
 Bit 7 of the frame code must be zero as it defines version 0
-of the ZNG stream format.  If a future version of ZNG ever
-arises, bit 7 of future ZNG frames will be 1 and that version
-will define the interpretation of such frames.  ZNG version 0
-readers must ignore and skip over such frames using the
+of the ZNG stream format.  If a future version of ZNG
+arises, bit 7 of future ZNG frames will be 1.
+ZNG version 0 readers must ignore and skip over such frames using the
 `len` field, which must survive future versions.
 Any future versions of ZNG must be able to integrate version 0 frames
 for backward compatibility.
 
-A frame of uncompressed data has the form:
-
-|    code    |  len    | body            |
-|------------|---------|-----------------|
-| `0000xxxx` | uvarint | types data   |
-| `0001xxxx` | uvarint | values data  |
-| `0010xxxx` | uvarint | control data |
-
-The frame `code` defines a version number and frame type,
-along with 4-bits enhancing the computed length
-as described below.
-
-Bit 6 is `0` for an uncompressed frame.
-
-Bits 5 and 4 indicate the frame type:
-values (`00`), typedefs (`01`), control (`10`),
-or end of stream (`11`).
-
-The length of the frame body exclusive of the code and frame length
-is encoded in part as a variable length unsigned integer referred
-to here as a `uvarint`.  The frame length is equal to the uvarint `len`
-times 8 plus the low 4-bit integer value of the `code`.
+Following the frame code is its encoded length followed by a "frame payload"
+of bytes of said length:
+```
+<frame code><uvarint><frame payload>
+```
+The length encoding utilizes a variable-length unsigned integer called herein a `uvarint`:
 
 > Inspired by Protocol Buffers,
 > a `uvarint` is an unsigned, variable-length integer encoded as a sequence of
@@ -112,33 +116,31 @@ times 8 plus the low 4-bit integer value of the `code`.
 > 7 bits of each byte from least-significant digit (byte 0) to
 > most-significant digit (byte N-1).
 
-A frame of compressed data has the form:
+The frame payload's length is equal to the value of the `uvarint` following the
+frame code times 16 plus the low 4-bit integer value `L` field in the frame code.
 
-|    code    |  len    | comp |  size   | body            |
-|------------|---------|------|---------|-----------------|
-| `0100xxxx` | uvarint | byte | uvarint | compressed types data   |
-| `0101xxxx` | uvarint | byte | uvarint | compressed values data  |
-| `0110xxxx` | uvarint | byte | uvarint | compressed control data |
+If the `C` bit is set in the frame code, then the frame payload following the
+frame length is compressed and has the form:
+```
+<format><size><compressed payload>
+```
+where
+* `<format>` is a single byte indicating the compression format of the the compressed payload,
+* `<size>` is a `uvarint` encoding the size of the uncompressed payload, and
+* `<compressed payload>` is a bytes sequence whose length equals
+the outer frame length less 1 byte for the compression format and the encoded length
+of the `uvarint` size field.
 
-Bit 6 is `1` for a compressed frame.
+The `compressed payload` is compressed according to the compression algorithm
+specified by the `format` byte.  Each message block is compressed independently
+such that the compression algorithm's state is not carried from block to block
+(thereby enabling parallel decoding).
 
-Bit 4 is the compression bit
-and is `0` for uncompressed frames and `1` for compressed frames.
-Here it is `1`.
-
-Note that bit 3 is set for compressed messages and clear for uncompressed messages.
-
-Here the `code`, `len` and `body` fields are encoded precisely the same as
-in uncompressed messages except
-the `body` is compressed according to the compression algorithm speficied by the
-`comp` byte.  Each message block is compressed indepedently meaning the compression
-algorithm's state is not carried from block to block.
-
-The size of the uncompressed data is encoded as a uvarint
-following the `comp` byte, which is useful to an implementation to deterministically
+The `<size>` value is redundant with the compressed payload
+but is useful to an implementation to deterministically
 size decompression buffers in advance of decoding.
 
-Values for `comp` byte are defined in the
+Values for the `format` byte are defined in the
 [ZNG compression format specification](./compression-spec.md).
 
 > This arrangement of message blocks separating types and values allows
@@ -153,6 +155,12 @@ Values for `comp` byte are defined in the
 > quick scan of the data perhaps using the Boyer-Moore algorithm to determine
 > that a comparison with a string constant would not work for any
 > value in the buffer.
+
+Whether the payload was originally uncompressed or was decompressed, it is
+then interpreted according to the `T` bits of the frame code as a
+* [types frame]((#21-types-frame)),
+* [values frame]((#22-values-frame)), or
+* [control frame](#23-control-frame).
 
 ### 2.1 Types Frame
 
