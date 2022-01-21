@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
+	"github.com/brimdata/zed/zio/zng21io"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zio/zstio"
@@ -28,6 +29,8 @@ func lookupReader(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Reader, 
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":
 		return zngio.NewReaderWithOpts(r, zctx, opts.ZNG), nil
+	case "zng21":
+		return zng21io.NewReaderWithOpts(r, zctx, opts.ZNG), nil
 	case "ndjson", "zson":
 		return zsonio.NewReader(r, zctx), nil
 	case "zst":

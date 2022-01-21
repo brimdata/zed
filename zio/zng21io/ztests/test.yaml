@@ -1,0 +1,37 @@
+script: zq -z -i zng21 -
+
+# This input made with "oldzq zio/zng21io/ztests/old.zson | base64 -b 70"
+# where oldzq is from the early December 2021 time frame.
+inputs:
+  - name: stdin
+    data: !!binary |
+      9gEBYQf8BHBvcnQH9gIBYRIBcBj5AgcQ9wf4B/sHEPca9gECdHYUAAEBAQEBAgEBAwEBBA
+      ECBQECBgECBwECEAVoZWxsbxEFd29ybGQRC2JpbmFyeQBqdW5rFQRiYW5nFwIEAhkHCoAg
+      AQEEoBoDAgT2GggEAgxoZWxsbxsGBAIEBAQGHAYEAgQEBAYdDAQCCGZvbwQECGJhch4NBw
+      IE9hEEAgxoZWxsbx8CBAQfCBAXBHBvcnQB/w==
+
+outputs:
+  - name: stdout
+    data: |
+      1(uint8)
+      1(uint16)
+      1(uint32)
+      1(uint64)
+      1(int8)
+      1(int16)
+      1(int32)
+      1
+      "hello"
+      "world"
+      "binary\u0000junk"
+      error("bang")
+      {a:1}
+      {a:128.32.1.1,p:80(=port)}
+      123((int64,string))
+      "hello"((int64,string))
+      [1,2,3]
+      |[1,2,3]|
+      |{1:"foo",2:"bar"}|
+      [123((int64,string)),"hello"((int64,string))]
+      {tv:<int8>}
+      {tv:<port=<uint16>>}

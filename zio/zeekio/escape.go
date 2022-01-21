@@ -28,7 +28,7 @@ func shouldEscape(r rune, inContainer bool) bool {
 
 const hexdigits = "0123456789abcdef"
 
-func escapeZeekHex(b []byte) []byte {
+func EscapeZeekHex(b []byte) []byte {
 	var out []byte
 	var start int
 	for i := 0; i < len(b); {
