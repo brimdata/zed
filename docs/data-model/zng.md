@@ -158,8 +158,8 @@ Values for the `format` byte are defined in the
 
 Whether the payload was originally uncompressed or was decompressed, it is
 then interpreted according to the `T` bits of the frame code as a
-* [types frame]((#21-types-frame)),
-* [values frame]((#22-values-frame)), or
+* [types frame](#21-types-frame),
+* [values frame](#22-values-frame), or
 * [control frame](#23-control-frame).
 
 ### 2.1 Types Frame
