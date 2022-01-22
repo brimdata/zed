@@ -13,9 +13,8 @@ func Marshal(val *zed.Value) interface{} {
 	return marshalAny(val.Type, val.Bytes)
 }
 
-type describe struct {
-	Kind  string      `json:"kind"`
-	Value interface{} `json:"value"`
+type zedErr struct {
+	Error interface{} `json:"error"`
 }
 
 func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
@@ -24,7 +23,7 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 	}
 	switch typ := typ.(type) {
 	case *zed.TypeAlias:
-		return &describe{Kind: typ.Name, Value: marshalAny(typ.Type, bytes)}
+		return marshalAny(typ.Type, bytes)
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
 		return zed.DecodeUint(bytes)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
@@ -61,6 +60,8 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 		return marshalUnion(typ, bytes)
 	case *zed.TypeEnum:
 		return marshalEnum(typ, bytes)
+	case *zed.TypeError:
+		return &zedErr{marshalAny(typ.Type, bytes)}
 	default:
 		return zson.MustFormatValue(*zed.NewValue(typ, bytes))
 	}

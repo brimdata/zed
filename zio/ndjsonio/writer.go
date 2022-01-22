@@ -25,6 +25,6 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
-	return w.encoder.Encode(jsonio.Marshal(rec))
+func (w *Writer) Write(val *zed.Value) error {
+	return w.encoder.Encode(jsonio.Marshal(val))
 }
