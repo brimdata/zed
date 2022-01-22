@@ -1,5 +1,3 @@
-skip: this test is annoying
-
 script: |
   source service.sh
   curl -X POST -d '{"name":"test"}' $ZED_LAKE/pool > pool.json
@@ -16,5 +14,5 @@ inputs:
 
 outputs:
   - name: stdout
-    regexp: |
-      {"kind":"api.CommitResponse","value":{"commit":"0x\w{40}","warnings":\[]}}
+    data: |
+      {"type":"Error","kind":"item does not exist","error":"missing: pool not found"}

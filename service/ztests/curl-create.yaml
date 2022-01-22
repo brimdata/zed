@@ -1,11 +1,9 @@
-skip: this test is annoying
-
 script: |
   source service.sh
   curl -X POST \
     -H "Accept: application/json" \
     -d '{"name": "test", "layout": { "order": "desc", "keys": [["ts"]] }}' \
-    $ZED_LAKE/pool | zq -Z -
+    $ZED_LAKE/pool | zq -Z "value.pool.value.ts:=0,value.pool.value.id.value:=0,value.branch.value.ts:=0" -
 
 inputs:
   - name: service.sh
@@ -13,55 +11,53 @@ inputs:
 
 outputs:
   - name: stdout
-    regexp: |
-        {.*
-            kind: "lake.BranchMeta",.*
-            value: {.*
-                branch: {.*
-                    kind: "branches.Config",.*
-                    value: {.*
-                        commit: {.*
-                            kind: "ksuid.KSUID",.*
-                            value: "0x\w{42}".*
-                        },.*
-                        name: "main",.*
-                        ts: "[0-9TZ:.\-]+".*
-                    }.*
-                },.*
-                pool: {.*
-                    kind: "pools.Config",.*
-                    value: {.*
-                        id: {.*
-                            kind: "ksuid.KSUID",.*
-                            value: "0x\w{42}".*
-                        },.*
-                        layout: {.*
-                            kind: "order.Layout",.*
-                            value: {.*
-                                keys: {.*
-                                    kind: "field.List",.*
-                                    value: [.*
-                                        {.*
-                                            kind: "field.Path",.*
-                                            value: [.*
-                                                "ts".*
-                                            ].*
-                                        }.*
-                                    ].*
-                                },.*
-                                order: {.*
-                                    kind: "order.Which",.*
-                                    value: "desc".*
-                                }.*
-                            }.*
-                        },.*
-                        name: "test",.*
-                        seek_stride: 65536,.*
-                        threshold: 524288000,.*
-                        ts: "[0-9TZ:.\-]+".*
-                    }.*
-                }.*
-            }.*
-        }.*
-
-#      \{"kind":"lake.BranchMeta","value":\{"branch":\{"commit":"\w{42}","name":"main","ts":"[0-9TZ:.\-]+"\},"pool":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"test","seek_stride":65536,"threshold":524288000,"ts":"[0-9TZ:.\-]+"\}\}\}
+    data: |
+      {
+          kind: "lake.BranchMeta",
+          value: {
+              branch: {
+                  kind: "branches.Config",
+                  value: {
+                      commit: {
+                          kind: "ksuid.KSUID",
+                          value: "0x0000000000000000000000000000000000000000"
+                      },
+                      name: "main",
+                      ts: 0
+                  }
+              },
+              pool: {
+                  kind: "pools.Config",
+                  value: {
+                      id: {
+                          kind: "ksuid.KSUID",
+                          value: 0
+                      },
+                      layout: {
+                          kind: "order.Layout",
+                          value: {
+                              keys: {
+                                  kind: "field.List",
+                                  value: [
+                                      {
+                                          kind: "field.Path",
+                                          value: [
+                                              "ts"
+                                          ]
+                                      }
+                                  ]
+                              },
+                              order: {
+                                  kind: "order.Which",
+                                  value: "desc"
+                              }
+                          }
+                      },
+                      name: "test",
+                      seek_stride: 65536,
+                      threshold: 524288000,
+                      ts: 0
+                  }
+              }
+          }
+      }
