@@ -1,7 +1,7 @@
 script: |
   source service.sh
   curl -X POST -d '{"name":"test"}' $ZED_LAKE/pool > pool.json
-  poolID=$(zq -f text 'cut value.pool.value.id.value' pool.json)
+  poolID=$(zq -f text 'cut pool.id' pool.json)
   curl -X POST -d @- $ZED_LAKE/pool/$poolID/branch/main > load.json
   curl $ZED_LAKE/pool/$poolID/stats
 
@@ -13,4 +13,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {"kind":"lake.PoolStats","value":{"size":34425,"span":{"kind":"nano.Span","value":{"dur":{"kind":"nano.Duration","value":9789993714061},"ts":"2020-04-21T22:40:30.06852324Z"}}}}
+      {"size":34425,"span":{"dur":9789993714061,"ts":"2020-04-21T22:40:30.06852324Z"}}
