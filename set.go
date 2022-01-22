@@ -2,9 +2,7 @@ package zed
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/brimdata/zed/zcode"
 )
@@ -22,26 +20,8 @@ func (t *TypeSet) ID() int {
 	return t.id
 }
 
-func (t *TypeSet) String() string {
-	return fmt.Sprintf("|[%s]|", t.Type)
-}
-
-func (t *TypeSet) Format(zv zcode.Bytes) string {
-	var b strings.Builder
-	b.WriteString("|[")
-	sep := ""
-	it := zv.Iter()
-	for !it.Done() {
-		b.WriteString(sep)
-		if val := it.Next(); val == nil {
-			b.WriteString("null")
-		} else {
-			b.WriteString(t.Type.Format(val))
-		}
-		sep = ","
-	}
-	b.WriteString("]|")
-	return b.String()
+func (t *TypeSet) Kind() string {
+	return "set"
 }
 
 // NormalizeSet interprets zv as a set body and returns an equivalent set body

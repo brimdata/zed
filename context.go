@@ -1,6 +1,7 @@
 package zed
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
@@ -324,7 +325,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 	tv = tv[1:]
 	switch id {
 	case TypeValueNameDef:
-		name, tv := decodeName(tv)
+		name, tv := DecodeName(tv)
 		if tv == nil {
 			return nil, nil
 		}
@@ -339,7 +340,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return alias, tv
 	case TypeValueNameRef:
-		name, tv := decodeName(tv)
+		name, tv := DecodeName(tv)
 		if tv == nil {
 			return nil, nil
 		}
@@ -349,14 +350,14 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	case TypeValueRecord:
-		n, tv := decodeInt(tv)
+		n, tv := DecodeLength(tv)
 		if tv == nil || n > MaxColumns {
 			return nil, nil
 		}
 		cols := make([]Column, 0, n)
 		for k := 0; k < n; k++ {
 			var name string
-			name, tv = decodeName(tv)
+			name, tv = DecodeName(tv)
 			if tv == nil {
 				return nil, nil
 			}
@@ -407,7 +408,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	case TypeValueUnion:
-		n, tv := decodeInt(tv)
+		n, tv := DecodeLength(tv)
 		if tv == nil || n > MaxUnionTypes {
 			return nil, nil
 		}
@@ -423,14 +424,14 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	case TypeValueEnum:
-		n, tv := decodeInt(tv)
+		n, tv := DecodeLength(tv)
 		if tv == nil || n > MaxEnumSymbols {
 			return nil, nil
 		}
 		var symbols []string
 		for k := 0; k < n; k++ {
 			var symbol string
-			symbol, tv = decodeName(tv)
+			symbol, tv = DecodeName(tv)
 			if tv == nil {
 				return nil, nil
 			}
@@ -462,6 +463,25 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	}
+}
+
+func DecodeName(tv zcode.Bytes) (string, zcode.Bytes) {
+	namelen, tv := DecodeLength(tv)
+	if tv == nil || int(namelen) > len(tv) {
+		return "", nil
+	}
+	return string(tv[:namelen]), tv[namelen:]
+}
+
+func DecodeLength(tv zcode.Bytes) (int, zcode.Bytes) {
+	if len(tv) < 0 {
+		return 0, nil
+	}
+	namelen, n := binary.Uvarint(tv)
+	if n <= 0 {
+		return 0, nil
+	}
+	return int(namelen), tv[n:]
 }
 
 func (c *Context) Missing() *Value {

@@ -44,13 +44,6 @@ func (t *TypeOfBool) ID() int {
 	return IDBool
 }
 
-func (t *TypeOfBool) String() string {
-	return "bool"
-}
-
-func (t *TypeOfBool) Format(zv zcode.Bytes) string {
-	if DecodeBool(zv) {
-		return "true"
-	}
-	return "false"
+func (t *TypeOfBool) Kind() string {
+	return "primitive"
 }

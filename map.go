@@ -2,9 +2,7 @@ package zed
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/brimdata/zed/zcode"
 )
@@ -23,8 +21,8 @@ func (t *TypeMap) ID() int {
 	return t.id
 }
 
-func (t *TypeMap) String() string {
-	return fmt.Sprintf("|{%s:%s|}", t.KeyType, t.ValType)
+func (t *TypeMap) Kind() string {
+	return "map"
 }
 
 func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
@@ -68,23 +66,4 @@ func NormalizeMap(zv zcode.Bytes) zcode.Bytes {
 		}
 	}
 	return norm
-}
-
-func (t *TypeMap) Format(zv zcode.Bytes) string {
-	var b strings.Builder
-	it := zv.Iter()
-	b.WriteString("|{")
-	sep := ""
-	for !it.Done() {
-		b.WriteString(sep)
-		b.WriteByte('{')
-		b.WriteString(t.KeyType.Format(it.Next()))
-		b.WriteByte(',')
-		b.WriteString(t.ValType.Format(it.Next()))
-		b.WriteByte('}')
-		b.WriteString(sep)
-		sep = ","
-	}
-	b.WriteString("}|")
-	return b.String()
 }

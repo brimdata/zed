@@ -1,8 +1,6 @@
 package zed
 
 import (
-	"time"
-
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 )
@@ -31,10 +29,6 @@ func (t *TypeOfTime) ID() int {
 	return IDTime
 }
 
-func (t *TypeOfTime) String() string {
-	return "time"
-}
-
-func (t *TypeOfTime) Format(zv zcode.Bytes) string {
-	return DecodeTime(zv).Time().Format(time.RFC3339Nano)
+func (t *TypeOfTime) Kind() string {
+	return "primitive"
 }

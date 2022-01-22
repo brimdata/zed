@@ -1,12 +1,5 @@
 package zed
 
-import (
-	"errors"
-	"strings"
-
-	"github.com/brimdata/zed/zcode"
-)
-
 type TypeEnum struct {
 	id      int
 	Symbols []string
@@ -36,23 +29,6 @@ func (t *TypeEnum) Lookup(symbol string) int {
 	return -1
 }
 
-func (t *TypeEnum) String() string {
-	var b strings.Builder
-	b.WriteByte('<')
-	for k, s := range t.Symbols {
-		if k > 0 {
-			b.WriteByte(',')
-		}
-		b.WriteString(QuotedName(s))
-	}
-	b.WriteByte('>')
-	return b.String()
-}
-
-func (t *TypeEnum) Format(zv zcode.Bytes) string {
-	id := DecodeUint(zv)
-	if id >= uint64(len(t.Symbols)) {
-		return badZNG(errors.New("enum index out of range"), t, zv)
-	}
-	return t.Symbols[id]
+func (t *TypeEnum) Kind() string {
+	return "enum"
 }

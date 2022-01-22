@@ -477,7 +477,7 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 		// XXX GC
 		return ectx.NewValue(typ, zed.EncodeString(v1+v2))
 	}
-	return ectx.CopyValue(*a.zctx.NewErrorf("type %s incompatible with '+' operator", typ))
+	return ectx.CopyValue(*a.zctx.NewErrorf("type %s incompatible with '+' operator", zson.FormatType(typ)))
 }
 
 func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -500,7 +500,7 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 		v1, v2 := s.operands.uints()
 		return ectx.NewValue(typ, zed.EncodeUint(v1-v2))
 	}
-	return ectx.CopyValue(*s.zctx.NewErrorf("type %s incompatible with '-' operator", typ))
+	return ectx.CopyValue(*s.zctx.NewErrorf("type %s incompatible with '-' operator", zson.FormatType(typ)))
 }
 
 func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -523,7 +523,7 @@ func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 		v1, v2 := m.operands.uints()
 		return ectx.NewValue(typ, zed.EncodeUint(v1*v2))
 	}
-	return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '*' operator", typ))
+	return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '*' operator", zson.FormatType(typ)))
 }
 
 func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -555,7 +555,7 @@ func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(typ, zed.EncodeUint(v1/v2))
 	}
-	return ectx.CopyValue(*d.zctx.NewErrorf("type %s incompatible with '/' operator", typ))
+	return ectx.CopyValue(*d.zctx.NewErrorf("type %s incompatible with '/' operator", zson.FormatType(typ)))
 }
 
 func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -568,7 +568,7 @@ func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	if zed.IsFloat(id) || !zed.IsNumber(id) {
-		return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '%%' operator", typ))
+		return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '%%' operator", zson.FormatType(typ)))
 	}
 	if zed.IsSigned(id) {
 		x, y := m.operands.ints()
