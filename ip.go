@@ -42,10 +42,6 @@ func (t *TypeOfIP) String() string {
 	return "ip"
 }
 
-func (t *TypeOfIP) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeIP(zv).String()
-}
-
 func (t *TypeOfIP) Format(zb zcode.Bytes) string {
 	return DecodeIP(zb).String()
 }

@@ -14,10 +14,6 @@ func (t *TypeOfNull) String() string {
 	return "null"
 }
 
-func (t *TypeOfNull) Marshal(zcode.Bytes) interface{} {
-	return nil
-}
-
 func (t *TypeOfNull) Format(zcode.Bytes) string {
 	return "null"
 }

@@ -48,10 +48,6 @@ func (t *TypeOfInt8) String() string {
 	return "int8"
 }
 
-func (t *TypeOfInt8) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeInt(zv)
-}
-
 func (t *TypeOfInt8) Format(zv zcode.Bytes) string {
 	return strconv.FormatInt(DecodeInt(zv), 10)
 }
@@ -64,10 +60,6 @@ func (t *TypeOfUint8) ID() int {
 
 func (t *TypeOfUint8) String() string {
 	return "uint8"
-}
-
-func (t *TypeOfUint8) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeUint(zv)
 }
 
 func (t *TypeOfUint8) Format(zv zcode.Bytes) string {
@@ -84,10 +76,6 @@ func (t *TypeOfInt16) String() string {
 	return "int16"
 }
 
-func (t *TypeOfInt16) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeInt(zv)
-}
-
 func (t *TypeOfInt16) Format(zv zcode.Bytes) string {
 	return strconv.FormatInt(DecodeInt(zv), 10)
 }
@@ -100,10 +88,6 @@ func (t *TypeOfUint16) ID() int {
 
 func (t *TypeOfUint16) String() string {
 	return "uint16"
-}
-
-func (t *TypeOfUint16) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeUint(zv)
 }
 
 func (t *TypeOfUint16) Format(zv zcode.Bytes) string {
@@ -120,10 +104,6 @@ func (t *TypeOfInt32) String() string {
 	return "int32"
 }
 
-func (t *TypeOfInt32) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeInt(zv)
-}
-
 func (t *TypeOfInt32) Format(zv zcode.Bytes) string {
 	return strconv.FormatInt(DecodeInt(zv), 10)
 }
@@ -136,10 +116,6 @@ func (t *TypeOfUint32) ID() int {
 
 func (t *TypeOfUint32) String() string {
 	return "uint32"
-}
-
-func (t *TypeOfUint32) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeUint(zv)
 }
 
 func (t *TypeOfUint32) Format(zv zcode.Bytes) string {
@@ -156,10 +132,6 @@ func (t *TypeOfInt64) String() string {
 	return "int64"
 }
 
-func (t *TypeOfInt64) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeInt(zv)
-}
-
 func (t *TypeOfInt64) Format(zv zcode.Bytes) string {
 	return strconv.FormatInt(DecodeInt(zv), 10)
 }
@@ -172,10 +144,6 @@ func (t *TypeOfUint64) ID() int {
 
 func (t *TypeOfUint64) String() string {
 	return "uint64"
-}
-
-func (t *TypeOfUint64) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeUint(zv)
 }
 
 func (t *TypeOfUint64) Format(zv zcode.Bytes) string {

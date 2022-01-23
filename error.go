@@ -50,10 +50,6 @@ func (t *TypeError) String() string {
 	return fmt.Sprintf("error<%s>", t.Type)
 }
 
-func (t *TypeError) Marshal(zv zcode.Bytes) interface{} {
-	return map[string]interface{}{"error": t.Type.Marshal(zv)}
-}
-
 func (t *TypeError) Format(zv zcode.Bytes) string {
 	return fmt.Sprintf("error(%s)", t.Type.Format(zv))
 }

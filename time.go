@@ -35,10 +35,6 @@ func (t *TypeOfTime) String() string {
 	return "time"
 }
 
-func (t *TypeOfTime) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeTime(zv).Time().Format(time.RFC3339Nano)
-}
-
 func (t *TypeOfTime) Format(zv zcode.Bytes) string {
 	return DecodeTime(zv).Time().Format(time.RFC3339Nano)
 }

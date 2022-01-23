@@ -55,10 +55,6 @@ func (t *TypeOfNet) String() string {
 	return "net"
 }
 
-func (t *TypeOfNet) Marshal(zb zcode.Bytes) interface{} {
-	return DecodeNet(zb).String()
-}
-
 func (t *TypeOfNet) Format(zb zcode.Bytes) string {
 	return DecodeNet(zb).String()
 }

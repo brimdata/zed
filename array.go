@@ -24,16 +24,6 @@ func (t *TypeArray) String() string {
 	return fmt.Sprintf("[%s]", t.Type)
 }
 
-func (t *TypeArray) Marshal(zv zcode.Bytes) interface{} {
-	// start out with zero-length container so we get "[]" instead of nil
-	vals := []*Value{}
-	it := zv.Iter()
-	for !it.Done() {
-		vals = append(vals, &Value{t.Type, it.Next()})
-	}
-	return vals
-}
-
 func (t *TypeArray) Format(zv zcode.Bytes) string {
 	var b strings.Builder
 	sep := ""
