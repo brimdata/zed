@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed/cmd/zed/dev/zst"
 	_ "github.com/brimdata/zed/cmd/zed/dev/zst/create"
 	_ "github.com/brimdata/zed/cmd/zed/dev/zst/cut"
-	_ "github.com/brimdata/zed/cmd/zed/dev/zst/inspect"
 	_ "github.com/brimdata/zed/cmd/zed/dev/zst/read"
 	"github.com/brimdata/zed/cmd/zed/root"
 )

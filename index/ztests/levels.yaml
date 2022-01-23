@@ -1,8 +1,8 @@
 script: |
   zed dev indexfile create -o index.zng -k s -f 200 babble.zson
-  zed dev indexfile section -z -trailer index.zng
+  zed dev dig trailer -Z index.zng
   echo ===
-  zed dev indexfile section -z -s 2 index.zng
+  zed dev dig section -z 2 index.zng
 
 inputs:
   - name: babble.zson
@@ -11,7 +11,27 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {magic:"zed_index",version:3,order:"asc",child_field:"_child",frame_thresh:200,sections:[26133,64,523,3774],keys:[["s"]]}
+      {
+          magic: "ZNG Trailer",
+          type: "index",
+          version: 4,
+          sections: [
+              26133,
+              64,
+              523,
+              3774
+          ],
+          meta: {
+              order: "asc" (=order.Which),
+              child_field: "_child",
+              frame_thresh: 200,
+              keys: [
+                  [
+                      "s"
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=index.FileMeta)
+      } (=zngio.Trailer)
       ===
       {s:"Algedi-pigeonman",_child:0}
       {s:"Olympionic-concurso",_child:223}

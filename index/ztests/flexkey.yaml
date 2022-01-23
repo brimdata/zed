@@ -3,7 +3,7 @@ script: |
   # -x says input keys already sorted and don't create new base records
   zed dev indexfile convert -f 20000 -o index.zng -k key tmp.zng
   # 50 not in index
-  zed dev indexfile section -z -s 1 index.zng
+  zed dev dig section -z 1 index.zng
   echo ===
   zed dev indexfile lookup -z -k \"wailer-strick\" index.zng
   echo ===

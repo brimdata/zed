@@ -217,12 +217,12 @@ func (w *Writer) writeEmptyTrailer() error {
 	return writeTrailer(zw, w.zctx, w.skewThresh, w.segThresh, nil)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *zed.Context, skewThresh, segThresh int, sizes []int64) error {
-	rec, err := newTrailerRecord(zctx, skewThresh, segThresh, sizes)
+func writeTrailer(w *zngio.Writer, zctx *zed.Context, skewThresh, segThresh int, sections []int64) error {
+	val, err := zngio.MarshalTrailer("zst", Version, sections, &FileMeta{skewThresh, segThresh})
 	if err != nil {
 		return err
 	}
-	if err := w.Write(rec); err != nil {
+	if err := w.Write(&val); err != nil {
 		return err
 	}
 	return w.EndStream()

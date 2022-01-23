@@ -47,7 +47,7 @@ func (f *FinderReader) Read() (*zed.Value, error) {
 			return nil, err
 		}
 	}
-	return lookup(f.reader, f.compare, f.finder.trailer.Order, EQL)
+	return lookup(f.reader, f.compare, f.finder.meta.Order, EQL)
 }
 
 func (f *FinderReader) Close() error {

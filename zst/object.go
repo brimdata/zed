@@ -45,28 +45,30 @@ type Object struct {
 	closer   io.Closer
 	zctx     *zed.Context
 	assembly *Assembly
-	trailer  *Trailer
+	meta     FileMeta
+	sections []int64
 	size     int64
 	builder  zcode.Builder
 	err      error
 }
 
 func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error) {
-	trailer, err := readTrailer(s, size)
+	meta, sections, err := readTrailer(s, size)
 	if err != nil {
 		return nil, err
 	}
-	if trailer.SkewThresh > MaxSkewThresh {
-		return nil, fmt.Errorf("skew threshold too large (%d)", trailer.SkewThresh)
+	if meta.SkewThresh > MaxSkewThresh {
+		return nil, fmt.Errorf("skew threshold too large (%d)", meta.SkewThresh)
 	}
-	if trailer.SegmentThresh > MaxSegmentThresh {
-		return nil, fmt.Errorf("column threshold too large (%d)", trailer.SegmentThresh)
+	if meta.SegmentThresh > MaxSegmentThresh {
+		return nil, fmt.Errorf("column threshold too large (%d)", meta.SegmentThresh)
 	}
 	o := &Object{
-		seeker:  s,
-		zctx:    zctx,
-		size:    size,
-		trailer: trailer,
+		seeker:   s,
+		zctx:     zctx,
+		meta:     *meta,
+		sections: sections,
+		size:     size,
 	}
 	o.assembly, err = o.readAssembly()
 	return o, err
@@ -112,10 +114,7 @@ func (o *Object) Close() error {
 }
 
 func (o *Object) IsEmpty() bool {
-	if o.trailer == nil {
-		panic("IsEmpty called on a Reader with an error")
-	}
-	return o.trailer.Sections == nil
+	return o.sections == nil
 }
 
 func (o *Object) readAssembly() (*Assembly, error) {
@@ -168,9 +167,9 @@ func (o *Object) readAssembly() (*Assembly, error) {
 func (o *Object) section(level int) (int64, int64) {
 	off := int64(0)
 	for k := 0; k < level; k++ {
-		off += o.trailer.Sections[k]
+		off += o.sections[k]
 	}
-	return off, o.trailer.Sections[level]
+	return off, o.sections[level]
 }
 
 func (o *Object) newSectionReader(level int, sectionOff int64) zio.Reader {
@@ -183,11 +182,4 @@ func (o *Object) newSectionReader(level int, sectionOff int64) zio.Reader {
 
 func (o *Object) NewReassemblyReader() zio.Reader {
 	return o.newSectionReader(1, 0)
-}
-
-func (o *Object) NewTrailerReader() zio.Reader {
-	len := o.trailer.Length
-	off := o.size - int64(len)
-	reader := io.NewSectionReader(o.seeker, off, int64(len))
-	return zngio.NewReaderWithOpts(reader, o.zctx, zngio.ReaderOpts{Size: len})
 }

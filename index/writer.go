@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 // Writer implements the zio.Writer interface. A Writer creates a Zed index,
@@ -257,21 +256,18 @@ func (w *Writer) finalize() error {
 	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keyer.Keys(), w.order)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameThresh int, sizes []int64, keys field.List, o order.Which) error {
-	t := Trailer{
+func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameThresh int, sections []int64, keys field.List, o order.Which) error {
+	meta := &FileMeta{
 		ChildOffsetField: childField,
 		FrameThresh:      frameThresh,
 		Keys:             keys,
-		Magic:            Magic,
 		Order:            o,
-		Sections:         sizes,
-		Version:          Version,
 	}
-	rec, err := zson.NewZNGMarshalerWithContext(zctx).MarshalRecord(t)
+	val, err := zngio.MarshalTrailer(FileType, Version, sections, meta)
 	if err != nil {
 		return err
 	}
-	if err := w.Write(rec); err != nil {
+	if err := w.Write(&val); err != nil {
 		return err
 	}
 	return w.EndStream()
