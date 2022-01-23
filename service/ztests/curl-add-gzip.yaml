@@ -1,8 +1,8 @@
 script: |
   source service.sh
   curl -X POST -d '{"name":"test"}' $ZED_LAKE/pool > pool.json
-  poolID=$(zq -f text "cut value.pool.id" pool.json)
-  curl -X POST --data-binary @- $ZED_LAKE/pool/$poolID/branch/main
+  poolID=$(zq -f text "cut pool.id" pool.json)
+  curl -X POST --data-binary @- $ZED_LAKE/pool/$poolID/branch/main | zq -z "commit:=0" -
 
 inputs:
   - name: stdin
@@ -15,4 +15,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {"type":"Error","kind":"item does not exist","error":"missing: pool not found"}
+      {commit:0,warnings:[]([null])}

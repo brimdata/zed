@@ -13,10 +13,6 @@ func Marshal(val *zed.Value) interface{} {
 	return marshalAny(val.Type, val.Bytes)
 }
 
-type zedErr struct {
-	Error interface{} `json:"error"`
-}
-
 func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 	if bytes == nil {
 		return nil
@@ -61,7 +57,7 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 	case *zed.TypeEnum:
 		return marshalEnum(typ, bytes)
 	case *zed.TypeError:
-		return &zedErr{marshalAny(typ.Type, bytes)}
+		return map[string]interface{}{"error": marshalAny(typ.Type, bytes)}
 	default:
 		return zson.MustFormatValue(*zed.NewValue(typ, bytes))
 	}
