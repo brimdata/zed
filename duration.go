@@ -27,6 +27,6 @@ func (t *TypeOfDuration) ID() int {
 	return IDDuration
 }
 
-func (t *TypeOfDuration) Kind() string {
-	return "primitive"
+func (t *TypeOfDuration) Kind() Kind {
+	return PrimitiveKind
 }

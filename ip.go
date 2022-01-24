@@ -38,6 +38,6 @@ func (t *TypeOfIP) ID() int {
 	return IDIP
 }
 
-func (t *TypeOfIP) Kind() string {
-	return "primitve"
+func (t *TypeOfIP) Kind() Kind {
+	return PrimitiveKind
 }

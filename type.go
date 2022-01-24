@@ -32,7 +32,43 @@ type Type interface {
 	// example should prefer to use this instead of using the go
 	// .(type) operator on a Type instance.
 	ID() int
-	Kind() string
+	Kind() Kind
+}
+
+type Kind int
+
+const (
+	PrimitiveKind Kind = iota
+	RecordKind
+	ArrayKind
+	SetKind
+	MapKind
+	UnionKind
+	EnumKind
+	ErrorKind
+)
+
+func (k Kind) String() string {
+	switch k {
+	case PrimitiveKind:
+		return "primitive"
+	case RecordKind:
+		return "record"
+	case ArrayKind:
+		return "array"
+	case SetKind:
+		return "set"
+	case MapKind:
+		return "map"
+	case UnionKind:
+		return "union"
+	case EnumKind:
+		return "enum"
+	case ErrorKind:
+		return "error"
+	default:
+		return fmt.Sprintf("<unknown kind: %d>", k)
+	}
 }
 
 var (

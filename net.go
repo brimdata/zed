@@ -51,6 +51,6 @@ func (t *TypeOfNet) ID() int {
 	return IDNet
 }
 
-func (t *TypeOfNet) Kind() string {
-	return "primitive"
+func (t *TypeOfNet) Kind() Kind {
+	return PrimitiveKind
 }

@@ -13,6 +13,6 @@ func (t *TypeArray) ID() int {
 	return t.id
 }
 
-func (t *TypeArray) Kind() string {
-	return "array"
+func (t *TypeArray) Kind() Kind {
+	return ArrayKind
 }

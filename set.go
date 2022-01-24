@@ -20,8 +20,8 @@ func (t *TypeSet) ID() int {
 	return t.id
 }
 
-func (t *TypeSet) Kind() string {
-	return "set"
+func (t *TypeSet) Kind() Kind {
+	return SetKind
 }
 
 // NormalizeSet interprets zv as a set body and returns an equivalent set body

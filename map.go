@@ -21,8 +21,8 @@ func (t *TypeMap) ID() int {
 	return t.id
 }
 
-func (t *TypeMap) Kind() string {
-	return "map"
+func (t *TypeMap) Kind() Kind {
+	return MapKind
 }
 
 func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {

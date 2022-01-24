@@ -22,7 +22,7 @@ func (t *TypeAlias) AliasID() int {
 	return t.id
 }
 
-func (t *TypeAlias) Kind() string {
+func (t *TypeAlias) Kind() Kind {
 	return t.Type.Kind()
 }
 

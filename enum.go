@@ -29,6 +29,6 @@ func (t *TypeEnum) Lookup(symbol string) int {
 	return -1
 }
 
-func (t *TypeEnum) Kind() string {
-	return "enum"
+func (t *TypeEnum) Kind() Kind {
+	return EnumKind
 }

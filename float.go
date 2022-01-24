@@ -49,8 +49,8 @@ func (t *TypeOfFloat32) ID() int {
 	return IDFloat32
 }
 
-func (t *TypeOfFloat32) Kind() string {
-	return "primitive"
+func (t *TypeOfFloat32) Kind() Kind {
+	return PrimitiveKind
 }
 
 func (t *TypeOfFloat32) Marshal(zb zcode.Bytes) interface{} {
@@ -84,8 +84,8 @@ func (t *TypeOfFloat64) ID() int {
 	return IDFloat64
 }
 
-func (t *TypeOfFloat64) Kind() string {
-	return "primitive"
+func (t *TypeOfFloat64) Kind() Kind {
+	return PrimitiveKind
 }
 
 func (t *TypeOfFloat64) Marshal(zv zcode.Bytes) interface{} {

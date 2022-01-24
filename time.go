@@ -29,6 +29,6 @@ func (t *TypeOfTime) ID() int {
 	return IDTime
 }
 
-func (t *TypeOfTime) Kind() string {
-	return "primitive"
+func (t *TypeOfTime) Kind() Kind {
+	return PrimitiveKind
 }

@@ -37,8 +37,8 @@ func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	return inner, selector, it.Next(), nil
 }
 
-func (t *TypeUnion) Kind() string {
-	return "union"
+func (t *TypeUnion) Kind() Kind {
+	return UnionKind
 }
 
 // BuildUnion appends to b a union described by selector and val.

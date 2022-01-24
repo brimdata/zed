@@ -42,8 +42,8 @@ func (t *TypeOfInt8) ID() int {
 	return IDInt8
 }
 
-func (t *TypeOfInt8) Kind() string {
-	return "primitive"
+func (t *TypeOfInt8) Kind() Kind {
+	return PrimitiveKind
 }
 
 type TypeOfUint8 struct{}
@@ -52,8 +52,8 @@ func (t *TypeOfUint8) ID() int {
 	return IDUint8
 }
 
-func (t *TypeOfUint8) Kind() string {
-	return "primitive"
+func (t *TypeOfUint8) Kind() Kind {
+	return PrimitiveKind
 }
 
 type TypeOfInt16 struct{}
@@ -62,8 +62,8 @@ func (t *TypeOfInt16) ID() int {
 	return IDInt16
 }
 
-func (t *TypeOfInt16) Kind() string {
-	return "primitive"
+func (t *TypeOfInt16) Kind() Kind {
+	return PrimitiveKind
 }
 
 type TypeOfUint16 struct{}
@@ -72,8 +72,8 @@ func (t *TypeOfUint16) ID() int {
 	return IDUint16
 }
 
-func (t *TypeOfUint16) Kind() string {
-	return "primitive"
+func (t *TypeOfUint16) Kind() Kind {
+	return PrimitiveKind
 }
 
 type TypeOfInt32 struct{}
@@ -82,8 +82,8 @@ func (t *TypeOfInt32) ID() int {
 	return IDInt32
 }
 
-func (t *TypeOfInt32) Kind() string {
-	return "primitive"
+func (t *TypeOfInt32) Kind() Kind {
+	return PrimitiveKind
 }
 
 type TypeOfUint32 struct{}
@@ -92,8 +92,8 @@ func (t *TypeOfUint32) ID() int {
 	return IDUint32
 }
 
-func (t *TypeOfUint32) Kind() string {
-	return "primitive"
+func (t *TypeOfUint32) Kind() Kind {
+	return PrimitiveKind
 }
 
 type TypeOfInt64 struct{}
@@ -102,8 +102,8 @@ func (t *TypeOfInt64) ID() int {
 	return IDInt64
 }
 
-func (t *TypeOfInt64) Kind() string {
-	return "primitive"
+func (t *TypeOfInt64) Kind() Kind {
+	return PrimitiveKind
 }
 
 type TypeOfUint64 struct{}
@@ -112,6 +112,6 @@ func (t *TypeOfUint64) ID() int {
 	return IDUint64
 }
 
-func (t *TypeOfUint64) Kind() string {
-	return "primitive"
+func (t *TypeOfUint64) Kind() Kind {
+	return PrimitiveKind
 }

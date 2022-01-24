@@ -10,8 +10,8 @@ func (t *TypeOfType) ID() int {
 	return IDType
 }
 
-func (t *TypeOfType) Kind() string {
-	return "primitive"
+func (t *TypeOfType) Kind() Kind {
+	return PrimitiveKind
 }
 
 func NewTypeValue(t Type) *Value {

@@ -44,6 +44,6 @@ func (t *TypeOfBool) ID() int {
 	return IDBool
 }
 
-func (t *TypeOfBool) Kind() string {
-	return "primitive"
+func (t *TypeOfBool) Kind() Kind {
+	return PrimitiveKind
 }

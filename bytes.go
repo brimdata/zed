@@ -24,8 +24,8 @@ func (t *TypeOfBytes) ID() int {
 	return IDBytes
 }
 
-func (t *TypeOfBytes) Kind() string {
-	return "primitive"
+func (t *TypeOfBytes) Kind() Kind {
+	return PrimitiveKind
 }
 
 func (t *TypeOfBytes) Format(zv zcode.Bytes) string {

@@ -22,6 +22,6 @@ func (t *TypeOfString) ID() int {
 	return IDString
 }
 
-func (t *TypeOfString) Kind() string {
-	return "primitive"
+func (t *TypeOfString) Kind() Kind {
+	return PrimitiveKind
 }

@@ -45,8 +45,8 @@ func (t *TypeError) ID() int {
 	return t.id
 }
 
-func (t *TypeError) Kind() string {
-	return "error"
+func (t *TypeError) Kind() Kind {
+	return ErrorKind
 }
 
 func (t *TypeError) IsMissing(zv zcode.Bytes) bool {

@@ -79,6 +79,6 @@ func (t *TypeRecord) createLUT() {
 	}
 }
 
-func (t *TypeRecord) Kind() string {
-	return "record"
+func (t *TypeRecord) Kind() Kind {
+	return RecordKind
 }
