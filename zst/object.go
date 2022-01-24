@@ -153,8 +153,7 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		}
 		assembly.maps = append(assembly.maps, val.Copy())
 	}
-	val, _ = reader.Read()
-	if val != nil {
+	if val, _ = reader.Read(); val != nil {
 		return nil, errors.New("zst: corrupt reassembly section: numer of reassembly maps exceeds number of types")
 	}
 	return assembly, nil

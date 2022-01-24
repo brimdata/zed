@@ -72,7 +72,7 @@ func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAs
 			// aren't records but all this will be subsumed when we
 			// work on predicate pushdown, so no sense spending time
 			// on this right now.
-			return nil, fmt.Errorf("zst cut requires all top-level records to be records: encountered type %s", zson.FormatType(typ))
+			return nil, fmt.Errorf("ZST cut requires all top-level records to be records: encountered type %s", zson.FormatType(typ))
 		}
 		topcol := &column.Record{}
 		if err := topcol.UnmarshalZNG(recType, *a.maps[k], object.seeker); err != nil {

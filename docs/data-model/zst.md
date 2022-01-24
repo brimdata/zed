@@ -192,11 +192,11 @@ values in the ZST file have the same super ID,
 the super column will compress trivially.
 
 The reassembly map appears as the next value in the reassembly section
-is of type `<segmap>`.
+and is of type `<segmap>`.
 
 #### The Reassembly Records
 
-Following the root reassembly map are N reassembly maps one for each unique super type.
+Following the root reassembly map are N reassembly maps, one for each unique super type.
 
 Each reassembly record is a record of type `<any_column>`, as defined below,
 where each reassembly record appears in the same sequence as the original N schemas.
@@ -411,7 +411,8 @@ zed dev dig section -Z 1 hello.zst
 ```
 which provides the Zed output (comments added with explanations):
 ```
-// First, the all types are declared with null values (just one here).
+// First, all of the types of the encoded value sequence are declared
+// with null values (just one here).
 
 null ({a:string,b:string})
 

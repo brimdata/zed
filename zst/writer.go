@@ -94,10 +94,10 @@ func NewWriterFromPath(ctx context.Context, engine storage.Engine, path string, 
 
 func checkThresh(which string, max, thresh int) error {
 	if thresh == 0 {
-		return fmt.Errorf("zst %s threshold cannot be zero", which)
+		return fmt.Errorf("ZST %s threshold cannot be zero", which)
 	}
 	if thresh > max {
-		return fmt.Errorf("zst %s threshold too large (%d)", which, thresh)
+		return fmt.Errorf("ZST %s threshold too large (%d)", which, thresh)
 	}
 	return nil
 }
@@ -183,7 +183,7 @@ func (w *Writer) finalize() error {
 	}
 	bytes, err := b.Bytes().Body()
 	if err != nil {
-		return errors.New("zst: corrupt root reassembly")
+		return errors.New("ZST: corrupt root reassembly")
 	}
 	root := zed.NewValue(typ, bytes)
 	if err := zw.Write(root); err != nil {
@@ -213,7 +213,7 @@ func (w *Writer) finalize() error {
 	// Finally, we build and write the section trailer based on the size
 	// of the data and size of the reassembly maps.
 	sections := []int64{dataSize, mapsSize}
-	val, err := zngio.MarshalTrailer("zst", Version, sections, &FileMeta{w.skewThresh, w.segThresh})
+	val, err := zngio.MarshalTrailer(FileType, Version, sections, &FileMeta{w.skewThresh, w.segThresh})
 	if err != nil {
 		return err
 	}
