@@ -643,7 +643,7 @@ echo '{ts:2020-05-26T15:27:47Z}' | zq -z 'ts := every(1h)' -
 ### `len`
 
 ```
-len(v (record,array,set,map,bytes,string,ip,net,error)) -> int64
+len(v (record,array,set,map,type,bytes,string,ip,net,error)) -> int64
 ```
 
 `len` returns the length of value `v`. Supported types:
@@ -652,6 +652,7 @@ len(v (record,array,set,map,bytes,string,ip,net,error)) -> int64
 - array
 - set
 - map
+- type
 - bytes
 - string
 - ip

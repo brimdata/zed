@@ -147,36 +147,6 @@ func HasBoolResult(name string) bool {
 	return false
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
-type LenFn struct {
-	zctx *zed.Context
-}
-
-var _ Interface = (*LenFn)(nil)
-
-func (l *LenFn) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	val := args[0]
-	var length int
-	switch typ := zed.TypeUnder(args[0].Type).(type) {
-	case *zed.TypeOfNull:
-	case *zed.TypeRecord:
-		length = len(typ.Columns)
-	case *zed.TypeArray, *zed.TypeSet, *zed.TypeMap:
-		var err error
-		length, err = val.ContainerLength()
-		if err != nil {
-			panic(err)
-		}
-	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet:
-		length = len(val.Bytes)
-	case *zed.TypeError:
-		return l.zctx.WrapError("len()", &val)
-	default:
-		return l.zctx.NewErrorf("len: bad type: %s", zson.FormatType(typ))
-	}
-	return newInt64(ctx, int64(length))
-}
-
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typeof
 type TypeOf struct {
 	zctx *zed.Context
