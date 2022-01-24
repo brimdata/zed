@@ -12,9 +12,9 @@ input: |
   {a:"goodbye"(=string_alias)}
 
 output: |
-  {a:null(union=<(int64,string,string_alias=<string>)>)}
-  {a:null(union=<(int64,string,string_alias=<string>)>)}
-  {a:null(union=<(int64,string,string_alias=<string>)>)}
-  {a:1(union=<(int64,string,string_alias=<string>)>)}
-  {a:"hello"(union=<(int64,string,string_alias=<string>)>)}
-  {a:"goodbye"(=string_alias)(union=<(int64,string,string_alias)>)}
+  {a:null(union=(int64,string,string_alias=string))}
+  {a:null(union=(int64,string,string_alias=string))}
+  {a:null(union=(int64,string,string_alias=string))}
+  {a:1(union=(int64,string,string_alias=string))}
+  {a:"hello"(union=(int64,string,string_alias=string))}
+  {a:"goodbye"(=string_alias)(union=(int64,string,string_alias))}

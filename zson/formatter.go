@@ -381,9 +381,8 @@ func (f *Formatter) formatType(typ zed.Type) {
 	if alias, ok := typ.(*zed.TypeAlias); ok {
 		f.saveType(alias)
 		f.build(alias.Name)
-		f.build("=<")
+		f.build("=")
 		f.formatType(alias.Type)
-		f.build(">")
 		return
 	}
 	if typ.ID() < zed.IDTypeComplex {
@@ -550,9 +549,8 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 		b.WriteString(name)
 		if _, ok := typedefs[typ]; !ok {
 			typedefs[typ] = name
-			b.WriteString("=<")
+			b.WriteString("=")
 			formatType(b, typedefs, t.Type)
-			b.WriteByte('>')
 		}
 	case *zed.TypeRecord:
 		b.WriteByte('{')
@@ -684,9 +682,8 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			return nil
 		}
 		b.WriteString(name)
-		b.WriteString("=<")
+		b.WriteString("=")
 		tv = formatTypeValue(tv, b)
-		b.WriteByte('>')
 		return tv
 	case zed.TypeValueNameRef:
 		name, tv := decodeNameAndCheck(tv, b)

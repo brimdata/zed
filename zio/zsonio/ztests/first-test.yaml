@@ -3,11 +3,11 @@ zed: "*"
 output-flags: -f zson -pretty=4
 
 input: |
-  {_path:"conn",ts:2018-03-24T17:15:20.600725Z,id:{orig_h:10.47.1.152,orig_p:49562(port=<uint16>),resp_h:23.217.103.245,resp_port:80(port)}(=flow),proto:"tcp"(=zenum)}
-  {_path:"conn",ts:2018-03-24T17:15:20.6008Z,id:{orig_h:10.128.0.207,orig_p:13(port=<uint16>),resp_h:10.47.19.254,resp_port:14(port)}(=flow),proto:"icmp"(=zenum)}
-  {_path:"conn",ts:2018-03-24T17:15:20.60131Z,id:{orig_h:10.128.0.207,orig_p:59777(port=<uint16>),resp_h:10.47.28.6,resp_port:443(port)}(=flow),proto:"tcp"(=zenum)}
-  {flows:[{orig_h:10.47.1.152,orig_p:49562(port=<uint16>),resp_h:23.217.103.245,resp_port:80(port)}(=flow)]}
-  {flows:[{orig_h:10.47.1.152,orig_p:49562(port=<uint16>),resp_h:23.217.103.245,resp_port:80(port)}(=flow),{orig_h:10.128.0.207,orig_p:13,resp_h:10.47.19.254,resp_port:14}(flow)]}
+  {_path:"conn",ts:2018-03-24T17:15:20.600725Z,id:{orig_h:10.47.1.152,orig_p:49562(port=uint16),resp_h:23.217.103.245,resp_port:80(port)}(=flow),proto:"tcp"(=zenum)}
+  {_path:"conn",ts:2018-03-24T17:15:20.6008Z,id:{orig_h:10.128.0.207,orig_p:13(port=uint16),resp_h:10.47.19.254,resp_port:14(port)}(=flow),proto:"icmp"(=zenum)}
+  {_path:"conn",ts:2018-03-24T17:15:20.60131Z,id:{orig_h:10.128.0.207,orig_p:59777(port=uint16),resp_h:10.47.28.6,resp_port:443(port)}(=flow),proto:"tcp"(=zenum)}
+  {flows:[{orig_h:10.47.1.152,orig_p:49562(port=uint16),resp_h:23.217.103.245,resp_port:80(port)}(=flow)]}
+  {flows:[{orig_h:10.47.1.152,orig_p:49562(port=uint16),resp_h:23.217.103.245,resp_port:80(port)}(=flow),{orig_h:10.128.0.207,orig_p:13,resp_h:10.47.19.254,resp_port:14}(flow)]}
   {ips:|[10.0.0.1,192.168.1.1]|}
   {nums:|[1(uint64),2(uint64),3(uint64)]|}
   {u:12(uint64)((uint64,string))}
@@ -21,7 +21,7 @@ output: |
       ts: 2018-03-24T17:15:20.600725Z,
       id: {
           orig_h: 10.47.1.152,
-          orig_p: 49562 (port=<uint16>),
+          orig_p: 49562 (port=uint16),
           resp_h: 23.217.103.245,
           resp_port: 80 (port)
       } (=flow),
@@ -32,7 +32,7 @@ output: |
       ts: 2018-03-24T17:15:20.6008Z,
       id: {
           orig_h: 10.128.0.207,
-          orig_p: 13 (port=<uint16>),
+          orig_p: 13 (port=uint16),
           resp_h: 10.47.19.254,
           resp_port: 14 (port)
       } (=flow),
@@ -43,7 +43,7 @@ output: |
       ts: 2018-03-24T17:15:20.60131Z,
       id: {
           orig_h: 10.128.0.207,
-          orig_p: 59777 (port=<uint16>),
+          orig_p: 59777 (port=uint16),
           resp_h: 10.47.28.6,
           resp_port: 443 (port)
       } (=flow),
@@ -53,7 +53,7 @@ output: |
       flows: [
           {
               orig_h: 10.47.1.152,
-              orig_p: 49562 (port=<uint16>),
+              orig_p: 49562 (port=uint16),
               resp_h: 23.217.103.245,
               resp_port: 80 (port)
           } (=flow)
@@ -63,7 +63,7 @@ output: |
       flows: [
           {
               orig_h: 10.47.1.152,
-              orig_p: 49562 (port=<uint16>),
+              orig_p: 49562 (port=uint16),
               resp_h: 23.217.103.245,
               resp_port: 80 (port)
           } (=flow),
