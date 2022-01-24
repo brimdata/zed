@@ -191,16 +191,12 @@ will compress very significantly, e.g., in the special case that all the
 values in the ZST file have the same super ID,
 the super column will compress trivially.
 
-The type of the reassembly record for the super column stream has the
-type signature:
-```
-{root:<segmap>}
-```
+The reassembly map appears as the next value in the reassembly section
+and is of type `<segmap>`.
 
 #### The Reassembly Records
 
-The remaining N records in the reassembly stream define the reassembly
-maps for each super type.
+Following the root reassembly map are N reassembly maps, one for each unique super type.
 
 Each reassembly record is a record of type `<any_column>`, as defined below,
 where each reassembly record appears in the same sequence as the original N schemas.
@@ -330,8 +326,8 @@ the memory footprint roughly exceeds this threshold,
 and an array of sizes in bytes of the sections of the ZST file.
 
 This type of this record has the format
-```
-{magic:string,version:int32,skew_thresh:int32,segment_thresh:int32,sections:[int64]}
+````
+{magic:string,type:string,version:int64,sections:[int64],meta:{skew_thresh:int64,segment_thresh:int64}
 ```
 The trailer can be efficiently found by scanning backward from the end of the
 ZST file to the find a valid ZNG stream containing a single record value
@@ -408,32 +404,30 @@ gracie
 0
 ===
 ```
-
 To see the detailed ZST structure described as ZSON, you can use the `zst`
 command like this:
 ```
-zst inspect -Z -trailer hello.zst
+zed dev dig section -Z 1 hello.zst
 ```
 which provides the Zed output (comments added with explanations):
 ```
-// First, the schemas are defined (just one here).
-{
-    a: null (string),               
-    b: null (string)
-}
+// First, all of the types of the encoded value sequence are declared
+// with null values (just one here).
 
-// Then, the root reassembly record.
-{
-    root: [                         
-        {
-            offset: 29,
-            length: 2 (int32)
-        }
-    ]
-}
+null ({a:string,b:string})
 
-// Next comes the column assembly records.
+// Then comes the root reassembly map.
+
+[
+    {
+        offset: 29,
+        length: 2 (int32)
+    }
+]
+
+// Finally comes the column assembly records.
 // (Again, only one schema in this example, so only one such record.)
+
 {
     a: {
         column: [
@@ -455,18 +449,28 @@ which provides the Zed output (comments added with explanations):
     }
 }
 
-// Finally, the trailer as a new ZNG stream.
+```
+The ZST trailer can be viewed with this command:
+```
+zed dev dig trailer -Z hello.zst
+```
+giving
+```
 {
-    magic: "zst",
-    version: 1 (int32),
-    skew_thresh: 26214400 (int32),
-    segment_thresh: 5242880 (int32),
+    magic: "ZNG Trailer",
+    type: "zst",
+    version: 2,
     sections: [
         31,
-        94
-    ]
-}
+        95
+    ],
+    meta: {
+        skew_thresh: 26214400,
+        segment_thresh: 5242880
+    } (=zst.FileMeta)
+} (=zngio.Trailer)
 ```
+
 > Note finally, if there were 10MB of ZNG row data here, the reassembly section
 > would be basically the same size, with perhaps a few segmaps.  This emphasizes
 > just how small this data structure is compared to the data section.

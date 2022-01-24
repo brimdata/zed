@@ -120,27 +120,22 @@ func (o *Object) IsEmpty() bool {
 func (o *Object) readAssembly() (*Assembly, error) {
 	reader := o.NewReassemblyReader()
 	assembly := &Assembly{}
-	var rec *zed.Value
+	var val *zed.Value
 	for {
 		var err error
-		rec, err = reader.Read()
+		val, err = reader.Read()
 		if err != nil {
 			return nil, err
 		}
-		if rec == nil {
-			return nil, errors.New("no reassembly records found in zst file")
+		if val == nil {
+			return nil, errors.New("zst: corrupt trailer: root ressembly map not found")
 		}
-		zv := rec.ValueByColumn(0)
-		if zv.Bytes != nil {
+		if !val.IsNull() {
 			break
 		}
-		assembly.types = append(assembly.types, rec.Type)
+		assembly.types = append(assembly.types, val.Type)
 	}
-	root, err := rec.Access("root")
-	if err != nil {
-		return nil, err
-	}
-	assembly.root = *root.Copy()
+	assembly.root = *val.Copy()
 	expectedType, err := zson.ParseType(o.zctx, column.SegmapTypeString)
 	if err != nil {
 		return nil, err
@@ -148,22 +143,22 @@ func (o *Object) readAssembly() (*Assembly, error) {
 	if assembly.root.Type != expectedType {
 		return nil, fmt.Errorf("zst root reassembly value has wrong type: %s; should be %s", assembly.root.Type, expectedType)
 	}
-
 	for range assembly.types {
-		rec, err := reader.Read()
+		val, err := reader.Read()
 		if err != nil {
 			return nil, err
 		}
-		assembly.columns = append(assembly.columns, rec.Copy())
+		if val == nil {
+			return nil, errors.New("zst: corrupt reassembly section: number of reassembly maps not equal to number of types")
+		}
+		assembly.maps = append(assembly.maps, val.Copy())
 	}
-	rec, _ = reader.Read()
-	if rec != nil {
-		return nil, errors.New("extra records in reassembly section")
+	if val, _ = reader.Read(); val != nil {
+		return nil, errors.New("zst: corrupt reassembly section: numer of reassembly maps exceeds number of types")
 	}
 	return assembly, nil
 }
 
-//XXX this should be a common method on Trailer and shared with microindexes
 func (o *Object) section(level int) (int64, int64) {
 	off := int64(0)
 	for k := 0; k < level; k++ {

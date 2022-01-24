@@ -92,14 +92,16 @@ func Unmarshal(typ zed.Type, in zed.Value, r io.ReaderAt) (Any, error) {
 		return a, err
 	case *zed.TypeSet:
 		a := &Array{}
-		err := a.UnmarshalZNG(typ, in, r)
+		err := a.UnmarshalZNG(typ.Type, in, r)
 		return a, err
 	case *zed.TypeUnion:
 		u := &Union{}
 		err := u.UnmarshalZNG(typ, in, r)
 		return u, err
-	case *zed.TypeMap, *zed.TypeEnum:
-		return nil, errors.New("unsupported")
+	case *zed.TypeMap:
+		return nil, errors.New("type 'map' is currently unsupported by the ZST implementation")
+	case *zed.TypeEnum:
+		return nil, errors.New("type 'enum' is currently unsupported by the ZST implementation")
 	default:
 		p := &Primitive{}
 		err := p.UnmarshalZNG(typ, in, r)

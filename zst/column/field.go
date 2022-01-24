@@ -90,7 +90,7 @@ type Field struct {
 func (f *Field) UnmarshalZNG(typ zed.Type, in zed.Value, r io.ReaderAt) error {
 	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
-		return errors.New("zst object array_column not a record")
+		return errors.New("ZST object array_column not a record")
 	}
 	rec := zed.NewValue(rtype, in.Bytes)
 	zv, err := rec.Access("column")
