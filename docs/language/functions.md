@@ -40,6 +40,7 @@
 - [Types](#types)
   - [`is`](#is)
   - [`iserr`](#iserr)
+  - [`kind`](#kind)
   - [`nameof`](#nameof)
   - [`quiet`](#quiet)
   - [`typename`](#typename)
@@ -721,6 +722,16 @@ nameof(v <any>) -> string
 ```
 
 `nameof` returns the string type name of `v` if `v` is an aliased type.
+
+### kind
+
+```
+kind(v <any>) -> string
+```
+
+`kind` returns the category of the type of `v`, e.g., "record",
+"set", "primitive", etc.  If `v` is a type value, then the type category
+of the referenced type is returned.
 
 ### `quiet`
 

@@ -106,6 +106,8 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		f = &Is{zctx: zctx}
 	case "iserr":
 		f = &IsErr{}
+	case "kind":
+		f = &Kind{zctx: zctx}
 	case "to_base64":
 		f = &ToBase64{zctx: zctx}
 	case "from_base64":
