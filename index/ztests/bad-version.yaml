@@ -1,7 +1,6 @@
 script: |
-  zq -o data.zng data.zson
-  zq -o trailer.zng trailer.zson
-  cat data.zng trailer.zng > index.zng
+  zq data.zson > index.zng
+  zq trailer.zson >> index.zng
   ! zed dev indexfile lookup -z -k '"hello"' index.zng
 
 inputs:

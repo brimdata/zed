@@ -18,12 +18,13 @@ import (
 
 var Section = &charm.Spec{
 	Name:  "section",
-	Usage: "section [flags] number path",
-	Short: "extract a section of a sectioned ZNG file",
+	Usage: "section [flags] number file",
+	Short: "extract a section of a sectioned Zed file",
 	Long: `
 The section command takes an integer section number and a file argument
-indicated by path (which must be as ZNG file having a trailer for a sectioned file),
-extracts the requested section of the ZNG file and outputs the section in any Zed format.`,
+(which must be a sectioned Zed file having a Zed trailer),
+extracts the requested section of the file (where the section must be encoded
+in the ZNG format) and outputs the section in any Zed format.`,
 	New: newCommand,
 }
 
@@ -51,7 +52,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 2 {
-		return errors.New("zed dev dig section: two arguments required")
+		return errors.New("two arguments required")
 	}
 	uri, err := storage.ParseURI(args[1])
 	if err != nil {

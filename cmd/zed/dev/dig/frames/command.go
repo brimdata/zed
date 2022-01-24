@@ -20,10 +20,10 @@ import (
 
 var Frames = &charm.Spec{
 	Name:  "frames",
-	Usage: "frames path",
+	Usage: "frames file",
 	Short: "read ZNG file and output metadata",
 	Long: `
-The frames command takes one file arugmnet indicate by path that must be a ZNG file,
+The frames command takes one file arugmnet which must be a ZNG file,
 parses each low-level ZNG frame in the file, and outputs meta describing each frame
 in any Zed format.`,
 	New: New,
@@ -51,7 +51,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 1 {
-		return errors.New("zed dev dig frames: a single file required")
+		return errors.New("a single file required")
 	}
 	uri, err := storage.ParseURI(args[0])
 	if err != nil {

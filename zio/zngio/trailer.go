@@ -89,7 +89,7 @@ func findTrailer(b []byte) (*Trailer, []byte, error) {
 		if off < 0 {
 			return nil, nil, err
 		}
-		if val := decodeTrailer(b[off:]); val != nil {
+		if val := readTrailer(b[off:]); val != nil {
 			var trailer Trailer
 			uErr := u.Unmarshal(*val, &trailer)
 			if uErr == nil {
@@ -121,7 +121,7 @@ func findCandidate(b []byte, off int) int {
 		}
 	}
 }
-func decodeTrailer(b []byte) *zed.Value {
+func readTrailer(b []byte) *zed.Value {
 	val, _ := NewReader(bytes.NewReader(b), zed.NewContext()).Read()
 	return val
 }

@@ -1,7 +1,6 @@
 script: |
-  zq -f zng a.zson > a.zng
-  zq -f zng b.zson > b.zng
-  cat a.zng b.zng > c.zng
+  zq a.zson > c.zng
+  zq b.zson >> c.zng
   zed dev dig frames -z c.zng
 
 inputs:

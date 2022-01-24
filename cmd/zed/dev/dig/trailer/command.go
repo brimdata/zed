@@ -19,9 +19,9 @@ var Trailer = &charm.Spec{
 	Usage: "trailer file",
 	Short: "read a Zed trailer and output it as Zed",
 	Long: `
-The trailer command takes a file argument specified by path (which must be a
-a sectioned ZNG file with a trailer),
-extracts the trailer of the ZNG file, and outputs the section in any Zed format.
+The trailer command takes a file argument
+(which must be a sectioned Zed file having a Zed trailer),
+extracts the trailer from the sectioned file, and outputs the trailer in any Zed format.
 `,
 	New: New,
 }
