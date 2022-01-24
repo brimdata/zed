@@ -1,0 +1,7 @@
+zed: yield typeof(this)
+
+input: |
+  %heads(enum<heads,tails>)
+
+output: |
+  <enum<heads,tails>>
