@@ -86,7 +86,7 @@ func (u *Union) UnmarshalZNG(utyp zed.Type, in zed.Value, r io.ReaderAt) error {
 	}
 	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
-		return errors.New("zst object union_column not a record")
+		return errors.New("ZST object union_column not a record")
 	}
 	rec := zed.NewValue(rtype, in.Bytes)
 	for k := 0; k < len(typ.Types); k++ {
@@ -114,7 +114,7 @@ func (u *Union) Read(b *zcode.Builder) error {
 		return err
 	}
 	if selector < 0 || int(selector) >= len(u.values) {
-		return errors.New("bad selector in zst union reader")
+		return errors.New("bad selector in ZST union reader")
 	}
 	b.BeginContainer()
 	b.Append(zed.EncodeInt(int64(selector)))

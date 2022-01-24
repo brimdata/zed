@@ -45,28 +45,30 @@ type Object struct {
 	closer   io.Closer
 	zctx     *zed.Context
 	assembly *Assembly
-	trailer  *Trailer
+	meta     FileMeta
+	sections []int64
 	size     int64
 	builder  zcode.Builder
 	err      error
 }
 
 func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error) {
-	trailer, err := readTrailer(s, size)
+	meta, sections, err := readTrailer(s, size)
 	if err != nil {
 		return nil, err
 	}
-	if trailer.SkewThresh > MaxSkewThresh {
-		return nil, fmt.Errorf("skew threshold too large (%d)", trailer.SkewThresh)
+	if meta.SkewThresh > MaxSkewThresh {
+		return nil, fmt.Errorf("skew threshold too large (%d)", meta.SkewThresh)
 	}
-	if trailer.SegmentThresh > MaxSegmentThresh {
-		return nil, fmt.Errorf("column threshold too large (%d)", trailer.SegmentThresh)
+	if meta.SegmentThresh > MaxSegmentThresh {
+		return nil, fmt.Errorf("column threshold too large (%d)", meta.SegmentThresh)
 	}
 	o := &Object{
-		seeker:  s,
-		zctx:    zctx,
-		size:    size,
-		trailer: trailer,
+		seeker:   s,
+		zctx:     zctx,
+		meta:     *meta,
+		sections: sections,
+		size:     size,
 	}
 	o.assembly, err = o.readAssembly()
 	return o, err
@@ -112,36 +114,28 @@ func (o *Object) Close() error {
 }
 
 func (o *Object) IsEmpty() bool {
-	if o.trailer == nil {
-		panic("IsEmpty called on a Reader with an error")
-	}
-	return o.trailer.Sections == nil
+	return o.sections == nil
 }
 
 func (o *Object) readAssembly() (*Assembly, error) {
 	reader := o.NewReassemblyReader()
 	assembly := &Assembly{}
-	var rec *zed.Value
+	var val *zed.Value
 	for {
 		var err error
-		rec, err = reader.Read()
+		val, err = reader.Read()
 		if err != nil {
 			return nil, err
 		}
-		if rec == nil {
-			return nil, errors.New("no reassembly records found in zst file")
+		if val == nil {
+			return nil, errors.New("zst: corrupt trailer: root ressembly map not found")
 		}
-		zv := rec.ValueByColumn(0)
-		if zv.Bytes != nil {
+		if !val.IsNull() {
 			break
 		}
-		assembly.types = append(assembly.types, rec.Type)
+		assembly.types = append(assembly.types, val.Type)
 	}
-	root, err := rec.Access("root")
-	if err != nil {
-		return nil, err
-	}
-	assembly.root = *root.Copy()
+	assembly.root = *val.Copy()
 	expectedType, err := zson.ParseType(o.zctx, column.SegmapTypeString)
 	if err != nil {
 		return nil, err
@@ -149,28 +143,28 @@ func (o *Object) readAssembly() (*Assembly, error) {
 	if assembly.root.Type != expectedType {
 		return nil, fmt.Errorf("zst root reassembly value has wrong type: %s; should be %s", assembly.root.Type, expectedType)
 	}
-
 	for range assembly.types {
-		rec, err := reader.Read()
+		val, err := reader.Read()
 		if err != nil {
 			return nil, err
 		}
-		assembly.columns = append(assembly.columns, rec.Copy())
+		if val == nil {
+			return nil, errors.New("zst: corrupt reassembly section: number of reassembly maps not equal to number of types")
+		}
+		assembly.maps = append(assembly.maps, val.Copy())
 	}
-	rec, _ = reader.Read()
-	if rec != nil {
-		return nil, errors.New("extra records in reassembly section")
+	if val, _ = reader.Read(); val != nil {
+		return nil, errors.New("zst: corrupt reassembly section: numer of reassembly maps exceeds number of types")
 	}
 	return assembly, nil
 }
 
-//XXX this should be a common method on Trailer and shared with microindexes
 func (o *Object) section(level int) (int64, int64) {
 	off := int64(0)
 	for k := 0; k < level; k++ {
-		off += o.trailer.Sections[k]
+		off += o.sections[k]
 	}
-	return off, o.trailer.Sections[level]
+	return off, o.sections[level]
 }
 
 func (o *Object) newSectionReader(level int, sectionOff int64) zio.Reader {
@@ -183,11 +177,4 @@ func (o *Object) newSectionReader(level int, sectionOff int64) zio.Reader {
 
 func (o *Object) NewReassemblyReader() zio.Reader {
 	return o.newSectionReader(1, 0)
-}
-
-func (o *Object) NewTrailerReader() zio.Reader {
-	len := o.trailer.Length
-	off := o.size - int64(len)
-	reader := io.NewSectionReader(o.seeker, off, int64(len))
-	return zngio.NewReaderWithOpts(reader, o.zctx, zngio.ReaderOpts{Size: len})
 }

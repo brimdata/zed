@@ -15,20 +15,23 @@ outputs:
   - name: stdout
     data: |
       {
-          magic: "zed_index",
-          version: 3,
-          order: "asc",
-          child_field: "_child",
-          frame_thresh: 32768,
+          magic: "ZNG Trailer",
+          type: "index",
+          version: 4,
           sections: [
               0
           ],
-          keys: [
-              [
-                  "b"
-              ]
-          ]
-      }
+          meta: {
+              order: "asc" (=order.Which),
+              child_field: "_child",
+              frame_thresh: 32768,
+              keys: [
+                  [
+                      "b"
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=index.FileMeta)
+      } (=zngio.Trailer)
       ===
       ===
   - name: stderr

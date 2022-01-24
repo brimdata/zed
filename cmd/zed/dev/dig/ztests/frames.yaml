@@ -1,0 +1,22 @@
+script: |
+  zq a.zson > c.zng
+  zq b.zson >> c.zng
+  zed dev dig frames -z c.zng
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {b:2}
+
+outputs:
+  - name: stdout
+    data: |
+      {type:"types",offset:0,block:{type:"uncompressed",length:5}}
+      {type:"values",offset:7,block:{type:"uncompressed",length:4}}
+      {type:"EOS",offset:13,block:null}
+      {type:"types",offset:14,block:{type:"uncompressed",length:5}}
+      {type:"values",offset:21,block:{type:"uncompressed",length:4}}
+      {type:"EOS",offset:27,block:null}

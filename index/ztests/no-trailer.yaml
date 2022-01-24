@@ -9,4 +9,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      .*: Zed index trailer not found
+      .*: trailer not found

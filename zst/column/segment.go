@@ -35,14 +35,14 @@ func checkSegType(col zed.Column, which string, typ zed.Type) bool {
 func UnmarshalSegmap(in zed.Value, s *[]Segment) error {
 	typ, ok := in.Type.(*zed.TypeArray)
 	if !ok {
-		return errors.New("zst object segmap not an array")
+		return errors.New("ZST object segmap not an array")
 	}
 	segType, ok := typ.Type.(*zed.TypeRecord)
 	if !ok {
-		return errors.New("zst object segmap element not a record")
+		return errors.New("ZST object segmap element not a record")
 	}
 	if len(segType.Columns) != 2 || !checkSegType(segType.Columns[0], "offset", zed.TypeInt64) || !checkSegType(segType.Columns[1], "length", zed.TypeInt32) {
-		return errors.New("zst object segmap element not a record[offset:int64,length:int32]")
+		return errors.New("ZST object segmap element not a record[offset:int64,length:int32]")
 	}
 	*s = []Segment{}
 	it := in.Bytes.Iter()

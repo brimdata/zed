@@ -1,12 +1,10 @@
 package index
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zio/zngio"
@@ -14,19 +12,15 @@ import (
 )
 
 const (
-	Magic          = "zed_index" //XXX
-	Version        = 3
-	TrailerMaxSize = 4096
+	FileType       = "index"
+	Version        = 4
 	ChildFieldName = "_child"
 )
 
-type Trailer struct {
-	Magic            string      `zed:"magic"`
-	Version          int         `zed:"version"`
+type FileMeta struct {
 	Order            order.Which `zed:"order"`
 	ChildOffsetField string      `zed:"child_field"`
 	FrameThresh      int         `zed:"frame_thresh"`
-	Sections         []int64     `zed:"sections"`
 	Keys             field.List  `zed:"keys"`
 }
 
@@ -35,34 +29,22 @@ var (
 	ErrTrailerNotFound = errors.New("Zed index trailer not found")
 )
 
-func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
-	n := size
-	if n > TrailerMaxSize {
-		n = TrailerMaxSize
-	}
-	buf := make([]byte, n)
-	if _, err := r.ReadAt(buf, size-n); err != nil {
-		return nil, 0, err
-	}
-	stream, err := zngio.FindTrailer(buf)
+func readTrailer(r io.ReaderAt, size int64) (*FileMeta, []int64, error) {
+	trailer, err := zngio.ReadTrailer(r, size)
 	if err != nil {
-		return nil, 0, ErrTrailerNotFound
+		return nil, nil, err
 	}
-	rec, _ := zngio.NewReader(bytes.NewReader(stream), zed.NewContext()).Read()
-	if rec == nil {
-		return nil, 0, ErrTrailerNotFound
-	}
-	var trailer Trailer
-	if err := zson.UnmarshalZNGRecord(rec, &trailer); err != nil {
-		return nil, 0, err
-	}
-	if trailer.Magic != Magic {
-		return nil, 0, ErrNotIndex
+	if trailer.Type != FileType {
+		return nil, nil, fmt.Errorf("not an index file: trailer type is %q", trailer.Type)
 	}
 	if trailer.Version != Version {
-		return nil, 0, fmt.Errorf("Zed index version %d found while expecting version %d", trailer.Version, Version)
+		return nil, nil, fmt.Errorf("Zed index version %d found while expecting version %d", trailer.Version, Version)
 	}
-	return &trailer, len(stream), nil
+	var meta FileMeta
+	if err := zson.UnmarshalZNG(trailer.Meta, &meta); err != nil {
+		return nil, nil, err
+	}
+	return &meta, trailer.Sections, nil
 }
 
 func uniqChildField(keys field.List) string {

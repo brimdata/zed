@@ -2,6 +2,7 @@ package zst
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -93,10 +94,10 @@ func NewWriterFromPath(ctx context.Context, engine storage.Engine, path string, 
 
 func checkThresh(which string, max, thresh int) error {
 	if thresh == 0 {
-		return fmt.Errorf("zst %s threshold cannot be zero", which)
+		return fmt.Errorf("ZST %s threshold cannot be zero", which)
 	}
 	if thresh > max {
-		return fmt.Errorf("zst %s threshold too large (%d)", which, thresh)
+		return fmt.Errorf("ZST %s threshold too large (%d)", which, thresh)
 	}
 	return nil
 }
@@ -165,30 +166,31 @@ func (w *Writer) finalize() error {
 	// to the underlying spiller, so we start writing zng at this point.
 	zw := zngio.NewWriter(w.writer, zngio.WriterOpts{})
 	dataSize := w.spiller.Position()
-	// First, we write out empty values for each column corresponding to
-	// a type serialized into the ZST file in the order of its type number.
+	// First, we write out null values for each column corresponding to
+	// a type serialized into the ZST file in the order of its type number
+	// in the root map.
 	for _, typ := range w.types {
 		val := zed.NewValue(typ, nil)
 		if err := zw.Write(val); err != nil {
 			return err
 		}
 	}
-	// Next, write the root reassembly record.
+	// Next, we write the root reassembly map.
 	var b zcode.Builder
 	typ, err := w.root.MarshalZNG(w.zctx, &b)
 	if err != nil {
 		return err
 	}
-	rootType, err := w.zctx.LookupTypeRecord([]zed.Column{{"root", typ}})
+	bytes, err := b.Bytes().Body()
 	if err != nil {
+		return errors.New("ZST: corrupt root reassembly")
+	}
+	root := zed.NewValue(typ, bytes)
+	if err := zw.Write(root); err != nil {
 		return err
 	}
-	rec := zed.NewValue(rootType, b.Bytes())
-	if err := zw.Write(rec); err != nil {
-		return err
-	}
-	// Now, write out the reassembly record for each top-level type.
-	// Each record here is highly nested and encodes all of the segmaps
+	// Now, write out a reassembly map for each top-level type.
+	// Each map here is highly nested and encodes all of the segmaps
 	// for every column stream needed to reconstruct all of the values
 	// for that type.
 	for _, col := range w.columns {
@@ -197,33 +199,26 @@ func (w *Writer) finalize() error {
 		if err != nil {
 			return err
 		}
-		body, err := b.Bytes().Body()
+		bytes, err := b.Bytes().Body()
 		if err != nil {
 			return err
 		}
-		val := zed.NewValue(typ, body)
+		val := zed.NewValue(typ, bytes)
 		if err := zw.Write(val); err != nil {
 			return err
 		}
 	}
 	zw.EndStream()
-	columnSize := zw.Position()
-	sizes := []int64{dataSize, columnSize}
-	return writeTrailer(zw, w.zctx, w.skewThresh, w.segThresh, sizes)
-}
-
-func (w *Writer) writeEmptyTrailer() error {
-	zw := zngio.NewWriter(w.writer, zngio.WriterOpts{})
-	return writeTrailer(zw, w.zctx, w.skewThresh, w.segThresh, nil)
-}
-
-func writeTrailer(w *zngio.Writer, zctx *zed.Context, skewThresh, segThresh int, sizes []int64) error {
-	rec, err := newTrailerRecord(zctx, skewThresh, segThresh, sizes)
+	mapsSize := zw.Position()
+	// Finally, we build and write the section trailer based on the size
+	// of the data and size of the reassembly maps.
+	sections := []int64{dataSize, mapsSize}
+	val, err := zngio.MarshalTrailer(FileType, Version, sections, &FileMeta{w.skewThresh, w.segThresh})
 	if err != nil {
 		return err
 	}
-	if err := w.Write(rec); err != nil {
+	if err := zw.Write(&val); err != nil {
 		return err
 	}
-	return w.EndStream()
+	return zw.EndStream()
 }
