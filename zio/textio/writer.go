@@ -31,7 +31,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord); ok {
 		return w.writeRecord(val)
 	}
-	_, err := fmt.Fprintf(w.writer, "%s\n", zeekio.FormatValue(*val))
+	_, err := fmt.Fprintln(w.writer, zeekio.FormatValue(*val))
 	return err
 }
 
@@ -56,6 +56,6 @@ func (w *Writer) writeRecord(rec *zed.Value) error {
 		out = append(out, s)
 	}
 	s := strings.Join(out, "\t")
-	_, err = fmt.Fprintf(w.writer, "%s\n", s)
+	_, err = fmt.Fprintln(w.writer, s)
 	return err
 }
