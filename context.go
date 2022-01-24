@@ -474,9 +474,6 @@ func DecodeName(tv zcode.Bytes) (string, zcode.Bytes) {
 }
 
 func DecodeLength(tv zcode.Bytes) (int, zcode.Bytes) {
-	if len(tv) < 0 {
-		return 0, nil
-	}
 	namelen, n := binary.Uvarint(tv)
 	if n <= 0 {
 		return 0, nil

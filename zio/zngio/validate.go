@@ -9,8 +9,8 @@ import (
 	"github.com/brimdata/zed/zqe"
 )
 
-// Validate checks that the Bytes field is structurally consistent
-// with this value's Type.  It does not check that the actual leaf
+// Validate checks that val.Bytes is structurally consistent
+// with val.Type.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
 func Validate(val *zed.Value) (err error) {
 	defer func() {

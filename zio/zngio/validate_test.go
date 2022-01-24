@@ -66,5 +66,4 @@ func TestValidate(t *testing.T) {
 			b.Bytes())
 		assert.NoError(t, Validate(r))
 	})
-
 }
