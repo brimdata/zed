@@ -49,6 +49,7 @@
   - [`has`](#has)
   - [`len`](#len)
   - [`missing`](#missing)
+  - [`under`](#under)
 
 ### Pseudo Types
 
@@ -858,4 +859,75 @@ echo '{foo:10}' | zq -z 'cut yes := has(foo+1), no := has(bar+1)' -
 {yes:true,no:false}
 {yes:true,no:false}
 {yes:true,no:false}
+```
+
+
+### `under`
+
+```
+under(e <expression>) -> <any>
+```
+
+`under` returns the value underlying the expression `e`:
+* for unions, it returns the value as its elemental type of the union,
+* for errors, it returns the value that the error wraps,
+* for types, it returns the value typed as `typeunder()` indicates; ortherwise,
+* the it returns the value unmodified.
+
+#### Example:
+
+Unions are unwrapped:
+
+```mdtest-command
+echo '1((int64,string)) "foo"((int64,string))' | zq -z 'yield this' -
+echo '1((int64,string)) "foo"((int64,string))' | zq -z 'yield under(this)' -
+```
+
+**Output:**
+```mdtest-output
+1((int64,string))
+"foo"((int64,string))
+1
+"foo"
+```
+
+Errors are unwrapped:
+
+```mdtest-command
+echo 'error("foo") error({err:"message"})' | zq -z 'yield this' -
+echo 'error("foo") error({err:"message"})' | zq -z 'yield under(this)' -
+```
+
+**Output:**
+```mdtest-output
+error("foo")
+error({err:"message"})
+"foo"
+{err:"message"}
+```
+
+Values of named types are unwrapped:
+
+```mdtest-command
+echo '80(port=<uint16>)' | zq -z 'yield this' -
+echo '80(port=<uint16>)' | zq -z 'yield under(this)' -
+```
+
+**Output:**
+```mdtest-output
+80(port=<uint16>)
+80(uint16)
+```
+
+Values that are not wrapped are return unmodified:
+```mdtest-command
+echo '1 "foo" <int16> {x:1}' | zq -z 'yield under(this)' -
+```
+
+**Output:**
+```mdtest-output
+1
+"foo"
+<int16>
+{x:1}
 ```
