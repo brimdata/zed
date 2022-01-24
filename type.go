@@ -11,8 +11,7 @@ package zed
 
 import (
 	"errors"
-
-	"github.com/brimdata/zed/zcode"
+	"fmt"
 )
 
 var (
@@ -33,8 +32,43 @@ type Type interface {
 	// example should prefer to use this instead of using the go
 	// .(type) operator on a Type instance.
 	ID() int
-	String() string
-	Format(zv zcode.Bytes) string
+	Kind() Kind
+}
+
+type Kind int
+
+const (
+	PrimitiveKind Kind = iota
+	RecordKind
+	ArrayKind
+	SetKind
+	MapKind
+	UnionKind
+	EnumKind
+	ErrorKind
+)
+
+func (k Kind) String() string {
+	switch k {
+	case PrimitiveKind:
+		return "primitive"
+	case RecordKind:
+		return "record"
+	case ArrayKind:
+		return "array"
+	case SetKind:
+		return "set"
+	case MapKind:
+		return "map"
+	case UnionKind:
+		return "union"
+	case EnumKind:
+		return "enum"
+	case ErrorKind:
+		return "error"
+	default:
+		return fmt.Sprintf("<unknown kind: %d>", k)
+	}
 }
 
 var (
@@ -178,11 +212,52 @@ func LookupPrimitive(name string) Type {
 	return nil
 }
 
-func LookupPrimitiveByID(id int) Type {
-	if id == 17 {
-		// XXX this will be soon removed with Zed formats update
-		panic("bstring type is deprecated")
+func PrimitiveName(typ Type) string {
+	switch typ.(type) {
+	case *TypeOfUint8:
+		return "uint8"
+	case *TypeOfUint16:
+		return "uint16"
+	case *TypeOfUint32:
+		return "uint32"
+	case *TypeOfUint64:
+		return "uint64"
+	case *TypeOfInt8:
+		return "int8"
+	case *TypeOfInt16:
+		return "int16"
+	case *TypeOfInt32:
+		return "int32"
+	case *TypeOfInt64:
+		return "int64"
+	case *TypeOfDuration:
+		return "duration"
+	case *TypeOfTime:
+		return "time"
+	case *TypeOfFloat32:
+		return "float32"
+	case *TypeOfFloat64:
+		return "float64"
+	case *TypeOfBool:
+		return "bool"
+	case *TypeOfBytes:
+		return "bytes"
+	case *TypeOfString:
+		return "string"
+	case *TypeOfIP:
+		return "ip"
+	case *TypeOfNet:
+		return "net"
+	case *TypeOfType:
+		return "type"
+	case *TypeOfNull:
+		return "null"
+	default:
+		return fmt.Sprintf("unknown primitive type: %T", typ)
 	}
+}
+
+func LookupPrimitiveByID(id int) Type {
 	switch id {
 	case IDBool:
 		return TypeBool

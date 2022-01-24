@@ -1,9 +1,6 @@
 package zed
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -40,20 +37,8 @@ func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	return inner, selector, it.Next(), nil
 }
 
-func (t *TypeUnion) String() string {
-	var ss []string
-	for _, typ := range t.Types {
-		ss = append(ss, typ.String())
-	}
-	return fmt.Sprintf("(%s)", strings.Join(ss, ","))
-}
-
-func (t *TypeUnion) Format(zv zcode.Bytes) string {
-	typ, _, iv, err := t.SplitZNG(zv)
-	if err != nil {
-		return badZNG(err, t, zv)
-	}
-	return fmt.Sprintf("%s (%s) %s", typ.Format(iv), typ, t)
+func (t *TypeUnion) Kind() Kind {
+	return UnionKind
 }
 
 // BuildUnion appends to b a union described by selector and val.

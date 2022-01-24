@@ -44,7 +44,7 @@ func zngTypeToZeek(typ zed.Type) (string, error) {
 		}
 		return zngTypeToZeek(typ.Type)
 	case *zed.TypeOfBool, *zed.TypeOfString, *zed.TypeOfTime:
-		return typ.String(), nil
+		return zed.PrimitiveName(typ), nil
 	default:
 		return "", fmt.Errorf("type %s: %w", typ, ErrIncompatibleZeekType)
 	}

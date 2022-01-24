@@ -8,6 +8,8 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 var ErrNotDataFrame = errors.New("CSV output requires uniform records but multiple types encountered (consider 'fuse')")
@@ -72,7 +74,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 			case id == zed.IDString:
 				s = string(zb)
 			default:
-				s = typ.Format(zb)
+				s = formatValue(typ, zb)
 				if zed.IsFloat(id) && strings.HasSuffix(s, ".") {
 					s = strings.TrimSuffix(s, ".")
 				}
@@ -81,4 +83,12 @@ func (w *Writer) Write(rec *zed.Value) error {
 		w.strings = append(w.strings, s)
 	}
 	return w.encoder.Write(w.strings)
+}
+
+func formatValue(typ zed.Type, bytes zcode.Bytes) string {
+	// Avoid ZSON decoration.
+	if typ.ID() < zed.IDTypeComplex {
+		return zson.FormatPrimitive(typ, bytes)
+	}
+	return zson.String(zed.Value{typ, bytes})
 }

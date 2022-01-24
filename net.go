@@ -51,10 +51,6 @@ func (t *TypeOfNet) ID() int {
 	return IDNet
 }
 
-func (t *TypeOfNet) String() string {
-	return "net"
-}
-
-func (t *TypeOfNet) Format(zb zcode.Bytes) string {
-	return DecodeNet(zb).String()
+func (t *TypeOfNet) Kind() Kind {
+	return PrimitiveKind
 }

@@ -57,7 +57,7 @@ func (e encoder) encodeType(zctx *zed.Context, typ zed.Type) astzed.Type {
 	default:
 		return &astzed.TypePrimitive{
 			Kind: "primitive",
-			Name: typ.String(),
+			Name: zed.PrimitiveName(typ),
 		}
 	}
 }

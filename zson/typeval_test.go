@@ -1,4 +1,4 @@
-package zed_test
+package zson_test
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ func TestTypeValue(t *testing.T) {
 	typ, err := zson.ParseType(zed.NewContext(), s)
 	require.NoError(t, err)
 	tv := zctx.LookupTypeValue(typ)
-	require.Exactly(t, s, zed.FormatTypeValue(tv.Bytes))
+	require.Exactly(t, s, zson.FormatTypeValue(tv.Bytes))
 }
 
 func TestTypeValueCrossContext(t *testing.T) {
@@ -22,5 +22,5 @@ func TestTypeValueCrossContext(t *testing.T) {
 	typ, err := zson.ParseType(zed.NewContext(), s)
 	require.NoError(t, err)
 	tv := zed.NewContext().LookupTypeValue(typ)
-	require.Exactly(t, s, zed.FormatTypeValue(tv.Bytes))
+	require.Exactly(t, s, zson.FormatTypeValue(tv.Bytes))
 }

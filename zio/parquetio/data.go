@@ -1,10 +1,12 @@
 package parquetio
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
@@ -47,11 +49,15 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	case *zed.TypeUnion:
 		return nil, ErrUnionType
 	case *zed.TypeEnum:
-		return []byte(typ.Format(zb)), nil
+		id := zed.DecodeUint(zb)
+		if id >= uint64(len(typ.Symbols)) {
+			return nil, errors.New("enum index out of range")
+		}
+		return []byte(typ.Symbols[id]), nil
 	case *zed.TypeMap:
 		return newMapData(typ.KeyType, typ.ValType, zb)
 	case *zed.TypeError:
-		return []byte(typ.Format(zb)), nil
+		return []byte(zson.String(zed.Value{typ, zb})), nil
 	}
 	panic(fmt.Sprintf("unknown type %T", typ))
 }

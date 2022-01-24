@@ -2,9 +2,7 @@ package zed
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
-	"strconv"
 
 	"github.com/brimdata/zed/zcode"
 )
@@ -51,20 +49,12 @@ func (t *TypeOfFloat32) ID() int {
 	return IDFloat32
 }
 
-func (t *TypeOfFloat32) String() string {
-	return "float32"
+func (t *TypeOfFloat32) Kind() Kind {
+	return PrimitiveKind
 }
 
 func (t *TypeOfFloat32) Marshal(zb zcode.Bytes) interface{} {
 	return DecodeFloat32(zb)
-}
-
-func (t *TypeOfFloat32) Format(zb zcode.Bytes) string {
-	f := DecodeFloat32(zb)
-	if f == float32(int64(f)) {
-		return fmt.Sprintf("%d.", int(f))
-	}
-	return strconv.FormatFloat(float64(f), 'g', -1, 32)
 }
 
 type TypeOfFloat64 struct{}
@@ -94,18 +84,10 @@ func (t *TypeOfFloat64) ID() int {
 	return IDFloat64
 }
 
-func (t *TypeOfFloat64) String() string {
-	return "float64"
+func (t *TypeOfFloat64) Kind() Kind {
+	return PrimitiveKind
 }
 
 func (t *TypeOfFloat64) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeFloat64(zv)
-}
-
-func (t *TypeOfFloat64) Format(zv zcode.Bytes) string {
-	d := DecodeFloat64(zv)
-	if d == float64(int64(d)) {
-		return fmt.Sprintf("%d.", int64(d))
-	}
-	return strconv.FormatFloat(d, 'g', -1, 64)
 }

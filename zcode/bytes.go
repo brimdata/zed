@@ -20,10 +20,7 @@ import (
 	"io"
 )
 
-var (
-	ErrNotContainer = errors.New("not a container")
-	ErrNotSingleton = errors.New("not a single container")
-)
+var ErrNotSingleton = errors.New("value body has more than one encoded value")
 
 // Bytes is the serialized representation of a sequence of ZNG values.
 type Bytes []byte

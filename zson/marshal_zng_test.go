@@ -385,23 +385,23 @@ func TestInterfaceZNGMarshal(t *testing.T) {
 	m.Decorate(zson.StylePackage)
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
-	assert.Equal(t, "zson_test.ThingTwo=({c:string})", zv.Type.String())
+	assert.Equal(t, "zson_test.ThingTwo=<{c:string}>", zson.String(zv.Type))
 
 	m.Decorate(zson.StyleSimple)
 	rolls := Rolls{1, 2, 3}
 	zv, err = m.Marshal(rolls)
 	require.NoError(t, err)
-	assert.Equal(t, "Rolls=([int64])", zv.Type.String())
+	assert.Equal(t, "Rolls=<[int64]>", zson.String(zv.Type))
 
 	m.Decorate(zson.StyleFull)
 	zv, err = m.Marshal(rolls)
 	require.NoError(t, err)
-	assert.Equal(t, "github.com/brimdata/zed/zson_test.Rolls=([int64])", zv.Type.String())
+	assert.Equal(t, "github.com/brimdata/zed/zson_test.Rolls=<[int64]>", zson.String(zv.Type))
 
 	plain := []int32{1, 2, 3}
 	zv, err = m.Marshal(plain)
 	require.NoError(t, err)
-	assert.Equal(t, "[int32]", zv.Type.String())
+	assert.Equal(t, "[int32]", zson.String(zv.Type))
 }
 
 func TestInterfaceUnmarshal(t *testing.T) {
@@ -410,7 +410,7 @@ func TestInterfaceUnmarshal(t *testing.T) {
 	m.Decorate(zson.StylePackage)
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
-	assert.Equal(t, "zson_test.ZNGThing=({a:string,B:int64})", zv.Type.String())
+	assert.Equal(t, "zson_test.ZNGThing=<{a:string,B:int64}>", zson.String(zv.Type))
 
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(ZNGThing{}, ThingTwo{})
@@ -443,7 +443,7 @@ func TestBindings(t *testing.T) {
 	})
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
-	assert.Equal(t, "SpecialThingOne=({a:string,B:int64})", zv.Type.String())
+	assert.Equal(t, "SpecialThingOne=<{a:string,B:int64}>", zson.String(zv.Type))
 
 	u := zson.NewZNGUnmarshaler()
 	u.NamedBindings([]zson.Binding{
@@ -460,7 +460,7 @@ func TestBindings(t *testing.T) {
 func TestEmptyInterface(t *testing.T) {
 	zv, err := zson.MarshalZNG(int8(123))
 	require.NoError(t, err)
-	assert.Equal(t, "int8", zv.Type.String())
+	assert.Equal(t, "int8", zson.String(zv.Type))
 
 	var v interface{}
 	err = zson.UnmarshalZNG(zv, &v)
@@ -484,7 +484,7 @@ func TestNamedNormal(t *testing.T) {
 
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
-	assert.Equal(t, "CustomInt8=(int8)", zv.Type.String())
+	assert.Equal(t, "CustomInt8=<int8>", zson.String(zv.Type))
 
 	var actual CustomInt8
 	u := zson.NewZNGUnmarshaler()
@@ -517,7 +517,7 @@ func TestEmbeddedInterface(t *testing.T) {
 	m.Decorate(zson.StyleSimple)
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
-	assert.Equal(t, "EmbeddedA=({A:ZNGThing=({a:string,B:int64})})", zv.Type.String())
+	assert.Equal(t, "EmbeddedA=<{A:ZNGThing=<{a:string,B:int64}>}>", zson.String(zv.Type))
 
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(ZNGThing{}, ThingTwo{})

@@ -1,14 +1,12 @@
 package zed
 
 import (
-	"bytes"
 	"errors"
 	"math"
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zqe"
 	"inet.af/netaddr"
 )
 
@@ -22,15 +20,6 @@ var (
 	ErrBadFormat     = errors.New("malformed zng record")
 	ErrTypeMismatch  = errors.New("type/value mismatch")
 )
-
-type RecordTypeError struct {
-	Name string
-	Type string
-	Err  error
-}
-
-func (r *RecordTypeError) Error() string { return r.Name + " (" + r.Type + "): " + r.Err.Error() }
-func (r *RecordTypeError) Unwrap() error { return r.Err }
 
 // FieldIter returns a fieldIter iterator over the receiver's values.
 func (r *Value) FieldIter() fieldIter {
@@ -50,65 +39,6 @@ func (r *Value) HasField(field string) bool {
 // Visitor on the way.
 func (r *Value) Walk(rv Visitor) error {
 	return Walk(r.Type, r.Bytes, rv)
-}
-
-// TypeCheck checks that the Bytes field is structurally consistent
-// with this value's Type.  It does not check that the actual leaf
-// values when parsed are type compatible with the leaf types.
-func (r *Value) TypeCheck() (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = zqe.RecoverError(r)
-		}
-	}()
-	return r.Walk(func(typ Type, body zcode.Bytes) error {
-		if typset, ok := typ.(*TypeSet); ok {
-			if err := checkSet(typset, body); err != nil {
-				return err
-			}
-			return SkipContainer
-		}
-		if typ, ok := typ.(*TypeEnum); ok {
-			if err := checkEnum(typ, body); err != nil {
-				return err
-			}
-			return SkipContainer
-		}
-		return nil
-	})
-}
-
-func checkSet(typ *TypeSet, body zcode.Bytes) error {
-	if body == nil {
-		return nil
-	}
-	it := body.Iter()
-	var prev zcode.Bytes
-	for !it.Done() {
-		tagAndBody := it.NextTagAndBody()
-		if prev != nil {
-			switch bytes.Compare(prev, tagAndBody) {
-			case 0:
-				err := errors.New("duplicate element")
-				return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: err}
-			case 1:
-				err := errors.New("elements not sorted")
-				return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: err}
-			}
-		}
-		prev = tagAndBody
-	}
-	return nil
-}
-
-func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
-	if body == nil {
-		return nil
-	}
-	if selector := DecodeUint(body); int(selector) >= len(typ.Symbols) {
-		return errors.New("enum selector out of range")
-	}
-	return nil
 }
 
 // Slice returns the encoded zcode.Bytes corresponding to the indicated

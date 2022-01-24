@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/terminal/color"
@@ -93,12 +94,18 @@ func MustFormatValue(zv zed.Value) string {
 	return s
 }
 
-func String(zv zed.Value) string {
-	s, err := FormatValue(zv)
-	if err != nil {
-		s = fmt.Sprintf("<zng parse err: %s>", err)
+func String(p interface{}) string {
+	if typ, ok := p.(zed.Type); ok {
+		return FormatType(typ)
 	}
-	return s
+	switch val := p.(type) {
+	case *zed.Value:
+		return MustFormatValue(*val)
+	case zed.Value:
+		return MustFormatValue(val)
+	default:
+		panic("zson.String takes a zed.Type or *zed.Value")
+	}
 }
 
 func (f *Formatter) Format(zv zed.Value) (string, error) {
@@ -160,7 +167,7 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 	switch t := typ.(type) {
 	default:
 		f.startColorPrimitive(typ)
-		f.build(typ.Format(bytes))
+		formatPrimitive(&f.builder, typ, bytes)
 		f.endColor()
 	case *zed.TypeAlias:
 		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
@@ -175,8 +182,12 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 	case *zed.TypeMap:
 		null, err = f.formatMap(indent, t, bytes, known, parentImplied)
 	case *zed.TypeEnum:
+		id := zed.DecodeUint(bytes)
+		if id >= uint64(len(t.Symbols)) {
+			return errors.New("enum index out of range")
+		}
 		f.build("%")
-		f.build(t.Format(bytes))
+		f.build(t.Symbols[id])
 	case *zed.TypeError:
 		f.startColor(color.Red)
 		f.build("error")
@@ -186,7 +197,7 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 		f.build(")")
 	case *zed.TypeOfType:
 		f.startColorPrimitive(zed.TypeType)
-		f.buildf("<%s>", zed.FormatTypeValue(bytes))
+		f.buildf("<%s>", FormatTypeValue(bytes))
 		f.endColor()
 	}
 	if err == nil && decorate {
@@ -241,7 +252,7 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 	it := bytes.Iter()
 	for _, field := range typ.Columns {
 		if it.Done() {
-			return &zed.RecordTypeError{Name: string(field.Name), Type: field.Type.String(), Err: zed.ErrMissingField}
+			return zed.ErrMissingField
 		}
 		f.build(sep)
 		f.startColor(color.Blue)
@@ -376,7 +387,7 @@ func (f *Formatter) formatType(typ zed.Type) {
 		return
 	}
 	if typ.ID() < zed.IDTypeComplex {
-		f.build(typ.String())
+		f.build(zed.PrimitiveName(typ))
 		return
 	}
 	f.push()
@@ -423,7 +434,7 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 	case *zed.TypeOfType:
 		formatType(&f.builder, make(typemap), typ)
 	default:
-		panic("unknown case in formatTypeBody(): " + typ.String())
+		panic("unknown case in formatTypeBody(): " + String(typ))
 	}
 	return nil
 }
@@ -592,6 +603,193 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 		formatType(b, typedefs, t.Type)
 		b.WriteByte('>')
 	default:
-		b.WriteString(typ.String())
+		b.WriteString(zed.PrimitiveName(typ))
 	}
+}
+
+func FormatPrimitive(typ zed.Type, bytes zcode.Bytes) string {
+	var b strings.Builder
+	formatPrimitive(&b, typ, bytes)
+	return b.String()
+}
+
+func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
+	if bytes == nil {
+		b.WriteString("null")
+	}
+	switch typ := typ.(type) {
+	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
+		b.WriteString(strconv.FormatUint(zed.DecodeUint(bytes), 10))
+	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
+		b.WriteString(strconv.FormatInt(zed.DecodeInt(bytes), 10))
+	case *zed.TypeOfDuration:
+		b.WriteString(zed.DecodeDuration(bytes).String())
+	case *zed.TypeOfTime:
+		b.WriteString(zed.DecodeTime(bytes).Time().Format(time.RFC3339Nano))
+	case *zed.TypeOfFloat32:
+		f := zed.DecodeFloat32(bytes)
+		if f == float32(int64(f)) {
+			b.WriteString(fmt.Sprintf("%d.", int64(f)))
+		} else {
+			b.WriteString(strconv.FormatFloat(float64(f), 'g', -1, 32))
+		}
+	case *zed.TypeOfFloat64:
+		f := zed.DecodeFloat64(bytes)
+		if f == float64(int64(f)) {
+			b.WriteString(fmt.Sprintf("%d.", int64(f)))
+		} else {
+			b.WriteString(strconv.FormatFloat(f, 'g', -1, 64))
+		}
+	case *zed.TypeOfBool:
+		if zed.IsTrue(bytes) {
+			b.WriteString("true")
+		} else {
+			b.WriteString("false")
+		}
+	case *zed.TypeOfBytes:
+		b.WriteString("0x")
+		b.WriteString(hex.EncodeToString(bytes))
+	case *zed.TypeOfString:
+		b.WriteString(zed.QuotedString(bytes, false))
+	case *zed.TypeOfIP:
+		b.WriteString(zed.DecodeIP(bytes).String())
+	case *zed.TypeOfNet:
+		b.WriteString(zed.DecodeNet(bytes).String())
+	case *zed.TypeOfType:
+		b.WriteByte('<')
+		formatTypeValue(bytes, b)
+		b.WriteByte('>')
+	default:
+		b.WriteString(fmt.Sprintf("<zson unknown primitive: %T", typ))
+	}
+}
+
+func FormatTypeValue(tv zcode.Bytes) string {
+	var b strings.Builder
+	formatTypeValue(tv, &b)
+	return b.String()
+}
+
+func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
+	if len(tv) == 0 {
+		truncErr(b)
+		return nil
+	}
+	id := tv[0]
+	tv = tv[1:]
+	switch id {
+	case zed.TypeValueNameDef:
+		name, tv := decodeNameAndCheck(tv, b)
+		if tv == nil {
+			return nil
+		}
+		b.WriteString(name)
+		b.WriteString("=<")
+		tv = formatTypeValue(tv, b)
+		b.WriteByte('>')
+		return tv
+	case zed.TypeValueNameRef:
+		name, tv := decodeNameAndCheck(tv, b)
+		if tv == nil {
+			return nil
+		}
+		b.WriteString(name)
+		return tv
+	case zed.TypeValueRecord:
+		b.WriteByte('{')
+		var n int
+		n, tv = zed.DecodeLength(tv)
+		if tv == nil {
+			truncErr(b)
+			return nil
+		}
+		for k := 0; k < n; k++ {
+			if k > 0 {
+				b.WriteByte(',')
+			}
+			var name string
+			name, tv = decodeNameAndCheck(tv, b)
+			b.WriteString(zed.QuotedName(name))
+			b.WriteString(":")
+			tv = formatTypeValue(tv, b)
+			if tv == nil {
+				return nil
+			}
+		}
+		b.WriteByte('}')
+	case zed.TypeValueArray:
+		b.WriteByte('[')
+		tv = formatTypeValue(tv, b)
+		b.WriteByte(']')
+	case zed.TypeValueSet:
+		b.WriteString("|[")
+		tv = formatTypeValue(tv, b)
+		b.WriteString("]|")
+	case zed.TypeValueMap:
+		b.WriteString("|{")
+		tv = formatTypeValue(tv, b)
+		b.WriteByte(':')
+		tv = formatTypeValue(tv, b)
+		b.WriteString("}|")
+	case zed.TypeValueUnion:
+		b.WriteByte('(')
+		var n int
+		n, tv = zed.DecodeLength(tv)
+		if tv == nil {
+			truncErr(b)
+			return nil
+		}
+		for k := 0; k < n; k++ {
+			if k > 0 {
+				b.WriteByte(',')
+			}
+			tv = formatTypeValue(tv, b)
+		}
+		b.WriteByte(')')
+	case zed.TypeValueEnum:
+		b.WriteByte('<')
+		var n int
+		n, tv = zed.DecodeLength(tv)
+		if tv == nil {
+			truncErr(b)
+			return nil
+		}
+		for k := 0; k < n; k++ {
+			if k > 0 {
+				b.WriteByte(',')
+			}
+			var symbol string
+			symbol, tv = decodeNameAndCheck(tv, b)
+			if tv == nil {
+				return nil
+			}
+			b.WriteString(zed.QuotedName(symbol))
+		}
+		b.WriteByte('>')
+	case zed.TypeValueError:
+		b.WriteString("error<")
+		tv = formatTypeValue(tv, b)
+		b.WriteByte('>')
+	default:
+		if id < 0 || id > zed.TypeValueMax {
+			b.WriteString(fmt.Sprintf("<ERR bad type ID %d in type value>", id))
+			return nil
+		}
+		typ := zed.LookupPrimitiveByID(int(id))
+		b.WriteString(zed.PrimitiveName(typ))
+	}
+	return tv
+}
+
+func decodeNameAndCheck(tv zcode.Bytes, b *strings.Builder) (string, zcode.Bytes) {
+	var name string
+	name, tv = zed.DecodeName(tv)
+	if tv == nil {
+		truncErr(b)
+	}
+	return name, tv
+}
+
+func truncErr(b *strings.Builder) {
+	b.WriteString("<ERR truncated type value>")
 }

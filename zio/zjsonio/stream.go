@@ -56,7 +56,7 @@ func (s *Stream) typeID(typ zed.Type) (string, astzed.Type) {
 		return id, nil
 	}
 	if zed.TypeID(typ) < zed.IDTypeComplex {
-		id := typ.String()
+		id := zed.PrimitiveName(typ)
 		s.encoder[typ] = id
 		return id, nil
 	}
