@@ -37,7 +37,7 @@ input: |
   {a:<(int64,string)>}
   {a:<[int64]>}
   {a:<[(int64,string)]>}
-  {a:<any=<(int64,string)>>}
+  {a:<any=(int64,string)>}
 
 output: |
   {n:0,a:null}
@@ -76,4 +76,4 @@ output: |
   {n:2,a:<(int64,string)>}
   {n:1,a:<[int64]>}
   {n:2,a:<[(int64,string)]>}
-  {n:2,a:<any=<(int64,string)>>}
+  {n:2,a:<any=(int64,string)>}

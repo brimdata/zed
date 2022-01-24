@@ -6,7 +6,7 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      {a:1(baz=<int8>)}(=foo)
+      {a:1(baz=int8)}(=foo)
       {a:1}(foo)
       {a:1}(=fubar)
       {a:1}(fubar)
@@ -16,14 +16,14 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {a:1(baz=<int8>)}(=foo)
+      {a:1(baz=int8)}(=foo)
       {a:1(baz)}(=foo)
       {a:1}(=fubar)
       {a:1}(fubar)
       {a:1}(=bar)
       {a:1}(bar)
       ===
-      {a:1(baz=<int8>)}(=foo)
+      {a:1(baz=int8)}(=foo)
       {a:1}(foo)
       {a:1}(=fubar)
       {a:1}(=fubar)

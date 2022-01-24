@@ -97,6 +97,10 @@ implied type of the value.
 
 It is an error for the decorator to be type incompatible with its referenced value.  
 
+Note that the `=` sigil here disambiguates between the case that a new
+type is defined, which may override a previous definition of a different type with the
+same name, from the case that an existing named type is merely decorating the value.
+
 ### 2.3 Primitive Values
 
 The type names and format for

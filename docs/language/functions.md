@@ -767,12 +767,12 @@ named type give by `name` if it exists in the current context.  Otherwise,
 #### Example:
 
 ```mdtest-command
-echo  '80(port=<int16>)' | zq -z 'yield typename("port")' -
+echo  '80(port=int16)' | zq -z 'yield typename("port")' -
 ```
 
 **Output:**
 ```mdtest-output
-<port=<int16>>
+<port=int16>
 ```
 
 ### `typeof`
@@ -921,13 +921,13 @@ error({err:"message"})
 Values of named types are unwrapped:
 
 ```mdtest-command
-echo '80(port=<uint16>)' | zq -z 'yield this' -
-echo '80(port=<uint16>)' | zq -z 'yield under(this)' -
+echo '80(port=uint16)' | zq -z 'yield this' -
+echo '80(port=uint16)' | zq -z 'yield under(this)' -
 ```
 
 **Output:**
 ```mdtest-output
-80(port=<uint16>)
+80(port=uint16)
 80(uint16)
 ```
 
