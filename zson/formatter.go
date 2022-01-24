@@ -747,7 +747,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 		}
 		b.WriteByte(')')
 	case zed.TypeValueEnum:
-		b.WriteByte('<')
+		b.WriteString("enum<")
 		var n int
 		n, tv = zed.DecodeLength(tv)
 		if tv == nil {
