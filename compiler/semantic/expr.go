@@ -48,17 +48,9 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Value: zson.MustFormatValue(val),
 		}, nil
 	case *ast.ID:
-		// We use static scoping here to see if an identifier is
-		// a "var" reference to the name or a field access
-		// and transform the ast node appropriately.  The semantic AST
-		// should have no Identifiers in it as they should all be
-		// resolved one way or another.
-		if ref := scope.Lookup(e.Name); ref != nil {
-			return ref, nil
-		}
-		return semField(scope, e)
+		return semField(scope, e, false)
 	case *ast.This:
-		return semField(scope, e)
+		return semField(scope, e, false)
 	case *ast.Search:
 		val, err := zson.ParsePrimitive(e.Value.Type, e.Value.Text)
 		if err != nil {
@@ -231,7 +223,7 @@ func dynamicTypeName(name string) *dag.Call {
 func semBinary(scope *Scope, e *ast.BinaryExpr) (dag.Expr, error) {
 	op := e.Op
 	if op == "." {
-		return semField(scope, e)
+		return semField(scope, e, false)
 	}
 	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Op == ":" {
 		if op != "[" {
@@ -370,7 +362,7 @@ func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
 		// XXX currently only support explicit field lvals
 		// (i.e., no assignments to array elements etc... instead
 		// you create a new array with modified contends)
-		lhs, err = semField(scope, a.LHS)
+		lhs, err = semField(scope, a.LHS, true)
 		if err != nil {
 			return dag.Assignment{}, fmt.Errorf("lhs of assigment expression: %w", err)
 		}
@@ -387,7 +379,7 @@ func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
 	} else if _, ok := a.RHS.(*ast.This); ok {
 		return dag.Assignment{}, errors.New(`cannot assign to "this"`)
 	} else {
-		lhs, err = semField(scope, a.RHS)
+		lhs, err = semField(scope, a.RHS, true)
 		if err != nil {
 			return dag.Assignment{}, errors.New("assignment name could not be inferred from rhs expression")
 		}
@@ -398,7 +390,7 @@ func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
 func semFields(scope *Scope, exprs []ast.Expr) ([]dag.Expr, error) {
 	fields := make([]dag.Expr, 0, len(exprs))
 	for _, e := range exprs {
-		f, err := semField(scope, e)
+		f, err := semField(scope, e, false)
 		if err != nil {
 			return nil, err
 		}
@@ -409,11 +401,11 @@ func semFields(scope *Scope, exprs []ast.Expr) ([]dag.Expr, error) {
 
 // semField checks that an expression is a field refernce and converts it
 // to a field path if possible.  It will convert any references to Refs.
-func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
+func semField(scope *Scope, e ast.Expr, lval bool) (dag.Expr, error) {
 	switch e := e.(type) {
 	case *ast.BinaryExpr:
 		if e.Op == "." {
-			lhs, err := semField(scope, e.LHS)
+			lhs, err := semField(scope, e.LHS, lval)
 			if err != nil {
 				return nil, err
 			}
@@ -432,7 +424,7 @@ func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			}, nil
 		}
 		if e.Op == "[" {
-			lhs, err := semField(scope, e.LHS)
+			lhs, err := semField(scope, e.LHS, lval)
 			if err != nil {
 				return nil, err
 			}
@@ -451,8 +443,17 @@ func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			}, nil
 		}
 	case *ast.ID:
-		if ref := scope.Lookup(e.Name); ref != nil {
-			return ref, nil
+		if !lval {
+			// We use static scoping here to see if an identifier is
+			// a "var" reference to the name or a field access
+			// and transform the ast node appropriately.  The semantic AST
+			// should have no Identifiers in it as they should all be
+			// resolved one way or another.
+			// If field is an lval the "var" reference should not be
+			// substituted.
+			if ref := scope.Lookup(e.Name); ref != nil {
+				return ref, nil
+			}
 		}
 		return &dag.Path{Kind: "Path", Name: []string{e.Name}}, nil
 	case *ast.This:
