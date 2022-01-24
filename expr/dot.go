@@ -35,7 +35,7 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 	return ret
 }
 
-func ValueOf(val *zed.Value) *zed.Value {
+func ValueUnder(val *zed.Value) *zed.Value {
 	typ := val.Type
 	if _, ok := typ.(*zed.TypeAlias); !ok {
 		if _, ok := typ.(*zed.TypeUnion); !ok {
@@ -60,7 +60,7 @@ func ValueOf(val *zed.Value) *zed.Value {
 
 func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	rec := d.record.Eval(ectx, this)
-	val := ValueOf(rec)
+	val := ValueUnder(rec)
 	recType, ok := val.Type.(*zed.TypeRecord)
 	if !ok {
 		return d.zctx.Missing()

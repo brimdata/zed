@@ -1,0 +1,9 @@
+zed: |
+  over this
+
+input: |
+  [1, "foo"] ([(int64,string)])
+
+output: |
+  1
+  "foo"
