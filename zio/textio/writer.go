@@ -27,7 +27,15 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
+func (w *Writer) Write(val *zed.Value) error {
+	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord); ok {
+		return w.writeRecord(val)
+	}
+	_, err := fmt.Fprintf(w.writer, "%s\n", zeekio.FormatValue(*val))
+	return err
+}
+
+func (w *Writer) writeRecord(rec *zed.Value) error {
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err
