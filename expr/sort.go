@@ -11,62 +11,80 @@ import (
 
 type CompareFn func(a *zed.Value, b *zed.Value) int
 
-// Internal function that compares two values of compatible types.
-type comparefn func(a, b zcode.Bytes) int
-
-// NewCompareFn creates a function that compares a pair of Records
-// based on the provided ordered list of fields.
-// The returned function uses the same return conventions as standard
-// routines such as bytes.Compare() and strings.Compare(), so it may
-// be used with packages such as heap and sort.
-// The handling of records in which a comparison field is null or not
-// present (collectively refered to as fields in which the value is "null")
-// is governed by the nullsMax parameter.  If this parameter is true,
-// a record with a null value is considered larger than a record with any
-// other value, and vice versa.
-func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
-	var pair coerce.Pair
-	comparefns := make(map[zed.Type]comparefn)
-	ectx := NewContext() //XXX should be smarter about this... pass it in?
-	return func(ra *zed.Value, rb *zed.Value) int {
-		for _, resolver := range fields {
-			a := resolver.Eval(ectx, ra)
-			if a.IsMissing() {
-				// Treat missing values as null so nulls-first/last
-				// works for these.
-				a = zed.Null
-			}
-			// XXX We should compute a vector of sort keys then
-			// sort the pointers and then generate the batches
-			// on demand from the sorted pointers.  And we should
-			// special case this for native machine-word keys.
-			// i.e., we sort {key,*zed.Value} then build the new
-			// batches from the sorted pointers.
-			a = a.Copy()
-
-			b := resolver.Eval(ectx, rb)
-			if b.IsMissing() {
-				b = zed.Null
-			}
-			v := compareValues(a, b, comparefns, &pair, nullsMax)
-			// If the events don't match, then return the sort
-			// info.  Otherwise, they match and we continue on
-			// on in the loop to the secondary key, etc.
-			if v != 0 {
-				return v
-			}
-		}
-		// All the keys matched with equality.
-		return 0
-	}
+// NewCompareFn creates a function that compares two values a and b according to
+// nullsMax and exprs.  To compare a and b, it iterates over the elements e of
+// exprs, stopping when e(a)!=e(b).  The handling of missing and null
+// (collectively refered to as "null") values is governed by nullsMax.  If
+// nullsMax is true, a null value is considered larger than any non-null value,
+// and vice versa.
+func NewCompareFn(nullsMax bool, exprs ...Evaluator) CompareFn {
+	return NewComparator(nullsMax, false, exprs...).WithMissingAsNull().Compare
 }
 
 func NewValueCompareFn(nullsMax bool) CompareFn {
-	var pair coerce.Pair
-	comparefns := make(map[zed.Type]comparefn)
-	return func(a, b *zed.Value) int {
-		return compareValues(a, b, comparefns, &pair, nullsMax)
+	return NewComparator(nullsMax, false, &This{}).Compare
+}
+
+type Comparator struct {
+	exprs    []Evaluator
+	nullsMax bool
+	reverse  bool
+
+	comparefns map[zed.Type]comparefn
+	ectx       Context
+	pair       coerce.Pair
+}
+
+type comparefn func(a, b zcode.Bytes) int
+
+// NewComparator returns a zed.Value comparator for exprs according to nullsMax
+// and reverse.  To compare values a and b, it iterates over the elements e of
+// exprs, stopping when e(a)!=e(b).  nullsMax determines whether a null value
+// compares larger (if true) or smaller (if false) than a non-null value.
+// reverse reverses the sense of comparisons.
+func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
+	return &Comparator{
+		exprs:      append([]Evaluator{}, exprs...),
+		nullsMax:   nullsMax,
+		reverse:    reverse,
+		comparefns: make(map[zed.Type]comparefn),
+		ectx:       NewContext(),
 	}
+}
+
+// WithMissingAsNull returns the receiver after modifying it to treat missing
+// values as the null value in comparisons.
+func (c *Comparator) WithMissingAsNull() *Comparator {
+	for i, k := range c.exprs {
+		c.exprs[i] = &missingAsNull{k}
+	}
+	return c
+}
+
+type missingAsNull struct{ Evaluator }
+
+func (m *missingAsNull) Eval(ectx Context, val *zed.Value) *zed.Value {
+	val = m.Evaluator.Eval(ectx, val)
+	if val.IsMissing() {
+		return zed.Null
+	}
+	return val
+}
+
+// Compare returns an interger comparing two values according to the receiver's
+// configuration.  The result will be 0 if a==b, -1 if a < b, and +1 if a > b.
+func (c *Comparator) Compare(a, b *zed.Value) int {
+	if c.reverse {
+		a, b = b, a
+	}
+	for _, k := range c.exprs {
+		aval := k.Eval(c.ectx, a)
+		bval := k.Eval(c.ectx, b)
+		if v := compareValues(aval, bval, c.comparefns, &c.pair, c.nullsMax); v != 0 {
+			return v
+		}
+	}
+	return 0
 }
 
 func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
