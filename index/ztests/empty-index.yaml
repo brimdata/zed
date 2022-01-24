@@ -2,8 +2,10 @@ script: |
   # b isn't in the input so this creates a valid Zed index that is empty
   ! zed dev indexfile create -o index.zng -k b in.zson
   zq -Z index.zng
-  echo ===
-  zed dev indexfile lookup -z -k \"hello\" index.zng
+  echo '=== lookup "hello" ==='
+  zed dev indexfile lookup -z -k '"hello"' index.zng
+  echo '=== lookup error("missing") ==='
+  zed dev indexfile lookup -z -k 'error("missing")' index.zng
   echo ===
 
 inputs:
@@ -15,11 +17,14 @@ outputs:
   - name: stdout
     data: |
       {
+          a: "hello"
+      }
+      {
           magic: "ZNG Trailer",
           type: "index",
           version: 4,
           sections: [
-              0
+              18
           ],
           meta: {
               order: "asc" (=order.Which),
@@ -32,8 +37,7 @@ outputs:
               ] (=field.List)
           } (=index.FileMeta)
       } (=zngio.Trailer)
+      === lookup "hello" ===
+      === lookup error("missing") ===
+      {a:"hello"}
       ===
-      ===
-  - name: stderr
-    data: |
-      no index key field "b" present in record: {b:error("missing")}
