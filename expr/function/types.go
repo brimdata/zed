@@ -110,3 +110,23 @@ func (q *Quiet) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	return &val
 }
+
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#kind
+type Kind struct {
+	zctx *zed.Context
+}
+
+func (k *Kind) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
+	val := args[0]
+	var typ zed.Type
+	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeOfType); ok {
+		var err error
+		typ, err = k.zctx.LookupByValue(val.Bytes)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		typ = val.Type
+	}
+	return newString(ectx, typ.Kind().String())
+}
