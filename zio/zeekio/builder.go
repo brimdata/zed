@@ -129,7 +129,7 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 		}
 		b.buf = zed.AppendInt(b.buf[:0], v)
 	case zed.IDUint16:
-		// Zeek's port type is aliased to uint16.
+		// Zeek's port type is mapped to a uint16 named type.
 		v, err := byteconv.ParseUint16(val)
 		if err != nil {
 			return err
@@ -166,7 +166,7 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 		}
 		b.buf = zed.AppendBool(b.buf[:0], v)
 	case zed.IDString:
-		// Zeek's enum type is aliased to string.
+		// Zeek's enum type is mapped to string named type.
 		val = unescapeZeekString(val)
 		if !utf8.Valid(val) {
 			// Zeek has an unusual escaping model for non-valid UTF

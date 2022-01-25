@@ -66,8 +66,8 @@ func encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{
 		if zed.TypeID(typ) < zed.IDTypeComplex {
 			return zed.PrimitiveName(typ), nil
 		}
-		if alias, ok := typ.(*zed.TypeAlias); ok {
-			return alias.Name, nil
+		if named, ok := typ.(*zed.TypeNamed); ok {
+			return named.Name, nil
 		}
 		return strconv.Itoa(zed.TypeID(typ)), nil
 	}
@@ -79,7 +79,7 @@ func encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{
 
 func encodeValue(zctx *zed.Context, typ zed.Type, val zcode.Bytes) (interface{}, error) {
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return encodeValue(zctx, typ.Type, val)
 	case *zed.TypeUnion:
 		return encodeUnion(zctx, typ, val)
@@ -260,7 +260,7 @@ func decodeMap(b *zcode.Builder, typ *zed.TypeMap, body interface{}) error {
 
 func decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return decodeValue(b, typ.Type, body)
 	case *zed.TypeUnion:
 		return decodeUnion(b, typ, body)

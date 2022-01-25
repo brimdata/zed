@@ -127,12 +127,12 @@ const notPresentOut = `
 {key:"key1",max:null}
 `
 
-const aliasIn = `
+const namedIn = `
 {host:127.0.0.1(=ipaddr)}
 {host:127.0.0.2}
 `
 
-const aliasOut = `
+const namedOut = `
 {host:127.0.0.1(=ipaddr),count:1(uint64)}
 {host:127.0.0.2,count:1(uint64)}
 `
@@ -209,7 +209,7 @@ func tests() suite {
 	// Test reducers with missing operands
 	s.add(New("not-present", notPresentIn, notPresentOut, "max(val) by key | sort"))
 
-	s.add(New("aliases", aliasIn, aliasOut, "count() by host | sort host"))
+	s.add(New("named-types", namedIn, namedOut, "count() by host | sort host"))
 
 	// Tests with assignments and computed keys
 	s.add(New("null-keys-computed", in+nullKeyIn, groupSingleOut_nullOut, "count() by key1:=to_lower(to_upper(key1)) | sort key1"))

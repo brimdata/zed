@@ -11,11 +11,11 @@ import (
 func TestBestUnionSelector(t *testing.T) {
 	u8 := zed.TypeUint8
 	zctx := zed.NewContext()
-	u8alias1, err := zctx.LookupTypeAlias("u8alias1", u8)
+	u8named1, err := zctx.LookupTypeNamed("u8named1", u8)
 	require.NoError(t, err)
-	u8alias2, err := zctx.LookupTypeAlias("u8alias2", u8)
+	u8named2, err := zctx.LookupTypeNamed("u8named2", u8)
 	require.NoError(t, err)
-	u8alias3, err := zctx.LookupTypeAlias("u8alias3", u8)
+	u8named3, err := zctx.LookupTypeNamed("u8named3", u8)
 	require.NoError(t, err)
 
 	assert.Equal(t, -1, bestUnionSelector(u8, nil))
@@ -33,19 +33,19 @@ func TestBestUnionSelector(t *testing.T) {
 	}
 
 	// Needle is in haystack.
-	test(u8, u8, []zed.Type{u8, u8alias1, u8alias2})
-	test(u8, u8, []zed.Type{u8alias2, u8alias1, u8})
-	test(u8, u8, []zed.Type{u8alias1, u8, u8alias2})
-	test(u8alias2, u8alias2, []zed.Type{u8, u8alias1, u8alias2})
-	test(u8alias2, u8alias2, []zed.Type{u8alias2, u8alias1, u8})
-	test(u8alias2, u8alias2, []zed.Type{u8, u8alias2, u8alias1})
+	test(u8, u8, []zed.Type{u8, u8named1, u8named2})
+	test(u8, u8, []zed.Type{u8named2, u8named1, u8})
+	test(u8, u8, []zed.Type{u8named1, u8, u8named2})
+	test(u8named2, u8named2, []zed.Type{u8, u8named1, u8named2})
+	test(u8named2, u8named2, []zed.Type{u8named2, u8named1, u8})
+	test(u8named2, u8named2, []zed.Type{u8, u8named2, u8named1})
 
 	// Underlying type of needle is in haystack.
-	test(u8, u8alias1, []zed.Type{u8, u8alias2, u8alias3})
-	test(u8, u8alias1, []zed.Type{u8alias3, u8alias2, u8})
-	test(u8, u8alias1, []zed.Type{u8alias2, u8, u8alias3})
+	test(u8, u8named1, []zed.Type{u8, u8named2, u8named3})
+	test(u8, u8named1, []zed.Type{u8named3, u8named2, u8})
+	test(u8, u8named1, []zed.Type{u8named2, u8, u8named3})
 
 	// Type compatible with needle is in haystack.
-	test(u8alias1, u8, []zed.Type{u8alias1, u8alias2, u8alias3})
-	test(u8alias3, u8alias1, []zed.Type{u8alias3, u8alias2})
+	test(u8named1, u8, []zed.Type{u8named1, u8named2, u8named3})
+	test(u8named3, u8named1, []zed.Type{u8named3, u8named2})
 }

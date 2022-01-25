@@ -775,12 +775,12 @@ func (m *Missing) Eval(ectx Context, this *zed.Value) *zed.Value {
 }
 
 func NewCast(zctx *zed.Context, expr Evaluator, typ zed.Type) (Evaluator, error) {
-	// XXX should handle alias casts... need type context.
+	// XXX should handle named type casts. need type context.
 	// compile is going to need a local type context to create literals
 	// of complex types?
 	c := LookupPrimitiveCaster(zctx, typ)
 	if c == nil {
-		// XXX See issue #1572.   To implement aliascast here.
+		// XXX See issue #1572.  To implement named cast here.
 		return nil, fmt.Errorf("cast to '%s' not implemented", typ)
 	}
 	return &evalCast{expr, c, typ}, nil

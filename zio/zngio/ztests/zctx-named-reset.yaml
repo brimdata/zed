@@ -1,4 +1,4 @@
-# Test that type aliases are properly reset and reusable after stream boundaries
+# Test that type names are properly reset and reusable after stream boundaries.
 
 script: |
   zq "head 1" in.zson > t1.zng

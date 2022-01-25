@@ -49,7 +49,7 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if typVal.IsError() {
 		return typVal
 	}
-	//XXX aliasof?
+	//XXX TypeUnder?
 	if typVal.Type != zed.TypeType {
 		return ectx.CopyValue(*s.zctx.NewErrorf(
 			"shaper type argument is not a type: %s", zson.MustFormatValue(*typVal)))
@@ -249,17 +249,17 @@ func bestUnionSelector(in, spec zed.Type) int {
 	if !ok {
 		return -1
 	}
-	aliasOfIn := zed.TypeUnder(in)
+	typeUnderIn := zed.TypeUnder(in)
 	underlying := -1
 	compatible := -1
 	for i, t := range specUnion.Types {
 		if t == in {
 			return i
 		}
-		if t == aliasOfIn && underlying == -1 {
+		if t == typeUnderIn && underlying == -1 {
 			underlying = i
 		}
-		if zed.TypeUnder(t) == aliasOfIn && compatible == -1 {
+		if zed.TypeUnder(t) == typeUnderIn && compatible == -1 {
 			compatible = i
 		}
 	}

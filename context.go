@@ -29,7 +29,7 @@ type Context struct {
 	byID      []Type
 	toType    map[string]Type
 	toValue   map[Type]zcode.Bytes
-	typedefs  map[string]*TypeAlias
+	typedefs  map[string]*TypeNamed
 	stringErr *TypeError
 	missing   *Value
 	quiet     *Value
@@ -40,7 +40,7 @@ func NewContext() *Context {
 		byID:     make([]Type, IDTypeComplex, 2*IDTypeComplex),
 		toType:   make(map[string]Type),
 		toValue:  make(map[Type]zcode.Bytes),
-		typedefs: make(map[string]*TypeAlias),
+		typedefs: make(map[string]*TypeNamed),
 	}
 }
 
@@ -50,7 +50,7 @@ func (c *Context) Reset() {
 	c.byID = c.byID[:IDTypeComplex]
 	c.toType = make(map[string]Type)
 	c.toValue = make(map[Type]zcode.Bytes)
-	c.typedefs = make(map[string]*TypeAlias)
+	c.typedefs = make(map[string]*TypeNamed)
 }
 
 func (c *Context) nextIDWithLock() int {
@@ -192,21 +192,21 @@ func (c *Context) LookupTypeEnum(symbols []string) *TypeEnum {
 	return typ
 }
 
-func (c *Context) LookupTypeDef(name string) *TypeAlias {
+func (c *Context) LookupTypeDef(name string) *TypeNamed {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.typedefs[name]
 }
 
-func (c *Context) LookupTypeAlias(name string, target Type) (*TypeAlias, error) {
+func (c *Context) LookupTypeNamed(name string, target Type) (*TypeNamed, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if alias, ok := c.typedefs[name]; ok {
-		if alias.Type == target {
-			return alias, nil
+	if named, ok := c.typedefs[name]; ok {
+		if named.Type == target {
+			return named, nil
 		}
 	}
-	typ := NewTypeAlias(c.nextIDWithLock(), name, target)
+	typ := NewTypeNamed(c.nextIDWithLock(), name, target)
 	c.typedefs[name] = typ
 	c.enterWithLock(EncodeTypeValue(typ), typ)
 	return typ, nil
@@ -334,11 +334,11 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		if tv == nil {
 			return nil, nil
 		}
-		alias, err := c.LookupTypeAlias(name, typ)
+		named, err := c.LookupTypeNamed(name, typ)
 		if err != nil {
 			return nil, nil
 		}
-		return alias, tv
+		return named, tv
 	case TypeValueNameRef:
 		name, tv := DecodeName(tv)
 		if tv == nil {

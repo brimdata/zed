@@ -85,7 +85,7 @@ func (e *Encoder) encode(ext zed.Type) (zed.Type, error) {
 		return e.encodeTypeMap(ext)
 	case *zed.TypeEnum:
 		return e.encodeTypeEnum(ext)
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return e.encodeTypeName(ext)
 	case *zed.TypeError:
 		return e.encodeTypeError(ext)
@@ -186,12 +186,12 @@ func (e *Encoder) encodeTypeMap(ext *zed.TypeMap) (*zed.TypeMap, error) {
 	return typ, nil
 }
 
-func (e *Encoder) encodeTypeName(ext *zed.TypeAlias) (*zed.TypeAlias, error) {
+func (e *Encoder) encodeTypeName(ext *zed.TypeNamed) (*zed.TypeNamed, error) {
 	inner, err := e.Encode(ext.Type)
 	if err != nil {
 		return nil, err
 	}
-	typ, err := e.zctx.LookupTypeAlias(ext.Name, inner)
+	typ, err := e.zctx.LookupTypeNamed(ext.Name, inner)
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +445,7 @@ func (d *Decoder) readTypeName(b *buffer) error {
 	if err != nil {
 		return err
 	}
-	typ, err := d.local.zctx.LookupTypeAlias(name, inner)
+	typ, err := d.local.zctx.LookupTypeNamed(name, inner)
 	if err != nil {
 		return err
 	}

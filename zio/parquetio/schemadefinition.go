@@ -89,7 +89,7 @@ func newSchemaDefinition(typ *zed.TypeRecord) (*parquetschema.SchemaDefinition, 
 
 func newColumnDefinition(name string, typ zed.Type) (*parquetschema.ColumnDefinition, error) {
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		switch id := typ.Type.ID(); {
 		case typ.Name == "date" && id == zed.IDInt32:
 			return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedDate, logicalDate)

@@ -19,7 +19,7 @@ func formatAny(zv zed.Value, inContainer bool) string {
 	switch t := zv.Type.(type) {
 	case *zed.TypeArray:
 		return formatArray(t, zv.Bytes)
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return formatAny(zed.Value{t.Type, zv.Bytes}, inContainer)
 	case *zed.TypeOfBool:
 		if zed.DecodeBool(zv.Bytes) {

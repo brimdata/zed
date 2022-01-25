@@ -43,7 +43,7 @@ func (l *LenFn) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 
 func typeLength(typ zed.Type) int {
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return typeLength(typ.Type)
 	case *zed.TypeRecord:
 		return len(typ.Columns)

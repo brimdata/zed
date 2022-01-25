@@ -25,7 +25,7 @@ func Walk(typ Type, body zcode.Bytes, visit Visitor) error {
 		return err
 	}
 	switch typ := typ.(type) {
-	case *TypeAlias:
+	case *TypeNamed:
 		return Walk(typ.Type, body, visit)
 	case *TypeRecord:
 		return walkRecord(typ, body, visit)

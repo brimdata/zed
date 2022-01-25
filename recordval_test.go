@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRecordAccessAlias(t *testing.T) {
+func TestRecordAccessNamed(t *testing.T) {
 	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
 	reader := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 	rec, err := reader.Read()

@@ -26,20 +26,20 @@ func TestDuplicates(t *testing.T) {
 	assert.Equal(t, setType.ID(), typ3.ID())
 }
 
-func TestTranslateAlias(t *testing.T) {
+func TestTranslateNamed(t *testing.T) {
 	c1 := zed.NewContext()
 	c2 := zed.NewContext()
 	set1, err := zson.ParseType(c1, "|[int64]|")
 	require.NoError(t, err)
 	set2, err := zson.ParseType(c2, "|[int64]|")
 	require.NoError(t, err)
-	alias1, err := c1.LookupTypeAlias("foo", set1)
+	named1, err := c1.LookupTypeNamed("foo", set1)
 	require.NoError(t, err)
-	alias2, err := c2.LookupTypeAlias("foo", set2)
+	named2, err := c2.LookupTypeNamed("foo", set2)
 	require.NoError(t, err)
-	alias3, err := c2.TranslateType(alias1)
+	named3, err := c2.TranslateType(named1)
 	require.NoError(t, err)
-	assert.Equal(t, alias2, alias3)
+	assert.Equal(t, named2, named3)
 }
 
 func TestCopyMutateColumns(t *testing.T) {

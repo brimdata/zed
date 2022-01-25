@@ -35,7 +35,7 @@ func (c *converter) convert(b *zcode.Builder, typ zed21.Type, in Bytes) error {
 		b.Append(tv)
 	case *zed21.TypeOfNull:
 		b.Append(nil)
-	case *zed21.TypeAlias:
+	case *zed21.TypeNamed:
 		return c.convert(b, typ.Type, in)
 	case *zed21.TypeRecord:
 		it := Iter(in)
@@ -126,12 +126,12 @@ func (c *converter) convert(b *zcode.Builder, typ zed21.Type, in Bytes) error {
 
 func (c *converter) convertType(typ zed21.Type) (zed.Type, error) {
 	switch typ := typ.(type) {
-	case *zed21.TypeAlias:
+	case *zed21.TypeNamed:
 		newType, err := c.convertType(typ.Type)
 		if err != nil {
 			return nil, err
 		}
-		return c.zctx.LookupTypeAlias(typ.Name, newType)
+		return c.zctx.LookupTypeNamed(typ.Name, newType)
 	case *zed21.TypeOfUint8:
 		return zed.TypeUint8, nil
 	case *zed21.TypeOfUint16:

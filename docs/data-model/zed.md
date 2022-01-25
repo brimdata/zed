@@ -74,7 +74,7 @@ A `null` value can have any type.
 > In addition, nanosecond epoch times overflow on April 11, 2262.
 > For the world of 2262, a new epoch can be created well in advance
 > and the old time epoch and new time epoch can live side by side with
-> the old using a named type for the new epoch time aliased to the old `time`.
+> the old using a named type for the new epoch time referring to the old `time`.
 > An app that wants more than 64 bits of timestamp precision can always use
 > a named type of a `bytes` type and do its own conversions to and from the
 > corresponding bytes values.  A time with a local time zone can be represented

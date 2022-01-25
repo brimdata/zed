@@ -37,7 +37,7 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 
 func ValueUnder(val *zed.Value) *zed.Value {
 	typ := val.Type
-	if _, ok := typ.(*zed.TypeAlias); !ok {
+	if _, ok := typ.(*zed.TypeNamed); !ok {
 		if _, ok := typ.(*zed.TypeUnion); !ok {
 			// common fast path
 			return val

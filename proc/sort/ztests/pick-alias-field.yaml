@@ -1,9 +1,0 @@
-zed: sort
-
-input: |
-  {a:"1",b:2(=alias)}
-  {a:"2",b:1(=alias)}
-
-output: |
-  {a:"2",b:1(=alias)}
-  {a:"1",b:2(=alias)}
