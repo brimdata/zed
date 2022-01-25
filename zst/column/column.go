@@ -1,34 +1,34 @@
 // Package column implements the organization of columns on storage for a
-// zst columnar storage object.
+// ZST columnar storage object.
 //
-// A zst object is created by allocating a RecordWriter for a top-level zng row type
-// (i.e., "schema") via NewRecordWriter.  The object to be written to is wrapped
+// A ZST object is created by allocating a Writer for any top-level Zed type
+// via NewWriter.  The object to be written is wrapped
 // in a Spiller with a column threshold.  Output is streamed to the underlying spiller
 // in a single pass.  (In the future, we may implement multiple passes to optimize
-// the storage layout of column data or spread a given zst object across multiple
+// the storage layout of column data or spread a given ZST object across multiple
+// files.
 //
-// NewRecordWriter recursively decends the record type, allocating a column Writer
-// for each node in the type tree.  The top-level record body is written via a call
-// to Write and all of the columns are called with their respetive values represented
-// as a zcode.Bytes.  The columns buffer data in memorry until they reach their
+// NewWriter recursively decends into the Zed type, allocating a Writer
+// for each node in the type tree.  The top-level body is written via a call
+// to Write.  The columns buffer data in memory until they reach their
 // byte threshold or until Flush is called.
 //
-// After all of the zng data is written, a reassembly record may be formed for
-// the RecordColumn by calling its MarshalZNG method, which builds the record
-// value in place using zcode.Builder and returns the zed.TypeRecord (i.e., schema)
-// of that record column.
+// After all of the Zed data is written, a reassembly map is formed for
+// each column writer by calling its EncodeMap method, which builds the
+// value in place using zcode.Builder and returns the Zed type of
+// the reassembly map value.
 //
-// Data is read from a zst file by scanning the reassembly records then unmarshaling
-// a zed.Record body into an empty Record by calling Record.UnmarshalZNG, which
-// recusirvely builds an assembly structure.  An io.ReaderAt is passed to unmarshal
+// Data is read from a ZST file by scanning the reassembly maps to build
+// column Readers for each Zed type by calling NewReader with the map, which
+// recusirvely builds an assembly structure.  An io.ReaderAt is passed to NewReader
 // so each column reader can access the underlying storage object and read its
 // column data effciently in largish column chunks.
 //
-// Once an assembly is built, the recontructed zng row data can be read from the
+// Once an assembly is built, the recontructed Zed row data can be read from the
 // assembly by calling the Read method on the top-level Record and passing in
 // a zcode.Builder to reconstruct the record body in place.  The assembly does not
 // need any type information as the structure of values is entirely self describing
-// in the zng data format.
+// in the Zed data format.
 package column
 
 import (
@@ -49,9 +49,9 @@ type Writer interface {
 	Write(zcode.Bytes) error
 	// Push all in-memory column data to the storage layer.
 	Flush(bool) error
-	// MarshalZNG is called after all data is flushed to build the reassembly
+	// EncodeMap is called after all data is flushed to build the reassembly
 	// record for this column.
-	MarshalZNG(*zed.Context, *zcode.Builder) (zed.Type, error)
+	EncodeMap(*zed.Context, *zcode.Builder) (zed.Type, error)
 }
 
 func NewWriter(typ zed.Type, spiller *Spiller) Writer {
@@ -73,38 +73,29 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 	}
 }
 
-type Any interface {
-	UnmarshalZNG(zed.Type, zed.Value, io.ReaderAt) error
+type Reader interface {
 	Read(*zcode.Builder) error
 }
 
-func Unmarshal(typ zed.Type, in zed.Value, r io.ReaderAt) (Any, error) {
+func NewReader(typ zed.Type, in zed.Value, r io.ReaderAt) (Reader, error) {
 	switch typ := typ.(type) {
 	case *zed.TypeAlias:
-		return Unmarshal(typ.Type, in, r)
+		return NewReader(typ.Type, in, r)
 	case *zed.TypeRecord:
-		record := &Record{}
-		err := record.UnmarshalZNG(typ, in, r)
-		return record, err
+		return NewRecordReader(typ, in, r)
 	case *zed.TypeArray:
-		a := &Array{}
-		err := a.UnmarshalZNG(typ.Type, in, r)
-		return a, err
+		return NewArrayReader(typ.Type, in, r)
 	case *zed.TypeSet:
-		a := &Array{}
-		err := a.UnmarshalZNG(typ.Type, in, r)
-		return a, err
+		return NewArrayReader(typ.Type, in, r)
 	case *zed.TypeUnion:
-		u := &Union{}
-		err := u.UnmarshalZNG(typ, in, r)
-		return u, err
+		return NewUnionReader(typ, in, r)
 	case *zed.TypeMap:
 		return nil, errors.New("type 'map' is currently unsupported by the ZST implementation")
 	case *zed.TypeEnum:
 		return nil, errors.New("type 'enum' is currently unsupported by the ZST implementation")
+	case *zed.TypeError:
+		return nil, errors.New("type 'error' is currently unsupported by the ZST implementation")
 	default:
-		p := &Primitive{}
-		err := p.UnmarshalZNG(typ, in, r)
-		return p, err
+		return NewPrimitiveReader(in, r)
 	}
 }

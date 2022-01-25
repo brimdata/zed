@@ -36,27 +36,30 @@ func (p *PresenceWriter) Finish() {
 	p.Write(p.run)
 }
 
-type Presence struct {
-	Int
+type PresenceReader struct {
+	IntReader
 	null bool
 	run  int
 }
 
-func NewPresence() *Presence {
+func NewPresence(i IntReader) *PresenceReader {
 	// We start out with null true so it is immediately flipped to
 	// false on the first call to Read.
-	return &Presence{null: true}
+	return &PresenceReader{
+		IntReader: i,
+		null:      true,
+	}
 }
 
-func (p *Presence) IsEmpty() bool {
+func (p *PresenceReader) IsEmpty() bool {
 	return len(p.segmap) == 0
 }
 
-func (p *Presence) Read() (bool, error) {
+func (p *PresenceReader) Read() (bool, error) {
 	run := p.run
 	for run == 0 {
 		p.null = !p.null
-		v, err := p.Int.Read()
+		v, err := p.IntReader.Read()
 		if err != nil {
 			return false, err
 		}

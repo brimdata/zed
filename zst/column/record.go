@@ -51,11 +51,11 @@ func (r RecordWriter) Flush(eof bool) error {
 	return nil
 }
 
-func (r RecordWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
+func (r RecordWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	var columns []zed.Column
 	b.BeginContainer()
 	for _, f := range r {
-		fieldType, err := f.MarshalZNG(zctx, b)
+		fieldType, err := f.EncodeMap(zctx, b)
 		if err != nil {
 			return nil, err
 		}
@@ -65,33 +65,36 @@ func (r RecordWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 	return zctx.LookupTypeRecord(columns)
 }
 
-type Record []*Field
+type RecordReader []FieldReader
 
-func (r *Record) UnmarshalZNG(utyp zed.Type, in zed.Value, reader io.ReaderAt) error {
+var _ Reader = (RecordReader)(nil)
+
+func NewRecordReader(utyp zed.Type, in zed.Value, reader io.ReaderAt) (RecordReader, error) {
 	typ, ok := zed.TypeUnder(utyp).(*zed.TypeRecord)
 	if !ok {
-		return errors.New("corrupt ZST object: record_column is not a record")
+		return nil, errors.New("corrupt ZST object: record_column is not a record")
 	}
 	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
-		return errors.New("corrupt ZST object: record_column is not a record")
+		return nil, errors.New("corrupt ZST object: record_column is not a record")
 	}
 	k := 0
+	var r RecordReader
 	for it := in.Bytes.Iter(); !it.Done(); k++ {
 		if k >= len(typ.Columns) {
-			return errors.New("mismatch between record type and record_column") //XXX
+			return nil, errors.New("mismatch between record type and record_column") //XXX
 		}
 		fieldType := typ.Columns[k].Type
-		f := &Field{}
-		if err := f.UnmarshalZNG(fieldType, zed.Value{rtype.Columns[k].Type, it.Next()}, reader); err != nil {
-			return err
+		f, err := NewFieldReader(fieldType, zed.Value{rtype.Columns[k].Type, it.Next()}, reader)
+		if err != nil {
+			return nil, err
 		}
-		*r = append(*r, f)
+		r = append(r, *f)
 	}
-	return nil
+	return r, nil
 }
 
-func (r Record) Read(b *zcode.Builder) error {
+func (r RecordReader) Read(b *zcode.Builder) error {
 	b.BeginContainer()
 	for _, f := range r {
 		if err := f.Read(b); err != nil {
@@ -104,7 +107,7 @@ func (r Record) Read(b *zcode.Builder) error {
 
 var ErrNonRecordAccess = errors.New("attempting to access a field in a non-record value")
 
-func (r Record) Lookup(typ *zed.TypeRecord, fields []string) (zed.Type, Any, error) {
+func (r RecordReader) Lookup(typ *zed.TypeRecord, fields []string) (zed.Type, Reader, error) {
 	if len(fields) == 0 {
 		panic("column.Record.Lookup cannot be called with an empty fields argument")
 	}
@@ -114,7 +117,7 @@ func (r Record) Lookup(typ *zed.TypeRecord, fields []string) (zed.Type, Any, err
 	}
 	t := typ.Columns[k].Type
 	if len(fields) == 1 {
-		return t, r[k], nil
+		return t, &r[k], nil
 	}
 	typ, ok = t.(*zed.TypeRecord)
 	if !ok {
@@ -122,5 +125,5 @@ func (r Record) Lookup(typ *zed.TypeRecord, fields []string) (zed.Type, Any, err
 		// is a field "id" that isn't a record so cut should ignore it.
 		return nil, nil, ErrNonRecordAccess
 	}
-	return r[k].column.(*Record).Lookup(typ, fields[1:])
+	return r[k].val.(RecordReader).Lookup(typ, fields[1:])
 }
