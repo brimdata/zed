@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 type Sorter struct {
@@ -206,7 +207,7 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 			// representation of the type.
 			// XXX This is heavyweight and should probably just compare
 			// the zcode.Bytes.  See issue #2354.
-			return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
+			return bytes.Compare([]byte(zson.String(a.Type)), []byte(zson.String(b.Type)))
 		}
 		abytes, bbytes = pair.A, pair.B
 	}

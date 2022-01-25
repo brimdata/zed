@@ -1,0 +1,9 @@
+zed: '*'
+
+input: |
+  {"san":{"dns":["google.com"],"email":null,"ip":null,"uri":null}}
+
+output-flags: -f ndjson
+
+output: |
+  {"san":{"dns":["google.com"],"email":null,"ip":null,"uri":null}}

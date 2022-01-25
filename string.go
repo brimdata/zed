@@ -22,14 +22,6 @@ func (t *TypeOfString) ID() int {
 	return IDString
 }
 
-func (t *TypeOfString) String() string {
-	return "string"
-}
-
-func (t *TypeOfString) Marshal(zv zcode.Bytes) interface{} {
-	return string(zv)
-}
-
-func (t *TypeOfString) Format(zv zcode.Bytes) string {
-	return QuotedString(zv, false)
+func (t *TypeOfString) Kind() Kind {
+	return PrimitiveKind
 }

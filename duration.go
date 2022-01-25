@@ -27,14 +27,6 @@ func (t *TypeOfDuration) ID() int {
 	return IDDuration
 }
 
-func (t *TypeOfDuration) String() string {
-	return "duration"
-}
-
-func (t *TypeOfDuration) Marshal(zv zcode.Bytes) interface{} {
-	return t.Format(zv)
-}
-
-func (t *TypeOfDuration) Format(zv zcode.Bytes) string {
-	return DecodeDuration(zv).String()
+func (t *TypeOfDuration) Kind() Kind {
+	return PrimitiveKind
 }

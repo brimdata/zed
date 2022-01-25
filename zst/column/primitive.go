@@ -98,7 +98,7 @@ func (p *Primitive) next() error {
 		return err
 	}
 	if n < int(segment.Length) {
-		return errors.New("truncated read of zst column")
+		return errors.New("truncated read of ZST column")
 	}
 	p.iter = zcode.Iter(b)
 	return nil

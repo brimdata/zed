@@ -1,10 +1,6 @@
 package zed
 
 import (
-	"encoding/binary"
-	"fmt"
-	"strings"
-
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -14,16 +10,8 @@ func (t *TypeOfType) ID() int {
 	return IDType
 }
 
-func (t *TypeOfType) String() string {
-	return "type"
-}
-
-func (t *TypeOfType) Marshal(zv zcode.Bytes) interface{} {
-	return t.Format(zv)
-}
-
-func (t *TypeOfType) Format(zv zcode.Bytes) string {
-	return fmt.Sprintf("<%s>", FormatTypeValue(zv))
+func (t *TypeOfType) Kind() Kind {
+	return PrimitiveKind
 }
 
 func NewTypeValue(t Type) *Value {
@@ -95,153 +83,4 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 		// Primitive type
 		return append(b, byte(t.ID()))
 	}
-}
-
-func FormatTypeValue(tv zcode.Bytes) string {
-	var b strings.Builder
-	formatTypeValue(tv, &b)
-	return b.String()
-}
-
-func truncErr(b *strings.Builder) {
-	b.WriteString("<ERR truncated type value>")
-}
-
-func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
-	if len(tv) == 0 {
-		truncErr(b)
-		return nil
-	}
-	id := tv[0]
-	tv = tv[1:]
-	switch id {
-	case TypeValueNameDef:
-		name, tv := decodeNameAndCheck(tv, b)
-		if tv == nil {
-			return nil
-		}
-		b.WriteString(name)
-		b.WriteString("=<")
-		tv = formatTypeValue(tv, b)
-		b.WriteByte('>')
-		return tv
-	case TypeValueNameRef:
-		name, tv := decodeNameAndCheck(tv, b)
-		if tv == nil {
-			return nil
-		}
-		b.WriteString(name)
-		return tv
-	case TypeValueRecord:
-		b.WriteByte('{')
-		var n int
-		n, tv = decodeInt(tv)
-		if tv == nil {
-			truncErr(b)
-			return nil
-		}
-		for k := 0; k < n; k++ {
-			if k > 0 {
-				b.WriteByte(',')
-			}
-			var name string
-			name, tv = decodeNameAndCheck(tv, b)
-			b.WriteString(QuotedName(name))
-			b.WriteString(":")
-			tv = formatTypeValue(tv, b)
-			if tv == nil {
-				return nil
-			}
-		}
-		b.WriteByte('}')
-	case TypeValueArray:
-		b.WriteByte('[')
-		tv = formatTypeValue(tv, b)
-		b.WriteByte(']')
-	case TypeValueSet:
-		b.WriteString("|[")
-		tv = formatTypeValue(tv, b)
-		b.WriteString("]|")
-	case TypeValueMap:
-		b.WriteString("|{")
-		tv = formatTypeValue(tv, b)
-		b.WriteByte(':')
-		tv = formatTypeValue(tv, b)
-		b.WriteString("}|")
-	case TypeValueUnion:
-		b.WriteByte('(')
-		var n int
-		n, tv = decodeInt(tv)
-		if tv == nil {
-			truncErr(b)
-			return nil
-		}
-		for k := 0; k < n; k++ {
-			if k > 0 {
-				b.WriteByte(',')
-			}
-			tv = formatTypeValue(tv, b)
-		}
-		b.WriteByte(')')
-	case TypeValueEnum:
-		b.WriteByte('<')
-		var n int
-		n, tv = decodeInt(tv)
-		if tv == nil {
-			truncErr(b)
-			return nil
-		}
-		for k := 0; k < n; k++ {
-			if k > 0 {
-				b.WriteByte(',')
-			}
-			var symbol string
-			symbol, tv = decodeNameAndCheck(tv, b)
-			if tv == nil {
-				return nil
-			}
-			b.WriteString(QuotedName(symbol))
-		}
-		b.WriteByte('>')
-	case TypeValueError:
-		b.WriteString("error<")
-		tv = formatTypeValue(tv, b)
-		b.WriteByte('>')
-	default:
-		if id < 0 || id > TypeValueMax {
-			b.WriteString(fmt.Sprintf("<ERR bad type ID %d in type value>", id))
-			return nil
-		}
-		typ := LookupPrimitiveByID(int(id))
-		b.WriteString(typ.String())
-	}
-	return tv
-}
-
-func decodeNameAndCheck(tv zcode.Bytes, b *strings.Builder) (string, zcode.Bytes) {
-	var name string
-	name, tv = decodeName(tv)
-	if tv == nil {
-		truncErr(b)
-	}
-	return name, tv
-}
-
-func decodeName(tv zcode.Bytes) (string, zcode.Bytes) {
-	namelen, tv := decodeInt(tv)
-	if tv == nil || int(namelen) > len(tv) {
-		return "", nil
-	}
-	return string(tv[:namelen]), tv[namelen:]
-}
-
-func decodeInt(tv zcode.Bytes) (int, zcode.Bytes) {
-	if len(tv) < 0 {
-		return 0, nil
-	}
-	namelen, n := binary.Uvarint(tv)
-	if n <= 0 {
-		return 0, nil
-	}
-	return int(namelen), tv[n:]
 }

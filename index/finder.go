@@ -135,7 +135,7 @@ func (f *Finder) search(compare keyCompareFn) (zio.Reader, error) {
 	// then repeat the process for that frame in the next index file
 	// till we get to the base layer and return a reader positioned at
 	// that offset.
-	n := len(f.trailer.Sections)
+	n := len(f.sections)
 	off := int64(0)
 	for level := 1; level < n; level++ {
 		reader, err := f.newSectionReader(level, off)
@@ -143,10 +143,10 @@ func (f *Finder) search(compare keyCompareFn) (zio.Reader, error) {
 			return nil, err
 		}
 		op := LTE
-		if f.trailer.Order == order.Desc {
+		if f.meta.Order == order.Desc {
 			op = GTE
 		}
-		rec, err := lookup(reader, compare, f.trailer.Order, op)
+		rec, err := lookup(reader, compare, f.meta.Order, op)
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +155,7 @@ func (f *Finder) search(compare keyCompareFn) (zio.Reader, error) {
 			// smaller than the smallest key present.
 			return nil, ErrNotFound
 		}
-		off, err = rec.AccessInt(f.trailer.ChildOffsetField)
+		off, err = rec.AccessInt(f.meta.ChildOffsetField)
 		if err != nil {
 			return nil, fmt.Errorf("b-tree child field: %w", err)
 		}
@@ -180,7 +180,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []Ke
 		// As long as we have an exact key-match, where unset key
 		// columns are "don't care", keep reading records and return
 		// them via the channel.
-		rec, err := lookup(reader, compare, f.trailer.Order, EQL)
+		rec, err := lookup(reader, compare, f.meta.Order, EQL)
 		if err != nil {
 			return err
 		}
@@ -229,7 +229,7 @@ func (f *Finder) Nearest(operator string, kvs ...KeyValue) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return lookup(reader, compare, f.trailer.Order, op)
+	return lookup(reader, compare, f.meta.Order, op)
 }
 
 // ParseKeys uses the key template from the microindex trailer to parse
@@ -242,7 +242,7 @@ func (f *Finder) ParseKeys(inputs ...string) ([]KeyValue, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
-	keys := f.trailer.Keys
+	keys := f.meta.Keys
 	if len(inputs) > len(keys) {
 		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(keys), len(inputs))
 	}

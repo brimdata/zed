@@ -2,9 +2,7 @@ package zed
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/brimdata/zed/zcode"
 )
@@ -23,8 +21,8 @@ func (t *TypeMap) ID() int {
 	return t.id
 }
 
-func (t *TypeMap) String() string {
-	return fmt.Sprintf("|{%s:%s|}", t.KeyType, t.ValType)
+func (t *TypeMap) Kind() Kind {
+	return MapKind
 }
 
 func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
@@ -33,17 +31,6 @@ func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
 	}
 	it := zv.Iter()
 	return Value{t.KeyType, it.Next()}, Value{t.ValType, it.Next()}, nil
-}
-
-func (t *TypeMap) Marshal(zv zcode.Bytes) interface{} {
-	// start out with zero-length container so we get "[]" instead of nil
-	vals := []*Value{}
-	it := zv.Iter()
-	for !it.Done() {
-		vals = append(vals, &Value{t.KeyType, it.Next()})
-		vals = append(vals, &Value{t.ValType, it.Next()})
-	}
-	return vals
 }
 
 type keyval struct {
@@ -79,23 +66,4 @@ func NormalizeMap(zv zcode.Bytes) zcode.Bytes {
 		}
 	}
 	return norm
-}
-
-func (t *TypeMap) Format(zv zcode.Bytes) string {
-	var b strings.Builder
-	it := zv.Iter()
-	b.WriteString("|{")
-	sep := ""
-	for !it.Done() {
-		b.WriteString(sep)
-		b.WriteByte('{')
-		b.WriteString(t.KeyType.Format(it.Next()))
-		b.WriteByte(',')
-		b.WriteString(t.ValType.Format(it.Next()))
-		b.WriteByte('}')
-		b.WriteString(sep)
-		sep = ","
-	}
-	b.WriteString("}|")
-	return b.String()
 }

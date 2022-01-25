@@ -1,6 +1,6 @@
 script: |
   zed dev indexfile convert -f 50 -o index.zng -k _child -
-  zed dev indexfile section -z -trailer index.zng
+  zed dev dig trailer -Z index.zng
 
 inputs:
   - name: stdin
@@ -16,4 +16,21 @@ outputs:
     data: ''
   - name: stdout
     data: |
-      {magic:"zed_index",version:3,order:"asc",child_field:"_child_0",frame_thresh:50,sections:[41],keys:[["_child"]]}
+      {
+          magic: "ZNG Trailer",
+          type: "index",
+          version: 4,
+          sections: [
+              41
+          ],
+          meta: {
+              order: "asc" (=order.Which),
+              child_field: "_child_0",
+              frame_thresh: 50,
+              keys: [
+                  [
+                      "_child"
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=index.FileMeta)
+      } (=zngio.Trailer)

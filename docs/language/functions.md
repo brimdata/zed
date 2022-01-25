@@ -40,6 +40,7 @@
 - [Types](#types)
   - [`is`](#is)
   - [`iserr`](#iserr)
+  - [`kind`](#kind)
   - [`nameof`](#nameof)
   - [`quiet`](#quiet)
   - [`typename`](#typename)
@@ -49,6 +50,7 @@
   - [`has`](#has)
   - [`len`](#len)
   - [`missing`](#missing)
+  - [`under`](#under)
 
 ### Pseudo Types
 
@@ -642,7 +644,7 @@ echo '{ts:2020-05-26T15:27:47Z}' | zq -z 'ts := every(1h)' -
 ### `len`
 
 ```
-len(v (record,array,set,map,bytes,string,ip,net,error)) -> int64
+len(v (record,array,set,map,type,bytes,string,ip,net,error)) -> int64
 ```
 
 `len` returns the length of value `v`. Supported types:
@@ -651,6 +653,7 @@ len(v (record,array,set,map,bytes,string,ip,net,error)) -> int64
 - array
 - set
 - map
+- type
 - bytes
 - string
 - ip
@@ -720,6 +723,16 @@ nameof(v <any>) -> string
 
 `nameof` returns the string type name of `v` if `v` is an aliased type.
 
+### kind
+
+```
+kind(v <any>) -> string
+```
+
+`kind` returns the category of the type of `v`, e.g., "record",
+"set", "primitive", etc.  If `v` is a type value, then the type category
+of the referenced type is returned.
+
 ### `quiet`
 
 ```
@@ -754,12 +767,12 @@ named type give by `name` if it exists in the current context.  Otherwise,
 #### Example:
 
 ```mdtest-command
-echo  '80(port=<int16>)' | zq -z 'yield typename("port")' -
+echo  '80(port=int16)' | zq -z 'yield typename("port")' -
 ```
 
 **Output:**
 ```mdtest-output
-<port=<int16>>
+<port=int16>
 ```
 
 ### `typeof`
@@ -858,4 +871,75 @@ echo '{foo:10}' | zq -z 'cut yes := has(foo+1), no := has(bar+1)' -
 {yes:true,no:false}
 {yes:true,no:false}
 {yes:true,no:false}
+```
+
+
+### `under`
+
+```
+under(e <expression>) -> <any>
+```
+
+`under` returns the value underlying the expression `e`:
+* for unions, it returns the value as its elemental type of the union,
+* for errors, it returns the value that the error wraps,
+* for types, it returns the value typed as `typeunder()` indicates; ortherwise,
+* the it returns the value unmodified.
+
+#### Example:
+
+Unions are unwrapped:
+
+```mdtest-command
+echo '1((int64,string)) "foo"((int64,string))' | zq -z 'yield this' -
+echo '1((int64,string)) "foo"((int64,string))' | zq -z 'yield under(this)' -
+```
+
+**Output:**
+```mdtest-output
+1((int64,string))
+"foo"((int64,string))
+1
+"foo"
+```
+
+Errors are unwrapped:
+
+```mdtest-command
+echo 'error("foo") error({err:"message"})' | zq -z 'yield this' -
+echo 'error("foo") error({err:"message"})' | zq -z 'yield under(this)' -
+```
+
+**Output:**
+```mdtest-output
+error("foo")
+error({err:"message"})
+"foo"
+{err:"message"}
+```
+
+Values of named types are unwrapped:
+
+```mdtest-command
+echo '80(port=uint16)' | zq -z 'yield this' -
+echo '80(port=uint16)' | zq -z 'yield under(this)' -
+```
+
+**Output:**
+```mdtest-output
+80(port=uint16)
+80(uint16)
+```
+
+Values that are not wrapped are return unmodified:
+```mdtest-command
+echo '1 "foo" <int16> {x:1}' | zq -z 'yield under(this)' -
+```
+
+**Output:**
+```mdtest-output
+1
+"foo"
+<int16>
+{x:1}
 ```

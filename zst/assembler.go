@@ -13,9 +13,9 @@ import (
 var ErrBadSchemaID = errors.New("bad schema id in root reassembly column")
 
 type Assembly struct {
-	root    zed.Value
-	types   []zed.Type
-	columns []*zed.Value
+	root  zed.Value
+	types []zed.Type
+	maps  []*zed.Value
 }
 
 func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
@@ -28,7 +28,7 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	}
 	assembler.columns = make([]column.Any, len(a.types))
 	for k := range a.types {
-		val := a.columns[k]
+		val := a.maps[k]
 		col, err := column.Unmarshal(a.types[k], *val, seeker)
 		if err != nil {
 			return nil, err

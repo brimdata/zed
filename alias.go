@@ -1,11 +1,5 @@
 package zed
 
-import (
-	"fmt"
-
-	"github.com/brimdata/zed/zcode"
-)
-
 type TypeAlias struct {
 	id   int
 	Name string
@@ -28,16 +22,8 @@ func (t *TypeAlias) AliasID() int {
 	return t.id
 }
 
-func (t *TypeAlias) Marshal(zv zcode.Bytes) interface{} {
-	return t.Type.Marshal(zv)
-}
-
-func (t *TypeAlias) String() string {
-	return fmt.Sprintf("%s=(%s)", t.Name, t.Type)
-}
-
-func (t *TypeAlias) Format(zv zcode.Bytes) string {
-	return t.Type.Format(zv)
+func (t *TypeAlias) Kind() Kind {
+	return t.Type.Kind()
 }
 
 func TypeUnder(typ Type) Type {

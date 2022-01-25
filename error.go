@@ -3,7 +3,6 @@ package zed
 import (
 	"bytes"
 	"errors"
-	"fmt"
 
 	"github.com/brimdata/zed/zcode"
 )
@@ -46,16 +45,8 @@ func (t *TypeError) ID() int {
 	return t.id
 }
 
-func (t *TypeError) String() string {
-	return fmt.Sprintf("error<%s>", t.Type)
-}
-
-func (t *TypeError) Marshal(zv zcode.Bytes) interface{} {
-	return map[string]interface{}{"error": t.Type.Marshal(zv)}
-}
-
-func (t *TypeError) Format(zv zcode.Bytes) string {
-	return fmt.Sprintf("error(%s)", t.Type.Format(zv))
+func (t *TypeError) Kind() Kind {
+	return ErrorKind
 }
 
 func (t *TypeError) IsMissing(zv zcode.Bytes) bool {

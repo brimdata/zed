@@ -17,6 +17,7 @@ outputs:
       	zjson: line 1: invalid character 'T' looking for beginning of value
       	zson: zson syntax error
       	zng: malformed zng record
+      	zng21: malformed zng record
       	csv: line 1: no comma found
       	json: invalid character 'T' looking for beginning of value
       	parquet: auto-detection not supported

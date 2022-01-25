@@ -38,14 +38,6 @@ func (t *TypeOfIP) ID() int {
 	return IDIP
 }
 
-func (t *TypeOfIP) String() string {
-	return "ip"
-}
-
-func (t *TypeOfIP) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeIP(zv).String()
-}
-
-func (t *TypeOfIP) Format(zb zcode.Bytes) string {
-	return DecodeIP(zb).String()
+func (t *TypeOfIP) Kind() Kind {
+	return PrimitiveKind
 }

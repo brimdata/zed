@@ -67,7 +67,7 @@ type Array struct {
 func (a *Array) UnmarshalZNG(inner zed.Type, in zed.Value, r io.ReaderAt) error {
 	typ, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
-		return errors.New("zst object array_column not a record")
+		return errors.New("ZST object array_column not a record")
 	}
 	rec := zed.NewValue(typ, in.Bytes)
 	zv, err := rec.Access("values")

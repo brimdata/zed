@@ -504,7 +504,7 @@ func (a Analyzer) convertEnum(zctx *zed.Context, val *astzed.Enum, cast zed.Type
 			}, nil
 		}
 	}
-	return nil, fmt.Errorf("identifier %q not a member of enum type %q", val.Name, enum)
+	return nil, fmt.Errorf("symbol %q not a member of type %q", val.Name, FormatType(enum))
 }
 
 func (a Analyzer) convertMap(zctx *zed.Context, m *astzed.Map, cast zed.Type) (Value, error) {

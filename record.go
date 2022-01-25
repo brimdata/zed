@@ -2,7 +2,6 @@ package zed
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/brimdata/zed/zcode"
 )
@@ -80,37 +79,6 @@ func (t *TypeRecord) createLUT() {
 	}
 }
 
-func (t *TypeRecord) String() string {
-	var b strings.Builder
-	b.WriteString("{")
-	sep := ""
-	for _, c := range t.Columns {
-		b.WriteString(sep)
-		b.WriteString(QuotedName(c.Name))
-		b.WriteByte(':')
-		b.WriteString(c.Type.String())
-		sep = ","
-	}
-	b.WriteString("}")
-	return b.String()
-}
-
-func (t *TypeRecord) Format(zv zcode.Bytes) string {
-	var b strings.Builder
-	b.WriteString("{")
-	sep := ""
-	it := zv.Iter()
-	for _, c := range t.Columns {
-		b.WriteString(sep)
-		b.WriteString(QuotedName(c.Name))
-		b.WriteByte(':')
-		if val := it.Next(); val == nil {
-			b.WriteString("null")
-		} else {
-			b.WriteString(c.Type.Format(val))
-		}
-		sep = ","
-	}
-	b.WriteString("}")
-	return b.String()
+func (t *TypeRecord) Kind() Kind {
+	return RecordKind
 }

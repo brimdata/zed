@@ -410,11 +410,11 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range p.Args {
-			dst, err := semField(scope, fa.LHS)
+			dst, err := semField(scope, fa.LHS, false)
 			if err != nil {
 				return nil, err
 			}
-			src, err := semField(scope, fa.RHS)
+			src, err := semField(scope, fa.RHS, false)
 			if err != nil {
 				return nil, err
 			}
@@ -503,7 +503,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			As:   as,
 		}, nil
 	case *ast.Merge:
-		e, err := semField(scope, p.Field)
+		e, err := semField(scope, p.Field, false)
 		if err != nil {
 			return nil, err
 		}

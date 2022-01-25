@@ -238,7 +238,7 @@ func convertSQLAlias(scope *Scope, e ast.Expr) (*dag.Cut, string, error) {
 	if e == nil {
 		return nil, "", nil
 	}
-	fld, err := semField(scope, e)
+	fld, err := semField(scope, e, false)
 	if err != nil {
 		return nil, "", fmt.Errorf("illegal alias: %w", err)
 	}
@@ -550,7 +550,7 @@ func deriveAs(scope *Scope, a ast.Assignment) (field.Path, error) {
 }
 
 func sqlField(scope *Scope, e ast.Expr) (field.Path, error) {
-	name, err := semField(scope, e)
+	name, err := semField(scope, e, false)
 	if err != nil {
 		return nil, err
 	}

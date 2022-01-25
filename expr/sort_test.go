@@ -18,7 +18,7 @@ func BenchmarkSort(b *testing.B) {
 		{zed.TypeString, func() []byte { return strconv.AppendUint(nil, rand.Uint64(), 16) }},
 	}
 	for _, c := range cases {
-		b.Run(c.typ.String(), func(b *testing.B) {
+		b.Run(c.typ.Kind().String(), func(b *testing.B) {
 			cmp := NewComparator(false, false, &This{})
 			vals := make([]zed.Value, 1048576)
 			var sorter Sorter

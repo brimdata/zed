@@ -1,12 +1,12 @@
 script: |
-  ! zq -z -
+  ! zq -i zson -
 
 inputs:
   - name: stdin
     data: |
-      {e:%bang (enum<foo,bar,baz>)} (=1)
+      {e:%bang (enum<foo,bar,baz>)}
 
 outputs:
   - name: stderr
-    regexp: |
-      zson: identifier "bang" not a member of enum type "<foo,bar,baz>"
+    data: |
+      stdio:stdin: symbol "bang" not a member of type "enum<foo,bar,baz>"

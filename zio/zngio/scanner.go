@@ -318,9 +318,7 @@ func decodeVal(r reader, m *zed.Mapper, validate bool, valRef *zed.Value) error 
 	valRef.Type = typ
 	valRef.Bytes = b
 	if validate {
-		// This can panic but the scanner will always be wrapped in
-		// cathcers inside of the runtime.
-		if err := valRef.TypeCheck(); err != nil {
+		if err := Validate(valRef); err != nil {
 			return err
 		}
 	}

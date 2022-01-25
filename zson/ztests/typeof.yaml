@@ -60,9 +60,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      <conn=<{info:string,src:socket=<{addr:ip,port:uint16}>,dst:socket}>>
-      <conn=<{info:string,src:socket=<{addr:ip,port:uint16}>,dst:socket}>>
-      <access_list=<{info:string,nets:[net]}>>
+      <conn={info:string,src:socket={addr:ip,port:uint16},dst:socket}>
+      <conn={info:string,src:socket={addr:ip,port:uint16},dst:socket}>
+      <access_list={info:string,nets:[net]}>
       <{metric:string,ts:time,value:int64}>
       <{metric:string,ts:time,value:float64}>
       <{metric:string,ts:time,value:int64}>

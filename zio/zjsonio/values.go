@@ -64,7 +64,7 @@ func encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{
 			return nil, err
 		}
 		if zed.TypeID(typ) < zed.IDTypeComplex {
-			return typ.String(), nil
+			return zed.PrimitiveName(typ), nil
 		}
 		if alias, ok := typ.(*zed.TypeAlias); ok {
 			return alias.Name, nil
@@ -74,7 +74,7 @@ func encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{
 	if typ.ID() == zed.IDString {
 		return string(v), nil
 	}
-	return typ.Format(v), nil
+	return zson.FormatPrimitive(typ, v), nil
 }
 
 func encodeValue(zctx *zed.Context, typ zed.Type, val zcode.Bytes) (interface{}, error) {
@@ -144,7 +144,7 @@ func decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface{}) error {
 	b.BeginContainer()
 	for k, val := range values {
 		if k >= len(cols) {
-			return &zed.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zed.ErrExtraField}
+			return zed.ErrExtraField
 		}
 		// each column either a string value or an array of string values
 		if val == nil {

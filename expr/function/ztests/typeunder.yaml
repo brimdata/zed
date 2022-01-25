@@ -8,4 +8,4 @@ input: |
 output: |
   {typeunder:<{}>,typeof:<{}>}
   {typeunder:<{x:int64}>,typeof:<{x:int64}>}
-  {typeunder:<{x:int64}>,typeof:<foo=<{x:int64}>>}
+  {typeunder:<{x:int64}>,typeof:<foo={x:int64}>}

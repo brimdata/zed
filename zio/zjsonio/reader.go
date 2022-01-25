@@ -69,11 +69,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, e(err)
 	}
-	zv := zed.NewValue(typ, bytes)
-	if err := zv.TypeCheck(); err != nil {
-		return nil, err
-	}
-	return zv, nil
+	return zed.NewValue(typ, bytes), nil
 }
 
 func (r *Reader) decodeTypes(types []astzed.Type) error {

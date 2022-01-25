@@ -21,12 +21,12 @@ const (
 )
 
 type Reader struct {
-	reader     storage.Reader
-	uri        *storage.URI
-	zctx       *zed.Context
-	size       int64
-	trailer    *Trailer
-	trailerLen int
+	reader   storage.Reader
+	uri      *storage.URI
+	zctx     *zed.Context
+	size     int64
+	meta     FileMeta
+	sections []int64
 }
 
 var _ io.Closer = (*Reader)(nil)
@@ -66,38 +66,35 @@ func NewReaderFromURI(ctx context.Context, zctx *zed.Context, engine storage.Eng
 	if err != nil {
 		return nil, err
 	}
-	trailer, trailerLen, err := readTrailer(r, size)
+	meta, sections, err := readTrailer(r, size)
 	if err != nil {
 		r.Close()
 		return nil, fmt.Errorf("%s: %w", uri, err)
 	}
-	if trailer.FrameThresh > FrameMaxSize {
-		return nil, fmt.Errorf("%s: frame threshold too large (%d)", uri, trailer.FrameThresh)
+	if meta.FrameThresh > FrameMaxSize {
+		return nil, fmt.Errorf("%s: frame threshold too large (%d)", uri, meta.FrameThresh)
 	}
 	reader := &Reader{
-		reader:     r,
-		uri:        uri,
-		zctx:       zctx,
-		size:       size,
-		trailer:    trailer,
-		trailerLen: trailerLen,
+		reader:   r,
+		uri:      uri,
+		zctx:     zctx,
+		size:     size,
+		meta:     *meta,
+		sections: sections,
 	}
 	return reader, nil
 }
 
 func (r *Reader) IsEmpty() bool {
-	if r.trailer == nil {
-		panic("IsEmpty called on a Reader with an error")
-	}
-	return r.trailer.Sections == nil
+	return r.sections == nil
 }
 
 func (r *Reader) section(level int) (int64, int64) {
 	off := int64(0)
 	for k := 0; k < level; k++ {
-		off += r.trailer.Sections[k]
+		off += r.sections[k]
 	}
-	return off, r.trailer.Sections[level]
+	return off, r.sections[level]
 }
 
 func (r *Reader) newSectionReader(level int, sectionOff int64) (zio.Reader, error) {
@@ -109,17 +106,11 @@ func (r *Reader) newSectionReader(level int, sectionOff int64) (zio.Reader, erro
 }
 
 func (r *Reader) NewSectionReader(section int) (zio.Reader, error) {
-	n := len(r.trailer.Sections)
+	n := len(r.sections)
 	if section < 0 || section >= n {
 		return nil, fmt.Errorf("section %d out of range (index has %d sections)", section, n)
 	}
 	return r.newSectionReader(section, 0)
-}
-
-func (r *Reader) NewTrailerReader() (zio.Reader, error) {
-	off := r.size - int64(r.trailerLen)
-	reader := io.NewSectionReader(r.reader, off, int64(r.trailerLen))
-	return zngio.NewReaderWithOpts(reader, r.zctx, zngio.ReaderOpts{Size: r.trailerLen}), nil
 }
 
 func (r *Reader) Close() error {
@@ -131,9 +122,9 @@ func (r *Reader) Path() string {
 }
 
 func (r *Reader) Order() order.Which {
-	return r.trailer.Order
+	return r.meta.Order
 }
 
 func (r *Reader) Keys() field.List {
-	return r.trailer.Keys
+	return r.meta.Keys
 }

@@ -78,17 +78,14 @@ func (p *Parser) matchTypeName() (astzed.Type, error) {
 	if ok, err := l.match('='); !ok || err != nil {
 		return &astzed.TypeName{"TypeName", name}, nil
 	}
-	tv, err := p.matchTypeValue()
+	typ, err := p.parseType()
 	if err != nil {
 		return nil, err
-	}
-	if tv == nil {
-		return nil, p.errorf("bad type sytax in typedef '%s=...'", name)
 	}
 	return &astzed.TypeDef{
 		Kind: "TypeDef",
 		Name: name,
-		Type: tv.Value,
+		Type: typ,
 	}, nil
 }
 

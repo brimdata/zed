@@ -35,13 +35,13 @@ inputs:
   - name: in.zson
     data: |
       {
-        u8: 0 (myuint8=<uint8>),
-        u16: 0 (myuint16=<uint16>),
-        u32: 0 (myuint32=<uint32>),
-        u64: 0 (myuint64=<uint64>),
-        i8: 0 (myint8=<int8>),
-        i16: 0 (myint16=<int16>),
-        i32: 0 (myint32=<int32>),
+        u8: 0 (myuint8=uint8),
+        u16: 0 (myuint16=uint16),
+        u32: 0 (myuint32=uint32),
+        u64: 0 (myuint64=uint64),
+        i8: 0 (myint8=int8),
+        i16: 0 (myint16=int16),
+        i32: 0 (myint32=int32),
         i64: 0 (=myint64),
         dur: 0s (=myduration),
         tim: 1970-01-01T00:00:00Z (=mytime),
@@ -52,16 +52,16 @@ inputs:
         ip: 0.0.0.0 (=myip),
         net: 0.0.0.0/0 (=mynet),
         err: error("") (=myerror),
-        nul: null (mynull=<null>)
+        nul: null (mynull=null)
       } (=primitives)
       {
-        u8: 0 (myuint8=<uint8>),
-        u16: 0 (myuint16=<uint16>),
-        u32: 0 (myuint32=<uint32>),
-        u64: 0 (myuint64=<uint64>),
-        i8: 0 (myint8=<int8>),
-        i16: 0 (myint16=<int16>),
-        i32: 0 (myint32=<int32>),
+        u8: 0 (myuint8=uint8),
+        u16: 0 (myuint16=uint16),
+        u32: 0 (myuint32=uint32),
+        u64: 0 (myuint64=uint64),
+        i8: 0 (myint8=int8),
+        i16: 0 (myint16=int16),
+        i32: 0 (myint32=int32),
         i64: 0 (=myint64),
         dur: 0s (=myduration),
         tim: 1970-01-01T00:00:00Z (=mytime),
@@ -72,7 +72,7 @@ inputs:
         ip: 0.0.0.0 (=myip),
         net: 0.0.0.0/0 (=mynet),
         err: error("") (=myerror),
-        nul: null (mynull=<null>)
+        nul: null (mynull=null)
       } (=primitives)
       {
         array: [

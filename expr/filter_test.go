@@ -350,7 +350,7 @@ func TestFilters(t *testing.T) {
 
 	// Test comparisons with field of type port (can compare with
 	// a port literal or an integer literal)
-	runCases(t, "{p:443 (port=<uint16>)}", []testcase{
+	runCases(t, "{p:443 (port=uint16)}", []testcase{
 		{"p == 443", true},
 		{"p == 80", false},
 	})
@@ -378,7 +378,7 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test comparisons with an aliased type
-	runCases(t, "{i:100 (myint=<int32>)}", []testcase{
+	runCases(t, "{i:100 (myint=int32)}", []testcase{
 		{"i == 100", true},
 		{"i > 0", true},
 		{"i < 50", false},

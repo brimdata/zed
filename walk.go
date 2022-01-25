@@ -37,6 +37,8 @@ func Walk(typ Type, body zcode.Bytes, visit Visitor) error {
 		return walkUnion(typ, body, visit)
 	case *TypeMap:
 		return walkMap(typ, body, visit)
+	case *TypeError:
+		return Walk(typ.Type, body, visit)
 	}
 	return nil
 }
@@ -48,7 +50,7 @@ func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 	it := body.Iter()
 	for _, col := range typ.Columns {
 		if it.Done() {
-			return &RecordTypeError{Name: string(col.Name), Type: col.Type.String(), Err: ErrMissingField}
+			return ErrMissingField
 		}
 		if err := Walk(col.Type, it.Next(), visit); err != nil {
 			return err
@@ -76,8 +78,7 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 		return nil
 	}
 	if len(body) == 0 {
-		err := errors.New("union as empty body")
-		return &RecordTypeError{Name: "<union type>", Type: typ.String(), Err: err}
+		return errors.New("union has empty body")
 	}
 	it := body.Iter()
 	selector := DecodeInt(it.Next())
@@ -87,8 +88,7 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 	}
 	body = it.Next()
 	if !it.Done() {
-		err := errors.New("union value container has more than two items")
-		return &RecordTypeError{Name: "<union>", Type: typ.String(), Err: err}
+		return errors.New("union value container has more than two items")
 	}
 	return Walk(inner, body, visit)
 }

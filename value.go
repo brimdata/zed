@@ -2,7 +2,6 @@ package zed
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -49,13 +48,6 @@ func NewValue(zt Type, zb zcode.Bytes) *Value {
 
 func (v *Value) IsContainer() bool {
 	return IsContainerType(v.Type)
-}
-
-func (v *Value) MarshalJSON() ([]byte, error) {
-	if v.Bytes == nil {
-		return json.Marshal(nil)
-	}
-	return json.Marshal(v.Type.Marshal(v.Bytes))
 }
 
 func badZNG(err error, t Type, zv zcode.Bytes) string {

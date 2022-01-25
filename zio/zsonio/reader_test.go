@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio/zsonio"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +35,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 	case res := <-done:
 		require.NoError(t, res.err)
 		rec := res.zv
-		assert.Equal(t, expected, rec.Type.Format(rec.Bytes))
+		assert.Equal(t, expected, zson.String(rec))
 	}
 }
 
