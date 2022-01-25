@@ -2,6 +2,8 @@ package expr
 
 import (
 	"bytes"
+	"fmt"
+	"math"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -10,15 +12,10 @@ import (
 )
 
 type Sorter struct {
-	items []*item
-}
-
-type item struct {
-	index    int32
-	tmp      zed.Value
-	val0     *zed.Value
-	val0i64  int64
-	val0null bool
+	indices []uint32
+	i64s    []int64
+	vals    []*zed.Value
+	tmp     []zed.Value
 }
 
 func (s *Sorter) SortStable(vals []zed.Value, cmp *Comparator) {
@@ -26,61 +23,75 @@ func (s *Sorter) SortStable(vals []zed.Value, cmp *Comparator) {
 		return
 	}
 	n := len(vals)
-	if cap(s.items) < n {
-		s.items = make([]*item, n)
-		items := make([]item, cap(s.items))
-		for i := range s.items[:cap(s.items)] {
-			s.items[i] = &items[i]
-		}
+	if max := math.MaxUint32; n > max {
+		panic(fmt.Sprintf("number of values exceeds %d", max))
 	}
-	s.items = s.items[:n]
+	if cap(s.indices) < n {
+		indices := make([]uint32, n)
+		s.indices = indices[:cap(indices)]
+		s.i64s = make([]int64, cap(indices))
+		s.vals = make([]*zed.Value, cap(indices))
+		s.tmp = make([]zed.Value, cap(indices))
+	}
+	s.indices = s.indices[:n]
 	ectx := NewContext()
 	native := true
-	for i, item := range s.items {
-		item.index = int32(i)
-		item.val0 = cmp.exprs[0].Eval(ectx, &vals[i])
-		if native {
-			if val0 := item.val0; zed.IsSigned(val0.Type.ID()) {
-				item.val0i64 = zed.DecodeInt(val0.Bytes)
-				item.val0null = val0.IsNull()
+	for i := range s.indices {
+		s.indices[i] = uint32(i)
+		val := cmp.exprs[0].Eval(ectx, &vals[i])
+		s.vals[i] = val
+		if id := val.Type.ID(); zed.IsInteger(id) {
+			if val.IsNull() {
+				if cmp.nullsMax {
+					s.i64s[i] = math.MaxInt64
+				} else {
+					s.i64s[i] = math.MinInt64
+				}
+			} else if zed.IsSigned(id) {
+				s.i64s[i] = zed.DecodeInt(val.Bytes)
 			} else {
-				native = false
+				v := zed.DecodeUint(val.Bytes)
+				if v > math.MaxInt64 {
+					v = math.MaxInt64
+				}
+				s.i64s[i] = int64(v)
 			}
+		} else {
+			native = false
 		}
 	}
-	sort.SliceStable(s.items, func(i, j int) bool {
+	sort.SliceStable(s.indices, func(i, j int) bool {
 		if cmp.reverse {
 			i, j = j, i
 		}
-		iitem, jitem := s.items[i], s.items[j]
-		if native {
-			if inull, jnull := iitem.val0null, jitem.val0null; inull != jnull {
-				return inull && !cmp.nullsMax || jnull && cmp.nullsMax
+		iidx, jidx := s.indices[i], s.indices[j]
+		for k, expr := range cmp.exprs {
+			var ival, jval *zed.Value
+			if k == 0 {
+				if native {
+					if i64, j64 := s.i64s[iidx], s.i64s[jidx]; i64 != j64 {
+						return i64 < j64
+					} else if i64 != math.MaxInt64 && i64 != math.MinInt64 {
+						continue
+					}
+				}
+				ival, jval = s.vals[iidx], s.vals[jidx]
+			} else {
+				ival = expr.Eval(ectx, &vals[iidx])
+				jval = expr.Eval(ectx, &vals[jidx])
 			}
-			if i64, j64 := iitem.val0i64, jitem.val0i64; i64 != j64 {
-				return i64 < j64
-			}
-		} else {
-			if v := compareValues(iitem.val0, jitem.val0, cmp.comparefns, &cmp.pair, cmp.nullsMax); v != 0 {
-				return v < 0
-			}
-		}
-		for _, k := range cmp.exprs[1:] {
-			a := k.Eval(ectx, &vals[iitem.index])
-			b := k.Eval(ectx, &vals[jitem.index])
-			if v := compareValues(a, b, cmp.comparefns, &cmp.pair, cmp.nullsMax); v != 0 {
+			if v := compareValues(ival, jval, cmp.comparefns, &cmp.pair, cmp.nullsMax); v != 0 {
 				return v < 0
 			}
 		}
 		return false
 	})
-	for i, item := range s.items {
-		if i < int(item.index) {
-			item.tmp = vals[i]
-			vals[i] = vals[item.index]
-		} else if i > int(item.index) {
-			item.tmp = vals[i]
-			vals[i] = s.items[item.index].tmp
+	for i, index := range s.indices {
+		s.tmp[i] = vals[i]
+		if j := int(index); i < j {
+			vals[i] = vals[j]
+		} else if i > int(index) {
+			vals[i] = s.tmp[j]
 		}
 	}
 }
