@@ -25,12 +25,12 @@ The "zed indexfile create" command generates a Zed index from one or more Zed in
 as a sectioned ZNG file with a layout desribed in the "zed indexfile" command.
 (Run "zed indexfile -h" for the description.)
 
-The bushiness of the B-Tree created is controlled by the framethresh parameter,
-which specifies a target size in bytes for each node in the B-Tree.
+The bushiness of the B-tree created is controlled by the -f flag,
+which specifies a target size in bytes for each node in the B-tree.
 
-The inputs values are presumed to be pre-sorted by the specified key(s)
+The inputs values are presumed to be presorted by the specified keys
 in the order indicated by -order.  If a key is not present in a value,
-that value is treated as the null value and a lookup for null, will return
+that value is treated as the null value, and a lookup for null will return
 all such values.
 `,
 	New: newCommand,
@@ -56,7 +56,6 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
 	c.inputFlags.SetFlags(f, true)
-
 	return c, nil
 }
 
@@ -71,7 +70,7 @@ func (c *Command) Run(args []string) error {
 	}
 	//XXX no reason to limit this
 	if len(args) != 1 {
-		return errors.New("must specify a single zng input file containing keys and optional values")
+		return errors.New("must specify a single ZNG input file containing keys and optional values")
 	}
 	path := args[0]
 	if path == "-" {
