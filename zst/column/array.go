@@ -41,13 +41,13 @@ func (a *ArrayWriter) Flush(eof bool) error {
 	return a.values.Flush(eof)
 }
 
-func (a *ArrayWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
+func (a *ArrayWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
-	valType, err := a.values.MarshalZNG(zctx, b)
+	valType, err := a.values.EncodeMap(zctx, b)
 	if err != nil {
 		return nil, err
 	}
-	lenType, err := a.lengths.MarshalZNG(zctx, b)
+	lenType, err := a.lengths.EncodeMap(zctx, b)
 	if err != nil {
 		return nil, err
 	}
@@ -59,41 +59,47 @@ func (a *ArrayWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 	return zctx.LookupTypeRecord(cols)
 }
 
-type Array struct {
-	values  Any
-	lengths *Int
+type ArrayReader struct {
+	elems   Reader
+	lengths *IntReader
 }
 
-func (a *Array) UnmarshalZNG(inner zed.Type, in zed.Value, r io.ReaderAt) error {
+func NewArrayReader(inner zed.Type, in zed.Value, r io.ReaderAt) (*ArrayReader, error) {
 	typ, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
-		return errors.New("ZST object array_column not a record")
+		return nil, errors.New("ZST object array_column not a record")
 	}
 	rec := zed.NewValue(typ, in.Bytes)
 	zv, err := rec.Access("values")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	a.values, err = Unmarshal(inner, zv, r)
+	elems, err := NewReader(inner, zv, r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	zv, err = rec.Access("lengths")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	a.lengths = &Int{}
-	return a.lengths.UnmarshalZNG(zed.TypeInt64, zv, r)
+	lengths, err := NewIntReader(zv, r)
+	if err != nil {
+		return nil, err
+	}
+	return &ArrayReader{
+		elems:   elems,
+		lengths: lengths,
+	}, nil
 }
 
-func (a *Array) Read(b *zcode.Builder) error {
+func (a *ArrayReader) Read(b *zcode.Builder) error {
 	len, err := a.lengths.Read()
 	if err != nil {
 		return err
 	}
 	b.BeginContainer()
 	for k := 0; k < int(len); k++ {
-		if err := a.values.Read(b); err != nil {
+		if err := a.elems.Read(b); err != nil {
 			return err
 		}
 	}

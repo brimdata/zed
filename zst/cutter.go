@@ -39,31 +39,25 @@ func NewCutterFromPath(ctx context.Context, zctx *zed.Context, engine storage.En
 }
 
 type CutAssembler struct {
-	zctx     *zed.Context
-	root     *column.Int
-	types    []zed.Type
-	columns  []column.Any
-	recTypes []*zed.TypeRecord
-	nwrap    []int
-	builder  zcode.Builder
-	leaf     string
+	zctx    *zed.Context
+	root    *column.IntReader
+	types   []zed.Type
+	readers []column.Reader
+	nwrap   []int
+	builder zcode.Builder
+	leaf    string
 }
 
 func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAssembler, error) {
 	a := object.assembly
-	n := len(a.maps)
-	ca := &CutAssembler{
-		zctx:     zctx,
-		root:     &column.Int{},
-		types:    a.types,
-		columns:  make([]column.Any, n),
-		recTypes: make([]*zed.TypeRecord, n),
-		nwrap:    make([]int, n),
-		leaf:     fields[len(fields)-1],
-	}
-	if err := ca.root.UnmarshalZNG(zed.TypeInt64, a.root, object.seeker); err != nil {
+	root, err := column.NewIntReader(a.root, object.seeker)
+	if err != nil {
 		return nil, err
 	}
+	types := make([]zed.Type, len(a.types))
+	copy(types, a.types)
+	nwraps := make([]int, len(a.types))
+	var readers []column.Reader
 	cnt := 0
 	for k, typ := range a.types {
 		recType := zed.TypeRecordOf(typ)
@@ -74,28 +68,37 @@ func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAs
 			// on this right now.
 			return nil, fmt.Errorf("ZST cut requires all top-level records to be records: encountered type %s", zson.FormatType(typ))
 		}
-		topcol := &column.Record{}
-		if err := topcol.UnmarshalZNG(recType, *a.maps[k], object.seeker); err != nil {
+		reader, err := column.NewRecordReader(recType, *a.maps[k], object.seeker)
+		if err != nil {
 			return nil, err
 		}
-		var err error
-		_, ca.columns[k], err = topcol.Lookup(recType, fields)
+		_, r, err := reader.Lookup(recType, fields)
+		readers = append(readers, r)
 		if err == zed.ErrMissing || err == column.ErrNonRecordAccess {
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
-		ca.types[k], ca.nwrap[k], err = cutType(zctx, recType, fields)
+		typ, nwrap, err := cutType(zctx, recType, fields)
 		if err != nil {
 			return nil, err
 		}
+		types[k] = typ
+		nwraps[k] = nwrap
 		cnt++
 	}
 	if cnt == 0 {
 		return nil, zed.ErrMissing
 	}
-	return ca, nil
+	return &CutAssembler{
+		zctx:    zctx,
+		root:    root,
+		types:   types,
+		readers: readers,
+		nwrap:   nwraps,
+		leaf:    fields[len(fields)-1],
+	}, nil
 }
 
 func cutType(zctx *zed.Context, typ *zed.TypeRecord, fields []string) (*zed.TypeRecord, int, error) {
@@ -132,10 +135,10 @@ func (a *CutAssembler) Read() (*zed.Value, error) {
 		if err == io.EOF {
 			return nil, nil
 		}
-		if schemaID < 0 || int(schemaID) >= len(a.columns) {
+		if schemaID < 0 || int(schemaID) >= len(a.readers) {
 			return nil, errors.New("bad schema id in root reassembly column")
 		}
-		col := a.columns[schemaID]
+		col := a.readers[schemaID]
 		if col == nil {
 			// Skip records that don't have the field we're cutting.
 			continue

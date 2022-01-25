@@ -1,16 +1,12 @@
-// Package zst implements reading and writing zst storage objects
-// to and from zng row format.  The zst storage format consists of
-// a section of column data stored in zng values followed by a section
-// containing a zng record stream comprised of N zng "reassembly records"
-// (one for each zed.TypeRecord or "schema") stored in the zst object, plus
-// an N+1st zng record describing the list of schemas IDs of the original
-// zng rows that were encoded into the zst object.
+// Package zst implements reading and writing ZST storage objects
+// to and from any Zed format.  The ZST storage format is described
+// at https://github.com/brimdata/zed/blob/main/docs/data-model/zst.md.
 //
-// A zst storage object must be seekable (e.g., a local file or s3 object),
-// so, unlike zng, streaming of zst objects is not supported.
+// A ZST storage object must be seekable (e.g., a local file or s3 object),
+// so, unlike ZNG, streaming of ZST objects is not supported.
 //
 // The zst/column package handles reading and writing row data to columns,
-// while the zst package comprises the API used to read and write zst objects.
+// while the zst package comprises the API used to read and write ZST objects.
 //
 // An Object provides the interface to the underlying storage object.
 // To generate rows or cuts (and in the future more sophisticated traversals
