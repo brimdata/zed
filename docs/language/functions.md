@@ -721,7 +721,7 @@ echo '{foo:error("this is an error")}' | zq -z 'foo := iserr(foo)' -
 nameof(v <any>) -> string
 ```
 
-`nameof` returns the string type name of `v` if `v` is an aliased type.
+`nameof` returns the string type name of `v` if `v` is a named type.
 
 ### kind
 

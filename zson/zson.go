@@ -53,7 +53,7 @@ func SelfDescribing(typ zed.Type) bool {
 	switch typ := typ.(type) {
 	case *zed.TypeRecord, *zed.TypeArray, *zed.TypeSet, *zed.TypeMap:
 		return true
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return SelfDescribing(typ.Type)
 	}
 	return false

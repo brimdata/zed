@@ -14,7 +14,7 @@ var _ Interface = (*LenFn)(nil)
 func (u *Under) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	switch typ := args[0].Type.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return ectx.NewValue(typ.Type, val.Bytes)
 	case *zed.TypeError:
 		return ectx.NewValue(typ.Type, val.Bytes)

@@ -132,11 +132,11 @@ func (f *Formatter) nameOf(typ zed.Type) string {
 	return s
 }
 
-func (f *Formatter) saveType(alias *zed.TypeAlias) {
-	name := alias.Name
-	f.typedefs[alias] = name
+func (f *Formatter) saveType(named *zed.TypeNamed) {
+	name := named.Name
+	f.typedefs[named] = name
 	if f.permanent != nil && f.persist.MatchString(name) {
-		f.permanent[alias] = name
+		f.permanent[named] = name
 	}
 }
 
@@ -169,7 +169,7 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 		f.startColorPrimitive(typ)
 		formatPrimitive(&f.builder, typ, bytes)
 		f.endColor()
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
 	case *zed.TypeRecord:
 		err = f.formatRecord(indent, t, bytes, known, parentImplied)
@@ -224,7 +224,7 @@ func (f *Formatter) decorate(typ zed.Type, known, null bool) {
 		}
 		f.buildf("(%s)", name)
 	} else if SelfDescribing(typ) && !null {
-		if typ, ok := typ.(*zed.TypeAlias); ok {
+		if typ, ok := typ.(*zed.TypeNamed); ok {
 			f.saveType(typ)
 			if f.tab > 0 {
 				f.build(" ")
@@ -367,9 +367,9 @@ func (f *Formatter) buildf(s string, args ...interface{}) {
 	f.builder.WriteString(fmt.Sprintf(s, args...))
 }
 
-// formatType builds typ as a type string with any
-// needed typedefs for aliases that have not been previously defined.
-// These typedefs use the embedded syntax (name=(type-string)).
+// formatType builds typ as a type string with any needed
+// typedefs for named types that have not been previously defined.
+// These typedefs use the embedded syntax (name=type-string).
 // Typedefs handled by decorators are handled in decorate().
 // The routine re-enters the type formatter with a fresh builder by
 // invoking push()/pop().
@@ -378,11 +378,11 @@ func (f *Formatter) formatType(typ zed.Type) {
 		f.build(name)
 		return
 	}
-	if alias, ok := typ.(*zed.TypeAlias); ok {
-		f.saveType(alias)
-		f.build(alias.Name)
+	if named, ok := typ.(*zed.TypeNamed); ok {
+		f.saveType(named)
+		f.build(named.Name)
 		f.build("=")
-		f.formatType(alias.Type)
+		f.formatType(named.Type)
 		return
 	}
 	if typ.ID() < zed.IDTypeComplex {
@@ -402,10 +402,10 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 		return nil
 	}
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
-		// Aliases are handled differently above to determine the
+	case *zed.TypeNamed:
+		// Named types are handled differently above to determine the
 		// plain form vs embedded typedef.
-		panic("alias shouldn't be formatted")
+		panic("named type shouldn't be formatted")
 	case *zed.TypeRecord:
 		f.formatTypeRecord(typ)
 	case *zed.TypeArray:
@@ -524,7 +524,7 @@ func (t typemap) known(typ zed.Type) bool {
 	if _, ok := typ.(*zed.TypeOfType); ok {
 		return true
 	}
-	if _, ok := typ.(*zed.TypeAlias); ok {
+	if _, ok := typ.(*zed.TypeNamed); ok {
 		return false
 	}
 	return typ.ID() < zed.IDTypeComplex
@@ -544,7 +544,7 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 		return
 	}
 	switch t := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		name := t.Name
 		b.WriteString(name)
 		if _, ok := typedefs[typ]; !ok {

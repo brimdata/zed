@@ -35,7 +35,7 @@ func zngTypeToZeek(typ zed.Type) (string, error) {
 		return "subnet", nil
 	case *zed.TypeOfDuration:
 		return "interval", nil
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		if typ.Name == "zenum" {
 			return "enum", nil
 		}

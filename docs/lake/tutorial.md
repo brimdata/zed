@@ -283,7 +283,7 @@ and you'll get this...
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
 search hits came from even when they are combined into a zng stream.
-The type of the path field is a "zng alias" --- a sort of logical type ---
+The type of the path field is a named type --- a sort of logical type ---
 where a client can infer the type "zfile" refers to a zng data file.
 
 But, what if we wanted to put even more information in the index

@@ -1,6 +1,6 @@
 zed: |
-  type string_alias=string
-  type union=(int64,string,string_alias)
+  type string_named=string
+  type union=(int64,string,string_named)
   yield cast(<{a:union}>)
 
 input: |
@@ -9,12 +9,12 @@ input: |
   {a:null(string)}
   {a:1}
   {a:"hello"}
-  {a:"goodbye"(=string_alias)}
+  {a:"goodbye"(=string_named)}
 
 output: |
-  {a:null(union=(int64,string,string_alias=string))}
-  {a:null(union=(int64,string,string_alias=string))}
-  {a:null(union=(int64,string,string_alias=string))}
-  {a:1(union=(int64,string,string_alias=string))}
-  {a:"hello"(union=(int64,string,string_alias=string))}
-  {a:"goodbye"(=string_alias)(union=(int64,string,string_alias))}
+  {a:null(union=(int64,string,string_named=string))}
+  {a:null(union=(int64,string,string_named=string))}
+  {a:null(union=(int64,string,string_named=string))}
+  {a:1(union=(int64,string,string_named=string))}
+  {a:"hello"(union=(int64,string,string_named=string))}
+  {a:"goodbye"(=string_named)(union=(int64,string,string_named))}

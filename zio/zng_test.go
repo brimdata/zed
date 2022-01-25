@@ -137,13 +137,13 @@ func TestZjson(t *testing.T) {
 	boomerangZJSON(t, zsonBig())
 }
 
-func TestAlias(t *testing.T) {
+func TestNamed(t *testing.T) {
 	const simple = `{foo:"bar",orig_h:127.0.0.1(=ipaddr)}`
 	const multipleRecords = `
 {foo:"bar",orig_h:127.0.0.1(=ipaddr)}
 {foo:"bro",resp_h:127.0.0.1(=ipaddr)}
 `
-	const recordAlias = `
+	const recordNamed = `
 {foo:{host:127.0.0.2}(=myrec)}
 {foo:null(myrec={host:ip})}
 `
@@ -151,22 +151,22 @@ func TestAlias(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
 			boomerang(t, simple, true)
 		})
-		t.Run("alias-in-different-records", func(t *testing.T) {
+		t.Run("named-type-in-different-records", func(t *testing.T) {
 			boomerang(t, multipleRecords, true)
 		})
-		t.Run("alias-of-record-type", func(t *testing.T) {
-			boomerang(t, recordAlias, true)
+		t.Run("named-record-type", func(t *testing.T) {
+			boomerang(t, recordNamed, true)
 		})
 	})
 	t.Run("ZJSON", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
 			boomerangZJSON(t, simple)
 		})
-		t.Run("alias-in-different-records", func(t *testing.T) {
+		t.Run("named-type-in-different-records", func(t *testing.T) {
 			boomerangZJSON(t, multipleRecords)
 		})
-		t.Run("alias-of-record-type", func(t *testing.T) {
-			boomerangZJSON(t, recordAlias)
+		t.Run("named-record-type", func(t *testing.T) {
+			boomerangZJSON(t, recordNamed)
 		})
 	})
 }

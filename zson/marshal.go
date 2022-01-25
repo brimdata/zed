@@ -230,7 +230,7 @@ const (
 )
 
 // Decorate informs the marshaler to add type decorations to the resulting ZNG
-// in the form of type aliases that are named in the sytle indicated, e.g.,
+// in the form of named types in the sytle indicated, e.g.,
 // for a `struct Foo` in `package bar` at import path `github.com/acme/bar:
 // the corresponding name would be `Foo` for TypeSimple, `bar.Foo` for TypePackage,
 // and `github.com/acme/bar.Foo`for TypeFull.  This mechanism works in conjunction
@@ -281,9 +281,9 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zed.Type, error) {
 		return nil, err
 	}
 	if m.decorator != nil || m.bindings != nil {
-		// Don't create aliases for interface types as this is just
+		// Don't create named types for interface types as this is just
 		// one value for that interface and it's the underlying concrete
-		// types that implement the interface that we want to alias.
+		// types that implement the interface that we want to name.
 		if !v.IsValid() || v.Kind() == reflect.Interface {
 			return typ, nil
 		}
@@ -293,20 +293,20 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zed.Type, error) {
 			// We do not want to further decorate nano.Ts as
 			// it's already been converted to a Zed time;
 			// likewise for zed.Value, which gets encoded as
-			// itself and its own alias type if it has one.
+			// itself and its own named type if it has one.
 			if t := v.Type(); t == nanoTsType || t == zngValueType {
 				return typ, nil
 			}
 			path := v.Type().PkgPath()
-			var alias string
+			var named string
 			if m.bindings != nil {
-				alias = m.bindings[typeFull(name, path)]
+				named = m.bindings[typeFull(name, path)]
 			}
-			if alias == "" && m.decorator != nil {
-				alias = m.decorator(name, path)
+			if named == "" && m.decorator != nil {
+				named = m.decorator(name, path)
 			}
-			if alias != "" {
-				return m.Context.LookupTypeAlias(alias, typ)
+			if named != "" {
+				return m.Context.LookupTypeNamed(named, typ)
 			}
 		}
 	}
@@ -697,9 +697,9 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 		}
 		return u.decodeRecord(zv, v)
 	case reflect.Interface:
-		// This is an interface value.  If the underlying zng data
-		// has a type name (via alias), then we'll see if there's a
-		// binding fot it and unmarshal into an instance of Template
+		// This is an interface value.  If the underlying ZNG data has
+		// a type name (via a named type), then we'll see if there's a
+		// binding for it and unmarshal into an instance of Template
 		// in the binding.
 		typ, err := u.lookupType(zv.Type)
 		if err != nil {
@@ -1029,11 +1029,11 @@ func typeNameOfValue(value interface{}) (string, error) {
 
 func (u *UnmarshalZNGContext) lookupType(typ zed.Type) (reflect.Type, error) {
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		if template := u.binder.lookup(typ.Name); template != nil {
 			return template, nil
 		}
-		// Ignore aliases for which there are no bindings.
+		// Ignore named types for which there are no bindings.
 		// If an interface type being marshaled into doesn't
 		// have a binding, then a type mismatch will be caught
 		// by reflect when the Set() method is called on the

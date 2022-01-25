@@ -377,7 +377,7 @@ func TestFilters(t *testing.T) {
 		{"a != 10.0.0.0/16", true},
 	})
 
-	// Test comparisons with an aliased type
+	// Test comparisons with a named type
 	runCases(t, "{i:100 (myint=int32)}", []testcase{
 		{"i == 100", true},
 		{"i > 0", true},

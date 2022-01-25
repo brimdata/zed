@@ -1,7 +1,0 @@
-zed: '*'
-
-input: &input |
-  ""(=string_alias)(union_alias=(int64,string_alias))
-  {a:""(=string_alias)(union_alias=(int64,string_alias))}
-
-output: *input

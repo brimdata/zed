@@ -26,11 +26,11 @@ var (
 // of the underlying type.
 type Type interface {
 	// ID returns a unique (per Context) identifier that
-	// represents this type.  For an aliased type, this identifier
-	// represents the actual underlying type and not the alias itself.
+	// represents this type.  For a named type, this identifier
+	// represents the underlying type and not the named type itself.
 	// Callers that care about the underlying type of a Value for
-	// example should prefer to use this instead of using the go
-	// .(type) operator on a Type instance.
+	// example should prefer to use this instead of using a Go
+	// type assertion on a Type instance.
 	ID() int
 	Kind() Kind
 }
@@ -351,7 +351,7 @@ func TypeRecordOf(typ Type) *TypeRecord {
 
 func IsContainerType(typ Type) bool {
 	switch typ := typ.(type) {
-	case *TypeAlias:
+	case *TypeNamed:
 		return IsContainerType(typ.Type)
 	case *TypeSet, *TypeArray, *TypeRecord, *TypeUnion, *TypeMap:
 		return true
@@ -365,8 +365,8 @@ func IsPrimitiveType(typ Type) bool {
 }
 
 func TypeID(typ Type) int {
-	if alias, ok := typ.(*TypeAlias); ok {
-		return alias.id
+	if named, ok := typ.(*TypeNamed); ok {
+		return named.id
 	}
 	return typ.ID()
 }

@@ -1,4 +1,4 @@
-# do a round-trip into serialized ZNG to make sure alias encoded properly
+# Do a round-trip into serialized ZNG to make sure named types are encoded properly.
 
 script: zq - | zq -z -
 

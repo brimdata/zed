@@ -18,7 +18,7 @@ func (e encoder) encodeType(zctx *zed.Context, typ zed.Type) astzed.Type {
 		}
 	}
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		name := typ.Name
 		t := e.encodeType(zctx, typ.Type)
 		e[typ] = name
@@ -128,7 +128,7 @@ func (d decoder) decodeType(zctx *zed.Context, typ astzed.Type) (zed.Type, error
 		if !zed.IsIdentifier(typ.Name) {
 			return t, nil
 		}
-		return zctx.LookupTypeAlias(typ.Name, t)
+		return zctx.LookupTypeNamed(typ.Name, t)
 	case *astzed.TypeError:
 		t, err := d.decodeType(zctx, typ.Type)
 		if err != nil {

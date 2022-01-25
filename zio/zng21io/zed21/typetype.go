@@ -23,7 +23,7 @@ func EncodeTypeValue(t Type) zcode.Bytes {
 
 func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Bytes {
 	switch t := t.(type) {
-	case *TypeAlias:
+	case *TypeNamed:
 		if *typedefs == nil {
 			*typedefs = make(map[string]Type)
 		}

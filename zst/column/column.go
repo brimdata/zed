@@ -56,7 +56,7 @@ type Writer interface {
 
 func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return NewWriter(typ.Type, spiller)
 	case *zed.TypeRecord:
 		return NewRecordWriter(typ, spiller)
@@ -79,7 +79,7 @@ type Reader interface {
 
 func NewReader(typ zed.Type, in zed.Value, r io.ReaderAt) (Reader, error) {
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return NewReader(typ.Type, in, r)
 	case *zed.TypeRecord:
 		return NewRecordReader(typ, in, r)

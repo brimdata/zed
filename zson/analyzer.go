@@ -14,8 +14,7 @@ type Value interface {
 }
 
 // Note that all of the types include a generic zed.Type as their type since
-// anything can have a named typed which is a zed.TypeAlias along with their
-// normal type.
+// anything can have a zed.TypeNamed along with its normal type.
 type (
 	Primitive struct {
 		Type zed.Type
@@ -111,12 +110,12 @@ func (a Analyzer) convertValue(zctx *zed.Context, val astzed.Value, parent zed.T
 		if err != nil {
 			return nil, err
 		}
-		alias, err := a.enterTypeDef(zctx, val.TypeName, v.TypeOf())
+		named, err := a.enterTypeDef(zctx, val.TypeName, v.TypeOf())
 		if err != nil {
 			return nil, err
 		}
-		if alias != nil {
-			v.SetType(alias)
+		if named != nil {
+			v.SetType(named)
 		}
 		return v, nil
 	case *astzed.CastValue:
@@ -172,17 +171,17 @@ func (a Analyzer) typeCheck(cast, parent zed.Type) error {
 	return fmt.Errorf("decorator conflict enclosing context %q and decorator cast %q", parent, cast)
 }
 
-func (a Analyzer) enterTypeDef(zctx *zed.Context, name string, typ zed.Type) (*zed.TypeAlias, error) {
-	var alias *zed.TypeAlias
+func (a Analyzer) enterTypeDef(zctx *zed.Context, name string, typ zed.Type) (*zed.TypeNamed, error) {
+	var named *zed.TypeNamed
 	if zed.IsTypeName(name) {
 		var err error
-		if alias, err = zctx.LookupTypeAlias(name, typ); err != nil {
+		if named, err = zctx.LookupTypeNamed(name, typ); err != nil {
 			return nil, err
 		}
-		typ = alias
+		typ = named
 	}
 	a[name] = typ
-	return alias, nil
+	return named, nil
 }
 
 func (a Analyzer) convertAny(zctx *zed.Context, val astzed.Any, cast zed.Type) (Value, error) {
@@ -603,12 +602,12 @@ func (a Analyzer) convertType(zctx *zed.Context, typ astzed.Type) (zed.Type, err
 		if err != nil {
 			return nil, err
 		}
-		alias, err := a.enterTypeDef(zctx, t.Name, typ)
+		named, err := a.enterTypeDef(zctx, t.Name, typ)
 		if err != nil {
 			return nil, err
 		}
-		if alias != nil {
-			typ = alias
+		if named != nil {
+			typ = named
 		}
 		return typ, nil
 	case *astzed.TypeRecord:
@@ -640,14 +639,14 @@ func (a Analyzer) convertType(zctx *zed.Context, typ astzed.Type) (zed.Type, err
 	case *astzed.TypeName:
 		typ, ok := a[t.Name]
 		if !ok {
-			// We avoid the nil-interface bug here by assigning to alias
+			// We avoid the nil-interface bug here by assigning to named
 			// and then typ because assigning directly to typ will create
 			// a nin-nil interface pointer for a nil result.
-			alias := zctx.LookupTypeDef(t.Name)
-			if alias == nil {
+			named := zctx.LookupTypeDef(t.Name)
+			if named == nil {
 				return nil, fmt.Errorf("no such type name: %q", t.Name)
 			}
-			typ = alias
+			typ = named
 		}
 		return typ, nil
 	}

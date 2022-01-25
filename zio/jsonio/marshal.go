@@ -18,7 +18,7 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 		return nil
 	}
 	switch typ := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		return marshalAny(typ.Type, bytes)
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
 		return zed.DecodeUint(bytes)

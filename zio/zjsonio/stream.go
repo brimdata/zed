@@ -80,7 +80,7 @@ func (s *Stream) hasTypeType(typ zed.Type) bool {
 		return b
 	}
 	switch t := typ.(type) {
-	case *zed.TypeAlias:
+	case *zed.TypeNamed:
 		b = s.hasTypeType(t.Type)
 	case *zed.TypeRecord:
 		for _, col := range t.Columns {

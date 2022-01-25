@@ -150,8 +150,8 @@ func (r *Reader) readPayload() (*zed21.Value, *AppMessage, error) {
 			err = r.readTypeEnum()
 		case zed21.TypeDefMap:
 			err = r.readTypeMap()
-		case zed21.TypeDefAlias:
-			err = r.readTypeAlias()
+		case zed21.TypeDefNamed:
+			err = r.readTypeNamed()
 		case zed21.CtrlEOS:
 			r.reset()
 		case zed21.CtrlCompressed:
@@ -445,7 +445,7 @@ func (r *Reader) readTypeArray() error {
 	return nil
 }
 
-func (r *Reader) readTypeAlias() error {
+func (r *Reader) readTypeNamed() error {
 	len, err := r.readUvarint()
 	if err != nil {
 		return zed.ErrBadFormat
@@ -463,7 +463,7 @@ func (r *Reader) readTypeAlias() error {
 	if err != nil {
 		return err
 	}
-	typ, err := r.zctx.LookupTypeAlias(name, inner)
+	typ, err := r.zctx.LookupTypeNamed(name, inner)
 	if err != nil {
 		return err
 	}

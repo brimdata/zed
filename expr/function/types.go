@@ -30,8 +30,8 @@ type NameOf struct {
 
 func (n *NameOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	typ := args[0].Type
-	if alias, ok := typ.(*zed.TypeAlias); ok {
-		return newString(ctx, alias.Name)
+	if named, ok := typ.(*zed.TypeNamed); ok {
+		return newString(ctx, named.Name)
 	}
 	return n.zctx.Missing()
 }

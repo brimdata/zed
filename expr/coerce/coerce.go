@@ -15,7 +15,7 @@ import (
 var Overflow = errors.New("integer overflow: uint64 value too large for int64")
 var IncompatibleTypes = errors.New("incompatible types")
 
-// XXX aliases should probably be preserved according to the rank
+// XXX Named types should probably be preserved according to the rank
 // of the underlying number type.
 
 // Pair provides a buffer to decode values into while doing comparisons

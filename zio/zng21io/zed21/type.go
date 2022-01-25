@@ -14,8 +14,8 @@ var (
 // of the underlying type.
 type Type interface {
 	// ID returns a unique (per Context) identifier that
-	// represents this type.  For an aliased type, this identifier
-	// represents the actual underlying type and not the alias itself.
+	// represents this type.  For a named type, this identifier
+	// represents the underlying type and not the named type itself.
 	// Callers that care about the underlying type of a Value for
 	// example should prefer to use this instead of using the go
 	// .(type) operator on a Type instance.
@@ -92,7 +92,7 @@ const (
 	TypeDefUnion      = 0xf9
 	TypeDefEnum       = 0xfa
 	TypeDefMap        = 0xfb
-	TypeDefAlias      = 0xfc
+	TypeDefNamed      = 0xfc
 	CtrlCompressed    = 0xfd
 	CtrlAppMessage    = 0xfe
 	CtrlEOS           = 0xff
@@ -208,7 +208,7 @@ func LookupPrimitiveByID(id int) Type {
 // InnerType returns the element type for the underlying set or array type or
 // nil if the underlying type is not a set or array.
 func InnerType(typ Type) Type {
-	switch typ := AliasOf(typ).(type) {
+	switch typ := TypeUnder(typ).(type) {
 	case *TypeSet:
 		return typ.Type
 	case *TypeArray:
@@ -242,18 +242,18 @@ func IsUnionType(typ Type) bool {
 }
 
 func IsRecordType(typ Type) bool {
-	_, ok := AliasOf(typ).(*TypeRecord)
+	_, ok := TypeUnder(typ).(*TypeRecord)
 	return ok
 }
 
 func TypeRecordOf(typ Type) *TypeRecord {
-	t, _ := AliasOf(typ).(*TypeRecord)
+	t, _ := TypeUnder(typ).(*TypeRecord)
 	return t
 }
 
 func IsContainerType(typ Type) bool {
 	switch typ := typ.(type) {
-	case *TypeAlias:
+	case *TypeNamed:
 		return IsContainerType(typ.Type)
 	case *TypeSet, *TypeArray, *TypeRecord, *TypeUnion, *TypeMap:
 		return true
@@ -267,8 +267,8 @@ func IsPrimitiveType(typ Type) bool {
 }
 
 func TypeID(typ Type) int {
-	if alias, ok := typ.(*TypeAlias); ok {
-		return alias.id
+	if named, ok := typ.(*TypeNamed); ok {
+		return named.id
 	}
 	return typ.ID()
 }
