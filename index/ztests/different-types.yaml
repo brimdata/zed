@@ -8,10 +8,10 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      {a:1.4,value:3}
       {a:127.0.0.1,value:"4"}
-      {a:"hello",value:1}
+      {a:1.4,value:3}
       {a:1,value:2}
+      {a:"hello",value:1}
 
 
 outputs:

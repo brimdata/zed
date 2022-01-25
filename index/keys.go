@@ -29,9 +29,5 @@ func (k *Keyer) Keys() []field.Path {
 }
 
 func (k *Keyer) valueOfKeys(ectx expr.Context, val *zed.Value) *zed.Value {
-	//XXX right now we use cutter but we might just keep the list of values?
-	// If the key isn't present, the cutter will return error missing values.
-	// I think we shouldn't error but return these when searching for null?
-	// Or why not search for missing?
 	return k.cutter.Eval(ectx, val)
 }
