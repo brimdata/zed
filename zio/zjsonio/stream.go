@@ -1,56 +1,13 @@
 package zjsonio
 
-import (
-	"errors"
-	"strconv"
-
-	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zcode"
-)
-
 type Stream struct {
-	zctx     *zed.Context
-	encoder  encoder
-	typetype map[zed.Type]bool
 }
 
 func NewStream() *Stream {
-	return &Stream{
-		zctx:     zed.NewContext(),
-		encoder:  make(encoder),
-		typetype: make(map[zed.Type]bool),
-	}
+	return &Stream{}
 }
 
-func (s *Stream) Transform(r *zed.Value) (Object, error) {
-	typ, err := s.zctx.TranslateType(r.Type)
-	if err != nil {
-		return Object{}, err
-	}
-	var types []astzed.Type
-	id, t := s.typeID(typ)
-	if t != nil {
-		types = append(types, t)
-	}
-	if s.hasTypeType(typ) {
-		types = s.appendTypeValues(types, *r)
-	}
-	v, err := encodeValue(s.zctx, typ, r.Bytes)
-	if err != nil {
-		return Object{}, err
-	}
-	values, ok := v.([]interface{})
-	if !ok {
-		return Object{}, errors.New("internal error: zng record body must be a container")
-	}
-	return Object{
-		Schema: id,
-		Types:  types,
-		Values: values,
-	}, nil
-}
-
+/*
 func (s *Stream) typeID(typ zed.Type) (string, astzed.Type) {
 	if id, ok := s.encoder[typ]; ok {
 		return id, nil
@@ -139,3 +96,5 @@ func (s *Stream) appendTypeValues(types []astzed.Type, zv zed.Value) []astzed.Ty
 	})
 	return types
 }
+
+*/

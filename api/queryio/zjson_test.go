@@ -24,10 +24,10 @@ func mkRecord(t *testing.T, s string) *zed.Value {
 func TestZJSONWriter(t *testing.T) {
 	const record = `{x:1}`
 	const expected = `
-{"kind":"QueryChannelSet","value":{"channel_id":1}}
-{"kind":"Object","value":{"schema":"30","types":[{"kind":"typedef","name":"30","type":{"kind":"record","fields":[{"name":"x","type":{"kind":"primitive","name":"int64"}}]}}],"values":["1"]}}
-{"kind":"QueryChannelEnd","value":{"channel_id":1}}
-{"kind":"QueryError","value":{"error":"test.err"}}
+{"type":"QueryChannelSet","value":{"channel_id":1}}
+{"type":{"kind":"record","id":30,"fields":[{"name":"x","type":{"kind":"primitive","name":"int64"}}]},"value":["1"]}
+{"type":"QueryChannelEnd","value":{"channel_id":1}}
+{"type":"QueryError","value":{"error":"test.err"}}
 `
 	var buf bytes.Buffer
 	w := queryio.NewZJSONWriter(&buf)

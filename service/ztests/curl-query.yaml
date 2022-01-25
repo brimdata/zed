@@ -28,11 +28,11 @@ outputs:
       {"a":"hello","b":{"c":"world","d":"goodbye"}}
       {"a":"one","b":{"c":"two","d":"three"}}
       === application/x-zjson ===
-      {"kind":"QueryChannelSet","value":{"channel_id":0}}
-      {"kind":"Object","value":{"schema":"31","types":[{"kind":"typedef","name":"31","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"primitive","name":"string"}},{"name":"b","type":{"kind":"record","fields":[{"name":"c","type":{"kind":"primitive","name":"string"}},{"name":"d","type":{"kind":"primitive","name":"string"}}]}}]}}],"values":["hello",["world","goodbye"]]}}
-      {"kind":"Object","value":{"schema":"31","values":["one",["two","three"]]}}
-      {"kind":"QueryChannelEnd","value":{"channel_id":0}}
-      {"kind":"QueryStats","value":{"start_time":{"sec":xxx,"ns":xxx},"update_time":{"sec":xxx,"ns":xxx},"bytes_read":36,"bytes_matched":36,"records_read":2,"records_matched":2}}
+      {"type":"QueryChannelSet","value":{"channel_id":0}}
+      {"type":{"kind":"record","id":31,"fields":[{"name":"a","type":{"kind":"primitive","name":"string"}},{"name":"b","type":{"kind":"record","id":30,"fields":[{"name":"c","type":{"kind":"primitive","name":"string"}},{"name":"d","type":{"kind":"primitive","name":"string"}}]}}]},"value":["hello",["world","goodbye"]]}
+      {"type":{"kind":"ref","id":31},"value":["one",["two","three"]]}
+      {"type":"QueryChannelEnd","value":{"channel_id":0}}
+      {"type":"QueryStats","value":{"start_time":{"sec":xxx,"ns":xxx},"update_time":{"sec":xxx,"ns":xxx},"bytes_read":36,"bytes_matched":36,"records_read":2,"records_matched":2}}
       === application/x-zson ===
       {a:"hello",b:{c:"world",d:"goodbye"}}
       {a:"one",b:{c:"two",d:"three"}}

@@ -17,5 +17,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {kind:"QueryChannelEnd",value:{channel_id:0}}
-      {kind:"QueryChannelEnd",value:{channel_id:1}}
+      {type:"QueryChannelEnd",value:{channel_id:0}}
+      {type:"QueryChannelEnd",value:{channel_id:1}}

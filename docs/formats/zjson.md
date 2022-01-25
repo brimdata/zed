@@ -114,7 +114,7 @@ refer  to earlier complex types by their identifiers.
 For example, the Zed type `{s:string,x:int32}` has this ZJSON format:
 ```
 {
-  id: 123,
+  "id": 123,
   "kind": "record",
   "fields": [
     {
@@ -135,12 +135,20 @@ For example, the Zed type `{s:string,x:int32}` has this ZJSON format:
 }
 ```
 
+A previously defined complex type may be referred to using a reference of the form:
+```
+{
+  "kind": "ref",
+  "id": 123
+}
+```
+
 #### 2.1.1 Record Type
 
 A record type is a JSON object of the form
 ```
 {
-  id: <number>,
+  "id": <number>,
   "kind": "record",
   "fields": [ <field>, <field>, ... ]
 }
@@ -160,7 +168,7 @@ recursively encoded type.
 An array type is defined by a JSON object having the form
 ```
 {
-  id: <number>,
+  "id": <number>,
   "kind": "array",
   "type": <type>
 }
@@ -172,7 +180,7 @@ where `<type>` is a recursively encoded type.
 A set type is defined by a JSON object having the form
 ```
 {
-  id: <number>,
+  "id": <number>,
   "kind": "set",
   "type": <type>
 }
@@ -184,7 +192,7 @@ where `<type>` is a recursively encoded type.
 A map type is defined by a JSON object of the form
 ```
 {
-  id: <number>,
+  "id": <number>,
   "kind": "map",
   "key_type": <type>,
   "val_type": <type>
@@ -196,7 +204,7 @@ A map type is defined by a JSON object of the form
 A union type is defined by a JSON object having the form
 ```
 {
-  id: <number>,
+  "id": <number>,
   "kind": "union",
   "types": [ <type>, <type>, ... ]
 }
@@ -209,31 +217,31 @@ and each `<type>`is a recursively encoded type.
 An enum type is a JSON object of the form
 ```
 {
-  id: <number>,
+  "id": <number>,
   "kind": "enum",
   "symbols": [ <string>, <string>, ... ]
 }
 ```
 
-#### 2.1.8 Error Type
+#### 2.1.7 Error Type
 
 An error type is a JSON object of the form
 ```
 {
-  id: <number>,
+  "id": <number>,
   "kind": "error",
   "type": <type>
 }
 ```
 
-#### 2.1.9 Named Type
+#### 2.1.8 Named Type
 
 A named type is encoded as a binding between a name and a Zed type
 and represents a new type so named.  A type definition type has the form
 ```
 {
-  id: <number>,
-  "kind": "typename",
+  "id": <number>,
+  "kind": "named",
   "name": <id>,
   "type": <type>,
 }
@@ -253,7 +261,7 @@ types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein,
 a map is encoded as a JSON array of two-element arrays of the form
 `[ <key>, <value> ]` where `key` and `value` are recursively encoded,
-* a type value is encoded [as above](#2-type-encoding),
+* a type value is encoded [as above](#21-type-encoding),
 * each primitive that is not a type value
 is encoded as a string conforming to its ZSON representation, as described in the
 [corresponding section of the ZSON specification](zson.md#33-primitive-values).
@@ -277,65 +285,58 @@ ZJSON objects framed as NDJSON.
 
 ## 4. Example
 
-> Issue #3340
-
 Here is an example that illustrates values of a repeated type,
 nesting, records, array, and union:
 
 ```
-{s:"hello",r:{a:1 (int32),b:2 (int32)} (=0)} (=1)
-{s:"world",r:{a:3,b:4}} (1)
-{s:"hello",r:{a:[1 (int32),2 (int32),3 (int32)] (=2)} (=3)} (=4)
-{s:"goodnight",r:{x:{u:"foo" (5=((string,int32)))} (=6)} (=7)} (=8)
-{s:"gracie",r:{x:{u:12 (int32)}}} (8)
+{s:"hello",r:{a:1,b:2}}
+{s:"world",r:{a:3,b:4}}
+{s:"hello",r:{a:[1,2,3]}}
+{s:"goodnight",r:{x:{u:"foo"((string,int64))}}}
+{s:"gracie",r:{x:{u:12((string,int64))}}}
 ```
 
 This data is represented in ZJSON as follows:
 
 ```
 {
-  "schema": "24",
-  "types": [
-    {
-      "kind": "typedef",
-      "name": "24",
-      "type": {
-        "kind": "record",
-        "fields": [
-          {
-            "name": "s",
-            "type": {
-              "kind": "primitive",
-              "name": "string"
+  "type": {
+    "kind": "record",
+    "id": 31,
+    "fields": [
+      {
+        "name": "s",
+        "type": {
+          "kind": "primitive",
+          "name": "string"
+        }
+      },
+      {
+        "name": "r",
+        "type": {
+          "kind": "record",
+          "id": 30,
+          "fields": [
+            {
+              "name": "a",
+              "type": {
+                "kind": "primitive",
+                "name": "int64"
+              }
+            },
+            {
+              "name": "b",
+              "type": {
+                "kind": "primitive",
+                "name": "int64"
+              }
             }
-          },
-          {
-            "name": "r",
-            "type": {
-              "kind": "record",
-              "fields": [
-                {
-                  "name": "a",
-                  "type": {
-                    "kind": "primitive",
-                    "name": "int32"
-                  }
-                },
-                {
-                  "name": "b",
-                  "type": {
-                    "kind": "primitive",
-                    "name": "int32"
-                  }
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       }
-    }
-  ],
-  "values": [
+    ]
+  },
+  "value": [
     "hello",
     [
       "1",
@@ -344,8 +345,11 @@ This data is represented in ZJSON as follows:
   ]
 }
 {
-  "schema": "24",
-  "values": [
+  "type": {
+    "kind": "ref",
+    "id": 31
+  },
+  "value": [
     "world",
     [
       "3",
@@ -354,44 +358,40 @@ This data is represented in ZJSON as follows:
   ]
 }
 {
-  "schema": "27",
-  "types": [
-    {
-      "kind": "typedef",
-      "name": "27",
-      "type": {
-        "kind": "record",
-        "fields": [
-          {
-            "name": "s",
-            "type": {
-              "kind": "primitive",
-              "name": "string"
-            }
-          },
-          {
-            "name": "r",
-            "type": {
-              "kind": "record",
-              "fields": [
-                {
-                  "name": "a",
-                  "type": {
-                    "kind": "array",
-                    "type": {
-                      "kind": "primitive",
-                      "name": "int32"
-                    }
-                  }
+  "type": {
+    "kind": "record",
+    "id": 34,
+    "fields": [
+      {
+        "name": "s",
+        "type": {
+          "kind": "primitive",
+          "name": "string"
+        }
+      },
+      {
+        "name": "r",
+        "type": {
+          "kind": "record",
+          "id": 33,
+          "fields": [
+            {
+              "name": "a",
+              "type": {
+                "kind": "array",
+                "id": 32,
+                "type": {
+                  "kind": "primitive",
+                  "name": "int64"
                 }
-              ]
+              }
             }
-          }
-        ]
+          ]
+        }
       }
-    }
-  ],
-  "values": [
+    ]
+  },
+  "value": [
     "hello",
     [
       [
@@ -403,58 +403,55 @@ This data is represented in ZJSON as follows:
   ]
 }
 {
-  "schema": "31",
-  "types": [
-    {
-      "kind": "typedef",
-      "name": "31",
-      "type": {
-        "kind": "record",
-        "fields": [
-          {
-            "name": "s",
-            "type": {
-              "kind": "primitive",
-              "name": "string"
-            }
-          },
-          {
-            "name": "r",
-            "type": {
-              "kind": "record",
-              "fields": [
-                {
-                  "name": "x",
-                  "type": {
-                    "kind": "record",
-                    "fields": [
-                      {
-                        "name": "u",
-                        "type": {
-                          "kind": "union",
-                          "types": [
-                            {
-                              "kind": "primitive",
-                              "name": "string"
-                            },
-                            {
-                              "kind": "primitive",
-                              "name": "int32"
-                            }
-                          ]
+  "type": {
+    "kind": "record",
+    "id": 38,
+    "fields": [
+      {
+        "name": "s",
+        "type": {
+          "kind": "primitive",
+          "name": "string"
+        }
+      },
+      {
+        "name": "r",
+        "type": {
+          "kind": "record",
+          "id": 37,
+          "fields": [
+            {
+              "name": "x",
+              "type": {
+                "kind": "record",
+                "id": 36,
+                "fields": [
+                  {
+                    "name": "u",
+                    "type": {
+                      "kind": "union",
+                      "id": 35,
+                      "types": [
+                        {
+                          "kind": "primitive",
+                          "name": "string"
+                        },
+                        {
+                          "kind": "primitive",
+                          "name": "int64"
                         }
-                      }
-                    ]
+                      ]
+                    }
                   }
-                }
-              ]
+                ]
+              }
             }
-          }
-        ]
+          ]
+        }
       }
-    }
-  ],
-  "values": [
+    ]
+  },
+  "value": [
     "goodnight",
     [
       [
@@ -467,8 +464,11 @@ This data is represented in ZJSON as follows:
   ]
 }
 {
-  "schema": "31",
-  "values": [
+  "type": {
+    "kind": "ref",
+    "id": 38
+  },
+  "value": [
     "gracie",
     [
       [

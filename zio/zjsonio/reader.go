@@ -1,11 +1,12 @@
 package zjsonio
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/skim"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
@@ -45,24 +46,16 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if line == nil {
 		return nil, e(err)
 	}
-	rec, err := unmarshal(line)
+	object, err := unmarshal(line)
 	if err != nil {
 		return nil, e(err)
 	}
-	if rec.Types != nil {
-		if err := r.decodeTypes(rec.Types); err != nil {
-			return nil, err
-		}
-	}
-	typ, ok := r.decoder[rec.Schema]
-	if !ok {
-		return nil, fmt.Errorf("undefined schema ID: %s", rec.Schema)
-	}
-	if !zed.IsRecordType(typ) {
-		return nil, fmt.Errorf("ZJSON outer type is not a record: %s", zson.FormatType(typ))
+	typ, err := r.decoder.decodeType(r.zctx, object.Type)
+	if err != nil {
+		return nil, err
 	}
 	r.builder.Reset()
-	if err := decodeValue(r.builder, typ, rec.Values); err != nil {
+	if err := r.decodeValue(r.builder, typ, object.Value); err != nil {
 		return nil, e(err)
 	}
 	bytes, err := r.builder.Bytes().Body()
@@ -72,10 +65,194 @@ func (r *Reader) Read() (*zed.Value, error) {
 	return zed.NewValue(typ, bytes), nil
 }
 
-func (r *Reader) decodeTypes(types []astzed.Type) error {
-	d := r.decoder
-	for _, t := range types {
-		d.decodeType(r.zctx, t)
+func (r *Reader) decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface{}) error {
+	values, ok := v.([]interface{})
+	if !ok {
+		return errors.New("ZJSON record value must be a JSON array")
 	}
+	cols := typ.Columns
+	b.BeginContainer()
+	for k, val := range values {
+		if k >= len(cols) {
+			return zed.ErrExtraField
+		}
+		// each column either a string value or an array of string values
+		if val == nil {
+			b.Append(nil)
+			continue
+		}
+		if err := r.decodeValue(b, cols[k].Type, val); err != nil {
+			return err
+		}
+	}
+	b.EndContainer()
+	return nil
+}
+
+func (r *Reader) decodePrimitive(builder *zcode.Builder, typ zed.Type, v interface{}) error {
+	if zed.IsContainerType(typ) && !zed.IsUnionType(typ) {
+		return zed.ErrNotPrimitive
+	}
+	if v == nil {
+		builder.Append(nil)
+		return nil
+	}
+	text, ok := v.(string)
+	if !ok {
+		return errors.New("ZJSON primitive value is not a JSON string")
+	}
+	val := zson.Primitive{
+		Type: typ,
+		Text: text,
+	}
+	err := zson.BuildPrimitive(builder, val)
+	return err
+}
+
+func (r *Reader) decodeContainerBody(b *zcode.Builder, typ zed.Type, body interface{}, which string) error {
+	items, ok := body.([]interface{})
+	if !ok {
+		return fmt.Errorf("bad json for ZJSON %s value", which)
+	}
+	for _, item := range items {
+		if err := r.decodeValue(b, typ, item); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Reader) decodeContainer(b *zcode.Builder, typ zed.Type, body interface{}, which string) error {
+	if body == nil {
+		b.Append(nil)
+		return nil
+	}
+	b.BeginContainer()
+	err := r.decodeContainerBody(b, typ, body, which)
+	b.EndContainer()
+	return err
+}
+
+func (r *Reader) decodeUnion(builder *zcode.Builder, typ *zed.TypeUnion, body interface{}) error {
+	if body == nil {
+		builder.Append(nil)
+		return nil
+	}
+	tuple, ok := body.([]interface{})
+	if !ok {
+		return errors.New("bad json for ZJSON union value")
+	}
+	if len(tuple) != 2 {
+		return errors.New("ZJSON union value not an array of two elements")
+	}
+	selectorStr, ok := tuple[0].(string)
+	if !ok {
+		return errors.New("bad selector for ZJSON union value")
+	}
+	selector, err := strconv.Atoi(selectorStr)
+	if err != nil {
+		return fmt.Errorf("bad selector for ZJSON union value: %w", err)
+	}
+	inner, err := typ.Type(selector)
+	if err != nil {
+		return fmt.Errorf("bad selector for ZJSON union value: %w", err)
+	}
+	builder.BeginContainer()
+	builder.Append(zed.EncodeInt(int64(selector)))
+	if err := r.decodeValue(builder, inner, tuple[1]); err != nil {
+		return err
+	}
+	builder.EndContainer()
+	return nil
+}
+
+func (r *Reader) decodeMap(b *zcode.Builder, typ *zed.TypeMap, body interface{}) error {
+	if body == nil {
+		b.Append(nil)
+		return nil
+	}
+	items, ok := body.([]interface{})
+	if !ok {
+		return errors.New("bad json for ZJSON union value")
+	}
+	b.BeginContainer()
+	for _, item := range items {
+		pair, ok := item.([]interface{})
+		if !ok || len(pair) != 2 {
+			return errors.New("ZJSON map value must be an array of two-element arrays")
+		}
+		if err := r.decodeValue(b, typ.KeyType, pair[0]); err != nil {
+			return err
+		}
+		if err := r.decodeValue(b, typ.ValType, pair[1]); err != nil {
+			return err
+		}
+	}
+	b.EndContainer()
+	return nil
+}
+
+func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {
+	switch typ := typ.(type) {
+	case *zed.TypeNamed:
+		return r.decodeValue(b, typ.Type, body)
+	case *zed.TypeUnion:
+		return r.decodeUnion(b, typ, body)
+	case *zed.TypeMap:
+		return r.decodeMap(b, typ, body)
+	case *zed.TypeEnum:
+		return r.decodeEnum(b, typ, body)
+	case *zed.TypeRecord:
+		return r.decodeRecord(b, typ, body)
+	case *zed.TypeArray:
+		err := r.decodeContainer(b, typ.Type, body, "array")
+		return err
+	case *zed.TypeSet:
+		if body == nil {
+			b.Append(nil)
+			return nil
+		}
+		b.BeginContainer()
+		err := r.decodeContainerBody(b, typ.Type, body, "set")
+		b.TransformContainer(zed.NormalizeSet)
+		b.EndContainer()
+		return err
+	case *zed.TypeError:
+		return r.decodeValue(b, typ.Type, body)
+	case *zed.TypeOfType:
+		if body == nil {
+			b.Append(nil)
+			return nil
+		}
+		typeObj, err := unpacker.UnmarshalObject(body)
+		if err != nil {
+			return err
+		}
+		t, ok := typeObj.(Type)
+		if !ok {
+			return errors.New("type value is not a valid ZJSON type")
+		}
+		local, err := r.decoder.decodeType(r.zctx, t)
+		if err != nil {
+			return err
+		}
+		tv := r.zctx.LookupTypeValue(local)
+		b.Append(tv.Bytes)
+		return nil
+	default:
+		return r.decodePrimitive(b, typ, body)
+	}
+}
+
+func (r *Reader) decodeEnum(b *zcode.Builder, typ *zed.TypeEnum, body interface{}) error {
+	s, ok := body.(string)
+	if !ok {
+		return errors.New("ZJSON enum index value is not a JSON string")
+	}
+	index, err := strconv.Atoi(s)
+	if err != nil {
+		return errors.New("ZJSON enum index value is not a string integer")
+	}
+	b.Append(zed.EncodeUint(uint64(index)))
 	return nil
 }
