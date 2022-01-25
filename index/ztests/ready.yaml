@@ -1,5 +1,5 @@
 script: |
-  zed dev indexfile create -x -f 20 -o index.zng -k key -
+  zq "by key | sort key" - | zed dev indexfile create -f 20 -o index.zng -k key -
   zed dev dig section -z 2 index.zng
 
 inputs:
