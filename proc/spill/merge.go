@@ -16,12 +16,13 @@ import (
 // disk a chunk at a time, then read back and merged in sorted order, effectively
 // implementing an external merge sort.
 type MergeSort struct {
-	nspill    int
-	runs      []*peeker
-	compareFn expr.CompareFn
-	tempDir   string
-	spillSize int64
-	zctx      *zed.Context
+	comparator *expr.Comparator
+	nspill     int
+	runs       []*peeker
+	tempDir    string
+	sorter     expr.Sorter
+	spillSize  int64
+	zctx       *zed.Context
 }
 
 const TempPrefix = "zed-spill-"
@@ -37,15 +38,15 @@ func TempFile() (*os.File, error) {
 // NewMergeSort returns a MergeSort to implement external merge sorts of a large
 // zng record stream.  It creates a temporary directory to hold the collection
 // of spilled chunks.  Call Cleanup to remove it.
-func NewMergeSort(compareFn expr.CompareFn) (*MergeSort, error) {
+func NewMergeSort(comparator *expr.Comparator) (*MergeSort, error) {
 	tempDir, err := TempDir()
 	if err != nil {
 		return nil, err
 	}
 	return &MergeSort{
-		compareFn: compareFn,
-		tempDir:   tempDir,
-		zctx:      zed.NewContext(),
+		comparator: comparator,
+		tempDir:    tempDir,
+		zctx:       zed.NewContext(),
 	}, nil
 }
 
@@ -63,7 +64,7 @@ func (r *MergeSort) Cleanup() {
 func (r *MergeSort) Spill(ctx context.Context, vals []zed.Value) error {
 	// Sorting can be slow, so check for cancellation.
 	if err := goWithContext(ctx, func() {
-		expr.SortStable(vals, r.compareFn)
+		r.sorter.SortStable(vals, r.comparator)
 	}); err != nil {
 		return err
 	}
@@ -138,16 +139,11 @@ func (r *MergeSort) SpillSize() int64 {
 func (r *MergeSort) Len() int { return len(r.runs) }
 
 func (r *MergeSort) Less(i, j int) bool {
-	v := r.compareFn(r.runs[i].nextRecord, r.runs[j].nextRecord)
-	switch {
-	case v < 0:
-		return true
-	case v == 0:
-		// Maintain stability.
-		return r.runs[i].ordinal < r.runs[j].ordinal
-	default:
-		return false
+	if v := r.comparator.Compare(r.runs[i].nextRecord, r.runs[j].nextRecord); v != 0 {
+		return v < 0
 	}
+	// Maintain stability.
+	return r.runs[i].ordinal < r.runs[j].ordinal
 }
 
 func (r *MergeSort) Swap(i, j int) { r.runs[i], r.runs[j] = r.runs[j], r.runs[i] }

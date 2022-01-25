@@ -118,7 +118,7 @@ func (p *Proc) run() {
 			continue
 		}
 		if spiller == nil {
-			spiller, err = spill.NewMergeSort(p.comparator.Compare)
+			spiller, err = spill.NewMergeSort(p.comparator)
 			if err != nil {
 				if ok := p.sendResult(nil, err); !ok {
 					return
