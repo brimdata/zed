@@ -14,12 +14,12 @@
 // byte threshold or until Flush is called.
 //
 // After all of the Zed data is written, a reassembly map is formed for
-// the any column writer by calling its EncodeMap method, which builds the
-// value in place using zcode.Builder and returns the type
-// of that record column.
+// each column writer by calling its EncodeMap method, which builds the
+// value in place using zcode.Builder and returns the Zed type of
+// the reassembly map value.
 //
-// Data is read from a ZST file by scanning the reassembly records then building
-// column Readers for each Zed type by calling NewReader, which
+// Data is read from a ZST file by scanning the reassembly maps to build
+// column Readers for each Zed type by calling NewReader with the map, which
 // recusirvely builds an assembly structure.  An io.ReaderAt is passed to NewReader
 // so each column reader can access the underlying storage object and read its
 // column data effciently in largish column chunks.
