@@ -23,9 +23,8 @@ var ErrCorruptSegment = errors.New("segmap value corrupt")
 
 func NewSegment(zv zcode.Bytes) Segment {
 	it := zv.Iter()
-	offset := zed.DecodeInt(it.Next())
 	return Segment{
-		Offset: offset,
+		Offset: zed.DecodeInt(it.Next()),
 		Length: zed.DecodeInt(it.Next()),
 	}
 }
@@ -47,8 +46,7 @@ func NewSegmap(in zed.Value) ([]Segment, error) {
 		return nil, errors.New("ZST object segmap element not a record[offset:int64,length:int32]")
 	}
 	var s []Segment
-	it := in.Bytes.Iter()
-	for !it.Done() {
+	for it := in.Bytes.Iter(); !it.Done(); {
 		s = append(s, NewSegment(it.Next()))
 	}
 	return s, nil

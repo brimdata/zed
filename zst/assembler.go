@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/zst/column"
 )
 
-var ErrBadTypeNumber = errors.New("ZST: bad type number in root reassembly map")
+var ErrBadTypeNumber = errors.New("bad type number in ZST root reassembly map")
 
 // Assembler reads a columnar ZST object to generate a stream of zed.Values.
 // It also has methods to read metadata for test and debugging.
@@ -47,8 +47,8 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	}
 	return &Assembler{
 		root:    root,
-		types:   a.types,
 		readers: readers,
+		types:   a.types,
 	}, nil
 }
 
@@ -65,8 +65,7 @@ func (a *Assembler) Read() (*zed.Value, error) {
 	if reader == nil {
 		return nil, ErrBadTypeNumber
 	}
-	err = reader.Read(&a.builder)
-	if err != nil {
+	if err = reader.Read(&a.builder); err != nil {
 		return nil, err
 	}
 	body, err := a.builder.Bytes().Body()

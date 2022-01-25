@@ -1,8 +1,8 @@
-// Package zst implements reading and writing ZST storage objects
+// Package zst implements the reading and writing of ZST storage objects
 // to and from any Zed format.  The ZST storage format is described
 // at https://github.com/brimdata/zed/blob/main/docs/data-model/zst.md.
 //
-// A ZST storage object must be seekable (e.g., a local file or s3 object),
+// A ZST storage object must be seekable (e.g., a local file or S3 object),
 // so, unlike ZNG, streaming of ZST objects is not supported.
 //
 // The zst/column package handles reading and writing row data to columns,

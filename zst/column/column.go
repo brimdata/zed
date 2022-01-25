@@ -2,13 +2,13 @@
 // ZST columnar storage object.
 //
 // A ZST object is created by allocating a Writer for any top-level Zed type
-// ia NewWriter.  The object to be written to is wrapped
+// via NewWriter.  The object to be written is wrapped
 // in a Spiller with a column threshold.  Output is streamed to the underlying spiller
 // in a single pass.  (In the future, we may implement multiple passes to optimize
 // the storage layout of column data or spread a given ZST object across multiple
 // files.
 //
-// NewWriter recursively decends into the Zed type, allocating a Writers
+// NewWriter recursively decends into the Zed type, allocating a Writer
 // for each node in the type tree.  The top-level body is written via a call
 // to Write.  The columns buffer data in memory until they reach their
 // byte threshold or until Flush is called.
