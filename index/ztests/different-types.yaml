@@ -1,5 +1,5 @@
 script: |
-  zed dev indexfile create -o index.zng -k a in.zson
+  zq 'sort a' in.zson | zed dev indexfile create -o index.zng -k a -
   zed dev indexfile lookup -z -k 127.0.0.1 index.zng
   zed dev indexfile lookup -z -k 1.4 index.zng
   zed dev indexfile lookup -z -k 1 index.zng
@@ -19,7 +19,7 @@ outputs:
     data: ""
   - name: stdout
     data: |
-      {a:127.0.0.1}
-      {a:1.4}
-      {a:1}
-      {a:"hello"}
+      {a:127.0.0.1,value:"4"}
+      {a:1.4,value:3}
+      {a:1,value:2}
+      {a:"hello",value:1}

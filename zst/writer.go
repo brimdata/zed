@@ -177,7 +177,7 @@ func (w *Writer) finalize() error {
 	}
 	// Next, we write the root reassembly map.
 	var b zcode.Builder
-	typ, err := w.root.MarshalZNG(w.zctx, &b)
+	typ, err := w.root.EncodeMap(w.zctx, &b)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (w *Writer) finalize() error {
 	// for that type.
 	for _, col := range w.columns {
 		b.Reset()
-		typ, err := col.MarshalZNG(w.zctx, &b)
+		typ, err := col.EncodeMap(w.zctx, &b)
 		if err != nil {
 			return err
 		}

@@ -39,7 +39,7 @@ func (p *PrimitiveWriter) Flush(eof bool) error {
 	return err
 }
 
-func (p *PrimitiveWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
+func (p *PrimitiveWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
 	for _, segment := range p.segments {
 		// Add a segmap record to the array for each segment.
@@ -52,18 +52,24 @@ func (p *PrimitiveWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.T
 	return zson.ParseType(zctx, SegmapTypeString)
 }
 
-type Primitive struct {
+type PrimitiveReader struct {
 	iter   zcode.Iter
 	segmap []Segment
 	reader io.ReaderAt
 }
 
-func (p *Primitive) UnmarshalZNG(_ zed.Type, in zed.Value, reader io.ReaderAt) error {
-	p.reader = reader
-	return UnmarshalSegmap(in, &p.segmap)
+func NewPrimitiveReader(in zed.Value, reader io.ReaderAt) (*PrimitiveReader, error) {
+	segmap, err := NewSegmap(in)
+	if err != nil {
+		return nil, err
+	}
+	return &PrimitiveReader{
+		reader: reader,
+		segmap: segmap,
+	}, nil
 }
 
-func (p *Primitive) Read(b *zcode.Builder) error {
+func (p *PrimitiveReader) Read(b *zcode.Builder) error {
 	zv, err := p.read()
 	if err == nil {
 		b.Append(zv)
@@ -71,7 +77,7 @@ func (p *Primitive) Read(b *zcode.Builder) error {
 	return err
 }
 
-func (p *Primitive) read() (zcode.Bytes, error) {
+func (p *PrimitiveReader) read() (zcode.Bytes, error) {
 	if p.iter == nil || p.iter.Done() {
 		if len(p.segmap) == 0 {
 			return nil, io.EOF
@@ -83,7 +89,7 @@ func (p *Primitive) read() (zcode.Bytes, error) {
 	return p.iter.Next(), nil
 }
 
-func (p *Primitive) next() error {
+func (p *PrimitiveReader) next() error {
 	segment := p.segmap[0]
 	p.segmap = p.segmap[1:]
 	if segment.Length > 2*MaxSegmentThresh {

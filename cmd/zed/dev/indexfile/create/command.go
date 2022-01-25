@@ -7,10 +7,9 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cmd/zed/dev/indexfile"
-	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -19,14 +18,21 @@ import (
 
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-f frameThresh] [ -o file ] -k field file",
-	Short: "create a key-only Zed index from a zng file",
+	Usage: "create [-f frametresh] [ -o file ] -k key[,key,...] file",
+	Short: "generate a Zed index file from one or more key-sorted Zed inputs",
 	Long: `
-The create command generates a key-only Zed index file comprising the values from the
-input taken from the field specified by -k.  The output index will have a base layer
-with search key called "key".
-If a key appears more than once, the last value in the input takes precedence.
-It is an error if the key fields are not of uniform type.`,
+The "zed indexfile create" command generates a Zed index from one or more Zed input files
+as a sectioned ZNG file with a layout desribed in the "zed indexfile" command.
+(Run "zed indexfile -h" for the description.)
+
+The bushiness of the B-tree created is controlled by the -f flag,
+which specifies a target size in bytes for each node in the B-tree.
+
+The inputs values are presumed to be presorted by the specified keys
+in the order indicated by -order.  If a key is not present in a value,
+that value is treated as the null value, and a lookup for null will return
+all such values.
+`,
 	New: newCommand,
 }
 
@@ -37,20 +43,18 @@ func init() {
 type Command struct {
 	*indexfile.Command
 	frameThresh int
+	order       string
 	outputFile  string
-	keys        field.List
-	skip        bool
-	inputReady  bool
+	keys        string
 	inputFlags  inputflags.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*indexfile.Command)}
-	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in index file")
+	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in Zed index file")
+	f.StringVar(&c.order, "order", "asc", "specify data in ascending (asc) or descending (desc) order")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
-	f.Func("k", "field name of search keys", c.parseKey)
-	f.BoolVar(&c.inputReady, "x", false, "input file is already sorted keys (and optional values)")
-	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
+	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
 	c.inputFlags.SetFlags(f, true)
 	return c, nil
 }
@@ -61,14 +65,12 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if len(c.keys) == 0 {
+	if c.keys == "" {
 		return errors.New("must specify at least one key field with -k")
 	}
-	//XXX no reason to limit this... we will fix this when we refactor
-	// the code here to use Zed/proc instead for the hash table (after we
-	// have spillable group-bys)
+	//XXX no reason to limit this
 	if len(args) != 1 {
-		return errors.New("must specify a single zng input file containing the indicated keys")
+		return errors.New("must specify a single ZNG input file containing keys and optional values")
 	}
 	path := args[0]
 	if path == "-" {
@@ -80,61 +82,21 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := index.NewWriter(zctx, local, c.outputFile, c.keys, index.FrameThresh(c.frameThresh))
+	o, err := order.Parse(c.order)
 	if err != nil {
 		return err
 	}
-	close := true
-	defer func() {
-		if close {
-			writer.Close()
-		}
-	}()
-	reader, err := c.buildTable(zctx, file)
+	defer file.Close()
+	writer, err := index.NewWriter(zctx, local, c.outputFile, field.DottedList(c.keys),
+		index.FrameThresh(c.frameThresh),
+		index.Order(o),
+	)
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, reader); err != nil {
+	if err := zio.Copy(writer, zio.Reader(file)); err != nil {
+		writer.Close()
 		return err
 	}
-	close = false
 	return writer.Close()
-}
-
-func (c *Command) parseKey(s string) error {
-	c.keys = append(c.keys, field.Dotted(s))
-	return nil
-}
-
-func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTable, error) {
-	fields, resolvers := compiler.CompileAssignments(zctx, c.keys, c.keys)
-	cutter, err := expr.NewCutter(zctx, fields, resolvers)
-	if err != nil {
-		return nil, err
-	}
-	table := index.NewMemTable(zctx, c.keys)
-	ectx := expr.NewContext()
-	for {
-		rec, err := reader.Read()
-		if err != nil {
-			return nil, err
-		}
-		if rec == nil {
-			break
-		}
-		k := cutter.Eval(ectx, rec)
-		if k.IsError() {
-			// if the key doesn't exist, just skip it
-			continue
-		}
-		if k.IsNull() {
-			// The key field is null.  Skip it.  Unless we want to
-			// index nulls, this is the right thing to do.
-			continue
-		}
-		if err := table.Enter(k); err != nil {
-			return nil, err
-		}
-	}
-	return table, nil
 }

@@ -1,5 +1,5 @@
 script: |
-  zed dev indexfile convert -f 50 -o index.zng -k _child -
+  zed dev indexfile create -f 50 -o index.zng -k _child -
   zed dev dig trailer -Z index.zng
 
 inputs:

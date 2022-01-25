@@ -15,7 +15,6 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/dev/dig/slice"
 	_ "github.com/brimdata/zed/cmd/zed/dev/dig/trailer"
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile"
-	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/convert"
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/create"
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/lookup"
 	_ "github.com/brimdata/zed/cmd/zed/dev/zst"

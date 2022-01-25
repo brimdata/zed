@@ -27,7 +27,7 @@ func (f *FieldWriter) write(body zcode.Bytes) error {
 	return f.column.Write(body)
 }
 
-func (f *FieldWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
+func (f *FieldWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
 	var colType zed.Type
 	if f.vcnt == 0 {
@@ -35,12 +35,12 @@ func (f *FieldWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 		b.Append(nil)
 	} else {
 		var err error
-		colType, err = f.column.MarshalZNG(zctx, b)
+		colType, err = f.column.EncodeMap(zctx, b)
 		if err != nil {
 			return nil, err
 		}
 	}
-	presenceType, err := f.presence.MarshalZNG(zctx, b)
+	presenceType, err := f.presence.EncodeMap(zctx, b)
 	if err != nil {
 		return nil, err
 	}
@@ -81,44 +81,47 @@ func (f *FieldWriter) Flush(eof bool) error {
 	return nil
 }
 
-type Field struct {
-	isContainer bool
-	column      Any
-	presence    *Presence
+type FieldReader struct {
+	val      Reader
+	presence *PresenceReader
 }
 
-func (f *Field) UnmarshalZNG(typ zed.Type, in zed.Value, r io.ReaderAt) error {
+func NewFieldReader(typ zed.Type, in zed.Value, r io.ReaderAt) (*FieldReader, error) {
 	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
-		return errors.New("ZST object array_column not a record")
+		return nil, errors.New("ZST object array_column not a record")
 	}
 	rec := zed.NewValue(rtype, in.Bytes)
 	zv, err := rec.Access("column")
 	if err != nil {
-		return err
+		return nil, err
 	}
+	var val Reader
 	if zv.Bytes != nil {
-		f.column, err = Unmarshal(typ, zv, r)
+		val, err = NewReader(typ, zv, r)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	zv, err = rec.Access("presence")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.isContainer = zed.IsContainerType(typ)
-	f.presence = NewPresence()
-	if err := f.presence.UnmarshalZNG(zed.TypeInt64, zv, r); err != nil {
-		return err
+	d, err := NewPrimitiveReader(zv, r)
+	if err != nil {
+		return nil, err
 	}
-	if f.presence.IsEmpty() {
-		f.presence = nil
+	var presence *PresenceReader
+	if len(d.segmap) != 0 {
+		presence = NewPresence(IntReader{*d})
 	}
-	return nil
+	return &FieldReader{
+		val:      val,
+		presence: presence,
+	}, nil
 }
 
-func (f *Field) Read(b *zcode.Builder) error {
+func (f *FieldReader) Read(b *zcode.Builder) error {
 	isval := true
 	if f.presence != nil {
 		var err error
@@ -127,8 +130,8 @@ func (f *Field) Read(b *zcode.Builder) error {
 			return err
 		}
 	}
-	if isval && f.column != nil {
-		return f.column.Read(b)
+	if isval && f.val != nil {
+		return f.val.Read(b)
 	}
 	b.Append(nil)
 	return nil

@@ -2,7 +2,6 @@ package zst
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -39,32 +38,26 @@ func NewCutterFromPath(ctx context.Context, zctx *zed.Context, engine storage.En
 }
 
 type CutAssembler struct {
-	zctx     *zed.Context
-	root     *column.Int
-	types    []zed.Type
-	columns  []column.Any
-	recTypes []*zed.TypeRecord
-	nwrap    []int
-	builder  zcode.Builder
-	leaf     string
+	zctx    *zed.Context
+	root    *column.IntReader
+	builder zcode.Builder
+	leaf    string
+	cuts    map[int]cut
+}
+
+type cut struct {
+	typ    zed.Type
+	reader column.Reader
+	depth  int
 }
 
 func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAssembler, error) {
 	a := object.assembly
-	n := len(a.maps)
-	ca := &CutAssembler{
-		zctx:     zctx,
-		root:     &column.Int{},
-		types:    a.types,
-		columns:  make([]column.Any, n),
-		recTypes: make([]*zed.TypeRecord, n),
-		nwrap:    make([]int, n),
-		leaf:     fields[len(fields)-1],
-	}
-	if err := ca.root.UnmarshalZNG(zed.TypeInt64, a.root, object.seeker); err != nil {
+	root, err := column.NewIntReader(a.root, object.seeker)
+	if err != nil {
 		return nil, err
 	}
-	cnt := 0
+	cuts := make(map[int]cut)
 	for k, typ := range a.types {
 		recType := zed.TypeRecordOf(typ)
 		if typ == nil {
@@ -74,28 +67,36 @@ func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAs
 			// on this right now.
 			return nil, fmt.Errorf("ZST cut requires all top-level records to be records: encountered type %s", zson.FormatType(typ))
 		}
-		topcol := &column.Record{}
-		if err := topcol.UnmarshalZNG(recType, *a.maps[k], object.seeker); err != nil {
-			return nil, err
-		}
-		var err error
-		_, ca.columns[k], err = topcol.Lookup(recType, fields)
-		if err == zed.ErrMissing || err == column.ErrNonRecordAccess {
-			continue
-		}
+		reader, err := column.NewRecordReader(recType, *a.maps[k], object.seeker)
 		if err != nil {
 			return nil, err
 		}
-		ca.types[k], ca.nwrap[k], err = cutType(zctx, recType, fields)
+		_, r, err := reader.Lookup(recType, fields)
+		if err != nil {
+			if err == zed.ErrMissing || err == column.ErrNonRecordAccess {
+				continue
+			}
+			return nil, err
+		}
+		typ, depth, err := cutType(zctx, recType, fields)
 		if err != nil {
 			return nil, err
 		}
-		cnt++
+		cuts[k] = cut{
+			typ:    typ,
+			reader: r,
+			depth:  depth,
+		}
 	}
-	if cnt == 0 {
+	if len(cuts) == 0 {
 		return nil, zed.ErrMissing
 	}
-	return ca, nil
+	return &CutAssembler{
+		zctx: zctx,
+		root: root,
+		cuts: cuts,
+		leaf: fields[len(fields)-1],
+	}, nil
 }
 
 func cutType(zctx *zed.Context, typ *zed.TypeRecord, fields []string) (*zed.TypeRecord, int, error) {
@@ -116,43 +117,38 @@ func cutType(zctx *zed.Context, typ *zed.TypeRecord, fields []string) (*zed.Type
 	if !ok {
 		return nil, 0, column.ErrNonRecordAccess
 	}
-	typ, nwrap, err := cutType(zctx, typ, fields[1:])
+	typ, depth, err := cutType(zctx, typ, fields[1:])
 	if err != nil {
 		return nil, 0, err
 	}
 	col := []zed.Column{{fieldName, typ}}
 	wrapType, err := zctx.LookupTypeRecord(col)
-	return wrapType, nwrap + 1, err
+	return wrapType, depth + 1, err
 }
 
 func (a *CutAssembler) Read() (*zed.Value, error) {
 	a.builder.Reset()
 	for {
-		schemaID, err := a.root.Read()
+		typeNo, err := a.root.Read()
 		if err == io.EOF {
 			return nil, nil
 		}
-		if schemaID < 0 || int(schemaID) >= len(a.columns) {
-			return nil, errors.New("bad schema id in root reassembly column")
-		}
-		col := a.columns[schemaID]
-		if col == nil {
+		cut, ok := a.cuts[int(typeNo)]
+		if !ok {
 			// Skip records that don't have the field we're cutting.
 			continue
 		}
-		nwrap := a.nwrap[schemaID]
-		for n := nwrap; n > 0; n-- {
+		for n := cut.depth; n > 0; n-- {
 			a.builder.BeginContainer()
 		}
-		err = col.Read(&a.builder)
+		err = cut.reader.Read(&a.builder)
 		if err != nil {
 			return nil, err
 		}
-		for n := nwrap; n > 0; n-- {
+		for n := cut.depth; n > 0; n-- {
 			a.builder.EndContainer()
 		}
-		recType := a.types[schemaID]
-		rec := zed.NewValue(recType, a.builder.Bytes())
+		rec := zed.NewValue(cut.typ, a.builder.Bytes())
 		//XXX if we had a buffer pool where records could be built back to
 		// back in batches, then we could get rid of this extra allocation
 		// and copy on every record

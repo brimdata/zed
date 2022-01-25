@@ -7,10 +7,23 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zst/column"
 )
 
-var ErrBadSchemaID = errors.New("bad schema id in root reassembly column")
+var ErrBadTypeNumber = errors.New("bad type number in ZST root reassembly map")
+
+// Assembler reads a columnar ZST object to generate a stream of zed.Values.
+// It also has methods to read metadata for test and debugging.
+type Assembler struct {
+	root    *column.IntReader
+	readers []column.Reader
+	types   []zed.Type
+	builder zcode.Builder
+	err     error
+}
+
+var _ zio.Reader = (*Assembler)(nil)
 
 type Assembly struct {
 	root  zed.Value
@@ -19,34 +32,24 @@ type Assembly struct {
 }
 
 func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
-	assembler := &Assembler{
-		root:  &column.Int{},
-		types: a.types,
-	}
-	if err := assembler.root.UnmarshalZNG(zed.TypeInt64, a.root, seeker); err != nil {
+	root, err := column.NewIntReader(a.root, seeker)
+	if err != nil {
 		return nil, err
 	}
-	assembler.columns = make([]column.Any, len(a.types))
+	var readers []column.Reader
 	for k := range a.types {
 		val := a.maps[k]
-		col, err := column.Unmarshal(a.types[k], *val, seeker)
+		reader, err := column.NewReader(a.types[k], *val, seeker)
 		if err != nil {
 			return nil, err
 		}
-		assembler.columns[k] = col
+		readers = append(readers, reader)
 	}
-	return assembler, nil
-}
-
-// Assembler implements the zio.Reader and io.Closer.  It reads a columnar
-// zst object to generate a stream of zed.Records.  It also has methods
-// to read metainformation for test and debugging.
-type Assembler struct {
-	root    *column.Int
-	columns []column.Any
-	types   []zed.Type
-	builder zcode.Builder
-	err     error
+	return &Assembler{
+		root:    root,
+		readers: readers,
+		types:   a.types,
+	}, nil
 }
 
 func (a *Assembler) Read() (*zed.Value, error) {
@@ -55,15 +58,14 @@ func (a *Assembler) Read() (*zed.Value, error) {
 	if err == io.EOF {
 		return nil, nil
 	}
-	if typeNo < 0 || int(typeNo) >= len(a.columns) {
-		return nil, ErrBadSchemaID
+	if typeNo < 0 || int(typeNo) >= len(a.readers) {
+		return nil, ErrBadTypeNumber
 	}
-	col := a.columns[typeNo]
-	if col == nil {
-		return nil, ErrBadSchemaID
+	reader := a.readers[typeNo]
+	if reader == nil {
+		return nil, ErrBadTypeNumber
 	}
-	err = col.Read(&a.builder)
-	if err != nil {
+	if err = reader.Read(&a.builder); err != nil {
 		return nil, err
 	}
 	body, err := a.builder.Bytes().Body()

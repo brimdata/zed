@@ -53,11 +53,11 @@ func (u *UnionWriter) Flush(eof bool) error {
 	return nil
 }
 
-func (u *UnionWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
+func (u *UnionWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	var cols []zed.Column
 	b.BeginContainer()
 	for k, value := range u.values {
-		typ, err := value.MarshalZNG(zctx, b)
+		typ, err := value.EncodeMap(zctx, b)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +65,7 @@ func (u *UnionWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 		name := fmt.Sprintf("c%d", k)
 		cols = append(cols, zed.Column{name, typ})
 	}
-	typ, err := u.selector.MarshalZNG(zctx, b)
+	typ, err := u.selector.EncodeMap(zctx, b)
 	if err != nil {
 		return nil, err
 	}
@@ -74,51 +74,58 @@ func (u *UnionWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type,
 	return zctx.LookupTypeRecord(cols)
 }
 
-type Union struct {
-	values   []Any
-	selector *Int
+type UnionReader struct {
+	readers  []Reader
+	selector *IntReader
 }
 
-func (u *Union) UnmarshalZNG(utyp zed.Type, in zed.Value, r io.ReaderAt) error {
+func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, error) {
 	typ, ok := utyp.(*zed.TypeUnion)
 	if !ok {
-		return errors.New("cannot unmarshal non-union into union")
+		return nil, errors.New("cannot unmarshal non-union into union")
 	}
 	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
-		return errors.New("ZST object union_column not a record")
+		return nil, errors.New("ZST object union_column not a record")
 	}
 	rec := zed.NewValue(rtype, in.Bytes)
+	var readers []Reader
 	for k := 0; k < len(typ.Types); k++ {
 		zv, err := rec.Access(fmt.Sprintf("c%d", k))
 		if err != nil {
-			return err
+			return nil, err
 		}
-		valueCol, err := Unmarshal(typ.Types[k], zv, r)
+		d, err := NewReader(typ.Types[k], zv, r)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		u.values = append(u.values, valueCol)
+		readers = append(readers, d)
 	}
 	zv, err := rec.Access("selector")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	u.selector = &Int{}
-	return u.selector.UnmarshalZNG(zed.TypeInt64, zv, r)
+	selector, err := NewIntReader(zv, r)
+	if err != nil {
+		return nil, err
+	}
+	return &UnionReader{
+		readers:  readers,
+		selector: selector,
+	}, nil
 }
 
-func (u *Union) Read(b *zcode.Builder) error {
+func (u *UnionReader) Read(b *zcode.Builder) error {
 	selector, err := u.selector.Read()
 	if err != nil {
 		return err
 	}
-	if selector < 0 || int(selector) >= len(u.values) {
+	if selector < 0 || int(selector) >= len(u.readers) {
 		return errors.New("bad selector in ZST union reader")
 	}
 	b.BeginContainer()
 	b.Append(zed.EncodeInt(int64(selector)))
-	if err := u.values[selector].Read(b); err != nil {
+	if err := u.readers[selector].Read(b); err != nil {
 		return err
 	}
 	b.EndContainer()
