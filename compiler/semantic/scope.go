@@ -45,6 +45,18 @@ func (s *Scope) DefineVar(name string) error {
 	return nil
 }
 
+func (s *Scope) DefineAs(name string) error {
+	b := s.tos()
+	if _, ok := b.symbols[name]; ok {
+		return fmt.Errorf("symbol %q redefined", name)
+	}
+	ref := &dag.This{Kind: "This"}
+	// We add the symbol to the table but don't bump nvars because
+	// it's not a var and doesn't take a slot in the batch vars.
+	b.Define(name, ref)
+	return nil
+}
+
 func (s *Scope) DefineConst(name string, def dag.Expr) error {
 	b := s.tos()
 	if _, ok := b.symbols[name]; ok {
