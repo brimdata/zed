@@ -416,7 +416,7 @@ func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *z
 		// reordering) would be make direct use of a
 		// zcode.Iter along with keeping track of our
 		// position.
-		bytes := getNthFromContainer(in, uint(step.fromIndex))
+		bytes := getNthFromContainer(in, step.fromIndex)
 		if zerr := step.build(zctx, ectx, bytes, b); zerr != nil {
 			return zerr
 		}

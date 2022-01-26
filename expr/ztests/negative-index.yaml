@@ -1,0 +1,7 @@
+zed: yield {a:this[-1],b:this[-2],c:this[-3],d:this[-4]}
+
+input: |
+  [1,2,3]
+
+output: |
+  {a:3,b:2,c:1,d:error("missing")}

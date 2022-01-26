@@ -75,7 +75,7 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(typ, nil)
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
-	field := getNthFromContainer(val.Bytes, uint(idx))
+	field := getNthFromContainer(val.Bytes, idx)
 	return ectx.NewValue(recType.Columns[idx].Type, field)
 }
 
