@@ -65,6 +65,58 @@ func (r *Reader) Read() (*zed.Value, error) {
 	return zed.NewValue(typ, bytes), nil
 }
 
+func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {
+	switch typ := typ.(type) {
+	case *zed.TypeNamed:
+		return r.decodeValue(b, typ.Type, body)
+	case *zed.TypeUnion:
+		return r.decodeUnion(b, typ, body)
+	case *zed.TypeMap:
+		return r.decodeMap(b, typ, body)
+	case *zed.TypeEnum:
+		return r.decodeEnum(b, typ, body)
+	case *zed.TypeRecord:
+		return r.decodeRecord(b, typ, body)
+	case *zed.TypeArray:
+		err := r.decodeContainer(b, typ.Type, body, "array")
+		return err
+	case *zed.TypeSet:
+		if body == nil {
+			b.Append(nil)
+			return nil
+		}
+		b.BeginContainer()
+		err := r.decodeContainerBody(b, typ.Type, body, "set")
+		b.TransformContainer(zed.NormalizeSet)
+		b.EndContainer()
+		return err
+	case *zed.TypeError:
+		return r.decodeValue(b, typ.Type, body)
+	case *zed.TypeOfType:
+		if body == nil {
+			b.Append(nil)
+			return nil
+		}
+		typeObj, err := unpacker.UnmarshalObject(body)
+		if err != nil {
+			return err
+		}
+		t, ok := typeObj.(Type)
+		if !ok {
+			return errors.New("type value is not a valid ZJSON type")
+		}
+		local, err := r.decoder.decodeType(r.zctx, t)
+		if err != nil {
+			return err
+		}
+		tv := r.zctx.LookupTypeValue(local)
+		b.Append(tv.Bytes)
+		return nil
+	default:
+		return r.decodePrimitive(b, typ, body)
+	}
+}
+
 func (r *Reader) decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface{}) error {
 	values, ok := v.([]interface{})
 	if !ok {
@@ -190,58 +242,6 @@ func (r *Reader) decodeMap(b *zcode.Builder, typ *zed.TypeMap, body interface{})
 	}
 	b.EndContainer()
 	return nil
-}
-
-func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {
-	switch typ := typ.(type) {
-	case *zed.TypeNamed:
-		return r.decodeValue(b, typ.Type, body)
-	case *zed.TypeUnion:
-		return r.decodeUnion(b, typ, body)
-	case *zed.TypeMap:
-		return r.decodeMap(b, typ, body)
-	case *zed.TypeEnum:
-		return r.decodeEnum(b, typ, body)
-	case *zed.TypeRecord:
-		return r.decodeRecord(b, typ, body)
-	case *zed.TypeArray:
-		err := r.decodeContainer(b, typ.Type, body, "array")
-		return err
-	case *zed.TypeSet:
-		if body == nil {
-			b.Append(nil)
-			return nil
-		}
-		b.BeginContainer()
-		err := r.decodeContainerBody(b, typ.Type, body, "set")
-		b.TransformContainer(zed.NormalizeSet)
-		b.EndContainer()
-		return err
-	case *zed.TypeError:
-		return r.decodeValue(b, typ.Type, body)
-	case *zed.TypeOfType:
-		if body == nil {
-			b.Append(nil)
-			return nil
-		}
-		typeObj, err := unpacker.UnmarshalObject(body)
-		if err != nil {
-			return err
-		}
-		t, ok := typeObj.(Type)
-		if !ok {
-			return errors.New("type value is not a valid ZJSON type")
-		}
-		local, err := r.decoder.decodeType(r.zctx, t)
-		if err != nil {
-			return err
-		}
-		tv := r.zctx.LookupTypeValue(local)
-		b.Append(tv.Bytes)
-		return nil
-	default:
-		return r.decodePrimitive(b, typ, body)
-	}
 }
 
 func (r *Reader) decodeEnum(b *zcode.Builder, typ *zed.TypeEnum, body interface{}) error {
