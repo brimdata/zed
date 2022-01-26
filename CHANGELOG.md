@@ -337,7 +337,7 @@ questions.
 * zq: Fix an issue where returned errors could cause a panic due to type mismatches (#1720, #1727, #1728, #1740, #1773)
 * python: Fix an issue where the [Python client](https://medium.com/brim-securitys-knowledge-funnel/visualizing-ip-traffic-with-brim-zeek-and-networkx-3844a4c25a2f) did not generate an error when `zqd` was absent (#1711)
 * zql: Allow the `len()` function to work on `ip` and `net` types (#1725)
-* zson: Add a [draft specification](docs/data-model/zson.md) of the new ZSON format (#1715, #1735, #1741, #1765)
+* zson: Add a [draft specification](docs/formats/zson.md) of the new ZSON format (#1715, #1735, #1741, #1765)
 * zng: Add support for marshaling of `time` values (#1743)
 * zar: Fix an issue where a `couldn't read trailer` failure was observed during a `zar zq` query (#1748)
 * zar: Fix an issue where `zar import` of a 14 GB data set triggered a SEGV (#1766)
@@ -379,7 +379,7 @@ questions.
 ## v0.23.0
 * zql: Add `week` as a unit for [time grouping with `every`](docs/language/grouping.md#time-grouping---every) (#1374)
 * zq: Fix an issue where a `null` value in a [JSON type definition](zeek/README.md) caused a failure without an error message (#1377)
-* zq: Add [`zst` format](docs/data-model/zst.md) to `-i` and `-f` command-line help (#1384)
+* zq: Add [`zst` format](docs/formats/zst.md) to `-i` and `-f` command-line help (#1384)
 * zq: ZNG spec and `zq` updates to introduce the beta ZNG storage format (#1375, #1415, #1394, #1457, #1512, #1523, #1529), also adddressing the following:
    * New data type `bytes` for storing sequences of bytes encoded as base64 (#1315)
    * Improvements to the `enum` data type (#1314)
@@ -399,7 +399,7 @@ questions.
 * zql: Point links for developer docs at [pkg.go.dev](https://pkg.go.dev/) instead of [godoc.org](https://godoc.org/) (#1401)
 * zq: Add support for timestamps with signed timezone offsets (#1389)
 * zq: Add a [JSON type definition](zeek/README.md) for alert events in [Suricata EVE logs](https://suricata.readthedocs.io/en/suricata-5.0.2/output/eve/eve-json-output.html) (#1400)
-* zq: Update the [ZNG over JSON (ZJSON)](docs/data-model/zjson.md) spec and implementation (#1299)
+* zq: Update the [ZNG over JSON (ZJSON)](docs/formats/zjson.md) spec and implementation (#1299)
 * zar: Use buffered streaming for archive import (#1397)
 * zq: Add an `ast` command that prints parsed ZQL as its underlying JSON object (#1416)
 * zar: Fix an issue where `zar` would SEGV when attempting to query a non-existent index (#1449)
@@ -427,7 +427,7 @@ questions.
 * zqd: Add a Python `zqd` API client for use with tools like [JupyterLab](https://jupyterlab.readthedocs.io/en/stable/) (#1564)
 
 ## v0.22.0
-* zq: Change the implementation of the `union` type to conform with the [ZNG spec](docs/data-model/zng.md#3114-union-typedef) (#1245)
+* zq: Change the implementation of the `union` type to conform with the [ZNG spec](docs/formats/zng.md#3114-union-typedef) (#1245)
 * zq: Make options/flags and version reporting consistent across CLI tools (#1249, #1254, #1256, #1296, #1323, #1334, #1328)
 * zqd: Fix an issue that was preventing flows in nanosecond pcaps from opening in Brim (#1243, #1241)
 * zq: Fix an issue where the TZNG reader did not recognize a bad record type as a syntax error (#1260)
@@ -443,7 +443,7 @@ questions.
 * zqd: Fix an issue where starting `zqd listen` created excess error messages when subdirectories were present (#1303)
 * zql: Add the [`fuse` operator](docs/language/operators.md#fuse) for unifying records under a single schema (#1310, #1319, #1324)
 * zql: Fix broken links in documentation (#1321, #1339)
-* zst: Introduce the [ZST format](docs/data-model/zst.md) for columnar data based on ZNG (#1268, #1338)
+* zst: Introduce the [ZST format](docs/formats/zst.md) for columnar data based on ZNG (#1268, #1338)
 * pcap: Fix an issue where certain pcapng files could fail import with a `bad option length` error (#1341)
 * zql: [Document the `**` operator](docs/language/search-syntax.md#wildcard-field-names) for type-sepcific searches that look within nested records (#1337)
 * zar: Change the archive data file layout to prepare for handing chunk files with overlapping ranges and improved S3 support (#1330)
@@ -466,7 +466,7 @@ questions.
 * zq: Fix an issue where non-adjacent record fields in Zeek TSV logs could not be read (#1225, #1218)
 * zql: Fix an issue where `cut -c` sometimes returned a "bad uvarint" error (#1227)
 * zq: Add support for empty ZNG records and empty NDJSON objects (#1228)
-* zng: Fix the tag value examples in the [ZNG spec](docs/data-model/zng.md) (#1230)
+* zng: Fix the tag value examples in the [ZNG spec](docs/formats/zng.md) (#1230)
 * zq: Update LZ4 dependency to eliminate some memory allocations (#1232)
 * zar: Add a `-sortmem` flag to allow `zar import` to use more memory to improve performance (#1203)
 * zqd: Fix an issue where file paths containing URI escape codes could not be opened in Brim (#1238)
@@ -495,7 +495,7 @@ questions.
 * zqd: Fix an issue with excess characters in Space names after upgrade (#1112)
 
 ## v0.19.0
-* zq: ZNG output is now LZ4-compressed by default (#1050, #1064, #1063, [ZNG spec](docs/data-model/zng.md#313-compressed-value-message-block))
+* zq: ZNG output is now LZ4-compressed by default (#1050, #1064, #1063, [ZNG spec](docs/formats/zng.md#313-compressed-value-message-block))
 * zar: Adjust import size threshold to account for compression (#1082)
 * zqd: Support starting `zqd` with datapath set to an S3 path (#1072)
 * zq: Fix an issue with panics during pcap import (#1090)
@@ -518,14 +518,14 @@ questions.
 * zq: Introduce spill-to-disk groupby for performing very large aggregations (#932, #963)
 * zql: Use syntax `c=count()` instead of `count() as c` for naming the field that holds the value returned by an aggregate function (#950)
 * zql: Fix an issue where attempts to `tail` too much caused a panic (#958)
-* zng: Readability improvements in the [ZNG specification](docs/data-model/zng.md) (#935)
+* zng: Readability improvements in the [ZNG specification](docs/formats/zng.md) (#935)
 * zql: Fix an issue where use of `cut`, `put`, and `cut` in the same pipeline caused a panic (#980)
 * zql: Fix an issue that was preventing the `uniq` operator from  working in the Brim app (#984)
 * zq: Fix an issue where spurious type IDs were being created (#964)
 * zql: Support renaming a field via the `cut` operator (#969)
 
 ## v0.16.0
-* zng: Readability improvements in the [ZNG specification](docs/data-model/zng.md) (#897, #910, #917)
+* zng: Readability improvements in the [ZNG specification](docs/formats/zng.md) (#897, #910, #917)
 * zq: Support directory output to S3 (#898)
 * zql: Group-by no longer emits records in "deterministic but undefined" order (#914)
 * zqd: Revise constraints on Space names (#853, #926, #944, #945)
