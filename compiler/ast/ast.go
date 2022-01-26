@@ -29,13 +29,6 @@ type ID struct {
 	Name string `json:"name"`
 }
 
-// This refers to the implied value operated upon in the dataflow context.
-// Field accesses typically begin with the LHS of a "." expression
-// set to a This.
-type This struct {
-	Kind string `json:"kind" unpack:""`
-}
-
 type Search struct {
 	Kind  string           `json:"kind" unpack:""`
 	Text  string           `json:"text"`
@@ -134,7 +127,6 @@ func (*Search) ExprAST()      {}
 func (*Call) ExprAST()        {}
 func (*Cast) ExprAST()        {}
 func (*ID) ExprAST()          {}
-func (*This) ExprAST()        {}
 
 func (*Assignment) ExprAST()   {}
 func (*Agg) ExprAST()          {}
@@ -492,7 +484,10 @@ type Agg struct {
 }
 
 func NewDotExpr(f field.Path) Expr {
-	lhs := Expr(&This{Kind: "This"})
+	lhs := Expr(&ID{
+		Kind: "ID",
+		Name: "this",
+	})
 	for _, name := range f {
 		rhs := &ID{
 			Kind: "ID",

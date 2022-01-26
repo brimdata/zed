@@ -312,7 +312,7 @@ func indexFilterExpr(node dag.Expr) dag.Expr {
 		}
 	case "=", ">", ">=", "<", "<=":
 		_, rok := e.RHS.(*dag.Literal)
-		_, lok := e.LHS.(*dag.Path)
+		_, lok := e.LHS.(*dag.This)
 		if lok && rok {
 			return &dag.BinaryExpr{
 				Kind: "BinaryExpr",

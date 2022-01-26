@@ -94,8 +94,8 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.open(":%s", e.Type)
 	case *dag.Search:
 		c.write("search(%s)", e.Value)
-	case *dag.Path:
-		c.fieldpath(e.Name)
+	case *dag.This:
+		c.fieldpath(e.Path)
 	case *dag.Var:
 		c.write("%s", e.Name)
 	case *dag.Literal:
@@ -145,8 +145,8 @@ func (c *canonDAG) binary(e *dag.BinaryExpr) {
 }
 
 func isDAGThis(e dag.Expr) bool {
-	if f, ok := e.(*dag.Path); ok {
-		if f.Name != nil && len(f.Name) == 0 {
+	if this, ok := e.(*dag.This); ok {
+		if len(this.Path) == 0 {
 			return true
 		}
 	}

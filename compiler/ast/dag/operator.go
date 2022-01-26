@@ -325,6 +325,6 @@ func FilterToOp(e Expr) *Filter {
 	}
 }
 
-func (p *Path) String() string {
-	return field.Path(p.Name).String()
+func (t *This) String() string {
+	return field.Path(t.Path).String()
 }

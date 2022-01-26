@@ -204,7 +204,7 @@ func eligibleFieldRef(aliasID string, e *dag.Dot) dag.Expr {
 	if ok && dag.IsThis(lhs) && lhs.RHS == aliasID {
 		return &dag.Dot{
 			Kind: "Dot",
-			LHS:  dag.This,
+			LHS:  &dag.This{Kind: "This"},
 			RHS:  e.RHS,
 		}
 	}
@@ -249,7 +249,7 @@ func convertSQLAlias(scope *Scope, e ast.Expr) (*dag.Cut, string, error) {
 	assignment := dag.Assignment{
 		Kind: "Assignment",
 		LHS:  fld,
-		RHS:  dag.This,
+		RHS:  &dag.This{Kind: "This"},
 	}
 	return &dag.Cut{
 		Kind: "Cut",
@@ -314,8 +314,8 @@ func convertSQLJoin(scope *Scope, leftPath []dag.Op, sqlJoin ast.SQLJoin) ([]dag
 	}
 	alias := dag.Assignment{
 		Kind: "Assignment",
-		LHS:  &dag.Path{"Path", field.New(aliasID)},
-		RHS:  &dag.Path{"Path", field.New(aliasID)},
+		LHS:  &dag.This{"This", field.New(aliasID)},
+		RHS:  &dag.This{"This", field.New(aliasID)},
 	}
 	join := &dag.Join{
 		Kind:     "Join",
@@ -542,11 +542,10 @@ func deriveAs(scope *Scope, a ast.Assignment) (field.Path, error) {
 	if err != nil {
 		return nil, fmt.Errorf("AS clause of SELECT: %w", err)
 	}
-	f, ok := sa.LHS.(*dag.Path)
-	if !ok {
-		return nil, fmt.Errorf("AS clause not a field: %w", err)
+	if f, ok := sa.LHS.(*dag.This); ok {
+		return f.Path, nil
 	}
-	return f.Name, nil
+	return nil, fmt.Errorf("AS clause not a field: %w", err)
 }
 
 func sqlField(scope *Scope, e ast.Expr) (field.Path, error) {
@@ -554,8 +553,8 @@ func sqlField(scope *Scope, e ast.Expr) (field.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	if f, ok := name.(*dag.Path); ok {
-		return f.Name, nil
+	if f, ok := name.(*dag.This); ok {
+		return f.Path, nil
 	}
 	return nil, errors.New("expression is not a field reference")
 }
