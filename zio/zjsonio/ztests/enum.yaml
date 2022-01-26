@@ -1,18 +1,16 @@
-skip: issue 2508
-
 script: |
-  zq -f zjson in.zson | zq -z -
+  zq -f zjson in.zson | zq -z -i zjson -
 
 inputs:
   - name: in.zson
     data: |
-      {e:foo (0=(<foo:1 (int32),bar:2,baz:4>))} (=1)
-      {e:bar} (1)
-      {e:baz} (1)
+      {e:%foo(enum<foo,bar,baz>)}
+      {e:%bar(enum<foo,bar,baz>)}
+      {e:%baz(enum<foo,bar,baz>)}
 
 outputs:
   - name: stdout
     data: |
-      {e:foo (0=(<foo:1 (int32),bar:2,baz:4>))} (=1)
-      {e:bar} (1)
-      {e:baz} (1)
+      {e:%foo(enum<foo,bar,baz>)}
+      {e:%bar(enum<foo,bar,baz>)}
+      {e:%baz(enum<foo,bar,baz>)}

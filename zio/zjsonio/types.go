@@ -279,5 +279,5 @@ func (d decoder) decodeTypeMap(zctx *zed.Context, m *zMap) (*zed.TypeMap, error)
 }
 
 func (d decoder) decodeTypeEnum(zctx *zed.Context, enum *zEnum) (*zed.TypeEnum, error) {
-	return nil, errors.New("TBD: issue #2508")
+	return zctx.LookupTypeEnum(enum.Symbols), nil
 }
