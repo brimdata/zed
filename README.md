@@ -28,7 +28,7 @@ integration with your favorite Python libraries.
 ## How?
 
 Zed solves all these problems with a new format called
-[ZSON](docs/data-model/zson.md),
+[ZSON](docs/formats/zson.md),
 which is a superset of JSON and the relational models.
 ZSON is syntax-compatible with JSON
 but it has a comprehensive type system that you can use as little or as much as you like.

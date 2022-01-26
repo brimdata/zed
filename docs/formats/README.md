@@ -1,4 +1,4 @@
-# The Zed Data Model
+# Zed Formats for Super-structured Data
 
 > **TL;DR** The Zed data model defines a new and easy way to manage, store,
 > and process data utilizing an emerging concept called
