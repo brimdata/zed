@@ -237,11 +237,11 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 	case *ast.From:
 		return semFrom(ctx, scope, p, adaptor, head)
 	case *ast.Summarize:
-		keys, err := semAssignments(scope, p.Keys)
+		keys, err := semAssignments(scope, p.Keys, true)
 		if err != nil {
 			return nil, err
 		}
-		aggs, err := semAssignments(scope, p.Aggs)
+		aggs, err := semAssignments(scope, p.Aggs, true)
 		if err != nil {
 			return nil, err
 		}
@@ -317,7 +317,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 	case *ast.Shape:
 		return &dag.Shape{"Shape"}, nil
 	case *ast.Cut:
-		assignments, err := semAssignments(scope, p.Args)
+		assignments, err := semAssignments(scope, p.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -383,7 +383,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Expr: e,
 		}, nil
 	case *ast.Top:
-		args, err := semFields(scope, p.Args)
+		args, err := semExprs(scope, p.Args)
 		if err != nil {
 			return nil, fmt.Errorf("top: %w", err)
 		}
@@ -397,7 +397,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Limit: p.Limit,
 		}, nil
 	case *ast.Put:
-		assignments, err := semAssignments(scope, p.Args)
+		assignments, err := semAssignments(scope, p.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -410,30 +410,22 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range p.Args {
-			dst, err := semField(scope, fa.LHS, false)
+			dst, err := semField(scope, fa.LHS)
 			if err != nil {
-				return nil, err
-			}
-			src, err := semField(scope, fa.RHS, false)
-			if err != nil {
-				return nil, err
-			}
-			dstField, ok := dst.(*dag.This)
-			if !ok {
 				return nil, errors.New("'rename' requires explicit field references")
 			}
-			srcField, ok := src.(*dag.This)
-			if !ok {
+			src, err := semField(scope, fa.RHS)
+			if err != nil {
 				return nil, errors.New("'rename' requires explicit field references")
 			}
-			if len(dstField.Path) != len(srcField.Path) {
+			if len(dst.Path) != len(src.Path) {
 				return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
 			}
 			// Check that the prefixes match and, if not, report first place
 			// that they don't.
-			for i := 0; i <= len(srcField.Path)-2; i++ {
-				if srcField.Path[i] != dstField.Path[i] {
-					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", srcField, dstField, srcField.Path[i], dstField.Path[i])
+			for i := 0; i <= len(src.Path)-2; i++ {
+				if src.Path[i] != dst.Path[i] {
+					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src.Path[i], dst.Path[i])
 				}
 			}
 			assignments = append(assignments, dag.Assignment{"Assignment", dst, src})
@@ -453,7 +445,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		if err != nil {
 			return nil, err
 		}
-		assignments, err := semAssignments(scope, p.Args)
+		assignments, err := semAssignments(scope, p.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -503,13 +495,8 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			As:   as,
 		}, nil
 	case *ast.Merge:
-		e, err := semField(scope, p.Field, false)
+		field, err := semField(scope, p.Field)
 		if err != nil {
-			return nil, err
-		}
-		field, ok := e.(*dag.This)
-		if !ok || len(field.Path) == 0 {
-			//XXX generalize to expr so you can merge this
 			return nil, fmt.Errorf("merge: key must be a field")
 		}
 		return &dag.Merge{
@@ -531,6 +518,27 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		locals, err := semVars(scope, p.Locals)
 		if err != nil {
 			return nil, err
+		}
+		if as := p.Over.As; as != "" {
+			// If there is an "as" clause, then we bind the name
+			// to the sub-scope "this" and we bind "this" to the
+			// outer-scope "this".  Nested scopes are elegantly
+			// handle by this approach because the closest "as" name
+			// resolves to the real this and the next closest
+			// "as" name resolves to "this" in the scope above, which is
+			// where it was bound.
+			if err := scope.DefineAs(as); err != nil {
+				return nil, err
+			}
+			if err := scope.DefineVar("this"); err != nil {
+				return nil, err
+			}
+			// We append "this" to locals so it will be eval'd
+			// but we don't put it in the scope.
+			locals = append(locals, dag.Def{
+				Name: "this",
+				Expr: &dag.This{Kind: "This"},
+			})
 		}
 		over, err := semOver(ctx, scope, p.Over, adaptor, head)
 		if err != nil {
@@ -610,8 +618,10 @@ func semVars(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
 func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
 	var aggs, puts []dag.Assignment
 	for _, a := range p.Assignments {
-		// Parition assignments into agg vs. puts
-		assignment, err := semAssignment(scope, a)
+		// Parition assignments into agg vs. puts.
+		// It's okay to pass false here for the summarize bool because
+		// semAssignment will check if the RHS is a dag.Agg and override.
+		assignment, err := semAssignment(scope, a, false)
 		if err != nil {
 			return nil, err
 		}

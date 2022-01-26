@@ -238,9 +238,9 @@ func convertSQLAlias(scope *Scope, e ast.Expr) (*dag.Cut, string, error) {
 	if e == nil {
 		return nil, "", nil
 	}
-	fld, err := semField(scope, e, false)
+	fld, err := semField(scope, e)
 	if err != nil {
-		return nil, "", fmt.Errorf("illegal alias: %w", err)
+		return nil, "", fmt.Errorf("illegal SQL alias: %w", err)
 	}
 	var id string
 	if idExpr, ok := e.(*ast.ID); ok {
@@ -456,7 +456,7 @@ func newSQLSelection(scope *Scope, assignments []ast.Assignment) (sqlSelection, 
 		if err != nil {
 			return nil, err
 		}
-		assignment, err := semAssignment(scope, a)
+		assignment, err := semAssignment(scope, a, false)
 		if err != nil {
 			return nil, err
 		}
@@ -538,7 +538,7 @@ func isAgg(scope *Scope, e ast.Expr) (*dag.Agg, error) {
 }
 
 func deriveAs(scope *Scope, a ast.Assignment) (field.Path, error) {
-	sa, err := semAssignment(scope, a)
+	sa, err := semAssignment(scope, a, false)
 	if err != nil {
 		return nil, fmt.Errorf("AS clause of SELECT: %w", err)
 	}
@@ -549,12 +549,9 @@ func deriveAs(scope *Scope, a ast.Assignment) (field.Path, error) {
 }
 
 func sqlField(scope *Scope, e ast.Expr) (field.Path, error) {
-	name, err := semField(scope, e, false)
+	f, err := semField(scope, e)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("expression is not a field reference")
 	}
-	if f, ok := name.(*dag.This); ok {
-		return f.Path, nil
-	}
-	return nil, errors.New("expression is not a field reference")
+	return f.Path, nil
 }

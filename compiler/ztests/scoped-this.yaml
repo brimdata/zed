@@ -1,0 +1,13 @@
+zed: |
+  over ids as id => (
+    ids:=collect(string(id))
+    | yield {name:this.name,ids:join(ids,',')}
+  )
+
+input: |
+  {name:"alice",ids:[1,2,3]}
+  {name:"bob",ids:[4,5]}
+
+output: |
+  {name:"alice",ids:"1,2,3"}
+  {name:"bob",ids:"4,5"}

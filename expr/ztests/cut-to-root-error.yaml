@@ -3,4 +3,4 @@ zed: 'cut this:=a'
 input: |
   {a:1(int32)}
 
-errorRE: "cut: 'this' not allowed \\(use record literal\\)"
+errorRE: cannot assign to 'this'
