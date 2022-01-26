@@ -89,46 +89,37 @@ class QueryError(Exception):
 def decode_raw(raw):
     types = {}
     for msg in raw:
-        kind, value = msg['kind'], msg['value']
-        if kind == 'Object':
-            if 'types' in value:
-                for typ in value['types']:
-                    _decode_type(types, typ)
-            yield _decode_value(types[value['schema']], value['values'])
-        elif kind == 'QueryError':
+        typ, value = msg['type'], msg['value']
+        if isinstance(typ, dict):
+            yield _decode_value(_decode_type(types, typ), value)
+        elif typ == 'QueryError':
             raise QueryError(value['error'])
 
 
 def _decode_type(types, typ):
     kind = typ['kind']
-    if kind == 'typedef':
-        t = _decode_type(types, typ['type'])
-        types[typ['name']] = t
-        return t
-    if kind == 'typename':
-        return types[typ['name']]
+    if kind == 'ref':
+        return types[typ['id']]
     if kind == 'primitive':
         return typ
-    if kind == 'record':
+    elif kind == 'record':
         for f in typ['fields']:
             f['type'] = _decode_type(types, f['type'])
-        return typ
-    if kind in ['array', 'set']:
+    elif kind in ['array', 'set']:
         typ['type'] = _decode_type(types, typ['type'])
-        return typ
-    if kind == 'enum':
-        raise 'unimplemented'
-    if kind == 'map':
+    elif kind == 'map':
         typ['key_type'] = _decode_type(types, typ['key_type'])
         typ['val_type'] = _decode_type(types, typ['val_type'])
-        return typ
-    if kind == 'union':
+    elif kind == 'union':
         typ['types'] = [_decode_type(types, t) for t in typ['types']]
-        return typ
-    if kind == 'error':
+    elif kind == 'enum':
+        pass
+    elif kind in ['error', 'named']:
         typ['type'] = _decode_type(types, typ['type'])
-        return typ
-    raise Exception(f'unknown type kind {kind}')
+    else:
+        raise Exception(f'unknown type kind {kind}')
+    types[typ['id']] = typ
+    return typ
 
 
 def _decode_value(typ, value):
@@ -158,7 +149,7 @@ def _decode_value(typ, value):
             return ipaddress.ip_address(value)
         if name == 'net':
             return ipaddress.ip_network(value)
-        if name in ['type', 'error']:
+        if name in 'type':
             return value
         if name == 'null':
             return None
@@ -168,18 +159,18 @@ def _decode_value(typ, value):
                 for f, v in zip(typ['fields'], value)}
     if kind == 'array':
         return [_decode_value(typ['type'], v) for v in value]
-    if kind == 'enum':
-        raise 'unimplemented'
+    if kind == 'set':
+        return {_decode_value(typ['type'], v) for v in value}
     if kind == 'map':
         key_type, val_type = typ['key_type'], typ['val_type']
         return {_decode_value(key_type, v[0]): _decode_value(val_type, v[1])
                 for v in value}
-    if kind == 'set':
-        return {_decode_value(typ['type'], v) for v in value}
     if kind == 'union':
         type_index, val = value
         return _decode_value(typ['types'][int(type_index)], val)
-    if kind == 'error':
+    if kind == 'enum':
+        return typ['symbols'][int(value)]
+    if kind in ['error', 'named']:
         return _decode_value(typ['type'], value)
     raise Exception(f'unknown type kind {kind}')
 
