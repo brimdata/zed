@@ -7,81 +7,81 @@ import (
 	"github.com/brimdata/zed"
 )
 
-type Type interface {
+type zType interface {
 	typeNode()
 }
 
 type (
-	Primitive struct {
+	zPrimitive struct {
 		Kind string `json:"kind" unpack:"primitive"`
 		Name string `json:"name"`
 	}
-	Record struct {
-		Kind   string  `json:"kind" unpack:"record"`
-		ID     int     `json:"id"`
-		Fields []Field `json:"fields"`
+	zRecord struct {
+		Kind   string   `json:"kind" unpack:"record"`
+		ID     int      `json:"id"`
+		Fields []zField `json:"fields"`
 	}
-	Field struct {
+	zField struct {
 		Name string `json:"name"`
-		Type Type   `json:"type"`
+		Type zType  `json:"type"`
 	}
-	Array struct {
+	zArray struct {
 		Kind string `json:"kind" unpack:"array"`
 		ID   int    `json:"id"`
-		Type Type   `json:"type"`
+		Type zType  `json:"type"`
 	}
-	Set struct {
+	zSet struct {
 		Kind string `json:"kind" unpack:"set"`
 		ID   int    `json:"id"`
-		Type Type   `json:"type"`
+		Type zType  `json:"type"`
 	}
-	Map struct {
+	zMap struct {
 		Kind    string `json:"kind" unpack:"map"`
 		ID      int    `json:"id"`
-		KeyType Type   `json:"key_type"`
-		ValType Type   `json:"val_type"`
+		KeyType zType  `json:"key_type"`
+		ValType zType  `json:"val_type"`
 	}
-	Union struct {
-		Kind  string `json:"kind" unpack:"union"`
-		ID    int    `json:"id"`
-		Types []Type `json:"types"`
+	zUnion struct {
+		Kind  string  `json:"kind" unpack:"union"`
+		ID    int     `json:"id"`
+		Types []zType `json:"types"`
 	}
-	Enum struct {
+	zEnum struct {
 		Kind    string   `json:"kind" unpack:"enum"`
 		ID      int      `json:"id"`
 		Symbols []string `json:"symbols"`
 	}
-	Error struct {
+	zError struct {
 		Kind string `json:"kind" unpack:"error"`
 		ID   int    `json:"id"`
-		Type Type   `json:"type"`
+		Type zType  `json:"type"`
 	}
-	Named struct {
+	zNamed struct {
 		Kind string `json:"kind" unpack:"named"`
 		ID   int    `json:"id"`
 		Name string `json:"name"`
-		Type Type   `json:"type"`
+		Type zType  `json:"type"`
 	}
-	Ref struct {
+	zRef struct {
 		Kind string `json:"kind" unpack:"ref"`
 		ID   int    `json:"id"`
 	}
 )
 
-func (*Primitive) typeNode() {}
-func (*Record) typeNode()    {}
-func (*Array) typeNode()     {}
-func (*Set) typeNode()       {}
-func (*Map) typeNode()       {}
-func (*Union) typeNode()     {}
-func (*Enum) typeNode()      {}
-func (*Error) typeNode()     {}
-func (*Named) typeNode()     {}
-func (*Ref) typeNode()       {}
+func (*zPrimitive) typeNode() {}
+func (*zRecord) typeNode()    {}
+func (*zArray) typeNode()     {}
+func (*zSet) typeNode()       {}
+func (*zMap) typeNode()       {}
+func (*zUnion) typeNode()     {}
+func (*zEnum) typeNode()      {}
+func (*zError) typeNode()     {}
+func (*zNamed) typeNode()     {}
+func (*zRef) typeNode()       {}
 
-type encoder map[zed.Type]Type
+type encoder map[zed.Type]zType
 
-func (e encoder) encodeType(typ zed.Type) Type {
+func (e encoder) encodeType(typ zed.Type) zType {
 	t, ok := e[typ]
 	if !ok {
 		t = e.newType(typ)
@@ -89,7 +89,7 @@ func (e encoder) encodeType(typ zed.Type) Type {
 		if id < zed.IDTypeComplex {
 			e[typ] = t
 		} else {
-			e[typ] = &Ref{
+			e[typ] = &zRef{
 				Kind: "ref",
 				ID:   id,
 			}
@@ -98,72 +98,72 @@ func (e encoder) encodeType(typ zed.Type) Type {
 	return t
 }
 
-func (e encoder) newType(typ zed.Type) Type {
+func (e encoder) newType(typ zed.Type) zType {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
 		t := e.encodeType(typ.Type)
-		return &Named{
+		return &zNamed{
 			Kind: "named",
 			ID:   zed.TypeID(typ),
 			Name: typ.Name,
 			Type: t,
 		}
 	case *zed.TypeRecord:
-		var fields []Field
+		var fields []zField
 		for _, c := range typ.Columns {
-			fields = append(fields, Field{
+			fields = append(fields, zField{
 				Name: c.Name,
 				Type: e.encodeType(c.Type),
 			})
 		}
-		return &Record{
+		return &zRecord{
 			Kind:   "record",
 			ID:     zed.TypeID(typ),
 			Fields: fields,
 		}
 	case *zed.TypeArray:
-		return &Array{
+		return &zArray{
 			Kind: "array",
 			ID:   zed.TypeID(typ),
 			Type: e.encodeType(typ.Type),
 		}
 	case *zed.TypeSet:
-		return &Set{
+		return &zSet{
 			Kind: "set",
 			ID:   zed.TypeID(typ),
 			Type: e.encodeType(typ.Type),
 		}
 	case *zed.TypeUnion:
-		var types []Type
+		var types []zType
 		for _, typ := range typ.Types {
 			types = append(types, e.encodeType(typ))
 		}
-		return &Union{
+		return &zUnion{
 			Kind:  "union",
 			ID:    zed.TypeID(typ),
 			Types: types,
 		}
 	case *zed.TypeEnum:
-		return &Enum{
+		return &zEnum{
 			Kind:    "enum",
 			ID:      zed.TypeID(typ),
 			Symbols: typ.Symbols,
 		}
 	case *zed.TypeMap:
-		return &Map{
+		return &zMap{
 			Kind:    "map",
 			ID:      zed.TypeID(typ),
 			KeyType: e.encodeType(typ.KeyType),
 			ValType: e.encodeType(typ.ValType),
 		}
 	case *zed.TypeError:
-		return &Error{
+		return &zError{
 			Kind: "error",
 			ID:   zed.TypeID(typ),
 			Type: e.encodeType(typ.Type),
 		}
 	default:
-		return &Primitive{
+		return &zPrimitive{
 			Kind: "primitive",
 			Name: zed.PrimitiveName(typ),
 		}
@@ -172,13 +172,13 @@ func (e encoder) newType(typ zed.Type) Type {
 
 type decoder map[int]zed.Type
 
-func (d decoder) decodeType(zctx *zed.Context, t Type) (zed.Type, error) {
+func (d decoder) decodeType(zctx *zed.Context, t zType) (zed.Type, error) {
 	switch t := t.(type) {
-	case *Record:
+	case *zRecord:
 		typ, err := d.decodeTypeRecord(zctx, t)
 		d[t.ID] = typ
 		return typ, err
-	case *Array:
+	case *zArray:
 		inner, err := d.decodeType(zctx, t.Type)
 		if err != nil {
 			return nil, err
@@ -186,7 +186,7 @@ func (d decoder) decodeType(zctx *zed.Context, t Type) (zed.Type, error) {
 		typ := zctx.LookupTypeArray(inner)
 		d[t.ID] = typ
 		return typ, nil
-	case *Set:
+	case *zSet:
 		inner, err := d.decodeType(zctx, t.Type)
 		if err != nil {
 			return nil, err
@@ -194,19 +194,19 @@ func (d decoder) decodeType(zctx *zed.Context, t Type) (zed.Type, error) {
 		typ := zctx.LookupTypeSet(inner)
 		d[t.ID] = typ
 		return typ, nil
-	case *Union:
+	case *zUnion:
 		typ, err := d.decodeTypeUnion(zctx, t)
 		d[t.ID] = typ
 		return typ, err
-	case *Enum:
+	case *zEnum:
 		typ, err := d.decodeTypeEnum(zctx, t)
 		d[t.ID] = typ
 		return typ, err
-	case *Map:
+	case *zMap:
 		typ, err := d.decodeTypeMap(zctx, t)
 		d[t.ID] = typ
 		return typ, err
-	case *Named:
+	case *zNamed:
 		inner, err := d.decodeType(zctx, t.Type)
 		if err != nil {
 			return nil, err
@@ -214,7 +214,7 @@ func (d decoder) decodeType(zctx *zed.Context, t Type) (zed.Type, error) {
 		typ, err := zctx.LookupTypeNamed(t.Name, inner)
 		d[t.ID] = typ
 		return typ, err
-	case *Error:
+	case *zError:
 		inner, err := d.decodeType(zctx, t.Type)
 		if err != nil {
 			return nil, err
@@ -222,13 +222,13 @@ func (d decoder) decodeType(zctx *zed.Context, t Type) (zed.Type, error) {
 		typ := zctx.LookupTypeError(inner)
 		d[t.ID] = typ
 		return typ, nil
-	case *Primitive:
+	case *zPrimitive:
 		typ := zed.LookupPrimitive(t.Name)
 		if typ == nil {
 			return nil, errors.New("ZJSON unknown type: " + t.Name)
 		}
 		return typ, nil
-	case *Ref:
+	case *zRef:
 		typ, ok := d[t.ID]
 		if !ok {
 			return nil, fmt.Errorf("ZJSON unknown type reference: %d", t.ID)
@@ -238,7 +238,7 @@ func (d decoder) decodeType(zctx *zed.Context, t Type) (zed.Type, error) {
 	return nil, fmt.Errorf("ZJSON unknown type: %T", t)
 }
 
-func (d decoder) decodeTypeRecord(zctx *zed.Context, typ *Record) (*zed.TypeRecord, error) {
+func (d decoder) decodeTypeRecord(zctx *zed.Context, typ *zRecord) (*zed.TypeRecord, error) {
 	columns := make([]zed.Column, 0, len(typ.Fields))
 	for _, field := range typ.Fields {
 		typ, err := d.decodeType(zctx, field.Type)
@@ -254,7 +254,7 @@ func (d decoder) decodeTypeRecord(zctx *zed.Context, typ *Record) (*zed.TypeReco
 	return zctx.LookupTypeRecord(columns)
 }
 
-func (d decoder) decodeTypeUnion(zctx *zed.Context, union *Union) (*zed.TypeUnion, error) {
+func (d decoder) decodeTypeUnion(zctx *zed.Context, union *zUnion) (*zed.TypeUnion, error) {
 	var types []zed.Type
 	for _, t := range union.Types {
 		typ, err := d.decodeType(zctx, t)
@@ -266,7 +266,7 @@ func (d decoder) decodeTypeUnion(zctx *zed.Context, union *Union) (*zed.TypeUnio
 	return zctx.LookupTypeUnion(types), nil
 }
 
-func (d decoder) decodeTypeMap(zctx *zed.Context, m *Map) (*zed.TypeMap, error) {
+func (d decoder) decodeTypeMap(zctx *zed.Context, m *zMap) (*zed.TypeMap, error) {
 	keyType, err := d.decodeType(zctx, m.KeyType)
 	if err != nil {
 		return nil, err
@@ -278,6 +278,6 @@ func (d decoder) decodeTypeMap(zctx *zed.Context, m *Map) (*zed.TypeMap, error) 
 	return zctx.LookupTypeMap(keyType, valType), nil
 }
 
-func (d decoder) decodeTypeEnum(zctx *zed.Context, enum *Enum) (*zed.TypeEnum, error) {
+func (d decoder) decodeTypeEnum(zctx *zed.Context, enum *zEnum) (*zed.TypeEnum, error) {
 	return nil, errors.New("TBD: issue #2508")
 }

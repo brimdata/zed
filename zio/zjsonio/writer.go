@@ -12,7 +12,7 @@ import (
 )
 
 type Object struct {
-	Type  Type        `json:"type"`
+	Type  zType       `json:"type"`
 	Value interface{} `json:"value"`
 }
 
@@ -26,14 +26,14 @@ func unmarshal(b []byte) (*Object, error) {
 	}
 	// We should enhance the unpacker to take the template struct
 	// here so we don't have to call UnmarshalObject.  But not
-	// a big deal because we only do it for inbound zjson (which is
+	// a big deal because we only do it for inbound ZJSON (which is
 	// not performance critical and only for typedefs which are
 	// typically infrequent.)  See issue #2702.
 	typeObj, err := unpacker.UnmarshalObject(template.Type)
 	if typeObj == nil || err != nil {
 		return nil, err
 	}
-	typ, ok := typeObj.(Type)
+	typ, ok := typeObj.(zType)
 	if !ok {
 		return nil, fmt.Errorf("ZJSON types object is not a type: %s", string(b))
 	}

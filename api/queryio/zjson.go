@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zjsonio"
 )
 
@@ -19,7 +20,7 @@ var _ controlWriter = (*ZJSONWriter)(nil)
 func NewZJSONWriter(w io.Writer) *ZJSONWriter {
 	return &ZJSONWriter{
 		encoder: json.NewEncoder(w),
-		writer:  zjsonio.NewWriter(&nopCloser{w}),
+		writer:  zjsonio.NewWriter(zio.NopCloser(w)),
 	}
 }
 
@@ -44,13 +45,5 @@ func (w *ZJSONWriter) WriteControl(v interface{}) error {
 }
 
 func (w *ZJSONWriter) Close() error {
-	return nil
-}
-
-type nopCloser struct {
-	io.Writer
-}
-
-func (*nopCloser) Close() error {
 	return nil
 }
