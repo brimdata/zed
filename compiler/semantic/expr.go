@@ -49,8 +49,6 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		}, nil
 	case *ast.ID:
 		return semField(scope, e, false)
-	case *ast.This:
-		return semField(scope, e, false)
 	case *ast.Search:
 		val, err := zson.ParsePrimitive(e.Value.Type, e.Value.Text)
 		if err != nil {
@@ -268,11 +266,11 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (dag.Expr, error) {
 }
 
 //XXX this should work for any path not just this, e.g., this.x["@foo"]
-func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.Path {
-	if path, ok := lhs.(*dag.Path); ok && len(path.Name) == 0 {
+func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.This {
+	if this, ok := lhs.(*dag.This); ok && len(this.Path) == 0 {
 		if s, ok := isStringConst(scope, rhs); ok {
-			path.Name = append(path.Name, s)
-			return path
+			this.Path = append(this.Path, s)
+			return this
 		}
 	}
 	return nil
@@ -373,10 +371,10 @@ func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
 		if name == "every" {
 			name = "ts"
 		}
-		lhs = &dag.Path{"Path", []string{name}}
+		lhs = &dag.This{"This", []string{name}}
 	} else if agg, ok := a.RHS.(*ast.Agg); ok {
-		lhs = &dag.Path{"Path", []string{agg.Name}}
-	} else if _, ok := a.RHS.(*ast.This); ok {
+		lhs = &dag.This{"This", []string{agg.Name}}
+	} else if isThis(a.RHS) {
 		return dag.Assignment{}, errors.New(`cannot assign to "this"`)
 	} else {
 		lhs, err = semField(scope, a.RHS, true)
@@ -385,6 +383,13 @@ func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
 		}
 	}
 	return dag.Assignment{"Assignment", lhs, rhs}, nil
+}
+
+func isThis(e ast.Expr) bool {
+	if id, ok := e.(*ast.ID); ok {
+		return id.Name == "this"
+	}
+	return false
 }
 
 func semFields(scope *Scope, exprs []ast.Expr) ([]dag.Expr, error) {
@@ -413,8 +418,8 @@ func semField(scope *Scope, e ast.Expr, lval bool) (dag.Expr, error) {
 			if !ok {
 				return nil, errors.New("RHS of dot operator is not an identifier")
 			}
-			if lhs, ok := lhs.(*dag.Path); ok {
-				lhs.Name = append(lhs.Name, id.Name)
+			if lhs, ok := lhs.(*dag.This); ok {
+				lhs.Path = append(lhs.Path, id.Name)
 				return lhs, nil
 			}
 			return &dag.Dot{
@@ -455,10 +460,7 @@ func semField(scope *Scope, e ast.Expr, lval bool) (dag.Expr, error) {
 				return ref, nil
 			}
 		}
-		return &dag.Path{Kind: "Path", Name: []string{e.Name}}, nil
-	case *ast.This:
-		//XXX nil? empty path?
-		return &dag.Path{Kind: "Path", Name: []string{}}, nil
+		return pathOf(e.Name), nil
 	}
 	// This includes a null Expr, which can happen if the AST is missing
 	// a field or sets it to null.
@@ -473,7 +475,7 @@ func convertCallProc(scope *Scope, call *ast.Call) (dag.Op, error) {
 			Aggs: []dag.Assignment{
 				{
 					Kind: "Assignment",
-					LHS:  &dag.Path{"Path", field.New(call.Name)},
+					LHS:  &dag.This{"This", field.New(call.Name)},
 					RHS:  agg,
 				},
 			},
@@ -525,7 +527,7 @@ func maybeConvertAgg(scope *Scope, call *ast.Call) (dag.Expr, error) {
 	}, nil
 }
 
-func DotExprToFieldPath(e ast.Expr) *dag.Path {
+func DotExprToFieldPath(e ast.Expr) *dag.This {
 	switch e := e.(type) {
 	case *ast.BinaryExpr:
 		if e.Op == "." {
@@ -537,7 +539,7 @@ func DotExprToFieldPath(e ast.Expr) *dag.Path {
 			if !ok {
 				return nil
 			}
-			lhs.Name = append(lhs.Name, id.Name)
+			lhs.Path = append(lhs.Path, id.Name)
 			return lhs
 		}
 		if e.Op == "[" {
@@ -549,17 +551,23 @@ func DotExprToFieldPath(e ast.Expr) *dag.Path {
 			if !ok || id.Type != "string" {
 				return nil
 			}
-			lhs.Name = append(lhs.Name, id.Text)
+			lhs.Path = append(lhs.Path, id.Text)
 			return lhs
 		}
 	case *ast.ID:
-		return &dag.Path{Kind: "Path", Name: []string{e.Name}}
-	case *ast.This:
-		return &dag.Path{Kind: "Path", Name: []string{}}
+		return pathOf(e.Name)
 	}
 	// This includes a null Expr, which can happen if the AST is missing
 	// a field or sets it to null.
 	return nil
+}
+
+func pathOf(name string) *dag.This {
+	var path []string
+	if name != "this" {
+		path = []string{name}
+	}
+	return &dag.This{Kind: "This", Path: path}
 }
 
 func semType(scope *Scope, typ astzed.Type) (string, error) {

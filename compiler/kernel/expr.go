@@ -57,8 +57,8 @@ func compileExpr(zctx *zed.Context, e dag.Expr) (expr.Evaluator, error) {
 		return expr.NewVar(e.Slot), nil
 	case *dag.Search:
 		return compileSearch(zctx, e)
-	case *dag.Path:
-		return expr.NewDottedExpr(zctx, field.Path(e.Name)), nil
+	case *dag.This:
+		return expr.NewDottedExpr(zctx, field.Path(e.Path)), nil
 	case *dag.Dot:
 		return compileDotExpr(zctx, e)
 	case *dag.UnaryExpr:
@@ -217,8 +217,8 @@ func compileCast(zctx *zed.Context, node dag.Cast) (expr.Evaluator, error) {
 }
 
 func compileLval(e dag.Expr) (field.Path, error) {
-	if e, ok := e.(*dag.Path); ok {
-		return field.Path(e.Name), nil
+	if this, ok := e.(*dag.This); ok {
+		return field.Path(this.Path), nil
 	}
 	return nil, errors.New("invalid expression on lhs of assignment")
 }
@@ -298,7 +298,7 @@ func isShaperFunc(name string) bool {
 func compileShaper(zctx *zed.Context, node dag.Call) (*expr.Shaper, error) {
 	args := node.Args
 	if len(args) == 1 {
-		args = append([]dag.Expr{dag.This}, args...)
+		args = append([]dag.Expr{&dag.This{Kind: "This"}}, args...)
 	}
 	if len(args) < 2 {
 		return nil, function.ErrTooFewArgs
@@ -356,7 +356,7 @@ func compileCall(zctx *zed.Context, call dag.Call) (expr.Evaluator, error) {
 	}
 	args := call.Args
 	if path != nil {
-		dagPath := &dag.Path{Kind: "Path", Name: path}
+		dagPath := &dag.This{Kind: "This", Path: path}
 		args = append([]dag.Expr{dagPath}, args...)
 	}
 	exprs, err := compileExprs(zctx, args)

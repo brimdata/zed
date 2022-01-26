@@ -75,8 +75,6 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.literal(*e)
 	case *ast.ID:
 		c.write(e.Name)
-	case *ast.This:
-		c.write("this")
 	case *ast.UnaryExpr:
 		c.space()
 		c.write(e.Op)
@@ -160,8 +158,8 @@ func (c *canon) sql(e *ast.SQLExpr) {
 }
 
 func isThis(e ast.Expr) bool {
-	if _, ok := e.(*ast.This); ok {
-		return true
+	if id, ok := e.(*ast.ID); ok {
+		return id.Name == "this"
 	}
 	return false
 }

@@ -88,11 +88,11 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 	}
 	var keys field.List
 	for _, key := range p.Keys {
-		path := DotExprToFieldPath(key)
-		if path == nil {
+		this := DotExprToFieldPath(key)
+		if this == nil {
 			return order.Nil, fmt.Errorf("bad key expr of type %T in file operator", key)
 		}
-		keys = append(keys, path.Name)
+		keys = append(keys, this.Path)
 	}
 	which, err := order.Parse(p.Order)
 	if err != nil {
@@ -418,22 +418,22 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			if err != nil {
 				return nil, err
 			}
-			dstField, ok := dst.(*dag.Path)
+			dstField, ok := dst.(*dag.This)
 			if !ok {
 				return nil, errors.New("'rename' requires explicit field references")
 			}
-			srcField, ok := src.(*dag.Path)
+			srcField, ok := src.(*dag.This)
 			if !ok {
 				return nil, errors.New("'rename' requires explicit field references")
 			}
-			if len(dstField.Name) != len(srcField.Name) {
+			if len(dstField.Path) != len(srcField.Path) {
 				return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
 			}
 			// Check that the prefixes match and, if not, report first place
 			// that they don't.
-			for i := 0; i <= len(srcField.Name)-2; i++ {
-				if srcField.Name[i] != dstField.Name[i] {
-					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", srcField, dstField, srcField.Name[i], dstField.Name[i])
+			for i := 0; i <= len(srcField.Path)-2; i++ {
+				if srcField.Path[i] != dstField.Path[i] {
+					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", srcField, dstField, srcField.Path[i], dstField.Path[i])
 				}
 			}
 			assignments = append(assignments, dag.Assignment{"Assignment", dst, src})
@@ -486,9 +486,9 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		}
 		var as dag.Expr
 		if p.As == nil {
-			as = &dag.Path{
-				Kind: "Path",
-				Name: field.New("value"),
+			as = &dag.This{
+				Kind: "This",
+				Path: field.New("value"),
 			}
 		} else {
 			as, err = semExpr(scope, p.As)
@@ -507,14 +507,14 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		if err != nil {
 			return nil, err
 		}
-		field, ok := e.(*dag.Path)
-		if !ok || len(field.Name) == 0 {
+		field, ok := e.(*dag.This)
+		if !ok || len(field.Path) == 0 {
 			//XXX generalize to expr so you can merge this
 			return nil, fmt.Errorf("merge: key must be a field")
 		}
 		return &dag.Merge{
 			Kind:  "Merge",
-			Key:   field.Name,
+			Key:   field.Path,
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:

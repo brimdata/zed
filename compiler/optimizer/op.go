@@ -222,11 +222,10 @@ func fieldKey(f field.Path) string {
 }
 
 func fieldOf(e dag.Expr) field.Path {
-	f, ok := e.(*dag.Path)
-	if !ok {
-		return nil
+	if this, ok := e.(*dag.This); ok {
+		return this.Path
 	}
-	return f.Name
+	return nil
 }
 
 func copyOps(ops []dag.Op) []dag.Op {
@@ -275,8 +274,8 @@ func fieldsOf(e dag.Expr) (field.List, bool) {
 	case *dag.Var:
 		// finish with issue #2756
 		return nil, false
-	case *dag.Path:
-		return field.List{e.Name}, true
+	case *dag.This:
+		return field.List{e.Path}, true
 	case *dag.UnaryExpr:
 		return fieldsOf(e.Operand)
 	case *dag.BinaryExpr:

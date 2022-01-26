@@ -47,9 +47,9 @@ type (
 		Kind    string  `json:"kind" unpack:""`
 		Entries []Entry `json:"entries"`
 	}
-	Path struct {
+	This struct {
 		Kind string   `json:"kind" unpack:""`
-		Name []string `json:"name"`
+		Path []string `json:"path"`
 	}
 	RecordExpr struct {
 		Kind   string  `json:"kind" unpack:""`
@@ -112,28 +112,26 @@ func (*Conditional) ExprDAG()  {}
 func (*Dot) ExprDAG()          {}
 func (*Literal) ExprDAG()      {}
 func (*MapExpr) ExprDAG()      {}
-func (*Path) ExprDAG()         {}
 func (*RecordExpr) ExprDAG()   {}
 func (*RegexpMatch) ExprDAG()  {}
 func (*RegexpSearch) ExprDAG() {}
 func (*Search) ExprDAG()       {}
 func (*SetExpr) ExprDAG()      {}
+func (*This) ExprDAG()         {}
 func (*UnaryExpr) ExprDAG()    {}
 func (*Var) ExprDAG()          {}
 
-var This = &Path{Kind: "Path", Name: []string{}}
-
 func IsThis(e Expr) bool {
-	if p, ok := e.(*Path); ok {
-		return len(p.Name) == 0
+	if p, ok := e.(*This); ok {
+		return len(p.Path) == 0
 	}
 	return false
 }
 
 func TopLevelField(e Expr) (string, bool) {
-	if b, ok := e.(*Path); ok {
-		if len(b.Name) == 1 {
-			return b.Name[0], true
+	if b, ok := e.(*This); ok {
+		if len(b.Path) == 1 {
+			return b.Path[0], true
 		}
 	}
 	return "", false

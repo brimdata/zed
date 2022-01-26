@@ -436,7 +436,7 @@ OpAssignment
 
 SampleExpr
   = _ lval:Lval { RETURN(lval)}
-  / "" { RETURN(MAP("kind":"This")) }
+  / "" { RETURN(MAP("kind":"ID", "name":"this")) }
 
 FromProc
   = source:FromAny {
@@ -730,20 +730,20 @@ DerefExprPattern
       RETURN(makeBinaryExprChain(first, rest))
     }
   / "." {
-      RETURN(MAP("kind":"This"))
+      RETURN(MAP("kind":"ID","name":"this"))
     }
 
-This = "this" { RETURN(MAP("kind":"This")) }
+This = "this" { RETURN(MAP("kind":"ID","name":"this")) }
 
 DotID
   = "." field:Identifier {
       RETURN(MAP("kind": "BinaryExpr", "op":".",
-                     "lhs":MAP("kind":"This"),
+                     "lhs":MAP("kind":"ID","name":"this"),
                      "rhs":field))
     }
   / "." "[" expr:Expr "]" {
       RETURN(MAP("kind": "BinaryExpr", "op":"[",
-                     "lhs":MAP("kind":"This"),
+                     "lhs":MAP("kind":"ID","name":"this"),
                      "rhs":expr))
     }
 

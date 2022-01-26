@@ -100,11 +100,11 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 		}
 		fields := make(field.List, 0, len(v.Args))
 		for _, e := range v.Args {
-			field, ok := e.(*dag.Path)
+			field, ok := e.(*dag.This)
 			if !ok {
 				return nil, errors.New("drop: arg not a field")
 			}
-			fields = append(fields, field.Name)
+			fields = append(fields, field.Path)
 		}
 		dropper := expr.NewDropper(b.pctx.Zctx, fields)
 		return proc.NewApplier(b.pctx, parent, dropper), nil
