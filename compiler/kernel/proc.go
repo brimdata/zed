@@ -442,7 +442,7 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 		return []zbuf.Puller{join}, nil
 	case *dag.Merge:
 		layout := order.NewLayout(op.Order, field.List{op.Key})
-		cmp := zbuf.NewCompareFn(b.pctx.Zctx, layout)
+		cmp := zbuf.NewComparator(b.pctx.Zctx, layout).Compare
 		return []zbuf.Puller{merge.New(b.pctx, parents, cmp)}, nil
 	default:
 		var parent zbuf.Puller

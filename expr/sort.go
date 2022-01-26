@@ -2,6 +2,8 @@ package expr
 
 import (
 	"bytes"
+	"fmt"
+	"math"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -9,6 +11,91 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
+
+type Sorter struct {
+	indices []uint32
+	i64s    []int64
+	vals    []*zed.Value
+	tmp     []zed.Value
+}
+
+func (s *Sorter) SortStable(vals []zed.Value, cmp *Comparator) {
+	if len(cmp.exprs) == 0 {
+		return
+	}
+	n := len(vals)
+	if max := math.MaxUint32; n > max {
+		panic(fmt.Sprintf("number of values exceeds %d", max))
+	}
+	if cap(s.indices) < n {
+		indices := make([]uint32, n)
+		s.indices = indices[:cap(indices)]
+		s.i64s = make([]int64, cap(indices))
+		s.vals = make([]*zed.Value, cap(indices))
+		s.tmp = make([]zed.Value, cap(indices))
+	}
+	s.indices = s.indices[:n]
+	ectx := NewContext()
+	native := true
+	for i := range s.indices {
+		s.indices[i] = uint32(i)
+		val := cmp.exprs[0].Eval(ectx, &vals[i])
+		s.vals[i] = val
+		if id := val.Type.ID(); zed.IsInteger(id) {
+			if val.IsNull() {
+				if cmp.nullsMax {
+					s.i64s[i] = math.MaxInt64
+				} else {
+					s.i64s[i] = math.MinInt64
+				}
+			} else if zed.IsSigned(id) {
+				s.i64s[i] = zed.DecodeInt(val.Bytes)
+			} else {
+				v := zed.DecodeUint(val.Bytes)
+				if v > math.MaxInt64 {
+					v = math.MaxInt64
+				}
+				s.i64s[i] = int64(v)
+			}
+		} else {
+			native = false
+		}
+	}
+	sort.SliceStable(s.indices, func(i, j int) bool {
+		if cmp.reverse {
+			i, j = j, i
+		}
+		iidx, jidx := s.indices[i], s.indices[j]
+		for k, expr := range cmp.exprs {
+			var ival, jval *zed.Value
+			if k == 0 {
+				if native {
+					if i64, j64 := s.i64s[iidx], s.i64s[jidx]; i64 != j64 {
+						return i64 < j64
+					} else if i64 != math.MaxInt64 && i64 != math.MinInt64 {
+						continue
+					}
+				}
+				ival, jval = s.vals[iidx], s.vals[jidx]
+			} else {
+				ival = expr.Eval(ectx, &vals[iidx])
+				jval = expr.Eval(ectx, &vals[jidx])
+			}
+			if v := compareValues(ival, jval, cmp.comparefns, &cmp.pair, cmp.nullsMax); v != 0 {
+				return v < 0
+			}
+		}
+		return false
+	})
+	for i, index := range s.indices {
+		s.tmp[i] = vals[i]
+		if j := int(index); i < j {
+			vals[i] = vals[j]
+		} else if i > int(index) {
+			vals[i] = s.tmp[j]
+		}
+	}
+}
 
 type CompareFn func(a *zed.Value, b *zed.Value) int
 

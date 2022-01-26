@@ -39,27 +39,27 @@ type Aggregator struct {
 	// such that the same vector of types maps to the same small int.
 	// The int is used in each row to track the type of the keys and used
 	// at the output to track the combined type of the keys and aggregations.
-	keyTypes     *zed.TypeVectorTable
-	outTypes     *zed.TypeVectorTable
-	typeCache    []zed.Type
-	keyCache     []byte // Reduces memory allocations in Consume.
-	keyRefs      []expr.Evaluator
-	keyExprs     []expr.Evaluator
-	aggRefs      []expr.Evaluator
-	aggs         []*expr.Aggregator
-	builder      *zed.ColumnBuilder
-	recordTypes  map[int]*zed.TypeRecord
-	table        map[string]*Row
-	limit        int
-	valueCompare expr.CompareFn // to compare primary group keys for early key output
-	keyCompare   expr.CompareFn // compare the first key (used when input sorted)
-	keysCompare  expr.CompareFn // compare all keys
-	maxTableKey  *zed.Value
-	maxSpillKey  *zed.Value
-	inputDir     order.Direction
-	spiller      *spill.MergeSort
-	partialsIn   bool
-	partialsOut  bool
+	keyTypes       *zed.TypeVectorTable
+	outTypes       *zed.TypeVectorTable
+	typeCache      []zed.Type
+	keyCache       []byte // Reduces memory allocations in Consume.
+	keyRefs        []expr.Evaluator
+	keyExprs       []expr.Evaluator
+	aggRefs        []expr.Evaluator
+	aggs           []*expr.Aggregator
+	builder        *zed.ColumnBuilder
+	recordTypes    map[int]*zed.TypeRecord
+	table          map[string]*Row
+	limit          int
+	valueCompare   expr.CompareFn   // to compare primary group keys for early key output
+	keyCompare     expr.CompareFn   // compare the first key (used when input sorted)
+	keysComparator *expr.Comparator // compare all keys
+	maxTableKey    *zed.Value
+	maxSpillKey    *zed.Value
+	inputDir       order.Direction
+	spiller        *spill.MergeSort
+	partialsIn     bool
+	partialsOut    bool
 }
 
 type Row struct {
@@ -72,9 +72,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	if limit == 0 {
 		limit = DefaultLimit
 	}
-	var valueCompare expr.CompareFn
-	var keyCompare, keysCompare expr.CompareFn
-
+	var keyCompare, valueCompare expr.CompareFn
 	nkeys := len(keyExprs)
 	if nkeys > 0 && inputDir != 0 {
 		// As the default sort behavior, nullsMax=true for ascending order and
@@ -96,33 +94,27 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 			keyCompare = rs
 		}
 	}
-	rs := expr.NewCompareFn(true, keyRefs...)
-	if inputDir < 0 {
-		keysCompare = func(a, b *zed.Value) int { return rs(b, a) }
-	} else {
-		keysCompare = rs
-	}
 	return &Aggregator{
-		ctx:          ctx,
-		zctx:         zctx,
-		inputDir:     inputDir,
-		limit:        limit,
-		keyTypes:     zed.NewTypeVectorTable(),
-		outTypes:     zed.NewTypeVectorTable(),
-		keyRefs:      keyRefs,
-		keyExprs:     keyExprs,
-		aggRefs:      aggRefs,
-		aggs:         aggs,
-		builder:      builder,
-		typeCache:    make([]zed.Type, nkeys+len(aggs)),
-		keyCache:     make(zcode.Bytes, 0, 128),
-		table:        make(map[string]*Row),
-		recordTypes:  make(map[int]*zed.TypeRecord),
-		keyCompare:   keyCompare,
-		keysCompare:  keysCompare,
-		valueCompare: valueCompare,
-		partialsIn:   partialsIn,
-		partialsOut:  partialsOut,
+		ctx:            ctx,
+		zctx:           zctx,
+		inputDir:       inputDir,
+		limit:          limit,
+		keyTypes:       zed.NewTypeVectorTable(),
+		outTypes:       zed.NewTypeVectorTable(),
+		keyRefs:        keyRefs,
+		keyExprs:       keyExprs,
+		aggRefs:        aggRefs,
+		aggs:           aggs,
+		builder:        builder,
+		typeCache:      make([]zed.Type, nkeys+len(aggs)),
+		keyCache:       make(zcode.Bytes, 0, 128),
+		table:          make(map[string]*Row),
+		recordTypes:    make(map[int]*zed.TypeRecord),
+		keyCompare:     keyCompare,
+		keysComparator: expr.NewComparator(true, inputDir < 0, keyRefs...).WithMissingAsNull(),
+		valueCompare:   valueCompare,
+		partialsIn:     partialsIn,
+		partialsOut:    partialsOut,
 	}, nil
 }
 
@@ -362,13 +354,13 @@ func (a *Aggregator) spillTable(eof bool, ref zbuf.Batch) error {
 		return err
 	}
 	if a.spiller == nil {
-		a.spiller, err = spill.NewMergeSort(a.keysCompare)
+		a.spiller, err = spill.NewMergeSort(a.keysComparator)
 		if err != nil {
 			return err
 		}
 	}
 	recs := batch.Values()
-	// Note that this will sort recs according to g.keysCompare.
+	// Note that this will sort recs according to g.keysComparator.
 	if err := a.spiller.Spill(a.ctx, recs); err != nil {
 		return err
 	}
@@ -469,7 +461,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 		}
 		if firstRec == nil {
 			firstRec = rec.Copy()
-		} else if a.keysCompare(firstRec, rec) != 0 {
+		} else if a.keysComparator.Compare(firstRec, rec) != 0 {
 			break
 		}
 		row.consumeAsPartial(rec, a.aggRefs, ectx)

@@ -25,9 +25,10 @@ type Proc struct {
 	fieldResolvers []expr.Evaluator
 	once           sync.Once
 	resultCh       chan proc.Result
-	compareFn      expr.CompareFn
+	comparator     *expr.Comparator
 	ectx           expr.Context
 	eof            bool
+	sorter         expr.Sorter
 }
 
 func New(pctx *proc.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
@@ -109,15 +110,15 @@ func (p *Proc) run() {
 		}
 		var delta int
 		out, delta = p.append(out, batch)
-		if p.compareFn == nil && len(out) > 0 {
-			p.setCompareFn(&out[0])
+		if p.comparator == nil && len(out) > 0 {
+			p.setComparator(&out[0])
 		}
 		nbytes += delta
 		if nbytes < MemMaxBytes {
 			continue
 		}
 		if spiller == nil {
-			spiller, err = spill.NewMergeSort(p.compareFn)
+			spiller, err = spill.NewMergeSort(p.comparator)
 			if err != nil {
 				if ok := p.sendResult(nil, err); !ok {
 					return
@@ -139,7 +140,7 @@ func (p *Proc) run() {
 
 // send sorts vals in memory and sends the result downstream.
 func (p *Proc) send(vals []zed.Value) bool {
-	expr.SortStable(vals, p.compareFn)
+	p.sorter.SortStable(vals, p.comparator)
 	//XXX bug: we need upstream ectx. See #3367
 	array := zbuf.NewArray(vals)
 	return p.sendResult(array, nil)
@@ -183,23 +184,19 @@ func (p *Proc) append(out []zed.Value, batch zbuf.Batch) ([]zed.Value, int) {
 	return out, nbytes
 }
 
-func (p *Proc) setCompareFn(r *zed.Value) {
+func (p *Proc) setComparator(r *zed.Value) {
 	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
 		resolver := expr.NewDottedExpr(p.pctx.Zctx, fld)
 		resolvers = []expr.Evaluator{resolver}
 	}
+	reverse := p.order == order.Desc
 	nullsMax := !p.nullsFirst
-	if p.order == order.Desc {
+	if reverse {
 		nullsMax = !nullsMax
 	}
-	compareFn := expr.NewCompareFn(nullsMax, resolvers...)
-	if p.order == order.Desc {
-		p.compareFn = func(a, b *zed.Value) int { return compareFn(b, a) }
-	} else {
-		p.compareFn = compareFn
-	}
+	p.comparator = expr.NewComparator(nullsMax, reverse, resolvers...).WithMissingAsNull()
 }
 
 func GuessSortKey(val *zed.Value) field.Path {
