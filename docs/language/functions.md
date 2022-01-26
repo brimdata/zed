@@ -760,7 +760,7 @@ echo  '{x:error("missing"),y:"hello"}'  | zq -z 'cut x:=quiet(x), y:=quiet(y)' -
 typename(name <string>) -> type
 ```
 
-`typename` returns the [type](../data-model/zson.md#357-type-type) of the
+`typename` returns the [type](../formats/zson.md#357-type-type) of the
 named type give by `name` if it exists in the current context.  Otherwise,
 `error("missing")` is returned.
 
@@ -781,7 +781,7 @@ echo  '80(port=int16)' | zq -z 'yield typename("port")' -
 typeof(a <any>) -> type
 ```
 
-`typeof` returns the [type](../data-model/zson.md#357-type-type) of value `a`.
+`typeof` returns the [type](../formats/zson.md#357-type-type) of value `a`.
 
 #### Example:
 
@@ -801,8 +801,8 @@ echo  '{foo:127.0.0.1}' \
 typeunder(a <any>) -> type
 ```
 
-`typeunder` returns the [type](../data-model/zson.md#357-type-type) of value `a`.
-`typeunder` is similar to `typeof` except that if `a` is [named type](../data-model/zson.md#357-type-type)
+`typeunder` returns the [type](../formats/zson.md#357-type-type) of value `a`.
+`typeunder` is similar to `typeof` except that if `a` is [named type](../formats/zson.md#357-type-type)
 the type under `a` is returned.
 
 #### Example:
