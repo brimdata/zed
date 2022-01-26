@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zcode"
 )
 
 type Over struct {
@@ -15,12 +16,14 @@ type Over struct {
 	outer  []zed.Value
 	batch  zbuf.Batch
 	enter  *Enter
+	zctx   *zed.Context
 }
 
 func NewOver(pctx *proc.Context, parent zbuf.Puller, exprs []expr.Evaluator) *Over {
 	return &Over{
 		parent: parent,
 		exprs:  exprs,
+		zctx:   pctx.Zctx,
 	}
 }
 
@@ -65,26 +68,52 @@ func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 		val := e.Eval(batch, this)
 		// Propagate errors but skip missing values.
 		if !val.IsMissing() {
-			vals = appendOver(vals, *val)
+			vals = appendOver(o.zctx, vals, *val)
 		}
 	}
 	return zbuf.NewBatch(batch, vals)
 }
 
-func appendOver(vals []zed.Value, zv zed.Value) []zed.Value {
-	if zed.IsPrimitiveType(zv.Type) {
+func appendOver(zctx *zed.Context, vals []zed.Value, zv zed.Value) []zed.Value {
+	zv = *expr.ValueUnder(&zv)
+	switch typ := zed.TypeUnder(zv.Type).(type) {
+	case *zed.TypeArray, *zed.TypeSet:
+		typ = zed.InnerType(typ)
+		for it := zv.Bytes.Iter(); !it.Done(); {
+			// XXX when we do proper expr.Context, we can allocate
+			// this copy through the batch.
+			val := expr.ValueUnder(zed.NewValue(typ, it.Next()))
+			vals = append(vals, *val.Copy())
+		}
+		return vals
+	case *zed.TypeMap:
+		rtyp := zctx.MustLookupTypeRecord([]zed.Column{
+			zed.NewColumn("key", typ.KeyType),
+			zed.NewColumn("value", typ.ValType),
+		})
+		builder := zed.NewBuilder(rtyp)
+		for it := zv.Bytes.Iter(); !it.Done(); {
+			val := builder.Build(it.Next(), it.Next())
+			vals = append(vals, *val.Copy())
+		}
+		return vals
+	case *zed.TypeRecord:
+		builder := zcode.NewBuilder()
+		columns := typ.Columns
+		for i, it := 0, zv.Bytes.Iter(); !it.Done(); i++ {
+			builder.Reset()
+			col := columns[i]
+			typ := zctx.MustLookupTypeRecord([]zed.Column{
+				{Name: "key", Type: zed.TypeString},
+				{Name: "value", Type: col.Type},
+			})
+			builder.Append(zed.EncodeString(col.Name))
+			builder.Append(it.Next())
+			vals = append(vals, *zed.NewValue(typ, builder.Bytes()).Copy())
+
+		}
+		return vals
+	default:
 		return append(vals, zv)
 	}
-	typ := zed.InnerType(zv.Type)
-	if typ == nil {
-		// XXX Issue #3324: need to support records and maps.
-		return vals
-	}
-	for it := zv.Bytes.Iter(); !it.Done(); {
-		// XXX when we do proper expr.Context, we can allocate
-		// this copy through the batch.
-		val := expr.ValueUnder(zed.NewValue(typ, it.Next()))
-		vals = append(vals, *val.Copy())
-	}
-	return vals
 }
