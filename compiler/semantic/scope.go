@@ -50,10 +50,9 @@ func (s *Scope) DefineAs(name string) error {
 	if _, ok := b.symbols[name]; ok {
 		return fmt.Errorf("symbol %q redefined", name)
 	}
-	ref := &dag.This{Kind: "This"}
 	// We add the symbol to the table but don't bump nvars because
 	// it's not a var and doesn't take a slot in the batch vars.
-	b.Define(name, ref)
+	b.Define(name, &dag.This{Kind: "This"})
 	return nil
 }
 

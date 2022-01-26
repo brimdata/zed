@@ -560,9 +560,8 @@ As
   = _ "as" _ id:IdentifierName { RETURN(id) }
   / "" { RETURN("") }
 
-
 LetProc
-  = "let"i _ locals:LetAssignments __ over:ScopedOver  {
+  = "let"i _ locals:LetAssignments __ over:ScopedOver {
       RETURN(MAP("kind":"Let", "locals":locals, "over":over))
     }
 

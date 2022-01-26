@@ -408,7 +408,7 @@ func semAssignment(scope *Scope, a ast.Assignment, summarize bool) (dag.Assignme
 	}
 	if summarize {
 		// Summarize always outputs its results as new records of "this"
-		// this so if we have an "as" that overrides "this", we just
+		// so if we have an "as" that overrides "this", we just
 		// convert it back to a local this.
 		if dot, ok := lhs.(*dag.Dot); ok {
 			if v, ok := dot.LHS.(*dag.Var); ok && v.Name == "this" {
@@ -416,13 +416,13 @@ func semAssignment(scope *Scope, a ast.Assignment, summarize bool) (dag.Assignme
 			}
 		}
 	}
-	// Make sure we have a valid l-value for lhs.
+	// Make sure we have a valid lval for lhs.
 	this, ok := lhs.(*dag.This)
 	if !ok {
 		return dag.Assignment{}, errors.New("illegal left-hand side of assignment'")
 	}
 	if len(this.Path) == 0 {
-		return dag.Assignment{}, errors.New("cannot assign to \"this\"")
+		return dag.Assignment{}, errors.New("cannot assign to 'this'")
 	}
 	return dag.Assignment{"Assignment", lhs, rhs}, nil
 }

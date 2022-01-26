@@ -534,7 +534,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 				return nil, err
 			}
 			// We append "this" to locals so it will be eval'd
-			// but we don't but it in the scope.
+			// but we don't put it in the scope.
 			locals = append(locals, dag.Def{
 				Name: "this",
 				Expr: &dag.This{Kind: "This"},
