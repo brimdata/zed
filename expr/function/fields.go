@@ -14,19 +14,22 @@ type Fields struct {
 func NewFields(zctx *zed.Context) *Fields {
 	return &Fields{
 		zctx: zctx,
-		typ:  zctx.LookupTypeArray(zed.TypeString),
+		typ:  zctx.LookupTypeArray(zctx.LookupTypeArray(zed.TypeString)),
 	}
 }
 
-func fieldNames(typ *zed.TypeRecord) []string {
+func buildPath(typ *zed.TypeRecord, b *zcode.Builder, prefix []string) []string {
 	var out []string
 	for _, c := range typ.Columns {
 		if typ, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
-			for _, subfield := range fieldNames(typ) {
-				out = append(out, c.Name+"."+subfield)
-			}
+			buildPath(typ, b, append(prefix, c.Name))
 		} else {
-			out = append(out, c.Name)
+			b.BeginContainer()
+			for _, s := range prefix {
+				b.Append([]byte(s))
+			}
+			b.Append([]byte(c.Name))
+			b.EndContainer()
 		}
 	}
 	return out
@@ -39,11 +42,9 @@ func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return f.zctx.Missing()
 	}
 	//XXX should have a way to append into allocator
-	var bytes zcode.Bytes
-	for _, field := range fieldNames(typ) {
-		bytes = zcode.Append(bytes, zcode.Bytes(field))
-	}
-	return ctx.NewValue(f.typ, bytes)
+	var b zcode.Builder
+	buildPath(typ, &b, nil)
+	return ctx.NewValue(f.typ, b.Bytes())
 }
 
 func isRecordType(zv zed.Value, zctx *zed.Context) *zed.TypeRecord {

@@ -392,20 +392,37 @@ echo '{foo:"{a:\"1\",b:2}"}' | zq -z 'foo := parse_zson(foo)' -
 ### `fields`
 
 ```
-fields(r record) -> [string]
+fields(r record) -> [[string]]
 ```
 
-`fields` returns a string array of all the field names in record `r`.
+`fields` returns an array of string arrays of all the field names in record `r`.
+A field's path name is representing by an array of strings since the dot
+separator is an unreliable indicator if field boundaries as `.` itself
+can appear in a field name.
 
-#### Example:
+#### Examples
 
 ```mdtest-command
-echo '{foo:{a:1,b:2,c:3}}' | zq -z 'cut foo := fields(foo)' -
+echo '{a:1,b:2,c:{d:3,e:4}}' | zq -z 'yield fields(this)' -
 ```
 
 **Output:**
 ```mdtest-output
-{foo:["a","b","c"]}
+[["a"],["b"],["c","d"],["c","e"]]
+```
+
+Note it is easy create dotted field names from the path arrays:
+
+```mdtest-command
+echo '{a:1,b:2,c:{d:3,e:4}}' | zq -z 'over fields(this) | yield join(this,".")' -
+```
+
+**Output:**
+```mdtest-output
+"a"
+"b"
+"c.d"
+"c.e"
 ```
 
 ### `unflatten`

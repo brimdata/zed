@@ -5,5 +5,5 @@ input: |
   {r:{a:1(int8),b:2(int8)},s:"a"}
 
 output: |
-  {fields:["r.a","s"],fields2:["a"]}
-  {fields:["r.a","r.b","s"],fields2:["a","b"]}
+  {fields:[["r","a"],["s"]],fields2:[["a"]]}
+  {fields:[["r","a"],["r","b"],["s"]],fields2:[["a"],["b"]]}
