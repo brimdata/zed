@@ -22,7 +22,6 @@
   - [`parse_uri`](#parse_uri)
   - [`parse_zson`](#parse_zson)
 - [Records](#records)
-  - [`cut`](#cut)
   - [`fields`](#fields)
   - [`unflatten`](#unflatten)
 - [Strings](#strings)
@@ -390,27 +389,6 @@ echo '{foo:"{a:\"1\",b:2}"}' | zq -z 'foo := parse_zson(foo)' -
 
 ## Records
 
-### `cut`
-
-```
-cut(f ...<fields>) -> record
-```
-
-`cut` accepts one or more [field expressions](expressions.md) f and returns
-a record with only these fields. This is functionally equivalent to the [`cut`
-operator](operators.md#cut)
-
-#### Example:
-
-```mdtest-command
-echo '{foo:{a:1,b:2,c:3}}' | zq -z 'yield cut(foo.a,foo.c)' -
-```
-
-**Output:**
-```mdtest-output
-{foo:{a:1,c:3}}
-```
-
 ### `fields`
 
 ```
@@ -741,7 +719,7 @@ quiet(a <any>) -> type
 
 `quiet` returns `a` unless `a` is `error("missing")` in which case
 it returns `error("quiet")`.  Quiet errors are ignored by operators
-`cut`, `put`, `summarize`, and `yield`.
+`put`, `summarize`, and `yield`.
 
 #### Example:
 
