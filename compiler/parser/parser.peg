@@ -778,8 +778,11 @@ Primary
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 Record
-  = "{" __ fields:Fields __ "}" {
-      RETURN(MAP("kind":"RecordExpr", "fields":fields ))
+  = "{" __ expr:Expr _ "with" _ fields:Fields __ "}" {
+      RETURN(MAP("kind":"RecordExpr", "fields":fields, "with":expr))
+    }
+  / "{" __ fields:Fields __ "}" {
+      RETURN(MAP("kind":"RecordExpr", "fields":fields, "with":NULL))
     }
 
 Fields
