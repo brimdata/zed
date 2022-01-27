@@ -7,4 +7,4 @@ input: |
 
 output: |
   {a:[{b:"foo"}]}
-  {a:[{c:"foo"}(({c:string},{b:int64})),{b:1}(({c:string},{b:int64}))]}
+  {a:[{c:"foo"}(({b:int64},{c:string})),{b:1}(({b:int64},{c:string}))]}

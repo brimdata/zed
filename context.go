@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/brimdata/zed/zcode"
@@ -169,6 +170,9 @@ func (c *Context) LookupTypeArray(inner Type) *TypeArray {
 }
 
 func (c *Context) LookupTypeUnion(types []Type) *TypeUnion {
+	sort.SliceStable(types, func(i, j int) bool {
+		return CompareTypes(types[i], types[j]) < 0
+	})
 	tv := EncodeTypeValue(&TypeUnion{Types: types})
 	c.mu.Lock()
 	defer c.mu.Unlock()
