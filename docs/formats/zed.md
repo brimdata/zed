@@ -169,7 +169,7 @@ A map type is uniquely defined by its key type and value type.
 
 The type order of two map types is as follows is
 * the type order of their key types,
-* or if they are the same, then the order of their key types.
+* or if they are the same, then the order of their value types.
 
 ### 2.5 Union
 
