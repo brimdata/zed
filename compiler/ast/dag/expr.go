@@ -52,9 +52,11 @@ type (
 		Path []string `json:"path"`
 	}
 	RecordExpr struct {
-		Kind   string  `json:"kind" unpack:""`
-		Fields []Field `json:"fields"`
-		With   Expr    `json:"with"`
+		Kind  string       `json:"kind" unpack:""`
+		Elems []RecordElem `json:"elems"`
+	}
+	RecordElem interface {
+		recordAST()
 	}
 	Literal struct {
 		Kind  string `json:"kind" unpack:""`
@@ -90,12 +92,20 @@ type (
 	}
 )
 
+func (*Field) recordAST()  {}
+func (*Spread) recordAST() {}
+
 // Various Expr fields.
 
 type (
 	Field struct {
+		Kind  string `json:"kind" unpack:""`
 		Name  string `json:"name"`
 		Value Expr   `json:"value"`
+	}
+	Spread struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
 	}
 	Entry struct {
 		Key   Expr `json:"key"`

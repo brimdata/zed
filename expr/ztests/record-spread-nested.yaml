@@ -1,0 +1,7 @@
+zed: yield {...{...r,a:1},b:2}
+
+input: |
+  {r:{c:0}}
+
+output: |
+  {c:0,a:1,b:2}
