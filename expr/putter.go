@@ -86,8 +86,8 @@ type putStep struct {
 	record    []putStep // for op == record
 }
 
-func (s *putStep) append(step putStep) {
-	s.record = append(s.record, step)
+func (p *putStep) append(step putStep) {
+	p.record = append(p.record, step)
 }
 
 type putOp int
@@ -98,24 +98,24 @@ const (
 	putRecord                  // recurse into record below us
 )
 
-func (s putStep) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) zcode.Bytes {
-	switch s.op {
+func (p *putStep) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) zcode.Bytes {
+	switch p.op {
 	case putRecord:
 		b.Reset()
-		if err := s.buildRecord(in, b, vals); err != nil {
+		if err := p.buildRecord(in, b, vals); err != nil {
 			return nil
 		}
 		return b.Bytes()
 	default:
 		// top-level op must be a record
-		panic(fmt.Sprintf("put: unexpected step %v", s.op))
+		panic(fmt.Sprintf("put: unexpected step %v", p.op))
 	}
 }
 
-func (s putStep) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) error {
+func (p *putStep) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) error {
 	ig := newGetter(in)
 
-	for _, step := range s.record {
+	for _, step := range p.record {
 		switch step.op {
 		case putFromInput:
 			bytes, err := ig.nth(step.index)
