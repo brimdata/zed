@@ -43,7 +43,7 @@ func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	//XXX should have a way to append into allocator
 	var b zcode.Builder
-	buildPath(typ, &b, []string{})
+	buildPath(typ, &b, nil)
 	return ctx.NewValue(f.typ, b.Bytes())
 }
 
