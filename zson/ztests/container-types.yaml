@@ -22,7 +22,7 @@ output: |
   null(|[string]|)
   null([string])
   null({a:string})
-  null(string)((string,int32))
+  null(string)((int32,string))
   |{1:"1",2:"2",3:"3"}|
   |[1,2,3]|
   1(int32)((int32,string))

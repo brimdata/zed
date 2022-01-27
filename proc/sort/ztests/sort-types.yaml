@@ -6,7 +6,7 @@ input: |
   <enum<b,c,d>>
   <enum<a,b,c>>
   <({x:string},{x:int64})>
-  <({a:string},uint8)>
+  <({a:net},{x:int64})>
   <({x:string},{x:int64,y:int64})>
   <|{bool:string}|>
   <|{float64:uint8}|>
@@ -68,7 +68,7 @@ output: |
   <|{float64:uint8}|>
   <|{float64:string}|>
   <|{bool:string}|>
-  <({a:string},uint8)>
+  <({a:net},{x:int64})>
   <({x:string},{x:int64})>
   <({x:string},{x:int64,y:int64})>
   <enum<a,b,c>>
