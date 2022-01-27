@@ -73,6 +73,8 @@ func compileExpr(zctx *zed.Context, e dag.Expr) (expr.Evaluator, error) {
 		return compileCast(zctx, *e)
 	case *dag.RegexpMatch:
 		return compileRegexpMatch(zctx, e)
+	case *dag.RegexpSearch:
+		return compileFilter(zctx, e)
 	case *dag.RecordExpr:
 		return compileRecordExpr(zctx, e)
 	case *dag.ArrayExpr:

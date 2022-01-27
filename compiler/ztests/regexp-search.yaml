@@ -1,0 +1,13 @@
+zed: yield search(*foo*)
+
+input: |
+  "foo"
+  1
+  {s:"xfooy"}
+  true
+
+output: |
+  true
+  false
+  true
+  false
