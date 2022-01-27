@@ -103,12 +103,12 @@ func (r *RecordExprWith) Eval(ectx Context, this *zed.Value) *zed.Value {
 	b := r.builder
 	b.Reset()
 	var dirty bool
-	it := zcode.Iter(with.Bytes)
+	it := with.Iter()
 	for k, col := range typ.Columns {
 		if pos, ok := r.position[col.Name]; ok {
 			val := r.exprs[pos].Eval(ectx, this)
 			b.Append(val.Bytes)
-			col = zed.Column{col.Name, val.Type}
+			col.Type = val.Type
 			it.Next()
 		} else {
 			b.Append(it.Next())
@@ -116,7 +116,7 @@ func (r *RecordExprWith) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if k >= len(cols) {
 			dirty = true
 			cols = append(cols, col)
-		} else if cols[k].Name != col.Name || cols[k].Type != col.Type {
+		} else if col != cols[k] {
 			dirty = true
 			cols[k] = col
 		}
@@ -132,7 +132,7 @@ func (r *RecordExprWith) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if colno >= len(cols) {
 			dirty = true
 			cols = append(cols, col)
-		} else if cols[colno].Name != col.Name || cols[colno].Type != col.Type {
+		} else if col != cols[colno] {
 			dirty = true
 			cols[colno] = col
 		}
