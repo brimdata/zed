@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 	"inet.af/netaddr"
@@ -66,7 +67,7 @@ func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (st
 type UnmarshalContext struct {
 	*UnmarshalZNGContext
 	zctx     *zed.Context
-	analyzer Analyzer
+	analyzer *Analyzer
 	builder  *zcode.Builder
 }
 
@@ -761,48 +762,43 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 		v.SetBool(zed.DecodeBool(zv.Bytes))
 		return nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		switch zed.TypeUnder(zv.Type) {
-		case zed.TypeInt8, zed.TypeInt16, zed.TypeInt32, zed.TypeInt64:
-		default:
+		if id := zed.TypeUnder(zv.Type).ID(); !zed.IsNumber(id) {
 			return incompatTypeError(zv.Type, v)
 		}
 		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		v.SetInt(zed.DecodeInt(zv.Bytes))
+		// We've already done the type check above so we can safely ignore the
+		// "ok".
+		f, _ := coerce.ToInt(zv)
+		v.SetInt(f)
 		return nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		switch zed.TypeUnder(zv.Type) {
-		case zed.TypeUint8, zed.TypeUint16, zed.TypeUint32, zed.TypeUint64:
-		default:
+		if id := zed.TypeUnder(zv.Type).ID(); !zed.IsNumber(id) {
 			return incompatTypeError(zv.Type, v)
 		}
 		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		v.SetUint(zed.DecodeUint(zv.Bytes))
+		// We've already done the type check above so we can safely ignore the
+		// "ok".
+		f, _ := coerce.ToUint(zv)
+		v.SetUint(f)
 		return nil
-	case reflect.Float32:
-		if zed.TypeUnder(zv.Type) != zed.TypeFloat32 {
+	case reflect.Float32, reflect.Float64:
+		if id := zed.TypeUnder(zv.Type).ID(); !zed.IsNumber(id) {
 			return incompatTypeError(zv.Type, v)
 		}
 		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		v.SetFloat(float64(zed.DecodeFloat32(zv.Bytes)))
-		return nil
-	case reflect.Float64:
-		if zed.TypeUnder(zv.Type) != zed.TypeFloat64 {
-			return incompatTypeError(zv.Type, v)
-		}
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
-		}
-		v.SetFloat(zed.DecodeFloat64(zv.Bytes))
+		// We've already done the type check above so we can safely ignore the
+		// "ok".
+		f, _ := coerce.ToFloat(zv)
+		v.SetFloat(f)
 		return nil
 	default:
 		return fmt.Errorf("unsupported type: %v", v.Kind())

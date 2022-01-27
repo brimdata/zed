@@ -10,10 +10,9 @@ import (
 )
 
 type Reader struct {
-	zctx       *zed.Context
-	decoder    *json.Decoder
-	encoder    *json.Encoder
-	encoderBuf *bytes.Buffer
+	zctx    *zed.Context
+	decoder *json.Decoder
+	buf     json.RawMessage
 }
 
 func NewReader(r io.Reader, zctx *zed.Context) *Reader {
@@ -25,14 +24,9 @@ func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 		// We have an array.  Discard its opening "[" delimiter.
 		d.Token()
 	}
-	var buf bytes.Buffer
-	e := json.NewEncoder(&buf)
-	e.SetEscapeHTML(false)
 	return &Reader{
-		zctx:       zctx,
-		decoder:    d,
-		encoder:    e,
-		encoderBuf: &buf,
+		zctx:    zctx,
+		decoder: d,
 	}
 }
 
@@ -40,16 +34,10 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if !r.decoder.More() {
 		return nil, nil
 	}
-	var v interface{}
-	if err := r.decoder.Decode(&v); err != nil {
+	if err := r.decoder.Decode(&r.buf); err != nil {
 		return nil, err
 	}
-	if _, ok := v.(map[string]interface{}); !ok {
-		v = map[string]interface{}{"value": v}
-	}
-	r.encoderBuf.Reset()
-	if err := r.encoder.Encode(v); err != nil {
-		return nil, err
-	}
-	return zsonio.NewReader(r.encoderBuf, r.zctx).Read()
+	zr := zsonio.NewReader(bytes.NewReader(r.buf), r.zctx)
+	zr.JSONStrict()
+	return zr.Read()
 }

@@ -28,19 +28,19 @@ outputs:
   - name: stdout
     data: |
       {
+          ts: 1.521911721926018e+09,
           a: "hello, world",
           b: {
-              x: 4611686018427388000,
-              y: "127.0.0.1",
-              z: "&, <, and > should not be escaped"
-          },
-          ts: 1.521911721926018e+09
+              z: "&, <, and > should not be escaped",
+              x: 4611686018427387904.,
+              y: "127.0.0.1"
+          }
       }
       ===
-      {a:1}
+      {a:1.}
       {b:"hello"}
       {c:true}
       ===
-      {value:"foo"}
-      {value:1}
-      {a:1}
+      "foo"
+      1.
+      {a:1.}

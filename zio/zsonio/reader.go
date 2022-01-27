@@ -12,7 +12,7 @@ type Reader struct {
 	reader   io.Reader
 	zctx     *zed.Context
 	parser   *zson.Parser
-	analyzer zson.Analyzer
+	analyzer *zson.Analyzer
 	builder  *zcode.Builder
 }
 
@@ -23,6 +23,12 @@ func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 		analyzer: zson.NewAnalyzer(),
 		builder:  zcode.NewBuilder(),
 	}
+}
+
+// JSONStrict adjusts the zson analyzer so all number values are interpreted as
+// float64s.
+func (r *Reader) JSONStrict() {
+	r.analyzer.JSONStrict = true
 }
 
 func (r *Reader) Read() (*zed.Value, error) {
