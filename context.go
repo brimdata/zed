@@ -264,7 +264,7 @@ func (c *Context) LookupByValue(tv zcode.Bytes) (Type, error) {
 		return typ, nil
 	}
 	c.mu.Unlock()
-	typ, rest := c.decodeTypeValue(tv)
+	typ, rest := c.DecodeTypeValue(tv)
 	c.mu.Lock()
 	if rest == nil {
 		return nil, errors.New("bad type value encoding")
@@ -317,7 +317,7 @@ func (c *Context) LookupTypeValue(typ Type) *Value {
 	return c.LookupTypeValue(typ)
 }
 
-func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
+func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 	if len(tv) == 0 {
 		return nil, nil
 	}
@@ -330,7 +330,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			return nil, nil
 		}
 		var typ Type
-		typ, tv = c.decodeTypeValue(tv)
+		typ, tv = c.DecodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
 		}
@@ -362,7 +362,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 				return nil, nil
 			}
 			var typ Type
-			typ, tv = c.decodeTypeValue(tv)
+			typ, tv = c.DecodeTypeValue(tv)
 			if tv == nil {
 				return nil, nil
 			}
@@ -374,7 +374,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	case TypeValueArray:
-		inner, tv := c.decodeTypeValue(tv)
+		inner, tv := c.DecodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
 		}
@@ -384,7 +384,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	case TypeValueSet:
-		inner, tv := c.decodeTypeValue(tv)
+		inner, tv := c.DecodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
 		}
@@ -394,11 +394,11 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	case TypeValueMap:
-		keyType, tv := c.decodeTypeValue(tv)
+		keyType, tv := c.DecodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
 		}
-		valType, tv := c.decodeTypeValue(tv)
+		valType, tv := c.DecodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
 		}
@@ -415,7 +415,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		types := make([]Type, 0, n)
 		for k := 0; k < n; k++ {
 			var typ Type
-			typ, tv = c.decodeTypeValue(tv)
+			typ, tv = c.DecodeTypeValue(tv)
 			types = append(types, typ)
 		}
 		typ := c.LookupTypeUnion(types)
@@ -443,7 +443,7 @@ func (c *Context) decodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	case TypeValueError:
-		inner, tv := c.decodeTypeValue(tv)
+		inner, tv := c.DecodeTypeValue(tv)
 		if tv == nil {
 			return nil, nil
 		}

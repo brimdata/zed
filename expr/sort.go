@@ -367,6 +367,16 @@ func LookupCompare(typ zed.Type) comparefn {
 			return va.Compare(vb)
 		}
 
+	case zed.IDType:
+		zctx := zed.NewContext()
+		return func(a, b zcode.Bytes) int {
+			// XXX This isn't cheap eventually we should add
+			// zed.CompareTypeValues(a, b zcode.Bytes).
+			va, _ := zctx.DecodeTypeValue(a)
+			vb, _ := zctx.DecodeTypeValue(b)
+			return zed.CompareTypes(va, vb)
+		}
+
 	default:
 		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
