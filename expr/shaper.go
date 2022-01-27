@@ -62,11 +62,6 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if !ok {
 		//XXX we should check if this is a cast-only function and
 		// and allocate a primitive caster if warranted
-		if zed.TypeRecordOf(shapeTo) == nil {
-			//XXX use structured error
-			return ectx.CopyValue(*s.zctx.NewErrorf(
-				"shaper function type argument is not a record type: %q", shapeTo))
-		}
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
 		s.shapers[shapeTo] = shaper
 	}
@@ -94,22 +89,12 @@ func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf Shap
 	}
 }
 
-func (s *ConstShaper) Apply(ectx Context, this *zed.Value) *zed.Value {
-	val := s.Eval(ectx, this)
-	if !zed.IsRecordType(val.Type) {
-		// XXX use structured error
-		return ectx.CopyValue(*s.zctx.NewErrorf(
-			"shaper returned non-record value %s", zson.MustFormatValue(*val)))
-	}
-	return val
-}
-
 func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := c.expr.Eval(ectx, this)
 	if val.IsError() {
 		return val
 	}
-	id := this.Type.ID()
+	id := val.Type.ID()
 	s, ok := c.shapers[id]
 	if !ok {
 		var err error
@@ -123,10 +108,14 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(s.typ, val.Bytes)
 	}
 	c.b.Reset()
-	if zerr := s.step.buildRecord(c.zctx, ectx, val.Bytes, &c.b); zerr != nil {
+	if zerr := s.step.build(c.zctx, ectx, val.Bytes, &c.b); zerr != nil {
 		return zerr
 	}
-	return ectx.NewValue(s.typ, c.b.Bytes())
+	body, err := c.b.Bytes().Body()
+	if err != nil {
+		panic(err)
+	}
+	return ectx.NewValue(s.typ, body)
 }
 
 // A shaper is a per-input type ID "spec" that contains the output
@@ -141,7 +130,7 @@ func createShaper(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (*sh
 	if err != nil {
 		return nil, err
 	}
-	step, err := createStepRecord(zed.TypeRecordOf(in), zed.TypeRecordOf(typ))
+	step, err := createStep(in, typ)
 	return &shaper{typ, step}, err
 }
 
@@ -437,6 +426,8 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 		}
 	case castUnion:
 		zed.BuildUnion(b, s.toSelector, in)
+	case null:
+		b.Append(nil)
 	case record:
 		if in == nil {
 			b.Append(nil)

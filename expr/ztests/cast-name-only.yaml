@@ -1,7 +1,9 @@
 zed: type foo = {x:int64}  yield cast(this, <foo>)
 
 input: |
+  null
   {x:123}
 
 output: |
+  null(foo={x:int64})
   {x:123}(=foo)
