@@ -1,4 +1,4 @@
-zed: put v:=cut(s,x)
+zed: put v:={s:s,x:x}
 
 input: |
   {x:1(int32),s:"a"}

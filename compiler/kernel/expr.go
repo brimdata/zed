@@ -248,29 +248,6 @@ func CompileAssignments(zctx *zed.Context, dsts field.List, srcs field.List) (fi
 	return fields, resolvers
 }
 
-func compileCutter(zctx *zed.Context, node dag.Call) (*expr.Cutter, error) {
-	var lhs field.List
-	var rhs []expr.Evaluator
-	for _, expr := range node.Args {
-		// This is a bit of a hack and could be cleaed up by re-factoring
-		// CompileAssigment, but for now, we create an assigment expression
-		// where the LHS and RHS are the same, so that cut(id.orig_h,_path)
-		// gives a value of type {id:{orig_h:ip},_path:string},
-		// i.e., field names that are the same as the cut names.
-		assignment := &dag.Assignment{LHS: expr, RHS: expr}
-		compiled, err := CompileAssignment(zctx, assignment)
-		if err != nil {
-			return nil, err
-		}
-		if compiled.LHS.IsEmpty() {
-			return nil, errors.New("cut(): 'this' not allowed in cut argument (use record literal)")
-		}
-		lhs = append(lhs, compiled.LHS)
-		rhs = append(rhs, compiled.RHS)
-	}
-	return expr.NewCutter(zctx, lhs, rhs)
-}
-
 func shaperOps(name string) expr.ShaperTransform {
 	switch name {
 	case "cast":
@@ -326,12 +303,6 @@ func compileCall(zctx *zed.Context, call dag.Call) (expr.Evaluator, error) {
 	// the changes to create running aggegation functions from reducers.
 	// XXX See issue #1259.
 	switch {
-	case call.Name == "cut":
-		cut, err := compileCutter(zctx, call)
-		if err != nil {
-			return nil, err
-		}
-		return cut, nil
 	case call.Name == "missing":
 		exprs, err := compileExprs(zctx, call.Args)
 		if err != nil {
