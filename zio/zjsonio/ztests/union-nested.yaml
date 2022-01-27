@@ -1,10 +1,10 @@
 zed: '*'
 
 input: |
-  {"schema":"27","types":[{"kind":"typedef","name":"27","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"union","types":[{"kind":"primitive","name":"string"},{"kind":"array","type":{"kind":"primitive","name":"int32"}},{"kind":"array","type":{"kind":"primitive","name":"string"}},{"kind":"union","types":[{"kind":"primitive","name":"string"},{"kind":"primitive","name":"int32"}]}]}}]}}],"values":[["0","\"hello\""]]}
-  {"schema":"27","values":[["1",["1","2"]]]}
-  {"schema":"27","values":[["2",["\"a\"","\"b\""]]]}
-  {"schema":"27","values":[["3",["1","123"]]]}
+  {"type":{"kind":"record","id":34,"fields":[{"name":"a","type":{"kind":"union","id":33,"types":[{"kind":"primitive","name":"string"},{"kind":"array","id":30,"type":{"kind":"primitive","name":"int32"}},{"kind":"array","id":31,"type":{"kind":"primitive","name":"string"}},{"kind":"union","id":32,"types":[{"kind":"primitive","name":"string"},{"kind":"primitive","name":"int32"}]}]}}]},"value":[["0","\"hello\""]]}
+  {"type":{"kind":"ref","id":34},"value":[["1",["1","2"]]]}
+  {"type":{"kind":"ref","id":34},"value":[["2",["\"a\"","\"b\""]]]}
+  {"type":{"kind":"ref","id":34},"value":[["3",["1","123"]]]}
 
 output: |
   {a:"\"hello\""((string,[int32],[string],(string,int32)))}

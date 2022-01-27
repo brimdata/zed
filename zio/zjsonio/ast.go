@@ -1,21 +1,20 @@
 package zjsonio
 
 import (
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/unpack"
 )
 
 var unpacker = make(unpack.Reflector)
 
 func init() {
-	unpacker.AddAs(astzed.TypeArray{}, "array")
-	unpacker.AddAs(astzed.TypeEnum{}, "enum")
-	unpacker.AddAs(astzed.TypeMap{}, "map")
-	unpacker.AddAs(astzed.TypePrimitive{}, "primitive")
-	unpacker.AddAs(astzed.TypeRecord{}, "record")
-	unpacker.AddAs(astzed.TypeSet{}, "set")
-	unpacker.AddAs(astzed.TypeUnion{}, "union")
-	unpacker.AddAs(astzed.TypeDef{}, "typedef")
-	unpacker.AddAs(astzed.TypeName{}, "typename")
-	unpacker.AddAs(astzed.TypeError{}, "error")
+	unpacker.AddAs(zPrimitive{}, "primitive")
+	unpacker.AddAs(zRecord{}, "record")
+	unpacker.AddAs(zArray{}, "array")
+	unpacker.AddAs(zSet{}, "set")
+	unpacker.AddAs(zMap{}, "map")
+	unpacker.AddAs(zUnion{}, "union")
+	unpacker.AddAs(zEnum{}, "enum")
+	unpacker.AddAs(zError{}, "error")
+	unpacker.AddAs(zNamed{}, "named")
+	unpacker.AddAs(zRef{}, "ref")
 }

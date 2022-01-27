@@ -1,9 +1,9 @@
 zed: '*'
 
 input: |
-  {"schema":"24","types":[{"kind":"typedef","name":"24","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"union","types":[{"kind":"primitive","name":"int32"},{"kind":"primitive","name":"string"}]}}]}}],"values":[["1","asdfasdf"]]}
-  {"schema":"24","values":[["0","1"]]}
-  {"schema":"24","values":[null]}
+  {"type":{"kind":"record","id":31,"fields":[{"name":"a","type":{"kind":"union","id":30,"types":[{"kind":"primitive","name":"int32"},{"kind":"primitive","name":"string"}]}}]},"value":[["1","asdfasdf"]]}
+  {"type":{"kind":"ref","id":31},"value":[["0","1"]]}
+  {"type":{"kind":"ref","id":31},"value":[null]}
 
 output: |
   {a:"asdfasdf"((int32,string))}

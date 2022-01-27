@@ -6,38 +6,30 @@ import (
 	"reflect"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zjsonio"
-	"github.com/brimdata/zed/zson"
 )
 
 type ZJSONWriter struct {
-	encoder   *json.Encoder
-	marshaler *zson.MarshalZNGContext
-	stream    *zjsonio.Stream
+	encoder *json.Encoder
+	writer  *zjsonio.Writer
 }
 
 var _ controlWriter = (*ZJSONWriter)(nil)
 
 func NewZJSONWriter(w io.Writer) *ZJSONWriter {
-	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
 	return &ZJSONWriter{
-		encoder:   json.NewEncoder(w),
-		marshaler: m,
-		stream:    zjsonio.NewStream(),
+		encoder: json.NewEncoder(w),
+		writer:  zjsonio.NewWriter(zio.NopCloser(w)),
 	}
 }
 
 func (w *ZJSONWriter) Write(rec *zed.Value) error {
-	object, err := w.stream.Transform(rec)
-	if err != nil {
-		return err
-	}
-	return w.WriteControl(object)
+	return w.writer.Write(rec)
 }
 
 type describe struct {
-	Kind  string      `json:"kind"`
+	Type  string      `json:"type"`
 	Value interface{} `json:"value"`
 }
 
@@ -47,7 +39,7 @@ func (w *ZJSONWriter) WriteControl(v interface{}) error {
 	// interfaces, which occurs frequently with zjsonio.Object.Types. For now
 	// just reflect here.
 	return w.encoder.Encode(describe{
-		Kind:  reflect.TypeOf(v).Name(),
+		Type:  reflect.TypeOf(v).Name(),
 		Value: v,
 	})
 }
