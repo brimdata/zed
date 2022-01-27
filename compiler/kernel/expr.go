@@ -372,6 +372,13 @@ func compileRecordExpr(zctx *zed.Context, record *dag.RecordExpr) (expr.Evaluato
 		names = append(names, f.Name)
 		exprs = append(exprs, e)
 	}
+	if record.With != nil {
+		with, err := compileExpr(zctx, record.With)
+		if err != nil {
+			return nil, err
+		}
+		return expr.NewRecordExprWith(zctx, names, exprs, with)
+	}
 	return expr.NewRecordExpr(zctx, names, exprs), nil
 }
 

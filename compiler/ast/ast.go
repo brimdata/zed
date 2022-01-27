@@ -93,6 +93,7 @@ type RegexpSearch struct {
 type RecordExpr struct {
 	Kind   string      `json:"kind" unpack:""`
 	Fields []FieldExpr `json:"fields"`
+	With   Expr        `json:"with"`
 }
 
 type FieldExpr struct {

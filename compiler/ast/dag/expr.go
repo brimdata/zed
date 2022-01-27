@@ -54,6 +54,7 @@ type (
 	RecordExpr struct {
 		Kind   string  `json:"kind" unpack:""`
 		Fields []Field `json:"fields"`
+		With   Expr    `json:"with"`
 	}
 	Literal struct {
 		Kind  string `json:"kind" unpack:""`

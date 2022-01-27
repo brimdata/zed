@@ -154,6 +154,14 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Where: where,
 		}, nil
 	case *ast.RecordExpr:
+		var with dag.Expr
+		if e.With != nil {
+			var err error
+			with, err = semExpr(scope, e.With)
+			if err != nil {
+				return nil, err
+			}
+		}
 		var fields []dag.Field
 		for _, f := range e.Fields {
 			value, err := semExpr(scope, f.Value)
@@ -165,6 +173,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		return &dag.RecordExpr{
 			Kind:   "RecordExpr",
 			Fields: fields,
+			With:   with,
 		}, nil
 	case *ast.ArrayExpr:
 		exprs, err := semExprs(scope, e.Exprs)

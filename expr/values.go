@@ -2,6 +2,7 @@ package expr
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -52,6 +53,99 @@ func (r *RecordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		bytes = []byte{}
 	}
 	return ectx.NewValue(r.typ, bytes)
+}
+
+type RecordExprWith struct {
+	zctx     *zed.Context
+	with     Evaluator
+	names    []string
+	exprs    []Evaluator
+	position map[string]int
+	builder  zcode.Builder
+	columns  []zed.Column
+	cache    *zed.TypeRecord
+}
+
+func NewRecordExprWith(zctx *zed.Context, names []string, exprs []Evaluator, with Evaluator) (*RecordExprWith, error) {
+	assignments := make([]Assignment, 0, len(names))
+	position := make(map[string]int)
+	for k, name := range names {
+		position[name] = k
+		assignments = append(assignments, Assignment{
+			LHS: field.New(name),
+			RHS: exprs[k],
+		})
+	}
+	return &RecordExprWith{
+		zctx:  zctx,
+		with:  with,
+		names: names,
+		exprs: exprs,
+	}, nil
+}
+
+func (r *RecordExprWith) Eval(ectx Context, this *zed.Value) *zed.Value {
+	with := r.with.Eval(ectx, this)
+	if with.IsMissing() {
+		return with
+	}
+	typ := zed.TypeRecordOf(with.Type)
+	if typ == nil {
+		return r.zctx.Missing()
+	}
+	// cols is a cache of the columns of the output record.
+	// As long as the type doesn't change, the columns will stay the
+	// same and the dirty boolean will stay false.  If something is
+	// diferrent, dirty becomes true, we look up the new type, and
+	// it stays in the cache for the next input.
+	cols := r.columns
+	b := r.builder
+	b.Reset()
+	var dirty bool
+	it := zcode.Iter(with.Bytes)
+	for k, col := range typ.Columns {
+		if pos, ok := r.position[col.Name]; ok {
+			val := r.exprs[pos].Eval(ectx, this)
+			b.Append(val.Bytes)
+			col = zed.Column{col.Name, val.Type}
+			it.Next()
+		} else {
+			b.Append(it.Next())
+		}
+		if k >= len(cols) {
+			dirty = true
+			cols = append(cols, col)
+		} else if cols[k].Name != col.Name || cols[k].Type != col.Type {
+			dirty = true
+			cols[k] = col
+		}
+	}
+	colno := len(typ.Columns)
+	for k, e := range r.exprs {
+		if typ.HasField(r.names[k]) {
+			continue
+		}
+		val := e.Eval(ectx, this)
+		b.Append(val.Bytes)
+		col := zed.Column{r.names[k], val.Type}
+		if colno >= len(cols) {
+			dirty = true
+			cols = append(cols, col)
+		} else if cols[colno].Name != col.Name || cols[colno].Type != col.Type {
+			dirty = true
+			cols[colno] = col
+		}
+		colno++
+	}
+	if colno < len(cols) {
+		dirty = true
+		cols = cols[:colno]
+	}
+	if dirty {
+		r.cache = r.zctx.MustLookupTypeRecord(cols)
+		r.columns = cols
+	}
+	return ectx.NewValue(r.cache, b.Bytes())
 }
 
 type ArrayExpr struct {
