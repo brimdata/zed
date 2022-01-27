@@ -1,28 +1,24 @@
-package put
+package expr
 
 import (
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/proc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
 
-// Put is a proc that modifies the record stream with computed values.
+// Putter is an Applier that modifies the record stream with computed values.
 // Each new value is called a clause and consists of a field name and
 // an expression. Each put clause either replaces an existing value in
 // the column specified or appends a value as a new column.  Appended
 // values appear as new columns in the order that the clause appears
 // in the put expression.
-type Proc struct {
-	pctx    *proc.Context
-	parent  zbuf.Puller
+type Putter struct {
+	zctx    *zed.Context
 	builder zcode.Builder
-	clauses []expr.Assignment
+	clauses []Assignment
 	// vals is a fixed array to avoid re-allocating for every record
 	vals   []zed.Value
 	rules  map[int]putRule
@@ -38,10 +34,10 @@ type Proc struct {
 type putRule struct {
 	typ         zed.Type
 	clauseTypes []zed.Type
-	step        step
+	step        putStep
 }
 
-func New(pctx *proc.Context, parent zbuf.Puller, clauses []expr.Assignment) (zbuf.Puller, error) {
+func NewPutter(zctx *zed.Context, clauses []Assignment) (*Putter, error) {
 	for i, p := range clauses {
 		if p.LHS.IsEmpty() {
 			return nil, fmt.Errorf("put: LHS cannot be 'this' (use 'yield' operator)")
@@ -58,10 +54,8 @@ func New(pctx *proc.Context, parent zbuf.Puller, clauses []expr.Assignment) (zbu
 			}
 		}
 	}
-
-	return &Proc{
-		pctx:    pctx,
-		parent:  parent,
+	return &Putter{
+		zctx:    zctx,
 		clauses: clauses,
 		vals:    make([]zed.Value, len(clauses)),
 		rules:   make(map[int]putRule),
@@ -69,7 +63,7 @@ func New(pctx *proc.Context, parent zbuf.Puller, clauses []expr.Assignment) (zbu
 	}, nil
 }
 
-func (p *Proc) eval(ectx expr.Context, this *zed.Value) []zed.Value {
+func (p *Putter) eval(ectx Context, this *zed.Value) []zed.Value {
 	vals := p.vals[:0]
 	for _, cl := range p.clauses {
 		val := *cl.RHS.Eval(ectx, this)
@@ -82,31 +76,31 @@ func (p *Proc) eval(ectx expr.Context, this *zed.Value) []zed.Value {
 	return vals
 }
 
-// A step is a recursive data structure encoding a series of steps to be
+// A putStep is a recursive data structure encoding a series of steps to be
 // carried out to construct an output record from an input record and
 // a slice of evaluated clauses.
-type step struct {
-	op        op
+type putStep struct {
+	op        putOp
 	index     int
 	container bool
-	record    []step // for op == record
+	record    []putStep // for op == record
 }
 
-func (s *step) append(step step) {
+func (s *putStep) append(step putStep) {
 	s.record = append(s.record, step)
 }
 
-type op int
+type putOp int
 
 const (
-	fromInput  op = iota // copy field from input record
-	fromClause           // copy field from put assignment
-	record               // recurse into record below us
+	putFromInput  putOp = iota // copy field from input record
+	putFromClause              // copy field from put assignment
+	putRecord                  // recurse into record below us
 )
 
-func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) zcode.Bytes {
+func (s putStep) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) zcode.Bytes {
 	switch s.op {
-	case record:
+	case putRecord:
 		b.Reset()
 		if err := s.buildRecord(in, b, vals); err != nil {
 			return nil
@@ -118,20 +112,20 @@ func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) zcode.By
 	}
 }
 
-func (s step) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) error {
+func (s putStep) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) error {
 	ig := newGetter(in)
 
 	for _, step := range s.record {
 		switch step.op {
-		case fromInput:
+		case putFromInput:
 			bytes, err := ig.nth(step.index)
 			if err != nil {
 				return err
 			}
 			b.Append(bytes)
-		case fromClause:
+		case putFromClause:
 			b.Append(vals[step.index].Bytes)
-		case record:
+		case putRecord:
 			b.BeginContainer()
 			bytes, err := in, error(nil)
 			if step.index >= 0 {
@@ -179,7 +173,7 @@ func (ig *getter) nth(n int) (zcode.Bytes, error) {
 	return nil, fmt.Errorf("getter.nth: array index %d out of bounds", n)
 }
 
-func findOverwriteClause(path field.Path, clauses []expr.Assignment) (int, field.Path, bool) {
+func findOverwriteClause(path field.Path, clauses []Assignment) (int, field.Path, bool) {
 	for i, cand := range clauses {
 		if path.Equal(cand.LHS) || cand.LHS.HasStrictPrefix(path) {
 			return i, cand.LHS, true
@@ -188,12 +182,12 @@ func findOverwriteClause(path field.Path, clauses []expr.Assignment) (int, field
 	return -1, nil, false
 }
 
-func (p *Proc) deriveSteps(inType *zed.TypeRecord, vals []zed.Value) (step, zed.Type) {
+func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value) (putStep, zed.Type) {
 	return p.deriveRecordSteps(field.NewEmpty(), inType.Columns, vals)
 }
 
-func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value) (step, *zed.TypeRecord) {
-	s := step{op: record}
+func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value) (putStep, *zed.TypeRecord) {
+	s := putStep{op: putRecord}
 	cols := make([]zed.Column, 0)
 
 	// First look at all input columns to see which should
@@ -205,16 +199,16 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, val
 		switch {
 		// input not overwritten by assignment: copy input value.
 		case !found:
-			s.append(step{
-				op:        fromInput,
+			s.append(putStep{
+				op:        putFromInput,
 				container: zed.IsContainerType(inCol.Type),
 				index:     i,
 			})
 			cols = append(cols, inCol)
 		// input field overwritten by non-nested assignment: copy assignment value.
 		case len(path) == len(matchPath):
-			s.append(step{
-				op:        fromClause,
+			s.append(putStep{
+				op:        putFromClause,
 				container: zed.IsContainerType(vals[matchIndex].Type),
 				index:     matchIndex,
 			})
@@ -236,7 +230,7 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, val
 		}
 	}
 
-	appendClause := func(cl expr.Assignment) bool {
+	appendClause := func(cl Assignment) bool {
 		if !cl.LHS.HasPrefix(parentPath) {
 			return false
 		}
@@ -248,8 +242,8 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, val
 			switch {
 			// Append value at this level
 			case len(cl.LHS) == len(parentPath)+1:
-				s.append(step{
-					op:        fromClause,
+				s.append(putStep{
+					op:        putFromClause,
 					container: zed.IsContainerType(vals[i].Type),
 					index:     i,
 				})
@@ -264,8 +258,7 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, val
 			}
 		}
 	}
-
-	typ, err := p.pctx.Zctx.LookupTypeRecord(cols)
+	typ, err := p.zctx.LookupTypeRecord(cols)
 	if err != nil {
 		panic(err)
 	}
@@ -290,7 +283,7 @@ func sameTypes(types []zed.Type, vals []zed.Value) bool {
 	return true
 }
 
-func (p *Proc) lookupRule(inType *zed.TypeRecord, vals []zed.Value) putRule {
+func (p *Putter) lookupRule(inType *zed.TypeRecord, vals []zed.Value) putRule {
 	rule, ok := p.rules[inType.ID()]
 	if ok && sameTypes(rule.clauseTypes, vals) {
 		return rule
@@ -305,14 +298,14 @@ func (p *Proc) lookupRule(inType *zed.TypeRecord, vals []zed.Value) putRule {
 	return rule
 }
 
-func (p *Proc) put(ectx expr.Context, this *zed.Value) *zed.Value {
+func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
 	recType := zed.TypeRecordOf(this.Type)
 	if recType == nil {
 		if this.IsError() {
 			// propagate errors
 			return this
 		}
-		return ectx.CopyValue(*p.pctx.Zctx.NewErrorf("put: not a record: %s", zson.MustFormatValue(*this)))
+		return ectx.CopyValue(*p.zctx.NewErrorf("put: not a record: %s", zson.MustFormatValue(*this)))
 	}
 	vals := p.eval(ectx, this)
 	rule := p.lookupRule(recType, vals)
@@ -320,21 +313,8 @@ func (p *Proc) put(ectx expr.Context, this *zed.Value) *zed.Value {
 	return zed.NewValue(rule.typ, bytes)
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
-	batch, err := p.parent.Pull(done)
-	if batch == nil || err != nil {
-		return nil, err
-	}
-	vals := batch.Values()
-	recs := make([]zed.Value, 0, len(vals))
-	for i := range vals {
-		rec := p.put(batch, &vals[i])
-		if rec.IsQuiet() {
-			continue
-		}
-		// Copy is necessary because put can return its argument.
-		recs = append(recs, *rec.Copy())
-	}
-	batch.Unref()
-	return zbuf.NewArray(recs), nil
+func (*Putter) String() string { return "put" }
+
+func (*Putter) Warning() string {
+	return ""
 }
