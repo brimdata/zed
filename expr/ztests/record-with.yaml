@@ -14,5 +14,5 @@ output: |
   {x:2,b:3,c:2}
   {x:1,b:error("missing"),c:2}
   {x:3,b:3,c:2}
-  {x:3,c:3,b:3}
+  {x:3,c:2,b:3}
   {y:true,z:false,b:3,c:2}

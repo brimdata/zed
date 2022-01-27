@@ -77,10 +77,11 @@ func NewRecordExprWith(zctx *zed.Context, names []string, exprs []Evaluator, wit
 		})
 	}
 	return &RecordExprWith{
-		zctx:  zctx,
-		with:  with,
-		names: names,
-		exprs: exprs,
+		zctx:     zctx,
+		with:     with,
+		names:    names,
+		exprs:    exprs,
+		position: position,
 	}, nil
 }
 
