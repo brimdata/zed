@@ -108,7 +108,8 @@ type Split struct {
 
 func newSplit(zctx *zed.Context) *Split {
 	return &Split{
-		typ: zctx.LookupTypeArray(zed.TypeString),
+		zctx: zctx,
+		typ:  zctx.LookupTypeArray(zed.TypeString),
 	}
 }
 
