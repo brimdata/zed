@@ -21,7 +21,6 @@ import (
 	"github.com/brimdata/zed/proc/join"
 	"github.com/brimdata/zed/proc/merge"
 	"github.com/brimdata/zed/proc/pass"
-	"github.com/brimdata/zed/proc/put"
 	"github.com/brimdata/zed/proc/shape"
 	"github.com/brimdata/zed/proc/sort"
 	"github.com/brimdata/zed/proc/split"
@@ -151,11 +150,11 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 		if err != nil {
 			return nil, err
 		}
-		put, err := put.New(b.pctx, parent, clauses)
+		putter, err := expr.NewPutter(b.pctx.Zctx, clauses)
 		if err != nil {
 			return nil, err
 		}
-		return put, nil
+		return proc.NewApplier(b.pctx, parent, putter), nil
 	case *dag.Rename:
 		var srcs, dsts field.List
 		for _, fa := range v.Args {
