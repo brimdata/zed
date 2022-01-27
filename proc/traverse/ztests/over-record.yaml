@@ -1,0 +1,18 @@
+zed: |
+  let d=date over this => (
+    key != 'date'
+    | yield {date: d, sym: key, price: value}
+  )
+
+input: |
+  {
+    date: 2022-01-26T17:46:13.945103Z,
+    amzn: 1900,
+    goog: 1120,
+    fb: 180,
+  }
+
+output: |
+  {date:2022-01-26T17:46:13.945103Z,sym:"amzn",price:1900}
+  {date:2022-01-26T17:46:13.945103Z,sym:"goog",price:1120}
+  {date:2022-01-26T17:46:13.945103Z,sym:"fb",price:180}
