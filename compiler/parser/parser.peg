@@ -556,6 +556,11 @@ ScopedOver
       RETURN(MAP("kind":"Over", "exprs":exprs, "scope":scope, "as":as))
     }
 
+OverWith
+  = "over"i _ exprs:Exprs _ "with" _ locals:LetAssignments __ scope:Scope {
+      RETURN(MAP("kind":"Let", "locals":locals, "over":MAP("kind":"Over", "exprs":exprs, "scope":scope, "as":"")))
+    }
+
 As
   = _ "as" _ id:IdentifierName { RETURN(id) }
   / "" { RETURN("") }
@@ -564,6 +569,7 @@ LetProc
   = "let"i _ locals:LetAssignments __ over:ScopedOver {
       RETURN(MAP("kind":"Let", "locals":locals, "over":over))
     }
+  / OverWith
 
 Scope = "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
 
