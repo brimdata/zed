@@ -584,9 +584,19 @@ func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
 	return ectx.NewValue(typ, zed.EncodeUint(x%y))
 }
 
-func getNthFromContainer(container zcode.Bytes, idx uint) zcode.Bytes {
+func getNthFromContainer(container zcode.Bytes, idx int) zcode.Bytes {
+	if idx < 0 {
+		var length int
+		for it := container.Iter(); !it.Done(); it.Next() {
+			length++
+		}
+		idx = length + idx
+		if idx < 0 || idx >= length {
+			return nil
+		}
+	}
 	iter := container.Iter()
-	var i uint = 0
+	var i int
 	for ; !iter.Done(); i++ {
 		zv := iter.Next()
 		if i == idx {
@@ -640,15 +650,11 @@ func indexArray(zctx *zed.Context, ectx Context, typ *zed.TypeArray, array zcode
 	if !zed.IsInteger(id) {
 		return ectx.CopyValue(*zctx.NewErrorf("array index is not an integer"))
 	}
-	var idx uint
+	var idx int
 	if zed.IsSigned(id) {
-		v := zed.DecodeInt(index.Bytes)
-		if v < 0 {
-			return zctx.Missing()
-		}
-		idx = uint(v)
+		idx = int(zed.DecodeInt(index.Bytes))
 	} else {
-		idx = uint(zed.DecodeUint(index.Bytes))
+		idx = int(zed.DecodeUint(index.Bytes))
 	}
 	zv := getNthFromContainer(array, idx)
 	if zv == nil {
