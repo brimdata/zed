@@ -12,6 +12,7 @@ package zed
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -369,4 +370,78 @@ func TypeID(typ Type) int {
 		return named.id
 	}
 	return typ.ID()
+}
+
+func CompareTypes(a, b Type) int {
+	a, b = TypeUnder(a), TypeUnder(b)
+	if cmp := compareInts(int(a.Kind()), int(b.Kind())); cmp != 0 {
+		return cmp
+	}
+	switch a.Kind() {
+	case PrimitiveKind:
+		return compareInts(a.ID(), b.ID())
+	case RecordKind:
+		ra, rb := TypeRecordOf(a), TypeRecordOf(b)
+		// First compare column lengths.
+		if len(ra.Columns) != len(rb.Columns) {
+			return compareInts(len(ra.Columns), len(rb.Columns))
+		}
+		// Second compare column names.
+		for i := 0; i < len(ra.Columns); i++ {
+			if cmp := strings.Compare(ra.Columns[i].Name, rb.Columns[i].Name); cmp != 0 {
+				return cmp
+			}
+		}
+		// Lastly compare column types.
+		for i := 0; i < len(ra.Columns); i++ {
+			if cmp := CompareTypes(ra.Columns[i].Type, ra.Columns[i].Type); cmp != 0 {
+				return cmp
+			}
+		}
+		return 0
+	case ArrayKind, SetKind:
+		a, b = InnerType(a), InnerType(b)
+		return CompareTypes(a, b)
+	case MapKind:
+		ma, mb := a.(*TypeMap), b.(*TypeMap)
+		if cmp := CompareTypes(ma.KeyType, mb.KeyType); cmp != 0 {
+			return cmp
+		}
+		return CompareTypes(ma.ValType, mb.ValType)
+	case UnionKind:
+		ua, ub := a.(*TypeUnion), b.(*TypeUnion)
+		if cmp := compareInts(len(ua.Types), len(ub.Types)); cmp != 0 {
+			return cmp
+		}
+		for i := 0; i < len(ua.Types); i++ {
+			if cmp := CompareTypes(ua.Types[i], ub.Types[i]); cmp != 0 {
+				return cmp
+			}
+		}
+		return 0
+	case EnumKind:
+		ea, eb := a.(*TypeEnum), b.(*TypeEnum)
+		if cmp := compareInts(len(ea.Symbols), len(eb.Symbols)); cmp != 0 {
+			return cmp
+		}
+		for i := 0; i < len(ea.Symbols); i++ {
+			if cmp := strings.Compare(ea.Symbols[i], eb.Symbols[i]); cmp != 0 {
+				return cmp
+			}
+		}
+		return 0
+	case ErrorKind:
+		ea, eb := a.(*TypeError), b.(*TypeError)
+		return CompareTypes(ea.Type, eb.Type)
+	}
+	return 0
+}
+
+func compareInts(a, b int) int {
+	if a < b {
+		return -1
+	} else if a > b {
+		return 1
+	}
+	return 0
 }
