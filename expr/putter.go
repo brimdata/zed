@@ -315,6 +315,4 @@ func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
 
 func (*Putter) String() string { return "put" }
 
-func (*Putter) Warning() string {
-	return ""
-}
+func (*Putter) Warning() string { return "" }
