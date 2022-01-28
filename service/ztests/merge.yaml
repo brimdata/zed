@@ -4,10 +4,10 @@ script: |
   zed load -q -use POOL@main a.zson
   zed branch -q -use POOL@main child
   zed load -q -use POOL@child b.zson
-  zed query -z "from POOL | sort ."
+  zed query -z "from POOL | sort this"
   echo ===
   zed merge -q -use POOL@child main
-  zed query -z "from POOL | sort ."
+  zed query -z "from POOL | sort this"
 
 inputs:
   - name: a.zson

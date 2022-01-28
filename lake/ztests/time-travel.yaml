@@ -5,16 +5,16 @@ script: |
   zed use -q POOL@main
   a=$(zed load a.zson | head -1 | awk '{print $1}')
   b=$(zed load b.zson | head -1 | awk '{print $1}')
-  zed query -z "from POOL | sort ."
+  zed query -z "from POOL | sort this"
   echo === AT a
-  zed query -z "from POOL@$a | sort ."
+  zed query -z "from POOL@$a | sort this"
   echo === AT b
-  zed query -z "from POOL@$b | sort ."
+  zed query -z "from POOL@$b | sort this"
   zed revert -q $a
   echo === with A deleted
-  zed query -z "from POOL | sort ."
+  zed query -z "from POOL | sort this"
   echo === at B before A deleted
-  zed query -z "from POOL@$b | sort ."
+  zed query -z "from POOL@$b | sort this"
 
 inputs:
   - name: a.zson

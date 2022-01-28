@@ -3,7 +3,7 @@ zed: |
   FROM fruit f
   LEFT JOIN person p ON f.flavor = p.likes
   GROUP BY p.name
-  | sort .
+  | sort this
 
 input: |
   {name:"apple",color:"red",flavor:"tart"}(=fruit)
