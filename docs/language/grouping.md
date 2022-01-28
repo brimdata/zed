@@ -116,12 +116,12 @@ zq -f table 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' testscores.
 
 #### Output:
 ```mdtest-output head
-cname           dnmae   avg                count
-Los Angeles     missing 450.83037974683543 469
-San Diego       missing 496.74789915966386 168
-San Bernardino  missing 465.11764705882354 117
-Riverside       missing 463.8170731707317  110
-Orange          missing 510.91011235955057 107
+cname           dnmae avg                count
+Los Angeles     -     450.83037974683543 469
+San Diego       -     496.74789915966386 168
+San Bernardino  -     465.11764705882354 117
+Riverside       -     463.8170731707317  110
+Orange          -     510.91011235955057 107
 ...
 ```
 # Note: Undefined Order
