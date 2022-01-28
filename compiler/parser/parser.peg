@@ -733,34 +733,9 @@ Exprs
       RETURN(PREPEND(first, rest))
     }
 
-DerefExpr = !IP6 e:DerefExprPattern { RETURN(e) }
-
-DerefExprPattern
-  = first:DotID rest:(Deref)* {
+DerefExpr
+  = !IP6 first:Identifier rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
-    }
-  / first:This rest:(Deref)* {
-      RETURN(makeBinaryExprChain(first, rest))
-    }
-  / first:Identifier rest:(Deref)* {
-      RETURN(makeBinaryExprChain(first, rest))
-    }
-  / "." {
-      RETURN(MAP("kind":"ID","name":"this"))
-    }
-
-This = "this" { RETURN(MAP("kind":"ID","name":"this")) }
-
-DotID
-  = "." field:Identifier {
-      RETURN(MAP("kind": "BinaryExpr", "op":".",
-                     "lhs":MAP("kind":"ID","name":"this"),
-                     "rhs":field))
-    }
-  / "." "[" expr:Expr "]" {
-      RETURN(MAP("kind": "BinaryExpr", "op":"[",
-                     "lhs":MAP("kind":"ID","name":"this"),
-                     "rhs":expr))
     }
 
 Deref
@@ -777,7 +752,7 @@ Deref
                             "lhs":from, "rhs": NULL)))
     }
   / "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
-  / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
+  / "." id:Identifier { RETURN(ARRAY(".", id)) }
 
 Primary
   = Record

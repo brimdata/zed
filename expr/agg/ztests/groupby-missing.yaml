@@ -1,5 +1,5 @@
 zed: |
-  by a:=a[0], b:=b.c | sort .
+  by a:=a[0], b:=b.c | sort this
 
 input: |
   {a:"a",b:"b"}

@@ -5,13 +5,13 @@ script: |
   zed use -q test@main
   a=$(zed load a.zson | head -1 | awk '{print $1}')
   b=$(zed load b.zson | head -1 | awk '{print $1}')
-  zed query -z "sort ."
+  zed query -z "sort this"
   zed revert -q $a
   echo ===
-  zed query -z "sort ."
+  zed query -z "sort this"
   zed revert -q $b
   echo ===
-  zed query -z "sort ."
+  zed query -z "sort this"
 
 inputs:
   - name: a.zson
