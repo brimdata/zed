@@ -866,7 +866,7 @@ func (u *UnmarshalZNGContext) decodeRecord(zv zed.Value, sval reflect.Value) err
 	}
 	for i, it := 0, zv.Iter(); !it.Done(); i++ {
 		if i >= len(recType.Columns) {
-			return zed.ErrMismatch
+			return zed.ErrBadValue
 		}
 		itzv := it.Next()
 		name := recType.Columns[i].Name
