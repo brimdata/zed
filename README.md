@@ -51,7 +51,7 @@ You can find these binaries on the GitHub
 
 Once installed, you can run the query engine from the command-line using `zq`:
 ```
-echo '{"s":"hello, world"}' | zq -Z -
+echo '"hello, world"' | zq -
 ```
 Or you can run a Zed lake service, load it with data using `zed load`, and hit the API.
 In one shell, run the server:
