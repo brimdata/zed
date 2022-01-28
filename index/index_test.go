@@ -16,6 +16,7 @@ import (
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,10 +36,7 @@ func TestSearch(t *testing.T) {
 	rec, err := finder.Lookup(kv...)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	value, err := rec.Slice(1)
-	require.NoError(t, err)
-	value2 := zed.EncodeString("value2")
-	assert.Equal(t, value, value2, "key lookup failed")
+	assert.Equal(t, zson.String(rec), `{key:"key2",value:"value2"}`, "key lookup failed")
 }
 
 func TestMicroIndex(t *testing.T) {
@@ -102,8 +100,7 @@ func TestNearest(t *testing.T) {
 			require.NoError(t, err)
 			v := int64(-1)
 			if rec != nil {
-				v, err = rec.AccessInt("ts")
-				require.NoError(t, err)
+				v = rec.Deref("ts").AsInt()
 			}
 			assert.Equal(t, expected, v)
 		})

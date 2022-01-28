@@ -72,19 +72,16 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 }
 
 func (w *Writer) Write(rec *zed.Value) error {
-	key, err := rec.Deref(w.poolKey)
-	if err != nil {
-		key = zed.Value{zed.TypeNull, nil}
-	}
+	key := rec.DerefPath(w.poolKey).MissingAsNull()
 	if w.seekIndex != nil {
-		if err := w.writeIndex(key); err != nil {
+		if err := w.writeIndex(*key); err != nil {
 			return err
 		}
 	}
 	if err := w.rowObject.Write(rec); err != nil {
 		return err
 	}
-	w.lastKey = key
+	w.lastKey = *key
 	w.count++
 	return nil
 }

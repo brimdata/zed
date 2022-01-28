@@ -15,10 +15,8 @@ func TestRecordAccessNamed(t *testing.T) {
 	reader := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
 	rec, err := reader.Read()
 	require.NoError(t, err)
-	s, err := rec.AccessString("foo")
-	require.NoError(t, err)
+	s := rec.Deref("foo").AsString()
 	assert.Equal(t, s, "hello")
-	b, err := rec.AccessBool("bar")
-	require.NoError(t, err)
+	b := rec.Deref("bar").AsBool()
 	assert.Equal(t, b, true)
 }

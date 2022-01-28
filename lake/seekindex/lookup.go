@@ -1,6 +1,8 @@
 package seekindex
 
 import (
+	"errors"
+	"fmt"
 	"math"
 
 	"github.com/brimdata/zed"
@@ -31,35 +33,36 @@ func lookup(r zio.Reader, path field.Path, from, to *zed.Value, cmp expr.Compare
 		if rec == nil {
 			return rg, nil
 		}
-		key, err := rec.Deref(path)
-		if err != nil {
-			return Range{}, err
+		key := rec.DerefPath(path)
+		if key == nil {
+			return Range{}, fmt.Errorf("key does not exist: %s", path)
 		}
-		if cmp(&key, from) > 0 {
+		if cmp(key, from) > 0 {
 			break
 		}
-		off, err := rec.Access("offset")
-		if err != nil {
-			return Range{}, err
+		off := rec.Deref("offset")
+		if off == nil {
+			return Range{}, errors.New("seekindex: missing offset")
 		}
-		rg.Start = zed.DecodeInt(off.Bytes)
-		if cmp(&key, from) == 0 {
+		rg.Start = off.AsInt()
+		if cmp(key, from) == 0 {
 			break
 		}
 	}
 	for {
-		key, err := rec.Deref(path)
-		if err != nil {
-			return Range{}, err
+		key := rec.DerefPath(path)
+		if key == nil {
+			return Range{}, fmt.Errorf("key does not exist: %s", path)
 		}
-		if cmp(&key, to) > 0 {
-			off, err := rec.Access("offset")
-			if err != nil {
-				return Range{}, err
+		if cmp(key, to) > 0 {
+			off := rec.Deref("offset")
+			if off == nil {
+				return Range{}, errors.New("seekindex: missing offset")
 			}
-			rg.End = zed.DecodeInt(off.Bytes)
+			rg.End = off.AsInt()
 			break
 		}
+		var err error
 		rec, err = r.Read()
 		if err != nil {
 			return Range{}, err

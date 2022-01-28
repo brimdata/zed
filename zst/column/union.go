@@ -91,27 +91,27 @@ func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, e
 	rec := zed.NewValue(rtype, in.Bytes)
 	var readers []Reader
 	for k := 0; k < len(typ.Types); k++ {
-		zv, err := rec.Access(fmt.Sprintf("c%d", k))
-		if err != nil {
-			return nil, err
+		val := rec.Deref(fmt.Sprintf("c%d", k)).MissingAsNull()
+		if val.IsNull() {
+			return nil, errors.New("ZST union missing column")
 		}
-		d, err := NewReader(typ.Types[k], zv, r)
+		d, err := NewReader(typ.Types[k], *val, r)
 		if err != nil {
 			return nil, err
 		}
 		readers = append(readers, d)
 	}
-	zv, err := rec.Access("selector")
-	if err != nil {
-		return nil, err
+	selector := rec.Deref("selector").MissingAsNull()
+	if selector.IsNull() {
+		return nil, errors.New("ZST union missing selector")
 	}
-	selector, err := NewIntReader(zv, r)
+	sr, err := NewIntReader(*selector, r)
 	if err != nil {
 		return nil, err
 	}
 	return &UnionReader{
 		readers:  readers,
-		selector: selector,
+		selector: sr,
 	}, nil
 }
 

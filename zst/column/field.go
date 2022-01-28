@@ -87,37 +87,30 @@ type FieldReader struct {
 }
 
 func NewFieldReader(typ zed.Type, in zed.Value, r io.ReaderAt) (*FieldReader, error) {
-	rtype, ok := in.Type.(*zed.TypeRecord)
-	if !ok {
-		return nil, errors.New("ZST object array_column not a record")
-	}
-	rec := zed.NewValue(rtype, in.Bytes)
-	zv, err := rec.Access("column")
-	if err != nil {
-		return nil, err
-	}
+	col := in.Deref("column").MissingAsNull()
 	var val Reader
-	if zv.Bytes != nil {
-		val, err = NewReader(typ, zv, r)
+	if !col.IsNull() {
+		var err error
+		val, err = NewReader(typ, *col, r)
 		if err != nil {
 			return nil, err
 		}
 	}
-	zv, err = rec.Access("presence")
+	presence := in.Deref("presence").MissingAsNull()
+	if presence.IsNull() {
+		return nil, errors.New("ZST field has no presence")
+	}
+	d, err := NewPrimitiveReader(*presence, r)
 	if err != nil {
 		return nil, err
 	}
-	d, err := NewPrimitiveReader(zv, r)
-	if err != nil {
-		return nil, err
-	}
-	var presence *PresenceReader
+	var pr *PresenceReader
 	if len(d.segmap) != 0 {
-		presence = NewPresence(IntReader{*d})
+		pr = NewPresence(IntReader{*d})
 	}
 	return &FieldReader{
 		val:      val,
-		presence: presence,
+		presence: pr,
 	}, nil
 }
 
