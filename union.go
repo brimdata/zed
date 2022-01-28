@@ -7,10 +7,20 @@ import (
 type TypeUnion struct {
 	id    int
 	Types []Type
+	LUT   map[Type]int
 }
 
 func NewTypeUnion(id int, types []Type) *TypeUnion {
-	return &TypeUnion{id, types}
+	t := &TypeUnion{id: id, Types: types}
+	t.createLUT()
+	return t
+}
+
+func (t *TypeUnion) createLUT() {
+	t.LUT = make(map[Type]int)
+	for i, typ := range t.Types {
+		t.LUT[typ] = i
+	}
 }
 
 func (t *TypeUnion) ID() int {
@@ -23,6 +33,15 @@ func (t *TypeUnion) Type(selector int) (Type, error) {
 		return nil, ErrUnionSelector
 	}
 	return t.Types[selector], nil
+}
+
+// Selector returns the selector for typ in the union. If no type exists -1 is
+// returned.
+func (t *TypeUnion) Selector(typ Type) int {
+	if s, ok := t.LUT[typ]; ok {
+		return s
+	}
+	return -1
 }
 
 // SplitZNG takes a zng encoding of a value of the receiver's union type and

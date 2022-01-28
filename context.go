@@ -184,6 +184,24 @@ func (c *Context) LookupTypeUnion(types []Type) *TypeUnion {
 	return typ
 }
 
+func (c *Context) LookupTypeOfValues(vals []Value) Type {
+	if len(vals) == 0 {
+		return TypeNull
+	}
+	var types []Type
+	m := make(map[Type]struct{})
+	for _, val := range vals {
+		if _, ok := m[val.Type]; !ok {
+			m[val.Type] = struct{}{}
+			types = append(types, val.Type)
+		}
+	}
+	if len(types) == 1 {
+		return types[0]
+	}
+	return c.LookupTypeUnion(types)
+}
+
 func (c *Context) LookupTypeEnum(symbols []string) *TypeEnum {
 	tv := EncodeTypeValue(&TypeEnum{Symbols: symbols})
 	c.mu.Lock()
