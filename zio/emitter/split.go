@@ -72,7 +72,7 @@ func (s *Split) lookupOutput(val *zed.Value) (zio.WriteCloser, error) {
 // string appears with different Zed types.
 func (s *Split) path(r *zed.Value) *storage.URI {
 	uniq := strconv.Itoa(r.Type.ID())
-	if _path, err := r.AccessString("_path"); err == nil {
+	if _path := r.Deref("_path").AsString(); _path != "" {
 		if _, ok := s.seen[_path]; ok {
 			uniq = _path + "-" + uniq
 		} else {

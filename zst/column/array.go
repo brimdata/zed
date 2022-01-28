@@ -70,19 +70,19 @@ func NewArrayReader(inner zed.Type, in zed.Value, r io.ReaderAt) (*ArrayReader, 
 		return nil, errors.New("ZST object array_column not a record")
 	}
 	rec := zed.NewValue(typ, in.Bytes)
-	zv, err := rec.Access("values")
+	val := rec.Deref("values").MissingAsNull()
+	if val.IsNull() {
+		return nil, errors.New("ZST array column has no values")
+	}
+	elems, err := NewReader(inner, *val, r)
 	if err != nil {
 		return nil, err
 	}
-	elems, err := NewReader(inner, zv, r)
-	if err != nil {
-		return nil, err
+	val = rec.Deref("lengths").MissingAsNull()
+	if val.IsNull() {
+		return nil, errors.New("ZST array column has no lengths")
 	}
-	zv, err = rec.Access("lengths")
-	if err != nil {
-		return nil, err
-	}
-	lengths, err := NewIntReader(zv, r)
+	lengths, err := NewIntReader(*val, r)
 	if err != nil {
 		return nil, err
 	}

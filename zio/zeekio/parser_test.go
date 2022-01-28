@@ -79,9 +79,8 @@ func TestLegacyZeekValid(t *testing.T) {
 	record, err := sendLegacyValues(parser, values)
 	require.NoError(t, err)
 
-	ts, err := record.AccessTime("ts")
-	assert.ErrorIs(t, err, zed.ErrMissing)
-	assert.Equal(t, nano.MinTs, ts)
+	assert.Equal(t, record.Deref("ts").MissingAsNull(), zed.Null)
+	assert.Equal(t, record.Deref("ts").MissingAsNull().AsTime(), nano.Ts(0))
 	// XXX check contents of other fields?
 
 	// Test standard headers with a timestamp in records
@@ -96,17 +95,15 @@ func TestLegacyZeekValid(t *testing.T) {
 
 	expectedTs, err := nano.Parse([]byte(timestamp))
 	require.NoError(t, err)
-	ts, err = record.AccessTime("ts")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedTs, ts, "Timestamp is correct")
+	x := record.Deref("ts").AsTime()
+	assert.Equal(t, expectedTs, x, "Timestamp is correct")
 
 	// Test the #path header
 	parser = startLegacyTest(t, fieldsWithTs, typesWithTs, "testpath")
 	record, err = sendLegacyValues(parser, valsWithTs)
 	require.NoError(t, err)
 
-	path, err := record.AccessString("_path")
-	require.NoError(t, err)
+	path := record.Deref("_path").AsString()
 	assert.Equal(t, path, "testpath", "Legacy _path field was set properly")
 
 	// XXX test overriding separator, setSeparator
@@ -162,12 +159,10 @@ func TestNestedRecords(t *testing.T) {
 	assert.Equal(t, "z", nest3Type.Columns[0].Name, "column in nest3 is z")
 
 	// Now check the actual values
-	v, err := record.AccessInt("a")
-	require.NoError(t, err)
+	v := record.Deref("a").AsInt()
 	assert.Equal(t, int64(1), v, "Field a has value 1")
 
-	e, err := record.Access("nest1")
-	require.NoError(t, err)
+	e := record.Deref("nest1")
 	assert.Equal(t, nest1Type, e.Type, "Got right type for field nest1")
 	subVals, err := nest1Type.Decode(e.Bytes)
 	require.NoError(t, err)
@@ -180,20 +175,17 @@ func TestNestedRecords(t *testing.T) {
 	assert.Equal(t, 1, len(nestnestVals), "nest1.nestnest has 1 element")
 	assertInt64(t, 6, nestnestVals[0], "nest1.nestnest.c")
 
-	v, err = record.AccessInt("b")
-	require.NoError(t, err)
+	v = record.Deref("b").AsInt()
 	assert.Equal(t, int64(4), v, "Field b has value 4")
 
-	e, err = record.Access("nest2")
-	require.NoError(t, err)
+	e = record.Deref("nest2")
 	assert.Equal(t, nest2Type, e.Type, "Got right type for field nest2")
 	subVals, err = nest2Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest2 has 1 element")
 	assertInt64(t, 5, subVals[0], "nest2.y")
 
-	e, err = record.Access("nest3")
-	require.NoError(t, err)
+	e = record.Deref("nest3")
 	assert.Equal(t, nest3Type, e.Type, "Got right type for field nest3")
 	subVals, err = nest3Type.Decode(e.Bytes)
 	require.NoError(t, err)

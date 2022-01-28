@@ -43,7 +43,7 @@ func (w *Writer) writeRecord(rec *zed.Value) error {
 	var out []string
 	for k, col := range zed.TypeRecordOf(rec.Type).Columns {
 		var s string
-		value := rec.ValueByColumn(k)
+		value := rec.DerefByColumn(k).MissingAsNull()
 		if col.Type == zed.TypeTime {
 			if value.IsNull() {
 				s = "-"
@@ -51,7 +51,7 @@ func (w *Writer) writeRecord(rec *zed.Value) error {
 				s = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
 			}
 		} else {
-			s = zeekio.FormatValue(value)
+			s = zeekio.FormatValue(*value)
 		}
 		out = append(out, s)
 	}

@@ -55,9 +55,8 @@ func TestZsonBuilder(t *testing.T) {
 	zv, err := zson.Build(b, val)
 	require.NoError(t, err)
 	rec := zed.NewValue(zv.Type.(*zed.TypeRecord), zv.Bytes)
-	zv, err = rec.Access("a")
-	require.NoError(t, err)
-	assert.Equal(t, `["1","2","3"]`, zson.MustFormatValue(zv))
+	a := rec.Deref("a")
+	assert.Equal(t, `["1","2","3"]`, zson.String(a))
 }
 
 func TestParseValueStringEscapeSequences(t *testing.T) {

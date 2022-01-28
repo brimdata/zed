@@ -177,6 +177,9 @@ func (v *Value) IsError() bool {
 }
 
 func (v *Value) IsMissing() bool {
+	if v == nil {
+		return true
+	}
 	if typ, ok := v.Type.(*TypeError); ok {
 		return typ.IsMissing(v.Bytes)
 	}

@@ -54,13 +54,13 @@ func (w *Writer) Write(r *zed.Value) error {
 	var out []string
 	for k, col := range r.Columns() {
 		var v string
-		value := r.ValueByColumn(k)
+		value := r.DerefByColumn(k).MissingAsNull()
 		if col.Type == zed.TypeTime {
 			if !value.IsNull() {
 				v = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
 			}
 		} else {
-			v = zeekio.FormatValue(value)
+			v = zeekio.FormatValue(*value)
 		}
 		out = append(out, v)
 	}

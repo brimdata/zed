@@ -115,13 +115,8 @@ type rangeFilter struct {
 }
 
 func (r *rangeFilter) Eval(ectx expr.Context, this *zed.Value) *zed.Value {
-	keyVal, err := this.Deref(r.r.layout.Keys[0])
-	if err != nil {
-		// XXX match keyless records.
-		// See issue #2637.
-		return zed.True
-	}
-	if r.compare(&keyVal, r.r.first) < 0 || r.compare(&keyVal, r.r.last) > 0 {
+	keyVal := this.DerefPath(r.r.layout.Keys[0]).MissingAsNull()
+	if r.compare(keyVal, r.r.first) < 0 || r.compare(keyVal, r.r.last) > 0 {
 		return zed.False
 	}
 	if r.filter == nil {

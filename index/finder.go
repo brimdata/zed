@@ -155,10 +155,11 @@ func (f *Finder) search(compare keyCompareFn) (zio.Reader, error) {
 			// smaller than the smallest key present.
 			return nil, ErrNotFound
 		}
-		off, err = rec.AccessInt(f.meta.ChildOffsetField)
-		if err != nil {
-			return nil, fmt.Errorf("b-tree child field: %w", err)
+		child := rec.Deref(f.meta.ChildOffsetField)
+		if child == nil {
+			return nil, fmt.Errorf("B-tree child field is missing")
 		}
+		off = child.AsInt()
 	}
 	return f.newSectionReader(0, off)
 }

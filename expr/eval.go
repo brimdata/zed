@@ -669,11 +669,11 @@ func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zc
 		return ectx.CopyValue(*zctx.NewErrorf("record index is not a string"))
 	}
 	field := zed.DecodeString(index.Bytes)
-	val, err := zed.NewValue(typ, record).ValueByField(field)
-	if err != nil {
+	val := zed.NewValue(typ, record).Deref(field)
+	if val == nil {
 		return zctx.Missing()
 	}
-	return ectx.CopyValue(val)
+	return ectx.CopyValue(*val)
 }
 
 func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.Bytes, key *zed.Value) *zed.Value {

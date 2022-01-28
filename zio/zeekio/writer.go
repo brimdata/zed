@@ -33,7 +33,7 @@ func (w *Writer) Write(r *zed.Value) error {
 	if err != nil {
 		return err
 	}
-	path, _ := r.AccessString("_path")
+	path := r.Deref("_path").AsString()
 	if r.Type != w.typ || path != w.Path {
 		if err := w.writeHeader(r, path); err != nil {
 			return err
