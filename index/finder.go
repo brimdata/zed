@@ -157,7 +157,7 @@ func (f *Finder) search(compare keyCompareFn) (zio.Reader, error) {
 		}
 		child := rec.Deref(f.meta.ChildOffsetField)
 		if child == nil {
-			return nil, fmt.Errorf("b-tree child field is missing")
+			return nil, fmt.Errorf("B-tree child field is missing")
 		}
 		off = child.AsInt()
 	}

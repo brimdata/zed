@@ -98,9 +98,7 @@ func (v *Value) AsBool() bool {
 func (v *Value) AsInt() int64 {
 	if v != nil {
 		switch TypeUnder(v.Type).(type) {
-		case *TypeOfUint8, *TypeOfUint16, *TypeOfUint32:
-			return int64(DecodeUint(v.Bytes))
-		case *TypeOfUint64:
+		case *TypeOfUint8, *TypeOfUint16, *TypeOfUint32, *TypeOfUint64:
 			return int64(DecodeUint(v.Bytes))
 		case *TypeOfInt8, *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
 			return DecodeInt(v.Bytes)
@@ -117,8 +115,8 @@ func (v *Value) AsTime() nano.Ts {
 }
 
 func (v *Value) MissingAsNull() *Value {
-	if v == nil {
-		v = Null
+	if v.IsMissing() {
+		return Null
 	}
 	return v
 }

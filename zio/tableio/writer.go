@@ -54,10 +54,7 @@ func (w *Writer) Write(r *zed.Value) error {
 	var out []string
 	for k, col := range r.Columns() {
 		var v string
-		value := r.DerefByColumn(k)
-		if value == nil {
-			value = zed.Null
-		}
+		value := r.DerefByColumn(k).MissingAsNull()
 		if col.Type == zed.TypeTime {
 			if !value.IsNull() {
 				v = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
