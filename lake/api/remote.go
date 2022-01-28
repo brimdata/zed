@@ -77,6 +77,15 @@ func (r *RemoteSession) MergeBranch(ctx context.Context, poolID ksuid.KSUID, chi
 	return res.Commit, err
 }
 
+func (r *RemoteSession) CreateTag(ctx context.Context, poolID ksuid.KSUID, name string, at ksuid.KSUID) error {
+	return errors.New("TBD RemoteSession.CreateTag")
+}
+
+func (r *RemoteSession) RemoveTag(ctx context.Context, poolID ksuid.KSUID, tagName string) error {
+	return errors.New("TBD RemoteSession.RemoveTag")
+}
+
+
 func (r *RemoteSession) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
 	return r.conn.RemovePool(ctx, pool)
 }

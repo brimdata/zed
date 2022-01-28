@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lake/tags"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
@@ -25,6 +26,7 @@ const (
 	DataTag     = "data"
 	IndexTag    = "index"
 	BranchesTag = "branches"
+	TagsTag     = "tags"
 	CommitsTag  = "commits"
 )
 
@@ -35,6 +37,7 @@ type Pool struct {
 	DataPath  *storage.URI
 	IndexPath *storage.URI
 	branches  *branches.Store
+	tags      *tags.Store
 	commits   *commits.Store
 }
 
@@ -46,6 +49,11 @@ func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine
 	// create the branches journal store
 	_, err := branches.CreateStore(ctx, engine, branchesPath)
 	if err != nil {
+		return err
+	}
+	// create the tags journal store
+	tagsPath := poolPath.AppendPath(TagsTag)
+	if _, err = tags.CreateStore(ctx, engine, tagsPath); err != nil {
 		return err
 	}
 	// create the main branch in the branches journal store.  The parent
@@ -78,6 +86,11 @@ func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, 
 	if err != nil {
 		return nil, err
 	}
+	tagsPath := path.AppendPath(TagsTag)
+	tags, err := tags.OpenStore(ctx, engine, tagsPath)
+	if err != nil {
+		return nil, err
+	}
 	commitsPath := path.AppendPath(CommitsTag)
 	commits, err := commits.OpenStore(engine, commitsPath)
 	if err != nil {
@@ -90,6 +103,7 @@ func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, 
 		DataPath:  DataPath(path),
 		IndexPath: IndexPath(path),
 		branches:  branches,
+		tags:      tags,
 		commits:   commits,
 	}, nil
 }
@@ -120,6 +134,31 @@ func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid
 	return NewSortedScheduler(ctx, zctx, p, snap, span, filter, idxFilter), nil
 }
 
+func CreateTag(ctx context.Context, poolConfig *pools.Config, engine storage.Engine, root *storage.URI, name string, parent ksuid.KSUID) (*tags.Config, error) {
+	poolPath := poolConfig.Path(root)
+	tagsPath := poolPath.AppendPath(TagsTag)
+	store, err := tags.OpenStore(ctx, engine, tagsPath)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := store.LookupByName(ctx, name); err == nil {
+		return nil, fmt.Errorf("%s/%s: %w", poolConfig.Name, name, tags.ErrExists)
+	}
+	tagConfig := tags.NewConfig(name, parent)
+	if err := store.Add(ctx, tagConfig); err != nil {
+		return nil, err
+	}
+	return tagConfig, err
+}
+
+func (p *Pool) removeTag(ctx context.Context, name string) error {
+	config, err := p.tags.LookupByName(ctx, name)
+	if err != nil {
+		return err
+	}
+	return p.tags.Remove(ctx, *config)
+}
+
 func (p *Pool) Snapshot(ctx context.Context, commit ksuid.KSUID) (commits.View, error) {
 	return p.commits.Snapshot(ctx, commit)
 }
@@ -130,6 +169,14 @@ func (p *Pool) ListBranches(ctx context.Context) ([]branches.Config, error) {
 
 func (p *Pool) LookupBranchByName(ctx context.Context, name string) (*branches.Config, error) {
 	return p.branches.LookupByName(ctx, name)
+}
+
+func (p *Pool) ListTags(ctx context.Context) ([]tags.Config, error) {
+	return p.tags.All(ctx)
+}
+
+func (p *Pool) LookupTagByName(ctx context.Context, name string) (*tags.Config, error) {
+	return p.tags.LookupByName(ctx, name)
 }
 
 func (p *Pool) openBranch(ctx context.Context, config *branches.Config) (*Branch, error) {
@@ -169,6 +216,28 @@ func filter(zctx *zed.Context, ectx expr.Context, this *zed.Value, e expr.Evalua
 	}
 	val, ok := expr.EvalBool(zctx, ectx, this, e)
 	return ok && val.Bytes != nil && zed.IsTrue(val.Bytes)
+}
+
+func (p *Pool) batchifyTags(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
+	tags, err := p.ListTags(ctx)
+	if err != nil {
+		return nil, err
+	}
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StylePackage)
+	recs := make([]zed.Value, 0, len(tags))
+	ectx := expr.NewContext()
+	for _, tagRef := range tags {
+		meta := TagMeta{p.Config, tagRef}
+		rec, err := m.MarshalRecord(&meta)
+		if err != nil {
+			return nil, err
+		}
+		if filter(zctx, ectx, rec, f) {
+			recs = append(recs, *rec)
+		}
+	}
+	return recs, nil
 }
 
 type BranchTip struct {

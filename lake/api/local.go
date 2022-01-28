@@ -86,6 +86,15 @@ func (l *LocalSession) MergeBranch(ctx context.Context, poolID ksuid.KSUID, chil
 	return l.root.MergeBranch(ctx, poolID, childBranch, parentBranch, message.Author, message.Body)
 }
 
+func (l *LocalSession) CreateTag(ctx context.Context, poolID ksuid.KSUID, name string, parent ksuid.KSUID) error {
+	_, err := l.root.CreateTag(ctx, poolID, name, parent)
+	return err
+}
+
+func (l *LocalSession) RemoveTag(ctx context.Context, poolID ksuid.KSUID, tagName string) error {
+	return l.root.RemoveTag(ctx, poolID, tagName)
+}
+
 func (l *LocalSession) AddIndexRules(ctx context.Context, rules []index.Rule) error {
 	return l.root.AddIndexRules(ctx, rules)
 }

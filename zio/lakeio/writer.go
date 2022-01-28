@@ -89,6 +89,8 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 		formatPoolConfig(b, v)
 	case *lake.BranchMeta:
 		formatBranchMeta(b, v, width, w.headID, w.headName, colors)
+	case *lake.TagMeta:
+		formatTagMeta(b, v, width, w.headID, w.headName, colors)
 	case data.Object:
 		formatDataObject(b, &v, "", 0)
 	case *data.Object:
@@ -139,6 +141,25 @@ func formatBranchMeta(b *bytes.Buffer, p *lake.BranchMeta, width int, headID ksu
 	b.WriteString("commit ")
 	b.WriteString(p.Branch.Commit.String())
 	if headID == p.Branch.Commit || headName == p.Branch.Name {
+		b.WriteString(" (")
+		colors.Start(b, color.Turqoise)
+		b.WriteString(color.Embolden("HEAD"))
+		colors.End(b)
+		b.WriteByte(')')
+	}
+	colors.End(b)
+	b.WriteByte('\n')
+}
+
+func formatTagMeta(b *bytes.Buffer, p *lake.TagMeta, width int, headID ksuid.KSUID, headName string, colors *color.Stack) {
+	b.WriteString(p.Pool.Name)
+	b.WriteByte('@')
+	b.WriteString(p.Tag.Name)
+	b.WriteByte(' ')
+	colors.Start(b, color.GrayYellow)
+	b.WriteString("commit ")
+	b.WriteString(p.Tag.Commit.String())
+	if headID == p.Tag.Commit || headName == p.Tag.Name {
 		b.WriteString(" (")
 		colors.Start(b, color.Turqoise)
 		b.WriteString(color.Embolden("HEAD"))

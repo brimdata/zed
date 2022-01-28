@@ -16,6 +16,7 @@ import (
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lake/tags"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
@@ -227,6 +228,11 @@ type BranchMeta struct {
 	Branch branches.Config `zed:"branch"`
 }
 
+type TagMeta struct {
+	Pool   pools.Config    `zed:"pool"`
+	Tag    tags.Config     `zed:"tag"`
+}
+
 func (r *Root) ListPools(ctx context.Context) ([]pools.Config, error) {
 	return r.pools.All(ctx)
 }
@@ -377,6 +383,22 @@ func (r *Root) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch,
 	return child.mergeInto(ctx, parent, author, message)
 }
 
+func (r *Root) CreateTag(ctx context.Context, poolID ksuid.KSUID, name string, parent ksuid.KSUID) (*tags.Config, error) {
+	config, err := r.pools.LookupByID(ctx, poolID)
+	if err != nil {
+		return nil, err
+	}
+	return CreateTag(ctx, config, r.engine, r.path, name, parent)
+}
+
+func (r *Root) RemoveTag(ctx context.Context, poolID ksuid.KSUID, name string) error {
+	pool, err := r.OpenPool(ctx, poolID)
+	if err != nil {
+		return err
+	}
+	return pool.removeTag(ctx, name)
+}
+
 func (r *Root) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
@@ -517,6 +539,10 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, pool
 		m := zson.NewZNGMarshalerWithContext(zctx)
 		m.Decorate(zson.StylePackage)
 		vals, err = p.batchifyBranches(ctx, zctx, nil, m, f)
+	case "tags":
+		m := zson.NewZNGMarshalerWithContext(zctx)
+		m.Decorate(zson.StylePackage)
+		vals, err = p.batchifyTags(ctx, zctx, nil)
 	default:
 		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
 	}

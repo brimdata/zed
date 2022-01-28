@@ -33,6 +33,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/revert"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/cmd/zed/serve"
+	"github.com/brimdata/zed/cmd/zed/tag"
 	"github.com/brimdata/zed/cmd/zed/use"
 	"github.com/brimdata/zed/cmd/zed/vacate"
 )
@@ -54,6 +55,7 @@ func main() {
 	zed.Add(rename.Cmd)
 	zed.Add(revert.Cmd)
 	zed.Add(serve.Cmd)
+	zed.Add(tag.Cmd)
 	zed.Add(use.Cmd)
 	zed.Add(vacate.Cmd)
 	zed.Add(dev.Cmd)

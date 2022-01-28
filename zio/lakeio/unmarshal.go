@@ -31,6 +31,7 @@ func init() {
 		pools.Config{},
 		lake.BranchMeta{},
 		lake.BranchTip{},
+		lake.TagMeta{},
 		data.Object{},
 	)
 }
