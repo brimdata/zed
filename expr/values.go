@@ -105,7 +105,7 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 				// Treat non-record spread values like missing.
 				continue
 			}
-			it := rec.Bytes.Iter()
+			it := rec.Iter()
 			for _, col := range typ.Columns {
 				c, ok := object[col.Name]
 				if ok {
@@ -163,8 +163,7 @@ func (r *recordSpreadExpr) update(object map[string]column) {
 }
 
 func (r *recordSpreadExpr) invalidate(object map[string]column) {
-	n := len(object)
-	if cap(r.columns) < n {
+	if n := len(object); cap(r.columns) < n {
 		r.columns = make([]zed.Column, n)
 		r.bytes = make([]zcode.Bytes, n)
 	} else {

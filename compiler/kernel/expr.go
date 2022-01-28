@@ -367,12 +367,6 @@ func compileRecordExpr(zctx *zed.Context, record *dag.RecordExpr) (expr.Evaluato
 	var elems []expr.RecordElem
 	for _, elem := range record.Elems {
 		switch elem := elem.(type) {
-		case *dag.Spread:
-			e, err := compileExpr(zctx, elem.Expr)
-			if err != nil {
-				return nil, err
-			}
-			elems = append(elems, expr.RecordElem{Spread: e})
 		case *dag.Field:
 			e, err := compileExpr(zctx, elem.Value)
 			if err != nil {
@@ -382,6 +376,12 @@ func compileRecordExpr(zctx *zed.Context, record *dag.RecordExpr) (expr.Evaluato
 				Name:  elem.Name,
 				Field: e,
 			})
+		case *dag.Spread:
+			e, err := compileExpr(zctx, elem.Expr)
+			if err != nil {
+				return nil, err
+			}
+			elems = append(elems, expr.RecordElem{Spread: e})
 		}
 	}
 	return expr.NewRecordExpr(zctx, elems)

@@ -99,8 +99,8 @@ type RecordElem interface {
 	recordAST()
 }
 
-func (*ID) recordAST()     {}
 func (*Field) recordAST()  {}
+func (*ID) recordAST()     {}
 func (*Spread) recordAST() {}
 
 type Field struct {
