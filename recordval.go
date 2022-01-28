@@ -21,16 +21,6 @@ var (
 	ErrTypeMismatch  = errors.New("type/value mismatch")
 )
 
-// FieldIter returns a fieldIter iterator over the receiver's values.
-func (r *Value) FieldIter() fieldIter {
-	return fieldIter{
-		stack: []iterInfo{{
-			iter: r.Bytes.Iter(),
-			typ:  TypeRecordOf(r.Type),
-		}},
-	}
-}
-
 func (r *Value) HasField(field string) bool {
 	return TypeRecordOf(r.Type).HasField(field)
 }
