@@ -20,3 +20,22 @@ func TestRecordAccessNamed(t *testing.T) {
 	b := rec.Deref("bar").AsBool()
 	assert.Equal(t, b, true)
 }
+
+func TestNonRecordDeref(t *testing.T) {
+	const input = `
+1
+192.168.1.1
+null
+[1,2,3]
+|[1,2,3]|`
+	reader := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
+	for {
+		val, err := reader.Read()
+		if val == nil {
+			break
+		}
+		require.NoError(t, err)
+		v := val.Deref("foo")
+		require.Nil(t, v)
+	}
+}

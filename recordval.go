@@ -55,12 +55,11 @@ func (v *Value) DerefByColumn(col int) *Value {
 	return v
 }
 
-func (r *Value) ColumnOfField(field string) (int, bool) {
-	return TypeRecordOf(r.Type).ColumnOfField(field)
-}
-
-func (r *Value) TypeOfColumn(col int) Type {
-	return TypeRecordOf(r.Type).Columns[col].Type
+func (v *Value) ColumnOfField(field string) (int, bool) {
+	if typ := TypeRecordOf(v.Type); typ != nil {
+		return typ.ColumnOfField(field)
+	}
+	return 0, false
 }
 
 func (v *Value) Deref(field string) *Value {
