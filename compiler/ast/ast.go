@@ -91,14 +91,27 @@ type RegexpSearch struct {
 }
 
 type RecordExpr struct {
-	Kind   string      `json:"kind" unpack:""`
-	Fields []FieldExpr `json:"fields"`
-	With   Expr        `json:"with"`
+	Kind  string       `json:"kind" unpack:""`
+	Elems []RecordElem `json:"elems"`
 }
 
-type FieldExpr struct {
+type RecordElem interface {
+	recordAST()
+}
+
+func (*Field) recordAST()  {}
+func (*ID) recordAST()     {}
+func (*Spread) recordAST() {}
+
+type Field struct {
+	Kind  string `json:"kind" unpack:""`
 	Name  string `json:"name"`
 	Value Expr   `json:"value"`
+}
+
+type Spread struct {
+	Kind string `json:"kind" unpack:""`
+	Expr Expr   `json:"expr"`
 }
 
 type ArrayExpr struct {

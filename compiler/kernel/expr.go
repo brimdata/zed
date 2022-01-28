@@ -364,24 +364,27 @@ func compileRegexpMatch(zctx *zed.Context, match *dag.RegexpMatch) (expr.Evaluat
 }
 
 func compileRecordExpr(zctx *zed.Context, record *dag.RecordExpr) (expr.Evaluator, error) {
-	var names []string
-	var exprs []expr.Evaluator
-	for _, f := range record.Fields {
-		e, err := compileExpr(zctx, f.Value)
-		if err != nil {
-			return nil, err
+	var elems []expr.RecordElem
+	for _, elem := range record.Elems {
+		switch elem := elem.(type) {
+		case *dag.Field:
+			e, err := compileExpr(zctx, elem.Value)
+			if err != nil {
+				return nil, err
+			}
+			elems = append(elems, expr.RecordElem{
+				Name:  elem.Name,
+				Field: e,
+			})
+		case *dag.Spread:
+			e, err := compileExpr(zctx, elem.Expr)
+			if err != nil {
+				return nil, err
+			}
+			elems = append(elems, expr.RecordElem{Spread: e})
 		}
-		names = append(names, f.Name)
-		exprs = append(exprs, e)
 	}
-	if record.With != nil {
-		with, err := compileExpr(zctx, record.With)
-		if err != nil {
-			return nil, err
-		}
-		return expr.NewRecordExprWith(zctx, names, exprs, with)
-	}
-	return expr.NewRecordExpr(zctx, names, exprs), nil
+	return expr.NewRecordExpr(zctx, elems)
 }
 
 func compileArrayExpr(zctx *zed.Context, array *dag.ArrayExpr) (expr.Evaluator, error) {

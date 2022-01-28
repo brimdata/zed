@@ -2,11 +2,10 @@ package expr
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
 )
 
-type RecordExpr struct {
+type recordExpr struct {
 	zctx    *zed.Context
 	typ     *zed.TypeRecord
 	builder *zcode.Builder
@@ -14,16 +13,27 @@ type RecordExpr struct {
 	exprs   []Evaluator
 }
 
-func NewRecordExpr(zctx *zed.Context, names []string, exprs []Evaluator) *RecordExpr {
-	columns := make([]zed.Column, 0, len(names))
-	for _, name := range names {
-		columns = append(columns, zed.Column{Name: name})
+func NewRecordExpr(zctx *zed.Context, elems []RecordElem) (Evaluator, error) {
+	for _, e := range elems {
+		if e.Spread != nil {
+			return newRecordSpreadExpr(zctx, elems)
+		}
+	}
+	return newRecordExpr(zctx, elems), nil
+}
+
+func newRecordExpr(zctx *zed.Context, elems []RecordElem) *recordExpr {
+	columns := make([]zed.Column, 0, len(elems))
+	exprs := make([]Evaluator, 0, len(elems))
+	for _, elem := range elems {
+		columns = append(columns, zed.Column{Name: elem.Name})
+		exprs = append(exprs, elem.Field)
 	}
 	var typ *zed.TypeRecord
 	if len(exprs) == 0 {
 		typ = zctx.MustLookupTypeRecord([]zed.Column{})
 	}
-	return &RecordExpr{
+	return &recordExpr{
 		zctx:    zctx,
 		typ:     typ,
 		builder: zcode.NewBuilder(),
@@ -32,7 +42,7 @@ func NewRecordExpr(zctx *zed.Context, names []string, exprs []Evaluator) *Record
 	}
 }
 
-func (r *RecordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
+func (r *recordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	var changed bool
 	b := r.builder
 	b.Reset()
@@ -55,98 +65,116 @@ func (r *RecordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	return ectx.NewValue(r.typ, bytes)
 }
 
-type RecordExprWith struct {
-	zctx     *zed.Context
-	with     Evaluator
-	names    []string
-	exprs    []Evaluator
-	position map[string]int
-	builder  zcode.Builder
-	columns  []zed.Column
-	cache    *zed.TypeRecord
+type RecordElem struct {
+	Name   string
+	Field  Evaluator
+	Spread Evaluator
 }
 
-func NewRecordExprWith(zctx *zed.Context, names []string, exprs []Evaluator, with Evaluator) (*RecordExprWith, error) {
-	assignments := make([]Assignment, 0, len(names))
-	position := make(map[string]int)
-	for k, name := range names {
-		position[name] = k
-		assignments = append(assignments, Assignment{
-			LHS: field.New(name),
-			RHS: exprs[k],
-		})
-	}
-	return &RecordExprWith{
-		zctx:     zctx,
-		with:     with,
-		names:    names,
-		exprs:    exprs,
-		position: position,
+type recordSpreadExpr struct {
+	zctx    *zed.Context
+	elems   []RecordElem
+	builder zcode.Builder
+	columns []zed.Column
+	bytes   []zcode.Bytes
+	cache   *zed.TypeRecord
+}
+
+func newRecordSpreadExpr(zctx *zed.Context, elems []RecordElem) (*recordSpreadExpr, error) {
+	return &recordSpreadExpr{
+		zctx:  zctx,
+		elems: elems,
 	}, nil
 }
 
-func (r *RecordExprWith) Eval(ectx Context, this *zed.Value) *zed.Value {
-	with := r.with.Eval(ectx, this)
-	if with.IsMissing() {
-		return with
+type column struct {
+	colno int
+	value zed.Value
+}
+
+func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
+	object := make(map[string]column)
+	for _, elem := range r.elems {
+		if elem.Spread != nil {
+			rec := elem.Spread.Eval(ectx, this)
+			if rec.IsMissing() {
+				continue
+			}
+			typ := zed.TypeRecordOf(rec.Type)
+			if typ == nil {
+				// Treat non-record spread values like missing.
+				continue
+			}
+			it := rec.Iter()
+			for _, col := range typ.Columns {
+				c, ok := object[col.Name]
+				if ok {
+					c.value = zed.Value{col.Type, it.Next()}
+				} else {
+					c = column{
+						colno: len(object),
+						value: zed.Value{col.Type, it.Next()},
+					}
+				}
+				object[col.Name] = c
+			}
+		} else {
+			val := elem.Field.Eval(ectx, this)
+			c, ok := object[elem.Name]
+			if ok {
+				c.value = *val
+			} else {
+				c = column{colno: len(object), value: *val}
+			}
+			object[elem.Name] = c
+		}
 	}
-	typ := zed.TypeRecordOf(with.Type)
-	if typ == nil {
-		return r.zctx.Missing()
+	if len(object) == 0 {
+		b := r.builder
+		b.Reset()
+		b.Append(nil)
+		return ectx.NewValue(r.zctx.MustLookupTypeRecord([]zed.Column{}), b.Bytes())
 	}
-	// cols is a cache of the columns of the output record.
-	// As long as the type doesn't change, the columns will stay the
-	// same and the dirty boolean will stay false.  If something is
-	// diferrent, dirty becomes true, we look up the new type, and
-	// it stays in the cache for the next input.
-	cols := r.columns
+	r.update(object)
 	b := r.builder
 	b.Reset()
-	var dirty bool
-	it := with.Iter()
-	for k, col := range typ.Columns {
-		if pos, ok := r.position[col.Name]; ok {
-			val := r.exprs[pos].Eval(ectx, this)
-			b.Append(val.Bytes)
-			col.Type = val.Type
-			it.Next()
-		} else {
-			b.Append(it.Next())
-		}
-		if k >= len(cols) {
-			dirty = true
-			cols = append(cols, col)
-		} else if col != cols[k] {
-			dirty = true
-			cols[k] = col
-		}
-	}
-	colno := len(typ.Columns)
-	for k, e := range r.exprs {
-		if typ.HasField(r.names[k]) {
-			continue
-		}
-		val := e.Eval(ectx, this)
-		b.Append(val.Bytes)
-		col := zed.Column{r.names[k], val.Type}
-		if colno >= len(cols) {
-			dirty = true
-			cols = append(cols, col)
-		} else if col != cols[colno] {
-			dirty = true
-			cols[colno] = col
-		}
-		colno++
-	}
-	if colno < len(cols) {
-		dirty = true
-		cols = cols[:colno]
-	}
-	if dirty {
-		r.cache = r.zctx.MustLookupTypeRecord(cols)
-		r.columns = cols
+	for _, bytes := range r.bytes {
+		b.Append(bytes)
 	}
 	return ectx.NewValue(r.cache, b.Bytes())
+}
+
+// update maps the object into the receiver's vals slice while also
+// seeing if we can reuse the cached record type.  If not we look up
+// a new type, cache it, and save the columns for the cache check.
+func (r *recordSpreadExpr) update(object map[string]column) {
+	if len(r.columns) != len(object) {
+		r.invalidate(object)
+		return
+	}
+	for name, field := range object {
+		col := zed.Column{name, field.value.Type}
+		if r.columns[field.colno] != col {
+			r.invalidate(object)
+			return
+		}
+		r.bytes[field.colno] = field.value.Bytes
+	}
+}
+
+func (r *recordSpreadExpr) invalidate(object map[string]column) {
+	if n := len(object); cap(r.columns) < n {
+		r.columns = make([]zed.Column, n)
+		r.bytes = make([]zcode.Bytes, n)
+	} else {
+		r.columns = r.columns[:n]
+		r.bytes = r.bytes[:n]
+	}
+	for name, field := range object {
+		r.columns[field.colno] = zed.Column{name, field.value.Type}
+		r.bytes[field.colno] = field.value.Bytes
+	}
+	r.cache = r.zctx.MustLookupTypeRecord(r.columns)
 }
 
 type ArrayExpr struct {

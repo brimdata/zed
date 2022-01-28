@@ -578,8 +578,12 @@ LetAssignments
       RETURN(PREPEND(first, rest))
     }
 
-LetAssignment = id:IdentifierName __ "=" __ expr:Expr {
+LetAssignment
+  = id:IdentifierName __ "=" __ expr:Expr {
       RETURN(MAP("name":id, "expr":expr))
+    }
+  / id:IdentifierName {
+      RETURN(MAP("name":id, "expr":MAP("kind":"ID","name":id)))
     }
 
 YieldProc
@@ -784,24 +788,31 @@ Primary
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 Record
-  = "{" __ expr:Expr _ "with" _ fields:Fields __ "}" {
-      RETURN(MAP("kind":"RecordExpr", "fields":fields, "with":expr))
-    }
-  / "{" __ fields:Fields __ "}" {
-      RETURN(MAP("kind":"RecordExpr", "fields":fields, "with":NULL))
+  = "{" __ elems:RecordElems __ "}" {
+      RETURN(MAP("kind":"RecordExpr", "elems":elems))
     }
 
-Fields
-  = first:Field rest:FieldTail* {
+RecordElems
+  = first:RecordElem rest:RecordElemTail* {
     RETURN(PREPEND(first, rest))
   }
   / __ { RETURN(ARRAY()) }
 
-FieldTail = __ "," __ f:Field { RETURN(f) }
+RecordElemTail = __ "," __ elem:RecordElem { RETURN(elem) }
+
+RecordElem
+  = Spread
+  / Field
+  / Identifier
+
+Spread
+  = "..." __ expr:Expr {
+      RETURN(MAP("kind":"Spread", "expr": expr))
+    }
 
 Field
   = name:FieldName __ ":" __ value:Expr {
-      RETURN(MAP("name": name, "value": value))
+      RETURN(MAP("kind":"Field","name": name, "value": value))
     }
 
 Array
