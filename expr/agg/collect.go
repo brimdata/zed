@@ -40,51 +40,18 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 		// no values found
 		return zed.Null
 	}
-	m := make(map[zed.Type]int)
-	for _, zv := range c.values {
-		m[zv.Type] = 0
-	}
-	if len(m) == 1 {
-		return c.build(zctx)
-	}
-	return c.buildUnion(zctx, m)
-}
-
-func (c *Collect) build(zctx *zed.Context) *zed.Value {
-	typ := c.values[0].Type
 	var b zcode.Builder
-	for _, v := range c.values {
-		b.Append(v.Bytes)
+	inner := zctx.LookupTypeOfValues(c.values)
+	if union, ok := inner.(*zed.TypeUnion); ok {
+		for _, val := range c.values {
+			zed.BuildUnion(&b, union.Selector(val.Type), val.Bytes)
+		}
+	} else {
+		for _, val := range c.values {
+			b.Append(val.Bytes)
+		}
 	}
-	arrayType := zctx.LookupTypeArray(typ)
-	return zed.NewValue(arrayType, b.Bytes())
-}
-
-func (c *Collect) buildUnion(zctx *zed.Context, selectors map[zed.Type]int) *zed.Value {
-	// XXX When all of the types are unions we should combine them into a
-	// a merged union.  This will allow partials that compute different
-	// unions to do the right thing.  See issue #3171.
-	// XXX This map needs to be put in canonical order but we haven't
-	// done canonical type order of unions yet.  See #2145.
-	// Also, we should have a nice Zed library function
-	// to create union values instead of doing the work here to find the
-	// index of the type. See #3363
-	types := make([]zed.Type, 0, len(selectors))
-	for typ := range selectors {
-		selectors[typ] = len(types)
-		types = append(types, typ)
-	}
-	var b zcode.Builder
-	for _, v := range c.values {
-		selector := selectors[v.Type]
-		b.BeginContainer()
-		b.Append(zed.EncodeInt(int64(selector)))
-		b.Append(v.Bytes)
-		b.EndContainer()
-	}
-	unionType := zctx.LookupTypeUnion(types)
-	arrayType := zctx.LookupTypeArray(unionType)
-	return zed.NewValue(arrayType, b.Bytes())
+	return zed.NewValue(zctx.LookupTypeArray(inner), b.Bytes())
 }
 
 func (c *Collect) ConsumeAsPartial(val *zed.Value) {
