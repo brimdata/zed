@@ -221,7 +221,7 @@ func (r *Reader) readAppMessage(code int) (*AppMessage, error) {
 // read returns an error if fewer than n bytes are available.
 func (r *Reader) read(n int) ([]byte, error) {
 	if len(r.uncompressedBuf) > 0 {
-		if len(r.uncompressedBuf) > n {
+		if len(r.uncompressedBuf) < n {
 			return nil, zed.ErrBadFormat
 		}
 		b := r.uncompressedBuf[:n]
