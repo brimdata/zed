@@ -5,16 +5,16 @@ script: |
   zed init -q
   zed create -q -orderby k tmp
   zed load -q -use tmp@main in.zson
-  zed query -z "from tmp@main | k==int64(null)"
+  zed query -z "from tmp@main | !has(k)"
 
 inputs:
   - name: in.zson
     data: |
       {k:0,v:"zero"}
-      {k:null(int64),v:"null"}
+      {v:"this one missing"}
       {k:1,v:"one"}
 
 outputs:
   - name: stdout
     data: |
-      {k:null(int64),v:"null"}
+      {v:"this one missing"}
