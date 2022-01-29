@@ -1,5 +1,3 @@
-skip: issue 3499 https://github.com/brimdata/zed/runs/4928520319?check_suite_focus=true
-
 zed: collect(this)
 
 input: |
