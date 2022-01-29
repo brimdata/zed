@@ -6,36 +6,37 @@ package mock
 
 import (
 	context "context"
-	storage "github.com/brimdata/zed/pkg/storage"
-	gomock "github.com/golang/mock/gomock"
 	io "io"
 	reflect "reflect"
+
+	storage "github.com/brimdata/zed/pkg/storage"
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockEngine is a mock of Engine interface
+// MockEngine is a mock of Engine interface.
 type MockEngine struct {
 	ctrl     *gomock.Controller
 	recorder *MockEngineMockRecorder
 }
 
-// MockEngineMockRecorder is the mock recorder for MockEngine
+// MockEngineMockRecorder is the mock recorder for MockEngine.
 type MockEngineMockRecorder struct {
 	mock *MockEngine
 }
 
-// NewMockEngine creates a new mock instance
+// NewMockEngine creates a new mock instance.
 func NewMockEngine(ctrl *gomock.Controller) *MockEngine {
 	mock := &MockEngine{ctrl: ctrl}
 	mock.recorder = &MockEngineMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockEngine) EXPECT() *MockEngineMockRecorder {
 	return m.recorder
 }
 
-// Delete mocks base method
+// Delete mocks base method.
 func (m *MockEngine) Delete(arg0 context.Context, arg1 *storage.URI) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
@@ -43,13 +44,13 @@ func (m *MockEngine) Delete(arg0 context.Context, arg1 *storage.URI) error {
 	return ret0
 }
 
-// Delete indicates an expected call of Delete
+// Delete indicates an expected call of Delete.
 func (mr *MockEngineMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockEngine)(nil).Delete), arg0, arg1)
 }
 
-// DeleteByPrefix mocks base method
+// DeleteByPrefix mocks base method.
 func (m *MockEngine) DeleteByPrefix(arg0 context.Context, arg1 *storage.URI) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteByPrefix", arg0, arg1)
@@ -57,13 +58,13 @@ func (m *MockEngine) DeleteByPrefix(arg0 context.Context, arg1 *storage.URI) err
 	return ret0
 }
 
-// DeleteByPrefix indicates an expected call of DeleteByPrefix
+// DeleteByPrefix indicates an expected call of DeleteByPrefix.
 func (mr *MockEngineMockRecorder) DeleteByPrefix(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByPrefix", reflect.TypeOf((*MockEngine)(nil).DeleteByPrefix), arg0, arg1)
 }
 
-// Exists mocks base method
+// Exists mocks base method.
 func (m *MockEngine) Exists(arg0 context.Context, arg1 *storage.URI) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Exists", arg0, arg1)
@@ -72,13 +73,13 @@ func (m *MockEngine) Exists(arg0 context.Context, arg1 *storage.URI) (bool, erro
 	return ret0, ret1
 }
 
-// Exists indicates an expected call of Exists
+// Exists indicates an expected call of Exists.
 func (mr *MockEngineMockRecorder) Exists(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockEngine)(nil).Exists), arg0, arg1)
 }
 
-// Get mocks base method
+// Get mocks base method.
 func (m *MockEngine) Get(arg0 context.Context, arg1 *storage.URI) (storage.Reader, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1)
@@ -87,13 +88,13 @@ func (m *MockEngine) Get(arg0 context.Context, arg1 *storage.URI) (storage.Reade
 	return ret0, ret1
 }
 
-// Get indicates an expected call of Get
+// Get indicates an expected call of Get.
 func (mr *MockEngineMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockEngine)(nil).Get), arg0, arg1)
 }
 
-// List mocks base method
+// List mocks base method.
 func (m *MockEngine) List(arg0 context.Context, arg1 *storage.URI) ([]storage.Info, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", arg0, arg1)
@@ -102,13 +103,13 @@ func (m *MockEngine) List(arg0 context.Context, arg1 *storage.URI) ([]storage.In
 	return ret0, ret1
 }
 
-// List indicates an expected call of List
+// List indicates an expected call of List.
 func (mr *MockEngineMockRecorder) List(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockEngine)(nil).List), arg0, arg1)
 }
 
-// Put mocks base method
+// Put mocks base method.
 func (m *MockEngine) Put(arg0 context.Context, arg1 *storage.URI) (io.WriteCloser, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Put", arg0, arg1)
@@ -117,13 +118,13 @@ func (m *MockEngine) Put(arg0 context.Context, arg1 *storage.URI) (io.WriteClose
 	return ret0, ret1
 }
 
-// Put indicates an expected call of Put
+// Put indicates an expected call of Put.
 func (mr *MockEngineMockRecorder) Put(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Put", reflect.TypeOf((*MockEngine)(nil).Put), arg0, arg1)
 }
 
-// PutIfNotExists mocks base method
+// PutIfNotExists mocks base method.
 func (m *MockEngine) PutIfNotExists(arg0 context.Context, arg1 *storage.URI, arg2 []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PutIfNotExists", arg0, arg1, arg2)
@@ -131,13 +132,13 @@ func (m *MockEngine) PutIfNotExists(arg0 context.Context, arg1 *storage.URI, arg
 	return ret0
 }
 
-// PutIfNotExists indicates an expected call of PutIfNotExists
+// PutIfNotExists indicates an expected call of PutIfNotExists.
 func (mr *MockEngineMockRecorder) PutIfNotExists(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutIfNotExists", reflect.TypeOf((*MockEngine)(nil).PutIfNotExists), arg0, arg1, arg2)
 }
 
-// Size mocks base method
+// Size mocks base method.
 func (m *MockEngine) Size(arg0 context.Context, arg1 *storage.URI) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Size", arg0, arg1)
@@ -146,7 +147,7 @@ func (m *MockEngine) Size(arg0 context.Context, arg1 *storage.URI) (int64, error
 	return ret0, ret1
 }
 
-// Size indicates an expected call of Size
+// Size indicates an expected call of Size.
 func (mr *MockEngineMockRecorder) Size(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockEngine)(nil).Size), arg0, arg1)

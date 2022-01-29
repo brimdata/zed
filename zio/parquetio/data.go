@@ -15,9 +15,9 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	}
 	switch typ := zed.TypeUnder(typ).(type) {
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32:
-		return uint32(zed.DecodeUint(zb)), nil
+		return int32(zed.DecodeUint(zb)), nil
 	case *zed.TypeOfUint64:
-		return zed.DecodeUint(zb), nil
+		return int64(zed.DecodeUint(zb)), nil
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32:
 		return int32(zed.DecodeInt(zb)), nil
 	case *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
