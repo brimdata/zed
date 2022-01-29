@@ -537,8 +537,7 @@ func TestEmbeddedInterface(t *testing.T) {
 }
 
 func TestMultipleZedValues(t *testing.T) {
-	bytes := make([]byte, 3)
-	copy(bytes, []byte("foo"))
+	bytes := []byte("foo")
 	u := zson.NewZNGUnmarshaler()
 	var foo zed.Value
 	err := u.Unmarshal(*zed.NewValue(zed.TypeString, bytes), &foo)
