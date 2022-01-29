@@ -35,6 +35,9 @@ func makeArgMap(args interface{}) (interface{}, error) {
 
 func makeTemplateExprChain(in interface{}) interface{} {
 	rest := in.([]interface{})
+	if len(rest) == 0 {
+		return nil
+	}
 	ret := rest[0]
 	for _, part := range rest[1:] {
 		ret = map[string]interface{}{

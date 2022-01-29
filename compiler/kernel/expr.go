@@ -305,6 +305,12 @@ func compileCall(zctx *zed.Context, call dag.Call) (expr.Evaluator, error) {
 	// the changes to create running aggegation functions from reducers.
 	// XXX See issue #1259.
 	switch {
+	case call.Name == "overlaps":
+		exprs, err := compileExprs(zctx, call.Args)
+		if err != nil {
+			return nil, fmt.Errorf("missing(): bad argument: %w", err)
+		}
+		return expr.NewOverlaps(zctx, exprs), nil
 	case call.Name == "missing":
 		exprs, err := compileExprs(zctx, call.Args)
 		if err != nil {

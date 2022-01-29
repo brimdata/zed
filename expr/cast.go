@@ -198,6 +198,10 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	switch {
 	case val.Bytes == nil:
 		// Do nothing. Any nil value is cast to a zero time.
+		//XXX maybe this should be a null time not a zero time.
+		return ectx.NewValue(zed.TypeTime, nil)
+	case id == zed.IDTime:
+		return val
 	case id == zed.IDString:
 		gotime, err := dateparse.ParseAny(byteconv.UnsafeString(val.Bytes))
 		if err != nil {
