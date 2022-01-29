@@ -535,3 +535,18 @@ func TestEmbeddedInterface(t *testing.T) {
 	assert.Equal(t, true, ok)
 	assert.Equal(t, "It's a thing one", thingB.Who())
 }
+
+func TestMultipleZedValues(t *testing.T) {
+	bytes := []byte("foo")
+	u := zson.NewZNGUnmarshaler()
+	var foo zed.Value
+	err := u.Unmarshal(*zed.NewValue(zed.TypeString, bytes), &foo)
+	require.NoError(t, err)
+	// clobber bytes slice
+	copy(bytes, []byte("bar"))
+	var bar zed.Value
+	err = u.Unmarshal(*zed.NewValue(zed.TypeString, bytes), &bar)
+	require.NoError(t, err)
+	assert.Equal(t, "foo", string(foo.Bytes))
+	assert.Equal(t, "bar", string(bar.Bytes))
+}

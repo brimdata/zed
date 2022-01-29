@@ -681,7 +681,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 	if _, ok := v.Interface().(zed.Value); ok {
 		// For zed.Values we simply set the reflect value to the
 		// zed.Value that has been decoded.
-		v.Set(reflect.ValueOf(zv))
+		v.Set(reflect.ValueOf(*zv.Copy()))
 		return nil
 	}
 	switch v.Kind() {
