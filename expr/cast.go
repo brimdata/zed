@@ -77,6 +77,9 @@ type casterUintN struct {
 }
 
 func (c *casterUintN) Eval(ectx Context, val *zed.Value) *zed.Value {
+	if val.Type == zed.TypeTime {
+		return ectx.NewValue(c.typ, zed.EncodeUint(uint64(zed.DecodeTime(val.Bytes))))
+	}
 	v, ok := coerce.ToUint(*val)
 	if !ok || (c.max != 0 && v > c.max) {
 		return ectx.CopyValue(*c.zctx.NewErrorf(
