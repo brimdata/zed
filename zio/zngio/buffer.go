@@ -10,11 +10,12 @@ type buffer struct {
 	off  int
 }
 
-var bufferPool sync.Pool
+var bigBuffers sync.Pool
+var smallBuffers sync.Pool
 
 func newBuffer(length int) *buffer {
 	if length <= DefaultLZ4BlockSize {
-		b, ok := bufferPool.Get().(*buffer)
+		b, ok := smallBuffers.Get().(*buffer)
 		if !ok {
 			b = &buffer{data: make([]byte, DefaultLZ4BlockSize)}
 		}
@@ -22,7 +23,16 @@ func newBuffer(length int) *buffer {
 		b.off = 0
 		return b
 	}
-	return &buffer{data: make([]byte, length)}
+	b, ok := bigBuffers.Get().(*buffer)
+	// The capacity check will send the smaller buffers to GC and tend
+	// to keep buffers big enough in the pool
+	if !ok || cap(b.data) < length {
+		// Add 25% cushion
+		b = &buffer{data: make([]byte, length+(length>>2))}
+	}
+	b.data = b.data[:length]
+	b.off = 0
+	return b
 }
 
 func newBufferFromBytes(b []byte) *buffer {
@@ -36,7 +46,9 @@ func (b *buffer) free() {
 		return
 	}
 	if cap(b.data) == DefaultLZ4BlockSize {
-		bufferPool.Put(b)
+		smallBuffers.Put(b)
+	} else if cap(b.data) > DefaultLZ4BlockSize {
+		bigBuffers.Put(b)
 	}
 }
 
