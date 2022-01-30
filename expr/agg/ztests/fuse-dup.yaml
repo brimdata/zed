@@ -1,10 +1,8 @@
-skip: Enable after fixing https://github.com/brimdata/zed/issues/2145.
-
-zed: fuse(.)
+zed: fuse(this)
 
 input: |
   {a:"hello",b:"world"}
   {a:"goodnight",b:123(int32)}
 
 output: |
-  {fuse:({a:string,b:(string,int32)})}
+  {fuse:<{a:string,b:(int32,string)}>}
