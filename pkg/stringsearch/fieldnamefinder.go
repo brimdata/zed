@@ -29,7 +29,7 @@ func (f *FieldNameFinder) Find(zctx *zed.Context, buf []byte) bool {
 		if idLen <= 0 {
 			return true
 		}
-		valLen := zcode.DecodeTagLength(buf)
+		valLen := zcode.DecodeTagLength(buf[idLen:])
 		buf = buf[idLen+valLen:]
 		if f.checkedIDs.Bit(int(id)) == 1 {
 			continue
