@@ -88,7 +88,10 @@ func DecodeTagLength(b Bytes) int {
 	if n <= 0 {
 		panic(fmt.Sprintf("bad uvarint: %d", n))
 	}
-	return int(u64) + n
+	if tagIsNull(u64) {
+		return n
+	}
+	return int(u64) + n - 1
 }
 
 func toTag(length int) uint64 {
