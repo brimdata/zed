@@ -7,10 +7,11 @@ import (
 
 type Reader struct {
 	io.Reader
-	limit  int
-	buffer []byte
-	cursor []byte
-	eof    bool
+	limit       int
+	buffer      []byte
+	cursor      []byte
+	eof         bool
+	interactive bool
 }
 
 var (
@@ -18,13 +19,14 @@ var (
 	ErrTruncated      = errors.New("truncated input")
 )
 
-func NewReader(reader io.Reader, size, max int) *Reader {
+func NewReader(reader io.Reader, size, max int, interactive bool) *Reader {
 	b := make([]byte, size)
 	return &Reader{
-		Reader: reader,
-		limit:  max,
-		buffer: b,
-		cursor: b[:0],
+		Reader:      reader,
+		limit:       max,
+		buffer:      b,
+		cursor:      b[:0],
+		interactive: interactive,
 	}
 }
 
@@ -37,17 +39,23 @@ func (r *Reader) Limit() int {
 	return r.limit
 }
 
-func (r *Reader) fill(min int) error {
-	if min > r.limit {
+func (r *Reader) fill(need int) error {
+	if need > r.limit {
 		return ErrBufferOverflow
 	}
-	if min > cap(r.buffer) {
-		r.buffer = make([]byte, min)
+	if need > cap(r.buffer) {
+		r.buffer = make([]byte, need)
 	}
 	r.buffer = r.buffer[:cap(r.buffer)]
 	copy(r.buffer, r.cursor)
 	clen := len(r.cursor)
-	n, err := io.ReadAtLeast(r.Reader, r.buffer[clen:], min)
+	var request int
+	if r.interactive {
+		request = need - clen
+	} else {
+		request = len(r.buffer) - clen
+	}
+	n, err := io.ReadAtLeast(r.Reader, r.buffer[clen:], request)
 	if err != nil {
 		if err != io.EOF && err != io.ErrUnexpectedEOF {
 			return err

@@ -54,7 +54,7 @@ func NewReaderWithOpts(reader io.Reader, sctx *zed.Context, opts zngio.ReaderOpt
 		opts.Size = opts.Max
 	}
 	return &Reader{
-		peeker:    peeker.NewReader(reader, opts.Size, opts.Max),
+		peeker:    peeker.NewReader(reader, opts.Size, opts.Max, false),
 		converter: &converter{sctx},
 		zctx:      zed21.NewContext(),
 		mapper:    make(map[int]zed21.Type),
