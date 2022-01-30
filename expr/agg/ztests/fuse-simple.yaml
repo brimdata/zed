@@ -1,0 +1,8 @@
+zed: t:=fuse(r) by a
+
+input: |
+  {a:1,r:{a:1}}
+  {a:1,r:{a:2}}
+
+output: |
+  {a:1,t:<{a:int64}>}

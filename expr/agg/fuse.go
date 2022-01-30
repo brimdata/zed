@@ -22,7 +22,9 @@ func newFuse() *fuse {
 func (f *fuse) Consume(val *zed.Value) {
 	// only works for record types, e.g., fuse(foo.x) where foo.x is a record
 	if typ := zed.TypeRecordOf(val.Type); typ != nil {
-		f.shapes[typ] = len(f.shapes)
+		if _, ok := f.shapes[typ]; !ok {
+			f.shapes[typ] = len(f.shapes)
+		}
 	}
 }
 
