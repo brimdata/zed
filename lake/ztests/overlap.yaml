@@ -23,7 +23,7 @@ outputs:
               first: 2020-04-22T01:23:40.0622373Z,
               last: 2020-04-21T22:40:30.06852324Z,
               count: 500 (uint64),
-              row_size: 17103
+              row_size: 17073
           } (=data.Meta)
       }
       {
@@ -31,6 +31,6 @@ outputs:
               first: 2020-04-22T01:23:21.06632034Z,
               last: 2020-04-21T22:40:49.0635839Z,
               count: 500 (uint64),
-              row_size: 17091
+              row_size: 17039
           } (=data.Meta)
       }
