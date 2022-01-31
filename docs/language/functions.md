@@ -23,6 +23,7 @@
   - [`parse_zson`](#parse_zson)
 - [Records](#records)
   - [`fields`](#fields)
+  - [`flatten`](#flatten)
   - [`unflatten`](#unflatten)
 - [Strings](#strings)
   - [`join`](#join)
@@ -424,6 +425,28 @@ echo '{a:1,b:2,c:{d:3,e:4}}' | zq -z 'over fields(this) | yield join(this,".")' 
 "b"
 "c.d"
 "c.e"
+```
+
+### `flatten`
+
+```
+flatten(r record) -> |{[string]:[<any>]}|
+```
+
+`flatten` returns a map of the flattened key/values of record r where key is a
+string array of the path to each flattened non-record value. If there are
+multiple types for the values in r, then the type of each value will be the union of
+all value types.
+
+#### Examples
+
+```mdtest-command
+echo '{a:1,b:{c:"foo"}}' | zq -z 'yield flatten(this)' -
+```
+
+**Output:**
+```mdtest-output
+|{["a"]:1((int64,string)),["b","c"]:"foo"((int64,string))}|
 ```
 
 ### `unflatten`
