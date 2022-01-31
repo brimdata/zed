@@ -9,7 +9,7 @@ import (
 )
 
 // DefaultLZ4BlockSize is a reasonable default for WriterOpts.LZ4BlockSize.
-const DefaultLZ4BlockSize = 16 * 1024
+const DefaultLZ4BlockSize = 500 * 1024
 
 type Writer struct {
 	writer     io.WriteCloser
