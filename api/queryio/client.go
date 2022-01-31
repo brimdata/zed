@@ -20,7 +20,7 @@ type Query struct {
 // from res and decodes it.
 func NewQuery(res *client.Response) *Query {
 	return &Query{
-		reader: zngio.NewReaderWithOpts(res.Body, zed.NewContext(), zngio.ReaderOpts{Interactive: true}),
+		reader: zngio.NewReader(res.Body, zed.NewContext()),
 	}
 }
 

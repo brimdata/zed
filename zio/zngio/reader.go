@@ -29,11 +29,10 @@ type Reader struct {
 var _ zbuf.ScannerAble = (*Reader)(nil)
 
 type ReaderOpts struct {
-	Validate    bool
-	Size        int
-	Max         int
-	Threads     int
-	Interactive bool
+	Validate bool
+	Size     int
+	Max      int
+	Threads  int
 }
 
 type Control struct {
