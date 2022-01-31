@@ -1077,7 +1077,7 @@ PrimitiveType
       / "duration" / "time"
       / "bytes"
       / "ip" / "net"
-      / "type" / "error" / "null" ) {
+      / "type" / "null" ) {
           RETURN(MAP("kind": "TypePrimitive", "name": TEXT))
         }
 

@@ -104,8 +104,10 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		argmax = 2
 		path = field.Path{}
 		f = &Is{zctx: zctx}
-	case "iserr":
+	case "is_error":
 		f = &IsErr{}
+	case "error":
+		f = &Error{zctx: zctx}
 	case "kind":
 		f = &Kind{zctx: zctx}
 	case "to_base64":
@@ -143,7 +145,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 // signatures so the return type can be introspected.
 func HasBoolResult(name string) bool {
 	switch name {
-	case "iserr", "is", "has", "missing":
+	case "is_error", "is", "has", "missing":
 		return true
 	}
 	return false
