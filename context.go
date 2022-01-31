@@ -173,13 +173,21 @@ func (c *Context) LookupTypeUnion(types []Type) *TypeUnion {
 	sort.SliceStable(types, func(i, j int) bool {
 		return CompareTypes(types[i], types[j]) < 0
 	})
-	tv := EncodeTypeValue(&TypeUnion{Types: types})
+	out := make([]Type, 0, len(types))
+	var prev Type
+	for _, typ := range types {
+		if typ != prev {
+			out = append(out, typ)
+		}
+		prev = typ
+	}
+	tv := EncodeTypeValue(&TypeUnion{Types: out})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[string(tv)]; ok {
 		return typ.(*TypeUnion)
 	}
-	typ := NewTypeUnion(c.nextIDWithLock(), types)
+	typ := NewTypeUnion(c.nextIDWithLock(), out)
 	c.enterWithLock(tv, typ)
 	return typ
 }
