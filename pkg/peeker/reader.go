@@ -37,17 +37,17 @@ func (r *Reader) Limit() int {
 	return r.limit
 }
 
-func (r *Reader) fill(min int) error {
-	if min > r.limit {
+func (r *Reader) fill(need int) error {
+	if need > r.limit {
 		return ErrBufferOverflow
 	}
-	if min > cap(r.buffer) {
-		r.buffer = make([]byte, min)
+	if need > cap(r.buffer) {
+		r.buffer = make([]byte, need)
 	}
 	r.buffer = r.buffer[:cap(r.buffer)]
 	copy(r.buffer, r.cursor)
 	clen := len(r.cursor)
-	n, err := io.ReadAtLeast(r.Reader, r.buffer[clen:], min)
+	n, err := io.ReadAtLeast(r.Reader, r.buffer[clen:], need-clen)
 	if err != nil {
 		if err != io.EOF && err != io.ErrUnexpectedEOF {
 			return err
