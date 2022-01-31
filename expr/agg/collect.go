@@ -41,7 +41,7 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 		return zed.Null
 	}
 	var b zcode.Builder
-	inner := zctx.LookupTypeOfValues(c.values)
+	inner := innerType(zctx, c.values)
 	if union, ok := inner.(*zed.TypeUnion); ok {
 		for _, val := range c.values {
 			zed.BuildUnion(&b, union.Selector(val.Type), val.Bytes)
@@ -52,6 +52,21 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 		}
 	}
 	return zed.NewValue(zctx.LookupTypeArray(inner), b.Bytes())
+}
+
+func innerType(zctx *zed.Context, vals []zed.Value) zed.Type {
+	var types []zed.Type
+	m := make(map[zed.Type]struct{})
+	for _, val := range vals {
+		if _, ok := m[val.Type]; !ok {
+			m[val.Type] = struct{}{}
+			types = append(types, val.Type)
+		}
+	}
+	if len(types) == 1 {
+		return types[0]
+	}
+	return zctx.LookupTypeUnion(types)
 }
 
 func (c *Collect) ConsumeAsPartial(val *zed.Value) {
