@@ -37,8 +37,9 @@
   - [`every`](#every)
   - [`now`](#now)
 - [Types](#types)
+  - [`error`](#error)
   - [`is`](#is)
-  - [`iserr`](#iserr)
+  - [`is_error`](#is_error)
   - [`kind`](#kind)
   - [`nameof`](#nameof)
   - [`quiet`](#quiet)
@@ -668,6 +669,26 @@ echo '{foo:[1,2,3]}' | zq -z 'foo := len(foo)' -
 
 ## Types
 
+### error
+
+```
+error(v <any>) -> error
+```
+
+`error` wraps any Zed value `v` to turn it into an error providing
+a means to create structured and stacked errors.
+
+#### Example:
+
+```mdtest-command
+echo '{foo:"foo"}' | zq -z 'yield error({message:"bad value", value:this})' -
+```
+
+**Output:**
+```mdtest-output
+error({message:"bad value",value:{foo:"foo"}})
+```
+
 ### `is`
 
 ```
@@ -691,18 +712,18 @@ echo '{foo:1.}' | zq -z 'foo := is(<{foo:float64}>)' -
 {foo:true}
 ```
 
-### iserr
+### is_error
 
 ```
-iserr(v <any>) -> bool
+is_error(v <any>) -> bool
 ```
 
-`iserr` returns true if value `v` is of type error.
+`is_error` returns true if value `v` is of type error.
 
 #### Example:
 
 ```mdtest-command
-echo '{foo:error("this is an error")}' | zq -z 'foo := iserr(foo)' -
+echo '{foo:error("this is an error")}' | zq -z 'foo := is_error(foo)' -
 ```
 
 **Output:**

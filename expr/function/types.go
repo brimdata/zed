@@ -63,6 +63,15 @@ func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	return t.zctx.LookupTypeValue(typ)
 }
 
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#error
+type Error struct {
+	zctx *zed.Context
+}
+
+func (e *Error) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+	return ctx.NewValue(e.zctx.LookupTypeError(args[0].Type), args[0].Bytes)
+}
+
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr
 type IsErr struct{}
 
