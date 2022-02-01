@@ -442,11 +442,6 @@ protocol directives directly into the ZNG stream as control payloads
 in an order-preserving semantics rather than defining additional
 layers of encapsulation and synchronization between such layers.
 
-> For example, the [Zed service](../../docs/lake/service-api.md) query endpoint
-> uses control messages to embed in-progress query and server stats in
-> the return stream of ZNG data, e.g., as a long-running search progresses on
-> the server.
-
 A control frame has the following form:
 ```
 -------------------------

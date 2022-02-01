@@ -10,7 +10,7 @@ watch the repo so you can follow and track our progress.
 
 In particular, we will be adding many more processors and aggregate functions.
 If you want a fun, small project to help out, pick some functionality that is missing and
-add a processor in [zed/proc](proc) or an aggregate function in [zed/expr/agg](expr/agg).
+add a processor in [runtime/op](runtime/op) or an aggregate function in [expr/agg](expr/agg).
 
 
 ## Development

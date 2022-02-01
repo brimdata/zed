@@ -1,8 +1,24 @@
 # Zed [![Tests][tests-img]][tests] [![GoPkg][gopkg-img]][gopkg]
 
-_Zed_ is a new kind of data lake that provides lightweight search and
-analytics for semi-structured data (like JSON) as well as
-structured data (like relational tables) all in the same package.
+Zed is a system for search, analytics, and data transformation
+designed to work at any scale, from a simple command-line tool called [`zq`](docs/zq/README.md)
+on your desktop (kind of like [`jq`](https://stedolan.github.io/jq/))
+to a large-scale, distributed cluster running on your servers or in the cloud
+(like a search cluster or a data warehouse).
+
+Zed is based on a new type of data called
+[_super-structured_ data](docs/formats/README.md#2-zed-a-super-structured-pattern),
+which can represent both relational tables and JSON.  Super-structured data provides a new
+and easier approach for data introspection, shaping, pipeline management,
+data quality, test, and debug, all while intermixing the flexibility of
+the JSON document model with the efficiency of warehouse analytics.
+
+For a non-technical user, Zed is as easy to use a web search
+while for a technical user, Zed exposes its technical underpinnings
+in a gradual slope, providing as much detail as desired,
+packaged up in easy-to-understand
+[ZSON data format](docs/formats/zson.md) and the
+[Zed Lake API](docs/zed/api.md).
 
 Check out the [Zed FAQ](FAQ.md).
 
@@ -49,6 +65,18 @@ is to download a pre-built release binary.
 You can find these binaries on the GitHub
 [releases](https://github.com/brimdata/zed/releases) page.
 
+If you have Go installed, you can easily install `zed` and `zq` by running
+```
+go install github.com/brimdata/zed@v1.0
+```
+On a Mac, you can use brew to install both `zq` and `zed`:
+```
+brew install brimdata/zed/zed
+```
+If you want just `zq`, use
+```
+brew install brimdata/zed/zq
+```
 Once installed, you can run the query engine from the command-line using `zq`:
 ```
 echo '"hello, world"' | zq -

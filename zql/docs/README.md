@@ -12,4 +12,4 @@ to browse the docs for ZQL as it existed in those tagged releases.
 If you're developing code or otherwise working on current commits of the
 [Brim](https://github.com/brimdata/brim) and/or `zed` projects, docs for the
 _current_ state of the evolving language are being actively updated and can be
-found below [this link](../../docs/language/README.md).
+found at [this link](../../docs/zq/language.md).

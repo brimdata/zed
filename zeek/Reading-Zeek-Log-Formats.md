@@ -148,8 +148,8 @@ that Zeek chose to output these values in NDJSON as it did. Furthermore, if
 you were just seeking to do quick searches on the string values or simple math
 on the numbers, these limitations may be acceptable. However, if you intended
 to perform operations like
-[aggregations with time-based grouping](../docs/language/grouping.md#time-grouping---every)
-or [CIDR matches](../docs/language/search-syntax.md#example-14)
+[aggregations with time-based grouping](../docs/zq/functions/bucket.md)
+or [CIDR matches](../docs/zq/functions/network_of.md)
 on IP addresses, you would likely want to restore the rich Zed data types as
 the records are being read. The document on [Shaping Zeek NDJSON](Shaping-Zeek-NDJSON.md)
 provides details on how this can be done.
