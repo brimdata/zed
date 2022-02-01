@@ -71,10 +71,10 @@ func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 }
 
 type Meta struct {
-	First   zed.Value `zed:"first"`
-	Last    zed.Value `zed:"last"`
-	Count   uint64    `zed:"count"`
-	RowSize int64     `zed:"row_size"`
+	First zed.Value `zed:"first"`
+	Last  zed.Value `zed:"last"`
+	Count uint64    `zed:"count"`
+	Size  int64     `zed:"size"`
 }
 
 //XXX
@@ -98,7 +98,7 @@ func (o Object) IsZero() bool {
 }
 
 func (o Object) String() string {
-	return fmt.Sprintf("%s %d record%s in %d data bytes", o.ID, o.Count, plural(int(o.Count)), o.RowSize)
+	return fmt.Sprintf("%s %d record%s in %d data bytes", o.ID, o.Count, plural(int(o.Count)), o.Size)
 }
 
 func plural(ordinal int) string {

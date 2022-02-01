@@ -123,7 +123,7 @@ func (w *Writer) Close(ctx context.Context) error {
 		return err
 	}
 	w.object.Count = w.count
-	w.object.RowSize = w.rowObject.Position()
+	w.object.Size = w.rowObject.Position()
 	return nil
 }
 

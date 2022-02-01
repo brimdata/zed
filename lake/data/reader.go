@@ -49,8 +49,8 @@ func (o *ObjectScan) NewReader(ctx context.Context, engine storage.Engine, path 
 	sr := &Reader{
 		Reader:     reader,
 		Closer:     reader,
-		TotalBytes: o.RowSize,
-		ReadBytes:  o.RowSize, //XXX
+		TotalBytes: o.Size,
+		ReadBytes:  o.Size, //XXX
 	}
 	rg := seekindex.Range{0, math.MaxInt64}
 	if !bytes.Equal(o.First.Bytes, span.First().Bytes) || !bytes.Equal(o.Last.Bytes, span.Last().Bytes) {
