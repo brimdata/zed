@@ -28,16 +28,18 @@ func (b *builder) appendValue(typ zed.Type, v interface{}) {
 		b.buf = zed.AppendFloat64(b.buf[:0], v)
 		b.Append(b.buf)
 	case int32:
-		b.buf = zed.AppendInt(b.buf[:0], int64(v))
+		if zed.IsSigned(typ.ID()) {
+			b.buf = zed.AppendInt(b.buf[:0], int64(v))
+		} else {
+			b.buf = zed.AppendUint(b.buf[:0], uint64(v))
+		}
 		b.Append(b.buf)
 	case int64:
-		b.buf = zed.AppendInt(b.buf[:0], v)
-		b.Append(b.buf)
-	case uint32:
-		b.buf = zed.AppendUint(b.buf[:0], uint64(v))
-		b.Append(b.buf)
-	case uint64:
-		b.buf = zed.AppendUint(b.buf[:0], v)
+		if zed.IsSigned(typ.ID()) {
+			b.buf = zed.AppendInt(b.buf[:0], v)
+		} else {
+			b.buf = zed.AppendUint(b.buf[:0], uint64(v))
+		}
 		b.Append(b.buf)
 	case map[string]interface{}:
 		switch typ := zed.TypeUnder(typ).(type) {

@@ -4,13 +4,13 @@ go 1.16
 
 require (
 	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
-	github.com/araddon/dateparse v0.0.0-20210207001429-0eec95c9db7e
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/aws/aws-sdk-go v1.36.17
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
-	github.com/fraugster/parquet-go v0.3.0
+	github.com/fraugster/parquet-go v0.6.2-0.20220131193144-6b338e4e068d
 	github.com/go-redis/redis/v8 v8.4.11
 	github.com/golang-jwt/jwt v3.2.1+incompatible
-	github.com/golang/mock v1.4.4
+	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/gorilla/mux v1.7.5-0.20200711200521-98cb6bf42e08
@@ -48,5 +48,3 @@ require (
 	honnef.co/go/tools v0.1.0 // indirect
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
-
-replace github.com/fraugster/parquet-go => github.com/brimdata/parquet-go v0.3.1
