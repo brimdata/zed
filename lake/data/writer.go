@@ -20,7 +20,7 @@ type Writer struct {
 	object           *Object
 	byteCounter      *writeCounter
 	count            uint64
-	rowObject        *zngio.Writer
+	writer           *zngio.Writer
 	firstKey         zed.Value
 	lastKey          zed.Value
 	lastSOS          int64
@@ -50,7 +50,7 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	w := &Writer{
 		object:      o,
 		byteCounter: counter,
-		rowObject:   writer,
+		writer:      writer,
 		order:       order,
 		first:       true,
 		poolKey:     poolKey,
@@ -78,7 +78,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 			return err
 		}
 	}
-	if err := w.rowObject.Write(rec); err != nil {
+	if err := w.writer.Write(rec); err != nil {
 		return err
 	}
 	w.lastKey = *key
@@ -97,23 +97,23 @@ func (w *Writer) writeIndex(key zed.Value) error {
 	if w.seekIndexTrigger < w.seekIndexStride || bytes.Equal(key.Bytes, w.lastKey.Bytes) {
 		return nil
 	}
-	if err := w.rowObject.EndStream(); err != nil {
+	if err := w.writer.EndStream(); err != nil {
 		return err
 	}
 	w.seekIndexTrigger = 0
-	pos := w.rowObject.Position()
+	pos := w.writer.Position()
 	return w.seekIndex.Write(key, w.count, pos)
 }
 
 // Abort is called when an error occurs during write. Errors are ignored
 // because the write error will be more informative and should be returned.
 func (w *Writer) Abort() {
-	w.rowObject.Close()
+	w.writer.Close()
 	w.seekWriter.Close()
 }
 
 func (w *Writer) Close(ctx context.Context) error {
-	err := w.rowObject.Close()
+	err := w.writer.Close()
 	if err != nil {
 		w.Abort()
 		return err
@@ -123,7 +123,7 @@ func (w *Writer) Close(ctx context.Context) error {
 		return err
 	}
 	w.object.Count = w.count
-	w.object.RowSize = w.rowObject.Position()
+	w.object.Size = w.writer.Position()
 	return nil
 }
 
