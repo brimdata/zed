@@ -47,7 +47,7 @@ func (p *parser) read() (frame, error) {
 		case ControlFrame:
 			return frame{}, p.decodeControl(code)
 		default:
-			return frame{}, fmt.Errorf("unknown ZNG message frame type: %d", typ)
+			return frame{}, fmt.Errorf("zngio: unknown message frame type: %d", typ)
 		}
 	}
 }
@@ -150,7 +150,7 @@ func (p *parser) readFrame(code byte) ([]byte, error) {
 	}
 	b, err := p.peeker.Read(size)
 	if err == peeker.ErrBufferOverflow {
-		return nil, fmt.Errorf("large value of %d bytes exceeds maximum read buffer", size)
+		return nil, fmt.Errorf("zngio: large value of %d bytes exceeds maximum read buffer", size)
 	}
 	return b, err
 }
@@ -176,7 +176,7 @@ func (p *parser) readCompressedFrame(code byte) (frame, error) {
 		return frame{}, err
 	}
 	if size > MaxSize {
-		return frame{}, errors.New("zngio: uncompressed length exceeds MaxSize")
+		return frame{}, fmt.Errorf("zngio: uncompressed length (%d) exceeds MaxSize (%d)", size, MaxSize)
 	}
 	// The size of the compressed buffer needs to be adjusted by the
 	// byte for the format and the variable-length bytes to encode
@@ -185,7 +185,7 @@ func (p *parser) readCompressedFrame(code byte) (frame, error) {
 	b, err := p.peeker.Read(n)
 	if err != nil && err != io.EOF {
 		if err == peeker.ErrBufferOverflow {
-			return frame{}, fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
+			return frame{}, fmt.Errorf("zngio: large value of %d bytes exceeds maximum read buffer", n)
 		}
 		return frame{}, zed.ErrBadFormat
 	}

@@ -306,7 +306,7 @@ func decodeVal(r reader, m *zed.Mapper, validate bool, valRef *zed.Value) error 
 		b, err = r.read(n)
 		if err != nil && err != io.EOF {
 			if err == peeker.ErrBufferOverflow {
-				return fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
+				return fmt.Errorf("zngio: large value of %d bytes exceeds maximum read buffer", n)
 			}
 			return zed.ErrBadFormat
 		}
