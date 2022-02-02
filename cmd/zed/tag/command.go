@@ -37,6 +37,7 @@ type Command struct {
 	*root.Command
 	cli.LakeFlags
 	delete      bool
+	poolName    string
 	lakeFlags   lakeflags.Flags
 	outputFlags outputflags.Flags
 }
@@ -44,6 +45,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.BoolVar(&c.delete, "d", false, "delete the tag instead of creating it")
+	f.StringVar(&c.poolName, "p", "", "create tag for commit objects in the given pool")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
 	c.lakeFlags.SetFlags(f)
@@ -56,25 +58,37 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(args) > 1 {
-		return errors.New("too many arguments")
-	}
 	defer cleanup()
 	lake, err := c.Open(ctx)
 	if err != nil {
 		return err
 	}
-	if len(args) == 0 {
+	var tagName, poolName, baseName string
+	var head *lakeparse.Commitish
+	switch len(args) {
+	case 0:
 		return c.list(ctx, lake)
+	case 1:
+		tagName = args[0]
+		if c.poolName != "" {
+			poolName, baseName = c.poolName, "main"
+		} else if head, err = c.lakeFlags.HEAD(); err == nil {
+			poolName, baseName = head.Pool, head.Branch
+		} else {
+			return err
+		}
+	case 2:
+		if c.poolName != "" {
+			poolName = c.poolName
+		} else if head, err = c.lakeFlags.HEAD(); err == nil {
+			poolName = head.Pool
+		} else {
+			return err
+		}
+		tagName, baseName = args[0], args[1]
+	default:
+		return errors.New("too many arguments")
 	}
-	tagName := args[0]
-
-	// TBD tag from [base]
-	head, err := c.lakeFlags.HEAD()
-	if err != nil {
-		return err
-	}
-	poolName := head.Pool
 	if poolName == "" {
 		return errors.New("a pool name must be included: pool@branch")
 	}
@@ -85,9 +99,9 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
-	parentCommit, err := lakeparse.ParseID(head.Branch)
+	parentCommit, err := lakeparse.ParseID(baseName)
 	if err != nil {
-		parentCommit, err = lake.CommitObject(ctx, poolID, head.Branch)
+		parentCommit, err = lake.CommitObject(ctx, poolID, baseName)
 		if err != nil {
 			return err
 		}
