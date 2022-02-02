@@ -1,10 +1,12 @@
 zed: '*'
 
+input-flags: -i json
+
 input: |
   {}
   {"ja3s":{}}
 
-output-flags: -f ndjson
+output-flags: -f json
 
 output: |
   {}

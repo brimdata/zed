@@ -13,8 +13,6 @@ func Extension(format string) string {
 		return ".log"
 	case "json":
 		return ".json"
-	case "ndjson":
-		return ".ndjson"
 	case "zjson":
 		return ".ndjson"
 	case "text":

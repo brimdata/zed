@@ -1,4 +1,4 @@
-script: zq -f zng - | zq -f ndjson -
+script: zq -i json -f zng - | zq -f json -
 
 inputs:
   - name: stdin

@@ -1,8 +1,10 @@
 zed: '*'
 
+input-flags: -i json
+
 input: &input |
   {"Hyphen":"-"}
 
-output-flags: -f ndjson
+output-flags: -f json
 
 output: *input

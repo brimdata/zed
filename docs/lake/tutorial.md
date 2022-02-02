@@ -515,14 +515,14 @@ from_addr      to_addr      count
 ...
 ```
 To view this with d3, we can collect up the edges emanating from a few IP addresses
-and format the output as ndjson in the format expected by bostock's
+and format the output as NDJSON in the format expected by bostock's
 force-directed graph.
 This command sequence will collect up the edges into `edges.njdson`:
 ```
 zed find -z -x graph.zng 216.58.193.195 | zq "count() by from_addr,to_addr" - > edges.zng
 zed find -z -x graph.zng 10.47.6.162 | zq "count() by from_addr,to_addr" - >> edges.zng
 zed find -z -x graph.zng 10.47.5.153 | zq "count() by from_addr,to_addr" - >> edges.zng
-zq -f ndjson "value=sum(count) by from_addr,to_addr | cut source=from_addr,target=to_addr,value" edges.zng >> edges.ndjson
+zq -f json "value=sum(count) by from_addr,to_addr | cut source=from_addr,target=to_addr,value" edges.zng >> edges.ndjson
 ```
 > (Note: with a few additions to Zed, we can make this much simpler and
 > more efficient.  Coming soon.  Also, we should be able to say `group by node`,
@@ -533,7 +533,7 @@ in the graph and put them in the form expected by bostock using this command seq
 ```
 zq "count() by from_addr | put id=from_addr" edges.zng > nodes.zng
 zq "count() by to_addr | put id=to_addr" edges.zng >> nodes.zng
-zq -f ndjson "count() by id | cut id | put addr_group=1" nodes.zng > nodes.ndjson
+zq -f json "count() by id | cut id | put addr_group=1" nodes.zng > nodes.ndjson
 ```
 <!-- markdown-link-check-disable -->
 To make a simple demo of this concept here, I cut and paste the nodes and edges

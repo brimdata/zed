@@ -154,6 +154,12 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 			return false
 		}
 	}
+	if format == "json" {
+		// The JSON reader turns all numbers into Zed float64s, but
+		// those can't be unmarshaled into Go integer types, so use the
+		// ZSON reader instead.
+		format = "zson"
+	}
 	zr, err := anyio.NewReaderWithOpts(r.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
 		w.Error(zqe.ErrInvalid(err))

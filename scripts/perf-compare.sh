@@ -83,18 +83,18 @@ do
     for INPUT in zeek zng zng-uncompressed zson ndjson ; do
       for OUTPUT in zeek zng zng-uncompressed zson ndjson ; do
         echo -n "|\`zq\`|\`$zed\`|$INPUT|$OUTPUT|" | tee -a "$MD"
-        if [[ $INPUT == "zng-uncompressed" ]]; then
-          INPUT_FMT="zng"
-        else
-          INPUT_FMT="$INPUT"
-        fi
-        if [[ $OUTPUT == "zng-uncompressed" ]]; then
-          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f zng -znglz4blocksize 0 "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
-        elif [[ $INPUT == "ndjson" ]] && [[ $OUTPUT == "zeek" ]]; then
-          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" -I ../zeek/shaper.zed "| $zed" $DATA/$INPUT/* > /dev/null) 2>&1)
-        else
-          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
-        fi
+        case $INPUT in
+          ndjson ) zq_flags="-i json" ;;
+          zng-uncompressed ) zq_flags="-i zng" ;;
+          * ) zq_flags="-i $INPUT" ;;
+        esac
+        case $OUTPUT in
+          ndjson ) zq_flags="$zq_flags -f json -I ../zeek/shaper.zed" ;;
+          zeek ) zq_flags="$zq_flags -f zeek -I ../zeek/shaper.zed" ;;
+          zng-uncompressed ) zq_flags="$zq_flags -f zng -znglz4blocksize 0" ;;
+          * ) zq_flags="$zq_flags -f $OUTPUT" ;;
+        esac
+        ALL_TIMES=$(time -p (zq $zq_flags "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
         echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
       done
     done

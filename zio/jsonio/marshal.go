@@ -9,10 +9,6 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func Marshal(val *zed.Value) interface{} {
-	return marshalAny(val.Type, val.Bytes)
-}
-
 func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 	if bytes == nil {
 		return nil
