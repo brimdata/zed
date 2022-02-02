@@ -229,8 +229,8 @@ type BranchMeta struct {
 }
 
 type TagMeta struct {
-	Pool   pools.Config    `zed:"pool"`
-	Tag    tags.Config     `zed:"tag"`
+	Pool pools.Config `zed:"pool"`
+	Tag  tags.Config  `zed:"tag"`
 }
 
 func (r *Root) ListPools(ctx context.Context) ([]pools.Config, error) {

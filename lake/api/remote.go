@@ -85,7 +85,6 @@ func (r *RemoteSession) RemoveTag(ctx context.Context, poolID ksuid.KSUID, tagNa
 	return errors.New("TBD RemoteSession.RemoveTag")
 }
 
-
 func (r *RemoteSession) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
 	return r.conn.RemovePool(ctx, pool)
 }
