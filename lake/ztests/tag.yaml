@@ -1,0 +1,23 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q logs
+  zed use logs@main
+  zed load -q in.zson
+  zed load -q in.zson
+  zed tag v2
+  zed tag v1 24XlUSZnds7guuIPeXDWRjl1EMN
+  zed tag -d v2
+
+inputs:
+  - name: in.zson
+    data: |
+      {x:1}
+
+outputs:
+  - name: stdout
+    data: |
+      Switched to branch "main"
+      "v2": tag created
+      "v1": tag created
+      tag deleted: v2
