@@ -849,7 +849,7 @@ function peg$parse(input, options) {
             return {"kind":"TypeMap", "key_type":keyType, "val_type": valType}
           },
       peg$c389 = function(v) {
-            if (!v) {
+            if (v.length == 0) {
               return {"kind": "Primitive", "type": "string", "text": ""}
             }
             return makeTemplateExprChain(v)

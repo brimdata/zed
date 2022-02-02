@@ -1036,7 +1036,7 @@ ComplexType
 
 TemplateLiteral
   = v:TemplateLiteralParts {
-      if ISNULL(v) {
+      if (ARRAY_LEN(v) == 0) {
         RETURN(MAP("kind": "Primitive", "type": "string", "text": ""))
       }
       RETURN(makeTemplateExprChain(v))
