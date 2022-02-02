@@ -595,10 +595,8 @@ func getNthFromContainer(container zcode.Bytes, idx int) zcode.Bytes {
 			return nil
 		}
 	}
-	iter := container.Iter()
-	var i int
-	for ; !iter.Done(); i++ {
-		zv := iter.Next()
+	for i, it := 0, container.Iter(); !it.Done(); i++ {
+		zv := it.Next()
 		if i == idx {
 			return zv
 		}
@@ -607,10 +605,9 @@ func getNthFromContainer(container zcode.Bytes, idx int) zcode.Bytes {
 }
 
 func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
-	iter := mapBytes.Iter()
-	for !iter.Done() {
-		key := iter.Next()
-		val := iter.Next()
+	for it := mapBytes.Iter(); !it.Done(); {
+		key := it.Next()
+		val := it.Next()
 		if bytes.Compare(key, target) == 0 {
 			return val, true
 		}

@@ -149,22 +149,22 @@ func (p *putStep) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zed.Value
 type getter struct {
 	cursor    int
 	container zcode.Bytes
-	iter      zcode.Iter
+	it        zcode.Iter
 }
 
 func newGetter(cont zcode.Bytes) getter {
 	return getter{
 		cursor:    -1,
 		container: cont,
-		iter:      cont.Iter(),
+		it:        cont.Iter(),
 	}
 }
 func (ig *getter) nth(n int) (zcode.Bytes, error) {
 	if n < ig.cursor {
-		ig.iter = ig.container.Iter()
+		ig.it = ig.container.Iter()
 	}
-	for !ig.iter.Done() {
-		zv := ig.iter.Next()
+	for !ig.it.Done() {
+		zv := ig.it.Next()
 		ig.cursor++
 		if ig.cursor == n {
 			return zv, nil

@@ -444,10 +444,8 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 			return nil
 		}
 		b.BeginContainer()
-		iter := in.Iter()
-		for !iter.Done() {
-			zv := iter.Next()
-			if zerr := s.children[0].build(zctx, ectx, zv, b); zerr != nil {
+		for it := in.Iter(); !it.Done(); {
+			if zerr := s.children[0].build(zctx, ectx, it.Next(), b); zerr != nil {
 				return zerr
 			}
 		}

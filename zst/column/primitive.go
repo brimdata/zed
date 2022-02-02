@@ -53,7 +53,7 @@ func (p *PrimitiveWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Ty
 }
 
 type PrimitiveReader struct {
-	iter   zcode.Iter
+	it     zcode.Iter
 	segmap []Segment
 	reader io.ReaderAt
 }
@@ -78,7 +78,7 @@ func (p *PrimitiveReader) Read(b *zcode.Builder) error {
 }
 
 func (p *PrimitiveReader) read() (zcode.Bytes, error) {
-	if p.iter == nil || p.iter.Done() {
+	if p.it == nil || p.it.Done() {
 		if len(p.segmap) == 0 {
 			return nil, io.EOF
 		}
@@ -86,7 +86,7 @@ func (p *PrimitiveReader) read() (zcode.Bytes, error) {
 			return nil, err
 		}
 	}
-	return p.iter.Next(), nil
+	return p.it.Next(), nil
 }
 
 func (p *PrimitiveReader) next() error {
@@ -106,6 +106,6 @@ func (p *PrimitiveReader) next() error {
 	if n < int(segment.Length) {
 		return errors.New("truncated read of ZST column")
 	}
-	p.iter = zcode.Iter(b)
+	p.it = zcode.Iter(b)
 	return nil
 }
