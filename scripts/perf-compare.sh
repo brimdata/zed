@@ -76,7 +76,6 @@ for (( n=0; n<"${#ZED_QUERIES[@]}"; n++ ))
 do
     DESC=${DESCRIPTIONS[$n]}
     MD=${MARKDOWNS[$n]}
-    zed=${ZED_QUERIES[$n]}
     echo -e "### $DESC\n" | tee "$MD"
     echo "|**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|" | tee -a "$MD"
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
@@ -88,9 +87,10 @@ do
           zng-uncompressed ) zq_flags="-i zng" ;;
           * ) zq_flags="-i $INPUT" ;;
         esac
+        zed=${ZED_QUERIES[$n]}
         case $OUTPUT in
-          ndjson ) zq_flags="$zq_flags -f json -I ../zeek/shaper.zed" ;;
-          zeek ) zq_flags="$zq_flags -f zeek -I ../zeek/shaper.zed" ;;
+          ndjson ) zq_flags="$zq_flags -f json -I ../zeek/shaper.zed" zed="| $zed";;
+          zeek ) zq_flags="$zq_flags -f zeek -I ../zeek/shaper.zed" zed="| $zed";;
           zng-uncompressed ) zq_flags="$zq_flags -f zng -znglz4blocksize 0" ;;
           * ) zq_flags="$zq_flags -f $OUTPUT" ;;
         esac
