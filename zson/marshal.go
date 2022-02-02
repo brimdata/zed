@@ -403,8 +403,8 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 func (m *MarshalZNGContext) encodeMap(v reflect.Value) (zed.Type, error) {
 	var lastKeyType, lastValType zed.Type
 	m.Builder.BeginContainer()
-	for iter := v.MapRange(); iter.Next(); {
-		keyType, err := m.encodeValue(iter.Key())
+	for it := v.MapRange(); it.Next(); {
+		keyType, err := m.encodeValue(it.Key())
 		if err != nil {
 			return nil, err
 		}
@@ -412,7 +412,7 @@ func (m *MarshalZNGContext) encodeMap(v reflect.Value) (zed.Type, error) {
 			return nil, errors.New("map has mixed key types")
 		}
 		lastKeyType = keyType
-		valType, err := m.encodeValue(iter.Value())
+		valType, err := m.encodeValue(it.Value())
 		if err != nil {
 			return nil, err
 		}
