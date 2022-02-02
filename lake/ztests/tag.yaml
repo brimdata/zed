@@ -8,6 +8,7 @@ script: |
   zed tag v2
   zed tag v1 24XlUSZnds7guuIPeXDWRjl1EMN
   zed tag -d v2
+  zed tag
 
 inputs:
   - name: in.zson
@@ -21,3 +22,4 @@ outputs:
       "v2": tag created
       "v1": tag created
       tag deleted: v2
+      logs@v1 commit 24XlUSZnds7guuIPeXDWRjl1EMN
