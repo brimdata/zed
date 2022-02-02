@@ -389,7 +389,7 @@ func (b *Branch) Stats(ctx context.Context, snap commits.View) (info BranchStats
 	// not easy to compute in the face of deletes...
 	var poolSpan *extent.Generic
 	for object := range ch {
-		info.Size += object.RowSize
+		info.Size += object.Size
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, b.pool.Layout.Order)
 		} else {

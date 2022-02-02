@@ -162,7 +162,7 @@ func formatDataObject(b *bytes.Buffer, object *data.Object, prefix string, inden
 		b.WriteByte(' ')
 	}
 	b.WriteString(object.ID.String())
-	objectSize := units.Bytes(object.RowSize).Abbrev()
+	objectSize := units.Bytes(object.Size).Abbrev()
 	b.WriteString(fmt.Sprintf(" %s bytes %d records", objectSize, object.Count))
 	b.WriteString("\n  ")
 	tab(b, indent)

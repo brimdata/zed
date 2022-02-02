@@ -60,7 +60,7 @@ outputs:
               first: 1,
               last: 2,
               count: 2 (uint64),
-              row_size: 18
+              size: 18
           } (=data.Meta)
       }
       {
