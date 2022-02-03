@@ -1,5 +1,5 @@
 zed: |
-  type id={orig_h: ip, orig_p: port=(uint16), vlan: uint16, resp_h:ip,resp_p:port}
+  type id={orig_h: ip, orig_p: port=uint16, vlan: uint16, resp_h:ip,resp_p:port}
   type rec={id: id}
   yield shape(<rec>)
 
