@@ -3,7 +3,9 @@ zed: '*'
 input-flags: -i json
 
 input: |
-  ["a", 1]
+  []
+  [null]
+  ["a", null]
   ["b", 2]
   ["c", 100, 200]
   ["d", null, 200]
@@ -14,9 +16,13 @@ input: |
 output-flags: -pretty=4
 
 output: |
+  []
   [
-      "a" ((int64,string)),
-      1 ((int64,string))
+      null
+  ]
+  [
+      "a" ((string,null)),
+      null ((string,null))
   ]
   [
       "b" ((int64,string)),

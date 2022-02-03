@@ -1,0 +1,15 @@
+zed: yield bytes(this)
+
+input-flags: -i json
+
+input: |
+  "Å"
+  "\u00c5"
+  "\u212b"
+  "A\u030a"
+
+output: |
+  0xc385
+  0xc385
+  0xc385
+  0xc385

@@ -21,6 +21,13 @@ func (b *Builder) Reset() {
 	b.containers = b.containers[:0]
 }
 
+// Truncate resets the Builder to be empty, but unlike Reset, it retains the
+// storage returned by Bytes.
+func (b *Builder) Truncate() {
+	b.bytes = b.bytes[:0]
+	b.containers = b.containers[:0]
+}
+
 // Grow guarantees that at least n bytes can be added to the Builder's
 // underlying buffer without another allocation.
 func (b *Builder) Grow(n int) {
