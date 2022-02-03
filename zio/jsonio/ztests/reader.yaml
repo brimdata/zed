@@ -1,46 +1,47 @@
-script: |
-  zq -Z -i json object.json
-  echo ===
-  zq -z -i json array.json
-  echo ===
-  zq -z -i json array2.json
+zed: '*'
 
-inputs:
-  - name: object.json
-    data: |
-      {
-        "ts": 1521911721.926018012,
-        "a": "hello, world",
-        "b": {
-          "z": "&, <, and > should not be escaped",
-          "x": 4611686018427387904,
-          "y": "127.0.0.1"
-        }
-      }
-  - name: array.json
-    data: |
-      [ {"a":1}, {"b":"hello"}, {"c":true} ]
-  - name: array2.json
-    data: |
-      [ "foo", 1, {"a":1} ]
+input-flags: -i json
 
-outputs:
-  - name: stdout
-    data: |
+input: |
+  {
+    "ts": 1521911721.926018012,
+    "a": "hello, world",
+    "b": {
+      "z": "&, <, and > should not be escaped",
+      "x": 4611686018427387904,
+      "y": "127.0.0.1"
+    }
+  }
+  [ {"a":1}, {"b":"hello"}, {"c":true} ]
+  [ "foo", 1, {"a":1} ]
+
+output-flags: -pretty=4
+
+output: |
+  {
+      a: "hello, world",
+      b: {
+          x: 4611686018427388000,
+          y: "127.0.0.1",
+          z: "&, <, and > should not be escaped"
+      },
+      ts: 1.521911721926018e+09
+  }
+  [
       {
-          a: "hello, world",
-          b: {
-              x: 4611686018427388000,
-              y: "127.0.0.1",
-              z: "&, <, and > should not be escaped"
-          },
-          ts: 1.521911721926018e+09
-      }
-      ===
-      {a:1}
-      {b:"hello"}
-      {c:true}
-      ===
-      {value:"foo"}
-      {value:1}
-      {a:1}
+          a: 1
+      } (({a:int64},{b:string},{c:bool})),
+      {
+          b: "hello"
+      } (({a:int64},{b:string},{c:bool})),
+      {
+          c: true
+      } (({a:int64},{b:string},{c:bool}))
+  ]
+  [
+      "foo" ((int64,string,{a:int64})),
+      1 ((int64,string,{a:int64})),
+      {
+          a: 1
+      } ((int64,string,{a:int64}))
+  ]

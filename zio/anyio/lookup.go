@@ -31,7 +31,7 @@ func lookupReader(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Reader, 
 		return zngio.NewReaderWithOpts(r, zctx, opts.ZNG), nil
 	case "zng21":
 		return zng21io.NewReaderWithOpts(r, zctx, opts.ZNG), nil
-	case "ndjson", "zson":
+	case "zson":
 		return zsonio.NewReader(r, zctx), nil
 	case "zst":
 		return zstio.NewReader(r, zctx)

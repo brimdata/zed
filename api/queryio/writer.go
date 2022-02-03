@@ -37,8 +37,10 @@ func NewWriter(w io.WriteCloser, format string, flusher http.Flusher) (*Writer, 
 	case "zjson":
 		d.writer = NewZJSONWriter(w)
 	case "json":
-		// The json response should always be an array, so force array.
-		d.writer = jsonio.NewWriter(zio.NopCloser(w), jsonio.WriterOpts{ForceArray: true})
+		// A JSON response is always an array.
+		d.writer = jsonio.NewArrayWriter(w)
+	case "ndjson":
+		d.writer = jsonio.NewWriter(w)
 	default:
 		d.writer, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{Format: format})
 	}

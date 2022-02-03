@@ -11,7 +11,7 @@ input: |
   key1 value1	key2 value1
   key1 value2	key2 value2
 
-output-flags: -f ndjson
+output-flags: -f json
 
 output: |
   {"_path":"conn","bar":"key2 value1","foo":"key1 value1"}

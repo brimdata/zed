@@ -1,13 +1,12 @@
 script: |
   source service.sh
   zed create -q test
-  zed load -q -use test@main in.zson
-  zed query -f ndjson "from test | cut a,b"
+  zed load -q -use test@main -
+  zed query -f json "from test | cut a,b"
 
 inputs:
   - name: service.sh
-    source: service.sh
-  - name: in.zson
+  - name: stdin
     data: |
       {ts:1970-01-01T00:00:02Z,a:"hello",b:"world"}
       {ts:1970-01-01T00:00:01Z,a:"goodnight",b:"gracie"}
