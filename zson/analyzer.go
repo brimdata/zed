@@ -168,7 +168,7 @@ func (a Analyzer) typeCheck(cast, parent zed.Type) error {
 		// as any union incompability will be caught in convertAnyValue().
 		return nil
 	}
-	return fmt.Errorf("decorator conflict enclosing context %q and decorator cast %q", parent, cast)
+	return fmt.Errorf("decorator conflict enclosing context %q and decorator cast %q", FormatType(parent), FormatType(cast))
 }
 
 func (a Analyzer) enterTypeDef(zctx *zed.Context, name string, typ zed.Type) (*zed.TypeNamed, error) {
@@ -260,7 +260,7 @@ func castType(typ, cast zed.Type) (zed.Type, error) {
 		zed.IsFloat(typID) && zed.IsFloat(castID) {
 		return cast, nil
 	}
-	return nil, fmt.Errorf("type mismatch: %q cannot be used as %q", typ, cast)
+	return nil, fmt.Errorf("type mismatch: %q cannot be used as %q", FormatType(typ), FormatType(cast))
 }
 
 func (a Analyzer) convertRecord(zctx *zed.Context, val *astzed.Record, cast zed.Type) (Value, error) {
@@ -484,7 +484,7 @@ func (a Analyzer) convertUnion(zctx *zed.Context, v Value, union *zed.TypeUnion,
 			}, nil
 		}
 	}
-	return nil, fmt.Errorf("type %q is not in union type %q", valType, union)
+	return nil, fmt.Errorf("type %q is not in union type %q", FormatType(valType), FormatType(union))
 }
 
 func (a Analyzer) convertEnum(zctx *zed.Context, val *astzed.Enum, cast zed.Type) (Value, error) {
@@ -493,7 +493,7 @@ func (a Analyzer) convertEnum(zctx *zed.Context, val *astzed.Enum, cast zed.Type
 	}
 	enum, ok := zed.TypeUnder(cast).(*zed.TypeEnum)
 	if !ok {
-		return nil, fmt.Errorf("identifier %q is enum and incompatible with type %q", val.Name, cast)
+		return nil, fmt.Errorf("identifier %q is enum and incompatible with type %q", val.Name, FormatType(cast))
 	}
 	for _, s := range enum.Symbols {
 		if s == val.Name {
@@ -550,7 +550,7 @@ func (a Analyzer) convertMap(zctx *zed.Context, m *astzed.Map, cast zed.Type) (V
 func (a Analyzer) convertTypeValue(zctx *zed.Context, tv *astzed.TypeValue, cast zed.Type) (Value, error) {
 	if cast != nil {
 		if _, ok := zed.TypeUnder(cast).(*zed.TypeOfType); !ok {
-			return nil, fmt.Errorf("cannot apply decorator (%q) to a type value", cast)
+			return nil, fmt.Errorf("cannot apply decorator (%q) to a type value", FormatType(cast))
 		}
 	}
 	typ, err := a.convertType(zctx, tv.Value)
