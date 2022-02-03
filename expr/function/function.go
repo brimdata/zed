@@ -41,6 +41,8 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		}
 	case "ceil":
 		f = &Ceil{zctx: zctx}
+	case "flatten":
+		f = NewFlatten(zctx)
 	case "floor":
 		f = &Floor{zctx: zctx}
 	case "join":
