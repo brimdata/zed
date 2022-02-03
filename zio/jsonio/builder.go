@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/text/unicode/norm"
 )
 
 type builder struct {
@@ -49,7 +50,7 @@ func (b *builder) addPrimitive(fieldName string, v interface{}) bool {
 			return false
 		}
 	case string:
-		b.bytes = append(b.bytes, v...)
+		b.bytes = norm.NFC.AppendString(b.bytes, v)
 		b.pushPrimitiveItem(fieldName, zed.TypeString, b.bytes)
 	case nil:
 		b.pushPrimitiveItem(fieldName, zed.TypeNull, nil)
