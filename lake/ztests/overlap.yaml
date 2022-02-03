@@ -5,7 +5,7 @@ script: |
   zed use -q logs@main
   zed load -q babble-split1.zson
   zed load -q babble-split2.zson
-  zed query -Z "from logs@main:objects | cut meta | sort -r meta.row_size"
+  zed query -Z "from logs@main:objects | cut meta | sort -r meta.size"
 
 inputs:
   - name: babble.zson
