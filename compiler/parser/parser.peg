@@ -1000,7 +1000,7 @@ Type
 
 AmbiguousType
   = name:PrimitiveType !IdentifierRest { RETURN(name) }
-  / name:IdentifierName __ '=' __ "(" __ typ:Type __ ")" {
+  / name:IdentifierName __ '=' __ typ:Type {
       RETURN(MAP("kind": "TypeDef", "name": name, "type": typ))
   }
   / name:IdentifierName {
