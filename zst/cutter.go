@@ -155,3 +155,35 @@ func (a *CutAssembler) Read() (*zed.Value, error) {
 		return rec.Copy(), nil
 	}
 }
+
+func Sum(object *Object, field string) (int64, error) {
+	a := object.assembly
+	for k, typ := range a.types {
+		recType := zed.TypeRecordOf(typ)
+		if recType == nil || !recType.HasField(field) {
+			continue
+		}
+		reader, err := column.NewRecordReader(recType, *a.maps[k], object.seeker)
+		if err != nil {
+			return 0, err
+		}
+		_, r, err := reader.Lookup(recType, []string{field})
+		if err != nil {
+			if err == zed.ErrMissing || err == column.ErrNonRecordAccess {
+				continue
+			}
+			return 0, err
+		}
+		fr, ok := r.(*column.FieldReader)
+		if !ok {
+			return 0, fmt.Errorf("%q not a field of a record", field)
+		}
+		pr, ok := fr.Reader().(*column.PrimitiveReader)
+		if !ok {
+			fmt.Printf("%T\n", r)
+			return 0, fmt.Errorf("%q not an integer column", field)
+		}
+		return pr.IntSum()
+	}
+	return 0, fmt.Errorf("could not find field %q", field)
+}

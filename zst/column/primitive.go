@@ -109,3 +109,17 @@ func (p *PrimitiveReader) next() error {
 	p.it = zcode.Iter(b)
 	return nil
 }
+
+func (p *PrimitiveReader) IntSum() (int64, error) {
+	var sum int64
+	for {
+		bytes, err := p.read()
+		if err != nil {
+			if err == io.EOF {
+				return sum, nil
+			}
+			return 0, err
+		}
+		sum += zed.DecodeInt(bytes)
+	}
+}

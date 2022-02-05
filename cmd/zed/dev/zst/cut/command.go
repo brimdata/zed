@@ -3,6 +3,7 @@ package inspect
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"strings"
 
 	"github.com/brimdata/zed"
@@ -42,11 +43,13 @@ type Command struct {
 	*devzst.Command
 	outputFlags outputflags.Flags
 	fieldExpr   string
+	sum         bool
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*devzst.Command)}
 	f.StringVar(&c.fieldExpr, "k", "", "dotted field expression of field to cut")
+	f.BoolVar(&c.sum, "s", false, "compute sum of integer column instead of cut for perf measurements")
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
@@ -66,6 +69,21 @@ func (c *Command) Run(args []string) error {
 	fields := strings.Split(c.fieldExpr, ".")
 	path := args[0]
 	local := storage.NewLocalEngine()
+	if c.sum {
+		if len(fields) > 1 {
+			return errors.New("sum supports only top-level fields")
+		}
+		object, err := zst.NewObjectFromPath(ctx, zed.NewContext(), local, path)
+		if err != nil {
+			return err
+		}
+		s, err := zst.Sum(object, fields[0])
+		if err != nil {
+			return err
+		}
+		fmt.Println(s)
+		return nil
+	}
 	cutter, err := zst.NewCutterFromPath(ctx, zed.NewContext(), local, path, fields)
 	if err != nil {
 		return err

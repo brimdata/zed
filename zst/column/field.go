@@ -129,3 +129,7 @@ func (f *FieldReader) Read(b *zcode.Builder) error {
 	b.Append(nil)
 	return nil
 }
+
+func (f *FieldReader) Reader() Reader {
+	return f.val
+}
