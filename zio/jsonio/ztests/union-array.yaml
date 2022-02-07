@@ -21,8 +21,8 @@ output: |
       null
   ]
   [
-      "a" ((string,null)),
-      null ((string,null))
+      "a",
+      null (string)
   ]
   [
       "b" ((int64,string)),
@@ -34,9 +34,9 @@ output: |
       200 ((int64,string))
   ]
   [
-      "d" ((int64,string,null)),
-      null ((int64,string,null)),
-      200 ((int64,string,null))
+      "d" ((int64,string)),
+      null ((int64,string)),
+      200 ((int64,string))
   ]
   [
       "e" ((string,[int64])),
