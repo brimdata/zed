@@ -15,12 +15,16 @@ func (t *TypeOfType) Kind() Kind {
 }
 
 func NewTypeValue(t Type) *Value {
-	return &Value{TypeType, EncodeTypeValue(t)}
+	return &Value{TypeType, AppendTypeValue(nil, t)}
 }
 
 func EncodeTypeValue(t Type) zcode.Bytes {
+	return AppendTypeValue(nil, t)
+}
+
+func AppendTypeValue(b zcode.Bytes, t Type) zcode.Bytes {
 	var typedefs map[string]Type
-	return appendTypeValue(nil, t, &typedefs)
+	return appendTypeValue(b, t, &typedefs)
 }
 
 func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Bytes {
