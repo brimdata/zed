@@ -29,7 +29,7 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 		for i := range vals {
 			for _, e := range p.exprs {
 				val := e.Eval(batch, &vals[i])
-				if val.IsMissing() {
+				if val.IsQuiet() {
 					continue
 				}
 				// Copy is necessary because argument bytes
