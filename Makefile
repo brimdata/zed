@@ -92,7 +92,7 @@ installdev:
 create-release-assets:
 	for os in darwin linux windows; do \
 		for arch in amd64 arm64; do \
-		  [[ $${os} == "windows" && $${arch} == "arm64" ]] && continue ; \
+		  [[ $${os} == windows && $${arch} == arm64 ]] && continue ; \
 		  zeddir=zed-$(VERSION).$${os}-$${arch} ; \
 		  rm -rf dist/$${zeddir} ; \
 		  mkdir -p dist/$${zeddir} ; \
