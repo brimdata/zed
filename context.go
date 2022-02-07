@@ -91,6 +91,15 @@ func (c *Context) Lookup(id int) *TypeRecord {
 	return nil
 }
 
+var tvPool = sync.Pool{
+	New: func() interface{} {
+		// Return a pointer to avoid allocation on conversion to
+		// interface.
+		buf := make([]byte, 64)
+		return &buf
+	},
+}
+
 // LookupTypeRecord returns a TypeRecord within this context that binds with the
 // indicated columns.  Subsequent calls with the same columns will return the
 // same record pointer.  If the type doesn't exist, it's created, stored,
@@ -101,26 +110,46 @@ func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
 	if name, ok := duplicateField(columns); ok {
 		return nil, fmt.Errorf("%w: %s", ErrDuplicateFields, name)
 	}
-	tv := EncodeTypeValue(&TypeRecord{Columns: columns})
+	tv := tvPool.Get().(*[]byte)
+	*tv = AppendTypeValue((*tv)[:0], &TypeRecord{Columns: columns})
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if typ, ok := c.toType[string(tv)]; ok {
+	if typ, ok := c.toType[string(*tv)]; ok {
+		tvPool.Put(tv)
 		return typ.(*TypeRecord), nil
 	}
 	dup := make([]Column, 0, len(columns))
 	typ := NewTypeRecord(c.nextIDWithLock(), append(dup, columns...))
-	c.enterWithLock(tv, typ)
+	c.enterWithLock(*tv, typ)
 	return typ, nil
 }
 
+var namesPool = sync.Pool{
+	New: func() interface{} {
+		// Return a pointer to avoid allocation on conversion to
+		// interface.
+		names := make([]string, 8)
+		return &names
+	},
+}
+
 func duplicateField(columns []Column) (string, bool) {
-	names := make(map[string]struct{})
+	if len(columns) < 2 {
+		return "", false
+	}
+	names := namesPool.Get().(*[]string)
+	defer namesPool.Put(names)
+	*names = (*names)[:0]
 	for _, col := range columns {
-		_, ok := names[col.Name]
-		if ok {
-			return col.Name, true
+		*names = append(*names, col.Name)
+	}
+	sort.Strings(*names)
+	prev := (*names)[0]
+	for _, n := range (*names)[1:] {
+		if n == prev {
+			return n, true
 		}
-		names[col.Name] = struct{}{}
+		prev = n
 	}
 	return "", false
 }
@@ -134,38 +163,44 @@ func (c *Context) MustLookupTypeRecord(columns []Column) *TypeRecord {
 }
 
 func (c *Context) LookupTypeSet(inner Type) *TypeSet {
-	tv := EncodeTypeValue(&TypeSet{Type: inner})
+	tv := tvPool.Get().(*[]byte)
+	*tv = AppendTypeValue((*tv)[:0], &TypeSet{Type: inner})
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if typ, ok := c.toType[string(tv)]; ok {
+	if typ, ok := c.toType[string(*tv)]; ok {
+		tvPool.Put(tv)
 		return typ.(*TypeSet)
 	}
 	typ := NewTypeSet(c.nextIDWithLock(), inner)
-	c.enterWithLock(tv, typ)
+	c.enterWithLock(*tv, typ)
 	return typ
 }
 
 func (c *Context) LookupTypeMap(keyType, valType Type) *TypeMap {
-	tv := EncodeTypeValue(&TypeMap{KeyType: keyType, ValType: valType})
+	tv := tvPool.Get().(*[]byte)
+	*tv = AppendTypeValue((*tv)[:0], &TypeMap{KeyType: keyType, ValType: valType})
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if typ, ok := c.toType[string(tv)]; ok {
+	if typ, ok := c.toType[string(*tv)]; ok {
+		tvPool.Put(tv)
 		return typ.(*TypeMap)
 	}
 	typ := NewTypeMap(c.nextIDWithLock(), keyType, valType)
-	c.enterWithLock(tv, typ)
+	c.enterWithLock(*tv, typ)
 	return typ
 }
 
 func (c *Context) LookupTypeArray(inner Type) *TypeArray {
-	tv := EncodeTypeValue(&TypeArray{Type: inner})
+	tv := tvPool.Get().(*[]byte)
+	*tv = AppendTypeValue((*tv)[:0], &TypeArray{Type: inner})
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if typ, ok := c.toType[string(tv)]; ok {
+	if typ, ok := c.toType[string(*tv)]; ok {
+		tvPool.Put(tv)
 		return typ.(*TypeArray)
 	}
 	typ := NewTypeArray(c.nextIDWithLock(), inner)
-	c.enterWithLock(tv, typ)
+	c.enterWithLock(*tv, typ)
 	return typ
 }
 
@@ -173,26 +208,30 @@ func (c *Context) LookupTypeUnion(types []Type) *TypeUnion {
 	sort.SliceStable(types, func(i, j int) bool {
 		return CompareTypes(types[i], types[j]) < 0
 	})
-	tv := EncodeTypeValue(&TypeUnion{Types: types})
+	tv := tvPool.Get().(*[]byte)
+	*tv = AppendTypeValue((*tv)[:0], &TypeUnion{Types: types})
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if typ, ok := c.toType[string(tv)]; ok {
+	if typ, ok := c.toType[string(*tv)]; ok {
+		tvPool.Put(tv)
 		return typ.(*TypeUnion)
 	}
 	typ := NewTypeUnion(c.nextIDWithLock(), types)
-	c.enterWithLock(tv, typ)
+	c.enterWithLock(*tv, typ)
 	return typ
 }
 
 func (c *Context) LookupTypeEnum(symbols []string) *TypeEnum {
-	tv := EncodeTypeValue(&TypeEnum{Symbols: symbols})
+	tv := tvPool.Get().(*[]byte)
+	*tv = AppendTypeValue((*tv)[:0], &TypeEnum{Symbols: symbols})
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if typ, ok := c.toType[string(tv)]; ok {
+	if typ, ok := c.toType[string(*tv)]; ok {
+		tvPool.Put(tv)
 		return typ.(*TypeEnum)
 	}
 	typ := NewTypeEnum(c.nextIDWithLock(), symbols)
-	c.enterWithLock(tv, typ)
+	c.enterWithLock(*tv, typ)
 	return typ
 }
 
@@ -217,14 +256,16 @@ func (c *Context) LookupTypeNamed(name string, target Type) (*TypeNamed, error) 
 }
 
 func (c *Context) LookupTypeError(inner Type) *TypeError {
+	tv := tvPool.Get().(*[]byte)
+	*tv = AppendTypeValue((*tv)[:0], &TypeError{Type: inner})
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	tv := EncodeTypeValue(&TypeError{Type: inner})
-	if typ, ok := c.toType[string(tv)]; ok {
+	if typ, ok := c.toType[string(*tv)]; ok {
+		tvPool.Put(tv)
 		return typ.(*TypeError)
 	}
 	typ := NewTypeError(c.nextIDWithLock(), inner)
-	c.enterWithLock(tv, typ)
+	c.enterWithLock(*tv, typ)
 	if inner == TypeString {
 		c.stringErr = typ
 	}
