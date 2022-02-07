@@ -2,7 +2,6 @@ export GO111MODULE=on
 
 # If VERSION or LDFLAGS change, please also change
 # npm/build.
-ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
@@ -92,11 +91,14 @@ installdev:
 
 create-release-assets:
 	for os in darwin linux windows; do \
-		zeddir=zed-$(VERSION).$${os}-amd64 ; \
-		rm -rf dist/$${zeddir} ; \
-		mkdir -p dist/$${zeddir} ; \
-		cp LICENSE.txt acknowledgments.txt dist/$${zeddir} ; \
-		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zeddir} ./cmd/zed ./cmd/zq ; \
+		for arch in amd64 arm64; do \
+		  [[ $${os} == windows && $${arch} == arm64 ]] && continue ; \
+		  zeddir=zed-$(VERSION).$${os}-$${arch} ; \
+		  rm -rf dist/$${zeddir} ; \
+		  mkdir -p dist/$${zeddir} ; \
+		  cp LICENSE.txt acknowledgments.txt dist/$${zeddir} ; \
+		  GOOS=$${os} GOARCH=$${arch} go build -ldflags='$(LDFLAGS)' -o dist/$${zeddir} ./cmd/zed ./cmd/zq ; \
+	  done \
 	done
 	rm -rf dist/release && mkdir -p dist/release
 	cd dist && for d in zed-$(VERSION)* ; do \
