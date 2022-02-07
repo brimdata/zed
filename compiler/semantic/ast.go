@@ -15,11 +15,3 @@ import (
 func Analyze(ctx context.Context, seq *ast.Sequential, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, error) {
 	return semSequential(ctx, NewScope(), seq, adaptor, head)
 }
-
-func isFrom(seq *ast.Sequential) bool {
-	if len(seq.Procs) == 0 {
-		return false
-	}
-	_, ok := seq.Procs[0].(*ast.From)
-	return ok
-}

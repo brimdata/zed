@@ -453,13 +453,6 @@ func semAssignment(scope *Scope, a ast.Assignment, summarize bool) (dag.Assignme
 	return dag.Assignment{"Assignment", lhs, rhs}, nil
 }
 
-func isThis(e ast.Expr) bool {
-	if id, ok := e.(*ast.ID); ok {
-		return id.Name == "this"
-	}
-	return false
-}
-
 func semFields(scope *Scope, exprs []ast.Expr) ([]dag.Expr, error) {
 	fields := make([]dag.Expr, 0, len(exprs))
 	for _, e := range exprs {

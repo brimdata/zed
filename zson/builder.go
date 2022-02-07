@@ -1,7 +1,6 @@
 package zson
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -158,28 +157,6 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		return fmt.Errorf("type values should not be encoded as primitives: %q", val.Text)
 	}
 	return fmt.Errorf("unknown primitive: %T", val.Type)
-}
-
-func unescapeHex(in []byte) []byte {
-	if bytes.IndexByte(in, '\\') < 0 {
-		return in
-	}
-	b := make([]byte, 0, len(in))
-	i := 0
-	for i < len(in) {
-		c := in[i]
-		if c == '\\' && len(in[i:]) >= 4 && in[i+1] == 'x' {
-			v1 := zed.Unhex(in[i+2])
-			v2 := zed.Unhex(in[i+3])
-			// This is undefined behavior for non hex \x chars.
-			c = v1<<4 | v2
-			i += 4
-		} else {
-			i++
-		}
-		b = append(b, c)
-	}
-	return b
 }
 
 func buildRecord(b *zcode.Builder, val *Record) error {

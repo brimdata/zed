@@ -62,10 +62,6 @@ func (v *Value) IsContainer() bool {
 	return IsContainerType(v.Type)
 }
 
-func badZNG(err error, t Type, zv zcode.Bytes) string {
-	return fmt.Sprintf("<ZNG-ERR type %s [%s]: %s>", t, zv, err)
-}
-
 // String implements fmt.Stringer.String.  It should only be used for logs,
 // debugging, etc.  Any caller that requires a specific output format should use
 // FormatAs() instead.

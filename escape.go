@@ -64,26 +64,6 @@ func QuotedString(s []byte, _ bool) string {
 	return b.String()
 }
 
-func esc(r rune) byte {
-	switch r {
-	case '\\':
-		return '\\'
-	case '"':
-		return '"'
-	case '\b':
-		return 'b'
-	case '\f':
-		return 'f'
-	case '\n':
-		return 'n'
-	case '\r':
-		return 'r'
-	case '\t':
-		return 't'
-	}
-	return 0
-}
-
 func Unhex(b byte) byte {
 	switch {
 	case '0' <= b && b <= '9':
