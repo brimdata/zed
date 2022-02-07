@@ -48,15 +48,6 @@ func (c *Pair) Equal() bool {
 	return bytes.Equal(c.A, c.B)
 }
 
-func typeMismatch(zctx *zed.Context) *zed.Value {
-	//XXX improve this error to indicate the actual types
-	return zctx.NewErrorf("incompatible types")
-}
-
-func errOverflow(zctx *zed.Context) *zed.Value {
-	return zctx.NewErrorf("integer overflow: uint64 value too large for int64")
-}
-
 func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
 	c.A = a.Bytes
 	c.B = b.Bytes

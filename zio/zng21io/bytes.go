@@ -85,17 +85,6 @@ func AppendUvarint(dst []byte, u64 uint64) []byte {
 	return append(dst, byte(u64))
 }
 
-// sizeOfUvarint returns the number of bytes required by appendUvarint to
-// represent u64.
-func sizeOfUvarint(u64 uint64) int {
-	n := 1
-	for u64 >= 0x80 {
-		n++
-		u64 >>= 7
-	}
-	return n
-}
-
 func containerTag(length int) uint64 {
 	return (uint64(length) << 1) | 1
 }

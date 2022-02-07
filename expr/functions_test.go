@@ -10,10 +10,6 @@ import (
 	"inet.af/netaddr"
 )
 
-func namedErrBadArgument(name string) error {
-	return fmt.Errorf("%s: %w", name, function.ErrBadArgument)
-}
-
 func zaddr(addr string) zed.Value {
 	return zed.Value{zed.TypeIP, zed.EncodeIP(netaddr.MustParseIP(addr))}
 }
