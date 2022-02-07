@@ -1,4 +1,4 @@
-zed: yield a,123
+zed: yield quiet(a)
 
 input: |
   {a:1}
@@ -7,8 +7,4 @@ input: |
 
 output: |
   1
-  123
-  error("missing")
-  123
   [3,2,1,0]
-  123
