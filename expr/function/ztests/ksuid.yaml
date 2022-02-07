@@ -1,0 +1,15 @@
+zed: yield ksuid(this)
+
+input: |
+  "24eT188EIisOiwVWwmej1h9t4Ms"
+  0x0e8afd4a5a0a2372e218818aa996ad96f5739dd2
+  null(bytes)
+  null(string)
+  null
+
+output: |
+  0x0e8afd4a5a0a2372e218818aa996ad96f5739dd2
+  "24eT188EIisOiwVWwmej1h9t4Ms"
+  error("ksuid: illegal null argument")
+  error("ksuid: Valid encoded KSUIDs are 27 characters (bad argument: null(string))")
+  error("ksuid: argument must a bytes or string type (bad argument: null)")

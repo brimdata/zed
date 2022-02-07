@@ -49,6 +49,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		argmax = 2
 		f = &Join{zctx: zctx}
 	case "ksuid":
+		argmin = 0
 		f = &KSUIDToString{zctx: zctx}
 	case "log":
 		f = &Log{zctx: zctx}
@@ -185,6 +186,10 @@ func newTime(ctx zed.Allocator, native nano.Ts) *zed.Value {
 
 func newString(ctx zed.Allocator, native string) *zed.Value {
 	return ctx.NewValue(zed.TypeString, zed.EncodeString(native))
+}
+
+func newBytes(ctx zed.Allocator, bytes []byte) *zed.Value {
+	return ctx.NewValue(zed.TypeBytes, bytes)
 }
 
 //XXX this should build the error in the allocator's memory but needs

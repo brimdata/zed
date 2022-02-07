@@ -1,0 +1,7 @@
+zed: yield len(ksuid())
+
+input: |
+  null
+
+output: |
+  20
