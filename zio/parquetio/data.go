@@ -31,7 +31,8 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	case *zed.TypeOfBool:
 		return zed.DecodeBool(zb), nil
 	case *zed.TypeOfBytes, *zed.TypeOfString:
-		return zed.DecodeBytes(zb), nil
+		// Copy zb since we don't own it.
+		return append([]byte{}, zb...), nil
 	case *zed.TypeOfIP:
 		return []byte(zed.DecodeIP(zb).String()), nil
 	case *zed.TypeOfNet:
