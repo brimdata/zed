@@ -1,0 +1,7 @@
+zed: drop x
+
+input: |
+  1
+
+output: |
+  1
