@@ -1,0 +1,7 @@
+zed: rename a := b
+
+input: |
+  1
+
+output: |
+  1

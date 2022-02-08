@@ -69,6 +69,9 @@ func (r *Renamer) computeType(typ *zed.TypeRecord) (*zed.TypeRecord, error) {
 }
 
 func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
+	if !zed.IsRecordType(this.Type) {
+		return this
+	}
 	id := this.Type.ID()
 	typ, ok := r.typeMap[id]
 	if !ok {
