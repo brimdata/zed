@@ -38,7 +38,7 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	case *zed.TypeOfNet:
 		return []byte(zed.DecodeNet(zb).String()), nil
 	case *zed.TypeOfType:
-		return zed.DecodeBytes(zb), nil
+		return []byte(zson.FormatTypeValue(zb)), nil
 	case *zed.TypeOfNull:
 		return nil, ErrNullType
 	case *zed.TypeRecord:
