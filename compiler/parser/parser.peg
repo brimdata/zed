@@ -91,6 +91,9 @@ Operation
   / f:Function &EndOfOp { RETURN(f) }
   / a:OpAssignment &EndOfOp { RETURN(a) }
   / a:Aggregation &EndOfOp  { RETURN(a) }
+  / r:Record &EndOfOp {
+      RETURN(MAP("kind": "Yield", "exprs": ARRAY(r)))
+    }
   / expr:SearchBoolean !AggGuard {
       RETURN(MAP("kind": "Filter", "expr": expr))
     }
