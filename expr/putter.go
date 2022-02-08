@@ -19,7 +19,9 @@ type Putter struct {
 	zctx    *zed.Context
 	builder zcode.Builder
 	clauses []Assignment
-	// vals is a fixed array to avoid re-allocating for every record
+	// valClauses is a slice to avoid re-allocating for every value
+	valClauses []Assignment
+	// vals is a slice to avoid re-allocating for every value
 	vals   []zed.Value
 	rules  map[int]putRule
 	warned map[string]struct{}
@@ -63,17 +65,17 @@ func NewPutter(zctx *zed.Context, clauses []Assignment) (*Putter, error) {
 	}, nil
 }
 
-func (p *Putter) eval(ectx Context, this *zed.Value) []zed.Value {
-	vals := p.vals[:0]
+func (p *Putter) eval(ectx Context, this *zed.Value) ([]zed.Value, []Assignment) {
+	p.valClauses = p.valClauses[:0]
+	p.vals = p.vals[:0]
 	for _, cl := range p.clauses {
 		val := *cl.RHS.Eval(ectx, this)
-		// XXX See issue #3370
-		//if val.IsQuiet() {
-		//	continue
-		//}
-		vals = append(vals, val)
+		if !val.IsQuiet() {
+			p.vals = append(p.vals, val)
+			p.valClauses = append(p.valClauses, cl)
+		}
 	}
-	return vals
+	return p.vals, p.valClauses
 }
 
 // A putStep is a recursive data structure encoding a series of steps to be
@@ -182,11 +184,11 @@ func findOverwriteClause(path field.Path, clauses []Assignment) (int, field.Path
 	return -1, nil, false
 }
 
-func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value) (putStep, zed.Type) {
-	return p.deriveRecordSteps(field.NewEmpty(), inType.Columns, vals)
+func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value, clauses []Assignment) (putStep, zed.Type) {
+	return p.deriveRecordSteps(field.NewEmpty(), inType.Columns, vals, clauses)
 }
 
-func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value) (putStep, *zed.TypeRecord) {
+func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value, clauses []Assignment) (putStep, *zed.TypeRecord) {
 	s := putStep{op: putRecord}
 	cols := make([]zed.Column, 0)
 
@@ -195,7 +197,7 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 	// assignments.
 	for i, inCol := range inCols {
 		path := append(parentPath, inCol.Name)
-		matchIndex, matchPath, found := findOverwriteClause(path, p.clauses)
+		matchIndex, matchPath, found := findOverwriteClause(path, clauses)
 		switch {
 		// input not overwritten by assignment: copy input value.
 		case !found:
@@ -215,13 +217,13 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 			cols = append(cols, zed.Column{inCol.Name, vals[matchIndex].Type})
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zed.IsRecordType(inCol.Type):
-			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Columns, vals)
+			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Columns, vals, clauses)
 			nestedStep.index = i
 			s.append(nestedStep)
 			cols = append(cols, zed.Column{inCol.Name, typ})
 		// input non-record field overwritten by nested assignment(s): recurse.
 		case len(path) < len(matchPath) && !zed.IsRecordType(inCol.Type):
-			nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals)
+			nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals, clauses)
 			nestedStep.index = i
 			s.append(nestedStep)
 			cols = append(cols, zed.Column{inCol.Name, typ})
@@ -237,7 +239,7 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 		return !hasField(cl.LHS[len(parentPath)], cols)
 	}
 	// Then, look at put assignments to see if there are any new fields to append.
-	for i, cl := range p.clauses {
+	for i, cl := range clauses {
 		if appendClause(cl) {
 			switch {
 			// Append value at this level
@@ -251,7 +253,7 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(cl.LHS) > len(parentPath)+1:
 				path := append(parentPath, cl.LHS[len(parentPath)])
-				nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals)
+				nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals, clauses)
 				nestedStep.index = -1
 				cols = append(cols, zed.Column{cl.LHS[len(parentPath)], typ})
 				s.append(nestedStep)
@@ -283,12 +285,12 @@ func sameTypes(types []zed.Type, vals []zed.Value) bool {
 	return true
 }
 
-func (p *Putter) lookupRule(inType *zed.TypeRecord, vals []zed.Value) putRule {
+func (p *Putter) lookupRule(inType *zed.TypeRecord, vals []zed.Value, clauses []Assignment) putRule {
 	rule, ok := p.rules[inType.ID()]
 	if ok && sameTypes(rule.clauseTypes, vals) {
 		return rule
 	}
-	step, typ := p.deriveSteps(inType, vals)
+	step, typ := p.deriveSteps(inType, vals, clauses)
 	var clauseTypes []zed.Type
 	for _, val := range vals {
 		clauseTypes = append(clauseTypes, val.Type)
@@ -307,8 +309,11 @@ func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.CopyValue(*p.zctx.NewErrorf("put: not a record: %s", zson.MustFormatValue(*this)))
 	}
-	vals := p.eval(ectx, this)
-	rule := p.lookupRule(recType, vals)
+	vals, clauses := p.eval(ectx, this)
+	if len(vals) == 0 {
+		return this
+	}
+	rule := p.lookupRule(recType, vals, clauses)
 	bytes := rule.step.build(this.Bytes, &p.builder, vals)
 	return zed.NewValue(rule.typ, bytes)
 }
