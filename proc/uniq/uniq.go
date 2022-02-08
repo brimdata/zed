@@ -6,15 +6,16 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"go.uber.org/zap"
+	"github.com/brimdata/zed/zcode"
 )
 
 type Proc struct {
-	pctx   *proc.Context
-	parent zbuf.Puller
-	cflag  bool
-	count  uint64
-	last   *zed.Value
+	pctx    *proc.Context
+	parent  zbuf.Puller
+	builder zcode.Builder
+	cflag   bool
+	count   uint64
+	last    *zed.Value
 }
 
 func New(pctx *proc.Context, parent zbuf.Puller, cflag bool) *Proc {
@@ -27,19 +28,14 @@ func New(pctx *proc.Context, parent zbuf.Puller, cflag bool) *Proc {
 
 func (p *Proc) wrap(t *zed.Value) *zed.Value {
 	if p.cflag {
-		// The leading underscore in "_uniq" is to avoid clashing with existing field
-		// names. Reducers don't have this problem since Zed has a way to assign
-		// a field name to their returned result. At some point we could maybe add an
-		// option like "-f foo" to set a field name, at which point we could safely
-		// use a non-underscore field name by default, such as "count".
-		cols := []zed.Column{zed.NewColumn("_uniq", zed.TypeUint64)}
-		vals := []zed.Value{*zed.NewUint64(p.count)}
-		newR, err := p.pctx.Zctx.AddColumns(t, cols, vals)
-		if err != nil {
-			p.pctx.Logger.Error("AddColumns failed", zap.Error(err))
-			return t
-		}
-		return newR
+		p.builder.Reset()
+		p.builder.Append(t.Bytes)
+		p.builder.Append(zed.EncodeUint(p.count))
+		typ := p.pctx.Zctx.MustLookupTypeRecord([]zed.Column{
+			zed.NewColumn("value", t.Type),
+			zed.NewColumn("count", zed.TypeUint64),
+		})
+		return zed.NewValue(typ, p.builder.Bytes()).Copy()
 	}
 	return t
 }
