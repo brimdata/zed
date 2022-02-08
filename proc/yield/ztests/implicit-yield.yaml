@@ -1,0 +1,7 @@
+zed: "{...a,y:b+c}"
+
+input: |
+  {a:{x:1},b:2,c:3}
+
+output: |
+  {x:1,y:5}
