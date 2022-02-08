@@ -38,7 +38,7 @@ time zq -i json -o all.zng all.ndjson
 
 time zq "count() by _path" all.zng
 
-(0.25s) = 75,000% faster (100X faster with native not JSON data types in ZNG file)
+(0.25s) = 7500% faster (100X faster with native not JSON data types in ZNG file)
 ```
 This is part of the reason...
 ```
@@ -67,7 +67,7 @@ All in Zedland:
 
 time zq "cut id" all.zng > /dev/null
 
-(0.62s) 33,000% faster
+(0.62s) 3300% faster
 ```
 
 **Key Take Away**
