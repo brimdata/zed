@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/anymath"
+	"github.com/brimdata/zed/pkg/anymath"
 )
 
 // A Pattern is a template for creating instances of aggregator functions.
