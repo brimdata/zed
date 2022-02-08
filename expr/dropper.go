@@ -110,6 +110,9 @@ func (_ *Dropper) String() string { return "drop" }
 func (_ *Dropper) Warning() string { return "" }
 
 func (d *Dropper) Eval(ectx Context, in *zed.Value) *zed.Value {
+	if !zed.IsRecordType(in.Type) {
+		return in
+	}
 	id := in.Type.ID()
 	dropper, ok := d.droppers[id]
 	if !ok {
