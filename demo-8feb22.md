@@ -36,6 +36,8 @@ time zq -i json -o all.zng all.ndjson
 
 (11.5s) one time
 
+time zq "count() by _path" all.zng
+
 (0.25s) = 75,000% faster (100X faster with native not JSON data types in ZNG file)
 ```
 This is part of the reason...
@@ -70,7 +72,7 @@ time zq "cut id" all.zng > /dev/null
 
 **Key Take Away**
 
-`jq` is BOTH _harder_ AND _slower_
+`jq` is both _harder_ AND _slower_
 
 Note: search is probably 1000X+ faster brute force and even more with indexes
 (though should compare to ripgrep)
@@ -112,7 +114,7 @@ Convert to ZST then run hacked-in sum pushdown:
 zq -f zst -o all.zst all.zng
 time zed dev zst cut -s -k orig_bytes all.zst
 ```
-This isn't working right now (WRONG ANSWER)... let's look at duckdb
+OOPS, this isn't working right now (WRONG ANSWER)... let's look at duckdb
 
 `orders.parquet` file from duckdb repo...
 
@@ -146,3 +148,20 @@ time zed dev zst cut -s -k orig_bytes all.zst
 (50ms) zst pushdown is 50% faster than duckdb!
 ```
 And the answer was correct...
+
+> NOTE: I wanted to do the parquet experiments also on all.zng, but...
+
+```
+zq -f parquet -o all.parquet fuse all.zng
+```
+Parquet doens't have a union!
+
+We need a `deunion` operator to split unions into different column names,
+e.g., `fld_1`, `fld_2`, ...
+
+Something like this:
+```
+zq -f parquet -o all.parquet "fuse | deunion" all.zng
+```
+
+This could be tied to parquet-theme release in new release cadence.
