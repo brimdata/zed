@@ -116,6 +116,16 @@ time zed dev zst cut -s -k orig_bytes all.zst
 ```
 OOPS, this isn't working right now (WRONG ANSWER)... let's look at duckdb
 
+Should be easy to fix because cut then sum works...
+```
+zed dev zst cut -k orig_bytes all.zst | zq 'sum(orig_bytes)' -
+zed dev zst cut -s -k orig_bytes all.zst
+```
+
+---
+
+So, let's look at duckdb instead.  This one works.
+
 `orders.parquet` file from duckdb repo...
 
 Convert to zng and zst:
