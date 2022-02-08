@@ -6,7 +6,7 @@ Zed is fast!
 
 ### jq
 
-Noah did a bunch of work to speed up jq.
+Noah did a bunch of work to speed up JSON in zq.
 
 Let's look at `count() by _path`
 
