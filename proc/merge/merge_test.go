@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/merge"

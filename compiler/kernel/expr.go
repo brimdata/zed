@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/function"
-	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zson"
 )
 

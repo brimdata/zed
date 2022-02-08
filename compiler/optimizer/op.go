@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 )
 
 // analyzeOp returns how an input order maps to an output order based

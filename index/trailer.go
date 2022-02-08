@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )

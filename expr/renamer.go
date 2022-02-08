@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/field"
 )
 
 // Renamer renames one or more fields in a record. A field can only be

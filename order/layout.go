@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/field"
 )
 
 var Nil = Layout{}

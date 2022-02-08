@@ -4,8 +4,8 @@ package ast
 
 import (
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 )
 
 // This module is derived from the GO AST design pattern in

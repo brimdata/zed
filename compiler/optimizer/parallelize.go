@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 )
 
 func orderAsDirection(which order.Which) int {
