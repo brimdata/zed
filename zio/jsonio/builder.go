@@ -1,12 +1,10 @@
 package jsonio
 
 import (
-	"encoding/json"
 	"sort"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/text/unicode/norm"
 )
 
 type builder struct {
@@ -31,33 +29,6 @@ type item struct {
 func (b *builder) reset() {
 	b.containers = b.containers[:0]
 	b.items = b.items[:0]
-}
-
-func (b *builder) addPrimitive(fieldName string, v interface{}) bool {
-	b.bytes = b.bytes[:0]
-	switch v := v.(type) {
-	case bool:
-		b.bytes = zed.AppendBool(b.bytes, v)
-		b.pushPrimitiveItem(fieldName, zed.TypeBool, b.bytes)
-	case json.Number:
-		if i, err := v.Int64(); err == nil {
-			b.bytes = zed.AppendInt(b.bytes, i)
-			b.pushPrimitiveItem(fieldName, zed.TypeInt64, b.bytes)
-		} else if f, err := v.Float64(); err == nil {
-			b.bytes = zed.AppendFloat64(b.bytes, f)
-			b.pushPrimitiveItem(fieldName, zed.TypeFloat64, b.bytes)
-		} else {
-			return false
-		}
-	case string:
-		b.bytes = norm.NFC.AppendString(b.bytes, v)
-		b.pushPrimitiveItem(fieldName, zed.TypeString, b.bytes)
-	case nil:
-		b.pushPrimitiveItem(fieldName, zed.TypeNull, nil)
-	default:
-		return false
-	}
-	return true
 }
 
 func (b *builder) pushPrimitiveItem(fieldName string, typ zed.Type, bytes zcode.Bytes) {
