@@ -91,10 +91,9 @@ func appendOver(zctx *zed.Context, vals []zed.Value, zv zed.Value) []zed.Value {
 			zed.NewColumn("key", typ.KeyType),
 			zed.NewColumn("value", typ.ValType),
 		})
-		builder := zed.NewBuilder(rtyp)
 		for it := zv.Bytes.Iter(); !it.Done(); {
-			val := builder.Build(it.Next(), it.Next())
-			vals = append(vals, *val.Copy())
+			bytes := zcode.Append(zcode.Append(nil, it.Next()), it.Next())
+			vals = append(vals, *zed.NewValue(rtyp, bytes))
 		}
 		return vals
 	case *zed.TypeRecord:
