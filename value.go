@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 )

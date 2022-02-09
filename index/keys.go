@@ -4,7 +4,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/field"
 )
 
 type Keyer struct {

@@ -8,8 +8,8 @@ package dag
 // license that can be found in the LICENSE file.
 
 import (
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/segmentio/ksuid"
 )
 
