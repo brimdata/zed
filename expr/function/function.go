@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/anymath"
+	"github.com/brimdata/zed/pkg/anymath"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zson"
