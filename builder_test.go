@@ -4,13 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"inet.af/netaddr"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"inet.af/netaddr"
 )
 
 func TestBuilder(t *testing.T) {
