@@ -69,26 +69,6 @@ used for arguments that accept a range of value types. They are:
 
 ## Bytes
 
-### `from_base64`
-
-```
-from_base64(s <stringy>) -> bytes
-```
-
-`from_base64` decodes Base64 <stringy> `s` into a byte sequence.
-
-#### Example:
-
-```mdtest-command
-echo '{foo:"aGVsbG8gd29ybGQ="}' | zq -z 'foo := string(from_base64(foo))' -
-```
-
-**Output:**
-
-```mdtest-output
-{foo:"hello world"}
-```
-
 ### `from_hex`
 
 ```
@@ -126,25 +106,6 @@ echo  '{id:0x0dfc90519b60f362e84a3fdddd9b9e63e1fb90d1}' | zq -z 'id := ksuid(id)
 **Output:**
 ```mdtest-output
 {id:"1zjJzTWWCJNVrGwqB8kZwhTM2fR"}
-```
-
-### `to_base64`
-
-```
-to_base64(s <stringy>) -> string
-```
-
-`to_base64` encodes <stringy> `s` into a Base64 string.
-
-#### Example:
-
-```mdtest-command
-echo '{foo:"hello word"}' | zq -z 'foo := to_base64(foo)' -
-```
-
-**Output:**
-```mdtest-output
-{foo:"aGVsbG8gd29yZA=="}
 ```
 
 ### `to_hex`
