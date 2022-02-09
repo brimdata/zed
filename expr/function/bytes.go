@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -36,33 +35,29 @@ func (b *Base64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_hex
-type FromHex struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#hex
+type Hex struct {
 	zctx *zed.Context
 }
 
-func (f *FromHex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	zv := args[0]
-	if !zv.IsString() {
-		return newErrorf(f.zctx, ctx, "to_base64: string argument required")
+func (h *Hex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+	val := args[0]
+	switch val.Type.ID() {
+	case zed.IDBytes:
+		if val.Bytes == nil {
+			return newErrorf(h.zctx, ctx, "hex: illegal null argument")
+		}
+		return newString(ctx, hex.EncodeToString(val.Bytes))
+	case zed.IDString:
+		if val.Bytes == nil {
+			return zed.NullString
+		}
+		b, err := hex.DecodeString(zed.DecodeString(val.Bytes))
+		if err != nil {
+			return newErrorf(h.zctx, ctx, "hex: string argument is not hexidecimal: %q", string(val.Bytes))
+		}
+		return newBytes(ctx, b)
+	default:
+		return newErrorf(h.zctx, ctx, "base64: argument must a bytes or string type (bad argument: %s)", zson.String(val))
 	}
-	if zv.Bytes == nil {
-		return zed.NullString
-	}
-	b, err := hex.DecodeString(string(zv.Bytes))
-	if err != nil {
-		panic(err)
-	}
-	return ctx.NewValue(zed.TypeBytes, zcode.Bytes(b))
-}
-
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_hex
-type ToHex struct{}
-
-func (t *ToHex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	zv := args[0]
-	if zv.Bytes == nil {
-		return zed.NullBytes
-	}
-	return newString(ctx, hex.EncodeToString(zv.Bytes))
 }

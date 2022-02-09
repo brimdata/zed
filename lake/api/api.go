@@ -77,7 +77,7 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 
 func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.Config, error) {
 	b := newBuffer(pools.Config{})
-	zed := fmt.Sprintf("from :pools | id == from_hex('%s')", idToHex(id))
+	zed := fmt.Sprintf("from :pools | id == hex('%s')", idToHex(id))
 	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 
 func LookupBranchByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake.BranchMeta, error) {
 	b := newBuffer(lake.BranchMeta{})
-	zed := fmt.Sprintf("from :branches | branch.id == 'from_hex(%s)'", idToHex(id))
+	zed := fmt.Sprintf("from :branches | branch.id == 'hex(%s)'", idToHex(id))
 	q, err := api.Query(ctx, nil, zed)
 	if err != nil {
 		return nil, err

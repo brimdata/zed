@@ -2,9 +2,9 @@ zed: |
   over this
   | yield
     "hello ${this}",
-    'hello ${to_hex(this)}',
+    'hello ${hex(bytes(this))}',
     "hello \${this}",
-    'hello \${to_hex(this)}',
+    'hello \${hex(this)}',
     'yo ${"dawg ${this}"}',
     "==="
 
@@ -15,12 +15,12 @@ output: |
    "hello world"
    "hello 776f726c64"
    "hello ${this}"
-   "hello ${to_hex(this)}"
+   "hello ${hex(this)}"
    "yo dawg world"
    "==="
    error("incompatible types")
    "hello 7f000001"
    "hello ${this}"
-   "hello ${to_hex(this)}"
+   "hello ${hex(this)}"
    error("incompatible types")
    "==="

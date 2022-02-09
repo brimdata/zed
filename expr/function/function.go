@@ -115,10 +115,8 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		f = &Kind{zctx: zctx}
 	case "base64":
 		f = &Base64{zctx: zctx}
-	case "to_hex":
-		f = &ToHex{}
-	case "from_hex":
-		f = &FromHex{zctx: zctx}
+	case "hex":
+		f = &Hex{zctx: zctx}
 	case "network_of":
 		argmax = 2
 		f = &NetworkOf{zctx: zctx}

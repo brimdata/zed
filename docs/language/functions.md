@@ -6,8 +6,6 @@
   - [`from_base64`](#from_base64)
   - [`from_hex`](#from_hex)
   - [`ksuid`](#ksuid)
-  - [`to_base64`](#to_base64)
-  - [`to_hex`](#to_hex)
 - [IPs](#ips)
   - [`network_of`](#network_of)
 - [Math](#math)
@@ -69,25 +67,6 @@ used for arguments that accept a range of value types. They are:
 
 ## Bytes
 
-### `from_hex`
-
-```
-from_hex(s <stringy>) -> bytes
-```
-
-`from_hex` decodes hexadecimal <stringy> `s` into a byte sequence.
-
-#### Example:
-
-```mdtest-command
-echo '{foo:"68656c6c6f20776f726c64"}' | zq -z 'foo := string(from_hex(foo))' -
-```
-
-**Output:**
-```mdtest-output
-{foo:"hello world"}
-```
-
 ### `ksuid`
 
 ```
@@ -106,25 +85,6 @@ echo  '{id:0x0dfc90519b60f362e84a3fdddd9b9e63e1fb90d1}' | zq -z 'id := ksuid(id)
 **Output:**
 ```mdtest-output
 {id:"1zjJzTWWCJNVrGwqB8kZwhTM2fR"}
-```
-
-### `to_hex`
-
-```
-to_hex(b bytes) -> string
-```
-
-`to_hex` encodes byte sequence `b` into a hexadecimal string.
-
-#### Example:
-
-```mdtest-command
-echo '{foo:0x68656c6c6f20776f726c64}' | zq -z 'foo := to_hex(foo)' -
-```
-
-**Output:**
-```mdtest-output
-{foo:"68656c6c6f20776f726c64"}
 ```
 
 ## IPs
