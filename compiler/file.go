@@ -4,11 +4,11 @@ import (
 	"errors"
 
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
 )
 
-func CompileForFileSystem(pctx *proc.Context, p ast.Proc, readers []zio.Reader, adaptor proc.DataAdaptor) (*Runtime, error) {
+func CompileForFileSystem(pctx *op.Context, p ast.Proc, readers []zio.Reader, adaptor op.DataAdaptor) (*Runtime, error) {
 	runtime, err := New(pctx, p, adaptor, nil)
 	if err != nil {
 		return nil, err

@@ -18,7 +18,7 @@ import (
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
@@ -44,7 +44,7 @@ type Root struct {
 	indexRules *index.Store
 }
 
-var _ proc.DataAdaptor = (*Root)(nil)
+var _ op.DataAdaptor = (*Root)(nil)
 
 type LakeMagic struct {
 	Magic   string `zed:"magic"`
@@ -461,7 +461,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 	return vals, nil
 }
 
-func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (proc.Scheduler, error) {
+func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (op.Scheduler, error) {
 	switch src := src.(type) {
 	case *dag.Pool:
 		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter, idx)
@@ -476,7 +476,7 @@ func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Sour
 	}
 }
 
-func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zed.Context, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zed.Context, meta string, filter zbuf.Filter) (op.Scheduler, error) {
 	f, err := filter.AsEvaluator()
 	if err != nil {
 		return nil, err
@@ -502,7 +502,7 @@ func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zed.Context, meta
 	return newScannerScheduler(s), nil
 }
 
-func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, poolID ksuid.KSUID, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, poolID ksuid.KSUID, meta string, filter zbuf.Filter) (op.Scheduler, error) {
 	f, err := filter.AsEvaluator()
 	if err != nil {
 		return nil, err
@@ -527,7 +527,7 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, pool
 	return newScannerScheduler(s), nil
 }
 
-func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, meta string, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, meta string, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
 	p, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
@@ -605,7 +605,7 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, po
 	}
 }
 
-func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (proc.Scheduler, error) {
+func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (op.Scheduler, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err

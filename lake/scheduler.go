@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"golang.org/x/sync/errgroup"
@@ -32,7 +32,7 @@ type Scheduler struct {
 	progress zbuf.Progress
 }
 
-var _ proc.Scheduler = (*Scheduler)(nil)
+var _ op.Scheduler = (*Scheduler)(nil)
 
 func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter, index *index.Filter) *Scheduler {
 	return &Scheduler{
@@ -116,7 +116,7 @@ type scannerScheduler struct {
 	last     zbuf.Scanner
 }
 
-var _ proc.Scheduler = (*scannerScheduler)(nil)
+var _ op.Scheduler = (*scannerScheduler)(nil)
 
 func newScannerScheduler(scanners ...zbuf.Scanner) *scannerScheduler {
 	return &scannerScheduler{

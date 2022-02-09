@@ -5,8 +5,8 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/auto"
-	"github.com/brimdata/zed/proc/fuse"
-	"github.com/brimdata/zed/proc/sort"
+	"github.com/brimdata/zed/runtime/op/fuse"
+	"github.com/brimdata/zed/runtime/op/sort"
 	"github.com/pbnjay/memory"
 )
 

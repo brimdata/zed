@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/peeker"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 )
@@ -24,7 +24,7 @@ type scanner struct {
 	once       sync.Once
 	workers    []*worker
 	workerCh   chan *worker
-	resultChCh chan chan proc.Result
+	resultChCh chan chan op.Result
 	err        error
 	eof        bool
 }
@@ -40,7 +40,7 @@ func newScanner(ctx context.Context, zctx *zed.Context, r io.Reader, filter zbuf
 		},
 		validate:   opts.Validate,
 		workerCh:   make(chan *worker),
-		resultChCh: make(chan chan proc.Result, opts.Threads+1),
+		resultChCh: make(chan chan op.Result, opts.Threads+1),
 	}
 	for i := 0; i < opts.Threads; i++ {
 		var bf *expr.BufferFilter
@@ -134,7 +134,7 @@ func (s *scanner) start() {
 				w := work{
 					local:    s.parser.types.local,
 					frame:    frame,
-					resultCh: make(chan proc.Result),
+					resultCh: make(chan op.Result),
 				}
 				select {
 				case s.resultChCh <- w.resultCh:
@@ -156,8 +156,8 @@ func (s *scanner) start() {
 // sendControl provides a means for the input thread to send control
 // messages and error/EOF in order with the worker threads.
 func (s *scanner) sendControl(err error) bool {
-	ch := make(chan proc.Result, 1)
-	ch <- proc.Result{Err: err}
+	ch := make(chan op.Result, 1)
+	ch <- op.Result{Err: err}
 	select {
 	case s.resultChCh <- ch:
 		return true
@@ -189,7 +189,7 @@ type work struct {
 	// interpret serialized type IDs in the raw value message block.
 	local    localctx
 	frame    frame
-	resultCh chan proc.Result
+	resultCh chan op.Result
 }
 
 func newWorker(ctx context.Context, p *zbuf.Progress, bf *expr.BufferFilter, f expr.Evaluator, ectx expr.Context, validate bool) *worker {
@@ -225,7 +225,7 @@ func (w *worker) run(ctx context.Context, workerCh chan<- *worker) {
 			// throwing it all out asap if it is not needed.
 			if work.frame.zbuf != nil {
 				if err := work.frame.decompress(); err != nil {
-					work.resultCh <- proc.Result{Err: err}
+					work.resultCh <- op.Result{Err: err}
 					continue
 				}
 				work.frame.zbuf.free()
@@ -238,7 +238,7 @@ func (w *worker) run(ctx context.Context, workerCh chan<- *worker) {
 			// and will get freed when the batch's Unref count hits 0.
 			batch, err := w.scanBatch(work.frame.ubuf, work.local)
 			if batch != nil || err != nil {
-				work.resultCh <- proc.Result{Batch: batch, Err: err}
+				work.resultCh <- op.Result{Batch: batch, Err: err}
 			}
 			close(work.resultCh)
 		case <-w.ctx.Done():
