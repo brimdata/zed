@@ -4,14 +4,14 @@ script: |
   curl -sD - \
     -X OPTIONS \
     -H "Access-Control-Request-Method: POST" \
-    -H "Access-Control-Request-Headers: content-type" \
+    -H "Access-Control-Request-Headers: content-type, authorization" \
     -H "Origin: http://test.observableusercontent.com" \
     $ZED_LAKE/query | grep Access-Control-Allow | tr -d '\015'
   echo === OPTIONS: not allowed ===
   ! curl -sD - \
     -X OPTIONS \
     -H "Access-Control-Request-Method: POST" \
-    -H "Access-Control-Request-Headers: content-type" \
+    -H "Access-Control-Request-Headers: content-type, authorization" \
     -H "Origin: http://adversarialobservableusercontent.com" \
     $ZED_LAKE/query | grep Access-Control-Allow
   echo === POST: allowed ===
@@ -37,7 +37,7 @@ outputs:
     data: |
       === OPTIONS: allowed ===
       Access-Control-Allow-Credentials: true
-      Access-Control-Allow-Headers: Content-Type
+      Access-Control-Allow-Headers: Content-Type, Authorization
       Access-Control-Allow-Methods: POST
       Access-Control-Allow-Origin: http://test.observableusercontent.com
       === OPTIONS: not allowed ===
