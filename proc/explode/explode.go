@@ -12,7 +12,7 @@ import (
 // type T. It is useful for type-based indexing.
 type Proc struct {
 	parent  zbuf.Puller
-	builder zed.Builder
+	outType zed.Type
 	typ     zed.Type
 	args    []expr.Evaluator
 }
@@ -20,12 +20,9 @@ type Proc struct {
 // New creates a exploder for type typ, where the
 // output records' single column is named name.
 func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string) (zbuf.Puller, error) {
-	cols := []zed.Column{{Name: name, Type: typ}}
-	rectyp := zctx.MustLookupTypeRecord(cols)
-	builder := zed.NewBuilder(rectyp)
 	return &Proc{
 		parent:  parent,
-		builder: *builder,
+		outType: zctx.MustLookupTypeRecord([]zed.Column{{Name: name, Type: typ}}),
 		typ:     typ,
 		args:    args,
 	}, nil
@@ -50,7 +47,8 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 				}
 				zed.Walk(val.Type, val.Bytes, func(typ zed.Type, body zcode.Bytes) error {
 					if typ == p.typ && body != nil {
-						out = append(out, *p.builder.Build(body))
+						bytes := zcode.Append(nil, body)
+						out = append(out, *zed.NewValue(p.outType, bytes))
 						return zed.SkipContainer
 					}
 					return nil
