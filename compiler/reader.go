@@ -10,17 +10,17 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
 
-func CompileForInternal(pctx *proc.Context, p ast.Proc, r zio.Reader) (*Runtime, error) {
+func CompileForInternal(pctx *op.Context, p ast.Proc, r zio.Reader) (*Runtime, error) {
 	return CompileForInternalWithOrder(pctx, p, r, order.Layout{})
 }
 
-func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, layout order.Layout) (*Runtime, error) {
+func CompileForInternalWithOrder(pctx *op.Context, p ast.Proc, r zio.Reader, layout order.Layout) (*Runtime, error) {
 	adaptor := &internalAdaptor{}
 	runtime, err := New(pctx, p, adaptor, nil)
 	if err != nil {
@@ -49,7 +49,7 @@ func (*internalAdaptor) Layout(context.Context, dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*internalAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter, *dag.Filter) (proc.Scheduler, error) {
+func (*internalAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter, *dag.Filter) (op.Scheduler, error) {
 	return nil, errors.New("invalid pool or file scan specified for internally streamed Zed query")
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/lake/mock"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -59,7 +59,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			t.Helper()
 			p, err := compiler.ParseProc(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			runtime, err := compiler.New(proc.DefaultContext(), p, lk, nil)
+			runtime, err := compiler.New(op.DefaultContext(), p, lk, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
 			err = runtime.Build()
 			require.NoError(t, err, "filter: %q", c.filter)

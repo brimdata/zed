@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/proc/merge"
+	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"go.uber.org/multierr"

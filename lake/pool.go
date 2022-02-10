@@ -15,7 +15,7 @@ import (
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -106,7 +106,7 @@ func (p *Pool) removeBranch(ctx context.Context, name string) error {
 	return p.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (proc.Scheduler, error) {
+func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (op.Scheduler, error) {
 	snap, err := p.commits.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err

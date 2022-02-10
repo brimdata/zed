@@ -8,17 +8,17 @@ import (
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 )
 
 type Optimizer struct {
 	ctx     context.Context
 	entry   *dag.Sequential
-	adaptor proc.DataAdaptor
+	adaptor op.DataAdaptor
 	layouts map[dag.Source]order.Layout
 }
 
-func New(ctx context.Context, entry *dag.Sequential, adaptor proc.DataAdaptor) *Optimizer {
+func New(ctx context.Context, entry *dag.Sequential, adaptor op.DataAdaptor) *Optimizer {
 	return &Optimizer{
 		ctx:     ctx,
 		entry:   entry,

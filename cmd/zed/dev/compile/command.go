@@ -19,7 +19,7 @@ import (
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake/mock"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zfmt"
 	"github.com/peterh/liner"
 )
@@ -238,7 +238,7 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	return compiler.New(proc.DefaultContext(), p, mock.NewLake(), nil)
+	return compiler.New(op.DefaultContext(), p, mock.NewLake(), nil)
 }
 
 const nodeProblem = `

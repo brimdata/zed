@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/segmentio/ksuid"
@@ -21,7 +21,7 @@ type FileAdaptor struct {
 	engine storage.Engine
 }
 
-var _ proc.DataAdaptor = (*FileAdaptor)(nil)
+var _ op.DataAdaptor = (*FileAdaptor)(nil)
 
 func NewFileAdaptor(engine storage.Engine) *FileAdaptor {
 	return &FileAdaptor{
@@ -41,7 +41,7 @@ func (*FileAdaptor) Layout(context.Context, dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*FileAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter, *dag.Filter) (proc.Scheduler, error) {
+func (*FileAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter, *dag.Filter) (op.Scheduler, error) {
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 

@@ -14,8 +14,8 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
@@ -89,7 +89,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			}
 		}
 		if len(batch.Values()) == 0 {
-			if eoc, ok := batch.(*proc.EndOfChannel); ok {
+			if eoc, ok := batch.(*op.EndOfChannel); ok {
 				if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
 					writer.WriteError(err)
 					return
@@ -98,7 +98,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			continue
 		}
 		var cid int
-		batch, cid = proc.Unwrap(batch)
+		batch, cid = op.Unwrap(batch)
 		if err := writer.WriteBatch(cid, batch); err != nil {
 			writer.WriteError(err)
 			return

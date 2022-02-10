@@ -14,12 +14,12 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 )
 
 type Runtime struct {
-	pctx      *proc.Context
+	pctx      *op.Context
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
 	consts    []dag.Op
@@ -29,10 +29,10 @@ type Runtime struct {
 	meter     *meter
 }
 
-func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
+func New(pctx *op.Context, inAST ast.Proc, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
 	parserAST := ast.Copy(inAST)
-	// An AST always begins with a Sequential proc with at least one
-	// proc.  If the first proc is a From or a Parallel whose branches
+	// An AST always begins with a Sequential op with at least one
+	// operator.  If the first proc is a From or a Parallel whose branches
 	// are Sequentials with a leading From, then we presume there is
 	// no externally defined input.  Otherwise, we expect two readers
 	// to be defined for a Join and one reader for anything else.  When input
@@ -127,7 +127,7 @@ func isSequentialWithLeadingFrom(p ast.Proc) bool {
 	return ok
 }
 
-func (r *Runtime) Context() *proc.Context {
+func (r *Runtime) Context() *op.Context {
 	return r.pctx
 }
 
@@ -201,9 +201,9 @@ func (r *Runtime) Puller() zbuf.Puller {
 		case 0:
 			return nil
 		case 1:
-			r.puller = proc.NewCatcher(proc.NewSingle(outputs[0]))
+			r.puller = op.NewCatcher(op.NewSingle(outputs[0]))
 		default:
-			r.puller = proc.NewMux(r.pctx, outputs)
+			r.puller = op.NewMux(r.pctx, outputs)
 		}
 	}
 	return r.puller

@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/segmentio/ksuid"
 )
@@ -19,7 +19,7 @@ type Lake struct {
 	poolsByID   map[ksuid.KSUID]*Pool
 }
 
-var _ proc.DataAdaptor = (*Lake)(nil)
+var _ op.DataAdaptor = (*Lake)(nil)
 
 type Pool struct {
 	name    string
@@ -103,7 +103,7 @@ func (l *Lake) Layout(_ context.Context, src dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*Lake) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter, *dag.Filter) (proc.Scheduler, error) {
+func (*Lake) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter, *dag.Filter) (op.Scheduler, error) {
 	return nil, fmt.Errorf("mock.Lake.NewScheduler() should not be called")
 }
 

@@ -11,25 +11,25 @@ import (
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/proc"
-	"github.com/brimdata/zed/proc/combine"
-	"github.com/brimdata/zed/proc/explode"
-	"github.com/brimdata/zed/proc/exprswitch"
-	"github.com/brimdata/zed/proc/from"
-	"github.com/brimdata/zed/proc/fuse"
-	"github.com/brimdata/zed/proc/head"
-	"github.com/brimdata/zed/proc/join"
-	"github.com/brimdata/zed/proc/merge"
-	"github.com/brimdata/zed/proc/pass"
-	"github.com/brimdata/zed/proc/shape"
-	"github.com/brimdata/zed/proc/sort"
-	"github.com/brimdata/zed/proc/split"
-	"github.com/brimdata/zed/proc/switcher"
-	"github.com/brimdata/zed/proc/tail"
-	"github.com/brimdata/zed/proc/top"
-	"github.com/brimdata/zed/proc/traverse"
-	"github.com/brimdata/zed/proc/uniq"
-	"github.com/brimdata/zed/proc/yield"
+	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime/op/combine"
+	"github.com/brimdata/zed/runtime/op/explode"
+	"github.com/brimdata/zed/runtime/op/exprswitch"
+	"github.com/brimdata/zed/runtime/op/from"
+	"github.com/brimdata/zed/runtime/op/fuse"
+	"github.com/brimdata/zed/runtime/op/head"
+	"github.com/brimdata/zed/runtime/op/join"
+	"github.com/brimdata/zed/runtime/op/merge"
+	"github.com/brimdata/zed/runtime/op/pass"
+	"github.com/brimdata/zed/runtime/op/shape"
+	"github.com/brimdata/zed/runtime/op/sort"
+	"github.com/brimdata/zed/runtime/op/split"
+	"github.com/brimdata/zed/runtime/op/switcher"
+	"github.com/brimdata/zed/runtime/op/tail"
+	"github.com/brimdata/zed/runtime/op/top"
+	"github.com/brimdata/zed/runtime/op/traverse"
+	"github.com/brimdata/zed/runtime/op/uniq"
+	"github.com/brimdata/zed/runtime/op/yield"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -38,16 +38,16 @@ import (
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
 type Builder struct {
-	pctx       *proc.Context
-	adaptor    proc.DataAdaptor
-	schedulers map[dag.Source]proc.Scheduler
+	pctx       *op.Context
+	adaptor    op.DataAdaptor
+	schedulers map[dag.Source]op.Scheduler
 }
 
-func NewBuilder(pctx *proc.Context, adaptor proc.DataAdaptor) *Builder {
+func NewBuilder(pctx *op.Context, adaptor op.DataAdaptor) *Builder {
 	return &Builder{
 		pctx:       pctx,
 		adaptor:    adaptor,
-		schedulers: make(map[dag.Source]proc.Scheduler),
+		schedulers: make(map[dag.Source]op.Scheduler),
 	}
 }
 
@@ -75,8 +75,8 @@ func (b *Builder) Meters() []zbuf.Meter {
 	return meters
 }
 
-func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error) {
-	switch v := op.(type) {
+func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error) {
+	switch v := p.(type) {
 	case *dag.Summarize:
 		return compileGroupBy(b.pctx, parent, v)
 	case *dag.Cut:
@@ -92,7 +92,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 		if v.Quiet {
 			cutter.Quiet()
 		}
-		return proc.NewApplier(b.pctx, parent, cutter), nil
+		return op.NewApplier(b.pctx, parent, cutter), nil
 	case *dag.Drop:
 		if len(v.Args) == 0 {
 			return nil, errors.New("drop: no fields given")
@@ -106,7 +106,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 			fields = append(fields, field.Path)
 		}
 		dropper := expr.NewDropper(b.pctx.Zctx, fields)
-		return proc.NewApplier(b.pctx, parent, dropper), nil
+		return op.NewApplier(b.pctx, parent, dropper), nil
 	case *dag.Sort:
 		fields, err := CompileExprs(b.pctx.Zctx, v.Args)
 		if err != nil {
@@ -138,7 +138,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return proc.NewApplier(b.pctx, parent, expr.NewFilterApplier(b.pctx.Zctx, f)), nil
+		return op.NewApplier(b.pctx, parent, expr.NewFilterApplier(b.pctx.Zctx, f)), nil
 	case *dag.Top:
 		fields, err := CompileExprs(b.pctx.Zctx, v.Args)
 		if err != nil {
@@ -154,7 +154,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 		if err != nil {
 			return nil, err
 		}
-		return proc.NewApplier(b.pctx, parent, putter), nil
+		return op.NewApplier(b.pctx, parent, putter), nil
 	case *dag.Rename:
 		var srcs, dsts field.List
 		for _, fa := range v.Args {
@@ -182,7 +182,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent zbuf.Puller) (zbuf.Puller, error
 			srcs = append(srcs, src)
 		}
 		renamer := expr.NewRenamer(b.pctx.Zctx, srcs, dsts)
-		return proc.NewApplier(b.pctx, parent, renamer), nil
+		return op.NewApplier(b.pctx, parent, renamer), nil
 	case *dag.Fuse:
 		return fuse.New(b.pctx, parent)
 	case *dag.Shape:
@@ -293,15 +293,15 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 
 func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	if len(parents) == 0 {
-		var procs []zbuf.Puller
+		var ops []zbuf.Puller
 		for _, op := range parallel.Ops {
-			proc, err := b.compile(op, nil)
+			branch, err := b.compile(op, nil)
 			if err != nil {
 				return nil, err
 			}
-			procs = append(procs, proc...)
+			ops = append(ops, branch...)
 		}
-		return procs, nil
+		return ops, nil
 	}
 	n := len(parallel.Ops)
 	if len(parents) == 1 {
@@ -311,15 +311,15 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller)
 	if len(parents) != n {
 		return nil, fmt.Errorf("parallel input mismatch: %d parents with %d flowgraph paths", len(parents), len(parallel.Ops))
 	}
-	var procs []zbuf.Puller
+	var ops []zbuf.Puller
 	for k := 0; k < n; k++ {
-		proc, err := b.compile(parallel.Ops[k], []zbuf.Puller{parents[k]})
+		op, err := b.compile(parallel.Ops[k], []zbuf.Puller{parents[k]})
 		if err != nil {
 			return nil, err
 		}
-		procs = append(procs, proc...)
+		ops = append(ops, op...)
 	}
-	return procs, nil
+	return ops, nil
 }
 
 func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
@@ -365,17 +365,17 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbu
 		}
 	}
 	if len(parents) != n {
-		return nil, fmt.Errorf("proc.compileSwitch: %d parents for switch proc with %d branches", len(parents), len(swtch.Cases))
+		return nil, fmt.Errorf("op.compileSwitch: %d parents for switch proc with %d branches", len(parents), len(swtch.Cases))
 	}
-	var procs []zbuf.Puller
+	var ops []zbuf.Puller
 	for k := 0; k < n; k++ {
-		proc, err := b.compile(swtch.Cases[k].Op, []zbuf.Puller{parents[k]})
+		op, err := b.compile(swtch.Cases[k].Op, []zbuf.Puller{parents[k]})
 		if err != nil {
 			return nil, err
 		}
-		procs = append(procs, proc...)
+		ops = append(ops, op...)
 	}
-	return procs, nil
+	return ops, nil
 }
 
 // compile compiles a DAG into a graph of runtime operators, and returns
@@ -507,7 +507,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		// properly share parallel instances of a given scheduler
 		// across different DAG entry points.  The scanners from a
 		// common lake.ScanScheduler are distributed across the collection
-		// of proc.From operators.
+		// of op.From operators.
 		sched, ok := b.schedulers[src]
 		if !ok {
 			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
