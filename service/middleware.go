@@ -43,7 +43,7 @@ func corsMiddleware() mux.MiddlewareFunc {
 			http.MethodPatch,
 			http.MethodDelete,
 		},
-		AllowedHeaders: []string{"Authorization", "Accept", "Content-Type", "X-Requested-With"},
+		AllowedHeaders:   []string{"Authorization", "Accept", "Content-Type", "X-Requested-With"},
 		AllowCredentials: true,
 	}).Handler
 }
