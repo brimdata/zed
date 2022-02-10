@@ -81,11 +81,7 @@ func compileCompareField(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, 
 
 func isLiteral(zctx *zed.Context, e dag.Expr) (*zed.Value, error) {
 	if literal, ok := e.(*dag.Literal); ok {
-		val, err := zson.ParseValue(zctx, literal.Value)
-		if err != nil {
-			return nil, err
-		}
-		return &val, nil
+		return zson.ParseValue(zctx, literal.Value)
 	}
 	return nil, nil
 }
@@ -97,7 +93,7 @@ func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error
 	}
 	switch zed.TypeUnder(val.Type) {
 	case zed.TypeNet:
-		match, err := expr.Comparison("=", &val)
+		match, err := expr.Comparison("=", val)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +106,7 @@ func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error
 		term := norm.NFC.Bytes(val.Bytes)
 		return expr.NewSearchString(string(term)), nil
 	}
-	return expr.NewSearch(search.Text, &val)
+	return expr.NewSearch(search.Text, val)
 }
 
 func compileFilter(zctx *zed.Context, node dag.Expr) (expr.Evaluator, error) {

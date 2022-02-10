@@ -23,7 +23,7 @@ func ZSON(s string) zed.Value {
 	if err != nil {
 		panic(fmt.Sprintf("zson parse failed compiling: %q (%s)", s, err))
 	}
-	return val
+	return *val
 }
 
 func TestAbs(t *testing.T) {

@@ -45,7 +45,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		}
 		return &dag.Literal{
 			Kind:  "Literal",
-			Value: zson.MustFormatValue(val),
+			Value: zson.MustFormatValue(*val),
 		}, nil
 	case *ast.ID:
 		return semID(scope, e), nil
@@ -57,7 +57,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		return &dag.Search{
 			Kind:  "Search",
 			Text:  e.Text,
-			Value: zson.MustFormatValue(val),
+			Value: zson.MustFormatValue(*val),
 		}, nil
 	case *ast.UnaryExpr:
 		expr, err := semExpr(scope, e.Operand)

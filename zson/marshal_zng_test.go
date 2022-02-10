@@ -416,12 +416,12 @@ func TestInterfaceUnmarshal(t *testing.T) {
 	u.Bind(ZNGThing{}, ThingTwo{})
 	var thing ThingaMaBob
 	require.NoError(t, err)
-	err = u.Unmarshal(zv, &thing)
+	err = u.Unmarshal(*zv, &thing)
 	require.NoError(t, err)
 	assert.Equal(t, "It's a thing one", thing.Who())
 
 	var thingI interface{}
-	err = u.Unmarshal(zv, &thingI)
+	err = u.Unmarshal(*zv, &thingI)
 	require.NoError(t, err)
 	actualThing, ok := thingI.(*ZNGThing)
 	assert.Equal(t, true, ok)
@@ -429,7 +429,7 @@ func TestInterfaceUnmarshal(t *testing.T) {
 
 	u2 := zson.NewZNGUnmarshaler()
 	var genericThing interface{}
-	err = u2.Unmarshal(zv, &genericThing)
+	err = u2.Unmarshal(*zv, &genericThing)
 	require.Error(t, err)
 	assert.Equal(t, "unmarshaling records into interface value requires type binding", err.Error())
 }
@@ -452,7 +452,7 @@ func TestBindings(t *testing.T) {
 	})
 	var thing ThingaMaBob
 	require.NoError(t, err)
-	err = u.Unmarshal(zv, &thing)
+	err = u.Unmarshal(*zv, &thing)
 	require.NoError(t, err)
 	assert.Equal(t, "It's a thing one", thing.Who())
 }
@@ -463,14 +463,14 @@ func TestEmptyInterface(t *testing.T) {
 	assert.Equal(t, "int8", zson.String(zv.Type))
 
 	var v interface{}
-	err = zson.UnmarshalZNG(zv, &v)
+	err = zson.UnmarshalZNG(*zv, &v)
 	require.NoError(t, err)
 	i, ok := v.(int8)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, int8(123), i)
 
 	var actual int8
-	err = zson.UnmarshalZNG(zv, &actual)
+	err = zson.UnmarshalZNG(*zv, &actual)
 	require.NoError(t, err)
 	assert.Equal(t, int8(123), actual)
 }
@@ -489,12 +489,12 @@ func TestNamedNormal(t *testing.T) {
 	var actual CustomInt8
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(CustomInt8(0))
-	err = u.Unmarshal(zv, &actual)
+	err = u.Unmarshal(*zv, &actual)
 	require.NoError(t, err)
 	assert.Equal(t, t1, actual)
 
 	var actualI interface{}
-	err = u.Unmarshal(zv, &actualI)
+	err = u.Unmarshal(*zv, &actualI)
 	require.NoError(t, err)
 	cast, ok := actualI.(CustomInt8)
 	assert.Equal(t, true, ok)
@@ -523,13 +523,13 @@ func TestEmbeddedInterface(t *testing.T) {
 	u.Bind(ZNGThing{}, ThingTwo{})
 	var actual EmbeddedA
 	require.NoError(t, err)
-	err = u.Unmarshal(zv, &actual)
+	err = u.Unmarshal(*zv, &actual)
 	require.NoError(t, err)
 	assert.Equal(t, "It's a thing one", actual.A.Who())
 
 	var actualB EmbeddedB
 	require.NoError(t, err)
-	err = u.Unmarshal(zv, &actualB)
+	err = u.Unmarshal(*zv, &actualB)
 	require.NoError(t, err)
 	thingB, ok := actualB.A.(*ZNGThing)
 	assert.Equal(t, true, ok)

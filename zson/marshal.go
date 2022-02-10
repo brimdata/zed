@@ -52,7 +52,7 @@ func (m *MarshalContext) Marshal(v interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return m.formatter.Format(zv)
+	return m.formatter.Format(*zv)
 }
 
 func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (string, error) {
@@ -97,14 +97,14 @@ func (u *UnmarshalContext) Unmarshal(zson string, v interface{}) error {
 	if err != nil {
 		return nil
 	}
-	return u.UnmarshalZNGContext.Unmarshal(zv, v)
+	return u.UnmarshalZNGContext.Unmarshal(*zv, v)
 }
 
 type ZNGMarshaler interface {
 	MarshalZNG(*MarshalZNGContext) (zed.Type, error)
 }
 
-func MarshalZNG(v interface{}) (zed.Value, error) {
+func MarshalZNG(v interface{}) (*zed.Value, error) {
 	return NewZNGMarshaler().Marshal(v)
 }
 
@@ -131,18 +131,18 @@ func (m *MarshalZNGContext) MarshalValue(v interface{}) (zed.Type, error) {
 	return m.encodeValue(reflect.ValueOf(v))
 }
 
-func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
+func (m *MarshalZNGContext) Marshal(v interface{}) (*zed.Value, error) {
 	m.Builder.Reset()
 	typ, err := m.encodeValue(reflect.ValueOf(v))
 	if err != nil {
-		return zed.Value{}, err
+		return nil, err
 	}
 	bytes := m.Builder.Bytes()
 	it := bytes.Iter()
 	if it.Done() {
-		return zed.Value{}, errors.New("no value found")
+		return nil, errors.New("no value found")
 	}
-	return zed.Value{typ, it.Next()}, nil
+	return zed.NewValue(typ, it.Next()), nil
 }
 
 //XXX get rid of this?

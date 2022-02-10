@@ -33,13 +33,17 @@ func MarshalTrailer(typ string, version int, sections []int64, meta interface{})
 	if err != nil {
 		return zed.Value{}, err
 	}
-	return m.Marshal(&Trailer{
+	val, err := m.Marshal(&Trailer{
 		Magic:    Magic,
 		Type:     typ,
 		Version:  version,
 		Sections: sections,
-		Meta:     metaVal,
+		Meta:     *metaVal,
 	})
+	if err != nil {
+		return zed.Value{}, err
+	}
+	return *val, nil
 }
 
 func ReadTrailer(r io.ReaderAt, fileSize int64) (*Trailer, error) {
