@@ -415,13 +415,20 @@ func semAssignment(scope *Scope, a ast.Assignment, summarize bool) (dag.Assignme
 			return dag.Assignment{}, fmt.Errorf("lhs of assigment expression: %w", err)
 		}
 	} else if call, ok := a.RHS.(*ast.Call); ok {
-		// If LHS is nil and the call is every() make the LHS field ts since
-		// field ts assumed with every.
-		name := call.Name
-		if name == "every" {
-			name = "ts"
+		path := []string{call.Name}
+		switch call.Name {
+		case "every":
+			// If LHS is nil and the call is every() make the LHS field ts since
+			// field ts assumed with every.
+			path = []string{"ts"}
+		case "quiet":
+			if len(call.Args) > 0 {
+				if p, ok := rhs.(*dag.Call).Args[0].(*dag.This); ok {
+					path = p.Path
+				}
+			}
 		}
-		lhs = &dag.This{"This", []string{name}}
+		lhs = &dag.This{"This", path}
 	} else if agg, ok := a.RHS.(*ast.Agg); ok {
 		lhs = &dag.This{"This", []string{agg.Name}}
 	} else if v, ok := rhs.(*dag.Var); ok {

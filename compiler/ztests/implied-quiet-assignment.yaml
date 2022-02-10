@@ -1,0 +1,8 @@
+zed: cut quiet(a.b)
+
+input: |
+  {a:1}
+  {a:{b:1}}
+
+output: |
+  {a:{b:1}}
