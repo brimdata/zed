@@ -50,7 +50,7 @@ func compileExpr(node dag.Expr) (expr, error) {
 		if !ok {
 			return nil, fmt.Errorf("index comparator: LHS is not a field path: %T", e.LHS)
 		}
-		kv := index.KeyValue{Key: this.Path, Value: zv}
+		kv := index.KeyValue{Key: this.Path, Value: *zv}
 		return compareExpr(kv, e.Op)
 	default:
 		return nil, fmt.Errorf("unsupported binary expression op: %s", e.Op)

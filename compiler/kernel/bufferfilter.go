@@ -70,7 +70,7 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 			return expr.NewOrBufferFilter(left, right), nil
 		}
 		left := expr.NewBufferFilterForStringCase(e.Text)
-		right, err := newBufferFilterForLiteral(&literal)
+		right, err := newBufferFilterForLiteral(literal)
 		if left == nil || right == nil || err != nil {
 			return nil, err
 		}
@@ -90,7 +90,7 @@ func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) 
 			if err != nil {
 				return nil, err
 			}
-			return &val, nil
+			return val, nil
 		}
 	} else if dag.IsTopLevelField(e.RHS) && e.Op == "in" {
 		if literal, ok := e.LHS.(*dag.Literal); ok {
@@ -101,7 +101,7 @@ func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) 
 			if val.Type == zed.TypeNet {
 				return nil, err
 			}
-			return &val, nil
+			return val, nil
 		}
 	}
 	return nil, nil

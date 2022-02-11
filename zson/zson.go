@@ -68,23 +68,23 @@ func ParseType(zctx *zed.Context, zson string) (zed.Type, error) {
 	return NewAnalyzer().convertType(zctx, ast)
 }
 
-func ParseValue(zctx *zed.Context, zson string) (zed.Value, error) {
+func ParseValue(zctx *zed.Context, zson string) (*zed.Value, error) {
 	zp := NewParser(strings.NewReader(zson))
 	ast, err := zp.ParseValue()
 	if err != nil {
-		return zed.Value{}, err
+		return nil, err
 	}
 	val, err := NewAnalyzer().ConvertValue(zctx, ast)
 	if err != nil {
-		return zed.Value{}, err
+		return nil, err
 	}
 	return Build(zcode.NewBuilder(), val)
 }
 
-func ParseValueFromAST(zctx *zed.Context, ast astzed.Value) (zed.Value, error) {
+func ParseValueFromAST(zctx *zed.Context, ast astzed.Value) (*zed.Value, error) {
 	val, err := NewAnalyzer().ConvertValue(zctx, ast)
 	if err != nil {
-		return zed.Value{}, err
+		return nil, err
 	}
 	return Build(zcode.NewBuilder(), val)
 }

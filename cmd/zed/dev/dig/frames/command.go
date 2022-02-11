@@ -116,11 +116,7 @@ func (m *metaReader) Read() (*zed.Value, error) {
 	if f == nil || err != nil {
 		return nil, err
 	}
-	val, err := m.marshaler.Marshal(f)
-	if err != nil {
-		return nil, err
-	}
-	return &val, nil
+	return m.marshaler.Marshal(f)
 }
 
 func (m *metaReader) nextFrame() (interface{}, error) {

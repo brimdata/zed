@@ -105,7 +105,7 @@ func loadMeta(zctx *zed.Context, meta string) (*zed.Value, error) {
 	if err != nil {
 		return zctx.Missing(), fmt.Errorf("%w %s: %v", ErrInvalidCommitMeta, zv, err)
 	}
-	return &zv, nil
+	return zv, nil
 }
 
 func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message string) (ksuid.KSUID, error) {

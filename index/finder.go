@@ -255,7 +255,7 @@ func (f *Finder) ParseKeys(inputs ...string) ([]KeyValue, error) {
 			if err != nil {
 				return nil, fmt.Errorf("could not parse %q: %w", s, err)
 			}
-			kvs = append(kvs, KeyValue{Key: keys[k], Value: zv})
+			kvs = append(kvs, KeyValue{Key: keys[k], Value: *zv})
 		}
 	}
 	return kvs, nil

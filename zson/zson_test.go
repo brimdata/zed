@@ -70,7 +70,7 @@ func TestParseValueStringEscapeSequences(t *testing.T) {
 	for _, c := range cases {
 		val, err := zson.ParseValue(zed.NewContext(), c.in)
 		assert.NoError(t, err)
-		assert.Equal(t, zed.NewString(c.expected), &val, "in %q", c.in)
+		assert.Equal(t, zed.NewString(c.expected), val, "in %q", c.in)
 	}
 }
 

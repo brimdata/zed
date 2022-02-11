@@ -16,13 +16,13 @@ import (
 	"inet.af/netaddr"
 )
 
-func Build(b *zcode.Builder, val Value) (zed.Value, error) {
+func Build(b *zcode.Builder, val Value) (*zed.Value, error) {
 	b.Reset()
 	if err := buildValue(b, val); err != nil {
-		return zed.Value{}, err
+		return nil, err
 	}
 	it := b.Bytes().Iter()
-	return zed.Value{val.TypeOf(), it.Next()}, nil
+	return zed.NewValue(val.TypeOf(), it.Next()), nil
 }
 
 func buildValue(b *zcode.Builder, val Value) error {
