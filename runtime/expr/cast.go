@@ -197,11 +197,10 @@ type casterTime struct {
 
 func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	id := val.Type.ID()
-	if id == zed.IDTime {
-		return ectx.CopyValue(*val)
-	}
 	var ts nano.Ts
 	switch {
+	case id == zed.IDTime:
+		return ectx.CopyValue(*val)
 	case val.Bytes == nil:
 		// Do nothing. Any nil value is cast to a zero time.
 	case id == zed.IDString:
