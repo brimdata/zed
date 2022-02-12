@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/result"
+	"github.com/brimdata/zed/runtime/expr/result"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 )

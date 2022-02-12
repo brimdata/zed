@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/extent"
+	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"

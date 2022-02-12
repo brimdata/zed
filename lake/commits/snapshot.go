@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/expr/extent"
+	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"

@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 )

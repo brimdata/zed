@@ -7,8 +7,8 @@ import (
 	"regexp"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/coerce"
-	"github.com/brimdata/zed/expr/function"
+	"github.com/brimdata/zed/runtime/expr/coerce"
+	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"

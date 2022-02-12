@@ -2,7 +2,7 @@ package agg
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/coerce"
+	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/pkg/anymath"
 	"github.com/brimdata/zed/pkg/nano"
 )

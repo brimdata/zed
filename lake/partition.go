@@ -7,8 +7,8 @@ import (
 	"sort"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/expr/extent"
+	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"

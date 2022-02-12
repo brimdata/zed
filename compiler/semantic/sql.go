@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/expr/agg"
+	"github.com/brimdata/zed/runtime/expr/agg"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 )

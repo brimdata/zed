@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/compiler/semantic"
-	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/op"

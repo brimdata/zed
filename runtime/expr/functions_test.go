@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/function"
+	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
 	"inet.af/netaddr"
 )
