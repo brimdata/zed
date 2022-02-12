@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **has** &mdash; test a value's existence
+&emsp; **has** &mdash; test existence of values
 
 ### Synopsis
 

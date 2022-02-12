@@ -50,7 +50,7 @@ to take on any Zed type.
 * [fields](functions/fields.md) - return the flattened path names of a record
 * [flatten](functions/flatten.md) - transform a record into a flattened map
 * [floor](functions/floor.md) - floor of a number
-* [has](functions/has.md) - test a value's existence
+* [has](functions/has.md) - test existence of values
 * [is](functions/is.md) - test a value's type
 * [is_error](functions/is_error.md) - test if a value is an error
 * [join](functions/join.md) - concatenate array of strings with a separator
