@@ -1,6 +1,6 @@
 ### Operator
 
-&emsp; **filter** &mdash; select values based on boolean search expression
+&emsp; **filter** &mdash; select values based on Boolean search expression
 
 ### Synopsis
 ```

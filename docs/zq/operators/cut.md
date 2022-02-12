@@ -15,9 +15,8 @@ creating one field for each expression.  Unlike the `put` operator,
 which adds or modifies the fields of a record, `cut` retains only the
 fields enumerated, much like a SQL projection.
 
-Each <field> expression must be a field reference expressed as a dotted path or one more
-constant index operations on `this`, e.g., `a.b`, `this["a"]["b"]`,
-etc.
+Each `<field>` expression must be a field reference expressed as a dotted path or sequence of
+constant index operations on `this`, e.g., `a.b` or `this["a"]["b"]`.
 
 Each right-hand side `<expr>` can be any Zed expression and is optional.
 

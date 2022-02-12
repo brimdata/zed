@@ -15,7 +15,7 @@ the `by` keyword and at the end of input, and produces one or more aggregations
 for each unique set of group-by key values.
 
 Each aggregate function may be optionally followed by a `where` clause, which
-indicates a boolean expression that indicates, for each input value,
+indicates a Boolean expression that indicates, for each input value,
 whether to deliver it to that aggregate.
 
 The output field names for each aggregate and each key are optional.  If omitted,
