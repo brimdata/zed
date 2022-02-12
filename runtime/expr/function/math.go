@@ -17,7 +17,11 @@ type Abs struct {
 func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
-	if zed.IsFloat(id) {
+	if id == zed.IDFloat32 {
+		f := math.Abs(float64(zed.DecodeFloat32(v.Bytes)))
+		return newFloat32(ctx, float32(f))
+	}
+	if id == zed.IDFloat64 {
 		f := math.Abs(zed.DecodeFloat64(v.Bytes))
 		return newFloat64(ctx, f)
 	}
@@ -43,7 +47,10 @@ func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	switch {
-	case zed.IsFloat(id):
+	case id == zed.IDFloat32:
+		f := math.Ceil(float64(zed.DecodeFloat32(v.Bytes)))
+		return newFloat32(ctx, float32(f))
+	case id == zed.IDFloat64:
 		f := math.Ceil(zed.DecodeFloat64(v.Bytes))
 		return newFloat64(ctx, f)
 	case zed.IsInteger(id):
@@ -62,7 +69,10 @@ func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	switch {
-	case zed.IsFloat(id):
+	case id == zed.IDFloat32:
+		v := math.Floor(float64(zed.DecodeFloat32(v.Bytes)))
+		return newFloat32(ctx, float32(v))
+	case id == zed.IDFloat64:
 		v := math.Floor(zed.DecodeFloat64(v.Bytes))
 		return newFloat64(ctx, v)
 	case zed.IsInteger(id):
@@ -101,7 +111,12 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zed.IsFloat(id) {
 		//XXX this is wrong like math aggregators...
 		// need to be more robust and adjust type as new types encountered
-		result := zed.DecodeFloat64(zv.Bytes)
+		var result float64
+		if id == zed.IDFloat64 {
+			result = zed.DecodeFloat64(zv.Bytes)
+		} else {
+			result = float64(zed.DecodeFloat32(zv.Bytes))
+		}
 		for _, val := range args[1:] {
 			v, ok := coerce.ToFloat(zv)
 			if !ok {
@@ -146,7 +161,11 @@ type Round struct {
 func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	id := zv.Type.ID()
-	if zed.IsFloat(id) {
+	if id == zed.IDFloat32 {
+		f := zed.DecodeFloat32(zv.Bytes)
+		return newFloat32(ctx, float32(math.Round(float64(f))))
+	}
+	if id == zed.IDFloat64 {
 		f := zed.DecodeFloat64(zv.Bytes)
 		return newFloat64(ctx, math.Round(f))
 	}
