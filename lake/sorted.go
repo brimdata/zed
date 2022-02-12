@@ -5,9 +5,9 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"

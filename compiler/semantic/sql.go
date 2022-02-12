@@ -6,9 +6,9 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/runtime/expr/agg"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/expr/agg"
 )
 
 func convertSQLProc(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {

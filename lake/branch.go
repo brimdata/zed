@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
@@ -15,6 +14,7 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"

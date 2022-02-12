@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/spill"
 	"github.com/brimdata/zed/zbuf"
