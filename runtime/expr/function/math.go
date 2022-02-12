@@ -111,12 +111,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zed.IsFloat(id) {
 		//XXX this is wrong like math aggregators...
 		// need to be more robust and adjust type as new types encountered
-		var result float64
-		if id == zed.IDFloat64 {
-			result = zed.DecodeFloat64(zv.Bytes)
-		} else {
-			result = float64(zed.DecodeFloat32(zv.Bytes))
-		}
+		result := zed.DecodeFloat(zv.Bytes)
 		for _, val := range args[1:] {
 			v, ok := coerce.ToFloat(zv)
 			if !ok {
