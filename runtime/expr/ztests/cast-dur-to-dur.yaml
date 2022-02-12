@@ -1,0 +1,6 @@
+zed: 'yield duration(this)'
+
+input: &input |
+  10d
+
+output: *input

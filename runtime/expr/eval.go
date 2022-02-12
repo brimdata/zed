@@ -797,10 +797,10 @@ type evalCast struct {
 
 func (c *evalCast) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := c.expr.Eval(ectx, this)
-	if val.IsNull() {
-		// Take care of null here so the casters don't have to
-		// worry about it.  Any value can be null after all.
-		return ectx.NewValue(c.typ, nil)
+	if val.IsNull() || val.Type == c.typ {
+		// If value is null or the type won't change, just return a
+		// copy of the value.
+		return ectx.NewValue(c.typ, val.Bytes)
 	}
 	return c.caster.Eval(ectx, val)
 }
