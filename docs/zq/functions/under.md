@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **under** &mdash; rthe underlying value
+&emsp; **under** &mdash; the underlying value
 
 ### Synopsis
 

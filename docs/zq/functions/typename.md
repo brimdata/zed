@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **typename** &mdash; lookup and return a named type
+&emsp; **typename** &mdash; look up and return a named type
 
 ### Synopsis
 

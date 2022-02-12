@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **replace** &mdash; substitute one string for another
+&emsp; **replace** &mdash; replace one string for another
 
 ### Synopsis
 

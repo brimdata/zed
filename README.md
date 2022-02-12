@@ -13,10 +13,10 @@ and easier approach for data introspection, shaping, pipeline management,
 data quality, test, and debug, all while intermixing the flexibility of
 the JSON document model with the efficiency of warehouse analytics.
 
-For a non-technical user, Zed is as easy to use a web search
+For a non-technical user, Zed is as easy to use as web search
 while for a technical user, Zed exposes its technical underpinnings
 in a gradual slope, providing as much detail as desired,
-packaged up in easy-to-understand
+packaged up in the easy-to-understand
 [ZSON data format](docs/formats/zson.md) and the
 [Zed Lake API](docs/zed/api.md).
 
@@ -67,9 +67,9 @@ You can find these binaries on the GitHub
 
 If you have Go installed, you can easily install `zed` and `zq` by running
 ```
-go install github.com/brimdata/zed@v1.0
+go install github.com/brimdata/zed/cmd/{zed,zq}@latest
 ```
-On a Mac, you can use brew to install both `zq` and `zed`:
+On a Mac, you can use `brew` to install both `zq` and `zed`:
 ```
 brew install brimdata/zed/zed
 ```

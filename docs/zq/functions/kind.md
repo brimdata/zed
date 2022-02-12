@@ -15,7 +15,7 @@ then the type category of the referenced type is returned.
 
 #### Example:
 
-A primitive value's kind is "primitive:"
+A primitive value's kind is "primitive":
 ```mdtest-command
 echo '1 "a" 10.0.0.1' | zq -z 'yield kind(this)' -
 ```

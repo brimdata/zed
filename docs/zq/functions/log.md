@@ -14,7 +14,7 @@ must be numeric.  The return value is a float64 or an error.
 
 ### Examples
 
-The logarithm of a various numbers:
+The logarithm of various numbers:
 ```mdtest-command
 echo '4 4.0 2.718 -1' | zq -z 'yield log(this)' -
 ```

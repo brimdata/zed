@@ -14,7 +14,7 @@ Otherwise, it returns `error("missing")`.
 
 ### Examples
 
-A named type yields its name and a missing error for unnamed types:
+A named type yields its name and unnamed types yield a missing error:
 ```mdtest-command
 echo '80(port=int16) 80' | zq -z 'yield nameof(this)' -
 ```

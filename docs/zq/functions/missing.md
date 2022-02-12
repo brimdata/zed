@@ -13,7 +13,7 @@ The _missing_ function returns true if its argument is `error("missing")`
 and false otherwise.
 
 This function is often used to test if certain fields do not appear as
-expected in a record record, e.g., `missing(a)` is true either when `this` is not a record
+expected in a record, e.g., `missing(a)` is true either when `this` is not a record
 or when `this` is a record and the field `a` is not present in `this`.
 
 It's also useful in shaping when applying conditional logic based on the

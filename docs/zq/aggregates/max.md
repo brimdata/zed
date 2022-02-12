@@ -1,6 +1,6 @@
 ### Aggregate Function
 
-&emsp; **max** &mdash; maximum value if input values
+&emsp; **max** &mdash; maximum value of input values
 
 ### Synopsis
 ```

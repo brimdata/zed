@@ -11,10 +11,10 @@ fields(r: record) -> [[string]]
 
 The _fields_ function returns an array of string arrays of all the field names in record `r`.
 A field's path name is representing by an array of strings since the dot
-separator is an unreliable indicator if field boundaries as `.` itself
+separator is an unreliable indicator of field boundaries as `.` itself
 can appear in a field name.
 
-`error("missing")` is returned if the `r` is not a record.
+`error("missing")` is returned if `r` is not a record.
 
 ### Examples
 

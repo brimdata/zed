@@ -17,12 +17,12 @@ Supported types include:
 - array
 - set
 - map
-- type
+- error
 - bytes
 - string
 - ip
 - net
-- error
+- type
 
 
 #### Example:

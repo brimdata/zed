@@ -65,16 +65,16 @@ to take on any Zed type.
 * [parse_uri](functions/parse_uri.md) - parse a string URI into a structured record
 * [parse_zson](functions/parse_zson.md) - parse ZSON text into a Zed value
 * [pow](functions/pow.md) - exponential function of any base
-* [quiet](functions/quiet.md) - quiet down missing errors
-* [replace](functions/replace.md) - substitute one string for another
+* [quiet](functions/quiet.md) - quiet "missing" errors
+* [replace](functions/replace.md) - replace one string for another
 * [round](functions/round.md) - round a number
-* [rune_len](functions/rune_len.md) - length of a string in unicode characters
+* [rune_len](functions/rune_len.md) - length of a string in Unicode code points
 * [split](functions/split.md) - slice a string into an array of strings
 * [sqrt](functions/sqrt.md) - square root of a number
 * [to_lower](functions/to_lower.md) - convert a string to lower case
 * [to_upper](functions/to_upper.md) - convert a string to upper case
 * [trim](functions/trim.md) - strip leading and trailing whitespace
-* [typename](functions/typename.md) - lookup and return a named type
+* [typename](functions/typename.md) - look up and return a named type
 * [typeof](functions/typeof.md) - the type of a value
 * [typeunder](functions/typeunder.md) - the underlying type of a value
 * [under](functions/under.md) - the underlying value
@@ -83,7 +83,7 @@ to take on any Zed type.
 ## Aggregate Functions
 
 - [and](aggregates/and.md) - logical AND of input values
-- [any](aggregates/any.md) - select an arbitrary value from the input values
+- [any](aggregates/any.md) - select an arbitrary value from its input
 - [avg](aggregates/avg.md) - average value
 - [collect](aggregates/collect.md) - aggregate values into array
 - [count](aggregates/count.md) - count input values

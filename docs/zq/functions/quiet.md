@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **quiet** &mdash; quiet down missing errors
+&emsp; **quiet** &mdash; quiet "missing" errors
 
 ### Synopsis
 

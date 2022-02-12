@@ -8,7 +8,7 @@ countdistinct() -> uint64
 ```
 ### Description
 
-The _count_ aggregate function computes the number of values in its input.
+The _countdistinct_ aggregate function computes the number of distinct values in its input.
 
 ### Examples
 

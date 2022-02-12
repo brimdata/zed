@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **base64** &mdash; encode/decode base64 strings
+&emsp; **base64** &mdash; encode/decode Base64 strings
 
 ### Synopsis
 

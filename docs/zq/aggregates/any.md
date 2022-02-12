@@ -1,6 +1,6 @@
 ### Aggregate Function
 
-&emsp; **any** &mdash; selects an arbitrary value from its input
+&emsp; **any** &mdash; select an arbitrary input value
 
 ### Synopsis
 ```
