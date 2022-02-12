@@ -3,7 +3,7 @@ package kernel
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/text/unicode/norm"
 )

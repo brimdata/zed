@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"

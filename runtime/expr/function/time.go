@@ -2,8 +2,8 @@ package function
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/runtime/expr/coerce"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#now

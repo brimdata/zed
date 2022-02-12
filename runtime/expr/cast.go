@@ -7,9 +7,9 @@ import (
 
 	"github.com/araddon/dateparse"
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zson"
 )
 

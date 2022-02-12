@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/stretchr/testify/assert"

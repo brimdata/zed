@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/coerce"
+	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )

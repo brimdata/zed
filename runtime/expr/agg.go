@@ -2,7 +2,7 @@ package expr
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/agg"
+	"github.com/brimdata/zed/runtime/expr/agg"
 )
 
 type Aggregator struct {
