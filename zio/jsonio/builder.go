@@ -69,7 +69,9 @@ func (b *builder) endArray() {
 
 	b.types = b.types[:0]
 	for i := range items {
-		b.types = append(b.types, items[i].typ)
+		if items[i].typ != zed.TypeNull {
+			b.types = append(b.types, items[i].typ)
+		}
 	}
 	sort.Slice(b.types, func(i, j int) bool { return b.types[i].ID() < b.types[j].ID() })
 	dedupedTypes := b.types[:0]
