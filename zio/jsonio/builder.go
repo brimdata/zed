@@ -95,7 +95,7 @@ func (b *builder) endArray() {
 	case 1:
 		container.typ = b.zctx.LookupTypeArray(b.types[0])
 		for i := range items {
-			container.zb.Append(trimTag(items[i].zb.Bytes()))
+			container.zb.Append(items[i].zb.Bytes().Body())
 		}
 	default:
 		union := b.zctx.LookupTypeUnion(b.types)
@@ -105,7 +105,7 @@ func (b *builder) endArray() {
 		}
 		container.typ = b.zctx.LookupTypeArray(union)
 		for i := range items {
-			if bytes := trimTag(items[i].zb.Bytes()); bytes == nil {
+			if bytes := items[i].zb.Bytes().Body(); bytes == nil {
 				container.zb.Append(nil)
 			} else {
 				selector := union.Selector(items[i].typ)
@@ -143,7 +143,7 @@ func (b *builder) endRecord() {
 	for _, index := range dedupedIndices {
 		item := &items[index]
 		b.columns = append(b.columns, zed.Column{Name: item.fieldName, Type: item.typ})
-		container.zb.Append(trimTag(item.zb.Bytes()))
+		container.zb.Append(item.zb.Bytes().Body())
 	}
 	container.zb.EndContainer()
 	container.typ = b.zctx.MustLookupTypeRecord(b.columns)
@@ -156,16 +156,8 @@ func (b *builder) value() *zed.Value {
 	if len(b.items) > 1 {
 		panic("multiple items")
 	}
-	bytes := trimTag(b.items[0].zb.Bytes())
+	bytes := b.items[0].zb.Bytes().Body()
 	// Reset gives us ownership of bytes.
 	b.items[0].zb.Reset()
 	return zed.NewValue(b.items[0].typ, bytes)
-}
-
-func trimTag(b zcode.Bytes) zcode.Bytes {
-	b, err := b.Body()
-	if err != nil {
-		panic(err)
-	}
-	return b
 }

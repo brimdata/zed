@@ -87,11 +87,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 			}
 			r.types[val.Type] = typ
 		}
-		bytes, err := b.Bytes().Body()
-		if err != nil {
-			return nil, err
-		}
-		return zed.NewValue(typ, bytes), nil
+		return zed.NewValue(typ, b.Bytes().Body()), nil
 	}
 }
 
