@@ -1,0 +1,80 @@
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - main: ./cmd/zed
+    id: zed
+    binary: zed
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -X github.com/brimdata/zed/cli.Version={{ .Version }}
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - linux
+      - windows
+      - darwin
+  - main: ./cmd/zq
+    id: zq
+    binary: zq
+    env:
+      - CGO_ENABLED=0
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - linux
+      - windows
+      - darwin
+archives:
+  - name_template: "zed-{{ .Version }}.{{ .Os }}-{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE*
+      - README*
+release:
+  github:
+    owner: brimdata
+    name: zed
+  header: |
+    View [release notes](https://github.com/brimdata/zed/blob/main/CHANGELOG.md#{{ replace .Version "." "" }}).
+brews:
+  - name: zed
+    tap:
+      owner: brimdata
+      name: homebrew-tap
+    commit_author:
+      name: brim-bot
+      email: bot@brimdata.io
+    homepage: "https://github.com/brimdata/zed"
+    description: |
+      A command-line tool for creating, configuring, ingesting into, querying,
+      and orchestrating Zed data lakes.
+    folder: Formula
+    install: |
+      bin.install "zed"
+  - name: zq
+    tap:
+      owner: brimdata
+      name: homebrew-tap
+    commit_author:
+      name: brim-bot
+      email: bot@brimdata.io
+    homepage: "https://github.com/brimdata/zed"
+    description: |
+      A command-line tool for processing data in diverse input formats,
+      providing search, analytics, and extensive transormations using the Zed
+      query language.
+    folder: Formula
+    install: |
+      bin.install "zq"
+checksum:
+  name_template: 'zed-checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-{{ .ShortCommit }}"
+changelog:
+  skip: true
