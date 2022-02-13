@@ -5,7 +5,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
-// A splitter splits its input into multiple proc outputs by implementing
+// A splitter splits its input into multiple output operators by implementing
 // op.Selector and selecting all downstream legs of the flowgraph.
 type splitter []zbuf.Puller
 
