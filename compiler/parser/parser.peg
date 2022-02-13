@@ -75,7 +75,7 @@ ConstDef
     }
 
 Operation
-  = "split" __ "(" procArray:SplitLeg+ __ ")" {
+  = "fork" __ "(" procArray:Leg+ __ ")" {
       RETURN(MAP("kind": "Parallel", "procs": procArray))
     }
   / "switch" _ expr:Expr _ "(" cases:SwitchLeg+ __ ")" {
@@ -101,7 +101,7 @@ Operation
 EndOfOp = __ (Pipe / SearchKeywordGuard / "=>" / ")" / EOF)
 Pipe = "|" !("{" / "[")
 
-SplitLeg
+Leg
   = __ "=>" __ s:Sequential { RETURN(s) }
 
 SwitchLeg

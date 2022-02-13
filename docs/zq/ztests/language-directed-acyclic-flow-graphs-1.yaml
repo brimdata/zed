@@ -9,7 +9,7 @@
 # The Zed being tested below has been modified from the way it appears in
 # docs/language/README.md:
 #
-#   from PoolOne | split (
+#   from PoolOne | fork (
 #     => op1 | op2 | ...
 #     => op1 | op2 | ...
 #   ) | merge ts | ...
@@ -35,7 +35,7 @@ inputs:
       {ts:2018-03-24T17:23:29Z,name:"strawberry",color:"red"}
   - name: split.zed
     data: |
-      from PoolOne | split (
+      from PoolOne | fork (
         => allfruit:=collect(name),allcolor:=collect(color) by every(5m) | put numfruit:=len(allfruit) | put numcolor:=len(allcolor)
         => put color:=to_upper(color) | put namelen:=len(name) | put tag:="mytag"
       ) | sort ts | rename time:=ts

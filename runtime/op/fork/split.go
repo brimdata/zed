@@ -1,17 +1,12 @@
-package split
+package fork
 
 import (
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 )
 
-// Splitter splits its input into multiple proc outputs.  Since procs run from the
-// receiver backward via Pull(), SplitProc pulls data from upstream when all the
-// outputs are ready, then sends the data downstream.
-//
-// This scheme implements flow control since the SplitProc prevents any of
-// the downstream from running ahead, esentially running the parallel paths
-// at the rate of the slowest consumer.
+// A splitter splits its input into multiple proc outputs by implementing
+// op.Selector and selecting all downstream legs of the flowgraph.
 type splitter []zbuf.Puller
 
 var _ op.Selector = (*splitter)(nil)
@@ -26,7 +21,7 @@ func New(pctx *op.Context, parent zbuf.Puller, n int) []zbuf.Puller {
 	return exits
 }
 
-// Forward copies every batch to every output thus implementing split.
+// Forward copies every batch to every output thus implementing fork.
 func (s splitter) Forward(r *op.Router, b zbuf.Batch) bool {
 	for _, exit := range s {
 		b.Ref()

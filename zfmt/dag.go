@@ -180,7 +180,7 @@ func (c *canonDAG) op(p dag.Op) {
 		}
 	case *dag.Parallel:
 		c.next()
-		c.open("split (")
+		c.open("fork (")
 		for _, p := range p.Ops {
 			c.ret()
 			c.write("=>")

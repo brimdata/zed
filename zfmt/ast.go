@@ -187,7 +187,7 @@ func (c *canon) proc(p ast.Proc) {
 		}
 	case *ast.Parallel:
 		c.next()
-		c.open("split (")
+		c.open("fork (")
 		for _, p := range p.Procs {
 			c.ret()
 			c.write("=>")
