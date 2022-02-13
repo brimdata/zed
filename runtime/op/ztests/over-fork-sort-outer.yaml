@@ -1,6 +1,6 @@
 zed: |
   over a => (
-    split (
+    fork (
       => head 1
       => yield this+10
     )

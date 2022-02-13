@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/runtime/op/combine"
 	"github.com/brimdata/zed/runtime/op/explode"
 	"github.com/brimdata/zed/runtime/op/exprswitch"
+	"github.com/brimdata/zed/runtime/op/fork"
 	"github.com/brimdata/zed/runtime/op/from"
 	"github.com/brimdata/zed/runtime/op/fuse"
 	"github.com/brimdata/zed/runtime/op/head"
@@ -23,7 +24,6 @@ import (
 	"github.com/brimdata/zed/runtime/op/pass"
 	"github.com/brimdata/zed/runtime/op/shape"
 	"github.com/brimdata/zed/runtime/op/sort"
-	"github.com/brimdata/zed/runtime/op/split"
 	"github.com/brimdata/zed/runtime/op/switcher"
 	"github.com/brimdata/zed/runtime/op/tail"
 	"github.com/brimdata/zed/runtime/op/top"
@@ -251,7 +251,7 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over, names []string
 		exit = exits[0]
 	} else {
 		// This can happen when output of over body
-		// is a split or switch.
+		// is a fork or switch.
 		exit = combine.New(b.pctx, exits)
 	}
 	return scope.NewExit(exit), nil
@@ -305,8 +305,8 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller)
 	}
 	n := len(parallel.Ops)
 	if len(parents) == 1 {
-		// Single parent: insert a splitter for n-way fanout.
-		parents = split.New(b.pctx, parents[0], n)
+		// Single parent: insert a fork for n-way fanout.
+		parents = fork.New(b.pctx, parents[0], n)
 	}
 	if len(parents) != n {
 		return nil, fmt.Errorf("parallel input mismatch: %d parents with %d flowgraph paths", len(parents), len(parallel.Ops))

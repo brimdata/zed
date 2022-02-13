@@ -1,6 +1,6 @@
 script: |
   ! zq '
-    split (
+    fork (
       => pass
       => from (file /dev/null => pass)
     )

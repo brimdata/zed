@@ -1,7 +1,7 @@
 zed: |
   over this => (
     over this => (
-      split (
+      fork (
         => tail 1 | a:=collect(this)
         => tail 2 | a:=collect(this)
         => summarize a:=collect(this)

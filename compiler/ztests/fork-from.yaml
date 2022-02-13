@@ -4,7 +4,7 @@ script: |
 inputs:
   - name: query.zed
     data: |
-      split (
+      fork (
         => from (file a.zson => pass)
         => from (file b.zson => pass)
       ) | sort a

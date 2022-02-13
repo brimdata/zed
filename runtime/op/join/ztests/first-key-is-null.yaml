@@ -1,5 +1,5 @@
 zed: |
-  split (
+  fork (
     => pass
     => pass
   ) | join on a=a

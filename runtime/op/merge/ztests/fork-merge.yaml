@@ -1,5 +1,5 @@
 zed: |
-  split (
+  fork (
     => x <= 2
     => x > 2
   ) | merge x

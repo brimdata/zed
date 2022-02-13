@@ -313,8 +313,8 @@ function peg$parse(input, options) {
           
 
           },
-      peg$c14 = "split",
-      peg$c15 = peg$literalExpectation("split", false),
+      peg$c14 = "fork",
+      peg$c15 = peg$literalExpectation("fork", false),
       peg$c16 = "(",
       peg$c17 = peg$literalExpectation("(", false),
       peg$c18 = ")",
@@ -338,7 +338,7 @@ function peg$parse(input, options) {
       peg$c28 = function(f) { return f },
       peg$c29 = function(a) { return a },
       peg$c30 = function(r) {
-      	    return {"kind":"Yield", "exprs":[r]}
+            return {"kind": "Yield", "exprs": [r]}
           },
       peg$c31 = function(expr) {
             return {"kind": "Filter", "expr": expr}
@@ -1633,9 +1633,9 @@ function peg$parse(input, options) {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8;
 
     s0 = peg$currPos;
-    if (input.substr(peg$currPos, 5) === peg$c14) {
+    if (input.substr(peg$currPos, 4) === peg$c14) {
       s1 = peg$c14;
-      peg$currPos += 5;
+      peg$currPos += 4;
     } else {
       s1 = peg$FAILED;
       if (peg$silentFails === 0) { peg$fail(peg$c15); }
@@ -1652,11 +1652,11 @@ function peg$parse(input, options) {
         }
         if (s3 !== peg$FAILED) {
           s4 = [];
-          s5 = peg$parseSplitLeg();
+          s5 = peg$parseLeg();
           if (s5 !== peg$FAILED) {
             while (s5 !== peg$FAILED) {
               s4.push(s5);
-              s5 = peg$parseSplitLeg();
+              s5 = peg$parseLeg();
             }
           } else {
             s4 = peg$FAILED;
@@ -2158,7 +2158,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSplitLeg() {
+  function peg$parseLeg() {
     var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
