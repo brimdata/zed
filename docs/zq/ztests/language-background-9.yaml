@@ -10,9 +10,9 @@
 # docs/language/README.md.
 
 zed: |
-  filter widget and price > 1000
+  search widget and price > 1000
   | summarize count() by color
-  | filter count >= 10
+  | where count >= 10
   | sort count
 
 input: |

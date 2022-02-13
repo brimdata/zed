@@ -88,14 +88,16 @@ Operation
       RETURN(MAP("kind": "From", "trunks": trunks))
     }
   / op:Operator
-  / f:Function &EndOfOp { RETURN(f) }
   / a:OpAssignment &EndOfOp { RETURN(a) }
-  / a:Aggregation &EndOfOp  { RETURN(a) }
-  / r:Record &EndOfOp {
-      RETURN(MAP("kind": "Yield", "exprs": ARRAY(r)))
+  / !(Function EndOfOp) a:Aggregation &EndOfOp  { RETURN(a) }
+  / "search" _ expr:SearchBoolean {
+      RETURN(MAP("kind": "Where", "expr": expr))
     }
-  / expr:SearchBoolean !AggGuard {
-      RETURN(MAP("kind": "Filter", "expr": expr))
+  / expr:SearchBoolean {
+      RETURN(MAP("kind": "OpExpr", "expr": expr))
+    }
+  / expr:Expr {
+      RETURN(MAP("kind": "OpExpr", "expr": expr))
     }
 
 EndOfOp = __ (Pipe / SearchKeywordGuard / "=>" / ")" / EOF)
@@ -133,8 +135,6 @@ FromSource
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "matches")
 
 Comparator = ("==" / "!=" / "in" / "<=" / "<" / ">=" / ">") { RETURN(TEXT) }
-
-AggGuard = (_ (ByToken / "BY" / "-with") EOT) / (__ ",")
 
 SearchBoolean
   = first:SearchAnd rest:SearchOrTerm* {
@@ -265,7 +265,7 @@ Operator
   / DropProc
   / HeadProc
   / TailProc
-  / FilterProc
+  / WhereProc
   / UniqProc
   / PutProc
   / RenameProc
@@ -336,14 +336,9 @@ TailProc
   = "tail" _ count:UInt { RETURN(MAP("kind": "Tail", "count": count)) }
   / "tail" { RETURN(MAP("kind": "Tail", "count": 1)) }
 
-FilterProc
-  = "filter" _ op:Filter {
-      RETURN(op)
-    }
-
-Filter
-  = expr:SearchBoolean {
-      RETURN(MAP("kind": "Filter", "expr": expr))
+WhereProc
+  = "where" _ expr:SearchBoolean {
+      RETURN(MAP("kind": "Where", "expr": expr))
     }
 
 UniqProc

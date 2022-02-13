@@ -1564,7 +1564,7 @@ zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' testscores.zson
 To further trim the data returned in our [`cut`](#cut) example:
 
 ```mdtest-command dir=testdata/edu
-zq -Z 'cut School,OpenDate | filter School=="Breeze Hill Elementary"' schools.zson
+zq -Z 'cut School,OpenDate | where School=="Breeze Hill Elementary"' schools.zson
 ```
 
 #### Output:
@@ -1580,7 +1580,7 @@ zq -Z 'cut School,OpenDate | filter School=="Breeze Hill Elementary"' schools.zs
 An alternative syntax for our [`and` example](../zq/language.md#search-expressions):
 
 ```mdtest-command dir=testdata/edu
-zq -z 'filter StatusType=="Pending" academy' schools.zson
+zq -z 'where StatusType=="Pending" academy' schools.zson
 ```
 
 #### Output:

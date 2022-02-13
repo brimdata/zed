@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/runtime/expr/agg"
 )
 
 func AST(p ast.Proc) string {
@@ -365,14 +366,21 @@ func (c *canon) proc(p ast.Proc) {
 	case *ast.Pass:
 		c.next()
 		c.write("pass")
-	case *ast.Filter:
-		c.next()
-		c.open("filter ")
-		if isTrue(p.Expr) {
-			c.write("*")
-		} else {
-			c.expr(p.Expr, false)
+	case *ast.OpExpr:
+		if agg := isAggFunc(p.Expr); agg != nil {
+			c.proc(agg)
+			return
 		}
+		c.next()
+		// XXX
+		// For now, we just print an implied "where" here which is broken
+		// because we also need to handle implied yield.  As descibed in
+		// a recent comment in issue #2197, we will build a pre-pass
+		// of semantic analysis that just does this diambiguation and we
+		// can operate on this cleaned up AST here.  At that point,
+		// isAggFunc() can go away.
+		c.open("where ")
+		c.expr(p.Expr, false)
 		c.close()
 	case *ast.Top:
 		c.next()
@@ -389,11 +397,6 @@ func (c *canon) proc(p ast.Proc) {
 	case *ast.Fuse:
 		c.next()
 		c.write("fuse")
-	case *ast.Call:
-		c.next()
-		c.write("%s(", p.Name)
-		c.exprs(p.Args)
-		c.write(")")
 	case *ast.Join:
 		c.next()
 		c.open("join on ")
@@ -440,6 +443,22 @@ func (c *canon) pool(p *ast.Pool) {
 		s += ":" + p.Spec.Meta
 	}
 	c.write("pool %s", s)
+}
+
+func isAggFunc(e ast.Expr) *ast.Summarize {
+	if call, ok := e.(*ast.Call); ok {
+		if _, err := agg.NewPattern(call.Name); err != nil {
+			return nil
+		}
+		return &ast.Summarize{
+			Kind: "Summarize",
+			Aggs: []ast.Assignment{{
+				Kind: "Assignment",
+				RHS:  call,
+			}},
+		}
+	}
+	return nil
 }
 
 func (c *canon) http(p *ast.HTTP) {

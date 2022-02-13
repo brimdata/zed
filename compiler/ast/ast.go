@@ -221,12 +221,6 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Count int    `json:"count"`
 	}
-	// A Filter proc represents a proc that discards all records that do
-	// not match the indicfated filter and forwards all that match to its output.
-	Filter struct {
-		Kind string `json:"kind" unpack:""`
-		Expr Expr   `json:"expr"`
-	}
 	// A Pass proc represents a passthrough proc that mirrors
 	// incoming Pull()s on its parent and returns the result.
 	Pass struct {
@@ -291,6 +285,10 @@ type (
 		Locals []Def  `json:"locals"`
 		Over   *Over  `json:"over"`
 	}
+	Where struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
+	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
@@ -302,6 +300,13 @@ type (
 	OpAssignment struct {
 		Kind        string       `json:"kind" unpack:""`
 		Assignments []Assignment `json:"assignments"`
+	}
+	// An OpExpr operator is an expression that appears as an operator
+	// and requires semantic analysis to determine if it is a filter, a yield,
+	// or an aggregation.
+	OpExpr struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
 	}
 
 	// A Rename proc represents a proc that renames fields.
@@ -461,22 +466,22 @@ func (*Drop) ProcAST()         {}
 func (*Head) ProcAST()         {}
 func (*Tail) ProcAST()         {}
 func (*Pass) ProcAST()         {}
-func (*Filter) ProcAST()       {}
 func (*Uniq) ProcAST()         {}
 func (*Summarize) ProcAST()    {}
 func (*Top) ProcAST()          {}
 func (*Put) ProcAST()          {}
 func (*OpAssignment) ProcAST() {}
+func (*OpExpr) ProcAST()       {}
 func (*Rename) ProcAST()       {}
 func (*Fuse) ProcAST()         {}
 func (*Join) ProcAST()         {}
-func (*Call) ProcAST()         {}
 func (*Shape) ProcAST()        {}
 func (*From) ProcAST()         {}
 func (*Explode) ProcAST()      {}
 func (*Merge) ProcAST()        {}
 func (*Over) ProcAST()         {}
 func (*Let) ProcAST()          {}
+func (*Where) ProcAST()        {}
 func (*Yield) ProcAST()        {}
 
 func (*SQLExpr) ProcAST() {}
@@ -542,12 +547,5 @@ func NewAggAssignment(kind string, lval field.Path, arg field.Path) Assignment {
 		Kind: "Assignment",
 		LHS:  NewDotExpr(lhs),
 		RHS:  agg,
-	}
-}
-
-func FilterToProc(e Expr) *Filter {
-	return &Filter{
-		Kind: "Filter",
-		Expr: e,
 	}
 }
