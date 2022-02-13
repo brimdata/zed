@@ -1,0 +1,28 @@
+### Function
+
+&emsp; **round** &mdash; round a number
+
+### Synopsis
+
+```
+round(val: number) -> number
+```
+### Description
+`
+`round`
+
+The _round_ function returns the number `val` rounded to the nearest integer value.
+which must be a numeric type.  The return type retains the type of the argument.
+
+### Examples
+
+```mdtest-command
+echo '3.14 -1.5 0 1' | zq -z 'yield round(this)' -
+```
+=>
+```mdtest-output
+3.
+-2.
+0
+1
+```

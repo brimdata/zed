@@ -279,10 +279,6 @@ A ZJSON file is composed of ZJSON objects formatted as
 e.g., the [zq](https://github.com/brimdata/zed/tree/main/cmd/zq) CLI command
 writes its ZJSON output as lines of NDJSON.
 
-The MIME type `application/x-zjson` is used by the
-of the [Zed lake service](../lake/service-api.md) to indicate
-ZJSON objects framed as NDJSON.
-
 ## 4. Example
 
 Here is an example that illustrates values of a repeated type,
