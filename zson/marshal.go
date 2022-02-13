@@ -155,11 +155,7 @@ func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zed.Value, error) {
 	if !zed.IsRecordType(typ) {
 		return nil, errors.New("not a record")
 	}
-	body, err := m.Builder.Bytes().Body()
-	if err != nil {
-		return nil, err
-	}
-	return zed.NewValue(typ, body), nil
+	return zed.NewValue(typ, m.Builder.Bytes().Body()), nil
 }
 
 func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) (*zed.Value, error) {

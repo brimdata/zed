@@ -2,7 +2,6 @@ package zst
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -181,11 +180,7 @@ func (w *Writer) finalize() error {
 	if err != nil {
 		return err
 	}
-	bytes, err := b.Bytes().Body()
-	if err != nil {
-		return errors.New("ZST: corrupt root reassembly")
-	}
-	root := zed.NewValue(typ, bytes)
+	root := zed.NewValue(typ, b.Bytes().Body())
 	if err := zw.Write(root); err != nil {
 		return err
 	}
@@ -199,11 +194,7 @@ func (w *Writer) finalize() error {
 		if err != nil {
 			return err
 		}
-		bytes, err := b.Bytes().Body()
-		if err != nil {
-			return err
-		}
-		val := zed.NewValue(typ, bytes)
+		val := zed.NewValue(typ, b.Bytes().Body())
 		if err := zw.Write(val); err != nil {
 			return err
 		}

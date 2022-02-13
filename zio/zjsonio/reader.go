@@ -58,11 +58,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := r.decodeValue(r.builder, typ, object.Value); err != nil {
 		return nil, e(err)
 	}
-	bytes, err := r.builder.Bytes().Body()
-	if err != nil {
-		return nil, e(err)
-	}
-	return zed.NewValue(typ, bytes), nil
+	return zed.NewValue(typ, r.builder.Bytes().Body()), nil
 }
 
 func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {

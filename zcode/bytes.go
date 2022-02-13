@@ -30,13 +30,10 @@ func (b Bytes) Iter() Iter {
 	return Iter(b)
 }
 
-func (b Bytes) Body() (Bytes, error) {
+// Body returns b's body.
+func (b Bytes) Body() Bytes {
 	it := b.Iter()
-	body := it.Next()
-	if !it.Done() {
-		return nil, ErrNotSingleton
-	}
-	return body, nil
+	return it.Next()
 }
 
 // Append appends val to dst as a tagged value and returns the

@@ -111,11 +111,7 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if zerr := s.step.build(c.zctx, ectx, val.Bytes, &c.b); zerr != nil {
 		return zerr
 	}
-	body, err := c.b.Bytes().Body()
-	if err != nil {
-		panic(err)
-	}
-	return ectx.NewValue(s.typ, body)
+	return ectx.NewValue(s.typ, c.b.Bytes().Body())
 }
 
 // A shaper is a per-input type ID "spec" that contains the output

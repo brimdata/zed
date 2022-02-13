@@ -68,13 +68,5 @@ func (a *Assembler) Read() (*zed.Value, error) {
 	if err = reader.Read(&a.builder); err != nil {
 		return nil, err
 	}
-	body, err := a.builder.Bytes().Body()
-	if err != nil {
-		return nil, err
-	}
-	rec := zed.NewValue(a.types[typeNo], body)
-	//XXX if we had a buffer pool where records could be built back to
-	// back in batches, then we could get rid of this extra allocation
-	// and copy on every record
-	return rec.Copy(), nil
+	return zed.NewValue(a.types[typeNo], a.builder.Bytes().Body()), nil
 }
