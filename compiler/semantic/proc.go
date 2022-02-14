@@ -696,8 +696,7 @@ func isBool(e dag.Expr) bool {
 }
 
 func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
-	agg, err := maybeConvertAgg(scope, call)
-	if err == nil && agg != nil {
+	if agg, err := maybeConvertAgg(scope, call); err == nil && agg != nil {
 		return &dag.Summarize{
 			Kind: "Summarize",
 			Aggs: []dag.Assignment{

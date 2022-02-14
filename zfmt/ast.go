@@ -446,19 +446,20 @@ func (c *canon) pool(p *ast.Pool) {
 }
 
 func isAggFunc(e ast.Expr) *ast.Summarize {
-	if call, ok := e.(*ast.Call); ok {
-		if _, err := agg.NewPattern(call.Name); err != nil {
-			return nil
-		}
-		return &ast.Summarize{
-			Kind: "Summarize",
-			Aggs: []ast.Assignment{{
-				Kind: "Assignment",
-				RHS:  call,
-			}},
-		}
+	call, ok := e.(*ast.Call)
+	if !ok {
+		return nil
 	}
-	return nil
+	if _, err := agg.NewPattern(call.Name); err != nil {
+		return nil
+	}
+	return &ast.Summarize{
+		Kind: "Summarize",
+		Aggs: []ast.Assignment{{
+			Kind: "Assignment",
+			RHS:  call,
+		}},
+	}
 }
 
 func (c *canon) http(p *ast.HTTP) {

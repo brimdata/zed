@@ -9,8 +9,8 @@
 ### Description
 
 The `where` operator filters its input by applying a Boolean expression `<expr>`
-to each input value and dropping each value for which the expression is `false`
-or an error.
+to each input value and dropping each value for which the expression evaluates
+to `false` or to an error.
 
 The "where" keyword may be omitted in which case `<expr>` follows
 the [search expression](../language.md#search-expressions) syntax.
