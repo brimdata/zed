@@ -53,9 +53,7 @@ func (n *Flatten) collectTypes(cols []zed.Column) []zed.Type {
 	var types []zed.Type
 	for _, col := range cols {
 		if typ := zed.TypeRecordOf(col.Type); typ != nil {
-			for _, typ := range n.collectTypes(typ.Columns) {
-				types = append(types, typ)
-			}
+			types = append(types, n.collectTypes(typ.Columns)...)
 		} else {
 			typ, ok := n.entryTypes[col.Type.ID()]
 			if !ok {
