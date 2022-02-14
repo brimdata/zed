@@ -8,6 +8,6 @@ input: |
 
 output: |
   127.0.0.1
-  |{["a"]:1((int64,null)),["b"]:null((int64,null))}|
-  |{["a"]:1((int64,string,[int64])),["b","c"]:"foo"((int64,string,[int64])),["b","d"]:[1,2,3]((int64,string,[int64]))}|
-  |{["a"]:1,["b","c"]:2,["b","d","e"]:4,["b","d","f"]:5}|
+  [{key:["a"],value:1}(({key:[string],value:int64},{key:[string],value:null})),{key:["b"],value:null}(({key:[string],value:int64},{key:[string],value:null}))]
+  [{key:["a"],value:1}(({key:[string],value:int64},{key:[string],value:string},{key:[string],value:[int64]})),{key:["b","c"],value:"foo"}(({key:[string],value:int64},{key:[string],value:string},{key:[string],value:[int64]})),{key:["b","d"],value:[1,2,3]}(({key:[string],value:int64},{key:[string],value:string},{key:[string],value:[int64]}))]
+  [{key:["a"],value:1},{key:["b","c"],value:2},{key:["b","d","e"],value:4},{key:["b","d","f"],value:5}]
