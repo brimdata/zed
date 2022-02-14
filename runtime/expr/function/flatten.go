@@ -11,15 +11,18 @@ import (
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#flatten
 type Flatten struct {
 	zcode.Builder
-	keyType zed.Type
-	mapper  *zed.Mapper
-	zctx    *zed.Context
+	keyType    zed.Type
+	mapper     *zed.Mapper
+	entryTypes map[zed.Type]zed.Type
+	zctx       *zed.Context
 }
 
 func NewFlatten(zctx *zed.Context) *Flatten {
 	return &Flatten{
-		mapper: zed.NewMapper(zctx),
-		zctx:   zctx,
+		entryTypes: make(map[zed.Type]zed.Type),
+		keyType:    zctx.LookupTypeArray(zed.TypeString),
+		mapper:     zed.NewMapper(zctx),
+		zctx:       zctx,
 	}
 }
 
@@ -31,7 +34,7 @@ func (n *Flatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	valType := n.mapper.Lookup(typ.ID())
 	if valType == nil {
-		types := collectTypes(typ.Columns)
+		types := n.collectTypes(typ.Columns)
 		types = dedupeTypes(types)
 		if len(types) == 1 {
 			valType = types[0]
@@ -40,12 +43,29 @@ func (n *Flatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		n.mapper.EnterType(typ.ID(), valType)
 	}
-	if n.keyType == nil {
-		n.keyType = n.zctx.LookupTypeArray(zed.TypeString)
-	}
 	n.Reset()
 	n.encode(typ.Columns, valType, field.Path{}, val.Bytes)
-	return ctx.NewValue(n.zctx.LookupTypeMap(n.keyType, valType), n.Bytes())
+	return ctx.NewValue(n.zctx.LookupTypeArray(valType), n.Bytes())
+}
+
+func (n *Flatten) collectTypes(cols []zed.Column) []zed.Type {
+	var types []zed.Type
+	for _, col := range cols {
+		if typ := zed.TypeRecordOf(col.Type); typ != nil {
+			types = append(types, n.collectTypes(typ.Columns)...)
+		} else {
+			typ, ok := n.entryTypes[col.Type]
+			if !ok {
+				typ = n.zctx.MustLookupTypeRecord([]zed.Column{
+					zed.NewColumn("key", n.keyType),
+					zed.NewColumn("value", col.Type),
+				})
+				n.entryTypes[col.Type] = typ
+			}
+			types = append(types, typ)
+		}
+	}
+	return types
 }
 
 func dedupeTypes(types []zed.Type) []zed.Type {
@@ -72,11 +92,18 @@ func (n *Flatten) encode(cols []zed.Column, inner zed.Type, base field.Path, b z
 			n.encode(typ.Columns, inner, key, val)
 			continue
 		}
+		typ := n.entryTypes[col.Type]
+		union, _ := inner.(*zed.TypeUnion)
+		if union != nil {
+			n.BeginContainer()
+			n.Append(zed.EncodeInt(int64(union.Selector(typ))))
+		}
+		n.BeginContainer()
 		n.encodeKey(key)
-		if union, ok := inner.(*zed.TypeUnion); ok {
-			zed.BuildUnion(&n.Builder, union.Selector(col.Type), val)
-		} else {
-			n.Append(val)
+		n.Append(val)
+		n.EndContainer()
+		if union != nil {
+			n.EndContainer()
 		}
 	}
 }
@@ -87,18 +114,4 @@ func (n *Flatten) encodeKey(key field.Path) {
 		n.Append(zed.EncodeString(name))
 	}
 	n.EndContainer()
-}
-
-func collectTypes(cols []zed.Column) []zed.Type {
-	var types []zed.Type
-	for _, col := range cols {
-		if typ := zed.TypeRecordOf(col.Type); typ != nil {
-			for _, typ := range collectTypes(typ.Columns) {
-				types = append(types, typ)
-			}
-		} else {
-			types = append(types, col.Type)
-		}
-	}
-	return types
 }
