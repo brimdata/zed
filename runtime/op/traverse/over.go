@@ -103,10 +103,12 @@ func appendOver(zctx *zed.Context, vals []zed.Value, zv zed.Value) []zed.Value {
 			builder.Reset()
 			col := columns[i]
 			typ := zctx.MustLookupTypeRecord([]zed.Column{
-				{Name: "key", Type: zed.TypeString},
+				{Name: "key", Type: zctx.LookupTypeArray(zed.TypeString)},
 				{Name: "value", Type: col.Type},
 			})
+			builder.BeginContainer()
 			builder.Append(zed.EncodeString(col.Name))
+			builder.EndContainer()
 			builder.Append(it.Next())
 			vals = append(vals, *zed.NewValue(typ, builder.Bytes()).Copy())
 
