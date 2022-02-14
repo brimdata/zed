@@ -256,7 +256,7 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 		}
 		f.build(sep)
 		f.startColor(color.Blue)
-		f.indent(indent, zed.QuotedName(field.Name))
+		f.indent(indent, QuotedName(field.Name))
 		f.endColor()
 		f.build(":")
 		if f.tab > 0 {
@@ -444,7 +444,7 @@ func (f *Formatter) formatTypeRecord(typ *zed.TypeRecord) {
 		if k > 0 {
 			f.build(",")
 		}
-		f.build(zed.QuotedName(col.Name))
+		f.build(QuotedName(col.Name))
 		f.build(":")
 		f.formatType(col.Type)
 	}
@@ -468,7 +468,7 @@ func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) error {
 		if k > 0 {
 			f.build(",")
 		}
-		f.buildf("%s", zed.QuotedName(s))
+		f.buildf("%s", QuotedName(s))
 	}
 	f.build(">")
 	return nil
@@ -558,7 +558,7 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 			if k > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString(zed.QuotedName(col.Name))
+			b.WriteString(QuotedName(col.Name))
 			b.WriteString(":")
 			formatType(b, typedefs, col.Type)
 		}
@@ -593,7 +593,7 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 			if k > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString(zed.QuotedName(s))
+			b.WriteString(QuotedName(s))
 		}
 		b.WriteByte('>')
 	case *zed.TypeError:
@@ -648,7 +648,7 @@ func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
 		b.WriteString("0x")
 		b.WriteString(hex.EncodeToString(bytes))
 	case *zed.TypeOfString:
-		b.WriteString(zed.QuotedString(bytes, false))
+		b.WriteString(QuotedString(bytes))
 	case *zed.TypeOfIP:
 		b.WriteString(zed.DecodeIP(bytes).String())
 	case *zed.TypeOfNet:
@@ -706,7 +706,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			}
 			var name string
 			name, tv = decodeNameAndCheck(tv, b)
-			b.WriteString(zed.QuotedName(name))
+			b.WriteString(QuotedName(name))
 			b.WriteString(":")
 			tv = formatTypeValue(tv, b)
 			if tv == nil {
@@ -760,7 +760,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			if tv == nil {
 				return nil
 			}
-			b.WriteString(zed.QuotedName(symbol))
+			b.WriteString(QuotedName(symbol))
 		}
 		b.WriteByte('>')
 	case zed.TypeValueError:

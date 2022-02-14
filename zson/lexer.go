@@ -10,8 +10,6 @@ import (
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
-
-	"github.com/brimdata/zed"
 )
 
 var ErrBufferOverflow = errors.New("zson scanner buffer size exceeded")
@@ -424,10 +422,10 @@ func unhexRune(b []byte) (rune, error) {
 	if len(b) < 4 {
 		return 0, errors.New("short \\u escape")
 	}
-	r0 := rune(zed.Unhex(b[0]))
-	r1 := rune(zed.Unhex(b[1]))
-	r2 := rune(zed.Unhex(b[2]))
-	r3 := rune(zed.Unhex(b[3]))
+	r0 := rune(Unhex(b[0]))
+	r1 := rune(Unhex(b[1]))
+	r2 := rune(Unhex(b[2]))
+	r3 := rune(Unhex(b[3]))
 	if r0 > 0xf || r1 > 0xf || r2 > 0xf || r3 > 0xf {
 		return 0, errors.New("invalid hex digits in \\u escape")
 	}
@@ -464,7 +462,7 @@ func (l *Lexer) scanTypeName() (string, error) {
 			}
 			return "", err
 		}
-		if !zed.TypeChar(r) {
+		if !typeChar(r) {
 			return s.String(), nil
 		}
 		s.WriteRune(r)
@@ -477,7 +475,7 @@ func (l *Lexer) scanIdentifier() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !zed.IsIdentifier(s) {
+	if !IsIdentifier(s) {
 		return "", errors.New("malformed identifier")
 	}
 	return s, nil

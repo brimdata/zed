@@ -5,7 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zson"
 )
 
 // shouldEscape determines if the given code point at the given position
@@ -69,8 +69,8 @@ func unescapeZeekString(data []byte) []byte {
 
 func parseZeekEscape(data []byte) (byte, int) {
 	if len(data) >= 4 && data[1] == 'x' {
-		v1 := zed.Unhex(data[2])
-		v2 := zed.Unhex(data[3])
+		v1 := zson.Unhex(data[2])
+		v2 := zson.Unhex(data[3])
 		if v1 <= 0xf || v2 <= 0xf {
 			return v1<<4 | v2, 4
 		}
