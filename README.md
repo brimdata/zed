@@ -20,8 +20,6 @@ packaged up in the easy-to-understand
 [ZSON data format](docs/formats/zson.md) and the
 [Zed Lake API](docs/zed/api.md).
 
-Check out the [Zed FAQ](FAQ.md).
-
 ## Why?
 
 We think that you shouldn't have to set up one system
