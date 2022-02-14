@@ -1,7 +1,6 @@
 package function
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -20,7 +19,7 @@ type Flatten struct {
 
 func NewFlatten(zctx *zed.Context) *Flatten {
 	return &Flatten{
-		entryTypes: make(map[int]zed.Type),
+		entryTypes: make(map[zed.Type]zed.Type),
 		keyType:    zctx.LookupTypeArray(zed.TypeString),
 		mapper:     zed.NewMapper(zctx),
 		zctx:       zctx,
@@ -55,7 +54,7 @@ func (n *Flatten) collectTypes(cols []zed.Column) []zed.Type {
 		if typ := zed.TypeRecordOf(col.Type); typ != nil {
 			types = append(types, n.collectTypes(typ.Columns)...)
 		} else {
-			typ, ok := n.entryTypes[col.Type.ID()]
+			typ, ok := n.entryTypes[col.Type]
 			if !ok {
 				n.entryTypes[col.Type] = n.zctx.MustLookupTypeRecord([]zed.Column{
 					zed.NewColumn("key", n.keyType),
@@ -92,7 +91,7 @@ func (n *Flatten) encode(cols []zed.Column, inner zed.Type, base field.Path, b z
 			n.encode(typ.Columns, inner, key, val)
 			continue
 		}
-		typ := n.entryTypes[col.Type.ID()]
+		typ := n.entryTypes[col.Type]
 		union, _ := inner.(*zed.TypeUnion)
 		if union != nil {
 			n.BeginContainer()
