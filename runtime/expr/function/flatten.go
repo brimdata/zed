@@ -59,15 +59,10 @@ func (n *Flatten) collectTypes(cols []zed.Column) []zed.Type {
 		} else {
 			typ, ok := n.entryTypes[col.Type.ID()]
 			if !ok {
-				var err error
-				typ, err = n.zctx.LookupTypeRecord([]zed.Column{
+				n.entryTypes[col.Type] = n.zctx.MustLookupTypeRecord([]zed.Column{
 					zed.NewColumn("key", n.keyType),
 					zed.NewColumn("value", col.Type),
 				})
-				if err != nil {
-					panic(fmt.Errorf("flatten: error creating record type %w", err))
-				}
-				n.entryTypes[col.Type.ID()] = typ
 			}
 			types = append(types, typ)
 		}
