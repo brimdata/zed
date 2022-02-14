@@ -23,20 +23,6 @@ func (e errNonAdjacent) Unwrap() error {
 	return ErrNonAdjacent
 }
 
-var ErrDuplicateFields = errors.New("duplicate fields")
-
-type errDuplicateFields struct {
-	field string
-}
-
-func (e errDuplicateFields) Error() string {
-	return fmt.Sprintf("field %s is repeated", e.field)
-}
-
-func (e errDuplicateFields) Unwrap() error {
-	return ErrDuplicateFields
-}
-
 // fieldInfo encodes the structure of a particular proc that writes a
 // sequence of fields, which may potentially be inside nested records.
 // This encoding enables the runtime processing to happen as efficiently
@@ -136,7 +122,7 @@ func NewColumnBuilder(zctx *Context, fields field.List) (*ColumnBuilder, error) 
 			currentRecord = record
 		}
 		if isIn(field, fieldInfos) {
-			return nil, errDuplicateFields{strings.Join(field, ".")}
+			return nil, &DuplicateFieldError{strings.Join(field, ".")}
 		}
 		fieldInfos = append(fieldInfos, fieldInfo{field, containerBegins, 0})
 	}

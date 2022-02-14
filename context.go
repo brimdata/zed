@@ -100,6 +100,14 @@ var tvPool = sync.Pool{
 	},
 }
 
+type DuplicateFieldError struct {
+	Name string
+}
+
+func (d *DuplicateFieldError) Error() string {
+	return fmt.Sprintf("duplicate field: %q", d.Name)
+}
+
 // LookupTypeRecord returns a TypeRecord within this context that binds with the
 // indicated columns.  Subsequent calls with the same columns will return the
 // same record pointer.  If the type doesn't exist, it's created, stored,
@@ -108,7 +116,7 @@ var tvPool = sync.Pool{
 // use TranslateTypeRecord.
 func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
 	if name, ok := duplicateField(columns); ok {
-		return nil, fmt.Errorf("%w: %s", ErrDuplicateFields, name)
+		return nil, &DuplicateFieldError{name}
 	}
 	tv := tvPool.Get().(*[]byte)
 	*tv = AppendTypeValue((*tv)[:0], &TypeRecord{Columns: columns})
