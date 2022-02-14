@@ -74,6 +74,6 @@ echo '{b:1} {a:1,b:1} {c:1}' | zq -z 'rename a:=b' -
 =>
 ```mdtest-output
 {a:1}
-error({message:"rename: duplicate fields: a",on:{a:1,b:1}})
+error({message:"rename: duplicate field: \"a\"",on:{a:1,b:1}})
 {c:1}
 ```

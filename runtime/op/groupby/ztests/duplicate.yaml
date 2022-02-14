@@ -4,4 +4,4 @@ input: |
   {x:1(int32)}
   {x:2(int32)}
 
-errorRE: field count is repeated
+errorRE: 'duplicate field: "count"'

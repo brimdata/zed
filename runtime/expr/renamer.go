@@ -49,7 +49,8 @@ func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRe
 	newcols[c] = zed.Column{Name: dst[0], Type: innerType}
 	typ, err := r.zctx.LookupTypeRecord(newcols)
 	if err != nil {
-		if errors.Is(err, zed.ErrDuplicateFields) {
+		var dferr *zed.DuplicateFieldError
+		if errors.As(err, &dferr) {
 			return nil, err
 		}
 		panic(err)
