@@ -9,7 +9,7 @@ put <field>:=<expr> [, <field>:=<expr> ...]
 ### Description
 
 The `put` operator modifies its input with
-one or more [record mutations](../language.md#record-mutations).
+one or more [field assignments](../language.md#field-assignments).
 Each expression is evaluated based on the input record
 and the result is either assigned to a new field of the input record if it does not
 exist, or the existing field is modified in its original location with the result.
