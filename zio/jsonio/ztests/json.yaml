@@ -9,6 +9,6 @@ input: |
   { "obj1": { "null1": null } }
 
 output: |
-  {bool1:true,int1:4,string1:"value1",string2:"value1"}
-  {bool1:true,int1:4,string1:"value2",string2:"value2"}
+  {string1:"value1",string2:"value1",int1:4,bool1:true}
+  {int1:4,bool1:true,string2:"value2",string1:"value2"}
   {obj1:{null1:null}}

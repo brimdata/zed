@@ -19,13 +19,13 @@ output-flags: -pretty=4
 
 output: |
   {
+      ts: 1.521911721926018e+09,
       a: "hello, world",
       b: {
+          z: "&, <, and > should not be escaped",
           x: 4611686018427387904,
-          y: "127.0.0.1",
-          z: "&, <, and > should not be escaped"
-      },
-      ts: 1.521911721926018e+09
+          y: "127.0.0.1"
+      }
   }
   [
       {

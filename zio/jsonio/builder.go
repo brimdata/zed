@@ -1,6 +1,7 @@
 package jsonio
 
 import (
+	"errors"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -14,10 +15,10 @@ type builder struct {
 	items      []item // Stack of items.
 
 	// These exist only to reduce memory allocations.
-	bytes   []byte
-	columns []zed.Column
-	indices []int
-	types   []zed.Type
+	bytes    []byte
+	columns  []zed.Column
+	itemptrs []*item
+	types    []zed.Type
 }
 
 type item struct {
@@ -120,35 +121,54 @@ func (b *builder) endArray() {
 
 func (b *builder) endRecord() {
 	container, items := b.endContainer()
-
-	b.indices = b.indices[:0]
+	b.itemptrs = b.itemptrs[:0]
 	for i := range items {
-		b.indices = append(b.indices, i)
+		b.itemptrs = append(b.itemptrs, &items[i])
 	}
-	sort.SliceStable(b.indices, func(i, j int) bool {
-		return items[b.indices[i]].fieldName < items[b.indices[j]].fieldName
-	})
-	dedupedIndices := b.indices[:0]
-	prevIndex := -1
-	for _, index := range b.indices {
-		if prevIndex >= 0 && items[index].fieldName == items[prevIndex].fieldName {
-			// Last occurence of a repeated field wins.
-			dedupedIndices[len(dedupedIndices)-1] = index
-		} else {
-			dedupedIndices = append(dedupedIndices, index)
-			prevIndex = index
+	itemptrs := b.itemptrs
+	for {
+		b.columns = b.columns[:0]
+		for _, item := range itemptrs {
+			b.columns = append(b.columns, zed.NewColumn(item.fieldName, item.typ))
 		}
+		var err error
+		container.typ, err = b.zctx.LookupTypeRecord(b.columns)
+		if err == nil {
+			break
+		}
+		var dferr *zed.DuplicateFieldError
+		if !errors.As(err, &dferr) {
+			panic(err)
+		}
+		// removeDuplicateItems operates on itemptrs rather than items
+		// to avoid copying zcode.Builders.
+		itemptrs = removeDuplicateItems(itemptrs, dferr.Name)
 	}
-
-	b.columns = b.columns[:0]
 	container.zb.BeginContainer()
-	for _, index := range dedupedIndices {
-		item := &items[index]
-		b.columns = append(b.columns, zed.Column{Name: item.fieldName, Type: item.typ})
+	for _, item := range itemptrs {
 		container.zb.Append(item.zb.Bytes().Body())
 	}
 	container.zb.EndContainer()
-	container.typ = b.zctx.MustLookupTypeRecord(b.columns)
+}
+
+// removeDuplicateItems removes from itemptrs any item whose fieldName field
+// equals name except for the last such item, which it moves to the position at
+// which it found the first such item.  (This behavior mimics jq's handling of
+// duplicate JSON object fields.)
+func removeDuplicateItems(itemptrs []*item, name string) []*item {
+	out := itemptrs[:0]
+	var first = -1
+	for i, item := range itemptrs {
+		if item.fieldName == name {
+			if first >= 0 {
+				out[first] = item
+				continue
+			}
+			first = i
+		}
+		out = append(out, item)
+	}
+	return out
 }
 
 func (b *builder) value() *zed.Value {
