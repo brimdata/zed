@@ -56,10 +56,11 @@ func (n *Flatten) collectTypes(cols []zed.Column) []zed.Type {
 		} else {
 			typ, ok := n.entryTypes[col.Type]
 			if !ok {
-				n.entryTypes[col.Type] = n.zctx.MustLookupTypeRecord([]zed.Column{
+				typ = n.zctx.MustLookupTypeRecord([]zed.Column{
 					zed.NewColumn("key", n.keyType),
 					zed.NewColumn("value", col.Type),
 				})
+				n.entryTypes[col.Type] = typ
 			}
 			types = append(types, typ)
 		}
