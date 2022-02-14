@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/segmentio/ksuid"
 )
@@ -312,8 +313,6 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Expr:  expr,
 			Cases: cases,
 		}, nil
-	case *ast.Call:
-		return convertCallProc(scope, p)
 	case *ast.Shape:
 		return &dag.Shape{"Shape"}, nil
 	case *ast.Cut:
@@ -373,7 +372,9 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 		}, nil
 	case *ast.Pass:
 		return &dag.Pass{"Pass"}, nil
-	case *ast.Filter:
+	case *ast.OpExpr:
+		return semOpExpr(scope, p.Expr)
+	case *ast.Where:
 		e, err := semExpr(scope, p.Expr)
 		if err != nil {
 			return nil, err
@@ -643,5 +644,79 @@ func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
 	return &dag.Summarize{
 		Kind: "Summarize",
 		Aggs: aggs,
+	}, nil
+}
+
+func semOpExpr(scope *Scope, e ast.Expr) (dag.Op, error) {
+	if call, ok := e.(*ast.Call); ok {
+		if op, err := semCallOp(scope, call); op != nil || err != nil {
+			return op, err
+		}
+	}
+	out, err := semExpr(scope, e)
+	if err != nil {
+		return nil, err
+	}
+	if isBool(out) {
+		return &dag.Filter{
+			Kind: "Filter",
+			Expr: out,
+		}, nil
+	}
+	return &dag.Yield{
+		Kind:  "Yield",
+		Exprs: []dag.Expr{out},
+	}, nil
+}
+
+func isBool(e dag.Expr) bool {
+	switch e := e.(type) {
+	case *dag.Literal:
+		return e.Value == "true" || e.Value == "false"
+	case *dag.UnaryExpr:
+		return isBool(e.Operand)
+	case *dag.BinaryExpr:
+		switch e.Op {
+		case "and", "or", "in", "=", "!=", "<", "<=", ">", ">=":
+			return true
+		default:
+			return false
+		}
+	case *dag.Conditional:
+		return isBool(e.Then) && isBool(e.Else)
+	case *dag.Call:
+		return function.HasBoolResult(e.Name)
+	case *dag.Cast:
+		return e.Type == "bool"
+	case *dag.Search, *dag.RegexpMatch, *dag.RegexpSearch:
+		return true
+	default:
+		return false
+	}
+}
+
+func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
+	if agg, err := maybeConvertAgg(scope, call); err == nil && agg != nil {
+		return &dag.Summarize{
+			Kind: "Summarize",
+			Aggs: []dag.Assignment{
+				{
+					Kind: "Assignment",
+					LHS:  &dag.This{"This", field.New(call.Name)},
+					RHS:  agg,
+				},
+			},
+		}, nil
+	}
+	if !function.HasBoolResult(call.Name) {
+		return nil, nil
+	}
+	c, err := semCall(scope, call)
+	if err != nil {
+		return nil, err
+	}
+	return &dag.Filter{
+		Kind: "Filter",
+		Expr: c,
 	}, nil
 }

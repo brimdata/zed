@@ -9,4 +9,5 @@ outputs:
       over foo
       ===
       over foo, bar
-      | sum(this)
+      | summarize
+          sum(this)

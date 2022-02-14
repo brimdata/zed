@@ -9,10 +9,8 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/agg"
-	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -487,33 +485,6 @@ func semField(scope *Scope, f ast.Expr) (*dag.This, error) {
 		return nil, errors.New("cannot use 'this' as a field reference")
 	}
 	return field, nil
-}
-
-func convertCallProc(scope *Scope, call *ast.Call) (dag.Op, error) {
-	agg, err := maybeConvertAgg(scope, call)
-	if err != nil || agg != nil {
-		return &dag.Summarize{
-			Kind: "Summarize",
-			Aggs: []dag.Assignment{
-				{
-					Kind: "Assignment",
-					LHS:  &dag.This{"This", field.New(call.Name)},
-					RHS:  agg,
-				},
-			},
-		}, err
-	}
-	if !function.HasBoolResult(call.Name) {
-		return nil, fmt.Errorf("bad expression in filter: function %q does not return a boolean value", call.Name)
-	}
-	c, err := semCall(scope, call)
-	if err != nil {
-		return nil, err
-	}
-	return &dag.Filter{
-		Kind: "Filter",
-		Expr: c,
-	}, nil
 }
 
 func maybeConvertAgg(scope *Scope, call *ast.Call) (dag.Expr, error) {

@@ -1,31 +1,29 @@
 ### Operator
 
-&emsp; **filter** &mdash; select values based on Boolean search expression
+&emsp; **where** &mdash; select values based on a Boolean expression
 
 ### Synopsis
 ```
-[filter] <search-expr>
+[where] <expr>
 ```
 ### Description
 
-The `filter` operator copies a filtered version of its input to its output by
-applying a [search expression](../language.md#search-expressions) to each
-input value and dropping each value not matched by the expression.
+The `where` operator filters its input by applying a Boolean expression `<expr>`
+to each input value and dropping each value for which the expression evaluates
+to `false` or to an error.
 
-The "filter" keyword is optional since filters are
-[implied operators](../language.md#implied-operators).
-When Zed queries are run from a search, it is highly convenient to be able to omit
-the "filter" keyword, but when filters appear in Zed source files, it is good practice
+The "where" keyword may be omitted in which case `<expr>` follows
+the [search expression](../language.md#search-expressions) syntax.
+
+When Zed queries are run interactively, it is highly convenient to be able to omit
+the "where" keyword, but when filters appear in Zed source files, it is good practice
 to include the optional keyword.
-
-See the [search expression](../language.md#search-expressions) syntax for
-a detailed description of the filter syntax.
 
 ### Examples
 
 _A simple keyword search for "world"_
 ```mdtest-command
-echo '"hello, world" "say hello" "goodbye, world"' | zq -z 'filter world' -
+echo '"hello, world" "say hello" "goodbye, world"' | zq -z 'where world' -
 ```
 =>
 ```mdtest-output
@@ -34,14 +32,14 @@ echo '"hello, world" "say hello" "goodbye, world"' | zq -z 'filter world' -
 ```
 _An arithmetic comparison_
 ```mdtest-command
-echo '1 2 3' | zq -z 'filter this >= 2' -
+echo '1 2 3' | zq -z 'where this >= 2' -
 ```
 =>
 ```mdtest-output
 2
 3
 ```
-_The "filter" keyword may be dropped_
+_The "where" keyword may be dropped_
 ```mdtest-command
 echo '1 2 3' | zq -z 'this >= 2' -
 ```
@@ -52,7 +50,7 @@ echo '1 2 3' | zq -z 'this >= 2' -
 ```
 _A filter with Boolean logic_
 ```mdtest-command
-echo '1 2 3' | zq -z 'this >= 2 AND this <= 2' -
+echo '1 2 3' | zq -z 'where this >= 2 AND this <= 2' -
 ```
 =>
 ```mdtest-output
@@ -60,7 +58,7 @@ echo '1 2 3' | zq -z 'this >= 2 AND this <= 2' -
 ```
 _The AND operator may be omitted through predicate concatenation_
 ```mdtest-command
-echo '1 2 3' | zq -z 'this >= 2 this <= 2' -
+echo '1 2 3' | zq -z 'where this >= 2 this <= 2' -
 ```
 =>
 ```mdtest-output

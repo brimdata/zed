@@ -26,7 +26,6 @@ to take on any Zed type.
 
 * [cut](operators/cut.md) - extract subsets of record fields into new records
 * [drop](operators/drop.md) - drop fields from record values
-* [filter](operators/filter.md) - select values based on Boolean search expression
 * [fuse](operators/fuse.md) - coerce all input values into a merged type
 * [head](operators/head.md) - copy leading values of input sequence
 * [join](operators/join.md) - combine data from two inputs using a join predicate
@@ -37,6 +36,7 @@ to take on any Zed type.
 * [summarize](operators/summarize.md) -  perform aggregations
 * [tail](operators/tail.md) - copy trailing values of input sequence
 * [uniq](operators/uniq.md) - deduplicate adjacent values
+* [where](operators/where.md) - select values based on a Boolean expression
 * [yield](operators/yield.md) - emit values from expressions
 
 ## Functions

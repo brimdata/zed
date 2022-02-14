@@ -13,6 +13,7 @@ var unpacker = unpack.New(
 	ArrayExpr{},
 	Assignment{},
 	OpAssignment{},
+	OpExpr{},
 	BinaryExpr{},
 	Call{},
 	Cast{},
@@ -26,7 +27,6 @@ var unpacker = unpack.New(
 	astzed.Error{},
 	Field{},
 	File{},
-	Filter{},
 	From{},
 	Fuse{},
 	Summarize{},
@@ -80,6 +80,7 @@ var unpacker = unpack.New(
 	astzed.TypeValue{},
 	UnaryExpr{},
 	Uniq{},
+	Where{},
 	Yield{},
 )
 
