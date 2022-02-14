@@ -14,7 +14,7 @@ type Flatten struct {
 	zcode.Builder
 	keyType    zed.Type
 	mapper     *zed.Mapper
-	entryTypes map[int]zed.Type
+	entryTypes map[zed.Type]zed.Type
 	zctx       *zed.Context
 }
 
