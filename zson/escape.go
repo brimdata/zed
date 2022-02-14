@@ -1,4 +1,4 @@
-package zed
+package zson
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 
 func QuotedName(name string) string {
 	if !IsIdentifier(name) {
-		name = QuotedString([]byte(name), false)
+		name = QuotedString([]byte(name))
 	}
 	return name
 }
@@ -17,7 +17,7 @@ const hexdigits = "0123456789abcdef"
 // QuotedString quotes and escapes a ZSON string for serialization in accordance
 // with the ZSON spec.  It was copied and modified [with attribution](https://github.com/brimdata/zed/blob/main/acknowledgments.txt)
 // from the encoding/json package in the Go source code.
-func QuotedString(s []byte, _ bool) string {
+func QuotedString(s []byte) string {
 	var b strings.Builder
 	b.WriteByte('"')
 	for k := 0; k < len(s); {

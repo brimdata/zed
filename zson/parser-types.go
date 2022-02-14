@@ -42,7 +42,7 @@ func (p *Parser) matchIdentifier() (string, error) {
 		return "", err
 	}
 	r, _, err := l.peekRune()
-	if err != nil || !zed.IDChar(r) {
+	if err != nil || !idChar(r) {
 		return "", err
 	}
 	return l.scanIdentifier()
@@ -57,7 +57,7 @@ func (p *Parser) matchTypeName() (astzed.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !(zed.IDChar(r) || unicode.IsDigit(r)) {
+	if !(idChar(r) || unicode.IsDigit(r)) {
 		return nil, nil
 	}
 	name, err := l.scanTypeName()

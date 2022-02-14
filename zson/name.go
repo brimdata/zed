@@ -1,17 +1,9 @@
-package zed
+package zson
 
 import (
 	"strconv"
 	"unicode"
 )
-
-func IDChar(c rune) bool {
-	return unicode.IsLetter(c) || c == '_' || c == '$'
-}
-
-func TypeChar(c rune) bool {
-	return IDChar(c) || unicode.IsDigit(c) || c == '/' || c == '.'
-}
 
 func IsIdentifier(s string) bool {
 	if s == "" {
@@ -19,7 +11,7 @@ func IsIdentifier(s string) bool {
 	}
 	first := true
 	for _, c := range s {
-		if !IDChar(c) && (first || !unicode.IsDigit(c)) {
+		if !idChar(c) && (first || !unicode.IsDigit(c)) {
 			return false
 		}
 		first = false
@@ -27,14 +19,22 @@ func IsIdentifier(s string) bool {
 	return true
 }
 
+func idChar(c rune) bool {
+	return unicode.IsLetter(c) || c == '_' || c == '$'
+}
+
 // IsTypeName returns true iff s is a valid zson typedef name (exclusive
 // of integer names for locally-scoped typedefs).
 func IsTypeName(s string) bool {
 	for _, c := range s {
-		if !TypeChar(c) {
+		if !typeChar(c) {
 			return false
 		}
 	}
 	_, err := strconv.ParseInt(s, 10, 64)
 	return err != nil
+}
+
+func typeChar(c rune) bool {
+	return idChar(c) || unicode.IsDigit(c) || c == '/' || c == '.'
 }

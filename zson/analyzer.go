@@ -173,7 +173,7 @@ func (a Analyzer) typeCheck(cast, parent zed.Type) error {
 
 func (a Analyzer) enterTypeDef(zctx *zed.Context, name string, typ zed.Type) (*zed.TypeNamed, error) {
 	var named *zed.TypeNamed
-	if zed.IsTypeName(name) {
+	if IsTypeName(name) {
 		var err error
 		if named, err = zctx.LookupTypeNamed(name, typ); err != nil {
 			return nil, err
