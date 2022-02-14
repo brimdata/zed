@@ -17,7 +17,7 @@ when analyzing time-series data like logs that have a `ts` field.
 
 Operate on a sequence of times:
 ```mdtest-command
-echo '{ts:2021-02-01T12:00:01Z}' | zq -z 'yield {ts,val:0},{ts:ts+1s},{ts:ts+2h2s} | yield every(1h)' -
+echo '{ts:2021-02-01T12:00:01Z}' | zq -z 'yield {ts,val:0},{ts:ts+1s},{ts:ts+2h2s} | yield every(1h) | sort' -
 ```
 ->
 ```mdtest-output
@@ -27,7 +27,7 @@ echo '{ts:2021-02-01T12:00:01Z}' | zq -z 'yield {ts,val:0},{ts:ts+1s},{ts:ts+2h2
 ```
 Use as a group-by key:
 ```mdtest-command
-echo '{ts:2021-02-01T12:00:01Z}' | zq -z 'yield {ts,val:1},{ts:ts+1s,val:2},{ts:ts+2h2s,val:5} | sum(val) by every(1h)' -
+echo '{ts:2021-02-01T12:00:01Z}' | zq -z 'yield {ts,val:1},{ts:ts+1s,val:2},{ts:ts+2h2s,val:5} | sum(val) by every(1h) | sort' -
 ```
 ->
 ```mdtest-output
