@@ -153,8 +153,8 @@ func (b *builder) endRecord() {
 
 // removeDuplicateItems removes from itemptrs any item whose fieldName field
 // equals name except for the last such item, which it moves to the position at
-// which it found the first such item.  (This behavior mimics jq's handling of
-// duplicate JSON object fields.)
+// which it found the first such item.  (This is how both ECMAScript 2015 and jq
+// handle duplicate object keys.)
 func removeDuplicateItems(itemptrs []*item, name string) []*item {
 	out := itemptrs[:0]
 	var first = -1
