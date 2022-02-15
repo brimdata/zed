@@ -17,9 +17,9 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/service/srverr"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/gorilla/mux"
 	"github.com/segmentio/ksuid"
@@ -65,7 +65,7 @@ func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool)
 			return ksuid.Nil, false
 		}
 		if err != nil {
-			w.Error(zqe.ErrInvalid("invalid path param %q: %w", s, err))
+			w.Error(srverr.ErrInvalid("invalid path param %q: %w", s, err))
 			return ksuid.Nil, false
 		}
 	}
@@ -81,7 +81,7 @@ func (r *Request) decodeCommitMessage(w *ResponseWriter) (api.CommitMessage, boo
 	var message api.CommitMessage
 	if commitJSON != "" {
 		if err := json.Unmarshal([]byte(commitJSON), &message); err != nil {
-			w.Error(zqe.ErrInvalid("load endpoint encountered invalid JSON in Zed-Commit header: %w", err))
+			w.Error(srverr.ErrInvalid("load endpoint encountered invalid JSON in Zed-Commit header: %w", err))
 			return message, false
 		}
 	}
@@ -92,7 +92,7 @@ func (r *Request) StringFromPath(w *ResponseWriter, arg string) (string, bool) {
 	v := mux.Vars(r.Request)
 	s, ok := v[arg]
 	if !ok {
-		w.Error(zqe.ErrInvalid("no arg %q in path", arg))
+		w.Error(srverr.ErrInvalid("no arg %q in path", arg))
 		return "", false
 	}
 	decoded, err := url.QueryUnescape(s)
@@ -103,12 +103,12 @@ func (r *Request) TagFromPath(arg string, w *ResponseWriter) (ksuid.KSUID, bool)
 	v := mux.Vars(r.Request)
 	s, ok := v[arg]
 	if !ok {
-		w.Error(zqe.ErrInvalid("no arg %q in path", arg))
+		w.Error(srverr.ErrInvalid("no arg %q in path", arg))
 		return ksuid.Nil, false
 	}
 	id, err := lakeparse.ParseID(s)
 	if err != nil {
-		w.Error(zqe.ErrInvalid("invalid path param %q: %w", arg, err))
+		w.Error(srverr.ErrInvalid("invalid path param %q: %w", arg, err))
 		return ksuid.Nil, false
 	}
 	return id, true
@@ -121,7 +121,7 @@ func (r *Request) JournalIDFromQuery(param string, w *ResponseWriter) (journal.I
 	}
 	id, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		w.Error(zqe.ErrInvalid("invalid query param %q: %w", param, err))
+		w.Error(srverr.ErrInvalid("invalid query param %q: %w", param, err))
 		return journal.Nil, false
 	}
 	return journal.ID(id), true
@@ -134,7 +134,7 @@ func (r *Request) BoolFromQuery(param string, w *ResponseWriter) (bool, bool) {
 	}
 	b, err := strconv.ParseBool(s)
 	if err != nil {
-		w.Error(zqe.ErrInvalid("invalid query param %q: %w", s, err))
+		w.Error(srverr.ErrInvalid("invalid query param %q: %w", s, err))
 		return false, false
 	}
 	return b, true
@@ -150,18 +150,18 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 			// case.
 			format = DefaultZedFormat
 		} else {
-			w.Error(zqe.ErrInvalid(err))
+			w.Error(srverr.ErrInvalid(err))
 			return false
 		}
 	}
 	zr, err := anyio.NewReaderWithOpts(r.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(err))
 		return false
 	}
 	zv, err := zr.Read()
 	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(err))
 		return false
 	}
 	if zv == nil {
@@ -170,7 +170,7 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 	m := zson.NewZNGUnmarshaler()
 	m.Bind(templates...)
 	if err := m.Unmarshal(*zv, body); err != nil {
-		w.Error(zqe.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(err))
 		return false
 	}
 	return true
@@ -202,7 +202,7 @@ func (w *ResponseWriter) ZioWriterWithOpts(opts anyio.WriterOpts) zio.WriteClose
 		if opts.Format == "" {
 			opts.Format, err = api.MediaTypeToFormat(w.ContentType(), DefaultZedFormat)
 			if err != nil {
-				w.Error(zqe.ErrInvalid(err))
+				w.Error(srverr.ErrInvalid(err))
 				return nil
 			}
 		}
@@ -269,34 +269,34 @@ func errorResponse(e error) (status int, ae *api.Error) {
 		ae.Info = map[string]int{"parse_error_offset": pe.Offset}
 	}
 
-	var ze *zqe.Error
+	var ze *srverr.Error
 	if !errors.As(e, &ze) {
-		var kind zqe.Kind
+		var kind srverr.Kind
 		switch {
 		case errors.Is(e, branches.ErrExists) || errors.Is(e, pools.ErrExists):
-			kind = zqe.Conflict
+			kind = srverr.Conflict
 		case errors.Is(e, branches.ErrNotFound) || errors.Is(e, pools.ErrNotFound) ||
 			errors.Is(e, fs.ErrNotExist):
-			kind = zqe.NotFound
+			kind = srverr.NotFound
 		default:
 			ae.Message = e.Error()
 			return
 		}
-		ze = &zqe.Error{Kind: kind, Err: e}
+		ze = &srverr.Error{Kind: kind, Err: e}
 	}
 
 	switch ze.Kind {
-	case zqe.Invalid:
+	case srverr.Invalid:
 		status = http.StatusBadRequest
-	case zqe.NotFound:
+	case srverr.NotFound:
 		status = http.StatusNotFound
-	case zqe.Exists:
+	case srverr.Exists:
 		status = http.StatusBadRequest
-	case zqe.Conflict:
+	case srverr.Conflict:
 		status = http.StatusConflict
-	case zqe.NoCredentials:
+	case srverr.NoCredentials:
 		status = http.StatusUnauthorized
-	case zqe.Forbidden:
+	case srverr.Forbidden:
 		status = http.StatusForbidden
 	}
 

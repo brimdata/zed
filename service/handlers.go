@@ -17,9 +17,9 @@ import (
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/service/auth"
+	"github.com/brimdata/zed/service/srverr"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zqe"
 )
 
 func handleQuery(c *Core, w *ResponseWriter, r *Request) {
@@ -39,12 +39,12 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	// the error should be relay that to the caller/user.
 	query, err := compiler.ParseProc(req.Query)
 	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(err))
 		return
 	}
 	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"), DefaultZedFormat)
 	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(err))
 		return
 	}
 	flowgraph, err := runtime.NewQueryOnLake(r.Context(), zed.NewContext(), query, c.root, &req.Head, r.Logger)
@@ -214,7 +214,7 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 	}
 	commit, err := lakeparse.ParseID(req.Commit)
 	if err != nil {
-		w.Error(zqe.ErrInvalid("invalid commit object: %s", req.Commit))
+		w.Error(srverr.ErrInvalid("invalid commit object: %s", req.Commit))
 		return
 	}
 	branchRef, err := c.root.CreateBranch(r.Context(), poolID, req.Name, commit)
@@ -353,7 +353,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	zctx := zed.NewContext()
 	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zctx, opts)
 	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(err))
 		return
 	}
 	warnings := warningCollector{}
@@ -361,10 +361,10 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	kommit, err := branch.Load(r.Context(), zctx, zr, message.Author, message.Body, message.Meta)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
-			err = zqe.ErrInvalid("no records in request")
+			err = srverr.ErrInvalid("no records in request")
 		}
 		if errors.Is(err, lake.ErrInvalidCommitMeta) {
-			err = zqe.ErrInvalid("invalid commit metadata in request")
+			err = srverr.ErrInvalid("invalid commit metadata in request")
 		}
 		w.Error(err)
 		return
@@ -439,7 +439,7 @@ func handleIndexRulesDelete(c *Core, w *ResponseWriter, r *Request) {
 	}
 	ruleIDs, err := lakeparse.ParseIDs(req.RuleIDs)
 	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(err))
 	}
 	rules, err := c.root.DeleteIndexRules(r.Context(), ruleIDs)
 	if err != nil {
@@ -492,7 +492,7 @@ func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Bran
 	commit, err := branch.UpdateIndex(r.Context(), rules)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
-			err = zqe.ErrInvalid(err)
+			err = srverr.ErrInvalid(err)
 		}
 		w.Error(err)
 		return
@@ -519,7 +519,7 @@ func handleAuthMethodGet(c *Core, w *ResponseWriter, r *Request) {
 func handleEvents(c *Core, w *ResponseWriter, r *Request) {
 	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"), "zson")
 	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(err))
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
 	writer := &eventStreamWriter{body: w, format: format}

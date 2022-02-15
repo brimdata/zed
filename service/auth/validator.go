@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/pkg/fs"
-	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/service/srverr"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -80,35 +80,35 @@ func (v *TokenValidator) ValidateRequest(r *http.Request) (string, Identity, err
 
 func (v *TokenValidator) Validate(token string) (Identity, error) {
 	if token == "" {
-		return Identity{}, zqe.ErrNoCredentials()
+		return Identity{}, srverr.ErrNoCredentials()
 	}
 	parsed, err := jwt.Parse(token, v.keyGetter)
 	if err != nil || !parsed.Valid {
-		return Identity{}, zqe.ErrNoCredentials("invalid token")
+		return Identity{}, srverr.ErrNoCredentials("invalid token")
 	}
 	if parsed.Header["alg"] != jwt.SigningMethodRS256.Alg() {
-		return Identity{}, zqe.ErrNoCredentials("invalid signing method")
+		return Identity{}, srverr.ErrNoCredentials("invalid signing method")
 	}
 	claims := parsed.Claims.(jwt.MapClaims)
 	// jwt-go verifies any expiry claim, but will not fail if the expiry claim
 	// is missing. The call here with req=true ensures that the claim is both
 	// present and valid.
 	if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
-		return Identity{}, zqe.ErrNoCredentials("invalid expiration")
+		return Identity{}, srverr.ErrNoCredentials("invalid expiration")
 	}
 	if !claims.VerifyIssuer(v.expectedIssuer, true) {
-		return Identity{}, zqe.ErrNoCredentials("invalid issuer")
+		return Identity{}, srverr.ErrNoCredentials("invalid issuer")
 	}
 	if !verifyAPIAudience(claims) {
-		return Identity{}, zqe.ErrNoCredentials("invalid audience")
+		return Identity{}, srverr.ErrNoCredentials("invalid audience")
 	}
 	tid, _ := claims[TenantIDClaim].(string)
 	if tid == "" || TenantID(tid) == AnonymousTenantID {
-		return Identity{}, zqe.ErrNoCredentials("invalid tenant id")
+		return Identity{}, srverr.ErrNoCredentials("invalid tenant id")
 	}
 	uid, _ := claims[UserIDClaim].(string)
 	if uid == "" || UserID(uid) == AnonymousUserID {
-		return Identity{}, zqe.ErrNoCredentials("invalid user id")
+		return Identity{}, srverr.ErrNoCredentials("invalid user id")
 	}
 	return Identity{
 		TenantID: TenantID(tid),

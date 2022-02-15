@@ -1,8 +1,10 @@
 package op
 
 import (
+	"fmt"
+	"runtime/debug"
+
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zqe"
 )
 
 // Catcher wraps an Interface with a Pull method that recovers panics
@@ -20,7 +22,7 @@ func NewCatcher(parent zbuf.Puller) *Catcher {
 func (c *Catcher) Pull(done bool) (b zbuf.Batch, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = zqe.RecoverError(r)
+			err = fmt.Errorf("panic: %+v\n%s\n", r, debug.Stack())
 		}
 	}()
 	return c.parent.Pull(done)
