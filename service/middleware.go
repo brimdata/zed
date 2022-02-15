@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/service/srverr"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/segmentio/ksuid"
@@ -85,7 +85,7 @@ func panicCatchMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 					return
 				}
 				logger.DPanic("Panic",
-					zap.Error(zqe.RecoverError(rec)),
+					zap.Error(srverr.RecoverError(rec)),
 					zap.String("request_id", api.RequestIDFromContext(r.Context())),
 					zap.Stack("stack"),
 				)

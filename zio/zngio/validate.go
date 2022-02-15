@@ -3,10 +3,11 @@ package zngio
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"runtime/debug"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zqe"
 )
 
 // Validate checks that val.Bytes is structurally consistent
@@ -15,7 +16,7 @@ import (
 func Validate(val *zed.Value) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = zqe.RecoverError(r)
+			err = fmt.Errorf("panic: %+v\n%s\n", r, string(debug.Stack()))
 		}
 	}()
 	return val.Walk(func(typ zed.Type, body zcode.Bytes) error {

@@ -1,6 +1,6 @@
 // Package zqe provides a mechanism to create or wrap errors with information
 // that will aid in reporting them to users and returning them to api callers.
-package zqe
+package srverr
 
 import (
 	"errors"

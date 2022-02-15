@@ -1,4 +1,4 @@
-package zqe
+package srverr
 
 import (
 	"errors"
