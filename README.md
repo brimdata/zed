@@ -69,7 +69,7 @@ If you have Go installed, you can easily install `zed` and `zq` by running
 ```
 go install github.com/brimdata/zed/cmd/{zed,zq}@latest
 ```
-On a Mac, you can use `brew` to install `zq`:
+On macOS and Linux, you can use `brew` to install `zq`:
 ```
 brew install brimdata/tap/zq
 ```
