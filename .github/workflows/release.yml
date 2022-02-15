@@ -26,8 +26,6 @@ jobs:
     - run: make test-heavy
     - uses: goreleaser/goreleaser-action@v2
       with:
-        distribution: goreleaser
-        version: latest
         args: release --rm-dist -f scripts/goreleaser.yaml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
