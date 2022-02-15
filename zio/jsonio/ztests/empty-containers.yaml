@@ -6,4 +6,4 @@ input: |
 output-flags: -f json
 
 output: |
-  {"dns":["google.com"],"email":[],"ip":null,"uri":[]}
+  {"dns":["google.com"],"uri":[],"email":[],"ip":null}

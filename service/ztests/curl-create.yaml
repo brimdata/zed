@@ -13,24 +13,24 @@ outputs:
   - name: stdout
     data: |
       {
-          branch: {
-              commit: "0x0000000000000000000000000000000000000000",
-              name: "main",
-              ts: 0
-          },
           pool: {
+              ts: 0,
+              name: "test",
               id: 0,
               layout: {
+                  order: "desc",
                   keys: [
                       [
                           "ts"
                       ]
-                  ],
-                  order: "desc"
+                  ]
               },
-              name: "test",
               seek_stride: 65536,
-              threshold: 524288000,
-              ts: 0
+              threshold: 524288000
+          },
+          branch: {
+              ts: 0,
+              name: "main",
+              commit: "0x0000000000000000000000000000000000000000"
           }
       }
