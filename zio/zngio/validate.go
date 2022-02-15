@@ -16,7 +16,7 @@ import (
 func Validate(val *zed.Value) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %+v\n%s\n", r, string(debug.Stack()))
+			err = fmt.Errorf("panic: %+v\n%s\n", r, debug.Stack())
 		}
 	}()
 	return val.Walk(func(typ zed.Type, body zcode.Bytes) error {
