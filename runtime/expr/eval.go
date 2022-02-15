@@ -657,7 +657,7 @@ func indexArray(zctx *zed.Context, ectx Context, typ *zed.TypeArray, array zcode
 	if zv == nil {
 		return zctx.Missing()
 	}
-	return ectx.NewValue(typ.Type, zv)
+	return ValueUnder(ectx.NewValue(typ.Type, zv))
 }
 
 func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
@@ -682,7 +682,7 @@ func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.
 		return zctx.Missing()
 	}
 	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
-		return ectx.NewValue(typ.ValType, valBytes)
+		return ValueUnder(ectx.NewValue(typ.ValType, valBytes))
 	}
 	return zctx.Missing()
 }
