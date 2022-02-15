@@ -44,7 +44,7 @@ brews:
     commit_author:
       name: brim-bot
       email: bot@brimdata.io
-    homepage: "https://github.com/brimdata/zed"
+    homepage: https://github.com/brimdata/zed
     description: |
       A command-line tool for creating, configuring, ingesting into, querying,
       and orchestrating Zed data lakes.
