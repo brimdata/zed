@@ -61,8 +61,6 @@ brews:
       providing search, analytics, and extensive transormations using the Zed
       query language.
     folder: Formula
-    install: |
-      bin.install "zq"
 checksum:
   name_template: 'zed-checksums.txt'
 snapshot:
