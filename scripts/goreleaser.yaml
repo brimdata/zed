@@ -34,9 +34,6 @@ archives:
       - LICENSE*
       - README*
 release:
-  github:
-    owner: brimdata
-    name: zed
   header: |
     View [release notes](https://github.com/brimdata/zed/blob/main/CHANGELOG.md#{{ replace .Version "." "" }}).
 brews:
