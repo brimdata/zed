@@ -22,7 +22,7 @@ func NewCatcher(parent zbuf.Puller) *Catcher {
 func (c *Catcher) Pull(done bool) (b zbuf.Batch, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %+v\n%s\n", r, string(debug.Stack()))
+			err = fmt.Errorf("panic: %+v\n%s\n", r, debug.Stack())
 		}
 	}()
 	return c.parent.Pull(done)
