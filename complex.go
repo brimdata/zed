@@ -374,7 +374,8 @@ func (t *TypeUnion) Selector(typ Type) int {
 }
 
 // SplitZNG takes a zng encoding of a value of the receiver's union type and
-// returns the concrete type of the value, its selector, and the value encoding. SplitZNG panics if the selector of zv is not a member of the union.
+// returns the concrete type of the value, its selector, and the value encoding.
+// SplitZNG panics if the selector is invalid.
 func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes) {
 	it := zv.Iter()
 	selector := DecodeInt(it.Next())
