@@ -50,11 +50,7 @@ func ValueUnder(val *zed.Value) *zed.Value {
 		if !ok {
 			return &zed.Value{typ, bytes}
 		}
-		var err error
-		typ, _, bytes, err = union.SplitZNG(bytes)
-		if err != nil {
-			panic(err)
-		}
+		typ, _, bytes = union.SplitZNG(bytes)
 	}
 }
 

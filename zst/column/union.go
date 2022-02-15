@@ -28,13 +28,7 @@ func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
 }
 
 func (u *UnionWriter) Write(body zcode.Bytes) error {
-	_, selector, zv, err := u.typ.SplitZNG(body)
-	if err != nil {
-		return err
-	}
-	if int(selector) >= len(u.values) || selector < 0 {
-		return fmt.Errorf("bad selector in column.UnionWriter: %d", selector)
-	}
+	_, selector, zv := u.typ.SplitZNG(body)
 	if err := u.selector.Write(int32(selector)); err != nil {
 		return err
 	}

@@ -299,10 +299,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 }
 
 func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.Bytes) error {
-	typ, _, bytes, err := union.SplitZNG(bytes)
-	if err != nil {
-		return err
-	}
+	typ, _, bytes := union.SplitZNG(bytes)
 	// XXX For now, we always decorate a union value so that
 	// we can determine the selector from the value's explicit type.
 	// We can later optimize this so we only print the decorator if its
