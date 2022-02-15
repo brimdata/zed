@@ -12,6 +12,7 @@ package zed
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/brimdata/zed/zcode"
@@ -372,6 +373,24 @@ func TypeID(typ Type) int {
 		return named.id
 	}
 	return typ.ID()
+}
+
+// CanonicalUnionOfTypes returns the set of unique Types in types in sorted
+// order. types will be sorted in place, but a new slice of unique types will
+// be returned.
+func CanonicalUnionOfTypes(types []Type) []Type {
+	sort.SliceStable(types, func(i, j int) bool {
+		return CompareTypes(types[i], types[j]) < 0
+	})
+	out := make([]Type, 0, len(types))
+	var prev Type
+	for _, typ := range types {
+		if typ != prev {
+			out = append(out, typ)
+			prev = typ
+		}
+	}
+	return out
 }
 
 func CompareTypes(a, b Type) int {
