@@ -205,10 +205,7 @@ func (w *Writer) encodeUnion(zctx *zed.Context, union *zed.TypeUnion, bytes zcod
 	if bytes == nil {
 		return nil, nil
 	}
-	inner, selector, b, err := union.SplitZNG(bytes)
-	if err != nil {
-		return nil, err
-	}
+	inner, selector, b := union.SplitZNG(bytes)
 	val, err := w.encodeValue(zctx, inner, b)
 	if err != nil {
 		return nil, err

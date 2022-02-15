@@ -198,12 +198,7 @@ func unescape(r rune) []byte {
 }
 
 func formatUnion(t *zed.TypeUnion, zv zcode.Bytes) string {
-	typ, selector, iv, err := t.SplitZNG(zv)
-	if err != nil {
-		// this follows set and record StringOfs. Like there, XXX.
-		return "ERR"
-	}
-
+	typ, selector, iv := t.SplitZNG(zv)
 	s := strconv.FormatInt(selector, 10) + ":"
 	return s + formatAny(zed.Value{typ, iv}, false)
 }
