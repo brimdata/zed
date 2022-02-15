@@ -1,7 +1,7 @@
 zed: |
   let d=date over this => (
-    key != 'date'
-    | yield {date: d, sym: key, price: value}
+    key[0] != 'date'
+    | yield {date: d, sym: key[0], price: value}
   )
 
 input: |
