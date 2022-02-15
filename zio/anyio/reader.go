@@ -32,31 +32,31 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
-	zeekErr := match(zeekio.NewReader(track, zed.NewContext()), "zeek")
+	zeekErr := match(zeekio.NewReader(track, zed.NewContext()), "zeek", 1)
 	if zeekErr == nil {
 		return zeekio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
-	// ZJSON must come before ZSON since ZJSON is a subset of ZSON
-	zjsonErr := match(zjsonio.NewReader(track, zed.NewContext()), "zjson")
+	// ZJSON must come before JSON and ZSON since it is a subset of both.
+	zjsonErr := match(zjsonio.NewReader(track, zed.NewContext()), "zjson", 1)
 	if zjsonErr == nil {
 		return zjsonio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
-	zsonErr := match(zsonio.NewReader(track, zed.NewContext()), "zson")
-	if zsonErr == nil {
-		return zsonio.NewReader(recorder, zctx), nil
+	// JSON comes before ZSON because the JSON reader is faster than the
+	// ZSON reader.  The number of values wanted is greater than one for the
+	// sake of tests.
+	jsonErr := match(jsonio.NewReader(track, zed.NewContext()), "json", 10)
+	if jsonErr == nil {
+		return jsonio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
-	// JSON comes after ZSON because we want the ZSON reader to handle
-	// top-level JSON objects and the JSON reader to handle top-level
-	// JSON arrays.
-	jsonErr := match(jsonio.NewReader(track, zed.NewContext()), "json")
-	if jsonErr == nil {
-		return jsonio.NewReader(recorder, zctx), nil
+	zsonErr := match(zsonio.NewReader(track, zed.NewContext()), "zson", 1)
+	if zsonErr == nil {
+		return zsonio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
@@ -66,7 +66,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	zngOpts := opts.ZNG
 	zngOpts.Validate = true
 	zngReader := zngio.NewReaderWithOpts(track, zed.NewContext(), zngOpts)
-	zngErr := match(zngReader, "zng")
+	zngErr := match(zngReader, "zng", 1)
 	// Close zngReader to ensure that it does not continue to call track.Read.
 	zngReader.Close()
 	if zngErr == nil {
@@ -75,7 +75,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	track.Reset()
 
 	zng21Reader := zng21io.NewReaderWithOpts(track, zed.NewContext(), zngOpts)
-	zng21Err := match(zng21Reader, "zng21")
+	zng21Err := match(zng21Reader, "zng21", 1)
 	if zng21Err == nil {
 		return zng21io.NewReaderWithOpts(recorder, zctx, opts.ZNG), nil
 	}
@@ -88,7 +88,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 		csvErr = errors.New("csv: line 1: no comma found")
 	} else {
 		track.Reset()
-		csvErr = match(csvio.NewReader(track, zed.NewContext()), "csv")
+		csvErr = match(csvio.NewReader(track, zed.NewContext()), "csv", 1)
 		if csvErr == nil {
 			return csvio.NewReader(recorder, zctx), nil
 		}
@@ -111,10 +111,16 @@ func joinErrs(errs []error) error {
 	}
 	return errors.New(s)
 }
-func match(r zio.Reader, name string) error {
-	_, err := r.Read()
-	if err != nil {
-		return fmt.Errorf("%s: %w", name, err)
+
+func match(r zio.Reader, name string, want int) error {
+	for i := 0; i < want; i++ {
+		val, err := r.Read()
+		if err != nil {
+			return fmt.Errorf("%s: %w", name, err)
+		}
+		if val == nil {
+			return nil
+		}
 	}
 	return nil
 }
