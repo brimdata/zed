@@ -56,7 +56,7 @@ brews:
     commit_author:
       name: brim-bot
       email: bot@brimdata.io
-    homepage: "https://github.com/brimdata/zed"
+    homepage: https://github.com/brimdata/zed
     description: |
       A command-line tool for processing data in diverse input formats,
       providing search, analytics, and extensive transormations using the Zed
