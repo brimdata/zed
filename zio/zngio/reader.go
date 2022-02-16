@@ -73,7 +73,9 @@ func (r *Reader) NewScanner(ctx context.Context, filter zbuf.Filter) (zbuf.Scann
 
 // Close guarantees that the underlying io.Reader is not read after it returns.
 func (r *Reader) Close() error {
-	r.scanner.Pull(true)
+	if r.scanner != nil {
+		r.scanner.Pull(true)
+	}
 	return nil
 }
 
