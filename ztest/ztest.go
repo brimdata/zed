@@ -515,10 +515,11 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		return "", "", err
 	}
 	zctx := zed.NewContext()
-	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(strings.NewReader(input)), zctx, inflags.Options())
+	zrc, err := anyio.NewReaderWithOpts(anyio.GzipReader(strings.NewReader(input)), zctx, inflags.Options())
 	if err != nil {
 		return "", err.Error(), err
 	}
+	defer zrc.Close()
 	var outflags outputflags.Flags
 	flags = flag.FlagSet{}
 	outflags.SetFlags(&flags)
@@ -529,7 +530,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err != nil {
 		return "", "", err
 	}
-	q, err := zruntime.NewQueryOnReader(context.Background(), zctx, proc, zr, nil)
+	q, err := zruntime.NewQueryOnReader(context.Background(), zctx, proc, zrc, nil)
 	if err != nil {
 		zw.Close()
 		return "", err.Error(), err

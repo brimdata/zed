@@ -17,26 +17,34 @@ import (
 	"github.com/brimdata/zed/zio/zstio"
 )
 
-func lookupReader(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Reader, error) {
+func lookupReader(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.ReadCloser, error) {
 	switch opts.Format {
 	case "csv":
-		return csvio.NewReader(r, zctx), nil
+		return zio.NopReadCloser(csvio.NewReader(r, zctx)), nil
 	case "zeek":
-		return zeekio.NewReader(r, zctx), nil
+		return zio.NopReadCloser(zeekio.NewReader(r, zctx)), nil
 	case "json":
-		return jsonio.NewReader(r, zctx), nil
+		return zio.NopReadCloser(jsonio.NewReader(r, zctx)), nil
 	case "zjson":
-		return zjsonio.NewReader(r, zctx), nil
+		return zio.NopReadCloser(zjsonio.NewReader(r, zctx)), nil
 	case "zng":
 		return zngio.NewReaderWithOpts(r, zctx, opts.ZNG), nil
 	case "zng21":
-		return zng21io.NewReaderWithOpts(r, zctx, opts.ZNG), nil
+		return zio.NopReadCloser(zng21io.NewReaderWithOpts(r, zctx, opts.ZNG)), nil
 	case "zson":
-		return zsonio.NewReader(r, zctx), nil
+		return zio.NopReadCloser(zsonio.NewReader(r, zctx)), nil
 	case "zst":
-		return zstio.NewReader(r, zctx)
+		zr, err := zstio.NewReader(r, zctx)
+		if err != nil {
+			return nil, err
+		}
+		return zio.NopReadCloser(zr), nil
 	case "parquet":
-		return parquetio.NewReader(r, zctx)
+		zr, err := parquetio.NewReader(r, zctx)
+		if err != nil {
+			return nil, err
+		}
+		return zio.NopReadCloser(zr), nil
 	}
 	return nil, fmt.Errorf("no such format: \"%s\"", opts.Format)
 }
