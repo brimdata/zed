@@ -154,12 +154,13 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 			return false
 		}
 	}
-	zr, err := anyio.NewReaderWithOpts(r.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
+	zrc, err := anyio.NewReaderWithOpts(r.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return false
 	}
-	zv, err := zr.Read()
+	defer zrc.Close()
+	zv, err := zrc.Read()
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return false

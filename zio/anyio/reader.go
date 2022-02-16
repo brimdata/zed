@@ -25,7 +25,11 @@ type ReaderOpts struct {
 	AwsCfg *aws.Config
 }
 
-func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Reader, error) {
+func NewReader(r io.Reader, zctx *zed.Context) (zio.ReadCloser, error) {
+	return NewReaderWithOpts(r, zctx, ReaderOpts{})
+}
+
+func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.ReadCloser, error) {
 	if opts.Format != "" && opts.Format != "auto" {
 		return lookupReader(r, zctx, opts)
 	}
@@ -34,14 +38,14 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 
 	zeekErr := match(zeekio.NewReader(track, zed.NewContext()), "zeek", 1)
 	if zeekErr == nil {
-		return zeekio.NewReader(recorder, zctx), nil
+		return zio.NopReadCloser(zeekio.NewReader(recorder, zctx)), nil
 	}
 	track.Reset()
 
 	// ZJSON must come before JSON and ZSON since it is a subset of both.
 	zjsonErr := match(zjsonio.NewReader(track, zed.NewContext()), "zjson", 1)
 	if zjsonErr == nil {
-		return zjsonio.NewReader(recorder, zctx), nil
+		return zio.NopReadCloser(zjsonio.NewReader(recorder, zctx)), nil
 	}
 	track.Reset()
 
@@ -50,13 +54,13 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	// sake of tests.
 	jsonErr := match(jsonio.NewReader(track, zed.NewContext()), "json", 10)
 	if jsonErr == nil {
-		return jsonio.NewReader(recorder, zctx), nil
+		return zio.NopReadCloser(jsonio.NewReader(recorder, zctx)), nil
 	}
 	track.Reset()
 
 	zsonErr := match(zsonio.NewReader(track, zed.NewContext()), "zson", 1)
 	if zsonErr == nil {
-		return zsonio.NewReader(recorder, zctx), nil
+		return zio.NopReadCloser(zsonio.NewReader(recorder, zctx)), nil
 	}
 	track.Reset()
 
@@ -77,7 +81,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	zng21Reader := zng21io.NewReaderWithOpts(track, zed.NewContext(), zngOpts)
 	zng21Err := match(zng21Reader, "zng21", 1)
 	if zng21Err == nil {
-		return zng21io.NewReaderWithOpts(recorder, zctx, opts.ZNG), nil
+		return zio.NopReadCloser(zng21io.NewReaderWithOpts(recorder, zctx, opts.ZNG)), nil
 	}
 	track.Reset()
 
@@ -90,7 +94,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 		track.Reset()
 		csvErr = match(csvio.NewReader(track, zed.NewContext()), "csv", 1)
 		if csvErr == nil {
-			return csvio.NewReader(recorder, zctx), nil
+			return zio.NopReadCloser(csvio.NewReader(recorder, zctx)), nil
 		}
 	}
 	track.Reset()
@@ -98,10 +102,6 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	zstErr := errors.New("zst: auto-detection not supported")
 	return nil, joinErrs([]error{zeekErr, zjsonErr, zsonErr, zngErr, zng21Err, csvErr, jsonErr, parquetErr, zstErr})
-}
-
-func NewReader(r io.Reader, zctx *zed.Context) (zio.Reader, error) {
-	return NewReaderWithOpts(r, zctx, ReaderOpts{})
 }
 
 func joinErrs(errs []error) error {

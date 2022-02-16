@@ -351,14 +351,15 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	var opts anyio.ReaderOpts
 	opts.ZNG.Validate = true
 	zctx := zed.NewContext()
-	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zctx, opts)
+	zrc, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zctx, opts)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
 	}
+	defer zrc.Close()
 	warnings := warningCollector{}
-	zr = zio.NewWarningReader(zr, &warnings)
-	kommit, err := branch.Load(r.Context(), zctx, zr, message.Author, message.Body, message.Meta)
+	wr := zio.NewWarningReader(zrc, &warnings)
+	kommit, err := branch.Load(r.Context(), zctx, wr, message.Author, message.Body, message.Meta)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = srverr.ErrInvalid("no records in request")
