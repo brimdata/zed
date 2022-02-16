@@ -2,6 +2,7 @@ package jsonio
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"time"
 
 	"github.com/brimdata/zed"
@@ -61,11 +62,39 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 
 func marshalRecord(typ *zed.TypeRecord, bytes zcode.Bytes) interface{} {
 	it := bytes.Iter()
-	rec := make(map[string]interface{})
+	rec := record{}
 	for _, col := range typ.Columns {
-		rec[col.Name] = marshalAny(col.Type, it.Next())
+		rec = append(rec, field{col.Name, marshalAny(col.Type, it.Next())})
 	}
 	return rec
+}
+
+// record represents a Zed record and encodes as a JSON object.  In contrast to
+// a map, it preserves field order.
+type record []field
+
+type field struct {
+	name  string
+	value interface{}
+}
+
+func (r record) MarshalJSON() ([]byte, error) {
+	buf := []byte{'{'}
+	for i, field := range r {
+		if i > 0 {
+			buf = append(buf, ',')
+		}
+		name, err := json.Marshal(field.name)
+		if err != nil {
+			return nil, err
+		}
+		value, err := json.Marshal(field.value)
+		if err != nil {
+			return nil, err
+		}
+		buf = append(append(append(buf, name...), ':'), value...)
+	}
+	return append(buf, '}'), nil
 }
 
 func marshalArray(typ *zed.TypeArray, bytes zcode.Bytes) interface{} {

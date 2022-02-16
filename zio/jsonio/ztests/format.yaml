@@ -14,5 +14,5 @@ input: |
 output-flags: -f json
 
 output: |
-  {"_path":"conn","bar":"key2 value1","foo":"key1 value1"}
-  {"_path":"conn","bar":"key2 value2","foo":"key1 value2"}
+  {"_path":"conn","foo":"key1 value1","bar":"key2 value1"}
+  {"_path":"conn","foo":"key1 value2","bar":"key2 value2"}
