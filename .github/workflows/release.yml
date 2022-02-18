@@ -16,9 +16,6 @@ jobs:
     - run: go mod download
     - run: make fmt
     - run: make tidy
-    - run: |
-          sudo apt-get update
-          sudo apt-get install -y zip libnet1 libjansson4
     - run: make vet
     - run: make test-generate
     - run: make test-unit
