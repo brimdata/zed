@@ -31,8 +31,8 @@ archives:
       - goos: windows
         format: zip
     files:
-      - LICENSE*
-      - README*
+      - LICENSE.txt
+      - acknowledgments.txt
 release:
   header: |
     View [release notes](https://github.com/brimdata/zed/blob/main/CHANGELOG.md#{{ replace .Version "." "" }}).
