@@ -1,5 +1,5 @@
-//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
-// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+//go:build !js && !plan9 && !windows
+// +build !js,!plan9,!windows
 
 package rlimit
 
