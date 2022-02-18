@@ -743,7 +743,7 @@ contain.  The `summarize` keyword is optional.
      + [`avg`](#avg)
      + [`collect`](#collect)
      + [`count`](#count)
-     + [`countdistinct`](#countdistinct)
+     + [`dcount`](#dcount)
      + [`max`](#max)
      + [`min`](#min)
      + [`or`](#or)
@@ -1006,28 +1006,28 @@ Since `17686 + 2223 = 19909`, the count result is what we expected.
 
 ---
 
-### `countdistinct`
+### `dcount`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
 | **Description**           | Return a quick approximation of the number of unique values of a field.|
-| **Syntax**                | `countdistinct(<field-name>)`                                  |
+| **Syntax**                | `dcount(<field-name>)`                                  |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field containing values to be counted. |
 | **Optional<br>arguments** | None                                                           |
-| **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog).<br><br>Also, partial aggregations are not yet implemented for `countdistinct` ([zed/2743](https://github.com/brimdata/zed/issues/2743)), so it may not work correctly in all circumstances. |
+| **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog).<br><br>Also, partial aggregations are not yet implemented for `dcount` ([zed/2743](https://github.com/brimdata/zed/issues/2743)), so it may not work correctly in all circumstances. |
 
 #### Example:
 
 To see an approximate count of unique school names in our sample data set:
 
 ```mdtest-command dir=testdata/edu
-zq -Z 'countdistinct(School)' schools.zson
+zq -Z 'dcount(School)' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
 {
-    countdistinct: 13927 (uint64)
+    dcount: 13804 (uint64)
 }
 ```
 

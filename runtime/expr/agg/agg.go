@@ -39,9 +39,9 @@ func NewPattern(op string) (Pattern, error) {
 		return func() Function {
 			return &Avg{}
 		}, nil
-	case "countdistinct":
+	case "dcount":
 		return func() Function {
-			return NewCountDistinct()
+			return NewDCount()
 		}, nil
 	case "fuse":
 		return func() Function {
