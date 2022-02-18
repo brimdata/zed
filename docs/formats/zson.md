@@ -325,7 +325,7 @@ contained enum type is defined by the complex type's decorator.
 
 A sequence of enum values might look like this:
 ```
-%HEADS (flip=(enum<HEADS,TAILS>))
+%HEADS (flip=(enum(HEADS,TAILS)))
 %TAILS (flip)
 %HEADS (flip)
 ```
@@ -390,11 +390,11 @@ where there are at least two types in the list.
 
 An _enum type_ has the form:
 ```
-enum< <name>, <name>, ... >
+enum( <name>, <name>, ... )
 ```
 where `<name>` is a [ZSON name](#21-names).
 Each enum name must be unique and the order is not significant, e.g.,
-enum type `enum<HEADS,TAILS>` is equal to type `enum<TAILS,HEADS>`.
+enum type `enum(HEADS,TAILS)` is equal to type `enum(TAILS,HEADS)`.
 
 #### 2.5.7 Named Type
 
@@ -580,7 +580,7 @@ the defines their type.
 
 <tlist> = <tlist> "," <type> | <type>
 
-<enum-type> = "enum<" <nlist> ">"
+<enum-type> = "enum(" <nlist> ")"
 
 <nlist> = <nlist> "," <name> | <name>
 
