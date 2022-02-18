@@ -93,7 +93,7 @@ func (u *Union) ConsumeAsPartial(val *zed.Value) {
 	for it := val.Iter(); !it.Done(); {
 		typ := styp.Type
 		b := it.Next()
-		if union, ok := typ.(*zed.TypeUnion); ok {
+		if union, ok := zed.TypeUnder(typ).(*zed.TypeUnion); ok {
 			typ, _, b = union.SplitZNG(b)
 		}
 		u.update(typ, b)
