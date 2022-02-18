@@ -138,7 +138,7 @@ make install
 This installs binaries in your `$GOPATH/bin`.
 
 > If you don't have Go installed, download and install it from the
-> [Go install page](https://golang.org/doc/install). Go version 1.16 or later is
+> [Go install page](https://golang.org/doc/install). Go version 1.17 or later is
 > required.
 
 ## Contributing
