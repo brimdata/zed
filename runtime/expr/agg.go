@@ -12,7 +12,7 @@ type Aggregator struct {
 }
 
 func NewAggregator(op string, expr Evaluator, where Evaluator) (*Aggregator, error) {
-	pattern, err := agg.NewPattern(op)
+	pattern, err := agg.NewPattern(op, expr != nil)
 	if err != nil {
 		return nil, err
 	}

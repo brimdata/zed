@@ -1,0 +1,33 @@
+script: |
+  ! zq -z 'and()' in.zson
+  ! zq -z 'any()' in.zson
+  ! zq -z 'collect()' in.zson
+  zq -z 'count()' in.zson
+  ! zq -z 'dcount()' in.zson
+  ! zq -z 'fuse()' in.zson
+  ! zq -z 'min()' in.zson
+  ! zq -z 'max()' in.zson
+  ! zq -z 'or()' in.zson
+  ! zq -z 'sum()' in.zson
+  ! zq -z 'union()' in.zson
+
+inputs:
+  - name: in.zson
+    data: "{}"
+
+outputs:
+  - name: stdout
+    data: |
+      {count:1(uint64)}
+  - name: stderr 
+    data: |
+      and: argument required
+      any: argument required
+      collect: argument required
+      dcount: argument required
+      fuse: argument required
+      min: argument required
+      max: argument required
+      or: argument required
+      sum: argument required
+      union: argument required

@@ -450,7 +450,7 @@ func isAggFunc(e ast.Expr) *ast.Summarize {
 	if !ok {
 		return nil
 	}
-	if _, err := agg.NewPattern(call.Name); err != nil {
+	if p, _ := agg.NewPattern(call.Name, true); p == nil {
 		return nil
 	}
 	return &ast.Summarize{

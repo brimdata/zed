@@ -512,7 +512,7 @@ func isAgg(scope *Scope, e ast.Expr) (*dag.Agg, error) {
 	if !ok {
 		return nil, nil
 	}
-	if _, err := agg.NewPattern(call.Name); err != nil {
+	if p, _ := agg.NewPattern(call.Name, true); p == nil {
 		return nil, nil
 	}
 	var arg ast.Expr
