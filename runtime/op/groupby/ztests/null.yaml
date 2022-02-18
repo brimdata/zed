@@ -1,4 +1,4 @@
-zed: avg(x), count(x), countdistinct(x), any(x), max(x), min(x), sum(x)
+zed: avg(x), count(x), dcount(x), any(x), max(x), min(x), sum(x)
 
 input: |
   {x:null(uint64)}
@@ -8,4 +8,4 @@ input: |
   {x:null(time)}
 
 output: |
-  {avg:null(float64),count:5(uint64),countdistinct:1(uint64),any:null(uint64),max:null(uint64),min:null(uint64),sum:null(uint64)}
+  {avg:null(float64),count:5(uint64),dcount:5(uint64),any:null(uint64),max:null(uint64),min:null(uint64),sum:null(uint64)}
