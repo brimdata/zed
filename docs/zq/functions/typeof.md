@@ -28,7 +28,7 @@ echo  '1 "foo" 10.0.0.1 [1,2,3] {s:"foo"} null error("missing")' | zq -z 'yield 
 <[int64]>
 <{s:string}>
 <null>
-<error<string>>
+<error(string)>
 ```
 The type of a type is type `type`:
 ```mdtest-command

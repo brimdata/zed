@@ -424,9 +424,9 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 	case *zed.TypeEnum:
 		return f.formatTypeEnum(typ)
 	case *zed.TypeError:
-		f.build("error<")
+		f.build("error(")
 		formatType(&f.builder, make(typemap), typ.Type)
-		f.build(">")
+		f.build(")")
 	case *zed.TypeOfType:
 		formatType(&f.builder, make(typemap), typ)
 	default:
@@ -584,7 +584,7 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 		}
 		b.WriteByte(')')
 	case *zed.TypeEnum:
-		// maybe make syntax enum<> to make error<> ?
+		// maybe make syntax enum<> to make error() ?
 		b.WriteString("enum<")
 		for k, s := range t.Symbols {
 			if k > 0 {
@@ -594,9 +594,9 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 		}
 		b.WriteByte('>')
 	case *zed.TypeError:
-		b.WriteString("error<")
+		b.WriteString("error(")
 		formatType(b, typedefs, t.Type)
-		b.WriteByte('>')
+		b.WriteByte(')')
 	default:
 		b.WriteString(zed.PrimitiveName(typ))
 	}
@@ -761,9 +761,9 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 		}
 		b.WriteByte('>')
 	case zed.TypeValueError:
-		b.WriteString("error<")
+		b.WriteString("error(")
 		tv = formatTypeValue(tv, b)
-		b.WriteByte('>')
+		b.WriteByte(')')
 	default:
 		if id < 0 || id > zed.TypeValueMax {
 			b.WriteString(fmt.Sprintf("<ERR bad type ID %d in type value>", id))

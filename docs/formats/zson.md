@@ -426,7 +426,7 @@ resolve to the most recent definition according to
 
 An _error type_ has the form:
 ```
-error< <type> >
+error( <type> )
 ```
 where `<type>` is the type of the underlying ZSON values wrapped as an error.
 
@@ -590,5 +590,5 @@ the defines their type.
 
 <name> = as defined above
 
-<error-type> = "error<" <type> ">"
+<error-type> = "error(" <type> ")"
 ```

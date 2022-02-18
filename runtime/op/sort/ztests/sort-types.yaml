@@ -1,8 +1,8 @@
 zed: "sort this"
 
 input: |
-  <error<enum<b,c,d>>>
-  <error<enum<a,c,d>>>
+  <error(enum<b,c,d>)>
+  <error(enum<a,c,d>)>
   <enum<b,c,d>>
   <enum<a,b,c>>
   <({x:string},{x:int64})>
@@ -73,5 +73,5 @@ output: |
   <({x:string},{x:int64,y:int64})>
   <enum<a,b,c>>
   <enum<b,c,d>>
-  <error<enum<a,c,d>>>
-  <error<enum<b,c,d>>>
+  <error(enum<a,c,d>)>
+  <error(enum<b,c,d>)>
