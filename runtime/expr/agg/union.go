@@ -64,7 +64,7 @@ func (u *Union) Result(zctx *zed.Context) *zed.Value {
 	for typ := range u.types {
 		types = append(types, typ)
 	}
-	types = zed.CanonicalUnionOfTypes(types)
+	types = zed.UniqueTypes(types)
 	inner := types[0]
 	if len(types) > 1 {
 		inner = zctx.LookupTypeUnion(types)

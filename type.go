@@ -375,14 +375,13 @@ func TypeID(typ Type) int {
 	return typ.ID()
 }
 
-// CanonicalUnionOfTypes returns the set of unique Types in types in sorted
-// order. types will be sorted in place, but a new slice of unique types will
-// be returned.
-func CanonicalUnionOfTypes(types []Type) []Type {
+// UniqueTypes returns the set of unique Types in types in sorted
+// order. types will be sorted and deduplicated in place.
+func UniqueTypes(types []Type) []Type {
 	sort.SliceStable(types, func(i, j int) bool {
 		return CompareTypes(types[i], types[j]) < 0
 	})
-	out := make([]Type, 0, len(types))
+	out := types[:0]
 	var prev Type
 	for _, typ := range types {
 		if typ != prev {
