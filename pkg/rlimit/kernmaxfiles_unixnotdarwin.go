@@ -1,5 +1,5 @@
-//go:build !darwin && !plan9 && !windows
-// +build !darwin,!plan9,!windows
+//go:build !darwin && !js && !plan9 && !windows
+// +build !darwin,!js,!plan9,!windows
 
 package rlimit
 
