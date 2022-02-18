@@ -460,14 +460,14 @@ func (f *Formatter) formatTypeUnion(typ *zed.TypeUnion) {
 }
 
 func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) error {
-	f.build("enum<")
+	f.build("enum(")
 	for k, s := range typ.Symbols {
 		if k > 0 {
 			f.build(",")
 		}
 		f.buildf("%s", QuotedName(s))
 	}
-	f.build(">")
+	f.build(")")
 	return nil
 }
 
@@ -584,15 +584,14 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 		}
 		b.WriteByte(')')
 	case *zed.TypeEnum:
-		// maybe make syntax enum<> to make error() ?
-		b.WriteString("enum<")
+		b.WriteString("enum(")
 		for k, s := range t.Symbols {
 			if k > 0 {
 				b.WriteByte(',')
 			}
 			b.WriteString(QuotedName(s))
 		}
-		b.WriteByte('>')
+		b.WriteByte(')')
 	case *zed.TypeError:
 		b.WriteString("error(")
 		formatType(b, typedefs, t.Type)
@@ -741,7 +740,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 		}
 		b.WriteByte(')')
 	case zed.TypeValueEnum:
-		b.WriteString("enum<")
+		b.WriteString("enum(")
 		var n int
 		n, tv = zed.DecodeLength(tv)
 		if tv == nil {
@@ -759,7 +758,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			}
 			b.WriteString(QuotedName(symbol))
 		}
-		b.WriteByte('>')
+		b.WriteByte(')')
 	case zed.TypeValueError:
 		b.WriteString("error(")
 		tv = formatTypeValue(tv, b)

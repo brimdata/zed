@@ -297,19 +297,19 @@ func (p *Parser) matchTypeUnion() (*astzed.TypeUnion, error) {
 
 func (p *Parser) matchTypeEnumBody() (*astzed.TypeEnum, error) {
 	l := p.lexer
-	if ok, err := l.match('<'); !ok || err != nil {
-		return nil, err
+	if ok, err := l.match('('); !ok || err != nil {
+		return nil, errors.New("no opening parenthesis in enum type")
 	}
 	fields, err := p.matchEnumSymbols()
 	if err != nil {
 		return nil, err
 	}
-	ok, err := l.match('>')
+	ok, err := l.match(')')
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, p.error("mismatched brackets while parsing enum type")
+		return nil, p.error("mismatched parentheses while parsing enum type")
 	}
 	return &astzed.TypeEnum{
 		Kind:    "TypeEnum",
