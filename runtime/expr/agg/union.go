@@ -72,7 +72,7 @@ func (u *Union) Result(zctx *zed.Context) *zed.Value {
 	var b zcode.Builder
 	for typ, m := range u.types {
 		for v := range m {
-			if union, ok := inner.(*zed.TypeUnion); ok {
+			if union, ok := zed.TypeUnder(inner).(*zed.TypeUnion); ok {
 				zed.BuildUnion(&b, union.Selector(typ), []byte(v))
 			} else {
 				b.Append([]byte(v))
