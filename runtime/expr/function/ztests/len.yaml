@@ -53,7 +53,7 @@ output: |
   {n:0,a:null(net)}
   {n:8,a:1.0.0.0/8}
   {n:32,a:::/8}
-  {n:error({message:"len()",on:null(error<null>)}),a:null(error<null>)}
+  {n:error({message:"len()",on:null(error(null))}),a:null(error(null))}
   {n:error({message:"len()",on:error("")}),a:error("")}
   {n:error({message:"len()",on:error("error")}),a:error("error")}
   {n:0,a:null({})}

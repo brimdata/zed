@@ -17,7 +17,7 @@ output: |
   {val:null,under:null}
   {val:null(bytes),under:null(bytes)}
   {val:0x1234,under:0x1234}
-  {val:null(error<null>),under:null}
+  {val:null(error(null)),under:null}
   {val:error("foo"),under:"foo"}
   {val:{},under:{}}
   {val:[1,2,3],under:[1,2,3]}

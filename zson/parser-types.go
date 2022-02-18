@@ -342,19 +342,19 @@ func (p *Parser) matchEnumSymbols() ([]string, error) {
 
 func (p *Parser) matchTypeErrorBody() (*astzed.TypeError, error) {
 	l := p.lexer
-	if ok, err := l.match('<'); !ok || err != nil {
-		return nil, errors.New("no opening angle bracket in error type")
+	if ok, err := l.match('('); !ok || err != nil {
+		return nil, errors.New("no opening parenthesis in error type")
 	}
 	inner, err := p.matchType()
 	if err != nil {
 		return nil, err
 	}
-	ok, err := l.match('>')
+	ok, err := l.match(')')
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, p.error("mismatched angle brackets while parsing error type")
+		return nil, p.error("mismatched parentheses while parsing error type")
 	}
 	return &astzed.TypeError{
 		Kind: "TypeError",

@@ -22,7 +22,7 @@ output: |
   {val:null,kind:"primitive"}
   {val:null(bytes),kind:"primitive"}
   {val:0x1234,kind:"primitive"}
-  {val:null(error<null>),kind:"error"}
+  {val:null(error(null)),kind:"error"}
   {val:error("foo"),kind:"error"}
   {val:{},kind:"record"}
   {val:[1,2,3],kind:"array"}
