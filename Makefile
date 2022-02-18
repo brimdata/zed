@@ -89,22 +89,6 @@ install:
 installdev:
 	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
-create-release-assets:
-	for os in darwin linux windows; do \
-		for arch in amd64 arm64; do \
-		  [[ $${os} == windows && $${arch} == arm64 ]] && continue ; \
-		  zeddir=zed-$(VERSION).$${os}-$${arch} ; \
-		  rm -rf dist/$${zeddir} ; \
-		  mkdir -p dist/$${zeddir} ; \
-		  cp LICENSE.txt acknowledgments.txt dist/$${zeddir} ; \
-		  GOOS=$${os} GOARCH=$${arch} go build -ldflags='$(LDFLAGS)' -o dist/$${zeddir} ./cmd/zed ./cmd/zq ; \
-	  done \
-	done
-	rm -rf dist/release && mkdir -p dist/release
-	cd dist && for d in zed-$(VERSION)* ; do \
-		zip -r release/$${d}.zip $${d} ; \
-	done
-
 PEG_GEN := $(addprefix compiler/parser/parser., go js es.js)
 $(PEG_GEN): compiler/parser/Makefile compiler/parser/support.js compiler/parser/parser.peg
 	$(MAKE) -C compiler/parser
@@ -127,5 +111,4 @@ clean:
 	@rm -rf dist
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
-.PHONY: perf-compare build install create-release-assets clean
-.PHONY: generate test-generate
+.PHONY: perf-compare build install clean generate test-generate
