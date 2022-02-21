@@ -350,18 +350,27 @@ func (a Analyzer) convertArray(zctx *zed.Context, array *astzed.Array, cast zed.
 			Elements: vals,
 		}, nil
 	}
-	// No cast, we need to look up the TypeArray.
+	elems, err := a.normalizeElems(zctx, vals)
+	if err != nil {
+		return nil, err
+	}
+	return &Array{
+		Type:     zctx.LookupTypeArray(elems[0].TypeOf()),
+		Elements: elems,
+	}, nil
+}
+
+func (a Analyzer) normalizeElems(zctx *zed.Context, vals []Value) ([]Value, error) {
 	elemType := sameType(vals)
 	if elemType != nil {
-		// The elements were of uniform type.
-		arrayType := zctx.LookupTypeArray(elemType)
-		return &Array{arrayType, vals}, nil
+		// The elements are of uniform type.
+		return vals, nil
 	}
 	types := differentTypes(vals)
-	// See if this array has a mix of a single type and null type and
-	// if so return a regular array.
-	if array := a.mixedNullArray(zctx, types, vals); array != nil {
-		return array, nil
+	// See if vals is a mix of a single type and null type and
+	// if so return the vals set to the non-null type.
+	if vals := mixedNullElems(types, vals); vals != nil {
+		return vals, nil
 	}
 	// The elements are of mixed type so create wrap each value in a union
 	// and create the TypeUnion.
@@ -374,13 +383,10 @@ func (a Analyzer) convertArray(zctx *zed.Context, array *astzed.Array, cast zed.
 		}
 		unions = append(unions, union)
 	}
-	return &Array{
-		Type:     zctx.LookupTypeArray(unionType),
-		Elements: unions,
-	}, nil
+	return unions, nil
 }
 
-func (a Analyzer) mixedNullArray(zctx *zed.Context, types []zed.Type, vals []Value) *Array {
+func mixedNullElems(types []zed.Type, vals []Value) []Value {
 	if len(types) != 2 {
 		return nil
 	}
@@ -397,11 +403,7 @@ func (a Analyzer) mixedNullArray(zctx *zed.Context, types []zed.Type, vals []Val
 	// types to use this same type...
 	vals[0].SetType(typ)
 	vals[1].SetType(typ)
-	arrayType := zctx.LookupTypeArray(typ)
-	return &Array{
-		Type:     arrayType,
-		Elements: vals,
-	}
+	return vals
 }
 
 func sameType(vals []Value) zed.Type {
@@ -516,7 +518,8 @@ func (a Analyzer) convertMap(zctx *zed.Context, m *astzed.Map, cast zed.Type) (V
 		keyType = typ.KeyType
 		valType = typ.ValType
 	}
-	entries := make([]Entry, 0, len(m.Entries))
+	keys := make([]Value, 0, len(m.Entries))
+	vals := make([]Value, 0, len(m.Entries))
 	for _, e := range m.Entries {
 		key, err := a.convertValue(zctx, e.Key, keyType)
 		if err != nil {
@@ -526,20 +529,32 @@ func (a Analyzer) convertMap(zctx *zed.Context, m *astzed.Map, cast zed.Type) (V
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, Entry{key, val})
+		keys = append(keys, key)
+		vals = append(vals, val)
 	}
 	if cast == nil {
 		// If there was no decorator, pull the types out of the first
 		// entry we just analyed.
-		if len(entries) == 0 {
+		if len(keys) == 0 {
 			// empty set with no decorator
 			keyType = zed.TypeNull
 			valType = zed.TypeNull
 		} else {
-			keyType = entries[0].Key.TypeOf()
-			valType = entries[0].Value.TypeOf()
+			var err error
+			if keys, err = a.normalizeElems(zctx, keys); err != nil {
+				return nil, err
+			}
+			if vals, err = a.normalizeElems(zctx, vals); err != nil {
+				return nil, err
+			}
+			keyType = keys[0].TypeOf()
+			valType = vals[0].TypeOf()
 		}
 		cast = zctx.LookupTypeMap(keyType, valType)
+	}
+	entries := make([]Entry, 0, len(keys))
+	for i := range keys {
+		entries = append(entries, Entry{keys[i], vals[i]})
 	}
 	return &Map{
 		Type:    cast,
