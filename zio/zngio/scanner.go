@@ -134,7 +134,7 @@ func (s *scanner) start() {
 				w := work{
 					local:    s.parser.types.local,
 					frame:    frame,
-					resultCh: make(chan op.Result),
+					resultCh: make(chan op.Result, 1),
 				}
 				select {
 				case s.resultChCh <- w.resultCh:
