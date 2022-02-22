@@ -1,15 +1,8 @@
 script: |
-  ! zq -z 'and()' in.zson
-  ! zq -z 'any()' in.zson
-  ! zq -z 'collect()' in.zson
   zq -z 'count()' in.zson
-  ! zq -z 'dcount()' in.zson
-  ! zq -z 'fuse()' in.zson
-  ! zq -z 'min()' in.zson
-  ! zq -z 'max()' in.zson
-  ! zq -z 'or()' in.zson
-  ! zq -z 'sum()' in.zson
-  ! zq -z 'union()' in.zson
+  for agg in and any collect dcount fuse min max or sum union; do
+    ! zq -z "$agg()" in.zson
+  done
 
 inputs:
   - name: in.zson
