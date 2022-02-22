@@ -488,7 +488,7 @@ func semField(scope *Scope, f ast.Expr) (*dag.This, error) {
 }
 
 func maybeConvertAgg(scope *Scope, call *ast.Call) (dag.Expr, error) {
-	if p, _ := agg.NewPattern(call.Name, true); p == nil {
+	if _, err := agg.NewPattern(call.Name, true); err != nil {
 		return nil, nil
 	}
 	var e dag.Expr
