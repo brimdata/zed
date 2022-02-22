@@ -7,7 +7,7 @@ import (
 
 type Proc struct {
 	sched  op.Scheduler
-	puller zbuf.PullerCloser
+	puller zbuf.Puller
 	done   bool
 	err    error
 }
@@ -18,7 +18,7 @@ func NewScheduler(pctx *op.Context, sched op.Scheduler) *Proc {
 	}
 }
 
-func NewPuller(pctx *op.Context, puller zbuf.PullerCloser) *Proc {
+func NewPuller(pctx *op.Context, puller zbuf.Puller) *Proc {
 	return &Proc{
 		puller: puller,
 	}
@@ -31,7 +31,8 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	}
 	if done {
 		if p.puller != nil {
-			p.close(p.puller.Close())
+			_, err := p.puller.Pull(true)
+			p.close(err)
 			p.puller = nil
 		}
 		return nil, p.err
@@ -52,15 +53,10 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 		batch, err := p.puller.Pull(false)
 		if err != nil {
 			p.close(err)
-			p.puller.Close()
 			return nil, err
 		}
 		if batch != nil {
 			return batch, nil
-		}
-		if err := p.puller.Close(); err != nil {
-			p.close(err)
-			return nil, err
 		}
 		p.puller = nil
 	}

@@ -614,6 +614,6 @@ func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, 
 	return pool.newScheduler(ctx, zctx, commit, span, filter, idx)
 }
 
-func (r *Root) Open(context.Context, *zed.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
+func (r *Root) Open(context.Context, *zed.Context, string, zbuf.Filter) (zbuf.Puller, error) {
 	return nil, errors.New("cannot use 'file' or 'http' source in a lake query")
 }

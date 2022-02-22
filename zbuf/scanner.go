@@ -3,7 +3,6 @@ package zbuf
 import (
 	"context"
 	"fmt"
-	"io"
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
@@ -31,11 +30,6 @@ type Meter interface {
 type Scanner interface {
 	Meter
 	Puller
-}
-
-type ScannerCloser interface {
-	Scanner
-	io.Closer
 }
 
 // Progress represents progress statistics from a Scanner.
@@ -159,16 +153,4 @@ func (n *namedScanner) Pull(done bool) (Batch, error) {
 		err = fmt.Errorf("%s: %w", n.name, err)
 	}
 	return b, err
-}
-
-func ScannerNopCloser(s Scanner) *nopCloser {
-	return &nopCloser{s}
-}
-
-type nopCloser struct {
-	Scanner
-}
-
-func (n *nopCloser) Close() error {
-	return nil
 }

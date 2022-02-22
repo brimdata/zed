@@ -24,7 +24,7 @@ type Query struct {
 	flowgraph *compiler.Runtime
 }
 
-var _ zbuf.PullerCloser = (*Query)(nil)
+var _ zbuf.Puller = (*Query)(nil)
 
 func NewQuery(pctx *op.Context, flowgraph *compiler.Runtime, closer io.Closer) *Query {
 	return &Query{
@@ -97,4 +97,11 @@ func (q *Query) Meter() zbuf.Meter {
 func (q *Query) Close() error {
 	q.pctx.Cancel()
 	return nil
+}
+
+func (q *Query) Pull(done bool) (zbuf.Batch, error) {
+	if done {
+		q.pctx.Cancel()
+	}
+	return q.Puller.Pull(done)
 }
