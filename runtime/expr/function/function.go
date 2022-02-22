@@ -137,6 +137,8 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		f = &Quiet{zctx: zctx}
 	case "under":
 		f = &Under{zctx: zctx}
+	case "unflatten":
+		f = NewUnflatten(zctx)
 	}
 	if argmin != -1 && narg < argmin {
 		return nil, nil, ErrTooFewArgs

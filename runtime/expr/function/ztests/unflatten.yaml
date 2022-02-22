@@ -1,0 +1,6 @@
+zed: "yield unflatten(flatten(this))"
+
+input: &input |
+  {a:{a:1,b:2,x:{z:"foo"}},b:2,c:3}
+
+output: *input
