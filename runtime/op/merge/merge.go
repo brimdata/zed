@@ -51,6 +51,9 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
+	if done {
+		return nil, p.propagateDone()
+	}
 	if p.Len() == 0 {
 		// No more batches in head of line.  So, let's resume
 		// everything and return an EOS.
