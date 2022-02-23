@@ -1,11 +1,11 @@
 ### Function
 
-&emsp; **flatten** &mdash; transform a record into a flattened map
+&emsp; **flatten** &mdash; transform a record into a flattened array.
 
 ### Synopsis
 
 ```
-flatten(val: record) -> |{[string]:<any>}|
+flatten(val: record) -> [{key:[string],value:<any>}]
 ```
 ### Description
 The _flatten_ function returns an array of records `[{key:[string],value:<any>}]`
