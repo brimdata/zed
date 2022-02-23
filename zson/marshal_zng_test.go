@@ -33,6 +33,7 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 	require.NoError(t, err)
 	zctx := zed.NewContext()
 	zr := zngio.NewReader(&buf, zctx)
+	defer zr.Close()
 	rec, err = zr.Read()
 	require.NoError(t, err)
 	err = zson.UnmarshalZNGRecord(rec, out)

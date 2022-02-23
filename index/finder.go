@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -126,7 +127,7 @@ func lookupDesc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, er
 	}
 }
 
-func (f *Finder) search(compare keyCompareFn) (zio.Reader, error) {
+func (f *Finder) search(compare keyCompareFn) (*zngio.Reader, error) {
 	if f.reader == nil {
 		panic("finder hasn't been opened")
 	}
@@ -147,6 +148,7 @@ func (f *Finder) search(compare keyCompareFn) (zio.Reader, error) {
 			op = GTE
 		}
 		rec, err := lookup(reader, compare, f.meta.Order, op)
+		reader.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -177,6 +179,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []Ke
 	if err != nil {
 		return err
 	}
+	defer reader.Close()
 	for {
 		// As long as we have an exact key-match, where unset key
 		// columns are "don't care", keep reading records and return
@@ -230,6 +233,7 @@ func (f *Finder) Nearest(operator string, kvs ...KeyValue) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer reader.Close()
 	return lookup(reader, compare, f.meta.Order, op)
 }
 

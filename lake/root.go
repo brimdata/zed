@@ -158,6 +158,7 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	deserializer := zngbytes.NewDeserializer(reader, []interface{}{
 		LakeMagic{},
 	})
+	defer deserializer.Close()
 	v, err := deserializer.Read()
 	if err != nil {
 		return err

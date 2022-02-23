@@ -72,12 +72,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	zr := zngio.NewReader(bytes.NewReader(b), zed.NewContext())
+	defer zr.Close()
 	writer, err := c.outputFlags.Open(ctx, engine)
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, zngio.NewReader(bytes.NewReader(b), zed.NewContext())); err != nil {
-		return err
+	err = zio.Copy(writer, zr)
+	if err2 := writer.Close(); err == nil {
+		err = err2
 	}
-	return writer.Close()
+	return err
 }

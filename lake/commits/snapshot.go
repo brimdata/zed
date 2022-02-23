@@ -247,6 +247,7 @@ func (s *Snapshot) serialize() ([]byte, error) {
 func decodeSnapshot(r io.Reader) (*Snapshot, error) {
 	s := NewSnapshot()
 	zd := zngbytes.NewDeserializer(r, ActionTypes)
+	defer zd.Close()
 	for {
 		entry, err := zd.Read()
 		if err != nil {

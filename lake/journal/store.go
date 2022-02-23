@@ -83,6 +83,7 @@ func (s *Store) load(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer r.Close()
 	table := make(map[string]Entry)
 	for {
 		rec, err := r.Read()

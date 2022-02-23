@@ -106,6 +106,7 @@ func (o Object) Serialize() ([]byte, error) {
 func DecodeObject(r io.Reader) (*Object, error) {
 	o := &Object{}
 	reader := zngbytes.NewDeserializer(r, ActionTypes)
+	defer reader.Close()
 	for {
 		entry, err := reader.Read()
 		if err != nil {

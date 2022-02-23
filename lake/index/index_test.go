@@ -19,6 +19,7 @@ func boomerang(t *testing.T, r1 Rule) (r2 Rule) {
 	b, err := serialize(r1)
 	require.NoError(t, err)
 	reader := zngio.NewReader(bytes.NewReader(b), zed.NewContext())
+	defer reader.Close()
 	rec, err := reader.Read()
 	require.NoError(t, err)
 	u := zson.NewZNGUnmarshaler()
