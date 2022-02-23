@@ -141,6 +141,7 @@ func (s *scanner) start() {
 					select {
 					case worker.workCh <- w:
 					case <-s.ctx.Done():
+						close(w.resultCh)
 						return
 					}
 				case <-s.ctx.Done():
