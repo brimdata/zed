@@ -38,25 +38,29 @@ func (o *Over) Pull(done bool) (zbuf.Batch, error) {
 		o.outer = nil
 		return o.parent.Pull(true)
 	}
-	if len(o.outer) == 0 {
-		batch, err := o.parent.Pull(false)
-		if batch == nil || err != nil {
-			return nil, err
+	for {
+		if len(o.outer) == 0 {
+			batch, err := o.parent.Pull(false)
+			if batch == nil || err != nil {
+				return nil, err
+			}
+			o.batch = batch
+			o.outer = batch.Values()
 		}
-		o.batch = batch
-		o.outer = batch.Values()
+		this := &o.outer[0]
+		o.outer = o.outer[1:]
+		ectx := o.batch
+		if o.enter != nil {
+			ectx = o.enter.addLocals(ectx, this)
+		}
+		innerBatch := o.over(ectx, this)
+		if len(o.outer) == 0 {
+			o.batch.Unref()
+		}
+		if innerBatch != nil {
+			return innerBatch, nil
+		}
 	}
-	this := &o.outer[0]
-	o.outer = o.outer[1:]
-	ectx := o.batch
-	if o.enter != nil {
-		ectx = o.enter.addLocals(ectx, this)
-	}
-	innerBatch := o.over(ectx, this)
-	if len(o.outer) == 0 {
-		o.batch.Unref()
-	}
-	return innerBatch, nil
 }
 
 func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
@@ -70,6 +74,9 @@ func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 		if !val.IsMissing() {
 			vals = appendOver(o.zctx, vals, *val)
 		}
+	}
+	if len(vals) == 0 {
+		return nil
 	}
 	return zbuf.NewBatch(batch, vals)
 }
