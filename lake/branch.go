@@ -354,6 +354,7 @@ func (b *Branch) indexObject(ctx context.Context, rules []index.Rule, id ksuid.K
 		return nil, err
 	}
 	reader := zngio.NewReader(r, zed.NewContext())
+	defer reader.Close()
 	w, err := index.NewCombiner(ctx, b.engine, b.pool.IndexPath, rules, id)
 	if err != nil {
 		r.Close()

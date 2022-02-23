@@ -80,6 +80,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer reader.Close()
 	writer, err := c.outputFlags.Open(ctx, engine)
 	if err != nil {
 		return err
@@ -91,7 +92,7 @@ func (c *Command) Run(args []string) error {
 	return writer.Close()
 }
 
-func newSectionReader(r io.ReaderAt, which int, sections []int64) (zio.Reader, error) {
+func newSectionReader(r io.ReaderAt, which int, sections []int64) (*zngio.Reader, error) {
 	if which >= len(sections) {
 		return nil, fmt.Errorf("section %d does not exist", which)
 	}

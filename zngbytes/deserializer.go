@@ -26,6 +26,8 @@ func NewDeserializerWithContext(zctx *zed.Context, reader io.Reader, templates [
 	}
 }
 
+func (d *Deserializer) Close() error { return d.reader.Close() }
+
 func (d *Deserializer) Read() (interface{}, error) {
 	rec, err := d.reader.Read()
 	if err != nil || rec == nil {

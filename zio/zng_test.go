@@ -40,6 +40,7 @@ func boomerang(t *testing.T, logs string, compress bool) {
 
 	var out Output
 	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), zed.NewContext())
+	defer rawSrc.Close()
 	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
 	err := zio.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {

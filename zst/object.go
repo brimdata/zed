@@ -30,7 +30,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
@@ -115,6 +114,7 @@ func (o *Object) IsEmpty() bool {
 
 func (o *Object) readAssembly() (*Assembly, error) {
 	reader := o.NewReassemblyReader()
+	defer reader.Close()
 	assembly := &Assembly{}
 	var val *zed.Value
 	for {
@@ -163,7 +163,7 @@ func (o *Object) section(level int) (int64, int64) {
 	return off, o.sections[level]
 }
 
-func (o *Object) newSectionReader(level int, sectionOff int64) zio.Reader {
+func (o *Object) newSectionReader(level int, sectionOff int64) *zngio.Reader {
 	off, len := o.section(level)
 	off += sectionOff
 	len -= sectionOff
@@ -171,6 +171,6 @@ func (o *Object) newSectionReader(level int, sectionOff int64) zio.Reader {
 	return zngio.NewReader(reader, o.zctx)
 }
 
-func (o *Object) NewReassemblyReader() zio.Reader {
+func (o *Object) NewReassemblyReader() *zngio.Reader {
 	return o.newSectionReader(1, 0)
 }

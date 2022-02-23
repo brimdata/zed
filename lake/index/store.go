@@ -69,6 +69,7 @@ func (s *Store) load(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer r.Close()
 	table := make(map[ksuid.KSUID]Rule)
 	for {
 		rec, err := r.Read()

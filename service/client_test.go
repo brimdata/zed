@@ -52,6 +52,7 @@ func (c *testClient) TestPoolList() []pools.Config {
 	defer r.Body.Close()
 	var confs []pools.Config
 	zr := zngio.NewReader(r.Body, zed.NewContext())
+	defer zr.Close()
 	for {
 		rec, err := zr.Read()
 		require.NoError(c, err)
@@ -82,6 +83,7 @@ func (c *testClient) TestQuery(query string) string {
 	require.NoError(c, err)
 	defer r.Body.Close()
 	zr := zngio.NewReader(r.Body, zed.NewContext())
+	defer zr.Close()
 	var buf bytes.Buffer
 	zw := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	require.NoError(c, zio.Copy(zw, zr))

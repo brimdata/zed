@@ -225,6 +225,7 @@ func (s *Store) GetBytes(ctx context.Context, commit ksuid.KSUID) ([]byte, *Comm
 		return nil, nil, err
 	}
 	reader := zngbytes.NewDeserializer(bytes.NewReader(b), ActionTypes)
+	defer reader.Close()
 	entry, err := reader.Read()
 	if err != nil {
 		return nil, nil, err

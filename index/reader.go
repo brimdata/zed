@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 )
 
@@ -97,7 +96,7 @@ func (r *Reader) section(level int) (int64, int64) {
 	return off, r.sections[level]
 }
 
-func (r *Reader) newSectionReader(level int, sectionOff int64) (zio.Reader, error) {
+func (r *Reader) newSectionReader(level int, sectionOff int64) (*zngio.Reader, error) {
 	off, len := r.section(level)
 	off += sectionOff
 	len -= sectionOff
@@ -105,7 +104,7 @@ func (r *Reader) newSectionReader(level int, sectionOff int64) (zio.Reader, erro
 	return zngio.NewReaderWithOpts(sectionReader, r.zctx, zngio.ReaderOpts{Size: FrameBufSize}), nil
 }
 
-func (r *Reader) NewSectionReader(section int) (zio.Reader, error) {
+func (r *Reader) NewSectionReader(section int) (*zngio.Reader, error) {
 	n := len(r.sections)
 	if section < 0 || section >= n {
 		return nil, fmt.Errorf("section %d out of range (index has %d sections)", section, n)
