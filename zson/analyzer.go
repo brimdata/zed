@@ -450,20 +450,22 @@ func (a Analyzer) convertSet(zctx *zed.Context, set *astzed.Set, cast zed.Type) 
 		}
 		vals = append(vals, v)
 	}
-	if cast == nil {
-		if elemType == nil {
-			if len(vals) == 0 {
-				// empty set with no decorator
-				elemType = zed.TypeNull
-			} else {
-				elemType = vals[0].TypeOf()
-			}
+	if cast != nil || len(vals) == 0 {
+		if cast == nil {
+			cast = zctx.LookupTypeSet(zed.TypeNull)
 		}
-		cast = zctx.LookupTypeSet(elemType)
+		return &Array{
+			Type:     cast,
+			Elements: vals,
+		}, nil
+	}
+	elems, err := a.normalizeElems(zctx, vals)
+	if err != nil {
+		return nil, err
 	}
 	return &Set{
-		Type:     cast,
-		Elements: vals,
+		Type:     zctx.LookupTypeSet(elems[0].TypeOf()),
+		Elements: elems,
 	}, nil
 }
 
