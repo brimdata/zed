@@ -1,0 +1,26 @@
+script: |
+  zq -z 'count()' in.zson
+  for agg in and any collect dcount fuse min max or sum union; do
+    ! zq -z "$agg()" in.zson
+  done
+
+inputs:
+  - name: in.zson
+    data: "{}"
+
+outputs:
+  - name: stdout
+    data: |
+      {count:1(uint64)}
+  - name: stderr 
+    data: |
+      and: argument required
+      any: argument required
+      collect: argument required
+      dcount: argument required
+      fuse: argument required
+      min: argument required
+      max: argument required
+      or: argument required
+      sum: argument required
+      union: argument required

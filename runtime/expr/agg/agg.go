@@ -24,58 +24,65 @@ type Function interface {
 	ResultAsPartial(*zed.Context) *zed.Value
 }
 
-func NewPattern(op string) (Pattern, error) {
+func NewPattern(op string, hasarg bool) (Pattern, error) {
+	needarg := true
+	var pattern Pattern
 	switch op {
 	case "count":
-		return func() Function {
+		needarg = false
+		pattern = func() Function {
 			var c Count
 			return &c
-		}, nil
+		}
 	case "any":
-		return func() Function {
+		pattern = func() Function {
 			return &Any{}
-		}, nil
+		}
 	case "avg":
-		return func() Function {
+		pattern = func() Function {
 			return &Avg{}
-		}, nil
+		}
 	case "dcount":
-		return func() Function {
+		pattern = func() Function {
 			return NewDCount()
-		}, nil
+		}
 	case "fuse":
-		return func() Function {
+		pattern = func() Function {
 			return newFuse()
-		}, nil
+		}
 	case "sum":
-		return func() Function {
+		pattern = func() Function {
 			return newMathReducer(anymath.Add)
-		}, nil
+		}
 	case "min":
-		return func() Function {
+		pattern = func() Function {
 			return newMathReducer(anymath.Min)
-		}, nil
+		}
 	case "max":
-		return func() Function {
+		pattern = func() Function {
 			return newMathReducer(anymath.Max)
-		}, nil
+		}
 	case "union":
-		return func() Function {
+		pattern = func() Function {
 			return newUnion()
-		}, nil
+		}
 	case "collect":
-		return func() Function {
+		pattern = func() Function {
 			return &Collect{}
-		}, nil
+		}
 	case "and":
-		return func() Function {
+		pattern = func() Function {
 			return &And{}
-		}, nil
+		}
 	case "or":
-		return func() Function {
+		pattern = func() Function {
 			return &Or{}
-		}, nil
+		}
 	default:
 		return nil, fmt.Errorf("unknown aggregation function: %s", op)
 	}
+	if needarg && !hasarg {
+		return nil, fmt.Errorf("%s: argument required", op)
+	}
+	return pattern, nil
 }
