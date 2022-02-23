@@ -178,95 +178,64 @@ func (r *recordSpreadExpr) invalidate(object map[string]column) {
 }
 
 type ArrayExpr struct {
-	zctx    *zed.Context
-	typ     *zed.TypeArray
-	builder *zcode.Builder
-	exprs   []Evaluator
+	exprs []Evaluator
+	zctx  *zed.Context
+
+	builder zcode.Builder
+	elems   collectionBuilder
 }
 
 func NewArrayExpr(zctx *zed.Context, exprs []Evaluator) *ArrayExpr {
 	return &ArrayExpr{
-		zctx:    zctx,
-		typ:     zctx.LookupTypeArray(zed.TypeNull),
-		builder: zcode.NewBuilder(),
-		exprs:   exprs,
+		exprs: exprs,
+		zctx:  zctx,
 	}
 }
 
 func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	inner := a.typ.Type
-	b := a.builder
-	b.Reset()
-	var first zed.Type
+	a.builder.Reset()
+	a.elems.reset()
 	for _, e := range a.exprs {
-		zv := e.Eval(ectx, this)
-		typ := zv.Type
-		if first == nil {
-			first = typ
-		}
-		if typ != inner && typ != zed.TypeNull {
-			if typ == first || first == zed.TypeNull {
-				a.typ = a.zctx.LookupTypeArray(zv.Type)
-				inner = a.typ.Type
-			} else {
-				//XXX issue #3363
-				return ectx.CopyValue(*a.zctx.NewErrorf("mixed-type array expressions not yet supported"))
-			}
-		}
-		b.Append(zv.Bytes)
+		a.elems.append(e.Eval(ectx, this))
 	}
-	bytes := b.Bytes()
-	if bytes == nil {
-		// Return empty array instead of null array.
-		bytes = []byte{}
+	if len(a.elems.types) == 0 {
+		return ectx.NewValue(a.zctx.LookupTypeArray(zed.TypeNull), []byte{})
 	}
-	return ectx.NewValue(a.typ, bytes)
+	it := a.elems.iter(a.zctx)
+	for !it.done() {
+		it.appendNext(&a.builder)
+	}
+	return ectx.NewValue(a.zctx.LookupTypeArray(it.typ), a.builder.Bytes()).Copy()
 }
 
 type SetExpr struct {
-	zctx    *zed.Context
-	typ     *zed.TypeSet
-	builder *zcode.Builder
+	builder zcode.Builder
 	exprs   []Evaluator
+	elems   collectionBuilder
+	zctx    *zed.Context
 }
 
 func NewSetExpr(zctx *zed.Context, exprs []Evaluator) *SetExpr {
 	return &SetExpr{
-		zctx:    zctx,
-		typ:     zctx.LookupTypeSet(zed.TypeNull),
-		builder: zcode.NewBuilder(),
-		exprs:   exprs,
+		exprs: exprs,
+		zctx:  zctx,
 	}
 }
 
-func (s *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	var inner zed.Type
-	b := s.builder
-	b.Reset()
-	var first zed.Type
-	for _, e := range s.exprs {
-		val := e.Eval(ectx, this)
-		typ := val.Type
-		if first == nil {
-			first = typ
-		}
-		if typ != inner && typ != zed.TypeNull {
-			if typ == first || first == zed.TypeNull {
-				s.typ = s.zctx.LookupTypeSet(val.Type)
-				inner = s.typ.Type
-			} else {
-				//XXX issue #3363
-				return ectx.CopyValue(*s.zctx.NewErrorf("mixed-type set expressions not yet supported"))
-			}
-		}
-		b.Append(val.Bytes)
+func (a *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
+	a.builder.Reset()
+	a.elems.reset()
+	for _, e := range a.exprs {
+		a.elems.append(e.Eval(ectx, this))
 	}
-	bytes := b.Bytes()
-	if bytes == nil {
-		// Return empty set instead of null set.
-		bytes = []byte{}
+	if len(a.elems.types) == 0 {
+		return ectx.NewValue(a.zctx.LookupTypeSet(zed.TypeNull), []byte{})
 	}
-	return ectx.NewValue(s.typ, zed.NormalizeSet(bytes))
+	it := a.elems.iter(a.zctx)
+	for !it.done() {
+		it.appendNext(&a.builder)
+	}
+	return ectx.NewValue(a.zctx.LookupTypeSet(it.typ), zed.NormalizeSet(a.builder.Bytes()))
 }
 
 type Entry struct {
@@ -275,48 +244,103 @@ type Entry struct {
 }
 
 type MapExpr struct {
-	zctx    *zed.Context
-	typ     *zed.TypeMap
-	builder *zcode.Builder
+	builder zcode.Builder
 	entries []Entry
+	keys    collectionBuilder
+	vals    collectionBuilder
+	zctx    *zed.Context
 }
 
 func NewMapExpr(zctx *zed.Context, entries []Entry) *MapExpr {
 	return &MapExpr{
-		zctx:    zctx,
-		typ:     zctx.LookupTypeMap(zed.TypeNull, zed.TypeNull),
-		builder: zcode.NewBuilder(),
 		entries: entries,
+		zctx:    zctx,
 	}
 }
 
 func (m *MapExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	var keyType, valType zed.Type
-	b := m.builder
-	b.Reset()
+	m.builder.Reset()
+	m.keys.reset()
+	m.vals.reset()
 	for _, e := range m.entries {
-		key := e.Key.Eval(ectx, this)
-		val := e.Val.Eval(ectx, this)
-		if keyType == nil {
-			if m.typ == nil || m.typ.KeyType != key.Type || m.typ.ValType != val.Type {
-				keyType = key.Type
-				valType = val.Type
-				m.typ = m.zctx.LookupTypeMap(keyType, valType)
-			} else {
-				keyType = m.typ.KeyType
-				valType = m.typ.ValType
-			}
-		} else if keyType != m.typ.KeyType || valType != m.typ.ValType {
-			//XXX issue #3363
-			return ectx.CopyValue(*m.zctx.NewErrorf("mixed-type map expressions not yet supported"))
+		m.keys.append(e.Key.Eval(ectx, this))
+		m.vals.append(e.Val.Eval(ectx, this))
+	}
+	if len(m.keys.types) == 0 {
+		typ := m.zctx.LookupTypeMap(zed.TypeNull, zed.TypeNull)
+		return ectx.NewValue(typ, []byte{})
+	}
+	kIter, vIter := m.keys.iter(m.zctx), m.vals.iter(m.zctx)
+	for !kIter.done() {
+		kIter.appendNext(&m.builder)
+		vIter.appendNext(&m.builder)
+	}
+	bytes := m.builder.Bytes()
+	typ := m.zctx.LookupTypeMap(kIter.typ, vIter.typ)
+	return ectx.NewValue(typ, zed.NormalizeMap(bytes))
+}
+
+type collectionBuilder struct {
+	types       []zed.Type
+	uniqueTypes []zed.Type
+	bytes       []zcode.Bytes
+}
+
+func (c *collectionBuilder) reset() {
+	c.types = c.types[:0]
+	c.uniqueTypes = c.uniqueTypes[:0]
+	c.bytes = c.bytes[:0]
+}
+
+func (c *collectionBuilder) append(val *zed.Value) {
+	c.types = append(c.types, val.Type)
+	c.bytes = append(c.bytes, val.Bytes)
+}
+
+func (c *collectionBuilder) iter(zctx *zed.Context) collectionIter {
+	// uniqueTypes must be copied since zed.UniqueTypes operates on the type
+	// array in place and thus we'll lose order.
+	c.uniqueTypes = append(c.uniqueTypes[:0], c.types...)
+	return collectionIter{
+		typ:   unionOf(zctx, c.uniqueTypes),
+		bytes: c.bytes,
+		types: c.types,
+	}
+}
+
+type collectionIter struct {
+	typ   zed.Type
+	bytes []zcode.Bytes
+	types []zed.Type
+}
+
+func (c *collectionIter) appendNext(b *zcode.Builder) {
+	if union, ok := c.typ.(*zed.TypeUnion); ok {
+		zed.BuildUnion(b, union.Selector(c.types[0]), c.bytes[0])
+	} else {
+		b.Append(c.bytes[0])
+	}
+	c.bytes = c.bytes[1:]
+	c.types = c.types[1:]
+}
+
+func (c *collectionIter) done() bool {
+	return len(c.types) == 0
+}
+
+func unionOf(zctx *zed.Context, types []zed.Type) zed.Type {
+	types = zed.UniqueTypes(types)
+	if len(types) == 1 {
+		return types[0]
+	}
+	if len(types) == 2 {
+		// If there's only two types and one type is null, return single
+		// non-null type.
+		if types[0] == zed.TypeNull {
+			return types[1]
+		} else if types[1] == zed.TypeNull {
+			return types[0]
 		}
-		b.Append(key.Bytes)
-		b.Append(val.Bytes)
 	}
-	bytes := b.Bytes()
-	if bytes == nil {
-		// Return empty map instead of null map.
-		bytes = []byte{}
-	}
-	return ectx.CopyValue(zed.Value{m.typ, zed.NormalizeMap(bytes)})
+	return zctx.LookupTypeUnion(types)
 }

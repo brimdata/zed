@@ -1,0 +1,11 @@
+script: |
+  echo null | zq -z 'yield |{1:"foo","bar":"baz"}|' -
+  echo null | zq -z 'yield |[null,127.0.0.1]|' -
+  echo null | zq -z 'yield ["foo",1.1,10.98]' -
+
+outputs:
+  - name: stdout
+    data: |
+      |{1((int64,string)):"foo","bar"((int64,string)):"baz"}|
+      |[null(ip),127.0.0.1]|
+      ["foo"((float64,string)),1.1((float64,string)),10.98((float64,string))]
