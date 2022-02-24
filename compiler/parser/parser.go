@@ -10069,7 +10069,7 @@ var g = &grammar{
 									val:        ".",
 									ignoreCase: false,
 								},
-								&oneOrMoreExpr{
+								&zeroOrMoreExpr{
 									pos: position{line: 1224, col: 21, offset: 33835},
 									expr: &charClassMatcher{
 										pos:        position{line: 1224, col: 21, offset: 33835},

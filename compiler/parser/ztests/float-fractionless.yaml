@@ -1,0 +1,6 @@
+zed: 'yield 1.'
+
+input: '{}'
+
+output: |
+  1.
