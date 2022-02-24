@@ -15,18 +15,26 @@ import (
 
 type searchByPred struct {
 	pred  Boolean
+	expr  Evaluator
 	types map[zed.Type]bool
 }
 
-func SearchByPredicate(pred Boolean) Evaluator {
+func SearchByPredicate(pred Boolean, e Evaluator) Evaluator {
 	return &searchByPred{
 		pred:  pred,
+		expr:  e,
 		types: make(map[zed.Type]bool),
 	}
 }
 
-func (s *searchByPred) Eval(_ Context, this *zed.Value) *zed.Value {
-	if errMatch == this.Walk(func(typ zed.Type, body zcode.Bytes) error {
+func (s *searchByPred) Eval(ectx Context, val *zed.Value) *zed.Value {
+	if s.expr != nil {
+		val = s.expr.Eval(ectx, val)
+		if val.IsError() {
+			return zed.False
+		}
+	}
+	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 		if s.searchType(typ) || s.pred(zed.NewValue(typ, body)) {
 			return errMatch
 		}
@@ -84,6 +92,7 @@ var errMatch = errors.New("match")
 type search struct {
 	text    string
 	compare Boolean
+	expr    Evaluator
 }
 
 // NewSearch creates a filter that searches Zed records for the
@@ -92,7 +101,7 @@ type search struct {
 // field or inside any set or array.  It also matches a record if the string
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
-func NewSearch(searchtext string, searchval *zed.Value) (Evaluator, error) {
+func NewSearch(searchtext string, searchval *zed.Value, expr Evaluator) (Evaluator, error) {
 	if zed.TypeUnder(searchval.Type) == zed.TypeNet {
 		n, _ := netaddr.FromStdIPNet(zed.DecodeNet(searchval.Bytes))
 		return &searchCIDR{
@@ -104,11 +113,17 @@ func NewSearch(searchtext string, searchval *zed.Value) (Evaluator, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &search{searchtext, typedCompare}, nil
+	return &search{searchtext, typedCompare, expr}, nil
 }
 
-func (s *search) Eval(_ Context, this *zed.Value) *zed.Value {
-	if errMatch == this.Walk(func(typ zed.Type, body zcode.Bytes) error {
+func (s *search) Eval(ectx Context, val *zed.Value) *zed.Value {
+	if s.expr != nil {
+		val = s.expr.Eval(ectx, val)
+		if val.IsError() {
+			return zed.False
+		}
+	}
+	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 		if typ.ID() == zed.IDString {
 			if stringSearch(byteconv.UnsafeString(body), s.text) {
 				return errMatch
@@ -150,14 +165,16 @@ func (s *searchCIDR) Eval(_ Context, val *zed.Value) *zed.Value {
 type searchString struct {
 	term    string
 	compare Boolean
+	expr    Evaluator
 	types   map[zed.Type]bool
 }
 
 // NewSearchString is like NewSeach but handles the special case of matching
 // field names in addition to string values.
-func NewSearchString(term string) Evaluator {
+func NewSearchString(term string, expr Evaluator) Evaluator {
 	return &searchString{
 		term:  term,
+		expr:  expr,
 		types: make(map[zed.Type]bool),
 	}
 }
@@ -183,7 +200,13 @@ func (s *searchString) searchType(typ zed.Type) bool {
 	return match
 }
 
-func (s *searchString) Eval(_ Context, val *zed.Value) *zed.Value {
+func (s *searchString) Eval(ectx Context, val *zed.Value) *zed.Value {
+	if s.expr != nil {
+		val = s.expr.Eval(ectx, val)
+		if val.IsError() {
+			return zed.False
+		}
+	}
 	// Memoize the result of a search across the names in the
 	// record columns for each unique record type.
 	if s.searchType(val.Type) {

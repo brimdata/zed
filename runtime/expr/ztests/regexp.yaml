@@ -1,12 +1,13 @@
-zed: foo*
+zed: this ~ /^foo.*bar$/
 
 input: |
-  {a:"hello",b:"there"}
-  {a:"foox",b:"there"}
-  {a:"hello",b:"foox"}
-  {a:"",b:"foo"}
+  "foo"
+  "bar"
+  "foobar"
+  "foobazbar"
+  "xfoobazbar"
+  "foobazbarx"
 
 output: |
-  {a:"foox",b:"there"}
-  {a:"hello",b:"foox"}
-  {a:"",b:"foo"}
+  "foobar"
+  "foobazbar"

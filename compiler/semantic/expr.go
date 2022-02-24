@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
+	"github.com/brimdata/zed/pkg/reglob"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/agg"
 	"github.com/brimdata/zed/zson"
@@ -18,24 +19,20 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 	switch e := e.(type) {
 	case nil:
 		return nil, errors.New("semantic analysis: illegal null value encountered in AST")
-	case *ast.RegexpMatch:
-		if _, err := expr.CompileRegexp(e.Pattern); err != nil {
-			return nil, err
-		}
-		converted, err := semExpr(scope, e.Expr)
-		if err != nil {
-			return nil, err
-		}
-		return &dag.RegexpMatch{
-			Kind:    "RegexpMatch",
-			Pattern: e.Pattern,
-			Expr:    converted,
-		}, nil
-	case *ast.RegexpSearch:
+	case *ast.Regexp:
 		return &dag.RegexpSearch{
 			Kind:    "RegexpSearch",
 			Pattern: e.Pattern,
+			Expr:    pathOf("this"),
 		}, nil
+	case *ast.Glob:
+		return &dag.RegexpSearch{
+			Kind:    "RegexpSearch",
+			Pattern: reglob.Reglob(e.Pattern),
+			Expr:    pathOf("this"),
+		}, nil
+	case *ast.Grep:
+		return semGrep(scope, e)
 	case *astzed.Primitive:
 		val, err := zson.ParsePrimitive(e.Type, e.Text)
 		if err != nil {
@@ -47,7 +44,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		}, nil
 	case *ast.ID:
 		return semID(scope, e), nil
-	case *ast.Search:
+	case *ast.Term:
 		val, err := zson.ParsePrimitive(e.Value.Type, e.Value.Text)
 		if err != nil {
 			return nil, err
@@ -56,6 +53,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Kind:  "Search",
 			Text:  e.Text,
 			Value: zson.MustFormatValue(*val),
+			Expr:  pathOf("this"),
 		}, nil
 	case *ast.UnaryExpr:
 		expr, err := semExpr(scope, e.Operand)
@@ -250,7 +248,62 @@ func dynamicTypeName(name string) *dag.Call {
 	}
 }
 
+func semGrep(scope *Scope, grep *ast.Grep) (dag.Expr, error) {
+	e, err := semExpr(scope, grep.Expr)
+	if err != nil {
+		return nil, err
+	}
+	switch pattern := grep.Pattern.(type) {
+	case *ast.String:
+		return &dag.Search{
+			Kind:  "Search",
+			Text:  pattern.Text,
+			Value: zson.QuotedString([]byte(pattern.Text)),
+			Expr:  e,
+		}, nil
+	case *ast.Regexp:
+		return &dag.RegexpSearch{
+			Kind:    "RegexpSearch",
+			Pattern: pattern.Pattern,
+			Expr:    e,
+		}, nil
+	case *ast.Glob:
+		return &dag.RegexpSearch{
+			Kind:    "RegexpSearch",
+			Pattern: reglob.Reglob(pattern.Pattern),
+			Expr:    e,
+		}, nil
+	default:
+		return nil, fmt.Errorf("semantic analyzer: unknown grep pattern %T", pattern)
+	}
+}
+
+func semRegexp(scope *Scope, b *ast.BinaryExpr) (dag.Expr, error) {
+	if b.Op != "~" {
+		return nil, nil
+	}
+	re, ok := b.RHS.(*ast.Regexp)
+	if !ok {
+		return nil, errors.New(`right-hand side of ~ expression must be a regular expression`)
+	}
+	if _, err := expr.CompileRegexp(re.Pattern); err != nil {
+		return nil, err
+	}
+	e, err := semExpr(scope, b.LHS)
+	if err != nil {
+		return nil, err
+	}
+	return &dag.RegexpMatch{
+		Kind:    "RegexpMatch",
+		Pattern: re.Pattern,
+		Expr:    e,
+	}, nil
+}
+
 func semBinary(scope *Scope, e *ast.BinaryExpr) (dag.Expr, error) {
+	if e, err := semRegexp(scope, e); e != nil || err != nil {
+		return e, err
+	}
 	op := e.Op
 	if op == "." {
 		lhs, err := semExpr(scope, e.LHS)

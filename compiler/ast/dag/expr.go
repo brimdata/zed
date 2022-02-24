@@ -75,11 +75,13 @@ type (
 	RegexpSearch struct {
 		Kind    string `json:"kind" unpack:""`
 		Pattern string `json:"pattern"`
+		Expr    Expr   `json:"expr"`
 	}
 	Search struct {
 		Kind  string `json:"kind" unpack:""`
 		Text  string `json:"text"`
 		Value string `json:"value"`
+		Expr  Expr   `json:"expr"`
 	}
 	SetExpr struct {
 		Kind  string `json:"kind" unpack:""`

@@ -1,4 +1,4 @@
-zed: search(a) is(s2,'string')
+zed: a is(s2,'string')
 
 input: |
   {s1:"a",s2:"b"}

@@ -91,7 +91,7 @@ Operation
   / a:OpAssignment &EndOfOp { RETURN(a) }
   / !(Function EndOfOp) a:Aggregation &EndOfOp  { RETURN(a) }
   / "search" _ expr:SearchBoolean {
-      RETURN(MAP("kind": "Where", "expr": expr))
+      RETURN(MAP("kind": "Search", "expr": expr))
     }
   / expr:SearchBoolean {
       RETURN(MAP("kind": "OpExpr", "expr": expr))
@@ -132,7 +132,7 @@ FromSource
   / Pool
   / PassProc
 
-ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "matches")
+ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "~")
 
 Comparator = ("==" / "!=" / ("in" !IdentifierRest) / "<=" / "<" / ">=" / ">") { RETURN(TEXT) }
 
@@ -161,32 +161,42 @@ SearchFactor
   / SearchExpr
 
 SearchExpr
-  = search:PatternSearch { RETURN(search) }
+  = Glob
+  / Regexp
+  / v:SearchValue &(_ Glob) {
+      RETURN(MAP("kind": "Term", "text": TEXT, "value": v))
+    }
   / v:SearchValue !ExprGuard {
-      RETURN(MAP("kind": "Search", "text": TEXT, "value": v))
+      RETURN(MAP("kind": "Term", "text": TEXT, "value": v))
     }
   / "*" !ExprGuard {
       RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true"))
     }
-  / ComparisonExpr
+  / SearchPredicate
+
+SearchPredicate
+  = lhs:AdditiveExpr __ op:Comparator __ rhs:AdditiveExpr {
+      RETURN(MAP("kind": "BinaryExpr", "op":op, "lhs":lhs, "rhs":rhs))
+    }
+   / first:Function rest:(Deref)* {
+         RETURN(makeBinaryExprChain(first, rest))
+     }
 
 SearchValue
   = Literal
-  / !Regexp v:KeyWord {
+  / !RegexpPattern v:KeyWord {
       RETURN(MAP("kind": "Primitive", "type": "string", "text": v))
     }
 
-PatternSearch
-  = pattern:Pattern {
-      RETURN(MAP("kind": "RegexpSearch", "pattern": pattern))
-    }
+Glob
+  = pattern:GlobPattern {
+      RETURN(MAP("kind": "Glob", "pattern": pattern))
+  }
 
-PatternMatch
-  = f:Lval _ "matches" _  pattern:Pattern {
-      RETURN(MAP("kind": "RegexpMatch", "pattern": pattern, "expr": f))
-    }
-
-Pattern = Regexp / Glob
+Regexp
+  = pattern:RegexpPattern {
+      RETURN(MAP("kind": "Regexp", "pattern": pattern))
+  }
 
 /// === Aggregations ===
 
@@ -337,7 +347,7 @@ TailProc
   / "tail" { RETURN(MAP("kind": "Tail", "count": 1)) }
 
 WhereProc
-  = "where" _ expr:SearchBoolean {
+  = "where" _ expr:Expr {
       RETURN(MAP("kind": "Where", "expr": expr))
     }
 
@@ -646,9 +656,11 @@ LogicalAndExpr
     }
 
 ComparisonExpr
-  = PatternMatch
-  / lhs:AdditiveExpr __ op:Comparator __ rhs:AdditiveExpr {
+  = lhs:AdditiveExpr __ op:Comparator __ rhs:AdditiveExpr {
         RETURN(MAP("kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs))
+    }
+  / lhs:AdditiveExpr __ "~" __ rhs:Regexp {
+        RETURN(MAP("kind": "BinaryExpr", "op": "~", "lhs": lhs, "rhs": rhs))
     }
   / AdditiveExpr
 
@@ -675,8 +687,7 @@ NotExpr
   / FuncExpr
 
 FuncExpr
-  = MatchExpr
-  / first:Cast rest:(Deref)* {
+  = first:Cast rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
   / first:Function rest:(Deref)* {
@@ -689,12 +700,7 @@ FuncGuard = NotFuncs __ "("
 
 NotFuncs
   = "not"
-  / "search"
   / "select"
-  / "type"
-
-MatchExpr
-  = "search" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
 
 Cast
   = typ:CastType __ "(" __ expr:Expr __ ")" {
@@ -702,8 +708,24 @@ Cast
     }
 
 Function
-  = !FuncGuard fn:IdentifierName __ "(" __ args:OptionalExprs __ ")" where:WhereClause? {
+  = Grep
+  / !FuncGuard fn:IdentifierName __ "(" __ args:OptionalExprs __ ")" where:WhereClause? {
       RETURN(MAP("kind": "Call", "name": fn, "args": args, "where": where))
+    }
+
+Grep
+  = "grep" __ "(" __ pattern:Pattern __ ")" {
+      RETURN(MAP("kind":"Grep", "pattern":pattern,"expr":MAP("kind":"ID", "name":"this")))
+    }
+  / "grep" __ "(" __ pattern:Pattern __  "," __ expr:Expr __ ")" {
+      RETURN(MAP("kind":"Grep", "pattern":pattern,"expr":expr))
+    }
+
+Pattern =
+    Regexp
+  / Glob
+  / s:QuotedString {
+      RETURN(MAP("kind":"String","text":s))
     }
 
 OptionalExprs
@@ -1232,9 +1254,9 @@ KeyWordRest
 
 KeyWordEsc = "\\" s:(KeywordEscape / EscapeSequence)  { RETURN(s) }
 
-Glob
+GlobPattern
   = &GlobProperStart &GlobHasStar head:GlobStart tail:GlobRest* {
-      RETURN(reglob.Reglob(ASSERT_STRING(head) + joinChars(tail)))
+      RETURN(ASSERT_STRING(head) + joinChars(tail))
     }
 
 GlobProperStart = "*"* KeyWordStart
@@ -1289,7 +1311,7 @@ UnicodeEscape
       RETURN(makeUnicodeChar(chars))
     }
 
-Regexp
+RegexpPattern
   = "/" body:RegexpBody "/" !KeyWordStart { RETURN(body) }
 
 RegexpBody

@@ -1,4 +1,4 @@
-zed: search(a)
+zed: grep("a")
 
 input: |
   {s1:"a",s2:"b"}

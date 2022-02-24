@@ -1,19 +1,19 @@
 script: |
-  zc -C "switch ( case search(a) => head case search(c) => tail )"
+  zc -C 'switch ( case grep("a") => head case grep("c") => tail )'
   echo ===
-  zc -C -s "switch ( case search(a) => head case search(c) => tail )"
+  zc -C -s 'switch ( case grep("a") => head case grep("c") => tail )'
   echo ===
-  zc -C "switch ( case search(a) => head default => tail )"
+  zc -C 'switch ( case grep("a") => head default => tail )'
   echo ===
-  zc -C -s "switch ( case search(a) => head default => tail )"
+  zc -C -s 'switch ( case grep("a") => head default => tail )'
 
 outputs:
   - name: stdout
     data: |
       switch (
-        case search("a") =>
+        case grep("a") =>
           head 1
-        case search("c") =>
+        case grep("c") =>
           tail 1
       )
       ===
@@ -28,7 +28,7 @@ outputs:
         )
       ===
       switch (
-        case search("a") =>
+        case grep("a") =>
           head 1
         default =>
           tail 1

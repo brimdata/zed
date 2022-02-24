@@ -25,7 +25,7 @@ func (c *canonZed) literal(e astzed.Primitive) {
 
 func (c *canonZed) fieldpath(path []string) {
 	if len(path) == 0 {
-		c.write(".")
+		c.write("this")
 		return
 	}
 	for k, s := range path {

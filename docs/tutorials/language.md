@@ -433,12 +433,12 @@ zq -z 'District=="Luther"' schools.zson
 ```mdtest-output
 ```
 
-To achieve this with a field/value match, we enter `matches` before specifying
+To achieve this with a field/value match, we employ a `grep` with
 a [glob wildcard](#glob-wildcards).
 
 #### Example:
 ```mdtest-command dir=testdata/edu
-zq -z 'District matches Luther*' schools.zson
+zq -z 'grep(Luther*, District)' schools.zson
 ```
 
 #### Output:
@@ -452,7 +452,7 @@ zq -z 'District matches Luther*' schools.zson
 
 #### Example:
 ```mdtest-command dir=testdata/edu
-zq -z 'School matches /^Sunset (Ranch|Ridge) Elementary/' schools.zson
+zq -z 'grep(/^Sunset (Ranch|Ridge) Elementary/, School)' schools.zson
 ```
 
 #### Output:
@@ -682,7 +682,7 @@ Parentheses can also be nested.
 
 #### Example:
 ```mdtest-command dir=testdata/edu
-zq -z '(sname matches *High*) and (not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null) and dname=="San Francisco Unified")' testscores.zson
+zq -z 'grep(*High*, sname) and (not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null) and dname=="San Francisco Unified")' testscores.zson
 ```
 
 #### Output:
@@ -1580,7 +1580,7 @@ zq -Z 'cut School,OpenDate | where School=="Breeze Hill Elementary"' schools.zso
 An alternative syntax for our [`and` example](../zq/language.md#search-expressions):
 
 ```mdtest-command dir=testdata/edu
-zq -z 'where StatusType=="Pending" academy' schools.zson
+zq -z 'search StatusType=="Pending" academy' schools.zson
 ```
 
 #### Output:

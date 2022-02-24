@@ -204,13 +204,17 @@ func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error
 	if err != nil {
 		return nil, err
 	}
+	e, err := compileExpr(zctx, search.Expr)
+	if err != nil {
+		return nil, err
+	}
 	if zed.TypeUnder(val.Type) == zed.TypeString {
 		// Do a grep-style substring search instead of an
 		// exact match on each value.
 		term := norm.NFC.Bytes(val.Bytes)
-		return expr.NewSearchString(string(term)), nil
+		return expr.NewSearchString(string(term), e), nil
 	}
-	return expr.NewSearch(search.Text, val)
+	return expr.NewSearch(search.Text, val, e)
 }
 
 func compileSlice(zctx *zed.Context, container dag.Expr, slice *dag.BinaryExpr) (expr.Evaluator, error) {
@@ -423,12 +427,16 @@ func compileRegexpMatch(zctx *zed.Context, match *dag.RegexpMatch) (expr.Evaluat
 }
 
 func compileRegexpSearch(zctx *zed.Context, search *dag.RegexpSearch) (expr.Evaluator, error) {
+	e, err := compileExpr(zctx, search.Expr)
+	if err != nil {
+		return nil, err
+	}
 	re, err := expr.CompileRegexp(search.Pattern)
 	if err != nil {
 		return nil, err
 	}
 	match := expr.NewRegexpBoolean(re)
-	return expr.SearchByPredicate(expr.Contains(match)), nil
+	return expr.SearchByPredicate(expr.Contains(match), e), nil
 }
 
 func compileRecordExpr(zctx *zed.Context, record *dag.RecordExpr) (expr.Evaluator, error) {

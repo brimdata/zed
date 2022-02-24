@@ -2,16 +2,16 @@ foo
 foo | count()
 count() with -limit 10
 count() by _path with -limit 10
-every 1h count() by _path with -limit 10
+count() by _path,every(1h) with -limit 10
 filter x==1
 _path=='conn'
 _path=='conn' id.resp_p==80
 count(), sum(foo)
 fork (=>count() by _path =>count() by addr)
-switch (case search(foo) => count() by _path case field==1 => count() by addr)
+switch (case grep("foo") => count() by _path case field==1 => count() by addr)
 count() by _path | count() by addr
 fork (=>count() by _path =>sort) | fork (=>count() by addr)
-switch (case search(foo) => count() by _path case field==1 => sort) | switch (default => count() by addr)
+switch (case grep("foo") => count() by _path case field==1 => sort) | switch (default => count() by addr)
 sort -r
 sort -r a, b, c
 sort -r a, b, c
@@ -24,8 +24,8 @@ foo\\x11\bar
 *
 *abc*
 field==null
-every 3600s count() by _path
+count() by _path,ts:=every(3600s)
 s=="harefoot-raucous"
 s=='/a/b'
-search(_path=='http' and windows)
+search _path=='http' and windows
 f(1) and g(2) or h(3)

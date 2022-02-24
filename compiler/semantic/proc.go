@@ -79,7 +79,7 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor op.
 		// kernel.Reader implements both ast.Source and dag.Source
 		return p, nil
 	default:
-		return nil, fmt.Errorf("semSource: unknown type %T", p)
+		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
 	}
 }
 
@@ -374,6 +374,15 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 		return &dag.Pass{"Pass"}, nil
 	case *ast.OpExpr:
 		return semOpExpr(scope, p.Expr)
+	case *ast.Search:
+		e, err := semExpr(scope, p.Expr)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.Filter{
+			Kind: "Filter",
+			Expr: e,
+		}, nil
 	case *ast.Where:
 		e, err := semExpr(scope, p.Expr)
 		if err != nil {
@@ -560,7 +569,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Exprs: exprs,
 		}, nil
 	}
-	return nil, fmt.Errorf("semantic transform: unknown AST type: %v", p)
+	return nil, fmt.Errorf("semantic transform: unknown AST operaetor type: %v", p)
 }
 
 func semOver(ctx context.Context, scope *Scope, in *ast.Over, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*dag.Over, error) {
