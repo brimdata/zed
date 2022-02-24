@@ -1,4 +1,4 @@
-let reglob = require("../../reglob/reglob")
+let reglob = require("../../pkg/reglob/reglob")
 
 function makeArgMap(args) {
   let m = {};
