@@ -135,6 +135,7 @@ func (c *Command) list(ctx context.Context, lake api.Interface) error {
 		w.Close()
 		return err
 	}
+	defer q.Close()
 	err = zio.Copy(w, q)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr

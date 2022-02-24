@@ -20,8 +20,8 @@ import (
 )
 
 type Interface interface {
-	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.Reader, error)
-	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReader, error)
+	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error)
+	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.Layout, int, int64) (ksuid.KSUID, error)
@@ -43,12 +43,8 @@ func IsLakeService(u *storage.URI) bool {
 	return u.Scheme == "http" || u.Scheme == "https"
 }
 
-func ScanIndexRules(ctx context.Context, api Interface) (zio.Reader, error) {
-	r, err := api.Query(ctx, nil, "from :index_rules")
-	if err != nil {
-		return nil, err
-	}
-	return zbuf.NoControl(r), nil
+func ScanIndexRules(ctx context.Context, api Interface) (zio.ReadCloser, error) {
+	return api.Query(ctx, nil, "from :index_rules")
 }
 
 func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {
@@ -58,6 +54,7 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 	if err != nil {
 		return nil, err
 	}
+	defer q.Close()
 	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
 		return nil, err
 	}
@@ -82,6 +79,7 @@ func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.
 	if err != nil {
 		return nil, err
 	}
+	defer q.Close()
 	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
 		return nil, err
 	}
@@ -106,6 +104,7 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 	if err != nil {
 		return nil, err
 	}
+	defer q.Close()
 	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
 		return nil, err
 	}
@@ -130,6 +129,7 @@ func LookupBranchByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake
 	if err != nil {
 		return nil, err
 	}
+	defer q.Close()
 	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
 		return nil, err
 	}

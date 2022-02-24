@@ -41,22 +41,27 @@ type ProgressReader interface {
 	Progress() Progress
 }
 
-func MeterReader(r zio.Reader) ProgressReader {
-	return &meterReader{Reader: r}
+type ProgressReadCloser interface {
+	zio.ReadCloser
+	Progress() Progress
 }
 
-type meterReader struct {
-	zio.Reader
+func MeterReadCloser(rc zio.ReadCloser) ProgressReadCloser {
+	return &meterReadCloser{ReadCloser: rc}
+}
+
+type meterReadCloser struct {
+	zio.ReadCloser
 	progress Progress
 }
 
-func (m *meterReader) Progress() Progress {
+func (m *meterReadCloser) Progress() Progress {
 	return m.progress.Copy()
 }
 
-func (m *meterReader) Read() (*zed.Value, error) {
+func (m *meterReadCloser) Read() (*zed.Value, error) {
 	for {
-		val, err := m.Reader.Read()
+		val, err := m.ReadCloser.Read()
 		if ctrl, ok := err.(*Control); ok {
 			if progress, ok := ctrl.Message.(Progress); ok {
 				m.progress = progress

@@ -52,5 +52,6 @@ func (c *lsCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer r.Close()
 	return zio.Copy(w, r)
 }

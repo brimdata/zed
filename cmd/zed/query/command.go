@@ -71,6 +71,7 @@ func (c *Command) Run(args []string) error {
 		w.Close()
 		return err
 	}
+	defer query.Close()
 	err = zio.Copy(w, zbuf.NoControl(query))
 	if closeErr := w.Close(); err == nil {
 		err = closeErr

@@ -77,6 +77,7 @@ func (c *createCommand) Run(args []string) error {
 			w.Close()
 			return err
 		}
+		defer q.Close()
 		err = zio.Copy(w, q)
 		if err2 := w.Close(); err == nil {
 			err = err2
