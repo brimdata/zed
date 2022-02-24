@@ -3,10 +3,10 @@ package queryio
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -14,14 +14,22 @@ import (
 
 type Query struct {
 	reader *zngio.Reader
+	closer io.Closer
 }
 
 // NewQuery returns a Query that reads a ZNG-encoded query response
-// from res and decodes it.
-func NewQuery(res *client.Response) *Query {
+// from rc and decodes it.  Closing the Query also closes rc.
+func NewQuery(rc io.ReadCloser) *Query {
 	return &Query{
-		reader: zngio.NewReader(res.Body, zed.NewContext()),
+		reader: zngio.NewReader(rc, zed.NewContext()),
+		closer: rc,
 	}
+}
+
+func (q *Query) Close() error {
+	err := q.reader.Close()
+	q.closer.Close()
+	return err
 }
 
 func (q *Query) Read() (*zed.Value, error) {

@@ -78,13 +78,12 @@ func (q *Query) AsReader() zio.Reader {
 	return zbuf.PullerReader(q)
 }
 
-type progressReader struct {
-	zio.Reader
-	zbuf.Meter
-}
-
-func (q *Query) AsProgressReader() zbuf.ProgressReader {
-	return &progressReader{zbuf.PullerReader(q), q}
+func (q *Query) AsProgressReadCloser() zbuf.ProgressReadCloser {
+	return struct {
+		zio.Reader
+		io.Closer
+		zbuf.Meter
+	}{q.AsReader(), q, q}
 }
 
 func (q *Query) Progress() zbuf.Progress {
