@@ -9,4 +9,3 @@ output: |
   |[1,5]|
   |[null(ip),127.0.0.1]|
   |["foo"((float64,string)),1.5((float64,string))]|
-
