@@ -205,7 +205,7 @@ func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	for !it.done() {
 		it.appendNext(&a.builder)
 	}
-	return ectx.NewValue(a.zctx.LookupTypeArray(it.typ), a.builder.Bytes()).Copy()
+	return ectx.NewValue(a.zctx.LookupTypeArray(it.typ), a.builder.Bytes())
 }
 
 type SetExpr struct {
