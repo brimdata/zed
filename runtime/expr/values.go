@@ -329,18 +329,17 @@ func (c *collectionIter) done() bool {
 }
 
 func unionOf(zctx *zed.Context, types []zed.Type) zed.Type {
-	types = zed.UniqueTypes(types)
-	if len(types) == 1 {
-		return types[0]
-	}
-	if len(types) == 2 {
-		// If there's only two types and one type is null, return single
-		// non-null type.
-		if types[0] == zed.TypeNull {
-			return types[1]
-		} else if types[1] == zed.TypeNull {
-			return types[0]
+	unique := types[:0]
+	for _, t := range zed.UniqueTypes(types) {
+		if t != zed.TypeNull {
+			unique = append(unique, t)
 		}
 	}
-	return zctx.LookupTypeUnion(types)
+	if len(unique) == 0 {
+		return zed.TypeNull
+	}
+	if len(unique) == 1 {
+		return unique[0]
+	}
+	return zctx.LookupTypeUnion(unique)
 }
