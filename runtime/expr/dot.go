@@ -57,10 +57,11 @@ func ValueUnder(val *zed.Value) *zed.Value {
 
 func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	rec := d.record.Eval(ectx, this)
-	if _, ok := rec.Type.(*zed.TypeOfType); ok {
-		return d.evalTypeOfType(ectx, rec.Bytes)
-	}
 	val := ValueUnder(rec)
+	if _, ok := val.Type.(*zed.TypeOfType); ok {
+		return d.evalTypeOfType(ectx, val.Bytes)
+	}
+
 	recType, ok := val.Type.(*zed.TypeRecord)
 	if !ok {
 		return d.zctx.Missing()
