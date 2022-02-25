@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/zcode"
 )
 
 type This struct{}
@@ -57,6 +58,10 @@ func ValueUnder(val *zed.Value) *zed.Value {
 func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	rec := d.record.Eval(ectx, this)
 	val := ValueUnder(rec)
+	if _, ok := val.Type.(*zed.TypeOfType); ok {
+		return d.evalTypeOfType(ectx, val.Bytes)
+	}
+
 	recType, ok := val.Type.(*zed.TypeRecord)
 	if !ok {
 		return d.zctx.Missing()
@@ -73,6 +78,16 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
 	field := getNthFromContainer(val.Bytes, idx)
 	return ectx.NewValue(recType.Columns[idx].Type, field)
+}
+
+func (d *DotExpr) evalTypeOfType(ectx Context, b zcode.Bytes) *zed.Value {
+	typ, _ := d.zctx.DecodeTypeValue(b)
+	if typ, ok := zed.TypeUnder(typ).(*zed.TypeRecord); ok {
+		if typ, ok := typ.TypeOfField(d.field); ok {
+			return d.zctx.LookupTypeValue(typ)
+		}
+	}
+	return d.zctx.Missing()
 }
 
 // DotExprToString returns Zed for the Evaluator assuming it's a field expr.
