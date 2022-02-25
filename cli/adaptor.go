@@ -45,7 +45,7 @@ func (*FileAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, exte
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 
-func (f *FileAdaptor) Open(ctx context.Context, zctx *zed.Context, path string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
+func (f *FileAdaptor) Open(ctx context.Context, zctx *zed.Context, path string, pushdown zbuf.Filter) (zbuf.Puller, error) {
 	if path == "-" {
 		path = "stdio:stdin"
 	}
@@ -59,8 +59,18 @@ func (f *FileAdaptor) Open(ctx context.Context, zctx *zed.Context, path string, 
 		return nil, err
 	}
 	sn := zbuf.NamedScanner(scanner, path)
-	return &struct {
-		zbuf.Scanner
-		io.Closer
-	}{sn, file}, nil
+	return &closePuller{sn, file}, nil
+}
+
+type closePuller struct {
+	p zbuf.Puller
+	c io.Closer
+}
+
+func (c *closePuller) Pull(done bool) (zbuf.Batch, error) {
+	batch, err := c.p.Pull(done)
+	if batch == nil {
+		c.c.Close()
+	}
+	return batch, err
 }

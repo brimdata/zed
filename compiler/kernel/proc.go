@@ -639,7 +639,7 @@ type readerScheduler struct {
 	progress zbuf.Progress
 }
 
-func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
+func (r *readerScheduler) PullScanTask() (zbuf.Puller, error) {
 	if r.scanner != nil {
 		r.progress.Add(r.scanner.Progress())
 		r.scanner = nil
@@ -657,7 +657,7 @@ func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	if stringer, ok := zr.(fmt.Stringer); ok {
 		s = zbuf.NamedScanner(s, stringer.String())
 	}
-	return &donePullerCloser{zbuf.ScannerNopCloser(s), r}, nil
+	return &donePuller{s, r}, nil
 }
 
 func (r *readerScheduler) Progress() zbuf.Progress {
@@ -669,15 +669,14 @@ func (r *readerScheduler) Progress() zbuf.Progress {
 	return progress
 }
 
-type donePullerCloser struct {
-	zbuf.PullerCloser
+type donePuller struct {
+	zbuf.Puller
 	sched *readerScheduler
 }
 
-func (d *donePullerCloser) Pull(done bool) (zbuf.Batch, error) {
+func (d *donePuller) Pull(done bool) (zbuf.Batch, error) {
 	if done {
 		d.sched.readers = nil
-		return nil, nil
 	}
-	return d.PullerCloser.Pull(false)
+	return d.Puller.Pull(done)
 }

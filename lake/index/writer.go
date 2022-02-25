@@ -130,6 +130,7 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, o
 func (d *indexer) start() {
 	d.wg.Add(1)
 	go func() {
+		defer d.query.Pull(true)
 		if err := zio.Copy(d, d.query.AsReader()); err != nil {
 			d.index.Abort()
 			d.err.Store(err)
@@ -141,11 +142,7 @@ func (d *indexer) start() {
 
 func (d *indexer) Wait() error {
 	d.wg.Wait()
-	err := d.query.Close()
-	if indexErr := d.err.Load(); err == nil {
-		err = indexErr
-	}
-	return err
+	return d.err.Load()
 }
 
 func (d *indexer) Write(rec *zed.Value) error {

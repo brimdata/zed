@@ -53,6 +53,6 @@ func (*internalAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, 
 	return nil, errors.New("invalid pool or file scan specified for internally streamed Zed query")
 }
 
-func (*internalAdaptor) Open(context.Context, *zed.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
+func (*internalAdaptor) Open(context.Context, *zed.Context, string, zbuf.Filter) (zbuf.Puller, error) {
 	return nil, errors.New("invalid file or URL access for internally streamed Zed query")
 }

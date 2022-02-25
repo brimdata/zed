@@ -1,8 +1,6 @@
 package zbuf
 
 import (
-	"io"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio"
@@ -78,11 +76,6 @@ func readBatch(zr zio.Reader, n int) (Batch, error) {
 // return EOS.  Pull is not safe to call concurrently.
 type Puller interface {
 	Pull(bool) (Batch, error)
-}
-
-type PullerCloser interface {
-	Puller
-	io.Closer
 }
 
 // NewPuller returns a Puller for zr that returns Batches of up to n records.

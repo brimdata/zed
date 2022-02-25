@@ -55,7 +55,7 @@ func (s *Scheduler) AddProgress(progress zbuf.Progress) {
 	s.progress.Add(progress)
 }
 
-func (s *Scheduler) PullScanTask() (zbuf.PullerCloser, error) {
+func (s *Scheduler) PullScanTask() (zbuf.Puller, error) {
 	s.once.Do(func() {
 		s.run()
 	})
@@ -106,7 +106,7 @@ func (s *Scheduler) PullScanWork() (Partition, error) {
 	}
 }
 
-func (s *Scheduler) newSortedScanner(p Partition) (zbuf.PullerCloser, error) {
+func (s *Scheduler) newSortedScanner(p Partition) (zbuf.Puller, error) {
 	return newSortedScanner(s.ctx, s.pool, s.zctx, s.filter, p, s)
 }
 
@@ -124,16 +124,15 @@ func newScannerScheduler(scanners ...zbuf.Scanner) *scannerScheduler {
 	}
 }
 
-func (s *scannerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
+func (s *scannerScheduler) PullScanTask() (zbuf.Puller, error) {
 	if s.last != nil {
 		s.progress.Add(s.last.Progress())
 		s.last = nil
 	}
 	if len(s.scanners) > 0 {
-		scanner := s.scanners[0]
+		s.last = s.scanners[0]
 		s.scanners = s.scanners[1:]
-		s.last = scanner
-		return zbuf.ScannerNopCloser(scanner), nil
+		return s.last, nil
 	}
 	return nil, nil
 }
