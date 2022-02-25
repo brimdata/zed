@@ -80,8 +80,8 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	return ectx.NewValue(recType.Columns[idx].Type, field)
 }
 
-func (d *DotExpr) evalTypeOfType(ectx Context, vb zcode.Bytes) *zed.Value {
-	typ, _ := d.zctx.DecodeTypeValue(vb)
+func (d *DotExpr) evalTypeOfType(ectx Context, b zcode.Bytes) *zed.Value {
+	typ, _ := d.zctx.DecodeTypeValue(b)
 	if typ, ok := zed.TypeUnder(typ).(*zed.TypeRecord); ok {
 		if typ, ok := typ.TypeOfField(d.field); ok {
 			return d.zctx.LookupTypeValue(typ)
