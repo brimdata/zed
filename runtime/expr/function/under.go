@@ -19,7 +19,7 @@ func (u *Under) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	case *zed.TypeError:
 		return ectx.NewValue(typ.Type, val.Bytes)
 	case *zed.TypeUnion:
-		t, _, bytes := typ.SplitZNG(val.Bytes)
+		t, bytes := typ.SplitZNG(val.Bytes)
 		return ectx.NewValue(t, bytes)
 	case *zed.TypeOfType:
 		t, err := u.zctx.LookupByValue(val.Bytes)

@@ -50,7 +50,7 @@ func ValueUnder(val *zed.Value) *zed.Value {
 		if !ok {
 			return &zed.Value{typ, bytes}
 		}
-		typ, _, bytes = union.SplitZNG(bytes)
+		typ, bytes = union.SplitZNG(bytes)
 	}
 }
 
