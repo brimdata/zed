@@ -535,6 +535,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		zw.Close()
 		return "", err.Error(), err
 	}
+	defer q.Pull(true)
 	err = zio.Copy(zw, q.AsReader())
 	if err2 := zw.Close(); err == nil {
 		err = err2
