@@ -134,66 +134,24 @@ func (i *In) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if container.IsError() {
 		return container
 	}
-	switch typ := zed.TypeUnder(container.Type).(type) {
-	case *zed.TypeOfNet:
-		return inNet(i.zctx, ectx, elem, container)
-	case *zed.TypeArray:
-		return i.inContainer(zed.TypeUnder(typ.Type), elem, container)
-	case *zed.TypeSet:
-		return i.inContainer(zed.TypeUnder(typ.Type), elem, container)
-	case *zed.TypeMap:
-		return i.inMap(typ, elem, container)
-	default:
-		return ectx.CopyValue(*i.zctx.NewErrorf("'in' operator applied to non-container type"))
-	}
-}
-
-func inNet(zctx *zed.Context, ectx Context, elem, net *zed.Value) *zed.Value {
-	if zed.TypeUnder(elem.Type) != zed.TypeIP {
-		return ectx.CopyValue(*zctx.NewErrorf("'in' operator applied to non-container type"))
-	}
-	if zed.DecodeNet(net.Bytes).Contains(zed.DecodeIP(elem.Bytes).IPAddr().IP) {
+	err := container.Walk(func(typ zed.Type, body zcode.Bytes) error {
+		if _, err := i.vals.Coerce(elem, zed.NewValue(typ, body)); err != nil {
+			if err != coerce.IncompatibleTypes {
+				return err
+			}
+		} else if i.vals.Equal() {
+			return errMatch
+		}
+		return nil
+	})
+	switch err {
+	case errMatch:
 		return zed.True
+	case nil:
+		return zed.False
+	default:
+		return i.zctx.NewError(err)
 	}
-	return zed.False
-}
-
-func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
-	it := container.Bytes.Iter()
-	for {
-		if it.Done() {
-			return zed.False
-		}
-		if _, err := i.vals.Coerce(elem, &zed.Value{typ, it.Next()}); err != nil {
-			if err != coerce.IncompatibleTypes {
-				return i.zctx.NewError(err)
-			}
-		} else if i.vals.Equal() {
-			return zed.True
-		}
-	}
-}
-
-func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
-	keyType := zed.TypeUnder(typ.KeyType)
-	valType := zed.TypeUnder(typ.ValType)
-	for it := container.Bytes.Iter(); !it.Done(); {
-		if _, err := i.vals.Coerce(elem, &zed.Value{keyType, it.Next()}); err != nil {
-			if err != coerce.IncompatibleTypes {
-				return i.zctx.NewError(err)
-			}
-		} else if i.vals.Equal() {
-			return zed.True
-		}
-		if _, err := i.vals.Coerce(elem, &zed.Value{valType, it.Next()}); err != nil {
-			if err != coerce.IncompatibleTypes {
-				return i.zctx.NewError(err)
-			}
-		} else if i.vals.Equal() {
-			return zed.True
-		}
-	}
-	return zed.False
 }
 
 type Equal struct {

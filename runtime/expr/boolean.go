@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"math"
-	"net"
 	"regexp"
 	"regexp/syntax"
 
@@ -12,6 +11,7 @@ import (
 	// now until we factor-in the flow-based package
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
+	"github.com/brimdata/zed/zcode"
 	"inet.af/netaddr"
 )
 
@@ -225,7 +225,7 @@ func CompareBytes(op string, pattern []byte) (Boolean, error) {
 	}
 	return func(val *zed.Value) bool {
 		switch val.Type.ID() {
-		case zed.IDBytes:
+		case zed.IDBytes, zed.IDType:
 			return compare(val.Bytes, pattern)
 		}
 		return false
@@ -269,84 +269,17 @@ func CompareNull(op string) (Boolean, error) {
 	}
 }
 
-// a better way to do this would be to compare IP's and mask's but
-// go doesn't provide an easy way to compare masks so we do this
-// hacky thing and compare strings
-var compareSubnet = map[string]func(*net.IPNet, *net.IPNet) bool{
-	"==": func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
-	"!=": func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
-	"<":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) < 0 },
-	"<=": func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) <= 0 },
-	">":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) > 0 },
-	">=": func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) >= 0 },
-}
-
-var matchSubnet = map[string]func(net.IP, *net.IPNet) bool{
-	"==": func(a net.IP, b *net.IPNet) bool {
-		ok := b.IP.Equal(a.Mask(b.Mask))
-		return ok
-	},
-	"!=": func(a net.IP, b *net.IPNet) bool {
-		return !b.IP.Equal(a.Mask(b.Mask))
-	},
-	"<": func(a net.IP, b *net.IPNet) bool {
-		net := a.Mask(b.Mask)
-		return bytes.Compare(net, b.IP) < 0
-	},
-	"<=": func(a net.IP, b *net.IPNet) bool {
-		net := a.Mask(b.Mask)
-		return bytes.Compare(net, b.IP) <= 0
-	},
-	">": func(a net.IP, b *net.IPNet) bool {
-		net := a.Mask(b.Mask)
-		return bytes.Compare(net, b.IP) > 0
-	},
-	">=": func(a net.IP, b *net.IPNet) bool {
-		net := a.Mask(b.Mask)
-		return bytes.Compare(net, b.IP) >= 0
-	},
-}
-
-// Comparison returns a Predicate that compares typed byte slices that must
-// be an addr or a subnet to the value's subnet value using a comparison
-// based on op.  Onluy equalty and inequality are permitted.  If the typed
-// byte slice is a subnet, then the comparison is based on strict equality.
-// If the typed byte slice is an addr, then the comparison is performed by
-// doing a CIDR match on the address with the subnet.
-func CompareSubnet(op string, pattern *net.IPNet) (Boolean, error) {
-	compare, ok1 := compareSubnet[op]
-	match, ok2 := matchSubnet[op]
-	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("unknown subnet comparator: %s", op)
-	}
-	return func(val *zed.Value) bool {
-		switch val.Type.ID() {
-		case zed.IDIP:
-			return match(zed.DecodeIP(val.Bytes).IPAddr().IP, pattern)
-		case zed.IDNet:
-			return compare(zed.DecodeNet(val.Bytes), pattern)
-		}
-		return false
-	}, nil
-}
-
 // Given a predicate for comparing individual elements, produce a new
-// predicate that implements the "in" comparison.  The new predicate looks
-// at the type of the value being compared, if it is a set or array,
-// the original predicate is applied to each element.  The new precicate
-// returns true iff the predicate matched an element from the collection.
+// predicate that implements the "in" comparison.
 func Contains(compare Boolean) Boolean {
 	return func(val *zed.Value) bool {
-		var el zed.Value
-		el.Type = zed.InnerType(val.Type)
-		if el.Type == nil {
-			return false
-		}
-		for it := val.Iter(); !it.Done(); {
-			el.Bytes = it.Next()
-			if compare(&el) {
-				return true
+		if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
+			if compare(zed.NewValue(typ, body)) {
+				return errMatch
 			}
+			return nil
+		}) {
+			return true
 		}
 		return false
 	}
@@ -363,8 +296,6 @@ func Comparison(op string, val *zed.Value) (Boolean, error) {
 		return CompareNull(op)
 	case *zed.TypeOfIP:
 		return CompareIP(op, zed.DecodeIP(val.Bytes))
-	case *zed.TypeOfNet:
-		return CompareSubnet(op, zed.DecodeNet(val.Bytes))
 	case *zed.TypeOfBool:
 		return CompareBool(op, zed.DecodeBool(val.Bytes))
 	case *zed.TypeOfFloat64:

@@ -2,9 +2,12 @@ package function
 
 import (
 	"bytes"
+	"errors"
 	"net"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#network_of
@@ -54,4 +57,31 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	netIP := ip.IPAddr().IP.Mask(mask)
 	v := &net.IPNet{netIP, mask}
 	return ctx.NewValue(zed.TypeNet, zed.EncodeNet(v))
+}
+
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#cidr_match
+type CIDRMatch struct {
+	zctx *zed.Context
+}
+
+var errMatch = errors.New("match")
+
+func (c *CIDRMatch) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+	maskVal := args[0]
+	if maskVal.Type.ID() != zed.IDNet {
+		return newErrorf(c.zctx, ctx, "cidr_match: not a net: %s", zson.String(maskVal))
+	}
+	cidrMask := zed.DecodeNet(maskVal.Bytes)
+	if errMatch == args[1].Walk(func(typ zed.Type, body zcode.Bytes) error {
+		if typ.ID() == zed.IDIP {
+			addr := zed.DecodeIP(body).IPAddr().IP
+			if cidrMask.IP.Equal(addr.Mask(cidrMask.Mask)) {
+				return errMatch
+			}
+		}
+		return nil
+	}) {
+		return zed.True
+	}
+	return zed.False
 }

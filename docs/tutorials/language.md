@@ -508,7 +508,7 @@ IP address in `38.0.0.0/8` network.
 
 #### Example:
 ```mdtest-command dir=testdata/edu
-zq -z 'addr in 38.0.0.0/8' webaddrs.zson
+zq -z 'cidr_match(38.0.0.0/8,addr)' webaddrs.zson
 ```
 
 #### Output:

@@ -117,6 +117,10 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		f = &Base64{zctx: zctx}
 	case "hex":
 		f = &Hex{zctx: zctx}
+	case "cidr_match":
+		argmin = 2
+		argmax = 2
+		f = &CIDRMatch{zctx: zctx}
 	case "network_of":
 		argmax = 2
 		f = &NetworkOf{zctx: zctx}
@@ -144,7 +148,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 // signatures so the return type can be introspected.
 func HasBoolResult(name string) bool {
 	switch name {
-	case "is_error", "is", "has", "missing":
+	case "is_error", "is", "has", "missing", "cidr_match":
 		return true
 	}
 	return false

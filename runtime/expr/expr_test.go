@@ -347,9 +347,9 @@ func TestCompareNonNumbers(t *testing.T) {
 func TestPattern(t *testing.T) {
 	testSuccessful(t, `"abc" == "abc"`, "", zbool(true))
 	testSuccessful(t, `"abc" != "abc"`, "", zbool(false))
-	testSuccessful(t, "10.1.1.1 in 10.0.0.0/8", "", zbool(true))
+	testSuccessful(t, "cidr_match(10.0.0.0/8, 10.1.1.1)", "", zbool(true))
 	testSuccessful(t, "10.1.1.1 in 192.168.0.0/16", "", zbool(false))
-	testSuccessful(t, "!(10.1.1.1 in 10.0.0.0/8)", "", zbool(false))
+	testSuccessful(t, "!cidr_match(10.0.0.0/8, 10.1.1.1)", "", zbool(false))
 	testSuccessful(t, "!(10.1.1.1 in 192.168.0.0/16)", "", zbool(true))
 }
 

@@ -45,6 +45,7 @@ to take on any Zed type.
 * [base64](functions/base64.md) - encode/decode base64 strings
 * [bucket](functions/bucket.md) - quantize a time or duration value into buckets of equal widths
 * [ceil](functions/ceil.md) - ceiling of a number
+* [cidr_match](functions/cidr_match.md) - test if IP is in a network
 * [error](functions/error.md) - wrap a value as an error
 * [every](functions/every.md) - bucket `ts` using a duration
 * [fields](functions/fields.md) - return the flattened path names of a record

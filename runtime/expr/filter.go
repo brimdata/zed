@@ -1,7 +1,9 @@
 package expr
 
 import (
+	"bytes"
 	"errors"
+	"net"
 	"strings"
 
 	"github.com/brimdata/zed"
@@ -90,6 +92,12 @@ type search struct {
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
 func NewSearch(searchtext string, searchval *zed.Value) (Evaluator, error) {
+	if zed.TypeUnder(searchval.Type) == zed.TypeNet {
+		return &searchCIDR{
+			net:   zed.DecodeNet(searchval.Bytes),
+			bytes: searchval.Bytes,
+		}, nil
+	}
 	typedCompare, err := Comparison("==", searchval)
 	if err != nil {
 		return nil, err
@@ -105,6 +113,31 @@ func (s *search) Eval(_ Context, this *zed.Value) *zed.Value {
 			}
 		} else if s.compare(zed.NewValue(typ, body)) {
 			return errMatch
+		}
+		return nil
+	}) {
+		return zed.True
+	}
+	return zed.False
+}
+
+type searchCIDR struct {
+	net   *net.IPNet
+	bytes zcode.Bytes
+}
+
+func (s *searchCIDR) Eval(_ Context, val *zed.Value) *zed.Value {
+	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
+		switch typ.ID() {
+		case zed.IDNet:
+			if bytes.Compare(body, s.bytes) == 0 {
+				return errMatch
+			}
+		case zed.IDIP:
+			addr := zed.DecodeIP(body).IPAddr().IP
+			if s.net.IP.Equal(addr.Mask(s.net.Mask)) {
+				return errMatch
+			}
 		}
 		return nil
 	}) {

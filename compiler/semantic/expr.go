@@ -326,7 +326,7 @@ func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.This {
 
 func isStringConst(scope *Scope, e dag.Expr) (field string, ok bool) {
 	val, err := kernel.EvalAtCompileTime(scope.zctx, e)
-	if err == nil && val != nil && zed.TypeUnder(val.Type) == zed.TypeString {
+	if err == nil && !val.IsError() && zed.TypeUnder(val.Type) == zed.TypeString {
 		return string(val.Bytes), true
 	}
 	return "", false
