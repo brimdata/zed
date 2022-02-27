@@ -140,12 +140,6 @@ function Reglob(glob, opts) {
   return reStr;
 }
 
-
-function IsGlobby(s) {
-  return (s.indexOf("*") >= 0 || s.indexOf("?") >= 0);
-}
-
 module.exports = {
   Reglob,
-  IsGlobby,
 }
