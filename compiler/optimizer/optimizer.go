@@ -310,7 +310,7 @@ func indexFilterExpr(node dag.Expr) dag.Expr {
 			LHS:  lhs,
 			RHS:  rhs,
 		}
-	case "=", ">", ">=", "<", "<=":
+	case "==", ">", ">=", "<", "<=":
 		_, rok := e.RHS.(*dag.Literal)
 		_, lok := e.LHS.(*dag.This)
 		if lok && rok {

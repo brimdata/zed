@@ -114,7 +114,7 @@ func TestNearest(t *testing.T) {
 			runtest(t, desc, ">=", c.value, c.gte)
 			runtest(t, desc, "<", c.value, c.lt)
 			runtest(t, desc, "<=", c.value, c.lte)
-			runtest(t, desc, "=", c.value, c.eql)
+			runtest(t, desc, "==", c.value, c.eql)
 		}
 	})
 	q, err := runtime.NewQueryOnReader(context.Background(), zed.NewContext(), compiler.MustParseProc("sort ts"), reader(records), nil)
@@ -127,7 +127,7 @@ func TestNearest(t *testing.T) {
 			runtest(t, asc, ">=", c.value, c.gte)
 			runtest(t, asc, "<", c.value, c.lt)
 			runtest(t, asc, "<=", c.value, c.lte)
-			runtest(t, asc, "=", c.value, c.eql)
+			runtest(t, asc, "==", c.value, c.eql)
 		}
 	})
 }

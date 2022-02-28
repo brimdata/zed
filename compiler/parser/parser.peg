@@ -134,7 +134,7 @@ FromSource
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "matches")
 
-Comparator = ("==" / "!=" / "in" / "<=" / "<" / ">=" / ">") { RETURN(TEXT) }
+Comparator = ("==" / "!=" / ("in" !IdentifierRest) / "<=" / "<" / ">=" / ">") { RETURN(TEXT) }
 
 SearchBoolean
   = first:SearchAnd rest:SearchOrTerm* {
@@ -168,7 +168,7 @@ SearchExpr
   / "*" !ExprGuard {
       RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true"))
     }
-  / EqualityCompareExpr
+  / ComparisonExpr
 
 SearchValue
   = Literal
@@ -640,33 +640,17 @@ LogicalOrExpr
     }
 
 LogicalAndExpr
-  = first:EqualityCompareExpr
-    rest:(__ op:AndToken __ expr:EqualityCompareExpr{ RETURN(ARRAY(op, expr)) })* {
+  = first:ComparisonExpr
+    rest:(__ op:AndToken __ expr:ComparisonExpr{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-EqualityCompareExpr
+ComparisonExpr
   = PatternMatch
-  / first:RelativeExpr
-    rest:(__ comp:EqualityComparator __ expr:RelativeExpr{ RETURN(ARRAY(comp, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
+  / lhs:AdditiveExpr __ op:Comparator __ rhs:AdditiveExpr {
+        RETURN(MAP("kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs))
     }
-
-EqualityOperator
-  = "=="  { RETURN("=")}
-  / "!=" { RETURN(TEXT) }
-
-EqualityComparator
-  = EqualityOperator
-  / "in" !IdentifierRest { RETURN(TEXT) }
-
-RelativeExpr
-  = first:AdditiveExpr
-    rest:(__ op:RelativeOperator __ expr:AdditiveExpr{ RETURN(ARRAY(op, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
-    }
-
-RelativeOperator = ("<=" / "<" / ">=" / ">") { RETURN(TEXT) }
+  / AdditiveExpr
 
 AdditiveExpr
   = first:MultiplicativeExpr
@@ -1094,9 +1078,6 @@ TypeField
 FieldName
   = IdentifierName
   / QuotedString
-
-EqualityToken
-  = EqualityOperator / RelativeOperator
 
 AndToken = ("and" / "AND") !IdentifierRest { RETURN("and") }
 OrToken = ("or" / "OR") !IdentifierRest { RETURN("or") }

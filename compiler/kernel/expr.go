@@ -130,7 +130,7 @@ func compileBinary(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error)
 		return compileLogical(zctx, lhs, rhs, op)
 	case "in":
 		return expr.NewIn(zctx, lhs, rhs), nil
-	case "=", "!=":
+	case "==", "!=":
 		return expr.NewCompareEquality(lhs, rhs, op)
 	case "<", "<=", ">", ">=":
 		return expr.NewCompareRelative(zctx, lhs, rhs, op)

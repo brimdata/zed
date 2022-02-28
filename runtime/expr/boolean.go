@@ -26,7 +26,7 @@ import (
 type Boolean func(*zed.Value) bool
 
 var compareBool = map[string]func(bool, bool) bool{
-	"=":  func(a, b bool) bool { return a == b },
+	"==": func(a, b bool) bool { return a == b },
 	"!=": func(a, b bool) bool { return a != b },
 	">":  func(a, b bool) bool { return a && !b },
 	">=": func(a, b bool) bool { return a || !b },
@@ -52,7 +52,7 @@ func CompareBool(op string, pattern bool) (Boolean, error) {
 }
 
 var compareInt = map[string]func(int64, int64) bool{
-	"=":  func(a, b int64) bool { return a == b },
+	"==": func(a, b int64) bool { return a == b },
 	"!=": func(a, b int64) bool { return a != b },
 	">":  func(a, b int64) bool { return a > b },
 	">=": func(a, b int64) bool { return a >= b },
@@ -60,7 +60,7 @@ var compareInt = map[string]func(int64, int64) bool{
 	"<=": func(a, b int64) bool { return a <= b }}
 
 var compareFloat = map[string]func(float64, float64) bool{
-	"=":  func(a, b float64) bool { return a == b },
+	"==": func(a, b float64) bool { return a == b },
 	"!=": func(a, b float64) bool { return a != b },
 	">":  func(a, b float64) bool { return a > b },
 	">=": func(a, b float64) bool { return a >= b },
@@ -69,7 +69,7 @@ var compareFloat = map[string]func(float64, float64) bool{
 
 // Return a predicate for comparing this value to one more typed
 // byte slices by calling the predicate function with a Value.
-// Operand is one of "=", "!=", "<", "<=", ">", ">=".
+// Operand is one of "==", "!=", "<", "<=", ">", ">=".
 func CompareInt64(op string, pattern int64) (Boolean, error) {
 	CompareInt, ok1 := compareInt[op]
 	CompareFloat, ok2 := compareFloat[op]
@@ -129,7 +129,7 @@ func CompareTime(op string, pattern int64) (Boolean, error) {
 //XXX should just do equality and we should compare in the encoded domain
 // and not make copies and have separate cases for len 4 and len 16
 var compareAddr = map[string]func(netaddr.IP, netaddr.IP) bool{
-	"=":  func(a, b netaddr.IP) bool { return a.Compare(b) == 0 },
+	"==": func(a, b netaddr.IP) bool { return a.Compare(b) == 0 },
 	"!=": func(a, b netaddr.IP) bool { return a.Compare(b) != 0 },
 	">":  func(a, b netaddr.IP) bool { return a.Compare(b) > 0 },
 	">=": func(a, b netaddr.IP) bool { return a.Compare(b) >= 0 },
@@ -187,7 +187,7 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 }
 
 var compareString = map[string]func(string, string) bool{
-	"=":  func(a, b string) bool { return a == b },
+	"==": func(a, b string) bool { return a == b },
 	"!=": func(a, b string) bool { return a != b },
 	">":  func(a, b string) bool { return a > b },
 	">=": func(a, b string) bool { return a >= b },
@@ -210,7 +210,7 @@ func CompareString(op string, pattern []byte) (Boolean, error) {
 }
 
 var compareBytes = map[string]func([]byte, []byte) bool{
-	"=":  func(a, b []byte) bool { return bytes.Equal(a, b) },
+	"==": func(a, b []byte) bool { return bytes.Equal(a, b) },
 	"!=": func(a, b []byte) bool { return !bytes.Equal(a, b) },
 	">":  func(a, b []byte) bool { return bytes.Compare(a, b) > 0 },
 	">=": func(a, b []byte) bool { return bytes.Compare(a, b) >= 0 },
@@ -256,7 +256,7 @@ func NewRegexpBoolean(re *regexp.Regexp) Boolean {
 
 func CompareNull(op string) (Boolean, error) {
 	switch op {
-	case "=":
+	case "==":
 		return func(val *zed.Value) bool {
 			return val.IsNull()
 		}, nil
@@ -273,7 +273,7 @@ func CompareNull(op string) (Boolean, error) {
 // go doesn't provide an easy way to compare masks so we do this
 // hacky thing and compare strings
 var compareSubnet = map[string]func(*net.IPNet, *net.IPNet) bool{
-	"=":  func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
+	"==": func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
 	"!=": func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
 	"<":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) < 0 },
 	"<=": func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) <= 0 },
@@ -282,7 +282,7 @@ var compareSubnet = map[string]func(*net.IPNet, *net.IPNet) bool{
 }
 
 var matchSubnet = map[string]func(net.IP, *net.IPNet) bool{
-	"=": func(a net.IP, b *net.IPNet) bool {
+	"==": func(a net.IP, b *net.IPNet) bool {
 		ok := b.IP.Equal(a.Mask(b.Mask))
 		return ok
 	},
@@ -353,7 +353,7 @@ func Contains(compare Boolean) Boolean {
 }
 
 // Comparison returns a Predicate for comparing this value to other values.
-// The op argument is one of "=", "!=", "<", "<=", ">", ">=".
+// The op argument is one of "==", "!=", "<", "<=", ">", ">=".
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
