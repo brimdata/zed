@@ -120,8 +120,7 @@ func compileBinary(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error)
 	}
 	if e.Op == "in" {
 		// Do a faster comparison if the LHS is a compile-time constant expression.
-		in, err := compileConstIn(zctx, e)
-		if in != nil && err == nil {
+		if in, err := compileConstIn(zctx, e); in != nil && err == nil {
 			return in, err
 		}
 	}
@@ -165,7 +164,7 @@ func compileConstIn(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error
 		// on a per-type basis.
 		return nil, nil
 	}
-	eql, err := expr.Comparison("=", literal)
+	eql, err := expr.Comparison("==", literal)
 	if eql == nil || err != nil {
 		return nil, nil
 	}
@@ -178,7 +177,7 @@ func compileConstIn(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error
 
 func compileConstCompare(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error) {
 	switch e.Op {
-	case "=", "!=", "<", "<=", ">", ">=":
+	case "==", "!=", "<", "<=", ">", ">=":
 	default:
 		return nil, nil
 	}

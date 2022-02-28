@@ -3,8 +3,9 @@ package expr
 import (
 	"bytes"
 	"errors"
-	"net"
 	"strings"
+
+	"inet.af/netaddr"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
@@ -93,8 +94,9 @@ type search struct {
 // field (or inside any element of a set or array of strings).
 func NewSearch(searchtext string, searchval *zed.Value) (Evaluator, error) {
 	if zed.TypeUnder(searchval.Type) == zed.TypeNet {
+		n, _ := netaddr.FromStdIPNet(zed.DecodeNet(searchval.Bytes))
 		return &searchCIDR{
-			net:   zed.DecodeNet(searchval.Bytes),
+			net:   n,
 			bytes: searchval.Bytes,
 		}, nil
 	}
@@ -122,7 +124,7 @@ func (s *search) Eval(_ Context, this *zed.Value) *zed.Value {
 }
 
 type searchCIDR struct {
-	net   *net.IPNet
+	net   netaddr.IPPrefix
 	bytes zcode.Bytes
 }
 
@@ -134,8 +136,7 @@ func (s *searchCIDR) Eval(_ Context, val *zed.Value) *zed.Value {
 				return errMatch
 			}
 		case zed.IDIP:
-			addr := zed.DecodeIP(body).IPAddr().IP
-			if s.net.IP.Equal(addr.Mask(s.net.Mask)) {
+			if s.net.Contains(zed.DecodeIP(body)) {
 				return errMatch
 			}
 		}
