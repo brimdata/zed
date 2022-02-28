@@ -10,7 +10,7 @@
 # docs/language/README.md.
 
 zed: |
-  where search("widget") and price > 1000
+  where grep("widget") and price > 1000
 
 input: |
   {"text": "this is a sentence with the word widget in it", "price":999}

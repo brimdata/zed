@@ -7,6 +7,7 @@ import (
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr/agg"
+	"github.com/brimdata/zed/zson"
 )
 
 func AST(p ast.Proc) string {
@@ -96,19 +97,35 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 	case *ast.Cast:
 		c.expr(e.Expr, false)
 		c.open(":%s", e.Type)
-	case *ast.Search:
-		c.write("search(")
-		c.literal(e.Value)
-		c.write(")")
 	case *ast.SQLExpr:
 		c.sql(e)
 	case *astzed.TypeValue:
 		c.write("type(")
 		c.typ(e.Value)
 		c.write(")")
-	case *ast.RegexpMatch:
-		c.expr(e.Expr, false)
-		c.write(" matches /%s/", e.Pattern)
+	case *ast.Regexp:
+		c.write("/%s/", e.Pattern)
+	case *ast.Glob:
+		c.write(e.Pattern)
+	case *ast.Grep:
+		c.write("grep(")
+		switch p := e.Pattern.(type) {
+		case *ast.Regexp:
+			c.write("/%s/", p.Pattern)
+		case *ast.Glob:
+			c.write(p.Pattern)
+		case *ast.String:
+			c.write(zson.QuotedString([]byte(p.Text)))
+		default:
+			c.open("(unknown grep pattern %T)", p)
+		}
+		if !isThis(e.Expr) {
+			c.write(",")
+			c.expr(e.Expr, false)
+		}
+		c.write(")")
+	case *ast.Term:
+		c.write(e.Text)
 	default:
 		c.open("(unknown expr %T)", e)
 		c.close()
@@ -372,13 +389,21 @@ func (c *canon) proc(p ast.Proc) {
 			return
 		}
 		c.next()
-		// XXX
-		// For now, we just print an implied "where" here which is broken
-		// because we also need to handle implied yield.  As descibed in
-		// a recent comment in issue #2197, we will build a pre-pass
-		// of semantic analysis that just does this diambiguation and we
-		// can operate on this cleaned up AST here.  At that point,
-		// isAggFunc() can go away.
+		e := p.Expr
+		which := "where "
+		if isSearch(e) {
+			which = "search "
+		}
+		c.open(which)
+		c.expr(e, false)
+		c.close()
+	case *ast.Search:
+		c.next()
+		c.open("search ")
+		c.expr(p.Expr, false)
+		c.close()
+	case *ast.Where:
+		c.next()
 		c.open("where ")
 		c.expr(p.Expr, false)
 		c.close()
@@ -459,6 +484,24 @@ func isAggFunc(e ast.Expr) *ast.Summarize {
 			Kind: "Assignment",
 			RHS:  call,
 		}},
+	}
+}
+
+func isSearch(e ast.Expr) bool {
+	switch e := e.(type) {
+	case *ast.Regexp, *ast.Glob, *ast.Term:
+		return true
+	case *ast.BinaryExpr:
+		switch e.Op {
+		case "and", "or":
+			return isSearch(e.LHS) || isSearch(e.RHS)
+		default:
+			return false
+		}
+	case *ast.UnaryExpr:
+		return isSearch(e.Operand)
+	default:
+		return false
 	}
 }
 

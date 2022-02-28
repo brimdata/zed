@@ -1,4 +1,4 @@
-zed: yield search(*foo*)
+zed: yield grep(*foo*)
 
 input: |
   "foo"

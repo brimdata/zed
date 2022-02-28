@@ -360,10 +360,10 @@ func TestFilters(t *testing.T) {
 		{"s != 'hello'", false},
 
 		// Also smoke test that globs work...
-		{"s matches hell*", true},
-		{"s matches ell*", false},
-		{"!(s matches hell*)", false},
-		{"!(s matches ell*)", true},
+		{"grep(hell*, s)", true},
+		{"grep(ell*, s)", false},
+		{"!grep(hell*, s)", false},
+		{"!grep(ell*, s)", true},
 	})
 
 	// Test ip comparisons

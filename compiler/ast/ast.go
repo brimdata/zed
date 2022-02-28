@@ -29,10 +29,10 @@ type ID struct {
 	Name string `json:"name"`
 }
 
-type Search struct {
+type Term struct {
 	Kind  string           `json:"kind" unpack:""`
 	Text  string           `json:"text"`
-	Value astzed.Primitive `json:"value"` //XXX search should be extended to complex types
+	Value astzed.Primitive `json:"value"`
 }
 
 type UnaryExpr struct {
@@ -79,16 +79,34 @@ type Cast struct {
 	Type astzed.Type `json:"type"`
 }
 
-type RegexpMatch struct {
-	Kind    string `json:"kind" unpack:""`
-	Pattern string `json:"pattern"`
-	Expr    Expr   `json:"expr"`
+type Grep struct {
+	Kind    string  `json:"kind" unpack:""`
+	Pattern Pattern `json:"pattern"`
+	Expr    Expr    `json:"expr"`
 }
 
-type RegexpSearch struct {
+type Glob struct {
 	Kind    string `json:"kind" unpack:""`
 	Pattern string `json:"pattern"`
 }
+
+type Regexp struct {
+	Kind    string `json:"kind" unpack:""`
+	Pattern string `json:"pattern"`
+}
+
+type String struct {
+	Kind string `json:"kind" unpack:""`
+	Text string `json:"text"`
+}
+
+type Pattern interface {
+	PatternAST()
+}
+
+func (*Glob) PatternAST()   {}
+func (*Regexp) PatternAST() {}
+func (*String) PatternAST() {}
 
 type RecordExpr struct {
 	Kind  string       `json:"kind" unpack:""`
@@ -137,15 +155,16 @@ type EntryExpr struct {
 func (*UnaryExpr) ExprAST()   {}
 func (*BinaryExpr) ExprAST()  {}
 func (*Conditional) ExprAST() {}
-func (*Search) ExprAST()      {}
 func (*Call) ExprAST()        {}
 func (*Cast) ExprAST()        {}
 func (*ID) ExprAST()          {}
 
-func (*Assignment) ExprAST()   {}
-func (*Agg) ExprAST()          {}
-func (*RegexpSearch) ExprAST() {}
-func (*RegexpMatch) ExprAST()  {}
+func (*Assignment) ExprAST() {}
+func (*Agg) ExprAST()        {}
+func (*Grep) ExprAST()       {}
+func (*Glob) ExprAST()       {}
+func (*Regexp) ExprAST()     {}
+func (*Term) ExprAST()       {}
 
 func (*RecordExpr) ExprAST() {}
 func (*ArrayExpr) ExprAST()  {}
@@ -284,6 +303,10 @@ type (
 		Kind   string `json:"kind" unpack:""`
 		Locals []Def  `json:"locals"`
 		Over   *Over  `json:"over"`
+	}
+	Search struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
 	}
 	Where struct {
 		Kind string `json:"kind" unpack:""`
@@ -481,6 +504,7 @@ func (*Explode) ProcAST()      {}
 func (*Merge) ProcAST()        {}
 func (*Over) ProcAST()         {}
 func (*Let) ProcAST()          {}
+func (*Search) ProcAST()       {}
 func (*Where) ProcAST()        {}
 func (*Yield) ProcAST()        {}
 

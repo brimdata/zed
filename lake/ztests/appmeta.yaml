@@ -5,7 +5,7 @@ script: |
   zed load -q -use logs@main -meta '"original"' babble.zson
   zed load -q -use logs@main -meta '"normalized-v1"' babble.zson
   zed load -q -use logs@main -meta '"normalized-v2"' babble.zson
-  zed query "from logs@main:log | meta matches normalized* | sort date | cut meta" | zq -z -
+  zed query "from logs@main:log | grep(normalized*, meta)| sort date | cut meta" | zq -z -
 
 inputs:
   - name: babble.zson

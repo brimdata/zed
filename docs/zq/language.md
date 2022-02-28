@@ -2,6 +2,14 @@
 
 **This doc needs to be updated per issue 3604**
 
+## Regular Expressions
+
+TBD: this is linked from below
+
+## Globs
+
+TBD: this is linked from below
+
 ## Record Mutations
 
 TBD: this is linked from below

@@ -1,5 +1,5 @@
 script: |
-  zq -z "s matches a*b" in.zson
+  zq -z "grep(a*b,s)" in.zson
   echo ===
   zq -z "s==a*b+1" in.zson
 

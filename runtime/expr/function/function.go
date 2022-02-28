@@ -29,6 +29,11 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 	switch name {
 	default:
 		return nil, nil, ErrNoSuchFunction
+	case "grep":
+		// We special case grep here since a syntax error with the
+		// special grep form will make it look like a function call
+		// and we don't want the error to say unknown function.
+		return nil, nil, errors.New("syntax error")
 	case "len":
 		f = &LenFn{zctx: zctx}
 	case "abs":

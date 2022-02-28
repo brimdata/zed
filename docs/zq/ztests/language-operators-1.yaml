@@ -12,7 +12,7 @@ script: |
 outputs:
   - name: stdout
     data: |
-      where search("widget")
+      search widget
       | summarize
           count() by color
       | COLOR:=to_upper(color)

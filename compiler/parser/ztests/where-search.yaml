@@ -1,5 +1,5 @@
 script: |
-  zq -z "count() where search(foo)" in.zson
+  zq -z 'count() where grep("foo")' in.zson
   echo ===
   zq -z "foo | count()" in.zson
 
