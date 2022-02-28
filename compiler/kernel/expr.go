@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/text/unicode/norm"
 )
 
 // compileExpr compiles the given Expression into an object
@@ -74,7 +75,7 @@ func compileExpr(zctx *zed.Context, e dag.Expr) (expr.Evaluator, error) {
 	case *dag.RegexpMatch:
 		return compileRegexpMatch(zctx, e)
 	case *dag.RegexpSearch:
-		return compileFilter(zctx, e)
+		return compileRegexpSearch(zctx, e)
 	case *dag.RecordExpr:
 		return compileRecordExpr(zctx, e)
 	case *dag.ArrayExpr:
@@ -117,6 +118,15 @@ func compileBinary(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error)
 	if slice, ok := e.RHS.(*dag.BinaryExpr); ok && slice.Op == ":" {
 		return compileSlice(zctx, e.LHS, slice)
 	}
+	if e.Op == "in" {
+		// Do a faster comparison if the LHS is a compile-time constant expression.
+		if in, err := compileConstIn(zctx, e); in != nil && err == nil {
+			return in, err
+		}
+	}
+	if e, err := compileConstCompare(zctx, e); e != nil && err == nil {
+		return e, nil
+	}
 	lhs, err := compileExpr(zctx, e.LHS)
 	if err != nil {
 		return nil, err
@@ -126,8 +136,10 @@ func compileBinary(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error)
 		return nil, err
 	}
 	switch op := e.Op; op {
-	case "and", "or":
-		return compileLogical(zctx, lhs, rhs, op)
+	case "and":
+		return expr.NewLogicalAnd(zctx, lhs, rhs), nil
+	case "or":
+		return expr.NewLogicalOr(zctx, lhs, rhs), nil
 	case "in":
 		return expr.NewIn(zctx, lhs, rhs), nil
 	case "==", "!=":
@@ -139,8 +151,66 @@ func compileBinary(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error)
 	case "[":
 		return expr.NewIndexExpr(zctx, lhs, rhs), nil
 	default:
-		return nil, fmt.Errorf("Z kernel: invalid binary operator %s", op)
+		return nil, fmt.Errorf("invalid binary operator %s", op)
 	}
+}
+
+func compileConstIn(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error) {
+	literal, err := EvalAtCompileTime(zctx, e.LHS)
+	if err != nil || literal.IsError() {
+		// If the RHS here is a literal value, it would be good
+		// to optimize this too.  However, this will all be handled
+		// by the JIT compiler that will create optimized closures
+		// on a per-type basis.
+		return nil, nil
+	}
+	eql, err := expr.Comparison("==", literal)
+	if eql == nil || err != nil {
+		return nil, nil
+	}
+	operand, err := compileExpr(zctx, e.RHS)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewFilter(operand, expr.Contains(eql)), nil
+}
+
+func compileConstCompare(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, error) {
+	switch e.Op {
+	case "==", "!=", "<", "<=", ">", ">=":
+	default:
+		return nil, nil
+	}
+	literal, err := EvalAtCompileTime(zctx, e.RHS)
+	if err != nil || literal.IsError() {
+		return nil, nil
+	}
+	comparison, err := expr.Comparison(e.Op, literal)
+	if comparison == nil || err != nil {
+		// If this fails, return no match instead of the error and
+		// let later-on code detect the error as this could be a
+		// non-error situation that isn't a simple comparison.
+		return nil, nil
+	}
+	operand, err := compileExpr(zctx, e.LHS)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewFilter(operand, comparison), nil
+}
+
+func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error) {
+	val, err := zson.ParseValue(zctx, search.Value)
+	if err != nil {
+		return nil, err
+	}
+	if zed.TypeUnder(val.Type) == zed.TypeString {
+		// Do a grep-style substring search instead of an
+		// exact match on each value.
+		term := norm.NFC.Bytes(val.Bytes)
+		return expr.NewSearchString(string(term)), nil
+	}
+	return expr.NewSearch(search.Text, val)
 }
 
 func compileSlice(zctx *zed.Context, container dag.Expr, slice *dag.BinaryExpr) (expr.Evaluator, error) {
@@ -168,17 +238,6 @@ func compileUnary(zctx *zed.Context, unary dag.UnaryExpr) (expr.Evaluator, error
 		return nil, err
 	}
 	return expr.NewLogicalNot(zctx, e), nil
-}
-
-func compileLogical(zctx *zed.Context, lhs, rhs expr.Evaluator, operator string) (expr.Evaluator, error) {
-	switch operator {
-	case "and":
-		return expr.NewLogicalAnd(zctx, lhs, rhs), nil
-	case "or":
-		return expr.NewLogicalOr(zctx, lhs, rhs), nil
-	default:
-		return nil, fmt.Errorf("unknown logical operator: %s", operator)
-	}
 }
 
 func compileConditional(zctx *zed.Context, node dag.Conditional) (expr.Evaluator, error) {
@@ -361,6 +420,15 @@ func compileRegexpMatch(zctx *zed.Context, match *dag.RegexpMatch) (expr.Evaluat
 		return nil, err
 	}
 	return expr.NewRegexpMatch(re, e), nil
+}
+
+func compileRegexpSearch(zctx *zed.Context, search *dag.RegexpSearch) (expr.Evaluator, error) {
+	re, err := expr.CompileRegexp(search.Pattern)
+	if err != nil {
+		return nil, err
+	}
+	match := expr.NewRegexpBoolean(re)
+	return expr.SearchByPredicate(expr.Contains(match)), nil
 }
 
 func compileRecordExpr(zctx *zed.Context, record *dag.RecordExpr) (expr.Evaluator, error) {

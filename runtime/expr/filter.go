@@ -1,8 +1,11 @@
 package expr
 
 import (
+	"bytes"
 	"errors"
 	"strings"
+
+	"inet.af/netaddr"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
@@ -90,6 +93,13 @@ type search struct {
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
 func NewSearch(searchtext string, searchval *zed.Value) (Evaluator, error) {
+	if zed.TypeUnder(searchval.Type) == zed.TypeNet {
+		n, _ := netaddr.FromStdIPNet(zed.DecodeNet(searchval.Bytes))
+		return &searchCIDR{
+			net:   n,
+			bytes: searchval.Bytes,
+		}, nil
+	}
 	typedCompare, err := Comparison("==", searchval)
 	if err != nil {
 		return nil, err
@@ -105,6 +115,30 @@ func (s *search) Eval(_ Context, this *zed.Value) *zed.Value {
 			}
 		} else if s.compare(zed.NewValue(typ, body)) {
 			return errMatch
+		}
+		return nil
+	}) {
+		return zed.True
+	}
+	return zed.False
+}
+
+type searchCIDR struct {
+	net   netaddr.IPPrefix
+	bytes zcode.Bytes
+}
+
+func (s *searchCIDR) Eval(_ Context, val *zed.Value) *zed.Value {
+	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
+		switch typ.ID() {
+		case zed.IDNet:
+			if bytes.Compare(body, s.bytes) == 0 {
+				return errMatch
+			}
+		case zed.IDIP:
+			if s.net.Contains(zed.DecodeIP(body)) {
+				return errMatch
+			}
 		}
 		return nil
 	}) {

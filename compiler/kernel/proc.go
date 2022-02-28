@@ -134,7 +134,7 @@ func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Pass:
 		return pass.New(parent), nil
 	case *dag.Filter:
-		f, err := compileFilter(b.pctx.Zctx, v.Expr)
+		f, err := compileExpr(b.pctx.Zctx, v.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
@@ -339,6 +339,9 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 			if err != nil {
 				return nil, err
 			}
+			if val.IsError() {
+				return nil, errors.New("switch case is not a constant expression")
+			}
 		}
 		parents, err := b.compile(c.Op, []zbuf.Puller{s.AddCase(val)})
 		if err != nil {
@@ -356,7 +359,7 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbu
 		switcher := switcher.New(b.pctx, parents[0])
 		parents = []zbuf.Puller{}
 		for _, c := range swtch.Cases {
-			f, err := compileFilter(b.pctx.Zctx, c.Expr)
+			f, err := compileExpr(b.pctx.Zctx, c.Expr)
 			if err != nil {
 				return nil, fmt.Errorf("compiling switch case filter: %w", err)
 			}
@@ -625,10 +628,10 @@ func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err erro
 	// reference to a var not in scope, a field access null this, etc.
 	defer func() {
 		if recover() != nil {
-			err = errors.New("panic")
+			val = zctx.Missing()
 		}
 	}()
-	return e.Eval(expr.NewContext(), zed.Null), nil
+	return e.Eval(expr.NewContext(), zctx.Missing()), nil
 }
 
 type readerScheduler struct {

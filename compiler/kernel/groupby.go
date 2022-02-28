@@ -66,7 +66,7 @@ func compileAgg(zctx *zed.Context, agg *dag.Agg) (*expr.Aggregator, error) {
 	}
 	var where expr.Evaluator
 	if agg.Where != nil {
-		where, err = compileFilter(zctx, agg.Where)
+		where, err = compileExpr(zctx, agg.Where)
 		if err != nil {
 			return nil, err
 		}

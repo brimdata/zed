@@ -11,7 +11,7 @@
 # test output from the aggregation.
 
 zed: |
-  not srcip in 192.168.0.0/16
+  not cidr_match(192.168.0.0/16,srcip)
   | summarize
       bytes := sum(src_bytes + dst_bytes),
       maxdur := max(duration),
