@@ -84,7 +84,7 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 // See issue #3412
 
 func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) {
-	if dag.IsTopLevelField(e.LHS) && e.Op == "=" {
+	if dag.IsTopLevelField(e.LHS) && e.Op == "==" {
 		if literal, ok := e.RHS.(*dag.Literal); ok {
 			val, err := zson.ParseValue(zctx, literal.Value)
 			if err != nil {

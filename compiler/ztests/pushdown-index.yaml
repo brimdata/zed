@@ -13,9 +13,9 @@ outputs:
       from (
         (pushdown
           (scan
-            filter x="hello" or x=1.)
+            filter x=="hello" or x==1.)
           (index
-            filter x="hello" or x=1.))
+            filter x=="hello" or x==1.))
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       ===
@@ -31,17 +31,17 @@ outputs:
       from (
         (pushdown
           (scan
-            filter x="hello" or x!=1.)
+            filter x=="hello" or x!=1.)
           (index
-            filter x="hello"))
+            filter x=="hello"))
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       ===
       from (
         (pushdown
           (scan
-            filter x="hello" or  !y=2 or y=3)
+            filter x=="hello" or  !y==2 or y==3)
           (index
-            filter x="hello"))
+            filter x=="hello"))
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )

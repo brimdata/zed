@@ -677,7 +677,7 @@ func isBool(e dag.Expr) bool {
 		return isBool(e.Operand)
 	case *dag.BinaryExpr:
 		switch e.Op {
-		case "and", "or", "in", "=", "!=", "<", "<=", ">", ">=":
+		case "and", "or", "in", "==", "!=", "<", "<=", ">", ">=":
 			return true
 		default:
 			return false

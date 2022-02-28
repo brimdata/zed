@@ -18,7 +18,7 @@ import (
 type Operator string
 
 const (
-	EQL Operator = "="
+	EQL Operator = "=="
 	GT  Operator = ">"
 	GTE Operator = ">="
 	LT  Operator = "<"
@@ -167,7 +167,7 @@ func (f *Finder) search(compare keyCompareFn) (*zngio.Reader, error) {
 }
 
 func (f *Finder) Lookup(kvs ...KeyValue) (*zed.Value, error) {
-	return f.Nearest("=", kvs...)
+	return f.Nearest("==", kvs...)
 }
 
 func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []KeyValue) error {

@@ -53,7 +53,7 @@ func compileCompareField(zctx *zed.Context, e *dag.BinaryExpr) (expr.Evaluator, 
 		if err != nil {
 			return nil, err
 		}
-		eql, _ := expr.Comparison("=", literal)
+		eql, _ := expr.Comparison("==", literal)
 		predicate := expr.Contains(eql)
 		return expr.NewFilter(field, predicate), nil
 	}
@@ -93,7 +93,7 @@ func compileSearch(zctx *zed.Context, search *dag.Search) (expr.Evaluator, error
 	}
 	switch zed.TypeUnder(val.Type) {
 	case zed.TypeNet:
-		match, err := expr.Comparison("=", val)
+		match, err := expr.Comparison("==", val)
 		if err != nil {
 			return nil, err
 		}

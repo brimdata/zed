@@ -90,7 +90,7 @@ type search struct {
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
 func NewSearch(searchtext string, searchval *zed.Value) (Evaluator, error) {
-	typedCompare, err := Comparison("=", searchval)
+	typedCompare, err := Comparison("==", searchval)
 	if err != nil {
 		return nil, err
 	}

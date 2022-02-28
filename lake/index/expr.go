@@ -37,7 +37,7 @@ func compileExpr(node dag.Expr) (expr, error) {
 			return nil, err
 		}
 		return logicalExpr(lhs, rhs, e.Op), nil
-	case "=", "<", "<=", ">", ">=":
+	case "==", "<", "<=", ">", ">=":
 		literal, ok := e.RHS.(*dag.Literal)
 		if !ok {
 			return nil, fmt.Errorf("index comparator: RHS is not a literal: %T", e.RHS)

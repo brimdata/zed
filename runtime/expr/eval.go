@@ -204,7 +204,7 @@ type Equal struct {
 func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 	e := &Equal{numeric: newNumeric(lhs, rhs)} //XXX
 	switch operator {
-	case "=":
+	case "==":
 		e.equality = true
 	case "!=":
 	default:
