@@ -137,11 +137,3 @@ func Reglob(glob string) string {
 
 	return reStr
 }
-
-// XXX this isn't foolproof, it will return true for a string with only
-// an escaped asterisk.  It also includes ? which is only interpreted by
-// Reglob() if "extended" is true which it can never be.  And it doesn't
-// check for any of the other extended syntax.  Bleah.
-func IsGlobby(s string) bool {
-	return strings.Contains(s, "*") || strings.Contains(s, "?")
-}
