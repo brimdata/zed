@@ -569,7 +569,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Exprs: exprs,
 		}, nil
 	}
-	return nil, fmt.Errorf("semantic transform: unknown AST operaetor type: %v", p)
+	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", p)
 }
 
 func semOver(ctx context.Context, scope *Scope, in *ast.Over, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*dag.Over, error) {

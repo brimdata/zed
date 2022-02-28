@@ -15,7 +15,7 @@ to `false` or to an error.
 The "search" keyword may be omitted in which case `<sexpr>` follows
 the [search expression](../language.md#search-expressions) syntax.
 
-When Zed queries are run interactively, it is highly convenient to be able to omit
+When Zed queries are run interactively, it is convenient to be able to omit
 the "search" keyword, but when search filters appear in Zed source files,
 it is good practice to include the optional keyword.
 

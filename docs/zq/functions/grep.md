@@ -21,9 +21,9 @@ If the pattern matches for any string, then the result is `true`.  Otherwise, it
 > will be a expressible for all three pattern types.
 
 The entire input value is traversed:
-* for records, each field name is traversed as well each value or descended
+* for records, each field name is traversed and each field value is traversed or descended
 if a complex type,
-* for arrays and sets, each element traversed or descended if a complex type, and
+* for arrays and sets, each element is traversed or descended if a complex type, and
 * for maps, each key and value is traversed or descended if a complex type.
 
 ### Examples

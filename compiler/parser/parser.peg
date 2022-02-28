@@ -176,7 +176,7 @@ SearchExpr
 
 SearchPredicate
   = lhs:AdditiveExpr __ op:Comparator __ rhs:AdditiveExpr {
-      RETURN(MAP("kind": "BinaryExpr", "op":op, "lhs":lhs, "rhs":rhs))
+      RETURN(MAP("kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs))
     }
    / first:Function rest:(Deref)* {
          RETURN(makeBinaryExprChain(first, rest))
@@ -715,17 +715,17 @@ Function
 
 Grep
   = "grep" __ "(" __ pattern:Pattern __ ")" {
-      RETURN(MAP("kind":"Grep", "pattern":pattern,"expr":MAP("kind":"ID", "name":"this")))
+      RETURN(MAP("kind": "Grep", "pattern": pattern, "expr": MAP("kind": "ID", "name": "this")))
     }
   / "grep" __ "(" __ pattern:Pattern __  "," __ expr:Expr __ ")" {
-      RETURN(MAP("kind":"Grep", "pattern":pattern,"expr":expr))
+      RETURN(MAP("kind": "Grep", "pattern": pattern, "expr": expr))
     }
 
 Pattern
   = Regexp
   / Glob
   / s:QuotedString {
-      RETURN(MAP("kind":"String","text":s))
+      RETURN(MAP("kind": "String", "text": s))
     }
 
 OptionalExprs

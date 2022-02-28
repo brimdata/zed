@@ -258,7 +258,7 @@ function peg$parse(input, options) {
             return {"kind": "Primitive", "type": "bool", "text": "true"}
           },
       peg$c82 = function(lhs, op, rhs) {
-            return {"kind": "BinaryExpr", "op":op, "lhs":lhs, "rhs":rhs}
+            return {"kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs}
           },
       peg$c83 = function(first, rest) {
                return makeBinaryExprChain(first, rest)
@@ -663,13 +663,13 @@ function peg$parse(input, options) {
       peg$c297 = "grep",
       peg$c298 = peg$literalExpectation("grep", false),
       peg$c299 = function(pattern) {
-            return {"kind":"Grep", "pattern":pattern,"expr":{"kind":"ID", "name":"this"}}
+            return {"kind": "Grep", "pattern": pattern, "expr": {"kind": "ID", "name": "this"}}
           },
       peg$c300 = function(pattern, expr) {
-            return {"kind":"Grep", "pattern":pattern,"expr":expr}
+            return {"kind": "Grep", "pattern": pattern, "expr": expr}
           },
       peg$c301 = function(s) {
-            return {"kind":"String","text":s}
+            return {"kind": "String", "text": s}
           },
       peg$c302 = function(first, e) { return e },
       peg$c303 = "]",
