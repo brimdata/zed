@@ -721,8 +721,8 @@ Grep
       RETURN(MAP("kind":"Grep", "pattern":pattern,"expr":expr))
     }
 
-Pattern =
-    Regexp
+Pattern
+  = Regexp
   / Glob
   / s:QuotedString {
       RETURN(MAP("kind":"String","text":s))
