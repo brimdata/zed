@@ -62,6 +62,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer q.Pull(true)
 	if err := zio.Copy(output, q.AsReader()); err != nil {
 		return "", err
 	}

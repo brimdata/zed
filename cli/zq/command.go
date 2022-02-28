@@ -148,6 +148,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer query.Pull(true)
 	err = zio.Copy(writer, zbuf.NoControl(query.AsReader()))
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr

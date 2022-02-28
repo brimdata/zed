@@ -327,6 +327,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		layout := order.NewLayout(order.Asc, field.List{field.New(inputSortKey)})
 		query, err := runtime.NewQueryOnOrderedReader(context.Background(), zctx, proc, cr, layout, nil)
 		require.NoError(t, err)
+		defer query.Pull(true)
 		err = zio.Copy(checker, query.AsReader())
 		require.NoError(t, err)
 		outData := strings.Split(outbuf.String(), "\n")
