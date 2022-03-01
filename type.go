@@ -414,7 +414,7 @@ func CompareTypes(a, b Type) int {
 		}
 		// Lastly compare column types.
 		for i := 0; i < len(ra.Columns); i++ {
-			if cmp := CompareTypes(ra.Columns[i].Type, ra.Columns[i].Type); cmp != 0 {
+			if cmp := CompareTypes(ra.Columns[i].Type, rb.Columns[i].Type); cmp != 0 {
 				return cmp
 			}
 		}
