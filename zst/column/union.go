@@ -119,7 +119,7 @@ func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, e
 	}
 	presence := rec.Deref("presence").MissingAsNull()
 	if presence.IsNull() {
-		return nil, errors.New("ZST union mission presence")
+		return nil, errors.New("ZST union missing presence")
 	}
 	d, err := NewPrimitiveReader(*presence, r)
 	if err != nil {
