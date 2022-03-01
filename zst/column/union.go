@@ -30,7 +30,7 @@ func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
 }
 
 func (u *UnionWriter) Write(body zcode.Bytes) error {
-	if len(body) == 0 {
+	if body == nil {
 		u.presence.TouchNull()
 		return nil
 	}
