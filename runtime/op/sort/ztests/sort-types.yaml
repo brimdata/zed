@@ -58,8 +58,8 @@ output: |
   <net>
   <named=type>
   <null>
-  <{x:string}>
   <{x:uint16}>
+  <{x:string}>
   <{x:int64,y:int64}>
   <[uint8]>
   <[net]>
@@ -69,7 +69,7 @@ output: |
   <|{float64:string}|>
   <|{bool:string}|>
   <({a:net},{x:int64})>
-  <({x:string},{x:int64})>
+  <({x:int64},{x:string})>
   <({x:string},{x:int64,y:int64})>
   <enum(a,b,c)>
   <enum(b,c,d)>
