@@ -132,7 +132,7 @@ const schemas = |{
 // changed in Zeek v4.1.0 and shape those with special v4.1.0-specific config.
 // For everything else we'll apply the default type definitions.
 
-yield unflatten(this) | switch (
+yield nest_dotted(this) | switch (
   case _path=="ssl" and has(ssl_history) => yield shape(<ssl_4_1_0>)
   case _path=="x509" and has(fingerprint) => yield shape(<x509_4_1_0>)
   default => yield shape(schemas[_path])

@@ -380,7 +380,7 @@ func compileCall(zctx *zed.Context, call dag.Call) (expr.Evaluator, error) {
 			return nil, fmt.Errorf("has(): bad argument: %w", err)
 		}
 		return expr.NewHas(exprs), nil
-	case call.Name == "unflatten":
+	case call.Name == "nest_dotted":
 		return expr.NewUnflattener(zctx), nil
 	case isShaperFunc(call.Name):
 		return compileShaper(zctx, call)

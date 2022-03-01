@@ -1,23 +1,33 @@
 ### Function
 
-&emsp; **unflatten** &mdash; transform a record with dotted names to a nested record
+&emsp; **unflatten** &mdash; transform an array of key/value records into a
+record.
 
 ### Synopsis
 
 ```
-unflatten(val: record) -> record
+unflatten(val: [{key:[string],value:any}) -> record
 ```
 ### Description
-The _unflatten_ function returns a copy of `val` with all dotted field names converted
-into nested records. If no argument is supplied to `unflatten`, `unflatten`
-operates on `this`.
+The _unflatten_ function converts the key/value records in array `val` into
+a single record. _unflatten_ is the inverse of _flatten_, i.e., `unflatten(flatten(r))`
+will produce a record identical to `r`.
 
 ### Examples
-
+Simple:
 ```mdtest-command
-echo '{"a.b.c":"foo"}' | zq -z 'yield unflatten()' -
+echo '[{key:["a"],value:1},{key:["b"],value:2}]' | zq -z 'yield unflatten(this)' -
 ```
 =>
 ```mdtest-output
-{a:{b:{c:"foo"}}}
+{a:1,b:2}
+```
+
+Flatten to unflatten:
+```mdtest-command
+echo '{a:1,rm:2}' | zq -z 'over flatten(this) => (key[0] != "rm" | yield collect(this)) | yield unflatten(this)' -
+```
+=>
+```mdtest-output
+{a:1}
 ```
