@@ -3,7 +3,7 @@ script: zq - | zq -z -
 inputs:
   - name: stdin
     data: &stdin |
-      {a:["asdfasdf"((int64,string)),null((int64,string)),100((int64,string))]}
+      {a:["asdfasdf",null,100]}
       {a:null([(int64,string)])}
 
 outputs:

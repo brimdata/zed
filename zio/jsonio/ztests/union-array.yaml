@@ -25,53 +25,53 @@ output: |
       null (string)
   ]
   [
-      "b" ((int64,string)),
-      2 ((int64,string))
+      "b",
+      2
   ]
   [
-      "c" ((int64,string)),
-      100 ((int64,string)),
-      200 ((int64,string))
+      "c",
+      100,
+      200
   ]
   [
-      "d" ((int64,string)),
-      null ((int64,string)),
-      200 ((int64,string))
+      "d",
+      null,
+      200
   ]
   [
-      "e" ((string,[int64])),
+      "e",
       [
           1,
           2
-      ] ((string,[int64]))
+      ]
   ]
   [
-      "f" ((bool,string,{dd:[(int64,bool,string)]},[(int64,string)])),
-      false ((bool,string,{dd:[(int64,bool,string)]},[(int64,string)])),
+      "f",
+      false,
       [
-          "foo" ((int64,string)),
-          2 ((int64,string))
-      ] ((bool,string,{dd:[(int64,bool,string)]},[(int64,string)])),
+          "foo",
+          2
+      ],
       {
           dd: [
-              "foo" ((int64,bool,string)),
-              2 ((int64,bool,string)),
-              true ((int64,bool,string))
+              "foo",
+              2,
+              true
           ]
-      } ((bool,string,{dd:[(int64,bool,string)]},[(int64,string)]))
+      }
   ]
   [
-      "g" ((bool,string,{"d.d":[(int64,bool,string)]},[(int64,string)])),
-      false ((bool,string,{"d.d":[(int64,bool,string)]},[(int64,string)])),
+      "g",
+      false,
       [
-          "foo" ((int64,string)),
-          2 ((int64,string))
-      ] ((bool,string,{"d.d":[(int64,bool,string)]},[(int64,string)])),
+          "foo",
+          2
+      ],
       {
           "d.d": [
-              "foo" ((int64,bool,string)),
-              2 ((int64,bool,string)),
-              true ((int64,bool,string))
+              "foo",
+              2,
+              true
           ]
-      } ((bool,string,{"d.d":[(int64,bool,string)]},[(int64,string)]))
+      }
   ]

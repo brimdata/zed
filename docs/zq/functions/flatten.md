@@ -21,5 +21,5 @@ echo '{a:1,b:{c:"foo"}}' | zq -z 'yield flatten(this)' -
 ```
 =>
 ```mdtest-output
-[{key:["a"],value:1}(({key:[string],value:int64},{key:[string],value:string})),{key:["b","c"],value:"foo"}(({key:[string],value:int64},{key:[string],value:string}))]
+[{key:["a"],value:1},{key:["b","c"],value:"foo"}]
 ```

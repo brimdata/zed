@@ -9,5 +9,5 @@ input: |
 output: |
   |[1,5]|
   |[null(ip),127.0.0.1]|
-  |["foo"((float64,string)),1.5((float64,string))]|
-  |[null((int64,string)),null(int64)((int64,string)),null(string)((int64,string))]|
+  |["foo",1.5]|
+  |[null,null(int64),null(string)]|

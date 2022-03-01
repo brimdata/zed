@@ -32,6 +32,6 @@ outputs:
       [1,2,3]
       |[1,2,3]|
       |{1:"foo",2:"bar"}|
-      [123((int64,string)),"hello"((int64,string))]
+      [123,"hello"]
       {tv:<int8>}
       {tv:<port=uint16>}

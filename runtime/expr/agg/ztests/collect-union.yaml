@@ -6,4 +6,4 @@ input: |
   {a:2}
 
 output: |
-  {collect:[{a:1}(({a:int64},{b:float64})),{b:1.5}(({a:int64},{b:float64})),{a:2}(({a:int64},{b:float64}))]}
+  {collect:[{a:1},{b:1.5},{a:2}]}

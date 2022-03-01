@@ -15,5 +15,5 @@ input: |
 
 output: |
   |[{x:1,s:"a"},{x:2,s:"b"},{x:3,s:"e"}]|
-  |[1((int64,string)),"1"((int64,string))]|
+  |[1,"1"]|
   |[[]([string])]|
