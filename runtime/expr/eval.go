@@ -647,7 +647,7 @@ func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.
 
 func deunion(ectx Context, typ zed.Type, b zcode.Bytes) *zed.Value {
 	if union, ok := typ.(*zed.TypeUnion); ok {
-		typ, _, b = union.SplitZNG(b)
+		typ, b = union.SplitZNG(b)
 	}
 	return ectx.NewValue(typ, b)
 }

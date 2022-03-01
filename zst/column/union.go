@@ -13,6 +13,7 @@ type UnionWriter struct {
 	typ      *zed.TypeUnion
 	values   []Writer
 	selector *IntWriter
+	presence *PresenceWriter
 }
 
 func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
@@ -24,11 +25,18 @@ func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
 		typ:      typ,
 		values:   values,
 		selector: NewIntWriter(spiller),
+		presence: NewPresenceWriter(spiller),
 	}
 }
 
 func (u *UnionWriter) Write(body zcode.Bytes) error {
-	_, selector, zv := u.typ.SplitZNG(body)
+	if body == nil {
+		u.presence.TouchNull()
+		return nil
+	}
+	u.presence.TouchValue()
+	typ, zv := u.typ.SplitZNG(body)
+	selector := u.typ.Selector(typ)
 	if err := u.selector.Write(int32(selector)); err != nil {
 		return err
 	}
@@ -64,6 +72,11 @@ func (u *UnionWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, 
 		return nil, err
 	}
 	cols = append(cols, zed.Column{"selector", typ})
+	typ, err = u.presence.EncodeMap(zctx, b)
+	if err != nil {
+		return nil, err
+	}
+	cols = append(cols, zed.Column{"presence", typ})
 	b.EndContainer()
 	return zctx.LookupTypeRecord(cols)
 }
@@ -71,6 +84,7 @@ func (u *UnionWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, 
 type UnionReader struct {
 	readers  []Reader
 	selector *IntReader
+	presence *PresenceReader
 }
 
 func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, error) {
@@ -103,13 +117,36 @@ func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, e
 	if err != nil {
 		return nil, err
 	}
+	presence := rec.Deref("presence").MissingAsNull()
+	if presence.IsNull() {
+		return nil, errors.New("ZST union missing presence")
+	}
+	d, err := NewPrimitiveReader(*presence, r)
+	if err != nil {
+		return nil, err
+	}
+	var pr *PresenceReader
+	if len(d.segmap) != 0 {
+		pr = NewPresence(IntReader{*d})
+	}
 	return &UnionReader{
 		readers:  readers,
 		selector: sr,
+		presence: pr,
 	}, nil
 }
 
 func (u *UnionReader) Read(b *zcode.Builder) error {
+	if u.presence != nil {
+		isval, err := u.presence.Read()
+		if err != nil {
+			return err
+		}
+		if !isval {
+			b.Append(nil)
+			return nil
+		}
+	}
 	selector, err := u.selector.Read()
 	if err != nil {
 		return err
