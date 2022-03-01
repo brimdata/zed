@@ -16,6 +16,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zfmt"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -94,6 +95,7 @@ https://github.com/brimdata/zed for more information.
 
 type Command struct {
 	*root.Command
+	canon       bool
 	quiet       bool
 	stopErr     bool
 	queryFlags  queryflags.Flags
@@ -112,6 +114,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.inputFlags.SetFlags(f, false)
 	c.procFlags.SetFlags(f)
 	c.queryFlags.SetFlags(f)
+	f.BoolVar(&c.canon, "C", false, "display AST in Zed canonical format")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.BoolVar(&c.quiet, "q", false, "don't display warnings")
 	return c, nil
@@ -126,9 +129,17 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 && len(c.queryFlags.Includes) == 0 {
 		return charm.NeedHelp
 	}
+	if c.canon && len(args) == 1 {
+		// Prevent ParseSourcesAndInputs from treating args[0] as a path.
+		args = append(args, "-")
+	}
 	paths, flowgraph, err := c.queryFlags.ParseSourcesAndInputs(args)
 	if err != nil {
 		return fmt.Errorf("zq: %w", err)
+	}
+	if c.canon {
+		fmt.Println(zfmt.AST(flowgraph))
+		return nil
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err

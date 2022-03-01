@@ -1,0 +1,16 @@
+script: |
+  zq -C a
+  zq -C -I query.zed
+  zq -C -I query.zed a
+
+inputs:
+  - name: query.zed
+    data: |
+      q
+
+outputs:
+  - name: stdout
+    data: |
+      search a
+      search q
+      search q and a
