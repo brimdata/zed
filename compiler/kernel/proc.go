@@ -189,6 +189,8 @@ func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return shape.New(b.pctx, parent)
 	case *dag.Join:
 		return nil, ErrJoinParents
+	case *dag.Merge:
+		return nil, errors.New("merge: multiple upstream paths required")
 	case *dag.Explode:
 		typ, err := zson.ParseType(b.pctx.Zctx, v.Type)
 		if err != nil {
