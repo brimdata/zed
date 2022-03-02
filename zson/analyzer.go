@@ -350,87 +350,43 @@ func (a Analyzer) convertArray(zctx *zed.Context, array *astzed.Array, cast zed.
 			Elements: vals,
 		}, nil
 	}
-	elems, err := a.normalizeElems(zctx, vals)
+	elems, inner, err := a.normalizeElems(zctx, vals)
 	if err != nil {
 		return nil, err
 	}
 	return &Array{
-		Type:     zctx.LookupTypeArray(elems[0].TypeOf()),
+		Type:     zctx.LookupTypeArray(inner),
 		Elements: elems,
 	}, nil
 }
 
-func (a Analyzer) normalizeElems(zctx *zed.Context, vals []Value) ([]Value, error) {
-	elemType := sameType(vals)
-	if elemType != nil {
-		// The elements are of uniform type.
-		return vals, nil
+func (a Analyzer) normalizeElems(zctx *zed.Context, vals []Value) ([]Value, zed.Type, error) {
+	types := make([]zed.Type, len(vals))
+	for i, val := range vals {
+		types[i] = val.TypeOf()
 	}
-	types := differentTypes(vals)
-	// See if vals is a mix of a single type and null type and
-	// if so return the vals set to the non-null type.
-	if vals := mixedNullElems(types, vals); vals != nil {
-		return vals, nil
+	unique := types[:0]
+	for _, typ := range zed.UniqueTypes(types) {
+		if typ != zed.TypeNull {
+			unique = append(unique, typ)
+		}
 	}
-	// The elements are of mixed type so create wrap each value in a union
-	// and create the TypeUnion.
-	unionType := zctx.LookupTypeUnion(types)
+	if len(unique) == 1 {
+		return vals, unique[0], nil
+	}
+	if len(unique) == 0 {
+		return vals, zed.TypeNull, nil
+	}
+	union := zctx.LookupTypeUnion(unique)
 	var unions []Value
 	for _, v := range vals {
-		union, err := a.convertUnion(zctx, v, unionType, unionType)
+		union, err := a.convertUnion(zctx, v, union, union)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		unions = append(unions, union)
 	}
-	return unions, nil
-}
-
-func mixedNullElems(types []zed.Type, vals []Value) []Value {
-	if len(types) != 2 {
-		return nil
-	}
-	var typ zed.Type
-	if types[0] == zed.TypeNull {
-		typ = types[1]
-	} else if types[1] == zed.TypeNull {
-		typ = types[0]
-	} else {
-		return nil
-	}
-	// There are two types but one of them is null.  We can use the
-	// non-nil type for the array and go back and change the null
-	// types to use this same type...
-	vals[0].SetType(typ)
-	vals[1].SetType(typ)
-	return vals
-}
-
-func sameType(vals []Value) zed.Type {
-	typ := vals[0].TypeOf()
-	for _, v := range vals[1:] {
-		if typ != v.TypeOf() {
-			return nil
-		}
-	}
-	return typ
-}
-
-func addUniq(types []zed.Type, typ zed.Type) []zed.Type {
-	for _, t := range types {
-		if t == typ {
-			return types
-		}
-	}
-	return append(types, typ)
-}
-
-func differentTypes(vals []Value) []zed.Type {
-	out := make([]zed.Type, 0, len(vals))
-	for _, v := range vals {
-		out = addUniq(out, v.TypeOf())
-	}
-	return out
+	return unions, union, nil
 }
 
 func (a Analyzer) convertSet(zctx *zed.Context, set *astzed.Set, cast zed.Type) (Value, error) {
@@ -459,12 +415,12 @@ func (a Analyzer) convertSet(zctx *zed.Context, set *astzed.Set, cast zed.Type) 
 			Elements: vals,
 		}, nil
 	}
-	elems, err := a.normalizeElems(zctx, vals)
+	elems, inner, err := a.normalizeElems(zctx, vals)
 	if err != nil {
 		return nil, err
 	}
 	return &Set{
-		Type:     zctx.LookupTypeSet(elems[0].TypeOf()),
+		Type:     zctx.LookupTypeSet(inner),
 		Elements: elems,
 	}, nil
 }
@@ -543,14 +499,14 @@ func (a Analyzer) convertMap(zctx *zed.Context, m *astzed.Map, cast zed.Type) (V
 			valType = zed.TypeNull
 		} else {
 			var err error
-			if keys, err = a.normalizeElems(zctx, keys); err != nil {
+			keys, keyType, err = a.normalizeElems(zctx, keys)
+			if err != nil {
 				return nil, err
 			}
-			if vals, err = a.normalizeElems(zctx, vals); err != nil {
+			vals, valType, err = a.normalizeElems(zctx, vals)
+			if err != nil {
 				return nil, err
 			}
-			keyType = keys[0].TypeOf()
-			valType = vals[0].TypeOf()
 		}
 		cast = zctx.LookupTypeMap(keyType, valType)
 	}

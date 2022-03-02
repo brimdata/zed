@@ -14,6 +14,7 @@ input: |
   |{::1/128:::1/128,2::/16:2::/16,3.3.3.0/24:3.3.3.0/24}|
   |{<int8>:<int8>}|
   |{null:null}|
+  |{null:null,null(int64):null(int64),null(string):null(string)}|
   {a:|{}|}
   {a:|{-1:-1,2:2}|}
   {a:|{1ns:1ns,2us:2us,3ms:3ms,4s:4s,5m:5m,6h:6h,7d:7d,8w:8w,9y:9y}|}
@@ -43,6 +44,7 @@ output: |
   |{3.3.3.0/24:3.3.3.0/24,::1/128:::1/128,2::/16:2::/16}|
   |{<int8>:<int8>}|
   |{null:null}|
+  |{null((int64,string)):null((int64,string)),null(int64)((int64,string)):null(int64)((int64,string)),null(string)((int64,string)):null(string)((int64,string))}|
   {a:|{}|(|{null:null}|)}
   {a:|{-1:-1,2:2}|}
   {a:|{1ns:1ns,2us:2us,3ms:3ms,4s:4s,5m:5m,6h:6h,7d:7d,56d:56d,9y:9y}|}

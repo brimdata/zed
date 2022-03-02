@@ -8,6 +8,7 @@ inputs:
       [null(int64),2]
       [null,null]
       [null((int64,string,null)),"foo"((int64,string,null)),3((int64,string,null))]
+      [null,null(string),null(int64)]
       {version:[1,null(int64)]}
       {version:[null(int64),2]}
       {version:[null,null]}
@@ -20,6 +21,7 @@ outputs:
       [null(int64),2]
       [null,null]
       [null((int64,string,null)),"foo"((int64,string,null)),3((int64,string,null))]
+      [null((int64,string)),null(string)((int64,string)),null(int64)((int64,string))]
       {version:[1,null(int64)]}
       {version:[null(int64),2]}
       {version:[null,null]}
