@@ -28,6 +28,7 @@ var unpacker = unpack.New(
 	Join{},
 	Literal{},
 	MapExpr{},
+	Merge{},
 	Shape{},
 	Spread{},
 	Over{},
