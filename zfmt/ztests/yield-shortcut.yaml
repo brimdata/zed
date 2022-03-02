@@ -1,7 +1,13 @@
 script: |
   zc -C '{x:1,...y}'
+  zc -C '[1,2,3]'
+  zc -C '|["foo","bar"]|'
+  zc -C '|{"foo":1,"bar":2}|'
 
 outputs:
   - name: stdout
     data: |
       yield {x:1,...y}
+      yield [1,2,3]
+      yield |["foo","bar"]|
+      yield |{"foo":1,"bar":2}|

@@ -166,7 +166,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.exprsTight(e.Exprs)
 		c.write("]|")
 	case *ast.MapExpr:
-		c.write("{[")
+		c.write("|{")
 		for k, e := range e.Entries {
 			if k != 0 {
 				c.write(",")
@@ -175,7 +175,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 			c.write(":")
 			c.expr(e.Value, false)
 		}
-		c.write("]}")
+		c.write("}|")
 	default:
 		c.write("(unknown expr %T)", e)
 	}
