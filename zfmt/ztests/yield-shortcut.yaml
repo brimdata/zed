@@ -1,0 +1,7 @@
+script: |
+  zc -C '{x:1,...y}'
+
+outputs:
+  - name: stdout
+    data: |
+      yield {x:1,...y}

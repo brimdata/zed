@@ -7,6 +7,7 @@ import (
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr/agg"
+	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -52,6 +53,15 @@ func (c *canon) exprs(exprs []ast.Expr) {
 	for k, e := range exprs {
 		if k > 0 {
 			c.write(", ")
+		}
+		c.expr(e, false)
+	}
+}
+
+func (c *canon) exprsTight(exprs []ast.Expr) {
+	for k, e := range exprs {
+		if k > 0 {
+			c.write(",")
 		}
 		c.expr(e, false)
 	}
@@ -126,10 +136,48 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write(")")
 	case *ast.Term:
 		c.write(e.Text)
+	case *ast.RecordExpr:
+		c.write("{")
+		for k, elem := range e.Elems {
+			if k != 0 {
+				c.write(",")
+			}
+			switch e := elem.(type) {
+			case *ast.Field:
+				c.write(zson.QuotedName(e.Name))
+				c.write(":")
+				c.expr(e.Value, false)
+			case *ast.ID:
+				c.write(zson.QuotedName(e.Name))
+			case *ast.Spread:
+				c.write("...")
+				c.expr(e.Expr, false)
+			default:
+				c.write("zfmt: unknown record elem type: %T", e)
+			}
+		}
+		c.write("}")
+	case *ast.ArrayExpr:
+		c.write("[")
+		c.exprsTight(e.Exprs)
+		c.write("]")
+	case *ast.SetExpr:
+		c.write("|[")
+		c.exprsTight(e.Exprs)
+		c.write("]|")
+	case *ast.MapExpr:
+		c.write("{[")
+		for k, e := range e.Entries {
+			if k != 0 {
+				c.write(",")
+			}
+			c.expr(e.Key, false)
+			c.write(":")
+			c.expr(e.Value, false)
+		}
+		c.write("]}")
 	default:
-		c.open("(unknown expr %T)", e)
-		c.close()
-		c.ret()
+		c.write("(unknown expr %T)", e)
 	}
 }
 
@@ -389,10 +437,14 @@ func (c *canon) proc(p ast.Proc) {
 			return
 		}
 		c.next()
+		var which string
 		e := p.Expr
-		which := "where "
 		if isSearch(e) {
 			which = "search "
+		} else if isBool(e) {
+			which = "where "
+		} else {
+			which = "yield "
 		}
 		c.open(which)
 		c.expr(e, false)
@@ -484,6 +536,35 @@ func isAggFunc(e ast.Expr) *ast.Summarize {
 			Kind: "Assignment",
 			RHS:  call,
 		}},
+	}
+}
+
+func isBool(e ast.Expr) bool {
+	switch e := e.(type) {
+	case *astzed.Primitive:
+		return e.Type == "bool"
+	case *ast.UnaryExpr:
+		return isBool(e.Operand)
+	case *ast.BinaryExpr:
+		switch e.Op {
+		case "and", "or", "in", "==", "!=", "<", "<=", ">", ">=":
+			return true
+		default:
+			return false
+		}
+	case *ast.Conditional:
+		return isBool(e.Then) && isBool(e.Else)
+	case *ast.Call:
+		return function.HasBoolResult(e.Name)
+	case *ast.Cast:
+		if typ, ok := e.Type.(*astzed.TypePrimitive); ok {
+			return typ.Name == "bool"
+		}
+		return false
+	case *ast.Grep, *ast.Regexp, *ast.Glob:
+		return true
+	default:
+		return false
 	}
 }
 
