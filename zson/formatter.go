@@ -305,37 +305,36 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 	return false, nil
 }
 
-type elemBuilder struct {
+type elemHelper struct {
 	typ   zed.Type
 	union *zed.TypeUnion
 	seen  map[zed.Type]struct{}
 }
 
-func newElemBuilder(typ zed.Type) *elemBuilder {
+func newElemBuilder(typ zed.Type) *elemHelper {
 	union, _ := zed.TypeUnder(typ).(*zed.TypeUnion)
-	return &elemBuilder{typ: typ, union: union, seen: make(map[zed.Type]struct{})}
+	return &elemHelper{typ: typ, union: union, seen: make(map[zed.Type]struct{})}
 }
 
-func (e *elemBuilder) add(b zcode.Bytes) (zed.Type, zcode.Bytes) {
-	if e.union != nil {
-		if b == nil {
-			// The type returned from union.SplitZNG for a null value will
-			// be the union type. While this is the correct type, for
-			// display purposes we do not want to see the decorator so just
-			// set the type to null.
-			return zed.TypeNull, b
-		} else {
-			typ, b := e.union.SplitZNG(b)
-			if _, ok := e.seen[typ]; !ok {
-				e.seen[typ] = struct{}{}
-			}
-			return typ, b
-		}
+func (e *elemHelper) add(b zcode.Bytes) (zed.Type, zcode.Bytes) {
+	if e.union == nil {
+		return e.typ, b
 	}
-	return e.typ, b
+	if b == nil {
+		// The type returned from union.SplitZNG for a null value will
+		// be the union type. While this is the correct type, for
+		// display purposes we do not want to see the decorator so just
+		// set the type to null.
+		return zed.TypeNull, b
+	}
+	typ, b := e.union.SplitZNG(b)
+	if _, ok := e.seen[typ]; !ok {
+		e.seen[typ] = struct{}{}
+	}
+	return typ, b
 }
 
-func (e *elemBuilder) needsDecoration() bool {
+func (e *elemHelper) needsDecoration() bool {
 	_, isnamed := e.typ.(*zed.TypeNamed)
 	return e.union != nil && (isnamed || len(e.seen) < len(e.union.Types))
 }
@@ -363,19 +362,19 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 	keyElems := newElemBuilder(typ.KeyType)
 	valElems := newElemBuilder(typ.ValType)
 	for it := bytes.Iter(); !it.Done(); {
-		kbytes := it.Next()
+		keyBytes := it.Next()
 		if it.Done() {
 			return empty, errors.New("truncated map value")
 		}
 		empty = false
 		f.build(sep)
 		f.indent(indent, "")
-		var ktyp zed.Type
-		ktyp, kbytes = keyElems.add(kbytes)
-		if err := f.formatValue(indent, ktyp, kbytes, known, parentImplied, true); err != nil {
+		var keyType zed.Type
+		keyType, keyBytes = keyElems.add(keyBytes)
+		if err := f.formatValue(indent, keyType, keyBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
-		if zed.TypeUnder(ktyp) == zed.TypeIP && len(kbytes) == 16 {
+		if zed.TypeUnder(keyType) == zed.TypeIP && len(keyBytes) == 16 {
 			// To avoid ambiguity, whitespace must separate an IPv6
 			// map key from the colon that follows it.
 			f.build(" ")
@@ -384,8 +383,8 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 		if f.tab > 0 {
 			f.build(" ")
 		}
-		vtyp, vb := valElems.add(it.Next())
-		if err := f.formatValue(indent, vtyp, vb, known, parentImplied, true); err != nil {
+		valType, valBytes := valElems.add(it.Next())
+		if err := f.formatValue(indent, valType, valBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
 		sep = "," + f.newline
