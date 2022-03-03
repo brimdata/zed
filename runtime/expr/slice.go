@@ -2,6 +2,7 @@ package expr
 
 import (
 	"errors"
+	"unicode/utf8"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/expr/coerce"
@@ -34,8 +35,10 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	var length int
 	switch zed.TypeUnder(elem.Type).(type) {
-	case *zed.TypeOfBytes, *zed.TypeOfString:
+	case *zed.TypeOfBytes:
 		length = len(elem.Bytes)
+	case *zed.TypeOfString:
+		length = utf8.RuneCount(elem.Bytes)
 	case *zed.TypeArray:
 		n, err := elem.ContainerLength()
 		if err != nil {
@@ -60,7 +63,13 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 		to = length
 	}
 	bytes := elem.Bytes
-	if _, ok := zed.TypeUnder(elem.Type).(*zed.TypeArray); ok {
+	switch zed.TypeUnder(elem.Type).(type) {
+	case *zed.TypeOfBytes:
+		bytes = bytes[from:to]
+	case *zed.TypeOfString:
+		bytes = bytes[utf8PrefixLen(bytes, from):]
+		bytes = bytes[:utf8PrefixLen(bytes, to-from)]
+	case *zed.TypeArray:
 		it := bytes.Iter()
 		for k := 0; k < to && !it.Done(); k++ {
 			if k == from {
@@ -69,11 +78,10 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 			it.Next()
 		}
 		bytes = bytes[:len(bytes)-len(it)]
-	} else {
-		bytes = bytes[from:to]
+	default:
+		panic(elem.Type)
 	}
 	return ectx.NewValue(elem.Type, bytes)
-
 }
 
 func sliceIndex(ectx Context, this *zed.Value, slot Evaluator, length int) (int, error) {
@@ -97,4 +105,21 @@ func sliceIndex(ectx Context, this *zed.Value, slot Evaluator, length int) (int,
 		return length, nil
 	}
 	return index, nil
+}
+
+// utf8PrefixLen returns the length in bytes of the first runeCount runes in b.
+// It returns 0 if runeCount<0 and len(b) if runeCount>utf8.RuneCount(b).
+func utf8PrefixLen(b []byte, runeCount int) int {
+	var i, runeCurrent int
+	for {
+		if runeCurrent >= runeCount {
+			return i
+		}
+		r, n := utf8.DecodeRune(b[i:])
+		if r == utf8.RuneError && n == 0 {
+			return i
+		}
+		i += n
+		runeCurrent++
+	}
 }
