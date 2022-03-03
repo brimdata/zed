@@ -285,27 +285,11 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 	indent += f.tab
 	sep := f.newline
 	it := zv.Iter()
-	union, _ := zed.TypeUnder(inner).(*zed.TypeUnion)
-	seen := make(map[zed.Type]struct{})
+	elems := newElemBuilder(inner)
 	for !it.Done() {
 		f.build(sep)
 		f.indent(indent, "")
-		b := it.Next()
-		typ := inner
-		if union != nil {
-			if b == nil {
-				// The type returned from union.SplitZNG for a null value will
-				// be the union type. While this is the correct type, for
-				// display purposes we do not want to see the decorator so just
-				// set the type to null.
-				typ = zed.TypeNull
-			} else {
-				typ, b = union.SplitZNG(b)
-				if _, ok := seen[typ]; !ok {
-					seen[typ] = struct{}{}
-				}
-			}
-		}
+		typ, b := elems.add(it.Next())
 		if err := f.formatValue(indent, typ, b, known, parentImplied, true); err != nil {
 			return true, err
 		}
@@ -313,12 +297,46 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 	}
 	f.build(f.newline)
 	f.indent(indent-f.tab, close)
-	if _, isnamed := inner.(*zed.TypeNamed); union != nil && (isnamed || len(seen) != len(union.Types)) {
+	if elems.needsDecoration() {
 		// If we haven't seen all the types in the union, print the decorator
 		// so the fullness of the union is persevered.
 		f.decorate(zv.Type, false, true)
 	}
 	return false, nil
+}
+
+type elemHelper struct {
+	typ   zed.Type
+	union *zed.TypeUnion
+	seen  map[zed.Type]struct{}
+}
+
+func newElemBuilder(typ zed.Type) *elemHelper {
+	union, _ := zed.TypeUnder(typ).(*zed.TypeUnion)
+	return &elemHelper{typ: typ, union: union, seen: make(map[zed.Type]struct{})}
+}
+
+func (e *elemHelper) add(b zcode.Bytes) (zed.Type, zcode.Bytes) {
+	if e.union == nil {
+		return e.typ, b
+	}
+	if b == nil {
+		// The type returned from union.SplitZNG for a null value will
+		// be the union type. While this is the correct type, for
+		// display purposes we do not want to see the decorator so just
+		// set the type to null.
+		return zed.TypeNull, b
+	}
+	typ, b := e.union.SplitZNG(b)
+	if _, ok := e.seen[typ]; !ok {
+		e.seen[typ] = struct{}{}
+	}
+	return typ, b
+}
+
+func (e *elemHelper) needsDecoration() bool {
+	_, isnamed := e.typ.(*zed.TypeNamed)
+	return e.union != nil && (isnamed || len(e.seen) < len(e.union.Types))
 }
 
 func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.Bytes) error {
@@ -341,19 +359,22 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 	f.build("|{")
 	indent += f.tab
 	sep := f.newline
+	keyElems := newElemBuilder(typ.KeyType)
+	valElems := newElemBuilder(typ.ValType)
 	for it := bytes.Iter(); !it.Done(); {
 		keyBytes := it.Next()
 		if it.Done() {
 			return empty, errors.New("truncated map value")
 		}
 		empty = false
-		valBytes := it.Next()
 		f.build(sep)
 		f.indent(indent, "")
-		if err := f.formatValue(indent, typ.KeyType, keyBytes, known, parentImplied, true); err != nil {
+		var keyType zed.Type
+		keyType, keyBytes = keyElems.add(keyBytes)
+		if err := f.formatValue(indent, keyType, keyBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
-		if zed.TypeUnder(typ.KeyType) == zed.TypeIP && len(keyBytes) == 16 {
+		if zed.TypeUnder(keyType) == zed.TypeIP && len(keyBytes) == 16 {
 			// To avoid ambiguity, whitespace must separate an IPv6
 			// map key from the colon that follows it.
 			f.build(" ")
@@ -362,13 +383,17 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 		if f.tab > 0 {
 			f.build(" ")
 		}
-		if err := f.formatValue(indent, typ.ValType, valBytes, known, parentImplied, true); err != nil {
+		valType, valBytes := valElems.add(it.Next())
+		if err := f.formatValue(indent, valType, valBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
 		sep = "," + f.newline
 	}
 	f.build(f.newline)
 	f.indent(indent-f.tab, "}|")
+	if keyElems.needsDecoration() || valElems.needsDecoration() {
+		f.decorate(typ, false, true)
+	}
 	return empty, nil
 }
 
