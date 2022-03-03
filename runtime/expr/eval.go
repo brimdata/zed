@@ -749,7 +749,7 @@ func NewCast(zctx *zed.Context, expr Evaluator, typ zed.Type) (Evaluator, error)
 	c := LookupPrimitiveCaster(zctx, typ)
 	if c == nil {
 		// XXX See issue #1572.  To implement named cast here.
-		return nil, fmt.Errorf("cast to '%s' not implemented", typ)
+		return nil, fmt.Errorf("cast to %q not implemented", zson.FormatType(typ))
 	}
 	return &evalCast{expr, c, typ}, nil
 }
