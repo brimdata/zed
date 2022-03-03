@@ -1,24 +1,17 @@
-script: |
-  zq -f zson -i zson -pretty=0 in.zson
+zed: "*"
 
-inputs:
-  - name: in.zson
-    data: |
-      [1((int64,string)),"b"((int64,string)),2((int64,string))]
-      [8((int64,string)),3((int64,string))]
-      ["hello"((int64,string)),"goodbye"((int64,string))]
-      [null,1,"hello"]
-      {version:[1((int64,string)),"b"((int64,string)),2((int64,string))]}
-      {version:[8((int64,string)),3((int64,string))]}
-      {version:["hello"((int64,string)),"goodbye"((int64,string))]}
+input: |
+  [1((int64,string)),"b"((int64,string)),2((int64,string))]
+  [8((int64,string)),3((int64,string))]
+  ["hello"((int64,string)),"goodbye"((int64,string))]
+  {version:[1((int64,string)),"b"((int64,string)),2((int64,string))]}
+  {version:[8((int64,string)),3((int64,string))]}
+  {version:["hello"((int64,string)),"goodbye"((int64,string))]}
 
-outputs:
-  - name: stdout
-    data: |
-      [1((int64,string)),"b"((int64,string)),2((int64,string))]
-      [8((int64,string)),3((int64,string))]
-      ["hello"((int64,string)),"goodbye"((int64,string))]
-      [null((int64,string)),1((int64,string)),"hello"((int64,string))]
-      {version:[1((int64,string)),"b"((int64,string)),2((int64,string))]}
-      {version:[8((int64,string)),3((int64,string))]}
-      {version:["hello"((int64,string)),"goodbye"((int64,string))]}
+output: |
+  [1,"b",2]
+  [8,3]([(int64,string)])
+  ["hello","goodbye"]([(int64,string)])
+  {version:[1,"b",2]}
+  {version:[8,3]([(int64,string)])}
+  {version:["hello","goodbye"]([(int64,string)])}

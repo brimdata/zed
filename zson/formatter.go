@@ -274,27 +274,50 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 
 func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, zv zed.Value, known, parentImplied bool) (bool, error) {
 	f.build(open)
-	len, err := zv.ContainerLength()
+	n, err := zv.ContainerLength()
 	if err != nil {
 		return true, err
 	}
-	if len == 0 {
+	if n == 0 {
 		f.build(close)
 		return true, nil
 	}
 	indent += f.tab
 	sep := f.newline
 	it := zv.Iter()
+	union, _ := zed.TypeUnder(inner).(*zed.TypeUnion)
+	seen := make(map[zed.Type]struct{})
 	for !it.Done() {
 		f.build(sep)
 		f.indent(indent, "")
-		if err := f.formatValue(indent, inner, it.Next(), known, parentImplied, true); err != nil {
+		b := it.Next()
+		typ := inner
+		if union != nil {
+			if b == nil {
+				// The type returned from union.SplitZNG for a null value will
+				// be the union type. While this is the correct type, for
+				// display purposes we do not want to see the decorator so just
+				// set the type to null.
+				typ = zed.TypeNull
+			} else {
+				typ, b = union.SplitZNG(b)
+				if _, ok := seen[typ]; !ok {
+					seen[typ] = struct{}{}
+				}
+			}
+		}
+		if err := f.formatValue(indent, typ, b, known, parentImplied, true); err != nil {
 			return true, err
 		}
 		sep = "," + f.newline
 	}
 	f.build(f.newline)
 	f.indent(indent-f.tab, close)
+	if _, isnamed := inner.(*zed.TypeNamed); union != nil && (isnamed || len(seen) != len(union.Types)) {
+		// If we haven't seen all the types in the union, print the decorator
+		// so the fullness of the union is persevered.
+		f.decorate(zv.Type, false, true)
+	}
 	return false, nil
 }
 

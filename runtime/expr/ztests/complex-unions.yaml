@@ -8,4 +8,4 @@ outputs:
     data: |
       |{1((int64,string)):"foo","bar"((int64,string)):"baz"}|
       |[null(ip),127.0.0.1]|
-      ["foo"((float64,string)),1.1((float64,string)),10.98((float64,string))]
+      ["foo",1.1,10.98]

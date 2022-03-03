@@ -40,5 +40,5 @@ echo '1 2 3 4 "foo"' | zq -z 'collect(this)' -
 ```
 =>
 ```mdtest-output
-{collect:[1((int64,string)),2((int64,string)),3((int64,string)),4((int64,string)),"foo"((int64,string))]}
+{collect:[1,2,3,4,"foo"]}
 ```
