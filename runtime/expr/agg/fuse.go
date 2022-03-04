@@ -7,7 +7,7 @@ import (
 )
 
 type fuse struct {
-	shapes   map[*zed.TypeRecord]int
+	shapes   map[zed.Type]int
 	partials []zed.Value
 }
 
@@ -15,16 +15,13 @@ var _ Function = (*fuse)(nil)
 
 func newFuse() *fuse {
 	return &fuse{
-		shapes: make(map[*zed.TypeRecord]int),
+		shapes: make(map[zed.Type]int),
 	}
 }
 
 func (f *fuse) Consume(val *zed.Value) {
-	// only works for record types, e.g., fuse(foo.x) where foo.x is a record
-	if typ := zed.TypeRecordOf(val.Type); typ != nil {
-		if _, ok := f.shapes[typ]; !ok {
-			f.shapes[typ] = len(f.shapes)
-		}
+	if _, ok := f.shapes[val.Type]; !ok {
+		f.shapes[val.Type] = len(f.shapes)
 	}
 }
 
@@ -39,13 +36,9 @@ func (f *fuse) Result(zctx *zed.Context) *zed.Value {
 		if err != nil {
 			panic(fmt.Errorf("fuse: invalid partial value: %w", err))
 		}
-		recType, ok := typ.(*zed.TypeRecord)
-		if !ok {
-			panic(fmt.Errorf("fuse: unexpected partial type %s", typ))
-		}
-		schema.Mixin(recType)
+		schema.Mixin(typ)
 	}
-	shapes := make([]*zed.TypeRecord, len(f.shapes))
+	shapes := make([]zed.Type, len(f.shapes))
 	for typ, i := range f.shapes {
 		shapes[i] = typ
 	}
