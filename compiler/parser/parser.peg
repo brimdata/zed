@@ -994,8 +994,8 @@ TypeLiteral
     }
 
 CastType
-  = TypeLiteral
-  / PrimitiveType
+  = "<" typ:Type ">" { RETURN(typ) } 
+  / typ:PrimitiveType
 
 Type
   = TypeLiteral

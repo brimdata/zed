@@ -1,0 +1,6 @@
+zed: yield <uint16>(this)
+
+input: "null"
+
+output: |
+  null(uint16)
