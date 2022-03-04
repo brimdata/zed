@@ -142,7 +142,16 @@ func shaperType(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (zed.T
 		if zed.IsPrimitiveType(inUnder) && zed.IsPrimitiveType(specUnder) {
 			// Matching field is a primitive: output type is cast type.
 			if LookupPrimitiveCaster(zctx, specUnder) == nil {
-				return nil, fmt.Errorf("cast to %s not implemented", spec)
+				return nil, fmt.Errorf("cast to %s not implemented", zson.FormatType(spec))
+			}
+			return spec, nil
+		}
+		if in, ok := inUnder.(*zed.TypeUnion); ok {
+			for _, t := range in.Types {
+				if _, err := shaperType(zctx, tf, spec, t); err != nil {
+					return nil, fmt.Errorf("cannot cast union %q to %q due to %q",
+						zson.FormatType(in), zson.FormatType(spec), zson.FormatType(t))
+				}
 			}
 			return spec, nil
 		}
@@ -282,7 +291,8 @@ const (
 	copyPrimitive op = iota // copy field fromIndex from input record
 	copyContainer
 	castPrimitive // cast field fromIndex from fromType to toType
-	castUnion     // cast field fromIndex from fromType to union with selector toSelector
+	castFromUnion // cast union value with selector s using children[s]
+	castToUnion   // cast non-union fromType to union toType with selector toSelector
 	null          // write null
 	array         // build array
 	set           // build set
@@ -294,11 +304,12 @@ const (
 type step struct {
 	op         op
 	fromIndex  int
-	fromType   zed.Type // for castPrimitive and castUnion
-	toSelector int      // for castUnion
+	fromType   zed.Type // for castPrimitive and castToUnion
+	toSelector int      // for castToUnion
 	toType     zed.Type // for castPrimitive
 	// if op == record, contains one op for each column.
 	// if op == array, contains one op for all array elements.
+	// if op == castFromUnion, contains one op per union selector.
 	children []step
 }
 
@@ -329,6 +340,7 @@ func createStepRecord(in, out *zed.TypeRecord) (step, error) {
 }
 
 func createStep(in, out zed.Type) (step, error) {
+Switch:
 	switch {
 	case in.ID() == zed.IDNull:
 		return step{op: null}, nil
@@ -349,11 +361,21 @@ func createStep(in, out zed.Type) (step, error) {
 		if _, ok := zed.TypeUnder(out).(*zed.TypeSet); ok {
 			return createStepSet(zed.InnerType(in), zed.InnerType(out))
 		}
+	case zed.IsUnionType(in):
+		var steps []step
+		for _, t := range zed.TypeUnder(in).(*zed.TypeUnion).Types {
+			s, err := createStep(t, out)
+			if err != nil {
+				break Switch
+			}
+			steps = append(steps, s)
+		}
+		return step{op: castFromUnion, children: steps}, nil
 	}
 	if s := bestUnionSelector(in, out); s != -1 {
-		return step{op: castUnion, fromType: in, toSelector: s}, nil
+		return step{op: castToUnion, fromType: in, toSelector: s}, nil
 	}
-	return step{}, fmt.Errorf("createStep: incompatible types %s and %s", in, out)
+	return step{}, fmt.Errorf("createStep: incompatible types %s and %s", zson.FormatType(in), zson.FormatType(out))
 }
 
 func isCollectionType(t zed.Type) bool {
@@ -420,7 +442,7 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 		if zerr := s.castPrimitive(zctx, ectx, in, b); zerr != nil {
 			return zerr
 		}
-	case castUnion:
+	case castToUnion:
 		zed.BuildUnion(b, s.toSelector, in)
 	case null:
 		b.Append(nil)
@@ -449,6 +471,15 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 			b.TransformContainer(zed.NormalizeSet)
 		}
 		b.EndContainer()
+	case castFromUnion:
+		if in == nil {
+			b.Append(nil)
+			return nil
+		}
+		it := in.Iter()
+		selector := int(zed.DecodeInt(it.Next()))
+		body := it.Next()
+		return s.children[selector].build(zctx, ectx, body, b)
 	}
 	return nil
 }
