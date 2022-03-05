@@ -41,6 +41,9 @@ func (b *builder) appendValue(typ zed.Type, v interface{}) {
 			b.buf = zed.AppendUint(b.buf[:0], uint64(v))
 		}
 		b.Append(b.buf)
+	case [12]uint8:
+		// This is an INT96.
+		b.Append(v[:])
 	case map[string]interface{}:
 		switch typ := zed.TypeUnder(typ).(type) {
 		case *zed.TypeArray:
