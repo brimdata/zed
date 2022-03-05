@@ -13,9 +13,11 @@ type Writer struct {
 }
 
 func NewWriter(wc io.WriteCloser) *Writer {
+	e := json.NewEncoder(wc)
+	e.SetEscapeHTML(false)
 	return &Writer{
 		Closer:  wc,
-		encoder: json.NewEncoder(wc),
+		encoder: e,
 	}
 }
 

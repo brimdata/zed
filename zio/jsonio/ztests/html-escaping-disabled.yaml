@@ -1,0 +1,9 @@
+zed: '*'
+
+input: &input |
+  "<>&"
+  {"<>&":"<>&"}
+
+output-flags: -f json
+
+output: *input

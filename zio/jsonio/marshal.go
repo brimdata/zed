@@ -1,6 +1,7 @@
 package jsonio
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"time"
@@ -79,22 +80,24 @@ type field struct {
 }
 
 func (r record) MarshalJSON() ([]byte, error) {
-	buf := []byte{'{'}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	buf.WriteByte('{')
 	for i, field := range r {
 		if i > 0 {
-			buf = append(buf, ',')
+			buf.WriteByte(',')
 		}
-		name, err := json.Marshal(field.name)
-		if err != nil {
+		if err := enc.Encode(field.name); err != nil {
 			return nil, err
 		}
-		value, err := json.Marshal(field.value)
-		if err != nil {
+		buf.WriteByte(':')
+		if err := enc.Encode(field.value); err != nil {
 			return nil, err
 		}
-		buf = append(append(append(buf, name...), ':'), value...)
 	}
-	return append(buf, '}'), nil
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
 }
 
 func marshalArray(typ *zed.TypeArray, bytes zcode.Bytes) interface{} {
