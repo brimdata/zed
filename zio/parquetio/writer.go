@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	goparquet "github.com/fraugster/parquet-go"
+	"github.com/fraugster/parquet-go/parquet"
 )
 
 type Writer struct {
@@ -38,7 +39,9 @@ func (w *Writer) Write(rec *zed.Value) error {
 		if err != nil {
 			return err
 		}
-		w.fw = goparquet.NewFileWriter(w.w, goparquet.WithSchemaDefinition(sd))
+		w.fw = goparquet.NewFileWriter(w.w,
+			goparquet.WithCompressionCodec(parquet.CompressionCodec_SNAPPY),
+			goparquet.WithSchemaDefinition(sd))
 	} else if w.typ != recType {
 		return errors.New(
 			"Parquet output requires uniform records but multiple types encountered (consider 'fuse')")
