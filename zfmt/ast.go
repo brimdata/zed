@@ -439,9 +439,9 @@ func (c *canon) proc(p ast.Proc) {
 		c.next()
 		var which string
 		e := p.Expr
-		if isSearch(e) {
+		if IsSearch(e) {
 			which = "search "
-		} else if isBool(e) {
+		} else if IsBool(e) {
 			which = "where "
 		} else {
 			which = "yield "
@@ -539,12 +539,12 @@ func isAggFunc(e ast.Expr) *ast.Summarize {
 	}
 }
 
-func isBool(e ast.Expr) bool {
+func IsBool(e ast.Expr) bool {
 	switch e := e.(type) {
 	case *astzed.Primitive:
 		return e.Type == "bool"
 	case *ast.UnaryExpr:
-		return isBool(e.Operand)
+		return IsBool(e.Operand)
 	case *ast.BinaryExpr:
 		switch e.Op {
 		case "and", "or", "in", "==", "!=", "<", "<=", ">", ">=":
@@ -553,7 +553,7 @@ func isBool(e ast.Expr) bool {
 			return false
 		}
 	case *ast.Conditional:
-		return isBool(e.Then) && isBool(e.Else)
+		return IsBool(e.Then) && IsBool(e.Else)
 	case *ast.Call:
 		return function.HasBoolResult(e.Name)
 	case *ast.Cast:
@@ -568,19 +568,19 @@ func isBool(e ast.Expr) bool {
 	}
 }
 
-func isSearch(e ast.Expr) bool {
+func IsSearch(e ast.Expr) bool {
 	switch e := e.(type) {
 	case *ast.Regexp, *ast.Glob, *ast.Term:
 		return true
 	case *ast.BinaryExpr:
 		switch e.Op {
 		case "and", "or":
-			return isSearch(e.LHS) || isSearch(e.RHS)
+			return IsSearch(e.LHS) || IsSearch(e.RHS)
 		default:
 			return false
 		}
 	case *ast.UnaryExpr:
-		return isSearch(e.Operand)
+		return IsSearch(e.Operand)
 	default:
 		return false
 	}
