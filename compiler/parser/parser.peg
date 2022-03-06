@@ -379,7 +379,7 @@ FuseProc
     }
 
 ShapeProc
-  = "shape" {
+  = "shape" !(__ "(") {
       RETURN(MAP("kind": "Shape"))
     }
 
@@ -994,7 +994,7 @@ TypeLiteral
     }
 
 CastType
-  = "<" typ:Type ">" { RETURN(typ) } 
+  = "<" typ:Type ">" { RETURN(typ) }
   / typ:PrimitiveType
 
 Type
