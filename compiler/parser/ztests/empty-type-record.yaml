@@ -1,0 +1,7 @@
+zed: yield <{}>
+
+input: |
+  null
+
+output: |
+  <{}>
