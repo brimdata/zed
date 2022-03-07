@@ -9,52 +9,53 @@ import (
 )
 
 // A ShaperTransform represents one of the different transforms that a
-// shaper can apply.  The transforms are represented as a bit flags that
+// shaper can apply.  The transforms are represented as bit flags that
 // can be bitwise-ored together to create a single shaping operator that
 // represents the composition of all operators.  This composition is efficient
-// as it is carried once per incoming type signature and then the resulting
+// as it is created once per incoming type and then the resulting
 // operator is run for every value of that type.
 type ShaperTransform int
 
 const (
 	Cast ShaperTransform = 1 << iota
-	Fill
 	Crop
+	Fill
 	Order
 )
 
 type Shaper struct {
 	zctx       *zed.Context
-	typExpr    Evaluator
 	expr       Evaluator
-	shapers    map[zed.Type]*ConstShaper
+	typeExpr   Evaluator
 	transforms ShaperTransform
+
+	shapers map[zed.Type]*ConstShaper
 }
 
 // NewShaper returns a shaper that will shape the result of expr
-// to the type returned by typExpr.
-func NewShaper(zctx *zed.Context, expr, typExpr Evaluator, tf ShaperTransform) *Shaper {
+// to the type returned by typeExpr according to tf.
+func NewShaper(zctx *zed.Context, expr, typeExpr Evaluator, tf ShaperTransform) *Shaper {
 	return &Shaper{
 		zctx:       zctx,
-		typExpr:    typExpr,
 		expr:       expr,
-		shapers:    make(map[zed.Type]*ConstShaper),
+		typeExpr:   typeExpr,
 		transforms: tf,
+		shapers:    make(map[zed.Type]*ConstShaper),
 	}
 }
 
 func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	//XXX should have a fast path for constant types
-	typVal := s.typExpr.Eval(ectx, this)
-	if typVal.IsError() {
-		return typVal
+	typeVal := s.typeExpr.Eval(ectx, this)
+	if typeVal.IsError() {
+		return typeVal
 	}
 	//XXX TypeUnder?
-	if typVal.Type != zed.TypeType {
+	if typeVal.Type != zed.TypeType {
 		return ectx.CopyValue(*s.zctx.NewErrorf(
-			"shaper type argument is not a type: %s", zson.MustFormatValue(*typVal)))
+			"shaper type argument is not a type: %s", zson.MustFormatValue(*typeVal)))
 	}
-	shapeTo, err := s.zctx.LookupByValue(typVal.Bytes)
+	shapeTo, err := s.zctx.LookupByValue(typeVal.Bytes)
 	if err != nil {
 		panic(err)
 	}
@@ -70,11 +71,12 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 
 type ConstShaper struct {
 	zctx       *zed.Context
-	b          zcode.Builder
 	expr       Evaluator
 	shapeTo    zed.Type
-	shapers    map[int]*shaper // map from input type ID to shaper
 	transforms ShaperTransform
+
+	b       zcode.Builder
+	shapers map[int]*shaper // map from input type ID to shaper
 }
 
 // NewConstShaper returns a shaper that will shape the result of expr
@@ -84,8 +86,8 @@ func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf Shap
 		zctx:       zctx,
 		expr:       expr,
 		shapeTo:    shapeTo,
-		shapers:    make(map[int]*shaper),
 		transforms: tf,
+		shapers:    make(map[int]*shaper),
 	}
 }
 
@@ -98,7 +100,7 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	s, ok := c.shapers[id]
 	if !ok {
 		var err error
-		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, val.Type)
+		s, err = newShaper(c.zctx, c.transforms, val.Type, c.shapeTo)
 		if err != nil {
 			return ectx.CopyValue(*c.zctx.NewError(err))
 		}
@@ -115,61 +117,61 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 }
 
 // A shaper is a per-input type ID "spec" that contains the output
-// type and the op to create an output record.
+// type and the op to create an output value.
 type shaper struct {
 	typ  zed.Type
 	step step
 }
 
-func createShaper(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (*shaper, error) {
-	typ, err := shaperType(zctx, tf, spec, in)
+func newShaper(zctx *zed.Context, tf ShaperTransform, in, out zed.Type) (*shaper, error) {
+	typ, err := shaperType(zctx, tf, in, out)
 	if err != nil {
 		return nil, err
 	}
-	step, err := createStep(in, typ)
+	step, err := newStep(in, typ)
 	return &shaper{typ, step}, err
 }
 
-func shaperType(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (zed.Type, error) {
-	inUnder, specUnder := zed.TypeUnder(in), zed.TypeUnder(spec)
-	if tf&Cast > 0 {
-		if inUnder == specUnder || inUnder == zed.TypeNull {
-			return spec, nil
+func shaperType(zctx *zed.Context, tf ShaperTransform, in, out zed.Type) (zed.Type, error) {
+	inUnder, outUnder := zed.TypeUnder(in), zed.TypeUnder(out)
+	if tf&Cast != 0 {
+		if inUnder == outUnder || inUnder == zed.TypeNull {
+			return out, nil
 		}
-		if isMap(specUnder) {
+		if isMap(outUnder) {
 			return nil, fmt.Errorf("cannot yet use maps in shaping functions (issue #2894)")
 		}
-		if zed.IsPrimitiveType(inUnder) && zed.IsPrimitiveType(specUnder) {
+		if zed.IsPrimitiveType(inUnder) && zed.IsPrimitiveType(outUnder) {
 			// Matching field is a primitive: output type is cast type.
-			if LookupPrimitiveCaster(zctx, specUnder) == nil {
-				return nil, fmt.Errorf("cast to %s not implemented", zson.FormatType(spec))
+			if LookupPrimitiveCaster(zctx, outUnder) == nil {
+				return nil, fmt.Errorf("cast to %s not implemented", zson.FormatType(out))
 			}
-			return spec, nil
+			return out, nil
 		}
 		if in, ok := inUnder.(*zed.TypeUnion); ok {
 			for _, t := range in.Types {
-				if _, err := shaperType(zctx, tf, spec, t); err != nil {
+				if _, err := shaperType(zctx, tf, t, out); err != nil {
 					return nil, fmt.Errorf("cannot cast union %q to %q due to %q",
-						zson.FormatType(in), zson.FormatType(spec), zson.FormatType(t))
+						zson.FormatType(in), zson.FormatType(out), zson.FormatType(t))
 				}
 			}
-			return spec, nil
+			return out, nil
 		}
-		if bestUnionSelector(in, specUnder) > -1 {
-			return spec, nil
+		if bestUnionSelector(in, outUnder) > -1 {
+			return out, nil
 		}
-	} else if inUnder == specUnder {
+	} else if inUnder == outUnder {
 		return in, nil
 	}
 	if inRec, ok := inUnder.(*zed.TypeRecord); ok {
-		if specRec, ok := specUnder.(*zed.TypeRecord); ok {
-			cols, err := shaperColumns(zctx, tf, specRec, inRec)
+		if outRec, ok := outUnder.(*zed.TypeRecord); ok {
+			cols, err := shaperColumns(zctx, tf, inRec, outRec)
 			if err != nil {
 				return nil, err
 			}
-			if tf&Cast > 0 {
-				if equalColumns(cols, specRec.Columns) {
-					return spec, nil
+			if tf&Cast != 0 {
+				if equalColumns(cols, outRec.Columns) {
+					return out, nil
 				}
 			} else if equalColumns(cols, inRec.Columns) {
 				return in, nil
@@ -177,20 +179,20 @@ func shaperType(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (zed.T
 			return zctx.LookupTypeRecord(cols)
 		}
 	}
-	inInner, specInner := zed.InnerType(inUnder), zed.InnerType(specUnder)
-	if inInner != nil && specInner != nil && (tf&Cast > 0 || isArray(inUnder) == isArray(specUnder)) {
-		t, err := shaperType(zctx, tf, specInner, inInner)
+	inInner, outInner := zed.InnerType(inUnder), zed.InnerType(outUnder)
+	if inInner != nil && outInner != nil && (tf&Cast != 0 || isArray(inUnder) == isArray(outUnder)) {
+		t, err := shaperType(zctx, tf, inInner, outInner)
 		if err != nil {
 			return nil, err
 		}
-		if tf&Cast > 0 {
-			if t == specInner {
-				return spec, nil
+		if tf&Cast != 0 {
+			if t == outInner {
+				return out, nil
 			}
 		} else if t == inInner {
 			return in, nil
 		}
-		if isArray(specUnder) {
+		if isArray(outUnder) {
 			return zctx.LookupTypeArray(t), nil
 		}
 		return zctx.LookupTypeSet(t), nil
@@ -198,32 +200,32 @@ func shaperType(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (zed.T
 	return in, nil
 }
 
-func shaperColumns(zctx *zed.Context, tf ShaperTransform, specRec, inRec *zed.TypeRecord) ([]zed.Column, error) {
-	crop, fill := tf&Crop > 0, tf&Fill > 0
+func shaperColumns(zctx *zed.Context, tf ShaperTransform, in, out *zed.TypeRecord) ([]zed.Column, error) {
+	crop, fill := tf&Crop != 0, tf&Fill != 0
 	if tf&Order == 0 {
 		crop, fill = !fill, !crop
-		specRec, inRec = inRec, specRec
+		out, in = in, out
 	}
 	var cols []zed.Column
-	for _, specCol := range specRec.Columns {
-		if inColType, ok := inRec.TypeOfField(specCol.Name); ok {
-			specColType := specCol.Type
+	for _, outCol := range out.Columns {
+		if inColType, ok := in.TypeOfField(outCol.Name); ok {
+			outColType := outCol.Type
 			if tf&Order == 0 {
-				// Counteract the swap of specRec and inRec above.
-				specColType, inColType = inColType, specColType
+				// Counteract the swap of in and out above.
+				outColType, inColType = inColType, outColType
 			}
-			t, err := shaperType(zctx, tf, specColType, inColType)
+			t, err := shaperType(zctx, tf, inColType, outColType)
 			if err != nil {
 				return nil, err
 			}
-			cols = append(cols, zed.Column{Name: specCol.Name, Type: t})
+			cols = append(cols, zed.Column{Name: outCol.Name, Type: t})
 		} else if fill {
-			cols = append(cols, specCol)
+			cols = append(cols, outCol)
 		}
 	}
 	if !crop {
-		for _, inCol := range inRec.Columns {
-			if !specRec.HasField(inCol.Name) {
+		for _, inCol := range in.Columns {
+			if !out.HasField(inCol.Name) {
 				cols = append(cols, inCol)
 			}
 		}
@@ -232,21 +234,21 @@ func shaperColumns(zctx *zed.Context, tf ShaperTransform, specRec, inRec *zed.Ty
 }
 
 // bestUnionSelector tries to return the most specific union selector for in
-// within spec.  It returns -1 if spec is not a union or contains no type
+// within out.  It returns -1 if out is not a union or contains no type
 // compatible with in.  (Types are compatible if they have the same underlying
-// type.)  If spec contains in, bestUnionSelector returns its selector.
-// Otherwise, if spec contains in's underlying type, bestUnionSelector returns
+// type.)  If out contains in, bestUnionSelector returns its selector.
+// Otherwise, if out contains in's underlying type, bestUnionSelector returns
 // its selector.  Finally, bestUnionSelector returns the smallest selector in
-// spec whose type is compatible with in.
-func bestUnionSelector(in, spec zed.Type) int {
-	specUnion, ok := zed.TypeUnder(spec).(*zed.TypeUnion)
+// out whose type is compatible with in.
+func bestUnionSelector(in, out zed.Type) int {
+	outUnion, ok := zed.TypeUnder(out).(*zed.TypeUnion)
 	if !ok {
 		return -1
 	}
 	typeUnderIn := zed.TypeUnder(in)
 	underlying := -1
 	compatible := -1
-	for i, t := range specUnion.Types {
+	for i, t := range outUnion.Types {
 		if t == in {
 			return i
 		}
@@ -288,15 +290,14 @@ func isMap(t zed.Type) bool {
 type op int
 
 const (
-	copyPrimitive op = iota // copy field fromIndex from input record
-	copyContainer
-	castPrimitive // cast field fromIndex from fromType to toType
-	castFromUnion // cast union value with selector s using children[s]
-	castToUnion   // cast non-union fromType to union toType with selector toSelector
-	null          // write null
-	array         // build array
-	set           // build set
-	record        // build record
+	copyOp        op = iota // copy field fromIndex from input record
+	castPrimitive           // cast field fromIndex from fromType to toType
+	castFromUnion           // cast union value with selector s using children[s]
+	castToUnion             // cast non-union fromType to union toType with selector toSelector
+	null                    // write null
+	array                   // build array
+	set                     // build set
+	record                  // build record
 )
 
 // A step is a recursive data structure encoding a series of
@@ -313,58 +314,28 @@ type step struct {
 	children []step
 }
 
-// create the step needed to build a record of type out from a
-// record of type in. The two types must be compatible, meaning that
-// the input type must be an unordered subset of the input type
-// (where 'unordered' means that if the output type has record fields
-// [a b] and the input type has fields [b a] that is ok). It is also
-// ok for leaf primitive types to be different; if they are a casting
-// step is inserted.
-func createStepRecord(in, out *zed.TypeRecord) (step, error) {
-	s := step{op: record}
-	for _, outCol := range out.Columns {
-		ind, ok := in.ColumnOfField(outCol.Name)
-		if !ok {
-			s.append(step{op: null})
-			continue
-		}
-		inCol := in.Columns[ind]
-		child, err := createStep(inCol.Type, outCol.Type)
-		if err != nil {
-			return step{}, err
-		}
-		child.fromIndex = ind
-		s.append(child)
-	}
-	return s, nil
-}
-
-func createStep(in, out zed.Type) (step, error) {
+func newStep(in, out zed.Type) (step, error) {
 Switch:
 	switch {
 	case in.ID() == zed.IDNull:
 		return step{op: null}, nil
 	case in.ID() == out.ID():
-		if zed.IsContainerType(in) {
-			return step{op: copyContainer}, nil
-		} else {
-			return step{op: copyPrimitive}, nil
-		}
+		return step{op: copyOp}, nil
 	case zed.IsRecordType(in) && zed.IsRecordType(out):
-		return createStepRecord(zed.TypeRecordOf(in), zed.TypeRecordOf(out))
+		return newRecordStep(zed.TypeRecordOf(in), zed.TypeRecordOf(out))
 	case zed.IsPrimitiveType(in) && zed.IsPrimitiveType(out):
 		return step{op: castPrimitive, fromType: in, toType: out}, nil
-	case isCollectionType(in):
-		if _, ok := zed.TypeUnder(out).(*zed.TypeArray); ok {
-			return createStepArray(zed.InnerType(in), zed.InnerType(out))
+	case zed.InnerType(in) != nil:
+		if out, ok := zed.TypeUnder(out).(*zed.TypeArray); ok {
+			return newArrayOrSetStep(array, zed.InnerType(in), out.Type)
 		}
-		if _, ok := zed.TypeUnder(out).(*zed.TypeSet); ok {
-			return createStepSet(zed.InnerType(in), zed.InnerType(out))
+		if out, ok := zed.TypeUnder(out).(*zed.TypeSet); ok {
+			return newArrayOrSetStep(set, zed.InnerType(in), out.Type)
 		}
 	case zed.IsUnionType(in):
 		var steps []step
 		for _, t := range zed.TypeUnder(in).(*zed.TypeUnion).Types {
-			s, err := createStep(t, out)
+			s, err := newStep(t, out)
 			if err != nil {
 				break Switch
 			}
@@ -378,36 +349,37 @@ Switch:
 	return step{}, fmt.Errorf("createStep: incompatible types %s and %s", zson.FormatType(in), zson.FormatType(out))
 }
 
-func isCollectionType(t zed.Type) bool {
-	switch zed.TypeUnder(t).(type) {
-	case *zed.TypeArray, *zed.TypeSet:
-		return true
+// newRecordStep returns a step that will build a record of type out from a
+// record of type in. The two types must be compatible, meaning that
+// the input type must be an unordered subset of the input type
+// (where 'unordered' means that if the output type has record fields
+// [a b] and the input type has fields [b a] that is ok). It is also
+// ok for leaf primitive types to be different; if they are a casting
+// step is inserted.
+func newRecordStep(in, out *zed.TypeRecord) (step, error) {
+	var children []step
+	for _, outCol := range out.Columns {
+		ind, ok := in.ColumnOfField(outCol.Name)
+		if !ok {
+			children = append(children, step{op: null})
+			continue
+		}
+		child, err := newStep(in.Columns[ind].Type, outCol.Type)
+		if err != nil {
+			return step{}, err
+		}
+		child.fromIndex = ind
+		children = append(children, child)
 	}
-	return false
+	return step{op: record, children: children}, nil
 }
 
-func createStepArray(in, out zed.Type) (step, error) {
-	s := step{op: array}
-	innerOp, err := createStep(in, out)
+func newArrayOrSetStep(op op, in, out zed.Type) (step, error) {
+	innerStep, err := newStep(in, out)
 	if err != nil {
 		return step{}, nil
 	}
-	s.append(innerOp)
-	return s, nil
-}
-
-func createStepSet(in, out zed.Type) (step, error) {
-	s := step{op: set}
-	innerOp, err := createStep(in, out)
-	if err != nil {
-		return step{}, nil
-	}
-	s.append(innerOp)
-	return s, nil
-}
-
-func (s *step) append(step step) {
-	s.children = append(s.children, step)
+	return step{op: op, children: []step{innerStep}}, nil
 }
 
 func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
@@ -433,10 +405,7 @@ func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *z
 
 func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
 	switch s.op {
-	//XXX can consolite copyPrimitive and copyContainer
-	case copyPrimitive:
-		b.Append(in)
-	case copyContainer:
+	case copyOp:
 		b.Append(in)
 	case castPrimitive:
 		if zerr := s.castPrimitive(zctx, ectx, in, b); zerr != nil {
