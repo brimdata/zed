@@ -11,7 +11,6 @@ var unpacker = unpack.New(
 	Assignment{},
 	BinaryExpr{},
 	Call{},
-	Cast{},
 	Conditional{},
 	Cut{},
 	Dot{},

@@ -93,14 +93,14 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		typ, err := semType(scope, e.Type)
+		typ, err := semExpr(scope, e.Type)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Cast{
-			Kind: "Cast",
-			Expr: expr,
-			Type: typ,
+		return &dag.Call{
+			Kind: "Call",
+			Name: "cast",
+			Args: []dag.Expr{expr, typ},
 		}, nil
 	case *astzed.TypeValue:
 		typ, err := semType(scope, e.Value)

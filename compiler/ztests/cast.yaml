@@ -1,6 +1,11 @@
-zed: yield <uint16>(this)
+script: |
+  zq -z 'type port = uint16 yield <port>(80)'
+  zq -z 'yield <(uint16,string)>("foo")'
+  zq -z 'yield <{x:uint16}>({x:1})'
 
-input: "null"
-
-output: |
-  null(uint16)
+outputs:
+  - name: stdout
+    data: |
+      80(port=uint16)
+      "foo"((uint16,string))
+      {x:1(uint16)}

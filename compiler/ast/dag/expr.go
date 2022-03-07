@@ -27,11 +27,6 @@ type (
 		Name string `json:"name"`
 		Args []Expr `json:"args"`
 	}
-	Cast struct {
-		Kind string `json:"kind" unpack:""`
-		Expr Expr   `json:"expr"`
-		Type string `json:"type"`
-	}
 	Conditional struct {
 		Kind string `json:"kind" unpack:""`
 		Cond Expr   `json:"cond"`
@@ -120,7 +115,6 @@ func (*Assignment) ExprDAG()   {}
 func (*ArrayExpr) ExprDAG()    {}
 func (*BinaryExpr) ExprDAG()   {}
 func (*Call) ExprDAG()         {}
-func (*Cast) ExprDAG()         {}
 func (*Conditional) ExprDAG()  {}
 func (*Dot) ExprDAG()          {}
 func (*Literal) ExprDAG()      {}

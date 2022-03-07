@@ -557,8 +557,10 @@ func IsBool(e ast.Expr) bool {
 	case *ast.Call:
 		return function.HasBoolResult(e.Name)
 	case *ast.Cast:
-		if typ, ok := e.Type.(*astzed.TypePrimitive); ok {
-			return typ.Name == "bool"
+		if typval, ok := e.Type.(*astzed.TypeValue); ok {
+			if typ, ok := typval.Value.(*astzed.TypePrimitive); ok {
+				return typ.Name == "bool"
+			}
 		}
 		return false
 	case *ast.Grep, *ast.Regexp, *ast.Glob:

@@ -850,18 +850,18 @@ function peg$parse(input, options) {
       peg$c390 = function(typ) {
             return {"kind": "TypeValue", "value": typ}
           },
-      peg$c391 = function(typ) { return typ },
-      peg$c392 = function(name) { return name },
-      peg$c393 = function(name, typ) {
+      peg$c391 = function(name) { return name },
+      peg$c392 = function(name, typ) {
             return {"kind": "TypeDef", "name": name, "type": typ}
         },
-      peg$c394 = function(name) {
+      peg$c393 = function(name) {
             return {"kind": "TypeName", "name": name}
           },
-      peg$c395 = function(u) { return u },
-      peg$c396 = function(types) {
+      peg$c394 = function(u) { return u },
+      peg$c395 = function(types) {
             return {"kind": "TypeUnion", "types": types}
           },
+      peg$c396 = function(typ) { return typ },
       peg$c397 = function(fields) {
             return {"kind":"TypeRecord", "fields":fields}
           },
@@ -10487,44 +10487,17 @@ function peg$parse(input, options) {
   }
 
   function peg$parseCastType() {
-    var s0, s1, s2, s3;
+    var s0, s1;
 
-    s0 = peg$currPos;
-    if (input.charCodeAt(peg$currPos) === 60) {
-      s1 = peg$c64;
-      peg$currPos++;
-    } else {
-      s1 = peg$FAILED;
-      if (peg$silentFails === 0) { peg$fail(peg$c65); }
-    }
-    if (s1 !== peg$FAILED) {
-      s2 = peg$parseType();
-      if (s2 !== peg$FAILED) {
-        if (input.charCodeAt(peg$currPos) === 62) {
-          s3 = peg$c68;
-          peg$currPos++;
-        } else {
-          s3 = peg$FAILED;
-          if (peg$silentFails === 0) { peg$fail(peg$c69); }
-        }
-        if (s3 !== peg$FAILED) {
-          peg$savedPos = s0;
-          s1 = peg$c391(s2);
-          s0 = s1;
-        } else {
-          peg$currPos = s0;
-          s0 = peg$FAILED;
-        }
-      } else {
-        peg$currPos = s0;
-        s0 = peg$FAILED;
-      }
-    } else {
-      peg$currPos = s0;
-      s0 = peg$FAILED;
-    }
+    s0 = peg$parseTypeLiteral();
     if (s0 === peg$FAILED) {
-      s0 = peg$parsePrimitiveType();
+      s0 = peg$currPos;
+      s1 = peg$parsePrimitiveType();
+      if (s1 !== peg$FAILED) {
+        peg$savedPos = s0;
+        s1 = peg$c390(s1);
+      }
+      s0 = s1;
     }
 
     return s0;
@@ -10562,7 +10535,7 @@ function peg$parse(input, options) {
       }
       if (s2 !== peg$FAILED) {
         peg$savedPos = s0;
-        s1 = peg$c392(s1);
+        s1 = peg$c391(s1);
         s0 = s1;
       } else {
         peg$currPos = s0;
@@ -10591,7 +10564,7 @@ function peg$parse(input, options) {
               s5 = peg$parseType();
               if (s5 !== peg$FAILED) {
                 peg$savedPos = s0;
-                s1 = peg$c393(s1, s5);
+                s1 = peg$c392(s1, s5);
                 s0 = s1;
               } else {
                 peg$currPos = s0;
@@ -10618,7 +10591,7 @@ function peg$parse(input, options) {
         s1 = peg$parseIdentifierName();
         if (s1 !== peg$FAILED) {
           peg$savedPos = s0;
-          s1 = peg$c394(s1);
+          s1 = peg$c393(s1);
         }
         s0 = s1;
         if (s0 === peg$FAILED) {
@@ -10644,7 +10617,7 @@ function peg$parse(input, options) {
                 }
                 if (s4 !== peg$FAILED) {
                   peg$savedPos = s0;
-                  s1 = peg$c395(s3);
+                  s1 = peg$c394(s3);
                   s0 = s1;
                 } else {
                   peg$currPos = s0;
@@ -10676,7 +10649,7 @@ function peg$parse(input, options) {
     s1 = peg$parseTypeList();
     if (s1 !== peg$FAILED) {
       peg$savedPos = s0;
-      s1 = peg$c396(s1);
+      s1 = peg$c395(s1);
     }
     s0 = s1;
 
@@ -10734,7 +10707,7 @@ function peg$parse(input, options) {
           s4 = peg$parseType();
           if (s4 !== peg$FAILED) {
             peg$savedPos = s0;
-            s1 = peg$c391(s4);
+            s1 = peg$c396(s4);
             s0 = s1;
           } else {
             peg$currPos = s0;
@@ -11563,7 +11536,7 @@ function peg$parse(input, options) {
           s4 = peg$parseTypeField();
           if (s4 !== peg$FAILED) {
             peg$savedPos = s0;
-            s1 = peg$c391(s4);
+            s1 = peg$c396(s4);
             s0 = s1;
           } else {
             peg$currPos = s0;

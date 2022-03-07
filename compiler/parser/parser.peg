@@ -993,8 +993,10 @@ TypeLiteral
     }
 
 CastType
-  = "<" typ:Type ">" { RETURN(typ) }
-  / typ:PrimitiveType
+  = TypeLiteral
+  / typ:PrimitiveType {
+      RETURN(MAP("kind": "TypeValue", "value": typ))
+    }
 
 Type
   = TypeLiteral

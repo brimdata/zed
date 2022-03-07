@@ -89,9 +89,6 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.write("%s(", e.Name)
 		c.exprs(e.Args)
 		c.write(")")
-	case *dag.Cast:
-		c.expr(e.Expr, false)
-		c.open(":%s", e.Type)
 	case *dag.Search:
 		c.write("search(%s)", e.Value)
 	case *dag.This:
