@@ -1089,6 +1089,7 @@ TypeFieldList
   = first:TypeField rest:TypeFieldListTail* {
     RETURN(PREPEND(first, rest))
   }
+  / "" { RETURN(NULL) }
 
 TypeFieldListTail = __ "," __ typ:TypeField { RETURN(typ) }
 
