@@ -105,14 +105,16 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.exprs(e.Args)
 		c.write(")")
 	case *ast.Cast:
-		c.expr(e.Expr, false)
-		c.open(":%s", e.Type)
+		c.expr(e.Type, false)
+		c.write("(")
+		c.expr(e.Expr, true)
+		c.write(")")
 	case *ast.SQLExpr:
 		c.sql(e)
 	case *astzed.TypeValue:
-		c.write("type(")
+		c.write("<")
 		c.typ(e.Value)
-		c.write(")")
+		c.write(">")
 	case *ast.Regexp:
 		c.write("/%s/", e.Pattern)
 	case *ast.Glob:

@@ -1,0 +1,12 @@
+script: |
+  zc -C "is(<foo>) bar"
+  zc -s -C "is(<(uint16,ip)>) 80"
+
+outputs:
+  - name: stdout
+    data: |
+      search is(<foo>) and bar
+      from (
+        (internal reader)
+      )
+      | filter is(<(uint16,ip)>) and search(80)

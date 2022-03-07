@@ -98,9 +98,9 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 	case *dag.Literal:
 		c.write("%s", e.Value)
 	case *astzed.TypeValue:
-		c.write("type(")
+		c.write("type<")
 		c.typ(e.Value)
-		c.write(")")
+		c.write(">")
 	default:
 		c.open("(unknown expr %T)", e)
 		c.close()
