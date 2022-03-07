@@ -148,7 +148,7 @@ func (c *Command) Run(args []string) error {
 	local := storage.NewLocalEngine()
 	var readers []zio.Reader
 	if null {
-		readers = []zio.Reader{&singleNull{}}
+		readers = []zio.Reader{zbuf.NewArray([]zed.Value{*zed.Null})}
 	} else {
 		readers, err = c.inputFlags.Open(ctx, zctx, local, paths, c.stopErr)
 		if err != nil {
@@ -171,16 +171,4 @@ func (c *Command) Run(args []string) error {
 	}
 	c.queryFlags.PrintStats(query.Progress())
 	return err
-}
-
-type singleNull struct {
-	done bool
-}
-
-func (s *singleNull) Read() (*zed.Value, error) {
-	if s.done {
-		return nil, nil
-	}
-	s.done = true
-	return &zed.Value{Type: zed.TypeNull}, nil
 }
