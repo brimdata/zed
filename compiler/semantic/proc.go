@@ -694,9 +694,16 @@ func isBool(e dag.Expr) bool {
 	case *dag.Conditional:
 		return isBool(e.Then) && isBool(e.Else)
 	case *dag.Call:
+		if e.Name == "cast" {
+			if len(e.Args) != 2 {
+				return false
+			}
+			if typval, ok := e.Args[1].(*dag.Literal); ok {
+				return typval.Value == "bool"
+			}
+			return false
+		}
 		return function.HasBoolResult(e.Name)
-	case *dag.Cast:
-		return e.Type == "bool"
 	case *dag.Search, *dag.RegexpMatch, *dag.RegexpSearch:
 		return true
 	default:

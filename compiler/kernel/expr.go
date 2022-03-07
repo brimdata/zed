@@ -70,8 +70,6 @@ func compileExpr(zctx *zed.Context, e dag.Expr) (expr.Evaluator, error) {
 		return compileConditional(zctx, *e)
 	case *dag.Call:
 		return compileCall(zctx, *e)
-	case *dag.Cast:
-		return compileCast(zctx, *e)
 	case *dag.RegexpMatch:
 		return compileRegexpMatch(zctx, e)
 	case *dag.RegexpSearch:
@@ -266,19 +264,6 @@ func compileDotExpr(zctx *zed.Context, dot *dag.Dot) (expr.Evaluator, error) {
 		return nil, err
 	}
 	return expr.NewDotExpr(zctx, record, dot.RHS), nil
-}
-
-func compileCast(zctx *zed.Context, node dag.Cast) (expr.Evaluator, error) {
-	e, err := compileExpr(zctx, node.Expr)
-	if err != nil {
-		return nil, err
-	}
-	//XXX We should handle runtime resolution of typedef names.  Issue #1572.
-	typ, err := zson.ParseType(zctx, node.Type)
-	if err != nil {
-		return nil, err
-	}
-	return expr.NewCast(zctx, e, typ)
 }
 
 func compileLval(e dag.Expr) (field.Path, error) {

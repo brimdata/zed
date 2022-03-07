@@ -294,8 +294,6 @@ func fieldsOf(e dag.Expr) (field.List, bool) {
 	case *dag.Call:
 		// finish with issue #2756
 		return nil, false
-	case *dag.Cast:
-		return fieldsOf(e.Expr)
 	case *dag.RegexpMatch:
 		return fieldsOf(e.Expr)
 	case *dag.RecordExpr:

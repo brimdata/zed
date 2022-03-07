@@ -74,9 +74,9 @@ type Call struct {
 }
 
 type Cast struct {
-	Kind string      `json:"kind" unpack:""`
-	Expr Expr        `json:"expr"`
-	Type astzed.Type `json:"type"`
+	Kind string `json:"kind" unpack:""`
+	Expr Expr   `json:"expr"`
+	Type Expr   `json:"type"`
 }
 
 type Grep struct {
