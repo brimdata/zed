@@ -8,5 +8,5 @@ input: |
   {s1:"b",s2:"a"}
 
 output: |
-  {sample:{s1:"a",s2:0}}
-  {sample:{s1:"a",s2:"b"}}
+  {s1:"a",s2:"b"}
+  {s1:"a",s2:0}
