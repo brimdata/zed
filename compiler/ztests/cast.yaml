@@ -1,7 +1,7 @@
 script: |
   zq -z 'type port = uint16 yield <port>(80)'
-  zq -z 'yield <(uint16,string)>("foo")'
-  zq -z 'yield <{x:uint16}>({x:1})'
+  zq -z '<(uint16,string)>("foo")'
+  zq -z '<{x:uint16}>({x:1})'
 
 outputs:
   - name: stdout

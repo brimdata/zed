@@ -96,6 +96,9 @@ Operation
   / expr:SearchBoolean {
       RETURN(MAP("kind": "OpExpr", "expr": expr))
     }
+  / expr:Cast {
+      RETURN(MAP("kind": "OpExpr", "expr": expr))
+  }
   / expr:Expr {
       RETURN(MAP("kind": "OpExpr", "expr": expr))
     }
