@@ -1,4 +1,4 @@
-zed: 'x:=to_upper(x), y:=to_lower(x)'
+zed: 'x:=upper(x), y:=lower(x)'
 
 input: |
   {x:"vAlUe1"}

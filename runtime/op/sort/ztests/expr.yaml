@@ -1,4 +1,4 @@
-zed: sort to_lower(this)
+zed: sort lower(this)
 
 input: |
   "foo"

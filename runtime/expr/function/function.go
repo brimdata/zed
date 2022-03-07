@@ -82,9 +82,9 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		f = &Replace{zctx: zctx}
 	case "rune_len":
 		f = &RuneLen{zctx: zctx}
-	case "to_lower":
+	case "lower":
 		f = &ToLower{zctx: zctx}
-	case "to_upper":
+	case "upper":
 		f = &ToUpper{zctx: zctx}
 	case "trim":
 		f = &Trim{zctx: zctx}

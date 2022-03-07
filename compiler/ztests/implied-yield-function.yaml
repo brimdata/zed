@@ -1,5 +1,5 @@
 script: |
-  zq -z 'to_lower(this)' -
+  zq -z 'lower(this)' -
 
 inputs:
   - name: stdin

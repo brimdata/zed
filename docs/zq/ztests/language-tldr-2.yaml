@@ -10,7 +10,7 @@
 # docs/language/README.md.
 
 zed: |
-  put bigname:=to_upper(name) | not /^APPLE$/
+  put bigname:=upper(name) | not /^APPLE$/
 
 input: |
   {"color":"brown","name":"kiwi","flavor":"sweet"}
