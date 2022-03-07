@@ -8,5 +8,5 @@ input: |
   {s1:"b",s2:"a"}
 
 output: |
-  {sample:0}
-  {sample:"b"}
+  0
+  "b"

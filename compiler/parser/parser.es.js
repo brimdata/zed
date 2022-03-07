@@ -482,13 +482,11 @@ function peg$parse(input, options) {
                 
             "limit": 0},
               
-            {"kind": "Cut",
+            {"kind": "Yield",
+                
+            "exprs": [
                   
-            "args": [{"kind": "Assignment",
-                                      
-            "lhs": null,
-                                      
-            "rhs": {"kind": "ID", "name": "sample"}}]}]}
+            {"kind": "ID", "name": "sample"}]}]}
           
           },
       peg$c189 = function(a) {

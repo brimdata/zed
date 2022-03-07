@@ -426,10 +426,9 @@ SampleProc
                                          "expr": e,
                                          "where": NULL))),
           "limit": 0),
-        MAP("kind": "Cut",
-            "args": ARRAY(MAP("kind": "Assignment",
-                                "lhs": NULL,
-                                "rhs": MAP("kind": "ID", "name": "sample")))))))
+        MAP("kind": "Yield",
+          "exprs": ARRAY(
+            MAP("kind": "ID", "name": "sample"))))))
     }
 
 // OpAssignment is a top level operator that contains a list of assignment
