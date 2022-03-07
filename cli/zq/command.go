@@ -133,7 +133,7 @@ func (c *Command) Run(args []string) error {
 		// Prevent ParseSourcesAndInputs from treating args[0] as a path.
 		args = append(args, "-")
 	}
-	paths, flowgraph, err := c.queryFlags.ParseSourcesAndInputs(args)
+	paths, flowgraph, null, err := c.queryFlags.ParseSourcesAndInputs(args)
 	if err != nil {
 		return fmt.Errorf("zq: %w", err)
 	}
@@ -146,9 +146,14 @@ func (c *Command) Run(args []string) error {
 	}
 	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(ctx, zctx, local, paths, c.stopErr)
-	if err != nil {
-		return err
+	var readers []zio.Reader
+	if null {
+		readers = []zio.Reader{zbuf.NewArray([]zed.Value{*zed.Null})}
+	} else {
+		readers, err = c.inputFlags.Open(ctx, zctx, local, paths, c.stopErr)
+		if err != nil {
+			return err
+		}
 	}
 	defer zio.CloseReaders(readers)
 	writer, err := c.outputFlags.Open(ctx, local)
