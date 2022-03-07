@@ -212,12 +212,12 @@ func tests() suite {
 	s.add(New("named-types", namedIn, namedOut, "count() by host | sort host"))
 
 	// Tests with assignments and computed keys
-	s.add(New("null-keys-computed", in+nullKeyIn, groupSingleOut_nullOut, "count() by key1:=to_lower(to_upper(key1)) | sort key1"))
+	s.add(New("null-keys-computed", in+nullKeyIn, groupSingleOut_nullOut, "count() by key1:=lower(upper(key1)) | sort key1"))
 	s.add(New("null-keys-assign", in+nullKeyIn, strings.ReplaceAll(groupSingleOut_nullOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
 	s.add(New("null-keys-at-start-assign", nullKeyIn+in, strings.ReplaceAll(groupSingleOut_nullOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
 	s.add(New("multiple-fields-assign", in, strings.ReplaceAll(groupMultiOut, "key2", "newkey"), "count() by key1,newkey:=key2 | sort key1, newkey"))
 	s.add(New("key-in-record-assign", nestedKeyIn, nestedKeyAssignedOut, "count() by newkey:=rec.i | sort newkey"))
-	s.add(New("computed-key", computedKeyIn, computedKeyOut, "count() by s:=to_lower(s), ij:=i+j | sort"))
+	s.add(New("computed-key", computedKeyIn, computedKeyOut, "count() by s:=lower(s), ij:=i+j | sort"))
 	return s
 }
 

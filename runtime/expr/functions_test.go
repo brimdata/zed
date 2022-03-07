@@ -121,13 +121,13 @@ func TestOtherStrFuncs(t *testing.T) {
 	testError(t, `replace("foo", "bar", "baz", "blort")`, function.ErrTooManyArgs, "replace() with too many args")
 	testSuccessful(t, `replace("foo", "o", 5)`, "", ZSON(`error("replace: string arg required")`))
 
-	testSuccessful(t, `to_lower("BOO")`, "", zstring("boo"))
-	testError(t, `to_lower()`, function.ErrTooFewArgs, "toLower() with no args")
-	testError(t, `to_lower("BOO", "HOO")`, function.ErrTooManyArgs, "toLower() with too many args")
+	testSuccessful(t, `lower("BOO")`, "", zstring("boo"))
+	testError(t, `lower()`, function.ErrTooFewArgs, "toLower() with no args")
+	testError(t, `lower("BOO", "HOO")`, function.ErrTooManyArgs, "toLower() with too many args")
 
-	testSuccessful(t, `to_upper("boo")`, "", zstring("BOO"))
-	testError(t, `to_upper()`, function.ErrTooFewArgs, "toUpper() with no args")
-	testError(t, `to_upper("boo", "hoo")`, function.ErrTooManyArgs, "toUpper() with too many args")
+	testSuccessful(t, `upper("boo")`, "", zstring("BOO"))
+	testError(t, `upper()`, function.ErrTooFewArgs, "toUpper() with no args")
+	testError(t, `upper("boo", "hoo")`, function.ErrTooManyArgs, "toUpper() with too many args")
 
 	testSuccessful(t, `trim("  hi  there   ")`, "", zstring("hi  there"))
 	testError(t, `trim()`, function.ErrTooFewArgs, "trim() with no args")

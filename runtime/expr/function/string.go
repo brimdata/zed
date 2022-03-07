@@ -49,7 +49,7 @@ func (r *RuneLen) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	return newInt64(ctx, int64(utf8.RuneCountInString(s)))
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_lower
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#lower
 type ToLower struct {
 	zctx *zed.Context
 }
@@ -57,7 +57,7 @@ type ToLower struct {
 func (t *ToLower) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsString() {
-		return newErrorf(t.zctx, ctx, "to_lower: string arg required")
+		return newErrorf(t.zctx, ctx, "lower: string arg required")
 	}
 	if zv.IsNull() {
 		return zed.NullString
@@ -66,7 +66,7 @@ func (t *ToLower) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	return newString(ctx, strings.ToLower(s))
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_upper
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#upper
 type ToUpper struct {
 	zctx *zed.Context
 }
@@ -74,7 +74,7 @@ type ToUpper struct {
 func (t *ToUpper) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsString() {
-		return newErrorf(t.zctx, ctx, "to_upper: string arg required")
+		return newErrorf(t.zctx, ctx, "upper: string arg required")
 	}
 	if zv.IsNull() {
 		return zed.NullString

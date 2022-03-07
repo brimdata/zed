@@ -2011,7 +2011,7 @@ it and create a new field to hold the lowercase representation of
 the school `District` field.
 
 ```mdtest-command dir=testdata/edu
-zq -Z 'cut District | lower_district:=to_lower(District)' schools.zson
+zq -Z 'cut District | lower_district:=lower(District)' schools.zson
 ```
 
 #### Output:

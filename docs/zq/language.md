@@ -311,11 +311,11 @@ For example, the canonical form of
 ```
 filter match("widget")
 | summarize count() by color
-| put COLOR := to_upper(color)
+| put COLOR := upper(color)
 ```
 can be abbreviated as
 ```
-widget | count() by color | COLOR := to_upper(color)
+widget | count() by color | COLOR := upper(color)
 ```
 as the compiler can tell from syntax and context that the three operators
 are `filter`, `summarize`, and `put`.

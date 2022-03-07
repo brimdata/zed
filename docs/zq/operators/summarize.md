@@ -23,8 +23,8 @@ a field name is inferred from each right-hand side, e.g, the output field for th
 aggregate function is simply `sum`.
 
 A key may be either an expression or a field.  If the key field is omitted it,
-it is inferred from the expression, e.g., the field name for `by to_lower(s)`
-is `to_lower.`
+it is inferred from the expression, e.g., the field name for `by lower(s)`
+is `lower.`
 
 If the cardinality of group-by keys causes the memory footprint to exceed
 a limit, then each aggregate's partial results are spilled to temporary storage

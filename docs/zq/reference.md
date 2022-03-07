@@ -60,6 +60,7 @@ to take on any Zed type.
 * [ksuid](functions/ksuid.md) - encode/decode KSUID-style unique identifiers
 * [len](functions/len.md) - the type-dependent length of a value
 * [log](functions/log.md) - natural logarithm
+* [lower](functions/lower.md) - convert a string to lower case
 * [missing](functions/missing.md) - test for the "missing" error
 * [nameof](functions/nameof.md) - the name of a named type
 * [network_of](functions/network_of.md) - the network of an IP
@@ -73,14 +74,13 @@ to take on any Zed type.
 * [rune_len](functions/rune_len.md) - length of a string in Unicode code points
 * [split](functions/split.md) - slice a string into an array of strings
 * [sqrt](functions/sqrt.md) - square root of a number
-* [to_lower](functions/to_lower.md) - convert a string to lower case
-* [to_upper](functions/to_upper.md) - convert a string to upper case
 * [trim](functions/trim.md) - strip leading and trailing whitespace
 * [typename](functions/typename.md) - look up and return a named type
 * [typeof](functions/typeof.md) - the type of a value
 * [typeunder](functions/typeunder.md) - the underlying type of a value
 * [under](functions/under.md) - the underlying value
 * [unflatten](functions/unflatten.md) - transform a record with dotted names to a nested record
+* [upper](functions/upper.md) - convert a string to upper case
 
 ## Aggregate Functions
 

@@ -34,7 +34,7 @@ inputs:
   - name: switch.zed
     data: |
       from fruit | switch color (
-        case "red" => put price:=price+0.5 | put bigcolor:=to_upper(color) | put tag:="expensive"
+        case "red" => put price:=price+0.5 | put bigcolor:=upper(color) | put tag:="expensive"
         case "blue" => put price:=price+0.1 | put colorlen:=len(color) | put tag:="cheaper"
         default => put price:=price-0.1 | put promo:="discounted" | put tag:="promoted"
       ) | sort name
