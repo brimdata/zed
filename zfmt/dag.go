@@ -219,7 +219,7 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Merge:
 		c.next()
 		c.write("merge ")
-		c.fieldpath(p.Key)
+		c.expr(p.Expr, false)
 		c.write(":" + p.Order.String())
 	case *dag.Summarize:
 		c.next()

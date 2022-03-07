@@ -583,8 +583,8 @@ function peg$parse(input, options) {
           },
       peg$c249 = "merge",
       peg$c250 = peg$literalExpectation("merge", false),
-      peg$c251 = function(field) {
-      	  return {"kind":"Merge", "field":field}
+      peg$c251 = function(expr) {
+      	  return {"kind":"Merge", "expr":expr}
           },
       peg$c252 = function(over) {
             return {"kind":"Let", "locals":null, "over":over}

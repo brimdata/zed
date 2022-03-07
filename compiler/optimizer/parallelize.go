@@ -198,7 +198,7 @@ func insertMerge(seq *dag.Sequential, layout order.Layout) error {
 	// XXX Fix this to handle multi-key merge. See Issue #2657.
 	head := []dag.Op{seq.Ops[0], &dag.Merge{
 		Kind:  "Merge",
-		Key:   layout.Primary(),
+		Expr:  &dag.This{Kind: "This", Path: layout.Primary()},
 		Order: layout.Order,
 	}}
 	seq.Ops = append(head, seq.Ops[1:]...)
