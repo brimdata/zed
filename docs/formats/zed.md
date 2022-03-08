@@ -1,7 +1,7 @@
 # The Zed Data Model Specification
 
-* [1. Primitive Types](#primitive-types)
-* [2. Complex Types](#complex-types)
+* [1. Primitive Types](#1-primitive-types)
+* [2. Complex Types](#2-complex-types)
   + [2.1 Record](#21-record)
   + [2.2 Array](#22-array)
   + [2.3 Set](#23-set)
