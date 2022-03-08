@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 
 	"github.com/brimdata/zed"
@@ -540,6 +541,78 @@ func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return m.zctx.NewError(DivideByZero)
 	}
 	return ectx.NewValue(typ, zed.EncodeUint(x%y))
+}
+
+type UnaryMinus struct {
+	zctx *zed.Context
+	expr Evaluator
+}
+
+func NewUnaryMinus(zctx *zed.Context, e Evaluator) *UnaryMinus {
+	return &UnaryMinus{
+		zctx: zctx,
+		expr: e,
+	}
+}
+
+func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
+	val := u.expr.Eval(ectx, this)
+	typ := val.Type
+	switch typ.ID() {
+	case zed.IDFloat32:
+		return ectx.NewValue(typ, zed.EncodeFloat32(-zed.DecodeFloat32(val.Bytes)))
+	case zed.IDFloat64:
+		return ectx.NewValue(typ, zed.EncodeFloat64(-zed.DecodeFloat64(val.Bytes)))
+	case zed.IDInt8:
+		v := zed.DecodeInt(val.Bytes)
+		if v == math.MinInt8 {
+			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int8(%d)", v))
+		}
+		return ectx.NewValue(typ, zed.EncodeInt(-v))
+	case zed.IDInt16:
+		v := zed.DecodeInt(val.Bytes)
+		if v == math.MinInt16 {
+			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int16(%d)", v))
+		}
+		return ectx.NewValue(typ, zed.EncodeInt(-v))
+	case zed.IDInt32:
+		v := zed.DecodeInt(val.Bytes)
+		if v == math.MinInt32 {
+			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int32(%d)", v))
+		}
+		return ectx.NewValue(typ, zed.EncodeInt(-v))
+	case zed.IDInt64:
+		v := zed.DecodeInt(val.Bytes)
+		if v == math.MinInt64 {
+			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int64(%d)", v))
+		}
+		return ectx.NewValue(typ, zed.EncodeInt(-v))
+	case zed.IDUint8:
+		v := zed.DecodeUint(val.Bytes)
+		if v > math.MaxInt8 {
+			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint8(%d)", v))
+		}
+		return ectx.NewValue(zed.TypeInt8, zed.EncodeInt(-int64(v)))
+	case zed.IDUint16:
+		v := zed.DecodeUint(val.Bytes)
+		if v > math.MaxInt16 {
+			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint16(%d)", v))
+		}
+		return ectx.NewValue(zed.TypeInt16, zed.EncodeInt(-int64(v)))
+	case zed.IDUint32:
+		v := zed.DecodeUint(val.Bytes)
+		if v > math.MaxInt32 {
+			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint32(%d)", v))
+		}
+		return ectx.NewValue(zed.TypeInt32, zed.EncodeInt(-int64(v)))
+	case zed.IDUint64:
+		v := zed.DecodeUint(val.Bytes)
+		if v > math.MaxInt64 {
+			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint64(%d)", v))
+		}
+		return ectx.NewValue(zed.TypeInt64, zed.EncodeInt(-int64(v)))
+	}
+	return ectx.CopyValue(*u.zctx.NewErrorf("type %s incompatible with unary '-' operator", zson.FormatType(typ)))
 }
 
 func getNthFromContainer(container zcode.Bytes, idx int) zcode.Bytes {
