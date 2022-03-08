@@ -1,4 +1,4 @@
-zed: sample | sort
+zed: sample | sort this
 
 input: |
   {s1:"a",s2:"b"}
@@ -8,5 +8,5 @@ input: |
   {s1:"b",s2:"a"}
 
 output: |
-  {s1:"a",s2:"b"}
   {s1:"a",s2:0}
+  {s1:"a",s2:"b"}
