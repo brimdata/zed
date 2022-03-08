@@ -497,7 +497,7 @@ func (c *canon) proc(p ast.Proc) {
 	case *ast.Merge:
 		c.next()
 		c.write("merge ")
-		c.expr(p.Field, false)
+		c.expr(p.Expr, false)
 	case *ast.Over:
 		c.next()
 		c.write("over ")

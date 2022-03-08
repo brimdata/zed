@@ -445,9 +445,13 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 		}
 		return []zbuf.Puller{join}, nil
 	case *dag.Merge:
-		layout := order.NewLayout(op.Order, field.List{op.Key})
-		cmp := zbuf.NewComparator(b.pctx.Zctx, layout).Compare
-		return []zbuf.Puller{merge.New(b.pctx, parents, cmp)}, nil
+		e, err := compileExpr(b.pctx.Zctx, op.Expr)
+		if err != nil {
+			return nil, err
+		}
+		nullsMax := op.Order == order.Asc
+		cmp := expr.NewComparator(nullsMax, !nullsMax, e).WithMissingAsNull()
+		return []zbuf.Puller{merge.New(b.pctx, parents, cmp.Compare)}, nil
 	default:
 		var parent zbuf.Puller
 		if len(parents) == 1 {

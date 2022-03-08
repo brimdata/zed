@@ -549,8 +549,8 @@ ExplodeProc
     }
 
 MergeProc
-  = "merge" _ field:Expr {
-	  RETURN(MAP("kind":"Merge", "field":field))
+  = "merge" _ expr:Expr {
+	  RETURN(MAP("kind":"Merge", "expr":expr))
     }
 
 OverProc

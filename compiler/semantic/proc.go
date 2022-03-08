@@ -505,13 +505,13 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			As:   as,
 		}, nil
 	case *ast.Merge:
-		field, err := semField(scope, p.Field)
+		expr, err := semExpr(scope, p.Expr)
 		if err != nil {
-			return nil, fmt.Errorf("merge: key must be a field")
+			return nil, fmt.Errorf("merge: %w", err)
 		}
 		return &dag.Merge{
 			Kind:  "Merge",
-			Key:   field.Path,
+			Expr:  expr,
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:

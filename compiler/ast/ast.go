@@ -290,8 +290,8 @@ type (
 		Args []Assignment `json:"args"`
 	}
 	Merge struct {
-		Kind  string `json:"kind" unpack:""`
-		Field Expr   `json:"field"`
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
 	}
 	Over struct {
 		Kind  string      `json:"kind" unpack:""`
