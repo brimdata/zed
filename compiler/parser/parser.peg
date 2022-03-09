@@ -686,6 +686,12 @@ NotExpr
   = "!" __ e:NotExpr {
         RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
     }
+  / NegationExpr
+
+NegationExpr
+  = !Literal "-" __ e:FuncExpr {
+        RETURN(MAP("kind": "UnaryExpr", "op": "-", "operand": e))
+    }
   / FuncExpr
 
 FuncExpr

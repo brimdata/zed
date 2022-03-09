@@ -232,14 +232,18 @@ func compileSlice(zctx *zed.Context, container dag.Expr, slice *dag.BinaryExpr) 
 }
 
 func compileUnary(zctx *zed.Context, unary dag.UnaryExpr) (expr.Evaluator, error) {
-	if unary.Op != "!" {
-		return nil, fmt.Errorf("unknown unary operator %s\n", unary.Op)
-	}
 	e, err := compileExpr(zctx, unary.Operand)
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewLogicalNot(zctx, e), nil
+	switch unary.Op {
+	case "-":
+		return expr.NewUnaryMinus(zctx, e), nil
+	case "!":
+		return expr.NewLogicalNot(zctx, e), nil
+	default:
+		return nil, fmt.Errorf("unknown unary operator %s\n", unary.Op)
+	}
 }
 
 func compileConditional(zctx *zed.Context, node dag.Conditional) (expr.Evaluator, error) {

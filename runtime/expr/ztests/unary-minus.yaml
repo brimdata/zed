@@ -1,0 +1,67 @@
+zed: yield -this
+
+input: |
+  1(int8)
+  -1(int8)
+  1(uint8)
+  -128(int8)
+  1(int16)
+  -1(int16)
+  1(uint16)
+  -32768(int16)
+  1(int32)
+  -1(int32)
+  1(uint32)
+  -2147483648(int32)
+  1
+  -1
+  1(uint64)
+  -9223372036854775808
+  1.
+  1.(float32)
+  "foo"
+  10.0.0.1
+  [1,2,3]
+  null
+  null(string)
+  null(int8)
+  null(int16)
+  null(int32)
+  null(int64)
+  null(uint8)
+  null(uint16)
+  null(uint32)
+  null(uint64)
+
+output: |
+  -1(int8)
+  1(int8)
+  -1(int8)
+  error("unary '-' underflow: int8(-128)")
+  -1(int16)
+  1(int16)
+  -1(int16)
+  error("unary '-' underflow: int16(-32768)")
+  -1(int32)
+  1(int32)
+  -1(int32)
+  error("unary '-' underflow: int32(-2147483648)")
+  -1
+  1
+  -1
+  error("unary '-' underflow: int64(-9223372036854775808)")
+  -1.
+  -1.(float32)
+  error({message:"type incompatible with unary '-' operator",on:"foo"})
+  error({message:"type incompatible with unary '-' operator",on:10.0.0.1})
+  error({message:"type incompatible with unary '-' operator",on:[1,2,3]})
+  error({message:"type incompatible with unary '-' operator",on:null})
+  error({message:"type incompatible with unary '-' operator",on:null(string)})
+  null(int8)
+  null(int16)
+  null(int32)
+  null(int64)
+  null(uint8)
+  null(uint16)
+  null(uint32)
+  null(uint64)
