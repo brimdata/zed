@@ -4,7 +4,7 @@
 * [2. The Dataflow Model](#2-the-dataflow-model)
   + [2.1 Dataflow Sources](#21-dataflow-sources)
   + [2.2 Dataflow Operators](#22-dataflow-operators)
-  + [2.3 The Special Value `this`](#23-the-special-value-this)
+  + [2.3 The Special Value this](#23-the-special-value-this)
   + [2.4 Implied Field References](#24-implied-field-references)
   + [2.5 Field Assignments](#25-field-assignments)
   + [2.6 Implied Operators](#26-implied-operators)
