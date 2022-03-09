@@ -24,7 +24,7 @@ transmits the data to its output.  A `<src>` is:
 
 In the first form, a single source is connected to a single output.
 In the second form, multiple sources are accessed in parallel and may be
-[joined](join.md), [combined](combind.md), or [merged](merge.md).
+[joined](join.md), [combined](combine.md), or [merged](merge.md).
 
 In the examples above, the data source is implied.  For example, the
 `zed query` command takes a list of files and the concatenated files
