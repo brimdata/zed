@@ -15,4 +15,4 @@ outputs:
       search widget
       | summarize
           count() by color
-      | COLOR:=upper(color)
+      | put COLOR:=upper(color)

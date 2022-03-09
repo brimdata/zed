@@ -1,0 +1,12 @@
+script: |
+  zc -C 'x:=1'
+  zc -C 'x:=1,y:=lower(s)'
+  zc -C 'x:=count(),sum(x)'
+
+outputs:
+  - name: stdout
+    data: |
+      put x:=1
+      put x:=1,y:=lower(s)
+      summarize
+          x:=count(),sum(x)
