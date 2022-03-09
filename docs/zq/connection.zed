@@ -1,7 +1,0 @@
-type socket = { addr:ip, port:port=uint16 }
-type connection = {
-    kind: string,
-    client: socket,
-    server: socket,
-    vlan: uint16
-}
