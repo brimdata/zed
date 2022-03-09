@@ -320,24 +320,6 @@ func InnerType(typ Type) Type {
 	}
 }
 
-// ContainedType returns the inner type for set and array types in the first
-// return value and the columns of its of type for record types in the second
-// return value.  ContainedType returns nil for both return values if the
-// type is not a set, array, or record.
-func ContainedType(typ Type) (Type, []Column) {
-	switch typ := typ.(type) {
-	case *TypeSet:
-		return typ.Type, nil
-	case *TypeArray:
-		return typ.Type, nil
-	case *TypeRecord:
-		return nil, typ.Columns
-		// XXX enum?
-	default:
-		return nil, nil
-	}
-}
-
 func IsUnionType(typ Type) bool {
 	_, ok := typ.(*TypeUnion)
 	return ok
