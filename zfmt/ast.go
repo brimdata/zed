@@ -489,7 +489,13 @@ func (c *canon) proc(p ast.Proc) {
 		c.close()
 	case *ast.OpAssignment:
 		c.next()
+		which := "put "
+		if isAggAssignments(p.Assignments) {
+			which = "summarize "
+		}
+		c.open(which)
 		c.assignments(p.Assignments)
+		c.close()
 	//case *ast.SqlExpression:
 	//	//XXX TBD
 	//	c.open("sql")
@@ -570,6 +576,15 @@ func IsBool(e ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func isAggAssignments(assigns []ast.Assignment) bool {
+	for _, a := range assigns {
+		if isAggFunc(a.RHS) == nil {
+			return false
+		}
+	}
+	return true
 }
 
 func IsSearch(e ast.Expr) bool {
