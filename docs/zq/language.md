@@ -571,7 +571,7 @@ results in
 ```
 but
 ```mdtest-command
-zq -z 'yield <foo>' -
+zq -z 'yield <foo>'
 ```
 gives
 ```mdtest-output
@@ -793,7 +793,7 @@ precedence over addition and subtraction.  `%` is the modulo operator.
 
 For example,
 ```mdtest-command
-zq -z 'yield 2*3+1, 11%5, 1/0, "foo"+"bar"' -
+zq -z 'yield 2*3+1, 11%5, 1/0, "foo"+"bar"'
 ```
 produces
 ```mdtest-output
@@ -818,7 +818,7 @@ is `error("missing")`, then the result is `error("missing")`.
 
 For example,
 ```mdtest-command
-zq -z 'yield 1 > 2, 1 < 2, "b" > "a", 1 > "a", 1 > x' -
+zq -z 'yield 1 > 2, 1 < 2, "b" > "a", 1 > "a", 1 > x'
 
 ```
 produces
@@ -971,7 +971,7 @@ arguments.  Some functions take a variable number of arguments.
 
 For example,
 ```mdtest-command
-zq -z 'yield pow(2,3), lower("ABC")+upper("def"), typeof(1)' -
+zq -z 'yield pow(2,3), lower("ABC")+upper("def"), typeof(1)'
 ```
 produces
 ```mdtest-output
@@ -1688,9 +1688,9 @@ transformed and a type value for the target type.
 > rather than values.
 
 In the examples below, we will use the following named type `connection`
-that is stored in a file [connection.zed](connection.zed)
+that is stored in a file `connection.zed`
 and is included in the example Zed queries with `-I` option of `zq`:
-```
+```mdtest-input connection.zed
 type socket = { addr:ip, port:port=uint16 }
 type connection = {
     kind: string,
@@ -1699,8 +1699,8 @@ type connection = {
     vlan: uint16
 }
 ```
-We we also use this sample JSON input in a file called [sample.json](sample.json):
-```
+We we also use this sample JSON input in a file called `sample.json`:
+```mdtest-input sample.json
 {
   "kind": "dns",
   "server": {
@@ -1719,7 +1719,7 @@ We we also use this sample JSON input in a file called [sample.json](sample.json
 
 The cast function applies a cast operation to each leaf value that matches the
 field path in the specified type, e.g.,
-```mdtest-command dir=docs/zq
+```mdtest-command
 zq -Z -I connection.zed "cast(this, <connection>)" sample.json
 ```
 casts the address fields to type `ip`, the port fields to type `port`
@@ -1744,7 +1744,7 @@ order of the `server` and `client` fields:
 ### 9.2 Crop
 
 Cropping is a useful when you want records to "fit" a schema tightly, e.g.,
-```mdtest-command dir=docs/zq
+```mdtest-command
 zq -Z -I connection.zed "crop(this, <connection>)" sample.json
 ```
 removes the `uid` field since it is not in the _connection_ type:
@@ -1765,7 +1765,7 @@ removes the `uid` field since it is not in the _connection_ type:
 ### 9.3 Fill
 
 Use fill when you want to fill out missing fields with nulls, e.g.,
-```mdtest-command dir=docs/zq
+```mdtest-command
 zq -Z -I connection.zed "fill(this, <connection>)" sample.json
 ```
 adds an null-valued `vlan` field since the input value is missing it and
@@ -1790,7 +1790,7 @@ the _connection_ type has it:
 
 The order function changes the order of fields in its input to match the
 specified order, as field order is significant in Zed records, e.g.,
-```mdtest-command dir=docs/zq
+```mdtest-command
 zq -Z -I connection.zed "order(this, <connection>)" sample.json
 ```
 reorders the `client` and `server` fields to match the input but does nothing
@@ -1814,7 +1814,7 @@ about the `uid` field as it is not in the _connection_ type:
 
 The shape function brings everything together by applying `cast`,
 `fill`, and `order` all in one step, e.g.,
-```mdtest-command dir=docs/zq
+```mdtest-command
 zq -Z -I connection.zed "shape(this, <connection>)" sample.json
 ```
 reorders the `client` and `server` fields to match the input but does nothing
@@ -1836,7 +1836,7 @@ about the `uid` field as it is not in the _connection_ type:
 ```
 To get a tight shape of the target type,
 apply `crop` to the output of `shape`, e.g.,
-```mdtest-command dir=docs/zq
+```mdtest-command
 zq -Z -I connection.zed "shape(this, <connection>) | crop(this, <connection>)" sample.json
 ```
 drops the `uid` field after shaping:
@@ -1950,7 +1950,7 @@ which produces
 ```
 Now, we can turn around and write a "shaper" for data that has the patterns
 we "discovered" above, e.g., if this Zed source is in `shape.zed`
-```
+```mdtest-input shape.zed
 switch len(this) (
     case 1 => pass
     case 2 => yield shape(this, <{x:(int64,string),y:string}>)
@@ -1958,7 +1958,7 @@ switch len(this) (
 )
 ```
 when we run
-```mdtest-command dir=docs/zq
+```mdtest-command
 echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}{a:1,b:2,c:3}' | zq -z -I shape.zed '| sort -r this' -
 ```
 we get
