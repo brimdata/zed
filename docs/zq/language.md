@@ -955,9 +955,8 @@ echo '{s:"foo",v:1}{s:"bar",v:2}' | zq -z 'yield (s=="foo") ? v : -v' -
 ```
 produces
 ```mdtest-output
-8.
-"abcDEF"
-<int64>
+1
+-2
 ```
 
 ### 6.9 Function Calls
