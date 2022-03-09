@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/zbuf"
@@ -110,7 +109,7 @@ func TestParallelOrder(t *testing.T) {
 			var sb strings.Builder
 			err := zbuf.CopyPuller(zsonio.NewWriter(zio.NopCloser(&sb), zsonio.WriterOpts{}), om)
 			require.NoError(t, err)
-			assert.Equal(t, test.Trim(c.exp), sb.String())
+			assert.Equal(t, c.exp, "\n"+sb.String())
 		})
 	}
 }
