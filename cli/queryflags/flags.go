@@ -31,15 +31,18 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Proc, bool,
 		src = paths[0]
 		paths = paths[1:]
 		if len(paths) == 0 {
-			query, err := compiler.ParseProc(src, f.Includes...)
-			if err != nil || !isYield(query) {
-				// We don't interpret the first arg as a query if there
-				// are no additional args, unless the additional arg
-				// could be compiled and looks like a yield optionally
-				// followed by other pipeline ops.
-				return nil, nil, false, fmt.Errorf("no such file: %s", src)
+			// Consider a lone argument to be a query if it compiles
+			// and appears to start with a from or yield operator.
+			// Otherwise, consider it a file.
+			if query, err := compiler.ParseProc(src, f.Includes...); err == nil {
+				if isFrom(query) {
+					return nil, query, false, nil
+				}
+				if isYield(query) {
+					return nil, query, true, nil
+				}
 			}
-			return paths, query, true, nil
+			return nil, nil, false, fmt.Errorf("no such file: %s", src)
 		}
 	}
 	query, err := compiler.ParseProc(src, f.Includes...)
@@ -47,6 +50,14 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Proc, bool,
 		return nil, nil, false, err
 	}
 	return paths, query, false, nil
+}
+
+func isFrom(op ast.Proc) bool {
+	if seq, ok := op.(*ast.Sequential); ok && len(seq.Procs) > 0 {
+		_, ok := seq.Procs[0].(*ast.From)
+		return ok
+	}
+	return false
 }
 
 func isYield(op ast.Proc) bool {
