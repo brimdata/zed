@@ -22,6 +22,16 @@ input: |
   "foo"
   10.0.0.1
   [1,2,3]
+  null
+  null(string)
+  null(int8)
+  null(int16)
+  null(int32)
+  null(int64)
+  null(uint8)
+  null(uint16)
+  null(uint32)
+  null(uint64)
 
 output: |
   -1(int8)
@@ -42,6 +52,16 @@ output: |
   error("unary '-' underflow: int64(-9223372036854775808)")
   -1.
   -1.(float32)
-  error("type string incompatible with unary '-' operator")
-  error("type ip incompatible with unary '-' operator")
-  error("type [int64] incompatible with unary '-' operator")
+  error({message:"type incompatible with unary '-' operator",on:"foo"})
+  error({message:"type incompatible with unary '-' operator",on:10.0.0.1})
+  error({message:"type incompatible with unary '-' operator",on:[1,2,3]})
+  error({message:"type incompatible with unary '-' operator",on:null})
+  error({message:"type incompatible with unary '-' operator",on:null(string)})
+  null(int8)
+  null(int16)
+  null(int32)
+  null(int64)
+  null(uint8)
+  null(uint16)
+  null(uint32)
+  null(uint64)
