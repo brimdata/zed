@@ -456,7 +456,7 @@ are not included in the language.  Instead, a
 type conversion.
 
 In particular, the syntax of primitive types follows the
-[primitive-value definitions](zson.md#23-primitive-values) in ZSON
+[primitive-value definitions](../formats/zson.md#23-primitive-values) in ZSON
 as well as the various [complex value definitions](../formats/zson.md#24-complex-values)
 like records, arrays, sets, and so forth.  However, complex values are not limited to
 constant values like ZSON and can be composed from literal expressions as
@@ -1626,7 +1626,7 @@ produces
 ### 8.1 Lateral Scope
 
 A lateral scope has the form `=> ( <query> )` and currently appears
-only the context of an [over operator](operaetors/over.md):
+only the context of an [over operator](operators/over.md#operator):
 ```
 over ... with <elem> [, <elem> ...] => ( <query> )
 ```
