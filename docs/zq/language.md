@@ -287,7 +287,7 @@ put x:=y+1
 ```
 or
 ```
-summarize name:=union(name) by address:=to_lower(address)
+summarize name:=union(name) by address:=lower(address)
 ```
 This style of "assignment" to a record value is distinguished from the `=`
 token which binds a locally scoped name to a value that can be referenced
