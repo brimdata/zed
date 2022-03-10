@@ -2,6 +2,7 @@ package expr
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
@@ -224,7 +225,15 @@ func shaperColumns(zctx *zed.Context, tf ShaperTransform, in, out *zed.TypeRecor
 		}
 	}
 	if !crop {
-		for _, inCol := range in.Columns {
+		inColumns := in.Columns
+		if tf&Order != 0 {
+			// Order appends unknown fields in lexicographic order.
+			inColumns = append([]zed.Column{}, inColumns...)
+			sort.Slice(inColumns, func(i, j int) bool {
+				return inColumns[i].Name < inColumns[j].Name
+			})
+		}
+		for _, inCol := range inColumns {
 			if !out.HasField(inCol.Name) {
 				cols = append(cols, inCol)
 			}
