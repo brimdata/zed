@@ -15,12 +15,12 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/op/groupby"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
+	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -146,84 +146,54 @@ const computedKeyOut = `
 {s:"foo",ij:4(uint64),count:2(uint64)}
 `
 
-//XXX this should go in a shared package
-type suite []test.Internal
-
-func (s suite) runSystem(t *testing.T) {
-	for _, d := range s {
-		t.Run(d.Name, func(t *testing.T) {
-			results, err := d.Run()
-			require.NoError(t, err)
-			assert.Exactly(t, d.Expected, results, "Wrong query results...\nQuery: %s\nInput: %s\n", d.Query, d.Input)
-		})
-	}
-}
-
-func (s *suite) add(t test.Internal) {
-	*s = append(*s, t)
-}
-
-func New(name, input, output, cmd string) test.Internal {
-	output = strings.ReplaceAll(output, "\n\n", "\n")
-	return test.Internal{
-		Name:         name,
-		Query:        cmd,
-		Input:        input,
-		OutputFormat: "zson",
-		Expected:     test.Trim(output),
-	}
-}
-
-func tests() suite {
-	s := suite{}
-
+var cases = []struct{ name, input, output, zed string }{
 	// Test a simple groupby
-	s.add(New("simple", in, groupSingleOut, "count() by key1 | sort key1"))
-	s.add(New("simple-assign", in, groupSingleOut, "count() by key1:=key1 | sort key1"))
+	{"simple", in, groupSingleOut, "count() by key1 | sort key1"},
+	{"simple-assign", in, groupSingleOut, "count() by key1:=key1 | sort key1"},
 
 	// Test that null key values work correctly
-	s.add(New("null-keys", in+nullKeyIn, groupSingleOut_nullOut, "count() by key1 | sort key1"))
-	s.add(New("null-keys-at-start", nullKeyIn+in, groupSingleOut_nullOut, "count() by key1 | sort key1"))
+	{"null-keys", in + nullKeyIn, groupSingleOut_nullOut, "count() by key1 | sort key1"},
+	{"null-keys-at-start", nullKeyIn + in, groupSingleOut_nullOut, "count() by key1 | sort key1"},
 
 	// Test grouping by multiple fields
-	s.add(New("multiple-fields", in, groupMultiOut, "count() by key1,key2 | sort key1, key2"))
+	{"multiple-fields", in, groupMultiOut, "count() by key1,key2 | sort key1, key2"},
 
 	// Test that records missing groupby fields are ignored
-	s.add(New("missing-fields", in+missingField, groupMissingOut, "count() by key1 | sort key1"))
+	{"missing-fields", in + missingField, groupMissingOut, "count() by key1 | sort key1"},
 
 	// Test that input with different key types works correctly
-	s.add(New("different-key-types", in+differentTypeIn, differentTypeOut, "count() by key1 | sort key1"))
+	{"different-key-types", in + differentTypeIn, differentTypeOut, "count() by key1 | sort key1"},
 
 	// Test various reducers
-	s.add(New("reducers", in, reducersOut, "any(n), sum(n), avg(n), min(n), max(n) by key1 | sort key1"))
+	{"reducers", in, reducersOut, "any(n), sum(n), avg(n), min(n), max(n) by key1 | sort key1"},
 
 	// Check out of bounds array indexes
-	s.add(New("array-out-of-bounds", arrayKeyIn, arrayKeyOut, "count() by arr | sort"))
+	{"array-out-of-bounds", arrayKeyIn, arrayKeyOut, "count() by arr | sort"},
 
 	// Check groupby key inside a record
-	s.add(New("key-in-record", nestedKeyIn, nestedKeyOut, "count() by rec.i | sort rec.i"))
+	{"key-in-record", nestedKeyIn, nestedKeyOut, "count() by rec.i | sort rec.i"},
 
 	// Test reducers with null inputs
-	s.add(New("null-inputs", nullIn, nullOut, "sum(val) by key | sort"))
+	{"null-inputs", nullIn, nullOut, "sum(val) by key | sort"},
 
 	// Test reducers with missing operands
-	s.add(New("not-present", notPresentIn, notPresentOut, "max(val) by key | sort"))
-
-	s.add(New("named-types", namedIn, namedOut, "count() by host | sort host"))
+	{"not-present", notPresentIn, notPresentOut, "max(val) by key | sort"},
+	{"named-types", namedIn, namedOut, "count() by host | sort host"},
 
 	// Tests with assignments and computed keys
-	s.add(New("null-keys-computed", in+nullKeyIn, groupSingleOut_nullOut, "count() by key1:=lower(upper(key1)) | sort key1"))
-	s.add(New("null-keys-assign", in+nullKeyIn, strings.ReplaceAll(groupSingleOut_nullOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
-	s.add(New("null-keys-at-start-assign", nullKeyIn+in, strings.ReplaceAll(groupSingleOut_nullOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
-	s.add(New("multiple-fields-assign", in, strings.ReplaceAll(groupMultiOut, "key2", "newkey"), "count() by key1,newkey:=key2 | sort key1, newkey"))
-	s.add(New("key-in-record-assign", nestedKeyIn, nestedKeyAssignedOut, "count() by newkey:=rec.i | sort newkey"))
-	s.add(New("computed-key", computedKeyIn, computedKeyOut, "count() by s:=lower(s), ij:=i+j | sort"))
-	return s
+	{"null-keys-computed", in + nullKeyIn, groupSingleOut_nullOut, "count() by key1:=lower(upper(key1)) | sort key1"},
+	{"null-keys-assign", in + nullKeyIn, strings.ReplaceAll(groupSingleOut_nullOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"},
+	{"null-keys-at-start-assign", nullKeyIn + in, strings.ReplaceAll(groupSingleOut_nullOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"},
+	{"multiple-fields-assign", in, strings.ReplaceAll(groupMultiOut, "key2", "newkey"), "count() by key1,newkey:=key2 | sort key1, newkey"},
+	{"key-in-record-assign", nestedKeyIn, nestedKeyAssignedOut, "count() by newkey:=rec.i | sort newkey"},
+	{"computed-key", computedKeyIn, computedKeyOut, "count() by s:=lower(s), ij:=i+j | sort"},
 }
 
 func TestGroupbySystem(t *testing.T) {
+	t.Parallel()
 	t.Run("memory", func(t *testing.T) {
-		tests().runSystem(t)
+		t.Parallel()
+		runCases(t)
 	})
 	t.Run("spill", func(t *testing.T) {
 		saved := groupby.DefaultLimit
@@ -231,8 +201,19 @@ func TestGroupbySystem(t *testing.T) {
 		defer func() {
 			groupby.DefaultLimit = saved
 		}()
-		tests().runSystem(t)
+		runCases(t)
 	})
+}
+
+func runCases(t *testing.T) {
+	t.Helper()
+	for _, c := range cases {
+		zt := ztest.ZTest{Zed: c.zed, Input: c.input, Output: c.output[1:]}
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			zt.Run(t, "", "")
+		})
+	}
 }
 
 type countReader struct {

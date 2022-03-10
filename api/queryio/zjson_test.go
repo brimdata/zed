@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
-	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,5 +38,5 @@ func TestZJSONWriter(t *testing.T) {
 	require.NoError(t, err)
 	err = w.WriteControl(api.QueryError{"test.err"})
 	require.NoError(t, err)
-	assert.Equal(t, test.Trim(expected), buf.String())
+	assert.Equal(t, expected, "\n"+buf.String())
 }
