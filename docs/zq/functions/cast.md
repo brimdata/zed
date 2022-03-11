@@ -6,6 +6,7 @@
 
 ```
 cast(val: any, t: type) -> any
+cast(val: any, name: string) -> any
 ```
 
 ### Description
@@ -17,6 +18,12 @@ is equivalent to
 <t>(<val>)
 ```
 e.g., the result of `cast(1, <string>)` is the same as `string(1)` which is `"1"`.
+
+In the second form, where the `<name>` argument is a string, cast creates
+a new named type where the name for the type is given by `<name>` and its
+type is given by `typeof(<val>)`.  This provides a convenient mechanism
+to create new named types from the input data itself without having to
+hard code the type in the Zed source text.
 
 For complex types, the cast function visits each leaf value in `val` and
 casts that value to the corresponding type in `t`.
@@ -57,4 +64,25 @@ produces
 {a:1,b:"2"}
 {a:3}
 {b:"4"}
+```
+
+_Create a name a typed and cast value to the new type_
+```mdtest-command
+echo '{a:1,b:2}{a:3,b:4}' | zq -z 'cast(this, "foo")' -
+```
+produces
+```mdtest-output
+{a:1,b:2}(=foo)
+{a:3,b:4}(=foo)
+```
+
+_Name data based its properties_
+```mdtest-command
+echo '{x:1,y:2}{r:3}{x:4,y:5}' | zq -z 'switch ( case has(x) => cast(this, "point")  default => cast(this, "radius") ) | sort this' -
+```
+produces
+```mdtest-output
+{x:1,y:2}(=point)
+{x:4,y:5}(=point)
+{r:3}(=radius)
 ```
