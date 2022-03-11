@@ -38,11 +38,11 @@ produces
 {a:1,b:"foo"}
 ```
 _Order fields lexicographically_
-```mdtest-command-skip
+```mdtest-command
 echo '{c:0, a:1, b:"foo"}' | zq -z 'order(this, <{}>)' -
 ```
 produces
-```mdtest-output-skip
+```mdtest-output
 {a:1,b:"foo",c:0}
 ```
 
