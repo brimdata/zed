@@ -56,7 +56,7 @@ to take on any Zed type.
 * [error](functions/error.md) - wrap a value as an error
 * [every](functions/every.md) - bucket `ts` using a duration
 * [fields](functions/fields.md) - return the flattened path names of a record
-* [fill](functions/fill.md) - add null values for missing fields
+* [fill](functions/fill.md) - add null values for missing record fields
 * [flatten](functions/flatten.md) - transform a record into a flattened map
 * [floor](functions/floor.md) - floor of a number
 * [grep](functions/grep.md) - search strings inside of values

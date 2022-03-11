@@ -21,7 +21,7 @@ If `<val>` is a record (or if any of its nested value is a record):
 * missing fields are ignored, and
 * types of leaf values are ignored, i.e., there is no casting.
 
-Note that an lexicographic order for fields in a record can be achieved with
+Note that lexicographic order for fields in a record can be achieved with
 the empty record type, i.e.,
 ```
 order(val, <{}>)
@@ -37,8 +37,6 @@ produces
 ```mdtest-output
 {a:1,b:"foo"}
 ```
-TBD: fix this bug or remove example...
-
 _Order fields lexicographically_
 ```mdtest-command-skip
 echo '{c:0, a:1, b:"foo"}' | zq -z 'order(this, <{}>)' -

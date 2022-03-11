@@ -715,7 +715,7 @@ useful approach that Zed enables.
 
 #### 5.3.1 Missing and Quiet
 
-Zed's heterogenous data model allows for queries
+Zed's heterogeneous data model allows for queries
 that operate over different types of data whose structure and type
 may not be known ahead of time, e.g., different
 types of records with different field names and varying structure.
@@ -749,7 +749,7 @@ I'm here but I'm not.
 In reality, a MISSING value is not a value.  It's an error condition
 that resulted from trying to reference something that didn't exist.
 
-So why should pretend that this is a bona fide value?  SQL adopted this
+So why should we pretend that this is a bona fide value?  SQL adopted this
 approach because it lacks first-class errors.
 
 But Zed has first-class errors so
@@ -905,7 +905,7 @@ must be coercible to an integer and the result is an integer representing
 the unicode code point at that offset in the string.
 
 If the `<value>` expression is type bytes, then the `<index>` operand
-must be coercible to an integer and the result is a unsigned 8-bit integer
+must be coercible to an integer and the result is an unsigned 8-bit integer
 representing the byte value at that offset in the bytes sequence.
 
 ### 6.7 Slices
@@ -924,10 +924,10 @@ end of the value being sliced.
 If the `<value>` expression is an array, then the result is an array of
 elements comprising the indicated range.
 
-If the `<value>` expression is an set, then the result is a set of
+If the `<value>` expression is a set, then the result is a set of
 elements comprising the indicated range ordered by total order of Zed values.
 
-If the `<value>` expression is an string, then the result is a substring
+If the `<value>` expression is a string, then the result is a substring
 consisting of unicode code points comprising the given range.
 
 If the `<value>` expression is type bytes, then the result is a bytes sequence
@@ -939,7 +939,7 @@ A conditional expression has the form
 ```
 <boolean> ? <expr> : <expr>`
 ```
-The `<boolean>` expression is evaluated and must be result it type `bool`.
+The `<boolean>` expression is evaluated and must have a result of type `bool`.
 If not, an error results.
 
 If the result is true, then the first `<expr>` expression is evaluated and becomes
@@ -985,7 +985,7 @@ produces
 Unlike the aggregation context provided by a summarizing group-by, such calls
 in expression context yield an output value for each input value.
 
-Note that because aggregate functions carry state which is typically dependent
+Note that because aggregate functions carry state which is typically
 dependent on the order of input values, their use can prevent the runtime
 optimizer from parallelizing a query.
 
@@ -1101,7 +1101,7 @@ Set literals have the form
 ```
 |[ <expr>, <expr>, ... ]|
 ```
-When the expressions results in values of non-uniform type, then the implied
+When the expressions result in values of non-uniform type, then the implied
 type of the set is a set of type union of the types that appear.
 
 Set values are always organized in their "natural order" independent of the order
@@ -1149,7 +1149,7 @@ produces
 1((int64,string))
 "foo"((int64,string))
 ```
-The value underlying a union-tagged value is accesse with the
+The value underlying a union-tagged value is accessed with the
 [under function](functions/under.md):
 ```mdtest-command
 echo '1((int64,string))' | zq -z 'yield under(this)' -
@@ -1190,7 +1190,7 @@ which has the form
 type <name> = <type>
 ```
 This statement evaluates the type `<type>` before any input is processed
-to determine the a type value assigned to the identifier `<id>`.
+to compute a type value assigned to the identifier `<id>`.
 
 In addition, a type statement creates a binding for the named type in
 the runtime's type system, which may be overridden by any input that
@@ -1218,10 +1218,12 @@ Type conversion is performed with casts and the built-in function `cast()`.
 
 Casts for primitive types have a function-style syntax of the form
 ```
-<primitive> ( <expr> )
+<type> ( <expr> )
 ```
-where `<primitive>` is the name of the primitive type, e.g., `string`, `int64` etc.,
-and `<expr>` is any Zed expression.  If the result of `<expr>` cannot be converted
+where `<type>` is a Zed type and `<expr>` is any Zed expression.
+In the case of primitive types, the type-value angle brackets
+may be omitted, e.g., `<string>(1)` is equivalent to `string(1)`.
+If the result of `<expr>` cannot be converted
 to the indicated type, then the cast's result is an error value.
 
 For example,
@@ -1550,7 +1552,7 @@ the "in" operator, e.g.,
 
 Any Boolean-valued [function](reference.md) like `is()`, `has()`,
 `grep()` etc. and any [comparison expression](#comparisons)
-may be used a search term and mixed into a search expression.
+may be used as a search term and mixed into a search expression.
 
 For example,
 ```
@@ -1638,7 +1640,7 @@ or a field reference form
 ```
 <field>
 ```
-For each input value to the outer scope, the assignment form create a binding
+For each input value to the outer scope, the assignment form creates a binding
 between each `<expr>` evaluated in the outer scope and each `<var>`, which
 represents a new symbol in the inner scope of the `<query>`.
 In the field reference form, a single identifier `<id>` refers to a field
@@ -1653,10 +1655,11 @@ its output as each inner sequence completes.
 
 ## 9. Shaping
 
-Data that originates from heterogenous sources often is combined into a
-unified store like a data warehouse but has inconsistent structure and is thus
-difficult to reason about or query.  To unify disparate data sources,
-data is often cleaned up to fit into a well-defined set of data models.
+Data that originates from heterogeneous sources typically has
+inconsistent structure and is thus difficult to reason about or query.
+To unify disparate data sources, data is often cleaned up to fit into
+a well-defined set of schemas, which combines the data into a unified
+store like a data warehouse.
 
 In Zed, this cleansing process is called "shaping" the data and Zed leverages
 its rich, super-structured type system to perform core aspects of
@@ -1698,7 +1701,7 @@ type connection = {
     vlan: uint16
 }
 ```
-We we also use this sample JSON input in a file called `sample.json`:
+We also use this sample JSON input in a file called `sample.json`:
 ```mdtest-input sample.json
 {
   "kind": "dns",
@@ -1767,7 +1770,7 @@ Use fill when you want to fill out missing fields with nulls, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "fill(this, <connection>)" sample.json
 ```
-adds an null-valued `vlan` field since the input value is missing it and
+adds a null-valued `vlan` field since the input value is missing it and
 the _connection_ type has it:
 ```mdtest-output
 {
@@ -1875,7 +1878,7 @@ can be fused into the single-type sequence:
 1((int64,string))
 "foo"((int64,string))
 ```
-The second technique is to merge fields of records, analagous to a spread
+The second technique is to merge fields of records, analogous to a spread
 expression.  Here, the value sequence `{a:1}{b:"foo"}` may be
 fused into the single-type sequence:
 ```
@@ -1899,7 +1902,7 @@ To perform fusion, Zed currently includes two key mechanisms
 ### 10.1 Fuse Operator
 
 The _fuse operator_ reads all of its input, computes a fused type using
-the techniuqes above, and outputs the result, e.g.,
+the techniques above, and outputs the result, e.g.,
 ```mdtest-command
 echo '{x:1} {y:"foo"}{x:2,y:"bar"}' | zq -z fuse -
 ```

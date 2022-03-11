@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **fill** &mdash; add null values for missing fields
+&emsp; **fill** &mdash; add null values for missing record fields
 
 ### Synopsis
 
@@ -10,13 +10,13 @@ fill(val: any, t: type) -> any
 
 ### Description
 
-The _fill_ function adds to the input record `val` any  any fields that are
+The _fill_ function adds to the input record `val` any fields that are
 present in the output type `t` but not in input.
 
 Filled fields are added with a `null` value.  Filling is useful when
 you want to be sure that all fields in a schema are present in a record.
 
-If `val` is not a record, then `val` is returned unmodified.
+If `val` is not a record, it is returned unmodified.
 
 ### Examples
 

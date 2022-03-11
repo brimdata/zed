@@ -20,7 +20,7 @@ If `<val>` is a record (or if any of its nested value is a record):
 * fields are matched by name and are order independent and the _input_ order is retained, and
 * leaf types are ignored, i.e., no casting occurs.
 
-If an `<val>` is not a record, it is returned unmodified.
+If `<val>` is not a record, it is returned unmodified.
 
 ### Examples
 
