@@ -99,8 +99,9 @@ Note here that the query `1+1` [implies](../language/overview.md#26-implied-oper
 |-----------|------|------------------------------------------|
 | `json`    |  yes | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
 | `csv`     |  yes | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
-| `parquet` |  no  | [Apache Parquet](https://github.com/apache/parquet-format) |
-| `vng`     |  no  | [VNG - Binary Columnar Format](../formats/vng.md) |
+| `line`    |  no  | One string value per input line |
+| `parquet` |  yes | [Apache Parquet](https://github.com/apache/parquet-format) |
+| `vng`     |  yes | [VNG - Binary Columnar Format](../formats/vng.md) |
 | `zson`    |  yes | [ZSON - Human-readable Format](../formats/zson.md) |
 | `zng`     |  yes | [ZNG - Binary Row Format](../formats/zson.md) |
 | `zjson`   |  yes | [ZJSON - Zed over JSON](../formats/zjson.md) |

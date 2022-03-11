@@ -1,0 +1,12 @@
+script: |
+  zq -f parquet -o f -
+  zq -z f
+
+inputs:
+  - name: stdin
+    data: &stdin |
+      {a:1}
+
+outputs:
+  - name: stdout
+    data: *stdin

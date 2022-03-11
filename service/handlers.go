@@ -368,7 +368,11 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	reader := anyio.GzipReader(r.Body)
+	reader, err := anyio.GzipReader(r.Body)
+	if err != nil {
+		w.Error(err)
+		return
+	}
 	if format == "parquet" {
 		// This format requires a reader that implements io.ReaderAt and
 		// io.Seeker.  Copy the reader to a temporary file and use that.

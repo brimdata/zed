@@ -16,7 +16,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {"type":"Error","kind":"invalid operation","error":"format detection error\n\tzeek: line 1: bad types/fields definition in zeek header\n\tzjson: line 1: invalid character 'T' looking for beginning of value\n\tzson: ZSON syntax error\n\tzng: malformed zng record\n\tcsv: line 1: EOF\n\tjson: invalid character 'T' looking for beginning of value\n\tparquet: auto-detection not supported\n\tvng: auto-detection not supported\n\tline: auto-detection not supported"}
+      {"type":"Error","kind":"invalid operation","error":"format detection error\n\tzeek: line 1: bad types/fields definition in zeek header\n\tzjson: line 1: invalid character 'T' looking for beginning of value\n\tzson: ZSON syntax error\n\tzng: malformed zng record\n\tcsv: line 1: EOF\n\tjson: invalid character 'T' looking for beginning of value\n\tparquet: reader cannot seek\n\tvng: reader cannot seek\n\tline: auto-detection not supported"}
       code 400
       {"type":"Error","kind":"invalid operation","error":"unsupported MIME type: unsupported"}
       code 400

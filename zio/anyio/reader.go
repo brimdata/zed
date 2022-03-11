@@ -12,6 +12,8 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
+	"github.com/brimdata/zed/zio/parquetio"
+	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -32,6 +34,36 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	if opts.Format != "" && opts.Format != "auto" {
 		return lookupReader(zctx, r, opts)
 	}
+
+	var parquetErr, vngErr error
+	if rs, ok := r.(io.ReadSeeker); ok {
+		if n, err := rs.Seek(0, io.SeekCurrent); err == nil {
+			var zr zio.Reader
+			zr, parquetErr = parquetio.NewReader(zctx, rs)
+			if parquetErr == nil {
+				return zio.NopReadCloser(zr), nil
+			}
+			if _, err := rs.Seek(n, io.SeekStart); err != nil {
+				return nil, err
+			}
+			zr, vngErr = vngio.NewReader(zctx, rs)
+			if vngErr == nil {
+				return zio.NopReadCloser(zr), nil
+			}
+			if _, err := rs.Seek(n, io.SeekStart); err != nil {
+				return nil, err
+			}
+		} else {
+			parquetErr = err
+			vngErr = err
+		}
+		parquetErr = fmt.Errorf("parquet: %w", parquetErr)
+		vngErr = fmt.Errorf("vng: %w", vngErr)
+	} else {
+		parquetErr = errors.New("parquet: reader cannot seek")
+		vngErr = errors.New("vng: reader cannot seek")
+	}
+
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
@@ -91,8 +123,6 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	}
 	track.Reset()
 
-	parquetErr := errors.New("parquet: auto-detection not supported")
-	vngErr := errors.New("vng: auto-detection not supported")
 	lineErr := errors.New("line: auto-detection not supported")
 	return nil, joinErrs([]error{zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, vngErr, lineErr})
 }
