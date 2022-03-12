@@ -2,9 +2,11 @@ package parquetio
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zson"
 	goparquet "github.com/fraugster/parquet-go"
 	"github.com/fraugster/parquet-go/parquet"
 )
@@ -32,7 +34,10 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(rec *zed.Value) error {
-	recType := zed.TypeUnder(rec.Type).(*zed.TypeRecord)
+	recType, ok := zed.TypeUnder(rec.Type).(*zed.TypeRecord)
+	if !ok {
+		return fmt.Errorf("Parquet output encountered non-record value: %s", zson.String(rec))
+	}
 	if w.typ == nil {
 		w.typ = recType
 		sd, err := newSchemaDefinition(recType)
