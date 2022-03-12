@@ -52,9 +52,7 @@ func (f *Fuser) Write(rec *zed.Value) error {
 	}
 	if _, ok := f.types[rec.Type]; !ok {
 		f.types[rec.Type] = struct{}{}
-		if err := f.uberSchema.Mixin(zed.TypeRecordOf(rec.Type)); err != nil {
-			return err
-		}
+		f.uberSchema.Mixin(rec.Type)
 	}
 	if f.spiller != nil {
 		return f.spiller.Write(rec)
