@@ -133,7 +133,7 @@ func newShaper(zctx *zed.Context, tf ShaperTransform, in, out zed.Type) (*shaper
 	if err != nil {
 		return nil, err
 	}
-	step, err := newStep(in, typ)
+	step, err := newStep(zctx, in, typ)
 	return &shaper{typ, step}, err
 }
 
@@ -317,6 +317,7 @@ const (
 // copy/cast steps to be carried out over an input record.
 type step struct {
 	op         op
+	caster     Evaluator // for castPrimitive
 	fromIndex  int
 	fromType   zed.Type // for castPrimitive and castToUnion
 	toSelector int      // for castToUnion
@@ -327,7 +328,7 @@ type step struct {
 	children []step
 }
 
-func newStep(in, out zed.Type) (step, error) {
+func newStep(zctx *zed.Context, in, out zed.Type) (step, error) {
 Switch:
 	switch {
 	case in.ID() == zed.IDNull:
@@ -335,20 +336,21 @@ Switch:
 	case in.ID() == out.ID():
 		return step{op: copyOp}, nil
 	case zed.IsRecordType(in) && zed.IsRecordType(out):
-		return newRecordStep(zed.TypeRecordOf(in), zed.TypeRecordOf(out))
+		return newRecordStep(zctx, zed.TypeRecordOf(in), zed.TypeRecordOf(out))
 	case zed.IsPrimitiveType(in) && zed.IsPrimitiveType(out):
-		return step{op: castPrimitive, fromType: in, toType: out}, nil
+		caster := LookupPrimitiveCaster(zctx, zed.TypeUnder(out))
+		return step{op: castPrimitive, caster: caster, fromType: in, toType: out}, nil
 	case zed.InnerType(in) != nil:
 		if out, ok := zed.TypeUnder(out).(*zed.TypeArray); ok {
-			return newArrayOrSetStep(array, zed.InnerType(in), out.Type)
+			return newArrayOrSetStep(zctx, array, zed.InnerType(in), out.Type)
 		}
 		if out, ok := zed.TypeUnder(out).(*zed.TypeSet); ok {
-			return newArrayOrSetStep(set, zed.InnerType(in), out.Type)
+			return newArrayOrSetStep(zctx, set, zed.InnerType(in), out.Type)
 		}
 	case zed.IsUnionType(in):
 		var steps []step
 		for _, t := range zed.TypeUnder(in).(*zed.TypeUnion).Types {
-			s, err := newStep(t, out)
+			s, err := newStep(zctx, t, out)
 			if err != nil {
 				break Switch
 			}
@@ -369,7 +371,7 @@ Switch:
 // [a b] and the input type has fields [b a] that is ok). It is also
 // ok for leaf primitive types to be different; if they are a casting
 // step is inserted.
-func newRecordStep(in, out *zed.TypeRecord) (step, error) {
+func newRecordStep(zctx *zed.Context, in, out *zed.TypeRecord) (step, error) {
 	var children []step
 	for _, outCol := range out.Columns {
 		ind, ok := in.ColumnOfField(outCol.Name)
@@ -377,7 +379,7 @@ func newRecordStep(in, out *zed.TypeRecord) (step, error) {
 			children = append(children, step{op: null})
 			continue
 		}
-		child, err := newStep(in.Columns[ind].Type, outCol.Type)
+		child, err := newStep(zctx, in.Columns[ind].Type, outCol.Type)
 		if err != nil {
 			return step{}, err
 		}
@@ -387,8 +389,8 @@ func newRecordStep(in, out *zed.TypeRecord) (step, error) {
 	return step{op: record, children: children}, nil
 }
 
-func newArrayOrSetStep(op op, in, out zed.Type) (step, error) {
-	innerStep, err := newStep(in, out)
+func newArrayOrSetStep(zctx *zed.Context, op op, in, out zed.Type) (step, error) {
+	innerStep, err := newStep(zctx, in, out)
 	if err != nil {
 		return step{}, nil
 	}
@@ -473,8 +475,7 @@ func (s *step) castPrimitive(zctx *zed.Context, ectx Context, in zcode.Bytes, b 
 	}
 	toType := zed.TypeUnder(s.toType)
 	//XXX We should cache these allocations. See issue #3456.
-	caster := LookupPrimitiveCaster(zctx, toType)
-	v := caster.Eval(ectx, &zed.Value{s.fromType, in})
+	v := s.caster.Eval(ectx, &zed.Value{s.fromType, in})
 	if v.Type != toType {
 		// v isn't the "to" type, so we can't safely append v.Bytes to
 		// the builder. See https://github.com/brimdata/zed/issues/2710.
