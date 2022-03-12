@@ -65,8 +65,8 @@
 
 The Zed language is a query language for search, analytics,
 and transformation inspired by the
-[point-free style](https://en.wikipedia.org/wiki/Tacit_programming)
-of the traditional Unix pipeline.
+[pipeline pattern](https://en.wikipedia.org/wiki/Tacit_programming)
+of the traditional Unix shell.
 Like a Unix pipeline, a query is expressed as a data source followed
 by a number of commands:
 ```
@@ -105,7 +105,11 @@ the flow implied by the pipeline yet reaching the same result &mdash;
 much as a modern SQL engine optimizes a declarative SQL query.
 
 Zed is also intended to provide a seamless transition from a simple search experience
-to more a complex analytics experience composed of complex joins and aggregations.
+(e.g., typed into a search bar or as the query argument of the  `zq` command-line
+tool) to more a complex analytics experience composed of complex joins and aggregations
+where the Zed language source text would typically be authored in a editor and
+managed under source-code control.
+
 Like an email or Web search, a simple keyword search is just the word itself,
 e.g.,
 ```
@@ -135,10 +139,13 @@ written as follows:
 ```
 search "sample.com" AND "urgent"
 | where message_length > 100
-| summarize buckets:=union(int64(log(message_length)) by srcip
+| summarize kinds:=union(type) by net:=network_of(srcip)
 ```
-which computes a group-by table indexed by the source IP address for
-all of the logarithmic buckets of message sizes.   
+which computes an aggregation table of different message types (e.g.,
+from a hypothetical field called `type`) into a new, aggregated field
+called `kinds` and grouped by by the network of all the source IP address
+in the input
+(e.g.,from a hypothetical field called `srcip`) as a derived field called `net`.
 
 The short-hand query from above might be typed into a search box while the
 latter query might be composed in a query editor or in Zed source files
@@ -153,13 +160,21 @@ All available operators are listed on the [reference page](reference.md#operator
 
 ### 2.1 Dataflow Sources
 
-A source of data is specified with the [from operator](operators/from.md#operator).
+In addition to the data sources specified as files on the `zq` command line,
+source may also be specified with the [from operator](operators/from.md#operator).
 
 When running on the command-line, `from` may refer to a file, to an HTTP
 endpoint, or to an S3 URI.  When running in a data lake, `from` typically
 refers to a collection of data called a "data pool" and is referenced using
 the pool's name much as SQL references database tables by their name.
 
+For more detail, see the reference page of the [from operator](operators/from.md#operator),
+but as an example, you might use the `get` form of `from` to fetch data from an
+HTTP endpoint and process it with Zed, in this case, to extract the description
+and license of a Github repository:
+```
+zq -f text "get https://api.github.com/repos/brimdata/zed | yield description,license.name"
+```
 When a Zed query is run on the command-line with `zq`, the `from` source is
 typically omitted and implied instead by the command-line file arguments.
 The input may be stdin via `-` as in
@@ -168,6 +183,10 @@ echo '"hello, world"' | zq  -
 ```
 The examples throughout the language documentation use this "echo pattern"
 to standard input of `zq -` to illustrate language semantics.
+Note that in these examples, the input values are expressed as Zed values serialized
+in the [ZSON text format](../formats/zson.md)
+and the `zq` query text expressed as the first argument of the `zq` command
+is expressed in the syntax of the Zed language described here.
 
 ### 2.2 Dataflow Operators
 
@@ -181,17 +200,21 @@ read all of their input before producing output though
 `summarize` can produce incremental results when the group-by key is
 aligned with the order of the input.
 
-Most operators produce incremental output by operating on values as they
-are produced.
+For large queries that process all of their input, time my pass before
+seeing any output.
+
+On ther other hand, most operators produce incremental output by operating
+on values as they are produced.  For example, a long running query that
+produces incremental output will stream results as they are produced, i.e.,
+running `zq` to standard output will display results incrementally.
 
 The `search` and `where` operators "find" values in their input and drop
 the ones that do not match what is being looked for.
 
 The [yield operator](operators/yield.md#operator) emits one or more output values
 for each input value based on arbitrary [expressions](#expressions),
-providing a convenient means to produce
-point-wise, arbitrary output as a function of the input, much like
-the map concept in the map-reduce framework.
+providing a convenient means to derive arbitrary output values as a function
+of each input value, much like the map concept in the map-reduce framework.
 
 The [fork operator](operators/fork.md#operator) copies its input to parallel
 legs of a query.  The output of these parallel paths can be combined
@@ -204,8 +227,39 @@ A path can also be split to multiple query legs using the
 [switch operator](operators/switch.md#operator), in which data is routed to only one
 corresponding leg (or dropped) based on the switch clauses.
 
+Switch operators typically
+involve multi-line Zed programs, which are easiest to edit in a file.  For example,
+suppose this text is in a file called `switch.zed`:
+```mdtest-input switch.zed
+switch this (
+  case 1 => yield {val:this,message:"one"}
+  case 2 => yield {val:this,message:"two"}
+  default => yield {val:this,message:"many"}
+) | merge val
+```
+Then, running `zq` with `-I` to on `switch.zed` like so:
+```mdtest-command
+echo '1 2 3 4' | zq -z -I switch.zed -
+```
+produces
+```mdtest-output
+{val:1,message:"one"}
+{val:2,message:"two"}
+{val:3,message:"many"}
+{val:4,message:"many"}
+```
+Note that the output order of the switch legs are undefined (indeed they run
+in parallel on multiple threads).  To establish a consistent sequence order,
+a [merge operator](operators/merge.md)
+may be applied at the output of the switch specifying a sort key upon which
+to order the upstream data.  Often such order does not matter (e.g., when the output
+of the switch hits an aggregator), in which case it is typically more performant
+to omit the merge (though the Zed system will often delete such unnecessary
+operations automatically as part optimizing queries when they are compiled).
+
 If no `merge` or `join` is indicated downstream of a `fork` or `switch`,
-then the implied `combine` operator is presumed.
+then the implied `combine` operator is presumed.  In this case, values are
+forwarded from the switch to the downstream operator in an undefined order.
 
 ### 2.3 The Special Value `this`
 
@@ -287,7 +341,7 @@ put x:=y+1
 ```
 or
 ```
-summarize name:=union(name) by address:=lower(address)
+summarize salary:=sum(income) by address:=lower(address)
 ```
 This style of "assignment" to a record value is distinguished from the `=`
 token which binds a locally scoped name to a value that can be referenced
@@ -462,8 +516,6 @@ like records, arrays, sets, and so forth.  However, complex values are not limit
 constant values like ZSON and can be composed from literal expressions as
 [defined below](#expressions).
 
-> TBD: NaN, Inf etc
-
 ### 5.1 First-class Types
 
 Like the Zed data model, the Zed language has first class types:
@@ -475,8 +527,21 @@ and have the same syntax in the Zed language.
 Complex types also follow the ZSON syntax.  Note that the type of a type value
 is simply `type`.
 
-As in ZSON, types are referenced in any Zed expression with angle brackets, e.g.,
-`<int64>` is type `int64` expressed as a value.
+As in ZSON, _when types are used as values_, e.g., in a Zed expression,
+they must be referenced within angle brackets.  That is, the integer type
+`int64` is expressed as a type value using the syntax `<int64>`.
+
+Complex types in the Zed language follow the ZSON syntax as well.  
+Here are a few examples:
+```
+* a simple record type - `{x:int64,y:int64}
+* an array of integers - `[int64]`
+* a set of strings - `|[string]|`
+* a map of strings keys to integer values - `{[string,int64]}`
+* a union of string and integer  - `(string,int64)`
+```
+Complex types may be composed, as in `[({s:string},{x:int64})]` which is
+an array of type union of two types of records.
 
 The [typeof function](functions/typeof.md) returns a value's type as
 a value, e.g., `typeof(1)` is `<int64>` and `typeof(<int64>)` is `<type>`.
@@ -1140,7 +1205,11 @@ produces
 
 #### 6.11.6 Union Values
 
-A union value can be created with a cast, e.g.,
+A union value can be created with a cast.  For example, a union of types `int64`
+and `string` is expressed as `(int64,string)` and any value that has a type
+that appears in the union type may be cast to that union type.
+Since 1 is an `int64` and "foo" is a `string`, they both can be
+values of type `(int64,string)`, e.g.,
 ```mdtest-command
 echo '1 "foo"' | zq -z 'yield cast(this,<(int64,string)>)' -
 ```
@@ -1157,6 +1226,18 @@ echo '1((int64,string))' | zq -z 'yield under(this)' -
 produces
 ```mdtest-output
 1
+```
+Union values are powerful because they provide a mechanism to precisely
+describe the type of any nested, semi-structured value composed of elements
+of different types.  For example, the type of the value `[1,"foo"]` in Javascript
+is simply a generic Javascript "object".  But in Zed, the type of this
+value is an array of union of string and integer, e.g.,
+```mdtest-command
+echo '[1,"foo"]' | zq -z 'typeof(this)' -
+```
+produces
+```mdtest-output
+<[(int64,string)]>
 ```
 
 ### 6.12 Constants
@@ -1613,6 +1694,29 @@ produces
 {name:"foo",elem:2}
 {name:"bar",elem:3}
 ```
+Here the lateral scope, described below, creates a sub-query
+```
+yield {name,elem:this}
+```
+for each sub-sequence of values derived from each outer input value.
+In the example above, there are two input values:
+```
+{s:"foo",a:[1,2]}
+{s:"bar",a:[3]}
+```
+which imply two sub-queries derived from the `over` operator traversing `a`.
+The first subquery thus operates on the input values `1, 2` with the variable
+`name` set to "foo" assigning `1` and then `2` to `this`, thereby emitting
+```
+{name:"foo",elem:1}
+{name:"foo",elem:2}
+```
+and the second sub-query operators on the input value `3` with the variable
+`name` set to "bar", emitting
+```
+{name:"bar",elem:3}
+```
+
 You can also import a parent-scope field reference into the inner scope by
 simply referring to its name without assignment, e.g.,
 ```mdtest-command
@@ -1628,7 +1732,8 @@ produces
 ### 8.1 Lateral Scope
 
 A lateral scope has the form `=> ( <query> )` and currently appears
-only the context of an [over operator](operators/over.md#operator):
+only the context of an [over operator](operators/over.md#operator),
+as illustrated above, and has the form:
 ```
 over ... with <elem> [, <elem> ...] => ( <query> )
 ```
@@ -1650,9 +1755,23 @@ with the same name.
 The `<query>`, which may be any Zed query, is evaluated once per outer value
 on the sequence generated by the `over` expression.  In the lateral scope,
 the value `this` refers to the inner sequence generated from the `over` expressions.
-This query runs to completion for each inner sequence and yields the results to
-its output as each inner sequence completes.
+This query runs to completion for each inner sequence and emits
+each subquery result as each inner sequence traversal completes.
 
+This structure is powerful because _any_ Zed query can be appear in the body of
+the lateral scope.  In contrast to the `yield` example, a sort could be
+applied to each sub-sequence in the sub-query, where sort
+reads all of values of the subsequence, sorts them, emits them, then
+repeats the process for the next subsequence.  For example,
+```mdtest-command
+echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z 'over this => (sort this | collect(this))' -
+```
+produces
+```mdtest-output
+{collect:[1,2,3]}
+{collect:[1,4,7]}
+{collect:[1,2,3]}
+```
 ## 9. Shaping
 
 Data that originates from heterogeneous sources typically has
@@ -1868,7 +1987,7 @@ type fusion as fusion is fine-grained and based on Zed's type system rather
 than having the narrower goal of computing a schema for representations
 like relational tables, Parquet, Avro, etc.
 
-Type fusion utilized two key techniques.
+Type fusion utilizes two key techniques.
 
 The first technique is to simply combine types with a type union.
 For example, an `int64` and a `string` can be merged into a common
