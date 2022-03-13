@@ -1,0 +1,13 @@
+script: |
+  ! zq -f parquet -o /dev/null -
+
+inputs:
+  - name: stdin
+    data: |
+      1
+      2
+
+outputs:
+  - name: stderr
+    data: |
+      Parquet output encountered non-record value: 1
