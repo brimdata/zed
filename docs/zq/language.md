@@ -113,13 +113,13 @@ managed under source-code control.
 Like an email or Web search, a simple keyword search is just the word itself,
 e.g.,
 ```
-sample.com
+example.com
 ```
-is a search for the string "sample.com" and
+is a search for the string "example.com" and
 ```
-sample.com urgent
+example.com urgent
 ```
-is a search for values with the both strings "sample.com" and "urgent" present.
+is a search for values with the both strings "example.com" and "urgent" present.
 
 Unlike typical log search systems, the Zed language operators are uniform:
 you can specify an operator including keyword search terms, Boolean predicates,
@@ -130,14 +130,14 @@ For example,
 the predicate `message_length > 100` can simply be tacked onto the keyword search
 from above, e.g.,
 ```
-sample.com urgent message_length > 100
+example.com urgent message_length > 100
 ```
-finds all values containing the string "sample.com" and "urgent" somewhere in them
+finds all values containing the string "example.com" and "urgent" somewhere in them
 provided further that the field `message_length` is a numeric value greater than 100.
 A related query that performs an aggregation could be more formally
 written as follows:
 ```
-search "sample.com" AND "urgent"
+search "example.com" AND "urgent"
 | where message_length > 100
 | summarize kinds:=union(type) by net:=network_of(srcip)
 ```
