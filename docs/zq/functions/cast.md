@@ -15,13 +15,12 @@ The _cast_ function performs type casts but handles both primitive types and
 complex types.  If the input type `t` is a primitive type, then the result
 is equivalent to
 ```
-<t>(<val>)
+t(val)
 ```
 e.g., the result of `cast(1, <string>)` is the same as `string(1)` which is `"1"`.
-
-In the second form, where the `<name>` argument is a string, cast creates
-a new named type where the name for the type is given by `<name>` and its
-type is given by `typeof(<val>)`.  This provides a convenient mechanism
+In the second form, where the `name` argument is a string, cast creates
+a new named type where the name for the type is given by `name` and its
+type is given by `typeof(val)`.  This provides a convenient mechanism
 to create new named types from the input data itself without having to
 hard code the type in the Zed source text.
 
@@ -31,7 +30,7 @@ When a complex value has multiple levels of nesting,
 casting is applied recursively down the tree.  For example, cast is recursively
 applied to each element in array of records and recursively applied to each record.
 
-If `<val>` is a record (or if any of its nested value is a record):
+If `val` is a record (or if any of its nested value is a record):
 * absent fields are ignored and omitted from the result,
 * extra input fields are passed through unmodified to the result, and
 * fields are matched by name and are order independent and the _input_ order is retained.

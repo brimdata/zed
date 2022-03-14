@@ -15,7 +15,7 @@ to match the order of records in type `t`. Ordering is useful when the
 input is in an unordered format (such as JSON), to ensure that all records
 have the same known order.
 
-If `<val>` is a record (or if any of its nested value is a record):
+If `val` is a record (or if any of its nested values is a record):
 * order passes through "extra" fields not present in the type value,
 * extra fields in the input are added to the right-hand side, ordered lexicographically,
 * missing fields are ignored, and
