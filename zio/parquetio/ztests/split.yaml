@@ -1,0 +1,13 @@
+script: |
+  zq -o out -split . -f parquet -
+  zq -z -i parquet "sort this" out-*.parquet
+
+inputs:
+  - name: stdin
+    data: &input |
+      {s:"hello"}
+      {x:1}
+
+outputs:
+  - name: stdout
+    data: *input

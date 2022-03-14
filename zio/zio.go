@@ -27,6 +27,8 @@ func Extension(format string) string {
 		return ".csv"
 	case "zst":
 		return ".zst"
+	case "parquet":
+		return ".parquet"
 	default:
 		return ""
 	}
