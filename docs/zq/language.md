@@ -143,13 +143,13 @@ search "example.com" AND "urgent"
 ```
 which computes an aggregation table of different message types (e.g.,
 from a hypothetical field called `type`) into a new, aggregated field
-called `kinds` and grouped by by the network of all the source IP address
+called `kinds` and grouped by the network of all the source IP address
 in the input
-(e.g.,from a hypothetical field called `srcip`) as a derived field called `net`.
+(e.g., from a hypothetical field called `srcip`) as a derived field called `net`.
 
 The short-hand query from above might be typed into a search box while the
 latter query might be composed in a query editor or in Zed source files
-maintained in Github.  Both forms are valid Zed queries.
+maintained in GitHub.  Both forms are valid Zed queries.
 
 ## 2. The Dataflow Model
 
@@ -161,7 +161,7 @@ All available operators are listed on the [reference page](reference.md#operator
 ### 2.1 Dataflow Sources
 
 In addition to the data sources specified as files on the `zq` command line,
-source may also be specified with the [from operator](operators/from.md#operator).
+a source may also be specified with the [from operator](operators/from.md#operator).
 
 When running on the command-line, `from` may refer to a file, to an HTTP
 endpoint, or to an S3 URI.  When running in a data lake, `from` typically
@@ -171,7 +171,7 @@ the pool's name much as SQL references database tables by their name.
 For more detail, see the reference page of the [from operator](operators/from.md#operator),
 but as an example, you might use the `get` form of `from` to fetch data from an
 HTTP endpoint and process it with Zed, in this case, to extract the description
-and license of a Github repository:
+and license of a GitHub repository:
 ```
 zq -f text "get https://api.github.com/repos/brimdata/zed | yield description,license.name"
 ```
@@ -200,10 +200,10 @@ read all of their input before producing output though
 `summarize` can produce incremental results when the group-by key is
 aligned with the order of the input.
 
-For large queries that process all of their input, time my pass before
+For large queries that process all of their input, time may pass before
 seeing any output.
 
-On ther other hand, most operators produce incremental output by operating
+On the other hand, most operators produce incremental output by operating
 on values as they are produced.  For example, a long running query that
 produces incremental output will stream results as they are produced, i.e.,
 running `zq` to standard output will display results incrementally.
@@ -214,7 +214,7 @@ the ones that do not match what is being looked for.
 The [yield operator](operators/yield.md#operator) emits one or more output values
 for each input value based on arbitrary [expressions](#expressions),
 providing a convenient means to derive arbitrary output values as a function
-of each input value, much like the map concept in the map-reduce framework.
+of each input value, much like the map concept in the MapReduce framework.
 
 The [fork operator](operators/fork.md#operator) copies its input to parallel
 legs of a query.  The output of these parallel paths can be combined
@@ -228,7 +228,7 @@ A path can also be split to multiple query legs using the
 corresponding leg (or dropped) based on the switch clauses.
 
 Switch operators typically
-involve multi-line Zed programs, which are easiest to edit in a file.  For example,
+involve multiline Zed programs, which are easiest to edit in a file.  For example,
 suppose this text is in a file called `switch.zed`:
 ```mdtest-input switch.zed
 switch this (
@@ -237,7 +237,7 @@ switch this (
   default => yield {val:this,message:"many"}
 ) | merge val
 ```
-Then, running `zq` with `-I` to on `switch.zed` like so:
+Then, running `zq` with `-I switch.zed` like so:
 ```mdtest-command
 echo '1 2 3 4' | zq -z -I switch.zed -
 ```
@@ -248,7 +248,7 @@ produces
 {val:3,message:"many"}
 {val:4,message:"many"}
 ```
-Note that the output order of the switch legs are undefined (indeed they run
+Note that the output order of the switch legs is undefined (indeed they run
 in parallel on multiple threads).  To establish a consistent sequence order,
 a [merge operator](operators/merge.md)
 may be applied at the output of the switch specifying a sort key upon which
@@ -355,7 +355,7 @@ queries are often composed interactively in a "search bar" experience.
 The language design here attempts to support both this "lean forward" pattern of usage
 along with a "coding style" of query writing where the queries might be large
 and complex, e.g., to perform transformations in a data pipeline, where
-the Zed queries are stored under source-code control perhaps in Github or
+the Zed queries are stored under source-code control perhaps in GitHub or
 in Brim's query library.
 
 To facilitate both a programming-like model as well as an ad hoc search
@@ -410,7 +410,7 @@ can be expressed simply as
 ```
 y:=2*x+1
 ```
-When composing long-form queries that are shared via Brim or managed in Github,
+When composing long-form queries that are shared via Brim or managed in GitHub,
 it is best practice to include all operator names in the Zed source text.
 
 In summary, if no operator name is given, the implied operator is determined
@@ -447,7 +447,7 @@ Constants may be defined and assigned to a symbolic name with the syntax
 ```
 const <id> = <expr>
 ```
-where `<id>` is an identifier and `<expr>` or a constant [expression](#6-expressions)
+where `<id>` is an identifier and `<expr>` is a constant [expression](#6-expressions)
 that must evaluate to a constant and at compile time and not reference any
 runtime state like `this`, e.g.,
 ```mdtest-command
@@ -477,7 +477,7 @@ Named types may be created with the syntax
 type <id> = <type>
 ```
 where `<id>` is an identifier and `<type>` or a [Zed type](#first-class-types).
-This create a new type with the given name in the Zed test system, e.g.,
+This create a new type with the given name in the Zed type system, e.g.,
 ```mdtest-command
 echo 80 | zq -z 'type port=uint16 cast(this, <port>)' -
 ```
@@ -547,7 +547,7 @@ The [typeof function](functions/typeof.md) returns a value's type as
 a value, e.g., `typeof(1)` is `<int64>` and `typeof(<int64>)` is `<type>`.
 
 First-class types are quite powerful because types can
-serve as group-by keys or used in "data shaping" logic.
+serve as group-by keys or be used in "data shaping" logic.
 A common query for data introspection is to perform some search query
 slicing and dicing some exploratory data then counting the shapes of
 each type of data as follows:
@@ -584,26 +584,17 @@ and a record type used as a value
 As in any modern programming language, types can be named and the type names
 persist into the data model and thus into the serialized input and output.
 
-Types are defined with a type statement of the form
-```
-type <name> = <type>
-```
-where `<name>` is typically an identifier (though a type name can have any
-characters in it so `<name>` can also be a quoted string), and `<type>` is
-any Zed type.  For example,
-```
-type port=uint16
-```
-defines a type named "port" for type `uint16`.
+Named types may be defined in three ways:
+* with a [type statement as described above](#4-type-statements),
+* with a definition inside of another type, or
+* by the input data itself.
 
-Type statements (along with const statements) must appear at the beginning
-of a query or the beginning of a [parenthesized scope](#scopes).
-
-Type names can also be embedded in any type declaration using the syntax
+Type names that are embedded in another type have the form
 ```
-<name>=<type>
+name=type
 ```
-to refer to the given `<type>` with the name `<name>`.  For example,
+and create a binding between the indicated string `name` and the specified `type`.
+For example,
 ```
 type socket {addr:ip,port:port=uint16}
 ```
@@ -660,7 +651,7 @@ results in
 Here, the two versions of type "foo" are retained in the group-by results.
 
 In general, it is bad practice to define multiple versions a single named type
-though the Zed system and Zed data model accommodates such dynamic bindings.
+though the Zed system and Zed data model accommodate such dynamic bindings.
 Managing and enforcing the relationship between type names and their type definitions
 on a global basis (e.g., across many different data pools in a Zed lake) is outside
 the scope of the Zed data model and language.  That said, Zed provides flexible
@@ -710,7 +701,7 @@ no need to check for error conditions everywhere or look through auxiliary
 logs to find out what happened.
 
 For example,
-the following values can be transformed to errors as follows:
+input values can be transformed to errors as follows:
 ```mdtest-command
 echo '0 "foo" 10.0.0.1' | zq -z 'error(this)' -
 ```
@@ -746,11 +737,11 @@ and logging an error obscurely into some hard-to-find system log as so many
 ETL pipelines do, the Zed logic can
 preferably wrap the offending value as an error and propagate it to its output.
 
-For example, suppose a bad value shows up...
+For example, suppose a bad value shows up:
 ```
 {kind:"bad", stuff:{foo:1,bar:2}}
 ```
-a Zed shaper could catch the bad value (e.g., as a default case in a
+A Zed shaper could catch the bad value (e.g., as a default case in a
 switch topology) and propagate it as an error using the Zed expression:
 ```
 yield error({message:"unrecognized input",input:this})
@@ -775,7 +766,7 @@ landing at the final output stage.
 
 Errors will unfortunately and inevitably occur even in production,
 but having a first-class data type to manage them all while allowing them to
-peacefully co-exist with valid production data is a novel and
+peacefully coexist with valid production data is a novel and
 useful approach that Zed enables.
 
 #### 5.3.1 Missing and Quiet
@@ -830,7 +821,7 @@ error("missing")
 ```
 Sometimes you want missing errors to show up and sometimes you don't.
 The [quiet function](functions/quiet.md) transforms missing errors into
-"quiet errors".  A quiet error is value `error("quiet")` and is ignored
+"quiet errors".  A quiet error is the value `error("quiet")` and is ignored
 by most operators, in particular yield.  For example,
 ```mdtest-command
 echo "{x:1} {y:2}" | zq -z "yield quiet(x)" -
@@ -919,8 +910,8 @@ produces
 ### 6.4 Logic
 
 The keywords `and`, `or`, and `not` perform logic on operands of type `bool`.
-The binary operands of `and` and `or` operate on Boolean values and result in
-an error value if either operand is not a boolean.  Likewise, `not` operates
+The binary operators `and` and `or` operate on Boolean values and result in
+an error value if either operand is not a Boolean.  Likewise, `not` operates
 on its unary operand and results in an error if its operand is not type `bool`.
 Unlike many other languages, non-Boolean values are not automatically converted to
 Boolean type using "truthiness" heuristics.
@@ -934,7 +925,7 @@ in other languages and have the form
 ```
 where `<id>` is an identifier representing the field name referenced.
 If a field name is not representable as an identifier, then [indexing](#indexing)
-may be used with a quoted to string to represent any valid field name.
+may be used with a quoted string to represent any valid field name.
 Such field names can be accessed using `this` and an array-style
 reference, e.g., `this["field with spaces"]`.
 
