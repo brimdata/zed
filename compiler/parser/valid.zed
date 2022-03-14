@@ -29,3 +29,7 @@ s=="harefoot-raucous"
 s=='/a/b'
 search _path=='http' and windows
 f(1) and g(2) or h(3)
+NaN
++Inf
+-Inf
+Inf

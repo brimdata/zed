@@ -1136,6 +1136,8 @@ IdentifierName
 IDGuard
   = BooleanLiteral
   / NullLiteral
+  / NaN
+  / Infinity
 
 Time
   = FullDate "T" FullTime {
@@ -1235,8 +1237,14 @@ FloatString
   / "-"? "." [0-9]+ ExponentPart? {
       RETURN(TEXT)
     }
+  / ( NaN / Infinity ) { RETURN(TEXT) }
+
 
 ExponentPart = "e"i [+-]? UIntString
+
+NaN = "NaN"
+
+Infinity = ("-" / "+")? "Inf"
 
 Hex = HexDigit+ { RETURN(TEXT) }
 
