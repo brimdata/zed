@@ -3,17 +3,13 @@
 ## TL;DR
 
 > `zq` is a command-line tool that uses the [Zed language](language.md)
-for pipeline-style search and analytics language.  `zq` can query a variety
+for pipeline-style search and analytics.  `zq` can query a variety
 of data formats in files, over HTTP, or in S3 storage
-It is particularly fast when you operating over the Zed-native ZNG format.
+It is particularly fast when operating on data in the Zed-native ZNG format.
 >
 > The `zq` design philosophy blends the query/search-tool approach
 of `jq`, `awk`, `grep` with the command-line, embedded database approach
 of `sqlite` and `duckdb`.
->
-> Most examples of Zed are provided as `zq` one liners, but this is just
-one way of using Zed as anything running at desktop-scale as a `zq` command
-can be run at cloud scale using a Zed lake.
 
 ## Contents
 
@@ -44,7 +40,7 @@ can be run at cloud scale using a Zed lake.
 ## 1. Usage
 
 ```
-zq [ options ] [ query ] file [ file ... ]
+zq [ options ] [ query ] input [ input ... ]
 zq [ options ] [ query ]
 ```
 `zq` is a command-line tool for processing data in diverse input
@@ -54,7 +50,8 @@ or keyword search to filter the input then transforms or analyzes
 the filtered stream.  Output is written to one or more files or to
 standard output.
 
-Standard input may be specified with `-`.
+Each `input` argument must be a file path, an HTTP or HTTPS URL,
+an S3 URL, or standard input specified with `-`.
 
 For built-in command help and a listing of all available options,
 simply run `zq` with no arguments.
@@ -86,8 +83,9 @@ and output in the desired format as described below.  This latter approach
 provides a convenient means to convert files from one format to another.
 
 To determine whether the first argument is query or a file,
-`zq` checks the local file system for the existence of a file by that name.
-If no such file exists, it attempts to parse the text as a Zed program.
+`zq` checks the local file system for the existence of a file by that name
+or whether the name is an URL.
+If no such file or URL exists, it attempts to parse the text as a Zed program.
 If both checks fail, then an error is reported and `zq` exits.
 
 This heuristic is convenient but can result in a rare surprise when a simple
@@ -96,9 +94,13 @@ same name in the local directory.
 To avoid this, you can provide the query with the `-query` flag, which specified
 the Zed program to run and forces all arguments to be interpreted as input files.
 
-When `zq` is run with a `query` and no file arguments, then the query must
-begin with a [yield operator](operators/yield.md) and the query is run with
-a single input  value of `null`.  This provides a convenient means to run in a
+When `zq` is run with a `query` and no input arguments, then the query must
+begin with a
+* a [from, file, or get operator](operators/from.md), or
+* an explicit or implied [yield operator](operators/yield.md).
+
+In the case of a `yield` with no inputs, the query is run with
+a single input value of `null`.  This provides a convenient means to run in a
 "calculator mode" where input is produced by the yield and can be operated upon
 by the Zed query, e.g.,
 ```mdtest-command
@@ -117,8 +119,8 @@ Note here that the query `1+1` [implies](language.md#26-implied-operators)
 
 |  Option   | Auto | Specifiction                             |
 |-----------|------|------------------------------------------|
-| `json`    |  yes | [JSON RFC-8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
-| `csv`     |  yes | [CSV RFC-4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
+| `json`    |  yes | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
+| `csv`     |  yes | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
 | `parquet` |  no  | [Apache Parquet](https://github.com/apache/parquet-format) |
 | `zson`    |  yes | [ZSON - Human-readable Format](../formats/zson.md) |
 | `zng`     |  yes | [ZNG - Binary Row Format](../formats/zson.md) |
