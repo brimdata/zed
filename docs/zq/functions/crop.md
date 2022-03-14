@@ -15,7 +15,7 @@ and returns a result such that any fields that are present in `val` but not in
 record type `t` are removed.
 Cropping is a useful when you want records to "fit" a schema tightly.
 
-If `val` is a record (or if any of its nested value is a record):
+If `val` is a record (or if any of its nested values is a record):
 * absent fields are ignored and omitted from the result,
 * fields are matched by name and are order independent and the _input_ order is retained, and
 * leaf types are ignored, i.e., no casting occurs.

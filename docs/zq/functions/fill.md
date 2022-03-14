@@ -11,7 +11,7 @@ fill(val: any, t: type) -> any
 ### Description
 
 The _fill_ function adds to the input record `val` any fields that are
-present in the output type `t` but not in input.
+present in the output type `t` but not in the input.
 
 Filled fields are added with a `null` value.  Filling is useful when
 you want to be sure that all fields in a schema are present in a record.
