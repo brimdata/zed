@@ -24,16 +24,21 @@ to take on any Zed type.
 
 ## Operators
 
+* [combine](operators/combine.md) - combine parallel paths into a single output
 * [cut](operators/cut.md) - extract subsets of record fields into new records
 * [drop](operators/drop.md) - drop fields from record values
+* [from](operators/from.md) - source data from pools, URIs, or connectors
+* [fork](operators/fork.md) - copy values to parallel paths
 * [fuse](operators/fuse.md) - coerce all input values into a merged type
 * [head](operators/head.md) - copy leading values of input sequence
 * [join](operators/join.md) - combine data from two inputs using a join predicate
 * [over](operators/over.md) - traverse nested values as a lateral query
 * [put](operators/put.md) - add or modify fields of records
 * [rename](operators/rename.md) - change the name of record fields
+* [search](operators/search.md) - select values based on a search expression
 * [sort](operators/sort.md) - sort values
 * [summarize](operators/summarize.md) -  perform aggregations
+* [switch](operators/switch.md) -  route values based on cases
 * [tail](operators/tail.md) - copy trailing values of input sequence
 * [uniq](operators/uniq.md) - deduplicate adjacent values
 * [where](operators/where.md) - select values based on a Boolean expression
@@ -44,11 +49,14 @@ to take on any Zed type.
 * [abs](functions/abs.md) - absolute value of a number
 * [base64](functions/base64.md) - encode/decode base64 strings
 * [bucket](functions/bucket.md) - quantize a time or duration value into buckets of equal widths
+* [cast](functions/cast.md) - coerce a value to a different type
 * [ceil](functions/ceil.md) - ceiling of a number
 * [cidr_match](functions/cidr_match.md) - test if IP is in a network
+* [crop](functions/crop.md) - remove fields from a value that are missing in a specified type
 * [error](functions/error.md) - wrap a value as an error
 * [every](functions/every.md) - bucket `ts` using a duration
 * [fields](functions/fields.md) - return the flattened path names of a record
+* [fill](functions/fill.md) - add null values for missing record fields
 * [flatten](functions/flatten.md) - transform a record into a flattened map
 * [floor](functions/floor.md) - floor of a number
 * [grep](functions/grep.md) - search strings inside of values
@@ -65,6 +73,7 @@ to take on any Zed type.
 * [nameof](functions/nameof.md) - the name of a named type
 * [network_of](functions/network_of.md) - the network of an IP
 * [now](functions/now.md) - the current time
+* [order](functions/order.md) - reorder record fields
 * [parse_uri](functions/parse_uri.md) - parse a string URI into a structured record
 * [parse_zson](functions/parse_zson.md) - parse ZSON text into a Zed value
 * [pow](functions/pow.md) - exponential function of any base
@@ -72,6 +81,7 @@ to take on any Zed type.
 * [replace](functions/replace.md) - replace one string for another
 * [round](functions/round.md) - round a number
 * [rune_len](functions/rune_len.md) - length of a string in Unicode code points
+* [shape](functions/shape.md) - apply cast, fill, and order
 * [split](functions/split.md) - slice a string into an array of strings
 * [sqrt](functions/sqrt.md) - square root of a number
 * [trim](functions/trim.md) - strip leading and trailing whitespace

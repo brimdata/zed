@@ -10,7 +10,7 @@ cut <field>[:=<expr>] [, <field>[:=<expr>] ...]
 ### Description
 
 The `cut` operator extracts values from each input record in the
-form of one or more [record mutations](../language.md#record-mutations),
+form of one or more [field assignments](../language.md#field-assignments),
 creating one field for each expression.  Unlike the `put` operator,
 which adds or modifies the fields of a record, `cut` retains only the
 fields enumerated, much like a SQL projection.
