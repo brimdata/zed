@@ -1,0 +1,15 @@
+zed: "yield has_error(this)"
+
+input: |
+  null
+  error(0)
+  {f1:127.0.0.1,f2:error("error")}
+  [1,2]([(int64,error(string))])
+  |{"key":error(0)((int64,error(int64)))}|
+
+output: |
+  false
+  true
+  true
+  false
+  true

@@ -107,6 +107,8 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		f = &NameOf{zctx: zctx}
 	case "fields":
 		f = NewFields(zctx)
+	case "has_error":
+		f = NewHasError()
 	case "is":
 		argmin = 1
 		argmax = 2
@@ -155,7 +157,7 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 // signatures so the return type can be introspected.
 func HasBoolResult(name string) bool {
 	switch name {
-	case "is_error", "is", "has", "missing", "cidr_match":
+	case "has", "has_error", "is_error", "is", "missing", "cidr_match":
 		return true
 	}
 	return false
