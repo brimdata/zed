@@ -314,11 +314,11 @@ This creates a challenge converting the type-flexible Zed formats to a schema-ri
 format like Parquet.
 
 For example, this seemingly simple conversion:
-```mdtest-command-skip
+```mdtest-command fails
 echo '{x:1}{s:"hello"}' | zq -o out.parquet -f parquet -
 ```
 causes this error
-```mdtest-output-skip fails
+```mdtest-output
 Parquet output requires uniform records but multiple types encountered (consider 'fuse')
 ```
 
