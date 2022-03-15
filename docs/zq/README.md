@@ -71,18 +71,18 @@ human-readable bits of output, you merely format it as ZSON, which is the
 default format when output is directed to the terminal.  ZNG is default
 when redirecting to a non-terminal output like a file or pipe.
 
-When run with file arguments, each file's format is automatically inferred
-([as described below](#21-auto-detection)) and each file is scanned
+When run with input arguments, each input's format is automatically inferred
+([as described below](#21-auto-detection)) and each input is scanned
 in the order appearing on the command line forming the input stream.
 
 A query expressed in the [Zed language](language.md)
 may be optionally specified and applied to the input stream.
 
-If no query is specified, the input files are all scanned without modification
+If no query is specified, the inputs are scanned without modification
 and output in the desired format as described below.  This latter approach
 provides a convenient means to convert files from one format to another.
 
-To determine whether the first argument is query or a file,
+To determine whether the first argument is a query or an input,
 `zq` checks the local file system for the existence of a file by that name
 or whether the name is an URL.
 If no such file or URL exists, it attempts to parse the text as a Zed program.
@@ -92,7 +92,7 @@ This heuristic is convenient but can result in a rare surprise when a simple
 Zed query (like a keyword search) happens to correspond with a file of the
 same name in the local directory.
 To avoid this, you can provide the query with the `-query` flag, which specified
-the Zed program to run and forces all arguments to be interpreted as input files.
+the Zed program to run and forces all arguments to be interpreted as inputs.
 
 When `zq` is run with a `query` and no input arguments, then the query must
 begin with a
@@ -136,12 +136,12 @@ Formats without auto detection require the `-i` option.
 
 The input format is specified with the `-i` flag.
 
-When `-i` is specified, all of the files on the command-line must be
+When `-i` is specified, all of the inputs on the command-line must be
 in the indicated format.
 
 ### 2.2 Auto-detection
 
-When using _auto detection_, each file's format is independently determined
+When using _auto detection_, each input's format is independently determined
 so it is possible to easily blend different input formats into a unified
 output format.
 
@@ -186,7 +186,7 @@ JSON number that appears as an integer as an integer type.
 
 To this end, `zq` uses a heuristic to select between ZSON in JSON when the
 `-i` option is not specified where JSON is selected when the first values
-of the input is parseable as valid JSON and includes an JSON object either
+of the input is parseable as valid JSON and includes a JSON object either
 as an outer object or as value nested somewhere within a JSON array.
 
 This heuristic almost always works in practice because ZSON records
@@ -197,8 +197,8 @@ typically omit quotes around field names.
 The output format defaults to either ZSON or ZNG and may be specified
 with the `-f` option.  The supported output formats include all of
 the input formats along with text and table formats, which are useful
-for displaying data but they do not capture all the information required
-to reconstruct the original data so they are not supported input formats.
+for displaying data.  (They do not capture all the information required
+to reconstruct the original data so they are not supported input formats.)
 
 Since ZSON is a common format choice, the `-z` flag is a shortcut for
 `-f zson.`  Also, `-Z` is a shortcut for `-f zson` with `-pretty 4` as
@@ -220,14 +220,14 @@ but it would otherwise perform horribly.
 * If the default format were ZNG, then users would be endlessly annoyed by
 binary output to their terminal when forgetting to type `-f zson`.
 
-In practice, we have found in practice that the output defaults
+In practice, we have found that the output defaults
 "just do the right thing" almost all of the time.
 
 ### 3.2 ZSON Pretty Printing
 
 ZSON text may be "pretty printed" with the `-pretty` option, which takes
 the number of spaces to use for indentation.  As this is a common option,
-the `-Z` option is a shortcut for `-f zson -pretty=4`.
+the `-Z` option is a shortcut for `-f zson -pretty 4`.
 
 For example.
 ```mdtest-command
@@ -248,7 +248,7 @@ produces
 ```
 and
 ```mdtest-command
-echo '{a:{b:1,c:[1,2]},d:"foo"}' | zq -f zson -pretty=2 -
+echo '{a:{b:1,c:[1,2]},d:"foo"}' | zq -f zson -pretty 2 -
 ```
 produces
 ```mdtest-output
@@ -265,7 +265,7 @@ produces
 ```
 
 When pretty printing, colorization is enabled by default when writing to a terminal,
-and can be disabled with `-color=false`.
+and can be disabled with `-color false`.
 
 ### 3.3 Pipeline-friendly ZNG
 
@@ -306,7 +306,7 @@ produces
 
 Certain data formats like Parquet are "schema rigid" in the sense that they
 require a schema to be defined before values can be written into the file and
-all the values in the file must conform to the same type.
+all the values in the file must conform to this schema.
 
 Zed, however, has a fine-grained type system instead of schemas and a sequence
 of data values are completely self-describing and may be heterogeneous in nature.
@@ -314,11 +314,11 @@ This creates a challenge converting the type-flexible Zed formats to a schema-ri
 format like Parquet.
 
 For example, this seemingly simple conversion:
-```mdtest-command-skip-stderr-no-work
+```mdtest-command-skip
 echo '{x:1}{s:"hello"}' | zq -o out.parquet -f parquet -
 ```
 causes this error
-```mdtest-output-skip
+```mdtest-output-skip fails
 Parquet output requires uniform records but multiple types encountered (consider 'fuse')
 ```
 
@@ -343,11 +343,11 @@ is to create a separate file for each schema.
 
 `zq` can do this too with the `-split` option, which specifies a path
 to a directory for the output files.  If the path is `.`, then files
-are writing to the current directory.
+are written to the current directory.
 
 The files are named using the `-o` option as a prefix and the suffix is
 `-<n>.<ext>` where the `<ext>` is determined from the output format and
-where is a unique integer `<n>` for each distinct output file.
+where `<n>` is a unique integer for each distinct output file.
 
 For example, the example above would produce two output files,
 which can then be read separately to reproduce the original data, e.g.,
