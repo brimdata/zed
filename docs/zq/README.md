@@ -441,7 +441,7 @@ which is used throughout the [language documentation](language.md)
 and [operator reference](reference.md).
 
 The language documenation and [tutorials directory](../tutorials)
-have many examples, but here are a few more simple cases of `zq.`
+have many examples, but here are a few more simple cases of `zq`.
 
 _Hello, world_
 ```
@@ -521,7 +521,7 @@ compared to tools like `jq`, `grep`, `awk`, or `sqlite` especially when running
 
 ### 7.1 Fast Pattern Matching
 
-One important technique that `zq` to run fast is to take advantage of queries
+One important technique that help `zq` run fast is to take advantage of queries
 that involve fine-grained searches.
 
 When a query begins with a logical expression containing either a search
@@ -529,9 +529,9 @@ or a predicate match with a constant value, and presuming the input data format
 is ZNG, then the runtime optimizes the query by performing an efficient,
 byte-oriented "pre-search" of the values required in the predicate.  This pre-search
 scans the bytes that comprise a large buffer of values and looks for these values
-and  if they are not present, the entire buffer is discarded knowing no individual
-value in that buffer could have been found because the required serialized
-values were nowhere present in the buffer.
+and, if they are not present, the entire buffer is discarded knowing no individual
+value in that buffer could match because the required serialized
+values were not present in the buffer.
 
 For example, if the Zed query is
 ```
@@ -600,8 +600,8 @@ Next, a JSON file can be converted from ZNG using:
 ```
 zq -f json conn.zng > conn.json
 ```
-Note here that we lose information in this conversation because the rich data types
-of Zed (that were translated from the Zeek format).
+Note here that we lose information in this conversion because the rich data types
+of Zed (that were translated from the Zeek format) are lost.
 
 We'll also make a SQLite database in the file `conn.db` as the table named `conn`.
 One easy way to do this is to install
@@ -634,14 +634,14 @@ forthcoming on this front.
 
 #### 7.3.3 Tests
 
-We ran three styles of testson a Mac quad-core 2.3GHz i7:
+We ran three styles of tests on a Mac quad-core 2.3GHz i7:
 * `count` - compute the number of values present
 * `search` - find a value in a field
 * `agg` - sum a field grouped by another field
 
 Each test was run for `jq`, `zq` on JSON, `sqlite3`, and `zq` on ZNG.
 
-We used the bash `time` command to measure elapsed time.
+We used the Bash `time` command to measure elapsed time.
 
 The command lines for the `count` test were:
 ```
@@ -707,7 +707,7 @@ as well as the aggregated fields.
 Also, note that the inferior performance of `sqlite` is in areas where databases
 perform extraordinarily well if you do the work to
 (1) transform semi-structured columns to relational columns by flattening
-the nested the JSON objects (which are not indexable by `sqlite`) and
+nested JSON objects (which are not indexable by `sqlite`) and
 (2) configuring database indexes.
 
 In fact, if you implement these changes, `sqlite` performs better than `zq` on these tests.
