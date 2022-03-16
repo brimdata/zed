@@ -28,23 +28,22 @@ and test scores.
   * [4.4 put](#44-put)
   * [4.5 rename](#45-rename)
 * [5. Aggregates](#5-aggregates)
-  * [General Usage](#general-usage)
-    + [Invoking](#invoking)
-    + [Field Naming](#field-naming)
-    + [Grouping](#grouping)
-    + [`where` filtering](#where-filtering)
-  * [Available Aggregate Functions](#available-aggregate-functions)
-    + [`and`](#and)
-    + [`any`](#any)
-    + [`avg`](#avg)
-    + [`collect`](#collect)
-    + [`count`](#count)
-    + [`dcount`](#dcount)
-    + [`max`](#max)
-    + [`min`](#min)
-    + [`or`](#or)
-    + [`sum`](#sum)
-    + [`union`](#union)
+  * [5.1 Output Field Names](#51-output-field-names)
+  * [5.2 Grouping](#52-grouping)
+  * [5.3 Where Clause](#53-where-clause)
+  * [5.4 Aggregate Functions](#54-aggregate-functions)
+    + [5.4.1 and](#541-and)
+    + [5.4.2 any](#542-any)
+    + [5.4.3 avg](#543-avg)
+    + [5.4.4 collect](#544-collect)
+    + [5.4.5 count](#545-count)
+    + [5.4.6 dcount](#546-dcount)
+    + [5.4.7 max](#547-max)
+    + [5.4.8 min](#548-min)
+    + [5.4.9 or](#549-or)
+    + [5.4.10 sum](#5410-sum)
+    + [5.4.11 union](#5410-sum)
+  * [5.5 Group-by Examples](#55-group-by-examples)
 * [6. Sorting](#6-sorting)
 * [7. Sequence Filters](#7-sequence-filters)
 * [8. Value Construction](#8-value-construction)
@@ -972,7 +971,7 @@ This section depicts examples of variou
 [aggregate functions](../zq/language.md#aggregate-functions)
 operating over thes "schools data set".
 
-#### [and](../zq/aggregates/and.md)
+#### 5.4.1 [and](../zq/aggregates/and.md)
 
 The `and` function accumulates a Boolean truth value based on the logical AND
 of all of its input.
@@ -999,7 +998,7 @@ produces
 ...
 ```
 
-#### [any](../zq/aggregates/any.md)
+#### 5.4.2 [any](../zq/aggregates/any.md)
 
 The `any` function produces one value from all of its input, chosen in
 an undefined manner.
@@ -1015,7 +1014,7 @@ case, the output is:
 {any:"'3R' Middle"}
 ```
 
-#### [avg](../zq/aggregates/avg.md)
+#### 5.4.3 [avg](../zq/aggregates/avg.md)
 
 The `avg` function computes an arithmetic mean over all of all of its input.
 
@@ -1029,7 +1028,7 @@ avg
 484.99019042123484
 ```
 
-#### [collect](../zq/aggregates/collect.md)
+#### 5.4.4 [collect](../zq/aggregates/collect.md)
 
 The `collect` function accumulates all of its input into an array.
 
@@ -1068,7 +1067,7 @@ and produces
 ...
 ```
 
-#### [count](../zq/aggregates/count.md)
+#### 5.4.5 [count](../zq/aggregates/count.md)
 
 The `count` function produces a count of all of its input values.
 
@@ -1096,7 +1095,7 @@ produces
 ```
 Since `17686 + 2223 = 19909`, the count result is what we expected.
 
-#### [dcount](../zq/aggregates/dcount.md)
+#### 5.4.6 [dcount](../zq/aggregates/dcount.md)
 
 The `dcount` function produces a distinct count of all of its input values,
 i.e., the number of unique values in its input.
@@ -1128,7 +1127,7 @@ produces
 ```
 Here we saw the approximation was off by 0.3%.
 
-#### [max](../zq/aggregates/max.md)
+#### 5.4.7 [max](../zq/aggregates/max.md)
 
 The `max` function computes the maximum numeric value over all of its input.
 
@@ -1142,7 +1141,7 @@ max
 699
 ```
 
-#### [min](../zq/aggregates/min.md)
+#### 5.4.8 [min](../zq/aggregates/min.md)
 
 The `min` function computes the minimum numeric value over all of its input.
 
@@ -1156,7 +1155,7 @@ min
 289
 ```
 
-#### [or](../zq/aggregates/or.md)
+#### 5.4.9 [or](../zq/aggregates/or.md)
 
 The `or` function accumulates a Boolean truth value based on the logical OR
 of all of its input.
@@ -1192,7 +1191,7 @@ and produces
 ...
 ```
 
-#### [sum](../zq/aggregates/sum.md)
+#### 5.4.10 [sum](../zq/aggregates/sum.md)
 
 The `sum` function computes the minimum numeric value over all of its input.
 
@@ -1210,7 +1209,7 @@ and produces
 }
 ```
 
-#### [union](../zq/aggregates/union.md)
+#### 5.4.11 [union](../zq/aggregates/union.md)
 
 The `union` function computes a set union over all of this input.
 
@@ -1238,7 +1237,7 @@ and produces
 ...
 ```
 
-#### Group-by Examples
+### 5.5 Group-by Examples
 
 As mentioned above,
 the `summarize` operator may include group-by expressions
