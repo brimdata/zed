@@ -1544,7 +1544,7 @@ as arguments to yield.
 This example produce two simpler records for every school record listing
 the average math score with the school name and the county name:
 ```mdtest-command dir=testdata/edu
-zq -Z 'AvgScrMath!=null | {school:sname,avg:AvgScrMath}, {county:cname,zvg:AvgScrMath}' testscores.zson
+zq -Z 'AvgScrMath!=null | yield {school:sname,avg:AvgScrMath}, {county:cname,zvg:AvgScrMath}' testscores.zson
 ```
 which produces
 ```mdtest-output head 4
