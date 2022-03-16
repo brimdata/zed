@@ -10,8 +10,10 @@ sample [<expr>]
 
 The `sample` operator is a syntactic shortcut for
 ```
-sample:=any(<expr>) by typeof(<expr>) | yield sample
+val:=any(<expr>) by typeof(<expr>) | yield val
 ```
+If `<expr>` is not provided, `this` is used.
+
 In other words, `sample` produces one value of each type in the input.
 This is useful for data exploration when you want to see the shapes
 of data and some sample data in a data set without having to sift

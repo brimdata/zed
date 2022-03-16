@@ -39,9 +39,8 @@ We'll start by outputting only the fruits liked by at least one person.
 The name of the matching person is copied into a field of a different name in
 the joined results.
 
-Because we're performing an inner join (the default), the inclusion of the
-explicit `inner` is not strictly necessary, but may be included to help make
-the Zed self-documenting.
+Because we're performing an inner join (the default), the
+explicit `inner` is not strictly necessary, but including it clarifies our intention.
 
 Notice how each input is specified separately within the parentheses-wrapped
 `from()` block before the `join` appears in our Zed pipeline.
@@ -131,13 +130,13 @@ produces
 
 As our prior examples all used `zq`, we used `file` in our `from()` block to
 pull our respective inputs from named file sources. However, if the inputs are
-stored in Pools in a Zed lake, the Pool names would instead be specified in the
+stored in pools in a Zed lake, the pool names would instead be specified in the
 `from()` block.
 
-Here we'll load our input data to Pools in a temporary Zed Lake, then execute
+Here we'll load our input data to pools in a temporary Zed Lake, then execute
 our inner join using `zed query`.
 
-Notice that because we happened to use `-orderby` to sort our Pools by the same
+Notice that because we happened to use `-orderby` to sort our pools by the same
 keys that we reference in our `join`, we did not need to use any explicit
 upstream `sort`.
 
@@ -150,10 +149,9 @@ from (
 ) | inner join on flavor=likes eater:=name
 ```
 
-Populating the Pools, then executing the Zed script:
+Populating the pools, then executing the Zed script:
 
 ```mdtest-command
-mkdir lake
 export ZED_LAKE=lake
 zed init -q
 zed create -q -orderby flavor:asc fruit
@@ -174,7 +172,7 @@ produces
 
 ## Self Joins
 
-In addition to the named files and Pools like we've used in the prior examples,
+In addition to the named files and pools like we've used in the prior examples,
 Zed is also intended to work on a single sequence of data that is split
 and joined to itself.  Here we'll combine our file
 sources into a stream that we'll pipe into `zq` via stdin. Because join requires
@@ -222,7 +220,7 @@ indicate, they separately offer both ripe and unripe fruit.
 ```
 
 Let's assume we're interested in seeing the available quantities of only the
-immediately-edible fruit/color combinations shown in our `fruit.ndjson`
+ripe fruit in our `fruit.ndjson`
 records. In the Zed script `multi-value-join.zed`, we create the keys as
 embedded records inside each input record, using the same field names and data
 types in each. We'll leave the created `fruitkey` records intact to show what
@@ -231,8 +229,8 @@ typically [`drop`](#drop) it after the `join` in our Zed pipeline.
 
 ```mdtest-input multi-value-join.zed
 from (
-  file fruit.ndjson => put fruitkey:={name:string(name),color:string(color)} | sort fruitkey
-  file inventory.ndjson => put invkey:={name:string(name),color:string(color)} | sort invkey
+  file fruit.ndjson => put fruitkey:={name,color} | sort fruitkey
+  file inventory.ndjson => put invkey:={name,color} | sort invkey
 ) | inner join on fruitkey=invkey quantity
 ```
 
