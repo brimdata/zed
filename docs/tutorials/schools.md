@@ -70,10 +70,18 @@ with Zed.  Zed's [sample operator](../zq/operators/sample.md) is just the ticket
 `sample` will select one representative value from each "shape" of data present
 in the input, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -Z 'sample | sort' schools.zson testscores.zson webaddrs.zson
+zq -Z 'sample | sort this' schools.zson testscores.zson webaddrs.zson
 ```
 displays
 ```mdtest-output
+{
+    AvgScrMath: null (uint16),
+    AvgScrRead: null (uint16),
+    AvgScrWrite: null (uint16),
+    cname: "Riverside",
+    dname: "Beaumont Unified",
+    sname: "21st Century Learning Institute"
+}
 {
     School: "'3R' Middle",
     District: "Nevada County Office of Education",
@@ -88,14 +96,6 @@ displays
     Phone: null (string),
     StatusType: "Merged",
     Website: null (string)
-}
-{
-    AvgScrMath: null (uint16),
-    AvgScrRead: null (uint16),
-    AvgScrWrite: null (uint16),
-    cname: "Riverside",
-    dname: "Beaumont Unified",
-    sname: "21st Century Learning Institute"
 }
 {
     Website: "abbott.lynwood.edlioschool.com",
