@@ -1,0 +1,7 @@
+zed: <{x:int64}>
+
+input: <int64> <string> <{x:int64}>
+
+output: |
+  <{x:int64}>
+  

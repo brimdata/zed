@@ -45,14 +45,27 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 	case *ast.ID:
 		return semID(scope, e), nil
 	case *ast.Term:
-		val, err := zson.ParsePrimitive(e.Value.Type, e.Value.Text)
-		if err != nil {
-			return nil, err
+		var val string
+		switch t := e.Value.(type) {
+		case *astzed.Primitive:
+			v, err := zson.ParsePrimitive(t.Type, t.Text)
+			if err != nil {
+				return nil, err
+			}
+			val = zson.MustFormatValue(*v)
+		case *astzed.TypeValue:
+			tv, err := semType(scope, t.Value)
+			if err != nil {
+				return nil, err
+			}
+			val = "<" + tv + ">"
+		default:
+			return nil, fmt.Errorf("unexpected term value: %s", e.Kind)
 		}
 		return &dag.Search{
 			Kind:  "Search",
 			Text:  e.Text,
-			Value: zson.MustFormatValue(*val),
+			Value: val,
 			Expr:  pathOf("this"),
 		}, nil
 	case *ast.UnaryExpr:
