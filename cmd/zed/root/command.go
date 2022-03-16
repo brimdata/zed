@@ -2,6 +2,7 @@ package root
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"os/signal"
 	"syscall"
@@ -40,7 +41,17 @@ func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) 
 		cancel()
 		c.cli.Cleanup()
 	}
-	return ctx, cleanup, nil
+	return &interruptedContext{ctx}, cleanup, nil
+}
+
+type interruptedContext struct{ context.Context }
+
+func (s *interruptedContext) Err() error {
+	err := s.Context.Err()
+	if errors.Is(err, context.Canceled) {
+		return errors.New("interrupted")
+	}
+	return err
 }
 
 func (c *Command) Run(args []string) error {
