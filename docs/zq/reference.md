@@ -35,6 +35,7 @@ to take on any Zed type.
 * [over](operators/over.md) - traverse nested values as a lateral query
 * [put](operators/put.md) - add or modify fields of records
 * [rename](operators/rename.md) - change the name of record fields
+* [sample](operators/sample.md) - select one value of each shape
 * [search](operators/search.md) - select values based on a search expression
 * [sort](operators/sort.md) - sort values
 * [summarize](operators/summarize.md) -  perform aggregations

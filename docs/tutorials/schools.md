@@ -20,7 +20,7 @@ and test scores.
     + [3.5.3 Containment](#353-containment)
     + [3.5.4 Comparisons](#354-comparisons)
   * [3.6 Boolean Logic](#36-boolean-logic)
-    + [3.6.1 Logical Grouping](361-logical-grouping)
+    + [3.6.1 Logical Grouping](#361-logical-grouping)
 * [4. Record Operators](#4-record-operators)
   * [4.1 cut](#41-cut)
   * [4.2 drop](#42-drop)
@@ -66,7 +66,7 @@ files are small enough that the example queries here will all run fast enough.
 ## 2. Exploring the Data
 
 It's always a good idea to get a feel for any new data, which is easy to do
-with Zed.  Zed's [sample operator](../zq/operaetors/sample.md) is just the ticket ---
+with Zed.  Zed's [sample operator](../zq/operators/sample.md) is just the ticket ---
 `sample` will select one representative value from each "shape" of data present
 in the input, e.g.,
 ```mdtest-command dir=testdata/edu
@@ -408,7 +408,7 @@ produces an empty output
 ```
 
 To perform string searches inside of nested values, we can utilize the
-[grep function](../zq/language/functions/grep.md) with
+[grep function](../zq/functions/grep.md) with
 a [glob](#32-globs), e.g.,
 ```mdtest-command dir=testdata/edu
 zq -z 'grep(Luther*, District)' schools.zson
@@ -1460,9 +1460,9 @@ produces
 
 Several Zed operators manipulate a sequence of values based on the order
 in which they appear in the input:
-* [head](operators/head.md) - copy leading values of input sequence
-* [tail](operators/tail.md) - copy trailing values of input sequence
-* [uniq](operators/uniq.md) - deduplicate adjacent values
+* [head](../zq/operators/head.md) - copy leading values of input sequence
+* [tail](../zq/operators/tail.md) - copy trailing values of input sequence
+* [uniq](../zq/operators/uniq.md) - deduplicate adjacent values
 
 ### 7.1 [head](../zq/operators/head.md)
 
