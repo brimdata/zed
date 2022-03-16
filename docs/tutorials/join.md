@@ -7,9 +7,9 @@ Currently, join is limited in the following ways:
 * only merge join is implemented requiring inputs to be explicitly sorted, and
 * only equ-join is supported.
 
-## Example Data
-
 A more comprehensive join design with easier-to-use syntax is forthcoming.
+
+## Example Data
 
 The first input data source for our usage examples is `fruit.ndjson`, which describes
 the characteristics of some fresh produce.
