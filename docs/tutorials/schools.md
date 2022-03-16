@@ -42,7 +42,7 @@ and test scores.
     + [5.4.8 min](#548-min)
     + [5.4.9 or](#549-or)
     + [5.4.10 sum](#5410-sum)
-    + [5.4.11 union](#5410-sum)
+    + [5.4.11 union](#5411-union)
   * [5.5 Group-by Examples](#55-group-by-examples)
 * [6. Sorting](#6-sorting)
 * [7. Sequence Filters](#7-sequence-filters)
