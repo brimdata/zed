@@ -1263,7 +1263,6 @@ in our example data, this query:
 zq -z 'by StatusType | sort' schools.zson
 ```
 produces
-#### Output:
 ```mdtest-output
 {StatusType:"Active"}
 {StatusType:"Closed"}
