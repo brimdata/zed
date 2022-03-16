@@ -235,7 +235,7 @@ the [Zed language documention](#711-regular-expressions).
 
 Sometimes you want to search for values that aren't strings, e.g., numbers
 or IP addresses.  Zed can search for any
-primitive-type](../formats/zed.md#1-primitive-types) value just typing
+[primitive-type](../formats/zed.md#1-primitive-types) value just typing
 that value like a keyword.   In this case, the search looks for
 both fields of the value's type for an exact match as well as a substring
 match for the value as typed in any strings encountered.
@@ -316,7 +316,7 @@ produces
 ### 3.5 Predicate Search
 
 Search terms can also be include Boolean predicates adhering
-to Zed's [expressions syntax](../zq/language.md#6-expressions).
+to Zed's [expression syntax](../zq/language.md#6-expressions).
 
 In particular, a search result can be narrowed down
 to include only records that contain a
@@ -894,54 +894,6 @@ produces
 {
     toplevel: "MyValue"
 }
-```
-
-
-## `where`
-
-|                           |                                                                       |
-| ------------------------- | --------------------------------------------------------------------- |
-| **Description**           | Apply a search to potentially trim data from the pipeline.            |
-| **Syntax**                | `filter <search>`                                                     |
-| **Required<br>arguments** | `<search>`<br>Any valid Zed [search syntax](../zq/language.md#search-expressions) |
-| **Optional<br>arguments** | None                                                                  |
-
-> **Note:** As searches may appear anywhere in a Zed pipeline, it is not
-> strictly necessary to enter the explicit `filter` operator name before your
-> search. However, you may find it useful to include it to help express the
-> intent of your query.
-
-#### Example 1:
-
-To further trim the data returned in our [`cut`](#cut) example:
-
-```mdtest-command dir=testdata/edu
-zq -Z 'cut School,OpenDate | where School=="Breeze Hill Elementary"' schools.zson
-```
-
-#### Output:
-```mdtest-output
-{
-    School: "Breeze Hill Elementary",
-    OpenDate: 1992-07-06T00:00:00Z
-}
-```
-
-#### Example 2:
-
-An alternative syntax for our [`and` example](../zq/language.md#search-expressions):
-
-```mdtest-command dir=testdata/edu
-zq -z 'search StatusType=="Pending" academy' schools.zson
-```
-
-#### Output:
-```mdtest-output
-{School:"Equitas Academy 4",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90015-2412",Latitude:34.044837,Longitude:-118.27844,Magnet:false,OpenDate:2017-09-01T00:00:00Z,ClosedDate:null(time),Phone:"(213) 201-0440",StatusType:"Pending",Website:"http://equitasacademy.org"}
-{School:"Pinnacle Academy Charter - Independent Study",District:"South Monterey County Joint Union High",City:"King City",County:"Monterey",Zip:"93930-3311",Latitude:36.208934,Longitude:-121.13286,Magnet:false,OpenDate:2016-08-08T00:00:00Z,ClosedDate:null(time),Phone:"(831) 385-4661",StatusType:"Pending",Website:"www.smcjuhsd.org"}
-{School:"Rocketship Futuro Academy",District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:false,OpenDate:2016-08-15T00:00:00Z,ClosedDate:null(time),Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"}
-{School:"Sherman Thomas STEM Academy",District:"Madera Unified",City:"Madera",County:"Madera",Zip:"93638",Latitude:36.982843,Longitude:-120.06665,Magnet:false,OpenDate:2017-08-09T00:00:00Z,ClosedDate:null(time),Phone:"(559) 674-1192",StatusType:"Pending",Website:"www.stcs.k12.ca.us"}
-{School:null(string),District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"}
 ```
 
 ## 5. Aggregates
