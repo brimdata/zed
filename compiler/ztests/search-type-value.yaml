@@ -4,4 +4,3 @@ input: <int64> <string> <{x:int64}>
 
 output: |
   <{x:int64}>
-  
