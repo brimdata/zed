@@ -30,9 +30,9 @@ type ID struct {
 }
 
 type Term struct {
-	Kind  string           `json:"kind" unpack:""`
-	Text  string           `json:"text"`
-	Value astzed.Primitive `json:"value"`
+	Kind  string     `json:"kind" unpack:""`
+	Text  string     `json:"text"`
+	Value astzed.Any `json:"value"`
 }
 
 type UnaryExpr struct {
