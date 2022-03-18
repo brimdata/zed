@@ -11,25 +11,29 @@ import (
 )
 
 type Scope struct {
-	ctx        context.Context
-	parent     zbuf.Puller
-	enter      *Enter
-	subgraph   zbuf.Puller
-	once       sync.Once
-	outer      []zed.Value
-	resultCh   chan op.Result
-	exitDoneCh chan struct{}
-	subDoneCh  chan struct{}
+	ctx         context.Context
+	parent      zbuf.Puller
+	parentEOSCh chan struct{}
+	enter       *Enter
+	subgraph    zbuf.Puller
+	once        sync.Once
+	outer       []zed.Value
+	resultCh    chan op.Result
+	exitDoneCh  chan struct{}
+	subDoneCh   chan struct{}
 }
 
 func newScope(ctx context.Context, parent zbuf.Puller, names []string, exprs []expr.Evaluator) *Scope {
 	return &Scope{
-		ctx:        ctx,
-		parent:     parent,
-		enter:      NewEnter(names, exprs),
-		resultCh:   make(chan op.Result),
-		exitDoneCh: make(chan struct{}),
-		subDoneCh:  make(chan struct{}),
+		ctx:    ctx,
+		parent: parent,
+		// Buffered so we can send without blocking before we send EOS
+		// to resultCh.
+		parentEOSCh: make(chan struct{}, 1),
+		enter:       NewEnter(names, exprs),
+		resultCh:    make(chan op.Result),
+		exitDoneCh:  make(chan struct{}),
+		subDoneCh:   make(chan struct{}),
 	}
 }
 
@@ -65,6 +69,14 @@ func (s *Scope) run() {
 	for {
 		batch, err := s.parent.Pull(false)
 		if batch == nil || err != nil {
+			select {
+			// We send to s.parentEOSCh before s.resultCh to ensure
+			// that s.parentEOSCh is ready before the subgraph's
+			// Pull returns (in Exit.pullPlatoon).
+			case s.parentEOSCh <- struct{}{}:
+			case <-s.ctx.Done():
+				return
+			}
 			if ok := s.sendEOS(err); !ok {
 				return
 			}
@@ -214,7 +226,18 @@ func (e *Exit) pullPlatoon() error {
 			return err
 		}
 		if batch == nil {
-			return nil
+			if len(e.platoon) > 0 {
+				return nil
+			}
+			select {
+			case <-e.scope.parentEOSCh:
+				return nil
+			default:
+				// We got an empty platoon because the subgraph
+				// filtered its input, not because it received
+				// consecutive EOSes, so pull the next platoon.
+				continue
+			}
 		}
 		e.platoon = append(e.platoon, batch)
 	}
