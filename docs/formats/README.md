@@ -27,11 +27,10 @@ Table of Contents
 * [2. Zed: A Super-structured Pattern](#2-zed-a-super-structured-pattern)
   + [2.1 Zed and Schemas](#21-zed-and-schemas)
   + [2.2 Type Combinatorics](#22-type-combinatorics)
-  + [2.3 Analytics Performance](#23-analytics-performnce)
+  + [2.3 Analytics Performance](#23-analytics-performance)
   + [2.4 First-class Types](#24-first-class-types)
   + [2.5 First-class Errors](#25-first-class-errors)
 * [3. The Data Model and Formats](#3-the-data-model-and-formats)
-* [4. Examples](#4-examples)
 
 ---
 
