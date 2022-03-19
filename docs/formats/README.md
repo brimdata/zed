@@ -211,8 +211,8 @@ for schema interpretation and management.
 ### 2.2 Type Combinatorics
 
 A common objection to using a type system to represent schemas is that
-xdiverse applications generating arbitrarily structured data can produce
-a combinatoric explosion of types for each shape of data.
+diverse applications generating arbitrarily structured data can produce
+a combinatorial explosion of types for each shape of data.
 
 In practice, this condition rarely arises.  Applications generating
 "arbitrary" JSON data generally conform to a well-defined set of
@@ -266,7 +266,7 @@ and more natural given the super-structure of Zed.  For example, the above
 two SQL-like queries could be written as:
 ```
   count() by shape:=typeof(this)
-  any(this) by shape:=typeof(this) | cut shape
+  any(this) by shape:=typeof(this) | cut any
 ```
 
 ### 2.5 First-class Errors
@@ -296,7 +296,7 @@ documents are Zed values as the ZSON format is a strict superset of the JSON syn
 Avro but with Zed's more general model to represent a sequence of arbitrarily-typed
 values.
 * [ZST](zst.md) is a columnar version of ZNG like Parquet or ORC but also
-embodies Zed's more general model for hetereogeneous and self-describing schemas.
+embodies Zed's more general model for heterogeneous and self-describing schemas.
 * [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
 in JSON for easy decoding by JSON-based clients, e.g.,
 the [Zealot JavaScript library](https://github.com/brimdata/zealot)
