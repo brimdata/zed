@@ -265,7 +265,7 @@ and more natural given the super-structure of Zed.  For example, the above
 two SQL-like queries could be written as:
 ```
   count() by shape:=typeof(this)
-  any(this) by shape:=typeof(this) | cut any
+  any(this) by typeof(this) | cut any
 ```
 
 ### 2.5 First-class Errors
