@@ -27,11 +27,10 @@ Table of Contents
 * [2. Zed: A Super-structured Pattern](#2-zed-a-super-structured-pattern)
   + [2.1 Zed and Schemas](#21-zed-and-schemas)
   + [2.2 Type Combinatorics](#22-type-combinatorics)
-  + [2.3 Analytics Performance](#23-analytics-performnce)
+  + [2.3 Analytics Performance](#23-analytics-performance)
   + [2.4 First-class Types](#24-first-class-types)
   + [2.5 First-class Errors](#25-first-class-errors)
 * [3. The Data Model and Formats](#3-the-data-model-and-formats)
-* [4. Examples](#4-examples)
 
 ---
 
@@ -211,8 +210,8 @@ for schema interpretation and management.
 ### 2.2 Type Combinatorics
 
 A common objection to using a type system to represent schemas is that
-xdiverse applications generating arbitrarily structured data can produce
-a combinatoric explosion of types for each shape of data.
+diverse applications generating arbitrarily structured data can produce
+a combinatorial explosion of types for each shape of data.
 
 In practice, this condition rarely arises.  Applications generating
 "arbitrary" JSON data generally conform to a well-defined set of
@@ -266,7 +265,7 @@ and more natural given the super-structure of Zed.  For example, the above
 two SQL-like queries could be written as:
 ```
   count() by shape:=typeof(this)
-  any(this) by shape:=typeof(this) | cut shape
+  any(this) by typeof(this) | cut any
 ```
 
 ### 2.5 First-class Errors
@@ -296,7 +295,7 @@ documents are Zed values as the ZSON format is a strict superset of the JSON syn
 Avro but with Zed's more general model to represent a sequence of arbitrarily-typed
 values.
 * [ZST](zst.md) is a columnar version of ZNG like Parquet or ORC but also
-embodies Zed's more general model for hetereogeneous and self-describing schemas.
+embodies Zed's more general model for heterogeneous and self-describing schemas.
 * [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
 in JSON for easy decoding by JSON-based clients, e.g.,
 the [Zealot JavaScript library](https://github.com/brimdata/zealot)
