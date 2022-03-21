@@ -28,7 +28,8 @@ And the same search/analytics system that works at cloud scale should run easily
 a lightweight command-line tool on your laptop.
 
 And rather than having to set up complex ETL pipelines with brittle
-transformation logic, managing your data lake should be as easy as `git`.
+transformation logic, managing your data lake should be as easy as
+[`git`](https://git-scm.com/).
 
 And while _schemas_ are a great way to model and organize your data, they often
 [get in the way](https://github.com/brimdata/sharkfest-21#schemas-a-double-edged-sword)
@@ -63,11 +64,12 @@ is to download a pre-built release binary.
 You can find these binaries on the GitHub
 [releases](https://github.com/brimdata/zed/releases) page.
 
-If you have Go installed, you can easily install `zed` and `zq` by running
+If you have [Go](https://go.dev/) installed, you can easily install `zed` and
+`zq` by running
 ```
 go install github.com/brimdata/zed/cmd/{zed,zq}@latest
 ```
-On macOS and Linux, you can use `brew` to install `zq`:
+On macOS and Linux, you can use [Homebrew](https://brew.sh/) to install `zq`:
 ```
 brew install brimdata/tap/zq
 ```
