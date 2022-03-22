@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **has_error** &mdash; test if a value has an error
+&emsp; **has_error** &mdash; test if a value is or contains an error
 
 ### Synopsis
 
