@@ -5,7 +5,7 @@
 ### Synopsis
 
 ```
-has_error(val: any [, ... val: any]) -> bool
+has_error(val: any) -> bool
 ```
 ### Description
 
