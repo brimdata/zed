@@ -11,7 +11,7 @@ has_error(val: any [, ... val: any]) -> bool
 
 The _has_error_ function returns true if its argument has an error.
 _has_error_ is different from _is_error_ in that _has_error_ will recurse 
-into value's leafs to determine if there is an error in the value.
+into value's leaves to determine if there is an error in the value.
 
 ### Examples
 
