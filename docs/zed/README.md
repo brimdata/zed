@@ -677,7 +677,7 @@ The `date` field here is used by the Zed lake system to do time travel
 through the branch and pool history, allowing you to see the state of
 branches at any time in their commit history.
 
-Arbitrary metadata expressed as any [ZSON value](../foramts/zson.md)
+Arbitrary metadata expressed as any [ZSON value](../formats/zson.md)
 maybe be attached to a commit via the `-meta` flag.  This allows an application
 or user to trasactionally commit metadata alongside committed data for any
 purpose.  This approach allows external applications to implement arbitrary
