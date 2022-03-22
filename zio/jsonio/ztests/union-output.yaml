@@ -1,0 +1,11 @@
+zed: '*'
+
+input: |
+  1((int64,string))
+  "one"((int64,string))
+
+output-flags: -f json
+
+output: |
+  1
+  "one"
