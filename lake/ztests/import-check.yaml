@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q logs
-  ! zed load -q -use logs@main missingcol.zson
+  ! zed load -q -use logs missingcol.zson
 
 inputs:
   - name: missingcol.zson

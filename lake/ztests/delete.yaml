@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q test
-  zed use -q test@main
+  zed use -q test
   zed load -q 1.zson
   id=$(zed query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
   zed load -q 2.zson

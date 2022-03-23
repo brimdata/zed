@@ -2,28 +2,29 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -orderby k POOL
-  zed use -q POOL@main
+  zed use -q POOL
   zed load -q -message "initial load of a.zson into main" a.zson
-  zed use -q -b child
+  zed branch -q child
+  zed use -q @child
   zed load -q -message "initial load of b.zson into child" b.zson
   echo === main ===
-  zed query -z "from POOL@main"
+  zed query -z "from POOL"
   echo === child ===
   zed query -z "from POOL@child"
   echo === child after merge ===
   zed merge -q main
   zed query -z "from POOL@child"
   echo === main after merge ===
-  zed query -z "from POOL@main"
+  zed query -z "from POOL"
   echo === main after load c ===
-  zed load -q -use POOL@main c.zson
-  zed query -z "from POOL@main"
+  zed load -q -use POOL c.zson
+  zed query -z "from POOL"
   echo === child after main load c ===
   zed query -z "from POOL@child"
   echo === main after child load a and merge ===
   zed load -q a.zson
   zed merge -q main
-  zed query -z "from POOL@main"
+  zed query -z "from POOL"
 
 inputs:
   - name: a.zson

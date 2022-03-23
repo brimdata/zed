@@ -4,7 +4,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q test
-  zed use -q test@main
+  zed use -q test
   zed load -q data.zson
   zed query -z 'SELECT count(), id GROUP BY id | sort id'
 

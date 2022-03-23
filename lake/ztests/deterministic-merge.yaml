@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -S 32B logs
-  zed load -use logs@main -q -
+  zed load -q -use logs -
   zed query -z "from logs | *" > 1.zson
   zed query -z "from logs | *" > 2.zson
 

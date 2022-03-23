@@ -3,7 +3,7 @@ skip: "issue #2651"
 script: |
   source services.sh s3://bucket/zedlake
   zed new -S 20KiB test
-  zed use -q test@main
+  zed use -q test
   zed post babble.zson >/dev/null
   echo ===
   zed info | egrep -v 'id'

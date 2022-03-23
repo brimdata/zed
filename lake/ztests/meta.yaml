@@ -3,8 +3,8 @@ script: |
   zed init -q
   zed create -q -orderby a:asc poolA
   zed create -q -orderby b:desc poolB
-  zed load -q -use poolA@main a.zson
-  zed load -q -use poolB@main b.zson
+  zed load -q -use poolA a.zson
+  zed load -q -use poolB b.zson
   zed query -Z 'from :pools | drop id | sort name | drop ts'
   echo ===
   zed query -Z 'from poolA@main:objects | cut nameof(this),meta'

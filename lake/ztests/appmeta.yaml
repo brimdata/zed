@@ -2,9 +2,9 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q logs
-  zed load -q -use logs@main -meta '"original"' babble.zson
-  zed load -q -use logs@main -meta '"normalized-v1"' babble.zson
-  zed load -q -use logs@main -meta '"normalized-v2"' babble.zson
+  zed load -q -use logs -meta '"original"' babble.zson
+  zed load -q -use logs -meta '"normalized-v1"' babble.zson
+  zed load -q -use logs -meta '"normalized-v2"' babble.zson
   zed query "from logs@main:log | grep(normalized*, meta)| sort date | cut meta" | zq -z -
 
 inputs:

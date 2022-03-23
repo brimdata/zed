@@ -2,9 +2,9 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q test
-  id=$(zed load -use test@main in.zson | awk '{print $1}')
+  id=$(zed load -use test in.zson | awk '{print $1}')
   zed index create -q IPs type ip
-  zed index apply -use test@main IPs $id
+  zed index apply -use test IPs $id
   echo ===
   zed query -Z -I query.zed
 

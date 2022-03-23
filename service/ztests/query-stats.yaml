@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zed create -q test
-  zed load -q -use test@main babble.zson
+  zed load -q -use test babble.zson
   zed query -s -Z "from test | count()"
 
 inputs:

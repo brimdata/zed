@@ -2,8 +2,8 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q test
-  zed load -q -use test@main in.zson
-  zed branch -q -use test@main index-test
+  zed load -q -use test in.zson
+  zed branch -q -use test index-test
   zed index create -q x field x
   zed index update -q -use test@index-test
   # merge index-test branch into main

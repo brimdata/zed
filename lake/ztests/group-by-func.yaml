@@ -2,8 +2,8 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -orderby s:asc data
-  head -2 in.zson | zed load -q -use data@main -
-  tail -3 in.zson | zed load -q -use data@main -
+  head -2 in.zson | zed load -q -use data -
+  tail -3 in.zson | zed load -q -use data -
   zed query -z 'from data | union(s) by len(s) | sort this'
 
 inputs:

@@ -2,11 +2,12 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q POOL
-  zed use -q -p POOL
+  zed use -q POOL
   zed load -q a.zson
-  zed use -q -b child
+  zed branch -q child
+  zed use -q @child
   zed load -q b.zson
-  zed use -q -p POOL
+  zed use -q POOL
   zed query -z "*"
 
 inputs:
