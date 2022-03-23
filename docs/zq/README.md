@@ -4,19 +4,19 @@
 
 > `zq` is a command-line tool that uses the [Zed language](language.md)
 for pipeline-style search and analytics.  `zq` can query a variety
-of data formats in files, over HTTP, or in S3 storage
-It is particularly fast when operating on data in the Zed-native ZNG format.
+of data formats in files, over HTTP, or in S3 storage.
+It is particularly fast when operating on data in the Zed-native [ZNG](../formats/zng.md) format.
 >
 > The `zq` design philosophy blends the query/search-tool approach
-of `jq`, `awk`, `grep` with the command-line, embedded database approach
+of `jq`, `awk`, and `grep` with the command-line, embedded database approach
 of `sqlite` and `duckdb`.
 
 ## Contents
 
 * [1. Usage](#1-usage)
 * [2. Input Formats](#2-input-formats)
-  + [2.1 Hardwired Input Format](#21-hardwired-input-format)
-  + [2.1 Auto-detection](#22-auto-detection)
+  + [2.1 Hardwired Input Format](#21-hard-wired-input-format)
+  + [2.2 Auto-detection](#22-auto-detection)
   + [2.3 ZSON-JSON Auto-detection](#23-zson-json-auto-detection)
 * [3. Output Formats](#3-output-formats)
   + [3.1 Output Format Selection](#31-output-format-selection)
@@ -41,12 +41,11 @@ of `sqlite` and `duckdb`.
 
 ```
 zq [ options ] [ query ] input [ input ... ]
-zq [ options ] [ query ]
 ```
 `zq` is a command-line tool for processing data in diverse input
 formats, providing search, analytics, and extensive transformations
 using the [Zed language](language.md). A query typically applies Boolean logic
-or keyword search to filter the input then transforms or analyzes
+or keyword search to filter the input, then transforms or analyzes
 the filtered stream.  Output is written to one or more files or to
 standard output.
 
@@ -68,7 +67,7 @@ in a clunky JSON encapsulated form.
 
 `zq` typically operates on ZNG-encoded data and when you want to inspect
 human-readable bits of output, you merely format it as ZSON, which is the
-default format when output is directed to the terminal.  ZNG is default
+default format when output is directed to the terminal.  ZNG is the default
 when redirecting to a non-terminal output like a file or pipe.
 
 When run with input arguments, each input's format is automatically inferred
@@ -91,10 +90,10 @@ If both checks fail, then an error is reported and `zq` exits.
 This heuristic is convenient but can result in a rare surprise when a simple
 Zed query (like a keyword search) happens to correspond with a file of the
 same name in the local directory.
-To avoid this, you can provide the query with the `-query` flag, which specified
+To avoid this, you can provide the query with the `-query` flag, which specifies
 the Zed program to run and forces all arguments to be interpreted as inputs.
 
-When `zq` is run with a `query` and no input arguments, then the query must
+When `zq` is run with a query and no input arguments, then the query must
 begin with a
 * a [from, file, or get operator](operators/from.md), or
 * an explicit or implied [yield operator](operators/yield.md).
@@ -117,7 +116,7 @@ Note here that the query `1+1` [implies](language.md#26-implied-operators)
 
 `zq` currently supports the following input formats:
 
-|  Option   | Auto | Specifiction                             |
+|  Option   | Auto | Specification                            |
 |-----------|------|------------------------------------------|
 | `json`    |  yes | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
 | `csv`     |  yes | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
@@ -171,23 +170,23 @@ would produce this output in the default ZSON format
 Since ZSON is a superset of JSON, `zq` must be careful in whether it
 interprets input as ZSON as JSON.  While you can always clarify your intent
 with the `-i zson` or `-i json`, `zq` attempts to "just do the right thing"
-when you run it with JSON vs ZSON.
+when you run it with JSON vs. ZSON.
 
 While `zq` can parse any JSON using its built-in ZSON parser this is typically
 not desirable because (1) the ZSON parser is not particularly performant and
 (2) all JSON numbers are floating point but the ZSON parser will parse as
-JSON number that appears as an integer as an integer type.
+JSON any number that appears as an integer as an integer type.
 
-> The reason `zq` is not particular performant for ZSON is that the ZNG or
+> The reason `zq` is not particularly performant for ZSON is that the ZNG or
 > ZST formats are semantically equivalent to ZSON but much more efficient and
 > the design intent is that these efficient binary formats should be used in
 > use cases where performance matters.  ZSON is typically used only when
 > data needs to be human-readable in interactive settings or in automated tests.
 
 To this end, `zq` uses a heuristic to select between ZSON in JSON when the
-`-i` option is not specified where JSON is selected when the first values
-of the input is parseable as valid JSON and includes a JSON object either
-as an outer object or as value nested somewhere within a JSON array.
+`-i` option is not specified. Specifically, JSON is selected when the first values
+of the input are parsable as valid JSON and includes a JSON object either
+as an outer object or as a value nested somewhere within a JSON array.
 
 This heuristic almost always works in practice because ZSON records
 typically omit quotes around field names.
@@ -216,7 +215,7 @@ we felt that the design of having a uniform default had worse consequences:
 and deploy to production systems that were accidentally using ZSON instead of
 the much more efficient ZNG format because the `-f zng` had been mistakenly
 omitted from some command.  The beauty of Zed is that all of this "just works"
-but it would otherwise perform horribly.
+but it would otherwise perform poorly.
 * If the default format were ZNG, then users would be endlessly annoyed by
 binary output to their terminal when forgetting to type `-f zson`.
 
@@ -229,7 +228,7 @@ ZSON text may be "pretty printed" with the `-pretty` option, which takes
 the number of spaces to use for indentation.  As this is a common option,
 the `-Z` option is a shortcut for `-f zson -pretty 4`.
 
-For example.
+For example,
 ```mdtest-command
 echo '{a:{b:1,c:[1,2]},d:"foo"}' | zq -Z -
 ```
@@ -273,7 +272,7 @@ Though it's a compressed binary format, ZNG data is self-describing and stream-o
 and thus is pipeline friendly.
 
 Since data is self-describing you can simply take ZNG output
-of one command and pipe it the input of another.  It doesn't matter if the value
+of one command and pipe it to the input of another.  It doesn't matter if the value
 sequence is scalars, complex types, or records.  There is no need to declare
 or register schemas or "protos" with the downstream entities.
 
@@ -405,7 +404,7 @@ Such errors are easily queried with the
 [is_error function](functions/is_error.md).
 
 This approach provides a robust technique for debugging complex query pipelines,
-where errors can be wrapped in one another providing stack-trace like debugging
+where errors can be wrapped in one another providing stack-trace-like debugging
 output alongside the output data.  This approach has emerged as a more powerful
 alternative to the traditional technique of looking through logs for errors
 or trying to debug a halted program with a vague error message.
@@ -440,8 +439,8 @@ echo <values> | zq <query> -
 which is used throughout the [language documentation](language.md)
 and [operator reference](reference.md).
 
-The language documenation and [tutorials directory](../tutorials)
-have many examples, but here are a few more simple cases of `zq`.
+The language documentation and [tutorials directory](../tutorials)
+have many examples, but here are a few more simple `zq` use cases.
 
 _Hello, world_
 ```
@@ -452,7 +451,7 @@ produces this ZSON output
 "hello, world"
 ```
 
-_Some data types_
+_Some values of available data types_
 ```
 echo '1 1.5 [1,"foo"] |["apple","banana"]|' | zq -z 'yield this' -
 ```
@@ -492,7 +491,7 @@ produces
 {a:1,b:"foo"}
 {a:2,b:"bar"}
 ```
-_Convert JSON to Zed and cast a to an integer from default float_
+_Convert JSON to Zed and cast to an integer from default float_
 ```
 echo '{"a":1,"b":"foo"}{"a":2,"b":"bar"}' | zq 'a:=int64(a)' -
 ```
@@ -521,7 +520,7 @@ compared to tools like `jq`, `grep`, `awk`, or `sqlite` especially when running
 
 ### 7.1 Fast Pattern Matching
 
-One important technique that help `zq` run fast is to take advantage of queries
+One important technique that helps `zq` run fast is to take advantage of queries
 that involve fine-grained searches.
 
 When a query begins with a logical expression containing either a search
@@ -566,8 +565,8 @@ which performs quite well,
 and is
 [integrated tightly](https://github.com/brimdata/zed/blob/main/zio/jsonio/reader.go)
 with Zed's internal data representation.
-Moreover, like jq,
-zq's JSON parser does not values objects to be newline delimited and can
+Moreover, like `jq`,
+`zq`'s JSON parser does not require objects to be newline delimited and can
 incrementally parse the input to minimize memory overhead and improve
 processor cache performance.
 
@@ -576,13 +575,13 @@ native C implementation in `jq`.
 
 ### 7.3 Performance Comparisons
 
-To provide a rough sense the performance tradeoffs between `zq` and
-other tooling, this section provides a few results of a few simple speed tests.
+To provide a rough sense of the performance tradeoffs between `zq` and
+other tooling, this section provides results of a few simple speed tests.
 
 #### 7.3.1 Test Data
 
 These tests are easy to reproduce.  The input data comes from the
-[Zed sample data respository](https://github.com/brimdata/zed-sample-data),
+[Zed sample data repository](https://github.com/brimdata/zed-sample-data),
 where we used a semi-structured Zeek "conn" log from the `zeek-default` directory.
 
 It is easy to convert the Zeek logs to a local ZNG file using
@@ -590,18 +589,18 @@ zq's built-in `get` operator:
 ```
 zq -o conn.zng 'get https://raw.githubusercontent.com/brimdata/zed-sample-data/main/zeek-default/conn.log.gz'
 ```
-This creates a new file `conn.zng` from the Zeek log file fetched from Github.
+This creates a new file `conn.zng` from the Zeek log file fetched from GitHub.
 
 Note that this data is a gzip'd file in the Zeek format and `zq`'s auto-detector
-figure out both that it is gzip'd and that that the uncompressed format is Zeek.
-No need to specify flags for this.
+figures out both that it is gzip'd and that the uncompressed format is Zeek.
+There's no need to specify flags for this.
 
 Next, a JSON file can be converted from ZNG using:
 ```
 zq -f json conn.zng > conn.json
 ```
 Note here that we lose information in this conversion because the rich data types
-of Zed (that were translated from the Zeek format) are lost.
+of Zed (that were [translated from the Zeek format](../../zeek/Data-Type-Compatibility.md)) are lost.
 
 We'll also make a SQLite database in the file `conn.db` as the table named `conn`.
 One easy way to do this is to install
