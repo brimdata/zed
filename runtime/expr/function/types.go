@@ -131,6 +131,10 @@ func (h *HasError) hasError(t zed.Type, b zcode.Bytes) (bool, bool) {
 	if _, ok := typ.(*zed.TypeError); ok {
 		return true, false
 	}
+	// If a value is null we can skip since an null error is not an error.
+	if b == nil {
+		return false, false
+	}
 	if hasErr, ok := h.cached[t.ID()]; ok {
 		return hasErr, true
 	}
