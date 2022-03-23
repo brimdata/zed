@@ -19,6 +19,10 @@ type converter struct {
 }
 
 func (c *converter) convert(b *zcode.Builder, typ zed21.Type, in Bytes) error {
+	if in == nil {
+		b.Append(nil)
+		return nil
+	}
 	switch typ := typ.(type) {
 	default:
 		b.Append(in)
