@@ -5,10 +5,14 @@ script: zq -z -i zng21 -
 inputs:
   - name: stdin
     data: !!binary |
-      9gEBYQf8BHBvcnQH9gIBYRIBcBj5AgcQ9wf4B/sHEPca9gECdHYUAAEBAQEBAgEBAwEBBA
-      ECBQECBgECBwECEAVoZWxsbxEFd29ybGQRC2JpbmFyeQBqdW5rFQRiYW5nFwIEAhkHCoAg
-      AQEEoBoDAgT2GggEAgxoZWxsbxsGBAIEBAQGHAYEAgQEBAYdDAQCCGZvbwQECGJhch4NBw
-      IE9hEEAgxoZWxsbx8CBAQfCBAXBHBvcnQB/w==
+      9gEBYQf8BHBvcnQH9gIBYRIBcBj5AgcQ9wf4B/sHEPca9gECdHYU9gEBYQD2AQFhAfYBAW
+      EC9gEBYQP2AQFhBPYBAWEF9gEBYQb2AQFhCPYBAWEJ9gEBYQv2AQFhDPYBAWEO9gEBYQ/2
+      AQFhEPYBAWER9gEBYRL2AQFhE/YBAWEU9gEBYRX2AQFhFvYA9gEBYTT2AQFhG/YBAWEc9g
+      EBYRr7Bwf2AQFhOQABAQEBAQIBAQMBAQQBAgUBAgYBAgcBAhAFaGVsbG8RBXdvcmxkEQti
+      aW5hcnkAanVuaxUEYmFuZxcCBAIZBwqAIAEBBKAaAwIE9hoIBAIMaGVsbG8bBgQCBAQEBh
+      wGBAIEBAQGHQwEAghmb28EBAhiYXIeDQcCBPYRBAIMaGVsbG8fAgQEHwgQFwRwb3J0ASAB
+      ACEBACIBACMBACQBACUBACYBABcBACcBACgBACkBACoBACsBACwBAC0BAC4BAC8BADABAD
+      EBADIBADMBADUBADYBADcBADgBADoBAP8=
 
 outputs:
   - name: stdout
@@ -35,3 +39,29 @@ outputs:
       [123,"hello"]
       {tv:<int8>}
       {tv:<port=uint16>}
+      {a:null(uint8)}
+      {a:null(uint16)}
+      {a:null(uint32)}
+      {a:null(uint64)}
+      {a:null(int8)}
+      {a:null(int16)}
+      {a:null(int32)}
+      {a:null(int64)}
+      {a:null(duration)}
+      {a:null(time)}
+      {a:null(float32)}
+      {a:null(float64)}
+      {a:null(bool)}
+      {a:null(bytes)}
+      {a:null(string)}
+      {a:null(string)}
+      {a:null(ip)}
+      {a:null(net)}
+      {a:null(type)}
+      {a:null(error(string))}
+      {a:null}
+      {a:null({})}
+      {a:null([int64])}
+      {a:null(|[int64]|)}
+      {a:null((int64,string))}
+      {a:null(|{int64:int64}|)}
