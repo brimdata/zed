@@ -64,11 +64,6 @@ is to download a pre-built release binary.
 You can find these binaries on the GitHub
 [releases](https://github.com/brimdata/zed/releases) page.
 
-If you have [Go](https://go.dev/) installed, you can easily install `zed` and
-`zq` by running
-```
-go install github.com/brimdata/zed/cmd/{zed,zq}@latest
-```
 On macOS and Linux, you can use [Homebrew](https://brew.sh/) to install `zq`:
 ```
 brew install brimdata/tap/zq
