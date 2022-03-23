@@ -175,7 +175,7 @@ when you run it with JSON vs. ZSON.
 While `zq` can parse any JSON using its built-in ZSON parser this is typically
 not desirable because (1) the ZSON parser is not particularly performant and
 (2) all JSON numbers are floating point but the ZSON parser will parse as
-JSON any number that appears as an integer as an integer type.
+JSON any number that appears without a decimal point as an integer type.
 
 > The reason `zq` is not particularly performant for ZSON is that the ZNG or
 > ZST formats are semantically equivalent to ZSON but much more efficient and
