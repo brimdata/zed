@@ -73,7 +73,7 @@ we have plans to support CRUD updates at the primary-key level
 in the near future.
 
 The semantics of a Zed lake loosely follows the nomenclature and
-design patterns of `git`.  In this approach,
+design patterns of [`git`](https://git-scm.com/).  In this approach,
 * a _lake_ is like a GitHub organization,
 * a _pool_ is like a `git` repository,
 * a _branch_ of a _pool_ is like a `git` branch,
@@ -85,8 +85,8 @@ our goal here is that the Zed lake tooling be as easy and familiar as Git is
 to a technical user.
 
 Since Zed lakes are built around the [Zed data model](../formats/zed.md),
-getting different kinds of data to into and out of a lake is easy.
-There is no need to define schemas or tables and fit
+getting different kinds of data into and out of a lake is easy.
+There is no need to define schemas or tables and then fit
 semi-structured data into schemas before loading data into a lake.
 And because Zed supports a large family of formats and the load endpoint
 automatically detects most formats, it's easy to just load data into a lake
@@ -95,7 +95,7 @@ without thinking about how to convert it into the right format.
 ### 1.1 CLI-First Approach
 
 The Zed project has taken a _CLI-first approach_ to designing and implementing
-the system.  Anytime a new piece of functionality is added to the lake,
+the system.  Any time a new piece of functionality is added to the lake,
 it is first implemented as a `zed` command.  This is particularly convenient
 for testing and continuous integration as well as providing intuitive,
 bite-sized chunks for learning how the system works and how the different
@@ -105,7 +105,7 @@ While the CLI-first approach provides these benefits,
 all of the functionality is also exposed through [an API](api.md) to
 a Zed service.  Many use cases involve an application like
 [Brim](https://github.com/brimdata/brim) or a
-programming environment like Python/Pandas rather interacting
+programming environment like Python/Pandas interacting
 with the service API in place of direct use with the `zed` command.
 
 ### 1.2 Storage Layer
@@ -163,7 +163,7 @@ model onto a file system so that Zed lakes can also be deployed on standard file
 The `zed` command provides a single command-line interface to Zed lakes, but
 different personalities are taken on by `zed` depending on the particular
 sub-command executed and the disposition of its `-lake` option
-(which defaults to the value of `ZED_LAKE` environment variable of,
+(which defaults to the value of `ZED_LAKE` environment variable or,
 if `ZED_LAKE` is not set, to the client personality `https://localhost:9867`).
 
 To this end, `zed` can take on one of three personalities:
@@ -194,7 +194,7 @@ all adhere to the consistency semantics of the Zed lake.
 > For a shared file system, the close-to-open cache consistency
 > semantics of NFS should provide the necessary consistency guarantees needed by
 > a Zed lake though this has not been tested.  Multi-process, single-node
-> node access to a local file system has been thoroughly tested and should be
+> access to a local file system has been thoroughly tested and should be
 > deemed reliable, i.e., you can run a direct-access instance of `zed` alongside
 > a server instance of `zed` on the same file system and data consistency will
 > be maintained.
@@ -275,8 +275,8 @@ pool key.
 
 As pool data is often comprised of Zed records (analogous to JSON objects),
 the pool key is typically a field of the stored records.
-When pool data is not structured as records/objects, e.g., scalar or arrays or other
-non-record types, then the pool key would typically be configured
+When pool data is not structured as records/objects (e.g., scalar or arrays or other
+non-record types), then the pool key would typically be configured
 as the [special value `this`](../zq/language.md#23-the-special-value-this).
 
 Data can be efficiently scanned via ranges of values conforming to the pool key.
@@ -325,10 +325,12 @@ past snapshots of the commit history, another means is to use a timestamp.
 Because the entire history of branch updates is stored in a transaction journal
 and each entry contains a timestamp, branch references can be easily
 navigated by time.  For example, a list of branches of a pool's past
-can be created by scanning the branches log and stopping at the largest
-timestamp less than or equal to the desired timestamp.  Likewise, a branch
-can be located in a similar fashion, then its corresponding commit object
-can be used to construct that data of that branch at that past point in time.
+can be created by scanning the internal "pools log" and stopping at the largest
+timestamp less than or equal to the desired timestamp.  Then using that
+historical snapshot of the pools, a branch can be located within the pool
+using that pool's "branches log" in a similar fashion, then its corresponding
+commit object can be used to construct the data of that branch at that
+past point in time.
 
  > Note that time travel using timestamps is a forthcoming feature.
 
@@ -354,7 +356,7 @@ is run, then the scan will consult the "foo" index and skip the data object
 if the value "bar" is not in that index.
 
 Also, each data object is broken up into seekable chunks and the chunk location
-of each index value is stored in the index so often only parts of large
+of each index value is stored in the index so that only parts of large
 data objects need to be scanned based on this information.
 
 This approach works well for "needle in the haystack"-style searches.  When
@@ -410,7 +412,7 @@ case but this design allows different workloads like these to be custom tuned.
 ## 2. Zed Commands
 
 The `zed` command is structured as a primary command
-consististing of a large number of interrelated subcommands, similar to the
+consististing of a large number of interrelated sub-commands, similar to the
 [docker](https://docs.docker.com/engine/reference/commandline/cli/)
 or [kubectl](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands)
 commands.
@@ -419,7 +421,7 @@ The following sections describe each of the available commands, but built-in
 help is also available:
 * `zed -h` with no args displays a list of zed commands.
 * `zed command -h`, where `command` is a sub-command, displays help
-help for that subcommand.
+for that sub-command.
 * `zed command sub-command -h` displays help for a sub-command of a
 sub-command and so forth.
 
@@ -428,8 +430,8 @@ sub-command and so forth.
 zed auth login|logout|method|verify
 ```
 Access to a Zed lake can be secured with [Auth0 authentication](https://auth0.com/).
-Please reach out to us on our Brim community Slack if you'd like help
-setting this up and trying it out.
+Please reach out to us on our [Brim community Slack](https://www.brimdata.io/join-slack/)
+if you'd like help setting this up and trying it out.
 
 ### 2.2 Branch
 ```
@@ -474,7 +476,7 @@ The `-orderby` option indicates the pool key that is used to sort
 the data in lake, which may be in ascending or descending order.
 
 If a pool key is not specified, then it defaults to
-the [special value this](../zq/language.md#23-the-special-value-this).
+the [special value `this`](../zq/language.md#23-the-special-value-this).
 
 A newly created pool is initialized with a branch called `main`.
 
@@ -540,14 +542,14 @@ in a pool, e.g.,
 ```
 zed index apply -use logs@main IndexGroupExample <id>
 ```
-The index is created and a transactionally added to the working branch's
+The index is created and transactionally added to the working branch's
 commit history so it becomes available to the query optimizer.
 
 #### 2.6.3 Index Drop
 ```
 zed index drop <id> [<id> ...]
 ```
-The `index drop` command deletes one or more index rules using by `<id>`.
+The `index drop` command deletes one or more index rules specified by `<id>`.
 Once deleted, no more indexes will be created for that rule but the underlying
 indexes are not actually deleted from the lake.
 
@@ -577,7 +579,7 @@ zed init [path]
 ```
 A new lake is initialized with the `init` command.  The `path` argument
 is a [storage path](#12-storage-layer) and is optional.  If not present,
-the path is taken from the ZED_LAKE environment variable, which must be defined.
+the path is taken from the `ZED_LAKE` environment variable, which must be defined.
 
 If the lake already exists, `init` reports an error and does nothing.
 
@@ -604,7 +606,7 @@ the input format is auto-detected if `-i` is not provided.  Likewise,
 the inputs may be URLs, in which case, the `load` command streams
 the data from a Web server or S3 and into the lake.
 
-When data is loaded, it is broken up into objects of a target sized determined
+When data is loaded, it is broken up into objects of a target size determined
 by the pool's `threshold` parameter (which defaults 500MiB but can be configured
 when the pool is created).  Each object is sorted by the pool key but
 a sequence of objects is not guaranteed to be globally sorted.  When lots
@@ -613,14 +615,14 @@ of small or unsorted commits occur, data can be fragmented impacting performance
 > Note that data is easily compacted by reading from a fragmented pool and writing
 > it back to a target pool so that it is globally sorted and compacted into
 > contiguous large objects.  We will soon introduce a compaction feature that
-> does this automatically inside of pool and can either be run manually or
+> does this automatically inside of a pool and can either be run manually or
 > configured to run automatically by the server.
 
 For example, this command
 ```
 zed load sample1.json sample2.zng sample3.zson
 ```
-loads files of varying type in a single commit to the working branch.
+loads files of varying formats in a single commit to the working branch.
 
 Parquet and ZST formats are not auto-detected so you must currently
 specify `-i` with these formats, e.g.,
@@ -629,7 +631,7 @@ zed load -i parquet sample4.parquet
 zed load -i zst sample5.zst
 ```
 An alternative branch may be specified with a branch reference with the
-`-use` option, i.e., `<pool>@<branch>`.  Supposing there a branch
+`-use` option, i.e., `<pool>@<branch>`.  Supposing a branch
 called `live` existed, data can be committed into this branch as follows:
 ```
 zed load -use logs@live sample.zng
@@ -651,11 +653,11 @@ Data added to a pool can arrive in any order with respect to the pool key.
 While each object is sorted before it is written,
 the collection of objects is generally not sorted.
 
-Each load operation creates a single commit object, which inlcudes:
+Each load operation creates a single commit object, which includes:
 * an author and message string,
 * a timestamp computed by the server, and
-* an optional metadata field of any ZSON type.
-This data has the ZED type signature:
+* an optional metadata field of any Zed type expressed as a ZSON value.
+This data has the Zed type signature:
 ```
 {
     author: string,
@@ -665,7 +667,7 @@ This data has the ZED type signature:
 }
 ```
 where `<any>` is the type of any optionally attached metadata .
-For example, this command sets the `user` and `message` fields:
+For example, this command sets the `author` and `message` fields:
 ```
 zed load -user user@example.com -message "new version of prod dataset" ...
 ```
@@ -712,7 +714,7 @@ referencing the data objects where the new commit object's parent
 points at the branch's previous commit object, thus forming a path
 through the object tree.
 
-The [log command](#29-log) prints the commit ID of each commit object in that path
+The `log` command prints the commit ID of each commit object in that path
 from the current pointer back through history to the first commit object.
 
 A commit object includes
@@ -877,17 +879,26 @@ It listens for Zed lake API requests on the interface and port
 specified by the `-l` option, executes the requests, and returns results.
 
 ### 2.14 Use
-
 ```
-zed use <commitish>
+zed use [<commitish>]
 ```
 The `use` command sets the working branch to the indicated commitish.
+When run without a commitish argument, it displays the current commitish
+in use.
 
 For example,
 ```
 zed use logs
 ```
 provides a "pool-only" commitish that sets the working branch to `logs@main`.
+
+If a `@branch` or commit ID are given without a pool prefix, then the pool of
+the commitish previously in use is presumed.  For example, if you are on
+`logs@main` then run this command:
+```
+zed use @test
+```
+then the working branch is set to `logs@test`.
 
 To specify a branch in another pool, simply prepend
 the pool name to the desired branch:

@@ -8,18 +8,19 @@
       - [Scaling a Journal](#scaling-a-journal)
       - [Journal Concurrency Control](#journal-concurrency-control)
       - [Configuration State](#configuration-state)
+    + [Merge on Read](#merge-on-read)
     + [Object Naming](#object-naming)
   * [Continuous Ingest](#continuous-ingest)
   * [Derived Analytics](#derived-analytics)
   * [Keyless Data](#keyless-data)
   * [Relational Model](#relational-model)
-  * [Current Status](#current-status)
-  * [CLI tool naming conventions](#cli-tool-naming-conventions)
-
+  * [Type Rule](#type-rule)
+  * [Aggregation Rule](#aggregation-rule)
+  * [Vacuum Support](#vacuum-support)
 
 ## Cloud Object Architecture
 
-The Zed lake semantics defined above are achieved by mapping the
+The Zed lake semantics are achieved by mapping the
 lake and pool abstractions onto a key-value cloud object store.
 
 Every data element in a Zed lake is either of two fundamental object types:
@@ -53,7 +54,7 @@ An immutable object is created by a single writer using a globally unique name
 with an embedded KSUID.  
 New objects are written in their entirety.  No updates, appends, or modifications
 may be made once an object exists.  Given these semantics, any such object may be
-trivially cached as its name nor content ever change.
+trivially cached as neither its name nor content ever change.
 
 Since the object's name is globally unique and the
 resulting object is immutable, there is no possible write concurrency to manage
@@ -84,7 +85,7 @@ Immutable objects are named as follows:
 index rules described above.  Every index object is defined
 with respect to a data object.
 
-The seek index maps pool key values to seek offset in the ZNG file thereby
+The seek index maps pool key values to seek offsets in the ZNG file thereby
 allowing a scan to do a partial GET of the ZNG object when scanning only
 a subset of data.
 
@@ -130,7 +131,7 @@ stdout, similar to the output of `git log`.
 
 However, the log represents the definitive record of a pool's present
 and historical content, and accessing its complete detail can provide
-insights about data layout, provenance, history, and so forth.  Thus,
+insights about data layout, provenance, history, and so forth.  Thus, the
 Zed lake provides a means to query a pool's configuration state as well,
 thereby allowing past versions of the complete pool and branch configurations
 as well as all of their underlying data to be subject to time travel.
@@ -427,8 +428,7 @@ be partitioned into smaller objects if the use case allows for it.
 > managed at a layer above the journal or the journal extended with the
 > needed functionality.
 
-
-#### 1.5.3 Type Rule
+## Type Rule
 
 A type rule indicates that all values of any field of a specified type
 be indexed where the type signature uses Zed type syntax.
@@ -439,7 +439,7 @@ zed index create IndexGroupEx type ip
 creates a rule that indexes all IP addresses appearing in fields of type `ip`
 in the index group `IndexGroupEx`.
 
-#### 1.5.4 Aggregation Rule
+## Aggregation Rule
 
 An aggregation rule allows the creation of any index keyed by one or more fields
 (primary, second, etc.), typically the result of an aggregation.
@@ -461,7 +461,7 @@ values are the partial-result aggregation given by the Zed expression.
 > aggregations that they will use ahead of time, e.g., beacon analysis
 > of network security logs.
 
-### Vacuum Support
+## Vacuum Support
 
 While data objects currently can be deleted from a lake, the underlying data
 is retained to support time travel.
@@ -469,7 +469,7 @@ is retained to support time travel.
 The system must also support purging of old data so that retention policies
 can be implemented.
 
-This could be supoprted with the DANGER-ZONE command `zed vacuum`
+This could be supported with the DANGER-ZONE command `zed vacuum`
 (implementation tracked in [zed/2545](https://github.com/brimdata/zed/issues/2545)).
 The commits still appear in the log but scans at any time-travel point
 where the commit is present will fail to scan the deleted data.
