@@ -4,12 +4,12 @@ script: |
   mkdir x
   zed init -q
   zed create -q -q POOL
-  zed use -q POOL@main
+  zed use -q POOL
   cat x/.zed_head
   export ZED_HEAD_DIR=.
   mkdir y
   cd y
-  zed use -lake ../test -q POOL@main
+  zed use -lake ../test -q POOL
   cat .zed_head
 
 outputs:

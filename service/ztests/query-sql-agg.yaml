@@ -3,7 +3,7 @@
 script: |
   source service.sh
   zed create -q test
-  zed use -q test@main
+  zed use -q test
   zed load -q data.zson
   zed query -z 'SELECT count(), id GROUP BY id | sort id'
 

@@ -3,12 +3,12 @@ script: |
   zed init -q
   zed create -seekstride 2KB -orderby ts:asc -q asc
   zed create -seekstride 2KB -orderby ts:desc -q desc
-  zed use -q asc@main
+  zed use -q asc
   zq "tail 900" babble.zson | zed load -q -
   zq "head 250" babble.zson | zed load -q -
   zed query -z -s "from asc | count()"
   echo === | tee /dev/stderr
-  zed use -q desc@main
+  zed use -q desc
   zq "tail 900" babble.zson | zed load -q -
   zq "head 250" babble.zson | zed load -q -
   zed query -z -s "from desc | count()"

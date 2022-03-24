@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q logs
-  zed load -q -use logs@main in.zson
+  zed load -q -use logs in.zson
   zed query "from logs | cut notafield"
 
 inputs:

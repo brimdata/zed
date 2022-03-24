@@ -1,8 +1,8 @@
 script: |
   source service.sh
   zed create -q -seekstride 1KiB -orderby dname:asc test
-  zed use -q test@main
-  zed load -q  testscores.zson
+  zed use -q test
+  zed load -q testscores.zson
   zed query -s -z 'AvgScrMath == 306 | cut dname'
   echo === | tee >(cat >&2)
   zed index create -q AvgScrMath field AvgScrMath

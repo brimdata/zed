@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q foo.bar
-  zed use -q -p foo.bar
+  zed use -q foo.bar
   echo '{a:1}' | zed load -q -
   zed query -z "from foo.bar"
 

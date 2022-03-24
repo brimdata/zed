@@ -4,7 +4,7 @@ script: |
   for o in asc desc; do
     echo // $o
     zed create -q -orderby k:$o $o
-    zed load -q -use $o@main in.zson
+    zed load -q -use $o in.zson
     zed query -z "from $o range 1 to 3"
   done
 

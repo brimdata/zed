@@ -17,9 +17,19 @@ type Flags struct {
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	defaultHead, _ := readHead()
 	fs.BoolVar(&f.Quiet, "q", false, "quiet mode")
-	fs.StringVar(&f.defaultHead, "use", defaultHead, "commit to use, i.e., pool@branch or pool@commit")
+	fs.StringVar(&f.defaultHead, "use", defaultHead, "commit to use, i.e., pool, pool@branch, or pool@commit")
 }
 
 func (f *Flags) HEAD() (*lakeparse.Commitish, error) {
-	return lakeparse.ParseCommitish(f.defaultHead)
+	c, err := lakeparse.ParseCommitish(f.defaultHead)
+	if err != nil {
+		return nil, err
+	}
+	if c.Pool == "" {
+		return nil, errors.New("pool unspecified")
+	}
+	if c.Branch == "" {
+		c.Branch = "main"
+	}
+	return c, nil
 }

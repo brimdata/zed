@@ -1,8 +1,8 @@
 script: |
   source service.sh
   zed create -q POOL
-  zed load -q -use POOL@main a.zson
-  zed branch -q -use POOL@main child
+  zed load -q -use POOL a.zson
+  zed branch -q -use POOL child
   zed load -q -use POOL@child b.zson
   zed query -z "from POOL | sort this"
   echo ===

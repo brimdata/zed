@@ -3,7 +3,7 @@ script: |
   export ZED_LAKE=s3://bucket/lake_test
   zed init -q
   zed create -q logs
-  zed load -q -use logs@main  babble.zson
+  zed load -q -use logs babble.zson
   zed query -z "from logs | count()"
 
 inputs:

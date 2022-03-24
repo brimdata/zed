@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q test
-  zed use -q test@main
+  zed use -q test
   zed load -q in.zson
   zed index create -q IPs type ip
   zed index create -q Ys field y

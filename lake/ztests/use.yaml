@@ -1,0 +1,33 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  ! zed use
+  ! zed use @main
+  zed create -q POOL
+  ! zed use POOL@branch
+  echo ===
+  zed use POOL
+  zed use
+  echo ===
+  zed branch -q b1
+  zed use @b1
+  echo ===
+  zed branch -q b2
+  zed use POOL@b2
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      Switched to branch "main" on pool "POOL"
+      HEAD at POOL@main
+      ===
+      Switched to branch "b1" on pool "POOL"
+      ===
+      Switched to branch "b2" on pool "POOL"
+
+  - name: stderr
+    data: |
+      default pool and branch unset
+      default pool unset
+      "branch": branch not found

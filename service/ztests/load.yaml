@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zed create -q test
-  zed load -use test@main in.zson
+  zed load -use test in.zson
 
 inputs:
   - name: in.zson

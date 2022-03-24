@@ -3,7 +3,7 @@ script: |
   zed init -q
   zed create -q logs
   zed drop -f -q logs
-  ! zed log -use logs@main
+  ! zed log -use logs
 
 inputs:
   - name: babble.zson

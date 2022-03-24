@@ -4,8 +4,8 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -orderby k tmp
-  zed load -q -use tmp@main in.zson
-  zed query -z "from tmp@main | !has(k)"
+  zed load -q -use tmp in.zson
+  zed query -z "from tmp | !has(k)"
 
 inputs:
   - name: in.zson

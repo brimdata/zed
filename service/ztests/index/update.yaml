@@ -3,10 +3,10 @@ script: |
   zed create -q test
   zed index create -q foo field foo
   zed index create -q bar field bar
-  zed load -q -use test@main 1.zson
-  zed load -q -use test@main 2.zson
-  zed load -q -use test@main 3.zson
-  zed index update -q -use test@main
+  zed load -q -use test 1.zson
+  zed load -q -use test 2.zson
+  zed load -q -use test 3.zson
+  zed index update -q -use test
   zed query -z -I query.zed
 
 inputs:

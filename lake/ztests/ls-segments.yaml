@@ -2,8 +2,8 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q test
-  zed load -q -use test@main 1.zson
-  zed load -q -use test@main 2.zson
+  zed load -q -use test 1.zson
+  zed load -q -use test 2.zson
   zed query -f lake "from test@main:objects"
 
 inputs:

@@ -3,7 +3,7 @@ skip: "issue #2651"
 script: |
   source services.sh s3://bucket/zqdroot
   zed new -S 20KiB test
-  zed use test@main -q
+  zed use test -q
   zed post babble.zson >/dev/null
   echo ===
   zed get -z 's=="harefoot-raucous"'

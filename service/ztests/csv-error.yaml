@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zed create -q test
-  zed load -q -use test@main -
+  zed load -q -use test -
   ! zed query -f csv 'from test'
 
 inputs:

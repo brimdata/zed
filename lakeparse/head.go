@@ -12,13 +12,16 @@ type Commitish struct {
 }
 
 func ParseCommitish(commitish string) (*Commitish, error) {
+	if commitish == "" {
+		return nil, errors.New("empty pool and branch")
+	}
 	if strings.IndexByte(commitish, '\'') >= 0 {
 		return nil, errors.New("pool and branch names may not contain single quote characters")
 	}
 	if i := strings.LastIndexByte(commitish, '@'); i > -1 {
 		return &Commitish{Pool: commitish[:i], Branch: commitish[i+1:]}, nil
 	}
-	return &Commitish{Branch: commitish}, nil
+	return &Commitish{Pool: commitish}, nil
 }
 
 var ErrNoPool = errors.New("no pool")

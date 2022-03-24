@@ -14,32 +14,38 @@ import (
 
 var Cmd = &charm.Spec{
 	Name:  "use",
-	Usage: "use [-p pool] [-b] branch [base]",
+	Usage: "use [pool][@branch]",
 	Short: "use a branch",
 	Long: `
-The lake use command sets the working branch as indicated.
-This allows commands like load, rebase, merge etc to function without
+The use command prints or sets the working pool and branch.  Setting these
+values allows commands like load, rebase, merge, etc. to function without
 having to specify the working branch.  The branch specifier may also be
-a commit ID, in which case you entered a headless state and commands
-like load that require a branch name for HEAD will report an error.
+a commit ID, in which case you enter a headless state and commands
+like load that require a branch will report an error.
 
 The use command is like "git checkuout" but there is no local copy of
-the lake data.  Rather, the local HEAD state links invocations of
-lake commands run locally or through zapi directly to the remote lake.
+the lake data.  Rather, the local HEAD state influences commands as
+they access the lake.
 
-Use may also be run with -p to indicate a pool name.  In this case,
-the main branch of the specified pool is checked out.
+With no argument, use prints the working pool and branch.
+
+With an argument of the form "pool", use sets the working pool as indicated
+and the working branch to "main".
+
+With an argument of the form "pool@branch", use sets the working pool and
+branch as indicated.
+
+With an argument of the form "@branch", use sets only the working branch.
+The working pool must already be set.
+
+The pool must be the name or ID of an existing pool.  The branch must be
+the name of an existing branch or a commit ID.
 
 Any command that relies upon HEAD can also be run with the -use option
 to refer to a different HEAD without executing an explicit "use" command.
-The HEAD option has the form "pool@branch" where pool is the name or ID of an
-existing pool and branch is the name of the branch or a commit ID.
 While the use of HEAD is convenient for interactive CLI sessions,
-automation and orchestration tools are better of hard-wiring the
+automation and orchestration tools are better off hard-wiring the
 HEAD references in each lake command via -use.
-
-If the -b option is provided, then a new branch with the indicated
-name is created with base HEAD and checked out.
 
 The use command merely checks that the branch exists and updates the
 file ~/.zed_head.  This file simply contains a pointer to the HEAD branch
@@ -62,8 +68,6 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.BoolVar(&c.branch, "b", false, "create the branch then check it out")
-	f.StringVar(&c.poolName, "p", "", "check out the main branch of the given pool")
 	c.LakeFlags.SetFlags(f)
 	c.lakeFlags.SetFlags(f)
 	return c, nil
@@ -75,94 +79,50 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	var poolName, branchName, baseName string
-	switch len(args) {
-	case 0:
-		if c.poolName == "" {
-			head, err := c.lakeFlags.HEAD()
-			if err != nil || head.IsZero() {
-				return errors.New("no branch HEAD set: pool name and branch name or commit ID must be given")
-			}
-			fmt.Printf("HEAD at %s\n", head)
-			return nil
-		}
-		poolName, branchName = c.poolName, "main"
-	case 1:
-		branchName = args[0]
-		if c.poolName != "" {
-			poolName, baseName = c.poolName, "main"
-		} else if head, err := c.lakeFlags.HEAD(); err == nil {
-			poolName, baseName = head.Pool, head.Branch
-		}
-	case 2:
-		if !c.branch {
-			return errors.New("cannot specify a base for a new branch without -b")
-		}
-		branchName = args[0]
-		baseName = args[1]
-		if c.poolName != "" {
-			poolName = c.poolName
-		} else if head, err := c.lakeFlags.HEAD(); err == nil {
-			poolName = head.Pool
-		}
-	default:
+	if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
-	commitish, err := lakeparse.ParseCommitish(branchName)
+	if len(args) == 0 {
+		head, err := c.lakeFlags.HEAD()
+		if err != nil {
+			return errors.New("default pool and branch unset")
+		}
+		fmt.Printf("HEAD at %s\n", head)
+		return nil
+	}
+	commitish, err := lakeparse.ParseCommitish(args[0])
 	if err != nil {
 		return err
 	}
-	poolSpec, branchSpec := commitish.Pool, commitish.Branch
-	if poolSpec != "" {
-		poolName, branchName = poolSpec, branchSpec
+	if commitish.Pool == "" {
+		head, err := c.lakeFlags.HEAD()
+		if err != nil {
+			return errors.New("default pool unset")
+		}
+		commitish.Pool = head.Pool
 	}
-	if poolName == "" {
-		return lakeflags.ErrNoHEAD
+	if commitish.Branch == "" {
+		commitish.Branch = "main"
 	}
 	lake, err := c.Open(ctx)
 	if err != nil {
 		return err
 	}
-	poolID, err := lakeparse.ParseID(poolName)
+	poolID, err := lakeparse.ParseID(commitish.Pool)
 	if err != nil {
-		poolID, err = lake.PoolID(ctx, poolName)
+		poolID, err = lake.PoolID(ctx, commitish.Pool)
 		if err != nil {
 			return err
 		}
 	}
-	if c.branch {
-		if _, err := lakeparse.ParseID(branchName); err == nil {
-			return errors.New("new branch name cannot be a commit ID")
-		}
-		if baseName == "" {
-			return errors.New("no HEAD or branch base specified for -b")
-		}
-		baseCommit, err := lakeparse.ParseID(baseName)
-		if err != nil {
-			baseCommit, err = lake.CommitObject(ctx, poolID, baseName)
-			if err != nil {
-				return err
-			}
-		}
-		if err := lake.CreateBranch(ctx, poolID, branchName, baseCommit); err != nil {
-			return err
-		}
-	} else if _, err = lake.CommitObject(ctx, poolID, branchName); err != nil {
+	if _, err = lake.CommitObject(ctx, poolID, commitish.Branch); err != nil {
 		return err
 	}
-	if err := lakeflags.WriteHead(poolName, branchName); err != nil {
+	if err := lakeflags.WriteHead(commitish.Pool, commitish.Branch); err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
-		new := ""
-		if c.branch {
-			new = "a new "
-		}
-		if c.poolName != "" {
-			fmt.Printf("Switched to %sbranch %q on pool %q\n", new, branchName, c.poolName)
-		} else {
-			fmt.Printf("Switched to %sbranch %q\n", new, branchName)
-		}
+		fmt.Printf("Switched to branch %q on pool %q\n", commitish.Branch, commitish.Pool)
 	}
 	return nil
 }

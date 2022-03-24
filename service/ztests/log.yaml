@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zed create -q test
-  zed use -q test@main
+  zed use -q test
   zed load -user testuser -q 1.zson
   zed load -user testuser -q 2.zson
   zed log

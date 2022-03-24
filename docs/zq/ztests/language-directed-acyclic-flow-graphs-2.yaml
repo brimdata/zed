@@ -23,8 +23,8 @@ script: |
   zed init -q
   zed create -q -orderby color PoolOne
   zed create -q -orderby price PoolTwo
-  zed load -q -use PoolOne@main fruit.zson
-  zed load -q -use PoolTwo@main prices.zson
+  zed load -q -use PoolOne fruit.zson
+  zed load -q -use PoolTwo prices.zson
   zed query -z -I join.zed
 
 inputs:

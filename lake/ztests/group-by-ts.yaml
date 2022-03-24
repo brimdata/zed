@@ -5,7 +5,7 @@ script: |
   # the small target size here causes each partition to have several segments.
   zed create -q -S 256B logs
   # causes parition to have several chunk files.
-  zed load -q -use logs@main group-by-ts.zson
+  zed load -q -use logs group-by-ts.zson
   echo ===
   zed query -z 'from logs | head 1'
   echo ===

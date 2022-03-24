@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zed create -q test
-  zed use -q test@main
+  zed use -q test
   zed index create -q s field s
   # Load these separately so we have 3 different objects.
   zed load -q 1.zson

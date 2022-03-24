@@ -156,8 +156,8 @@ export ZED_LAKE=lake
 zed init -q
 zed create -q -orderby flavor:asc fruit
 zed create -q -orderby likes:asc people
-zed load -q -use fruit@main fruit.ndjson
-zed load -q -use people@main people.ndjson
+zed load -q -use fruit fruit.ndjson
+zed load -q -use people people.ndjson
 zed query -z -I inner-join-pools.zed
 ```
 produces
