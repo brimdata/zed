@@ -41,6 +41,7 @@ of `sqlite` and `duckdb`.
 
 ```
 zq [ options ] [ query ] input [ input ... ]
+zq [ options ] query
 ```
 `zq` is a command-line tool for processing data in diverse input
 formats, providing search, analytics, and extensive transformations
