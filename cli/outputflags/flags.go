@@ -24,6 +24,7 @@ type Flags struct {
 	split         string
 	outputFile    string
 	forceBinary   bool
+	jsonShortcut  bool
 	zsonShortcut  bool
 	zsonPretty    bool
 	zsonPersist   string
@@ -68,6 +69,7 @@ func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 		f.DefaultFormat = "zng"
 	}
 	fs.StringVar(&f.Format, "f", f.DefaultFormat, "format for output data [zng,zst,json,parquet,table,text,csv,lake,zeek,zjson,zson]")
+	fs.BoolVar(&f.jsonShortcut, "j", false, "use line-oriented JSON output independent of -f option")
 	fs.BoolVar(&f.zsonShortcut, "z", false, "use line-oriented zson output independent of -f option")
 	fs.BoolVar(&f.zsonPretty, "Z", false, "use formatted zson output independent of -f option")
 	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
@@ -81,7 +83,12 @@ func (f *Flags) Init() error {
 		}
 		f.ZSON.Persist = re
 	}
-	if f.zsonShortcut || f.zsonPretty {
+	if f.jsonShortcut {
+		if f.Format != f.DefaultFormat || f.zsonShortcut || f.zsonPretty {
+			return errors.New("cannot use -j with -f, -z, or -Z")
+		}
+		f.Format = "json"
+	} else if f.zsonShortcut || f.zsonPretty {
 		if f.Format != f.DefaultFormat {
 			return errors.New("cannot use -z or -Z with -f")
 		}

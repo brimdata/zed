@@ -1,0 +1,20 @@
+script: |
+  zq -j in.zson
+  ! zq -j -f zson in.zson
+  ! zq -j -z in.zson
+  ! zq -j -Z in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {a:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {"a":1}
+  - name: stderr
+    data: |
+      cannot use -j with -f, -z, or -Z
+      cannot use -j with -f, -z, or -Z
+      cannot use -j with -f, -z, or -Z
