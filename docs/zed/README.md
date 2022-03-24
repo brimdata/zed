@@ -4,7 +4,7 @@
 
 > `zed` is a command-line tool to manage and query Zed data lakes.
 > You can import data from a variety of formats and `zed` will automatically
-> commit the data in the Zed data model's [super-structured](../formats/zed.md)
+> commit the data in the Zed data model's [super-structured](../formats/README.md)
 > format, providing full fidelity of the original format and the ability
 > to reconstruct the original data without loss of information.
 >
@@ -135,7 +135,7 @@ commands may reference various lake entities by their ID, e.g.,
 Data is added and deleted from the lake only with new commits that
 are implemented in a transactionally consistent fashion.  Thus, each
 commit object (identified by its globally-unique ID) provides a completely
-consistent view of an arbitrary large amount of committed data
+consistent view of an arbitrarily large amount of committed data
 at a specific point in time.
 
 While this commit model may sound heavyweight, excellent live ingest performance
@@ -156,7 +156,7 @@ lake data structures can be queried with metadata queries and presented
 to a client as Zed data for further processing by downstream tooling.
 
 Zed's implementation also includes a storage abstraction that maps the cloud object
-model onto a file system so that Zed lakes can also be deployed on standard files systems.
+model onto a file system so that Zed lakes can also be deployed on standard file systems.
 
 ### 1.3 Zed Command Personalities
 
@@ -501,7 +501,7 @@ of deletes.
 zed drop [options] <name>|<id>
 ```
 The `drop` command deletes a pool and all of its constituent data.
-As this is DANGER ZONE command, you must confirm that you want to delete
+As this is a DANGER ZONE command, you must confirm that you want to delete
 the pool to proceed.  The `-f` option can be used to force the deletion
 without confirmation.
 
@@ -601,7 +601,7 @@ and arbitrary data _shapes_ can coexist side by side.
 
 As with `zq`,
 the [input arguments](../zq/README.md#1-usage) can be in
-any [supported format](../zq/README.md#-input-formats) and
+any [supported format](../zq/README.md#2-input-formats) and
 the input format is auto-detected if `-i` is not provided.  Likewise,
 the inputs may be URLs, in which case, the `load` command streams
 the data from a Web server or S3 and into the lake.
@@ -699,7 +699,7 @@ zed log -f zng | zq 'has(meta) | yield {id,meta}' -
 zed log [options] [commitish]
 ```
 The `log` command, like `git log`, displays a history of the commit objects
-starting from any commit, expressed as a [commitish](#commitish).  If no argument is
+starting from any commit, expressed as a [commitish](#142-commitish).  If no argument is
 given, the tip of the working branch is used.
 
 Run `zed log -h` for a list of command-line options.
