@@ -30,7 +30,7 @@ like `jq`.  As you probably know, `jq`
 is a popular command-line tool for taking a sequence of JSON values as input,
 doing interesting things on that input, and emitting results, of course, as JSON.
 
-`jq` is awesome and powerful, but it's syntax and computational model can
+`jq` is awesome and powerful, but its syntax and computational model can
 sometimes be daunting and difficult.  We tried to make `zq` really easy and intuitive,
 and it is usually faster, sometimes [much faster](../zq/README.md#7-performance),
 than `jq`.
@@ -138,7 +138,7 @@ shorthand syntax?  What do you think?
 
 ## On to ZSON
 
-JSON is super easy and ubiqitous, but it can be limiting and frustrating when
+JSON is super easy and ubiquitous, but it can be limiting and frustrating when
 trying to do high-precision stuff with data.
 
 When using `zq`, it's handy to operate in the
@@ -249,7 +249,7 @@ written as `[int64]`.
 `v9` is a "set of strings", which is written like an array but with the
 enclosing syntax `|[` and `]|`.
 
-`v10` is a "map" type, which in other languages are often called a "table"
+`v10` is a "map" type, which in other languages is often called a "table"
 or a "dictionary".  In Zed, a value of any type can be used for the key or the
 value though all of the keys and all of the values must have the same type.
 
@@ -264,7 +264,7 @@ nested values all the time: in JSON, data is nested with objects and arrays,
 while in Zed, data is nested with "records" and arrays (as well as other complex types).
 
 [Record expressions](../zq/language.md#6112-record-expressions)
-are rather flexibe with `zq` and look a bit like JavaScript
+are rather flexible with `zq` and look a bit like JavaScript
 or `jq` syntax, e.g.,
 ```mdtest-command
 echo '1 2 3' | zq -z 'yield {kind:"counter",val:this}' -
@@ -352,7 +352,7 @@ produces
 {val:error("missing")}
 ```
 Sometimes you expect missing errors to occur sporadically and just want
-to ingnore them, which can you easily do with the
+to ignore them, which can you easily do with the
 [quiet function](../zq/functions/quiet.md), e.g.,
 ```mdtest-command
 echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'cut quiet(val)' -
@@ -366,7 +366,7 @@ produces
 
 One of the tricks `zq` uses to represent JSON data in a structured type system
 is to use [union types](../zq/language.md#6116-union-values).
-Most all the time, you don't need to worry about unions
+Most of the time, you don't need to worry about unions
 but they show up from time to time.  Even when
 they show up, Zed just tries to "do the right thing" so you usually
 don't have to worry about them even when they show up.
@@ -480,7 +480,7 @@ false
 
 ## Sample
 
-Sometimes you'd like to see a sample value of each shape not its type.
+Sometimes you'd like to see a sample value of each shape, not its type.
 This is easy to do with the [any aggregate function](../zq/aggregates/any.md),
 e.g,
 ```mdtest-command
@@ -541,7 +541,7 @@ produces this transformed and comprehensively-typed ZSON output:
 ```
 Now you can see all the detail.
 
-This turns out to be so useful, especially with larges amount of messy input data,
+This turns out to be so useful, especially with large amounts of messy input data,
 you will often find yourself fusing data then sampling it, e.g.,
 ```mdtest-command
 echo '{a:1,b:null}{a:null,b:[2,3,4]}' | zq -Z 'fuse | sample' -
@@ -579,7 +579,7 @@ with `zq`?
 Before you can do anything, you need to know its structure but you generally don't
 know anything after pulling some random data from an API.
 
-So, let's poke around a bit and figure it out.  This process of data instropection
+So, let's poke around a bit and figure it out.  This process of data introspection
 is often called _data discovery_.
 
 You could start by using `jq` to pretty-print the JSON data,
@@ -613,7 +613,7 @@ produces
 ```mdtest-output
 30
 ```
-Of course!  We asked the GitHub to return 30 items and the API returns the
+Of course!  We asked GitHub to return 30 items and the API returns the
 pull-request objects as elements of one array representing a single JSON value.
 
 Let's see what sorts of things are in this array.  Here, we need to enumerate
@@ -750,7 +750,7 @@ zq -Z 'over this | sample _links' prs.json
 ```
 While these fields have some useful information, we'll decide to drop them here
 and focus on other top-level fields.  To do this, we can use the
-[drop operator](../zq/operators/drop.md) to whiddle down the data:
+[drop operator](../zq/operators/drop.md) to whittle down the data:
 ```
 zq -Z 'over this | fuse | drop head,base,_link | sample' prs.json
 ```
@@ -829,7 +829,7 @@ which gives
 > Note that this use of `over` traverses each record and generates a key-value pair
 > for each field in each record.
 
-Looking thrugh the fields that are strings, the candidates for ISO dates appear
+Looking through the fields that are strings, the candidates for ISO dates appear
 to be
 * `closed_at`,
 * `merged_at`,
@@ -872,7 +872,7 @@ and we can see that the date fields are correctly typed as type `time`!
 ## Putting It All Together
 
 Instead of running each step above into a temporary file, we can
-put all the transformations togtether and glue them together in
+put all the transformations together and glue them together in
 a Zed pipeline, where the Zed source text might look like this:
 ```
 over this                      // traverse the array of objects
@@ -892,18 +892,18 @@ argument to run all the transformations in one fell swoop:
 zq -I transform.zed prs.json > prs.zng
 ```
 
-## Running Analyics
+## Running Analytics
 
 Now that we've cleaned up our data, we can reliably and easily run analytics
-on finalized ZNG file `prs.zng`.
+on the finalized ZNG file `prs.zng`.
 
 Zed gives us the best of both worlds of JSON and relational tables: we have
-the structure and clarity of the relaional model while retaining the flexibility
+the structure and clarity of the relational model while retaining the flexibility
 of JSON's document model.  No need to create tables then issue SQL insert commands
 to put your clean data into all the right places.
 
 Let's start with something simple.  How about we output a "PR Report" listing
-the title of each PR along with it's PR number and creation date:
+the title of each PR along with its PR number and creation date:
 ```mdtest-command dir=docs/tutorials
 zq -f table '{DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
 ```
@@ -920,13 +920,13 @@ DATE                 NUMBER TITLE
 Note that we used [string interpolation](../zq/language.md#6111-string-interpolation)
 to convert the field `number` into a string and format it with surrounding text.
 
-Intstead of old PRs, we can get the latest list of PRs using the
-[tail operator](../zq/operators/tail.md) wince we know the data is sorted
-choronologically. This command retrieves the last five PRs in the dataset:
+Instead of old PRs, we can get the latest list of PRs using the
+[tail operator](../zq/operators/tail.md) since we know the data is sorted
+chronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
 zq -f table 'tail 5 | {DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
 ```
-and the outupt is:
+and the output is:
 ```mdtest-output
 DATE                 NUMBER TITLE
 2019-11-18T22:14:08Z PR #26 ndjson writer
@@ -1174,7 +1174,7 @@ produces
 So to summarize, we gave you a tour here of `zq` and how the Zed data model
 provide a powerful way do search, transformation, and analytics in a structured-like
 way on data that begins its life as semi-structured JSON and is transformed
-into the powerful super-structured format without having to create reltional
+into the powerful super-structured format without having to create relational
 tables and schemas.
 
 As you can see, `zq` is a general-purpose tool that you can add to your bag
@@ -1182,7 +1182,7 @@ of tricks to:
 * explore messy and confusing JSON data using shaping and sampling,
 * transform JSON data in ad hoc ways, and
 * develop transform logic for hitting APIs like the GitHub API to produce
-clean data for analysis by `zq` or even export into other systems or for test.
+clean data for analysis by `zq` or even export into other systems or for testing.
 
 If you'd like to learn more, feel free to read through the
 [language docs](../zq/language.md) in depth
