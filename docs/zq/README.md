@@ -204,6 +204,9 @@ Since ZSON is a common format choice, the `-z` flag is a shortcut for
 `-f zson.`  Also, `-Z` is a shortcut for `-f zson` with `-pretty 4` as
 described below.
 
+And since JSON is another common format choice, the `-j` flag is a shortcut for
+`-f json.`
+
 ### 3.1 Output Format Selection
 
 When the format is not specified with `-f`, it defaults to ZSON if the output
