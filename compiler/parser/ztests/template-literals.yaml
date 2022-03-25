@@ -1,11 +1,11 @@
 zed: |
-  over this
-  | yield
+  yield
     "hello ${this}",
     'hello ${hex(bytes(this))}',
     "hello \${this}",
     'hello \${hex(this)}',
     'yo ${"dawg ${this}"}',
+    '${this}',
     "==="
 
 input: |
@@ -17,10 +17,12 @@ output: |
    "hello ${this}"
    "hello ${hex(this)}"
    "yo dawg world"
+   "world"
    "==="
-   error("incompatible types")
+   "hello 127.0.0.1"
    "hello 7f000001"
    "hello ${this}"
    "hello ${hex(this)}"
-   error("incompatible types")
+   "yo dawg 127.0.0.1"
+   "127.0.0.1"
    "==="
