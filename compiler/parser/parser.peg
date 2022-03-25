@@ -1081,7 +1081,14 @@ TemplateSingleQuotedChar
   / !( "${" ) v:SingleQuotedChar { RETURN(v) }
 
 TemplateExpr
-  = "${" __ e:Expr __ "}" { RETURN(e) }
+  = "${" __ e:Expr __ "}" { 
+      RETURN(MAP(
+        "kind": "Cast",
+        "expr": e,
+        "type": MAP(
+          "kind": "TypeValue",
+          "value": MAP("kind": "TypePrimitive", "name": "string"))))
+    }
 
 PrimitiveType
   = (   "uint8" / "uint16" / "uint32" / "uint64"
