@@ -523,23 +523,21 @@ any Zed type may be used as a value.
 
 The primitive types are listed in the
 [data model specification](../formats/zed.md#1-primitive-types)
-and have the same syntax in the Zed language.  
-Complex types also follow the ZSON syntax.  Note that the type of a type value
-is simply `type`.
+and have the same syntax in the Zed language.  Complex types also follow
+the ZSON syntax.  Note that the type of a type value is simply `type`.
 
 As in ZSON, _when types are used as values_, e.g., in a Zed expression,
 they must be referenced within angle brackets.  That is, the integer type
 `int64` is expressed as a type value using the syntax `<int64>`.
 
-Complex types in the Zed language follow the ZSON syntax as well.  
-Here are a few examples:
-```
-* a simple record type - `{x:int64,y:int64}
+Complex types in the Zed language follow the ZSON syntax as well.  Here are
+a few examples:
+* a simple record type - `{x:int64,y:int64}`
 * an array of integers - `[int64]`
 * a set of strings - `|[string]|`
 * a map of strings keys to integer values - `{[string,int64]}`
 * a union of string and integer  - `(string,int64)`
-```
+
 Complex types may be composed, as in `[({s:string},{x:int64})]` which is
 an array of type union of two types of records.
 
