@@ -909,12 +909,12 @@ zq -f table '{DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
 ```
 and you'll see this output...
 ```mdtest-output head
-DATE                 NO TITLE
-2019-11-11T19:50:46Z 1  Make "make" work in zq
-2019-11-11T20:57:12Z 2  fix install target
-2019-11-11T23:24:00Z 3  import github.com/looky-cloud/lookytalk
-2019-11-12T16:25:46Z 5  Make zq -f work
-2019-11-12T16:49:07Z 6  a few clarifications to the zson spec
+DATE                 NUMBER TITLE
+2019-11-11T19:50:46Z PR #1  Make "make" work in zq
+2019-11-11T20:57:12Z PR #2  fix install target
+2019-11-11T23:24:00Z PR #3  import github.com/looky-cloud/lookytalk
+2019-11-12T16:25:46Z PR #5  Make zq -f work
+2019-11-12T16:49:07Z PR #6  a few clarifications to the zson spec
 ...
 ```
 Note that we used [string interpolation](../zq/language.md#6111-string-interpolation)
@@ -924,16 +924,16 @@ Intstead of old PRs, we can get the latest list of PRs using the
 [tail operator](../zq/operaetors/tail.md) wince we know the data is sorted
 choronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
-zq -f table 'tail 5 | {DATE:created_at,"NO":number,TITLE:title}' prs.zng
+zq -f table 'tail 5 | {DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
 ```
 and the outupt is:
 ```mdtest-output
-DATE                 NO TITLE
-2019-11-18T22:14:08Z 26 ndjson writer
-2019-11-18T22:43:07Z 27 Add reader for ndjson input
-2019-11-19T00:11:46Z 28 fix TS_ISO8601, TS_MILLIS handling in NewRawAndTsFromJSON
-2019-11-19T21:14:46Z 29 Return count of "dropped" fields from zson.NewRawAndTsFromJSON
-2019-11-20T00:36:30Z 30 zval.sizeBytes incorrect
+DATE                 NUMBER TITLE
+2019-11-18T22:14:08Z PR #26 ndjson writer
+2019-11-18T22:43:07Z PR #27 Add reader for ndjson input
+2019-11-19T00:11:46Z PR #28 fix TS_ISO8601, TS_MILLIS handling in NewRawAndTsFromJSON
+2019-11-19T21:14:46Z PR #29 Return count of "dropped" fields from zson.NewRawAndTsFromJSON
+2019-11-20T00:36:30Z PR #30 zval.sizeBytes incorrect
 ```
 
 How about some aggregations?  We can count the number of PRs and sort by the
