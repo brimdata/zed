@@ -79,11 +79,11 @@ is to download a pre-built release binary.
 You can find these binaries on the GitHub
 [releases](https://github.com/brimdata/zed/releases) page.
 
-On macOS and Linux, you can also use [Homebrew](https://brew.sh/) to install `zq`:
+On macOS and Linux, you can also use [Homebrew](https://brew.sh/) to install `zq`, run:
 ```
 brew install brimdata/tap/zq
 ```
-To install `zed` for working with lakes, use
+To install `zed` for working with lakes, run
 ```
 brew install brimdata/tap/zed
 ```

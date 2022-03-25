@@ -95,7 +95,6 @@ Bite-sized components are unified by the Zed data, usually in the ZNG format:
 * All lake meta-data is available via meta-queries.
 * All like operations available through the service API are also available
 directly via the `zed` command.
-* Everything available to the client is XXX
 * Search indexes and aggregate partials are all just ZNG files and you can
 learn about the Zed lake by simply running `zq` on the various ZNG files
 in a cloud store.
