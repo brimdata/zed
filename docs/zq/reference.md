@@ -62,6 +62,7 @@ to take on any Zed type.
 * [floor](functions/floor.md) - floor of a number
 * [grep](functions/grep.md) - search strings inside of values
 * [has](functions/has.md) - test existence of values
+* [has_error](functions/has_error.md) - test if a value has an error
 * [is](functions/is.md) - test a value's type
 * [is_error](functions/is_error.md) - test if a value is an error
 * [join](functions/join.md) - concatenate array of strings with a separator

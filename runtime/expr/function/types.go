@@ -2,6 +2,7 @@ package function
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -105,6 +106,82 @@ func (i *Is) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 		return zed.True
 	}
 	return zed.False
+}
+
+type HasError struct {
+	cached map[int]bool
+}
+
+func NewHasError() *HasError {
+	return &HasError{
+		cached: make(map[int]bool),
+	}
+}
+
+func (h *HasError) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
+	v := args[0]
+	if yes, _ := h.hasError(v.Type, v.Bytes); yes {
+		return zed.True
+	}
+	return zed.False
+}
+
+func (h *HasError) hasError(t zed.Type, b zcode.Bytes) (bool, bool) {
+	typ := zed.TypeUnder(t)
+	if _, ok := typ.(*zed.TypeError); ok {
+		return true, false
+	}
+	// If a value is null we can skip since an null error is not an error.
+	if b == nil {
+		return false, false
+	}
+	if hasErr, ok := h.cached[t.ID()]; ok {
+		return hasErr, true
+	}
+	var hasErr bool
+	canCache := true
+	switch typ := typ.(type) {
+	case *zed.TypeRecord:
+		it := b.Iter()
+		for _, col := range typ.Columns {
+			e, c := h.hasError(col.Type, it.Next())
+			hasErr = hasErr || e
+			canCache = !canCache || c
+		}
+	case *zed.TypeArray, *zed.TypeSet:
+		inner := zed.InnerType(typ)
+		for it := b.Iter(); !it.Done(); {
+			e, c := h.hasError(inner, it.Next())
+			hasErr = hasErr || e
+			canCache = !canCache || c
+		}
+	case *zed.TypeMap:
+		for it := b.Iter(); !it.Done(); {
+			e, c := h.hasError(typ.KeyType, it.Next())
+			hasErr = hasErr || e
+			canCache = !canCache || c
+			e, c = h.hasError(typ.ValType, it.Next())
+			hasErr = hasErr || e
+			canCache = !canCache || c
+		}
+	case *zed.TypeUnion:
+		for _, typ := range typ.Types {
+			_, isErr := zed.TypeUnder(typ).(*zed.TypeError)
+			canCache = !canCache || isErr
+		}
+		if typ, b := typ.SplitZNG(b); b != nil {
+			// Check mb is not nil to avoid infinite recursion.
+			var cc bool
+			hasErr, cc = h.hasError(typ, b)
+			canCache = !canCache || cc
+		}
+	}
+	// We cannot cache a type if the type or one of its children has a union
+	// with an error member.
+	if canCache {
+		h.cached[t.ID()] = hasErr
+	}
+	return hasErr, canCache
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#quiet
