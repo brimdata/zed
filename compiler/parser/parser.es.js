@@ -10837,12 +10837,12 @@ function peg$parse(input, options) {
               if (s3 !== peg$FAILED) {
                 s4 = peg$parse__();
                 if (s4 !== peg$FAILED) {
-                  if (input.charCodeAt(peg$currPos) === 44) {
-                    s5 = peg$c101;
+                  if (input.charCodeAt(peg$currPos) === 58) {
+                    s5 = peg$c53;
                     peg$currPos++;
                   } else {
                     s5 = peg$FAILED;
-                    if (peg$silentFails === 0) { peg$fail(peg$c102); }
+                    if (peg$silentFails === 0) { peg$fail(peg$c54); }
                   }
                   if (s5 !== peg$FAILED) {
                     s6 = peg$parse__();
