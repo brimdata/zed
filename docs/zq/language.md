@@ -49,7 +49,7 @@
       - [7.2.1.5 Non-string Literal Search Term](#7215-non-string-literal-search-term)
       - [7.2.1.6 Predicate Search Term](#7216-predicate-search-term)
   + [7.3 Boolean Logic](#73-boolean-logic)
-* [8. Lateral Queries](#8-lateral-queries)
+* [8. Lateral Subqueries](#8-lateral-subqueries)
   + [8.1 Lateral Scope](#81-lateral-scope)
 * [9. Shaping](#9-shaping)
   + [9.1 Cast](#91-cast)
@@ -1663,14 +1663,14 @@ means
 grep("foo") and (grep("bar)) or grep("baz"))
 ```
 
-## 8. Lateral Queries
+## 8. Lateral Subqueries
 
-Lateral queries provide a powerful means to apply a Zed query
+Lateral subqueries provide a powerful means to apply a Zed query
 to each subsequence of values generated from an outer sequence of values.
 The inner query may be _any Zed query_ and may refer to values from
 the outer sequence.
 
-Lateral queries are created using the scoped form of the
+Lateral subqueries are created using the scoped form of the
 [over operator](operators/over.md#operator) and may be nested to arbitrary depth.
 
 For example,
@@ -1683,7 +1683,7 @@ produces
 {name:"foo",elem:2}
 {name:"bar",elem:3}
 ```
-Here the lateral scope, described below, creates a sub-query
+Here the lateral scope, described below, creates a subquery
 ```
 yield {name,elem:this}
 ```
@@ -1693,14 +1693,14 @@ In the example above, there are two input values:
 {s:"foo",a:[1,2]}
 {s:"bar",a:[3]}
 ```
-which imply two sub-queries derived from the `over` operator traversing `a`.
+which imply two subqueries derived from the `over` operator traversing `a`.
 The first subquery thus operates on the input values `1, 2` with the variable
 `name` set to "foo" assigning `1` and then `2` to `this`, thereby emitting
 ```
 {name:"foo",elem:1}
 {name:"foo",elem:2}
 ```
-and the second sub-query operators on the input value `3` with the variable
+and the second subquery operators on the input value `3` with the variable
 `name` set to "bar", emitting
 ```
 {name:"bar",elem:3}
@@ -1749,7 +1749,7 @@ each subquery result as each inner sequence traversal completes.
 
 This structure is powerful because _any_ Zed query can be appear in the body of
 the lateral scope.  In contrast to the `yield` example, a sort could be
-applied to each sub-sequence in the sub-query, where sort
+applied to each sub-sequence in the subquery, where sort
 reads all of values of the subsequence, sorts them, emits them, then
 repeats the process for the next subsequence.  For example,
 ```mdtest-command

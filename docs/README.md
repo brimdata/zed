@@ -1,5 +1,3 @@
-** This doc currently has random notes and will be updated as part of issue 3604**
-
 # Zed Documentation
 
 The Zed documentation is organized as follows:
@@ -15,17 +13,21 @@ API for interacting with a Zed lake
 
 "Zed" is an umbrella term that describes
 a number of different elements of the system:
-* The "Zed data model" is the abstract definition of the data types and semantics
+* The [Zed data model](formats/zed.md) is the abstract definition of the data types and semantics
 that underly the Zed formats.
-* The "Zed formats" are a family of sequential (ZNG), columnar (ZST), and human-readable (ZSON)
-formats that all adhere to the same abstract Zed data model.
-* A "Zed lake" is a collection of optionally-indexed Zed data stored
-across one or more data "pools" with ACID commit semantics and
+* The [Zed formats](formats/README.md) are a family of
+[sequential (ZNG)](formats/zng.md), [columnar (ZST)](formats/zst.md),
+and [human-readable (ZSON)](formats/zson.md) formats that all adhere to the
+same abstract Zed data model.
+* A [Zed lake](zed/README.md) is a collection of optionally-indexed Zed data stored
+across one or more [data pools](#14-data-pools) with ACID commit semantics and
 accessed via a Git-like API.
-* The "Zed language" is the system's dataflow language for performing
+* The [Zed language](zq/language.md) is the system's dataflow language for performing
 queries, searches, analytics, transformations, or any of the above combined together.
-* A "Zed query" is a Zed script that performs search or analytics.
-* A "Zed shaper" is a Zed script that performs data transformation to _shape_
+* A  [Zed query](zq/language.md#1-introduction) is a Zed script that performs
+search and/or analytics.
+* A [Zed shaper](zq/language.md#9-shaping) is a Zed script that performs
+data transformation to _shape_
 the input data into the desired set of organizing Zed data types called "shapes",
 which are traditionally called _schemas_ in relational systems but are
 much more flexible in the Zed system.
@@ -61,7 +63,7 @@ Run `zed -h` or `-h` with any subcommand for a list of command options
 and online help.  The same language query that works for `zq` operating
 on local files or streams also works for `zed query` operating on a lake.
 
-For installation instructions, see the [top-level README].
+For installation instructions, see the [Quick Start](../README.md#quick-start).
 
 ### Design Philosophy
 
@@ -94,33 +96,14 @@ Bite-sized components are unified by the Zed data, usually in the ZNG format:
 * All like operations available through the service API are also available
 directly via the `zed` command.
 * Everything available to the client is
-* Search indexes and aggregations partials are all just ZNG files and you can
-learn about the Zed lake by simply running `zq` on the
+* Search indexes and aggregate partials are all just ZNG files and you can
+learn about the Zed lake by simply running `zq` on the various ZNG files
+in cloud store.
 * Lake management is agent-driven through the API.  Instead of complex policies
-like data compaction  being implemented in the core with some fixed set of
+like data compaction being implemented in the core with some fixed set of
 algorithms and policies, an agent can simply hit the API to obtain the meta-data
 of the objects in the lake, analyze the objects (e.g., looking for too much
 key space overlap) and issue API commands to say merge overlapping objects
 and deleted the old fragmented objects all with the transactional consistency
 of the commit log.
-* Components are easily tested and debugged in isolation
-
-For example, the `zed ls` command simply hits the `pools` endpoint
-
-Example, list data pools...
-
-Example, data compaction...
-
-* terminology
-    * Zed is the umbrella term
-        * used interchangeable to describe the project, the repo, the system, the language, and the data model
-        * ZSON, ZNG, ZST are the formats
-
-    * Zed lake
-        * pools
-        * branches
-        * indexes
-        * data objects
-        * query
-        * metadata query
-===
+* Components are easily tested and debugged in isolation.
