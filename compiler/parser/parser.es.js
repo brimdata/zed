@@ -885,20 +885,18 @@ function peg$parse(input, options) {
       peg$c412 = peg$literalExpectation("${", false),
       peg$c413 = function(e) { 
             return {
-      	    
+              
             "kind": "Cast",
-      		
+              
             "expr": e,
-      		
+              
             "type": {
-      		  
+                
             "kind": "TypeValue",
-      		  
-            "value": {"kind": "TypePrimitive", "name": "string"},
-      	    },
-      	  } 
-      	
-       },
+                
+            "value": {"kind": "TypePrimitive", "name": "string"}}}
+          
+          },
       peg$c414 = "uint8",
       peg$c415 = peg$literalExpectation("uint8", false),
       peg$c416 = "uint16",

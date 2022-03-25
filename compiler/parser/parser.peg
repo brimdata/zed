@@ -1087,9 +1087,7 @@ TemplateExpr
         "expr": e,
         "type": MAP(
           "kind": "TypeValue",
-          "value": MAP("kind": "TypePrimitive", "name": "string"),
-        ),
-      )) 
+          "value": MAP("kind": "TypePrimitive", "name": "string"))))
     }
 
 PrimitiveType
