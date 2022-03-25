@@ -1,3 +1,12 @@
+## v1.0.0
+
+* Comprehensive [documentation](docs/README.md)
+* Substantial improvments to the [Zed language](docs/zq/language.md)
+* Revamped [`zed` command](docs/zed/README.md)
+* New Zed lake format (see #3634 for a migration script)
+* New version of the [ZNG format](docs/formats/zng.md) (with read-only support for the previous version)
+* New version of the [ZSON format](docs/formats/zson.md)
+
 ## v0.33.0
 
 * `zapi`: Rename the `ZED_LAKE_HOST` environment variable to `ZED_LAKE` and rename the `-host` flag to `-lake` (#3280)
