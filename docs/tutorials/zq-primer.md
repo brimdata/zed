@@ -72,7 +72,7 @@ which also gives
 ## Search vs Transformation
 
 Unlike `jq`, which leads with _transformation_, `zq` leads with _search_ but
-transforamtion is also pretty easy.  Let's show what we mean here with an
+transformation is also pretty easy.  Let's show what we mean here with an
 example.
 
 If we run this `jq` command,
