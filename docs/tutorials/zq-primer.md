@@ -1,6 +1,6 @@
 # A Tour of `zq`
 
-This tour provides new users of `zq` a quick overview of `zq` and
+This tour provides new users of `zq` an overview of `zq` and
 the [Zed language](../zq/language.md)
 by walking through a number of examples on the command-line.
 This should get you started without having to read through all the gory details
