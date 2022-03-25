@@ -1,0 +1,13 @@
+zed: '*'
+
+input: |
+  {a:1}
+  [1,2]
+
+output-flags: -f table
+
+output: |
+  a
+  1
+
+errorRE: 'table output encountered non-record value: \[1,2]'
