@@ -307,7 +307,7 @@ produces
 
 ## Record Mutation
 
-Sometimes you just want to exctract or mutate certain fields of records.
+Sometimes you just want to extract or mutate certain fields of records.
 
 Similar to the Unix `cut` command, the Zed [cut operator](../zq/operators/cut.md)
 extracts fields, e.g.,
@@ -1140,7 +1140,7 @@ very targeted reviews while `mattnibs` casts a wide net, at least
 for the PRs from the beginning of the `zed` repo.
 
 To quantify this concept, we can easily modify this query to compute
-the average number of reviewes requested instead of the set of groups
+the average number of reviewers requested instead of the set of groups
 of reviewers.  To do this, we just average the reviewer set size
 with an aggregation:
 ```mdtest-command dir=docs/tutorials
@@ -1155,7 +1155,7 @@ which produces
 {user:"henridf",avg_reviewers:3.}
 ```
 
-Of course, if you'd like thr query output in JSON, you can just say `-f json` and
+Of course, if you'd like the query output in JSON, you can just say `-f json` and
 `zq` will happily format the Zed sets as JSON arrays, e.g.,
 ```mdtest-command dir=docs/tutorials
 zq -f json 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers} ) | groups:=union(reviewers) by user | sort user,len(groups)' prs.zng
