@@ -144,7 +144,7 @@ Additional data can be added to our pool by running `zed load` on our second
 $ zed load github2.zng
 ```
 
-Running our `min(created_at), max(created_at)` query we'll see that we now have
+Running our `min(created_at), max(created_at)` query, we'll see that we now have
 almost two years of pull requests:
 
 ```bash
