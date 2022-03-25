@@ -13,7 +13,6 @@ We start by creating our Zed lake. First we'll set the `ZED_LAKE`
 environment variable that tells `zed` where we want to store our lake:
 
 ```bash
-$ mkdir $HOME/.zedlake
 $ export ZED_LAKE=$HOME/.zedlake
 ```
 
@@ -120,7 +119,7 @@ $ zed query 'count() by user:=user.login | sort -r count'
 
 A productive few weeks for McCanne!
 
-We can use the `min` / `max` aggregations to see the time range of our data set:
+We can use the `min` and `max` aggregations to see the time range of our data set:
 
 ```bash
 $ zed query -Z 'min(created_at), max(created_at)'
@@ -176,7 +175,7 @@ $ zed query 'count() by ts:=bucket(created_at, 1y/12) | sort ts'
 ...
 ```
 
-There's lots of PRs that happened in the ~30 day block starting on 4/19/2020, so let's zoom in here
+There are lots of PRs that happened in the ~30 day block starting on 4/19/2020, so let's zoom in here
 and see who created these PRs:
 
 ```
@@ -278,7 +277,7 @@ $ zed query 'count()'
 
 ## Running as a service
 
-Now that we compiled an interesting data set, how might we share this with
+Now that we've compiled an interesting data set, how might we share this with
 others? Using the `zed serve` command we can launch our Zed Lake as a service
 that will allow multiple clients to query and add data to the same lake. In a
 separate console window run:
