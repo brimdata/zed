@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio/zeekio"
+	"github.com/brimdata/zed/zson"
 )
 
 type Writer struct {
@@ -32,6 +33,9 @@ func NewWriter(w io.WriteCloser) *Writer {
 }
 
 func (w *Writer) Write(r *zed.Value) error {
+	if r.Type.Kind() != zed.RecordKind {
+		return fmt.Errorf("table output encountered non-record value: %s", zson.MustFormatValue(*r))
+	}
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err
