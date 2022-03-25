@@ -208,7 +208,7 @@ query over the limited range.
 
 ## Time travel
 
-Let's pretend we made a mistake by loading the last chunk of data.
+Suppose we made a mistake by loading the last chunk of data.
 Perhaps we applied the wrong transform to the incoming data. Is there any
 way we can fix this? Similar to version control systems like [`git`](https://git-scm.com),
 a Zed lake maintains a linear history (or commit log) of all the changes made to
