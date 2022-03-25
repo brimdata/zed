@@ -82,8 +82,7 @@ Our data has been committed. The `-use prs` argument in `zed load` tells
 With our data now loaded let's run a quick `count()` query to verify that we have
 the expected data. To do this we'll use the `zed query` command. To those
 familiar with [`zq`](../zq/README.md), `zed query` operates similarly except
-it doesn't accept file input arguments since you'll be querying against
-pools.
+it doesn't accept file input arguments since it queries pools.
 
 ```bash
 $ zed query -use prs 'count()'
@@ -93,7 +92,7 @@ $ zed query -use prs 'count()'
 {count:100(uint64)}
 ```
 
-It's looking good so far, but let's do something more interesting. First let's use
+This looks good so far, but let's do something more interesting. First let's use
 the `zed use` command to set `prs` as our default pool so we don't have to type
 the `-use` argument every time we operate on this pool.
 
