@@ -172,6 +172,7 @@ $ zed query 'count() by ts:=bucket(created_at, 1y/12) | sort ts'
 {ts:2020-02-18T20:00:00Z,count:114(uint64)}
 {ts:2020-03-20T06:00:00Z,count:111(uint64)}
 {ts:2020-04-19T16:00:00Z,count:137(uint64)}
+{ts:2020-05-20T02:00:00Z,count:74(uint64)}
 ...
 ```
 
@@ -179,17 +180,17 @@ There are lots of PRs that happened in the ~30 day block starting on 4/19/2020, 
 and see who created these PRs:
 
 ```
-$ zed query 'from prs range 2020-04-19T16:00:00Z to 2020-05-19T16:00:00Z
+$ zed query 'from prs range 2020-04-19T16:00:00Z to 2020-05-20T02:00:00Z
              | count() by user:=user.login | sort -r count'
 ```
 =>
 ```
 {user:"mccanne",count:35(uint64)}
-{user:"henridf",count:33(uint64)}
-{user:"aswan",count:26(uint64)}
-{user:"mattnibs",count:13(uint64)}
+{user:"henridf",count:34(uint64)}
+{user:"aswan",count:27(uint64)}
+{user:"mattnibs",count:14(uint64)}
 {user:"alfred-landrum",count:12(uint64)}
-{user:"philrz",count:8(uint64)}
+{user:"philrz",count:9(uint64)}
 {user:"mikesbrown",count:5(uint64)}
 {user:"nwt",count:1(uint64)}
 ```
@@ -202,7 +203,7 @@ and also defines a time range for the query. The range part of the query is an
 important distinction from `zq`. Whereas `zq` would be required to
 scan the entire data set to execute this query, this Zed pool which stores data
 sorted by `created_at` can skip all data that doesn't fall within the range
-`2020-04-19T16:00:00Z to 2020-05-19T16:00:00Z`. This results in a much faster
+`2020-04-19T16:00:00Z to 2020-05-20T02:00:00Z`. This results in a much faster
 query over the limited range.
 
 ## Time travel
