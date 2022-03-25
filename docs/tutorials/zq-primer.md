@@ -918,7 +918,7 @@ the login field from each record:
 zq -z 'over requested_reviewers | collect(login)' prs.zng
 ```
 Oops, this gives us an array of the reviewer logins
-with repetitions since [collect](../zq/aggregates.md)
+with repetitions since [collect](../zq/aggregates/collect.md)
 collects each item that it encounters into an array:
 ```mdtest-output
 {collect:["mccanne","nwt","henridf","mccanne","nwt","mccanne","mattnibs","henridf","mccanne","mattnibs","henridf","mccanne","mattnibs","henridf","mccanne","nwt","aswan","henridf","mccanne","nwt","aswan","philrz","mccanne","mccanne","aswan","henridf","aswan","mccanne","nwt","aswan","mikesbrown","henridf","aswan","mattnibs","henridf","mccanne","aswan","nwt","henridf","mattnibs","aswan","aswan","mattnibs","aswan","henridf","aswan","henridf","mccanne","aswan","aswan","mccanne","nwt","aswan","henridf","aswan"]}
