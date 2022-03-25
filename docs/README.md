@@ -20,7 +20,7 @@ that underly the Zed formats.
 and [human-readable (ZSON)](formats/zson.md) formats that all adhere to the
 same abstract Zed data model.
 * A [Zed lake](zed/README.md) is a collection of optionally-indexed Zed data stored
-across one or more [data pools](#14-data-pools) with ACID commit semantics and
+across one or more [data pools](zed/README.md#14-data-pools) with ACID commit semantics and
 accessed via a Git-like API.
 * The [Zed language](zq/language.md) is the system's dataflow language for performing
 queries, searches, analytics, transformations, or any of the above combined together.
