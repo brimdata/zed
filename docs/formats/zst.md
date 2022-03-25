@@ -326,7 +326,7 @@ the memory footprint roughly exceeds this threshold,
 and an array of sizes in bytes of the sections of the ZST file.
 
 This type of this record has the format
-````
+```
 {magic:string,type:string,version:int64,sections:[int64],meta:{skew_thresh:int64,segment_thresh:int64}
 ```
 The trailer can be efficiently found by scanning backward from the end of the
