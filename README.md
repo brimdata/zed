@@ -1,39 +1,49 @@
 # Zed [![Tests][tests-img]][tests] [![GoPkg][gopkg-img]][gopkg]
 
-Zed is a system for search, analytics, and data transformation
-designed to work at any scale, from a simple command-line tool called [`zq`](docs/zq/README.md)
-on your desktop (kind of like [`jq`](https://stedolan.github.io/jq/))
-to a large-scale, distributed cluster running on your servers or in the cloud
-(like a search cluster or a data warehouse).
+Zed offers a new approach to data that makes it easier to manipulate and manage
+your data.
 
-Zed is based on a new type of data called
-[_super-structured_ data](docs/formats/README.md#2-zed-a-super-structured-pattern),
-which can represent both relational tables and JSON.  Super-structured data provides a new
-and easier approach for data introspection, shaping, pipeline management,
-data quality, test, and debug, all while intermixing the flexibility of
-the JSON document model with the efficiency of warehouse analytics.
+With Zed's new [super-structured data model](docs/formats/README.md#2-zed-a-super-structured-pattern),
+messy JSON data can easily be given the fully-typed precision of relational tables
+without giving up JSON's uncanny ability to represent eclectic data.
+
+Trying out Zed is easy: just [install](#quick-start) the command-line tool
+[`zq`](docs/zq/README.md).
+
+`zq` is a lot like [`jq`](https://stedolan.github.io/jq/)
+but is built from the ground up as a search and analytics engine based
+on the [Zed data model](docs/formats/zed.md).  Since Zed data is a
+proper superset of JSON, `zq` also works natively with JSON.
+
+While `zq` and the Zed data formats are production quality, the Zed project's
+[Zed data lake](docs/zed/README.md) is a bit [earlier in development](docs/zed/README.md#status).
+The Zed lake will look somewhat like a lakehouse but will utilize the
+Zed type system to organize its underlying data instead of often hard-to-manage
+relational tables and schemas.
 
 For a non-technical user, Zed is as easy to use as web search
 while for a technical user, Zed exposes its technical underpinnings
 in a gradual slope, providing as much detail as desired,
 packaged up in the easy-to-understand
-[ZSON data format](docs/formats/zson.md) and the
-[Zed Lake API](docs/zed/api.md).
+[ZSON data format](docs/formats/zson.md) and
+[Zed language](docs/zq/language.md).
 
 ## Why?
 
-We think that you shouldn't have to set up one system
-for search and another completely different system for historical analytics.
-And the same search/analytics system that works at cloud scale should run easily as
+We think data is hard and it should be much much easier.
+
+While _schemas_ are a great way to model and organize your data, they often
+[get in the way](https://github.com/brimdata/sharkfest-21#schemas-a-double-edged-sword)
+when you are just trying to store or transmit your semi-structured data.
+
+Also, why should you have to set up one system
+for search and another completely different system for historical analytics?
+And the same unified search/analytics system that works at cloud scale should run easily as
 a lightweight command-line tool on your laptop.
 
 And rather than having to set up complex ETL pipelines with brittle
 transformation logic, managing your data lake should be as easy as
 [`git`](https://git-scm.com/).
-
-And while _schemas_ are a great way to model and organize your data, they often
-[get in the way](https://github.com/brimdata/sharkfest-21#schemas-a-double-edged-sword)
-when you are just trying to store or transmit your semi-structured data.
 
 Finally, we believe a lightweight data store that provides easy search and analytics
 would be a great place to store data sets for data science and
@@ -42,12 +52,17 @@ integration with your favorite Python libraries.
 
 ## How?
 
-Zed solves all these problems with a new format called
+Zed solves all these problems with a new foundational data format called
 [ZSON](docs/formats/zson.md),
 which is a superset of JSON and the relational models.
 ZSON is syntax-compatible with JSON
 but it has a comprehensive type system that you can use as little or as much as you like.
 Zed types can be used as schemas.
+
+The [Zed language](docs/zq/language.md) offers a gentle learning curve,
+which spans the gamut from simple [keyword search](docs/zq/language.md#7-search-expressions)
+to powerful data-transformation operators like [lateral sub-queries](docs/zq/language.md#8-lateral-subqueries)
+and [shaping](docs/zq/language.md#9-shaping).
 
 Zed also has a cloud-based object design that was modeled after
 the `git` design pattern.  Commits to the lake are transactional
@@ -57,25 +72,25 @@ without indexes.
 
 ## Quick Start
 
-_Detailed documentation [is available](docs/README.md)._
+_Detailed documentation [is available](docs/README.md#zed-documentation)._
 
 The quickest way to get running on macOS, Linux, or Windows
 is to download a pre-built release binary.
 You can find these binaries on the GitHub
 [releases](https://github.com/brimdata/zed/releases) page.
 
-If you have [Go](https://go.dev/) installed, you can easily install `zed` and
-`zq` by running
-```
-go install github.com/brimdata/zed/cmd/{zed,zq}@latest
-```
-On macOS and Linux, you can use [Homebrew](https://brew.sh/) to install `zq`:
+On macOS and Linux, you can also use [Homebrew](https://brew.sh/) to install `zq`:
 ```
 brew install brimdata/tap/zq
 ```
 To install `zed`, use
 ```
 brew install brimdata/tap/zed
+```
+If you have [Go](https://go.dev/) installed, you can easily install `zed` and
+`zq` from source by running
+```
+go install github.com/brimdata/zed/cmd/{zed,zq}@latest
 ```
 Once installed, you can run the query engine from the command-line using `zq`:
 ```
@@ -115,12 +130,12 @@ records = client.query('from Demo')
 for record in records:
     print(record)
 ```
-See the [python/zed](python/zed) for more details.
+See the [python/zed](python/zed) directory for more details.
 
 ### Brim
 
-You can use the [Brim app](https://github.com/brimdata/brim)
-to explore, query, and shape the data in your Zed lake.
+The [Brim app](https://github.com/brimdata/brim) is an electron-based
+desktop app to explore, query, and shape data in your Zed lake.
 
 We originally developed Brim for security-oriented use cases
 (having tight integration with [Zeek](https://zeek.org/),
