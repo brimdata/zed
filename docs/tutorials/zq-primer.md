@@ -445,6 +445,39 @@ When run over large data sets, this gives you an insightful count of
 each "shape" of data in the input.  This is a powerful building block for
 data discovery.
 
+It's worth mentioning `jq` also has a type operator, but it produces a
+simple string instead of first-class types, and arrays and objects have
+no detail about their structure, e,g.,
+```
+echo '1 true [1,2,3] {"s":"foo"}' | jq type
+```
+produces
+```
+"number"
+"boolean"
+"array"
+"object"
+```
+Moreover, if we compare types of different objects
+```
+echo '{"a":{"s":"foo"},"b":{"x":1,"y":2}}' | jq '(.a|type)==(.b|type)'
+```
+we get "object" here for each type and thus the result:
+```
+true
+```
+i.e., they match even though their underlying shape is different.
+
+With `zq` of course, these are different super-structured types so
+the result is false, e.g.,
+```mdtest-command
+echo '{"a":{"s":"foo"},"b":{"x":1,"y":2}}' | zq -z 'yield typeof(a)==typeof(b)' -
+```
+produces
+```mdtest-output
+false
+```
+
 ## Sample
 
 Sometimes you'd like to see a sample value of each shape not its type.
@@ -496,7 +529,7 @@ Let's say you have this sequence of data:
 ```
 As we said,
 you can't tell by looking at either value what the types of both `a` and `b`
-should be.  But if you merge the values into a common type, things being to make
+should be.  But if you merge the values into a common type, things begin to make
 sense, e.g.,
 ```mdtest-command
 echo '{a:1,b:null}{a:null,b:[2,3,4]}' | zq -z fuse -
