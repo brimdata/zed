@@ -17,7 +17,7 @@ pulled from the GitHub API.
 
 If you want to follow along on the command line,
 just make sure the `zq` command [is installed](../../README.md#quick-start)
-as well as [jq](https://stedolan.github.io/jq/).
+as well as [`jq`](https://stedolan.github.io/jq/).
 
 ## But JSON
 
@@ -195,7 +195,7 @@ produces
 
 ## Comprehensive Types
 
-ZSON also has a [comprehensive type system](../formats/zed.md#).
+ZSON also has a [comprehensive type system](../formats/zed.md).
 
 For example, here is ZSON "record" with a taste of different types
 of values as record fields:
@@ -983,7 +983,7 @@ in the graph and each set of reviewers is another node.
 
 So as a first step, let's figure out how to create each edge, where an edge
 is a relation between the requesting user and the set of reviewers.  We can
-create this in Zed with a ["lateral query"](../zq/language.md#8-lateral-queries).
+create this in Zed with a ["lateral subquery"](../zq/language.md#8-lateral-subqueries).
 Instead of computing a set-union over all the reviewers across all PRs,
 we instead want to compute the set-union over the reviewers in each PR.
 We can do this as follows:
