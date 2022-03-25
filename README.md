@@ -17,7 +17,7 @@ proper superset of JSON, `zq` also works natively with JSON.
 
 While `zq` and the Zed data formats are production quality, the Zed project's
 [Zed data lake](docs/zed/README.md) is a bit [earlier in development](docs/zed/README.md#status).
-The Zed lake will look somewhat like a lakehouse but will utilize the
+The Zed lake will look somewhat like a [lakehouse](https://databricks.com/blog/2020/01/30/what-is-a-data-lakehouse.html) but will utilize the
 Zed type system to organize its underlying data instead of often hard-to-manage
 relational tables and schemas.
 
@@ -30,7 +30,7 @@ packaged up in the easy-to-understand
 
 ## Why?
 
-We think data is hard and it should be much much easier.
+We think data is hard and it should be much, much easier.
 
 While _schemas_ are a great way to model and organize your data, they often
 [get in the way](https://github.com/brimdata/sharkfest-21#schemas-a-double-edged-sword)
@@ -83,7 +83,7 @@ On macOS and Linux, you can also use [Homebrew](https://brew.sh/) to install `zq
 ```
 brew install brimdata/tap/zq
 ```
-To install `zed`, use
+To install `zed` for working with lakes, run
 ```
 brew install brimdata/tap/zed
 ```
@@ -164,7 +164,7 @@ See the [contributing guide](CONTRIBUTING.md) on how you can help improve Zed!
 
 ## Join the Community
 
-Join our [Public Slack](https://www.brimdata.io/join-slack/) workspace for announcements, Q&A, and to trade tips!
+Join our [public Slack](https://www.brimdata.io/join-slack/) workspace for announcements, Q&A, and to trade tips!
 
 ## Acknowledgment
 
