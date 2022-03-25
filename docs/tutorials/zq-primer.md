@@ -136,7 +136,7 @@ now gives the same answer as `jq`:
 Cool, but doesn't it seem like search is a better disposition for
 shorthand syntax?  What do you think?
 
-## Onto ZSON
+## On to ZSON
 
 JSON is super easy and ubiqitous, but it can be limiting and frustrating when
 trying to do high-precision stuff with data.
