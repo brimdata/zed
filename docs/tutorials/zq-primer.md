@@ -1134,7 +1134,23 @@ After a quick glance here, you can tell that `mccanne` looks for
 very targeted reviews while `mattnibs` casts a wide net, at least
 for the PRs from the beginning of the `zed` repo.
 
-Of course, if you'd like this output in JSON, you can just say `-f json` and
+To quantify this concept, we can easily modify this query to compute
+the average number of reviewes requested instead of the set of groups
+of reviewers.  To do this, we just average the reviewer set size
+with an aggregation:
+```mdtest-command dir=docs/tutorials
+zq -z 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers} ) | avg_reviewers:=avg(len(reviewers)) by user | sort avg_reviewers' prs.zng
+```
+which produces
+```mdtest-output
+{user:"mccanne",avg_reviewers:1.}
+{user:"nwt",avg_reviewers:1.75}
+{user:"aswan",avg_reviewers:2.4}
+{user:"mattnibs",avg_reviewers:2.9}
+{user:"henridf",avg_reviewers:3.}
+```
+
+Of course, if you'd like thr query output in JSON, you can just say `-f json` and
 `zq` will happily format the Zed sets as JSON arrays, e.g.,
 ```mdtest-command dir=docs/tutorials
 zq -f json 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers} ) | groups:=union(reviewers) by user | sort user,len(groups)' prs.zng
