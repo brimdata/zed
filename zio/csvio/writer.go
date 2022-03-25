@@ -3,6 +3,7 @@ package csvio
 import (
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -45,6 +46,9 @@ func (w *Writer) Flush() error {
 }
 
 func (w *Writer) Write(rec *zed.Value) error {
+	if rec.Type.Kind() != zed.RecordKind {
+		return fmt.Errorf("CSV output encountered non-record value: %s", zson.MustFormatValue(*rec))
+	}
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err
