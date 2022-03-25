@@ -16,7 +16,7 @@ on the [Zed data model](docs/formats/zed.md).  Since Zed data is a
 proper superset of JSON, `zq` also works natively with JSON.
 
 While `zq` and the Zed data formats are production quality, the Zed project's
-[Zed data lake](doucments/zed/README.md) is a bit [earlier in development](docs/zed/README.md#status).
+[Zed data lake](docs/zed/README.md) is a bit [earlier in development](docs/zed/README.md#status).
 The Zed lake will look somewhat like a lakehouse but will utilize the
 Zed type system to organize its underlying data instead of often hard-to-manage
 relational tables and schemas.
