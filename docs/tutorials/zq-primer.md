@@ -905,7 +905,7 @@ to put your clean data into all the right places.
 Let's start with something simple.  How about we output a "PR Report" listing
 the title of each PR along with it's PR number and creation date:
 ```mdtest-command dir=docs/tutorials
-zq -f table '{DATE:created_at,"NO":number,TITLE:title}' prs.zng
+zq -f table '{DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
 ```
 and you'll see this output...
 ```mdtest-output head
@@ -917,11 +917,16 @@ DATE                 NO TITLE
 2019-11-12T16:49:07Z 6  a few clarifications to the zson spec
 ...
 ```
-Or we can get a repost of the last five PRs in the dataset:
+Note that we used [string interpolation](../zq/language.md#6111-string-interpolation)
+to convert the field `number` into a string and format it with surrounding text.
+
+Intstead of old PRs, we can get the latest list of PRs using the
+[tail operator](../zq/operaetors/tail.md) wince we know the data is sorted
+choronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
 zq -f table 'tail 5 | {DATE:created_at,"NO":number,TITLE:title}' prs.zng
 ```
-and we get this
+and the outupt is:
 ```mdtest-output
 DATE                 NO TITLE
 2019-11-18T22:14:08Z 26 ndjson writer
@@ -931,7 +936,7 @@ DATE                 NO TITLE
 2019-11-20T00:36:30Z 30 zval.sizeBytes incorrect
 ```
 
-How about some aggregatons?  We can count the number of PRs and sort by the
+How about some aggregations?  We can count the number of PRs and sort by the
 count highest first:
 ```mdtest-command dir=docs/tutorials
 zq -z "count() by user:=user.login | sort -r count" prs.zng
