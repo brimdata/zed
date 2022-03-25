@@ -921,7 +921,7 @@ Note that we used [string interpolation](../zq/language.md#6111-string-interpola
 to convert the field `number` into a string and format it with surrounding text.
 
 Intstead of old PRs, we can get the latest list of PRs using the
-[tail operator](../zq/operaetors/tail.md) wince we know the data is sorted
+[tail operator](../zq/operators/tail.md) wince we know the data is sorted
 choronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
 zq -f table 'tail 5 | {DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
