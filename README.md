@@ -17,9 +17,6 @@ proper superset of JSON, `zq` also works natively with JSON.
 
 While `zq` and the Zed data formats are production quality, the Zed project's
 [Zed data lake](docs/zed/README.md) is a bit [earlier in development](docs/zed/README.md#status).
-The Zed lake will look somewhat like a [lakehouse](https://databricks.com/blog/2020/01/30/what-is-a-data-lakehouse.html) but will utilize the
-Zed type system to organize its underlying data instead of often hard-to-manage
-relational tables and schemas.
 
 For a non-technical user, Zed is as easy to use as web search
 while for a technical user, Zed exposes its technical underpinnings
