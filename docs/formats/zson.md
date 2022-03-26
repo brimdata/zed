@@ -373,7 +373,7 @@ A _set type_ has the form:
 
 A _map type_ has the form:
 ```
-|{ <key-type>, <value-type> }|
+|{ <key-type>: <value-type> }|
 ```
 where `<key-type>` is the type of the keys and `<value-type>` is the
 type of the values.
