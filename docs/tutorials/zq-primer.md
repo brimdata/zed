@@ -22,7 +22,7 @@ as well as [`jq`](https://stedolan.github.io/jq/).
 ## But JSON
 
 While `zq` is based on a new type of [data model called Zed](../formats/zed.md),
-it just so happens to be a superset of JSON.
+Zed just so happens to be a superset of JSON.
 
 So if all you ever use `zq` for is manipulating JSON data,
 it can serve you well as a handy, go-to tool.  In this way, `zq` is kind of
@@ -235,7 +235,7 @@ Here, `v1` is a 64-bit IEEE floating-point value just like JSON.
 
 Unlike JSON, `v2` is a 64-bit integer.  And there are other integer
 types as with `v3`,
-which utilizes a [ZSON decorator](../formats/zson.md#22-type-decorators),
+which utilizes a [ZSON type decorator](../formats/zson.md#22-type-decorators),
 in this case,
 to clarify its specific type of integer as unsigned 8 bits.
 
@@ -255,7 +255,7 @@ value though all of the keys and all of the values must have the same type.
 
 Finally, `v11` is a Zed "record", which is similar to a JSON "object", but the
 keys are called "fields", the order of the fields is significant and
-is always preserved, and the field values all have a uniform type.
+is always preserved.
 
 ## Records
 
@@ -364,14 +364,14 @@ produces
 
 ## Union Types
 
-One of the tricks `zq` uses to represent JSON data in a structured type system
-is to use [union types](../zq/language.md#6116-union-values).
+One of the tricks `zq` uses to represent JSON data in its structured type system
+is [union types](../zq/language.md#6116-union-values).
 Most of the time, you don't need to worry about unions
 but they show up from time to time.  Even when
 they show up, Zed just tries to "do the right thing" so you usually
 don't have to worry about them even when they show up.
 
-For example, this query is perfectly happy to operator on the union values
+For example, this query is perfectly happy to operate on the union values
 that are implied by a mixed-type array:
 ```mdtest-command
 echo '[1, "foo", 2, "bar"]' | zq -z 'yield this[2],this[1]' -
@@ -491,7 +491,7 @@ produces
 {s:"foo"}
 {x:1,y:2}
 ```
-We like this pattern so much there is a shortcut called "sample", e.g.,
+We like this pattern so much there is a shortcut [sample operator](../zq/operators/sample.md), e.g.,
 ```mdtest-command
 echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -z 'sample this | sort this' -
 ```
@@ -517,7 +517,7 @@ number?  Or maybe a string?  Or maybe an array or an embedded object?
 comprehensively typed.  However, `zq` in fact must deal with this thorny problem
 when reading JSON and converting it to Zed's super-structure.
 
-This is where you might have to spend a little bit of trouble coding up
+This is where you might have to spend a little bit of time coding up
 the right `zq` logic to disentangle a JSON mess. But once the data is cleaned up,
 you can leave it in a Zed format and not worry again.
 
@@ -566,7 +566,7 @@ use the query patterns from above to explore some GitHub data.
 
 First, we need to grab the data.  You can use `curl` for this or you can
 just use `zq` as `zq` can take URLs in addition to file name arguments.
-This command will grap descriptions of first 30 PRs created in the
+This command will grab descriptions of first 30 PRs created in the
 public `zed` repository and place it in a file called `prs.json`:
 ```
 zq -f json https://api.github.com/repos/brimdata/zed/pulls\?state\=all\&sort\=desc\&per_page=30 > prs.json
@@ -636,7 +636,7 @@ zq -Z 'over this | sample' prs.json
 ```
 > Here we are using `-Z`, which is like `-z`, but instead of formatting each
 > ZSON value on its own line, it pretty-prints the ZSON with vertical
-> formatting like jq does for JSON.
+> formatting like `jq` does for JSON.
 
 Ugh, that output is still pretty big.  It's not 10k lines but it's still
 more than 700 lines of pretty-printed ZSON.
@@ -695,7 +695,7 @@ give it a try.  It's 379 lines.
 But let's break down what's taking up all this space.
 
 We can take the output from `fuse | sample` and list the fields with
-and their "kind".  Note that when we do on `over this` with records as
+and their "kind".  Note that when we do an `over this` with records as
 input, we get a new record value for each field structured as a key/value pair:
 ```mdtest-command dir=docs/tutorials
 zq -f table 'over this | fuse | sample | over this | {field:key[0],kind:kind(value)}' prs.json
@@ -872,8 +872,8 @@ and we can see that the date fields are correctly typed as type `time`!
 ## Putting It All Together
 
 Instead of running each step above into a temporary file, we can
-put all the transformations together and glue them together in
-a Zed pipeline, where the Zed source text might look like this:
+put all the transformations together in a single
+Zed pipeline, where the Zed source text might look like this:
 ```
 over this                      // traverse the array of objects
 | len(this) != 0               // skip empty objects
@@ -905,7 +905,7 @@ to put your clean data into all the right places.
 Let's start with something simple.  How about we output a "PR Report" listing
 the title of each PR along with its PR number and creation date:
 ```mdtest-command dir=docs/tutorials
-zq -f table '{DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
+zq -f table '{DATE:created_at,NUMBER:"PR #${number}",TITLE:title}' prs.zng
 ```
 and you'll see this output...
 ```mdtest-output head
