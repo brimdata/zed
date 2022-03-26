@@ -1,0 +1,13 @@
+script: |
+  zc -C 'yield <{a:int64}>'
+  zc -C 'yield <[int64]>'
+  zc -C 'yield <|[int64]|>'
+  zc -C 'yield <|{int64:string}|>'
+
+outputs:
+  - name: stdout
+    data: |
+      yield <{a:int64}>
+      yield <[int64]>
+      yield <|[int64]|>
+      yield <|{int64:string}|>

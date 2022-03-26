@@ -1044,7 +1044,7 @@ ComplexType
   / "|[" __  typ:Type __ "]|" {
       RETURN(MAP("kind":"TypeSet", "type":typ))
     }
-  / "|{" __ keyType:Type __ "," __ valType:Type __ "}|" {
+  / "|{" __ keyType:Type __ ":" __ valType:Type __ "}|" {
       RETURN(MAP("kind":"TypeMap", "key_type":keyType, "val_type": valType))
     }
 

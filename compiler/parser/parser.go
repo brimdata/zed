@@ -8393,7 +8393,7 @@ var g = &grammar{
 								},
 								&litMatcher{
 									pos:        position{line: 1047, col: 29, offset: 29686},
-									val:        ",",
+									val:        ":",
 									ignoreCase: false,
 								},
 								&ruleRefExpr{
