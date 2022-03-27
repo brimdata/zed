@@ -2,12 +2,12 @@
 
 The Zed documentation is organized as follows:
 
-* [formats](formats/README.md) - the Zed data model and serialization formats
-of Zed data
 * [zq](zq/README.md) - the `zq` command-line tool and Zed query language
 * [zed](zed/README.md) - the `zed` command-line tool for managing Zed data lakes and the
 API for interacting with a Zed lake
 * [tutorials](tutorials) - tutorials on Zed
+* [formats](formats/README.md) - the Zed data model and serialization formats
+of Zed data
 
 ## Terminology
 
