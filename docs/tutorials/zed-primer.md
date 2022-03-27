@@ -40,7 +40,7 @@ data since this will allow Zed to efficiently query data within a range of the
 pool key without having to touch the entire data set.
 
 For this primer we'll work with pull requests on this public repository via the
-[Github API](https://docs.github.com/en/rest/reference/pulls##list-pull-requests).
+[Github API](https://docs.github.com/en/rest/reference/pulls#list-pull-requests).
 Let's create a pool to store this data and use the field `created_at` as the
 pool key, sorted in descending order:
 
@@ -280,7 +280,7 @@ $ zed query 'count()'
 Now that we've compiled an interesting data set, how might we share this with
 others? Using the `zed serve` command we can launch our Zed Lake as a service
 that will allow multiple clients to query and add data to the same lake. In a
-separate console window run:
+separate console window, once again `export ZED_LAKE=$HOME/.zedlake`, then run:
 
 ```
 $ zed serve
