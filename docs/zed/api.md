@@ -1,7 +1,7 @@
 # Zed lake service API
 
 > Note: This file contains a brief sketch of the functionality exposed in the
-> Zed API. More fined grained documentation will be forthcoming.
+> Zed API. More fine-grained documentation will be forthcoming.
 
 ## Contents
 
@@ -10,7 +10,7 @@
     - [Create Pool](#create-pool)
     - [Rename Pool](#rename-pool)
     - [Delete Pool](#delete-pool)
-  + [Branches](#branches):
+  + [Branches](#branches)
     - [Load Data](#load-data)
     - [Get Branch](#get-branch)
     - [Delete Branch](#delete-branch)
@@ -44,13 +44,13 @@ POST /pool
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
 | name | string | body | **Required.** Name of the pool. Must be unique to lake. |
-| layout.order | string | body | Order of value storage in pool. Possible values: desc, asc. Default: asc. |
+| layout.order | string | body | Order of storage by primary key(s) in pool. Possible values: desc, asc. Default: asc. |
 | layout.keys | array<string> | body | Primary key(s) of pool. Default: ts. |
 | thresh | int | body | The size in bytes of each seek index. |
 
 #### Rename pool
 
-Changes a pool's name.
+Change a pool's name.
 
 ```
 PUT /pool/{pool}
@@ -65,7 +65,7 @@ PUT /pool/{pool}
 
 #### Delete pool
 
-Permanently deletes a pool.
+Permanently delete a pool.
 
 ```
 DELETE /pool/{pool}
@@ -81,7 +81,7 @@ DELETE /pool/{pool}
 
 #### Load Data
 
-Adds data to a pool's staging and returns a reference commit ID.
+Add data to a pool and return a reference commit ID.
 
 ```
 POST /pool/{pool}/branch/{branch}
@@ -113,7 +113,7 @@ DELETE /pool/{pool}/branch/{branch}
 
 #### Delete Data
 
-Takes a list of commit IDs or object IDs in a branch and creates a deletion 
+Take a list of commit IDs or object IDs in a branch and create a deletion 
 commit of all referenced objects.
 
 ```
@@ -129,7 +129,7 @@ POST /pool/{pool}/branch/{branch}/delete
 
 #### Merge Branches
 
-Creates a commit with the difference of the child branch added to the selected
+Create a commit with the difference of the child branch added to the selected
 branch.
 
 ```
@@ -138,7 +138,7 @@ POST /pool/{pool}/branch/{branch}/merge/{child}
 
 #### Revert
 
-Creates a revert commit of the specified commit.
+Create a revert commit of the specified commit.
 
 ```
 POST /pool/{pool}/branch/{branch}/revert/{commit}
@@ -146,7 +146,7 @@ POST /pool/{pool}/branch/{branch}/revert/{commit}
 
 #### Index Object
 
-Creates an index of an object for the specified rule.
+Create an index of an object for the specified rule.
 
 ```
 POST /pool/{pool}/branch/{branch}/index
@@ -154,7 +154,7 @@ POST /pool/{pool}/branch/{branch}/index
 
 #### Update Index
 
-Applies all or a range of index rules for all objects that are not indexed.
+Apply all rules or a range of index rules for all objects that are not indexed.
 
 ```
 POST /pool/{pool}/branch/{branch}/index/update
@@ -162,7 +162,7 @@ POST /pool/{pool}/branch/{branch}/index/update
 
 ### Query
 
-Executes a Zed query against data in a data lake.
+Execute a Zed query against data in a data lake.
 
 ```
 POST /query
@@ -207,7 +207,7 @@ data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
 
 #### Create Index Rule
 
-Creates an index rule for a specified field.
+Create an index rule for a specified field.
 
 ```
 POST /index
@@ -215,7 +215,7 @@ POST /index
 
 #### Delete Index Rule
 
-Deletes the specified index rule. Any created object indexes will persist.
+Delete the specified index rule. Any created object indexes will persist.
 
 ```
 DELETE /index
@@ -223,13 +223,13 @@ DELETE /index
 
 ## Media Types
 
-For responses content types, the service can handle a variety of formats. To
-receive responses in the desired format, include the mime type of the format in
-the requests ACCEPT HTTP header.
+For response content types, the service can handle a variety of formats. To
+receive responses in the desired format, include the MIME type of the format in
+the request's Accept HTTP header.
 
-If the ACCEPT header is not specified, the service will return json as default.
+If the Accept header is not specified, the service will return JSON as the default.
 
-The supported mime types are as follows:
+The supported MIME types are as follows:
 
 | Format | Mime Type |
 | ------ | --------- |
