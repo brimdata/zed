@@ -50,6 +50,8 @@ brews:
     description: |
       A command-line tool for creating, configuring, ingesting into, querying,
       and orchestrating Zed data lakes.
+    install: |
+      bin.install "zed"
   - name: zq
     tap:
       owner: brimdata
@@ -62,6 +64,8 @@ brews:
       A command-line tool for processing data in diverse input formats,
       providing search, analytics, and extensive transormations using the Zed
       query language.
+    install: |
+      bin.install "zq"
 checksum:
   name_template: 'zed-checksums.txt'
 snapshot:
