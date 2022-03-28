@@ -433,7 +433,7 @@ produces
 But more powerfully, types can be used anywhere a value can be used and
 in particular, they can be group-by keys, e.g.,
 ```mdtest-command
-echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -f table "count() by shape:=typeof(this)" -
+echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -f table "count() by shape:=typeof(this) | sort count -r" -
 ```
 produces
 ```mdtest-output
