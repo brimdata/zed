@@ -280,10 +280,10 @@ $ zed query 'count()'
 Now that we've compiled an interesting data set, how might we share this with
 others? Using the `zed serve` command we can launch our Zed Lake as a service
 that will allow multiple clients to query and add data to the same lake. In a
-separate console window, once again `export ZED_LAKE=$HOME/.zedlake`, then run:
+separate console window run:
 
 ```
-$ zed serve
+$ zed serve -lake $HOME/.zedlake
 ```
 =>
 ```
