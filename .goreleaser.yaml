@@ -5,7 +5,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -X github.com/brimdata/zed/cli.Version={{ .Version }}
+      - -s -X github.com/brimdata/zed/cli.Version={{ .Tag }}
     goarch:
       - amd64
       - arm64
@@ -18,6 +18,8 @@ builds:
     binary: zq
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -X github.com/brimdata/zed/cli.Version={{ .Tag }}
     goarch:
       - amd64
       - arm64
@@ -26,7 +28,7 @@ builds:
       - windows
       - darwin
 archives:
-  - name_template: zed-{{ .Version }}.{{ .Os }}-{{ .Arch }}
+  - name_template: zed-{{ .Tag }}.{{ .Os }}-{{ .Arch }}
     format_overrides:
       - goos: windows
         format: zip
@@ -35,7 +37,7 @@ archives:
       - acknowledgments.txt
 release:
   header: |
-    View [release notes](https://github.com/brimdata/zed/blob/main/CHANGELOG.md#{{ replace .Version "." "" }}).
+    View [change log](CHANGELOG.md#{{ replace .Tag "." "" }}).
 brews:
   - name: zed
     tap:
@@ -48,6 +50,8 @@ brews:
     description: |
       A command-line tool for creating, configuring, ingesting into, querying,
       and orchestrating Zed data lakes.
+    install: |
+      bin.install "zed"
   - name: zq
     tap:
       owner: brimdata
@@ -60,7 +64,8 @@ brews:
       A command-line tool for processing data in diverse input formats,
       providing search, analytics, and extensive transormations using the Zed
       query language.
-    folder: Formula
+    install: |
+      bin.install "zq"
 checksum:
   name_template: 'zed-checksums.txt'
 snapshot:
