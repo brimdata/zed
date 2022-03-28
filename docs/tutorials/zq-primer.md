@@ -17,12 +17,12 @@ pulled from the GitHub API.
 
 If you want to follow along on the command line,
 just make sure the `zq` command [is installed](../../README.md#quick-start)
-as well as [jq](https://stedolan.github.io/jq/).
+as well as [`jq`](https://stedolan.github.io/jq/).
 
 ## But JSON
 
 While `zq` is based on a new type of [data model called Zed](../formats/zed.md),
-it just so happens to be a superset of JSON.
+Zed just so happens to be a superset of JSON.
 
 So if all you ever use `zq` for is manipulating JSON data,
 it can serve you well as a handy, go-to tool.  In this way, `zq` is kind of
@@ -30,7 +30,7 @@ like `jq`.  As you probably know, `jq`
 is a popular command-line tool for taking a sequence of JSON values as input,
 doing interesting things on that input, and emitting results, of course, as JSON.
 
-`jq` is awesome and powerful, but it's syntax and computational model can
+`jq` is awesome and powerful, but its syntax and computational model can
 sometimes be daunting and difficult.  We tried to make `zq` really easy and intuitive,
 and it is usually faster, sometimes [much faster](../zq/README.md#7-performance),
 than `jq`.
@@ -138,7 +138,7 @@ shorthand syntax?  What do you think?
 
 ## On to ZSON
 
-JSON is super easy and ubiqitous, but it can be limiting and frustrating when
+JSON is super easy and ubiquitous, but it can be limiting and frustrating when
 trying to do high-precision stuff with data.
 
 When using `zq`, it's handy to operate in the
@@ -195,7 +195,7 @@ produces
 
 ## Comprehensive Types
 
-ZSON also has a [comprehensive type system](../formats/zed.md#).
+ZSON also has a [comprehensive type system](../formats/zed.md).
 
 For example, here is ZSON "record" with a taste of different types
 of values as record fields:
@@ -235,7 +235,7 @@ Here, `v1` is a 64-bit IEEE floating-point value just like JSON.
 
 Unlike JSON, `v2` is a 64-bit integer.  And there are other integer
 types as with `v3`,
-which utilizes a [ZSON decorator](../formats/zson.md#22-type-decorators),
+which utilizes a [ZSON type decorator](../formats/zson.md#22-type-decorators),
 in this case,
 to clarify its specific type of integer as unsigned 8 bits.
 
@@ -249,13 +249,13 @@ written as `[int64]`.
 `v9` is a "set of strings", which is written like an array but with the
 enclosing syntax `|[` and `]|`.
 
-`v10` is a "map" type, which in other languages are often called a "table"
+`v10` is a "map" type, which in other languages is often called a "table"
 or a "dictionary".  In Zed, a value of any type can be used for the key or the
 value though all of the keys and all of the values must have the same type.
 
 Finally, `v11` is a Zed "record", which is similar to a JSON "object", but the
 keys are called "fields", the order of the fields is significant and
-is always preserved, and the field values all have a uniform type.
+is always preserved.
 
 ## Records
 
@@ -264,7 +264,7 @@ nested values all the time: in JSON, data is nested with objects and arrays,
 while in Zed, data is nested with "records" and arrays (as well as other complex types).
 
 [Record expressions](../zq/language.md#6112-record-expressions)
-are rather flexibe with `zq` and look a bit like JavaScript
+are rather flexible with `zq` and look a bit like JavaScript
 or `jq` syntax, e.g.,
 ```mdtest-command
 echo '1 2 3' | zq -z 'yield {kind:"counter",val:this}' -
@@ -352,7 +352,7 @@ produces
 {val:error("missing")}
 ```
 Sometimes you expect missing errors to occur sporadically and just want
-to ingnore them, which can you easily do with the
+to ignore them, which can you easily do with the
 [quiet function](../zq/functions/quiet.md), e.g.,
 ```mdtest-command
 echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'cut quiet(val)' -
@@ -364,14 +364,14 @@ produces
 
 ## Union Types
 
-One of the tricks `zq` uses to represent JSON data in a structured type system
-is to use [union types](../zq/language.md#6116-union-values).
-Most all the time, you don't need to worry about unions
+One of the tricks `zq` uses to represent JSON data in its structured type system
+is [union types](../zq/language.md#6116-union-values).
+Most of the time, you don't need to worry about unions
 but they show up from time to time.  Even when
 they show up, Zed just tries to "do the right thing" so you usually
 don't have to worry about them even when they show up.
 
-For example, this query is perfectly happy to operator on the union values
+For example, this query is perfectly happy to operate on the union values
 that are implied by a mixed-type array:
 ```mdtest-command
 echo '[1, "foo", 2, "bar"]' | zq -z 'yield this[2],this[1]' -
@@ -480,7 +480,7 @@ false
 
 ## Sample
 
-Sometimes you'd like to see a sample value of each shape not its type.
+Sometimes you'd like to see a sample value of each shape, not its type.
 This is easy to do with the [any aggregate function](../zq/aggregates/any.md),
 e.g,
 ```mdtest-command
@@ -491,7 +491,7 @@ produces
 {s:"foo"}
 {x:1,y:2}
 ```
-We like this pattern so much there is a shortcut called "sample", e.g.,
+We like this pattern so much there is a shortcut [sample operator](../zq/operators/sample.md), e.g.,
 ```mdtest-command
 echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -z 'sample this | sort this' -
 ```
@@ -517,7 +517,7 @@ number?  Or maybe a string?  Or maybe an array or an embedded object?
 comprehensively typed.  However, `zq` in fact must deal with this thorny problem
 when reading JSON and converting it to Zed's super-structure.
 
-This is where you might have to spend a little bit of trouble coding up
+This is where you might have to spend a little bit of time coding up
 the right `zq` logic to disentangle a JSON mess. But once the data is cleaned up,
 you can leave it in a Zed format and not worry again.
 
@@ -541,7 +541,7 @@ produces this transformed and comprehensively-typed ZSON output:
 ```
 Now you can see all the detail.
 
-This turns out to be so useful, especially with larges amount of messy input data,
+This turns out to be so useful, especially with large amounts of messy input data,
 you will often find yourself fusing data then sampling it, e.g.,
 ```mdtest-command
 echo '{a:1,b:null}{a:null,b:[2,3,4]}' | zq -Z 'fuse | sample' -
@@ -566,7 +566,7 @@ use the query patterns from above to explore some GitHub data.
 
 First, we need to grab the data.  You can use `curl` for this or you can
 just use `zq` as `zq` can take URLs in addition to file name arguments.
-This command will grap descriptions of first 30 PRs created in the
+This command will grab descriptions of first 30 PRs created in the
 public `zed` repository and place it in a file called `prs.json`:
 ```
 zq -f json https://api.github.com/repos/brimdata/zed/pulls\?state\=all\&sort\=desc\&per_page=30 > prs.json
@@ -579,7 +579,7 @@ with `zq`?
 Before you can do anything, you need to know its structure but you generally don't
 know anything after pulling some random data from an API.
 
-So, let's poke around a bit and figure it out.  This process of data instropection
+So, let's poke around a bit and figure it out.  This process of data introspection
 is often called _data discovery_.
 
 You could start by using `jq` to pretty-print the JSON data,
@@ -613,7 +613,7 @@ produces
 ```mdtest-output
 30
 ```
-Of course!  We asked the GitHub to return 30 items and the API returns the
+Of course!  We asked GitHub to return 30 items and the API returns the
 pull-request objects as elements of one array representing a single JSON value.
 
 Let's see what sorts of things are in this array.  Here, we need to enumerate
@@ -636,7 +636,7 @@ zq -Z 'over this | sample' prs.json
 ```
 > Here we are using `-Z`, which is like `-z`, but instead of formatting each
 > ZSON value on its own line, it pretty-prints the ZSON with vertical
-> formatting like jq does for JSON.
+> formatting like `jq` does for JSON.
 
 Ugh, that output is still pretty big.  It's not 10k lines but it's still
 more than 700 lines of pretty-printed ZSON.
@@ -695,7 +695,7 @@ give it a try.  It's 379 lines.
 But let's break down what's taking up all this space.
 
 We can take the output from `fuse | sample` and list the fields with
-and their "kind".  Note that when we do on `over this` with records as
+and their "kind".  Note that when we do an `over this` with records as
 input, we get a new record value for each field structured as a key/value pair:
 ```mdtest-command dir=docs/tutorials
 zq -f table 'over this | fuse | sample | over this | {field:key[0],kind:kind(value)}' prs.json
@@ -750,7 +750,7 @@ zq -Z 'over this | sample _links' prs.json
 ```
 While these fields have some useful information, we'll decide to drop them here
 and focus on other top-level fields.  To do this, we can use the
-[drop operator](../zq/operators/drop.md) to whiddle down the data:
+[drop operator](../zq/operators/drop.md) to whittle down the data:
 ```
 zq -Z 'over this | fuse | drop head,base,_link | sample' prs.json
 ```
@@ -829,7 +829,7 @@ which gives
 > Note that this use of `over` traverses each record and generates a key-value pair
 > for each field in each record.
 
-Looking thrugh the fields that are strings, the candidates for ISO dates appear
+Looking through the fields that are strings, the candidates for ISO dates appear
 to be
 * `closed_at`,
 * `merged_at`,
@@ -872,8 +872,8 @@ and we can see that the date fields are correctly typed as type `time`!
 ## Putting It All Together
 
 Instead of running each step above into a temporary file, we can
-put all the transformations togtether and glue them together in
-a Zed pipeline, where the Zed source text might look like this:
+put all the transformations together in a single
+Zed pipeline, where the Zed source text might look like this:
 ```
 over this                      // traverse the array of objects
 | len(this) != 0               // skip empty objects
@@ -892,20 +892,20 @@ argument to run all the transformations in one fell swoop:
 zq -I transform.zed prs.json > prs.zng
 ```
 
-## Running Analyics
+## Running Analytics
 
 Now that we've cleaned up our data, we can reliably and easily run analytics
-on finalized ZNG file `prs.zng`.
+on the finalized ZNG file `prs.zng`.
 
 Zed gives us the best of both worlds of JSON and relational tables: we have
-the structure and clarity of the relaional model while retaining the flexibility
+the structure and clarity of the relational model while retaining the flexibility
 of JSON's document model.  No need to create tables then issue SQL insert commands
 to put your clean data into all the right places.
 
 Let's start with something simple.  How about we output a "PR Report" listing
-the title of each PR along with it's PR number and creation date:
+the title of each PR along with its PR number and creation date:
 ```mdtest-command dir=docs/tutorials
-zq -f table '{DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
+zq -f table '{DATE:created_at,NUMBER:"PR #${number}",TITLE:title}' prs.zng
 ```
 and you'll see this output...
 ```mdtest-output head
@@ -920,13 +920,13 @@ DATE                 NUMBER TITLE
 Note that we used [string interpolation](../zq/language.md#6111-string-interpolation)
 to convert the field `number` into a string and format it with surrounding text.
 
-Intstead of old PRs, we can get the latest list of PRs using the
-[tail operator](../zq/operators/tail.md) wince we know the data is sorted
-choronologically. This command retrieves the last five PRs in the dataset:
+Instead of old PRs, we can get the latest list of PRs using the
+[tail operator](../zq/operators/tail.md) since we know the data is sorted
+chronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
 zq -f table 'tail 5 | {DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
 ```
-and the outupt is:
+and the output is:
 ```mdtest-output
 DATE                 NUMBER TITLE
 2019-11-18T22:14:08Z PR #26 ndjson writer
@@ -983,7 +983,7 @@ in the graph and each set of reviewers is another node.
 
 So as a first step, let's figure out how to create each edge, where an edge
 is a relation between the requesting user and the set of reviewers.  We can
-create this in Zed with a ["lateral query"](../zq/language.md#8-lateral-queries).
+create this in Zed with a ["lateral subquery"](../zq/language.md#8-lateral-subqueries).
 Instead of computing a set-union over all the reviewers across all PRs,
 we instead want to compute the set-union over the reviewers in each PR.
 We can do this as follows:
@@ -1174,7 +1174,7 @@ produces
 So to summarize, we gave you a tour here of `zq` and how the Zed data model
 provide a powerful way do search, transformation, and analytics in a structured-like
 way on data that begins its life as semi-structured JSON and is transformed
-into the powerful super-structured format without having to create reltional
+into the powerful super-structured format without having to create relational
 tables and schemas.
 
 As you can see, `zq` is a general-purpose tool that you can add to your bag
@@ -1182,7 +1182,7 @@ of tricks to:
 * explore messy and confusing JSON data using shaping and sampling,
 * transform JSON data in ad hoc ways, and
 * develop transform logic for hitting APIs like the GitHub API to produce
-clean data for analysis by `zq` or even export into other systems or for test.
+clean data for analysis by `zq` or even export into other systems or for testing.
 
 If you'd like to learn more, feel free to read through the
 [language docs](../zq/language.md) in depth
