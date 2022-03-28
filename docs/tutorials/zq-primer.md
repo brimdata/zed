@@ -433,13 +433,13 @@ produces
 But more powerfully, types can be used anywhere a value can be used and
 in particular, they can be group-by keys, e.g.,
 ```mdtest-command
-echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -f table "count() by shape:=typeof(this)" -
+echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -f table "count() by shape:=typeof(this) | sort count" -
 ```
 produces
 ```mdtest-output
 shape               count
-<{x:int64,y:int64}> 2
 <{s:string}>        1
+<{x:int64,y:int64}> 2
 ```
 When run over large data sets, this gives you an insightful count of
 each "shape" of data in the input.  This is a powerful building block for
