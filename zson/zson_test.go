@@ -59,6 +59,10 @@ func TestZsonBuilder(t *testing.T) {
 	assert.Equal(t, `["1","2","3"]`, zson.String(a))
 }
 
+func TestFormatPrimitiveNull(t *testing.T) {
+	assert.Equal(t, "null", zson.FormatPrimitive(zed.TypeString, nil))
+}
+
 func TestParseValueStringEscapeSequences(t *testing.T) {
 	cases := []struct {
 		in       string
