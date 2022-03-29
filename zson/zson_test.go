@@ -23,7 +23,7 @@ func parse(path string) (astzed.Value, error) {
 
 const testFile = "test.zson"
 
-func TestZsonParser(t *testing.T) {
+func TestZSONParser(t *testing.T) {
 	val, err := parse(testFile)
 	require.NoError(t, err)
 	s, err := json.MarshalIndent(val, "", "    ")
@@ -40,14 +40,14 @@ func analyze(zctx *zed.Context, path string) (zson.Value, error) {
 	return analyzer.ConvertValue(zctx, val)
 }
 
-func TestZsonAnalyzer(t *testing.T) {
+func TestZSONAnalyzer(t *testing.T) {
 	zctx := zed.NewContext()
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
 	assert.NotNil(t, val)
 }
 
-func TestZsonBuilder(t *testing.T) {
+func TestZSONBuilder(t *testing.T) {
 	zctx := zed.NewContext()
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
