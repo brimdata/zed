@@ -658,6 +658,7 @@ func FormatPrimitive(typ zed.Type, bytes zcode.Bytes) string {
 func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
 	if bytes == nil {
 		b.WriteString("null")
+		return
 	}
 	switch typ := typ.(type) {
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
