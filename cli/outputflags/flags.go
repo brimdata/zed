@@ -41,7 +41,7 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.IntVar(&f.ZNG.LZ4BlockSize, "znglz4blocksize", zngio.DefaultLZ4BlockSize,
 		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")
 	fs.IntVar(&f.ZSON.Pretty, "pretty", 4,
-		"tab size to pretty print zson output (0 for newline-delimited zson")
+		"tab size to pretty print ZSON output (0 for newline-delimited ZSON")
 	fs.StringVar(&f.zsonPersist, "persist", "",
 		"regular expression to persist type definitions across the stream")
 	f.Zst.ColumnThresh = zstio.DefaultColumnThresh
@@ -70,8 +70,8 @@ func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 	}
 	fs.StringVar(&f.Format, "f", f.DefaultFormat, "format for output data [zng,zst,json,parquet,table,text,csv,lake,zeek,zjson,zson]")
 	fs.BoolVar(&f.jsonShortcut, "j", false, "use line-oriented JSON output independent of -f option")
-	fs.BoolVar(&f.zsonShortcut, "z", false, "use line-oriented zson output independent of -f option")
-	fs.BoolVar(&f.zsonPretty, "Z", false, "use formatted zson output independent of -f option")
+	fs.BoolVar(&f.zsonShortcut, "z", false, "use line-oriented ZSON output independent of -f option")
+	fs.BoolVar(&f.zsonPretty, "Z", false, "use formatted ZSON output independent of -f option")
 	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
 }
 

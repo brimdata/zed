@@ -260,17 +260,17 @@ questions.
 ## v0.29.0
 * zqd: Update Zeek pointer to [v3.2.1-brim10](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim10) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2081)
 * zql: Add shaping primitive functions `cast()`, `fill()`, `crop()`, and `order()`, along with `fit()` and `shape()` (#1984, #2059, #2073, #2033)
-* zson: Read ZSON incrementally rather than all at once (#2031)
-* zson: Tighten whitespace in ZSON `-pretty=0` output (#2030)
+* ZSON: Read ZSON incrementally rather than all at once (#2031)
+* ZSON: Tighten whitespace in ZSON `-pretty=0` output (#2030)
 * zql: Change parallel graph syntax to use `split` and `=>` (#2037)
-* zson: Add `duration` to the implied type list (#2039)
+* ZSON: Add `duration` to the implied type list (#2039)
 * zq: Fix an issue with [`rename`](docs/zq/operators/rename.md) where a subsequent `count()` would return no results (#2046)
 * zq: Fix an issue where multiple alias typedefs were generated for the same type, causing a TZNG read failure (#2047)
-* zson: Fix an issue with string scanning in the ZSON parser that caused the failure `parse error: parsing string literal` (#2048)
+* ZSON: Fix an issue with string scanning in the ZSON parser that caused the failure `parse error: parsing string literal` (#2048)
 * zq: Fix an issue on Windows where `-` was not being treated as a way to read from stdin (#2061)
 * zq: Add support in [`put`](docs/zq/operators/put.md) for assigning to `.` and to nested fields (#2018)
-* zson: Fix an issue where reading ZSON caused the failure `parse error: mismatched braces while parsing record type` (#2058)
-* zson: Fix an issue where casting `null` values to string types caused invalid output (#2077)
+* ZSON: Fix an issue where reading ZSON caused the failure `parse error: mismatched braces while parsing record type` (#2058)
+* ZSON: Fix an issue where casting `null` values to string types caused invalid output (#2077)
 
 ## v0.28.0
 **NOTE** - Beginning with this release, a subset of the source code in the
@@ -303,7 +303,7 @@ questions.
 
 * zqd: Update Zeek pointer to [v3.2.1-brim9](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim9) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2010)
 * zqd: Update Suricata pointer to [v5.0.3-brim1](https://github.com/brimdata/build-suricata/releases/tag/v5.0.3-brim1) which disables checksum checks, allowing for alert creation on more types of pcaps (#1975)
-* zson: Update [Zeek Interoperability doc](zeek/Data-Type-Compatibility.md) to include current ZSON syntax (#1956)
+* ZSON: Update [Zeek Interoperability doc](zeek/Data-Type-Compatibility.md) to include current ZSON syntax (#1956)
 * zq: Ensure the output from the [`fuse`](docs/zq/operators/fuse.md) operator is deterministic (#1958)
 * zq: Fix an issue where the presence of the Greek µ character caused a ZSON read parsing error (#1967)
 * zqd: Fix an issue where Zeek events generated during pcap import and written to an archivestore were only visible after ingest completion (#1973)
@@ -315,8 +315,8 @@ questions.
 
 ## v0.27.0
 * zqd: Update Zeek pointer to [v3.2.1-brim8](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim8) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#1928)
-* zson: Allow characters `.` and `/` in ZSON type names, and fix an issue when accessing fields in aliased records (#1850)
-* zson: Add a ZSON marshaler and clean up the ZNG marshaler (#1854)
+* ZSON: Allow characters `.` and `/` in ZSON type names, and fix an issue when accessing fields in aliased records (#1850)
+* ZSON: Add a ZSON marshaler and clean up the ZNG marshaler (#1854)
 * zq: Add the `source` field to the JSON typing config to prepare for Zeek v4.x `weird` events (#1884)
 * zq: Add initial Z "shaper" for performing ETL on logs at import time (#1870)
 * zq: Make all aggregators decomposable (#1893)
@@ -332,7 +332,7 @@ questions.
 * zqd: Update Zeek pointer to [v3.2.1-brim7](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim7) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#1855)
 * zq: Improve the error message shown when row size exceeds max read buffer (#1808)
 * zqd: Remove `listen -pprof` flag (profiling data is now always made available) (#1800)
-* zson: Add initial ZSON parser and reader (#1806, #1829, #1830, #1832)
+* ZSON: Add initial ZSON parser and reader (#1806, #1829, #1830, #1832)
 * zar: Use a newly-created index package to create archive indices (#1745)
 * zq: Fix issues with incorrectly-formatted CSV output (#1828, #1818, #1827)
 * zq: Add support for inferring data types of "extra" fields in imported NDJSON (#1842)
@@ -346,7 +346,7 @@ questions.
 * zq: Fix an issue where returned errors could cause a panic due to type mismatches (#1720, #1727, #1728, #1740, #1773)
 * python: Fix an issue where the [Python client](https://medium.com/brim-securitys-knowledge-funnel/visualizing-ip-traffic-with-brim-zeek-and-networkx-3844a4c25a2f) did not generate an error when `zqd` was absent (#1711)
 * zql: Allow the `len()` function to work on `ip` and `net` types (#1725)
-* zson: Add a [draft specification](docs/formats/zson.md) of the new ZSON format (#1715, #1735, #1741, #1765)
+* ZSON: Add a [draft specification](docs/formats/zson.md) of the new ZSON format (#1715, #1735, #1741, #1765)
 * zng: Add support for marshaling of `time` values (#1743)
 * zar: Fix an issue where a `couldn't read trailer` failure was observed during a `zar zq` query (#1748)
 * zar: Fix an issue where `zar import` of a 14 GB data set triggered a SEGV (#1766)
