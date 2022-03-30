@@ -185,6 +185,8 @@ Create an index of an object for the specified rule.
 POST /pool/{pool}/branch/{branch}/index
 ```
 
+**Params**
+
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID of the pool. |
@@ -200,6 +202,13 @@ Apply all rules or a range of index rules for all objects that are not indexed.
 POST /pool/{pool}/branch/{branch}/index/update
 ```
 
+**Params**
+
+| Name | Type | In | Description |
+| ---- | ---- | -- | ----------- |
+| pool | string | path | **Required.** ID of the pool. |
+| branch | string | path | **Required.** Name of branch. |
+
 ### Query
 
 Execute a Zed query against data in a data lake.
@@ -212,7 +221,7 @@ POST /query
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| query | string | body | Zed query to execute. |
+| query | string | body | Zed query to execute. (All data is returned if not specified.) ||
 | head.pool | string | body | Pool to query against (Not required if pool is specified in query). |
 | head.branch | string | body | Branch to query against (Defaults to main). |
 
