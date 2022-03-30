@@ -1,4 +1,4 @@
-name: Markdown link check
+name: Markdown lint
 
 on:
   schedule:
@@ -16,6 +16,8 @@ jobs:
     - name: Extract branch name
       run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
       id: extract_branch
+    - name: Lint
+      run: make markdown-lint
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
         config-file: .github/workflows/markdown-link-check-config.json

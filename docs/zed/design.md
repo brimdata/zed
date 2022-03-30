@@ -312,7 +312,6 @@ data during any key-range scan.
 > performs these functions via a service API, i.e., the same service API
 > used by the CLI operators.
 
-
 ### Object Naming
 
 ```

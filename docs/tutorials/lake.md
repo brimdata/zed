@@ -431,7 +431,6 @@ zed map id.orig_h=10.47.6.173 | zq -f text "sum(resp_bytes)" -
 ```
 and you will get the same answer.
 
-
 ## Map-reduce
 
 What's really going on here is map-reduce style computation on your log archives

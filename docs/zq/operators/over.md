@@ -52,7 +52,6 @@ to variables that may be referenced by name in the lateral scope.
 Lateral queries may be nested to arbitrary depth and accesses to variables
 in parent lateral query bodies follows lexical scoping.
 
-
 ### Examples
 
 _Over evaluates each expression and emits it_

@@ -103,6 +103,11 @@ peg: $(PEG_GEN)
 peg-run: $(PEG_GEN)
 	go run ./cmd/zc -repl
 
+.PHONY: markdown-lint
+markdown-lint:
+	@npm install --no-save markdownlint-cli
+	@npx markdownlint docs
+
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
 test-ci: fmt tidy vet test-generate test-unit test-system test-heavy
