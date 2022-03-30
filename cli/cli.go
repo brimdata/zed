@@ -9,12 +9,13 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"runtime/pprof"
 	"syscall"
 )
 
 // Version is set via the Go linker.  See Makefile.
-var Version = "unknown"
+var Version string
 
 type Flags struct {
 	showVersion    bool
@@ -35,6 +36,14 @@ type Initializer interface {
 
 func (f *Flags) Init(all ...Initializer) (context.Context, context.CancelFunc, error) {
 	if f.showVersion {
+		if Version == "" {
+			Version = "unknown"
+			if info, ok := debug.ReadBuildInfo(); ok {
+				// This will be "(devel)" for binaries not built
+				// by "go install".
+				Version = info.Main.Version
+			}
+		}
 		fmt.Printf("Version: %s\n", Version)
 		os.Exit(0)
 	}
