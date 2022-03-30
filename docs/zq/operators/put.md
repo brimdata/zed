@@ -25,7 +25,7 @@ to re-use a computed result, this can be done by chaining multiple `put` operato
 The "put" keyword is optional since it is an
 [implied operators](../language.md#implied-operators).
 
-Each <field> expression must be a field reference expressed as a dotted path or one more
+Each `<field>` expression must be a field reference expressed as a dotted path or one more
 constant index operations on `this`, e.g., `a.b`, `this["a"]["b"]`,
 etc.
 

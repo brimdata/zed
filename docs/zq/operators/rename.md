@@ -15,7 +15,7 @@ exist, there is no effect and the input is copied to the output.
 
 Non-record inputs are copied to the output without modification.
 
-Each <field> must be a field reference as a dotted path and the old name
+Each `<field>` must be a field reference as a dotted path and the old name
 and new name must refer to the same record in the case of nested records.
 That is, the dotted path prefix before the final field name must be the
 same on the left- and right-hand sides.  To perform more sophisticated
