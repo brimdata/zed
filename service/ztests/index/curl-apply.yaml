@@ -1,0 +1,21 @@
+script: |
+  source service.sh
+  zed create -q test
+  zed index create -q values field value
+  zed use -q test
+  # id=$(zed load -use test in.zson | awk '{print $1}')
+  id=$(echo '{ts:0,value:"v1"}' | zed load - | awk '{print $1}')
+  curl -X POST \
+       -H 'Content-Type: application/json' \
+       $ZED_LAKE/pool/test/branch/main/index \
+       -d "{\"rule_name\":\"values\",\"tags\": [\"$id\"]}" > /dev/null
+  zed query -z 'from test@main:indexes | count() | yield count'
+
+inputs:
+  - name: service.sh
+    source: ../service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      1(uint64)

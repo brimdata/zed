@@ -398,6 +398,11 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &payload) {
 		return
 	}
+	tags, err := lakeparse.ParseIDs(payload.ObjectIDs)
+	if err != nil {
+		w.Error(srverr.ErrInvalid(err))
+		return
+	}
 	pool, err := c.root.OpenPool(r.Context(), poolID)
 	if err != nil {
 		w.Error(err)
@@ -408,7 +413,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	ids, err := branch.LookupTags(r.Context(), payload.ObjectIDs)
+	ids, err := branch.LookupTags(r.Context(), tags)
 	if err != nil {
 		w.Error(err)
 		return
@@ -455,7 +460,12 @@ func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branc
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	tags, err := branch.LookupTags(r.Context(), req.Tags)
+	ss, err := lakeparse.ParseIDs(req.Tags)
+	if err != nil {
+		w.Error(srverr.ErrInvalid(err))
+		return
+	}
+	tags, err := branch.LookupTags(r.Context(), ss)
 	if err != nil {
 		w.Error(err)
 		return
