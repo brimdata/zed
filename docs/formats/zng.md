@@ -315,7 +315,7 @@ A named type is encoded as follows:
 ```
 where `<name>` is an identifier representing the new type name with a new type ID
 allocated as the next available type ID in the stream that refers to the
-existing type ID `<type-id>.  `<type-id> is encoded as a `uvarint` and `<name>`
+existing type ID `<type-id>`.  `<type-id>` is encoded as a `uvarint` and `<name>`
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 

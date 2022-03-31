@@ -29,8 +29,8 @@ func TestZed(t *testing.T) {
 	t.Run("ParquetBoomerang", func(t *testing.T) {
 		runParquetBoomerangs(t, dirs)
 	})
-	t.Run("ZsonBoomerang", func(t *testing.T) {
-		runZsonBoomerangs(t, dirs)
+	t.Run("ZSONBoomerang", func(t *testing.T) {
+		runZSONBoomerangs(t, dirs)
 	})
 }
 
@@ -47,7 +47,7 @@ func findZTests() (map[string]struct{}, error) {
 	return dirs, err
 }
 
-func runZsonBoomerangs(t *testing.T, dirs map[string]struct{}) {
+func runZSONBoomerangs(t *testing.T, dirs map[string]struct{}) {
 	if testing.Short() {
 		return
 	}
@@ -57,7 +57,7 @@ zq -f zson - > baseline.zson &&
 zq -i zson -f zson baseline.zson > boomerang.zson &&
 diff baseline.zson boomerang.zson
 `
-	bundles, err := findInputs(t, dirs, script, isValidForZson)
+	bundles, err := findInputs(t, dirs, script, isValidForZSON)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,13 +80,13 @@ diff baseline.zson boomerang.zson
 }
 
 type BoomerangError struct {
-	Zson     string
+	ZSON     string
 	FileName string
 	Err      error
 }
 
 func (b *BoomerangError) Error() string {
-	return fmt.Sprintf("%s\n=== with this input ===\n\n%s\n\n=== from file ===\n\n%s\n\n", b.Err, b.Zson, b.FileName)
+	return fmt.Sprintf("%s\n=== with this input ===\n\n%s\n\n=== from file ===\n\n%s\n\n", b.Err, b.ZSON, b.FileName)
 }
 
 func boomerang(script, input string) *ztest.ZTest {
@@ -124,7 +124,7 @@ func expectFailure(b ztest.Bundle) bool {
 	return false
 }
 
-func isValidForZson(input string) bool {
+func isValidForZSON(input string) bool {
 	zrc, err := anyio.NewReader(strings.NewReader(input), zed.NewContext())
 	if err != nil {
 		return false

@@ -89,7 +89,7 @@ func FormatValue(zv zed.Value) (string, error) {
 func MustFormatValue(zv zed.Value) string {
 	s, err := FormatValue(zv)
 	if err != nil {
-		panic(fmt.Errorf("zson format value failed: type %s, bytes %s", zv.Type, hex.EncodeToString(zv.Bytes)))
+		panic(fmt.Errorf("ZSON format value failed: type %s, bytes %s", zv.Type, hex.EncodeToString(zv.Bytes)))
 	}
 	return s
 }
@@ -658,6 +658,7 @@ func FormatPrimitive(typ zed.Type, bytes zcode.Bytes) string {
 func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
 	if bytes == nil {
 		b.WriteString("null")
+		return
 	}
 	switch typ := typ.(type) {
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
@@ -702,7 +703,7 @@ func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
 		formatTypeValue(bytes, b)
 		b.WriteByte('>')
 	default:
-		b.WriteString(fmt.Sprintf("<zson unknown primitive: %T", typ))
+		b.WriteString(fmt.Sprintf("<ZSON unknown primitive: %T>", typ))
 	}
 }
 

@@ -12,14 +12,10 @@ all: parser.go parser.js parser.es.js
 .PHONY: parser.go
 parser.go:
 ifeq "$(shell go version -m $(deps)/bin/goimports 2>&1 | fgrep $(GOIMPORTS_VERSION))" ""
-	mkdir -p $(deps)
-	echo 'module deps' > $(deps)/go.mod
-	cd $(deps) && GOBIN=$(deps)/bin go get golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
+	GOBIN=$(deps)/bin go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
 endif
 ifeq "$(shell go version -m $(deps)/bin/pigeon 2>&1 | fgrep $(PIGEON_VERSION))" ""
-	mkdir -p $(deps)
-	echo 'module deps' > $(deps)/go.mod
-	cd $(deps) && GOBIN=$(deps)/bin go get github.com/mna/pigeon@$(PIGEON_VERSION)
+	GOBIN=$(deps)/bin go install github.com/mna/pigeon@$(PIGEON_VERSION)
 endif
 	cpp -DGO -E -P parser.peg | $(deps)/bin/pigeon -o $@
 	$(deps)/bin/goimports -w $@

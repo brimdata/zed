@@ -46,7 +46,8 @@ POST /pool
 | ---- | ---- | -- | ----------- |
 | name | string | body | **Required.** Name of the pool. Must be unique to lake. |
 | layout.order | string | body | Order of storage by primary key(s) in pool. Possible values: desc, asc. Default: asc. |
-| layout.keys | array<string> | body | Primary key(s) of pool. Default: ts. |
+| layout.keys | [string] | body | Primary key(s) of pool. Default: ts. |
+| layout.keys | [string] | body | Primary key(s) of pool. Default: ts. |
 | thresh | int | body | The size in bytes of each seek index. |
 
 #### Rename pool
@@ -142,7 +143,9 @@ POST /pool/{pool}/branch/{branch}/delete
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
-| object_ids | array&lt;string> | body | Commit IDs or object IDs to be deleted. |
+| object_ids | [string] | body | Commit IDs or object IDs to be deleted. |
+| pool | string | path | ID of the pool. |
+| object_ids | [string] | body | Commit IDs or object IDs to be deleted. |
 
 #### Merge Branches
 
