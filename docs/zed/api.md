@@ -45,7 +45,7 @@ POST /pool
 | ---- | ---- | -- | ----------- |
 | name | string | body | **Required.** Name of the pool. Must be unique to lake. |
 | layout.order | string | body | Order of value storage in pool. Possible values: desc, asc. Default: asc. |
-| layout.keys | `array<string>` | body | Primary key(s) of pool. Default: ts. |
+| layout.keys | [string] | body | Primary key(s) of pool. Default: ts. |
 | thresh | int | body | The size in bytes of each seek index. |
 
 #### Rename pool
