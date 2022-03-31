@@ -125,7 +125,7 @@ POST /pool/{pool}/branch/{branch}/delete
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
 | pool | string | path | ID of the pool. |
-| object_ids | `array<string>` | body | Commit IDs or object IDs to be deleted. |
+| object_ids | [string] | body | Commit IDs or object IDs to be deleted. |
 
 #### Merge Branches
 
