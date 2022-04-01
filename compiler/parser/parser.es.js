@@ -135,10 +135,10 @@ function peg$parse(input, options) {
 
       peg$c0 = function(ast) { return ast },
       peg$c1 = function(consts, first, rest) {
-            return {"kind": "Sequential", "procs": [first, ... rest], "consts":consts}
+            return {"kind": "Sequential", "ops": [first, ... rest], "consts":consts}
           },
       peg$c2 = function(consts, op) {
-            return {"kind": "Sequential", "procs": [op], "consts":consts}
+            return {"kind": "Sequential", "ops": [op], "consts":consts}
           },
       peg$c3 = function(p) { return p },
       peg$c4 = function() { return [] },
@@ -167,8 +167,8 @@ function peg$parse(input, options) {
       peg$c17 = peg$literalExpectation("(", false),
       peg$c18 = ")",
       peg$c19 = peg$literalExpectation(")", false),
-      peg$c20 = function(procArray) {
-            return {"kind": "Parallel", "procs": procArray}
+      peg$c20 = function(ops) {
+            return {"kind": "Parallel", "ops": ops}
           },
       peg$c21 = "switch",
       peg$c22 = peg$literalExpectation("switch", false),
@@ -204,8 +204,8 @@ function peg$parse(input, options) {
       peg$c40 = "[",
       peg$c41 = peg$literalExpectation("[", false),
       peg$c42 = function(s) { return s },
-      peg$c43 = function(expr, proc) {
-            return {"expr": expr, "proc": proc}
+      peg$c43 = function(expr, op) {
+            return {"expr": expr, "op": op}
           },
       peg$c44 = "case",
       peg$c45 = peg$literalExpectation("case", false),
@@ -333,16 +333,16 @@ function peg$parse(input, options) {
       peg$c117 = function(args, l) { return l },
       peg$c118 = function(args, list) {
             let argm = args;
-            let proc = {"kind": "Sort", "args": list, "order": "asc", "nullsfirst": false};
+            let op = {"kind": "Sort", "args": list, "order": "asc", "nullsfirst": false};
             if ( "r" in argm) {
-              proc["order"] = "desc";
+              op["order"] = "desc";
             }
             if ( "nulls" in argm) {
               if (argm["nulls"] == "first") {
-                proc["nullsfirst"] = true;
+                op["nullsfirst"] = true;
               }
             }
-            return proc
+            return op
           },
       peg$c119 = function(args) { return makeArgMap(args) },
       peg$c120 = "-r",
@@ -362,17 +362,17 @@ function peg$parse(input, options) {
       peg$c134 = peg$literalExpectation("-flush", false),
       peg$c135 = function(limit, flush, f) { return f },
       peg$c136 = function(limit, flush, fields) {
-            let proc = {"kind": "Top", "limit": 0, "args": null, "flush": false};
+            let op = {"kind": "Top", "limit": 0, "args": null, "flush": false};
             if (limit) {
-              proc["limit"] = limit;
+              op["limit"] = limit;
             }
             if (fields) {
-              proc["args"] = fields;
+              op["args"] = fields;
             }
             if (flush) {
-              proc["flush"] = true;
+              op["flush"] = true;
             }
-            return proc
+            return op
           },
       peg$c137 = "cut",
       peg$c138 = peg$literalExpectation("cut", false),
@@ -429,18 +429,18 @@ function peg$parse(input, options) {
       peg$c171 = "join",
       peg$c172 = peg$literalExpectation("join", false),
       peg$c173 = function(style, leftKey, rightKey, columns) {
-            let proc = {"kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": null};
+            let op = {"kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": null};
             if (columns) {
-              proc["args"] = columns[1];
+              op["args"] = columns[1];
             }
-            return proc
+            return op
           },
       peg$c174 = function(style, key, columns) {
-            let proc = {"kind": "Join", "style": style, "left_key": key, "right_key": key, "args": null};
+            let op = {"kind": "Join", "style": style, "left_key": key, "right_key": key, "args": null};
             if (columns) {
-              proc["args"] = columns[1];
+              op["args"] = columns[1];
             }
-            return proc
+            return op
           },
       peg$c175 = "anti",
       peg$c176 = peg$literalExpectation("anti", false),
@@ -457,7 +457,7 @@ function peg$parse(input, options) {
       peg$c187 = "sample",
       peg$c188 = peg$literalExpectation("sample", false),
       peg$c189 = function(e) {
-            return {"kind": "Sequential", "consts": [], "procs": [
+            return {"kind": "Sequential", "consts": [], "ops": [
               
             {"kind": "Summarize",
                 
@@ -2281,7 +2281,7 @@ function peg$parse(input, options) {
       if (s0 === peg$FAILED) {
         s0 = peg$parsePool();
         if (s0 === peg$FAILED) {
-          s0 = peg$parsePassProc();
+          s0 = peg$parsePassOp();
         }
       }
     }
@@ -3725,47 +3725,47 @@ function peg$parse(input, options) {
   function peg$parseOperator() {
     var s0;
 
-    s0 = peg$parseSortProc();
+    s0 = peg$parseSortOp();
     if (s0 === peg$FAILED) {
-      s0 = peg$parseTopProc();
+      s0 = peg$parseTopOp();
       if (s0 === peg$FAILED) {
-        s0 = peg$parseCutProc();
+        s0 = peg$parseCutOp();
         if (s0 === peg$FAILED) {
-          s0 = peg$parseDropProc();
+          s0 = peg$parseDropOp();
           if (s0 === peg$FAILED) {
-            s0 = peg$parseHeadProc();
+            s0 = peg$parseHeadOp();
             if (s0 === peg$FAILED) {
-              s0 = peg$parseTailProc();
+              s0 = peg$parseTailOp();
               if (s0 === peg$FAILED) {
-                s0 = peg$parseWhereProc();
+                s0 = peg$parseWhereOp();
                 if (s0 === peg$FAILED) {
-                  s0 = peg$parseUniqProc();
+                  s0 = peg$parseUniqOp();
                   if (s0 === peg$FAILED) {
-                    s0 = peg$parsePutProc();
+                    s0 = peg$parsePutOp();
                     if (s0 === peg$FAILED) {
-                      s0 = peg$parseRenameProc();
+                      s0 = peg$parseRenameOp();
                       if (s0 === peg$FAILED) {
-                        s0 = peg$parseFuseProc();
+                        s0 = peg$parseFuseOp();
                         if (s0 === peg$FAILED) {
-                          s0 = peg$parseShapeProc();
+                          s0 = peg$parseShapeOp();
                           if (s0 === peg$FAILED) {
-                            s0 = peg$parseJoinProc();
+                            s0 = peg$parseJoinOp();
                             if (s0 === peg$FAILED) {
-                              s0 = peg$parseSampleProc();
+                              s0 = peg$parseSampleOp();
                               if (s0 === peg$FAILED) {
-                                s0 = peg$parseSQLProc();
+                                s0 = peg$parseSQLOp();
                                 if (s0 === peg$FAILED) {
-                                  s0 = peg$parseFromProc();
+                                  s0 = peg$parseFromOp();
                                   if (s0 === peg$FAILED) {
-                                    s0 = peg$parsePassProc();
+                                    s0 = peg$parsePassOp();
                                     if (s0 === peg$FAILED) {
-                                      s0 = peg$parseExplodeProc();
+                                      s0 = peg$parseExplodeOp();
                                       if (s0 === peg$FAILED) {
-                                        s0 = peg$parseMergeProc();
+                                        s0 = peg$parseMergeOp();
                                         if (s0 === peg$FAILED) {
-                                          s0 = peg$parseOverProc();
+                                          s0 = peg$parseOverOp();
                                           if (s0 === peg$FAILED) {
-                                            s0 = peg$parseYieldProc();
+                                            s0 = peg$parseYieldOp();
                                           }
                                         }
                                       }
@@ -3790,7 +3790,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSortProc() {
+  function peg$parseSortOp() {
     var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;
@@ -3963,7 +3963,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseTopProc() {
+  function peg$parseTopOp() {
     var s0, s1, s2, s3, s4, s5, s6;
 
     s0 = peg$currPos;
@@ -4063,7 +4063,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseCutProc() {
+  function peg$parseCutOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -4098,7 +4098,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseDropProc() {
+  function peg$parseDropOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -4133,7 +4133,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseHeadProc() {
+  function peg$parseHeadOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -4183,7 +4183,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseTailProc() {
+  function peg$parseTailOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -4233,7 +4233,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseWhereProc() {
+  function peg$parseWhereOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -4268,7 +4268,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseUniqProc() {
+  function peg$parseUniqOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -4324,7 +4324,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parsePutProc() {
+  function peg$parsePutOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -4359,7 +4359,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseRenameProc() {
+  function peg$parseRenameOp() {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9;
 
     s0 = peg$currPos;
@@ -4471,7 +4471,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseFuseProc() {
+  function peg$parseFuseOp() {
     var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;
@@ -4529,7 +4529,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseShapeProc() {
+  function peg$parseShapeOp() {
     var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;
@@ -4587,7 +4587,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseJoinProc() {
+  function peg$parseJoinOp() {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13;
 
     s0 = peg$currPos;
@@ -4918,7 +4918,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSampleProc() {
+  function peg$parseSampleOp() {
     var s0, s1, s2;
 
     s0 = peg$currPos;
@@ -4993,7 +4993,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseFromProc() {
+  function peg$parseFromOp() {
     var s0, s1;
 
     s0 = peg$currPos;
@@ -5862,7 +5862,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parsePassProc() {
+  function peg$parsePassOp() {
     var s0, s1;
 
     s0 = peg$currPos;
@@ -5882,7 +5882,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseExplodeProc() {
+  function peg$parseExplodeOp() {
     var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;
@@ -5932,7 +5932,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseMergeProc() {
+  function peg$parseMergeOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -5967,7 +5967,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseOverProc() {
+  function peg$parseOverOp() {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9;
 
     s0 = peg$currPos;
@@ -6337,7 +6337,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseYieldProc() {
+  function peg$parseYieldOp() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -8777,7 +8777,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSQLProc() {
+  function peg$parseSQLOp() {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8;
 
     s0 = peg$currPos;
