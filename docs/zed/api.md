@@ -26,7 +26,6 @@
     - [Delete Index Rule](#delete-index-rule)
 * [Media Types](#media-types)
 
-
 ## Endpoints
 
 ### Pools
@@ -113,7 +112,7 @@ DELETE /pool/{pool}/branch/{branch}
 
 #### Delete Data
 
-Takes a list of commit IDs or object IDs in a branch and creates a deletion 
+Takes a list of commit IDs or object IDs in a branch and creates a deletion
 commit of all referenced objects.
 
 ```
@@ -238,4 +237,3 @@ The supported mime types are as follows:
 | zjson | application/x-zjson |
 | zson | application/x-zson |
 | zng | application/x-zng |
-

@@ -59,7 +59,7 @@ echo '{a:1,b:2}' | zq -z 'c:=3' -
 ```mdtest-output
 {a:1,b:2,c:3}
 ```
-_A _put_ operation can also be done with a record literal_
+_A `put` operation can also be done with a record literal_
 ```mdtest-command
 echo '{a:1,b:2}' | zq -z 'yield {...this, c:3}' -
 ```

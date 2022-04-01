@@ -24,7 +24,6 @@ Supported types include:
 - net
 - type
 
-
 #### Example:
 
 Take the length of various types:

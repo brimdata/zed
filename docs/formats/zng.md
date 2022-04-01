@@ -260,7 +260,6 @@ followed by the type code of the value.
 ```
 Each `<type-id>` is encoded as `uvarint`.
 
-
 #### 2.1.5 Union Typedef
 
 A union typedef creates a new type ID equal to the next stream type ID
@@ -503,7 +502,6 @@ For each ZNG primitive type, the following table describes:
 
 All fixed-size multi-byte sequences representing machine words
 are serialized in little-endian format.
-
 
 | Type         | ID |    N     |       ZNG Value Interpretation                 |
 |--------------|---:|:--------:|------------------------------------------------|

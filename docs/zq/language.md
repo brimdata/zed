@@ -347,7 +347,6 @@ This style of "assignment" to a record value is distinguished from the `=`
 token which binds a locally scoped name to a value that can be referenced
 in later expressions.
 
-
 ### 2.6 Implied Operators
 
 When Zed is run in an application like [Brim](https://github.com/brimdata/brim),

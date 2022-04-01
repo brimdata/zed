@@ -32,7 +32,6 @@ and the results merged into final results using an external merge sort.
 The same mechanism that spills to storage can also spill across the network
 to a cluster of workers in an adaptive shuffle, though this is not yet implemented.
 
-
 ### Examples
 
 Sum the input sequence:

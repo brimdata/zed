@@ -13,7 +13,6 @@ The _parse_zson_ function parses the `s` argument that must be in the form
 of ZSON into a Zed value of any type.  This is analogous to JavaScript's
 `JSON.parse()` function.
 
-
 ### Examples
 
 ```mdtest-command

@@ -8,8 +8,6 @@
 round(val: number) -> number
 ```
 ### Description
-`
-`round`
 
 The _round_ function returns the number `val` rounded to the nearest integer value.
 which must be a numeric type.  The return type retains the type of the argument.

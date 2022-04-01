@@ -1,0 +1,12 @@
+default: false
+
+# Tags
+html: true
+indentation: false
+links: true
+spelling: true
+whitespace: true
+
+# Individual tweaks
+MD010:
+  code_blocks: false # Disallow hard tabs except in code blocks.

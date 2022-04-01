@@ -12,7 +12,6 @@ replace(s: string, old: string, new: string) -> string
 The _replace_ function substitutes all instances of the string `old`
 that occur in string `s` with the string `new`.
 
-
 #### Example:
 
 ```mdtest-command
