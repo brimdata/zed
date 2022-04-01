@@ -21,9 +21,6 @@
     - [Update Index](#update-index)
   + [Query](#query)
   + [Events](#events)
-  + [Index Rules](#index-rules)
-    - [Create Index Rule](#create-index-rule)
-    - [Delete Index Rule](#delete-index-rule)
 * [Media Types](#media-types)
 * [Example](#example)
 
@@ -46,9 +43,50 @@ POST /pool
 | ---- | ---- | -- | ----------- |
 | name | string | body | **Required.** Name of the pool. Must be unique to lake. |
 | layout.order | string | body | Order of storage by primary key(s) in pool. Possible values: desc, asc. Default: asc. |
-| layout.keys | [string] | body | Primary key(s) of pool. Default: ts. |
-| layout.keys | [string] | body | Primary key(s) of pool. Default: ts. |
+| layout.keys | [[string]] | body | Primary key(s) of pool. The element of each inner string array should reflect the hierarchical ordering of named fields within stored records. Default: [[ts]]. |
 | thresh | int | body | The size in bytes of each seek index. |
+
+**Example Request**
+
+```
+curl -X POST \
+     -H 'Content-Type: application/json' \
+     -d '{"name": "inventory", "layout": {"keys": [["product","serial_number"],["warehouse"]]}}' \
+     http://localhost:9867/pool
+```
+
+**Example Response**
+
+```
+{
+  "pool": {
+    "ts": "2022-04-01T18:18:50.54718Z",
+    "name": "inventory",
+    "id": "0x0ed4f40a9ab28531c25ebc860fac69fe52fe6eb7",
+    "layout": {
+      "order": "asc",
+      "keys": [
+        [
+          "product",
+          "serial_number"
+        ],
+        [
+          "warehouse"
+        ]
+      ]
+    },
+    "seek_stride": 65536,
+    "threshold": 524288000
+  },
+  "branch": {
+    "ts": "2022-04-01T18:18:50.547752Z",
+    "name": "main",
+    "commit": "0x0000000000000000000000000000000000000000"
+  }
+}
+```
+
+---
 
 #### Rename pool
 
@@ -65,6 +103,19 @@ PUT /pool/{pool}
 | pool | string | path | **Required.** ID or name of the requested pool. |
 | name | string | body | **Required.** The desired new name of the pool. Must be unique. |
 
+**Example Request**
+
+```
+curl -X PUT \
+      -H 'Content-Type: application/json' \
+      http://localhost:9867/pool/inventory \
+      -d '{"name": "catalog"}' \
+```
+
+On success, HTTP 204 is returned with no response payload.
+
+---
+
 #### Delete pool
 
 Permanently delete a pool.
@@ -78,6 +129,17 @@ DELETE /pool/{pool}
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID or name of the requested pool. |
+
+**Example Request**
+
+```
+curl -X DELETE \
+      http://localhost:9867/pool/inventory
+```
+
+On success, HTTP 204 is returned with no response payload.
+
+---
 
 ### Branches
 
@@ -98,12 +160,30 @@ POST /pool/{pool}/branch/{branch}
 |   | various | body | **Required.** Contents of the posted data. |
 | Content-Type | string | header | MIME type of the posted content. If undefined, the service will attempt to introspect the data and determine type automatically. |
 
+**Example Request**
+
+```
+curl -X POST \
+      http://localhost:9867/pool/inventory/branch/main \
+      -d '{"product": {"serial_number": 12345, "name": "widget"}, "warehouse": "chicago"}
+          {"product": {"serial_number": 12345, "name": "widget"}, "warehouse": "miami"}
+          {"product": {"serial_number": 12346, "name": "gadget"}, "warehouse": "chicago"}'
+```
+
+**Example Response**
+
+```
+{"commit":"0x0ed4f42da5763a9500ee71bc3fa5c69f306872de","warnings":[]}
+```
+
+---
+
 #### Get Branch
 
 Get information about a branch.
 
 ```
-POST /pool/{pool}/branch/{branch}
+GET /pool/{pool}/branch/{branch}
 ```
 
 **Params**
@@ -112,6 +192,21 @@ POST /pool/{pool}/branch/{branch}
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID or name of the pool. |
 | branch | string | path | **Required.** Name of branch. |
+
+**Example Request**
+
+```
+curl -X GET \
+      http://localhost:9867/pool/inventory/branch/main
+```
+
+**Example Response**
+
+```
+{"commit":"0x0ed4fa21616ecd8fec9d6fd395ad876db98a5dae","warnings":null}
+```
+
+---
 
 #### Delete Branch
 
@@ -127,6 +222,17 @@ DELETE /pool/{pool}/branch/{branch}
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID or name of the pool. |
 | branch | string | path | **Required.** Name of branch. |
+
+**Example Request**
+
+```
+curl -X DELETE \
+      http://localhost:9867/pool/inventory/branch/staging
+```
+
+On success, HTTP 204 is returned with no response payload.
+
+---
 
 #### Delete Data
 
@@ -144,8 +250,23 @@ POST /pool/{pool}/branch/{branch}/delete
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
 | object_ids | [string] | body | Commit IDs or object IDs to be deleted. |
-| pool | string | path | ID of the pool. |
-| object_ids | [string] | body | Commit IDs or object IDs to be deleted. |
+
+**Example Request**
+
+```
+curl -X POST \
+      -H 'Content-Type: application/json' \
+      http://localhost:9867/pool/inventory/branch/main/delete \
+      -d '{"object_ids": ["274Eb1Kn8MTM6qxPyBpVTvYhLLa", "274EavbXt546VNelRLNXrzWShNh"]}'
+```
+
+**Example Response**
+
+```
+{"commit":"0x0ed4fee861e8fb61568783205a46a218182eba6c","warnings":null}
+```
+
+---
 
 #### Merge Branches
 
@@ -162,7 +283,22 @@ POST /pool/{pool}/branch/{branch}/merge/{child}
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch selected as merge destination. |
-| child | string | path | **Required.** Name of child branch. |
+| child | string | path | **Required.** Name of child branch selected as source of merge. |
+
+**Example Request**
+
+```
+curl -X POST \
+      http://localhost:9867/pool/inventory/branch/main/merge/staging
+```
+
+**Example Response**
+
+```
+{"commit":"0x0ed4ffc2566b423ee444c1c8e6bf964515290f4c","warnings":null}
+```
+
+---
 
 #### Revert
 
@@ -180,9 +316,24 @@ POST /pool/{pool}/branch/{branch}/revert/{commit}
 | branch | string | path | **Required.** Name of branch on which to revert commit. |
 | commit | string | path | **Required.** ID of commit to be reverted. |
 
-#### Index Object
+**Example Request**
 
-Create an index of an object for the specified rule.
+```
+curl -X POST \
+      http://localhost:9867/pool/inventory/branch/main/revert/27D22ifDw3Ms2NMzo8jXpDfpgjc
+```
+
+**Example Response**
+
+```
+{"commit":"0x0ed500ab6f80e5ac8a1b871bddd88c57fe963ab1","warnings":null}
+```
+
+---
+
+#### Index Objects
+
+Create an index of object(s) for the specified rule.
 
 ```
 POST /pool/{pool}/branch/{branch}/index
@@ -195,7 +346,24 @@ POST /pool/{pool}/branch/{branch}/index
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
 | rule_name | string | body | **Required.** Name of indexing rule. |
-| tags | array&lt;string> | body | IDs of data objects to index. |
+| tags | [string] | body | IDs of data objects to index. |
+
+**Example Request**
+
+```
+curl -X POST \
+      -H 'Content-Type: application/json' \
+      http://localhost:9867/pool/inventory/branch/main/index \
+      -d '{"rule_name": "MyRuleGroup", "tags": ["27DAbmqxukfABARaAHauARBJOXH", "27DAbeUBW7llN2mXAadYz00Zjpk"]}'
+```
+
+**Example Response**
+
+```
+{"commit":"0x0ed510f4648da9742e8e9c35e3439d5b708843e1","warnings":null}
+```
+
+---
 
 #### Update Index
 
@@ -211,6 +379,22 @@ POST /pool/{pool}/branch/{branch}/index/update
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
+| rule_names | [string] | body | Name(s) of index rule(s) to apply. If undefined, all rules will be applied. |
+
+**Example Request**
+
+```
+curl -X POST \
+      -H 'Content-Type: application/json' \
+      http://localhost:9867/pool/inventory/branch/main/index/update \
+      -d '{"rule_names": ["MyRuleGroup", "AnotherRuleGroup"]}'
+```
+
+**Example Response**
+
+```
+{"commit":"0x0ed51322b7d69bd0bddad10e31e3211408e34a88","warnings":null}
+```
 
 ### Query
 
@@ -224,21 +408,48 @@ POST /query
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| query | string | body | Zed query to execute. (All data is returned if not specified.) ||
-| head.pool | string | body | Pool to query against (Not required if pool is specified in query). |
-| head.branch | string | body | Branch to query against (Defaults to main). |
+| query | string | body | Zed query to execute. All data is returned if not specified. ||
+| head.pool | string | body | Pool to query against Not required if pool is specified in query. |
+| head.branch | string | body | Branch to query against Defaults to "main". |
+
+**Example Request**
+
+```
+curl -X POST \
+     -H 'Content-Type: application/json' \
+     http://localhost:9867/query -d '{"query":"from inventory@main | count() by warehouse"}'
+```
+
+**Example Response**
+
+```
+{warehouse:"chicago",count:2(uint64)}
+{warehouse:"miami",count:1(uint64)}
+```
+
+---
 
 ### Events
 
-Subscribe to an events feed.
+Subscribe to an events feed, which returns an event stream in the format of
+[server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html).
 
 ```
 GET /events
 ```
 
-#### Response
+**Params**
 
-An event-stream in the format of [Server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html).
+None
+
+**Example Request**
+
+```
+curl -X GET \
+     http://localhost:9867/events
+```
+
+**Example Response**
 
 ```
 event: pool-new
@@ -252,26 +463,9 @@ data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz", "commit_id": "1tisISpHoWI7MAZdF
 
 event: pool-delete
 data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
-
 ```
 
-### Index Rules
-
-#### Create Index Rule
-
-Create an index rule for a specified field.
-
-```
-POST /index
-```
-
-#### Delete Index Rule
-
-Delete the specified index rule. Any created object indexes will persist.
-
-```
-DELETE /index
-```
+---
 
 ## Media Types
 
@@ -286,28 +480,7 @@ The supported MIME types are as follows:
 | Format | MIME Type |
 | ------ | --------- |
 | json | application/json |
-| ndjson | application/ndjson |
+| ndjson | application/x-ndjson |
 | zjson | application/x-zjson |
 | zson | application/x-zson |
 | zng | application/x-zng |
-
-## Example
-
-Here we [create a pool](#create-pool) called "inventory" with a primary key
-field "product_name", requesting the response data in ZSON.
-
-Request:
-
-```
- curl -X POST \
-      -H 'Content-Type: application/json' \
-      -H "Accept: application/x-zson" \
-      -d '{"name": "inventory", "layout": {"keys": [["product_name"]]}}' \
-      http://localhost:9867/pool
-```
-
-Response:
-
-```
-{pool:{ts:2022-03-28T15:29:05.177632Z,name:"inventory",id:0x0ecf86419ae7e6c288b448da9f18e3c28adce8d0(=ksuid.KSUID),layout:{order:"asc"(=order.Which),keys:[["product_name"](=field.Path)](=field.List)}(=order.Layout),seek_stride:65536,threshold:524288000}(=pools.Config),branch:{ts:2022-03-28T15:29:05.178407Z,name:"main",commit:0x0000000000000000000000000000000000000000(ksuid.KSUID)}(=branches.Config)}(=lake.BranchMeta)
-```
