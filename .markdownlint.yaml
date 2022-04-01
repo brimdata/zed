@@ -1,11 +1,11 @@
 default: false
 
 # Tags
-spelling: true
+html: true
 indentation: false
 links: true
+spelling: true
 whitespace: true
-html: true
 
 # Individual tweaks
 MD010:

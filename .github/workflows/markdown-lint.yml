@@ -9,7 +9,7 @@ on:
       - '**.md'
 
 jobs:
-  markdown-link-check:
+  markdown-link:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -29,6 +29,6 @@ jobs:
         slack_web_hook_url: ${{ secrets.SLACK_WEBHOOK_BRIMLABS_DOCS }}
         slack_json: |
           {
-            "username": "markdown-link-check",
+            "username": "markdown-link",
             "text": "Markdown link check failed: https://github.com/{{GITHUB_REPOSITORY}}/actions/runs/{{GITHUB_RUN_ID}}"
           }

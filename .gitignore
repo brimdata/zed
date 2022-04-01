@@ -1,8 +1,8 @@
 /bin/
 /compiler/parser/deps/
 /dist/
-/zed-sample-data/
 /node_modules/
+/zed-sample-data/
 
 .idea
 .DS_Store
