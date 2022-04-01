@@ -1,4 +1,4 @@
-zed: let s=s over x => (sum(this) by s)
+zed: over x with s => (sum(this) by s)
 
 input: |
   {s:"a",x:[1,2]}

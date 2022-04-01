@@ -296,7 +296,6 @@ type (
 	Over struct {
 		Kind  string      `json:"kind" unpack:""`
 		Exprs []Expr      `json:"exprs"`
-		As    string      `json:"as"`
 		Scope *Sequential `json:"scope"`
 	}
 	Let struct {

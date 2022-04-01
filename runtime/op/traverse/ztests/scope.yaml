@@ -1,5 +1,5 @@
 zed: |
-  let w=a over b => (
+  over b with w=a => (
     yield {x:w,y:this}
   )
 

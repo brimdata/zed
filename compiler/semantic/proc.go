@@ -529,27 +529,6 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 		if err != nil {
 			return nil, err
 		}
-		if as := p.Over.As; as != "" {
-			// If there is an "as" clause, then we bind the name
-			// to the sub-scope "this" and we bind "this" to the
-			// outer-scope "this".  Nested scopes are elegantly
-			// handle by this approach because the closest "as" name
-			// resolves to the real this and the next closest
-			// "as" name resolves to "this" in the scope above, which is
-			// where it was bound.
-			if err := scope.DefineAs(as); err != nil {
-				return nil, err
-			}
-			if err := scope.DefineVar("this"); err != nil {
-				return nil, err
-			}
-			// We append "this" to locals so it will be eval'd
-			// but we don't put it in the scope.
-			locals = append(locals, dag.Def{
-				Name: "this",
-				Expr: &dag.This{Kind: "This"},
-			})
-		}
 		over, err := semOver(ctx, scope, p.Over, adaptor, head)
 		if err != nil {
 			return nil, err

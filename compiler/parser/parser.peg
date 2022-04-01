@@ -290,7 +290,6 @@ Operator
   / FromProc
   / PassProc
   / ExplodeProc
-  / LetProc
   / MergeProc
   / OverProc
   / YieldProc
@@ -554,32 +553,15 @@ MergeProc
     }
 
 OverProc
-  = over:ScopedOver {
-      RETURN(MAP("kind":"Let", "locals":NULL, "over":over))
+  = "over" _ exprs:Exprs _ "with" _ locals:LetAssignments __ scope:Scope {
+      RETURN(MAP("kind":"Let", "locals":locals, "over":MAP("kind":"Over", "exprs":exprs, "scope":scope)))
+    }
+  / "over" _ exprs:Exprs __ scope:Scope {
+      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":scope))
     }
   / "over" _ exprs:Exprs {
-      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":NULL, "as":""))
+      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":NULL))
     }
-
-ScopedOver
-  = "over" _ exprs:Exprs as:As __ scope:Scope {
-      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":scope, "as":as))
-    }
-
-OverWith
-  = "over" _ exprs:Exprs _ "with" _ locals:LetAssignments __ scope:Scope {
-      RETURN(MAP("kind":"Let", "locals":locals, "over":MAP("kind":"Over", "exprs":exprs, "scope":scope, "as":"")))
-    }
-
-As
-  = _ "as" _ id:IdentifierName { RETURN(id) }
-  / "" { RETURN("") }
-
-LetProc
-  = "let" _ locals:LetAssignments __ over:ScopedOver {
-      RETURN(MAP("kind":"Let", "locals":locals, "over":over))
-    }
-  / OverWith
 
 Scope = "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
 
@@ -1081,7 +1063,7 @@ TemplateSingleQuotedChar
   / !( "${" ) v:SingleQuotedChar { RETURN(v) }
 
 TemplateExpr
-  = "${" __ e:Expr __ "}" { 
+  = "${" __ e:Expr __ "}" {
       RETURN(MAP(
         "kind": "Cast",
         "expr": e,
