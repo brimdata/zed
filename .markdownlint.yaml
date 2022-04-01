@@ -10,4 +10,3 @@ whitespace: true
 # Individual tweaks
 MD010:
   code_blocks: false # Disallow hard tabs except in code blocks.
-MD028: false # Allow blank lines between blockquotes.

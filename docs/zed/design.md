@@ -306,7 +306,7 @@ data during any key-range scan.
 > amplification that occurs for a given workload.  There is an explicit
 > tradeoff here between overhead of merging overlapping objects on read
 > and LSM write amplification to organize the data to avoid such overlaps.
-
+>
 > Note: we are showing here manual, CLI-driven steps to accomplish these tasks
 > but a live data pipeline would automate all of this with orchestration that
 > performs these functions via a service API, i.e., the same service API
