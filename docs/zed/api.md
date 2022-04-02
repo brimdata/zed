@@ -234,7 +234,7 @@ On success, HTTP 204 is returned with no response payload.
 
 #### Delete Data
 
-Take a list of commit IDs or object IDs in a branch and create a deletion 
+Take a list of commit IDs or object IDs in a branch and create a deletion
 commit of all referenced objects.
 
 ```
