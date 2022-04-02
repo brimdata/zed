@@ -54,7 +54,6 @@ pool created: prs <unique pool ID>
 
 Using `zed ls` we can view all the pools in the lake:
 
-
 ```bash
 $ zed ls
 ```

@@ -1,4 +1,4 @@
-name: Markdown link check
+name: Markdown lint
 
 on:
   schedule:
@@ -9,13 +9,15 @@ on:
       - '**.md'
 
 jobs:
-  markdown-link-check:
+  markdown-link:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Extract branch name
       run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
       id: extract_branch
+    - name: Lint
+      run: make markdown-lint
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
         config-file: .github/workflows/markdown-link-check-config.json
@@ -27,6 +29,6 @@ jobs:
         slack_web_hook_url: ${{ secrets.SLACK_WEBHOOK_BRIMLABS_DOCS }}
         slack_json: |
           {
-            "username": "markdown-link-check",
+            "username": "markdown-link",
             "text": "Markdown link check failed: https://github.com/{{GITHUB_REPOSITORY}}/actions/runs/{{GITHUB_RUN_ID}}"
           }

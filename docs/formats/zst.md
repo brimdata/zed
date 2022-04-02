@@ -87,7 +87,7 @@ blobs of ZNG data.
 > (the "mice") to perform well amongst high-volume record types (the "elephants"),
 > i.e., there are not a bunch of seeks with tiny reads of mice data interspersed
 > throughout the elephants.
-
+>
 > TBD: The mice/elephants model creates an interesting and challenging layout
 > problem.  If you let the row indexes get too far apart (call this "skew"), then
 > you have to buffer very large amounts of data to keep the column data aligned.
@@ -108,7 +108,7 @@ independently of each other, similar to ZNG compression framing.
 > TBD: use the
 > [same compression format](zng.md#312-compressed-value-message-block)
 > exactly?
-
+>
 > The intent here is that segments are sized so that sequential read access
 > performs well (e.g., 5MB) while frames are comparatively smaller (say 32KB)
 > so that they can be decompressed and processed in a multi-threaded fashion where
@@ -126,7 +126,7 @@ from column streams, i.e., to map columns back to composite values.
 > to be read and searched efficiently without ever needing to reconstruct
 > the original rows.  How performant this is all done is up to any particular
 > ZST implementation.
-
+>
 > Also, the reassembly section is in generally vastly smaller than the data section
 > so the goal here isn't to express information in cute and obscure compact forms
 > but rather to represent data in easy-to-digest, programmer-friendly form that

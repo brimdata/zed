@@ -1,6 +1,7 @@
 /bin/
 /compiler/parser/deps/
 /dist/
+/node_modules/
 /zed-sample-data/
 
 .idea
