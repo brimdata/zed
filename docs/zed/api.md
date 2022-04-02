@@ -1,4 +1,4 @@
-# Zed lake service API
+# Zed Lake Service API
 
 > Note: This file contains a brief sketch of the functionality exposed in the
 > Zed API. More fine-grained documentation will be forthcoming.
@@ -17,13 +17,11 @@
     - [Delete Data](#delete-data)
     - [Merge Branches](#merge-branches)
     - [Revert](#revert)
-    - [Index Object](#index-object)
+    - [Index Objects](#index-objects)
     - [Update Index](#update-index)
   + [Query](#query)
   + [Events](#events)
 * [Media Types](#media-types)
-* [Example](#example)
-
 
 ## Endpoints
 
@@ -43,7 +41,7 @@ POST /pool
 | ---- | ---- | -- | ----------- |
 | name | string | body | **Required.** Name of the pool. Must be unique to lake. |
 | layout.order | string | body | Order of storage by primary key(s) in pool. Possible values: desc, asc. Default: asc. |
-| layout.keys | [[string]] | body | Primary key(s) of pool. The element of each inner string array should reflect the hierarchical ordering of named fields within stored records. Default: [[ts]]. |
+| layout.keys | [[string]] | body | Primary key(s) of pool. The element of each inner string array should reflect the hierarchical ordering of named fields within indexed records. Default: [[ts]]. |
 | thresh | int | body | The size in bytes of each seek index. |
 
 **Example Request**
@@ -101,7 +99,7 @@ PUT /pool/{pool}
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID or name of the requested pool. |
-| name | string | body | **Required.** The desired new name of the pool. Must be unique. |
+| name | string | body | **Required.** The desired new name of the pool. Must be unique to lake. |
 
 **Example Request**
 
@@ -109,7 +107,7 @@ PUT /pool/{pool}
 curl -X PUT \
       -H 'Content-Type: application/json' \
       http://localhost:9867/pool/inventory \
-      -d '{"name": "catalog"}' \
+      -d '{"name": "catalog"}'
 ```
 
 On success, HTTP 204 is returned with no response payload.
@@ -367,7 +365,8 @@ curl -X POST \
 
 #### Update Index
 
-Apply all rules or a range of index rules for all objects that are not indexed.
+Apply all rules or a range of index rules for all objects that are not indexed
+in a branch.
 
 ```
 POST /pool/{pool}/branch/{branch}/index/update
@@ -469,18 +468,20 @@ data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
 
 ## Media Types
 
-For response content types, the service can handle a variety of formats. To
+For response content types, the service can produce a variety of formats. To
 receive responses in the desired format, include the MIME type of the format in
 the request's Accept HTTP header.
 
-If the Accept header is not specified, the service will return JSON as the default.
+If the Accept header is not specified, the service will return JSON as the
+default response format for the endpoints described above, with the exception
+of the [query](#query) endpoint that returns ZSON by default.
 
 The supported MIME types are as follows:
 
 | Format | MIME Type |
 | ------ | --------- |
-| json | application/json |
-| ndjson | application/x-ndjson |
-| zjson | application/x-zjson |
-| zson | application/x-zson |
-| zng | application/x-zng |
+| JSON | application/json |
+| NDJSON | application/x-ndjson |
+| ZJSON | application/x-zjson |
+| ZSON | application/x-zson |
+| ZNG | application/x-zng |
