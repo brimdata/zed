@@ -5,19 +5,19 @@
 ### Synopsis
 
 ```
-switch <expr> {
+switch <expr> (
   case <const> => <leg>
   case <const> => <leg>
   ...
   [ default => <leg> ]
-}
+)
 
-switch {
+switch (
   case <bool-expr> => <leg>
   case <bool-expr> => <leg>
   ...
   [ default => <leg> ]
-}
+)
 ```
 ### Description
 
