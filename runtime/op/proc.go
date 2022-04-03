@@ -63,13 +63,3 @@ func DefaultContext() *Context {
 func (c *Context) Cancel() {
 	c.cancel()
 }
-
-func NopDone(puller zbuf.Puller) *done {
-	return &done{puller}
-}
-
-type done struct {
-	zbuf.Puller
-}
-
-func (*done) Done() {}
