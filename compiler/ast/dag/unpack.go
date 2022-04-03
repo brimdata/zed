@@ -31,6 +31,7 @@ var unpacker = unpack.New(
 	Shape{},
 	Spread{},
 	Over{},
+	OverExpr{},
 	Parallel{},
 	Pass{},
 	Pick{},

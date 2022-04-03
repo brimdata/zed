@@ -1760,6 +1760,48 @@ produces
 {collect:[1,4,7]}
 {collect:[1,2,3]}
 ```
+
+### 8.2 Lateral Expressions
+
+Lateral subqueries can also appear in expression context using the
+parenthesized form:
+```
+( over <expr> [, <expr>...] [with <var>=<expr> [, ... <var>[=<expr>]] | <lateral> )
+```
+> Note that the parenthesis disambiguates a lateral expression from a lateral
+> dataflow operator.
+
+This form must always include a lateral scope as indicated by `<lateral>`,
+which can be any dataflow operaetor sequence excluding `from` operators.
+As with the `over` operator, values from the outer scope can be brought into
+the lateral scope using the `with` clause.
+
+The lateral expression is evaluated by evalating each `<expr>` and feeding
+the results as inputs to the `<lateral>` dataflow operators.  Each time the
+lateral expression is evaluated, the lateral operators are run to completion,
+e.g.,
+```mdtest-command
+echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z 'yield (over this | sum(this))' -
+```
+produces
+```mdtest-output
+{sum:6}
+{sum:12}
+{sum:6}
+```
+This sturcture generalizes to any more complicated expression context,
+e.g., we can embed multiple lateral expressions inside of a record literal
+and use the spread operator to tighten up the output:
+```mdtest-command
+echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z '{...(over this | sort this | sorted:=collect(this)),...(over this | sum(this))}' -
+```
+produces
+```mdtest-output
+{sorted:[1,2,3],sum:6}
+{sorted:[1,4,7],sum:12}
+{sorted:[1,2,3],sum:6}
+```
+
 ## 9. Shaping
 
 Data that originates from heterogeneous sources typically has

@@ -224,6 +224,30 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Kind:    "MapExpr",
 			Entries: entries,
 		}, nil
+	case *ast.OverExpr:
+		exprs, err := semExprs(scope, e.Exprs)
+		if err != nil {
+			return nil, err
+		}
+		if e.Scope == nil {
+			return nil, errors.New("over expression missing scope in AST")
+		}
+		scope.Enter()
+		defer scope.Exit()
+		locals, err := semVars(scope, e.Locals)
+		if err != nil {
+			return nil, err
+		}
+		seq, err := semSequential(nil, scope, e.Scope, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.OverExpr{
+			Kind:  "OverExpr",
+			Defs:  locals,
+			Exprs: exprs,
+			Scope: seq,
+		}, nil
 	}
 	return nil, fmt.Errorf("invalid expression type %T", e)
 }
