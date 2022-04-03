@@ -129,6 +129,10 @@ func (r *RemoteSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchNa
 	return res.Commit, err
 }
 
+func (r *RemoteSession) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
+	return ksuid.Nil, errors.New("unsupported")
+}
+
 func (r *RemoteSession) AddIndexRules(ctx context.Context, rules []index.Rule) error {
 	return r.conn.AddIndexRules(ctx, rules)
 }

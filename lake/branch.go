@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
@@ -14,7 +15,9 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -121,6 +124,153 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		}
 		return commits.NewDeletesObject(parent.Commit, retries, author, message, ids), nil
 	})
+}
+
+func (b *Branch) DeleteByPredicate(ctx context.Context, lake op.DataAdaptor, src string, author, message, meta string) (ksuid.KSUID, error) {
+	zctx := zed.NewContext()
+	appMeta, err := loadMeta(zctx, meta)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	val, op, err := compiler.ParseRangeExpr(zctx, src, b.pool.Layout)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
+		base, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		if err != nil {
+			return nil, err
+		}
+		copies, deletes, err := b.getDbpObjects(ctx, lake, val, op, parent.Commit)
+		if err != nil {
+			return nil, err
+		}
+		count := len(copies) + len(deletes)
+		if count == 0 {
+			return nil, errors.New("nothing to delete")
+		}
+		// XXX Copied should be deleted if the commit fails.
+		copied, err := b.dbpCopies(ctx, base, copies, src)
+		if err != nil {
+			return nil, err
+		}
+		patch := commits.NewPatch(base)
+		for _, o := range copied {
+			patch.AddDataObject(&o)
+		}
+		for _, id := range append(copies, deletes...) {
+			patch.DeleteObject(id)
+		}
+		if message == "" {
+			plural := "s"
+			if count == 1 {
+				plural = ""
+			}
+			message = fmt.Sprintf("deleted %d object%s using predicate %s", count, plural, src)
+		}
+		commit := patch.NewCommitObject(parent.Commit, retries, author, message, *appMeta)
+		return commit, nil
+	})
+}
+
+func (b *Branch) dbpCopies(ctx context.Context, snap *commits.Snapshot, copies []ksuid.KSUID, filter string) ([]data.Object, error) {
+	if len(copies) == 0 {
+		return nil, nil
+	}
+	zctx := zed.NewContext()
+	readers := make([]zio.Reader, len(copies))
+	// XXX instead of opening each object individually like this we should
+	// instead create an ephemeral branch/pool that has only the copied
+	// objects then run our delete query on this subset.
+	for i, id := range copies {
+		o, err := snap.Lookup(id)
+		if err != nil {
+			return nil, err
+		}
+		// XXX Ideally we'd be opening objects via data.NewReader so we can
+		// leverage the seek index to skip over irrelavant segments but we don't
+		// have a way to translate the delete filter into an extent.Span, so
+		// just read the whole file.
+		objectPath := o.RowObjectPath(b.pool.DataPath)
+		reader, err := b.pool.engine.Get(ctx, objectPath)
+		if err != nil {
+			return nil, err
+		}
+		defer reader.Close()
+		readers[i] = zngio.NewReader(reader, zctx)
+		defer readers[i].(*zngio.Reader).Close()
+	}
+	// Keeps values that don't fit the filter by adding "not".
+	flowgraph, err := compiler.ParseProc("not " + filter)
+	if err != nil {
+		return nil, err
+	}
+	r := zio.NewCombiner(ctx, readers)
+	q, err := runtime.NewQueryOnReader(ctx, zctx, flowgraph, r, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer q.Close()
+	w, err := NewWriter(ctx, zctx, b.pool)
+	if err != nil {
+		return nil, err
+	}
+	err = zio.CopyWithContext(ctx, w, q.AsReader())
+	if err2 := w.Close(); err == nil {
+		err = err2
+	}
+	if err != nil {
+		for _, o := range w.Objects() {
+			o.Remove(ctx, b.pool.engine, b.pool.DataPath)
+		}
+		return nil, err
+	}
+	return w.Objects(), nil
+}
+
+// getDbpObjects gets the object IDs of objects effected by a delete by predicate
+// operation.
+func (b *Branch) getDbpObjects(ctx context.Context, lake op.DataAdaptor, val *zed.Value, op string, commit ksuid.KSUID) ([]ksuid.KSUID, []ksuid.KSUID, error) {
+	const dbp = `
+const THRESH = %s
+from %s@%s:objects
+| { id: id, lower: min(meta.first, meta.last), upper: max(meta.first, meta.last) }
+| switch (
+  case %s %s THRESH => deletes:=collect(id)
+  case %s %s THRESH => copies:=collect(id)
+)`
+	deletesField, copiesField := "upper", "lower"
+	if op == ">=" || op == ">" {
+		deletesField, copiesField = copiesField, deletesField
+	}
+	src := fmt.Sprintf(dbp, zson.MustFormatValue(*val), b.pool.ID, commit, deletesField, op, copiesField, op)
+	flowgraph, err := compiler.ParseProc(src)
+	if err != nil {
+		return nil, nil, err
+	}
+	q, err := runtime.NewQueryOnLake(ctx, zed.NewContext(), flowgraph, lake, nil, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer q.Close()
+	var objects struct {
+		Deletes []ksuid.KSUID `zed:"deletes"`
+		Copies  []ksuid.KSUID `zed:"copies"`
+	}
+	r := q.AsReader()
+	for {
+		val, err := r.Read()
+		if err != nil {
+			return nil, nil, err
+		}
+		if val == nil {
+			break
+		}
+		if err := zson.UnmarshalZNG(*val, &objects); err != nil {
+			return nil, nil, err
+		}
+	}
+	return objects.Copies, objects.Deletes, nil
 }
 
 func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
