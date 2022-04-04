@@ -880,7 +880,7 @@ type Assignment struct {
 
 func NewAssignments(zctx *zed.Context, dsts field.List, srcs field.List) (field.List, []Evaluator) {
 	if len(srcs) != len(dsts) {
-		panic("CompileAssignments: argument mismatch")
+		panic("NewAssignments: argument mismatch")
 	}
 	var resolvers []Evaluator
 	var fields field.List
