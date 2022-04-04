@@ -15,9 +15,9 @@ import (
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Proc is the interface implemented by all AST processor nodes.
+// Proc is the interface implemented by all AST operator nodes.
 type Proc interface {
-	ProcAST()
+	OpAST()
 }
 
 type Expr interface {
@@ -60,7 +60,7 @@ type Conditional struct {
 }
 
 // A Call represents different things dependending on its context.
-// As a proc, it is either a group-by with no group-by keys and no duration,
+// As a operator, it is either a group-by with no group-by keys and no duration,
 // or a filter with a function that is boolean valued.  This is determined
 // by the compiler rather than the syntax tree based on the specific functions
 // and aggregators that are defined at compile time.  In expression context,
@@ -174,111 +174,72 @@ func (*MapExpr) ExprAST()    {}
 func (*SQLExpr) ExprAST() {}
 
 // ----------------------------------------------------------------------------
-// Procs
+// Operators
 
-// A proc is a node in the flowgraph that takes records in, processes them,
-// and produces records as output.
-//
+// An Op is a node in the flowgraph that takes Zed values in, operates upon them,
+// and produces Zed values as output.
 type (
-	// A Sequential proc represents a set of procs that receive
-	// a stream of records from their parent into the first proc
-	// and each subsequent proc processes the output records from the
-	// previous proc.
+	// A Sequential operator represents a set of operators that receive
+	// a stream of Zed values from their parent into the first operator
+	// and each subsequent operator processes the output records from the
+	// previous operator.
 	Sequential struct {
 		Kind   string `json:"kind" unpack:""`
 		Consts []Def  `json:"consts"`
-		Procs  []Proc `json:"procs"`
+		Procs  []Proc `json:"ops"`
 	}
-	// A Parallel proc represents a set of procs that each get
-	// a stream of records from their parent.
+	// A Parallel operator represents a set of operators that each get
+	// a stream of Zed values from their parent.
 	Parallel struct {
 		Kind string `json:"kind" unpack:""`
 		// If non-zero, MergeBy contains the field name on
-		// which the branches of this parallel proc should be
+		// which the branches of this parallel operator should be
 		// merged in the order indicated by MergeReverse.
 		// XXX merge_by should be a list of expressions
 		MergeBy      field.Path `json:"merge_by,omitempty"`
 		MergeReverse bool       `json:"merge_reverse,omitempty"`
-		Procs        []Proc     `json:"procs"`
+		Procs        []Proc     `json:"ops"`
 	}
-	// A Switch proc represents a set of procs that each get
-	// a stream of records from their parent.
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
 		Expr  Expr   `json:"expr"`
 		Cases []Case `json:"cases"`
 	}
-	// A Sort proc represents a proc that sorts records.
 	Sort struct {
 		Kind       string      `json:"kind" unpack:""`
 		Args       []Expr      `json:"args"`
 		Order      order.Which `json:"order"`
 		NullsFirst bool        `json:"nullsfirst"`
 	}
-	// A Cut proc represents a proc that removes fields from each
-	// input record where each removed field matches one of the named fields
-	// sending each such modified record to its output in the order received.
 	Cut struct {
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
-	// A Drop proc represents a proc that removes fields from each
-	// input record.
 	Drop struct {
 		Kind string `json:"kind" unpack:""`
 		Args []Expr `json:"args"`
 	}
-	// A Head proc represents a proc that forwards the indicated number
-	// of records then terminates.
 	Head struct {
 		Kind  string `json:"kind" unpack:""`
 		Count int    `json:"count"`
 	}
-	// A Tail proc represents a proc that reads all its records from its
-	// input transmits the final number of records indicated by the count.
 	Tail struct {
 		Kind  string `json:"kind" unpack:""`
 		Count int    `json:"count"`
 	}
-	// A Pass proc represents a passthrough proc that mirrors
-	// incoming Pull()s on its parent and returns the result.
 	Pass struct {
 		Kind string `json:"kind" unpack:""`
 	}
-	// A Uniq proc represents a proc that discards any record that matches
-	// the previous record transmitted.  The Cflag causes the output records
-	// to contain a new field called count that contains the number of matched
-	// records in that set, similar to the unix shell command uniq.
 	Uniq struct {
 		Kind  string `json:"kind" unpack:""`
 		Cflag bool   `json:"cflag"`
 	}
-	// A Summarize proc represents a proc that consumes all the records
-	// in its input, partitions the records into groups based on the values
-	// of the fields specified in the keys field (where the first key is the
-	// primary grouping key), and applies aggregators (if any) to each group.
-	// The InputSortDir field indicates that input is sorted (with
-	// direction indicated by the sign of the field) in the primary
-	// grouping key. In this case, the proc outputs the aggregation
-	// results from each key as they complete so that large inputs
-	// are processed and streamed efficiently.
-	// The Limit field specifies the number of different groups that can be
-	// aggregated over. When absent, the runtime defaults to an
-	// appropriate value.
-	// If PartialsOut is true, the proc will produce partial aggregation
-	// output result; likewise, if PartialsIn is true, the proc will
-	// expect partial results as input.
 	Summarize struct {
 		Kind  string       `json:"kind" unpack:""`
 		Limit int          `json:"limit"`
 		Keys  []Assignment `json:"keys"`
 		Aggs  []Assignment `json:"aggs"`
 	}
-	// A Top proc is similar to a Sort with a few key differences:
-	// - It only sorts in descending order.
-	// - It utilizes a MaxHeap, immediately discarding records that are not in
-	// the top N of the sort.
-	// - It has an option (Flush) to sort and emit on every batch.
 	Top struct {
 		Kind  string `json:"kind" unpack:""`
 		Limit int    `json:"limit"`
@@ -315,9 +276,8 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
 	}
-
-	// An OpAssignment proc is a list of assignments whose parent proc
-	// is unknown: It could be a Summarize or Put proc. This will be
+	// An OpAssignment is a list of assignments whose parent operator
+	// is unknown: It could be a Summarize or Put operator. This will be
 	// determined in the semantic phase.
 	OpAssignment struct {
 		Kind        string       `json:"kind" unpack:""`
@@ -330,19 +290,13 @@ type (
 		Kind string `json:"kind" unpack:""`
 		Expr Expr   `json:"expr"`
 	}
-
-	// A Rename proc represents a proc that renames fields.
 	Rename struct {
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
-
-	// A Fuse proc represents a proc that turns a zng stream into a dataframe.
 	Fuse struct {
 		Kind string `json:"kind" unpack:""`
 	}
-
-	// A Join proc represents a proc that joins two zng streams.
 	Join struct {
 		Kind     string       `json:"kind" unpack:""`
 		Style    string       `json:"style"`
@@ -350,8 +304,7 @@ type (
 		RightKey Expr         `json:"right_key"`
 		Args     []Assignment `json:"args"`
 	}
-
-	// A SQLExpr can be a proc, an expression inside of a SQL FROM clause,
+	// A SQLExpr can be an operator, an expression inside of a SQL FROM clause,
 	// or an expression used as a Zed value generator.  Currenly, the "select"
 	// keyword collides with the select() generator function (it can be parsed
 	// unambiguosly because of the parens but this is not user friendly
@@ -443,7 +396,7 @@ type Trunk struct {
 
 type Case struct {
 	Expr Expr `json:"expr"`
-	Proc Proc `json:"proc"`
+	Proc Proc `json:"op"`
 }
 
 type SQLFrom struct {
@@ -479,35 +432,35 @@ type Def struct {
 	Expr Expr   `json:"expr"`
 }
 
-func (*Sequential) ProcAST()   {}
-func (*Parallel) ProcAST()     {}
-func (*Switch) ProcAST()       {}
-func (*Sort) ProcAST()         {}
-func (*Cut) ProcAST()          {}
-func (*Drop) ProcAST()         {}
-func (*Head) ProcAST()         {}
-func (*Tail) ProcAST()         {}
-func (*Pass) ProcAST()         {}
-func (*Uniq) ProcAST()         {}
-func (*Summarize) ProcAST()    {}
-func (*Top) ProcAST()          {}
-func (*Put) ProcAST()          {}
-func (*OpAssignment) ProcAST() {}
-func (*OpExpr) ProcAST()       {}
-func (*Rename) ProcAST()       {}
-func (*Fuse) ProcAST()         {}
-func (*Join) ProcAST()         {}
-func (*Shape) ProcAST()        {}
-func (*From) ProcAST()         {}
-func (*Explode) ProcAST()      {}
-func (*Merge) ProcAST()        {}
-func (*Over) ProcAST()         {}
-func (*Let) ProcAST()          {}
-func (*Search) ProcAST()       {}
-func (*Where) ProcAST()        {}
-func (*Yield) ProcAST()        {}
+func (*Sequential) OpAST()   {}
+func (*Parallel) OpAST()     {}
+func (*Switch) OpAST()       {}
+func (*Sort) OpAST()         {}
+func (*Cut) OpAST()          {}
+func (*Drop) OpAST()         {}
+func (*Head) OpAST()         {}
+func (*Tail) OpAST()         {}
+func (*Pass) OpAST()         {}
+func (*Uniq) OpAST()         {}
+func (*Summarize) OpAST()    {}
+func (*Top) OpAST()          {}
+func (*Put) OpAST()          {}
+func (*OpAssignment) OpAST() {}
+func (*OpExpr) OpAST()       {}
+func (*Rename) OpAST()       {}
+func (*Fuse) OpAST()         {}
+func (*Join) OpAST()         {}
+func (*Shape) OpAST()        {}
+func (*From) OpAST()         {}
+func (*Explode) OpAST()      {}
+func (*Merge) OpAST()        {}
+func (*Over) OpAST()         {}
+func (*Let) OpAST()          {}
+func (*Search) OpAST()       {}
+func (*Where) OpAST()        {}
+func (*Yield) OpAST()        {}
 
-func (*SQLExpr) ProcAST() {}
+func (*SQLExpr) OpAST() {}
 
 func (seq *Sequential) Prepend(front Proc) {
 	seq.Procs = append([]Proc{front}, seq.Procs...)
