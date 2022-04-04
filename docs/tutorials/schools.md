@@ -51,7 +51,7 @@ and test scores.
 ## 1. Getting Started
 
 If you want to follow along by running the examples, simply
-[install zq](../../README.md#quick-start) and copy the
+[install zq](../install.md) and copy the
 data files used here into your working directory:
 ```
 curl https://raw.githubusercontent.com/brimdata/zed/main/testdata/edu/schools.zson > schools.zson

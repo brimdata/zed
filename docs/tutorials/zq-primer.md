@@ -16,7 +16,7 @@ Then, toward the end of the tour, we'll experiment with some real-world GitHub d
 pulled from the GitHub API.
 
 If you want to follow along on the command line,
-just make sure the `zq` command [is installed](../../README.md#quick-start)
+just make sure the `zq` command [is installed](../install.md)
 as well as [`jq`](https://stedolan.github.io/jq/).
 
 ## But JSON
