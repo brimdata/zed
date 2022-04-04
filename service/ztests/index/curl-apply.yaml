@@ -3,10 +3,8 @@ script: |
   zed create -q test
   zed index create -q values field value
   id=$(zed load -use test in.zson | awk '{print $1}')
-  curl -X POST \
-       -H 'Content-Type: application/json' \
-       $ZED_LAKE/pool/test/branch/main/index \
-       -d "{\"rule_name\":\"values\",\"tags\": [\"$id\"]}" > /dev/null
+  curl -d "{\"rule_name\":\"values\",\"tags\": [\"$id\"]}" \
+       $ZED_LAKE/pool/test/branch/main/index  > /dev/null
   zed query -z 'from test@main:indexes | count() | yield count'
 
 inputs:
