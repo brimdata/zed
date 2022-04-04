@@ -17,7 +17,7 @@ func (f *Filter) AsEvaluator() (expr.Evaluator, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return compileExpr(f.builder.pctx.Zctx, f.pushdown)
+	return f.builder.compileExpr(f.pushdown)
 }
 
 func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
