@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+sidebar_label: zed Primer
+---
+
 # Introduction
 
 `zq` is great, but what if we have a lot of data on which we want to perform search and

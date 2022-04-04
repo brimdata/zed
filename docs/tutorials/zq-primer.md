@@ -1,3 +1,8 @@
+---
+sidebar_position: 0
+sidebar_label: zq Primer
+---
+
 # A Tour of `zq`
 
 This tour provides new users of `zq` an overview of `zq` and

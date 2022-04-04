@@ -1,3 +1,8 @@
+---
+sidebar_position: 0
+sidebar_label: Data Model Specification
+---
+
 # The Zed Data Model Specification
 
 * [1. Primitive Types](#1-primitive-types)

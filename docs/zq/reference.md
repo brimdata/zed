@@ -1,3 +1,8 @@
+---
+sidebar_position: 2
+sidebar_label: Language Reference
+---
+
 # Reference
 
 Below are links to documentation for the various operators and functions

@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+sidebar_label: ZNG
+---
+
 # ZNG Specification
 
 * [1. Introduction](#1-introduction)

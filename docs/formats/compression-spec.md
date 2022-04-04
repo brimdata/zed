@@ -1,3 +1,8 @@
+---
+sidebar_position: 5
+sidebar_label: ZNG Compression Format
+---
+
 # ZNG Compression Format Specification
 
 This document specifies values for the `<format>` field of a
