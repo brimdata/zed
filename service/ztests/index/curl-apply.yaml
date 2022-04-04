@@ -10,6 +10,8 @@ script: |
 inputs:
   - name: service.sh
     source: ../service.sh
+  - name: in.zson
+    data: '{ts:0,value:"v1"}'
 
 outputs:
   - name: stdout
