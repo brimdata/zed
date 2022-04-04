@@ -295,7 +295,7 @@ Operator
   / YieldOp
 
 SortOp
-  = "sort" args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
+  = "sort" &EOKW args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
       VAR(argm) = ASSERT_MAP(args)
       VAR(op) = MAP("kind": "Sort", "args": list, "order": "asc", "nullsfirst": false)
       if HAS(argm, "r") {
@@ -316,7 +316,7 @@ SortArg
   / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(MAP("name": "nulls", "value": where)) }
 
 TopOp
-  = "top" limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
+  = "top" &EOKW limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
       VAR(op) = MAP("kind": "Top", "limit": 0, "args": NULL, "flush": false)
       if ISNOTNULL(limit) {
         op["limit"] = limit
@@ -376,12 +376,12 @@ RenameOp
 // (https://github.com/brimdata/zed/issues/2114) for the fuse op and
 // aggregator, at which point we may no longer need this.
 FuseOp
-  = "fuse" !(__ "(") {
+  = "fuse" !(__ "(") &EOKW {
       RETURN(MAP("kind": "Fuse"))
     }
 
 ShapeOp
-  = "shape" !(__ "(") {
+  = "shape" !(__ "(") &EOKW {
       RETURN(MAP("kind": "Shape"))
     }
 
@@ -413,7 +413,7 @@ JoinKey
   / "(" expr:Expr ")" { RETURN(expr) }
 
 SampleOp
-  = "sample" e:SampleExpr {
+  = "sample" &EOKW e:SampleExpr {
       RETURN(MAP("kind": "Sequential", "consts": ARRAY(), "ops": ARRAY(
         MAP("kind": "Summarize",
           "keys": ARRAY(MAP("kind": "Assignment",
@@ -536,7 +536,7 @@ OrderArg
   / _ "order" _ "desc"  { RETURN("desc") }
 
 PassOp
-  = "pass" {
+  = "pass" &EOKW {
       RETURN(MAP("kind":"Pass"))
     }
 
@@ -1371,3 +1371,5 @@ EOL = WhiteSpace* LineTerminator
 EOT = _ / EOF
 
 EOF = !.
+
+EOKW = !KeyWordChars
