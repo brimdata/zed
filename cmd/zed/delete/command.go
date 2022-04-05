@@ -27,6 +27,11 @@ delete operation to HEAD.
 Once the delete operation completes, the deleted data is no longer seen
 when read data from the pool.
 
+If the -where flag is specified, delete will remove all values that return true
+the for the provided boolean expressions . Currently the filter expressions is
+limited in that it must be against the pool key and it must be a single relative
+comparison (e.g., -where 'ts <= now() - 3h').
+
 No data is actually removed from the lake.  Instead, a delete
 operation is an action in the pool's commit journal.  Any delete
 can be "undone" by adding the commits back to the log using

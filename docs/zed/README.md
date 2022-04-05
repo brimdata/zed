@@ -494,6 +494,11 @@ simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
 of deletes.
 
+If the -where flag is specified, delete will remove all values that return true
+the for the provided boolean expressions . Currently the filter expressions is
+limited in that it must be against the pool key and it must be a single relative
+comparison (e.g., `-where 'ts <= now() - 3h'`).
+
 > A vacuum command to delete permanently from a pool is under development.
 
 ### 2.5 Drop
