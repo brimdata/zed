@@ -234,10 +234,14 @@ func (b *Branch) getDbpObjects(ctx context.Context, lake op.DataAdaptor, val *ze
 	const dbp = `
 const THRESH = %s
 from %s@%s:objects
-| { id: id, lower: min(meta.first, meta.last), upper: max(meta.first, meta.last) }
+| {
+	id: id,
+	lower: meta.first < meta.last ? meta.first : meta.last,
+	upper: meta.first < meta.last ? meta.last : meta.first
+  }
 | switch (
-  case %s %s THRESH => deletes:=collect(id)
-  case %s %s THRESH => copies:=collect(id)
+  case %s %s THRESH => deletes:=collect(id) | deletes != null
+  case %s %s THRESH => copies:=collect(id) | copies != null
 )`
 	deletesField, copiesField := "upper", "lower"
 	if op == ">=" || op == ">" {

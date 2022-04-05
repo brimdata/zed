@@ -88,6 +88,9 @@ func (c *Command) Run(args []string) error {
 	} else {
 		commit, err = c.deleteByIDs(ctx, lake, head, poolID, args)
 	}
+	if err != nil {
+		return err
+	}
 	if !c.lakeFlags.Quiet {
 		fmt.Printf("%s delete committed\n", commit)
 	}
