@@ -754,7 +754,16 @@ Primary
   / Set
   / Map
   / Literal
+  / "(" __ expr:OverExpr __ ")"  { RETURN(expr) }
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
+
+OverExpr
+  = "over" _ exprs:Exprs _ "with" _ locals:LetAssignments __ "|" __ scope:Sequential {
+      RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "scope": scope))
+    }
+  / "over" _ exprs:Exprs __ "|" __ scope:Sequential {
+      RETURN(MAP("kind": "OverExpr", "locals": NULL, "exprs": exprs, "scope": scope))
+    }
 
 Record
   = "{" __ elems:RecordElems __ "}" {

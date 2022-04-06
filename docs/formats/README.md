@@ -1,4 +1,4 @@
-# Zed Formats for Super-structured Data
+# Zed Formats
 
 > **TL;DR** The Zed data model defines a new and easy way to manage, store,
 > and process data utilizing an emerging concept called
@@ -9,30 +9,6 @@
 > Zed is a superset of both the dataframe/table model of relational systems and the
 > semi-structured model that is used ubiquitously in development as JSON and by NOSQL
 > data stores.  The ZSON spec has [a few examples](zson.md#3-examples).
-
-* [Zed Data Model Spec](zed.md)
-* [ZSON Spec](zson.md)
-* [ZNG Spec](zng.md)
-* [ZST Spec](zst.md)
-* [ZJSON Spec](zjson.md)
-
----
-
-Table of Contents
-
-* [1. Background](#1-background)
-  + [1.1 The Tabular-structured Pattern](#11-the-tabular-structured-pattern)
-  + [1.2 The Semi-structured Pattern](#12-the-semi-structured-pattern)
-  + [1.3 The Hybrid Pattern](#13-the-hybrid-pattern)
-* [2. Zed: A Super-structured Pattern](#2-zed-a-super-structured-pattern)
-  + [2.1 Zed and Schemas](#21-zed-and-schemas)
-  + [2.2 Type Combinatorics](#22-type-combinatorics)
-  + [2.3 Analytics Performance](#23-analytics-performance)
-  + [2.4 First-class Types](#24-first-class-types)
-  + [2.5 First-class Errors](#25-first-class-errors)
-* [3. The Data Model and Formats](#3-the-data-model-and-formats)
-
----
 
 ## 1. Background
 

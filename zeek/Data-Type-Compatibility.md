@@ -30,8 +30,8 @@ Tools like [`zq`](https://github.com/brimdata/zed) and
 [Brim](https://github.com/brimdata/brim) maintain an internal Zed-typed
 representation of any Zeek data that is read or imported. Therefore, knowing
 the equivalent types will prove useful when performing operations in the
-[Zed language](../docs/zq/language.md) such as
-[type casting](../docs/zq/language.md#data-types) or looking at the data
+[Zed language](../docs/language/README.md) such as
+[type casting](../docs/language/README.md#data-types) or looking at the data
 when output as ZSON.
 
 ## Equivalent Types
@@ -258,7 +258,7 @@ Zed that refer to the record at a higher level but affect all values lower
 down in the record hierarchy.
 
 Revisiting the data from our example, we can output all fields within
-`my_record` via a Zed [`cut`](../docs/zq/operators/cut.md) operation.
+`my_record` via a Zed [`cut`](../docs/language/operators/cut.md) operation.
 
 #### Command:
 

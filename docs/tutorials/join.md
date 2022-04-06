@@ -1,6 +1,11 @@
-# Join Primer
+---
+sidebar_position: 2
+sidebar_label: Join
+---
 
-This is a brief primer on Zed's experimental [join operator](../zq/operators/join.md).
+# Join Overview
+
+This is a brief primer on Zed's experimental [join operator](../language/operators/join.md).
 
 Currently, join is limited in the following ways:
 * the joined inputs both come from the parent so the query must be split before join,

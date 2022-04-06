@@ -1,9 +1,11 @@
 ---
-sidebar_position: 1
-sidebar_label: Install
+sidebar_position: 2
+sidebar_label: Installation
 ---
 
-# Installing `zed` and `zq`
+# Installation
+
+---
 
 ## Homebrew
 

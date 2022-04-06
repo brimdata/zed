@@ -2,7 +2,7 @@
 
 This directory contains a small sample data set regarding California
 schools and their average SAT scores.  It is used in query examples in
-the [Zed language documentation](../../docs/zq/language.md).
+the [Zed language documentation](../../docs/language/README.md).
 
 
 # Acknowledgement

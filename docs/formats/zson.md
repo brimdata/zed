@@ -3,34 +3,9 @@ sidebar_position: 2
 sidebar_label: ZSON
 ---
 
-# ZSON - Zed Super-structured Open Notation
+# ZSON Specification
 
-* [1. Introduction](#1-introduction)
-* [2. The ZSON Format](#2-the-zson-format)
-  + [2.1 Names](#21-names)
-  + [2.2 Type Decorators](#22-type-decorators)
-  + [2.3 Primitive Values](#23-primitive-values)
-    - [2.3.1 Strings](#231-strings)
-  + [2.4 Complex Values](#24-complex-values)
-    - [2.4.1 Record Value](#241-record-value)
-    - [2.4.2 Array Value](#242-array-value)
-    - [2.4.3 Set Value](#243-set-value)
-    - [2.4.4 Map Value](#244-map-value)
-    - [2.4.5 Union Value](#245-union-value)
-    - [2.4.6 Enum Value](#246-enum-value)
-    - [2.4.7 Error Value](#247-error-value)
-  + [2.5 Types](#25-types)
-    - [2.5.1 Record Type](#251-record-type)
-    - [2.5.2 Array Type](#252-array-type)
-    - [2.5.3 Set Type](#253-set-type)
-    - [2.5.4 Map Type](#254-map-type)
-    - [2.5.5 Union Type](#255-union-type)
-    - [2.5.6 Enum Type](#256-enum-type)
-    - [2.5.7 Named Type](#257-named-type)
-    - [2.5.8 Error Type](#258-error-type)
-  + [2.6 Null Value](#26-null-value)
-* [3. Examples](#3-examples)
-* [4. Grammar](#4-grammar)
+---
 
 ## 1. Introduction
 

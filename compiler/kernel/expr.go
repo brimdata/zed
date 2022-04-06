@@ -9,6 +9,9 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/function"
+	"github.com/brimdata/zed/runtime/op/combine"
+	"github.com/brimdata/zed/runtime/op/traverse"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/text/unicode/norm"
 )
@@ -88,6 +91,8 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 			return nil, err
 		}
 		return expr.NewAggregatorExpr(agg), nil
+	case *dag.OverExpr:
+		return b.compileOverExpr(e)
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", e)
 	}
@@ -457,4 +462,35 @@ func (b *Builder) compileMapExpr(m *dag.MapExpr) (expr.Evaluator, error) {
 		entries = append(entries, expr.Entry{key, val})
 	}
 	return expr.NewMapExpr(b.zctx(), entries), nil
+}
+
+func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
+	if over.Scope == nil {
+		return nil, errors.New("over expression requires flow body")
+	}
+	names, lets, err := b.compileLets(over.Defs)
+	if err != nil {
+		return nil, err
+	}
+	exprs, err := b.compileExprs(over.Exprs)
+	if err != nil {
+		return nil, err
+	}
+	parent := traverse.NewExpr(b.pctx.Context, b.zctx())
+	enter := traverse.NewOver(b.pctx, parent, exprs)
+	scope := enter.AddScope(b.pctx.Context, names, lets)
+	exits, err := b.compile(over.Scope, []zbuf.Puller{scope})
+	if err != nil {
+		return nil, err
+	}
+	var exit zbuf.Puller
+	if len(exits) == 1 {
+		exit = exits[0]
+	} else {
+		// This can happen when output of over body
+		// is a fork or switch.
+		exit = combine.New(b.pctx, exits)
+	}
+	parent.SetExit(scope.NewExit(exit))
+	return parent, nil
 }
