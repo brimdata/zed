@@ -487,6 +487,7 @@ A newly created pool is initialized with a branch called `main`.
 ### 2.4 Delete
 ```
 zed delete [options] <id> [<id>...]
+zed delete [options] -where <filter>
 ```
 The `delete` command removes one or more data objects indicated by their ID from a pool.
 This command
