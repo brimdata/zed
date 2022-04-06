@@ -57,6 +57,7 @@ type BranchMergeRequest struct {
 
 type DeleteRequest struct {
 	ObjectIDs []string `zed:"object_ids"`
+	Where     string   `zed:"were"`
 }
 
 type CommitMessage struct {
