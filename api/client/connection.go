@@ -356,23 +356,23 @@ func encodeCommitMessage(req *Request, message api.CommitMessage) error {
 }
 
 func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.delete(ctx, poolID, branchName, ids, "", message)
+}
+
+func (c *Connection) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName string, where string, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.delete(ctx, poolID, branchName, nil, where, message)
+}
+
+func (c *Connection) delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, where string, message api.CommitMessage) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName, "delete")
 	tags := make([]string, len(ids))
 	for i, id := range ids {
 		tags[i] = id.String()
 	}
-	req := c.NewRequest(ctx, http.MethodPost, path, api.DeleteRequest{ObjectIDs: tags})
-	if err := encodeCommitMessage(req, message); err != nil {
-		return api.CommitResponse{}, err
-	}
-	var commit api.CommitResponse
-	err := c.doAndUnmarshal(req, &commit)
-	return commit, err
-}
-
-func (c *Connection) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName string, where string, message api.CommitMessage) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", branchName, "delete")
-	req := c.NewRequest(ctx, http.MethodPost, path, api.DeleteRequest{Where: where})
+	req := c.NewRequest(ctx, http.MethodPost, path, api.DeleteRequest{
+		ObjectIDs: tags,
+		Where:     where,
+	})
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
 	}
