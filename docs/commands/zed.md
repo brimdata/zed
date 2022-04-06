@@ -455,6 +455,7 @@ A newly created pool is initialized with a branch called `main`.
 ### 2.4 Delete
 ```
 zed delete [options] <id> [<id>...]
+zed delete [options] -where <filter>
 ```
 The `delete` command removes one or more data objects indicated by their ID from a pool.
 This command
@@ -462,9 +463,9 @@ simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
 of deletes.
 
-If the -where flag is specified, delete will remove all values for which the
-provided filter expression is true. The filter expression must be single comparison
-against the pool key using <, <=, > or >= (e.g., -where 'ts <= now() - 3h').
+If the `-where` flag is specified, delete will remove all values for which the
+provided filter expression is true. The filter expression must be a single comparison
+against the pool key using <, <=, > or >= (e.g., `-where 'ts <= now() - 3h'`).
 
 > A vacuum command to delete permanently from a pool is under development.
 
