@@ -1,8 +1,11 @@
-# zq - command-line Zed query
+---
+sidebar_position: 0
+sidebar_label: zq
+---
 
-## TL;DR
+# zq
 
-> `zq` is a command-line tool that uses the [Zed language](language.md)
+> **TL;DR** `zq` is a command-line tool that uses the [Zed language](language.md)
 for pipeline-style search and analytics.  `zq` can query a variety
 of data formats in files, over HTTP, or in S3 storage.
 It is particularly fast when operating on data in the Zed-native [ZNG](../formats/zng.md) format.
@@ -10,32 +13,6 @@ It is particularly fast when operating on data in the Zed-native [ZNG](../format
 > The `zq` design philosophy blends the query/search-tool approach
 of `jq`, `awk`, and `grep` with the command-line, embedded database approach
 of `sqlite` and `duckdb`.
-
-## Contents
-
-* [1. Usage](#1-usage)
-* [2. Input Formats](#2-input-formats)
-  + [2.1 Hardwired Input Format](#21-hard-wired-input-format)
-  + [2.2 Auto-detection](#22-auto-detection)
-  + [2.3 ZSON-JSON Auto-detection](#23-zson-json-auto-detection)
-* [3. Output Formats](#3-output-formats)
-  + [3.1 Output Format Selection](#31-output-format-selection)
-  + [3.2 ZSON Pretty Printing](#32-zson-pretty-printing)
-  + [3.3 Pipeline-friendly ZNG](#33-pipeline-friendly-zng)
-  + [3.4 Schema-rigid Outputs](#34-schema-rigid-outputs)
-    - [3.4.1 Fusing Schemas](#341-fusing-schemas)
-    - [3.4.2 Splitting Schemas](#342-splitting-schemas)
-* [4. Query Debugging](#4-query-debugging)
-* [5. Error Handling](#5-error-handling)
-* [6. Examples](#6-examples)
-* [7. Performance](#7-performance)
-  + [7.1 Fast Pattern Matching](#71-fast-pattern-matching)
-  + [7.2 Efficient JSON Processing](#72-efficient-json-processing)
-  + [7.3 Performance Comparisons](#73-performance-comparisons)
-    - [7.3.1 Test Data](#731-test-data)
-    - [7.3.2 File Sizes](#732-file-sizes)
-    - [7.3.3 Tests](#733-tests)
-    - [7.3.4 Results](#734-results)
 
 ## 1. Usage
 

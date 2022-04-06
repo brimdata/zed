@@ -1,9 +1,9 @@
 ---
 sidebar_position: 0
-sidebar_label: zq Primer
+sidebar_label: zq
 ---
 
-# A Tour of `zq`
+# zq Tutorial
 
 This tour provides new users of `zq` an overview of `zq` and
 the [Zed language](../zq/language.md)

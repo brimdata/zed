@@ -1,27 +1,15 @@
 ---
 sidebar_position: 2
-sidebar_label: Design Notes
+sidebar_label: Format
 ---
 
-# Zed Lake Design Notes
+# Zed Lake Format
 
-  * [Cloud Object Architecture](#cloud-object-architecture)
-    + [Immutable Objects](#immutable-objects)
-      - [Data Objects](#data-objects)
-      - [Commit History](#commit-history)
-    + [Transaction Journal](#transaction-journal)
-      - [Scaling a Journal](#scaling-a-journal)
-      - [Journal Concurrency Control](#journal-concurrency-control)
-      - [Configuration State](#configuration-state)
-    + [Merge on Read](#merge-on-read)
-    + [Object Naming](#object-naming)
-  * [Continuous Ingest](#continuous-ingest)
-  * [Derived Analytics](#derived-analytics)
-  * [Keyless Data](#keyless-data)
-  * [Relational Model](#relational-model)
-  * [Type Rule](#type-rule)
-  * [Aggregation Rule](#aggregation-rule)
-  * [Vacuum Support](#vacuum-support)
+---
+
+## _Status_
+
+XXX This document will soon be updated in a forthcoming PR.
 
 ## Cloud Object Architecture
 

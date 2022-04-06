@@ -1,8 +1,11 @@
-# zed - Zed Lake Command
+---
+sidebar_position: 1
+sidebar_label: zed
+---
 
-## TL;DR
+# zed
 
-> `zed` is a command-line tool to manage and query Zed data lakes.
+> **TL;DR** `zed` is a command-line tool to manage and query Zed data lakes.
 > You can import data from a variety of formats and `zed` will automatically
 > commit the data in the Zed data model's [super-structured](../formats/README.md)
 > format, providing full fidelity of the original format and the ability
@@ -12,7 +15,7 @@
 > and transformation as well as serving as a queryable and searchable store
 > for super-structured data both for online and archive use cases.
 
-## Status
+## _Status_
 
 > While [`zq`](../zq/README.md) and the [Zed formats](../formats/README.md)
 > are production quality, the Zed lake is still fairly early in development
@@ -23,41 +26,6 @@
 > via the [lake API](api.md).
 >
 > Enhanced scalability with self-tuning configuration is under development.
-
-## Contents
-
-* [1. The Lake Model](#1-the-lake-model)
-  + [1.1 CLI-First Approach](#11-cli-first-approach)
-  + [1.2 Storage Layer](#12-storage-layer)
-  + [1.3 Zed Command Personalities](#13-zed-command-personalities)
-  + [1.4 Data Pools](#14-data-pools)
-    - [1.4.1 Commit Objects](#141-commit-objects)
-    - [1.4.2 Commitish](#142-commitish)
-    - [1.4.3 Pool Key](#143-pool-key)
-  + [1.5 Time Travel](#15-time-travel)
-  + [1.6 Search Indexes](#16-search-indexes)
-    - [1.6.1 Index Rules](#161-index-rules)
-    - [1.6.2 Indexing Workflows](#162-indexing-workflows)
-* [2. Zed Commands](#2-zed-commands)
-  + [2.1 Auth](#21-auth)
-  + [2.2 Branch](#22-branch)
-  + [2.3 Create](#23-create)
-  + [2.4 Delete](#24-delete)
-  + [2.5 Drop](#25-drop)
-  + [2.6 Index](#26-index)
-    - [2.6.1 Index Apply](#261-index-apply)
-    - [2.6.2 Index Create](#262-index-create)
-    - [2.6.3 Index Drop](#263-index-drop)
-    - [2.6.4 Index Ls](#264-index-ls)
-    - [2.6.5 Index Update](#265-index-update)
-  + [2.7 Init](#27-init)
-  + [2.8 Load](#28-load)
-  + [2.9 Log](#29-log)
-  + [2.10 Merge](#210-merge)
-  + [2.11 Query](#211-query)
-  + [2.12 Rename](#212-rename)
-  + [2.13 Serve](#213-serve)
-  + [2.14 Use](#214-use)
 
 ## 1. The Lake Model
 

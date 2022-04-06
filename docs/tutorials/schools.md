@@ -1,52 +1,14 @@
-# A Tour of Zed with Schools Data
+---
+sidebar_position: 3
+sidebar_label: Schools Data
+---
+
+# Zed and Schools Data
 
 > This document provides a beginner's overview of the Zed language
 using the [zq command](../zq/README.md) and
 [real-world data](../../testdata/edu) relating to California schools
 and test scores.
-
-## Contents
-
-* [1. Getting Started](#1-getting-started)
-* [2. Exploring the Data](#2-exploring-the-data)
-* [3. Searching](#3-searching)
-  * [3.1 Keyword Search](#31-keyword-search)
-  * [3.2 Globs](#32-globs)
-  * [3.3 Regular Expressions](#33-regular-expressions)
-  * [3.4 Literal Search](#34-literal-search)
-  * [3.5 Predicate Search](#35-predicate-search)
-    + [3.5.1 Type Dependence](#351-type-dependence)
-    + [3.5.2 Grep Predicates](#352-grep-predicates)
-    + [3.5.3 Containment](#353-containment)
-    + [3.5.4 Comparisons](#354-comparisons)
-  * [3.6 Boolean Logic](#36-boolean-logic)
-    + [3.6.1 Logical Grouping](#361-logical-grouping)
-* [4. Record Operators](#4-record-operators)
-  * [4.1 cut](#41-cut)
-  * [4.2 drop](#42-drop)
-  * [4.3 fuse](#43-fuse)
-  * [4.4 put](#44-put)
-  * [4.5 rename](#45-rename)
-* [5. Aggregates](#5-aggregates)
-  * [5.1 Output Field Names](#51-output-field-names)
-  * [5.2 Grouping](#52-grouping)
-  * [5.3 Where Clause](#53-where-clause)
-  * [5.4 Aggregate Functions](#54-aggregate-functions)
-    + [5.4.1 and](#541-and)
-    + [5.4.2 any](#542-any)
-    + [5.4.3 avg](#543-avg)
-    + [5.4.4 collect](#544-collect)
-    + [5.4.5 count](#545-count)
-    + [5.4.6 dcount](#546-dcount)
-    + [5.4.7 max](#547-max)
-    + [5.4.8 min](#548-min)
-    + [5.4.9 or](#549-or)
-    + [5.4.10 sum](#5410-sum)
-    + [5.4.11 union](#5411-union)
-  * [5.5 Group-by Examples](#55-group-by-examples)
-* [6. Sorting](#6-sorting)
-* [7. Sequence Filters](#7-sequence-filters)
-* [8. Value Construction](#8-value-construction)
 
 ## 1. Getting Started
 

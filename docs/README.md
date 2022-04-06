@@ -1,18 +1,38 @@
 ---
-sidebar_position: 0
-sidebar_label: Intro
+sidebar_position: 1
+sidebar_label: Introduction
 ---
 
-# Zed Documentation
+# The Zed Project
 
-The Zed documentation is organized as follows:
+---
 
-* [zq](zq/README.md) - the `zq` command-line tool and Zed query language
-* [zed](zed/README.md) - the `zed` command-line tool for managing Zed data lakes and the
-API for interacting with a Zed lake
-* [tutorials](tutorials) - tutorials on Zed
-* [formats](formats/README.md) - the Zed data model and serialization formats
-of Zed data
+Zed offers a new approach to data that makes it easier to manipulate and manage
+your data.
+
+With Zed's new [super-structured data model](formats/README.md#2-zed-a-super-structured-pattern),
+messy JSON data can easily be given the fully-typed precision of relational tables
+without giving up JSON's uncanny ability to represent eclectic data.
+
+## Getting Started
+
+Trying out Zed is easy: just [install](install.md) the command-line tool
+[`zq`](tooling/zq.md) and run through the [zq tutorial](tutorials/zq-primer.md).
+
+`zq` is a lot like [`jq`](https://stedolan.github.io/jq/)
+but is built from the ground up as a search and analytics engine based
+on the [Zed data model](formats/zed.md).  Since Zed data is a
+proper superset of JSON, `zq` also works natively with JSON.
+
+While `zq` and the Zed data formats are production quality, the Zed project's
+[Zed data lake](tooling/zed.md) is a bit [earlier in development](tooling/zed.md#status).
+
+For a non-technical user, Zed is as easy to use as web search
+while for a technical user, Zed exposes its technical underpinnings
+in a gradual slope, providing as much detail as desired,
+packaged up in the easy-to-understand
+[ZSON data format](formats/zson.md) and
+[Zed language](language/README.md).
 
 ## Terminology
 
@@ -24,53 +44,34 @@ that underlie the Zed formats.
 [sequential (ZNG)](formats/zng.md), [columnar (ZST)](formats/zst.md),
 and [human-readable (ZSON)](formats/zson.md) formats that all adhere to the
 same abstract Zed data model.
-* A [Zed lake](zed/README.md) is a collection of optionally-indexed Zed data stored
-across one or more [data pools](zed/README.md#14-data-pools) with ACID commit semantics and
+* A [Zed lake](tooling/zed.md) is a collection of optionally-indexed Zed data stored
+across one or more [data pools](tooling/zed.md#14-data-pools) with ACID commit semantics and
 accessed via a [Git](https://git-scm.com/)-like API.
-* The [Zed language](zq/language.md) is the system's dataflow language for performing
+* The [Zed language](language/README.md) is the system's dataflow language for performing
 queries, searches, analytics, transformations, or any of the above combined together.
-* A  [Zed query](zq/language.md#1-introduction) is a Zed script that performs
+* A  [Zed query](language/README.md#1-introduction) is a Zed script that performs
 search and/or analytics.
-* A [Zed shaper](zq/language.md#9-shaping) is a Zed script that performs
+* A [Zed shaper](language/README.md#9-shaping) is a Zed script that performs
 data transformation to _shape_
 the input data into the desired set of organizing Zed data types called "shapes",
 which are traditionally called _schemas_ in relational systems but are
 much more flexible in the Zed system.
 
-## Tooling
+## Diving Deeper
 
-The Zed system is managed and queried with the `zed` command,
-which is organized into numerous subcommands like the familiar command patterns
-of `docker` or `kubectrl`.
-Built-in help for the `zed` command and all of its subcommands is always
-accessible with the `-h` flag.
-
-The `zq` command offers a convenient slice of `zed` for running
-stand-alone, command-line queries on inputs from files, HTTP URLs, or S3.
-`zq` is like [`jq`](https://stedolan.github.io/jq/) but is easier and faster, utilizes the richer
-Zed data model, and interoperates with a number of other formats beyond JSON.
-If you don't need a Zed lake, you can install just the
-slimmer `zq` command which omits lake support and dev tools.
-
-`zq` is always installed alongside `zed`.  You might find yourself mixing and
-matching `zed` lake queries with `zq` local queries and stitching them
-all together with Unix pipelines.
-
-The [Zed language documentation](zq/language.md)
-is the best way to learn about `zq`.
+The [Zed language documentation](language/README.md)
+is the best way to learn about `zq` in depth.
 All of its examples use `zq` commands run on the command line.
 Run `zq -h` for a list of command options and online help.
 
-The [Zed Lake documentation](zed/README.md)
+The [Zed Lake documentation](tooling/zed.md)
 is the best way to learn about `zed`.
 All of its examples use `zed` commands run on the command line.
 Run `zed -h` or `-h` with any subcommand for a list of command options
 and online help.  The same language query that works for `zq` operating
 on local files or streams also works for `zed query` operating on a lake.
 
-To install zq and or zed, see the [installation instructions](install.md).
-
-### Design Philosophy
+## Design Philosophy
 
 The design philosophy for Zed is based on composable building blocks
 built from self-describing data structures.  Everything in a Zed lake
@@ -83,7 +84,7 @@ instance of `zq` by feeding the resulting Zed stream to stdin of `zq`, for examp
 zed query "from pool | ...remote query..." | zq "...local query..." -
 ```
 There is no need to configure the Zed entities with schema information
-like [proto configs](https://developers.google.com/protocol-buffers/docs/proto3)
+like [protobuf configs](https://developers.google.com/protocol-buffers/docs/proto3)
 or connections to
 [schema registries](https://docs.confluent.io/platform/current/schema-registry/index.html).
 
