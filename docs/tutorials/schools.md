@@ -862,7 +862,7 @@ produces
 The [summarize operator](../language/operators/summarize.md)
 performs zero or more aggregations with zero or more group-by expressions.
 Each aggregation is performed by an
-[aggregate function](../language/aggregate-functions/README.md)
+[aggregate function](../language/aggregates/README.md)
 that operates on batches of records to carry out a running computation over
 the values they contain.  The `summarize` keyword is optional as the operato
 can be [inferred from context](../language/README.md#26-implied-operators).
