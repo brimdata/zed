@@ -7,7 +7,7 @@ sidebar_label: Install
 
 ## Homebrew
 
-On macOS and Linux, you can also use [Homebrew](https://brew.sh/) to install `zq`:
+On macOS and Linux, you can use [Homebrew](https://brew.sh/) to install `zq`:
 
 ```bash
 brew install brimdata/tap/zq
@@ -28,7 +28,7 @@ Each archive includes the build for `zq` and `zed`.
 
 ## Building from source
 
-It's also easy to build `zed` from source:
+If you have Go installed, you can easily build `zed` from source:
 
 ```bash
 git clone https://github.com/brimdata/zed

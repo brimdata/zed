@@ -63,7 +63,7 @@ Run `zed -h` or `-h` with any subcommand for a list of command options
 and online help.  The same language query that works for `zq` operating
 on local files or streams also works for `zed query` operating on a lake.
 
-For installation instructions, see the [install doc](install.md).
+To install zq and or zed, see the [installation instructions](install.md).
 
 ### Design Philosophy
 
