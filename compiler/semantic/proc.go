@@ -236,7 +236,7 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
 	switch p := p.(type) {
 	case *ast.From:
-		if ctx == nil {
+		if adaptor == nil {
 			return nil, errors.New("from operator not allowed inside of expression")
 		}
 		return semFrom(ctx, scope, p, adaptor, head)

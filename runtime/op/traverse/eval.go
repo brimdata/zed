@@ -1,4 +1,4 @@
-package traverse
+wpackage traverse
 
 import (
 	"context"
@@ -12,10 +12,10 @@ import (
 // Expr provides provides glue to run a traversal subquery in expression
 // context.  It implements zbuf.Puller so it can serve as the data source
 // to the subquery as well as expr.Evalulator so it can be called from an
-// expression.  Each time it's Eval method is called, it propagates the value
+// expression.  Each time its Eval method is called, it propagates the value
 // to the batch channel to be pulled into the scope.  If there is
 // just one result, then the value is returned.  If there are multiple results
-// then they are returned in an array create union elements if the type varies.
+// then they are returned in an array (with union elements if the type varies).
 type Expr struct {
 	ctx     context.Context
 	zctx    *zed.Context
@@ -108,10 +108,7 @@ func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) *zed.Value {
 	union := e.zctx.LookupTypeUnion(utypes)
 	var b zcode.Builder
 	for _, val := range vals {
-		b.BeginContainer()
-		b.Append(zed.EncodeInt(int64(union.Selector(val.Type))))
-		b.Append(val.Bytes)
-		b.EndContainer()
+		zed.BuildUnion(union.Selector(val.Type), val.Bytes)
 	}
 	return ectx.NewValue(e.zctx.LookupTypeArray(union), b.Bytes())
 }

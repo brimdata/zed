@@ -1768,7 +1768,7 @@ parenthesized form:
 ```
 ( over <expr> [, <expr>...] [with <var>=<expr> [, ... <var>[=<expr>]] | <lateral> )
 ```
-> Note that the parenthesis disambiguates a lateral expression from a lateral
+> Note that the parentheses disambiguate a lateral expression from a lateral
 > dataflow operator.
 
 This form must always include a lateral scope as indicated by `<lateral>`,
@@ -1789,7 +1789,7 @@ produces
 {sum:12}
 {sum:6}
 ```
-This sturcture generalizes to any more complicated expression context,
+This structure generalizes to any more complicated expression context,
 e.g., we can embed multiple lateral expressions inside of a record literal
 and use the spread operator to tighten up the output:
 ```mdtest-command

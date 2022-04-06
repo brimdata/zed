@@ -762,7 +762,7 @@ OverExpr
       RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "scope": scope))
     }
   / "over" _ exprs:Exprs __ "|" __ scope:Sequential {
-      RETURN(MAP("kind": "OverExpr", "locals":NULL, "exprs": exprs, "scope": scope))
+      RETURN(MAP("kind": "OverExpr", "locals": NULL, "exprs": exprs, "scope": scope))
     }
 
 Record
