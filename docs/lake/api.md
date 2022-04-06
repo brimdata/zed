@@ -1,35 +1,16 @@
 ---
 sidebar_position: 1
-sidebar_label: Service API
+sidebar_label: API
 ---
 
-# Zed lake service API
+# Zed lake API
 
-> Note: This file contains a brief sketch of the functionality exposed in the
-> Zed API. More fined grained documentation will be forthcoming.
+---
 
-## Contents
+## _Status_
 
-* [Endpoints](#endpoints)
-  + [Pools](#pools)
-    - [Create Pool](#create-pool)
-    - [Rename Pool](#rename-pool)
-    - [Delete Pool](#delete-pool)
-  + [Branches](#branches):
-    - [Load Data](#load-data)
-    - [Get Branch](#get-branch)
-    - [Delete Branch](#delete-branch)
-    - [Delete Data](#delete-data)
-    - [Merge Branches](#merge-branches)
-    - [Revert](#revert)
-    - [Index Object](#index-object)
-    - [Update Index](#update-index)
-  + [Query](#query)
-  + [Events](#events)
-  + [Index Rules](#index-rules)
-    - [Create Index Rule](#create-index-rule)
-    - [Delete Index Rule](#delete-index-rule)
-* [Media Types](#media-types)
+> This is a brief sketch of the functionality exposed in the
+> Zed API. More detailed documentation of the API will be forthcoming.
 
 ## Endpoints
 

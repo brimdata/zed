@@ -1,8 +1,11 @@
-# zq - command-line Zed query
+---
+sidebar_position: 0
+sidebar_label: zq
+---
 
-## TL;DR
+# zq
 
-> `zq` is a command-line tool that uses the [Zed language](language.md)
+> **TL;DR** `zq` is a command-line tool that uses the [Zed language](../language/README.md)
 for pipeline-style search and analytics.  `zq` can query a variety
 of data formats in files, over HTTP, or in S3 storage.
 It is particularly fast when operating on data in the Zed-native [ZNG](../formats/zng.md) format.
@@ -10,32 +13,6 @@ It is particularly fast when operating on data in the Zed-native [ZNG](../format
 > The `zq` design philosophy blends the query/search-tool approach
 of `jq`, `awk`, and `grep` with the command-line, embedded database approach
 of `sqlite` and `duckdb`.
-
-## Contents
-
-* [1. Usage](#1-usage)
-* [2. Input Formats](#2-input-formats)
-  + [2.1 Hardwired Input Format](#21-hard-wired-input-format)
-  + [2.2 Auto-detection](#22-auto-detection)
-  + [2.3 ZSON-JSON Auto-detection](#23-zson-json-auto-detection)
-* [3. Output Formats](#3-output-formats)
-  + [3.1 Output Format Selection](#31-output-format-selection)
-  + [3.2 ZSON Pretty Printing](#32-zson-pretty-printing)
-  + [3.3 Pipeline-friendly ZNG](#33-pipeline-friendly-zng)
-  + [3.4 Schema-rigid Outputs](#34-schema-rigid-outputs)
-    - [3.4.1 Fusing Schemas](#341-fusing-schemas)
-    - [3.4.2 Splitting Schemas](#342-splitting-schemas)
-* [4. Query Debugging](#4-query-debugging)
-* [5. Error Handling](#5-error-handling)
-* [6. Examples](#6-examples)
-* [7. Performance](#7-performance)
-  + [7.1 Fast Pattern Matching](#71-fast-pattern-matching)
-  + [7.2 Efficient JSON Processing](#72-efficient-json-processing)
-  + [7.3 Performance Comparisons](#73-performance-comparisons)
-    - [7.3.1 Test Data](#731-test-data)
-    - [7.3.2 File Sizes](#732-file-sizes)
-    - [7.3.3 Tests](#733-tests)
-    - [7.3.4 Results](#734-results)
 
 ## 1. Usage
 
@@ -45,7 +22,7 @@ zq [ options ] query
 ```
 `zq` is a command-line tool for processing data in diverse input
 formats, providing search, analytics, and extensive transformations
-using the [Zed language](language.md). A query typically applies Boolean logic
+using the [Zed language](../language/README.md). A query typically applies Boolean logic
 or keyword search to filter the input, then transforms or analyzes
 the filtered stream.  Output is written to one or more files or to
 standard output.
@@ -75,7 +52,7 @@ When run with input arguments, each input's format is automatically inferred
 ([as described below](#21-auto-detection)) and each input is scanned
 in the order appearing on the command line forming the input stream.
 
-A query expressed in the [Zed language](language.md)
+A query expressed in the [Zed language](../language/README.md)
 may be optionally specified and applied to the input stream.
 
 If no query is specified, the inputs are scanned without modification
@@ -96,8 +73,8 @@ the Zed program to run and forces all arguments to be interpreted as inputs.
 
 When `zq` is run with a query and no input arguments, then the query must
 begin with a
-* a [from, file, or get operator](operators/from.md), or
-* an explicit or implied [yield operator](operators/yield.md).
+* a [from, file, or get operator](../language/operators/from.md), or
+* an explicit or implied [yield operator](../language/operators/yield.md).
 
 In the case of a `yield` with no inputs, the query is run with
 a single input value of `null`.  This provides a convenient means to run in a
@@ -110,7 +87,7 @@ emits
 ```mdtest-output
 2
 ```
-Note here that the query `1+1` [implies](language.md#26-implied-operators)
+Note here that the query `1+1` [implies](../language/README.md#26-implied-operators)
 `yield 1+1`.
 
 ## 2. Input Formats
@@ -373,13 +350,13 @@ If you are ever stumped about how the `zq` compiler is parsing your query,
 you can always run `zq -C` to compile and display your query in canonical form
 without running it.
 This can be especially handy when you are learning the language and
-[its shortcuts](language.md#26-implied-operators).
+[its shortcuts](../language/README.md#26-implied-operators).
 
 For example, this query
 ```mdtest-command
 zq -C 'has(foo)'
 ```
-is an implied [where operator](operators/where.md), which matches values
+is an implied [where operator](../language/operators/where.md), which matches values
 that have a field `foo`, i.e.,
 ```mdtest-output
 where has(foo)
@@ -388,7 +365,7 @@ while this query
 ```mdtest-command
 zq -C 'lower(foo)'
 ```
-is an implied [yield operator](operators/yield.md), which produces the lower case
+is an implied [yield operator](../language/operators/yield.md), which produces the lower case
 version of the presumed string in field `foo`, i.e.,
 ```mdtest-output
 yield lower(foo)
@@ -402,10 +379,10 @@ as soon as they happen and cause the `zq` process to exit.
 On the other hand,
 runtime errors resulting from the Zed query itself
 do not halt execution.  Instead, these error conditions produce
-[first-class Zed errors](language.md#53-first-class-errors)
+[first-class Zed errors](../language/README.md#53-first-class-errors)
 in the data output stream interleaved with any valid results.
 Such errors are easily queried with the
-[is_error function](functions/is_error.md).
+[is_error function](../language/functions/is_error.md).
 
 This approach provides a robust technique for debugging complex query pipelines,
 where errors can be wrapped in one another providing stack-trace-like debugging
@@ -435,13 +412,13 @@ error("divide by zero")
 
 ## 6. Examples
 
-As you may have noticed, many examples of the [Zed language](language.md)
+As you may have noticed, many examples of the [Zed language](../language/README.md)
 are illustrated using this pattern
 ```
 echo <values> | zq <query> -
 ```
-which is used throughout the [language documentation](language.md)
-and [operator reference](reference.md).
+which is used throughout the [language documentation](../language/README.md)
+and [operator reference](../language/operators/README.md).
 
 The language documentation and [tutorials directory](../tutorials)
 have many examples, but here are a few more simple `zq` use cases.
@@ -551,7 +528,7 @@ for sparse results, many frames are discarded without their uncompressed bytes
 having to be processed any further.
 
 While this pre-search technique results in very fast brute-force pattern matching,
-[search indexes](../zed/README.md#search-indexes)
+[search indexes](zed.md#search-indexes)
 can also be created when Zed data is managed by a Zed lake
 thereby avoiding scans of data altogether as the index pinpoints the locations
 of specific values in the lake.
@@ -719,8 +696,8 @@ However, the benefit of Zed is that no flattening is required.  And unlike `sqli
 `zq` is not intended to be a database.  That said, there is no reason why database
 performance techniques cannot be applied to the Zed model and this is precisely what the
 open-source Zed project intends to do.  As a first step, with a
-[Zed lake](../zed/README.md), you can build type-flexible
-[search indexes](../zed/README.md#search-indexes)
+[Zed lake](zed.md), you can build type-flexible
+[search indexes](zed.md#search-indexes)
 to scale searches across very large stores of Zed data.
 
 Stay tuned!

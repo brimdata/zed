@@ -3,22 +3,9 @@ sidebar_position: 4
 sidebar_label: ZJSON
 ---
 
-# Zed over JSON (ZJSON)
+# ZJSON Specification
 
-* [1. Introduction](#1-introduction)
-* [2. The Format](#2-the-formant)
-  + [2.1 Type Encoding](#21-type-encoding)
-    - [2.1.1 Record Type](#211-record-type)
-    - [2.1.2 Array Type](#212-array-type)
-    - [2.1.3 Set Type](#213-set-type)
-    - [2.1.4 Map Type](#214-map-type)
-    - [2.1.5 Union type](#215-union-type)
-    - [2.1.6 Enum Type](#216-enum-type)
-    - [2.1.7 Error Type](#217-error-type)
-    - [2.1.8 Named Type](#218-named-type)
-  + [2.2 Value Encoding](#22-value-encoding)
-* [3. Object Framing](#3-object-framing)
-* [4. Example](#4-example)
+---
 
 ## 1. Introduction
 

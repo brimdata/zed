@@ -5,66 +5,7 @@ sidebar_label: Zed Language
 
 # The Zed Language
 
-* [1. Introduction](#1-introduction)
-* [2. The Dataflow Model](#2-the-dataflow-model)
-  + [2.1 Dataflow Sources](#21-dataflow-sources)
-  + [2.2 Dataflow Operators](#22-dataflow-operators)
-  + [2.3 The Special Value this](#23-the-special-value-this)
-  + [2.4 Implied Field References](#24-implied-field-references)
-  + [2.5 Field Assignments](#25-field-assignments)
-  + [2.6 Implied Operators](#26-implied-operators)
-* [3. Const Statements](#3-const-statements)
-* [4. Type Statements](#4-type-statements)
-* [5. Data Types](#5-data-types)
-  + [5.1 First-class Types](#51-first-class-types)
-  + [5.2 Named Types](#52-named-types)
-  + [5.3 First-class Errors](#53-first-class-errors)
-    - [5.3.1 Missing and Quiet](#531-missing-and-quiet)
-* [6. Expressions](#6-expressions)
-  + [6.1 Arithmetic](#61-arithmetic)
-  + [6.2 Comparisons](#62-comparisons)
-  + [6.3 Containment](#63-containment)
-  + [6.4 Logic](#64-logic)
-  + [6.5 Field Dereference](#65-field-dereference)
-  + [6.6 Indexing](#66-indexing)
-  + [6.7 Slices](#67-slices)
-  + [6.8 Conditional](#68-conditional)
-  + [6.9 Function Calls](#69-function-calls)
-  + [6.10 Aggregate Function Calls](#610-aggregate-function-calls)
-  + [6.11 Literals](#611-literals)
-    - [6.11.1 String Interpolation](#6111-string-interpolation)
-    - [6.11.2 Record Expressions](#6112-record-expressions)
-    - [6.11.3 Array Expressions](#6113-array-expressions)
-    - [6.11.4 Set Expressions](#6114-set-expressions)
-    - [6.11.5 Map Expressions](#6115-map-expressions)
-    - [6.11.6 Union Values](#6116-union-values)
-  + [6.12 Constants](#612-constants)
-  + [6.13 Type Definitions](#613-type-definitions)
-  + [6.14 Casts](#614-casts)
-* [7. Search Expressions](#7-search-expressions)
-  + [7.1 Search Patterns](#71-search-patterns)
-    - [7.1.1 Regular Expressions](#711-regular-expressions)
-    - [7.1.2 Globs](#712-globs)
-  + [7.2 Search Logic](#72-search-logic)
-    - [7.2.1 Search Terms](#721-search-terms)
-      - [7.2.1.1 Regular Expression Search Term](#7211-regular-expression-search-term)
-      - [7.2.1.2 Glob Search Term](#7212-glob-search-term)
-      - [7.2.1.3 Keyword Search Term](#7213-keyword-search-term)
-      - [7.2.1.4 String Literal Search Term](#7214-string-literal-search-term)
-      - [7.2.1.5 Non-string Literal Search Term](#7215-non-string-literal-search-term)
-      - [7.2.1.6 Predicate Search Term](#7216-predicate-search-term)
-  + [7.3 Boolean Logic](#73-boolean-logic)
-* [8. Lateral Subqueries](#8-lateral-subqueries)
-  + [8.1 Lateral Scope](#81-lateral-scope)
-* [9. Shaping](#9-shaping)
-  + [9.1 Cast](#91-cast)
-  + [9.2 Crop](#92-crop)
-  + [9.3 Fill](#93-fill)
-  + [9.4 Order](#94-order)
-  + [9.5 Shape](#95-shape)
-* [10. Type Fusion](#10-type-fusion)
-  + [10.1 Fuse Operator](#101-fuse-operator)
-  + [10.2 Fuse Function](#102-fuse-function)
+---
 
 ## 1. Introduction
 
@@ -161,7 +102,7 @@ maintained in GitHub.  Both forms are valid Zed queries.
 In Zed, each operator takes its input from the output of its upstream operator beginning
 either with a data source or with an implied source.
 
-All available operators are listed on the [reference page](reference.md#operators).
+All available operators are listed on the [reference page](operators/README.md).
 
 ### 2.1 Dataflow Sources
 
@@ -1039,7 +980,7 @@ produces
 
 ### 6.10 Aggregate Function Calls
 
-[Aggregate functions](reference.md#aggregates) may be called within an expression.
+[Aggregate functions](aggregates/README.md) may be called within an expression.
 Unlike the aggregation context provided by a summarizing group-by, such calls
 in expression context yield an output value for each input value.
 
@@ -1476,7 +1417,7 @@ using Boolean logic.
 > Note that when processing ZNG data, the Zed runtime performs a multi-threaded
 > Boyer-Moore scan over decompressed data buffers before parsing any data.
 > This allows large buffers of data to be efficiently discarded and skipped when
-> searching for rarely occurring values.  For a [Zed lake](../zed), search indexes
+> searching for rarely occurring values.  For a [Zed lake](../lake/format.md), search indexes
 > may also be configured to further accelerate searches.
 > In a forthcoming release, Zed will also offer an approach for locating
 > delimited words within string fields, which will allow accelerated
@@ -1624,7 +1565,7 @@ the "in" operator, e.g.,
 
 ##### 7.2.1.6 Predicate Search Term
 
-Any Boolean-valued [function](reference.md) like `is()`, `has()`,
+Any Boolean-valued [function](functions/README.md) like `is()`, `has()`,
 `grep()` etc. and any [comparison expression](#comparisons)
 may be used as a search term and mixed into a search expression.
 

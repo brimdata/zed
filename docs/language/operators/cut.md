@@ -10,7 +10,7 @@ cut <field>[:=<expr>] [, <field>[:=<expr>] ...]
 ### Description
 
 The `cut` operator extracts values from each input record in the
-form of one or more [field assignments](../language.md#field-assignments),
+form of one or more [field assignments](../README.md#field-assignments),
 creating one field for each expression.  Unlike the `put` operator,
 which adds or modifies the fields of a record, `cut` retains only the
 fields enumerated, much like a SQL projection.
@@ -34,7 +34,7 @@ resulting in `error("missing")` for expressions that reference fields of `this`.
 
 Note that when the field references are all top level,
 `cut` is a special case of a yield with a
-[record literal](../language.md#record-literal) having the form:
+[record literal](../README.md#record-literal) having the form:
 ```
 yield {<field>:<expr> [, <field>:<expr>...]}
 ```
