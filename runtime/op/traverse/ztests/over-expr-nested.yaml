@@ -1,0 +1,11 @@
+zed: yield (over a | over this | collect(string(this)))
+
+input: |
+  {a:[1,2]}
+  {a:[3,4]}
+  {a:[5,6]}
+
+output: |
+  {collect:["1","2"]}
+  {collect:["3","4"]}
+  {collect:["5","6"]}

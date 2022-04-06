@@ -87,6 +87,12 @@ type (
 		Op      string `json:"op"`
 		Operand Expr   `json:"operand"`
 	}
+	OverExpr struct {
+		Kind  string      `json:"kind" unpack:""`
+		Defs  []Def       `json:"defs"`
+		Exprs []Expr      `json:"exprs"`
+		Scope *Sequential `json:"scope"`
+	}
 )
 
 func (*Field) recordAST()  {}
@@ -127,6 +133,7 @@ func (*SetExpr) ExprDAG()      {}
 func (*This) ExprDAG()         {}
 func (*UnaryExpr) ExprDAG()    {}
 func (*Var) ExprDAG()          {}
+func (*OverExpr) ExprDAG()     {}
 
 func IsThis(e Expr) bool {
 	if p, ok := e.(*This); ok {

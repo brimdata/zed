@@ -152,6 +152,13 @@ type EntryExpr struct {
 	Value Expr `json:"value"`
 }
 
+type OverExpr struct {
+	Kind   string      `json:"kind" unpack:""`
+	Locals []Def       `json:"locals"`
+	Exprs  []Expr      `json:"exprs"`
+	Scope  *Sequential `json:"scope"`
+}
+
 func (*UnaryExpr) ExprAST()   {}
 func (*BinaryExpr) ExprAST()  {}
 func (*Conditional) ExprAST() {}
@@ -170,6 +177,8 @@ func (*RecordExpr) ExprAST() {}
 func (*ArrayExpr) ExprAST()  {}
 func (*SetExpr) ExprAST()    {}
 func (*MapExpr) ExprAST()    {}
+
+func (*OverExpr) ExprAST() {}
 
 func (*SQLExpr) ExprAST() {}
 
