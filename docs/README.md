@@ -17,7 +17,7 @@ without giving up JSON's uncanny ability to represent eclectic data.
 ## Getting Started
 
 Trying out Zed is easy: just [install](install.md) the command-line tool
-[`zq`](commands/zq.md) and run through the [zq tutorial](tutorials/zq-primer.md).
+[`zq`](commands/zq.md) and run through the [zq tutorial](tutorials/zq.md).
 
 `zq` is a lot like [`jq`](https://stedolan.github.io/jq/)
 but is built from the ground up as a search and analytics engine based
