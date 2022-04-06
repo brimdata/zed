@@ -412,7 +412,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	var commit ksuid.KSUID
 	if len(payload.ObjectIDs) > 0 {
 		if payload.Where != "" {
-			w.Error(srverr.ErrInvalid("property object_ids and where cannot both be set"))
+			w.Error(srverr.ErrInvalid("object_ids and where cannot both be set"))
 			return
 		}
 		tags, err := lakeparse.ParseIDs(payload.ObjectIDs)
