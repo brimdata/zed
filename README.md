@@ -16,7 +16,7 @@ on the [Zed data model](docs/formats/zed.md).  Since Zed data is a
 proper superset of JSON, `zq` also works natively with JSON.
 
 While `zq` and the Zed data formats are production quality, the Zed project's
-[Zed data lake](docs/zed/README.md) is a bit [earlier in development](docs/tooling/zed.md#status).
+[Zed data lake](docs/tooling/zed.md) is a bit [earlier in development](docs/tooling/zed.md#status).
 
 For a non-technical user, Zed is as easy to use as web search
 while for a technical user, Zed exposes its technical underpinnings

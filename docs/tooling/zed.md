@@ -17,13 +17,13 @@ sidebar_label: zed
 
 ## _Status_
 
-> While [`zq`](../zq/README.md) and the [Zed formats](../formats/README.md)
+> While [`zq`](zq.md) and the [Zed formats](../formats/README.md)
 > are production quality, the Zed lake is still fairly early in development
 > and alpha quality.
 > That said, Zed lakes can be utilized quite effectively at small scale,
 > or at larger scales when scripted automation
 > is deployed to manage the lake's data layout and create any needed search indexes
-> via the [lake API](api.md).
+> via the [lake API](../lake/api.md).
 >
 > Enhanced scalability with self-tuning configuration is under development.
 
@@ -70,7 +70,7 @@ bite-sized chunks for learning how the system works and how the different
 components come together.
 
 While the CLI-first approach provides these benefits,
-all of the functionality is also exposed through [an API](api.md) to
+all of the functionality is also exposed through [an API](../lake/api.md) to
 a Zed service.  Many use cases involve an application like
 [Brim](https://github.com/brimdata/brim) or a
 programming environment like Python/Pandas interacting
@@ -245,7 +245,7 @@ As pool data is often comprised of Zed records (analogous to JSON objects),
 the pool key is typically a field of the stored records.
 When pool data is not structured as records/objects (e.g., scalar or arrays or other
 non-record types), then the pool key would typically be configured
-as the [special value `this`](../zq/language.md#23-the-special-value-this).
+as the [special value `this`](../language/README.md#23-the-special-value-this).
 
 Data can be efficiently scanned via ranges of values conforming to the pool key.
 
@@ -269,7 +269,7 @@ range scans over such data is impaired.
 
 Because commits are transactional and immutable, a query
 sees its entire data scan as a fixed "snapshot" with respect to the
-commit history.  In fact, Zed's [from operator](../zq/operators/from.md)
+commit history.  In fact, Zed's [from operator](../language/operators/from.md)
 allows a commit object to be specified with the `@` suffix to a
 pool reference, e.g.,
 ```
@@ -444,7 +444,7 @@ The `-orderby` option indicates the pool key that is used to sort
 the data in lake, which may be in ascending or descending order.
 
 If a pool key is not specified, then it defaults to
-the [special value `this`](../zq/language.md#23-the-special-value-this).
+the [special value `this`](../language/README.md#23-the-special-value-this).
 
 A newly created pool is initialized with a branch called `main`.
 
@@ -572,8 +572,8 @@ schema-agnostic fashion.  Data of any _shape_ can be stored in any pool
 and arbitrary data _shapes_ can coexist side by side.
 
 As with `zq`,
-the [input arguments](../zq/README.md#1-usage) can be in
-any [supported format](../zq/README.md#2-input-formats) and
+the [input arguments](zq.md#1-usage) can be in
+any [supported format](zq.md#2-input-formats) and
 the input format is auto-detected if `-i` is not provided.  Likewise,
 the inputs may be URLs, in which case, the `load` command streams
 the data from a Web server or S3 and into the lake.
@@ -660,7 +660,7 @@ commit history.
 
 Since commit objects are stored as Zed, the metadata can easily be
 queried by running the `log -f zng` to retrieve the log in ZNG format,
-for example, and using [`zq`](../zq/README.md) to pull the metadata out
+for example, and using [`zq`](zq.md) to pull the metadata out
 as in:
 ```
 zed log -f zng | zq 'has(meta) | yield {id,meta}' -
@@ -725,7 +725,7 @@ according to configured policies and logic.
 zed query [options] <query>
 ```
 The `query` command runs a Zed program with data from a lake as input.
-A query typically begins with a [from operator](../zq/operators/from.md)
+A query typically begins with a [from operator](../language/operators/from.md)
 indicating the pool and branch to use as input.  If `from` is not present, then the
 query reads from the working branch.
 

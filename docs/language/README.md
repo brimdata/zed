@@ -102,7 +102,7 @@ maintained in GitHub.  Both forms are valid Zed queries.
 In Zed, each operator takes its input from the output of its upstream operator beginning
 either with a data source or with an implied source.
 
-All available operators are listed on the [reference page](reference.md#operators).
+All available operators are listed on the [reference page](operators/README.md).
 
 ### 2.1 Dataflow Sources
 
@@ -980,7 +980,7 @@ produces
 
 ### 6.10 Aggregate Function Calls
 
-[Aggregate functions](reference.md#aggregates) may be called within an expression.
+[Aggregate functions](aggregates/README.md) may be called within an expression.
 Unlike the aggregation context provided by a summarizing group-by, such calls
 in expression context yield an output value for each input value.
 
@@ -1417,7 +1417,7 @@ using Boolean logic.
 > Note that when processing ZNG data, the Zed runtime performs a multi-threaded
 > Boyer-Moore scan over decompressed data buffers before parsing any data.
 > This allows large buffers of data to be efficiently discarded and skipped when
-> searching for rarely occurring values.  For a [Zed lake](../zed), search indexes
+> searching for rarely occurring values.  For a [Zed lake](../lake/format.md), search indexes
 > may also be configured to further accelerate searches.
 > In a forthcoming release, Zed will also offer an approach for locating
 > delimited words within string fields, which will allow accelerated
@@ -1565,7 +1565,7 @@ the "in" operator, e.g.,
 
 ##### 7.2.1.6 Predicate Search Term
 
-Any Boolean-valued [function](reference.md) like `is()`, `has()`,
+Any Boolean-valued [function](functions/README.md) like `is()`, `has()`,
 `grep()` etc. and any [comparison expression](#comparisons)
 may be used as a search term and mixed into a search expression.
 

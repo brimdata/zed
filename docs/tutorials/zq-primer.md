@@ -6,10 +6,10 @@ sidebar_label: zq
 # zq Tutorial
 
 This tour provides new users of `zq` an overview of `zq` and
-the [Zed language](../zq/language.md)
+the [Zed language](../language/README.md)
 by walking through a number of examples on the command-line.
 This should get you started without having to read through all the gory details
-of the [Zed language](../zq/language.md) or [`zq` command-line usage](../zq/README.md).
+of the [Zed language](../language/README.md) or [`zq` command-line usage](../tooling/zq.md).
 
 We'll start with some simple one-liners on the command line where we feed
 some data to `zq` with `echo` and specify `-` for `zq` input to indicate
@@ -37,7 +37,7 @@ doing interesting things on that input, and emitting results, of course, as JSON
 
 `jq` is awesome and powerful, but its syntax and computational model can
 sometimes be daunting and difficult.  We tried to make `zq` really easy and intuitive,
-and it is usually faster, sometimes [much faster](../zq/README.md#7-performance),
+and it is usually faster, sometimes [much faster](../tooling/zq.md#7-performance),
 than `jq`.
 
 To this end, if you want full JSON compatibility without having to delve into the
@@ -58,7 +58,7 @@ and you get
 ```
 With `zq`, the mysterious `jq` value `.` is instead called
 the almost-as-mysterious value
-[`this`](../zq/language.md#23-the-special-value-this) and you say:
+[`this`](../language/README.md#23-the-special-value-this) and you say:
 ```mdtest-command
 echo '1 2 3' | zq -z 'this+1' -
 ```
@@ -95,7 +95,7 @@ expression `2` is evaluated for each input value, and the value `2`
 is produced each time, so three copies of `2` are emitted.
 
 In `zq` however, `2` by itself is interpreted as a search and is
-[shorthand for](../zq/language.md#26-implied-operators) `search 2` so the command
+[shorthand for](../language/README.md#26-implied-operators) `search 2` so the command
 ```mdtest-command
 echo '1 2 3' | zq -z 2 -
 ```
@@ -127,7 +127,7 @@ produces
 Doing searches like this in `jq` would be hard.
 
 That said, we can emulate the `jq` transformation stance by explicitly
-indicating that we want to [yield](../zq/operators/yield.md)
+indicating that we want to [yield](../language/operators/yield.md)
 the result of the expression evaluated for each input value, e.g.,
 ```mdtest-command
 echo '1 2 3' | zq -z 'yield 2' -
@@ -157,7 +157,7 @@ go from ZSON to an efficient binary row format ([ZNG](../formats/zng.md))
 and columnar ([ZST](../formats/zst.md)) --- and vice versa ---
 with complete fidelity and no loss of information.  In this tour,
 we'll stick to ZSON (though for large data sets,
-[ZNG is much faster](../zq/README.md#7-performance)).
+[ZNG is much faster](../tooling/zq.md#7-performance)).
 
 The first thing you'll notice about ZSON is that you don't need
 quotations around field names.  We can see this by taking some JSON
@@ -268,7 +268,7 @@ As is often the case with semi-structured systems, you deal with
 nested values all the time: in JSON, data is nested with objects and arrays,
 while in Zed, data is nested with "records" and arrays (as well as other complex types).
 
-[Record expressions](../zq/language.md#6112-record-expressions)
+[Record expressions](../language/README.md#6112-record-expressions)
 are rather flexible with `zq` and look a bit like JavaScript
 or `jq` syntax, e.g.,
 ```mdtest-command
@@ -314,7 +314,7 @@ produces
 
 Sometimes you just want to extract or mutate certain fields of records.
 
-Similar to the Unix `cut` command, the Zed [cut operator](../zq/operators/cut.md)
+Similar to the Unix `cut` command, the Zed [cut operator](../language/operators/cut.md)
 extracts fields, e.g.,
 ```mdtest-command
 echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'cut s' -
@@ -324,7 +324,7 @@ produces
 {s:"foo"}
 {s:"bar"}
 ```
-while the [put operator](../zq/operators/put.md) mutates existing fields
+while the [put operator](../language/operators/put.md) mutates existing fields
 or adds new fields, e.g.,
 ```mdtest-command
 echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'put val:=123,pi:=3.14' -
@@ -358,7 +358,7 @@ produces
 ```
 Sometimes you expect missing errors to occur sporadically and just want
 to ignore them, which can you easily do with the
-[quiet function](../zq/functions/quiet.md), e.g.,
+[quiet function](../language/functions/quiet.md), e.g.,
 ```mdtest-command
 echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'cut quiet(val)' -
 ```
@@ -370,7 +370,7 @@ produces
 ## Union Types
 
 One of the tricks `zq` uses to represent JSON data in its structured type system
-is [union types](../zq/language.md#6116-union-values).
+is [union types](../language/README.md#6116-union-values).
 Most of the time, you don't need to worry about unions
 but they show up from time to time.  Even when
 they show up, Zed just tries to "do the right thing" so you usually
@@ -412,7 +412,7 @@ In other words, Zed has
 [first-class](https://en.wikipedia.org/wiki/First-class_citizen) types.
 
 The type of any value in `zq` can be accessed via the
-[typeof function](../zq/functions/typeof.md), e.g.,
+[typeof function](../language/functions/typeof.md), e.g.,
 ```mdtest-command
 echo '1 "foo" 10.0.0.1' | zq -z 'yield typeof(this)' -
 ```
@@ -426,7 +426,7 @@ What's the big deal here?  We can print out the type of something.  Yawn.
 
 Au contraire, this is really quite powerful because we can
 use types as values to functions, e.g., as a dynamic argument to
-the [cast function](../zq/functions/cast.md):
+the [cast function](../language/functions/cast.md):
 ```mdtest-command
 echo '{a:0,b:"2"}{a:0,b:"3"}' | zq -z 'yield cast(b, typeof(a))' -
 ```
@@ -486,7 +486,7 @@ false
 ## Sample
 
 Sometimes you'd like to see a sample value of each shape, not its type.
-This is easy to do with the [any aggregate function](../zq/aggregates/any.md),
+This is easy to do with the [any aggregate function](../language/aggregates/any.md),
 e.g,
 ```mdtest-command
 echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -z 'val:=any(this) by typeof(this) | sort val | yield val' -
@@ -496,7 +496,7 @@ produces
 {s:"foo"}
 {x:1,y:2}
 ```
-We like this pattern so much there is a shortcut [sample operator](../zq/operators/sample.md), e.g.,
+We like this pattern so much there is a shortcut [sample operator](../language/operators/sample.md), e.g.,
 ```mdtest-command
 echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -z 'sample this | sort this' -
 ```
@@ -526,7 +526,7 @@ This is where you might have to spend a little bit of time coding up
 the right `zq` logic to disentangle a JSON mess. But once the data is cleaned up,
 you can leave it in a Zed format and not worry again.
 
-To do so, the [fuse operator](../zq/operators/fuse.md) comes in handy.
+To do so, the [fuse operator](../language/operators/fuse.md) comes in handy.
 Let's say you have this sequence of data:
 ```
 {a:1,b:null}
@@ -602,7 +602,7 @@ produces
 1
 ```
 Hmm, there's just one value.  It's probably a big JSON array but let's check with
-the [kind function](../zq/functions/kind.md), and as expected:
+the [kind function](../language/functions/kind.md), and as expected:
 ```mdtest-command dir=docs/tutorials
 zq -z 'kind(this)' prs.json
 ```
@@ -623,7 +623,7 @@ pull-request objects as elements of one array representing a single JSON value.
 
 Let's see what sorts of things are in this array.  Here, we need to enumerate
 the items from the array and do something with them.  So how about we use
-the [over operator](../zq/operators/over.md)
+the [over operator](../language/operators/over.md)
 to traverse the array and count the array items by their "kind",
 ```mdtest-command dir=docs/tutorials
 zq -z 'over this | count() by kind(this)' prs.json
@@ -657,7 +657,7 @@ produces
 All that data across the samples and only three shapes.
 They must each be really big.  Let's check that out.
 
-We can use the [len function](../zq/functions/len.md) on the records to
+We can use the [len function](../language/functions/len.md) on the records to
 see the size of each of the four records:
 ```mdtest-command dir=docs/tutorials
 zq -z 'over this | sample | len(this) | sort this' prs.json
@@ -755,7 +755,7 @@ zq -Z 'over this | sample _links' prs.json
 ```
 While these fields have some useful information, we'll decide to drop them here
 and focus on other top-level fields.  To do this, we can use the
-[drop operator](../zq/operators/drop.md) to whittle down the data:
+[drop operator](../language/operators/drop.md) to whittle down the data:
 ```
 zq -Z 'over this | fuse | drop head,base,_link | sample' prs.json
 ```
@@ -851,7 +851,7 @@ and you will get strings that are all ISO dates:
 ...
 ```
 To fix those strings, we simply transform the fields in place using the
-(implied) [put operator](../zq/operators/put.md) and redirect the final
+(implied) [put operator](../language/operators/put.md) and redirect the final
 output the ZNG file `prs.zng`:
 ```
 zq 'closed_at:=time(closed_at),merged_at:=time(merged_at),created_at:=time(created_at),updated_at:=time(updated_at)' prs2.zng > prs.zng
@@ -870,7 +870,7 @@ which now gives:
 ```
 and we can see that the date fields are correctly typed as type `time`!
 
-> Note that we sorted the output values here using the [sort operator](../zq/operators/sort.md)
+> Note that we sorted the output values here using the [sort operator](../language/operators/sort.md)
 > to produce a consistent output order since aggregations can be run in parallel
 > to achieve scale and do not guarantee their output order.
 
@@ -922,11 +922,11 @@ DATE                 NUMBER TITLE
 2019-11-12T16:49:07Z PR #6  a few clarifications to the zson spec
 ...
 ```
-Note that we used [string interpolation](../zq/language.md#6111-string-interpolation)
+Note that we used [string interpolation](../language/README.md#6111-string-interpolation)
 to convert the field `number` into a string and format it with surrounding text.
 
 Instead of old PRs, we can get the latest list of PRs using the
-[tail operator](../zq/operators/tail.md) since we know the data is sorted
+[tail operator](../language/operators/tail.md) since we know the data is sorted
 chronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
 zq -f table 'tail 5 | {DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
@@ -961,13 +961,13 @@ the login field from each record:
 zq -z 'over requested_reviewers | collect(login)' prs.zng
 ```
 Oops, this gives us an array of the reviewer logins
-with repetitions since [collect](../zq/aggregates/collect.md)
+with repetitions since [collect](../language/aggregates/collect.md)
 collects each item that it encounters into an array:
 ```mdtest-output
 {collect:["mccanne","nwt","henridf","mccanne","nwt","mccanne","mattnibs","henridf","mccanne","mattnibs","henridf","mccanne","mattnibs","henridf","mccanne","nwt","aswan","henridf","mccanne","nwt","aswan","philrz","mccanne","mccanne","aswan","henridf","aswan","mccanne","nwt","aswan","mikesbrown","henridf","aswan","mattnibs","henridf","mccanne","aswan","nwt","henridf","mattnibs","aswan","aswan","mattnibs","aswan","henridf","aswan","henridf","mccanne","aswan","aswan","mccanne","nwt","aswan","henridf","aswan"]}
 ```
 What we'd prefer is a set of reviewers where each reviewer appears only once.  This
-is easily done with the [union](../zq/aggregates/union.md) aggregate function
+is easily done with the [union](../language/aggregates/union.md) aggregate function
 (not to be confused with union types) which
 computes the set-wise union of its input and produces a Zed `set` type as its
 output.  In this case, the output is a set of strings, written `|[string]|`
@@ -988,7 +988,7 @@ in the graph and each set of reviewers is another node.
 
 So as a first step, let's figure out how to create each edge, where an edge
 is a relation between the requesting user and the set of reviewers.  We can
-create this in Zed with a ["lateral subquery"](../zq/language.md#8-lateral-subqueries).
+create this in Zed with a ["lateral subquery"](../language/README.md#8-lateral-subqueries).
 Instead of computing a set-union over all the reviewers across all PRs,
 we instead want to compute the set-union over the reviewers in each PR.
 We can do this as follows:
@@ -1010,10 +1010,10 @@ traversed by the outer `over`.
 
 But we need a "graph edge" between the requesting user and the reviewers.
 To do this, we need to reference the `user.login` from the top-level scope within the
-[lateral scope](../zq/language.md#81-lateral-scope).  This can be done by
+[lateral scope](../language/README.md#81-lateral-scope).  This can be done by
 bringing that value into the scope using a `with` clause appended to the
 `over` expression and yielding a
-[record literal](../zq/language.md#6112-record-expressions) with the desired value:
+[record literal](../language/README.md#6112-record-expressions) with the desired value:
 ```mdtest-command dir=docs/tutorials
 zq -z 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers}) | sort user,len(reviewers)' prs.zng
 ```
@@ -1190,6 +1190,6 @@ of tricks to:
 clean data for analysis by `zq` or even export into other systems or for testing.
 
 If you'd like to learn more, feel free to read through the
-[language docs](../zq/language.md) in depth
+[language docs](../language/README.md) in depth
 or see how you can organize [Zed data into a lake](../zed/README.md)
 using a git-like commit model.
