@@ -528,7 +528,7 @@ for sparse results, many frames are discarded without their uncompressed bytes
 having to be processed any further.
 
 While this pre-search technique results in very fast brute-force pattern matching,
-[search indexes](../tooling/zed.md#search-indexes)
+[search indexes](zed.md#search-indexes)
 can also be created when Zed data is managed by a Zed lake
 thereby avoiding scans of data altogether as the index pinpoints the locations
 of specific values in the lake.
@@ -696,8 +696,8 @@ However, the benefit of Zed is that no flattening is required.  And unlike `sqli
 `zq` is not intended to be a database.  That said, there is no reason why database
 performance techniques cannot be applied to the Zed model and this is precisely what the
 open-source Zed project intends to do.  As a first step, with a
-[Zed lake](../tooling/zed.md), you can build type-flexible
-[search indexes](../tooling/zed.md#search-indexes)
+[Zed lake](zed.md), you can build type-flexible
+[search indexes](zed.md#search-indexes)
 to scale searches across very large stores of Zed data.
 
 Stay tuned!

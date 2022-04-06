@@ -9,7 +9,7 @@ This tour provides new users of `zq` an overview of `zq` and
 the [Zed language](../language/README.md)
 by walking through a number of examples on the command-line.
 This should get you started without having to read through all the gory details
-of the [Zed language](../language/README.md) or [`zq` command-line usage](../tooling/zq.md).
+of the [Zed language](../language/README.md) or [`zq` command-line usage](../commands/zq.md).
 
 We'll start with some simple one-liners on the command line where we feed
 some data to `zq` with `echo` and specify `-` for `zq` input to indicate
@@ -37,7 +37,7 @@ doing interesting things on that input, and emitting results, of course, as JSON
 
 `jq` is awesome and powerful, but its syntax and computational model can
 sometimes be daunting and difficult.  We tried to make `zq` really easy and intuitive,
-and it is usually faster, sometimes [much faster](../tooling/zq.md#7-performance),
+and it is usually faster, sometimes [much faster](../commands/zq.md#7-performance),
 than `jq`.
 
 To this end, if you want full JSON compatibility without having to delve into the
@@ -157,7 +157,7 @@ go from ZSON to an efficient binary row format ([ZNG](../formats/zng.md))
 and columnar ([ZST](../formats/zst.md)) --- and vice versa ---
 with complete fidelity and no loss of information.  In this tour,
 we'll stick to ZSON (though for large data sets,
-[ZNG is much faster](../tooling/zq.md#7-performance)).
+[ZNG is much faster](../commands/zq.md#7-performance)).
 
 The first thing you'll notice about ZSON is that you don't need
 quotations around field names.  We can see this by taking some JSON
@@ -1191,5 +1191,5 @@ clean data for analysis by `zq` or even export into other systems or for testing
 
 If you'd like to learn more, feel free to read through the
 [language docs](../language/README.md) in depth
-or see how you can organize [Zed data into a lake](../tooling/zed.md)
+or see how you can organize [Zed data into a lake](../commands/zed.md)
 using a git-like commit model.

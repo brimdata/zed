@@ -17,7 +17,7 @@ without giving up JSON's uncanny ability to represent eclectic data.
 ## Getting Started
 
 Trying out Zed is easy: just [install](install.md) the command-line tool
-[`zq`](tooling/zq.md) and run through the [zq tutorial](tutorials/zq-primer.md).
+[`zq`](commands/zq.md) and run through the [zq tutorial](tutorials/zq-primer.md).
 
 `zq` is a lot like [`jq`](https://stedolan.github.io/jq/)
 but is built from the ground up as a search and analytics engine based
@@ -25,7 +25,7 @@ on the [Zed data model](formats/zed.md).  Since Zed data is a
 proper superset of JSON, `zq` also works natively with JSON.
 
 While `zq` and the Zed data formats are production quality, the Zed project's
-[Zed data lake](tooling/zed.md) is a bit [earlier in development](tooling/zed.md#status).
+[Zed data lake](commands/zed.md) is a bit [earlier in development](commands/zed.md#status).
 
 For a non-technical user, Zed is as easy to use as web search
 while for a technical user, Zed exposes its technical underpinnings
@@ -44,8 +44,8 @@ that underlie the Zed formats.
 [sequential (ZNG)](formats/zng.md), [columnar (ZST)](formats/zst.md),
 and [human-readable (ZSON)](formats/zson.md) formats that all adhere to the
 same abstract Zed data model.
-* A [Zed lake](tooling/zed.md) is a collection of optionally-indexed Zed data stored
-across one or more [data pools](tooling/zed.md#14-data-pools) with ACID commit semantics and
+* A [Zed lake](commands/zed.md) is a collection of optionally-indexed Zed data stored
+across one or more [data pools](commands/zed.md#14-data-pools) with ACID commit semantics and
 accessed via a [Git](https://git-scm.com/)-like API.
 * The [Zed language](language/README.md) is the system's dataflow language for performing
 queries, searches, analytics, transformations, or any of the above combined together.
@@ -64,7 +64,7 @@ is the best way to learn about `zq` in depth.
 All of its examples use `zq` commands run on the command line.
 Run `zq -h` for a list of command options and online help.
 
-The [Zed Lake documentation](tooling/zed.md)
+The [Zed Lake documentation](commands/zed.md)
 is the best way to learn about `zed`.
 All of its examples use `zed` commands run on the command line.
 Run `zed -h` or `-h` with any subcommand for a list of command options

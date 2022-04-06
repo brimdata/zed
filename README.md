@@ -8,7 +8,7 @@ messy JSON data can easily be given the fully-typed precision of relational tabl
 without giving up JSON's uncanny ability to represent eclectic data.
 
 Trying out Zed is easy: just [install](#quick-start) the command-line tool
-[`zq`](docs/tooling/zq.md).
+[`zq`](docs/commands/zq.md).
 
 `zq` is a lot like [`jq`](https://stedolan.github.io/jq/)
 but is built from the ground up as a search and analytics engine based
@@ -16,7 +16,7 @@ on the [Zed data model](docs/formats/zed.md).  Since Zed data is a
 proper superset of JSON, `zq` also works natively with JSON.
 
 While `zq` and the Zed data formats are production quality, the Zed project's
-[Zed data lake](docs/tooling/zed.md) is a bit [earlier in development](docs/tooling/zed.md#status).
+[Zed data lake](docs/commands/zed.md) is a bit [earlier in development](docs/commands/zed.md#status).
 
 For a non-technical user, Zed is as easy to use as web search
 while for a technical user, Zed exposes its technical underpinnings

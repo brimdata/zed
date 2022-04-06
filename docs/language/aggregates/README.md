@@ -1,7 +1,7 @@
 # Aggregate Functions
 
 Aggregate functions appear in either summarization
-or expression context and produce an aggregate value for a sequence of inputs values:
+or expression context and produce an aggregate value for a sequence of inputs values.
 
 - [and](and.md) - logical AND of input values
 - [any](any.md) - select an arbitrary value from its input

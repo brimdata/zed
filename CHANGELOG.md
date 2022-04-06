@@ -1,8 +1,8 @@
-docs/lake/api.mddocs/tooling/zed.md## v1.0.0
+## v1.0.0
 
 * Comprehensive [documentation](docs/README.md)
 * Substantial improvments to the [Zed language](docs/language/README.md)
-* Revamped [`zed` command](docs/tooling/zed.md)
+* Revamped [`zed` command](docs/commands/zed.md)
 * New Zed lake format (see #3634 for a migration script)
 * New version of the [ZNG format](docs/formats/zng.md) (with read-only support for the previous version)
 * New version of the [ZSON format](docs/formats/zson.md)
@@ -83,7 +83,7 @@ docs/lake/api.mddocs/tooling/zed.md## v1.0.0
 
 As you can see below, there's been many changes since the last Zed GA release!  Highlights include:
 * The introduction of Zed lakes for data storage, which include powerful
-  Git-like branching. See the [Zed lake README](docs/tooling/zed.md)
+  Git-like branching. See the [Zed lake README](docs/commands/zed.md)
   for details.
 * Enhancements to the Zed language to unify search and expression syntax,
   introduce new operators and functions for data exploration and shaping, and
@@ -173,7 +173,7 @@ questions.
 * `zq` now reads its inputs sequentially rather than the prior merged behavior (#2492)
 * Extend the `len()` function to return the number of fields in a record (#2494)
 * Remove the `-E` flag in `zed` commands that displayed `time` values as epoch (#2495)
-* Add the [Zed lake design](docs/tooling/zed.md) README document (#2500, #2569, #2595, #2781, #2940, #3014, #3034, #3035)
+* Add the [Zed lake design](docs/commands/zed.md) README document (#2500, #2569, #2595, #2781, #2940, #3014, #3034, #3035)
 * Fix an issue where escaping quotes caused a parse error (#2510)
 * Fix an issue where multiple ZSON type definitions would be output when only the first was needed (#2511)
 * Use less buffer when decoding ZSON (#2515)
@@ -248,7 +248,7 @@ questions.
 * Zed CLI tools now send human-readable ZSON by default if output is to a terminal, otherwise binary ZNG (#2979, #2985)
 * Temporary directories for spill-to-disk operations now are prefixed with `zed-spill-` rather than `zq-spill-` (#2980)
 * The [`put`](docs/language/operators/put.md) operator keyword is now optional (e.g., can write `x:=1` instead of `put x:=1`) (#2967, #2986, #3043)
-* Fix an issue where a [`put`](docs/language/operators/put.md) on a nested record with an alias triggered a panic (#2990)
+* Fix an issue where a [`put`](docs/zq/operators/put.md) on a nested record with an alias triggered a panic (#2990)
 * Fix an issue where temporary spill-to-disk directories were not being deleted upon exit (#3009, #3010)
 * Fix a ZSON issue with `union` types with alias decorators (#3015, #3016)
 * The ZSON format has been changed such that integer type IDs are no longer output (#3017)

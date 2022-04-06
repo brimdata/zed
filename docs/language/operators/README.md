@@ -1,7 +1,7 @@
 # Operators
 
 Dataflow operators process a sequence of input values to create an output sequence
-and appear as the components of a dataflow pipeline:
+and appear as the components of a dataflow pipeline.
 
 * [combine](combine.md) - combine parallel paths into a single output
 * [cut](cut.md) - extract subsets of record fields into new records

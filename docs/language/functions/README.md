@@ -1,7 +1,7 @@
 # Functions
 
 Functions appear in expression context and
-take Zed values are arguments and produce a value as a result:
+take Zed values as arguments and produce a value as a result.
 
 * [abs](abs.md) - absolute value of a number
 * [base64](base64.md) - encode/decode base64 strings

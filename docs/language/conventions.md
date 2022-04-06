@@ -7,7 +7,7 @@ sidebar_label: Conventions
 
 ---
 
-Arguments to function and input values to operators are all dynamically type,
+Arguments to function and input values to operators are all dynamically typed,
 yet certain functions expect certain data types or classes of data types.
 To this end, the function and operator prototypes include a number
 of type classes as follows:
@@ -17,5 +17,5 @@ of type classes as follows:
 * _number_ - either float or int
 
 Note that there is no "any" type in Zed as all super-structured data is
-comprehensively type; "any" here simply refers to a value that is allowed
+comprehensively typed; "any" here simply refers to a value that is allowed
 to take on any Zed type.
