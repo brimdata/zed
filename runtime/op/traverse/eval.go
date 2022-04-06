@@ -1,4 +1,4 @@
-wpackage traverse
+package traverse
 
 import (
 	"context"
@@ -108,7 +108,7 @@ func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) *zed.Value {
 	union := e.zctx.LookupTypeUnion(utypes)
 	var b zcode.Builder
 	for _, val := range vals {
-		zed.BuildUnion(union.Selector(val.Type), val.Bytes)
+		zed.BuildUnion(&b, union.Selector(val.Type), val.Bytes)
 	}
 	return ectx.NewValue(e.zctx.LookupTypeArray(union), b.Bytes())
 }
