@@ -248,7 +248,7 @@ questions.
 * Zed CLI tools now send human-readable ZSON by default if output is to a terminal, otherwise binary ZNG (#2979, #2985)
 * Temporary directories for spill-to-disk operations now are prefixed with `zed-spill-` rather than `zq-spill-` (#2980)
 * The [`put`](docs/language/operators/put.md) operator keyword is now optional (e.g., can write `x:=1` instead of `put x:=1`) (#2967, #2986, #3043)
-* Fix an issue where a [`put`](docs/zq/operators/put.md) on a nested record with an alias triggered a panic (#2990)
+* Fix an issue where a [`put`](docs/language/operators/put.md) on a nested record with an alias triggered a panic (#2990)
 * Fix an issue where temporary spill-to-disk directories were not being deleted upon exit (#3009, #3010)
 * Fix a ZSON issue with `union` types with alias decorators (#3015, #3016)
 * The ZSON format has been changed such that integer type IDs are no longer output (#3017)
