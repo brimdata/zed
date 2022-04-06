@@ -20,6 +20,7 @@ import (
 	"github.com/brimdata/zed/service/srverr"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/segmentio/ksuid"
 )
 
 func handleQuery(c *Core, w *ResponseWriter, r *Request) {
@@ -398,11 +399,6 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &payload) {
 		return
 	}
-	tags, err := lakeparse.ParseIDs(payload.ObjectIDs)
-	if err != nil {
-		w.Error(srverr.ErrInvalid(err))
-		return
-	}
 	pool, err := c.root.OpenPool(r.Context(), poolID)
 	if err != nil {
 		w.Error(err)
@@ -413,12 +409,30 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	ids, err := branch.LookupTags(r.Context(), tags)
-	if err != nil {
-		w.Error(err)
-		return
+	var commit ksuid.KSUID
+	if len(payload.ObjectIDs) > 0 {
+		if payload.Where != "" {
+			w.Error(srverr.ErrInvalid("property object_ids and where cannot both be set"))
+			return
+		}
+		tags, err := lakeparse.ParseIDs(payload.ObjectIDs)
+		if err != nil {
+			w.Error(srverr.ErrInvalid(err))
+			return
+		}
+		ids, err := branch.LookupTags(r.Context(), tags)
+		if err != nil {
+			w.Error(err)
+			return
+		}
+		commit, err = branch.Delete(r.Context(), ids, message.Author, message.Body)
+	} else {
+		if payload.Where == "" {
+			w.Error(srverr.ErrInvalid("either object_ids or where must be set"))
+			return
+		}
+		commit, err = branch.DeleteByPredicate(r.Context(), c.root, payload.Where, message.Author, message.Body, message.Meta)
 	}
-	commit, err := branch.Delete(r.Context(), ids, message.Author, message.Body)
 	if err != nil {
 		w.Error(err)
 		return
