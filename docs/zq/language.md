@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+sidebar_label: Zed Language
+---
+
 # The Zed Language
 
 * [1. Introduction](#1-introduction)

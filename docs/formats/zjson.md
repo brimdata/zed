@@ -1,3 +1,8 @@
+---
+sidebar_position: 4
+sidebar_label: ZJSON
+---
+
 # Zed over JSON (ZJSON)
 
 * [1. Introduction](#1-introduction)

@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+sidebar_label: Service API
+---
+
 # Zed lake service API
 
 > Note: This file contains a brief sketch of the functionality exposed in the

@@ -1,3 +1,8 @@
+---
+sidebar_position: 0
+sidebar_label: Intro
+---
+
 # Zed Documentation
 
 The Zed documentation is organized as follows:

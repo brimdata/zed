@@ -1,3 +1,8 @@
+---
+sidebar_position: 2
+sidebar_label: Design Notes
+---
+
 # Zed Lake Design Notes
 
   * [Cloud Object Architecture](#cloud-object-architecture)

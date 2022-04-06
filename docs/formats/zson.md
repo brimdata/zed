@@ -1,3 +1,8 @@
+---
+sidebar_position: 2
+sidebar_label: ZSON
+---
+
 # ZSON - Zed Super-structured Open Notation
 
 * [1. Introduction](#1-introduction)
