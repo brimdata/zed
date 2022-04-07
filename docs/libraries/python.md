@@ -1,31 +1,16 @@
 # Python
 
-You can also use `zed` from Python.  After you install the Zed Python:
-```
-pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
-```
-You can hit the Zed service from a Python program:
-```python
-import zed
-
-# Connect to the default lake at http://localhost:9867.  To use a
-# different lake, supply its URL via the ZED_LAKE environment variable
-# or as an argument here.
-client = zed.Client()
-
-# Begin executing a Zed query for all records in the pool named "Demo".
-# This returns an iterator, not a container.
-records = client.query('from Demo')
-
-# Stream records from the server.
-for record in records:
-    print(record)
-```
-See the [python/zed](python/zed) directory for more details.
-
-
-The `zed` Python package provides a client for the REST API served by
+The Zed project has preliminary support for Python-based interaction
+with a Zed lake.
+The Zed Python package supports loading data into a Zed lake as well as
+querying and retrieving results in the [ZJSON format](../formats/zjson.md)
+The Python client interacts with the Zed lake via the REST API served by
 [`zed serve`](../../cmd/zed/serve).
+
+This approach works adequately when high data throughput is not required.
+We will soon introduce native [ZNG](../formats/zng.md) support for
+Python that should increase performance substantially for more
+data intensive workloads.
 
 ## Installation
 
@@ -42,10 +27,10 @@ pip install "git+https://github.com/brimdata/zed@$(zed -version | cut -d ' ' -f 
 
 ## Example
 
-Run a Zed lake service from your shell.
+Run a Zed lake service from your shell:
 ```sh
-mkdir scratch
-zed serve -R scratch
+zed init -lake scratch
+zed serve -lake scratch
 ```
 > Or you can launch the Brim app and it will run a Zed lake service
 > on the default port at http://localhost:9867.

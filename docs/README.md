@@ -57,7 +57,7 @@ the input data into the desired set of organizing Zed data types called "shapes"
 which are traditionally called _schemas_ in relational systems but are
 much more flexible in the Zed system.
 
-## Diving Deeper
+## Digging Deeper
 
 The [Zed language documentation](language/README.md)
 is the best way to learn about `zq` in depth.

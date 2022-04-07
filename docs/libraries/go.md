@@ -1,26 +1,44 @@
 # Go
 
 The Zed system was developed in Go so support for Go clients is
-fairly complete.  That said, the code documentation of exported
+fairly comprehensive.  That said, the code-embedded documentation of exported
 package functions is scant and we are actively working to document
 the functions of the key Go packages.
 
+Also, our focus for the Go client packages has been on supporting
+the core Zed implementation.  We intend to develop a Go package that
+is easier to use for external clients.  In the meantime, clients
+may use the internal Go packages though the APIs are subject to change.
+
 ## Installation
 
-Top-level zed package...
+The Zed system is structured as a standard Go module so its easy to import into
+other Go projects straight from the GitHub repo.
 
-## Library API
+Some of the key packages are:
 
-XXX refer to key packages:
+* [zed](https://pkg.go.dev/github.com/brimdata/zed) - core Zed values and types
+* [zed](https://pkg.go.dev/github.com/brimdata/zed/zson) - ZSON support
+* [zio](https://pkg.go.dev/github.com/brimdata/zed/zio) - I/O interfaces for Zed following the Reader/Writer patterns
+* [zio/zsonio](https://pkg.go.dev/github.com/brimdata/zed/zio/zsonio) - ZSON reader/writer
+* [zio/zngio](https://pkg.go.dev/github.com/brimdata/zed/zio/zngio) - ZNG reader/writer
+* [lake/api](https://pkg.go.dev/github.com/brimdata/zed/lake/api) - interact with a Zed Lake
 
-* [zed](https://pkg.go.dev/github.com/brimdata/zed)
-* [zio](https://pkg.go.dev/github.com/brimdata/zed/zio)
-* [lake/api](https://pkg.go.dev/github.com/brimdata/zed/lake/api)
-
+To install in your local Go project, simply run:
+```
+go get github.com/brimdata/zed
+go get github.com/brimdata/zed/zson
+go get github.com/brimdata/zed/zio
+go get github.com/brimdata/zed/zio/zsonio
+go get github.com/brimdata/zed/zio/zngio
+go get github.com/brimdata/zed/lake
+```
 
 ## Examples
 
-_Read ZSON, derefence field `s`, and print results._
+### ZSON Reader
+
+Read ZSON from stdin, derefence field `s`, and print results:
 ```
 package main
 
@@ -65,25 +83,119 @@ go get github.com/brimdata/zio/zsonion
 ```
 To run type:
 ```
-echo '{s:"hello, world"}{x:1}{s:"good bye"}' | go run .
+echo '{s:"hello"}{x:123}{s:"world"}' | go run .
 ```
 which produces
 ```
-"hello, world"
+"hello"
 error("missing")
-"good bye"
+"world"
 ```
 
-_Read ZNG from a Zed lake and do the same as above._
+### Local Lake Reader
 
-First, create a lake and load the example data:
+This example interacts with a Zed lake.  Note that it is straightforward
+to support both direct access to a lake via the files (or S3 URL) as well as
+access to a lake via a service endpoint.
+
+First, we'll use `zed` to create a lake and load the example data:
 ```
-mkdir testlake
-zed init -lake testlake
-zed create -lake testlake testpool
-echo '{s:"hello, world"}{x:1}{s:"good bye"}' | zed load -lake testlake -use testpool -
+zed init -lake scratch
+zed create -lake scratch Demo
+echo '{s:"hello, world"}{x:1}{s:"good bye"}' | zed load -lake scratch -use Demo -
 ```
 Now replace main.go with this code:
 ```
-TBD
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/lake/api"
+	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zson"
+)
+
+func main() {
+	if len(os.Args) != 2 {
+		fmt.Fprintln(os.Stderr, "URI of Zed lake not provided")
+		os.Exit(1)
+	}
+	uri, err := storage.ParseURI(os.Args[1])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	ctx := context.TODO()
+	zctx := zed.NewContext()
+	var lake api.Interface
+	if api.IsLakeService(uri) {
+		lake, err = api.OpenRemoteLake(ctx, uri.String())
+	} else {
+		lake, err = api.OpenLocalLake(ctx, uri)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	reader, err := lake.Query(ctx, nil, "from Demo")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	defer reader.Close()
+	for {
+		val, err := reader.Read()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		if val == nil {
+			return
+		}
+		s := val.Deref("s")
+		if s == nil {
+			s = zctx.Missing()
+		}
+		fmt.Println(zson.String(s))
+	}
+}
+```
+Now, run this command to interact with the lake via the local file system:
+```
+go run . ./scratch
+```
+which should output
+```
+{s:"hello, world"}
+{s:"good bye"}
+{x:1}
+```
+Note that the order of data has changed because the Zed lake stores data
+in a sorted order.  Since we did not specify a "pool key" when we created
+the lake, it ends up sorting the data by `this`.
+
+### Lake Service Reader
+
+We can use the same code above to talk to a Zed lake server.  All we do is
+give it the URI of the service, which by default is on port 9867.
+
+To try this out, first run a Zed service on the scratch lake we created
+above:
+```
+zed serve -lake ./scratch
+```
+Finally, in another local shell, run the Go program and specify the servie
+endpoint we just created:
+```
+go run . http://localhost:9867
+```
+and you should again get this result:
+```
+"hello, world"
+"good bye"
+error("missing")
 ```
