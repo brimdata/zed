@@ -50,10 +50,10 @@ start = __ ast:Sequential __ EOF { RETURN(ast) }
 
 Sequential
   = consts:Consts __ first:Operation rest:SequentialTail+ {
-      RETURN(MAP("kind": "Sequential", "procs": PREPEND(first, rest), "consts":consts))
+      RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest), "consts":consts))
     }
   / consts:Consts __ op:Operation {
-      RETURN(MAP("kind": "Sequential", "procs": ARRAY(op), "consts":consts))
+      RETURN(MAP("kind": "Sequential", "ops": ARRAY(op), "consts":consts))
     }
 
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
@@ -75,8 +75,8 @@ ConstDef
     }
 
 Operation
-  = "fork" __ "(" procArray:Leg+ __ ")" {
-      RETURN(MAP("kind": "Parallel", "procs": procArray))
+  = "fork" __ "(" ops:Leg+ __ ")" {
+      RETURN(MAP("kind": "Parallel", "ops": ops))
     }
   / "switch" _ expr:Expr _ "(" cases:SwitchLeg+ __ ")" {
       RETURN(MAP("kind": "Switch", "expr": expr, "cases": cases))
@@ -110,8 +110,8 @@ Leg
   = __ "=>" __ s:Sequential { RETURN(s) }
 
 SwitchLeg
-  = __ expr:Case __ "=>" __ proc:Sequential {
-      RETURN(MAP("expr": expr, "proc": proc))
+  = __ expr:Case __ "=>" __ op:Sequential {
+      RETURN(MAP("expr": expr, "op": op))
     }
 
 Case
@@ -133,7 +133,7 @@ FromSource
   = File
   / Get
   / Pool
-  / PassProc
+  / PassOp
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "~")
 
@@ -269,44 +269,44 @@ AggAssignments
       RETURN(result)
     }
 
-/// === Operators (aka Procs) ===
+/// === Operators ===
 
 Operator
-  = SortProc
-  / TopProc
-  / CutProc
-  / DropProc
-  / HeadProc
-  / TailProc
-  / WhereProc
-  / UniqProc
-  / PutProc
-  / RenameProc
-  / FuseProc
-  / ShapeProc
-  / JoinProc
-  / SampleProc
-  / SQLProc
-  / FromProc
-  / PassProc
-  / ExplodeProc
-  / MergeProc
-  / OverProc
-  / YieldProc
+  = SortOp
+  / TopOp
+  / CutOp
+  / DropOp
+  / HeadOp
+  / TailOp
+  / WhereOp
+  / UniqOp
+  / PutOp
+  / RenameOp
+  / FuseOp
+  / ShapeOp
+  / JoinOp
+  / SampleOp
+  / SQLOp
+  / FromOp
+  / PassOp
+  / ExplodeOp
+  / MergeOp
+  / OverOp
+  / YieldOp
 
-SortProc
-  = "sort" args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
+SortOp
+  = "sort" &EOKW args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
       VAR(argm) = ASSERT_MAP(args)
-      VAR(proc) = MAP("kind": "Sort", "args": list, "order": "asc", "nullsfirst": false)
+      VAR(op) = MAP("kind": "Sort", "args": list, "order": "asc", "nullsfirst": false)
       if HAS(argm, "r") {
-        proc["order"] = "desc"
+        op["order"] = "desc"
       }
       if HAS(argm, "nulls") {
         if (argm["nulls"] == "first") {
-          proc["nullsfirst"] = true
+          op["nullsfirst"] = true
         }
       }
-      RETURN(proc)
+      RETURN(op)
     }
 
 SortArgs = args:(_ a:SortArg{ RETURN(a) })* { return makeArgMap(args) }
@@ -315,45 +315,45 @@ SortArg
   = "-r" { RETURN(MAP("name": "r", "value": NULL)) }
   / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(MAP("name": "nulls", "value": where)) }
 
-TopProc
-  = "top" limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
-      VAR(proc) = MAP("kind": "Top", "limit": 0, "args": NULL, "flush": false)
+TopOp
+  = "top" &EOKW limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
+      VAR(op) = MAP("kind": "Top", "limit": 0, "args": NULL, "flush": false)
       if ISNOTNULL(limit) {
-        proc["limit"] = limit
+        op["limit"] = limit
       }
       if ISNOTNULL(fields) {
-        proc["args"] = fields
+        op["args"] = fields
       }
       if ISNOTNULL(flush) {
-        proc["flush"] = true
+        op["flush"] = true
       }
-      RETURN(proc)
+      RETURN(op)
     }
 
-CutProc
+CutOp
   = "cut" _ args:FlexAssignments {
       RETURN(MAP("kind": "Cut", "args": args))
     }
 
-DropProc
+DropOp
   = "drop" _ args:FieldExprs {
       RETURN(MAP("kind": "Drop", "args": args))
     }
 
-HeadProc
+HeadOp
   = "head" _ count:UInt { RETURN(MAP("kind": "Head", "count": count)) }
   / "head" { RETURN(MAP("kind": "Head", "count": 1)) }
 
-TailProc
+TailOp
   = "tail" _ count:UInt { RETURN(MAP("kind": "Tail", "count": count)) }
   / "tail" { RETURN(MAP("kind": "Tail", "count": 1)) }
 
-WhereProc
+WhereOp
   = "where" _ expr:Expr {
       RETURN(MAP("kind": "Where", "expr": expr))
     }
 
-UniqProc
+UniqOp
   = "uniq" _ "-c" {
       RETURN(MAP("kind": "Uniq", "cflag": true))
     }
@@ -361,44 +361,44 @@ UniqProc
       RETURN(MAP("kind": "Uniq", "cflag": false))
     }
 
-PutProc
+PutOp
   = "put" _ args:Assignments {
       RETURN(MAP("kind": "Put", "args": args))
     }
 
-RenameProc
+RenameOp
   = "rename" _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
       RETURN(MAP("kind": "Rename", "args": PREPEND(first, rest)))
     }
 
 // The paren guard is to allow parsing fuse() as an aggregator. This
 // is temporary pending finalizing the names
-// (https://github.com/brimdata/zed/issues/2114) for the fuse proc and
+// (https://github.com/brimdata/zed/issues/2114) for the fuse op and
 // aggregator, at which point we may no longer need this.
-FuseProc
-  = "fuse" !(__ "(") {
+FuseOp
+  = "fuse" !(__ "(") &EOKW {
       RETURN(MAP("kind": "Fuse"))
     }
 
-ShapeProc
-  = "shape" !(__ "(") {
+ShapeOp
+  = "shape" !(__ "(") &EOKW {
       RETURN(MAP("kind": "Shape"))
     }
 
-JoinProc
+JoinOp
   = style:JoinStyle "join" _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": NULL)
+      VAR(op) = MAP("kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": NULL)
       if ISNOTNULL(columns) {
-        proc["args"] = ASSERT_ARRAY(columns)[1]
+        op["args"] = ASSERT_ARRAY(columns)[1]
       }
-      RETURN(proc)
+      RETURN(op)
     }
   / style:JoinStyle  "join" _ ON _ key:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
+      VAR(op) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
       if ISNOTNULL(columns) {
-        proc["args"] = ASSERT_ARRAY(columns)[1]
+        op["args"] = ASSERT_ARRAY(columns)[1]
       }
-      RETURN(proc)
+      RETURN(op)
     }
 
 JoinStyle
@@ -412,9 +412,9 @@ JoinKey
   = Lval
   / "(" expr:Expr ")" { RETURN(expr) }
 
-SampleProc
-  = "sample" e:SampleExpr {
-      RETURN(MAP("kind": "Sequential", "consts": ARRAY(), "procs": ARRAY(
+SampleOp
+  = "sample" &EOKW e:SampleExpr {
+      RETURN(MAP("kind": "Sequential", "consts": ARRAY(), "ops": ARRAY(
         MAP("kind": "Summarize",
           "keys": ARRAY(MAP("kind": "Assignment",
                    "lhs": MAP("kind": "ID", "name": "shape"),
@@ -435,8 +435,8 @@ SampleProc
 
 // OpAssignment is a top level operator that contains a list of assignment
 // expressions. It is in an ambiguous state and could either be:
-//   1) A summarize proc.
-//   2) A put proc.
+//   1) A summarize operator.
+//   2) A put operator.
 //  The semantic pass is responsible for converting it to one of the two.
 OpAssignment
   = a:Assignments {
@@ -447,7 +447,7 @@ SampleExpr
   = _ lval:Lval { RETURN(lval)}
   / "" { RETURN(MAP("kind":"ID", "name":"this")) }
 
-FromProc
+FromOp
   = source:FromAny {
       RETURN(MAP("kind":"From", "trunks": ARRAY(MAP("kind": "Trunk","source": source))))
     }
@@ -535,24 +535,24 @@ OrderArg
   = _ "order" _ "asc"  { RETURN("asc") }
   / _ "order" _ "desc"  { RETURN("desc") }
 
-PassProc
-  = "pass" {
+PassOp
+  = "pass" &EOKW {
       RETURN(MAP("kind":"Pass"))
     }
 
 // Currently we support only "explode by type" but this will be generalized
 // to explode arbitrary arrays, records, etc.
-ExplodeProc
+ExplodeOp
   = "explode" _ args:Exprs typ:TypeArg as:AsArg? {
       RETURN(MAP("kind":"Explode", "args": args, "as": as, "type": typ))
     }
 
-MergeProc
+MergeOp
   = "merge" _ expr:Expr {
 	  RETURN(MAP("kind":"Merge", "expr":expr))
     }
 
-OverProc
+OverOp
   = "over" _ exprs:Exprs _ "with" _ locals:LetAssignments __ scope:Scope {
       RETURN(MAP("kind":"Let", "locals":locals, "over":MAP("kind":"Over", "exprs":exprs, "scope":scope)))
     }
@@ -578,7 +578,7 @@ LetAssignment
       RETURN(MAP("name":id, "expr":MAP("kind":"ID","name":id)))
     }
 
-YieldProc
+YieldOp
   = "yield" _ exprs:Exprs {
 	  RETURN(MAP("kind":"Yield", "exprs":exprs))
     }
@@ -754,7 +754,16 @@ Primary
   / Set
   / Map
   / Literal
+  / "(" __ expr:OverExpr __ ")"  { RETURN(expr) }
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
+
+OverExpr
+  = "over" _ exprs:Exprs _ "with" _ locals:LetAssignments __ "|" __ scope:Sequential {
+      RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "scope": scope))
+    }
+  / "over" _ exprs:Exprs __ "|" __ scope:Sequential {
+      RETURN(MAP("kind": "OverExpr", "locals": NULL, "exprs": exprs, "scope": scope))
+    }
 
 Record
   = "{" __ elems:RecordElems __ "}" {
@@ -815,7 +824,7 @@ Entry
 
 /// === SQL Compat ===
 
-SQLProc
+SQLOp
   = selection:SQLSelect
     from:SQLFrom?
     joins:SQLJoins?
@@ -1371,3 +1380,5 @@ EOL = WhiteSpace* LineTerminator
 EOT = _ / EOF
 
 EOF = !.
+
+EOKW = !KeyWordChars

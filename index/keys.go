@@ -2,7 +2,6 @@ package index
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 )
@@ -13,7 +12,7 @@ type Keyer struct {
 }
 
 func NewKeyer(zctx *zed.Context, keys []field.Path) (*Keyer, error) {
-	fields, resolvers := compiler.CompileAssignments(zctx, keys, keys)
+	fields, resolvers := expr.NewAssignments(zctx, keys, keys)
 	cutter, err := expr.NewCutter(zctx, fields, resolvers)
 	if err != nil {
 		return nil, err

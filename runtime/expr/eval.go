@@ -877,3 +877,16 @@ type Assignment struct {
 	LHS field.Path
 	RHS Evaluator
 }
+
+func NewAssignments(zctx *zed.Context, dsts field.List, srcs field.List) (field.List, []Evaluator) {
+	if len(srcs) != len(dsts) {
+		panic("NewAssignments: argument mismatch")
+	}
+	var resolvers []Evaluator
+	var fields field.List
+	for k, dst := range dsts {
+		fields = append(fields, dst)
+		resolvers = append(resolvers, NewDottedExpr(zctx, srcs[k]))
+	}
+	return fields, resolvers
+}

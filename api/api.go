@@ -56,7 +56,8 @@ type BranchMergeRequest struct {
 }
 
 type DeleteRequest struct {
-	ObjectIDs []ksuid.KSUID `zed:"object_ids"`
+	ObjectIDs []string `zed:"object_ids"`
+	Where     string   `zed:"were"`
 }
 
 type CommitMessage struct {
@@ -83,8 +84,8 @@ type IndexRulesDeleteResponse struct {
 }
 
 type IndexApplyRequest struct {
-	RuleName string        `zed:"rule_name"`
-	Tags     []ksuid.KSUID `zed:"tags"`
+	RuleName string   `zed:"rule_name"`
+	Tags     []string `zed:"tags"`
 }
 
 type IndexUpdateRequest struct {

@@ -1,4 +1,11 @@
-# ZST - ZNG stacked format
+---
+sidebar_position: 3
+sidebar_label: ZST
+---
+
+# ZST Specification
+
+---
 
 ZST, pronounced "zest", is a file format for columnar data based on
 [the Zed data model](zed.md).

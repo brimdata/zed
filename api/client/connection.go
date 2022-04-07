@@ -328,7 +328,11 @@ func (c *Connection) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) (a
 
 func (c *Connection) ApplyIndexRules(ctx context.Context, poolID ksuid.KSUID, branchName, rule string, oids []ksuid.KSUID) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName, "index")
-	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexApplyRequest{RuleName: rule, Tags: oids})
+	tags := make([]string, len(oids))
+	for i, oid := range oids {
+		tags[i] = oid.String()
+	}
+	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexApplyRequest{RuleName: rule, Tags: tags})
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
 	return commit, err
@@ -352,8 +356,23 @@ func encodeCommitMessage(req *Request, message api.CommitMessage) error {
 }
 
 func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.delete(ctx, poolID, branchName, ids, "", message)
+}
+
+func (c *Connection) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName string, where string, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.delete(ctx, poolID, branchName, nil, where, message)
+}
+
+func (c *Connection) delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, where string, message api.CommitMessage) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName, "delete")
-	req := c.NewRequest(ctx, http.MethodPost, path, api.DeleteRequest{ids})
+	tags := make([]string, len(ids))
+	for i, id := range ids {
+		tags[i] = id.String()
+	}
+	req := c.NewRequest(ctx, http.MethodPost, path, api.DeleteRequest{
+		ObjectIDs: tags,
+		Where:     where,
+	})
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
 	}

@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -12,8 +13,8 @@ import (
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 )
@@ -209,10 +210,6 @@ func (r *Runtime) Puller() zbuf.Puller {
 	return r.puller
 }
 
-func CompileAssignments(zctx *zed.Context, dsts field.List, srcs field.List) (field.List, []expr.Evaluator) {
-	return kernel.CompileAssignments(zctx, dsts, srcs)
-}
-
 type meter struct {
 	meters []zbuf.Meter
 }
@@ -223,4 +220,44 @@ func (m *meter) Progress() zbuf.Progress {
 		out.Add(meter.Progress())
 	}
 	return out
+}
+
+func ParseRangeExpr(zctx *zed.Context, src string, layout order.Layout) (*zed.Value, string, error) {
+	p, err := ParseProc(src)
+	if err != nil {
+		return nil, "", err
+	}
+	d, err := semantic.Analyze(context.Background(), p.(*ast.Sequential), nil, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(d.Ops) != 1 {
+		return nil, "", errors.New("range expression should only have one operator")
+	}
+	f, ok := d.Ops[0].(*dag.Filter)
+	if !ok {
+		return nil, "", errors.New("range expression should be a filter")
+	}
+	be, ok := f.Expr.(*dag.BinaryExpr)
+	if !ok {
+		return nil, "", errors.New("must be a simple compare expression")
+	}
+	switch be.Op {
+	case "<=", "<", ">=", ">":
+	default:
+		return nil, "", fmt.Errorf("unsupported operator: %q", be.Op)
+	}
+	this, ok := be.LHS.(*dag.This)
+	if !ok {
+		return nil, "", fmt.Errorf("left hand side must be a path")
+	}
+	path := field.Path(this.Path)
+	if !layout.Keys.Equal(field.List{path}) {
+		return nil, "", fmt.Errorf("field %q does not match pool key %q", path, layout.Keys)
+	}
+	val, err := kernel.EvalAtCompileTime(zctx, be.RHS)
+	if err != nil {
+		return nil, "", err
+	}
+	return val, be.Op, nil
 }

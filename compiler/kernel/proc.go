@@ -67,6 +67,10 @@ func (b *Builder) Build(seq *dag.Sequential) ([]zbuf.Puller, error) {
 	return b.compile(seq, nil)
 }
 
+func (b *Builder) zctx() *zed.Context {
+	return b.pctx.Zctx
+}
+
 func (b *Builder) Meters() []zbuf.Meter {
 	var meters []zbuf.Meter
 	for _, sched := range b.schedulers {
@@ -78,9 +82,9 @@ func (b *Builder) Meters() []zbuf.Meter {
 func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error) {
 	switch v := p.(type) {
 	case *dag.Summarize:
-		return compileGroupBy(b.pctx, parent, v)
+		return b.compileGroupBy(parent, v)
 	case *dag.Cut:
-		assignments, err := compileAssignments(v.Args, b.pctx.Zctx)
+		assignments, err := b.compileAssignments(v.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +112,7 @@ func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		dropper := expr.NewDropper(b.pctx.Zctx, fields)
 		return op.NewApplier(b.pctx, parent, dropper), nil
 	case *dag.Sort:
-		fields, err := CompileExprs(b.pctx.Zctx, v.Args)
+		fields, err := b.compileExprs(v.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -134,19 +138,19 @@ func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Pass:
 		return pass.New(parent), nil
 	case *dag.Filter:
-		f, err := compileExpr(b.pctx.Zctx, v.Expr)
+		f, err := b.compileExpr(v.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
 		return op.NewApplier(b.pctx, parent, expr.NewFilterApplier(b.pctx.Zctx, f)), nil
 	case *dag.Top:
-		fields, err := CompileExprs(b.pctx.Zctx, v.Args)
+		fields, err := b.compileExprs(v.Args)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
 		return top.New(parent, b.pctx.Zctx, v.Limit, fields, v.Flush), nil
 	case *dag.Put:
-		clauses, err := compileAssignments(v.Args, b.pctx.Zctx)
+		clauses, err := b.compileAssignments(v.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +200,7 @@ func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, err
 		}
-		args, err := compileExprs(b.pctx.Zctx, v.Args)
+		args, err := b.compileExprs(v.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +212,7 @@ func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Over:
 		return b.compileOver(parent, v, nil, nil)
 	case *dag.Yield:
-		exprs, err := compileExprs(b.pctx.Zctx, v.Exprs)
+		exprs, err := b.compileExprs(v.Exprs)
 		if err != nil {
 			return nil, err
 		}
@@ -218,15 +222,9 @@ func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if v.Over == nil {
 			return nil, errors.New("let operator missing over expression in DAG")
 		}
-		exprs := make([]expr.Evaluator, 0, len(v.Defs))
-		names := make([]string, 0, len(v.Defs))
-		for _, def := range v.Defs {
-			e, err := compileExpr(b.pctx.Zctx, def.Expr)
-			if err != nil {
-				return nil, err
-			}
-			exprs = append(exprs, e)
-			names = append(names, def.Name)
+		names, exprs, err := b.compileLets(v.Defs)
+		if err != nil {
+			return nil, err
 		}
 		return b.compileOver(parent, v.Over, names, exprs)
 	default:
@@ -234,8 +232,22 @@ func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	}
 }
 
+func (b *Builder) compileLets(defs []dag.Def) ([]string, []expr.Evaluator, error) {
+	exprs := make([]expr.Evaluator, 0, len(defs))
+	names := make([]string, 0, len(defs))
+	for _, def := range defs {
+		e, err := b.compileExpr(def.Expr)
+		if err != nil {
+			return nil, nil, err
+		}
+		exprs = append(exprs, e)
+		names = append(names, def.Name)
+	}
+	return names, exprs, nil
+}
+
 func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over, names []string, lets []expr.Evaluator) (zbuf.Puller, error) {
-	exprs, err := compileExprs(b.pctx.Zctx, over.Exprs)
+	exprs, err := b.compileExprs(over.Exprs)
 	if err != nil {
 		return nil, err
 	}
@@ -259,10 +271,10 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over, names []string
 	return scope.NewExit(exit), nil
 }
 
-func compileAssignments(assignments []dag.Assignment, zctx *zed.Context) ([]expr.Assignment, error) {
+func (b *Builder) compileAssignments(assignments []dag.Assignment) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
 	for _, assignment := range assignments {
-		a, err := CompileAssignment(zctx, &assignment)
+		a, err := b.compileAssignment(&assignment)
 		if err != nil {
 			return nil, err
 		}
@@ -328,7 +340,7 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 	if len(parents) != 1 {
 		return nil, errors.New("expression switch has multiple parents")
 	}
-	e, err := compileExpr(b.pctx.Zctx, swtch.Expr)
+	e, err := b.compileExpr(swtch.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +349,7 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 	for _, c := range swtch.Cases {
 		var val *zed.Value
 		if c.Expr != nil {
-			val, err = EvalAtCompileTime(b.pctx.Zctx, c.Expr)
+			val, err = b.evalAtCompileTime(c.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -361,7 +373,7 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbu
 		switcher := switcher.New(b.pctx, parents[0])
 		parents = []zbuf.Puller{}
 		for _, c := range swtch.Cases {
-			f, err := compileExpr(b.pctx.Zctx, c.Expr)
+			f, err := b.compileExpr(c.Expr)
 			if err != nil {
 				return nil, fmt.Errorf("compiling switch case filter: %w", err)
 			}
@@ -412,16 +424,16 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
 		}
-		assignments, err := compileAssignments(op.Args, b.pctx.Zctx)
+		assignments, err := b.compileAssignments(op.Args)
 		if err != nil {
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		leftKey, err := compileExpr(b.pctx.Zctx, op.LeftKey)
+		leftKey, err := b.compileExpr(op.LeftKey)
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := compileExpr(b.pctx.Zctx, op.RightKey)
+		rightKey, err := b.compileExpr(op.RightKey)
 		if err != nil {
 			return nil, err
 		}
@@ -445,7 +457,7 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 		}
 		return []zbuf.Puller{join}, nil
 	case *dag.Merge:
-		e, err := compileExpr(b.pctx.Zctx, op.Expr)
+		e, err := b.compileExpr(op.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -590,14 +602,14 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 	upper := &zed.Value{zed.TypeNull, nil}
 	if exprLower != nil {
 		var err error
-		lower, err = EvalAtCompileTime(b.pctx.Zctx, exprLower)
+		lower, err = b.evalAtCompileTime(exprLower)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if exprUpper != nil {
 		var err error
-		upper, err = EvalAtCompileTime(b.pctx.Zctx, exprUpper)
+		upper, err = b.evalAtCompileTime(exprUpper)
 		if err != nil {
 			return nil, err
 		}
@@ -622,11 +634,11 @@ func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {
 	return filter, nil
 }
 
-func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err error) {
+func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {
 	if in == nil {
 		return zed.Null, nil
 	}
-	e, err := compileExpr(zctx, in)
+	e, err := b.compileExpr(in)
 	if err != nil {
 		return nil, err
 	}
@@ -634,10 +646,17 @@ func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err erro
 	// reference to a var not in scope, a field access null this, etc.
 	defer func() {
 		if recover() != nil {
-			val = zctx.Missing()
+			val = b.zctx().Missing()
 		}
 	}()
-	return e.Eval(expr.NewContext(), zctx.Missing()), nil
+	return e.Eval(expr.NewContext(), b.zctx().Missing()), nil
+}
+
+func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err error) {
+	// We pass in a nil adaptor, which causes a panic for anything adaptor
+	// related, which is not currently allowed in an expression sub-query.
+	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil)
+	return b.evalAtCompileTime(in)
 }
 
 type readerScheduler struct {

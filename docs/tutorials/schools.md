@@ -1,57 +1,19 @@
-# A Tour of Zed with Schools Data
+---
+sidebar_position: 3
+sidebar_label: Schools Data
+---
+
+# Zed and Schools Data
 
 > This document provides a beginner's overview of the Zed language
-using the [zq command](../zq/README.md) and
+using the [zq command](../commands/zq.md) and
 [real-world data](../../testdata/edu) relating to California schools
 and test scores.
-
-## Contents
-
-* [1. Getting Started](#1-getting-started)
-* [2. Exploring the Data](#2-exploring-the-data)
-* [3. Searching](#3-searching)
-  * [3.1 Keyword Search](#31-keyword-search)
-  * [3.2 Globs](#32-globs)
-  * [3.3 Regular Expressions](#33-regular-expressions)
-  * [3.4 Literal Search](#34-literal-search)
-  * [3.5 Predicate Search](#35-predicate-search)
-    + [3.5.1 Type Dependence](#351-type-dependence)
-    + [3.5.2 Grep Predicates](#352-grep-predicates)
-    + [3.5.3 Containment](#353-containment)
-    + [3.5.4 Comparisons](#354-comparisons)
-  * [3.6 Boolean Logic](#36-boolean-logic)
-    + [3.6.1 Logical Grouping](#361-logical-grouping)
-* [4. Record Operators](#4-record-operators)
-  * [4.1 cut](#41-cut)
-  * [4.2 drop](#42-drop)
-  * [4.3 fuse](#43-fuse)
-  * [4.4 put](#44-put)
-  * [4.5 rename](#45-rename)
-* [5. Aggregates](#5-aggregates)
-  * [5.1 Output Field Names](#51-output-field-names)
-  * [5.2 Grouping](#52-grouping)
-  * [5.3 Where Clause](#53-where-clause)
-  * [5.4 Aggregate Functions](#54-aggregate-functions)
-    + [5.4.1 and](#541-and)
-    + [5.4.2 any](#542-any)
-    + [5.4.3 avg](#543-avg)
-    + [5.4.4 collect](#544-collect)
-    + [5.4.5 count](#545-count)
-    + [5.4.6 dcount](#546-dcount)
-    + [5.4.7 max](#547-max)
-    + [5.4.8 min](#548-min)
-    + [5.4.9 or](#549-or)
-    + [5.4.10 sum](#5410-sum)
-    + [5.4.11 union](#5411-union)
-  * [5.5 Group-by Examples](#55-group-by-examples)
-* [6. Sorting](#6-sorting)
-* [7. Sequence Filters](#7-sequence-filters)
-* [8. Value Construction](#8-value-construction)
 
 ## 1. Getting Started
 
 If you want to follow along by running the examples, simply
-[install zq](../../README.md#quick-start) and copy the
+[install zq](../install.md) and copy the
 data files used here into your working directory:
 ```
 curl https://raw.githubusercontent.com/brimdata/zed/main/testdata/edu/schools.zson > schools.zson
@@ -65,7 +27,7 @@ files are small enough that the example queries here will all run fast enough.
 ## 2. Exploring the Data
 
 It's always a good idea to get a feel for any new data, which is easy to do
-with Zed.  Zed's [sample operator](../zq/operators/sample.md) is just the ticket ---
+with Zed.  Zed's [sample operator](../language/operators/sample.md) is just the ticket ---
 `sample` will select one representative value from each "shape" of data present
 in the input, e.g.,
 ```mdtest-command dir=testdata/edu
@@ -158,7 +120,7 @@ and we get just the one record that matches:
 ```mdtest-output
 {School:"Valencia (Ygnacio) High (Alternative)",District:"Delano Joint Union High",City:"Delano",County:"Kern",Zip:"93215-1526",Latitude:null(float64),Longitude:null(float64),Magnet:null(bool),OpenDate:1980-07-01T00:00:00Z,ClosedDate:2009-08-01T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:null(string)}
 ```
-Under the covers, a keyword search translates to Zed's [grep function](../zq/functions/grep.md),
+Under the covers, a keyword search translates to Zed's [grep function](../language/functions/grep.md),
 which lets you search specific fields instead of the entire input value, e.g.,
 we can search for the string "bar" in the `City` field and list all the unique
 cities that match with a [group-by](#group-by):
@@ -315,7 +277,7 @@ produces
 ### 3.5 Predicate Search
 
 Search terms can also be include Boolean predicates adhering
-to Zed's [expression syntax](../zq/language.md#6-expressions).
+to Zed's [expression syntax](../language/README.md#6-expressions).
 
 In particular, a search result can be narrowed down
 to include only records that contain a
@@ -336,7 +298,7 @@ produces
 Because the right-hand-side value to which we were comparing was a string, it
 was necessary to wrap it in quotes. If this string were written as a keyword,
 it would have been interpreted as a field name as
-Zed [field references](../zq/language.md#24-implied-field-references)
+Zed [field references](../language/README.md#24-implied-field-references)
 look like keywords in the context of an expression.
 
 For example, to see the records in which the school and district name are the
@@ -407,7 +369,7 @@ produces an empty output
 ```
 
 To perform string searches inside of nested values, we can utilize the
-[grep function](../zq/functions/grep.md) with
+[grep function](../language/functions/grep.md) with
 a [glob](#32-globs), e.g.,
 ```mdtest-command dir=testdata/edu
 zq -z 'grep(Luther*, District)' schools.zson
@@ -435,7 +397,7 @@ determine if a value is among the many possible elements of a complex field.
 This is performed with `in`.
 
 Since our sample data doesn't contain complex fields, we'll make one by
-using the [`union`](../zq/aggregates/union.md) aggregate function to
+using the [`union`](../language/aggregates/union.md) aggregate function to
 create a [`set`](../formats/zson.md#343-set-value)-typed
 field called `Schools` that contains all unique school names per district. From
 these we'll find each set that contains a school named `Lincoln Elementary`, e.g.,
@@ -619,13 +581,13 @@ As with the data sets explored here, a very typical use case for Zed is
 to operate over structured logs or events that are all represented as Zed records.
 While Zed queries may operate over any sequence of values, the following operators
 are designed specifically to work on sequences of records:
-* [cut](../zq/operators/cut.md) - extract subsets of record fields into new records
-* [drop](../zq/operators/drop.md) - drop fields from record values
-* [fuse](../zq/operators/fuse.md) - coerce all input values into a merged type
-* [put](../zq/operators/put.md) - add or modify fields of records
-* [rename](../zq/operators/rename.md) - change the name of record fields
+* [cut](../language/operators/cut.md) - extract subsets of record fields into new records
+* [drop](../language/operators/drop.md) - drop fields from record values
+* [fuse](../language/operators/fuse.md) - coerce all input values into a merged type
+* [put](../language/operators/put.md) - add or modify fields of records
+* [rename](../language/operators/rename.md) - change the name of record fields
 
-### 4.1 [cut](../zq/operators/cut.md)
+### 4.1 [cut](../language/operators/cut.md)
 
 `cut` produces output records from input records containing only
 the specified named fields.
@@ -672,7 +634,7 @@ produces
 ...
 ```
 
-### 4.2 [drop](../zq/operators/drop.md)
+### 4.2 [drop](../language/operators/drop.md)
 
 `drop` produces output records from input records with the indicated
 fields dropped from the output.
@@ -688,7 +650,7 @@ produces
 ...
 ```
 
-### 4.3 [fuse](../zq/operators/fuse.md)
+### 4.3 [fuse](../language/operators/fuse.md)
 
 `fuse` produces output records from input records where the outputs
 all have a uniform type consisting of a fusion of the input types.
@@ -762,7 +724,7 @@ Geyserville New Tech Academy,Geyserville Unified,Geyserville,Sonoma,95441-9670,3
 In addition to the `csv` format, the `parquet`, `table`, and `zeek` formats
 also benefit from fused records.
 
-### 4.4 [put](../zq/operators/drop.md)
+### 4.4 [put](../language/operators/drop.md)
 
 `put` produces output records from input records and either mutates or
 adds fields indicated by the expressions.
@@ -827,7 +789,7 @@ produces
 ...
 ```
 
-### 4.5 [rename](../zq/operators/rename.md)
+### 4.5 [rename](../language/operators/rename.md)
 
 `rename` produces output records from input records where field mays are
 change.  Note that a field's name can only be renamed as it exists inside
@@ -897,13 +859,13 @@ produces
 
 ## 5. Aggregates
 
-The [summarize operator](../zq/operators/summarize.md)
+The [summarize operator](../language/operators/summarize.md)
 performs zero or more aggregations with zero or more group-by expressions.
 Each aggregation is performed by an
-[aggregate function](../zq/reference.md#aggregate-functions)
+[aggregate function](../language/aggregates/README.md)
 that operates on batches of records to carry out a running computation over
 the values they contain.  The `summarize` keyword is optional as the operato
-can be [inferred from context](../zq/language.md#26-implied-operators).
+can be [inferred from context](../language/README.md#26-implied-operators).
 
 As with SQL, multiple aggregate functions may be invoked at the same time.
 For example, to simultaneously calculate the minimum, maximum, and average of
@@ -941,7 +903,7 @@ lowest highest typical
 ### 5.2 Grouping
 
 All aggregate functions may be invoked with one or more
-[group-by expressions](../zq/operators/summarize.md), which forms one
+[group-by expressions](../language/operators/summarize.md), which forms one
 or more group-by keys.  Each unique group-by set defines input values
 upon which each aggregate function instance operates.
 If no group-by expression is provided, the aggregate function
@@ -968,10 +930,10 @@ produces
 ### 5.4 Aggregate Functions
 
 This section depicts examples of variou
-[aggregate functions](../zq/language.md#aggregate-functions)
+[aggregate functions](../language/README.md#aggregate-functions)
 operating over thes "schools data set".
 
-#### 5.4.1 [and](../zq/aggregates/and.md)
+#### 5.4.1 [and](../language/aggregates/and.md)
 
 The `and` function accumulates a Boolean truth value based on the logical AND
 of all of its input.
@@ -998,7 +960,7 @@ produces
 ...
 ```
 
-#### 5.4.2 [any](../zq/aggregates/any.md)
+#### 5.4.2 [any](../language/aggregates/any.md)
 
 The `any` function produces one value from all of its input, chosen in
 an undefined manner.
@@ -1014,7 +976,7 @@ case, the output is:
 {any:"'3R' Middle"}
 ```
 
-#### 5.4.3 [avg](../zq/aggregates/avg.md)
+#### 5.4.3 [avg](../language/aggregates/avg.md)
 
 The `avg` function computes an arithmetic mean over all of all of its input.
 
@@ -1028,7 +990,7 @@ avg
 484.99019042123484
 ```
 
-#### 5.4.4 [collect](../zq/aggregates/collect.md)
+#### 5.4.4 [collect](../language/aggregates/collect.md)
 
 The `collect` function accumulates all of its input into an array.
 
@@ -1067,7 +1029,7 @@ and produces
 ...
 ```
 
-#### 5.4.5 [count](../zq/aggregates/count.md)
+#### 5.4.5 [count](../language/aggregates/count.md)
 
 The `count` function produces a count of all of its input values.
 
@@ -1095,7 +1057,7 @@ produces
 ```
 Since `17686 + 2223 = 19909`, the count result is what we expected.
 
-#### 5.4.6 [dcount](../zq/aggregates/dcount.md)
+#### 5.4.6 [dcount](../language/aggregates/dcount.md)
 
 The `dcount` function produces a distinct count of all of its input values,
 i.e., the number of unique values in its input.
@@ -1127,7 +1089,7 @@ produces
 ```
 Here we saw the approximation was off by 0.3%.
 
-#### 5.4.7 [max](../zq/aggregates/max.md)
+#### 5.4.7 [max](../language/aggregates/max.md)
 
 The `max` function computes the maximum numeric value over all of its input.
 
@@ -1141,7 +1103,7 @@ max
 699
 ```
 
-#### 5.4.8 [min](../zq/aggregates/min.md)
+#### 5.4.8 [min](../language/aggregates/min.md)
 
 The `min` function computes the minimum numeric value over all of its input.
 
@@ -1155,7 +1117,7 @@ min
 289
 ```
 
-#### 5.4.9 [or](../zq/aggregates/or.md)
+#### 5.4.9 [or](../language/aggregates/or.md)
 
 The `or` function accumulates a Boolean truth value based on the logical OR
 of all of its input.
@@ -1191,7 +1153,7 @@ and produces
 ...
 ```
 
-#### 5.4.10 [sum](../zq/aggregates/sum.md)
+#### 5.4.10 [sum](../language/aggregates/sum.md)
 
 The `sum` function computes the minimum numeric value over all of its input.
 
@@ -1209,7 +1171,7 @@ and produces
 }
 ```
 
-#### 5.4.11 [union](../zq/aggregates/union.md)
+#### 5.4.11 [union](../language/aggregates/union.md)
 
 The `union` function computes a set union over all of this input.
 
@@ -1246,7 +1208,7 @@ are processed independently from on another.
 
 The output order of values from each grouped aggregation is undefined.
 To ensure a deterministic order,
-a [`sort` operator](../zq/operators/sort.md)
+a [`sort` operator](../language/operators/sort.md)
 may be used downstream of the aggregation.
 
 > In many of the examples, you will see a `sort` tacked onto the end of the
@@ -1299,7 +1261,7 @@ San Francisco   San Francisco Unified                              454.368421052
 ...
 ```
 Instead of a simple field name, any of the comma-separated group-by elements
-can be any [Zed expression](../zq/language.md#expressions), which may
+can be any [Zed expression](../language/README.md#expressions), which may
 appear in the form of a field assignment `field:=expr`
 
 To see a count of how many school names of a particular character length
@@ -1341,7 +1303,7 @@ Orange          -     510.91011235955057 107
 ## 6. Sorting
 
 Zed provides a convenient way to sort data using the
-[sort operator](../zq/operators/sort.md).
+[sort operator](../language/operators/sort.md).
 All values in Zed have a well-defined sort order, even complex values
 and values of different data types, so you can easily sort heterogenous
 sequences of values.
@@ -1375,10 +1337,10 @@ produces
 ...
 ```
 Here we'll find the counties with the most schools by using the
-[`count()`](../zq/aggregates/count.md) aggregate function and piping its
+[`count()`](../language/aggregates/count.md) aggregate function and piping its
 output to a `sort` in reverse order. Note that even though we didn't list a
 field name as an explicit argument, the `sort` operator did what we wanted
-because it found a field of the `uint64` [data type](../zq/language.md#data-types),
+because it found a field of the `uint64` [data type](../language/README.md#data-types),
 e.g.,
 ```mdtest-command dir=testdata/edu
 zq -z 'count() by County | sort -r' schools.zson
@@ -1410,11 +1372,11 @@ produces
 
 Several Zed operators manipulate a sequence of values based on the order
 in which they appear in the input:
-* [head](../zq/operators/head.md) - copy leading values of input sequence
-* [tail](../zq/operators/tail.md) - copy trailing values of input sequence
-* [uniq](../zq/operators/uniq.md) - deduplicate adjacent values
+* [head](../language/operators/head.md) - copy leading values of input sequence
+* [tail](../language/operators/tail.md) - copy trailing values of input sequence
+* [uniq](../language/operators/uniq.md) - deduplicate adjacent values
 
-### 7.1 [head](../zq/operators/head.md)
+### 7.1 [head](../language/operators/head.md)
 
 The `head` operator takes an integer argument `N` and copies the first N values
 of its input to its output.
@@ -1453,7 +1415,7 @@ produces
 {School:"ABC Secondary (Alternative)",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90703-2301",Latitude:33.881547,Longitude:-118.04635,Magnet:false,OpenDate:1991-09-05T00:00:00Z,ClosedDate:null(time),Phone:"(562) 229-7768",StatusType:"Active",Website:null(string)}
 {School:"APEX Academy",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90028-8526",Latitude:34.052234,Longitude:-118.24368,Magnet:false,OpenDate:2008-09-03T00:00:00Z,ClosedDate:null(time),Phone:"(323) 817-6550",StatusType:"Active",Website:null(string)}
 ```
-### 7.2 [tail](../zq/operators/tail.md)
+### 7.2 [tail](../language/operators/tail.md)
 
 The `tail` operator takes an integer argument `N` and copies the last N values
 of its input to its output.
@@ -1493,7 +1455,7 @@ produces
 {School:null(string),District:"California Advancing Pathways for Students in Los Angeles County ROC/P",City:"Bellflower",County:"Los Angeles",Zip:"90706",Latitude:33.882509,Longitude:-118.13442,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(562) 866-9011",StatusType:"Active",Website:"www.CalAPS.org"}
 ```
 
-### 7.3 [uniq](../zq/operators/uniq.md)
+### 7.3 [uniq](../language/operators/uniq.md)
 
 The `uniq` operator copies input values that are different from the previous
 input to the output.
@@ -1537,7 +1499,7 @@ produces
 
 ## 8. Value Construction
 
-The [yield operator](../zq/operators/yield.md) creates one or more output
+The [yield operator](../language/operators/yield.md) creates one or more output
 values for each input value based on the one or more expressions provided
 as arguments to yield.
 

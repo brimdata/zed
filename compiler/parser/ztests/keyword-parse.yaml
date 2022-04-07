@@ -1,0 +1,11 @@
+# Check that op keywords do not cause a parse error when appearing as prefix
+
+zed: sorted:=x, topped:=x, fused:=x, shaped:=x, sampled:=x, passed:=x
+
+input: |
+  {x:1}
+  {x:2}
+
+output: |
+  {x:1,sorted:1,topped:1,fused:1,shaped:1,sampled:1,passed:1}
+  {x:2,sorted:2,topped:2,fused:2,shaped:2,sampled:2,passed:2}

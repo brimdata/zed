@@ -1,16 +1,9 @@
-# The Zed Data Model Specification
+---
+sidebar_position: 0
+sidebar_label: Data Model
+---
 
-* [1. Primitive Types](#1-primitive-types)
-* [2. Complex Types](#2-complex-types)
-  + [2.1 Record](#21-record)
-  + [2.2 Array](#22-array)
-  + [2.3 Set](#23-set)
-  + [2.4 Map](#24-map)
-  + [2.5 Union](#25-union)
-  + [2.6 Enum](#26-enum)
-  + [2.7 Error](#27-error)
-* [3. Named Type](#3-named-type)
-* [4. Null Values](#4-null-values)
+# Zed Data Model
 
 ---
 

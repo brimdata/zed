@@ -160,6 +160,14 @@ func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchNam
 	return commitID, nil
 }
 
+func (l *LocalSession) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
+	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return branch.DeleteByPredicate(ctx, l.root, src, commit.Author, commit.Body, commit.Meta)
+}
+
 func (l *LocalSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
 	return l.root.Revert(ctx, poolID, branchName, commitID, message.Author, message.Body)
 }

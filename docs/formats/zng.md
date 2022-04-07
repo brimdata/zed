@@ -1,25 +1,15 @@
+---
+sidebar_position: 1
+sidebar_label: ZNG
+---
+
 # ZNG Specification
 
-* [1. Introduction](#1-introduction)
-* [2. The ZNG Format](#2-the-zng-format)
-  + [2.1 Types Frame](#21-types-frame)
-    - [2.1.1 Record Typedef](#211-record-typedef)
-    - [2.1.2 Array Typedef](#212-array-typedef)
-    - [2.1.3 Set Typedef](#213-set-typedef)
-    - [2.1.4 Map Typedef](#214-map-typedef)
-    - [2.1.5 Union Typedef](#215-union-typedef)
-    - [2.1.6 Enum Typedef](#216-enum-typedef)
-    - [2.1.7 Error Typedef](#217-error-typedef)
-    - [2.1.8 Named Type Typedef](#218-named-type-typedef)
-  + [2.2 Values Frame](#22-values-frame)
-  + [2.3 Control Frame](#23-control-frame)
-  + [2.4 End of Stream](#24-end-of-stream)
-* [3. Primitive Types](#3-primitive-types)
-* [4. Type Values](#4-type-values)
+---
 
 ## 1. Introduction
 
-ZNG is an efficient, sequence-oriented serialization format for any data
+ZNG (pronounced "zing") is an efficient, sequence-oriented serialization format for any data
 conforming to the [Zed data model](zed.md).
 
 ZNG is "row oriented" and
