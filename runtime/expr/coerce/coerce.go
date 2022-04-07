@@ -175,7 +175,7 @@ func ToFloat(zv zed.Value) (float64, bool) {
 		}
 	}
 	if id == zed.IDDuration {
-		return 1e-9 * float64(zed.DecodeInt(zv.Bytes)), true
+		return float64(zed.DecodeInt(zv.Bytes)), true
 	}
 	if id == zed.IDString {
 		v, err := strconv.ParseFloat(string(zv.Bytes), 64)
@@ -201,7 +201,7 @@ func ToUint(zv zed.Value) (uint64, bool) {
 		}
 	}
 	if id == zed.IDDuration {
-		return uint64(zed.DecodeInt(zv.Bytes) / 1_000_000_000), true
+		return uint64(zed.DecodeInt(zv.Bytes)), true
 	}
 	if id == zed.IDString {
 		v, err := strconv.ParseUint(string(zv.Bytes), 10, 64)
@@ -224,7 +224,7 @@ func ToInt(zv zed.Value) (int64, bool) {
 		}
 	}
 	if id == zed.IDDuration {
-		return int64(zed.DecodeInt(zv.Bytes) / 1_000_000_000), true
+		return int64(zed.DecodeInt(zv.Bytes)), true
 	}
 	if id == zed.IDString {
 		v, err := strconv.ParseInt(string(zv.Bytes), 10, 64)
@@ -248,7 +248,7 @@ func ToTime(zv zed.Value) (nano.Ts, bool) {
 		return zed.DecodeTime(zv.Bytes), true
 	}
 	if zed.IsSigned(id) {
-		return nano.Ts(zed.DecodeInt(zv.Bytes)) * 1_000_000_000, true
+		return nano.Ts(zed.DecodeInt(zv.Bytes)), true
 	}
 	if zed.IsInteger(id) {
 		v := zed.DecodeUint(zv.Bytes)
@@ -259,7 +259,7 @@ func ToTime(zv zed.Value) (nano.Ts, bool) {
 		return nano.Ts(v), true
 	}
 	if zed.IsFloat(id) {
-		return nano.Ts(zed.DecodeFloat(zv.Bytes) * 1e9), true
+		return nano.Ts(zed.DecodeFloat(zv.Bytes)), true
 	}
 	return 0, false
 }
@@ -284,7 +284,7 @@ func ToDuration(in zed.Value) (nano.Duration, bool) {
 		//XXX check for overflow here
 		return nano.Duration(v) * nano.Second, true
 	case zed.IDFloat32, zed.IDFloat64:
-		return nano.DurationFromFloat(zed.DecodeFloat(in.Bytes)), true
+		return nano.Duration(zed.DecodeFloat(in.Bytes)), true
 	}
 	return 0, false
 }

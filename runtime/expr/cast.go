@@ -1,6 +1,7 @@
 package expr
 
 import (
+	"fmt"
 	"math"
 	"net"
 	"unicode/utf8"
@@ -175,12 +176,12 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 				return ectx.CopyValue(*c.zctx.NewErrorf(
 					"cannot cast %s to type duration", zson.MustFormatValue(*val)))
 			}
-			d = nano.DurationFromFloat(f)
+			d = nano.Duration(f)
 		}
 		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
 	if zed.IsFloat(id) {
-		d := nano.DurationFromFloat(zed.DecodeFloat(val.Bytes))
+		d := nano.Duration(zed.DecodeFloat(val.Bytes))
 		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
 	v, ok := coerce.ToInt(*val)
@@ -206,22 +207,20 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	case id == zed.IDString:
 		gotime, err := dateparse.ParseAny(byteconv.UnsafeString(val.Bytes))
 		if err != nil {
-			sec, ferr := byteconv.ParseFloat64(val.Bytes)
-			if ferr != nil {
+			v, err := byteconv.ParseFloat64(val.Bytes)
+			if err != nil {
 				return ectx.CopyValue(*c.zctx.NewErrorf(
 					"cannot cast %s to type time", zson.MustFormatValue(*val)))
 			}
-			ts = nano.Ts(1e9 * sec)
+			ts = nano.Ts(v)
 		} else {
 			ts = nano.Ts(gotime.UnixNano())
 		}
-	case zed.IsFloat(id):
-		ts = nano.Ts(zed.DecodeFloat(val.Bytes) * 1e9)
-	case zed.IsInteger(id):
-		//XXX we call coerce here to avoid unsigned/signed decode
+	case zed.IsNumber(id):
+		//XXX we call coerce on integers here to avoid unsigned/signed decode
 		v, ok := coerce.ToInt(*val)
 		if !ok {
-			panic("coerce int to int failed")
+			panic(fmt.Sprintf("coerce %s to int failed", zson.MustFormatValue(*val)))
 		}
 		ts = nano.Ts(v)
 	default:
