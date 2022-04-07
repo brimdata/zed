@@ -3,27 +3,29 @@
 Zed offers a new approach to data that makes it easier to manipulate and manage
 your data.
 
-With Zed's new [super-structured data model](docs/formats/README.md#2-zed-a-super-structured-pattern),
+With Zed's new
+[super-structured data model](https://zed.brimdata.io/docs/formats/#2-zed-a-super-structured-pattern),
 messy JSON data can easily be given the fully-typed precision of relational tables
 without giving up JSON's uncanny ability to represent eclectic data.
 
-Trying out Zed is easy: just [install](#quick-start) the command-line tool
-[`zq`](docs/commands/zq.md).
+Trying out Zed is easy: just [install](https://zed.brimdata.io/docs/#getting-started)
+the command-line tool [`zq`](https://zed.brimdata.io/docs/commands/zq/).
 
 `zq` is a lot like [`jq`](https://stedolan.github.io/jq/)
 but is built from the ground up as a search and analytics engine based
-on the [Zed data model](docs/formats/zed.md).  Since Zed data is a
-proper superset of JSON, `zq` also works natively with JSON.
+on the [Zed data model](https://zed.brimdata.io/docs/formats/zed).
+Since Zed data is a proper superset of JSON, `zq` also works natively with JSON.
 
 While `zq` and the Zed data formats are production quality, the Zed project's
-[Zed data lake](docs/commands/zed.md) is a bit [earlier in development](docs/commands/zed.md#status).
+[Zed data lake](https://zed.brimdata.io/docs/commands/zed/#1-the-lake-model)
+is a bit [earlier in development](https://zed.brimdata.io/docs/commands/zed/#status).
 
 For a non-technical user, Zed is as easy to use as web search
 while for a technical user, Zed exposes its technical underpinnings
 in a gradual slope, providing as much detail as desired,
 packaged up in the easy-to-understand
-[ZSON data format](docs/formats/zson.md) and
-[Zed language](docs/language/README.md).
+[ZSON data format](https://zed.brimdata.io/docs/formats/zson) and
+[Zed language](https://zed.brimdata.io/docs/language).
 
 ## Why?
 
@@ -50,16 +52,18 @@ integration with your favorite Python libraries.
 ## How?
 
 Zed solves all these problems with a new foundational data format called
-[ZSON](docs/formats/zson.md),
+[ZSON](https://zed.brimdata.io/docs/formats/zson),
 which is a superset of JSON and the relational models.
 ZSON is syntax-compatible with JSON
 but it has a comprehensive type system that you can use as little or as much as you like.
 Zed types can be used as schemas.
 
-The [Zed language](docs/language/README.md) offers a gentle learning curve,
-which spans the gamut from simple [keyword search](docs/language/README.md#7-search-expressions)
-to powerful data-transformation operators like [lateral sub-queries](docs/language/README.md#8-lateral-subqueries)
-and [shaping](docs/language/README.md#9-shaping).
+The [Zed language](https://zed.brimdata.io/docs/language) offers a gentle learning curve,
+which spans the gamut from simple
+[keyword search](https://zed.brimdata.io/docs/language/#7-search-expressions)
+to powerful data-transformation operators like
+[lateral sub-queries](https://zed.brimdata.io/docs/language/#8-lateral-subqueries)
+and [shaping](https://zed.brimdata.io/docs/language/#9-shaping).
 
 Zed also has a cloud-based object design that was modeled after
 the `git` design pattern.  Commits to the lake are transactional
@@ -69,7 +73,7 @@ without indexes.
 
 ## Quick Start
 
-_Detailed documentation [is available](docs/README.md)._
+_Detailed documentation [is available](https://zed.brimdata.io/docs)._
 
 The quickest way to get running on macOS, Linux, or Windows
 is to download a pre-built release binary.
