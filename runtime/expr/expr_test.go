@@ -584,11 +584,12 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, `net(1.2.3.4)`, "", ZSON(`error("cannot cast 1.2.3.4 to type net")`))
 
 	// Test casts to time
-	ts := zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(1589126400_000_000_000))}
-	testSuccessful(t, "time(float32(1589126400.0))", "", ts)
-	testSuccessful(t, "time(float64(1589126400.0))", "", ts)
-	testSuccessful(t, "time(1589126400000000000)", "", ts)
-	testSuccessful(t, `time("1589126400")`, "", ts)
+	const ts = 1589126400_000_000_000
+	// float32 lacks sufficient precision to represent ts exactly.
+	testSuccessful(t, "time(float32(1589126400000000000))", "", *zed.NewTime(nano.Ts(float32(ts))))
+	testSuccessful(t, "time(float64(1589126400000000000))", "", *zed.NewTime(ts))
+	testSuccessful(t, "time(1589126400000000000)", "", *zed.NewTime(ts))
+	testSuccessful(t, `time("1589126400000000000")`, "", *zed.NewTime(ts))
 
 	testSuccessful(t, "string(1.2)", "", zstring("1.2"))
 	testSuccessful(t, "string(5)", "", zstring("5"))

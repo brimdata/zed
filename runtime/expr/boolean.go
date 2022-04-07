@@ -90,9 +90,9 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 		case zed.IDFloat32, zed.IDFloat64:
 			return CompareFloat(zed.DecodeFloat(zv), float64(pattern))
 		case zed.IDTime:
-			return CompareInt(int64(zed.DecodeTime(zv)), pattern*1e9)
+			return CompareInt(int64(zed.DecodeTime(zv)), pattern)
 		case zed.IDDuration:
-			return CompareInt(int64(zed.DecodeDuration(zv)), pattern*1e9)
+			return CompareInt(int64(zed.DecodeDuration(zv)), pattern)
 		}
 		return false
 	}, nil
@@ -178,9 +178,9 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
 			return compare(float64(zed.DecodeUint(zv)), pattern)
 		case zed.IDTime:
-			return compare(float64(zed.DecodeTime(zv))/1e9, pattern)
+			return compare(float64(zed.DecodeTime(zv)), pattern)
 		case zed.IDDuration:
-			return compare(float64(zed.DecodeDuration(zv))/1e9, pattern)
+			return compare(float64(zed.DecodeDuration(zv)), pattern)
 		}
 		return false
 	}, nil
