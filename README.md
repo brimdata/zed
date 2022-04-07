@@ -73,65 +73,11 @@ without indexes.
 
 ## Quick Start
 
-_Detailed documentation [is available](https://zed.brimdata.io/docs)._
+Check out the [installation page](https://zed.brimdata.io/docs/install.md)
+for a quick and easy install.
 
-The quickest way to get running on macOS, Linux, or Windows
-is to download a pre-built release binary.
-You can find these binaries on the GitHub
-[releases](https://github.com/brimdata/zed/releases) page.
-
-On macOS and Linux, you can also use [Homebrew](https://brew.sh/) to install `zq`:
-```
-brew install brimdata/tap/zq
-```
-To install `zed` for working with lakes, run
-```
-brew install brimdata/tap/zed
-```
-If you have [Go](https://go.dev/) installed, you can easily install `zed` and
-`zq` from source by running
-```
-go install github.com/brimdata/zed/cmd/{zed,zq}@latest
-```
-Once installed, you can run the query engine from the command-line using `zq`:
-```
-echo '"hello, world"' | zq -
-```
-Or you can run a Zed lake service, load it with data using `zed load`, and hit the API.
-In one shell, run the server:
-```
-mkdir scratch
-zed serve -lake scratch
-```
-And in another shell, run the client:
-```
-zed create Demo
-zed use Demo@main
-echo '{s:"hello, world"}' | zed load -
-zed query "from Demo"
-```
-You can also use `zed` from Python.  After you install the Zed Python:
-```
-pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
-```
-You can hit the Zed service from a Python program:
-```python
-import zed
-
-# Connect to the default lake at http://localhost:9867.  To use a
-# different lake, supply its URL via the ZED_LAKE environment variable
-# or as an argument here.
-client = zed.Client()
-
-# Begin executing a Zed query for all records in the pool named "Demo".
-# This returns an iterator, not a container.
-records = client.query('from Demo')
-
-# Stream records from the server.
-for record in records:
-    print(record)
-```
-See the [python/zed](python/zed) directory for more details.
+Detailed documentation for the entire Zed system and language
+is available on the [Zed docs site](https://zed.brimdata.io/docs).
 
 ### Brim
 
@@ -144,20 +90,6 @@ We originally developed Brim for security-oriented use cases
 [Wireshark](https://www.wireshark.org/)),
 but we are actively extending Brim with UX for handling generic
 data sets to support data science, data engineering, and ETL use cases.
-
-### Building from Source
-
-It's also easy to build `zed` from source:
-```
-git clone https://github.com/brimdata/zed
-cd zed
-make install
-```
-This installs binaries in your `$GOPATH/bin`.
-
-> If you don't have Go installed, download and install it from the
-> [Go install page](https://golang.org/doc/install). Go version 1.17 or later is
-> required.
 
 ## Contributing
 

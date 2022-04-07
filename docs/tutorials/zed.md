@@ -5,6 +5,8 @@ sidebar_label: zed
 
 # zed Tutorial
 
+---
+
 `zq` is great, but what if we have a lot of data on which we want to perform search and
 analytics? This is where the `zed` command comes in. `zed` builds on the type
 system and language found in `zq` and adds a high performance data lake on top.

@@ -1,5 +1,7 @@
 # Operators
 
+---
+
 Dataflow operators process a sequence of input values to create an output sequence
 and appear as the components of a dataflow pipeline.
 
