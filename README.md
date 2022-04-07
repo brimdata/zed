@@ -110,28 +110,7 @@ zed use Demo@main
 echo '{s:"hello, world"}' | zed load -
 zed query "from Demo"
 ```
-You can also use `zed` from Python.  After you install the Zed Python:
-```
-pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
-```
-You can hit the Zed service from a Python program:
-```python
-import zed
-
-# Connect to the default lake at http://localhost:9867.  To use a
-# different lake, supply its URL via the ZED_LAKE environment variable
-# or as an argument here.
-client = zed.Client()
-
-# Begin executing a Zed query for all records in the pool named "Demo".
-# This returns an iterator, not a container.
-records = client.query('from Demo')
-
-# Stream records from the server.
-for record in records:
-    print(record)
-```
-See the [python/zed](python/zed) directory for more details.
+XXX python
 
 ### Brim
 
