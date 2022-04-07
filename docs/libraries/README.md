@@ -10,3 +10,5 @@ be improved as the project develops.
 We plan to support a broad range of languages.  Open source contributions
 are welcome.  Give us a holler on slack if you would like help or guidance
 on developing a Zed library.
+
+**TODO: embeddable lake**
