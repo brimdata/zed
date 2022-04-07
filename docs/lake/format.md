@@ -9,12 +9,42 @@ sidebar_label: Format
 
 ## _Status_
 
-XXX This document will soon be updated in a forthcoming PR.
+>This document is a rough draft and work in progress.  We plan to
+soon bring it up to date with the current implementation and maintain it
+as we add new capabilities to the system.
 
-## Cloud Object Architecture
+## Introduction
 
-The Zed lake semantics are achieved by mapping the
-lake and pool abstractions onto a key-value cloud object store.
+To support the client-facing [Zed lake semantics](../commands/zed.md#1-the-lake-model)
+implemented by the [`zed` command](../commands/zed.md), we are developing
+an open specification for the Zed lake storage format described in this document.
+As we make progress on the Zed lake model, we will update this document
+as we go.
+
+The Zed Lake storage format is somewhat analagous the emerging
+cloud table formats like [Iceberg](https://iceberg.apache.org/spec/),
+but differs but differs in a fundamental way: there are no tables in a Zed Lake.
+
+On the contrary, we believe a better approach for organizing modern, eclectic
+data is based on a type system rather than a collection of tables
+and relational schemas.  Since relations, tables, schemas, data frames,
+Parquet files, Avro files, JSON, CSV, XML, and so forth are all subsets of the
+Zed's super-structured type system, a data lake based on Zed holds the promise
+to provide a universal data representation for all of these different approaches to data.
+
+Also, while we are not currently focused on building a SQL engine for the Zed lake,
+it is most certainly possible to do so, as a Zed record type
+[is analagous to](../formats/README.md#2-zed-a-super-structured-pattern)
+a SQL table definition.  SQL tables can essentially be dynamically projected
+via a table virtualization layer built on top of the Zed lake model.
+
+All data and metadata in a Zed lake conforms to the Zed data model, which materially
+simplifies development, test, introspection, and so forth.  For example,
+search indexes are just ZNG files with an embedded B-Tree structure.
+There is no need to create a special index file format and all the related
+tooling and support functions to manipulate a custom format.
+
+## Cloud Object Model
 
 Every data element in a Zed lake is either of two fundamental object types:
 * a single-writer _immutable object_, or
@@ -43,7 +73,7 @@ such an assumption).
 
 #### Data Objects
 
-An immutable object is created by a single writer using a globally unique name
+A data object is created by a single writer using a globally unique name
 with an embedded KSUID.  
 New objects are written in their entirety.  No updates, appends, or modifications
 may be made once an object exists.  Given these semantics, any such object may be
@@ -58,7 +88,7 @@ A data object is composed of
 * an optional seek index, and
 * zero or more search indexes.
 
-Data objects may be either in row form (i.e., ZNG) or column form (i.e., ZST),
+Data objects may be either in sequential form (i.e., ZNG) or column form (i.e., ZST),
 or both forms may be present as a query optimizer may choose to use whatever
 representation is more efficient.
 When both row and column data objects are present, they must contain the same
@@ -79,8 +109,8 @@ index rules described above.  Every index object is defined
 with respect to a data object.
 
 The seek index maps pool key values to seek offsets in the ZNG file thereby
-allowing a scan to do a partial GET of the ZNG object when scanning only
-a subset of data.
+allowing a scan to do a byte-range retrieval of the ZNG object when
+processing only a subset of data.
 
 > Note the ZST format will have seekable checkpoints based on the sort key that
 > are encoded into its metadata section so there is no need to have a separate
@@ -88,7 +118,7 @@ a subset of data.
 
 #### Commit History
 
-A pool's commit history is the definitive record of the evolution of data in
+A branch's commit history is the definitive record of the evolution of data in
 that pool in a transactionally consistent fashion.
 
 Each commit object entry is identified with its `commit ID`.
@@ -99,10 +129,6 @@ The "add" and "commit" operations are transactionally stored
 in a chain of commit objects.  Any number of adds (and deletes) may appear
 in a commit object.  All of the operations that belong to a commit are
 identified with a commit identifier (ID).
-
-> TBD: when a scan encounters an object that was physically deleted for
-> whatever reason, it should simply continue on and issue a warning on
-> the query endpoint "warnings channel".
 
 As each commit object points to its parent (except for the initial commit
 in main), the collection of commit objects in a pool forms a tree.
@@ -116,32 +142,14 @@ from a scan when possible using the index,
 * `DeleteIndex` to remove an index object reference to its data object, and
 * `Commit` for providing metadata about each commit.
 
-The actions are not grouped directly by their commit tag but instead each
-action embeds the KSUID of its commit tag.
+The actions are not grouped directly by their commit ID but instead each
+action serialization includes its commit ID.
 
-By default, `zed log` outputs an abbreviated form of the log as text to
-stdout, similar to the output of `git log`.
-
-However, the log represents the definitive record of a pool's present
+The chain of commit objects starting at any commit and following
+the parent pointers to the original commit is called the "commit log".
+This log represents the definitive record of a branch's present
 and historical content, and accessing its complete detail can provide
-insights about data layout, provenance, history, and so forth.  Thus, the
-Zed lake provides a means to query a pool's configuration state as well,
-thereby allowing past versions of the complete pool and branch configurations
-as well as all of their underlying data to be subject to time travel.
-To interrogate the underlying transaction history of the branches and
-their pointers, simply query a pool's "branchlog" via the syntax `<pool>:branchlog`.
-
-For example, to aggregate a count of each journal entry type of the pool
-called `logs`, you can simply say:
-```
-zed query "from logs:branchlog | count() by typeof(this)"
-```
-Since the Zed system "typedefs" each journal record with a named type,
-this kind of query gives intuitive results.  There is no need to implement
-a long list of features for journal introspection since the data in its entirety
-can be simply and efficiently processed as a ZNG stream.
-
-> Note that the branchlog meta-query source is not yet implemented.
+insights about data layout, provenance, history, and so forth.
 
 ### Transaction Journal
 
@@ -173,7 +181,7 @@ There may be 1 or more entries in each commit object.
 
 Each journal entry implies a snapshot of the data in a pool.  A snapshot
 is computed by applying the transactions in sequence from entry TAIL to
-the journal entry in question, up to HEAD.  This gives the set of commit tags
+the journal entry in question, up to HEAD.  This gives the set of commit IDs
 that comprise a snapshot.
 
 The set of branch pointers in a pool is assembled at any point in the journal's history
@@ -185,25 +193,6 @@ For efficiency, a journal entry's snapshot may be stored as a "cached snapshot"
 alongside the journal entry.  This way, the snapshot at HEAD may be
 efficiently computed by locating the most recent cached snapshot and scanning
 forward to HEAD.
-
-#### Scaling a Journal
-
-When the sizes of the journal snapshot files exceed a certain size
-(and thus becomes too large to conveniently handle in memory),
-the snapshots can be converted to and stored
-in an internal sub-pool called the "snapshot pool".  The snapshot pool's
-pool key is the "from" value (of its parent pool key) from each commit action.
-In this case, commits to the parent pool are made in the same fashion,
-but instead of snapshotting updates into a snapshot ZNG file,
-the snapshots are committed to the journal sub-pool.  In this way, commit histories
-can be rolled up and organized by the pool key.  Likewise, retention policies
-based on the pool key can remove not just data objects from the main pool but
-also data objects in the journal pool comprising committed data that falls
-outside of the retention boundary.
-
-> Note we currently record a delete using only the object ID.  In order to
-> organize add and delete actions around key spans, we need to add the span
-> metadata to the delete action just as it exists in the add action.
 
 #### Journal Concurrency Control
 
@@ -244,10 +233,15 @@ the configuration history.
 ### Merge on Read
 
 To support _sorted scans_,
-data from overlapping objects is read in parallel and merged in sorted order.
+data objects are store in a sorted order defined by the pool's sort key.
+The sort key may be a composite key compised of primary, secondary, etc
+component keys.
+
+When the key range of objects overlap, they may be read in parallel
+in merged in sorted order.
 This is called the _merge scan_.
 
-However, if many overlapping data objects arise, performing a merge scan
+If many overlapping data objects arise, performing a merge scan
 on every read can be inefficient.
 This can arise when
 many random data `load` operations involving perhaps "late" data
@@ -256,54 +250,13 @@ show up and need to be inserted into the past).  The data layout can become
 fragmented and less efficient to scan, requiring a scan to merge data
 from a potentially large number of different objects.
 
-To solve this problem, the Zed lake design follows the
+To solve this problem, the Zed lake format follows the
 [LSM](https://en.wikipedia.org/wiki/Log-structured_merge-tree) design pattern.
 Since records in each data object are stored in sorted order, a total order over
 a collection of objects (e.g., the collection coming from a specific set of commits)
 can be produced by executing a sorted scan and rewriting the results back to the pool
 in a new commit.  In addition, the objects comprising the total order
 do not overlap.  This is just the basic LSM algorithm at work.
-
-To perform an LSM rollup, the `compact` command (implementation tracked
-via [zed/2977](https://github.com/brimdata/zed/issues/2977))
-is like a "squash" to perform LSM-like compaction function, e.g.,
-```
-zed compact <id> [<id> ...]
-(merged commit <id> printed to stdout)
-```
-After compaction, all of the objects comprising the new commit are sorted
-and non-overlapping.
-Here, the objects from the given commit IDs are read and compacted into
-a new commit.  Again, until the data is actually committed,
-no readers will see any change.
-
-Unlike other systems based on LSM, the rollups here are envisioned to be
-run by orchestration agents operating on the Zed lake API.  Using
-meta-queries, an agent can introspect the layout of data, perform
-some computational geometry, and decide how and what to compact.
-The nature of this orchestration is highly workload dependent so we plan
-to develop a family of data-management orchestration agents optimized
-for various use cases (e.g., continuously ingested logs vs. collections of
-metrics that should be optimized with columnar form vs. slowly-changing
-dimensional datasets like threat intel tables).
-
-An orchestration layer outside of the Zed lake is responsible for defining
-policy over
-how data is ingested and committed and rolled up.  Depending on the
-use case and workflow, we envision that some amount of overlapping data objects
-would persist at small scale and always be "mixed in" with other overlapping
-data during any key-range scan.
-
-> Note: since this style of data organization follows the LSM pattern,
-> how data is rolled up (or not) can control the degree of LSM write
-> amplification that occurs for a given workload.  There is an explicit
-> tradeoff here between overhead of merging overlapping objects on read
-> and LSM write amplification to organize the data to avoid such overlaps.
->
-> Note: we are showing here manual, CLI-driven steps to accomplish these tasks
-> but a live data pipeline would automate all of this with orchestration that
-> performs these functions via a service API, i.e., the same service API
-> used by the CLI operators.
 
 ### Object Naming
 
@@ -347,129 +300,3 @@ data during any key-range scan.
   <pool-id-2>/
   ...
 ```
-
-## Continuous Ingest
-
-While the description above is very batch oriented, the Zed lake design is
-intended to perform scalably for continuous streaming applications.  In this
-approach, many small commits may be continuously executed as data arrives and
-after each commit, the data is immediately readable.
-
-To handle this use case, the _journal_ of branch commits is designed
-to scale to arbitrarily large footprints as described earlier.
-
-## Derived Analytics
-
-To improve the performance of predictable workloads, many use cases of a
-Zed lake pre-compute _derived analytics_ or a particular set of _partial
-aggregations_.
-
-For example, the Brim app displays a histogram of event counts grouped by
-a category over time.  The partial aggregation for such a computation can be
-configured to run automatically and store the result in a pool designed to
-hold such results.  Then, when a scan is run, the Zed analytics engine
-recognizes when the DAG of a query can be rewritten to assemble the
-partial results instead of deriving the answers from scratch.
-
-When and how such partial aggregations are performed is simply a matter of
-writing Zed queries that take the raw data and produce the derived analytics
-while conforming to a naming model that allows the Zed lake to recognize
-the relationship between the raw data and the derived data.
-
-> TBD: Work out these details which are reminiscent of the analytics cache
-> developed in our earlier prototype.
-
-## Keyless Data
-
-This is TBD.  Data without a key should be accepted some way or another.
-One approach is to simply assign the "zero-value" as the pool key; another
-is to use a configured default value.  This would make key-based
-retention policies more complicated.
-
-Another approach would be to create a sub-pool on demand when the first
-keyless data is encountered, e.g., `pool-name.$nokey` where the pool key
-is configured to be "this".  This way, an app or user could query this pool
-by this name to scan keyless data.
-
-## Relational Model
-
-Since a Zed lake can provide strong consistency, workflows that manipulate
-data in a lake can utilize a model where updates are made to the data
-in place.  Such updates involve creating new commits from the old data
-where the new data is a modified form of the old data.  This provides
-emulation of row-based updates and deletes.
-
-If the pool-key is chosen to be "this" for such a use case, then unique
-rows can be maintained by trivially detected duplicates (because any
-duplicate row will be adjacent when sorted by "this") so that duplicates are
-trivially detected.
-
-Efficient upserts can be accomplished because each data object is sorted by the
-pool key.  Thus, an upsert can be sorted then merge-joined with each
-overlapping object.  Where data objects produce changes and additions, they can
-be forwarded to a streaming add operator and the list of modified objects
-accumulated.  At the end of the operation, then new commit(s) along with
-the to-be-deleted objects can be added to the journal in a single atomic
-operation.  A write conflict occurs if there are any other deletes added to
-the list of to-be-deleted objects.  When this occurs, the transaction can
-simply be restarted.  To avoid inefficiency of many restarts, an upsert can
-be partitioned into smaller objects if the use case allows for it.
-
-> TBD: Finish working through this use case, its requirements, and the
-> mechanisms needed to implement it.  Write conflicts will need to be
-> managed at a layer above the journal or the journal extended with the
-> needed functionality.
-
-## Type Rule
-
-A type rule indicates that all values of any field of a specified type
-be indexed where the type signature uses Zed type syntax.
-For example,
-```
-zed index create IndexGroupEx type ip
-```
-creates a rule that indexes all IP addresses appearing in fields of type `ip`
-in the index group `IndexGroupEx`.
-
-## Aggregation Rule
-
-An aggregation rule allows the creation of any index keyed by one or more fields
-(primary, second, etc.), typically the result of an aggregation.
-The aggregation is specified as a Zed query.
-For example,
-```
-zed index create IndexGroupEx agg "count() by field"
-```
-creates a rule that creates an index keyed by the group-by keys whose
-values are the partial-result aggregation given by the Zed expression.
-
-> This is not yet implemented.  The query planner would replace any full object
-> scan with the needed aggregation with the result given in the index.
-> Where a filter is applied to match one row of the index, that result could
-> likewise be extracted instead of scanning the entire object.
-> This capability is not generally useful for interactive search and analytics
-> (except for optimizations that suit the interactive app) but rather is a powerful
-> capability for application-specific workflows that know the pre-computed
-> aggregations that they will use ahead of time, e.g., beacon analysis
-> of network security logs.
-
-## Vacuum Support
-
-While data objects currently can be deleted from a lake, the underlying data
-is retained to support time travel.
-
-The system must also support purging of old data so that retention policies
-can be implemented.
-
-This could be supported with the DANGER-ZONE command `zed vacuum`
-(implementation tracked in [zed/2545](https://github.com/brimdata/zed/issues/2545)).
-The commits still appear in the log but scans at any time-travel point
-where the commit is present will fail to scan the deleted data.
-In this case, perhaps we should emit a structured Zed error describing
-the meta-data of the object that was unavailable.
-
-Alternatively, old data can be removed from the system using a safer
-command (but still in the DANGER-ZONE), `zed vacate` (also
-[zed/2545](https://github.com/brimdata/zed/issues/2545)) which moves
-the tail of the commit journal forward and removes any data no longer
-accessible through the modified commit journal.
