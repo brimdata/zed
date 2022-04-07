@@ -15,8 +15,17 @@ import (
 // represent an arbitrary nano.Ts value, formatTime and parseTime do extra work
 // to preserve precision that would be lost by using strconv.FormatFloat and
 // ParseFloat.
-func formatTime(ts nano.Ts, precision int) string {
+func formatTime(ts nano.Ts) string {
 	sec, ns := ts.Split()
+	// Zeek uses a precision of 6.  See
+	// https://github.com/zeek/zeek/blob/v4.2.0/src/threading/formatters/Ascii.cc#L114-L119
+	// and
+	// https://github.com/zeek/zeek/blob/v4.2.0/src/threading/Formatter.cc#L109-L112.
+	precision := 6
+	if (ns/1000)*1000 != ns {
+		// Increase precision to prevent rounding.
+		precision = 9
+	}
 	var negative bool
 	if sec < 0 {
 		sec = sec * -1

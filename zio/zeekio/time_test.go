@@ -9,12 +9,10 @@ import (
 )
 
 func TestFormatTime(t *testing.T) {
-	assert.Equal(t, "-60.000000001", formatTime(-nano.Ts(time.Minute+1), -1))
-	assert.Equal(t, "-60.00000001", formatTime(-nano.Ts(time.Minute+10), -1))
-	assert.Equal(t, "-60", formatTime(-nano.Ts(time.Minute), -1))
-	assert.Equal(t, "-0.1", formatTime(-nano.Ts(time.Millisecond*100), -1))
-	assert.Equal(t, "-60.000000", formatTime(-nano.Ts(time.Minute), 6))
-	assert.Equal(t, "60.001000000", formatTime(nano.Ts(time.Minute+time.Millisecond), 9))
+	assert.Equal(t, "60.000000001", formatTime(nano.Ts(time.Minute+1)))
+	assert.Equal(t, "-60.000000010", formatTime(-nano.Ts(time.Minute+10)))
+	assert.Equal(t, "-60.000000", formatTime(-nano.Ts(time.Minute)))
+	assert.Equal(t, "-0.100000", formatTime(-nano.Ts(time.Millisecond*100)))
 }
 
 func TestParseTime(t *testing.T) {

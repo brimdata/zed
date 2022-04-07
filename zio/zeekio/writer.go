@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime/expr"
 )
 
@@ -105,11 +104,6 @@ func (w *Writer) writeHeader(r *zed.Value, path string) error {
 	return err
 }
 
-func isHighPrecision(ts nano.Ts) bool {
-	_, ns := ts.Split()
-	return (ns/1000)*1000 != ns
-}
-
 // This returns the zeek strings for this record.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
 func ZeekStrings(r *zed.Value) ([]string, error) {
@@ -119,13 +113,6 @@ func ZeekStrings(r *zed.Value) ([]string, error) {
 		var field string
 		if val := it.Next(); val == nil {
 			field = "-"
-		} else if col.Type == zed.TypeTime {
-			ts := zed.DecodeTime(val)
-			precision := 6
-			if isHighPrecision(ts) {
-				precision = 9
-			}
-			field = formatTime(ts, precision)
 		} else {
 			field = formatAny(zed.Value{col.Type, val}, false)
 		}

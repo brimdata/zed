@@ -12,7 +12,7 @@ input: &input |
   #path	conn
   #fields	s	e	se	vi	vs	p	c	a	n	i	t	b
   #types	string	enum	set[enum]	vector[int]	vector[string]	port	count	addr	subnet	interval	time	bool
-  foo	bar	a,b,c	1,2,3	a,b,c	80	1000	10.5.100.20	10.0.0.0/8	1000	1582404982.000000	T
+  foo	bar	a,b,c	1,2,3	a,b,c	80	1000	10.5.100.20	10.0.0.0/8	1000.000000	1582404982.000000	T
 
 output-flags: -f zeek
 

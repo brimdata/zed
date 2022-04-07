@@ -14,4 +14,4 @@ output: |
   #unset_field	-
   #fields	b	i16	u16	i32	u32	i64	u64	a	n	d
   #types	int	int	int	int	int	int	count	addr	subnet	interval
-  0	0	0	0	0	0	0	10.1.2.3	10.0.0.0/8	1000
+  0	0	0	0	0	0	0	10.1.2.3	10.0.0.0/8	1000.000000
