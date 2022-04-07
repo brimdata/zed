@@ -11,11 +11,11 @@ Top-level zed package...
 
 ## Library API
 
-Refer to the
+XXX refer to key packages:
 
-[zed](https://pkg.go.dev/github.com/brimdata/zed)
-[zio](https://pkg.go.dev/github.com/brimdata/zed/zio)
-[lake/api](https://pkg.go.dev/github.com/brimdata/zed/lake/api)
+* [zed](https://pkg.go.dev/github.com/brimdata/zed)
+* [zio](https://pkg.go.dev/github.com/brimdata/zed/zio)
+* [lake/api](https://pkg.go.dev/github.com/brimdata/zed/lake/api)
 
 
 ## Examples

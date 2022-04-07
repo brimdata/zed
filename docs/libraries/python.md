@@ -1,4 +1,4 @@
-# Python Library
+# Python
 
 You can also use `zed` from Python.  After you install the Zed Python:
 ```
