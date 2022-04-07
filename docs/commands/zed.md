@@ -696,6 +696,8 @@ that is stored in the commit journal for reference.  These values may
 be specified as options to the `load` command, and are also available in the
 API for automation.
 
+> Note that the branchlog meta-query source is not yet implemented.
+
 ### 2.10 Merge
 
 Data is merged from one branch into another with the `merge` command, e.g.,
