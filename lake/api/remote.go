@@ -12,7 +12,6 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -25,17 +24,7 @@ type remote struct {
 
 var _ Interface = (*remote)(nil)
 
-func OpenRemoteLake(ctx context.Context, url string) (Interface, error) {
-	return &remote{
-		conn: client.NewConnectionTo(url),
-	}, nil
-}
-
-func OpenRemoteLakeWithURI(ctx context.Context, uri *storage.URI) (Interface, error) {
-	return OpenRemoteLake(ctx, uri.String())
-}
-
-func NewRemoteWithConnection(conn *client.Connection) *remote {
+func NewRemoteLake(conn *client.Connection) Interface {
 	return &remote{conn}
 }
 

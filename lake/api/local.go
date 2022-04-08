@@ -31,12 +31,8 @@ func OpenLocalLake(ctx context.Context, lakePath string) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	return OpenLocalLakeWithURI(ctx, uri)
-}
-
-func OpenLocalLakeWithURI(ctx context.Context, lakePath *storage.URI) (Interface, error) {
 	engine := storage.NewLocalEngine()
-	root, err := lake.Open(ctx, engine, lakePath)
+	root, err := lake.Open(ctx, engine, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +42,13 @@ func OpenLocalLakeWithURI(ctx context.Context, lakePath *storage.URI) (Interface
 	}, nil
 }
 
-func CreateLocalLake(ctx context.Context, lakePath *storage.URI) (Interface, error) {
+func CreateLocalLake(ctx context.Context, lakePath string) (Interface, error) {
+	uri, err := storage.ParseURI(lakePath)
+	if err != nil {
+		return nil, err
+	}
 	engine := storage.NewLocalEngine()
-	root, err := lake.Create(ctx, engine, lakePath)
+	root, err := lake.Create(ctx, engine, uri)
 	if err != nil {
 		return nil, err
 	}
