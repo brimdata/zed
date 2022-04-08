@@ -1,5 +1,7 @@
 # Aggregate Functions
 
+---
+
 Aggregate functions appear in either summarization
 or expression context and produce an aggregate value for a sequence of inputs values.
 

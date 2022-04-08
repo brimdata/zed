@@ -18,7 +18,7 @@ other Go projects straight from the GitHub repo.
 Some of the key packages are:
 
 * [zed](https://pkg.go.dev/github.com/brimdata/zed) - core Zed values and types
-* [zed](https://pkg.go.dev/github.com/brimdata/zed/zson) - ZSON support
+* [zson](https://pkg.go.dev/github.com/brimdata/zed/zson) - ZSON support
 * [zio](https://pkg.go.dev/github.com/brimdata/zed/zio) - I/O interfaces for Zed following the Reader/Writer patterns
 * [zio/zsonio](https://pkg.go.dev/github.com/brimdata/zed/zio/zsonio) - ZSON reader/writer
 * [zio/zngio](https://pkg.go.dev/github.com/brimdata/zed/zio/zngio) - ZNG reader/writer

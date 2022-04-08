@@ -1,5 +1,7 @@
 # Zed Formats
 
+---
+
 > **TL;DR** The Zed data model defines a new and easy way to manage, store,
 > and process data utilizing an emerging concept called
 [super-structured data](#2-zed-a-super-structured-pattern).

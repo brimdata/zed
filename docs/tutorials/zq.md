@@ -5,6 +5,8 @@ sidebar_label: zq
 
 # zq Tutorial
 
+---
+
 This tour provides new users of `zq` an overview of `zq` and
 the [Zed language](../language/README.md)
 by walking through a number of examples on the command-line.
