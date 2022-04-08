@@ -240,8 +240,8 @@ from %s@%s:objects
 	upper: meta.first < meta.last ? meta.last : meta.first
   }
 | switch (
-  case %s %s THRESH => deletes:=collect(id) | deletes != null
-  case %s %s THRESH => copies:=collect(id) | copies != null
+  case %s %s THRESH => deletes:=collect(id)
+  case %s %s THRESH => copies:=collect(id)
 )`
 	deletesField, copiesField := "upper", "lower"
 	if op == ">=" || op == ">" {
