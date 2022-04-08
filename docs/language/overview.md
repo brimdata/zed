@@ -1,9 +1,9 @@
 ---
 sidebar_position: 1
-sidebar_label: Zed Language
+sidebar_label: Overview
 ---
 
-# The Zed Language
+# Zed Language Overview
 
 ---
 

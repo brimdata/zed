@@ -5,6 +5,8 @@ sidebar_label: Commands
 
 # Command Tooling
 
+---
+
 The Zed system is managed and queried with the [`zed` command](zed.md),
 which is organized into numerous subcommands like the familiar command patterns
 of `docker` or `kubectrl`.

@@ -1,9 +1,9 @@
 # Python
 
-The Zed project has preliminary support for Python-based interaction
+Zed includes preliminary support for Python-based interaction
 with a Zed lake.
 The Zed Python package supports loading data into a Zed lake as well as
-querying and retrieving results in the [ZJSON format](../formats/zjson.md)
+querying and retrieving results in the [ZJSON format](../formats/zjson.md).
 The Python client interacts with the Zed lake via the REST API served by
 [`zed serve`](../../cmd/zed/serve).
 
@@ -21,13 +21,12 @@ pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
 
 Install the version compatible with a local `zed` like this:
 ```sh
-
 pip install "git+https://github.com/brimdata/zed@$(zed -version | cut -d ' ' -f 2)#subdirectory=python/zed"
 ```
 
 ## Example
 
-Run a Zed lake service from your shell:
+To run this client example, fir run a Zed lake service from your shell:
 ```sh
 zed init -lake scratch
 zed serve -lake scratch
@@ -35,7 +34,7 @@ zed serve -lake scratch
 > Or you can launch the Brim app and it will run a Zed lake service
 > on the default port at http://localhost:9867.
 
-Then, from Python, create a pool, load some data, and query it.
+Then, in another shell using Python, create a pool, load some data, and query it.
 ```python
 import zed
 
@@ -58,4 +57,13 @@ records = client.query('from TestPool')
 # Stream records from the server.
 for record in records:
     print(record)
+```
+e.g., by running
+```
+cat > test.py < [past from above]
+python3 test.py
+```
+which should print out:
+```
+XXX
 ```
