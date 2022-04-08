@@ -12,29 +12,34 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/segmentio/ksuid"
 )
 
-type RemoteSession struct {
+type remote struct {
 	conn *client.Connection
 }
 
-var _ Interface = (*RemoteSession)(nil)
+var _ Interface = (*remote)(nil)
 
-func OpenRemoteLake(ctx context.Context, url string) (*RemoteSession, error) {
-	return &RemoteSession{
+func OpenRemoteLake(ctx context.Context, url string) (*remote, error) {
+	return &remote{
 		conn: client.NewConnectionTo(url),
 	}, nil
 }
 
-func NewRemoteWithConnection(conn *client.Connection) *RemoteSession {
-	return &RemoteSession{conn}
+func OpenRemoteLakeWithURI(ctx context.Context, uri *storage.URI) (*remote, error) {
+	return OpenRemoteLake(ctx, uri.String())
 }
 
-func (r *RemoteSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {
+func NewRemoteWithConnection(conn *client.Connection) *remote {
+	return &remote{conn}
+}
+
+func (r *remote) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {
 	config, err := LookupPoolByName(ctx, r, poolName)
 	if err != nil {
 		return ksuid.Nil, err
@@ -42,12 +47,12 @@ func (r *RemoteSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUI
 	return config.ID, nil
 }
 
-func (r *RemoteSession) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+func (r *remote) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
 	res, err := r.conn.BranchGet(ctx, poolID, branchName)
 	return res.Commit, err
 }
 
-func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout order.Layout, seekStride int, thresh int64) (ksuid.KSUID, error) {
+func (r *remote) CreatePool(ctx context.Context, name string, layout order.Layout, seekStride int, thresh int64) (ksuid.KSUID, error) {
 	res, err := r.conn.CreatePool(ctx, api.PoolPostRequest{
 		Name:       name,
 		Layout:     layout,
@@ -60,7 +65,7 @@ func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout orde
 	return res.Pool.ID, err
 }
 
-func (r *RemoteSession) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, at ksuid.KSUID) error {
+func (r *remote) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, at ksuid.KSUID) error {
 	_, err := r.conn.CreateBranch(ctx, poolID, api.BranchPostRequest{
 		Name:   name,
 		Commit: at.String(),
@@ -68,27 +73,27 @@ func (r *RemoteSession) CreateBranch(ctx context.Context, poolID ksuid.KSUID, na
 	return err
 }
 
-func (r *RemoteSession) RemoveBranch(ctx context.Context, poolID ksuid.KSUID, branchName string) error {
-	return errors.New("TBD RemoteSession.RemoveBranch")
+func (r *remote) RemoveBranch(ctx context.Context, poolID ksuid.KSUID, branchName string) error {
+	return errors.New("TBD remote.RemoveBranch")
 }
 
-func (r *RemoteSession) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error) {
+func (r *remote) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.MergeBranch(ctx, poolID, childBranch, parentBranch, message)
 	return res.Commit, err
 }
 
-func (r *RemoteSession) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
+func (r *remote) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
 	return r.conn.RemovePool(ctx, pool)
 }
 
-func (r *RemoteSession) RenamePool(ctx context.Context, pool ksuid.KSUID, name string) error {
+func (r *remote) RenamePool(ctx context.Context, pool ksuid.KSUID, name string) error {
 	if name == "" {
 		return errors.New("no pool name provided")
 	}
 	return r.conn.RenamePool(ctx, pool, api.PoolPutRequest{Name: name})
 }
 
-func (r *RemoteSession) Load(ctx context.Context, _ *zed.Context, poolID ksuid.KSUID, branchName string, reader zio.Reader, commit api.CommitMessage) (ksuid.KSUID, error) {
+func (r *remote) Load(ctx context.Context, _ *zed.Context, poolID ksuid.KSUID, branchName string, reader zio.Reader, commit api.CommitMessage) (ksuid.KSUID, error) {
 	pr, pw := io.Pipe()
 	w := zngio.NewWriter(pw, zngio.WriterOpts{LZ4BlockSize: zngio.DefaultLZ4BlockSize})
 	go func() {
@@ -99,12 +104,12 @@ func (r *RemoteSession) Load(ctx context.Context, _ *zed.Context, poolID ksuid.K
 	return res.Commit, err
 }
 
-func (r *RemoteSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+func (r *remote) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.Revert(ctx, poolID, branchName, commitID, message)
 	return res.Commit, err
 }
 
-func (r *RemoteSession) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
+func (r *remote) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
 	q, err := r.QueryWithControl(ctx, head, src, srcfiles...)
 	if err != nil {
 		return nil, err
@@ -112,7 +117,7 @@ func (r *RemoteSession) Query(ctx context.Context, head *lakeparse.Commitish, sr
 	return zio.NewReadCloser(zbuf.NoControl(q), q), nil
 }
 
-func (r *RemoteSession) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
+func (r *remote) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
 	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
 		return nil, err
@@ -124,31 +129,31 @@ func (r *RemoteSession) QueryWithControl(ctx context.Context, head *lakeparse.Co
 	return zbuf.MeterReadCloser(q), nil
 }
 
-func (r *RemoteSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
+func (r *remote) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.Delete(ctx, poolID, branchName, tags, commit)
 	return res.Commit, err
 }
 
-func (r *RemoteSession) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
+func (r *remote) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.DeleteByPredicate(ctx, poolID, branchName, src, commit)
 	return res.Commit, err
 }
 
-func (r *RemoteSession) AddIndexRules(ctx context.Context, rules []index.Rule) error {
+func (r *remote) AddIndexRules(ctx context.Context, rules []index.Rule) error {
 	return r.conn.AddIndexRules(ctx, rules)
 }
 
-func (r *RemoteSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
+func (r *remote) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
 	res, err := r.conn.DeleteIndexRules(ctx, ids)
 	return res.Rules, err
 }
 
-func (r *RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
+func (r *remote) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
 	res, err := r.conn.ApplyIndexRules(ctx, poolID, branchName, rule, inTags)
 	return res.Commit, err
 }
 
-func (r *RemoteSession) UpdateIndex(ctx context.Context, rules []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+func (r *remote) UpdateIndex(ctx context.Context, rules []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
 	res, err := r.conn.UpdateIndex(ctx, poolID, branchName, rules)
 	return res.Commit, err
 }

@@ -40,6 +40,17 @@ type Interface interface {
 	UpdateIndex(ctx context.Context, names []string, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 }
 
+func OpenLake(ctx context.Context, u string) (Interface, error) {
+	uri, err := storage.ParseURI(u)
+	if err != nil {
+		return nil, err
+	}
+	if IsLakeService(uri) {
+		return OpenRemoteLakeWithURI(ctx, uri)
+	}
+	return OpenLocalLakeWithURI(ctx, uri)
+}
+
 func IsLakeService(u *storage.URI) bool {
 	return u.Scheme == "http" || u.Scheme == "https"
 }

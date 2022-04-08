@@ -64,7 +64,7 @@ func (l *LakeFlags) Open(ctx context.Context) (api.Interface, error) {
 		}
 		return api.NewRemoteWithConnection(conn), nil
 	}
-	return api.OpenLocalLake(ctx, uri)
+	return api.OpenLocalLakeWithURI(ctx, uri)
 }
 
 func (l *LakeFlags) AuthStore() *auth0.Store {
