@@ -26,7 +26,7 @@ type local struct {
 
 var _ Interface = (*local)(nil)
 
-func OpenLocalLake(ctx context.Context, lakePath string) (*local, error) {
+func OpenLocalLake(ctx context.Context, lakePath string) (Interface, error) {
 	uri, err := storage.ParseURI(lakePath)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func OpenLocalLake(ctx context.Context, lakePath string) (*local, error) {
 	return OpenLocalLakeWithURI(ctx, uri)
 }
 
-func OpenLocalLakeWithURI(ctx context.Context, lakePath *storage.URI) (*local, error) {
+func OpenLocalLakeWithURI(ctx context.Context, lakePath *storage.URI) (Interface, error) {
 	engine := storage.NewLocalEngine()
 	root, err := lake.Open(ctx, engine, lakePath)
 	if err != nil {
@@ -46,7 +46,7 @@ func OpenLocalLakeWithURI(ctx context.Context, lakePath *storage.URI) (*local, e
 	}, nil
 }
 
-func CreateLocalLake(ctx context.Context, lakePath *storage.URI) (*local, error) {
+func CreateLocalLake(ctx context.Context, lakePath *storage.URI) (Interface, error) {
 	engine := storage.NewLocalEngine()
 	root, err := lake.Create(ctx, engine, lakePath)
 	if err != nil {

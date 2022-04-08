@@ -25,13 +25,13 @@ type remote struct {
 
 var _ Interface = (*remote)(nil)
 
-func OpenRemoteLake(ctx context.Context, url string) (*remote, error) {
+func OpenRemoteLake(ctx context.Context, url string) (Interface, error) {
 	return &remote{
 		conn: client.NewConnectionTo(url),
 	}, nil
 }
 
-func OpenRemoteLakeWithURI(ctx context.Context, uri *storage.URI) (*remote, error) {
+func OpenRemoteLakeWithURI(ctx context.Context, uri *storage.URI) (Interface, error) {
 	return OpenRemoteLake(ctx, uri.String())
 }
 
