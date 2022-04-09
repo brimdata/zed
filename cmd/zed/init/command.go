@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Cmd = &charm.Spec{
@@ -51,14 +50,10 @@ func (c *Command) Run(args []string) error {
 	if path == "" {
 		return errors.New("single lake path argument required")
 	}
-	lakePath, err := storage.ParseURI(path)
-	if err != nil {
-		return err
-	}
-	if api.IsLakeService(lakePath) {
+	if api.IsLakeService(path) {
 		return fmt.Errorf("init command not valid on remote lake")
 	}
-	if _, err := api.CreateLocalLake(ctx, lakePath); err != nil {
+	if _, err := api.CreateLocalLake(ctx, path); err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {

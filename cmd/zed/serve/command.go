@@ -79,7 +79,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if api.IsLakeService(uri) {
+	if api.IsLakeService(uri.String()) {
 		return errors.New("serve command available for local lakes only")
 	}
 	c.conf.Root = uri

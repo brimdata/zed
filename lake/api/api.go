@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -40,8 +41,15 @@ type Interface interface {
 	UpdateIndex(ctx context.Context, names []string, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 }
 
-func IsLakeService(u *storage.URI) bool {
-	return u.Scheme == "http" || u.Scheme == "https"
+func OpenLake(ctx context.Context, u string) (Interface, error) {
+	if IsLakeService(u) {
+		return NewRemoteLake(client.NewConnectionTo(u)), nil
+	}
+	return OpenLocalLake(ctx, u)
+}
+
+func IsLakeService(u string) bool {
+	return strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://")
 }
 
 func ScanIndexRules(ctx context.Context, api Interface) (zio.ReadCloser, error) {

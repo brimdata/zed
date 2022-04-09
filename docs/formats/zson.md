@@ -267,7 +267,7 @@ the set elements is a union of the types present.
 A set value may be empty.  An empty set value without a type decorator is
 presumed to be an empty set of type `null`.
 
-#### 2.4.6 Map Value
+#### 2.4.4 Map Value
 
 A map value has the form:
 ```
@@ -282,13 +282,13 @@ that follows it.
 An empty map value without a type decorator is
 presumed to be an empty map of type `|{null: null}|`.
 
-#### 2.4.4 Union Value
+#### 2.4.5 Union Value
 
 A union value is a value that conforms to one of the types within a union type.
 If the value appears in a context in which the type is unknown or ambiguous,
 then the value must be decorated as [described above](#22-type-decorators).
 
-#### 2.4.5 Enum Value
+#### 2.4.6 Enum Value
 
 An enum type represents a symbol from a finite set of symbols
 referenced by name.
@@ -349,7 +349,7 @@ A _set type_ has the form:
 |[ <type> ]|
 ```
 
-#### 2.5.6 Map Type
+#### 2.5.4 Map Type
 
 A _map type_ has the form:
 ```
@@ -358,7 +358,7 @@ A _map type_ has the form:
 where `<key-type>` is the type of the keys and `<value-type>` is the
 type of the values.
 
-#### 2.5.4 Union Type
+#### 2.5.5 Union Type
 
 A _union type_ has the form:
 ```
@@ -366,7 +366,7 @@ A _union type_ has the form:
 ```
 where there are at least two types in the list.
 
-#### 2.5.5 Enum Type
+#### 2.5.6 Enum Type
 
 An _enum type_ has the form:
 ```
@@ -376,7 +376,15 @@ where `<name>` is a [ZSON name](#21-names).
 Each enum name must be unique and the order is not significant, e.g.,
 enum type `enum(HEADS,TAILS)` is equal to type `enum(TAILS,HEADS)`.
 
-#### 2.5.7 Named Type
+#### 2.5.7 Error Type
+
+An _error type_ has the form:
+```
+error( <type> )
+```
+where `<type>` is the type of the underlying ZSON values wrapped as an error.
+
+#### 2.5.8 Named Type
 
 A named type has the form:
 ```
@@ -401,14 +409,6 @@ Named types may be redefined, in which case subsequent references
 resolve to the most recent definition according to
 * sequence order across values, or
 * left-to-right depth-first order within a complex value.
-
-#### 2.5.8 Error Type
-
-An _error type_ has the form:
-```
-error( <type> )
-```
-where `<type>` is the type of the underlying ZSON values wrapped as an error.
 
 ### 2.6 Null Value
 

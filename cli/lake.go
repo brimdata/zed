@@ -42,7 +42,7 @@ func (l *LakeFlags) Connection() (*client.Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !api.IsLakeService(uri) {
+	if !api.IsLakeService(uri.String()) {
 		return nil, errors.New("cannot open connection on local lake")
 	}
 	conn := client.NewConnectionTo(uri.String())
@@ -57,14 +57,14 @@ func (l *LakeFlags) Open(ctx context.Context) (api.Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	if api.IsLakeService(uri) {
+	if api.IsLakeService(uri.String()) {
 		conn, err := l.Connection()
 		if err != nil {
 			return nil, err
 		}
-		return api.NewRemoteWithConnection(conn), nil
+		return api.NewRemoteLake(conn), nil
 	}
-	return api.OpenLocalLake(ctx, uri)
+	return api.OpenLocalLake(ctx, uri.String())
 }
 
 func (l *LakeFlags) AuthStore() *auth0.Store {
