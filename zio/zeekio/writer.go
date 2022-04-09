@@ -125,7 +125,7 @@ func ZeekStrings(r *zed.Value) ([]string, error) {
 			if isHighPrecision(ts) {
 				precision = 9
 			}
-			field = string(ts.AppendFloat(nil, precision))
+			field = formatTime(ts, precision)
 		} else {
 			field = formatAny(zed.Value{col.Type, val}, false)
 		}

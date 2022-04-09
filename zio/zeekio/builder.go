@@ -142,13 +142,13 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 		}
 		b.buf = zed.AppendUint(b.buf[:0], v)
 	case zed.IDDuration:
-		v, err := nano.Parse(val) // zeek-style fractional ts
+		v, err := parseTime(val)
 		if err != nil {
 			return err
 		}
 		b.buf = zed.AppendDuration(b.buf[:0], nano.Duration(v))
 	case zed.IDTime:
-		v, err := nano.Parse(val)
+		v, err := parseTime(val)
 		if err != nil {
 			return err
 		}

@@ -29,11 +29,7 @@ func formatAny(zv zed.Value, inContainer bool) string {
 	case *zed.TypeOfBytes:
 		return base64.StdEncoding.EncodeToString(zv.Bytes)
 	case *zed.TypeOfDuration:
-		// This format of a fractional second is used by Zeek in logs.
-		// It uses enough precision to fully represent the 64-bit ns
-		// accuracy of a nano Duration. Such values cannot be represented by
-		// float64's without loss of the least significant digits of ns.
-		return nano.Ts(zed.DecodeDuration(zv.Bytes)).StringFloat()
+		return formatTime(nano.Ts(zed.DecodeDuration(zv.Bytes)), -1)
 	case *zed.TypeEnum:
 		return formatAny(zed.Value{zed.TypeUint64, zv.Bytes}, false)
 	case *zed.TypeOfFloat32:
@@ -59,11 +55,7 @@ func formatAny(zv zed.Value, inContainer bool) string {
 	case *zed.TypeOfString:
 		return formatString(t, zv.Bytes, inContainer)
 	case *zed.TypeOfTime:
-		// This format of a fractional second is used by Zeek in logs.
-		// It uses enough precision to fully represent the 64-bit ns
-		// accuracy of a nano.Ts.  Such values cannot be representd by
-		// float64's without loss of the least significant digits of ns.
-		return zed.DecodeTime(zv.Bytes).StringFloat()
+		return formatTime(zed.DecodeTime(zv.Bytes), -1)
 	case *zed.TypeOfType:
 		return zson.String(zv)
 	case *zed.TypeUnion:

@@ -2,35 +2,40 @@ package nano_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParse(t *testing.T) {
-	successCases := []struct {
-		input      string
-		expectedTs nano.Ts
+func TestUnmarshalJSON(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in       string
+		expected nano.Ts
 	}{
-		{"0", 0},
-		{"1425565514.419939", 1425565514419939000},
-		{"001425565514.419939", 1425565514419939000},
-		{"-1425565514.419939", -1425565514419939000},
-		{"1e9", 1e9 * 1e9},
-		{"1.123e8", 1.123e8 * 1e9},
-		{"1.123e-5", nano.Ts(1.123e-5 * 1e9)},
+		{`1234567890.1`, 1234567890},
+		{`-1234567890.1`, -1234567890},
+		{`"1234567890"`, 1234567890},
+		{`"-1234567890"`, -1234567890},
+		{`{"sec":1.1}`, 1 * 1e9},
+		{`{"sec":1.1,"ns":234567890.1}`, 1234567890},
+		{`{"sec":1.1,"ns":-234567890.1}`, 765432110},
+		{`{"sec":-1.1}`, -1 * 1e9},
+		{`{"sec":-1.1,"ns":234567890.1}`, -765432110},
+		{`{"sec":-1.1,"ns":-234567890.1}`, -1234567890},
 	}
-	for _, c := range successCases {
-		ts, err := nano.Parse([]byte(c.input))
-		assert.NoError(t, err, "input: %q", c.input)
-		assert.Exactly(t, c.expectedTs, ts, "input: %q", c.input)
+	for _, c := range cases {
+		var ts nano.Ts
+		assert.NoError(t, ts.UnmarshalJSON([]byte(c.in)), "input: %q", c.in)
+		assert.Equal(t, c.expected, ts, "input: %q", c.in)
 	}
 
-	for _, input := range []string{"", " ", "a"} {
-		_, err := nano.Parse([]byte(input))
-		assert.Error(t, err, "input: %q", input)
+	var ts nano.Ts
+	assert.EqualError(t, ts.UnmarshalJSON([]byte(`"1.1"`)), `invalid time format: "1.1"`)
+	for _, s := range []string{`{}`, `{"ns":1}`} {
+		assert.EqualError(t, ts.UnmarshalJSON([]byte(s)), "time object is not of the form {sec:x, ns:y}")
 	}
+
 }
 
 func TestParseMillis(t *testing.T) {
@@ -54,22 +59,4 @@ func TestParseMillis(t *testing.T) {
 		_, err := nano.ParseMillis([]byte(input))
 		assert.Error(t, err, "input: %q", input)
 	}
-}
-
-func TestStringFloat(t *testing.T) {
-	ts := nano.Ts((time.Minute + 1) * -1)
-	assert.Equal(t, "-60.000000001", ts.StringFloat())
-	ts = nano.Ts((time.Minute + 10) * -1)
-	assert.Equal(t, "-60.00000001", ts.StringFloat())
-	ts = nano.Ts((time.Minute) * -1)
-	assert.Equal(t, "-60", ts.StringFloat())
-	ts = nano.Ts((time.Millisecond * 100) * -1)
-	assert.Equal(t, "-0.1", ts.StringFloat())
-}
-
-func TestAppendFloat(t *testing.T) {
-	ts := nano.Ts((time.Minute) * -1)
-	assert.Equal(t, "-60.000000", string(ts.AppendFloat(nil, 6)))
-	ts = nano.Ts((time.Minute + time.Millisecond))
-	assert.Equal(t, "60.001000000", string(ts.AppendFloat(nil, 9)))
 }
