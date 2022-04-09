@@ -33,14 +33,14 @@ func (c *testClient) TestPoolStats(id ksuid.KSUID) lake.PoolStats {
 }
 
 func (c *testClient) TestPoolGet(id ksuid.KSUID) (config pools.Config) {
-	remote := lakeapi.NewRemoteWithConnection(c.Connection)
+	remote := lakeapi.NewRemoteLake(c.Connection)
 	pool, err := lakeapi.LookupPoolByID(context.Background(), remote, id)
 	require.NoError(c, err)
 	return *pool
 }
 
 func (c *testClient) TestBranchGet(id ksuid.KSUID) (config lake.BranchMeta) {
-	remote := lakeapi.NewRemoteWithConnection(c.Connection)
+	remote := lakeapi.NewRemoteLake(c.Connection)
 	branch, err := lakeapi.LookupBranchByID(context.Background(), remote, id)
 	require.NoError(c, err)
 	return *branch
