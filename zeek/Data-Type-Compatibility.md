@@ -147,7 +147,7 @@ zq -f zeek zeek_types.zson
 #unset_field	-
 #fields	my_bool	my_count	my_int	my_double	my_time	my_interval	my_printable_string	my_bytes_string	my_port	my_addr	my_subnet	my_enum	my_set	my_vector	my_record.name	my_record.age
 #types	bool	count	int	double	time	interval	string	string	port	addr	subnet	enum	set[string]	vector[string]	string	count
-T	123	456	123.456	1592502151.123456	123.456	smile😁smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	a,in,set,things	order,is,important	Jeanne	122
+T	123	456	123.456	1592502151.123456	123.456000	smile😁smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	a,in,set,things	order,is,important	Jeanne	122
 ```
 
 ## Type-Specific Details

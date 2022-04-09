@@ -29,7 +29,7 @@ func formatAny(zv zed.Value, inContainer bool) string {
 	case *zed.TypeOfBytes:
 		return base64.StdEncoding.EncodeToString(zv.Bytes)
 	case *zed.TypeOfDuration:
-		return formatTime(nano.Ts(zed.DecodeDuration(zv.Bytes)), -1)
+		return formatTime(nano.Ts(zed.DecodeDuration(zv.Bytes)))
 	case *zed.TypeEnum:
 		return formatAny(zed.Value{zed.TypeUint64, zv.Bytes}, false)
 	case *zed.TypeOfFloat32:
@@ -55,7 +55,7 @@ func formatAny(zv zed.Value, inContainer bool) string {
 	case *zed.TypeOfString:
 		return formatString(t, zv.Bytes, inContainer)
 	case *zed.TypeOfTime:
-		return formatTime(zed.DecodeTime(zv.Bytes), -1)
+		return formatTime(zed.DecodeTime(zv.Bytes))
 	case *zed.TypeOfType:
 		return zson.String(zv)
 	case *zed.TypeUnion:
