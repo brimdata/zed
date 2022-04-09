@@ -93,7 +93,7 @@ func TestLegacyZeekValid(t *testing.T) {
 	record, err = sendLegacyValues(parser, valsWithTs)
 	require.NoError(t, err)
 
-	expectedTs, err := nano.Parse([]byte(timestamp))
+	expectedTs, err := parseTime([]byte(timestamp))
 	require.NoError(t, err)
 	x := record.Deref("ts").AsTime()
 	assert.Equal(t, expectedTs, x, "Timestamp is correct")

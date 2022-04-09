@@ -39,14 +39,15 @@ func (t *Ts) UnmarshalJSON(in []byte) error {
 	}
 	switch v := v.(type) {
 	case string:
-		var err error
-		*t, err = ParseTs(v)
-		return err
-
-	case float64:
-		*t = Ts(v * 1e9)
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid time format: %s", in)
+		}
+		*t = Ts(i)
 		return nil
-
+	case float64:
+		*t = Ts(v)
+		return nil
 	case map[string]interface{}:
 		sec, ok := access(v, "sec")
 		if ok {
@@ -100,36 +101,6 @@ func (t Ts) Pretty() string {
 	return t.Time().Format("01/02/2006@15:04:05")
 }
 
-func (t Ts) StringFloat() string {
-	return string(t.AppendFloat(nil, -1))
-}
-
-func (t Ts) AppendFloat(dst []byte, precision int) []byte {
-	sec, ns := t.Split()
-	var negative bool
-	if sec < 0 {
-		sec = sec * -1
-		negative = true
-	}
-	if ns < 0 {
-		ns = ns * -1
-		negative = true
-	}
-	if negative {
-		dst = append(dst, '-')
-	}
-	dst = strconv.AppendInt(dst, sec, 10)
-	if ns > 0 || precision > 0 {
-		n := len(dst)
-		dst = strconv.AppendFloat(dst, float64(ns)/1e9, 'f', precision, 64)
-		// Remove the first '0'. This is a little hacky but the alternative is
-		// implementing this ourselves. Something to avoid given:
-		// https://golang.org/src/math/big/ftoa.go?s=2522:2583#L53
-		dst = append(dst[:n], dst[n+1:]...)
-	}
-	return dst
-}
-
 func (t Ts) Add(d Duration) Ts {
 	return Ts(int64(t) + int64(d))
 }
@@ -148,12 +119,6 @@ func TimeToTs(t time.Time) Ts {
 	return Ts(t.UnixNano())
 }
 
-func FloatToTs(v float64) Ts {
-	sec := math.Round(v)
-	ns := v - sec
-	return Ts(int64(sec)*1_000_000_000 + int64(ns*1e9))
-}
-
 func Date(year int, month time.Month, day, hour, min, sec, nsec int) Ts {
 	t := time.Date(year, month, day, hour, min, sec, nsec, time.UTC)
 	return TimeToTs(t)
@@ -161,61 +126,6 @@ func Date(year int, month time.Month, day, hour, min, sec, nsec int) Ts {
 
 func Now() Ts {
 	return TimeToTs(time.Now())
-}
-
-func ParseTs(s string) (Ts, error) {
-	return Parse([]byte(s))
-}
-
-func Parse(s []byte) (Ts, error) {
-	i, err := parse(s)
-	ts := Ts(i)
-	if err != nil {
-		// slow path for timestamps in scientific notation
-		f, e := strconv.ParseFloat(string(s), 64)
-		if e == nil {
-			ts = FloatToTs(f)
-		} else {
-			return 0, err
-		}
-	}
-	return ts, nil
-}
-
-func parse(s []byte) (int64, error) {
-	var v, scale, sign int64
-	sign = 1
-	scale = 1000000000
-	k := 0
-	n := len(s)
-	if n == 0 {
-		return 0, fmt.Errorf("invalid time format: %s", string(s))
-	}
-	if s[0] == '-' {
-		if n == 1 {
-			return 0, fmt.Errorf("invalid time format: %s", string(s))
-		}
-		sign, k = -1, 1
-	}
-	for ; k < n; k++ {
-		c := s[k]
-		if c != '.' && (c < '0' || c > '9') {
-			return 0, fmt.Errorf("invalid time format: %s", string(s))
-		}
-		if c == '.' {
-			for k++; k < n; k++ {
-				c = s[k]
-				if c < '0' || c > '9' {
-					return 0, fmt.Errorf("invalid time format: %s", string(s))
-				}
-				v = v*10 + int64(c-'0')
-				scale /= 10
-			}
-			break
-		}
-		v = v*10 + int64(c-'0')
-	}
-	return sign * v * scale, nil
 }
 
 // ParseMillis parses an unsigned integer representing milliseconds since the
