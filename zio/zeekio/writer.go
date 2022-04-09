@@ -1,9 +1,9 @@
 package zeekio
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/expr"
@@ -11,6 +11,8 @@ import (
 
 type Writer struct {
 	writer io.WriteCloser
+
+	buf bytes.Buffer
 	header
 	flattener *expr.Flattener
 	typ       *zed.TypeRecord
@@ -39,16 +41,22 @@ func (w *Writer) Write(r *zed.Value) error {
 		}
 		w.typ = zed.TypeRecordOf(r.Type)
 	}
-	values, err := ZeekStrings(r)
-	if err != nil {
-		return err
+	w.buf.Reset()
+	var needSeparator bool
+	it := r.Bytes.Iter()
+	for _, col := range zed.TypeRecordOf(r.Type).Columns {
+		bytes := it.Next()
+		if col.Name == "_path" {
+			continue
+		}
+		if needSeparator {
+			w.buf.WriteByte('\t')
+		}
+		needSeparator = true
+		w.buf.WriteString(FormatValue(*zed.NewValue(col.Type, bytes)))
 	}
-	if i, ok := r.ColumnOfField("_path"); ok {
-		// delete _path column
-		values = append(values[:i], values[i+1:]...)
-	}
-	out := strings.Join(values, "\t") + "\n"
-	_, err = w.writer.Write([]byte(out))
+	w.buf.WriteByte('\n')
+	_, err = w.writer.Write(w.buf.Bytes())
 	return err
 }
 
@@ -102,21 +110,4 @@ func (w *Writer) writeHeader(r *zed.Value, path string) error {
 	}
 	_, err := w.writer.Write([]byte(s))
 	return err
-}
-
-// This returns the zeek strings for this record.  XXX We need to not use this.
-// XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zed.Value) ([]string, error) {
-	var ss []string
-	it := r.Bytes.Iter()
-	for _, col := range zed.TypeRecordOf(r.Type).Columns {
-		var field string
-		if val := it.Next(); val == nil {
-			field = "-"
-		} else {
-			field = formatAny(zed.Value{col.Type, val}, false)
-		}
-		ss = append(ss, field)
-	}
-	return ss, nil
 }
