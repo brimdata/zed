@@ -131,7 +131,7 @@ but is useful to an implementation to deterministically
 size decompression buffers in advance of decoding.
 
 Values for the `format` byte are defined in the
-[ZNG compression format specification](./compression-spec.md).
+[ZNG compression format specification](./compression.md).
 
 > This arrangement of message blocks separating types and values allows
 > for efficient scanning and parallelization.  In general, values depend
