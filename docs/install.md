@@ -13,7 +13,7 @@ Several options for installing `zq` and/or `zed` are available:
 * [Build from Source](#build-from-source).
 
 To install the Zed Python client, see the
-[Python library documentation](../libraries/python.md).
+[Python library documentation](libraries/python.md).
 
 ## Homebrew
 

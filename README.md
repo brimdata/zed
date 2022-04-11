@@ -73,7 +73,7 @@ without indexes.
 
 ## Quick Start
 
-Check out the [installation page](https://zed.brimdata.io/docs/install.md)
+Check out the [installation page](https://zed.brimdata.io/docs/install/)
 for a quick and easy install.
 
 Detailed documentation for the entire Zed system and language
