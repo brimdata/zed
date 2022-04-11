@@ -202,6 +202,45 @@ func TestUnmarshalRecord(t *testing.T) {
 	require.Equal(t, *v1.T1f1, *v3.T4f1)
 }
 
+func TestUnmarshalNull(t *testing.T) {
+	t.Run("slice", func(t *testing.T) {
+		slice := []int{1}
+		require.NoError(t, zson.UnmarshalZNG(*zed.Null, &slice))
+		assert.Nil(t, slice)
+		slice = []int{1}
+		assert.EqualError(t, zson.UnmarshalZNG(*zed.NullInt64, &slice), "not an array")
+	})
+	t.Run("primitive", func(t *testing.T) {
+		integer := -1
+		require.NoError(t, zson.UnmarshalZNG(*zed.Null, &integer))
+		assert.Equal(t, integer, 0)
+		intptr := &integer
+		require.NoError(t, zson.UnmarshalZNG(*zed.Null, &intptr))
+		assert.Nil(t, intptr)
+		assert.EqualError(t, zson.UnmarshalZNG(*zed.NullIP, &intptr), "incompatible type translation: zng type ip go type int go kind int")
+	})
+	t.Run("map", func(t *testing.T) {
+		m := map[string]string{"key": "value"}
+		require.NoError(t, zson.UnmarshalZNG(*zed.Null, &m))
+		assert.Nil(t, m)
+		val := zson.MustParseValue(zed.NewContext(), "null({foo:int64})")
+		require.EqualError(t, zson.UnmarshalZNG(*val, &m), "not a map")
+	})
+	t.Run("struct", func(t *testing.T) {
+		type testobj struct {
+			Val int
+		}
+		var obj struct {
+			Test *testobj `zed:"test"`
+		}
+		val := zson.MustParseValue(zed.NewContext(), "{test: null({Val:int64})}")
+		require.NoError(t, zson.UnmarshalZNG(*val, &obj))
+		require.Nil(t, obj.Test)
+		val = zson.MustParseValue(zed.NewContext(), "{test: null(ip)}")
+		require.EqualError(t, zson.UnmarshalZNG(*val, &obj), "cannot unmarshal Zed type \"ip\" into Go struct")
+	})
+}
+
 func TestUnmarshalSlice(t *testing.T) {
 	type T1 struct {
 		T1f1 []bool

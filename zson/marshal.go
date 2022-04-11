@@ -614,7 +614,7 @@ func UnmarshalZNGRecord(rec *zed.Value, v interface{}) error {
 }
 
 func incompatTypeError(zt zed.Type, v reflect.Value) error {
-	return fmt.Errorf("incompatible type translation: zng type %v go type %v go kind %v", zt, v.Type(), v.Kind())
+	return fmt.Errorf("incompatible type translation: zng type %v go type %v go kind %v", FormatType(zt), v.Type(), v.Kind())
 }
 
 func (u *UnmarshalZNGContext) Unmarshal(zv zed.Value, v interface{}) error {
@@ -680,6 +680,13 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 		v.Set(reflect.ValueOf(*zv.Copy()))
 		return nil
 	}
+	if zed.TypeUnder(zv.Type) == zed.TypeNull && v.CanSet() {
+		// Since a zed TypeNull can resolve to any value go ahead an set the
+		// zero value if the value can be set. Otherwise the reflect type is
+		// probably a pointer and we'll take care of this below.
+		v.Set(reflect.Zero(v.Type()))
+		return nil
+	}
 	switch v.Kind() {
 	case reflect.Array:
 		return u.decodeArray(zv, v)
@@ -724,14 +731,16 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 		}
 		return nil
 	case reflect.Ptr:
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
+		for v.Kind() == reflect.Ptr {
+			if v.CanSet() && zv.Bytes == nil {
+				return u.decodeNull(zv, v)
+			}
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
+			v = v.Elem()
 		}
-		if v.IsNil() {
-			v.Set(reflect.New(v.Type().Elem()))
-		}
-		return u.decodeAny(zv, v.Elem())
+		return u.decodeAny(zv, v)
 	case reflect.String:
 		// XXX We bundle string, type, error all into string.
 		// See issue #1853.
@@ -803,6 +812,25 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 	default:
 		return fmt.Errorf("unsupported type: %v", v.Kind())
 	}
+}
+
+func (u *UnmarshalZNGContext) decodeNull(zv zed.Value, v reflect.Value) error {
+	inner := v
+	for inner.Kind() == reflect.Ptr {
+		if inner.IsNil() {
+			// Set nil elements so we can find the actual type of the underlying
+			// value. This is not so we can set the type since the outer value
+			// will eventually get set to nil- but rather so we can type check
+			// the null (i.e., you cannot marshal a int64 to null(ip), etc.).
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		inner = inner.Elem()
+	}
+	if err := u.decodeAny(zv, inner); err != nil {
+		return err
+	}
+	v.Set(reflect.Zero(v.Type()))
+	return nil
 }
 
 func isIP(typ reflect.Type) bool {
@@ -889,7 +917,7 @@ func (u *UnmarshalZNGContext) decodeArray(zv zed.Value, arrVal reflect.Value) er
 		arrVal.SetBytes(zv.Bytes)
 		return nil
 	}
-	arrType, ok := zed.TypeUnder(zv.Type).(*zed.TypeArray)
+	arrType, ok := typ.(*zed.TypeArray)
 	if !ok {
 		return errors.New("not an array")
 	}

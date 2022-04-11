@@ -81,6 +81,14 @@ func ParseValue(zctx *zed.Context, zson string) (*zed.Value, error) {
 	return Build(zcode.NewBuilder(), val)
 }
 
+func MustParseValue(zctx *zed.Context, zson string) *zed.Value {
+	val, err := ParseValue(zctx, zson)
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
 func ParseValueFromAST(zctx *zed.Context, ast astzed.Value) (*zed.Value, error) {
 	val, err := NewAnalyzer().ConvertValue(zctx, ast)
 	if err != nil {
