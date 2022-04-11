@@ -32,7 +32,7 @@ zed init -lake scratch
 zed serve -lake scratch
 ```
 > Or you can launch the Brim app and it will run a Zed lake service
-> on the default port at http://localhost:9867.
+> on the default port at `http://localhost:9867`.
 
 Then, in another shell using Python, create a pool, load some data, and query it.
 ```python
