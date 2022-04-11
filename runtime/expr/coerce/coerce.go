@@ -177,6 +177,9 @@ func ToFloat(zv zed.Value) (float64, bool) {
 	if id == zed.IDDuration {
 		return float64(zed.DecodeInt(zv.Bytes)), true
 	}
+	if id == zed.IDTime {
+		return float64(zed.DecodeTime(zv.Bytes)), true
+	}
 	if id == zed.IDString {
 		v, err := strconv.ParseFloat(string(zv.Bytes), 64)
 		return v, err == nil
@@ -203,6 +206,9 @@ func ToUint(zv zed.Value) (uint64, bool) {
 	if id == zed.IDDuration {
 		return uint64(zed.DecodeInt(zv.Bytes)), true
 	}
+	if id == zed.IDTime {
+		return uint64(zed.DecodeTime(zv.Bytes)), true
+	}
 	if id == zed.IDString {
 		v, err := strconv.ParseUint(string(zv.Bytes), 10, 64)
 		return v, err == nil
@@ -225,6 +231,9 @@ func ToInt(zv zed.Value) (int64, bool) {
 	}
 	if id == zed.IDDuration {
 		return int64(zed.DecodeInt(zv.Bytes)), true
+	}
+	if id == zed.IDTime {
+		return int64(zed.DecodeTime(zv.Bytes)), true
 	}
 	if id == zed.IDString {
 		v, err := strconv.ParseInt(string(zv.Bytes), 10, 64)
