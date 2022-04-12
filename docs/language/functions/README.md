@@ -1,5 +1,7 @@
 # Functions
 
+---
+
 Functions appear in expression context and
 take Zed values as arguments and produce a value as a result.
 

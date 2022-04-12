@@ -5,6 +5,8 @@ sidebar_label: Schools Data
 
 # Zed and Schools Data
 
+---
+
 > This document provides a beginner's overview of the Zed language
 using the [zq command](../commands/zq.md) and
 [real-world data](../../testdata/edu) relating to California schools
