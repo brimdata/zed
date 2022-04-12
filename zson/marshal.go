@@ -855,6 +855,8 @@ func (u *UnmarshalZNGContext) decodeMap(zv zed.Value, mapVal reflect.Value) erro
 		return errors.New("not a map")
 	}
 	if zv.Bytes == nil {
+		// XXX The inner types of the null should be checked.
+		mapVal.Set(reflect.Zero(mapVal.Type()))
 		return nil
 	}
 	if mapVal.IsNil() {
@@ -908,6 +910,7 @@ func (u *UnmarshalZNGContext) decodeArray(zv zed.Value, arrVal reflect.Value) er
 	typ := zed.TypeUnder(zv.Type)
 	if typ == zed.TypeBytes && arrVal.Type().Elem().Kind() == reflect.Uint8 {
 		if zv.Bytes == nil {
+			arrVal.Set(reflect.Zero(arrVal.Type()))
 			return nil
 		}
 		if arrVal.Kind() == reflect.Array {
@@ -922,6 +925,8 @@ func (u *UnmarshalZNGContext) decodeArray(zv zed.Value, arrVal reflect.Value) er
 		return errors.New("not an array")
 	}
 	if zv.Bytes == nil {
+		// XXX The inner type of the null should be checked.
+		arrVal.Set(reflect.Zero(arrVal.Type()))
 		return nil
 	}
 	i := 0

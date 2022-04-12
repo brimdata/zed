@@ -209,6 +209,14 @@ func TestUnmarshalNull(t *testing.T) {
 		assert.Nil(t, slice)
 		slice = []int{1}
 		assert.EqualError(t, zson.UnmarshalZNG(*zed.NullInt64, &slice), "not an array")
+		slice = []int{1}
+		v := zson.MustParseValue(zed.NewContext(), "null([int64])")
+		require.NoError(t, zson.UnmarshalZNG(*v, &slice))
+		assert.Nil(t, slice)
+		v = zson.MustParseValue(zed.NewContext(), "null(bytes)")
+		buf := []byte("testing")
+		require.NoError(t, zson.UnmarshalZNG(*v, &buf))
+		assert.Nil(t, buf)
 	})
 	t.Run("primitive", func(t *testing.T) {
 		integer := -1
@@ -225,6 +233,10 @@ func TestUnmarshalNull(t *testing.T) {
 		assert.Nil(t, m)
 		val := zson.MustParseValue(zed.NewContext(), "null({foo:int64})")
 		require.EqualError(t, zson.UnmarshalZNG(*val, &m), "not a map")
+		m = map[string]string{"key": "value"}
+		val = zson.MustParseValue(zed.NewContext(), "null(|{string:string}|)")
+		require.NoError(t, zson.UnmarshalZNG(*val, &m))
+		assert.Nil(t, m)
 	})
 	t.Run("struct", func(t *testing.T) {
 		type testobj struct {
