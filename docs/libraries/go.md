@@ -27,11 +27,6 @@ Some of the key packages are:
 To install in your local Go project, simply run:
 ```
 go get github.com/brimdata/zed
-go get github.com/brimdata/zed/zson
-go get github.com/brimdata/zed/zio
-go get github.com/brimdata/zed/zio/zsonio
-go get github.com/brimdata/zed/zio/zngio
-go get github.com/brimdata/zed/lake
 ```
 
 ## Examples
