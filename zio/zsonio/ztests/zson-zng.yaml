@@ -21,7 +21,14 @@ outputs:
               2 (foo),
               3 (foo)
           ],
-          t: <{a:string,b:string,n:int32,f:[foo=uint8]}>
+          t: <{
+              a: string,
+              b: string,
+              n: int32,
+              f: [
+                  foo=uint8
+              ]
+          }>
       }
       {
           a: "goodbye",
@@ -32,5 +39,12 @@ outputs:
               5 (foo),
               6 (foo)
           ],
-          t: <{a:string,b:string,n:int32,f:[foo=uint8]}>
+          t: <{
+              a: string,
+              b: string,
+              n: int32,
+              f: [
+                  foo=uint8
+              ]
+          }>
       }

@@ -1,0 +1,48 @@
+zed: "yield this, '==='"
+
+input: |
+  <({foo:int64},{bar:string},uint64)>
+  <named=|[({foo:int64},uint64)]|>
+  <|{{x:string}:{ip:ip,port:uint16}}|>
+  <[int64]>
+  <error([string])>
+
+output-flags: "-pretty=2"
+
+output: |
+  <(
+    uint64,
+    {
+      bar: string
+    },
+    {
+      foo: int64
+    }
+  )>
+  "==="
+  <named=|[
+    (
+      uint64,
+      {
+        foo: int64
+      }
+    )
+  ]|>
+  "==="
+  <|{
+    {
+      x: string
+    }: {
+      ip: ip,
+      port: uint16
+    }
+  }|>
+  "==="
+  <[
+    int64
+  ]>
+  "==="
+  <error([
+    string
+  ])>
+  "==="
