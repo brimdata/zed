@@ -398,13 +398,15 @@ POST /query
 | ---- | ---- | -- | ----------- |
 | query | string | body | Zed query to execute. All data is returned if not specified. ||
 | head.pool | string | body | Pool to query against Not required if pool is specified in query. |
-| head.branch | string | body | Branch to query against Defaults to "main". |
+| head.branch | string | body | Branch to query against. Defaults to "main". |
+| Accept | [MIME Type](#media-types) | header | The data format of the results. ZSON is selected if unspecified. |
 
 **Example Request**
 
 ```
 curl -X POST \
      -H 'Content-Type: application/json' \
+     -H 'Accept: application/x-zson' \
      http://localhost:9867/query -d '{"query":"from inventory@main | count() by warehouse"}'
 ```
 
@@ -469,6 +471,7 @@ The supported MIME types are as follows:
 
 | Format | MIME Type |
 | ------ | --------- |
+| CSV | text/csv |
 | JSON | application/json |
 | NDJSON | application/x-ndjson |
 | ZJSON | application/x-zjson |
