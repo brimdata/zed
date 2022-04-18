@@ -221,7 +221,7 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 			return nil
 		}
 		typ := zed.LookupPrimitiveByID(int(n))
-		f.startColorPrimitive(typ)
+		f.startColor(color.Gray(160))
 		f.build(zed.PrimitiveName(typ))
 		f.endColor()
 	case zed.TypeValueNameDef:
@@ -274,17 +274,22 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 		f.build(f.newline)
 		f.indent(indent-f.tab, "}")
 	case zed.TypeValueArray:
-		f.build("[")
-		tv = f.formatVectorTypeValue(indent, tv)
-		f.indent(indent, "]")
+		tv = f.formatVectorTypeValue("[", indent, tv)
 	case zed.TypeValueSet:
-		f.build("|[")
-		tv = f.formatVectorTypeValue(indent, tv)
-		f.indent(indent, "]|")
+		tv = f.formatVectorTypeValue("|[", indent, tv)
 	case zed.TypeValueMap:
 		f.build("|{")
-		f.build(f.newline)
+		newline := f.newline
 		indent += f.tab
+		if n, itv := zed.DecodeLength(tv); n <= zed.IDNull {
+			n, _ = zed.DecodeLength(itv)
+			if n <= zed.IDNull {
+				// If key and value are both primitives don't indent.
+				indent -= f.tab
+				newline = ""
+			}
+		}
+		f.build(newline)
 		f.indent(indent, "")
 		tv = f.formatTypeValue(indent, tv)
 		f.build(":")
@@ -292,8 +297,12 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 			f.build(" ")
 		}
 		tv = f.formatTypeValue(indent, tv)
-		f.build(f.newline)
-		f.indent(indent-f.tab, "}|")
+		f.build(newline)
+		if newline != "" {
+			f.indent(indent-f.tab, "}|")
+		} else {
+			f.build("}|")
+		}
 	case zed.TypeValueUnion:
 		f.build("(")
 		var n int
@@ -343,12 +352,23 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 	return tv
 }
 
-func (f *Formatter) formatVectorTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
+func (f *Formatter) formatVectorTypeValue(token string, indent int, tv zcode.Bytes) zcode.Bytes {
+	f.build(token)
+	end := "]"
+	if token == "|[" {
+		end += "|"
+	}
+	if n, _ := zed.DecodeLength(tv); n <= zed.IDTypeComplex {
+		tv = f.formatTypeValue(indent, tv)
+		f.build(end)
+		return tv
+	}
 	indent += f.tab
 	f.build(f.newline)
 	f.indent(indent, "")
 	tv = f.formatTypeValue(indent, tv)
 	f.build(f.newline)
+	f.indent(indent-f.tab, end)
 	return tv
 }
 
