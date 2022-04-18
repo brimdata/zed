@@ -1,0 +1,156 @@
+consumes:
+- application/json
+- application/x-ndjson
+- application/x-zjson
+- application/x-zson
+- application/x-zng
+- text/csv
+definitions:
+  Branch:
+    properties:
+      Commit:
+        $ref: '#/definitions/KSUID'
+      Name:
+        type: string
+      Ts:
+        $ref: '#/definitions/Ts'
+    title: Config describes a branches configuration.
+    type: object
+    x-go-name: Config
+    x-go-package: github.com/brimdata/zed/lake/branches
+  BranchMeta:
+    properties:
+      Branch:
+        $ref: '#/definitions/Branch'
+      Pool:
+        $ref: '#/definitions/Pool'
+    title: BranchMeta is the metadata describing a pool branch.
+    type: object
+    x-go-package: github.com/brimdata/zed/lake
+  Error:
+    properties:
+      error:
+        type: string
+        x-go-name: Message
+      info:
+        type: object
+        x-go-name: Info
+      kind:
+        type: string
+        x-go-name: Kind
+      type:
+        type: string
+        x-go-name: Type
+    title: Error is the error response sent by the service.
+    type: object
+    x-go-package: github.com/brimdata/zed/api
+  KSUID:
+    description: |-
+      00-03 byte: uint32 BE UTC timestamp with custom epoch
+      04-19 byte: random "payload"
+    items:
+      format: uint8
+      type: integer
+    title: 'KSUIDs are 20 bytes:'
+    type: array
+    x-go-package: github.com/segmentio/ksuid
+  Layout:
+    properties:
+      keys:
+        $ref: '#/definitions/List'
+      order:
+        $ref: '#/definitions/Which'
+    type: object
+    x-go-package: github.com/brimdata/zed/order
+  List:
+    items:
+      $ref: '#/definitions/Path'
+    type: array
+    x-go-package: github.com/brimdata/zed/pkg/field
+  Path:
+    items:
+      type: string
+    type: array
+    x-go-package: github.com/brimdata/zed/pkg/field
+  Pool:
+    properties:
+      ID:
+        $ref: '#/definitions/KSUID'
+      Layout:
+        $ref: '#/definitions/Layout'
+      Name:
+        type: string
+      SeekStride:
+        format: int64
+        type: integer
+      Threshold:
+        format: int64
+        type: integer
+      Ts:
+        $ref: '#/definitions/Ts'
+    title: Config describes a pools configuration.
+    type: object
+    x-go-name: Config
+    x-go-package: github.com/brimdata/zed/lake/pools
+  PoolPostRequest:
+    properties:
+      layout:
+        $ref: '#/definitions/Layout'
+      name:
+        description: the name of the pool
+        type: string
+        x-go-name: Name
+      seek_stride:
+        format: int64
+        type: integer
+        x-go-name: SeekStride
+      thresh:
+        format: int64
+        type: integer
+        x-go-name: Thresh
+    required:
+    - name
+    title: PoolPostRequest is the body of a create pool request.
+    type: object
+    x-go-package: github.com/brimdata/zed/api
+  Ts:
+    format: int64
+    type: integer
+    x-go-package: github.com/brimdata/zed/pkg/nano
+  Which:
+    type: boolean
+    x-go-package: github.com/brimdata/zed/order
+info:
+  title: provides endpoints for interacting with a remote Zed lake.
+  version: v1.0.0
+paths:
+  /pool:
+    post:
+      description: Creates a pool with the specified name, pool key, and sort order.
+      operationId: createPool
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/PoolPostRequest'
+      responses:
+        "200":
+          description: Created
+          schema:
+            $ref: '#/definitions/BranchMeta'
+        default:
+          description: error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: Create a pool.
+produces:
+- application/json
+- application/x-ndjson
+- application/x-zjson
+- application/x-zson
+- application/x-zng
+- text/csv
+schemes:
+- http
+swagger: "2.0"

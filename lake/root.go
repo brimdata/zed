@@ -223,6 +223,8 @@ func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.E
 	return vals, nil
 }
 
+// BranchMeta is the metadata describing a pool branch.
+// swagger:model
 type BranchMeta struct {
 	Pool   pools.Config    `zed:"pool"`
 	Branch branches.Config `zed:"branch"`

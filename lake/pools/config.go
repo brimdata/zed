@@ -9,6 +9,8 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+// Config describes a pools configuration.
+// swagger:model Pool
 type Config struct {
 	Ts         nano.Ts      `zed:"ts"`
 	Name       string       `zed:"name"`

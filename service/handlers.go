@@ -107,6 +107,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	}
 }
 
+// swagger:route GET /
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 	id, ok := r.PoolID(w, c.root)
 	if !ok {
@@ -168,6 +169,28 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, info)
 }
 
+// swagger:operation POST /pool createPool
+//
+// Create a pool.
+//
+// Creates a pool with the specified name, pool key, and sort order.
+//
+// ---
+// parameters:
+// - name: body
+//   in: body
+//   required: true
+//   schema:
+//     "$ref": "#/definitions/PoolPostRequest"
+// responses:
+//   200:
+//     description: Created
+//     schema:
+//       "$ref": "#/definitions/BranchMeta"
+//   default:
+//     description: error
+//     schema:
+//       "$ref": "#/definitions/Error"
 func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 	var req api.PoolPostRequest
 	if !r.Unmarshal(w, &req) {

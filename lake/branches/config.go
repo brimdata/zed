@@ -5,6 +5,8 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+// Config describes a branches configuration.
+// swagger:model Branch
 type Config struct {
 	Ts     nano.Ts     `zed:"ts"`
 	Name   string      `zed:"name"`

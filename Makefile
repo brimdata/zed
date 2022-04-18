@@ -115,5 +115,13 @@ test-ci: fmt tidy vet test-generate test-unit test-system test-heavy
 clean:
 	@rm -rf dist
 
+.PHONY: swagger
+swagger:
+	@swagger generate spec -m -o ./swagger.yaml
+	@swagger validate ./swagger.yaml
+
+swagger-markdown: swagger
+	@swagger generate markdown
+
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
 .PHONY: perf-compare build install clean generate test-generate

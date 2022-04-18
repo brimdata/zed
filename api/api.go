@@ -20,6 +20,8 @@ func RequestIDFromContext(ctx context.Context) string {
 	return ""
 }
 
+// Error is the error response sent by the service.
+// swagger:model
 type Error struct {
 	Type    string      `json:"type"`
 	Kind    string      `json:"kind"`
@@ -35,7 +37,12 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
+// PoolPostRequest is the body of a create pool request.
+// swagger:model
 type PoolPostRequest struct {
+	// the name of the pool
+	//
+	// required: true
 	Name       string       `json:"name"`
 	Layout     order.Layout `json:"layout"`
 	SeekStride int          `json:"seek_stride"`
