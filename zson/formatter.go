@@ -274,16 +274,16 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 		f.build(f.newline)
 		f.indent(indent-f.tab, "}")
 	case zed.TypeValueArray:
-		tv = f.formatVectorTypeValue("[", indent, tv)
+		tv = f.formatVectorTypeValue(indent, "[", "]", tv)
 	case zed.TypeValueSet:
-		tv = f.formatVectorTypeValue("|[", indent, tv)
+		tv = f.formatVectorTypeValue(indent, "|[", "]|", tv)
 	case zed.TypeValueMap:
 		f.build("|{")
 		newline := f.newline
 		indent += f.tab
-		if n, itv := zed.DecodeLength(tv); n <= zed.IDNull {
+		if n, itv := zed.DecodeLength(tv); n < zed.IDTypeComplex {
 			n, _ = zed.DecodeLength(itv)
-			if n <= zed.IDNull {
+			if n < zed.IDTypeComplex {
 				// If key and value are both primitives don't indent.
 				indent -= f.tab
 				newline = ""
@@ -353,15 +353,11 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 	return tv
 }
 
-func (f *Formatter) formatVectorTypeValue(token string, indent int, tv zcode.Bytes) zcode.Bytes {
-	f.build(token)
-	end := "]"
-	if token == "|[" {
-		end += "|"
-	}
-	if n, _ := zed.DecodeLength(tv); n <= zed.IDTypeComplex {
+func (f *Formatter) formatVectorTypeValue(indent int, open, close string, tv zcode.Bytes) zcode.Bytes {
+	f.build(open)
+	if n, _ := zed.DecodeLength(tv); n < zed.IDTypeComplex {
 		tv = f.formatTypeValue(indent, tv)
-		f.build(end)
+		f.build(close)
 		return tv
 	}
 	indent += f.tab
@@ -369,7 +365,7 @@ func (f *Formatter) formatVectorTypeValue(token string, indent int, tv zcode.Byt
 	f.indent(indent, "")
 	tv = f.formatTypeValue(indent, tv)
 	f.build(f.newline)
-	f.indent(indent-f.tab, end)
+	f.indent(indent-f.tab, close)
 	return tv
 }
 
