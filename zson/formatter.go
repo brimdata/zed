@@ -336,6 +336,7 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 			var symbol string
 			symbol, tv = zed.DecodeName(tv)
 			if tv == nil {
+				f.truncTypeValueErr()
 				return nil
 			}
 			f.build(QuotedName(symbol))
