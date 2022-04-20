@@ -49,11 +49,8 @@
 start = __ ast:Sequential __ EOF { RETURN(ast) }
 
 Sequential
-  = consts:Consts __ first:Operation rest:SequentialTail+ {
+  = consts:Consts __ first:Operation rest:SequentialTail* {
       RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest), "consts":consts))
-    }
-  / consts:Consts __ op:Operation {
-      RETURN(MAP("kind": "Sequential", "ops": ARRAY(op), "consts":consts))
     }
 
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
@@ -166,10 +163,7 @@ SearchFactor
 SearchExpr
   = Glob
   / Regexp
-  / v:SearchValue &(_ Glob) {
-      RETURN(MAP("kind": "Term", "text": TEXT, "value": v))
-    }
-  / v:SearchValue !ExprGuard {
+  / v:SearchValue (!ExprGuard / &(_ Glob)) {
       RETURN(MAP("kind": "Term", "text": TEXT, "value": v))
     }
   / "*" !ExprGuard {
@@ -553,14 +547,12 @@ MergeOp
     }
 
 OverOp
-  = "over" _ exprs:Exprs _ "with" _ locals:LetAssignments __ scope:Scope {
-      RETURN(MAP("kind":"Let", "locals":locals, "over":MAP("kind":"Over", "exprs":exprs, "scope":scope)))
-    }
-  / "over" _ exprs:Exprs __ scope:Scope {
-      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":scope))
-    }
-  / "over" _ exprs:Exprs {
-      RETURN(MAP("kind":"Over", "exprs":exprs, "scope":NULL))
+  = "over" _ exprs:Exprs locals:(_ "with" _ l:LetAssignments { RETURN(l) })? scope:(__ s:Scope { RETURN(s) })? {
+      VAR(over) = MAP("kind": "Over", "exprs": exprs, "scope": scope)
+      if ISNOTNULL(locals) {
+        RETURN(MAP("kind": "Let", "locals": locals, "over": over))
+      }
+      RETURN(over)
     }
 
 Scope = "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
@@ -640,13 +632,14 @@ LogicalAndExpr
     }
 
 ComparisonExpr
-  = lhs:AdditiveExpr __ op:Comparator __ rhs:AdditiveExpr {
-        RETURN(MAP("kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs))
+  = lhs:AdditiveExpr opAndRHS:(__ Comparator __ AdditiveExpr / __ ("~" { RETURN(TEXT) }) __ Regexp)? {
+      if ISNULL(opAndRHS) {
+        RETURN(lhs)
+      }
+      VAR(op) = ASSERT_ARRAY(opAndRHS)[1]
+      VAR(rhs) = ASSERT_ARRAY(opAndRHS)[3]
+      RETURN(MAP("kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs))
     }
-  / lhs:AdditiveExpr __ "~" __ rhs:Regexp {
-        RETURN(MAP("kind": "BinaryExpr", "op": "~", "lhs": lhs, "rhs": rhs))
-    }
-  / AdditiveExpr
 
 AdditiveExpr
   = first:MultiplicativeExpr
@@ -733,17 +726,13 @@ DerefExpr
     }
 
 Deref
-  = "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr "]" {
+  = "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr? "]" {
       RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op":":",
                             "lhs":from, "rhs":to)))
     }
   / "[" __ ":" __ to:AdditiveExpr "]" {
       RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op":":",
                             "lhs": NULL, "rhs":to)))
-    }
-  / "[" from:AdditiveExpr __ ":" __ "]" {
-      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op":":",
-                            "lhs":from, "rhs": NULL)))
     }
   / "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
   / "." id:Identifier { RETURN(ARRAY(".", id)) }
@@ -758,11 +747,8 @@ Primary
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 OverExpr
-  = "over" _ exprs:Exprs _ "with" _ locals:LetAssignments __ "|" __ scope:Sequential {
+  = "over" _ exprs:Exprs locals:(_ "with" _ l:LetAssignments { RETURN(l) })? __ "|" __ scope:Sequential {
       RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "scope": scope))
-    }
-  / "over" _ exprs:Exprs __ "|" __ scope:Sequential {
-      RETURN(MAP("kind": "OverExpr", "locals": NULL, "exprs": exprs, "scope": scope))
     }
 
 Record
