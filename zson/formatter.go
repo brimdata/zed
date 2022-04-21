@@ -225,7 +225,8 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 		f.build(zed.PrimitiveName(typ))
 		f.endColor()
 	case zed.TypeValueNameDef:
-		name, tv := zed.DecodeName(tv)
+		var name string
+		name, tv = zed.DecodeName(tv)
 		if tv == nil {
 			f.truncTypeValueErr()
 			return nil
@@ -234,7 +235,8 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 		f.build("=")
 		tv = f.formatTypeValue(indent, tv)
 	case zed.TypeValueNameRef:
-		name, tv := zed.DecodeName(tv)
+		var name string
+		name, tv = zed.DecodeName(tv)
 		if tv == nil {
 			f.truncTypeValueErr()
 			return nil
