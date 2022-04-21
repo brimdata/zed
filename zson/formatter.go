@@ -232,7 +232,7 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 		}
 		f.build(name)
 		f.build("=")
-		return f.formatTypeValue(indent, tv)
+		tv = f.formatTypeValue(indent, tv)
 	case zed.TypeValueNameRef:
 		name, tv := zed.DecodeName(tv)
 		if tv == nil {
@@ -240,7 +240,6 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 			return nil
 		}
 		f.build(name)
-		return tv
 	case zed.TypeValueRecord:
 		f.build("{")
 		var n int
