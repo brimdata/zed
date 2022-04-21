@@ -8,4 +8,4 @@ input: |
   {x:null(time)}
 
 output: |
-  {avg:null(float64),count:5(uint64),dcount:5(uint64),any:null(uint64),max:null(uint64),min:null(uint64),sum:null(uint64)}
+  {avg:null(float64),count:5(uint64),dcount:5(uint64),any:null(uint64),max:null(float64),min:null(float64),sum:null(float64)}
