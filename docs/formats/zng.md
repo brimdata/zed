@@ -122,8 +122,8 @@ the outer frame length less 1 byte for the compression format and the encoded le
 of the `uvarint` size field.
 
 The `compressed payload` is compressed according to the compression algorithm
-specified by the `format` byte.  Each message block is compressed independently
-such that the compression algorithm's state is not carried from block to block
+specified by the `format` byte.  Each frame is compressed independently
+such that the compression algorithm's state is not carried from frame to frame
 (thereby enabling parallel decoding).
 
 The `<size>` value is redundant with the compressed payload
@@ -133,14 +133,14 @@ size decompression buffers in advance of decoding.
 Values for the `format` byte are defined in the
 [ZNG compression format specification](./compression.md).
 
-> This arrangement of message blocks separating types and values allows
+> This arrangement of frames separating types and values allows
 > for efficient scanning and parallelization.  In general, values depend
 > on type definitions but as long as all of the types are known when
 > values are used, decoding can be done in parallel.  Likewise, since
 > each block is independently compressed, the blocks can be decompressed
 > in parallel.  Moreover, efficient filtering can be carried out over
 > uncompressed data before it is deserialized into native data structures,
-> e.g., allowing entire message blocks to be discarded based on
+> e.g., allowing entire frames to be discarded based on
 > heuristics, e.g., knowing a filtering predicate can't be true based on a
 > quick scan of the data perhaps using the Boyer-Moore algorithm to determine
 > that a comparison with a string constant would not work for any
@@ -154,7 +154,7 @@ then interpreted according to the `T` bits of the frame code as a
 
 ### 2.1 Types Frame
 
-A _types message_ encodes a sequence of type definitions for complex Zed types
+A _types frame_ encodes a sequence of type definitions for complex Zed types
 and establishes a "type ID" for each such definition.
 Type IDs for the "primitive types"
 are predefined with the IDs listed in the [Primitive Types](#3-primitive-types) table.
@@ -315,7 +315,7 @@ type that differs from the previous definition.
 
 ### 2.2 Values Frame
 
-A values frame is a sequence of Zed values each encoded as the value's type ID,
+A _values frame_ is a sequence of Zed values each encoded as the value's type ID,
 encoded as a `uvarint`, followed by its tag-encoded serialization as described below.
 
 Since a single type ID encodes the entire value's structure, no additional
@@ -356,7 +356,7 @@ Following the tag encoding is the value encoded in N bytes as described above.
 A typed value with a `value` of length `N` is interpreted as described in the
 [Primitive Types](#3-primitive-types) table.  The type information needed to
 interpret all of the value elements of a complex type are all implied by the
-top-level type ID of the value message.  For example, the type ID could indicate
+top-level type ID of the values frame.  For example, the type ID could indicate
 a particular record type, which recursively provides the type information
 for all of the elements within that record, including other complex types
 embedded within the top-level record.
@@ -411,19 +411,22 @@ key/value pair).
 
 ### 2.3 Control Frame
 
-Control messages are available to higher-layer protocols and are carried
+A _control frame_ contains an application-defined control message.
+
+Control frames are available to higher-layer protocols and are carried
 in ZNG as a convenient signaling mechanism.  A ZNG implementation
-may skip over all of control messages and is guaranteed by
+may skip over all control frames and is guaranteed by
 this specification to decode all of the data as described herein even if such
-messages provide additional semantics on top of the base ZNG format.
+frames provide additional semantics on top of the base ZNG format.
 
-Any such application-defined messages not known by
-a ZNG data receiver shall be ignored.
+The body of a control frame is a control message and may be JSON,
+ZSON, ZNG, binary, or UTF-8 text.  The serialization of the control
+frame body is independent of the ZNG stream containing the control
+frame.
 
-The body of a control message is JSON, ZSON, ZNG, binary, or UTF-8 text.
-The serialization of the control message body is independent
-of the ZNG stream containing the control message.
-The delivery order of any control message with respect to the delivery
+Any control message not known by a ZNG data receiver shall be ignored.
+
+The delivery order of control messages with respect to the delivery
 order of values of the ZNG stream should be preserved by an API implementing
 ZNG serialization and deserialization.
 In this way, system endpoints that communicate using ZNG can embed
@@ -440,9 +443,9 @@ A control frame has the following form:
 where
 * `<encoding>` is a single byte indicating whether the body is encoded
 as ZNG (0), JSON (1), ZSON (2), an arbitrary UTF-8 string (3), or arbitrary binary data (4),
-* `<len>` is a `uvarint` encoding the length in bytes of the message body
+* `<len>` is a `uvarint` encoding the length in bytes of the body
 (exclusive of the length 1 encoding byte), and
-* `<body>` is a data message whose semantics are outside the scope of
+* `<body>` is a control message whose semantics are outside the scope of
 the base ZNG specification.
 
 If the encoding type is ZNG, the embedded ZNG data
@@ -466,9 +469,9 @@ benefit of enabling random access is left up to implementations.
 
 End-of-stream markers are also useful in the context of sending ZNG over Kafka,
 as a receiver can easily resynchronize with a live Kafka topic by
-discarding incomplete messages until a message is found that is terminated
+discarding incomplete frames until a frame is found that is terminated
 by an end-of-stream marker (presuming the sender implementation aligns
-the ZNG messages on Kafka message boundaries).
+the ZNG frames on Kafka message boundaries).
 
 A end-of-stream marker is encoded as follows:
 ```
@@ -488,7 +491,7 @@ be re-emitted
 
 For each ZNG primitive type, the following table describes:
 * its type ID, and
-* the interpretation of a length `N` [ZNG Value Message](#22-values-frame).
+* the interpretation of a length `N` [value frame](#22-values-frame).
 
 All fixed-size multi-byte sequences representing machine words
 are serialized in little-endian format.
