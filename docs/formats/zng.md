@@ -135,7 +135,7 @@ Values for the `format` byte are defined in the
 
 > This arrangement of message blocks separating types and values allows
 > for efficient scanning and parallelization.  In general, values depend
-> on type definitions but as long as all of the types are known before
+> on type definitions but as long as all of the types are known when
 > values are used, decoding can be done in parallel.  Likewise, since
 > each block is independently compressed, the blocks can be decompressed
 > in parallel.  Moreover, efficient filtering can be carried out over
