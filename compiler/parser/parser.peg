@@ -547,7 +547,7 @@ MergeOp
     }
 
 OverOp
-  = "over" _ exprs:Exprs locals:(_ "with" _ l:LetAssignments { RETURN(l) })? scope:(__ s:Scope { RETURN(s) })? {
+  = "over" _ exprs:Exprs locals:Locals? scope:Scope? {
       VAR(over) = MAP("kind": "Over", "exprs": exprs, "scope": scope)
       if ISNOTNULL(locals) {
         RETURN(MAP("kind": "Let", "locals": locals, "over": over))
@@ -555,14 +555,15 @@ OverOp
       RETURN(over)
     }
 
-Scope = "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
+Scope
+  = __ "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
 
-LetAssignments
-  = first:LetAssignment rest:(__ "," __ a:LetAssignment { RETURN(a) })* {
+Locals
+  = _ "with" _ first:LocalsAssignment rest:(__ "," __ a:LocalsAssignment { RETURN(a) })* {
       RETURN(PREPEND(first, rest))
     }
 
-LetAssignment
+LocalsAssignment
   = id:IdentifierName __ "=" __ expr:Expr {
       RETURN(MAP("name":id, "expr":expr))
     }
@@ -747,7 +748,7 @@ Primary
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 OverExpr
-  = "over" _ exprs:Exprs locals:(_ "with" _ l:LetAssignments { RETURN(l) })? __ "|" __ scope:Sequential {
+  = "over" _ exprs:Exprs locals:Locals? __ "|" __ scope:Sequential {
       RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "scope": scope))
     }
 
