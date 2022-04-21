@@ -1,0 +1,11 @@
+{
+    info: "Connection Example",
+    src: {
+        addr: 10.1.1.2,
+        port: 80 (uint16)
+    } (=socket),
+    dst: {
+        addr: 10.0.1.2,
+        port: 20130
+    } (socket)
+} (=conn)

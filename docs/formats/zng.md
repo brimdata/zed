@@ -57,7 +57,7 @@ allowing an implementation to easily skip from frame to frame.
 
 Each frame begins with a single-byte "frame code":
 ```
-    7 6 5 4 5 3 1 0
+    7 6 5 4 3 2 1 0
    +-+-+-+-+-+-+-+-+
    |V|C|  T|      L|
    +-+-+-+-+-+-+-+-+
@@ -135,8 +135,8 @@ Values for the `format` byte are defined in the
 
 > This arrangement of frames separating types and values allows
 > for efficient scanning and parallelization.  In general, values depend
-> on type definitions but as long as all of the types are known by the
-> time values are used, decoding can be done in parallel.  Likewise, since
+> on type definitions but as long as all of the types are known when
+> values are used, decoding can be done in parallel.  Likewise, since
 > each block is independently compressed, the blocks can be decompressed
 > in parallel.  Moreover, efficient filtering can be carried out over
 > uncompressed data before it is deserialized into native data structures,
@@ -157,7 +157,7 @@ then interpreted according to the `T` bits of the frame code as a
 A _types frame_ encodes a sequence of type definitions for complex Zed types
 and establishes a "type ID" for each such definition.
 Type IDs for the "primitive types"
-are predefined with the IDs listed in the [Primitive Types](#-primitive-types) table.
+are predefined with the IDs listed in the [Primitive Types](#3-primitive-types) table.
 
 Each definition, or "typedef",
 consists of a typedef code followed by its type-specific encoding as described below.
@@ -212,7 +212,7 @@ is further encoded as a "counted string", which is the `uvarint` encoding
 of the length of the string followed by that many bytes of UTF-8 encoded
 string data.
 
-N.B.: As defined by ZSON, a field name can be any valid UTF-8 string much like JSON
+N.B.: As defined by [ZSON](zson.md), a field name can be any valid UTF-8 string much like JSON
 objects can be indexed with arbitrary string keys (via index operator)
 even if the field names available to the dot operator are restricted
 by language syntax for identifiers.
@@ -344,8 +344,8 @@ Each value is prefixed with a "tag" that defines:
 
 The tag is 0 for the null value and `length+1` for non-null values where
 `length` is the encoded length of the value.  Note that this encoding
-differeniates between a null value and a zero-length value.  Many data types
-have a meaningul intepretation of a zero-length value, for example, an
+differentiates between a null value and a zero-length value.  Many data types
+have a meaningful interpretation of a zero-length value, for example, an
 empty array, the empty record, etc.
 
 The tag itself is encoded as a `uvarint`.
@@ -363,7 +363,7 @@ embedded within the top-level record.
 
 Note that because the tag indicates the length of the value, there is no need
 to use varint encoding of integer values.  Instead, an integer value is encoded
-using the full 8 bits of each byte in little-endian order.  For signed values,
+using the full 8 bits of each byte in little-endian order.  Signed values,
 before encoding, are shifted left one bit, and the sign bit stored as bit 0.
 For negative numbers, the remaining bits are negated so that the upper bytes
 tend to be zero-filled for small integers.
@@ -449,7 +449,7 @@ as ZNG (0), JSON (1), ZSON (2), an arbitrary UTF-8 string (3), or arbitrary bina
 the base ZNG specification.
 
 If the encoding type is ZNG, the embedded ZNG data
-starts and ends a single ZNG stream independent of outer the ZNG stream.
+starts and ends a single ZNG stream independent of the outer ZNG stream.
 
 ### 2.4 End of Stream
 
@@ -531,7 +531,7 @@ are serialized in little-endian format.
 
 ## 4. Type Values
 
-As the ZSON data model support first-class types and because the ZNG design goals
+As the ZSON data model supports first-class types and because the ZNG design goals
 require that value serializations cannot change across type contexts, type values
 must be encoded in a fashion that is independent of the type context.
 Thus, a serialized type value encodes the entire type in a canonical form

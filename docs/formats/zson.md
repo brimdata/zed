@@ -65,10 +65,10 @@ The syntax of a union value decorator is
 ```
 <value> ( <type> ) [ ( <type> ) ...]
 ```
-where the rightmost type must be a union type if more then one decorator
+where the rightmost type must be a union type if more than one decorator
 is present.
 
-A decorator may also define a [named type](#257-named-type):
+A decorator may also define a [named type](#258-named-type):
 ```
 <value> ( =<name> )
 ```
@@ -101,7 +101,7 @@ The type names and format for
 | `int128`    | decimal string representation of any signed, 128-bit integer   |
 | `int256`    | decimal string representation of any signed, 256-bit integer   |
 | `duration` | a _duration string_ representing signed 64-bit nanoseconds |
-| `time`     | an RFC 3339 UTC data/time string representing signed 64-bit nanoseconds from epoch |
+| `time`     | an RFC 3339 UTC date/time string representing signed 64-bit nanoseconds from epoch |
 | `float16`  | a _non-integer string_ representing an IEEE-754 binary16 value |
 | `float32`  | a _non-integer string_ representing an IEEE-754 binary32 value |
 | `float64`  | a _non-integer string_ representing an IEEE-754 binary64 value |
@@ -116,7 +116,7 @@ The type names and format for
 | `string`   | a double-quoted or backtick-quoted UTF-8 string |
 | `ip`       | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
 | `net`      | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
-| `type`     | a string in canonical form as described in [Section 3.5](#25-type-value) |
+| `type`     | a string in canonical form as described in [Section 2.5](#25-types) |
 | `null`     | the string `null` |
 
 The format of a _duration string_
@@ -168,8 +168,8 @@ Values that do not have implied types must include a type decorator to clarify
 its type or appear in a context for which its type is defined (i.e., as a field
 value in a record, as an element in an array, etc.).
 
-While a type value may represent a complex type, the value itself is a singleton
-and thus always a primitive type.  A type value is encoded as:
+While a `type` value may represent a complex type, the value itself is a singleton
+and thus always a primitive type.  A `type` value is encoded as:
 * a left angle bracket `<`, followed by
 * a type as [encoded below](#25-types), followed by
 * a right angle bracket `>`.
@@ -182,7 +182,7 @@ and the old time epoch and new time epoch can live side by side with
 the old using a named type for the new epoch time defined as the old `time` type.
 An app that requires more than 64 bits of timestamp precision can always use
 a typedef of a `bytes` type and do its own conversions to and from the
-corresponding bytes values.
+corresponding `bytes` values.
 
 #### 2.3.1 Strings
 
@@ -218,7 +218,7 @@ record types as well as enum symbols.
 ### 2.4 Complex Values
 
 Complex values are built from primitive values and/or other complex values
-and conform the Zed data model's complex types:
+and conform to the Zed data model's complex types:
 [record](zed.md#21-record),
 [array](zed.md#22-array),
 [set](zed.md#23-set),
@@ -467,7 +467,7 @@ might look like this:
 { metric: "A", ts: 2020-11-24T08:44:32.201458-08:00, value: 126 }
 { metric: "C", ts: 2020-11-24T08:44:43.547506-08:00, value: { x:10, y:101 } }
 ```
-In this case, the first records defines not just a record type
+In this case, the first record defines not just a record type
 with named type `conn`, but also a second embedded record type called `socket`.
 The parenthesized decorators are used where a type is not inferred from
 the value itself:
@@ -485,7 +485,7 @@ types are implied by their syntax, and hence, the top-level record type is impli
 For instance, the `ts` field is an RFC 3339 date and time string,
 unambiguously the primitive type `time`.  Further,
 note that the `value` field takes on different types and even a complex record
-type on the last line.  In this case, there is a different type top-level
+type on the last line.  In this case, there is a different top-level
 record type implied by each of the three variations of type of the `value` field.
 
 ## 4. Grammar
@@ -493,7 +493,7 @@ record type implied by each of the three variations of type of the `value` field
 Here is a left-recursive pseudo-grammar of ZSON.  Note that not all
 acceptable inputs are semantically valid as type mismatches may arise.
 For example, union and enum values must both appear in a context
-the defines their type.
+that defines their type.
 
 ```
 <zson> = <zson> <eos> <dec-value> | <zson> <dec-value> | <dec-value>
