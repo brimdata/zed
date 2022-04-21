@@ -10,8 +10,6 @@ type LenFn struct {
 	zctx *zed.Context
 }
 
-var _ Interface = (*LenFn)(nil)
-
 func (l *LenFn) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	var length int
