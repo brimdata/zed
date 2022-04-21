@@ -1,4 +1,4 @@
-zed: "yield this, '==='"
+zed: yield this, "==="
 
 input: |
   <({foo:int64},{bar:string},uint64)>
