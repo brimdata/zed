@@ -92,7 +92,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 func formatValue(typ zed.Type, bytes zcode.Bytes) string {
 	// Avoid ZSON decoration.
 	if typ.ID() < zed.IDTypeComplex {
-		return zson.FormatPrimitive(typ, bytes)
+		return zson.FormatPrimitive(zed.TypeUnder(typ), bytes)
 	}
 	return zson.String(zed.Value{typ, bytes})
 }

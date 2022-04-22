@@ -1,7 +1,7 @@
 zed: '*'
 
 input: |
-  {a:{b:1}(=record_named)}
+  {a:{b:1(=my_int64)}(=my_inner_record)}(=my_outer_record)
 
 output-flags: -f csv
 
