@@ -402,8 +402,10 @@ An enumeration value is represented as the `uvarint` encoding of the
 positional index of that value's symbol in reference to the enum's
 list of defined symbols.
 
-A map value is encoded as a container as a sequence of alternating tag-encoded
-key and value encoded as keys and values of the underlying key and value types.
+A map value is encoded as a container whose elements are alternating
+tag-encoded keys and values, with keys and values encoded according to
+the map's key type and value type, respectively.
+
 The concatenation of elements must be normalized so that the
 sequence of bytes encoding each tag-counted key (of the key/value pair) is
 lexicographically greater than that of the preceding key (of the preceding
