@@ -11,6 +11,7 @@ take Zed values as arguments and produce a value as a result.
 * [cast](cast.md) - coerce a value to a different type
 * [ceil](ceil.md) - ceiling of a number
 * [cidr_match](cidr_match.md) - test if IP is in a network
+* [compare](compare.md) - returns an int comparing two values
 * [crop](crop.md) - remove fields from a value that are missing in a specified type
 * [error](error.md) - wrap a value as an error
 * [every](every.md) - bucket `ts` using a duration
