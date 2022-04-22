@@ -11,7 +11,7 @@ func (h *Has) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			if val.IsMissing() || val.IsQuiet() {
 				return zed.False
 			}
-			return &val
+			return ctx.CopyValue(val)
 		}
 	}
 	return zed.True
@@ -25,7 +25,7 @@ type Missing struct {
 func (m *Missing) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := m.has.Call(ctx, args)
 	if val.Type == zed.TypeBool {
-		val = zed.Not(val.Bytes)
+		return zed.Not(val.Bytes)
 	}
 	return val
 }

@@ -18,13 +18,13 @@ type Evaluator interface {
 	Eval(Context, *zed.Value) *zed.Value
 }
 
+type Function interface {
+	Call(zed.Allocator, []zed.Value) *zed.Value
+}
+
 type Not struct {
 	zctx *zed.Context
 	expr Evaluator
-}
-
-type Function interface {
-	Call(zed.Allocator, []zed.Value) *zed.Value
 }
 
 var _ Evaluator = (*Not)(nil)

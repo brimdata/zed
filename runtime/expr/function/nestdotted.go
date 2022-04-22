@@ -6,28 +6,28 @@ import (
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nest_dotted.md
-type NestDottedFields struct {
+type NestDotted struct {
 	zctx        *zed.Context
 	builders    map[int]*zed.ColumnBuilder
 	recordTypes map[int]*zed.TypeRecord
 }
 
-// NewNestDottedFields returns a function that turns successive dotted
+// NewNestDotted returns a function that turns successive dotted
 // field names into nested records.  For example, unflattening {"a.a":
 // 1, "a.b": 1} results in {a:{a:1,b:1}}.  Note that while
 // unflattening is applied recursively from the top-level and applies
 // to arbitrary-depth dotted names, it is not applied to dotted names
 // that start at lower levels (for example {a:{"a.a":1}} is
 // unchanged).
-func NewNestDottedFields(zctx *zed.Context) *NestDottedFields {
-	return &NestDottedFields{
+func NewNestDotted(zctx *zed.Context) *NestDotted {
+	return &NestDotted{
 		zctx:        zctx,
 		builders:    make(map[int]*zed.ColumnBuilder),
 		recordTypes: make(map[int]*zed.TypeRecord),
 	}
 }
 
-func (n *NestDottedFields) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuilder, *zed.TypeRecord, error) {
+func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuilder, *zed.TypeRecord, error) {
 	if b, ok := n.builders[in.ID()]; ok {
 		return b, n.recordTypes[in.ID()], nil
 	}
@@ -55,7 +55,7 @@ func (n *NestDottedFields) lookupBuilderAndType(in *zed.TypeRecord) (*zed.Column
 	return b, typ, nil
 }
 
-func (n *NestDottedFields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+func (n *NestDotted) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	this := &args[0]
 	b, typ, err := n.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
 	if err != nil {

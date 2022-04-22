@@ -137,7 +137,7 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "nest_dotted":
 		path = field.Path{}
 		argmin = 0
-		f = NewNestDottedFields(zctx)
+		f = NewNestDotted(zctx)
 	case "parse_uri":
 		f = &ParseURI{zctx: zctx, marshaler: zson.NewZNGMarshalerWithContext(zctx)}
 	case "parse_zson":
