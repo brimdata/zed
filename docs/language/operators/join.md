@@ -14,7 +14,7 @@ The `join` operator combines records from two inputs based on whether
 the `<left-key>` expression (evaluated in the context of the left input)
 is equal to the `<right-key>` expression (evaluated in the context of
 the right input) omitting values where there is no match (or including them
-int the case of anti join).
+in the case of anti join).
 
 The available join types are:
 * _inner_ - output only values that match
@@ -31,4 +31,4 @@ For anti join, the `<right-expr>` is undefined and thus cannot be specified.
 
 ### Examples
 
-TBD
+The [join tutorial](../../tutorials/join.md) includes several examples.
