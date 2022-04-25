@@ -5,8 +5,6 @@ sidebar_label: ZJSON
 
 # ZJSON Specification
 
----
-
 ## 1. Introduction
 
 The [Zed data model](zed.md)

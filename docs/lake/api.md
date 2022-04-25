@@ -5,8 +5,6 @@ sidebar_label: API
 
 # Zed lake API
 
----
-
 ## _Status_
 
 > This is a brief sketch of the functionality exposed in the
