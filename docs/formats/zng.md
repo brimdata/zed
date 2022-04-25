@@ -5,8 +5,6 @@ sidebar_label: ZNG
 
 # ZNG Specification
 
----
-
 ## 1. Introduction
 
 ZNG (pronounced "zing") is an efficient, sequence-oriented serialization format for any data

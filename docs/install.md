@@ -5,8 +5,6 @@ sidebar_label: Installation
 
 # Installation
 
----
-
 Several options for installing `zq` and/or `zed` are available:
 * [HomeBrew](#homebrew) for Mac or Linux,
 * [Binary Download](#binary-download), or

@@ -5,8 +5,6 @@ sidebar_label: Commands
 
 # Command Tooling
 
----
-
 The Zed system is managed and queried with the [`zed` command](zed.md),
 which is organized into numerous subcommands like the familiar command patterns
 of `docker` or `kubectrl`.
@@ -20,6 +18,6 @@ Zed data model, and interoperates with a number of other formats beyond JSON.
 If you don't need a Zed lake, you can install just the
 slimmer `zq` command which omits lake support and dev tools.
 
-`zq` is always installed alongside `zed`.  You might find yourself mixing and
+`zq` is always installed alongside `zed`. You might find yourself mixing and
 matching `zed` lake queries with `zq` local queries and stitching them
 all together with Unix pipelines.

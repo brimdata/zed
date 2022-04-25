@@ -5,8 +5,6 @@ sidebar_label: Format
 
 # Zed Lake Format
 
----
-
 ## _Status_
 
 >This document is a rough draft and work in progress.  We plan to
