@@ -10,7 +10,7 @@ This is a brief primer on Zed's experimental [`join` operator](../language/opera
 Currently, `join` is limited in the following ways:
 * the joined inputs both come from the parent so the query must be split before join,
 * only merge join is implemented, requiring inputs to be explicitly sorted, and
-* only equi-join is supported.
+* only equi-join (i.e., a join predicate containing `=`) is supported.
 
 A more comprehensive join design with easier-to-use syntax is forthcoming.
 
