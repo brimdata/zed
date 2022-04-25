@@ -5,8 +5,6 @@ sidebar_label: Overview
 
 # Zed Language Overview
 
----
-
 ## 1. Introduction
 
 The Zed language is a query language for search, analytics,

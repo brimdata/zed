@@ -5,8 +5,6 @@ sidebar_label: Join
 
 # Join Overview
 
----
-
 This is a brief primer on Zed's experimental [`join` operator](../language/operators/join.md).
 
 Currently, `join` is limited in the following ways:

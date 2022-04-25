@@ -5,8 +5,6 @@ sidebar_label: Compression
 
 # ZNG Compression Types
 
----
-
 This document specifies values for the `<format>` byte of a
 [ZNG compressed value message block](zng.md#2-the-zng-format)
 and the corresponding algorithms for the `<compressed paylod>` byte sequence.

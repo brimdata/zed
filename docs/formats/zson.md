@@ -5,8 +5,6 @@ sidebar_label: ZSON
 
 # ZSON Specification
 
----
-
 ## 1. Introduction
 
 ZSON is the human-readable, text-based serialization format of

@@ -5,8 +5,6 @@ sidebar_label: Introduction
 
 # The Zed Project
 
----
-
 Zed offers a new approach to data that makes it easier to manipulate and manage
 your data.
 

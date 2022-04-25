@@ -5,8 +5,6 @@ sidebar_label: Installation
 
 # Installation
 
----
-
 Several options for installing `zq` and/or `zed` are available:
 * [HomeBrew](#homebrew) for Mac or Linux,
 * [Binary Download](#binary-download), or
@@ -50,7 +48,7 @@ go install github.com/brimdata/zed/cmd/{zed,zq}@latest
 This installs the `zed` and `zq` binaries in your `$GOPATH/bin`.
 
 > If you don't have Go installed, download and install it from the
-> [Go install page](https://golang.org/doc/install). Go version 1.17 or later is
+> [Go install page](https://golang.org/doc/install). Go 1.18 or later is
 > required.
 
 Once installed, run a [quick test](#quick-tests).
@@ -79,7 +77,7 @@ as follows:
 export ZED_LAKE=./scratch
 zed init
 zed create Demo
-echo '{s:"hello, world"}' | zed load -use test -
+echo '{s:"hello, world"}' | zed load -use Demo -
 zed query "from Demo"
 ```
 which should display

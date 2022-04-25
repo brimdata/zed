@@ -5,8 +5,6 @@ sidebar_label: zed
 
 # zed Tutorial
 
----
-
 `zq` is great, but what if we have a lot of data on which we want to perform search and
 analytics? This is where the `zed` command comes in. `zed` builds on the type
 system and language found in `zq` and adds a high performance data lake on top.
@@ -47,7 +45,7 @@ data since this will allow Zed to efficiently query data within a range of the
 pool key without having to touch the entire data set.
 
 For this primer we'll work with pull requests on this public repository via the
-[Github API](https://docs.github.com/en/rest/reference/pulls#list-pull-requests).
+[Github API](https://docs.github.com/en/rest/reference/pulls#list-pull-requests). <!-- markdown-link-check-disable-line -->
 Let's create a pool to store this data and use the field `created_at` as the
 pool key, sorted in descending order:
 

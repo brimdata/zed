@@ -5,8 +5,6 @@ sidebar_label: Conventions
 
 # Type Conventions
 
----
-
 Arguments to function and input values to operators are all dynamically typed,
 yet certain functions expect certain data types or classes of data types.
 To this end, the function and operator prototypes include a number
