@@ -79,7 +79,7 @@ as follows:
 export ZED_LAKE=./scratch
 zed init
 zed create Demo
-echo '{s:"hello, world"}' | zed load -use test -
+echo '{s:"hello, world"}' | zed load -use Demo -
 zed query "from Demo"
 ```
 which should display
