@@ -332,26 +332,7 @@ func (b *Builder) compileShaper(node dag.Call) (*expr.Shaper, error) {
 }
 
 func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
-	// For now, we special case stateful functions here.  We should generalize this
-	// as we will add many more stateful functions and also resolve this
-	// the changes to create running aggegation functions from reducers.
-	// XXX See issue #1259.
-	switch {
-	case call.Name == "missing":
-		exprs, err := b.compileExprs(call.Args)
-		if err != nil {
-			return nil, fmt.Errorf("missing(): bad argument: %w", err)
-		}
-		return expr.NewMissing(exprs), nil
-	case call.Name == "has":
-		exprs, err := b.compileExprs(call.Args)
-		if err != nil {
-			return nil, fmt.Errorf("has(): bad argument: %w", err)
-		}
-		return expr.NewHas(exprs), nil
-	case call.Name == "nest_dotted":
-		return expr.NewUnflattener(b.zctx()), nil
-	case isShaperFunc(call.Name):
+	if isShaperFunc(call.Name) {
 		return b.compileShaper(call)
 	}
 	nargs := len(call.Args)

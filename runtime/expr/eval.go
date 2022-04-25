@@ -10,13 +10,16 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr/coerce"
-	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
 
 type Evaluator interface {
 	Eval(Context, *zed.Value) *zed.Value
+}
+
+type Function interface {
+	Call(zed.Allocator, []zed.Value) *zed.Value
 }
 
 type Not struct {
@@ -785,12 +788,12 @@ func (c *Conditional) Eval(ectx Context, this *zed.Value) *zed.Value {
 
 type Call struct {
 	zctx  *zed.Context
-	fn    function.Interface
+	fn    Function
 	exprs []Evaluator
 	args  []zed.Value
 }
 
-func NewCall(zctx *zed.Context, fn function.Interface, exprs []Evaluator) *Call {
+func NewCall(zctx *zed.Context, fn Function, exprs []Evaluator) *Call {
 	return &Call{
 		zctx:  zctx,
 		fn:    fn,
@@ -804,45 +807,6 @@ func (c *Call) Eval(ectx Context, this *zed.Value) *zed.Value {
 		c.args[k] = *e.Eval(ectx, this)
 	}
 	return c.fn.Call(ectx, c.args)
-}
-
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#has
-type Has struct {
-	exprs []Evaluator
-}
-
-func NewHas(exprs []Evaluator) *Has {
-	return &Has{exprs}
-}
-
-func (h *Has) Eval(ectx Context, this *zed.Value) *zed.Value {
-	for _, e := range h.exprs {
-		val := e.Eval(ectx, this)
-		if val.IsError() {
-			if val.IsMissing() || val.IsQuiet() {
-				return zed.False
-			}
-			return val
-		}
-	}
-	return zed.True
-}
-
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#missing
-type Missing struct {
-	has *Has
-}
-
-func NewMissing(exprs []Evaluator) *Missing {
-	return &Missing{NewHas(exprs)}
-}
-
-func (m *Missing) Eval(ectx Context, this *zed.Value) *zed.Value {
-	val := m.has.Eval(ectx, this)
-	if val.Type == zed.TypeBool {
-		val = zed.Not(val.Bytes)
-	}
-	return val
 }
 
 func NewCast(zctx *zed.Context, expr Evaluator, typ zed.Type) (Evaluator, error) {

@@ -9,8 +9,6 @@ type Under struct {
 	zctx *zed.Context
 }
 
-var _ Interface = (*LenFn)(nil)
-
 func (u *Under) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	switch typ := args[0].Type.(type) {

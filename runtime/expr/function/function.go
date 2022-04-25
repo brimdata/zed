@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/pkg/anymath"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -17,15 +18,11 @@ var (
 	ErrTooManyArgs    = errors.New("too many arguments")
 )
 
-type Interface interface {
-	Call(zed.Allocator, []zed.Value) *zed.Value
-}
-
-func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error) {
+func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, error) {
 	argmin := 1
 	argmax := 1
 	var path field.Path
-	var f Interface
+	var f expr.Function
 	switch name {
 	default:
 		return nil, nil, ErrNoSuchFunction
@@ -107,6 +104,9 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		f = &NameOf{zctx: zctx}
 	case "fields":
 		f = NewFields(zctx)
+	case "has":
+		argmax = -1
+		f = &Has{}
 	case "has_error":
 		f = NewHasError()
 	case "is":
@@ -128,9 +128,16 @@ func New(zctx *zed.Context, name string, narg int) (Interface, field.Path, error
 		argmin = 2
 		argmax = 2
 		f = &CIDRMatch{zctx: zctx}
+	case "missing":
+		argmax = -1
+		f = &Missing{}
 	case "network_of":
 		argmax = 2
 		f = &NetworkOf{zctx: zctx}
+	case "nest_dotted":
+		path = field.Path{}
+		argmin = 0
+		f = NewNestDotted(zctx)
 	case "parse_uri":
 		f = &ParseURI{zctx: zctx, marshaler: zson.NewZNGMarshalerWithContext(zctx)}
 	case "parse_zson":

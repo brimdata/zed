@@ -1,37 +1,35 @@
-package expr
+package function
 
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 )
 
-type Unflattener struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nest_dotted.md
+type NestDotted struct {
 	zctx        *zed.Context
 	builders    map[int]*zed.ColumnBuilder
 	recordTypes map[int]*zed.TypeRecord
-	fieldExpr   Evaluator
 }
 
-var _ Evaluator = (*Unflattener)(nil)
-
-// NewUnflattener returns a Unflattener that turns successive dotted
+// NewNestDotted returns a function that turns successive dotted
 // field names into nested records.  For example, unflattening {"a.a":
 // 1, "a.b": 1} results in {a:{a:1,b:1}}.  Note that while
 // unflattening is applied recursively from the top-level and applies
 // to arbitrary-depth dotted names, it is not applied to dotted names
 // that start at lower levels (for example {a:{"a.a":1}} is
 // unchanged).
-func NewUnflattener(zctx *zed.Context) *Unflattener {
-	return &Unflattener{
+func NewNestDotted(zctx *zed.Context) *NestDotted {
+	return &NestDotted{
 		zctx:        zctx,
 		builders:    make(map[int]*zed.ColumnBuilder),
 		recordTypes: make(map[int]*zed.TypeRecord),
 	}
 }
 
-func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuilder, *zed.TypeRecord, error) {
-	if b, ok := u.builders[in.ID()]; ok {
-		return b, u.recordTypes[in.ID()], nil
+func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuilder, *zed.TypeRecord, error) {
+	if b, ok := n.builders[in.ID()]; ok {
+		return b, n.recordTypes[in.ID()], nil
 	}
 	var foundDotted bool
 	var fields field.List
@@ -47,23 +45,21 @@ func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuild
 	if !foundDotted {
 		return nil, nil, nil
 	}
-	b, err := zed.NewColumnBuilder(u.zctx, fields)
+	b, err := zed.NewColumnBuilder(n.zctx, fields)
 	if err != nil {
 		return nil, nil, err
 	}
-	typ := u.zctx.MustLookupTypeRecord(b.TypedColumns(types))
-	u.builders[in.ID()] = b
-	u.recordTypes[in.ID()] = typ
+	typ := n.zctx.MustLookupTypeRecord(b.TypedColumns(types))
+	n.builders[in.ID()] = b
+	n.recordTypes[in.ID()] = typ
 	return b, typ, nil
 }
 
-// Apply returns a new record comprising fields copied from in according to the
-// receiver's configuration.  If the resulting record would be empty, Apply
-// returns nil.
-func (u *Unflattener) Eval(ectx Context, this *zed.Value) *zed.Value {
-	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
+func (n *NestDotted) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+	this := &args[0]
+	b, typ, err := n.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
 	if err != nil {
-		return ectx.CopyValue(*u.zctx.NewErrorf("unflatten: %s", err))
+		return ctx.CopyValue(*n.zctx.NewErrorf("unflatten: %s", err))
 	}
 	if b == nil {
 		return this
@@ -76,5 +72,5 @@ func (u *Unflattener) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	return ectx.NewValue(typ, zbytes)
+	return ctx.NewValue(typ, zbytes)
 }
