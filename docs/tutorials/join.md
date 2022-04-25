@@ -7,12 +7,12 @@ sidebar_label: Join
 
 ---
 
-This is a brief primer on Zed's experimental [join operator](../language/operators/join.md).
+This is a brief primer on Zed's experimental [`join` operator](../language/operators/join.md).
 
-Currently, join is limited in the following ways:
+Currently, `join` is limited in the following ways:
 * the joined inputs both come from the parent so the query must be split before join,
-* only merge join is implemented requiring inputs to be explicitly sorted, and
-* only equ-join is supported.
+* only merge join is implemented, requiring inputs to be explicitly sorted, and
+* only equi-join is supported.
 
 A more comprehensive join design with easier-to-use syntax is forthcoming.
 
@@ -182,7 +182,7 @@ produces
 In addition to the named files and pools like we've used in the prior examples,
 Zed is also intended to work on a single sequence of data that is split
 and joined to itself.  Here we'll combine our file
-sources into a stream that we'll pipe into `zq` via stdin. Because join requires
+sources into a stream that we'll pipe into `zq` via stdin. Because `join` requires
 two separate inputs, here we'll use the `has()` function to identify the
 records in the stream that will be treated as the left and right sides.
 
@@ -211,7 +211,7 @@ produces
 
 ## Multi-value Joins
 
-The equality test in a Zed join accepts only one named key from each input.
+The equality test in a Zed `join` accepts only one named key from each input.
 However, joins on multiple matching values can still be performed by making the
 values available in comparable complex types, such as embedded records.
 
@@ -232,7 +232,7 @@ records. In the Zed script `multi-value-join.zed`, we create the keys as
 embedded records inside each input record, using the same field names and data
 types in each. We'll leave the created `fruitkey` records intact to show what
 they look like, but since it represents redundant data, in practice we'd
-typically [`drop`](#drop) it after the `join` in our Zed pipeline.
+typically [`drop`](../language/operators/drop.md) it after the `join` in our Zed pipeline.
 
 ```mdtest-input multi-value-join.zed
 from (
@@ -251,13 +251,13 @@ produces
 {name:"strawberry",color:"red",flavor:"sweet",fruitkey:{name:"strawberry",color:"red"},quantity:3000}
 ```
 
-#### Embedding the entire opposite record
+## Embedding the entire opposite record
 
-As previously noted, until [zed/2815](https://github.com/brimdata/zed/issues/2815)
-is addressed, explicit entries must be provided in the `[field-list]` in order
-to copy values from the opposite input into the joined results. This can be
-cumbersome if your goal is to copy over many fields or you don't know the
-names of all desired fields.
+In the current `join` implementation, explicit entries must be provided in the
+`[field-list]` in order to copy values from the opposite input into the joined
+results (a possible future enhancement [zed/2815](https://github.com/brimdata/zed/issues/2815)
+may improve upon this). This can be cumbersome if your goal is to copy over many
+fields or you don't know the names of all desired fields.
 
 One way to work around this limitation is to specify `this` in the field list
 to copy the contents of the _entire_ opposite record into an embedded record
