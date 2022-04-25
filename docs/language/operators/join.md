@@ -31,5 +31,4 @@ For anti join, the `<right-expr>` is undefined and thus cannot be specified.
 
 ### Examples
 
-The [Join Overview](../../tutorials/join.md) tutorial includes several
-examples.
+The [join tutorial](../../tutorials/join.md) includes several examples.
