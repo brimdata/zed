@@ -8,11 +8,12 @@ consumes:
 definitions:
   Branch:
     properties:
-      Commit:
+      commit:
         $ref: '#/definitions/KSUID'
-      Name:
+      name:
         type: string
-      Ts:
+        x-go-name: Name
+      ts:
         $ref: '#/definitions/Ts'
     title: Config describes a branches configuration.
     type: object
@@ -20,13 +21,47 @@ definitions:
     x-go-package: github.com/brimdata/zed/lake/branches
   BranchMeta:
     properties:
-      Branch:
+      branch:
         $ref: '#/definitions/Branch'
-      Pool:
+      pool:
         $ref: '#/definitions/Pool'
     title: BranchMeta is the metadata describing a pool branch.
     type: object
     x-go-package: github.com/brimdata/zed/lake
+  CommitMessage:
+    properties:
+      author:
+        type: string
+        x-go-name: Author
+      body:
+        type: string
+        x-go-name: Body
+      meta:
+        type: string
+        x-go-name: Meta
+    type: object
+    x-go-package: github.com/brimdata/zed/api
+  CommitResponse:
+    properties:
+      commit:
+        $ref: '#/definitions/KSUID'
+      warnings:
+        items:
+          type: string
+        type: array
+        x-go-name: Warnings
+    type: object
+    x-go-package: github.com/brimdata/zed/api
+  Commitish:
+    properties:
+      branch:
+        type: string
+        x-go-name: Branch
+      pool:
+        type: string
+        x-go-name: Pool
+    type: object
+    x-go-package: github.com/brimdata/zed/lakeparse
   Error:
     properties:
       error:
@@ -74,19 +109,22 @@ definitions:
     x-go-package: github.com/brimdata/zed/pkg/field
   Pool:
     properties:
-      ID:
+      id:
         $ref: '#/definitions/KSUID'
-      Layout:
+      layout:
         $ref: '#/definitions/Layout'
-      Name:
+      name:
         type: string
-      SeekStride:
+        x-go-name: Name
+      seek_stride:
         format: int64
         type: integer
-      Threshold:
+        x-go-name: SeekStride
+      threshold:
         format: int64
         type: integer
-      Ts:
+        x-go-name: Threshold
+      ts:
         $ref: '#/definitions/Ts'
     title: Config describes a pools configuration.
     type: object
@@ -111,6 +149,24 @@ definitions:
     required:
     - name
     title: PoolPostRequest is the body of a create pool request.
+    type: object
+    x-go-package: github.com/brimdata/zed/api
+  PoolPutRequest:
+    properties:
+      name:
+        type: string
+        x-go-name: Name
+    type: object
+    x-go-package: github.com/brimdata/zed/api
+  QueryRequest:
+    properties:
+      head:
+        $ref: '#/definitions/Commitish'
+      query:
+        example: count()
+        type: string
+        x-go-name: Query
+    title: QueryRequest is the body of a query request.
     type: object
     x-go-package: github.com/brimdata/zed/api
   Ts:
@@ -144,6 +200,86 @@ paths:
           schema:
             $ref: '#/definitions/Error'
       summary: Create a pool.
+  /pool/{pool}:
+    put:
+      operationId: updatePool
+      parameters:
+      - in: path
+        name: pool
+        required: true
+        type: string
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/PoolPutRequest'
+      responses:
+        "204":
+          description: Updated
+        default:
+          description: error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: Update a pool's name.
+  /pool/{pool}/branch/{branch}:
+    get:
+      operationId: getBranch
+      parameters:
+      - in: path
+        name: pool
+        required: true
+        type: string
+      - in: path
+        name: branch
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/CommitResponse'
+        default:
+          description: error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      operationId: branchLoad
+      parameters:
+      - in: path
+        name: pool
+        required: true
+        type: string
+      - in: path
+        name: branch
+        required: true
+        type: string
+      - in: body
+        name: body
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/CommitResponse'
+        default:
+          description: error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: Post data to a branch.
+  /query:
+    post:
+      operationId: query
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/QueryRequest'
+      responses:
+        default:
+          description: error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: Execute a Zed query against data in a Zed lake.
 produces:
 - application/json
 - application/x-ndjson

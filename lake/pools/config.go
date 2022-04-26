@@ -12,12 +12,12 @@ import (
 // Config describes a pools configuration.
 // swagger:model Pool
 type Config struct {
-	Ts         nano.Ts      `zed:"ts"`
-	Name       string       `zed:"name"`
-	ID         ksuid.KSUID  `zed:"id"`
-	Layout     order.Layout `zed:"layout"`
-	SeekStride int          `zed:"seek_stride"`
-	Threshold  int64        `zed:"threshold"`
+	Ts         nano.Ts      `zed:"ts" json:"ts"`
+	Name       string       `zed:"name" json:"name"`
+	ID         ksuid.KSUID  `zed:"id" json:"id"`
+	Layout     order.Layout `zed:"layout" json:"layout"`
+	SeekStride int          `zed:"seek_stride" json:"seek_stride"`
+	Threshold  int64        `zed:"threshold" json:"threshold"`
 }
 
 var _ journal.Entry = (*Config)(nil)

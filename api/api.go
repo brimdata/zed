@@ -49,6 +49,7 @@ type PoolPostRequest struct {
 	Thresh     int64        `json:"thresh"`
 }
 
+// swagger:model
 type PoolPutRequest struct {
 	Name string `json:"name"`
 }
@@ -67,15 +68,17 @@ type DeleteRequest struct {
 	Where     string   `zed:"were"`
 }
 
+// swagger:model
 type CommitMessage struct {
-	Author string `zed:"author"`
-	Body   string `zed:"body"`
-	Meta   string `zed:"meta"`
+	Author string `zed:"author" json:"author"`
+	Body   string `zed:"body" json:"body"`
+	Meta   string `zed:"meta" json:"meta"`
 }
 
+// swagger:model
 type CommitResponse struct {
-	Commit   ksuid.KSUID `zed:"commit"`
-	Warnings []string    `zed:"warnings"`
+	Commit   ksuid.KSUID `zed:"commit" json:"commit"`
+	Warnings []string    `zed:"warnings" json:"warnings"`
 }
 
 type IndexRulesAddRequest struct {
@@ -115,7 +118,10 @@ type EventBranch struct {
 	Branch string      `zed:"branch"`
 }
 
+// QueryRequest is the body of a query request.
+// swagger:model
 type QueryRequest struct {
+	// example: count()
 	Query string              `json:"query"`
 	Head  lakeparse.Commitish `json:"head"`
 }

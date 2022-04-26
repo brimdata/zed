@@ -8,9 +8,9 @@ import (
 // Config describes a branches configuration.
 // swagger:model Branch
 type Config struct {
-	Ts     nano.Ts     `zed:"ts"`
-	Name   string      `zed:"name"`
-	Commit ksuid.KSUID `zed:"commit"`
+	Ts     nano.Ts     `zed:"ts" json:"ts"`
+	Name   string      `zed:"name" json:"name"`
+	Commit ksuid.KSUID `zed:"commit" json:"commit"`
 
 	// audit info
 }

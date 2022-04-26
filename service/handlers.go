@@ -23,6 +23,22 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+// swagger:operation POST /query query
+//
+// Execute a Zed query against data in a Zed lake.
+//
+// ---
+// parameters:
+// - name: body
+//   in: body
+//   required: true
+//   schema:
+//     "$ref": "#/definitions/QueryRequest"
+// responses:
+//   default:
+//     description: error
+//     schema:
+//       "$ref": "#/definitions/Error"
 func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	const queryStatsInterval = time.Second
 	var req api.QueryRequest
@@ -107,7 +123,27 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	}
 }
 
-// swagger:route GET /
+// swagger:operation GET /pool/{pool}/branch/{branch} getBranch
+//
+// ---
+// parameters:
+// - name: pool
+//   in: path
+//   required: true
+//   type: string
+// - name: branch
+//   in: path
+//   required: true
+//   type: string
+// responses:
+//   "200":
+//     description: Ok
+//     schema:
+//       "$ref": "#/definitions/CommitResponse"
+//   default:
+//     description: error
+//     schema:
+//       "$ref": "#/definitions/Error"
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 	id, ok := r.PoolID(w, c.root)
 	if !ok {
@@ -210,6 +246,28 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 	c.publishEvent(w, "pool-new", api.EventPool{PoolID: pool.ID})
 }
 
+// swagger:operation PUT /pool/{pool} updatePool
+//
+// Update a pool's name.
+//
+// ---
+// parameters:
+// - name: pool
+//   in: path
+//   required: true
+//   type: string
+// - name: body
+//   in: body
+//   required: true
+//   schema:
+//     "$ref": "#/definitions/PoolPutRequest"
+// responses:
+//   204:
+//     description: Updated
+//   default:
+//     description: error
+//     schema:
+//       "$ref": "#/definitions/Error"
 func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 	var req api.PoolPutRequest
 	if !r.Unmarshal(w, &req) {
@@ -348,6 +406,31 @@ func (w *warningCollector) Warn(msg string) error {
 	return nil
 }
 
+// swagger:operation POST /pool/{pool}/branch/{branch} branchLoad
+//
+// Post data to a branch.
+//
+// ---
+// parameters:
+// - name: pool
+//   in: path
+//   required: true
+//   type: string
+// - name: branch
+//   in: path
+//   required: true
+//   type: string
+// - name: body
+//   in: body
+// responses:
+//   200:
+//     description: success
+//     schema:
+//       "$ref": "#/definitions/CommitResponse"
+//   default:
+//     description: error
+//     schema:
+//       "$ref": "#/definitions/Error"
 func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	poolID, ok := r.PoolID(w, c.root)
 	if !ok {
