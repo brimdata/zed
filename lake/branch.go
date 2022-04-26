@@ -236,8 +236,8 @@ const THRESH = %s
 from %s@%s:objects
 | {
 	id: id,
-	lower: meta.first < meta.last ? meta.first : meta.last,
-	upper: meta.first < meta.last ? meta.last : meta.first
+	lower: compare(meta.first, meta.last) < 0 ? meta.first : meta.last,
+	upper: compare(meta.first, meta.last) < 0 ? meta.last : meta.first
   }
 | switch (
   case %s %s THRESH => deletes:=collect(id)
