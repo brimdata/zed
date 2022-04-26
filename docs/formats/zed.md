@@ -81,8 +81,8 @@ The categories of complex types include:
 * _map_ - a collection of zero or more key/value pairs where the keys are of a
 uniform type called the key type and the values are of a uniform type called
 the value type,
-* _union_ - a type representing values whose type is any of a specified collection of two or more unique types, and
-* _enum_ - a type representing a finite set of symbols typically representing categories,
+* _union_ - a type representing values whose type is any of a specified collection of two or more unique types,
+* _enum_ - a type representing a finite set of symbols typically representing categories, and,
 * _error_ - any value wrapped as an "error".
 
 The type system comprises a total order:
@@ -96,7 +96,7 @@ The type system comprises a total order:
 A record comprises an ordered set of zero or more named values
 called "fields".  The field names must be unique in a given record
 and the order of the fields is significant, e.g., type `{a:string,b:string}`
-is a distinct from type `{b:string,a:string}`.
+is distinct from type `{b:string,a:string}`.
 
 A field name is any UTF-8 string.
 
@@ -113,7 +113,7 @@ A record type is uniquely defined by its ordered list of field-type pairs.
 
 The type order of two records is as follows:
 * Record with fewer columns than other is ordered before the other.
-* Records with same the number of columns are ordered as follows according to:
+* Records with the same number of columns are ordered as follows according to:
      * the lexicographic order of the field names from left to right,
      * or if all the field names are the same, the type order of the field types from left to right.
 
@@ -158,7 +158,7 @@ A map value may be empty.
 
 A map type is uniquely defined by its key type and value type.
 
-The type order of two map types is as follows is
+The type order of two map types is as follows:
 * the type order of their key types,
 * or if they are the same, then the order of their value types.
 
@@ -177,7 +177,7 @@ type's ordered list of types.
 
 The type order of two union types is as follows:
 * The union type with fewer types than other is ordered before the other.
-* Two union types with same the number of types are ordered according to
+* Two union types with the same number of types are ordered according to
 the type order of the constituent types in left to right order.
 
 ### 2.6 Enum
@@ -191,7 +191,7 @@ with the same set of symbols but in different order are distinct.
 
 The type order of two enum types is as follows:
 * The enum type with fewer symbols than other is ordered before the other.
-* Two enum types with same the number of symbols are ordered according to
+* Two enum types with the same number of symbols are ordered according to
 the type order of the constituent types in left to right order.
 
 ### 2.7 Error
@@ -211,8 +211,8 @@ and need not be unique across a sequence of values.
 
 A type name may be any UTF-8 string exclusive of primitive type names.
 
-For example, if "port" is a named type for `int16`, then two values of
-type "port" have the same type but a value of type port and a value of type int16
+For example, if "port" is a named type for `uint16`, then two values of
+type "port" have the same type but a value of type "port" and a value of type `uint16`
 do not have the same type.
 
 The type order of two named types is the type order of their underlying types.
