@@ -8,7 +8,7 @@ sidebar_label: Installation
 Several options for installing `zq` and/or `zed` are available:
 * [HomeBrew](#homebrew) for Mac or Linux,
 * [Binary Download](#binary-download), or
-* [Build from Source](#build-from-source).
+* [Build from Source](#building-from-source).
 
 To install the Zed Python client, see the
 [Python library documentation](libraries/python.md).
