@@ -6,7 +6,7 @@
 
 ```
 ( => left path => right path )
-| [anti|inner|left|right] join on <left-key>=<right-key> [<field>=<right-expr>, ...]
+| [anti|inner|left|right] join on <left-key>=<right-key> [<field>:=<right-expr>, ...]
 ```
 ### Description
 
