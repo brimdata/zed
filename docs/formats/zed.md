@@ -82,7 +82,7 @@ The categories of complex types include:
 uniform type called the key type and the values are of a uniform type called
 the value type,
 * _union_ - a type representing values whose type is any of a specified collection of two or more unique types,
-* _enum_ - a type representing a finite set of symbols typically representing categories, and,
+* _enum_ - a type representing a finite set of symbols typically representing categories, and
 * _error_ - any value wrapped as an "error".
 
 The type system comprises a total order:
