@@ -577,13 +577,13 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		}
 		source = from.NewScheduler(b.pctx, sched)
 	case *dag.HTTP:
-		puller, err := b.adaptor.Open(b.pctx.Context, b.pctx.Zctx, src.URL, pushdown)
+		puller, err := b.adaptor.Open(b.pctx.Context, b.pctx.Zctx, src.URL, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}
 		source = from.NewPuller(b.pctx, puller)
 	case *dag.File:
-		scanner, err := b.adaptor.Open(b.pctx.Context, b.pctx.Zctx, src.Path, pushdown)
+		scanner, err := b.adaptor.Open(b.pctx.Context, b.pctx.Zctx, src.Path, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}

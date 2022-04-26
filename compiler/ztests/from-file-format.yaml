@@ -1,0 +1,13 @@
+script: |
+  zq -z 'file in.csv format csv'
+
+inputs:
+  - name: in.csv
+    data: |
+      "a"
+      1
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1.}
