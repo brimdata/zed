@@ -34,7 +34,7 @@ the input and then transforms or analyzes the filtered stream.
 Output is written to one or more files or to standard output.
 
 A Zed query is comprised of one or more operators interconnected
-into a pipeline using the Unix pipe charcter "|".
+into a pipeline using the Unix pipe character "|".
 See https://github.com/brimdata/zed/tree/main/docs/language
 for details.
 
