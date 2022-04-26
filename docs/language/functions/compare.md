@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **compare** &mdash; returns an integer comparing two values
+&emsp; **compare** &mdash; return an integer comparing two values
 
 ### Synopsis
 
