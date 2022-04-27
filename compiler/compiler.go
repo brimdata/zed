@@ -164,14 +164,6 @@ func ParseProc(src string, filenames ...string) (ast.Proc, error) {
 	return ast.UnpackMapAsProc(parsed)
 }
 
-func ParseExpression(expr string) (ast.Expr, error) {
-	m, err := parser.ParseZedByRule("Expr", expr)
-	if err != nil {
-		return nil, err
-	}
-	return ast.UnpackMapAsExpr(m)
-}
-
 // MustParseProc is functionally the same as ParseProc but panics if an error
 // is encountered.
 func MustParseProc(query string) ast.Proc {
