@@ -608,11 +608,17 @@ func IsSearch(e ast.Expr) bool {
 func (c *canon) http(p *ast.HTTP) {
 	//XXX TBD other stuff
 	c.write("get %s", p.URL)
+	if p.Format != "" {
+		c.write(" format %s", p.Format)
+	}
 }
 
 func (c *canon) file(p *ast.File) {
 	//XXX TBD other stuff
 	c.write("file %s", p.Path)
+	if p.Format != "" {
+		c.write(" format %s", p.Format)
+	}
 }
 
 func (c *canon) source(src ast.Source) {
