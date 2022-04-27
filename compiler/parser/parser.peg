@@ -378,19 +378,15 @@ ShapeOp
     }
 
 JoinOp
-  = style:JoinStyle "join" _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
-      VAR(op) = MAP("kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": NULL)
-      if ISNOTNULL(columns) {
-        op["args"] = ASSERT_ARRAY(columns)[1]
+  = style:JoinStyle "join" _ ON _ key:JoinKey optKey:(__ "=" __ JoinKey)? optArgs:(_ FlexAssignments)? {
+      VAR(m) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
+      if ISNOTNULL(optKey) {
+        m["right_key"] = ASSERT_ARRAY(optKey)[3]
       }
-      RETURN(op)
-    }
-  / style:JoinStyle  "join" _ ON _ key:JoinKey columns:(_ FlexAssignments)? {
-      VAR(op) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
-      if ISNOTNULL(columns) {
-        op["args"] = ASSERT_ARRAY(columns)[1]
+      if ISNOTNULL(optArgs) {
+        m["args"] = ASSERT_ARRAY(optArgs)[1]
       }
-      RETURN(op)
+      RETURN(m)
     }
 
 JoinStyle
