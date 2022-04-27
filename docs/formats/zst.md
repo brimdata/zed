@@ -10,7 +10,7 @@ ZST, pronounced "zest", is a file format for columnar data based on
 ZST is the "stacked" version of Zed, where the fields from a stream of
 Zed records are stacked into vectors that form columns.
 Its purpose is to provide for efficient analytics and search over
-bounded-length sequences of ZNG data that is stored in columnar form.
+bounded-length sequences of [ZNG](zng.md) data that is stored in columnar form.
 
 Like [Parquet](https://github.com/apache/parquet-format),
 ZST provides an efficient columnar representation for semi-structured data,
@@ -30,7 +30,7 @@ and ZST is therefore not intended as a streaming or communication format.
 A ZST file can be stored entirely as one storage object
 or split across separate objects that are treated
 together as a single ZST entity.  While the ZST format provides much flexibility
-for how data is laid out, it is left to an implementation to layout data
+for how data is laid out, it is left to an implementation to lay out data
 in intelligent ways for efficient sequential read accesses of related data.
 
 ## Column Streams
@@ -57,8 +57,8 @@ the reconstruction process is recursive (as described below).
 The overall layout of a ZST file is comprised of the following sections,
 in this order:
 * the data section,
-* the reassembly section,
-* and the trailer.
+* the reassembly section, and
+* the trailer.
 
 This layout allows an implementation to buffer metadata in
 memory while writing column data in a natural order to the
@@ -69,7 +69,7 @@ in a single pass.
 
 > That said, the layout is
 > flexible enough that an implementation may optimize the data layout with
-> additional passes or by writing the output to multiple files then then
+> additional passes or by writing the output to multiple files then
 > merging them together (or even leaving the ZST entity as separate files).
 
 ### The Data Section
@@ -77,7 +77,7 @@ in a single pass.
 The data section contains raw data values organized into _segments_,
 where a segment is a seek offset and byte length relative to the
 data section.  Each segment contains a sequence of
-[primitive-type Zed values](zed.md#5-1-primitive-types),
+[primitive-type Zed values](zed.md#1-primitive-types),
 encoded as counted-length byte sequences where the counted-length is
 variable-length encoded as in the [ZNG specification](zng.md).
 
@@ -85,7 +85,7 @@ There is no information in the data section for how segments relate
 to one another or how they are reconstructed into columns.  They are just
 blobs of ZNG data.
 
-> Unlike Parquet, there is no explicit arrangement the column chunks into
+> Unlike Parquet, there is no explicit arrangement of the column chunks into
 > row groups but rather they are allowed to grow at different rates so a
 > high-volume column might be comprised of many segments while a low-volume
 > column must just be one or several.  This allows scans of low-volume record types
@@ -104,14 +104,14 @@ blobs of ZNG data.
 > read that lives under the column stream reader.  Also, you can make tradeoffs:
 > if you use lots of buffering on ingest, you can write the mice in front of the
 > elephants so the read path requires less buffering to align columns.  Or you can
-> do two passes where you store segments in separate files them merge them at close
+> do two passes where you store segments in separate files then merge them at close
 > according to an optimization plan.
 
-Segments are sub-divided into frames where each frame is compressed
+Segments are subdivided into frames where frames are compressed
 independently of each other, similar to ZNG compression framing.
 
 > TBD: use the
-> [same compression format](zng.md#312-compressed-value-message-block)
+> [same compression format](zng.md#2-the-zng-format)
 > exactly?
 >
 > The intent here is that segments are sized so that sequential read access
@@ -129,13 +129,13 @@ from column streams, i.e., to map columns back to composite values.
 
 > Of course, the reassembly section also provides the ability to extract just subsets of columns
 > to be read and searched efficiently without ever needing to reconstruct
-> the original rows.  How performant this is all done is up to any particular
+> the original rows.  How well this performs is up to any particular
 > ZST implementation.
 >
-> Also, the reassembly section is in generally vastly smaller than the data section
+> Also, the reassembly section is in general vastly smaller than the data section
 > so the goal here isn't to express information in cute and obscure compact forms
-> but rather to represent data in easy-to-digest, programmer-friendly form that
-> leverages ZNG.
+> but rather to represent data in easy-to-digest, programmer-friendly forms that
+> leverage ZNG.
 
 The reassembly section is a ZNG stream.  Unlike Parquet,
 which uses an externally described schema
@@ -173,11 +173,11 @@ type signature:
 ```
 [{offset:uint64,length:uint32}]
 ```
-In the rest this document, we will refer to this type as `<segmap>` for
+In the rest of this document, we will refer to this type as `<segmap>` for
 shorthand and refer to the concept as a "segmap".
 
 > We use the type name "segmap" to emphasize that this information represents
-> a set of byte ranges where data stored and must be read from *rather than*
+> a set of byte ranges where data is stored and must be read from *rather than*
 > the data itself.
 
 #### The Super Column
@@ -187,9 +187,9 @@ represents the sequence of super types of each original Zed value, i.e., indicat
 which super type's column stream to select from to pull column values to form
 the reconstructed value.
 The sequence of super types is defined by each type's super ID (as defined above),
-0 to N-1, within set of N super types.
+0 to N-1, within the set of N super types.
 
-The super column stream is encoded as a sequence of ZNG-encoded int32 primitive values.
+The super column stream is encoded as a sequence of ZNG-encoded `int32` primitive values.
 While there are a large number entries in the super column (one for each original row),
 the cardinality of super IDs is small in practice so this column
 will compress very significantly, e.g., in the special case that all the
@@ -213,7 +213,7 @@ In other words, the reassembly record of the super column
 combined with the N reassembly records collectively define the original sequence
 of Zed data values in the original order.
 Taken in pieces, the reassembly records allow efficient access to sub-ranges of the
-rows, to subset of columns of the rows, to sub-ranges of columns of the rows, and so forth.
+rows, to subsets of columns of the rows, to sub-ranges of columns of the rows, and so forth.
 
 This simple top-down arrangement, along with the definition of the other
 column structures below, is all that is needed to reconstruct all of the
@@ -251,13 +251,13 @@ where
 * `<fld1>` through `<fldn>` are the names of the top-level fields of the
 original row record,
 * the `column` fields are column stream definitions for each field, and
-* the `presence` columns are int32 zng column streams comprised of a
-run-length encoding the locations of column values in their respective rows,
+* the `presence` columns are `int32` ZNG column streams comprised of a
+run-length encoding of the locations of column values in their respective rows,
 when there are null values (as described below).
 
 If there are no null values, then the `presence` field contains an empty `<segmap>`.
-If all of the values are null, then then `column` field is null (and the `presence`
-both contain empty `<segmap>'s`).  For empty `<segmap>'s`, there is no
+If all of the values are null, then the `column` field is null (and the `presence`
+both contain empty `<segmap>s`).  For empty `<segmap>s`, there is no
 corresponding data stored in the data section.  Since a `<segmap>` is a Zed
 array, an empty `<segmap>` is simply the empty array value `[]`.
 
@@ -270,27 +270,10 @@ An `<array_column>` has the form:
 where
 * `values` represents a continuous sequence of values of the array elements  
 that are sliced into array values based on the length information, and
-* `lengths` encodes a Zed int32 sequence of values that represent the length
+* `lengths` encodes a Zed `int32` sequence of values that represent the length
  of each array value.
 
 The `<array_column>` structure is used for both Zed arrays and sets.
-
-#### Union Column
-
-A `<union_column>` has the form:
-```
-{columns:[<any_column>],tags:<segmap>}
-```
-where
-* `columns` is an array containing the reassembly information for each tagged union value
-in the same column order implied by the union type, and
-* `tags` is a column of int32 values where each subsequent value encodes
-the tag of the union type indicating which column the value falls within.
-
-> TBD: change code to conform to columns array instead of record{c0,c1,...}
-
-The number of times each value of `tags` appears must equal the number of values
-in each respective column.
 
 #### Map Column
 
@@ -301,6 +284,23 @@ A `<map_column>` has the form:
 where
 * `key` encodes the column of map keys, and
 * `value` encodes the column of map values.
+
+#### Union Column
+
+A `<union_column>` has the form:
+```
+{columns:[<any_column>],tags:<segmap>}
+```
+where
+* `columns` is an array containing the reassembly information for each tagged union value
+in the same column order implied by the union type, and
+* `tags` is a column of `int32` values where each subsequent value encodes
+the tag of the union type indicating which column the value falls within.
+
+> TBD: change code to conform to columns array instead of record{c0,c1,...}
+
+The number of times each value of `tags` appears must equal the number of values
+in each respective column.
 
 #### Primitive Column
 
@@ -316,7 +316,7 @@ present so that null values are not encoded.
 
 Instead the presence column is encoded as a sequence of alternating runs.
 First, the number of values present is encoded, then the number of values not present,
-then the number of values present, and so forth.   These runs are the stored
+then the number of values present, and so forth.   These runs are then stored
 as Zed `int32` values in the presence column (which may be subject to further
 compression based on segment framing).
 
@@ -335,7 +335,7 @@ This type of this record has the format
 {magic:string,type:string,version:int64,sections:[int64],meta:{skew_thresh:int64,segment_thresh:int64}
 ```
 The trailer can be efficiently found by scanning backward from the end of the
-ZST file to the find a valid ZNG stream containing a single record value
+ZST file to find a valid ZNG stream containing a single record value
 conforming to the above type.
 
 ## Decoding
@@ -365,7 +365,7 @@ column values from.
 The top-level reassembly fetches column values as a `<record_column>`.
 
 For any `<record_column>`, a value from each field is read from each field's column,
-accounting for the presence column indicating nil,
+accounting for the presence column indicating null,
 and the results are encoded into the corresponding ZNG record value using
 ZNG type information from the corresponding schema.
 
@@ -376,8 +376,8 @@ For an `<array_column>`, a length is read from its `lengths` segmap as an `int32
 and that many values are read from its the `values` sub-column,
 encoding the result as a ZNG array value.
 
-For an `<union_column>`, a value is read from its `selector` segmap
-and that value is used to the select to corresponding column stream
+For a `<union_column>`, a value is read from its `selector` segmap
+and that value is used to select the corresponding column stream
 `c0`, `c1`, etc.  The value read is then encoded as a ZNG union value
 using the same selector value within the union value.
 
