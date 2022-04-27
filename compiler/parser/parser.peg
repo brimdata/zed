@@ -116,16 +116,13 @@ Case
   / "default" { RETURN(NULL) }
 
 FromLeg
-  = __ source:FromHead opt:(__  Sequential)? {
+  = __ source:FromSource opt:(__ "=>" __  Sequential)? {
       VAR(m) = MAP("kind": "Trunk", "source": source, "seq": NULL)
       if ISNOTNULL(opt) {
-        m["seq"] = ASSERT_ARRAY(opt)[1]
+        m["seq"] = ASSERT_ARRAY(opt)[3]
       }
       RETURN(m)
     }
-
-FromHead
-  = src:FromSource __ "=>" { RETURN(src) }
 
 FromSource
   = File
@@ -151,7 +148,7 @@ SearchAnd
     }
 
 SearchKeywordGuard
-  = FromHead __
+  = FromSource __
   / Case __
 
 SearchFactor
