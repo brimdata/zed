@@ -118,10 +118,6 @@ func (m *Mux) Pull(bool) (zbuf.Batch, error) {
 	}
 }
 
-func (m *Mux) Done() {
-	panic("proc.Mux.Done() should not be called; instead proc.Context should be canceled.")
-}
-
 type Single struct {
 	zbuf.Puller
 	eos bool
