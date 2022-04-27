@@ -136,7 +136,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
 	zruntime "github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/pmezard/go-difflib/difflib"
 	"gopkg.in/yaml.v3"
@@ -536,7 +536,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		return "", err.Error(), err
 	}
 	defer q.Pull(true)
-	err = zio.Copy(zw, q.AsReader())
+	err = zbuf.CopyPuller(zw, q)
 	if err2 := zw.Close(); err == nil {
 		err = err2
 	}
