@@ -66,7 +66,7 @@ func (c *createCommand) Run(args []string) error {
 	if err := lake.AddIndexRules(ctx, rules); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 		if err != nil {
 			return err

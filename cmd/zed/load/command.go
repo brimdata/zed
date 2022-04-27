@@ -38,12 +38,10 @@ The load command adds data to a pool and commits it to a branch.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 	commit bool
 	cli.CommitFlags
 	procFlags  procflags.Flags
 	inputFlags inputflags.Flags
-	lakeFlags  lakeflags.Flags
 
 	// status output
 	ctx       context.Context
@@ -57,10 +55,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		Command: parent.(*root.Command),
 	}
 	c.CommitFlags.SetFlags(f)
-	c.LakeFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f, true)
 	c.procFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -88,7 +84,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	head, err := c.lakeFlags.HEAD()
+	head, err := c.HEAD()
 	if err != nil {
 		return err
 	}
@@ -100,7 +96,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	var d *display.Display
-	if !c.lakeFlags.Quiet && term.IsTerminal(int(os.Stderr.Fd())) {
+	if !c.Quiet && term.IsTerminal(int(os.Stderr.Fd())) {
 		c.ctx = ctx
 		c.rate = ratecounter.NewRateCounter(time.Second)
 		d = display.New(c, time.Second/2, os.Stderr)
@@ -113,7 +109,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		fmt.Printf("%s committed\n", commitID)
 	}
 	return nil

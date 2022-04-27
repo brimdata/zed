@@ -3,8 +3,6 @@ package query
 import (
 	"flag"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/cli/queryflags"
@@ -27,19 +25,15 @@ var Cmd = &charm.Spec{
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 	queryFlags  queryflags.Flags
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
-	lakeFlags   lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	c.queryFlags.SetFlags(f)
 	return c, nil
 }
@@ -65,7 +59,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, _ := c.lakeFlags.HEAD()
+	head, _ := c.HEAD()
 	query, err := lake.QueryWithControl(ctx, head, src, c.queryFlags.Includes...)
 	if err != nil {
 		w.Close()

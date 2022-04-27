@@ -27,16 +27,12 @@ The new commit may recursively be reverted by an additional revert operation.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
-	lakeFlags lakeflags.Flags
 	cli.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.CommitFlags.SetFlags(f)
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -53,7 +49,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.lakeFlags.HEAD()
+	head, err := c.HEAD()
 	if err != nil {
 		return err
 	}
@@ -75,7 +71,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		fmt.Printf("%q: %s reverted in %s\n", head.Branch, commitID, revertID)
 	}
 	return nil

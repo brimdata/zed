@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
@@ -29,7 +28,6 @@ along with the ID of their commit object, which points at the tip of each branch
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 	partition   bool
 	at          string
 	outputFlags outputflags.Flags
@@ -39,7 +37,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
-	c.LakeFlags.SetFlags(f)
 	return c, nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -32,12 +31,10 @@ they cannot be recovered.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	c.LakeFlags.SetFlags(f)
 	return c, nil
 }
 

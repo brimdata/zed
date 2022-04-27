@@ -49,7 +49,7 @@ func (c *dropCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		for _, rule := range rules {
 			fmt.Printf("%s dropped from rule %q\n", rule.RuleID(), rule.RuleName())
 		}

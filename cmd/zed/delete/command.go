@@ -41,8 +41,6 @@ can be "undone" by adding the commits back to the log using
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
-	lakeFlags lakeflags.Flags
 	cli.CommitFlags
 	where string
 }
@@ -50,8 +48,6 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.CommitFlags.SetFlags(f)
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	f.StringVar(&c.where, "where", "", "delete by pool key predicate")
 	return c, nil
 }
@@ -66,7 +62,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.lakeFlags.HEAD()
+	head, err := c.HEAD()
 	if err != nil {
 		return err
 	}
@@ -90,7 +86,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		fmt.Printf("%s delete committed\n", commit)
 	}
 	return nil

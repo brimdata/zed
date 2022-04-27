@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
@@ -24,14 +22,10 @@ var Cmd = &charm.Spec{
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
-	lakeFlags lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -56,7 +50,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := api.CreateLocalLake(ctx, path); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		fmt.Printf("lake created: %s\n", path)
 	}
 	return nil

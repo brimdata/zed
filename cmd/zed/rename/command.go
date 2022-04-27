@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -24,14 +22,10 @@ new name provided.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
-	lakeFlags lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -57,7 +51,7 @@ func (c *Command) Run(args []string) error {
 	if err := lake.RenamePool(ctx, poolID, newName); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		fmt.Printf("pool %s renamed from %s to %s\n", poolID, oldName, newName)
 	}
 	return nil

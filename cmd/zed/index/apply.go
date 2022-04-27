@@ -53,7 +53,7 @@ func (c *applyCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.lakeFlags.HEAD()
+	head, err := c.HEAD()
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (c *applyCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		fmt.Printf("%s committed\n", commit)
 	}
 	return nil

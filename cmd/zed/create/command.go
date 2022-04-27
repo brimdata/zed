@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
@@ -39,10 +37,8 @@ By default, a branch called "main" is initialized in the newly created pool.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 	layout     string
 	thresh     units.Bytes
-	lakeFlags  lakeflags.Flags
 	seekStride units.Bytes
 }
 
@@ -55,8 +51,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.thresh, "S", "target size of pool data objects, as '10MB' or '4GiB', etc.")
 	f.StringVar(&c.layout, "orderby", "ts:desc", "comma-separated pool keys with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
 	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -82,7 +76,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		fmt.Printf("pool created: %s %s\n", poolName, id)
 	}
 	return nil

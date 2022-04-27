@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lakeparse"
@@ -60,16 +59,12 @@ in the lake and is not copied to this local directory.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
-	branch    bool
-	poolName  string
-	lakeFlags lakeflags.Flags
+	branch   bool
+	poolName string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -83,7 +78,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("too many arguments")
 	}
 	if len(args) == 0 {
-		head, err := c.lakeFlags.HEAD()
+		head, err := c.HEAD()
 		if err != nil {
 			return errors.New("default pool and branch unset")
 		}
@@ -95,7 +90,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	if commitish.Pool == "" {
-		head, err := c.lakeFlags.HEAD()
+		head, err := c.HEAD()
 		if err != nil {
 			return errors.New("default pool unset")
 		}
@@ -121,7 +116,7 @@ func (c *Command) Run(args []string) error {
 	if err := lakeflags.WriteHead(commitish.Pool, commitish.Branch); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.Quiet {
 		fmt.Printf("Switched to branch %q on pool %q\n", commitish.Branch, commitish.Pool)
 	}
 	return nil
