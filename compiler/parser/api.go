@@ -20,16 +20,6 @@ func ParseZed(filenames []string, src string) (interface{}, error) {
 	return p, nil
 }
 
-// ParseZedByRule calls Parse with rule as entrypoint.  If Parse fails, it calls
-// ImproveError.
-func ParseZedByRule(rule, src string) (interface{}, error) {
-	p, err := Parse("", []byte(src), Entrypoint(rule))
-	if err != nil {
-		return nil, ImproveError(err, src, nil)
-	}
-	return p, nil
-}
-
 // SourceInfo holds source file offsets.
 type SourceInfo struct {
 	filename string

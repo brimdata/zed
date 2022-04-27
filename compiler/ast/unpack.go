@@ -120,18 +120,6 @@ func UnpackMapAsProc(m interface{}) (Proc, error) {
 	return proc, nil
 }
 
-func UnpackMapAsExpr(m interface{}) (Expr, error) {
-	object, err := unpacker.UnmarshalObject(m)
-	if object == nil || err != nil {
-		return nil, err
-	}
-	e, ok := object.(Expr)
-	if !ok {
-		return nil, errors.New("ast.UnpackMapAsExpr: not an expression")
-	}
-	return e, nil
-}
-
 func Copy(in Proc) Proc {
 	b, err := json.Marshal(in)
 	if err != nil {
