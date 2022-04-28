@@ -257,7 +257,7 @@ when there are null values (as described below).
 
 If there are no null values, then the `presence` field contains an empty `<segmap>`.
 If all of the values are null, then the `column` field is null (and the `presence`
-both contain empty `<segmap>s`).  For empty `<segmap>s`, there is no
+contains an empty `<segmap>`).  For an empty `<segmap>`, there is no
 corresponding data stored in the data section.  Since a `<segmap>` is a Zed
 array, an empty `<segmap>` is simply the empty array value `[]`.
 
