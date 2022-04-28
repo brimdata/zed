@@ -134,8 +134,8 @@ from column streams, i.e., to map columns back to composite values.
 >
 > Also, the reassembly section is in general vastly smaller than the data section
 > so the goal here isn't to express information in cute and obscure compact forms
-> but rather to represent data in easy-to-digest, programmer-friendly forms that
-> leverage ZNG.
+> but rather to represent data in an easy-to-digest, programmer-friendly form that
+> leverages ZNG.
 
 The reassembly section is a ZNG stream.  Unlike Parquet,
 which uses an externally described schema
