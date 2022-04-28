@@ -21,12 +21,12 @@ pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
 
 Install the version compatible with a local `zed` like this:
 ```sh
-pip install "git+https://github.com/brimdata/zed@$(zed -version | cut -d ' ' -f 2)#subdirectory=python/zed"
+pip3 install "git+https://github.com/brimdata/zed@$(zed -version | cut -d ' ' -f 2)#subdirectory=python/zed"
 ```
 
 ## Example
 
-To run this client example, fir run a Zed lake service from your shell:
+To run this example, first start a Zed lake service from your shell:
 ```sh
 zed init -lake scratch
 zed serve -lake scratch
@@ -34,8 +34,10 @@ zed serve -lake scratch
 > Or you can launch the Brim app and it will run a Zed lake service
 > on the default port at `http://localhost:9867`.
 
-Then, in another shell using Python, create a pool, load some data, and query it.
-```python
+Then, in another shell, use Python to create a pool, load some data,
+and run a query:
+```sh
+python3 <<EOF
 import zed
 
 # Connect to the default lake at http://localhost:9867.  To use a
@@ -46,24 +48,22 @@ client = zed.Client()
 client.create_pool('TestPool')
 
 # Load some ZSON records from a string.  A file-like object also works.
-# Data format is detected automatically and can be JSON, NDJSON, Zeek TSV,
+# Data format is detected automatically and can be CSV, JSON, Zeek TSV,
 # ZJSON, ZNG, or ZSON.
 client.load('TestPool', '{s:"hello"} {s:"world"}')
 
-# Begin executing a Zed query for all records in TestPool.
+# Begin executing a Zed query for all values in TestPool.
 # This returns an iterator, not a container.
-records = client.query('from TestPool')
+values = client.query('from TestPool')
 
-# Stream records from the server.
-for record in records:
-    print(record)
+# Stream values from the server.
+for val in values:
+    print(val)
+EOF
 ```
-e.g., by running
+
+You should see this output:
 ```
-cat > test.py < [past from above]
-python3 test.py
-```
-which should print out:
-```
-XXX
+{'s': 'world'}
+{'s': 'hello'}
 ```
