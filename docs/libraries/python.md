@@ -5,7 +5,7 @@ with a Zed lake.
 The Zed Python package supports loading data into a Zed lake as well as
 querying and retrieving results in the [ZJSON format](../formats/zjson.md).
 The Python client interacts with the Zed lake via the REST API served by
-[`zed serve`](../../commands/zed.md#213-serve).
+[`zed serve`](../commands/zed.md#213-serve).
 
 This approach works adequately when high data throughput is not required.
 We will soon introduce native [ZNG](../formats/zng.md) support for
