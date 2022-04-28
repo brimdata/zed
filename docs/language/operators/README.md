@@ -5,6 +5,7 @@
 Dataflow operators process a sequence of input values to create an output sequence
 and appear as the components of a dataflow pipeline.
 
+* [assert](assert.md) - evaluate an assertion
 * [combine](combine.md) - combine parallel paths into a single output
 * [cut](cut.md) - extract subsets of record fields into new records
 * [drop](drop.md) - drop fields from record values

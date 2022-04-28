@@ -266,7 +266,8 @@ AggAssignments
 /// === Operators ===
 
 Operator
-  = SortOp
+  = AssertOp
+  / SortOp
   / TopOp
   / CutOp
   / DropOp
@@ -287,6 +288,28 @@ Operator
   / MergeOp
   / OverOp
   / YieldOp
+
+AssertOp
+  = "assert" _ expr:(e:Expr { RETURN(ARRAY(e, TEXT)) }) {
+      // 'assert EXPR' is equivalent to
+      // 'yield EXPR ? this : error({message: "assertion failed", "expr": EXPR_text, "on": this}'
+      // where EXPR_text is the literal text of EXPR.
+      RETURN(MAP("kind": "Yield", "exprs": ARRAY(MAP(
+        "kind": "Conditional",
+        "cond": ASSERT_ARRAY(expr)[0],
+        "then": MAP("kind": "ID", "name": "this"),
+        "else": MAP(
+          "kind": "Call",
+          "name": "error",
+          "args": ARRAY(MAP("kind": "RecordExpr", "elems": ARRAY(
+            MAP("kind": "Field", "name": "message", "value": MAP(
+              "kind": "Primitive", "text": "assertion failed", "type": "string")),
+            MAP("kind": "Field", "name": "expr", "value": MAP(
+              "kind": "Primitive", "text": ASSERT_ARRAY(expr)[1], "type": "string")),
+            MAP("kind": "Field", "name": "on", "value": MAP(
+              "kind": "ID", "name": "this"))))),
+          "where": NULL)))))
+    }
 
 SortOp
   = "sort" &EOKW args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
