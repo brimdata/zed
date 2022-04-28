@@ -282,7 +282,7 @@ A `<map_column>` has the form:
 {key:<any_column>,value:<any_column>}
 ```
 where
-* `key` encodes the column of map keys, and
+* `key` encodes the column of map keys and
 * `value` encodes the column of map values.
 
 #### Union Column
