@@ -275,7 +275,7 @@ writes its ZJSON output as lines of NDJSON.
 ## 4. Example
 
 Here is an example that illustrates values of a repeated type,
-nesting, records, array, and union. Starting with file `input.zson`:
+nesting, records, array, and union. Consider the file `input.zson`:
 
 ```mdtest-input input.zson
 {s:"hello",r:{a:1,b:2}}
