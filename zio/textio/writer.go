@@ -31,7 +31,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord); ok {
 		return w.writeRecord(val)
 	}
-	_, err := fmt.Fprintln(w.writer, zeekio.FormatValue(*val))
+	_, err := fmt.Fprintln(w.writer, zeekio.FormatValue(val))
 	return err
 }
 
@@ -51,7 +51,7 @@ func (w *Writer) writeRecord(rec *zed.Value) error {
 				s = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
 			}
 		} else {
-			s = zeekio.FormatValue(*value)
+			s = zeekio.FormatValue(value)
 		}
 		out = append(out, s)
 	}

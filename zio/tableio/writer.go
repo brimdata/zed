@@ -64,7 +64,7 @@ func (w *Writer) Write(r *zed.Value) error {
 				v = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
 			}
 		} else {
-			v = zeekio.FormatValue(*value)
+			v = zeekio.FormatValue(value)
 		}
 		out = append(out, v)
 	}
