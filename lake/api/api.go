@@ -175,7 +175,7 @@ func newBuffer(types ...interface{}) *buffer {
 
 func (b *buffer) Write(val *zed.Value) error {
 	var v interface{}
-	if err := b.unmarshaler.Unmarshal(*val, &v); err != nil {
+	if err := b.unmarshaler.Unmarshal(val, &v); err != nil {
 		return err
 	}
 	b.results = append(b.results, v)

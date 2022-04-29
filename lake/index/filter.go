@@ -79,10 +79,10 @@ func getSpan(zctx *zed.Context, val *zed.Value, o order.Which) (extent.Span, err
 	max := seekDotMax(zctx).Eval(ectx, val)
 	var err error
 	if min.IsError() {
-		err = errors.New(zson.MustFormatValue(*min))
+		err = errors.New(zson.MustFormatValue(min))
 	}
 	if max.IsError() {
-		err2 := errors.New(zson.MustFormatValue(*min))
+		err2 := errors.New(zson.MustFormatValue(min))
 		err = multierr.Combine(err, err2)
 	}
 	if err != nil {

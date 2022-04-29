@@ -74,7 +74,7 @@ func (s *Scope) DefineConst(name string, def dag.Expr) error {
 	}
 	literal := &dag.Literal{
 		Kind:  "Literal",
-		Value: zson.MustFormatValue(*val),
+		Value: zson.MustFormatValue(val),
 	}
 	b.Define(name, literal)
 	return nil

@@ -29,7 +29,7 @@ func (v valRow) consumeAsPartial(rec *zed.Value, exprs []expr.Evaluator, ectx ex
 	for k, r := range v {
 		val := exprs[k].Eval(ectx, rec)
 		if val.IsError() {
-			panic(fmt.Errorf("consumeAsPartial: read a Zed error: %s", zson.MustFormatValue(*val)))
+			panic(fmt.Errorf("consumeAsPartial: read a Zed error: %s", zson.MustFormatValue(val)))
 		}
 		//XXX should do soemthing with errors... they could come from
 		// a worker over the network?

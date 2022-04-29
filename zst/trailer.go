@@ -30,7 +30,7 @@ func readTrailer(r io.ReaderAt, n int64) (*FileMeta, []int64, error) {
 		return nil, nil, fmt.Errorf("ZST version %d found while expecting version %d", trailer.Version, Version)
 	}
 	var meta FileMeta
-	if err := zson.UnmarshalZNG(trailer.Meta, &meta); err != nil {
+	if err := zson.UnmarshalZNG(&trailer.Meta, &meta); err != nil {
 		return nil, nil, err
 	}
 	return &meta, trailer.Sections, nil

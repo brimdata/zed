@@ -34,7 +34,7 @@ func (d *Deserializer) Read() (interface{}, error) {
 		return nil, err
 	}
 	var action interface{}
-	if err := d.unmarshaler.Unmarshal(*rec, &action); err != nil {
+	if err := d.unmarshaler.Unmarshal(rec, &action); err != nil {
 		return nil, err
 	}
 	return action, nil

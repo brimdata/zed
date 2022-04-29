@@ -18,7 +18,7 @@ func testSuccessful(t *testing.T, e string, input string, expectedVal zed.Value)
 	if input == "" {
 		input = "{}"
 	}
-	expected := zson.MustFormatValue(expectedVal)
+	expected := zson.MustFormatValue(&expectedVal)
 	runZTest(t, e, &ztest.ZTest{
 		Zed:    fmt.Sprintf("yield %s", e),
 		Input:  input,

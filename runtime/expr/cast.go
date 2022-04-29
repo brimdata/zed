@@ -66,7 +66,7 @@ func (c *casterIntN) Eval(ectx Context, val *zed.Value) *zed.Value {
 	v, ok := coerce.ToInt(val)
 	if !ok || (c.min != 0 && (v < c.min || v > c.max)) {
 		return ectx.CopyValue(*c.zctx.NewErrorf(
-			"cannot cast %s to type %s", zson.MustFormatValue(*val), zson.FormatType(c.typ)))
+			"cannot cast %s to type %s", zson.MustFormatValue(val), zson.FormatType(c.typ)))
 	}
 	return ectx.NewValue(c.typ, zed.EncodeInt(v))
 }
@@ -81,7 +81,7 @@ func (c *casterUintN) Eval(ectx Context, val *zed.Value) *zed.Value {
 	v, ok := coerce.ToUint(val)
 	if !ok || (c.max != 0 && v > c.max) {
 		return ectx.CopyValue(*c.zctx.NewErrorf(
-			"cannot cast %s to type %s", zson.MustFormatValue(*val), zson.FormatType(c.typ)))
+			"cannot cast %s to type %s", zson.MustFormatValue(val), zson.FormatType(c.typ)))
 	}
 	return ectx.NewValue(c.typ, zed.EncodeUint(v))
 }
@@ -93,7 +93,7 @@ type casterBool struct {
 func (c *casterBool) Eval(ectx Context, val *zed.Value) *zed.Value {
 	b, ok := coerce.ToBool(val)
 	if !ok {
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to bool", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to bool", zson.MustFormatValue(val)))
 	}
 	return ectx.NewValue(zed.TypeBool, zed.EncodeBool(b))
 }
@@ -105,7 +105,7 @@ type casterFloat32 struct {
 func (c *casterFloat32) Eval(ectx Context, val *zed.Value) *zed.Value {
 	f, ok := coerce.ToFloat(val)
 	if !ok {
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type float32", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type float32", zson.MustFormatValue(val)))
 	}
 	return ectx.NewValue(zed.TypeFloat32, zed.EncodeFloat32(float32(f)))
 }
@@ -117,7 +117,7 @@ type casterFloat64 struct {
 func (c *casterFloat64) Eval(ectx Context, val *zed.Value) *zed.Value {
 	f, ok := coerce.ToFloat(val)
 	if !ok {
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type float64", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type float64", zson.MustFormatValue(val)))
 	}
 	return ectx.NewValue(zed.TypeFloat64, zed.EncodeFloat64(f))
 }
@@ -131,11 +131,11 @@ func (c *casterIP) Eval(ectx Context, val *zed.Value) *zed.Value {
 		return val
 	}
 	if !val.IsString() {
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type ip", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type ip", zson.MustFormatValue(val)))
 	}
 	ip, err := byteconv.ParseIP(val.Bytes)
 	if err != nil {
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type ip", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type ip", zson.MustFormatValue(val)))
 	}
 	return ectx.NewValue(zed.TypeIP, zed.EncodeIP(ip))
 }
@@ -149,12 +149,12 @@ func (c *casterNet) Eval(ectx Context, val *zed.Value) *zed.Value {
 		return ectx.CopyValue(*val)
 	}
 	if !val.IsString() {
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type net", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type net", zson.MustFormatValue(val)))
 	}
 	// XXX GC
 	_, net, err := net.ParseCIDR(string(val.Bytes))
 	if err != nil {
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type net", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type net", zson.MustFormatValue(val)))
 	}
 	return ectx.NewValue(zed.TypeNet, zed.EncodeNet(net))
 }
@@ -174,7 +174,7 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 			f, ferr := byteconv.ParseFloat64(val.Bytes)
 			if ferr != nil {
 				return ectx.CopyValue(*c.zctx.NewErrorf(
-					"cannot cast %s to type duration", zson.MustFormatValue(*val)))
+					"cannot cast %s to type duration", zson.MustFormatValue(val)))
 			}
 			d = nano.Duration(f)
 		}
@@ -186,7 +186,7 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 	}
 	v, ok := coerce.ToInt(val)
 	if !ok {
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type duration", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type duration", zson.MustFormatValue(val)))
 	}
 	d := nano.Duration(v)
 	return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
@@ -210,7 +210,7 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 			v, err := byteconv.ParseFloat64(val.Bytes)
 			if err != nil {
 				return ectx.CopyValue(*c.zctx.NewErrorf(
-					"cannot cast %s to type time", zson.MustFormatValue(*val)))
+					"cannot cast %s to type time", zson.MustFormatValue(val)))
 			}
 			ts = nano.Ts(v)
 		} else {
@@ -220,11 +220,11 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 		//XXX we call coerce on integers here to avoid unsigned/signed decode
 		v, ok := coerce.ToInt(val)
 		if !ok {
-			panic(fmt.Sprintf("coerce %s to int failed", zson.MustFormatValue(*val)))
+			panic(fmt.Sprintf("coerce %s to int failed", zson.MustFormatValue(val)))
 		}
 		ts = nano.Ts(v)
 	default:
-		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type time", zson.MustFormatValue(*val)))
+		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type time", zson.MustFormatValue(val)))
 	}
 	return ectx.NewValue(zed.TypeTime, zed.EncodeTime(ts))
 }
@@ -256,7 +256,7 @@ func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
 	}
 	// Otherwise, we'll use a canonical ZSON value for the string rep
 	// of an arbitrary value cast to a string.
-	result := zson.MustFormatValue(*val)
+	result := zson.MustFormatValue(val)
 	return ectx.NewValue(zed.TypeString, zed.EncodeString(result))
 }
 

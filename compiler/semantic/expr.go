@@ -40,7 +40,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		}
 		return &dag.Literal{
 			Kind:  "Literal",
-			Value: zson.MustFormatValue(*val),
+			Value: zson.MustFormatValue(val),
 		}, nil
 	case *ast.ID:
 		return semID(scope, e), nil
@@ -52,7 +52,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			val = zson.MustFormatValue(*v)
+			val = zson.MustFormatValue(v)
 		case *astzed.TypeValue:
 			tv, err := semType(scope, t.Value)
 			if err != nil {

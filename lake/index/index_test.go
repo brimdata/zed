@@ -24,7 +24,7 @@ func boomerang(t *testing.T, r1 Rule) (r2 Rule) {
 	require.NoError(t, err)
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(RuleTypes...)
-	require.NoError(t, u.Unmarshal(*rec, &r2))
+	require.NoError(t, u.Unmarshal(rec, &r2))
 	return r2
 }
 

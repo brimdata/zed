@@ -75,7 +75,7 @@ func EvalBool(zctx *zed.Context, ectx Context, this *zed.Value, e Evaluator) (*z
 	if val.IsError() {
 		return val, false
 	}
-	return ectx.CopyValue(*zctx.NewErrorf("not type bool: %s", zson.MustFormatValue(*val))), false
+	return ectx.CopyValue(*zctx.NewErrorf("not type bool: %s", zson.MustFormatValue(val))), false
 }
 
 func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {

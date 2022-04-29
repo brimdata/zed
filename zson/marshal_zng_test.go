@@ -205,37 +205,37 @@ func TestUnmarshalRecord(t *testing.T) {
 func TestUnmarshalNull(t *testing.T) {
 	t.Run("slice", func(t *testing.T) {
 		slice := []int{1}
-		require.NoError(t, zson.UnmarshalZNG(*zed.Null, &slice))
+		require.NoError(t, zson.UnmarshalZNG(zed.Null, &slice))
 		assert.Nil(t, slice)
 		slice = []int{1}
-		assert.EqualError(t, zson.UnmarshalZNG(*zed.NullInt64, &slice), "not an array")
+		assert.EqualError(t, zson.UnmarshalZNG(zed.NullInt64, &slice), "not an array")
 		slice = []int{1}
 		v := zson.MustParseValue(zed.NewContext(), "null([int64])")
-		require.NoError(t, zson.UnmarshalZNG(*v, &slice))
+		require.NoError(t, zson.UnmarshalZNG(v, &slice))
 		assert.Nil(t, slice)
 		v = zson.MustParseValue(zed.NewContext(), "null(bytes)")
 		buf := []byte("testing")
-		require.NoError(t, zson.UnmarshalZNG(*v, &buf))
+		require.NoError(t, zson.UnmarshalZNG(v, &buf))
 		assert.Nil(t, buf)
 	})
 	t.Run("primitive", func(t *testing.T) {
 		integer := -1
-		require.NoError(t, zson.UnmarshalZNG(*zed.Null, &integer))
+		require.NoError(t, zson.UnmarshalZNG(zed.Null, &integer))
 		assert.Equal(t, integer, 0)
 		intptr := &integer
-		require.NoError(t, zson.UnmarshalZNG(*zed.Null, &intptr))
+		require.NoError(t, zson.UnmarshalZNG(zed.Null, &intptr))
 		assert.Nil(t, intptr)
-		assert.EqualError(t, zson.UnmarshalZNG(*zed.NullIP, &intptr), "incompatible type translation: zng type ip go type int go kind int")
+		assert.EqualError(t, zson.UnmarshalZNG(zed.NullIP, &intptr), "incompatible type translation: zng type ip go type int go kind int")
 	})
 	t.Run("map", func(t *testing.T) {
 		m := map[string]string{"key": "value"}
-		require.NoError(t, zson.UnmarshalZNG(*zed.Null, &m))
+		require.NoError(t, zson.UnmarshalZNG(zed.Null, &m))
 		assert.Nil(t, m)
 		val := zson.MustParseValue(zed.NewContext(), "null({foo:int64})")
-		require.EqualError(t, zson.UnmarshalZNG(*val, &m), "not a map")
+		require.EqualError(t, zson.UnmarshalZNG(val, &m), "not a map")
 		m = map[string]string{"key": "value"}
 		val = zson.MustParseValue(zed.NewContext(), "null(|{string:string}|)")
-		require.NoError(t, zson.UnmarshalZNG(*val, &m))
+		require.NoError(t, zson.UnmarshalZNG(val, &m))
 		assert.Nil(t, m)
 	})
 	t.Run("struct", func(t *testing.T) {
@@ -246,10 +246,10 @@ func TestUnmarshalNull(t *testing.T) {
 			Test *testobj `zed:"test"`
 		}
 		val := zson.MustParseValue(zed.NewContext(), "{test: null({Val:int64})}")
-		require.NoError(t, zson.UnmarshalZNG(*val, &obj))
+		require.NoError(t, zson.UnmarshalZNG(val, &obj))
 		require.Nil(t, obj.Test)
 		val = zson.MustParseValue(zed.NewContext(), "{test: null(ip)}")
-		require.EqualError(t, zson.UnmarshalZNG(*val, &obj), "cannot unmarshal Zed type \"ip\" into Go struct")
+		require.EqualError(t, zson.UnmarshalZNG(val, &obj), "cannot unmarshal Zed type \"ip\" into Go struct")
 	})
 }
 
@@ -294,7 +294,7 @@ func (m testMarshaler) MarshalZNG(mc *zson.MarshalZNGContext) (zed.Type, error) 
 	return mc.MarshalValue("marshal-" + string(m))
 }
 
-func (m *testMarshaler) UnmarshalZNG(mc *zson.UnmarshalZNGContext, zv zed.Value) error {
+func (m *testMarshaler) UnmarshalZNG(mc *zson.UnmarshalZNGContext, zv *zed.Value) error {
 	var s string
 	if err := mc.Unmarshal(zv, &s); err != nil {
 		return err
@@ -468,12 +468,12 @@ func TestInterfaceUnmarshal(t *testing.T) {
 	u.Bind(ZNGThing{}, ThingTwo{})
 	var thing ThingaMaBob
 	require.NoError(t, err)
-	err = u.Unmarshal(*zv, &thing)
+	err = u.Unmarshal(zv, &thing)
 	require.NoError(t, err)
 	assert.Equal(t, "It's a thing one", thing.Who())
 
 	var thingI interface{}
-	err = u.Unmarshal(*zv, &thingI)
+	err = u.Unmarshal(zv, &thingI)
 	require.NoError(t, err)
 	actualThing, ok := thingI.(*ZNGThing)
 	assert.Equal(t, true, ok)
@@ -481,7 +481,7 @@ func TestInterfaceUnmarshal(t *testing.T) {
 
 	u2 := zson.NewZNGUnmarshaler()
 	var genericThing interface{}
-	err = u2.Unmarshal(*zv, &genericThing)
+	err = u2.Unmarshal(zv, &genericThing)
 	require.Error(t, err)
 	assert.Equal(t, "unmarshaling records into interface value requires type binding", err.Error())
 }
@@ -504,7 +504,7 @@ func TestBindings(t *testing.T) {
 	})
 	var thing ThingaMaBob
 	require.NoError(t, err)
-	err = u.Unmarshal(*zv, &thing)
+	err = u.Unmarshal(zv, &thing)
 	require.NoError(t, err)
 	assert.Equal(t, "It's a thing one", thing.Who())
 }
@@ -515,14 +515,14 @@ func TestEmptyInterface(t *testing.T) {
 	assert.Equal(t, "int8", zson.String(zv.Type))
 
 	var v interface{}
-	err = zson.UnmarshalZNG(*zv, &v)
+	err = zson.UnmarshalZNG(zv, &v)
 	require.NoError(t, err)
 	i, ok := v.(int8)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, int8(123), i)
 
 	var actual int8
-	err = zson.UnmarshalZNG(*zv, &actual)
+	err = zson.UnmarshalZNG(zv, &actual)
 	require.NoError(t, err)
 	assert.Equal(t, int8(123), actual)
 }
@@ -541,12 +541,12 @@ func TestNamedNormal(t *testing.T) {
 	var actual CustomInt8
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(CustomInt8(0))
-	err = u.Unmarshal(*zv, &actual)
+	err = u.Unmarshal(zv, &actual)
 	require.NoError(t, err)
 	assert.Equal(t, t1, actual)
 
 	var actualI interface{}
-	err = u.Unmarshal(*zv, &actualI)
+	err = u.Unmarshal(zv, &actualI)
 	require.NoError(t, err)
 	cast, ok := actualI.(CustomInt8)
 	assert.Equal(t, true, ok)
@@ -575,13 +575,13 @@ func TestEmbeddedInterface(t *testing.T) {
 	u.Bind(ZNGThing{}, ThingTwo{})
 	var actual EmbeddedA
 	require.NoError(t, err)
-	err = u.Unmarshal(*zv, &actual)
+	err = u.Unmarshal(zv, &actual)
 	require.NoError(t, err)
 	assert.Equal(t, "It's a thing one", actual.A.Who())
 
 	var actualB EmbeddedB
 	require.NoError(t, err)
-	err = u.Unmarshal(*zv, &actualB)
+	err = u.Unmarshal(zv, &actualB)
 	require.NoError(t, err)
 	thingB, ok := actualB.A.(*ZNGThing)
 	assert.Equal(t, true, ok)
@@ -592,12 +592,12 @@ func TestMultipleZedValues(t *testing.T) {
 	bytes := []byte("foo")
 	u := zson.NewZNGUnmarshaler()
 	var foo zed.Value
-	err := u.Unmarshal(*zed.NewValue(zed.TypeString, bytes), &foo)
+	err := u.Unmarshal(zed.NewValue(zed.TypeString, bytes), &foo)
 	require.NoError(t, err)
 	// clobber bytes slice
 	copy(bytes, []byte("bar"))
 	var bar zed.Value
-	err = u.Unmarshal(*zed.NewValue(zed.TypeString, bytes), &bar)
+	err = u.Unmarshal(zed.NewValue(zed.TypeString, bytes), &bar)
 	require.NoError(t, err)
 	assert.Equal(t, "foo", string(foo.Bytes))
 	assert.Equal(t, "bar", string(bar.Bytes))
