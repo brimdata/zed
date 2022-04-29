@@ -116,15 +116,13 @@ Case
   / "default" { RETURN(NULL) }
 
 FromLeg
-  = __ source:FromHead __  seq:Sequential {
-      RETURN(MAP("kind": "Trunk", "source": source, "seq": seq))
+  = __ source:FromSource opt:(__ "=>" __  Sequential)? {
+      VAR(m) = MAP("kind": "Trunk", "source": source, "seq": NULL)
+      if ISNOTNULL(opt) {
+        m["seq"] = ASSERT_ARRAY(opt)[3]
+      }
+      RETURN(m)
     }
-  / __ source:FromSource {
-      RETURN(MAP("kind": "Trunk", "source": source, "seq": NULL))
-    }
-
-FromHead
-  = src:FromSource __ "=>" { RETURN(src) }
 
 FromSource
   = File
@@ -150,7 +148,7 @@ SearchAnd
     }
 
 SearchKeywordGuard
-  = FromHead __
+  = FromSource __ "=>" __
   / Case __
 
 SearchFactor
@@ -403,19 +401,15 @@ ShapeOp
     }
 
 JoinOp
-  = style:JoinStyle "join" _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
-      VAR(op) = MAP("kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": NULL)
-      if ISNOTNULL(columns) {
-        op["args"] = ASSERT_ARRAY(columns)[1]
+  = style:JoinStyle "join" _ ON _ key:JoinKey optKey:(__ "=" __ JoinKey)? optArgs:(_ FlexAssignments)? {
+      VAR(m) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
+      if ISNOTNULL(optKey) {
+        m["right_key"] = ASSERT_ARRAY(optKey)[3]
       }
-      RETURN(op)
-    }
-  / style:JoinStyle  "join" _ ON _ key:JoinKey columns:(_ FlexAssignments)? {
-      VAR(op) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
-      if ISNOTNULL(columns) {
-        op["args"] = ASSERT_ARRAY(columns)[1]
+      if ISNOTNULL(optArgs) {
+        m["args"] = ASSERT_ARRAY(optArgs)[1]
       }
-      RETURN(op)
+      RETURN(m)
     }
 
 JoinStyle
@@ -587,11 +581,12 @@ Locals
     }
 
 LocalsAssignment
-  = id:IdentifierName __ "=" __ expr:Expr {
-      RETURN(MAP("name":id, "expr":expr))
-    }
-  / id:IdentifierName {
-      RETURN(MAP("name":id, "expr":MAP("kind":"ID","name":id)))
+  = name:IdentifierName opt:(__ "=" __ Expr)? {
+      VAR(m) = MAP("name": name, "expr": MAP("kind": "ID", "name": name))
+      if ISNOTNULL(opt) {
+         m["expr"] = ASSERT_ARRAY(opt)[3]
+      }
+      RETURN(m)
     }
 
 YieldOp
@@ -638,10 +633,14 @@ Assignment
 Expr = ConditionalExpr
 
 ConditionalExpr
-  = condition:LogicalOrExpr __ "?" __ thenClause:Expr __ ":" __ elseClause:Expr {
-      RETURN(MAP("kind": "Conditional", "cond": condition, "then": thenClause, "else": elseClause))
+  = cond:LogicalOrExpr opt:(__ "?" __ Expr __ ":" __ Expr)? {
+      if ISNOTNULL(opt) {
+        VAR(Then) = ASSERT_ARRAY(opt)[3]
+        VAR(Else) = ASSERT_ARRAY(opt)[7]
+        RETURN(MAP("kind": "Conditional", "cond": cond, "then": Then, "else": Else))
+      }
+      RETURN(cond)
     }
-  / LogicalOrExpr
 
 LogicalOrExpr
   = first:LogicalAndExpr
@@ -721,11 +720,12 @@ Function
     }
 
 Grep
-  = "grep" __ "(" __ pattern:Pattern __ ")" {
-      RETURN(MAP("kind": "Grep", "pattern": pattern, "expr": MAP("kind": "ID", "name": "this")))
-    }
-  / "grep" __ "(" __ pattern:Pattern __  "," __ expr:Expr __ ")" {
-      RETURN(MAP("kind": "Grep", "pattern": pattern, "expr": expr))
+  = "grep" __ "(" __ pattern:Pattern __  opt:("," __ Expr __)? ")" {
+      VAR(m) = MAP("kind": "Grep", "pattern": pattern, "expr": MAP("kind": "ID", "name": "this"))
+      if ISNOTNULL(opt) {
+        m["expr"] = ASSERT_ARRAY(opt)[2]
+      }
+      RETURN(m)
     }
 
 Pattern
@@ -861,8 +861,13 @@ SQLSelect
   / SELECT _ assignments:SQLAssignments { RETURN(assignments) }
 
 SQLAssignment
-  = rhs:Expr _ AS _ lhs:Lval { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
-  / expr:Expr { RETURN(MAP("kind": "Assignment", "lhs": NULL, "rhs": expr)) }
+  = rhs:Expr opt:(_ AS _ Lval)? {
+      VAR(m) = MAP("kind": "Assignment", "lhs": NULL, "rhs": rhs)
+      if ISNOTNULL(opt) {
+        m["lhs"] = ASSERT_ARRAY(opt)[3]
+      }
+      RETURN(m)
+    }
 
 SQLAssignments
   = first:SQLAssignment rest:(__ "," __ expr:SQLAssignment { RETURN(expr) })* {
@@ -1015,10 +1020,10 @@ Type
 
 AmbiguousType
   = name:PrimitiveType !IdentifierRest { RETURN(name) }
-  / name:IdentifierName __ '=' __ typ:Type {
-      RETURN(MAP("kind": "TypeDef", "name": name, "type": typ))
-  }
-  / name:IdentifierName {
+  / name:IdentifierName opt:(__ '=' __ Type)? {
+      if ISNOTNULL(opt) {
+        RETURN(MAP("kind": "TypeDef", "name": name, "type": ASSERT_ARRAY(opt)[3]))
+      }
       RETURN(MAP("kind": "TypeName", "name": name))
     }
   / "(" __ u:TypeUnion  ")" { RETURN(u) }

@@ -1,0 +1,10 @@
+script: |
+  zc -C 'from ( pool a => x pool b)'
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        pool a =>
+          search x and pool and b
+      )
