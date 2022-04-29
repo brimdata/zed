@@ -148,7 +148,7 @@ SearchAnd
     }
 
 SearchKeywordGuard
-  = FromSource __
+  = FromSource __ "=>" __
   / Case __
 
 SearchFactor
