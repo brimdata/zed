@@ -2,12 +2,10 @@ package root
 
 import (
 	"context"
-	"errors"
 	"flag"
-	"os/signal"
-	"syscall"
 
 	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/pkg/charm"
 )
 
@@ -23,42 +21,27 @@ querying, and orchestrating Zed data lakes.`,
 
 type Command struct {
 	charm.Command
-	cli cli.Flags
+	LakeFlags lakeflags.Flags
+	cli       cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	c.cli.SetFlags(f)
+	c.LakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) {
-	if err := c.cli.Init(all...); err != nil {
-		return nil, nil, err
-	}
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	var cleanup = func() {
-		cancel()
-		c.cli.Cleanup()
-	}
-	return &interruptedContext{ctx}, cleanup, nil
-}
-
-type interruptedContext struct{ context.Context }
-
-func (s *interruptedContext) Err() error {
-	err := s.Context.Err()
-	if errors.Is(err, context.Canceled) {
-		return errors.New("interrupted")
-	}
-	return err
+	return c.cli.Init(all...)
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.cli.Cleanup()
-	if err := c.cli.Init(); err != nil {
+	_, cancel, err := c.cli.Init()
+	if err != nil {
 		return err
 	}
+	defer cancel()
 	if len(args) == 0 {
 		return charm.NeedHelp
 	}

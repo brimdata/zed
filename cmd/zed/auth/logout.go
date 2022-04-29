@@ -30,16 +30,15 @@ func (c *LogoutCommand) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if _, err := c.Connection(); err != nil {
+	if _, err := c.LakeFlags.Connection(); err != nil {
 		// The Connection call here is to verify we're operating on a remote lake.
 		return err
 	}
 	if len(args) > 0 {
 		return errors.New("logout command takes no arguments")
 	}
-	if err := c.AuthStore().RemoveTokens(c.Lake); err != nil {
+	if err := c.LakeFlags.AuthStore().RemoveTokens(c.LakeFlags.Lake); err != nil {
 		return fmt.Errorf("failed to save credentials file: %w", err)
 	}
-	fmt.Printf("Logout successful, cleared credentials for %s\n", c.Lake)
 	return nil
 }

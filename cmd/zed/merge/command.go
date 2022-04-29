@@ -22,17 +22,13 @@ var Cmd = &charm.Spec{
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 	force       bool
-	lakeFlags   lakeflags.Flags
 	commitFlags cli.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.BoolVar(&c.force, "f", false, "force merge of main into a target")
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -48,11 +44,11 @@ func (c *Command) Run(args []string) error {
 		return errors.New("too many arguments")
 	}
 	targetBranch := args[0]
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	head, err := c.lakeFlags.HEAD()
+	head, err := c.LakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
@@ -72,7 +68,7 @@ func (c *Command) Run(args []string) error {
 	if _, err = lake.MergeBranch(ctx, poolID, head.Branch, targetBranch, c.commitFlags.CommitMessage()); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("%q: merged into branch %q\n", head.Branch, targetBranch)
 	}
 	return nil

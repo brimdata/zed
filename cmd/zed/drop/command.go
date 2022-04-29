@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -28,16 +26,12 @@ Once the pool is deleted, its data is gone so use this command carefully.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
-	force     bool
-	lakeFlags lakeflags.Flags
+	force bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.BoolVar(&c.force, "f", false, "do not prompt for confirmation")
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -50,7 +44,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("a single pool name must be specified")
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -65,7 +59,7 @@ func (c *Command) Run(args []string) error {
 	if err := lake.RemovePool(ctx, poolID); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("pool deleted: %s\n", poolName)
 	}
 	return nil
