@@ -6,8 +6,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/api"
@@ -40,9 +38,7 @@ supplied to specify the desired pool for the new branch.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 	delete      bool
-	lakeFlags   lakeflags.Flags
 	outputFlags outputflags.Flags
 }
 
@@ -51,8 +47,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.delete, "d", false, "delete the branch instead of creating it")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
-	c.LakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -65,7 +59,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("too many arguments")
 	}
 	defer cleanup()
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,7 +67,7 @@ func (c *Command) Run(args []string) error {
 		return c.list(ctx, lake)
 	}
 	branchName := args[0]
-	head, err := c.lakeFlags.HEAD()
+	head, err := c.LakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
@@ -99,7 +93,7 @@ func (c *Command) Run(args []string) error {
 		if err := lake.RemoveBranch(ctx, poolID, branchName); err != nil {
 			return err
 		}
-		if !c.lakeFlags.Quiet {
+		if !c.LakeFlags.Quiet {
 			fmt.Printf("branch deleted: %s\n", branchName)
 		}
 		return nil
@@ -107,14 +101,14 @@ func (c *Command) Run(args []string) error {
 	if err := lake.CreateBranch(ctx, poolID, branchName, parentCommit); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("%q: branch created\n", branchName)
 	}
 	return nil
 }
 
 func (c *Command) list(ctx context.Context, lake api.Interface) error {
-	head, err := c.lakeFlags.HEAD()
+	head, err := c.LakeFlags.HEAD()
 	if err != nil {
 		return err
 	}

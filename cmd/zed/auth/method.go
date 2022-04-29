@@ -34,7 +34,7 @@ func (c *MethodCommand) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("method command takes no arguments")
 	}
-	conn, err := c.Connection()
+	conn, err := c.LakeFlags.Connection()
 	if err != nil {
 		return err
 	}

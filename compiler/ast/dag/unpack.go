@@ -89,15 +89,3 @@ func UnpackMapAsOp(m interface{}) (Op, error) {
 	}
 	return op, nil
 }
-
-func UnpackMapAsExpr(m interface{}) (Expr, error) {
-	object, err := unpacker.UnmarshalObject(m)
-	if object == nil || err != nil {
-		return nil, err
-	}
-	e, ok := object.(Expr)
-	if !ok {
-		return nil, errors.New("dag.UnpackMapAsExpr: not an Expr")
-	}
-	return e, nil
-}

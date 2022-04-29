@@ -45,11 +45,11 @@ func (*FileAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, exte
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 
-func (f *FileAdaptor) Open(ctx context.Context, zctx *zed.Context, path string, pushdown zbuf.Filter) (zbuf.Puller, error) {
+func (f *FileAdaptor) Open(ctx context.Context, zctx *zed.Context, path, format string, pushdown zbuf.Filter) (zbuf.Puller, error) {
 	if path == "-" {
 		path = "stdio:stdin"
 	}
-	file, err := anyio.Open(ctx, zctx, f.engine, path, anyio.ReaderOpts{})
+	file, err := anyio.Open(ctx, zctx, f.engine, path, anyio.ReaderOpts{Format: format})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}

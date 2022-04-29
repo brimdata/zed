@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/cli/queryflags"
-	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
@@ -94,10 +93,10 @@ https://github.com/brimdata/zed for more information.
 }
 
 type Command struct {
-	*root.Command
 	canon       bool
 	quiet       bool
 	stopErr     bool
+	cli         cli.Flags
 	queryFlags  queryflags.Flags
 	inputFlags  inputflags.Flags
 	outputFlags outputflags.Flags
@@ -105,11 +104,8 @@ type Command struct {
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	parent, err := root.New(parent, f)
-	if err != nil {
-		return nil, nil
-	}
-	c := &Command{Command: parent.(*root.Command)}
+	c := &Command{}
+	c.cli.SetFlags(f)
 	c.outputFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f, false)
 	c.procFlags.SetFlags(f)
@@ -121,7 +117,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.outputFlags, &c.inputFlags, &c.procFlags)
+	ctx, cleanup, err := c.cli.Init(&c.outputFlags, &c.inputFlags, &c.procFlags)
 	if err != nil {
 		return err
 	}
@@ -165,7 +161,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer query.Pull(true)
-	err = zio.Copy(writer, zbuf.NoControl(query.AsReader()))
+	err = zbuf.CopyPuller(writer, query)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

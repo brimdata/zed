@@ -1,12 +1,16 @@
 package cli
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"syscall"
 )
 
 // Version is set via the Go linker.  See Makefile.
@@ -29,7 +33,7 @@ type Initializer interface {
 	Init() error
 }
 
-func (f *Flags) Init(all ...Initializer) error {
+func (f *Flags) Init(all ...Initializer) (context.Context, context.CancelFunc, error) {
 	if f.showVersion {
 		fmt.Printf("Version: %s\n", Version)
 		os.Exit(0)
@@ -41,15 +45,30 @@ func (f *Flags) Init(all ...Initializer) error {
 		}
 	}
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	if f.cpuprofile != "" {
 		f.runCPUProfile(f.cpuprofile)
 	}
-	return nil
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	cleanup := func() {
+		cancel()
+		f.cleanup()
+	}
+	return &interruptedContext{ctx}, cleanup, nil
 }
 
-func (f *Flags) Cleanup() {
+type interruptedContext struct{ context.Context }
+
+func (i *interruptedContext) Err() error {
+	err := i.Context.Err()
+	if errors.Is(err, context.Canceled) {
+		return errors.New("interrupted")
+	}
+	return err
+}
+
+func (f *Flags) cleanup() {
 	if f.cpuProfileFile != nil {
 		pprof.StopCPUProfile()
 		f.cpuProfileFile.Close()

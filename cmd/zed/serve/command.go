@@ -38,7 +38,6 @@ Requests may be issued to this service via the "zed api" command.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 	conf    service.Config
 	logger  *zap.Logger
 	logconf logger.Config
@@ -65,7 +64,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logconf.Mode, "log.filemode", "logger file write mode (values: append, truncate, rotate)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.StringVar(&c.rootContentFile, "rootcontentfile", "", "file to serve for GET /")
-	c.LakeFlags.SetFlagsWithDefaultLake(f, "")
 	return c, nil
 }
 
@@ -75,7 +73,10 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	uri, err := c.URI()
+	if !c.LakeFlags.LakeSpecified {
+		c.LakeFlags.Lake = ""
+	}
+	uri, err := c.LakeFlags.URI()
 	if err != nil {
 		return err
 	}

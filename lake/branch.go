@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -215,7 +216,7 @@ func (b *Branch) dbpCopies(ctx context.Context, snap *commits.Snapshot, copies [
 	if err != nil {
 		return nil, err
 	}
-	err = zio.CopyWithContext(ctx, w, q.AsReader())
+	err = zbuf.CopyPuller(w, q)
 	if err2 := w.Close(); err == nil {
 		err = err2
 	}

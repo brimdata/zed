@@ -1,41 +1,32 @@
 ### Operator
 
-&emsp; **from** &mdash; source data from pools, URIs, or connectors
+&emsp; **from** &mdash; source data from pools, files, or URIs
 
 ### Synopsis
 
 ```
 from <pool>[@<tag>] [range <start>] [to <end>] [ => <leg> ]
-get <uri>
-file <path>
+file <path> [format <format>]
+get <uri> [format <format>]
 from (
    pool <pool>[@<tag>] [range <start>] [to <end>] [ => <leg> ]
-   get <uri> [ => <leg> ]
-   file <path> [ => <leg> ]
+   file <path> [format <format>] [ => <leg> ]
+   get <uri> [format <format>] [ => <leg> ]
    ...
 )
 ```
 ### Description
 
-The `from` operator identifies data from a source `<src>` and logically
-transmits the data to its output.  A `<src>` is:
-* a URI representing and HTTP endpoint, S3 endoint, or file; or,
-* the name of a data pool in a Zed lake.
+The `from` operator identifies one or more data sources and transmits
+their data to its output.  A data source can be
+* the name of a data pool in a Zed lake;
+* a path to a file; or
+* an HTTP, HTTPS, or S3 URI.
+Paths and URIs may be followed by an optional format specifier.
 
-In the first form, a single source is connected to a single output.
-In the second form, multiple sources are accessed in parallel and may be
+In the first three forms, a single source is connected to a single output.
+In the fourth form, multiple sources are accessed in parallel and may be
 [joined](join.md), [combined](combine.md), or [merged](merge.md).
-
-In the examples above, the data source is implied.  For example, the
-`zed query` command takes a list of files and the concatenated files
-are the implied input.
-Likewise, in the [Brim app](https://github.com/brimdata/brim),
-the UI allows for the selection of a data source and key range.
-
-Data sources can also be explicitly specified using the `from` keyword.
-Depending on the operating context, `from` may take a file system path,
-an HTTP URL, an S3 URL, or in the
-context of a Zed lake, the name of a data pool.
 
 A data path can be split with the `fork` operator as in
 ```
@@ -52,6 +43,7 @@ from (
   pool PoolTwo => op1 | op2 | ...
 ) | join on key=key | ...
 ```
+
 Similarly, data can be routed to different paths with replication
 using `switch`:
 ```

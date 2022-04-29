@@ -4,8 +4,6 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
@@ -28,17 +26,13 @@ but ZNG can be used to easily be pipe a log to zq or other tooling for analysis.
 
 type Command struct {
 	*root.Command
-	cli.LakeFlags
 	outputFlags outputflags.Flags
-	lakeFlags   lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
-	c.LakeFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -51,11 +45,11 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments allowed")
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	head, err := c.lakeFlags.HEAD()
+	head, err := c.LakeFlags.HEAD()
 	if err != nil {
 		return err
 	}

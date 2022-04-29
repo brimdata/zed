@@ -57,11 +57,11 @@ IEEE 754 floating point number) and was converted from a time type to a number,
 
 As a comparison, Python's `json` module handles the 64-bit integer to full
 precision, but loses precision on the floating point timestamp.
-Also, as mentioned, it is at the whim of a JSON implementation whether
+Also, it is at the whim of a JSON implementation whether
 or not the order of object keys is preserved.
 
 While JSON is well suited for data exchange of generic information, it is not
-so appropriate for a [super-structured data model](zed.md#2-zed-a-super-structured-pattern)
+so appropriate for a [super-structured data model](README.md#2-zed-a-super-structured-pattern)
 like Zed.  That said, JSON can be used as an encoding format for Zed by mapping Zed data
 onto a JSON-based protocol.  This allows clients like web apps or
 Electron apps to receive and understand Zed and, with the help of client
@@ -118,7 +118,7 @@ For example, the Zed type `{s:string,x:int32}` has this ZJSON format:
       "name": "x",
       "type": {
         "kind": "primitive",
-        "name": "int64"
+        "name": "int32"
       }
     }
   ]
@@ -188,6 +188,7 @@ A map type is defined by a JSON object of the form
   "val_type": <type>
 }
 ```
+where each `<type>` is a recursively encoded type.
 
 #### 2.1.5 Union type
 
@@ -212,6 +213,7 @@ An enum type is a JSON object of the form
   "symbols": [ <string>, <string>, ... ]
 }
 ```
+where the unique `<string>` values define a finite set of symbols.
 
 #### 2.1.7 Error Type
 
@@ -223,6 +225,7 @@ An error type is a JSON object of the form
   "type": <type>
 }
 ```
+where `<type>` is a recursively encoded type.
 
 #### 2.1.8 Named Type
 
@@ -249,12 +252,12 @@ conforms to the nested structure of the value's schema as follows:
 is an integer string representing the positional index in the union's list of
 types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein,
-a map is encoded as a JSON array of two-element arrays of the form
+* a map is encoded as a JSON array of two-element arrays of the form
 `[ <key>, <value> ]` where `key` and `value` are recursively encoded,
 * a type value is encoded [as above](#21-type-encoding),
 * each primitive that is not a type value
 is encoded as a string conforming to its ZSON representation, as described in the
-[corresponding section of the ZSON specification](zson.md#33-primitive-values).
+[corresponding section of the ZSON specification](zson.md#23-primitive-values).
 
 For example, a record with three columns --- a string, an array of integers,
 and an array of union of string, and float64 --- might have a value that looks like this:
@@ -266,15 +269,15 @@ and an array of union of string, and float64 --- might have a value that looks l
 
 A ZJSON file is composed of ZJSON objects formatted as
 [newline delimited JSON (NDJSON)](http://ndjson.org/).
-e.g., the [zq](https://github.com/brimdata/zed/tree/main/cmd/zq) CLI command
+e.g., the [zq](../commands/zq.md) CLI command
 writes its ZJSON output as lines of NDJSON.
 
 ## 4. Example
 
 Here is an example that illustrates values of a repeated type,
-nesting, records, array, and union:
+nesting, records, array, and union. Consider the file `input.zson`:
 
-```
+```mdtest-input input.zson
 {s:"hello",r:{a:1,b:2}}
 {s:"world",r:{a:3,b:4}}
 {s:"hello",r:{a:[1,2,3]}}
@@ -284,7 +287,11 @@ nesting, records, array, and union:
 
 This data is represented in ZJSON as follows:
 
+```mdtest-command
+zq -f zjson input.zson | jq .
 ```
+
+```mdtest-output
 {
   "type": {
     "kind": "record",
@@ -420,11 +427,11 @@ This data is represented in ZJSON as follows:
                       "types": [
                         {
                           "kind": "primitive",
-                          "name": "string"
+                          "name": "int64"
                         },
                         {
                           "kind": "primitive",
-                          "name": "int64"
+                          "name": "string"
                         }
                       ]
                     }
@@ -442,7 +449,7 @@ This data is represented in ZJSON as follows:
     [
       [
         [
-          "0",
+          "1",
           "foo"
         ]
       ]
@@ -459,7 +466,7 @@ This data is represented in ZJSON as follows:
     [
       [
         [
-          "1",
+          "0",
           "12"
         ]
       ]

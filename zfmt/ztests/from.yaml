@@ -1,13 +1,21 @@
 script: |
   zc -C 'file path'
   echo ===
+  zc -C 'file path format f'
+  echo ===
   zc -C 'get http://host/path'
+  echo ===
+  zc -C 'get http://host/path format f'
   echo ===
   zc -C 'from foo'
   echo ===
   zc -C 'from ( file path get http://host/path pool name )'
   echo ===
+  zc -C 'from ( file path format f get http://host/path format g pool name )'
+  echo ===
   zc -C 'from ( file path => head get http://host/path => head pool name => head )'
+  echo ===
+  zc -C 'from ( file path format f => head get http://host/path format g => head pool name => head )'
 
 outputs:
   - name: stdout
@@ -17,7 +25,15 @@ outputs:
       )
       ===
       from (
+        file path format f
+      )
+      ===
+      from (
         get http://host/path
+      )
+      ===
+      from (
+        get http://host/path format f
       )
       ===
       from (
@@ -31,9 +47,24 @@ outputs:
       )
       ===
       from (
+        file path format f
+        get http://host/path format g
+        pool name
+      )
+      ===
+      from (
         file path =>
           head 1
         get http://host/path =>
+          head 1
+        pool name =>
+          head 1
+      )
+      ===
+      from (
+        file path format f =>
+          head 1
+        get http://host/path format g =>
           head 1
         pool name =>
           head 1

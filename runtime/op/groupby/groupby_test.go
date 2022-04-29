@@ -309,7 +309,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		query, err := runtime.NewQueryOnOrderedReader(context.Background(), zctx, proc, cr, layout, nil)
 		require.NoError(t, err)
 		defer query.Pull(true)
-		err = zio.Copy(checker, query.AsReader())
+		err = zbuf.CopyPuller(checker, query)
 		require.NoError(t, err)
 		outData := strings.Split(outbuf.String(), "\n")
 		sort.Strings(outData)
