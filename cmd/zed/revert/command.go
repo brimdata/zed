@@ -45,11 +45,11 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("commit ID must be specified")
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	head, err := c.HEAD()
+	head, err := c.LakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("%q: %s reverted in %s\n", head.Branch, commitID, revertID)
 	}
 	return nil

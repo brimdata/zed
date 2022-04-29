@@ -21,14 +21,14 @@ querying, and orchestrating Zed data lakes.`,
 
 type Command struct {
 	charm.Command
-	lakeflags.Flags
-	cli cli.Flags
+	LakeFlags lakeflags.Flags
+	cli       cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	c.cli.SetFlags(f)
-	c.Flags.SetFlags(f)
+	c.LakeFlags.SetFlags(f)
 	return c, nil
 }
 

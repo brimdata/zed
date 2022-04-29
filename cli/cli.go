@@ -33,7 +33,7 @@ type Initializer interface {
 	Init() error
 }
 
-func (f *Flags) Init(all ...Initializer) (context.Context, func(), error) {
+func (f *Flags) Init(all ...Initializer) (context.Context, context.CancelFunc, error) {
 	if f.showVersion {
 		fmt.Printf("Version: %s\n", Version)
 		os.Exit(0)
@@ -51,7 +51,7 @@ func (f *Flags) Init(all ...Initializer) (context.Context, func(), error) {
 		f.runCPUProfile(f.cpuprofile)
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	var cleanup = func() {
+	cleanup := func() {
 		cancel()
 		f.cleanup()
 	}
@@ -60,8 +60,8 @@ func (f *Flags) Init(all ...Initializer) (context.Context, func(), error) {
 
 type interruptedContext struct{ context.Context }
 
-func (s *interruptedContext) Err() error {
-	err := s.Context.Err()
+func (i *interruptedContext) Err() error {
+	err := i.Context.Err()
 	if errors.Is(err, context.Canceled) {
 		return errors.New("interrupted")
 	}

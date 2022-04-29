@@ -55,7 +55,7 @@ func (c *createCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (c *createCommand) Run(args []string) error {
 	if err := lake.AddIndexRules(ctx, rules); err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 		if err != nil {
 			return err

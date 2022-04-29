@@ -72,7 +72,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	head, err := c.HEAD()
+	head, err := c.LakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	var d *display.Display
-	if !c.Quiet && term.IsTerminal(int(os.Stderr.Fd())) {
+	if !c.LakeFlags.Quiet && term.IsTerminal(int(os.Stderr.Fd())) {
 		c.ctx = ctx
 		c.rate = ratecounter.NewRateCounter(time.Second)
 		d = display.New(c, time.Second/2, os.Stderr)
@@ -109,7 +109,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("%s committed\n", commitID)
 	}
 	return nil

@@ -55,7 +55,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	local := storage.NewLocalEngine()
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}

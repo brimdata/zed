@@ -45,11 +45,11 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments allowed")
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	head, err := c.HEAD()
+	head, err := c.LakeFlags.HEAD()
 	if err != nil {
 		return err
 	}

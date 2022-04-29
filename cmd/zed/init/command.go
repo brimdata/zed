@@ -25,8 +25,7 @@ type Command struct {
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*root.Command)}
-	return c, nil
+	return &Command{Command: parent.(*root.Command)}, nil
 }
 
 func (c *Command) Run(args []string) error {
@@ -37,7 +36,7 @@ func (c *Command) Run(args []string) error {
 	defer cleanup()
 	var path string
 	if len(args) == 0 {
-		path = c.Lake
+		path = c.LakeFlags.Lake
 	} else if len(args) == 1 {
 		path = args[0]
 	}
@@ -50,7 +49,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := api.CreateLocalLake(ctx, path); err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("lake created: %s\n", path)
 	}
 	return nil

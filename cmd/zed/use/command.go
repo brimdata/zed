@@ -59,13 +59,10 @@ in the lake and is not copied to this local directory.
 
 type Command struct {
 	*root.Command
-	branch   bool
-	poolName string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*root.Command)}
-	return c, nil
+	return &Command{Command: parent.(*root.Command)}, nil
 }
 
 func (c *Command) Run(args []string) error {
@@ -78,7 +75,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("too many arguments")
 	}
 	if len(args) == 0 {
-		head, err := c.HEAD()
+		head, err := c.LakeFlags.HEAD()
 		if err != nil {
 			return errors.New("default pool and branch unset")
 		}
@@ -90,7 +87,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	if commitish.Pool == "" {
-		head, err := c.HEAD()
+		head, err := c.LakeFlags.HEAD()
 		if err != nil {
 			return errors.New("default pool unset")
 		}
@@ -99,7 +96,7 @@ func (c *Command) Run(args []string) error {
 	if commitish.Branch == "" {
 		commitish.Branch = "main"
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -116,7 +113,7 @@ func (c *Command) Run(args []string) error {
 	if err := lakeflags.WriteHead(commitish.Pool, commitish.Branch); err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("Switched to branch %q on pool %q\n", commitish.Branch, commitish.Pool)
 	}
 	return nil

@@ -51,7 +51,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		src = args[0]
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, _ := c.HEAD()
+	head, _ := c.LakeFlags.HEAD()
 	query, err := lake.QueryWithControl(ctx, head, src, c.queryFlags.Includes...)
 	if err != nil {
 		w.Close()

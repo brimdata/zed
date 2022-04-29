@@ -41,7 +41,7 @@ func (c *dropCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (c *dropCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		for _, rule := range rules {
 			fmt.Printf("%s dropped from rule %q\n", rule.RuleID(), rule.RuleName())
 		}

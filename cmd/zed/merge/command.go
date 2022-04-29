@@ -44,11 +44,11 @@ func (c *Command) Run(args []string) error {
 		return errors.New("too many arguments")
 	}
 	targetBranch := args[0]
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	head, err := c.HEAD()
+	head, err := c.LakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (c *Command) Run(args []string) error {
 	if _, err = lake.MergeBranch(ctx, poolID, head.Branch, targetBranch, c.commitFlags.CommitMessage()); err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("%q: merged into branch %q\n", head.Branch, targetBranch)
 	}
 	return nil

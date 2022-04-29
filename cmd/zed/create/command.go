@@ -63,7 +63,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("create requires one argument")
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("pool created: %s %s\n", poolName, id)
 	}
 	return nil

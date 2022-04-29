@@ -17,8 +17,6 @@ import (
 
 var ErrNoHEAD = errors.New("HEAD not specified: indicate with -use or run the \"use\" command")
 
-const credsFileName = "credentials.json"
-
 type Flags struct {
 	ConfigDir string
 	// LakeSpecified is set to true if the lake is explicitly set via either
@@ -95,7 +93,7 @@ func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
 }
 
 func (l *Flags) AuthStore() *auth0.Store {
-	return auth0.NewStore(filepath.Join(l.ConfigDir, credsFileName))
+	return auth0.NewStore(filepath.Join(l.ConfigDir, "credentials.json"))
 }
 
 func (l *Flags) URI() (*storage.URI, error) {

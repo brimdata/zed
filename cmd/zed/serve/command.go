@@ -73,10 +73,10 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if !c.LakeSpecified {
-		c.Lake = ""
+	if !c.LakeFlags.LakeSpecified {
+		c.LakeFlags.Lake = ""
 	}
-	uri, err := c.URI()
+	uri, err := c.LakeFlags.URI()
 	if err != nil {
 		return err
 	}

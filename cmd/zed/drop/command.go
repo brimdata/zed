@@ -44,7 +44,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("a single pool name must be specified")
 	}
-	lake, err := c.Open(ctx)
+	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (c *Command) Run(args []string) error {
 	if err := lake.RemovePool(ctx, poolID); err != nil {
 		return err
 	}
-	if !c.Quiet {
+	if !c.LakeFlags.Quiet {
 		fmt.Printf("pool deleted: %s\n", poolName)
 	}
 	return nil

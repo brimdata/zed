@@ -50,8 +50,7 @@ type Command struct {
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*root.Command)}
-	return c, nil
+	return &Command{Command: parent.(*root.Command)}, nil
 }
 
 func (c *Command) Run(args []string) error {
