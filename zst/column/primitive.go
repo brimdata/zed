@@ -58,7 +58,7 @@ type PrimitiveReader struct {
 	reader io.ReaderAt
 }
 
-func NewPrimitiveReader(in zed.Value, reader io.ReaderAt) (*PrimitiveReader, error) {
+func NewPrimitiveReader(in *zed.Value, reader io.ReaderAt) (*PrimitiveReader, error) {
 	segmap, err := NewSegmap(in)
 	if err != nil {
 		return nil, err

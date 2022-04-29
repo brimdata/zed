@@ -131,7 +131,7 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		}
 		assembly.types = append(assembly.types, val.Type)
 	}
-	assembly.root = *val.Copy()
+	assembly.root = val.Copy()
 	expectedType, err := zson.ParseType(o.zctx, column.SegmapTypeString)
 	if err != nil {
 		return nil, err

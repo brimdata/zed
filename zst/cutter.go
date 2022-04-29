@@ -67,7 +67,7 @@ func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAs
 			// on this right now.
 			return nil, fmt.Errorf("ZST cut requires all top-level records to be records: encountered type %s", zson.FormatType(typ))
 		}
-		reader, err := column.NewRecordReader(recType, *a.maps[k], object.seeker)
+		reader, err := column.NewRecordReader(recType, a.maps[k], object.seeker)
 		if err != nil {
 			return nil, err
 		}
