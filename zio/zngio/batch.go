@@ -54,7 +54,7 @@ func (b *batch) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
 	return zed.NewValue(typ, bytes)
 }
 
-func (b *batch) CopyValue(val zed.Value) *zed.Value {
+func (b *batch) CopyValue(val *zed.Value) *zed.Value {
 	return zed.NewValue(val.Type, val.Bytes)
 }
 

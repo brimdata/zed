@@ -151,5 +151,5 @@ func (*EndOfChannel) Ref()                                      {}
 func (*EndOfChannel) Unref()                                    {}
 func (*EndOfChannel) Values() []zed.Value                       { return nil }
 func (*EndOfChannel) Vars() []zed.Value                         { return nil }
-func (*EndOfChannel) CopyValue(zed.Value) *zed.Value            { return nil }
+func (*EndOfChannel) CopyValue(*zed.Value) *zed.Value           { return nil }
 func (*EndOfChannel) NewValue(zed.Type, zcode.Bytes) *zed.Value { return nil }

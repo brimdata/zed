@@ -11,7 +11,7 @@ func (h *Has) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			if val.IsMissing() || val.IsQuiet() {
 				return zed.False
 			}
-			return ctx.CopyValue(val)
+			return ctx.CopyValue(&val)
 		}
 	}
 	return zed.True

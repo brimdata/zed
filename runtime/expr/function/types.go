@@ -12,7 +12,7 @@ type TypeOf struct {
 }
 
 func (t *TypeOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	return ctx.CopyValue(*t.zctx.LookupTypeValue(args[0].Type))
+	return ctx.CopyValue(t.zctx.LookupTypeValue(args[0].Type))
 }
 
 type typeUnder struct {
@@ -21,7 +21,7 @@ type typeUnder struct {
 
 func (t *typeUnder) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	typ := zed.TypeUnder(args[0].Type)
-	return ctx.CopyValue(*t.zctx.LookupTypeValue(typ))
+	return ctx.CopyValue(t.zctx.LookupTypeValue(typ))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nameof

@@ -59,7 +59,7 @@ func (n *NestDotted) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	this := &args[0]
 	b, typ, err := n.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
 	if err != nil {
-		return ctx.CopyValue(*n.zctx.NewErrorf("unflatten: %s", err))
+		return ctx.CopyValue(n.zctx.NewErrorf("unflatten: %s", err))
 	}
 	if b == nil {
 		return this

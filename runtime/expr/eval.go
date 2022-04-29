@@ -75,7 +75,7 @@ func EvalBool(zctx *zed.Context, ectx Context, this *zed.Value, e Evaluator) (*z
 	if val.IsError() {
 		return val, false
 	}
-	return ectx.CopyValue(*zctx.NewErrorf("not type bool: %s", zson.MustFormatValue(val))), false
+	return ectx.CopyValue(zctx.NewErrorf("not type bool: %s", zson.MustFormatValue(val))), false
 }
 
 func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -360,7 +360,7 @@ func (c *Compare) Eval(ectx Context, this *zed.Value) *zed.Value {
 				result = 1
 			}
 		default:
-			return ectx.CopyValue(*c.zctx.NewErrorf("bad comparison type ID: %d", id))
+			return ectx.CopyValue(c.zctx.NewErrorf("bad comparison type ID: %d", id))
 		}
 	}
 	if c.convert(result) {
@@ -439,7 +439,7 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 		// XXX GC
 		return ectx.NewValue(typ, zed.EncodeString(v1+v2))
 	}
-	return ectx.CopyValue(*a.zctx.NewErrorf("type %s incompatible with '+' operator", zson.FormatType(typ)))
+	return ectx.CopyValue(a.zctx.NewErrorf("type %s incompatible with '+' operator", zson.FormatType(typ)))
 }
 
 func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -462,7 +462,7 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 		v1, v2 := s.operands.uints()
 		return ectx.NewValue(typ, zed.EncodeUint(v1-v2))
 	}
-	return ectx.CopyValue(*s.zctx.NewErrorf("type %s incompatible with '-' operator", zson.FormatType(typ)))
+	return ectx.CopyValue(s.zctx.NewErrorf("type %s incompatible with '-' operator", zson.FormatType(typ)))
 }
 
 func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -485,7 +485,7 @@ func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 		v1, v2 := m.operands.uints()
 		return ectx.NewValue(typ, zed.EncodeUint(v1*v2))
 	}
-	return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '*' operator", zson.FormatType(typ)))
+	return ectx.CopyValue(m.zctx.NewErrorf("type %s incompatible with '*' operator", zson.FormatType(typ)))
 }
 
 func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -517,7 +517,7 @@ func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(typ, zed.EncodeUint(v1/v2))
 	}
-	return ectx.CopyValue(*d.zctx.NewErrorf("type %s incompatible with '/' operator", zson.FormatType(typ)))
+	return ectx.CopyValue(d.zctx.NewErrorf("type %s incompatible with '/' operator", zson.FormatType(typ)))
 }
 
 func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -530,7 +530,7 @@ func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	if zed.IsFloat(id) || !zed.IsNumber(id) {
-		return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '%%' operator", zson.FormatType(typ)))
+		return ectx.CopyValue(m.zctx.NewErrorf("type %s incompatible with '%%' operator", zson.FormatType(typ)))
 	}
 	if zed.IsSigned(id) {
 		x, y := m.operands.ints()
@@ -578,7 +578,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		v := zed.DecodeInt(val.Bytes)
 		if v == math.MinInt8 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int8(%d)", v))
+			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int8(%d)", v))
 		}
 		return ectx.NewValue(typ, zed.EncodeInt(-v))
 	case zed.IDInt16:
@@ -587,7 +587,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		v := zed.DecodeInt(val.Bytes)
 		if v == math.MinInt16 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int16(%d)", v))
+			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int16(%d)", v))
 		}
 		return ectx.NewValue(typ, zed.EncodeInt(-v))
 	case zed.IDInt32:
@@ -596,7 +596,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		v := zed.DecodeInt(val.Bytes)
 		if v == math.MinInt32 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int32(%d)", v))
+			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int32(%d)", v))
 		}
 		return ectx.NewValue(typ, zed.EncodeInt(-v))
 	case zed.IDInt64:
@@ -605,7 +605,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		v := zed.DecodeInt(val.Bytes)
 		if v == math.MinInt64 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int64(%d)", v))
+			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int64(%d)", v))
 		}
 		return ectx.NewValue(typ, zed.EncodeInt(-v))
 	case zed.IDUint8:
@@ -614,7 +614,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		v := zed.DecodeUint(val.Bytes)
 		if v > math.MaxInt8 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint8(%d)", v))
+			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint8(%d)", v))
 		}
 		return ectx.NewValue(zed.TypeInt8, zed.EncodeInt(-int64(v)))
 	case zed.IDUint16:
@@ -623,7 +623,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		v := zed.DecodeUint(val.Bytes)
 		if v > math.MaxInt16 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint16(%d)", v))
+			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint16(%d)", v))
 		}
 		return ectx.NewValue(zed.TypeInt16, zed.EncodeInt(-int64(v)))
 	case zed.IDUint32:
@@ -632,7 +632,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		v := zed.DecodeUint(val.Bytes)
 		if v > math.MaxInt32 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint32(%d)", v))
+			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint32(%d)", v))
 		}
 		return ectx.NewValue(zed.TypeInt32, zed.EncodeInt(-int64(v)))
 	case zed.IDUint64:
@@ -641,7 +641,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		v := zed.DecodeUint(val.Bytes)
 		if v > math.MaxInt64 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint64(%d)", v))
+			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint64(%d)", v))
 		}
 		return ectx.NewValue(zed.TypeInt64, zed.EncodeInt(-int64(v)))
 	}
@@ -709,7 +709,7 @@ func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 func indexArray(zctx *zed.Context, ectx Context, typ *zed.TypeArray, array zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsInteger(id) {
-		return ectx.CopyValue(*zctx.NewErrorf("array index is not an integer"))
+		return ectx.CopyValue(zctx.NewErrorf("array index is not an integer"))
 	}
 	var idx int
 	if zed.IsSigned(id) {
@@ -727,14 +727,14 @@ func indexArray(zctx *zed.Context, ectx Context, typ *zed.TypeArray, array zcode
 func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if id != zed.IDString {
-		return ectx.CopyValue(*zctx.NewErrorf("record index is not a string"))
+		return ectx.CopyValue(zctx.NewErrorf("record index is not a string"))
 	}
 	field := zed.DecodeString(index.Bytes)
 	val := zed.NewValue(typ, record).Deref(field)
 	if val == nil {
 		return zctx.Missing()
 	}
-	return ectx.CopyValue(*val)
+	return ectx.CopyValue(val)
 }
 
 func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.Bytes, key *zed.Value) *zed.Value {
