@@ -20,8 +20,8 @@ type Bucket struct {
 }
 
 func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	tsArg := args[0]
-	binArg := args[1]
+	tsArg := &args[0]
+	binArg := &args[1]
 	if tsArg.IsNull() || binArg.IsNull() {
 		return zed.NullTime
 	}
