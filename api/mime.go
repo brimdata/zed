@@ -53,3 +53,22 @@ func MediaTypeToFormat(s string, dflt string) (string, error) {
 	}
 	return "", &ErrUnsupportedMimeType{typ}
 }
+
+func FormatToMediaType(format string) string {
+	switch format {
+	case "csv":
+		return MediaTypeCSV
+	case "json":
+		return MediaTypeJSON
+	case "ndjson":
+		return MediaTypeNDJSON
+	case "zjson":
+		return MediaTypeZJSON
+	case "zng":
+		return MediaTypeZNG
+	case "zson":
+		return MediaTypeZSON
+	default:
+		return ""
+	}
+}

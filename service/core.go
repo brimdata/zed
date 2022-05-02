@@ -172,8 +172,9 @@ func (c *Core) addAPIServerRoutes() {
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		res, req := newRequest(w, r, c.logger)
-		f(c, res, req)
+		if res, req, ok := newRequest(w, r, c.logger); ok {
+			f(c, res, req)
+		}
 	})
 }
 
