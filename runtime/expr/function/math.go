@@ -29,7 +29,7 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(a.zctx, ctx, "abs: not a number: %s", zson.MustFormatValue(&args[0]))
 	}
 	if !zed.IsSigned(id) {
-		return ctx.CopyValue(args[0])
+		return ctx.CopyValue(&args[0])
 	}
 	x := zed.DecodeInt(v.Bytes)
 	if x < 0 {
@@ -54,7 +54,7 @@ func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		f := math.Ceil(zed.DecodeFloat64(v.Bytes))
 		return newFloat64(ctx, f)
 	case zed.IsInteger(id):
-		return ctx.CopyValue(args[0])
+		return ctx.CopyValue(&args[0])
 	default:
 		return newErrorf(c.zctx, ctx, "ceil: not a number")
 	}
@@ -76,7 +76,7 @@ func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		v := math.Floor(zed.DecodeFloat64(v.Bytes))
 		return newFloat64(ctx, v)
 	case zed.IsInteger(id):
-		return ctx.CopyValue(args[0])
+		return ctx.CopyValue(&args[0])
 	default:
 		return newErrorf(f.zctx, ctx, "floor: not a number")
 	}
@@ -167,7 +167,7 @@ func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !zed.IsNumber(id) {
 		return newErrorf(r.zctx, ctx, "round: not a number: %s", zson.MustFormatValue(zv))
 	}
-	return ctx.CopyValue(args[0])
+	return ctx.CopyValue(&args[0])
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#pow

@@ -87,7 +87,7 @@ type UnionReader struct {
 	presence *PresenceReader
 }
 
-func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, error) {
+func NewUnionReader(utyp zed.Type, in *zed.Value, r io.ReaderAt) (*UnionReader, error) {
 	typ, ok := utyp.(*zed.TypeUnion)
 	if !ok {
 		return nil, errors.New("cannot unmarshal non-union into union")
@@ -103,7 +103,7 @@ func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, e
 		if val.IsNull() {
 			return nil, errors.New("ZST union missing column")
 		}
-		d, err := NewReader(typ.Types[k], *val, r)
+		d, err := NewReader(typ.Types[k], val, r)
 		if err != nil {
 			return nil, err
 		}
@@ -113,7 +113,7 @@ func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, e
 	if selector.IsNull() {
 		return nil, errors.New("ZST union missing selector")
 	}
-	sr, err := NewIntReader(*selector, r)
+	sr, err := NewIntReader(selector, r)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func NewUnionReader(utyp zed.Type, in zed.Value, r io.ReaderAt) (*UnionReader, e
 	if presence.IsNull() {
 		return nil, errors.New("ZST union missing presence")
 	}
-	d, err := NewPrimitiveReader(*presence, r)
+	d, err := NewPrimitiveReader(presence, r)
 	if err != nil {
 		return nil, err
 	}

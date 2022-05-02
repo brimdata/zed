@@ -86,12 +86,12 @@ type FieldReader struct {
 	presence *PresenceReader
 }
 
-func NewFieldReader(typ zed.Type, in zed.Value, r io.ReaderAt) (*FieldReader, error) {
+func NewFieldReader(typ zed.Type, in *zed.Value, r io.ReaderAt) (*FieldReader, error) {
 	col := in.Deref("column").MissingAsNull()
 	var val Reader
 	if !col.IsNull() {
 		var err error
-		val, err = NewReader(typ, *col, r)
+		val, err = NewReader(typ, col, r)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func NewFieldReader(typ zed.Type, in zed.Value, r io.ReaderAt) (*FieldReader, er
 	if presence.IsNull() {
 		return nil, errors.New("ZST field has no presence")
 	}
-	d, err := NewPrimitiveReader(*presence, r)
+	d, err := NewPrimitiveReader(presence, r)
 	if err != nil {
 		return nil, err
 	}

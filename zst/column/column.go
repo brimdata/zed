@@ -77,7 +77,7 @@ type Reader interface {
 	Read(*zcode.Builder) error
 }
 
-func NewReader(typ zed.Type, in zed.Value, r io.ReaderAt) (Reader, error) {
+func NewReader(typ zed.Type, in *zed.Value, r io.ReaderAt) (Reader, error) {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
 		return NewReader(typ.Type, in, r)

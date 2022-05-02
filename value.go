@@ -46,7 +46,7 @@ var (
 
 type Allocator interface {
 	NewValue(Type, zcode.Bytes) *Value
-	CopyValue(Value) *Value
+	CopyValue(*Value) *Value
 }
 
 type Value struct {

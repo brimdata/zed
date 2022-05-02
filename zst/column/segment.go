@@ -33,7 +33,7 @@ func checkSegType(col zed.Column, which string, typ zed.Type) bool {
 	return col.Name == which && col.Type == typ
 }
 
-func NewSegmap(in zed.Value) ([]Segment, error) {
+func NewSegmap(in *zed.Value) ([]Segment, error) {
 	typ, ok := in.Type.(*zed.TypeArray)
 	if !ok {
 		return nil, errors.New("ZST object segmap not an array")

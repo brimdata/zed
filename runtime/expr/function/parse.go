@@ -73,7 +73,7 @@ func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	return ctx.CopyValue(*out)
+	return ctx.CopyValue(out)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_zson
@@ -107,5 +107,5 @@ func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if err != nil {
 		return newErrorf(p.zctx, ctx, "parse_zson: build error: %s (%q)", err, s)
 	}
-	return ctx.CopyValue(*result)
+	return ctx.CopyValue(result)
 }
