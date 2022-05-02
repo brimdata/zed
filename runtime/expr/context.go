@@ -30,7 +30,7 @@ func (*allocator) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
 	return zed.NewValue(typ, bytes)
 }
 
-func (*allocator) CopyValue(val zed.Value) *zed.Value {
+func (*allocator) CopyValue(val *zed.Value) *zed.Value {
 	return zed.NewValue(val.Type, val.Bytes)
 }
 
