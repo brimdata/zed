@@ -109,7 +109,7 @@ func TestLegacyZeekValid(t *testing.T) {
 	// XXX test overriding separator, setSeparator
 }
 
-func assertInt64(t *testing.T, i int64, val zed.Value, what string) {
+func assertInt64(t *testing.T, i int64, val *zed.Value, what string) {
 	ok := val.Type == zed.TypeInt64
 	assert.Truef(t, ok, "%s is type int", what)
 	assert.Equalf(t, i, zed.DecodeInt(val.Bytes), "%s has value %d", what, i)
@@ -167,13 +167,13 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err := nest1Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 3, len(subVals), "nest1 has 3 elements")
-	assertInt64(t, 2, subVals[0], "nest1.a")
-	assertInt64(t, 3, subVals[1], "nest1.b")
+	assertInt64(t, 2, &subVals[0], "nest1.a")
+	assertInt64(t, 3, &subVals[1], "nest1.b")
 	assert.Equal(t, nestnestType, subVals[2].Type, "Got right type for field nest1.nestnest")
 	nestnestVals, err := nestnestType.Decode(subVals[2].Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(nestnestVals), "nest1.nestnest has 1 element")
-	assertInt64(t, 6, nestnestVals[0], "nest1.nestnest.c")
+	assertInt64(t, 6, &nestnestVals[0], "nest1.nestnest.c")
 
 	v = record.Deref("b").AsInt()
 	assert.Equal(t, int64(4), v, "Field b has value 4")
@@ -183,14 +183,14 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err = nest2Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest2 has 1 element")
-	assertInt64(t, 5, subVals[0], "nest2.y")
+	assertInt64(t, 5, &subVals[0], "nest2.y")
 
 	e = record.Deref("nest3")
 	assert.Equal(t, nest3Type, e.Type, "Got right type for field nest3")
 	subVals, err = nest3Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest3 has 1 element")
-	assertInt64(t, 7, subVals[0], "nest3.z")
+	assertInt64(t, 7, &subVals[0], "nest3.z")
 }
 
 // Test things related to legacy zeek records that should cause the

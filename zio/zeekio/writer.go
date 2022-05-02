@@ -53,7 +53,7 @@ func (w *Writer) Write(r *zed.Value) error {
 			w.buf.WriteByte('\t')
 		}
 		needSeparator = true
-		w.buf.WriteString(FormatValue(*zed.NewValue(col.Type, bytes)))
+		w.buf.WriteString(FormatValue(zed.NewValue(col.Type, bytes)))
 	}
 	w.buf.WriteByte('\n')
 	_, err = w.writer.Write(w.buf.Bytes())
