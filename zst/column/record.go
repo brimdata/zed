@@ -69,7 +69,7 @@ type RecordReader []FieldReader
 
 var _ Reader = (RecordReader)(nil)
 
-func NewRecordReader(utyp zed.Type, in zed.Value, reader io.ReaderAt) (RecordReader, error) {
+func NewRecordReader(utyp zed.Type, in *zed.Value, reader io.ReaderAt) (RecordReader, error) {
 	typ, ok := zed.TypeUnder(utyp).(*zed.TypeRecord)
 	if !ok {
 		return nil, errors.New("corrupt ZST object: record_column is not a record")
@@ -85,7 +85,7 @@ func NewRecordReader(utyp zed.Type, in zed.Value, reader io.ReaderAt) (RecordRea
 			return nil, errors.New("mismatch between record type and record_column") //XXX
 		}
 		fieldType := typ.Columns[k].Type
-		f, err := NewFieldReader(fieldType, zed.Value{rtype.Columns[k].Type, it.Next()}, reader)
+		f, err := NewFieldReader(fieldType, zed.NewValue(rtype.Columns[k].Type, it.Next()), reader)
 		if err != nil {
 			return nil, err
 		}

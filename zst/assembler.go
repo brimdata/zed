@@ -26,7 +26,7 @@ type Assembler struct {
 var _ zio.Reader = (*Assembler)(nil)
 
 type Assembly struct {
-	root  zed.Value
+	root  *zed.Value
 	types []zed.Type
 	maps  []*zed.Value
 }
@@ -39,7 +39,7 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	var readers []column.Reader
 	for k := range a.types {
 		val := a.maps[k]
-		reader, err := column.NewReader(a.types[k], *val, seeker)
+		reader, err := column.NewReader(a.types[k], val, seeker)
 		if err != nil {
 			return nil, err
 		}

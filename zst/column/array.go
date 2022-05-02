@@ -64,7 +64,7 @@ type ArrayReader struct {
 	lengths *IntReader
 }
 
-func NewArrayReader(inner zed.Type, in zed.Value, r io.ReaderAt) (*ArrayReader, error) {
+func NewArrayReader(inner zed.Type, in *zed.Value, r io.ReaderAt) (*ArrayReader, error) {
 	typ, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
 		return nil, errors.New("ZST object array_column not a record")
@@ -74,7 +74,7 @@ func NewArrayReader(inner zed.Type, in zed.Value, r io.ReaderAt) (*ArrayReader, 
 	if val.IsNull() {
 		return nil, errors.New("ZST array column has no values")
 	}
-	elems, err := NewReader(inner, *val, r)
+	elems, err := NewReader(inner, val, r)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func NewArrayReader(inner zed.Type, in zed.Value, r io.ReaderAt) (*ArrayReader, 
 	if val.IsNull() {
 		return nil, errors.New("ZST array column has no lengths")
 	}
-	lengths, err := NewIntReader(*val, r)
+	lengths, err := NewIntReader(val, r)
 	if err != nil {
 		return nil, err
 	}

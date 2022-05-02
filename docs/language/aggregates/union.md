@@ -4,7 +4,7 @@
 
 ### Synopsis
 ```
-collect(any) -> |[any]|
+union(any) -> |[any]|
 ```
 ### Description
 

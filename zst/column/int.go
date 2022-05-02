@@ -22,7 +22,7 @@ type IntReader struct {
 	PrimitiveReader
 }
 
-func NewIntReader(val zed.Value, r io.ReaderAt) (*IntReader, error) {
+func NewIntReader(val *zed.Value, r io.ReaderAt) (*IntReader, error) {
 	reader, err := NewPrimitiveReader(val, r)
 	if err != nil {
 		return nil, err
