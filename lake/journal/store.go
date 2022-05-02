@@ -101,7 +101,7 @@ func (s *Store) load(ctx context.Context) error {
 
 		}
 		var e Entry
-		if err := s.unmarshaler.Unmarshal(*rec, &e); err != nil {
+		if err := s.unmarshaler.Unmarshal(rec, &e); err != nil {
 			return err
 		}
 		switch e := e.(type) {

@@ -217,9 +217,9 @@ func TestBug2575(t *testing.T) {
 	reader := zngio.NewReader(r, zed.NewContext())
 	defer reader.Close()
 	recActual, err := reader.Read()
-	exp, err := zson.FormatValue(*recExpected)
+	exp, err := zson.FormatValue(recExpected)
 	require.NoError(t, err)
-	actual, err := zson.FormatValue(*recActual)
+	actual, err := zson.FormatValue(recActual)
 	require.NoError(t, err)
 	assert.Equal(t, trim(exp), actual)
 }
@@ -252,12 +252,12 @@ func TestZNGValueField(t *testing.T) {
 	zv, err := m.Marshal(zngValueField)
 	require.NoError(t, err)
 	expected := `{Name:"test1",field:123}(=ZNGValueField)`
-	actual, err := zson.FormatValue(*zv)
+	actual, err := zson.FormatValue(zv)
 	require.NoError(t, err)
 	assert.Equal(t, trim(expected), trim(actual))
 	u := zson.NewZNGUnmarshaler()
 	var out ZNGValueField
-	err = u.Unmarshal(*zv, &out)
+	err = u.Unmarshal(zv, &out)
 	require.NoError(t, err)
 	assert.Equal(t, *zngValueField, out)
 	// Include a Zed record inside a Go struct in a zed.Value field.
@@ -273,12 +273,12 @@ func TestZNGValueField(t *testing.T) {
 	zv3, err := m2.Marshal(zngValueField2)
 	require.NoError(t, err)
 	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}}(=ZNGValueField)`
-	actual2, err := zson.FormatValue(*zv3)
+	actual2, err := zson.FormatValue(zv3)
 	require.NoError(t, err)
 	assert.Equal(t, trim(expected2), trim(actual2))
 	u2 := zson.NewZNGUnmarshaler()
 	var out2 ZNGValueField
-	err = u2.Unmarshal(*zv3, &out2)
+	err = u2.Unmarshal(zv3, &out2)
 	require.NoError(t, err)
 	assert.Equal(t, *zngValueField2, out2)
 }

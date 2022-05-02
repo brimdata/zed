@@ -76,7 +76,7 @@ func (d Direction) MarshalZNG(m *zson.MarshalZNGContext) (zed.Type, error) {
 	return m.MarshalValue(d.String())
 }
 
-func (d *Direction) UnmarshalZNG(u *zson.UnmarshalZNGContext, zv zed.Value) error {
+func (d *Direction) UnmarshalZNG(u *zson.UnmarshalZNGContext, zv *zed.Value) error {
 	dir, err := ParseDirection(string(zv.Bytes))
 	if err != nil {
 		return err

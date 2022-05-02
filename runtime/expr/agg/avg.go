@@ -46,14 +46,14 @@ func (a *Avg) ConsumeAsPartial(partial *zed.Value) {
 		panic(errors.New("avg: partial sum is missing"))
 	}
 	if sumVal.Type != zed.TypeFloat64 {
-		panic(fmt.Errorf("avg: partial sum has bad type: %s", zson.MustFormatValue(*sumVal)))
+		panic(fmt.Errorf("avg: partial sum has bad type: %s", zson.MustFormatValue(sumVal)))
 	}
 	countVal := partial.Deref(countName)
 	if countVal == nil {
 		panic("avg: partial count is missing")
 	}
 	if countVal.Type != zed.TypeUint64 {
-		panic(fmt.Errorf("avg: partial count has bad type: %s", zson.MustFormatValue(*countVal)))
+		panic(fmt.Errorf("avg: partial count has bad type: %s", zson.MustFormatValue(countVal)))
 	}
 	a.sum += zed.DecodeFloat64(sumVal.Bytes)
 	a.count += zed.DecodeUint(countVal.Bytes)

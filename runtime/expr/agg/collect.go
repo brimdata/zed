@@ -76,7 +76,7 @@ func (c *Collect) ConsumeAsPartial(val *zed.Value) {
 	}
 	arrayType, ok := val.Type.(*zed.TypeArray)
 	if !ok {
-		panic(fmt.Errorf("collect partial: partial not an array type: %s", zson.MustFormatValue(*val)))
+		panic(fmt.Errorf("collect partial: partial not an array type: %s", zson.MustFormatValue(val)))
 	}
 	typ := arrayType.Type
 	elem := zed.Value{Type: typ}

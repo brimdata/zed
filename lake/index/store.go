@@ -84,7 +84,7 @@ func (s *Store) load(ctx context.Context) error {
 
 		}
 		var rule interface{}
-		if err := s.unmarshaler.Unmarshal(*rec, &rule); err != nil {
+		if err := s.unmarshaler.Unmarshal(rec, &rule); err != nil {
 			return err
 		}
 		switch rule := rule.(type) {

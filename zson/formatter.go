@@ -81,12 +81,12 @@ func (f *Formatter) FormatRecord(rec *zed.Value) (string, error) {
 	return f.builder.String(), nil
 }
 
-func FormatValue(zv zed.Value) (string, error) {
+func FormatValue(zv *zed.Value) (string, error) {
 	f := NewFormatter(0, nil)
 	return f.Format(zv)
 }
 
-func MustFormatValue(zv zed.Value) string {
+func MustFormatValue(zv *zed.Value) string {
 	s, err := FormatValue(zv)
 	if err != nil {
 		panic(fmt.Errorf("ZSON format value failed: type %s, bytes %s", zv.Type, hex.EncodeToString(zv.Bytes)))
@@ -100,15 +100,15 @@ func String(p interface{}) string {
 	}
 	switch val := p.(type) {
 	case *zed.Value:
-		return MustFormatValue(*val)
-	case zed.Value:
 		return MustFormatValue(val)
+	case zed.Value:
+		return MustFormatValue(&val)
 	default:
 		panic("zson.String takes a zed.Type or *zed.Value")
 	}
 }
 
-func (f *Formatter) Format(zv zed.Value) (string, error) {
+func (f *Formatter) Format(zv *zed.Value) (string, error) {
 	f.builder.Reset()
 	if err := f.formatValueAndDecorate(zv.Type, zv.Bytes); err != nil {
 		return "", err
@@ -174,9 +174,9 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 	case *zed.TypeRecord:
 		err = f.formatRecord(indent, t, bytes, known, parentImplied)
 	case *zed.TypeArray:
-		null, err = f.formatVector(indent, "[", "]", t.Type, zed.Value{t, bytes}, known, parentImplied)
+		null, err = f.formatVector(indent, "[", "]", t.Type, zed.NewValue(t, bytes), known, parentImplied)
 	case *zed.TypeSet:
-		null, err = f.formatVector(indent, "|[", "]|", t.Type, zed.Value{t, bytes}, known, parentImplied)
+		null, err = f.formatVector(indent, "|[", "]|", t.Type, zed.NewValue(t, bytes), known, parentImplied)
 	case *zed.TypeUnion:
 		err = f.formatUnion(indent, t, bytes)
 	case *zed.TypeMap:
@@ -440,7 +440,7 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 	return nil
 }
 
-func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, zv zed.Value, known, parentImplied bool) (bool, error) {
+func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, zv *zed.Value, known, parentImplied bool) (bool, error) {
 	f.build(open)
 	n, err := zv.ContainerLength()
 	if err != nil {

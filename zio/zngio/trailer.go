@@ -95,7 +95,7 @@ func findTrailer(b []byte) (*Trailer, []byte, error) {
 		}
 		if val := readTrailer(b[off:]); val != nil {
 			var trailer Trailer
-			uErr := u.Unmarshal(*val, &trailer)
+			uErr := u.Unmarshal(val, &trailer)
 			if uErr == nil {
 				if trailer.Magic != Magic {
 					return nil, nil, errors.New("bad trailer magic")

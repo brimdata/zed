@@ -248,7 +248,7 @@ from %s@%s:objects
 	if op == ">=" || op == ">" {
 		deletesField, copiesField = copiesField, deletesField
 	}
-	src := fmt.Sprintf(dbp, zson.MustFormatValue(*val), b.pool.ID, commit, deletesField, op, copiesField, op)
+	src := fmt.Sprintf(dbp, zson.MustFormatValue(val), b.pool.ID, commit, deletesField, op, copiesField, op)
 	flowgraph, err := compiler.ParseProc(src)
 	if err != nil {
 		return nil, nil, err
@@ -271,7 +271,7 @@ from %s@%s:objects
 		if val == nil {
 			break
 		}
-		if err := zson.UnmarshalZNG(*val, &objects); err != nil {
+		if err := zson.UnmarshalZNG(val, &objects); err != nil {
 			return nil, nil, err
 		}
 	}

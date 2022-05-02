@@ -170,7 +170,7 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 	}
 	m := zson.NewZNGUnmarshaler()
 	m.Bind(templates...)
-	if err := m.Unmarshal(*zv, body); err != nil {
+	if err := m.Unmarshal(zv, body); err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return false
 	}

@@ -43,7 +43,7 @@ func (q *Query) Read() (*zed.Value, error) {
 			return nil, fmt.Errorf("unable to parse Zed control message: %w (%s)", err, string(ctrl.Bytes))
 		}
 		var v interface{}
-		if err := unmarshaler.Unmarshal(*value, &v); err != nil {
+		if err := unmarshaler.Unmarshal(value, &v); err != nil {
 			return nil, fmt.Errorf("unable to unmarshal Zed control message: %w (%s)", err, string(ctrl.Bytes))
 		}
 		return nil, controlToError(v)

@@ -57,7 +57,7 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 	case *zed.TypeError:
 		return map[string]interface{}{"error": marshalAny(typ.Type, bytes)}
 	default:
-		return zson.MustFormatValue(*zed.NewValue(typ, bytes))
+		return zson.MustFormatValue(zed.NewValue(typ, bytes))
 	}
 }
 
