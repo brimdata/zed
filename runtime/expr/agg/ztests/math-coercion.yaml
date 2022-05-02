@@ -1,0 +1,13 @@
+zed: sum(this), max(this), min(this), avg(this)
+
+input: 2 2.5
+
+output-flags: -pretty 4
+
+output: |
+  {
+      sum: 4.5,
+      max: 2.5,
+      min: 2.,
+      avg: 2.25
+  }
