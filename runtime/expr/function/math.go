@@ -88,7 +88,7 @@ type Log struct {
 }
 
 func (l *Log) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	x, ok := coerce.ToFloat(args[0])
+	x, ok := coerce.ToFloat(&args[0])
 	if !ok {
 		return newErrorf(l.zctx, ctx, "log: numeric argument required")
 	}
@@ -105,7 +105,7 @@ type reducer struct {
 }
 
 func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	zv := args[0]
+	zv := &args[0]
 	typ := zv.Type
 	id := typ.ID()
 	if zed.IsFloat(id) {
@@ -122,14 +122,14 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newFloat64(ctx, result)
 	}
 	if !zed.IsNumber(id) {
-		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(zv))
+		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(*zv))
 	}
 	if zed.IsSigned(id) {
 		result := zed.DecodeInt(zv.Bytes)
 		for _, val := range args[1:] {
 			//XXX this is really bad because we silently coerce
 			// floats to ints if we hit a float first
-			v, ok := coerce.ToInt(val)
+			v, ok := coerce.ToInt(&val)
 			if !ok {
 				return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
 			}
@@ -139,7 +139,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	result := zed.DecodeUint(zv.Bytes)
 	for _, val := range args[1:] {
-		v, ok := coerce.ToUint(val)
+		v, ok := coerce.ToUint(&val)
 		if !ok {
 			return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val))
 		}
@@ -176,11 +176,11 @@ type Pow struct {
 }
 
 func (p *Pow) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	x, ok := coerce.ToFloat(args[0])
+	x, ok := coerce.ToFloat(&args[0])
 	if !ok {
 		return newErrorf(p.zctx, ctx, "pow: not a number: %s", zson.MustFormatValue(args[0]))
 	}
-	y, ok := coerce.ToFloat(args[1])
+	y, ok := coerce.ToFloat(&args[1])
 	if !ok {
 		return newErrorf(p.zctx, ctx, "pow: not a number: %s", zson.MustFormatValue(args[1]))
 	}
@@ -193,7 +193,7 @@ type Sqrt struct {
 }
 
 func (s *Sqrt) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	x, ok := coerce.ToFloat(args[0])
+	x, ok := coerce.ToFloat(&args[0])
 	if !ok {
 		return newErrorf(s.zctx, ctx, "sqrt: not a number: %s", zson.MustFormatValue(args[0]))
 	}

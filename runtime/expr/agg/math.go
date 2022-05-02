@@ -93,7 +93,7 @@ func (f *Float64) result() *zed.Value {
 }
 
 func (f *Float64) consume(val *zed.Value) {
-	if v, ok := coerce.ToFloat(*val); ok {
+	if v, ok := coerce.ToFloat(val); ok {
 		f.state = f.function(f.state, v)
 	}
 }
@@ -115,7 +115,7 @@ func (i *Int64) result() *zed.Value {
 }
 
 func (i *Int64) consume(val *zed.Value) {
-	if v, ok := coerce.ToInt(*val); ok {
+	if v, ok := coerce.ToInt(val); ok {
 		i.state = i.function(i.state, v)
 	}
 }
@@ -137,7 +137,7 @@ func (u *Uint64) result() *zed.Value {
 }
 
 func (u *Uint64) consume(val *zed.Value) {
-	if v, ok := coerce.ToUint(*val); ok {
+	if v, ok := coerce.ToUint(val); ok {
 		u.state = u.function(u.state, v)
 	}
 }
@@ -159,7 +159,7 @@ func (d *Duration) result() *zed.Value {
 }
 
 func (d *Duration) consume(val *zed.Value) {
-	if v, ok := coerce.ToDuration(*val); ok {
+	if v, ok := coerce.ToDuration(val); ok {
 		d.state = d.function(d.state, int64(v))
 	}
 }
@@ -181,7 +181,7 @@ func (t *Time) result() *zed.Value {
 }
 
 func (t *Time) consume(val *zed.Value) {
-	if v, ok := coerce.ToTime(*val); ok {
+	if v, ok := coerce.ToTime(val); ok {
 		t.state = nano.Ts(t.function(int64(t.state), int64(v)))
 	}
 }

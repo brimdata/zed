@@ -162,7 +162,7 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 	return id, ok
 }
 
-func ToFloat(zv zed.Value) (float64, bool) {
+func ToFloat(zv *zed.Value) (float64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
 		return zed.DecodeFloat(zv.Bytes), true
@@ -187,7 +187,7 @@ func ToFloat(zv zed.Value) (float64, bool) {
 	return 0, false
 }
 
-func ToUint(zv zed.Value) (uint64, bool) {
+func ToUint(zv *zed.Value) (uint64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
 		return uint64(zed.DecodeFloat(zv.Bytes)), true
@@ -216,7 +216,7 @@ func ToUint(zv zed.Value) (uint64, bool) {
 	return 0, false
 }
 
-func ToInt(zv zed.Value) (int64, bool) {
+func ToInt(zv *zed.Value) (int64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
 		return int64(zed.DecodeFloat(zv.Bytes)), true
@@ -242,7 +242,7 @@ func ToInt(zv zed.Value) (int64, bool) {
 	return 0, false
 }
 
-func ToBool(zv zed.Value) (bool, bool) {
+func ToBool(zv *zed.Value) (bool, bool) {
 	if zv.IsString() {
 		v, err := strconv.ParseBool(string(zv.Bytes))
 		return v, err == nil
@@ -251,7 +251,7 @@ func ToBool(zv zed.Value) (bool, bool) {
 	return v != 0, ok
 }
 
-func ToTime(zv zed.Value) (nano.Ts, bool) {
+func ToTime(zv *zed.Value) (nano.Ts, bool) {
 	id := zv.Type.ID()
 	if id == zed.IDTime {
 		return zed.DecodeTime(zv.Bytes), true
@@ -277,7 +277,7 @@ func ToTime(zv zed.Value) (nano.Ts, bool) {
 // and Double are converted as seconds. The resulting coerced value is
 // written to out, and true is returned. If the value cannot be
 // coerced, then false is returned.
-func ToDuration(in zed.Value) (nano.Duration, bool) {
+func ToDuration(in *zed.Value) (nano.Duration, bool) {
 	switch in.Type.ID() {
 	case zed.IDDuration:
 		return zed.DecodeDuration(in.Bytes), true

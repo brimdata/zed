@@ -21,7 +21,7 @@ func (a *Avg) Consume(val *zed.Value) {
 	if val.IsNull() {
 		return
 	}
-	if d, ok := coerce.ToFloat(*val); ok {
+	if d, ok := coerce.ToFloat(val); ok {
 		a.sum += float64(d)
 		a.count++
 	}

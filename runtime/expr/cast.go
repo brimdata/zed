@@ -63,7 +63,7 @@ type casterIntN struct {
 }
 
 func (c *casterIntN) Eval(ectx Context, val *zed.Value) *zed.Value {
-	v, ok := coerce.ToInt(*val)
+	v, ok := coerce.ToInt(val)
 	if !ok || (c.min != 0 && (v < c.min || v > c.max)) {
 		return ectx.CopyValue(*c.zctx.NewErrorf(
 			"cannot cast %s to type %s", zson.MustFormatValue(*val), zson.FormatType(c.typ)))
@@ -78,7 +78,7 @@ type casterUintN struct {
 }
 
 func (c *casterUintN) Eval(ectx Context, val *zed.Value) *zed.Value {
-	v, ok := coerce.ToUint(*val)
+	v, ok := coerce.ToUint(val)
 	if !ok || (c.max != 0 && v > c.max) {
 		return ectx.CopyValue(*c.zctx.NewErrorf(
 			"cannot cast %s to type %s", zson.MustFormatValue(*val), zson.FormatType(c.typ)))
@@ -91,7 +91,7 @@ type casterBool struct {
 }
 
 func (c *casterBool) Eval(ectx Context, val *zed.Value) *zed.Value {
-	b, ok := coerce.ToBool(*val)
+	b, ok := coerce.ToBool(val)
 	if !ok {
 		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to bool", zson.MustFormatValue(*val)))
 	}
@@ -103,7 +103,7 @@ type casterFloat32 struct {
 }
 
 func (c *casterFloat32) Eval(ectx Context, val *zed.Value) *zed.Value {
-	f, ok := coerce.ToFloat(*val)
+	f, ok := coerce.ToFloat(val)
 	if !ok {
 		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type float32", zson.MustFormatValue(*val)))
 	}
@@ -115,7 +115,7 @@ type casterFloat64 struct {
 }
 
 func (c *casterFloat64) Eval(ectx Context, val *zed.Value) *zed.Value {
-	f, ok := coerce.ToFloat(*val)
+	f, ok := coerce.ToFloat(val)
 	if !ok {
 		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type float64", zson.MustFormatValue(*val)))
 	}
@@ -184,7 +184,7 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 		d := nano.Duration(zed.DecodeFloat(val.Bytes))
 		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
-	v, ok := coerce.ToInt(*val)
+	v, ok := coerce.ToInt(val)
 	if !ok {
 		return ectx.CopyValue(*c.zctx.NewErrorf("cannot cast %s to type duration", zson.MustFormatValue(*val)))
 	}
@@ -218,7 +218,7 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 		}
 	case zed.IsNumber(id):
 		//XXX we call coerce on integers here to avoid unsigned/signed decode
-		v, ok := coerce.ToInt(*val)
+		v, ok := coerce.ToInt(val)
 		if !ok {
 			panic(fmt.Sprintf("coerce %s to int failed", zson.MustFormatValue(*val)))
 		}
