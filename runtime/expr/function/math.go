@@ -122,7 +122,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newFloat64(ctx, result)
 	}
 	if !zed.IsNumber(id) {
-		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(zv))
+		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(*zv))
 	}
 	if zed.IsSigned(id) {
 		result := zed.DecodeInt(zv.Bytes)
