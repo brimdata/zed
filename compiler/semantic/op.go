@@ -214,8 +214,8 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 		return nil, err
 	}
 	var ops []dag.Op
-	for _, p := range seq.Procs {
-		converted, err := semProc(ctx, scope, p, adaptor, head)
+	for _, o := range seq.Ops {
+		converted, err := semOp(ctx, scope, o, adaptor, head)
 		if err != nil {
 			return nil, err
 		}
@@ -228,24 +228,24 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 	}, nil
 }
 
-// semProc does a semantic analysis on a flowgraph to an
+// semOp does a semantic analysis on a flowgraph to an
 // intermediate representation that can be compiled into the runtime
 // object.  Currently, it only replaces the group-by duration with
-// a bucket call on the ts and replaces FunctionCall's in proc context
-// with either a group-by or filter-proc based on the function's name.
-func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
-	switch p := p.(type) {
+// a bucket call on the ts and replaces FunctionCalls in op context
+// with either a group-by or filter op based on the function's name.
+func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
+	switch o := o.(type) {
 	case *ast.From:
 		if adaptor == nil {
 			return nil, errors.New("from operator not allowed inside of expression")
 		}
-		return semFrom(ctx, scope, p, adaptor, head)
+		return semFrom(ctx, scope, o, adaptor, head)
 	case *ast.Summarize:
-		keys, err := semAssignments(scope, p.Keys, true)
+		keys, err := semAssignments(scope, o.Keys, true)
 		if err != nil {
 			return nil, err
 		}
-		aggs, err := semAssignments(scope, p.Aggs, true)
+		aggs, err := semAssignments(scope, o.Aggs, true)
 		if err != nil {
 			return nil, err
 		}
@@ -260,14 +260,14 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 		// separation... see issue #2163.
 		return &dag.Summarize{
 			Kind:  "Summarize",
-			Limit: p.Limit,
+			Limit: o.Limit,
 			Keys:  keys,
 			Aggs:  aggs,
 		}, nil
 	case *ast.Parallel:
 		var ops []dag.Op
-		for _, p := range p.Procs {
-			converted, err := semProc(ctx, scope, p, adaptor, head)
+		for _, o := range o.Ops {
+			converted, err := semOp(ctx, scope, o, adaptor, head)
 			if err != nil {
 				return nil, err
 			}
@@ -278,18 +278,18 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Ops:  ops,
 		}, nil
 	case *ast.Sequential:
-		return semSequential(ctx, scope, p, adaptor, head)
+		return semSequential(ctx, scope, o, adaptor, head)
 	case *ast.Switch:
 		var expr dag.Expr
-		if p.Expr != nil {
+		if o.Expr != nil {
 			var err error
-			expr, err = semExpr(scope, p.Expr)
+			expr, err = semExpr(scope, o.Expr)
 			if err != nil {
 				return nil, err
 			}
 		}
 		var cases []dag.Case
-		for _, c := range p.Cases {
+		for _, c := range o.Cases {
 			var e dag.Expr
 			if c.Expr != nil {
 				var err error
@@ -297,7 +297,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 				if err != nil {
 					return nil, err
 				}
-			} else if p.Expr == nil {
+			} else if o.Expr == nil {
 				// c.Expr == nil indicates the default case,
 				// whose handling depends on p.Expr.
 				e = &dag.Literal{
@@ -305,11 +305,11 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 					Value: "true",
 				}
 			}
-			op, err := semProc(ctx, scope, c.Proc, adaptor, head)
+			o, err := semOp(ctx, scope, c.Op, adaptor, head)
 			if err != nil {
 				return nil, err
 			}
-			cases = append(cases, dag.Case{Expr: e, Op: op})
+			cases = append(cases, dag.Case{Expr: e, Op: o})
 		}
 		return &dag.Switch{
 			Kind:  "Switch",
@@ -319,7 +319,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 	case *ast.Shape:
 		return &dag.Shape{"Shape"}, nil
 	case *ast.Cut:
-		assignments, err := semAssignments(scope, p.Args, false)
+		assignments, err := semAssignments(scope, o.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -328,7 +328,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Args: assignments,
 		}, nil
 	case *ast.Drop:
-		args, err := semFields(scope, p.Args)
+		args, err := semFields(scope, o.Args)
 		if err != nil {
 			return nil, fmt.Errorf("drop: %w", err)
 		}
@@ -340,18 +340,18 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Args: args,
 		}, nil
 	case *ast.Sort:
-		exprs, err := semExprs(scope, p.Args)
+		exprs, err := semExprs(scope, o.Args)
 		if err != nil {
 			return nil, fmt.Errorf("sort: %w", err)
 		}
 		return &dag.Sort{
 			Kind:       "Sort",
 			Args:       exprs,
-			Order:      p.Order,
-			NullsFirst: p.NullsFirst,
+			Order:      o.Order,
+			NullsFirst: o.NullsFirst,
 		}, nil
 	case *ast.Head:
-		limit := p.Count
+		limit := o.Count
 		if limit == 0 {
 			limit = 1
 		}
@@ -360,7 +360,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Count: limit,
 		}, nil
 	case *ast.Tail:
-		limit := p.Count
+		limit := o.Count
 		if limit == 0 {
 			limit = 1
 		}
@@ -371,14 +371,14 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 	case *ast.Uniq:
 		return &dag.Uniq{
 			Kind:  "Uniq",
-			Cflag: p.Cflag,
+			Cflag: o.Cflag,
 		}, nil
 	case *ast.Pass:
 		return &dag.Pass{"Pass"}, nil
 	case *ast.OpExpr:
-		return semOpExpr(scope, p.Expr)
+		return semOpExpr(scope, o.Expr)
 	case *ast.Search:
-		e, err := semExpr(scope, p.Expr)
+		e, err := semExpr(scope, o.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -387,7 +387,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Expr: e,
 		}, nil
 	case *ast.Where:
-		e, err := semExpr(scope, p.Expr)
+		e, err := semExpr(scope, o.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -396,7 +396,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Expr: e,
 		}, nil
 	case *ast.Top:
-		args, err := semExprs(scope, p.Args)
+		args, err := semExprs(scope, o.Args)
 		if err != nil {
 			return nil, fmt.Errorf("top: %w", err)
 		}
@@ -406,11 +406,11 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 		return &dag.Top{
 			Kind:  "Top",
 			Args:  args,
-			Flush: p.Flush,
-			Limit: p.Limit,
+			Flush: o.Flush,
+			Limit: o.Limit,
 		}, nil
 	case *ast.Put:
-		assignments, err := semAssignments(scope, p.Args, false)
+		assignments, err := semAssignments(scope, o.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -419,10 +419,10 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Args: assignments,
 		}, nil
 	case *ast.OpAssignment:
-		return semOpAssignment(scope, p)
+		return semOpAssignment(scope, o)
 	case *ast.Rename:
 		var assignments []dag.Assignment
-		for _, fa := range p.Args {
+		for _, fa := range o.Args {
 			dst, err := semField(scope, fa.LHS)
 			if err != nil {
 				return nil, errors.New("'rename' requires explicit field references")
@@ -450,27 +450,27 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 	case *ast.Fuse:
 		return &dag.Fuse{"Fuse"}, nil
 	case *ast.Join:
-		leftKey, err := semExpr(scope, p.LeftKey)
+		leftKey, err := semExpr(scope, o.LeftKey)
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := semExpr(scope, p.RightKey)
+		rightKey, err := semExpr(scope, o.RightKey)
 		if err != nil {
 			return nil, err
 		}
-		assignments, err := semAssignments(scope, p.Args, false)
+		assignments, err := semAssignments(scope, o.Args, false)
 		if err != nil {
 			return nil, err
 		}
 		return &dag.Join{
 			Kind:     "Join",
-			Style:    p.Style,
+			Style:    o.Style,
 			LeftKey:  leftKey,
 			RightKey: rightKey,
 			Args:     assignments,
 		}, nil
 	case *ast.SQLExpr:
-		converted, err := convertSQLProc(scope, p)
+		converted, err := convertSQLOp(scope, o)
 		if err != nil {
 			return nil, err
 		}
@@ -481,22 +481,22 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 		}
 		return converted, nil
 	case *ast.Explode:
-		typ, err := semType(scope, p.Type)
+		typ, err := semType(scope, o.Type)
 		if err != nil {
 			return nil, err
 		}
-		args, err := semExprs(scope, p.Args)
+		args, err := semExprs(scope, o.Args)
 		if err != nil {
 			return nil, err
 		}
 		var as dag.Expr
-		if p.As == nil {
+		if o.As == nil {
 			as = &dag.This{
 				Kind: "This",
 				Path: field.New("value"),
 			}
 		} else {
-			as, err = semExpr(scope, p.As)
+			as, err = semExpr(scope, o.As)
 			if err != nil {
 				return nil, err
 			}
@@ -508,7 +508,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			As:   as,
 		}, nil
 	case *ast.Merge:
-		expr, err := semExpr(scope, p.Expr)
+		expr, err := semExpr(scope, o.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("merge: %w", err)
 		}
@@ -518,21 +518,21 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:
-		return semOver(ctx, scope, p, adaptor, head)
+		return semOver(ctx, scope, o, adaptor, head)
 	case *ast.Let:
-		if p.Over == nil {
+		if o.Over == nil {
 			return nil, errors.New("let operator missing traversal in AST")
 		}
-		if p.Over.Scope == nil {
+		if o.Over.Scope == nil {
 			return nil, errors.New("let operator missing scope in AST")
 		}
 		scope.Enter()
 		defer scope.Exit()
-		locals, err := semVars(scope, p.Locals)
+		locals, err := semVars(scope, o.Locals)
 		if err != nil {
 			return nil, err
 		}
-		over, err := semOver(ctx, scope, p.Over, adaptor, head)
+		over, err := semOver(ctx, scope, o.Over, adaptor, head)
 		if err != nil {
 			return nil, err
 		}
@@ -542,7 +542,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Over: over,
 		}, nil
 	case *ast.Yield:
-		exprs, err := semExprs(scope, p.Exprs)
+		exprs, err := semExprs(scope, o.Exprs)
 		if err != nil {
 			return nil, err
 		}
@@ -551,7 +551,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor op.DataAdapt
 			Exprs: exprs,
 		}, nil
 	}
-	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", p)
+	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
 }
 
 func semOver(ctx context.Context, scope *Scope, in *ast.Over, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*dag.Over, error) {

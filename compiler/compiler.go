@@ -30,10 +30,10 @@ type Runtime struct {
 	meter     *meter
 }
 
-func New(pctx *op.Context, inAST ast.Proc, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
+func New(pctx *op.Context, inAST ast.Op, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
 	parserAST := ast.Copy(inAST)
 	// An AST always begins with a Sequential op with at least one
-	// operator.  If the first proc is a From or a Parallel whose branches
+	// operator.  If the first op is a From or a Parallel whose branches
 	// are Sequentials with a leading From, then we presume there is
 	// no externally defined input.  Otherwise, we expect two readers
 	// to be defined for a Join and one reader for anything else.  When input
@@ -44,14 +44,14 @@ func New(pctx *op.Context, inAST ast.Proc, adaptor op.DataAdaptor, head *lakepar
 	// DAG's entry point.
 	seq, ok := parserAST.(*ast.Sequential)
 	if !ok {
-		return nil, fmt.Errorf("internal error: AST must begin with a Sequential proc: %T", parserAST)
+		return nil, fmt.Errorf("internal error: AST must begin with a Sequential op: %T", parserAST)
 	}
-	if len(seq.Procs) == 0 {
-		return nil, errors.New("internal error: AST Sequential proc cannot be empty")
+	if len(seq.Ops) == 0 {
+		return nil, errors.New("internal error: AST Sequential op cannot be empty")
 	}
 	var readers []*kernel.Reader
 	var from *ast.From
-	switch proc := seq.Procs[0].(type) {
+	switch o := seq.Ops[0].(type) {
 	case *ast.From:
 		// Already have an entry point with From.  Do nothing.
 	case *ast.Join:
@@ -86,7 +86,7 @@ func New(pctx *op.Context, inAST ast.Proc, adaptor op.DataAdaptor, head *lakepar
 			Kind:   "From",
 			Trunks: []ast.Trunk{trunk},
 		}
-		if isParallelWithLeadingFroms(proc) {
+		if isParallelWithLeadingFroms(o) {
 			from = nil
 			readers = nil
 		}
@@ -106,25 +106,25 @@ func New(pctx *op.Context, inAST ast.Proc, adaptor op.DataAdaptor, head *lakepar
 	}, nil
 }
 
-func isParallelWithLeadingFroms(p ast.Proc) bool {
-	par, ok := p.(*ast.Parallel)
+func isParallelWithLeadingFroms(o ast.Op) bool {
+	par, ok := o.(*ast.Parallel)
 	if !ok {
 		return false
 	}
-	for _, p := range par.Procs {
-		if !isSequentialWithLeadingFrom(p) {
+	for _, o := range par.Ops {
+		if !isSequentialWithLeadingFrom(o) {
 			return false
 		}
 	}
 	return true
 }
 
-func isSequentialWithLeadingFrom(p ast.Proc) bool {
-	seq, ok := p.(*ast.Sequential)
-	if !ok && len(seq.Procs) == 0 {
+func isSequentialWithLeadingFrom(o ast.Op) bool {
+	seq, ok := o.(*ast.Sequential)
+	if !ok && len(seq.Ops) == 0 {
 		return false
 	}
-	_, ok = seq.Procs[0].(*ast.From)
+	_, ok = seq.Ops[0].(*ast.From)
 	return ok
 }
 
@@ -154,24 +154,23 @@ func (r *Runtime) Parallelize(n int) error {
 	return r.optimizer.Parallelize(n)
 }
 
-// ParseProc() is an entry point for use from external go code,
-// mostly just a wrapper around Parse() that casts the return value.
-func ParseProc(src string, filenames ...string) (ast.Proc, error) {
+// ParseOp concatenates the source files in filenames followed by src and parses
+// the resulting program.
+func ParseOp(src string, filenames ...string) (ast.Op, error) {
 	parsed, err := parser.ParseZed(filenames, src)
 	if err != nil {
 		return nil, err
 	}
-	return ast.UnpackMapAsProc(parsed)
+	return ast.UnpackMapAsOp(parsed)
 }
 
-// MustParseProc is functionally the same as ParseProc but panics if an error
-// is encountered.
-func MustParseProc(query string) ast.Proc {
-	proc, err := ParseProc(query)
+// MustParseOp is like ParseOp but panics if an error is encountered.
+func MustParseOp(query string) ast.Op {
+	o, err := ParseOp(query)
 	if err != nil {
 		panic(err)
 	}
-	return proc
+	return o
 }
 
 func (r *Runtime) Builder() *kernel.Builder {
@@ -215,11 +214,11 @@ func (m *meter) Progress() zbuf.Progress {
 }
 
 func ParseRangeExpr(zctx *zed.Context, src string, layout order.Layout) (*zed.Value, string, error) {
-	p, err := ParseProc(src)
+	o, err := ParseOp(src)
 	if err != nil {
 		return nil, "", err
 	}
-	d, err := semantic.Analyze(context.Background(), p.(*ast.Sequential), nil, nil)
+	d, err := semantic.Analyze(context.Background(), o.(*ast.Sequential), nil, nil)
 	if err != nil {
 		return nil, "", err
 	}

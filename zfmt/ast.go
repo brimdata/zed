@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func AST(p ast.Proc) string {
+func AST(p ast.Op) string {
 	c := &canon{canonZed: canonZed{formatter{tab: 2}}, head: true, first: true}
 	c.proc(p)
 	c.flush()
@@ -247,16 +247,16 @@ func (c *canon) next() {
 	}
 }
 
-func (c *canon) proc(p ast.Proc) {
+func (c *canon) proc(p ast.Op) {
 	switch p := p.(type) {
 	case *ast.Sequential:
-		for _, p := range p.Procs {
+		for _, p := range p.Ops {
 			c.proc(p)
 		}
 	case *ast.Parallel:
 		c.next()
 		c.open("fork (")
-		for _, p := range p.Procs {
+		for _, p := range p.Ops {
 			c.ret()
 			c.write("=>")
 			c.open()
@@ -294,7 +294,7 @@ func (c *canon) proc(p ast.Proc) {
 			c.write(" =>")
 			c.open()
 			c.head = true
-			c.proc(k.Proc)
+			c.proc(k.Op)
 			c.close()
 		}
 		c.close()

@@ -95,37 +95,37 @@ func UnpackJSON(buf []byte) (interface{}, error) {
 	return unpacker.Unmarshal(buf)
 }
 
-// UnpackJSONAsProc transforms a JSON representation of a proc into an ast.Proc.
-func UnpackJSONAsProc(buf []byte) (Proc, error) {
+// UnpackJSONAsOp transforms a JSON representation of an operator into an Op.
+func UnpackJSONAsOp(buf []byte) (Op, error) {
 	result, err := UnpackJSON(buf)
 	if result == nil || err != nil {
 		return nil, err
 	}
-	proc, ok := result.(Proc)
+	o, ok := result.(Op)
 	if !ok {
-		return nil, errors.New("JSON object is not a proc")
+		return nil, errors.New("not an operator")
 	}
-	return proc, nil
+	return o, nil
 }
 
-func UnpackMapAsProc(m interface{}) (Proc, error) {
+func UnpackMapAsOp(m interface{}) (Op, error) {
 	object, err := unpacker.UnmarshalObject(m)
 	if object == nil || err != nil {
 		return nil, err
 	}
-	proc, ok := object.(Proc)
+	o, ok := object.(Op)
 	if !ok {
-		return nil, errors.New("ast.UnpackMapAsProc: not a proc")
+		return nil, errors.New("not an operator")
 	}
-	return proc, nil
+	return o, nil
 }
 
-func Copy(in Proc) Proc {
+func Copy(in Op) Op {
 	b, err := json.Marshal(in)
 	if err != nil {
 		panic(err)
 	}
-	out, err := UnpackJSONAsProc(b)
+	out, err := UnpackJSONAsOp(b)
 	if err != nil {
 		panic(err)
 	}

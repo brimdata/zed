@@ -66,7 +66,7 @@ func NewTypeRule(name string, typ zed.Type) *TypeRule {
 
 func NewAggRule(name, prog string) (*AggRule, error) {
 	// make sure it compiles
-	if _, err := compiler.ParseProc(prog); err != nil {
+	if _, err := compiler.ParseOp(prog); err != nil {
 		return nil, err
 	}
 	return &AggRule{

@@ -504,7 +504,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := compiler.ParseProc(zedProgram)
+	proc, err := compiler.ParseOp(zedProgram)
 	if err != nil {
 		return "", err.Error(), err
 	}

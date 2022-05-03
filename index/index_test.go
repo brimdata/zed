@@ -117,7 +117,7 @@ func TestNearest(t *testing.T) {
 			runtest(t, desc, "==", c.value, c.eql)
 		}
 	})
-	q, err := runtime.NewQueryOnReader(context.Background(), zed.NewContext(), compiler.MustParseProc("sort ts"), reader(records), nil)
+	q, err := runtime.NewQueryOnReader(context.Background(), zed.NewContext(), compiler.MustParseOp("sort ts"), reader(records), nil)
 	defer q.Pull(true)
 	require.NoError(t, err)
 	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.Order(order.Asc))

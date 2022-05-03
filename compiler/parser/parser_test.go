@@ -47,12 +47,12 @@ func parsePEGjs(z string) ([]byte, error) {
 	return cmd.Output()
 }
 
-func parseProc(z string) ([]byte, error) {
-	proc, err := compiler.ParseProc(z)
+func parseOp(z string) ([]byte, error) {
+	o, err := compiler.ParseOp(z)
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(proc)
+	return json.Marshal(o)
 }
 
 func parsePigeon(z string) ([]byte, error) {
@@ -72,10 +72,10 @@ func testZed(t *testing.T, line string) {
 	pigeonJSON, err := parsePigeon(line)
 	assert.NoError(t, err, "parsePigeon: %q", line)
 
-	astJSON, err := parseProc(line)
-	assert.NoError(t, err, "parseProc: %q", line)
+	astJSON, err := parseOp(line)
+	assert.NoError(t, err, "parseOp: %q", line)
 
-	assert.JSONEq(t, string(pigeonJSON), string(astJSON), "pigeon and ast.Proc mismatch: %q", line)
+	assert.JSONEq(t, string(pigeonJSON), string(astJSON), "pigeon and AST mismatch: %q", line)
 
 	if runtime.GOOS != "windows" {
 		pegJSON, err := parsePEGjs(line)

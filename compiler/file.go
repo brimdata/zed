@@ -8,12 +8,12 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-func CompileForFileSystem(pctx *op.Context, p ast.Proc, readers []zio.Reader, adaptor op.DataAdaptor) (*Runtime, error) {
-	runtime, err := New(pctx, p, adaptor, nil)
+func CompileForFileSystem(pctx *op.Context, o ast.Op, readers []zio.Reader, adaptor op.DataAdaptor) (*Runtime, error) {
+	runtime, err := New(pctx, o, adaptor, nil)
 	if err != nil {
 		return nil, err
 	}
-	if isJoin(p) {
+	if isJoin(o) {
 		if len(readers) != 2 {
 			return nil, errors.New("join operaetor requires two inputs")
 		}
@@ -45,12 +45,12 @@ func CompileForFileSystem(pctx *op.Context, p ast.Proc, readers []zio.Reader, ad
 	return optimizeAndBuild(runtime)
 }
 
-func isJoin(p ast.Proc) bool {
-	seq, ok := p.(*ast.Sequential)
-	if !ok || len(seq.Procs) == 0 {
+func isJoin(o ast.Op) bool {
+	seq, ok := o.(*ast.Sequential)
+	if !ok || len(seq.Ops) == 0 {
 		return false
 	}
-	_, ok = seq.Procs[0].(*ast.Join)
+	_, ok = seq.Ops[0].(*ast.Join)
 	return ok
 }
 

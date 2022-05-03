@@ -72,7 +72,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.repl, "repl", false, "enter repl")
 	f.BoolVar(&c.js, "js", false, "run javascript version of peg parser")
 	f.BoolVar(&c.pigeon, "pigeon", false, "run pigeon version of peg parser")
-	f.BoolVar(&c.proc, "proc", false, "run pigeon version of peg parser and marshal into ast.Proc")
+	f.BoolVar(&c.proc, "proc", false, "run pigeon version of peg parser and marshal into ast.Op")
 	f.BoolVar(&c.semantic, "s", false, "display semantically analyzed AST (implies -proc)")
 	f.BoolVar(&c.optimize, "O", false, "display optimized, non-filter AST (implies -proc)")
 	f.IntVar(&c.parallel, "P", 0, "display parallelized AST (implies -proc)")
@@ -172,7 +172,7 @@ func (c *Command) parse(z string) error {
 		fmt.Println(s)
 	}
 	if c.proc {
-		p, err := compiler.ParseProc(z)
+		p, err := compiler.ParseOp(z)
 		if err != nil {
 			return err
 		}
@@ -215,7 +215,7 @@ func (c *Command) parse(z string) error {
 	return nil
 }
 
-func (c *Command) writeProc(p ast.Proc) {
+func (c *Command) writeProc(p ast.Op) {
 	s, err := procFmt(p, c.canon)
 	if err != nil {
 		fmt.Println(err)
@@ -234,7 +234,7 @@ func (c *Command) writeOp(op dag.Op) {
 }
 
 func (c *Command) compile(z string) (*compiler.Runtime, error) {
-	p, err := compiler.ParseProc(z)
+	p, err := compiler.ParseOp(z)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func parsePEGjs(z string) (string, error) {
 	return normalize(b)
 }
 
-func procFmt(proc ast.Proc, canon bool) (string, error) {
+func procFmt(proc ast.Op, canon bool) (string, error) {
 	if canon {
 		return zfmt.AST(proc), nil
 	}

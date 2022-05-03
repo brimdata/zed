@@ -195,7 +195,7 @@ func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, 
 	}
 }
 
-// Parallelize takes a sequential proc AST and tries to
+// Parallelize takes a sequential operation and tries to
 // parallelize it by splitting as much as possible of the sequence
 // into n parallel branches. The boolean return argument indicates
 // whether the flowgraph could be parallelized.
