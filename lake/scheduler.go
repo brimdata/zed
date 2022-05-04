@@ -51,10 +51,6 @@ func (s *Scheduler) Progress() zbuf.Progress {
 	return s.progress.Copy()
 }
 
-func (s *Scheduler) AddProgress(progress zbuf.Progress) {
-	s.progress.Add(progress)
-}
-
 func (s *Scheduler) PullScanTask() (zbuf.Puller, error) {
 	s.once.Do(func() {
 		s.run()
@@ -64,7 +60,7 @@ func (s *Scheduler) PullScanTask() (zbuf.Puller, error) {
 		if p.Objects == nil {
 			return nil, s.group.Wait()
 		}
-		return s.newSortedScanner(p)
+		return newSortedScanner(s, p)
 	case <-s.ctx.Done():
 		return nil, s.group.Wait()
 	}
@@ -104,10 +100,6 @@ func (s *Scheduler) PullScanWork() (Partition, error) {
 	case <-s.ctx.Done():
 		return Partition{}, s.group.Wait()
 	}
-}
-
-func (s *Scheduler) newSortedScanner(p Partition) (zbuf.Puller, error) {
-	return newSortedScanner(s.ctx, s.pool, s.zctx, s.filter, p, s)
 }
 
 type scannerScheduler struct {
