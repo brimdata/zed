@@ -3,7 +3,7 @@ script: |
   zed create -q test
   echo '{ts:0}' | zed load -use test -q -
   for accept in "text/plain, application/json" "application/xml, text/css"; do
-    echo === $accept ===
+    echo // $accept
     curl -H "Accept: $accept" -d '{"query":"from test@main"}' $ZED_LAKE/query
   done
 
@@ -13,7 +13,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      === text/plain, application/json ===
+      // text/plain, application/json
       [{"ts":0}]
-      === application/xml, text/css ===
-      {"type":"Error","kind":"invalid operation","error":"could not find supported mime type in ACCEPT header"}
+      // application/xml, text/css
+      {"type":"Error","kind":"invalid operation","error":"could not find supported MIME type in Accept header"}

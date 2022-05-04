@@ -49,7 +49,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger, defa
 	if len(ss) == 0 {
 		ss = []string{""}
 	}
-	for _, mime := range strings.Split(r.Header.Get("Accept"), ",") {
+	for _, mime := range ss {
 		format, err := api.MediaTypeToFormat(mime, defaultFormat)
 		if err != nil {
 			continue

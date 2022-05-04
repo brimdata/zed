@@ -69,6 +69,6 @@ func FormatToMediaType(format string) string {
 	case "zson":
 		return MediaTypeZSON
 	default:
-		return ""
+		panic(fmt.Sprintf("unknown format type: %s", format))
 	}
 }
