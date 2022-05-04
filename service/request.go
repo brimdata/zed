@@ -57,7 +57,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger, defa
 		res.Format = format
 		return res, req, true
 	}
-	res.Error(srverr.ErrInvalid("could not find supported mime type in ACCEPT header"))
+	res.Error(srverr.ErrInvalid("could not find supported MIME type in Accept header"))
 	return nil, nil, false
 }
 
