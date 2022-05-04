@@ -15,8 +15,8 @@ import (
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Proc is the interface implemented by all AST operator nodes.
-type Proc interface {
+// Op is the interface implemented by all AST operator nodes.
+type Op interface {
 	OpAST()
 }
 
@@ -195,7 +195,7 @@ type (
 	Sequential struct {
 		Kind   string `json:"kind" unpack:""`
 		Consts []Def  `json:"consts"`
-		Procs  []Proc `json:"ops"`
+		Ops    []Op   `json:"ops"`
 	}
 	// A Parallel operator represents a set of operators that each get
 	// a stream of Zed values from their parent.
@@ -207,7 +207,7 @@ type (
 		// XXX merge_by should be a list of expressions
 		MergeBy      field.Path `json:"merge_by,omitempty"`
 		MergeReverse bool       `json:"merge_reverse,omitempty"`
-		Procs        []Proc     `json:"ops"`
+		Ops          []Op       `json:"ops"`
 	}
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
@@ -405,7 +405,7 @@ type Trunk struct {
 
 type Case struct {
 	Expr Expr `json:"expr"`
-	Proc Proc `json:"op"`
+	Op   Op   `json:"op"`
 }
 
 type SQLFrom struct {
@@ -471,8 +471,8 @@ func (*Yield) OpAST()        {}
 
 func (*SQLExpr) OpAST() {}
 
-func (seq *Sequential) Prepend(front Proc) {
-	seq.Procs = append([]Proc{front}, seq.Procs...)
+func (seq *Sequential) Prepend(front Op) {
+	seq.Ops = append([]Op{front}, seq.Ops...)
 }
 
 // An Agg is an AST node that represents a aggregate function.  The Name

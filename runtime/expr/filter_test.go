@@ -57,7 +57,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	for _, c := range cases {
 		t.Run(c.filter, func(t *testing.T) {
 			t.Helper()
-			p, err := compiler.ParseProc(c.filter)
+			p, err := compiler.ParseOp(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
 			runtime, err := compiler.New(op.DefaultContext(), p, lk, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
@@ -414,6 +414,6 @@ func TestFilters(t *testing.T) {
 
 func TestBadFilter(t *testing.T) {
 	t.Parallel()
-	_, err := compiler.ParseProc(`s matches \xa8*`)
+	_, err := compiler.ParseOp(`s matches \xa8*`)
 	require.Error(t, err)
 }

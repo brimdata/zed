@@ -34,7 +34,7 @@ func NewQuery(pctx *op.Context, flowgraph *compiler.Runtime, closer io.Closer) *
 	}
 }
 
-func NewQueryOnReader(ctx context.Context, zctx *zed.Context, program ast.Proc, reader zio.Reader, logger *zap.Logger) (*Query, error) {
+func NewQueryOnReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, logger *zap.Logger) (*Query, error) {
 	pctx := op.NewContext(ctx, zctx, logger)
 	flowgraph, err := compiler.CompileForInternal(pctx, program, reader)
 	if err != nil {
@@ -44,7 +44,7 @@ func NewQueryOnReader(ctx context.Context, zctx *zed.Context, program ast.Proc, 
 	return NewQuery(pctx, flowgraph, nil), nil
 }
 
-func NewQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Proc, reader zio.Reader, layout order.Layout, logger *zap.Logger) (*Query, error) {
+func NewQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, layout order.Layout, logger *zap.Logger) (*Query, error) {
 	pctx := op.NewContext(ctx, zctx, logger)
 	flowgraph, err := compiler.CompileForInternalWithOrder(pctx, program, reader, layout)
 	if err != nil {
@@ -54,7 +54,7 @@ func NewQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast
 	return NewQuery(pctx, flowgraph, nil), nil
 }
 
-func NewQueryOnFileSystem(ctx context.Context, zctx *zed.Context, program ast.Proc, readers []zio.Reader, adaptor op.DataAdaptor) (*Query, error) {
+func NewQueryOnFileSystem(ctx context.Context, zctx *zed.Context, program ast.Op, readers []zio.Reader, adaptor op.DataAdaptor) (*Query, error) {
 	pctx := op.NewContext(ctx, zctx, nil)
 	flowgraph, err := compiler.CompileForFileSystem(pctx, program, readers, adaptor)
 	if err != nil {
@@ -64,7 +64,7 @@ func NewQueryOnFileSystem(ctx context.Context, zctx *zed.Context, program ast.Pr
 	return NewQuery(pctx, flowgraph, nil), nil
 }
 
-func NewQueryOnLake(ctx context.Context, zctx *zed.Context, program ast.Proc, lake op.DataAdaptor, head *lakeparse.Commitish, logger *zap.Logger) (*Query, error) {
+func NewQueryOnLake(ctx context.Context, zctx *zed.Context, program ast.Op, lake op.DataAdaptor, head *lakeparse.Commitish, logger *zap.Logger) (*Query, error) {
 	pctx := op.NewContext(ctx, zctx, logger)
 	flowgraph, err := compiler.CompileForLake(pctx, program, lake, 0, head)
 	if err != nil {

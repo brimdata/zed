@@ -163,7 +163,7 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		return replicateAndMerge(seq, layout, from, trunk, replicas)
 	default:
 		// If we're here, we reached the end of the flowgraph without
-		// coming across a merge-forcing proc. If inputs are sorted,
+		// coming across a merge-forcing op. If inputs are sorted,
 		// we can parallelize the entire chain and do an ordered
 		// merge. Otherwise, no parallelization.
 		if layout.IsNil() {

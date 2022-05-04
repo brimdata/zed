@@ -108,7 +108,7 @@ type indexer struct {
 func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, object *Object, r zio.Reader) (*indexer, error) {
 	rule := object.Rule
 	zedQuery := rule.Zed()
-	p, err := compiler.ParseProc(zedQuery)
+	p, err := compiler.ParseOp(zedQuery)
 	if err != nil {
 		return nil, err
 	}

@@ -16,13 +16,13 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-func CompileForInternal(pctx *op.Context, p ast.Proc, r zio.Reader) (*Runtime, error) {
-	return CompileForInternalWithOrder(pctx, p, r, order.Layout{})
+func CompileForInternal(pctx *op.Context, o ast.Op, r zio.Reader) (*Runtime, error) {
+	return CompileForInternalWithOrder(pctx, o, r, order.Layout{})
 }
 
-func CompileForInternalWithOrder(pctx *op.Context, p ast.Proc, r zio.Reader, layout order.Layout) (*Runtime, error) {
+func CompileForInternalWithOrder(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*Runtime, error) {
 	adaptor := &internalAdaptor{}
-	runtime, err := New(pctx, p, adaptor, nil)
+	runtime, err := New(pctx, o, adaptor, nil)
 	if err != nil {
 		return nil, err
 	}

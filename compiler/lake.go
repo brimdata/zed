@@ -11,7 +11,7 @@ import (
 
 var Parallelism = runtime.GOMAXPROCS(0) //XXX
 
-func CompileForLake(pctx *op.Context, program ast.Proc, lake op.DataAdaptor, parallelism int, head *lakeparse.Commitish) (*Runtime, error) {
+func CompileForLake(pctx *op.Context, program ast.Op, lake op.DataAdaptor, parallelism int, head *lakeparse.Commitish) (*Runtime, error) {
 	runtime, err := New(pctx, program, lake, head)
 	if err != nil {
 		return nil, err

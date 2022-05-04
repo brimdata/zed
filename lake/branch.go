@@ -202,7 +202,7 @@ func (b *Branch) dbpCopies(ctx context.Context, snap *commits.Snapshot, copies [
 		defer readers[i].(*zngio.Reader).Close()
 	}
 	// Keeps values that don't fit the filter by adding "not".
-	flowgraph, err := compiler.ParseProc("not " + filter)
+	flowgraph, err := compiler.ParseOp("not " + filter)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +249,7 @@ from %s@%s:objects
 		deletesField, copiesField = copiesField, deletesField
 	}
 	src := fmt.Sprintf(dbp, zson.MustFormatValue(val), b.pool.ID, commit, deletesField, op, copiesField, op)
-	flowgraph, err := compiler.ParseProc(src)
+	flowgraph, err := compiler.ParseOp(src)
 	if err != nil {
 		return nil, nil, err
 	}

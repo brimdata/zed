@@ -230,17 +230,17 @@ func fieldOf(e dag.Expr) field.Path {
 
 func copyOps(ops []dag.Op) []dag.Op {
 	var copies []dag.Op
-	for _, p := range ops {
-		copies = append(copies, copyOp(p))
+	for _, o := range ops {
+		copies = append(copies, copyOp(o))
 	}
 	return copies
 }
 
-func copyOp(p dag.Op) dag.Op {
-	if p == nil {
+func copyOp(o dag.Op) dag.Op {
+	if o == nil {
 		panic("copyOp nil")
 	}
-	b, err := json.Marshal(p)
+	b, err := json.Marshal(o)
 	if err != nil {
 		panic(err)
 	}

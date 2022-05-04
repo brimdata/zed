@@ -79,8 +79,8 @@ func (b *Builder) Meters() []zbuf.Meter {
 	return meters
 }
 
-func (b *Builder) compileLeaf(p dag.Op, parent zbuf.Puller) (zbuf.Puller, error) {
-	switch v := p.(type) {
+func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error) {
+	switch v := o.(type) {
 	case *dag.Summarize:
 		return b.compileGroupBy(parent, v)
 	case *dag.Cut:
@@ -295,9 +295,9 @@ func splitAssignments(assignments []expr.Assignment) (field.List, []expr.Evaluat
 }
 
 func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	for _, op := range seq.Ops {
+	for _, o := range seq.Ops {
 		var err error
-		parents, err = b.compile(op, parents)
+		parents, err = b.compile(o, parents)
 		if err != nil {
 			return nil, err
 		}
@@ -308,8 +308,8 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	if len(parents) == 0 {
 		var ops []zbuf.Puller
-		for _, op := range parallel.Ops {
-			branch, err := b.compile(op, nil)
+		for _, o := range parallel.Ops {
+			branch, err := b.compile(o, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -382,35 +382,35 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbu
 		}
 	}
 	if len(parents) != n {
-		return nil, fmt.Errorf("op.compileSwitch: %d parents for switch proc with %d branches", len(parents), len(swtch.Cases))
+		return nil, fmt.Errorf("%d parents for switch with %d branches", len(parents), len(swtch.Cases))
 	}
 	var ops []zbuf.Puller
 	for k := 0; k < n; k++ {
-		op, err := b.compile(swtch.Cases[k].Op, []zbuf.Puller{parents[k]})
+		o, err := b.compile(swtch.Cases[k].Op, []zbuf.Puller{parents[k]})
 		if err != nil {
 			return nil, err
 		}
-		ops = append(ops, op...)
+		ops = append(ops, o...)
 	}
 	return ops, nil
 }
 
 // compile compiles a DAG into a graph of runtime operators, and returns
 // the leaves.
-func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	switch op := op.(type) {
+func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	switch o := o.(type) {
 	case *dag.Sequential:
-		if len(op.Ops) == 0 {
-			return nil, errors.New("sequential proc without procs")
+		if len(o.Ops) == 0 {
+			return nil, errors.New("empty sequential operator")
 		}
-		return b.compileSequential(op, parents)
+		return b.compileSequential(o, parents)
 	case *dag.Parallel:
-		return b.compileParallel(op, parents)
+		return b.compileParallel(o, parents)
 	case *dag.Switch:
-		if op.Expr != nil {
-			return b.compileExprSwitch(op, parents)
+		if o.Expr != nil {
+			return b.compileExprSwitch(o, parents)
 		}
-		return b.compileSwitch(op, parents)
+		return b.compileSwitch(o, parents)
 	case *dag.From:
 		if len(parents) > 1 {
 			return nil, errors.New("'from' operator can have at most one parent")
@@ -419,27 +419,27 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 		if len(parents) == 1 {
 			parent = parents[0]
 		}
-		return b.compileFrom(op, parent)
+		return b.compileFrom(o, parent)
 	case *dag.Join:
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
 		}
-		assignments, err := b.compileAssignments(op.Args)
+		assignments, err := b.compileAssignments(o.Args)
 		if err != nil {
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		leftKey, err := b.compileExpr(op.LeftKey)
+		leftKey, err := b.compileExpr(o.LeftKey)
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := b.compileExpr(op.RightKey)
+		rightKey, err := b.compileExpr(o.RightKey)
 		if err != nil {
 			return nil, err
 		}
 		leftParent, rightParent := parents[0], parents[1]
 		var anti, inner bool
-		switch op.Style {
+		switch o.Style {
 		case "anti":
 			anti = true
 		case "inner":
@@ -449,7 +449,7 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 			leftKey, rightKey = rightKey, leftKey
 			leftParent, rightParent = rightParent, leftParent
 		default:
-			return nil, fmt.Errorf("unknown kind of join: '%s'", op.Style)
+			return nil, fmt.Errorf("unknown kind of join: '%s'", o.Style)
 		}
 		join, err := join.New(b.pctx, anti, inner, leftParent, rightParent, leftKey, rightKey, lhs, rhs)
 		if err != nil {
@@ -457,11 +457,11 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 		}
 		return []zbuf.Puller{join}, nil
 	case *dag.Merge:
-		e, err := b.compileExpr(op.Expr)
+		e, err := b.compileExpr(o.Expr)
 		if err != nil {
 			return nil, err
 		}
-		nullsMax := op.Order == order.Asc
+		nullsMax := o.Order == order.Asc
 		cmp := expr.NewComparator(nullsMax, !nullsMax, e).WithMissingAsNull()
 		return []zbuf.Puller{merge.New(b.pctx, parents, cmp.Compare)}, nil
 	default:
@@ -471,7 +471,7 @@ func (b *Builder) compile(op dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, erro
 		} else {
 			parent = combine.New(b.pctx, parents)
 		}
-		p, err := b.compileLeaf(op, parent)
+		p, err := b.compileLeaf(o, parent)
 		if err != nil {
 			return nil, err
 		}

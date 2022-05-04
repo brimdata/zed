@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr/agg"
 )
 
-func convertSQLProc(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {
+func convertSQLOp(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {
 	selection, err := newSQLSelection(scope, sql.Select)
 	if err != err {
 		return nil, err

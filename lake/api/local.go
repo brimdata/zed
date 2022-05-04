@@ -111,7 +111,7 @@ func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string
 }
 
 func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
-	flowgraph, err := compiler.ParseProc(src, srcfiles...)
+	flowgraph, err := compiler.ParseOp(src, srcfiles...)
 	if err != nil {
 		return nil, err
 	}
