@@ -847,6 +847,15 @@ produces
 {a:[1,2]}
 {d:{e:1}}
 ```
+You can also use this operator with a static array:
+```mdtest-command
+echo '{accounts:[{id:1},{id:2},{id:3}]}' | zq -z 'over accounts | where id in [1,2]' -
+```
+produces
+```mdtest-output
+{id:1}
+{id:2}
+```
 
 ### 6.4 Logic
 
