@@ -1,7 +1,6 @@
 package lake
 
 import (
-	"context"
 	"io"
 
 	"github.com/brimdata/zed"
@@ -11,83 +10,66 @@ import (
 	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
-	"go.uber.org/multierr"
 )
 
-type multiCloser []io.Closer
-
-func (c multiCloser) Close() (err error) {
-	for _, closer := range c {
-		if closeErr := closer.Close(); closeErr != nil {
-			err = multierr.Append(err, closeErr)
+func newSortedScanner(s *Scheduler, part Partition) (zbuf.Puller, error) {
+	pullers := make([]zbuf.Puller, 0, len(part.Objects))
+	pullersDone := func() {
+		for _, p := range pullers {
+			p.Pull(true)
 		}
 	}
-	return
-}
-
-type sortedPuller struct {
-	zbuf.Puller
-	io.Closer
-}
-
-type statScanner struct {
-	zbuf.Scanner
-	puller zbuf.Puller
-	sched  *Scheduler
-	err    error
-}
-
-func (s *statScanner) Pull(done bool) (zbuf.Batch, error) {
-	if s.puller == nil {
-		return nil, s.err
-	}
-	batch, err := s.puller.Pull(done)
-	if batch == nil || err != nil {
-		s.sched.AddProgress(s.Scanner.Progress())
-		s.puller = nil
-		s.err = err
-	}
-	return batch, err
-}
-
-func newSortedScanner(ctx context.Context, pool *Pool, zctx *zed.Context, filter zbuf.Filter, scan Partition, sched *Scheduler) (*sortedPuller, error) {
-	closers := make(multiCloser, 0, len(scan.Objects))
-	pullers := make([]zbuf.Puller, 0, len(scan.Objects))
-	for _, object := range scan.Objects {
-		rc, err := object.NewReader(ctx, pool.engine, pool.DataPath, scan.Span, scan.compare)
-		if err != nil {
-			closers.Close()
-			return nil, err
-		}
-		closers = append(closers, rc)
-		reader := zngio.NewReader(rc, zctx)
-		f := filter
-		if len(pool.Layout.Keys) != 0 {
+	for _, o := range part.Objects {
+		f := s.filter
+		if len(s.pool.Layout.Keys) != 0 {
 			// If the scan span does not wholly contain the data object, then
 			// we must filter out records that fall outside the range.
-			f = wrapRangeFilter(f, scan.Span, scan.compare, object.First, object.Last, pool.Layout)
+			f = wrapRangeFilter(f, part.Span, part.compare, o.First, o.Last, s.pool.Layout)
 		}
-		scanner, err := reader.NewScanner(ctx, f)
+		rc, err := o.NewReader(s.ctx, s.pool.engine, s.pool.DataPath, part.Span, part.compare)
 		if err != nil {
-			closers.Close()
+			pullersDone()
+			return nil, err
+		}
+		scanner, err := zngio.NewReader(rc, s.zctx).NewScanner(s.ctx, f)
+		if err != nil {
+			pullersDone()
+			rc.Close()
 			return nil, err
 		}
 		pullers = append(pullers, &statScanner{
-			Scanner: scanner,
-			puller:  scanner,
-			sched:   sched,
+			scanner:  scanner,
+			closer:   rc,
+			progress: &s.progress,
 		})
 	}
-	var merger zbuf.Puller
 	if len(pullers) == 1 {
-		merger = pullers[0]
-	} else {
-		merger = merge.New(ctx, pullers, importComparator(zctx, pool).Compare)
+		return pullers[0], nil
 	}
-	return &sortedPuller{
-		Puller: merger,
-		Closer: closers,
-	}, nil
+	return merge.New(s.ctx, pullers, importComparator(s.zctx, s.pool).Compare), nil
+}
+
+type statScanner struct {
+	scanner  zbuf.Scanner
+	closer   io.Closer
+	err      error
+	progress *zbuf.Progress
+}
+
+func (s *statScanner) Pull(done bool) (zbuf.Batch, error) {
+	if s.scanner == nil {
+		return nil, s.err
+	}
+	batch, err := s.scanner.Pull(done)
+	if batch == nil || err != nil {
+		s.progress.Add(s.scanner.Progress())
+		if err2 := s.closer.Close(); err == nil {
+			err = err2
+		}
+		s.err = err
+		s.scanner = nil
+	}
+	return batch, err
 }
 
 type rangeWrapper struct {
