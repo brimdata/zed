@@ -460,7 +460,7 @@ For response content types, the service can produce a variety of formats. To
 receive responses in the desired format, include the MIME type of the format in
 the request's Accept HTTP header.
 
-If the Accept header is not specified, the service will return JSON as the
+If the Accept header is not specified, the service will return ZSON as the
 default response format for the endpoints described above.
 
 The supported MIME types are as follows:

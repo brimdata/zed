@@ -50,7 +50,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 		ss = []string{""}
 	}
 	for _, mime := range ss {
-		format, err := api.MediaTypeToFormat(mime, "json")
+		format, err := api.MediaTypeToFormat(mime, DefaultZedFormat)
 		if err != nil {
 			continue
 		}

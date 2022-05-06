@@ -1,7 +1,7 @@
 script: |
   source service.sh
   curl -X POST -d '{"name":"test"}' $ZED_LAKE/pool > pool.json
-  poolID=$(zq -f text "cut pool.id" pool.json)
+  poolID=$(zq -f text "yield ksuid(pool.id)" pool.json)
   curl -X POST --data-binary @- $ZED_LAKE/pool/$poolID/branch/main | zq -z "commit:=0" -
 
 inputs:
@@ -15,4 +15,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {commit:0,warnings:[]([null])}
+      {commit:0,warnings:[]([string])}
