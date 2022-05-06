@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
@@ -31,7 +32,7 @@ type Request struct {
 	Logger *zap.Logger
 }
 
-func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*ResponseWriter, *Request) {
+func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*ResponseWriter, *Request, bool) {
 	logger = logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 	req := &Request{
 		Request: r,
@@ -44,12 +45,20 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 		Logger:         logger,
 		marshaler:      m,
 	}
-	accept := r.Header.Get("Accept")
-	if accept == "" || accept == "*/*" {
-		accept = "application/json"
+	ss := strings.Split(r.Header.Get("Accept"), ",")
+	if len(ss) == 0 {
+		ss = []string{""}
 	}
-	res.SetContentType(accept)
-	return res, req
+	for _, mime := range ss {
+		format, err := api.MediaTypeToFormat(mime, DefaultZedFormat)
+		if err != nil {
+			continue
+		}
+		res.Format = format
+		return res, req, true
+	}
+	res.Error(srverr.ErrInvalid("could not find supported MIME type in Accept header"))
+	return nil, nil, false
 }
 
 func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool) {
@@ -179,6 +188,7 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 
 type ResponseWriter struct {
 	http.ResponseWriter
+	Format    string
 	Logger    *zap.Logger
 	zw        zio.WriteCloser
 	marshaler *zson.MarshalZNGContext
@@ -189,25 +199,11 @@ func (w *ResponseWriter) ContentType() string {
 	return w.Header().Get("Content-Type")
 }
 
-func (w *ResponseWriter) SetContentType(ct string) {
-	w.Header().Set("Content-Type", ct)
-}
-
 func (w *ResponseWriter) ZioWriter() zio.WriteCloser {
-	return w.ZioWriterWithOpts(anyio.WriterOpts{})
-}
-
-func (w *ResponseWriter) ZioWriterWithOpts(opts anyio.WriterOpts) zio.WriteCloser {
 	if w.zw == nil {
+		w.Header().Set("Content-Type", api.FormatToMediaType(w.Format))
 		var err error
-		if opts.Format == "" {
-			opts.Format, err = api.MediaTypeToFormat(w.ContentType(), DefaultZedFormat)
-			if err != nil {
-				w.Error(srverr.ErrInvalid(err))
-				return nil
-			}
-		}
-		w.zw, err = anyio.NewWriter(zio.NopCloser(w), opts)
+		w.zw, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{Format: w.Format})
 		if err != nil {
 			w.Error(err)
 			return nil
@@ -215,9 +211,10 @@ func (w *ResponseWriter) ZioWriterWithOpts(opts anyio.WriterOpts) zio.WriteClose
 	}
 	return w.zw
 }
-
 func (w *ResponseWriter) Write(b []byte) (int, error) {
-	atomic.StoreInt32(&w.written, 1)
+	if atomic.CompareAndSwapInt32(&w.written, 0, 1) {
+		w.Header().Set("Content-Type", api.FormatToMediaType(w.Format))
+	}
 	return w.ResponseWriter.Write(b)
 }
 
@@ -234,7 +231,7 @@ func (w *ResponseWriter) Error(err error) {
 	if atomic.CompareAndSwapInt32(&w.written, 0, 1) {
 		// Should errors be returned in different encodings, i.e. adhere to
 		// the encoding ?
-		w.SetContentType("application/json")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		if err := json.NewEncoder(w).Encode(res); err != nil {
 			w.Logger.Warn("Error writing response", zap.Error(err))

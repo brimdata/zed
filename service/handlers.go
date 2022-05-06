@@ -43,18 +43,13 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(srverr.ErrInvalid(err))
 		return
 	}
-	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"), DefaultZedFormat)
-	if err != nil {
-		w.Error(srverr.ErrInvalid(err))
-		return
-	}
 	flowgraph, err := runtime.NewQueryOnLake(r.Context(), zed.NewContext(), query, c.root, &req.Head, r.Logger)
 	if err != nil {
 		w.Error(err)
 		return
 	}
 	flusher, _ := w.ResponseWriter.(http.Flusher)
-	writer, err := queryio.NewWriter(zio.NopCloser(w), format, flusher)
+	writer, err := queryio.NewWriter(zio.NopCloser(w), w.Format, flusher)
 	if err != nil {
 		w.Error(err)
 		return
