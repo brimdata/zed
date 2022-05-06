@@ -397,7 +397,7 @@ POST /query
 | query | string | body | Zed query to execute. All data is returned if not specified. ||
 | head.pool | string | body | Pool to query against Not required if pool is specified in query. |
 | head.branch | string | body | Branch to query against. Defaults to "main". |
-| Accept | [MIME Type](#media-types) | header | The data format of the results. ZSON is selected if unspecified. |
+| Accept | [MIME Type](#media-types) | header | The data format of the results. JSON is selected if unspecified. |
 
 **Example Request**
 
@@ -462,8 +462,7 @@ receive responses in the desired format, include the MIME type of the format in
 the request's Accept HTTP header.
 
 If the Accept header is not specified, the service will return JSON as the
-default response format for the endpoints described above, with the exception
-of the [query](#query) endpoint that returns ZSON by default.
+default response format for the endpoints described above.
 
 The supported MIME types are as follows:
 

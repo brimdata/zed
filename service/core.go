@@ -167,38 +167,22 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
-	c.authhandle("/query", handleQuery, defaultFormat("zson")).Methods("OPTIONS", "POST")
+	c.authhandle("/query", handleQuery).Methods("OPTIONS", "POST")
 }
 
-type routeOpts struct {
-	defaultFormat string
-}
-
-type routeOpt func(*routeOpts)
-
-func defaultFormat(format string) routeOpt {
-	return func(o *routeOpts) {
-		o.defaultFormat = format
-	}
-}
-
-func (c *Core) handler(f func(*Core, *ResponseWriter, *Request), opts ...routeOpt) http.Handler {
-	opt := &routeOpts{defaultFormat: "json"}
-	for _, fn := range opts {
-		fn(opt)
-	}
+func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if res, req, ok := newRequest(w, r, c.logger, opt.defaultFormat); ok {
+		if res, req, ok := newRequest(w, r, c.logger); ok {
 			f(c, res, req)
 		}
 	})
 }
 
-func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request), opts ...routeOpt) *mux.Route {
+func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request)) *mux.Route {
 	if c.auth != nil {
 		f = c.auth.Middleware(f)
 	}
-	return c.routerAPI.Handle(path, c.handler(f, opts...))
+	return c.routerAPI.Handle(path, c.handler(f))
 }
 
 func branchHandle(f func(*Core, *ResponseWriter, *Request, *lake.Branch)) func(*Core, *ResponseWriter, *Request) {

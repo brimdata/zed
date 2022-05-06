@@ -37,5 +37,4 @@ outputs:
       {a:"hello",b:{c:"world",d:"goodbye"}}
       {a:"one",b:{c:"two",d:"three"}}
       === ===
-      {a:"hello",b:{c:"world",d:"goodbye"}}
-      {a:"one",b:{c:"two",d:"three"}}
+      [{"a":"hello","b":{"c":"world","d":"goodbye"}},{"a":"one","b":{"c":"two","d":"three"}}]
