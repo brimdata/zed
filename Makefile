@@ -35,8 +35,8 @@ $(SAMPLEDATA):
 sampledata: $(SAMPLEDATA)
 
 bin/minio: Makefile
-	curl -o $@ --create-dirs https://dl.min.io/server/minio/release/$$(go env GOOS)-$$(go env GOARCH)/archive/minio.RELEASE.2022-05-04T07-45-27Z
-	chmod +x $@
+	@curl -o $@ --create-dirs https://dl.min.io/server/minio/release/$$(go env GOOS)-$$(go env GOARCH)/archive/minio.RELEASE.2022-05-04T07-45-27Z
+	@chmod +x $@
 
 generate:
 	@GOBIN="$(CURDIR)/bin" go install github.com/golang/mock/mockgen
