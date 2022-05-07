@@ -1,23 +1,27 @@
 #!/bin/bash
 
 mkdir -p data/bucket
-portdir=$(mktemp -d)
-minio server --writeportfile="$portdir/port" --quiet --address "localhost:0" ./data &
-trap "rm -rf $portdir; kill -9 $!" EXIT
 
-# Wait for port file to show up. Minio will write this file once the listener
-# has started.
-i=0
-until [ -f $portdir/port ]; do
-  let i+=1
-  if [ $i -gt 50 ]; then
-    echo "timed out waiting for minio to start"
-    exit 1
-  fi
-  sleep 0.1
-done
+# Allocate a port.  Another process could bind to it before MinIO does,
+# but that's very unlikely.
+port=$(python3 -c "import socket; print(socket.create_server(('localhost', 0)).getsockname()[1])")
+minio server --address localhost:$port --console-address localhost:0 --quiet data &
+trap "kill -9 $!" EXIT
 
-port=$(cat $portdir/port)
+# Wait for MinIO to accept a connection.
+python3 <<EOF
+import socket, time
+start = time.time()
+while True:
+    try:
+        socket.create_connection(('localhost', $port))
+        break
+    except ConnectionRefusedError:
+        if time.time() - start > 5:
+            raise
+    time.sleep(0.1)
+EOF
+
 export AWS_REGION=does-not-matter
 export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
