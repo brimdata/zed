@@ -4,7 +4,6 @@ export GO111MODULE=on
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
-MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
 BUILD_COMMANDS = ./cmd/zed ./cmd/zq
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
@@ -35,16 +34,9 @@ $(SAMPLEDATA):
 
 sampledata: $(SAMPLEDATA)
 
-.PHONY: bin/minio
-bin/minio: bin/minio-$(MINIO_VERSION)
-	ln -fs $(<F) $@
-
-bin/minio-$(MINIO_VERSION):
-	mkdir -p $(@D)
-	echo 'module deps' > $@.mod
-	go mod edit -modfile=$@.mod -replace=github.com/minio/minio=github.com/brimdata/minio@v$(MINIO_VERSION)
-	go get -d -modfile=$@.mod github.com/minio/minio
-	go build -modfile=$@.mod -o $@ github.com/minio/minio
+bin/minio: Makefile
+	@curl -o $@ --create-dirs https://dl.min.io/server/minio/release/$$(go env GOOS)-$$(go env GOARCH)/archive/minio.RELEASE.2022-05-04T07-45-27Z
+	@chmod +x $@
 
 generate:
 	@GOBIN="$(CURDIR)/bin" go install github.com/golang/mock/mockgen
