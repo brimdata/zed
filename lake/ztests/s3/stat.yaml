@@ -20,6 +20,6 @@ outputs:
               first: 2020-04-22T01:23:40.0622373Z,
               last: 2020-04-21T22:40:30.06852324Z,
               count: 1000 (uint64),
-              size: 33493
+              size: 32042
           } (=data.Meta)
       }
