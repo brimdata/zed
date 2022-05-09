@@ -295,12 +295,12 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	return batch, nil
 }
 
-func (w *worker) decodeVal(r reader, valRef *zed.Value) error {
-	id, err := readUvarintAsInt(r)
+func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
+	id, err := readUvarintAsInt(buf)
 	if err != nil {
 		return err
 	}
-	n, err := zcode.ReadTag(r)
+	n, err := zcode.ReadTag(buf)
 	if err != nil {
 		return zed.ErrBadFormat
 	}
@@ -308,7 +308,7 @@ func (w *worker) decodeVal(r reader, valRef *zed.Value) error {
 	if n == 0 {
 		b = []byte{}
 	} else if n > 0 {
-		b, err = r.read(n)
+		b, err = buf.read(n)
 		if err != nil && err != io.EOF {
 			if err == peeker.ErrBufferOverflow {
 				return fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)

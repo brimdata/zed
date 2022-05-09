@@ -131,14 +131,6 @@ func (r *Reader) ReadPayload() (*zed.Value, *Control, error) {
 	return val, nil, err
 }
 
-type reader interface {
-	io.ByteReader
-	// read returns an error if fewer than n bytes are available.
-	read(n int) ([]byte, error)
-}
-
-var _ reader = (*buffer)(nil)
-
 func readUvarintAsInt(r io.ByteReader) (int, error) {
 	u64, err := binary.ReadUvarint(r)
 	return int(u64), err
