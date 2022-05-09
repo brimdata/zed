@@ -182,6 +182,8 @@ type worker struct {
 	filter       expr.Evaluator
 	ectx         expr.Context
 	validate     bool
+
+	mapperLookupCache mapperLookupCache
 }
 
 type work struct {
@@ -263,6 +265,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// might make allocation work out better; at some point we can have
 	// pools of buffers based on size?
 
+	w.mapperLookupCache.reset(local.mapper)
 	batch := newBatch(buf)
 	var progress zbuf.Progress
 	// We extend the batch one past its end and decode into the next
@@ -274,7 +277,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// horrible.  This attempts isn't so bad.
 	valRef := batch.extend()
 	for buf.length() > 0 {
-		if err := decodeVal(buf, local.mapper, w.validate, valRef); err != nil {
+		if err := w.decodeVal(buf, valRef); err != nil {
 			buf.free()
 			return nil, err
 		}
@@ -291,7 +294,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	return batch, nil
 }
 
-func decodeVal(r reader, m *zed.Mapper, validate bool, valRef *zed.Value) error {
+func (w *worker) decodeVal(r reader, valRef *zed.Value) error {
 	id, err := readUvarintAsInt(r)
 	if err != nil {
 		return err
@@ -312,13 +315,13 @@ func decodeVal(r reader, m *zed.Mapper, validate bool, valRef *zed.Value) error 
 			return zed.ErrBadFormat
 		}
 	}
-	typ := m.Lookup(id)
+	typ := w.mapperLookupCache.lookup(id)
 	if typ == nil {
 		return fmt.Errorf("zngio: type ID %d not in context", id)
 	}
 	valRef.Type = typ
 	valRef.Bytes = b
-	if validate {
+	if w.validate {
 		if err := Validate(valRef); err != nil {
 			return err
 		}
@@ -345,4 +348,29 @@ func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
 func check(ectx expr.Context, this *zed.Value, filter expr.Evaluator) bool {
 	val := filter.Eval(ectx, this)
 	return val.Type == zed.TypeBool && zed.IsTrue(val.Bytes)
+}
+
+// mapperLookupCache wraps a zed.Mapper with an unsynchronized cache for Lookup.
+// Cache hits incur none of the synchronization overhead of Mapper.Lookup.
+type mapperLookupCache struct {
+	cache  []zed.Type
+	mapper *zed.Mapper
+}
+
+func (m *mapperLookupCache) reset(mapper *zed.Mapper) {
+	m.cache = m.cache[:0]
+	m.mapper = mapper
+}
+
+func (m *mapperLookupCache) lookup(id int) zed.Type {
+	if id < len(m.cache) {
+		if typ := m.cache[id]; typ != nil {
+			return typ
+		}
+	} else {
+		m.cache = append(m.cache, make([]zed.Type, id+1-len(m.cache))...)
+	}
+	typ := m.mapper.Lookup(id)
+	m.cache[id] = typ
+	return typ
 }
