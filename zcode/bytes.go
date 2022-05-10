@@ -88,7 +88,7 @@ func DecodeTagLength(b Bytes) int {
 	if tagIsNull(u64) {
 		return n
 	}
-	return int(u64) + n - 1
+	return int(u64) + n
 }
 
 func toTag(length int) uint64 {
