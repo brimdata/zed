@@ -77,18 +77,14 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			bf, err := filterMaker.AsBufferFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if bf != nil {
-				expected := c.expected
-				if expectBufferFilterFalsePositives {
-					expected = true
-				}
+				expected := expectBufferFilterFalsePositives || c.expected
 				// For FieldNameFinder.Find coverage, we need to
 				// hand BufferFilter.Eval a ZNG values frame
 				// containing rec, assembled here.
 				buf := zcode.AppendUvarint(nil, uint64(rec.Type.ID()))
 				buf = zcode.Append(buf, rec.Bytes)
-				buf = append(buf, rec.Bytes...)
 				assert.Equal(t, expected, bf.Eval(zctx, buf),
-					"filter: %q\nbuffer:\n%s", c.filter, hex.Dump(buf))
+					"filter: %q\nvalues:%s\nbuffer:\n%s", c.filter, zson.MustFormatValue(rec), hex.Dump(buf))
 			}
 		})
 	}
