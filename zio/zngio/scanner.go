@@ -182,6 +182,8 @@ type worker struct {
 	filter       expr.Evaluator
 	ectx         expr.Context
 	validate     bool
+
+	mapperLookupCache zed.MapperLookupCache
 }
 
 type work struct {
@@ -263,6 +265,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// might make allocation work out better; at some point we can have
 	// pools of buffers based on size?
 
+	w.mapperLookupCache.Reset(local.mapper)
 	batch := newBatch(buf)
 	var progress zbuf.Progress
 	// We extend the batch one past its end and decode into the next
@@ -274,7 +277,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// horrible.  This attempts isn't so bad.
 	valRef := batch.extend()
 	for buf.length() > 0 {
-		if err := decodeVal(buf, local.mapper, w.validate, valRef); err != nil {
+		if err := w.decodeVal(buf, valRef); err != nil {
 			buf.free()
 			return nil, err
 		}
@@ -291,7 +294,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	return batch, nil
 }
 
-func decodeVal(r reader, m *zed.Mapper, validate bool, valRef *zed.Value) error {
+func (w *worker) decodeVal(r reader, valRef *zed.Value) error {
 	id, err := readUvarintAsInt(r)
 	if err != nil {
 		return err
@@ -312,13 +315,13 @@ func decodeVal(r reader, m *zed.Mapper, validate bool, valRef *zed.Value) error 
 			return zed.ErrBadFormat
 		}
 	}
-	typ := m.Lookup(id)
+	typ := w.mapperLookupCache.Lookup(id)
 	if typ == nil {
 		return fmt.Errorf("zngio: type ID %d not in context", id)
 	}
 	valRef.Type = typ
 	valRef.Bytes = b
-	if validate {
+	if w.validate {
 		if err := Validate(valRef); err != nil {
 			return err
 		}

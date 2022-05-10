@@ -64,3 +64,27 @@ func (m *Mapper) EnterType(id int, typ Type) {
 	m.types[id] = typ
 	m.mu.Unlock()
 }
+
+// MapperLookupCache wraps a Mapper with an unsynchronized cache for its Lookup
+// method.  Cache hits incur none of the synchronization overhead of
+// Mapper.Lookup.
+type MapperLookupCache struct {
+	cache  []Type
+	mapper *Mapper
+}
+
+func (m *MapperLookupCache) Reset(mapper *Mapper) {
+	m.cache = m.cache[:0]
+	m.mapper = mapper
+}
+
+func (m *MapperLookupCache) Lookup(id int) Type {
+	if id >= len(m.cache) {
+		m.cache = append(m.cache, make([]Type, id+1-len(m.cache))...)
+	} else if typ := m.cache[id]; typ != nil {
+		return typ
+	}
+	typ := m.mapper.Lookup(id)
+	m.cache[id] = typ
+	return typ
+}
