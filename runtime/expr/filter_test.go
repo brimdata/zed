@@ -2,7 +2,6 @@ package expr_test
 
 import (
 	"encoding/hex"
-	"strings"
 	"testing"
 
 	"github.com/brimdata/zed"
@@ -11,9 +10,8 @@ import (
 	"github.com/brimdata/zed/lake/mock"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio/zsonio"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,10 +46,8 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	t.Helper()
 
 	zctx := zed.NewContext()
-	batch, err := zbuf.NewPuller(zsonio.NewReader(strings.NewReader(record), zctx), 2).Pull(false)
+	rec, err := zson.ParseValue(zctx, record)
 	require.NoError(t, err, "record: %q", record)
-	require.Len(t, batch.Values(), 1, "record: %q", record)
-	rec := &batch.Values()[0]
 
 	lk := mock.NewLake()
 	for _, c := range cases {
@@ -61,36 +57,34 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			require.NoError(t, err, "filter: %q", c.filter)
 			runtime, err := compiler.New(op.DefaultContext(), p, lk, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
+			err = runtime.Optimize()
+			require.NoError(t, err, "filter: %q", c.filter)
 			err = runtime.Build()
 			require.NoError(t, err, "filter: %q", c.filter)
 			seq := runtime.Entry().(*dag.Sequential)
 			from := seq.Ops[0].(*dag.From)
 			require.Exactly(t, 1, len(from.Trunks), "filter DAG is not a single trunk")
 			trunk := &from.Trunks[0]
+			require.NotNil(t, trunk.Pushdown.Scan)
 			filterMaker, err := runtime.Builder().PushdownOf(trunk)
 			require.NoError(t, err, "filter: %q", c.filter)
 			f, err := filterMaker.AsEvaluator()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
 				assert.Equal(t, c.expected, filter(expr.NewContext(), rec, f),
-					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Bytes))
+					"filter: %q\nrecord: %s", c.filter, zson.MustFormatValue(rec))
 			}
 			bf, err := filterMaker.AsBufferFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if bf != nil {
-				expected := c.expected
-				if expectBufferFilterFalsePositives {
-					expected = true
-				}
-				// For fieldNameFinder.find coverage, we need to
-				// hand BufferFilter.Eval a buffer containing a
-				// ZNG value message for rec, assembled here.
-				require.Less(t, rec.Type.ID(), 0x40)
-				buf := []byte{byte(rec.Type.ID())}
-				buf = zcode.AppendUvarint(buf, uint64(len(rec.Bytes)))
-				buf = append(buf, rec.Bytes...)
+				expected := expectBufferFilterFalsePositives || c.expected
+				// For FieldNameFinder.Find coverage, we need to
+				// hand BufferFilter.Eval a ZNG values frame
+				// containing rec, assembled here.
+				buf := zcode.AppendUvarint(nil, uint64(rec.Type.ID()))
+				buf = zcode.Append(buf, rec.Bytes)
 				assert.Equal(t, expected, bf.Eval(zctx, buf),
-					"filter: %q\nbuffer:\n%s", c.filter, hex.Dump(buf))
+					"filter: %q\nvalues:%s\nbuffer:\n%s", c.filter, zson.MustFormatValue(rec), hex.Dump(buf))
 			}
 		})
 	}
@@ -161,9 +155,9 @@ func TestFilters(t *testing.T) {
 	// values without regard to field name, returning true as long as some
 	// field matches the literal to the right of the equal sign.
 	runCasesExpectBufferFilterFalsePositives(t, `{nested:{field:"test"}}`, []testcase{
-		{"nested.field == test", true},
-		{"bogus.field == test", false},
-		{"nested.bogus == test", false},
+		{`nested.field == "test"`, true},
+		{`bogus.field == "test"`, false},
+		{`nested.bogus == "test"`, false},
 		//{"* = test", false},
 	})
 
@@ -177,13 +171,13 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test array inside a record
-	runCases(t, "{nested:{vec:[1 (int32),2 (int32),3 (int32)] (=0)} (=1)} (=2)", []testcase{
+	runCases(t, "{nested:{vec:[1 (int32),2 (int32),3 (int32)]}}", []testcase{
 		{"1 in nested.vec", true},
 		{"2 in nested.vec", true},
 		{"4 in nested.vec", false},
 		{"nested.vec[0] == 1", true},
 		{"nested.vec[1] == 1", false},
-		{"1 in nested", false},
+		{"1 in nested", true},
 		{"1", true},
 	})
 
@@ -206,8 +200,8 @@ func TestFilters(t *testing.T) {
 	// Test U+017F LATIN SMALL LETTER LONG S.
 	runCases(t, `{a:"\u017f"}`, []testcase{
 		{`a == '\u017F'`, true},
-		{`a == S`, false},
-		{`a == s`, false},
+		{`a == "S"`, false},
+		{`a == "s"`, false},
 		{`\u017F`, true},
 		{`S`, false}, // Should be true; see https://github.com/brimdata/zed/issues/1207.
 		{`s`, false}, // Should be true; see https://github.com/brimdata/zed/issues/1207.
@@ -216,8 +210,8 @@ func TestFilters(t *testing.T) {
 	// Test U+212A KELVIN SIGN.
 	runCases(t, `{a:"\u212a"}`, []testcase{
 		{`a == '\u212A'`, true},
-		{`a == K`, true}, // True because Unicode NFC replaces U+212A with U+004B.
-		{`a == k`, false},
+		{`a == "K"`, true}, // True because Unicode NFC replaces U+212A with U+004B.
+		{`a == "k"`, false},
 		{`\u212A`, true},
 		{`K`, true},
 		{`k`, true},
@@ -266,12 +260,12 @@ func TestFilters(t *testing.T) {
 
 	// Test time coercion
 	runCases(t, "{ts:1970-01-01T00:00:01.001Z,ts2:2020-01-07T15:38:52Z,ts3:2020-01-07T15:38:53.01Z}", []testcase{
-		{"ts<2", true},
-		{"ts==1.001", true},
-		{"ts<1.002", true},
-		{"ts<2.0", true},
-		{"ts2==1578411532", true},
-		{"ts3==1578411533", false},
+		{"ts<2000000000", true},
+		{"ts==1001000000", true},
+		{"ts<1002000000.0", true},
+		{"ts<2000000000.0", true},
+		{"ts2==1578411532000000000", true},
+		{"ts3==1578411533000000000", false},
 	})
 
 	// Test that string search doesn't match non-string types:
@@ -371,10 +365,9 @@ func TestFilters(t *testing.T) {
 		{"a == 192.168.1.50", true},
 		{"a == 50.1.168.192", false},
 		{"a != 50.1.168.192", true},
-		{"a in 192.168.0.0/16", true},
+		{"a in 192.168.0.0/16", false},
 		{"a == 10.0.0.0/16", false},
 		{"a != 192.168.0.0/16", false},
-		{"a != 10.0.0.0/16", true},
 	})
 
 	// Test comparisons with a named type
