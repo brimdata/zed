@@ -535,7 +535,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown, trunk.Pushdown.Index)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -545,7 +545,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.PoolMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown, nil)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -559,7 +559,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown, nil)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -569,7 +569,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.LakeMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown, nil)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -623,15 +623,14 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 }
 
 func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {
-	var filter *Filter
-	if trunk.Pushdown.Scan != nil {
-		f, ok := trunk.Pushdown.Scan.(*dag.Filter)
+	if trunk.Pushdown != nil {
+		f, ok := trunk.Pushdown.(*dag.Filter)
 		if !ok {
 			return nil, errors.New("non-filter pushdown operator not yet supported")
 		}
-		filter = &Filter{b, f.Expr}
+		return &Filter{f.Expr, b}, nil
 	}
-	return filter, nil
+	return nil, nil
 }
 
 func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {
@@ -661,7 +660,7 @@ func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err erro
 
 type readerScheduler struct {
 	ctx      context.Context
-	filter   *Filter
+	filter   zbuf.Filter
 	readers  []zio.Reader
 	scanner  zbuf.Scanner
 	progress zbuf.Progress

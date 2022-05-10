@@ -159,12 +159,7 @@ type (
 		Kind     string      `json:"kind" unpack:""`
 		Source   Source      `json:"source"`
 		Seq      *Sequential `json:"seq"`
-		Pushdown Pushdown    `json:"pushdown"`
-	}
-
-	Pushdown struct {
-		Scan  Op      `json:"scan"`
-		Index *Filter `json:"index"`
+		Pushdown Op          `json:"pushdown"`
 	}
 
 	// Leaf sources

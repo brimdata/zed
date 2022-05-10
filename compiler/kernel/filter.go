@@ -7,8 +7,8 @@ import (
 )
 
 type Filter struct {
+	Pushdown dag.Expr
 	builder  *Builder
-	pushdown dag.Expr
 }
 
 var _ zbuf.Filter = (*Filter)(nil)
@@ -17,12 +17,12 @@ func (f *Filter) AsEvaluator() (expr.Evaluator, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return f.builder.compileExpr(f.pushdown)
+	return f.builder.compileExpr(f.Pushdown)
 }
 
 func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return CompileBufferFilter(f.builder.pctx.Zctx, f.pushdown)
+	return CompileBufferFilter(f.builder.pctx.Zctx, f.Pushdown)
 }

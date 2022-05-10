@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
@@ -106,18 +104,12 @@ func (p *Pool) removeBranch(ctx context.Context, name string) error {
 	return p.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (op.Scheduler, error) {
+func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
 	snap, err := p.commits.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err
 	}
-	var idxFilter *index.Filter
-	if idx != nil {
-		if idxFilter, err = index.NewFilter(p.engine, p.IndexPath, idx); err != nil {
-			return nil, err
-		}
-	}
-	return NewSortedScheduler(ctx, zctx, p, snap, span, filter, idxFilter), nil
+	return NewSortedScheduler(ctx, zctx, p, snap, span, filter)
 }
 
 func (p *Pool) Snapshot(ctx context.Context, commit ksuid.KSUID) (commits.View, error) {

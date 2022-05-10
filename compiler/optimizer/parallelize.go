@@ -263,8 +263,8 @@ func (o *Optimizer) layoutOfTrunk(trunk *dag.Trunk) (order.Layout, error) {
 	if trunk.Seq == nil {
 		return layout, nil
 	}
-	if trunk.Pushdown.Scan != nil {
-		layout, err = o.analyzeOp(trunk.Pushdown.Scan, layout)
+	if trunk.Pushdown != nil {
+		layout, err = o.analyzeOp(trunk.Pushdown, layout)
 		if err != nil {
 			return order.Nil, err
 		}

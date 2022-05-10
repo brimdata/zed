@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
@@ -34,17 +35,20 @@ type Scheduler struct {
 
 var _ op.Scheduler = (*Scheduler)(nil)
 
-func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter, index *index.Filter) *Scheduler {
-	return &Scheduler{
+func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) (*Scheduler, error) {
+	s := &Scheduler{
 		ctx:    ctx,
 		zctx:   zctx,
 		pool:   pool,
 		snap:   snap,
 		span:   span,
 		filter: filter,
-		index:  index,
 		ch:     make(chan Partition),
 	}
+	if kf := filter.(*kernel.Filter); kf != nil {
+		s.index = index.NewFilter(pool.engine, pool.IndexPath, kf.Pushdown)
+	}
+	return s, nil
 }
 
 func (s *Scheduler) Progress() zbuf.Progress {

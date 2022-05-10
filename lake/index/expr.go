@@ -2,7 +2,6 @@ package index
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -21,39 +20,40 @@ type result struct {
 	span extent.Span
 }
 
-func compileExpr(node dag.Expr) (expr, error) {
+// compileExpr returns a watered down version of a filter that can be digested
+// by index.  All parts of the expression tree are removed that are not:
+// - An '=', '>', '>=', '<', '<=', 'and' or 'or' BinaryExpr
+// - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *dag.Literal
+func compileExpr(node dag.Expr) expr {
 	e, ok := node.(*dag.BinaryExpr)
 	if !ok {
-		return nil, fmt.Errorf("index filter: unknown type: %T", node)
+		return nil
 	}
 	switch e.Op {
 	case "or", "and":
-		lhs, err := compileExpr(e.LHS)
-		if err != nil {
-			return nil, err
+		lhs := compileExpr(e.LHS)
+		rhs := compileExpr(e.RHS)
+		if lhs == nil {
+			return rhs
 		}
-		rhs, err := compileExpr(e.RHS)
-		if err != nil {
-			return nil, err
+		if rhs == nil {
+			return lhs
 		}
-		return logicalExpr(lhs, rhs, e.Op), nil
+		return logicalExpr(lhs, rhs, e.Op)
 	case "==", "<", "<=", ">", ">=":
 		literal, ok := e.RHS.(*dag.Literal)
 		if !ok {
-			return nil, fmt.Errorf("index comparator: RHS is not a literal: %T", e.RHS)
+			return nil
 		}
-		zv, err := zson.ParseValue(zed.NewContext(), literal.Value)
-		if err != nil {
-			return nil, err
-		}
+		zv := zson.MustParseValue(zed.NewContext(), literal.Value)
 		this, ok := e.LHS.(*dag.This)
 		if !ok {
-			return nil, fmt.Errorf("index comparator: LHS is not a field path: %T", e.LHS)
+			return nil
 		}
 		kv := index.KeyValue{Key: this.Path, Value: *zv}
 		return compareExpr(kv, e.Op)
 	default:
-		return nil, fmt.Errorf("unsupported binary expression op: %s", e.Op)
+		return nil
 	}
 }
 
@@ -111,7 +111,7 @@ func appendResult(a, b result) result {
 	return a
 }
 
-func compareExpr(kv index.KeyValue, op string) (expr, error) {
+func compareExpr(kv index.KeyValue, op string) expr {
 	return func(ctx context.Context, f *Filter, oid ksuid.KSUID, rules []Rule) <-chan result {
 		kv, rule := matchFieldRule(rules, kv)
 		if rule == nil {
@@ -130,7 +130,7 @@ func compareExpr(kv index.KeyValue, op string) (expr, error) {
 			close(ch)
 		}()
 		return ch
-	}, nil
+	}
 }
 
 func matchFieldRule(rules []Rule, in index.KeyValue) (index.KeyValue, Rule) {
