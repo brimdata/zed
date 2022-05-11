@@ -1,0 +1,35 @@
+script: |
+  zc -C -O "from 'pool-ts'| x=='hello' or x==1.0"
+  echo ===
+  zc -C -O "from 'pool-ts'| x > 1 y <= 1.0"
+  echo ===
+  zc -C -O "from 'pool-ts'| x=='hello' or x!=1.0"
+  echo ===
+  zc -C -O "from 'pool-ts'| x=='hello' or !(y==2 or y==3)"
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        (pushdown
+          filter x=="hello" or x==1.)
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+      )
+      ===
+      from (
+        (pushdown
+          filter x>1 and y<=1.)
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+      )
+      ===
+      from (
+        (pushdown
+          filter x=="hello" or x!=1.)
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+      )
+      ===
+      from (
+        (pushdown
+          filter x=="hello" or  !y==2 or y==3)
+        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+      )

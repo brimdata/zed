@@ -36,19 +36,20 @@ type Scheduler struct {
 var _ op.Scheduler = (*Scheduler)(nil)
 
 func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) (*Scheduler, error) {
-	s := &Scheduler{
+	var idx *index.Filter
+	if kf := filter.(*kernel.Filter); kf != nil {
+		idx = index.NewFilter(pool.engine, pool.IndexPath, kf.Pushdown)
+	}
+	return &Scheduler{
 		ctx:    ctx,
 		zctx:   zctx,
 		pool:   pool,
 		snap:   snap,
 		span:   span,
 		filter: filter,
+		index:  idx,
 		ch:     make(chan Partition),
-	}
-	if kf := filter.(*kernel.Filter); kf != nil {
-		s.index = index.NewFilter(pool.engine, pool.IndexPath, kf.Pushdown)
-	}
-	return s, nil
+	}, nil
 }
 
 func (s *Scheduler) Progress() zbuf.Progress {

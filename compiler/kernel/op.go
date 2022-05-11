@@ -623,14 +623,14 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 }
 
 func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {
-	if trunk.Pushdown != nil {
-		f, ok := trunk.Pushdown.(*dag.Filter)
-		if !ok {
-			return nil, errors.New("non-filter pushdown operator not yet supported")
-		}
-		return &Filter{f.Expr, b}, nil
+	if trunk.Pushdown == nil {
+		return nil, nil
 	}
-	return nil, nil
+	f, ok := trunk.Pushdown.(*dag.Filter)
+	if !ok {
+		return nil, errors.New("non-filter pushdown operator not yet supported")
+	}
+	return &Filter{f.Expr, b}, nil
 }
 
 func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {

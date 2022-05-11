@@ -20,9 +20,9 @@ type result struct {
 	span extent.Span
 }
 
-// compileExpr returns a watered down version of a filter that can be digested
-// by index.  All parts of the expression tree are removed that are not:
-// - An '=', '>', '>=', '<', '<=', 'and' or 'or' BinaryExpr
+// compileExpr returns a watered-down version of a filter that can be digested
+// by index. All parts of the expression tree are removed that are not:
+// - A '=', '>', '>=', '<', '<=', 'and' or 'or' BinaryExpr
 // - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *dag.Literal
 func compileExpr(node dag.Expr) expr {
 	e, ok := node.(*dag.BinaryExpr)
@@ -45,12 +45,12 @@ func compileExpr(node dag.Expr) expr {
 		if !ok {
 			return nil
 		}
-		zv := zson.MustParseValue(zed.NewContext(), literal.Value)
 		this, ok := e.LHS.(*dag.This)
 		if !ok {
 			return nil
 		}
-		kv := index.KeyValue{Key: this.Path, Value: *zv}
+		val := zson.MustParseValue(zed.NewContext(), literal.Value)
+		kv := index.KeyValue{Key: this.Path, Value: *val}
 		return compareExpr(kv, e.Op)
 	default:
 		return nil
