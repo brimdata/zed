@@ -14,7 +14,7 @@ import (
 
 const (
 	ReadSize  = 512 * 1024
-	MaxSize   = 10 * 1024 * 1024
+	MaxSize   = 1024 * 1024 * 1024
 	TypeLimit = 10000
 )
 
