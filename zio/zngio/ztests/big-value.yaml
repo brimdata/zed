@@ -16,4 +16,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      bigrow.zng: large value of 278535 bytes exceeds maximum read buffer
+      bigrow.zng: zngio: frame length (278535) exceeds maximum allowed (10000)
