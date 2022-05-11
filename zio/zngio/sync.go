@@ -26,8 +26,9 @@ func newScannerSync(ctx context.Context, zctx *zed.Context, r io.Reader, filter 
 		ctx:    ctx,
 		cancel: cancel,
 		parser: parser{
-			peeker: peeker.NewReader(r, opts.Size, opts.Max),
-			types:  NewDecoder(zctx),
+			peeker:  peeker.NewReader(r, opts.Size, opts.Max),
+			types:   NewDecoder(zctx),
+			maxSize: opts.Max,
 		},
 	}
 	var bf *expr.BufferFilter

@@ -35,8 +35,9 @@ func newScanner(ctx context.Context, zctx *zed.Context, r io.Reader, filter zbuf
 		ctx:    ctx,
 		cancel: cancel,
 		parser: parser{
-			peeker: peeker.NewReader(r, opts.Size, opts.Max),
-			types:  NewDecoder(zctx),
+			peeker:  peeker.NewReader(r, opts.Size, opts.Max),
+			types:   NewDecoder(zctx),
+			maxSize: opts.Max,
 		},
 		validate:   opts.Validate,
 		workerCh:   make(chan *worker),

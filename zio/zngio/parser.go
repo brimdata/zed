@@ -14,8 +14,9 @@ import (
 // parser decodes the framing protocol for ZNG updating and resetting its
 // Zed type context in conformance with ZNG frames.
 type parser struct {
-	peeker *peeker.Reader
-	types  *Decoder
+	peeker  *peeker.Reader
+	types   *Decoder
+	maxSize int
 }
 
 func (p *parser) read() (frame, error) {
@@ -145,8 +146,8 @@ func (p *parser) readFrame(code byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if size > MaxSize {
-		return nil, fmt.Errorf("zngio: encoded buffer length (%d) exceeds maximum allowed (%d)", size, MaxSize)
+	if size > p.maxSize {
+		return nil, fmt.Errorf("zngio: frame length (%d) exceeds maximum allowed (%d)", size, p.maxSize)
 	}
 	b, err := p.peeker.Read(size)
 	if err == peeker.ErrBufferOverflow {
@@ -175,8 +176,8 @@ func (p *parser) readCompressedFrame(code byte) (frame, error) {
 	if err != nil {
 		return frame{}, err
 	}
-	if size > MaxSize {
-		return frame{}, errors.New("zngio: uncompressed length exceeds MaxSize")
+	if size > p.maxSize {
+		return frame{}, fmt.Errorf("zngio: frame length (%d) exceeds maximum allowed (%d)", size, p.maxSize)
 	}
 	// The size of the compressed buffer needs to be adjusted by the
 	// byte for the format and the variable-length bytes to encode
