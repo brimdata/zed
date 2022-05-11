@@ -91,7 +91,7 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 				continue
 			}
 		}
-		fields = append(fields, append([]string{}, fld...))
+		fields = append(fields, append(field.Path{}, fld...))
 		types = append(types, c.Type)
 	}
 	return fields, types, match
