@@ -2,6 +2,8 @@ script: |
   zq -z "drop rec.bar" nested1.zson
   echo ===
   zq -z "drop rec1" nested2.zson
+  echo ===
+  zq -z "drop level0.level1.level2.level3" nested3.zson
 
 inputs:
   - name: nested1.zson
@@ -13,6 +15,19 @@ inputs:
     data: |
       {foo:"outer1",rec1:{sub1:{foo:"foo1.1",bar:"bar1.1"},sub2:{foo:"foo2.1",bar:"bar2.1"}},rec2:{foo:"foo3.1"}}
       {foo:"outer2",rec1:{sub1:{foo:"foo1.2",bar:"bar1.2"},sub2:{foo:"foo2.2",bar:"bar2.2"}}(=rec1_named),rec2:{foo:"foo3.2"}(=rec2_named)}(=named)
+  - name: nested3.zson
+    data: |
+      {
+        level0: {
+          level1: {
+            level2: {
+              level3: "hi",
+              foo: 1,
+              bar: 2
+            }
+          }
+        }
+      }
 
 outputs:
   - name: stdout
@@ -23,3 +38,5 @@ outputs:
       ===
       {foo:"outer1",rec2:{foo:"foo3.1"}}
       {foo:"outer2",rec2:{foo:"foo3.2"}(=rec2_named)}
+      ===
+      {level0:{level1:{level2:{foo:1,bar:2}}}}
