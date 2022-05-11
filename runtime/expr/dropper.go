@@ -78,31 +78,23 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 	var types []zed.Type
 	var match bool
 	for _, c := range typ.Columns {
-		if contains(drops, append(prefix, c.Name)) {
+		fld := append(prefix, c.Name)
+		if drops.Has(fld) {
 			match = true
 			continue
 		}
 		if typ, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
-			if fs, ts, m := complementFields(drops, append(prefix, c.Name), typ); m {
+			if fs, ts, m := complementFields(drops, fld, typ); m {
 				fields = append(fields, fs...)
 				types = append(types, ts...)
 				match = true
 				continue
 			}
 		}
-		fields = append(fields, append(prefix, c.Name))
+		fields = append(fields, append(field.Path{}, fld...))
 		types = append(types, c.Type)
 	}
 	return fields, types, match
-}
-
-func contains(ss field.List, el field.Path) bool {
-	for _, s := range ss {
-		if s.Equal(el) {
-			return true
-		}
-	}
-	return false
 }
 
 func (_ *Dropper) String() string { return "drop" }
