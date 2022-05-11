@@ -322,24 +322,10 @@ func (c *canonDAG) op(p dag.Op) {
 		c.open("from (")
 		for _, trunk := range p.Trunks {
 			c.ret()
-			if trunk.Pushdown.Scan != nil || trunk.Pushdown.Index != nil {
+			if trunk.Pushdown != nil {
+				c.head = true
 				c.open("(pushdown")
-				if trunk.Pushdown.Scan != nil {
-					c.head = true
-					c.ret()
-					c.open("(scan")
-					c.op(trunk.Pushdown.Scan)
-					c.write(")")
-					c.close()
-				}
-				if trunk.Pushdown.Index != nil {
-					c.head = true
-					c.ret()
-					c.open("(index")
-					c.op(trunk.Pushdown.Index)
-					c.write(")")
-					c.close()
-				}
+				c.op(trunk.Pushdown)
 				c.write(")")
 				c.close()
 				c.ret()

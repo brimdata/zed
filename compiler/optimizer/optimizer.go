@@ -280,50 +280,5 @@ func pushDown(trunk *dag.Trunk) {
 	if len(seq.Ops) == 0 {
 		trunk.Seq = nil
 	}
-	trunk.Pushdown.Scan = filter
-	if e := indexFilterExpr(filter.Expr); e != nil {
-		trunk.Pushdown.Index = &dag.Filter{
-			Kind: "Filter",
-			Expr: indexFilterExpr(filter.Expr),
-		}
-	}
-}
-
-// indexFilterExpr returns a watered down version of a dag.Pushdown.Scan filter
-// that can be digested by index.  All parts of the expression tree are removed
-// that are not:
-// - An '=', '>', '>=', '<', '<=', 'and' or 'or' BinaryExpr
-// - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *dag.Literal
-func indexFilterExpr(node dag.Expr) dag.Expr {
-	e, ok := node.(*dag.BinaryExpr)
-	if !ok {
-		return nil
-	}
-	switch e.Op {
-	case "and", "or":
-		lhs, rhs := indexFilterExpr(e.LHS), indexFilterExpr(e.RHS)
-		if lhs == nil {
-			return rhs
-		} else if rhs == nil {
-			return lhs
-		}
-		return &dag.BinaryExpr{
-			Kind: "BinaryExpr",
-			Op:   e.Op,
-			LHS:  lhs,
-			RHS:  rhs,
-		}
-	case "==", ">", ">=", "<", "<=":
-		_, rok := e.RHS.(*dag.Literal)
-		_, lok := e.LHS.(*dag.This)
-		if lok && rok {
-			return &dag.BinaryExpr{
-				Kind: "BinaryExpr",
-				Op:   e.Op,
-				LHS:  e.LHS,
-				RHS:  e.RHS,
-			}
-		}
-	}
-	return nil
+	trunk.Pushdown = filter
 }

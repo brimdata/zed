@@ -65,7 +65,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			from := seq.Ops[0].(*dag.From)
 			require.Exactly(t, 1, len(from.Trunks), "filter DAG is not a single trunk")
 			trunk := &from.Trunks[0]
-			require.NotNil(t, trunk.Pushdown.Scan)
+			require.NotNil(t, trunk.Pushdown)
 			filterMaker, err := runtime.Builder().PushdownOf(trunk)
 			require.NoError(t, err, "filter: %q", c.filter)
 			f, err := filterMaker.AsEvaluator()

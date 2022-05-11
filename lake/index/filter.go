@@ -37,10 +37,10 @@ type Filter struct {
 	sem    *semaphore.Weighted
 }
 
-func NewFilter(engine storage.Engine, path *storage.URI, dag *dag.Filter) (*Filter, error) {
-	expr, err := compileExpr(dag.Expr)
-	if err != nil {
-		return nil, err
+func NewFilter(engine storage.Engine, path *storage.URI, e dag.Expr) *Filter {
+	expr := compileExpr(e)
+	if expr == nil {
+		return nil
 	}
 	return &Filter{
 		zctx:   zed.NewContext(),
@@ -48,7 +48,7 @@ func NewFilter(engine storage.Engine, path *storage.URI, dag *dag.Filter) (*Filt
 		path:   path,
 		expr:   expr,
 		sem:    semaphore.NewWeighted(10),
-	}, nil
+	}
 }
 
 func (f *Filter) Apply(ctx context.Context, oid ksuid.KSUID, rules []Rule) (extent.Span, error) {
