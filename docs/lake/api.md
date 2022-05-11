@@ -35,6 +35,7 @@ POST /pool
 
 ```
 curl -X POST \
+     -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -d '{"name": "inventory", "layout": {"keys": [["product","serial_number"],["warehouse"]]}}' \
      http://localhost:9867/pool
@@ -92,9 +93,10 @@ PUT /pool/{pool}
 
 ```
 curl -X PUT \
-      -H 'Content-Type: application/json' \
-      http://localhost:9867/pool/inventory \
-      -d '{"name": "catalog"}'
+     -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -d '{"name": "catalog"}' \
+     http://localhost:9867/pool/inventory
 ```
 
 On success, HTTP 204 is returned with no response payload.
@@ -149,10 +151,12 @@ POST /pool/{pool}/branch/{branch}
 
 ```
 curl -X POST \
-      http://localhost:9867/pool/inventory/branch/main \
-      -d '{"product": {"serial_number": 12345, "name": "widget"}, "warehouse": "chicago"}
-          {"product": {"serial_number": 12345, "name": "widget"}, "warehouse": "miami"}
-          {"product": {"serial_number": 12346, "name": "gadget"}, "warehouse": "chicago"}'
+     -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -d '{"product": {"serial_number": 12345, "name": "widget"}, "warehouse": "chicago"}
+         {"product": {"serial_number": 12345, "name": "widget"}, "warehouse": "miami"}
+         {"product": {"serial_number": 12346, "name": "gadget"}, "warehouse": "chicago"}' \
+     http://localhost:9867/pool/inventory/branch/main
 ```
 
 **Example Response**
@@ -182,7 +186,8 @@ GET /pool/{pool}/branch/{branch}
 
 ```
 curl -X GET \
-      http://localhost:9867/pool/inventory/branch/main
+     -H 'Accept: application/json' \
+     http://localhost:9867/pool/inventory/branch/main
 ```
 
 **Example Response**
@@ -240,9 +245,11 @@ POST /pool/{pool}/branch/{branch}/delete
 
 ```
 curl -X POST \
-      -H 'Content-Type: application/json' \
-      http://localhost:9867/pool/inventory/branch/main/delete \
-      -d '{"object_ids": ["274Eb1Kn8MTM6qxPyBpVTvYhLLa", "274EavbXt546VNelRLNXrzWShNh"]}'
+     -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -d '{"object_ids": ["274Eb1Kn8MTM6qxPyBpVTvYhLLa", "274EavbXt546VNelRLNXrzWShNh"]}' \
+     http://localhost:9867/pool/inventory/branch/main/delete
+
 ```
 
 **Example Response**
@@ -274,7 +281,8 @@ POST /pool/{pool}/branch/{branch}/merge/{child}
 
 ```
 curl -X POST \
-      http://localhost:9867/pool/inventory/branch/main/merge/staging
+     -H 'Accept: application/json' \
+     http://localhost:9867/pool/inventory/branch/main/merge/staging
 ```
 
 **Example Response**
@@ -305,7 +313,8 @@ POST /pool/{pool}/branch/{branch}/revert/{commit}
 
 ```
 curl -X POST \
-      http://localhost:9867/pool/inventory/branch/main/revert/27D22ifDw3Ms2NMzo8jXpDfpgjc
+     -H 'Accept: application/json' \
+     http://localhost:9867/pool/inventory/branch/main/revert/27D22ifDw3Ms2NMzo8jXpDfpgjc
 ```
 
 **Example Response**
@@ -337,9 +346,11 @@ POST /pool/{pool}/branch/{branch}/index
 
 ```
 curl -X POST \
-      -H 'Content-Type: application/json' \
-      http://localhost:9867/pool/inventory/branch/main/index \
-      -d '{"rule_name": "MyRuleGroup", "tags": ["27DAbmqxukfABARaAHauARBJOXH", "27DAbeUBW7llN2mXAadYz00Zjpk"]}'
+     -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -d '{"rule_name": "MyRuleGroup", "tags": ["27DAbmqxukfABARaAHauARBJOXH", "27DAbeUBW7llN2mXAadYz00Zjpk"]}' \
+     http://localhost:9867/pool/inventory/branch/main/index
+
 ```
 
 **Example Response**
@@ -371,9 +382,10 @@ POST /pool/{pool}/branch/{branch}/index/update
 
 ```
 curl -X POST \
-      -H 'Content-Type: application/json' \
-      http://localhost:9867/pool/inventory/branch/main/index/update \
-      -d '{"rule_names": ["MyRuleGroup", "AnotherRuleGroup"]}'
+     -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -d '{"rule_names": ["MyRuleGroup", "AnotherRuleGroup"]}' \
+     http://localhost:9867/pool/inventory/branch/main/index/update
 ```
 
 **Example Response**
@@ -402,8 +414,8 @@ POST /query
 
 ```
 curl -X POST \
-     -H 'Content-Type: application/json' \
      -H 'Accept: application/x-zson' \
+     -H 'Content-Type: application/json' \
      http://localhost:9867/query -d '{"query":"from inventory@main | count() by warehouse"}'
 ```
 
@@ -433,6 +445,7 @@ None
 
 ```
 curl -X GET \
+     -H 'Accept: application/json' \
      http://localhost:9867/events
 ```
 
