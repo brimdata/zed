@@ -1,0 +1,41 @@
+script: |
+  echo === aggregation and locals
+  zc -C 'collect(over a with b=c | d)'
+  echo === cast
+  zc -C 'uint8(over a | b)'
+  echo === expression
+  zc -C '(over a | b)'
+  echo === function
+  zc -C 'quiet(over a | b)'
+  echo === grep
+  zc -C 'grep(/regexp/, over a | b)'
+
+outputs:
+  - name: stdout
+    data: |
+      === aggregation and locals
+      summarize
+          collect((
+            over a with b=c
+            | search d
+          ))
+      === cast
+      yield uint8((
+          over a
+          | search b
+        ))
+      === expression
+      yield (
+          over a
+          | search b
+        )
+      === function
+      yield quiet((
+          over a
+          | search b
+        ))
+      === grep
+      where grep(/regexp/,(
+          over a
+          | search b
+        ))
