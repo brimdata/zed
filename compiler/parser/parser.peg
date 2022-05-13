@@ -237,7 +237,7 @@ AggAssignment
     }
 
 Agg
-  = !FuncGuard op:AggName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
+  = !FuncGuard op:AggName __ "(" __ expr:(OverExpr / Expr)?  __ ")" !(__ ".") where:WhereClause? {
       VAR(r) = MAP("kind": "Agg", "name": op, "expr": NULL, "where":where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
@@ -709,18 +709,22 @@ NotFuncs
   / "select"
 
 Cast
-  = typ:CastType __ "(" __ expr:Expr __ ")" {
+  = typ:CastType __ "(" __ expr:(OverExpr / Expr) __ ")" {
       RETURN(MAP("kind": "Cast", "expr": expr, "type": typ))
     }
 
 Function
   = Grep
-  / !FuncGuard fn:IdentifierName __ "(" __ args:OptionalExprs __ ")" where:WhereClause? {
+  / !FuncGuard fn:IdentifierName __ "(" __ args:FunctionArgs __ ")" where:WhereClause? {
       RETURN(MAP("kind": "Call", "name": fn, "args": args, "where": where))
     }
 
+FunctionArgs
+  = o:OverExpr { RETURN(ARRAY(o)) }
+  / OptionalExprs
+
 Grep
-  = "grep" __ "(" __ pattern:Pattern __  opt:("," __ Expr __)? ")" {
+  = "grep" __ "(" __ pattern:Pattern __  opt:("," __ ( OverExpr / Expr) __)? ")" {
       VAR(m) = MAP("kind": "Grep", "pattern": pattern, "expr": MAP("kind": "ID", "name": "this"))
       if ISNOTNULL(opt) {
         m["expr"] = ASSERT_ARRAY(opt)[2]

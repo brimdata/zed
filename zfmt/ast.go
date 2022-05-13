@@ -49,6 +49,21 @@ func (c *canon) assignment(a ast.Assignment) {
 	c.expr(a.RHS, false)
 }
 
+func (c *canon) defs(defs []ast.Def, separator string) {
+	for k, d := range defs {
+		if k > 0 {
+			c.write(separator)
+		}
+		c.def(d)
+	}
+}
+
+func (c *canon) def(d ast.Def) {
+	c.write(d.Name)
+	c.write("=")
+	c.expr(d.Expr, false)
+}
+
 func (c *canon) exprs(exprs []ast.Expr) {
 	for k, e := range exprs {
 		if k > 0 {
@@ -178,6 +193,20 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 			c.expr(e.Value, false)
 		}
 		c.write("}|")
+	case *ast.OverExpr:
+		c.open("(")
+		c.ret()
+		c.write("over ")
+		c.exprs(e.Exprs)
+		if len(e.Locals) > 0 {
+			c.write(" with ")
+			c.defs(e.Locals, ", ")
+		}
+		c.proc(e.Scope)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	default:
 		c.write("(unknown expr %T)", e)
 	}
