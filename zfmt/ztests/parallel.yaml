@@ -7,7 +7,7 @@ outputs:
       from (
         file bar
       )
-      | filter search("foo")
+      | where search("foo")
       | fork (
         =>
           summarize
