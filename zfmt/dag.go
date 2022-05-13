@@ -283,7 +283,7 @@ func (c *canonDAG) op(p dag.Op) {
 		c.write("pass")
 	case *dag.Filter:
 		c.next()
-		c.open("filter ")
+		c.open("where ")
 		if isDAGTrue(p.Expr) {
 			c.write("*")
 		} else {

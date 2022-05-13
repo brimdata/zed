@@ -12,24 +12,24 @@ outputs:
     data: |
       from (
         (pushdown
-          filter x=="hello" or x==1.)
+          where x=="hello" or x==1.)
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       ===
       from (
         (pushdown
-          filter x>1 and y<=1.)
+          where x>1 and y<=1.)
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       ===
       from (
         (pushdown
-          filter x=="hello" or x!=1.)
+          where x=="hello" or x!=1.)
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
       ===
       from (
         (pushdown
-          filter x=="hello" or  !y==2 or y==3)
+          where x=="hello" or  !y==2 or y==3)
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
