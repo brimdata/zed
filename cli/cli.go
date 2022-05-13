@@ -40,7 +40,7 @@ func (f *Flags) Init(all ...Initializer) (context.Context, context.CancelFunc, e
 			Version = "unknown"
 			if info, ok := debug.ReadBuildInfo(); ok {
 				// This will be "(devel)" for binaries not built
-				// by "go install".
+				// by "go install PACKAGE@VERSION".
 				Version = info.Main.Version
 			}
 		}
