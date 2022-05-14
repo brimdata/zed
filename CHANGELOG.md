@@ -1,3 +1,17 @@
+## v1.1.0
+
+* Allow `-configdir`, `-lake`, `-q`, and `-use` flags before `zed` subcommands (#3852)
+* Add [`assert` operator](docs/language/operators/assert.md) (#3858)
+* Honor [`from` operator's](docs/language/operators/from.md) `format` option (#3845)
+* Add [`compare()` function](docs/language/functions/compare.md) (#3832)
+* Pretty-print ZSON type values (#3819)
+* Allow conversion of time values to other numeric types (#3816)
+* Remove scaling from duration and time conversions (#3809)
+* Add [`over` expressions](docs/language/overview.md#82-lateral-expressions) (#3797)
+* Add `-where` flag to [`zed delete`](docs/commands/zed.md#24-delete) (#3791)
+* Allow base62 object IDs in lake API request bodies (#3783)
+* Remove `let` operator and [`over` operator](docs/language/operators/over.md)'s `as` clause (#3785)
+
 ## v1.0.0
 
 * Comprehensive [documentation](docs/README.md)
