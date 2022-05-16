@@ -126,8 +126,8 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 		f = &Hex{zctx: zctx}
 	case "compare":
 		argmin = 2
-		argmax = 2
-		f = NewCompare()
+		argmax = 3
+		f = NewCompare(zctx)
 	case "cidr_match":
 		argmin = 2
 		argmax = 2
