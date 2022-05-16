@@ -304,7 +304,7 @@ experience, Zed has a canonical, long form that can be abbreviated
 using syntax that supports an agile, interactive query workflow.
 To this end, Zed allows certain operator names to be optionally omitted when
 they can be inferred from context.  For example, the expression following
-the `summarize` operator
+the [`summarize` operator](operators/summarize.md)
 ```
 summarize count() by id
 ```
@@ -773,8 +773,8 @@ produces
 
 Zed expressions follow the typical patterns in programming languages.
 Expressions are typically used within data flow operators
-to perform computation on input values and are typically evaluated once per each
-input value `this`.
+to perform computations on input values and are typically evaluated once per each
+input value [`this`](#23-the-special-value-this).
 
 For example, `yield`, `where`, `cut`, `put`, `sort` and so forth all take
 various expressions as part of their operation.
@@ -873,7 +873,7 @@ in other languages and have the form
 where `<id>` is an identifier representing the field name referenced.
 If a field name is not representable as an identifier, then [indexing](#66-indexing)
 may be used with a quoted string to represent any valid field name.
-Such field names can be accessed using `this` and an array-style
+Such field names can be accessed using [`this`](#23-the-special-value-this) and an array-style
 reference, e.g., `this["field with spaces"]`.
 
 If the dot operator is applied to a value that is not a record
@@ -887,7 +887,7 @@ The index operation can be applied to various data types and has the form:
 <value> [ <index> ]
 ```
 If the `<value>` expression is a record, then the `<index>` operand
-must be coercible to a string and the result of the record's field
+must be coercible to a string and the result is the record's field
 of that name.
 
 If the `<value>` expression is an array, then the `<index>` operand
@@ -901,13 +901,13 @@ value in the set of that index ordered by total order of Zed values.
 If the `<value>` expression is a map, then the `<index>` operand
 is presumed to be a key and the corresponding value for that key is
 the result of the operation.  If no such key exists in the map, then
-`error("missing")` results.
+the result is `error("missing")`.
 
 If the `<value>` expression is a string, then the `<index>` operand
 must be coercible to an integer and the result is an integer representing
 the unicode code point at that offset in the string.
 
-If the `<value>` expression is type bytes, then the `<index>` operand
+If the `<value>` expression is type `bytes`, then the `<index>` operand
 must be coercible to an integer and the result is an unsigned 8-bit integer
 representing the byte value at that offset in the bytes sequence.
 
@@ -933,24 +933,21 @@ elements comprising the indicated range ordered by total order of Zed values.
 If the `<value>` expression is a string, then the result is a substring
 consisting of unicode code points comprising the given range.
 
-If the `<value>` expression is type bytes, then the result is a bytes sequence
+If the `<value>` expression is type `bytes`, then the result is a bytes sequence
 consisting of bytes comprising the given range.
 
 ### 6.8 Conditional
 
 A conditional expression has the form
 ```
-<boolean> ? <expr> : <expr>`
+<boolean> ? <expr> : <expr>
 ```
 The `<boolean>` expression is evaluated and must have a result of type `bool`.
 If not, an error results.
 
 If the result is true, then the first `<expr>` expression is evaluated and becomes
-the result.  Otherwise, the second `<expr>` expression is evaluated.
-
-Note that if the expression has side effects,
-as with [aggregate function calls](#610-aggregate-function-calls), only the selected expression
-will be evaluated.
+the result.  Otherwise, the second `<expr>` expression is evaluated and
+becomes the result.
 
 For example,
 ```mdtest-command
@@ -962,13 +959,17 @@ produces
 -2
 ```
 
+Note that if the expression has side effects,
+as with [aggregate function calls](#610-aggregate-function-calls), only the selected expression
+will be evaluated.
+
 ### 6.9 Function Calls
 
-Functions perform stateless transformations of their input value to their
+[Functions](functions/README.md) perform stateless transformations of their input value to their
 return value and utilize call-by value semantics with positional and unnamed
 arguments.  Some functions take a variable number of arguments.
 
-> The only available functions are built-in but user-defined functions and
+> The only functions currently available are built-in, but user-defined functions and
 > library package management will be added to the Zed language soon.
 
 For example,
@@ -985,7 +986,7 @@ produces
 ### 6.10 Aggregate Function Calls
 
 [Aggregate functions](aggregates/README.md) may be called within an expression.
-Unlike the aggregation context provided by a summarizing group-by, such calls
+Unlike the aggregation context provided by a [summarizing group-by](operators/summarize.md), such calls
 in expression context yield an output value for each input value.
 
 Note that because aggregate functions carry state which is typically
@@ -1003,7 +1004,7 @@ produces
 {id:2(uint64),value:"bar"}
 {id:3(uint64),value:"baz"}
 ```
-In contrast, calling aggregate functions within `summarize`
+In contrast, calling aggregate functions with the [`summarize` operator](operators/summarize.md)
 ```mdtest-command
 echo '"foo" "bar" "baz"' | zq -z 'summarize count(),union(this)' -
 ```
@@ -1032,6 +1033,16 @@ In this case, the characters starting with `$` and ending at `}` are substituted
 with the result of evaluating the expression `<expr>`.  If this result is not
 a string, it is implicitly cast to a string.
 
+For example,
+```mdtest-command
+echo '{numerator:22.0, denominator:7.0}' | zq -z 'yield "approximate pi = ${numerator / denominator}"' -
+```
+
+produces
+```mdtest-output
+"approximate pi = 3.142857142857143"
+```
+
 If any template expression results in an error, then the value of the template
 literal is the first error encountered in left-to-right order.
 
@@ -1041,6 +1052,16 @@ literal is the first error encountered in left-to-right order.
 
 String interpolation may be nested, where `<expr>` contains additional strings
 with interpolated expressions.
+
+For example,
+```mdtest-command
+echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' | zq -z 'yield "oh ${this[upper("${foo + bar}")]}"' -
+```
+
+produces
+```mdtest-output
+"oh hi!"
+```
 
 #### 6.11.2 Record Expressions
 
