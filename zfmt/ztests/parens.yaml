@@ -1,0 +1,14 @@
+script: |
+  zc -C '!(ts < 4)'
+  echo ===
+  zc -s -C '!(ts < 4)'
+
+outputs:
+  - name: stdout
+    data: |
+      where  !(ts<4)
+      ===
+      from (
+        (internal reader)
+      )
+      | where  !(ts<4)

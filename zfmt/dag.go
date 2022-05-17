@@ -77,7 +77,13 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.write(e.Op)
 		c.expr(e.Operand, true)
 	case *dag.BinaryExpr:
+		if paren {
+			c.write("(")
+		}
 		c.binary(e)
+		if paren {
+			c.write(")")
+		}
 	case *dag.Conditional:
 		c.write("(")
 		c.expr(e.Cond, true)

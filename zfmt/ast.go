@@ -107,7 +107,13 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write(e.Op)
 		c.expr(e.Operand, true)
 	case *ast.BinaryExpr:
+		if paren {
+			c.write("(")
+		}
 		c.binary(e)
+		if paren {
+			c.write(")")
+		}
 	case *ast.Conditional:
 		c.write("(")
 		c.expr(e.Cond, true)
