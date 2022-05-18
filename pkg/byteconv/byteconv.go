@@ -3,10 +3,9 @@
 package byteconv
 
 import (
+	"net/netip"
 	"strconv"
 	"unsafe"
-
-	"inet.af/netaddr"
 )
 
 // UnsafeString converts a byte slice to a string without copying the underlying
@@ -20,8 +19,8 @@ func ParseBool(b []byte) (bool, error) {
 	return strconv.ParseBool(UnsafeString(b))
 }
 
-func ParseIP(b []byte) (netaddr.IP, error) {
-	return netaddr.ParseIP(UnsafeString(b))
+func ParseIP(b []byte) (netip.Addr, error) {
+	return netip.ParseAddr(UnsafeString(b))
 }
 
 func ParseInt8(b []byte) (int8, error) {

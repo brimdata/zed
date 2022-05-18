@@ -2,16 +2,16 @@ package expr_test
 
 import (
 	"fmt"
+	"net/netip"
 	"testing"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
-	"inet.af/netaddr"
 )
 
 func zaddr(addr string) zed.Value {
-	return zed.Value{zed.TypeIP, zed.EncodeIP(netaddr.MustParseIP(addr))}
+	return zed.Value{zed.TypeIP, zed.EncodeIP(netip.MustParseAddr(addr))}
 }
 
 func TestBadFunction(t *testing.T) {

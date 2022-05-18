@@ -3,6 +3,7 @@ package expr_test
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"strings"
 	"testing"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
-	"inet.af/netaddr"
 )
 
 func testSuccessful(t *testing.T, e string, input string, expectedVal zed.Value) {
@@ -71,7 +71,7 @@ func zstring(s string) zed.Value {
 }
 
 func zip(t *testing.T, s string) zed.Value {
-	return zed.Value{zed.TypeIP, zed.EncodeIP(netaddr.MustParseIP(s))}
+	return zed.Value{zed.TypeIP, zed.EncodeIP(netip.MustParseAddr(s))}
 }
 func znet(t *testing.T, s string) zed.Value {
 	_, net, err := net.ParseCIDR(s)

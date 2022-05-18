@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 	"golang.org/x/text/unicode/norm"
-	"inet.af/netaddr"
 )
 
 func Build(b *zcode.Builder, val Value) (*zed.Value, error) {
@@ -134,7 +134,7 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		b.Append(norm.NFC.Bytes(body))
 		return nil
 	case *zed.TypeOfIP:
-		ip, err := netaddr.ParseIP(val.Text)
+		ip, err := netip.ParseAddr(val.Text)
 		if err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"reflect"
 	"strings"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"inet.af/netaddr"
 )
 
 //XXX handle new TypeError => marshal as a ZSON string?
@@ -349,9 +349,8 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		}
 		return m.encodeArray(v)
 	case reflect.Struct:
-		if isIP(v.Type()) {
-			ip := v.Interface().(netaddr.IP)
-			m.Builder.Append(zed.EncodeIP(ip))
+		if a, ok := v.Interface().(netip.Addr); ok {
+			m.Builder.Append(zed.EncodeIP(a))
 			return zed.TypeIP, nil
 		}
 		return m.encodeRecord(v)
@@ -647,6 +646,8 @@ func (u *UnmarshalZNGContext) NamedBindings(bindings []Binding) error {
 	return nil
 }
 
+var netipAddrType = reflect.TypeOf(netip.Addr{})
+
 func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	if !v.IsValid() {
 		return errors.New("cannot unmarshal into value provided")
@@ -695,7 +696,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	case reflect.Slice:
 		return u.decodeArray(zv, v)
 	case reflect.Struct:
-		if isIP(v.Type()) {
+		if v.Type() == netipAddrType {
 			return u.decodeIP(zv, v)
 		}
 		return u.decodeRecord(zv, v)
@@ -831,10 +832,6 @@ func (u *UnmarshalZNGContext) decodeNull(zv *zed.Value, v reflect.Value) error {
 	}
 	v.Set(reflect.Zero(v.Type()))
 	return nil
-}
-
-func isIP(typ reflect.Type) bool {
-	return typ.Name() == "IP" && typ.PkgPath() == "inet.af/netaddr"
 }
 
 func (u *UnmarshalZNGContext) decodeIP(zv *zed.Value, v reflect.Value) error {
@@ -1139,7 +1136,7 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zed.Type) (reflect.Type, e
 	case *zed.TypeOfFloat64:
 		v = float64(0)
 	case *zed.TypeOfIP:
-		v = netaddr.IP{}
+		v = netip.Addr{}
 	case *zed.TypeOfNet:
 		v = net.IPNet{}
 	case *zed.TypeOfTime:

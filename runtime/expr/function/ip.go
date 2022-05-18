@@ -24,7 +24,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	ip := zed.DecodeIP(args[0].Bytes)
 	var mask net.IPMask
 	if len(args) == 1 {
-		mask = ip.IPAddr().IP.DefaultMask()
+		mask = net.IP(ip.AsSlice()).DefaultMask()
 		if mask == nil {
 			return newErrorf(n.zctx, ctx, "network_of: not an IPv4 address")
 		}
@@ -54,7 +54,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 	}
 	// XXX GC
-	netIP := ip.IPAddr().IP.Mask(mask)
+	netIP := net.IP(ip.AsSlice()).Mask(mask)
 	v := &net.IPNet{netIP, mask}
 	return ctx.NewValue(zed.TypeNet, zed.EncodeNet(v))
 }
@@ -74,7 +74,7 @@ func (c *CIDRMatch) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	cidrMask := zed.DecodeNet(maskVal.Bytes)
 	if errMatch == args[1].Walk(func(typ zed.Type, body zcode.Bytes) error {
 		if typ.ID() == zed.IDIP {
-			addr := zed.DecodeIP(body).IPAddr().IP
+			addr := net.IP(zed.DecodeIP(body).AsSlice())
 			if cidrMask.IP.Equal(addr.Mask(cidrMask.Mask)) {
 				return errMatch
 			}
