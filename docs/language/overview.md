@@ -480,7 +480,7 @@ a few examples:
 * a union of string and integer  - `(string,int64)`
 
 Complex types may be composed, as in `[({s:string},{x:int64})]` which is
-an array of type union of two types of records.
+an array of type `union` of two types of records.
 
 The [`typeof` function](functions/typeof.md) returns a value's type as
 a value, e.g., `typeof(1)` is `<int64>` and `typeof(<int64>)` is `<type>`.
@@ -596,7 +596,7 @@ the scope of the Zed data model and language.  That said, Zed provides flexible
 building blocks so systems can define their own schema versioning and schema
 management policies on top of these Zed primitives.
 
-Zed's [super-structured data model](..//formats/README.md#2-zed-a-super-structured-pattern) is a superset of relational tables and
+Zed's [super-structured data model](../formats/README.md#2-zed-a-super-structured-pattern) is a superset of relational tables and
 the Zed language's type system can easily make this connection.
 As an example, consider this type definition for "employee":
 ```
@@ -1107,7 +1107,7 @@ Array literals have the form
 [ <expr>, <expr>, ... ]
 ```
 When the expressions result in values of non-uniform type, then the implied
-type of the array is an array of type union of the types that appear.
+type of the array is an array of type `union` of the types that appear.
 
 For example,
 ```mdtest-command
@@ -1126,7 +1126,7 @@ Set literals have the form
 |[ <expr>, <expr>, ... ]|
 ```
 When the expressions result in values of non-uniform type, then the implied
-type of the set is a set of type union of the types that appear.
+type of the set is a set of type `union` of the types that appear.
 
 Set values are always organized in their "natural order" independent of the order
 they appear in the set literal.
@@ -1178,7 +1178,7 @@ produces
 "foo"((int64,string))
 ```
 The value underlying a union-tagged value is accessed with the
-[under function](functions/under.md):
+[`under` function](functions/under.md):
 ```mdtest-command
 echo '1((int64,string))' | zq -z 'yield under(this)' -
 ```
@@ -1201,13 +1201,13 @@ produces
 
 ### 6.12 Casts
 
-Type conversion is performed with casts and the built-in function `cast()`.
+Type conversion is performed with casts and the built-in [`cast` function](functions/cast.md).
 
 Casts for primitive types have a function-style syntax of the form
 ```
 <type> ( <expr> )
 ```
-where `<type>` is a Zed type and `<expr>` is any Zed expression.
+where `<type>` is a [Zed type](#51-first-class-types) and `<expr>` is any Zed expression.
 In the case of primitive types, the type-value angle brackets
 may be omitted, e.g., `<string>(1)` is equivalent to `string(1)`.
 If the result of `<expr>` cannot be converted
@@ -1238,7 +1238,7 @@ produces
 1970-10-07T00:00:00Z
 ```
 
-Casts of complex or named types may be performed using type values
+Casts of complex or [named types](#52-named-types) may be performed using type values
 either in functional form or with `cast`:
 ```
 <type-value> ( <expr> )
@@ -1257,7 +1257,6 @@ produces
 Casts may be used with complex types as well.  As long as the target type can
 accommodate the value, the case will be recursively applied to the components
 of a nested value.  For example,
-For example
 ```mdtest-command
 echo '["10.0.0.1","10.0.0.2"]' | zq -z 'cast(this,<[ip]>)' -
 ```
@@ -1287,7 +1286,7 @@ long form built from the expression syntax above in combination with the
 ### 7.1 Search Patterns
 
 Several styles of string search can be performed with a search expression
-(as well as the [grep function](functions/grep.md)) using "patterns",
+(as well as the [`grep` function](functions/grep.md)) using "patterns",
 where a pattern is a regular expression, glob, or simple string.
 
 #### 7.1.1 Regular Expressions
@@ -1328,7 +1327,7 @@ false
 
 Globs provide a convenient short-hand for regular expressions and follow
 the familiar pattern of "file globbing" supported by Unix shells.
-Zed globs are a simple, special case utilize only the `*` wildcard.
+Zed globs are a simple, special case that utilize only the `*` wildcard.
 
 Valid glob characters include `a` through `z`, `A` through `Z`,
 any valid string escape sequence
@@ -1369,8 +1368,20 @@ produces
 {a:1}
 ```
 
+Globs may also appear in the `grep` function:
+```mdtest-command
+echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z 'yield grep(ba*, s)' -
+```
+produces
+```mdtest-output
+false
+true
+true
+false
+```
+
 Note that a glob may look like multiplication but context disambiguates
-these condition, e.g.,
+these conditions, e.g.,
 ```
 a*b
 ```
@@ -1383,7 +1394,7 @@ is a Boolean comparison between the product `a*b` and `c`.
 ### 7.2 Search Logic
 
 The search patterns described above can be combined with other elements
-to a search expression comprised of "search terms" that may be combined
+of a search expression comprised of "search terms" that may be combined
 using Boolean logic.
 
 > Note that when processing ZNG data, the Zed runtime performs a multi-threaded
@@ -1394,7 +1405,7 @@ using Boolean logic.
 > In a forthcoming release, Zed will also offer an approach for locating
 > delimited words within string fields, which will allow accelerated
 > search using a full-text search index.  Currently, search indexes may be built
-> for exact value match as text segmentation is in the works.a
+> for exact value match as text segmentation is in the works.
 
 #### 7.2.1 Search Terms
 
@@ -1409,7 +1420,7 @@ A "search term" is one of the following;
 
 A regular expression `/re/` is equivalent to
 ```
-grep(/reg/, this)
+grep(/re/, this)
 ```
 but shorter and easier to type in a search expression.
 
@@ -1424,7 +1435,7 @@ Searches for any string that begins with `foo` or `bar` has the string
 
 A glob search term `<glob>` is equivalent to
 ```
-grep(/reg/, this)
+grep(<glob>, this)
 ```
 but shorter and easier to type in a search expression.
 
@@ -1439,7 +1450,7 @@ Searches for any string that begins with `foo` has the string
 
 Keywords and string literals are equivalent search terms so it is often
 easier to quote a string search term instead of using escapes in a keyword.
-Keywords are useful in interactive modes of use where searches can be issued
+Keywords are useful in interactive contexts where searches can be issued
 and modified quickly without having to type matching quotes.
 
 Keyword search has the look and feel of Web search or email search.
@@ -1472,7 +1483,7 @@ For example, the simplest Zed program is perhaps a single keyword search, e.g.,
 ```
 foo
 ```
-As above, this program searches the implied input for input values that
+As above, this program searches the implied input for values that
 contain the string "foo".
 
 ##### 7.2.1.4 String Literal Search Term
@@ -1537,13 +1548,13 @@ the "in" operator, e.g.,
 
 ##### 7.2.1.6 Predicate Search Term
 
-Any Boolean-valued [function](functions/README.md) like `is()`, `has()`,
-`grep()` etc. and any [comparison expression](#62-comparisons)
+Any Boolean-valued [function](functions/README.md) like `is`, `has`,
+`grep` etc. and any [comparison expression](#62-comparisons)
 may be used as a search term and mixed into a search expression.
 
 For example,
 ```
-is(<foo>) has(bar) baz x==y+z
+is(<foo>) has(bar) baz x==y+z timestamp > 2018-03-24T17:17:55Z
 ```
 is a valid search expression but
 ```
@@ -1588,7 +1599,7 @@ The inner query may be _any Zed query_ and may refer to values from
 the outer sequence.
 
 Lateral subqueries are created using the scoped form of the
-[over operator](operators/over.md) and may be nested to arbitrary depth.
+[`over` operator](operators/over.md) and may be nested to arbitrary depth.
 
 For example,
 ```mdtest-command
@@ -1604,7 +1615,7 @@ Here the lateral scope, described below, creates a subquery
 ```
 yield {name,elem:this}
 ```
-for each sub-sequence of values derived from each outer input value.
+for each subsequence of values derived from each outer input value.
 In the example above, there are two input values:
 ```
 {s:"foo",a:[1,2]}
@@ -1638,7 +1649,7 @@ produces
 ### 8.1 Lateral Scope
 
 A lateral scope has the form `=> ( <query> )` and currently appears
-only the context of an [over operator](operators/over.md),
+only the context of an [`over` operator](operators/over.md),
 as illustrated above, and has the form:
 ```
 over ... with <elem> [, <elem> ...] => ( <query> )
@@ -1654,7 +1665,7 @@ or a field reference form
 For each input value to the outer scope, the assignment form creates a binding
 between each `<expr>` evaluated in the outer scope and each `<var>`, which
 represents a new symbol in the inner scope of the `<query>`.
-In the field reference form, a single identifier `<id>` refers to a field
+In the field reference form, a single identifier `<field>` refers to a field
 in the parent scope and makes that field's value available in the lateral scope
 with the same name.
 
@@ -1666,7 +1677,7 @@ each subquery result as each inner sequence traversal completes.
 
 This structure is powerful because _any_ Zed query can appear in the body of
 the lateral scope.  In contrast to the `yield` example, a sort could be
-applied to each sub-sequence in the subquery, where sort
+applied to each subsequence in the subquery, where sort
 reads all of the values of the subsequence, sorts them, emits them, then
 repeats the process for the next subsequence.  For example,
 ```mdtest-command
@@ -1728,9 +1739,9 @@ To unify disparate data sources, data is often cleaned up to fit into
 a well-defined set of schemas, which combines the data into a unified
 store like a data warehouse.
 
-In Zed, this cleansing process is called "shaping" the data and Zed leverages
-its rich, super-structured type system to perform core aspects of
-data transformation.
+In Zed, this cleansing process is called "shaping" the data, and Zed leverages
+its rich, [super-structured](../formats/README.md#2-zed-a-super-structured-pattern)
+type system to perform core aspects of data transformation.
 In a data model with nesting and multiple scalar types (such as Zed or JSON),
 shaping includes converting type of leaf fields, adding or removing fields
 to "fit" a given shape, and reordering fields.
@@ -1738,27 +1749,26 @@ to "fit" a given shape, and reordering fields.
 While shaping remains an active area of development, the core functions in Zed
 that currently perform shaping are:
 
-* [cast](functions/cast.md) - coerce a value to a different type
-* [crop](functions/crop.md) - remove fields from a value that are missing in a specified type
-* [fill](functions/fill.md) - add null values for missing fields
-* [order](functions/order.md) - reorder record fields
-* [shape](functions/shape.md) - apply cast, fill, and order
+* [`cast`](functions/cast.md) - coerce a value to a different type
+* [`crop`](functions/crop.md) - remove fields from a value that are missing in a specified type
+* [`fill`](functions/fill.md) - add null values for missing fields
+* [`order`](functions/order.md) - reorder record fields
+* [`shape`](functions/shape.md) - apply `cast`, `fill`, and `order`
 
 They all have the same signature, taking two parameters: the value to be
 transformed and a type value for the target type.
 
 > Another type of transformation that's needed for shaping is renaming fields,
-> which is supported by the [rename operator](operators/rename.md).
-> Also, the [yield operator](operators/yield.md)
+> which is supported by the [`rename` operator](operators/rename.md).
+> Also, the [`yield` operator](operators/yield.md)
 > is handy for simply emitting new, arbitrary record literals based on
 > input values and mixing in these shaping functions in an embedded record literal.
-> The [fuse aggregate function](aggregates/fuse.md) is useful for fusing
-> values into a common schema within a group-by schema though a type is returned
-> rather than values.
+> The [`fuse` aggregate function](aggregates/fuse.md) is also useful for fusing
+> values into a common schema, though a type is returned rather than values.
 
 In the examples below, we will use the following named type `connection`
 that is stored in a file `connection.zed`
-and is included in the example Zed queries with `-I` option of `zq`:
+and is included in the example Zed queries with the `-I` option of `zq`:
 ```mdtest-input connection.zed
 type socket = { addr:ip, port:port=uint16 }
 type connection = {
@@ -1786,7 +1796,7 @@ We also use this sample JSON input in a file called `sample.json`:
 
 ### 9.1 Cast
 
-The cast function applies a cast operation to each leaf value that matches the
+The `cast` function applies a cast operation to each leaf value that matches the
 field path in the specified type, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "cast(this, <connection>)" sample.json
@@ -1812,11 +1822,11 @@ order of the `server` and `client` fields:
 
 ### 9.2 Crop
 
-Cropping is a useful when you want records to "fit" a schema tightly, e.g.,
+Cropping is useful when you want records to "fit" a schema tightly, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "crop(this, <connection>)" sample.json
 ```
-removes the `uid` field since it is not in the _connection_ type:
+removes the `uid` field since it is not in the `connection` type:
 ```mdtest-output
 {
     kind: "dns",
@@ -1833,12 +1843,12 @@ removes the `uid` field since it is not in the _connection_ type:
 
 ### 9.3 Fill
 
-Use fill when you want to fill out missing fields with nulls, e.g.,
+Use `fill` when you want to fill out missing fields with nulls, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "fill(this, <connection>)" sample.json
 ```
 adds a null-valued `vlan` field since the input value is missing it and
-the _connection_ type has it:
+the `connection` type has it:
 ```mdtest-output
 {
     kind: "dns",
@@ -1863,7 +1873,7 @@ specified order, as field order is significant in Zed records, e.g.,
 zq -Z -I connection.zed "order(this, <connection>)" sample.json
 ```
 reorders the `client` and `server` fields to match the input but does nothing
-about the `uid` field as it is not in the _connection_ type:
+about the `uid` field as it is not in the `connection` type:
 ```mdtest-output
 {
     kind: "dns",
@@ -1881,13 +1891,13 @@ about the `uid` field as it is not in the _connection_ type:
 
 ### 9.5 Shape
 
-The shape function brings everything together by applying `cast`,
+The `shape` function brings everything together by applying `cast`,
 `fill`, and `order` all in one step, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "shape(this, <connection>)" sample.json
 ```
 reorders the `client` and `server` fields to match the input but does nothing
-about the `uid` field as it is not in the _connection_ type:
+about the `uid` field as it is not in the `connection` type:
 ```mdtest-output
 {
     kind: "dns",
@@ -1963,15 +1973,15 @@ fused into the single-type sequence:
 
 To perform fusion, Zed currently includes two key mechanisms
 (though this is an active area of development):
-* the [fuse operator](operators/fuse.md), and
-* the [fuse aggregate function](aggregates/fuse.md).
+* the [`fuse` operator](operators/fuse.md), and
+* the [`fuse` aggregate function](aggregates/fuse.md).
 
 ### 10.1 Fuse Operator
 
-The _fuse operator_ reads all of its input, computes a fused type using
+The `fuse` operator reads all of its input, computes a fused type using
 the techniques above, and outputs the result, e.g.,
 ```mdtest-command
-echo '{x:1} {y:"foo"}{x:2,y:"bar"}' | zq -z fuse -
+echo '{x:1} {y:"foo"} {x:2,y:"bar"}' | zq -z fuse -
 ```
 produces
 ```mdtest-output
@@ -1990,27 +2000,27 @@ requires a type union for field `x` and produces:
 {x:2((int64,string)),y:"bar"}
 ```
 
-### 10.2 Fuse Function
+### 10.2 Fuse Aggregate Function
 
-The _fuse function_ is most often useful during data exploration and discovery
+The `fuse` aggregate function is most often useful during data exploration and discovery
 where you might interactively run queries to determine the shapes of some new
 or unknown input data and how those various shapes relate to one another.
 
-For example, in example sequence above, we can use the _fuse function_ to determine
+For example, in example sequence above, we can use the `fuse` aggregate function to determine
 the fused type rather than transforming the values, e.g.,
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}' | zq -z 'fuse(this)' -
+echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this)' -
 ```
 results in
 ```mdtest-output
 {fuse:<{x:(int64,string),y:string}>}
 ```
-Since the _fuse_ here is an aggregate function, it can also be used with
-group-by keys.  Supposing we wanted to fuse different type records into
+Since the `fuse` here is an aggregate function, it can also be used with
+group-by keys.  Supposing we wanted to fuse different categories of records into
 different types, we can use a group-by.  In this simple example, we will
-fuse records based on their number of fields using the `len()` function:
+fuse records based on their number of fields using the [`len` function:](functions/len.md)
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}' | zq -z 'fuse(this) by len(this) | sort len' -
+echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this) by len(this) | sort len' -
 ```
 which produces
 ```mdtest-output
@@ -2018,7 +2028,7 @@ which produces
 {len:2,fuse:<{x:(int64,string),y:string}>}
 ```
 Now, we can turn around and write a "shaper" for data that has the patterns
-we "discovered" above, e.g., if this Zed source is in `shape.zed`
+we "discovered" above, e.g., if this Zed source text is in `shape.zed`
 ```mdtest-input shape.zed
 switch len(this) (
     case 1 => pass
@@ -2028,7 +2038,7 @@ switch len(this) (
 ```
 when we run
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}{a:1,b:2,c:3}' | zq -z -I shape.zed '| sort -r this' -
+echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}{a:1,b:2,c:3}' | zq -z -I shape.zed '| sort -r this' -
 ```
 we get
 ```mdtest-output
