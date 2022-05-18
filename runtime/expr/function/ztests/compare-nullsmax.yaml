@@ -6,4 +6,4 @@ input: |
 output: |
   1
   -1
-  error("expected nullsMax to be of type bool, got string")
+  error({message:"compare: nullsMax arg is not bool",on:"error"})

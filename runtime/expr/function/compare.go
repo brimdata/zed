@@ -3,7 +3,6 @@ package function
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/zson"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#compare
@@ -23,9 +22,8 @@ func NewCompare(zctx *zed.Context) *Compare {
 func (e *Compare) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	nullsMax := true
 	if len(args) == 3 {
-		b := zed.TypeUnder(args[2].Type)
-		if b != zed.TypeBool {
-			return e.zctx.NewErrorf("expected nullsMax to be of type bool, got %s", zson.FormatType(b))
+		if zed.TypeUnder(args[2].Type) != zed.TypeBool {
+			return e.zctx.WrapError("compare: nullsMax arg is not bool", &args[2])
 		}
 		nullsMax = zed.DecodeBool(args[2].Bytes)
 	}
