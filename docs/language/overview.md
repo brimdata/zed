@@ -613,7 +613,7 @@ In Zed, you would say
 ```
 from anywhere | typeof(this)==<employee> | cut last,salary | sort salary | head 5
 ```
-and since type comparisons are so useful and common, the [`is` function ](functions/is.md)
+and since type comparisons are so useful and common, the [`is` function](functions/is.md)
 can be used to perform the type match:
 ```
 from anywhere | is(<employee>) | cut last,salary | sort salary | head 5
