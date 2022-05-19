@@ -23,6 +23,7 @@ type Proc struct {
 	nullsFirst bool
 
 	fieldResolvers []expr.Evaluator
+	lastBatch      zbuf.Batch
 	once           sync.Once
 	resultCh       chan op.Result
 	comparator     *expr.Comparator
@@ -108,6 +109,8 @@ func (p *Proc) run() {
 			out = nil
 			continue
 		}
+		// Safe because batch.Unref is never called.
+		p.lastBatch = batch
 		var delta int
 		out, delta = p.append(out, batch)
 		if p.comparator == nil && len(out) > 0 {
@@ -141,9 +144,8 @@ func (p *Proc) run() {
 // send sorts vals in memory and sends the result downstream.
 func (p *Proc) send(vals []zed.Value) bool {
 	p.sorter.SortStable(vals, p.comparator)
-	//XXX bug: we need upstream ectx. See #3367
-	array := zbuf.NewArray(vals)
-	return p.sendResult(array, nil)
+	out := zbuf.NewBatch(p.lastBatch, vals)
+	return p.sendResult(out, nil)
 }
 
 func (p *Proc) sendSpills(spiller *spill.MergeSort) bool {
