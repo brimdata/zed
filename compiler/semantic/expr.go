@@ -190,22 +190,22 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Elems: out,
 		}, nil
 	case *ast.ArrayExpr:
-		exprs, err := semExprs(scope, e.Exprs)
+		elems, err := semVectorElems(scope, e.Elems)
 		if err != nil {
 			return nil, err
 		}
 		return &dag.ArrayExpr{
 			Kind:  "ArrayExpr",
-			Exprs: exprs,
+			Elems: elems,
 		}, nil
 	case *ast.SetExpr:
-		exprs, err := semExprs(scope, e.Exprs)
+		elems, err := semVectorElems(scope, e.Elems)
 		if err != nil {
 			return nil, err
 		}
 		return &dag.SetExpr{
 			Kind:  "SetExpr",
-			Exprs: exprs,
+			Elems: elems,
 		}, nil
 	case *ast.MapExpr:
 		var entries []dag.Entry
@@ -659,4 +659,25 @@ func semType(scope *Scope, typ astzed.Type) (string, error) {
 		return "", err
 	}
 	return zson.FormatType(ztype), nil
+}
+
+func semVectorElems(scope *Scope, elems []ast.VectorElem) ([]dag.VectorElem, error) {
+	out := make([]dag.VectorElem, len(elems))
+	for i, elem := range elems {
+		switch elem := elem.(type) {
+		case *ast.Spread:
+			e, err := semExpr(scope, elem.Expr)
+			if err != nil {
+				return nil, err
+			}
+			out[i] = &dag.Spread{Kind: "Spread", Expr: e}
+		case *ast.VectorValue:
+			e, err := semExpr(scope, elem.Expr)
+			if err != nil {
+				return nil, err
+			}
+			out[i] = &dag.VectorValue{Kind: "VectorValue", Expr: e}
+		}
+	}
+	return out, nil
 }

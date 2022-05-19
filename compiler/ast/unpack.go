@@ -84,6 +84,7 @@ var unpacker = unpack.New(
 	astzed.TypeValue{},
 	UnaryExpr{},
 	Uniq{},
+	VectorValue{},
 	Where{},
 	Yield{},
 )
