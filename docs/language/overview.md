@@ -87,7 +87,7 @@ search "example.com" AND "urgent"
 ```
 which computes an aggregation table of different message types (e.g.,
 from a hypothetical field called `type`) into a new, aggregated field
-called `kinds` and grouped by the network of all the source IP address
+called `kinds` and grouped by the network of all the source IP addresses
 in the input
 (e.g., from a hypothetical field called `srcip`) as a derived field called `net`.
 
@@ -107,8 +107,8 @@ All available operators are listed on the [reference page](operators/README.md).
 In addition to the data sources specified as files on the `zq` command line,
 a source may also be specified with the [`from` operator](operators/from.md).
 
-When running on the command-line, `from` may refer to a file, to an HTTP
-endpoint, or to an S3 URI.  When running in a [Zed lake](../commands/zed.md), `from` typically
+When running on the command-line, `from` may refer to a file, an HTTP
+endpoint, or an S3 URI.  When running in a [Zed lake](../commands/zed.md), `from` typically
 refers to a collection of data called a "data pool" and is referenced using
 the pool's name much as SQL references database tables by their name.
 
@@ -196,7 +196,7 @@ in parallel on multiple threads).  To establish a consistent sequence order,
 a [`merge` operator](operators/merge.md)
 may be applied at the output of the switch specifying a sort key upon which
 to order the upstream data.  Often such order does not matter (e.g., when the output
-of the switch hits an aggregator), in which case it is typically more performant
+of the switch hits an [aggregator](aggregates/README.md)), in which case it is typically more performant
 to omit the merge (though the Zed system will often delete such unnecessary
 operations automatically as part optimizing queries when they are compiled).
 
@@ -226,8 +226,8 @@ produces this case-sensitive output:
 "bar"
 "foo"
 ```
-But we can make the sort case-insensitive by applying a function to the
-inputs values with the expression `lower(this)`, which converts
+But we can make the sort case-insensitive by applying a [function](functions/README.md) to the
+input values with the expression `lower(this)`, which converts
 each value to lower-case for use in in the sort without actually modifying
 the input value, e.g.,
 ```
@@ -287,7 +287,7 @@ or
 summarize salary:=sum(income) by address:=lower(address)
 ```
 This style of "assignment" to a record value is distinguished from the `=`
-token which is used in [constant](#3-const-statements) and [variable](#81-lateral-scope) assignments.
+token which is used in [constant](#3-const-statements) and [variable](#8-lateral-subqueries) assignments.
 
 ### 2.6 Implied Operators
 
@@ -343,7 +343,7 @@ where the input is presumed to be a sequence of records.
 The [`put` operator](operators/put.md) provides this mechanism and the `put`
 keyword is implied by the mutator syntax `:=`, which is used in Zed when an
 input record field is modified, as compared to `=` which is used in [constant](#3-const-statements)
-and [variable](#81-lateral-scope) assignments.  For example, the operation
+and [variable](#8-lateral-subqueries) assignments.  For example, the operation
 ```
 put y:=2*x+1
 ```
@@ -447,7 +447,7 @@ The syntax of individual literal values generally follows
 the [ZSON syntax](../formats/zson.md) with the exception that
 [type decorators](../formats/zson.md#22-type-decorators)
 are not included in the language.  Instead, a
-[type cast](#614-casts) may be used in any expression for explicit
+[type cast](#612-casts) may be used in any expression for explicit
 type conversion.
 
 In particular, the syntax of primitive types follows the
@@ -455,7 +455,7 @@ In particular, the syntax of primitive types follows the
 as well as the various [complex value definitions](../formats/zson.md#24-complex-values)
 like records, arrays, sets, and so forth.  However, complex values are not limited to
 constant values like ZSON and can be composed from literal expressions as
-[defined below](##611-literals).
+[defined below](#611-literals).
 
 ### 5.1 First-class Types
 
@@ -631,7 +631,7 @@ As with types, errors in Zed are first-class: any value can be transformed
 into an error by wrapping it in the Zed [`error` type](../formats/zed.md#27-error).
 
 In general, expressions and functions that result in errors simply return
-a value of type error as a result.  This encourages a powerful flow-style
+a value of type `error` as a result.  This encourages a powerful flow-style
 of error handling where errors simply propagate from one operation to the
 next and land in the output alongside non-error values to provide a very helpful
 context and rich information for tracking down the source of errors.  There is
@@ -660,7 +660,7 @@ error("divide by zero")
 ```
 And since errors are first-class and just values, they have a type.
 In particular, they are a complex type where the error value's type is the
-complex type error containing the type of the value.  For example,
+complex type `error` containing the type of the value.  For example,
 ```mdtest-command
 echo 0 | zq -z 'typeof(1/this)' -
 ```
@@ -680,7 +680,7 @@ For example, suppose a bad value shows up:
 {kind:"bad", stuff:{foo:1,bar:2}}
 ```
 A Zed [shaper](#9-shaping) could catch the bad value (e.g., as a default case in a
-switch topology) and propagate it as an error using the Zed expression:
+[`switch`](operators/switch.md) topology) and propagate it as an error using the Zed expression:
 ```
 yield error({message:"unrecognized input",input:this})
 ```
@@ -865,7 +865,7 @@ Boolean type using "truthiness" heuristics.
 
 ### 6.5 Field Dereference
 
-Records fields are dereferenced with the dot operator `.` as is customary
+Record fields are dereferenced with the dot operator `.` as is customary
 in other languages and have the form
 ```
 <value> . <id>
@@ -1164,7 +1164,7 @@ produces
 
 #### 6.11.6 Union Values
 
-A union value can be created with a cast.  For example, a union of types `int64`
+A union value can be created with a [cast](#612-casts).  For example, a union of types `int64`
 and `string` is expressed as `(int64,string)` and any value that has a type
 that appears in the union type may be cast to that union type.
 Since 1 is an `int64` and "foo" is a `string`, they both can be
@@ -1188,8 +1188,8 @@ produces
 ```
 Union values are powerful because they provide a mechanism to precisely
 describe the type of any nested, semi-structured value composed of elements
-of different types.  For example, the type of the value `[1,"foo"]` in Javascript
-is simply a generic Javascript "object".  But in Zed, the type of this
+of different types.  For example, the type of the value `[1,"foo"]` in JavaScript
+is simply a generic JavaScript "object".  But in Zed, the type of this
 value is an array of union of string and integer, e.g.,
 ```mdtest-command
 echo '[1,"foo"]' | zq -z 'typeof(this)' -
@@ -1226,7 +1226,7 @@ error("cannot cast \"200\" to type int8")
 ```
 
 Casting attempts to be fairly liberal in conversions.  For example, values
-of type `time` can be created from a diverse set of data/time input strings
+of type `time` can be created from a diverse set of date/time input strings
 based on the [Go Date Parser library](https://github.com/araddon/dateparse).
 
 ```mdtest-command
@@ -1397,7 +1397,7 @@ The search patterns described above can be combined with other elements
 of a search expression comprised of "search terms" that may be combined
 using Boolean logic.
 
-> Note that when processing ZNG data, the Zed runtime performs a multi-threaded
+> Note that when processing [ZNG](../formats/zng.md) data, the Zed runtime performs a multi-threaded
 > Boyer-Moore scan over decompressed data buffers before parsing any data.
 > This allows large buffers of data to be efficiently discarded and skipped when
 > searching for rarely occurring values.  For a [Zed lake](../lake/format.md), search indexes
@@ -1517,7 +1517,7 @@ as it appears as typed.  Such values include:
 * floating point numbers,
 * time values,
 * durations,
-* IPs,
+* IP addresses,
 * networks,
 * bytes values, and
 * type values.
@@ -1701,7 +1701,7 @@ parenthesized form:
 > dataflow operator.
 
 This form must always include a lateral scope as indicated by `<lateral>`,
-which can be any dataflow operator sequence excluding `from` operators.
+which can be any dataflow operator sequence excluding [`from` operators](operators/from.md).
 As with the `over` operator, values from the outer scope can be brought into
 the lateral scope using the `with` clause.
 
@@ -1743,7 +1743,7 @@ In Zed, this cleansing process is called "shaping" the data, and Zed leverages
 its rich, [super-structured](../formats/README.md#2-zed-a-super-structured-pattern)
 type system to perform core aspects of data transformation.
 In a data model with nesting and multiple scalar types (such as Zed or JSON),
-shaping includes converting type of leaf fields, adding or removing fields
+shaping includes converting the type of leaf fields, adding or removing fields
 to "fit" a given shape, and reordering fields.
 
 While shaping remains an active area of development, the core functions in Zed
@@ -1802,7 +1802,7 @@ field path in the specified type, e.g.,
 zq -Z -I connection.zed "cast(this, <connection>)" sample.json
 ```
 casts the address fields to type `ip`, the port fields to type `port`
-(which is a typedef for `uint16`) and the address port pairs to
+(which is a [named type](#52-named-types) for type `uint16`) and the address port pairs to
 type `socket` without modifying the `uid` field or changing the
 order of the `server` and `client` fields:
 ```mdtest-output
@@ -1867,8 +1867,8 @@ the `connection` type has it:
 
 ### 9.4 Order
 
-The order function changes the order of fields in its input to match the
-specified order, as field order is significant in Zed records, e.g.,
+The `order` function changes the order of fields in its input to match the
+order in the specified type, as field order is significant in Zed records, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "order(this, <connection>)" sample.json
 ```
@@ -1937,7 +1937,7 @@ drops the `uid` field after shaping:
 
 Type fusion is another important building block of data shaping.
 Here, types are operated upon by fusing them together, where the
-result is single fused type.
+result is a single fused type.
 Some systems call a related process "schema inference" where a set
 of values, typically JSON, is analyzed to determine a relational schema
 that all the data will fit into.  However, this is just a special case of
@@ -2006,7 +2006,7 @@ The `fuse` aggregate function is most often useful during data exploration and d
 where you might interactively run queries to determine the shapes of some new
 or unknown input data and how those various shapes relate to one another.
 
-For example, in example sequence above, we can use the `fuse` aggregate function to determine
+For example, in the example sequence above, we can use the `fuse` aggregate function to determine
 the fused type rather than transforming the values, e.g.,
 ```mdtest-command
 echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this)' -
@@ -2038,7 +2038,7 @@ switch len(this) (
 ```
 when we run
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}{a:1,b:2,c:3}' | zq -z -I shape.zed '| sort -r this' -
+echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"} {a:1,b:2,c:3}' | zq -z -I shape.zed '| sort -r this' -
 ```
 we get
 ```mdtest-output
