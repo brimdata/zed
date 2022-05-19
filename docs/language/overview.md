@@ -1078,7 +1078,7 @@ where a `<spec>` has one of three forms:
 The first form is a customary colon-separated field and value similar to JavaScript,
 where `<field>` may be an identifier or quoted string.
 The second form is an implied field reference `<ref>`, which is shorthand
-for `<ref>:<ref>`.  The third form is the `...` spread operator which expects
+for `<ref>:<ref>` (XXX).  The third form is the `...` spread operator which expects
 a record value as the result of `<expr>` and inserts all of the fields from
 the resulting record.
 If a spread expression results in a non-record type (e.g., errors), then that
