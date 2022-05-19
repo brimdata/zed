@@ -55,13 +55,15 @@ class Client():
         self.__raise_for_status(r)
 
     def query(self, query):
-        return decode_raw(self.query_raw(query))
+        r = self.query_raw(query)
+        zjson = (json.loads(line) for line in r.iter_lines() if line)
+        return decode_zjson(zjson)
 
-    def query_raw(self, query):
-        body = {'query': query}
-        r = self.session.post(self.base_url + '/query', json=body, stream=True)
+    def query_raw(self, query, headers=None):
+        r = self.session.post(self.base_url + '/query', headers=headers,
+                              json={'query': query}, stream=True)
         self.__raise_for_status(r)
-        return (json.loads(line) for line in r.iter_lines() if line)
+        return r
 
     @staticmethod
     def __raise_for_status(response):
@@ -86,9 +88,9 @@ class QueryError(Exception):
     pass
 
 
-def decode_raw(raw):
+def decode_zjson(zjson):
     types = {}
-    for msg in raw:
+    for msg in zjson:
         typ, value = msg['type'], msg['value']
         if isinstance(typ, dict):
             yield _decode_value(_decode_type(types, typ), value)

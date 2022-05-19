@@ -18,6 +18,10 @@ script: |
   for rec in c.query('from test'):
     print(rec)
 
+  print('=== JSON')
+  resp = c.query_raw('from test', headers={'Accept': 'application/json'})
+  print(resp.text)
+
   print('===')
   try:
     c.create_pool('test')
@@ -150,6 +154,9 @@ outputs:
       {'enum': 'bar'}
       {'u8': 0, 'u16': 0, 'u32': 0, 'u64': 0, 'i8': 0, 'i16': 0, 'i32': 0, 'i64': 0, 'dur': datetime.timedelta(0), 'tim': datetime.datetime(1970, 1, 1, 0, 0, tzinfo=tzutc()), 'f64': 0.0, 'boo': False, 'byt': b'\x00', 'str': '', 'ip': IPv4Address('0.0.0.0'), 'net': IPv4Network('0.0.0.0/0'), 'err': '', 'nul': None}
       {'u8': 0, 'u16': 0, 'u32': 0, 'u64': 0, 'i8': 0, 'i16': 0, 'i32': 0, 'i64': 0, 'dur': datetime.timedelta(0), 'tim': datetime.datetime(1970, 1, 1, 0, 0, tzinfo=tzutc()), 'f64': 0.0, 'boo': False, 'byt': b'\x00', 'str': '', 'ip': IPv4Address('0.0.0.0'), 'net': IPv4Network('0.0.0.0/0'), 'err': '', 'nul': None}
+      === JSON
+      [{"map":[{"key":"a","value":{"a":1,"b":2}},{"key":"b","value":{"a":2,"b":3}},{"key":"c","value":{"a":3,"b":4}}]},{"set":[1,2,3,4]},{"union":["a","b"]},{"union":[1,2]},{"union":"hello"},{"array":[{"a":1},{"a":2}]},{"union":123},{"enum":"bar"},{"u8":0,"u16":0,"u32":0,"u64":0,"i8":0,"i16":0,"i32":0,"i64":0,"dur":"0s","tim":"1970-01-01T00:00:00Z","f64":0,"boo":false,"byt":"0x00","str":"","ip":"0.0.0.0","net":"0.0.0.0/0","err":{"error":""},"nul":null},{"u8":0,"u16":0,"u32":0,"u64":0,"i8":0,"i16":0,"i32":0,"i64":0,"dur":"0s","tim":"1970-01-01T00:00:00Z","f64":0,"boo":false,"byt":"0x00","str":"","ip":"0.0.0.0","net":"0.0.0.0/0","err":{"error":""},"nul":null}]
+
       ===
       RequestError('test: pool already exists')
       ===
