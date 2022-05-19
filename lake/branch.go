@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
@@ -237,8 +238,8 @@ const THRESH = %s
 from %s@%s:objects
 | {
 	id: id,
-	lower: compare(meta.first, meta.last) < 0 ? meta.first : meta.last,
-	upper: compare(meta.first, meta.last) < 0 ? meta.last : meta.first
+	lower: compare(meta.first, meta.last, %t) < 0 ? meta.first : meta.last,
+	upper: compare(meta.first, meta.last, %t) < 0 ? meta.last : meta.first
   }
 | switch (
   case %s %s THRESH => deletes:=collect(id)
@@ -248,7 +249,8 @@ from %s@%s:objects
 	if op == ">=" || op == ">" {
 		deletesField, copiesField = copiesField, deletesField
 	}
-	src := fmt.Sprintf(dbp, zson.MustFormatValue(val), b.pool.ID, commit, deletesField, op, copiesField, op)
+	nullsMax := b.pool.Layout.Order == order.Asc
+	src := fmt.Sprintf(dbp, zson.MustFormatValue(val), b.pool.ID, commit, nullsMax, nullsMax, deletesField, op, copiesField, op)
 	flowgraph, err := compiler.ParseOp(src)
 	if err != nil {
 		return nil, nil, err
