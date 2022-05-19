@@ -695,8 +695,8 @@ func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 	container := i.container.Eval(ectx, this)
 	index := i.index.Eval(ectx, this)
 	switch typ := container.Type.(type) {
-	case *zed.TypeArray:
-		return indexArray(i.zctx, ectx, typ, container.Bytes, index)
+	case *zed.TypeArray, *zed.TypeSet:
+		return indexVector(i.zctx, ectx, zed.InnerType(typ), container.Bytes, index)
 	case *zed.TypeRecord:
 		return indexRecord(i.zctx, ectx, typ, container.Bytes, index)
 	case *zed.TypeMap:
@@ -706,7 +706,7 @@ func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 }
 
-func indexArray(zctx *zed.Context, ectx Context, typ *zed.TypeArray, array zcode.Bytes, index *zed.Value) *zed.Value {
+func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsInteger(id) {
 		return ectx.CopyValue(zctx.NewErrorf("array index is not an integer"))
@@ -717,11 +717,11 @@ func indexArray(zctx *zed.Context, ectx Context, typ *zed.TypeArray, array zcode
 	} else {
 		idx = int(zed.DecodeUint(index.Bytes))
 	}
-	zv := getNthFromContainer(array, idx)
+	zv := getNthFromContainer(vector, idx)
 	if zv == nil {
 		return zctx.Missing()
 	}
-	return deunion(ectx, typ.Type, zv)
+	return deunion(ectx, inner, zv)
 }
 
 func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
