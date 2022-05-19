@@ -8,13 +8,14 @@ import (
 )
 
 const (
-	MediaTypeAny    = "*/*"
-	MediaTypeCSV    = "text/csv"
-	MediaTypeJSON   = "application/json"
-	MediaTypeNDJSON = "application/x-ndjson"
-	MediaTypeZJSON  = "application/x-zjson"
-	MediaTypeZNG    = "application/x-zng"
-	MediaTypeZSON   = "application/x-zson"
+	MediaTypeAny     = "*/*"
+	MediaTypeCSV     = "text/csv"
+	MediaTypeJSON    = "application/json"
+	MediaTypeNDJSON  = "application/x-ndjson"
+	MediaTypeParquet = "application/x-parquet"
+	MediaTypeZJSON   = "application/x-zjson"
+	MediaTypeZNG     = "application/x-zng"
+	MediaTypeZSON    = "application/x-zson"
 )
 
 type ErrUnsupportedMimeType struct {
@@ -44,6 +45,8 @@ func MediaTypeToFormat(s string, dflt string) (string, error) {
 		return "json", nil
 	case MediaTypeNDJSON:
 		return "ndjson", nil
+	case MediaTypeParquet:
+		return "parquet", nil
 	case MediaTypeZJSON:
 		return "zjson", nil
 	case MediaTypeZNG:
@@ -62,6 +65,8 @@ func FormatToMediaType(format string) string {
 		return MediaTypeJSON
 	case "ndjson":
 		return MediaTypeNDJSON
+	case "parquet":
+		return MediaTypeParquet
 	case "zjson":
 		return MediaTypeZJSON
 	case "zng":

@@ -7,6 +7,9 @@ script: |
     curl -H "Accept: $accept" -d '{"query":"from test"}' $ZED_LAKE/query\?ctrl=true |
       sed -E '/QueryStats/s/[0-9]{3,}/xxx/g' # for ZJSON
   done
+  echo === application/x-parquet ===
+  curl -H 'Accept: application/x-parquet' -d '{"query":"from test"}' -o out.parquet $ZED_LAKE/query
+  zq -z -i parquet out.parquet
 
 inputs:
   - name: service.sh
@@ -37,5 +40,8 @@ outputs:
       {a:"hello",b:{c:"world",d:"goodbye"}}
       {a:"one",b:{c:"two",d:"three"}}
       === ===
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+      {a:"one",b:{c:"two",d:"three"}}
+      === application/x-parquet ===
       {a:"hello",b:{c:"world",d:"goodbye"}}
       {a:"one",b:{c:"two",d:"three"}}
