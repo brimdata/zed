@@ -483,6 +483,7 @@ The supported MIME types are as follows:
 | CSV | text/csv |
 | JSON | application/json |
 | NDJSON | application/x-ndjson |
+| Parquet | application/x-parquet |
 | ZJSON | application/x-zjson |
 | ZSON | application/x-zson |
 | ZNG | application/x-zng |
