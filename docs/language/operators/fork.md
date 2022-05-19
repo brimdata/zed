@@ -5,11 +5,11 @@
 ### Synopsis
 
 ```
-fork {
+fork (
   => <leg>
   => <leg>
   ...
-}
+)
 ```
 ### Description
 
