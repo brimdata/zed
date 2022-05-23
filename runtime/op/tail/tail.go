@@ -8,6 +8,7 @@ import (
 type Proc struct {
 	parent zbuf.Puller
 	limit  int
+	batch  zbuf.Batch
 	count  int
 	off    int
 	q      []zed.Value
@@ -35,7 +36,7 @@ func (p *Proc) tail() zbuf.Batch {
 	for k := 0; k < p.count; k++ {
 		out[k] = p.q[(start+k)%p.limit]
 	}
-	return zbuf.NewArray(out)
+	return zbuf.NewBatch(p.batch, out)
 
 }
 
@@ -61,10 +62,18 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 			batch = p.tail()
 			if batch != nil {
 				p.eos = true
+				if p.batch != nil {
+					p.batch.Unref()
+					p.batch = nil
+				}
 			}
 			p.off = 0
 			p.count = 0
 			return batch, nil
+		}
+		if p.batch == nil {
+			batch.Ref()
+			p.batch = batch
 		}
 		vals := batch.Values()
 		for i := range vals {
