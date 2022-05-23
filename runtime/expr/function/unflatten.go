@@ -8,18 +8,20 @@ import (
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#unflatten
 type Unflatten struct {
-	builder zcode.Builder
-	stack   [][]zed.Column
-	zctx    *zed.Context
+	builder     zcode.Builder
+	recordCache *recordCache
+	zctx        *zed.Context
 
 	// These exist only to reduce memory allocations.
-	path    field.Path
-	columns []zed.Column
+	path   field.Path
+	types  []zed.Type
+	values []zcode.Bytes
 }
 
 func NewUnflatten(zctx *zed.Context) *Unflatten {
 	return &Unflatten{
-		zctx: zctx,
+		recordCache: &recordCache{},
+		zctx:        zctx,
 	}
 }
 
@@ -29,81 +31,27 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !ok {
 		return &val
 	}
-	u.builder.Reset()
-	u.stack = u.stack[:0]
+	u.recordCache.reset()
+	root := u.recordCache.new()
+	u.types = u.types[:0]
+	u.values = u.values[:0]
 	for it := val.Bytes.Iter(); !it.Done(); {
 		path, typ, vb := u.parseElem(array.Type, it.Next())
 		if typ == nil {
 			continue
 		}
-		if err := u.appendItem(0, path, typ, vb); err != nil {
-			return u.zctx.NewErrorf("unflatten: %v", err)
-		}
+		root.addPath(u.recordCache, path)
+		u.types = append(u.types, typ)
+		u.values = append(u.values, vb)
 	}
-	if len(u.stack) == 0 {
-		// No suitable items found in array.
-		return &val
-	}
-	if err := u.closeChildren(u.stack); err != nil {
-		return u.zctx.NewErrorf("unflatten: %v", err)
-	}
-	typ, err := u.zctx.LookupTypeRecord(u.stack[0])
-	if err != nil {
-		return u.zctx.NewErrorf("unflatten: %v", err)
-	}
+	u.builder.Reset()
+	types, values := u.types, u.values
+	typ := root.build(u.zctx, &u.builder, func() (zed.Type, zcode.Bytes) {
+		typ, value := types[0], values[0]
+		types, values = types[1:], values[1:]
+		return typ, value
+	})
 	return ctx.NewValue(typ, u.builder.Bytes())
-}
-
-func (u *Unflatten) appendItem(idx int, path field.Path, typ zed.Type, vb zcode.Bytes) error {
-	if cap(u.stack) <= idx {
-		u.stack = append(u.stack, []zed.Column{})
-	} else if len(u.stack) <= idx {
-		u.stack = u.stack[:len(u.stack)+1]
-	}
-	cols := u.stack[idx]
-	n := len(u.stack[idx])
-	diff := n == 0 || cols[n-1].Name != path[0]
-	if diff {
-		// only append column when previous path doesn't equal current path.
-		if err := u.closeChildren(u.stack[idx:]); err != nil {
-			return err
-		}
-		u.stack = u.stack[:idx+1]
-		if cap(cols) == len(cols) {
-			cols = append(cols, zed.Column{})
-			u.stack[idx] = cols
-		} else {
-			cols = cols[:len(u.stack)+1]
-		}
-		cols[len(cols)-1].Name = path[0]
-	}
-	if len(path) > 1 {
-		if diff {
-			u.builder.BeginContainer()
-		}
-		return u.appendItem(idx+1, path[1:], typ, vb)
-	}
-	// Set leaf type
-	cols[len(cols)-1].Type = typ
-	u.builder.Append(vb)
-	return nil
-}
-
-func (u *Unflatten) closeChildren(stack [][]zed.Column) error {
-	if len(stack) == 1 {
-		return nil
-	}
-	if err := u.closeChildren(stack[1:]); err != nil {
-		return err
-	}
-	typ, err := u.zctx.LookupTypeRecord(stack[1])
-	if err != nil {
-		return err
-	}
-	stack[1] = stack[1][:0]
-	stack[0][len(stack[0])-1].Type = typ
-	u.builder.EndContainer()
-	return nil
 }
 
 func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.Type, zcode.Bytes) {
@@ -139,4 +87,68 @@ func (u *Unflatten) decodeKey(b zcode.Bytes) field.Path {
 		u.path = append(u.path, zed.DecodeString(it.Next()))
 	}
 	return u.path
+}
+
+type recordCache struct {
+	index   int
+	records []*record
+}
+
+func (c *recordCache) new() *record {
+	if c.index == cap(c.records) {
+		c.records = append(c.records, new(record))
+	}
+	r := c.records[c.index]
+	r.columns = r.columns[:0]
+	r.records = r.records[:0]
+	c.index++
+	return r
+}
+
+func (c *recordCache) reset() {
+	c.index = 0
+}
+
+type record struct {
+	columns []zed.Column
+	records []*record
+}
+
+func (r *record) addPath(c *recordCache, p []string) {
+	if len(p) == 0 {
+		return
+	}
+	if len(r.columns) == 0 || r.columns[len(r.columns)-1].Name != p[0] {
+		r.appendColumn(p[0])
+		var rec *record
+		if len(p) > 1 {
+			rec = c.new()
+		}
+		r.records = append(r.records, rec)
+	}
+	r.records[len(r.records)-1].addPath(c, p[1:])
+}
+
+func (r *record) appendColumn(name string) {
+	if len(r.columns) == cap(r.columns) {
+		r.columns = append(r.columns, zed.Column{})
+	} else {
+		r.columns = r.columns[:len(r.columns)+1]
+	}
+	r.columns[len(r.columns)-1].Name = name
+}
+
+func (r *record) build(zctx *zed.Context, b *zcode.Builder, next func() (zed.Type, zcode.Bytes)) zed.Type {
+	for i, rec := range r.records {
+		if rec == nil {
+			typ, value := next()
+			b.Append(value)
+			r.columns[i].Type = typ
+			continue
+		}
+		b.BeginContainer()
+		r.columns[i].Type = rec.build(zctx, b, next)
+		b.EndContainer()
+	}
+	return zctx.MustLookupTypeRecord(r.columns)
 }
