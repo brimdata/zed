@@ -341,9 +341,9 @@ the implied record field named `foo`.
 Another common query pattern involves adding or mutating fields of records
 where the input is presumed to be a sequence of records.
 The [`put` operator](operators/put.md) provides this mechanism and the `put`
-keyword is implied by the mutator syntax `:=`, which is used in Zed when an
-input record field is modified, as compared to `=` which is used in [constant](#3-const-statements)
-and [variable](#8-lateral-subqueries) assignments.  For example, the operation
+keyword is implied by the [field assignment](#25-field-assignments) syntax `:=`.
+
+For example, the operation
 ```
 put y:=2*x+1
 ```
