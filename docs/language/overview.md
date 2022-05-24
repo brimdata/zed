@@ -963,6 +963,17 @@ Note that if the expression has side effects,
 as with [aggregate function calls](#610-aggregate-function-calls), only the selected expression
 will be evaluated.
 
+For example,
+```mdtest-command
+echo '"foo" "bar" "foo"' | zq -z 'yield this=="foo" ? {foocount:count()} : {barcount:count()}' -
+```
+produces
+```mdtest-output
+{foocount:1(uint64)}
+{barcount:1(uint64)}
+{foocount:2(uint64)}
+```
+
 ### 6.9 Function Calls
 
 [Functions](functions/README.md) perform stateless transformations of their input value to their
