@@ -1019,7 +1019,7 @@ produces
 {id:2(uint64),value:"bar"}
 {id:3(uint64),value:"baz"}
 ```
-In contrast, calling aggregate functions with the [`summarize` operator](operators/summarize.md)
+In contrast, calling aggregate functions within the [`summarize` operator](operators/summarize.md)
 ```mdtest-command
 echo '"foo" "bar" "baz"' | zq -z 'summarize count(),union(this)' -
 ```
