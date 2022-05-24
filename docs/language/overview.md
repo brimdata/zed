@@ -597,7 +597,8 @@ the scope of the Zed data model and language.  That said, Zed provides flexible
 building blocks so systems can define their own schema versioning and schema
 management policies on top of these Zed primitives.
 
-Zed's [super-structured data model](../formats/README.md#2-zed-a-super-structured-pattern) is a superset of relational tables and
+Zed's [super-structured data model](../formats/README.md#2-zed-a-super-structured-pattern)
+is a superset of relational tables and
 the Zed language's type system can easily make this connection.
 As an example, consider this type definition for "employee":
 ```
