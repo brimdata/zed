@@ -681,8 +681,9 @@ For example, suppose a bad value shows up:
 ```
 {kind:"bad", stuff:{foo:1,bar:2}}
 ```
-A Zed [shaper](#9-shaping) could catch the bad value (e.g., as a default case in a
-[`switch`](operators/switch.md) topology) and propagate it as an error using the Zed expression:
+A Zed [shaper](#9-shaping) could catch the bad value (e.g., as a default
+case in a [`switch`](operators/switch.md) topology) and propagate it as
+an error using the Zed expression:
 ```
 yield error({message:"unrecognized input",input:this})
 ```
