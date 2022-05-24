@@ -151,7 +151,8 @@ on values as they are produced.  For example, a long running query that
 produces incremental output will stream results as they are produced, i.e.,
 running `zq` to standard output will display results incrementally.
 
-The [`search`](operators/search.md) and [`where`](operators/where.md) operators "find" values in their input and drop
+The [`search`](operators/search.md) and [`where`](operators/where.md)
+operators "find" values in their input and drop
 the ones that do not match what is being looked for.
 
 The [`yield` operator](operators/yield.md) emits one or more output values
