@@ -1050,12 +1050,11 @@ a string, it is implicitly cast to a string.
 
 For example,
 ```mdtest-command
-echo '{numerator:22.0, denominator:7.0}' | zq -z 'yield "approximate pi = ${numerator / denominator}"' -
+echo '{numerator:22.0, denominator:7.0}' | zq -z 'yield "pi is approximately ${numerator / denominator}"' -
 ```
-
 produces
 ```mdtest-output
-"approximate pi = 3.142857142857143"
+"pi is approximately 3.142857142857143"
 ```
 
 If any template expression results in an error, then the value of the template
