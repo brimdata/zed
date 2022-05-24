@@ -2027,9 +2027,10 @@ results in
 {fuse:<{x:(int64,string),y:string}>}
 ```
 Since the `fuse` here is an aggregate function, it can also be used with
-group-by keys.  Supposing we wanted to fuse different categories of records into
-different types, we can use a group-by.  In this simple example, we will
-fuse records based on their number of fields using the [`len` function:](functions/len.md)
+group-by keys.  Supposing we want to divide records into categories and fuse
+the records in each category, we can use a group-by. In this simple example, we
+will fuse records based on their number of fields using the
+[`len` function:](functions/len.md)
 ```mdtest-command
 echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this) by len(this) | sort len' -
 ```
