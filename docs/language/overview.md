@@ -1693,7 +1693,7 @@ each subquery result as each inner sequence traversal completes.
 This structure is powerful because _any_ Zed query can appear in the body of
 the lateral scope.  In contrast to the `yield` example, a sort could be
 applied to each subsequence in the subquery, where sort
-reads all of the values of the subsequence, sorts them, emits them, then
+reads all values of the subsequence, sorts them, emits them, then
 repeats the process for the next subsequence.  For example,
 ```mdtest-command
 echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z 'over this => (sort this | collect(this))' -
