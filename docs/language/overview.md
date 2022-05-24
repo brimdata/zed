@@ -1071,7 +1071,6 @@ For example,
 ```mdtest-command
 echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' | zq -z 'yield "oh ${this[upper("${foo + bar}")]}"' -
 ```
-
 produces
 ```mdtest-output
 "oh hi!"
