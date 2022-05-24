@@ -876,8 +876,9 @@ in other languages and have the form
 where `<id>` is an identifier representing the field name referenced.
 If a field name is not representable as an identifier, then [indexing](#66-indexing)
 may be used with a quoted string to represent any valid field name.
-Such field names can be accessed using [`this`](#23-the-special-value-this) and an array-style
-reference, e.g., `this["field with spaces"]`.
+Such field names can be accessed using
+[`this`](#23-the-special-value-this) and an array-style reference, e.g.,
+`this["field with spaces"]`.
 
 If the dot operator is applied to a value that is not a record
 or if the record does not have the given field, then the result is
