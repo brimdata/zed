@@ -1,4 +1,4 @@
-package procflags
+package runtimeflags
 
 import (
 	"errors"

@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/lakeflags"
-	"github.com/brimdata/zed/cli/procflags"
+	"github.com/brimdata/zed/cli/runtimeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/display"
@@ -40,8 +40,8 @@ type Command struct {
 	*root.Command
 	commit bool
 	cli.CommitFlags
-	procFlags  procflags.Flags
-	inputFlags inputflags.Flags
+	inputFlags   inputflags.Flags
+	runtimeFlags runtimeflags.Flags
 
 	// status output
 	ctx       context.Context
@@ -56,12 +56,12 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	}
 	c.CommitFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f, true)
-	c.procFlags.SetFlags(f)
+	c.runtimeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.inputFlags, &c.procFlags)
+	ctx, cleanup, err := c.Init(&c.inputFlags, &c.runtimeFlags)
 	if err != nil {
 		return err
 	}
