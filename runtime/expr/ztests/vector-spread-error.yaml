@@ -1,8 +1,0 @@
-zed: yield [...a,...b], |[...a,...b]|
-
-input: |
-  {a:[1,2],b:"hi"}
-
-output: |
-  error({message:"spread syntax requires array/set",on:"hi"})
-  error({message:"spread syntax requires array/set",on:"hi"})

@@ -183,10 +183,11 @@ type VectorElem struct {
 }
 
 type ArrayExpr struct {
+	elems []VectorElem
+	zctx  *zed.Context
+
 	builder    zcode.Builder
 	collection collectionBuilder
-	elems      []VectorElem
-	zctx       *zed.Context
 }
 
 func NewArrayExpr(zctx *zed.Context, elems []VectorElem) *ArrayExpr {
@@ -207,7 +208,8 @@ func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		val := e.Spread.Eval(ectx, this)
 		inner := zed.InnerType(val.Type)
 		if inner == nil {
-			return a.zctx.WrapError("spread syntax requires array/set", val)
+			// Treat non-list spread values values like missing.
+			continue
 		}
 		a.collection.appendSpread(inner, val.Bytes)
 	}
@@ -246,7 +248,8 @@ func (a *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		val := e.Spread.Eval(ectx, this)
 		inner := zed.InnerType(val.Type)
 		if inner == nil {
-			return a.zctx.WrapError("spread syntax requires array/set", val)
+			// Treat non-list spread values values like missing.
+			continue
 		}
 		a.collection.appendSpread(inner, val.Bytes)
 	}

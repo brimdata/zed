@@ -662,21 +662,21 @@ func semType(scope *Scope, typ astzed.Type) (string, error) {
 }
 
 func semVectorElems(scope *Scope, elems []ast.VectorElem) ([]dag.VectorElem, error) {
-	out := make([]dag.VectorElem, len(elems))
-	for i, elem := range elems {
+	var out []dag.VectorElem
+	for _, elem := range elems {
 		switch elem := elem.(type) {
 		case *ast.Spread:
 			e, err := semExpr(scope, elem.Expr)
 			if err != nil {
 				return nil, err
 			}
-			out[i] = &dag.Spread{Kind: "Spread", Expr: e}
+			out = append(out, &dag.Spread{Kind: "Spread", Expr: e})
 		case *ast.VectorValue:
 			e, err := semExpr(scope, elem.Expr)
 			if err != nil {
 				return nil, err
 			}
-			out[i] = &dag.VectorValue{Kind: "VectorValue", Expr: e}
+			out = append(out, &dag.VectorValue{Kind: "VectorValue", Expr: e})
 		}
 	}
 	return out, nil

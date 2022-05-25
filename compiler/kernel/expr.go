@@ -430,21 +430,21 @@ func (b *Builder) compileSetExpr(set *dag.SetExpr) (expr.Evaluator, error) {
 }
 
 func (b *Builder) compileVectorElems(elems []dag.VectorElem) ([]expr.VectorElem, error) {
-	out := make([]expr.VectorElem, len(elems))
-	for i, elem := range elems {
+	var out []expr.VectorElem
+	for _, elem := range elems {
 		switch elem := elem.(type) {
 		case *dag.Spread:
 			e, err := b.compileExpr(elem.Expr)
 			if err != nil {
 				return nil, err
 			}
-			out[i] = expr.VectorElem{Spread: e}
+			out = append(out, expr.VectorElem{Spread: e})
 		case *dag.VectorValue:
 			e, err := b.compileExpr(elem.Expr)
 			if err != nil {
 				return nil, err
 			}
-			out[i] = expr.VectorElem{Value: e}
+			out = append(out, expr.VectorElem{Value: e})
 		}
 	}
 	return out, nil
