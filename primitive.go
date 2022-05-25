@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/netip"
 
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"inet.af/netaddr"
 )
 
 type TypeOfBool struct{}
@@ -307,11 +307,11 @@ func (t *TypeOfUint64) Kind() Kind {
 
 type TypeOfIP struct{}
 
-func NewIP(a netaddr.IP) *Value {
+func NewIP(a netip.Addr) *Value {
 	return &Value{TypeIP, EncodeIP(a)}
 }
 
-func AppendIP(zb zcode.Bytes, a netaddr.IP) zcode.Bytes {
+func AppendIP(zb zcode.Bytes, a netip.Addr) zcode.Bytes {
 	if a.Is4() {
 		ip := a.As4()
 		return append(zb, ip[:]...)
@@ -320,16 +320,16 @@ func AppendIP(zb zcode.Bytes, a netaddr.IP) zcode.Bytes {
 	return append(zb, ip[:]...)
 }
 
-func EncodeIP(a netaddr.IP) zcode.Bytes {
+func EncodeIP(a netip.Addr) zcode.Bytes {
 	return AppendIP(nil, a)
 }
 
-func DecodeIP(zv zcode.Bytes) netaddr.IP {
-	var ip netaddr.IP
-	if err := ip.UnmarshalBinary(zv); err != nil {
+func DecodeIP(zv zcode.Bytes) netip.Addr {
+	var a netip.Addr
+	if err := a.UnmarshalBinary(zv); err != nil {
 		panic(fmt.Errorf("failure trying to decode IP address: %w", err))
 	}
-	return ip
+	return a
 }
 
 func (t *TypeOfIP) ID() int {

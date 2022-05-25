@@ -3,14 +3,15 @@ package expr
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"net/netip"
 	"strings"
-
-	"inet.af/netaddr"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/stringsearch"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 type searchByPred struct {
@@ -103,9 +104,14 @@ type search struct {
 // field (or inside any element of a set or array of strings).
 func NewSearch(searchtext string, searchval *zed.Value, expr Evaluator) (Evaluator, error) {
 	if zed.TypeUnder(searchval.Type) == zed.TypeNet {
-		n, _ := netaddr.FromStdIPNet(zed.DecodeNet(searchval.Bytes))
+		n := zed.DecodeNet(searchval.Bytes)
+		a, ok := netip.AddrFromSlice(n.IP)
+		if !ok {
+			return nil, fmt.Errorf("xxx %s", zson.MustFormatValue(searchval))
+		}
+		ones, _ := n.Mask.Size()
 		return &searchCIDR{
-			net:   n,
+			net:   netip.PrefixFrom(a, ones),
 			bytes: searchval.Bytes,
 		}, nil
 	}
@@ -139,7 +145,7 @@ func (s *search) Eval(ectx Context, val *zed.Value) *zed.Value {
 }
 
 type searchCIDR struct {
-	net   netaddr.IPPrefix
+	net   netip.Prefix
 	bytes zcode.Bytes
 }
 

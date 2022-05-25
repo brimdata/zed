@@ -35,7 +35,6 @@ require (
 	golang.org/x/text v0.3.4
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20210106172901-c476de37821d
-	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 
 require (
@@ -57,11 +56,11 @@ require (
 	github.com/rivo/uniseg v0.1.0 // indirect
 	go.opentelemetry.io/otel v0.16.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
-	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
+	golang.org/x/tools v0.1.0 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/protobuf v1.25.1-0.20201020201750-d3470999428b // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

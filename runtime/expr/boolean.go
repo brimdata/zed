@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"net/netip"
 	"regexp"
 	"regexp/syntax"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/zcode"
-	"inet.af/netaddr"
 )
 
 //XXX TBD:
@@ -128,19 +128,19 @@ func CompareTime(op string, pattern int64) (Boolean, error) {
 
 //XXX should just do equality and we should compare in the encoded domain
 // and not make copies and have separate cases for len 4 and len 16
-var compareAddr = map[string]func(netaddr.IP, netaddr.IP) bool{
-	"==": func(a, b netaddr.IP) bool { return a.Compare(b) == 0 },
-	"!=": func(a, b netaddr.IP) bool { return a.Compare(b) != 0 },
-	">":  func(a, b netaddr.IP) bool { return a.Compare(b) > 0 },
-	">=": func(a, b netaddr.IP) bool { return a.Compare(b) >= 0 },
-	"<":  func(a, b netaddr.IP) bool { return a.Compare(b) < 0 },
-	"<=": func(a, b netaddr.IP) bool { return a.Compare(b) <= 0 },
+var compareAddr = map[string]func(netip.Addr, netip.Addr) bool{
+	"==": func(a, b netip.Addr) bool { return a.Compare(b) == 0 },
+	"!=": func(a, b netip.Addr) bool { return a.Compare(b) != 0 },
+	">":  func(a, b netip.Addr) bool { return a.Compare(b) > 0 },
+	">=": func(a, b netip.Addr) bool { return a.Compare(b) >= 0 },
+	"<":  func(a, b netip.Addr) bool { return a.Compare(b) < 0 },
+	"<=": func(a, b netip.Addr) bool { return a.Compare(b) <= 0 },
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
 // be TypeAddr with the value's address using a comparison based on op.
 // Only equality operands are allowed.
-func CompareIP(op string, pattern netaddr.IP) (Boolean, error) {
+func CompareIP(op string, pattern netip.Addr) (Boolean, error) {
 	compare, ok := compareAddr[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
