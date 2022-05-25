@@ -119,7 +119,7 @@ func (r *record) addPath(c *recordCache, p []string) {
 		return
 	}
 	if len(r.columns) == 0 || r.columns[len(r.columns)-1].Name != p[0] {
-		r.appendColumn(p[0])
+		r.columns = append(r.columns, zed.NewColumn(p[0], nil))
 		var rec *record
 		if len(p) > 1 {
 			rec = c.new()
@@ -127,15 +127,6 @@ func (r *record) addPath(c *recordCache, p []string) {
 		r.records = append(r.records, rec)
 	}
 	r.records[len(r.records)-1].addPath(c, p[1:])
-}
-
-func (r *record) appendColumn(name string) {
-	if len(r.columns) == cap(r.columns) {
-		r.columns = append(r.columns, zed.Column{})
-	} else {
-		r.columns = r.columns[:len(r.columns)+1]
-	}
-	r.columns[len(r.columns)-1].Name = name
 }
 
 func (r *record) build(zctx *zed.Context, b *zcode.Builder, next func() (zed.Type, zcode.Bytes)) zed.Type {
