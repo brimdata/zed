@@ -8,9 +8,10 @@ import (
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#unflatten
 type Unflatten struct {
+	zctx *zed.Context
+
 	builder     zcode.Builder
-	recordCache *recordCache
-	zctx        *zed.Context
+	recordCache recordCache
 
 	// These exist only to reduce memory allocations.
 	path   field.Path
@@ -20,8 +21,7 @@ type Unflatten struct {
 
 func NewUnflatten(zctx *zed.Context) *Unflatten {
 	return &Unflatten{
-		recordCache: &recordCache{},
-		zctx:        zctx,
+		zctx: zctx,
 	}
 }
 
@@ -40,7 +40,7 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if typ == nil {
 			continue
 		}
-		root.addPath(u.recordCache, path)
+		root.addPath(&u.recordCache, path)
 		u.types = append(u.types, typ)
 		u.values = append(u.values, vb)
 	}
@@ -95,7 +95,7 @@ type recordCache struct {
 }
 
 func (c *recordCache) new() *record {
-	if c.index == cap(c.records) {
+	if c.index == len(c.records) {
 		c.records = append(c.records, new(record))
 	}
 	r := c.records[c.index]
