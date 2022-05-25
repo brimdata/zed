@@ -5,12 +5,10 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
-	"github.com/segmentio/ksuid"
 )
 
 var apply = &charm.Spec{
@@ -22,14 +20,10 @@ var apply = &charm.Spec{
 
 type applyCommand struct {
 	*Command
-	ids []ksuid.KSUID
-	cli.CommitFlags
 }
 
 func newApply(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &applyCommand{Command: parent.(*Command)}
-	c.CommitFlags.SetFlags(f)
-	return c, nil
+	return &applyCommand{Command: parent.(*Command)}, nil
 }
 
 func (c *applyCommand) Run(args []string) error {

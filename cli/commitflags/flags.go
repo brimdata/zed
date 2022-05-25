@@ -1,4 +1,4 @@
-package cli
+package commitflags
 
 import (
 	"flag"
@@ -30,20 +30,20 @@ func username() string {
 	return s
 }
 
-// CommitFlags implements flags used by all "zed" commands that need commit info.
-type CommitFlags struct {
+// Flags implements flags for commands that need commit information.
+type Flags struct {
 	User    string
 	Message string
 	Meta    string
 }
 
-func (c *CommitFlags) SetFlags(f *flag.FlagSet) {
+func (c *Flags) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.User, "user", username(), "user name for commit message")
 	f.StringVar(&c.Message, "message", "", "commit message")
 	f.StringVar(&c.Meta, "meta", "", "application metadata")
 }
 
-func (c *CommitFlags) CommitMessage() api.CommitMessage {
+func (c *Flags) CommitMessage() api.CommitMessage {
 	return api.CommitMessage{
 		Author: c.User,
 		Body:   c.Message,

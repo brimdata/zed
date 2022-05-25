@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/cli/commitflags"
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
@@ -22,12 +22,13 @@ var Cmd = &charm.Spec{
 
 type Command struct {
 	*root.Command
+	commitFlags commitflags.Flags
 	force       bool
-	commitFlags cli.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	c.commitFlags.SetFlags(f)
 	f.BoolVar(&c.force, "f", false, "force merge of main into a target")
 	return c, nil
 }
