@@ -15,7 +15,7 @@ type Pattern func() Function
 // MaxValueSize is a limit on an individual aggregation value since sets
 // and arrays could otherwise grow without limit leading to a single record
 // value that cannot fit in memory.
-const MaxValueSize = 20 * 1024 * 1024
+const MaxValueSize = 1024 * 1024 * 1024
 
 type Function interface {
 	Consume(*zed.Value)
