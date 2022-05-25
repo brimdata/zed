@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/cli/procflags"
+	"github.com/brimdata/zed/cli/runtimeflags"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
@@ -27,9 +27,9 @@ var create = &charm.Spec{
 
 type createCommand struct {
 	*Command
-	framesize   int
-	outputFlags outputflags.Flags
-	procFlags   procflags.Flags
+	framesize    int
+	outputFlags  outputflags.Flags
+	runtimeFlags runtimeflags.Flags
 }
 
 func newCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -37,12 +37,12 @@ func newCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.IntVar(&c.framesize, "framesize", 32*1024, "minimum frame size used in microindex file")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
-	c.procFlags.SetFlags(f)
+	c.runtimeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *createCommand) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.procFlags, &c.outputFlags)
+	ctx, cleanup, err := c.Init(&c.outputFlags, &c.runtimeFlags)
 	if err != nil {
 		return err
 	}

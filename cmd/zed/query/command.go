@@ -4,8 +4,8 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/cli/queryflags"
+	"github.com/brimdata/zed/cli/runtimeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
@@ -25,21 +25,21 @@ var Cmd = &charm.Spec{
 
 type Command struct {
 	*root.Command
-	queryFlags  queryflags.Flags
-	outputFlags outputflags.Flags
-	procFlags   procflags.Flags
+	outputFlags  outputflags.Flags
+	queryFlags   queryflags.Flags
+	runtimeFlags runtimeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.SetFlags(f)
-	c.procFlags.SetFlags(f)
 	c.queryFlags.SetFlags(f)
+	c.runtimeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.outputFlags, &c.procFlags)
+	ctx, cleanup, err := c.Init(&c.outputFlags, &c.runtimeFlags)
 	if err != nil {
 		return err
 	}

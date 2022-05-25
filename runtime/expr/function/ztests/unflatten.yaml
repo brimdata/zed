@@ -2,5 +2,6 @@ zed: "yield unflatten(flatten(this))"
 
 input: &input |
   {a:{a:1,b:2,x:{z:"foo"}},b:2,c:3}
+  {b:{b1:4,b2:5,b3:{c:[6,7,8]},b4:["one","two","three"]}}
 
 output: *input

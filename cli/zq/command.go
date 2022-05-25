@@ -8,8 +8,8 @@ import (
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/cli/queryflags"
+	"github.com/brimdata/zed/cli/runtimeflags"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
@@ -93,14 +93,14 @@ https://github.com/brimdata/zed for more information.
 }
 
 type Command struct {
-	canon       bool
-	quiet       bool
-	stopErr     bool
-	cli         cli.Flags
-	queryFlags  queryflags.Flags
-	inputFlags  inputflags.Flags
-	outputFlags outputflags.Flags
-	procFlags   procflags.Flags
+	canon        bool
+	quiet        bool
+	stopErr      bool
+	cli          cli.Flags
+	inputFlags   inputflags.Flags
+	outputFlags  outputflags.Flags
+	queryFlags   queryflags.Flags
+	runtimeFlags runtimeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -108,8 +108,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.cli.SetFlags(f)
 	c.outputFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f, false)
-	c.procFlags.SetFlags(f)
 	c.queryFlags.SetFlags(f)
+	c.runtimeFlags.SetFlags(f)
 	f.BoolVar(&c.canon, "C", false, "display AST in Zed canonical format")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.BoolVar(&c.quiet, "q", false, "don't display warnings")
@@ -117,7 +117,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.cli.Init(&c.outputFlags, &c.inputFlags, &c.procFlags)
+	ctx, cleanup, err := c.cli.Init(&c.inputFlags, &c.outputFlags, &c.runtimeFlags)
 	if err != nil {
 		return err
 	}
