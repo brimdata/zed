@@ -319,13 +319,11 @@ func (c *collectionBuilder) append(val *zed.Value) {
 	c.bytes = append(c.bytes, val.Bytes)
 }
 
-func (c *collectionBuilder) appendSpread(inner zed.Type, b zcode.Bytes) bool {
-	it := b.Iter()
-	for !it.Done() {
+func (c *collectionBuilder) appendSpread(inner zed.Type, b zcode.Bytes) {
+	for it := b.Iter(); !it.Done(); {
 		c.types = append(c.types, inner)
 		c.bytes = append(c.bytes, it.Next())
 	}
-	return true
 }
 
 func (c *collectionBuilder) iter(zctx *zed.Context) collectionIter {
