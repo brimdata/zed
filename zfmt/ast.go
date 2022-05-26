@@ -176,11 +176,11 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write("}")
 	case *ast.ArrayExpr:
 		c.write("[")
-		c.exprsTight(e.Exprs)
+		c.vectorElems(e.Elems)
 		c.write("]")
 	case *ast.SetExpr:
 		c.write("|[")
-		c.exprsTight(e.Exprs)
+		c.vectorElems(e.Elems)
 		c.write("]|")
 	case *ast.MapExpr:
 		c.write("|{")
@@ -209,6 +209,21 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write(")")
 	default:
 		c.write("(unknown expr %T)", e)
+	}
+}
+
+func (c *canon) vectorElems(elems []ast.VectorElem) {
+	for k, elem := range elems {
+		if k > 0 {
+			c.write(",")
+		}
+		switch elem := elem.(type) {
+		case *ast.Spread:
+			c.write("...")
+			c.expr(elem.Expr, false)
+		case *ast.VectorValue:
+			c.expr(elem.Expr, false)
+		}
 	}
 }
 

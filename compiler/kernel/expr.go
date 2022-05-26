@@ -414,19 +414,40 @@ func (b *Builder) compileRecordExpr(record *dag.RecordExpr) (expr.Evaluator, err
 }
 
 func (b *Builder) compileArrayExpr(array *dag.ArrayExpr) (expr.Evaluator, error) {
-	exprs, err := b.compileExprs(array.Exprs)
+	elems, err := b.compileVectorElems(array.Elems)
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewArrayExpr(b.zctx(), exprs), nil
+	return expr.NewArrayExpr(b.zctx(), elems), nil
 }
 
 func (b *Builder) compileSetExpr(set *dag.SetExpr) (expr.Evaluator, error) {
-	exprs, err := b.compileExprs(set.Exprs)
+	elems, err := b.compileVectorElems(set.Elems)
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewSetExpr(b.zctx(), exprs), nil
+	return expr.NewSetExpr(b.zctx(), elems), nil
+}
+
+func (b *Builder) compileVectorElems(elems []dag.VectorElem) ([]expr.VectorElem, error) {
+	var out []expr.VectorElem
+	for _, elem := range elems {
+		switch elem := elem.(type) {
+		case *dag.Spread:
+			e, err := b.compileExpr(elem.Expr)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, expr.VectorElem{Spread: e})
+		case *dag.VectorValue:
+			e, err := b.compileExpr(elem.Expr)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, expr.VectorElem{Value: e})
+		}
+	}
+	return out, nil
 }
 
 func (b *Builder) compileMapExpr(m *dag.MapExpr) (expr.Evaluator, error) {

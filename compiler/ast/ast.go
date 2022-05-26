@@ -133,13 +133,25 @@ type Spread struct {
 }
 
 type ArrayExpr struct {
-	Kind  string `json:"kind" unpack:""`
-	Exprs []Expr `json:"exprs"`
+	Kind  string       `json:"kind" unpack:""`
+	Elems []VectorElem `json:"elems"`
 }
 
 type SetExpr struct {
-	Kind  string `json:"kind" unpack:""`
-	Exprs []Expr `json:"exprs"`
+	Kind  string       `json:"kind" unpack:""`
+	Elems []VectorElem `json:"elems"`
+}
+
+type VectorElem interface {
+	vectorAST()
+}
+
+func (*Spread) vectorAST()      {}
+func (*VectorValue) vectorAST() {}
+
+type VectorValue struct {
+	Kind string `json:"kind" unpack:""`
+	Expr Expr   `json:"expr"`
 }
 
 type MapExpr struct {

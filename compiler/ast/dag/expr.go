@@ -8,8 +8,8 @@ type Expr interface {
 
 type (
 	ArrayExpr struct {
-		Kind  string `json:"kind" unpack:""`
-		Exprs []Expr `json:"exprs"`
+		Kind  string       `json:"kind" unpack:""`
+		Elems []VectorElem `json:"elems"`
 	}
 	Assignment struct {
 		Kind string `json:"kind" unpack:""`
@@ -79,8 +79,8 @@ type (
 		Expr  Expr   `json:"expr"`
 	}
 	SetExpr struct {
-		Kind  string `json:"kind" unpack:""`
-		Exprs []Expr `json:"exprs"`
+		Kind  string       `json:"kind" unpack:""`
+		Elems []VectorElem `json:"elems"`
 	}
 	UnaryExpr struct {
 		Kind    string `json:"kind" unpack:""`
@@ -93,10 +93,16 @@ type (
 		Exprs []Expr      `json:"exprs"`
 		Scope *Sequential `json:"scope"`
 	}
+	VectorElem interface {
+		vectorElem()
+	}
 )
 
 func (*Field) recordAST()  {}
 func (*Spread) recordAST() {}
+
+func (*Spread) vectorElem()      {}
+func (*VectorValue) vectorElem() {}
 
 // Various Expr fields.
 
@@ -113,6 +119,10 @@ type (
 	Entry struct {
 		Key   Expr `json:"key"`
 		Value Expr `json:"value"`
+	}
+	VectorValue struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
 	}
 )
 

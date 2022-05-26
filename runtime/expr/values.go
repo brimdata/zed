@@ -177,31 +177,46 @@ func (r *recordSpreadExpr) invalidate(object map[string]column) {
 	r.cache = r.zctx.MustLookupTypeRecord(r.columns)
 }
 
-type ArrayExpr struct {
-	exprs []Evaluator
-	zctx  *zed.Context
-
-	builder zcode.Builder
-	elems   collectionBuilder
+type VectorElem struct {
+	Value  Evaluator
+	Spread Evaluator
 }
 
-func NewArrayExpr(zctx *zed.Context, exprs []Evaluator) *ArrayExpr {
+type ArrayExpr struct {
+	elems []VectorElem
+	zctx  *zed.Context
+
+	builder    zcode.Builder
+	collection collectionBuilder
+}
+
+func NewArrayExpr(zctx *zed.Context, elems []VectorElem) *ArrayExpr {
 	return &ArrayExpr{
-		exprs: exprs,
+		elems: elems,
 		zctx:  zctx,
 	}
 }
 
 func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	a.builder.Reset()
-	a.elems.reset()
-	for _, e := range a.exprs {
-		a.elems.append(e.Eval(ectx, this))
+	a.collection.reset()
+	for _, e := range a.elems {
+		if e.Value != nil {
+			a.collection.append(e.Value.Eval(ectx, this))
+			continue
+		}
+		val := e.Spread.Eval(ectx, this)
+		inner := zed.InnerType(val.Type)
+		if inner == nil {
+			// Treat non-list spread values values like missing.
+			continue
+		}
+		a.collection.appendSpread(inner, val.Bytes)
 	}
-	if len(a.elems.types) == 0 {
+	if len(a.collection.types) == 0 {
 		return ectx.NewValue(a.zctx.LookupTypeArray(zed.TypeNull), []byte{})
 	}
-	it := a.elems.iter(a.zctx)
+	it := a.collection.iter(a.zctx)
 	for !it.done() {
 		it.appendNext(&a.builder)
 	}
@@ -209,29 +224,39 @@ func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 }
 
 type SetExpr struct {
-	builder zcode.Builder
-	exprs   []Evaluator
-	elems   collectionBuilder
-	zctx    *zed.Context
+	builder    zcode.Builder
+	collection collectionBuilder
+	elems      []VectorElem
+	zctx       *zed.Context
 }
 
-func NewSetExpr(zctx *zed.Context, exprs []Evaluator) *SetExpr {
+func NewSetExpr(zctx *zed.Context, elems []VectorElem) *SetExpr {
 	return &SetExpr{
-		exprs: exprs,
+		elems: elems,
 		zctx:  zctx,
 	}
 }
 
 func (a *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	a.builder.Reset()
-	a.elems.reset()
-	for _, e := range a.exprs {
-		a.elems.append(e.Eval(ectx, this))
+	a.collection.reset()
+	for _, e := range a.elems {
+		if e.Value != nil {
+			a.collection.append(e.Value.Eval(ectx, this))
+			continue
+		}
+		val := e.Spread.Eval(ectx, this)
+		inner := zed.InnerType(val.Type)
+		if inner == nil {
+			// Treat non-list spread values values like missing.
+			continue
+		}
+		a.collection.appendSpread(inner, val.Bytes)
 	}
-	if len(a.elems.types) == 0 {
+	if len(a.collection.types) == 0 {
 		return ectx.NewValue(a.zctx.LookupTypeSet(zed.TypeNull), []byte{})
 	}
-	it := a.elems.iter(a.zctx)
+	it := a.collection.iter(a.zctx)
 	for !it.done() {
 		it.appendNext(&a.builder)
 	}
@@ -295,6 +320,13 @@ func (c *collectionBuilder) reset() {
 func (c *collectionBuilder) append(val *zed.Value) {
 	c.types = append(c.types, val.Type)
 	c.bytes = append(c.bytes, val.Bytes)
+}
+
+func (c *collectionBuilder) appendSpread(inner zed.Type, b zcode.Bytes) {
+	for it := b.Iter(); !it.Done(); {
+		c.types = append(c.types, inner)
+		c.bytes = append(c.bytes, it.Next())
+	}
 }
 
 func (c *collectionBuilder) iter(zctx *zed.Context) collectionIter {
