@@ -7,7 +7,7 @@ sidebar_label: Compression
 
 This document specifies values for the `<format>` byte of a
 [ZNG compressed value message block](zng.md#2-the-zng-format)
-and the corresponding algorithms for the `<compressed paylod>` byte sequence.
+and the corresponding algorithms for the `<compressed payload>` byte sequence.
 
 As new compression algorithms are specified, they will be documented
 here without any need to change the ZNG specification.
