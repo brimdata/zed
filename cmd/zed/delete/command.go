@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/cli/commitflags"
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/api"
@@ -41,13 +41,13 @@ can be "undone" by adding the commits back to the log using
 
 type Command struct {
 	*root.Command
-	cli.CommitFlags
-	where string
+	commitFlags commitflags.Flags
+	where       string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	c.CommitFlags.SetFlags(f)
+	c.commitFlags.SetFlags(f)
 	f.StringVar(&c.where, "where", "", "delete by pool key predicate")
 	return c, nil
 }
@@ -100,12 +100,12 @@ func (c *Command) deleteByIDs(ctx context.Context, lake api.Interface, head *lak
 	if len(ids) == 0 {
 		return ksuid.Nil, errors.New("no data object IDs specified")
 	}
-	return lake.Delete(ctx, poolID, head.Branch, ids, c.CommitMessage())
+	return lake.Delete(ctx, poolID, head.Branch, ids, c.commitFlags.CommitMessage())
 }
 
 func (c *Command) deleteByPredicate(ctx context.Context, lake api.Interface, head *lakeparse.Commitish, poolID ksuid.KSUID) (ksuid.KSUID, error) {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return ksuid.Nil, err
 	}
-	return lake.DeleteByPredicate(ctx, poolID, head.Branch, c.where, c.CommitMessage())
+	return lake.DeleteByPredicate(ctx, poolID, head.Branch, c.where, c.commitFlags.CommitMessage())
 }

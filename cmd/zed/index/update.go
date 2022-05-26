@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
@@ -24,13 +23,10 @@ If no rules are given, the update is performed for all index rules.`,
 
 type updateCommand struct {
 	*Command
-	cli.CommitFlags
 }
 
 func newUpdate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &updateCommand{Command: parent.(*Command)}
-	c.CommitFlags.SetFlags(f)
-	return c, nil
+	return &updateCommand{Command: parent.(*Command)}, nil
 }
 
 func (c *updateCommand) Run(args []string) error {

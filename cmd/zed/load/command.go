@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/cli/commitflags"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/runtimeflags"
@@ -38,8 +38,7 @@ The load command adds data to a pool and commits it to a branch.
 
 type Command struct {
 	*root.Command
-	commit bool
-	cli.CommitFlags
+	commitFlags  commitflags.Flags
 	inputFlags   inputflags.Flags
 	runtimeFlags runtimeflags.Flags
 
@@ -51,10 +50,8 @@ type Command struct {
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{
-		Command: parent.(*root.Command),
-	}
-	c.CommitFlags.SetFlags(f)
+	c := &Command{Command: parent.(*root.Command)}
+	c.commitFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f, true)
 	c.runtimeFlags.SetFlags(f)
 	return c, nil
@@ -102,7 +99,8 @@ func (c *Command) Run(args []string) error {
 		d = display.New(c, time.Second/2, os.Stderr)
 		go d.Run()
 	}
-	commitID, err := lake.Load(ctx, zctx, poolID, head.Branch, zio.ConcatReader(readers...), c.CommitMessage())
+	message := c.commitFlags.CommitMessage()
+	commitID, err := lake.Load(ctx, zctx, poolID, head.Branch, zio.ConcatReader(readers...), message)
 	if d != nil {
 		d.Close()
 	}
