@@ -1,0 +1,16 @@
+script: |
+  zq -aggmem 1B -z 'collect(this)' a.zson
+  ! zq -aggmem 0 a.zson
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {collect:null}
+  - name: stderr
+    data: |
+      aggmem value must be greater than zero

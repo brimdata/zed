@@ -7,15 +7,14 @@ import (
 	"github.com/brimdata/zed/pkg/anymath"
 )
 
+// MaxValueSize limits the size of a value produced by an aggregate function
+// since sets and arrays could otherwise grow without bound.
+var MaxValueSize = 1024 * 1024 * 1024
+
 // A Pattern is a template for creating instances of aggregator functions.
 // NewPattern returns a pattern of the type that should be created and
 // an instance is created by simply invoking the pattern funtion.
 type Pattern func() Function
-
-// MaxValueSize is a limit on an individual aggregation value since sets
-// and arrays could otherwise grow without limit leading to a single record
-// value that cannot fit in memory.
-const MaxValueSize = 1024 * 1024 * 1024
 
 type Function interface {
 	Consume(*zed.Value)
