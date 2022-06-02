@@ -6,7 +6,7 @@ record.
 ### Synopsis
 
 ```
-unflatten(val: [{key:[string],value:any}) -> record
+unflatten(val: [{key:string|[string],value:any}) -> record
 ```
 ### Description
 The _unflatten_ function converts the key/value records in array `val` into
@@ -16,7 +16,7 @@ will produce a record identical to `r`.
 ### Examples
 Simple:
 ```mdtest-command
-echo '[{key:["a"],value:1},{key:["b"],value:2}]' | zq -z 'yield unflatten(this)' -
+echo '[{key:"a",value:1},{key:["b"],value:2}]' | zq -z 'yield unflatten(this)' -
 ```
 =>
 ```mdtest-output

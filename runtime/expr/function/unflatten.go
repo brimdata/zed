@@ -1,9 +1,12 @@
 package function
 
 import (
+	"fmt"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#unflatten
@@ -36,7 +39,11 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	u.types = u.types[:0]
 	u.values = u.values[:0]
 	for it := val.Bytes.Iter(); !it.Done(); {
-		path, typ, vb := u.parseElem(array.Type, it.Next())
+		bytes := it.Next()
+		path, typ, vb, err := u.parseElem(array.Type, bytes)
+		if err != nil {
+			return u.zctx.WrapError(err.Error(), ctx.NewValue(array.Type, bytes))
+		}
 		if typ == nil {
 			continue
 		}
@@ -54,31 +61,38 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	return ctx.NewValue(typ, u.builder.Bytes())
 }
 
-func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.Type, zcode.Bytes) {
+func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.Type, zcode.Bytes, error) {
 	if union, ok := zed.TypeUnder(inner).(*zed.TypeUnion); ok {
 		inner, vb = union.SplitZNG(vb)
 	}
 	typ := zed.TypeRecordOf(inner)
 	if typ == nil || len(typ.Columns) != 2 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	nkey, ok := typ.ColumnOfField("key")
 	if !ok {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
-	if a, ok := zed.TypeUnder(typ.Columns[nkey].Type).(*zed.TypeArray); !ok && a.Type != zed.TypeString {
-		return nil, nil, nil
-	}
+
 	vtyp, ok := typ.TypeOfField("value")
 	if !ok {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	it := vb.Iter()
 	kbytes, vbytes := it.Next(), it.Next()
 	if nkey == 1 {
 		kbytes, vbytes = vbytes, kbytes
 	}
-	return u.decodeKey(kbytes), vtyp, vbytes
+	ktyp := typ.Columns[nkey].Type
+	if ktyp.ID() == zed.IDString {
+		u.path = u.path[:0]
+		u.path = append(u.path, zed.DecodeString(kbytes))
+		return u.path, vtyp, vbytes, nil
+	}
+	if a, ok := zed.TypeUnder(ktyp).(*zed.TypeArray); ok && a.Type == zed.TypeString {
+		return u.decodeKey(kbytes), vtyp, vbytes, nil
+	}
+	return nil, nil, nil, fmt.Errorf("invalid key type %s: expected either string or [string]", zson.FormatType(ktyp))
 }
 
 func (u *Unflatten) decodeKey(b zcode.Bytes) field.Path {
