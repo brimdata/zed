@@ -20,6 +20,17 @@ func DAG(op dag.Op) string {
 	return d.String()
 }
 
+func DAGExpr(e dag.Expr) string {
+	d := &canonDAG{
+		canonZed: canonZed{formatter: formatter{tab: 2}},
+		head:     true,
+		first:    true,
+	}
+	d.expr(e, false)
+	d.flush()
+	return d.String()
+}
+
 type canonDAG struct {
 	canonZed
 	head  bool
@@ -77,7 +88,13 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.write(e.Op)
 		c.expr(e.Operand, true)
 	case *dag.BinaryExpr:
+		// if paren {
+		// c.write("(")
+		// }
 		c.binary(e)
+		// if paren {
+		// c.write(")")
+		// }
 	case *dag.Conditional:
 		c.write("(")
 		c.expr(e.Cond, true)

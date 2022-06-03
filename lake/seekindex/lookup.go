@@ -1,75 +1,87 @@
 package seekindex
 
 import (
-	"errors"
+	"context"
 	"fmt"
-	"math"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zfmt"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zson"
 )
 
-func Lookup(r zio.Reader, from, to *zed.Value, cmp expr.CompareFn) (Range, error) {
-	return lookup(r, field.New("key"), from, to, cmp)
-}
-
-func LookupByCount(r zio.Reader, from, to *zed.Value) (Range, error) {
-	return lookup(r, field.New("count"), from, to, extent.CompareFunc(order.Asc))
-}
-
-func lookup(r zio.Reader, path field.Path, from, to *zed.Value, cmp expr.CompareFn) (Range, error) {
-	rg := Range{0, math.MaxInt64}
-	var rec *zed.Value
-	for {
-		var err error
-		rec, err = r.Read()
-		if err != nil {
-			return Range{}, err
-		}
-		if rec == nil {
-			return rg, nil
-		}
-		key := rec.DerefPath(path)
-		if key == nil {
-			return Range{}, fmt.Errorf("key does not exist: %s", path)
-		}
-		if cmp(key, from) > 0 {
-			break
-		}
-		off := rec.Deref("offset")
-		if off == nil {
-			return Range{}, errors.New("seekindex: missing offset")
-		}
-		rg.Start = off.AsInt()
-		if cmp(key, from) == 0 {
-			break
-		}
+func Lookup(ctx context.Context, reader zio.Reader, filter *kernel.PoolKeyFilter, index extent.Span, lastKey *zed.Value, count uint64, size int64, o order.Which) (Range, error) {
+	rg := Range{End: size}
+	src := `put num := count() - 1
+	| yield {...this, bucket: num - num %% 2}, {...this, bucket: num + num %% 2 - 1}
+	| keys := union(key), counts := union(count), offsets := union(offset) by bucket
+	| drop bucket
+	| where len(keys) == 2
+	| over flatten(this) => (
+	over value with key => (
+	sort this
+	| collect(this)
+	| {key,value:{lower:collect[0],upper:collect[1]}}
+	)
+	| collect(this)
+	)
+	| unflatten(collect)
+	| {...offsets, ...this}
+	| drop offsets
+	| sort lower
+	| where %s
+	| where %s
+	| fork ( => head 1 => tail 1 )`
+	poolKeyExpr := "true"
+	if filter != nil {
+		poolKeyExpr = zfmt.DAGExpr(filter.ObjectFilterExpr(o, "keys"))
 	}
-	for {
-		key := rec.DerefPath(path)
-		if key == nil {
-			return Range{}, fmt.Errorf("key does not exist: %s", path)
-		}
-		if cmp(key, to) > 0 {
-			off := rec.Deref("offset")
-			if off == nil {
-				return Range{}, errors.New("seekindex: missing offset")
-			}
-			rg.End = off.AsInt()
-			break
-		}
-		var err error
-		rec, err = r.Read()
+	indexExpr := "true"
+	if index != nil {
+		indexExpr = fmt.Sprintf("counts.upper >= %s and counts.lower <= %s",
+			zson.MustFormatValue(index.First()),
+			zson.MustFormatValue(index.Last()),
+		)
+	}
+	src = fmt.Sprintf(src, poolKeyExpr, indexExpr)
+	program, err := compiler.ParseOp(src)
+	if err != nil {
+		return rg, err
+	}
+	lastval, err := zson.MarshalZNG(Entry{
+		Key:    lastKey,
+		Offset: size,
+		Count:  count,
+	})
+	if err != nil {
+		return rg, err
+	}
+	reader = zio.ConcatReader(reader, zbuf.NewArray([]zed.Value{*lastval}))
+	query, err := runtime.NewQueryOnReader(ctx, zed.NewContext(), program, reader, nil)
+	if err != nil {
+		return rg, err
+	}
+	defer query.Close()
+	r := query.AsReader()
+	for i := 0; i < 2; i++ {
+		val, err := r.Read()
 		if err != nil {
-			return Range{}, err
+			return rg, err
 		}
-		if rec == nil {
+		if val == nil {
 			break
 		}
+		if i == 0 {
+			rg.Start = val.Deref("lower").AsInt()
+			continue
+		}
+		rg.End = val.Deref("upper").AsInt()
 	}
 	return rg, nil
 }

@@ -3,11 +3,11 @@ script: |
   zed init -q
   zed create -seekstride 2KB -orderby ts:asc -q asc
   zed load -q -use asc babble.zson
-  zed query -z -s "from asc range 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
+  zed query -z -s -use asc "ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z"
   echo === | tee /dev/stderr
   zed create -seekstride 2KB -orderby ts:desc -q desc
   zed load -q -use desc babble.zson
-  zed query -z -s "from desc range 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
+  zed query -z -s -use desc "ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z"
 
 inputs:
   - name: babble.zson

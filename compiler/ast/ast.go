@@ -359,7 +359,6 @@ type (
 		Kind      string   `json:"kind" unpack:""`
 		Spec      PoolSpec `json:"spec"`
 		At        string   `json:"at"`
-		Range     *Range   `json:"range"`
 		ScanOrder string   `json:"scan_order"` // asc, desc, or unknown
 	}
 	Explode struct {
@@ -374,12 +373,6 @@ type PoolSpec struct {
 	Pool   string `json:"pool"`
 	Commit string `json:"commit"`
 	Meta   string `json:"meta"`
-}
-
-type Range struct {
-	Kind  string `json:"kind" unpack:""`
-	Lower Expr   `json:"lower"`
-	Upper Expr   `json:"upper"`
 }
 
 type Source interface {

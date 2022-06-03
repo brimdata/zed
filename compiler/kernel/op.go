@@ -531,11 +531,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		// of op.From operators.
 		sched, ok := b.schedulers[src]
 		if !ok {
-			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
-			if err != nil {
-				return nil, err
-			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -545,7 +541,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.PoolMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -555,11 +551,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.CommitMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
-			if err != nil {
-				return nil, err
-			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -569,7 +561,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.LakeMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -649,6 +641,11 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {
 		}
 	}()
 	return e.Eval(expr.NewContext(), b.zctx().Missing()), nil
+}
+
+func CompileExpr(in dag.Expr) (expr.Evaluator, error) {
+	b := NewBuilder(op.NewContext(context.Background(), zed.NewContext(), nil), nil)
+	return b.compileExpr(in)
 }
 
 func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err error) {

@@ -6,13 +6,14 @@ import (
 	"math"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
 	zedexpr "github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
@@ -24,7 +25,7 @@ func seekDotMin(zctx *zed.Context) zedexpr.Evaluator {
 }
 
 func seekDotMax(zctx *zed.Context) zedexpr.Evaluator {
-	return zedexpr.NewDottedExpr(zctx, field.Dotted("seek.min"))
+	return zedexpr.NewDottedExpr(zctx, field.Dotted("seek.max"))
 }
 
 var MaxSpan = extent.NewGenericFromOrder(*zed.NewUint64(0), *zed.NewUint64(math.MaxUint64), order.Asc)
@@ -37,8 +38,12 @@ type Filter struct {
 	sem    *semaphore.Weighted
 }
 
-func NewFilter(engine storage.Engine, path *storage.URI, e dag.Expr) *Filter {
-	expr := compileExpr(e)
+func NewFilter(engine storage.Engine, path *storage.URI, filter zbuf.Filter) *Filter {
+	kf := filter.(*kernel.Filter)
+	if kf == nil {
+		return nil
+	}
+	expr := compileExpr(kf.Pushdown)
 	if expr == nil {
 		return nil
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -49,7 +48,7 @@ func (*internalAdaptor) Layout(context.Context, dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*internalAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (op.Scheduler, error) {
+func (*internalAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, zbuf.Filter) (op.Scheduler, error) {
 	return nil, errors.New("invalid pool or file scan specified for internally streamed Zed query")
 }
 

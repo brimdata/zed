@@ -17,7 +17,6 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zngbytes"
@@ -462,16 +461,16 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 	return vals, nil
 }
 
-func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
+func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, filter zbuf.Filter) (op.Scheduler, error) {
 	switch src := src.(type) {
 	case *dag.Pool:
-		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter)
+		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, filter)
 	case *dag.LakeMeta:
 		return r.newLakeMetaScheduler(ctx, zctx, src.Meta, filter)
 	case *dag.PoolMeta:
 		return r.newPoolMetaScheduler(ctx, zctx, src.ID, src.Meta, filter)
 	case *dag.CommitMeta:
-		return r.newCommitMetaScheduler(ctx, zctx, src.Pool, src.Commit, src.Meta, span, filter)
+		return r.newCommitMetaScheduler(ctx, zctx, src.Pool, src.Commit, src.Meta, filter)
 	default:
 		return nil, fmt.Errorf("internal error: unsupported source type in lake.Root.NewScheduler: %T", src)
 	}
@@ -528,7 +527,7 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, pool
 	return newScannerScheduler(s), nil
 }
 
-func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, meta string, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
+func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, meta string, filter zbuf.Filter) (op.Scheduler, error) {
 	p, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
@@ -539,7 +538,7 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, po
 		if err != nil {
 			return nil, err
 		}
-		reader, err := objectReader(ctx, zctx, snap, span, p.Layout.Order)
+		reader, err := objectReader(ctx, zctx, snap, p.Layout.Order)
 		if err != nil {
 			return nil, err
 		}
@@ -553,7 +552,7 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, po
 		if err != nil {
 			return nil, err
 		}
-		reader, err := indexObjectReader(ctx, zctx, snap, span, p.Layout.Order)
+		reader, err := indexObjectReader(ctx, zctx, snap, p.Layout.Order)
 		if err != nil {
 			return nil, err
 		}
@@ -567,7 +566,7 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, po
 		if err != nil {
 			return nil, err
 		}
-		reader, err := partitionReader(ctx, zctx, snap, span, p.Layout.Order)
+		reader, err := partitionReader(ctx, zctx, p, snap)
 		if err != nil {
 			return nil, err
 		}
@@ -606,12 +605,12 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, po
 	}
 }
 
-func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
+func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, filter zbuf.Filter) (op.Scheduler, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
 	}
-	return pool.newScheduler(ctx, zctx, commit, span, filter)
+	return pool.newScheduler(ctx, zctx, commit, filter)
 }
 
 func (r *Root) Open(context.Context, *zed.Context, string, string, zbuf.Filter) (zbuf.Puller, error) {

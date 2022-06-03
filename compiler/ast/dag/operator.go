@@ -180,8 +180,6 @@ type (
 		Kind      string      `json:"kind" unpack:""`
 		ID        ksuid.KSUID `json:"id"`
 		Commit    ksuid.KSUID `json:"commit"`
-		ScanLower Expr        `json:"scan_lower"`
-		ScanUpper Expr        `json:"scan_upper"`
 		ScanOrder string      `json:"scan_order"`
 	}
 	PoolMeta struct {
