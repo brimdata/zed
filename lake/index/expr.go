@@ -22,8 +22,8 @@ type result struct {
 
 // compileExpr returns a watered-down version of a filter that can be digested
 // by index. All parts of the expression tree are removed that are not:
-// - A '==', '>', '>=', '<', '<=', 'and' or 'or' BinaryExpr
-// - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *dag.Literal
+// - Equals comparisons chained with 'and' or 'or' statements.
+// - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *dag.Literal.
 func compileExpr(node dag.Expr) expr {
 	e, ok := node.(*dag.BinaryExpr)
 	if !ok {
@@ -40,7 +40,7 @@ func compileExpr(node dag.Expr) expr {
 			return lhs
 		}
 		return logicalExpr(lhs, rhs, e.Op)
-	case "==", "<", "<=", ">", ">=":
+	case "==":
 		literal, ok := e.RHS.(*dag.Literal)
 		if !ok {
 			return nil
