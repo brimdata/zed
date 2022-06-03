@@ -40,10 +40,10 @@ func (c *canonDAG) assignments(assignments []dag.Assignment) {
 			c.write(",")
 		}
 		if a.LHS != nil {
-			c.expr(a.LHS, false)
+			c.expr(a.LHS, "")
 			c.write(":=")
 		}
-		c.expr(a.RHS, false)
+		c.expr(a.RHS, "")
 	}
 }
 
@@ -52,39 +52,38 @@ func (c *canonDAG) exprs(exprs []dag.Expr) {
 		if k > 0 {
 			c.write(", ")
 		}
-		c.expr(e, false)
+		c.expr(e, "")
 	}
 }
 
-func (c *canonDAG) expr(e dag.Expr, paren bool) {
+func (c *canonDAG) expr(e dag.Expr, parent string) {
 	switch e := e.(type) {
 	case nil:
 		c.write("null")
 	case *dag.Agg:
 		c.write("%s(", e.Name)
 		if e.Expr != nil {
-			c.expr(e.Expr, false)
+			c.expr(e.Expr, "")
 		}
 		c.write(")")
 		if e.Where != nil {
 			c.write(" where ")
-			c.expr(e.Where, false)
+			c.expr(e.Where, "")
 		}
 	case *astzed.Primitive:
 		c.literal(*e)
 	case *dag.UnaryExpr:
-		c.space()
 		c.write(e.Op)
-		c.expr(e.Operand, true)
+		c.expr(e.Operand, "not")
 	case *dag.BinaryExpr:
-		c.binary(e)
+		c.binary(e, parent)
 	case *dag.Conditional:
 		c.write("(")
-		c.expr(e.Cond, true)
+		c.expr(e.Cond, "")
 		c.write(") ? ")
-		c.expr(e.Then, false)
+		c.expr(e.Then, "")
 		c.write(" : ")
-		c.expr(e.Else, false)
+		c.expr(e.Else, "")
 	case *dag.Call:
 		c.write("%s(", e.Name)
 		c.exprs(e.Args)
@@ -108,36 +107,37 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 	}
 }
 
-func (c *canonDAG) binary(e *dag.BinaryExpr) {
+func (c *canonDAG) binary(e *dag.BinaryExpr, parent string) {
 	switch e.Op {
 	case ".":
 		if !isDAGThis(e.LHS) {
-			c.expr(e.LHS, false)
+			c.expr(e.LHS, "")
 			c.write(".")
 		}
-		c.expr(e.RHS, false)
+		c.expr(e.RHS, "")
 	case "[":
 		if isDAGThis(e.LHS) {
 			c.write(".")
 		} else {
-			c.expr(e.LHS, false)
+			c.expr(e.LHS, "")
 		}
 		c.write("[")
-		c.expr(e.RHS, false)
+		c.expr(e.RHS, "")
 		c.write("]")
-	case "in", "and":
-		c.expr(e.LHS, false)
+	case "in", "and", "or":
+		parens := needsparens(parent, e.Op)
+		c.maybewrite("(", parens)
+		c.expr(e.LHS, e.Op)
 		c.write(" %s ", e.Op)
-		c.expr(e.RHS, false)
-	case "or":
-		c.expr(e.LHS, true)
-		c.write(" %s ", e.Op)
-		c.expr(e.RHS, true)
+		c.expr(e.RHS, e.Op)
+		c.maybewrite(")", parens)
 	default:
-		// do need parens calc
-		c.expr(e.LHS, true)
+		parens := needsparens(parent, e.Op)
+		c.maybewrite("(", parens)
+		c.expr(e.LHS, e.Op)
 		c.write("%s", e.Op)
-		c.expr(e.RHS, true)
+		c.expr(e.RHS, e.Op)
+		c.maybewrite(")", parens)
 	}
 }
 
@@ -148,6 +148,12 @@ func isDAGThis(e dag.Expr) bool {
 		}
 	}
 	return false
+}
+
+func (c *canonDAG) maybewrite(s string, do bool) {
+	if do {
+		c.write(s)
+	}
 }
 
 func (c *canonDAG) next() {
@@ -194,7 +200,7 @@ func (c *canonDAG) op(p dag.Op) {
 		c.next()
 		c.open("switch ")
 		if p.Expr != nil {
-			c.expr(p.Expr, false)
+			c.expr(p.Expr, "")
 			c.write(" ")
 		}
 		c.open("(")
@@ -202,7 +208,7 @@ func (c *canonDAG) op(p dag.Op) {
 			c.ret()
 			if k.Expr != nil {
 				c.write("case ")
-				c.expr(k.Expr, false)
+				c.expr(k.Expr, "")
 			} else {
 				c.write("default")
 			}
@@ -219,7 +225,7 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Merge:
 		c.next()
 		c.write("merge ")
-		c.expr(p.Expr, false)
+		c.expr(p.Expr, "")
 		c.write(":" + p.Order.String())
 	case *dag.Summarize:
 		c.next()
@@ -287,7 +293,7 @@ func (c *canonDAG) op(p dag.Op) {
 		if isDAGTrue(p.Expr) {
 			c.write("*")
 		} else {
-			c.expr(p.Expr, false)
+			c.expr(p.Expr, "")
 		}
 		c.close()
 	case *dag.Top:
@@ -308,9 +314,9 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Join:
 		c.next()
 		c.open("join on ")
-		c.expr(p.LeftKey, false)
+		c.expr(p.LeftKey, "")
 		c.write("=")
-		c.expr(p.RightKey, false)
+		c.expr(p.RightKey, "")
 		if len(p.Args) != 0 {
 			c.write(" ")
 			c.assignments(p.Args)

@@ -43,10 +43,10 @@ func (c *canon) assignments(assignments []ast.Assignment) {
 
 func (c *canon) assignment(a ast.Assignment) {
 	if a.LHS != nil {
-		c.expr(a.LHS, false)
+		c.expr(a.LHS, "")
 		c.write(":=")
 	}
-	c.expr(a.RHS, false)
+	c.expr(a.RHS, "")
 }
 
 func (c *canon) defs(defs []ast.Def, separator string) {
@@ -61,7 +61,7 @@ func (c *canon) defs(defs []ast.Def, separator string) {
 func (c *canon) def(d ast.Def) {
 	c.write(d.Name)
 	c.write("=")
-	c.expr(d.Expr, false)
+	c.expr(d.Expr, "")
 }
 
 func (c *canon) exprs(exprs []ast.Expr) {
@@ -69,7 +69,7 @@ func (c *canon) exprs(exprs []ast.Expr) {
 		if k > 0 {
 			c.write(", ")
 		}
-		c.expr(e, false)
+		c.expr(e, "")
 	}
 }
 
@@ -78,23 +78,23 @@ func (c *canon) exprsTight(exprs []ast.Expr) {
 		if k > 0 {
 			c.write(",")
 		}
-		c.expr(e, false)
+		c.expr(e, "")
 	}
 }
 
-func (c *canon) expr(e ast.Expr, paren bool) {
+func (c *canon) expr(e ast.Expr, parent string) {
 	switch e := e.(type) {
 	case nil:
 		c.write("null")
 	case *ast.Agg:
 		c.write("%s(", e.Name)
 		if e.Expr != nil {
-			c.expr(e.Expr, false)
+			c.expr(e.Expr, "")
 		}
 		c.write(")")
 		if e.Where != nil {
 			c.write(" where ")
-			c.expr(e.Where, false)
+			c.expr(e.Where, "")
 		}
 	case *ast.Assignment:
 		c.assignment(*e)
@@ -103,26 +103,25 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 	case *ast.ID:
 		c.write(e.Name)
 	case *ast.UnaryExpr:
-		c.space()
 		c.write(e.Op)
-		c.expr(e.Operand, true)
+		c.expr(e.Operand, "not")
 	case *ast.BinaryExpr:
-		c.binary(e)
+		c.binary(e, parent)
 	case *ast.Conditional:
 		c.write("(")
-		c.expr(e.Cond, true)
+		c.expr(e.Cond, "")
 		c.write(") ? ")
-		c.expr(e.Then, false)
+		c.expr(e.Then, "")
 		c.write(" : ")
-		c.expr(e.Else, false)
+		c.expr(e.Else, "")
 	case *ast.Call:
 		c.write("%s(", e.Name)
 		c.exprs(e.Args)
 		c.write(")")
 	case *ast.Cast:
-		c.expr(e.Type, false)
+		c.expr(e.Type, "")
 		c.write("(")
-		c.expr(e.Expr, true)
+		c.expr(e.Expr, "")
 		c.write(")")
 	case *ast.SQLExpr:
 		c.sql(e)
@@ -148,7 +147,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		}
 		if !isThis(e.Expr) {
 			c.write(",")
-			c.expr(e.Expr, false)
+			c.expr(e.Expr, "")
 		}
 		c.write(")")
 	case *ast.Term:
@@ -163,12 +162,12 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 			case *ast.Field:
 				c.write(zson.QuotedName(e.Name))
 				c.write(":")
-				c.expr(e.Value, false)
+				c.expr(e.Value, "")
 			case *ast.ID:
 				c.write(zson.QuotedName(e.Name))
 			case *ast.Spread:
 				c.write("...")
-				c.expr(e.Expr, false)
+				c.expr(e.Expr, "")
 			default:
 				c.write("zfmt: unknown record elem type: %T", e)
 			}
@@ -188,9 +187,9 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 			if k != 0 {
 				c.write(",")
 			}
-			c.expr(e.Key, false)
+			c.expr(e.Key, "")
 			c.write(":")
-			c.expr(e.Value, false)
+			c.expr(e.Value, "")
 		}
 		c.write("}|")
 	case *ast.OverExpr:
@@ -220,43 +219,70 @@ func (c *canon) vectorElems(elems []ast.VectorElem) {
 		switch elem := elem.(type) {
 		case *ast.Spread:
 			c.write("...")
-			c.expr(elem.Expr, false)
+			c.expr(elem.Expr, "")
 		case *ast.VectorValue:
-			c.expr(elem.Expr, false)
+			c.expr(elem.Expr, "")
 		}
 	}
 }
 
-func (c *canon) binary(e *ast.BinaryExpr) {
+func (c *canon) binary(e *ast.BinaryExpr, parent string) {
 	switch e.Op {
 	case ".":
 		if !isThis(e.LHS) {
-			c.expr(e.LHS, false)
+			c.expr(e.LHS, "")
 			c.write(".")
 		}
-		c.expr(e.RHS, false)
+		c.expr(e.RHS, "")
 	case "[":
 		if isThis(e.LHS) {
 			c.write("this")
 		} else {
-			c.expr(e.LHS, false)
+			c.expr(e.LHS, "")
 		}
 		c.write("[")
-		c.expr(e.RHS, false)
+		c.expr(e.RHS, "")
 		c.write("]")
-	case "in", "and":
-		c.expr(e.LHS, false)
+	case "and", "or", "in":
+		parens := needsparens(parent, e.Op)
+		c.maybewrite("(", parens)
+		c.expr(e.LHS, e.Op)
 		c.write(" %s ", e.Op)
-		c.expr(e.RHS, false)
-	case "or":
-		c.expr(e.LHS, true)
-		c.write(" %s ", e.Op)
-		c.expr(e.RHS, true)
+		c.expr(e.RHS, e.Op)
+		c.maybewrite(")", parens)
 	default:
+		parens := needsparens(parent, e.Op)
+		c.maybewrite("(", parens)
 		// do need parens calc
-		c.expr(e.LHS, true)
+		c.expr(e.LHS, e.Op)
 		c.write("%s", e.Op)
-		c.expr(e.RHS, true)
+		c.expr(e.RHS, e.Op)
+		c.maybewrite(")", parens)
+	}
+}
+
+func needsparens(parent, op string) bool {
+	return precedence(parent)-precedence(op) < 0
+}
+
+func precedence(op string) int {
+	switch op {
+	case "not":
+		return 1
+	case "^":
+		return 2
+	case "*", "/", "%":
+		return 3
+	case "+", "-":
+		return 4
+	case "<", "<=", ">", ">=", "==", "!=", "in":
+		return 5
+	case "and":
+		return 6
+	case "or":
+		return 7
+	default:
+		return 100
 	}
 }
 
@@ -274,6 +300,12 @@ func isThis(e ast.Expr) bool {
 		return id.Name == "this"
 	}
 	return false
+}
+
+func (c *canon) maybewrite(s string, do bool) {
+	if do {
+		c.write(s)
+	}
 }
 
 func (c *canon) next() {
@@ -323,7 +355,7 @@ func (c *canon) proc(p ast.Op) {
 		c.next()
 		c.write("switch ")
 		if p.Expr != nil {
-			c.expr(p.Expr, false)
+			c.expr(p.Expr, "")
 			c.write(" ")
 		}
 		c.open("(")
@@ -331,7 +363,7 @@ func (c *canon) proc(p ast.Op) {
 			c.ret()
 			if k.Expr != nil {
 				c.write("case ")
-				c.expr(k.Expr, false)
+				c.expr(k.Expr, "")
 			} else {
 				c.write("default")
 			}
@@ -375,10 +407,10 @@ func (c *canon) proc(p ast.Op) {
 		if p.From != nil {
 			c.ret()
 			c.write("FROM ")
-			c.expr(p.From.Table, false)
+			c.expr(p.From.Table, "")
 			if p.From.Alias != nil {
 				c.write(" AS ")
-				c.expr(p.From.Alias, false)
+				c.expr(p.From.Alias, "")
 			}
 		}
 		for _, join := range p.Joins {
@@ -390,20 +422,20 @@ func (c *canon) proc(p ast.Op) {
 				c.write("RIGHT ")
 			}
 			c.write("JOIN ")
-			c.expr(join.Table, false)
+			c.expr(join.Table, "")
 			if join.Alias != nil {
 				c.write(" AS ")
-				c.expr(join.Alias, false)
+				c.expr(join.Alias, "")
 			}
 			c.write(" ON ")
-			c.expr(join.LeftKey, false)
+			c.expr(join.LeftKey, "")
 			c.write("=")
-			c.expr(join.RightKey, false)
+			c.expr(join.RightKey, "")
 		}
 		if p.Where != nil {
 			c.ret()
 			c.write("WHERE ")
-			c.expr(p.Where, false)
+			c.expr(p.Where, "")
 		}
 		if p.GroupBy != nil {
 			c.ret()
@@ -413,7 +445,7 @@ func (c *canon) proc(p ast.Op) {
 		if p.Having != nil {
 			c.ret()
 			c.write("HAVING ")
-			c.expr(p.Having, false)
+			c.expr(p.Having, "")
 		}
 		if p.OrderBy != nil {
 			c.ret()
@@ -493,17 +525,17 @@ func (c *canon) proc(p ast.Op) {
 			which = "yield "
 		}
 		c.open(which)
-		c.expr(e, false)
+		c.expr(e, "")
 		c.close()
 	case *ast.Search:
 		c.next()
 		c.open("search ")
-		c.expr(p.Expr, false)
+		c.expr(p.Expr, "")
 		c.close()
 	case *ast.Where:
 		c.next()
 		c.open("where ")
-		c.expr(p.Expr, false)
+		c.expr(p.Expr, "")
 		c.close()
 	case *ast.Top:
 		c.next()
@@ -523,9 +555,9 @@ func (c *canon) proc(p ast.Op) {
 	case *ast.Join:
 		c.next()
 		c.open("join on ")
-		c.expr(p.LeftKey, false)
+		c.expr(p.LeftKey, "")
 		c.write("=")
-		c.expr(p.RightKey, false)
+		c.expr(p.RightKey, "")
 		if p.Args != nil {
 			c.write(" ")
 			c.assignments(p.Args)
@@ -547,7 +579,7 @@ func (c *canon) proc(p ast.Op) {
 	case *ast.Merge:
 		c.next()
 		c.write("merge ")
-		c.expr(p.Expr, false)
+		c.expr(p.Expr, "")
 	case *ast.Over:
 		c.next()
 		c.write("over ")
