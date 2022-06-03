@@ -132,22 +132,6 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor op.DataAdap
 			return nil, err
 		}
 	}
-	var lower, upper dag.Expr
-	if r := p.Range; r != nil {
-		if r.Lower != nil {
-			lower, err = semExpr(scope, r.Lower)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if r.Upper != nil {
-			upper, err = semExpr(scope, r.Upper)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	//var at ksuid.KSUID
 	if p.At != "" {
 		// XXX
 		// We no longer use "at" to refer to a commit tag, but if there
@@ -174,8 +158,6 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor op.DataAdap
 				Meta:      p.Spec.Meta,
 				Pool:      poolID,
 				Commit:    commitID,
-				ScanLower: lower,
-				ScanUpper: upper,
 				ScanOrder: p.ScanOrder,
 			}, nil
 		}
@@ -197,8 +179,6 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor op.DataAdap
 		Kind:      "Pool",
 		ID:        poolID,
 		Commit:    commitID,
-		ScanLower: lower,
-		ScanUpper: upper,
 		ScanOrder: p.ScanOrder,
 	}, nil
 }

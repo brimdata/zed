@@ -540,7 +540,7 @@ func (b *Branch) Stats(ctx context.Context, snap commits.View) (info BranchStats
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
-		err = ScanSpan(ctx, snap, nil, b.pool.Layout.Order, ch)
+		err = Scan(ctx, snap, b.pool.Layout.Order, ch)
 		close(ch)
 	}()
 	// XXX this doesn't scale... it should be stored in the snapshot and is

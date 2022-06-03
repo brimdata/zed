@@ -6,6 +6,9 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio"
 )
@@ -13,6 +16,10 @@ import (
 type Filter interface {
 	AsEvaluator() (expr.Evaluator, error)
 	AsBufferFilter() (*expr.BufferFilter, error)
+	AsKeySpanFilter(field.Path, order.Which) (*expr.SpanFilter, error)
+	AsKeyCroppedByFilter(field.Path, order.Which) (*expr.SpanFilter, error)
+	KeyFilter(field.Path) *dag.KeyFilter
+	Pushdown() dag.Expr
 }
 
 // ScannerAble is implemented by Readers that provide an optimized

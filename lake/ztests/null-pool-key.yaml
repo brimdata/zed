@@ -5,7 +5,7 @@ script: |
     echo // $o
     zed create -q -orderby k:$o $o
     zed load -q -use $o in.zson
-    zed query -z "from $o range 1 to 3"
+    zed query -z "from $o | k >= 1 k <= 3"
   done
 
 inputs:

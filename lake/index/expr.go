@@ -25,6 +25,9 @@ type result struct {
 // - Equals comparisons chained with 'and' or 'or' statements.
 // - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *dag.Literal.
 func compileExpr(node dag.Expr) expr {
+	if node == nil {
+		return nil
+	}
 	e, ok := node.(*dag.BinaryExpr)
 	if !ok {
 		return nil

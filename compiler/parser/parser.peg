@@ -480,8 +480,8 @@ Pool
   = "pool" _ body:PoolBody { RETURN(body) }
 
 PoolBody
-  = spec:PoolSpec at:PoolAt? over:PoolRange? order:OrderArg? {
-      RETURN(MAP("kind": "Pool", "spec": spec, "at": at, "range": over, "scan_order": order))
+  = spec:PoolSpec at:PoolAt? order:OrderArg? {
+      RETURN(MAP("kind": "Pool", "spec": spec, "at": at, "scan_order": order))
     }
 
 Get
@@ -501,11 +501,6 @@ PoolAt
 
 //XXX this should allow 0x bytes format
 KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
-
-PoolRange
-  = _ "range" _ lower:Literal _ "to" _ upper:Literal {
-      RETURN(MAP("kind":"Range","lower": lower, "upper": upper))
-    }
 
 PoolSpec
   = pool:PoolName commit:PoolCommit? meta:PoolMeta? {

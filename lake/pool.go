@@ -104,12 +104,12 @@ func (p *Pool) removeBranch(ctx context.Context, name string) error {
 	return p.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
+func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, filter zbuf.Filter) (op.Scheduler, error) {
 	snap, err := p.commits.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err
 	}
-	return NewSortedScheduler(ctx, zctx, p, snap, span, filter)
+	return NewSortedScheduler(ctx, zctx, p, snap, filter)
 }
 
 func (p *Pool) Snapshot(ctx context.Context, commit ksuid.KSUID) (commits.View, error) {
@@ -206,7 +206,7 @@ func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, er
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
-		err = ScanSpan(ctx, snap, nil, p.Layout.Order, ch)
+		err = Scan(ctx, snap, p.Layout.Order, ch)
 		close(ch)
 	}()
 	// XXX this doesn't scale... it should be stored in the snapshot and is

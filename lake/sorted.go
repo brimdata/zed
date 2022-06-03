@@ -1,9 +1,15 @@
 package lake
 
 import (
+	"context"
+	"errors"
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
@@ -20,18 +26,16 @@ func newSortedScanner(s *Scheduler, part Partition) (zbuf.Puller, error) {
 		}
 	}
 	for _, o := range part.Objects {
-		f := s.filter
-		if len(s.pool.Layout.Keys) != 0 {
-			// If the scan span does not wholly contain the data object, then
-			// we must filter out records that fall outside the range.
-			f = wrapRangeFilter(f, part.Span, part.compare, o.First, o.Last, s.pool.Layout)
+		rg, err := s.rangeFinder(s.ctx, o)
+		if err != nil {
+			return nil, err
 		}
-		rc, err := o.NewReader(s.ctx, s.pool.engine, s.pool.DataPath, part.Span, part.compare)
+		rc, err := o.NewReader(s.ctx, s.pool.engine, s.pool.DataPath, rg)
 		if err != nil {
 			pullersDone()
 			return nil, err
 		}
-		scanner, err := zngio.NewReader(rc, s.zctx).NewScanner(s.ctx, f)
+		scanner, err := zngio.NewReader(rc, s.zctx).NewScanner(s.ctx, s.filter)
 		if err != nil {
 			pullersDone()
 			rc.Close()
@@ -72,53 +76,48 @@ func (s *statScanner) Pull(done bool) (zbuf.Batch, error) {
 	return batch, err
 }
 
-type rangeWrapper struct {
-	zbuf.Filter
-	first  *zed.Value
-	last   *zed.Value
-	layout order.Layout
-}
+type seekFinder func(context.Context, *data.Object) (seekindex.Range, error)
 
-var _ zbuf.Filter = (*rangeWrapper)(nil)
-
-func (r *rangeWrapper) AsEvaluator() (expr.Evaluator, error) {
-	f, err := r.Filter.AsEvaluator()
+func newSeekFinder(pool *Pool, snap commits.View, f zbuf.Filter) (seekFinder, error) {
+	cropped, err := f.AsKeyCroppedByFilter(pool.Layout.Primary(), pool.Layout.Order)
 	if err != nil {
 		return nil, err
 	}
-	compare := extent.CompareFunc(r.layout.Order)
-	return &rangeFilter{r, f, compare}, nil
-}
-
-type rangeFilter struct {
-	r       *rangeWrapper
-	filter  expr.Evaluator
-	compare expr.CompareFn
-}
-
-func (r *rangeFilter) Eval(ectx expr.Context, this *zed.Value) *zed.Value {
-	keyVal := this.DerefPath(r.r.layout.Keys[0]).MissingAsNull()
-	if r.compare(keyVal, r.r.first) < 0 || r.compare(keyVal, r.r.last) > 0 {
-		return zed.False
-	}
-	if r.filter == nil {
-		return zed.True
-	}
-	return r.filter.Eval(ectx, this)
-}
-
-func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.CompareFn, first, last zed.Value, layout order.Layout) zbuf.Filter {
-	scanFirst := scan.First()
-	scanLast := scan.Last()
-	if cmp(scanFirst, &first) <= 0 {
-		if cmp(scanLast, &last) >= 0 {
-			return f
+	idx := index.NewFilter(pool.engine, pool.IndexPath, f)
+	kf := f.KeyFilter(pool.Layout.Primary())
+	cmp := expr.NewValueCompareFn(pool.Layout.Order == order.Asc)
+	return func(ctx context.Context, o *data.Object) (seekindex.Range, error) {
+		rg := seekindex.Range{End: o.Size}
+		var indexSpan extent.Span
+		if idx != nil {
+			rules, err := snap.LookupIndexObjectRules(o.ID)
+			if err != nil && !errors.Is(err, commits.ErrNotFound) {
+				return rg, err
+			}
+			if rules != nil {
+				indexSpan, err = idx.Apply(ctx, o.ID, rules)
+				if err != nil {
+					return rg, err
+				}
+				if indexSpan == nil {
+					rg.End = 0
+					return rg, nil
+				}
+			}
 		}
-	}
-	return &rangeWrapper{
-		Filter: f,
-		first:  scanFirst,
-		last:   scanLast,
-		layout: layout,
-	}
+		span := extent.NewGeneric(o.First, o.Last, cmp)
+		if indexSpan != nil || cropped != nil && cropped.Eval(span.First(), span.Last()) {
+			// If there is an index optimization or the object's span is
+			// cropped by the filter then check the seek to find the offset
+			// range to scan. Otherwise the entire object can be scanned.
+			sr, err := pool.engine.Get(ctx, o.SeekObjectPath(pool.DataPath))
+			if err != nil {
+				return rg, err
+			}
+			defer sr.Close()
+			r := zngio.NewReader(sr, zed.NewContext())
+			return seekindex.Lookup(ctx, r, kf, indexSpan, &o.Last, o.Count, o.Size, pool.Layout.Order)
+		}
+		return rg, nil
+	}, nil
 }

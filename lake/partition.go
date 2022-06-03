@@ -24,8 +24,7 @@ import (
 // to only the span involved.
 type Partition struct {
 	extent.Span
-	compare expr.CompareFn
-	Objects []*data.ObjectScan
+	Objects []*data.Object
 }
 
 func (p Partition) IsZero() bool {
@@ -63,7 +62,7 @@ func PartitionObjects(objects []*data.Object, o order.Which) []Partition {
 		if span.Before(tos.Last()) {
 			s.pushObjectSpan(span, cmp)
 		} else {
-			tos.Objects = append(tos.Objects, data.NewObjectScan(*span.object))
+			tos.Objects = append(tos.Objects, span.object)
 			tos.Extend(span.Last())
 		}
 	}
@@ -77,20 +76,12 @@ type stack []Partition
 func (s *stack) pushObjectSpan(span objectSpan, cmp expr.CompareFn) {
 	s.push(Partition{
 		Span:    span.Span,
-		compare: cmp,
-		Objects: []*data.ObjectScan{data.NewObjectScan(*span.object)},
+		Objects: []*data.Object{span.object},
 	})
 }
 
 func (s *stack) push(p Partition) {
 	*s = append(*s, p)
-}
-
-func (s *stack) pop() Partition {
-	n := len(*s)
-	p := (*s)[n-1]
-	*s = (*s)[:n-1]
-	return p
 }
 
 func (s *stack) tos() *Partition {
@@ -138,12 +129,12 @@ func sortObjects(o order.Which, objects []*data.Object) {
 	}
 }
 
-func partitionReader(ctx context.Context, zctx *zed.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
+func partitionReader(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View) (zio.Reader, error) {
 	ch := make(chan Partition)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
 	go func() {
-		scanErr = ScanPartitions(ctx, snap, span, order, ch)
+		scanErr = ScanPartitions(ctx, snap, pool.Layout, nil, ch)
 		close(ch)
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
@@ -167,12 +158,12 @@ func partitionReader(ctx context.Context, zctx *zed.Context, snap commits.View, 
 	}), nil
 }
 
-func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
+func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
 	ch := make(chan data.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
 	go func() {
-		scanErr = ScanSpan(ctx, snap, span, order, ch)
+		scanErr = Scan(ctx, snap, order, ch)
 		close(ch)
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
@@ -196,12 +187,12 @@ func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, spa
 	}), nil
 }
 
-func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
+func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
 	ch := make(chan *index.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
 	go func() {
-		scanErr = ScanIndexes(ctx, snap, span, order, ch)
+		scanErr = ScanIndexes(ctx, snap, order, ch)
 		close(ch)
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
