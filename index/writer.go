@@ -276,11 +276,13 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Conte
 	}
 	writer := bufwriter.New(w)
 	return &indexWriter{
-		base:     base,
-		buffer:   writer,
-		ectx:     ectx,
-		name:     name,
-		zng:      zngio.NewWriter(writer, zngio.WriterOpts{}),
+		base:   base,
+		buffer: writer,
+		ectx:   ectx,
+		name:   name,
+		zng: zngio.NewWriter(writer, zngio.WriterOpts{
+			LZ4BlockSize: zngio.DefaultLZ4BlockSize,
+		}),
 		frameEnd: int64(base.frameThresh),
 	}, nil
 }
