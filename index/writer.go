@@ -71,8 +71,9 @@ type indexWriter struct {
 }
 
 type WriterOpts struct {
-	FrameThresh int
-	Order       order.Which
+	FrameThresh   int
+	Order         order.Which
+	ZNGWriterOpts zngio.WriterOpts
 }
 
 // NewWriter returns a Writer ready to write a Zed index or it returns
@@ -94,6 +95,9 @@ func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage
 	}
 	if opts.FrameThresh > FrameMaxSize {
 		return nil, fmt.Errorf("frame threshold too large (%d)", opts.FrameThresh)
+	}
+	if opts.ZNGWriterOpts.LZ4BlockSize == 0 {
+		opts.ZNGWriterOpts.LZ4BlockSize = zngio.DefaultLZ4BlockSize
 	}
 	w := &Writer{
 		zctx:       zctx,
@@ -122,7 +126,7 @@ func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage
 func (w *Writer) Write(val *zed.Value) error {
 	if w.writer == nil {
 		var err error
-		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx)
+		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx, w.opts.ZNGWriterOpts)
 		if err != nil {
 			return err
 		}
@@ -160,7 +164,7 @@ func (w *Writer) Close() error {
 		// encountered, then the base layer writer was never created.
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
-		zw := zngio.NewWriter(w.iow, zngio.WriterOpts{})
+		zw := zngio.NewWriter(w.iow, w.opts.ZNGWriterOpts)
 		err := writeTrailer(zw, w.zctx, w.childField, w.opts.FrameThresh, nil, w.keyer.Keys(), w.opts.Order)
 		if err2 := w.iow.Close(); err == nil {
 			err = err2
@@ -251,7 +255,7 @@ func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameTh
 	return w.EndStream()
 }
 
-func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Context) (*indexWriter, error) {
+func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Context, opts zngio.WriterOpts) (*indexWriter, error) {
 	base.nlevel++
 	if base.nlevel >= MaxLevels {
 		return nil, ErrTooManyLevels
@@ -262,7 +266,7 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Conte
 		buffer:   writer,
 		ectx:     ectx,
 		name:     name,
-		zng:      zngio.NewWriter(writer, zngio.WriterOpts{}),
+		zng:      zngio.NewWriter(writer, opts),
 		frameEnd: int64(base.opts.FrameThresh),
 	}, nil
 }
@@ -272,7 +276,7 @@ func (w *indexWriter) newParent() (*indexWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newIndexWriter(w.base, file, file.Name(), w.ectx)
+	return newIndexWriter(w.base, file, file.Name(), w.ectx, w.base.opts.ZNGWriterOpts)
 }
 
 func (w *indexWriter) Close() error {

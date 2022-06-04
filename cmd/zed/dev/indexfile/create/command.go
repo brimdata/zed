@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/zngio"
 )
 
 var Create = &charm.Spec{
@@ -59,6 +60,8 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	})
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
+	f.IntVar(&c.opts.ZNGWriterOpts.LZ4BlockSize, "znglz4blocksize", zngio.DefaultLZ4BlockSize,
+		"LZ4 block size in bytes for ZNG compression (<= 0 to disable)")
 	c.inputFlags.SetFlags(f, true)
 	return c, nil
 }
