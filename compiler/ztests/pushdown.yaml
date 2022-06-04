@@ -30,6 +30,6 @@ outputs:
       ===
       from (
         (pushdown
-          where x=="hello" or  !y==2 or y==3)
+          where x=="hello" or !(y==2 or y==3))
         pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
       )
