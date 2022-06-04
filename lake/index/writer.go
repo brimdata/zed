@@ -118,7 +118,7 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, o
 		return nil, err
 	}
 	keys := rule.RuleKeys()
-	writer, err := index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String(), keys)
+	writer, err := index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String(), keys, index.WriterOpts{})
 	if err != nil {
 		return nil, err
 	}
