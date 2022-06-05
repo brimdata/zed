@@ -5,9 +5,15 @@ input: |
   [{key:["b","b1"],value:4},{key:["b","b2"],value:5},{key:["b","b3","c"],value:[6,7,8]},{key:["b","b4"],value:["one","two","three"]}]
   [{key:"s",value:1}]
   [{key:1,value:1}]
+  [{key:["a","b"],value:1},{key:["a","c"],value:2},{key:"a",value:3}]
+  [{key:"a",value:1},{key:"a",value:2}]
+  [{key:["a","b"],value:1},{key:["a","b","c"],value:2}]
 
 output: |
   {a:{a:1,b:2,x:{z:"foo"}},b:2,c:3}
   {b:{b1:4,b2:5,b3:{c:[6,7,8]},b4:["one","two","three"]}}
   {s:1}
   error({message:"invalid key type int64: expected either string or [string]",on:{key:1,value:1}})
+  {a:3}
+  {a:2}
+  {a:{b:{c:2}}}

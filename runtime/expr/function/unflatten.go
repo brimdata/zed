@@ -47,7 +47,11 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if typ == nil {
 			continue
 		}
-		root.addPath(&u.recordCache, path)
+		removed := root.addPath(&u.recordCache, path)
+		if removed > 0 {
+			u.types = u.types[:len(u.types)-removed]
+			u.values = u.values[:len(u.values)-removed]
+		}
 		u.types = append(u.types, typ)
 		u.values = append(u.values, vb)
 	}
@@ -128,19 +132,41 @@ type record struct {
 	records []*record
 }
 
-func (r *record) addPath(c *recordCache, p []string) {
+func (r *record) addPath(c *recordCache, p []string) (removed int) {
 	if len(p) == 0 {
-		return
+		return 0
 	}
-	if len(r.columns) == 0 || r.columns[len(r.columns)-1].Name != p[0] {
+	at := len(r.columns) - 1
+	if len(r.columns) == 0 || r.columns[at].Name != p[0] {
 		r.columns = append(r.columns, zed.NewColumn(p[0], nil))
 		var rec *record
 		if len(p) > 1 {
 			rec = c.new()
 		}
 		r.records = append(r.records, rec)
+	} else if len(p) == 1 || r.records[at] == nil {
+		// If this isn't a new column and we're either at a leaf or the
+		// previously value was a leaf, we're stacking on a previously created
+		// record and need to signal that values have been removed.
+		removed = countleaves(r.records[at])
+		if len(p) > 1 {
+			r.records[at] = c.new()
+		} else {
+			r.records[at] = nil
+		}
 	}
-	r.records[len(r.records)-1].addPath(c, p[1:])
+	removed += r.records[len(r.records)-1].addPath(c, p[1:])
+	return removed
+}
+
+func countleaves(rec *record) (count int) {
+	if rec == nil {
+		return 1
+	}
+	for _, rec := range rec.records {
+		count += countleaves(rec)
+	}
+	return count
 }
 
 func (r *record) build(zctx *zed.Context, b *zcode.Builder, next func() (zed.Type, zcode.Bytes)) zed.Type {
