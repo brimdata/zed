@@ -47,8 +47,7 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if typ == nil {
 			continue
 		}
-		removed := root.addPath(&u.recordCache, path)
-		if removed > 0 {
+		if removed := root.addPath(&u.recordCache, path); removed > 0 {
 			u.types = u.types[:len(u.types)-removed]
 			u.values = u.values[:len(u.values)-removed]
 		}
@@ -57,11 +56,14 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	u.builder.Reset()
 	types, values := u.types, u.values
-	typ := root.build(u.zctx, &u.builder, func() (zed.Type, zcode.Bytes) {
+	typ, err := root.build(u.zctx, &u.builder, func() (zed.Type, zcode.Bytes) {
 		typ, value := types[0], values[0]
 		types, values = types[1:], values[1:]
 		return typ, value
 	})
+	if err != nil {
+		return u.zctx.WrapError(err.Error(), &val)
+	}
 	return ctx.NewValue(typ, u.builder.Bytes())
 }
 
@@ -89,11 +91,10 @@ func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.T
 	}
 	ktyp := typ.Columns[nkey].Type
 	if ktyp.ID() == zed.IDString {
-		u.path = u.path[:0]
-		u.path = append(u.path, zed.DecodeString(kbytes))
+		u.path = append(u.path[:0], zed.DecodeString(kbytes))
 		return u.path, vtyp, vbytes, nil
 	}
-	if a, ok := zed.TypeUnder(ktyp).(*zed.TypeArray); ok && a.Type == zed.TypeString {
+	if a, ok := zed.TypeUnder(ktyp).(*zed.TypeArray); ok && a.Type.ID() == zed.IDString {
 		return u.decodeKey(kbytes), vtyp, vbytes, nil
 	}
 	return nil, nil, nil, fmt.Errorf("invalid key type %s: expected either string or [string]", zson.FormatType(ktyp))
@@ -148,28 +149,28 @@ func (r *record) addPath(c *recordCache, p []string) (removed int) {
 		// If this isn't a new column and we're either at a leaf or the
 		// previously value was a leaf, we're stacking on a previously created
 		// record and need to signal that values have been removed.
-		removed = countleaves(r.records[at])
+		removed = r.records[at].countLeaves()
 		if len(p) > 1 {
 			r.records[at] = c.new()
 		} else {
 			r.records[at] = nil
 		}
 	}
-	removed += r.records[len(r.records)-1].addPath(c, p[1:])
-	return removed
+	return removed + r.records[len(r.records)-1].addPath(c, p[1:])
 }
 
-func countleaves(rec *record) (count int) {
-	if rec == nil {
+func (r *record) countLeaves() int {
+	if r == nil {
 		return 1
 	}
-	for _, rec := range rec.records {
-		count += countleaves(rec)
+	var count int
+	for _, rec := range r.records {
+		count += rec.countLeaves()
 	}
 	return count
 }
 
-func (r *record) build(zctx *zed.Context, b *zcode.Builder, next func() (zed.Type, zcode.Bytes)) zed.Type {
+func (r *record) build(zctx *zed.Context, b *zcode.Builder, next func() (zed.Type, zcode.Bytes)) (zed.Type, error) {
 	for i, rec := range r.records {
 		if rec == nil {
 			typ, value := next()
@@ -178,8 +179,12 @@ func (r *record) build(zctx *zed.Context, b *zcode.Builder, next func() (zed.Typ
 			continue
 		}
 		b.BeginContainer()
-		r.columns[i].Type = rec.build(zctx, b, next)
+		var err error
+		r.columns[i].Type, err = rec.build(zctx, b, next)
+		if err != nil {
+			return nil, err
+		}
 		b.EndContainer()
 	}
-	return zctx.MustLookupTypeRecord(r.columns)
+	return zctx.LookupTypeRecord(r.columns)
 }
