@@ -52,10 +52,9 @@ type Command struct {
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*indexfile.Command)}
 	f.IntVar(&c.opts.FrameThresh, "f", 32*1024, "minimum frame size used in Zed index file")
-	f.Func("order", "order of index (asc or desc) (default asc)", func(s string) (err error) {
-		if s != "" {
-			c.opts.Order, err = order.Parse(s)
-		}
+	f.Func("order", `order of index (asc or desc) (default "asc")`, func(s string) error {
+		var err error
+		c.opts.Order, err = order.Parse(s)
 		return err
 	})
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
