@@ -42,17 +42,21 @@ func init() {
 
 type Command struct {
 	*indexfile.Command
-	frameThresh int
-	order       string
-	outputFile  string
-	keys        string
-	inputFlags  inputflags.Flags
+	opts       index.WriterOpts
+	order      string
+	outputFile string
+	keys       string
+	inputFlags inputflags.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*indexfile.Command)}
-	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in Zed index file")
-	f.StringVar(&c.order, "order", "asc", "specify data in ascending (asc) or descending (desc) order")
+	f.IntVar(&c.opts.FrameThresh, "f", 32*1024, "minimum frame size used in Zed index file")
+	f.Func("order", `order of index (asc or desc) (default "asc")`, func(s string) error {
+		var err error
+		c.opts.Order, err = order.Parse(s)
+		return err
+	})
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
 	c.inputFlags.SetFlags(f, true)
@@ -82,15 +86,8 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	o, err := order.Parse(c.order)
-	if err != nil {
-		return err
-	}
 	defer file.Close()
-	writer, err := index.NewWriter(zctx, local, c.outputFile, field.DottedList(c.keys),
-		index.FrameThresh(c.frameThresh),
-		index.Order(o),
-	)
+	writer, err := index.NewWriter(zctx, local, c.outputFile, field.DottedList(c.keys), c.opts)
 	if err != nil {
 		return err
 	}
