@@ -1406,9 +1406,8 @@ is a Boolean comparison between the product `a*b` and `c`.
 
 ### 7.2 Search Logic
 
-The search patterns described above can be combined with other elements
-of a search expression comprised of "search terms" that may be combined
-using Boolean logic.
+The search patterns described above can be combined with other "search terms"
+using Boolean logic to form search expressions.
 
 > Note that when processing [ZNG](../formats/zng.md) data, the Zed runtime performs a multi-threaded
 > Boyer-Moore scan over decompressed data buffers before parsing any data.
