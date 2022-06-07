@@ -138,7 +138,7 @@ Each operator is identified by name and performs a specific operation
 on a stream of records.
 
 Some operators, like
-[`summarize`](operators/summarize.md) or [`sort`](operators/sort.md)
+[`summarize`](operators/summarize.md) or [`sort`](operators/sort.md),
 read all of their input before producing output, though
 `summarize` can produce incremental results when the group-by key is
 aligned with the order of the input.
