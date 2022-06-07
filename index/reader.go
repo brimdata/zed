@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 )
@@ -22,6 +23,7 @@ const (
 
 type Reader struct {
 	reader   storage.Reader
+	keyer    *Keyer
 	uri      *storage.URI
 	zctx     *zed.Context
 	size     int64
@@ -74,10 +76,15 @@ func NewReaderFromURI(ctx context.Context, zctx *zed.Context, engine storage.Eng
 	if meta.FrameThresh > FrameMaxSize {
 		return nil, fmt.Errorf("%s: frame threshold too large (%d)", uri, meta.FrameThresh)
 	}
+	keyer, err := NewKeyer(zctx, meta.Keys)
+	if err != nil {
+		return nil, err
+	}
 	reader := &Reader{
 		reader:   r,
 		uri:      uri,
 		zctx:     zctx,
+		keyer:    keyer,
 		size:     size,
 		meta:     *meta,
 		sections: sections,
@@ -97,12 +104,12 @@ func (r *Reader) section(level int) (int64, int64) {
 	return off, r.sections[level]
 }
 
-func (r *Reader) newSectionReader(level int, sectionOff int64) (*zngio.Reader, error) {
+func (r *Reader) newSectionReader(level int, sectionOff int64) *zngio.Reader {
 	off, len := r.section(level)
 	off += sectionOff
 	len -= sectionOff
 	sectionReader := io.NewSectionReader(r.reader, off, len)
-	return zngio.NewReaderWithOpts(sectionReader, r.zctx, zngio.ReaderOpts{Size: FrameBufSize}), nil
+	return zngio.NewReaderWithOpts(sectionReader, r.zctx, zngio.ReaderOpts{Size: FrameBufSize})
 }
 
 func (r *Reader) NewSectionReader(section int) (*zngio.Reader, error) {
@@ -110,22 +117,33 @@ func (r *Reader) NewSectionReader(section int) (*zngio.Reader, error) {
 	if section < 0 || section >= n {
 		return nil, fmt.Errorf("section %d out of range (index has %d sections)", section, n)
 	}
-	return r.newSectionReader(section, 0)
+	return r.newSectionReader(section, 0), nil
 }
 
 func (r *Reader) newFramesReader(level int, frames []frame) zio.ReadCloser {
-	off, _ := r.section(level)
+	off, size := r.section(level)
+	section := io.NewSectionReader(r.reader, off, size)
 	return &framesReader{
-		Reader: r,
-		off:    off,
-		frames: frames,
+		section: section,
+		keys:    r.meta.Keys,
+		keyer:   r.keyer,
+		cmp:     expr.NewValueCompareFn(true),
+		off:     off,
+		frames:  frames,
+		zctx:    r.zctx,
 	}
 }
 
 type framesReader struct {
-	*Reader
-	off    int64
-	frames []frame
+	section *io.SectionReader
+	off     int64
+	cmp     expr.CompareFn
+	frames  []frame
+	keys    field.List
+	keyer   *Keyer
+	alloc   alloc
+	frame   frame
+	zctx    *zed.Context
 
 	reader *zngio.Reader
 }
@@ -136,18 +154,30 @@ again:
 		if len(f.frames) == 0 {
 			return nil, nil
 		}
-		frame := f.frames[0]
+		f.frame = f.frames[0]
 		f.frames = f.frames[1:]
-		sectionReader := io.NewSectionReader(f.Reader.reader, frame.offset+f.off, frame.length)
-		f.reader = zngio.NewReaderWithOpts(sectionReader, f.Reader.zctx, zngio.ReaderOpts{Size: FrameBufSize})
+		_, err := f.section.Seek(f.frame.offset, 0)
+		if err != nil {
+			return nil, err
+		}
+		f.reader = zngio.NewReaderWithOpts(f.section, f.zctx, zngio.ReaderOpts{Size: FrameBufSize})
 	}
 	val, err := f.reader.Read()
 	if val == nil && err == nil {
-		f.reader.Close()
-		f.reader = nil
+		f.discard()
+		goto again
+	}
+	key := val.DerefPath(f.keys[0])
+	if f.cmp(key, f.frame.last) > 0 {
+		f.discard()
 		goto again
 	}
 	return val, err
+}
+
+func (f *framesReader) discard() {
+	f.reader.Close()
+	f.reader = nil
 }
 
 func (f *framesReader) Close() error {

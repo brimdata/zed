@@ -18,7 +18,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/op"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/zio"
 )
 
 var Query = &charm.Spec{
@@ -64,20 +64,15 @@ func (c *QueryCommand) Run(args []string) error {
 		return err
 	}
 	local := storage.NewLocalEngine()
-	finder, err := index.NewFinder(ctx, zed.NewContext(), local, uri)
+	finder, err := index.NewFinderReader(ctx, zed.NewContext(), local, uri, e)
 	if err != nil {
 		return err
 	}
-	vals := make(chan *zed.Value)
-	var filterErr error
-	go func() {
-		filterErr = finder.Filter(ctx, vals, e)
-		close(vals)
-	}()
-	for val := range vals {
-		fmt.Println(zson.String(val))
+	w, err := c.outputFlags.Open(ctx, local)
+	if err != nil {
+		return err
 	}
-	return filterErr
+	return zio.CopyWithContext(ctx, w, finder)
 	// return nil
 }
 

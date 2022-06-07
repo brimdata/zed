@@ -37,11 +37,15 @@ type Command struct {
 	outputFlags outputflags.Flags
 	trailer     bool
 	section     int
+	offset      int64
+	size        int64
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*dig.Command)}
 	c.outputFlags.SetFlags(f)
+	f.Int64Var(&c.offset, "offset", 0, "offset")
+	f.Int64Var(&c.size, "size", 0, "size")
 	return c, nil
 }
 
@@ -76,7 +80,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return fmt.Errorf("bad section number: %w", err)
 	}
-	reader, err := newSectionReader(r, which, trailer.Sections)
+	reader, err := newSectionReader(r, which, trailer.Sections, c.offset, c.size)
 	if err != nil {
 		return err
 	}
@@ -92,7 +96,7 @@ func (c *Command) Run(args []string) error {
 	return writer.Close()
 }
 
-func newSectionReader(r io.ReaderAt, which int, sections []int64) (*zngio.Reader, error) {
+func newSectionReader(r io.ReaderAt, which int, sections []int64, sectionOff, sectionSize int64) (*zngio.Reader, error) {
 	if which >= len(sections) {
 		return nil, fmt.Errorf("section %d does not exist", which)
 	}
@@ -101,6 +105,13 @@ func newSectionReader(r io.ReaderAt, which int, sections []int64) (*zngio.Reader
 	for ; k < which; k++ {
 		off += sections[k]
 	}
-	reader := io.NewSectionReader(r, off, sections[which])
+	if sectionOff > 0 {
+		off += sectionOff
+	}
+	n := sections[which]
+	if sectionSize > 0 {
+		n = sectionSize
+	}
+	reader := io.NewSectionReader(r, off, n)
 	return zngio.NewReader(reader, zed.NewContext()), nil
 }

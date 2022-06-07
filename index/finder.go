@@ -1,6 +1,7 @@
 package index
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -21,8 +22,9 @@ var ErrNotFound = errors.New("key not found")
 // Finder looks up values in a microindex using its embedded index.
 type Finder struct {
 	*Reader
-	zctx *zed.Context
-	uri  *storage.URI
+	keyer *Keyer
+	zctx  *zed.Context
+	uri   *storage.URI
 }
 
 type KeyValue struct {
@@ -49,7 +51,7 @@ func NewFinder(ctx context.Context, zctx *zed.Context, engine storage.Engine, ur
 
 type frame struct {
 	offset int64
-	length int64
+	last   *zed.Value
 }
 
 func (f *Finder) searchSection(reader zio.ReadCloser, eval *expr.SpanFilter) ([]frame, error) {
@@ -75,30 +77,32 @@ func (f *Finder) searchSection(reader zio.ReadCloser, eval *expr.SpanFilter) ([]
 		if child == nil {
 			return nil, fmt.Errorf("B-tree child field is missing")
 		}
-		nextChild := next.Deref(f.meta.ChildOffsetField)
-		if nextChild == nil {
-			return nil, fmt.Errorf("B-tree child field is missing")
-		}
 		start := child.AsInt()
-		end := nextChild.AsInt()
-		frames = append(frames, frame{start, end - start})
+		if n := len(frames); n > 0 && bytes.Compare(frames[n-1].last.Bytes, lower.Bytes) == 0 {
+			frames[n-1].last = upper.Copy()
+			continue
+		}
+		frames = append(frames, frame{start, upper.Copy()})
 	}
 }
 
 func (f *Finder) search(eval *expr.SpanFilter) (zio.ReadCloser, error) {
 	n := len(f.sections)
 	if n == 1 {
-		return f.newSectionReader(0, 0)
+		return f.newSectionReader(0, 0), nil
 	}
-	_, size := f.section(1)
-	frames := []frame{{0, size}}
+	var frames []frame
+	var reader zio.ReadCloser = f.newSectionReader(1, 0)
 	for level := 1; level < n; level++ {
-		reader := f.newFramesReader(level, frames)
+		if level > 1 {
+			reader = f.newFramesReader(level, frames)
+		}
 		var err error
 		frames, err = f.searchSection(reader, eval)
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("section frames", len(frames))
 		if len(frames) == 0 {
 			return nil, ErrNotFound
 		}
