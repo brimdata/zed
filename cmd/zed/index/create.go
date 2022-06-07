@@ -24,7 +24,7 @@ var create = &charm.Spec{
 	Short: "create an index rule for a lake",
 	Long: `
 The index create command creates an index rule that can be applied to any
-pool in the Zed lake. The command takes three arguments: the name of the rule,
+pool in the Zed lake.  The command takes three arguments: the name of the rule,
 the type of the rule, and the value for the rule.
 
 The name of the index rule must be unique.
