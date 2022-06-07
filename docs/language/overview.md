@@ -1118,8 +1118,19 @@ produces
 
 Array literals have the form
 ```
-[ <expr>, <expr>, ... ]
+[ <spec>, <spec>, ... ]
 ```
+where a `<spec>` has one of two forms:
+```
+<expr>
+...<expr>
+```
+
+The first form is simply an element in the array, the result of `<expr>`.  The
+second form is the `...` spread operator which expects an array or set value as
+the result of `<expr>` and inserts all of the values from the result.  If a spread
+expression results in neither an array nor set, then the value is elided.
+
 When the expressions result in values of non-uniform type, then the implied
 type of the array is an array of type `union` of the types that appear.
 
@@ -1133,12 +1144,32 @@ produces
 ["hello","world"]
 ```
 
+Arrays can be concatenated using the spread operator,
+```mdtest-command
+echo '{a:[1,2],b:[3,4]}' | zq -z 'yield [...a,...b,5]' -
+```
+produces
+```mdtest-output
+[1,2,3,4,5]
+```
+
 #### 6.11.4 Set Expressions
 
 Set literals have the form
 ```
-|[ <expr>, <expr>, ... ]|
+|[ <spec>, <spec>, ... ]|
 ```
+where a `<spec>` has one of two forms:
+```
+<expr>
+...<expr>
+```
+
+The first form is simply an element in the set, the result of `<expr>`.  The
+second form is the `...` spread operator which expects an array or set value as
+the result of `<expr>` and inserts all of the values from the result.  If a spread
+expression results in neither an array nor set, then the value is elided.
+
 When the expressions result in values of non-uniform type, then the implied
 type of the set is a set of type `union` of the types that appear.
 
@@ -1153,6 +1184,15 @@ produces
 ```mdtest-output
 |[1,2,3]|
 |["hello","world"]|
+```
+
+Arrays and sets can be concatenated using the spread operator,
+```mdtest-command
+echo '{a:[1,2],b:|[2,3]|}' | zq -z 'yield |[...a,...b,4]|' -
+```
+produces
+```mdtest-output
+|[1,2,3,4]|
 ```
 
 #### 6.11.5 Map Expressions
