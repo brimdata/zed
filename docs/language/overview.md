@@ -1462,7 +1462,7 @@ Searches for any string that begins with `foo` has the string
 
 Keywords and string literals are equivalent search terms so it is often
 easier to quote a string search term instead of using escapes in a keyword.
-Keywords are useful in interactive contexts where searches can be issued
+Keywords are useful in interactive workflows where searches can be issued
 and modified quickly without having to type matching quotes.
 
 Keyword search has the look and feel of Web search or email search.
