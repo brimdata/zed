@@ -1085,7 +1085,7 @@ Record literals have the form
 where a `<spec>` has one of three forms:
 ```
 <field> : <expr>
-<field>
+<ref>
 ...<expr>
 ```
 The first form is a customary colon-separated field and value similar to JavaScript,
