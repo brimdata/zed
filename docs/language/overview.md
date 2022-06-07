@@ -288,7 +288,8 @@ or
 summarize salary:=sum(income) by address:=lower(address)
 ```
 This style of "assignment" to a record value is distinguished from the `=`
-token which is used in [constant](#3-const-statements) and [variable](#8-lateral-subqueries) assignments.
+token which binds a locally scoped name to a value that can be referenced
+in later expressions.
 
 ### 2.6 Implied Operators
 
