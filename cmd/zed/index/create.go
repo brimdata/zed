@@ -29,7 +29,7 @@ the type of the rule, and the value for the rule.
 
 The name of the index rule must be unique.
 
-The rule's type can be either: field, type, or agg (currently only field rules
+The rule's type can be either field, type, or agg (currently only field rules
 are supported). 
 
 For field index rules the final argument is the name of the field to index.
