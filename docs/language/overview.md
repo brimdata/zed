@@ -20,7 +20,7 @@ However, in Zed, the entities that transform data are called
 "operators" instead of "commands" and unlike Unix pipelines,
 the streams of data in a Zed query
 are typed data sequences that adhere to the
-[Zed data model](../formats/zed.md#the-zed-data-model-specification).
+[Zed data model](../formats/zed.md).
 Moreover, Zed sequences can be forked and joined:
 ```
 operator
@@ -39,7 +39,7 @@ or joined using relational-style join logic.
 Generally speaking, a [flow graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
 defines a directed acyclic graph (DAG) composed
 of data sources and operator nodes.  The Zed syntax leverages "fat arrows",
-i.e., `=>`, to indicate the start of a parallel legs of the data flow.
+i.e., `=>`, to indicate the start of a parallel leg of the data flow.
 
 That said, the Zed language is
 [declarative](https://en.wikipedia.org/wiki/Declarative_programming)
@@ -49,7 +49,7 @@ the flow implied by the pipeline yet reaching the same result &mdash;
 much as a modern SQL engine optimizes a declarative SQL query.
 
 Zed is also intended to provide a seamless transition from a simple search experience
-(e.g., typed into a search bar or as the query argument of the  `zq` command-line
+(e.g., typed into a search bar or as the query argument of the [`zq`](../commands/zq.md) command-line
 tool) to more a complex analytics experience composed of complex joins and aggregations
 where the Zed language source text would typically be authored in a editor and
 managed under source-code control.
@@ -63,12 +63,12 @@ is a search for the string "example.com" and
 ```
 example.com urgent
 ```
-is a search for values with the both strings "example.com" and "urgent" present.
+is a search for values with both the strings "example.com" and "urgent" present.
 
 Unlike typical log search systems, the Zed language operators are uniform:
 you can specify an operator including keyword search terms, Boolean predicates,
 etc. using the same syntax at any point in the pipeline as
-[described below](#7-search-expressions)
+[described below](#7-search-expressions).
 
 For example,
 the predicate `message_length > 100` can simply be tacked onto the keyword search
@@ -87,7 +87,7 @@ search "example.com" AND "urgent"
 ```
 which computes an aggregation table of different message types (e.g.,
 from a hypothetical field called `type`) into a new, aggregated field
-called `kinds` and grouped by the network of all the source IP address
+called `kinds` and grouped by the network of all the source IP addresses
 in the input
 (e.g., from a hypothetical field called `srcip`) as a derived field called `net`.
 
@@ -105,14 +105,14 @@ All available operators are listed on the [reference page](operators/README.md).
 ### 2.1 Dataflow Sources
 
 In addition to the data sources specified as files on the `zq` command line,
-a source may also be specified with the [from operator](operators/from.md#operator).
+a source may also be specified with the [`from` operator](operators/from.md).
 
-When running on the command-line, `from` may refer to a file, to an HTTP
-endpoint, or to an S3 URI.  When running in a data lake, `from` typically
+When running on the command-line, `from` may refer to a file, an HTTP
+endpoint, or an S3 URI.  When running in a [Zed lake](../commands/zed.md), `from` typically
 refers to a collection of data called a "data pool" and is referenced using
 the pool's name much as SQL references database tables by their name.
 
-For more detail, see the reference page of the [from operator](operators/from.md#operator),
+For more detail, see the reference page of the [`from` operator](operators/from.md),
 but as an example, you might use the `get` form of `from` to fetch data from an
 HTTP endpoint and process it with Zed, in this case, to extract the description
 and license of a GitHub repository:
@@ -138,9 +138,8 @@ Each operator is identified by name and performs a specific operation
 on a stream of records.
 
 Some operators, like
-[summarize](operators/summarize.md#operator) or
-[sort](operators/sort.md#operator),
-read all of their input before producing output though
+[`summarize`](operators/summarize.md) or [`sort`](operators/sort.md),
+read all of their input before producing output, though
 `summarize` can produce incremental results when the group-by key is
 aligned with the order of the input.
 
@@ -152,23 +151,24 @@ on values as they are produced.  For example, a long running query that
 produces incremental output will stream results as they are produced, i.e.,
 running `zq` to standard output will display results incrementally.
 
-The `search` and `where` operators "find" values in their input and drop
+The [`search`](operators/search.md) and [`where`](operators/where.md)
+operators "find" values in their input and drop
 the ones that do not match what is being looked for.
 
-The [yield operator](operators/yield.md#operator) emits one or more output values
-for each input value based on arbitrary [expressions](#expressions),
+The [`yield` operator](operators/yield.md) emits one or more output values
+for each input value based on arbitrary [expressions](#6-expressions),
 providing a convenient means to derive arbitrary output values as a function
 of each input value, much like the map concept in the MapReduce framework.
 
-The [fork operator](operators/fork.md#operator) copies its input to parallel
+The [`fork` operator](operators/fork.md) copies its input to parallel
 legs of a query.  The output of these parallel paths can be combined
 in a number of ways:
-* merged in sorted order using the [merge operator](operators/merge.md#operator),
-* joined using the [join operator](operators/join.md#operator), or
-* combined in an undefined order using the implied [combine operator](operators/combine.md#operator).
+* merged in sorted order using the [`merge` operator](operators/merge.md),
+* joined using the [`join` operator](operators/join.md), or
+* combined in an undefined order using the implied [`combine` operator](operators/combine.md).
 
 A path can also be split to multiple query legs using the
-[switch operator](operators/switch.md#operator), in which data is routed to only one
+[`switch` operator](operators/switch.md), in which data is routed to only one
 corresponding leg (or dropped) based on the switch clauses.
 
 Switch operators typically
@@ -194,10 +194,10 @@ produces
 ```
 Note that the output order of the switch legs is undefined (indeed they run
 in parallel on multiple threads).  To establish a consistent sequence order,
-a [merge operator](operators/merge.md)
+a [`merge` operator](operators/merge.md)
 may be applied at the output of the switch specifying a sort key upon which
 to order the upstream data.  Often such order does not matter (e.g., when the output
-of the switch hits an aggregator), in which case it is typically more performant
+of the switch hits an [aggregator](aggregates/README.md)), in which case it is typically more performant
 to omit the merge (though the Zed system will often delete such unnecessary
 operations automatically as part optimizing queries when they are compiled).
 
@@ -227,8 +227,8 @@ produces this case-sensitive output:
 "bar"
 "foo"
 ```
-But we can make the sort case-insensitive by applying a function to the
-inputs values with the expression `lower(this)`, which converts
+But we can make the sort case-insensitive by applying a [function](functions/README.md) to the
+input values with the expression `lower(this)`, which converts
 each value to lower-case for use in in the sort without actually modifying
 the input value, e.g.,
 ```
@@ -246,7 +246,7 @@ produces
 A common use case for Zed is to process sequences of record-oriented data
 (e.g., arising from formats like JSON or Avro) in the form of events
 or structured logs.  In this case, the input values to the operators
-are Zed "records" and the fields of a record are referenced with the dot operator.
+are Zed [records](../formats/zed.md#21-record) and the fields of a record are referenced with the dot operator.
 
 For example, if the input above were a sequence of records instead of strings
 and perhaps contained a second field, e.g.,
@@ -273,8 +273,8 @@ is shorthand for `sort this.s`
 ### 2.5 Field Assignments
 
 A typical operation in records involves
-adding or changing the fields of a record using the [put operator](operators/put.md#operator)
-or extracting a subset of fields using the [cut operator](operators/cut.md#operator).
+adding or changing the fields of a record using the [`put` operator](operators/put.md)
+or extracting a subset of fields using the [`cut` operator](operators/cut.md).
 Also, when aggregating data using group-by keys, the group-by assignments
 create new named record fields.
 
@@ -306,7 +306,7 @@ experience, Zed has a canonical, long form that can be abbreviated
 using syntax that supports an agile, interactive query workflow.
 To this end, Zed allows certain operator names to be optionally omitted when
 they can be inferred from context.  For example, the expression following
-the `summarize` operator
+the [`summarize` operator](operators/summarize.md)
 ```
 summarize count() by id
 ```
@@ -324,7 +324,7 @@ is abbreviated
 foo bar or x > 100
 ```
 Furthermore, if an operator-free expression is not valid syntax for
-a search expression but is a valid [Zed expression](#expressions),
+a search expression but is a valid [Zed expression](#6-expressions),
 then the abbreviation is treated as having an implied `yield` operator, e.g.,
 ```
 {s:lower(s)}
@@ -342,10 +342,10 @@ the implied record field named `foo`.
 
 Another common query pattern involves adding or mutating fields of records
 where the input is presumed to be a sequence of records.
-The [put operator](operators/put.md#operator) provides this mechanism and the `put`
-keyword is implied by the mutator syntax `:=`, which is used in Zed when an
-input record field is modified, as compared to `=` which is used in constant
-and variable assignments.  For example, the operation
+The [`put` operator](operators/put.md) provides this mechanism and the `put`
+keyword is implied by the [field assignment](#25-field-assignments) syntax `:=`.
+
+For example, the operation
 ```
 put y:=2*x+1
 ```
@@ -391,8 +391,8 @@ Constants may be defined and assigned to a symbolic name with the syntax
 const <id> = <expr>
 ```
 where `<id>` is an identifier and `<expr>` is a constant [expression](#6-expressions)
-that must evaluate to a constant and at compile time and not reference any
-runtime state like `this`, e.g.,
+that must evaluate to a constant at compile time and not reference any
+runtime state such as `this`, e.g.,
 ```mdtest-command
 echo '{r:5}{r:10}' | zq -z "const PI=3.14159 2*PI*r" -
 ```
@@ -402,16 +402,16 @@ produces
 62.8318
 ```
 
-One or more const statements may appear only at the beginning of a scope
+One or more `const` statements may appear only at the beginning of a scope
 (i.e., the main scope at the start of a Zed program or a [lateral scope](#81-lateral-scope)
-defined by an [over operator](operators/over.md#operator))
+defined by an [`over` operator](operators/over.md))
 and binds the identifier to the value in the scope in which it appears in addition
 to any contained scopes.
 
-A const statement cannot redefine an identifier that was previously defined in the same
+A `const` statement cannot redefine an identifier that was previously defined in the same
 scope but can override identifiers defined in ancestor scopes.
 
-Const statements may appear intermixed with type statements.
+`const` statements may appear intermixed with `type` statements.
 
 ## 4. Type Statements
 
@@ -419,8 +419,8 @@ Named types may be created with the syntax
 ```
 type <id> = <type>
 ```
-where `<id>` is an identifier and `<type>` or a [Zed type](#first-class-types).
-This create a new type with the given name in the Zed type system, e.g.,
+where `<id>` is an identifier and `<type>` is a [Zed type](#51-first-class-types).
+This creates a new type with the given name in the Zed type system, e.g.,
 ```mdtest-command
 echo 80 | zq -z 'type port=uint16 cast(this, <port>)' -
 ```
@@ -429,16 +429,16 @@ produces
 80(port=uint16)
 ```
 
-One or more type statements may appear at the beginning of a scope
-(i.e., the main scope at the start of a Zed program or a [lateral scope](#lateral-scope)
-defined by an [over operator](operators/over.md#operator))
+One or more `type` statements may appear at the beginning of a scope
+(i.e., the main scope at the start of a Zed program or a [lateral scope](#81-lateral-scope)
+defined by an [`over` operator](operators/over.md))
 and binds the identifier to the type in the scope in which it appears in addition
 to any contained scopes.
 
-A type statement cannot redefine an identifier that was previously defined in the same
+A `type` statement cannot redefine an identifier that was previously defined in the same
 scope but can override identifiers defined in ancestor scopes.
 
-Type statements may appear intermixed with const statements.
+`type` statements may appear intermixed with `const` statements.
 
 ## 5. Data Types
 
@@ -449,7 +449,7 @@ The syntax of individual literal values generally follows
 the [ZSON syntax](../formats/zson.md) with the exception that
 [type decorators](../formats/zson.md#22-type-decorators)
 are not included in the language.  Instead, a
-[type cast](#casts) may be used in any expression for explicit
+[type cast](#612-casts) may be used in any expression for explicit
 type conversion.
 
 In particular, the syntax of primitive types follows the
@@ -457,11 +457,11 @@ In particular, the syntax of primitive types follows the
 as well as the various [complex value definitions](../formats/zson.md#24-complex-values)
 like records, arrays, sets, and so forth.  However, complex values are not limited to
 constant values like ZSON and can be composed from literal expressions as
-[defined below](#expressions).
+[defined below](#611-literals).
 
 ### 5.1 First-class Types
 
-Like the Zed data model, the Zed language has first class types:
+Like the Zed data model, the Zed language has first-class types:
 any Zed type may be used as a value.
 
 The primitive types are listed in the
@@ -482,16 +482,15 @@ a few examples:
 * a union of string and integer  - `(string,int64)`
 
 Complex types may be composed, as in `[({s:string},{x:int64})]` which is
-an array of type union of two types of records.
+an array of type `union` of two types of records.
 
-The [typeof function](functions/typeof.md) returns a value's type as
+The [`typeof` function](functions/typeof.md) returns a value's type as
 a value, e.g., `typeof(1)` is `<int64>` and `typeof(<int64>)` is `<type>`.
 
 First-class types are quite powerful because types can
-serve as group-by keys or be used in "data shaping" logic.
-A common query for data introspection is to perform some search query
-slicing and dicing some exploratory data then counting the shapes of
-each type of data as follows:
+serve as group-by keys or be used in ["data shaping"](#9-shaping) logic.
+A common workflow for data introspection is to first perform a search of
+exploratory data and then count the shapes of each type of data as follows:
 ```
 search ... | count() by typeof(this)
 ```
@@ -526,7 +525,7 @@ As in any modern programming language, types can be named and the type names
 persist into the data model and thus into the serialized input and output.
 
 Named types may be defined in three ways:
-* with a [type statement as described above](#4-type-statements),
+* with a [`type` statement as described above](#4-type-statements),
 * with a definition inside of another type, or
 * by the input data itself.
 
@@ -534,7 +533,7 @@ Type names that are embedded in another type have the form
 ```
 name=type
 ```
-and create a binding between the indicated string `name` and the specified `type`.
+and create a binding between the indicated string `name` and the specified type.
 For example,
 ```
 type socket {addr:ip,port:port=uint16}
@@ -546,9 +545,9 @@ Named types may also be defined by the input data itself, as Zed data is
 comprehensively self describing.
 When named types are defined in the input data, there is no need to declare their
 type in a query.
-In this case, a Zed expression may refer to the type by name that simply
+In this case, a Zed expression may refer to the type by the name that simply
 appears to the runtime as a side effect of operating upon the data.  If the type
-name referred to this way does not exist, then the type value reference
+name referred to in this way does not exist, then the type value reference
 results in `error("missing")`.  For example,
 ```mdtest-command
 echo '1(=foo) 2(=bar) 3(=foo)' | zq -z 'typeof(this)==<foo>' -
@@ -591,7 +590,7 @@ results in
 ```
 Here, the two versions of type "foo" are retained in the group-by results.
 
-In general, it is bad practice to define multiple versions a single named type
+In general, it is bad practice to define multiple versions of a single named type,
 though the Zed system and Zed data model accommodate such dynamic bindings.
 Managing and enforcing the relationship between type names and their type definitions
 on a global basis (e.g., across many different data pools in a Zed lake) is outside
@@ -599,7 +598,8 @@ the scope of the Zed data model and language.  That said, Zed provides flexible
 building blocks so systems can define their own schema versioning and schema
 management policies on top of these Zed primitives.
 
-Zed's super-structured data model is a superset of relational tables and
+Zed's [super-structured data model](../formats/README.md#2-zed-a-super-structured-pattern)
+is a superset of relational tables and
 the Zed language's type system can easily make this connection.
 As an example, consider this type definition for "employee":
 ```
@@ -616,13 +616,13 @@ In Zed, you would say
 ```
 from anywhere | typeof(this)==<employee> | cut last,salary | sort salary | head 5
 ```
-and since type comparisons are so useful and common, the function [is](functions/is.md)
+and since type comparisons are so useful and common, the [`is` function](functions/is.md)
 can be used to perform the type match:
 ```
 from anywhere | is(<employee>) | cut last,salary | sort salary | head 5
 ```
 The power of Zed is that you can interpret data on the fly as belonging to
-a certain schemas, in this case "employee", and those records can be intermixed
+a certain schema, in this case "employee", and those records can be intermixed
 with other relevant data.  There is no need to create a table called "employee"
 and put the data into the table before that data can be queried as an "employee".
 And if the schema or type name for "employee" changes, queries still continue
@@ -631,10 +631,10 @@ to work.
 ### 5.3 First-class Errors
 
 As with types, errors in Zed are first-class: any value can be transformed
-into an error by wrapping it in the Zed [error type](../formats/zed.md#27-error).
+into an error by wrapping it in the Zed [`error` type](../formats/zed.md#27-error).
 
 In general, expressions and functions that result in errors simply return
-a value of type error as a result.  This encourages a powerful flow-style
+a value of type `error` as a result.  This encourages a powerful flow-style
 of error handling where errors simply propagate from one operation to the
 next and land in the output alongside non-error values to provide a very helpful
 context and rich information for tracking down the source of errors.  There is
@@ -663,7 +663,7 @@ error("divide by zero")
 ```
 And since errors are first-class and just values, they have a type.
 In particular, they are a complex type where the error value's type is the
-complex type error containing the type of the value.  For example,
+complex type `error` containing the type of the value.  For example,
 ```mdtest-command
 echo 0 | zq -z 'typeof(1/this)' -
 ```
@@ -682,13 +682,14 @@ For example, suppose a bad value shows up:
 ```
 {kind:"bad", stuff:{foo:1,bar:2}}
 ```
-A Zed shaper could catch the bad value (e.g., as a default case in a
-switch topology) and propagate it as an error using the Zed expression:
+A Zed [shaper](#9-shaping) could catch the bad value (e.g., as a default
+case in a [`switch`](operators/switch.md) topology) and propagate it as
+an error using the Zed expression:
 ```
 yield error({message:"unrecognized input",input:this})
 ```
 then such errors could be detected and searched for downstream with the
-[is_error function](functions/is_error.md).
+[`is_error` function](functions/is_error.md).
 For example,
 ```
 is_error(this)
@@ -743,7 +744,7 @@ results from accessing a field that is not present.  Thus, `x==NULL` and
 Zed, instead, recognizes that the SQL value is `MISSING` is a paradox:
 I'm here but I'm not.  
 
-In reality, a MISSING value is not a value.  It's an error condition
+In reality, a `MISSING` value is not a value.  It's an error condition
 that resulted from trying to reference something that didn't exist.
 
 So why should we pretend that this is a bona fide value?  SQL adopted this
@@ -761,9 +762,9 @@ produces
 error("missing")
 ```
 Sometimes you want missing errors to show up and sometimes you don't.
-The [quiet function](functions/quiet.md) transforms missing errors into
+The [`quiet` function](functions/quiet.md) transforms missing errors into
 "quiet errors".  A quiet error is the value `error("quiet")` and is ignored
-by most operators, in particular yield.  For example,
+by most operators, in particular `yield`.  For example,
 ```mdtest-command
 echo "{x:1} {y:2}" | zq -z "yield quiet(x)" -
 ```
@@ -776,8 +777,8 @@ produces
 
 Zed expressions follow the typical patterns in programming languages.
 Expressions are typically used within data flow operators
-to perform computation on input values and are typically evaluated once per each
-input value `this`.
+to perform computations on input values and are typically evaluated once per each
+input value [`this`](#23-the-special-value-this).
 
 For example, `yield`, `where`, `cut`, `put`, `sort` and so forth all take
 various expressions as part of their operation.
@@ -868,16 +869,17 @@ Boolean type using "truthiness" heuristics.
 
 ### 6.5 Field Dereference
 
-Records fields are dereferenced with the dot operator `.` as is customary
+Record fields are dereferenced with the dot operator `.` as is customary
 in other languages and have the form
 ```
 <value> . <id>
 ```
 where `<id>` is an identifier representing the field name referenced.
-If a field name is not representable as an identifier, then [indexing](#indexing)
+If a field name is not representable as an identifier, then [indexing](#66-indexing)
 may be used with a quoted string to represent any valid field name.
-Such field names can be accessed using `this` and an array-style
-reference, e.g., `this["field with spaces"]`.
+Such field names can be accessed using
+[`this`](#23-the-special-value-this) and an array-style reference, e.g.,
+`this["field with spaces"]`.
 
 If the dot operator is applied to a value that is not a record
 or if the record does not have the given field, then the result is
@@ -890,7 +892,7 @@ The index operation can be applied to various data types and has the form:
 <value> [ <index> ]
 ```
 If the `<value>` expression is a record, then the `<index>` operand
-must be coercible to a string and the result of the record's field
+must be coercible to a string and the result is the record's field
 of that name.
 
 If the `<value>` expression is an array, then the `<index>` operand
@@ -904,13 +906,13 @@ value in the set of that index ordered by total order of Zed values.
 If the `<value>` expression is a map, then the `<index>` operand
 is presumed to be a key and the corresponding value for that key is
 the result of the operation.  If no such key exists in the map, then
-`error("missing")` results.
+the result is `error("missing")`.
 
 If the `<value>` expression is a string, then the `<index>` operand
 must be coercible to an integer and the result is an integer representing
 the unicode code point at that offset in the string.
 
-If the `<value>` expression is type bytes, then the `<index>` operand
+If the `<value>` expression is type `bytes`, then the `<index>` operand
 must be coercible to an integer and the result is an unsigned 8-bit integer
 representing the byte value at that offset in the bytes sequence.
 
@@ -921,7 +923,7 @@ The slice operation can be applied to various data types and has the form:
 <value> [ <from> : <to> ]
 ```
 The `<from>` and `<to>` terms must be expressions that are coercible
-to integer and represent a range of index values to form a subset of elements
+to integers and represent a range of index values to form a subset of elements
 from the `<value>` term provided.  The range begins at the `<from>` position
 and ends one before the `<to>` position.  A negative
 value of `<from>` or `<to>` represents a position relative to the
@@ -936,24 +938,21 @@ elements comprising the indicated range ordered by total order of Zed values.
 If the `<value>` expression is a string, then the result is a substring
 consisting of unicode code points comprising the given range.
 
-If the `<value>` expression is type bytes, then the result is a bytes sequence
+If the `<value>` expression is type `bytes`, then the result is a bytes sequence
 consisting of bytes comprising the given range.
 
 ### 6.8 Conditional
 
 A conditional expression has the form
 ```
-<boolean> ? <expr> : <expr>`
+<boolean> ? <expr> : <expr>
 ```
 The `<boolean>` expression is evaluated and must have a result of type `bool`.
 If not, an error results.
 
 If the result is true, then the first `<expr>` expression is evaluated and becomes
-the result.  Otherwise, the second `<expr>` expression is evaluated.
-
-Note that if the expression has side effects,
-as with [aggregation calls](#aggregation-calls), only the selected expression
-will be evaluated.
+the result.  Otherwise, the second `<expr>` expression is evaluated and
+becomes the result.
 
 For example,
 ```mdtest-command
@@ -965,13 +964,28 @@ produces
 -2
 ```
 
+Note that if the expression has side effects,
+as with [aggregate function calls](#610-aggregate-function-calls), only the selected expression
+will be evaluated.
+
+For example,
+```mdtest-command
+echo '"foo" "bar" "foo"' | zq -z 'yield this=="foo" ? {foocount:count()} : {barcount:count()}' -
+```
+produces
+```mdtest-output
+{foocount:1(uint64)}
+{barcount:1(uint64)}
+{foocount:2(uint64)}
+```
+
 ### 6.9 Function Calls
 
-Functions perform stateless transformations of their input value to their
+[Functions](functions/README.md) perform stateless transformations of their input value to their
 return value and utilize call-by value semantics with positional and unnamed
 arguments.  Some functions take a variable number of arguments.
 
-> The only available functions are built-in but user-defined functions and
+> The only functions currently available are built-in, but user-defined functions and
 > library package management will be added to the Zed language soon.
 
 For example,
@@ -988,7 +1002,7 @@ produces
 ### 6.10 Aggregate Function Calls
 
 [Aggregate functions](aggregates/README.md) may be called within an expression.
-Unlike the aggregation context provided by a summarizing group-by, such calls
+Unlike the aggregation context provided by a [summarizing group-by](operators/summarize.md), such calls
 in expression context yield an output value for each input value.
 
 Note that because aggregate functions carry state which is typically
@@ -1006,7 +1020,7 @@ produces
 {id:2(uint64),value:"bar"}
 {id:3(uint64),value:"baz"}
 ```
-In contrast, calling aggregate functions within `summarize`
+In contrast, calling aggregate functions within the [`summarize` operator](operators/summarize.md)
 ```mdtest-command
 echo '"foo" "bar" "baz"' | zq -z 'summarize count(),union(this)' -
 ```
@@ -1017,7 +1031,7 @@ produces just one output value
 
 ### 6.11 Literals
 
-Any of the [data types listed above](#data-types) may be used in expressions
+Any of the [data types listed above](#5-data-types) may be used in expressions
 as long as it is compatible with the semantics of the expression.
 
 String literals are enclosed in either single quotes or double quotes and
@@ -1035,6 +1049,15 @@ In this case, the characters starting with `$` and ending at `}` are substituted
 with the result of evaluating the expression `<expr>`.  If this result is not
 a string, it is implicitly cast to a string.
 
+For example,
+```mdtest-command
+echo '{numerator:22.0, denominator:7.0}' | zq -z 'yield "pi is approximately ${numerator / denominator}"' -
+```
+produces
+```mdtest-output
+"pi is approximately 3.142857142857143"
+```
+
 If any template expression results in an error, then the value of the template
 literal is the first error encountered in left-to-right order.
 
@@ -1044,6 +1067,15 @@ literal is the first error encountered in left-to-right order.
 
 String interpolation may be nested, where `<expr>` contains additional strings
 with interpolated expressions.
+
+For example,
+```mdtest-command
+echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' | zq -z 'yield "oh ${this[upper("${foo + bar}")]}"' -
+```
+produces
+```mdtest-output
+"oh hi!"
+```
 
 #### 6.11.2 Record Expressions
 
@@ -1059,12 +1091,12 @@ where a `<spec>` has one of three forms:
 ```
 The first form is a customary colon-separated field and value similar to JavaScript,
 where `<field>` may be an identifier or quoted string.
-The second form is an implied field reference `<ref>`, which is shorthand
-for `<ref>:<ref>`.  The third form is the `...` spread operator which expects
-a record value as the result of `<expr>` and inserts all of the fields from
-the resulting record.
+The second form is an [implied field reference](#24-implied-field-references)
+`<ref>`, which is shorthand for `<ref>:<ref>`.  The third form is the `...`
+spread operator which expects a record value as the result of `<expr>` and
+inserts all of the fields from the resulting record.
 If a spread expression results in a non-record type (e.g., errors), then that
-part of record is simply elided.
+part of the record is simply elided.
 
 The fields of a record expression are evaluated left to right and when
 field names collide the rightmost instance of the name determines that
@@ -1089,7 +1121,7 @@ Array literals have the form
 [ <expr>, <expr>, ... ]
 ```
 When the expressions result in values of non-uniform type, then the implied
-type of the array is an array of type union of the types that appear.
+type of the array is an array of type `union` of the types that appear.
 
 For example,
 ```mdtest-command
@@ -1108,7 +1140,7 @@ Set literals have the form
 |[ <expr>, <expr>, ... ]|
 ```
 When the expressions result in values of non-uniform type, then the implied
-type of the set is a set of type union of the types that appear.
+type of the set is a set of type `union` of the types that appear.
 
 Set values are always organized in their "natural order" independent of the order
 they appear in the set literal.
@@ -1131,7 +1163,7 @@ Map literals have the form
 ```
 where the first expression of each colon-separated entry is the key value
 and the second expression is the value.
-When the key and/or value expressions results in values of non-uniform type,
+When the key and/or value expressions result in values of non-uniform type,
 then the implied type of the map has a key type and/or value type that is
 a union of the types that appear in each respective category.
 
@@ -1146,7 +1178,7 @@ produces
 
 #### 6.11.6 Union Values
 
-A union value can be created with a cast.  For example, a union of types `int64`
+A union value can be created with a [cast](#612-casts).  For example, a union of types `int64`
 and `string` is expressed as `(int64,string)` and any value that has a type
 that appears in the union type may be cast to that union type.
 Since 1 is an `int64` and "foo" is a `string`, they both can be
@@ -1160,7 +1192,7 @@ produces
 "foo"((int64,string))
 ```
 The value underlying a union-tagged value is accessed with the
-[under function](functions/under.md):
+[`under` function](functions/under.md):
 ```mdtest-command
 echo '1((int64,string))' | zq -z 'yield under(this)' -
 ```
@@ -1170,8 +1202,8 @@ produces
 ```
 Union values are powerful because they provide a mechanism to precisely
 describe the type of any nested, semi-structured value composed of elements
-of different types.  For example, the type of the value `[1,"foo"]` in Javascript
-is simply a generic Javascript "object".  But in Zed, the type of this
+of different types.  For example, the type of the value `[1,"foo"]` in JavaScript
+is simply a generic JavaScript "object".  But in Zed, the type of this
 value is an array of union of string and integer, e.g.,
 ```mdtest-command
 echo '[1,"foo"]' | zq -z 'typeof(this)' -
@@ -1181,68 +1213,15 @@ produces
 <[(int64,string)]>
 ```
 
-### 6.12 Constants
+### 6.12 Casts
 
-Constants may be declared and bound to an identifier with a `const` statement,
-which has the form
-```
-const <id> = <expr>
-```
-This statement evaluates the expressions `<expr>` before any input is processed
-to determine the constant value assigned to the identifier `<id>`.
-This expression may not refer to `this` or any implied fields of `this`.
-
-Constants must appear at the beginning
-of a query or the beginning of a [parenthesized scope](#scopes).
-
-```mdtest-command
-echo '{diameter:1}{diameter:5}' | zq -z 'const PI = 3.14159 circumference:=2*PI*diameter' -
-```
-produces
-```mdtest-output
-{diameter:1,circumference:6.28318}
-{diameter:5,circumference:31.4159}
-```
-
-### 6.13 Type Definitions
-
-Named types may be declared and bound to an identifier with a `type` statement,
-which has the form
-```
-type <name> = <type>
-```
-This statement evaluates the type `<type>` before any input is processed
-to compute a type value assigned to the identifier `<id>`.
-
-In addition, a type statement creates a binding for the named type in
-the runtime's type system, which may be overridden by any input that
-redefines the named type.
-
-When referred to by the defined identifier, the use of this type is not
-overridden by the input data; however, type values that refer to the named
-type may be redefined.
-
-Type definitions must appear at the beginning
-of a query or the beginning of a [parenthesized scope](#scopes).
-
-```mdtest-command
-echo '{s:1}{s:10.0.0.1}' | zq -z 'type foo = {s:string} cast(this, foo)' -
-```
-produces
-```mdtest-output
-{s:"1"}(=foo)
-{s:"10.0.0.1"}(=foo)
-```
-
-### 6.14 Casts
-
-Type conversion is performed with casts and the built-in function `cast()`.
+Type conversion is performed with casts and the built-in [`cast` function](functions/cast.md).
 
 Casts for primitive types have a function-style syntax of the form
 ```
 <type> ( <expr> )
 ```
-where `<type>` is a Zed type and `<expr>` is any Zed expression.
+where `<type>` is a [Zed type](#51-first-class-types) and `<expr>` is any Zed expression.
 In the case of primitive types, the type-value angle brackets
 may be omitted, e.g., `<string>(1)` is equivalent to `string(1)`.
 If the result of `<expr>` cannot be converted
@@ -1261,7 +1240,7 @@ error("cannot cast \"200\" to type int8")
 ```
 
 Casting attempts to be fairly liberal in conversions.  For example, values
-of type `time` can be created from a diverse set of data/time input strings
+of type `time` can be created from a diverse set of date/time input strings
 based on the [Go Date Parser library](https://github.com/araddon/dateparse).
 
 ```mdtest-command
@@ -1273,7 +1252,7 @@ produces
 1970-10-07T00:00:00Z
 ```
 
-Casts of complex or named types may be performed using type values
+Casts of complex or [named types](#52-named-types) may be performed using type values
 either in functional form or with `cast`:
 ```
 <type-value> ( <expr> )
@@ -1292,7 +1271,6 @@ produces
 Casts may be used with complex types as well.  As long as the target type can
 accommodate the value, the case will be recursively applied to the components
 of a nested value.  For example,
-For example
 ```mdtest-command
 echo '["10.0.0.1","10.0.0.2"]' | zq -z 'cast(this,<[ip]>)' -
 ```
@@ -1322,14 +1300,14 @@ long form built from the expression syntax above in combination with the
 ### 7.1 Search Patterns
 
 Several styles of string search can be performed with a search expression
-(as well as the [grep function](functions/grep.md)) using "patterns",
+(as well as the [`grep` function](functions/grep.md)) using "patterns",
 where a pattern is a regular expression, glob, or simple string.
 
 #### 7.1.1 Regular Expressions
 
 A regular expression is specified in the familiar slash syntax where the
 expression begins with a `/` character and ends with a terminating `/` character.
-The string between the slashed (exclusive of those characters) is the
+The string between the slashes (exclusive of those characters) is the
 regular expression.
 
 The format of Zed regular expressions follows the syntax of the
@@ -1363,7 +1341,7 @@ false
 
 Globs provide a convenient short-hand for regular expressions and follow
 the familiar pattern of "file globbing" supported by Unix shells.
-Zed globs are a simple, special case utilize only the `*` wildcard.
+Zed globs are a simple, special case that utilize only the `*` wildcard.
 
 Valid glob characters include `a` through `z`, `A` through `Z`,
 any valid string escape sequence
@@ -1404,8 +1382,20 @@ produces
 {a:1}
 ```
 
+Globs may also appear in the `grep` function:
+```mdtest-command
+echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z 'yield grep(ba*, s)' -
+```
+produces
+```mdtest-output
+false
+true
+true
+false
+```
+
 Note that a glob may look like multiplication but context disambiguates
-these condition, e.g.,
+these conditions, e.g.,
 ```
 a*b
 ```
@@ -1417,11 +1407,10 @@ is a Boolean comparison between the product `a*b` and `c`.
 
 ### 7.2 Search Logic
 
-The search patterns described above can be combined with other elements
-to a search expression comprised of "search terms" that may be combined
-using Boolean logic.
+The search patterns described above can be combined with other "search terms"
+using Boolean logic to form search expressions.
 
-> Note that when processing ZNG data, the Zed runtime performs a multi-threaded
+> Note that when processing [ZNG](../formats/zng.md) data, the Zed runtime performs a multi-threaded
 > Boyer-Moore scan over decompressed data buffers before parsing any data.
 > This allows large buffers of data to be efficiently discarded and skipped when
 > searching for rarely occurring values.  For a [Zed lake](../lake/format.md), search indexes
@@ -1429,7 +1418,7 @@ using Boolean logic.
 > In a forthcoming release, Zed will also offer an approach for locating
 > delimited words within string fields, which will allow accelerated
 > search using a full-text search index.  Currently, search indexes may be built
-> for exact value match as text segmentation is in the works.a
+> for exact value match as text segmentation is in the works.
 
 #### 7.2.1 Search Terms
 
@@ -1444,7 +1433,7 @@ A "search term" is one of the following;
 
 A regular expression `/re/` is equivalent to
 ```
-grep(/reg/, this)
+grep(/re/, this)
 ```
 but shorter and easier to type in a search expression.
 
@@ -1459,7 +1448,7 @@ Searches for any string that begins with `foo` or `bar` has the string
 
 A glob search term `<glob>` is equivalent to
 ```
-grep(/reg/, this)
+grep(<glob>, this)
 ```
 but shorter and easier to type in a search expression.
 
@@ -1474,7 +1463,7 @@ Searches for any string that begins with `foo` has the string
 
 Keywords and string literals are equivalent search terms so it is often
 easier to quote a string search term instead of using escapes in a keyword.
-Keywords are useful in interactive modes of use where searches can be issued
+Keywords are useful in interactive workflows where searches can be issued
 and modified quickly without having to type matching quotes.
 
 Keyword search has the look and feel of Web search or email search.
@@ -1507,7 +1496,7 @@ For example, the simplest Zed program is perhaps a single keyword search, e.g.,
 ```
 foo
 ```
-As above, this program searches the implied input for input values that
+As above, this program searches the implied input for values that
 contain the string "foo".
 
 ##### 7.2.1.4 String Literal Search Term
@@ -1541,7 +1530,7 @@ as it appears as typed.  Such values include:
 * floating point numbers,
 * time values,
 * durations,
-* IPs,
+* IP addresses,
 * networks,
 * bytes values, and
 * type values.
@@ -1572,13 +1561,13 @@ the "in" operator, e.g.,
 
 ##### 7.2.1.6 Predicate Search Term
 
-Any Boolean-valued [function](functions/README.md) like `is()`, `has()`,
-`grep()` etc. and any [comparison expression](#comparisons)
+Any Boolean-valued [function](functions/README.md) like `is`, `has`,
+`grep`, etc. and any [comparison expression](#62-comparisons)
 may be used as a search term and mixed into a search expression.
 
 For example,
 ```
-is(<foo>) has(bar) baz x==y+z
+is(<foo>) has(bar) baz x==y+z timestamp > 2018-03-24T17:17:55Z
 ```
 is a valid search expression but
 ```
@@ -1623,7 +1612,7 @@ The inner query may be _any Zed query_ and may refer to values from
 the outer sequence.
 
 Lateral subqueries are created using the scoped form of the
-[over operator](operators/over.md#operator) and may be nested to arbitrary depth.
+[`over` operator](operators/over.md) and may be nested to arbitrary depth.
 
 For example,
 ```mdtest-command
@@ -1639,7 +1628,7 @@ Here the lateral scope, described below, creates a subquery
 ```
 yield {name,elem:this}
 ```
-for each sub-sequence of values derived from each outer input value.
+for each subsequence of values derived from each outer input value.
 In the example above, there are two input values:
 ```
 {s:"foo",a:[1,2]}
@@ -1673,7 +1662,7 @@ produces
 ### 8.1 Lateral Scope
 
 A lateral scope has the form `=> ( <query> )` and currently appears
-only the context of an [over operator](operators/over.md#operator),
+only the context of an [`over` operator](operators/over.md),
 as illustrated above, and has the form:
 ```
 over ... with <elem> [, <elem> ...] => ( <query> )
@@ -1689,7 +1678,7 @@ or a field reference form
 For each input value to the outer scope, the assignment form creates a binding
 between each `<expr>` evaluated in the outer scope and each `<var>`, which
 represents a new symbol in the inner scope of the `<query>`.
-In the field reference form, a single identifier `<id>` refers to a field
+In the field reference form, a single identifier `<field>` refers to a field
 in the parent scope and makes that field's value available in the lateral scope
 with the same name.
 
@@ -1699,10 +1688,10 @@ the value `this` refers to the inner sequence generated from the `over` expressi
 This query runs to completion for each inner sequence and emits
 each subquery result as each inner sequence traversal completes.
 
-This structure is powerful because _any_ Zed query can be appear in the body of
+This structure is powerful because _any_ Zed query can appear in the body of
 the lateral scope.  In contrast to the `yield` example, a sort could be
-applied to each sub-sequence in the subquery, where sort
-reads all of values of the subsequence, sorts them, emits them, then
+applied to each subsequence in the subquery, where sort
+reads all values of the subsequence, sorts them, emits them, then
 repeats the process for the next subsequence.  For example,
 ```mdtest-command
 echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z 'over this => (sort this | collect(this))' -
@@ -1725,11 +1714,11 @@ parenthesized form:
 > dataflow operator.
 
 This form must always include a lateral scope as indicated by `<lateral>`,
-which can be any dataflow operaetor sequence excluding `from` operators.
+which can be any dataflow operator sequence excluding [`from` operators](operators/from.md).
 As with the `over` operator, values from the outer scope can be brought into
 the lateral scope using the `with` clause.
 
-The lateral expression is evaluated by evalating each `<expr>` and feeding
+The lateral expression is evaluated by evaluating each `<expr>` and feeding
 the results as inputs to the `<lateral>` dataflow operators.  Each time the
 lateral expression is evaluated, the lateral operators are run to completion,
 e.g.,
@@ -1763,37 +1752,36 @@ To unify disparate data sources, data is often cleaned up to fit into
 a well-defined set of schemas, which combines the data into a unified
 store like a data warehouse.
 
-In Zed, this cleansing process is called "shaping" the data and Zed leverages
-its rich, super-structured type system to perform core aspects of
-data transformation.
+In Zed, this cleansing process is called "shaping" the data, and Zed leverages
+its rich, [super-structured](../formats/README.md#2-zed-a-super-structured-pattern)
+type system to perform core aspects of data transformation.
 In a data model with nesting and multiple scalar types (such as Zed or JSON),
-shaping includes converting type of leaf fields, adding or removing fields
+shaping includes converting the type of leaf fields, adding or removing fields
 to "fit" a given shape, and reordering fields.
 
 While shaping remains an active area of development, the core functions in Zed
 that currently perform shaping are:
 
-* [cast](functions/cast.md) - coerce a value to a different type
-* [crop](functions/crop.md) - remove fields from a value that are missing in a specified type
-* [fill](functions/fill.md) - add null values for missing fields
-* [order](functions/order.md) - reorder record fields
-* [shape](functions/shape.md) - apply cast, fill, and order
+* [`cast`](functions/cast.md) - coerce a value to a different type
+* [`crop`](functions/crop.md) - remove fields from a value that are missing in a specified type
+* [`fill`](functions/fill.md) - add null values for missing fields
+* [`order`](functions/order.md) - reorder record fields
+* [`shape`](functions/shape.md) - apply `cast`, `fill`, and `order`
 
 They all have the same signature, taking two parameters: the value to be
 transformed and a type value for the target type.
 
 > Another type of transformation that's needed for shaping is renaming fields,
-> which is supported by the [rename operator](operators/rename.md#operator).
-> Also, the [yield operator](operators/yield.md#operator)
+> which is supported by the [`rename` operator](operators/rename.md).
+> Also, the [`yield` operator](operators/yield.md)
 > is handy for simply emitting new, arbitrary record literals based on
 > input values and mixing in these shaping functions in an embedded record literal.
-> The [fuse aggregate function](aggregates/fuse.md) is useful for fusing
-> values into a common schema within a group-by schema though a type is returned
-> rather than values.
+> The [`fuse` aggregate function](aggregates/fuse.md) is also useful for fusing
+> values into a common schema, though a type is returned rather than values.
 
 In the examples below, we will use the following named type `connection`
 that is stored in a file `connection.zed`
-and is included in the example Zed queries with `-I` option of `zq`:
+and is included in the example Zed queries with the `-I` option of `zq`:
 ```mdtest-input connection.zed
 type socket = { addr:ip, port:port=uint16 }
 type connection = {
@@ -1821,13 +1809,13 @@ We also use this sample JSON input in a file called `sample.json`:
 
 ### 9.1 Cast
 
-The cast function applies a cast operation to each leaf value that matches the
+The `cast` function applies a cast operation to each leaf value that matches the
 field path in the specified type, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "cast(this, <connection>)" sample.json
 ```
 casts the address fields to type `ip`, the port fields to type `port`
-(which is a typedef for `uint16`) and the address port pairs to
+(which is a [named type](#52-named-types) for type `uint16`) and the address port pairs to
 type `socket` without modifying the `uid` field or changing the
 order of the `server` and `client` fields:
 ```mdtest-output
@@ -1847,11 +1835,11 @@ order of the `server` and `client` fields:
 
 ### 9.2 Crop
 
-Cropping is a useful when you want records to "fit" a schema tightly, e.g.,
+Cropping is useful when you want records to "fit" a schema tightly, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "crop(this, <connection>)" sample.json
 ```
-removes the `uid` field since it is not in the _connection_ type:
+removes the `uid` field since it is not in the `connection` type:
 ```mdtest-output
 {
     kind: "dns",
@@ -1868,12 +1856,12 @@ removes the `uid` field since it is not in the _connection_ type:
 
 ### 9.3 Fill
 
-Use fill when you want to fill out missing fields with nulls, e.g.,
+Use `fill` when you want to fill out missing fields with nulls, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "fill(this, <connection>)" sample.json
 ```
 adds a null-valued `vlan` field since the input value is missing it and
-the _connection_ type has it:
+the `connection` type has it:
 ```mdtest-output
 {
     kind: "dns",
@@ -1892,13 +1880,13 @@ the _connection_ type has it:
 
 ### 9.4 Order
 
-The order function changes the order of fields in its input to match the
-specified order, as field order is significant in Zed records, e.g.,
+The `order` function changes the order of fields in its input to match the
+order in the specified type, as field order is significant in Zed records, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "order(this, <connection>)" sample.json
 ```
 reorders the `client` and `server` fields to match the input but does nothing
-about the `uid` field as it is not in the _connection_ type:
+about the `uid` field as it is not in the `connection` type:
 ```mdtest-output
 {
     kind: "dns",
@@ -1916,13 +1904,13 @@ about the `uid` field as it is not in the _connection_ type:
 
 ### 9.5 Shape
 
-The shape function brings everything together by applying `cast`,
+The `shape` function brings everything together by applying `cast`,
 `fill`, and `order` all in one step, e.g.,
 ```mdtest-command
 zq -Z -I connection.zed "shape(this, <connection>)" sample.json
 ```
 reorders the `client` and `server` fields to match the input but does nothing
-about the `uid` field as it is not in the _connection_ type:
+about the `uid` field as it is not in the `connection` type:
 ```mdtest-output
 {
     kind: "dns",
@@ -1962,7 +1950,7 @@ drops the `uid` field after shaping:
 
 Type fusion is another important building block of data shaping.
 Here, types are operated upon by fusing them together, where the
-result is single fused type.
+result is a single fused type.
 Some systems call a related process "schema inference" where a set
 of values, typically JSON, is analyzed to determine a relational schema
 that all the data will fit into.  However, this is just a special case of
@@ -1998,15 +1986,15 @@ fused into the single-type sequence:
 
 To perform fusion, Zed currently includes two key mechanisms
 (though this is an active area of development):
-* the [fuse operator](operators/fuse.md#operator), and
-* the [fuse aggregate function](aggregates/fuse.md).
+* the [`fuse` operator](operators/fuse.md), and
+* the [`fuse` aggregate function](aggregates/fuse.md).
 
 ### 10.1 Fuse Operator
 
-The _fuse operator_ reads all of its input, computes a fused type using
+The `fuse` operator reads all of its input, computes a fused type using
 the techniques above, and outputs the result, e.g.,
 ```mdtest-command
-echo '{x:1} {y:"foo"}{x:2,y:"bar"}' | zq -z fuse -
+echo '{x:1} {y:"foo"} {x:2,y:"bar"}' | zq -z fuse -
 ```
 produces
 ```mdtest-output
@@ -2025,27 +2013,28 @@ requires a type union for field `x` and produces:
 {x:2((int64,string)),y:"bar"}
 ```
 
-### 10.2 Fuse Function
+### 10.2 Fuse Aggregate Function
 
-The _fuse function_ is most often useful during data exploration and discovery
+The `fuse` aggregate function is most often useful during data exploration and discovery
 where you might interactively run queries to determine the shapes of some new
 or unknown input data and how those various shapes relate to one another.
 
-For example, in example sequence above, we can use the _fuse function_ to determine
+For example, in the example sequence above, we can use the `fuse` aggregate function to determine
 the fused type rather than transforming the values, e.g.,
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}' | zq -z 'fuse(this)' -
+echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this)' -
 ```
 results in
 ```mdtest-output
 {fuse:<{x:(int64,string),y:string}>}
 ```
-Since the _fuse_ here is an aggregate function, it can also be used with
-group-by keys.  Supposing we wanted to fuse different type records into
-different types, we can use a group-by.  In this simple example, we will
-fuse records based on their number of fields using the `len()` function:
+Since the `fuse` here is an aggregate function, it can also be used with
+group-by keys.  Supposing we want to divide records into categories and fuse
+the records in each category, we can use a group-by.  In this simple example, we
+will fuse records based on their number of fields using the
+[`len` function:](functions/len.md)
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}' | zq -z 'fuse(this) by len(this) | sort len' -
+echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this) by len(this) | sort len' -
 ```
 which produces
 ```mdtest-output
@@ -2053,7 +2042,7 @@ which produces
 {len:2,fuse:<{x:(int64,string),y:string}>}
 ```
 Now, we can turn around and write a "shaper" for data that has the patterns
-we "discovered" above, e.g., if this Zed source is in `shape.zed`
+we "discovered" above, e.g., if this Zed source text is in `shape.zed`
 ```mdtest-input shape.zed
 switch len(this) (
     case 1 => pass
@@ -2063,7 +2052,7 @@ switch len(this) (
 ```
 when we run
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}{a:1,b:2,c:3}' | zq -z -I shape.zed '| sort -r this' -
+echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"} {a:1,b:2,c:3}' | zq -z -I shape.zed '| sort -r this' -
 ```
 we get
 ```mdtest-output
