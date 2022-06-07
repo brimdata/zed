@@ -4,12 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr/extent"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -43,18 +40,15 @@ func compileExpr(node dag.Expr) expr {
 			return lhs
 		}
 		return logicalExpr(lhs, rhs, e.Op)
-	case "==":
-		literal, ok := e.RHS.(*dag.Literal)
-		if !ok {
+	case "==", ">=", ">", "<=", "<":
+		if _, ok := e.RHS.(*dag.Literal); !ok {
 			return nil
 		}
 		this, ok := e.LHS.(*dag.This)
 		if !ok {
 			return nil
 		}
-		val := zson.MustParseValue(zed.NewContext(), literal.Value)
-		kv := index.KeyValue{Key: this.Path, Value: *val}
-		return compareExpr(kv, e.Op)
+		return compareExpr(this.Path, e)
 	default:
 		return nil
 	}
@@ -114,9 +108,9 @@ func appendResult(a, b result) result {
 	return a
 }
 
-func compareExpr(kv index.KeyValue, op string) expr {
+func compareExpr(path field.Path, e dag.Expr) expr {
 	return func(ctx context.Context, f *Filter, oid ksuid.KSUID, rules []Rule) <-chan result {
-		kv, rule := matchFieldRule(rules, kv)
+		rule := matchFieldRule(rules, path)
 		if rule == nil {
 			return nil
 		}
@@ -126,7 +120,7 @@ func compareExpr(kv index.KeyValue, op string) expr {
 		go func() {
 			var r result
 			if r.err = f.sem.Acquire(ctx, 1); r.err == nil {
-				r.span, r.err = f.find(ctx, oid, rule.RuleID(), kv, op)
+				r.span, r.err = f.find(ctx, oid, rule, e)
 			}
 			f.sem.Release(1)
 			ch <- r
@@ -136,18 +130,15 @@ func compareExpr(kv index.KeyValue, op string) expr {
 	}
 }
 
-func matchFieldRule(rules []Rule, in index.KeyValue) (index.KeyValue, Rule) {
+func matchFieldRule(rules []Rule, path field.Path) Rule {
 	for _, rule := range rules {
 		// XXX support indexes with multiple keys #3162
 		// and other rule types.
-		if fr, ok := rule.(*FieldRule); ok && in.Key.Equal(fr.Fields[0]) {
-			return index.KeyValue{
-				Key:   append(field.New("key"), in.Key...),
-				Value: in.Value,
-			}, rule
+		if fr, ok := rule.(*FieldRule); ok && path.Equal(fr.Fields[0]) {
+			return rule
 		}
 	}
-	return in, nil
+	return nil
 }
 
 // merge is taken from https://go.dev/blog/pipelines

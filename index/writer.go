@@ -63,6 +63,7 @@ type indexWriter struct {
 	base       *Writer
 	parent     *indexWriter
 	ectx       expr.Context
+	lastVal    *zed.Value
 	name       string
 	buffer     *bufwriter.Writer
 	zng        *zngio.Writer
@@ -167,12 +168,6 @@ func (w *Writer) Abort() error {
 func (w *Writer) Close() error {
 	// No matter what, delete the temp files comprising the index hierarchy.
 	defer os.RemoveAll(w.tmpdir)
-	// First, close the parent if it exists (which will recursively close
-	// all the parents to the root) while leaving the base layer open.
-	if err := w.closeTree(); err != nil {
-		w.iow.Close()
-		return err
-	}
 	if w.writer == nil {
 		// If the writer hasn't been created because no records were
 		// encountered, then the base layer writer was never created.
@@ -191,6 +186,12 @@ func (w *Writer) Close() error {
 	if err := w.writer.closeFrame(); err != nil {
 		return err
 	}
+	// First, close the parent if it exists (which will recursively close
+	// all the parents to the root) while leaving the base layer open.
+	if err := w.closeTree(); err != nil {
+		w.iow.Close()
+		return err
+	}
 	// The hierarchy is now flushed and closed.  Assemble the file into
 	// a single index and remove the temporary btree files.
 	if err := w.finalize(); err != nil {
@@ -205,11 +206,14 @@ func (w *Writer) closeTree() error {
 	if w.writer == nil {
 		return nil
 	}
+	frameStart := w.writer.frameStart
+	frameKey := w.keyer.valueOfKeys(w.ectx, w.writer.lastVal)
 	var err error
 	for p := w.writer.parent; p != nil; p = p.parent {
-		if closeErr := p.Close(); err == nil {
+		if closeErr := p.close(frameKey, frameStart); err == nil {
 			err = closeErr
 		}
+		frameStart = p.frameStart
 	}
 	return err
 }
@@ -293,7 +297,14 @@ func (w *indexWriter) newParent() (*indexWriter, error) {
 	return newIndexWriter(w.base, file, file.Name(), w.ectx)
 }
 
-func (w *indexWriter) Close() error {
+func (w *indexWriter) close(frameKey *zed.Value, frameStart int64) error {
+	rec, err := indexRecord(w.base.zctx, w.base.childField, frameKey, frameStart)
+	if err != nil {
+		return err
+	}
+	if err := w.zng.Write(rec); err != nil {
+		return err
+	}
 	// Make sure to pass up framekeys to parent trees, even though frames aren't
 	// full.
 	if err := w.closeFrame(); err != nil {
@@ -324,6 +335,9 @@ func (w *indexWriter) write(rec *zed.Value) error {
 		key := w.base.keyer.valueOfKeys(w.ectx, rec)
 		w.frameKey = key.Copy()
 	}
+	// Store the last value so when we close the index, b-tree levels will have
+	// the last value written as an entry.
+	w.lastVal = rec
 	return w.zng.Write(rec)
 }
 
@@ -358,11 +372,15 @@ func (w *indexWriter) addToParentIndex(key *zed.Value, offset int64) error {
 }
 
 func (w *indexWriter) writeIndexRecord(keys *zed.Value, offset int64) error {
-	col := []zed.Column{{w.base.childField, zed.TypeInt64}}
-	val := zed.EncodeInt(offset)
-	rec, err := w.base.zctx.AddColumns(keys, col, []zed.Value{{zed.TypeInt64, val}})
+	rec, err := indexRecord(w.base.zctx, w.base.childField, keys, offset)
 	if err != nil {
 		return err
 	}
 	return w.write(rec)
+}
+
+func indexRecord(zctx *zed.Context, childField string, keys *zed.Value, offset int64) (*zed.Value, error) {
+	col := []zed.Column{{childField, zed.TypeInt64}}
+	val := zed.EncodeInt(offset)
+	return zctx.AddColumns(keys, col, []zed.Value{{zed.TypeInt64, val}})
 }

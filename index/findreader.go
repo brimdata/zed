@@ -4,37 +4,41 @@ import (
 	"context"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio"
 )
 
 // FinderReader is zio.Reader version of Finder that streams back all records
 // in a microindex that match the provided key Record.
 type FinderReader struct {
-	compare keyCompareFn
-	finder  *Finder
-	inputs  []string
-	reader  zio.Reader
+	finder     *Finder
+	spanFilter *expr.SpanFilter
+	valFilter  expr.Evaluator
+	reader     zio.Reader
 }
 
-func NewFinderReader(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI, inputs ...string) (*FinderReader, error) {
+func NewFinderReader(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI, filter dag.Expr) (*FinderReader, error) {
 	finder, err := NewFinder(ctx, zctx, engine, uri)
 	if err != nil {
 		return nil, err
 	}
-	return &FinderReader{finder: finder, inputs: inputs}, nil
+	spanFilter, valFilter, err := compileFilter(filter, finder.meta.Keys[0], finder.meta.Order)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FinderReader{
+		finder:     finder,
+		spanFilter: spanFilter,
+		valFilter:  valFilter,
+	}, nil
 }
 
 func (f *FinderReader) init() error {
-	kvs, err := f.finder.ParseKeys(f.inputs...)
-	if err != nil {
-		return err
-	}
-	f.compare = compareFn(f.finder.zctx, kvs)
-	if err != nil {
-		return err
-	}
-	f.reader, err = f.finder.search(f.compare)
+	var err error
+	f.reader, err = f.finder.search(f.spanFilter)
 	return err
 }
 
@@ -42,12 +46,12 @@ func (f *FinderReader) Read() (*zed.Value, error) {
 	if f.finder.IsEmpty() {
 		return nil, nil
 	}
-	if f.compare == nil {
+	if f.reader == nil {
 		if err := f.init(); err != nil {
 			return nil, err
 		}
 	}
-	return lookup(f.reader, f.compare, f.finder.meta.Order, EQL)
+	return lookup(f.reader, f.valFilter)
 }
 
 func (f *FinderReader) Close() error {

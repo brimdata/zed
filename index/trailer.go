@@ -13,7 +13,7 @@ import (
 
 const (
 	FileType       = "index"
-	Version        = 4
+	Version        = 5
 	ChildFieldName = "_child"
 )
 

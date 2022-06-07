@@ -29,4 +29,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      .*: Zed index version 0 found while expecting version 4
+      .*: Zed index version 0 found while expecting version 5

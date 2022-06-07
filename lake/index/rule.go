@@ -11,6 +11,8 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+var SeekField = "_seek"
+
 type Rule interface {
 	CreateTime() nano.Ts
 	RuleName() string
@@ -18,6 +20,7 @@ type Rule interface {
 	RuleKeys() field.List
 	Zed() string
 	String() string
+	SeekField() string
 }
 
 type FieldRule struct {
@@ -99,11 +102,13 @@ func Equivalent(a, b Rule) bool {
 const fieldZed = `
 cut %s
 | put key := this, count := count() - 1
-| count := count(), seek.min := min(count), seek.max := max(count) by key
+| %s.min := min(count), %s.max := max(count) by key
+| yield {...key, %s}
 | sort %s`
 
 func (f *FieldRule) Zed() string {
-	return fmt.Sprintf(fieldZed, f.Fields, f.RuleKeys())
+	seek := f.SeekField()
+	return fmt.Sprintf(fieldZed, f.Fields, seek, seek, seek, f.Fields)
 }
 
 func (t *TypeRule) Zed() string {
@@ -164,11 +169,7 @@ func (a *AggRule) RuleID() ksuid.KSUID {
 }
 
 func (f *FieldRule) RuleKeys() field.List {
-	keys := make(field.List, len(f.Fields))
-	for i, path := range f.Fields {
-		keys[i] = append(field.Path{"key"}, path...)
-	}
-	return keys
+	return f.Fields
 }
 
 func (t *TypeRule) RuleKeys() field.List {
@@ -178,4 +179,20 @@ func (t *TypeRule) RuleKeys() field.List {
 func (a *AggRule) RuleKeys() field.List {
 	// XXX can get these by analyzing the compiled script
 	return nil
+}
+
+func (f *FieldRule) SeekField() string {
+	s := SeekField
+	for k := 0; f.Fields.Has(field.Path{s}); k++ {
+		s = fmt.Sprintf("%d_%s", k, SeekField)
+	}
+	return s
+}
+
+func (a *TypeRule) SeekField() string {
+	return SeekField
+}
+
+func (a *AggRule) SeekField() string {
+	return SeekField
 }

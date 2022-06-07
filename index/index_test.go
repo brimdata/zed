@@ -8,12 +8,9 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/index"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
@@ -33,7 +30,7 @@ func TestSearch(t *testing.T) {
 	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data), field.DottedList("key"))
 	kv, err := finder.ParseKeys(`"key2"`)
 	require.NoError(t, err)
-	rec, err := finder.Lookup(kv...)
+	rec, err := finder.Lookup(context.Background(), kv...)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	assert.Equal(t, zson.String(rec), `{key:"key2",value:"value2"}`, "key lookup failed")
@@ -67,69 +64,6 @@ func TestMicroIndex(t *testing.T) {
 		n++
 	}
 	assert.Exactly(t, N, n, "number of pairs read from microindex file doesn't match number written")
-}
-
-func TestNearest(t *testing.T) {
-	const records = `
-{ts:20,offset:10}
-{ts:18,offset:9}
-{ts:16,offset:8}
-{ts:14,offset:7}
-{ts:12,offset:6}
-{ts:10,offset:5}
-{ts:8,offset:4}
-{ts:6,offset:3}
-{ts:4,offset:2}
-{ts:2,offset:1}
-`
-	type testcase struct {
-		value                 int64
-		gt, gte, lt, lte, eql int64
-	}
-	cases := []testcase{
-		{9, 10, 10, 8, 8, -1},
-		{1, 2, 2, -1, -1, -1},
-		{22, -1, -1, 20, 20, -1},
-		{12, 14, 12, 10, 12, 12},
-	}
-	runtest := func(t *testing.T, finder *index.Finder, op string, value int64, expected int64) {
-		t.Run(fmt.Sprintf("%d%s%d", expected, op, value), func(t *testing.T) {
-			kvs, err := finder.ParseKeys(fmt.Sprintf("%d", value))
-			require.NoError(t, err)
-			rec, err := finder.Nearest(op, kvs...)
-			require.NoError(t, err)
-			v := int64(-1)
-			if rec != nil {
-				v = rec.Deref("ts").AsInt()
-			}
-			assert.Equal(t, expected, v)
-		})
-
-	}
-	engine := storage.NewLocalEngine()
-	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.Order(order.Desc))
-	t.Run("Descending", func(t *testing.T) {
-		for _, c := range cases {
-			runtest(t, desc, ">", c.value, c.gt)
-			runtest(t, desc, ">=", c.value, c.gte)
-			runtest(t, desc, "<", c.value, c.lt)
-			runtest(t, desc, "<=", c.value, c.lte)
-			runtest(t, desc, "==", c.value, c.eql)
-		}
-	})
-	q, err := runtime.NewQueryOnReader(context.Background(), zed.NewContext(), compiler.MustParseOp("sort ts"), reader(records), nil)
-	defer q.Pull(true)
-	require.NoError(t, err)
-	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.Order(order.Asc))
-	t.Run("Ascending", func(t *testing.T) {
-		for _, c := range cases {
-			runtest(t, asc, ">", c.value, c.gt)
-			runtest(t, asc, ">=", c.value, c.gte)
-			runtest(t, asc, "<", c.value, c.lt)
-			runtest(t, asc, "<=", c.value, c.lte)
-			runtest(t, asc, "==", c.value, c.eql)
-		}
-	})
 }
 
 func buildAndOpen(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, opts ...index.Option) *index.Finder {

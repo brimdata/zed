@@ -94,7 +94,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, zio.Reader(file)); err != nil {
+	if err := zio.CopyWithContext(ctx, writer, zio.Reader(file)); err != nil {
 		writer.Close()
 		return err
 	}

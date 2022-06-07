@@ -19,7 +19,7 @@ outputs:
       {
           magic: "ZNG Trailer",
           type: "index",
-          version: 4,
+          version: 5,
           sections: [
               41
           ],

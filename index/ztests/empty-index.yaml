@@ -4,8 +4,6 @@ script: |
   zq -Z index.zng
   echo '=== lookup "hello" ==='
   zed dev indexfile lookup -z -k '"hello"' index.zng
-  echo '=== lookup error("missing") ==='
-  zed dev indexfile lookup -z -k 'error("missing")' index.zng
   echo ===
 
 inputs:
@@ -22,7 +20,7 @@ outputs:
       {
           magic: "ZNG Trailer",
           type: "index",
-          version: 4,
+          version: 5,
           sections: [
               18
           ],
@@ -38,6 +36,4 @@ outputs:
           } (=index.FileMeta)
       } (=zngio.Trailer)
       === lookup "hello" ===
-      === lookup error("missing") ===
-      {a:"hello"}
       ===

@@ -14,12 +14,12 @@ outputs:
       {
           magic: "ZNG Trailer",
           type: "index",
-          version: 4,
+          version: 5,
           sections: [
               26133,
-              64,
-              523,
-              3774
+              99,
+              558,
+              3809
           ],
           meta: {
               order: "asc" (=order.Which),
@@ -50,3 +50,4 @@ outputs:
       {s:"spherule-phlebenterism",_child:3083}
       {s:"temperateness-trained",_child:3286}
       {s:"undersparred-peatwood",_child:3502}
+      {s:"zoidiophilous-incidentalist",_child:3809}

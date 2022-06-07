@@ -6,26 +6,19 @@ import (
 	"math"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
-	zedexpr "github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/semaphore"
 )
-
-func seekDotMin(zctx *zed.Context) zedexpr.Evaluator {
-	return zedexpr.NewDottedExpr(zctx, field.Dotted("seek.min"))
-}
-
-func seekDotMax(zctx *zed.Context) zedexpr.Evaluator {
-	return zedexpr.NewDottedExpr(zctx, field.Dotted("seek.max"))
-}
 
 var MaxSpan = extent.NewGenericFromOrder(*zed.NewUint64(0), *zed.NewUint64(math.MaxUint64), order.Asc)
 
@@ -42,8 +35,9 @@ func NewFilter(engine storage.Engine, path *storage.URI, filter zbuf.Filter) *Fi
 	if expr == nil {
 		return nil
 	}
+	zctx := zed.NewContext()
 	return &Filter{
-		zctx:   zed.NewContext(),
+		zctx:   zctx,
 		engine: engine,
 		path:   path,
 		expr:   expr,
@@ -60,33 +54,46 @@ func (f *Filter) Apply(ctx context.Context, oid ksuid.KSUID, rules []Rule) (exte
 	return r.span, r.err
 }
 
-func (f *Filter) find(ctx context.Context, oid, rid ksuid.KSUID, kv index.KeyValue, op string) (extent.Span, error) {
-	u := ObjectPath(f.path, rid, oid)
-	finder, err := index.NewFinder(ctx, zed.NewContext(), f.engine, u)
+func (f *Filter) find(ctx context.Context, oid ksuid.KSUID, rule Rule, e dag.Expr) (extent.Span, error) {
+	u := ObjectPath(f.path, rule.RuleID(), oid)
+	finder, err := index.NewFinderReader(ctx, zed.NewContext(), f.engine, u, e)
 	if err != nil {
 		return nil, err
 	}
-	val, err := finder.Nearest(op, kv)
-	if val == nil || err != nil {
-		return nil, err
-	}
-	return getSpan(f.zctx, val, finder.Order())
+	defer finder.Close()
+	return getSpan(f.zctx, finder, rule)
 }
 
-func getSpan(zctx *zed.Context, val *zed.Value, o order.Which) (extent.Span, error) {
-	ectx := zedexpr.NewContext()
-	min := seekDotMin(zctx).Eval(ectx, val)
-	max := seekDotMax(zctx).Eval(ectx, val)
+func getSpan(zctx *zed.Context, reader zio.Reader, rule Rule) (extent.Span, error) {
+	var span extent.Span
+	for {
+		val, err := reader.Read()
+		if val == nil || err != nil {
+			return span, err
+		}
+		min, max, err := seekMinMax(val, rule)
+		if err != nil {
+			return nil, err
+		}
+		if span == nil {
+			span = extent.NewGenericFromOrder(*min, *max, order.Asc)
+			continue
+		}
+		span.Extend(min)
+		span.Extend(max)
+	}
+}
+
+func seekMinMax(val *zed.Value, rule Rule) (*zed.Value, *zed.Value, error) {
+	seek := rule.SeekField()
+	min := val.DerefPath(field.Path{seek, "min"})
+	max := val.DerefPath(field.Path{seek, "max"})
 	var err error
 	if min.IsError() {
 		err = errors.New(zson.MustFormatValue(min))
 	}
 	if max.IsError() {
-		err2 := errors.New(zson.MustFormatValue(min))
-		err = multierr.Combine(err, err2)
+		err = multierr.Combine(err, errors.New(zson.MustFormatValue(max)))
 	}
-	if err != nil {
-		return nil, err
-	}
-	return extent.NewGenericFromOrder(*min, *max, o), nil
+	return min, max, err
 }

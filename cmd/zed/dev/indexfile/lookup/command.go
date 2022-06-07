@@ -80,7 +80,7 @@ func (c *LookupCommand) Run(args []string) error {
 	go func() {
 		if c.closest {
 			var rec *zed.Value
-			rec, searchErr = finder.Nearest("<=", keys...)
+			rec, searchErr = finder.Lookup(ctx, keys...)
 			if rec != nil {
 				hits <- rec
 			}

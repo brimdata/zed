@@ -1,3 +1,5 @@
+skip: "have to enable multikey lookups in dag.KeyFilter"
+
 script: |
   # create a sorted-keys base layer with primary key "sum" and secondary
   # key "s".  Note that the keys do not need to appear in precedence order

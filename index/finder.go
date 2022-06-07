@@ -5,24 +5,15 @@ import (
 	"errors"
 	"fmt"
 
+	_ "net/http/pprof"
+
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-)
-
-type Operator string
-
-const (
-	EQL Operator = "=="
-	GT  Operator = ">"
-	GTE Operator = ">="
-	LT  Operator = "<"
-	LTE Operator = "<="
 )
 
 var ErrNotFound = errors.New("key not found")
@@ -56,185 +47,139 @@ func NewFinder(ctx context.Context, zctx *zed.Context, engine storage.Engine, ur
 	}, nil
 }
 
-type keyCompareFn func(expr.Context, *zed.Value) int
-
-// lookup searches for a match of the given key compared to the
-// key values in the records read from the reader.  If the op argument is eql
-// then only exact matches are returned.  Otherwise, the record with the
-// largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zio.Reader, compare keyCompareFn, o order.Which, op Operator) (*zed.Value, error) {
-	if o == order.Asc {
-		return lookupAsc(reader, compare, op)
-	}
-	return lookupDesc(reader, compare, op)
+type frame struct {
+	offset int64
+	length int64
 }
 
-func lookupAsc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, error) {
-	var prev *zed.Value
-	ectx := expr.NewContext()
+func (f *Finder) searchSection(reader zio.ReadCloser, eval *expr.SpanFilter) ([]frame, error) {
+	defer reader.Close()
+	var frames []frame
+	p := zio.NewPeeker(reader)
 	for {
-		rec, err := reader.Read()
-		if rec == nil || err != nil {
-			if op == EQL || op == GTE || op == GT {
-				prev = nil
-			}
-			return prev, err
+		val, err := p.Read()
+		if val == nil || err != nil {
+			return frames, err
 		}
-		if cmp := fn(ectx, rec); cmp >= 0 {
-			if cmp == 0 && op.hasEqual() {
-				return rec.Copy(), nil
-			}
-			if op == LTE || op == LT {
-				return prev, nil
-			}
-			if op == EQL {
-				return nil, nil
-			}
-			if !(op == GT && cmp == 0) {
-				return rec.Copy(), nil
-			}
+		val = val.Copy()
+		next, err := p.Peek()
+		if next == nil || err != nil {
+			return frames, err
 		}
-		prev = rec.Copy()
-	}
-}
-
-func lookupDesc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, error) {
-	ectx := expr.NewContext()
-	var prev *zed.Value
-	for {
-		rec, err := reader.Read()
-		if rec == nil || err != nil {
-			if op == EQL || op == LTE || op == LT {
-				prev = nil
-			}
-			return prev, err
+		lower := val.DerefPath(f.meta.Keys[0])
+		upper := next.DerefPath(f.meta.Keys[0])
+		if eval.Eval(lower, upper) {
+			continue
 		}
-		if cmp := fn(ectx, rec); cmp <= 0 {
-			if cmp == 0 && op.hasEqual() {
-				return rec.Copy(), nil
-			}
-			if op == GTE || op == GT {
-				return prev, nil
-			}
-			if op == EQL {
-				return nil, nil
-			}
-			if !(op == LT && cmp == 0) {
-				return rec.Copy(), nil
-			}
-		}
-		prev = rec.Copy()
-	}
-}
-
-func (f *Finder) search(compare keyCompareFn) (*zngio.Reader, error) {
-	if f.reader == nil {
-		panic("finder hasn't been opened")
-	}
-	// We start with the topmost level of the microindex file and
-	// find the first key that matches according to the comparison,
-	// then repeat the process for that frame in the next index file
-	// till we get to the base layer and return a reader positioned at
-	// that offset.
-	n := len(f.sections)
-	off := int64(0)
-	for level := 1; level < n; level++ {
-		reader, err := f.newSectionReader(level, off)
-		if err != nil {
-			return nil, err
-		}
-		op := LTE
-		if f.meta.Order == order.Desc {
-			op = GTE
-		}
-		rec, err := lookup(reader, compare, f.meta.Order, op)
-		reader.Close()
-		if err != nil {
-			return nil, err
-		}
-		if rec == nil {
-			// This key can't be in the microindex since it is
-			// smaller than the smallest key present.
-			return nil, ErrNotFound
-		}
-		child := rec.Deref(f.meta.ChildOffsetField)
+		child := val.Deref(f.meta.ChildOffsetField)
 		if child == nil {
 			return nil, fmt.Errorf("B-tree child field is missing")
 		}
-		off = child.AsInt()
+		nextChild := next.Deref(f.meta.ChildOffsetField)
+		if nextChild == nil {
+			return nil, fmt.Errorf("B-tree child field is missing")
+		}
+		start := child.AsInt()
+		end := nextChild.AsInt()
+		frames = append(frames, frame{start, end - start})
 	}
-	return f.newSectionReader(0, off)
 }
 
-func (f *Finder) Lookup(kvs ...KeyValue) (*zed.Value, error) {
-	return f.Nearest("==", kvs...)
+func (f *Finder) search(eval *expr.SpanFilter) (zio.ReadCloser, error) {
+	n := len(f.sections)
+	if n == 1 {
+		return f.newSectionReader(0, 0)
+	}
+	_, size := f.section(1)
+	frames := []frame{{0, size}}
+	for level := 1; level < n; level++ {
+		reader := f.newFramesReader(level, frames)
+		var err error
+		frames, err = f.searchSection(reader, eval)
+		if err != nil {
+			return nil, err
+		}
+		if len(frames) == 0 {
+			return nil, ErrNotFound
+		}
+	}
+	return f.newFramesReader(0, frames), nil
+}
+
+func (f *Finder) Lookup(ctx context.Context, kvs ...KeyValue) (*zed.Value, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	hits := make(chan *zed.Value)
+	var err error
+	go func() {
+		err = f.LookupAll(ctx, hits, kvs)
+		close(hits)
+	}()
+	select {
+	case val := <-hits:
+		return val, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []KeyValue) error {
-	if f.IsEmpty() {
-		return nil
+	// XXX Enable primary, tertiary key lookups.
+	val, err := zson.FormatValue(&kvs[0].Value)
+	if err != nil {
+		return err
 	}
-	compare := compareFn(f.zctx, kvs)
-	reader, err := f.search(compare)
+	e := &dag.BinaryExpr{
+		Op:  "==",
+		LHS: &dag.This{Path: kvs[0].Key},
+		RHS: &dag.Literal{Value: val},
+	}
+	return f.Filter(ctx, hits, e)
+}
+
+func lookup(reader zio.Reader, valFilter expr.Evaluator) (*zed.Value, error) {
+	var ectx alloc
+	for {
+		val, err := reader.Read()
+		if val == nil || err != nil {
+			return nil, err
+		}
+		result := valFilter.Eval(&ectx, val)
+		if result.IsMissing() {
+			continue
+		}
+		if result.Type != zed.TypeBool {
+			panic("result from value filter not a bool: " + zson.String(val))
+		}
+		if !zed.DecodeBool(result.Bytes) {
+			continue
+		}
+		return val.Copy(), nil
+	}
+}
+
+func (f *Finder) Filter(ctx context.Context, hits chan<- *zed.Value, e dag.Expr) error {
+	spanFilter, valueFilter, err := compileFilter(e, f.meta.Keys[0], f.meta.Order)
+	if err != nil {
+		return err
+	}
+	reader, err := f.search(spanFilter)
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
-	for {
-		// As long as we have an exact key-match, where unset key
-		// columns are "don't care", keep reading records and return
-		// them via the channel.
-		rec, err := lookup(reader, compare, f.meta.Order, EQL)
-		if err != nil {
+	for ctx.Err() == nil {
+		val, err := lookup(reader, valueFilter)
+		if val == nil || err != nil {
 			return err
 		}
-		if rec == nil {
-			return nil
-		}
 		select {
-		case hits <- rec:
 		case <-ctx.Done():
 			return ctx.Err()
+		case hits <- val:
 		}
 	}
-}
-
-func compareFn(zctx *zed.Context, kvs []KeyValue) keyCompareFn {
-	accessors := make([]expr.Evaluator, len(kvs))
-	values := make([]zed.Value, len(kvs))
-	for i := range kvs {
-		accessors[i] = expr.NewDottedExpr(zctx, kvs[i].Key)
-		values[i] = kvs[i].Value
-	}
-	fn := expr.NewValueCompareFn(false)
-	return func(ectx expr.Context, this *zed.Value) int {
-		for i := range kvs {
-			val := accessors[i].Eval(ectx, this)
-			if c := fn(val, &values[i]); c != 0 {
-				return c
-			}
-		}
-		return 0
-	}
-}
-
-// Nearest finds the zed.Value in the index that is nearest to kvs according to
-// operator.
-func (f *Finder) Nearest(operator string, kvs ...KeyValue) (*zed.Value, error) {
-	op := Operator(operator)
-	if !op.valid() {
-		return nil, fmt.Errorf("unsupported operator: %s", operator)
-	}
-	if f.IsEmpty() {
-		return nil, nil
-	}
-	compare := compareFn(f.zctx, kvs)
-	reader, err := f.search(compare)
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-	return lookup(reader, compare, f.meta.Order, op)
+	return ctx.Err()
 }
 
 // ParseKeys uses the key template from the microindex trailer to parse
@@ -263,20 +208,4 @@ func (f *Finder) ParseKeys(inputs ...string) ([]KeyValue, error) {
 		}
 	}
 	return kvs, nil
-}
-
-func (o Operator) hasEqual() bool {
-	switch o {
-	case EQL, GTE, LTE:
-		return true
-	}
-	return false
-}
-
-func (o Operator) valid() bool {
-	switch o {
-	case EQL, GT, GTE, LT, LTE:
-		return true
-	}
-	return false
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 )
 
@@ -110,6 +111,52 @@ func (r *Reader) NewSectionReader(section int) (*zngio.Reader, error) {
 		return nil, fmt.Errorf("section %d out of range (index has %d sections)", section, n)
 	}
 	return r.newSectionReader(section, 0)
+}
+
+func (r *Reader) newFramesReader(level int, frames []frame) zio.ReadCloser {
+	off, _ := r.section(level)
+	return &framesReader{
+		Reader: r,
+		off:    off,
+		frames: frames,
+	}
+}
+
+type framesReader struct {
+	*Reader
+	off    int64
+	frames []frame
+
+	reader *zngio.Reader
+}
+
+func (f *framesReader) Read() (*zed.Value, error) {
+again:
+	if f.reader == nil {
+		if len(f.frames) == 0 {
+			return nil, nil
+		}
+		frame := f.frames[0]
+		f.frames = f.frames[1:]
+		sectionReader := io.NewSectionReader(f.Reader.reader, frame.offset+f.off, frame.length)
+		f.reader = zngio.NewReaderWithOpts(sectionReader, f.Reader.zctx, zngio.ReaderOpts{Size: FrameBufSize})
+	}
+	val, err := f.reader.Read()
+	if val == nil && err == nil {
+		f.reader.Close()
+		f.reader = nil
+		goto again
+	}
+	return val, err
+}
+
+func (f *framesReader) Close() error {
+	if f.reader != nil {
+		err := f.reader.Close()
+		f.frames = nil
+		return err
+	}
+	return nil
 }
 
 func (r *Reader) Close() error {
