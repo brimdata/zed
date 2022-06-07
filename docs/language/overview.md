@@ -1094,10 +1094,10 @@ where a `<spec>` has one of two forms:
 ...<expr>
 ```
 
-The first form is simply an element in the array, the result of `<expr>`. The
+The first form is simply an element in the array, the result of `<expr>`.  The
 second form is the `...` spread operator which expects an array or set value as
-the result of `<expr>` and inserts all of the values from the result. If a spread
-expression results in neither a set or array an error is returned.
+the result of `<expr>` and inserts all of the values from the result.  If a spread
+expression results in neither an array nor set, then the value is elided.
 
 When the expressions result in values of non-uniform type, then the implied
 type of the array is an array of type union of the types that appear.
