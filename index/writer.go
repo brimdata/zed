@@ -96,9 +96,6 @@ func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage
 	if opts.FrameThresh > FrameMaxSize {
 		return nil, fmt.Errorf("frame threshold too large (%d)", opts.FrameThresh)
 	}
-	if opts.ZNGWriterOpts.LZ4BlockSize == 0 {
-		opts.ZNGWriterOpts.LZ4BlockSize = zngio.DefaultLZ4BlockSize
-	}
 	w := &Writer{
 		zctx:       zctx,
 		ectx:       expr.NewContext(),
