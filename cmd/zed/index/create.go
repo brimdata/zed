@@ -20,9 +20,23 @@ import (
 
 var create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [options] rule-name pattern",
+	Usage: "create [options] rule-name rule-type value",
 	Short: "create an index rule for a lake",
-	New:   newCreate,
+	Long: `
+The index create command creates an index rule that can be applied to any
+pool in the Zed lake.  The command takes three arguments: the name of the rule,
+the type of the rule, and the value for the rule.
+
+The name of the index rule must be unique.
+
+The rule's type can be either field, type, or agg (currently only field rules
+are supported). 
+
+For field index rules the final argument is the name of the field to index.
+
+Example: zed index create IPs field src.ip
+`,
+	New: newCreate,
 }
 
 type createCommand struct {
