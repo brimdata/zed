@@ -66,12 +66,12 @@ func (s *Split) lookupOutput(val *zed.Value) (zio.WriteCloser, error) {
 	return w, nil
 }
 
-// path returns the storage URI given the prefix combined with a type ID
-// to make a unique path for each Zed type. If the _path field is present,
-// we use that for the unique ID but add the type ID if there any _path
-// string appears with different Zed types.
+// path returns the storage URI given the prefix combined with a unique ID
+// to make a unique path for each Zed type.  If the _path field is present,
+// we use that for the unique ID, but if the _path string appears with
+// different Zed types, then we prepend it to the unique ID.
 func (s *Split) path(r *zed.Value) *storage.URI {
-	uniq := strconv.Itoa(r.Type.ID())
+	uniq := strconv.Itoa(len(s.writers))
 	if _path := r.Deref("_path").AsString(); _path != "" {
 		if _, ok := s.seen[_path]; ok {
 			uniq = _path + "-" + uniq
