@@ -1,0 +1,20 @@
+script: |
+  zq -z -split dir -
+
+inputs:
+  - name: stdin
+    data: |
+      1
+      {a:1}
+      {a:2}
+      2
+
+outputs:
+  - name: dir/0.zson
+    data: |
+      1
+      2
+  - name: dir/1.zson
+    data: |
+      {a:1}
+      {a:2}
