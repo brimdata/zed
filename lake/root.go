@@ -17,8 +17,6 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/extent"
-	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
@@ -174,7 +172,7 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
+func (r *Root) BatchifyPools(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	pools, err := r.ListPools(ctx)
@@ -195,7 +193,7 @@ func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Eval
 	return vals, nil
 }
 
-func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
+func (r *Root) BatchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	poolRefs, err := r.ListPools(ctx)
@@ -213,7 +211,7 @@ func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.E
 			}
 			return nil, err
 		}
-		vals, err = pool.batchifyBranches(ctx, zctx, vals, m, f)
+		vals, err = pool.BatchifyBranches(ctx, zctx, vals, m, f)
 		if err != nil {
 			return nil, err
 		}
@@ -427,7 +425,7 @@ func (r *Root) AllIndexRules(ctx context.Context) ([]index.Rule, error) {
 	return r.indexRules.All(ctx)
 }
 
-func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
+func (r *Root) BatchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	names, err := r.indexRules.Names(ctx)
@@ -458,158 +456,6 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 		}
 	}
 	return vals, nil
-}
-
-func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
-	switch src := src.(type) {
-	case *dag.Pool:
-		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter)
-	case *dag.LakeMeta:
-		return r.newLakeMetaScheduler(ctx, zctx, src.Meta, filter)
-	case *dag.PoolMeta:
-		return r.newPoolMetaScheduler(ctx, zctx, src.ID, src.Meta, filter)
-	case *dag.CommitMeta:
-		return r.newCommitMetaScheduler(ctx, zctx, src.Pool, src.Commit, src.Meta, span, filter)
-	default:
-		return nil, fmt.Errorf("internal error: unsupported source type in lake.Root.NewScheduler: %T", src)
-	}
-}
-
-func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zed.Context, meta string, filter zbuf.Filter) (op.Scheduler, error) {
-	f, err := filter.AsEvaluator()
-	if err != nil {
-		return nil, err
-	}
-	var vals []zed.Value
-	switch meta {
-	case "pools":
-		vals, err = r.batchifyPools(ctx, zctx, f)
-	case "branches":
-		vals, err = r.batchifyBranches(ctx, zctx, f)
-	case "index_rules":
-		vals, err = r.batchifyIndexRules(ctx, zctx, f)
-	default:
-		return nil, fmt.Errorf("unknown lake metadata type: %q", meta)
-	}
-	if err != nil {
-		return nil, err
-	}
-	s, err := zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
-	if err != nil {
-		return nil, err
-	}
-	return newScannerScheduler(s), nil
-}
-
-func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, poolID ksuid.KSUID, meta string, filter zbuf.Filter) (op.Scheduler, error) {
-	f, err := filter.AsEvaluator()
-	if err != nil {
-		return nil, err
-	}
-	p, err := r.OpenPool(ctx, poolID)
-	if err != nil {
-		return nil, err
-	}
-	var vals []zed.Value
-	switch meta {
-	case "branches":
-		m := zson.NewZNGMarshalerWithContext(zctx)
-		m.Decorate(zson.StylePackage)
-		vals, err = p.batchifyBranches(ctx, zctx, nil, m, f)
-	default:
-		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
-	}
-	s, err := zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
-	if err != nil {
-		return nil, err
-	}
-	return newScannerScheduler(s), nil
-}
-
-func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, meta string, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
-	p, err := r.OpenPool(ctx, poolID)
-	if err != nil {
-		return nil, err
-	}
-	switch meta {
-	case "objects":
-		snap, err := p.commits.Snapshot(ctx, commit)
-		if err != nil {
-			return nil, err
-		}
-		reader, err := objectReader(ctx, zctx, snap, span, p.Layout.Order)
-		if err != nil {
-			return nil, err
-		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return newScannerScheduler(s), nil
-	case "indexes":
-		snap, err := p.commits.Snapshot(ctx, commit)
-		if err != nil {
-			return nil, err
-		}
-		reader, err := indexObjectReader(ctx, zctx, snap, span, p.Layout.Order)
-		if err != nil {
-			return nil, err
-		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return newScannerScheduler(s), nil
-	case "partitions":
-		snap, err := p.commits.Snapshot(ctx, commit)
-		if err != nil {
-			return nil, err
-		}
-		reader, err := partitionReader(ctx, zctx, snap, span, p.Layout.Order)
-		if err != nil {
-			return nil, err
-		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return newScannerScheduler(s), nil
-	case "log":
-		tips, err := p.batchifyBranchTips(ctx, zctx, nil)
-		if err != nil {
-			return nil, err
-		}
-		tipsScanner, err := zbuf.NewScanner(ctx, zbuf.NewArray(tips), filter)
-		if err != nil {
-			return nil, err
-		}
-		log := p.commits.OpenCommitLog(ctx, zctx, commit, ksuid.Nil)
-		logScanner, err := zbuf.NewScanner(ctx, log, filter)
-		if err != nil {
-			return nil, err
-		}
-		return newScannerScheduler(tipsScanner, logScanner), nil
-	case "rawlog":
-		reader, err := p.commits.OpenAsZNG(ctx, zctx, commit, ksuid.Nil)
-		if err != nil {
-			return nil, err
-		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return newScannerScheduler(s), nil
-	default:
-		return nil, fmt.Errorf("unknown commit metadata type: %q", meta)
-	}
-}
-
-func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
-	pool, err := r.OpenPool(ctx, poolID)
-	if err != nil {
-		return nil, err
-	}
-	return pool.newScheduler(ctx, zctx, commit, span, filter)
 }
 
 func (r *Root) Open(context.Context, *zed.Context, string, string, zbuf.Filter) (zbuf.Puller, error) {

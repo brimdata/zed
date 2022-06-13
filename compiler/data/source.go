@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -11,8 +10,6 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/expr/extent"
-	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/segmentio/ksuid"
@@ -34,6 +31,10 @@ func (s *Source) IsLake() bool {
 	return s.lake != nil
 }
 
+func (s *Source) Lake() *lake.Root {
+	return s.lake
+}
+
 func (s *Source) PoolID(ctx context.Context, id string) (ksuid.KSUID, error) {
 	if s.lake != nil {
 		return s.lake.PoolID(ctx, id)
@@ -53,13 +54,6 @@ func (s *Source) Layout(ctx context.Context, src dag.Source) order.Layout {
 		return s.lake.Layout(ctx, src)
 	}
 	return order.Nil
-}
-
-func (s *Source) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, f zbuf.Filter) (op.Scheduler, error) {
-	if s.lake != nil {
-		return s.lake.NewScheduler(ctx, zctx, src, span, f)
-	}
-	return nil, errors.New("pool scan not available when running on local file system")
 }
 
 func (s *Source) Open(ctx context.Context, zctx *zed.Context, path, format string, pushdown zbuf.Filter) (zbuf.Puller, error) {

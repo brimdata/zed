@@ -1,9 +1,8 @@
-package lake
+package exec
 
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -13,33 +12,11 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/runtime/meta"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
-
-// A Partition is a logical view of the records within a time span, stored
-// in one or more data objects.  This provides a way to return the list of
-// objects that should be scanned along with a span to limit the scan
-// to only the span involved.
-type Partition struct {
-	extent.Span
-	compare expr.CompareFn
-	Objects []*data.ObjectScan
-}
-
-func (p Partition) IsZero() bool {
-	return p.Objects == nil
-}
-
-func (p Partition) FormatRangeOf(index int) string {
-	o := p.Objects[index]
-	return fmt.Sprintf("[%s-%s,%s-%s]", zson.String(*p.First()), zson.String(*p.Last()), zson.String(o.First), zson.String(o.Last))
-}
-
-func (p Partition) FormatRange() string {
-	return fmt.Sprintf("[%s-%s]", zson.String(*p.First()), zson.String(*p.Last()))
-}
 
 // PartitionObjects takes a sorted set of data objects with possibly overlapping
 // key ranges and returns an ordered list of Ranges such that none of the
@@ -50,7 +27,7 @@ func (p Partition) FormatRange() string {
 // XXX this algorithm doesn't quite do what we want because it continues
 // to merge *anything* that overlaps.  It's easy to fix though.
 // Issue #2538
-func PartitionObjects(objects []*data.Object, o order.Which) []Partition {
+func PartitionObjects(objects []*data.Object, o order.Which) []meta.Partition {
 	if len(objects) == 0 {
 		return nil
 	}
@@ -72,28 +49,28 @@ func PartitionObjects(objects []*data.Object, o order.Which) []Partition {
 	return s
 }
 
-type stack []Partition
+type stack []meta.Partition
 
 func (s *stack) pushObjectSpan(span objectSpan, cmp expr.CompareFn) {
-	s.push(Partition{
+	s.push(meta.Partition{
 		Span:    span.Span,
-		compare: cmp,
+		Compare: cmp,
 		Objects: []*data.ObjectScan{data.NewObjectScan(*span.object)},
 	})
 }
 
-func (s *stack) push(p Partition) {
+func (s *stack) push(p meta.Partition) {
 	*s = append(*s, p)
 }
 
-func (s *stack) pop() Partition {
+func (s *stack) pop() meta.Partition {
 	n := len(*s)
 	p := (*s)[n-1]
 	*s = (*s)[:n-1]
 	return p
 }
 
-func (s *stack) tos() *Partition {
+func (s *stack) tos() *meta.Partition {
 	return &(*s)[len(*s)-1]
 }
 
@@ -139,7 +116,7 @@ func sortObjects(o order.Which, objects []*data.Object) {
 }
 
 func partitionReader(ctx context.Context, zctx *zed.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
-	ch := make(chan Partition)
+	ch := make(chan meta.Partition)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
 	go func() {

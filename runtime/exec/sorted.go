@@ -1,37 +1,39 @@
-package lake
+package exec
 
 import (
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/runtime/meta"
 	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 )
 
-func newSortedScanner(s *Scheduler, part Partition) (zbuf.Puller, error) {
+func newSortedScanner(p *Planner, part meta.Partition) (zbuf.Puller, error) {
 	pullers := make([]zbuf.Puller, 0, len(part.Objects))
 	pullersDone := func() {
-		for _, p := range pullers {
-			p.Pull(true)
+		for _, puller := range pullers {
+			puller.Pull(true)
 		}
 	}
 	for _, o := range part.Objects {
-		f := s.filter
-		if len(s.pool.Layout.Keys) != 0 {
+		f := p.filter
+		if len(p.pool.Layout.Keys) != 0 {
 			// If the scan span does not wholly contain the data object, then
 			// we must filter out records that fall outside the range.
-			f = wrapRangeFilter(f, part.Span, part.compare, o.First, o.Last, s.pool.Layout)
+			f = wrapRangeFilter(f, part.Span, part.Compare, o.First, o.Last, p.pool.Layout)
 		}
-		rc, err := o.NewReader(s.ctx, s.pool.engine, s.pool.DataPath, part.Span, part.compare)
+		rc, err := o.NewReader(p.ctx, p.pool.Storage(), p.pool.DataPath, part.Span, part.Compare)
 		if err != nil {
 			pullersDone()
 			return nil, err
 		}
-		scanner, err := zngio.NewReader(rc, s.zctx).NewScanner(s.ctx, f)
+		scanner, err := zngio.NewReader(rc, p.zctx).NewScanner(p.ctx, f)
 		if err != nil {
 			pullersDone()
 			rc.Close()
@@ -40,13 +42,13 @@ func newSortedScanner(s *Scheduler, part Partition) (zbuf.Puller, error) {
 		pullers = append(pullers, &statScanner{
 			scanner:  scanner,
 			closer:   rc,
-			progress: &s.progress,
+			progress: &p.progress,
 		})
 	}
 	if len(pullers) == 1 {
 		return pullers[0], nil
 	}
-	return merge.New(s.ctx, pullers, importComparator(s.zctx, s.pool).Compare), nil
+	return merge.New(p.ctx, pullers, lake.ImportComparator(p.zctx, p.pool).Compare), nil
 }
 
 type statScanner struct {

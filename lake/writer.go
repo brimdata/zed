@@ -61,7 +61,7 @@ func NewWriter(ctx context.Context, zctx *zed.Context, pool *Pool) (*Writer, err
 		zctx:       zctx,
 		errgroup:   g,
 		buffer:     ch,
-		comparator: importComparator(zctx, pool),
+		comparator: ImportComparator(zctx, pool),
 	}, nil
 }
 
@@ -187,7 +187,7 @@ func (s *ImportStats) Copy() ImportStats {
 	}
 }
 
-func importComparator(zctx *zed.Context, pool *Pool) *expr.Comparator {
+func ImportComparator(zctx *zed.Context, pool *Pool) *expr.Comparator {
 	layout := pool.Layout
 	layout.Keys = field.List{poolKey(layout)}
 	return zbuf.NewComparator(zctx, layout)

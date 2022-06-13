@@ -13,10 +13,8 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -525,46 +523,4 @@ func (b *Branch) indexObject(ctx context.Context, c runtime.Compiler, rules []in
 		err = rerr
 	}
 	return w.References(), err
-}
-
-type BranchStats struct {
-	Size int64 `zed:"size"`
-	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
-	Span *nano.Span `zed:"span"`
-}
-
-func (b *Branch) Stats(ctx context.Context, snap commits.View) (info BranchStats, err error) {
-	ch := make(chan data.Object)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func() {
-		err = ScanSpan(ctx, snap, nil, b.pool.Layout.Order, ch)
-		close(ch)
-	}()
-	// XXX this doesn't scale... it should be stored in the snapshot and is
-	// not easy to compute in the face of deletes...
-	var poolSpan *extent.Generic
-	for object := range ch {
-		info.Size += object.Size
-		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, b.pool.Layout.Order)
-		} else {
-			poolSpan.Extend(&object.First)
-			poolSpan.Extend(&object.Last)
-		}
-	}
-	//XXX need to change API to take return key range
-	if poolSpan != nil {
-		min := poolSpan.First()
-		if min.Type == zed.TypeTime {
-			firstTs := zed.DecodeTime(min.Bytes)
-			lastTs := zed.DecodeTime(poolSpan.Last().Bytes)
-			if lastTs < firstTs {
-				firstTs, lastTs = lastTs, firstTs
-			}
-			span := nano.NewSpanTs(firstTs, lastTs+1)
-			info.Span = &span
-		}
-	}
-	return info, err
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/service/srverr"
@@ -154,7 +155,7 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	info, err := pool.Stats(r.Context(), snap)
+	info, err := exec.GetPoolStats(r.Context(), pool, snap)
 	if err != nil {
 		w.Error(err)
 		return
