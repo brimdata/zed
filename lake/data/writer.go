@@ -21,8 +21,6 @@ type Writer struct {
 	byteCounter      *writeCounter
 	count            uint64
 	writer           *zngio.Writer
-	firstKey         zed.Value
-	lastKey          zed.Value
 	lastSOS          int64
 	order            order.Which
 	seekWriter       *zngio.Writer
@@ -81,7 +79,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 	if err := w.writer.Write(rec); err != nil {
 		return err
 	}
-	w.lastKey = *key
+	w.object.Last.CopyFrom(key)
 	w.count++
 	return nil
 }
@@ -90,11 +88,11 @@ func (w *Writer) writeIndex(key zed.Value) error {
 	w.seekIndexTrigger += len(key.Bytes)
 	if w.first {
 		w.first = false
-		w.firstKey = key
-		w.lastKey = key
+		w.object.First.CopyFrom(&key)
+		w.object.Last.CopyFrom(&key)
 		return w.seekIndex.Write(key, 0, 0)
 	}
-	if w.seekIndexTrigger < w.seekIndexStride || bytes.Equal(key.Bytes, w.lastKey.Bytes) {
+	if w.seekIndexTrigger < w.seekIndexStride || bytes.Equal(key.Bytes, w.object.Last.Bytes) {
 		return nil
 	}
 	if err := w.writer.EndStream(); err != nil {

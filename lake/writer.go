@@ -143,11 +143,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 			return w.ctx.Err()
 		}
 	}
-	// Set first and last key values after the sort.
-	key := poolKey(w.pool.Layout)
-	object.First = *recs[0].DerefPath(key).MissingAsNull().Copy()
-	object.Last = *recs[len(recs)-1].DerefPath(key).MissingAsNull().Copy()
-	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, w.pool.SeekStride)
+	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, poolKey(w.pool.Layout), w.pool.SeekStride)
 	if err != nil {
 		return err
 	}
