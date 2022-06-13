@@ -163,7 +163,7 @@ func Sum(object *Object, field string) (int64, error) {
 		if recType == nil || !recType.HasField(field) {
 			continue
 		}
-		reader, err := column.NewRecordReader(recType, *a.maps[k], object.seeker)
+		reader, err := column.NewRecordReader(recType, a.maps[k], object.seeker)
 		if err != nil {
 			return 0, err
 		}
