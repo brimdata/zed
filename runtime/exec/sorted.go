@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/zio/zngio"
 )
 
-func newSortedScanner(p *Planner, part meta.Partition) (zbuf.Puller, error) {
+func newPartitionScanner(p *Planner, part meta.Partition) (zbuf.Puller, error) {
 	pullers := make([]zbuf.Puller, 0, len(part.Objects))
 	pullersDone := func() {
 		for _, puller := range pullers {

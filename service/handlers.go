@@ -377,6 +377,36 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	})
 }
 
+func handleCompact(c *Core, w *ResponseWriter, r *Request) {
+	var req api.CompactRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	poolID, ok := r.PoolID(w, c.root)
+	if !ok {
+		return
+	}
+	branch, ok := r.StringFromPath(w, "branch")
+	if !ok {
+		return
+	}
+	message, ok := r.decodeCommitMessage(w)
+	if !ok {
+		return
+	}
+	commit, err := c.root.Compact(r.Context(), poolID, branch, req.ObjectIDs, message.Author, message.Body, message.Meta)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+	c.publishEvent(w, "branch-compact", api.EventBranchCommit{
+		CommitID: commit,
+		PoolID:   poolID,
+		Branch:   branch,
+	})
+}
+
 func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	poolID, ok := r.PoolID(w, c.root)
 	if !ok {

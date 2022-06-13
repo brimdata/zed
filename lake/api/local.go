@@ -100,6 +100,10 @@ func (l *local) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch
 	return l.root.MergeBranch(ctx, poolID, childBranch, parentBranch, message.Author, message.Body)
 }
 
+func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName string, objects []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
+	return l.root.Compact(ctx, poolID, branchName, objects, commit.Author, commit.Body, commit.Meta)
+}
+
 func (l *local) AddIndexRules(ctx context.Context, rules []index.Rule) error {
 	return l.root.AddIndexRules(ctx, rules)
 }

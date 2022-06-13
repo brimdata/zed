@@ -296,6 +296,61 @@ func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message
 	})
 }
 
+func (b *Branch) Compact(ctx context.Context, objectIDs []ksuid.KSUID, author, message, meta string) (ksuid.KSUID, error) {
+	if len(objectIDs) < 2 {
+		return ksuid.Nil, errors.New("compact: two or more object IDs required")
+	}
+	zctx := zed.NewContext()
+	appMeta, err := loadMeta(zctx, meta)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
+		base, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		if err != nil {
+			return nil, err
+		}
+		var objects []*data.Object
+		for _, id := range objectIDs {
+			o, err := base.Lookup(id)
+			if err != nil {
+				return nil, err
+			}
+			objects = append(objects, o)
+		}
+		zctx := zed.NewContext()
+		cmp := ImportComparator(zctx, b.pool).Compare
+		scanner, err := data.NewSortedScanner(ctx, zctx, b.pool.engine, b.pool.DataPath, objects, cmp)
+		if err != nil {
+			return nil, err
+		}
+		w := newSortedWriter(ctx, b.pool)
+		if err = zbuf.CopyPuller(w, scanner); err != nil {
+			w.abort()
+			return nil, err
+		}
+		if err := w.Close(); err != nil {
+			w.abort()
+			return nil, err
+		}
+		patch := commits.NewPatch(base)
+		for _, o := range w.objects {
+			if err := patch.AddDataObject(o); err != nil {
+				w.abort()
+				return nil, err
+			}
+		}
+		for _, id := range objectIDs {
+			if err := patch.DeleteObject(id); err != nil {
+				w.abort()
+				return nil, err
+			}
+		}
+		commit := patch.NewCommitObject(parent.Commit, retries, author, message, *appMeta)
+		return commit, nil
+	})
+}
+
 func (b *Branch) mergeInto(ctx context.Context, parent *Branch, author, message string) (ksuid.KSUID, error) {
 	if b == parent {
 		return ksuid.Nil, errors.New("cannot merge branch into itself")

@@ -55,6 +55,10 @@ type BranchMergeRequest struct {
 	At string `json:"at"`
 }
 
+type CompactRequest struct {
+	ObjectIDs []ksuid.KSUID `zed:"object_ids"`
+}
+
 type DeleteRequest struct {
 	ObjectIDs []string `zed:"object_ids"`
 	Where     string   `zed:"were"`

@@ -14,6 +14,8 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/runtime/op/merge"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 )
 
@@ -79,4 +81,30 @@ func (o *ObjectScan) NewReader(ctx context.Context, engine storage.Engine, path 
 	sr.ReadBytes = rg.Size()
 	sr.Reader, err = rg.Reader(reader)
 	return sr, err
+}
+
+func NewSortedScanner(ctx context.Context, zctx *zed.Context, engine storage.Engine, path *storage.URI, objects []*Object, cmp expr.CompareFn) (zbuf.Puller, error) {
+	pullers := make([]zbuf.Puller, 0, len(objects))
+	pullersDone := func() {
+		for _, p := range pullers {
+			p.Pull(true)
+		}
+	}
+	for _, o := range objects {
+		r, err := engine.Get(ctx, o.SequenceURI(path))
+		if err != nil {
+			return nil, err
+		}
+		scanner, err := zngio.NewReader(zctx, r).NewScanner(ctx, nil)
+		if err != nil {
+			pullersDone()
+			r.Close()
+			return nil, err
+		}
+		pullers = append(pullers, scanner)
+	}
+	if len(pullers) == 1 {
+		return pullers[0], nil
+	}
+	return merge.New(ctx, pullers, cmp), nil
 }

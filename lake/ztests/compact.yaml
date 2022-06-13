@@ -1,0 +1,28 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed use -q test
+  source generate.sh | zed load -q -
+  source generate.sh | zed load -q -
+  zed index create -q s field s
+  ids=$(zed query -f text 'from test@main:objects | yield "0x${hex(id)}"')
+  zed compact -q $ids
+  zed query -f lake 'from test@main:objects'
+  echo ===
+  zed query -f lake 'from test@main:indexes | count()'
+
+inputs:
+  - name: generate.sh
+    data: |
+      #!/bin/bash
+      for i in {0..9}; do
+        echo "{ts:$i,s:\"val$i\"}"
+      done
+
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} 121B bytes 20 records
+         from 9 to 0
+      ===

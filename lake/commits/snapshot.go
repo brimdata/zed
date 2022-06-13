@@ -72,6 +72,16 @@ func (s *Snapshot) DeleteObject(id ksuid.KSUID) error {
 	}
 	delete(s.objects, id)
 	s.deletedObjects[id] = object
+	// Remove any indexes attached to object.
+	rules, err := s.LookupIndexObjectRules(id)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return err
+	}
+	for _, rule := range rules {
+		if err := s.DeleteIndexObject(rule.RuleID(), id); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
