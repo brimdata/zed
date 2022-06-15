@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/brimdata/zed/cli/auto"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/pkg/terminal/color"
@@ -22,6 +23,7 @@ type Flags struct {
 	anyio.WriterOpts
 	DefaultFormat string
 	split         string
+	splitSize     auto.Bytes
 	outputFile    string
 	forceBinary   bool
 	jsonShortcut  bool
@@ -50,7 +52,10 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.Var(&f.Zst.SkewThresh, "skewtresh", "minimum skew size (MiB) used to group zst columns")
 
 	// emitter stuff
-	fs.StringVar(&f.split, "split", "", "split output into one file per data type with the given path prefix")
+	fs.StringVar(&f.split, "split", "",
+		"split output into one file per data type in this directory (but see -splitsize)")
+	fs.Var(&f.splitSize, "splitsize",
+		"if >0 and -split is set, split into files at least this big rather than by data type")
 	fs.StringVar(&f.outputFile, "o", "", "write data to output file")
 }
 
@@ -117,6 +122,9 @@ func (f *Flags) Open(ctx context.Context, engine storage.Engine) (zio.WriteClose
 		dir, err := storage.ParseURI(f.split)
 		if err != nil {
 			return nil, fmt.Errorf("-split option: %w", err)
+		}
+		if size := f.splitSize.Bytes; size > 0 {
+			return emitter.NewSizeSplitter(ctx, engine, dir, f.outputFile, f.WriterOpts, int64(size))
 		}
 		d, err := emitter.NewSplit(ctx, engine, dir, f.outputFile, f.WriterOpts)
 		if err != nil {
