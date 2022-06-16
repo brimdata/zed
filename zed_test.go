@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/ztest"
@@ -19,11 +20,12 @@ func TestZed(t *testing.T) {
 	t.Parallel()
 	dirs, err := findZTests()
 	require.NoError(t, err)
+	c := compiler.NewCompiler()
 	for d := range dirs {
 		d := d
 		t.Run(d, func(t *testing.T) {
 			t.Parallel()
-			ztest.Run(t, d)
+			ztest.Run(t, d, c)
 		})
 	}
 	t.Run("ParquetBoomerang", func(t *testing.T) {

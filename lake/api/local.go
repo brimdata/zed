@@ -20,8 +20,9 @@ import (
 )
 
 type local struct {
-	root   *lake.Root
-	engine storage.Engine
+	root     *lake.Root
+	compiler runtime.Compiler
+	engine   storage.Engine
 }
 
 var _ Interface = (*local)(nil)
@@ -37,8 +38,9 @@ func OpenLocalLake(ctx context.Context, lakePath string) (Interface, error) {
 		return nil, err
 	}
 	return &local{
-		root:   root,
-		engine: engine,
+		root:     root,
+		compiler: compiler.NewLakeCompiler(root),
+		engine:   engine,
 	}, nil
 }
 
@@ -111,14 +113,14 @@ func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string
 }
 
 func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
-	flowgraph, err := compiler.ParseOp(src, srcfiles...)
+	flowgraph, err := l.compiler.Parse(src, srcfiles...)
 	if err != nil {
 		return nil, err
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return nil, err
 	}
-	q, err := runtime.NewQueryOnLake(ctx, zed.NewContext(), flowgraph, l.root, head, nil)
+	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +175,7 @@ func (l *local) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branc
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.DeleteByPredicate(ctx, l.root, src, commit.Author, commit.Body, commit.Meta)
+	return branch.DeleteByPredicate(ctx, l.compiler, l.root, src, commit.Author, commit.Body, commit.Meta)
 }
 
 func (l *local) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
@@ -193,7 +195,7 @@ func (l *local) ApplyIndexRules(ctx context.Context, name string, poolID ksuid.K
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	commit, err := branch.ApplyIndexRules(ctx, rules, tags)
+	commit, err := branch.ApplyIndexRules(ctx, l.compiler, rules, tags)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -214,5 +216,5 @@ func (l *local) UpdateIndex(ctx context.Context, names []string, poolID ksuid.KS
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.UpdateIndex(ctx, rules)
+	return branch.UpdateIndex(ctx, l.compiler, rules)
 }

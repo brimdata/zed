@@ -8,7 +8,9 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
@@ -16,23 +18,39 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-func CompileForInternal(pctx *op.Context, o ast.Op, r zio.Reader) (*Runtime, error) {
-	return CompileForInternalWithOrder(pctx, o, r, order.Layout{})
+func NewCompiler() runtime.Compiler {
+	return &internal{}
 }
 
-func CompileForInternalWithOrder(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*Runtime, error) {
+type internal struct {
+	any
+}
+
+func (i *internal) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
+	if len(readers) != 1 {
+		return nil, fmt.Errorf("NewQuery: Zed program expected %d readers", len(readers))
+	}
+	return i.CompileWithOrderDeprecated(pctx, o, readers[0], order.Layout{})
+}
+
+//XXX currently used only by group-by test, need to deprecate
+func (*any) CompileWithOrderDeprecated(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
 	adaptor := &internalAdaptor{}
-	runtime, err := New(pctx, o, adaptor, nil)
+	job, err := NewJob(pctx, o, adaptor, nil)
 	if err != nil {
 		return nil, err
 	}
-	readers := runtime.readers
+	readers := job.readers
 	if len(readers) != 1 {
 		return nil, fmt.Errorf("CompileForInternalWithOrder: Zed program expected %d readers", len(readers))
 	}
 	readers[0].Readers = []zio.Reader{r}
 	readers[0].Layout = layout
-	return optimizeAndBuild(runtime)
+	return optimizeAndBuild(job)
+}
+
+func (*internal) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
+	panic("TBD")
 }
 
 type internalAdaptor struct{}

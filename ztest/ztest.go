@@ -134,9 +134,10 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/compiler"
 	zruntime "github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/pmezard/go-difflib/difflib"
 	"gopkg.in/yaml.v3"
@@ -185,7 +186,7 @@ func Load(dirname string) ([]Bundle, error) {
 // the directory, Run calls FromYAMLFile to load a ztest and then runs it in
 // subtest named f.  path is a command search path like the
 // PATH environment variable.
-func Run(t *testing.T, dirname string) {
+func Run(t *testing.T, dirname string, compiler zruntime.Compiler) {
 	shellPath := ShellPath()
 	bundles, err := Load(dirname)
 	if err != nil {
@@ -198,7 +199,7 @@ func Run(t *testing.T, dirname string) {
 			if b.Error != nil {
 				t.Fatalf("%s: %s", b.FileName, b.Error)
 			}
-			b.Test.Run(t, shellPath, b.FileName)
+			b.Test.Run(t, compiler, shellPath, b.FileName)
 		})
 	}
 }
@@ -364,13 +365,13 @@ func (z *ZTest) RunScript(shellPath, testDir, tempDir string) error {
 	return runsh(shellPath, testDir, tempDir, z)
 }
 
-func (z *ZTest) RunInternal(path string) error {
+func (z *ZTest) RunInternal(compiler zruntime.Compiler, path string) error {
 	if err := z.check(); err != nil {
 		return fmt.Errorf("bad yaml format: %w", err)
 	}
 	inputFlags := strings.Fields(z.InputFlags)
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
-	out, errout, err := runzq(path, z.Zed, z.Input, outputFlags, inputFlags)
+	out, errout, err := runzq(compiler, path, z.Zed, z.Input, outputFlags, inputFlags)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
@@ -393,7 +394,7 @@ func (z *ZTest) RunInternal(path string) error {
 	return nil
 }
 
-func (z *ZTest) Run(t *testing.T, path, filename string) {
+func (z *ZTest) Run(t *testing.T, compiler zruntime.Compiler, path, filename string) {
 	if msg := z.ShouldSkip(path); msg != "" {
 		t.Skip("skipping test:", msg)
 	}
@@ -401,7 +402,7 @@ func (z *ZTest) Run(t *testing.T, path, filename string) {
 	if z.Script != "" {
 		err = z.RunScript(path, filepath.Dir(filename), t.TempDir())
 	} else {
-		err = z.RunInternal(path)
+		err = z.RunInternal(compiler, path)
 	}
 	if err != nil {
 		t.Fatalf("%s: %s", filename, err)
@@ -486,7 +487,7 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 // is empty, the program runs in the current process.  If path is not empty, it
 // specifies a command search path used to find a zq executable to run the
 // program.
-func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []string) (string, string, error) {
+func runzq(compiler zruntime.Compiler, path, zedProgram, input string, outputFlags []string, inputFlags []string) (string, string, error) {
 	var errbuf, outbuf bytes.Buffer
 	if path != "" {
 		zq, err := lookupzq(path)
@@ -504,7 +505,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := compiler.ParseOp(zedProgram)
+	proc, err := compiler.Parse(zedProgram)
 	if err != nil {
 		return "", err.Error(), err
 	}
@@ -530,7 +531,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err != nil {
 		return "", "", err
 	}
-	q, err := zruntime.NewQueryOnReader(context.Background(), zctx, proc, zrc, nil)
+	q, err := compiler.NewQuery(op.NewContext(context.Background(), zctx, nil), proc, []zio.Reader{zrc})
 	if err != nil {
 		zw.Close()
 		return "", err.Error(), err

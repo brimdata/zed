@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/runtime"
 	sortproc "github.com/brimdata/zed/runtime/op/sort"
 	"github.com/brimdata/zed/ztest"
 )
@@ -130,45 +132,46 @@ func cat(ss ...string) string {
 	return out
 }
 
-func runTest(t *testing.T, cmd, input, output string) {
+func runTest(t *testing.T, c runtime.Compiler, cmd, input, output string) {
 	(&ztest.ZTest{
 		Zed:    cmd,
 		Input:  input,
 		Output: trim(output),
-	}).Run(t, "", "")
+	}).Run(t, c, "", "")
 }
 
 func TestSort(t *testing.T) {
+	c := compiler.NewCompiler()
 	// Test simple sorting of integers.
-	runTest(t, "sort foo", unsortedInts, ascendingInts)
+	runTest(t, c, "sort foo", unsortedInts, ascendingInts)
 
 	// Test sorting ints in reverse.
-	runTest(t, "sort -r foo", unsortedInts, descendingInts)
+	runTest(t, c, "sort -r foo", unsortedInts, descendingInts)
 
 	// Test sorting strings.
-	runTest(t, "sort foo", unsortedStrings, sortedStrings)
+	runTest(t, c, "sort foo", unsortedStrings, sortedStrings)
 
 	// Test that null values are sorted to the end
-	runTest(t, "sort foo", unsortedInts+trim(nullInt), ascendingInts+trim(nullInt))
+	runTest(t, c, "sort foo", unsortedInts+trim(nullInt), ascendingInts+trim(nullInt))
 
 	// Test sorting records that don't all have the requested field.
 	missingFields := cat(nofoo, unsortedStrings)
 	missingSorted := cat(sortedStrings, nofoo)
-	runTest(t, "sort foo", missingFields, missingSorted)
+	runTest(t, c, "sort foo", missingFields, missingSorted)
 
 	// Test sorting records with different types.
 	mixedTypesIn := cat(unsortedStrings, unsortedInts)
 	mixedTypesOut := cat(ascendingInts, sortedStrings)
-	runTest(t, "sort foo", mixedTypesIn, mixedTypesOut)
+	runTest(t, c, "sort foo", mixedTypesIn, mixedTypesOut)
 
 	// Test sorting on multiple fields.
-	runTest(t, "sort foo, bar", multiIn, foobarOut)
-	runTest(t, "sort bar, foo", multiIn, barfooOut)
+	runTest(t, c, "sort foo, bar", multiIn, foobarOut)
+	runTest(t, c, "sort bar, foo", multiIn, barfooOut)
 
 	// Test that choosing a field when none is provided works.
-	runTest(t, "sort", chooseIn1, chooseOut1)
-	runTest(t, "sort", chooseIn2, chooseOut2)
-	runTest(t, "sort", chooseIn3, chooseOut3)
+	runTest(t, c, "sort", chooseIn1, chooseOut1)
+	runTest(t, c, "sort", chooseIn2, chooseOut2)
+	runTest(t, c, "sort", chooseIn3, chooseOut3)
 }
 
 func TestSortExternal(t *testing.T) {
@@ -197,5 +200,5 @@ func TestSortExternal(t *testing.T) {
 	input := makeZSON(ss)
 	sort.Strings(ss)
 	output := makeZSON(ss)
-	runTest(t, "sort s", input, output)
+	runTest(t, compiler.NewCompiler(), "sort s", input, output)
 }

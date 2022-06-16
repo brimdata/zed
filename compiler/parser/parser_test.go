@@ -48,7 +48,7 @@ func parsePEGjs(z string) ([]byte, error) {
 }
 
 func parseOp(z string) ([]byte, error) {
-	o, err := compiler.ParseOp(z)
+	o, err := compiler.Parse(z)
 	if err != nil {
 		return nil, err
 	}

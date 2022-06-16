@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
@@ -20,58 +19,47 @@ import (
 // methods provide a convenient means to run a flowgraph as zio.Reader.
 type Query struct {
 	zbuf.Puller
-	pctx      *op.Context
-	flowgraph *compiler.Runtime
+	pctx  *op.Context
+	meter *meter
 }
 
 var _ zbuf.Puller = (*Query)(nil)
 
-func NewQuery(pctx *op.Context, flowgraph *compiler.Runtime, closer io.Closer) *Query {
+func NewQuery(pctx *op.Context, puller zbuf.Puller, meters []zbuf.Meter) *Query {
 	return &Query{
-		Puller:    flowgraph.Puller(),
-		pctx:      pctx,
-		flowgraph: flowgraph,
+		Puller: puller,
+		pctx:   pctx,
+		meter:  &meter{meters},
 	}
 }
 
-func NewQueryOnReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, logger *zap.Logger) (*Query, error) {
-	pctx := op.NewContext(ctx, zctx, logger)
-	flowgraph, err := compiler.CompileForInternal(pctx, program, reader)
-	if err != nil {
-		pctx.Cancel()
-		return nil, err
-	}
-	return NewQuery(pctx, flowgraph, nil), nil
+type Compiler interface {
+	NewQuery(*op.Context, ast.Op, []zio.Reader) (*Query, error)
+	NewLakeQuery(*op.Context, ast.Op, int, *lakeparse.Commitish) (*Query, error)
+	Parse(string, ...string) (ast.Op, error)
+	ParseRangeExpr(*zed.Context, string, order.Layout) (*zed.Value, string, error)
+	//XXX this is used only by the groupby test.
+	CompileWithOrderDeprecated(*op.Context, ast.Op, zio.Reader, order.Layout) (*Query, error)
 }
 
-func NewQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, layout order.Layout, logger *zap.Logger) (*Query, error) {
-	pctx := op.NewContext(ctx, zctx, logger)
-	flowgraph, err := compiler.CompileForInternalWithOrder(pctx, program, reader, layout)
-	if err != nil {
-		pctx.Cancel()
-		return nil, err
-	}
-	return NewQuery(pctx, flowgraph, nil), nil
-}
-
-func NewQueryOnFileSystem(ctx context.Context, zctx *zed.Context, program ast.Op, readers []zio.Reader, adaptor op.DataAdaptor) (*Query, error) {
+func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Op, readers []zio.Reader) (*Query, error) {
 	pctx := op.NewContext(ctx, zctx, nil)
-	flowgraph, err := compiler.CompileForFileSystem(pctx, program, readers, adaptor)
+	q, err := c.NewQuery(pctx, program, readers)
 	if err != nil {
 		pctx.Cancel()
 		return nil, err
 	}
-	return NewQuery(pctx, flowgraph, nil), nil
+	return q, nil
 }
 
-func NewQueryOnLake(ctx context.Context, zctx *zed.Context, program ast.Op, lake op.DataAdaptor, head *lakeparse.Commitish, logger *zap.Logger) (*Query, error) {
+func CompileLakeQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Op, head *lakeparse.Commitish, logger *zap.Logger) (*Query, error) {
 	pctx := op.NewContext(ctx, zctx, logger)
-	flowgraph, err := compiler.CompileForLake(pctx, program, lake, 0, head)
+	q, err := c.NewLakeQuery(pctx, program, 0, head)
 	if err != nil {
 		pctx.Cancel()
 		return nil, err
 	}
-	return NewQuery(pctx, flowgraph, nil), nil
+	return q, nil
 }
 
 func (q *Query) AsReader() zio.Reader {
@@ -87,11 +75,11 @@ func (q *Query) AsProgressReadCloser() zbuf.ProgressReadCloser {
 }
 
 func (q *Query) Progress() zbuf.Progress {
-	return q.flowgraph.Meter().Progress()
+	return q.meter.Progress()
 }
 
 func (q *Query) Meter() zbuf.Meter {
-	return q.flowgraph.Meter()
+	return q.meter
 }
 
 func (q *Query) Close() error {
@@ -104,4 +92,16 @@ func (q *Query) Pull(done bool) (zbuf.Batch, error) {
 		q.pctx.Cancel()
 	}
 	return q.Puller.Pull(done)
+}
+
+type meter struct {
+	meters []zbuf.Meter
+}
+
+func (m *meter) Progress() zbuf.Progress {
+	var out zbuf.Progress
+	for _, meter := range m.meters {
+		out.Add(meter.Progress())
+	}
+	return out
 }

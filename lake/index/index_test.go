@@ -1,4 +1,4 @@
-package index
+package index_test
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -14,28 +15,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func boomerang(t *testing.T, r1 Rule) (r2 Rule) {
+func boomerang(t *testing.T, r1 index.Rule) (r2 index.Rule) {
 	t.Helper()
-	b, err := serialize(r1)
+	b, err := index.Serialize(r1)
 	require.NoError(t, err)
 	reader := zngio.NewReader(bytes.NewReader(b), zed.NewContext())
 	defer reader.Close()
 	rec, err := reader.Read()
 	require.NoError(t, err)
 	u := zson.NewZNGUnmarshaler()
-	u.Bind(RuleTypes...)
+	u.Bind(index.RuleTypes...)
 	require.NoError(t, u.Unmarshal(rec, &r2))
 	return r2
 }
 
 func TestTypeIndexMarshal(t *testing.T) {
-	r1 := NewTypeRule("test", zed.TypeIP)
+	r1 := index.NewTypeRule("test", zed.TypeIP)
 	r2 := boomerang(t, r1)
 	assert.Equal(t, r1, r2)
 }
 
 func TestZedIndexMarshal(t *testing.T) {
-	r1, err := NewAggRule("test", "count() by id.orig_h")
+	r1, err := index.NewAggRule("test", "count() by id.orig_h")
 	require.NoError(t, err)
 	r2 := boomerang(t, r1)
 	assert.Equal(t, r1, r2)

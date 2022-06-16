@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/runtimeflags"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
@@ -30,7 +31,7 @@ the type of the rule, and the value for the rule.
 The name of the index rule must be unique.
 
 The rule's type can be either field, type, or agg (currently only field rules
-are supported). 
+are supported).
 
 For field index rules the final argument is the name of the field to index.
 
@@ -137,6 +138,9 @@ func parseRule(args []string, ruleName string) ([]string, index.Rule, error) {
 			return nil, nil, errors.New("agg index rule requires a script argument")
 		}
 		script := args[1]
+		if _, err := compiler.Parse(script); err != nil {
+			return nil, nil, err
+		}
 		rule, err := index.NewAggRule(ruleName, script)
 		return args[2:], rule, err
 	default:
