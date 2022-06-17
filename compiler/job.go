@@ -141,12 +141,6 @@ func (j *Job) Parallelize(n int) error {
 	return j.optimizer.Parallelize(n)
 }
 
-// Parse concatenates the source files in filenames followed by src and parses
-// the resulting program.
-func (*anyCompiler) Parse(src string, filenames ...string) (ast.Op, error) {
-	return Parse(src, filenames...)
-}
-
 func Parse(src string, filenames ...string) (ast.Op, error) {
 	parsed, err := parser.ParseZed(filenames, src)
 	if err != nil {
@@ -192,6 +186,12 @@ func (j *Job) Puller() zbuf.Puller {
 }
 
 type anyCompiler struct{}
+
+// Parse concatenates the source files in filenames followed by src and parses
+// the resulting program.
+func (*anyCompiler) Parse(src string, filenames ...string) (ast.Op, error) {
+	return Parse(src, filenames...)
+}
 
 func (a *anyCompiler) ParseRangeExpr(zctx *zed.Context, src string, layout order.Layout) (*zed.Value, string, error) {
 	o, err := a.Parse(src)

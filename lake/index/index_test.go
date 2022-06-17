@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -36,7 +37,7 @@ func TestTypeIndexMarshal(t *testing.T) {
 }
 
 func TestZedIndexMarshal(t *testing.T) {
-	r1, err := index.NewAggRule("test", "count() by id.orig_h")
+	r1, err := index.NewAggRule(compiler.NewCompiler(), "test", "count() by id.orig_h")
 	require.NoError(t, err)
 	r2 := boomerang(t, r1)
 	assert.Equal(t, r1, r2)

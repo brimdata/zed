@@ -138,10 +138,7 @@ func parseRule(args []string, ruleName string) ([]string, index.Rule, error) {
 			return nil, nil, errors.New("agg index rule requires a script argument")
 		}
 		script := args[1]
-		if _, err := compiler.Parse(script); err != nil {
-			return nil, nil, err
-		}
-		rule, err := index.NewAggRule(ruleName, script)
+		rule, err := index.NewAggRule(compiler.NewCompiler(), ruleName, script)
 		return args[2:], rule, err
 	default:
 		return nil, nil, fmt.Errorf("unknown index rule type: %q", args[0])
