@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio"
 )
@@ -13,6 +14,12 @@ import (
 type Filter interface {
 	AsEvaluator() (expr.Evaluator, error)
 	AsBufferFilter() (*expr.BufferFilter, error)
+	//XXX This is here to break an import loop between lake and compiler.
+	// We will remove this in a subsequent PR when the runtime/sequence,vector
+	// packages will implement a pushdown language that is not based on dag.Expr
+	// and the compiler will allocate runtime planner entities that know
+	// their pushdown directly.
+	Pushdown() dag.Expr
 }
 
 // ScannerAble is implemented by Readers that provide an optimized

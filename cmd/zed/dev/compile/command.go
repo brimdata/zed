@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -236,13 +237,7 @@ func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
 	if err != nil {
 		return nil, err
 	}
-	// XXX Avoid non-nil interface of nil lake.  This will go away when
-	// we eliminate op.DataAdaptor in a subsequent PR.
-	var adaptor op.DataAdaptor
-	if lk != nil {
-		adaptor = lk
-	}
-	return compiler.NewJob(op.DefaultContext(), p, adaptor, nil)
+	return compiler.NewJob(op.DefaultContext(), p, data.NewSource(nil, lk), nil)
 }
 
 const nodeProblem = `

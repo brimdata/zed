@@ -425,7 +425,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			w.Error(srverr.ErrInvalid("either object_ids or where must be set"))
 			return
 		}
-		commit, err = branch.DeleteByPredicate(r.Context(), c.compiler, c.root, payload.Where, message.Author, message.Body, message.Meta)
+		commit, err = branch.DeleteByPredicate(r.Context(), c.compiler, payload.Where, message.Author, message.Body, message.Meta)
 	}
 	if err != nil {
 		w.Error(err)

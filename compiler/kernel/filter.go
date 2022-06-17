@@ -7,22 +7,29 @@ import (
 )
 
 type Filter struct {
-	Pushdown dag.Expr
+	pushdown dag.Expr
 	builder  *Builder
 }
 
 var _ zbuf.Filter = (*Filter)(nil)
 
+func (f *Filter) Pushdown() dag.Expr {
+	if f == nil {
+		return nil
+	}
+	return f.pushdown
+}
+
 func (f *Filter) AsEvaluator() (expr.Evaluator, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return f.builder.compileExpr(f.Pushdown)
+	return f.builder.compileExpr(f.pushdown)
 }
 
 func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return CompileBufferFilter(f.builder.pctx.Zctx, f.Pushdown)
+	return CompileBufferFilter(f.builder.pctx.Zctx, f.pushdown)
 }

@@ -4,7 +4,9 @@ import (
 	"errors"
 
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
@@ -12,15 +14,16 @@ import (
 
 type fsCompiler struct {
 	anyCompiler
-	fs op.DataAdaptor
+	src *data.Source
 }
 
-func NewFileSystemCompiler(adaptor op.DataAdaptor) runtime.Compiler {
-	return &fsCompiler{fs: adaptor}
+func NewFileSystemCompiler(engine storage.Engine) runtime.Compiler {
+	src := data.NewSource(engine, nil)
+	return &fsCompiler{src: src}
 }
 
 func (f *fsCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
-	job, err := NewJob(pctx, o, f.fs, nil)
+	job, err := NewJob(pctx, o, f.src, nil)
 	if err != nil {
 		return nil, err
 	}

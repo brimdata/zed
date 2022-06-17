@@ -7,19 +7,19 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr/function"
-	"github.com/brimdata/zed/runtime/op"
 	"github.com/segmentio/ksuid"
 )
 
-func semFrom(ctx context.Context, scope *Scope, from *ast.From, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*dag.From, error) {
+func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish) (*dag.From, error) {
 	var trunks []dag.Trunk
 	for _, in := range from.Trunks {
-		converted, err := semTrunk(ctx, scope, in, adaptor, head)
+		converted, err := semTrunk(ctx, scope, in, source, head)
 		if err != nil {
 			return nil, err
 		}
@@ -31,12 +31,12 @@ func semFrom(ctx context.Context, scope *Scope, from *ast.From, adaptor op.DataA
 	}, nil
 }
 
-func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, adaptor op.DataAdaptor, head *lakeparse.Commitish) (dag.Trunk, error) {
-	source, err := semSource(ctx, scope, trunk.Source, adaptor, head)
+func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish) (dag.Trunk, error) {
+	source, err := semSource(ctx, scope, trunk.Source, ds, head)
 	if err != nil {
 		return dag.Trunk{}, err
 	}
-	seq, err := semSequential(ctx, scope, trunk.Seq, adaptor, head)
+	seq, err := semSequential(ctx, scope, trunk.Seq, ds, head)
 	if err != nil {
 		return dag.Trunk{}, err
 	}
@@ -47,7 +47,9 @@ func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, adaptor op.Dat
 	}, nil
 }
 
-func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor op.DataAdaptor, head *lakeparse.Commitish) (dag.Source, error) {
+//XXX make sure you can't read files from a lake instance
+
+func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.Source, head *lakeparse.Commitish) (dag.Source, error) {
 	switch p := source.(type) {
 	case *ast.File:
 		layout, err := semLayout(p.Layout)
@@ -72,10 +74,10 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor op.
 			Layout: layout,
 		}, nil
 	case *ast.Pool:
-		if adaptor == nil {
+		if !ds.IsLake() {
 			return nil, errors.New("semantic analyzer: from pool cannot be used without a lake")
 		}
-		return semPool(ctx, scope, p, adaptor, head)
+		return semPool(ctx, scope, p, ds, head)
 	case *ast.Pass:
 		return &dag.Pass{Kind: "Pass"}, nil
 	case *kernel.Reader:
@@ -105,7 +107,7 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 	return order.NewLayout(which, keys), nil
 }
 
-func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor op.DataAdaptor, head *lakeparse.Commitish) (dag.Source, error) {
+func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, head *lakeparse.Commitish) (dag.Source, error) {
 	poolName := p.Spec.Pool
 	commit := p.Spec.Commit
 	if poolName == "HEAD" {
@@ -130,7 +132,7 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor op.DataAdap
 	if err == nil {
 		poolName = poolID.String()
 	} else {
-		poolID, err = adaptor.PoolID(ctx, poolName)
+		poolID, err = ds.PoolID(ctx, poolName)
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +166,7 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor op.DataAdap
 	if commit != "" {
 		commitID, err = lakeparse.ParseID(commit)
 		if err != nil {
-			commitID, err = adaptor.CommitObject(ctx, poolID, commit)
+			commitID, err = ds.CommitObject(ctx, poolID, commit)
 			if err != nil {
 				return nil, err
 			}
@@ -191,7 +193,7 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor op.DataAdap
 	if commitID == ksuid.Nil {
 		// This trick here allows us to default to the main branch when
 		// there is a "from pool" operator with no meta query or commit object.
-		commitID, err = adaptor.CommitObject(ctx, poolID, "main")
+		commitID, err = ds.CommitObject(ctx, poolID, "main")
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +208,7 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor op.DataAdap
 	}, nil
 }
 
-func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, error) {
+func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *data.Source, head *lakeparse.Commitish) (*dag.Sequential, error) {
 	if seq == nil {
 		return nil, nil
 	}
@@ -218,7 +220,7 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 	}
 	var ops []dag.Op
 	for _, o := range seq.Ops {
-		converted, err := semOp(ctx, scope, o, adaptor, head)
+		converted, err := semOp(ctx, scope, o, ds, head)
 		if err != nil {
 			return nil, err
 		}
@@ -236,10 +238,10 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 // object.  Currently, it only replaces the group-by duration with
 // a bucket call on the ts and replaces FunctionCalls in op context
 // with either a group-by or filter op based on the function's name.
-func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
+func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
 	switch o := o.(type) {
 	case *ast.From:
-		return semFrom(ctx, scope, o, adaptor, head)
+		return semFrom(ctx, scope, o, ds, head)
 	case *ast.Summarize:
 		keys, err := semAssignments(scope, o.Keys, true)
 		if err != nil {
@@ -267,7 +269,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, 
 	case *ast.Parallel:
 		var ops []dag.Op
 		for _, o := range o.Ops {
-			converted, err := semOp(ctx, scope, o, adaptor, head)
+			converted, err := semOp(ctx, scope, o, ds, head)
 			if err != nil {
 				return nil, err
 			}
@@ -278,7 +280,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, 
 			Ops:  ops,
 		}, nil
 	case *ast.Sequential:
-		return semSequential(ctx, scope, o, adaptor, head)
+		return semSequential(ctx, scope, o, ds, head)
 	case *ast.Switch:
 		var expr dag.Expr
 		if o.Expr != nil {
@@ -305,7 +307,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, 
 					Value: "true",
 				}
 			}
-			o, err := semOp(ctx, scope, c.Op, adaptor, head)
+			o, err := semOp(ctx, scope, c.Op, ds, head)
 			if err != nil {
 				return nil, err
 			}
@@ -518,7 +520,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, 
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:
-		return semOver(ctx, scope, o, adaptor, head)
+		return semOver(ctx, scope, o, ds, head)
 	case *ast.Let:
 		if o.Over == nil {
 			return nil, errors.New("let operator missing traversal in AST")
@@ -532,7 +534,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, 
 		if err != nil {
 			return nil, err
 		}
-		over, err := semOver(ctx, scope, o.Over, adaptor, head)
+		over, err := semOver(ctx, scope, o.Over, ds, head)
 		if err != nil {
 			return nil, err
 		}
@@ -554,14 +556,14 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, 
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
 }
 
-func semOver(ctx context.Context, scope *Scope, in *ast.Over, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*dag.Over, error) {
+func semOver(ctx context.Context, scope *Scope, in *ast.Over, ds *data.Source, head *lakeparse.Commitish) (*dag.Over, error) {
 	exprs, err := semExprs(scope, in.Exprs)
 	if err != nil {
 		return nil, err
 	}
 	var seq *dag.Sequential
 	if in.Scope != nil {
-		seq, err = semSequential(ctx, scope, in.Scope, adaptor, head)
+		seq, err = semSequential(ctx, scope, in.Scope, ds, head)
 		if err != nil {
 			return nil, err
 		}

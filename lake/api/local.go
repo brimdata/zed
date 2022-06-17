@@ -179,7 +179,7 @@ func (l *local) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branc
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.DeleteByPredicate(ctx, l.compiler, l.root, src, commit.Author, commit.Body, commit.Meta)
+	return branch.DeleteByPredicate(ctx, l.compiler, src, commit.Author, commit.Body, commit.Meta)
 }
 
 func (l *local) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
