@@ -209,12 +209,11 @@ func TestGroupbySystem(t *testing.T) {
 
 func runCases(t *testing.T) {
 	t.Helper()
-	comp := compiler.NewCompiler()
 	for _, c := range cases {
 		zt := ztest.ZTest{Zed: c.zed, Input: c.input, Output: c.output[1:]}
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			zt.Run(t, comp, "", "")
+			zt.Run(t, "", "")
 		})
 	}
 }

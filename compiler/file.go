@@ -11,7 +11,7 @@ import (
 )
 
 type fsCompiler struct {
-	any
+	anyCompiler
 	fs op.DataAdaptor
 }
 
@@ -57,7 +57,7 @@ func (f *fsCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) 
 }
 
 func (*fsCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
-	panic("TBD")
+	panic("NewLakeQuery called on compiler.fsCompiler")
 }
 
 func isJoin(o ast.Op) bool {

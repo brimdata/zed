@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
@@ -37,7 +36,7 @@ func testError(t *testing.T, e string, expectErr error, description string) {
 func runZTest(t *testing.T, e string, zt *ztest.ZTest) {
 	t.Run(e, func(t *testing.T) {
 		t.Parallel()
-		if err := zt.RunInternal(compiler.NewCompiler(), ""); err != nil {
+		if err := zt.RunInternal(""); err != nil {
 			t.Fatal(err)
 		}
 	})

@@ -14,7 +14,7 @@ import (
 var Parallelism = goruntime.GOMAXPROCS(0) //XXX
 
 type lakeCompiler struct {
-	internal
+	anyCompiler
 	lake *lake.Root
 }
 

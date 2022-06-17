@@ -19,14 +19,10 @@ import (
 )
 
 func NewCompiler() runtime.Compiler {
-	return &internal{}
+	return &anyCompiler{}
 }
 
-type internal struct {
-	any
-}
-
-func (i *internal) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
+func (i *anyCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
 	if len(readers) != 1 {
 		return nil, fmt.Errorf("NewQuery: Zed program expected %d readers", len(readers))
 	}
@@ -34,7 +30,7 @@ func (i *internal) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) (*
 }
 
 //XXX currently used only by group-by test, need to deprecate
-func (*any) CompileWithOrderDeprecated(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
+func (*anyCompiler) CompileWithOrderDeprecated(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
 	adaptor := &internalAdaptor{}
 	job, err := NewJob(pctx, o, adaptor, nil)
 	if err != nil {
@@ -49,8 +45,8 @@ func (*any) CompileWithOrderDeprecated(pctx *op.Context, o ast.Op, r zio.Reader,
 	return optimizeAndBuild(job)
 }
 
-func (*internal) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
-	panic("TBD")
+func (*anyCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
+	panic("NewLakeQuery called on compiler.anyCompiler")
 }
 
 type internalAdaptor struct{}

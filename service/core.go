@@ -52,8 +52,8 @@ type Config struct {
 
 type Core struct {
 	auth            *Auth0Authenticator
-	conf            Config
 	compiler        runtime.Compiler
+	conf            Config
 	engine          storage.Engine
 	logger          *zap.Logger
 	registry        *prometheus.Registry
@@ -135,8 +135,8 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	c := &Core{
 		auth:          authenticator,
-		conf:          conf,
 		compiler:      compiler.NewLakeCompiler(root),
+		conf:          conf,
 		engine:        engine,
 		logger:        conf.Logger.Named("core"),
 		root:          root,
