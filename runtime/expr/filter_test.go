@@ -53,20 +53,20 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	for _, c := range cases {
 		t.Run(c.filter, func(t *testing.T) {
 			t.Helper()
-			p, err := compiler.ParseOp(c.filter)
+			p, err := compiler.Parse(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			runtime, err := compiler.New(op.DefaultContext(), p, lk, nil)
+			job, err := compiler.NewJob(op.DefaultContext(), p, lk, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
-			err = runtime.Optimize()
+			err = job.Optimize()
 			require.NoError(t, err, "filter: %q", c.filter)
-			err = runtime.Build()
+			err = job.Build()
 			require.NoError(t, err, "filter: %q", c.filter)
-			seq := runtime.Entry().(*dag.Sequential)
+			seq := job.Entry().(*dag.Sequential)
 			from := seq.Ops[0].(*dag.From)
 			require.Exactly(t, 1, len(from.Trunks), "filter DAG is not a single trunk")
 			trunk := &from.Trunks[0]
 			require.NotNil(t, trunk.Pushdown)
-			filterMaker, err := runtime.Builder().PushdownOf(trunk)
+			filterMaker, err := job.Builder().PushdownOf(trunk)
 			require.NoError(t, err, "filter: %q", c.filter)
 			f, err := filterMaker.AsEvaluator()
 			assert.NoError(t, err, "filter: %q", c.filter)
@@ -407,6 +407,6 @@ func TestFilters(t *testing.T) {
 
 func TestBadFilter(t *testing.T) {
 	t.Parallel()
-	_, err := compiler.ParseOp(`s matches \xa8*`)
+	_, err := compiler.Parse(`s matches \xa8*`)
 	require.Error(t, err)
 }

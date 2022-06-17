@@ -172,7 +172,7 @@ func (c *Command) parse(z string) error {
 		fmt.Println(s)
 	}
 	if c.proc {
-		p, err := compiler.ParseOp(z)
+		p, err := compiler.Parse(z)
 		if err != nil {
 			return err
 		}
@@ -233,12 +233,12 @@ func (c *Command) writeOp(op dag.Op) {
 	}
 }
 
-func (c *Command) compile(z string) (*compiler.Runtime, error) {
-	p, err := compiler.ParseOp(z)
+func (c *Command) compile(z string) (*compiler.Job, error) {
+	p, err := compiler.Parse(z)
 	if err != nil {
 		return nil, err
 	}
-	return compiler.New(op.DefaultContext(), p, mock.NewLake(), nil)
+	return compiler.NewJob(op.DefaultContext(), p, mock.NewLake(), nil)
 }
 
 const nodeProblem = `

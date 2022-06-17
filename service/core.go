@@ -14,8 +14,10 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zson"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
@@ -50,6 +52,7 @@ type Config struct {
 
 type Core struct {
 	auth            *Auth0Authenticator
+	compiler        runtime.Compiler
 	conf            Config
 	engine          storage.Engine
 	logger          *zap.Logger
@@ -132,6 +135,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	c := &Core{
 		auth:          authenticator,
+		compiler:      compiler.NewLakeCompiler(root),
 		conf:          conf,
 		engine:        engine,
 		logger:        conf.Logger.Named("core"),

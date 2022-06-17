@@ -34,7 +34,7 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Op, bool, e
 			// Consider a lone argument to be a query if it compiles
 			// and appears to start with a from or yield operator.
 			// Otherwise, consider it a file.
-			if query, err := compiler.ParseOp(src, f.Includes...); err == nil {
+			if query, err := compiler.Parse(src, f.Includes...); err == nil {
 				if isFrom(query) {
 					return nil, query, false, nil
 				}
@@ -45,7 +45,7 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Op, bool, e
 			return nil, nil, false, fmt.Errorf("no such file: %s", src)
 		}
 	}
-	query, err := compiler.ParseOp(src, f.Includes...)
+	query, err := compiler.Parse(src, f.Includes...)
 	if err != nil {
 		return nil, nil, false, err
 	}

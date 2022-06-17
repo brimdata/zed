@@ -135,8 +135,9 @@ import (
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
-	zruntime "github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/pmezard/go-difflib/difflib"
 	"gopkg.in/yaml.v3"
@@ -504,7 +505,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := compiler.ParseOp(zedProgram)
+	proc, err := compiler.NewCompiler().Parse(zedProgram)
 	if err != nil {
 		return "", err.Error(), err
 	}
@@ -530,7 +531,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err != nil {
 		return "", "", err
 	}
-	q, err := zruntime.NewQueryOnReader(context.Background(), zctx, proc, zrc, nil)
+	q, err := compiler.NewCompiler().NewQuery(op.NewContext(context.Background(), zctx, nil), proc, []zio.Reader{zrc})
 	if err != nil {
 		zw.Close()
 		return "", err.Error(), err

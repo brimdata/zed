@@ -197,7 +197,7 @@ again:
 
 func (s *Store) Add(ctx context.Context, rule Rule) error {
 	add := &AddRule{Rule: rule}
-	b, err := serialize(add)
+	b, err := Serialize(add)
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func (s *Store) exists(rule Rule) bool {
 }
 
 func (s *Store) Delete(ctx context.Context, id ksuid.KSUID) (Rule, error) {
-	b, err := serialize(&DeleteRule{ID: id})
+	b, err := Serialize(&DeleteRule{ID: id})
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func (s *Store) IDs(ctx context.Context) ([]ksuid.KSUID, error) {
 	return ids, nil
 }
 
-func serialize(r interface{}) ([]byte, error) {
+func Serialize(r interface{}) ([]byte, error) {
 	serializer := zngbytes.NewSerializer()
 	serializer.Decorate(zson.StylePackage)
 	if err := serializer.Write(r); err != nil {
