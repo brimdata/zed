@@ -94,6 +94,11 @@ type Response struct {
 	Duration time.Duration
 }
 
+// Do sends an HTTP request and returns an HTTP response, refreshing the auth
+// token if necessary.
+//
+// As for net/http.Client.Do, if the returned error is nil, the user is expected
+// to call Response.Body.Close.
 func (c *Connection) Do(req *Request) (*Response, error) {
 	for i := 0; ; i++ {
 		httpreq, err := req.HTTPRequest()
@@ -105,6 +110,7 @@ func (c *Connection) Do(req *Request) (*Response, error) {
 			return nil, err
 		}
 		if res.StatusCode < 200 || res.StatusCode > 299 {
+			// parseError calls res.Body.Close.
 			err = parseError(res)
 			var reserr *ErrorResponse
 			if i == 0 && res.StatusCode == 401 && errors.As(err, &reserr) && reserr.Err.Error() == "invalid token" {
@@ -128,6 +134,7 @@ func (c *Connection) doAndUnmarshal(req *Request, v interface{}, templates ...in
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	zr := zngio.NewReader(res.Body, zed.NewContext())
 	defer zr.Close()
 	rec, err := zr.Read()
@@ -177,10 +184,10 @@ func (c *Connection) NewRequest(ctx context.Context, method, path string, body i
 func (c *Connection) Ping(ctx context.Context) (time.Duration, error) {
 	req := c.NewRequest(ctx, http.MethodGet, "/status", nil)
 	res, err := c.Do(req)
-	res.Body.Close()
 	if err != nil {
 		return 0, err
 	}
+	res.Body.Close()
 	return res.Duration, nil
 }
 
@@ -228,18 +235,24 @@ func (c *Connection) CreatePool(ctx context.Context, payload api.PoolPostRequest
 func (c *Connection) RenamePool(ctx context.Context, id ksuid.KSUID, put api.PoolPutRequest) error {
 	req := c.NewRequest(ctx, http.MethodPut, path.Join("/pool", id.String()), put)
 	res, err := c.Do(req)
+	if err != nil {
+		return err
+	}
 	res.Body.Close()
-	return err
+	return nil
 }
 
 func (c *Connection) RemovePool(ctx context.Context, id ksuid.KSUID) error {
 	req := c.NewRequest(ctx, http.MethodDelete, path.Join("/pool", id.String()), nil)
 	res, err := c.Do(req)
-	res.Body.Close()
-	if errIsStatus(err, http.StatusNotFound) {
-		err = ErrPoolNotFound
+	if err != nil {
+		if errIsStatus(err, http.StatusNotFound) {
+			return ErrPoolNotFound
+		}
+		return err
 	}
-	return err
+	res.Body.Close()
+	return nil
 }
 
 func (c *Connection) CreateBranch(ctx context.Context, poolID ksuid.KSUID, payload api.BranchPostRequest) (branches.Config, error) {
@@ -274,6 +287,10 @@ func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return commit, err
 }
 
+// Query assembles a query from src and filenames and runs it.
+//
+// As for Connection.Do, if the returned error is nil, the user is expected to
+// call Response.Body.Close.
 func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
 	src, srcInfo, err := parser.ConcatSource(filenames, src)
 	if err != nil {
@@ -311,8 +328,11 @@ func (c *Connection) AddIndexRules(ctx context.Context, rules []index.Rule) erro
 	body := api.IndexRulesAddRequest{Rules: rules}
 	req := c.NewRequest(ctx, http.MethodPost, "/index", body)
 	res, err := c.Do(req)
+	if err != nil {
+		return err
+	}
 	res.Body.Close()
-	return err
+	return nil
 }
 
 func (c *Connection) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) (api.IndexRulesDeleteResponse, error) {
