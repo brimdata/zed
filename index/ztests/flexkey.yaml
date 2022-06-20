@@ -1,7 +1,7 @@
 script: |
   zq -o tmp.zng "sum(v) by s | put key:=s | sort key"  babble.zson
   # -x says input keys already sorted and don't create new base records
-  zed dev indexfile create -f 20000 -znglz4blocksize 1 -o index.zng -k key tmp.zng
+  zed dev indexfile create -f 20000 -znglz4blocksize 0 -o index.zng -k key tmp.zng
   # 50 not in index
   zed dev dig section -z 1 index.zng
   echo ===
@@ -17,7 +17,7 @@ outputs:
   - name: stdout
     data: |
       {key:"Algedi-pigeonman",_child:0}
-      {key:"homophenous-Margaropus",_child:20032}
+      {key:"hollowfoot-morassic",_child:20038}
       ===
       {s:"wailer-strick",sum:149,key:"wailer-strick"}
       ===
