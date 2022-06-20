@@ -73,7 +73,7 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor op.
 		}, nil
 	case *ast.Pool:
 		if adaptor == nil {
-			return nil, fmt.Errorf("semantic analyzer: from pool cannot be used without a lake")
+			return nil, errors.New("semantic analyzer: from pool cannot be used without a lake")
 		}
 		return semPool(ctx, scope, p, adaptor, head)
 	case *ast.Pass:

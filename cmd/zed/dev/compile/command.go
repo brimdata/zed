@@ -1,7 +1,6 @@
 package compile
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -89,7 +88,7 @@ func (i *includes) Set(value string) error {
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init()
+	ctx, cleanup, err := c.Init()
 	if err != nil {
 		return err
 	}
@@ -136,7 +135,7 @@ func (c *Command) Run(args []string) error {
 	src += strings.Join(args, " ")
 	var lk *lake.Root
 	if c.semantic || c.optimize || c.parallel != 0 {
-		lakeAPI, err := c.LakeFlags.Open(context.Background())
+		lakeAPI, err := c.LakeFlags.Open(ctx)
 		if err == nil {
 			lk = lakeAPI.Root()
 		}

@@ -2,7 +2,6 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -orderby ts test
-  zed use -q test
   zc -C -P 2 "from test | count() by y" | sed -e 's/pool .* =>/pool POOL =>/'
 
 outputs:
