@@ -1,10 +1,14 @@
-script: zc -C -O "from 'pool-ts'| count() by every(1h)"
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby ts pool-ts
+  zc -C -O "from 'pool-ts'| count() by every(1h)" | sed -e 's/pool .*/pool POOL/'
 
 outputs:
   - name: stdout
     data: |
       from (
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+        pool POOL
       )
       | summarize sort-dir 1
           count:=count() by ts:=every(1h)

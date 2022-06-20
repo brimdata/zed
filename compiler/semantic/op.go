@@ -72,6 +72,9 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor op.
 			Layout: layout,
 		}, nil
 	case *ast.Pool:
+		if adaptor == nil {
+			return nil, fmt.Errorf("semantic analyzer: from pool cannot be used without a lake")
+		}
 		return semPool(ctx, scope, p, adaptor, head)
 	case *ast.Pass:
 		return &dag.Pass{Kind: "Pass"}, nil
@@ -236,9 +239,6 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 func semOp(ctx context.Context, scope *Scope, o ast.Op, adaptor op.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
 	switch o := o.(type) {
 	case *ast.From:
-		if adaptor == nil {
-			return nil, errors.New("from operator not allowed inside of expression")
-		}
 		return semFrom(ctx, scope, o, adaptor, head)
 	case *ast.Summarize:
 		keys, err := semAssignments(scope, o.Keys, true)

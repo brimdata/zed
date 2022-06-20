@@ -1,13 +1,17 @@
-script: zc -P 2 -C "from 'pool-s' | union(s) by n:=len(s)"
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby s:asc test
+  zc -P 2 -C "from test | union(s) by n:=len(s)" | sed -e 's/pool .* =>/pool POOL =>/'
 
 outputs:
   - name: stdout
     data: |
       from (
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+        pool POOL =>
           summarize partials-out
               union:=union(s) by n:=len(s)
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+        pool POOL =>
           summarize partials-out
               union:=union(s) by n:=len(s)
       )

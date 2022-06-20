@@ -60,6 +60,10 @@ func CreateLocalLake(ctx context.Context, lakePath string) (Interface, error) {
 	}, nil
 }
 
+func (l *local) Root() *lake.Root {
+	return l.root
+}
+
 func (l *local) CreatePool(ctx context.Context, name string, layout order.Layout, seekStride int, thresh int64) (ksuid.KSUID, error) {
 	if name == "" {
 		return ksuid.Nil, errors.New("no pool name provided")
