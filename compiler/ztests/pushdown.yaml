@@ -1,11 +1,14 @@
 script: |
-  zc -C -O "from 'pool-ts'| x=='hello' or x==1.0"
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby ts pool-ts
+  zc -C -O "from 'pool-ts'| x=='hello' or x==1.0" | sed -e 's/pool .*/pool POOL/'
   echo ===
-  zc -C -O "from 'pool-ts'| x > 1 y <= 1.0"
+  zc -C -O "from 'pool-ts'| x > 1 y <= 1.0" | sed -e 's/pool .*/pool POOL/'
   echo ===
-  zc -C -O "from 'pool-ts'| x=='hello' or x!=1.0"
+  zc -C -O "from 'pool-ts'| x=='hello' or x!=1.0" | sed -e 's/pool .*/pool POOL/'
   echo ===
-  zc -C -O "from 'pool-ts'| x=='hello' or !(y==2 or y==3)"
+  zc -C -O "from 'pool-ts'| x=='hello' or !(y==2 or y==3)" | sed -e 's/pool .*/pool POOL/'
 
 outputs:
   - name: stdout
@@ -13,23 +16,23 @@ outputs:
       from (
         (pushdown
           where x=="hello" or x==1.)
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+        pool POOL
       )
       ===
       from (
         (pushdown
           where x>1 and y<=1.)
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+        pool POOL
       )
       ===
       from (
         (pushdown
           where x=="hello" or x!=1.)
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+        pool POOL
       )
       ===
       from (
         (pushdown
           where x=="hello" or !(y==2 or y==3))
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO
+        pool POOL
       )

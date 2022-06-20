@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/lake/mock"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zcode"
@@ -49,13 +48,12 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	rec, err := zson.ParseValue(zctx, record)
 	require.NoError(t, err, "record: %q", record)
 
-	lk := mock.NewLake()
 	for _, c := range cases {
 		t.Run(c.filter, func(t *testing.T) {
 			t.Helper()
 			p, err := compiler.Parse(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			job, err := compiler.NewJob(op.DefaultContext(), p, lk, nil)
+			job, err := compiler.NewJob(op.DefaultContext(), p, nil, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
 			err = job.Optimize()
 			require.NoError(t, err, "filter: %q", c.filter)
