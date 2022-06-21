@@ -19,7 +19,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
-type Runtime struct {
+type Job struct {
 	pctx      *op.Context
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
@@ -27,10 +27,9 @@ type Runtime struct {
 	outputs   []zbuf.Puller
 	readers   []*kernel.Reader
 	puller    zbuf.Puller
-	meter     *meter
 }
 
-func New(pctx *op.Context, inAST ast.Op, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
+func NewJob(pctx *op.Context, inAST ast.Op, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*Job, error) {
 	parserAST := ast.Copy(inAST)
 	// An AST always begins with a Sequential op with at least one
 	// operator.  If the first op is a From or a Parallel whose branches
@@ -98,7 +97,7 @@ func New(pctx *op.Context, inAST ast.Op, adaptor op.DataAdaptor, head *lakeparse
 	if err != nil {
 		return nil, err
 	}
-	return &Runtime{
+	return &Job{
 		pctx:      pctx,
 		builder:   kernel.NewBuilder(pctx, adaptor),
 		optimizer: optimizer.New(pctx.Context, entry, adaptor),
@@ -128,35 +127,21 @@ func isSequentialWithLeadingFrom(o ast.Op) bool {
 	return ok
 }
 
-func (r *Runtime) Context() *op.Context {
-	return r.pctx
-}
-
-func (r *Runtime) Outputs() []zbuf.Puller {
-	return r.outputs
-}
-
-func (r *Runtime) Entry() dag.Op {
+func (j *Job) Entry() dag.Op {
 	//XXX need to prepend consts depending on context
-	return r.optimizer.Entry()
-}
-
-func (r *Runtime) Meter() zbuf.Meter {
-	return r.meter
+	return j.optimizer.Entry()
 }
 
 // This must be called before the zbuf.Filter interface will work.
-func (r *Runtime) Optimize() error {
-	return r.optimizer.OptimizeScan()
+func (j *Job) Optimize() error {
+	return j.optimizer.OptimizeScan()
 }
 
-func (r *Runtime) Parallelize(n int) error {
-	return r.optimizer.Parallelize(n)
+func (j *Job) Parallelize(n int) error {
+	return j.optimizer.Parallelize(n)
 }
 
-// ParseOp concatenates the source files in filenames followed by src and parses
-// the resulting program.
-func ParseOp(src string, filenames ...string) (ast.Op, error) {
+func Parse(src string, filenames ...string) (ast.Op, error) {
 	parsed, err := parser.ParseZed(filenames, src)
 	if err != nil {
 		return nil, err
@@ -164,57 +149,52 @@ func ParseOp(src string, filenames ...string) (ast.Op, error) {
 	return ast.UnpackMapAsOp(parsed)
 }
 
-// MustParseOp is like ParseOp but panics if an error is encountered.
-func MustParseOp(query string) ast.Op {
-	o, err := ParseOp(query)
+// MustParse is like Parse but panics if an error is encountered.
+func MustParse(query string) ast.Op {
+	o, err := (*anyCompiler)(nil).Parse(query)
 	if err != nil {
 		panic(err)
 	}
 	return o
 }
 
-func (r *Runtime) Builder() *kernel.Builder {
-	return r.builder
+func (j *Job) Builder() *kernel.Builder {
+	return j.builder
 }
 
-func (r *Runtime) Build() error {
-	outputs, err := r.builder.Build(r.optimizer.Entry())
+func (j *Job) Build() error {
+	outputs, err := j.builder.Build(j.optimizer.Entry())
 	if err != nil {
 		return err
 	}
-	r.outputs = outputs
-	r.meter = &meter{r.builder.Meters()}
+	j.outputs = outputs
 	return nil
 }
 
-func (r *Runtime) Puller() zbuf.Puller {
-	if r.puller == nil {
-		switch outputs := r.Outputs(); len(outputs) {
+func (j *Job) Puller() zbuf.Puller {
+	if j.puller == nil {
+		switch outputs := j.outputs; len(outputs) {
 		case 0:
 			return nil
 		case 1:
-			r.puller = op.NewCatcher(op.NewSingle(outputs[0]))
+			j.puller = op.NewCatcher(op.NewSingle(outputs[0]))
 		default:
-			r.puller = op.NewMux(r.pctx, outputs)
+			j.puller = op.NewMux(j.pctx, outputs)
 		}
 	}
-	return r.puller
+	return j.puller
 }
 
-type meter struct {
-	meters []zbuf.Meter
+type anyCompiler struct{}
+
+// Parse concatenates the source files in filenames followed by src and parses
+// the resulting program.
+func (*anyCompiler) Parse(src string, filenames ...string) (ast.Op, error) {
+	return Parse(src, filenames...)
 }
 
-func (m *meter) Progress() zbuf.Progress {
-	var out zbuf.Progress
-	for _, meter := range m.meters {
-		out.Add(meter.Progress())
-	}
-	return out
-}
-
-func ParseRangeExpr(zctx *zed.Context, src string, layout order.Layout) (*zed.Value, string, error) {
-	o, err := ParseOp(src)
+func (a *anyCompiler) ParseRangeExpr(zctx *zed.Context, src string, layout order.Layout) (*zed.Value, string, error) {
+	o, err := a.Parse(src)
 	if err != nil {
 		return nil, "", err
 	}

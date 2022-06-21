@@ -12,10 +12,12 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/groupby"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -286,8 +288,9 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		data = append(data, fmt.Sprintf("{ts:%s,ip:1.1.1.%d}", nano.Unix(int64(t), 0), i%uniqueIpsPerTs))
 	}
 
+	comp := compiler.NewCompiler()
 	runOne := func(inputSortKey string) []string {
-		proc, err := compiler.ParseOp("count() by every(1s), ip")
+		proc, err := comp.Parse("count() by every(1s), ip")
 		assert.NoError(t, err)
 
 		zctx := zed.NewContext()
@@ -306,7 +309,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 			},
 		}
 		layout := order.NewLayout(order.Asc, field.List{field.New(inputSortKey)})
-		query, err := runtime.NewQueryOnOrderedReader(context.Background(), zctx, proc, cr, layout, nil)
+		query, err := newQueryOnOrderedReader(context.Background(), zctx, comp, proc, cr, layout)
 		require.NoError(t, err)
 		defer query.Pull(true)
 		err = zbuf.CopyPuller(checker, query)
@@ -324,3 +327,13 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 type nopCloser struct{ io.Writer }
 
 func (*nopCloser) Close() error { return nil }
+
+func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, c runtime.Compiler, program ast.Op, reader zio.Reader, layout order.Layout) (*runtime.Query, error) {
+	pctx := op.NewContext(ctx, zctx, nil)
+	q, err := c.CompileWithOrderDeprecated(pctx, program, reader, layout)
+	if err != nil {
+		pctx.Cancel()
+		return nil, err
+	}
+	return q, nil
+}

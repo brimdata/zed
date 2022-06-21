@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
@@ -128,13 +127,13 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 	})
 }
 
-func (b *Branch) DeleteByPredicate(ctx context.Context, lake op.DataAdaptor, src string, author, message, meta string) (ksuid.KSUID, error) {
+func (b *Branch) DeleteByPredicate(ctx context.Context, c runtime.Compiler, lake op.DataAdaptor, src string, author, message, meta string) (ksuid.KSUID, error) {
 	zctx := zed.NewContext()
 	appMeta, err := loadMeta(zctx, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	val, op, err := compiler.ParseRangeExpr(zctx, src, b.pool.Layout)
+	val, op, err := c.ParseRangeExpr(zctx, src, b.pool.Layout)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -143,7 +142,7 @@ func (b *Branch) DeleteByPredicate(ctx context.Context, lake op.DataAdaptor, src
 		if err != nil {
 			return nil, err
 		}
-		copies, deletes, err := b.getDbpObjects(ctx, lake, val, op, parent.Commit)
+		copies, deletes, err := b.getDbpObjects(ctx, c, lake, val, op, parent.Commit)
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +151,7 @@ func (b *Branch) DeleteByPredicate(ctx context.Context, lake op.DataAdaptor, src
 			return nil, errors.New("nothing to delete")
 		}
 		// XXX Copied should be deleted if the commit fails.
-		copied, err := b.dbpCopies(ctx, base, copies, src)
+		copied, err := b.dbpCopies(ctx, c, base, copies, src)
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +174,7 @@ func (b *Branch) DeleteByPredicate(ctx context.Context, lake op.DataAdaptor, src
 	})
 }
 
-func (b *Branch) dbpCopies(ctx context.Context, snap *commits.Snapshot, copies []ksuid.KSUID, filter string) ([]data.Object, error) {
+func (b *Branch) dbpCopies(ctx context.Context, c runtime.Compiler, snap *commits.Snapshot, copies []ksuid.KSUID, filter string) ([]data.Object, error) {
 	if len(copies) == 0 {
 		return nil, nil
 	}
@@ -203,12 +202,12 @@ func (b *Branch) dbpCopies(ctx context.Context, snap *commits.Snapshot, copies [
 		defer readers[i].(*zngio.Reader).Close()
 	}
 	// Keeps values that don't fit the filter by adding "not".
-	flowgraph, err := compiler.ParseOp("not " + filter)
+	flowgraph, err := c.Parse("not " + filter)
 	if err != nil {
 		return nil, err
 	}
 	r := zio.NewCombiner(ctx, readers)
-	q, err := runtime.NewQueryOnReader(ctx, zctx, flowgraph, r, nil)
+	q, err := runtime.CompileQuery(ctx, zctx, c, flowgraph, []zio.Reader{r})
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +231,7 @@ func (b *Branch) dbpCopies(ctx context.Context, snap *commits.Snapshot, copies [
 
 // getDbpObjects gets the object IDs of objects effected by a delete by predicate
 // operation.
-func (b *Branch) getDbpObjects(ctx context.Context, lake op.DataAdaptor, val *zed.Value, op string, commit ksuid.KSUID) ([]ksuid.KSUID, []ksuid.KSUID, error) {
+func (b *Branch) getDbpObjects(ctx context.Context, c runtime.Compiler, lake op.DataAdaptor, val *zed.Value, op string, commit ksuid.KSUID) ([]ksuid.KSUID, []ksuid.KSUID, error) {
 	const dbp = `
 const THRESH = %s
 from %s@%s:objects
@@ -251,11 +250,11 @@ from %s@%s:objects
 	}
 	nullsMax := b.pool.Layout.Order == order.Asc
 	src := fmt.Sprintf(dbp, zson.MustFormatValue(val), b.pool.ID, commit, nullsMax, nullsMax, deletesField, op, copiesField, op)
-	flowgraph, err := compiler.ParseOp(src)
+	flowgraph, err := c.Parse(src)
 	if err != nil {
 		return nil, nil, err
 	}
-	q, err := runtime.NewQueryOnLake(ctx, zed.NewContext(), flowgraph, lake, nil, nil)
+	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), c, flowgraph, nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -448,12 +447,12 @@ func (b *Branch) Pool() *Pool {
 	return b.pool
 }
 
-func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+func (b *Branch) ApplyIndexRules(ctx context.Context, c runtime.Compiler, rules []index.Rule, ids []ksuid.KSUID) (ksuid.KSUID, error) {
 	idxrefs := make([]*index.Object, 0, len(rules)*len(ids))
 	for _, id := range ids {
 		//XXX make issue for this.
 		// This could be easily parallized with errgroup.
-		refs, err := b.indexObject(ctx, rules, id)
+		refs, err := b.indexObject(ctx, c, rules, id)
 		if err != nil {
 			return ksuid.Nil, err
 		}
@@ -466,14 +465,14 @@ func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []
 	})
 }
 
-func (b *Branch) UpdateIndex(ctx context.Context, rules []index.Rule) (ksuid.KSUID, error) {
+func (b *Branch) UpdateIndex(ctx context.Context, c runtime.Compiler, rules []index.Rule) (ksuid.KSUID, error) {
 	snap, err := b.pool.commits.Snapshot(ctx, b.Commit)
 	if err != nil {
 		return ksuid.Nil, err
 	}
 	var objects []*index.Object
 	for id, rules := range snap.Unindexed(rules) {
-		o, err := b.indexObject(ctx, rules, id)
+		o, err := b.indexObject(ctx, c, rules, id)
 		if err != nil {
 			return ksuid.Nil, err
 		}
@@ -505,14 +504,14 @@ func index_message(rules []index.Rule) string {
 	return "index rules applied: " + strings.Join(names, ",")
 }
 
-func (b *Branch) indexObject(ctx context.Context, rules []index.Rule, id ksuid.KSUID) ([]*index.Object, error) {
+func (b *Branch) indexObject(ctx context.Context, c runtime.Compiler, rules []index.Rule, id ksuid.KSUID) ([]*index.Object, error) {
 	r, err := b.engine.Get(ctx, data.RowObjectPath(b.pool.DataPath, id))
 	if err != nil {
 		return nil, err
 	}
 	reader := zngio.NewReader(r, zed.NewContext())
 	defer reader.Close()
-	w, err := index.NewCombiner(ctx, b.engine, b.pool.IndexPath, rules, id)
+	w, err := index.NewCombiner(ctx, c, b.engine, b.pool.IndexPath, rules, id)
 	if err != nil {
 		r.Close()
 		return nil, err

@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/index"
@@ -38,12 +37,12 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	// The client must look at the return code and interpret the result
 	// accordingly and when it sees a ZNG error after underway,
 	// the error should be relay that to the caller/user.
-	query, err := compiler.ParseOp(req.Query)
+	query, err := c.compiler.Parse(req.Query)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
 	}
-	flowgraph, err := runtime.NewQueryOnLake(r.Context(), zed.NewContext(), query, c.root, &req.Head, r.Logger)
+	flowgraph, err := runtime.CompileLakeQuery(r.Context(), zed.NewContext(), c.compiler, query, &req.Head, r.Logger)
 	if err != nil {
 		w.Error(err)
 		return
@@ -426,7 +425,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			w.Error(srverr.ErrInvalid("either object_ids or where must be set"))
 			return
 		}
-		commit, err = branch.DeleteByPredicate(r.Context(), c.root, payload.Where, message.Author, message.Body, message.Meta)
+		commit, err = branch.DeleteByPredicate(r.Context(), c.compiler, c.root, payload.Where, message.Author, message.Body, message.Meta)
 	}
 	if err != nil {
 		w.Error(err)
@@ -484,7 +483,7 @@ func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branc
 		w.Error(err)
 		return
 	}
-	commit, err := branch.ApplyIndexRules(r.Context(), rules, tags)
+	commit, err := branch.ApplyIndexRules(r.Context(), c.compiler, rules, tags)
 	if err != nil {
 		w.Error(err)
 		return
@@ -509,7 +508,7 @@ func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Bran
 		w.Error(err)
 		return
 	}
-	commit, err := branch.UpdateIndex(r.Context(), rules)
+	commit, err := branch.UpdateIndex(r.Context(), c.compiler, rules)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = srverr.ErrInvalid(err)

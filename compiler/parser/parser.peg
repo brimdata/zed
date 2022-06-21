@@ -808,14 +808,24 @@ Field
     }
 
 Array
-  = "[" __ exprs:OptionalExprs __ "]" {
-      RETURN(MAP("kind":"ArrayExpr", "exprs":exprs ))
+  = "[" __ elems:VectorElems __ "]" {
+      RETURN(MAP("kind":"ArrayExpr", "elems":elems ))
     }
 
 Set
-  = "|[" __ exprs:OptionalExprs __ "]|" {
-      RETURN(MAP("kind":"SetExpr", "exprs":exprs ))
+  = "|[" __ elems:VectorElems __ "]|" {
+      RETURN(MAP("kind":"SetExpr", "elems":elems ))
     }
+
+VectorElems 
+  = first:VectorElem rest:(__ "," __ e:VectorElem { RETURN(e) })* {
+      RETURN(PREPEND(first, rest))
+    }
+  / __ { RETURN(ARRAY()) }
+
+VectorElem
+  = Spread
+  / e:Expr { RETURN(MAP("kind":"VectorValue","expr":e)) }
 
 Map
   = "|{" __ exprs:Entries __ "}|" {

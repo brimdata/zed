@@ -1,13 +1,17 @@
-script: zc -C -P 2 "from 'pool-ts' | count() by y"
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby ts test
+  zc -C -P 2 "from test | count() by y" | sed -e 's/pool .* =>/pool POOL =>/'
 
 outputs:
   - name: stdout
     data: |
       from (
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+        pool POOL =>
           summarize partials-out
               count:=count() by y:=y
-        pool G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+        pool POOL =>
           summarize partials-out
               count:=count() by y:=y
       )

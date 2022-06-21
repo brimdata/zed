@@ -100,7 +100,8 @@ func (f *Flags) Init() error {
 	if f.outputFile == "-" {
 		f.outputFile = ""
 	}
-	if f.outputFile == "" && f.Format == "zng" && terminal.IsTerminalFile(os.Stdout) && !f.forceBinary {
+	if f.outputFile == "" && f.split == "" && f.Format == "zng" && !f.forceBinary &&
+		terminal.IsTerminalFile(os.Stdout) {
 		f.Format = "zson"
 		f.ZSON.Pretty = 0
 	}

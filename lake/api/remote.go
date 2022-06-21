@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/queryio"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
@@ -26,6 +27,10 @@ var _ Interface = (*remote)(nil)
 
 func NewRemoteLake(conn *client.Connection) Interface {
 	return &remote{conn}
+}
+
+func (l *remote) Root() *lake.Root {
+	return nil
 }
 
 func (r *remote) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {

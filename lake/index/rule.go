@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -64,9 +64,9 @@ func NewTypeRule(name string, typ zed.Type) *TypeRule {
 	}
 }
 
-func NewAggRule(name, prog string) (*AggRule, error) {
+func NewAggRule(c runtime.Compiler, name, prog string) (*AggRule, error) {
 	// make sure it compiles
-	if _, err := compiler.ParseOp(prog); err != nil {
+	if _, err := c.Parse(prog); err != nil {
 		return nil, err
 	}
 	return &AggRule{

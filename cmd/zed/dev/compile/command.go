@@ -5,8 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,11 +15,10 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/lake/mock"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zfmt"
-	"github.com/peterh/liner"
 )
 
 var Cmd = &charm.Spec{
@@ -54,7 +51,6 @@ func init() {
 
 type Command struct {
 	*root.Command
-	repl     bool
 	js       bool
 	pigeon   bool
 	proc     bool
@@ -69,7 +65,6 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.BoolVar(&c.repl, "repl", false, "enter repl")
 	f.BoolVar(&c.js, "js", false, "run javascript version of peg parser")
 	f.BoolVar(&c.pigeon, "pigeon", false, "run pigeon version of peg parser")
 	f.BoolVar(&c.proc, "proc", false, "run pigeon version of peg parser and marshal into ast.Op")
@@ -93,7 +88,7 @@ func (i *includes) Set(value string) error {
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init()
+	ctx, cleanup, err := c.Init()
 	if err != nil {
 		return err
 	}
@@ -127,10 +122,6 @@ func (c *Command) Run(args []string) error {
 			c.pigeon = true
 		}
 	}
-	if c.repl {
-		c.interactive()
-		return nil
-	}
 	var src string
 	if len(c.includes) > 0 {
 		for _, path := range c.includes {
@@ -142,7 +133,14 @@ func (c *Command) Run(args []string) error {
 		}
 	}
 	src += strings.Join(args, " ")
-	return c.parse(src)
+	var lk *lake.Root
+	if c.semantic || c.optimize || c.parallel != 0 {
+		lakeAPI, err := c.LakeFlags.Open(ctx)
+		if err == nil {
+			lk = lakeAPI.Root()
+		}
+	}
+	return c.parse(src, lk)
 }
 
 func (c *Command) header(msg string) {
@@ -154,7 +152,7 @@ func (c *Command) header(msg string) {
 	}
 }
 
-func (c *Command) parse(z string) error {
+func (c *Command) parse(z string, lk *lake.Root) error {
 	if c.js {
 		s, err := parsePEGjs(z)
 		if err != nil {
@@ -172,7 +170,7 @@ func (c *Command) parse(z string) error {
 		fmt.Println(s)
 	}
 	if c.proc {
-		p, err := compiler.ParseOp(z)
+		p, err := compiler.Parse(z)
 		if err != nil {
 			return err
 		}
@@ -180,7 +178,7 @@ func (c *Command) parse(z string) error {
 		c.writeProc(p)
 	}
 	if c.semantic {
-		runtime, err := c.compile(z)
+		runtime, err := c.compile(z, lk)
 		if err != nil {
 			return err
 		}
@@ -188,7 +186,7 @@ func (c *Command) parse(z string) error {
 		c.writeOp(runtime.Entry())
 	}
 	if c.optimize {
-		runtime, err := c.compile(z)
+		runtime, err := c.compile(z, lk)
 		if err != nil {
 			return err
 		}
@@ -199,7 +197,7 @@ func (c *Command) parse(z string) error {
 		c.writeOp(runtime.Entry())
 	}
 	if c.parallel > 0 {
-		runtime, err := c.compile(z)
+		runtime, err := c.compile(z, lk)
 		if err != nil {
 			return err
 		}
@@ -233,36 +231,24 @@ func (c *Command) writeOp(op dag.Op) {
 	}
 }
 
-func (c *Command) compile(z string) (*compiler.Runtime, error) {
-	p, err := compiler.ParseOp(z)
+func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
+	p, err := compiler.Parse(z)
 	if err != nil {
 		return nil, err
 	}
-	return compiler.New(op.DefaultContext(), p, mock.NewLake(), nil)
+	// XXX Avoid non-nil interface of nil lake.  This will go away when
+	// we eliminate op.DataAdaptor in a subsequent PR.
+	var adaptor op.DataAdaptor
+	if lk != nil {
+		adaptor = lk
+	}
+	return compiler.NewJob(op.DefaultContext(), p, adaptor, nil)
 }
 
 const nodeProblem = `
 Failed to run node on ./compiler/parser/run.js.  The "-js" flag is for PEG
 development and should only be used when running "zed dev compile" in the root
 directory of the Zed repository.`
-
-func (c *Command) interactive() {
-	rl := liner.NewLiner()
-	defer rl.Close()
-	for {
-		line, err := rl.Prompt("> ")
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		rl.AppendHistory(line)
-		if err := c.parse(line); err != nil {
-			log.Println(err)
-		}
-	}
-}
 
 func runNode(dir, line string) ([]byte, error) {
 	cmd := exec.Command("node", "./compiler/parser/run.js", "-e", "start")

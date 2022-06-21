@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/zbuf"
 
 	"github.com/brimdata/zed/index"
@@ -15,9 +14,9 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-func NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, object *Object) (*Writer, error) {
+func NewWriter(ctx context.Context, c runtime.Compiler, engine storage.Engine, path *storage.URI, object *Object) (*Writer, error) {
 	rwCh := make(rwChan)
-	indexer, err := newIndexer(ctx, engine, path, object, rwCh)
+	indexer, err := newIndexer(ctx, c, engine, path, object, rwCh)
 	if err != nil {
 		return nil, err
 	}
@@ -105,20 +104,20 @@ type indexer struct {
 	wg    sync.WaitGroup
 }
 
-func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, object *Object, r zio.Reader) (*indexer, error) {
+func newIndexer(ctx context.Context, c runtime.Compiler, engine storage.Engine, path *storage.URI, object *Object, r zio.Reader) (*indexer, error) {
 	rule := object.Rule
 	zedQuery := rule.Zed()
-	p, err := compiler.ParseOp(zedQuery)
+	p, err := c.Parse(zedQuery)
 	if err != nil {
 		return nil, err
 	}
 	zctx := zed.NewContext()
-	query, err := runtime.NewQueryOnReader(ctx, zctx, p, r, nil)
+	query, err := runtime.CompileQuery(ctx, zctx, c, p, []zio.Reader{r})
 	if err != nil {
 		return nil, err
 	}
 	keys := rule.RuleKeys()
-	writer, err := index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String(), keys)
+	writer, err := index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String(), keys, index.WriterOpts{})
 	if err != nil {
 		return nil, err
 	}

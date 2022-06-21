@@ -24,7 +24,7 @@ func seekDotMin(zctx *zed.Context) zedexpr.Evaluator {
 }
 
 func seekDotMax(zctx *zed.Context) zedexpr.Evaluator {
-	return zedexpr.NewDottedExpr(zctx, field.Dotted("seek.min"))
+	return zedexpr.NewDottedExpr(zctx, field.Dotted("seek.max"))
 }
 
 var MaxSpan = extent.NewGenericFromOrder(*zed.NewUint64(0), *zed.NewUint64(math.MaxUint64), order.Asc)

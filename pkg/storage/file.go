@@ -8,13 +8,16 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 
 	pkgfs "github.com/brimdata/zed/pkg/fs"
 )
 
 type FileSystem struct {
-	perm   os.FileMode
-	exists map[string]struct{}
+	perm os.FileMode
+
+	existsMu sync.RWMutex
+	exists   map[string]struct{}
 }
 
 var _ Engine = (*FileSystem)(nil)
@@ -109,13 +112,18 @@ func (f *FileSystem) checkPath(path string) error {
 	if dir == "." {
 		return nil
 	}
-	if _, ok := f.exists[dir]; ok {
+	f.existsMu.RLock()
+	_, ok := f.exists[dir]
+	f.existsMu.RUnlock()
+	if ok {
 		return nil
 	}
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
+	f.existsMu.Lock()
 	f.exists[dir] = struct{}{}
+	f.existsMu.Unlock()
 	return nil
 }
 

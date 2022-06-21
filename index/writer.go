@@ -45,18 +45,17 @@ import (
 // key changes), then you generally want to abort and cleanup by calling Abort()
 // instead of Close().
 type Writer struct {
-	uri         *storage.URI
-	keyer       *Keyer
-	zctx        *zed.Context
-	ectx        expr.Context
-	engine      storage.Engine
-	writer      *indexWriter
-	tmpdir      string
-	frameThresh int
-	iow         io.WriteCloser
-	childField  string
-	nlevel      int
-	order       order.Which
+	uri        *storage.URI
+	keyer      *Keyer
+	zctx       *zed.Context
+	ectx       expr.Context
+	engine     storage.Engine
+	opts       WriterOpts
+	writer     *indexWriter
+	tmpdir     string
+	iow        io.WriteCloser
+	childField string
+	nlevel     int
 }
 
 type indexWriter struct {
@@ -71,34 +70,38 @@ type indexWriter struct {
 	frameKey   *zed.Value
 }
 
+type WriterOpts struct {
+	FrameThresh   int
+	Order         order.Which
+	ZNGWriterOpts zngio.WriterOpts
+}
+
 // NewWriter returns a Writer ready to write a Zed index or it returns
 // an error.  The index is written to the URL provided in the path argument
 // while temporary file are written locally.  Calls to Write must
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
-func NewWriter(zctx *zed.Context, engine storage.Engine, path string, keys field.List, options ...Option) (*Writer, error) {
-	return NewWriterWithContext(context.Background(), zctx, engine, path, keys, options...)
+func NewWriter(zctx *zed.Context, engine storage.Engine, path string, keys field.List, opts WriterOpts) (*Writer, error) {
+	return NewWriterWithContext(context.Background(), zctx, engine, path, keys, opts)
 }
 
-func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, keys field.List, options ...Option) (*Writer, error) {
+func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, keys field.List, opts WriterOpts) (*Writer, error) {
 	if len(keys) == 0 {
 		return nil, errors.New("must specify at least one key")
+	}
+	if opts.FrameThresh == 0 {
+		opts.FrameThresh = frameThresh
+	}
+	if opts.FrameThresh > FrameMaxSize {
+		return nil, fmt.Errorf("frame threshold too large (%d)", opts.FrameThresh)
 	}
 	w := &Writer{
 		zctx:       zctx,
 		ectx:       expr.NewContext(),
 		engine:     engine,
 		childField: uniqChildField(keys),
-	}
-	for _, opt := range options {
-		opt.apply(w)
-	}
-	if w.frameThresh == 0 {
-		w.frameThresh = frameThresh
-	}
-	if w.frameThresh > FrameMaxSize {
-		return nil, fmt.Errorf("frame threshold too large (%d)", w.frameThresh)
+		opts:       opts,
 	}
 	var err error
 	w.uri, err = storage.ParseURI(path)
@@ -117,30 +120,10 @@ func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage
 	return w, err
 }
 
-type Option interface {
-	apply(*Writer)
-}
-
-type optionFunc func(*Writer)
-
-func (f optionFunc) apply(w *Writer) { f(w) }
-
-func FrameThresh(frameThresh int) Option {
-	return optionFunc(func(w *Writer) {
-		w.frameThresh = frameThresh
-	})
-}
-
-func Order(o order.Which) Option {
-	return optionFunc(func(w *Writer) {
-		w.order = o
-	})
-}
-
 func (w *Writer) Write(val *zed.Value) error {
 	if w.writer == nil {
 		var err error
-		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx)
+		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx, w.opts.ZNGWriterOpts)
 		if err != nil {
 			return err
 		}
@@ -178,8 +161,8 @@ func (w *Writer) Close() error {
 		// encountered, then the base layer writer was never created.
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
-		zw := zngio.NewWriter(w.iow, zngio.WriterOpts{})
-		err := writeTrailer(zw, w.zctx, w.childField, w.frameThresh, nil, w.keyer.Keys(), w.order)
+		zw := zngio.NewWriter(w.iow, w.opts.ZNGWriterOpts)
+		err := writeTrailer(zw, w.zctx, w.childField, w.opts.FrameThresh, nil, w.keyer.Keys(), w.opts.Order)
 		if err2 := w.iow.Close(); err == nil {
 			err = err2
 		}
@@ -249,7 +232,7 @@ func (w *Writer) finalize() error {
 			return err
 		}
 	}
-	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keyer.Keys(), w.order)
+	return writeTrailer(base.zng, w.zctx, w.childField, w.opts.FrameThresh, sizes, w.keyer.Keys(), w.opts.Order)
 }
 
 func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameThresh int, sections []int64, keys field.List, o order.Which) error {
@@ -269,7 +252,7 @@ func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameTh
 	return w.EndStream()
 }
 
-func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Context) (*indexWriter, error) {
+func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Context, opts zngio.WriterOpts) (*indexWriter, error) {
 	base.nlevel++
 	if base.nlevel >= MaxLevels {
 		return nil, ErrTooManyLevels
@@ -280,8 +263,8 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Conte
 		buffer:   writer,
 		ectx:     ectx,
 		name:     name,
-		zng:      zngio.NewWriter(writer, zngio.WriterOpts{}),
-		frameEnd: int64(base.frameThresh),
+		zng:      zngio.NewWriter(writer, opts),
+		frameEnd: int64(base.opts.FrameThresh),
 	}, nil
 }
 
@@ -290,7 +273,7 @@ func (w *indexWriter) newParent() (*indexWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newIndexWriter(w.base, file, file.Name(), w.ectx)
+	return newIndexWriter(w.base, file, file.Name(), w.ectx, w.base.opts.ZNGWriterOpts)
 }
 
 func (w *indexWriter) Close() error {
@@ -312,7 +295,7 @@ func (w *indexWriter) write(rec *zed.Value) error {
 		}
 		// endFrame will close the frame which will reset
 		// frameStart
-		w.frameEnd = w.frameStart + int64(w.base.frameThresh)
+		w.frameEnd = w.frameStart + int64(w.base.opts.FrameThresh)
 	}
 	if w.frameKey == nil {
 		// When we start a new frame, we want to create a key entry

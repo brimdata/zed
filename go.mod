@@ -34,7 +34,7 @@ require (
 	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6
 	golang.org/x/text v0.3.4
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gopkg.in/yaml.v3 v3.0.0-20210106172901-c476de37821d
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

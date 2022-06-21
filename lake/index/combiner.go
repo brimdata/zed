@@ -5,17 +5,18 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
 )
 
 type Combiner []*Writer
 
-func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, rules []Rule, id ksuid.KSUID) (Combiner, error) {
+func NewCombiner(ctx context.Context, c runtime.Compiler, engine storage.Engine, path *storage.URI, rules []Rule, id ksuid.KSUID) (Combiner, error) {
 	writers := make(Combiner, 0, len(rules))
 	for _, rule := range rules {
 		o := &Object{Rule: rule, ID: id}
-		w, err := NewWriter(ctx, engine, path, o)
+		w, err := NewWriter(ctx, c, engine, path, o)
 		if err != nil {
 			writers.Abort()
 			return nil, err

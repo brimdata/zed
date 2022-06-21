@@ -30,7 +30,7 @@ func TestSearch(t *testing.T) {
 {key:"key5",value:"value5"}
 {key:"key6",value:"value6"}
 `
-	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data), field.DottedList("key"))
+	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data), field.DottedList("key"), index.WriterOpts{})
 	kv, err := finder.ParseKeys(`"key2"`)
 	require.NoError(t, err)
 	rec, err := finder.Lookup(kv...)
@@ -46,7 +46,7 @@ func TestMicroIndex(t *testing.T) {
 	require.NoError(t, err)
 	zctx := zed.NewContext()
 	engine := storage.NewLocalEngine()
-	writer, err := index.NewWriter(zctx, engine, path, field.DottedList("key"))
+	writer, err := index.NewWriter(zctx, engine, path, field.DottedList("key"), index.WriterOpts{})
 	require.NoError(t, err)
 	err = zio.Copy(writer, stream)
 	require.NoError(t, err)
@@ -107,7 +107,7 @@ func TestNearest(t *testing.T) {
 
 	}
 	engine := storage.NewLocalEngine()
-	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.Order(order.Desc))
+	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.WriterOpts{Order: order.Desc})
 	t.Run("Descending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, desc, ">", c.value, c.gt)
@@ -117,10 +117,11 @@ func TestNearest(t *testing.T) {
 			runtest(t, desc, "==", c.value, c.eql)
 		}
 	})
-	q, err := runtime.NewQueryOnReader(context.Background(), zed.NewContext(), compiler.MustParseOp("sort ts"), reader(records), nil)
+	comp := compiler.NewCompiler()
+	q, err := runtime.CompileQuery(context.Background(), zed.NewContext(), comp, compiler.MustParse("sort ts"), []zio.Reader{reader(records)})
 	defer q.Pull(true)
 	require.NoError(t, err)
-	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.Order(order.Asc))
+	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.WriterOpts{Order: order.Asc})
 	t.Run("Ascending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, asc, ">", c.value, c.gt)
@@ -132,8 +133,8 @@ func TestNearest(t *testing.T) {
 	})
 }
 
-func buildAndOpen(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, opts ...index.Option) *index.Finder {
-	return openFinder(t, build(t, engine, r, keys, opts...))
+func buildAndOpen(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, opts index.WriterOpts) *index.Finder {
+	return openFinder(t, build(t, engine, r, keys, opts))
 }
 
 func openFinder(t *testing.T, path string) *index.Finder {
@@ -146,9 +147,9 @@ func openFinder(t *testing.T, path string) *index.Finder {
 	return finder
 }
 
-func build(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, opts ...index.Option) string {
+func build(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, opts index.WriterOpts) string {
 	path := filepath.Join(t.TempDir(), "test.zng")
-	writer, err := index.NewWriter(zed.NewContext(), engine, path, keys, opts...)
+	writer, err := index.NewWriter(zed.NewContext(), engine, path, keys, opts)
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(writer, r))
 	require.NoError(t, writer.Close())

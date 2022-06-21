@@ -21,6 +21,7 @@ import (
 )
 
 type Interface interface {
+	Root() *lake.Root
 	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error)
 	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)

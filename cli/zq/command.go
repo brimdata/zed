@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/queryflags"
 	"github.com/brimdata/zed/cli/runtimeflags"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
@@ -156,7 +157,8 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	query, err := runtime.NewQueryOnFileSystem(ctx, zctx, flowgraph, readers, cli.NewFileAdaptor(local))
+	comp := compiler.NewFileSystemCompiler(cli.NewFileAdaptor(local))
+	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, readers)
 	if err != nil {
 		return err
 	}
