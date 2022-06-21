@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
@@ -39,14 +40,14 @@ var ErrJoinParents = errors.New("join requires two upstream parallel query paths
 
 type Builder struct {
 	pctx       *op.Context
-	adaptor    op.DataAdaptor
+	source     *data.Source
 	schedulers map[dag.Source]op.Scheduler
 }
 
-func NewBuilder(pctx *op.Context, adaptor op.DataAdaptor) *Builder {
+func NewBuilder(pctx *op.Context, source *data.Source) *Builder {
 	return &Builder{
 		pctx:       pctx,
-		adaptor:    adaptor,
+		source:     source,
 		schedulers: make(map[dag.Source]op.Scheduler),
 	}
 }
@@ -535,7 +536,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			sched, err = b.source.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -545,7 +546,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.PoolMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			sched, err = b.source.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -559,7 +560,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			sched, err = b.source.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -569,7 +570,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.LakeMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			sched, err = b.source.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -577,13 +578,13 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		}
 		source = from.NewScheduler(b.pctx, sched)
 	case *dag.HTTP:
-		puller, err := b.adaptor.Open(b.pctx.Context, b.pctx.Zctx, src.URL, src.Format, pushdown)
+		puller, err := b.source.Open(b.pctx.Context, b.pctx.Zctx, src.URL, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}
 		source = from.NewPuller(b.pctx, puller)
 	case *dag.File:
-		scanner, err := b.adaptor.Open(b.pctx.Context, b.pctx.Zctx, src.Path, src.Format, pushdown)
+		scanner, err := b.source.Open(b.pctx.Context, b.pctx.Zctx, src.Path, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}
@@ -616,7 +617,7 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 	}
 	var span extent.Span
 	if lower.Bytes != nil || upper.Bytes != nil {
-		layout := b.adaptor.Layout(b.pctx.Context, src)
+		layout := b.source.Layout(b.pctx.Context, src)
 		span = extent.NewGenericFromOrder(*lower, *upper, layout.Order)
 	}
 	return span, nil

@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/parser"
@@ -29,7 +30,7 @@ type Job struct {
 	puller    zbuf.Puller
 }
 
-func NewJob(pctx *op.Context, inAST ast.Op, adaptor op.DataAdaptor, head *lakeparse.Commitish) (*Job, error) {
+func NewJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
 	parserAST := ast.Copy(inAST)
 	// An AST always begins with a Sequential op with at least one
 	// operator.  If the first op is a From or a Parallel whose branches
@@ -93,14 +94,14 @@ func NewJob(pctx *op.Context, inAST ast.Op, adaptor op.DataAdaptor, head *lakepa
 	if from != nil {
 		seq.Prepend(from)
 	}
-	entry, err := semantic.Analyze(pctx.Context, seq, adaptor, head)
+	entry, err := semantic.Analyze(pctx.Context, seq, src, head)
 	if err != nil {
 		return nil, err
 	}
 	return &Job{
 		pctx:      pctx,
-		builder:   kernel.NewBuilder(pctx, adaptor),
-		optimizer: optimizer.New(pctx.Context, entry, adaptor),
+		builder:   kernel.NewBuilder(pctx, src),
+		optimizer: optimizer.New(pctx.Context, entry, src),
 		readers:   readers,
 	}, nil
 }

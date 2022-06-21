@@ -44,8 +44,6 @@ type Root struct {
 	indexRules *index.Store
 }
 
-var _ op.DataAdaptor = (*Root)(nil)
-
 type LakeMagic struct {
 	Magic   string `zed:"magic"`
 	Version int    `zed:"version"`

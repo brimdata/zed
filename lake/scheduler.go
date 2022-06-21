@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
@@ -37,8 +36,8 @@ var _ op.Scheduler = (*Scheduler)(nil)
 
 func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) (*Scheduler, error) {
 	var idx *index.Filter
-	if kf := filter.(*kernel.Filter); kf != nil {
-		idx = index.NewFilter(pool.engine, pool.IndexPath, kf.Pushdown)
+	if pd := filter.Pushdown(); pd != nil {
+		idx = index.NewFilter(pool.engine, pool.IndexPath, pd)
 	}
 	return &Scheduler{
 		ctx:    ctx,

@@ -4,23 +4,11 @@ import (
 	"context"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
 
 const BatchLen = 100
-
-type DataAdaptor interface {
-	PoolID(context.Context, string) (ksuid.KSUID, error)
-	CommitObject(context.Context, ksuid.KSUID, string) (ksuid.KSUID, error)
-	Layout(context.Context, dag.Source) order.Layout
-	NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (Scheduler, error)
-	Open(context.Context, *zed.Context, string, string, zbuf.Filter) (zbuf.Puller, error)
-}
 
 type Scheduler interface {
 	PullScanTask() (zbuf.Puller, error)

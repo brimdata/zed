@@ -5,24 +5,24 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/op"
 )
 
 type Optimizer struct {
 	ctx     context.Context
 	entry   *dag.Sequential
-	adaptor op.DataAdaptor
+	source  *data.Source
 	layouts map[dag.Source]order.Layout
 }
 
-func New(ctx context.Context, entry *dag.Sequential, adaptor op.DataAdaptor) *Optimizer {
+func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optimizer {
 	return &Optimizer{
 		ctx:     ctx,
 		entry:   entry,
-		adaptor: adaptor,
+		source:  source,
 		layouts: make(map[dag.Source]order.Layout),
 	}
 }
@@ -185,7 +185,7 @@ func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, 
 	case *dag.HTTP:
 		return s.Layout, nil
 	case *dag.Pool, *dag.LakeMeta, *dag.PoolMeta, *dag.CommitMeta:
-		return o.adaptor.Layout(o.ctx, s), nil
+		return o.source.Layout(o.ctx, s), nil
 	case *dag.Pass:
 		return parent, nil
 	case *kernel.Reader:

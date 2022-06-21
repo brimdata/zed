@@ -17,7 +17,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/expr/extent"
-	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -127,7 +126,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 	})
 }
 
-func (b *Branch) DeleteByPredicate(ctx context.Context, c runtime.Compiler, lake op.DataAdaptor, src string, author, message, meta string) (ksuid.KSUID, error) {
+func (b *Branch) DeleteByPredicate(ctx context.Context, c runtime.Compiler, src string, author, message, meta string) (ksuid.KSUID, error) {
 	zctx := zed.NewContext()
 	appMeta, err := loadMeta(zctx, meta)
 	if err != nil {
@@ -142,7 +141,7 @@ func (b *Branch) DeleteByPredicate(ctx context.Context, c runtime.Compiler, lake
 		if err != nil {
 			return nil, err
 		}
-		copies, deletes, err := b.getDbpObjects(ctx, c, lake, val, op, parent.Commit)
+		copies, deletes, err := b.getDbpObjects(ctx, c, val, op, parent.Commit)
 		if err != nil {
 			return nil, err
 		}
@@ -231,7 +230,7 @@ func (b *Branch) dbpCopies(ctx context.Context, c runtime.Compiler, snap *commit
 
 // getDbpObjects gets the object IDs of objects effected by a delete by predicate
 // operation.
-func (b *Branch) getDbpObjects(ctx context.Context, c runtime.Compiler, lake op.DataAdaptor, val *zed.Value, op string, commit ksuid.KSUID) ([]ksuid.KSUID, []ksuid.KSUID, error) {
+func (b *Branch) getDbpObjects(ctx context.Context, c runtime.Compiler, val *zed.Value, op string, commit ksuid.KSUID) ([]ksuid.KSUID, []ksuid.KSUID, error) {
 	const dbp = `
 const THRESH = %s
 from %s@%s:objects

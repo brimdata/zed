@@ -1,21 +1,15 @@
 package compiler
 
 import (
-	"context"
-	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/segmentio/ksuid"
 )
 
 func NewCompiler() runtime.Compiler {
@@ -31,8 +25,7 @@ func (i *anyCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader)
 
 //XXX currently used only by group-by test, need to deprecate
 func (*anyCompiler) CompileWithOrderDeprecated(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
-	adaptor := &internalAdaptor{}
-	job, err := NewJob(pctx, o, adaptor, nil)
+	job, err := NewJob(pctx, o, data.NewSource(nil, nil), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47,26 +40,4 @@ func (*anyCompiler) CompileWithOrderDeprecated(pctx *op.Context, o ast.Op, r zio
 
 func (*anyCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
 	panic("NewLakeQuery called on compiler.anyCompiler")
-}
-
-type internalAdaptor struct{}
-
-func (*internalAdaptor) CommitObject(context.Context, ksuid.KSUID, string) (ksuid.KSUID, error) {
-	return ksuid.Nil, nil
-}
-
-func (*internalAdaptor) PoolID(context.Context, string) (ksuid.KSUID, error) {
-	return ksuid.Nil, nil
-}
-
-func (*internalAdaptor) Layout(context.Context, dag.Source) order.Layout {
-	return order.Nil
-}
-
-func (*internalAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (op.Scheduler, error) {
-	return nil, errors.New("invalid pool or file scan specified for internally streamed Zed query")
-}
-
-func (*internalAdaptor) Open(context.Context, *zed.Context, string, string, zbuf.Filter) (zbuf.Puller, error) {
-	return nil, errors.New("invalid file or URL access for internally streamed Zed query")
 }
