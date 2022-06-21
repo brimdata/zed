@@ -18,8 +18,7 @@ type fsCompiler struct {
 }
 
 func NewFileSystemCompiler(engine storage.Engine) runtime.Compiler {
-	src := data.NewSource(engine, nil)
-	return &fsCompiler{src: src}
+	return &fsCompiler{src: data.NewSource(engine, nil)}
 }
 
 func (f *fsCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
