@@ -459,7 +459,7 @@ func (b *Branch) ApplyIndexRules(ctx context.Context, c runtime.Compiler, rules 
 		idxrefs = append(idxrefs, refs...)
 	}
 	author := "indexer"
-	message := index_message(rules)
+	message := indexMessage(rules)
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
 		return commits.NewAddIndexesObject(parent.Commit, author, message, retries, idxrefs), nil
 	})
@@ -482,13 +482,13 @@ func (b *Branch) UpdateIndex(ctx context.Context, c runtime.Compiler, rules []in
 		return ksuid.Nil, commits.ErrEmptyTransaction
 	}
 	const author = "indexer"
-	message := index_message(rules)
+	message := indexMessage(rules)
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
 		return commits.NewAddIndexesObject(parent.Commit, author, message, retries, objects), nil
 	})
 }
 
-func index_message(rules []index.Rule) string {
+func indexMessage(rules []index.Rule) string {
 	skip := make(map[string]struct{})
 	var names []string
 	for _, r := range rules {
