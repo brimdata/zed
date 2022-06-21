@@ -37,7 +37,7 @@ type Flags struct {
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	f.aggMemMax = auto.NewBytes(uint64(agg.MaxValueSize))
-	fs.Var(&f.aggMemMax, "aggmem", "maximum memory used by aggregate function values in MiB, MB, etc")
+	fs.Var(&f.aggMemMax, "aggmem", "maximum memory used per aggregate function value in MiB, MB, etc")
 	def := defaultMemMaxBytes()
 	f.sortMemMax = auto.NewBytes(def)
 	fs.Var(&f.sortMemMax, "sortmem", "maximum memory used by sort in MiB, MB, etc")
