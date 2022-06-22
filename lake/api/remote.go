@@ -156,3 +156,11 @@ func (r *remote) UpdateIndex(ctx context.Context, rules []string, poolID ksuid.K
 	res, err := r.conn.UpdateIndex(ctx, poolID, branchName, rules)
 	return res.Commit, err
 }
+
+func (r *remote) AddVectors(ctx context.Context, pool ksuid.KSUID, branch string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	panic("TBD")
+}
+
+func (r *remote) DeleteVectors(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	panic("TBD")
+}

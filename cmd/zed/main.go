@@ -36,6 +36,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/serve"
 	"github.com/brimdata/zed/cmd/zed/use"
 	"github.com/brimdata/zed/cmd/zed/vacate"
+	"github.com/brimdata/zed/cmd/zed/vector"
 )
 
 func main() {
@@ -58,6 +59,7 @@ func main() {
 	zed.Add(serve.Cmd)
 	zed.Add(use.Cmd)
 	zed.Add(vacate.Cmd)
+	zed.Add(vector.Cmd)
 	zed.Add(dev.Cmd)
 	if err := root.Zed.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)

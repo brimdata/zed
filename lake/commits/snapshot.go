@@ -20,6 +20,7 @@ type View interface {
 	Lookup(ksuid.KSUID) (*data.Object, error)
 	LookupIndex(ksuid.KSUID, ksuid.KSUID) (*index.Object, error)
 	LookupIndexObjectRules(ksuid.KSUID) ([]index.Rule, error)
+	HasVector(ksuid.KSUID) bool
 	Select(extent.Span, order.Which) DataObjects
 	SelectAll() DataObjects
 	SelectIndexes(extent.Span, order.Which) []*index.Object
@@ -32,6 +33,8 @@ type Writeable interface {
 	DeleteObject(ksuid.KSUID) error
 	AddIndexObject(*index.Object) error
 	DeleteIndexObject(ksuid.KSUID, ksuid.KSUID) error
+	AddVector(ksuid.KSUID) error
+	DeleteVector(ksuid.KSUID) error
 }
 
 // A snapshot summarizes the pool state at any point in
@@ -40,6 +43,7 @@ type Writeable interface {
 type Snapshot struct {
 	objects map[ksuid.KSUID]*data.Object
 	indexes index.Map
+	vectors map[ksuid.KSUID]struct{}
 }
 
 var _ View = (*Snapshot)(nil)
@@ -49,6 +53,7 @@ func NewSnapshot() *Snapshot {
 	return &Snapshot{
 		objects: make(map[ksuid.KSUID]*data.Object),
 		indexes: make(index.Map),
+		vectors: make(map[ksuid.KSUID]struct{}),
 	}
 }
 
@@ -87,6 +92,23 @@ func (s *Snapshot) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
 	return nil
 }
 
+func (s *Snapshot) AddVector(id ksuid.KSUID) error {
+	if _, ok := s.vectors[id]; ok {
+		return fmt.Errorf("%s: add of a duplicate vector of data object: %w", id, ErrWriteConflict)
+	}
+	s.vectors[id] = struct{}{}
+	return nil
+}
+
+func (s *Snapshot) DeleteVector(id ksuid.KSUID) error {
+	_, ok := s.vectors[id]
+	if !ok {
+		return fmt.Errorf("%s: delete of a non-present vector: %w", id, ErrWriteConflict)
+	}
+	delete(s.vectors, id)
+	return nil
+}
+
 func Exists(view View, id ksuid.KSUID) bool {
 	_, err := view.Lookup(id)
 	return err == nil
@@ -122,6 +144,11 @@ func (s *Snapshot) LookupIndexObjectRules(id ksuid.KSUID) ([]index.Rule, error) 
 		return nil, fmt.Errorf("%s: %w", id, ErrNotFound)
 	}
 	return r.Rules(), nil
+}
+
+func (s *Snapshot) HasVector(id ksuid.KSUID) bool {
+	_, ok := s.vectors[id]
+	return ok
 }
 
 func (s *Snapshot) Select(scan extent.Span, order order.Which) DataObjects {
@@ -181,6 +208,9 @@ func (s *Snapshot) Copy() *Snapshot {
 	for key, val := range s.objects {
 		out.objects[key] = val
 	}
+	for key := range s.vectors {
+		out.vectors[key] = struct{}{}
+	}
 	out.indexes = s.indexes.Copy()
 	return out
 }
@@ -194,6 +224,11 @@ func (s *Snapshot) serialize() ([]byte, error) {
 	zs.Decorate(zson.StylePackage)
 	for _, o := range s.objects {
 		if err := zs.Write(&Add{Object: *o}); err != nil {
+			return nil, err
+		}
+	}
+	for id := range s.vectors {
+		if err := zs.Write(&AddVector{ID: id}); err != nil {
 			return nil, err
 		}
 	}
@@ -252,6 +287,18 @@ func PlayAction(w Writeable, action Action) error {
 		err = w.AddIndexObject(&action.Object)
 	case *DeleteIndex:
 		err = w.DeleteIndexObject(action.RuleID, action.ID)
+	case *AddVector:
+		if err := w.AddVector(action.ID); err != nil {
+			return err
+		}
+	case *DeleteVector:
+		if err := w.DeleteVector(action.ID); err != nil {
+			return err
+		}
+	case *Commit:
+		// ignore
+	default:
+		err = fmt.Errorf("lake.commits.PlayAction: unknown action %T", action)
 	}
 	return err
 }
@@ -264,4 +311,15 @@ func Play(w Writeable, o *Object) error {
 		}
 	}
 	return nil
+}
+
+func Vectors(view View) *Snapshot {
+	snap := NewSnapshot()
+	all := view.SelectAll()
+	for _, o := range all {
+		if view.HasVector(o.ID) {
+			snap.AddDataObject(o)
+		}
+	}
+	return snap
 }

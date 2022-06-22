@@ -64,6 +64,22 @@ func NewAddIndexesObject(parent ksuid.KSUID, author, message string, retries int
 	return o
 }
 
+func NewAddVectorsObject(parent ksuid.KSUID, author, message string, ids []ksuid.KSUID, retries int) *Object {
+	o := NewObject(parent, author, message, zed.Value{zed.TypeNull, nil}, retries)
+	for _, id := range ids {
+		o.appendAddVector(id)
+	}
+	return o
+}
+
+func NewDeleteVectorsObject(parent ksuid.KSUID, author, message string, ids []ksuid.KSUID, retries int) *Object {
+	o := NewObject(parent, author, message, zed.Value{zed.TypeNull, nil}, retries)
+	for _, id := range ids {
+		o.appendDeleteVector(id)
+	}
+	return o
+}
+
 func (o *Object) append(action Action) {
 	o.Actions = append(o.Actions, action)
 }
@@ -82,6 +98,14 @@ func (o *Object) appendAddIndex(i *index.Object) {
 
 func (o *Object) appendDeleteIndex(ruleID, id ksuid.KSUID) {
 	o.append(&DeleteIndex{Commit: o.Commit, RuleID: ruleID, ID: id})
+}
+
+func (o *Object) appendAddVector(id ksuid.KSUID) {
+	o.append(&AddVector{Commit: o.Commit, ID: id})
+}
+
+func (o *Object) appendDeleteVector(id ksuid.KSUID) {
+	o.append(&DeleteVector{Commit: o.Commit, ID: id})
 }
 
 func (o Object) Serialize() ([]byte, error) {

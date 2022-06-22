@@ -1,0 +1,36 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q POOL
+  zed use -q POOL
+  zed load -q in.zson
+  id=$(zed query -f text 'from POOL@main:objects | yield ksuid(id)')
+  zed vector add -q $id
+  zed query -Z 'from POOL@main:vectors | drop id'
+  echo ===
+  zed vector delete -q $id
+  zed query -Z 'from POOL@main:vectors | drop id'
+  echo ===
+
+inputs:
+  - name: in.zson
+    data: |
+      {x:1}
+      {s:"hello",a:[1,2,3]}
+      {s:"world",a:[3,4,5]}
+      {x:2}
+      {x:3,y:4}
+
+outputs:
+  - name: stdout
+    data: |
+      {
+          meta: {
+              first: null,
+              last: null,
+              count: 5 (uint64),
+              size: 72
+          } (=data.Meta)
+      }
+      ===
+      ===

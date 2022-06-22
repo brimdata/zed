@@ -231,3 +231,27 @@ func (l *local) UpdateIndex(ctx context.Context, names []string, poolID ksuid.KS
 	}
 	return branch.UpdateIndex(ctx, l.compiler, rules)
 }
+
+func (l *local) AddVectors(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	commitID, err := branch.AddVectors(ctx, ids, message.Author, message.Body)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return commitID, nil
+}
+
+func (l *local) DeleteVectors(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	commitID, err := branch.DeleteVectors(ctx, ids, message.Author, message.Body)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return commitID, nil
+}
