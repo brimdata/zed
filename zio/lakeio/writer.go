@@ -17,6 +17,7 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/pkg/units"
+	"github.com/brimdata/zed/runtime/meta"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -93,7 +94,7 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 		formatDataObject(b, &v, "", 0)
 	case *data.Object:
 		formatDataObject(b, v, "", 0)
-	case lake.Partition:
+	case meta.Partition:
 		formatPartition(b, v)
 	case *commits.Commit:
 		branches := w.branches[v.ID]
@@ -173,7 +174,7 @@ func formatDataObject(b *bytes.Buffer, object *data.Object, prefix string, inden
 	b.WriteByte('\n')
 }
 
-func formatPartition(b *bytes.Buffer, p lake.Partition) {
+func formatPartition(b *bytes.Buffer, p meta.Partition) {
 	b.WriteString("from ")
 	b.WriteString(zson.String(*p.First()))
 	b.WriteString(" to ")

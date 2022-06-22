@@ -13,6 +13,7 @@ import (
 	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -26,7 +27,7 @@ type testClient struct {
 	*client.Connection
 }
 
-func (c *testClient) TestPoolStats(id ksuid.KSUID) lake.PoolStats {
+func (c *testClient) TestPoolStats(id ksuid.KSUID) exec.PoolStats {
 	r, err := c.Connection.PoolStats(context.Background(), id)
 	require.NoError(c, err)
 	return r

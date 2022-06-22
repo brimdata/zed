@@ -1,4 +1,4 @@
-package lake
+package exec
 
 import (
 	"context"
@@ -6,40 +6,43 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr/extent"
-	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime/meta"
+	"github.com/brimdata/zed/runtime/op/from"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/segmentio/ksuid"
 	"golang.org/x/sync/errgroup"
 )
 
-type Scheduler struct {
+type Planner struct {
 	ctx      context.Context
 	zctx     *zed.Context
-	pool     *Pool
+	pool     *lake.Pool
 	snap     commits.View
 	span     extent.Span
 	filter   zbuf.Filter
 	index    *index.Filter
 	once     sync.Once
-	ch       chan Partition
+	ch       chan meta.Partition
 	group    *errgroup.Group
 	progress zbuf.Progress
 }
 
-var _ op.Scheduler = (*Scheduler)(nil)
+var _ from.Planner = (*Planner)(nil)
 
-func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) (*Scheduler, error) {
+func NewSortedPlanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, snap commits.View, span extent.Span, filter zbuf.Filter) (*Planner, error) {
 	var idx *index.Filter
 	if pd := filter.Pushdown(); pd != nil {
-		idx = index.NewFilter(pool.engine, pool.IndexPath, pd)
+		idx = index.NewFilter(pool.Storage(), pool.IndexPath, pd)
 	}
-	return &Scheduler{
+	return &Planner{
 		ctx:    ctx,
 		zctx:   zctx,
 		pool:   pool,
@@ -47,62 +50,62 @@ func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap
 		span:   span,
 		filter: filter,
 		index:  idx,
-		ch:     make(chan Partition),
+		ch:     make(chan meta.Partition),
 	}, nil
 }
 
-func (s *Scheduler) Progress() zbuf.Progress {
-	return s.progress.Copy()
+func (p *Planner) Progress() zbuf.Progress {
+	return p.progress.Copy()
 }
 
-func (s *Scheduler) PullScanTask() (zbuf.Puller, error) {
-	s.once.Do(func() {
-		s.run()
+func (p *Planner) PullWork() (zbuf.Puller, error) {
+	p.once.Do(func() {
+		p.run()
 	})
 	select {
-	case p := <-s.ch:
-		if p.Objects == nil {
-			return nil, s.group.Wait()
+	case part := <-p.ch:
+		if part.Objects == nil {
+			return nil, p.group.Wait()
 		}
-		return newSortedScanner(s, p)
-	case <-s.ctx.Done():
-		return nil, s.group.Wait()
+		return newSortedScanner(p, part)
+	case <-p.ctx.Done():
+		return nil, p.group.Wait()
 	}
 }
 
-func (s *Scheduler) run() {
+func (p *Planner) run() {
 	var ctx context.Context
-	s.group, ctx = errgroup.WithContext(s.ctx)
-	ch := s.ch
-	if s.index != nil {
+	p.group, ctx = errgroup.WithContext(p.ctx)
+	ch := p.ch
+	if p.index != nil {
 		// Make the index out channel buffered so the index filter reads ahead
 		// of the scan pass, but not too far ahead- the search may be aborted
 		// before the scan pass gets to the end and we don't want to waste
 		// resources running index lookups that aren't used.
-		ch = make(chan Partition)
-		s.group.Go(func() error {
-			defer close(s.ch)
-			return indexFilterPass(ctx, s.pool, s.snap, s.index, ch, s.ch)
+		ch = make(chan meta.Partition)
+		p.group.Go(func() error {
+			defer close(p.ch)
+			return indexFilterPass(ctx, p.pool, p.snap, p.index, ch, p.ch)
 		})
 	}
-	s.group.Go(func() error {
+	p.group.Go(func() error {
 		defer close(ch)
-		return ScanPartitions(ctx, s.snap, s.span, s.pool.Layout.Order, ch)
+		return ScanPartitions(ctx, p.snap, p.span, p.pool.Layout.Order, ch)
 	})
 }
 
 // PullScanWork returns the next span in the schedule.  This is useful for a
 // worker proc that pulls spans from teh scheduler, sends them to a remote
 // worker, and streams the results into the runtime DAG.
-func (s *Scheduler) PullScanWork() (Partition, error) {
-	s.once.Do(func() {
-		s.run()
+func (p *Planner) PullScanWork() (meta.Partition, error) {
+	p.once.Do(func() {
+		p.run()
 	})
 	select {
-	case p := <-s.ch:
-		return p, nil
-	case <-s.ctx.Done():
-		return Partition{}, s.group.Wait()
+	case part := <-p.ch:
+		return part, nil
+	case <-p.ctx.Done():
+		return meta.Partition{}, p.group.Wait()
 	}
 }
 
@@ -112,7 +115,7 @@ type scannerScheduler struct {
 	last     zbuf.Scanner
 }
 
-var _ op.Scheduler = (*scannerScheduler)(nil)
+var _ from.Planner = (*scannerScheduler)(nil)
 
 func newScannerScheduler(scanners ...zbuf.Scanner) *scannerScheduler {
 	return &scannerScheduler{
@@ -120,7 +123,7 @@ func newScannerScheduler(scanners ...zbuf.Scanner) *scannerScheduler {
 	}
 }
 
-func (s *scannerScheduler) PullScanTask() (zbuf.Puller, error) {
+func (s *scannerScheduler) PullWork() (zbuf.Puller, error) {
 	if s.last != nil {
 		s.progress.Add(s.last.Progress())
 		s.last = nil
@@ -137,7 +140,7 @@ func (s *scannerScheduler) Progress() zbuf.Progress {
 	return s.progress.Copy()
 }
 
-func indexFilterPass(ctx context.Context, pool *Pool, snap commits.View, filter *index.Filter, in <-chan Partition, out chan<- Partition) error {
+func indexFilterPass(ctx context.Context, pool *lake.Pool, snap commits.View, filter *index.Filter, in <-chan meta.Partition, out chan<- meta.Partition) error {
 	for p := range in {
 		objects := make([]*data.ObjectScan, 0, len(p.Objects))
 		for _, o := range p.Objects {
@@ -171,8 +174,8 @@ func indexFilterPass(ctx context.Context, pool *Pool, snap commits.View, filter 
 	return nil
 }
 
-func seekIndexByCount(ctx context.Context, pool *Pool, o *data.ObjectScan, span extent.Span) error {
-	r, err := pool.engine.Get(ctx, o.SeekObjectPath(pool.DataPath))
+func seekIndexByCount(ctx context.Context, pool *lake.Pool, o *data.ObjectScan, span extent.Span) error {
+	r, err := pool.Storage().Get(ctx, o.SeekObjectPath(pool.DataPath))
 	if err != nil {
 		return err
 
@@ -217,7 +220,7 @@ func ScanSpanInOrder(ctx context.Context, snap commits.View, span extent.Span, o
 // ScanPartitions partitions all the data objects in snap overlapping
 // span into non-overlapping partitions, sorts them by pool key and order,
 // and sends them to ch.
-func ScanPartitions(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- Partition) error {
+func ScanPartitions(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- meta.Partition) error {
 	objects := snap.Select(span, o)
 	for _, p := range PartitionObjects(objects, o) {
 		if span != nil {
@@ -241,4 +244,20 @@ func ScanIndexes(ctx context.Context, snap commits.View, span extent.Span, o ord
 		}
 	}
 	return nil
+}
+
+func NewPlanner(ctx context.Context, zctx *zed.Context, p *lake.Pool, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (from.Planner, error) {
+	snap, err := p.Snapshot(ctx, commit)
+	if err != nil {
+		return nil, err
+	}
+	return NewSortedPlanner(ctx, zctx, p, snap, span, filter)
+}
+
+func NewPlannerByID(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (from.Planner, error) {
+	pool, err := r.OpenPool(ctx, poolID)
+	if err != nil {
+		return nil, err
+	}
+	return NewPlanner(ctx, zctx, pool, commit, span, filter)
 }

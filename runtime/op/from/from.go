@@ -5,16 +5,21 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
-type Proc struct {
-	sched  op.Scheduler
-	puller zbuf.Puller
-	done   bool
-	err    error
+type Planner interface {
+	PullWork() (zbuf.Puller, error)
+	Progress() zbuf.Progress
 }
 
-func NewScheduler(pctx *op.Context, sched op.Scheduler) *Proc {
+type Proc struct {
+	planner Planner
+	puller  zbuf.Puller
+	done    bool
+	err     error
+}
+
+func New(pctx *op.Context, planner Planner) *Proc {
 	return &Proc{
-		sched: sched,
+		planner: planner,
 	}
 }
 
@@ -39,11 +44,11 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	}
 	for {
 		if p.puller == nil {
-			if p.sched == nil {
+			if p.planner == nil {
 				p.close(nil)
 				return nil, nil
 			}
-			puller, err := p.sched.PullScanTask()
+			puller, err := p.planner.PullWork()
 			if puller == nil || err != nil {
 				p.close(err)
 				return nil, err

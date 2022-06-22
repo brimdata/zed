@@ -10,11 +10,6 @@ import (
 
 const BatchLen = 100
 
-type Scheduler interface {
-	PullScanTask() (zbuf.Puller, error)
-	Progress() zbuf.Progress
-}
-
 // Result is a convenient way to bundle the result of Proc.Pull() to
 // send over channels.
 type Result struct {

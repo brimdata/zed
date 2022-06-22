@@ -9,12 +9,10 @@ import (
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/pools"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/extent"
-	"github.com/brimdata/zed/runtime/op"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -104,16 +102,20 @@ func (p *Pool) removeBranch(ctx context.Context, name string) error {
 	return p.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (op.Scheduler, error) {
-	snap, err := p.commits.Snapshot(ctx, commit)
-	if err != nil {
-		return nil, err
-	}
-	return NewSortedScheduler(ctx, zctx, p, snap, span, filter)
-}
-
 func (p *Pool) Snapshot(ctx context.Context, commit ksuid.KSUID) (commits.View, error) {
 	return p.commits.Snapshot(ctx, commit)
+}
+
+func (p *Pool) OpenCommitLog(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID) zio.Reader {
+	return p.commits.OpenCommitLog(ctx, zctx, commit, ksuid.Nil)
+}
+
+func (p *Pool) OpenCommitLogAsZNG(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID) (*zngio.Reader, error) {
+	return p.commits.OpenAsZNG(ctx, zctx, commit, ksuid.Nil)
+}
+
+func (p *Pool) Storage() storage.Engine {
+	return p.engine
 }
 
 func (p *Pool) ListBranches(ctx context.Context) ([]branches.Config, error) {
@@ -136,7 +138,7 @@ func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, erro
 	return p.openBranch(ctx, branchRef)
 }
 
-func (p *Pool) batchifyBranches(ctx context.Context, zctx *zed.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
+func (p *Pool) BatchifyBranches(ctx context.Context, zctx *zed.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
@@ -168,7 +170,7 @@ type BranchTip struct {
 	Commit ksuid.KSUID
 }
 
-func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
+func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
@@ -192,49 +194,6 @@ func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 //XXX this is inefficient but is only meant for interactive queries...?
 func (p *Pool) ObjectExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
 	return p.engine.Exists(ctx, data.RowObjectPath(p.DataPath, id))
-}
-
-//XXX for backward compat keep this for now, and return branchstats for pool/main
-type PoolStats struct {
-	Size int64 `zed:"size"`
-	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
-	Span *nano.Span `zed:"span"`
-}
-
-func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, err error) {
-	ch := make(chan data.Object)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func() {
-		err = ScanSpan(ctx, snap, nil, p.Layout.Order, ch)
-		close(ch)
-	}()
-	// XXX this doesn't scale... it should be stored in the snapshot and is
-	// not easy to compute in the face of deletes...
-	var poolSpan *extent.Generic
-	for object := range ch {
-		info.Size += object.Size
-		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, p.Layout.Order)
-		} else {
-			poolSpan.Extend(&object.First)
-			poolSpan.Extend(&object.Last)
-		}
-	}
-	//XXX need to change API to take return key range
-	if poolSpan != nil {
-		min := poolSpan.First()
-		if min.Type == zed.TypeTime {
-			firstTs := zed.DecodeTime(min.Bytes)
-			lastTs := zed.DecodeTime(poolSpan.Last().Bytes)
-			if lastTs < firstTs {
-				firstTs, lastTs = lastTs, firstTs
-			}
-			span := nano.NewSpanTs(firstTs, lastTs+1)
-			info.Span = &span
-		}
-	}
-	return info, err
 }
 
 func (p *Pool) Main(ctx context.Context) (BranchMeta, error) {

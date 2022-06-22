@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/meta"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -27,7 +28,7 @@ func init() {
 		index.FieldRule{},
 		index.TypeRule{},
 		index.AggRule{},
-		lake.Partition{},
+		meta.Partition{},
 		pools.Config{},
 		lake.BranchMeta{},
 		lake.BranchTip{},

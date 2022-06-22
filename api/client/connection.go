@@ -20,6 +20,7 @@ import (
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -201,9 +202,9 @@ func (c *Connection) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
-func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (lake.PoolStats, error) {
+func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (exec.PoolStats, error) {
 	req := c.NewRequest(ctx, http.MethodGet, path.Join("/pool", id.String(), "stats"), nil)
-	var stats lake.PoolStats
+	var stats exec.PoolStats
 	err := c.doAndUnmarshal(req, &stats)
 	if errIsStatus(err, http.StatusNotFound) {
 		err = ErrPoolNotFound

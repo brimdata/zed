@@ -10,11 +10,11 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
-	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/service"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/ksuid"
@@ -74,7 +74,7 @@ func TestPoolStats(t *testing.T) {
 	conn.TestLoad(poolID, "main", strings.NewReader(src))
 
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
-	expected := lake.PoolStats{
+	expected := exec.PoolStats{
 		Span: &span,
 		Size: 84,
 	}
@@ -85,7 +85,7 @@ func TestPoolStatsNoData(t *testing.T) {
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	info := conn.TestPoolStats(poolID)
-	expected := lake.PoolStats{
+	expected := exec.PoolStats{
 		Size: 0,
 	}
 	require.Equal(t, expected, info)

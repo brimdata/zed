@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
@@ -39,16 +40,16 @@ import (
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
 type Builder struct {
-	pctx       *op.Context
-	source     *data.Source
-	schedulers map[dag.Source]op.Scheduler
+	pctx     *op.Context
+	source   *data.Source
+	planners map[dag.Source]from.Planner
 }
 
 func NewBuilder(pctx *op.Context, source *data.Source) *Builder {
 	return &Builder{
-		pctx:       pctx,
-		source:     source,
-		schedulers: make(map[dag.Source]op.Scheduler),
+		pctx:     pctx,
+		source:   source,
+		planners: make(map[dag.Source]from.Planner),
 	}
 }
 
@@ -74,8 +75,8 @@ func (b *Builder) zctx() *zed.Context {
 
 func (b *Builder) Meters() []zbuf.Meter {
 	var meters []zbuf.Meter
-	for _, sched := range b.schedulers {
-		meters = append(meters, sched)
+	for _, planner := range b.planners {
+		meters = append(meters, planner)
 	}
 	return meters
 }
@@ -520,63 +521,64 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			filter:  pushdown,
 			readers: src.Readers,
 		}
-		source = from.NewScheduler(b.pctx, sched)
-		b.schedulers[src] = sched
+		source = from.New(b.pctx, sched)
+		b.planners[src] = sched
 	case *dag.Pass:
 		source = parent
 	case *dag.Pool:
-		// We keep a map of schedulers indexed by *dag.Pool so we
-		// properly share parallel instances of a given scheduler
-		// across different DAG entry points.  The scanners from a
-		// common lake.ScanScheduler are distributed across the collection
-		// of op.From operators.
-		sched, ok := b.schedulers[src]
+		// We keep a map of planners indexed by *dag.Pool so we
+		// properly share parallel instances of a given planner
+		// across different DAG entry points.  The planners from a
+		// common exec.Planner are distributed across the collection
+		// of op.From operators and the planner distributes work across
+		// the parallel instances of trunks.
+		planner, ok := b.planners[src]
 		if !ok {
 			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.source.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
-			b.schedulers[src] = sched
+			b.planners[src] = planner
 		}
-		source = from.NewScheduler(b.pctx, sched)
+		source = from.New(b.pctx, planner)
 	case *dag.PoolMeta:
-		sched, ok := b.schedulers[src]
+		planner, ok := b.planners[src]
 		if !ok {
-			sched, err = b.source.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			planner, err = exec.NewPoolMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
 			if err != nil {
 				return nil, err
 			}
-			b.schedulers[src] = sched
+			b.planners[src] = planner
 		}
-		source = from.NewScheduler(b.pctx, sched)
+		source = from.New(b.pctx, planner)
 	case *dag.CommitMeta:
-		sched, ok := b.schedulers[src]
+		planner, ok := b.planners[src]
 		if !ok {
 			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.source.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			planner, err = exec.NewCommitMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
-			b.schedulers[src] = sched
+			b.planners[src] = planner
 		}
-		source = from.NewScheduler(b.pctx, sched)
+		source = from.New(b.pctx, planner)
 	case *dag.LakeMeta:
-		sched, ok := b.schedulers[src]
+		planner, ok := b.planners[src]
 		if !ok {
-			sched, err = b.source.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			planner, err = exec.NewLakeMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Meta, pushdown)
 			if err != nil {
 				return nil, err
 			}
-			b.schedulers[src] = sched
+			b.planners[src] = planner
 		}
-		source = from.NewScheduler(b.pctx, sched)
+		source = from.New(b.pctx, planner)
 	case *dag.HTTP:
 		puller, err := b.source.Open(b.pctx.Context, b.pctx.Zctx, src.URL, src.Format, pushdown)
 		if err != nil {
@@ -667,7 +669,7 @@ type readerScheduler struct {
 	progress zbuf.Progress
 }
 
-func (r *readerScheduler) PullScanTask() (zbuf.Puller, error) {
+func (r *readerScheduler) PullWork() (zbuf.Puller, error) {
 	if r.scanner != nil {
 		r.progress.Add(r.scanner.Progress())
 		r.scanner = nil
