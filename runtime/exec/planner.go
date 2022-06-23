@@ -175,7 +175,7 @@ func indexFilterPass(ctx context.Context, pool *lake.Pool, snap commits.View, fi
 }
 
 func seekIndexByCount(ctx context.Context, pool *lake.Pool, o *data.ObjectScan, span extent.Span) error {
-	r, err := pool.Storage().Get(ctx, o.SeekObjectPath(pool.DataPath))
+	r, err := pool.Storage().Get(ctx, o.SeekIndexURI(pool.DataPath))
 	if err != nil {
 		return err
 

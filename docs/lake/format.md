@@ -73,6 +73,7 @@ such an assumption).
 
 A data object is created by a single writer using a globally unique name
 with an embedded KSUID.  
+
 New objects are written in their entirety.  No updates, appends, or modifications
 may be made once an object exists.  Given these semantics, any such object may be
 trivially cached as neither its name nor content ever change.
@@ -82,23 +83,23 @@ resulting object is immutable, there is no possible write concurrency to manage
 with respect to a given object.
 
 A data object is composed of
-* the primary data object stored as one or two objects (for row and/or column layout),
+* the primary data object stored as one or two objects (for sequence and/or vector layout),
 * an optional seek index, and
 * zero or more search indexes.
 
-Data objects may be either in sequential form (i.e., ZNG) or column form (i.e., ZST),
+Data objects may be either in sequence form (i.e., ZNG) or vector form (i.e., ZST),
 or both forms may be present as a query optimizer may choose to use whatever
 representation is more efficient.
-When both row and column data objects are present, they must contain the same
+When both sequence and vector data objects are present, they must contain the same
 underlying Zed data.
 
 Immutable objects are named as follows:
 
 |object type|name|
 |-----------|----|
-|column data|`<pool-id>/data/<id>.zst`|
-|row data|`<pool-id>/data/<id>.zng`|
-|row seek index|`<pool-id>/data/<id>-seek.zng`|
+|vector data|`<pool-id>/data/<id>.zst`|
+|sequence data|`<pool-id>/data/<id>.zng`|
+|sequence seek index|`<pool-id>/data/<id>-seek.zng`|
 |search index|`<pool-id>/index/<id>-<index-id>.zng`|
 
 `<id>` is the KSUID of the data object.
@@ -110,9 +111,9 @@ The seek index maps pool key values to seek offsets in the ZNG file thereby
 allowing a scan to do a byte-range retrieval of the ZNG object when
 processing only a subset of data.
 
-> Note the ZST format will have seekable checkpoints based on the sort key that
-> are encoded into its metadata section so there is no need to have a separate
-> seek index for the columnar object.
+> Note the ZST format allows individual vector segments to be read in isolation
+> and the in-memory ZST representation is support for random access so there is
+> no need to have a seek index for the vector object.
 
 #### Commit History
 

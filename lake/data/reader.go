@@ -37,7 +37,7 @@ type Reader struct {
 // and if the provided span skips part of the object, the seek index will be used to
 // limit the reading window of the returned reader.
 func (o *ObjectScan) NewReader(ctx context.Context, engine storage.Engine, path *storage.URI, scanRange extent.Span, cmp expr.CompareFn) (*Reader, error) {
-	objectPath := o.RowObjectPath(path)
+	objectPath := o.SequenceURI(path)
 	reader, err := engine.Get(ctx, objectPath)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (o *ObjectScan) NewReader(ctx context.Context, engine storage.Engine, path 
 	}
 	rg := seekindex.Range{0, math.MaxInt64}
 	if !bytes.Equal(o.First.Bytes, span.First().Bytes) || !bytes.Equal(o.Last.Bytes, span.Last().Bytes) {
-		indexReader, err := engine.Get(ctx, o.SeekObjectPath(path))
+		indexReader, err := engine.Get(ctx, o.SeekIndexURI(path))
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				return sr, nil

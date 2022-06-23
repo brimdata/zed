@@ -37,7 +37,7 @@ type Writer struct {
 // Close as zed.Values from the various record bodies are referenced across
 // calls to Write.
 func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, order order.Which, poolKey field.Path, seekIndexStride int) (*Writer, error) {
-	out, err := engine.Put(ctx, o.RowObjectPath(path))
+	out, err := engine.Put(ctx, o.SequenceURI(path))
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 		seekIndexStride = DefaultSeekStride
 	}
 	w.seekIndexStride = seekIndexStride
-	seekOut, err := engine.Put(ctx, o.SeekObjectPath(path))
+	seekOut, err := engine.Put(ctx, o.SeekIndexURI(path))
 	if err != nil {
 		return nil, err
 	}

@@ -193,7 +193,7 @@ func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 
 //XXX this is inefficient but is only meant for interactive queries...?
 func (p *Pool) ObjectExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
-	return p.engine.Exists(ctx, data.RowObjectPath(p.DataPath, id))
+	return p.engine.Exists(ctx, data.SequenceURI(p.DataPath, id))
 }
 
 func (p *Pool) Main(ctx context.Context) (BranchMeta, error) {

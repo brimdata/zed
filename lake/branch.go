@@ -189,8 +189,7 @@ func (b *Branch) dbpCopies(ctx context.Context, c runtime.Compiler, snap *commit
 		// leverage the seek index to skip over irrelavant segments but we don't
 		// have a way to translate the delete filter into an extent.Span, so
 		// just read the whole file.
-		objectPath := o.RowObjectPath(b.pool.DataPath)
-		reader, err := b.pool.engine.Get(ctx, objectPath)
+		reader, err := b.pool.engine.Get(ctx, o.SequenceURI(b.pool.DataPath))
 		if err != nil {
 			return nil, err
 		}
@@ -502,7 +501,7 @@ func indexMessage(rules []index.Rule) string {
 }
 
 func (b *Branch) indexObject(ctx context.Context, c runtime.Compiler, rules []index.Rule, id ksuid.KSUID) ([]*index.Object, error) {
-	r, err := b.engine.Get(ctx, data.RowObjectPath(b.pool.DataPath, id))
+	r, err := b.engine.Get(ctx, data.SequenceURI(b.pool.DataPath, id))
 	if err != nil {
 		return nil, err
 	}
