@@ -162,7 +162,7 @@ func (w *Writer) Close() error {
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
 		zw := zngio.NewWriter(w.iow, w.opts.ZNGWriterOpts)
-		err := writeTrailer(w.zctx, zw, w.childField, w.opts.FrameThresh, nil, w.keyer.Keys(), w.opts.Order)
+		err := w.writeTrailer(zw, nil)
 		if err2 := w.iow.Close(); err == nil {
 			err = err2
 		}
@@ -232,24 +232,24 @@ func (w *Writer) finalize() error {
 			return err
 		}
 	}
-	return writeTrailer(w.zctx, base.zng, w.childField, w.opts.FrameThresh, sizes, w.keyer.Keys(), w.opts.Order)
+	return w.writeTrailer(base.zng, sizes)
 }
 
-func writeTrailer(zctx *zed.Context, w *zngio.Writer, childField string, frameThresh int, sections []int64, keys field.List, o order.Which) error {
+func (w *Writer) writeTrailer(zw *zngio.Writer, sections []int64) error {
 	meta := &FileMeta{
-		ChildOffsetField: childField,
-		FrameThresh:      frameThresh,
-		Keys:             keys,
-		Order:            o,
+		Order:            w.opts.Order,
+		ChildOffsetField: w.childField,
+		FrameThresh:      w.opts.FrameThresh,
+		Keys:             w.keyer.Keys(),
 	}
 	val, err := zngio.MarshalTrailer(FileType, Version, sections, meta)
 	if err != nil {
 		return err
 	}
-	if err := w.Write(&val); err != nil {
+	if err := zw.Write(&val); err != nil {
 		return err
 	}
-	return w.EndStream()
+	return zw.EndStream()
 }
 
 func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Context, opts zngio.WriterOpts) (*indexWriter, error) {
