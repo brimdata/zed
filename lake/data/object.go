@@ -135,28 +135,24 @@ func (o Object) ObjectPrefix(path *storage.URI) *storage.URI {
 	return path.AppendPath(o.ID.String())
 }
 
-func (o Object) RowObjectName() string {
-	return RowObjectName(o.ID)
+func (o Object) SequenceURI(path *storage.URI) *storage.URI {
+	return SequenceURI(path, o.ID)
 }
 
-func RowObjectName(id ksuid.KSUID) string {
-	return fmt.Sprintf("%s.zng", id)
+func SequenceURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
+	return path.AppendPath(fmt.Sprintf("%s.zng", id))
 }
 
-func (o Object) RowObjectPath(path *storage.URI) *storage.URI {
-	return RowObjectPath(path, o.ID)
+func (o Object) SeekIndexURI(path *storage.URI) *storage.URI {
+	return path.AppendPath(fmt.Sprintf("%s-seek.zng", o.ID))
 }
 
-func RowObjectPath(path *storage.URI, id ksuid.KSUID) *storage.URI {
-	return path.AppendPath(RowObjectName(id))
+func (o Object) VectorURI(path *storage.URI) *storage.URI {
+	return VectorURI(path, o.ID)
 }
 
-func (o Object) SeekObjectName() string {
-	return fmt.Sprintf("%s-seek.zng", o.ID)
-}
-
-func (o Object) SeekObjectPath(path *storage.URI) *storage.URI {
-	return path.AppendPath(o.SeekObjectName())
+func VectorURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
+	return path.AppendPath(fmt.Sprintf("%s.zst", id))
 }
 
 func (o Object) Range() string {
