@@ -9,7 +9,7 @@ type Mapper struct {
 	mapper *zed.Mapper
 }
 
-func NewMapper(reader Reader, zctx *zed.Context) *Mapper {
+func NewMapper(zctx *zed.Context, reader Reader) *Mapper {
 	return &Mapper{
 		Reader: reader,
 		mapper: zed.NewMapper(zctx),

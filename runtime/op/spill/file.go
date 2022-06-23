@@ -40,7 +40,7 @@ func NewTempFile() (*File, error) {
 	return NewFile(f), nil
 }
 
-func NewFileWithPath(path string, zctx *zed.Context) (*File, error) {
+func NewFileWithPath(path string) (*File, error) {
 	f, err := fs.Create(path)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (f *File) Rewind(zctx *zed.Context) error {
 	if f.Reader != nil {
 		f.Reader.Close()
 	}
-	f.Reader = zngio.NewReader(bufio.NewReader(f.file), zctx)
+	f.Reader = zngio.NewReader(zctx, bufio.NewReader(f.file))
 	return nil
 }
 

@@ -69,7 +69,7 @@ func (r *MergeSort) Spill(ctx context.Context, vals []zed.Value) error {
 		return err
 	}
 	filename := filepath.Join(r.tempDir, strconv.Itoa(r.nspill))
-	runFile, err := newPeeker(ctx, filename, r.nspill, zbuf.NewArray(vals), r.zctx)
+	runFile, err := newPeeker(ctx, r.zctx, filename, r.nspill, zbuf.NewArray(vals))
 	if err != nil {
 		return err
 	}

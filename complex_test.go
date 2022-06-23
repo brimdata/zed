@@ -15,7 +15,7 @@ import (
 
 func TestRecordAccessNamed(t *testing.T) {
 	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
-	reader := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
+	reader := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	rec, err := reader.Read()
 	require.NoError(t, err)
 	s := rec.Deref("foo").AsString()
@@ -31,7 +31,7 @@ func TestNonRecordDeref(t *testing.T) {
 null
 [1,2,3]
 |[1,2,3]|`
-	reader := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
+	reader := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	for {
 		val, err := reader.Read()
 		if val == nil {

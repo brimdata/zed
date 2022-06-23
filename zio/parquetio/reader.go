@@ -15,7 +15,7 @@ type Reader struct {
 	builder builder
 }
 
-func NewReader(r io.Reader, zctx *zed.Context) (*Reader, error) {
+func NewReader(zctx *zed.Context, r io.Reader) (*Reader, error) {
 	rs, ok := r.(io.ReadSeeker)
 	if !ok {
 		return nil, errors.New("reader cannot seek")

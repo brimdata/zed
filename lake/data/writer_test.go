@@ -31,7 +31,7 @@ func TestDataReaderWriterVector(t *testing.T) {
 	// Read back the ZST file and make sure it's the same.
 	get, err := engine.Get(ctx, object.VectorURI(tmp))
 	require.NoError(t, err)
-	reader, err := zstio.NewReader(get, zed.NewContext())
+	reader, err := zstio.NewReader(zed.NewContext(), get)
 	require.NoError(t, err)
 	v, err := reader.Read()
 	require.NoError(t, err)

@@ -28,7 +28,7 @@ type Reader struct {
 //	StringsOnly bool
 //}
 
-func NewReader(r io.Reader, zctx *zed.Context) *Reader {
+func NewReader(zctx *zed.Context, r io.Reader) *Reader {
 	preprocess := newPreprocess(r)
 	reader := csv.NewReader(preprocess)
 	reader.ReuseRecord = true

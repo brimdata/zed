@@ -294,7 +294,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		assert.NoError(t, err)
 
 		zctx := zed.NewContext()
-		zr := zsonio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
+		zr := zsonio.NewReader(zctx, strings.NewReader(strings.Join(data, "\n")))
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
 		zw := zsonio.NewWriter(&nopCloser{&outbuf}, zsonio.WriterOpts{})

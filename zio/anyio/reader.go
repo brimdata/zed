@@ -25,42 +25,42 @@ type ReaderOpts struct {
 	AwsCfg *aws.Config
 }
 
-func NewReader(r io.Reader, zctx *zed.Context) (zio.ReadCloser, error) {
-	return NewReaderWithOpts(r, zctx, ReaderOpts{})
+func NewReader(zctx *zed.Context, r io.Reader) (zio.ReadCloser, error) {
+	return NewReaderWithOpts(zctx, r, ReaderOpts{})
 }
 
-func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.ReadCloser, error) {
+func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.ReadCloser, error) {
 	if opts.Format != "" && opts.Format != "auto" {
-		return lookupReader(r, zctx, opts)
+		return lookupReader(zctx, r, opts)
 	}
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
-	zeekErr := match(zeekio.NewReader(track, zed.NewContext()), "zeek", 1)
+	zeekErr := match(zeekio.NewReader(zed.NewContext(), track), "zeek", 1)
 	if zeekErr == nil {
-		return zio.NopReadCloser(zeekio.NewReader(recorder, zctx)), nil
+		return zio.NopReadCloser(zeekio.NewReader(zctx, recorder)), nil
 	}
 	track.Reset()
 
 	// ZJSON must come before JSON and ZSON since it is a subset of both.
-	zjsonErr := match(zjsonio.NewReader(track, zed.NewContext()), "zjson", 1)
+	zjsonErr := match(zjsonio.NewReader(zed.NewContext(), track), "zjson", 1)
 	if zjsonErr == nil {
-		return zio.NopReadCloser(zjsonio.NewReader(recorder, zctx)), nil
+		return zio.NopReadCloser(zjsonio.NewReader(zctx, recorder)), nil
 	}
 	track.Reset()
 
 	// JSON comes before ZSON because the JSON reader is faster than the
 	// ZSON reader.  The number of values wanted is greater than one for the
 	// sake of tests.
-	jsonErr := match(jsonio.NewReader(track, zed.NewContext()), "json", 10)
+	jsonErr := match(jsonio.NewReader(zed.NewContext(), track), "json", 10)
 	if jsonErr == nil {
-		return zio.NopReadCloser(jsonio.NewReader(recorder, zctx)), nil
+		return zio.NopReadCloser(jsonio.NewReader(zctx, recorder)), nil
 	}
 	track.Reset()
 
-	zsonErr := match(zsonio.NewReader(track, zed.NewContext()), "zson", 1)
+	zsonErr := match(zsonio.NewReader(zed.NewContext(), track), "zson", 1)
 	if zsonErr == nil {
-		return zio.NopReadCloser(zsonio.NewReader(recorder, zctx)), nil
+		return zio.NopReadCloser(zsonio.NewReader(zctx, recorder)), nil
 	}
 	track.Reset()
 
@@ -69,19 +69,19 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	// validation to the user setting in the actual reader returned.
 	zngOpts := opts.ZNG
 	zngOpts.Validate = true
-	zngReader := zngio.NewReaderWithOpts(track, zed.NewContext(), zngOpts)
+	zngReader := zngio.NewReaderWithOpts(zed.NewContext(), track, zngOpts)
 	zngErr := match(zngReader, "zng", 1)
 	// Close zngReader to ensure that it does not continue to call track.Read.
 	zngReader.Close()
 	if zngErr == nil {
-		return zngio.NewReaderWithOpts(recorder, zctx, opts.ZNG), nil
+		return zngio.NewReaderWithOpts(zctx, recorder, opts.ZNG), nil
 	}
 	track.Reset()
 
-	zng21Reader := zng21io.NewReaderWithOpts(track, zed.NewContext(), zngOpts)
+	zng21Reader := zng21io.NewReaderWithOpts(zed.NewContext(), track, zngOpts)
 	zng21Err := match(zng21Reader, "zng21", 1)
 	if zng21Err == nil {
-		return zio.NopReadCloser(zng21io.NewReaderWithOpts(recorder, zctx, opts.ZNG)), nil
+		return zio.NopReadCloser(zng21io.NewReaderWithOpts(zctx, recorder, opts.ZNG)), nil
 	}
 	track.Reset()
 
@@ -92,9 +92,9 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 		csvErr = errors.New("csv: line 1: no comma found")
 	} else {
 		track.Reset()
-		csvErr = match(csvio.NewReader(track, zed.NewContext()), "csv", 1)
+		csvErr = match(csvio.NewReader(zed.NewContext(), track), "csv", 1)
 		if csvErr == nil {
-			return zio.NopReadCloser(csvio.NewReader(recorder, zctx)), nil
+			return zio.NopReadCloser(csvio.NewReader(zctx, recorder)), nil
 		}
 	}
 	track.Reset()

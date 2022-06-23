@@ -72,7 +72,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	zr := zngio.NewReader(bytes.NewReader(b), zed.NewContext())
+	zr := zngio.NewReader(zed.NewContext(), bytes.NewReader(b))
 	defer zr.Close()
 	writer, err := c.outputFlags.Open(ctx, engine)
 	if err != nil {

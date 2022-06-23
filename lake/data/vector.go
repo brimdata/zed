@@ -37,7 +37,7 @@ func CreateVector(ctx context.Context, engine storage.Engine, path *storage.URI,
 	}
 	// Note here that writer.Close closes the Put but reader.Close does not
 	// close the Get.
-	reader := zngio.NewReader(get, zed.NewContext())
+	reader := zngio.NewReader(zed.NewContext(), get)
 	err = zio.Copy(writer, reader)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr

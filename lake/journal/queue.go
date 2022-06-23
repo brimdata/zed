@@ -177,7 +177,7 @@ func (q *Queue) OpenAsZNG(ctx context.Context, zctx *zed.Context, head, tail ID)
 	if err != nil {
 		return nil, err
 	}
-	return zngio.NewReader(r, zctx), nil
+	return zngio.NewReader(zctx, r), nil
 }
 
 func writeID(ctx context.Context, engine storage.Engine, u *storage.URI, id ID) error {

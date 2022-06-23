@@ -269,7 +269,7 @@ func (s *Store) OpenAsZNG(ctx context.Context, zctx *zed.Context, commit, stop k
 	if err != nil {
 		return nil, err
 	}
-	return zngio.NewReader(r, zctx), nil
+	return zngio.NewReader(zctx, r), nil
 }
 
 func (s *Store) OpenCommitLog(ctx context.Context, zctx *zed.Context, commit, stop ksuid.KSUID) zio.Reader {

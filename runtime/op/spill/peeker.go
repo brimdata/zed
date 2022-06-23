@@ -14,8 +14,8 @@ type peeker struct {
 	ordinal    int
 }
 
-func newPeeker(ctx context.Context, filename string, ordinal int, arr *zbuf.Array, zctx *zed.Context) (*peeker, error) {
-	f, err := NewFileWithPath(filename, zctx)
+func newPeeker(ctx context.Context, zctx *zed.Context, filename string, ordinal int, arr *zbuf.Array) (*peeker, error) {
+	f, err := NewFileWithPath(filename)
 	if err != nil {
 		return nil, err
 	}

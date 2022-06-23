@@ -21,7 +21,7 @@ func NewDeserializerWithContext(zctx *zed.Context, reader io.Reader, templates [
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(templates...)
 	return &Deserializer{
-		reader:      zngio.NewReader(reader, zctx),
+		reader:      zngio.NewReader(zctx, reader),
 		unmarshaler: u,
 	}
 }

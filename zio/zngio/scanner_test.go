@@ -45,7 +45,7 @@ func TestScannerContext(t *testing.T) {
 			readers = append(readers, bytes.NewReader(bufs[j]))
 		}
 	}
-	r := NewReaderWithOpts(io.MultiReader(readers...), zed.NewContext(), ReaderOpts{
+	r := NewReaderWithOpts(zed.NewContext(), io.MultiReader(readers...), ReaderOpts{
 		Validate: true,
 	})
 	// Create a scanner and scan, validating each record.

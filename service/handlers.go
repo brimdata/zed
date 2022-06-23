@@ -347,7 +347,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	var opts anyio.ReaderOpts
 	opts.ZNG.Validate = true
 	zctx := zed.NewContext()
-	zrc, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zctx, opts)
+	zrc, err := anyio.NewReaderWithOpts(zctx, anyio.GzipReader(r.Body), opts)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return

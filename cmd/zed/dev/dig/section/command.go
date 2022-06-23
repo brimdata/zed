@@ -102,5 +102,5 @@ func newSectionReader(r io.ReaderAt, which int, sections []int64) (*zngio.Reader
 		off += sections[k]
 	}
 	reader := io.NewSectionReader(r, off, sections[which])
-	return zngio.NewReader(reader, zed.NewContext()), nil
+	return zngio.NewReader(zed.NewContext(), reader), nil
 }

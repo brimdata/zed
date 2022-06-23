@@ -17,7 +17,7 @@ type Reader struct {
 	buf     []byte
 }
 
-func NewReader(r io.Reader, zctx *zed.Context) *Reader {
+func NewReader(zctx *zed.Context, r io.Reader) *Reader {
 	return &Reader{
 		builder: builder{zctx: zctx},
 		// 64 KB gave the best performance when this was written.

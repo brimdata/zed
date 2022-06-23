@@ -162,7 +162,7 @@ func (w *Writer) Close() error {
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
 		zw := zngio.NewWriter(w.iow, w.opts.ZNGWriterOpts)
-		err := writeTrailer(zw, w.zctx, w.childField, w.opts.FrameThresh, nil, w.keyer.Keys(), w.opts.Order)
+		err := writeTrailer(w.zctx, zw, w.childField, w.opts.FrameThresh, nil, w.keyer.Keys(), w.opts.Order)
 		if err2 := w.iow.Close(); err == nil {
 			err = err2
 		}
@@ -232,10 +232,10 @@ func (w *Writer) finalize() error {
 			return err
 		}
 	}
-	return writeTrailer(base.zng, w.zctx, w.childField, w.opts.FrameThresh, sizes, w.keyer.Keys(), w.opts.Order)
+	return writeTrailer(w.zctx, base.zng, w.childField, w.opts.FrameThresh, sizes, w.keyer.Keys(), w.opts.Order)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameThresh int, sections []int64, keys field.List, o order.Which) error {
+func writeTrailer(zctx *zed.Context, w *zngio.Writer, childField string, frameThresh int, sections []int64, keys field.List, o order.Which) error {
 	meta := &FileMeta{
 		ChildOffsetField: childField,
 		FrameThresh:      frameThresh,

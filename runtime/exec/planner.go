@@ -181,7 +181,7 @@ func seekIndexByCount(ctx context.Context, pool *lake.Pool, o *data.ObjectScan, 
 
 	}
 	defer r.Close()
-	zr := zngio.NewReader(r, zed.NewContext())
+	zr := zngio.NewReader(zed.NewContext(), r)
 	defer zr.Close()
 	rg, err := seekindex.LookupByCount(zr, span.First(), span.Last())
 	if err != nil {
