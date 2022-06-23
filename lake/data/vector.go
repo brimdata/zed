@@ -30,6 +30,9 @@ func CreateVector(ctx context.Context, engine storage.Engine, path *storage.URI,
 		SkewThresh:   zstio.DefaultSkewThresh,
 	})
 	if err != nil {
+		get.Close()
+		put.Close()
+		DeleteVector(ctx, engine, path, id)
 		return err
 	}
 	// Note here that writer.Close closes the Put but reader.Close does not
@@ -44,6 +47,9 @@ func CreateVector(ctx context.Context, engine storage.Engine, path *storage.URI,
 	}
 	if closeErr := get.Close(); err == nil {
 		err = closeErr
+	}
+	if err != nil {
+		DeleteVector(ctx, engine, path, id)
 	}
 	return err
 }

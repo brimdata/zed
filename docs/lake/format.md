@@ -112,7 +112,7 @@ allowing a scan to do a byte-range retrieval of the ZNG object when
 processing only a subset of data.
 
 > Note the ZST format allows individual vector segments to be read in isolation
-> and the in-memory ZST representation is support for random access so there is
+> and the in-memory ZST representation supports random access so there is
 > no need to have a seek index for the vector object.
 
 #### Commit History
