@@ -213,8 +213,7 @@ func TestBug2575(t *testing.T) {
 	writer.Write(recExpected)
 	writer.Close()
 
-	r := bytes.NewReader(buffer.Bytes())
-	reader := zngio.NewReader(r, zed.NewContext())
+	reader := zngio.NewReader(zed.NewContext(), &buffer)
 	defer reader.Close()
 	recActual, err := reader.Read()
 	exp, err := zson.FormatValue(recExpected)

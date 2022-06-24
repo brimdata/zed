@@ -49,9 +49,9 @@ func NewFile(zctx *zed.Context, rc io.ReadCloser, path string, opts ReaderOpts) 
 	}
 	var zr zio.Reader
 	if opts.Format == "" || opts.Format == "auto" {
-		zr, err = NewReaderWithOpts(r, zctx, opts)
+		zr, err = NewReaderWithOpts(zctx, r, opts)
 	} else {
-		zr, err = lookupReader(r, zctx, opts)
+		zr, err = lookupReader(zctx, r, opts)
 	}
 	if err != nil {
 		return nil, err

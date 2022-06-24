@@ -40,11 +40,11 @@ type Control struct {
 	Bytes  []byte
 }
 
-func NewReader(reader io.Reader, sctx *zed.Context) *Reader {
-	return NewReaderWithOpts(reader, sctx, ReaderOpts{})
+func NewReader(sctx *zed.Context, reader io.Reader) *Reader {
+	return NewReaderWithOpts(sctx, reader, ReaderOpts{})
 }
 
-func NewReaderWithOpts(reader io.Reader, zctx *zed.Context, opts ReaderOpts) *Reader {
+func NewReaderWithOpts(zctx *zed.Context, reader io.Reader, opts ReaderOpts) *Reader {
 	if opts.Size == 0 {
 		opts.Size = ReadSize
 	}

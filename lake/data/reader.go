@@ -62,7 +62,7 @@ func (o *ObjectScan) NewReader(ctx context.Context, engine storage.Engine, path 
 			return nil, err
 		}
 		defer indexReader.Close()
-		zr := zngio.NewReader(indexReader, zed.NewContext())
+		zr := zngio.NewReader(zed.NewContext(), indexReader)
 		defer zr.Close()
 		rg, err = seekindex.Lookup(zr, scanRange.First(), scanRange.Last(), cmp)
 		if err != nil {

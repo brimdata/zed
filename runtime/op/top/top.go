@@ -26,7 +26,7 @@ type Proc struct {
 	flushEvery bool
 }
 
-func New(parent zbuf.Puller, zctx *zed.Context, limit int, fields []expr.Evaluator, flushEvery bool) *Proc {
+func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool) *Proc {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}

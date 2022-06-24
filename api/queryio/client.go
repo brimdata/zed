@@ -21,7 +21,7 @@ type Query struct {
 // from rc and decodes it.  Closing the Query also closes rc.
 func NewQuery(rc io.ReadCloser) *Query {
 	return &Query{
-		reader: zngio.NewReader(rc, zed.NewContext()),
+		reader: zngio.NewReader(zed.NewContext(), rc),
 		closer: rc,
 	}
 }

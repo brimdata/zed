@@ -39,11 +39,11 @@ type AppMessage struct {
 	Bytes    []byte
 }
 
-func NewReader(reader io.Reader, sctx *zed.Context) *Reader {
-	return NewReaderWithOpts(reader, sctx, zngio.ReaderOpts{})
+func NewReader(sctx *zed.Context, reader io.Reader) *Reader {
+	return NewReaderWithOpts(sctx, reader, zngio.ReaderOpts{})
 }
 
-func NewReaderWithOpts(reader io.Reader, sctx *zed.Context, opts zngio.ReaderOpts) *Reader {
+func NewReaderWithOpts(sctx *zed.Context, reader io.Reader, opts zngio.ReaderOpts) *Reader {
 	if opts.Size == 0 {
 		opts.Size = ReadSize
 	}

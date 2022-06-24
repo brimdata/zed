@@ -33,7 +33,7 @@ func newSortedScanner(p *Planner, part meta.Partition) (zbuf.Puller, error) {
 			pullersDone()
 			return nil, err
 		}
-		scanner, err := zngio.NewReader(rc, p.zctx).NewScanner(p.ctx, f)
+		scanner, err := zngio.NewReader(p.zctx, rc).NewScanner(p.ctx, f)
 		if err != nil {
 			pullersDone()
 			rc.Close()

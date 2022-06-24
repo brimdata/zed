@@ -194,7 +194,7 @@ func (b *Branch) dbpCopies(ctx context.Context, c runtime.Compiler, snap *commit
 			return nil, err
 		}
 		defer reader.Close()
-		readers[i] = zngio.NewReader(reader, zctx)
+		readers[i] = zngio.NewReader(zctx, reader)
 		defer readers[i].(*zngio.Reader).Close()
 	}
 	// Keeps values that don't fit the filter by adding "not".
@@ -505,7 +505,7 @@ func (b *Branch) indexObject(ctx context.Context, c runtime.Compiler, rules []in
 	if err != nil {
 		return nil, err
 	}
-	reader := zngio.NewReader(r, zed.NewContext())
+	reader := zngio.NewReader(zed.NewContext(), r)
 	defer reader.Close()
 	w, err := index.NewCombiner(ctx, c, b.engine, b.pool.IndexPath, rules, id)
 	if err != nil {

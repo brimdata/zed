@@ -20,7 +20,7 @@ func boomerang(t *testing.T, r1 index.Rule) (r2 index.Rule) {
 	t.Helper()
 	b, err := index.Serialize(r1)
 	require.NoError(t, err)
-	reader := zngio.NewReader(bytes.NewReader(b), zed.NewContext())
+	reader := zngio.NewReader(zed.NewContext(), bytes.NewReader(b))
 	defer reader.Close()
 	rec, err := reader.Read()
 	require.NoError(t, err)
@@ -48,7 +48,7 @@ func babbleReader(t *testing.T) zio.Reader {
 	r, err := os.Open("../../testdata/babble-sorted.zson")
 	require.NoError(t, err)
 	t.Cleanup(func() { r.Close() })
-	return zsonio.NewReader(r, zed.NewContext())
+	return zsonio.NewReader(zed.NewContext(), r)
 }
 
 /* Not yet

@@ -99,7 +99,7 @@ func TestParallelOrder(t *testing.T) {
 			pctx := &op.Context{Context: context.Background(), Zctx: zctx}
 			var parents []zbuf.Puller
 			for _, input := range c.inputs {
-				r := zsonio.NewReader(strings.NewReader(input), zctx)
+				r := zsonio.NewReader(zctx, strings.NewReader(input))
 				parents = append(parents, zbuf.NewPuller(r, 10))
 			}
 			layout := order.NewLayout(c.order, field.DottedList(c.field))

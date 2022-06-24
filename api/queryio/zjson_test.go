@@ -14,7 +14,7 @@ import (
 )
 
 func mkRecord(t *testing.T, s string) *zed.Value {
-	r := zsonio.NewReader(strings.NewReader(s), zed.NewContext())
+	r := zsonio.NewReader(zed.NewContext(), strings.NewReader(s))
 	rec, err := r.Read()
 	require.NoError(t, err)
 	return rec

@@ -32,7 +32,7 @@ func TestCounter(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		for i := 0; i < 22; i++ {
-			stream := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
+			stream := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 			counter := NewCounter(stream, &count)
 			require.NoError(t, Copy(&sink, counter))
 		}
@@ -40,7 +40,7 @@ func TestCounter(t *testing.T) {
 	}()
 	go func() {
 		for i := 0; i < 17; i++ {
-			stream := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
+			stream := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 			counter := NewCounter(stream, &count)
 			require.NoError(t, Copy(&sink, counter))
 		}

@@ -125,7 +125,7 @@ func expectFailure(b ztest.Bundle) bool {
 }
 
 func isValidForZSON(input string) bool {
-	zrc, err := anyio.NewReader(strings.NewReader(input), zed.NewContext())
+	zrc, err := anyio.NewReader(zed.NewContext(), strings.NewReader(input))
 	if err != nil {
 		return false
 	}
@@ -180,7 +180,7 @@ diff baseline.parquet boomerang.parquet
 }
 
 func isValidForParquet(input string) bool {
-	zrc, err := anyio.NewReader(strings.NewReader(input), zed.NewContext())
+	zrc, err := anyio.NewReader(zed.NewContext(), strings.NewReader(input))
 	if err != nil {
 		return false
 	}

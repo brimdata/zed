@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/zst"
 )
 
-func NewReader(r io.Reader, zctx *zed.Context) (*zst.Reader, error) {
+func NewReader(zctx *zed.Context, r io.Reader) (*zst.Reader, error) {
 	reader, ok := r.(storage.Reader)
 	if !ok {
 		return nil, errors.New("zst must be used with a seekable input")

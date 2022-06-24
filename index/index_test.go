@@ -157,7 +157,7 @@ func build(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, o
 }
 
 func reader(logs string) zio.Reader {
-	return zsonio.NewReader(strings.NewReader(logs), zed.NewContext())
+	return zsonio.NewReader(zed.NewContext(), strings.NewReader(logs))
 }
 
 func newReader(size int) (zio.Reader, error) {

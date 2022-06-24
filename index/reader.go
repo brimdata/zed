@@ -101,7 +101,7 @@ func (r *Reader) newSectionReader(level int, sectionOff int64) (*zngio.Reader, e
 	off += sectionOff
 	len -= sectionOff
 	sectionReader := io.NewSectionReader(r.reader, off, len)
-	return zngio.NewReaderWithOpts(sectionReader, r.zctx, zngio.ReaderOpts{Size: FrameBufSize}), nil
+	return zngio.NewReaderWithOpts(r.zctx, sectionReader, zngio.ReaderOpts{Size: FrameBufSize}), nil
 }
 
 func (r *Reader) NewSectionReader(section int) (*zngio.Reader, error) {

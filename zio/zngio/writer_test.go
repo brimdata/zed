@@ -75,7 +75,7 @@ ff
 	expected, err := hex.DecodeString(expectedHex)
 	require.NoError(t, err)
 
-	zr := zsonio.NewReader(strings.NewReader(input), zed.NewContext())
+	zr := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	var buf bytes.Buffer
 	zw := NewWriter(zio.NopCloser(&buf), WriterOpts{})
 	require.NoError(t, zio.Copy(zw, zr))

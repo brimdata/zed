@@ -32,7 +32,7 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 	err = zw.Write(rec)
 	require.NoError(t, err)
 	zctx := zed.NewContext()
-	zr := zngio.NewReader(&buf, zctx)
+	zr := zngio.NewReader(zctx, &buf)
 	defer zr.Close()
 	rec, err = zr.Read()
 	require.NoError(t, err)
@@ -182,8 +182,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	const expected = `{top:{T2f1:{T3f1:1(int32),T3f2:1.(float32)},T2f2:"t2f2-string1"}}`
 	require.Equal(t, expected, toZSON(t, rec))
 
-	zctx := zed.NewContext()
-	rec, err = zsonio.NewReader(strings.NewReader(expected), zctx).Read()
+	rec, err = zsonio.NewReader(zed.NewContext(), strings.NewReader(expected)).Read()
 	require.NoError(t, err)
 
 	var v2 T1

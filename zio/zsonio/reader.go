@@ -16,7 +16,7 @@ type Reader struct {
 	builder  *zcode.Builder
 }
 
-func NewReader(r io.Reader, zctx *zed.Context) *Reader {
+func NewReader(zctx *zed.Context, r io.Reader) *Reader {
 	return &Reader{
 		reader:   r,
 		zctx:     zctx,

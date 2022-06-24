@@ -150,7 +150,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
-		return top.New(parent, b.pctx.Zctx, v.Limit, fields, v.Flush), nil
+		return top.New(b.pctx.Zctx, parent, v.Limit, fields, v.Flush), nil
 	case *dag.Put:
 		clauses, err := b.compileAssignments(v.Args)
 		if err != nil {
