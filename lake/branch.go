@@ -373,14 +373,17 @@ func (b *Branch) buildMergeObject(ctx context.Context, parent *branches.Config, 
 	if err != nil {
 		return nil, err
 	}
-	if overlap := childPatch.OverlappingDeletes(parentPatch); overlap != nil {
-		//XXX add IDs of (some of the) overlaps
-		return nil, errors.New("write conflict on merge")
-	}
 	if message == "" {
 		message = fmt.Sprintf("merged %s into %s", b.Name, parent.Name)
 	}
-	return childPatch.NewCommitObject(parent.Commit, retries, author, message, zed.Value{zed.TypeNull, nil}), nil
+	// Now compute the diff between the parent patch and the child path so that
+	// the diff patch will reflect into the parent the changes in the child.
+	// Diff() will also check for delete conflicts.
+	diff, err := commits.Diff(parentPatch, childPatch)
+	if err != nil {
+		return nil, fmt.Errorf("error trying to merge %s into %s: %w", b.Name, parent.Name, err)
+	}
+	return diff.NewCommitObject(parent.Commit, retries, author, message, zed.Value{zed.TypeNull, nil}), nil
 }
 
 func commonAncestor(a, b []ksuid.KSUID) ksuid.KSUID {

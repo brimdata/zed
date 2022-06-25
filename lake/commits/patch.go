@@ -2,6 +2,8 @@ package commits
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
@@ -70,6 +72,10 @@ func (p *Patch) SelectIndexes(span extent.Span, o order.Which) []*index.Object {
 	return append(objects, p.diff.SelectIndexes(span, o)...)
 }
 
+func (p *Patch) SelectAllIndexes() []*index.Object {
+	return append(p.base.SelectAllIndexes(), p.diff.SelectAllIndexes()...)
+}
+
 func (p *Patch) DataObjects() []ksuid.KSUID {
 	var ids []ksuid.KSUID
 	for _, dataObject := range p.diff.SelectAll() {
@@ -110,6 +116,13 @@ type indexRef struct {
 	ruleID ksuid.KSUID
 }
 
+func (i indexRef) Key() string {
+	var b strings.Builder
+	b.Write(i.id.Bytes())
+	b.Write(i.ruleID.Bytes())
+	return b.String()
+}
+
 func (p *Patch) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
 	if IndexExists(p.diff, ruleID, id) {
 		return p.diff.DeleteIndexObject(ruleID, id)
@@ -142,29 +155,43 @@ func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message
 
 func (p *Patch) Revert(tip *Snapshot, commit, parent ksuid.KSUID, retries int, author, message string) (*Object, error) {
 	object := NewObject(parent, author, message, zed.Value{zed.TypeNull, nil}, retries)
-	// For each data object in the patch that is also in the tip, we do a delete.
+	// For each data object that is added in the patch and is also in the tip, we do a delete.
 	for _, dataObject := range p.diff.SelectAll() {
 		if Exists(tip, dataObject.ID) {
 			object.appendDelete(dataObject.ID)
 		}
 	}
-	// For each delete in the patch that is also deleted in the tip, we do an add.
+	// For each delete in the patch that is absent in the tip, we do an add.
 	for _, id := range p.deletedObjects {
-		dataObject, _ := tip.LookupDeleted(id)
-		if dataObject != nil {
+		// Reach back to get the object before it was deleted in this patch.
+		dataObject, err := p.base.Lookup(id)
+		if err != nil {
+			return nil, err
+		}
+		if dataObject == nil {
+			return nil, fmt.Errorf("corrupt snapshot: id %s is in patch's deleted objects but not in patch's base snapshot", id)
+		}
+		if !Exists(tip, dataObject.ID) {
 			object.appendAdd(dataObject)
 		}
 	}
-	// For each index object in the patch that is also in the tip, we do a delete.
+	// For each index object that was added in the patch that is also in the tip, we do a delete.
 	for _, indexObject := range p.diff.indexes.All() {
 		if tip.indexes.Exists(indexObject) {
 			object.appendDeleteIndex(indexObject.Rule.RuleID(), indexObject.ID)
 		}
 	}
-	// For each deleted index object in the patch that is also deleted in the
-	// tip, we do an add.
+	// For each deleted index object in the patch that is also not present in the
+	// tip, we do an add index.
 	for _, ref := range p.deletedIndexes {
-		if o := tip.deletedIndexes.Lookup(ref.ruleID, ref.id); o != nil {
+		if !IndexExists(tip, ref.ruleID, ref.id) {
+			o, err := p.base.LookupIndex(ref.ruleID, ref.id)
+			if err != nil {
+				return nil, err
+			}
+			if o == nil {
+				return nil, fmt.Errorf("corrupt snapshot: index object %s:%s is in patch's deleted index objects but not in patch's base snapshot", ref.ruleID, ref.id)
+			}
 			object.appendAddIndex(o)
 		}
 	}
@@ -174,16 +201,70 @@ func (p *Patch) Revert(tip *Snapshot, commit, parent ksuid.KSUID, retries int, a
 	return object, nil
 }
 
-func (p *Patch) OverlappingDeletes(with *Patch) []ksuid.KSUID {
-	lookup := make(map[ksuid.KSUID]struct{})
-	for _, id := range p.deletedObjects {
-		lookup[id] = struct{}{}
+func Diff(parent, child *Patch) (*Patch, error) {
+	var dirty bool
+	p := NewPatch(parent)
+	deletedObjects := make(map[ksuid.KSUID]struct{})
+	for _, id := range child.deletedObjects {
+		deletedObjects[id] = struct{}{}
 	}
-	var ids []ksuid.KSUID
-	for _, id := range with.deletedObjects {
-		if _, ok := lookup[id]; ok {
-			ids = append(ids, id)
+	// For each object in the child patch that isn't in the parent, create an add,
+	// unless the parent deletes it, then return an error.
+	for _, o := range child.SelectAll() {
+		if !Exists(parent, o.ID) {
+			if _, ok := deletedObjects[o.ID]; ok {
+				return nil, fmt.Errorf("parent branch deletes object that child branch adds: %d", o.ID)
+			}
+			if err := p.AddDataObject(o); err != nil {
+				return nil, err
+			}
+			dirty = true
 		}
 	}
-	return ids
+	// For each delete in the child patch, create a delete.
+	// If the object doesn't exist in the parent, then we have a
+	// delete conflict.
+	for _, id := range child.deletedObjects {
+		if Exists(parent, id) {
+			if err := p.DeleteObject(id); err != nil {
+				return nil, err
+			}
+			dirty = true
+		} else {
+			return nil, fmt.Errorf("delete conflict: %s", id)
+		}
+	}
+	deletedIndexes := make(map[string]struct{})
+	for _, idx := range child.deletedIndexes {
+		deletedIndexes[idx.Key()] = struct{}{}
+	}
+	// For each index entry in child that isn't in the parent, create an add-index.
+	for _, idx := range child.SelectAllIndexes() {
+		if !IndexExists(parent, idx.Rule.RuleID(), idx.ID) {
+			key := indexRef{id: idx.ID, ruleID: idx.Rule.RuleID()}.Key()
+			if _, ok := deletedIndexes[key]; ok {
+				return nil, fmt.Errorf("parent branch deletes index object that child branch adds: %s:%s", idx.Rule.RuleID(), idx.ID)
+			}
+			if err := p.AddIndexObject(idx); err != nil {
+				return nil, err
+			}
+			dirty = true
+		} else {
+			return nil, fmt.Errorf("delete conflict on index: %s:%s", idx.Rule.RuleID(), idx.ID)
+		}
+	}
+	// For each delete-index in the child patch, create a delete-index.
+	// (XXX should return an error if it's not in the parent).
+	for _, idx := range child.deletedIndexes {
+		if IndexExists(parent, idx.ruleID, idx.id) {
+			if err := p.DeleteIndexObject(idx.ruleID, idx.id); err != nil {
+				return nil, err
+			}
+			dirty = true
+		}
+	}
+	if !dirty {
+		return nil, errors.New("nothing to merge")
+	}
+	return p, nil
 }
