@@ -74,9 +74,7 @@ cd example
 go mod init example
 cat > main.go
 # [paste from above]
-go get github.com/brimdata/zed
-go get github.com/brimdata/zed/zson
-go get github.com/brimdata/zed/zio/zsonio
+go mod tidy
 ```
 To run type:
 ```
