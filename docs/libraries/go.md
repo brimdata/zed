@@ -67,7 +67,7 @@ func main() {
 }
 ```
 To build, create a directory for the main package, initialize it,
-copy the above code into `main.go`, fetch the required Zed packages.
+copy the above code into `main.go`, and fetch the required Zed packages.
 ```
 mkdir example
 cd example
