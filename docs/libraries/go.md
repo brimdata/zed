@@ -33,7 +33,7 @@ go get github.com/brimdata/zed
 
 ### ZSON Reader
 
-Read ZSON from stdin, deference field `s`, and print results:
+Read ZSON from stdin, dereference field `s`, and print results:
 ```
 package main
 
