@@ -72,7 +72,7 @@ copy the above code into `main.go`, and fetch the required Zed packages.
 mkdir example
 cd example
 go mod init example
-cat - > main.go
+cat > main.go
 # [paste from above]
 go get github.com/brimdata/zed
 go get github.com/brimdata/zed/zson
