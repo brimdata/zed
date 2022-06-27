@@ -296,9 +296,9 @@ func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message
 	})
 }
 
-func (b *Branch) Compact(ctx context.Context, objectIDs []ksuid.KSUID, author, message, meta string) (ksuid.KSUID, error) {
-	if len(objectIDs) < 2 {
-		return ksuid.Nil, errors.New("compact: two or more object IDs required")
+func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, author, message, meta string) (ksuid.KSUID, error) {
+	if len(rollup) < 1 {
+		return ksuid.Nil, errors.New("compact: one or more rollup objects required")
 	}
 	zctx := zed.NewContext()
 	appMeta, err := loadMeta(zctx, meta)
@@ -310,39 +310,14 @@ func (b *Branch) Compact(ctx context.Context, objectIDs []ksuid.KSUID, author, m
 		if err != nil {
 			return nil, err
 		}
-		var objects []*data.Object
-		for _, id := range objectIDs {
-			o, err := base.Lookup(id)
-			if err != nil {
-				return nil, err
-			}
-			objects = append(objects, o)
-		}
-		zctx := zed.NewContext()
-		cmp := ImportComparator(zctx, b.pool).Compare
-		scanner, err := data.NewSortedScanner(ctx, zctx, b.pool.engine, b.pool.DataPath, objects, cmp)
-		if err != nil {
-			return nil, err
-		}
-		w := newSortedWriter(ctx, b.pool)
-		if err = zbuf.CopyPuller(w, scanner); err != nil {
-			w.abort()
-			return nil, err
-		}
-		if err := w.Close(); err != nil {
-			w.abort()
-			return nil, err
-		}
 		patch := commits.NewPatch(base)
-		for _, o := range w.objects {
+		for _, o := range rollup {
 			if err := patch.AddDataObject(o); err != nil {
-				w.abort()
 				return nil, err
 			}
 		}
-		for _, id := range objectIDs {
-			if err := patch.DeleteObject(id); err != nil {
-				w.abort()
+		for _, o := range src {
+			if err := patch.DeleteObject(o.ID); err != nil {
 				return nil, err
 			}
 		}

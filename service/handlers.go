@@ -394,7 +394,12 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := c.root.Compact(r.Context(), poolID, branch, req.ObjectIDs, message.Author, message.Body, message.Meta)
+	pool, err := c.root.OpenPool(r.Context(), poolID)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	commit, err := exec.Compact(r.Context(), pool, branch, req.ObjectIDs, message.Author, message.Body, message.Meta)
 	if err != nil {
 		w.Error(err)
 		return

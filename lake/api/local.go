@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
@@ -101,7 +102,11 @@ func (l *local) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch
 }
 
 func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName string, objects []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
-	return l.root.Compact(ctx, poolID, branchName, objects, commit.Author, commit.Body, commit.Meta)
+	pool, err := l.root.OpenPool(ctx, poolID)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return exec.Compact(ctx, pool, branchName, objects, commit.Author, commit.Body, commit.Meta)
 }
 
 func (l *local) AddIndexRules(ctx context.Context, rules []index.Rule) error {

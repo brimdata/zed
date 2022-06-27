@@ -167,18 +167,18 @@ func (w *Writer) Stats() ImportStats {
 	return w.stats.Copy()
 }
 
-type sortedWriter struct {
+type SortedWriter struct {
 	ctx     context.Context
 	pool    *Pool
 	writer  *data.Writer
 	objects []*data.Object
 }
 
-func newSortedWriter(ctx context.Context, pool *Pool) *sortedWriter {
-	return &sortedWriter{ctx: ctx, pool: pool}
+func NewSortedWriter(ctx context.Context, pool *Pool) *SortedWriter {
+	return &SortedWriter{ctx: ctx, pool: pool}
 }
 
-func (w *sortedWriter) Write(val *zed.Value) error {
+func (w *SortedWriter) Write(val *zed.Value) error {
 	if w.writer == nil {
 		o := data.NewObject()
 		w.objects = append(w.objects, &o)
@@ -199,17 +199,22 @@ func (w *sortedWriter) Write(val *zed.Value) error {
 	return nil
 }
 
-func (w *sortedWriter) abort() {
+func (w *SortedWriter) Abort() {
 	if w.writer != nil {
 		w.writer.Abort()
+		w.writer = nil
 	}
-	// Delete all create objects.
+	// Delete all created objects.
 	for _, o := range w.objects {
 		o.Remove(w.ctx, w.pool.engine, w.pool.DataPath)
 	}
 }
 
-func (w *sortedWriter) Close() error {
+func (w *SortedWriter) Objects() []*data.Object {
+	return w.objects
+}
+
+func (w *SortedWriter) Close() error {
 	return w.writer.Close(w.ctx)
 }
 

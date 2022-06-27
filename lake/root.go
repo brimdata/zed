@@ -374,18 +374,6 @@ func (r *Root) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch,
 	return child.mergeInto(ctx, parent, author, message)
 }
 
-func (r *Root) Compact(ctx context.Context, poolID ksuid.KSUID, branchName string, objectIDs []ksuid.KSUID, author, message, meta string) (ksuid.KSUID, error) {
-	pool, err := r.OpenPool(ctx, poolID)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	branch, err := pool.OpenBranchByName(ctx, branchName)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	return branch.Compact(ctx, objectIDs, author, message, meta)
-}
-
 func (r *Root) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
