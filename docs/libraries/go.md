@@ -175,7 +175,7 @@ the lake, it ends up sorting the data by `this`.
 ### Lake Service Reader
 
 We can use the same code above to talk to a Zed lake server.  All we do is
-give it the URI of the service, which by default is on port `9867`.
+give it the URI of the service, which by default is on port 9867.
 
 To try this out, first run a Zed service on the scratch lake we created
 above:
