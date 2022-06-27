@@ -93,7 +93,7 @@ error("missing")
 
 This example interacts with a Zed lake.  Note that it is straightforward
 to support both direct access to a lake via the file system (or S3 URL) as well
-as network access via a service endpoint.
+as access via a service endpoint.
 
 First, we'll use `zed` to create a lake and load the example data:
 ```
