@@ -1,0 +1,18 @@
+script: |
+  source service.sh
+  zed create -q test
+  zed use -q test
+  seq 10 | zq '{ts:this-1,s:"val${this-1}"}' - | zed load -q -
+  seq 10 | zq '{ts:this-1,s:"val${this-1}"}' - | zed load -q -
+  ids=$(zed query -f text 'from test@main:objects | yield "0x${hex(id)}"')
+  zed compact -q $ids
+  zed query -f lake 'from test@main:objects'
+
+inputs:
+  - name: service.sh
+  
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} 121B bytes 20 records
+         from 9 to 0

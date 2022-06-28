@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed/cmd/zed/auth"
 	"github.com/brimdata/zed/cmd/zed/branch"
+	"github.com/brimdata/zed/cmd/zed/compact"
 	"github.com/brimdata/zed/cmd/zed/create"
 	zeddelete "github.com/brimdata/zed/cmd/zed/delete"
 	"github.com/brimdata/zed/cmd/zed/dev"
@@ -41,6 +42,7 @@ func main() {
 	zed := root.Zed
 	zed.Add(auth.Cmd)
 	zed.Add(branch.Cmd)
+	zed.Add(compact.Cmd)
 	zed.Add(create.Cmd)
 	zed.Add(zeddelete.Cmd)
 	zed.Add(drop.Cmd)

@@ -67,7 +67,7 @@ func (p *Planner) PullWork() (zbuf.Puller, error) {
 		if part.Objects == nil {
 			return nil, p.group.Wait()
 		}
-		return newSortedScanner(p, part)
+		return newPartitionScanner(p, part)
 	case <-p.ctx.Done():
 		return nil, p.group.Wait()
 	}

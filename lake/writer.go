@@ -167,6 +167,57 @@ func (w *Writer) Stats() ImportStats {
 	return w.stats.Copy()
 }
 
+type SortedWriter struct {
+	ctx     context.Context
+	pool    *Pool
+	writer  *data.Writer
+	objects []*data.Object
+}
+
+func NewSortedWriter(ctx context.Context, pool *Pool) *SortedWriter {
+	return &SortedWriter{ctx: ctx, pool: pool}
+}
+
+func (w *SortedWriter) Write(val *zed.Value) error {
+	if w.writer == nil {
+		o := data.NewObject()
+		w.objects = append(w.objects, &o)
+		var err error
+		w.writer, err = o.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, poolKey(w.pool.Layout), w.pool.SeekStride)
+		if err != nil {
+			return err
+		}
+	}
+	if err := w.writer.Write(val); err != nil {
+		return err
+	}
+	if w.writer.BytesWritten() >= w.pool.Threshold {
+		writer := w.writer
+		w.writer = nil
+		return writer.Close(w.ctx)
+	}
+	return nil
+}
+
+func (w *SortedWriter) Abort() {
+	if w.writer != nil {
+		w.writer.Abort()
+		w.writer = nil
+	}
+	// Delete all created objects.
+	for _, o := range w.objects {
+		o.Remove(w.ctx, w.pool.engine, w.pool.DataPath)
+	}
+}
+
+func (w *SortedWriter) Objects() []*data.Object {
+	return w.objects
+}
+
+func (w *SortedWriter) Close() error {
+	return w.writer.Close(w.ctx)
+}
+
 type ImportStats struct {
 	ObjectsWritten     int64
 	RecordBytesWritten int64

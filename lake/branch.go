@@ -296,6 +296,36 @@ func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message
 	})
 }
 
+func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, author, message, meta string) (ksuid.KSUID, error) {
+	if len(rollup) < 1 {
+		return ksuid.Nil, errors.New("compact: one or more rollup objects required")
+	}
+	zctx := zed.NewContext()
+	appMeta, err := loadMeta(zctx, meta)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
+		base, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		if err != nil {
+			return nil, err
+		}
+		patch := commits.NewPatch(base)
+		for _, o := range rollup {
+			if err := patch.AddDataObject(o); err != nil {
+				return nil, err
+			}
+		}
+		for _, o := range src {
+			if err := patch.DeleteObject(o.ID); err != nil {
+				return nil, err
+			}
+		}
+		commit := patch.NewCommitObject(parent.Commit, retries, author, message, *appMeta)
+		return commit, nil
+	})
+}
+
 func (b *Branch) mergeInto(ctx context.Context, parent *Branch, author, message string) (ksuid.KSUID, error) {
 	if b == parent {
 		return ksuid.Nil, errors.New("cannot merge branch into itself")
