@@ -473,6 +473,10 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 		}
 		field := stype.Field(i)
 		name := fieldName(field)
+		if name == "-" {
+			// Ignore fields named "-".
+			continue
+		}
 		typ, err := m.encodeValue(sval.Field(i))
 		if err != nil {
 			return nil, err
