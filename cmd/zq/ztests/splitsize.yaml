@@ -1,0 +1,40 @@
+script: |
+  zq -z -split 2B -splitsize 2B in.zson
+  zq -z -split 4B -splitsize 4B in.zson
+  zq -z -split 6B -splitsize 6B in.zson
+  zq -z -split 6B-o -splitsize 6B -o prefix in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      0
+      1
+      2
+
+outputs:
+  - name: 2B/0.zson
+    data: |
+      0
+  - name: 2B/1.zson
+    data: |
+      1
+  - name: 2B/2.zson
+    data: |
+      2
+  - name: 4B/0.zson
+    data: |
+      0
+      1
+  - name: 4B/1.zson
+    data: |
+      2
+  - name: 6B/0.zson
+    data: |
+      0
+      1
+      2
+  - name: 6B-o/prefix-0.zson
+    data: |
+      0
+      1
+      2
