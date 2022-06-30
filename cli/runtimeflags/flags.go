@@ -5,6 +5,7 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/auto"
+	"github.com/brimdata/zed/runtime/expr/agg"
 	"github.com/brimdata/zed/runtime/op/fuse"
 	"github.com/brimdata/zed/runtime/op/sort"
 	"github.com/pbnjay/memory"
@@ -29,11 +30,14 @@ func defaultMemMaxBytes() uint64 {
 
 type Flags struct {
 	// these memory limits should be based on a shared resource model
+	aggMemMax  auto.Bytes
 	sortMemMax auto.Bytes
 	fuseMemMax auto.Bytes
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
+	f.aggMemMax = auto.NewBytes(uint64(agg.MaxValueSize))
+	fs.Var(&f.aggMemMax, "aggmem", "maximum memory used per aggregate function value in MiB, MB, etc")
 	def := defaultMemMaxBytes()
 	f.sortMemMax = auto.NewBytes(def)
 	fs.Var(&f.sortMemMax, "sortmem", "maximum memory used by sort in MiB, MB, etc")
@@ -42,6 +46,10 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 }
 
 func (f *Flags) Init() error {
+	if f.aggMemMax.Bytes <= 0 {
+		return errors.New("aggmem value must be greater than zero")
+	}
+	agg.MaxValueSize = int(f.aggMemMax.Bytes)
 	if f.sortMemMax.Bytes <= 0 {
 		return errors.New("sortmem value must be greater than zero")
 	}
