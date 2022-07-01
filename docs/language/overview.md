@@ -741,7 +741,7 @@ To solve this problem, the `MISSING` value was proposed to represent the value t
 results from accessing a field that is not present.  Thus, `x==NULL` and
 `x==MISSING` could disambiguate the two cases above.
 
-Zed, instead, recognizes that the SQL value is `MISSING` is a paradox:
+Zed, instead, recognizes that the SQL value `MISSING` is a paradox:
 I'm here but I'm not.  
 
 In reality, a `MISSING` value is not a value.  It's an error condition
