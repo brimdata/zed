@@ -294,3 +294,16 @@ func TestJSONFieldTag(t *testing.T) {
 	require.NoError(t, zson.Unmarshal(s, &j))
 	assert.Equal(t, jsonTag{Value: "test"}, j)
 }
+
+func TestIgnoreField(t *testing.T) {
+	type s struct {
+		Value  string       `zed:"value"`
+		Ignore func() error `zed:"-"`
+	}
+	b, err := zson.Marshal(s{Value: "test"})
+	require.NoError(t, err)
+	assert.Equal(t, `{value:"test"}`, b)
+	var v s
+	require.NoError(t, zson.Unmarshal(b, &v))
+	assert.Equal(t, s{Value: "test"}, v)
+}
