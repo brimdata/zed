@@ -32,7 +32,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "null":
 		return &nullWriter{}, nil
 	case "zng":
-		return zngio.NewWriter(w, opts.ZNG), nil
+		return zngio.NewWriterWithOpts(w, opts.ZNG), nil
 	case "zeek":
 		return zeekio.NewWriter(w), nil
 	case "json":

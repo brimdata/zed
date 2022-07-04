@@ -27,7 +27,7 @@ type File struct {
 // records via the zio.Reader interface.
 func NewFile(f *os.File) *File {
 	return &File{
-		Writer: zngio.NewWriter(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{}),
+		Writer: zngio.NewWriterWithOpts(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{}),
 		file:   f,
 	}
 }

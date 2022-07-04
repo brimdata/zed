@@ -161,7 +161,7 @@ func (w *Writer) Close() error {
 		// encountered, then the base layer writer was never created.
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
-		zw := zngio.NewWriter(w.iow, w.opts.ZNGWriterOpts)
+		zw := zngio.NewWriterWithOpts(w.iow, w.opts.ZNGWriterOpts)
 		err := w.writeTrailer(zw, nil)
 		if err2 := w.iow.Close(); err == nil {
 			err = err2
@@ -263,7 +263,7 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Conte
 		buffer:   writer,
 		ectx:     ectx,
 		name:     name,
-		zng:      zngio.NewWriter(writer, opts),
+		zng:      zngio.NewWriterWithOpts(writer, opts),
 		frameEnd: int64(base.opts.FrameThresh),
 	}, nil
 }

@@ -20,7 +20,7 @@ func NewSerializer() *Serializer {
 	s := &Serializer{
 		marshaler: m,
 	}
-	s.writer = zngio.NewWriter(zio.NopCloser(&s.buffer), zngio.WriterOpts{})
+	s.writer = zngio.NewWriterWithOpts(zio.NopCloser(&s.buffer), zngio.WriterOpts{})
 	return s
 }
 

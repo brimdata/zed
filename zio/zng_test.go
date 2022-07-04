@@ -34,7 +34,7 @@ func boomerang(t *testing.T, logs string, compress bool) {
 	if compress {
 		zngLZ4BlockSize = zngio.DefaultLZ4BlockSize
 	}
-	rawDst := zngio.NewWriter(&rawzng, zngio.WriterOpts{LZ4BlockSize: zngLZ4BlockSize})
+	rawDst := zngio.NewWriterWithOpts(&rawzng, zngio.WriterOpts{LZ4BlockSize: zngLZ4BlockSize})
 	require.NoError(t, zio.Copy(rawDst, zsonSrc))
 	require.NoError(t, rawDst.Close())
 

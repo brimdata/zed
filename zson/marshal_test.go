@@ -208,7 +208,7 @@ func TestBug2575(t *testing.T) {
 	require.NoError(t, err)
 
 	var buffer bytes.Buffer
-	writer := zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{})
+	writer := zngio.NewWriterWithOpts(zio.NopCloser(&buffer), zngio.WriterOpts{})
 	recExpected := zed.NewValue(zv.Type, zv.Bytes)
 	writer.Write(recExpected)
 	writer.Close()
