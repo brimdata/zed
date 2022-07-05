@@ -8,8 +8,8 @@ import (
 	"github.com/pierrec/lz4/v4"
 )
 
-// DefaultLZ4BlockSize is a reasonable default for WriterOpts.LZ4BlockSize.
-const DefaultLZ4BlockSize = 512 * 1024
+// DefaultFrameThresh is a reasonable default for WriterOpts.FrameThresh.
+const DefaultFrameThresh = 512 * 1024
 
 type Writer struct {
 	writer     io.WriteCloser
@@ -20,26 +20,29 @@ type Writer struct {
 
 	types  *Encoder
 	values []byte
-	thresh int
 	header []byte
 }
 
 type WriterOpts struct {
-	LZ4BlockSize int
+	Compress bool
+	// FrameThresh is the minimum frame size in uncompressed bytes.
+	FrameThresh int
 }
 
 // NewWriter returns a writer to w with reasonable default options.
-// Specifically, it sets WriterOpts.LZ4BlockSize to DefaultLZ4BlockSize.
+// Specifically, it enables compression and sets the frame threshold to
+// DefaultFrameThresh.
 func NewWriter(w io.WriteCloser) *Writer {
 	return NewWriterWithOpts(w, WriterOpts{
-		LZ4BlockSize: DefaultLZ4BlockSize,
+		Compress:    true,
+		FrameThresh: DefaultFrameThresh,
 	})
 }
 
 // NewWriterWithOpts returns a writer to w with opts.
 func NewWriterWithOpts(w io.WriteCloser, opts WriterOpts) *Writer {
 	var comp *compressor
-	if opts.LZ4BlockSize > 0 {
+	if opts.Compress {
 		comp = &compressor{}
 	}
 	return &Writer{
@@ -47,7 +50,6 @@ func NewWriterWithOpts(w io.WriteCloser, opts WriterOpts) *Writer {
 		compressor: comp,
 		opts:       opts,
 		types:      NewEncoder(),
-		thresh:     opts.LZ4BlockSize, //XXX
 	}
 }
 
@@ -108,7 +110,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	id := zed.TypeID(typ)
 	w.values = zcode.AppendUvarint(w.values, uint64(id))
 	w.values = zcode.Append(w.values, val.Bytes)
-	if len(w.values) >= w.thresh || len(w.types.bytes) >= w.thresh {
+	if thresh := w.opts.FrameThresh; len(w.values) >= thresh || len(w.types.bytes) >= thresh {
 		return w.flush()
 	}
 	return nil

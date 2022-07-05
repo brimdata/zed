@@ -1,5 +1,5 @@
 script: |
-  zq -znglz4blocksize=0 -o uncomp.zng in.zson
+  zq -zngcompress=false -o uncomp.zng in.zson
   zq  -o comp.zng in.zson
   zq -z uncomp.zng
   echo ===

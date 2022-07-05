@@ -4,7 +4,7 @@ script: |
   # in the base zng index.
   zq -o sorted.zng "sum(v) by s | sort sum,s"  babble.zson
   # convert assumes input keys already sorted and doesn't create new base records
-  zed dev indexfile create -f 200 -znglz4blocksize 0 -o index.zng -k sum,s sorted.zng
+  zed dev indexfile create -f 200 -zngframethresh 0 -o index.zng -k sum,s sorted.zng
   zed dev dig section -z 1 index.zng
   echo ===
   # exact lookup of the one record
