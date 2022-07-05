@@ -58,46 +58,58 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	// response body and for errors after this point, we must call
 	// writer.WriterError() instead of w.Error().
 	defer writer.Close()
+	results := make(chan op.Result)
+	go func() {
+		for {
+			batch, err := flowgraph.Pull(false)
+			results <- op.Result{batch, err}
+			if batch == nil || err != nil {
+				return
+			}
+		}
+	}()
 	timer := time.NewTicker(queryStatsInterval)
 	defer timer.Stop()
 	meter := flowgraph.Meter()
 	for {
-		var tick bool
 		select {
 		case <-timer.C:
-			tick = true
-		default:
-		}
-		batch, err := flowgraph.Pull(false)
-		if err != nil {
-			if !errors.Is(err, journal.ErrEmpty) {
-				writer.WriteError(err)
-			}
-			return
-		}
-		if batch == nil || tick {
 			if err := writer.WriteProgress(meter.Progress()); err != nil {
 				writer.WriteError(err)
 				return
 			}
-			if batch == nil {
+		case r := <-results:
+			batch, err := r.Batch, r.Err
+			if err != nil {
+				if !errors.Is(err, journal.ErrEmpty) {
+					writer.WriteError(err)
+				}
 				return
 			}
-		}
-		if len(batch.Values()) == 0 {
-			if eoc, ok := batch.(*op.EndOfChannel); ok {
-				if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
+			if batch == nil {
+				if err := writer.WriteProgress(meter.Progress()); err != nil {
 					writer.WriteError(err)
 					return
 				}
+				if batch == nil {
+					return
+				}
 			}
-			continue
-		}
-		var cid int
-		batch, cid = op.Unwrap(batch)
-		if err := writer.WriteBatch(cid, batch); err != nil {
-			writer.WriteError(err)
-			return
+			if len(batch.Values()) == 0 {
+				if eoc, ok := batch.(*op.EndOfChannel); ok {
+					if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
+						writer.WriteError(err)
+						return
+					}
+				}
+				continue
+			}
+			var cid int
+			batch, cid = op.Unwrap(batch)
+			if err := writer.WriteBatch(cid, batch); err != nil {
+				writer.WriteError(err)
+				return
+			}
 		}
 	}
 }
