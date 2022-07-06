@@ -257,11 +257,12 @@ func (s *Store) ReadAll(ctx context.Context, commit, stop ksuid.KSUID) ([]byte, 
 }
 
 func (s *Store) Open(ctx context.Context, commit, stop ksuid.KSUID) (io.Reader, error) {
-	b, err := s.ReadAll(ctx, commit, stop)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewReader(b), nil
+	// b, err := s.ReadAll(ctx, commit, stop)
+	// if err != nil {
+	// return nil, err
+	// }
+	// return bytes.NewReader(b), nil
+	return newRawReader(ctx, s, commit, stop), nil
 }
 
 func (s *Store) OpenAsZNG(ctx context.Context, zctx *zed.Context, commit, stop ksuid.KSUID) (*zngio.Reader, error) {
