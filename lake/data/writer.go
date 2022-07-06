@@ -42,13 +42,10 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 		return nil, err
 	}
 	counter := &writeCounter{bufwriter.New(out), 0}
-	writer := zngio.NewWriter(counter, zngio.WriterOpts{
-		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
-	})
 	w := &Writer{
 		object:      o,
 		byteCounter: counter,
-		writer:      writer,
+		writer:      zngio.NewWriter(counter),
 		order:       order,
 		first:       true,
 		poolKey:     poolKey,
@@ -64,7 +61,7 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	opts := zngio.WriterOpts{
 		//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 	}
-	w.seekWriter = zngio.NewWriter(bufwriter.New(seekOut), opts)
+	w.seekWriter = zngio.NewWriterWithOpts(bufwriter.New(seekOut), opts)
 	w.seekIndex = seekindex.NewWriter(w.seekWriter)
 	return w, nil
 }

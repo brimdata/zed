@@ -77,7 +77,7 @@ ff
 
 	zr := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	var buf bytes.Buffer
-	zw := NewWriter(zio.NopCloser(&buf), WriterOpts{})
+	zw := NewWriterWithOpts(zio.NopCloser(&buf), WriterOpts{})
 	require.NoError(t, zio.Copy(zw, zr))
 	require.NoError(t, zw.Close())
 	assert.Equal(t, expected, buf.Bytes())

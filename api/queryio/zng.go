@@ -21,9 +21,7 @@ func NewZNGWriter(w io.Writer) *ZNGWriter {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
 	return &ZNGWriter{
-		Writer: zngio.NewWriter(zio.NopCloser(w), zngio.WriterOpts{
-			LZ4BlockSize: zngio.DefaultLZ4BlockSize,
-		}),
+		Writer:    zngio.NewWriter(zio.NopCloser(w)),
 		marshaler: m,
 	}
 }

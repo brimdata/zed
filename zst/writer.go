@@ -163,7 +163,7 @@ func (w *Writer) finalize() error {
 	}
 	// At this point all the column data has been written out
 	// to the underlying spiller, so we start writing zng at this point.
-	zw := zngio.NewWriter(w.writer, zngio.WriterOpts{})
+	zw := zngio.NewWriterWithOpts(w.writer, zngio.WriterOpts{})
 	dataSize := w.spiller.Position()
 	// First, we write out null values for each column corresponding to
 	// a type serialized into the ZST file in the order of its type number

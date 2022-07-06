@@ -28,7 +28,16 @@ type WriterOpts struct {
 	LZ4BlockSize int
 }
 
-func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
+// NewWriter returns a writer to w with reasonable default options.
+// Specifically, it sets WriterOpts.LZ4BlockSize to DefaultLZ4BlockSize.
+func NewWriter(w io.WriteCloser) *Writer {
+	return NewWriterWithOpts(w, WriterOpts{
+		LZ4BlockSize: DefaultLZ4BlockSize,
+	})
+}
+
+// NewWriterWithOpts returns a writer to w with opts.
+func NewWriterWithOpts(w io.WriteCloser, opts WriterOpts) *Writer {
 	var comp *compressor
 	if opts.LZ4BlockSize > 0 {
 		comp = &compressor{}

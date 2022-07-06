@@ -98,7 +98,7 @@ func newTestSeekIndex(t *testing.T, entries []entry) *testSeekIndex {
 
 func build(t *testing.T, entries entries) *bytes.Buffer {
 	var buffer bytes.Buffer
-	w := NewWriter(zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{}))
+	w := NewWriter(zngio.NewWriterWithOpts(zio.NopCloser(&buffer), zngio.WriterOpts{}))
 	for i, entry := range entries {
 		zv := zed.Value{zed.TypeTime, zed.EncodeTime(entry.ts)}
 		err := w.Write(zv, uint64(i), entry.offset)

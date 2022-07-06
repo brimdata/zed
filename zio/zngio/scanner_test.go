@@ -30,7 +30,7 @@ func TestScannerContext(t *testing.T) {
 		rec, err := zson.NewZNGMarshaler().MarshalCustom(names, values)
 		require.NoError(t, err)
 		var buf bytes.Buffer
-		w := NewWriter(zio.NopCloser(&buf), WriterOpts{})
+		w := NewWriterWithOpts(zio.NopCloser(&buf), WriterOpts{})
 		for j := 0; j < 100; j++ {
 			require.NoError(t, w.Write(rec))
 		}
