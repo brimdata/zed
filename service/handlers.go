@@ -577,7 +577,7 @@ func handleEvents(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(srverr.ErrInvalid(err))
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
-	writer := &eventStreamWriter{body: w, format: format}
+	writer := &eventStreamWriter{body: w.ResponseWriter, format: format}
 	subscription := make(chan event)
 	c.subscriptionsMu.Lock()
 	c.subscriptions[subscription] = struct{}{}
