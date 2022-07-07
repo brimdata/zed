@@ -1,5 +1,5 @@
 script: |
-  zq 'by s | sort s' babble.zson | zed dev indexfile create -o index.zng -k s -f 200 -znglz4blocksize 1 -
+  zq 'by s | sort s' babble.zson | zed dev indexfile create -o index.zng -k s -f 200 -zngframethresh 1 -
   zed dev dig trailer -Z index.zng
   echo ===
   zed dev dig section -z 2 index.zng

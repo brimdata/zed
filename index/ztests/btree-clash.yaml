@@ -1,5 +1,5 @@
 script: |
-  zed dev indexfile create -f 50 -znglz4blocksize 0 -o index.zng -k _child -
+  zed dev indexfile create -f 50 -zngframethresh 0 -o index.zng -k _child -
   zed dev dig trailer -Z index.zng
 
 inputs:

@@ -14,10 +14,10 @@ var bigBuffers sync.Pool
 var smallBuffers sync.Pool
 
 func newBuffer(length int) *buffer {
-	if length <= DefaultLZ4BlockSize {
+	if length <= DefaultFrameThresh {
 		b, ok := smallBuffers.Get().(*buffer)
 		if !ok {
-			b = &buffer{data: make([]byte, DefaultLZ4BlockSize)}
+			b = &buffer{data: make([]byte, DefaultFrameThresh)}
 		}
 		b.data = b.data[:length]
 		b.off = 0
@@ -45,9 +45,9 @@ func (b *buffer) free() {
 	if b == nil {
 		return
 	}
-	if cap(b.data) == DefaultLZ4BlockSize {
+	if cap(b.data) == DefaultFrameThresh {
 		smallBuffers.Put(b)
-	} else if cap(b.data) > DefaultLZ4BlockSize {
+	} else if cap(b.data) > DefaultFrameThresh {
 		bigBuffers.Put(b)
 	}
 }
