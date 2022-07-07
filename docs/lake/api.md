@@ -435,7 +435,6 @@ Subscribe to an events feed, which returns an event stream in the format of
 The MIME type specified in the request's Accept HTTP header only affects the format
 of the objects returned in the `data` fields of the event stream.
 
-
 ```
 GET /events
 ```
