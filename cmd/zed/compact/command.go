@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/rlimit"
 )
 
 var Cmd = &charm.Spec{
@@ -35,6 +36,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 func (c *Command) Run(args []string) error {
 	ctx, cleanup, err := c.Init()
 	if err != nil {
+		return err
+	}
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
 	defer cleanup()
