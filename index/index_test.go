@@ -47,9 +47,10 @@ func TestMicroIndex(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "test2.zng")
 	stream, err := newReader(N)
 	require.NoError(t, err)
+	ctx := context.Background()
 	zctx := zed.NewContext()
 	engine := storage.NewLocalEngine()
-	writer, err := index.NewWriter(zctx, engine, path, field.DottedList("key"), index.WriterOpts{
+	writer, err := index.NewWriter(ctx, zctx, engine, path, field.DottedList("key"), index.WriterOpts{
 		ZNGWriterOpts: zngio.WriterOpts{Compress: true},
 	})
 	require.NoError(t, err)
@@ -160,7 +161,7 @@ func openFinder(t *testing.T, path string) *index.Finder {
 
 func build(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, opts index.WriterOpts) string {
 	path := filepath.Join(t.TempDir(), "test.zng")
-	writer, err := index.NewWriter(zed.NewContext(), engine, path, keys, opts)
+	writer, err := index.NewWriter(context.Background(), zed.NewContext(), engine, path, keys, opts)
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(writer, r))
 	require.NoError(t, writer.Close())

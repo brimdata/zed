@@ -91,7 +91,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer file.Close()
-	writer, err := index.NewWriter(zctx, local, c.outputFile, field.DottedList(c.keys), c.opts)
+	writer, err := index.NewWriter(ctx, zctx, local, c.outputFile, field.DottedList(c.keys), c.opts)
 	if err != nil {
 		return err
 	}
