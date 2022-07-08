@@ -22,7 +22,7 @@ import (
 type WriterOpts struct {
 	Format string
 	Lake   lakeio.WriterOpts
-	ZNG    zngio.WriterOpts
+	ZNG    *zngio.WriterOpts // Nil means use zngio.NewWriter.
 	ZSON   zsonio.WriterOpts
 	Zst    zstio.WriterOpts
 }
@@ -32,7 +32,10 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "null":
 		return &nullWriter{}, nil
 	case "zng":
-		return zngio.NewWriterWithOpts(w, opts.ZNG), nil
+		if opts.ZNG == nil {
+			return zngio.NewWriter(w), nil
+		}
+		return zngio.NewWriterWithOpts(w, *opts.ZNG), nil
 	case "zeek":
 		return zeekio.NewWriter(w), nil
 	case "json":
