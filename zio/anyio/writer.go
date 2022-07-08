@@ -22,7 +22,7 @@ import (
 type WriterOpts struct {
 	Format string
 	Lake   lakeio.WriterOpts
-	ZNG    *zngio.WriterOpts // Nil means use zngio.NewWriter.
+	ZNG    *zngio.WriterOpts // Nil means use defaults via zngio.NewWriter.
 	ZSON   zsonio.WriterOpts
 	Zst    zstio.WriterOpts
 }
