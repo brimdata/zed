@@ -27,8 +27,11 @@ type File struct {
 // records via the zio.Reader interface.
 func NewFile(f *os.File) *File {
 	return &File{
-		Writer: zngio.NewWriterWithOpts(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{}),
-		file:   f,
+		Writer: zngio.NewWriterWithOpts(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{
+			Compress:    false, // Compression reduces write throughput; see #3973.
+			FrameThresh: zngio.DefaultFrameThresh,
+		}),
+		file: f,
 	}
 }
 

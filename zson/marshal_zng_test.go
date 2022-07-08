@@ -28,9 +28,10 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 	rec, err := zson.NewZNGMarshaler().MarshalRecord(in)
 	require.NoError(t, err)
 	var buf bytes.Buffer
-	zw := zngio.NewWriterWithOpts(zio.NopCloser(&buf), zngio.WriterOpts{})
+	zw := zngio.NewWriter(zio.NopCloser(&buf))
 	err = zw.Write(rec)
 	require.NoError(t, err)
+	require.NoError(t, zw.Close())
 	zctx := zed.NewContext()
 	zr := zngio.NewReader(zctx, &buf)
 	defer zr.Close()

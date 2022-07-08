@@ -6,12 +6,12 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zbuf"
-
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zngio"
 )
 
 func NewWriter(ctx context.Context, c runtime.Compiler, engine storage.Engine, path *storage.URI, object *Object) (*Writer, error) {
@@ -117,7 +117,9 @@ func newIndexer(ctx context.Context, c runtime.Compiler, engine storage.Engine, 
 		return nil, err
 	}
 	keys := rule.RuleKeys()
-	writer, err := index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String(), keys, index.WriterOpts{})
+	writer, err := index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String(), keys, index.WriterOpts{
+		ZNGWriterOpts: zngio.WriterOpts{Compress: true},
+	})
 	if err != nil {
 		return nil, err
 	}

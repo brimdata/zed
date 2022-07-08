@@ -58,8 +58,7 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	if err != nil {
 		return nil, err
 	}
-	// XXX Use compression and nonzero frame threshold if possible.
-	w.seekWriter = zngio.NewWriterWithOpts(bufwriter.New(seekOut), zngio.WriterOpts{})
+	w.seekWriter = zngio.NewWriter(bufwriter.New(seekOut))
 	w.seekIndex = seekindex.NewWriter(w.seekWriter)
 	return w, nil
 }

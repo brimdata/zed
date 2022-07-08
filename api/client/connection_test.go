@@ -30,6 +30,7 @@ func TestClientRedirectReplay(t *testing.T) {
 				Domain: ts.URL,
 			},
 		})
+		s.Close()
 		w.Write(s.Bytes())
 	})
 	mux.HandleFunc("/oauth/token", func(w http.ResponseWriter, r *http.Request) {
