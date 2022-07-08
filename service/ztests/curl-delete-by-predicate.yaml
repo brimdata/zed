@@ -8,7 +8,7 @@ script: |
   curl -s -d '{where:"x <= 4"}' $ZED_LAKE/pool/test/branch/main/delete |
     sed -E 's/0x[0-9a-f]{40}/xxx/'
   echo ===
-  zed query -z '*
+  zed query -z '*'
 
 inputs:
   - name: service.sh
