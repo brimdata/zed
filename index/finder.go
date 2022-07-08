@@ -252,15 +252,12 @@ func (f *Finder) ParseKeys(inputs ...string) ([]KeyValue, error) {
 		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(keys), len(inputs))
 	}
 	kvs := make([]KeyValue, 0, len(inputs))
-	for k := range inputs {
-		if k < len(inputs) {
-			s := inputs[k]
-			zv, err := zson.ParseValue(f.zctx, s)
-			if err != nil {
-				return nil, fmt.Errorf("could not parse %q: %w", s, err)
-			}
-			kvs = append(kvs, KeyValue{Key: keys[k], Value: *zv})
+	for k, s := range inputs {
+		zv, err := zson.ParseValue(f.zctx, s)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse %q: %w", s, err)
 		}
+		kvs = append(kvs, KeyValue{keys[k], *zv})
 	}
 	return kvs, nil
 }
