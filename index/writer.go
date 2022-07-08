@@ -82,11 +82,8 @@ type WriterOpts struct {
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
-func NewWriter(zctx *zed.Context, engine storage.Engine, path string, keys field.List, opts WriterOpts) (*Writer, error) {
-	return NewWriterWithContext(context.Background(), zctx, engine, path, keys, opts)
-}
-
-func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, keys field.List, opts WriterOpts) (*Writer, error) {
+func NewWriter(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, keys field.List,
+	opts WriterOpts) (*Writer, error) {
 	if len(keys) == 0 {
 		return nil, errors.New("must specify at least one key")
 	}
