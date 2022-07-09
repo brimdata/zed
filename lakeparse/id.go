@@ -14,7 +14,7 @@ func ParseID(s string) (ksuid.KSUID, error) {
 	var err error
 	if len(s) == 42 && s[0:2] == "0x" {
 		var b []byte
-		b, err := hex.DecodeString(s[2:])
+		b, err = hex.DecodeString(s[2:])
 		if err == nil {
 			id, err = ksuid.FromBytes(b)
 		}
@@ -22,7 +22,7 @@ func ParseID(s string) (ksuid.KSUID, error) {
 		id, err = ksuid.Parse(s)
 	}
 	if err != nil {
-		return ksuid.Nil, fmt.Errorf("invalid commit ID: %s", s)
+		return ksuid.Nil, fmt.Errorf("invalid ID: %s", s)
 	}
 	return id, nil
 }
