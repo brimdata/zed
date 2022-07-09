@@ -1,0 +1,24 @@
+script: |
+  source service.sh
+  zed create -q -orderby x:asc test
+  zed use -q test
+  echo '{x:1}{x:2}{x:3}' | zed load -q -
+  echo '{x:3}{x:4}{x:5}' | zed load -q -
+  echo '{x:6}{x:7}{x:8}' | zed load -q -
+  curl -s -d '{where:"x <= 4"}' $ZED_LAKE/pool/test/branch/main/delete |
+    sed -E 's/0x[0-9a-f]{40}/xxx/'
+  echo ===
+  zed query -z '*'
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {commit:xxx(=ksuid.KSUID),warnings:null([string])}(=api.CommitResponse)
+      ===
+      {x:5}
+      {x:6}
+      {x:7}
+      {x:8}
