@@ -39,7 +39,7 @@ type Writeable interface {
 // XXX redefine snapshot as type map instead of struct
 type Snapshot struct {
 	objects map[ksuid.KSUID]*data.Object
-	indexes index.Map // map[ksuid.KSUID]*index.Object
+	indexes index.Map
 }
 
 var _ View = (*Snapshot)(nil)
