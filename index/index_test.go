@@ -108,9 +108,7 @@ func TestNearest(t *testing.T) {
 
 	}
 	engine := storage.NewLocalEngine()
-	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.WriterOpts{
-		Order: order.Desc,
-	})
+	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.WriterOpts{Order: order.Desc})
 	t.Run("Descending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, desc, ">", c.value, c.gt)
@@ -124,9 +122,7 @@ func TestNearest(t *testing.T) {
 	q, err := runtime.CompileQuery(context.Background(), zed.NewContext(), comp, compiler.MustParse("sort ts"), []zio.Reader{reader(records)})
 	defer q.Pull(true)
 	require.NoError(t, err)
-	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.WriterOpts{
-		Order: order.Asc,
-	})
+	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.WriterOpts{Order: order.Asc})
 	t.Run("Ascending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, asc, ">", c.value, c.gt)

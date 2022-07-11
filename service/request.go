@@ -21,7 +21,6 @@ import (
 	"github.com/brimdata/zed/service/srverr"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/gorilla/mux"
 	"github.com/segmentio/ksuid"
@@ -204,13 +203,7 @@ func (w *ResponseWriter) ZioWriter() zio.WriteCloser {
 	if w.zw == nil {
 		w.Header().Set("Content-Type", api.FormatToMediaType(w.Format))
 		var err error
-		w.zw, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{
-			Format: w.Format,
-			ZNG: zngio.WriterOpts{
-				Compress:    true,
-				FrameThresh: zngio.DefaultFrameThresh,
-			},
-		})
+		w.zw, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{Format: w.Format})
 		if err != nil {
 			w.Error(err)
 			return nil

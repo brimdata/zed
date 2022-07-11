@@ -432,6 +432,8 @@ curl -X POST \
 
 Subscribe to an events feed, which returns an event stream in the format of
 [server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html).
+The MIME type specified in the request's Accept HTTP header determines the format
+of `data` field values in the event stream.
 
 ```
 GET /events
