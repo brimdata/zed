@@ -73,7 +73,7 @@ type indexWriter struct {
 type WriterOpts struct {
 	FrameThresh   int
 	Order         order.Which
-	ZNGWriterOpts zngio.WriterOpts
+	ZNGWriterOpts *zngio.WriterOpts
 }
 
 // NewWriter returns a Writer ready to write a Zed index or it returns
@@ -92,6 +92,12 @@ func NewWriter(ctx context.Context, zctx *zed.Context, engine storage.Engine, pa
 	}
 	if opts.FrameThresh > FrameMaxSize {
 		return nil, fmt.Errorf("frame threshold too large (%d)", opts.FrameThresh)
+	}
+	if opts.ZNGWriterOpts == nil {
+		opts.ZNGWriterOpts = &zngio.WriterOpts{
+			Compress:    true,
+			FrameThresh: 0, // Fix #3982 before changing this.
+		}
 	}
 	w := &Writer{
 		zctx:       zctx,
@@ -120,7 +126,7 @@ func NewWriter(ctx context.Context, zctx *zed.Context, engine storage.Engine, pa
 func (w *Writer) Write(val *zed.Value) error {
 	if w.writer == nil {
 		var err error
-		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx, w.opts.ZNGWriterOpts)
+		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx, *w.opts.ZNGWriterOpts)
 		if err != nil {
 			return err
 		}
@@ -158,7 +164,7 @@ func (w *Writer) Close() error {
 		// encountered, then the base layer writer was never created.
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
-		zw := zngio.NewWriterWithOpts(w.iow, w.opts.ZNGWriterOpts)
+		zw := zngio.NewWriterWithOpts(w.iow, *w.opts.ZNGWriterOpts)
 		err := w.writeTrailer(zw, nil)
 		if err2 := w.iow.Close(); err == nil {
 			err = err2
@@ -270,7 +276,7 @@ func (w *indexWriter) newParent() (*indexWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newIndexWriter(w.base, file, file.Name(), w.ectx, w.base.opts.ZNGWriterOpts)
+	return newIndexWriter(w.base, file, file.Name(), w.ectx, *w.base.opts.ZNGWriterOpts)
 }
 
 func (w *indexWriter) Close() error {

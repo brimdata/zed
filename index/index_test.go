@@ -15,7 +15,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -31,9 +30,7 @@ func TestSearch(t *testing.T) {
 {key:"key5",value:"value5"}
 {key:"key6",value:"value6"}
 `
-	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data), field.DottedList("key"), index.WriterOpts{
-		ZNGWriterOpts: zngio.WriterOpts{Compress: true},
-	})
+	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data), field.DottedList("key"), index.WriterOpts{})
 	kv, err := finder.ParseKeys(`"key2"`)
 	require.NoError(t, err)
 	rec, err := finder.Lookup(kv...)
@@ -50,9 +47,7 @@ func TestMicroIndex(t *testing.T) {
 	ctx := context.Background()
 	zctx := zed.NewContext()
 	engine := storage.NewLocalEngine()
-	writer, err := index.NewWriter(ctx, zctx, engine, path, field.DottedList("key"), index.WriterOpts{
-		ZNGWriterOpts: zngio.WriterOpts{Compress: true},
-	})
+	writer, err := index.NewWriter(ctx, zctx, engine, path, field.DottedList("key"), index.WriterOpts{})
 	require.NoError(t, err)
 	err = zio.Copy(writer, stream)
 	require.NoError(t, err)
@@ -113,10 +108,7 @@ func TestNearest(t *testing.T) {
 
 	}
 	engine := storage.NewLocalEngine()
-	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.WriterOpts{
-		Order:         order.Desc,
-		ZNGWriterOpts: zngio.WriterOpts{Compress: true},
-	})
+	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.WriterOpts{Order: order.Desc})
 	t.Run("Descending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, desc, ">", c.value, c.gt)
@@ -130,10 +122,7 @@ func TestNearest(t *testing.T) {
 	q, err := runtime.CompileQuery(context.Background(), zed.NewContext(), comp, compiler.MustParse("sort ts"), []zio.Reader{reader(records)})
 	defer q.Pull(true)
 	require.NoError(t, err)
-	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.WriterOpts{
-		Order:         order.Asc,
-		ZNGWriterOpts: zngio.WriterOpts{Compress: true},
-	})
+	asc := buildAndOpen(t, engine, q.AsReader(), field.DottedList("ts"), index.WriterOpts{Order: order.Asc})
 	t.Run("Ascending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, asc, ">", c.value, c.gt)
