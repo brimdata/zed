@@ -40,6 +40,7 @@ func (f *Flags) Options() anyio.WriterOpts {
 func (f *Flags) setFlags(fs *flag.FlagSet) {
 	// zio stuff
 	fs.BoolVar(&f.color, "color", true, "enable/disable color formatting for -Z and lake text output")
+	f.ZNG = &zngio.WriterOpts{}
 	fs.BoolVar(&f.ZNG.Compress, "zngcompress", true, "compress ZNG frames")
 	fs.IntVar(&f.ZNG.FrameThresh, "zngframethresh", zngio.DefaultFrameThresh,
 		"minimum ZNG frame size in uncompressed bytes")
