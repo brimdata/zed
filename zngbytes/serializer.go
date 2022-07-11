@@ -20,7 +20,7 @@ func NewSerializer() *Serializer {
 	s := &Serializer{
 		marshaler: m,
 	}
-	s.writer = zngio.NewWriterWithOpts(zio.NopCloser(&s.buffer), zngio.WriterOpts{})
+	s.writer = zngio.NewWriter(zio.NopCloser(&s.buffer))
 	return s
 }
 
@@ -36,9 +36,12 @@ func (s *Serializer) Write(v interface{}) error {
 	return s.writer.Write(rec)
 }
 
+// Bytes returns a slice holding the serialized values.  Close must be called
+// before Bytes.
 func (s *Serializer) Bytes() []byte {
 	return s.buffer.Bytes()
 }
+
 func (s *Serializer) Close() error {
 	return s.writer.Close()
 }

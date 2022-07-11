@@ -102,7 +102,7 @@ func (r *Request) reader() (io.Reader, error) {
 		return nil, err
 	}
 	var buf bytes.Buffer
-	zw := zngio.NewWriterWithOpts(zio.NopCloser(&buf), zngio.WriterOpts{})
+	zw := zngio.NewWriter(zio.NopCloser(&buf))
 	if err := zw.Write(zv); err != nil {
 		return nil, err
 	}

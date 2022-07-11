@@ -30,13 +30,9 @@ func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	zsonSrc := zsonio.NewReader(zed.NewContext(), bytes.NewReader(in))
 	var rawzng Output
-	var zngFrameThresh int
-	if compress {
-		zngFrameThresh = zngio.DefaultFrameThresh
-	}
 	rawDst := zngio.NewWriterWithOpts(&rawzng, zngio.WriterOpts{
 		Compress:    compress,
-		FrameThresh: zngFrameThresh,
+		FrameThresh: zngio.DefaultFrameThresh,
 	})
 	require.NoError(t, zio.Copy(rawDst, zsonSrc))
 	require.NoError(t, rawDst.Close())
