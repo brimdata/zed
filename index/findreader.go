@@ -5,18 +5,24 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zngio"
 )
 
-// FinderReader is zio.Reader version of Finder that streams back all records
-// in a microindex that match the provided key Record.
+// FinderReader is a zio.ReadCloser version of Finder that streams back all
+// records in a microindex that match the provided key record.
 type FinderReader struct {
 	compare keyCompareFn
 	finder  *Finder
 	inputs  []string
-	reader  zio.Reader
+	reader  *zngio.Reader
 }
 
+// NewFinderReader returns a new FinderReader for the microindex at uri and the
+// key record in inputs.  See Finder.ParseKeys for an explanation of how the key
+// record is constructed from inputs.
+//
+// It is the caller's responsibility to call Close on the FinderReader when
+// done.
 func NewFinderReader(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI, inputs ...string) (*FinderReader, error) {
 	finder, err := NewFinder(ctx, zctx, engine, uri)
 	if err != nil {
@@ -51,5 +57,11 @@ func (f *FinderReader) Read() (*zed.Value, error) {
 }
 
 func (f *FinderReader) Close() error {
-	return f.finder.Close()
+	err := f.finder.Close()
+	if f.reader != nil {
+		if err2 := f.reader.Close(); err == nil {
+			err = err2
+		}
+	}
+	return err
 }

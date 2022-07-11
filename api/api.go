@@ -61,7 +61,7 @@ type CompactRequest struct {
 
 type DeleteRequest struct {
 	ObjectIDs []string `zed:"object_ids"`
-	Where     string   `zed:"were"`
+	Where     string   `zed:"where"`
 }
 
 type CommitMessage struct {
