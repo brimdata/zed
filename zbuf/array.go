@@ -44,7 +44,7 @@ func (a *Array) Vars() []zed.Value {
 }
 
 func (a *Array) Write(r *zed.Value) error {
-	a.Append(r)
+	a.Append(r.Copy())
 	return nil
 }
 
