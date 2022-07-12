@@ -23,6 +23,7 @@ type View interface {
 	Select(extent.Span, order.Which) DataObjects
 	SelectAll() DataObjects
 	SelectIndexes(extent.Span, order.Which) []*index.Object
+	SelectAllIndexes() []*index.Object
 }
 
 type Writeable interface {
@@ -37,10 +38,8 @@ type Writeable interface {
 // the commit object tree.
 // XXX redefine snapshot as type map instead of struct
 type Snapshot struct {
-	objects        map[ksuid.KSUID]*data.Object
-	deletedObjects map[ksuid.KSUID]*data.Object
-	indexes        index.Map
-	deletedIndexes index.Map
+	objects map[ksuid.KSUID]*data.Object
+	indexes index.Map
 }
 
 var _ View = (*Snapshot)(nil)
@@ -48,10 +47,8 @@ var _ Writeable = (*Snapshot)(nil)
 
 func NewSnapshot() *Snapshot {
 	return &Snapshot{
-		objects:        make(map[ksuid.KSUID]*data.Object),
-		deletedObjects: make(map[ksuid.KSUID]*data.Object),
-		indexes:        make(index.Map),
-		deletedIndexes: make(index.Map),
+		objects: make(map[ksuid.KSUID]*data.Object),
+		indexes: make(index.Map),
 	}
 }
 
@@ -61,17 +58,14 @@ func (s *Snapshot) AddDataObject(object *data.Object) error {
 		return fmt.Errorf("%s: add of a duplicate data object: %w", id, ErrWriteConflict)
 	}
 	s.objects[id] = object
-	delete(s.deletedObjects, id)
 	return nil
 }
 
 func (s *Snapshot) DeleteObject(id ksuid.KSUID) error {
-	object, ok := s.objects[id]
-	if !ok {
+	if _, ok := s.objects[id]; !ok {
 		return fmt.Errorf("%s: delete of a non-existent data object: %w", id, ErrWriteConflict)
 	}
 	delete(s.objects, id)
-	s.deletedObjects[id] = object
 	return nil
 }
 
@@ -81,7 +75,6 @@ func (s *Snapshot) AddIndexObject(object *index.Object) error {
 		return fmt.Errorf("%s: add of a duplicate index object: %w", id, ErrWriteConflict)
 	}
 	s.indexes.Insert(object)
-	s.deletedIndexes.Delete(object.Rule.RuleID(), id)
 	return nil
 }
 
@@ -91,7 +84,6 @@ func (s *Snapshot) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
 		return fmt.Errorf("%s: delete of a non-existent index object: %w", index.ObjectName(ruleID, id), ErrWriteConflict)
 	}
 	s.indexes.Delete(ruleID, id)
-	s.deletedIndexes.Insert(object)
 	return nil
 }
 
@@ -132,14 +124,6 @@ func (s *Snapshot) LookupIndexObjectRules(id ksuid.KSUID) ([]index.Rule, error) 
 	return r.Rules(), nil
 }
 
-func (s *Snapshot) LookupDeleted(id ksuid.KSUID) (*data.Object, error) {
-	o, ok := s.deletedObjects[id]
-	if !ok {
-		return nil, fmt.Errorf("%s: %w", id, ErrNotFound)
-	}
-	return o, nil
-}
-
 func (s *Snapshot) Select(scan extent.Span, order order.Which) DataObjects {
 	var objects DataObjects
 	for _, o := range s.objects {
@@ -174,6 +158,10 @@ func (s *Snapshot) SelectIndexes(scan extent.Span, order order.Which) []*index.O
 	return indexes
 }
 
+func (s *Snapshot) SelectAllIndexes() []*index.Object {
+	return s.indexes.All()
+}
+
 func (s *Snapshot) Unindexed(rules []index.Rule) map[ksuid.KSUID][]index.Rule {
 	unindexed := make(map[ksuid.KSUID][]index.Rule)
 	for id := range s.objects {
@@ -193,11 +181,7 @@ func (s *Snapshot) Copy() *Snapshot {
 	for key, val := range s.objects {
 		out.objects[key] = val
 	}
-	for key, val := range s.deletedObjects {
-		out.deletedObjects[key] = val
-	}
 	out.indexes = s.indexes.Copy()
-	out.deletedIndexes = s.deletedIndexes.Copy()
 	return out
 }
 
@@ -213,27 +197,9 @@ func (s *Snapshot) serialize() ([]byte, error) {
 			return nil, err
 		}
 	}
-	for _, o := range s.deletedObjects {
-		if err := zs.Write(&Add{Object: *o}); err != nil {
-			return nil, err
-		}
-		if err := zs.Write(&Delete{ID: o.ID}); err != nil {
-			return nil, err
-		}
-	}
 	for _, objectRule := range s.indexes {
 		for _, o := range objectRule {
 			if err := zs.Write(&AddIndex{Object: *o}); err != nil {
-				return nil, err
-			}
-		}
-	}
-	for _, objectRule := range s.deletedIndexes {
-		for _, o := range objectRule {
-			if err := zs.Write(&AddIndex{Object: *o}); err != nil {
-				return nil, err
-			}
-			if err := zs.Write(&DeleteIndex{ID: o.ID, RuleID: o.Rule.RuleID()}); err != nil {
 				return nil, err
 			}
 		}
@@ -276,17 +242,18 @@ func PlayAction(w Writeable, action Action) error {
 	if _, ok := action.(Action); !ok {
 		return badObject(action)
 	}
+	var err error
 	switch action := action.(type) {
 	case *Add:
-		w.AddDataObject(&action.Object)
+		err = w.AddDataObject(&action.Object)
 	case *Delete:
-		w.DeleteObject(action.ID)
+		err = w.DeleteObject(action.ID)
 	case *AddIndex:
-		w.AddIndexObject(&action.Object)
+		err = w.AddIndexObject(&action.Object)
 	case *DeleteIndex:
-		w.DeleteIndexObject(action.RuleID, action.ID)
+		err = w.DeleteIndexObject(action.RuleID, action.ID)
 	}
-	return nil
+	return err
 }
 
 // Play "plays" a recorded transaction into a writeable snapshot.
