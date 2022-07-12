@@ -374,14 +374,14 @@ func (b *Branch) buildMergeObject(ctx context.Context, parent *branches.Config, 
 		return nil, err
 	}
 	if message == "" {
-		message = fmt.Sprintf("merged %s into %s", b.Name, parent.Name)
+		message = fmt.Sprintf("merged %q into %q", b.Name, parent.Name)
 	}
-	// Now compute the diff between the parent patch and the child path so that
-	// the diff patch will reflect into the parent the changes in the child.
+	// Now compute the diff between the parent patch and the child patch so that
+	// the diff patch will reflect the changes from the child into the parent.
 	// Diff() will also check for delete conflicts.
 	diff, err := commits.Diff(parentPatch, childPatch)
 	if err != nil {
-		return nil, fmt.Errorf("error trying to merge %s into %s: %w", b.Name, parent.Name, err)
+		return nil, fmt.Errorf("error merging %q into %q: %w", b.Name, parent.Name, err)
 	}
 	return diff.NewCommitObject(parent.Commit, retries, author, message, zed.Value{zed.TypeNull, nil}), nil
 }

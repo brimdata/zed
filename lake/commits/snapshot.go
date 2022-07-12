@@ -62,8 +62,7 @@ func (s *Snapshot) AddDataObject(object *data.Object) error {
 }
 
 func (s *Snapshot) DeleteObject(id ksuid.KSUID) error {
-	_, ok := s.objects[id]
-	if !ok {
+	if _, ok := s.objects[id]; !ok {
 		return fmt.Errorf("%s: delete of a non-existent data object: %w", id, ErrWriteConflict)
 	}
 	delete(s.objects, id)
@@ -243,25 +242,18 @@ func PlayAction(w Writeable, action Action) error {
 	if _, ok := action.(Action); !ok {
 		return badObject(action)
 	}
+	var err error
 	switch action := action.(type) {
 	case *Add:
-		if err := w.AddDataObject(&action.Object); err != nil {
-			return err
-		}
+		err = w.AddDataObject(&action.Object)
 	case *Delete:
-		if err := w.DeleteObject(action.ID); err != nil {
-			return err
-		}
+		err = w.DeleteObject(action.ID)
 	case *AddIndex:
-		if err := w.AddIndexObject(&action.Object); err != nil {
-			return err
-		}
+		err = w.AddIndexObject(&action.Object)
 	case *DeleteIndex:
-		if err := w.DeleteIndexObject(action.RuleID, action.ID); err != nil {
-			return err
-		}
+		err = w.DeleteIndexObject(action.RuleID, action.ID)
 	}
-	return nil
+	return err
 }
 
 // Play "plays" a recorded transaction into a writeable snapshot.

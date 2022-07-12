@@ -169,7 +169,7 @@ func (p *Patch) Revert(tip *Snapshot, commit, parent ksuid.KSUID, retries int, a
 			return nil, err
 		}
 		if dataObject == nil {
-			return nil, fmt.Errorf("corrupt snapshot: id %s is in patch's deleted objects but not in patch's base snapshot", id)
+			return nil, fmt.Errorf("corrupt snapshot: ID %s is in patch's deleted objects but not in patch's base snapshot", id)
 		}
 		if !Exists(tip, dataObject.ID) {
 			object.appendAdd(dataObject)
@@ -264,7 +264,7 @@ func Diff(parent, child *Patch) (*Patch, error) {
 		}
 	}
 	if !dirty {
-		return nil, errors.New("nothing to merge")
+		return nil, errors.New("difference is empty")
 	}
 	return p, nil
 }
