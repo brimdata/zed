@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
@@ -313,4 +314,11 @@ func TestMarshalNetIP(t *testing.T) {
 	b, err := zson.Marshal(net.ParseIP("10.0.0.1"))
 	require.NoError(t, err)
 	assert.Equal(t, `10.0.0.1`, b)
+}
+
+func TestMarshalGoTime(t *testing.T) {
+	tm, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05.123Z")
+	b, err := zson.Marshal(tm)
+	require.NoError(t, err)
+	assert.Equal(t, `2006-01-02T15:04:05.123Z`, b)
 }
