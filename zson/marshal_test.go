@@ -333,13 +333,6 @@ func TestMarshalNetipAddr(t *testing.T) {
 	assert.Equal(t, before, after)
 }
 
-func TestMarshalGoTime(t *testing.T) {
-	tm, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05.123Z")
-	b, err := zson.Marshal(tm)
-	require.NoError(t, err)
-	assert.Equal(t, `2006-01-02T15:04:05.123Z`, b)
-}
-
 func TestMarshalDecoratedIPs(t *testing.T) {
 	m := zson.NewMarshaler()
 	// Make sure IPs don't get decorated with Go type and just
@@ -351,4 +344,11 @@ func TestMarshalDecoratedIPs(t *testing.T) {
 	b, err = m.Marshal(netip.MustParseAddr("142.250.72.142"))
 	require.NoError(t, err)
 	assert.Equal(t, `142.250.72.142`, b)
+}
+
+func TestMarshalGoTime(t *testing.T) {
+	tm, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05.123Z")
+	b, err := zson.Marshal(tm)
+	require.NoError(t, err)
+	assert.Equal(t, `2006-01-02T15:04:05.123Z`, b)
 }
