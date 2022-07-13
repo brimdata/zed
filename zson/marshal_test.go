@@ -3,6 +3,7 @@ package zson_test
 import (
 	"bytes"
 	"net"
+	"net/netip"
 	"strings"
 	"testing"
 	"time"
@@ -311,9 +312,25 @@ func TestIgnoreField(t *testing.T) {
 }
 
 func TestMarshalNetIP(t *testing.T) {
-	b, err := zson.Marshal(net.ParseIP("10.0.0.1"))
+	before := net.ParseIP("10.0.0.1")
+	b, err := zson.Marshal(before)
 	require.NoError(t, err)
 	assert.Equal(t, `10.0.0.1`, b)
+	var after net.IP
+	err = zson.Unmarshal(string(b), &after)
+	require.NoError(t, err)
+	assert.Equal(t, before, after)
+}
+
+func TestMarshalNetipAddr(t *testing.T) {
+	before := netip.MustParseAddr("10.0.0.1")
+	b, err := zson.Marshal(before)
+	require.NoError(t, err)
+	assert.Equal(t, `10.0.0.1`, b)
+	var after netip.Addr
+	err = zson.Unmarshal(string(b), &after)
+	require.NoError(t, err)
+	assert.Equal(t, before, after)
 }
 
 func TestMarshalGoTime(t *testing.T) {
@@ -321,4 +338,17 @@ func TestMarshalGoTime(t *testing.T) {
 	b, err := zson.Marshal(tm)
 	require.NoError(t, err)
 	assert.Equal(t, `2006-01-02T15:04:05.123Z`, b)
+}
+
+func TestMarshalDecoratedIPs(t *testing.T) {
+	m := zson.NewMarshaler()
+	// Make sure IPs don't get decorated with Go type and just
+	// appear as native Zed IPs.
+	m.Decorate(zson.StyleSimple)
+	b, err := m.Marshal(net.ParseIP("142.250.72.142"))
+	require.NoError(t, err)
+	assert.Equal(t, `142.250.72.142`, b)
+	b, err = m.Marshal(netip.MustParseAddr("142.250.72.142"))
+	require.NoError(t, err)
+	assert.Equal(t, `142.250.72.142`, b)
 }
