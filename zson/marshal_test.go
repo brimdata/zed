@@ -2,6 +2,7 @@ package zson_test
 
 import (
 	"bytes"
+	"net"
 	"strings"
 	"testing"
 
@@ -306,4 +307,10 @@ func TestIgnoreField(t *testing.T) {
 	var v s
 	require.NoError(t, zson.Unmarshal(b, &v))
 	assert.Equal(t, s{Value: "test"}, v)
+}
+
+func TestMarshalNetIP(t *testing.T) {
+	b, err := zson.Marshal(net.ParseIP("10.0.0.1"))
+	require.NoError(t, err)
+	assert.Equal(t, `10.0.0.1`, b)
 }
