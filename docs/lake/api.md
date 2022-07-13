@@ -37,7 +37,7 @@ POST /pool
 curl -X POST \
      -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -d '{"name": "inventory", "layout": {"keys": [["product","serial_number"],["warehouse"]]}}' \
+     -d '{"name": "inventory", "layout": {"keys": [["product","serial_number"]]}}' \
      http://localhost:9867/pool
 ```
 
@@ -46,18 +46,15 @@ curl -X POST \
 ```
 {
   "pool": {
-    "ts": "2022-04-01T18:18:50.54718Z",
+    "ts": "2022-07-13T21:23:05.323016Z",
     "name": "inventory",
-    "id": "0x0ed4f40a9ab28531c25ebc860fac69fe52fe6eb7",
+    "id": "0x0f5ce9b9b6202f3883c9db8ff58d8721a075d1e4",
     "layout": {
       "order": "asc",
       "keys": [
         [
           "product",
           "serial_number"
-        ],
-        [
-          "warehouse"
         ]
       ]
     },
@@ -65,7 +62,7 @@ curl -X POST \
     "threshold": 524288000
   },
   "branch": {
-    "ts": "2022-04-01T18:18:50.547752Z",
+    "ts": "2022-07-13T21:23:05.367365Z",
     "name": "main",
     "commit": "0x0000000000000000000000000000000000000000"
   }
@@ -226,8 +223,9 @@ On success, HTTP 204 is returned with no response payload.
 
 #### Delete Data
 
-Take a list of commit IDs or object IDs in a branch and create a deletion
-commit of all referenced objects.
+Create a commit that reflects the deletion of some data in the branch. The data
+to delete can be specified via a list of commit IDs or object IDs, or
+as a filter expression (see [limitations](../commands/zed/#24-delete)).
 
 ```
 POST /pool/{pool}/branch/{branch}/delete
@@ -240,6 +238,7 @@ POST /pool/{pool}/branch/{branch}/delete
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
 | object_ids | [string] | body | Commit IDs or object IDs to be deleted. |
+| where | string | body | Filter expression (see [limitations](../commands/zed/#24-delete)). |
 
 **Example Request**
 
@@ -249,13 +248,28 @@ curl -X POST \
      -H 'Content-Type: application/json' \
      -d '{"object_ids": ["274Eb1Kn8MTM6qxPyBpVTvYhLLa", "274EavbXt546VNelRLNXrzWShNh"]}' \
      http://localhost:9867/pool/inventory/branch/main/delete
-
 ```
 
 **Example Response**
 
 ```
 {"commit":"0x0ed4fee861e8fb61568783205a46a218182eba6c","warnings":null}
+```
+
+**Example Request**
+
+```
+curl -X POST \
+     -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -d '{"where": "product.serial_number > 12345"}' \
+     http://localhost:9867/pool/inventory/branch/main/delete
+```
+
+**Example Response**
+
+```
+{"commit":"0x0f5ceaeaaec7b4c33cfdece9f2e8577ad89d21e2","warnings":null}
 ```
 
 ---
