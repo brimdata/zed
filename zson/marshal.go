@@ -329,6 +329,12 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		m.Builder.Append(zv.Bytes)
 		return typ, nil
 	}
+	if ip, ok := v.Interface().(net.IP); ok {
+		if a, err := netip.ParseAddr(ip.String()); err == nil {
+			m.Builder.Append(zed.EncodeIP(a))
+			return zed.TypeIP, nil
+		}
+	}
 	switch v.Kind() {
 	case reflect.Array:
 		if v.Type().Elem().Kind() == reflect.Uint8 {
