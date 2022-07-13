@@ -335,6 +335,10 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 			return zed.TypeIP, nil
 		}
 	}
+	if t, ok := v.Interface().(time.Time); ok {
+		m.Builder.Append(zed.EncodeTime(nano.TimeToTs(t)))
+		return zed.TypeTime, nil
+	}
 	switch v.Kind() {
 	case reflect.Array:
 		if v.Type().Elem().Kind() == reflect.Uint8 {
