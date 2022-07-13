@@ -290,7 +290,7 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zed.Type, error) {
 			// it's already been converted to a Zed time;
 			// likewise for zed.Value, which gets encoded as
 			// itself and its own named type if it has one.
-			if t := v.Type(); t == nanoTsType || t == zngValueType {
+			if t := v.Type(); t == nanoTsType || t == zngValueType || t == netipAddrType || t == netIPType {
 				return typ, nil
 			}
 			path := v.Type().PkgPath()
@@ -661,6 +661,7 @@ func (u *UnmarshalZNGContext) NamedBindings(bindings []Binding) error {
 }
 
 var netipAddrType = reflect.TypeOf(netip.Addr{})
+var netIPType = reflect.TypeOf(net.IP{})
 
 func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	if !v.IsValid() {
@@ -708,10 +709,13 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	case reflect.Map:
 		return u.decodeMap(zv, v)
 	case reflect.Slice:
+		if v.Type() == netIPType {
+			return u.decodeNetIP(zv, v)
+		}
 		return u.decodeArray(zv, v)
 	case reflect.Struct:
 		if v.Type() == netipAddrType {
-			return u.decodeIP(zv, v)
+			return u.decodeNetipAddr(zv, v)
 		}
 		return u.decodeRecord(zv, v)
 	case reflect.Interface:
@@ -848,7 +852,7 @@ func (u *UnmarshalZNGContext) decodeNull(zv *zed.Value, v reflect.Value) error {
 	return nil
 }
 
-func (u *UnmarshalZNGContext) decodeIP(zv *zed.Value, v reflect.Value) error {
+func (u *UnmarshalZNGContext) decodeNetipAddr(zv *zed.Value, v reflect.Value) error {
 	if zed.TypeUnder(zv.Type) != zed.TypeIP {
 		return incompatTypeError(zv.Type, v)
 	}
@@ -857,6 +861,18 @@ func (u *UnmarshalZNGContext) decodeIP(zv *zed.Value, v reflect.Value) error {
 		return nil
 	}
 	v.Set(reflect.ValueOf(zed.DecodeIP(zv.Bytes)))
+	return nil
+}
+
+func (u *UnmarshalZNGContext) decodeNetIP(zv *zed.Value, v reflect.Value) error {
+	if zed.TypeUnder(zv.Type) != zed.TypeIP {
+		return incompatTypeError(zv.Type, v)
+	}
+	if zv.Bytes == nil {
+		v.Set(reflect.Zero(v.Type()))
+		return nil
+	}
+	v.Set(reflect.ValueOf(net.ParseIP(zed.DecodeIP(zv.Bytes).String())))
 	return nil
 }
 
