@@ -1,3 +1,19 @@
+## v1.2.0
+* Compress index values (#3974)
+* Replace `-znglz4blocksize` flag with `-zngcompress` and `-zngframethresh` for `zed` and `zq` (#3967)
+* Add `-splitsize` flag to `zed` and `zq` (#3957)
+* Add `-aggmem` flag to `zed` and `zq` (#3921)
+* Add `zed compact` (#3940)
+* Remove `-repl` flag from `zc` (#3945)
+* Always default to ZNG output for `-split` flag to `zed` and `zq` (#3938)
+* Number `-split` flag files sequentially for `zed` and `zq`  (#3937)
+* Remove index support for relative comparisons (#3932)
+* Support `...` spread operator in [array expressions](docs/language/overview.md#6113-array-expressions) and [set expressions](docs/language/overview.md#6114-set-expressions) (#3910)
+* [Python client](python/zed): rework `zed.Client.query_raw()` to handle any format (#3911)
+* Add support for Parquet API responses (#3909)
+* Support the indexing operation on sets (#3908)
+* Add `nullsMax` argument to [`compare() function`](docs/language/functions/compare.md) (#3898)
+
 ## v1.1.0
 
 * Allow `-configdir`, `-lake`, `-q`, and `-use` flags before `zed` subcommands (#3852)
@@ -84,7 +100,7 @@
 * Decode top-level JSON arrays incrementally (#3123)
 * Remove PPL license (#3116)
 * Change ZSON map syntax to `|{ key: value, ... }|` (#3111)
-* Support revert for indexes (#3101)    
+* Support revert for indexes (#3101)
 * Rename `zson_parse()` to `parse_zson()` (#3092)
 * Add `zed lake index update` and `zed api index update` commands (#3079, #3093)
 * Add `parse_uri()` function (#3080, #3084)
