@@ -30,13 +30,9 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	var ctrl bool
-	if s := r.URL.Query().Get("ctrl"); s != "" {
-		var err error
-		if ctrl, err = strconv.ParseBool(s); err != nil {
-			w.Error(srverr.ErrInvalid("non-boolean value for \"ctrl\" query parameter: %q", s))
-			return
-		}
+	ctrl, ok := r.BoolFromQuery("ctrl")
+	if !ok {
+		return
 	}
 	// A note on error handling here.  If we get an error setting up
 	// before the query starts to run, we call w.Error() and return
