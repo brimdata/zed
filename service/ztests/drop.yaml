@@ -27,4 +27,4 @@ outputs:
       ===
       ===
       "p3": pool not found
-      Post "http://127.0.0.1:1/query": dial tcp 127.0.0.1:1: connect: connection refused
+      Post "http://127.0.0.1:1/query?ctrl=T": dial tcp 127.0.0.1:1: connect: connection refused

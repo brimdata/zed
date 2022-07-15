@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/brimdata/zed"
@@ -29,6 +30,14 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
+	var ctrl bool
+	if s := r.URL.Query().Get("ctrl"); s != "" {
+		var err error
+		if ctrl, err = strconv.ParseBool(s); err != nil {
+			w.Error(srverr.ErrInvalid("non-boolean value for \"ctrl\" query parameter: %q", s))
+			return
+		}
+	}
 	// A note on error handling here.  If we get an error setting up
 	// before the query starts to run, we call w.Error() and return
 	// an HTTP status error and a JSON formatted error.  If the query
@@ -49,7 +58,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	flusher, _ := w.ResponseWriter.(http.Flusher)
-	writer, err := queryio.NewWriter(zio.NopCloser(w), w.Format, flusher)
+	writer, err := queryio.NewWriter(zio.NopCloser(w), w.Format, flusher, ctrl)
 	if err != nil {
 		w.Error(err)
 		return

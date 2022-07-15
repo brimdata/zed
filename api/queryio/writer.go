@@ -10,6 +10,8 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/jsonio"
+	"github.com/brimdata/zed/zio/zjsonio"
+	"github.com/brimdata/zed/zio/zngio"
 )
 
 type controlWriter interface {
@@ -24,7 +26,7 @@ type Writer struct {
 	flusher http.Flusher
 }
 
-func NewWriter(w io.WriteCloser, format string, flusher http.Flusher) (*Writer, error) {
+func NewWriter(w io.WriteCloser, format string, flusher http.Flusher, ctrl bool) (*Writer, error) {
 	d := &Writer{
 		cid:     -1,
 		start:   nano.Now(),
@@ -33,9 +35,17 @@ func NewWriter(w io.WriteCloser, format string, flusher http.Flusher) (*Writer, 
 	var err error
 	switch format {
 	case "zng":
-		d.writer = NewZNGWriter(w)
+		if ctrl {
+			d.writer = NewZNGWriter(w)
+		} else {
+			d.writer = zngio.NewWriter(w)
+		}
 	case "zjson":
-		d.writer = NewZJSONWriter(w)
+		if ctrl {
+			d.writer = NewZJSONWriter(w)
+		} else {
+			d.writer = zjsonio.NewWriter(w)
+		}
 	case "json":
 		// A JSON response is always an array.
 		d.writer = jsonio.NewArrayWriter(w)
