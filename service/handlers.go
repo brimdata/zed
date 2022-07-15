@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/brimdata/zed"
@@ -30,7 +29,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	ctrl, ok := r.BoolFromQuery("ctrl")
+	ctrl, ok := r.BoolFromQuery("ctrl", w)
 	if !ok {
 		return
 	}

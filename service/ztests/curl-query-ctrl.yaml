@@ -24,4 +24,4 @@ outputs:
       // control messages disabled
       {"type":{"kind":"record","id":30,"fields":[{"name":"ts","type":{"kind":"primitive","name":"int64"}}]},"value":["0"]}
       // invalid ctrl value
-      {"type":"Error","kind":"invalid operation","error":"non-boolean value for \"ctrl\" query parameter: \"Foo\""}
+      {"type":"Error","kind":"invalid operation","error":"invalid query param \"Foo\": strconv.ParseBool: parsing \"Foo\": invalid syntax"}
