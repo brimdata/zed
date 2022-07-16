@@ -21,12 +21,14 @@ type Writer struct {
 	cid     int
 	start   nano.Ts
 	writer  zio.WriteCloser
+	ctrl    bool
 	flusher http.Flusher
 }
 
-func NewWriter(w io.WriteCloser, format string, flusher http.Flusher) (*Writer, error) {
+func NewWriter(w io.WriteCloser, format string, flusher http.Flusher, ctrl bool) (*Writer, error) {
 	d := &Writer{
 		cid:     -1,
+		ctrl:    ctrl,
 		start:   nano.Now(),
 		flusher: flusher,
 	}
@@ -76,6 +78,9 @@ func (w *Writer) WriteError(err error) {
 }
 
 func (w *Writer) WriteControl(value interface{}) error {
+	if !w.ctrl {
+		return nil
+	}
 	var err error
 	if ctrl, ok := w.writer.(controlWriter); ok {
 		err = ctrl.WriteControl(value)

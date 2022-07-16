@@ -1,0 +1,27 @@
+script: |
+  source service.sh
+  zed create -q test
+  echo '{ts:0}' | zed load -use test -q - 
+  echo // control messages enabled
+  curl -H "Accept: application/x-zjson" -d '{"query":"from test@main"}' $ZED_LAKE/query?ctrl=T \
+    | sed -E '/QueryStats/s/[0-9]{3,}/xxx/g' # for ZJSON
+  echo // control messages disabled
+  curl -H "Accept: application/x-zjson" -d '{"query":"from test@main"}' $ZED_LAKE/query?ctrl=F
+  echo // invalid ctrl value
+  curl -H "Accept: application/x-zjson" -d '{"query":"from test@main"}' $ZED_LAKE/query?ctrl=Foo
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      // control messages enabled
+      {"type":"QueryChannelSet","value":{"channel_id":0}}
+      {"type":{"kind":"record","id":30,"fields":[{"name":"ts","type":{"kind":"primitive","name":"int64"}}]},"value":["0"]}
+      {"type":"QueryChannelEnd","value":{"channel_id":0}}
+      {"type":"QueryStats","value":{"start_time":{"sec":xxx,"ns":xxx},"update_time":{"sec":xxx,"ns":xxx},"bytes_read":1,"bytes_matched":1,"records_read":1,"records_matched":1}}
+      // control messages disabled
+      {"type":{"kind":"record","id":30,"fields":[{"name":"ts","type":{"kind":"primitive","name":"int64"}}]},"value":["0"]}
+      // invalid ctrl value
+      {"type":"Error","kind":"invalid operation","error":"invalid query param \"Foo\": strconv.ParseBool: parsing \"Foo\": invalid syntax"}

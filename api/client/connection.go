@@ -301,7 +301,7 @@ func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src s
 	if head != nil {
 		body.Head = *head
 	}
-	req := c.NewRequest(ctx, http.MethodPost, "/query", body)
+	req := c.NewRequest(ctx, http.MethodPost, "/query?ctrl=T", body)
 	res, err := c.Do(req)
 	var ae *api.Error
 	if errors.As(err, &ae) {

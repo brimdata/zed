@@ -29,6 +29,10 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
+	ctrl, ok := r.BoolFromQuery("ctrl", w)
+	if !ok {
+		return
+	}
 	// A note on error handling here.  If we get an error setting up
 	// before the query starts to run, we call w.Error() and return
 	// an HTTP status error and a JSON formatted error.  If the query
@@ -49,7 +53,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	flusher, _ := w.ResponseWriter.(http.Flusher)
-	writer, err := queryio.NewWriter(zio.NopCloser(w), w.Format, flusher)
+	writer, err := queryio.NewWriter(zio.NopCloser(w), w.Format, flusher, ctrl)
 	if err != nil {
 		w.Error(err)
 		return
