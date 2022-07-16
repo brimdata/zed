@@ -65,7 +65,7 @@ so appropriate for a [super-structured data model](README.md#2-zed-a-super-struc
 like Zed.  That said, JSON can be used as an encoding format for Zed by mapping Zed data
 onto a JSON-based protocol.  This allows clients like web apps or
 Electron apps to receive and understand Zed and, with the help of client
-libraries like [Zealot](https://github.com/brimdata/zealot),
+libraries like [Zealot](https://github.com/brimdata/brim/tree/main/packages/zealot),
 to manipulate the rich, structured Zed types that are implemented on top of
 the basic JavaScript types.
 
