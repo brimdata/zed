@@ -123,7 +123,7 @@ and we get just the one record that matches:
 Under the covers, a keyword search translates to Zed's [grep function](../language/functions/grep.md),
 which lets you search specific fields instead of the entire input value, e.g.,
 we can search for the string "bar" in the `City` field and list all the unique
-cities that match with a [group-by](#group-by):
+cities that match with a [group-by](#52-grouping):
 ```mdtest-command dir=testdata/edu
 zq -f text 'grep("bar", City) | by City | yield City | sort' schools.zson
 ```
