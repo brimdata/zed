@@ -348,7 +348,7 @@ type collectionIter struct {
 
 func (c *collectionIter) appendNext(b *zcode.Builder) {
 	if union, ok := c.typ.(*zed.TypeUnion); ok {
-		zed.BuildUnion(b, union.Selector(c.types[0]), c.bytes[0])
+		zed.BuildUnion(b, union.TagOf(c.types[0]), c.bytes[0])
 	} else {
 		b.Append(c.bytes[0])
 	}

@@ -69,7 +69,7 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 
 func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.Type, zcode.Bytes, error) {
 	if union, ok := zed.TypeUnder(inner).(*zed.TypeUnion); ok {
-		inner, vb = union.SplitZNG(vb)
+		inner, vb = union.Untag(vb)
 	}
 	typ := zed.TypeRecordOf(inner)
 	if typ == nil || len(typ.Columns) != 2 {

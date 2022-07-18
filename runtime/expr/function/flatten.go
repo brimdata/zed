@@ -96,7 +96,7 @@ func (n *Flatten) encode(cols []zed.Column, inner zed.Type, base field.Path, b z
 		union, _ := inner.(*zed.TypeUnion)
 		if union != nil {
 			n.BeginContainer()
-			n.Append(zed.EncodeInt(int64(union.Selector(typ))))
+			n.Append(zed.EncodeInt(int64(union.TagOf(typ))))
 		}
 		n.BeginContainer()
 		n.encodeKey(key)

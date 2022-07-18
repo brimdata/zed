@@ -193,8 +193,8 @@ func formatUnion(t *zed.TypeUnion, zv zcode.Bytes) string {
 	if zv == nil {
 		return FormatValue(zed.Null)
 	}
-	typ, iv := t.SplitZNG(zv)
-	s := strconv.FormatInt(int64(t.Selector(typ)), 10) + ":"
+	typ, iv := t.Untag(zv)
+	s := strconv.FormatInt(int64(t.TagOf(typ)), 10) + ":"
 	return s + formatAny(zed.NewValue(typ, iv), false)
 }
 

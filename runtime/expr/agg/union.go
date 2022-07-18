@@ -73,7 +73,7 @@ func (u *Union) Result(zctx *zed.Context) *zed.Value {
 	for typ, m := range u.types {
 		for v := range m {
 			if union, ok := zed.TypeUnder(inner).(*zed.TypeUnion); ok {
-				zed.BuildUnion(&b, union.Selector(typ), []byte(v))
+				zed.BuildUnion(&b, union.TagOf(typ), []byte(v))
 			} else {
 				b.Append([]byte(v))
 			}
@@ -94,7 +94,7 @@ func (u *Union) ConsumeAsPartial(val *zed.Value) {
 		typ := styp.Type
 		b := it.Next()
 		if union, ok := zed.TypeUnder(typ).(*zed.TypeUnion); ok {
-			typ, b = union.SplitZNG(b)
+			typ, b = union.Untag(b)
 		}
 		u.update(typ, b)
 	}

@@ -12,7 +12,7 @@ import (
 type UnionWriter struct {
 	typ      *zed.TypeUnion
 	values   []Writer
-	selector *IntWriter
+	tags     *IntWriter
 	presence *PresenceWriter
 }
 
@@ -24,7 +24,7 @@ func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
 	return &UnionWriter{
 		typ:      typ,
 		values:   values,
-		selector: NewIntWriter(spiller),
+		tags:     NewIntWriter(spiller),
 		presence: NewPresenceWriter(spiller),
 	}
 }
@@ -35,16 +35,16 @@ func (u *UnionWriter) Write(body zcode.Bytes) error {
 		return nil
 	}
 	u.presence.TouchValue()
-	typ, zv := u.typ.SplitZNG(body)
-	selector := u.typ.Selector(typ)
-	if err := u.selector.Write(int32(selector)); err != nil {
+	typ, zv := u.typ.Untag(body)
+	tag := u.typ.TagOf(typ)
+	if err := u.tags.Write(int32(tag)); err != nil {
 		return err
 	}
-	return u.values[selector].Write(zv)
+	return u.values[tag].Write(zv)
 }
 
 func (u *UnionWriter) Flush(eof bool) error {
-	if err := u.selector.Flush(eof); err != nil {
+	if err := u.tags.Flush(eof); err != nil {
 		return err
 	}
 	for _, value := range u.values {
@@ -67,7 +67,7 @@ func (u *UnionWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, 
 		name := fmt.Sprintf("c%d", k)
 		cols = append(cols, zed.Column{name, typ})
 	}
-	typ, err := u.selector.EncodeMap(zctx, b)
+	typ, err := u.tags.EncodeMap(zctx, b)
 	if err != nil {
 		return nil, err
 	}

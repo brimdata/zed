@@ -111,7 +111,7 @@ func (b *builder) endArray() {
 			if bytes := items[i].zb.Bytes().Body(); bytes == nil {
 				container.zb.Append(nil)
 			} else {
-				selector := union.Selector(items[i].typ)
+				selector := union.TagOf(items[i].typ)
 				zed.BuildUnion(&container.zb, selector, bytes)
 			}
 		}
