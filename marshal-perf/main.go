@@ -10,15 +10,16 @@ import (
 	"time"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
+	"github.com/kr/pretty"
 )
 
 const NumRecords = 100
 const NumRuns = 20
 
 func dump(b []byte) {
-	fmt.Println(len(b))
 	f, err := os.OpenFile("t.zng", os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		panic(err)
@@ -39,8 +40,8 @@ func main() {
 	for i := 0; i < NumRecords; i++ {
 		zedThings[i] = Make()
 	}
-	//fmt.Println(zedThings)
-	dump([]byte(MarshalZSON(zedThings)))
+	//fmt.Println(MarshalZSON(zedThings))
+	dump(MarshalZNG(zedThings))
 	return
 	jsonThings := convertToJSON(zedThings)
 	run("MarshalJSON", func() {
@@ -78,6 +79,9 @@ func run(which string, marshal func()) {
 }
 
 func MarshalJSON(things []JSONThing) []byte {
+	for i := 0; i < 10; i++ {
+		pretty.Println(things[i])
+	}
 	b, err := json.Marshal(things)
 	if err != nil {
 		panic(err)
@@ -105,15 +109,16 @@ func UnmarshalZSON(s string) []Thing {
 	return things
 }
 
-func MarshalZNG(vals []Thing) []byte {
+func MarshalZNG(things []Thing) []byte {
 	m := zson.NewZNGMarshaler()
 	var out bytes.Buffer
 	writer := zngio.NewWriter(&NopCloser{&out})
 	m.Decorate(zson.StyleSimple)
-	val, err := m.Marshal(vals)
+	val, err := m.Marshal(things)
 	if err != nil {
 		panic(err)
 	}
+	dumpVal(val)
 	if err := writer.Write(val); err != nil {
 		panic(err)
 	}
@@ -121,6 +126,18 @@ func MarshalZNG(vals []Thing) []byte {
 		panic(err)
 	}
 	return out.Bytes()
+}
+
+func dumpVal(val *zed.Value) {
+	zed.Walk(val.Type, val.Bytes, func(typ zed.Type, bytes zcode.Bytes) error {
+		if zed.IsContainerType(typ) {
+			fmt.Println(zson.FormatType(typ))
+			return nil
+		}
+		fmt.Println(zson.String(zed.NewValue(typ, bytes)))
+		return nil
+	})
+	panic("x")
 }
 
 func UnmarshalZNG(b []byte) []Thing {
@@ -178,7 +195,7 @@ func (t *ThingA) GetID() int64 {
 type ThingB struct {
 	ID    int64
 	Name  string
-	Stuff []uint8
+	Stuff []int8
 }
 
 func NewThingB() *ThingB {
@@ -186,7 +203,7 @@ func NewThingB() *ThingB {
 	return &ThingB{
 		ID:    id,
 		Name:  NewName(),
-		Stuff: NewUint8s(),
+		Stuff: NewInt8s(),
 	}
 }
 
@@ -264,7 +281,7 @@ type JSONThingB struct {
 	Kind  string
 	ID    int64
 	Name  string
-	Stuff []uint8
+	Stuff []int8
 }
 
 func (j *JSONThingB) GetID() int64 {
@@ -354,11 +371,11 @@ func NewInt64s() []int64 {
 	return vals
 }
 
-func NewUint8s() []uint8 {
+func NewInt8s() []int8 {
 	spread := rand.Intn(200) + 1
-	vals := make([]uint8, rand.Intn(10))
+	vals := make([]int8, rand.Intn(10))
 	for i := 0; i < len(vals); i++ {
-		vals[i] = uint8(rand.Intn(spread))
+		vals[i] = int8(rand.Intn(spread))
 	}
 	return vals
 }
