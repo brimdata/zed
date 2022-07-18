@@ -6,26 +6,73 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"os"
-	"time"
+	"testing"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-	"github.com/kr/pretty"
 )
 
-const NumRecords = 100
-const NumRuns = 20
+const NumRecords = 10
 
-func dump(b []byte) {
-	f, err := os.OpenFile("t.zng", os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
-	if err != nil {
-		panic(err)
+func BenchmarkMarshalJSON(b *testing.B) {
+	_, jsonThings := setup()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		MarshalJSON(jsonThings)
 	}
-	f.Write(b)
-	f.Close()
+}
+
+func BenchmarkUnmarshalJSON(b *testing.B) {
+	_, jsonThings := setup()
+	encodedJSON := MarshalJSON(jsonThings)
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		UnmarshalJSON(encodedJSON)
+	}
+}
+
+func BenchmarkMarshalZSON(b *testing.B) {
+	zedThings, _ := setup()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		MarshalZSON(zedThings)
+	}
+}
+
+func BenchmarkUnmarshalZSON(b *testing.B) {
+	zedThings, _ := setup()
+	encodedZSON := MarshalZSON(zedThings)
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		UnmarshalZSON(encodedZSON)
+	}
+}
+
+func BenchmarkMarshalZNG(b *testing.B) {
+	zedThings, _ := setup()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		MarshalZNG(zedThings)
+	}
+}
+
+func BenchmarkUnmarshalZNG(b *testing.B) {
+	zedThings, _ := setup()
+	encodedZNG := MarshalZNG(zedThings)
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		UnmarshalZNG(encodedZNG)
+	}
+}
+
+func setup() ([]Thing, []JSONThing) {
+	things := make([]Thing, NumRecords)
+	for i := 0; i < NumRecords; i++ {
+		things[i] = Make()
+	}
+	return things, convertToJSON(things)
 }
 
 func main() {
@@ -35,53 +82,9 @@ func main() {
 	}
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()*/
-
-	zedThings := make([]Thing, NumRecords)
-	for i := 0; i < NumRecords; i++ {
-		zedThings[i] = Make()
-	}
-	//fmt.Println(MarshalZSON(zedThings))
-	dump(MarshalZNG(zedThings))
-	return
-	jsonThings := convertToJSON(zedThings)
-	run("MarshalJSON", func() {
-		MarshalJSON(jsonThings)
-	})
-	encodedJSON := MarshalJSON(jsonThings)
-	run("UnmarshalJSON", func() {
-		UnmarshalJSON(encodedJSON)
-	})
-	fmt.Println("JSON size", len(encodedJSON))
-	run("MashalZSON", func() {
-		MarshalZSON(zedThings)
-	})
-	encodedZSON := MarshalZSON(zedThings)
-	run("UnmarshalZSON", func() {
-		UnmarshalZSON(encodedZSON)
-	})
-	fmt.Println("ZSON size", len(encodedZSON))
-	run("MarshalZNG", func() {
-		MarshalZNG(zedThings)
-	})
-	encodedZNG := MarshalZNG(zedThings)
-	run("UnmarshalZNG", func() {
-		UnmarshalZNG(encodedZNG)
-	})
-	fmt.Println("ZNG size", len(encodedZNG))
-}
-
-func run(which string, marshal func()) {
-	start := time.Now()
-	for i := 0; i < NumRuns; i++ {
-		marshal()
-	}
-	fmt.Println(which, time.Since(start))
 }
 
 func MarshalJSON(things []JSONThing) []byte {
-	for i := 0; i < 10; i++ {
-		pretty.Println(things[i])
-	}
 	b, err := json.Marshal(things)
 	if err != nil {
 		panic(err)
