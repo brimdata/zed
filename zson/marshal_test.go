@@ -192,11 +192,7 @@ type RecordWithInterfaceSlice struct {
 	S []Thing
 }
 
-func TestBug2575(t *testing.T) {
-	// Bug #2575 is preventing "-f lake" from working on transactions that
-	// have arrays of actions.Interface.  This test repros the problem.
-	// Skipping until #2575 is addressed.
-	t.Skip()
+func TestMixedTypeArray(t *testing.T) {
 	x := &RecordWithInterfaceSlice{
 		X: "hello",
 		S: []Thing{
@@ -223,7 +219,9 @@ func TestBug2575(t *testing.T) {
 	require.NoError(t, err)
 	actual, err := zson.FormatValue(recActual)
 	require.NoError(t, err)
-	assert.Equal(t, trim(exp), actual)
+	assert.Equal(t, trim(exp), trim(actual))
+	// Double check that all the proper typing made it into the implied union.
+	assert.Equal(t, `{X:"hello",S:[[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]]}(=RecordWithInterfaceSlice)`, actual)
 }
 
 type Foo struct {
