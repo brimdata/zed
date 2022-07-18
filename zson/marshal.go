@@ -583,6 +583,7 @@ func (m *MarshalZNGContext) lookupType(typ reflect.Type) (zed.Type, error) {
 		if typ.Elem().Kind() == reflect.Uint8 {
 			return zed.TypeBytes, nil
 		}
+		//XXX this needs to handle the underlying concrete types!
 		typ, err := m.lookupType(typ.Elem())
 		if err != nil {
 			return nil, err
@@ -741,6 +742,12 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		// probably a pointer and we'll take care of this below.
 		v.Set(reflect.Zero(v.Type()))
 		return nil
+	}
+	if union, ok := zed.TypeUnder(zv.Type).(*zed.TypeUnion); ok {
+		// This value is a tagged union.  Simply pull the underlying
+		// element out of the union encoding and recurse.
+		typ, bytes := union.SplitZNG(zv.Bytes)
+		return u.decodeAny(zed.NewValue(typ, bytes), v)
 	}
 	switch v.Kind() {
 	case reflect.Array:
@@ -990,6 +997,9 @@ func (u *UnmarshalZNGContext) decodeArray(zv *zed.Value, arrVal reflect.Value) e
 	if !ok {
 		return errors.New("not an array")
 	}
+	if _, ok := zed.TypeUnder(arrType.Type).(*zed.TypeUnion); ok {
+		fmt.Println("DEC ARRAY UNION!", String(zv.Type))
+	}
 	if zv.Bytes == nil {
 		// XXX The inner type of the null should be checked.
 		arrVal.Set(reflect.Zero(arrVal.Type()))
@@ -1149,7 +1159,13 @@ func (u *UnmarshalZNGContext) lookupType(typ zed.Type) (reflect.Type, error) {
 			return nil, err
 		}
 		return reflect.SliceOf(elemType), nil
-	case *zed.TypeUnion, *zed.TypeEnum:
+	case *zed.TypeUnion:
+		// For now just return nil here. The layer above will flag
+		// a type error.  At some point, we can create Go-native data structures
+		// in package zng for representing a union or enum as a standalone
+		// entity.  See issue #1853.
+		return nil, errors.New("cannot unmarshal union values yet")
+	case *zed.TypeEnum:
 		// For now just return nil here. The layer above will flag
 		// a type error.  At some point, we can create Go-native data structures
 		// in package zng for representing a union or enum as a standalone
