@@ -81,8 +81,8 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 		return errors.New("union has empty body")
 	}
 	it := body.Iter()
-	selector := DecodeInt(it.Next())
-	inner, err := typ.Type(int(selector))
+	tag := DecodeInt(it.Next())
+	inner, err := typ.Type(int(tag))
 	if err != nil {
 		return err
 	}

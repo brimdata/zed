@@ -18,14 +18,14 @@ func TestBestUnionSelector(t *testing.T) {
 	u8named3, err := zctx.LookupTypeNamed("u8named3", u8)
 	require.NoError(t, err)
 
-	assert.Equal(t, -1, bestUnionSelector(u8, nil))
-	assert.Equal(t, -1, bestUnionSelector(u8, u8))
-	assert.Equal(t, -1, bestUnionSelector(zed.TypeUint16, zctx.LookupTypeUnion([]zed.Type{u8})))
+	assert.Equal(t, -1, bestUnionTag(u8, nil))
+	assert.Equal(t, -1, bestUnionTag(u8, u8))
+	assert.Equal(t, -1, bestUnionTag(zed.TypeUint16, zctx.LookupTypeUnion([]zed.Type{u8})))
 
 	test := func(expected, needle zed.Type, haystack []zed.Type) {
 		t.Helper()
 		union := zctx.LookupTypeUnion(haystack)
-		typ, err := union.Type(bestUnionSelector(needle, union))
+		typ, err := union.Type(bestUnionTag(needle, union))
 		if assert.NoError(t, err) {
 			assert.Equal(t, expected, typ)
 		}

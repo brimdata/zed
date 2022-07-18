@@ -33,9 +33,9 @@ type (
 		Elements []Value
 	}
 	Union struct {
-		Type     zed.Type
-		Selector int
-		Value    Value
+		Type  zed.Type
+		Tag   int
+		Value Value
 	}
 	Enum struct {
 		Type zed.Type
@@ -187,7 +187,7 @@ func (a Analyzer) enterTypeDef(zctx *zed.Context, name string, typ zed.Type) (*z
 func (a Analyzer) convertAny(zctx *zed.Context, val astzed.Any, cast zed.Type) (Value, error) {
 	// If we're casting something to a union, then the thing inside needs to
 	// describe itself and we can convert the inner value to a union value when
-	// we know its type (so we can code the selector).
+	// we know its type (so we can code the tag).
 	if union, ok := zed.TypeUnder(cast).(*zed.TypeUnion); ok {
 		v, err := a.convertAny(zctx, val, nil)
 		if err != nil {
@@ -428,19 +428,19 @@ func (a Analyzer) convertSet(zctx *zed.Context, set *astzed.Set, cast zed.Type) 
 func (a Analyzer) convertUnion(zctx *zed.Context, v Value, union *zed.TypeUnion, cast zed.Type) (Value, error) {
 	valType := v.TypeOf()
 	if valType == zed.TypeNull {
-		// Set selector to -1 to signal to the builder to encode a null.
+		// Set tag to -1 to signal to the builder to encode a null.
 		return &Union{
-			Type:     cast,
-			Selector: -1,
-			Value:    v,
+			Type:  cast,
+			Tag:   -1,
+			Value: v,
 		}, nil
 	}
 	for k, typ := range union.Types {
 		if valType == typ {
 			return &Union{
-				Type:     cast,
-				Selector: k,
-				Value:    v,
+				Type:  cast,
+				Tag:   k,
+				Value: v,
 			}, nil
 		}
 	}

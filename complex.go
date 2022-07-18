@@ -359,7 +359,7 @@ func (t *TypeUnion) ID() int {
 // Type returns the type corresponding to tag.
 func (t *TypeUnion) Type(tag int) (Type, error) {
 	if tag < 0 || tag >= len(t.Types) {
-		return nil, ErrUnionSelector
+		return nil, ErrUnionTag
 	}
 	return t.Types[tag], nil
 }

@@ -510,7 +510,7 @@ func (e *elemHelper) needsDecoration() bool {
 func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.Bytes) error {
 	typ, bytes := union.Untag(bytes)
 	// XXX For now, we always decorate a union value so that
-	// we can determine the selector from the value's explicit type.
+	// we can determine the tag from the value's explicit type.
 	// We can later optimize this so we only print the decorator if its
 	// ambigous with another type (e.g., int8 and int16 vs a union of int8 and string).
 	// Let's do this after we have the parser working and capable of this

@@ -71,7 +71,7 @@ func (u *UnionWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, 
 	if err != nil {
 		return nil, err
 	}
-	cols = append(cols, zed.Column{"selector", typ})
+	cols = append(cols, zed.Column{"tags", typ})
 	typ, err = u.presence.EncodeMap(zctx, b)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (u *UnionWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, 
 
 type UnionReader struct {
 	readers  []Reader
-	selector *IntReader
+	tags     *IntReader
 	presence *PresenceReader
 }
 
@@ -109,11 +109,11 @@ func NewUnionReader(utyp zed.Type, in *zed.Value, r io.ReaderAt) (*UnionReader, 
 		}
 		readers = append(readers, d)
 	}
-	selector := rec.Deref("selector").MissingAsNull()
-	if selector.IsNull() {
-		return nil, errors.New("ZST union missing selector")
+	tag := rec.Deref("tags").MissingAsNull()
+	if tag.IsNull() {
+		return nil, errors.New("ZST union missing tags")
 	}
-	sr, err := NewIntReader(selector, r)
+	tagsReader, err := NewIntReader(tag, r)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func NewUnionReader(utyp zed.Type, in *zed.Value, r io.ReaderAt) (*UnionReader, 
 	}
 	return &UnionReader{
 		readers:  readers,
-		selector: sr,
+		tags:     tagsReader,
 		presence: pr,
 	}, nil
 }
@@ -147,16 +147,16 @@ func (u *UnionReader) Read(b *zcode.Builder) error {
 			return nil
 		}
 	}
-	selector, err := u.selector.Read()
+	tag, err := u.tags.Read()
 	if err != nil {
 		return err
 	}
-	if selector < 0 || int(selector) >= len(u.readers) {
-		return errors.New("bad selector in ZST union reader")
+	if tag < 0 || int(tag) >= len(u.readers) {
+		return errors.New("bad tag in ZST union reader")
 	}
 	b.BeginContainer()
-	b.Append(zed.EncodeInt(int64(selector)))
-	if err := u.readers[selector].Read(b); err != nil {
+	b.Append(zed.EncodeInt(int64(tag)))
+	if err := u.readers[tag].Read(b); err != nil {
 		return err
 	}
 	b.EndContainer()
