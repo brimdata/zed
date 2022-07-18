@@ -123,7 +123,7 @@ and we get just the one record that matches:
 Under the covers, a keyword search translates to Zed's [grep function](../language/functions/grep.md),
 which lets you search specific fields instead of the entire input value, e.g.,
 we can search for the string "bar" in the `City` field and list all the unique
-cities that match with a [group-by](#group-by):
+cities that match with a [group-by](#52-grouping):
 ```mdtest-command dir=testdata/edu
 zq -f text 'grep("bar", City) | by City | yield City | sort' schools.zson
 ```
@@ -145,7 +145,7 @@ other Unix tools that might not expect quotes.
 
 When the keyword you want to search for doesn't fit into the keyword syntax,
 i.e., it has spaces or special characters, you should use a
-[literal string search](#literal-search).
+[literal string search](#34-literal-search).
 
 ### 3.2 Globs
 
@@ -171,7 +171,7 @@ using the literal asterisk character embedded in the string.
 
 ### 3.3 Regular Expressions
 
-For pattern matching beyond [glob wildcards](#glob-wildcards),
+For pattern matching beyond [glob wildcards](#32-globs),
 regular expressions (regexps) are also
 available. To use them, simply place a `/` character before and after the
 regexp.
@@ -190,7 +190,7 @@ produces
 ...
 ```
 Further details for regular expressions are available in
-the [Zed language documention](#711-regular-expressions).
+the [Zed language documention](../language/overview.md#711-regular-expressions).
 
 ### 3.4 Literal Search
 
@@ -247,7 +247,7 @@ Quoted strings are particularly handy when you're looking for long, specific
 strings that may have several special characters in them. For example, let's
 say we're looking for information on the Union Hill Elementary district.
 Entered without quotes, we end up matching far more records than we intended
-since each space character between words is treated as a [Boolean `and`](#and), e.g.,
+since each space character between words is treated as a [Boolean `and`](#541-and), e.g.,
 ```mdtest-command dir=testdata/edu
 zq -z 'Union Hill Elementary' schools.zson
 ```
@@ -380,7 +380,7 @@ produces
 {School:null(string),District:"Luther Burbank",City:"San Jose",County:"Santa Clara",Zip:"95128-1931",Latitude:37.323556,Longitude:-121.9267,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(408) 295-2450",StatusType:"Active",Website:"www.lbsd.k12.ca.us"}
 ```
 
-[Regular expressions](#regular-expressions) can also be used with `grep`, e.g.,
+[Regular expressions](#33-regular-expressions) can also be used with `grep`, e.g.,
 ```mdtest-command dir=testdata/edu
 zq -z 'grep(/^Sunset (Ranch|Ridge) Elementary/, School)' schools.zson
 ```
@@ -465,7 +465,7 @@ produces
 ### 3.6 Boolean Logic
 
 Search terms can be combined with Boolean logic as detailed in
-the [Zed language documentation](#73-boolean-logic).
+the [Zed language documentation](../language/overview.md##73-boolean-logic).
 
 In particular, search terms separated by blank space implies
 Boolean `and` between the concatenated terms.
@@ -845,7 +845,7 @@ produces this compile-time error message and the query is not run:
 ```mdtest-output
 cannot rename outer.inner to toplevel
 ```
-This goal could instead be achieved by combining [`put`](#put) and [`drop`](#drop),
+This goal could instead be achieved by combining [`put`](#44-put) and [`drop`](#42-drop),
 e.g.,
 ```mdtest-command
 zq -Z 'put toplevel:=outer.inner | drop outer.inner' nested.zson
@@ -1281,22 +1281,28 @@ Name_Length count
 The fields referenced in a `by` grouping may or may not be present, or may be
 inconsistently present, in the given input records, in which case, the group-by
 aggregation still proceeds but embeds any error conditions in the result,
-When a value is missing for a specified fiedl, it will appear as `error("missing")`.
+When a value is missing for a specified field, it will appear as `error("missing")`.
 
 For instance, if we'd made an typographical error in our
-[prior example](#example-2) when attempting to reference the `dname` field,
+prior example when attempting to reference the `dname` field,
 the misspelled column would appear as embedded missing errors, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -f table 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' testscores.zson
+zq -Z 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' testscores.zson
 ```
 produces
 ```mdtest-output head
-cname           dnmae avg                count
-Los Angeles     -     450.83037974683543 469
-San Diego       -     496.74789915966386 168
-San Bernardino  -     465.11764705882354 117
-Riverside       -     463.8170731707317  110
-Orange          -     510.91011235955057 107
+{
+    cname: "Los Angeles",
+    dnmae: error("missing"),
+    avg: 450.83037974683543,
+    count: 469 (uint64)
+}
+{
+    cname: "San Diego",
+    dnmae: error("missing"),
+    avg: 496.74789915966386,
+    count: 168 (uint64)
+}
 ...
 ```
 

@@ -50,7 +50,7 @@ default format when output is directed to the terminal.  ZNG is the default
 when redirecting to a non-terminal output like a file or pipe.
 
 When run with input arguments, each input's format is automatically inferred
-([as described below](#21-auto-detection)) and each input is scanned
+([as described below](#22-auto-detection)) and each input is scanned
 in the order appearing on the command line forming the input stream.
 
 A query expressed in the [Zed language](../language/README.md)
