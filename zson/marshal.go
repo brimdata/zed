@@ -514,27 +514,66 @@ func (m *MarshalZNGContext) encodeArrayBytes(arrayVal reflect.Value) (zed.Type, 
 }
 
 func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error) {
-	len := arrayVal.Len()
+	arrayLen := arrayVal.Len()
+	push := m.Builder
+	m.Builder = *zcode.NewBuilder()
 	m.Builder.BeginContainer()
-	var innerType zed.Type
-	for i := 0; i < len; i++ {
+	types := make([]zed.Type, 0, arrayLen)
+	typeMap := make(map[zed.Type]struct{})
+	for i := 0; i < arrayLen; i++ {
 		item := arrayVal.Index(i)
 		typ, err := m.encodeValue(item)
 		if err != nil {
 			return nil, err
 		}
-		// XXX See bug #2575
-		innerType = typ
+		types = append(types, typ)
+		typeMap[typ] = struct{}{}
 	}
 	m.Builder.EndContainer()
-	if innerType == nil {
+	var innerType zed.Type
+	switch len(typeMap) {
+	case 0:
 		// if slice was empty, look up the type without a value
 		var err error
 		innerType, err = m.lookupType(arrayVal.Type().Elem())
 		if err != nil {
 			return nil, err
 		}
+		push.Append(m.Builder.Bytes().Body())
+	case 1:
+		innerType = types[0]
+		push.Append(m.Builder.Bytes().Body())
+	default:
+		unionTypes := make([]zed.Type, 0, len(types))
+		for typ := range typeMap {
+			unionTypes = append(unionTypes, typ)
+		}
+		unionType := m.Context.LookupTypeUnion(unionTypes)
+		// Now we know all the types and have the union type
+		// so we can recode the array with tagged union elements.
+		// We throw out the array computed above and start over with
+		// an empty builder.
+		m.Builder = *zcode.NewBuilder()
+		m.Builder.BeginContainer()
+		for i, typ := range types {
+			m.Builder.BeginContainer()
+			tag := unionType.Selector(typ)
+			m.Builder.Append(zed.EncodeInt(int64(tag)))
+			item := arrayVal.Index(i)
+			itemType, err := m.encodeValue(item)
+			if err != nil {
+				return nil, err
+			}
+			if typ != itemType {
+				return nil, fmt.Errorf("internal error: type mismatch in MarshalZNGContext.encodeArray: %s does not match %s", String(typ), String(itemType))
+			}
+			m.Builder.EndContainer()
+		}
+		m.Builder.EndContainer()
+		innerType = m.Context.LookupTypeArray(unionType)
+		push.Append(m.Builder.Bytes())
 	}
+	m.Builder = push
 	return m.Context.LookupTypeArray(innerType), nil
 }
 
