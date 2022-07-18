@@ -222,6 +222,12 @@ func TestMixedTypeArray(t *testing.T) {
 	assert.Equal(t, trim(exp), trim(actual))
 	// Double check that all the proper typing made it into the implied union.
 	assert.Equal(t, `{X:"hello",S:[[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]]}(=RecordWithInterfaceSlice)`, actual)
+
+	u := zson.NewUnmarshaler()
+	var out RecordWithInterfaceSlice
+	err = u.Unmarshal(actual, &out)
+	require.NoError(t, err)
+	assert.Equal(t, *x, out)
 }
 
 type Foo struct {
