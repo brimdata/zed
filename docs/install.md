@@ -35,7 +35,7 @@ architectures in the Zed [Github Release page](https://github.com/brimdata/zed/r
 
 Each archive includes the build for `zq` and `zed`.
 
-Once installed, run a [quick test](#hello-world).
+Once installed, run a [quick test](#quick-tests).
 
 ## Building from source
 
