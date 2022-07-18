@@ -10,7 +10,7 @@ or expression context and produce an aggregate value for a sequence of inputs va
 - [avg](avg.md) - average value
 - [collect](collect.md) - aggregate values into array
 - [count](count.md) - count input values
-- [countdistinct](count.md) - count distinct input values
+- [dcount](dcount.md) - count distinct input values
 - [fuse](fuse.md) - compute a fused type of input values
 - [max](max.md) - maximum value of input values
 - [min](min.md) - minimum value of input values
