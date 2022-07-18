@@ -1,6 +1,9 @@
 script: |
   zq -z "avg(n)" in.zson > avg.zson
   zq -z "count()" in.zson > count.zson
+  zq -z "dcount(n)" in.zson in.zson > dcount.zson
+  # "with -limit 1" exercises the partials paths.
+  zq -z "dcount(n) with -limit 1" in.zson in.zson > dcount-partials.zson
   zq -z "any(n)" in.zson > any.zson
   zq -z "min(n)" in.zson > min.zson
   zq -z "max(n)" in.zson > max.zson
@@ -19,6 +22,12 @@ outputs:
   - name: count.zson
     data: |
       {count:3(uint64)}
+  - name: dcount.zson
+    data: |
+      {dcount:3(uint64)}
+  - name: dcount-partials.zson
+    data: |
+      {dcount:3(uint64)}
   # Note: min/max shouldn't be int64 (especially for uint)  Issue #1506.
   - name: any.zson
     data: |
