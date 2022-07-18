@@ -10,9 +10,10 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-const NumRecords = 4
+const NumRecords = 2
 
 func main() {
+	rand.Seed(1234)
 	things := make([]Thing, NumRecords)
 	for i := 0; i < NumRecords; i++ {
 		things[i] = Make()
