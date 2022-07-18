@@ -564,8 +564,9 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error
 			if err != nil {
 				return nil, err
 			}
-			if typ != itemType {
-				return nil, fmt.Errorf("internal error: type mismatch in MarshalZNGContext.encodeArray: %s does not match %s", String(typ), String(itemType))
+			//if typ != itemType {
+			if String(typ) != String(itemType) { //XXX
+				return nil, fmt.Errorf("internal error: type mismatch in MarshalZNGContext.encodeArray: %s does not match %s; %p %p", String(typ), String(itemType), typ, itemType)
 			}
 			m.Builder.EndContainer()
 		}
@@ -742,6 +743,24 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
+	if union, ok := zed.TypeUnder(zv.Type).(*zed.TypeUnion); ok {
+		if v.Kind() != reflect.Interface {
+		}
+		//XXX We let go check if the interface implements
+		// the concrete value we ultimately decode.
+		if named, ok := zv.Type.(*zed.NamedType); ok {
+			// This is a named type.  So
+		}
+		if template := u.binder.lookup(typ.Name); template != nil {
+			return template, nil
+		}
+		// Ignore named types for which there are no bindings.
+		// If an interface type being marshaled into doesn't
+		// have a binding, then a type mismatch will be caught
+		// by reflect when the Set() method is called on the
+		// value and the concrete value doesn't implement the
+		// interface.
+	}
 	switch v.Kind() {
 	case reflect.Array:
 		return u.decodeArray(zv, v)
@@ -758,6 +777,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		}
 		return u.decodeRecord(zv, v)
 	case reflect.Interface:
+		//XXX this should handle the case that the interface already
+		// points to a concrete object, which would typically be empty.
 		// This is an interface value.  If the underlying ZNG data has
 		// a type name (via a named type), then we'll see if there's a
 		// binding for it and unmarshal into an instance of Template
@@ -1122,6 +1143,8 @@ func typeNameOfValue(value interface{}) (string, error) {
 	return fmt.Sprintf("%s.%s", typ.PkgPath(), typ.Name()), nil
 }
 
+var ErrCantLookupUnionType = errors.New("cannot lookup union member type without its value")
+
 func (u *UnmarshalZNGContext) lookupType(typ zed.Type) (reflect.Type, error) {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
@@ -1149,7 +1172,9 @@ func (u *UnmarshalZNGContext) lookupType(typ zed.Type) (reflect.Type, error) {
 			return nil, err
 		}
 		return reflect.SliceOf(elemType), nil
-	case *zed.TypeUnion, *zed.TypeEnum:
+	case *zed.TypeUnion:
+		return nil, ErrCantLookupUnionType
+	case *zed.TypeEnum:
 		// For now just return nil here. The layer above will flag
 		// a type error.  At some point, we can create Go-native data structures
 		// in package zng for representing a union or enum as a standalone

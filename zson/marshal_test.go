@@ -192,7 +192,7 @@ type RecordWithInterfaceSlice struct {
 	S []Thing
 }
 
-func TestMixedTypeArray(t *testing.T) {
+func TestMixedTypeArrayInsideRecord(t *testing.T) {
 	x := &RecordWithInterfaceSlice{
 		X: "hello",
 		S: []Thing{
@@ -228,6 +228,62 @@ func TestMixedTypeArray(t *testing.T) {
 	err = u.Unmarshal(actual, &out)
 	require.NoError(t, err)
 	assert.Equal(t, *x, out)
+}
+
+//XXX add simple test to unmarshal 1(int64,string) into Go int64
+
+//XXX add recursive test (where implied union is an array of unions of unions)
+// and a "combinatoric" test, where there are multiple interface values with
+// combos otherwise creating combinatoric problems but I think Zed solve this
+// becomes the variations become unions.  That said, we can get combinatoric
+// behavior when all the type mixtures don't appear in one array so we should
+// have a way to declare the complete union as part of the Go package, like
+// Bind but upfront declarations of what bindings go in what unions.
+
+type MessageThing struct {
+	Message string
+	Thing   Thing
+}
+
+func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
+	input := []MessageThing{
+		{
+			Message: "hello",
+			Thing:   &Plant{"red"},
+		},
+		{
+			Message: "world",
+			Thing:   &Animal{"blue"},
+		},
+	}
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+
+	zv, err := m.Marshal(input)
+	require.NoError(t, err)
+
+	var buffer bytes.Buffer
+	writer := zngio.NewWriter(zio.NopCloser(&buffer))
+	recExpected := zed.NewValue(zv.Type, zv.Bytes)
+	writer.Write(recExpected)
+	writer.Close()
+
+	reader := zngio.NewReader(zed.NewContext(), &buffer)
+	defer reader.Close()
+	recActual, err := reader.Read()
+	exp, err := zson.FormatValue(recExpected)
+	require.NoError(t, err)
+	actual, err := zson.FormatValue(recActual)
+	require.NoError(t, err)
+	assert.Equal(t, trim(exp), trim(actual))
+	// Double check that all the proper typing made it into the implied union.
+	assert.Equal(t, `[[{Message:"hello",Thing:{MyColor:"red"}(=Plant)}(=MessageThing),{Message:"world",Thing:{MyColor:"blue"}(=Animal)}(=MessageThing)]]`, actual)
+
+	u := zson.NewUnmarshaler()
+	var out RecordWithInterfaceSlice
+	err = u.Unmarshal(actual, &out)
+	require.NoError(t, err)
+	assert.Equal(t, input, out)
 }
 
 type Foo struct {
