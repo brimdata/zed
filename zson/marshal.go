@@ -514,10 +514,10 @@ func (m *MarshalZNGContext) encodeArrayBytes(arrayVal reflect.Value) (zed.Type, 
 }
 
 func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error) {
-	arrayLen := arrayVal.Len()
 	push := m.Builder
 	m.Builder = *zcode.NewBuilder()
 	m.Builder.BeginContainer()
+	arrayLen := arrayVal.Len()
 	types := make([]zed.Type, 0, arrayLen)
 	typeMap := make(map[zed.Type]struct{})
 	for i := 0; i < arrayLen; i++ {
@@ -544,7 +544,7 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error
 		innerType = types[0]
 		push.Append(m.Builder.Bytes().Body())
 	default:
-		unionTypes := make([]zed.Type, 0, len(types))
+		unionTypes := make([]zed.Type, 0, len(typeMap))
 		for typ := range typeMap {
 			unionTypes = append(unionTypes, typ)
 		}
@@ -553,7 +553,7 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error
 		// so we can recode the array with tagged union elements.
 		// We throw out the array computed above and start over with
 		// an empty builder.
-		m.Builder = *zcode.NewBuilder()
+		m.Builder.Truncate()
 		m.Builder.BeginContainer()
 		for i, typ := range types {
 			m.Builder.BeginContainer()

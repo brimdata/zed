@@ -220,7 +220,7 @@ func TestMixedTypeArrayInsideRecord(t *testing.T) {
 	require.NoError(t, err)
 	actual, err := zson.FormatValue(recActual)
 	require.NoError(t, err)
-	assert.Equal(t, trim(exp), trim(actual))
+	assert.Equal(t, exp, actual)
 	// Double check that all the proper typing made it into the implied union.
 	assert.Equal(t, `{X:"hello",S:[[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]]}(=RecordWithInterfaceSlice)`, actual)
 
