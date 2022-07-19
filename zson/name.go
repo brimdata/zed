@@ -1,7 +1,6 @@
 package zson
 
 import (
-	"strconv"
 	"unicode"
 )
 
@@ -23,18 +22,23 @@ func idChar(c rune) bool {
 	return unicode.IsLetter(c) || c == '_' || c == '$'
 }
 
-// IsTypeName returns true iff s is a valid zson typedef name (exclusive
+// IsTypeName returns true iff s is a valid, unquoted ZSON named type.
 // of integer names for locally-scoped typedefs).
 func IsTypeName(s string) bool {
-	for _, c := range s {
+	if s == "" {
+		return true
+	}
+	for k, c := range s {
 		if !typeChar(c) {
 			return false
 		}
+		if k == 0 && unicode.IsDigit(c) {
+			return false
+		}
 	}
-	_, err := strconv.ParseInt(s, 10, 64)
-	return err != nil
+	return true
 }
 
 func typeChar(c rune) bool {
-	return idChar(c) || unicode.IsDigit(c) || c == '/' || c == '.'
+	return idChar(c) || unicode.IsDigit(c) || c == '.'
 }

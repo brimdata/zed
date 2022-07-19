@@ -71,7 +71,16 @@ A decorator may also define a [named type](#258-named-type):
 <value> ( =<name> )
 ```
 which declares a new type with the indicated type name using the
-implied type of the value.
+implied type of the value.  Type names may not be numeric, where a
+numeric is a sequence of one or more characters in the set `[0-9]`.
+
+A decorator may also defined a temporary numeric reference of the form:
+```
+<value> ( =<numeric> )
+```
+Once defined, this numeric reference may then be used in a decorator the same way
+a named type can appear as shorthand for the reference type without.
+This definition does not create a named type.
 
 It is an error for the decorator to be type incompatible with its referenced value.  
 

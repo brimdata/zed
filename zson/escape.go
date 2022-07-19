@@ -12,6 +12,13 @@ func QuotedName(name string) string {
 	return name
 }
 
+func QuotedTypeName(name string) string {
+	if !IsTypeName(name) {
+		name = QuotedString([]byte(name))
+	}
+	return name
+}
+
 const hexdigits = "0123456789abcdef"
 
 // QuotedString quotes and escapes a ZSON string for serialization in accordance

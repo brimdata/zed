@@ -256,6 +256,9 @@ func (l *Lexer) skipMultiLine() error {
 	}
 }
 
+// scanString scans a quoted string presuming the first double quote has
+// already been matched and consumed from the endpoint.
+// scanString does not consume the terminnating double quote.
 func (l *Lexer) scanString() (string, error) {
 	var s strings.Builder
 	// We optimistically try to scan the string as a basic ascii string
@@ -453,6 +456,18 @@ func (l *Lexer) scanBacktickString(keepIndentation bool) (string, error) {
 }
 
 func (l *Lexer) scanTypeName() (string, error) {
+	ok, err := l.match('"')
+	if err != nil {
+		return "", noEOF(err)
+	}
+	if ok {
+		s, err := l.scanString()
+		if err != nil {
+			return "", noEOF(err)
+		}
+		l.skip(1)
+		return s, nil
+	}
 	var s strings.Builder
 	for {
 		r, n, err := l.peekRune()

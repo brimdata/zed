@@ -390,14 +390,14 @@ func (f *Formatter) decorate(typ zed.Type, known, null bool) {
 		if f.tab > 0 {
 			f.build(" ")
 		}
-		f.buildf("(%s)", name)
+		f.buildf("(%s)", QuotedTypeName(name))
 	} else if SelfDescribing(typ) && !null {
 		if typ, ok := typ.(*zed.TypeNamed); ok {
 			f.saveType(typ)
 			if f.tab > 0 {
 				f.build(" ")
 			}
-			f.buildf("(=%s)", typ.Name)
+			f.buildf("(=%s)", QuotedTypeName(typ.Name))
 		}
 	} else {
 		if f.tab > 0 {
@@ -753,7 +753,7 @@ func FormatType(typ zed.Type) string {
 
 func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 	if name, ok := typedefs[typ]; ok {
-		b.WriteString(name)
+		b.WriteString(QuotedTypeName(name))
 		return
 	}
 	switch t := typ.(type) {
