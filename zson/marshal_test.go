@@ -262,8 +262,6 @@ type MessageThing struct {
 }
 
 func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
-	t.Skip() //BROKEN
-
 	input := []MessageThing{
 		{
 			Message: "hello",
@@ -298,6 +296,7 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 	assert.Equal(t, `[[{Message:"hello",Thing:{MyColor:"red"}(=Plant)}(=MessageThing),{Message:"world",Thing:{MyColor:"blue"}(=Animal)}(=MessageThing)]]`, actual)
 
 	u := zson.NewUnmarshaler()
+	u.Bind(Plant{}, Animal{}, MessageThing{}, Thing(nil))
 	var out RecordWithInterfaceSlice
 	err = u.Unmarshal(actual, &out)
 	require.NoError(t, err)
