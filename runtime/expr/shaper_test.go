@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBestUnionSelector(t *testing.T) {
+func TestBestUnionTag(t *testing.T) {
 	u8 := zed.TypeUint8
 	zctx := zed.NewContext()
 	u8named1, err := zctx.LookupTypeNamed("u8named1", u8)

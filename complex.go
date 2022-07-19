@@ -374,7 +374,7 @@ func (t *TypeUnion) TagOf(typ Type) int {
 }
 
 // Untag takes bytes of the reciever's type and returns the underlying value
-// as its types and bytes by removing the tag and determining that tag's
+// as its type and bytes by removing the tag and determining that tag's
 // type from the union.  Untag panics if the tag is invalid.
 func (t *TypeUnion) Untag(bytes zcode.Bytes) (Type, zcode.Bytes) {
 	if bytes == nil {
