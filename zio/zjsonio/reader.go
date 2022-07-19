@@ -191,20 +191,20 @@ func (r *Reader) decodeUnion(builder *zcode.Builder, typ *zed.TypeUnion, body in
 	if len(tuple) != 2 {
 		return errors.New("ZJSON union value not an array of two elements")
 	}
-	selectorStr, ok := tuple[0].(string)
+	tagStr, ok := tuple[0].(string)
 	if !ok {
-		return errors.New("bad selector for ZJSON union value")
+		return errors.New("bad tag for ZJSON union value")
 	}
-	selector, err := strconv.Atoi(selectorStr)
+	tag, err := strconv.Atoi(tagStr)
 	if err != nil {
-		return fmt.Errorf("bad selector for ZJSON union value: %w", err)
+		return fmt.Errorf("bad tag for ZJSON union value: %w", err)
 	}
-	inner, err := typ.Type(selector)
+	inner, err := typ.Type(tag)
 	if err != nil {
-		return fmt.Errorf("bad selector for ZJSON union value: %w", err)
+		return fmt.Errorf("bad tag for ZJSON union value: %w", err)
 	}
 	builder.BeginContainer()
-	builder.Append(zed.EncodeInt(int64(selector)))
+	builder.Append(zed.EncodeInt(int64(tag)))
 	if err := r.decodeValue(builder, inner, tuple[1]); err != nil {
 		return err
 	}

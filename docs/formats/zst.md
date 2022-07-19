@@ -376,10 +376,10 @@ For an `<array_column>`, a length is read from its `lengths` segmap as an `int32
 and that many values are read from its the `values` sub-column,
 encoding the result as a ZNG array value.
 
-For a `<union_column>`, a value is read from its `selector` segmap
+For a `<union_column>`, a value is read from its `tags` segmap
 and that value is used to select the corresponding column stream
 `c0`, `c1`, etc.  The value read is then encoded as a ZNG union value
-using the same selector value within the union value.
+using the same tag within the union value.
 
 ## Examples
 

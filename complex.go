@@ -356,33 +356,33 @@ func (t *TypeUnion) ID() int {
 	return t.id
 }
 
-// Type returns the type corresponding to selector.
-func (t *TypeUnion) Type(selector int) (Type, error) {
-	if selector < 0 || selector >= len(t.Types) {
-		return nil, ErrUnionSelector
+// Type returns the type corresponding to tag.
+func (t *TypeUnion) Type(tag int) (Type, error) {
+	if tag < 0 || tag >= len(t.Types) {
+		return nil, ErrUnionTag
 	}
-	return t.Types[selector], nil
+	return t.Types[tag], nil
 }
 
-// Selector returns the selector for typ in the union. If no type exists -1 is
+// TagOf returns the tag for typ in the union. If no type exists -1 is
 // returned.
-func (t *TypeUnion) Selector(typ Type) int {
+func (t *TypeUnion) TagOf(typ Type) int {
 	if s, ok := t.LUT[typ]; ok {
 		return s
 	}
 	return -1
 }
 
-// SplitZNG takes a zng encoding of a value of the receiver's union type and
-// returns the concrete type of the value, its selector, and the value encoding.
-// SplitZNG panics if the selector is invalid.
-func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, zcode.Bytes) {
-	if zv == nil {
+// Untag takes bytes of the reciever's type and returns the underlying value
+// as its type and bytes by removing the tag and determining that tag's
+// type from the union.  Untag panics if the tag is invalid.
+func (t *TypeUnion) Untag(bytes zcode.Bytes) (Type, zcode.Bytes) {
+	if bytes == nil {
 		return t, nil
 	}
-	it := zv.Iter()
-	selector := DecodeInt(it.Next())
-	inner, err := t.Type(int(selector))
+	it := bytes.Iter()
+	tag := DecodeInt(it.Next())
+	inner, err := t.Type(int(tag))
 	if err != nil {
 		panic(err)
 	}
@@ -393,14 +393,14 @@ func (t *TypeUnion) Kind() Kind {
 	return UnionKind
 }
 
-// BuildUnion appends to b a union described by selector and val.
-func BuildUnion(b *zcode.Builder, selector int, val zcode.Bytes) {
+// BuildUnion appends to b a union described by tag and val.
+func BuildUnion(b *zcode.Builder, tag int, val zcode.Bytes) {
 	if val == nil {
 		b.Append(nil)
 		return
 	}
 	b.BeginContainer()
-	b.Append(EncodeInt(int64(selector)))
+	b.Append(EncodeInt(int64(tag)))
 	b.Append(val)
 	b.EndContainer()
 }

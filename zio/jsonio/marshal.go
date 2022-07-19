@@ -51,7 +51,7 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 	case *zed.TypeMap:
 		return marshalMap(typ, bytes)
 	case *zed.TypeUnion:
-		return marshalAny(typ.SplitZNG(bytes))
+		return marshalAny(typ.Untag(bytes))
 	case *zed.TypeEnum:
 		return marshalEnum(typ, bytes)
 	case *zed.TypeError:

@@ -162,7 +162,7 @@ func shaperType(zctx *zed.Context, tf ShaperTransform, in, out zed.Type) (zed.Ty
 			}
 			return out, nil
 		}
-		if bestUnionSelector(in, outUnder) > -1 {
+		if bestUnionTag(in, outUnder) > -1 {
 			return out, nil
 		}
 	} else if inUnder == outUnder {
@@ -246,14 +246,14 @@ func shaperColumns(zctx *zed.Context, tf ShaperTransform, in, out *zed.TypeRecor
 	return cols, nil
 }
 
-// bestUnionSelector tries to return the most specific union selector for in
+// bestUnionTag tries to return the most specific union tag for in
 // within out.  It returns -1 if out is not a union or contains no type
 // compatible with in.  (Types are compatible if they have the same underlying
-// type.)  If out contains in, bestUnionSelector returns its selector.
-// Otherwise, if out contains in's underlying type, bestUnionSelector returns
-// its selector.  Finally, bestUnionSelector returns the smallest selector in
+// type.)  If out contains in, bestUnionTag returns its tag.
+// Otherwise, if out contains in's underlying type, bestUnionTag returns
+// its tag.  Finally, bestUnionTag returns the smallest tag in
 // out whose type is compatible with in.
-func bestUnionSelector(in, out zed.Type) int {
+func bestUnionTag(in, out zed.Type) int {
 	outUnion, ok := zed.TypeUnder(out).(*zed.TypeUnion)
 	if !ok {
 		return -1
@@ -305,8 +305,8 @@ type op int
 const (
 	copyOp        op = iota // copy field fromIndex from input record
 	castPrimitive           // cast field fromIndex from fromType to toType
-	castFromUnion           // cast union value with selector s using children[s]
-	castToUnion             // cast non-union fromType to union toType with selector toSelector
+	castFromUnion           // cast union value with tag s using children[s]
+	castToUnion             // cast non-union fromType to union toType with tag toTag
 	null                    // write null
 	array                   // build array
 	set                     // build set
@@ -316,15 +316,15 @@ const (
 // A step is a recursive data structure encoding a series of
 // copy/cast steps to be carried out over an input record.
 type step struct {
-	op         op
-	caster     Evaluator // for castPrimitive
-	fromIndex  int
-	fromType   zed.Type // for castPrimitive and castToUnion
-	toSelector int      // for castToUnion
-	toType     zed.Type // for castPrimitive
+	op        op
+	caster    Evaluator // for castPrimitive
+	fromIndex int
+	fromType  zed.Type // for castPrimitive and castToUnion
+	toTag     int      // for castToUnion
+	toType    zed.Type // for castPrimitive
 	// if op == record, contains one op for each column.
 	// if op == array, contains one op for all array elements.
-	// if op == castFromUnion, contains one op per union selector.
+	// if op == castFromUnion, contains one op per union tag.
 	children []step
 }
 
@@ -358,8 +358,8 @@ Switch:
 		}
 		return step{op: castFromUnion, children: steps}, nil
 	}
-	if s := bestUnionSelector(in, out); s != -1 {
-		return step{op: castToUnion, fromType: in, toSelector: s}, nil
+	if tag := bestUnionTag(in, out); tag != -1 {
+		return step{op: castToUnion, fromType: in, toTag: tag}, nil
 	}
 	return step{}, fmt.Errorf("createStep: incompatible types %s and %s", zson.FormatType(in), zson.FormatType(out))
 }
@@ -427,7 +427,7 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 			return zerr
 		}
 	case castToUnion:
-		zed.BuildUnion(b, s.toSelector, in)
+		zed.BuildUnion(b, s.toTag, in)
 	case null:
 		b.Append(nil)
 	case record:
@@ -461,9 +461,9 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 			return nil
 		}
 		it := in.Iter()
-		selector := int(zed.DecodeInt(it.Next()))
+		tag := int(zed.DecodeInt(it.Next()))
 		body := it.Next()
-		return s.children[selector].build(zctx, ectx, body, b)
+		return s.children[tag].build(zctx, ectx, body, b)
 	}
 	return nil
 }

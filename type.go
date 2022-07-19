@@ -19,10 +19,10 @@ import (
 )
 
 var (
-	ErrNotArray      = errors.New("cannot index a non-array")
-	ErrIndex         = errors.New("array index out of bounds")
-	ErrUnionSelector = errors.New("union selector out of bounds")
-	ErrEnumIndex     = errors.New("enum index out of bounds")
+	ErrNotArray  = errors.New("cannot index a non-array")
+	ErrIndex     = errors.New("array index out of bounds")
+	ErrUnionTag  = errors.New("invalid union tag")
+	ErrEnumIndex = errors.New("enum index out of bounds")
 )
 
 // A Type is an interface presented by a zeek type.

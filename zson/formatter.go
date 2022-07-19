@@ -495,7 +495,7 @@ func (e *elemHelper) add(b zcode.Bytes) (zed.Type, zcode.Bytes) {
 		// set the type to null.
 		return zed.TypeNull, b
 	}
-	typ, b := e.union.SplitZNG(b)
+	typ, b := e.union.Untag(b)
 	if _, ok := e.seen[typ]; !ok {
 		e.seen[typ] = struct{}{}
 	}
@@ -508,9 +508,9 @@ func (e *elemHelper) needsDecoration() bool {
 }
 
 func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.Bytes) error {
-	typ, bytes := union.SplitZNG(bytes)
+	typ, bytes := union.Untag(bytes)
 	// XXX For now, we always decorate a union value so that
-	// we can determine the selector from the value's explicit type.
+	// we can determine the tag from the value's explicit type.
 	// We can later optimize this so we only print the decorator if its
 	// ambigous with another type (e.g., int8 and int16 vs a union of int8 and string).
 	// Let's do this after we have the parser working and capable of this

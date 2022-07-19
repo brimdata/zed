@@ -44,7 +44,7 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 	inner := innerType(zctx, c.values)
 	if union, ok := inner.(*zed.TypeUnion); ok {
 		for _, val := range c.values {
-			zed.BuildUnion(&b, union.Selector(val.Type), val.Bytes)
+			zed.BuildUnion(&b, union.TagOf(val.Type), val.Bytes)
 		}
 	} else {
 		for _, val := range c.values {

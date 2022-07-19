@@ -377,7 +377,7 @@ where the values are encoded as follows:
 | `set`    | normalized concatenation of elements    |
 | `record` | concatenation of elements               |
 | `map`    | concatenation of key and value elements |
-| `union`  | concatenation of selector and value     |
+| `union`  | concatenation of tag and value     |
 | `enum`   | position of enum element                |
 | `error`  | wrapped element                         |
 
@@ -391,7 +391,7 @@ sequence of bytes encoding each element's tag-counted value is
 lexicographically greater than that of the preceding element.
 
 A union value is encoded as a container with two elements. The first
-element, called the selector, is the `uvarint` encoding of the
+element, called the tag, is the `uvarint` encoding of the
 positional index determining the type of the value in reference to the
 union's list of defined types, and the second element is the value
 encoded according to that type.

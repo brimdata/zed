@@ -209,9 +209,9 @@ func buildMap(b *zcode.Builder, m *Map) error {
 }
 
 func buildUnion(b *zcode.Builder, union *Union) error {
-	if selector := union.Selector; selector >= 0 {
+	if tag := union.Tag; tag >= 0 {
 		b.BeginContainer()
-		b.Append(zed.EncodeInt(int64(union.Selector)))
+		b.Append(zed.EncodeInt(int64(tag)))
 		if err := buildValue(b, union.Value); err != nil {
 			return err
 		}

@@ -169,7 +169,7 @@ func (h *HasError) hasError(t zed.Type, b zcode.Bytes) (bool, bool) {
 			_, isErr := zed.TypeUnder(typ).(*zed.TypeError)
 			canCache = !canCache || isErr
 		}
-		if typ, b := typ.SplitZNG(b); b != nil {
+		if typ, b := typ.Untag(b); b != nil {
 			// Check mb is not nil to avoid infinite recursion.
 			var cc bool
 			hasErr, cc = h.hasError(typ, b)

@@ -205,12 +205,12 @@ func (w *Writer) encodeUnion(zctx *zed.Context, union *zed.TypeUnion, bytes zcod
 	if bytes == nil {
 		return nil, nil
 	}
-	inner, b := union.SplitZNG(bytes)
+	inner, b := union.Untag(bytes)
 	val, err := w.encodeValue(zctx, inner, b)
 	if err != nil {
 		return nil, err
 	}
-	return []interface{}{strconv.Itoa(union.Selector(inner)), val}, nil
+	return []interface{}{strconv.Itoa(union.TagOf(inner)), val}, nil
 }
 
 func (w *Writer) encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{}, error) {
