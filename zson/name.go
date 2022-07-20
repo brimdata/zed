@@ -24,9 +24,6 @@ func idChar(c rune) bool {
 
 // IsTypeName returns true iff s is a valid, unquoted ZSON type name.
 func IsTypeName(s string) bool {
-	if s == "" {
-		return true
-	}
 	for k, c := range s {
 		if !typeChar(c) {
 			return false
