@@ -257,8 +257,8 @@ func (l *Lexer) skipMultiLine() error {
 }
 
 // scanString scans a quoted string presuming the first double quote has
-// already been matched and consumed from the endpoint.
-// scanString does not consume the terminnating double quote.
+// already been matched and consumed from the input.  scanString does not
+// consume the terminating double quote.
 func (l *Lexer) scanString() (string, error) {
 	var s strings.Builder
 	// We optimistically try to scan the string as a basic ascii string

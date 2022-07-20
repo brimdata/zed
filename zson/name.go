@@ -22,8 +22,7 @@ func idChar(c rune) bool {
 	return unicode.IsLetter(c) || c == '_' || c == '$'
 }
 
-// IsTypeName returns true iff s is a valid, unquoted ZSON named type.
-// of integer names for locally-scoped typedefs).
+// IsTypeName returns true iff s is a valid, unquoted ZSON type name.
 func IsTypeName(s string) bool {
 	if s == "" {
 		return true

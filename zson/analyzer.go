@@ -3,6 +3,7 @@ package zson
 import (
 	"errors"
 	"fmt"
+	"unicode"
 
 	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
@@ -186,7 +187,7 @@ func (a Analyzer) enterTypeDef(zctx *zed.Context, name string, typ zed.Type) (*z
 
 func isNumeric(s string) bool {
 	for _, r := range s {
-		if r < '0' || r > '9' {
+		if !unicode.IsDigit(r) {
 			return false
 		}
 	}
