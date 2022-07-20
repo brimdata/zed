@@ -759,10 +759,10 @@ func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 	switch t := typ.(type) {
 	case *zed.TypeNamed:
 		name := t.Name
-		b.WriteString(name)
+		b.WriteString(QuotedTypeName(name))
 		if _, ok := typedefs[typ]; !ok {
 			typedefs[typ] = name
-			b.WriteString("=")
+			b.WriteByte('=')
 			formatType(b, typedefs, t.Type)
 		}
 	case *zed.TypeRecord:
