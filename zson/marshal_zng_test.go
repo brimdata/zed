@@ -448,7 +448,7 @@ func TestInterfaceZNGMarshal(t *testing.T) {
 	m.Decorate(zson.StyleFull)
 	zv, err = m.Marshal(rolls)
 	require.NoError(t, err)
-	assert.Equal(t, "github.com/brimdata/zed/zson_test.Rolls=[int64]", zson.String(zv.Type))
+	assert.Equal(t, `"github.com/brimdata/zed/zson_test.Rolls"=[int64]`, zson.String(zv.Type))
 
 	plain := []int32{1, 2, 3}
 	zv, err = m.Marshal(plain)
