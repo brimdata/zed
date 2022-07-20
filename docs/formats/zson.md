@@ -78,9 +78,8 @@ A decorator may also defined a temporary numeric reference of the form:
 ```
 <value> ( =<numeric> )
 ```
-Once defined, this numeric reference may then be used in a decorator the same way
-a named type can appear as shorthand for the reference type without.
-This definition does not create a named type.
+Once defined, this numeric reference may then be used anywhere a named type
+is used but a named type is not created.
 
 It is an error for the decorator to be type incompatible with its referenced value.  
 
@@ -549,7 +548,7 @@ that defines their type.
 
 <type> = <primitive-type> | <record-type> | <array-type> | <set-type> |
             <union-type> | <enum-type> | <map-type> |
-            <type-def> | <name> | <error-type>
+            <type-def> | <name> | <numeric> | <error-type>
 
 <primitive-type> = uint8 | uint16 | etc. as defined above
 
@@ -576,6 +575,8 @@ that defines their type.
 <type-def> = <identifier> = <type-type>
 
 <name> = as defined above
+
+<numeric> = [0-9]+
 
 <error-type> = "error(" <type> ")"
 ```
