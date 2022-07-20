@@ -8,11 +8,9 @@ inputs:
   - name: badshaper.zed
     data: |
       type foo={_path:string,testfield:"null"}
-      put . = shape(foo)
+      yield shape(foo)
 
 outputs:
   - name: stderr
     data: |
-      zq: error parsing Zed in badshaper.zed at line 1, column 34:
-      type foo={_path:string,testfield:"null"}
-                                   === ^ ===
+      no such type name: "null"

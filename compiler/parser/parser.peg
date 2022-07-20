@@ -65,7 +65,7 @@ ConstDef
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
       RETURN(MAP("name":id, "expr":expr))
     }
-  / "type" _ id:IdentifierName __ "=" __ typ:Type {
+  / "type" _ id:(IdentifierName / QuotedString) __ "=" __ typ:Type {
       RETURN(MAP(
         "name":id,
         "expr":MAP("kind":"TypeValue","value":MAP("kind":"TypeDef","name":id,"type":typ))))
@@ -817,7 +817,7 @@ Set
       RETURN(MAP("kind":"SetExpr", "elems":elems ))
     }
 
-VectorElems 
+VectorElems
   = first:VectorElem rest:(__ "," __ e:VectorElem { RETURN(e) })* {
       RETURN(PREPEND(first, rest))
     }
@@ -1038,6 +1038,9 @@ AmbiguousType
       if ISNOTNULL(opt) {
         RETURN(MAP("kind": "TypeDef", "name": name, "type": ASSERT_ARRAY(opt)[3]))
       }
+      RETURN(MAP("kind": "TypeName", "name": name))
+    }
+  / name:QuotedString {
       RETURN(MAP("kind": "TypeName", "name": name))
     }
   / "(" __ u:TypeUnion  ")" { RETURN(u) }

@@ -57,7 +57,7 @@ func (p *Parser) matchTypeName() (astzed.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !(idChar(r) || unicode.IsDigit(r)) {
+	if !(idChar(r) || unicode.IsDigit(r) || r == '"') {
 		return nil, nil
 	}
 	name, err := l.scanTypeName()

@@ -1,14 +1,17 @@
-script: |
-  zq -f zson -i zson -pretty=0 in.zson
+zed: '*'
 
-inputs:
-  - name: in.zson
-    data: |
-      {s:"hello, world"}(=github.com/acme/foo.Bar)
-      {s:"goodnight, gracie"}(=github.com/acme/foo.Bar)
+input: |
+  {s:"hello, world"}(="github.com/acme/foo.Bar")
+  {s:"goodnight, gracie"}(="github.com/acme/foo.Bar")
+  {x:1}(=foo.bar)
+  {x:2}(="@foo")
+  {x:3(uint8)}(=0)
+  {x:4}(0)
 
-outputs:
-  - name: stdout
-    data: |
-      {s:"hello, world"}(=github.com/acme/foo.Bar)
-      {s:"goodnight, gracie"}(=github.com/acme/foo.Bar)
+output: |
+  {s:"hello, world"}(="github.com/acme/foo.Bar")
+  {s:"goodnight, gracie"}(="github.com/acme/foo.Bar")
+  {x:1}(=foo.bar)
+  {x:2}(="@foo")
+  {x:3(uint8)}
+  {x:4(uint8)}

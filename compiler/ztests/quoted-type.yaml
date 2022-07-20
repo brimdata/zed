@@ -1,0 +1,19 @@
+script: |
+  zq  -z 'is(<"@foo">)' in.zson
+  echo ===
+  zq  -z 'type "@foo" = {x:int64} type "Y Z" = {y:"@foo"} is(<"Y Z">)' in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {x:1}
+      {x:2}(="@foo")
+      {x:3}
+      {y:{x:4}(="@foo")}(="Y Z")
+
+outputs:
+  - name: stdout
+    data: |
+      {x:2}(="@foo")
+      ===
+      {y:{x:4}(="@foo")}(="Y Z")
