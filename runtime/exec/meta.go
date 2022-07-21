@@ -225,6 +225,21 @@ func NewCommitMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 			return nil, err
 		}
 		return newScannerScheduler(s), nil
+	case "vectors":
+		snap, err := p.Snapshot(ctx, commit)
+		if err != nil {
+			return nil, err
+		}
+		vectors := commits.Vectors(snap)
+		reader, err := objectReader(ctx, zctx, vectors, span, p.Layout.Order)
+		if err != nil {
+			return nil, err
+		}
+		s, err := zbuf.NewScanner(ctx, reader, filter)
+		if err != nil {
+			return nil, err
+		}
+		return newScannerScheduler(s), nil
 	default:
 		return nil, fmt.Errorf("unknown commit metadata type: %q", meta)
 	}

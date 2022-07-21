@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 
 	"github.com/brimdata/zed"
@@ -18,6 +19,10 @@ import (
 func CreateVector(ctx context.Context, engine storage.Engine, path *storage.URI, id ksuid.KSUID) error {
 	get, err := engine.Get(ctx, SequenceURI(path, id))
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// Make a cleaner error.
+			err = fmt.Errorf("object %s: %w", id, fs.ErrNotExist)
+		}
 		return err
 	}
 	put, err := engine.Put(ctx, VectorURI(path, id))

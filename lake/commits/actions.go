@@ -18,9 +18,11 @@ type Action interface {
 var ActionTypes = []interface{}{
 	Add{},
 	AddIndex{},
+	AddVector{},
 	index.AddRule{},
 	Delete{},
 	DeleteIndex{},
+	DeleteVector{},
 	index.DeleteRule{},
 	index.TypeRule{},
 	index.AggRule{},
@@ -106,5 +108,31 @@ func (d *DeleteIndex) String() string {
 }
 
 func (d *DeleteIndex) CommitID() ksuid.KSUID {
+	return d.Commit
+}
+
+type AddVector struct {
+	Commit ksuid.KSUID `zed:"commit"`
+	ID     ksuid.KSUID `zed:"id"`
+}
+
+func (a *AddVector) String() string {
+	return fmt.Sprintf("ADD_VECTOR %s", a.ID)
+}
+
+func (a *AddVector) CommitID() ksuid.KSUID {
+	return a.Commit
+}
+
+type DeleteVector struct {
+	Commit ksuid.KSUID `zed:"commit"`
+	ID     ksuid.KSUID `zed:"id"`
+}
+
+func (d *DeleteVector) String() string {
+	return fmt.Sprintf("DEL_VECTOR %s", d.ID)
+}
+
+func (d *DeleteVector) CommitID() ksuid.KSUID {
 	return d.Commit
 }

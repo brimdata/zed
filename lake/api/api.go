@@ -41,6 +41,8 @@ type Interface interface {
 	DeleteIndexRules(context.Context, []ksuid.KSUID) ([]index.Rule, error)
 	ApplyIndexRules(ctx context.Context, rule string, pool ksuid.KSUID, branchName string, ids []ksuid.KSUID) (ksuid.KSUID, error)
 	UpdateIndex(ctx context.Context, names []string, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
+	AddVectors(ctx context.Context, pool ksuid.KSUID, branch string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
+	DeleteVectors(ctx context.Context, pool ksuid.KSUID, branch string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
 }
 
 func OpenLake(ctx context.Context, u string) (Interface, error) {
