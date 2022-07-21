@@ -57,10 +57,7 @@ func (p *Patch) LookupIndexObjectRules(id ksuid.KSUID) ([]index.Rule, error) {
 }
 
 func (p *Patch) HasVector(id ksuid.KSUID) bool {
-	if p.diff.HasVector(id) {
-		return true
-	}
-	return p.base.HasVector(id)
+	return p.diff.HasVector(id) || p.base.HasVector(id)
 }
 
 func (p *Patch) Select(span extent.Span, o order.Which) DataObjects {

@@ -55,7 +55,7 @@ func (c *addCommand) Run(args []string) error {
 	}
 	commit, err := lake.AddVectors(ctx, poolID, head.Branch, ids, c.commitFlags.CommitMessage())
 	if err == nil && !c.LakeFlags.Quiet {
-		fmt.Printf("%s vectors committed\n", commit)
+		fmt.Printf("%s vectors added\n", commit)
 	}
 	return err
 }

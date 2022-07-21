@@ -101,8 +101,7 @@ func (s *Snapshot) AddVector(id ksuid.KSUID) error {
 }
 
 func (s *Snapshot) DeleteVector(id ksuid.KSUID) error {
-	_, ok := s.vectors[id]
-	if !ok {
+	if _, ok := s.vectors[id]; !ok {
 		return fmt.Errorf("%s: delete of a non-present vector: %w", id, ErrWriteConflict)
 	}
 	delete(s.vectors, id)
@@ -288,13 +287,9 @@ func PlayAction(w Writeable, action Action) error {
 	case *DeleteIndex:
 		err = w.DeleteIndexObject(action.RuleID, action.ID)
 	case *AddVector:
-		if err := w.AddVector(action.ID); err != nil {
-			return err
-		}
+		err = w.AddVector(action.ID)
 	case *DeleteVector:
-		if err := w.DeleteVector(action.ID); err != nil {
-			return err
-		}
+		err = w.DeleteVector(action.ID)
 	case *Commit:
 		// ignore
 	default:
@@ -315,8 +310,7 @@ func Play(w Writeable, o *Object) error {
 
 func Vectors(view View) *Snapshot {
 	snap := NewSnapshot()
-	all := view.SelectAll()
-	for _, o := range all {
+	for _, o := range view.SelectAll() {
 		if view.HasVector(o.ID) {
 			snap.AddDataObject(o)
 		}

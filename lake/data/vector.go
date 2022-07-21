@@ -21,7 +21,7 @@ func CreateVector(ctx context.Context, engine storage.Engine, path *storage.URI,
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			// Make a cleaner error.
-			err = fmt.Errorf("object %s: does not exist", id)
+			err = fmt.Errorf("object %s: %w", id, fs.ErrNotExist)
 		}
 		return err
 	}

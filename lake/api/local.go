@@ -237,11 +237,7 @@ func (l *local) AddVectors(ctx context.Context, poolID ksuid.KSUID, branchName s
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	commitID, err := branch.AddVectors(ctx, ids, message.Author, message.Body)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	return commitID, nil
+	return branch.AddVectors(ctx, ids, message.Author, message.Body)
 }
 
 func (l *local) DeleteVectors(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
@@ -249,9 +245,5 @@ func (l *local) DeleteVectors(ctx context.Context, poolID ksuid.KSUID, branchNam
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	commitID, err := branch.DeleteVectors(ctx, ids, message.Author, message.Body)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	return commitID, nil
+	return branch.DeleteVectors(ctx, ids, message.Author, message.Body)
 }

@@ -558,6 +558,9 @@ func (b *Branch) indexObject(ctx context.Context, c runtime.Compiler, rules []in
 }
 
 func (b *Branch) AddVectors(ctx context.Context, ids []ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
+	if message == "" {
+		message = vectorMessage("add", ids)
+	}
 	// XXX We should add some parallelism here to stream the next file while
 	// the CPU is chugging away on the current file.  See issue #4015.
 	for _, id := range ids {
@@ -577,9 +580,6 @@ func (b *Branch) AddVectors(ctx context.Context, ids []ksuid.KSUID, author, mess
 			if snap.HasVector(id) {
 				return nil, fmt.Errorf("vector exists for %s: vector add operation aborted", id)
 			}
-		}
-		if message == "" {
-			message = vectorMessage("add", ids)
 		}
 		return commits.NewAddVectorsObject(parent.Commit, author, message, ids, retries), nil
 	})

@@ -14,7 +14,7 @@ var del = &charm.Spec{
 	Usage: "delete [options] id [id, ]",
 	Short: "deleted vectors from one or more data objects",
 	Long: `
-The vector delete command deleted vectors from of one or more data objects specified
+The vector delete command deletes vectors from of one or more data objects specified
 by the indicated object IDs.  The references to the vectors is simply deleted
 in the commit history.  The vacate command may be used to delete the actual data.
 `,
@@ -56,7 +56,7 @@ func (c *deleteCommand) Run(args []string) error {
 	}
 	commit, err := lake.DeleteVectors(ctx, poolID, head.Branch, ids, c.commitFlags.CommitMessage())
 	if err == nil && !c.LakeFlags.Quiet {
-		fmt.Printf("%s vectors committed\n", commit)
+		fmt.Printf("%s vectors deleted\n", commit)
 	}
 	return err
 }
