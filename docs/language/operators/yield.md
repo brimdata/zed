@@ -12,10 +12,10 @@ yield <expr> [, <expr>...]
 The `yield` operator produces output values by evaluating one or more
 expressions on each input value and sending each result to the output
 in left-to-right order.  Each `<expr>` may be any valid
-[Zed expression](../README.md#expressions).
+[Zed expression](../overview.md#6-expressions).
 
 The _yield_ keyword may be omitted when `<expr>` is a
-[record literal](../README.md#record-literal).
+[record literal](../overview.md#6112-record-expressions).
 
 ### Examples
 
