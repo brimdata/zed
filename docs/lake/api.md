@@ -423,7 +423,7 @@ POST /query
 | query | string | body | Zed query to execute. All data is returned if not specified. ||
 | head.pool | string | body | Pool to query against Not required if pool is specified in query. |
 | head.branch | string | body | Branch to query against. Defaults to "main". |
-| ctrl | string | url | Set to "T" to include control messages in ZNG or ZJSON responses. Defaults to "F". |
+| ctrl | string | query | Set to "T" to include control messages in ZNG or ZJSON responses. Defaults to "F". |
 
 **Example Request**
 
