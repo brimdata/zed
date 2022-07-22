@@ -423,6 +423,7 @@ POST /query
 | query | string | body | Zed query to execute. All data is returned if not specified. ||
 | head.pool | string | body | Pool to query against Not required if pool is specified in query. |
 | head.branch | string | body | Branch to query against. Defaults to "main". |
+| ctrl | string | query | Set to "T" to include control messages in ZNG or ZJSON responses. Defaults to "F". |
 
 **Example Request**
 
@@ -438,6 +439,25 @@ curl -X POST \
 ```
 {warehouse:"chicago",count:2(uint64)}
 {warehouse:"miami",count:1(uint64)}
+```
+
+**Example Request**
+
+```
+curl -X POST \
+     -H 'Accept: application/x-zjson' \
+     -H 'Content-Type: application/json' \
+     http://localhost:9867/query?ctrl=T -d '{"query":"from inventory@main | count() by warehouse"}'
+```
+
+**Example Response**
+
+```
+{"type":"QueryChannelSet","value":{"channel_id":0}}
+{"type":{"kind":"record","id":30,"fields":[{"name":"warehouse","type":{"kind":"primitive","name":"string"}},{"name":"count","type":{"kind":"primitive","name":"uint64"}}]},"value":["miami","1"]}
+{"type":{"kind":"ref","id":30},"value":["chicago","2"]}
+{"type":"QueryChannelEnd","value":{"channel_id":0}}
+{"type":"QueryStats","value":{"start_time":{"sec":1658193276,"ns":964207000},"update_time":{"sec":1658193276,"ns":964592000},"bytes_read":55,"bytes_matched":55,"records_read":3,"records_matched":3}}
 ```
 
 ---
