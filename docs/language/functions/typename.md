@@ -5,12 +5,12 @@
 ### Synopsis
 
 ```
-typename(s: string) -> type
+typename(name: string) -> type
 ```
 ### Description
 
 The _typename_ function returns the [type](../../formats/zson.md#25-types) of the
-[named type](../../formats/zson.md#258-named-type) give by `name` if it exists.  Otherwise, `error("missing")` is returned.
+[named type](../../formats/zson.md#258-named-type) given by `name` if it exists.  Otherwise, `error("missing")` is returned.
 
 ### Examples
 
