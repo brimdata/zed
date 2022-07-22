@@ -275,7 +275,7 @@ embodies Zed's more general model for heterogeneous and self-describing schemas.
 * [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
 in JSON for easy decoding by JSON-based clients, e.g.,
 the [Zealot JavaScript library](https://github.com/brimdata/brim/tree/main/packages/zealot)
-and the [Zed Python library](../../python/zed).
+and the [Zed Python library](../libraries/python.md).
 
 Because all of the formats conform to the same Zed data model, conversions between
 a human-readable form, a row-based binary form, and a row-based columnar form can
