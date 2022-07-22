@@ -32,7 +32,7 @@ sidebar_label: zed
 A Zed lake is a cloud-native arrangement of data, optimized for search,
 analytics, ETL, data discovery, and data preparation
 at scale based on data represented in accordance
-with the [Zed data model](../formats).
+with the [Zed data model](../formats/zed.md#zed-data-model).
 
 A lake is organized into a collection of data pools forming a single
 administrative domain.  The current implementation supports
@@ -52,7 +52,7 @@ A core theme of the Zed lake design is _ergonomics_.  Given the Git metaphor,
 our goal here is that the Zed lake tooling be as easy and familiar as Git is
 to a technical user.
 
-Since Zed lakes are built around the [Zed data model](../formats/zed.md),
+Since Zed lakes are built around the Zed data model,
 getting different kinds of data into and out of a lake is easy.
 There is no need to define schemas or tables and then fit
 semi-structured data into schemas before loading data into a lake.
@@ -245,7 +245,7 @@ As pool data is often comprised of Zed records (analogous to JSON objects),
 the pool key is typically a field of the stored records.
 When pool data is not structured as records/objects (e.g., scalar or arrays or other
 non-record types), then the pool key would typically be configured
-as the [special value `this`](../language/README.md#23-the-special-value-this).
+as the [special value `this`](../language/overview.md#23-the-special-value-this).
 
 Data can be efficiently scanned via ranges of values conforming to the pool key.
 
@@ -444,7 +444,7 @@ The `-orderby` option indicates the pool key that is used to sort
 the data in lake, which may be in ascending or descending order.
 
 If a pool key is not specified, then it defaults to
-the [special value `this`](../language/README.md#23-the-special-value-this).
+the [special value `this`](../language/overview.md#23-the-special-value-this).
 
 A newly created pool is initialized with a branch called `main`.
 
