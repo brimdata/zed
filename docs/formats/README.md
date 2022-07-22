@@ -43,7 +43,7 @@ Instead, file formats like Avro, ORC, and Parquet arose to represent tabular dat
 with an explicit schema followed by a sequence of values that conform to the schema.
 While Avro and Parquet schemas can also represent semi-structured data, all of the
 values in a given Avro or Parquet file must conform to the same schema.
-The [Iceberg specification](https://iceberg.apache.org/#spec/)
+The [Iceberg specification](https://iceberg.apache.org/spec/)
 defines data types and metadata schemas for how large relational tables can be
 managed as a collection of Avro, ORC, and/or Parquet files.
 
