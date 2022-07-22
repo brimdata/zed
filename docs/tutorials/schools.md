@@ -7,7 +7,7 @@ sidebar_label: Schools Data
 
 > This document provides a beginner's overview of the Zed language
 using the [zq command](../commands/zq.md) and
-[real-world data](../../testdata/edu) relating to California schools
+[real-world data](https://github.com/brimdata/zed/blob/main/testdata/edu/README.md) relating to California schools
 and test scores.
 
 ## 1. Getting Started
@@ -87,7 +87,7 @@ which emits
 Nothing too tricky here.  After a quick review of the shapes and types,
 you will notice they are just three relatively simple tables, which is no surprise
 since we obtained the original data from
-[SQLite database files](../../testdata/edu/README.md#creation).
+[SQLite database files](https://github.com/brimdata/zed/blob/main/testdata/edu/README.md#creation).
 
 ## 3. Searching
 
@@ -277,7 +277,7 @@ produces
 ### 3.5 Predicate Search
 
 Search terms can also be include Boolean predicates adhering
-to Zed's [expression syntax](../language/README.md#6-expressions).
+to Zed's [expression syntax](../language/overview.md#6-expressions).
 
 In particular, a search result can be narrowed down
 to include only records that contain a
@@ -298,7 +298,7 @@ produces
 Because the right-hand-side value to which we were comparing was a string, it
 was necessary to wrap it in quotes. If this string were written as a keyword,
 it would have been interpreted as a field name as
-Zed [field references](../language/README.md#24-implied-field-references)
+Zed [field references](../language/overview.md#24-implied-field-references)
 look like keywords in the context of an expression.
 
 For example, to see the records in which the school and district name are the
@@ -398,7 +398,7 @@ This is performed with `in`.
 
 Since our sample data doesn't contain complex fields, we'll make one by
 using the [`union`](../language/aggregates/union.md) aggregate function to
-create a [`set`](../formats/zson.md#343-set-value)-typed
+create a [`set`](../formats/zson.md#243-set-value)-typed
 field called `Schools` that contains all unique school names per district. From
 these we'll find each set that contains a school named `Lincoln Elementary`, e.g.,
 ```mdtest-command dir=testdata/edu
@@ -465,7 +465,7 @@ produces
 ### 3.6 Boolean Logic
 
 Search terms can be combined with Boolean logic as detailed in
-the [Zed language documentation](../language/overview.md##73-boolean-logic).
+the [Zed language documentation](../language/overview.md#73-boolean-logic).
 
 In particular, search terms separated by blank space implies
 Boolean `and` between the concatenated terms.
@@ -865,7 +865,7 @@ Each aggregation is performed by an
 [aggregate function](../language/aggregates/README.md)
 that operates on batches of records to carry out a running computation over
 the values they contain.  The `summarize` keyword is optional as the operato
-can be [inferred from context](../language/README.md#26-implied-operators).
+can be [inferred from context](../language/overview.md#26-implied-operators).
 
 As with SQL, multiple aggregate functions may be invoked at the same time.
 For example, to simultaneously calculate the minimum, maximum, and average of
@@ -929,8 +929,8 @@ produces
 
 ### 5.4 Aggregate Functions
 
-This section depicts examples of variou
-[aggregate functions](../language/README.md#aggregate-functions)
+This section depicts examples of various
+[aggregate functions](../language/overview.md#610-aggregate-function-calls)
 operating over thes "schools data set".
 
 #### 5.4.1 [and](../language/aggregates/and.md)
@@ -1261,7 +1261,7 @@ San Francisco   San Francisco Unified                              454.368421052
 ...
 ```
 Instead of a simple field name, any of the comma-separated group-by elements
-can be any [Zed expression](../language/README.md#expressions), which may
+can be any [Zed expression](../language/overview.md#6-expressions), which may
 appear in the form of a field assignment `field:=expr`
 
 To see a count of how many school names of a particular character length
@@ -1346,7 +1346,7 @@ Here we'll find the counties with the most schools by using the
 [`count()`](../language/aggregates/count.md) aggregate function and piping its
 output to a `sort` in reverse order. Note that even though we didn't list a
 field name as an explicit argument, the `sort` operator did what we wanted
-because it found a field of the `uint64` [data type](../language/README.md#data-types),
+because it found a field of the `uint64` [data type](../language/overview.md#5-data-types),
 e.g.,
 ```mdtest-command dir=testdata/edu
 zq -z 'count() by County | sort -r' schools.zson
