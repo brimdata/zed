@@ -1004,13 +1004,13 @@ which produces an output like this:
 {reviewers:|["henridf","mccanne","mattnibs"]|}
 ...
 ```
-Note that the syntax `=> ( ... )` defines a lateral scope where any Zed subquery can
+Note that the syntax `=> ( ... )` defines a [lateral scope](../language/overview.md#81-lateral-scope) where any Zed subquery can
 run in isolation over the input values created from the sequence of values
 traversed by the outer `over`.
 
 But we need a "graph edge" between the requesting user and the reviewers.
 To do this, we need to reference the `user.login` from the top-level scope within the
-[lateral scope](../language/overview.md#81-lateral-scope).  This can be done by
+lateral scope.  This can be done by
 bringing that value into the scope using a `with` clause appended to the
 `over` expression and yielding a
 [record literal](../language/overview.md#6112-record-expressions) with the desired value:
