@@ -11,7 +11,7 @@ type IntWriter struct {
 }
 
 func NewIntWriter(spiller *Spiller) *IntWriter {
-	return &IntWriter{*NewPrimitiveWriter(spiller)}
+	return &IntWriter{*NewPrimitiveWriter(zed.TypeInt32, spiller)}
 }
 
 func (p *IntWriter) Write(v int32) error {
@@ -22,12 +22,8 @@ type IntReader struct {
 	PrimitiveReader
 }
 
-func NewIntReader(val *zed.Value, r io.ReaderAt) (*IntReader, error) {
-	reader, err := NewPrimitiveReader(val, r)
-	if err != nil {
-		return nil, err
-	}
-	return &IntReader{*reader}, nil
+func NewIntReader(segmap []Segment, r io.ReaderAt) *IntReader {
+	return &IntReader{*NewPrimitiveReader(&Primitive{zed.TypeInt64, segmap}, r)}
 }
 
 func (p *IntReader) Read() (int64, error) {

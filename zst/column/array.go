@@ -1,7 +1,6 @@
 package column
 
 import (
-	"errors"
 	"io"
 
 	"github.com/brimdata/zed"
@@ -41,22 +40,11 @@ func (a *ArrayWriter) Flush(eof bool) error {
 	return a.values.Flush(eof)
 }
 
-func (a *ArrayWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
-	b.BeginContainer()
-	valType, err := a.values.EncodeMap(zctx, b)
-	if err != nil {
-		return nil, err
+func (a *ArrayWriter) Metadata() Metadata {
+	return &Array{
+		Lengths: a.lengths.Segmap(),
+		Values:  a.values.Metadata(),
 	}
-	lenType, err := a.lengths.EncodeMap(zctx, b)
-	if err != nil {
-		return nil, err
-	}
-	b.EndContainer()
-	cols := []zed.Column{
-		{"values", valType},
-		{"lengths", lenType},
-	}
-	return zctx.LookupTypeRecord(cols)
 }
 
 type ArrayReader struct {
@@ -64,31 +52,14 @@ type ArrayReader struct {
 	lengths *IntReader
 }
 
-func NewArrayReader(inner zed.Type, in *zed.Value, r io.ReaderAt) (*ArrayReader, error) {
-	typ, ok := in.Type.(*zed.TypeRecord)
-	if !ok {
-		return nil, errors.New("ZST object array_column not a record")
-	}
-	rec := zed.NewValue(typ, in.Bytes)
-	val := rec.Deref("values").MissingAsNull()
-	if val.IsNull() {
-		return nil, errors.New("ZST array column has no values")
-	}
-	elems, err := NewReader(inner, val, r)
-	if err != nil {
-		return nil, err
-	}
-	val = rec.Deref("lengths").MissingAsNull()
-	if val.IsNull() {
-		return nil, errors.New("ZST array column has no lengths")
-	}
-	lengths, err := NewIntReader(val, r)
+func NewArrayReader(array *Array, r io.ReaderAt) (*ArrayReader, error) {
+	elems, err := NewReader(array.Values, r)
 	if err != nil {
 		return nil, err
 	}
 	return &ArrayReader{
 		elems:   elems,
-		lengths: lengths,
+		lengths: NewIntReader(array.Lengths, r),
 	}, nil
 }
 
@@ -105,4 +76,25 @@ func (a *ArrayReader) Read(b *zcode.Builder) error {
 	}
 	b.EndContainer()
 	return nil
+}
+
+type SetWriter struct {
+	ArrayWriter
+}
+
+func NewSetWriter(inner zed.Type, spiller *Spiller) *SetWriter {
+	return &SetWriter{
+		ArrayWriter{
+			typ:     inner,
+			values:  NewWriter(inner, spiller),
+			lengths: NewIntWriter(spiller),
+		},
+	}
+}
+
+func (s *SetWriter) Metadata() Metadata {
+	return &Set{
+		Lengths: s.lengths.Segmap(),
+		Values:  s.values.Metadata(),
+	}
 }

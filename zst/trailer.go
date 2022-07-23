@@ -10,7 +10,7 @@ import (
 
 const (
 	FileType = "zst"
-	Version  = 2
+	Version  = 3
 )
 
 type FileMeta struct {

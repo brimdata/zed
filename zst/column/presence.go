@@ -1,5 +1,7 @@
 package column
 
+import "io"
+
 type PresenceWriter struct {
 	IntWriter
 	run  int32
@@ -42,11 +44,11 @@ type PresenceReader struct {
 	run  int
 }
 
-func NewPresence(i IntReader) *PresenceReader {
+func NewPresenceReader(segmap []Segment, r io.ReaderAt) *PresenceReader {
 	// We start out with null true so it is immediately flipped to
 	// false on the first call to Read.
 	return &PresenceReader{
-		IntReader: i,
+		IntReader: *NewIntReader(segmap, r),
 		null:      true,
 	}
 }

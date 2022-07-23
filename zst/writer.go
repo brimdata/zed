@@ -8,8 +8,8 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
 
@@ -25,7 +25,7 @@ type Writer struct {
 	writer     io.WriteCloser
 	spiller    *column.Spiller
 	typeMap    map[zed.Type]int
-	columns    []column.Writer
+	writers    []column.Writer
 	types      []zed.Type
 	skewThresh int
 	segThresh  int
@@ -112,14 +112,13 @@ func (w *Writer) Write(val *zed.Value) error {
 	if !ok {
 		typeNo = len(w.types)
 		w.typeMap[typ] = typeNo
-		col := column.NewWriter(typ, w.spiller)
-		w.columns = append(w.columns, col)
+		w.writers = append(w.writers, column.NewWriter(typ, w.spiller))
 		w.types = append(w.types, val.Type)
 	}
 	if err := w.root.Write(int32(typeNo)); err != nil {
 		return err
 	}
-	if err := w.columns[typeNo].Write(val.Bytes); err != nil {
+	if err := w.writers[typeNo].Write(val.Bytes); err != nil {
 		return err
 	}
 	w.footprint += len(val.Bytes)
@@ -149,8 +148,8 @@ func (w *WriterURI) Close() error {
 }
 
 func (w *Writer) flush(eof bool) error {
-	for _, col := range w.columns {
-		if err := col.Flush(eof); err != nil {
+	for _, writer := range w.writers {
+		if err := writer.Flush(eof); err != nil {
 			return err
 		}
 	}
@@ -165,37 +164,27 @@ func (w *Writer) finalize() error {
 	// to the underlying spiller, so we start writing zng at this point.
 	zw := zngio.NewWriter(w.writer)
 	dataSize := w.spiller.Position()
-	// First, we write out null values for each column corresponding to
-	// a type serialized into the ZST file in the order of its type number
-	// in the root map.
-	for _, typ := range w.types {
-		val := zed.NewValue(typ, nil)
-		if err := zw.Write(val); err != nil {
-			return err
-		}
-	}
-	// Next, we write the root reassembly map.
-	var b zcode.Builder
-	typ, err := w.root.EncodeMap(w.zctx, &b)
+	// First, we write the root segmap of the vector of integer type IDs.
+	m := zson.NewZNGMarshalerWithContext(w.zctx)
+	m.Decorate(zson.StyleSimple)
+	val, err := m.Marshal(w.root.Segmap())
 	if err != nil {
+		//XXX wrap
 		return err
 	}
-	root := zed.NewValue(typ, b.Bytes().Body())
-	if err := zw.Write(root); err != nil {
+	if err := zw.Write(val); err != nil {
+		//XXX wrap
 		return err
 	}
-	// Now, write out a reassembly map for each top-level type.
-	// Each map here is highly nested and encodes all of the segmaps
-	// for every column stream needed to reconstruct all of the values
-	// for that type.
-	for _, col := range w.columns {
-		b.Reset()
-		typ, err := col.EncodeMap(w.zctx, &b)
+	// Now, write the reassembly maps for each top-level type.
+	for _, writer := range w.writers {
+		val, err = m.Marshal(writer.Metadata())
 		if err != nil {
+			//XXX wrap
 			return err
 		}
-		val := zed.NewValue(typ, b.Bytes().Body())
 		if err := zw.Write(val); err != nil {
+			//XXX wrap
 			return err
 		}
 	}
@@ -204,11 +193,11 @@ func (w *Writer) finalize() error {
 	// Finally, we build and write the section trailer based on the size
 	// of the data and size of the reassembly maps.
 	sections := []int64{dataSize, mapsSize}
-	val, err := zngio.MarshalTrailer(FileType, Version, sections, &FileMeta{w.skewThresh, w.segThresh})
+	trailer, err := zngio.MarshalTrailer(FileType, Version, sections, &FileMeta{w.skewThresh, w.segThresh})
 	if err != nil {
 		return err
 	}
-	if err := zw.Write(&val); err != nil {
+	if err := zw.Write(&trailer); err != nil {
 		return err
 	}
 	return zw.EndStream()

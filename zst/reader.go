@@ -19,13 +19,13 @@ type Reader struct {
 // NewReader returns a Reader ready to read a zst object as zed.Records.
 // Close() should be called when done.  This embeds a zst.Object.
 func NewReader(object *Object) (*Reader, error) {
-	assembler, err := NewAssembler(object.assembly, object.seeker)
+	stream, err := NewStream(object, object.seeker)
 	if err != nil {
 		return nil, err
 	}
 	return &Reader{
 		Object: object,
-		Reader: assembler,
+		Reader: stream,
 	}, nil
 
 }

@@ -2,7 +2,6 @@ package column
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
@@ -55,30 +54,16 @@ func (u *UnionWriter) Flush(eof bool) error {
 	return nil
 }
 
-func (u *UnionWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
-	var cols []zed.Column
-	b.BeginContainer()
-	for k, value := range u.values {
-		typ, err := value.EncodeMap(zctx, b)
-		if err != nil {
-			return nil, err
-		}
-		// Field name is based on integer position in the column.
-		name := fmt.Sprintf("c%d", k)
-		cols = append(cols, zed.Column{name, typ})
+func (u *UnionWriter) Metadata() Metadata {
+	values := make([]Metadata, 0, len(u.values))
+	for _, val := range u.values {
+		values = append(values, val.Metadata())
 	}
-	typ, err := u.tags.EncodeMap(zctx, b)
-	if err != nil {
-		return nil, err
+	return &Union{
+		Presence: u.presence.Segmap(),
+		Tags:     u.tags.Segmap(),
+		Values:   values,
 	}
-	cols = append(cols, zed.Column{"tags", typ})
-	typ, err = u.presence.EncodeMap(zctx, b)
-	if err != nil {
-		return nil, err
-	}
-	cols = append(cols, zed.Column{"presence", typ})
-	b.EndContainer()
-	return zctx.LookupTypeRecord(cols)
 }
 
 type UnionReader struct {
@@ -87,52 +72,23 @@ type UnionReader struct {
 	presence *PresenceReader
 }
 
-func NewUnionReader(utyp zed.Type, in *zed.Value, r io.ReaderAt) (*UnionReader, error) {
-	typ, ok := utyp.(*zed.TypeUnion)
-	if !ok {
-		return nil, errors.New("cannot unmarshal non-union into union")
-	}
-	rtype, ok := in.Type.(*zed.TypeRecord)
-	if !ok {
-		return nil, errors.New("ZST object union_column not a record")
-	}
-	rec := zed.NewValue(rtype, in.Bytes)
-	var readers []Reader
-	for k := 0; k < len(typ.Types); k++ {
-		val := rec.Deref(fmt.Sprintf("c%d", k)).MissingAsNull()
-		if val.IsNull() {
-			return nil, errors.New("ZST union missing column")
-		}
-		d, err := NewReader(typ.Types[k], val, r)
+func NewUnionReader(union *Union, r io.ReaderAt) (*UnionReader, error) {
+	readers := make([]Reader, 0, len(union.Values))
+	for _, val := range union.Values {
+		reader, err := NewReader(val, r)
 		if err != nil {
 			return nil, err
 		}
-		readers = append(readers, d)
+		readers = append(readers, reader)
 	}
-	tag := rec.Deref("tags").MissingAsNull()
-	if tag.IsNull() {
-		return nil, errors.New("ZST union missing tags")
-	}
-	tagsReader, err := NewIntReader(tag, r)
-	if err != nil {
-		return nil, err
-	}
-	presence := rec.Deref("presence").MissingAsNull()
-	if presence.IsNull() {
-		return nil, errors.New("ZST union missing presence")
-	}
-	d, err := NewPrimitiveReader(presence, r)
-	if err != nil {
-		return nil, err
-	}
-	var pr *PresenceReader
-	if len(d.segmap) != 0 {
-		pr = NewPresence(IntReader{*d})
+	var presence *PresenceReader
+	if len(union.Presence) != 0 {
+		presence = NewPresenceReader(union.Presence, r)
 	}
 	return &UnionReader{
 		readers:  readers,
-		tags:     tagsReader,
-		presence: pr,
+		tags:     NewIntReader(union.Tags, r),
+		presence: presence,
 	}, nil
 }
 
