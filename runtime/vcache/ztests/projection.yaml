@@ -1,0 +1,42 @@
+script: |
+  zq -f zst -o test.zst -
+  zed dev vcache project -z test.zst x y z
+  echo ===
+  zed dev vcache project -z test.zst s
+  echo ===
+  zed dev vcache project -z test.zst x s
+  echo ===
+  zed dev vcache project -z test.zst s x
+
+inputs:
+  - name: stdin
+    data: |
+      {x:1,y:2,s:"foo"}
+      {x:3,y:4}
+      {x:3,y:4,s:"bar"}
+      {x:3,y:4}
+      {s:"baz"}
+
+outputs:
+  - name: stdout
+    data: |
+      {x:1,y:2}
+      {x:3,y:4}
+      {x:3,y:4}
+      {x:3,y:4}
+      ===
+      {s:"foo"}
+      {s:"bar"}
+      {s:"baz"}
+      ===
+      {x:1,s:"foo"}
+      {x:3}
+      {x:3,s:"bar"}
+      {x:3}
+      {s:"baz"}
+      ===
+      {s:"foo",x:1}
+      {x:3}
+      {s:"bar",x:3}
+      {x:3}
+      {s:"baz"}

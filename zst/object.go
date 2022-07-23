@@ -78,6 +78,10 @@ func NewObjectFromPath(ctx context.Context, zctx *zed.Context, engine storage.En
 	if err != nil {
 		return nil, err
 	}
+	return NewObjectFromURI(ctx, zctx, engine, uri)
+}
+
+func NewObjectFromURI(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI) (*Object, error) {
 	r, err := engine.Get(ctx, uri)
 	if err != nil {
 		return nil, err
@@ -99,6 +103,29 @@ func (o *Object) Close() error {
 
 func (o *Object) IsEmpty() bool {
 	return o.sections == nil
+}
+
+func (o *Object) FetchMetaData() ([]int32, []vector.Metadata, error) {
+	typeIDs, err := ReadIntVector(o.root, o.readerAt)
+	if err != nil {
+		return nil, nil, err
+	}
+	return typeIDs, o.maps, nil
+}
+
+func ReadIntVector(segments []vector.Segment, r io.ReaderAt) ([]int32, error) {
+	reader := vector.NewInt64Reader(segments, r)
+	var out []int32
+	for {
+		val, err := reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				return out, nil
+			}
+			return nil, err
+		}
+		out = append(out, int32(val))
+	}
 }
 
 func (o *Object) readMetaData() error {
