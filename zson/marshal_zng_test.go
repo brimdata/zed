@@ -602,3 +602,35 @@ func TestMultipleZedValues(t *testing.T) {
 	assert.Equal(t, "foo", string(foo.Bytes))
 	assert.Equal(t, "bar", string(bar.Bytes))
 }
+
+func TestZedValues(t *testing.T) {
+	test := func(t *testing.T, name, s string, v interface{}) {
+		t.Run(name, func(t *testing.T) {
+			val := zson.MustParseValue(zed.NewContext(), s)
+			err := zson.UnmarshalZNG(val, v)
+			require.NoError(t, err)
+			val, err = zson.MarshalZNG(v)
+			require.NoError(t, err)
+			assert.Equal(t, s, zson.MustFormatValue(val))
+
+		})
+	}
+	var testptr struct {
+		Value *zed.Value `zed:"value"`
+	}
+	t.Run("pointer", func(t *testing.T) {
+		test(t, "string", "{value:\"foo\"}", &testptr)
+		test(t, "typed-null", "{value:null(time)}", &testptr)
+		test(t, "null", "{value:null}", &testptr)
+		test(t, "record", "{value:{foo:1,bar:\"baz\"}}", &testptr)
+	})
+	var teststruct struct {
+		Value zed.Value `zed:"value"`
+	}
+	t.Run("struct", func(t *testing.T) {
+		test(t, "string", "{value:\"foo\"}", &teststruct)
+		test(t, "typed-null", "{value:null(time)}", &teststruct)
+		test(t, "null", "{value:null}", &teststruct)
+		test(t, "record", "{value:{foo:1,bar:\"baz\"}}", &teststruct)
+	})
+}

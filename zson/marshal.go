@@ -713,17 +713,23 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	if !v.IsValid() {
 		return errors.New("cannot unmarshal into value provided")
 	}
-	if v.Type().Implements(unmarshalerTypeZNG) {
-		if v.IsNil() {
-			v.Set(reflect.New(v.Type().Elem()))
-		}
-		return v.Interface().(ZNGUnmarshaler).UnmarshalZNG(u, zv)
+	var m ZNGUnmarshaler
+	m, v = indirect(v, zv)
+	if m != nil {
+		return m.UnmarshalZNG(u, zv)
 	}
-	if v.CanAddr() {
-		pv := v.Addr()
-		if pv.CanInterface() && pv.Type().Implements(unmarshalerTypeZNG) {
-			return pv.Interface().(ZNGUnmarshaler).UnmarshalZNG(u, zv)
-		}
+	if _, ok := v.Interface().(zed.Value); ok {
+		// For zed.Values we simply set the reflect value to the
+		// zed.Value that has been decoded.
+		v.Set(reflect.ValueOf(*zv.Copy()))
+		return nil
+	}
+	if zv == zed.Null {
+		v.Set(reflect.Zero(v.Type()))
+		return nil
+	}
+	if v.Kind() == reflect.Pointer && zv.Bytes == nil {
+		return u.decodeNull(zv, v)
 	}
 	if _, ok := v.Interface().(nano.Ts); ok {
 		if zv.Type != zed.TypeTime {
@@ -734,19 +740,6 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 			return nil
 		}
 		v.Set(reflect.ValueOf(zed.DecodeTime(zv.Bytes)))
-		return nil
-	}
-	if _, ok := v.Interface().(zed.Value); ok {
-		// For zed.Values we simply set the reflect value to the
-		// zed.Value that has been decoded.
-		v.Set(reflect.ValueOf(*zv.Copy()))
-		return nil
-	}
-	if zed.TypeUnder(zv.Type) == zed.TypeNull && v.CanSet() {
-		// Since a zed TypeNull can resolve to any value go ahead an set the
-		// zero value if the value can be set. Otherwise the reflect type is
-		// probably a pointer and we'll take care of this below.
-		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
 	switch v.Kind() {
@@ -808,17 +801,6 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 			v.Set(concrete)
 		}
 		return nil
-	case reflect.Ptr:
-		for v.Kind() == reflect.Ptr {
-			if v.CanSet() && zv.Bytes == nil {
-				return u.decodeNull(zv, v)
-			}
-			if v.IsNil() {
-				v.Set(reflect.New(v.Type().Elem()))
-			}
-			v = v.Elem()
-		}
-		return u.decodeAny(zv, v)
 	case reflect.String:
 		// XXX We bundle string, type, error all into string.
 		// See issue #1853.
@@ -890,6 +872,42 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	default:
 		return fmt.Errorf("unsupported type: %v", v.Kind())
 	}
+}
+
+// Adapted from:
+// https://github.com/golang/go/blob/master/src/encoding/json/decode.go#L426
+func indirect(v reflect.Value, zv *zed.Value) (ZNGUnmarshaler, reflect.Value) {
+	var nilptr reflect.Value
+	// If v is a named type and is addressable,
+	// start with its address, so that if the type has pointer methods,
+	// we find them.
+	if v.Kind() != reflect.Pointer && v.Type().Name() != "" && v.CanAddr() {
+		v = v.Addr()
+	}
+	for {
+		if v.Kind() != reflect.Pointer {
+			break
+		}
+		if v.CanSet() && zv.Bytes == nil {
+			// If the reflect value can be set and the zed Value is nil we want
+			// to store this pointer since if destination is not a zed.Value the
+			// pointer will be set to nil.
+			nilptr = v
+		}
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		if v.Type().NumMethod() > 0 && v.CanInterface() {
+			if u, ok := v.Interface().(ZNGUnmarshaler); ok {
+				return u, reflect.Value{}
+			}
+		}
+		v = v.Elem()
+	}
+	if _, ok := v.Interface().(zed.Value); !ok && nilptr.IsValid() {
+		return nil, nilptr
+	}
+	return nil, v
 }
 
 func (u *UnmarshalZNGContext) decodeNull(zv *zed.Value, v reflect.Value) error {
