@@ -12,8 +12,8 @@ grep(<pattern> [, e: any]) -> bool
 The _grep_ function searches all of the strings in its input value `e`
 (or `this` if `e` is not given)
  using the `<pattern>` argument, which must be a
-[regular expression](../README.md#regular-expressions),
-[glob pattern](../README.md#globs), or string literal.
+[regular expression](../overview.md#711-regular-expressions),
+[glob pattern](../overview.md#712-globs), or string literal.
 If the pattern matches for any string, then the result is `true`.  Otherwise, it is `false`.
 
 > Note that string matches are case insensitive while regular expression

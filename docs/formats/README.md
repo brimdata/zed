@@ -43,7 +43,7 @@ Instead, file formats like Avro, ORC, and Parquet arose to represent tabular dat
 with an explicit schema followed by a sequence of values that conform to the schema.
 While Avro and Parquet schemas can also represent semi-structured data, all of the
 values in a given Avro or Parquet file must conform to the same schema.
-The [Iceberg specification](https://iceberg.apache.org/#spec/)
+The [Iceberg specification](https://iceberg.apache.org/spec/)
 defines data types and metadata schemas for how large relational tables can be
 managed as a collection of Avro, ORC, and/or Parquet files.
 
@@ -275,7 +275,7 @@ embodies Zed's more general model for heterogeneous and self-describing schemas.
 * [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
 in JSON for easy decoding by JSON-based clients, e.g.,
 the [Zealot JavaScript library](https://github.com/brimdata/brim/tree/main/packages/zealot)
-and the [Zed Python library](../../python/zed).
+and the [Zed Python library](../libraries/python.md).
 
 Because all of the formats conform to the same Zed data model, conversions between
 a human-readable form, a row-based binary form, and a row-based columnar form can

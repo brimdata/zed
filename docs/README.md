@@ -47,9 +47,9 @@ across one or more [data pools](commands/zed.md#14-data-pools) with ACID commit 
 accessed via a [Git](https://git-scm.com/)-like API.
 * The [Zed language](language/README.md) is the system's dataflow language for performing
 queries, searches, analytics, transformations, or any of the above combined together.
-* A  [Zed query](language/README.md#1-introduction) is a Zed script that performs
+* A  [Zed query](language/overview.md#1-introduction) is a Zed script that performs
 search and/or analytics.
-* A [Zed shaper](language/README.md#9-shaping) is a Zed script that performs
+* A [Zed shaper](language/overview.md#9-shaping) is a Zed script that performs
 data transformation to _shape_
 the input data into the desired set of organizing Zed data types called "shapes",
 which are traditionally called _schemas_ in relational systems but are

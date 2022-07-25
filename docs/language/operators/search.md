@@ -13,7 +13,7 @@ to each input value and dropping each value for which the expression evaluates
 to `false` or to an error.
 
 The "search" keyword may be omitted in which case `<sexpr>` follows
-the [search expression](../README.md#search-expressions) syntax.
+the [search expression](../overview.md#7-search-expressions) syntax.
 
 When Zed queries are run interactively, it is convenient to be able to omit
 the "search" keyword, but when search filters appear in Zed source files,

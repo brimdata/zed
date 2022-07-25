@@ -9,7 +9,7 @@ typeof(val: any) -> type
 ```
 ### Description
 
-The _typeof_ function returns the [type](../../formats/zson.md#357-type-type) of
+The _typeof_ function returns the [type](../../formats/zson.md#25-types) of
 its argument `val`.  Types in Zed are first class so the returned type is
 also a Zed value.  The type of a type is type `type`.
 
