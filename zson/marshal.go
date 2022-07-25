@@ -558,20 +558,15 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error
 		// so we can recode the array with tagged union elements.
 		// We throw out the array computed above and start over with
 		// an empty builder.
-		m.Builder = *zcode.NewBuilder()
 		m.Builder.Truncate()
 		for i, typ := range types {
 			m.Builder.BeginContainer()
 			tag := unionType.TagOf(typ)
 			m.Builder.Append(zed.EncodeInt(int64(tag)))
 			item := arrayVal.Index(i)
-			itemType, err := m.encodeValue(item)
+			_, err := m.encodeValue(item)
 			if err != nil {
 				return nil, err
-			}
-			tagType, _ := unionType.Type(tag)
-			if typ != tagType {
-				return nil, fmt.Errorf("internal error: type mismatch in MarshalZNGContext.encodeArray: %s does not match %s; %p %p", String(typ), String(itemType), typ, itemType)
 			}
 			m.Builder.EndContainer()
 		}
@@ -1212,8 +1207,7 @@ func (u *UnmarshalZNGContext) lookupGoType(typ zed.Type, bytes zcode.Bytes) (ref
 		}
 		return reflect.SliceOf(elemType), nil
 	case *zed.TypeUnion:
-		t, bytes := typ.Untag(bytes)
-		return u.lookupGoType(t, bytes)
+		return u.lookupGoType(typ.Untag(bytes))
 	case *zed.TypeEnum:
 		// For now just return nil here. The layer above will flag
 		// a type error.  At some point, we can create Go-native data structures
