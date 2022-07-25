@@ -249,17 +249,18 @@ func (c *Context) LookupTypeDef(name string) *TypeNamed {
 	return c.typedefs[name]
 }
 
-func (c *Context) LookupTypeNamed(name string, target Type) (*TypeNamed, error) {
+func (c *Context) LookupTypeNamed(name string, inner Type) (*TypeNamed, error) {
+	tv := tvPool.Get().(*[]byte)
+	*tv = AppendTypeValue((*tv)[:0], &TypeNamed{Name: name, Type: inner})
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if named, ok := c.typedefs[name]; ok {
-		if named.Type == target {
-			return named, nil
-		}
+	if typ, ok := c.toType[string(*tv)]; ok {
+		tvPool.Put(tv)
+		return typ.(*TypeNamed), nil
 	}
-	typ := NewTypeNamed(c.nextIDWithLock(), name, target)
+	typ := NewTypeNamed(c.nextIDWithLock(), name, inner)
 	c.typedefs[name] = typ
-	c.enterWithLock(EncodeTypeValue(typ), typ)
+	c.enterWithLock(*tv, typ)
 	return typ, nil
 }
 
