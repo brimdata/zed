@@ -329,6 +329,11 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		m.Builder.Append(zv.Bytes)
 		return typ, nil
 	}
+	if typ, ok := v.Interface().(zed.Type); ok {
+		val := m.Context.LookupTypeValue(typ)
+		m.Builder.Append(val.Bytes)
+		return val.Type, nil
+	}
 	if ip, ok := v.Interface().(net.IP); ok {
 		if a, err := netip.ParseAddr(ip.String()); err == nil {
 			m.Builder.Append(zed.EncodeIP(a))
@@ -514,27 +519,61 @@ func (m *MarshalZNGContext) encodeArrayBytes(arrayVal reflect.Value) (zed.Type, 
 }
 
 func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error) {
-	len := arrayVal.Len()
+	push := m.Builder
+	m.Builder = *zcode.NewBuilder()
 	m.Builder.BeginContainer()
-	var innerType zed.Type
-	for i := 0; i < len; i++ {
+	arrayLen := arrayVal.Len()
+	types := make([]zed.Type, 0, arrayLen)
+	typeMap := make(map[zed.Type]struct{})
+	for i := 0; i < arrayLen; i++ {
 		item := arrayVal.Index(i)
 		typ, err := m.encodeValue(item)
 		if err != nil {
 			return nil, err
 		}
-		// XXX See bug #2575
-		innerType = typ
+		types = append(types, typ)
+		typeMap[typ] = struct{}{}
 	}
 	m.Builder.EndContainer()
-	if innerType == nil {
+	var innerType zed.Type
+	switch len(typeMap) {
+	case 0:
 		// if slice was empty, look up the type without a value
 		var err error
 		innerType, err = m.lookupType(arrayVal.Type().Elem())
 		if err != nil {
 			return nil, err
 		}
+		push.Append(m.Builder.Bytes().Body())
+	case 1:
+		innerType = types[0]
+		push.Append(m.Builder.Bytes().Body())
+	default:
+		unionTypes := make([]zed.Type, 0, len(typeMap))
+		for typ := range typeMap {
+			unionTypes = append(unionTypes, typ)
+		}
+		unionType := m.Context.LookupTypeUnion(unionTypes)
+		// Now we know all the types and have the union type
+		// so we can recode the array with tagged union elements.
+		// We throw out the array computed above and start over with
+		// an empty builder.
+		m.Builder.Truncate()
+		for i, typ := range types {
+			m.Builder.BeginContainer()
+			tag := unionType.TagOf(typ)
+			m.Builder.Append(zed.EncodeInt(int64(tag)))
+			item := arrayVal.Index(i)
+			_, err := m.encodeValue(item)
+			if err != nil {
+				return nil, err
+			}
+			m.Builder.EndContainer()
+		}
+		innerType = unionType
+		push.Append(m.Builder.Bytes())
 	}
+	m.Builder = push
 	return m.Context.LookupTypeArray(innerType), nil
 }
 
@@ -611,6 +650,7 @@ type ZNGUnmarshaler interface {
 }
 
 type UnmarshalZNGContext struct {
+	zctx   *zed.Context
 	binder binder
 }
 
@@ -628,6 +668,12 @@ func UnmarshalZNGRecord(rec *zed.Value, v interface{}) error {
 
 func incompatTypeError(zt zed.Type, v reflect.Value) error {
 	return fmt.Errorf("incompatible type translation: zng type %v go type %v go kind %v", FormatType(zt), v.Type(), v.Kind())
+}
+
+// SetContext provides an optional type context to the unmarshaler.  This is
+// needed only when unmarshaling Zed type values into Go zed.Type interface values.
+func (u *UnmarshalZNGContext) SetContext(zctx *zed.Context) {
+	u.zctx = zctx
 }
 
 func (u *UnmarshalZNGContext) Unmarshal(zv *zed.Value, v interface{}) error {
@@ -719,23 +765,36 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		}
 		return u.decodeRecord(zv, v)
 	case reflect.Interface:
-		// This is an interface value.  If the underlying ZNG data has
-		// a type name (via a named type), then we'll see if there's a
-		// binding for it and unmarshal into an instance of Template
-		// in the binding.
-		typ, err := u.lookupType(zv.Type)
+		if zed.TypeUnder(zv.Type) == zed.TypeType {
+			if u.zctx == nil {
+				return errors.New("cannot unmarshal type value without type context")
+			}
+			typ, err := u.zctx.LookupByValue(zv.Bytes)
+			if err != nil {
+				return err
+			}
+			v.Set(reflect.ValueOf(typ))
+			return nil
+		}
+		// If the interface value isn't null, then the user has provided
+		// an underlying value to unmarshal into.  So we just recursively
+		// decode the value into this existing value and return.
+		if !v.IsNil() {
+			return u.decodeAny(zv, v.Elem())
+		}
+		template, err := u.lookupGoType(zv.Type, zv.Bytes)
 		if err != nil {
 			return err
 		}
-		if typ == nil {
-			// If typ is nil, then the value must be of ZNG type null
+		if template == nil {
+			// If the template is nil, then the value must be of ZNG type null
 			// and ZNG type values can only have value null.  So, we
 			// set it to null of the type given for the marshaled-into
 			// value and return.
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		concrete := reflect.New(typ)
+		concrete := reflect.New(template)
 		if err := u.decodeAny(zv, concrete.Elem()); err != nil {
 			return err
 		}
@@ -906,9 +965,13 @@ func (u *UnmarshalZNGContext) decodeMap(zv *zed.Value, mapVal reflect.Value) err
 }
 
 func (u *UnmarshalZNGContext) decodeRecord(zv *zed.Value, sval reflect.Value) error {
+	if union, ok := zv.Type.(*zed.TypeUnion); ok {
+		typ, bytes := union.Untag(zv.Bytes)
+		zv = zed.NewValue(typ, bytes)
+	}
 	recType, ok := zed.TypeUnder(zv.Type).(*zed.TypeRecord)
 	if !ok {
-		return fmt.Errorf("cannot unmarshal Zed type %q into Go struct", FormatType(zv.Type))
+		return fmt.Errorf("cannot unmarshal Zed value %q into Go struct", String(zv))
 	}
 	nameToField := make(map[string]int)
 	stype := sval.Type()
@@ -949,7 +1012,7 @@ func (u *UnmarshalZNGContext) decodeArray(zv *zed.Value, arrVal reflect.Value) e
 	}
 	arrType, ok := typ.(*zed.TypeArray)
 	if !ok {
-		return errors.New("not an array")
+		return fmt.Errorf("unmarshaling type %q: not an array", String(typ))
 	}
 	if zv.Bytes == nil {
 		// XXX The inner type of the null should be checked.
@@ -1083,7 +1146,11 @@ func typeNameOfValue(value interface{}) (string, error) {
 	return fmt.Sprintf("%s.%s", typ.PkgPath(), typ.Name()), nil
 }
 
-func (u *UnmarshalZNGContext) lookupType(typ zed.Type) (reflect.Type, error) {
+// lookupGoType builds a Go type for the Zed value given by typ and bytes.
+// This process requires
+// a value rather than a Zed type as it must determine the types of union elements
+// from their tags.
+func (u *UnmarshalZNGContext) lookupGoType(typ zed.Type, bytes zcode.Bytes) (reflect.Type, error) {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
 		if template := u.binder.lookup(typ.Name); template != nil {
@@ -1095,33 +1162,71 @@ func (u *UnmarshalZNGContext) lookupType(typ zed.Type) (reflect.Type, error) {
 		// by reflect when the Set() method is called on the
 		// value and the concrete value doesn't implement the
 		// interface.
-		return u.lookupType(typ.Type)
+		return u.lookupGoType(typ.Type, bytes)
 	case *zed.TypeRecord:
-		return u.lookupTypeRecord(typ)
+		return nil, errors.New("unmarshaling records into interface value requires type binding")
 	case *zed.TypeArray:
-		elemType, err := u.lookupType(typ.Type)
+		// If we got here, we know the array type wasn't named and
+		// therefore cannot have mixed-type elements.  So we don't need
+		// to traverse the array and can just take the first element
+		// as the template value to recurse upon.  If there are actually
+		// heterogenous values, then the Go reflect package will raise
+		// the problem when decoding the value.
+		// If the inner type is a union, it must be a named-type union
+		// so we know what Go type to use as the elements of the array,
+		// which obviously can only be interface values for mixed types.
+		// XXX there's a corner case here for union type where all the
+		// elements of the array have the same tag, in which case you
+		// can have a normal array of that tag's type.
+		// We let the reflect package catch errors where the array contents
+		// are not consistent.  All we need to do here is make sure the
+		// interface name is in the bindings and the elemType will be
+		// the appropriate interface type.
+		it := bytes.Iter()
+		if it.Done() {
+			bytes = nil
+		} else {
+			bytes = it.Next()
+		}
+		elemType, err := u.lookupGoType(typ.Type, bytes)
 		if err != nil {
 			return nil, err
 		}
 		return reflect.SliceOf(elemType), nil
 	case *zed.TypeSet:
-		elemType, err := u.lookupType(typ.Type)
+		// See comment above for TypeArray as it applies here.
+		it := bytes.Iter()
+		if it.Done() {
+			bytes = nil
+		} else {
+			bytes = it.Next()
+		}
+		elemType, err := u.lookupGoType(typ.Type, bytes)
 		if err != nil {
 			return nil, err
 		}
 		return reflect.SliceOf(elemType), nil
-	case *zed.TypeUnion, *zed.TypeEnum:
+	case *zed.TypeUnion:
+		return u.lookupGoType(typ.Untag(bytes))
+	case *zed.TypeEnum:
 		// For now just return nil here. The layer above will flag
 		// a type error.  At some point, we can create Go-native data structures
 		// in package zng for representing a union or enum as a standalone
 		// entity.  See issue #1853.
 		return nil, nil
 	case *zed.TypeMap:
-		keyType, err := u.lookupType(typ.KeyType)
+		it := bytes.Iter()
+		if it.Done() {
+			return nil, fmt.Errorf("corrupt Zed map value in Zed unmarshal: type %q", String(typ))
+		}
+		keyType, err := u.lookupGoType(typ.KeyType, it.Next())
 		if err != nil {
 			return nil, err
 		}
-		valType, err := u.lookupType(typ.ValType)
+		if it.Done() {
+			return nil, fmt.Errorf("corrupt Zed map value in Zed unmarshal: type %q", String(typ))
+		}
+		valType, err := u.lookupGoType(typ.ValType, it.Next())
 		if err != nil {
 			return nil, err
 		}
@@ -1129,10 +1234,6 @@ func (u *UnmarshalZNGContext) lookupType(typ zed.Type) (reflect.Type, error) {
 	default:
 		return u.lookupPrimitiveType(typ)
 	}
-}
-
-func (u *UnmarshalZNGContext) lookupTypeRecord(typ *zed.TypeRecord) (reflect.Type, error) {
-	return nil, errors.New("unmarshaling records into interface value requires type binding")
 }
 
 func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zed.Type) (reflect.Type, error) {

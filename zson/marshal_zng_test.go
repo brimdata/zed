@@ -208,7 +208,7 @@ func TestUnmarshalNull(t *testing.T) {
 		require.NoError(t, zson.UnmarshalZNG(zed.Null, &slice))
 		assert.Nil(t, slice)
 		slice = []int{1}
-		assert.EqualError(t, zson.UnmarshalZNG(zed.NullInt64, &slice), "not an array")
+		assert.EqualError(t, zson.UnmarshalZNG(zed.NullInt64, &slice), `unmarshaling type "int64": not an array`)
 		slice = []int{1}
 		v := zson.MustParseValue(zed.NewContext(), "null([int64])")
 		require.NoError(t, zson.UnmarshalZNG(v, &slice))
@@ -249,7 +249,7 @@ func TestUnmarshalNull(t *testing.T) {
 		require.NoError(t, zson.UnmarshalZNG(val, &obj))
 		require.Nil(t, obj.Test)
 		val = zson.MustParseValue(zed.NewContext(), "{test: null(ip)}")
-		require.EqualError(t, zson.UnmarshalZNG(val, &obj), "cannot unmarshal Zed type \"ip\" into Go struct")
+		require.EqualError(t, zson.UnmarshalZNG(val, &obj), `cannot unmarshal Zed value "null(ip)" into Go struct`)
 	})
 }
 
@@ -474,7 +474,7 @@ func TestInterfaceUnmarshal(t *testing.T) {
 
 	var thingI interface{}
 	err = u.Unmarshal(zv, &thingI)
-	require.NoError(t, err)
+	require.NoError(t, err, zson.String(zv))
 	actualThing, ok := thingI.(*ZNGThing)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, t1, actualThing)
@@ -483,7 +483,7 @@ func TestInterfaceUnmarshal(t *testing.T) {
 	var genericThing interface{}
 	err = u2.Unmarshal(zv, &genericThing)
 	require.Error(t, err)
-	assert.Equal(t, "unmarshaling records into interface value requires type binding", err.Error())
+	assert.Equal(t, `unmarshaling records into interface value requires type binding`, err.Error())
 }
 
 func TestBindings(t *testing.T) {

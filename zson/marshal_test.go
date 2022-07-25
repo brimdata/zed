@@ -192,11 +192,8 @@ type RecordWithInterfaceSlice struct {
 	S []Thing
 }
 
-func TestBug2575(t *testing.T) {
-	// Bug #2575 is preventing "-f lake" from working on transactions that
-	// have arrays of actions.Interface.  This test repros the problem.
-	// Skipping until #2575 is addressed.
-	t.Skip()
+func TestMixedTypeArrayInsideRecord(t *testing.T) {
+	t.Skip("see issue #4012")
 	x := &RecordWithInterfaceSlice{
 		X: "hello",
 		S: []Thing{
@@ -223,7 +220,78 @@ func TestBug2575(t *testing.T) {
 	require.NoError(t, err)
 	actual, err := zson.FormatValue(recActual)
 	require.NoError(t, err)
-	assert.Equal(t, trim(exp), actual)
+	assert.Equal(t, exp, actual)
+	// Double check that all the proper typing made it into the implied union.
+	assert.Equal(t, `{X:"hello",S:[[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]]}(=RecordWithInterfaceSlice)`, actual)
+
+	u := zson.NewUnmarshaler()
+	u.Bind(Animal{}, Plant{}, RecordWithInterfaceSlice{})
+	var out RecordWithInterfaceSlice
+	err = u.Unmarshal(actual, &out)
+	require.NoError(t, err)
+	assert.Equal(t, *x, out)
+}
+
+type ArrayOfThings struct {
+	S []Thing
+}
+
+func TestMixedTypeUnmarshal(t *testing.T) {
+	z := `{S:[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]}`
+	u := zson.NewUnmarshaler()
+	u.Bind(Animal{}, Plant{}, ArrayOfThings{})
+	var out ArrayOfThings
+	err := u.Unmarshal(z, &out)
+	require.NoError(t, err)
+	assert.Equal(t, ArrayOfThings{S: []Thing{&Plant{"red"}, &Animal{"blue"}}}, out)
+}
+
+type MessageThing struct {
+	Message string
+	Thing   Thing
+}
+
+func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
+	t.Skip("see issue #4012")
+	input := []MessageThing{
+		{
+			Message: "hello",
+			Thing:   &Plant{"red"},
+		},
+		{
+			Message: "world",
+			Thing:   &Animal{"blue"},
+		},
+	}
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+
+	zv, err := m.Marshal(input)
+	require.NoError(t, err)
+
+	var buffer bytes.Buffer
+	writer := zngio.NewWriter(zio.NopCloser(&buffer))
+	recExpected := zed.NewValue(zv.Type, zv.Bytes)
+	writer.Write(recExpected)
+	writer.Close()
+
+	reader := zngio.NewReader(zed.NewContext(), &buffer)
+	defer reader.Close()
+	recActual, err := reader.Read()
+	exp, err := zson.FormatValue(recExpected)
+	require.NoError(t, err)
+	actual, err := zson.FormatValue(recActual)
+	require.NoError(t, err)
+	assert.Equal(t, trim(exp), trim(actual))
+	// Double check that all the proper typing made it into the implied union.
+	assert.Equal(t, `[{Message:"hello",Thing:{MyColor:"red"}(=Plant)}(=MessageThing),{Message:"world",Thing:{MyColor:"blue"}(=Animal)}(=MessageThing)]`, actual)
+
+	u := zson.NewUnmarshaler()
+	u.Bind(Plant{}, Animal{}, MessageThing{})
+	var out RecordWithInterfaceSlice
+	err = u.Unmarshal(actual, &out)
+	require.NoError(t, err)
+	assert.Equal(t, input, out)
 }
 
 type Foo struct {
@@ -351,4 +419,101 @@ func TestMarshalGoTime(t *testing.T) {
 	b, err := zson.Marshal(tm)
 	require.NoError(t, err)
 	assert.Equal(t, `2006-01-02T15:04:05.123Z`, b)
+}
+
+type Metadata interface {
+	Type() zed.Type
+}
+
+type Record struct {
+	Fields []Field
+}
+
+func (r *Record) Type() zed.Type {
+	return zed.TypeNull
+}
+
+type Field struct {
+	Name   string
+	Values Metadata
+}
+
+type Primitive struct {
+	Foo string
+}
+
+func (*Primitive) Type() zed.Type {
+	return zed.TypeNull
+}
+
+type Array struct {
+	Values Metadata
+}
+
+func (*Array) Type() zed.Type {
+	return zed.TypeNull
+}
+
+func TestRecordWithMixedTypeNamedArrayElems(t *testing.T) {
+	in := &Record{
+		Fields: []Field{
+			{
+				Name: "a",
+				Values: &Primitive{
+					Foo: "foo",
+				},
+			},
+			{
+				Name: "b",
+				Values: &Array{
+					Values: &Primitive{
+						Foo: "bar",
+					},
+				},
+			},
+		},
+	}
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	val, err := m.Marshal(in)
+	require.NoError(t, err)
+	u := zson.NewZNGUnmarshaler()
+	u.Bind(Record{}, Array{}, Primitive{})
+	var out Metadata
+	err = u.Unmarshal(val, &out)
+	require.NoError(t, err)
+	assert.Equal(t, in, out)
+}
+
+func TestInterfaceWithConcreteEmptyValue(t *testing.T) {
+	u := zson.NewUnmarshaler()
+	// This case doesn't need a binding because we set the
+	// interface value to an empty underlying value.
+	out := Metadata(&Primitive{})
+	err := u.Unmarshal(`{Foo:"foo"}(=Primitive)`, &out)
+	require.NoError(t, err)
+	assert.Equal(t, &Primitive{Foo: "foo"}, out)
+}
+
+func TestZedType(t *testing.T) {
+	zctx := zed.NewContext()
+	u := zson.NewUnmarshaler()
+	var typ zed.Type
+	err := u.Unmarshal(`<string>`, &typ)
+	assert.EqualError(t, err, `cannot unmarshal type value without type context`)
+	u.SetContext(zctx)
+	err = u.Unmarshal(`<string>`, &typ)
+	require.NoError(t, err)
+	assert.Equal(t, zed.TypeString, typ)
+	err = u.Unmarshal(`<int64>`, &typ)
+	require.NoError(t, err)
+	assert.Equal(t, zed.TypeInt64, typ)
+}
+
+func TestSimpleUnionUnmarshal(t *testing.T) {
+	t.Skip("see issue #4012")
+	var i int64
+	err := zson.Unmarshal(`1((int64,string))`, &i)
+	require.NoError(t, err)
+	assert.Equal(t, 1, i)
 }
