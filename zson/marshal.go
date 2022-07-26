@@ -875,7 +875,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 }
 
 // Adapted from:
-// https://github.com/golang/go/blob/master/src/encoding/json/decode.go#L426
+// https://github.com/golang/go/blob/46ab7a5c4f80d912f25b6b3e1044282a2a79df8b/src/encoding/json/decode.go#L426
 func indirect(v reflect.Value, zv *zed.Value) (ZNGUnmarshaler, reflect.Value) {
 	var nilptr reflect.Value
 	// If v is a named type and is addressable,
