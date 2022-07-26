@@ -612,7 +612,6 @@ func TestZedValues(t *testing.T) {
 			val, err = zson.MarshalZNG(v)
 			require.NoError(t, err)
 			assert.Equal(t, s, zson.MustFormatValue(val))
-
 		})
 	}
 	var testptr struct {
