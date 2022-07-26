@@ -5,11 +5,11 @@
 ### Synopsis
 
 ```
-from <pool>[@<tag>] [range <start>] [to <end>] [ => <leg> ]
+from <pool>[@<tag>] [ => <leg> ]
 file <path> [format <format>]
 get <uri> [format <format>]
 from (
-   pool <pool>[@<tag>] [range <start>] [to <end>] [ => <leg> ]
+   pool <pool>[@<tag>] [ => <leg> ]
    file <path> [format <format>] [ => <leg> ]
    get <uri> [format <format>] [ => <leg> ]
    ...

@@ -152,7 +152,6 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 			}
 		}
 	}
-	//var at ksuid.KSUID
 	if p.At != "" {
 		// XXX
 		// We no longer use "at" to refer to a commit tag, but if there
@@ -179,8 +178,6 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 				Meta:      p.Spec.Meta,
 				Pool:      poolID,
 				Commit:    commitID,
-				ScanLower: lower,
-				ScanUpper: upper,
 				ScanOrder: p.ScanOrder,
 			}, nil
 		}

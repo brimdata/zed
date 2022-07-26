@@ -28,7 +28,7 @@ func GetPoolStats(ctx context.Context, p *lake.Pool, snap commits.View) (info Po
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
-		err = ScanSpan(ctx, snap, nil, p.Layout.Order, ch)
+		err = Scan(ctx, snap, p.Layout.Order, ch)
 		close(ch)
 	}()
 	// XXX this doesn't scale... it should be stored in the snapshot and is
@@ -70,7 +70,7 @@ func GetBranchStats(ctx context.Context, b *lake.Branch, snap commits.View) (inf
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
-		err = ScanSpan(ctx, snap, nil, b.Pool().Layout.Order, ch)
+		err = Scan(ctx, snap, b.Pool().Layout.Order, ch)
 		close(ch)
 	}()
 	// XXX this doesn't scale... it should be stored in the snapshot and is
@@ -152,7 +152,7 @@ func NewPoolMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, po
 	return newScannerScheduler(s), nil
 }
 
-func NewCommitMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, span extent.Span, filter zbuf.Filter) (from.Planner, error) {
+func NewCommitMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, filter zbuf.Filter) (from.Planner, error) {
 	p, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
@@ -163,7 +163,7 @@ func NewCommitMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		reader, err := objectReader(ctx, zctx, snap, span, p.Layout.Order)
+		reader, err := objectReader(ctx, zctx, snap, p.Layout.Order)
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +177,7 @@ func NewCommitMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		reader, err := indexObjectReader(ctx, zctx, snap, span, p.Layout.Order)
+		reader, err := indexObjectReader(ctx, zctx, snap, p.Layout.Order)
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +191,7 @@ func NewCommitMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		reader, err := partitionReader(ctx, zctx, snap, span, p.Layout.Order)
+		reader, err := partitionReader(ctx, zctx, p.Layout, snap)
 		if err != nil {
 			return nil, err
 		}
@@ -231,7 +231,7 @@ func NewCommitMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 			return nil, err
 		}
 		vectors := commits.Vectors(snap)
-		reader, err := objectReader(ctx, zctx, vectors, span, p.Layout.Order)
+		reader, err := objectReader(ctx, zctx, vectors, p.Layout.Order)
 		if err != nil {
 			return nil, err
 		}

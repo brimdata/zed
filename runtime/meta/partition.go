@@ -16,7 +16,7 @@ import (
 type Partition struct {
 	extent.Span
 	Compare expr.CompareFn
-	Objects []*data.ObjectScan
+	Objects []*data.Object
 }
 
 func (p Partition) IsZero() bool {

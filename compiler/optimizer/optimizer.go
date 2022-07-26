@@ -62,7 +62,49 @@ func (o *Optimizer) OptimizeScan() error {
 		}
 		seq.Delete(1, len)
 	}
+	// Add pool range query to pushdown (if available).
+	for k := range from.Trunks {
+		trunk := &from.Trunks[k]
+		if layout, ok := o.layouts[trunk.Source]; ok {
+			addRangeToPushdown(trunk, layout.Primary())
+		}
+	}
 	return nil
+}
+
+func addRangeToPushdown(trunk *dag.Trunk, key field.Path) {
+	rangeExpr := convertRangeScan(trunk.Source, key)
+	if rangeExpr == nil {
+		return
+	}
+	if trunk.Pushdown == nil {
+		trunk.Pushdown = &dag.Filter{"Filter", rangeExpr}
+		return
+	}
+	filter := trunk.Pushdown.(*dag.Filter)
+	filter.Expr = dag.NewBinaryExpr("and", rangeExpr, filter.Expr)
+}
+
+func convertRangeScan(source dag.Source, key field.Path) dag.Expr {
+	p, ok := source.(*dag.Pool)
+	if !ok {
+		return nil
+	}
+	this := &dag.This{"This", key}
+	var lower, upper dag.Expr
+	if p.ScanLower != nil {
+		lower = dag.NewBinaryExpr(">=", this, p.ScanLower)
+	}
+	if p.ScanUpper != nil {
+		upper = dag.NewBinaryExpr("<=", this, p.ScanUpper)
+	}
+	if lower == nil {
+		return upper
+	}
+	if upper == nil {
+		return lower
+	}
+	return dag.NewBinaryExpr("and", lower, upper)
 }
 
 // propagateScanOrder analyzes each trunk of the From input node and

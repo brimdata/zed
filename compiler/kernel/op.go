@@ -534,11 +534,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		// the parallel instances of trunks.
 		planner, ok := b.planners[src]
 		if !ok {
-			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
-			if err != nil {
-				return nil, err
-			}
-			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, span, pushdown)
+			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -558,11 +554,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.CommitMeta:
 		planner, ok := b.planners[src]
 		if !ok {
-			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
-			if err != nil {
-				return nil, err
-			}
-			planner, err = exec.NewCommitMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, span, pushdown)
+			planner, err = exec.NewCommitMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -652,6 +644,11 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {
 		}
 	}()
 	return e.Eval(expr.NewContext(), b.zctx().Missing()), nil
+}
+
+func compileExpr(in dag.Expr) (expr.Evaluator, error) {
+	b := NewBuilder(op.NewContext(context.Background(), zed.NewContext(), nil), nil)
+	return b.compileExpr(in)
 }
 
 func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err error) {

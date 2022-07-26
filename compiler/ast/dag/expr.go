@@ -98,6 +98,15 @@ type (
 	}
 )
 
+func NewBinaryExpr(op string, lhs, rhs Expr) *BinaryExpr {
+	return &BinaryExpr{
+		Kind: "BinaryExpr",
+		Op:   op,
+		LHS:  lhs,
+		RHS:  rhs,
+	}
+}
+
 func (*Field) recordAST()  {}
 func (*Spread) recordAST() {}
 
