@@ -1,10 +1,8 @@
 package column
 
 import (
-	"errors"
 	"io"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -27,29 +25,13 @@ func (f *FieldWriter) write(body zcode.Bytes) error {
 	return f.column.Write(body)
 }
 
-func (f *FieldWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
-	b.BeginContainer()
-	var colType zed.Type
-	if f.vcnt == 0 {
-		colType = zed.TypeNull
-		b.Append(nil)
-	} else {
-		var err error
-		colType, err = f.column.EncodeMap(zctx, b)
-		if err != nil {
-			return nil, err
-		}
+func (f *FieldWriter) Metadata() Field {
+	return Field{
+		Presence: f.presence.Segmap(),
+		Name:     f.name,
+		Values:   f.column.Metadata(),
+		Empty:    f.vcnt == 0,
 	}
-	presenceType, err := f.presence.EncodeMap(zctx, b)
-	if err != nil {
-		return nil, err
-	}
-	b.EndContainer()
-	cols := []zed.Column{
-		{"column", colType},
-		{"presence", presenceType},
-	}
-	return zctx.LookupTypeRecord(cols)
 }
 
 func (f *FieldWriter) Flush(eof bool) error {
@@ -84,33 +66,22 @@ func (f *FieldWriter) Flush(eof bool) error {
 type FieldReader struct {
 	val      Reader
 	presence *PresenceReader
+	empty    bool
 }
 
-func NewFieldReader(typ zed.Type, in *zed.Value, r io.ReaderAt) (*FieldReader, error) {
-	col := in.Deref("column").MissingAsNull()
-	var val Reader
-	if !col.IsNull() {
-		var err error
-		val, err = NewReader(typ, col, r)
-		if err != nil {
-			return nil, err
-		}
-	}
-	presence := in.Deref("presence").MissingAsNull()
-	if presence.IsNull() {
-		return nil, errors.New("ZST field has no presence")
-	}
-	d, err := NewPrimitiveReader(presence, r)
+func NewFieldReader(field Field, r io.ReaderAt) (*FieldReader, error) {
+	val, err := NewReader(field.Values, r)
 	if err != nil {
 		return nil, err
 	}
-	var pr *PresenceReader
-	if len(d.segmap) != 0 {
-		pr = NewPresence(IntReader{*d})
+	var presence *PresenceReader
+	if len(field.Presence) != 0 {
+		presence = NewPresenceReader(field.Presence, r)
 	}
 	return &FieldReader{
 		val:      val,
-		presence: pr,
+		presence: presence,
+		empty:    field.Empty,
 	}, nil
 }
 
@@ -123,7 +94,7 @@ func (f *FieldReader) Read(b *zcode.Builder) error {
 			return err
 		}
 	}
-	if isval && f.val != nil {
+	if isval && !f.empty {
 		return f.val.Read(b)
 	}
 	b.Append(nil)

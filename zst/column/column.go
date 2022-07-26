@@ -32,7 +32,7 @@
 package column
 
 import (
-	"errors"
+	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
@@ -49,15 +49,17 @@ type Writer interface {
 	Write(zcode.Bytes) error
 	// Push all in-memory column data to the storage layer.
 	Flush(bool) error
-	// EncodeMap is called after all data is flushed to build the reassembly
-	// record for this column.
-	EncodeMap(*zed.Context, *zcode.Builder) (zed.Type, error)
+	// Metadata returns the data structure conforming to the ZST specification
+	// describing the layout of vectors.  This is called after all data is
+	// written and flushed by the Writer with the result marshaled to build
+	// the metadata section of the ZST file.
+	Metadata() Metadata
 }
 
 func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
-		return NewWriter(typ.Type, spiller)
+		return &NamedWriter{NewWriter(typ.Type, spiller), typ.Name}
 	case *zed.TypeRecord:
 		return NewRecordWriter(typ, spiller)
 	case *zed.TypeArray:
@@ -65,37 +67,45 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 	case *zed.TypeSet:
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
-		return NewArrayWriter(typ.Type, spiller)
+		return NewSetWriter(typ.Type, spiller)
 	case *zed.TypeUnion:
 		return NewUnionWriter(typ, spiller)
 	default:
-		return NewPrimitiveWriter(spiller)
+		//XXX check that typ is primitive
+		return NewPrimitiveWriter(typ, spiller)
 	}
+}
+
+type NamedWriter struct {
+	Writer
+	name string
+}
+
+func (n *NamedWriter) Metadata() Metadata {
+	return &Named{n.name, n.Writer.Metadata()}
 }
 
 type Reader interface {
 	Read(*zcode.Builder) error
 }
 
-func NewReader(typ zed.Type, in *zed.Value, r io.ReaderAt) (Reader, error) {
-	switch typ := typ.(type) {
-	case *zed.TypeNamed:
-		return NewReader(typ.Type, in, r)
-	case *zed.TypeRecord:
-		return NewRecordReader(typ, in, r)
-	case *zed.TypeArray:
-		return NewArrayReader(typ.Type, in, r)
-	case *zed.TypeSet:
-		return NewArrayReader(typ.Type, in, r)
-	case *zed.TypeUnion:
-		return NewUnionReader(typ, in, r)
-	case *zed.TypeMap:
-		return nil, errors.New("type 'map' is currently unsupported by the ZST implementation")
-	case *zed.TypeEnum:
-		return nil, errors.New("type 'enum' is currently unsupported by the ZST implementation")
-	case *zed.TypeError:
-		return nil, errors.New("type 'error' is currently unsupported by the ZST implementation")
+func NewReader(meta Metadata, r io.ReaderAt) (Reader, error) {
+	switch meta := meta.(type) {
+	case nil:
+		return nil, nil
+	case *Named:
+		return NewReader(meta.Values, r)
+	case *Record:
+		return NewRecordReader(meta, r)
+	case *Array:
+		return NewArrayReader(meta, r)
+	case *Set:
+		return NewArrayReader((*Array)(meta), r)
+	case *Union:
+		return NewUnionReader(meta, r)
+	case *Primitive:
+		return NewPrimitiveReader(meta, r), nil
 	default:
-		return NewPrimitiveReader(in, r)
+		return nil, fmt.Errorf("unknown ZST metadata type: %T", meta)
 	}
 }

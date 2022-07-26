@@ -1,14 +1,16 @@
 package column
 
+import "io"
+
 type PresenceWriter struct {
-	IntWriter
-	run  int32
+	Int64Writer
+	run  int64
 	null bool
 }
 
 func NewPresenceWriter(spiller *Spiller) *PresenceWriter {
 	return &PresenceWriter{
-		IntWriter: *NewIntWriter(spiller),
+		Int64Writer: *NewInt64Writer(spiller),
 	}
 }
 
@@ -37,17 +39,17 @@ func (p *PresenceWriter) Finish() {
 }
 
 type PresenceReader struct {
-	IntReader
+	Int64Reader
 	null bool
 	run  int
 }
 
-func NewPresence(i IntReader) *PresenceReader {
+func NewPresenceReader(segmap []Segment, r io.ReaderAt) *PresenceReader {
 	// We start out with null true so it is immediately flipped to
 	// false on the first call to Read.
 	return &PresenceReader{
-		IntReader: i,
-		null:      true,
+		Int64Reader: *NewInt64Reader(segmap, r),
+		null:        true,
 	}
 }
 
@@ -59,7 +61,7 @@ func (p *PresenceReader) Read() (bool, error) {
 	run := p.run
 	for run == 0 {
 		p.null = !p.null
-		v, err := p.IntReader.Read()
+		v, err := p.Int64Reader.Read()
 		if err != nil {
 			return false, err
 		}

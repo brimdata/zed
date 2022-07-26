@@ -6,17 +6,18 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type PrimitiveWriter struct {
+	typ      zed.Type
 	bytes    zcode.Bytes
 	spiller  *Spiller
 	segments []Segment
 }
 
-func NewPrimitiveWriter(spiller *Spiller) *PrimitiveWriter {
+func NewPrimitiveWriter(typ zed.Type, spiller *Spiller) *PrimitiveWriter {
 	return &PrimitiveWriter{
+		typ:     typ,
 		spiller: spiller,
 	}
 }
@@ -39,17 +40,15 @@ func (p *PrimitiveWriter) Flush(eof bool) error {
 	return err
 }
 
-func (p *PrimitiveWriter) EncodeMap(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
-	b.BeginContainer()
-	for _, segment := range p.segments {
-		// Add a segmap record to the array for each segment.
-		b.BeginContainer()
-		b.Append(zed.EncodeInt(segment.Offset))
-		b.Append(zed.EncodeInt(segment.Length))
-		b.EndContainer()
+func (p *PrimitiveWriter) Segmap() []Segment {
+	return p.segments
+}
+
+func (p *PrimitiveWriter) Metadata() Metadata {
+	return &Primitive{
+		Typ:    p.typ,
+		Segmap: p.segments,
 	}
-	b.EndContainer()
-	return zson.ParseType(zctx, SegmapTypeString)
 }
 
 type PrimitiveReader struct {
@@ -58,15 +57,11 @@ type PrimitiveReader struct {
 	reader io.ReaderAt
 }
 
-func NewPrimitiveReader(in *zed.Value, reader io.ReaderAt) (*PrimitiveReader, error) {
-	segmap, err := NewSegmap(in)
-	if err != nil {
-		return nil, err
-	}
+func NewPrimitiveReader(primitive *Primitive, reader io.ReaderAt) *PrimitiveReader {
 	return &PrimitiveReader{
 		reader: reader,
-		segmap: segmap,
-	}, nil
+		segmap: primitive.Segmap,
+	}
 }
 
 func (p *PrimitiveReader) Read(b *zcode.Builder) error {

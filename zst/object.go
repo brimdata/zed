@@ -7,23 +7,10 @@
 //
 // The zst/column package handles reading and writing row data to columns,
 // while the zst package comprises the API used to read and write ZST objects.
-//
-// An Object provides the interface to the underlying storage object.
-// To generate rows or cuts (and in the future more sophisticated traversals
-// and introspection), an Assembly is created from the Object then zng records
-// are read from the assembly, which implements zio.Reader.  The Assembly
-// keeps track of where each column is, which is why you need a separate
-// Assembly per scan.
-//
-// You can have multiple Assembly's referring to one Object as once an
-// object is created, it's state never changes.  That said, each assembly
-// will issue reads to the underlying storage object and the read pattern
-// may create performance issues.
 package zst
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -39,34 +26,37 @@ type Object struct {
 	seeker   *storage.Seeker
 	closer   io.Closer
 	zctx     *zed.Context
-	assembly *Assembly
-	meta     FileMeta
+	root     []column.Segment
+	maps     []column.Metadata
+	types    []zed.Type
+	trailer  FileMeta
 	sections []int64
 	size     int64
 	builder  zcode.Builder
-	err      error
 }
 
 func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error) {
-	meta, sections, err := readTrailer(s, size)
+	trailer, sections, err := readTrailer(s, size)
 	if err != nil {
 		return nil, err
 	}
-	if meta.SkewThresh > MaxSkewThresh {
-		return nil, fmt.Errorf("skew threshold too large (%d)", meta.SkewThresh)
+	if trailer.SkewThresh > MaxSkewThresh {
+		return nil, fmt.Errorf("skew threshold too large (%d)", trailer.SkewThresh)
 	}
-	if meta.SegmentThresh > MaxSegmentThresh {
-		return nil, fmt.Errorf("column threshold too large (%d)", meta.SegmentThresh)
+	if trailer.SegmentThresh > MaxSegmentThresh {
+		return nil, fmt.Errorf("column threshold too large (%d)", trailer.SegmentThresh)
 	}
 	o := &Object{
 		seeker:   s,
 		zctx:     zctx,
-		meta:     *meta,
+		trailer:  *trailer,
 		sections: sections,
 		size:     size,
 	}
-	o.assembly, err = o.readAssembly()
-	return o, err
+	if err := o.readMetaData(); err != nil {
+		return nil, err
+	}
+	return o, nil
 }
 
 func NewObjectFromSeeker(zctx *zed.Context, s *storage.Seeker) (*Object, error) {
@@ -112,47 +102,38 @@ func (o *Object) IsEmpty() bool {
 	return o.sections == nil
 }
 
-func (o *Object) readAssembly() (*Assembly, error) {
+func (o *Object) readMetaData() error {
 	reader := o.NewReassemblyReader()
 	defer reader.Close()
-	assembly := &Assembly{}
-	var val *zed.Value
+	// First value is the segmap for the root list of type numbers.
+	// The type number is relative to the array of maps.
+	val, err := reader.Read()
+	if err != nil {
+		return err
+	}
+	u := zson.NewZNGUnmarshaler()
+	u.SetContext(o.zctx)
+	u.Bind(column.Template...)
+	if err := u.Unmarshal(val, &o.root); err != nil {
+		return err
+	}
+	// The rest of the values are column.Metadata, one for each
+	// Zed type that has been encoded into the ZST file.
 	for {
-		var err error
 		val, err = reader.Read()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if val == nil {
-			return nil, errors.New("zst: corrupt trailer: root ressembly map not found")
-		}
-		if !val.IsNull() {
 			break
 		}
-		assembly.types = append(assembly.types, val.Type)
-	}
-	assembly.root = val.Copy()
-	expectedType, err := zson.ParseType(o.zctx, column.SegmapTypeString)
-	if err != nil {
-		return nil, err
-	}
-	if assembly.root.Type != expectedType {
-		return nil, fmt.Errorf("zst root reassembly value has wrong type: %s; should be %s", assembly.root.Type, expectedType)
-	}
-	for range assembly.types {
-		val, err := reader.Read()
-		if err != nil {
-			return nil, err
+		var meta column.Metadata
+		if err := u.Unmarshal(val, &meta); err != nil {
+			return err
 		}
-		if val == nil {
-			return nil, errors.New("zst: corrupt reassembly section: number of reassembly maps not equal to number of types")
-		}
-		assembly.maps = append(assembly.maps, val.Copy())
+		o.maps = append(o.maps, meta)
 	}
-	if val, _ = reader.Read(); val != nil {
-		return nil, errors.New("zst: corrupt reassembly section: numer of reassembly maps exceeds number of types")
-	}
-	return assembly, nil
+	return nil
 }
 
 func (o *Object) section(level int) (int64, int64) {

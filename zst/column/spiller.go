@@ -28,7 +28,7 @@ func (s *Spiller) Write(segments []Segment, b zcode.Bytes) ([]Segment, error) {
 	if err != nil {
 		return segments, err
 	}
-	segment := Segment{s.off, int64(n)}
+	segment := Segment{s.off, int32(n)}
 	s.off += int64(n)
 	return append(segments, segment), nil
 }
