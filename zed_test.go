@@ -242,7 +242,7 @@ func findInputs(t *testing.T, dirs map[string]struct{}, script string, isValidIn
 }
 
 func TestTranslateNameConflictUnion(t *testing.T) {
-	// This test confirms that a union with complicated type renamig is properly
+	// This test confirms that a union with complicated type renaming is properly
 	// decoded.  There was a bug where child typedefs would override the
 	// top level typedef in TranslateTypeValue so foo in the value below had
 	// two of the same union type instead of the two it should have had.
