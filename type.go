@@ -480,8 +480,6 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 		id := byte(TypeValueNameDef)
 		if previous := (*typedefs)[t.Name]; previous == t.Type {
 			id = TypeValueNameRef
-		} else {
-			(*typedefs)[t.Name] = t.Type
 		}
 		b = append(b, id)
 		b = zcode.AppendUvarint(b, uint64(len(t.Name)))
@@ -489,7 +487,13 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 		if id == TypeValueNameRef {
 			return b
 		}
-		return appendTypeValue(b, t.Type, typedefs)
+		b = appendTypeValue(b, t.Type, typedefs)
+		// Set the typedef *after* the child has been recursively traversed
+		// in case the child sets the name to a different type.  This insures
+		// that the DFS binding order is maintained.
+		(*typedefs)[t.Name] = t.Type
+		return b
+
 	case *TypeRecord:
 		b = append(b, TypeValueRecord)
 		b = zcode.AppendUvarint(b, uint64(len(t.Columns)))
