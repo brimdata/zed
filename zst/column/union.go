@@ -11,7 +11,7 @@ import (
 type UnionWriter struct {
 	typ      *zed.TypeUnion
 	values   []Writer
-	tags     *IntWriter
+	tags     *Int64Writer
 	presence *PresenceWriter
 }
 
@@ -23,7 +23,7 @@ func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
 	return &UnionWriter{
 		typ:      typ,
 		values:   values,
-		tags:     NewIntWriter(spiller),
+		tags:     NewInt64Writer(spiller),
 		presence: NewPresenceWriter(spiller),
 	}
 }
@@ -36,7 +36,7 @@ func (u *UnionWriter) Write(body zcode.Bytes) error {
 	u.presence.TouchValue()
 	typ, zv := u.typ.Untag(body)
 	tag := u.typ.TagOf(typ)
-	if err := u.tags.Write(int32(tag)); err != nil {
+	if err := u.tags.Write(int64(tag)); err != nil {
 		return err
 	}
 	return u.values[tag].Write(zv)
@@ -68,7 +68,7 @@ func (u *UnionWriter) Metadata() Metadata {
 
 type UnionReader struct {
 	readers  []Reader
-	tags     *IntReader
+	tags     *Int64Reader
 	presence *PresenceReader
 }
 
@@ -87,7 +87,7 @@ func NewUnionReader(union *Union, r io.ReaderAt) (*UnionReader, error) {
 	}
 	return &UnionReader{
 		readers:  readers,
-		tags:     NewIntReader(union.Tags, r),
+		tags:     NewInt64Reader(union.Tags, r),
 		presence: presence,
 	}, nil
 }

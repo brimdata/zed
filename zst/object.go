@@ -7,11 +7,6 @@
 //
 // The zst/column package handles reading and writing row data to columns,
 // while the zst package comprises the API used to read and write ZST objects.
-//
-// An Object provides the interface to the underlying storage object.
-// To generate rows or cuts (and in the future more sophisticated traversals
-// and introspection), a Metadata instance is created from the Object then zng records
-// are read from the metadata, which implements zio.Reader.
 package zst
 
 import (
@@ -123,7 +118,7 @@ func (o *Object) readMetaData() error {
 	if err := u.Unmarshal(val, &o.root); err != nil {
 		return err
 	}
-	// The rest of the values column.Metadata one for each
+	// The rest of the values are column.Metadata, one for each
 	// Zed type that has been encoded into the ZST file.
 	for {
 		val, err = reader.Read()

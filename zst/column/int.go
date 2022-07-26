@@ -6,27 +6,27 @@ import (
 	"github.com/brimdata/zed"
 )
 
-type IntWriter struct {
+type Int64Writer struct {
 	PrimitiveWriter
 }
 
-func NewIntWriter(spiller *Spiller) *IntWriter {
-	return &IntWriter{*NewPrimitiveWriter(zed.TypeInt32, spiller)}
+func NewInt64Writer(spiller *Spiller) *Int64Writer {
+	return &Int64Writer{*NewPrimitiveWriter(zed.TypeInt64, spiller)}
 }
 
-func (p *IntWriter) Write(v int32) error {
+func (p *Int64Writer) Write(v int64) error {
 	return p.PrimitiveWriter.Write(zed.EncodeInt(int64(v)))
 }
 
-type IntReader struct {
+type Int64Reader struct {
 	PrimitiveReader
 }
 
-func NewIntReader(segmap []Segment, r io.ReaderAt) *IntReader {
-	return &IntReader{*NewPrimitiveReader(&Primitive{zed.TypeInt64, segmap}, r)}
+func NewInt64Reader(segmap []Segment, r io.ReaderAt) *Int64Reader {
+	return &Int64Reader{*NewPrimitiveReader(&Primitive{zed.TypeInt64, segmap}, r)}
 }
 
-func (p *IntReader) Read() (int64, error) {
+func (p *Int64Reader) Read() (int64, error) {
 	zv, err := p.read()
 	if err != nil {
 		return 0, err

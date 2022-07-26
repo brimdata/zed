@@ -35,7 +35,7 @@ type Writer struct {
 	// needed for reader-side buffering.  So when the memory footprint
 	// exceeds the confired skew theshhold, we flush the columns to storage.
 	footprint int
-	root      *column.IntWriter
+	root      *column.Int64Writer
 }
 
 func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
@@ -53,7 +53,7 @@ func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
 		typeMap:    make(map[zed.Type]int),
 		skewThresh: skewThresh,
 		segThresh:  segThresh,
-		root:       column.NewIntWriter(spiller),
+		root:       column.NewInt64Writer(spiller),
 	}, nil
 }
 
@@ -115,7 +115,7 @@ func (w *Writer) Write(val *zed.Value) error {
 		w.writers = append(w.writers, column.NewWriter(typ, w.spiller))
 		w.types = append(w.types, val.Type)
 	}
-	if err := w.root.Write(int32(typeNo)); err != nil {
+	if err := w.root.Write(int64(typeNo)); err != nil {
 		return err
 	}
 	if err := w.writers[typeNo].Write(val.Bytes); err != nil {

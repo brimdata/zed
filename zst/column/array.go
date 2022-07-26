@@ -10,20 +10,20 @@ import (
 type ArrayWriter struct {
 	typ     zed.Type
 	values  Writer
-	lengths *IntWriter
+	lengths *Int64Writer
 }
 
 func NewArrayWriter(inner zed.Type, spiller *Spiller) *ArrayWriter {
 	return &ArrayWriter{
 		typ:     inner,
 		values:  NewWriter(inner, spiller),
-		lengths: NewIntWriter(spiller),
+		lengths: NewInt64Writer(spiller),
 	}
 }
 
 func (a *ArrayWriter) Write(body zcode.Bytes) error {
 	it := body.Iter()
-	var len int32
+	var len int64
 	for !it.Done() {
 		if err := a.values.Write(it.Next()); err != nil {
 			return err
@@ -49,7 +49,7 @@ func (a *ArrayWriter) Metadata() Metadata {
 
 type ArrayReader struct {
 	elems   Reader
-	lengths *IntReader
+	lengths *Int64Reader
 }
 
 func NewArrayReader(array *Array, r io.ReaderAt) (*ArrayReader, error) {
@@ -59,7 +59,7 @@ func NewArrayReader(array *Array, r io.ReaderAt) (*ArrayReader, error) {
 	}
 	return &ArrayReader{
 		elems:   elems,
-		lengths: NewIntReader(array.Lengths, r),
+		lengths: NewInt64Reader(array.Lengths, r),
 	}, nil
 }
 
@@ -87,7 +87,7 @@ func NewSetWriter(inner zed.Type, spiller *Spiller) *SetWriter {
 		ArrayWriter{
 			typ:     inner,
 			values:  NewWriter(inner, spiller),
-			lengths: NewIntWriter(spiller),
+			lengths: NewInt64Writer(spiller),
 		},
 	}
 }
