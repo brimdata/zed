@@ -33,7 +33,6 @@ type Object struct {
 	sections []int64
 	size     int64
 	builder  zcode.Builder
-	err      error
 }
 
 func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error) {

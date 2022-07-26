@@ -17,7 +17,6 @@ type Cutter struct {
 	object  *Object
 	root    *column.Int64Reader
 	builder zcode.Builder
-	leaf    string
 	cuts    map[int]typedReader
 }
 
@@ -57,7 +56,6 @@ func NewCutter(zctx *zed.Context, path field.Path, object *Object) (*Cutter, err
 		object: object,
 		root:   column.NewInt64Reader(object.root, object.seeker),
 		cuts:   cuts,
-		leaf:   path[len(path)-1],
 	}, nil
 }
 
