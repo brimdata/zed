@@ -124,15 +124,11 @@ func (f *Formatter) hasName(typ zed.Type) bool {
 	if _, ok := f.typedefs[named.Name]; ok {
 		return true
 	}
-	if f.persist != nil {
+	if f.permanent != nil {
 		if _, ok = f.permanent[named.Name]; ok {
 			return true
 		}
 	}
-	return false
-}
-
-func (f *Formatter) exists(typ zed.Type) bool {
 	return false
 }
 
