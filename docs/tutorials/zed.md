@@ -68,7 +68,7 @@ prs <pool_id> key created_at order desc
 ```
 
 Let's add some pull request data I've prefetched from the GitHub API
-[here](github1.zng):
+[here](https://github.com/brimdata/zed/raw/main/docs/tutorials/github1.zng):
 
 ```bash
 $ zed load -use prs github1.zng
@@ -140,7 +140,7 @@ That's not a lot of data, so let's add some more.
 ## Adding additional data
 
 Additional data can be added to our pool by running `zed load` on our second
-[data set](github2.zng):
+[data set](https://github.com/brimdata/zed/raw/main/docs/tutorials/github2.zng):
 
 ```bash
 $ zed load github2.zng
