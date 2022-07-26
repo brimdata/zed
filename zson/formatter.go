@@ -15,8 +15,8 @@ import (
 )
 
 type Formatter struct {
-	typedefs  typemap
-	permanent typemap
+	typedefs  map[string]*zed.TypeNamed
+	permanent map[string]*zed.TypeNamed
 	persist   *regexp.Regexp
 	tab       int
 	newline   string
@@ -33,12 +33,12 @@ func NewFormatter(pretty int, persist *regexp.Regexp) *Formatter {
 	if pretty > 0 {
 		newline = "\n"
 	}
-	var permanent typemap
+	var permanent map[string]*zed.TypeNamed
 	if persist != nil {
-		permanent = make(typemap)
+		permanent = make(map[string]*zed.TypeNamed)
 	}
 	return &Formatter{
-		typedefs:  make(typemap),
+		typedefs:  make(map[string]*zed.TypeNamed),
 		permanent: permanent,
 		tab:       pretty,
 		newline:   newline,
@@ -52,7 +52,7 @@ func NewFormatter(pretty int, persist *regexp.Regexp) *Formatter {
 // when typedefs have complicated type signatures, e.g., as generated
 // by fused fields of records creating a union of records.
 func (f *Formatter) Persist(re *regexp.Regexp) {
-	f.permanent = make(typemap)
+	f.permanent = make(map[string]*zed.TypeNamed)
 	f.persist = re
 }
 
@@ -74,7 +74,7 @@ func (f *Formatter) FormatRecord(rec *zed.Value) (string, error) {
 	// left-to-right DFS order.  We could make this more efficient
 	// by putting a record number/nonce in the map but ZSON
 	// is already intended to be the low performance path.
-	f.typedefs = make(typemap)
+	f.typedefs = make(map[string]*zed.TypeNamed)
 	if err := f.formatValueAndDecorate(rec.Type, rec.Bytes); err != nil {
 		return "", err
 	}
@@ -117,26 +117,42 @@ func (f *Formatter) Format(zv *zed.Value) (string, error) {
 }
 
 func (f *Formatter) hasName(typ zed.Type) bool {
-	ok := f.typedefs.exists(typ)
-	if !ok && f.persist != nil {
-		ok = f.permanent.exists(typ)
+	named, ok := typ.(*zed.TypeNamed)
+	if !ok {
+		return false
 	}
-	return ok
+	if _, ok := f.typedefs[named.Name]; ok {
+		return true
+	}
+	if f.permanent != nil {
+		if _, ok = f.permanent[named.Name]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *Formatter) nameOf(typ zed.Type) string {
-	s := f.typedefs[typ]
-	if s == "" && f.permanent != nil {
-		s = f.permanent[typ]
+	named, ok := typ.(*zed.TypeNamed)
+	if !ok {
+		return ""
 	}
-	return s
+	if typ == f.typedefs[named.Name] {
+		return named.Name
+	}
+	if f.permanent != nil {
+		if typ == f.permanent[named.Name] {
+			return named.Name
+		}
+	}
+	return ""
 }
 
 func (f *Formatter) saveType(named *zed.TypeNamed) {
 	name := named.Name
-	f.typedefs[named] = name
+	f.typedefs[name] = named
 	if f.permanent != nil && f.persist.MatchString(name) {
-		f.permanent[named] = name
+		f.permanent[name] = named
 	}
 }
 
@@ -581,7 +597,8 @@ func (f *Formatter) buildf(s string, args ...interface{}) {
 }
 
 // formatType builds typ as a type string with any needed
-// typedefs for named types that have not been previously defined.
+// typedefs for named types that have not been previously defined,
+// or whose name is redefined to a different type.
 // These typedefs use the embedded syntax (name=type-string).
 // Typedefs handled by decorators are handled in decorate().
 // The routine re-enters the type formatter with a fresh builder by
@@ -641,10 +658,10 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 		return f.formatTypeEnum(typ)
 	case *zed.TypeError:
 		f.build("error(")
-		formatType(&f.builder, make(typemap), typ.Type)
+		formatType(&f.builder, make(map[string]*zed.TypeNamed), typ.Type)
 		f.build(")")
 	case *zed.TypeOfType:
-		formatType(&f.builder, make(typemap), typ)
+		formatType(&f.builder, make(map[string]*zed.TypeNamed), typ)
 	default:
 		panic("unknown case in formatTypeBody(): " + String(typ))
 	}
@@ -723,47 +740,33 @@ func (f *Formatter) isImplied(typ zed.Type) bool {
 	return implied
 }
 
-type typemap map[zed.Type]string
-
-func (t typemap) exists(typ zed.Type) bool {
-	_, ok := t[typ]
-	return ok
-}
-
-func (t typemap) known(typ zed.Type) bool {
-	if _, ok := t[typ]; ok {
-		return true
-	}
-	if _, ok := typ.(*zed.TypeOfType); ok {
-		return true
-	}
-	if _, ok := typ.(*zed.TypeNamed); ok {
-		return false
-	}
-	return typ.ID() < zed.IDTypeComplex
-}
-
 // FormatType formats a type in canonical form to represent type values
 // as standalone entities.
 func FormatType(typ zed.Type) string {
 	var b strings.Builder
-	formatType(&b, make(typemap), typ)
+	formatType(&b, make(map[string]*zed.TypeNamed), typ)
 	return b.String()
 }
 
-func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
-	if name, ok := typedefs[typ]; ok {
-		b.WriteString(QuotedTypeName(name))
-		return
+func nameOf(typedefs map[string]*zed.TypeNamed, typ *zed.TypeNamed) string {
+	if typ == typedefs[typ.Name] {
+		return typ.Name
 	}
+	return ""
+}
+
+func formatType(b *strings.Builder, typedefs map[string]*zed.TypeNamed, typ zed.Type) {
 	switch t := typ.(type) {
 	case *zed.TypeNamed:
 		name := t.Name
 		b.WriteString(QuotedTypeName(name))
-		if _, ok := typedefs[typ]; !ok {
-			typedefs[typ] = name
+		if typedefs[t.Name] != t {
 			b.WriteByte('=')
 			formatType(b, typedefs, t.Type)
+			// Don't set typedef until after children are recursively
+			// traversed so that we adhere to the DFS order of
+			// type bindings.
+			typedefs[name] = t
 		}
 	case *zed.TypeRecord:
 		b.WriteByte('{')
