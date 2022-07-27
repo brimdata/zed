@@ -85,7 +85,12 @@ func NewObjectFromPath(ctx context.Context, zctx *zed.Context, engine storage.En
 	if err != nil {
 		return nil, err
 	}
-	return NewObjectFromStorageReader(zctx, r)
+	object, err := NewObjectFromStorageReader(zctx, r)
+	if err != nil {
+		r.Close()
+		return nil, err
+	}
+	return object, nil
 }
 
 func (o *Object) Close() error {
