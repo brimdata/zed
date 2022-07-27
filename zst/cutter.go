@@ -39,7 +39,7 @@ func NewCutter(zctx *zed.Context, path field.Path, object *Object) (*Cutter, err
 			// Field not in this record, keep going.
 			continue
 		}
-		reader, err := vector.NewFieldReader(*f, object.seeker)
+		reader, err := vector.NewFieldReader(*f, object.readerAt)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +54,7 @@ func NewCutter(zctx *zed.Context, path field.Path, object *Object) (*Cutter, err
 	return &Cutter{
 		zctx:   zctx,
 		object: object,
-		root:   vector.NewInt64Reader(object.root, object.seeker),
+		root:   vector.NewInt64Reader(object.root, object.readerAt),
 		cuts:   cuts,
 	}, nil
 }
