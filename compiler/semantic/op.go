@@ -7,19 +7,15 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/kernel"
-	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr/function"
-	"github.com/segmentio/ksuid"
 )
 
-func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish) (*dag.From, error) {
+func semFrom(ctx context.Context, scope *Scope, from *ast.From) (*dag.From, error) {
 	var trunks []dag.Trunk
 	for _, in := range from.Trunks {
-		converted, err := semTrunk(ctx, scope, in, source, head)
+		converted, err := semTrunk(ctx, scope, in)
 		if err != nil {
 			return nil, err
 		}
@@ -31,12 +27,12 @@ func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Sou
 	}, nil
 }
 
-func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish) (dag.Trunk, error) {
-	source, err := semSource(ctx, scope, trunk.Source, ds, head)
+func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk) (dag.Trunk, error) {
+	source, err := semSource(ctx, scope, trunk.Source)
 	if err != nil {
 		return dag.Trunk{}, err
 	}
-	seq, err := semSequential(ctx, scope, trunk.Seq, ds, head)
+	seq, err := semSequential(ctx, scope, trunk.Seq)
 	if err != nil {
 		return dag.Trunk{}, err
 	}
@@ -47,9 +43,7 @@ func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Sourc
 	}, nil
 }
 
-//XXX make sure you can't read files from a lake instance
-
-func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.Source, head *lakeparse.Commitish) (dag.Source, error) {
+func semSource(ctx context.Context, scope *Scope, source ast.Source) (dag.Source, error) {
 	switch p := source.(type) {
 	case *ast.File:
 		layout, err := semLayout(p.Layout)
@@ -74,15 +68,21 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 			Layout: layout,
 		}, nil
 	case *ast.Pool:
-		if !ds.IsLake() {
-			return nil, errors.New("semantic analyzer: from pool cannot be used without a lake")
-		}
-		return semPool(ctx, scope, p, ds, head)
+		//if !ds.IsLake() {
+		//	return nil, errors.New("semantic analyzer: from pool cannot be used without a lake")
+		//}
+		return semPool(ctx, scope, p)
 	case *ast.Pass:
 		return &dag.Pass{Kind: "Pass"}, nil
-	case *kernel.Reader:
-		// kernel.Reader implements both ast.Source and dag.Source
-		return p, nil
+	case *ast.Reader:
+		layout, err := semLayout(p.Layout)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.Reader{
+			Kind:   "Reader",
+			Layout: layout,
+		}, nil
 	default:
 		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
 	}
@@ -107,16 +107,16 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 	return order.NewLayout(which, keys), nil
 }
 
-func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, head *lakeparse.Commitish) (dag.Source, error) {
+func semPool(ctx context.Context, scope *Scope, p *ast.Pool) (dag.Source, error) {
 	poolName := p.Spec.Pool
 	commit := p.Spec.Commit
-	if poolName == "HEAD" {
+	/*if poolName == "HEAD" {
 		if head == nil {
 			return nil, errors.New("cannot scan from unknown HEAD")
 		}
 		poolName = head.Pool
 		commit = head.Branch
-	}
+	}*/
 	if poolName == "" {
 		if p.Spec.Meta == "" {
 			return nil, errors.New("pool name missing")
@@ -128,24 +128,27 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 	}
 	// If a name appears as an 0x bytes ksuid, convert it to the
 	// ksuid string form since the backend doesn't parse the 0x format.
-	poolID, err := lakeparse.ParseID(poolName)
-	if err == nil {
-		poolName = poolID.String()
-	} else {
-		poolID, err = ds.PoolID(ctx, poolName)
-		if err != nil {
-			return nil, err
-		}
-	}
+	/*
+		poolID, err := lakeparse.ParseID(poolName)
+		if err == nil {
+			poolName = poolID.String()
+		} else {
+			poolID, err = ds.PoolID(ctx, poolName)
+			if err != nil {
+				return nil, err
+			}
+		}*/
 	var lower, upper dag.Expr
 	if r := p.Range; r != nil {
 		if r.Lower != nil {
+			var err error
 			lower, err = semExpr(scope, r.Lower)
 			if err != nil {
 				return nil, err
 			}
 		}
 		if r.Upper != nil {
+			var err error
 			upper, err = semExpr(scope, r.Upper)
 			if err != nil {
 				return nil, err
@@ -162,23 +165,24 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 		// This would require commitRef to be branch name not a commit ID.
 		return nil, errors.New("TBD: at clause in from operator needs to use time")
 	}
-	var commitID ksuid.KSUID
-	if commit != "" {
-		commitID, err = lakeparse.ParseID(commit)
-		if err != nil {
-			commitID, err = ds.CommitObject(ctx, poolID, commit)
+	/*
+		var commitID ksuid.KSUID
+		if commit != "" {
+			commitID, err = lakeparse.ParseID(commit)
 			if err != nil {
-				return nil, err
+				commitID, err = ds.CommitObject(ctx, poolID, commit)
+				if err != nil {
+					return nil, err
+				}
 			}
-		}
-	}
+		}*/
 	if p.Spec.Meta != "" {
-		if commitID != ksuid.Nil {
+		if commit != "" {
 			return &dag.CommitMeta{
 				Kind:      "CommitMeta",
 				Meta:      p.Spec.Meta,
-				Pool:      poolID,
-				Commit:    commitID,
+				Pool:      poolName,
+				Commit:    commit,
 				ScanLower: lower,
 				ScanUpper: upper,
 				ScanOrder: p.ScanOrder,
@@ -187,28 +191,29 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 		return &dag.PoolMeta{
 			Kind: "PoolMeta",
 			Meta: p.Spec.Meta,
-			ID:   poolID,
+			Pool: poolName,
 		}, nil
 	}
-	if commitID == ksuid.Nil {
-		// This trick here allows us to default to the main branch when
-		// there is a "from pool" operator with no meta query or commit object.
-		commitID, err = ds.CommitObject(ctx, poolID, "main")
-		if err != nil {
-			return nil, err
-		}
-	}
+	/*
+		if commitID == ksuid.Nil {
+			// This trick here allows us to default to the main branch when
+			// there is a "from pool" operator with no meta query or commit object.
+			commitID, err = ds.CommitObject(ctx, poolID, "main")
+			if err != nil {
+				return nil, err
+			}
+		}*/
 	return &dag.Pool{
 		Kind:      "Pool",
-		ID:        poolID,
-		Commit:    commitID,
+		Pool:      poolName,
+		Commit:    commit,
 		ScanLower: lower,
 		ScanUpper: upper,
 		ScanOrder: p.ScanOrder,
 	}, nil
 }
 
-func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *data.Source, head *lakeparse.Commitish) (*dag.Sequential, error) {
+func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential) (*dag.Sequential, error) {
 	if seq == nil {
 		return nil, nil
 	}
@@ -220,7 +225,7 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 	}
 	var ops []dag.Op
 	for _, o := range seq.Ops {
-		converted, err := semOp(ctx, scope, o, ds, head)
+		converted, err := semOp(ctx, scope, o)
 		if err != nil {
 			return nil, err
 		}
@@ -238,10 +243,10 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 // object.  Currently, it only replaces the group-by duration with
 // a bucket call on the ts and replaces FunctionCalls in op context
 // with either a group-by or filter op based on the function's name.
-func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
+func semOp(ctx context.Context, scope *Scope, o ast.Op) (dag.Op, error) {
 	switch o := o.(type) {
 	case *ast.From:
-		return semFrom(ctx, scope, o, ds, head)
+		return semFrom(ctx, scope, o)
 	case *ast.Summarize:
 		keys, err := semAssignments(scope, o.Keys, true)
 		if err != nil {
@@ -269,7 +274,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Parallel:
 		var ops []dag.Op
 		for _, o := range o.Ops {
-			converted, err := semOp(ctx, scope, o, ds, head)
+			converted, err := semOp(ctx, scope, o)
 			if err != nil {
 				return nil, err
 			}
@@ -280,7 +285,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Ops:  ops,
 		}, nil
 	case *ast.Sequential:
-		return semSequential(ctx, scope, o, ds, head)
+		return semSequential(ctx, scope, o)
 	case *ast.Switch:
 		var expr dag.Expr
 		if o.Expr != nil {
@@ -307,7 +312,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 					Value: "true",
 				}
 			}
-			o, err := semOp(ctx, scope, c.Op, ds, head)
+			o, err := semOp(ctx, scope, c.Op)
 			if err != nil {
 				return nil, err
 			}
@@ -520,7 +525,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:
-		return semOver(ctx, scope, o, ds, head)
+		return semOver(ctx, scope, o)
 	case *ast.Let:
 		if o.Over == nil {
 			return nil, errors.New("let operator missing traversal in AST")
@@ -534,7 +539,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if err != nil {
 			return nil, err
 		}
-		over, err := semOver(ctx, scope, o.Over, ds, head)
+		over, err := semOver(ctx, scope, o.Over)
 		if err != nil {
 			return nil, err
 		}
@@ -556,14 +561,14 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
 }
 
-func semOver(ctx context.Context, scope *Scope, in *ast.Over, ds *data.Source, head *lakeparse.Commitish) (*dag.Over, error) {
+func semOver(ctx context.Context, scope *Scope, in *ast.Over) (*dag.Over, error) {
 	exprs, err := semExprs(scope, in.Exprs)
 	if err != nil {
 		return nil, err
 	}
 	var seq *dag.Sequential
 	if in.Scope != nil {
-		seq, err = semSequential(ctx, scope, in.Scope, ds, head)
+		seq, err = semSequential(ctx, scope, in.Scope)
 		if err != nil {
 			return nil, err
 		}

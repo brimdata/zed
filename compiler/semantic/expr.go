@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/pkg/reglob"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/agg"
@@ -238,7 +237,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		seq, err := semSequential(nil, scope, e.Scope, nil, nil)
+		seq, err := semSequential(nil, scope, e.Scope)
 		if err != nil {
 			return nil, err
 		}
@@ -414,8 +413,12 @@ func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.This {
 	return nil
 }
 
+func evalAtCompileTime(zctx *zed.Context, e dag.Expr) (*zed.Value, error) {
+	return nil, errors.New("TBD")
+}
+
 func isStringConst(scope *Scope, e dag.Expr) (field string, ok bool) {
-	val, err := kernel.EvalAtCompileTime(scope.zctx, e)
+	val, err := evalAtCompileTime(scope.zctx, e) //XXX need to figure out how to do this
 	if err == nil && !val.IsError() && zed.TypeUnder(val.Type) == zed.TypeString {
 		return string(val.Bytes), true
 	}

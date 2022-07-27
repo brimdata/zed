@@ -374,6 +374,10 @@ type (
 		Range     *Range   `json:"range"`
 		ScanOrder string   `json:"scan_order"` // asc, desc, or unknown
 	}
+	Reader struct {
+		Kind   string  `json:"kind" unpack:""`
+		Layout *Layout `json:"layout"`
+	}
 	Explode struct {
 		Kind string      `json:"kind" unpack:""`
 		Args []Expr      `json:"args"`
@@ -398,10 +402,11 @@ type Source interface {
 	Source()
 }
 
-func (*Pool) Source() {}
-func (*File) Source() {}
-func (*HTTP) Source() {}
-func (*Pass) Source() {}
+func (*Pool) Source()   {}
+func (*File) Source()   {}
+func (*HTTP) Source()   {}
+func (*Reader) Source() {}
+func (*Pass) Source()   {}
 
 type Layout struct {
 	Kind  string `json:"kind" unpack:""`

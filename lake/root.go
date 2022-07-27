@@ -257,11 +257,13 @@ func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName 
 }
 
 func (r *Root) Layout(ctx context.Context, src dag.Source) order.Layout {
-	poolSrc, ok := src.(*dag.Pool)
+	/*poolSrc, ok := src.(*dag.Pool) XXX
 	if !ok {
 		return order.Nil
 	}
-	config, err := r.pools.LookupByID(ctx, poolSrc.ID)
+	*/
+	//config, err := r.pools.LookupByID(ctx, poolSrc.ID)
+	config, err := r.pools.LookupByID(ctx, ksuid.Nil) //XXX temp to compile
 	if err != nil {
 		return order.Nil
 	}

@@ -10,7 +10,6 @@ package dag
 import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/segmentio/ksuid"
 )
 
 type Op interface {
@@ -177,30 +176,34 @@ type (
 		Layout order.Layout `json:"layout"`
 	}
 	Pool struct {
-		Kind      string      `json:"kind" unpack:""`
-		ID        ksuid.KSUID `json:"id"`
-		Commit    ksuid.KSUID `json:"commit"`
-		ScanLower Expr        `json:"scan_lower"`
-		ScanUpper Expr        `json:"scan_upper"`
-		ScanOrder string      `json:"scan_order"`
+		Kind      string `json:"kind" unpack:""`
+		Pool      string `json:"pool"`
+		Commit    string `json:"commit"`
+		ScanLower Expr   `json:"scan_lower"`
+		ScanUpper Expr   `json:"scan_upper"`
+		ScanOrder string `json:"scan_order"`
 	}
 	PoolMeta struct {
-		Kind string      `json:"kind" unpack:""`
-		ID   ksuid.KSUID `json:"id"`
-		Meta string      `json:"meta"`
+		Kind string `json:"kind" unpack:""`
+		Pool string `json:"pool"`
+		Meta string `json:"meta"`
 	}
 	CommitMeta struct {
-		Kind      string      `json:"kind" unpack:""`
-		Pool      ksuid.KSUID `json:"pool"`
-		Commit    ksuid.KSUID `json:"branch"`
-		Meta      string      `json:"meta"`
-		ScanLower Expr        `json:"scan_lower"`
-		ScanUpper Expr        `json:"scan_upper"`
-		ScanOrder string      `json:"scan_order"`
+		Kind      string `json:"kind" unpack:""`
+		Pool      string `json:"pool"`
+		Commit    string `json:"branch"`
+		Meta      string `json:"meta"`
+		ScanLower Expr   `json:"scan_lower"`
+		ScanUpper Expr   `json:"scan_upper"`
+		ScanOrder string `json:"scan_order"`
 	}
 	LakeMeta struct {
 		Kind string `json:"kind" unpack:""`
 		Meta string `json:"meta"`
+	}
+	Reader struct {
+		Kind   string       `json:"kind" unpack:""`
+		Layout order.Layout `json:"layout"`
 	}
 )
 
@@ -214,6 +217,7 @@ func (*Pool) Source()       {}
 func (*LakeMeta) Source()   {}
 func (*PoolMeta) Source()   {}
 func (*CommitMeta) Source() {}
+func (*Reader) Source()     {}
 func (*Pass) Source()       {}
 
 // A From node can be a DAG entrypoint or an operator.  When it appears

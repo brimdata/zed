@@ -1,4 +1,4 @@
-package kernel
+package querygen
 
 import (
 	"github.com/brimdata/zed/compiler/ast/dag"

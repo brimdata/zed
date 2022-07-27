@@ -1,4 +1,4 @@
-package kernel
+package querygen
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/exec"
@@ -41,11 +40,11 @@ var ErrJoinParents = errors.New("join requires two upstream parallel query paths
 
 type Builder struct {
 	pctx     *op.Context
-	source   *data.Source
+	source   *Source
 	planners map[dag.Source]from.Planner
 }
 
-func NewBuilder(pctx *op.Context, source *data.Source) *Builder {
+func NewBuilder(pctx *op.Context, source *Source) *Builder {
 	return &Builder{
 		pctx:     pctx,
 		source:   source,
@@ -538,7 +537,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
-			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, span, pushdown)
+			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, span, pushdown)
 			if err != nil {
 				return nil, err
 			}

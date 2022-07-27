@@ -4,21 +4,21 @@ import (
 	"errors"
 
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/exec/querygen"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
 )
 
 type fsCompiler struct {
 	anyCompiler
-	src *data.Source
+	src *querygen.Source
 }
 
 func NewFileSystemCompiler(engine storage.Engine) runtime.Compiler {
-	return &fsCompiler{src: data.NewSource(engine, nil)}
+	return &fsCompiler{src: querygen.NewSource(engine, nil)}
 }
 
 func (f *fsCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {

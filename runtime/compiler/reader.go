@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/exec/querygen"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
 )
@@ -25,7 +25,7 @@ func (i *anyCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader)
 
 //XXX currently used only by group-by test, need to deprecate
 func (*anyCompiler) CompileWithOrderDeprecated(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
-	job, err := NewJob(pctx, o, data.NewSource(nil, nil), nil)
+	job, err := NewJob(pctx, o, querygen.NewSource(nil, nil), nil)
 	if err != nil {
 		return nil, err
 	}

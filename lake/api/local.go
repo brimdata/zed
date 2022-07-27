@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
@@ -14,6 +13,7 @@ import (
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/compiler"
 	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"

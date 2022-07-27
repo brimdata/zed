@@ -5,20 +5,19 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/exec/querygen"
 )
 
 type Optimizer struct {
 	ctx     context.Context
 	entry   *dag.Sequential
-	source  *data.Source
+	source  *querygen.Source
 	layouts map[dag.Source]order.Layout
 }
 
-func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optimizer {
+func New(ctx context.Context, entry *dag.Sequential, source *querygen.Source) *Optimizer {
 	return &Optimizer{
 		ctx:     ctx,
 		entry:   entry,
@@ -188,7 +187,7 @@ func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, 
 		return o.source.Layout(o.ctx, s), nil
 	case *dag.Pass:
 		return parent, nil
-	case *kernel.Reader:
+	case *dag.Reader:
 		return s.Layout, nil
 	default:
 		return order.Nil, fmt.Errorf("unknown dag.Source type %T", s)

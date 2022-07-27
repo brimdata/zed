@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/ztest"

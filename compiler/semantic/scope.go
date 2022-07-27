@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -61,7 +60,7 @@ func (s *Scope) DefineConst(name string, def dag.Expr) error {
 	if _, ok := b.symbols[name]; ok {
 		return fmt.Errorf("symbol %q redefined", name)
 	}
-	val, err := kernel.EvalAtCompileTime(s.zctx, def)
+	val, err := evalAtCompileTime(s.zctx, def) //XXX
 	if err != nil {
 		return err
 	}

@@ -8,29 +8,28 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/kernel"
-	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/exec/optimizer"
+	"github.com/brimdata/zed/runtime/exec/querygen"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 )
 
 type Job struct {
 	pctx      *op.Context
-	builder   *kernel.Builder
+	builder   *querygen.Builder
 	optimizer *optimizer.Optimizer
 	consts    []dag.Op
 	outputs   []zbuf.Puller
-	readers   []*kernel.Reader
+	readers   []*querygen.Reader
 	puller    zbuf.Puller
 }
 
-func NewJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
+func NewJob(pctx *op.Context, inAST ast.Op, src *querygen.Source, head *lakeparse.Commitish) (*Job, error) {
 	parserAST := ast.Copy(inAST)
 	// An AST always begins with a Sequential op with at least one
 	// operator.  If the first op is a From or a Parallel whose branches
@@ -49,13 +48,13 @@ func NewJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 	if len(seq.Ops) == 0 {
 		return nil, errors.New("internal error: AST Sequential op cannot be empty")
 	}
-	var readers []*kernel.Reader
+	var readers []*querygen.Reader
 	var from *ast.From
 	switch o := seq.Ops[0].(type) {
 	case *ast.From:
 		// Already have an entry point with From.  Do nothing.
 	case *ast.Join:
-		readers = []*kernel.Reader{{}, {}}
+		readers = []*querygen.Reader{{}, {}}
 		trunk0 := ast.Trunk{
 			Kind:   "Trunk",
 			Source: readers[0],
@@ -79,7 +78,7 @@ func NewJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 				Spec: ast.PoolSpec{Pool: "HEAD"},
 			}
 		} else {
-			readers = []*kernel.Reader{{}}
+			readers = []*querygen.Reader{{}}
 			trunk.Source = readers[0]
 		}
 		from = &ast.From{
@@ -100,7 +99,7 @@ func NewJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 	}
 	return &Job{
 		pctx:      pctx,
-		builder:   kernel.NewBuilder(pctx, src),
+		builder:   querygen.NewBuilder(pctx, src),
 		optimizer: optimizer.New(pctx.Context, entry, src),
 		readers:   readers,
 	}, nil
@@ -159,7 +158,7 @@ func MustParse(query string) ast.Op {
 	return o
 }
 
-func (j *Job) Builder() *kernel.Builder {
+func (j *Job) Builder() *querygen.Builder {
 	return j.builder
 }
 
@@ -227,7 +226,7 @@ func (a *anyCompiler) ParseRangeExpr(zctx *zed.Context, src string, layout order
 	if !layout.Keys.Equal(field.List{path}) {
 		return nil, "", fmt.Errorf("field %q does not match pool key %q", path, layout.Keys)
 	}
-	val, err := kernel.EvalAtCompileTime(zctx, be.RHS)
+	val, err := querygen.EvalAtCompileTime(zctx, be.RHS) //XXX evalAtCompileTime
 	if err != nil {
 		return nil, "", err
 	}
