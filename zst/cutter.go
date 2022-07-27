@@ -9,13 +9,13 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zst/column"
+	"github.com/brimdata/zed/zst/vector"
 )
 
 type Cutter struct {
 	zctx    *zed.Context
 	object  *Object
-	root    *column.Int64Reader
+	root    *vector.Int64Reader
 	builder zcode.Builder
 	cuts    map[int]typedReader
 }
@@ -24,13 +24,13 @@ var _ zio.Reader = (*Cutter)(nil)
 
 type typedReader struct {
 	typ    zed.Type
-	reader column.Reader
+	reader vector.Reader
 }
 
 func NewCutter(zctx *zed.Context, path field.Path, object *Object) (*Cutter, error) {
 	cuts := make(map[int]typedReader)
 	for k, meta := range object.maps {
-		recordMap, ok := column.Under(meta).(*column.Record)
+		recordMap, ok := vector.Under(meta).(*vector.Record)
 		if !ok {
 			continue
 		}
@@ -39,7 +39,7 @@ func NewCutter(zctx *zed.Context, path field.Path, object *Object) (*Cutter, err
 			// Field not in this record, keep going.
 			continue
 		}
-		reader, err := column.NewFieldReader(*f, object.seeker)
+		reader, err := vector.NewFieldReader(*f, object.seeker)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +54,7 @@ func NewCutter(zctx *zed.Context, path field.Path, object *Object) (*Cutter, err
 	return &Cutter{
 		zctx:   zctx,
 		object: object,
-		root:   column.NewInt64Reader(object.root, object.seeker),
+		root:   vector.NewInt64Reader(object.root, object.seeker),
 		cuts:   cuts,
 	}, nil
 }

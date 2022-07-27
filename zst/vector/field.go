@@ -1,4 +1,4 @@
-package column
+package vector
 
 import (
 	"io"
@@ -8,7 +8,7 @@ import (
 
 type FieldWriter struct {
 	name     string
-	column   Writer
+	values   Writer
 	presence *PresenceWriter
 	vcnt     int
 	ucnt     int
@@ -22,21 +22,21 @@ func (f *FieldWriter) write(body zcode.Bytes) error {
 	}
 	f.vcnt++
 	f.presence.TouchValue()
-	return f.column.Write(body)
+	return f.values.Write(body)
 }
 
 func (f *FieldWriter) Metadata() Field {
 	return Field{
 		Presence: f.presence.Segmap(),
 		Name:     f.name,
-		Values:   f.column.Metadata(),
+		Values:   f.values.Metadata(),
 		Empty:    f.vcnt == 0,
 	}
 }
 
 func (f *FieldWriter) Flush(eof bool) error {
-	if f.column != nil {
-		if err := f.column.Flush(eof); err != nil {
+	if f.values != nil {
+		if err := f.values.Flush(eof); err != nil {
 			return err
 		}
 	}
@@ -51,10 +51,10 @@ func (f *FieldWriter) Flush(eof bool) error {
 		// will cause seek traffic.
 		f.presence.Finish()
 		if f.vcnt != 0 && f.ucnt != 0 {
-			// If this colummn is not either all values or all nulls,
+			// If this vector is not either all values or all nulls,
 			// then flush and write out the presence vector.
 			// Otherwise, there will be no values in the presence
-			// column and an empty segmap will be encoded for it.
+			// vector and an empty segmap will be encoded for it.
 			if err := f.presence.Flush(eof); err != nil {
 				return err
 			}
