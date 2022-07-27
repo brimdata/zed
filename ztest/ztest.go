@@ -134,6 +134,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/runtime/compiler"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -504,7 +505,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := runtime.NewCompiler().Parse(zedProgram)
+	proc, err := compiler.NewCompiler().Parse(zedProgram)
 	if err != nil {
 		return "", err.Error(), err
 	}
@@ -530,7 +531,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err != nil {
 		return "", "", err
 	}
-	q, err := runtime.NewCompiler().NewQuery(op.NewContext(context.Background(), zctx, nil), proc, []zio.Reader{zrc})
+	q, err := compiler.NewCompiler().NewQuery(op.NewContext(context.Background(), zctx, nil), proc, []zio.Reader{zrc})
 	if err != nil {
 		zw.Close()
 		return "", err.Error(), err

@@ -9,12 +9,12 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/runtimeflags"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime/compiler"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )

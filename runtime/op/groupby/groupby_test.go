@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/compiler"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/groupby"
 	"github.com/brimdata/zed/zbuf"

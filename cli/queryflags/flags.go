@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/runtime/compiler"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zfmt"
 	"github.com/brimdata/zed/zson"

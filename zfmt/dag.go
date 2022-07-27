@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 )
 
@@ -376,15 +375,15 @@ func source(src dag.Source) string {
 	case *dag.HTTP:
 		return fmt.Sprintf("get %s", p.URL)
 	case *dag.Pool:
-		return fmt.Sprintf("pool %s", p.ID)
+		return fmt.Sprintf("pool %s", p.Pool)
 	case *dag.PoolMeta:
-		return fmt.Sprintf("pool %s:%s", p.ID, p.Meta)
+		return fmt.Sprintf("pool %s:%s", p.Pool, p.Meta)
 	case *dag.CommitMeta:
 		return fmt.Sprintf("pool %s@%s:%s", p.Pool, p.Commit, p.Meta)
 	case *dag.LakeMeta:
 		return fmt.Sprintf(":%s", p.Meta)
 		//XXX from, to, order
-	case *kernel.Reader:
+	case *dag.Reader:
 		return "(internal reader)"
 	default:
 		return fmt.Sprintf("unknown source %T", p)

@@ -11,13 +11,13 @@ import (
 
 	"github.com/brimdata/zed/cmd/zed/dev"
 	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/runtime/compiler"
+	"github.com/brimdata/zed/runtime/exec/querygen"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zfmt"
 )
@@ -237,7 +237,7 @@ func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
 	if err != nil {
 		return nil, err
 	}
-	return compiler.NewJob(op.DefaultContext(), p, data.NewSource(nil, lk), nil)
+	return compiler.NewJob(op.DefaultContext(), p, querygen.NewSource(nil, lk), nil)
 }
 
 const nodeProblem = `

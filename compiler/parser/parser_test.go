@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/fs"
+	"github.com/brimdata/zed/runtime/compiler"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
