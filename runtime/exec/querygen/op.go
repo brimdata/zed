@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/exec"
@@ -34,20 +35,23 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 )
 
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
 type Builder struct {
 	pctx     *op.Context
-	source   *Source
+	source   *Source //XXX
+	head     *lakeparse.Commitish
 	planners map[dag.Source]from.Planner
 }
 
-func NewBuilder(pctx *op.Context, source *Source) *Builder {
+func NewBuilder(pctx *op.Context, source *Source, head *lakeparse.Commitish) *Builder {
 	return &Builder{
 		pctx:     pctx,
 		source:   source,
+		head:     head,
 		planners: make(map[dag.Source]from.Planner),
 	}
 }
@@ -537,7 +541,19 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
-			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, span, pushdown)
+			poolID, commitID, err := b.lookupCommitish(src.Pool, src.Commit)
+			if err != nil {
+				return nil, err
+			}
+			if commitID == ksuid.Nil {
+				// This trick here allows us to default to the main branch when
+				// there is a "from pool" operator with no meta query or commit object.
+				commitID, err = b.source.CommitObject(b.pctx.Context, poolID, "main")
+				if err != nil {
+					return nil, err
+				}
+			}
+			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), poolID, commitID, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -547,7 +563,11 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.PoolMeta:
 		planner, ok := b.planners[src]
 		if !ok {
-			planner, err = exec.NewPoolMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
+			poolID, _, err := b.lookupCommitish(src.Pool, "")
+			if err != nil {
+				return nil, err
+			}
+			planner, err = exec.NewPoolMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), poolID, src.Meta, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -561,7 +581,11 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
-			planner, err = exec.NewCommitMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, span, pushdown)
+			poolID, commitID, err := b.lookupCommitish(src.Pool, src.Commit)
+			if err != nil {
+				return nil, err
+			}
+			planner, err = exec.NewCommitMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), poolID, commitID, src.Meta, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -597,6 +621,38 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		return []zbuf.Puller{source}, nil
 	}
 	return b.compileSequential(trunk.Seq, []zbuf.Puller{source})
+}
+
+func (b *Builder) lookupCommitish(pool, commit string) (ksuid.KSUID, ksuid.KSUID, error) {
+	if pool == "HEAD" {
+		if b.head == nil {
+			return ksuid.Nil, ksuid.Nil, errors.New("cannot scan from unknown HEAD")
+		}
+		pool = b.head.Pool
+		commit = b.head.Branch
+	}
+	// If a name appears as an 0x bytes ksuid, convert it to the
+	// ksuid string form since the backend doesn't parse the 0x format.
+	poolID, err := lakeparse.ParseID(pool)
+	if err == nil {
+		pool = poolID.String()
+	} else {
+		poolID, err = b.source.PoolID(b.pctx.Context, pool)
+		if err != nil {
+			return ksuid.Nil, ksuid.Nil, err
+		}
+	}
+	var commitID ksuid.KSUID
+	if commit != "" {
+		commitID, err = lakeparse.ParseID(commit)
+		if err != nil {
+			commitID, err = b.source.CommitObject(b.pctx.Context, poolID, commit)
+			if err != nil {
+				return ksuid.Nil, ksuid.Nil, err
+			}
+		}
+	}
+	return poolID, commitID, nil
 }
 
 func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
@@ -656,7 +712,7 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {
 func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err error) {
 	// We pass in a nil adaptor, which causes a panic for anything adaptor
 	// related, which is not currently allowed in an expression sub-query.
-	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil)
+	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil, nil)
 	return b.evalAtCompileTime(in)
 }
 

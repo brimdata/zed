@@ -110,13 +110,6 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 func semPool(ctx context.Context, scope *Scope, p *ast.Pool) (dag.Source, error) {
 	poolName := p.Spec.Pool
 	commit := p.Spec.Commit
-	/*if poolName == "HEAD" {
-		if head == nil {
-			return nil, errors.New("cannot scan from unknown HEAD")
-		}
-		poolName = head.Pool
-		commit = head.Branch
-	}*/
 	if poolName == "" {
 		if p.Spec.Meta == "" {
 			return nil, errors.New("pool name missing")
@@ -126,18 +119,6 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool) (dag.Source, error)
 			Meta: p.Spec.Meta,
 		}, nil
 	}
-	// If a name appears as an 0x bytes ksuid, convert it to the
-	// ksuid string form since the backend doesn't parse the 0x format.
-	/*
-		poolID, err := lakeparse.ParseID(poolName)
-		if err == nil {
-			poolName = poolID.String()
-		} else {
-			poolID, err = ds.PoolID(ctx, poolName)
-			if err != nil {
-				return nil, err
-			}
-		}*/
 	var lower, upper dag.Expr
 	if r := p.Range; r != nil {
 		if r.Lower != nil {
@@ -165,17 +146,6 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool) (dag.Source, error)
 		// This would require commitRef to be branch name not a commit ID.
 		return nil, errors.New("TBD: at clause in from operator needs to use time")
 	}
-	/*
-		var commitID ksuid.KSUID
-		if commit != "" {
-			commitID, err = lakeparse.ParseID(commit)
-			if err != nil {
-				commitID, err = ds.CommitObject(ctx, poolID, commit)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}*/
 	if p.Spec.Meta != "" {
 		if commit != "" {
 			return &dag.CommitMeta{
@@ -194,15 +164,6 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool) (dag.Source, error)
 			Pool: poolName,
 		}, nil
 	}
-	/*
-		if commitID == ksuid.Nil {
-			// This trick here allows us to default to the main branch when
-			// there is a "from pool" operator with no meta query or commit object.
-			commitID, err = ds.CommitObject(ctx, poolID, "main")
-			if err != nil {
-				return nil, err
-			}
-		}*/
 	return &dag.Pool{
 		Kind:      "Pool",
 		Pool:      poolName,

@@ -93,13 +93,13 @@ func NewJob(pctx *op.Context, inAST ast.Op, src *querygen.Source, head *lakepars
 	if from != nil {
 		seq.Prepend(from)
 	}
-	entry, err := semantic.Analyze(pctx.Context, seq, src, head)
+	entry, err := semantic.Analyze(pctx.Context, seq)
 	if err != nil {
 		return nil, err
 	}
 	return &Job{
 		pctx:      pctx,
-		builder:   querygen.NewBuilder(pctx, src),
+		builder:   querygen.NewBuilder(pctx, src, head),
 		optimizer: optimizer.New(pctx.Context, entry, src),
 		readers:   readers,
 	}, nil
@@ -198,7 +198,7 @@ func (a *anyCompiler) ParseRangeExpr(zctx *zed.Context, src string, layout order
 	if err != nil {
 		return nil, "", err
 	}
-	d, err := semantic.Analyze(context.Background(), o.(*ast.Sequential), nil, nil)
+	d, err := semantic.Analyze(context.Background(), o.(*ast.Sequential))
 	if err != nil {
 		return nil, "", err
 	}
