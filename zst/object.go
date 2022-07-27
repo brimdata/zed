@@ -5,7 +5,7 @@
 // A ZST storage object must be seekable (e.g., a local file or S3 object),
 // so, unlike ZNG, streaming of ZST objects is not supported.
 //
-// The zst/column package handles reading and writing row data to columns,
+// The zst/vector package handles reading and writing Zed sequence data to vectors,
 // while the zst package comprises the API used to read and write ZST objects.
 package zst
 
@@ -19,15 +19,15 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-	"github.com/brimdata/zed/zst/column"
+	"github.com/brimdata/zed/zst/vector"
 )
 
 type Object struct {
 	seeker   *storage.Seeker
 	closer   io.Closer
 	zctx     *zed.Context
-	root     []column.Segment
-	maps     []column.Metadata
+	root     []vector.Segment
+	maps     []vector.Metadata
 	types    []zed.Type
 	trailer  FileMeta
 	sections []int64
@@ -44,7 +44,7 @@ func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error
 		return nil, fmt.Errorf("skew threshold too large (%d)", trailer.SkewThresh)
 	}
 	if trailer.SegmentThresh > MaxSegmentThresh {
-		return nil, fmt.Errorf("column threshold too large (%d)", trailer.SegmentThresh)
+		return nil, fmt.Errorf("vector threshold too large (%d)", trailer.SegmentThresh)
 	}
 	o := &Object{
 		seeker:   s,
@@ -113,11 +113,11 @@ func (o *Object) readMetaData() error {
 	}
 	u := zson.NewZNGUnmarshaler()
 	u.SetContext(o.zctx)
-	u.Bind(column.Template...)
+	u.Bind(vector.Template...)
 	if err := u.Unmarshal(val, &o.root); err != nil {
 		return err
 	}
-	// The rest of the values are column.Metadata, one for each
+	// The rest of the values are vector.Metadata, one for each
 	// Zed type that has been encoded into the ZST file.
 	for {
 		val, err = reader.Read()
@@ -127,7 +127,7 @@ func (o *Object) readMetaData() error {
 		if val == nil {
 			break
 		}
-		var meta column.Metadata
+		var meta vector.Metadata
 		if err := u.Unmarshal(val, &meta); err != nil {
 			return err
 		}

@@ -1,4 +1,4 @@
-package column
+package vector
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-var ErrColumnMismatch = errors.New("zng record value doesn't match column writer")
+var ErrVectorMismatch = errors.New("zng record value doesn't match vector writer")
 
 type RecordWriter []*FieldWriter
 
@@ -17,7 +17,7 @@ func NewRecordWriter(typ *zed.TypeRecord, spiller *Spiller) RecordWriter {
 	for _, col := range typ.Columns {
 		fw := &FieldWriter{
 			name:     col.Name,
-			column:   NewWriter(col.Type, spiller),
+			values:   NewWriter(col.Type, spiller),
 			presence: NewPresenceWriter(spiller),
 		}
 		r = append(r, fw)
@@ -29,14 +29,14 @@ func (r RecordWriter) Write(body zcode.Bytes) error {
 	it := body.Iter()
 	for _, f := range r {
 		if it.Done() {
-			return ErrColumnMismatch
+			return ErrVectorMismatch
 		}
 		if err := f.write(it.Next()); err != nil {
 			return err
 		}
 	}
 	if !it.Done() {
-		return ErrColumnMismatch
+		return ErrVectorMismatch
 	}
 	return nil
 }

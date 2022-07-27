@@ -10,22 +10,22 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-	"github.com/brimdata/zed/zst/column"
+	"github.com/brimdata/zed/zst/vector"
 )
 
 const (
-	MaxSegmentThresh = column.MaxSegmentThresh
+	MaxSegmentThresh = vector.MaxSegmentThresh
 	MaxSkewThresh    = 512 * 1024 * 1024
 )
 
-// Writer implements the zio.Writer interface. A Writer creates a columnar
+// Writer implements the zio.Writer interface. A Writer creates a vector
 // zst object from a stream of zed.Records.
 type Writer struct {
 	zctx       *zed.Context
 	writer     io.WriteCloser
-	spiller    *column.Spiller
+	spiller    *vector.Spiller
 	typeMap    map[zed.Type]int
-	writers    []column.Writer
+	writers    []vector.Writer
 	types      []zed.Type
 	skewThresh int
 	segThresh  int
@@ -33,19 +33,19 @@ type Writer struct {
 	// data structures.  This is roughtly propertional to the amount of
 	// memory used and the max amount of skew between rows that will be
 	// needed for reader-side buffering.  So when the memory footprint
-	// exceeds the confired skew theshhold, we flush the columns to storage.
+	// exceeds the confired skew theshhold, we flush the vectors to storage.
 	footprint int
-	root      *column.Int64Writer
+	root      *vector.Int64Writer
 }
 
 func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
 	if err := checkThresh("skew", MaxSkewThresh, skewThresh); err != nil {
 		return nil, err
 	}
-	if err := checkThresh("column", MaxSegmentThresh, segThresh); err != nil {
+	if err := checkThresh("vector", MaxSegmentThresh, segThresh); err != nil {
 		return nil, err
 	}
-	spiller := column.NewSpiller(w, segThresh)
+	spiller := vector.NewSpiller(w, segThresh)
 	return &Writer{
 		zctx:       zed.NewContext(),
 		spiller:    spiller,
@@ -53,7 +53,7 @@ func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
 		typeMap:    make(map[zed.Type]int),
 		skewThresh: skewThresh,
 		segThresh:  segThresh,
-		root:       column.NewInt64Writer(spiller),
+		root:       vector.NewInt64Writer(spiller),
 	}, nil
 }
 
@@ -112,7 +112,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	if !ok {
 		typeNo = len(w.types)
 		w.typeMap[typ] = typeNo
-		w.writers = append(w.writers, column.NewWriter(typ, w.spiller))
+		w.writers = append(w.writers, vector.NewWriter(typ, w.spiller))
 		w.types = append(w.types, val.Type)
 	}
 	if err := w.root.Write(int64(typeNo)); err != nil {
@@ -160,7 +160,7 @@ func (w *Writer) finalize() error {
 	if err := w.flush(true); err != nil {
 		return err
 	}
-	// At this point all the column data has been written out
+	// At this point all the vector data has been written out
 	// to the underlying spiller, so we start writing zng at this point.
 	zw := zngio.NewWriter(w.writer)
 	dataSize := w.spiller.Position()

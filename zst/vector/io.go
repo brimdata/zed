@@ -1,35 +1,30 @@
-// Package column implements the organization of columns on storage for a
-// ZST columnar storage object.
+// Package vector implements the organization of Zed data on storage as
+// vectors in a ZST vector storage object.
 //
 // A ZST object is created by allocating a Writer for any top-level Zed type
 // via NewWriter.  The object to be written is wrapped
-// in a Spiller with a column threshold.  Output is streamed to the underlying spiller
-// in a single pass.  (In the future, we may implement multiple passes to optimize
-// the storage layout of column data or spread a given ZST object across multiple
-// files.
+// in a Spiller with a vector threshold.  Output is streamed to the underlying spiller
+// in a single pass.
 //
 // NewWriter recursively decends into the Zed type, allocating a Writer
 // for each node in the type tree.  The top-level body is written via a call
-// to Write.  The columns buffer data in memory until they reach their
+// to Write.  The vectors buffer data in memory until they reach their
 // byte threshold or until Flush is called.
 //
-// After all of the Zed data is written, a reassembly map is formed for
-// each column writer by calling its EncodeMap method, which builds the
-// value in place using zcode.Builder and returns the Zed type of
-// the reassembly map value.
+// After all of the Zed data is written, a metadata section is written consisting
+// of segment maps for each vector, each obtained by calling the Metadata
+// method on the zst.Writer interface.
 //
-// Data is read from a ZST file by scanning the reassembly maps to build
-// column Readers for each Zed type by calling NewReader with the map, which
-// recusirvely builds an assembly structure.  An io.ReaderAt is passed to NewReader
-// so each column reader can access the underlying storage object and read its
-// column data effciently in largish column chunks.
+// Data is read from a ZST file by scanning the metadata maps to build
+// vector Readers for each Zed type by calling NewReader with the metadata, which
+// recusirvely builds reassembly segments.  An io.ReaderAt is passed to NewReader
+// so each vector reader can access the underlying storage object and read its
+// vector data effciently in largish vector segments.
 //
-// Once an assembly is built, the recontructed Zed row data can be read from the
-// assembly by calling the Read method on the top-level Record and passing in
-// a zcode.Builder to reconstruct the record body in place.  The assembly does not
-// need any type information as the structure of values is entirely self describing
-// in the Zed data format.
-package column
+// Once the metadata is assembled in memory, the recontructed Zed sequence data can be
+// read from the vector segments by calling the Read method on the top-level
+// Reader and passing in a zcode.Builder to reconstruct the Zed value in place.
+package vector
 
 import (
 	"fmt"
@@ -42,12 +37,12 @@ import (
 const MaxSegmentThresh = 20 * 1024 * 1024
 
 type Writer interface {
-	// Write encodes the given value into memory.  When the column exceeds
+	// Write encodes the given value into memory.  When the vector exceeds
 	// a threshold, it is automatically flushed.  Flush may also be called
-	// explicitly to push columns to storage and thus avoid too much row skew
-	// between columns.
+	// explicitly to push vectors to storage and thus avoid too much row skew
+	// between vectors.
 	Write(zcode.Bytes) error
-	// Push all in-memory column data to the storage layer.
+	// Push all in-memory vector data to the storage layer.
 	Flush(bool) error
 	// Metadata returns the data structure conforming to the ZST specification
 	// describing the layout of vectors.  This is called after all data is
@@ -71,7 +66,9 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 	case *zed.TypeUnion:
 		return NewUnionWriter(typ, spiller)
 	default:
-		//XXX check that typ is primitive
+		if !zed.IsPrimitiveType(typ) {
+			panic(fmt.Sprintf("unsupported type in ZST file: %T", typ))
+		}
 		return NewPrimitiveWriter(typ, spiller)
 	}
 }

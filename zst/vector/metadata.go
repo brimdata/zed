@@ -1,4 +1,4 @@
-package column
+package vector
 
 import (
 	"github.com/brimdata/zed"

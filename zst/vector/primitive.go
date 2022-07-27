@@ -1,4 +1,4 @@
-package column
+package vector
 
 import (
 	"errors"
@@ -99,7 +99,7 @@ func (p *PrimitiveReader) next() error {
 		return err
 	}
 	if n < int(segment.Length) {
-		return errors.New("truncated read of ZST column")
+		return errors.New("truncated read of ZST vector")
 	}
 	p.it = zcode.Iter(b)
 	return nil
