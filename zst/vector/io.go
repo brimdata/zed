@@ -12,8 +12,8 @@
 // byte threshold or until Flush is called.
 //
 // After all of the Zed data is written, a metadata section is written consisting
-// of reassembly segments for each vector, which is called with the Metadata
-// method on the zst.Writer.
+// of segment maps for each vector, each obtained by calling the Metadata
+// method on the zst.Writer interface.
 //
 // Data is read from a ZST file by scanning the metadata maps to build
 // vector Readers for each Zed type by calling NewReader with the metadata, which
@@ -21,9 +21,9 @@
 // so each vector reader can access the underlying storage object and read its
 // vector data effciently in largish vector segments.
 //
-// Once an metadata is assembled in memory, the recontructed Zed row data can be
+// Once the metadata is assembled in memory, the recontructed Zed sequence data can be
 // read from the vector segments by calling the Read method on the top-level
-// Reader and passing in // a zcode.Builder to reconstruct the Zed value in place.
+// Reader and passing in a zcode.Builder to reconstruct the Zed value in place.
 package vector
 
 import (
@@ -67,7 +67,7 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 		return NewUnionWriter(typ, spiller)
 	default:
 		if !zed.IsPrimitiveType(typ) {
-			panic(fmt.Sprintf("unsupported type in ZST file"))
+			panic(fmt.Sprintf("unsupported type in ZST file: %T", typ))
 		}
 		return NewPrimitiveWriter(typ, spiller)
 	}
