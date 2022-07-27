@@ -2,7 +2,6 @@ package zst
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -26,11 +25,11 @@ var _ zio.Reader = (*Reader)(nil)
 
 // NewReader returns a Reader ready to read a zst object as zed.Records.
 // Close() should be called when done.  This embeds a zst.Object.
-func NewReader(o *Object, seeker *storage.Seeker) (*Reader, error) {
-	root := vector.NewInt64Reader(o.root, seeker)
+func NewReader(o *Object) (*Reader, error) {
+	root := vector.NewInt64Reader(o.root, o.readerAt)
 	readers := make([]typedReader, 0, len(o.maps))
 	for _, m := range o.maps {
-		r, err := vector.NewReader(m, seeker)
+		r, err := vector.NewReader(m, o.readerAt)
 		if err != nil {
 			return nil, err
 		}
@@ -45,14 +44,6 @@ func NewReader(o *Object, seeker *storage.Seeker) (*Reader, error) {
 }
 
 func NewReaderFromPath(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string) (*Reader, error) {
-	reader, ok := engine.(storage.Reader)
-	if !ok {
-		return nil, errors.New("zst must be used with a seekable input")
-	}
-	seeker, err := storage.NewSeeker(reader)
-	if err != nil {
-		return nil, errors.New("zst must be used with a seekable input")
-	}
 	object, err := NewObjectFromPath(ctx, zctx, engine, path)
 	if err != nil {
 		return nil, err
@@ -61,7 +52,7 @@ func NewReaderFromPath(ctx context.Context, zctx *zed.Context, engine storage.En
 		object.Close()
 		return nil, err
 	}
-	r, err := NewReader(object, seeker)
+	r, err := NewReader(object)
 	if err != nil {
 		object.Close()
 		return nil, err
@@ -69,12 +60,12 @@ func NewReaderFromPath(ctx context.Context, zctx *zed.Context, engine storage.En
 	return r, nil
 }
 
-func NewReaderFromSeeker(zctx *zed.Context, seeker *storage.Seeker) (*Reader, error) {
-	object, err := NewObjectFromSeeker(zctx, seeker)
+func NewReaderFromStorageReader(zctx *zed.Context, r storage.Reader) (*Reader, error) {
+	object, err := NewObjectFromStorageReaderNoCloser(zctx, r)
 	if err != nil {
 		return nil, err
 	}
-	reader, err := NewReader(object, seeker)
+	reader, err := NewReader(object)
 	if err != nil {
 		// don't close object as we didn't open the seeker
 		return nil, err

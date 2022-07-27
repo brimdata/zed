@@ -23,7 +23,7 @@ import (
 )
 
 type Object struct {
-	seeker   *storage.Seeker
+	readerAt io.ReaderAt
 	closer   io.Closer
 	zctx     *zed.Context
 	root     []vector.Segment
@@ -35,8 +35,8 @@ type Object struct {
 	builder  zcode.Builder
 }
 
-func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error) {
-	trailer, sections, err := readTrailer(s, size)
+func NewObject(zctx *zed.Context, r io.ReaderAt, size int64) (*Object, error) {
+	trailer, sections, err := readTrailer(r, size)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error
 		return nil, fmt.Errorf("vector threshold too large (%d)", trailer.SegmentThresh)
 	}
 	o := &Object{
-		seeker:   s,
+		readerAt: r,
 		zctx:     zctx,
 		trailer:  *trailer,
 		sections: sections,
@@ -59,12 +59,21 @@ func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error
 	return o, nil
 }
 
-func NewObjectFromSeeker(zctx *zed.Context, s *storage.Seeker) (*Object, error) {
-	size, err := storage.Size(s.Reader)
+func NewObjectFromStorageReaderNoCloser(zctx *zed.Context, r storage.Reader) (*Object, error) {
+	size, err := storage.Size(r)
 	if err != nil {
 		return nil, err
 	}
-	return NewObject(zctx, s, size)
+	return NewObject(zctx, r, size)
+}
+
+func NewObjectFromStorageReader(zctx *zed.Context, r storage.Reader) (*Object, error) {
+	o, err := NewObjectFromStorageReaderNoCloser(zctx, r)
+	if err != nil {
+		return nil, err
+	}
+	o.closer = r.(io.Closer)
+	return o, nil
 }
 
 func NewObjectFromPath(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string) (*Object, error) {
@@ -76,19 +85,7 @@ func NewObjectFromPath(ctx context.Context, zctx *zed.Context, engine storage.En
 	if err != nil {
 		return nil, err
 	}
-	size, err := storage.Size(r)
-	if err != nil {
-		return nil, err
-	}
-	seeker, err := storage.NewSeeker(r)
-	if err != nil {
-		return nil, err
-	}
-	o, err := NewObject(zctx, seeker, size)
-	if err == nil {
-		o.closer = r
-	}
-	return o, err
+	return NewObjectFromStorageReader(zctx, r)
 }
 
 func (o *Object) Close() error {
@@ -148,7 +145,7 @@ func (o *Object) newSectionReader(level int, sectionOff int64) *zngio.Reader {
 	off, len := o.section(level)
 	off += sectionOff
 	len -= sectionOff
-	reader := io.NewSectionReader(o.seeker, off, len)
+	reader := io.NewSectionReader(o.readerAt, off, len)
 	return zngio.NewReader(o.zctx, reader)
 }
 

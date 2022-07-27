@@ -111,3 +111,10 @@ type Seeker struct {
 func (s *Seeker) Read(b []byte) (int, error) {
 	return s.ReadSeeker.Read(b)
 }
+
+func IsSeekable(r Reader) bool {
+	// All of the Reader implementations are seekable except this one,
+	// which is used by stdin.
+	_, ok := r.(*nopReadAtCloser)
+	return !ok
+}
