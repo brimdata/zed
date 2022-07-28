@@ -288,9 +288,8 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		data = append(data, fmt.Sprintf("{ts:%s,ip:1.1.1.%d}", nano.Unix(int64(t), 0), i%uniqueIpsPerTs))
 	}
 
-	comp := compiler.NewCompiler()
 	runOne := func(inputSortKey string) []string {
-		proc, err := comp.Parse("count() by every(1s), ip")
+		proc, err := compiler.Parse("count() by every(1s), ip")
 		assert.NoError(t, err)
 
 		zctx := zed.NewContext()
@@ -309,7 +308,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 			},
 		}
 		layout := order.NewLayout(order.Asc, field.List{field.New(inputSortKey)})
-		query, err := newQueryOnOrderedReader(context.Background(), zctx, comp, proc, cr, layout)
+		query, err := newQueryOnOrderedReader(context.Background(), zctx, proc, cr, layout)
 		require.NoError(t, err)
 		defer query.Pull(true)
 		err = zbuf.CopyPuller(checker, query)
@@ -328,7 +327,7 @@ type nopCloser struct{ io.Writer }
 
 func (*nopCloser) Close() error { return nil }
 
-func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, c runtime.Compiler, program ast.Op, reader zio.Reader, layout order.Layout) (*runtime.Query, error) {
+func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, layout order.Layout) (*runtime.Query, error) {
 	pctx := op.NewContext(ctx, zctx, nil)
 	q, err := compiler.CompileWithLayout(pctx, program, reader, layout)
 	if err != nil {
