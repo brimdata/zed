@@ -330,7 +330,7 @@ func (*nopCloser) Close() error { return nil }
 
 func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, c runtime.Compiler, program ast.Op, reader zio.Reader, layout order.Layout) (*runtime.Query, error) {
 	pctx := op.NewContext(ctx, zctx, nil)
-	q, err := c.CompileWithOrderDeprecated(pctx, program, reader, layout)
+	q, err := compiler.CompileWithLayout(pctx, program, reader, layout)
 	if err != nil {
 		pctx.Cancel()
 		return nil, err

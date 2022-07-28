@@ -38,8 +38,6 @@ type Compiler interface {
 	NewLakeQuery(*op.Context, ast.Op, int, *lakeparse.Commitish) (*Query, error)
 	Parse(string, ...string) (ast.Op, error)
 	ParseRangeExpr(*zed.Context, string, order.Layout) (*zed.Value, string, error)
-	//XXX this is used only by the groupby test.
-	CompileWithOrderDeprecated(*op.Context, ast.Op, zio.Reader, order.Layout) (*Query, error)
 }
 
 func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Op, readers []zio.Reader) (*Query, error) {
