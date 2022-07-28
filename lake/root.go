@@ -9,7 +9,6 @@ import (
 	"sort"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
@@ -256,14 +255,8 @@ func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return branchRef.Commit, nil
 }
 
-func (r *Root) Layout(ctx context.Context, src dag.Source) order.Layout {
-	/*poolSrc, ok := src.(*dag.Pool) XXX
-	if !ok {
-		return order.Nil
-	}
-	*/
-	//config, err := r.pools.LookupByID(ctx, poolSrc.ID)
-	config, err := r.pools.LookupByID(ctx, ksuid.Nil) //XXX temp to compile
+func (r *Root) Layout(ctx context.Context, poolID ksuid.KSUID) order.Layout {
+	config, err := r.pools.LookupByID(ctx, poolID)
 	if err != nil {
 		return order.Nil
 	}

@@ -5,23 +5,23 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/exec/querygen"
 )
 
 type Optimizer struct {
 	ctx     context.Context
 	entry   *dag.Sequential
-	source  *querygen.Source
+	lake    *lake.Root
 	layouts map[dag.Source]order.Layout
 }
 
-func New(ctx context.Context, entry *dag.Sequential, source *querygen.Source) *Optimizer {
+func New(ctx context.Context, entry *dag.Sequential, lk *lake.Root) *Optimizer {
 	return &Optimizer{
 		ctx:     ctx,
 		entry:   entry,
-		source:  source,
+		lake:    lk,
 		layouts: make(map[dag.Source]order.Layout),
 	}
 }
@@ -183,8 +183,14 @@ func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, 
 		return s.Layout, nil
 	case *dag.HTTP:
 		return s.Layout, nil
-	case *dag.Pool, *dag.LakeMeta, *dag.PoolMeta, *dag.CommitMeta:
-		return o.source.Layout(o.ctx, s), nil
+	case *dag.Pool:
+		id, err := o.lake.PoolID(o.ctx, s.Pool)
+		if err != nil {
+			return order.Nil, err
+		}
+		return o.lake.Layout(o.ctx, id), nil
+	case *dag.LakeMeta, *dag.PoolMeta, *dag.CommitMeta:
+		return order.Nil, nil
 	case *dag.Pass:
 		return parent, nil
 	case *dag.Reader:

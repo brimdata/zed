@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
@@ -34,6 +37,7 @@ import (
 	"github.com/brimdata/zed/runtime/op/yield"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -42,15 +46,17 @@ var ErrJoinParents = errors.New("join requires two upstream parallel query paths
 
 type Builder struct {
 	pctx     *op.Context
-	source   *Source //XXX
+	engine   storage.Engine
+	lake     *lake.Root
 	head     *lakeparse.Commitish
 	planners map[dag.Source]from.Planner
 }
 
-func NewBuilder(pctx *op.Context, source *Source, head *lakeparse.Commitish) *Builder {
+func NewBuilder(pctx *op.Context, engine storage.Engine, lk *lake.Root, head *lakeparse.Commitish) *Builder {
 	return &Builder{
 		pctx:     pctx,
-		source:   source,
+		engine:   engine,
+		lake:     lk,
 		head:     head,
 		planners: make(map[dag.Source]from.Planner),
 	}
@@ -529,6 +535,9 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	case *dag.Pass:
 		source = parent
 	case *dag.Pool:
+		if b.lake == nil {
+			return nil, errors.New("cannot read from a pool without a lake")
+		}
 		// We keep a map of planners indexed by *dag.Pool so we
 		// properly share parallel instances of a given planner
 		// across different DAG entry points.  The planners from a
@@ -537,10 +546,6 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		// the parallel instances of trunks.
 		planner, ok := b.planners[src]
 		if !ok {
-			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
-			if err != nil {
-				return nil, err
-			}
 			poolID, commitID, err := b.lookupCommitish(src.Pool, src.Commit)
 			if err != nil {
 				return nil, err
@@ -548,12 +553,16 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if commitID == ksuid.Nil {
 				// This trick here allows us to default to the main branch when
 				// there is a "from pool" operator with no meta query or commit object.
-				commitID, err = b.source.CommitObject(b.pctx.Context, poolID, "main")
+				commitID, err = b.lake.CommitObject(b.pctx.Context, poolID, "main")
 				if err != nil {
 					return nil, err
 				}
 			}
-			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), poolID, commitID, span, pushdown)
+			span, err := b.compileRange(poolID, src.ScanLower, src.ScanUpper)
+			if err != nil {
+				return nil, err
+			}
+			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.lake, poolID, commitID, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -561,13 +570,16 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		}
 		source = from.New(b.pctx, planner)
 	case *dag.PoolMeta:
+		if b.lake == nil {
+			return nil, errors.New("cannot access pool metadata when not on a lake")
+		}
 		planner, ok := b.planners[src]
 		if !ok {
 			poolID, _, err := b.lookupCommitish(src.Pool, "")
 			if err != nil {
 				return nil, err
 			}
-			planner, err = exec.NewPoolMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), poolID, src.Meta, pushdown)
+			planner, err = exec.NewPoolMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.lake, poolID, src.Meta, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -575,17 +587,20 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		}
 		source = from.New(b.pctx, planner)
 	case *dag.CommitMeta:
+		if b.lake == nil {
+			return nil, errors.New("cannot access commit metadata when not on a lake")
+		}
 		planner, ok := b.planners[src]
 		if !ok {
-			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
-			if err != nil {
-				return nil, err
-			}
 			poolID, commitID, err := b.lookupCommitish(src.Pool, src.Commit)
 			if err != nil {
 				return nil, err
 			}
-			planner, err = exec.NewCommitMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), poolID, commitID, src.Meta, span, pushdown)
+			span, err := b.compileRange(poolID, src.ScanLower, src.ScanUpper)
+			if err != nil {
+				return nil, err
+			}
+			planner, err = exec.NewCommitMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.lake, poolID, commitID, src.Meta, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -593,9 +608,12 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		}
 		source = from.New(b.pctx, planner)
 	case *dag.LakeMeta:
+		if b.lake == nil {
+			return nil, errors.New("cannot access lake metadata when not on a lake")
+		}
 		planner, ok := b.planners[src]
 		if !ok {
-			planner, err = exec.NewLakeMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Meta, pushdown)
+			planner, err = exec.NewLakeMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.lake, src.Meta, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -603,13 +621,13 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		}
 		source = from.New(b.pctx, planner)
 	case *dag.HTTP:
-		puller, err := b.source.Open(b.pctx.Context, b.pctx.Zctx, src.URL, src.Format, pushdown)
+		puller, err := b.Open(b.pctx.Context, b.pctx.Zctx, src.URL, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}
 		source = from.NewPuller(b.pctx, puller)
 	case *dag.File:
-		scanner, err := b.source.Open(b.pctx.Context, b.pctx.Zctx, src.Path, src.Format, pushdown)
+		scanner, err := b.Open(b.pctx.Context, b.pctx.Zctx, src.Path, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}
@@ -624,6 +642,9 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 }
 
 func (b *Builder) lookupCommitish(pool, commit string) (ksuid.KSUID, ksuid.KSUID, error) {
+	if b.lake == nil {
+		return ksuid.Nil, ksuid.Nil, errors.New("cannot use HEAD when not on a lake")
+	}
 	if pool == "HEAD" {
 		if b.head == nil {
 			return ksuid.Nil, ksuid.Nil, errors.New("cannot scan from unknown HEAD")
@@ -637,7 +658,7 @@ func (b *Builder) lookupCommitish(pool, commit string) (ksuid.KSUID, ksuid.KSUID
 	if err == nil {
 		pool = poolID.String()
 	} else {
-		poolID, err = b.source.PoolID(b.pctx.Context, pool)
+		poolID, err = b.lake.PoolID(b.pctx.Context, pool)
 		if err != nil {
 			return ksuid.Nil, ksuid.Nil, err
 		}
@@ -646,7 +667,7 @@ func (b *Builder) lookupCommitish(pool, commit string) (ksuid.KSUID, ksuid.KSUID
 	if commit != "" {
 		commitID, err = lakeparse.ParseID(commit)
 		if err != nil {
-			commitID, err = b.source.CommitObject(b.pctx.Context, poolID, commit)
+			commitID, err = b.lake.CommitObject(b.pctx.Context, poolID, commit)
 			if err != nil {
 				return ksuid.Nil, ksuid.Nil, err
 			}
@@ -655,7 +676,10 @@ func (b *Builder) lookupCommitish(pool, commit string) (ksuid.KSUID, ksuid.KSUID
 	return poolID, commitID, nil
 }
 
-func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
+func (b *Builder) compileRange(poolID ksuid.KSUID, exprLower, exprUpper dag.Expr) (extent.Span, error) {
+	if b.lake == nil {
+		return nil, errors.New("cannot use range query when not on a lake")
+	}
 	lower := &zed.Value{zed.TypeNull, nil}
 	upper := &zed.Value{zed.TypeNull, nil}
 	if exprLower != nil {
@@ -674,7 +698,7 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 	}
 	var span extent.Span
 	if lower.Bytes != nil || upper.Bytes != nil {
-		layout := b.source.Layout(b.pctx.Context, src)
+		layout := b.lake.Layout(b.pctx.Context, poolID)
 		span = extent.NewGenericFromOrder(*lower, *upper, layout.Order)
 	}
 	return span, nil
@@ -709,10 +733,40 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {
 	return e.Eval(expr.NewContext(), b.zctx().Missing()), nil
 }
 
+func (b *Builder) Open(ctx context.Context, zctx *zed.Context, path, format string, pushdown zbuf.Filter) (zbuf.Puller, error) {
+	if path == "-" {
+		path = "stdio:stdin"
+	}
+	file, err := anyio.Open(ctx, zctx, b.engine, path, anyio.ReaderOpts{Format: format})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	scanner, err := zbuf.NewScanner(ctx, file, pushdown)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	sn := zbuf.NamedScanner(scanner, path)
+	return &closePuller{sn, file}, nil
+}
+
+type closePuller struct {
+	p zbuf.Puller
+	c io.Closer
+}
+
+func (c *closePuller) Pull(done bool) (zbuf.Batch, error) {
+	batch, err := c.p.Pull(done)
+	if batch == nil {
+		c.c.Close()
+	}
+	return batch, err
+}
+
 func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err error) {
-	// We pass in a nil adaptor, which causes a panic for anything adaptor
+	// We pass in a nil lake and engine, which causes a panic for anything adaptor
 	// related, which is not currently allowed in an expression sub-query.
-	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil, nil)
+	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil, nil, nil)
 	return b.evalAtCompileTime(in)
 }
 
