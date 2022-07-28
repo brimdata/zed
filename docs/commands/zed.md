@@ -752,7 +752,7 @@ and sends the results to stdout.
 zed query 'from logs'
 ```
 
-We can narrow the span of the query by specifying a filter on pool key:
+We can narrow the span of the query by specifying a filter on the pool key:
 ```
 zed query 'from logs | ts >= 2018-03-24T17:36:30.090766Z and ts <= 2018-03-24T17:36:30.090758Z'
 ```

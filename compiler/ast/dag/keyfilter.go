@@ -9,13 +9,13 @@ type KeyFilter struct {
 	Expr Expr
 }
 
-// NewKeyFilter creates a KeyFilter that contains an modified form of node where
+// NewKeyFilter creates a KeyFilter that contains a modified form of node where
 // only predicates operating on key are kept. The underlying expression is
 // rewritten in a manner so that results produced by the filter will always be
 // a superset of the results produced by the parent filter (i.e., it will not
 // filter values that would not be not also filtered by the original filter).
 // Currently KeyFilter only recognizes simple key predicates against a literal
-// value and using the comparators ==, >=, >, <, <=, otherwise the predicate is
+// value and using the comparators ==, >=, >, <, and <=; otherwise the predicate is
 // ignored.
 func NewKeyFilter(key field.Path, node Expr) *KeyFilter {
 	e := visitLeaves(node, func(cmp string, lhs *This, rhs *Literal) Expr {
