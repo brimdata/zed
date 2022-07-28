@@ -34,7 +34,7 @@ func NewSpanFilter(eval Evaluator) *SpanFilter {
 func (o *SpanFilter) Eval(lower, upper *zed.Value) bool {
 	o.cols[0].Type = lower.Type
 	o.cols[1].Type = upper.Type
-	if o.val.Type == nil || o.cols[0].Type != lower.Type && o.cols[1].Type != upper.Type {
+	if o.val.Type == nil || o.cols[0].Type != lower.Type || o.cols[1].Type != upper.Type {
 		o.val.Type = o.zctx.MustLookupTypeRecord(o.cols)
 	}
 	o.builder.Reset()
