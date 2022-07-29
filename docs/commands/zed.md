@@ -32,7 +32,7 @@ sidebar_label: zed
 A Zed lake is a cloud-native arrangement of data, optimized for search,
 analytics, ETL, data discovery, and data preparation
 at scale based on data represented in accordance
-with the [Zed data model](../formats/zed.md#zed-data-model).
+with the [Zed data model](../formats/zed.md).
 
 A lake is organized into a collection of data pools forming a single
 administrative domain.  The current implementation supports

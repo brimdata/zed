@@ -13,7 +13,7 @@ to each input value and dropping each value for which the expression evaluates
 to `false` or to an error.
 
 The "where" keyword requires a regular Zed expression and does not support
-[search expressions](../README.md#search-expressions).  Use the
+[search expressions](../overview.md#7-search-expressions).  Use the
 [search operator](search.md) if you want search syntax.
 
 When Zed queries are run interactively, it is highly convenient to be able to omit

@@ -87,7 +87,7 @@ which emits
 Nothing too tricky here.  After a quick review of the shapes and types,
 you will notice they are just three relatively simple tables, which is no surprise
 since we obtained the original data from
-[SQLite database files](https://github.com/brimdata/zed/blob/main/testdata/edu/README.md#creation).
+[SQLite database files](https://github.com/brimdata/zed/blob/main/testdata/edu/README.md).
 
 ## 3. Searching
 
