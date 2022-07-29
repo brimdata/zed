@@ -1,4 +1,4 @@
-package stringsearch
+package expr
 
 import (
 	"encoding/binary"
@@ -6,22 +6,23 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
+	"github.com/brimdata/zed/pkg/stringsearch"
 	"github.com/brimdata/zed/zcode"
 )
 
 type FieldNameFinder struct {
 	checkedIDs    big.Int
 	fieldNameIter FieldNameIter
-	caseFinder    *CaseFinder
+	caseFinder    *stringsearch.CaseFinder
 }
 
 func NewFieldNameFinder(pattern string) *FieldNameFinder {
-	return &FieldNameFinder{caseFinder: NewCaseFinder(pattern)}
+	return &FieldNameFinder{caseFinder: stringsearch.NewCaseFinder(pattern)}
 }
 
 // Find returns true if buf, which holds a sequence of ZNG value messages, might
 // contain a record with a field whose fully-qualified name (e.g., a.b.c)
-// matches the pattern. find also returns true if it encounters an error.
+// matches the pattern.  Find also returns true if it encounters an error.
 func (f *FieldNameFinder) Find(zctx *zed.Context, buf []byte) bool {
 	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {

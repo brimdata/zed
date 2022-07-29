@@ -9,7 +9,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/pkg/stringsearch"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
@@ -53,7 +52,7 @@ func (s *searchByPred) searchType(typ zed.Type) bool {
 	var match bool
 	recType := zed.TypeRecordOf(typ)
 	if recType != nil {
-		var nameIter stringsearch.FieldNameIter
+		var nameIter FieldNameIter
 		nameIter.Init(recType)
 		for !nameIter.Done() {
 			if s.pred(zed.NewValue(zed.TypeString, nameIter.Next())) {
@@ -192,7 +191,7 @@ func (s *searchString) searchType(typ zed.Type) bool {
 	var match bool
 	recType := zed.TypeRecordOf(typ)
 	if recType != nil {
-		var nameIter stringsearch.FieldNameIter
+		var nameIter FieldNameIter
 		nameIter.Init(recType)
 		for !nameIter.Done() {
 			if stringSearch(byteconv.UnsafeString(nameIter.Next()), s.term) {
