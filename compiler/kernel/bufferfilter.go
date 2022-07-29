@@ -66,7 +66,7 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 			if left == nil {
 				return nil, nil
 			}
-			right := expr.NewFieldNameFinder(string(pattern))
+			right := expr.NewBufferFilterForFieldName(string(pattern))
 			return expr.NewOrBufferFilter(left, right), nil
 		}
 		left := expr.NewBufferFilterForStringCase(e.Text)

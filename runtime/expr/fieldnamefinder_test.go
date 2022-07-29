@@ -1,4 +1,4 @@
-package stringsearch
+package expr
 
 import (
 	"testing"

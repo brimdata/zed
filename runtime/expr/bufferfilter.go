@@ -22,7 +22,7 @@ type BufferFilter struct {
 	op    int
 	left  *BufferFilter
 	right *BufferFilter
-	fnf   *stringsearch.FieldNameFinder
+	fnf   *FieldNameFinder
 	cf    *stringsearch.CaseFinder
 	f     *stringsearch.Finder
 }
@@ -35,10 +35,10 @@ func NewOrBufferFilter(left, right *BufferFilter) *BufferFilter {
 	return &BufferFilter{op: opOr, left: left, right: right}
 }
 
-func NewFieldNameFinder(pattern string) *BufferFilter {
+func NewBufferFilterForFieldName(pattern string) *BufferFilter {
 	return &BufferFilter{
 		op:  opFieldNameFinder,
-		fnf: stringsearch.NewFieldNameFinder(pattern),
+		fnf: NewFieldNameFinder(pattern),
 	}
 }
 
