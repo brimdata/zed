@@ -108,25 +108,34 @@ func (p *Proc) block(parent *puller) {
 }
 
 func (p *Proc) propagateDone() error {
+	var wg sync.WaitGroup
 	for _, parent := range p.parents {
 		if parent.blocked {
 			continue
 		}
-	again:
-		select {
-		case <-p.queue:
-			// If a parent is waiting on the queue, we need to
-			// read the queue to avoid deadlock.  Since we
-			// are going to throw away the batch anyway, we can
-			// simply ignore which parent it is as we will hit all
-			// of them eventually as we loop over each unblocked parent.
-			goto again
-		case parent.doneCh <- struct{}{}:
-			p.block(parent)
-		case <-p.ctx.Done():
-			return p.ctx.Err()
-		}
+		parent := parent
+		wg.Add(1)
+		// We use a goroutine here because sending to parents[i].doneCh
+		// can block until we've sent to parents[i+1].doneCh, as with
+		// "fork (=> count() => pass) | head".
+		go func() {
+			defer wg.Done()
+		again:
+			select {
+			case <-p.queue:
+				// If a parent is waiting on the queue, we need to
+				// read the queue to avoid deadlock.  Since we
+				// are going to throw away the batch anyway, we can
+				// simply ignore which parent it is as we will hit all
+				// of them eventually as we loop over each unblocked parent.
+				goto again
+			case parent.doneCh <- struct{}{}:
+				p.block(parent)
+			case <-p.ctx.Done():
+			}
+		}()
 	}
+	wg.Wait()
 	// Make sure all the dones that canceled pending queue entries
 	// are clear.  Otherwise, this will block the queue on the next
 	// platoon.

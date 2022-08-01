@@ -1,0 +1,14 @@
+# Make sure "fork (=> ... => ...) | head" with one leg that pulls until
+# EOS and one that does not works for an input containing multiple
+# batches.
+script: |
+  seq 1000 | zq -z 'fork (=> count() => pass) | head' -
+  echo ===
+  seq 1000 | zq -z 'fork (=> pass => count()) | head' -
+
+outputs:
+  - name: stdout
+    data: |
+      1
+      ===
+      1
