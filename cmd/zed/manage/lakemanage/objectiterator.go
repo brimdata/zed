@@ -1,4 +1,4 @@
-package lakemanager
+package lakemanage
 
 import (
 	"context"

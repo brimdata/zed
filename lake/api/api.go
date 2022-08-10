@@ -85,6 +85,23 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 	}
 }
 
+func GetPools(ctx context.Context, api Interface) ([]*pools.Config, error) {
+	b := newBuffer(pools.Config{})
+	q, err := api.Query(ctx, nil, "from :pools")
+	if err != nil {
+		return nil, err
+	}
+	defer q.Close()
+	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+		return nil, err
+	}
+	var pls []*pools.Config
+	for _, r := range b.results {
+		pls = append(pls, r.(*pools.Config))
+	}
+	return pls, nil
+}
+
 func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.Config, error) {
 	b := newBuffer(pools.Config{})
 	zed := fmt.Sprintf("from :pools | id == hex('%s')", idToHex(id))

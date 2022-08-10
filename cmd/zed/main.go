@@ -26,6 +26,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/ls"
 	"github.com/brimdata/zed/cmd/zed/manage"
 	_ "github.com/brimdata/zed/cmd/zed/manage/compact"
+	_ "github.com/brimdata/zed/cmd/zed/manage/monitor"
 	"github.com/brimdata/zed/cmd/zed/merge"
 	"github.com/brimdata/zed/cmd/zed/query"
 	"github.com/brimdata/zed/cmd/zed/rename"
