@@ -5,6 +5,8 @@ input: |
   {s:null(string)}
   {s:"-"}
   {s:"--"}
+  {s:""}
+  {s:"(empty)"}
   {s:"\\"}
   {s:"\n\t"}
   {s:"a,b"}
@@ -13,12 +15,15 @@ input: |
   {s:";"}
   {s:null(|[string]|)}
   {s:|[]|(|[string]|)}
+  {s:|[""]|}
+  {s:|["(empty)"]|}
   {s:|["abc","xyz"]|}
   {s:|["a,b"]|}
   {s:null([string])}
   {s:[]([string])}
-  {s:["abc","xyz"]}
   {s:[""]}
+  {s:["(empty)"]}
+  {s:["abc","xyz"]}
   {s:["a,b"]}
 
 output-flags: -f zeek
@@ -34,6 +39,8 @@ output: |
   -
   \x2d
   --
+  
+  \x28empty)
   \\
   \x0a\x09
   a,b
@@ -44,12 +51,15 @@ output: |
   #types	set[string]
   -
   (empty)
+  
+  \x28empty)
   abc,xyz
   a\x2cb
   #fields	s
   #types	vector[string]
   -
   (empty)
-  abc,xyz
   
+  \x28empty)
+  abc,xyz
   a\x2cb

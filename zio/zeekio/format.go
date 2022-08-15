@@ -150,7 +150,9 @@ func formatString(t *zed.TypeOfString, zv zcode.Bytes, inContainer bool) string 
 	if bytes.Equal(zv, []byte{'-'}) {
 		return "\\x2d"
 	}
-
+	if string(zv) == "(empty)" {
+		return "\\x28empty)"
+	}
 	var out []byte
 	var start int
 	for i := 0; i < len(zv); {
