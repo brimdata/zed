@@ -61,7 +61,7 @@ Also, it is at the whim of a JSON implementation whether
 or not the order of object keys is preserved.
 
 While JSON is well suited for data exchange of generic information, it is not
-so appropriate for a [super-structured data model](README.md#2-zed-a-super-structured-pattern)
+so appropriate for a [super-structured data model](./README.md#2-zed-a-super-structured-pattern)
 like Zed.  That said, JSON can be used as an encoding format for Zed by mapping Zed data
 onto a JSON-based protocol.  This allows clients like web apps or
 Electron apps to receive and understand Zed and, with the help of client
