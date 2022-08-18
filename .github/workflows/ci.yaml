@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/setup-go@v2
         with:
@@ -37,7 +37,7 @@ jobs:
       - run: go build -o dist ./cmd/...
       - run: go test -v ./mdtest
   output-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/setup-go@v2
         with:
