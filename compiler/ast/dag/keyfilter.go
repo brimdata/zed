@@ -18,7 +18,7 @@ type KeyFilter struct {
 // value and using the comparators ==, >=, >, <, and <=; otherwise the predicate is
 // ignored.
 func NewKeyFilter(key field.Path, node Expr) *KeyFilter {
-	e := visitLeaves(node, func(cmp string, lhs *This, rhs *Literal) Expr {
+	e, _ := visitLeaves(node, func(cmp string, lhs *This, rhs *Literal) Expr {
 		if !key.Equal(lhs.Path) {
 			return nil
 		}
@@ -48,7 +48,7 @@ func (k *KeyFilter) newExpr(o order.Which, prefix []string, cropped bool) Expr {
 	if cropped {
 		lower, upper = upper, lower
 	}
-	return visitLeaves(k.Expr, func(op string, this *This, lit *Literal) Expr {
+	e, _ := visitLeaves(k.Expr, func(op string, this *This, lit *Literal) Expr {
 		switch op {
 		case "==":
 			if cropped {
@@ -64,6 +64,7 @@ func (k *KeyFilter) newExpr(o order.Which, prefix []string, cropped bool) Expr {
 		}
 		return relativeToCompare(op, this, lit, o)
 	})
+	return e
 }
 
 func relativeToCompare(op string, lhs, rhs Expr, o order.Which) *BinaryExpr {
@@ -75,34 +76,43 @@ func relativeToCompare(op string, lhs, rhs Expr, o order.Which) *BinaryExpr {
 	return NewBinaryExpr(op, lhs, &Literal{"Literal", "0"})
 }
 
-func visitLeaves(node Expr, v func(cmp string, lhs *This, rhs *Literal) Expr) Expr {
+func visitLeaves(node Expr, v func(cmp string, lhs *This, rhs *Literal) Expr) (Expr, bool) {
 	e, ok := node.(*BinaryExpr)
 	if !ok {
-		return nil
+		return nil, true
 	}
 	switch e.Op {
-	case "or", "and":
-		lhs := visitLeaves(e.LHS, v)
-		rhs := visitLeaves(e.RHS, v)
+	case "and", "or":
+		lhs, lok := visitLeaves(e.LHS, v)
+		rhs, rok := visitLeaves(e.RHS, v)
+		if !lok || !rok {
+			return nil, false
+		}
 		if lhs == nil {
-			return rhs
+			if e.Op == "or" {
+				return nil, false
+			}
+			return rhs, e.Op != "or"
 		}
 		if rhs == nil {
-			return lhs
+			if e.Op == "or" {
+				return nil, false
+			}
+			return lhs, true
 		}
-		return NewBinaryExpr(e.Op, lhs, rhs)
+		return NewBinaryExpr(e.Op, lhs, rhs), true
 	case "==", "<", "<=", ">", ">=":
 		this, ok := e.LHS.(*This)
 		if !ok {
-			return nil
+			return nil, true
 		}
 		rhs, ok := e.RHS.(*Literal)
 		if !ok {
-			return nil
+			return nil, true
 		}
 		lhs := &This{"This", append([]string{}, this.Path...)}
-		return v(e.Op, lhs, rhs)
+		return v(e.Op, lhs, rhs), true
 	default:
-		return nil
+		return nil, true
 	}
 }

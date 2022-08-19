@@ -8,6 +8,8 @@ script: |
     zed load -q babble.zson
     source query.sh "ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z"
     source query.sh "ts == 2020-04-21T23:59:26.06326664Z"
+    source query.sh "ts == 2020-04-21T23:59:26.06326664Z or foo == 'bar'"
+
   done
 
 inputs:
@@ -28,12 +30,16 @@ outputs:
       {ts:2020-04-21T23:59:38.0687693Z,s:"topcoating-rhexis",v:415}
       // ts == 2020-04-21T23:59:26.06326664Z
       {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
+      // ts == 2020-04-21T23:59:26.06326664Z or foo == 'bar'
+      {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
       // desc
       // ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z
       {ts:2020-04-21T23:59:38.0687693Z,s:"topcoating-rhexis",v:415}
       {ts:2020-04-21T23:59:29.06985813Z,s:"areek-ashless",v:266}
       {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
       // ts == 2020-04-21T23:59:26.06326664Z
+      {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
+      // ts == 2020-04-21T23:59:26.06326664Z or foo == 'bar'
       {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
   - name: stderr
     data: |
@@ -42,8 +48,12 @@ outputs:
       {bytes_read:16401,bytes_matched:87,records_read:500,records_matched:3}
       // ts == 2020-04-21T23:59:26.06326664Z
       {bytes_read:8151,bytes_matched:31,records_read:250,records_matched:1}
+      // ts == 2020-04-21T23:59:26.06326664Z or foo == 'bar'
+      {bytes_read:32889,bytes_matched:31,records_read:1000,records_matched:1}
       // desc
       // ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z
       {bytes_read:16404,bytes_matched:87,records_read:500,records_matched:3}
       // ts == 2020-04-21T23:59:26.06326664Z
       {bytes_read:8145,bytes_matched:31,records_read:250,records_matched:1}
+      // ts == 2020-04-21T23:59:26.06326664Z or foo == 'bar'
+      {bytes_read:32889,bytes_matched:31,records_read:1000,records_matched:1}
