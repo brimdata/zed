@@ -8,6 +8,8 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op/from"
 	"github.com/brimdata/zed/zbuf"
@@ -35,7 +37,7 @@ func Compact(ctx context.Context, pool *lake.Pool, branchName string, objectIDs 
 		compact.AddDataObject(o)
 	}
 	zctx := zed.NewContext()
-	planner, err := NewSortedPlanner(ctx, zctx, pool, compact, nil, &nopFilter{})
+	planner, err := NewSortedPlanner(ctx, zctx, pool, compact, &nopFilter{})
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -62,6 +64,10 @@ var _ zbuf.Filter = (*nopFilter)(nil)
 
 type nopFilter struct{}
 
-func (nopFilter) AsEvaluator() (expr.Evaluator, error)        { return nil, nil }
-func (nopFilter) AsBufferFilter() (*expr.BufferFilter, error) { return nil, nil }
-func (nopFilter) Pushdown() dag.Expr                          { return nil }
+func (nopFilter) AsEvaluator() (expr.Evaluator, error)                              { return nil, nil }
+func (nopFilter) AsBufferFilter() (*expr.BufferFilter, error)                       { return nil, nil }
+func (nopFilter) AsKeySpanFilter(field.Path, order.Which) (*expr.SpanFilter, error) { return nil, nil }
+func (nopFilter) AsKeyCroppedByFilter(field.Path, order.Which) (*expr.SpanFilter, error) {
+	return nil, nil
+}
+func (nopFilter) Pushdown() dag.Expr { return nil }

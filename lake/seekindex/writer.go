@@ -6,6 +6,12 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
+type Entry struct {
+	Key    *zed.Value `zed:"key"`
+	Count  uint64     `zed:"count"`
+	Offset int64      `zed:"offset"`
+}
+
 type Writer struct {
 	zctx    *zed.Context
 	builder *zcode.Builder

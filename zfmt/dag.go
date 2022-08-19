@@ -20,6 +20,17 @@ func DAG(op dag.Op) string {
 	return d.String()
 }
 
+func DAGExpr(e dag.Expr) string {
+	d := &canonDAG{
+		canonZed: canonZed{formatter: formatter{tab: 2}},
+		head:     true,
+		first:    true,
+	}
+	d.expr(e, "")
+	d.flush()
+	return d.String()
+}
+
 type canonDAG struct {
 	canonZed
 	head  bool

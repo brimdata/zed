@@ -6,13 +6,13 @@ import (
 	"math"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
 	zedexpr "github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
@@ -37,8 +37,8 @@ type Filter struct {
 	sem    *semaphore.Weighted
 }
 
-func NewFilter(engine storage.Engine, path *storage.URI, e dag.Expr) *Filter {
-	expr := compileExpr(e)
+func NewFilter(engine storage.Engine, path *storage.URI, filter zbuf.Filter) *Filter {
+	expr := compileExpr(filter.Pushdown())
 	if expr == nil {
 		return nil
 	}

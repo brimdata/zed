@@ -1,6 +1,9 @@
 package seekindex
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 type Range struct {
 	Start, End int64
@@ -29,6 +32,10 @@ func (r Range) Size() int64 {
 
 func (r Range) IsZero() bool {
 	return r.Start == 0 && r.End == 0
+}
+
+func (r Range) String() string {
+	return fmt.Sprintf("start %d end %d", r.Start, r.End)
 }
 
 func (r Range) Reader(reader io.ReaderAt) (io.Reader, error) {

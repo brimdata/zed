@@ -181,7 +181,7 @@ func formatPartition(b *bytes.Buffer, p meta.Partition) {
 	b.WriteString(zson.String(*p.Last()))
 	b.WriteByte('\n')
 	for _, o := range p.Objects {
-		formatDataObject(b, &o.Object, "", 2)
+		formatDataObject(b, o, "", 2)
 	}
 }
 

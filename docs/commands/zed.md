@@ -247,7 +247,10 @@ When pool data is not structured as records/objects (e.g., scalar or arrays or o
 non-record types), then the pool key would typically be configured
 as the [special value `this`](../language/overview.md#23-the-special-value-this).
 
-Data can be efficiently scanned via ranges of values conforming to the pool key.
+Data can be efficiently scanned if a query has a filter operating on the pool
+key.  For example on a pool with pool key `ts`, the query `ts == 100`
+will be optimized to scan only the data objects where the value `100` could be
+present.
 
 > The pool key will also serve as the primary key for the forthcoming
 > CRUD semantics.
@@ -262,8 +265,8 @@ Scans may also be range-limited but unordered.
 
 Any data loaded into a pool that lacks the pool key is presumed
 to have a null value with regard to range scans.  If large amounts
-of such "keyless data" are loaded into a pool, the ability to do
-range scans over such data is impaired.
+of such "keyless data" are loaded into a pool, the ability to
+optimize scans over such data is impaired.
 
 ### 1.5 Time Travel
 
@@ -732,9 +735,8 @@ A query typically begins with a [from operator](../language/operators/from.md)
 indicating the pool and branch to use as input.  If `from` is not present, then the
 query reads from the working branch.
 
-The pool/branch names
-are specified with `from` at the beginning of the Zed query along with an optional
-time range using `range` and `to`.
+The pool/branch names are specified with `from` at the beginning of the Zed
+query.
 
 As with `zq`, the default output format is ZSON for
 terminals and ZNG otherwise, though this can be overridden with
@@ -750,12 +752,11 @@ and sends the results to stdout.
 zed query 'from logs'
 ```
 
-We can narrow the span of the query by specifying the key range, where these
-values refer to the pool key:
+We can narrow the span of the query by specifying a filter on the pool key:
 ```
-zed query 'from logs range 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
+zed query 'from logs | ts >= 2018-03-24T17:36:30.090766Z and ts <= 2018-03-24T17:36:30.090758Z'
 ```
-These range queries are efficiently implemented as the data is laid out
+Filters on pool keys are efficiently implemented as the data is laid out
 according to the pool key and seek indexes keyed by the pool key
 are computed for each data object.
 
