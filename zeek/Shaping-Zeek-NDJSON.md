@@ -216,7 +216,7 @@ zq -I shaper.zed -f table '| count() by network_of(id.orig_h) | sort -r' conn.lo
 improvement for this use of `zq -I`.
 
 If you intend to frequently shape the same NDJSON data, you may want to create
-an [alias](https://tldp.org/LDP/abs/html/aliases.html) in your
+an alias in your
 shell to always invoke `zq` with the necessary `-I` flag pointing to the path
 of your finalized shaper. [zed/1059](https://github.com/brimdata/zed/issues/1059)
 tracks a planned enhancement to persist such settings within Zed itself rather
