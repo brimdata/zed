@@ -6,7 +6,7 @@ record.
 ### Synopsis
 
 ```
-unflatten(val: [{key:string|[string],value:any}) -> record
+unflatten(val: [{key:string|[string],value:any}]) -> record
 ```
 ### Description
 The _unflatten_ function converts the key/value records in array `val` into
