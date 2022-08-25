@@ -1,0 +1,20 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -S 10KB -q test
+  zed use -q test
+  for i in {1..10}; do
+    seq 200 | zq '{ts:this}' - | zed load -q -
+  done
+  zed manage compact -q -config manage.yaml
+  zed query -z 'from test@main:objects | yield meta'
+
+inputs:
+  - name: manage.yaml
+    data: |
+      coldthresh: 0s
+
+outputs:
+  - name: stdout
+    data: |
+      {first:200,last:1,count:2000(uint64),size:1035}(=data.Meta)

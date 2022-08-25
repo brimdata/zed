@@ -28,6 +28,8 @@ import (
 	"github.com/brimdata/zed/cmd/zed/load"
 	"github.com/brimdata/zed/cmd/zed/log"
 	"github.com/brimdata/zed/cmd/zed/ls"
+	"github.com/brimdata/zed/cmd/zed/manage"
+	_ "github.com/brimdata/zed/cmd/zed/manage/compact"
 	"github.com/brimdata/zed/cmd/zed/merge"
 	"github.com/brimdata/zed/cmd/zed/query"
 	"github.com/brimdata/zed/cmd/zed/rename"
@@ -52,6 +54,7 @@ func main() {
 	zed.Add(load.Cmd)
 	zed.Add(log.Cmd)
 	zed.Add(ls.Cmd)
+	zed.Add(manage.Cmd)
 	zed.Add(merge.Cmd)
 	zed.Add(query.Cmd)
 	zed.Add(rename.Cmd)
