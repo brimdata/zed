@@ -1,0 +1,9 @@
+zed: '*'
+
+input-flags: -i json
+
+input: |
+  ""
+
+output: |
+  ""
