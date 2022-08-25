@@ -35,7 +35,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*manage.Command)}
 	c.commitFlags.SetFlags(f)
-	f.Func("config", "path of manage yaml config file", func(s string) error {
+	f.Func("config", "path of manage YAML config file", func(s string) error {
 		b, err := os.ReadFile(s)
 		if err != nil {
 			return err
@@ -67,7 +67,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	r, err := lakemanager.NewPoolObjectReader(ctx, lake, head, pool.Layout)
+	r, err := lakemanager.NewPoolObjectIterator(ctx, lake, head, pool.Layout)
 	if err != nil {
 		return err
 	}
@@ -85,6 +85,6 @@ func (c *Command) Run(args []string) error {
 			fmt.Printf("%s compaction committed\n", commit)
 		}
 	}
-	// Make sure to return err from the apicompact.Scan goroutine.
+	// Make sure to return err from the lakemanager.Scan goroutine.
 	return err
 }

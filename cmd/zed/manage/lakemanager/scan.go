@@ -10,13 +10,13 @@ import (
 	"github.com/brimdata/zed/runtime/expr/extent"
 )
 
-type ObjectReader interface {
+type ObjectIterator interface {
 	Next() (*data.Object, error)
 }
 
 // Scan recieves a sorted stream of objects and sends to ch a series
 // of Runs that are good candidates for compaction.
-func Scan(ctx context.Context, reader ObjectReader, pool *pools.Config,
+func Scan(ctx context.Context, reader ObjectIterator, pool *pools.Config,
 	thresh time.Duration, ch chan<- Run) error {
 	send := func(run Run, next extent.Span) error {
 		// Send a run if it contains more than one object and the total size of

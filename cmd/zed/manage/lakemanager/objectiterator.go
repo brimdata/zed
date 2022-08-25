@@ -11,13 +11,13 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-type PoolObjectReader struct {
-	reader    zio.ReadCloser
-	unmarshal *zson.UnmarshalZNGContext
+type PoolObjectIterator struct {
+	reader      zio.ReadCloser
+	unmarshaler *zson.UnmarshalZNGContext
 }
 
-func NewPoolObjectReader(ctx context.Context, lake api.Interface, head *lakeparse.Commitish,
-	layout order.Layout) (*PoolObjectReader, error) {
+func NewPoolObjectIterator(ctx context.Context, lake api.Interface, head *lakeparse.Commitish,
+	layout order.Layout) (*PoolObjectIterator, error) {
 	query, err := head.FromSpec("objects")
 	if err != nil {
 		return nil, err
@@ -31,24 +31,24 @@ func NewPoolObjectReader(ctx context.Context, lake api.Interface, head *lakepars
 	if err != nil {
 		return nil, err
 	}
-	return &PoolObjectReader{
-		reader:    r,
-		unmarshal: zson.NewZNGUnmarshaler(),
+	return &PoolObjectIterator{
+		reader:      r,
+		unmarshaler: zson.NewZNGUnmarshaler(),
 	}, nil
 }
 
-func (r *PoolObjectReader) Next() (*data.Object, error) {
+func (r *PoolObjectIterator) Next() (*data.Object, error) {
 	val, err := r.reader.Read()
 	if val == nil || err != nil {
 		return nil, err
 	}
 	var o data.Object
-	if err := r.unmarshal.Unmarshal(val, &o); err != nil {
+	if err := r.unmarshaler.Unmarshal(val, &o); err != nil {
 		return nil, err
 	}
 	return &o, nil
 }
 
-func (r *PoolObjectReader) Close() error {
+func (r *PoolObjectIterator) Close() error {
 	return r.reader.Close()
 }

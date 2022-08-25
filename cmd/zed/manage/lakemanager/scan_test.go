@@ -82,7 +82,7 @@ type testObj struct {
 	size        int64
 }
 
-func newTestObjectReader(objs []testObj, pool *pools.Config, coldthresh time.Duration) lakemanager.ObjectReader {
+func newTestObjectReader(objs []testObj, pool *pools.Config, coldthresh time.Duration) lakemanager.ObjectIterator {
 	var objects []*data.Object
 	for _, o := range objs {
 		ts := time.Now()

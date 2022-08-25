@@ -10,7 +10,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "manage",
 	Usage: "manage [subcommand]",
-	Short: "proper care and feeding of zed lakes",
+	Short: "proper care and feeding of Zed lakes",
 	New:   New,
 }
 
