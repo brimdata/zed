@@ -10,5 +10,8 @@ setuptools.setup(
     py_modules=['zed'],
     python_requires='>=3.3',
     setup_requires=['setuptools_scm'],
-    use_scm_version={'root': '../..'},
+    use_scm_version={
+        'fallback_version': 'unknown',
+        'root': '../..',
+    },
 )
