@@ -13,5 +13,6 @@ setuptools.setup(
     use_scm_version={
         'fallback_version': 'unknown',
         'root': '../..',
+        'version_scheme': 'post-release',
     },
 )
