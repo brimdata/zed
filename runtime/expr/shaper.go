@@ -474,7 +474,6 @@ func (s *step) castPrimitive(zctx *zed.Context, ectx Context, in zcode.Bytes, b 
 		return nil
 	}
 	toType := zed.TypeUnder(s.toType)
-	//XXX We should cache these allocations. See issue #3456.
 	v := s.caster.Eval(ectx, &zed.Value{s.fromType, in})
 	if v.Type != toType {
 		// v isn't the "to" type, so we can't safely append v.Bytes to
