@@ -89,7 +89,6 @@ func newSeekFinder(pool *lake.Pool, snap commits.View, f zbuf.Filter) (seekFinde
 	if err != nil {
 		return nil, err
 	}
-	cmp := expr.NewValueCompareFn(pool.Layout.Order == order.Asc)
 	return func(ctx context.Context, o *data.Object) (seekindex.Range, error) {
 		rg := seekindex.Range{End: o.Size}
 		var indexSpan extent.Span
@@ -109,6 +108,7 @@ func newSeekFinder(pool *lake.Pool, snap commits.View, f zbuf.Filter) (seekFinde
 				}
 			}
 		}
+		cmp := expr.NewValueCompareFn(pool.Layout.Order == order.Asc)
 		span := extent.NewGeneric(o.First, o.Last, cmp)
 		if indexSpan != nil || cropped != nil && cropped.Eval(span.First(), span.Last()) {
 			// If there is an index optimization or the object's span is
