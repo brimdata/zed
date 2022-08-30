@@ -10,6 +10,7 @@ input: |
   {from:"one"((int64,string)),to:<string>}
   {from:[1,"one"],to:<[string]>}
   {from:[1,"one"],to:<[(int8,string)]>}
+  {from:[1,"one"],to:<[(int8,int16)]>}
   {from:{a:[1,"one"]},to:<{a:[string]}>}
   {from:{a:[1,"one"]},to:<{a:[(int8,string)]}>}
 
@@ -21,6 +22,7 @@ output: |
   error("createStep: incompatible types (int64,string) and (int8,string)")
   "one"
   ["1","one"]
-  [1(int8),"one"]
+  error("createStep: incompatible types (int64,string) and (int8,string)")
+  error("createStep: incompatible types (int64,string) and (int8,int16)")
   {a:["1","one"]}
-  {a:[1(int8),"one"]}
+  error("createStep: incompatible types (int64,string) and (int8,string)")
