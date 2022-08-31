@@ -20,33 +20,27 @@ import (
 )
 
 type Planner struct {
-	ctx         context.Context
-	zctx        *zed.Context
-	pool        *lake.Pool
-	snap        commits.View
-	rangeFinder seekFinder
-	filter      zbuf.Filter
-	once        sync.Once
-	ch          chan meta.Partition
-	group       *errgroup.Group
-	progress    zbuf.Progress
+	ctx      context.Context
+	zctx     *zed.Context
+	pool     *lake.Pool
+	snap     commits.View
+	filter   zbuf.Filter
+	once     sync.Once
+	ch       chan meta.Partition
+	group    *errgroup.Group
+	progress zbuf.Progress
 }
 
 var _ from.Planner = (*Planner)(nil)
 
 func NewSortedPlanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, snap commits.View, filter zbuf.Filter) (*Planner, error) {
-	finder, err := newSeekFinder(pool, snap, filter)
-	if err != nil {
-		return nil, err
-	}
 	return &Planner{
-		ctx:         ctx,
-		zctx:        zctx,
-		pool:        pool,
-		rangeFinder: finder,
-		snap:        snap,
-		filter:      filter,
-		ch:          make(chan meta.Partition),
+		ctx:    ctx,
+		zctx:   zctx,
+		pool:   pool,
+		snap:   snap,
+		filter: filter,
+		ch:     make(chan meta.Partition),
 	}, nil
 }
 
