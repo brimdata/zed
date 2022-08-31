@@ -115,10 +115,8 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(s.typ, val.Bytes)
 	}
 	c.b.Reset()
-	if zerr := s.step.build(c.zctx, ectx, val.Bytes, &c.b); zerr != nil {
-		return zerr
-	}
-	return ectx.NewValue(s.typ, c.b.Bytes().Body())
+	typ := s.step.build(c.zctx, ectx, val.Bytes, &c.b)
+	return ectx.NewValue(typ, c.b.Bytes().Body())
 }
 
 // A shaper is a per-input type ID "spec" that contains the output
@@ -318,34 +316,36 @@ const (
 type step struct {
 	op        op
 	caster    Evaluator // for castPrimitive
-	fromIndex int
-	fromType  zed.Type // for castPrimitive and castToUnion
-	toTag     int      // for castToUnion
-	toType    zed.Type // for castPrimitive
+	fromIndex int       // for children of a record step
+	fromType  zed.Type  // for castPrimitive and castToUnion
+	toTag     int       // for castToUnion
+	toType    zed.Type
 	// if op == record, contains one op for each column.
 	// if op == array, contains one op for all array elements.
 	// if op == castFromUnion, contains one op per union tag.
 	children []step
+
+	types       []zed.Type
+	uniqueTypes []zed.Type
 }
 
 func newStep(zctx *zed.Context, in, out zed.Type) (step, error) {
 Switch:
 	switch {
 	case in.ID() == zed.IDNull:
-		return step{op: null}, nil
+		return step{op: null, toType: out}, nil
 	case in.ID() == out.ID():
-		return step{op: copyOp}, nil
+		return step{op: copyOp, toType: out}, nil
 	case zed.IsRecordType(in) && zed.IsRecordType(out):
-		return newRecordStep(zctx, zed.TypeRecordOf(in), zed.TypeRecordOf(out))
+		return newRecordStep(zctx, zed.TypeRecordOf(in), out)
 	case zed.IsPrimitiveType(in) && zed.IsPrimitiveType(out):
 		caster := LookupPrimitiveCaster(zctx, zed.TypeUnder(out))
 		return step{op: castPrimitive, caster: caster, fromType: in, toType: out}, nil
 	case zed.InnerType(in) != nil:
-		if out, ok := zed.TypeUnder(out).(*zed.TypeArray); ok {
-			return newArrayOrSetStep(zctx, array, zed.InnerType(in), out.Type)
-		}
-		if out, ok := zed.TypeUnder(out).(*zed.TypeSet); ok {
-			return newArrayOrSetStep(zctx, set, zed.InnerType(in), out.Type)
+		if k := out.Kind(); k == zed.ArrayKind {
+			return newArrayOrSetStep(zctx, array, zed.InnerType(in), out)
+		} else if k == zed.SetKind {
+			return newArrayOrSetStep(zctx, set, zed.InnerType(in), out)
 		}
 	case zed.IsUnionType(in):
 		var steps []step
@@ -356,10 +356,10 @@ Switch:
 			}
 			steps = append(steps, s)
 		}
-		return step{op: castFromUnion, children: steps}, nil
+		return step{op: castFromUnion, toType: out, children: steps}, nil
 	}
 	if tag := bestUnionTag(in, out); tag != -1 {
-		return step{op: castToUnion, fromType: in, toTag: tag}, nil
+		return step{op: castToUnion, fromType: in, toTag: tag, toType: out}, nil
 	}
 	return step{}, fmt.Errorf("createStep: incompatible types %s and %s", zson.FormatType(in), zson.FormatType(out))
 }
@@ -371,12 +371,12 @@ Switch:
 // [a b] and the input type has fields [b a] that is ok). It is also
 // ok for leaf primitive types to be different; if they are a casting
 // step is inserted.
-func newRecordStep(zctx *zed.Context, in, out *zed.TypeRecord) (step, error) {
+func newRecordStep(zctx *zed.Context, in *zed.TypeRecord, out zed.Type) (step, error) {
 	var children []step
-	for _, outCol := range out.Columns {
+	for _, outCol := range zed.TypeRecordOf(out).Columns {
 		ind, ok := in.ColumnOfField(outCol.Name)
 		if !ok {
-			children = append(children, step{op: null})
+			children = append(children, step{op: null, toType: outCol.Type})
 			continue
 		}
 		child, err := newStep(zctx, in.Columns[ind].Type, outCol.Type)
@@ -386,22 +386,106 @@ func newRecordStep(zctx *zed.Context, in, out *zed.TypeRecord) (step, error) {
 		child.fromIndex = ind
 		children = append(children, child)
 	}
-	return step{op: record, children: children}, nil
+	return step{op: record, toType: out, children: children}, nil
 }
 
-func newArrayOrSetStep(zctx *zed.Context, op op, in, out zed.Type) (step, error) {
-	innerStep, err := newStep(zctx, in, out)
+func newArrayOrSetStep(zctx *zed.Context, op op, inInner, out zed.Type) (step, error) {
+	innerStep, err := newStep(zctx, inInner, zed.InnerType(out))
 	if err != nil {
 		return step{}, err
 	}
-	return step{op: op, children: []step{innerStep}}, nil
+	return step{op: op, toType: out, children: []step{innerStep}}, nil
 }
 
-func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
-	for _, step := range s.children {
-		switch step.op {
-		case null:
+// build applies the operation described by s to in, appends the resulting bytes
+// to b, and returns the resulting type.  The type is usually s.toType but can
+// differ if a primitive cast fails.
+func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) zed.Type {
+	if in == nil || s.op == copyOp {
+		b.Append(in)
+		return s.toType
+	}
+	switch s.op {
+	case castPrimitive:
+		// For a successful cast, v.Type == zed.TypeUnder(s.toType).
+		// For a failed cast, v.Type is a zed.TypeError.
+		v := s.caster.Eval(ectx, zed.NewValue(s.fromType, in))
+		b.Append(v.Bytes)
+		if zed.TypeUnder(v.Type) == zed.TypeUnder(s.toType) {
+			// Prefer s.toType in case it's a named type.
+			return s.toType
+		}
+		return v.Type
+	case castFromUnion:
+		it := in.Iter()
+		tag := int(zed.DecodeInt(it.Next()))
+		return s.children[tag].build(zctx, ectx, it.Next(), b)
+	case castToUnion:
+		zed.BuildUnion(b, s.toTag, in)
+		return s.toType
+	case array, set:
+		return s.buildArrayOrSet(zctx, ectx, s.op, in, b)
+	case record:
+		return s.buildRecord(zctx, ectx, in, b)
+	default:
+		panic(fmt.Sprintf("unknown step.op %v", s.op))
+	}
+}
+
+func (s *step) buildArrayOrSet(zctx *zed.Context, ectx Context, op op, in zcode.Bytes, b *zcode.Builder) zed.Type {
+	b.BeginContainer()
+	defer b.EndContainer()
+	s.types = s.types[:0]
+	for it := in.Iter(); !it.Done(); {
+		typ := s.children[0].build(zctx, ectx, it.Next(), b)
+		s.types = append(s.types, typ)
+	}
+	s.uniqueTypes = append(s.uniqueTypes[:0], s.types...)
+	s.uniqueTypes = zed.UniqueTypes(s.uniqueTypes)
+	var inner zed.Type
+	switch len(s.uniqueTypes) {
+	case 0:
+		return s.toType
+	case 1:
+		inner = s.uniqueTypes[0]
+	default:
+		union := zctx.LookupTypeUnion(s.uniqueTypes)
+		if &union.Types[0] == &s.uniqueTypes[0] {
+			// union now owns s.uniqueTypes, so don't reuse it.
+			s.uniqueTypes = nil
+		}
+		// Convert each container element to the union type.
+		b.TransformContainer(func(bytes zcode.Bytes) zcode.Bytes {
+			var b2 zcode.Builder
+			for i, it := 0, bytes.Iter(); !it.Done(); i++ {
+				zed.BuildUnion(&b2, union.TagOf(s.types[i]), it.Next())
+			}
+			return b2.Bytes()
+		})
+		inner = union
+	}
+	if op == set {
+		b.TransformContainer(zed.NormalizeSet)
+	}
+	if zed.TypeUnder(inner) == zed.TypeUnder(zed.InnerType(s.toType)) {
+		// Prefer s.toType in case it or its inner type is a named type.
+		return s.toType
+	}
+	if op == set {
+		return zctx.LookupTypeSet(inner)
+	}
+	return zctx.LookupTypeArray(inner)
+}
+
+func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) zed.Type {
+	b.BeginContainer()
+	defer b.EndContainer()
+	s.types = s.types[:0]
+	var needNewRecordType bool
+	for _, child := range s.children {
+		if child.op == null {
 			b.Append(nil)
+			s.types = append(s.types, child.toType)
 			continue
 		}
 		// Using getNthFromContainer means we iterate from the
@@ -410,79 +494,25 @@ func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *z
 		// reordering) would be make direct use of a
 		// zcode.Iter along with keeping track of our
 		// position.
-		bytes := getNthFromContainer(in, step.fromIndex)
-		if zerr := step.build(zctx, ectx, bytes, b); zerr != nil {
-			return zerr
+		bytes := getNthFromContainer(in, child.fromIndex)
+		typ := child.build(zctx, ectx, bytes, b)
+		if zed.TypeUnder(typ) == zed.TypeUnder(child.toType) {
+			// Prefer child.toType in case it's a named type.
+			typ = child.toType
+		} else {
+			// This field's type differs from the corresponding
+			// field in s.toType, so we'll need to look up a new
+			// record type below.
+			needNewRecordType = true
 		}
+		s.types = append(s.types, typ)
 	}
-	return nil
-}
-
-func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
-	switch s.op {
-	case copyOp:
-		b.Append(in)
-	case castPrimitive:
-		if zerr := s.castPrimitive(zctx, ectx, in, b); zerr != nil {
-			return zerr
+	if needNewRecordType {
+		fields := append([]zed.Column{}, zed.TypeUnder(s.toType).(*zed.TypeRecord).Columns...)
+		for i, t := range s.types {
+			fields[i].Type = t
 		}
-	case castToUnion:
-		zed.BuildUnion(b, s.toTag, in)
-	case null:
-		b.Append(nil)
-	case record:
-		if in == nil {
-			b.Append(nil)
-			return nil
-		}
-		b.BeginContainer()
-		if zerr := s.buildRecord(zctx, ectx, in, b); zerr != nil {
-			return zerr
-		}
-		b.EndContainer()
-	case array, set:
-		if in == nil {
-			b.Append(nil)
-			return nil
-		}
-		b.BeginContainer()
-		for it := in.Iter(); !it.Done(); {
-			if zerr := s.children[0].build(zctx, ectx, it.Next(), b); zerr != nil {
-				return zerr
-			}
-		}
-		if s.op == set {
-			b.TransformContainer(zed.NormalizeSet)
-		}
-		b.EndContainer()
-	case castFromUnion:
-		if in == nil {
-			b.Append(nil)
-			return nil
-		}
-		it := in.Iter()
-		tag := int(zed.DecodeInt(it.Next()))
-		body := it.Next()
-		return s.children[tag].build(zctx, ectx, body, b)
+		return zctx.MustLookupTypeRecord(fields)
 	}
-	return nil
-}
-
-func (s *step) castPrimitive(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.Builder) *zed.Value {
-	if in == nil {
-		b.Append(nil)
-		return nil
-	}
-	toType := zed.TypeUnder(s.toType)
-	v := s.caster.Eval(ectx, &zed.Value{s.fromType, in})
-	if v.Type != toType {
-		// v isn't the "to" type, so we can't safely append v.Bytes to
-		// the builder. See https://github.com/brimdata/zed/issues/2710.
-		if v.IsError() {
-			return v
-		}
-		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))
-	}
-	b.Append(v.Bytes)
-	return nil
+	return s.toType
 }

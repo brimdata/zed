@@ -1,8 +1,8 @@
 zed: |
-  yield shape(<{f1:time}>)
+  yield shape(<{a:time}>)
 
 input: |
-  {f1:"WellWhatDoYouThinkOfThis",f2:"NotMuch"}
+  {a:"a",b:"b"}
 
 output: |
-  error("cannot cast \"WellWhatDoYouThinkOfThis\" to type time")
+  {a:error("cannot cast \"a\" to type time"),b:"b"}
