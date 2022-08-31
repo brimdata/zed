@@ -224,7 +224,8 @@ func (c *Context) LookupTypeUnion(types []Type) *TypeUnion {
 		tvPool.Put(tv)
 		return typ.(*TypeUnion)
 	}
-	typ := NewTypeUnion(c.nextIDWithLock(), types)
+	dup := make([]Type, 0, len(types))
+	typ := NewTypeUnion(c.nextIDWithLock(), append(dup, types...))
 	c.enterWithLock(*tv, typ)
 	return typ
 }
@@ -238,7 +239,8 @@ func (c *Context) LookupTypeEnum(symbols []string) *TypeEnum {
 		tvPool.Put(tv)
 		return typ.(*TypeEnum)
 	}
-	typ := NewTypeEnum(c.nextIDWithLock(), symbols)
+	dup := make([]string, 0, len(symbols))
+	typ := NewTypeEnum(c.nextIDWithLock(), append(dup, symbols...))
 	c.enterWithLock(*tv, typ)
 	return typ
 }
