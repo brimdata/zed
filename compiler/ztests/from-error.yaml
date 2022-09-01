@@ -1,0 +1,21 @@
+script: |
+  ! zc -C -s 'from p'
+  echo === >&2
+  export ZED_LAKE=test
+  zed init
+  ! zc -C -s 'from test'
+  echo === >&2
+  ! zc -C -s 'from test*'
+  echo === >&2
+  ! zc -C -s 'from /test/'
+
+outputs:
+  - name: stderr
+    data: |
+      semantic analyzer: from pool cannot be used without a lake
+      ===
+      test: pool not found
+      ===
+      test*: pool matching glob not found
+      ===
+      test: pool matching regexp not found

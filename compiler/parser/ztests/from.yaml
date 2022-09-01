@@ -5,6 +5,6 @@ outputs:
   - name: stdout
     data: |
       from (
-        pool a =>
+        pool "a" =>
           search x and pool and b
       )

@@ -9,6 +9,10 @@ script: |
   echo ===
   zc -C 'from foo'
   echo ===
+  zc -C 'from foo*'
+  echo ===
+  zc -C 'from /foo/'
+  echo ===
   zc -C 'from ( file path get http://host/path pool name )'
   echo ===
   zc -C 'from ( file path format f get http://host/path format g pool name )'
@@ -37,19 +41,27 @@ outputs:
       )
       ===
       from (
-        pool foo
+        pool "foo"
+      )
+      ===
+      from (
+        pool foo*
+      )
+      ===
+      from (
+        pool /foo/
       )
       ===
       from (
         file path
         get http://host/path
-        pool name
+        pool "name"
       )
       ===
       from (
         file path format f
         get http://host/path format g
-        pool name
+        pool "name"
       )
       ===
       from (
@@ -57,7 +69,7 @@ outputs:
           head 1
         get http://host/path =>
           head 1
-        pool name =>
+        pool "name" =>
           head 1
       )
       ===
@@ -66,6 +78,6 @@ outputs:
           head 1
         get http://host/path format g =>
           head 1
-        pool name =>
+        pool "name" =>
           head 1
       )

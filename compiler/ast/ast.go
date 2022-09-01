@@ -383,9 +383,9 @@ type (
 )
 
 type PoolSpec struct {
-	Pool   string `json:"pool"`
-	Commit string `json:"commit"`
-	Meta   string `json:"meta"`
+	Pool   Pattern `json:"pool"`
+	Commit string  `json:"commit"`
+	Meta   string  `json:"meta"`
 }
 
 type Range struct {
