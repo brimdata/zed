@@ -64,19 +64,20 @@ func (u *Union) Result(zctx *zed.Context) *zed.Value {
 	for typ := range u.types {
 		types = append(types, typ)
 	}
-	types = zed.UniqueTypes(types)
-	inner := types[0]
-	if len(types) > 1 {
-		inner = zctx.LookupTypeUnion(types)
-	}
+	var inner zed.Type
 	var b zcode.Builder
-	for typ, m := range u.types {
-		for v := range m {
-			if union, ok := zed.TypeUnder(inner).(*zed.TypeUnion); ok {
+	if len(types) > 1 {
+		union := zctx.LookupTypeUnion(types)
+		inner = union
+		for typ, m := range u.types {
+			for v := range m {
 				zed.BuildUnion(&b, union.TagOf(typ), []byte(v))
-			} else {
-				b.Append([]byte(v))
 			}
+		}
+	} else {
+		inner = types[0]
+		for v := range u.types[inner] {
+			b.Append([]byte(v))
 		}
 	}
 	return zed.NewValue(zctx.LookupTypeSet(inner), zed.NormalizeSet(b.Bytes()))
