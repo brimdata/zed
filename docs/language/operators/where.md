@@ -48,6 +48,15 @@ echo '1 2 3' | zq -z 'where this >= 2 AND this <= 2' -
 ```mdtest-output
 2
 ```
+_A filter with array containment logic_
+```mdtest-command
+echo '1 2 3 4' | zq -z 'where this in [1,4]' -
+```
+=>
+```mdtest-output
+1
+4
+```
 _Boolean functions may be called_
 ```mdtest-command
 echo '1 "foo" 10.0.0.1' | zq -z 'where is(<int64>)' -
