@@ -450,10 +450,6 @@ func (s *step) buildArrayOrSet(zctx *zed.Context, ectx Context, op op, in zcode.
 		inner = s.uniqueTypes[0]
 	default:
 		union := zctx.LookupTypeUnion(s.uniqueTypes)
-		if &union.Types[0] == &s.uniqueTypes[0] {
-			// union now owns s.uniqueTypes, so don't reuse it.
-			s.uniqueTypes = nil
-		}
 		// Convert each container element to the union type.
 		b.TransformContainer(func(bytes zcode.Bytes) zcode.Bytes {
 			var b2 zcode.Builder
