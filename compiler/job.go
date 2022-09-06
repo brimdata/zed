@@ -76,7 +76,12 @@ func NewJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 			// from options).
 			trunk.Source = &ast.Pool{
 				Kind: "Pool",
-				Spec: ast.PoolSpec{Pool: "HEAD"},
+				Spec: ast.PoolSpec{
+					Pool: &ast.String{
+						Kind: "String",
+						Text: "HEAD",
+					},
+				},
 			}
 		} else {
 			readers = []*kernel.Reader{{}}

@@ -395,6 +395,8 @@ func source(src dag.Source) string {
 	case *dag.LakeMeta:
 		return fmt.Sprintf(":%s", p.Meta)
 		//XXX from, to, order
+	case *dag.Pass:
+		return "pass"
 	case *kernel.Reader:
 		return "(internal reader)"
 	default:

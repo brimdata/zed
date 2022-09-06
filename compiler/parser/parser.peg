@@ -516,12 +516,18 @@ PoolSpec
     }
 
 PoolCommit
-  = "@" commit:PoolName { RETURN(commit) }
+  = "@" commit:PoolNameString { RETURN(commit) }
 
 PoolMeta
   = ":" meta:PoolIdentifier { RETURN(meta) }
 
 PoolName
+  = Glob
+  / "*" !ExprGuard { RETURN(MAP("kind": "Glob", "pattern": "*")) }
+  / Regexp
+  / name:PoolNameString { RETURN(MAP("kind": "String", "text": name)) }
+
+PoolNameString
   = PoolIdentifier
   / KSUID
   / QuotedString

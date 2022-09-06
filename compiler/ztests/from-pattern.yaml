@@ -1,0 +1,42 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q match1
+  zed create -q match2
+  zed create -q nope
+  zc -C -s 'from * | sort' | sed -e 's/pool [^ ]*/pool POOL/'
+  echo ===
+  zc -C -s 'from (pool match* => sort)' | sed -e 's/pool [^ ]*/pool POOL/'
+  echo ===
+  zc -C -s 'from (pool /match/ => sort)' | sed -e 's/pool [^ ]*/pool POOL/'
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        pass =>
+          from (
+            pool POOL
+            pool POOL
+            pool POOL
+          )
+      )
+      | sort
+      ===
+      from (
+        pass =>
+          from (
+            pool POOL
+            pool POOL
+          )
+          | sort
+      )
+      ===
+      from (
+        pass =>
+          from (
+            pool POOL
+            pool POOL
+          )
+          | sort
+      )

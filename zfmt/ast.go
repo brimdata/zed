@@ -1,6 +1,7 @@
 package zfmt
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/brimdata/zed/compiler/ast"
@@ -596,7 +597,19 @@ func (c *canon) proc(p ast.Op) {
 
 func (c *canon) pool(p *ast.Pool) {
 	//XXX TBD name, from, to, id etc
-	s := p.Spec.Pool
+	var s string
+	switch specPool := p.Spec.Pool.(type) {
+	case nil:
+		// This is a lake meta-query.
+	case *ast.Glob:
+		s = specPool.Pattern
+	case *ast.Regexp:
+		s = "/" + specPool.Pattern + "/"
+	case *ast.String:
+		s = zson.QuotedString([]byte(specPool.Text))
+	default:
+		s = fmt.Sprintf("(unknown pool type %T)", specPool)
+	}
 	if p.Spec.Commit != "" {
 		s += "@" + p.Spec.Commit
 	}

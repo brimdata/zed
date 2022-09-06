@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -12,6 +13,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/pkg/reglob"
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/segmentio/ksuid"
 )
@@ -32,13 +34,31 @@ func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Sou
 }
 
 func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish) (dag.Trunk, error) {
-	source, err := semSource(ctx, scope, trunk.Source, ds, head)
+	sources, err := semSource(ctx, scope, trunk.Source, ds, head)
 	if err != nil {
 		return dag.Trunk{}, err
 	}
 	seq, err := semSequential(ctx, scope, trunk.Seq, ds, head)
 	if err != nil {
 		return dag.Trunk{}, err
+	}
+	source := sources[0]
+	if len(sources) > 1 {
+		source = &dag.Pass{Kind: "Pass"}
+		var trunks []dag.Trunk
+		for _, s := range sources {
+			trunks = append(trunks, dag.Trunk{
+				Kind:   "Trunk",
+				Source: s,
+			})
+		}
+		if seq == nil {
+			seq = &dag.Sequential{Kind: "Sequential"}
+		}
+		seq.Prepend(&dag.From{
+			Kind:   "From",
+			Trunks: trunks,
+		})
 	}
 	return dag.Trunk{
 		Kind:   "Trunk",
@@ -49,29 +69,33 @@ func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Sourc
 
 //XXX make sure you can't read files from a lake instance
 
-func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.Source, head *lakeparse.Commitish) (dag.Source, error) {
+func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.Source, head *lakeparse.Commitish) ([]dag.Source, error) {
 	switch p := source.(type) {
 	case *ast.File:
 		layout, err := semLayout(p.Layout)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.File{
-			Kind:   "File",
-			Path:   p.Path,
-			Format: p.Format,
-			Layout: layout,
+		return []dag.Source{
+			&dag.File{
+				Kind:   "File",
+				Path:   p.Path,
+				Format: p.Format,
+				Layout: layout,
+			},
 		}, nil
 	case *ast.HTTP:
 		layout, err := semLayout(p.Layout)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.HTTP{
-			Kind:   "HTTP",
-			URL:    p.URL,
-			Format: p.Format,
-			Layout: layout,
+		return []dag.Source{
+			&dag.HTTP{
+				Kind:   "HTTP",
+				URL:    p.URL,
+				Format: p.Format,
+				Layout: layout,
+			},
 		}, nil
 	case *ast.Pool:
 		if !ds.IsLake() {
@@ -79,10 +103,10 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 		}
 		return semPool(ctx, scope, p, ds, head)
 	case *ast.Pass:
-		return &dag.Pass{Kind: "Pass"}, nil
+		return []dag.Source{&dag.Pass{Kind: "Pass"}}, nil
 	case *kernel.Reader:
 		// kernel.Reader implements both ast.Source and dag.Source
-		return p, nil
+		return []dag.Source{p}, nil
 	default:
 		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
 	}
@@ -107,8 +131,38 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 	return order.NewLayout(which, keys), nil
 }
 
-func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, head *lakeparse.Commitish) (dag.Source, error) {
-	poolName := p.Spec.Pool
+func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, head *lakeparse.Commitish) ([]dag.Source, error) {
+	var poolNames []string
+	var err error
+	switch specPool := p.Spec.Pool.(type) {
+	case nil:
+		// This is a lake meta-query.
+		poolNames = []string{""}
+	case *ast.Glob:
+		poolNames, err = matchPools(ctx, ds, reglob.Reglob(specPool.Pattern), specPool.Pattern, "glob")
+	case *ast.Regexp:
+		poolNames, err = matchPools(ctx, ds, specPool.Pattern, specPool.Pattern, "regexp")
+	case *ast.String:
+		poolNames = []string{specPool.Text}
+	default:
+		return nil, fmt.Errorf("semantic analyzer: unknown AST pool type %T", specPool)
+	}
+	if err != nil {
+		return nil, err
+	}
+	var sources []dag.Source
+	for _, name := range poolNames {
+		source, err := semPoolWithName(ctx, scope, p, name, ds, head)
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, source)
+	}
+	return sources, nil
+}
+
+func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName string, ds *data.Source,
+	head *lakeparse.Commitish) (dag.Source, error) {
 	commit := p.Spec.Commit
 	if poolName == "HEAD" {
 		if head == nil {
@@ -205,6 +259,27 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 		ScanUpper: upper,
 		ScanOrder: p.ScanOrder,
 	}, nil
+}
+
+func matchPools(ctx context.Context, ds *data.Source, pattern, origPattern, patternDesc string) ([]string, error) {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+	pools, err := ds.Lake().ListPools(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var matches []string
+	for _, p := range pools {
+		if re.MatchString(p.Name) {
+			matches = append(matches, p.Name)
+		}
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("%s: pool matching %s not found", origPattern, patternDesc)
+	}
+	return matches, nil
 }
 
 func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *data.Source, head *lakeparse.Commitish) (*dag.Sequential, error) {
