@@ -102,10 +102,6 @@ func (b *builder) endArray() {
 		}
 	default:
 		union := b.zctx.LookupTypeUnion(b.types)
-		if &union.Types[0] == &b.types[0] {
-			// union now owns b.types, so don't reuse it.
-			b.types = nil
-		}
 		container.typ = b.zctx.LookupTypeArray(union)
 		for i := range items {
 			if bytes := items[i].zb.Bytes().Body(); bytes == nil {
