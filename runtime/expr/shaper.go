@@ -392,7 +392,7 @@ func newRecordStep(zctx *zed.Context, in, out *zed.TypeRecord) (step, error) {
 func newArrayOrSetStep(zctx *zed.Context, op op, in, out zed.Type) (step, error) {
 	innerStep, err := newStep(zctx, in, out)
 	if err != nil {
-		return step{}, nil
+		return step{}, err
 	}
 	return step{op: op, children: []step{innerStep}}, nil
 }
