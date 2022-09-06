@@ -6,9 +6,11 @@ input: |
   {a:|[]|(|[string]|),b:|[]|(|[{b:string}]|)}
   {a:|["1.1.1.1","2.2.2.2"]|,b:|[{b:"1.1.1.1"},{b:"2.2.2.2"}]|}
   {a:|[null(string),"1.1.1.1"]|,b:|[null({b:string}),{b:null(string)},{b:"2.2.2.2"}]|}
+  {a:|[null,"1.1.1.1","2"]|,b:|[{b:null},{b:"1.1.1.1"},{b:"2"}]|}
 
 output: |
   {a:null([ip]),b:null([{b:ip}])}
   {a:[]([ip]),b:[]([{b:ip}])}
   {a:[1.1.1.1,2.2.2.2],b:[{b:1.1.1.1},{b:2.2.2.2}]}
   {a:[null(ip),1.1.1.1],b:[null({b:ip}),{b:null(ip)},{b:2.2.2.2}]}
+  {a:[null,error("cannot cast \"2\" to type ip"),1.1.1.1],b:[{b:error("cannot cast \"2\" to type ip")},{b:null(ip)},{b:1.1.1.1}]}
