@@ -52,11 +52,11 @@ For union values, multiple decorators might be
 required to distinguish the union-member type from the possible set of
 union types when there is ambiguity, as in
 ```
-123.0 (float32) ((int64,float32,float64))
+123. (float32) ((int64,float32,float64))
 ```
 In contrast, this union value is unambiguous:
 ```
-123.0 ((int64,float64))
+123. ((int64,float64))
 ```
 
 The syntax of a union value decorator is
