@@ -25,7 +25,7 @@ func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Sou
 		if err != nil {
 			return nil, err
 		}
-		trunks = append(trunks, converted)
+		trunks = append(trunks, converted...)
 	}
 	return &dag.From{
 		Kind:   "From",
@@ -33,38 +33,30 @@ func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Sou
 	}, nil
 }
 
-func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish) (dag.Trunk, error) {
+func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish) ([]dag.Trunk, error) {
+	if pool, ok := trunk.Source.(*ast.Pool); ok && trunk.Seq != nil {
+		switch pool.Spec.Pool.(type) {
+		case *ast.Glob, *ast.Regexp:
+			return nil, errors.New("=> not allowed after pool pattern in 'from' operator")
+		}
+	}
 	sources, err := semSource(ctx, scope, trunk.Source, ds, head)
 	if err != nil {
-		return dag.Trunk{}, err
+		return nil, err
 	}
 	seq, err := semSequential(ctx, scope, trunk.Seq, ds, head)
 	if err != nil {
-		return dag.Trunk{}, err
+		return nil, err
 	}
-	source := sources[0]
-	if len(sources) > 1 {
-		source = &dag.Pass{Kind: "Pass"}
-		var trunks []dag.Trunk
-		for _, s := range sources {
-			trunks = append(trunks, dag.Trunk{
-				Kind:   "Trunk",
-				Source: s,
-			})
-		}
-		if seq == nil {
-			seq = &dag.Sequential{Kind: "Sequential"}
-		}
-		seq.Prepend(&dag.From{
-			Kind:   "From",
-			Trunks: trunks,
+	var trunks []dag.Trunk
+	for _, source := range sources {
+		trunks = append(trunks, dag.Trunk{
+			Kind:   "Trunk",
+			Source: source,
+			Seq:    seq,
 		})
 	}
-	return dag.Trunk{
-		Kind:   "Trunk",
-		Source: source,
-		Seq:    seq,
-	}, nil
+	return trunks, nil
 }
 
 //XXX make sure you can't read files from a lake instance
