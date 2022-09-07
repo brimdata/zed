@@ -13,6 +13,9 @@ type Flatten struct {
 	mapper     *zed.Mapper
 	entryTypes map[zed.Type]zed.Type
 	zctx       *zed.Context
+
+	// This exists only to reduce memory allocations.
+	types []zed.Type
 }
 
 func NewFlatten(zctx *zed.Context) *Flatten {
@@ -36,8 +39,8 @@ func (n *Flatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 func (n *Flatten) innerTypeOf(b zcode.Bytes, cols []zed.Column) zed.Type {
-	types := n.appendTypes(nil, b, cols)
-	unique := zed.UniqueTypes(types)
+	n.types = n.appendTypes(n.types[:0], b, cols)
+	unique := zed.UniqueTypes(n.types)
 	if len(unique) == 1 {
 		return unique[0]
 	}
