@@ -8,6 +8,9 @@ script: |
   ! zc -C -s 'from test*'
   echo === >&2
   ! zc -C -s 'from /test/'
+  echo === >&2
+  zed create -q test
+  ! zc -C -s 'from (pool * => count())'
 
 outputs:
   - name: stderr
@@ -19,3 +22,5 @@ outputs:
       test*: pool matching glob not found
       ===
       test: pool matching regexp not found
+      ===
+      => not allowed after pool pattern in 'from' operator

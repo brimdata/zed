@@ -1,0 +1,25 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  for pool in match1 match2 nope; do
+    zed create -q $pool
+    echo "\"$pool\"" | zed load -q -use $pool -
+  done
+  zed query -z 'from * | sort this'
+  echo ===
+  zed query -z 'from match* | sort this'
+  echo ===
+  zed query -z 'from (pool /match/) | sort this'
+
+outputs:
+  - name: stdout
+    data: |
+      "match1"
+      "match2"
+      "nope"
+      ===
+      "match1"
+      "match2"
+      ===
+      "match1"
+      "match2"
