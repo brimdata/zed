@@ -1,0 +1,13 @@
+script: |
+  zst create -o out.zst -
+  zq -z -i zst out.zst
+
+inputs:
+  - name: stdin
+    data: &stdin |
+      {a:{aa:0}}
+      {a:{aa:0},b:[{bb:0}]}
+
+outputs:
+  - name: stdout
+    data: *stdin

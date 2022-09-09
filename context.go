@@ -245,12 +245,16 @@ func (c *Context) LookupTypeEnum(symbols []string) *TypeEnum {
 	return typ
 }
 
+// LookupTypeDef returns the named type last bound to name by LookupTypeNamed.
+// It returns nil if name is unbound.
 func (c *Context) LookupTypeDef(name string) *TypeNamed {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.typedefs[name]
 }
 
+// LookupTypeNamed returns the named type for name and inner.  It also binds
+// name to that named type.
 func (c *Context) LookupTypeNamed(name string, inner Type) (*TypeNamed, error) {
 	tv := tvPool.Get().(*[]byte)
 	*tv = AppendTypeValue((*tv)[:0], &TypeNamed{Name: name, Type: inner})
@@ -258,6 +262,7 @@ func (c *Context) LookupTypeNamed(name string, inner Type) (*TypeNamed, error) {
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[string(*tv)]; ok {
 		tvPool.Put(tv)
+		c.typedefs[name] = typ.(*TypeNamed)
 		return typ.(*TypeNamed), nil
 	}
 	typ := NewTypeNamed(c.nextIDWithLock(), name, inner)
