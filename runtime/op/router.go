@@ -99,6 +99,9 @@ func (r *Router) sendEOS(err error) bool {
 	// catch any dones in progress.  This result in all routes
 	// being blocked.
 	for _, p := range r.routes {
+		if p.blocked {
+			continue
+		}
 		// XXX If we get done while trying to send an EOS, we need to
 		// ack the done and then send the EOS.  We treat it as if it
 		// happened before the EOS being sent.
