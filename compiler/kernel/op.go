@@ -308,28 +308,22 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 }
 
 func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	if len(parents) == 0 {
-		var ops []zbuf.Puller
-		for _, o := range parallel.Ops {
-			branch, err := b.compile(o, nil)
-			if err != nil {
-				return nil, err
-			}
-			ops = append(ops, branch...)
-		}
-		return ops, nil
-	}
 	n := len(parallel.Ops)
-	if len(parents) == 1 {
+	switch len(parents) {
+	case 0:
+		// No parents: create n nil parents.
+		parents = make([]zbuf.Puller, n)
+	case 1:
 		// Single parent: insert a fork for n-way fanout.
 		parents = fork.New(b.pctx, parents[0], n)
-	}
-	if len(parents) != n {
-		return nil, fmt.Errorf("parallel input mismatch: %d parents with %d flowgraph paths", len(parents), len(parallel.Ops))
+	default:
+		// Multiple parents: insert a combine followed by a fork for n-way fanout.
+		c := combine.New(b.pctx, parents)
+		parents = fork.New(b.pctx, c, n)
 	}
 	var ops []zbuf.Puller
-	for k := 0; k < n; k++ {
-		op, err := b.compile(parallel.Ops[k], []zbuf.Puller{parents[k]})
+	for k, o := range parallel.Ops {
+		op, err := b.compile(o, []zbuf.Puller{parents[k]})
 		if err != nil {
 			return nil, err
 		}
