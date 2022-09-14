@@ -536,7 +536,7 @@ name=type
 and create a binding between the indicated string `name` and the specified type.
 For example,
 ```
-type socket {addr:ip,port:port=uint16}
+type socket = {addr:ip,port:port=uint16}
 ```
 defines a named type `socket` that is a record with field `addr` of type `ip`
 and field `port` of type "port", where type "port" is a named type for type `uint16` .
@@ -603,7 +603,7 @@ is a superset of relational tables and
 the Zed language's type system can easily make this connection.
 As an example, consider this type definition for "employee":
 ```
-type employee {id:int64,first:string,last:string,job:string,salary:float64}
+type employee = {id:int64,first:string,last:string,job:string,salary:float64}
 ```
 In SQL, you might find the top five salaries by last name with
 ```
