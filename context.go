@@ -63,7 +63,7 @@ func (c *Context) LookupType(id int) (Type, error) {
 		return nil, fmt.Errorf("type id (%d) cannot be negative", id)
 	}
 	if id < IDTypeComplex {
-		return LookupPrimitiveByID(id), nil
+		return LookupPrimitiveByID(id)
 	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -514,12 +514,8 @@ func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	default:
-		if id < 0 || id > TypeValueMax {
-			// Out of range.
-			return nil, nil
-		}
-		typ := LookupPrimitiveByID(int(id))
-		if typ == nil {
+		typ, err := LookupPrimitiveByID(int(id))
+		if err != nil {
 			return nil, nil
 		}
 		return typ, tv

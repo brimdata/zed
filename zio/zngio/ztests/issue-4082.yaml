@@ -1,0 +1,14 @@
+script: |
+  zq -f zst -o f.zst -
+  ! zq -i zng f.zst
+
+inputs:
+  - name: stdin
+    data: |
+      {a:[1,2],b:[]([int64])}
+      {a:null([int64]),b:[1,2,3]}
+
+outputs:
+  - name: stderr
+    data: |
+      f.zst: primitive type ID 4 not implemented

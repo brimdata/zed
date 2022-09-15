@@ -24,7 +24,8 @@ func NewMapper(out *Context) *Mapper {
 // does not change anything.
 func (m *Mapper) Lookup(id int) Type {
 	if id < IDTypeComplex {
-		return LookupPrimitiveByID(id)
+		typ, _ := LookupPrimitiveByID(id)
+		return typ
 	}
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -36,7 +37,7 @@ func (m *Mapper) Lookup(id int) Type {
 
 func (m *Mapper) Enter(id int, ext Type) (Type, error) {
 	if id < IDTypeComplex {
-		return LookupPrimitiveByID(id), nil
+		return LookupPrimitiveByID(id)
 	}
 	typ, err := m.outputCtx.TranslateType(ext)
 	if err != nil {

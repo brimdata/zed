@@ -261,48 +261,54 @@ func PrimitiveName(typ Type) string {
 	}
 }
 
-func LookupPrimitiveByID(id int) Type {
+func LookupPrimitiveByID(id int) (Type, error) {
+	if id < 0 {
+		return nil, fmt.Errorf("negative type ID: %d", id)
+	}
+	if id >= IDTypeComplex {
+		return nil, fmt.Errorf("type ID too large for primitive: %d", id)
+	}
 	switch id {
 	case IDBool:
-		return TypeBool
+		return TypeBool, nil
 	case IDInt8:
-		return TypeInt8
+		return TypeInt8, nil
 	case IDUint8:
-		return TypeUint8
+		return TypeUint8, nil
 	case IDInt16:
-		return TypeInt16
+		return TypeInt16, nil
 	case IDUint16:
-		return TypeUint16
+		return TypeUint16, nil
 	case IDInt32:
-		return TypeInt32
+		return TypeInt32, nil
 	case IDUint32:
-		return TypeUint32
+		return TypeUint32, nil
 	case IDInt64:
-		return TypeInt64
+		return TypeInt64, nil
 	case IDUint64:
-		return TypeUint64
+		return TypeUint64, nil
 	case IDFloat32:
-		return TypeFloat32
+		return TypeFloat32, nil
 	case IDFloat64:
-		return TypeFloat64
+		return TypeFloat64, nil
 	case IDBytes:
-		return TypeBytes
+		return TypeBytes, nil
 	case IDString:
-		return TypeString
+		return TypeString, nil
 	case IDIP:
-		return TypeIP
+		return TypeIP, nil
 	case IDNet:
-		return TypeNet
+		return TypeNet, nil
 	case IDTime:
-		return TypeTime
+		return TypeTime, nil
 	case IDDuration:
-		return TypeDuration
+		return TypeDuration, nil
 	case IDType:
-		return TypeType
+		return TypeType, nil
 	case IDNull:
-		return TypeNull
+		return TypeNull, nil
 	}
-	return nil
+	return nil, fmt.Errorf("primitive type ID %d not implemented", id)
 }
 
 // Utilities shared by complex types (ie, set and array)
