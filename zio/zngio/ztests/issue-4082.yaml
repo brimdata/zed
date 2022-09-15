@@ -1,14 +1,18 @@
 script: |
-  zq -f zst -o f.zst -
-  ! zq -i zng f.zst
+  ! zq -i zng -
 
 inputs:
   - name: stdin
-    data: |
-      {a:[1,2],b:[]([int64])}
-      {a:null([int64]),b:[1,2,3]}
+    # Generated with `bash -c 'zq -f zst -o f.zst - <<<"[1,2]" && base64 -b 70 f.zst'`.
+    data: !!binary |
+      AgQCAgIEAQUFAAIGT2Zmc2V0CQZMZW5ndGgIBwdTZWdtZW50HgEfAAIEVHlwZRwGU2VnbW
+      FwIAcJUHJpbWl0aXZlIQACB0xlbmd0aHMgBlZhbHVlcyIHBUFycmF5IxcBIAYFAgwCAiQP
+      BQQBAgQJAgkGBQIEAgj/SAYAaPQKAQkAAgtza2V3X3RocmVzaAkOc2VnbWVudBAA8DgHDH
+      pzdC5GaWxlTWV0YR8ABQVtYWdpYxkEdHlwZRkHdmVyc2lvbgkIc2VjdGlvbnMeBG1ldGEg
+      Bw16bmdpby5UcmFpbGVyIRMCIiIMWk5HIFRyYWlsZXIEenN0AgYFAg4C4goFAAAgAwQAAK
+      D/
 
 outputs:
   - name: stderr
     data: |
-      f.zst: primitive type ID 4 not implemented
+      stdio:stdin: primitive type ID 4 not implemented
