@@ -11,12 +11,12 @@ jobs:
   test:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '1.18'
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
       - run: go mod download
       - run: make fmt
       - run: make tidy
@@ -28,10 +28,10 @@ jobs:
   test-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '1.18'
       - uses: actions/checkout@v2
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
       - run: go test -short ./...
       - run: mkdir dist -ea 0
       - run: go build -o dist ./cmd/...
@@ -39,9 +39,9 @@ jobs:
   output-check:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '1.18'
       - uses: actions/checkout@v2
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
       - run: make install
       - run: make output-check
