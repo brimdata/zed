@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
+	"golang.org/x/exp/slices"
 )
 
 // Renamer renames one or more fields in a record. A field can only be
@@ -44,8 +45,7 @@ func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRe
 	} else {
 		innerType = typ.Columns[c].Type
 	}
-	newcols := make([]zed.Column, len(typ.Columns))
-	copy(newcols, typ.Columns)
+	newcols := slices.Clone(typ.Columns)
 	newcols[c] = zed.Column{Name: dst[0], Type: innerType}
 	typ, err := r.zctx.LookupTypeRecord(newcols)
 	if err != nil {

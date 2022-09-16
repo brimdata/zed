@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
+	"golang.org/x/exp/slices"
 )
 
 func Extension(format string) string {
@@ -98,9 +99,7 @@ func ConcatReader(readers ...Reader) Reader {
 	if len(readers) == 1 {
 		return readers[0]
 	}
-	r := make([]Reader, len(readers))
-	copy(r, readers)
-	return &concatReader{r}
+	return &concatReader{slices.Clone(readers)}
 }
 
 type concatReader struct {
@@ -119,9 +118,7 @@ func (c *concatReader) Read() (*zed.Value, error) {
 }
 
 func MultiWriter(writers ...Writer) Writer {
-	w := make([]Writer, len(writers))
-	copy(w, writers)
-	return &multiWriter{w}
+	return &multiWriter{slices.Clone(writers)}
 }
 
 type multiWriter struct {

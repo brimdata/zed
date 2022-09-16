@@ -3,6 +3,7 @@ package dag
 import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"golang.org/x/exp/slices"
 )
 
 type KeyFilter struct {
@@ -43,8 +44,8 @@ func (k *KeyFilter) SpanExpr(o order.Which, prefix ...string) Expr {
 }
 
 func (k *KeyFilter) newExpr(o order.Which, prefix []string, cropped bool) Expr {
-	lower := append(append([]string{}, prefix...), "lower")
-	upper := append(append([]string{}, prefix...), "upper")
+	lower := append(slices.Clone(prefix), "lower")
+	upper := append(slices.Clone(prefix), "upper")
 	if cropped {
 		lower, upper = upper, lower
 	}
@@ -110,7 +111,7 @@ func visitLeaves(node Expr, v func(cmp string, lhs *This, rhs *Literal) Expr) (E
 		if !ok {
 			return nil, true
 		}
-		lhs := &This{"This", append([]string{}, this.Path...)}
+		lhs := &This{"This", slices.Clone(this.Path)}
 		return v(e.Op, lhs, rhs), true
 	default:
 		return nil, true

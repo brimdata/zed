@@ -3,6 +3,7 @@ package expr
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
+	"golang.org/x/exp/slices"
 )
 
 type dropper struct {
@@ -91,7 +92,7 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 				continue
 			}
 		}
-		fields = append(fields, append(field.Path{}, fld...))
+		fields = append(fields, slices.Clone(fld))
 		types = append(types, c.Type)
 	}
 	return fields, types, match

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 var ErrTypeSyntax = errors.New("syntax error parsing type string")
@@ -66,12 +67,7 @@ func (v *Value) IsNull() bool {
 // Copy returns a copy of v that does not share v.Bytes.  The copy's Bytes field
 // is nil if and only if v.Bytes is nil.
 func (v *Value) Copy() *Value {
-	var b zcode.Bytes
-	if v.Bytes != nil {
-		b = make(zcode.Bytes, len(v.Bytes))
-		copy(b, v.Bytes)
-	}
-	return &Value{v.Type, b}
+	return &Value{v.Type, slices.Clone(v.Bytes)}
 }
 
 // CopyFrom copies from into v, reusing v.Bytes if possible and setting v.Bytes

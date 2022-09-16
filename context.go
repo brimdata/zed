@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -126,8 +127,7 @@ func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
 		tvPool.Put(tv)
 		return typ.(*TypeRecord), nil
 	}
-	dup := make([]Column, 0, len(columns))
-	typ := NewTypeRecord(c.nextIDWithLock(), append(dup, columns...))
+	typ := NewTypeRecord(c.nextIDWithLock(), slices.Clone(columns))
 	c.enterWithLock(*tv, typ)
 	return typ, nil
 }
@@ -224,8 +224,7 @@ func (c *Context) LookupTypeUnion(types []Type) *TypeUnion {
 		tvPool.Put(tv)
 		return typ.(*TypeUnion)
 	}
-	dup := make([]Type, 0, len(types))
-	typ := NewTypeUnion(c.nextIDWithLock(), append(dup, types...))
+	typ := NewTypeUnion(c.nextIDWithLock(), slices.Clone(types))
 	c.enterWithLock(*tv, typ)
 	return typ
 }
@@ -239,8 +238,7 @@ func (c *Context) LookupTypeEnum(symbols []string) *TypeEnum {
 		tvPool.Put(tv)
 		return typ.(*TypeEnum)
 	}
-	dup := make([]string, 0, len(symbols))
-	typ := NewTypeEnum(c.nextIDWithLock(), append(dup, symbols...))
+	typ := NewTypeEnum(c.nextIDWithLock(), slices.Clone(symbols))
 	c.enterWithLock(*tv, typ)
 	return typ
 }
@@ -294,16 +292,14 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 // an error is returned.
 func (c *Context) AddColumns(r *Value, newCols []Column, vals []Value) (*Value, error) {
 	oldCols := TypeRecordOf(r.Type).Columns
-	outCols := make([]Column, len(oldCols), len(oldCols)+len(newCols))
-	copy(outCols, oldCols)
+	outCols := slices.Clone(oldCols)
 	for _, col := range newCols {
 		if r.HasField(string(col.Name)) {
 			return nil, fmt.Errorf("field already exists: %s", col.Name)
 		}
 		outCols = append(outCols, col)
 	}
-	zv := make(zcode.Bytes, len(r.Bytes))
-	copy(zv, r.Bytes)
+	zv := slices.Clone(r.Bytes)
 	for _, val := range vals {
 		zv = val.Encode(zv)
 	}
