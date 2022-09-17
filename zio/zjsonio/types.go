@@ -211,9 +211,9 @@ func (d decoder) decodeType(zctx *zed.Context, t zType) (zed.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		typ, err := zctx.LookupTypeNamed(t.Name, inner)
+		typ := zctx.LookupTypeNamed(t.Name, inner)
 		d[t.ID] = typ
-		return typ, err
+		return typ, nil
 	case *zError:
 		inner, err := d.decodeType(zctx, t.Type)
 		if err != nil {

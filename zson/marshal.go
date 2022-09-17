@@ -302,7 +302,7 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zed.Type, error) {
 				named = m.decorator(name, path)
 			}
 			if named != "" {
-				return m.Context.LookupTypeNamed(named, typ)
+				return m.Context.LookupTypeNamed(named, typ), nil
 			}
 		}
 	}

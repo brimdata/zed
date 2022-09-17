@@ -120,13 +120,13 @@ func (p *Parser) parsePrimitiveType(in string) (zed.Type, error) {
 	case "double":
 		return zed.TypeFloat64, nil
 	case "enum":
-		return p.zctx.LookupTypeNamed("zenum", zed.TypeString)
+		return p.zctx.LookupTypeNamed("zenum", zed.TypeString), nil
 	case "int":
 		return zed.TypeInt64, nil
 	case "interval":
 		return zed.TypeDuration, nil
 	case "port":
-		return p.zctx.LookupTypeNamed("port", zed.TypeUint16)
+		return p.zctx.LookupTypeNamed("port", zed.TypeUint16), nil
 	case "string":
 		return zed.TypeString, nil
 	case "subnet":
