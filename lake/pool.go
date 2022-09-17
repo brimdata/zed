@@ -146,7 +146,7 @@ func (p *Pool) BatchifyBranches(ctx context.Context, zctx *zed.Context, recs []z
 	ectx := expr.NewContext()
 	for _, branchRef := range branches {
 		meta := BranchMeta{p.Config, branchRef}
-		rec, err := m.MarshalRecord(&meta)
+		rec, err := m.Marshal(&meta)
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +180,7 @@ func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 	recs := make([]zed.Value, 0, len(branches))
 	ectx := expr.NewContext()
 	for _, branchRef := range branches {
-		rec, err := m.MarshalRecord(&BranchTip{branchRef.Name, branchRef.Commit})
+		rec, err := m.Marshal(&BranchTip{branchRef.Name, branchRef.Commit})
 		if err != nil {
 			return nil, err
 		}

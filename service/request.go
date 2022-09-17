@@ -240,7 +240,7 @@ func (w *ResponseWriter) Error(err error) {
 }
 
 func (w *ResponseWriter) Marshal(body interface{}) bool {
-	rec, err := w.marshaler.MarshalRecord(body)
+	rec, err := w.marshaler.Marshal(body)
 	if err != nil {
 		// XXX If status header has not been sent this should send error.
 		w.Error(err)
