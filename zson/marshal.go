@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 //XXX handle new TypeError => marshal as a ZSON string?
@@ -517,7 +518,7 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error
 		}
 		types = append(types, typ)
 	}
-	uniqueTypes := zed.UniqueTypes(append([]zed.Type(nil), types...))
+	uniqueTypes := zed.UniqueTypes(slices.Clone(types))
 	var innerType zed.Type
 	switch len(uniqueTypes) {
 	case 0:
