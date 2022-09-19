@@ -125,7 +125,7 @@ func recToZSON(t *testing.T, rec *zed.Value) string {
 func TestBytes(t *testing.T) {
 	b := BytesRecord{B: []byte{1, 2, 3}}
 	m := zson.NewZNGMarshaler()
-	rec, err := m.MarshalRecord(b)
+	rec, err := m.Marshal(b)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
@@ -135,7 +135,7 @@ func TestBytes(t *testing.T) {
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
 	a := BytesArrayRecord{A: [3]byte{4, 5, 6}}
-	rec, err = m.MarshalRecord(a)
+	rec, err = m.Marshal(a)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
@@ -147,7 +147,7 @@ func TestBytes(t *testing.T) {
 	id := IDRecord{A: ID{0, 1, 2, 3}, B: ID{4, 5, 6, 7}}
 	m = zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
-	rec, err = m.MarshalRecord(id)
+	rec, err = m.Marshal(id)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
@@ -165,7 +165,7 @@ func TestBytes(t *testing.T) {
 
 	b2 := BytesRecord{B: nil}
 	m = zson.NewZNGMarshaler()
-	rec, err = m.MarshalRecord(b2)
+	rec, err = m.Marshal(b2)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
@@ -176,7 +176,7 @@ func TestBytes(t *testing.T) {
 
 	s := SliceRecord{S: nil}
 	m = zson.NewZNGMarshaler()
-	rec, err = m.MarshalRecord(s)
+	rec, err = m.Marshal(s)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
