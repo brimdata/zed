@@ -77,21 +77,6 @@ func (c *Context) LookupType(id int) (Type, error) {
 	return nil, fmt.Errorf("no type found for type id %d", id)
 }
 
-func (c *Context) Lookup(id int) *TypeRecord {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if id >= len(c.byID) {
-		return nil
-	}
-	typ := c.byID[id]
-	if typ != nil {
-		if typ, ok := typ.(*TypeRecord); ok {
-			return typ
-		}
-	}
-	return nil
-}
-
 var tvPool = sync.Pool{
 	New: func() interface{} {
 		// Return a pointer to avoid allocation on conversion to
@@ -335,17 +320,6 @@ func (c *Context) LookupByValue(tv zcode.Bytes) (Type, error) {
 // type in this context.
 func (c *Context) TranslateType(ext Type) (Type, error) {
 	return c.LookupByValue(EncodeTypeValue(ext))
-}
-
-func (t *Context) TranslateTypeRecord(ext *TypeRecord) (*TypeRecord, error) {
-	typ, err := t.TranslateType(ext)
-	if err != nil {
-		return nil, err
-	}
-	if typ, ok := typ.(*TypeRecord); ok {
-		return typ, nil
-	}
-	return nil, errors.New("TranslateTypeRecord: system error parsing TypeRecord")
 }
 
 func (c *Context) enterWithLock(tv zcode.Bytes, typ Type) {
