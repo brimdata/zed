@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -102,8 +103,7 @@ func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
 	if typ, ok := c.toType[string(tv)]; ok {
 		return typ.(*TypeRecord), nil
 	}
-	dup := make([]Column, 0, len(columns))
-	typ := NewTypeRecord(c.nextIDWithLock(), append(dup, columns...))
+	typ := NewTypeRecord(c.nextIDWithLock(), slices.Clone(columns))
 	c.enterWithLock(tv, typ)
 	return typ, nil
 }

@@ -227,6 +227,11 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 			if !ok {
 				return fmt.Errorf("JSON field %q: value for interface %q unknown inside of struct type %q", fieldName, goName(emptyFieldVal), goName(val))
 			}
+			if !rval.Type().AssignableTo(emptyFieldVal.Type()) {
+				return fmt.Errorf(
+					"JSON field %q: value of type %q not assignable to interface type %q in struct type %q",
+					fieldName, rval.Type(), emptyFieldVal.Type(), val.Type())
+			}
 			emptyFieldVal.Set(rval)
 		case reflect.Ptr:
 			derefType := emptyFieldVal.Type().Elem()

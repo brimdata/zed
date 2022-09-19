@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/slices"
 )
 
 type Sorter struct {
@@ -132,7 +133,7 @@ type comparefn func(a, b zcode.Bytes) int
 // reverse reverses the sense of comparisons.
 func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
 	return &Comparator{
-		exprs:      append([]Evaluator{}, exprs...),
+		exprs:      slices.Clone(exprs),
 		nullsMax:   nullsMax,
 		reverse:    reverse,
 		comparefns: make(map[zed.Type]comparefn),
@@ -201,8 +202,10 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 	abytes, bbytes := a.Bytes, b.Bytes
 	if a.Type.ID() != b.Type.ID() {
 		id, err := pair.Coerce(a, b)
-		typ = zed.LookupPrimitiveByID(id)
-		if err != nil || typ == nil {
+		if err == nil {
+			typ, err = zed.LookupPrimitiveByID(id)
+		}
+		if err != nil {
 			// If values cannot be coerced, just compare the native
 			// representation of the type.
 			// XXX This is heavyweight and should probably just compare

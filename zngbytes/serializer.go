@@ -29,7 +29,7 @@ func (s *Serializer) Decorate(style zson.TypeStyle) {
 }
 
 func (s *Serializer) Write(v interface{}) error {
-	rec, err := s.marshaler.MarshalRecord(v)
+	rec, err := s.marshaler.Marshal(v)
 	if err != nil {
 		return err
 	}

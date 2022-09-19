@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -63,7 +64,7 @@ func (c *Context) LookupType(id int) (Type, error) {
 		return nil, fmt.Errorf("type id (%d) cannot be negative", id)
 	}
 	if id < IDTypeComplex {
-		return LookupPrimitiveByID(id), nil
+		return LookupPrimitiveByID(id)
 	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -74,21 +75,6 @@ func (c *Context) LookupType(id int) (Type, error) {
 		return typ, nil
 	}
 	return nil, fmt.Errorf("no type found for type id %d", id)
-}
-
-func (c *Context) Lookup(id int) *TypeRecord {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if id >= len(c.byID) {
-		return nil
-	}
-	typ := c.byID[id]
-	if typ != nil {
-		if typ, ok := typ.(*TypeRecord); ok {
-			return typ
-		}
-	}
-	return nil
 }
 
 var tvPool = sync.Pool{
@@ -126,8 +112,7 @@ func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
 		tvPool.Put(tv)
 		return typ.(*TypeRecord), nil
 	}
-	dup := make([]Column, 0, len(columns))
-	typ := NewTypeRecord(c.nextIDWithLock(), append(dup, columns...))
+	typ := NewTypeRecord(c.nextIDWithLock(), slices.Clone(columns))
 	c.enterWithLock(*tv, typ)
 	return typ, nil
 }
@@ -224,8 +209,7 @@ func (c *Context) LookupTypeUnion(types []Type) *TypeUnion {
 		tvPool.Put(tv)
 		return typ.(*TypeUnion)
 	}
-	dup := make([]Type, 0, len(types))
-	typ := NewTypeUnion(c.nextIDWithLock(), append(dup, types...))
+	typ := NewTypeUnion(c.nextIDWithLock(), slices.Clone(types))
 	c.enterWithLock(*tv, typ)
 	return typ
 }
@@ -239,8 +223,7 @@ func (c *Context) LookupTypeEnum(symbols []string) *TypeEnum {
 		tvPool.Put(tv)
 		return typ.(*TypeEnum)
 	}
-	dup := make([]string, 0, len(symbols))
-	typ := NewTypeEnum(c.nextIDWithLock(), append(dup, symbols...))
+	typ := NewTypeEnum(c.nextIDWithLock(), slices.Clone(symbols))
 	c.enterWithLock(*tv, typ)
 	return typ
 }
@@ -255,7 +238,7 @@ func (c *Context) LookupTypeDef(name string) *TypeNamed {
 
 // LookupTypeNamed returns the named type for name and inner.  It also binds
 // name to that named type.
-func (c *Context) LookupTypeNamed(name string, inner Type) (*TypeNamed, error) {
+func (c *Context) LookupTypeNamed(name string, inner Type) *TypeNamed {
 	tv := tvPool.Get().(*[]byte)
 	*tv = AppendTypeValue((*tv)[:0], &TypeNamed{Name: name, Type: inner})
 	c.mu.Lock()
@@ -263,12 +246,12 @@ func (c *Context) LookupTypeNamed(name string, inner Type) (*TypeNamed, error) {
 	if typ, ok := c.toType[string(*tv)]; ok {
 		tvPool.Put(tv)
 		c.typedefs[name] = typ.(*TypeNamed)
-		return typ.(*TypeNamed), nil
+		return typ.(*TypeNamed)
 	}
 	typ := NewTypeNamed(c.nextIDWithLock(), name, inner)
 	c.typedefs[name] = typ
 	c.enterWithLock(*tv, typ)
-	return typ, nil
+	return typ
 }
 
 func (c *Context) LookupTypeError(inner Type) *TypeError {
@@ -294,16 +277,14 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 // an error is returned.
 func (c *Context) AddColumns(r *Value, newCols []Column, vals []Value) (*Value, error) {
 	oldCols := TypeRecordOf(r.Type).Columns
-	outCols := make([]Column, len(oldCols), len(oldCols)+len(newCols))
-	copy(outCols, oldCols)
+	outCols := slices.Clone(oldCols)
 	for _, col := range newCols {
 		if r.HasField(string(col.Name)) {
 			return nil, fmt.Errorf("field already exists: %s", col.Name)
 		}
 		outCols = append(outCols, col)
 	}
-	zv := make(zcode.Bytes, len(r.Bytes))
-	copy(zv, r.Bytes)
+	zv := slices.Clone(r.Bytes)
 	for _, val := range vals {
 		zv = val.Encode(zv)
 	}
@@ -339,17 +320,6 @@ func (c *Context) LookupByValue(tv zcode.Bytes) (Type, error) {
 // type in this context.
 func (c *Context) TranslateType(ext Type) (Type, error) {
 	return c.LookupByValue(EncodeTypeValue(ext))
-}
-
-func (t *Context) TranslateTypeRecord(ext *TypeRecord) (*TypeRecord, error) {
-	typ, err := t.TranslateType(ext)
-	if err != nil {
-		return nil, err
-	}
-	if typ, ok := typ.(*TypeRecord); ok {
-		return typ, nil
-	}
-	return nil, errors.New("TranslateTypeRecord: system error parsing TypeRecord")
 }
 
 func (c *Context) enterWithLock(tv zcode.Bytes, typ Type) {
@@ -395,11 +365,7 @@ func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		if tv == nil {
 			return nil, nil
 		}
-		named, err := c.LookupTypeNamed(name, typ)
-		if err != nil {
-			return nil, nil
-		}
-		return named, tv
+		return c.LookupTypeNamed(name, typ), tv
 	case TypeValueNameRef:
 		name, tv := DecodeName(tv)
 		if tv == nil {
@@ -514,12 +480,8 @@ func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		}
 		return typ, tv
 	default:
-		if id < 0 || id > TypeValueMax {
-			// Out of range.
-			return nil, nil
-		}
-		typ := LookupPrimitiveByID(int(id))
-		if typ == nil {
+		typ, err := LookupPrimitiveByID(int(id))
+		if err != nil {
 			return nil, nil
 		}
 		return typ, tv

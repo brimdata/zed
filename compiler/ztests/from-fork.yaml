@@ -1,0 +1,13 @@
+script: |
+  zq -z 'from (file in.zson file in.zson ) | fork (=> count() => count())'
+
+inputs:
+  - name: in.zson
+    data: |
+      1
+
+outputs:
+  - name: stdout
+    data: |
+      {count:2(uint64)}
+      {count:2(uint64)}

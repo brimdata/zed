@@ -44,5 +44,5 @@ func (r *LogReader) Read() (*zed.Value, error) {
 		next = ksuid.Nil
 	}
 	r.cursor = next
-	return r.marshaler.MarshalRecord(commitObject)
+	return r.marshaler.Marshal(commitObject)
 }

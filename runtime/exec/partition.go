@@ -131,7 +131,7 @@ func partitionReader(ctx context.Context, zctx *zed.Context, layout order.Layout
 				cancel()
 				return nil, scanErr
 			}
-			rec, err := m.MarshalRecord(p)
+			rec, err := m.Marshal(p)
 			if err != nil {
 				cancel()
 				return nil, err
@@ -160,7 +160,7 @@ func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, ord
 				cancel()
 				return nil, scanErr
 			}
-			rec, err := m.MarshalRecord(p)
+			rec, err := m.Marshal(p)
 			if err != nil {
 				cancel()
 				return nil, err
@@ -189,7 +189,7 @@ func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View
 				cancel()
 				return nil, scanErr
 			}
-			rec, err := m.MarshalRecord(*p)
+			rec, err := m.Marshal(*p)
 			if err != nil {
 				cancel()
 				return nil, err

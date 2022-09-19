@@ -145,19 +145,6 @@ func (m *MarshalZNGContext) Marshal(v interface{}) (*zed.Value, error) {
 	return zed.NewValue(typ, it.Next()), nil
 }
 
-//XXX get rid of this?
-func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zed.Value, error) {
-	m.Builder.Reset()
-	typ, err := m.encodeValue(reflect.ValueOf(v))
-	if err != nil {
-		return nil, err
-	}
-	if !zed.IsRecordType(typ) {
-		return nil, errors.New("not a record")
-	}
-	return zed.NewValue(typ, m.Builder.Bytes().Body()), nil
-}
-
 func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) (*zed.Value, error) {
 	if len(names) != len(fields) {
 		return nil, errors.New("fields and columns don't match")
@@ -302,7 +289,7 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zed.Type, error) {
 				named = m.decorator(name, path)
 			}
 			if named != "" {
-				return m.Context.LookupTypeNamed(named, typ)
+				return m.Context.LookupTypeNamed(named, typ), nil
 			}
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/slices"
 )
 
 // A ShaperTransform represents one of the different transforms that a
@@ -52,7 +53,7 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return typeVal
 	}
 	if typeVal.Type == zed.TypeString {
-		typ, _ := s.zctx.LookupTypeNamed(string(typeVal.Bytes), this.Type)
+		typ := s.zctx.LookupTypeNamed(string(typeVal.Bytes), this.Type)
 		return ectx.NewValue(typ, this.Bytes)
 	}
 	//XXX TypeUnder?
@@ -230,7 +231,7 @@ func shaperColumns(zctx *zed.Context, tf ShaperTransform, in, out *zed.TypeRecor
 		inColumns := in.Columns
 		if tf&Order != 0 {
 			// Order appends unknown fields in lexicographic order.
-			inColumns = append([]zed.Column{}, inColumns...)
+			inColumns = slices.Clone(inColumns)
 			sort.Slice(inColumns, func(i, j int) bool {
 				return inColumns[i].Name < inColumns[j].Name
 			})
@@ -504,7 +505,7 @@ func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *z
 		s.types = append(s.types, typ)
 	}
 	if needNewRecordType {
-		fields := append([]zed.Column{}, zed.TypeUnder(s.toType).(*zed.TypeRecord).Columns...)
+		fields := slices.Clone(zed.TypeUnder(s.toType).(*zed.TypeRecord).Columns)
 		for i, t := range s.types {
 			fields[i].Type = t
 		}

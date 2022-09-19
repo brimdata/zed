@@ -27,12 +27,12 @@ func NewZNGWriter(w io.Writer) *ZNGWriter {
 }
 
 func (w *ZNGWriter) WriteControl(v interface{}) error {
-	rec, err := w.marshaler.MarshalRecord(v)
+	val, err := w.marshaler.Marshal(v)
 	if err != nil {
 		return err
 	}
 	var buf bytes.Buffer
-	err = zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(rec)
+	err = zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(val)
 	if err != nil {
 		return err
 	}

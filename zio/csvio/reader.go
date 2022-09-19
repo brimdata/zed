@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/slices"
 )
 
 type Reader struct {
@@ -67,8 +68,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 }
 
 func (r *Reader) init(hdr []string) {
-	r.hdr = make([]string, len(hdr))
-	copy(r.hdr, hdr)
+	r.hdr = slices.Clone(hdr)
 	r.vals = make([]interface{}, len(hdr))
 }
 

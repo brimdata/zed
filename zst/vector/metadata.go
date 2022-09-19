@@ -99,11 +99,7 @@ type Named struct {
 }
 
 func (n *Named) Type(zctx *zed.Context) zed.Type {
-	t, err := zctx.LookupTypeNamed(n.Name, n.Values.Type(zctx))
-	if err != nil {
-		panic(err) //XXX
-	}
-	return t
+	return zctx.LookupTypeNamed(n.Name, n.Values.Type(zctx))
 }
 
 type Primitive struct {

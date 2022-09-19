@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/slices"
 )
 
 type Collect struct {
@@ -22,9 +23,7 @@ func (c *Collect) Consume(val *zed.Value) {
 }
 
 func (c *Collect) update(val *zed.Value) {
-	stash := make(zcode.Bytes, len(val.Bytes))
-	copy(stash, val.Bytes)
-	c.values = append(c.values, zed.Value{val.Type, stash})
+	c.values = append(c.values, zed.Value{val.Type, slices.Clone(val.Bytes)})
 	c.size += len(val.Bytes)
 	for c.size > MaxValueSize {
 		// XXX See issue #1813.  For now we silently discard entries
