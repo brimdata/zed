@@ -5,7 +5,7 @@
 ### Synopsis
 
 ```
-summarize [<field>:=]<agg> [where <expr>][, [<field>:=]<agg> [where <expr>] ...] [by [<field>][:=<expr>] ...]
+[summarize] [<field>:=]<agg> [where <expr>][, [<field>:=]<agg> [where <expr>] ...] [by [<field>][:=<expr>] ...]
 ```
 ### Description
 
