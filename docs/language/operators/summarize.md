@@ -14,8 +14,8 @@ to each input value optionally organized with the group-by keys specified after
 the `by` keyword, and at the end of input produces one or more aggregations
 for each unique set of group-by key values.
 
-The keyword `summarize` can be treated as an [implied operator](../overview.md#26-implied-operators)
-and hence may be omitted before an aggregate function call.
+The `summarize` keyword is optional since it is an
+[implied operator](../overview.md#26-implied-operators).
 
 Each aggregate function may be optionally followed by a [`where`](where.md) clause, which
 applies a Boolean expression that indicates, for each input value,
