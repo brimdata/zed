@@ -17,9 +17,10 @@ for each unique set of group-by key values.
 The `summarize` keyword is optional since it is an
 [implied operator](../overview.md#26-implied-operators).
 
-Each aggregate function may be optionally followed by a [`where`](where.md) clause, which
+Each aggregate function may be optionally followed by a `where` clause, which
 applies a Boolean expression that indicates, for each input value,
-whether to deliver it to that aggregate function.
+whether to deliver it to that aggregate. (`where` clauses are analogous
+to the [`where` operator](where.md).)
 
 The output field names for each aggregate and each key are optional.  If omitted,
 a field name is inferred from each right-hand side, e.g, the output field for the
