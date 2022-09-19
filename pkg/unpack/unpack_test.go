@@ -356,3 +356,21 @@ func TestUnpackSkip(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, skipExpected, actual)
 }
+
+func TestValueNotAssignableToInterfaceError(t *testing.T) {
+	type Any interface{ anyNode() }
+
+	type S struct {
+		Kind  string `json:"kind" unpack:""`
+		Value Any    `json:"value"`
+	}
+
+	type NotAny struct {
+		Kind string `json:"kind" unpack:""`
+	}
+
+	reflector := unpack.New(S{}, NotAny{})
+	_, err := reflector.UnmarshalString(`{"kind": "S", "value": {"kind": "NotAny"}}`)
+	require.EqualError(t, err,
+		`JSON field "value": value of type "*unpack_test.NotAny" not assignable to interface type "unpack_test.Any" in struct type "unpack_test.S"`)
+}
