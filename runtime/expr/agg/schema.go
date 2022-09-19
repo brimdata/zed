@@ -2,6 +2,7 @@ package agg
 
 import (
 	"github.com/brimdata/zed"
+	"golang.org/x/exp/slices"
 )
 
 // Schema constructs a fused type for types passed to Mixin.  Values of any
@@ -41,7 +42,7 @@ func merge(zctx *zed.Context, a, b zed.Type) zed.Type {
 	}
 	if a, ok := aUnder.(*zed.TypeRecord); ok {
 		if b, ok := bUnder.(*zed.TypeRecord); ok {
-			cols := append([]zed.Column{}, a.Columns...)
+			cols := slices.Clone(a.Columns)
 			for _, c := range b.Columns {
 				if i, ok := columnOfField(cols, c.Name); !ok {
 					cols = append(cols, c)
@@ -76,7 +77,7 @@ func merge(zctx *zed.Context, a, b zed.Type) zed.Type {
 		}
 	}
 	if a, ok := aUnder.(*zed.TypeUnion); ok {
-		types := append([]zed.Type{}, a.Types...)
+		types := slices.Clone(a.Types)
 		if bUnion, ok := bUnder.(*zed.TypeUnion); ok {
 			for _, t := range bUnion.Types {
 				types = appendIfAbsent(types, t)

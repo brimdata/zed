@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/pkg/peeker"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 // parser decodes the framing protocol for ZNG updating and resetting its
@@ -110,8 +111,7 @@ func (p *parser) decodeControl(code byte) error {
 		if err != nil {
 			return err
 		}
-		bytes = make([]byte, len(b))
-		copy(bytes, b)
+		bytes = slices.Clone(b)
 	} else {
 		// The frame is compressed.
 		blk, err := p.readCompressedFrame(code)
@@ -121,8 +121,7 @@ func (p *parser) decodeControl(code byte) error {
 		if err := blk.decompress(); err != nil {
 			return err
 		}
-		bytes = make([]byte, len(blk.ubuf.data))
-		copy(bytes, blk.ubuf.data)
+		bytes = slices.Clone(blk.ubuf.data)
 		blk.free()
 	}
 	if len(bytes) == 0 {

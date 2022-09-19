@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/slices"
 )
 
 func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
@@ -32,7 +33,7 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 		return zed.DecodeBool(zb), nil
 	case *zed.TypeOfBytes, *zed.TypeOfString:
 		// Copy zb since we don't own it.
-		return append([]byte{}, zb...), nil
+		return []byte(slices.Clone(zb)), nil
 	case *zed.TypeOfIP:
 		return []byte(zed.DecodeIP(zb).String()), nil
 	case *zed.TypeOfNet:
