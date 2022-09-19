@@ -135,7 +135,7 @@ func (c *converter) convertType(typ zed21.Type) (zed.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		return c.zctx.LookupTypeNamed(typ.Name, newType)
+		return c.zctx.LookupTypeNamed(typ.Name, newType), nil
 	case *zed21.TypeOfUint8:
 		return zed.TypeUint8, nil
 	case *zed21.TypeOfUint16:

@@ -53,7 +53,7 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return typeVal
 	}
 	if typeVal.Type == zed.TypeString {
-		typ, _ := s.zctx.LookupTypeNamed(string(typeVal.Bytes), this.Type)
+		typ := s.zctx.LookupTypeNamed(string(typeVal.Bytes), this.Type)
 		return ectx.NewValue(typ, this.Bytes)
 	}
 	//XXX TypeUnder?

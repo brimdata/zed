@@ -191,10 +191,7 @@ func (e *Encoder) encodeTypeName(ext *zed.TypeNamed) (*zed.TypeNamed, error) {
 	if err != nil {
 		return nil, err
 	}
-	typ, err := e.zctx.LookupTypeNamed(ext.Name, inner)
-	if err != nil {
-		return nil, err
-	}
+	typ := e.zctx.LookupTypeNamed(ext.Name, inner)
 	e.bytes = append(e.bytes, TypeDefName)
 	e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(typ.Name)))
 	e.bytes = append(e.bytes, typ.Name...)
@@ -445,10 +442,7 @@ func (d *Decoder) readTypeName(b *buffer) error {
 	if err != nil {
 		return err
 	}
-	typ, err := d.local.zctx.LookupTypeNamed(name, inner)
-	if err != nil {
-		return err
-	}
+	typ := d.local.zctx.LookupTypeNamed(name, inner)
 	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }
