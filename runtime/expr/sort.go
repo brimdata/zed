@@ -201,8 +201,10 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 	abytes, bbytes := a.Bytes, b.Bytes
 	if a.Type.ID() != b.Type.ID() {
 		id, err := pair.Coerce(a, b)
-		typ = zed.LookupPrimitiveByID(id)
-		if err != nil || typ == nil {
+		if err == nil {
+			typ, err = zed.LookupPrimitiveByID(id)
+		}
+		if err != nil {
 			// If values cannot be coerced, just compare the native
 			// representation of the type.
 			// XXX This is heavyweight and should probably just compare

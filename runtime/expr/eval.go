@@ -423,7 +423,10 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if zerr != nil {
 		return zerr
 	}
-	typ := zed.LookupPrimitiveByID(id)
+	typ, err := zed.LookupPrimitiveByID(id)
+	if err != nil {
+		return a.zctx.NewError(err)
+	}
 	switch {
 	case zed.IsFloat(id):
 		v1, v2 := a.operands.floats()
@@ -450,7 +453,10 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if zerr != nil {
 		return zerr
 	}
-	typ := zed.LookupPrimitiveByID(id)
+	typ, err := zed.LookupPrimitiveByID(id)
+	if err != nil {
+		return s.zctx.NewError(err)
+	}
 	switch {
 	case zed.IsFloat(id):
 		v1, v2 := s.operands.floats()
@@ -473,7 +479,10 @@ func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if zerr != nil {
 		return zerr
 	}
-	typ := zed.LookupPrimitiveByID(id)
+	typ, err := zed.LookupPrimitiveByID(id)
+	if err != nil {
+		return m.zctx.NewError(err)
+	}
 	switch {
 	case zed.IsFloat(id):
 		v1, v2 := m.operands.floats()
@@ -496,7 +505,10 @@ func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if zerr != nil {
 		return zerr
 	}
-	typ := zed.LookupPrimitiveByID(id)
+	typ, err := zed.LookupPrimitiveByID(id)
+	if err != nil {
+		return d.zctx.NewError(err)
+	}
 	switch {
 	case zed.IsFloat(id):
 		v1, v2 := d.operands.floats()
@@ -528,7 +540,10 @@ func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if zerr != nil {
 		return zerr
 	}
-	typ := zed.LookupPrimitiveByID(id)
+	typ, err := zed.LookupPrimitiveByID(id)
+	if err != nil {
+		return m.zctx.NewError(err)
+	}
 	if zed.IsFloat(id) || !zed.IsNumber(id) {
 		return ectx.CopyValue(m.zctx.NewErrorf("type %s incompatible with '%%' operator", zson.FormatType(typ)))
 	}
