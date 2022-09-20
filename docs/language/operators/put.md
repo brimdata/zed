@@ -4,7 +4,7 @@
 
 ### Synopsis
 ```
-put <field>:=<expr> [, <field>:=<expr> ...]
+[put] <field>:=<expr> [, <field>:=<expr> ...]
 ```
 ### Description
 
@@ -22,8 +22,8 @@ computed first and then they are all written simultaneously.  As a result,
 a computed value cannot be referenced in another expression.  If you need
 to re-use a computed result, this can be done by chaining multiple `put` operators.
 
-The "put" keyword is optional since it is an
-[implied operators](../overview.md#26-implied-operators).
+The `put` keyword is optional since it is an
+[implied operator](../overview.md#26-implied-operators).
 
 Each `<field>` expression must be a field reference expressed as a dotted path or one more
 constant index operations on `this`, e.g., `a.b`, `this["a"]["b"]`,

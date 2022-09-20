@@ -12,8 +12,8 @@ The `search` operator filters its input by applying a search expression `<sexpr>
 to each input value and dropping each value for which the expression evaluates
 to `false` or to an error.
 
-The "search" keyword may be omitted in which case `<sexpr>` follows
-the [search expression](../overview.md#7-search-expressions) syntax.
+The `search` keyword is optional since it is an
+[implied operator](../overview.md#26-implied-operators).
 
 When Zed queries are run interactively, it is convenient to be able to omit
 the "search" keyword, but when search filters appear in Zed source files,

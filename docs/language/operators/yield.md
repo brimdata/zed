@@ -5,7 +5,7 @@
 ### Synopsis
 
 ```
-yield <expr> [, <expr>...]
+[yield] <expr> [, <expr>...]
 ```
 ### Description
 
@@ -14,8 +14,8 @@ expressions on each input value and sending each result to the output
 in left-to-right order.  Each `<expr>` may be any valid
 [Zed expression](../overview.md#6-expressions).
 
-The _yield_ keyword may be omitted when `<expr>` is a
-[record literal](../overview.md#6112-record-expressions).
+The `yield` keyword is optional since it is an
+[implied operator](../overview.md#26-implied-operators).
 
 ### Examples
 
