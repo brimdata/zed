@@ -8,6 +8,8 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/index"
@@ -477,7 +479,15 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			w.Error(srverr.ErrInvalid("either object_ids or where must be set"))
 			return
 		}
-		commit, err = branch.DeleteByPredicate(r.Context(), c.compiler, payload.Where, message.Author, message.Body, message.Meta)
+		var program ast.Op
+		if program, err = c.compiler.Parse(payload.Where); err != nil {
+			w.Error(srverr.ErrInvalid(err))
+			return
+		}
+		commit, err = branch.DeleteWhere(r.Context(), c.compiler, program, message.Author, message.Body, message.Meta)
+	}
+	if errors.Is(err, &compiler.InvalidDeleteWhereQuery{}) {
+		err = srverr.ErrInvalid(err)
 	}
 	if err != nil {
 		w.Error(err)

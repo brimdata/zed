@@ -371,6 +371,7 @@ type (
 		Kind      string   `json:"kind" unpack:""`
 		Spec      PoolSpec `json:"spec"`
 		At        string   `json:"at"`
+		Delete    bool     `json:"delete"`
 		Range     *Range   `json:"range"`
 		ScanOrder string   `json:"scan_order"` // asc, desc, or unknown
 	}

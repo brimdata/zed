@@ -176,6 +176,9 @@ func (l *local) Delete(ctx context.Context, poolID ksuid.KSUID, branchName strin
 	if err != nil {
 		return ksuid.Nil, err
 	}
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return ksuid.Nil, err
+	}
 	commitID, err := branch.Delete(ctx, ids, message.Author, message.Body)
 	if err != nil {
 		return ksuid.Nil, err
@@ -183,12 +186,19 @@ func (l *local) Delete(ctx context.Context, poolID ksuid.KSUID, branchName strin
 	return commitID, nil
 }
 
-func (l *local) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
+func (l *local) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
+	op, err := l.compiler.Parse(src)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return ksuid.Nil, err
+	}
 	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.DeleteByPredicate(ctx, l.compiler, src, commit.Author, commit.Body, commit.Meta)
+	return branch.DeleteWhere(ctx, l.compiler, op, commit.Author, commit.Body, commit.Meta)
 }
 
 func (l *local) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {

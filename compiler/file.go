@@ -62,6 +62,10 @@ func (*fsCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism in
 	panic("NewLakeQuery called on compiler.fsCompiler")
 }
 
+func (*fsCompiler) NewLakeDeleteQuery(pctx *op.Context, program ast.Op, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
+	panic("NewLakeDeleteQuery called on compiler.fsCompiler")
+}
+
 func isJoin(o ast.Op) bool {
 	seq, ok := o.(*ast.Sequential)
 	if !ok || len(seq.Ops) == 0 {

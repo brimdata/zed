@@ -247,6 +247,7 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		Kind:      "Pool",
 		ID:        poolID,
 		Commit:    commitID,
+		Delete:    p.Delete,
 		ScanLower: lower,
 		ScanUpper: upper,
 		ScanOrder: p.ScanOrder,

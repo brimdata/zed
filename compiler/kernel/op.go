@@ -528,7 +528,12 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		// the parallel instances of trunks.
 		planner, ok := b.planners[src]
 		if !ok {
-			planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, pushdown)
+			if src.Delete {
+				deleteFilter := &DeleteFilter{pushdown}
+				planner, err = exec.NewDeletePlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, deleteFilter)
+			} else {
+				planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, pushdown)
+			}
 			if err != nil {
 				return nil, err
 			}
