@@ -264,37 +264,15 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zed.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	if m.decorator != nil || m.bindings != nil {
-		// Don't create named types for interface types as this is just
-		// one value for that interface and it's the underlying concrete
-		// types that implement the interface that we want to name.
-		if !v.IsValid() || v.Kind() == reflect.Interface {
-			return typ, nil
-		}
-		name := v.Type().Name()
-		kind := v.Kind().String()
-		if name != "" && name != kind {
-			// We do not want to further decorate nano.Ts as
-			// it's already been converted to a Zed time;
-			// likewise for zed.Value, which gets encoded as
-			// itself and its own named type if it has one.
-			if t := v.Type(); t == nanoTsType || t == zngValueType || t == netipAddrType || t == netIPType {
-				return typ, nil
-			}
-			path := v.Type().PkgPath()
-			var named string
-			if m.bindings != nil {
-				named = m.bindings[typeFull(name, path)]
-			}
-			if named == "" && m.decorator != nil {
-				named = m.decorator(name, path)
-			}
-			if named != "" {
-				return m.Context.LookupTypeNamed(named, typ), nil
-			}
-		}
+	if _, ok := typ.(*zed.TypeNamed); ok {
+		// We already have a named type.
+		return typ, nil
 	}
-	return typ, nil
+	if !v.IsValid() {
+		// v.Type will panic.
+		return typ, nil
+	}
+	return m.lookupTypeNamed(v.Type(), typ), nil
 }
 
 func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
@@ -546,58 +524,69 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error
 	return m.Context.LookupTypeArray(innerType), nil
 }
 
-func (m *MarshalZNGContext) lookupType(typ reflect.Type) (zed.Type, error) {
-	switch typ.Kind() {
+func (m *MarshalZNGContext) lookupType(t reflect.Type) (zed.Type, error) {
+	var typ zed.Type
+	switch t.Kind() {
 	case reflect.Array, reflect.Slice:
-		if typ.Elem().Kind() == reflect.Uint8 {
-			return zed.TypeBytes, nil
+		if t.Elem().Kind() == reflect.Uint8 {
+			typ = zed.TypeBytes
+		} else {
+			inner, err := m.lookupType(t.Elem())
+			if err != nil {
+				return nil, err
+			}
+			typ = m.Context.LookupTypeArray(inner)
 		}
-		typ, err := m.lookupType(typ.Elem())
-		if err != nil {
-			return nil, err
-		}
-		return m.Context.LookupTypeArray(typ), nil
 	case reflect.Map:
-		key, err := m.lookupType(typ.Key())
+		key, err := m.lookupType(t.Key())
 		if err != nil {
 			return nil, err
 		}
-		val, err := m.lookupType(typ.Elem())
+		val, err := m.lookupType(t.Elem())
 		if err != nil {
 			return nil, err
 		}
-		return m.Context.LookupTypeMap(key, val), nil
+		typ = m.Context.LookupTypeMap(key, val)
 	case reflect.Struct:
-		return m.lookupTypeRecord(typ)
+		var err error
+		typ, err = m.lookupTypeRecord(t)
+		if err != nil {
+			return nil, err
+		}
 	case reflect.Ptr:
-		return m.lookupType(typ.Elem())
+		var err error
+		typ, err = m.lookupType(t.Elem())
+		if err != nil {
+			return nil, err
+		}
 	case reflect.String:
-		return zed.TypeString, nil
+		typ = zed.TypeString
 	case reflect.Bool:
-		return zed.TypeBool, nil
+		typ = zed.TypeBool
 	case reflect.Int, reflect.Int64:
-		return zed.TypeInt64, nil
+		typ = zed.TypeInt64
 	case reflect.Int32:
-		return zed.TypeInt32, nil
+		typ = zed.TypeInt32
 	case reflect.Int16:
-		return zed.TypeInt16, nil
+		typ = zed.TypeInt16
 	case reflect.Int8:
-		return zed.TypeInt8, nil
+		typ = zed.TypeInt8
 	case reflect.Uint, reflect.Uint64:
-		return zed.TypeUint64, nil
+		typ = zed.TypeUint64
 	case reflect.Uint32:
-		return zed.TypeUint32, nil
+		typ = zed.TypeUint32
 	case reflect.Uint16:
-		return zed.TypeUint16, nil
+		typ = zed.TypeUint16
 	case reflect.Uint8:
-		return zed.TypeUint8, nil
+		typ = zed.TypeUint8
 	case reflect.Float32:
-		return zed.TypeFloat32, nil
+		typ = zed.TypeFloat32
 	case reflect.Float64:
-		return zed.TypeFloat64, nil
+		typ = zed.TypeFloat64
 	default:
-		return nil, fmt.Errorf("unsupported type: %v", typ.Kind())
+		return nil, fmt.Errorf("unsupported type: %v", t.Kind())
 	}
+	return m.lookupTypeNamed(t, typ), nil
 }
 
 func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type, error) {
@@ -612,6 +601,43 @@ func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type,
 		columns = append(columns, zed.Column{name, fieldType})
 	}
 	return m.Context.LookupTypeRecord(columns)
+}
+
+// lookupTypeNamed returns a named type for typ with a name derived from t.  It
+// returns typ if it shouldn't derive a name from t.
+func (m *MarshalZNGContext) lookupTypeNamed(t reflect.Type, typ zed.Type) zed.Type {
+	if m.decorator == nil && m.bindings == nil {
+		return typ
+	}
+	// Don't create named types for interface types as this is just
+	// one value for that interface and it's the underlying concrete
+	// types that implement the interface that we want to name.
+	if t.Kind() == reflect.Interface {
+		return typ
+	}
+	// We do not want to further decorate nano.Ts as
+	// it's already been converted to a Zed time;
+	// likewise for zed.Value, which gets encoded as
+	// itself and its own named type if it has one.
+	if t == nanoTsType || t == zngValueType || t == netipAddrType || t == netIPType {
+		return typ
+	}
+	name := t.Name()
+	if name == "" || name == t.Kind().String() {
+		return typ
+	}
+	path := t.PkgPath()
+	var named string
+	if m.bindings != nil {
+		named = m.bindings[typeFull(name, path)]
+	}
+	if named == "" && m.decorator != nil {
+		named = m.decorator(name, path)
+	}
+	if named != "" {
+		typ = m.Context.LookupTypeNamed(named, typ)
+	}
+	return typ
 }
 
 type ZNGUnmarshaler interface {

@@ -93,20 +93,29 @@ type ZNGThings struct {
 }
 
 func TestMarshalSlice(t *testing.T) {
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+
 	s := []ZNGThing{{"hello", 123}, {"world", 0}}
 	r := ZNGThings{s}
-	m := zson.NewZNGMarshaler()
 	rec, err := m.Marshal(r)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	assert.Equal(t, `{Things:[{a:"hello",B:123},{a:"world",B:0}]}`, toZSON(t, rec))
+	assert.Equal(t, `{Things:[{a:"hello",B:123}(=ZNGThing),{a:"world",B:0}(ZNGThing)]}(=ZNGThings)`,
+		toZSON(t, rec))
 
 	empty := []ZNGThing{}
 	r2 := ZNGThings{empty}
 	rec2, err := m.Marshal(r2)
 	require.NoError(t, err)
 	require.NotNil(t, rec2)
-	assert.Equal(t, "{Things:[]([{a:string,B:int64}])}", toZSON(t, rec2))
+	assert.Equal(t, "{Things:[]([ZNGThing={a:string,B:int64}])}(=ZNGThings)", toZSON(t, rec2))
+
+	rec3, err := m.Marshal(ZNGThings{nil})
+	require.NoError(t, err)
+	require.NotNil(t, rec3)
+	assert.Equal(t, "{Things:null([ZNGThing={a:string,B:int64}])}(=ZNGThings)", toZSON(t, rec3))
+
 }
 
 func TestMarshalNilSlice(t *testing.T) {
