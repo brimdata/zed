@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 //XXX handle new TypeError => marshal as a ZSON string?
@@ -506,12 +507,9 @@ func (m *MarshalZNGContext) encodeArrayBytes(arrayVal reflect.Value) (zed.Type, 
 }
 
 func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error) {
-	push := m.Builder
-	m.Builder = *zcode.NewBuilder()
 	m.Builder.BeginContainer()
 	arrayLen := arrayVal.Len()
 	types := make([]zed.Type, 0, arrayLen)
-	typeMap := make(map[zed.Type]struct{})
 	for i := 0; i < arrayLen; i++ {
 		item := arrayVal.Index(i)
 		typ, err := m.encodeValue(item)
@@ -519,11 +517,10 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error
 			return nil, err
 		}
 		types = append(types, typ)
-		typeMap[typ] = struct{}{}
 	}
-	m.Builder.EndContainer()
+	uniqueTypes := zed.UniqueTypes(slices.Clone(types))
 	var innerType zed.Type
-	switch len(typeMap) {
+	switch len(uniqueTypes) {
 	case 0:
 		// if slice was empty, look up the type without a value
 		var err error
@@ -531,36 +528,21 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zed.Type, error
 		if err != nil {
 			return nil, err
 		}
-		push.Append(m.Builder.Bytes().Body())
 	case 1:
 		innerType = types[0]
-		push.Append(m.Builder.Bytes().Body())
 	default:
-		unionTypes := make([]zed.Type, 0, len(typeMap))
-		for typ := range typeMap {
-			unionTypes = append(unionTypes, typ)
-		}
-		unionType := m.Context.LookupTypeUnion(unionTypes)
-		// Now we know all the types and have the union type
-		// so we can recode the array with tagged union elements.
-		// We throw out the array computed above and start over with
-		// an empty builder.
-		m.Builder.Truncate()
-		for i, typ := range types {
-			m.Builder.BeginContainer()
-			tag := unionType.TagOf(typ)
-			m.Builder.Append(zed.EncodeInt(int64(tag)))
-			item := arrayVal.Index(i)
-			_, err := m.encodeValue(item)
-			if err != nil {
-				return nil, err
+		unionType := m.Context.LookupTypeUnion(uniqueTypes)
+		// Convert each container element to the union type.
+		m.Builder.TransformContainer(func(bytes zcode.Bytes) zcode.Bytes {
+			var b zcode.Builder
+			for i, it := 0, bytes.Iter(); !it.Done(); i++ {
+				zed.BuildUnion(&b, unionType.TagOf(types[i]), it.Next())
 			}
-			m.Builder.EndContainer()
-		}
+			return b.Bytes()
+		})
 		innerType = unionType
-		push.Append(m.Builder.Bytes())
 	}
-	m.Builder = push
+	m.Builder.EndContainer()
 	return m.Context.LookupTypeArray(innerType), nil
 }
 
