@@ -28,6 +28,7 @@ take Zed values as arguments and produce a value as a result.
 * [kind](kind.md) - return a value's type category
 * [ksuid](ksuid.md) - encode/decode KSUID-style unique identifiers
 * [len](len.md) - the type-dependent length of a value
+* [levenshtein](levenshtein.md) Levenshtein distance
 * [log](log.md) - natural logarithm
 * [lower](lower.md) - convert a string to lower case
 * [missing](missing.md) - test for the "missing" error
