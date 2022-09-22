@@ -53,6 +53,10 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "ksuid":
 		argmin = 0
 		f = &KSUIDToString{zctx: zctx}
+	case "levenshtein":
+		argmin = 2
+		argmax = 2
+		f = &Levenshtein{zctx: zctx}
 	case "log":
 		f = &Log{zctx: zctx}
 	case "max":

@@ -3,6 +3,7 @@ module github.com/brimdata/zed
 go 1.18
 
 require (
+	github.com/agnivade/levenshtein v1.1.1
 	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/aws/aws-sdk-go v1.36.17
