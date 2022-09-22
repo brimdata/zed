@@ -461,14 +461,10 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			w.Error(srverr.ErrInvalid("object_ids and where cannot both be set"))
 			return
 		}
-		tags, err := lakeparse.ParseIDs(payload.ObjectIDs)
+		var ids []ksuid.KSUID
+		ids, err = lakeparse.ParseIDs(payload.ObjectIDs)
 		if err != nil {
 			w.Error(srverr.ErrInvalid(err))
-			return
-		}
-		ids, err := branch.LookupTags(r.Context(), tags)
-		if err != nil {
-			w.Error(err)
 			return
 		}
 		commit, err = branch.Delete(r.Context(), ids, message.Author, message.Body)
