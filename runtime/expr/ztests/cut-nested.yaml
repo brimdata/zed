@@ -1,9 +1,9 @@
 script: |
   zq -z "cut rec.foo" nested1.zson
   echo ===
-  zq -z "cut rec.foo,rec.bar" nested1.zson
+  zq -z "cut rec.foo,rec['bar']" nested1.zson
   echo ===
-  zq -z "cut rec1.sub1.foo,rec1.sub2.bar,rec2.foo,foo" nested2.zson
+  zq -z "cut rec1.sub1.foo,rec1['sub2']['bar'],rec2.foo,foo" nested2.zson
 
 inputs:
   - name: nested1.zson

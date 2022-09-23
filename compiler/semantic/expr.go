@@ -403,9 +403,8 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (dag.Expr, error) {
 	}, nil
 }
 
-//XXX this should work for any path not just this, e.g., this.x["@foo"]
 func isIndexOfThis(scope *Scope, lhs, rhs dag.Expr) *dag.This {
-	if this, ok := lhs.(*dag.This); ok && len(this.Path) == 0 {
+	if this, ok := lhs.(*dag.This); ok {
 		if s, ok := isStringConst(scope, rhs); ok {
 			this.Path = append(this.Path, s)
 			return this
