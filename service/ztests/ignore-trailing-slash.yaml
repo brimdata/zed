@@ -1,0 +1,13 @@
+script: |
+  source service.sh
+  zed create -q test
+  export ZED_LAKE="$ZED_LAKE/"
+  zed ls
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    regexp: |
+      test \w{27} key ts order desc
