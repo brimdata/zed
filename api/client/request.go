@@ -51,8 +51,6 @@ func newRequest(ctx context.Context, host string, h http.Header) *Request {
 }
 
 func (r *Request) HTTPRequest() (*http.Request, error) {
-	r.Header.Set("Content-Type", api.MediaTypeZNG)
-	r.Header.Set("Accept", api.MediaTypeZNG)
 	body, err := r.getBody()
 	if err != nil {
 		return nil, err
