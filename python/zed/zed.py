@@ -16,7 +16,7 @@ class Client():
     def __init__(self,
                  base_url=os.environ.get('ZED_LAKE', 'http://localhost:9867'),
                  config_dir=os.path.expanduser('~/.zed')):
-        self.base_url = base_url
+        self.base_url = base_url.rstrip('/')
         self.session = requests.Session()
         self.session.headers.update({'Accept': 'application/x-zjson'})
         token = self.__get_auth_token(config_dir)

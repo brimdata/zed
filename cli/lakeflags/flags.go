@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/client/auth0"
@@ -101,7 +100,7 @@ func (l *Flags) URI() (*storage.URI, error) {
 	if l.Lake == "" {
 		return nil, errors.New("lake location must be set (either with the -lake flag or ZED_LAKE environment variable)")
 	}
-	u, err := storage.ParseURI(strings.TrimRight(l.Lake, "/"))
+	u, err := storage.ParseURI(l.Lake)
 	if err != nil {
 		err = fmt.Errorf("error parsing lake location: %w", err)
 	}
