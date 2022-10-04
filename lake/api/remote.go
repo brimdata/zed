@@ -136,8 +136,8 @@ func (r *remote) Delete(ctx context.Context, poolID ksuid.KSUID, branchName stri
 	return res.Commit, err
 }
 
-func (r *remote) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
-	res, err := r.conn.DeleteByPredicate(ctx, poolID, branchName, src, commit)
+func (r *remote) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
+	res, err := r.conn.DeleteWhere(ctx, poolID, branchName, src, commit)
 	return res.Commit, err
 }
 

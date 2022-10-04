@@ -396,8 +396,8 @@ func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return c.delete(ctx, poolID, branchName, ids, "", message)
 }
 
-func (c *Connection) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName string, where string, message api.CommitMessage) (api.CommitResponse, error) {
-	return c.delete(ctx, poolID, branchName, nil, where, message)
+func (c *Connection) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.delete(ctx, poolID, branchName, nil, src, message)
 }
 
 func (c *Connection) delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, where string, message api.CommitMessage) (api.CommitResponse, error) {

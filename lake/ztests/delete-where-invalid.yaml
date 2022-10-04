@@ -1,0 +1,15 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed use -q test 
+  ! zed delete -where 'me == "hi" | cut me'
+  ! zed delete -where 'cut that'
+
+outputs:
+  - name: stdout
+    data: ""
+  - name: stderr
+    data: |
+      invalid delete where query: must be a single filter operation
+      invalid delete where query: must be a single filter operation

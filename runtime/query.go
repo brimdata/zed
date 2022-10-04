@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -36,8 +35,8 @@ func NewQuery(pctx *op.Context, puller zbuf.Puller, meters []zbuf.Meter) *Query 
 type Compiler interface {
 	NewQuery(*op.Context, ast.Op, []zio.Reader) (*Query, error)
 	NewLakeQuery(*op.Context, ast.Op, int, *lakeparse.Commitish) (*Query, error)
+	NewLakeDeleteQuery(*op.Context, ast.Op, *lakeparse.Commitish) (*DeleteQuery, error)
 	Parse(string, ...string) (ast.Op, error)
-	ParseRangeExpr(*zed.Context, string, order.Layout) (*zed.Value, string, error)
 }
 
 func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Op, readers []zio.Reader) (*Query, error) {

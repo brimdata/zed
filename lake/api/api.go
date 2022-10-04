@@ -34,8 +34,8 @@ type Interface interface {
 	MergeBranch(ctx context.Context, pool ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error)
 	Compact(ctx context.Context, pool ksuid.KSUID, branch string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
 	Load(ctx context.Context, zctx *zed.Context, pool ksuid.KSUID, branch string, r zio.Reader, message api.CommitMessage) (ksuid.KSUID, error)
-	Delete(ctx context.Context, pool ksuid.KSUID, branchName string, tags []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
-	DeleteByPredicate(ctx context.Context, pool ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error)
+	Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
+	DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error)
 	Revert(ctx context.Context, poolID ksuid.KSUID, branch string, commitID ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error)
 	AddIndexRules(context.Context, []index.Rule) error
 	DeleteIndexRules(context.Context, []ksuid.KSUID) ([]index.Rule, error)

@@ -1,0 +1,17 @@
+script: |
+  source service.sh
+  zed create -q test
+  zed use -q test 
+  ! zed delete -where 'me == "hi" | cut me'
+  ! zed delete -where 'cut that'
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: ""
+  - name: stderr
+    data: |
+      status code 400: invalid delete where query: must be a single filter operation
+      status code 400: invalid delete where query: must be a single filter operation

@@ -12,7 +12,6 @@ import (
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/segmentio/ksuid"
 )
 
@@ -79,9 +78,9 @@ func (c *Command) Run(args []string) error {
 		if len(args) > 0 {
 			return errors.New("too many arguments")
 		}
-		commit, err = c.deleteByPredicate(ctx, lake, head, poolID)
+		commit, err = c.deleteWhere(ctx, lake, poolID, head.Branch)
 	} else {
-		commit, err = c.deleteByIDs(ctx, lake, head, poolID, args)
+		commit, err = c.deleteByIDs(ctx, lake, poolID, head.Branch, args)
 	}
 	if err != nil {
 		return err
@@ -92,7 +91,7 @@ func (c *Command) Run(args []string) error {
 	return nil
 }
 
-func (c *Command) deleteByIDs(ctx context.Context, lake api.Interface, head *lakeparse.Commitish, poolID ksuid.KSUID, args []string) (ksuid.KSUID, error) {
+func (c *Command) deleteByIDs(ctx context.Context, lake api.Interface, poolID ksuid.KSUID, branchName string, args []string) (ksuid.KSUID, error) {
 	ids, err := lakeparse.ParseIDs(args)
 	if err != nil {
 		return ksuid.Nil, err
@@ -100,12 +99,9 @@ func (c *Command) deleteByIDs(ctx context.Context, lake api.Interface, head *lak
 	if len(ids) == 0 {
 		return ksuid.Nil, errors.New("no data object IDs specified")
 	}
-	return lake.Delete(ctx, poolID, head.Branch, ids, c.commitFlags.CommitMessage())
+	return lake.Delete(ctx, poolID, branchName, ids, c.commitFlags.CommitMessage())
 }
 
-func (c *Command) deleteByPredicate(ctx context.Context, lake api.Interface, head *lakeparse.Commitish, poolID ksuid.KSUID) (ksuid.KSUID, error) {
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return ksuid.Nil, err
-	}
-	return lake.DeleteByPredicate(ctx, poolID, head.Branch, c.where, c.commitFlags.CommitMessage())
+func (c *Command) deleteWhere(ctx context.Context, lake api.Interface, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	return lake.DeleteWhere(ctx, poolID, branchName, c.where, c.commitFlags.CommitMessage())
 }
