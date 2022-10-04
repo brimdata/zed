@@ -146,6 +146,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 		if err != nil {
 			return nil, err
 		}
+		defer query.Pull(true)
 		w, err := NewWriter(ctx, zctx, b.pool)
 		if err != nil {
 			return nil, err
