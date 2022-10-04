@@ -485,9 +485,9 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			return
 		}
 		commit, err = branch.DeleteWhere(r.Context(), c.compiler, program, message.Author, message.Body, message.Meta)
-	}
-	if errors.Is(err, &compiler.InvalidDeleteWhereQuery{}) {
-		err = srverr.ErrInvalid(err)
+		if errors.Is(err, &compiler.InvalidDeleteWhereQuery{}) {
+			err = srverr.ErrInvalid(err)
+		}
 	}
 	if err != nil {
 		w.Error(err)
