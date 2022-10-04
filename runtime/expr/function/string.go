@@ -4,6 +4,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/agnivade/levenshtein"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 )
@@ -165,4 +166,21 @@ func (j *Join) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		sep = separator
 	}
 	return newString(ctx, b.String())
+}
+
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#levenshtein
+type Levenshtein struct {
+	zctx *zed.Context
+}
+
+func (l *Levenshtein) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+	a, b := &args[0], &args[1]
+	if !a.IsString() {
+		return l.zctx.WrapError("levenshtein: string args required", a)
+	}
+	if !b.IsString() {
+		return l.zctx.WrapError("levenshtein: string args required", b)
+	}
+	as, bs := zed.DecodeString(a.Bytes), zed.DecodeString(b.Bytes)
+	return newInt64(ctx, int64(levenshtein.ComputeDistance(as, bs)))
 }

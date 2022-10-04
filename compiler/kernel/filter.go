@@ -68,3 +68,24 @@ func (f *Filter) keyFilter(key field.Path) *dag.KeyFilter {
 	}
 	return dag.NewKeyFilter(key, f.pushdown)
 }
+
+type DeleteFilter struct {
+	*Filter
+}
+
+func (f *DeleteFilter) AsEvaluator() (expr.Evaluator, error) {
+	if f == nil {
+		return nil, nil
+	}
+	// For a DeleteFilter Evaluator the pushdown gets wrapped in a unary !
+	// expression so we get all records that don't match.
+	return f.builder.compileExpr(&dag.UnaryExpr{
+		Kind:    "UnaryExpr",
+		Op:      "!",
+		Operand: f.pushdown,
+	})
+}
+
+func (f *DeleteFilter) AsBufferFilter() (*expr.BufferFilter, error) {
+	return nil, nil
+}

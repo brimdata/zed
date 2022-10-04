@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/brimdata/zed"
@@ -60,10 +61,14 @@ func NewConnection() *Connection {
 // NewConnectionTo creates a new connection with the given useragent string
 // and a base URL derived from the hostURL argument.
 func NewConnectionTo(hostURL string) *Connection {
+	defaultHeader := http.Header{
+		"Accept":       []string{api.MediaTypeZNG},
+		"Content-Type": []string{api.MediaTypeZNG},
+	}
 	return &Connection{
 		client:        &http.Client{},
-		defaultHeader: http.Header{"Accept": []string{api.MediaTypeZNG}},
-		hostURL:       hostURL,
+		defaultHeader: defaultHeader,
+		hostURL:       strings.TrimRight(hostURL, "/"),
 	}
 }
 
@@ -391,8 +396,8 @@ func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return c.delete(ctx, poolID, branchName, ids, "", message)
 }
 
-func (c *Connection) DeleteByPredicate(ctx context.Context, poolID ksuid.KSUID, branchName string, where string, message api.CommitMessage) (api.CommitResponse, error) {
-	return c.delete(ctx, poolID, branchName, nil, where, message)
+func (c *Connection) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.delete(ctx, poolID, branchName, nil, src, message)
 }
 
 func (c *Connection) delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, where string, message api.CommitMessage) (api.CommitResponse, error) {
@@ -411,6 +416,16 @@ func (c *Connection) delete(ctx context.Context, poolID ksuid.KSUID, branchName 
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
 	return commit, err
+}
+
+func (c *Connection) SubscribeEvents(ctx context.Context) (*EventsClient, error) {
+	req := c.NewRequest(ctx, http.MethodGet, "/events", nil)
+	req.Header.Set("Accept", api.MediaTypeZSON)
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return newEventsClient(resp), nil
 }
 
 func (c *Connection) AuthMethod(ctx context.Context) (api.AuthMethodResponse, error) {

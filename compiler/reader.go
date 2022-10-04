@@ -41,3 +41,7 @@ func CompileWithLayout(pctx *op.Context, o ast.Op, r zio.Reader, layout order.La
 func (*anyCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
 	panic("NewLakeQuery called on compiler.anyCompiler")
 }
+
+func (*anyCompiler) NewLakeDeleteQuery(pctx *op.Context, program ast.Op, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
+	panic("NewLakeDeleteQuery called on compiler.anyCompiler")
+}

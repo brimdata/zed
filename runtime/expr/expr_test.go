@@ -395,6 +395,10 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, "f / 1.25", record, zfloat64(2.0))
 	testSuccessful(t, "5.0 / f", record, zfloat64(2.0))
 
+	// Difference of two times is a duration
+	testSuccessful(t, "a - b", "{a:2022-09-22T00:00:01Z,b:2022-09-22T00:00:00Z}",
+		*zed.NewDuration(nano.Second))
+
 	width := func(id int) int {
 		switch id {
 		case zed.IDInt8, zed.IDUint8:

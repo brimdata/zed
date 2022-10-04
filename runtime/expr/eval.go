@@ -463,6 +463,10 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(typ, zed.EncodeFloat64(v1-v2))
 	case zed.IsSigned(id):
 		v1, v2 := s.operands.ints()
+		if id == zed.IDTime {
+			// Return the difference of two times as a duration.
+			typ = zed.TypeDuration
+		}
 		return ectx.NewValue(typ, zed.EncodeInt(v1-v2))
 	case zed.IsNumber(id):
 		v1, v2 := s.operands.uints()
