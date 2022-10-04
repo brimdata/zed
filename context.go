@@ -101,9 +101,6 @@ func (d *DuplicateFieldError) Error() string {
 // this type context.  If you want to use columns from a different type context,
 // use TranslateTypeRecord.
 func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
-	if name, ok := duplicateField(columns); ok {
-		return nil, &DuplicateFieldError{name}
-	}
 	tv := tvPool.Get().(*[]byte)
 	*tv = AppendTypeValue((*tv)[:0], &TypeRecord{Columns: columns})
 	c.mu.Lock()
@@ -111,6 +108,9 @@ func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
 	if typ, ok := c.toType[string(*tv)]; ok {
 		tvPool.Put(tv)
 		return typ.(*TypeRecord), nil
+	}
+	if name, ok := duplicateField(columns); ok {
+		return nil, &DuplicateFieldError{name}
 	}
 	typ := NewTypeRecord(c.nextIDWithLock(), slices.Clone(columns))
 	c.enterWithLock(*tv, typ)
