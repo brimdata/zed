@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/branches"
+	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
@@ -273,8 +274,8 @@ func errorResponse(e error) (status int, ae *api.Error) {
 		switch {
 		case errors.Is(e, branches.ErrExists) || errors.Is(e, pools.ErrExists):
 			kind = srverr.Conflict
-		case errors.Is(e, branches.ErrNotFound) || errors.Is(e, pools.ErrNotFound) ||
-			errors.Is(e, fs.ErrNotExist):
+		case errors.Is(e, branches.ErrNotFound) || errors.Is(e, commits.ErrNotFound) ||
+			errors.Is(e, pools.ErrNotFound) || errors.Is(e, fs.ErrNotExist):
 			kind = srverr.NotFound
 		default:
 			ae.Message = e.Error()

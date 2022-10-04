@@ -118,7 +118,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		}
 		for _, id := range ids {
 			if !snap.Exists(id) {
-				return nil, fmt.Errorf("non-existent object %s: delete operation aborted", id)
+				return nil, fmt.Errorf("%s: %w", id, commits.ErrNotFound)
 			}
 		}
 		return commits.NewDeletesObject(parent.Commit, retries, author, message, ids), nil

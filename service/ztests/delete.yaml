@@ -6,9 +6,11 @@ script: |
   id=$(zed query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
   zed load -q 2.zson
   zed query -z "*"
-  echo ===
+  echo === | tee /dev/stderr
   zed delete -q $id
   zed query -z "*"
+  echo === | tee /dev/stderr
+  ! zed delete -q 27aaaaaaaaaaaaaaaaaaaaaaaaa
 
 inputs:
   - name: service.sh
@@ -24,3 +26,9 @@ outputs:
       {x:1}
       ===
       {x:2}
+      ===
+  - name: stderr
+    data: |
+      ===
+      ===
+      status code 404: 27aaaaaaaaaaaaaaaaaaaaaaaaa: commit object not found
