@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/brimdata/zed"
@@ -67,7 +68,7 @@ func NewConnectionTo(hostURL string) *Connection {
 	return &Connection{
 		client:        &http.Client{},
 		defaultHeader: defaultHeader,
-		hostURL:       hostURL,
+		hostURL:       strings.TrimRight(hostURL, "/"),
 	}
 }
 
