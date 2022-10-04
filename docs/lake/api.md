@@ -224,7 +224,7 @@ On success, HTTP 204 is returned with no response payload.
 #### Delete Data
 
 Create a commit that reflects the deletion of some data in the branch. The data
-to delete can be specified via a list of commit IDs or object IDs, or
+to delete can be specified via a list of object IDs or
 as a filter expression (see [limitations](../commands/zed.md#24-delete)).
 
 ```
@@ -237,7 +237,7 @@ POST /pool/{pool}/branch/{branch}/delete
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
-| object_ids | [string] | body | Commit IDs or object IDs to be deleted. |
+| object_ids | [string] | body | Object IDs to be deleted. |
 | where | string | body | Filter expression (see [limitations](../commands/zed.md#24-delete)). |
 
 **Example Request**
