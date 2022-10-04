@@ -118,7 +118,7 @@ func (s *deleteScanner) Pull(done bool) (zbuf.Batch, error) {
 					count += uint64(len(b.Values()))
 				}
 				if count == s.object.Count {
-					// Only return batches from records where objects have been
+					// Only return batches from objects where values have been
 					// deleted.
 					s.batches = nil
 				} else {
