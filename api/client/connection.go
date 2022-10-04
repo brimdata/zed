@@ -417,6 +417,16 @@ func (c *Connection) delete(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return commit, err
 }
 
+func (c *Connection) SubscribeEvents(ctx context.Context) (*EventsClient, error) {
+	req := c.NewRequest(ctx, http.MethodGet, "/events", nil)
+	req.Header.Set("Accept", api.MediaTypeZSON)
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return newEventsClient(resp), nil
+}
+
 func (c *Connection) AuthMethod(ctx context.Context) (api.AuthMethodResponse, error) {
 	req := c.NewRequest(ctx, http.MethodGet, "/auth/method", nil)
 	var method api.AuthMethodResponse

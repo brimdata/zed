@@ -592,12 +592,17 @@ func handleEvents(c *Core, w *ResponseWriter, r *Request) {
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 	}
-	w.Header().Set("Content-Type", "text/event-stream")
 	writer := &eventStreamWriter{body: w.ResponseWriter, format: format}
 	subscription := make(chan event)
 	c.subscriptionsMu.Lock()
 	c.subscriptions[subscription] = struct{}{}
 	c.subscriptionsMu.Unlock()
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.WriteHeader(200)
+	// Flush header to notify clients that the request has been accepted.
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
 	for {
 		select {
 		case ev := <-subscription:
