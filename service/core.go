@@ -240,7 +240,9 @@ func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 }
 
 func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
-	zv, err := zson.MarshalZNG(data)
+	marshaler := zson.NewZNGMarshaler()
+	marshaler.Decorate(zson.StyleSimple)
+	zv, err := marshaler.Marshal(data)
 	if err != nil {
 		w.Logger.Error("Error marshaling published event", zap.Error(err))
 		return

@@ -179,28 +179,58 @@ func TestRequestID(t *testing.T) {
 	})
 }
 
-/* Not yet
-func TestIndexSearch(t *testing.T) {
-	t.Skip("issue #2532")
-	thresh := int64(1000)
+func TestEventsHandler(t *testing.T) {
+	_, conn := newCore(t)
+	ev, err := conn.SubscribeEvents(context.Background())
+	require.NoError(t, err)
+	id := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	kind, v, err := ev.Recv()
+	require.NoError(t, err)
+	assert.Equal(t, "pool-new", kind)
+	assert.Equal(t, &api.EventPool{PoolID: id}, v)
+	commit := conn.TestLoad(id, "main", strings.NewReader("{ts:0}"))
+	kind, v, err = ev.Recv()
+	require.NoError(t, err)
+	assert.Equal(t, "branch-commit", kind)
+	assert.Equal(t, &api.EventBranchCommit{
+		PoolID:   id,
+		Branch:   "main",
+		CommitID: commit,
+		Parent:   "",
+	}, v)
+	require.NoError(t, conn.RemovePool(context.Background(), id))
+	kind, v, err = ev.Recv()
+	require.NoError(t, err)
+	assert.Equal(t, "pool-delete", kind)
+	assert.Equal(t, &api.EventPool{PoolID: id}, v)
+	require.NoError(t, ev.Close())
+}
 
-	pool, err := conn.TestPoolPost(context.Background(), api.PoolPostRequest{
-		Name:   "TestIndexSearch",
-		Thresh: thresh,
-	})
-	require.NoError(t, err)
-	// babbleSorted must be used because regular babble isn't fully sorted and
-	// generates an overlap which on compaction deletes certain indices. We
-	// should be able to remove this once #1656 is completed and we have some
-	// api way of determining if compactions are complete.
-	_, err = conn.LogPost(context.Background(), pool.ID, nil, babbleSorted)
-	require.NoError(t, err)
-	err = conn.IndexPost(context.Background(), pool.ID, api.IndexPostRequest{
-		Patterns: []string{"v"},
-	})
-	require.NoError(t, err)
+/*
+	Not yet
 
-	exp := `
+	func TestIndexSearch(t *testing.T) {
+		t.Skip("issue #2532")
+		thresh := int64(1000)
+
+		pool, err := conn.TestPoolPost(context.Background(), api.PoolPostRequest{
+			Name:   "TestIndexSearch",
+			Thresh: thresh,
+		})
+		require.NoError(t, err)
+		// babbleSorted must be used because regular babble isn't fully sorted and
+		// generates an overlap which on compaction deletes certain indices. We
+		// should be able to remove this once #1656 is completed and we have some
+		// api way of determining if compactions are complete.
+		_, err = conn.LogPost(context.Background(), pool.ID, nil, babbleSorted)
+		require.NoError(t, err)
+		err = conn.IndexPost(context.Background(), pool.ID, api.IndexPostRequest{
+			Patterns: []string{"v"},
+		})
+		require.NoError(t, err)
+
+		exp := `
+
 {key:257,count:1(uint64),first:2020-04-22T01:23:02.06699522Z,last:2020-04-22T01:13:34.06491752Z}(=0)
 {key:257,count:1,first:2020-04-22T00:52:28.0632538Z,last:2020-04-22T00:43:20.06892251Z}(0)
 {key:257,count:1,first:2020-04-21T23:37:25.0693411Z,last:2020-04-21T23:28:29.06845389Z}(0)
@@ -208,26 +238,27 @@ func TestIndexSearch(t *testing.T) {
 {key:257,count:1,first:2020-04-21T23:11:06.06396109Z,last:2020-04-21T23:01:02.069881Z}(0)
 {key:257,count:1,first:2020-04-21T22:51:17.06450528Z,last:2020-04-21T22:40:30.06852324Z}(0)
 `
-	res, _ := indexSearch(t, conn, pool.ID, "", []string{"v=257"})
-	assert.Equal(t, test.Trim(exp), zsonCopy(t, "drop _log", res))
-}
 
-func indexSearch(t *testing.T, conn *testClient, pool ksuid.KSUID, indexName string, patterns []string) (string, []interface{}) {
-	req := api.IndexSearchRequest{
-		IndexName: indexName,
-		Patterns:  patterns,
+		res, _ := indexSearch(t, conn, pool.ID, "", []string{"v=257"})
+		assert.Equal(t, test.Trim(exp), zsonCopy(t, "drop _log", res))
 	}
-	r, err := conn.IndexSearch(context.Background(), pool, req, nil)
-	require.NoError(t, err)
-	buf := bytes.NewBuffer(nil)
-	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
-	var msgs []interface{}
-	r.SetOnCtrl(func(i interface{}) {
-		msgs = append(msgs, i)
-	})
-	require.NoError(t, zio.Copy(w, r))
-	return buf.String(), msgs
-}
+
+	func indexSearch(t *testing.T, conn *testClient, pool ksuid.KSUID, indexName string, patterns []string) (string, []interface{}) {
+		req := api.IndexSearchRequest{
+			IndexName: indexName,
+			Patterns:  patterns,
+		}
+		r, err := conn.IndexSearch(context.Background(), pool, req, nil)
+		require.NoError(t, err)
+		buf := bytes.NewBuffer(nil)
+		w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
+		var msgs []interface{}
+		r.SetOnCtrl(func(i interface{}) {
+			msgs = append(msgs, i)
+		})
+		require.NoError(t, zio.Copy(w, r))
+		return buf.String(), msgs
+	}
 */
 func newCore(t *testing.T) (*service.Core, *testClient) {
 	root := t.TempDir()
