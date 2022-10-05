@@ -1,0 +1,14 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed use -q test 
+  echo '{ts:0}' | zed load -q -
+  ! zed delete -where 'ts > 1'
+
+outputs:
+  - name: stdout
+    data: ""
+  - name: stderr
+    data: |
+      empty transaction
