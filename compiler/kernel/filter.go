@@ -78,11 +78,22 @@ func (f *DeleteFilter) AsEvaluator() (expr.Evaluator, error) {
 		return nil, nil
 	}
 	// For a DeleteFilter Evaluator the pushdown gets wrapped in a unary !
-	// expression so we get all records that don't match.
-	return f.builder.compileExpr(&dag.UnaryExpr{
-		Kind:    "UnaryExpr",
-		Op:      "!",
-		Operand: f.pushdown,
+	// expression so we get all values that don't match. We also add a missing
+	// call so if the expression results in an error("missing") the value is
+	// kept.
+	return f.builder.compileExpr(&dag.BinaryExpr{
+		Kind: "BinaryExpr",
+		Op:   "or",
+		LHS: &dag.UnaryExpr{
+			Kind:    "UnaryExpr",
+			Op:      "!",
+			Operand: f.pushdown,
+		},
+		RHS: &dag.Call{
+			Kind: "Call",
+			Name: "missing",
+			Args: []dag.Expr{f.pushdown},
+		},
 	})
 }
 
