@@ -467,8 +467,12 @@ underlying data objects thereby allowing time travel to work in the face
 of deletes.
 
 If the `-where` flag is specified, delete will remove all values for which the
-provided filter expression is true. The filter expression must be a single comparison
-against the pool key using <, <=, > or >= (e.g., `-where 'ts <= now() - 3h'`).
+provided filter expression is true. The value provided to `-where` must be a
+single filter expression, e.g.:
+
+```
+zed delete -where 'ts > 2022-10-05T17:20:00Z and ts < 2022-10-05T17:21:00Z'
+```
 
 > A vacuum command to delete permanently from a pool is under development.
 
