@@ -162,8 +162,12 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 		if err != nil {
 			return nil, err
 		}
+		deleted := query.DeleteObjects()
+		if len(deleted) == 0 {
+			return nil, commits.ErrEmptyTransaction
+		}
 		patch := commits.NewPatch(base)
-		for _, oid := range query.DeleteObjects() {
+		for _, oid := range deleted {
 			patch.DeleteObject(oid)
 		}
 		for _, o := range w.Objects() {

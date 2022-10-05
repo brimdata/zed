@@ -4,7 +4,7 @@ script: |
   zed create -q test
   zed use -q test
   zed load -q in.zson
-  zed delete -q -where 'uid==C3UeSqaSOFRReHD68'
+  ! zed delete -q -where 'uid==C3UeSqaSOFRReHD68'
   zed query -z 'count()'
   zed delete -q -where 'uid=="C3UeSqaSOFRReHD68"'
   zed query -z 'count()'
@@ -21,3 +21,6 @@ outputs:
     data: |
       {count:3(uint64)}
       {count:2(uint64)}
+  - name: stderr
+    data: |
+      empty transaction
