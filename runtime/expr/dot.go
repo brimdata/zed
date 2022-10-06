@@ -61,7 +61,9 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if _, ok := val.Type.(*zed.TypeOfType); ok {
 		return d.evalTypeOfType(ectx, val.Bytes)
 	}
-
+	if typ, ok := val.Type.(*zed.TypeMap); ok {
+		return indexMap(d.zctx, ectx, typ, val.Bytes, zed.NewString(d.field))
+	}
 	recType, ok := val.Type.(*zed.TypeRecord)
 	if !ok {
 		return d.zctx.Missing()
