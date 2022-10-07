@@ -207,7 +207,10 @@ func (p *Proc) run() {
 		}
 		vals := batch.Values()
 		for i := range vals {
-			p.agg.Consume(batch, &vals[i])
+			if err := p.agg.Consume(batch, &vals[i]); err != nil {
+				p.sendResult(nil, err)
+				return
+			}
 		}
 		batch.Unref()
 		if p.agg.inputDir == 0 {
@@ -281,7 +284,7 @@ func (p *Proc) reset() {
 }
 
 // Consume adds a value to an aggregation.
-func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) {
+func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) error {
 	// See if we've encountered this row before.
 	// We compute a key for this row by exploiting the fact that
 	// a row key is uniquely determined by the inbound descriptor
@@ -310,7 +313,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) {
 	for i, keyExpr := range a.keyExprs {
 		key := keyExpr.Eval(batch, this)
 		if key.IsQuiet() {
-			return
+			return nil
 		}
 		if i == 0 && a.inputDir != 0 {
 			prim = a.updateMaxTableKey(key)
@@ -330,7 +333,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) {
 	if !ok {
 		if len(a.table) >= a.limit {
 			if err := a.spillTable(false, batch); err != nil {
-				panic(err)
+				return err
 			}
 		}
 		row = &Row{
@@ -346,6 +349,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) {
 	} else {
 		row.reducers.apply(a.zctx, batch, a.aggs, this)
 	}
+	return nil
 }
 
 func (a *Aggregator) spillTable(eof bool, ref zbuf.Batch) error {
