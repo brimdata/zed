@@ -160,7 +160,12 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 			return nil, p.pctx.Err()
 		}
 	}
-	p.once.Do(func() { go p.run() })
+	p.once.Do(func() {
+		// Block p.ctx's cancel function until p.run finishes its
+		// cleanup.
+		p.pctx.WaitGroup.Add(1)
+		go p.run()
+	})
 	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
 	}
@@ -168,6 +173,8 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 }
 
 func (p *Proc) run() {
+	// Tell p.ctx's cancel function that we've finished our cleanup.
+	defer p.pctx.WaitGroup.Done()
 	sendResults := func(p *Proc) bool {
 		for {
 			b, err := p.agg.nextResult(true, p.batch)
