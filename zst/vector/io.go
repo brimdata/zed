@@ -6,14 +6,19 @@
 // in a Spiller with a vector threshold.  Output is streamed to the underlying spiller
 // in a single pass.
 //
-// NewWriter recursively decends into the Zed type, allocating a Writer
+// NewWriter recursively descends into the Zed type, allocating a Writer
 // for each node in the type tree.  The top-level body is written via a call
-// to Write.  The vectors buffer data in memory until they reach their
+// to Write.  Each vector buffers its data in memory until it reaches a
 // byte threshold or until Flush is called.
 //
 // After all of the Zed data is written, a metadata section is written consisting
 // of segment maps for each vector, each obtained by calling the Metadata
 // method on the zst.Writer interface.
+//
+// Nulls for complex types are encoded by a special Nulls object.  Each complex
+// type is wrapped by a NullsWriter which runlength encodes any alternating
+// sequence of nulls and values.  If no nulls are encountered, then the Nulls
+// object is omitted from the metadata.
 //
 // Data is read from a ZST file by scanning the metadata maps to build
 // vector Readers for each Zed type by calling NewReader with the metadata, which
@@ -56,15 +61,15 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 	case *zed.TypeNamed:
 		return &NamedWriter{NewWriter(typ.Type, spiller), typ.Name}
 	case *zed.TypeRecord:
-		return NewRecordWriter(typ, spiller)
+		return NewNullsWriter(NewRecordWriter(typ, spiller), spiller)
 	case *zed.TypeArray:
-		return NewArrayWriter(typ.Type, spiller)
+		return NewNullsWriter(NewArrayWriter(typ.Type, spiller), spiller)
 	case *zed.TypeSet:
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
-		return NewSetWriter(typ.Type, spiller)
+		return NewNullsWriter(NewSetWriter(typ.Type, spiller), spiller)
 	case *zed.TypeUnion:
-		return NewUnionWriter(typ, spiller)
+		return NewNullsWriter(NewUnionWriter(typ, spiller), spiller)
 	default:
 		if !zed.IsPrimitiveType(typ) {
 			panic(fmt.Sprintf("unsupported type in ZST file: %T", typ))
@@ -90,6 +95,12 @@ func NewReader(meta Metadata, r io.ReaderAt) (Reader, error) {
 	switch meta := meta.(type) {
 	case nil:
 		return nil, nil
+	case *Nulls:
+		inner, err := NewReader(meta.Values, r)
+		if err != nil {
+			return nil, err
+		}
+		return NewNullsReader(inner, meta.Runs, r), nil
 	case *Named:
 		return NewReader(meta.Values, r)
 	case *Record:

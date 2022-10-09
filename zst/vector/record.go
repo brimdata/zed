@@ -16,9 +16,8 @@ func NewRecordWriter(typ *zed.TypeRecord, spiller *Spiller) RecordWriter {
 	var r RecordWriter
 	for _, col := range typ.Columns {
 		fw := &FieldWriter{
-			name:     col.Name,
-			values:   NewWriter(col.Type, spiller),
-			presence: NewPresenceWriter(spiller),
+			name:   col.Name,
+			values: NewWriter(col.Type, spiller),
 		}
 		r = append(r, fw)
 	}
