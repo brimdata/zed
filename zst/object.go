@@ -16,7 +16,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/vector"
@@ -28,11 +27,9 @@ type Object struct {
 	zctx     *zed.Context
 	root     []vector.Segment
 	maps     []vector.Metadata
-	types    []zed.Type
 	trailer  FileMeta
 	sections []int64
 	size     int64
-	builder  zcode.Builder
 }
 
 func NewObject(zctx *zed.Context, r io.ReaderAt, size int64) (*Object, error) {
