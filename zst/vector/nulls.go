@@ -6,6 +6,9 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
+// NullsWriter emits a sequence of runs of the length of alternating sequences
+// of nulls and values, beginning with nulls.  Every run is non-zero except for
+// the first, which may be zero when the first value is non-null.
 type NullsWriter struct {
 	values Writer
 	runs   Int64Writer
