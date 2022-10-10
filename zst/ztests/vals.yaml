@@ -16,11 +16,13 @@ inputs:
       "foo"((int64,string))
       <int64>
       |[1,2,3]|
+      |{1:"a",2:"b"}|
       null(int64)
       null(string)
       null(type)
       null([int64])
       null(|[int64]|)
+      null(|{int64:string}|)
 
 outputs:
   - name: stdout

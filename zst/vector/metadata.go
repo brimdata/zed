@@ -80,6 +80,18 @@ func (s *Set) Type(zctx *zed.Context) zed.Type {
 	return zctx.LookupTypeSet(s.Values.Type(zctx))
 }
 
+type Map struct {
+	Lengths []Segment
+	Keys    Metadata
+	Values  Metadata
+}
+
+func (m *Map) Type(zctx *zed.Context) zed.Type {
+	keyType := m.Keys.Type(zctx)
+	valType := m.Values.Type(zctx)
+	return zctx.LookupTypeMap(keyType, valType)
+}
+
 type Union struct {
 	Tags   []Segment
 	Values []Metadata
@@ -124,6 +136,7 @@ var Template = []interface{}{
 	Record{},
 	Array{},
 	Set{},
+	Map{},
 	Union{},
 	Primitive{},
 	Named{},

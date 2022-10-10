@@ -167,7 +167,8 @@ diff baseline.parquet boomerang.parquet
 				if s := err.Error(); strings.Contains(s, parquetio.ErrEmptyRecordType.Error()) ||
 					strings.Contains(s, parquetio.ErrNullType.Error()) ||
 					strings.Contains(s, parquetio.ErrUnionType.Error()) ||
-					strings.Contains(s, "column has no name") {
+					strings.Contains(s, "column has no name") ||
+					strings.Contains(s, "cannot yet use maps in shaping functions") {
 					t.Skip("skipping because the Parquet writer cannot handle an input type")
 				}
 				err = &BoomerangError{
