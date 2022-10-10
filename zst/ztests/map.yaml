@@ -5,12 +5,11 @@ script: |
 inputs:
   - name: stdin
     data: &input |
-      {m:|{"foo":"bar","hello":"goodbye"}|}
-      {m:|{"foo":"bar2","hello2":"goodbye"}|}
-      {m2:|{1:"goodbye",2:null(string)}|}
-      {m:null(|{string:string}|)}
-      {m2:null(|{int64:string}|)}
-      {m2:|{3:"goodbye",4:null(string)}|}
+      {m:|{"foo":"bar","hello":"goodby"}|}
+      {m:|{"foo":"bar2","hello2":"goodby"}|}
+      {m:|{1:"goodbye","foo":null(string)}|}
+      {m:null(|{int64:string}|)}
+      {m:|{2:"goodbye","bar":null(string)}|}
 
 outputs:
   - name: stdout
