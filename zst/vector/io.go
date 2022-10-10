@@ -16,8 +16,8 @@
 // method on the zst.Writer interface.
 //
 // Nulls for complex types are encoded by a special Nulls object.  Each complex
-// type is wrapped by a NullsWriter which runlength encodes any alternating
-// sequence of nulls and values.  If no nulls are encountered, then the Nulls
+// type is wrapped by a NullsWriter, which runlength encodes any alternating
+// sequences of nulls and values.  If no nulls are encountered, then the Nulls
 // object is omitted from the metadata.
 //
 // Data is read from a ZST file by scanning the metadata maps to build
@@ -68,6 +68,8 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
 		return NewNullsWriter(NewSetWriter(typ.Type, spiller), spiller)
+	case *zed.TypeMap:
+		return NewNullsWriter(NewMapWriter(typ, spiller), spiller)
 	case *zed.TypeUnion:
 		return NewNullsWriter(NewUnionWriter(typ, spiller), spiller)
 	default:
@@ -109,6 +111,8 @@ func NewReader(meta Metadata, r io.ReaderAt) (Reader, error) {
 		return NewArrayReader(meta, r)
 	case *Set:
 		return NewArrayReader((*Array)(meta), r)
+	case *Map:
+		return NewMapReader(meta, r)
 	case *Union:
 		return NewUnionReader(meta, r)
 	case *Primitive:
