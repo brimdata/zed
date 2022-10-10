@@ -17,10 +17,6 @@ prints the list of known dev tools.`,
 	New: New,
 }
 
-type Command struct {
-	*root.Command
-}
-
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return parent.(*root.Command), nil
 }
