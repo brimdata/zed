@@ -49,19 +49,20 @@ func (r *Record) Lookup(path field.Path) *Field {
 
 func Under(meta Metadata) Metadata {
 	for {
-		named, ok := meta.(*Named)
-		if !ok {
+		switch inner := meta.(type) {
+		case *Named:
+			meta = inner.Values
+		case *Nulls:
+			meta = inner.Values
+		default:
 			return meta
 		}
-		meta = named.Values
 	}
 }
 
 type Field struct {
-	Presence []Segment
-	Name     string
-	Values   Metadata
-	Empty    bool
+	Name   string
+	Values Metadata
 }
 
 type Array struct {
@@ -80,9 +81,8 @@ func (s *Set) Type(zctx *zed.Context) zed.Type {
 }
 
 type Union struct {
-	Presence []Segment
-	Tags     []Segment
-	Values   []Metadata
+	Tags   []Segment
+	Values []Metadata
 }
 
 func (u *Union) Type(zctx *zed.Context) zed.Type {
@@ -111,6 +111,15 @@ func (p *Primitive) Type(zctx *zed.Context) zed.Type {
 	return p.Typ
 }
 
+type Nulls struct {
+	Runs   []Segment
+	Values Metadata
+}
+
+func (n *Nulls) Type(zctx *zed.Context) zed.Type {
+	return n.Values.Type(zctx)
+}
+
 var Template = []interface{}{
 	Record{},
 	Array{},
@@ -118,4 +127,5 @@ var Template = []interface{}{
 	Union{},
 	Primitive{},
 	Named{},
+	Nulls{},
 }

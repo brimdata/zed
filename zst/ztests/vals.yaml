@@ -19,6 +19,8 @@ inputs:
       null(int64)
       null(string)
       null(type)
+      null([int64])
+      null(|[int64]|)
 
 outputs:
   - name: stdout

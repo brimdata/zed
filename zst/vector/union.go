@@ -9,10 +9,9 @@ import (
 )
 
 type UnionWriter struct {
-	typ      *zed.TypeUnion
-	values   []Writer
-	tags     *Int64Writer
-	presence *PresenceWriter
+	typ    *zed.TypeUnion
+	values []Writer
+	tags   *Int64Writer
 }
 
 func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
@@ -21,19 +20,13 @@ func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
 		values = append(values, NewWriter(typ, spiller))
 	}
 	return &UnionWriter{
-		typ:      typ,
-		values:   values,
-		tags:     NewInt64Writer(spiller),
-		presence: NewPresenceWriter(spiller),
+		typ:    typ,
+		values: values,
+		tags:   NewInt64Writer(spiller),
 	}
 }
 
 func (u *UnionWriter) Write(body zcode.Bytes) error {
-	if body == nil {
-		u.presence.TouchNull()
-		return nil
-	}
-	u.presence.TouchValue()
 	typ, zv := u.typ.Untag(body)
 	tag := u.typ.TagOf(typ)
 	if err := u.tags.Write(int64(tag)); err != nil {
@@ -60,16 +53,14 @@ func (u *UnionWriter) Metadata() Metadata {
 		values = append(values, val.Metadata())
 	}
 	return &Union{
-		Presence: u.presence.Segmap(),
-		Tags:     u.tags.Segmap(),
-		Values:   values,
+		Tags:   u.tags.Segmap(),
+		Values: values,
 	}
 }
 
 type UnionReader struct {
-	readers  []Reader
-	tags     *Int64Reader
-	presence *PresenceReader
+	readers []Reader
+	tags    *Int64Reader
 }
 
 func NewUnionReader(union *Union, r io.ReaderAt) (*UnionReader, error) {
@@ -81,28 +72,13 @@ func NewUnionReader(union *Union, r io.ReaderAt) (*UnionReader, error) {
 		}
 		readers = append(readers, reader)
 	}
-	var presence *PresenceReader
-	if len(union.Presence) != 0 {
-		presence = NewPresenceReader(union.Presence, r)
-	}
 	return &UnionReader{
-		readers:  readers,
-		tags:     NewInt64Reader(union.Tags, r),
-		presence: presence,
+		readers: readers,
+		tags:    NewInt64Reader(union.Tags, r),
 	}, nil
 }
 
 func (u *UnionReader) Read(b *zcode.Builder) error {
-	if u.presence != nil {
-		isval, err := u.presence.Read()
-		if err != nil {
-			return err
-		}
-		if !isval {
-			b.Append(nil)
-			return nil
-		}
-	}
 	tag, err := u.tags.Read()
 	if err != nil {
 		return err
