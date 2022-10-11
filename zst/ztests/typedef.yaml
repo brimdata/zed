@@ -1,5 +1,5 @@
 script: |
-  zst create -o out.zst -
+  zq -f zst -o out.zst -
   zq -z -i zst out.zst
 
 inputs:
