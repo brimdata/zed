@@ -24,7 +24,7 @@ echo 'error("missing")' | zq -z 'yield quiet(this)' -
 ```mdtest-output
 ```
 
-Wihtout quiet, yield producess the missing error:
+Without quiet, yield produces the missing error:
 ```mdtest-command
 echo 'error("missing")' | zq -z 'yield this' -
 ```
