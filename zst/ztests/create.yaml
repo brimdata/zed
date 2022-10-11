@@ -1,15 +1,13 @@
 script: |
-  zst create -o out.zst -
+  zq -f zst -o out.zst -
   zq -z -i zst out.zst
 
 inputs:
   - name: stdin
-    data: |
+    data: &input |
       {a:"hello",b:1(int32)}
       {a:"world",b:2(int32)}
 
 outputs:
   - name: stdout
-    data: |
-      {a:"hello",b:1(int32)}
-      {a:"world",b:2(int32)}
+    data: *input

@@ -21,6 +21,11 @@ type Reader struct {
 	builder zcode.Builder
 }
 
+type typedReader struct {
+	typ    zed.Type
+	reader vector.Reader
+}
+
 var _ zio.Reader = (*Reader)(nil)
 
 // NewReader returns a Reader ready to read a zst object as zed.Records.
