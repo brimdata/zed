@@ -44,7 +44,12 @@ func New(pctx *op.Context, parent zbuf.Puller, fields []expr.Evaluator, order or
 }
 
 func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
-	p.once.Do(func() { go p.run() })
+	p.once.Do(func() {
+		// Block p.ctx's cancel function until p.run finishes its
+		// cleanup.
+		p.pctx.WaitGroup.Add(1)
+		go p.run()
+	})
 	for {
 		r, ok := <-p.resultCh
 		if !ok {
@@ -64,6 +69,8 @@ func (p *Proc) run() {
 		if spiller != nil {
 			spiller.Cleanup()
 		}
+		// Tell p.ctx's cancel function that we've finished our cleanup.
+		p.pctx.WaitGroup.Done()
 	}()
 	var nbytes int
 	var out []zed.Value
