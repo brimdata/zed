@@ -1,0 +1,13 @@
+zed: "yield regexp(re, in)"
+
+input: |
+  {re:"abc|ced",in: "abcdef"}
+  {re:"foo(.?) (\\w+) fr.*",in: "seafood fool friend"}
+  {re:"foo(.?",in: "seafood fool"}
+  {re:"doesnotmatch",in:"hello"}
+
+output: |
+  ["abc"]
+  ["food fool friend","d","fool"]
+  error("regexp: error parsing regexp: missing closing ): `foo(.?`")
+  null([string])

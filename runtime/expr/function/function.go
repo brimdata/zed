@@ -152,6 +152,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 		f = &ParseZSON{zctx: zctx}
 	case "quiet":
 		f = &Quiet{zctx: zctx}
+	case "regexp":
+		argmin, argmax = 2, 2
+		f = &Regexp{zctx: zctx}
 	case "under":
 		f = &Under{zctx: zctx}
 	case "unflatten":
@@ -220,7 +223,7 @@ func newBytes(ctx zed.Allocator, bytes []byte) *zed.Value {
 	return ctx.NewValue(zed.TypeBytes, bytes)
 }
 
-//XXX this should build the error in the allocator's memory but needs
+// XXX this should build the error in the allocator's memory but needs
 // zctx for the type
 func newError(zctx *zed.Context, ectx zed.Allocator, err error) *zed.Value {
 	return zctx.NewError(err)
