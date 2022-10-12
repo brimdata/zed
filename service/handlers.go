@@ -263,7 +263,7 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
-	c.publishEvent(w, "branch-revert", api.EventBranchCommit{
+	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
 		PoolID:   poolID,
 		Branch:   branch,
@@ -293,7 +293,7 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
-	c.publishEvent(w, "branch-merge", api.EventBranchCommit{
+	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
 		PoolID:   poolID,
 		Branch:   childBranch,
@@ -423,7 +423,7 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
-	c.publishEvent(w, "branch-compact", api.EventBranchCommit{
+	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
 		PoolID:   poolID,
 		Branch:   branch,
@@ -490,6 +490,11 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	w.Marshal(api.CommitResponse{Commit: commit})
+	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
+		CommitID: commit,
+		PoolID:   poolID,
+		Branch:   branchName,
+	})
 }
 
 func handleIndexRulesPost(c *Core, w *ResponseWriter, r *Request) {
@@ -547,6 +552,11 @@ func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branc
 		return
 	}
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
+		CommitID: commit,
+		PoolID:   branch.Pool().ID,
+		Branch:   branch.Name,
+	})
 
 }
 
@@ -575,6 +585,11 @@ func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Bran
 		return
 	}
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
+		CommitID: commit,
+		PoolID:   branch.Pool().ID,
+		Branch:   branch.Name,
+	})
 }
 
 func handleAuthIdentityGet(c *Core, w *ResponseWriter, r *Request) {
