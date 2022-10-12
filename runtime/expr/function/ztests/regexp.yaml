@@ -8,6 +8,6 @@ input: |
 
 output: |
   ["abc"]
-  ["food fool friend","d", "fool"]
+  ["food fool friend","d","fool"]
   error("regexp: error parsing regexp: missing closing ): `foo(.?`")
   null([string])
