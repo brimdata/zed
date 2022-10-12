@@ -150,11 +150,11 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 		f = &ParseURI{zctx: zctx, marshaler: zson.NewZNGMarshalerWithContext(zctx)}
 	case "parse_zson":
 		f = &ParseZSON{zctx: zctx}
+	case "quiet":
+		f = &Quiet{zctx: zctx}
 	case "regexp":
 		argmin, argmax = 2, 2
 		f = &Regexp{zctx: zctx}
-	case "quiet":
-		f = &Quiet{zctx: zctx}
 	case "under":
 		f = &Under{zctx: zctx}
 	case "unflatten":
