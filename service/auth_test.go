@@ -12,7 +12,6 @@ import (
 	"github.com/brimdata/zed/service"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func testAuthConfig() service.AuthConfig {
@@ -35,8 +34,7 @@ func genToken(t *testing.T, tenantID auth.TenantID, userID auth.UserID) string {
 func TestAuthIdentity(t *testing.T) {
 	authConfig := testAuthConfig()
 	core, conn := newCoreWithConfig(t, service.Config{
-		Auth:   authConfig,
-		Logger: zap.NewNop(),
+		Auth: authConfig,
 	})
 	_, err := conn.Query(context.Background(), nil, "from [pools]")
 	require.Error(t, err)
@@ -66,9 +64,7 @@ func TestAuthIdentity(t *testing.T) {
 
 func TestAuthMethodGet(t *testing.T) {
 	t.Run("none", func(t *testing.T) {
-		_, connNoAuth := newCoreWithConfig(t, service.Config{
-			Logger: zap.NewNop(),
-		})
+		_, connNoAuth := newCoreWithConfig(t, service.Config{})
 		resp := connNoAuth.TestAuthMethod()
 		require.Equal(t, api.AuthMethodResponse{
 			Kind: api.AuthMethodNone,
@@ -78,8 +74,7 @@ func TestAuthMethodGet(t *testing.T) {
 	t.Run("auth0", func(t *testing.T) {
 		authConfig := testAuthConfig()
 		_, connWithAuth := newCoreWithConfig(t, service.Config{
-			Auth:   authConfig,
-			Logger: zap.NewNop(),
+			Auth: authConfig,
 		})
 		resp := connWithAuth.TestAuthMethod()
 		require.Equal(t, api.AuthMethodResponse{

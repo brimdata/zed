@@ -44,7 +44,6 @@ const indexPage = `
 
 type Config struct {
 	Auth        AuthConfig
-	Logger      *zap.Logger
 	Root        *storage.URI
 	RootContent io.ReadSeeker
 	Version     string
@@ -65,9 +64,9 @@ type Core struct {
 	subscriptionsMu sync.RWMutex
 }
 
-func NewCore(ctx context.Context, conf Config) (*Core, error) {
-	if conf.Logger == nil {
-		conf.Logger = zap.NewNop()
+func NewCore(ctx context.Context, conf Config, logger *zap.Logger) (*Core, error) {
+	if logger == nil {
+		logger = zap.NewNop()
 	}
 	if conf.RootContent == nil {
 		conf.RootContent = strings.NewReader(indexPage)
@@ -82,7 +81,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	var authenticator *Auth0Authenticator
 	if conf.Auth.Enabled {
 		var err error
-		if authenticator, err = NewAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
+		if authenticator, err = NewAuthenticator(ctx, logger, registry, conf.Auth); err != nil {
 			return nil, err
 		}
 	}
@@ -129,8 +128,8 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	routerAPI := mux.NewRouter()
 	routerAPI.Use(requestIDMiddleware())
-	routerAPI.Use(accessLogMiddleware(conf.Logger))
-	routerAPI.Use(panicCatchMiddleware(conf.Logger))
+	routerAPI.Use(accessLogMiddleware(logger))
+	routerAPI.Use(panicCatchMiddleware(logger))
 	routerAPI.Use(corsMiddleware())
 
 	c := &Core{
@@ -138,7 +137,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		compiler:      compiler.NewLakeCompiler(root),
 		conf:          conf,
 		engine:        engine,
-		logger:        conf.Logger.Named("core"),
+		logger:        logger.Named("core"),
 		root:          root,
 		registry:      registry,
 		routerAPI:     routerAPI,
