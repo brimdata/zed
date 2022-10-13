@@ -1314,7 +1314,7 @@ GlobPattern
       RETURN(ASSERT_STRING(head) + joinChars(tail))
     }
 
-GlobProperStart = "*"* KeyWordStart
+GlobProperStart = KeyWordStart / "*"+ KeyWordRest
 GlobHasStar = KeyWordRest* "*"
 
 GlobStart
