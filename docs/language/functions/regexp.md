@@ -18,7 +18,7 @@ no match.
 
 Regexp returns an array of the match and its subexpressions:
 ```mdtest-command
-echo '"seafood fool friend"' | zq -z 'yield regexp("foo(.?) (\\w+) fr.*", this)' -
+echo '"seafood fool friend"' | zq -z 'yield regexp(/foo(.?) (\w+) fr.*/, this)' -
 ```
 =>
 ```mdtest-output

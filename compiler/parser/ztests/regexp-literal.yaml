@@ -1,0 +1,6 @@
+zed: yield /foo(.?) (\w+) fr.*/
+
+input: "null"
+
+output: |
+  "foo(.?) (\\w+) fr.*"

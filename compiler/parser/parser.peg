@@ -179,7 +179,7 @@ SearchPredicate
 
 SearchValue
   = Literal
-  / !RegexpPattern v:KeyWord {
+  / v:KeyWord {
       RETURN(MAP("kind": "Primitive", "type": "string", "text": v))
     }
 
@@ -1088,6 +1088,9 @@ TemplateLiteral
 TemplateLiteralParts
   = '"' v:TemplateDoubleQuotedPart* '"' { RETURN(v) }
   / "'" v:TemplateSingleQuotedPart* "'" { RETURN(v) }
+  / v:RegexpPattern { 
+      RETURN(ARRAY(MAP("kind": "Primitive", "type": "string", "text": v)))
+    }
 
 TemplateDoubleQuotedPart
   = TemplateExpr
