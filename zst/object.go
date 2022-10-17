@@ -105,7 +105,7 @@ func (o *Object) IsEmpty() bool {
 	return o.sections == nil
 }
 
-func (o *Object) FetchMetaData() ([]int32, []vector.Metadata, error) {
+func (o *Object) FetchMetadata() ([]int32, []vector.Metadata, error) {
 	typeIDs, err := ReadIntVector(o.root, o.readerAt)
 	if err != nil {
 		return nil, nil, err

@@ -56,7 +56,7 @@ func NewObject(ctx context.Context, engine storage.Engine, uri *storage.URI, id 
 	if err != nil {
 		return nil, err
 	}
-	typeIDs, metas, err := z.FetchMetaData()
+	typeIDs, metas, err := z.FetchMetadata()
 	if err != nil {
 		return nil, err
 	}

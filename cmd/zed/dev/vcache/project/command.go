@@ -64,11 +64,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer object.Close()
-	writer, err := c.outputFlags.Open(ctx, local)
+	projection, err := object.NewProjection(fields)
 	if err != nil {
 		return err
 	}
-	projection, err := object.NewProjection(fields)
+	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
