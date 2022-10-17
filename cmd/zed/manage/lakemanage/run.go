@@ -1,4 +1,4 @@
-package lakemanager
+package lakemanage
 
 import (
 	"github.com/brimdata/zed"

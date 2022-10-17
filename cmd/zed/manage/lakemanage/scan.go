@@ -1,4 +1,4 @@
-package lakemanager
+package lakemanage
 
 import (
 	"context"
@@ -15,9 +15,11 @@ type ObjectIterator interface {
 }
 
 // Scan recieves a sorted stream of objects and sends to ch a series
-// of Runs that are good candidates for compaction.
-func Scan(ctx context.Context, reader ObjectIterator, pool *pools.Config,
-	thresh time.Duration, ch chan<- Run) error {
+// of Runs that are good candidates for compaction. If there are hot objects
+// in the pool, Scan returns the timestamp when the next object turns cool,
+// otherwise nil.
+func Scan(ctx context.Context, it ObjectIterator, pool *pools.Config,
+	thresh time.Duration, ch chan<- Run) (*time.Time, error) {
 	send := func(run Run, next extent.Span) error {
 		// Send a run if it contains more than one object and the total size of
 		// objects unobscured by the next span is greater than at least half
@@ -31,21 +33,29 @@ func Scan(ctx context.Context, reader ObjectIterator, pool *pools.Config,
 		}
 		return nil
 	}
+	var nextcold *time.Time
 	cmp := extent.CompareFunc(order.Asc)
 	run := NewRun(cmp)
 	for {
-		object, err := reader.Next()
+		object, err := it.Next()
 		if object == nil {
 			break
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// XXX An object's create timestamp is currently derived from the
 		// timestamp in its ksuid ID when it should really be the commit
 		// timestamp since this is when the object officially exists from the
 		// lake's perspective.
-		cold := time.Since(object.ID.Time()) >= thresh
+		ts := object.ID.Time()
+		cold := time.Since(ts) >= thresh
+		if !cold {
+			coldtime := ts.Add(thresh)
+			if nextcold == nil || (*nextcold).After(coldtime) {
+				nextcold = &coldtime
+			}
+		}
 		// There's two cases we are concerned with:
 		// 1. Reduction of overlapping objects
 		// 2. Consolidating patches of small objects into larger single blocks.
@@ -56,9 +66,9 @@ func Scan(ctx context.Context, reader ObjectIterator, pool *pools.Config,
 			continue
 		}
 		if err := send(run, object.Span(order.Asc)); err != nil {
-			return err
+			return nil, err
 		}
 		run = NewRun(cmp)
 	}
-	return send(run, nil)
+	return nextcold, send(run, nil)
 }

@@ -1,4 +1,4 @@
-package lakemanager_test
+package lakemanage_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/cmd/zed/manage/lakemanager"
+	"github.com/brimdata/zed/cmd/zed/manage/lakemanage"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/order"
@@ -60,15 +60,15 @@ func TestScan(t *testing.T) {
 	})
 }
 
-func testScan(t *testing.T, coldthresh time.Duration, pool *pools.Config, objects []testObj) []lakemanager.Run {
+func testScan(t *testing.T, coldthresh time.Duration, pool *pools.Config, objects []testObj) []lakemanage.Run {
 	reader := newTestObjectReader(objects, nil, coldthresh)
-	ch := make(chan lakemanager.Run)
+	ch := make(chan lakemanage.Run)
 	var err error
 	go func() {
-		err = lakemanager.Scan(context.Background(), reader, pool, coldthresh, ch)
+		_, err = lakemanage.Scan(context.Background(), reader, pool, coldthresh, ch)
 		close(ch)
 	}()
-	var runs []lakemanager.Run
+	var runs []lakemanage.Run
 	for run := range ch {
 		runs = append(runs, run)
 	}
@@ -82,7 +82,7 @@ type testObj struct {
 	size        int64
 }
 
-func newTestObjectReader(objs []testObj, pool *pools.Config, coldthresh time.Duration) lakemanager.ObjectIterator {
+func newTestObjectReader(objs []testObj, pool *pools.Config, coldthresh time.Duration) lakemanage.ObjectIterator {
 	var objects []*data.Object
 	for _, o := range objs {
 		ts := time.Now()

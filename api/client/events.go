@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -31,9 +30,6 @@ func (l *EventsClient) Recv() (string, interface{}, error) {
 	var kind, data string
 	_, err := fmt.Fscanf(l.rc, "event: %s\ndata: %s\n\n\n", &kind, &data)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return "", nil, nil
-		}
 		return "", nil, err
 	}
 	var v interface{}
