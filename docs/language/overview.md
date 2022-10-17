@@ -773,6 +773,18 @@ produces
 1
 ```
 
+And what if you want a default value instead of a missing error?  The
+[`coalesce` function](functions/coalesce.md) returns the first value that is not
+null, `error("missing")`, or `error("quiet")`.  For example,
+```mdtest-command
+echo "{x:1} {y:2}" | zq -z "yield coalesce(x, 0)" -
+```
+produces
+```mdtest-output
+1
+0
+```
+
 ## 6. Expressions
 
 Zed expressions follow the typical patterns in programming languages.

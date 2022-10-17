@@ -26,6 +26,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	switch name {
 	default:
 		return nil, nil, ErrNoSuchFunction
+	case "coalesce":
+		argmax = -1
+		f = &Coalesce{}
 	case "grep":
 		// We special case grep here since a syntax error with the
 		// special grep form will make it look like a function call
