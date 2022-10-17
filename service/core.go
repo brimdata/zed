@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zson"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
@@ -63,6 +64,7 @@ type Core struct {
 	taskCount       int64
 	subscriptions   map[chan event]struct{}
 	subscriptionsMu sync.RWMutex
+	vcache          *vcache.Cache
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
@@ -144,6 +146,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		routerAPI:     routerAPI,
 		routerAux:     routerAux,
 		subscriptions: make(map[chan event]struct{}),
+		vcache:        vcache.NewCache(engine),
 	}
 
 	c.addAPIServerRoutes()

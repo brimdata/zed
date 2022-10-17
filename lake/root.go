@@ -17,6 +17,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
@@ -40,6 +41,7 @@ type Root struct {
 	poolCache  *lru.ARCCache // Used like a map[ksuid.KSUID]*Pool.
 	pools      *pools.Store
 	indexRules *index.Store
+	vcache     *vcache.Cache
 }
 
 type LakeMagic struct {
@@ -56,6 +58,7 @@ func newRoot(engine storage.Engine, path *storage.URI) *Root {
 		engine:    engine,
 		path:      path,
 		poolCache: poolCache,
+		vcache:    vcache.NewCache(engine),
 	}
 }
 
