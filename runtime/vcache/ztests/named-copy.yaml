@@ -1,0 +1,14 @@
+script: |
+  zq -f zst -o test.zst -
+  zed dev vcache copy -z test.zst
+
+inputs:
+  - name: stdin
+    data: &input |
+      {x:1,y:4}(=foo)
+      {x:2,y:3}(=foo)
+      {x:3,y:2}(=foo)
+
+outputs:
+  - name: stdout
+    data: *input

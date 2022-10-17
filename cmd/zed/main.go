@@ -18,6 +18,8 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile"
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/create"
 	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/lookup"
+	_ "github.com/brimdata/zed/cmd/zed/dev/vcache/copy"
+	_ "github.com/brimdata/zed/cmd/zed/dev/vcache/project"
 	"github.com/brimdata/zed/cmd/zed/drop"
 	"github.com/brimdata/zed/cmd/zed/index"
 	zedinit "github.com/brimdata/zed/cmd/zed/init"
