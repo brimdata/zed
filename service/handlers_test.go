@@ -20,8 +20,6 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest"
 )
 
 var defaultLayout = order.Layout{
@@ -273,9 +271,6 @@ func newCoreAtDir(t *testing.T, dir string) (*service.Core, *testClient) {
 func newCoreWithConfig(t *testing.T, conf service.Config) (*service.Core, *testClient) {
 	if conf.Root == nil {
 		conf.Root = storage.MustParseURI(t.TempDir())
-	}
-	if conf.Logger == nil {
-		conf.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))
 	}
 	core, err := service.NewCore(context.Background(), conf)
 	require.NoError(t, err)

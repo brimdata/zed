@@ -44,10 +44,10 @@ const indexPage = `
 
 type Config struct {
 	Auth        AuthConfig
-	Logger      *zap.Logger
 	Root        *storage.URI
 	RootContent io.ReadSeeker
 	Version     string
+	Logger      *zap.Logger
 }
 
 type Core struct {
