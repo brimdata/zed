@@ -213,7 +213,7 @@ func (p *Proc) buildType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
 		for k := 2; left.HasField(name); k++ {
 			name = fmt.Sprintf("%s_%d", c.Name, k)
 		}
-		cols = append(cols, zed.Column{name, c.Type})
+		cols = append(cols, zed.Column{Name: name, Type: c.Type})
 	}
 	return p.pctx.Zctx.LookupTypeRecord(cols)
 }

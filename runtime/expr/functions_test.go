@@ -11,7 +11,7 @@ import (
 )
 
 func zaddr(addr string) zed.Value {
-	return zed.Value{zed.TypeIP, zed.EncodeIP(netip.MustParseAddr(addr))}
+	return zed.Value{Type: zed.TypeIP, Bytes: zed.EncodeIP(netip.MustParseAddr(addr))}
 }
 
 func TestBadFunction(t *testing.T) {

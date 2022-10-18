@@ -17,7 +17,7 @@ endif
 #PEG_DEP=peg
 
 vet:
-	@go vet -composites=false -stdmethods=false ./...
+	@go vet -stdmethods=false ./...
 
 fmt:
 	gofmt -s -w .

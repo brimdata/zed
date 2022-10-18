@@ -218,7 +218,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			entries = append(entries, dag.Entry{key, val})
+			entries = append(entries, dag.Entry{Key: key, Value: val})
 		}
 		return &dag.MapExpr{
 			Kind:    "MapExpr",
@@ -515,11 +515,11 @@ func semAssignment(scope *Scope, a ast.Assignment, summarize bool) (dag.Assignme
 				}
 			}
 		}
-		lhs = &dag.This{"This", path}
+		lhs = &dag.This{Kind: "This", Path: path}
 	} else if agg, ok := a.RHS.(*ast.Agg); ok {
-		lhs = &dag.This{"This", []string{agg.Name}}
+		lhs = &dag.This{Kind: "This", Path: []string{agg.Name}}
 	} else if v, ok := rhs.(*dag.Var); ok {
-		lhs = &dag.This{"This", []string{v.Name}}
+		lhs = &dag.This{Kind: "This", Path: []string{v.Name}}
 	} else {
 		lhs, err = semExpr(scope, a.RHS)
 		if err != nil {
@@ -544,7 +544,7 @@ func semAssignment(scope *Scope, a ast.Assignment, summarize bool) (dag.Assignme
 	if len(this.Path) == 0 {
 		return dag.Assignment{}, errors.New("cannot assign to 'this'")
 	}
-	return dag.Assignment{"Assignment", lhs, rhs}, nil
+	return dag.Assignment{Kind: "Assignment", LHS: lhs, RHS: rhs}, nil
 }
 
 func semFields(scope *Scope, exprs []ast.Expr) ([]dag.Expr, error) {

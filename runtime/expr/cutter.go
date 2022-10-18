@@ -92,7 +92,7 @@ func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	rec := &zed.Value{c.lookupTypeRecord(types), bytes}
+	rec := zed.NewValue(c.lookupTypeRecord(types), bytes)
 	for _, d := range droppers {
 		rec = d.Eval(ectx, rec)
 	}

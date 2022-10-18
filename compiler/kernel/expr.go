@@ -279,7 +279,7 @@ func (b *Builder) compileAssignment(node *dag.Assignment) (expr.Assignment, erro
 	if err != nil {
 		return expr.Assignment{}, fmt.Errorf("rhs of assigment expression: %w", err)
 	}
-	return expr.Assignment{lhs, rhs}, err
+	return expr.Assignment{LHS: lhs, RHS: rhs}, err
 }
 
 func shaperOps(name string) expr.ShaperTransform {
@@ -461,7 +461,7 @@ func (b *Builder) compileMapExpr(m *dag.MapExpr) (expr.Evaluator, error) {
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, expr.Entry{key, val})
+		entries = append(entries, expr.Entry{Key: key, Val: val})
 	}
 	return expr.NewMapExpr(b.zctx(), entries), nil
 }

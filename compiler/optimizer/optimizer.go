@@ -78,7 +78,7 @@ func addRangeToPushdown(trunk *dag.Trunk, key field.Path) {
 		return
 	}
 	if trunk.Pushdown == nil {
-		trunk.Pushdown = &dag.Filter{"Filter", rangeExpr}
+		trunk.Pushdown = &dag.Filter{Kind: "Filter", Expr: rangeExpr}
 		return
 	}
 	filter := trunk.Pushdown.(*dag.Filter)
@@ -90,7 +90,7 @@ func convertRangeScan(source dag.Source, key field.Path) dag.Expr {
 	if !ok {
 		return nil
 	}
-	this := &dag.This{"This", key}
+	this := &dag.This{Kind: "This", Path: key}
 	var lower, upper dag.Expr
 	if p.ScanLower != nil {
 		lower = dag.NewBinaryExpr(">=", this, p.ScanLower)

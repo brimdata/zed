@@ -52,7 +52,7 @@ func NewWriter(w io.WriteCloser, format string, flusher http.Flusher, ctrl bool)
 func (w *Writer) WriteBatch(cid int, batch zbuf.Batch) error {
 	if w.cid != cid {
 		w.cid = cid
-		if err := w.WriteControl(api.QueryChannelSet{cid}); err != nil {
+		if err := w.WriteControl(api.QueryChannelSet{ChannelID: cid}); err != nil {
 			return err
 		}
 	}
@@ -61,7 +61,7 @@ func (w *Writer) WriteBatch(cid int, batch zbuf.Batch) error {
 }
 
 func (w *Writer) WhiteChannelEnd(channelID int) error {
-	return w.WriteControl(api.QueryChannelEnd{channelID})
+	return w.WriteControl(api.QueryChannelEnd{ChannelID: channelID})
 }
 
 func (w *Writer) WriteProgress(stats zbuf.Progress) error {
@@ -74,7 +74,7 @@ func (w *Writer) WriteProgress(stats zbuf.Progress) error {
 }
 
 func (w *Writer) WriteError(err error) {
-	w.WriteControl(api.QueryError{err.Error()})
+	w.WriteControl(api.QueryError{Error: err.Error()})
 }
 
 func (w *Writer) WriteControl(value interface{}) error {

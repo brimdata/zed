@@ -55,7 +55,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	// XXX GC
 	netIP := net.IP(ip.AsSlice()).Mask(mask)
-	v := &net.IPNet{netIP, mask}
+	v := &net.IPNet{IP: netIP, Mask: mask}
 	return ctx.NewValue(zed.TypeNet, zed.EncodeNet(v))
 }
 

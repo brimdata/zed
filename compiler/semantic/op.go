@@ -386,7 +386,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Cases: cases,
 		}, nil
 	case *ast.Shape:
-		return &dag.Shape{"Shape"}, nil
+		return &dag.Shape{Kind: "Shape"}, nil
 	case *ast.Cut:
 		assignments, err := semAssignments(scope, o.Args, false)
 		if err != nil {
@@ -443,7 +443,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Cflag: o.Cflag,
 		}, nil
 	case *ast.Pass:
-		return &dag.Pass{"Pass"}, nil
+		return &dag.Pass{Kind: "Pass"}, nil
 	case *ast.OpExpr:
 		return semOpExpr(scope, o.Expr)
 	case *ast.Search:
@@ -510,14 +510,14 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src.Path[i], dst.Path[i])
 				}
 			}
-			assignments = append(assignments, dag.Assignment{"Assignment", dst, src})
+			assignments = append(assignments, dag.Assignment{Kind: "Assignment", LHS: dst, RHS: src})
 		}
 		return &dag.Rename{
 			Kind: "Rename",
 			Args: assignments,
 		}, nil
 	case *ast.Fuse:
-		return &dag.Fuse{"Fuse"}, nil
+		return &dag.Fuse{Kind: "Fuse"}, nil
 	case *ast.Join:
 		leftKey, err := semExpr(scope, o.LeftKey)
 		if err != nil {
@@ -769,7 +769,7 @@ func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 			Aggs: []dag.Assignment{
 				{
 					Kind: "Assignment",
-					LHS:  &dag.This{"This", field.New(call.Name)},
+					LHS:  &dag.This{Kind: "This", Path: field.New(call.Name)},
 					RHS:  agg,
 				},
 			},

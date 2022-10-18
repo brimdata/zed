@@ -321,7 +321,7 @@ func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src s
 
 func (c *Connection) Compact(ctx context.Context, poolID ksuid.KSUID, branchName string, objects []ksuid.KSUID, message api.CommitMessage) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName, "compact")
-	req := c.NewRequest(ctx, http.MethodPost, path, api.CompactRequest{objects})
+	req := c.NewRequest(ctx, http.MethodPost, path, api.CompactRequest{ObjectIDs: objects})
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
 	}

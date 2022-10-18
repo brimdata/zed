@@ -30,13 +30,13 @@ func TestZJSONWriter(t *testing.T) {
 `
 	var buf bytes.Buffer
 	w := queryio.NewZJSONWriter(&buf)
-	err := w.WriteControl(api.QueryChannelSet{1})
+	err := w.WriteControl(api.QueryChannelSet{ChannelID: 1})
 	require.NoError(t, err)
 	err = w.Write(mkRecord(t, record))
 	require.NoError(t, err)
-	err = w.WriteControl(api.QueryChannelEnd{1})
+	err = w.WriteControl(api.QueryChannelEnd{ChannelID: 1})
 	require.NoError(t, err)
-	err = w.WriteControl(api.QueryError{"test.err"})
+	err = w.WriteControl(api.QueryError{Error: "test.err"})
 	require.NoError(t, err)
 	assert.Equal(t, expected, "\n"+buf.String())
 }

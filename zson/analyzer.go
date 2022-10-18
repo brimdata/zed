@@ -317,7 +317,7 @@ func (a Analyzer) convertFields(zctx *zed.Context, in []astzed.Field, cols []zed
 func lookupRecordType(zctx *zed.Context, fields []astzed.Field, vals []Value) (*zed.TypeRecord, error) {
 	columns := make([]zed.Column, 0, len(fields))
 	for k, f := range fields {
-		columns = append(columns, zed.Column{f.Name, vals[k].TypeOf()})
+		columns = append(columns, zed.Column{Name: f.Name, Type: vals[k].TypeOf()})
 	}
 	return zctx.LookupTypeRecord(columns)
 }
@@ -641,7 +641,7 @@ func (a Analyzer) convertTypeRecord(zctx *zed.Context, typ *astzed.TypeRecord) (
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Column{f.Name, typ})
+		columns = append(columns, zed.Column{Name: f.Name, Type: typ})
 	}
 	return zctx.LookupTypeRecord(columns)
 }

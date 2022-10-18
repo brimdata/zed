@@ -59,7 +59,7 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	case *zed.TypeMap:
 		return newMapData(typ.KeyType, typ.ValType, zb)
 	case *zed.TypeError:
-		return []byte(zson.String(zed.Value{typ, zb})), nil
+		return []byte(zson.String(zed.Value{Type: typ, Bytes: zb})), nil
 	}
 	panic(fmt.Sprintf("unknown type %T", typ))
 }

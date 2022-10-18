@@ -68,7 +68,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	go func() {
 		for {
 			batch, err := flowgraph.Pull(false)
-			results <- op.Result{batch, err}
+			results <- op.Result{Batch: batch, Err: err}
 			if batch == nil || err != nil {
 				return
 			}

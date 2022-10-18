@@ -34,7 +34,7 @@ func (m *mathReducer) Result(zctx *zed.Context) *zed.Value {
 		if m.math == nil {
 			return zed.Null
 		}
-		return &zed.Value{Type: m.math.typ()}
+		return zed.NewValue(m.math.typ(), nil)
 	}
 	return m.math.result()
 }

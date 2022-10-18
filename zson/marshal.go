@@ -157,7 +157,7 @@ func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) 
 		if err != nil {
 			return nil, err
 		}
-		cols = append(cols, zed.Column{names[k], typ})
+		cols = append(cols, zed.Column{Name: names[k], Type: typ})
 	}
 	// XXX issue #1836
 	// Since this can be the inner loop here and nowhere else do we call
@@ -462,7 +462,7 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Column{name, typ})
+		columns = append(columns, zed.Column{Name: name, Type: typ})
 	}
 	m.Builder.EndContainer()
 	return m.Context.LookupTypeRecord(columns)
@@ -598,7 +598,7 @@ func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type,
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Column{name, fieldType})
+		columns = append(columns, zed.Column{Name: name, Type: fieldType})
 	}
 	return m.Context.LookupTypeRecord(columns)
 }

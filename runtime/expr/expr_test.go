@@ -43,40 +43,40 @@ func runZTest(t *testing.T, e string, zt *ztest.ZTest) {
 }
 
 func zbool(b bool) zed.Value {
-	return zed.Value{zed.TypeBool, zed.EncodeBool(b)}
+	return zed.Value{Type: zed.TypeBool, Bytes: zed.EncodeBool(b)}
 }
 
 func zint32(v int32) zed.Value {
-	return zed.Value{zed.TypeInt32, zed.EncodeInt(int64(v))}
+	return zed.Value{Type: zed.TypeInt32, Bytes: zed.EncodeInt(int64(v))}
 }
 
 func zint64(v int64) zed.Value {
-	return zed.Value{zed.TypeInt64, zed.EncodeInt(v)}
+	return zed.Value{Type: zed.TypeInt64, Bytes: zed.EncodeInt(v)}
 }
 
 func zuint64(v uint64) zed.Value {
-	return zed.Value{zed.TypeUint64, zed.EncodeUint(v)}
+	return zed.Value{Type: zed.TypeUint64, Bytes: zed.EncodeUint(v)}
 }
 
 func zfloat32(f float32) zed.Value {
-	return zed.Value{zed.TypeFloat32, zed.EncodeFloat32(f)}
+	return zed.Value{Type: zed.TypeFloat32, Bytes: zed.EncodeFloat32(f)}
 }
 
 func zfloat64(f float64) zed.Value {
-	return zed.Value{zed.TypeFloat64, zed.EncodeFloat64(f)}
+	return zed.Value{Type: zed.TypeFloat64, Bytes: zed.EncodeFloat64(f)}
 }
 
 func zstring(s string) zed.Value {
-	return zed.Value{zed.TypeString, zed.EncodeString(s)}
+	return zed.Value{Type: zed.TypeString, Bytes: zed.EncodeString(s)}
 }
 
 func zip(t *testing.T, s string) zed.Value {
-	return zed.Value{zed.TypeIP, zed.EncodeIP(netip.MustParseAddr(s))}
+	return zed.Value{Type: zed.TypeIP, Bytes: zed.EncodeIP(netip.MustParseAddr(s))}
 }
 func znet(t *testing.T, s string) zed.Value {
 	_, net, err := net.ParseCIDR(s)
 	require.NoError(t, err)
-	return zed.Value{zed.TypeNet, zed.EncodeNet(net)}
+	return zed.Value{Type: zed.TypeNet, Bytes: zed.EncodeNet(net)}
 }
 
 func TestPrimitives(t *testing.T) {
@@ -455,9 +455,9 @@ func TestArithmetic(t *testing.T) {
 			w = w2
 		}
 		if sign {
-			return zed.Value{signed(w), zed.AppendInt(nil, int64(v))}
+			return zed.Value{Type: signed(w), Bytes: zed.AppendInt(nil, int64(v))}
 		}
-		return zed.Value{unsigned(w), zed.AppendUint(nil, v)}
+		return zed.Value{Type: unsigned(w), Bytes: zed.AppendUint(nil, v)}
 	}
 
 	var intTypes = []string{"int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"}
@@ -534,7 +534,7 @@ func TestConditional(t *testing.T) {
 
 func TestCasts(t *testing.T) {
 	// Test casts to byte
-	testSuccessful(t, "uint8(10)", "", zed.Value{zed.TypeUint8, zed.EncodeUint(10)})
+	testSuccessful(t, "uint8(10)", "", zed.Value{Type: zed.TypeUint8, Bytes: zed.EncodeUint(10)})
 	testSuccessful(t, "uint8(-1)", "", ZSON(`error("cannot cast -1 to type uint8")`))
 	testSuccessful(t, "uint8(300)", "", ZSON(`error("cannot cast 300 to type uint8")`))
 	testSuccessful(t, `uint8("foo")`, "", ZSON(`error("cannot cast \"foo\" to type uint8")`))
@@ -546,19 +546,19 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, `int16("foo")`, "", ZSON(`error("cannot cast \"foo\" to type int16")`))
 
 	// Test casts to uint16
-	testSuccessful(t, "uint16(10)", "", zed.Value{zed.TypeUint16, zed.EncodeUint(10)})
+	testSuccessful(t, "uint16(10)", "", zed.Value{Type: zed.TypeUint16, Bytes: zed.EncodeUint(10)})
 	testSuccessful(t, "uint16(-1)", "", ZSON(`error("cannot cast -1 to type uint16")`))
 	testSuccessful(t, "uint16(66000)", "", ZSON(`error("cannot cast 66000 to type uint16")`))
 	testSuccessful(t, `uint16("foo")`, "", ZSON(`error("cannot cast \"foo\" to type uint16")`))
 
 	// Test casts to int32
-	testSuccessful(t, "int32(10)", "", zed.Value{zed.TypeInt32, zed.EncodeInt(10)})
+	testSuccessful(t, "int32(10)", "", zed.Value{Type: zed.TypeInt32, Bytes: zed.EncodeInt(10)})
 	testSuccessful(t, "int32(-2200000000)", "", ZSON(`error("cannot cast -2200000000 to type int32")`))
 	testSuccessful(t, "int32(2200000000)", "", ZSON(`error("cannot cast 2200000000 to type int32")`))
 	testSuccessful(t, `int32("foo")`, "", ZSON(`error("cannot cast \"foo\" to type int32")`))
 
 	// Test casts to uint32
-	testSuccessful(t, "uint32(10)", "", zed.Value{zed.TypeUint32, zed.EncodeUint(10)})
+	testSuccessful(t, "uint32(10)", "", zed.Value{Type: zed.TypeUint32, Bytes: zed.EncodeUint(10)})
 	testSuccessful(t, "uint32(-1)", "", ZSON(`error("cannot cast -1 to type uint32")`))
 	testSuccessful(t, "uint32(4300000000)", "", ZSON(`error("cannot cast 4300000000 to type uint32")`))
 	testSuccessful(t, `uint32("foo")`, "", ZSON(`error("cannot cast \"foo\" to type uint32")`))

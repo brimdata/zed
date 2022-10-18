@@ -23,7 +23,7 @@ func (c *Collect) Consume(val *zed.Value) {
 }
 
 func (c *Collect) update(val *zed.Value) {
-	c.values = append(c.values, zed.Value{val.Type, slices.Clone(val.Bytes)})
+	c.values = append(c.values, zed.Value{Type: val.Type, Bytes: slices.Clone(val.Bytes)})
 	c.size += len(val.Bytes)
 	for c.size > MaxValueSize {
 		// XXX See issue #1813.  For now we silently discard entries

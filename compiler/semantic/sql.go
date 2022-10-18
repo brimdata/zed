@@ -113,7 +113,7 @@ func convertSQLOp(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {
 		ops = append(ops, p)
 	}
 	if len(ops) == 0 {
-		ops = []dag.Op{&dag.Pass{"Pass"}}
+		ops = []dag.Op{&dag.Pass{Kind: "Pass"}}
 	}
 	return wrap(ops), nil
 }
@@ -314,8 +314,8 @@ func convertSQLJoin(scope *Scope, leftPath []dag.Op, sqlJoin ast.SQLJoin) ([]dag
 	}
 	alias := dag.Assignment{
 		Kind: "Assignment",
-		LHS:  &dag.This{"This", field.New(aliasID)},
-		RHS:  &dag.This{"This", field.New(aliasID)},
+		LHS:  &dag.This{Kind: "This", Path: field.New(aliasID)},
+		RHS:  &dag.This{Kind: "This", Path: field.New(aliasID)},
 	}
 	join := &dag.Join{
 		Kind:     "Join",
