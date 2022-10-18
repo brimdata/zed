@@ -272,7 +272,7 @@ func newCoreWithConfig(t *testing.T, conf service.Config) (*service.Core, *testC
 	if conf.Root == nil {
 		conf.Root = storage.MustParseURI(t.TempDir())
 	}
-	core, err := service.NewCore(context.Background(), conf, nil)
+	core, err := service.NewCore(context.Background(), conf)
 	require.NoError(t, err)
 	srv := httptest.NewServer(core)
 	t.Cleanup(srv.Close)

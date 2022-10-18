@@ -100,7 +100,8 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
-	core, err := service.NewCore(ctx, c.conf, logger)
+	c.conf.Logger = logger
+	core, err := service.NewCore(ctx, c.conf)
 	if err != nil {
 		return err
 	}
