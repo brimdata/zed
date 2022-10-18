@@ -4,10 +4,10 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/commitflags"
+	"github.com/brimdata/zed/cli/logflags"
 	"github.com/brimdata/zed/cmd/zed/manage"
 	"github.com/brimdata/zed/cmd/zed/manage/lakemanage"
 	"github.com/brimdata/zed/pkg/charm"
-	"go.uber.org/zap"
 )
 
 var Cmd = &charm.Spec{
@@ -25,12 +25,14 @@ type Command struct {
 	*manage.Command
 	commitFlags commitflags.Flags
 	manageFlags manage.Flags
+	logFlags    logflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*manage.Command)}
 	c.commitFlags.SetFlags(f)
 	c.manageFlags.SetFlags(f)
+	c.logFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -44,9 +46,10 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	logger, err := zap.NewDevelopment()
+	logger, err := c.logFlags.Open()
 	if err != nil {
 		return err
 	}
+	defer logger.Sync()
 	return lakemanage.Monitor(ctx, conn, c.manageFlags.Config, logger)
 }
