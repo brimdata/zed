@@ -214,19 +214,19 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 				container: zed.IsContainerType(vals[matchIndex].Type),
 				index:     matchIndex,
 			})
-			cols = append(cols, zed.Column{inCol.Name, vals[matchIndex].Type})
+			cols = append(cols, zed.Column{Name: inCol.Name, Type: vals[matchIndex].Type})
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zed.IsRecordType(inCol.Type):
 			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Columns, vals, clauses)
 			nestedStep.index = i
 			s.append(nestedStep)
-			cols = append(cols, zed.Column{inCol.Name, typ})
+			cols = append(cols, zed.Column{Name: inCol.Name, Type: typ})
 		// input non-record field overwritten by nested assignment(s): recurse.
 		case len(path) < len(matchPath) && !zed.IsRecordType(inCol.Type):
 			nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals, clauses)
 			nestedStep.index = i
 			s.append(nestedStep)
-			cols = append(cols, zed.Column{inCol.Name, typ})
+			cols = append(cols, zed.Column{Name: inCol.Name, Type: typ})
 		default:
 			panic("put: internal error computing record steps")
 		}
@@ -249,13 +249,13 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 					container: zed.IsContainerType(vals[i].Type),
 					index:     i,
 				})
-				cols = append(cols, zed.Column{cl.LHS[len(parentPath)], vals[i].Type})
+				cols = append(cols, zed.Column{Name: cl.LHS[len(parentPath)], Type: vals[i].Type})
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(cl.LHS) > len(parentPath)+1:
 				path := append(parentPath, cl.LHS[len(parentPath)])
 				nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals, clauses)
 				nestedStep.index = -1
-				cols = append(cols, zed.Column{cl.LHS[len(parentPath)], typ})
+				cols = append(cols, zed.Column{Name: cl.LHS[len(parentPath)], Type: typ})
 				s.append(nestedStep)
 			}
 		}

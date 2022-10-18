@@ -178,7 +178,7 @@ func (p *puller) run() {
 		batch, err := p.Pull(false)
 		p.queue <- p
 		select {
-		case p.resultCh <- op.Result{batch, err}:
+		case p.resultCh <- op.Result{Batch: batch, Err: err}:
 			if err != nil {
 				return
 			}

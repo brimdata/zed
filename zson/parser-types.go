@@ -71,12 +71,12 @@ func (p *Parser) matchTypeName() (astzed.Type, error) {
 		return p.matchTypeEnumBody()
 	}
 	if t := zed.LookupPrimitive(name); t != nil {
-		return &astzed.TypePrimitive{"TypePrimitive", name}, nil
+		return &astzed.TypePrimitive{Kind: "TypePrimitive", Name: name}, nil
 	}
 	// Wherever we have a type name, we can have a type def defining the
 	// type name.
 	if ok, err := l.match('='); !ok || err != nil {
-		return &astzed.TypeName{"TypeName", name}, nil
+		return &astzed.TypeName{Kind: "TypeName", Name: name}, nil
 	}
 	typ, err := p.parseType()
 	if err != nil {

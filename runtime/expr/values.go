@@ -109,11 +109,11 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			for _, col := range typ.Columns {
 				c, ok := object[col.Name]
 				if ok {
-					c.value = zed.Value{col.Type, it.Next()}
+					c.value = zed.Value{Type: col.Type, Bytes: it.Next()}
 				} else {
 					c = column{
 						colno: len(object),
-						value: zed.Value{col.Type, it.Next()},
+						value: zed.Value{Type: col.Type, Bytes: it.Next()},
 					}
 				}
 				object[col.Name] = c
@@ -153,7 +153,7 @@ func (r *recordSpreadExpr) update(object map[string]column) {
 		return
 	}
 	for name, field := range object {
-		col := zed.Column{name, field.value.Type}
+		col := zed.Column{Name: name, Type: field.value.Type}
 		if r.columns[field.colno] != col {
 			r.invalidate(object)
 			return
@@ -171,7 +171,7 @@ func (r *recordSpreadExpr) invalidate(object map[string]column) {
 		r.bytes = r.bytes[:n]
 	}
 	for name, field := range object {
-		r.columns[field.colno] = zed.Column{name, field.value.Type}
+		r.columns[field.colno] = zed.Column{Name: name, Type: field.value.Type}
 		r.bytes[field.colno] = field.value.Bytes
 	}
 	r.cache = r.zctx.MustLookupTypeRecord(r.columns)

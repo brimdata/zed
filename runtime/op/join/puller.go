@@ -28,7 +28,7 @@ func (p *puller) run() {
 	for {
 		batch, err := p.op.Pull(false)
 		select {
-		case p.ch <- op.Result{batch, err}:
+		case p.ch <- op.Result{Batch: batch, Err: err}:
 			if batch == nil || err != nil {
 				close(p.ch)
 				return

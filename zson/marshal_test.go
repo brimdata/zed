@@ -315,7 +315,7 @@ func TestZNGValueField(t *testing.T) {
 	// Include a Zed int64 inside a Go struct as a zed.Value field.
 	zngValueField := &ZNGValueField{
 		Name:  "test1",
-		Field: zed.Value{zed.TypeInt64, zed.EncodeInt(123)},
+		Field: zed.Value{Type: zed.TypeInt64, Bytes: zed.EncodeInt(123)},
 	}
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)

@@ -592,8 +592,8 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 }
 
 func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
-	lower := &zed.Value{zed.TypeNull, nil}
-	upper := &zed.Value{zed.TypeNull, nil}
+	lower := zed.Null
+	upper := zed.Null
 	if exprLower != nil {
 		var err error
 		lower, err = b.evalAtCompileTime(exprLower)

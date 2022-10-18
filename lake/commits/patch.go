@@ -185,7 +185,7 @@ func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message
 }
 
 func (p *Patch) Revert(tip *Snapshot, commit, parent ksuid.KSUID, retries int, author, message string) (*Object, error) {
-	object := NewObject(parent, author, message, zed.Value{zed.TypeNull, nil}, retries)
+	object := NewObject(parent, author, message, *zed.Null, retries)
 	// For each data object that is added in the patch and is also in the tip, we do a delete.
 	for _, dataObject := range p.diff.SelectAll() {
 		if Exists(tip, dataObject.ID) {

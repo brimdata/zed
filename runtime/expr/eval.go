@@ -239,7 +239,7 @@ func newNumeric(lhs, rhs Evaluator) numeric {
 func enumify(val *zed.Value) *zed.Value {
 	// automatically convert an enum to its index value when coercing
 	if _, ok := val.Type.(*zed.TypeEnum); ok {
-		return &zed.Value{zed.TypeUint64, val.Bytes}
+		return zed.NewValue(zed.TypeUint64, val.Bytes)
 	}
 	return val
 }

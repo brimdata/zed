@@ -49,7 +49,7 @@ func ValueUnder(val *zed.Value) *zed.Value {
 		typ = zed.TypeUnder(typ)
 		union, ok := typ.(*zed.TypeUnion)
 		if !ok {
-			return &zed.Value{typ, bytes}
+			return zed.NewValue(typ, bytes)
 		}
 		typ, bytes = union.Untag(bytes)
 	}

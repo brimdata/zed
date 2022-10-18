@@ -101,7 +101,7 @@ func loadMessage(objects []data.Object) string {
 
 func loadMeta(zctx *zed.Context, meta string) (*zed.Value, error) {
 	if meta == "" {
-		return &zed.Value{zed.TypeNull, nil}, nil
+		return zed.Null, nil
 	}
 	zv, err := zson.ParseValue(zed.NewContext(), meta)
 	if err != nil {
@@ -286,7 +286,7 @@ func (b *Branch) buildMergeObject(ctx context.Context, parent *branches.Config, 
 	if err != nil {
 		return nil, fmt.Errorf("error merging %q into %q: %w", b.Name, parent.Name, err)
 	}
-	return diff.NewCommitObject(parent.Commit, retries, author, message, zed.Value{zed.TypeNull, nil}), nil
+	return diff.NewCommitObject(parent.Commit, retries, author, message, *zed.Null), nil
 }
 
 func commonAncestor(a, b []ksuid.KSUID) ksuid.KSUID {
