@@ -1,0 +1,52 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed use -q test
+  id=$(zed load in.zson | awk '{print $1}')
+  zed index create -q paths field _path
+  zed index create -q srcip field srcip
+  zed index apply -r srcip -r paths $id | sed -E 's/[0-9a-zA-Z]{27}/xxx/'
+  echo ===
+  zed query -Z -I query.zed
+
+inputs:
+  - name: in.zson
+    data: |
+      {_path:"conn",srcip:127.0.0.1}
+      {_path:"conn",srcip:127.0.0.2}
+  - name: query.zed
+    data: |
+      from (
+        pool :index_rules => sort id
+        pool test@main:indexes => sort rule.id | cut o:=this
+      )
+      | left join on id = o.rule.id o
+      | count(o) by name, fields
+      | sort name
+
+outputs:
+  - name: stderr
+    data: ""
+  - name: stdout
+    data: |
+      xxx committed
+      ===
+      {
+          name: "paths",
+          fields: [
+              [
+                  "_path"
+              ] (=field.Path)
+          ] (=field.List),
+          count: 1 (uint64)
+      }
+      {
+          name: "srcip",
+          fields: [
+              [
+                  "srcip"
+              ] (=field.Path)
+          ] (=field.List),
+          count: 1 (uint64)
+      }

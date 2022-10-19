@@ -140,7 +140,9 @@ func (s *Store) Names(ctx context.Context) ([]string, error) {
 	return names, nil
 }
 
-func (s *Store) Lookup(ctx context.Context, name string) ([]Rule, error) {
+// LookupByRef returns the rules that match the passed ref string. ref can be
+// either a rule's Name or ID in alphanumeric base62 encoding.
+func (s *Store) LookupByRef(ctx context.Context, ref string) ([]Rule, error) {
 	var fresh bool
 	if s.stale() {
 		if err := s.load(ctx); err != nil {
@@ -151,13 +153,14 @@ func (s *Store) Lookup(ctx context.Context, name string) ([]Rule, error) {
 again:
 	var rules []Rule
 	for _, rule := range s.table {
-		if rule.RuleName() == name {
+		if rule.RuleName() == ref || rule.RuleID().String() == ref {
 			rules = append(rules, rule)
 		}
+
 	}
 	if len(rules) == 0 {
 		if fresh {
-			return nil, fmt.Errorf("rule set %q not found", name)
+			return nil, fmt.Errorf("rule %q not found", ref)
 		}
 		// If we didn't load a fresh table, try loading it
 		// then re-checking for the name...

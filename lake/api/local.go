@@ -205,7 +205,7 @@ func (l *local) Revert(ctx context.Context, poolID ksuid.KSUID, branchName strin
 	return l.root.Revert(ctx, poolID, branchName, commitID, message.Author, message.Body)
 }
 
-func (l *local) ApplyIndexRules(ctx context.Context, name string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
+func (l *local) ApplyIndexRules(ctx context.Context, ruleRefs []string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
 	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
 	if err != nil {
 		return ksuid.Nil, err
@@ -214,7 +214,7 @@ func (l *local) ApplyIndexRules(ctx context.Context, name string, poolID ksuid.K
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	rules, err := l.root.LookupIndexRules(ctx, name)
+	rules, err := l.root.LookupIndexRules(ctx, lakeparse.FormatIDs(ruleRefs)...)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -225,16 +225,16 @@ func (l *local) ApplyIndexRules(ctx context.Context, name string, poolID ksuid.K
 	return commit, nil
 }
 
-func (l *local) UpdateIndex(ctx context.Context, names []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+func (l *local) UpdateIndex(ctx context.Context, ruleRefs []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
 	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
 	if err != nil {
 		return ksuid.Nil, err
 	}
 	var rules []index.Rule
-	if len(names) == 0 {
+	if len(ruleRefs) == 0 {
 		rules, err = l.root.AllIndexRules(ctx)
 	} else {
-		rules, err = l.root.LookupIndexRules(ctx, names...)
+		rules, err = l.root.LookupIndexRules(ctx, lakeparse.FormatIDs(ruleRefs)...)
 	}
 	if err != nil {
 		return ksuid.Nil, err

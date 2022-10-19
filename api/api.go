@@ -88,12 +88,12 @@ type IndexRulesDeleteResponse struct {
 }
 
 type IndexApplyRequest struct {
-	RuleName string   `zed:"rule_name"`
-	Tags     []string `zed:"tags"`
+	Rules []string `zed:"rules"`
+	Tags  []string `zed:"tags"`
 }
 
 type IndexUpdateRequest struct {
-	RuleNames []string `zed:"rule_names"`
+	Rules []string `zed:"rules"`
 }
 
 type EventBranchCommit struct {

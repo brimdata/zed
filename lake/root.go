@@ -409,10 +409,10 @@ func (r *Root) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index
 	return deleted, nil
 }
 
-func (r *Root) LookupIndexRules(ctx context.Context, names ...string) ([]index.Rule, error) {
+func (r *Root) LookupIndexRules(ctx context.Context, refs ...string) ([]index.Rule, error) {
 	var rules []index.Rule
-	for _, name := range names {
-		r, err := r.indexRules.Lookup(ctx, name)
+	for _, ref := range refs {
+		r, err := r.indexRules.LookupByRef(ctx, ref)
 		if err != nil {
 			return nil, err
 		}
@@ -435,7 +435,7 @@ func (r *Root) BatchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 	var vals []zed.Value
 	ectx := expr.NewContext()
 	for _, name := range names {
-		rules, err := r.indexRules.Lookup(ctx, name)
+		rules, err := r.indexRules.LookupByRef(ctx, name)
 		if err != nil {
 			if err == index.ErrNoSuchRule {
 				continue

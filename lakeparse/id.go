@@ -38,3 +38,17 @@ func ParseIDs(ss []string) ([]ksuid.KSUID, error) {
 	}
 	return ids, nil
 }
+
+// FormatIDs ensures any IDs in ss are formatted in the standard base62 format.
+func FormatIDs(in []string) []string {
+	ss := make([]string, len(in))
+	for i, s := range in {
+		id, err := ParseID(s)
+		if err == nil {
+			ss[i] = id.String()
+		} else {
+			ss[i] = s
+		}
+	}
+	return ss
+}
