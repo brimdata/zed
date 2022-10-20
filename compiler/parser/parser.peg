@@ -750,22 +750,6 @@ Pattern
       RETURN(MAP("kind": "String", "text": s))
     }
 
-RegexpFunc
-  = "regexp" __ "(" __ args:RegexpFuncArgs __ ")" where:WhereClause? {
-      RETURN(MAP("kind": "Call", "name": "regexp", "args": args, "where": where))
-    }
-
-RegexpFuncArgs
-  = first:RegexpFuncArg rest:(__ "," __ e:Expr { RETURN(e) })* {
-      RETURN(PREPEND(first, rest))
-    }
-  / __ { RETURN(ARRAY()) }
-
-RegexpFuncArg
-  = v:RegexpPattern { RETURN(MAP("kind": "Primitive", "type": "string", "text": v)) }
-  / Expr
-
-
 OptionalExprs
   = Exprs
   / __ { RETURN(ARRAY()) }

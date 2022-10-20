@@ -5,14 +5,14 @@
 ### Synopsis
 
 ```
-regexp(re: string, s: string) -> any
+regexp(re: string|regexp, s: string) -> any
 ```
 ### Description
 The _regexp_ function returns an array of strings holding the text
-of the left most match of the regular expression string `re` and the
-matches of each parenthesized subexpression (also known as capturing groups)
-if there are any. A null value indicates
-no match.
+of the left most match of the regular expression `re`, which can be either
+a string value or [regular expression](https://zed.brimdata.io/docs/next/language/overview#711-regular-expressions),
+and the matches of each parenthesized subexpression (also known as capturing
+groups) if there are any. A null value indicates no match.
 
 ### Examples
 
