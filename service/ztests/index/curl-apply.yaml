@@ -2,8 +2,9 @@ script: |
   source service.sh
   zed create -q test
   zed index create -q values field value
+  ruleid=$(zed query -z "from :index_rules | yield under(id)")
   id=$(zed load -use test in.zson | awk '{print $1}')
-  curl -d "{\"rule_name\":\"values\",\"tags\": [\"$id\"]}" \
+  curl -d "{\"rules\":[\"$ruleid\"],\"tags\": [\"$id\"]}" \
        $ZED_LAKE/pool/test/branch/main/index  > /dev/null
   zed query -z 'from test@main:indexes | count() | yield count'
 

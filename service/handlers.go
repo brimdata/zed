@@ -541,7 +541,7 @@ func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branc
 		w.Error(err)
 		return
 	}
-	rules, err := c.root.LookupIndexRules(r.Context(), req.RuleName)
+	rules, err := c.root.LookupIndexRules(r.Context(), lakeparse.FormatIDs(req.Rules)...)
 	if err != nil {
 		w.Error(err)
 		return
@@ -567,8 +567,8 @@ func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Bran
 	}
 	var err error
 	var rules []index.Rule
-	if len(req.RuleNames) > 0 {
-		rules, err = c.root.LookupIndexRules(r.Context(), req.RuleNames...)
+	if len(req.Rules) > 0 {
+		rules, err = c.root.LookupIndexRules(r.Context(), lakeparse.FormatIDs(req.Rules)...)
 	} else {
 		rules, err = c.root.AllIndexRules(r.Context())
 	}

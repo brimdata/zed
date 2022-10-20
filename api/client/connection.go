@@ -363,13 +363,13 @@ func (c *Connection) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) (a
 	return deleted, err
 }
 
-func (c *Connection) ApplyIndexRules(ctx context.Context, poolID ksuid.KSUID, branchName, rule string, oids []ksuid.KSUID) (api.CommitResponse, error) {
+func (c *Connection) ApplyIndexRules(ctx context.Context, poolID ksuid.KSUID, branchName string, rules []string, oids []ksuid.KSUID) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName, "index")
 	tags := make([]string, len(oids))
 	for i, oid := range oids {
 		tags[i] = oid.String()
 	}
-	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexApplyRequest{RuleName: rule, Tags: tags})
+	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexApplyRequest{Rules: rules, Tags: tags})
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
 	return commit, err
@@ -377,7 +377,7 @@ func (c *Connection) ApplyIndexRules(ctx context.Context, poolID ksuid.KSUID, br
 
 func (c *Connection) UpdateIndex(ctx context.Context, poolID ksuid.KSUID, branchName string, rules []string) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName, "index", "update")
-	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexUpdateRequest{RuleNames: rules})
+	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexUpdateRequest{Rules: rules})
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
 	return commit, err

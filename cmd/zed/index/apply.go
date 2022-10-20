@@ -13,17 +13,26 @@ import (
 
 var apply = &charm.Spec{
 	Name:  "apply",
-	Usage: "apply rule tag [tag ...]",
-	Short: "apply index rule to one or more data objects in a branch",
+	Usage: "apply -r rule [-r rule ...] tag [tag ...]",
+	Short: "apply index rules to one or more data objects in a branch",
 	New:   newApply,
 }
 
 type applyCommand struct {
 	*Command
+	rules []string
 }
 
 func newApply(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	return &applyCommand{Command: parent.(*Command)}, nil
+	c := &applyCommand{Command: parent.(*Command)}
+	f.Func("r", "name of index rule to apply; can be set multiple times", func(s string) error {
+		if s == "" {
+			return errors.New("rule cannot be an empty string")
+		}
+		c.rules = append(c.rules, s)
+		return nil
+	})
+	return c, nil
 }
 
 func (c *applyCommand) Run(args []string) error {
@@ -39,11 +48,13 @@ func (c *applyCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(args) < 2 {
-		return errors.New("index apply command requires rule name and one or more object IDs")
+	if len(args) < 1 {
+		return errors.New("index apply: one or more object IDs must be provided as arguments")
 	}
-	ruleName := args[0]
-	tags, err := lakeparse.ParseIDs(args[1:])
+	if len(c.rules) == 0 {
+		return errors.New("index apply: at least one index rule must be specified (use the -r flag)")
+	}
+	tags, err := lakeparse.ParseIDs(args)
 	if err != nil {
 		return err
 	}
@@ -58,7 +69,7 @@ func (c *applyCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	commit, err := lake.ApplyIndexRules(ctx, ruleName, poolID, head.Branch, tags)
+	commit, err := lake.ApplyIndexRules(ctx, c.rules, poolID, head.Branch, tags)
 	if err != nil {
 		return err
 	}

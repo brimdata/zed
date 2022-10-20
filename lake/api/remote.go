@@ -150,8 +150,8 @@ func (r *remote) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]ind
 	return res.Rules, err
 }
 
-func (r *remote) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
-	res, err := r.conn.ApplyIndexRules(ctx, poolID, branchName, rule, inTags)
+func (r *remote) ApplyIndexRules(ctx context.Context, rules []string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
+	res, err := r.conn.ApplyIndexRules(ctx, poolID, branchName, rules, inTags)
 	return res.Commit, err
 }
 
