@@ -5,20 +5,20 @@
 ### Synopsis
 
 ```
-regexp(re: string, s: string) -> any
+regexp(re: string|regexp, s: string) -> any
 ```
 ### Description
 The _regexp_ function returns an array of strings holding the text
-of the left most match of the regular expression string `re` and the
-matches of each parenthesized subexpression (also known as capturing groups)
-if there are any. A null value indicates
-no match.
+of the left most match of the regular expression `re`, which can be either
+a string value or a [regular expression](../overview.md#711-regular-expressions),
+and the matches of each parenthesized subexpression (also known as capturing
+groups) if there are any. A null value indicates no match.
 
 ### Examples
 
 Regexp returns an array of the match and its subexpressions:
 ```mdtest-command
-echo '"seafood fool friend"' | zq -z 'yield regexp("foo(.?) (\\w+) fr.*", this)' -
+echo '"seafood fool friend"' | zq -z 'yield regexp(/foo(.?) (\w+) fr.*/, this)' -
 ```
 =>
 ```mdtest-output
