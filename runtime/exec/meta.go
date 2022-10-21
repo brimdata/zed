@@ -16,7 +16,7 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-//XXX for backward compat keep this for now, and return branchstats for pool/main
+// XXX for backward compat keep this for now, and return branchstats for pool/main
 type PoolStats struct {
 	Size int64 `zed:"size"`
 	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
@@ -142,6 +142,9 @@ func NewPoolMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, po
 		m := zson.NewZNGMarshalerWithContext(zctx)
 		m.Decorate(zson.StylePackage)
 		vals, err = p.BatchifyBranches(ctx, zctx, nil, m, f)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
 	}
