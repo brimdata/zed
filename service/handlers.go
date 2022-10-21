@@ -22,6 +22,7 @@ import (
 	"github.com/brimdata/zed/service/srverr"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/segmentio/ksuid"
 )
 
@@ -347,6 +348,10 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
+	format, ok := r.format(w, "auto")
+	if !ok {
+		return
+	}
 	message, ok := r.decodeCommitMessage(w)
 	if !ok {
 		return
@@ -361,9 +366,11 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	// Force validation of ZNG when initialing loading into the lake.
-	var opts anyio.ReaderOpts
-	opts.ZNG.Validate = true
+	opts := anyio.ReaderOpts{
+		Format: format,
+		// Force validation of ZNG when loading into the lake.
+		ZNG: zngio.ReaderOpts{Validate: true},
+	}
 	zctx := zed.NewContext()
 	zrc, err := anyio.NewReaderWithOpts(zctx, anyio.GzipReader(r.Body), opts)
 	if err != nil {

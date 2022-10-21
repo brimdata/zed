@@ -151,18 +151,9 @@ func (r *Request) BoolFromQuery(param string, w *ResponseWriter) (bool, bool) {
 }
 
 func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...interface{}) bool {
-	format, err := api.MediaTypeToFormat(r.Header.Get("Content-Type"), DefaultZedFormat)
-	if err != nil {
-		var uerr *api.ErrUnsupportedMimeType
-		if errors.As(err, &uerr) && uerr.Type == "application/x-www-form-urlencoded" {
-			// curl will by default set the Accept header to
-			// application/x-www-from-urlencoded so assume zson if this is the
-			// case.
-			format = DefaultZedFormat
-		} else {
-			w.Error(srverr.ErrInvalid(err))
-			return false
-		}
+	format, ok := r.format(w, DefaultZedFormat)
+	if !ok {
+		return false
 	}
 	zrc, err := anyio.NewReaderWithOpts(zed.NewContext(), r.Body, anyio.ReaderOpts{Format: format})
 	if err != nil {
@@ -185,6 +176,22 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 		return false
 	}
 	return true
+}
+
+func (r *Request) format(w *ResponseWriter, dflt string) (string, bool) {
+	format, err := api.MediaTypeToFormat(r.Header.Get("Content-Type"), dflt)
+	if err != nil {
+		var uerr *api.ErrUnsupportedMimeType
+		if errors.As(err, &uerr) && uerr.Type == "application/x-www-form-urlencoded" {
+			// curl will by default set the Accept header to
+			// application/x-www-from-urlencoded so assume the
+			// default format if this is the case.
+			return dflt, true
+		}
+		w.Error(srverr.ErrInvalid(err))
+		return "", false
+	}
+	return format, true
 }
 
 type ResponseWriter struct {
