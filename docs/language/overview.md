@@ -1365,16 +1365,17 @@ produces
 {s:"bar"}
 {foo:1}
 ```
-Regular expressions may also appear in the `grep` function:
+Regular expressions may also appear in the [`grep`](functions/grep.md) and
+[`regexp`](functions/regexp.md) functions:
 ```mdtest-command
-echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z 'yield grep(/ba.*/, s)' -
+echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z 'yield {ba_start:grep(/^ba.*/, s),last_s_char:regexp(/(.)$/,s)[1]}' -
 ```
 produces
 ```mdtest-output
-false
-true
-true
-false
+{ba_start:false,last_s_char:error("missing")}
+{ba_start:true,last_s_char:"r"}
+{ba_start:true,last_s_char:"z"}
+{ba_start:false,last_s_char:error("missing")}
 ```
 
 #### 7.1.2 Globs
