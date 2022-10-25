@@ -333,6 +333,8 @@ func (c *Connection) Compact(ctx context.Context, poolID ksuid.KSUID, branchName
 func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r io.Reader, message api.CommitMessage) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName)
 	req := c.NewRequest(ctx, http.MethodPost, path, r)
+	// Delete Content-Type so server will perform auto-detection.
+	req.Header.Del("Content-Type")
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
 	}
