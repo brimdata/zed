@@ -2,7 +2,6 @@ package zson
 
 import (
 	"errors"
-	"unicode"
 
 	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
@@ -57,7 +56,7 @@ func (p *Parser) matchTypeName() (astzed.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !(idChar(r) || unicode.IsDigit(r) || r == '"') {
+	if !(idChar(r) || isDigit(r) || r == '"') {
 		return nil, nil
 	}
 	name, err := l.scanTypeName()

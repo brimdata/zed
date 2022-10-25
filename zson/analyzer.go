@@ -3,7 +3,6 @@ package zson
 import (
 	"errors"
 	"fmt"
-	"unicode"
 
 	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
@@ -184,11 +183,15 @@ func (a Analyzer) enterTypeDef(zctx *zed.Context, name string, typ zed.Type) (*z
 
 func isNumeric(s string) bool {
 	for _, r := range s {
-		if !unicode.IsDigit(r) {
+		if !isDigit(r) {
 			return false
 		}
 	}
 	return true
+}
+
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
 }
 
 func (a Analyzer) convertAny(zctx *zed.Context, val astzed.Any, cast zed.Type) (Value, error) {
