@@ -53,6 +53,10 @@ func NewPattern(op string, hasarg bool) (Pattern, error) {
 		pattern = func() Function {
 			return newMathReducer(anymath.Add)
 		}
+	case "map":
+		pattern = func() Function {
+			return newMap()
+		}
 	case "min":
 		pattern = func() Function {
 			return newMathReducer(anymath.Min)

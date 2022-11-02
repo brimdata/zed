@@ -301,3 +301,22 @@ func (v *Value) MissingAsNull() *Value {
 	}
 	return v
 }
+
+func (v *Value) Under() *Value {
+	typ := v.Type
+	if _, ok := typ.(*TypeNamed); !ok {
+		if _, ok := typ.(*TypeUnion); !ok {
+			// common fast path
+			return v
+		}
+	}
+	bytes := v.Bytes
+	for {
+		typ = TypeUnder(typ)
+		union, ok := typ.(*TypeUnion)
+		if !ok {
+			return NewValue(typ, bytes)
+		}
+		typ, bytes = union.Untag(bytes)
+	}
+}
