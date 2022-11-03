@@ -173,8 +173,13 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 }
 
 func (p *Proc) run() {
-	// Tell p.ctx's cancel function that we've finished our cleanup.
-	defer p.pctx.WaitGroup.Done()
+	defer func() {
+		if p.agg.spiller != nil {
+			p.agg.spiller.Cleanup()
+		}
+		// Tell p.ctx's cancel function that we've finished our cleanup.
+		p.pctx.WaitGroup.Done()
+	}()
 	sendResults := func(p *Proc) bool {
 		for {
 			b, err := p.agg.nextResult(true, p.batch)
@@ -273,7 +278,6 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) (bool, bool) {
 		}
 		return true, true
 	case <-p.pctx.Done():
-		p.reset()
 		return false, false
 	}
 }
