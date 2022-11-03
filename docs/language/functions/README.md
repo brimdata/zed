@@ -12,6 +12,7 @@ take Zed values as arguments and produce a value as a result.
 * [ceil](ceil.md) - ceiling of a number
 * [cidr_match](cidr_match.md) - test if IP is in a network
 * [compare](compare.md) - return an int comparing two values
+* [coalesce](coalesce.md) - return first value that is not null, a "missing" error, or a "quiet" error
 * [crop](crop.md) - remove fields from a value that are missing in a specified type
 * [error](error.md) - wrap a value as an error
 * [every](every.md) - bucket `ts` using a duration
