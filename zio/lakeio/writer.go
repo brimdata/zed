@@ -17,7 +17,7 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/pkg/units"
-	"github.com/brimdata/zed/runtime/meta"
+	"github.com/brimdata/zed/runtime/op/meta"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -176,9 +176,9 @@ func formatDataObject(b *bytes.Buffer, object *data.Object, prefix string, inden
 
 func formatPartition(b *bytes.Buffer, p meta.Partition) {
 	b.WriteString("from ")
-	b.WriteString(zson.String(*p.First()))
+	b.WriteString(zson.String(p.First))
 	b.WriteString(" to ")
-	b.WriteString(zson.String(*p.Last()))
+	b.WriteString(zson.String(p.Last))
 	b.WriteByte('\n')
 	for _, o := range p.Objects {
 		formatDataObject(b, o, "", 2)

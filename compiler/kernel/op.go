@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
@@ -18,11 +19,11 @@ import (
 	"github.com/brimdata/zed/runtime/op/explode"
 	"github.com/brimdata/zed/runtime/op/exprswitch"
 	"github.com/brimdata/zed/runtime/op/fork"
-	"github.com/brimdata/zed/runtime/op/from"
 	"github.com/brimdata/zed/runtime/op/fuse"
 	"github.com/brimdata/zed/runtime/op/head"
 	"github.com/brimdata/zed/runtime/op/join"
 	"github.com/brimdata/zed/runtime/op/merge"
+	"github.com/brimdata/zed/runtime/op/meta"
 	"github.com/brimdata/zed/runtime/op/pass"
 	"github.com/brimdata/zed/runtime/op/shape"
 	"github.com/brimdata/zed/runtime/op/sort"
@@ -42,14 +43,24 @@ var ErrJoinParents = errors.New("join requires two upstream parallel query paths
 type Builder struct {
 	pctx     *op.Context
 	source   *data.Source
-	planners map[dag.Source]from.Planner
+	listers  map[dag.Source]*meta.Lister
+	pools    map[dag.Source]*lake.Pool
+	progress *zbuf.Progress
+	deletes  *sync.Map
 }
 
 func NewBuilder(pctx *op.Context, source *data.Source) *Builder {
 	return &Builder{
-		pctx:     pctx,
-		source:   source,
-		planners: make(map[dag.Source]from.Planner),
+		pctx:    pctx,
+		source:  source,
+		listers: make(map[dag.Source]*meta.Lister),
+		pools:   make(map[dag.Source]*lake.Pool),
+		progress: &zbuf.Progress{
+			BytesRead:      0,
+			BytesMatched:   0,
+			RecordsRead:    0,
+			RecordsMatched: 0,
+		},
 	}
 }
 
@@ -73,12 +84,12 @@ func (b *Builder) zctx() *zed.Context {
 	return b.pctx.Zctx
 }
 
-func (b *Builder) Meters() []zbuf.Meter {
-	var meters []zbuf.Meter
-	for _, planner := range b.planners {
-		meters = append(meters, planner)
-	}
-	return meters
+func (b *Builder) Meter() zbuf.Meter {
+	return b.progress
+}
+
+func (b *Builder) Deletes() *sync.Map {
+	return b.deletes
 }
 
 func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error) {
@@ -510,78 +521,93 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 	var source zbuf.Puller
 	switch src := trunk.Source.(type) {
 	case *Reader:
-		sched := &readerScheduler{
-			ctx:     b.pctx.Context,
-			filter:  pushdown,
-			readers: src.Readers,
+		if len(src.Readers) == 1 {
+			source, err = zbuf.NewScanner(b.pctx.Context, src.Readers[0], pushdown)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			scanners := make([]zbuf.Scanner, 0, len(src.Readers))
+			for _, r := range src.Readers {
+				scanner, err := zbuf.NewScanner(b.pctx.Context, r, pushdown)
+				if err != nil {
+					return nil, err
+				}
+				scanners = append(scanners, scanner)
+			}
+			source = zbuf.NewMultiScanner(scanners...)
 		}
-		source = from.New(b.pctx, sched)
-		b.planners[src] = sched
 	case *dag.Pass:
 		source = parent
 	case *dag.Pool:
-		// We keep a map of planners indexed by *dag.Pool so we
-		// properly share parallel instances of a given planner
-		// across different DAG entry points.  The planners from a
-		// common exec.Planner are distributed across the collection
-		// of op.From operators and the planner distributes work across
-		// the parallel instances of trunks.
-		planner, ok := b.planners[src]
-		if !ok {
+		var filter zbuf.Filter
+		if pushdown != nil {
 			if src.Delete {
-				deleteFilter := &DeleteFilter{pushdown}
-				planner, err = exec.NewDeletePlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, deleteFilter)
+				filter = &DeleteFilter{pushdown}
 			} else {
-				planner, err = exec.NewPlannerByID(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Commit, pushdown)
+				filter = pushdown
 			}
+		}
+		// For pool sources, we keep a map of listers indexed by *dag.Pool so we
+		// properly share parallel instances of a given object schedule
+		// across different DAG entry points.  The listers from a
+		// common "from" source are distributed across the collection
+		// of SequenceScanner operators and the upstream parent distributes work
+		// across the parallel instances of trunks.
+		lister, ok := b.listers[src]
+		if !ok {
+			lk := b.source.Lake()
+			pool, err := lk.OpenPool(b.pctx.Context, src.ID)
 			if err != nil {
 				return nil, err
 			}
-			b.planners[src] = planner
+			l, err := meta.NewSortedLister(b.pctx.Context, lk, pool, src.Commit, filter)
+			if err != nil {
+				return nil, err
+			}
+			b.pools[src] = pool
+			b.listers[src] = l
+			lister = l
 		}
-		source = from.New(b.pctx, planner)
+		pool := b.pools[src]
+		if src.Delete {
+			if b.deletes == nil {
+				b.deletes = &sync.Map{}
+			}
+			source = meta.NewDeleter(b.pctx, lister, pool, lister.Snapshot(), filter, b.progress, b.deletes)
+		} else {
+			source = meta.NewSequenceScanner(b.pctx, lister, pool, lister.Snapshot(), filter, b.progress)
+		}
 	case *dag.PoolMeta:
-		planner, ok := b.planners[src]
-		if !ok {
-			planner, err = exec.NewPoolMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
-			if err != nil {
-				return nil, err
-			}
-			b.planners[src] = planner
+		scanner, err := meta.NewPoolMetaScanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
+		if err != nil {
+			return nil, err
 		}
-		source = from.New(b.pctx, planner)
+		source = scanner
 	case *dag.CommitMeta:
-		planner, ok := b.planners[src]
-		if !ok {
-			planner, err = exec.NewCommitMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, pushdown)
-			if err != nil {
-				return nil, err
-			}
-			b.planners[src] = planner
+		scanner, err := meta.NewCommitMetaScanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, pushdown)
+		if err != nil {
+			return nil, err
 		}
-		source = from.New(b.pctx, planner)
+		source = scanner
 	case *dag.LakeMeta:
-		planner, ok := b.planners[src]
-		if !ok {
-			planner, err = exec.NewLakeMetaPlanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Meta, pushdown)
-			if err != nil {
-				return nil, err
-			}
-			b.planners[src] = planner
+		scanner, err := meta.NewLakeMetaScanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Meta, pushdown)
+		if err != nil {
+			return nil, err
 		}
-		source = from.New(b.pctx, planner)
+		source = scanner
 	case *dag.HTTP:
 		puller, err := b.source.Open(b.pctx.Context, b.pctx.Zctx, src.URL, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}
-		source = from.NewPuller(b.pctx, puller)
+		source = puller
 	case *dag.File:
 		scanner, err := b.source.Open(b.pctx.Context, b.pctx.Zctx, src.Path, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}
-		source = from.NewPuller(b.pctx, scanner)
+		source = scanner
 	default:
 		return nil, fmt.Errorf("Builder.compileTrunk: unknown type: %T", src)
 	}
@@ -655,54 +681,4 @@ func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err erro
 	// related, which is not currently allowed in an expression sub-query.
 	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil)
 	return b.evalAtCompileTime(in)
-}
-
-type readerScheduler struct {
-	ctx      context.Context
-	filter   zbuf.Filter
-	readers  []zio.Reader
-	scanner  zbuf.Scanner
-	progress zbuf.Progress
-}
-
-func (r *readerScheduler) PullWork() (zbuf.Puller, error) {
-	if r.scanner != nil {
-		r.progress.Add(r.scanner.Progress())
-		r.scanner = nil
-	}
-	if len(r.readers) == 0 {
-		return nil, nil
-	}
-	zr := r.readers[0]
-	r.readers = r.readers[1:]
-	s, err := zbuf.NewScanner(r.ctx, zr, r.filter)
-	if err != nil {
-		return nil, err
-	}
-	r.scanner = s
-	if stringer, ok := zr.(fmt.Stringer); ok {
-		s = zbuf.NamedScanner(s, stringer.String())
-	}
-	return &donePuller{s, r}, nil
-}
-
-func (r *readerScheduler) Progress() zbuf.Progress {
-	// Add the cumulative progress to the current scanner's progress.
-	progress := r.progress
-	if r.scanner != nil {
-		progress.Add(r.scanner.Progress())
-	}
-	return progress
-}
-
-type donePuller struct {
-	zbuf.Puller
-	sched *readerScheduler
-}
-
-func (d *donePuller) Pull(done bool) (zbuf.Batch, error) {
-	if done {
-		d.sched.readers = nil
-	}
-	return d.Puller.Pull(done)
 }

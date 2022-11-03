@@ -52,7 +52,7 @@ func (l *lakeCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelis
 	if err := job.Build(); err != nil {
 		return nil, err
 	}
-	return zedruntime.NewQuery(job.pctx, job.Puller(), job.builder.Meters()), nil
+	return zedruntime.NewQuery(job.pctx, job.Puller(), job.builder.Meter()), nil
 }
 
 func (l *lakeCompiler) NewLakeDeleteQuery(pctx *op.Context, program ast.Op, head *lakeparse.Commitish) (*zedruntime.DeleteQuery, error) {
@@ -69,8 +69,7 @@ func (l *lakeCompiler) NewLakeDeleteQuery(pctx *op.Context, program ast.Op, head
 	if err := job.Build(); err != nil {
 		return nil, err
 	}
-	meters := job.builder.Meters()
-	return zedruntime.NewDeleteQuery(pctx, job.Puller(), meters[0].(zedruntime.DeleteMeter)), nil
+	return zedruntime.NewDeleteQuery(pctx, job.Puller(), job.builder.Deletes()), nil
 }
 
 type InvalidDeleteWhereQuery struct{}

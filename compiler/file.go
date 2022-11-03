@@ -88,5 +88,5 @@ func optimizeAndBuild(job *Job) (*runtime.Query, error) {
 	if err := job.Build(); err != nil {
 		return nil, err
 	}
-	return runtime.NewQuery(job.pctx, job.Puller(), job.builder.Meters()), nil
+	return runtime.NewQuery(job.pctx, job.Puller(), job.builder.Meter()), nil
 }
