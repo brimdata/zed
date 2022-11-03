@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
+	"github.com/brimdata/zed/zio/lineio"
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
@@ -21,6 +22,8 @@ func lookupReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.ReadClos
 	switch opts.Format {
 	case "csv":
 		return zio.NopReadCloser(csvio.NewReader(zctx, r)), nil
+	case "line":
+		return zio.NopReadCloser(lineio.NewReader(r)), nil
 	case "zeek":
 		return zio.NopReadCloser(zeekio.NewReader(zctx, r)), nil
 	case "json":
