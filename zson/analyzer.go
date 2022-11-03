@@ -174,7 +174,10 @@ func (a Analyzer) typeCheck(cast, parent zed.Type) error {
 func (a Analyzer) enterTypeDef(zctx *zed.Context, name string, typ zed.Type) (*zed.TypeNamed, error) {
 	var named *zed.TypeNamed
 	if !isNumeric(name) {
-		named = zctx.LookupTypeNamed(name, typ)
+		var err error
+		if named, err = zctx.LookupTypeNamed(name, typ); err != nil {
+			return nil, err
+		}
 		typ = named
 	}
 	a[name] = typ

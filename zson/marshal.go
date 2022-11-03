@@ -272,7 +272,7 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zed.Type, error) {
 		// v.Type will panic.
 		return typ, nil
 	}
-	return m.lookupTypeNamed(v.Type(), typ), nil
+	return m.lookupTypeNamed(v.Type(), typ)
 }
 
 func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
@@ -586,7 +586,7 @@ func (m *MarshalZNGContext) lookupType(t reflect.Type) (zed.Type, error) {
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", t.Kind())
 	}
-	return m.lookupTypeNamed(t, typ), nil
+	return m.lookupTypeNamed(t, typ)
 }
 
 func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type, error) {
@@ -605,26 +605,26 @@ func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type,
 
 // lookupTypeNamed returns a named type for typ with a name derived from t.  It
 // returns typ if it shouldn't derive a name from t.
-func (m *MarshalZNGContext) lookupTypeNamed(t reflect.Type, typ zed.Type) zed.Type {
+func (m *MarshalZNGContext) lookupTypeNamed(t reflect.Type, typ zed.Type) (zed.Type, error) {
 	if m.decorator == nil && m.bindings == nil {
-		return typ
+		return typ, nil
 	}
 	// Don't create named types for interface types as this is just
 	// one value for that interface and it's the underlying concrete
 	// types that implement the interface that we want to name.
 	if t.Kind() == reflect.Interface {
-		return typ
+		return typ, nil
 	}
 	// We do not want to further decorate nano.Ts as
 	// it's already been converted to a Zed time;
 	// likewise for zed.Value, which gets encoded as
 	// itself and its own named type if it has one.
 	if t == nanoTsType || t == zngValueType || t == netipAddrType || t == netIPType {
-		return typ
+		return typ, nil
 	}
 	name := t.Name()
 	if name == "" || name == t.Kind().String() {
-		return typ
+		return typ, nil
 	}
 	path := t.PkgPath()
 	var named string
@@ -634,10 +634,10 @@ func (m *MarshalZNGContext) lookupTypeNamed(t reflect.Type, typ zed.Type) zed.Ty
 	if named == "" && m.decorator != nil {
 		named = m.decorator(name, path)
 	}
-	if named != "" {
-		typ = m.Context.LookupTypeNamed(named, typ)
+	if named == "" {
+		return typ, nil
 	}
-	return typ
+	return m.Context.LookupTypeNamed(named, typ)
 }
 
 type ZNGUnmarshaler interface {

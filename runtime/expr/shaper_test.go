@@ -5,14 +5,18 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBestUnionTag(t *testing.T) {
 	u8 := zed.TypeUint8
 	zctx := zed.NewContext()
-	u8named1 := zctx.LookupTypeNamed("u8named1", u8)
-	u8named2 := zctx.LookupTypeNamed("u8named2", u8)
-	u8named3 := zctx.LookupTypeNamed("u8named3", u8)
+	u8named1, err := zctx.LookupTypeNamed("u8named1", u8)
+	require.NoError(t, err)
+	u8named2, err := zctx.LookupTypeNamed("u8named2", u8)
+	require.NoError(t, err)
+	u8named3, err := zctx.LookupTypeNamed("u8named3", u8)
+	require.NoError(t, err)
 
 	assert.Equal(t, -1, bestUnionTag(u8, nil))
 	assert.Equal(t, -1, bestUnionTag(u8, u8))
