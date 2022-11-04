@@ -37,9 +37,5 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	zv, err := zson.Build(r.builder, val)
-	if err != nil {
-		return nil, err
-	}
-	return zed.NewValue(zv.Type, zv.Bytes), nil
+	return zson.Build(r.builder, val)
 }

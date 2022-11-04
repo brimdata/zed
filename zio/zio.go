@@ -55,9 +55,9 @@ func NopCloser(w io.Writer) io.WriteCloser {
 // Read never returns a non-nil value and non-nil error together, and it never
 // returns io.EOF.
 //
-// Implementations retain ownership of val.Bytes, and a subsequent Read may
-// overwrite it.  Clients that wish to use val.Bytes after the next Read must
-// make a copy.
+// Implementations retain ownership of val and val.Bytes, and a subsequent Read
+// may overwrite them.  Clients that wish to use val or val.Bytes after the next
+// Read must make a copy.
 type Reader interface {
 	Read() (val *zed.Value, err error)
 }

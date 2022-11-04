@@ -9,6 +9,7 @@ import (
 
 type Reader struct {
 	scanner *bufio.Scanner
+	val     zed.Value
 }
 
 func NewReader(r io.Reader) *Reader {
@@ -19,5 +20,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if !r.scanner.Scan() || r.scanner.Err() != nil {
 		return nil, r.scanner.Err()
 	}
-	return zed.NewValue(zed.TypeString, r.scanner.Bytes()), nil
+	r.val = *zed.NewValue(zed.TypeString, r.scanner.Bytes())
+	return &r.val, nil
 }

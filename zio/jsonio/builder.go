@@ -19,6 +19,7 @@ type builder struct {
 	columns  []zed.Column
 	itemptrs []*item
 	types    []zed.Type
+	val      zed.Value
 }
 
 type item struct {
@@ -174,6 +175,7 @@ func (b *builder) value() *zed.Value {
 	if len(b.items) > 1 {
 		panic("multiple items")
 	}
-	bytes := b.items[0].zb.Bytes().Body()
-	return zed.NewValue(b.items[0].typ, bytes)
+	item := &b.items[0]
+	b.val = *zed.NewValue(item.typ, item.zb.Bytes().Body())
+	return &b.val
 }

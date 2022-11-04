@@ -19,6 +19,7 @@ type Reader struct {
 	root    *vector.Int64Reader
 	readers []typedReader
 	builder zcode.Builder
+	val     zed.Value
 }
 
 type typedReader struct {
@@ -91,5 +92,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := tr.reader.Read(&r.builder); err != nil {
 		return nil, err
 	}
-	return zed.NewValue(tr.typ, r.builder.Bytes().Body()), nil
+	r.val = *zed.NewValue(tr.typ, r.builder.Bytes().Body())
+	return &r.val, nil
 }

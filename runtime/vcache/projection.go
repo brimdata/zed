@@ -16,6 +16,7 @@ type Projection struct {
 	cuts    []*cut
 	off     int
 	builder zcode.Builder
+	val     zed.Value
 }
 
 type cut struct {
@@ -51,7 +52,8 @@ func (p *Projection) Read() (*zed.Value, error) {
 	if err := c.it(&p.builder); err != nil {
 		return nil, err
 	}
-	return zed.NewValue(c.typ, p.builder.Bytes().Body()), nil
+	p.val = *zed.NewValue(c.typ, p.builder.Bytes().Body())
+	return &p.val, nil
 }
 
 func findCuts(o *Object, names []string) ([]*cut, error) {
