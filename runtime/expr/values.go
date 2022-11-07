@@ -284,7 +284,6 @@ func NewMapExpr(zctx *zed.Context, entries []Entry) *MapExpr {
 }
 
 func (m *MapExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	m.builder.Reset()
 	m.keys.reset()
 	m.vals.reset()
 	for _, e := range m.entries {
@@ -295,6 +294,7 @@ func (m *MapExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		typ := m.zctx.LookupTypeMap(zed.TypeNull, zed.TypeNull)
 		return ectx.NewValue(typ, []byte{})
 	}
+	m.builder.Reset()
 	kIter, vIter := m.keys.iter(m.zctx), m.vals.iter(m.zctx)
 	for !kIter.done() {
 		kIter.appendNext(&m.builder)
@@ -337,6 +337,7 @@ func (c *collectionBuilder) iter(zctx *zed.Context) collectionIter {
 		typ:   unionOf(zctx, c.uniqueTypes),
 		bytes: c.bytes,
 		types: c.types,
+		uniq:  len(c.uniqueTypes),
 	}
 }
 
@@ -344,10 +345,11 @@ type collectionIter struct {
 	typ   zed.Type
 	bytes []zcode.Bytes
 	types []zed.Type
+	uniq  int
 }
 
 func (c *collectionIter) appendNext(b *zcode.Builder) {
-	if union, ok := c.typ.(*zed.TypeUnion); ok {
+	if union, ok := c.typ.(*zed.TypeUnion); ok && c.uniq > 1 {
 		zed.BuildUnion(b, union.TagOf(c.types[0]), c.bytes[0])
 	} else {
 		b.Append(c.bytes[0])
