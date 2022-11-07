@@ -121,35 +121,26 @@ func PullerReader(p Puller) zio.Reader {
 type pullerReader struct {
 	p     Puller
 	batch Batch
-	idx   int
-	val   zed.Value
+	vals  []zed.Value
 }
 
 func (r *pullerReader) Read() (*zed.Value, error) {
-	if r.batch == nil {
-		for {
-			batch, err := r.p.Pull(false)
-			if err != nil || batch == nil {
-				return nil, err
-			}
-			if len(batch.Values()) == 0 {
-				continue
-			}
-			r.batch = batch
-			r.idx = 0
-			break
+	// Loop handles zero-length batches.
+	for len(r.vals) == 0 {
+		if r.batch != nil {
+			r.batch.Unref()
+			r.batch = nil
 		}
+		batch, err := r.p.Pull(false)
+		if batch == nil || err != nil {
+			return nil, err
+		}
+		r.batch = batch
+		r.vals = batch.Values()
 	}
-	vals := r.batch.Values()
-	rec := &vals[r.idx]
-	r.idx++
-	if r.idx == len(vals) {
-		r.val.CopyFrom(rec)
-		rec = &r.val
-		r.batch.Unref()
-		r.batch = nil
-	}
-	return rec, nil
+	val := &r.vals[0]
+	r.vals = r.vals[1:]
+	return val, nil
 }
 
 // XXX at some point the stacked scopes should not make copies of values
