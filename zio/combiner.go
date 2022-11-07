@@ -40,6 +40,12 @@ func (c *Combiner) run() {
 		go func() {
 			for {
 				rec, err := c.readers[idx].Read()
+				if rec != nil {
+					// Make a copy since we don't wait for
+					// Combiner.Read's caller to finish with
+					// this value before we read the next.
+					rec = rec.Copy()
+				}
 				select {
 				case c.results <- combinerResult{err, idx, rec}:
 					if rec == nil || err != nil {
