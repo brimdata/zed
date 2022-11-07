@@ -42,7 +42,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 		}
 		return nil, err
 	}
-	r.builder.Reset()
+	r.builder.Truncate()
 	for _, c := range r.typ.Columns {
 		r.builder.appendValue(c.Type, data[c.Name])
 	}

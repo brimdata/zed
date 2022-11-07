@@ -21,7 +21,7 @@ type builder struct {
 }
 
 func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Value, error) {
-	b.Reset()
+	b.Truncate()
 	b.Grow(len(data))
 	columns := typ.Columns
 	if path != nil {

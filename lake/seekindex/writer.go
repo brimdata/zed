@@ -30,7 +30,7 @@ func NewWriter(w zio.Writer) *Writer {
 
 func (w *Writer) Write(key zed.Value, count uint64, offset int64) error {
 	b := w.builder
-	b.Reset()
+	b.Truncate()
 	b.Append(key.Bytes)
 	b.Append(zed.EncodeUint(count))
 	b.Append(zed.EncodeInt(offset))

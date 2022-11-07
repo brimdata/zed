@@ -54,7 +54,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.builder.Reset()
+	r.builder.Truncate()
 	if err := r.decodeValue(r.builder, typ, object.Value); err != nil {
 		return nil, e(err)
 	}

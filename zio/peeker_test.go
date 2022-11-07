@@ -24,6 +24,7 @@ func TestPeeker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	rec1 = rec1.Copy()
 	rec2, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)
@@ -35,6 +36,7 @@ func TestPeeker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	rec3 = rec3.Copy()
 	if !bytes.Equal(rec1.Bytes, rec3.Bytes) {
 		t.Error("rec1 != rec3")
 	}
@@ -42,6 +44,7 @@ func TestPeeker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	rec4 = rec4.Copy()
 	if bytes.Equal(rec3.Bytes, rec4.Bytes) {
 		t.Error("rec3 == rec4")
 	}

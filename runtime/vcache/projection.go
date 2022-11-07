@@ -47,7 +47,7 @@ func (p *Projection) Read() (*zed.Value, error) {
 		p.off++
 		c = p.cuts[id]
 	}
-	p.builder.Reset()
+	p.builder.Truncate()
 	if err := c.it(&p.builder); err != nil {
 		return nil, err
 	}
