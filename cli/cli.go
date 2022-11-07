@@ -59,7 +59,8 @@ func (f *Flags) Init(all ...Initializer) (context.Context, context.CancelFunc, e
 	if f.cpuprofile != "" {
 		f.runCPUProfile(f.cpuprofile)
 	}
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(
+		context.Background(), syscall.SIGINT, syscall.SIGPIPE, syscall.SIGTERM)
 	cleanup := func() {
 		cancel()
 		f.cleanup()
