@@ -3,25 +3,26 @@ package join
 import (
 	"context"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 )
 
 type puller struct {
-	op    zbuf.Puller
-	ctx   context.Context
-	ch    chan op.Result
-	batch zbuf.Batch
-	vals  []zed.Value
+	zio.Reader
+	op  zbuf.Puller
+	ctx context.Context
+	ch  chan op.Result
 }
 
 func newPuller(p zbuf.Puller, ctx context.Context) *puller {
-	return &puller{
+	puller := &puller{
 		op:  p,
 		ctx: ctx,
 		ch:  make(chan op.Result),
 	}
+	puller.Reader = zbuf.PullerReader(puller)
+	return puller
 }
 
 func (p *puller) run() {
@@ -46,22 +47,4 @@ func (p *puller) Pull(done bool) (zbuf.Batch, error) {
 	case <-p.ctx.Done():
 		return nil, p.ctx.Err()
 	}
-}
-
-func (p *puller) Read() (*zed.Value, error) {
-	for len(p.vals) == 0 {
-		if p.batch != nil {
-			p.batch.Unref()
-		}
-		var err error
-		p.batch, err = p.Pull(false)
-		if p.batch == nil || err != nil {
-			p.batch = nil
-			return nil, err
-		}
-		p.vals = p.batch.Values()
-	}
-	rec := &p.vals[0]
-	p.vals = p.vals[1:]
-	return rec, nil
 }
