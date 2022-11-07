@@ -238,7 +238,7 @@ func (c *Context) LookupTypeDef(name string) *TypeNamed {
 
 // LookupTypeNamed returns the named type for name and inner.  It also binds
 // name to that named type.
-func (c *Context) LookupTypeNamed(name string, inner Type) *TypeNamed {
+func (c *Context) LookupTypeNamed(name string, inner Type) (*TypeNamed, error) {
 	tv := tvPool.Get().(*[]byte)
 	*tv = AppendTypeValue((*tv)[:0], &TypeNamed{Name: name, Type: inner})
 	c.mu.Lock()
@@ -246,12 +246,12 @@ func (c *Context) LookupTypeNamed(name string, inner Type) *TypeNamed {
 	if typ, ok := c.toType[string(*tv)]; ok {
 		tvPool.Put(tv)
 		c.typedefs[name] = typ.(*TypeNamed)
-		return typ.(*TypeNamed)
+		return typ.(*TypeNamed), nil
 	}
 	typ := NewTypeNamed(c.nextIDWithLock(), name, inner)
 	c.typedefs[name] = typ
 	c.enterWithLock(*tv, typ)
-	return typ
+	return typ, nil
 }
 
 func (c *Context) LookupTypeError(inner Type) *TypeError {
@@ -365,7 +365,11 @@ func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		if tv == nil {
 			return nil, nil
 		}
-		return c.LookupTypeNamed(name, typ), tv
+		named, err := c.LookupTypeNamed(name, typ)
+		if err != nil {
+			return nil, nil
+		}
+		return named, tv
 	case TypeValueNameRef:
 		name, tv := DecodeName(tv)
 		if tv == nil {
