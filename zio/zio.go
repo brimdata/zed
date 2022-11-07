@@ -49,17 +49,24 @@ func NopCloser(w io.Writer) io.WriteCloser {
 
 // Reader wraps the Read method.
 //
-// Read returns the next record and a nil error, a nil record and the next
-// error, or a nil record and nil error to indicate that no records remain.
+// Read returns the next value and a nil error, a nil value and the next error,
+// or a nil value and nil error to indicate that no values remain.
 //
-// Read never returns a non-nil record and non-nil error together, and it never
+// Read never returns a non-nil value and non-nil error together, and it never
 // returns io.EOF.
+//
+// Implementations retain ownership of val.Bytes, and a subsequent Read may
+// overwrite it.  Clients that wish to use val.Bytes after the next Read must
+// make a copy.
 type Reader interface {
-	Read() (*zed.Value, error)
+	Read() (val *zed.Value, err error)
 }
 
+// Writer wraps the Write method.
+//
+// Implementations must not retain val or val.Bytes.
 type Writer interface {
-	Write(*zed.Value) error
+	Write(val *zed.Value) error
 }
 
 type ReadCloser interface {
