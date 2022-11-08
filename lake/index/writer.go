@@ -55,7 +55,9 @@ func (w *Writer) Write(rec *zed.Value) error {
 		return errors.New("index writer closed")
 	default:
 		w.once.Do(w.indexer.start)
-		w.rwCh <- rec
+		// Make a copy since a zio.Writer.Write implementation must not
+		// retain its parameter.
+		w.rwCh <- rec.Copy()
 		return nil
 	}
 }
