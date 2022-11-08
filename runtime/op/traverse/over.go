@@ -82,14 +82,14 @@ func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 }
 
 func appendOver(zctx *zed.Context, vals []zed.Value, zv zed.Value) []zed.Value {
-	zv = *expr.ValueUnder(&zv)
+	zv = *zv.Under()
 	switch typ := zed.TypeUnder(zv.Type).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
 		typ = zed.InnerType(typ)
 		for it := zv.Bytes.Iter(); !it.Done(); {
 			// XXX when we do proper expr.Context, we can allocate
 			// this copy through the batch.
-			val := expr.ValueUnder(zed.NewValue(typ, it.Next()))
+			val := zed.NewValue(typ, it.Next()).Under()
 			vals = append(vals, *val.Copy())
 		}
 		return vals
