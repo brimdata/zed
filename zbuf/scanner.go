@@ -130,9 +130,7 @@ func (s *scanner) Read() (*zed.Value, error) {
 		}
 		atomic.AddInt64(&s.progress.BytesMatched, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.progress.RecordsMatched, 1)
-		// Copy the underlying buffer because the next call to
-		// s.reader.Read will overwrite it.
-		return this.Copy(), nil
+		return this, nil
 	}
 }
 
