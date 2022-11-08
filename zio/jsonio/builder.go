@@ -175,7 +175,5 @@ func (b *builder) value() *zed.Value {
 		panic("multiple items")
 	}
 	bytes := b.items[0].zb.Bytes().Body()
-	// Reset gives us ownership of bytes.
-	b.items[0].zb.Reset()
 	return zed.NewValue(b.items[0].typ, bytes)
 }

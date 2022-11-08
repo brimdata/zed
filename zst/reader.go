@@ -79,7 +79,7 @@ func NewReaderFromStorageReader(zctx *zed.Context, r storage.Reader) (*Reader, e
 }
 
 func (r *Reader) Read() (*zed.Value, error) {
-	r.builder.Reset()
+	r.builder.Truncate()
 	typeNo, err := r.root.Read()
 	if err == io.EOF {
 		return nil, nil

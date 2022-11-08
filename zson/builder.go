@@ -17,7 +17,7 @@ import (
 )
 
 func Build(b *zcode.Builder, val Value) (*zed.Value, error) {
-	b.Reset()
+	b.Truncate()
 	if err := buildValue(b, val); err != nil {
 		return nil, err
 	}

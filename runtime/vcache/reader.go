@@ -31,7 +31,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 		}
 		r.iters[id] = it
 	}
-	r.builder.Reset()
+	r.builder.Truncate()
 	if err := it(&r.builder); err != nil {
 		return nil, err
 	}
