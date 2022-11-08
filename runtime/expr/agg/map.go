@@ -59,8 +59,8 @@ func (m *Map) Result(zctx *zed.Context) *zed.Value {
 		vtypes = append(vtypes, e.val.Type)
 	}
 	// Keep track of number of unique types in collection. If there is only one
-	// unique type we don't append a union for each value- the base type could
-	// be a union itself.
+	// unique type we don't build a union for each value (though the base type could
+	// be a union itself).
 	ktyp, kuniq := unionOf(zctx, ktypes)
 	vtyp, vuniq := unionOf(zctx, vtypes)
 	var builder zcode.Builder
@@ -78,7 +78,8 @@ func (m *Map) ResultAsPartial(zctx *zed.Context) *zed.Value {
 }
 
 func appendMapVal(b *zcode.Builder, typ zed.Type, val *zed.Value, uniq int) {
-	if u, ok := typ.(*zed.TypeUnion); ok && uniq > 1 {
+	if uniq > 1 {
+		u := zed.TypeUnder(typ).(*zed.TypeUnion)
 		zed.BuildUnion(b, u.TagOf(val.Type), val.Bytes)
 	} else {
 		b.Append(val.Bytes)
