@@ -36,28 +36,8 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 	return ret
 }
 
-func ValueUnder(val *zed.Value) *zed.Value {
-	typ := val.Type
-	if _, ok := typ.(*zed.TypeNamed); !ok {
-		if _, ok := typ.(*zed.TypeUnion); !ok {
-			// common fast path
-			return val
-		}
-	}
-	bytes := val.Bytes
-	for {
-		typ = zed.TypeUnder(typ)
-		union, ok := typ.(*zed.TypeUnion)
-		if !ok {
-			return zed.NewValue(typ, bytes)
-		}
-		typ, bytes = union.Untag(bytes)
-	}
-}
-
 func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	rec := d.record.Eval(ectx, this)
-	val := ValueUnder(rec)
+	val := d.record.Eval(ectx, this).Under()
 	if _, ok := val.Type.(*zed.TypeOfType); ok {
 		return d.evalTypeOfType(ectx, val.Bytes)
 	}
