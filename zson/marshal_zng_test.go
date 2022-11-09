@@ -254,11 +254,18 @@ func TestUnmarshalNull(t *testing.T) {
 		var obj struct {
 			Test *testobj `zed:"test"`
 		}
-		val := zson.MustParseValue(zed.NewContext(), "{test: null({Val:int64})}")
+		val := zson.MustParseValue(zed.NewContext(), "{test:null({Val:int64})}")
 		require.NoError(t, zson.UnmarshalZNG(val, &obj))
 		require.Nil(t, obj.Test)
-		val = zson.MustParseValue(zed.NewContext(), "{test: null(ip)}")
+		val = zson.MustParseValue(zed.NewContext(), "{test:null(ip)}")
 		require.EqualError(t, zson.UnmarshalZNG(val, &obj), `cannot unmarshal Zed value "null(ip)" into Go struct`)
+		var slice struct {
+			Test []string `zed:"test"`
+		}
+		slice.Test = []string{"1"}
+		val = zson.MustParseValue(zed.NewContext(), "{test:null}")
+		require.NoError(t, zson.UnmarshalZNG(val, &slice))
+		require.Nil(t, slice.Test)
 	})
 }
 
