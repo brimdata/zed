@@ -21,5 +21,5 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 		}
 		return yaml.Unmarshal(b, &f.Config)
 	})
-	fs.DurationVar(&f.Config.ColdThreshold, "coldthresh", time.Minute*5, "age at which objects are considered for compaction")
+	fs.DurationVar(&f.Config.Compact.ColdThreshold, "coldthresh", time.Minute*5, "age at which objects are considered for compaction")
 }

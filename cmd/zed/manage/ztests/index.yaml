@@ -1,0 +1,25 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -S 10KB -q test
+  zed use -q test
+  zed index create -q values field value
+  for i in {1..10}; do
+    seq 200 | zq '{ts:this,value:"${this}"}' - | zed load -q -
+  done
+  zed manage update -q -config manage.yaml
+  zed query -z 'from test@main:indexes | count()'
+
+inputs:
+  - name: manage.yaml
+    data: |
+      compact:
+        disabled: true
+      index:
+        coldthresh: 0s
+        rules: ["values"]
+
+outputs:
+  - name: stdout
+    data: |
+      {count:10(uint64)}

@@ -4,21 +4,21 @@ import (
 	"context"
 	"time"
 
+	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zson"
 )
 
-type ObjectIterator interface {
-	Next() (*data.Object, error)
-}
-
-// Scan recieves a sorted stream of objects and sends to ch a series
+// CompactionScan recieves a sorted stream of objects and sends to ch a series
 // of Runs that are good candidates for compaction. If there are hot objects
-// in the pool, Scan returns the timestamp when the next object turns cool,
+// in the pool, CompactionScan returns the timestamp when the next object turns cool,
 // otherwise nil.
-func Scan(ctx context.Context, it ObjectIterator, pool *pools.Config,
+func CompactionScan(ctx context.Context, it DataObjectIterator, pool *pools.Config,
 	thresh time.Duration, ch chan<- Run) (*time.Time, error) {
 	send := func(run Run, next extent.Span) error {
 		// Send a run if it contains more than one object and the total size of
@@ -71,4 +71,50 @@ func Scan(ctx context.Context, it ObjectIterator, pool *pools.Config,
 		run = NewRun(cmp)
 	}
 	return nextcold, send(run, nil)
+}
+
+type PoolDataObjectIterator struct {
+	reader      zio.ReadCloser
+	unmarshaler *zson.UnmarshalZNGContext
+}
+
+func NewPoolDataObjectIterator(ctx context.Context, lake api.Interface, head *lakeparse.Commitish,
+	layout order.Layout) (*PoolDataObjectIterator, error) {
+	query, err := head.FromSpec("objects")
+	if err != nil {
+		return nil, err
+	}
+	if layout.Order == order.Asc {
+		query += " | sort meta.first"
+	} else {
+		query += " | sort meta.last"
+	}
+	r, err := lake.Query(ctx, nil, query)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolDataObjectIterator{
+		reader:      r,
+		unmarshaler: zson.NewZNGUnmarshaler(),
+	}, nil
+}
+
+func (r *PoolDataObjectIterator) Next() (*data.Object, error) {
+	val, err := r.reader.Read()
+	if val == nil || err != nil {
+		return nil, err
+	}
+	var o data.Object
+	if err := r.unmarshaler.Unmarshal(val, &o); err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+func (r *PoolDataObjectIterator) Close() error {
+	return r.reader.Close()
+}
+
+type DataObjectIterator interface {
+	Next() (*data.Object, error)
 }
