@@ -11,6 +11,7 @@ type Reader struct {
 	iters   []iterator
 	off     int
 	builder zcode.Builder
+	val     zed.Value
 }
 
 var _ zio.Reader = (*Reader)(nil)
@@ -35,5 +36,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := it(&r.builder); err != nil {
 		return nil, err
 	}
-	return zed.NewValue(o.types[id], r.builder.Bytes().Body()), nil
+	r.val = *zed.NewValue(o.types[id], r.builder.Bytes().Body())
+	return &r.val, nil
 }

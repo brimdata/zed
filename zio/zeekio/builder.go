@@ -18,6 +18,7 @@ type builder struct {
 	buf             []byte
 	fields          [][]byte
 	reorderedFields [][]byte
+	val             zed.Value
 }
 
 func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Value, error) {
@@ -59,7 +60,8 @@ func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, da
 	if len(leftoverFields) != 0 {
 		return nil, errors.New("too many values")
 	}
-	return zed.NewValue(typ, b.Bytes()), nil
+	b.val = *zed.NewValue(typ, b.Bytes())
+	return &b.val, nil
 }
 
 func (b *builder) appendColumns(columns []zed.Column, fields [][]byte) ([][]byte, error) {

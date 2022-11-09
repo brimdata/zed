@@ -13,6 +13,7 @@ type Reader struct {
 	typ *zed.TypeRecord
 
 	builder builder
+	val     zed.Value
 }
 
 func NewReader(zctx *zed.Context, r io.Reader) (*Reader, error) {
@@ -46,5 +47,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	for _, c := range r.typ.Columns {
 		r.builder.appendValue(c.Type, data[c.Name])
 	}
-	return zed.NewValue(r.typ, r.builder.Bytes()), nil
+	r.val = *zed.NewValue(r.typ, r.builder.Bytes())
+	return &r.val, nil
 }

@@ -22,6 +22,7 @@ type Reader struct {
 	zctx    *zed.Context
 	decoder decoder
 	builder *zcode.Builder
+	val     zed.Value
 }
 
 func NewReader(zctx *zed.Context, reader io.Reader) *Reader {
@@ -58,7 +59,8 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := r.decodeValue(r.builder, typ, object.Value); err != nil {
 		return nil, e(err)
 	}
-	return zed.NewValue(typ, r.builder.Bytes().Body()), nil
+	r.val = *zed.NewValue(typ, r.builder.Bytes().Body())
+	return &r.val, nil
 }
 
 func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {
