@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/brimdata/zed/zcode"
 	"golang.org/x/exp/slices"
@@ -237,8 +238,15 @@ func (c *Context) LookupTypeDef(name string) *TypeNamed {
 }
 
 // LookupTypeNamed returns the named type for name and inner.  It also binds
-// name to that named type.
+// name to that named type.  LookupTypeNamed returns an error if name is not a
+// valid UTF-8 string or is a primitive type name.
 func (c *Context) LookupTypeNamed(name string, inner Type) (*TypeNamed, error) {
+	if !utf8.ValidString(name) {
+		return nil, fmt.Errorf("bad type name %q: invalid UTF-8", name)
+	}
+	if LookupPrimitive(name) != nil {
+		return nil, fmt.Errorf("bad type name %q: primitive type name", name)
+	}
 	tv := tvPool.Get().(*[]byte)
 	*tv = AppendTypeValue((*tv)[:0], &TypeNamed{Name: name, Type: inner})
 	c.mu.Lock()
