@@ -719,7 +719,9 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		v.Set(reflect.ValueOf(*zv.Copy()))
 		return nil
 	}
-	if zv == zed.Null {
+	if zed.TypeUnder(zv.Type) == zed.TypeNull {
+		// A zed null value should successfully unmarshal to any go type. Typed
+		// nulls however need to be type checked.
 		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
