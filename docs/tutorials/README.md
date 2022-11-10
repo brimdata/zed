@@ -1,8 +1,3 @@
----
-sidebar_position: 3
-sidebar_label: Commands
----
-
 # Tutorials
 
 The tutorials contain a number of overviews of different aspects

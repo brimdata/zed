@@ -1,3 +1,8 @@
+---
+sidebar_position: 3
+sidebar_label: Python
+---
+
 # Python
 
 Zed includes preliminary support for Python-based interaction
