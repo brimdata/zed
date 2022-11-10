@@ -1,5 +1,5 @@
 ---
-sidebar_position: 0
+sidebar_position: 1
 sidebar_label: zq
 description: A command-line tool that uses the Zed Language for pipeline-style search and analytics.
 ---

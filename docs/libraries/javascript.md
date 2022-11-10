@@ -1,3 +1,8 @@
+---
+sidebar_position: 2
+sidebar_label: Javascript
+---
+
 # Javascript
 
 The [Zealot library](https://github.com/brimdata/brim/tree/main/packages/zealot)

@@ -1,8 +1,3 @@
----
-sidebar_position: 3
-sidebar_label: Commands
----
-
 # Command Tooling
 
 The Zed system is managed and queried with the [`zed` command](zed.md),
