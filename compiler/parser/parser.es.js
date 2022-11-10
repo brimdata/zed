@@ -15087,7 +15087,7 @@ function peg$parse(input, options) {
       return String.fromCharCode(n);
     }
 
-    // stupid javascript 16 bit code points...
+    // stupid JavaScript 16 bit code points...
     n -= 0x10000;
     let surrogate1 = 0xD800 + ((n >> 10) & 0x7ff);
     let surrogate2 = 0xDC00 + (n & 0x3ff);

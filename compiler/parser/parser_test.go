@@ -63,7 +63,7 @@ func parsePigeon(z string) ([]byte, error) {
 	return json.Marshal(ast)
 }
 
-// testZed parses the Zed query in line by both the Go and Javascript
+// testZed parses the Zed query in line by both the Go and JavaScript
 // parsers.  It checks both that the parse is successful and that the
 // two resulting ASTs are equivalent.  On the go side, we take a round
 // trip through json marshal and unmarshal to turn the parse-tree types
