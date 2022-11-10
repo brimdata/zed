@@ -92,7 +92,7 @@ func (c *testClient) TestQuery(query string) string {
 }
 
 func (c *testClient) TestLoad(poolID ksuid.KSUID, branchName string, r io.Reader) ksuid.KSUID {
-	commit, err := c.Connection.Load(context.Background(), poolID, branchName, r, api.CommitMessage{})
+	commit, err := c.Connection.Load(context.Background(), poolID, branchName, "", r, api.CommitMessage{})
 	require.NoError(c, err)
 	return commit.Commit
 }
