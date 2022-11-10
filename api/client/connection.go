@@ -330,11 +330,12 @@ func (c *Connection) Compact(ctx context.Context, poolID ksuid.KSUID, branchName
 	return commit, err
 }
 
-func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r io.Reader, message api.CommitMessage) (api.CommitResponse, error) {
+// Load loads data from r.  contentType is a media type for r or the empty
+// string, in which case the server will attempt to detect r's format.
+func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName, contentType string, r io.Reader, message api.CommitMessage) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName)
 	req := c.NewRequest(ctx, http.MethodPost, path, r)
-	// Delete Content-Type so server will perform auto-detection.
-	req.Header.Del("Content-Type")
+	req.Header.Set("Content-Type", contentType)
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
 	}

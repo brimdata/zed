@@ -58,7 +58,7 @@ func TestClientRedirectReplay(t *testing.T) {
 		Refresh: "98765",
 	})
 	conn.SetAuthStore(store)
-	_, err := conn.Load(context.Background(), ksuid.New(), "main", strings.NewReader(expected), api.CommitMessage{})
+	_, err := conn.Load(context.Background(), ksuid.New(), "main", "", strings.NewReader(expected), api.CommitMessage{})
 	require.NoError(t, err)
 	assert.Equal(t, expected, body)
 }
