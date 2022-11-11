@@ -8,32 +8,25 @@ sidebar_label: Amazon S3
 Zed tools can access [Amazon S3](https://aws.amazon.com/s3/) and
 S3-compatible storage via `s3://` URIs. Details are described below.
 
+## Region
+
+You must specify an AWS region via one of the following:
+* The `AWS_REGION` environment variable
+* The `~/.aws/config` file
+* The file specified by the `AWS_CONFIG_FILE` environment variable
+
+You can create `~/.aws/config` by installing the
+[AWS CLI](https://aws.amazon.com/cli/) and running `aws configure`.
+
 ## Credentials
 
-The URI parameters that are accepted by Zed components can be `s3://`
-destinations that point to S3 storage. As most S3 buckets are non-public, this
-requires the Zed tooling to have credentials for access. These credentials can
-be provided in one of two ways.
+You must specify AWS credentials via one of the following:
+* The `AWS_ACCESS_KEY_ID` and`AWS_SECRET_ACCESS_KEY` environment variables
+* The `~/.aws/credentials` file
+* The file specified by the `AWS_SHARED_CREDENTIALS_FILE` environment variable
 
-1. If you have the [AWS CLI](https://aws.amazon.com/cli/) tools installed on
-the same system where you're running Zed and have successfully completed
-`aws configure`, the Zed tools will automatically find and use these saved
-credentials and config in their well-known location. If you can successfully
-execute operations such as `aws s3 ls` or `aws s3 cp` against an S3 URI, it is
-expected that the Zed tools will be able to successfully make use of the same
-S3 URI.
-
-2. If the AWS CLI tools are absent or unconfigured, the necessary credentials
-can be set in environment variables `AWS_ACCESS_KEY_ID`,
-`AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`. The values for these are the same as
-are typically input in the first three settings entered during `aws configure`.
-
-   ```
-   $ aws configure
-   AWS Access Key ID [********************]: 
-   AWS Secret Access Key [********************]: 
-   Default region name [*********]: 
-   ```
+You can create `~/.aws/credentials` by installing the
+[AWS CLI](https://aws.amazon.com/cli/) and running `aws configure`.
 
 ## Endpoint
 
