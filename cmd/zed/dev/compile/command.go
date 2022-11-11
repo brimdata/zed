@@ -36,8 +36,8 @@ and is also useful to advanced users for understanding how Zed syntax is
 translated into an analytics requests sent to the "zed server" search endpoint.
 
 By default, it runs the built-in PEG parser built into this go binary.
-If you specify -js, it will try to run a javascript version of the parser
-by execing node in the currrent directory running the javascript in ./compiler/parser/run.js.
+If you specify -js, it will try to run a JavaScript version of the parser
+by execing node in the currrent directory running the JavaScript in ./compiler/parser/run.js.
 
 The -O flag is handy for turning on and off the compiler, which lets you see
 how the parsed AST is transformed into a runtime object comprised of the
@@ -66,7 +66,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.BoolVar(&c.js, "js", false, "run javascript version of peg parser")
+	f.BoolVar(&c.js, "js", false, "run JavaScript version of peg parser")
 	f.BoolVar(&c.pigeon, "pigeon", false, "run pigeon version of peg parser")
 	f.BoolVar(&c.proc, "proc", false, "run pigeon version of peg parser and marshal into ast.Op")
 	f.BoolVar(&c.semantic, "s", false, "display semantically analyzed AST (implies -proc)")

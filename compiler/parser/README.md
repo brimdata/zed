@@ -41,7 +41,7 @@ is with this `make` command at the root of this repository:
 ```
 make peg
 ```
-This will ensure the PEG-generated javascript and Go parsers are up to date
+This will ensure the PEG-generated JavaScript and Go parsers are up to date
 with `parser.peg`
 
 To update the parser and launch the `zc -repl`, your can run `make peg-run`.
