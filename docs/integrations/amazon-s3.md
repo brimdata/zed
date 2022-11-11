@@ -35,6 +35,11 @@ are typically input in the first three settings entered during `aws configure`.
    Default region name [*********]: 
    ```
 
+## Endpoint
+
+To use S3-compatible storage not provided by AWS, set the `AWS_S3_ENDPOINT`
+environment variable to the hostname or URI of the provider.
+
 ## Wildcard Support
 
 [Like the AWS CLI tools themselves](https://aws.amazon.com/premiumsupport/knowledge-center/s3-event-notification-filter-wildcard/#:~:text=Because%20the%20wildcard%20asterisk%20character,suffix%20object%20key%20name%20filter.),
