@@ -5,8 +5,8 @@ sidebar_label: Amazon S3
 
 # Amazon S3
 
-Zed tools have the ability to utilize [Amazon S3](https://aws.amazon.com/s3/)
-storage. Details on effective use with S3 are described below.
+Zed tools can access [Amazon S3](https://aws.amazon.com/s3/) and
+S3-compatible storage via `s3://` URIs. Details are described below.
 
 ## Credentials
 
