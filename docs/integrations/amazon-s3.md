@@ -18,6 +18,12 @@ You must specify an AWS region via one of the following:
 You can create `~/.aws/config` by installing the
 [AWS CLI](https://aws.amazon.com/cli/) and running `aws configure`.
 
+:::tip Note
+If using S3-compatible storage that does not recognize the concept of regions,
+a region must still be specified, e.g., by providing a dummy value for
+`AWS_REGION`.
+:::
+
 ## Credentials
 
 You must specify AWS credentials via one of the following:
