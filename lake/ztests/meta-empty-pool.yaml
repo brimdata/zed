@@ -1,0 +1,16 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed log -use test
+  zed query 'from test@main:objects'
+  zed query 'from test@main:partitions'
+  zed query 'from test@main:rawlog'
+  zed query 'from test@main:indexes'
+  zed query 'from test@main:vectors'
+
+outputs: 
+  - name: stdout
+    data: ""
+  - name: stderr
+    data: ""

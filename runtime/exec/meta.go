@@ -194,7 +194,7 @@ func NewCommitMetaPlanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		reader, err := partitionReader(ctx, zctx, p.Layout, snap)
+		reader, err := partitionReader(ctx, zctx, p.Layout, snap, filter)
 		if err != nil {
 			return nil, err
 		}
