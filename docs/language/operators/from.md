@@ -11,7 +11,7 @@ file <path> [format <format>]
 get <uri> [format <format>]
 from (
    pool <pool>[@<branch|id>] [ => <leg> ]
-   pool <pattern> [ => <leg> ]
+   pool <pattern>
    file <path> [format <format>] [ => <leg> ]
    get <uri> [format <format>] [ => <leg> ]
    ...
