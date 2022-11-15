@@ -116,10 +116,19 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		if err != nil {
 			return nil, err
 		}
+		var objects []data.Object
 		for _, id := range ids {
-			if !snap.Exists(id) {
-				return nil, fmt.Errorf("%s: %w", id, commits.ErrNotFound)
+			o, err := snap.Lookup(id)
+			if err != nil {
+				return nil, err
 			}
+			objects = append(objects, *o)
+		}
+		if message == "" {
+			var b strings.Builder
+			b.WriteString(fmt.Sprintf("deleted %d data object%s\n\n", len(objects), plural(objects)))
+			printObjects(&b, objects, maxMessageObjects)
+			message = b.String()
 		}
 		return commits.NewDeletesObject(parent.Commit, retries, author, message, ids), nil
 	})
@@ -174,8 +183,47 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 			obj := o
 			patch.AddDataObject(&obj)
 		}
+		if message == "" {
+			var deletedObjs []data.Object
+			for _, id := range deleted {
+				o, _ := base.Lookup(id)
+				deletedObjs = append(deletedObjs, *o)
+			}
+			message = deleteWhereMessage(deletedObjs, w.Objects())
+		}
 		return patch.NewCommitObject(parent.Commit, retries, author, message, *appMeta), nil
 	})
+}
+
+func deleteWhereMessage(deleted, added []data.Object) string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("deleted %d data object%s\n\n", len(deleted), plural(deleted)))
+	printObjects(&b, deleted, maxMessageObjects)
+	if len(added) > 0 {
+		b.WriteString(fmt.Sprintf("\nadded %d data object%s\n\n", len(added), plural(added)))
+		printObjects(&b, added, maxMessageObjects-len(deleted))
+	}
+	return b.String()
+}
+
+func printObjects(b *strings.Builder, objects []data.Object, maxMessageObjects int) bool {
+	for k, o := range objects {
+		b.WriteString("  ")
+		b.WriteString(o.String())
+		b.WriteByte('\n')
+		if k >= maxMessageObjects {
+			b.WriteString("  ...\n")
+			return false
+		}
+	}
+	return true
+}
+
+func plural[S ~[]E, E any](s S) string {
+	if len(s) == 1 {
+		return ""
+	}
+	return "s"
 }
 
 func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
