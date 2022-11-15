@@ -218,7 +218,7 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		}
 	}
 	if p.Spec.Meta != "" {
-		if commitID != ksuid.Nil {
+		if commit != "" {
 			return &dag.CommitMeta{
 				Kind:      "CommitMeta",
 				Meta:      p.Spec.Meta,

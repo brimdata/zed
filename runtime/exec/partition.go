@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/meta"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -114,12 +115,12 @@ func sortObjects(o order.Which, objects []*data.Object) {
 	}
 }
 
-func partitionReader(ctx context.Context, zctx *zed.Context, layout order.Layout, snap commits.View) (zio.Reader, error) {
+func partitionReader(ctx context.Context, zctx *zed.Context, layout order.Layout, snap commits.View, filter zbuf.Filter) (zio.Reader, error) {
 	ch := make(chan meta.Partition)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
 	go func() {
-		scanErr = ScanPartitions(ctx, snap, layout, nil, ch)
+		scanErr = ScanPartitions(ctx, snap, layout, filter, ch)
 		close(ch)
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
