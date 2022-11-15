@@ -5,12 +5,12 @@
 ### Synopsis
 
 ```
-from <pool>[@<branch|id>]
+from <pool>[@<commitish>]
 from <pattern>
 file <path> [format <format>]
 get <uri> [format <format>]
 from (
-   pool <pool>[@<branch|id>] [ => <leg> ]
+   pool <pool>[@<commitish>] [ => <leg> ]
    pool <pattern>
    file <path> [format <format>] [ => <leg> ]
    get <uri> [format <format>] [ => <leg> ]
