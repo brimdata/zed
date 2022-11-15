@@ -80,7 +80,7 @@ zed -q -use coinflips branch trial
 echo '{flip:3,result:"heads"}' | zed -q -use coinflips@trial load -
 zed -q create numbers
 echo '{number:1,word:"one"} {number:2,word:"two"} {number:3,word:"three"}' | zed -q -use numbers load -
-zed ls | awk '{ print $1 }'
+zed ls | awk '{ print $1 }' | sort
 ```
 
 The lake then contains the two pools:
