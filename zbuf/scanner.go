@@ -189,36 +189,24 @@ func (n *namedScanner) Pull(done bool) (Batch, error) {
 }
 
 func MultiScanner(scanners ...Scanner) Scanner {
-	return &multiScanner{
-		scanners: scanners,
-	}
+	return &multiScanner{scanners: scanners}
 }
 
 type multiScanner struct {
 	scanners []Scanner
 	progress Progress
-	current  Scanner
 }
 
 func (m *multiScanner) Pull(done bool) (Batch, error) {
-	for {
-		if m.current == nil {
-			if len(m.scanners) == 0 {
-				return nil, nil
-			}
-			m.current = m.scanners[0]
-			m.scanners = m.scanners[1:]
+	for len(m.scanners) > 0 {
+		batch, err := m.scanners[0].Pull(done)
+		if batch != nil || err != nil {
+			return batch, err
 		}
-		batch, err := m.current.Pull(done)
-		if err != nil {
-			return nil, err
-		}
-		if batch != nil {
-			return batch, nil
-		}
-		m.progress.Add(m.current.Progress())
-		m.current = nil
+		m.progress.Add(m.scanners[0].Progress())
+		m.scanners = m.scanners[1:]
 	}
+	return nil, nil
 }
 
 func (m *multiScanner) Progress() Progress {
