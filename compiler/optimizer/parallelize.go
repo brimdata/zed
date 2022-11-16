@@ -15,7 +15,7 @@ func orderAsDirection(which order.Which) int {
 	return -1
 }
 
-//XXX assume the trunk is from a from op at seq.Ops[0] and we will
+// XXX assume the trunk is from a from op at seq.Ops[0] and we will
 // possible insert an operator at seq.Op[1]
 func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, replicas int) error {
 	from, ok := seq.Ops[0].(*dag.From)
@@ -223,10 +223,15 @@ func replicateTrunk(from *dag.From, trunk *dag.Trunk, replicas int) {
 				Ops:  copyOps(seq.Ops),
 			}
 		}
+		pd := trunk.Pushdown
+		if pd != nil {
+			pd = copyOp(pd)
+		}
 		replica := dag.Trunk{
-			Kind:   "Trunk",
-			Source: src,
-			Seq:    newSeq,
+			Kind:     "Trunk",
+			Source:   src,
+			Seq:      newSeq,
+			Pushdown: pd,
 		}
 		from.Trunks = append(from.Trunks, replica)
 	}
