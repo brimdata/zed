@@ -424,7 +424,7 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	commit, err := exec.Compact(r.Context(), pool, branch, req.ObjectIDs, message.Author, message.Body, message.Meta)
+	commit, err := exec.Compact(r.Context(), c.root, pool, branch, req.ObjectIDs, message.Author, message.Body, message.Meta)
 	if err != nil {
 		w.Error(err)
 		return

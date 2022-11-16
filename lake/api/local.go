@@ -106,7 +106,7 @@ func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName stri
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return exec.Compact(ctx, pool, branchName, objects, commit.Author, commit.Body, commit.Meta)
+	return exec.Compact(ctx, l.root, pool, branchName, objects, commit.Author, commit.Body, commit.Meta)
 }
 
 func (l *local) AddIndexRules(ctx context.Context, rules []index.Rule) error {

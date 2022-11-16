@@ -19,16 +19,16 @@ import (
 type Query struct {
 	zbuf.Puller
 	pctx  *op.Context
-	meter *meter
+	meter zbuf.Meter
 }
 
 var _ zbuf.Puller = (*Query)(nil)
 
-func NewQuery(pctx *op.Context, puller zbuf.Puller, meters []zbuf.Meter) *Query {
+func NewQuery(pctx *op.Context, puller zbuf.Puller, meter zbuf.Meter) *Query {
 	return &Query{
 		Puller: puller,
 		pctx:   pctx,
-		meter:  &meter{meters},
+		meter:  meter,
 	}
 }
 
@@ -89,16 +89,4 @@ func (q *Query) Pull(done bool) (zbuf.Batch, error) {
 		q.pctx.Cancel()
 	}
 	return q.Puller.Pull(done)
-}
-
-type meter struct {
-	meters []zbuf.Meter
-}
-
-func (m *meter) Progress() zbuf.Progress {
-	var out zbuf.Progress
-	for _, meter := range m.meters {
-		out.Add(meter.Progress())
-	}
-	return out
 }

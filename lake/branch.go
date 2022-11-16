@@ -162,7 +162,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 		if err != nil {
 			return nil, err
 		}
-		deleted := query.DeleteObjects()
+		deleted := query.DeletionSet()
 		if len(deleted) == 0 {
 			return nil, commits.ErrEmptyTransaction
 		}

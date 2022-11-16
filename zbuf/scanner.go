@@ -51,15 +51,22 @@ type Progress struct {
 	RecordsMatched int64 `zed:"records_matched" json:"records_matched"`
 }
 
+var _ Meter = (*Progress)(nil)
+
 // Add updates its receiver by adding to it the values in ss.
 func (p *Progress) Add(in Progress) {
-	atomic.AddInt64(&p.BytesRead, in.BytesRead)
-	atomic.AddInt64(&p.BytesMatched, in.BytesMatched)
-	atomic.AddInt64(&p.RecordsRead, in.RecordsRead)
-	atomic.AddInt64(&p.RecordsMatched, in.RecordsMatched)
+	if p != nil {
+		atomic.AddInt64(&p.BytesRead, in.BytesRead)
+		atomic.AddInt64(&p.BytesMatched, in.BytesMatched)
+		atomic.AddInt64(&p.RecordsRead, in.RecordsRead)
+		atomic.AddInt64(&p.RecordsMatched, in.RecordsMatched)
+	}
 }
 
 func (p *Progress) Copy() Progress {
+	if p == nil {
+		return Progress{}
+	}
 	return Progress{
 		BytesRead:      atomic.LoadInt64(&p.BytesRead),
 		BytesMatched:   atomic.LoadInt64(&p.BytesMatched),
@@ -68,10 +75,27 @@ func (p *Progress) Copy() Progress {
 	}
 }
 
+func (p *Progress) Progress() Progress {
+	return p.Copy()
+}
+
 var ScannerBatchSize = 100
 
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
+// If r implements fmt.Stringer, the scanner reports errors using a prefix of the
+// string returned by its String method.
 func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
+	s, err := newScanner(ctx, r, filterExpr)
+	if err != nil {
+		return nil, err
+	}
+	if stringer, ok := r.(fmt.Stringer); ok {
+		s = NamedScanner(s, stringer.String())
+	}
+	return s, nil
+}
+
+func newScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
 	var sa ScannerAble
 	if zf, ok := r.(*File); ok {
 		sa, _ = zf.Reader.(ScannerAble)
@@ -162,4 +186,41 @@ func (n *namedScanner) Pull(done bool) (Batch, error) {
 		err = fmt.Errorf("%s: %w", n.name, err)
 	}
 	return b, err
+}
+
+func MultiScanner(scanners ...Scanner) Scanner {
+	return &multiScanner{
+		scanners: scanners,
+	}
+}
+
+type multiScanner struct {
+	scanners []Scanner
+	progress Progress
+	current  Scanner
+}
+
+func (m *multiScanner) Pull(done bool) (Batch, error) {
+	for {
+		if m.current == nil {
+			if len(m.scanners) == 0 {
+				return nil, nil
+			}
+			m.current = m.scanners[0]
+			m.scanners = m.scanners[1:]
+		}
+		batch, err := m.current.Pull(done)
+		if err != nil {
+			return nil, err
+		}
+		if batch != nil {
+			return batch, nil
+		}
+		m.progress.Add(m.current.Progress())
+		m.current = nil
+	}
+}
+
+func (m *multiScanner) Progress() Progress {
+	return m.progress.Copy()
 }
