@@ -535,7 +535,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 				}
 				scanners = append(scanners, scanner)
 			}
-			source = zbuf.NewMultiScanner(scanners...)
+			source = zbuf.MultiScanner(scanners...)
 		}
 	case *dag.Pass:
 		source = parent

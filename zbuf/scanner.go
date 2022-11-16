@@ -81,6 +81,20 @@ func (p *Progress) Progress() Progress {
 
 var ScannerBatchSize = 100
 
+// NewScanner returns a Scanner for r that filters records by filterExpr and s.
+// If r implements fmt.Stringer, the scanner reports errors using a prefix of the
+// string returned by its String method.
+func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
+	s, err := newScanner(ctx, r, filterExpr)
+	if err != nil {
+		return nil, err
+	}
+	if stringer, ok := r.(fmt.Stringer); ok {
+		s = NamedScanner(s, stringer.String())
+	}
+	return s, nil
+}
+
 func newScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
 	var sa ScannerAble
 	if zf, ok := r.(*File); ok {
@@ -101,20 +115,6 @@ func newScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 	sc := &scanner{reader: r, filter: f, ctx: ctx}
 	sc.Puller = NewPuller(sc, ScannerBatchSize)
 	return sc, nil
-}
-
-// NewScanner returns a Scanner for r that filters records by filterExpr and s.
-// If r implements fmt.Stringer, the scanner reports errors using a prefix of the
-// string returned by its String method.
-func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
-	s, err := newScanner(ctx, r, filterExpr)
-	if err != nil {
-		return nil, err
-	}
-	if stringer, ok := r.(fmt.Stringer); ok {
-		s = NamedScanner(s, stringer.String())
-	}
-	return s, nil
 }
 
 type scanner struct {
@@ -188,21 +188,19 @@ func (n *namedScanner) Pull(done bool) (Batch, error) {
 	return b, err
 }
 
-type MultiScanner struct {
+func MultiScanner(scanners ...Scanner) Scanner {
+	return &multiScanner{
+		scanners: scanners,
+	}
+}
+
+type multiScanner struct {
 	scanners []Scanner
 	progress Progress
 	current  Scanner
 }
 
-var _ Scanner = (*MultiScanner)(nil)
-
-func NewMultiScanner(scanners ...Scanner) *MultiScanner {
-	return &MultiScanner{
-		scanners: scanners,
-	}
-}
-
-func (m *MultiScanner) Pull(done bool) (Batch, error) {
+func (m *multiScanner) Pull(done bool) (Batch, error) {
 	for {
 		if m.current == nil {
 			if len(m.scanners) == 0 {
@@ -223,6 +221,6 @@ func (m *MultiScanner) Pull(done bool) (Batch, error) {
 	}
 }
 
-func (m *MultiScanner) Progress() Progress {
+func (m *multiScanner) Progress() Progress {
 	return m.progress.Copy()
 }
