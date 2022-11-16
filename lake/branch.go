@@ -116,17 +116,17 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		if err != nil {
 			return nil, err
 		}
-		var objects []data.Object
+		var objects []*data.Object
 		for _, id := range ids {
 			o, err := snap.Lookup(id)
 			if err != nil {
 				return nil, err
 			}
-			objects = append(objects, *o)
+			objects = append(objects, o)
 		}
 		if message == "" {
 			var b strings.Builder
-			b.WriteString(fmt.Sprintf("deleted %d data object%s\n\n", len(objects), plural(objects)))
+			fmt.Fprintf(&b, "deleted %d data object%s\n\n", len(objects), plural(objects))
 			printObjects(&b, objects, maxMessageObjects)
 			message = b.String()
 		}
@@ -184,39 +184,39 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 			patch.AddDataObject(&obj)
 		}
 		if message == "" {
-			var deletedObjs []data.Object
+			var deletedObjs []*data.Object
 			for _, id := range deleted {
 				o, _ := base.Lookup(id)
-				deletedObjs = append(deletedObjs, *o)
+				deletedObjs = append(deletedObjs, o)
 			}
-			message = deleteWhereMessage(deletedObjs, w.Objects())
+			var added []*data.Object
+			for _, o := range w.Objects() {
+				added = append(added, &o)
+			}
+			message = deleteWhereMessage(deletedObjs, added)
 		}
 		return patch.NewCommitObject(parent.Commit, retries, author, message, *appMeta), nil
 	})
 }
 
-func deleteWhereMessage(deleted, added []data.Object) string {
+func deleteWhereMessage(deleted, added []*data.Object) string {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("deleted %d data object%s\n\n", len(deleted), plural(deleted)))
+	fmt.Fprintf(&b, "deleted %d data object%s\n\n", len(deleted), plural(deleted))
 	printObjects(&b, deleted, maxMessageObjects)
 	if len(added) > 0 {
-		b.WriteString(fmt.Sprintf("\nadded %d data object%s\n\n", len(added), plural(added)))
+		fmt.Fprintf(&b, "\nadded %d data object%s\n\n", len(added), plural(added))
 		printObjects(&b, added, maxMessageObjects-len(deleted))
 	}
 	return b.String()
 }
 
-func printObjects(b *strings.Builder, objects []data.Object, maxMessageObjects int) bool {
+func printObjects(b *strings.Builder, objects []*data.Object, maxMessageObjects int) {
 	for k, o := range objects {
-		b.WriteString("  ")
-		b.WriteString(o.String())
-		b.WriteByte('\n')
+		fmt.Fprintf(b, "  %s\n", o)
 		if k >= maxMessageObjects {
 			b.WriteString("  ...\n")
-			return false
 		}
 	}
-	return true
 }
 
 func plural[S ~[]E, E any](s S) string {
