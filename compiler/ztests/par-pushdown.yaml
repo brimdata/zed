@@ -1,0 +1,12 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby ts test
+  zc -P 3 "from test | x==1" | zq -z "over ops[0].trunks | yield pushdown.expr.kind" -
+
+outputs:
+  - name: stdout
+    data: |
+      "BinaryExpr"
+      "BinaryExpr"
+      "BinaryExpr"
