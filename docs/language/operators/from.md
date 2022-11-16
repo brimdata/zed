@@ -80,14 +80,15 @@ zed -q -use coinflips branch trial
 echo '{flip:3,result:"heads"}' | zed -q -use coinflips@trial load -
 zed -q create numbers
 echo '{number:1,word:"one"} {number:2,word:"two"} {number:3,word:"three"}' | zed -q -use numbers load -
-zed ls | awk '{ print $1 }' | sort
+zed query -f text 'from :branches | yield pool.name + "@" + branch.name | sort'
 ```
 
 The lake then contains the two pools:
 
 ```mdtest-output
-coinflips
-numbers
+coinflips@main
+coinflips@trial
+numbers@main
 ```
 
 The following file `hello.zson` is also used.
