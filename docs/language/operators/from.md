@@ -119,11 +119,11 @@ zq -z 'file hello.zson format line | head 1'
 ```
 
 _Source structured data from a URI_
-```mdtest-command
+```
 zq -z 'get https://raw.githubusercontent.com/brimdata/zui-insiders/main/package.json | yield productName'
 ```
 =>
-```mdtest-output
+```
 "Zui - Insiders"
 ```
 
