@@ -49,7 +49,7 @@ func (o *Optimizer) OptimizeScan() error {
 	if err != nil {
 		return err
 	}
-	len, layout, err := o.splittablePath(chain, layout)
+	len, _, err := o.splittablePath(chain, layout)
 	if err != nil {
 		return err
 	}
