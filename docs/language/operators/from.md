@@ -40,7 +40,7 @@ In the first four forms, a single source is connected to a single output.
 In the fifth form, multiple sources are accessed in parallel and may be
 [joined](join.md), [combined](combine.md), or [merged](merge.md).
 
-A data path can be split with the [fork operator](fork.md) as in
+A data path can be split with the [`fork` operator](fork.md) as in
 ```
 from PoolOne | fork (
   => op1 | op2 | ...
@@ -57,7 +57,7 @@ from (
 ```
 
 Similarly, data can be routed to different paths with replication
-using the [switch operator](switch.md):
+using the [`switch` operator](switch.md):
 ```
 from ... | switch color (
   case "red" => op1 | op2 | ...
