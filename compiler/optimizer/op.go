@@ -196,12 +196,10 @@ func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout
 			scoreboard[lhsKey] = lhs
 			continue
 		}
-		if _, ok := scoreboard[lhsKey]; ok {
-			// LHS is in the scoreboard and the RHS isn't, so
-			// we know for sure there is no ordering guarantee
-			// on the LHS field.  So clobber it and continue.
-			delete(scoreboard, lhsKey)
-		}
+		// LHS is in the scoreboard and the RHS isn't, so
+		// we know for sure there is no ordering guarantee
+		// on the LHS field.  So clobber it and continue.
+		delete(scoreboard, lhsKey)
 	}
 	if len(scoreboard) != 1 {
 		return order.Nil

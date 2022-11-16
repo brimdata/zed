@@ -60,15 +60,13 @@ func (m *meterReadCloser) Progress() Progress {
 }
 
 func (m *meterReadCloser) Read() (*zed.Value, error) {
-	for {
-		val, err := m.ReadCloser.Read()
-		if ctrl, ok := err.(*Control); ok {
-			if progress, ok := ctrl.Message.(Progress); ok {
-				m.progress = progress
-			}
+	val, err := m.ReadCloser.Read()
+	if ctrl, ok := err.(*Control); ok {
+		if progress, ok := ctrl.Message.(Progress); ok {
+			m.progress = progress
 		}
-		return val, err
 	}
+	return val, err
 }
 
 func ReadAll(r zio.Reader) (arr *Array, err error) {
