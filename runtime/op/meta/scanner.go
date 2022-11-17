@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -34,11 +33,7 @@ func NewLakeMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, me
 	if err != nil {
 		return nil, err
 	}
-	s, err := zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
-	if err != nil {
-		return nil, err
-	}
-	return zbuf.MultiScanner(s), nil
+	return zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
 }
 
 func NewPoolMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID ksuid.KSUID, meta string, filter zbuf.Filter) (zbuf.Scanner, error) {
@@ -62,11 +57,7 @@ func NewPoolMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, po
 	default:
 		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
 	}
-	s, err := zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
-	if err != nil {
-		return nil, err
-	}
-	return zbuf.MultiScanner(s), nil
+	return zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
 }
 
 func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, filter zbuf.Filter) (zbuf.Scanner, error) {
@@ -84,11 +75,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	case "indexes":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
@@ -98,11 +85,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	case "partitions":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
@@ -112,11 +95,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	case "log":
 		tips, err := p.BatchifyBranchTips(ctx, zctx, nil)
 		if err != nil {
@@ -137,11 +116,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	case "vectors":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
@@ -152,41 +127,22 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	default:
 		return nil, fmt.Errorf("unknown commit metadata type: %q", meta)
 	}
 }
 
 func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
-	ch := make(chan data.Object)
-	ctx, cancel := context.WithCancel(ctx)
-	var scanErr error
-	go func() {
-		scanErr = Scan(ctx, snap, order, ch)
-		close(ch)
-	}()
+	objects := snap.Select(nil, order)
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	return readerFunc(func() (*zed.Value, error) {
-		select {
-		case p := <-ch:
-			if p.ID == ksuid.Nil {
-				cancel()
-				return nil, scanErr
-			}
-			rec, err := m.Marshal(p)
-			if err != nil {
-				cancel()
-				return nil, err
-			}
-			return rec, nil
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		if len(objects) == 0 {
+			return nil, nil
 		}
+		val, err := m.Marshal(objects[0])
+		objects = objects[1:]
+		return val, err
 	}), nil
 }

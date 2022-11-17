@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
@@ -19,7 +18,7 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-// PartitionObjects takes a sorted set of data objects with possibly overlapping
+// partitionObjects takes a sorted set of data objects with possibly overlapping
 // key ranges and returns an ordered list of Ranges such that none of the
 // Ranges overlap with one another.  This is the straightforward computational
 // geometry problem of merging overlapping intervals,
@@ -28,7 +27,7 @@ import (
 // XXX this algorithm doesn't quite do what we want because it continues
 // to merge *anything* that overlaps.  It's easy to fix though.
 // Issue #2538
-func PartitionObjects(objects []*data.Object, o order.Which) []Partition {
+func partitionObjects(objects []*data.Object, o order.Which) []Partition {
 	if len(objects) == 0 {
 		return nil
 	}
@@ -124,67 +123,35 @@ func objectSpanLess(a, b objectSpan) bool {
 	return a.After(b.Last())
 }
 
-func sortObjects(o order.Which, objects []*data.Object) {
-	for k, span := range sortedObjectSpans(objects, extent.CompareFunc(o)) {
-		objects[k] = span.object
-	}
-}
-
 func partitionReader(ctx context.Context, zctx *zed.Context, layout order.Layout, snap commits.View, filter zbuf.Filter) (zio.Reader, error) {
-	ch := make(chan Partition)
-	ctx, cancel := context.WithCancel(ctx)
-	var scanErr error
-	go func() {
-		scanErr = ScanPartitions(ctx, snap, layout, filter, ch)
-		close(ch)
-	}()
+	parts, err := sortedPartitions(snap, layout, filter)
+	if err != nil {
+		return nil, err
+	}
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	return readerFunc(func() (*zed.Value, error) {
-		select {
-		case p := <-ch:
-			if p.Objects == nil {
-				cancel()
-				return nil, scanErr
-			}
-			rec, err := m.Marshal(p)
-			if err != nil {
-				cancel()
-				return nil, err
-			}
-			return rec, nil
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		if len(parts) == 0 {
+			return nil, nil
 		}
+		p := parts[0]
+		val, err := m.Marshal(p)
+		parts = parts[1:]
+		return val, err
 	}), nil
 }
 
 func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
-	ch := make(chan *index.Object)
-	ctx, cancel := context.WithCancel(ctx)
-	var scanErr error
-	go func() {
-		scanErr = ScanIndexes(ctx, snap, order, ch)
-		close(ch)
-	}()
+	indexes := snap.SelectIndexes(nil, order)
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	return readerFunc(func() (*zed.Value, error) {
-		select {
-		case p := <-ch:
-			if p == nil {
-				cancel()
-				return nil, scanErr
-			}
-			rec, err := m.Marshal(*p)
-			if err != nil {
-				cancel()
-				return nil, err
-			}
-			return rec, nil
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		if len(indexes) == 0 {
+			return nil, nil
 		}
+		val, err := m.Marshal(indexes[0])
+		indexes = indexes[1:]
+		return val, err
 	}), nil
 }
 
