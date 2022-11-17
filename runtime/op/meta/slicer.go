@@ -131,31 +131,20 @@ func sortObjects(o order.Which, objects []*data.Object) {
 }
 
 func partitionReader(ctx context.Context, zctx *zed.Context, layout order.Layout, snap commits.View, filter zbuf.Filter) (zio.Reader, error) {
-	ch := make(chan Partition)
-	ctx, cancel := context.WithCancel(ctx)
-	var scanErr error
-	go func() {
-		scanErr = ScanPartitions(ctx, snap, layout, filter, ch)
-		close(ch)
-	}()
+	parts, err := SortedPartitions(snap, layout, filter)
+	if err != nil {
+		return nil, err
+	}
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	return readerFunc(func() (*zed.Value, error) {
-		select {
-		case p := <-ch:
-			if p.Objects == nil {
-				cancel()
-				return nil, scanErr
-			}
-			rec, err := m.Marshal(p)
-			if err != nil {
-				cancel()
-				return nil, err
-			}
-			return rec, nil
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		if len(parts) == 0 {
+			return nil, nil
 		}
+		p := parts[0]
+		val, err := m.Marshal(p)
+		parts = parts[1:]
+		return val, err
 	}), nil
 }
 

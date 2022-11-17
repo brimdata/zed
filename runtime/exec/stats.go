@@ -6,10 +6,8 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime/expr/extent"
-	"github.com/brimdata/zed/runtime/op/meta"
 )
 
 // XXX for backward compat keep this for now, and return branchstats for pool/main
@@ -20,17 +18,10 @@ type PoolStats struct {
 }
 
 func GetPoolStats(ctx context.Context, p *lake.Pool, snap commits.View) (info PoolStats, err error) {
-	ch := make(chan data.Object)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func() {
-		err = meta.Scan(ctx, snap, p.Layout.Order, ch)
-		close(ch)
-	}()
 	// XXX this doesn't scale... it should be stored in the snapshot and is
 	// not easy to compute in the face of deletes...
 	var poolSpan *extent.Generic
-	for object := range ch {
+	for _, object := range snap.Select(nil, p.Layout.Order) {
 		info.Size += object.Size
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, p.Layout.Order)
@@ -62,17 +53,10 @@ type BranchStats struct {
 }
 
 func GetBranchStats(ctx context.Context, b *lake.Branch, snap commits.View) (info BranchStats, err error) {
-	ch := make(chan data.Object)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func() {
-		err = meta.Scan(ctx, snap, b.Pool().Layout.Order, ch)
-		close(ch)
-	}()
 	// XXX this doesn't scale... it should be stored in the snapshot and is
 	// not easy to compute in the face of deletes...
 	var poolSpan *extent.Generic
-	for object := range ch {
+	for _, object := range snap.Select(nil, b.Pool().Layout.Order) {
 		info.Size += object.Size
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, b.Pool().Layout.Order)

@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -163,30 +162,15 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 }
 
 func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
-	ch := make(chan data.Object)
-	ctx, cancel := context.WithCancel(ctx)
-	var scanErr error
-	go func() {
-		scanErr = Scan(ctx, snap, order, ch)
-		close(ch)
-	}()
+	objects := snap.Select(nil, order)
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	return readerFunc(func() (*zed.Value, error) {
-		select {
-		case p := <-ch:
-			if p.ID == ksuid.Nil {
-				cancel()
-				return nil, scanErr
-			}
-			rec, err := m.Marshal(p)
-			if err != nil {
-				cancel()
-				return nil, err
-			}
-			return rec, nil
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		if len(objects) == 0 {
+			return nil, nil
 		}
+		val, err := m.Marshal(objects[0])
+		objects = objects[1:]
+		return val, err
 	}), nil
 }
