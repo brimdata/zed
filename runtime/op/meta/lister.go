@@ -72,11 +72,9 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 		return nil, l.err
 	}
 	if l.parts == nil {
-		var err error
-		l.parts, err = sortedPartitions(l.snap, l.pool.Layout, l.filter)
-		if err != nil {
-			l.err = err
-			return nil, err
+		l.parts, l.err = sortedPartitions(l.snap, l.pool.Layout, l.filter)
+		if l.err != nil {
+			return nil, l.err
 		}
 	}
 	if len(l.parts) == 0 {
