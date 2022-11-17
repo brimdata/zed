@@ -127,7 +127,7 @@ zq -z 'get https://raw.githubusercontent.com/brimdata/zui-insiders/main/package.
 "Zui - Insiders"
 ```
 
-_Source data from the `main` branch of a pool
+_Source data from the `main` branch of a pool_
 ```mdtest-command
 zed -lake example query -z 'from coinflips'
 ```
