@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
@@ -74,7 +73,7 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 	}
 	if l.parts == nil {
 		var err error
-		l.parts, err = SortedPartitions(l.snap, l.pool.Layout, l.filter)
+		l.parts, err = sortedPartitions(l.snap, l.pool.Layout, l.filter)
 		if err != nil {
 			l.err = err
 			return nil, err
@@ -93,30 +92,6 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 	return zbuf.NewArray([]zed.Value{*val}), nil
 }
 
-func xScan(ctx context.Context, snap commits.View, o order.Which, ch chan<- data.Object) error {
-	for _, object := range snap.Select(nil, o) {
-		select {
-		case ch <- *object:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
-}
-
-func xScanInOrder(ctx context.Context, snap commits.View, o order.Which, ch chan<- data.Object) error {
-	objects := snap.Select(nil, o)
-	sortObjects(o, objects)
-	for _, object := range objects {
-		select {
-		case ch <- *object:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
-}
-
 func filterObjects(objects []*data.Object, filter *expr.SpanFilter, o order.Which) []*data.Object {
 	cmp := expr.NewValueCompareFn(o == order.Asc)
 	out := objects[:0]
@@ -129,10 +104,10 @@ func filterObjects(objects []*data.Object, filter *expr.SpanFilter, o order.Whic
 	return out
 }
 
-// SortedPartitions partitions all the data objects in snap overlapping
+// sortedPartitions partitions all the data objects in snap overlapping
 // span into non-overlapping partitions, sorts them by pool key and order,
 // and sends them to ch.
-func SortedPartitions(snap commits.View, layout order.Layout, filter zbuf.Filter) ([]Partition, error) {
+func sortedPartitions(snap commits.View, layout order.Layout, filter zbuf.Filter) ([]Partition, error) {
 	objects := snap.Select(nil, layout.Order)
 	if filter != nil {
 		f, err := filter.AsKeySpanFilter(layout.Primary(), layout.Order)
@@ -142,15 +117,4 @@ func SortedPartitions(snap commits.View, layout order.Layout, filter zbuf.Filter
 		objects = filterObjects(objects, f, layout.Order)
 	}
 	return PartitionObjects(objects, layout.Order), nil
-}
-
-func ScanIndexes(ctx context.Context, snap commits.View, o order.Which, ch chan<- *index.Object) error {
-	for _, idx := range snap.SelectIndexes(nil, o) {
-		select {
-		case ch <- idx:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
 }
