@@ -18,7 +18,7 @@ type branch struct {
 	logger *zap.Logger
 	pool   *pools.Config
 	name   string
-	tasks  []func(context.Context) (*time.Time, error)
+	tasks  []branchTask
 }
 
 func newBranch(branchName string, pool *pools.Config, lake lakeapi.Interface, config Config, logger *zap.Logger) *branch {
@@ -34,16 +34,26 @@ func newBranch(branchName string, pool *pools.Config, lake lakeapi.Interface, co
 		name: branchName,
 	}
 	if !config.Compact.Disabled {
-		b.tasks = append(b.tasks, b.compact)
+		b.tasks = append(b.tasks, &compactTask{b, b.logger.Named("compact")})
 	}
 	if config.Index.Enabled() {
-		b.tasks = append(b.tasks, b.index)
+		b.tasks = append(b.tasks, &indexTask{b, b.logger.Named("index")})
 	}
 	return b
 }
 
-func (b *branch) compact(ctx context.Context) (*time.Time, error) {
-	b.logger.Debug("compaction started")
+type branchTask interface {
+	run(context.Context) (*time.Time, error)
+	logger() *zap.Logger
+}
+
+type compactTask struct {
+	*branch
+	log *zap.Logger
+}
+
+func (b *compactTask) run(ctx context.Context) (*time.Time, error) {
+	b.log.Debug("compaction started")
 	head := lakeparse.Commitish{Pool: b.pool.Name, Branch: b.name}
 	it, err := NewPoolDataObjectIterator(ctx, b.lake, &head, b.pool.Layout)
 	if err != nil {
@@ -65,18 +75,25 @@ func (b *branch) compact(ctx context.Context) (*time.Time, error) {
 		}
 		found++
 		compacted += len(run.Objects)
-		b.logger.Debug("compacted", zap.Stringer("commit", commit), zap.Int("objects_compacted", len(run.Objects)))
+		b.log.Debug("compacted", zap.Stringer("commit", commit), zap.Int("objects_compacted", len(run.Objects)))
 	}
 	level := zap.InfoLevel
 	if compacted == 0 {
 		level = zap.DebugLevel
 	}
-	b.logger.Log(level, "compaction completed", zap.Int("runs_found", found), zap.Int("objects_compacted", compacted))
+	b.log.Log(level, "compaction completed", zap.Int("runs_found", found), zap.Int("objects_compacted", compacted))
 	return nextcold, err
 }
 
-func (b *branch) index(ctx context.Context) (*time.Time, error) {
-	b.logger.Debug("index started")
+func (c *compactTask) logger() *zap.Logger { return c.log }
+
+type indexTask struct {
+	*branch
+	log *zap.Logger
+}
+
+func (b *indexTask) run(ctx context.Context) (*time.Time, error) {
+	b.log.Debug("index started")
 	var nextcold *time.Time
 	ch := make(chan ObjectIndexes)
 	conf := b.config.Index
@@ -94,12 +111,14 @@ func (b *branch) index(ctx context.Context) (*time.Time, error) {
 		}
 		objects++
 		newindexes += len(o.NeedsIndex)
-		b.logger.Debug("indexed", zap.Stringer("commit", commit), zap.Stringer("object", o.Object.ID), zap.Int("indexes_created", len(o.NeedsIndex)))
+		b.log.Debug("indexed", zap.Stringer("commit", commit), zap.Stringer("object", o.Object.ID), zap.Int("indexes_created", len(o.NeedsIndex)))
 	}
 	level := zap.InfoLevel
 	if objects == 0 {
 		level = zap.DebugLevel
 	}
-	b.logger.Log(level, "index completed", zap.Int("objects_indexed", objects), zap.Int("indexes_created", newindexes))
+	b.log.Log(level, "index completed", zap.Int("objects_indexed", objects), zap.Int("indexes_created", newindexes))
 	return nextcold, err
 }
+
+func (c *indexTask) logger() *zap.Logger { return c.log }

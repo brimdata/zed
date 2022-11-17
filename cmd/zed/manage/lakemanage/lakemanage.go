@@ -32,7 +32,8 @@ func Update(ctx context.Context, lk lakeapi.Interface, conf Config, logger *zap.
 		branch := branch
 		group.Go(func() error {
 			for _, task := range branch.tasks {
-				if _, err := task(ctx); err != nil {
+				if _, err := task.run(ctx); err != nil {
+					task.logger().Error("task error", zap.Error(err))
 					return err
 				}
 			}
@@ -69,6 +70,9 @@ func runMonitor(ctx context.Context, conf Config, conn *client.Connection, logge
 	branches, err := getBranches(ctx, conf, lk, logger)
 	if err != nil {
 		return err
+	}
+	if len(branches) == 0 {
+		logger.Info("no pools found")
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -111,22 +115,24 @@ func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config,
 		}
 		switch kind {
 		case "pool-new":
-			ev := detail.(*api.EventPool)
-			pool, err := lakeapi.LookupPoolByID(ctx, lk, ev.PoolID)
+			detail := detail.(*api.EventPool)
+			pool, err := lakeapi.LookupPoolByID(ctx, lk, detail.PoolID)
 			if err != nil {
 				return err
 			}
 			b := newBranch("main", pool, lk, conf, logger)
+			b.logger.Info("pool added")
 			monitorBranch(ctx, b, monitors)
 		case "pool-delete":
-			ev := detail.(*api.EventPool)
-			if m, ok := monitors[ev.PoolID]; ok {
+			detail := detail.(*api.EventPool)
+			if m, ok := monitors[detail.PoolID]; ok {
 				m.cancel()
-				delete(monitors, ev.PoolID)
+				delete(monitors, detail.PoolID)
+				m.branch.logger.Info("pool deleted")
 			}
 		case "branch-commit":
-			ev := detail.(*api.EventBranchCommit)
-			if m, ok := monitors[ev.PoolID]; ok && m.branch.name == ev.Branch {
+			detail := detail.(*api.EventBranchCommit)
+			if m, ok := monitors[detail.PoolID]; ok && m.branch.name == detail.Branch {
 				m.run()
 			}
 		case "branch-update", "branch-delete":
@@ -168,24 +174,31 @@ func (b *monitor) run() {
 
 type thread struct {
 	ctx     context.Context
-	exec    func(context.Context) (*time.Time, error)
+	task    branchTask
 	running int32
 }
 
-func newThread(ctx context.Context, exec func(context.Context) (*time.Time, error)) *thread {
-	return &thread{ctx: ctx, exec: exec}
+func newThread(ctx context.Context, task branchTask) *thread {
+	return &thread{ctx: ctx, task: task}
 }
 
 func (t *thread) run() {
 	if !atomic.CompareAndSwapInt32(&t.running, 0, 1) {
 		return
 	}
+	t.task.logger().Info("thread running")
 	go func() {
+		defer atomic.StoreInt32(&t.running, 0)
 		timer := time.NewTimer(0)
 		<-timer.C
 		for t.ctx.Err() == nil {
-			next, err := t.exec(t.ctx)
-			if err != nil || next == nil {
+			next, err := t.task.run(t.ctx)
+			if err != nil {
+				t.task.logger().Error("thread exited with error", zap.Error(err))
+				return
+			}
+			if next == nil {
+				t.task.logger().Info("thread exiting")
 				return
 			}
 			timer.Reset(time.Until(*next))
