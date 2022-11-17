@@ -25,7 +25,7 @@ their data to its output.  A data source can be
 * the names of multiple data pools, expressed as a [regular expression](../overview.md#711-regular-expressions) or [glob](../overview.md#712-globs) pattern;
 * a path to a file; or
 * an HTTP, HTTPS, or S3 URI.
-Paths and URIs may be followed by an optional format specifier.
+Paths and URIs may be followed by an optional [format](../../commands/zq.md#2-input-formats)  specifier.
 
 Sourcing data from pools is only possible when querying a lake, such as
 via the [`zed` command](../../commands/zed.md) or
