@@ -111,7 +111,7 @@ zq -z 'file hello.zson | yield greeting'
 
 _Source data from a local file, but in line format_
 ```mdtest-command
-zq -z 'file hello.zson format line | head 1'
+zq -z 'file hello.zson format line'
 ```
 =>
 ```mdtest-output
