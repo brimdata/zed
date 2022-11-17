@@ -148,7 +148,7 @@ zed -lake example query -z 'from coinflips@trial'
 {flip:1,result:"heads"}
 ```
 
-_Count the number of records in the `main` branch of all pools_
+_Count the number of values in the `main` branch of all pools_
 ```mdtest-command
 zed -lake example query -f text 'from * | count()'
 ```
