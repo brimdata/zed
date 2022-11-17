@@ -272,6 +272,14 @@ func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, 
 				return nil, err
 			}
 		}
+		if message == "" {
+			var b strings.Builder
+			fmt.Fprintf(&b, "compacted %d object%s\n\n", len(src), plural(src))
+			printObjects(&b, src, maxMessageObjects)
+			fmt.Fprintf(&b, "\ncreated %d object%s\n\n", len(rollup), plural(rollup))
+			printObjects(&b, rollup, maxMessageObjects-len(src))
+			message = b.String()
+		}
 		commit := patch.NewCommitObject(parent.Commit, retries, author, message, *appMeta)
 		return commit, nil
 	})
