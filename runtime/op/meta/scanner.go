@@ -33,11 +33,7 @@ func NewLakeMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, me
 	if err != nil {
 		return nil, err
 	}
-	s, err := zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
-	if err != nil {
-		return nil, err
-	}
-	return zbuf.MultiScanner(s), nil
+	return zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
 }
 
 func NewPoolMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID ksuid.KSUID, meta string, filter zbuf.Filter) (zbuf.Scanner, error) {
@@ -61,11 +57,7 @@ func NewPoolMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, po
 	default:
 		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
 	}
-	s, err := zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
-	if err != nil {
-		return nil, err
-	}
-	return zbuf.MultiScanner(s), nil
+	return zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
 }
 
 func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, filter zbuf.Filter) (zbuf.Scanner, error) {
@@ -83,11 +75,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	case "indexes":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
@@ -97,11 +85,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	case "partitions":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
@@ -111,11 +95,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	case "log":
 		tips, err := p.BatchifyBranchTips(ctx, zctx, nil)
 		if err != nil {
@@ -136,11 +116,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	case "vectors":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
@@ -151,11 +127,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		s, err := zbuf.NewScanner(ctx, reader, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.MultiScanner(s), nil
+		return zbuf.NewScanner(ctx, reader, filter)
 	default:
 		return nil, fmt.Errorf("unknown commit metadata type: %q", meta)
 	}
