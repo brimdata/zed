@@ -16,7 +16,7 @@ in [runtime/expr/agg](runtime/expr/agg).
 
 ## Development
 
-`zed` requires Go 1.18 or later, and uses [Go modules](https://github.com/golang/go/wiki/Modules).
+`zed` requires Go 1.19 or later, and uses [Go modules](https://github.com/golang/go/wiki/Modules).
 Dependencies are specified in the [`go.mod` file](./go.mod) and fetched
 automatically by commands like `go build` and `go test`.  No explicit
 fetch commands are necessary.  However, you must set the environment
