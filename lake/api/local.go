@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/exec"
@@ -130,9 +129,6 @@ func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish,
 	if err != nil {
 		return nil, err
 	}
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return nil, err
-	}
 	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head, nil)
 	if err != nil {
 		return nil, err
@@ -176,9 +172,6 @@ func (l *local) Delete(ctx context.Context, poolID ksuid.KSUID, branchName strin
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return ksuid.Nil, err
-	}
 	commitID, err := branch.Delete(ctx, ids, message.Author, message.Body)
 	if err != nil {
 		return ksuid.Nil, err
@@ -189,9 +182,6 @@ func (l *local) Delete(ctx context.Context, poolID ksuid.KSUID, branchName strin
 func (l *local) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
 	op, err := l.compiler.Parse(src)
 	if err != nil {
-		return ksuid.Nil, err
-	}
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return ksuid.Nil, err
 	}
 	_, branch, err := l.lookupBranch(ctx, poolID, branchName)

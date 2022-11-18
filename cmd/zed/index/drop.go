@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/rlimit"
 )
 
 var drop = &charm.Spec{
@@ -33,9 +32,6 @@ func (c *dropCommand) Run(args []string) error {
 	defer cleanup()
 	if len(args) == 0 {
 		return errors.New("must specify one or more index tags")
-	}
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return err
 	}
 	ids, err := lakeparse.ParseIDs(args)
 	if err != nil {
