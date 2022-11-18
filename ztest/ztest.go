@@ -12,33 +12,33 @@
 //
 // A Zed-style test is defined in a YAML file.
 //
-//    zed: count()
+//	zed: count()
 //
-//    input: |
-//      #0:record[i:int64]
-//      0:[1;]
-//      0:[2;]
+//	input: |
+//	  #0:record[i:int64]
+//	  0:[1;]
+//	  0:[2;]
 //
-//    output: |
-//      #0:record[count:uint64]
-//      0:[2;]
+//	output: |
+//	  #0:record[count:uint64]
+//	  0:[2;]
 //
 // Input format is detected automatically and can be anything recognized by
 // "zq -i auto" (including optional gzip compression).  Output format defaults
 // to tzng but can be set to anything accepted by "zq -f".
 //
-//    zed: count()
+//	zed: count()
 //
-//    input: |
-//      #0:record[i:int64]
-//      0:[1;]
-//      0:[2;]
+//	input: |
+//	  #0:record[i:int64]
+//	  0:[1;]
+//	  0:[2;]
 //
-//    output-flags: -f table
+//	output-flags: -f table
 //
-//    output: |
-//      count
-//      2
+//	output: |
+//	  count
+//	  2
 //
 // Alternatively, tests can be configured to run as shell scripts.
 // In this style of test, arbitrary bash scripts can run chaining together
@@ -53,27 +53,30 @@
 // defining the script, e.g.,
 //
 // inputs:
-//    - name: in1.tzng
-//      data: |
-//         #0:record[i:int64]
-//         0:[1;]
-//    - name: stdin
-//      data: |
-//         #0:record[i:int64]
-//         0:[2;]
+//   - name: in1.tzng
+//     data: |
+//     #0:record[i:int64]
+//     0:[1;]
+//   - name: stdin
+//     data: |
+//     #0:record[i:int64]
+//     0:[2;]
+//
 // script: |
-//    zq -o out.tzng in1.tzng -
-//    zq -o count.tzng "count()" out.tzng
+//
+//	zq -o out.tzng in1.tzng -
+//	zq -o count.tzng "count()" out.tzng
+//
 // outputs:
-//    - name: out.tzng
-//      data: |
-//         #0:record[i:int64]
-//         0:[1;]
-//         0:[2;]
-//    - name: count.tzng
-//      data: |
-//         #0:record[count:uint64]
-//         0:[2;]
+//   - name: out.tzng
+//     data: |
+//     #0:record[i:int64]
+//     0:[1;]
+//     0:[2;]
+//   - name: count.tzng
+//     data: |
+//     #0:record[count:uint64]
+//     0:[2;]
 //
 // Each input and output has a name.  For inputs, a file (source)
 // or inline data (data) may be specified.
@@ -89,21 +92,21 @@
 // Ztest YAML files for a package should reside in a subdirectory named
 // testdata/ztest.
 //
-//     pkg/
-//       pkg.go
-//       pkg_test.go
-//       testdata/
-//         ztest/
-//           test-1.yaml
-//           test-2.yaml
-//           ...
+//	pkg/
+//	  pkg.go
+//	  pkg_test.go
+//	  testdata/
+//	    ztest/
+//	      test-1.yaml
+//	      test-2.yaml
+//	      ...
 //
 // Name YAML files descriptively since each ztest runs as a subtest
 // named for the file that defines it.
 //
 // pkg_test.go should contain a Go test named TestZTest that calls Run.
 //
-//     func TestZTest(t *testing.T) { ztest.Run(t, "testdata/ztest") }
+//	func TestZTest(t *testing.T) { ztest.Run(t, "testdata/ztest") }
 //
 // If the ZTEST_PATH environment variable is unset or empty and the test
 // is not a script test, Run runs ztests in the current process and skips

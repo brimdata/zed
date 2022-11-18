@@ -48,7 +48,7 @@ type Writer struct {
 
 // NewWriter creates a zio.Writer compliant writer for writing data to an
 // a data pool presuming the input is not guaranteed to be sorted.
-//XXX we should make another writer that takes sorted input and is a bit
+// XXX we should make another writer that takes sorted input and is a bit
 // more efficient.  This other writer could have different commit triggers
 // to do useful things like paritioning given the context is a rollup.
 func NewWriter(ctx context.Context, zctx *zed.Context, pool *Pool) (*Writer, error) {

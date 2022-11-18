@@ -235,7 +235,7 @@ func (t *TypeRecord) ID() int {
 	return t.id
 }
 
-//XXX we shouldn't need this... tests are using it
+// XXX we shouldn't need this... tests are using it
 func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
 		return nil, nil

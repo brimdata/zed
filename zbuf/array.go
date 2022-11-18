@@ -16,7 +16,7 @@ var _ Batch = (*Array)(nil)
 var _ zio.Reader = (*Array)(nil)
 var _ zio.Writer = (*Array)(nil)
 
-//XXX this should take the frame arg too and the procs that create
+// XXX this should take the frame arg too and the procs that create
 // new arrays need to propagate their frames downstream.
 func NewArray(vals []zed.Value) *Array {
 	return &Array{values: vals}

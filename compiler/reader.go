@@ -23,7 +23,7 @@ func (i *anyCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader)
 	return CompileWithLayout(pctx, o, readers[0], order.Layout{})
 }
 
-//XXX currently used only by group-by test, need to deprecate
+// XXX currently used only by group-by test, need to deprecate
 func CompileWithLayout(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
 	job, err := NewJob(pctx, o, data.NewSource(nil, nil), nil)
 	if err != nil {

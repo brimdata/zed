@@ -9,7 +9,7 @@ type canonZed struct {
 	formatter
 }
 
-//XXX this needs to change when we use the zson values from the ast
+// XXX this needs to change when we use the zson values from the ast
 func (c *canonZed) literal(e astzed.Primitive) {
 	switch e.Type {
 	case "string", "error":

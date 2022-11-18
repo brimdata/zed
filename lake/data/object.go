@@ -50,7 +50,7 @@ func (k FileKind) Description() string {
 
 var fileRegex = regexp.MustCompile(`([0-9A-Za-z]{27}-(data|meta)).zng$`)
 
-//XXX this won't work right until we integrate segID
+// XXX this won't work right until we integrate segID
 func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 	match := fileRegex.FindStringSubmatch(s)
 	if match == nil {
