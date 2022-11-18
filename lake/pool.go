@@ -191,7 +191,7 @@ func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 	return recs, nil
 }
 
-//XXX this is inefficient but is only meant for interactive queries...?
+// XXX this is inefficient but is only meant for interactive queries...?
 func (p *Pool) ObjectExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
 	return p.engine.Exists(ctx, data.SequenceURI(p.DataPath, id))
 }

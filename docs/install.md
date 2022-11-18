@@ -48,7 +48,7 @@ go install github.com/brimdata/zed/cmd/{zed,zq}@latest
 This installs the `zed` and `zq` binaries in your `$GOPATH/bin`.
 
 > If you don't have Go installed, download and install it from the
-> [Go install page](https://golang.org/doc/install). Go 1.18 or later is
+> [Go install page](https://golang.org/doc/install). Go 1.19 or later is
 > required.
 
 Once installed, run a [quick test](#quick-tests).

@@ -126,7 +126,7 @@ func CompareTime(op string, pattern int64) (Boolean, error) {
 	}, nil
 }
 
-//XXX should just do equality and we should compare in the encoded domain
+// XXX should just do equality and we should compare in the encoded domain
 // and not make copies and have separate cases for len 4 and len 16
 var compareAddr = map[string]func(netip.Addr, netip.Addr) bool{
 	"==": func(a, b netip.Addr) bool { return a.Compare(b) == 0 },

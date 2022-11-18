@@ -46,10 +46,11 @@ func (e errNonAdjacent) Unwrap() error {
 // 10. builder.EndContainer()    // for "y"
 //
 // This is encoded into the following fieldInfo objects:
-//  {name: "a", fullname: "a", containerBegins: [], containerEnds: 0}         // step 1
-//  {name: "c", fullname: "b.c", containerBegins: ["b"], containerEnds: 0}      // steps 2-3
-//  {name: "d", fullname: "b.d", containerBegins: [], containerEnds: 1     }    // steps 4-5
-//  {name: "z", fullname: "x.y.z", containerBegins: ["x", "y"], containerEnds: 2} // steps 6-10
+//
+//	{name: "a", fullname: "a", containerBegins: [], containerEnds: 0}         // step 1
+//	{name: "c", fullname: "b.c", containerBegins: ["b"], containerEnds: 0}      // steps 2-3
+//	{name: "d", fullname: "b.d", containerBegins: [], containerEnds: 1     }    // steps 4-5
+//	{name: "z", fullname: "x.y.z", containerBegins: ["x", "y"], containerEnds: 2} // steps 6-10
 type fieldInfo struct {
 	field           field.Path
 	containerBegins []string

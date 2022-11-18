@@ -6,15 +6,15 @@
 // mdtest-input, mdtest-command, or mdtest-output as the first word.  The
 // mdtest-command and mdtest-output blocks must be paired.
 //
-//    ```mdtest-input file.txt
-//    hello
-//    ```
-//    ```mdtest-command [dir=...] [fails]
-//    cat file.txt
-//    ```
-//    ```mdtest-output [head]
-//    hello
-//    ```
+//	```mdtest-input file.txt
+//	hello
+//	```
+//	```mdtest-command [dir=...] [fails]
+//	cat file.txt
+//	```
+//	```mdtest-output [head]
+//	hello
+//	```
 //
 // The content of each mdtest-command block is fed to "bash -e -o pipefail" on
 // standard input.
@@ -36,14 +36,14 @@
 // block content is ignored, and what remains must be a prefix of the shell
 // output.
 //
-//    ```mdtest-command
-//    echo hello
-//    echo goodbye
-//    ```
-//    ```mdtest-output head
-//    hello
-//    ...
-//    ```
+//	```mdtest-command
+//	echo hello
+//	echo goodbye
+//	```
+//	```mdtest-output head
+//	hello
+//	...
+//	```
 package mdtest
 
 import (

@@ -1,6 +1,6 @@
 module github.com/brimdata/zed
 
-go 1.18
+go 1.19
 
 require (
 	github.com/agnivade/levenshtein v1.1.1

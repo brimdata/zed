@@ -97,10 +97,10 @@ func (e *Error) Message() string {
 }
 
 // Function E generates an error from any mix of:
-// - a Kind
-// - an existing error
-// - a string and optional formatting verbs, like fmt.Errorf (including support
-//	for the `%w` verb).
+//   - a Kind
+//   - an existing error
+//   - a string and optional formatting verbs, like fmt.Errorf (including support
+//     for the `%w` verb).
 //
 // The string & format verbs must be last in the arguments, if present.
 func E(args ...interface{}) error {

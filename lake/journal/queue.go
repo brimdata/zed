@@ -91,7 +91,7 @@ func (q *Queue) Boundaries(ctx context.Context) (ID, ID, error) {
 	return head, tail, nil
 }
 
-//XXX This needs concurrency work. See issue #2546.
+// XXX This needs concurrency work. See issue #2546.
 func (q *Queue) Commit(ctx context.Context, b []byte) (ID, error) {
 	head, err := q.ReadHead(ctx)
 	if err != nil {
