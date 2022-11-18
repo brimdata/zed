@@ -108,7 +108,7 @@ In addition to the data sources specified as files on the `zq` command line,
 a source may also be specified with the [`from` operator](operators/from.md).
 
 When running on the command-line, `from` may refer to a file, an HTTP
-endpoint, or an S3 URI.  When running in a [Zed lake](../commands/zed.md), `from` typically
+endpoint, or an [S3](../integrations/amazon-s3.md) URI.  When running in a [Zed lake](../commands/zed.md), `from` typically
 refers to a collection of data called a "data pool" and is referenced using
 the pool's name much as SQL references database tables by their name.
 

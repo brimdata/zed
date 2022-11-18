@@ -584,7 +584,7 @@ the [input arguments](zq.md#1-usage) can be in
 any [supported format](zq.md#2-input-formats) and
 the input format is auto-detected if `-i` is not provided.  Likewise,
 the inputs may be URLs, in which case, the `load` command streams
-the data from a Web server or S3 and into the lake.
+the data from a Web server or [S3](../integrations/amazon-s3.md) and into the lake.
 
 When data is loaded, it is broken up into objects of a target size determined
 by the pool's `threshold` parameter (which defaults 500MiB but can be configured

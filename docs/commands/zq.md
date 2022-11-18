@@ -8,7 +8,7 @@ description: A command-line tool that uses the Zed Language for pipeline-style s
 
 > **TL;DR** `zq` is a command-line tool that uses the [Zed language](../language/README.md)
 for pipeline-style search and analytics.  `zq` can query a variety
-of data formats in files, over HTTP, or in S3 storage.
+of data formats in files, over HTTP, or in [S3](../integrations/amazon-s3.md) storage.
 It is particularly fast when operating on data in the Zed-native [ZNG](../formats/zng.md) format.
 >
 > The `zq` design philosophy blends the query/search-tool approach
