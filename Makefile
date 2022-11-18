@@ -39,7 +39,7 @@ bin/minio: Makefile
 	@chmod +x $@
 
 generate:
-	@GOBIN="$(CURDIR)/bin" go install github.com/golang/mock/mockgen
+	@GOBIN="$(CURDIR)/bin" go install github.com/golang/mock/mockgen@v1.6.0
 	@PATH="$(CURDIR)/bin:$(PATH)" go generate ./...
 
 test-generate: generate

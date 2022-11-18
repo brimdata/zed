@@ -1,4 +1,4 @@
-package manage
+package compact
 
 import (
 	"flag"
@@ -10,9 +10,9 @@ import (
 )
 
 var Cmd = &charm.Spec{
-	Name:  "monitor",
-	Usage: "monitor",
-	Short: "monitor pools in a lake",
+	Name:  "update",
+	Usage: "update",
+	Short: "compact and index pools and then exit",
 	New:   New,
 }
 
@@ -39,7 +39,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	conn, err := c.LakeFlags.Connection()
+	lk, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -48,5 +48,5 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer logger.Sync()
-	return lakemanage.Monitor(ctx, conn, c.manageFlags.Config, logger)
+	return lakemanage.Update(ctx, lk, c.manageFlags.Config, logger)
 }

@@ -60,6 +60,23 @@ func ScanIndexRules(ctx context.Context, api Interface) (zio.ReadCloser, error) 
 	return api.Query(ctx, nil, "from :index_rules")
 }
 
+func GetIndexRules(ctx context.Context, api Interface) ([]index.Rule, error) {
+	r, err := ScanIndexRules(ctx, api)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	b := newBuffer(index.FieldRule{}, index.TypeRule{}, index.AggRule{})
+	if err := zio.Copy(b, r); err != nil {
+		return nil, err
+	}
+	var rules []index.Rule
+	for _, r := range b.results {
+		rules = append(rules, r.(index.Rule))
+	}
+	return rules, nil
+}
+
 func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {
 	b := newBuffer(pools.Config{})
 	zed := fmt.Sprintf("from :pools | name == '%s'", name)

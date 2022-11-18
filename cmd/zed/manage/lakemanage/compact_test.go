@@ -65,7 +65,7 @@ func testScan(t *testing.T, coldthresh time.Duration, pool *pools.Config, object
 	ch := make(chan lakemanage.Run)
 	var err error
 	go func() {
-		_, err = lakemanage.Scan(context.Background(), reader, pool, coldthresh, ch)
+		_, err = lakemanage.CompactionScan(context.Background(), reader, pool, coldthresh, ch)
 		close(ch)
 	}()
 	var runs []lakemanage.Run
@@ -82,7 +82,7 @@ type testObj struct {
 	size        int64
 }
 
-func newTestObjectReader(objs []testObj, pool *pools.Config, coldthresh time.Duration) lakemanage.ObjectIterator {
+func newTestObjectReader(objs []testObj, pool *pools.Config, coldthresh time.Duration) lakemanage.DataObjectIterator {
 	var objects []*data.Object
 	for _, o := range objs {
 		ts := time.Now()
