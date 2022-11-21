@@ -1,3 +1,14 @@
+## v1.3.0
+* Optimize performance of filters on pool key fields (#3930)
+* Improve handling of errors during [shaping](docs/language/overview.md#9-shaping) (#4067, #4069)
+* Allow use of a pool name regexp/glob pattern with the [`from` operator](docs/language/operators/from.md) (#4072, #4075)
+* Add [`levenshtein()` function](docs/language/functions/levenshtein.md) for fuzzy string matching (#4104)
+* Allow use of any filter with [`zed delete -where`](docs/commands/zed.md#24-delete) (#4100, #4124, #4126, #4125, #4127)
+* Add [`regexp()`](docs/language/functions/regexp.md) function for regular expression searches and capture groups (#4145, #4158)
+* Add [`coalesce()`](docs/language/functions/coalesce.md) function for locating non-null/non-error values (#4172)
+* Add `line` format for sourcing newline-delimited input as strings (#4175)
+* Add [`map()` aggregation function](docs/language/aggregates/map.md) for constructing [maps](docs/formats/zed.md#24-map) #4173
+
 ## v1.2.0
 * Compress index values (#3974)
 * Replace `-znglz4blocksize` flag with `-zngcompress` and `-zngframethresh` for `zed` and `zq` (#3967)
