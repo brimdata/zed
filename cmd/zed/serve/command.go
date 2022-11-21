@@ -17,7 +17,6 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/httpd"
-	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/service"
 	"go.uber.org/zap"
 )
@@ -90,11 +89,6 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer logger.Sync()
-	openFilesLimit, err := rlimit.RaiseOpenFilesLimit()
-	if err != nil {
-		logger.Warn("Raising open files limit failed", zap.Error(err))
-	}
-	logger.Info("Open files limit raised", zap.Uint64("limit", openFilesLimit))
 	if c.brimfd != -1 {
 		if ctx, err = c.watchBrimFd(ctx, logger); err != nil {
 			return err

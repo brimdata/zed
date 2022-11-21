@@ -18,7 +18,6 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/display"
-	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/zio"
@@ -65,9 +64,6 @@ func (c *Command) Run(args []string) error {
 	defer cleanup()
 	if len(args) == 0 {
 		return errors.New("zed load: at least one input file must be specified (- for stdin)")
-	}
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return err
 	}
 	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {

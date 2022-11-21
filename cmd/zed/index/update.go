@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/rlimit"
 )
 
 var update = &charm.Spec{
@@ -35,9 +34,6 @@ func (c *updateCommand) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return err
-	}
 	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err

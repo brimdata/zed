@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -67,9 +66,6 @@ func (c *createCommand) Run(args []string) error {
 	}
 	ruleName := args[0]
 	args = args[1:]
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return err
-	}
 	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err

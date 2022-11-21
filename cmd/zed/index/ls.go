@@ -6,7 +6,6 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 )
@@ -36,9 +35,6 @@ func (c *lsCommand) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return err
-	}
 	lake, err := c.LakeFlags.Open(ctx)
 	if err != nil {
 		return err
