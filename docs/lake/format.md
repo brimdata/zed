@@ -211,7 +211,7 @@ the HEAD of the journal is accessed.
 > a file for exclusive access and checking that it has zero length after
 > a successful open.
 
-Second, strong read/write ordering semantics (as exists in Amazon S3)
+Second, strong read/write ordering semantics (as exists in [Amazon S3](../integrations/amazon-s3.md))
 can be used to implement transactional journal updates as follows:
 * _TBD: this is worked out but needs to be written up_
 
