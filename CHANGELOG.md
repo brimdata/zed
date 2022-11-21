@@ -31,7 +31,7 @@
 ## v1.0.0
 
 * Comprehensive [documentation](docs/README.md)
-* Substantial improvments to the [Zed language](docs/language/README.md)
+* Substantial improvements to the [Zed language](docs/language/README.md)
 * Revamped [`zed` command](docs/commands/zed.md)
 * New Zed lake format (see #3634 for a migration script)
 * New version of the [ZNG format](docs/formats/zng.md) (with read-only support for the previous version)
@@ -268,7 +268,7 @@ questions.
 * Fix an issue where [`fuse`](docs/language/operators/fuse.md) would consume too much memory when fusing many types (#2897, #2899)
 * Emphasize in the [`sort`](docs/language/operators/sort.md) documentation that its output can be non-deterministic in the absence of an explicit field list (#2902)
 * Remove the space separator before decorator in ZSON `-z` output (#2911)
-* Fix an issue where handling of record alises caused a failure to shape Zeek NDJSON data (#2904)
+* Fix an issue where handling of record aliases caused a failure to shape Zeek NDJSON data (#2904)
 * Fix an issue where posting garbage input data to a pool caused an HTTP 500 response (#2924)
 * Fix an issue where reading a ZNG file and outputting as CSV caused a deadlock (#2929)
 * In a `from` clause, `range` is now used instead of `over` to specify a range scan over a data source (#2943)
@@ -419,7 +419,7 @@ questions.
 * zql: Add `week` as a unit for [time grouping with `every`](docs/language/functions/every.md) (#1374)
 * zq: Fix an issue where a `null` value in a [JSON type definition](zeek/README.md) caused a failure without an error message (#1377)
 * zq: Add [`zst` format](docs/formats/zst.md) to `-i` and `-f` command-line help (#1384)
-* zq: ZNG spec and `zq` updates to introduce the beta ZNG storage format (#1375, #1415, #1394, #1457, #1512, #1523, #1529), also adddressing the following:
+* zq: ZNG spec and `zq` updates to introduce the beta ZNG storage format (#1375, #1415, #1394, #1457, #1512, #1523, #1529), also addressing the following:
    * New data type `bytes` for storing sequences of bytes encoded as base64 (#1315)
    * Improvements to the `enum` data type (#1314)
    * Special characters like `.` and `@` may now appear in field names (#1291)
@@ -571,7 +571,7 @@ questions.
 * zqd: Fix an issue where a file replacement race could cause an "access is denied" error in Brim during pcap import (#925)
 * zng: Revise [Zeek compatibility](zeek/Data-Type-Compatibility.md) doc (#919)
 * zql: Clarify [`cut` operator documentation](docs/language/operators/cut.md) (#924)
-* zqd: Fix an issue where an invalid 1970 Space start time could be created in Brim during pcap inport (#938)
+* zqd: Fix an issue where an invalid 1970 Space start time could be created in Brim during pcap import (#938)
 
 ## v0.15.0
 * pcap: Report more detailed error information (#844)
@@ -671,7 +671,7 @@ questions.
   the "-q" for quieting warnings.
 * Update license to reflect new corporate name.
 * Address ingest issues for some pcapng packet captures.
-* Address ingest issues for file or path names that required uri encoding.
+* Address ingest issues for file or path names that require uri encoding.
 
 ## v0.5.0
 
