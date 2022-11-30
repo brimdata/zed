@@ -11,6 +11,7 @@ const (
 	MediaTypeAny     = "*/*"
 	MediaTypeCSV     = "text/csv"
 	MediaTypeJSON    = "application/json"
+	MediaTypeLine    = "application/x-line"
 	MediaTypeNDJSON  = "application/x-ndjson"
 	MediaTypeParquet = "application/x-parquet"
 	MediaTypeZJSON   = "application/x-zjson"
@@ -43,6 +44,8 @@ func MediaTypeToFormat(s string, dflt string) (string, error) {
 		return "csv", nil
 	case MediaTypeJSON:
 		return "json", nil
+	case MediaTypeLine:
+		return "line", nil
 	case MediaTypeNDJSON:
 		return "ndjson", nil
 	case MediaTypeParquet:
@@ -63,6 +66,8 @@ func FormatToMediaType(format string) string {
 		return MediaTypeCSV
 	case "json":
 		return MediaTypeJSON
+	case "line":
+		return MediaTypeLine
 	case "ndjson":
 		return MediaTypeNDJSON
 	case "parquet":
