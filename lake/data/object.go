@@ -121,10 +121,6 @@ func NewObject() Object {
 }
 
 func (o Object) Span(order order.Which) *extent.Generic {
-	if o.First.Bytes == nil || o.Last.Bytes == nil {
-		//XXX
-		return nil
-	}
 	return extent.NewGenericFromOrder(o.First, o.Last, order)
 }
 
