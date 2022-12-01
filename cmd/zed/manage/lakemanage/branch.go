@@ -42,8 +42,16 @@ func newBranch(branchName string, pool *pools.Config, lake lakeapi.Interface, co
 	return b
 }
 
+func (b *branch) head(ctx context.Context) (ksuid.KSUID, error) {
+	branch, err := lakeapi.LookupBranchByName(ctx, b.lake, b.pool.Name, b.name)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return branch.Branch.Commit, nil
+}
+
 type branchTask interface {
-	run(context.Context) (*time.Time, error)
+	run(context.Context, ksuid.KSUID) (*time.Time, error)
 	logger() *zap.Logger
 }
 
@@ -52,9 +60,9 @@ type compactTask struct {
 	log *zap.Logger
 }
 
-func (b *compactTask) run(ctx context.Context) (*time.Time, error) {
+func (b *compactTask) run(ctx context.Context, at ksuid.KSUID) (*time.Time, error) {
 	b.log.Debug("compaction started")
-	head := lakeparse.Commitish{Pool: b.pool.Name, Branch: b.name}
+	head := lakeparse.Commitish{Pool: b.pool.Name, Branch: at.String()}
 	it, err := NewPoolDataObjectIterator(ctx, b.lake, &head, b.pool.Layout)
 	if err != nil {
 		return nil, err
@@ -69,7 +77,7 @@ func (b *compactTask) run(ctx context.Context) (*time.Time, error) {
 	var found int
 	var compacted int
 	for run := range ch {
-		commit, err := b.lake.Compact(ctx, b.pool.ID, head.Branch, run.ObjectIDs(), api.CommitMessage{})
+		commit, err := b.lake.Compact(ctx, b.pool.ID, b.name, run.ObjectIDs(), api.CommitMessage{})
 		if err != nil {
 			return nil, err
 		}
@@ -92,14 +100,14 @@ type indexTask struct {
 	log *zap.Logger
 }
 
-func (b *indexTask) run(ctx context.Context) (*time.Time, error) {
+func (b *indexTask) run(ctx context.Context, at ksuid.KSUID) (*time.Time, error) {
 	b.log.Debug("index started")
 	var nextcold *time.Time
 	ch := make(chan ObjectIndexes)
 	conf := b.config.Index
 	var err error
 	go func() {
-		nextcold, err = IndexScan(ctx, b.lake, b.pool.Name, b.name, conf.ColdThreshold, conf.rules, ch)
+		nextcold, err = IndexScan(ctx, b.lake, b.pool.Name, at.String(), conf.ColdThreshold, conf.rules, ch)
 		close(ch)
 	}()
 	var objects int

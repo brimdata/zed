@@ -31,8 +31,12 @@ func Update(ctx context.Context, lk lakeapi.Interface, conf Config, logger *zap.
 	for _, branch := range branches {
 		branch := branch
 		group.Go(func() error {
+			head, err := branch.head(ctx)
+			if err != nil {
+				return err
+			}
 			for _, task := range branch.tasks {
-				if _, err := task.run(ctx); err != nil {
+				if _, err := task.run(ctx, head); err != nil {
 					task.logger().Error("task error", zap.Error(err))
 					return err
 				}
@@ -161,7 +165,7 @@ func newMonitor(ctx context.Context, b *branch) *monitor {
 	ctx, cancel := context.WithCancel(ctx)
 	var threads []*thread
 	for _, t := range b.tasks {
-		threads = append(threads, newThread(ctx, t))
+		threads = append(threads, newThread(ctx, b, t))
 	}
 	return &monitor{branch: b, cancel: cancel, threads: threads}
 }
@@ -174,12 +178,13 @@ func (b *monitor) run() {
 
 type thread struct {
 	ctx     context.Context
+	branch  *branch
 	task    branchTask
 	running int32
 }
 
-func newThread(ctx context.Context, task branchTask) *thread {
-	return &thread{ctx: ctx, task: task}
+func newThread(ctx context.Context, branch *branch, task branchTask) *thread {
+	return &thread{ctx: ctx, branch: branch, task: task}
 }
 
 func (t *thread) run() {
@@ -191,17 +196,31 @@ func (t *thread) run() {
 		defer atomic.StoreInt32(&t.running, 0)
 		timer := time.NewTimer(0)
 		<-timer.C
+		var head ksuid.KSUID
 		for t.ctx.Err() == nil {
-			next, err := t.task.run(t.ctx)
+			current, err := t.branch.head(t.ctx)
+			if err != nil {
+				t.task.logger().Error("error fetching branch head", zap.Error(err))
+				return
+			}
+			if current == head {
+				t.task.logger().Info("thread exiting")
+				return
+			}
+			head = current
+			next, err := t.task.run(t.ctx, head)
 			if err != nil {
 				t.task.logger().Error("thread exited with error", zap.Error(err))
 				return
 			}
 			if next == nil {
-				t.task.logger().Info("thread exiting")
-				return
+				// This means there's no further work, but before exiting check
+				// to see if there are any new commits since the task was run.
+				continue
 			}
-			timer.Reset(time.Until(*next))
+			sleep := time.Until(*next)
+			t.task.logger().Debug("sleeping", zap.Duration("duration", sleep))
+			timer.Reset(sleep)
 			select {
 			case <-timer.C:
 			case <-t.ctx.Done():
