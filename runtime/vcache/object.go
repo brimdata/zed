@@ -71,7 +71,6 @@ func NewObject(ctx context.Context, engine storage.Engine, uri *storage.URI, id 
 		types = append(types, meta.Type(zctx))
 	}
 	var group errgroup.Group
-	group.SetLimit(-1)
 	vectors := make([]Vector, len(metas))
 	for k, meta := range metas {
 		which := k

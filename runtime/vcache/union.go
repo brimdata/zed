@@ -41,7 +41,6 @@ func (u *Union) NewIter(reader io.ReaderAt) (iterator, error) {
 		u.tags = tags
 	}
 	var group errgroup.Group
-	group.SetLimit(-1)
 	iters := make([]iterator, len(u.values))
 	for k, v := range u.values {
 		which := k

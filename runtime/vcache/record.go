@@ -25,7 +25,6 @@ func NewRecord(fields []vector.Field, r io.ReaderAt) (Record, error) {
 func (r Record) NewIter(reader io.ReaderAt) (iterator, error) {
 	fields := make([]iterator, len(r))
 	var group errgroup.Group
-	group.SetLimit(-1)
 	for k, f := range r {
 		which := k
 		field := f
