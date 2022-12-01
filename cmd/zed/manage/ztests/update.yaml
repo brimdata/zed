@@ -13,7 +13,7 @@ inputs:
   - name: manage.yaml
     data: |
       compact:
-        coldthresh: 0s
+        cold_threshold: 0s
 
 outputs:
   - name: stdout

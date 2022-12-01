@@ -6,25 +6,33 @@ import (
 
 	"github.com/brimdata/zed/api"
 	lakeapi "github.com/brimdata/zed/lake/api"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type branch struct {
-	config Config
-	lake   lakeapi.Interface
-	logger *zap.Logger
-	pool   *pools.Config
-	name   string
-	tasks  []branchTask
+	compact CompactConfig
+	index   IndexConfig
+	lake    lakeapi.Interface
+	logger  *zap.Logger
+	pool    *pools.Config
+	name    string
+	tasks   []branchTask
 }
 
-func newBranch(branchName string, pool *pools.Config, lake lakeapi.Interface, config Config, logger *zap.Logger) *branch {
+func newBranch(c Config, pool *pools.Config, indexes []index.Rule, lake lakeapi.Interface, logger *zap.Logger) (*branch, error) {
+	branchName, compact, index, err := c.poolConfig(pool, indexes)
+	if err != nil {
+		return nil, err
+	}
 	b := &branch{
-		config: config,
-		lake:   lake,
+		compact: compact,
+		index:   index,
+		lake:    lake,
 		logger: logger.Named("pool").With(
 			zap.String("name", pool.Name),
 			zap.Stringer("id", pool.ID),
@@ -33,13 +41,13 @@ func newBranch(branchName string, pool *pools.Config, lake lakeapi.Interface, co
 		pool: pool,
 		name: branchName,
 	}
-	if !config.Compact.Disabled {
+	if !c.Compact.Disabled {
 		b.tasks = append(b.tasks, &compactTask{b, b.logger.Named("compact")})
 	}
-	if config.Index.Enabled() {
+	if c.Index.Enabled() {
 		b.tasks = append(b.tasks, &indexTask{b, b.logger.Named("index")})
 	}
-	return b
+	return b, nil
 }
 
 func (b *branch) head(ctx context.Context) (ksuid.KSUID, error) {
@@ -48,6 +56,12 @@ func (b *branch) head(ctx context.Context) (ksuid.KSUID, error) {
 		return ksuid.Nil, err
 	}
 	return branch.Branch.Commit, nil
+}
+
+func (b *branch) MarshalLogObject(o zapcore.ObjectEncoder) error {
+	o.AddObject("compact", &b.compact)
+	o.AddObject("index", &b.index)
+	return nil
 }
 
 type branchTask interface {
@@ -71,7 +85,7 @@ func (b *compactTask) run(ctx context.Context, at ksuid.KSUID) (*time.Time, erro
 	var nextcold *time.Time
 	ch := make(chan Run)
 	go func() {
-		nextcold, err = CompactionScan(ctx, it, b.pool, b.config.Compact.ColdThreshold, ch)
+		nextcold, err = CompactionScan(ctx, it, b.pool, b.compact.coldThreshold(), ch)
 		close(ch)
 	}()
 	var found int
@@ -104,10 +118,10 @@ func (b *indexTask) run(ctx context.Context, at ksuid.KSUID) (*time.Time, error)
 	b.log.Debug("index started")
 	var nextcold *time.Time
 	ch := make(chan ObjectIndexes)
-	conf := b.config.Index
+	conf := b.index
 	var err error
 	go func() {
-		nextcold, err = IndexScan(ctx, b.lake, b.pool.Name, at.String(), conf.ColdThreshold, conf.rules, ch)
+		nextcold, err = IndexScan(ctx, b.lake, b.pool.Name, at.String(), conf.coldThreshold(), conf.rules, ch)
 		close(ch)
 	}()
 	var objects int
