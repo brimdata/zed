@@ -60,7 +60,6 @@ func findCuts(o *Object, names []string) ([]*cut, error) {
 	var dirty bool
 	cuts := make([]*cut, len(o.types))
 	var group errgroup.Group
-	group.SetLimit(-1)
 	// Loop through each type to determine if there is a cut and build
 	// a cut for that type.  The creation of all the iterators is done
 	// in parallel to avoid synchronous round trips to storage.
@@ -99,7 +98,6 @@ func findCuts(o *Object, names []string) ([]*cut, error) {
 
 func newCut(zctx *zed.Context, typ *zed.TypeRecord, fields []Vector, actuals []string, reader storage.Reader) (*cut, error) {
 	var group errgroup.Group
-	group.SetLimit(-1)
 	iters := make([]iterator, len(actuals))
 	columns := make([]zed.Column, len(actuals))
 	for k, name := range actuals {
