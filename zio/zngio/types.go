@@ -3,7 +3,6 @@ package zngio
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
@@ -41,15 +40,6 @@ func (e *Encoder) Reset() {
 
 func (e *Encoder) Flush() {
 	e.bytes = e.bytes[:0]
-}
-
-func (e *Encoder) WriteTo(w io.Writer) error {
-	var err error
-	if len(e.bytes) > 0 {
-		_, err = w.Write(e.bytes)
-		e.bytes = e.bytes[:0]
-	}
-	return err
 }
 
 func (e *Encoder) Lookup(external zed.Type) zed.Type {
@@ -110,9 +100,8 @@ func (e *Encoder) encodeTypeRecord(ext *zed.TypeRecord) (zed.Type, error) {
 	e.bytes = append(e.bytes, TypeDefRecord)
 	e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(columns)))
 	for _, col := range columns {
-		name := []byte(col.Name)
-		e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(name)))
-		e.bytes = append(e.bytes, name...)
+		e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(col.Name)))
+		e.bytes = append(e.bytes, col.Name...)
 		e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(col.Type)))
 	}
 	return typ, nil
@@ -214,7 +203,7 @@ func (e *Encoder) encodeTypeError(ext *zed.TypeError) (*zed.TypeError, error) {
 }
 
 type localctx struct {
-	// internal context implied by zng file
+	// internal context implied by ZNG file
 	zctx *zed.Context
 	// mapper to map internal to shared type contexts
 	mapper *zed.Mapper
@@ -251,39 +240,26 @@ func (d *Decoder) decode(b *buffer) error {
 		}
 		switch code {
 		case TypeDefRecord:
-			if err := d.readTypeRecord(b); err != nil {
-				return err
-			}
+			err = d.readTypeRecord(b)
 		case TypeDefSet:
-			if err := d.readTypeSet(b); err != nil {
-				return err
-			}
+			err = d.readTypeSet(b)
 		case TypeDefArray:
-			if err := d.readTypeArray(b); err != nil {
-				return err
-			}
+			err = d.readTypeArray(b)
 		case TypeDefMap:
-			if err := d.readTypeMap(b); err != nil {
-				return err
-			}
+			err = d.readTypeMap(b)
 		case TypeDefUnion:
-			if err := d.readTypeUnion(b); err != nil {
-				return err
-			}
+			err = d.readTypeUnion(b)
 		case TypeDefEnum:
-			if err := d.readTypeEnum(b); err != nil {
-				return err
-			}
+			err = d.readTypeEnum(b)
 		case TypeDefName:
-			if err := d.readTypeName(b); err != nil {
-				return err
-			}
+			err = d.readTypeName(b)
 		case TypeDefError:
-			if err := d.readTypeError(b); err != nil {
-				return err
-			}
+			err = d.readTypeError(b)
 		default:
-			return fmt.Errorf("unknown zng typedef code: %d", code)
+			return fmt.Errorf("unknown ZNG typedef code: %d", code)
+		}
+		if err != nil {
+			return err
 		}
 	}
 	return nil
