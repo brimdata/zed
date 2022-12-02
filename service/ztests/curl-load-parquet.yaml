@@ -3,7 +3,7 @@ script: |
   zed create -q test
   zq -f parquet in.zson |
     curl -H Content-Type:application/x-parquet --data-binary @- \
-    --fail-with-body $ZED_LAKE/pool/test/branch/main | zq -z commit:=0 -
+    --fail $ZED_LAKE/pool/test/branch/main | zq -z commit:=0 -
   echo //
   zed query -z 'from test'
 
