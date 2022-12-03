@@ -2,7 +2,9 @@ package service
 
 import (
 	"errors"
+	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/brimdata/zed"
@@ -366,13 +368,36 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	reader := anyio.GzipReader(r.Body)
+	if format == "parquet" {
+		// This format requires a reader that implements io.ReaderAt and
+		// io.Seeker.  Copy the reader to a temporary file and use that.
+		//
+		// TODO: Add a way to disable this or limit file size.
+		f, err := os.CreateTemp("", "zed-serve-load-")
+		if err != nil {
+			w.Error(err)
+			return
+		}
+		defer f.Close()
+		defer os.Remove(f.Name())
+		if _, err := io.Copy(f, reader); err != nil {
+			w.Error(err)
+			return
+		}
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			w.Error(err)
+			return
+		}
+		reader = f
+	}
 	opts := anyio.ReaderOpts{
 		Format: format,
 		// Force validation of ZNG when loading into the lake.
 		ZNG: zngio.ReaderOpts{Validate: true},
 	}
 	zctx := zed.NewContext()
-	zrc, err := anyio.NewReaderWithOpts(zctx, anyio.GzipReader(r.Body), opts)
+	zrc, err := anyio.NewReaderWithOpts(zctx, reader, opts)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
