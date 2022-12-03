@@ -327,7 +327,7 @@ func InnerType(typ Type) Type {
 }
 
 func IsUnionType(typ Type) bool {
-	_, ok := typ.(*TypeUnion)
+	_, ok := TypeUnder(typ).(*TypeUnion)
 	return ok
 }
 
