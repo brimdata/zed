@@ -1,5 +1,4 @@
 //go:build heavy
-// +build heavy
 
 package mdtest
 
