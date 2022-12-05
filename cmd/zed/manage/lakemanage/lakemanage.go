@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	lakeapi "github.com/brimdata/zed/lake/api"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -20,16 +21,18 @@ func Update(ctx context.Context, lk lakeapi.Interface, conf Config, logger *zap.
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	if err := conf.Index.getRules(ctx, lk); err != nil {
+	indexes, err := lakeapi.GetIndexRules(ctx, lk)
+	if err != nil {
 		return err
 	}
-	branches, err := getBranches(ctx, conf, lk, logger)
+	branches, err := getBranches(ctx, conf, indexes, lk, logger)
 	if err != nil {
 		return err
 	}
 	group, ctx := errgroup.WithContext(ctx)
 	for _, branch := range branches {
 		branch := branch
+		branch.logger.Info("updating pool", zap.Object("config", branch))
 		group.Go(func() error {
 			head, err := branch.head(ctx)
 			if err != nil {
@@ -68,10 +71,11 @@ func Monitor(ctx context.Context, conn *client.Connection, conf Config, logger *
 
 func runMonitor(ctx context.Context, conf Config, conn *client.Connection, logger *zap.Logger) error {
 	lk := lakeapi.NewRemoteLake(conn)
-	if err := conf.Index.getRules(ctx, lk); err != nil {
+	indexes, err := lakeapi.GetIndexRules(ctx, lk)
+	if err != nil {
 		return err
 	}
-	branches, err := getBranches(ctx, conf, lk, logger)
+	branches, err := getBranches(ctx, conf, indexes, lk, logger)
 	if err != nil {
 		return err
 	}
@@ -84,24 +88,27 @@ func runMonitor(ctx context.Context, conf Config, conn *client.Connection, logge
 	for _, pool := range branches {
 		monitorBranch(ctx, pool, monitors)
 	}
-	return listen(ctx, monitors, conf, conn, logger)
+	return listen(ctx, monitors, conf, indexes, conn, logger)
 }
 
-func getBranches(ctx context.Context, conf Config, lk lakeapi.Interface, logger *zap.Logger) ([]*branch, error) {
+func getBranches(ctx context.Context, conf Config, indexes []index.Rule, lk lakeapi.Interface, logger *zap.Logger) ([]*branch, error) {
 	pools, err := lakeapi.GetPools(ctx, lk)
 	if err != nil {
 		return nil, err
 	}
 	var branches []*branch
 	for _, pool := range pools {
-		// XXX For now only track main but this should be configurable and allow
-		// non-main branches as well as monitoring multiple branches.
-		branches = append(branches, newBranch("main", pool, lk, conf, logger))
+		b, err := newBranch(conf, pool, indexes, lk, logger)
+		if err != nil {
+			return nil, err
+		}
+		branches = append(branches, b)
 	}
 	return branches, nil
 }
 
-func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config, conn *client.Connection, logger *zap.Logger) error {
+func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config,
+	indexes []index.Rule, conn *client.Connection, logger *zap.Logger) error {
 	ev, err := conn.SubscribeEvents(ctx)
 	if err != nil {
 		return err
@@ -124,8 +131,10 @@ func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config,
 			if err != nil {
 				return err
 			}
-			b := newBranch("main", pool, lk, conf, logger)
-			b.logger.Info("pool added")
+			b, err := newBranch(conf, pool, indexes, lk, logger)
+			if err != nil {
+				return err
+			}
 			monitorBranch(ctx, b, monitors)
 		case "pool-delete":
 			detail := detail.(*api.EventPool)
@@ -149,6 +158,7 @@ func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config,
 
 func monitorBranch(ctx context.Context, b *branch, monitors map[ksuid.KSUID]*monitor) {
 	if _, ok := monitors[b.pool.ID]; !ok {
+		b.logger.Info("monitoring pool", zap.Object("config", b))
 		m := newMonitor(ctx, b)
 		monitors[b.pool.ID] = m
 		m.run()

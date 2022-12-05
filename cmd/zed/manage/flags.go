@@ -1,9 +1,9 @@
 package manage
 
 import (
+	"bytes"
 	"flag"
 	"os"
-	"time"
 
 	"github.com/brimdata/zed/cmd/zed/manage/lakemanage"
 	"gopkg.in/yaml.v3"
@@ -19,7 +19,8 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 		if err != nil {
 			return err
 		}
-		return yaml.Unmarshal(b, &f.Config)
+		d := yaml.NewDecoder(bytes.NewReader(b))
+		d.KnownFields(true) // returns error for unknown fields
+		return d.Decode(&f.Config)
 	})
-	fs.DurationVar(&f.Config.Compact.ColdThreshold, "coldthresh", time.Minute*5, "age at which objects are considered for compaction")
 }

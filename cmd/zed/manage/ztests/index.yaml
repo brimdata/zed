@@ -16,7 +16,7 @@ inputs:
       compact:
         disabled: true
       index:
-        coldthresh: 0s
+        cold_threshold: 0s
         rules: ["values"]
 
 outputs:

@@ -1,0 +1,81 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed index create -q foo field foo
+  zed index create -q bar field bar
+  zed create -q test1
+  zed create -q test2
+  zed branch -use test2 -q live
+  zed manage update -config=inherit.yaml -log.path=inherit.log
+  zq -Z 'msg == "updating pool" | cut name, branch, config | sort name' inherit.log > inherit.zson
+  ! zed manage update -config=dupe-rules-error.yaml
+
+inputs:
+  - name: inherit.yaml
+    data: |
+      compact:
+        cold_threshold: 1s
+      index:
+        cold_threshold: 1s
+        rules: ["foo"]
+      pools:
+        - pool: test1
+          compact:
+            cold_threshold: 2s
+          index:
+            inherit_rules: true
+            rules: ["bar"]
+        - pool: test2
+          branch: "live"
+          index:
+            rules: ["bar", "bar"]
+  - name: dupe-rules-error.yaml
+    data: |
+      pools:
+        - pool: test1
+          index:
+            rules: ["doesnotexist"]
+
+outputs:
+  - name: inherit.zson
+    data: | 
+      {
+          name: "test1",
+          branch: "main",
+          config: {
+              compact: {
+                  enabled: true,
+                  cold_threshold: 2
+              },
+              index: {
+                  enabled: true,
+                  cold_threshold: 1,
+                  rules: [
+                      "bar",
+                      "foo"
+                  ]
+              }
+          }
+      }
+      {
+          name: "test2",
+          branch: "live",
+          config: {
+              compact: {
+                  enabled: true,
+                  cold_threshold: 1
+              },
+              index: {
+                  enabled: true,
+                  cold_threshold: 1,
+                  rules: [
+                      "bar"
+                  ]
+              }
+          }
+      }
+  - name: stderr
+    data: |
+      could not find index rule "doesnotexist"
+  - name: stdout
+    data: ""
