@@ -108,6 +108,7 @@ func (p *Proc) block(parent *puller) {
 }
 
 func (p *Proc) propagateDone() error {
+	var mu sync.Mutex
 	var wg sync.WaitGroup
 	for _, parent := range p.parents {
 		if parent.blocked {
@@ -130,7 +131,9 @@ func (p *Proc) propagateDone() error {
 				// of them eventually as we loop over each unblocked parent.
 				goto again
 			case parent.doneCh <- struct{}{}:
+				mu.Lock()
 				p.block(parent)
+				mu.Unlock()
 			case <-p.ctx.Done():
 			}
 		}()
