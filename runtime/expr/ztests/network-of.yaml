@@ -1,7 +1,10 @@
-zed: put n1:=network_of(a,mask),n2:=network_of(a,24)
+zed: yield network_of(a,mask), network_of(a,24), network_of(a, 255.255.255.128), network_of(a, 255.128.255.255)
 
 input: |
   {a:10.1.2.129,mask:255.255.255.128/25}
 
 output: |
-  {a:10.1.2.129,mask:255.255.255.128/25,n1:10.1.2.128/25,n2:10.1.2.0/24}
+  10.1.2.128/25
+  10.1.2.0/24
+  10.1.2.128/25
+  error("network_of: mask \"255.128.255.255\" is not in canonical form")

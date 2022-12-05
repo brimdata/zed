@@ -5,7 +5,7 @@
 ### Synopsis
 
 ```
-network_of(val: ip [, mask: net|int|uint]) -> net
+network_of(val: ip [, mask: net|ip|int|uint]) -> net
 ```
 ### Description
 
