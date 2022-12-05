@@ -10,6 +10,7 @@
 package zed
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"sort"
@@ -488,7 +489,7 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 			id = TypeValueNameRef
 		}
 		b = append(b, id)
-		b = zcode.AppendUvarint(b, uint64(len(t.Name)))
+		b = binary.AppendUvarint(b, uint64(len(t.Name)))
 		b = append(b, zcode.Bytes(t.Name)...)
 		if id == TypeValueNameRef {
 			return b
@@ -502,16 +503,16 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 
 	case *TypeRecord:
 		b = append(b, TypeValueRecord)
-		b = zcode.AppendUvarint(b, uint64(len(t.Columns)))
+		b = binary.AppendUvarint(b, uint64(len(t.Columns)))
 		for _, col := range t.Columns {
-			b = zcode.AppendUvarint(b, uint64(len(col.Name)))
+			b = binary.AppendUvarint(b, uint64(len(col.Name)))
 			b = append(b, col.Name...)
 			b = appendTypeValue(b, col.Type, typedefs)
 		}
 		return b
 	case *TypeUnion:
 		b = append(b, TypeValueUnion)
-		b = zcode.AppendUvarint(b, uint64(len(t.Types)))
+		b = binary.AppendUvarint(b, uint64(len(t.Types)))
 		for _, t := range t.Types {
 			b = appendTypeValue(b, t, typedefs)
 		}
@@ -524,9 +525,9 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 		return appendTypeValue(b, t.Type, typedefs)
 	case *TypeEnum:
 		b = append(b, TypeValueEnum)
-		b = zcode.AppendUvarint(b, uint64(len(t.Symbols)))
+		b = binary.AppendUvarint(b, uint64(len(t.Symbols)))
 		for _, s := range t.Symbols {
-			b = zcode.AppendUvarint(b, uint64(len(s)))
+			b = binary.AppendUvarint(b, uint64(len(s)))
 			b = append(b, s...)
 		}
 		return b

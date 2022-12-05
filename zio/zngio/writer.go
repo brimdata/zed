@@ -1,6 +1,7 @@
 package zngio
 
 import (
+	"encoding/binary"
 	"io"
 
 	"github.com/brimdata/zed"
@@ -108,7 +109,7 @@ func (w *Writer) Write(val *zed.Value) error {
 		}
 	}
 	id := zed.TypeID(typ)
-	w.values = zcode.AppendUvarint(w.values, uint64(id))
+	w.values = binary.AppendUvarint(w.values, uint64(id))
 	w.values = zcode.Append(w.values, val.Bytes)
 	if thresh := w.opts.FrameThresh; len(w.values) >= thresh || len(w.types.bytes) >= thresh {
 		return w.flush()
@@ -166,7 +167,7 @@ func (w *Writer) writeBlock(blockType int, b []byte) error {
 func (w *Writer) writeHeader(blockType, size int) error {
 	code := blockType<<4 | (size & 0xf)
 	w.header = append(w.header[:0], byte(code))
-	w.header = zcode.AppendUvarint(w.header, uint64(size>>4))
+	w.header = binary.AppendUvarint(w.header, uint64(size>>4))
 	return w.write(w.header)
 }
 
@@ -174,9 +175,9 @@ func (w *Writer) writeCompHeader(blockType, size, zlen int) error {
 	zlen += 1 + zcode.SizeOfUvarint(uint64(size))
 	code := (blockType << 4) | (zlen & 0xf) | 0x40
 	w.header = append(w.header[:0], byte(code))
-	w.header = zcode.AppendUvarint(w.header, uint64(zlen>>4))
+	w.header = binary.AppendUvarint(w.header, uint64(zlen>>4))
 	w.header = append(w.header, byte(CompressionFormatLZ4))
-	w.header = zcode.AppendUvarint(w.header, uint64(size))
+	w.header = binary.AppendUvarint(w.header, uint64(size))
 	return w.write(w.header)
 }
 

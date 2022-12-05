@@ -327,7 +327,7 @@ func convertTypeValue(dst, tv zcode.Bytes) (zcode.Bytes, zcode.Bytes, error) {
 			return nil, nil, ErrTrunc
 		}
 		dst = append(dst, zed.TypeValueNameDef)
-		dst = zcode.AppendUvarint(dst, uint64(len(name)))
+		dst = binary.AppendUvarint(dst, uint64(len(name)))
 		dst = append(dst, zcode.Bytes(name)...)
 		return convertTypeValue(dst, tv)
 	case zed21.IDTypeName:
@@ -337,7 +337,7 @@ func convertTypeValue(dst, tv zcode.Bytes) (zcode.Bytes, zcode.Bytes, error) {
 			return nil, nil, ErrTrunc
 		}
 		dst = append(dst, zed.TypeValueNameRef)
-		dst = zcode.AppendUvarint(dst, uint64(len(name)))
+		dst = binary.AppendUvarint(dst, uint64(len(name)))
 		dst = append(dst, zcode.Bytes(name)...)
 		return dst, tv, nil
 	case zed21.IDTypeRecord:
@@ -347,14 +347,14 @@ func convertTypeValue(dst, tv zcode.Bytes) (zcode.Bytes, zcode.Bytes, error) {
 			return nil, nil, ErrTrunc
 		}
 		dst = append(dst, zed.TypeValueRecord)
-		dst = zcode.AppendUvarint(dst, uint64(n))
+		dst = binary.AppendUvarint(dst, uint64(n))
 		for k := 0; k < n; k++ {
 			var name string
 			name, rest := decodeName(tv)
 			if tv == nil {
 				return nil, nil, ErrTrunc
 			}
-			dst = zcode.AppendUvarint(dst, uint64(len(name)))
+			dst = binary.AppendUvarint(dst, uint64(len(name)))
 			dst = append(dst, zcode.Bytes(name)...)
 			var err error
 			dst, tv, err = convertTypeValue(dst, rest)
@@ -384,7 +384,7 @@ func convertTypeValue(dst, tv zcode.Bytes) (zcode.Bytes, zcode.Bytes, error) {
 			return nil, nil, ErrTrunc
 		}
 		dst = append(dst, zed.TypeValueUnion)
-		dst = zcode.AppendUvarint(dst, uint64(n))
+		dst = binary.AppendUvarint(dst, uint64(n))
 		for k := 0; k < n; k++ {
 			var err error
 			dst, tv, err = convertTypeValue(dst, tv)
@@ -400,14 +400,14 @@ func convertTypeValue(dst, tv zcode.Bytes) (zcode.Bytes, zcode.Bytes, error) {
 			return nil, nil, ErrTrunc
 		}
 		dst = append(dst, zed.TypeValueUnion)
-		dst = zcode.AppendUvarint(dst, uint64(n))
+		dst = binary.AppendUvarint(dst, uint64(n))
 		for k := 0; k < n; k++ {
 			var symbol string
 			symbol, tv = decodeName(tv)
 			if tv == nil {
 				return nil, nil, ErrTrunc
 			}
-			dst = zcode.AppendUvarint(dst, uint64(len(symbol)))
+			dst = binary.AppendUvarint(dst, uint64(len(symbol)))
 			dst = append(dst, zcode.Bytes(symbol)...)
 		}
 		return dst, tv, nil

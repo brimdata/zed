@@ -1,11 +1,11 @@
 package zngio
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
 )
 
 const (
@@ -98,11 +98,11 @@ func (e *Encoder) encodeTypeRecord(ext *zed.TypeRecord) (zed.Type, error) {
 		return nil, err
 	}
 	e.bytes = append(e.bytes, TypeDefRecord)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(columns)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(len(columns)))
 	for _, col := range columns {
-		e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(col.Name)))
+		e.bytes = binary.AppendUvarint(e.bytes, uint64(len(col.Name)))
 		e.bytes = append(e.bytes, col.Name...)
-		e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(col.Type)))
+		e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(col.Type)))
 	}
 	return typ, nil
 }
@@ -118,9 +118,9 @@ func (e *Encoder) encodeTypeUnion(ext *zed.TypeUnion) (zed.Type, error) {
 	}
 	typ := e.zctx.LookupTypeUnion(types)
 	e.bytes = append(e.bytes, TypeDefUnion)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(types)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(len(types)))
 	for _, t := range types {
-		e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(t)))
+		e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(t)))
 	}
 	return typ, nil
 }
@@ -132,7 +132,7 @@ func (e *Encoder) encodeTypeSet(ext *zed.TypeSet) (*zed.TypeSet, error) {
 	}
 	typ := e.zctx.LookupTypeSet(inner)
 	e.bytes = append(e.bytes, TypeDefSet)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(inner)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(inner)))
 	return typ, nil
 }
 
@@ -143,7 +143,7 @@ func (e *Encoder) encodeTypeArray(ext *zed.TypeArray) (*zed.TypeArray, error) {
 	}
 	typ := e.zctx.LookupTypeArray(inner)
 	e.bytes = append(e.bytes, TypeDefArray)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(inner)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(inner)))
 	return typ, nil
 }
 
@@ -151,9 +151,9 @@ func (e *Encoder) encodeTypeEnum(ext *zed.TypeEnum) (*zed.TypeEnum, error) {
 	symbols := ext.Symbols
 	typ := e.zctx.LookupTypeEnum(symbols)
 	e.bytes = append(e.bytes, TypeDefEnum)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(symbols)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(len(symbols)))
 	for _, s := range symbols {
-		e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(s)))
+		e.bytes = binary.AppendUvarint(e.bytes, uint64(len(s)))
 		e.bytes = append(e.bytes, s...)
 	}
 	return typ, nil
@@ -170,8 +170,8 @@ func (e *Encoder) encodeTypeMap(ext *zed.TypeMap) (*zed.TypeMap, error) {
 	}
 	typ := e.zctx.LookupTypeMap(keyType, valType)
 	e.bytes = append(e.bytes, TypeDefMap)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(keyType)))
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(valType)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(keyType)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(valType)))
 	return typ, nil
 }
 
@@ -185,9 +185,9 @@ func (e *Encoder) encodeTypeName(ext *zed.TypeNamed) (*zed.TypeNamed, error) {
 		return nil, err
 	}
 	e.bytes = append(e.bytes, TypeDefName)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(len(typ.Name)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(len(typ.Name)))
 	e.bytes = append(e.bytes, typ.Name...)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(typ.Type)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(typ.Type)))
 	return typ, nil
 }
 
@@ -198,7 +198,7 @@ func (e *Encoder) encodeTypeError(ext *zed.TypeError) (*zed.TypeError, error) {
 	}
 	typ := e.zctx.LookupTypeError(inner)
 	e.bytes = append(e.bytes, TypeDefError)
-	e.bytes = zcode.AppendUvarint(e.bytes, uint64(zed.TypeID(typ.Type)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(typ.Type)))
 	return typ, nil
 }
 
