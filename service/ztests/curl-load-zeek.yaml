@@ -1,0 +1,27 @@
+script: |
+  source service.sh
+  zed create -q test
+  zq -f zeek in.zeek |
+    curl -H Content-Type:application/x-zeek --data-binary @- \
+    --fail $ZED_LAKE/pool/test/branch/main | zq -z commit:=0 -
+  echo //
+  zed query -z 'from test'
+
+inputs:
+  - name: in.zeek
+    data: |
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #fields	x
+      #types	int
+      1
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {commit:0,warnings:[]([string])}
+      //
+      {x:1}

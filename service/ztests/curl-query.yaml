@@ -2,7 +2,7 @@ script: |
   source service.sh
   zed create -q test
   zed load -q -use test -
-  for accept in text/csv application/{json,x-ndjson,x-zjson,x-zson} ""; do
+  for accept in text/csv application/{json,x-ndjson,x-zeek,x-zjson,x-zson} ""; do
     echo === $accept ===
     curl -H "Accept: $accept" -d '{"query":"from test"}' $ZED_LAKE/query\?ctrl=true |
       sed -E '/QueryStats/s/[0-9]{3,}/xxx/g' # for ZJSON
@@ -30,6 +30,15 @@ outputs:
       === application/x-ndjson ===
       {"a":"hello","b":{"c":"world","d":"goodbye"}}
       {"a":"one","b":{"c":"two","d":"three"}}
+      === application/x-zeek ===
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #fields	a	b.c	b.d
+      #types	string	string	string
+      hello	world	goodbye
+      one	two	three
       === application/x-zjson ===
       {"type":"QueryChannelSet","value":{"channel_id":0}}
       {"type":{"kind":"record","id":31,"fields":[{"name":"a","type":{"kind":"primitive","name":"string"}},{"name":"b","type":{"kind":"record","id":30,"fields":[{"name":"c","type":{"kind":"primitive","name":"string"}},{"name":"d","type":{"kind":"primitive","name":"string"}}]}}]},"value":["hello",["world","goodbye"]]}
