@@ -130,9 +130,7 @@ func NewFloat32(f float32) *Value {
 }
 
 func AppendFloat32(zb zcode.Bytes, f float32) zcode.Bytes {
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, math.Float32bits(f))
-	return append(zb, buf...)
+	return binary.LittleEndian.AppendUint32(zb, math.Float32bits(f))
 }
 
 func EncodeFloat32(d float32) zcode.Bytes {
@@ -165,9 +163,7 @@ func NewFloat64(f float64) *Value {
 }
 
 func AppendFloat64(zb zcode.Bytes, d float64) zcode.Bytes {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, math.Float64bits(d))
-	return append(zb, buf...)
+	return binary.LittleEndian.AppendUint64(zb, math.Float64bits(d))
 }
 
 func EncodeFloat64(d float64) zcode.Bytes {
