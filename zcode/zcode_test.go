@@ -1,12 +1,9 @@
 package zcode
 
 import (
-	"encoding/binary"
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var appendCases = [][][]byte{
@@ -33,45 +30,5 @@ func TestAppend(t *testing.T) {
 			assert.Exactly(t, expected, []byte(it.Next()))
 		}
 		assert.True(t, it.Done())
-	}
-}
-
-func TestUvarint(t *testing.T) {
-	cases := []uint64{
-		0,
-		1,
-		2,
-		126,
-		127,
-		128,
-		(127 << 7) + 126,
-		(127 << 7) + 127,
-		(127 << 7) + 128,
-		math.MaxUint8 - 1,
-		math.MaxUint8,
-		math.MaxUint8 + 1,
-		math.MaxUint16 - 1,
-		math.MaxUint16,
-		math.MaxUint16 + 1,
-		math.MaxUint32 - 1,
-		math.MaxUint32,
-		math.MaxUint32 + 1,
-		math.MaxUint64 - 2,
-		math.MaxUint64 - 1,
-		math.MaxUint64,
-	}
-	for _, c := range cases {
-		buf := AppendUvarint(nil, c)
-		u64, n := binary.Uvarint(buf)
-		require.Len(t, buf, n, "case: %d", c)
-		require.Exactly(t, c, u64, "case: %d", c)
-
-		buf = AppendUvarint(buf, c)
-		u64, n = binary.Uvarint(buf)
-		require.Len(t, buf, n*2, "case: %d", c)
-		require.Exactly(t, c, u64, "case: %d", c)
-		u64, n = binary.Uvarint(buf[n:])
-		require.Len(t, buf, n*2, "case: %d", c)
-		require.Exactly(t, c, u64, "case: %d", c)
 	}
 }

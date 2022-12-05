@@ -40,23 +40,13 @@ func (b Bytes) Body() Bytes {
 // extended buffer.
 func Append(dst Bytes, val []byte) Bytes {
 	if val == nil {
-		return AppendUvarint(dst, tagNull)
+		return binary.AppendUvarint(dst, tagNull)
 	}
-	dst = AppendUvarint(dst, toTag(len(val)))
+	dst = binary.AppendUvarint(dst, toTag(len(val)))
 	return append(dst, val...)
 }
 
-// AppendUvarint is like encoding/binary.PutUvarint but appends to dst instead
-// of writing into it.
-func AppendUvarint(dst []byte, u64 uint64) []byte {
-	for u64 >= 0x80 {
-		dst = append(dst, byte(u64)|0x80)
-		u64 >>= 7
-	}
-	return append(dst, byte(u64))
-}
-
-// SizeOfUvarint returns the number of bytes required by appendUvarint to
+// SizeOfUvarint returns the number of bytes required by binary.AppendUvarint to
 // represent u64.
 func SizeOfUvarint(u64 uint64) int {
 	n := 1

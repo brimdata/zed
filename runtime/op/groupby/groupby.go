@@ -2,6 +2,7 @@ package groupby
 
 import (
 	"context"
+	"encoding/binary"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -337,7 +338,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) error {
 	// We conveniently put the key type code at the end of the key string,
 	// so when we recontruct the key values below, we don't have skip over it.
 	keyType := a.keyTypes.Lookup(types)
-	keyBytes = zcode.AppendUvarint(keyBytes, uint64(keyType))
+	keyBytes = binary.AppendUvarint(keyBytes, uint64(keyType))
 	a.keyCache = keyBytes
 
 	row, ok := a.table[string(keyBytes)]
