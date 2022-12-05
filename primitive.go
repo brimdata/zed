@@ -308,12 +308,7 @@ func NewIP(a netip.Addr) *Value {
 }
 
 func AppendIP(zb zcode.Bytes, a netip.Addr) zcode.Bytes {
-	if a.Is4() {
-		ip := a.As4()
-		return append(zb, ip[:]...)
-	}
-	ip := a.As16()
-	return append(zb, ip[:]...)
+	return append(zb, a.AsSlice()...)
 }
 
 func EncodeIP(a netip.Addr) zcode.Bytes {
