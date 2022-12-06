@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/arrowio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/lakeio"
@@ -29,6 +30,8 @@ type WriterOpts struct {
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	switch opts.Format {
+	case "arrows":
+		return arrowio.NewWriter(w), nil
 	case "null":
 		return &nullWriter{}, nil
 	case "zng":

@@ -1,0 +1,21 @@
+script: |
+  source service.sh
+  zed create -q test
+  zq -f arrows in.zson |
+    curl -H Content-Type:application/vnd.apache.arrow.stream --data-binary @- \
+    --fail $ZED_LAKE/pool/test/branch/main | zq -z commit:=0 -
+  echo //
+  zed query -z 'from test'
+
+inputs:
+  - name: in.zson
+    data: |
+      {x:1}
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {commit:0,warnings:[]([string])}
+      //
+      {x:1}

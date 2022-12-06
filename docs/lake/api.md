@@ -516,6 +516,7 @@ The supported MIME types are as follows:
 
 | Format | MIME Type |
 | ------ | --------- |
+| Arrow IPC Stream | application/vnd.apache.arrow.stream |
 | CSV | text/csv |
 | JSON | application/json |
 | NDJSON | application/x-ndjson |

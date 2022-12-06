@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/arrowio"
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
@@ -28,6 +29,9 @@ func TestZed(t *testing.T) {
 			ztest.Run(t, d)
 		})
 	}
+	t.Run("ArrowStreamBoomerang", func(t *testing.T) {
+		runArrowStreamBoomerangs(t, dirs)
+	})
 	t.Run("ParquetBoomerang", func(t *testing.T) {
 		runParquetBoomerangs(t, dirs)
 	})
@@ -140,6 +144,44 @@ func isValidForZSON(input string) bool {
 		if rec == nil {
 			return true
 		}
+	}
+}
+
+func runArrowStreamBoomerangs(t *testing.T, dirs map[string]struct{}) {
+	if testing.Short() {
+		return
+	}
+	const script = `
+exec 2>&1
+zq -f arrows -o baseline.arrows fuse - &&
+zq -i arrows -f arrows -o boomerang.arrows baseline.arrows &&
+diff baseline.arrows boomerang.arrows
+`
+	bundles, err := findInputs(t, dirs, script, isValidForParquet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shellPath := ztest.ShellPath()
+	for _, b := range bundles {
+		b := b
+		t.Run(b.TestName, func(t *testing.T) {
+			t.Parallel()
+			err := b.RunScript(shellPath, t.TempDir())
+			if err != nil {
+				if s := err.Error(); strings.Contains(s, arrowio.ErrMultipleTypes.Error()) ||
+					strings.Contains(s, arrowio.ErrNotRecord.Error()) ||
+					strings.Contains(s, arrowio.ErrUnsupportedType.Error()) ||
+					strings.Contains(s, "cannot yet use maps in shaping functions") {
+					t.Skip("skipping because the Arrow writer cannot handle an input type")
+				}
+				err = &BoomerangError{
+					*b.Test.Inputs[0].Data,
+					b.FileName,
+					err,
+				}
+			}
+			require.NoError(t, err)
+		})
 	}
 }
 
