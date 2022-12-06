@@ -5,19 +5,28 @@
 ### Synopsis
 
 ```
-network_of(val: ip [, mask: net|ip|int|uint]) -> net
+network_of(val: ip [, mask: ip|net|int|uint]) -> net
 ```
 ### Description
 
 The _network_of_ function returns the network of the IP address given
 by `val` as determined by the optional `mask`.  If `mask` is an integer rather
 than a net, it is presumed to be a network prefix of the indicated length.
-If `mask` is ommited, then a class A (8 bit), B (16 bit), or C (24 bit)
+If `mask` is omitted, then a class A (8 bit), B (16 bit), or C (24 bit)
 network is inferred from `val`, which in this case, must be an IPv4 address.
 
 ### Examples
 
-Compute the network address of an IP given a network mask argument:
+Compute the network address of an IP using an `ip`-type mask argument:
+```mdtest-command
+echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128)' -
+```
+=>
+```mdtest-output
+10.1.2.128/25
+```
+
+Compute the network address of an IP using a `net`-type mask argument:
 ```mdtest-command
 echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128/25)' -
 ```
@@ -25,6 +34,7 @@ echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128/25)' -
 ```mdtest-output
 10.1.2.128/25
 ```
+
 Compute the network address of an IP given an integer prefix argument:
 ```mdtest-command
 echo '10.1.2.129' | zq -z 'yield network_of(this, 25)' -
@@ -50,4 +60,13 @@ echo 1 | zq -z 'yield network_of(this)' -
 =>
 ```mdtest-output
 error("network_of: not an IP")
+```
+
+Network masks must be contiguous:
+```mdtest-command
+echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.128.255)' -
+```
+=>
+```mdtest-output
+error("network_of: mask \"255.255.128.255\" is non-contiguous")
 ```
