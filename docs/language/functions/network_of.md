@@ -26,7 +26,7 @@ echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128)' -
 10.1.2.128/25
 ```
 
-Compute the network address of an IP using a `net`-type mask argument:
+Compute the network address of an IP using a `net` mask argument:
 ```mdtest-command
 echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128/25)' -
 ```
