@@ -42,7 +42,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			ip := zed.DecodeIP(body)
 			mask = net.IPMask(ip.AsSlice())
 			if ones, bits := mask.Size(); ones == 0 && bits == 0 {
-				return newErrorf(n.zctx, ctx, "network_of: mask %q is not in canonical form", ip.String())
+				return newErrorf(n.zctx, ctx, "network_of: mask %s is non-contiguous", ip.String())
 			}
 		case zed.IsInteger(id):
 			var nbits uint
