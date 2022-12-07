@@ -68,5 +68,5 @@ echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.128.255)' -
 ```
 =>
 ```mdtest-output
-error("network_of: mask \"255.255.128.255\" is non-contiguous")
+error("network_of: mask 255.255.128.255 is non-contiguous")
 ```
