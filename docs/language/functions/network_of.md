@@ -17,7 +17,7 @@ network is inferred from `val`, which in this case, must be an IPv4 address.
 
 ### Examples
 
-Compute the network address of an IP using an `ip`-type mask argument:
+Compute the network address of an IP using an `ip` mask argument:
 ```mdtest-command
 echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128)' -
 ```
