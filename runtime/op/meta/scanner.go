@@ -60,22 +60,14 @@ func NewPoolMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, po
 	return zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
 }
 
-func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, filter zbuf.Filter) (zbuf.Scanner, error) {
+func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, filter zbuf.Filter) (zbuf.Puller, error) {
 	p, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
 	}
 	switch meta {
 	case "objects":
-		snap, err := p.Snapshot(ctx, commit)
-		if err != nil {
-			return nil, err
-		}
-		reader, err := objectReader(ctx, zctx, snap, p.Layout.Order)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.NewScanner(ctx, reader, filter)
+		return NewSortedLister(ctx, zctx, r, p, commit, filter)
 	case "indexes":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
@@ -87,15 +79,11 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		}
 		return zbuf.NewScanner(ctx, reader, filter)
 	case "partitions":
-		snap, err := p.Snapshot(ctx, commit)
+		lister, err := NewSortedLister(ctx, zctx, r, p, commit, filter)
 		if err != nil {
 			return nil, err
 		}
-		reader, err := partitionReader(ctx, zctx, p.Layout, snap, filter)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.NewScanner(ctx, reader, filter)
+		return NewSlicer(lister, zctx, p.Layout.Order), nil
 	case "log":
 		tips, err := p.BatchifyBranchTips(ctx, zctx, nil)
 		if err != nil {
@@ -146,3 +134,21 @@ func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, ord
 		return val, err
 	}), nil
 }
+
+func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
+	indexes := snap.SelectIndexes(nil, order)
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StylePackage)
+	return readerFunc(func() (*zed.Value, error) {
+		if len(indexes) == 0 {
+			return nil, nil
+		}
+		val, err := m.Marshal(indexes[0])
+		indexes = indexes[1:]
+		return val, err
+	}), nil
+}
+
+type readerFunc func() (*zed.Value, error)
+
+func (r readerFunc) Read() (*zed.Value, error) { return r() }

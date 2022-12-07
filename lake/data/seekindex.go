@@ -4,13 +4,14 @@ import (
 	"context"
 
 	"github.com/brimdata/zed/lake/seekindex"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
 )
 
 func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.URI,
-	o *Object, cmp expr.CompareFn, filter *expr.SpanFilter, countSpan extent.Span) (seekindex.Range, error) {
+	o *Object, cmp expr.CompareFn, filter *expr.SpanFilter, countSpan extent.Span, dir order.Which) (seekindex.Range, error) {
 	r, err := engine.Get(ctx, o.SeekIndexURI(path))
 	if err != nil {
 		return seekindex.Range{}, err
@@ -23,7 +24,13 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 		if s == nil || err != nil {
 			return rg, err
 		}
-		if filter != nil && filter.Eval(s.Keys.First(), s.Keys.Last()) {
+		first := s.Keys.First()
+		last := s.Keys.Last()
+		swapper := expr.NewValueCompareFn(order.Asc, dir == order.Asc)
+		if swapper(first, last) > 0 {
+			first, last = last, first
+		}
+		if filter != nil && filter.Eval(first, last) {
 			continue
 		}
 		if countSpan != nil && !countSpan.Overlaps(s.Counts.First(), s.Counts.Last()) {
