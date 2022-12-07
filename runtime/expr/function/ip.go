@@ -30,15 +30,21 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 	} else {
 		// two args
-		id := args[1].Type.ID()
 		body := args[1].Bytes
-		if id == zed.IDNet {
+		switch id := args[1].Type.ID(); {
+		case id == zed.IDNet:
 			cidrMask := zed.DecodeNet(body)
 			if !bytes.Equal(cidrMask.IP, cidrMask.Mask) {
 				return newErrorf(n.zctx, ctx, "network_of: network arg not a cidr mask")
 			}
 			mask = cidrMask.Mask
-		} else if zed.IsInteger(id) {
+		case id == zed.IDIP:
+			ip := zed.DecodeIP(body)
+			mask = net.IPMask(ip.AsSlice())
+			if ones, bits := mask.Size(); ones == 0 && bits == 0 {
+				return newErrorf(n.zctx, ctx, "network_of: mask %s is non-contiguous", ip.String())
+			}
+		case zed.IsInteger(id):
 			var nbits uint
 			if zed.IsSigned(id) {
 				nbits = uint(zed.DecodeInt(body))
@@ -49,7 +55,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 				return newErrorf(n.zctx, ctx, "network_of: cidr bit count out of range")
 			}
 			mask = net.CIDRMask(int(nbits), int(ip.BitLen()))
-		} else {
+		default:
 			return newErrorf(n.zctx, ctx, "network_of: bad arg for cidr mask")
 		}
 	}
