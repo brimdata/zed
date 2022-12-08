@@ -38,7 +38,6 @@ type Writer struct {
 	builder          *array.RecordBuilder
 	unionTagMappings map[zed.Type][]int
 	typ              *zed.TypeRecord
-	n                int
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
@@ -48,9 +47,7 @@ func NewWriter(w io.WriteCloser) *Writer {
 func (w *Writer) Close() error {
 	var err error
 	if w.writer != nil {
-		if w.n > 0 {
-			err = w.flush()
-		}
+		err = w.flush(1)
 		w.builder.Release()
 		if err2 := w.writer.Close(); err == nil {
 			err = err2
@@ -91,15 +88,13 @@ func (w *Writer) Write(val *zed.Value) error {
 		}
 		w.buildArrowValue(builder, recType.Columns[i].Type, b)
 	}
-	w.n++
-	if w.n > recordBatchSize {
-		w.n = 0
-		return w.flush()
-	}
-	return nil
+	return w.flush(recordBatchSize)
 }
 
-func (w *Writer) flush() error {
+func (w *Writer) flush(min int) error {
+	if w.builder.Field(0).Len() < min {
+		return nil
+	}
 	rec := w.builder.NewRecord()
 	defer rec.Release()
 	w.builder.Reserve(recordBatchSize)
