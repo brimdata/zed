@@ -106,8 +106,6 @@ func (w *Writer) flush() error {
 	return w.writer.Write(rec)
 }
 
-var zedToArrowUnionTagMappings = map[zed.Type][]int{}
-
 func (w *Writer) newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 	var name string
 	if n, ok := typ.(*zed.TypeNamed); ok {
