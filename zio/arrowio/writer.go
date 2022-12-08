@@ -33,15 +33,16 @@ var (
 // with appropriately named types (see the newArrowDataType implementation), it
 // can write all Arrow types except dictionaries and sparse unions.
 type Writer struct {
-	w       io.WriteCloser
-	writer  *ipc.Writer
-	builder *array.RecordBuilder
-	typ     *zed.TypeRecord
-	n       int
+	w                io.WriteCloser
+	writer           *ipc.Writer
+	builder          *array.RecordBuilder
+	unionTagMappings map[zed.Type][]int
+	typ              *zed.TypeRecord
+	n                int
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
-	return &Writer{w: w}
+	return &Writer{w: w, unionTagMappings: map[zed.Type][]int{}}
 }
 
 func (w *Writer) Close() error {
@@ -71,7 +72,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	}
 	if w.typ == nil {
 		w.typ = recType
-		dt, err := newArrowDataType(recType)
+		dt, err := w.newArrowDataType(recType)
 		if err != nil {
 			return err
 		}
@@ -88,7 +89,7 @@ func (w *Writer) Write(val *zed.Value) error {
 		if it != nil {
 			b = it.Next()
 		}
-		buildArrowValue(builder, recType.Columns[i].Type, b)
+		w.buildArrowValue(builder, recType.Columns[i].Type, b)
 	}
 	w.n++
 	if w.n > recordBatchSize {
@@ -107,7 +108,7 @@ func (w *Writer) flush() error {
 
 var zedToArrowUnionTagMappings = map[zed.Type][]int{}
 
-func newArrowDataType(typ zed.Type) (arrow.DataType, error) {
+func (w *Writer) newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 	var name string
 	if n, ok := typ.(*zed.TypeNamed); ok {
 		name = n.Name
@@ -217,7 +218,7 @@ func newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 		}
 		var fields []arrow.Field
 		for _, field := range typ.Columns {
-			dt, err := newArrowDataType(field.Type)
+			dt, err := w.newArrowDataType(field.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -229,7 +230,7 @@ func newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 		}
 		return arrow.StructOf(fields...), nil
 	case *zed.TypeArray, *zed.TypeSet:
-		dt, err := newArrowDataType(zed.InnerType(typ))
+		dt, err := w.newArrowDataType(zed.InnerType(typ))
 		if err != nil {
 			return nil, err
 		}
@@ -248,11 +249,11 @@ func newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 		}
 		return arrow.ListOf(dt), nil
 	case *zed.TypeMap:
-		keyDT, err := newArrowDataType(typ.KeyType)
+		keyDT, err := w.newArrowDataType(typ.KeyType)
 		if err != nil {
 			return nil, err
 		}
-		valDT, err := newArrowDataType(typ.ValType)
+		valDT, err := w.newArrowDataType(typ.ValType)
 		if err != nil {
 			return nil, err
 		}
@@ -265,7 +266,7 @@ func newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 		var typeCodes []arrow.UnionTypeCode
 		var mapping []int
 		for _, typ := range typ.Types {
-			dt, err := newArrowDataType(typ)
+			dt, err := w.newArrowDataType(typ)
 			if err != nil {
 				return nil, err
 			}
@@ -281,7 +282,7 @@ func newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 			typeCodes = append(typeCodes, arrow.UnionTypeCode(typeCode))
 			mapping = append(mapping, typeCode)
 		}
-		zedToArrowUnionTagMappings[typ] = mapping
+		w.unionTagMappings[typ] = mapping
 		return arrow.DenseUnionOf(fields, typeCodes), nil
 	case *zed.TypeEnum, *zed.TypeError:
 		return arrow.BinaryTypes.String, nil
@@ -302,7 +303,7 @@ func fieldsEqual(a, b []zed.Column) bool {
 	return true
 }
 
-func buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Bytes) {
+func (w *Writer) buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Bytes) {
 	if bytes == nil {
 		b.AppendNull()
 		return
@@ -418,28 +419,28 @@ func buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Bytes) {
 		x1 := zed.DecodeUint(it.Next())
 		b.Append(decimal256.New(x1, x2, x3, x4))
 	case *array.ListBuilder:
-		buildArrowListValue(b, typ, bytes)
+		w.buildArrowListValue(b, typ, bytes)
 	case *array.StructBuilder:
 		b.Append(true)
 		it := bytes.Iter()
 		for i, field := range zed.TypeRecordOf(typ).Columns {
-			buildArrowValue(b.FieldBuilder(i), field.Type, it.Next())
+			w.buildArrowValue(b.FieldBuilder(i), field.Type, it.Next())
 		}
 	case *array.DenseUnionBuilder:
 		it := bytes.Iter()
 		tag := zed.DecodeInt(it.Next())
-		typeCode := zedToArrowUnionTagMappings[typ][tag]
+		typeCode := w.unionTagMappings[typ][tag]
 		b.Append(arrow.UnionTypeCode(typeCode))
-		buildArrowValue(b.Child(typeCode), typ.(*zed.TypeUnion).Types[tag], it.Next())
+		w.buildArrowValue(b.Child(typeCode), typ.(*zed.TypeUnion).Types[tag], it.Next())
 	case *array.MapBuilder:
 		b.Append(true)
 		typ := zed.TypeUnder(typ).(*zed.TypeMap)
 		for it := bytes.Iter(); !it.Done(); {
-			buildArrowValue(b.KeyBuilder(), typ.KeyType, it.Next())
-			buildArrowValue(b.ItemBuilder(), typ.ValType, it.Next())
+			w.buildArrowValue(b.KeyBuilder(), typ.KeyType, it.Next())
+			w.buildArrowValue(b.ItemBuilder(), typ.ValType, it.Next())
 		}
 	case *array.FixedSizeListBuilder:
-		buildArrowListValue(b, typ, bytes)
+		w.buildArrowListValue(b, typ, bytes)
 	case *array.DurationBuilder:
 		d := zed.DecodeDuration(bytes)
 		switch name {
@@ -454,7 +455,7 @@ func buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Bytes) {
 	case *array.LargeStringBuilder:
 		b.Append(zed.DecodeString(bytes))
 	case *array.LargeListBuilder:
-		buildArrowListValue(b, typ, bytes)
+		w.buildArrowListValue(b, typ, bytes)
 	case *array.MonthDayNanoIntervalBuilder:
 		it := bytes.Iter()
 		b.Append(arrow.MonthDayNanoInterval{
@@ -467,9 +468,9 @@ func buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Bytes) {
 	}
 }
 
-func buildArrowListValue(b array.ListLikeBuilder, typ zed.Type, bytes zcode.Bytes) {
+func (w *Writer) buildArrowListValue(b array.ListLikeBuilder, typ zed.Type, bytes zcode.Bytes) {
 	b.Append(true)
 	for it := bytes.Iter(); !it.Done(); {
-		buildArrowValue(b.ValueBuilder(), zed.InnerType(typ), it.Next())
+		w.buildArrowValue(b.ValueBuilder(), zed.InnerType(typ), it.Next())
 	}
 }
