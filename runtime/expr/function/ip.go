@@ -1,7 +1,6 @@
 package function
 
 import (
-	"bytes"
 	"errors"
 	"net"
 
@@ -32,12 +31,6 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		// two args
 		body := args[1].Bytes
 		switch id := args[1].Type.ID(); {
-		case id == zed.IDNet:
-			cidrMask := zed.DecodeNet(body)
-			if !bytes.Equal(cidrMask.IP, cidrMask.Mask) {
-				return newErrorf(n.zctx, ctx, "network_of: network arg not a cidr mask")
-			}
-			mask = cidrMask.Mask
 		case id == zed.IDIP:
 			ip := zed.DecodeIP(body)
 			mask = net.IPMask(ip.AsSlice())
