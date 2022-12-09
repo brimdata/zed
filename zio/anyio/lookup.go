@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
-	"github.com/brimdata/zed/zio/zng21io"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
 )
@@ -32,8 +31,6 @@ func lookupReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.ReadClos
 		return zio.NopReadCloser(zjsonio.NewReader(zctx, r)), nil
 	case "zng":
 		return zngio.NewReaderWithOpts(zctx, r, opts.ZNG), nil
-	case "zng21":
-		return zio.NopReadCloser(zng21io.NewReaderWithOpts(zctx, r, opts.ZNG)), nil
 	case "zson":
 		return zio.NopReadCloser(zsonio.NewReader(zctx, r)), nil
 	case "vng":
