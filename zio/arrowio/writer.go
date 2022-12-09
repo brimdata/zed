@@ -47,7 +47,7 @@ func NewWriter(w io.WriteCloser) *Writer {
 func (w *Writer) Close() error {
 	var err error
 	if w.writer != nil {
-		err = w.flush(true)
+		err = w.flush(1)
 		w.builder.Release()
 		if err2 := w.writer.Close(); err == nil {
 			err = err2
@@ -88,11 +88,11 @@ func (w *Writer) Write(val *zed.Value) error {
 		}
 		w.buildArrowValue(builder, recType.Columns[i].Type, b)
 	}
-	return w.flush(false)
+	return w.flush(recordBatchSize)
 }
 
-func (w *Writer) flush(partialBatch bool) error {
-	if n := w.builder.Field(0).Len(); n >= recordBatchSize || partialBatch && n > 0 {
+func (w *Writer) flush(min int) error {
+	if w.builder.Field(0).Len() < min {
 		return nil
 	}
 	rec := w.builder.NewRecord()
