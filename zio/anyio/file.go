@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 )
 
 // Open uses engine to open path for reading.  path is a local file path or a
@@ -42,20 +41,13 @@ func Open(ctx context.Context, zctx *zed.Context, engine storage.Engine, path st
 }
 
 func NewFile(zctx *zed.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
-	var err error
 	r := io.Reader(rc)
 	if opts.Format != "parquet" && opts.Format != "zst" {
 		r = GzipReader(rc)
 	}
-	var zr zio.Reader
-	if opts.Format == "" || opts.Format == "auto" {
-		zr, err = NewReaderWithOpts(zctx, r, opts)
-	} else {
-		zr, err = lookupReader(zctx, r, opts)
-	}
+	zr, err := NewReaderWithOpts(zctx, r, opts)
 	if err != nil {
 		return nil, err
 	}
-
 	return zbuf.NewFile(zr, rc, path), nil
 }

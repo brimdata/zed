@@ -16,7 +16,6 @@ import (
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
-	"github.com/brimdata/zed/zio/zng21io"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
 )
@@ -87,13 +86,6 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	}
 	track.Reset()
 
-	zng21Reader := zng21io.NewReaderWithOpts(zed.NewContext(), track, zngOpts)
-	zng21Err := match(zng21Reader, "zng21", 1)
-	if zng21Err == nil {
-		return zio.NopReadCloser(zng21io.NewReaderWithOpts(zctx, recorder, opts.ZNG)), nil
-	}
-	track.Reset()
-
 	var csvErr error
 	if s, err := bufio.NewReader(track).ReadString('\n'); err != nil {
 		csvErr = fmt.Errorf("csv: line 1: %w", err)
@@ -111,7 +103,7 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	zstErr := errors.New("zst: auto-detection not supported")
 	lineErr := errors.New("line: auto-detection not supported")
-	return nil, joinErrs([]error{arrowsErr, zeekErr, zjsonErr, zsonErr, zngErr, zng21Err, csvErr, jsonErr, parquetErr, zstErr, lineErr})
+	return nil, joinErrs([]error{arrowsErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, zstErr, lineErr})
 }
 
 func isArrowStream(track *Track) error {
