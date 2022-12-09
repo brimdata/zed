@@ -10,12 +10,12 @@ import (
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/lineio"
 	"github.com/brimdata/zed/zio/parquetio"
+	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zng21io"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zio/zstio"
 )
 
 func lookupReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.ReadCloser, error) {
@@ -36,8 +36,8 @@ func lookupReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.ReadClos
 		return zio.NopReadCloser(zng21io.NewReaderWithOpts(zctx, r, opts.ZNG)), nil
 	case "zson":
 		return zio.NopReadCloser(zsonio.NewReader(zctx, r)), nil
-	case "zst":
-		zr, err := zstio.NewReader(zctx, r)
+	case "vng":
+		zr, err := vngio.NewReader(zctx, r)
 		if err != nil {
 			return nil, err
 		}

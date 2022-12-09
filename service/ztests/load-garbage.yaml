@@ -21,6 +21,6 @@ outputs:
       	csv: line 1: no comma found
       	json: invalid character 'T' looking for beginning of value
       	parquet: auto-detection not supported
-      	zst: auto-detection not supported
+      	vng: auto-detection not supported
       	line: auto-detection not supported
       status code 400: no records in request

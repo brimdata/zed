@@ -1,4 +1,4 @@
-package zst
+package vng
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-	"github.com/brimdata/zed/zst/vector"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 )
 
 // Writer implements the zio.Writer interface. A Writer creates a vector
-// zst object from a stream of zed.Records.
+// VNG object from a stream of zed.Records.
 type Writer struct {
 	zctx       *zed.Context
 	writer     io.WriteCloser
@@ -93,19 +93,19 @@ func NewWriterFromPath(ctx context.Context, engine storage.Engine, path string, 
 
 func checkThresh(which string, max, thresh int) error {
 	if thresh == 0 {
-		return fmt.Errorf("ZST %s threshold cannot be zero", which)
+		return fmt.Errorf("VNG %s threshold cannot be zero", which)
 	}
 	if thresh > max {
-		return fmt.Errorf("ZST %s threshold too large (%d)", which, thresh)
+		return fmt.Errorf("VNG %s threshold too large (%d)", which, thresh)
 	}
 	return nil
 }
 
 func (w *Writer) Write(val *zed.Value) error {
-	// The ZST writer self-organizes around the types that are
+	// The VNG writer self-organizes around the types that are
 	// written to it.  No need to define the schema up front!
 	// We track the types seen first-come, first-served in the
-	// typeMap table and the ZST serialization structure
+	// typeMap table and the VNG serialization structure
 	// follows accordingly.
 	typ := val.Type
 	typeNo, ok := w.typeMap[typ]

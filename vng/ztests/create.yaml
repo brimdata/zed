@@ -1,6 +1,6 @@
 script: |
-  zq -f zst -o out.zst -
-  zq -z -i zst out.zst
+  zq -f vng -o out.vng -
+  zq -z -i vng out.vng
 
 inputs:
   - name: stdin
