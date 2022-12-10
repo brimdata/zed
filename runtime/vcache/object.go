@@ -51,8 +51,12 @@ func NewObject(ctx context.Context, engine storage.Engine, uri *storage.URI, id 
 	if err != nil {
 		return nil, err
 	}
+	size, err := storage.Size(reader)
+	if err != nil {
+		return nil, err
+	}
 	zctx := zed.NewContext()
-	z, err := zst.NewObjectFromStorageReader(zctx, reader)
+	z, err := zst.NewObject(zctx, reader, size)
 	if err != nil {
 		return nil, err
 	}

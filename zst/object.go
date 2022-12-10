@@ -10,12 +10,10 @@
 package zst
 
 import (
-	"context"
 	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/vector"
@@ -23,7 +21,6 @@ import (
 
 type Object struct {
 	readerAt io.ReaderAt
-	closer   io.Closer
 	zctx     *zed.Context
 	root     []vector.Segment
 	maps     []vector.Metadata
@@ -54,51 +51,6 @@ func NewObject(zctx *zed.Context, r io.ReaderAt, size int64) (*Object, error) {
 		return nil, err
 	}
 	return o, nil
-}
-
-func NewObjectFromStorageReaderNoCloser(zctx *zed.Context, r storage.Reader) (*Object, error) {
-	size, err := storage.Size(r)
-	if err != nil {
-		return nil, err
-	}
-	return NewObject(zctx, r, size)
-}
-
-func NewObjectFromStorageReader(zctx *zed.Context, r storage.Reader) (*Object, error) {
-	o, err := NewObjectFromStorageReaderNoCloser(zctx, r)
-	if err != nil {
-		return nil, err
-	}
-	o.closer = r.(io.Closer)
-	return o, nil
-}
-
-func NewObjectFromPath(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string) (*Object, error) {
-	uri, err := storage.ParseURI(path)
-	if err != nil {
-		return nil, err
-	}
-	return NewObjectFromURI(ctx, zctx, engine, uri)
-}
-
-func NewObjectFromURI(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI) (*Object, error) {
-	r, err := engine.Get(ctx, uri)
-	if err != nil {
-		return nil, err
-	}
-	object, err := NewObjectFromStorageReader(zctx, r)
-	if err != nil {
-		r.Close()
-		return nil, err
-	}
-	return object, nil
-}
-
-func (o *Object) Close() error {
-	if o.closer != nil {
-		return o.closer.Close()
-	}
-	return nil
 }
 
 func (o *Object) IsEmpty() bool {

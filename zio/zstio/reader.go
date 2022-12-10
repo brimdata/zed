@@ -15,7 +15,15 @@ func NewReader(zctx *zed.Context, r io.Reader) (*zst.Reader, error) {
 		if !storage.IsSeekable(reader) {
 			return nil, errors.New("zst must be used with a seekable input")
 		}
-		return zst.NewReaderFromStorageReader(zctx, reader)
+		size, err := storage.Size(reader)
+		if err != nil {
+			return nil, err
+		}
+		o, err := zst.NewObject(zctx, reader, size)
+		if err != nil {
+			return nil, err
+		}
+		return zst.NewReader(o)
 	}
 	// This can't be the zed system (which always using package storage)
 	// so it must be a third party using he zst library.  We could assert

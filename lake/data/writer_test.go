@@ -42,7 +42,6 @@ func TestDataReaderWriterVector(t *testing.T) {
 	v, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, zson.String(v), "{a:3,b:6}")
-	require.NoError(t, reader.Close())
 	require.NoError(t, get.Close())
 	require.NoError(t, data.DeleteVector(ctx, engine, tmp, object.ID))
 	exists, err := engine.Exists(ctx, data.VectorURI(tmp, object.ID))
