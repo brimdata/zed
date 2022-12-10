@@ -1,4 +1,4 @@
-zed: yield network_of(this, 24), network_of(this, 255.255.255.128), network_of(this, 255.128.255.255)
+zed: yield network_of(this, 24), network_of(this, 255.255.255.128), network_of(this, 255.128.255.255), network_of(this, ff::)
 
 input: |
   10.1.2.129
@@ -7,3 +7,4 @@ output: |
   10.1.2.0/24
   10.1.2.128/25
   error("network_of: mask 255.128.255.255 is non-contiguous")
+  error("network_of: address 10.1.2.129 and mask ff:: have different lengths")

@@ -3,7 +3,7 @@ package expr
 import (
 	"fmt"
 	"math"
-	"net"
+	"net/netip"
 	"unicode/utf8"
 
 	"github.com/araddon/dateparse"
@@ -151,8 +151,7 @@ func (c *casterNet) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !val.IsString() {
 		return ectx.CopyValue(c.zctx.NewErrorf("cannot cast %s to type net", zson.MustFormatValue(val)))
 	}
-	// XXX GC
-	_, net, err := net.ParseCIDR(string(val.Bytes))
+	net, err := netip.ParsePrefix(string(val.Bytes))
 	if err != nil {
 		return ectx.CopyValue(c.zctx.NewErrorf("cannot cast %s to type net", zson.MustFormatValue(val)))
 	}
