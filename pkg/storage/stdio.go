@@ -20,7 +20,7 @@ func (*StdioEngine) Get(_ context.Context, u *URI) (Reader, error) {
 	if u.Scheme != "stdio" || (u.Path != "stdin" && u.Path != "") {
 		return nil, fmt.Errorf("cannot read from %q", u)
 	}
-	return &nopReadAtCloser{os.Stdin}, nil
+	return &notSupportedReaderAt{io.NopCloser(os.Stdin)}, nil
 }
 
 func (*StdioEngine) Put(ctx context.Context, u *URI) (io.WriteCloser, error) {
@@ -66,20 +66,4 @@ type NopCloser struct {
 
 func (*NopCloser) Close() error {
 	return nil
-}
-
-type nopReadAtCloser struct {
-	io.Reader
-}
-
-func (*nopReadAtCloser) Close() error {
-	return nil
-}
-
-func (*nopReadAtCloser) ReadAt([]byte, int64) (int, error) {
-	return 0, ErrNotSupported
-}
-
-func (*nopReadAtCloser) Seek(int64, int) (int64, error) {
-	return 0, ErrNotSupported
 }
