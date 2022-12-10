@@ -79,7 +79,3 @@ func (*nopReadAtCloser) Close() error {
 func (*nopReadAtCloser) ReadAt([]byte, int64) (int, error) {
 	return 0, ErrNotSupported
 }
-
-func (*nopReadAtCloser) Seek(int64, int) (int64, error) {
-	return 0, ErrNotSupported
-}
