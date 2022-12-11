@@ -38,6 +38,12 @@ type (
 		LHS  Expr   `json:"lhs"`
 		RHS  string `json:"rhs"`
 	}
+	Func struct {
+		Kind    string   `json:"func" unpack:""`
+		Name    string   `json:"name"`
+		Formals []string `json:"formals"`
+		Expr    Expr     `json:"expr"`
+	}
 	MapExpr struct {
 		Kind    string  `json:"kind" unpack:""`
 		Entries []Entry `json:"entries"`
@@ -142,6 +148,7 @@ func (*BinaryExpr) ExprDAG()   {}
 func (*Call) ExprDAG()         {}
 func (*Conditional) ExprDAG()  {}
 func (*Dot) ExprDAG()          {}
+func (*Func) ExprDAG()         {}
 func (*Literal) ExprDAG()      {}
 func (*MapExpr) ExprDAG()      {}
 func (*RecordExpr) ExprDAG()   {}

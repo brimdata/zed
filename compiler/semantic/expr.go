@@ -456,6 +456,17 @@ func semCall(scope *Scope, call *ast.Call) (dag.Expr, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: bad argument: %w", call.Name, err)
 	}
+	// Call could be to a user defined func. Check if we have a matching func in
+	// scope.
+	if e := scope.Lookup(call.Name); e != nil {
+		f, ok := e.(*dag.Func)
+		if !ok {
+			return nil, fmt.Errorf("%s(): definition is not a function type: %T", call.Name, e)
+		}
+		if len(f.Formals) != len(call.Args) {
+			return nil, fmt.Errorf("%s(): expects %d arg(s)", call.Name, len(f.Formals))
+		}
+	}
 	return &dag.Call{
 		Kind: "Call",
 		Name: call.Name,

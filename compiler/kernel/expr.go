@@ -335,10 +335,16 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 	if isShaperFunc(call.Name) {
 		return b.compileShaper(call)
 	}
-	nargs := len(call.Args)
-	fn, path, err := function.New(b.zctx(), call.Name, nargs)
-	if err != nil {
-		return nil, fmt.Errorf("%s(): %w", call.Name, err)
+	var path field.Path
+	// First check if call is to a user defined function, otherwise check for
+	// builtin function.
+	fn, ok := b.funcs[call.Name]
+	if !ok {
+		var err error
+		fn, path, err = function.New(b.zctx(), call.Name, len(call.Args))
+		if err != nil {
+			return nil, fmt.Errorf("%s(): %w", call.Name, err)
+		}
 	}
 	args := call.Args
 	if path != nil {

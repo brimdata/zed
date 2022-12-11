@@ -1,0 +1,10 @@
+zed: |
+  def overflow(n): (
+    overflow(n+1)
+  )
+  yield overflow(this)
+
+input: |
+  3
+
+errorRE: "stack overflow"
