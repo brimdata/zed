@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
-	"net"
+	"math/bits"
 	"net/netip"
 
 	"github.com/brimdata/zed/pkg/nano"
@@ -333,43 +333,50 @@ func (t *TypeOfIP) Kind() Kind {
 
 type TypeOfNet struct{}
 
-func NewNet(s *net.IPNet) *Value {
-	return &Value{TypeNet, EncodeNet(s)}
+func NewNet(p netip.Prefix) *Value {
+	return &Value{TypeNet, EncodeNet(p)}
 }
 
-func AppendNet(zb zcode.Bytes, subnet *net.IPNet) zcode.Bytes {
-	if ip := subnet.IP.To4(); ip != nil {
-		zb = append(zb, ip...)
-		if len(subnet.Mask) == 16 {
-			return append(zb, subnet.Mask[12:]...)
-		}
-		return append(zb, subnet.Mask...)
+var ones = [16]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+
+func AppendNet(zb zcode.Bytes, p netip.Prefix) zcode.Bytes {
+	// Mask for canonical form.
+	p = p.Masked()
+	zb = append(zb, p.Addr().AsSlice()...)
+	length := p.Addr().BitLen() / 8
+	onesAddr, ok := netip.AddrFromSlice(ones[:length])
+	if !ok {
+		panic(fmt.Sprintf("bad slice length %d for %s", length, p))
 	}
-	zb = append(zb, subnet.IP...)
-	return append(zb, subnet.Mask...)
+	mask := netip.PrefixFrom(onesAddr, p.Bits()).Masked()
+	return append(zb, mask.Addr().AsSlice()...)
 }
 
-func EncodeNet(subnet *net.IPNet) zcode.Bytes {
-	return AppendNet(nil, subnet)
+func EncodeNet(p netip.Prefix) zcode.Bytes {
+	return AppendNet(nil, p)
 }
 
-func DecodeNet(zv zcode.Bytes) *net.IPNet {
+func DecodeNet(zv zcode.Bytes) netip.Prefix {
 	if zv == nil {
-		return nil
+		return netip.Prefix{}
 	}
-	switch len(zv) {
-	case 8:
-		return &net.IPNet{
-			IP:   net.IP(zv[:4]),
-			Mask: net.IPMask(zv[4:]),
-		}
-	case 32:
-		return &net.IPNet{
-			IP:   net.IP(zv[:16]),
-			Mask: net.IPMask(zv[16:]),
+	a, ok := netip.AddrFromSlice(zv[:len(zv)/2])
+	if !ok {
+		panic("failure trying to decode IP subnet that is not 8 or 32 bytes long")
+	}
+	return netip.PrefixFrom(a, LeadingOnes(zv[len(zv)/2:]))
+}
+
+// LeadingOnes returns the number of leading one bits in b.
+func LeadingOnes(b []byte) int {
+	var n int
+	for ; len(b) > 0; b = b[1:] {
+		n += bits.LeadingZeros8(b[0] ^ 0xff)
+		if b[0] != 0xff {
+			break
 		}
 	}
-	panic("failure trying to decode IP subnet that is not 8 or 32 bytes long")
+	return n
 }
 
 func (t *TypeOfNet) ID() int {

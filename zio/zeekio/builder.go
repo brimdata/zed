@@ -3,7 +3,7 @@ package zeekio
 import (
 	"bytes"
 	"errors"
-	"net"
+	"net/netip"
 	"unicode/utf8"
 
 	"github.com/brimdata/zed"
@@ -201,7 +201,7 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 		}
 		b.buf = zed.AppendIP(b.buf[:0], v)
 	case zed.IDNet:
-		_, v, err := net.ParseCIDR(string(val))
+		v, err := netip.ParsePrefix(string(val))
 		if err != nil {
 			return err
 		}
