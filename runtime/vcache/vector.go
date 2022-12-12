@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zst/vector"
 )
 
 type iterator func(*zcode.Builder) error
 
 // Vector is the primary interface to in-memory sequences of Zed values
-// representing the ZST vector format.  As we implement additional optimizations
+// representing the VNG vector format.  As we implement additional optimizations
 // and various forms of pushdown, we will enhance this interface with
 // corresponding methods.
 type Vector interface {
 	NewIter(io.ReaderAt) (iterator, error)
 }
 
-// NewVector converts a ZST metadata reader to its equivalent vector cache
+// NewVector converts a VNG metadata reader to its equivalent vector cache
 // metadata manager.
 func NewVector(meta vector.Metadata, r io.ReaderAt) (Vector, error) {
 	switch meta := meta.(type) {

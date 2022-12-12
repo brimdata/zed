@@ -1,15 +1,15 @@
-package zst
+package vng
 
 import (
 	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zst/vector"
 )
 
-// Reader implements zio.Reader for a vector ZST object.
+// Reader implements zio.Reader for a VNG object.
 type Reader struct {
 	root    *vector.Int64Reader
 	readers []typedReader
@@ -47,7 +47,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 		return nil, nil
 	}
 	if typeNo < 0 || int(typeNo) >= len(r.readers) {
-		return nil, fmt.Errorf("system error: type number out of range in ZST root metadata")
+		return nil, fmt.Errorf("system error: type number out of range in VNG root metadata")
 	}
 	tr := r.readers[typeNo]
 	if err := tr.reader.Read(&r.builder); err != nil {

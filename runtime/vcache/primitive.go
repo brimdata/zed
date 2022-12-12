@@ -3,8 +3,8 @@ package vcache
 import (
 	"io"
 
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zst/vector"
 )
 
 type Primitive struct {
@@ -18,7 +18,7 @@ func NewPrimitive(meta *vector.Primitive) (*Primitive, error) {
 
 func (p *Primitive) NewIter(r io.ReaderAt) (iterator, error) {
 	if p.bytes == nil {
-		// The ZST primitive columns are stored as one big
+		// The VNG primitive columns are stored as one big
 		// list of Zed values.  So we can just read the data in
 		// all at once, compute the byte offsets of each value
 		// (for random access, not used yet).

@@ -3,13 +3,13 @@ package vcache
 import (
 	"io"
 
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zst/vector"
 )
 
 type Nulls struct {
 	// The runs array encodes the run lengths of values and nulls in
-	// the same fashion as the ZST Nulls vector.
+	// the same fashion as the VNG Nulls vector.
 	// This data structure provides a nice way to creator an iterator closure
 	// and (somewhat) efficiently build all the values that comprise a field
 	// into an zcode.Builder while allowing projections to intermix the calls

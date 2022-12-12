@@ -1,12 +1,12 @@
 script: |
-  zq -f zst -o o1.zst p1.zson
-  zq -z -o o1.zson -i zst o1.zst
-  zq -f zst -o o2.zst p2.zson
-  zq -z -o o2.zson -i zst o2.zst
-  zq -f zst -o o3.zst p3.zson
-  zq -z -o o3.zson -i zst o3.zst
-  zq -f zst -o o4.zst p4.zson
-  zq -z -o o4.zson -i zst o4.zst
+  zq -f vng -o o1.vng p1.zson
+  zq -z -o o1.zson -i vng o1.vng
+  zq -f vng -o o2.vng p2.zson
+  zq -z -o o2.zson -i vng o2.vng
+  zq -f vng -o o3.vng p3.zson
+  zq -z -o o3.zson -i vng o3.vng
+  zq -f vng -o o4.vng p4.zson
+  zq -z -o o4.zson -i vng o4.vng
 
 inputs:
   - name: p1.zson

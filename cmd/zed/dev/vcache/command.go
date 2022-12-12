@@ -11,7 +11,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "vcache",
 	Usage: "vcache sub-command [arguments...]",
-	Short: "run specified zst vector test",
+	Short: "run specified VNG vector test",
 	Long: `
 vcache runs various tests of the vector cache as specified by its sub-command.`,
 	New: New,
