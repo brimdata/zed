@@ -270,7 +270,7 @@ documents are Zed values as the ZSON format is a strict superset of the JSON syn
 * [ZNG](zng.md) is a row-based, binary representation of Zed data somewhat like
 Avro but with Zed's more general model to represent a sequence of arbitrarily-typed
 values.
-* [ZST](zst.md) is a columnar version of ZNG like Parquet or ORC but also
+* [VNG](vng.md) is a columnar version of ZNG like Parquet or ORC but also
 embodies Zed's more general model for heterogeneous and self-describing schemas.
 * [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
 in JSON for easy decoding by JSON-based clients, e.g.,

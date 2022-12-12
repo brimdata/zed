@@ -39,7 +39,7 @@ a number of different elements of the system:
 * The [Zed data model](formats/zed.md) is the abstract definition of the data types and semantics
 that underlie the Zed formats.
 * The [Zed formats](formats/README.md) are a family of
-[sequential (ZNG)](formats/zng.md), [columnar (ZST)](formats/zst.md),
+[sequential (ZNG)](formats/zng.md), [columnar (VNG)](formats/vng.md),
 and [human-readable (ZSON)](formats/zson.md) formats that all adhere to the
 same abstract Zed data model.
 * A [Zed lake](commands/zed.md) is a collection of optionally-indexed Zed data stored

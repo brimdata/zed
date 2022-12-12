@@ -42,7 +42,7 @@ func Open(ctx context.Context, zctx *zed.Context, engine storage.Engine, path st
 
 func NewFile(zctx *zed.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
 	r := io.Reader(rc)
-	if opts.Format != "parquet" && opts.Format != "zst" {
+	if opts.Format != "parquet" && opts.Format != "vng" {
 		r = GzipReader(rc)
 	}
 	zr, err := NewReaderWithOpts(zctx, r, opts)

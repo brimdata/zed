@@ -1,41 +1,41 @@
 ---
 sidebar_position: 4
-sidebar_label: ZST
+sidebar_label: VNG
 ---
 
-# ZST Specification
+# VNG Specification
 
-ZST, pronounced "zest", is a file format for columnar data based on
+VNG, pronounced "ving", is a file format for columnar data based on
 [the Zed data model](zed.md).
-ZST is the "stacked" version of Zed, where the fields from a stream of
+VNG is the "stacked" version of Zed, where the fields from a stream of
 Zed records are stacked into vectors that form columns.
 Its purpose is to provide for efficient analytics and search over
 bounded-length sequences of [ZNG](zng.md) data that is stored in columnar form.
 
 Like [Parquet](https://github.com/apache/parquet-format),
-ZST provides an efficient columnar representation for semi-structured data,
-but unlike Parquet, ZST is not based on schemas and does not require
+VNG provides an efficient columnar representation for semi-structured data,
+but unlike Parquet, VNG is not based on schemas and does not require
 a schema to be declared when writing data to a file.  Instead,
-ZST exploits the super-structured nature of Zed data: columns of data
+VNG exploits the super-structured nature of Zed data: columns of data
 self-organize around their type structure.
 
-## ZST Files
+## VNG Files
 
-A ZST file encodes a bounded, ordered sequence of Zed values.
-To provide for efficient access to subsets of ZST-encoded data (e.g., columns),
-the ZST file is presumed to be accessible via random access
+A VNG file encodes a bounded, ordered sequence of Zed values.
+To provide for efficient access to subsets of VNG-encoded data (e.g., columns),
+the VNG file is presumed to be accessible via random access
 (e.g., range requests to a cloud object store or seeks in a Unix file system)
-and ZST is therefore not intended as a streaming or communication format.
+and VNG is therefore not intended as a streaming or communication format.
 
-A ZST file can be stored entirely as one storage object
+A VNG file can be stored entirely as one storage object
 or split across separate objects that are treated
-together as a single ZST entity.  While the ZST format provides much flexibility
+together as a single VNG entity.  While the VNG format provides much flexibility
 for how data is laid out, it is left to an implementation to lay out data
 in intelligent ways for efficient sequential read accesses of related data.
 
 ## Column Streams
 
-The ZST data abstraction is built around a collection of _column streams_.
+The VNG data abstraction is built around a collection of _column streams_.
 
 There is one column stream for each top-level type encountered in the input where
 each column stream is encoded according to its type.  For top-level complex types,
@@ -54,7 +54,7 @@ the reconstruction process is recursive (as described below).
 
 ## The Physical Layout
 
-The overall layout of a ZST file is comprised of the following sections,
+The overall layout of a VNG file is comprised of the following sections,
 in this order:
 * the data section,
 * the reassembly section, and
@@ -64,13 +64,13 @@ This layout allows an implementation to buffer metadata in
 memory while writing column data in a natural order to the
 data section (based on the volume statistics of each column),
 then write the metadata into the reassembly section along with the trailer
-at the end.  This allows a ZNG stream to be converted to a ZST file
+at the end.  This allows a ZNG stream to be converted to a VNG file
 in a single pass.
 
 > That said, the layout is
 > flexible enough that an implementation may optimize the data layout with
 > additional passes or by writing the output to multiple files then
-> merging them together (or even leaving the ZST entity as separate files).
+> merging them together (or even leaving the VNG entity as separate files).
 
 ### The Data Section
 
@@ -130,7 +130,7 @@ from column streams, i.e., to map columns back to composite values.
 > Of course, the reassembly section also provides the ability to extract just subsets of columns
 > to be read and searched efficiently without ever needing to reconstruct
 > the original rows.  How well this performs is up to any particular
-> ZST implementation.
+> VNG implementation.
 >
 > Also, the reassembly section is in general vastly smaller than the data section
 > so the goal here isn't to express information in cute and obscure compact forms
@@ -147,7 +147,7 @@ analogous data structures, we simply reuse ZNG here.
 This reassembly stream encodes 2*N+1 Zed values, where N is equal to the number
 of top-level Zed types that are present in the encoded input.
 To simplify terminology, we call a top-level Zed type a "super type",
-e.g., there are N unique super types encoded in the ZST file.
+e.g., there are N unique super types encoded in the VNG file.
 
 These N super types are defined by the first N values of the reassembly stream
 and are encoded as a null value of the indicated super type.
@@ -193,7 +193,7 @@ The super column stream is encoded as a sequence of ZNG-encoded `int32` primitiv
 While there are a large number entries in the super column (one for each original row),
 the cardinality of super IDs is small in practice so this column
 will compress very significantly, e.g., in the special case that all the
-values in the ZST file have the same super ID,
+values in the VNG file have the same super ID,
 the super column will compress trivially.
 
 The reassembly map appears as the next value in the reassembly section
@@ -207,7 +207,7 @@ Each reassembly record is a record of type `<any_column>`, as defined below,
 where each reassembly record appears in the same sequence as the original N schemas.
 Note that there is no "any" type in Zed, but rather this terminology is used
 here to refer to any of the concrete type structures that would appear
-in a given ZST file.
+in a given VNG file.
 
 In other words, the reassembly record of the super column
 combined with the N reassembly records collectively define the original sequence
@@ -323,29 +323,29 @@ compression based on segment framing).
 ### The Trailer
 
 After the reassembly section is a ZNG stream with a single record defining
-the "trailer" of the ZST file.  The trailer provides a magic field
-indicating the "zst" format, a version number,
+the "trailer" of the VNG file.  The trailer provides a magic field
+indicating the "vng" format, a version number,
 the size of the segment threshold for decomposing segments into frames,
 the size of the skew threshold for flushing all segments to storage when
 the memory footprint roughly exceeds this threshold,
-and an array of sizes in bytes of the sections of the ZST file.
+and an array of sizes in bytes of the sections of the VNG file.
 
 This type of this record has the format
 ```
 {magic:string,type:string,version:int64,sections:[int64],meta:{skew_thresh:int64,segment_thresh:int64}
 ```
 The trailer can be efficiently found by scanning backward from the end of the
-ZST file to find a valid ZNG stream containing a single record value
+VNG file to find a valid ZNG stream containing a single record value
 conforming to the above type.
 
 ## Decoding
 
-To decode an entire ZST file into rows, the trailer is read to find the sizes
+To decode an entire VNG file into rows, the trailer is read to find the sizes
 of the sections, then the ZNG stream of the reassembly section is read,
 typically in its entirety.
 
 Since this data structure is relatively small compared to all of the columnar
-data in the ZST file,
+data in the VNG file,
 it will typically fit comfortably in memory and it can be very fast to scan the
 entire reassembly structure for any purpose.
 
@@ -354,7 +354,7 @@ entire reassembly structure for any purpose.
 > an intelligent plan for reading the needed segments and attempt to read them
 > in mostly sequential order, which could serve as
 > an optimizing intermediary between any underlying storage API and the
-> ZST decoding logic.
+> VNG decoding logic.
 
 To decode the "next" row, its schema index is read from the root reassembly
 column stream.
@@ -391,12 +391,12 @@ Start with this ZNG data (shown as human-readable [ZSON](zson.md)):
 {a:"goodnight",b:"gracie"}
 ```
 
-To convert to ZST format:
+To convert to VNG format:
 ```
-zq -f zst hello.zson > hello.zst
+zq -f vng hello.zson > hello.vng
 ```
 
-Segments in the ZST format would be laid out like this:
+Segments in the VNG format would be laid out like this:
 ```
 === column for a
 hello
@@ -409,10 +409,10 @@ gracie
 0
 ===
 ```
-To see the detailed ZST structure described as ZSON, you can use the `zst`
+To see the detailed VNG structure described as ZSON, you can use the `vng`
 command like this:
 ```
-zed dev dig section -Z 1 hello.zst
+zed dev dig section -Z 1 hello.vng
 ```
 which provides the Zed output (comments added with explanations):
 ```
@@ -455,15 +455,15 @@ null ({a:string,b:string})
 }
 
 ```
-The ZST trailer can be viewed with this command:
+The VNG trailer can be viewed with this command:
 ```
-zed dev dig trailer -Z hello.zst
+zed dev dig trailer -Z hello.vng
 ```
 giving
 ```
 {
     magic: "ZNG Trailer",
-    type: "zst",
+    type: "vng",
     version: 2,
     sections: [
         31,
@@ -472,7 +472,7 @@ giving
     meta: {
         skew_thresh: 26214400,
         segment_thresh: 5242880
-    } (=zst.FileMeta)
+    } (=vng.FileMeta)
 } (=zngio.Trailer)
 ```
 

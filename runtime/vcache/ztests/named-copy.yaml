@@ -1,6 +1,6 @@
 script: |
-  zq -f zst -o test.zst -
-  zed dev vcache copy -z test.zst
+  zq -f vng -o test.vng -
+  zed dev vcache copy -z test.vng
 
 inputs:
   - name: stdin

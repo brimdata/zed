@@ -38,7 +38,7 @@ See https://github.com/brimdata/zed/tree/main/docs/language
 for details.
 
 Supported input formats include CSV, JSON, NDJSON, Parquet,
-ZSON, ZNG, ZST, and Zeek TSV.  Supported output formats include
+VNG, ZNG, ZSON, and Zeek TSV.  Supported output formats include
 all the input formats along with a SQL-like table format.
 
 "zq" must be run with at least one input.  Input files can

@@ -15,8 +15,8 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
+	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zio/zstio"
 )
 
 type Flags struct {
@@ -48,10 +48,10 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 		"tab size to pretty print ZSON output (0 for newline-delimited ZSON")
 	fs.StringVar(&f.zsonPersist, "persist", "",
 		"regular expression to persist type definitions across the stream")
-	f.Zst.ColumnThresh = zstio.DefaultColumnThresh
-	fs.Var(&f.Zst.ColumnThresh, "coltresh", "minimum frame size (MiB) used for zst columns")
-	f.Zst.SkewThresh = zstio.DefaultSkewThresh
-	fs.Var(&f.Zst.SkewThresh, "skewtresh", "minimum skew size (MiB) used to group zst columns")
+	f.VNG.ColumnThresh = vngio.DefaultColumnThresh
+	fs.Var(&f.VNG.ColumnThresh, "coltresh", "minimum frame size (MiB) used for VNG columns")
+	f.VNG.SkewThresh = vngio.DefaultSkewThresh
+	fs.Var(&f.VNG.SkewThresh, "skewtresh", "minimum skew size (MiB) used to group VNG columns")
 
 	// emitter stuff
 	fs.StringVar(&f.split, "split", "",
@@ -75,7 +75,7 @@ func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 	if f.DefaultFormat == "" {
 		f.DefaultFormat = "zng"
 	}
-	fs.StringVar(&f.Format, "f", f.DefaultFormat, "format for output data [zng,zst,json,parquet,table,text,csv,lake,zeek,zjson,zson]")
+	fs.StringVar(&f.Format, "f", f.DefaultFormat, "format for output data [zng,vng,json,parquet,table,text,csv,lake,zeek,zjson,zson]")
 	fs.BoolVar(&f.jsonShortcut, "j", false, "use line-oriented JSON output independent of -f option")
 	fs.BoolVar(&f.zsonShortcut, "z", false, "use line-oriented ZSON output independent of -f option")
 	fs.BoolVar(&f.zsonPretty, "Z", false, "use formatted ZSON output independent of -f option")

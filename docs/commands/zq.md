@@ -100,9 +100,9 @@ Note here that the query `1+1` [implies](../language/overview.md#26-implied-oper
 | `json`    |  yes | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
 | `csv`     |  yes | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
 | `parquet` |  no  | [Apache Parquet](https://github.com/apache/parquet-format) |
+| `vng`     |  no  | [VNG - Binary Columnar Format](../formats/vng.md) |
 | `zson`    |  yes | [ZSON - Human-readable Format](../formats/zson.md) |
 | `zng`     |  yes | [ZNG - Binary Row Format](../formats/zson.md) |
-| `zst`     |  no  | [ZST - Binary Columnar Format](../formats/zst.md) |
 | `zjson`   |  yes | [ZJSON - Zed over JSON](../formats/zjson.md) |
 | `zeek`    |  yes | [Zeek Logs](https://docs.zeek.org/en/master/logs/index.html) |
 
@@ -157,7 +157,7 @@ not desirable because (1) the ZSON parser is not particularly performant and
 JSON any number that appears without a decimal point as an integer type.
 
 > The reason `zq` is not particularly performant for ZSON is that the ZNG or
-> ZST formats are semantically equivalent to ZSON but much more efficient and
+> VNG formats are semantically equivalent to ZSON but much more efficient and
 > the design intent is that these efficient binary formats should be used in
 > use cases where performance matters.  ZSON is typically used only when
 > data needs to be human-readable in interactive settings or in automated tests.
