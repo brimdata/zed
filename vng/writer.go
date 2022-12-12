@@ -1,13 +1,10 @@
 package vng
 
 import (
-	"context"
 	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -65,32 +62,6 @@ func (w *Writer) Close() error {
 	return firstErr
 }
 
-type WriterURI struct {
-	Writer
-	engine storage.Engine
-	uri    *storage.URI
-}
-
-func NewWriterFromPath(ctx context.Context, engine storage.Engine, path string, skewThresh, segThresh int) (*WriterURI, error) {
-	uri, err := storage.ParseURI(path)
-	if err != nil {
-		return nil, err
-	}
-	w, err := engine.Put(ctx, uri)
-	if err != nil {
-		return nil, err
-	}
-	writer, err := NewWriter(bufwriter.New(w), skewThresh, segThresh)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", uri, err)
-	}
-	return &WriterURI{
-		Writer: *writer,
-		engine: engine,
-		uri:    uri,
-	}, nil
-}
-
 func checkThresh(which string, max, thresh int) error {
 	if thresh == 0 {
 		return fmt.Errorf("VNG %s threshold cannot be zero", which)
@@ -127,24 +98,6 @@ func (w *Writer) Write(val *zed.Value) error {
 		return w.flush(false)
 	}
 	return nil
-}
-
-// Abort closes this writer, deleting any and all objects and/or files associated
-// with it.
-func (w *WriterURI) Abort(ctx context.Context) error {
-	firstErr := w.writer.Close()
-	if err := w.engine.DeleteByPrefix(ctx, w.uri); firstErr == nil {
-		firstErr = err
-	}
-	return firstErr
-}
-
-func (w *WriterURI) Close() error {
-	if err := w.finalize(); err != nil {
-		w.writer.Close()
-		return err
-	}
-	return w.writer.Close()
 }
 
 func (w *Writer) flush(eof bool) error {
