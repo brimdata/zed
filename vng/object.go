@@ -1,13 +1,13 @@
-// Package zst implements the reading and writing of ZST storage objects
-// to and from any Zed format.  The ZST storage format is described
-// at https://github.com/brimdata/zed/blob/main/docs/formats/zst.md.
+// Package vng implements the reading and writing of VNG storage objects
+// to and from any Zed format.  The VNG storage format is described
+// at https://github.com/brimdata/zed/blob/main/docs/formats/vng.md.
 //
-// A ZST storage object must be seekable (e.g., a local file or S3 object),
-// so, unlike ZNG, streaming of ZST objects is not supported.
+// A VNG storage object must be seekable (e.g., a local file or S3 object),
+// so, unlike ZNG, streaming of VNG objects is not supported.
 //
-// The zst/vector package handles reading and writing Zed sequence data to vectors,
-// while the zst package comprises the API used to read and write ZST objects.
-package zst
+// The vng/vector package handles reading and writing Zed sequence data to vectors,
+// while the vng package comprises the API used to read and write VNG objects.
+package vng
 
 import (
 	"context"
@@ -16,9 +16,9 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-	"github.com/brimdata/zed/zst/vector"
 )
 
 type Object struct {
@@ -144,7 +144,7 @@ func (o *Object) readMetaData() error {
 		return err
 	}
 	// The rest of the values are vector.Metadata, one for each
-	// Zed type that has been encoded into the ZST file.
+	// Zed type that has been encoded into the VNG file.
 	for {
 		val, err = reader.Read()
 		if err != nil {

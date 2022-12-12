@@ -10,12 +10,12 @@ import (
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zio/zstio"
 	"github.com/segmentio/ksuid"
 )
 
-// CreateVector writes the vectorized form of an existing Object in the ZST format.
+// CreateVector writes the vectorized form of an existing Object in the VNG format.
 func CreateVector(ctx context.Context, engine storage.Engine, path *storage.URI, id ksuid.KSUID) error {
 	get, err := engine.Get(ctx, SequenceURI(path, id))
 	if err != nil {
@@ -30,9 +30,9 @@ func CreateVector(ctx context.Context, engine storage.Engine, path *storage.URI,
 		get.Close()
 		return err
 	}
-	writer, err := zstio.NewWriter(bufwriter.New(put), zstio.WriterOpts{
-		ColumnThresh: zstio.DefaultColumnThresh,
-		SkewThresh:   zstio.DefaultSkewThresh,
+	writer, err := vngio.NewWriter(bufwriter.New(put), vngio.WriterOpts{
+		ColumnThresh: vngio.DefaultColumnThresh,
+		SkewThresh:   vngio.DefaultSkewThresh,
 	})
 	if err != nil {
 		get.Close()

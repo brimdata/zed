@@ -429,7 +429,7 @@ questions.
 ## v0.23.0
 * zql: Add `week` as a unit for [time grouping with `every`](docs/language/functions/every.md) (#1374)
 * zq: Fix an issue where a `null` value in a [JSON type definition](zeek/README.md) caused a failure without an error message (#1377)
-* zq: Add [`zst` format](docs/formats/zst.md) to `-i` and `-f` command-line help (#1384)
+* zq: Add [`zst` format](docs/formats/vng.md) to `-i` and `-f` command-line help (#1384)
 * zq: ZNG spec and `zq` updates to introduce the beta ZNG storage format (#1375, #1415, #1394, #1457, #1512, #1523, #1529), also addressing the following:
    * New data type `bytes` for storing sequences of bytes encoded as base64 (#1315)
    * Improvements to the `enum` data type (#1314)
@@ -493,7 +493,7 @@ questions.
 * zqd: Fix an issue where starting `zqd listen` created excess error messages when subdirectories were present (#1303)
 * zql: Add the [`fuse` operator](docs/language/operators/fuse.md) for unifying records under a single schema (#1310, #1319, #1324)
 * zql: Fix broken links in documentation (#1321, #1339)
-* zst: Introduce the [ZST format](docs/formats/zst.md) for columnar data based on ZNG (#1268, #1338)
+* zst: Introduce the [ZST format](docs/formats/vng.md) for columnar data based on ZNG (#1268, #1338)
 * pcap: Fix an issue where certain pcapng files could fail import with a `bad option length` error (#1341)
 * zql: [Document the `**` operator](docs/language/README.md#search-syntax) for type-specific searches that look within nested records (#1337)
 * zar: Change the archive data file layout to prepare for handing chunk files with overlapping ranges and improved S3 support (#1330)

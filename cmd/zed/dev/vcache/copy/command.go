@@ -17,13 +17,13 @@ import (
 var Copy = &charm.Spec{
 	Name:  "copy",
 	Usage: "copy [flags] path",
-	Short: "read a ZST file and copy to the output through the vector cache",
+	Short: "read a VNG file and copy to the output through the vector cache",
 	Long: `
-The copy command reads ZST vectors from
-a ZST storage objects (local files or s3 objects) and outputs
+The copy command reads VNG vectors from
+a VNG storage objects (local files or s3 objects) and outputs
 the reconstructed ZNG row data by exercising the vector cache.
 
-This command is most useful for testing the ZST vector cache.
+This command is most useful for testing the VNG vector cache.
 `,
 	New: newCommand,
 }
@@ -50,7 +50,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 1 {
-		return errors.New("zst read: must be run with a single path argument")
+		return errors.New("VNG read: must be run with a single path argument")
 	}
 	uri, err := storage.ParseURI(args[0])
 	if err != nil {
