@@ -9,7 +9,7 @@ sidebar_label: ZJSON
 
 The [Zed data model](zed.md)
 is based on richly typed records with a deterministic column order,
-as is implemented by the [ZSON](zson.md), [ZNG](zng.md), and [ZST](zst.md) formats.
+as is implemented by the [ZSON](zson.md), [ZNG](zng.md), and [VNG](vng.md) formats.
 Given the ubiquity of JSON, it is desirable to also be able to serialize
 Zed data into the JSON format.   However, encoding Zed data values
 directly as JSON values would not work without loss of information.
@@ -78,7 +78,7 @@ its embedded type model all in a layer above regular JSON.
 ## 2. The Format
 
 The format for representing Zed in JSON is called ZJSON.
-Converting ZSON, ZNG, or ZST to ZJSON and back results in a complete and
+Converting ZSON, ZNG, or VNG to ZJSON and back results in a complete and
 accurate restoration of the original Zed data.
 
 A ZJSON stream is defined as a sequence of JSON objects where each object

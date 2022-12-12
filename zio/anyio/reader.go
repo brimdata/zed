@@ -101,9 +101,9 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	track.Reset()
 
 	parquetErr := errors.New("parquet: auto-detection not supported")
-	zstErr := errors.New("zst: auto-detection not supported")
+	vngErr := errors.New("vng: auto-detection not supported")
 	lineErr := errors.New("line: auto-detection not supported")
-	return nil, joinErrs([]error{arrowsErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, zstErr, lineErr})
+	return nil, joinErrs([]error{arrowsErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, vngErr, lineErr})
 }
 
 func isArrowStream(track *Track) error {

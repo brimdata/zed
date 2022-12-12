@@ -1,9 +1,9 @@
-# This test simply converts some ZSON to ZST then runs it through 
+# This test simply converts some ZSON to VNG then runs it through 
 # the vector cache to exercise the logic that builds values from 
 # cached vectors.
 script: |
-  zq -f zst -o test.zst -
-  zed dev vcache copy -z test.zst
+  zq -f vng -o test.vng -
+  zed dev vcache copy -z test.vng
 
 inputs:
   - name: stdin

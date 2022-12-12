@@ -5,13 +5,13 @@
 ### Synopsis
 
 ```
-network_of(val: ip [, mask: ip|net|int|uint]) -> net
+network_of(val: ip [, mask: ip|int|uint]) -> net
 ```
 ### Description
 
 The _network_of_ function returns the network of the IP address given
 by `val` as determined by the optional `mask`.  If `mask` is an integer rather
-than a net, it is presumed to be a network prefix of the indicated length.
+than an IP address, it is presumed to be a network prefix of the indicated length.
 If `mask` is omitted, then a class A (8 bit), B (16 bit), or C (24 bit)
 network is inferred from `val`, which in this case, must be an IPv4 address.
 
@@ -20,15 +20,6 @@ network is inferred from `val`, which in this case, must be an IPv4 address.
 Compute the network address of an IP using an `ip` mask argument:
 ```mdtest-command
 echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128)' -
-```
-=>
-```mdtest-output
-10.1.2.128/25
-```
-
-Compute the network address of an IP using a `net` mask argument:
-```mdtest-command
-echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128/25)' -
 ```
 =>
 ```mdtest-output

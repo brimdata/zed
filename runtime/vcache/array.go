@@ -3,9 +3,9 @@ package vcache
 import (
 	"io"
 
+	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zst"
-	"github.com/brimdata/zed/zst/vector"
 )
 
 type Array struct {
@@ -28,7 +28,7 @@ func NewArray(array *vector.Array, r io.ReaderAt) (*Array, error) {
 func (a *Array) NewIter(reader io.ReaderAt) (iterator, error) {
 	// The lengths vector is typically large and is loaded on demand.
 	if a.lengths == nil {
-		lengths, err := zst.ReadIntVector(a.segmap, reader)
+		lengths, err := vng.ReadIntVector(a.segmap, reader)
 		if err != nil {
 			return nil, err
 		}

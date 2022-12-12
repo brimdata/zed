@@ -1,10 +1,10 @@
-package zstio
+package vngio
 
 import (
 	"io"
 
 	"github.com/brimdata/zed/pkg/units"
-	"github.com/brimdata/zed/zst"
+	"github.com/brimdata/zed/vng"
 )
 
 const (
@@ -17,6 +17,6 @@ type WriterOpts struct {
 	SkewThresh   units.Bytes
 }
 
-func NewWriter(w io.WriteCloser, opts WriterOpts) (*zst.Writer, error) {
-	return zst.NewWriter(w, int(opts.SkewThresh), int(opts.ColumnThresh))
+func NewWriter(w io.WriteCloser, opts WriterOpts) (*vng.Writer, error) {
+	return vng.NewWriter(w, int(opts.SkewThresh), int(opts.ColumnThresh))
 }

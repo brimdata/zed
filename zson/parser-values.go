@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
+	"net/netip"
 	"strconv"
 	"time"
 
@@ -198,9 +198,9 @@ func (p *Parser) matchPrimitive() (*astzed.Primitive, error) {
 		typ = "time"
 	} else if _, err := nano.ParseDuration(s); err == nil {
 		typ = "duration"
-	} else if _, _, err := net.ParseCIDR(s); err == nil {
+	} else if _, err := netip.ParsePrefix(s); err == nil {
 		typ = "net"
-	} else if ip := net.ParseIP(s); ip != nil {
+	} else if _, err := netip.ParseAddr(s); err == nil {
 		typ = "ip"
 	} else if len(s) >= 2 && s[0:2] == "0x" {
 		if len(s) == 2 {
