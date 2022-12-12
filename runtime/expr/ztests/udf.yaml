@@ -1,5 +1,5 @@
 zed: |
-  def fib(n): (
+  func fib(n): (
     n <= 1 ? n : fib(n-1) + fib(n-2)
   )
   yield fib(this)
@@ -11,4 +11,3 @@ input: |
 output: |
   2
   55
- 

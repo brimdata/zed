@@ -50,7 +50,7 @@ start = __ ast:Sequential __ EOF { RETURN(ast) }
 
 Sequential
   = decls:Decls __ first:Operation rest:SequentialTail* {
-      RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest), "decls":decls))
+      RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest), "decls": decls))
     }
 
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
@@ -60,7 +60,7 @@ Decls
   / __ { RETURN(ARRAY()) }
 
 Decl
- = __ v:(ConstDecl / FuncDecl) { RETURN(v) }
+  = __ v:(ConstDecl / FuncDecl) { RETURN(v) }
 
 ConstDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
@@ -74,7 +74,7 @@ ConstDecl
     }
 
 FuncDecl
-  = "def" _ id:IdentifierName __ "(" __ params:IdentifierList __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
+  = "func" _ id:IdentifierName __ "(" __ params:IdentifierNames __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
       RETURN(MAP(
         "kind":"FuncDecl",
         "name":id,
@@ -1174,11 +1174,6 @@ IdentifierStart = [A-Za-z_$]
 
 IdentifierRest = IdentifierStart / [0-9]
 
-IdentifierList
-  = first:Identifier rest:(__ "," __ id:Identifier { RETURN(id)})* {
-    RETURN(PREPEND(first, rest))
-  }
-
 Identifier
   = id:IdentifierName { RETURN(MAP("kind": "ID", "name": id)) }
 
@@ -1189,6 +1184,11 @@ IdentifierName
   // "type" is a search guard but should not be an id guard
   / "type" { RETURN(TEXT) }
   / id:SQLTokenSentinels &(__ "(") { RETURN(id) }
+
+IdentifierNames
+  = first:IdentifierName rest:(__ "," __ id:IdentifierName { RETURN(id)})* {
+    RETURN(PREPEND(first, rest))
+  }
 
 IDGuard
   = BooleanLiteral

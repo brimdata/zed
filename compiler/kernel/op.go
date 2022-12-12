@@ -310,10 +310,8 @@ func splitAssignments(assignments []expr.Assignment) (field.List, []expr.Evaluat
 }
 
 func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	for _, fn := range seq.Funcs {
-		if err := b.compileFunc(fn); err != nil {
-			return nil, err
-		}
+	if err := b.compileFuncs(seq.Funcs); err != nil {
+		return nil, err
 	}
 	for _, o := range seq.Ops {
 		var err error
@@ -350,15 +348,21 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller)
 	return ops, nil
 }
 
-func (b *Builder) compileFunc(f *dag.Func) error {
-	if _, ok := b.funcs[f.Name]; ok {
-		return fmt.Errorf("internal error: func %q declared twice", f.Name)
+func (b *Builder) compileFuncs(fns []*dag.Func) error {
+	udfs := make([]*expr.UDF, 0, len(fns))
+	for _, f := range fns {
+		if _, ok := b.funcs[f.Name]; ok {
+			return fmt.Errorf("internal error: func %q declared twice", f.Name)
+		}
+		u := &expr.UDF{}
+		b.funcs[f.Name] = u
+		udfs = append(udfs, u)
 	}
-	u := &expr.UDF{}
-	b.funcs[f.Name] = u
-	var err error
-	if u.Body, err = b.compileExpr(f.Expr); err != nil {
-		return err
+	for i := range fns {
+		var err error
+		if udfs[i].Body, err = b.compileExpr(fns[i].Expr); err != nil {
+			return err
+		}
 	}
 	return nil
 }

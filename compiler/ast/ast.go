@@ -205,10 +205,10 @@ type ConstDecl struct {
 }
 
 type FuncDecl struct {
-	Kind   string `json:"kind" unpack:""`
-	Name   string `json:"name"`
-	Params []*ID  `json:"params"`
-	Expr   Expr   `json:"expr"`
+	Kind   string   `json:"kind" unpack:""`
+	Name   string   `json:"name"`
+	Params []string `json:"params"`
+	Expr   Expr     `json:"expr"`
 }
 
 func (*ConstDecl) DeclAST() {}

@@ -692,10 +692,10 @@ func semFuncDecl(scope *Scope, d *ast.FuncDecl) (*dag.Func, error) {
 	scope.Enter()
 	defer scope.Exit()
 	for _, p := range d.Params {
-		if err := scope.DefineVar(p.Name); err != nil {
+		if err := scope.DefineVar(p); err != nil {
 			return nil, err
 		}
-		f.Formals = append(f.Formals, p.Name)
+		f.Params = append(f.Params, p)
 	}
 	var err error
 	if f.Expr, err = semExpr(scope, d.Expr); err != nil {

@@ -5,7 +5,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-const maxStackSize = 10_000
+const maxStackDepth = 10_000
 
 type UDF struct {
 	Body Evaluator
@@ -16,7 +16,7 @@ func (u *UDF) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	if f, ok := ectx.(*frame); ok {
 		stack += f.stack
 	}
-	if stack > maxStackSize {
+	if stack > maxStackDepth {
 		panic("stack overflow")
 	}
 	// args must be cloned otherwise the values will be overwritten in
@@ -37,5 +37,5 @@ func (f *frame) Vars() []zed.Value {
 }
 
 func (f *frame) exit() {
-	f.stack -= 1
+	f.stack--
 }

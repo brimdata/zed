@@ -1,5 +1,5 @@
 zed: |
-  def overflow(n): (
+  func overflow(n): (
     overflow(n+1)
   )
   yield overflow(this)

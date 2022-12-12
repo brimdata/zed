@@ -463,8 +463,8 @@ func semCall(scope *Scope, call *ast.Call) (dag.Expr, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s(): definition is not a function type: %T", call.Name, e)
 		}
-		if len(f.Formals) != len(call.Args) {
-			return nil, fmt.Errorf("%s(): expects %d arg(s)", call.Name, len(f.Formals))
+		if len(f.Params) != len(call.Args) {
+			return nil, fmt.Errorf("%s(): expects %d arg(s)", call.Name, len(f.Params))
 		}
 	}
 	return &dag.Call{

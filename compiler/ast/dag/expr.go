@@ -39,10 +39,10 @@ type (
 		RHS  string `json:"rhs"`
 	}
 	Func struct {
-		Kind    string   `json:"func" unpack:""`
-		Name    string   `json:"name"`
-		Formals []string `json:"formals"`
-		Expr    Expr     `json:"expr"`
+		Kind   string   `json:"func" unpack:""`
+		Name   string   `json:"name"`
+		Params []string `json:"params"`
+		Expr   Expr     `json:"expr"`
 	}
 	MapExpr struct {
 		Kind    string  `json:"kind" unpack:""`
