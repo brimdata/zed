@@ -16,7 +16,7 @@ The `where` keyword is optional since it is an
 [implied operator](../overview.md#26-implied-operators).
 
 The "where" keyword requires a regular Zed expression and does not support
-[search expressions](../overview.md#7-search-expressions).  Use the
+[search expressions](../overview.md#8-search-expressions).  Use the
 [search operator](search.md) if you want search syntax.
 
 When Zed queries are run interactively, it is highly convenient to be able to omit
