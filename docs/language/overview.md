@@ -425,7 +425,7 @@ state such as `this`.
 
 For example,
 ```mdtest-command
-echo 1 2 3 4 | zq -z 'def add1(n): (n+1) add1(this)' -
+echo 1 2 3 4 | zq -z 'func add1(n): (n+1) add1(this)' -
 ```
 produces
 ```mdtest-output
