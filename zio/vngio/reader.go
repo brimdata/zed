@@ -15,7 +15,15 @@ func NewReader(zctx *zed.Context, r io.Reader) (*vng.Reader, error) {
 		if !storage.IsSeekable(reader) {
 			return nil, errors.New("VNG must be used with a seekable input")
 		}
-		return vng.NewReaderFromStorageReader(zctx, reader)
+		size, err := storage.Size(reader)
+		if err != nil {
+			return nil, err
+		}
+		o, err := vng.NewObject(zctx, reader, size)
+		if err != nil {
+			return nil, err
+		}
+		return vng.NewReader(o)
 	}
 	// This can't be the zed system (which always using package storage)
 	// so it must be a third party using he VNG library.  We could assert
