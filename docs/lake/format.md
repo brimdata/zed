@@ -87,7 +87,7 @@ A data object is composed of
 * an optional seek index, and
 * zero or more search indexes.
 
-Data objects may be either in sequence form (i.e., ZNG) or vector form (i.e., ZST),
+Data objects may be either in sequence form (i.e., ZNG) or vector form (i.e., VNG),
 or both forms may be present as a query optimizer may choose to use whatever
 representation is more efficient.
 When both sequence and vector data objects are present, they must contain the same
@@ -97,7 +97,7 @@ Immutable objects are named as follows:
 
 |object type|name|
 |-----------|----|
-|vector data|`<pool-id>/data/<id>.zst`|
+|vector data|`<pool-id>/data/<id>.vng`|
 |sequence data|`<pool-id>/data/<id>.zng`|
 |sequence seek index|`<pool-id>/data/<id>-seek.zng`|
 |search index|`<pool-id>/index/<id>-<index-id>.zng`|
@@ -111,8 +111,8 @@ The seek index maps pool key values to seek offsets in the ZNG file thereby
 allowing a scan to do a byte-range retrieval of the ZNG object when
 processing only a subset of data.
 
-> Note the ZST format allows individual vector segments to be read in isolation
-> and the in-memory ZST representation supports random access so there is
+> Note the VNG format allows individual vector segments to be read in isolation
+> and the in-memory VNG representation supports random access so there is
 > no need to have a seek index for the vector object.
 
 #### Commit History
@@ -287,8 +287,8 @@ do not overlap.  This is just the basic LSM algorithm at work.
       <id2>.zng
       ...
     data/
-      <id1>.{zng,zst}
-      <id2>.{zng,zst}
+      <id1>.{zng,vng}
+      <id2>.{zng,vng}
       ...
     index/
       <id1>-<index-id-1>.zng

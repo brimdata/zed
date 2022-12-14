@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net"
 	"net/netip"
 	"strconv"
 	"time"
@@ -141,11 +140,11 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		b.Append(zed.EncodeIP(ip))
 		return nil
 	case *zed.TypeOfNet:
-		_, net, err := net.ParseCIDR(val.Text)
+		net, err := netip.ParsePrefix(val.Text)
 		if err != nil {
 			return fmt.Errorf("invalid network: %s (%w)", val.Text, err)
 		}
-		b.Append(zed.EncodeNet(net))
+		b.Append(zed.EncodeNet(net.Masked()))
 		return nil
 	case *zed.TypeOfNull:
 		if val.Text != "" {

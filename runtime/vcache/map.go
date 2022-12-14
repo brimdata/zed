@@ -3,9 +3,9 @@ package vcache
 import (
 	"io"
 
+	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zst"
-	"github.com/brimdata/zed/zst/vector"
 )
 
 type Map struct {
@@ -34,7 +34,7 @@ func NewMap(m *vector.Map, r io.ReaderAt) (*Map, error) {
 func (m *Map) NewIter(reader io.ReaderAt) (iterator, error) {
 	// The lengths vector is typically large and is loaded on demand.
 	if m.lengths == nil {
-		lengths, err := zst.ReadIntVector(m.segmap, reader)
+		lengths, err := vng.ReadIntVector(m.segmap, reader)
 		if err != nil {
 			return nil, err
 		}

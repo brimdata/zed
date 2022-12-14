@@ -118,7 +118,7 @@ replication easy to support and deploy.
 The cloud objects that comprise a lake, e.g., data objects,
 commit history, transaction journals, search indexes, partial aggregations, etc.,
 are stored as Zed data, i.e., either as [row-based ZNG](../formats/zng.md)
-or [columnar ZST](../formats/zst.md).
+or [columnar VNG](../formats/vng.md).
 This makes introspection of the lake structure straightforward as many key
 lake data structures can be queried with metadata queries and presented
 to a client as Zed data for further processing by downstream tooling.
@@ -604,11 +604,11 @@ zed load sample1.json sample2.zng sample3.zson
 ```
 loads files of varying formats in a single commit to the working branch.
 
-Parquet and ZST formats are not auto-detected so you must currently
+Parquet and VNG formats are not auto-detected so you must currently
 specify `-i` with these formats, e.g.,
 ```
 zed load -i parquet sample4.parquet
-zed load -i zst sample5.zst
+zed load -i vng sample5.vng
 ```
 An alternative branch may be specified with a branch reference with the
 `-use` option, i.e., `<pool>@<branch>`.  Supposing a branch

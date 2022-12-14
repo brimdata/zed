@@ -30,7 +30,7 @@ func (m *MapWriter) Write(body zcode.Bytes) error {
 	for !it.Done() {
 		keyBytes := it.Next()
 		if it.Done() {
-			return errors.New("zst writer: truncated map value")
+			return errors.New("VNG writer: truncated map value")
 		}
 		valBytes := it.Next()
 		if err := m.keys.Write(keyBytes); err != nil {

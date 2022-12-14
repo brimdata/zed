@@ -26,8 +26,8 @@ func Extension(format string) string {
 		return ".zson"
 	case "csv":
 		return ".csv"
-	case "zst":
-		return ".zst"
+	case "vng":
+		return ".vng"
 	case "parquet":
 		return ".parquet"
 	default:

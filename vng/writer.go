@@ -1,16 +1,13 @@
-package zst
+package vng
 
 import (
-	"context"
 	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-	"github.com/brimdata/zed/zst/vector"
 )
 
 const (
@@ -19,7 +16,7 @@ const (
 )
 
 // Writer implements the zio.Writer interface. A Writer creates a vector
-// zst object from a stream of zed.Records.
+// VNG object from a stream of zed.Records.
 type Writer struct {
 	zctx       *zed.Context
 	writer     io.WriteCloser
@@ -65,47 +62,21 @@ func (w *Writer) Close() error {
 	return firstErr
 }
 
-type WriterURI struct {
-	Writer
-	engine storage.Engine
-	uri    *storage.URI
-}
-
-func NewWriterFromPath(ctx context.Context, engine storage.Engine, path string, skewThresh, segThresh int) (*WriterURI, error) {
-	uri, err := storage.ParseURI(path)
-	if err != nil {
-		return nil, err
-	}
-	w, err := engine.Put(ctx, uri)
-	if err != nil {
-		return nil, err
-	}
-	writer, err := NewWriter(bufwriter.New(w), skewThresh, segThresh)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", uri, err)
-	}
-	return &WriterURI{
-		Writer: *writer,
-		engine: engine,
-		uri:    uri,
-	}, nil
-}
-
 func checkThresh(which string, max, thresh int) error {
 	if thresh == 0 {
-		return fmt.Errorf("ZST %s threshold cannot be zero", which)
+		return fmt.Errorf("VNG %s threshold cannot be zero", which)
 	}
 	if thresh > max {
-		return fmt.Errorf("ZST %s threshold too large (%d)", which, thresh)
+		return fmt.Errorf("VNG %s threshold too large (%d)", which, thresh)
 	}
 	return nil
 }
 
 func (w *Writer) Write(val *zed.Value) error {
-	// The ZST writer self-organizes around the types that are
+	// The VNG writer self-organizes around the types that are
 	// written to it.  No need to define the schema up front!
 	// We track the types seen first-come, first-served in the
-	// typeMap table and the ZST serialization structure
+	// typeMap table and the VNG serialization structure
 	// follows accordingly.
 	typ := val.Type
 	typeNo, ok := w.typeMap[typ]
@@ -127,24 +98,6 @@ func (w *Writer) Write(val *zed.Value) error {
 		return w.flush(false)
 	}
 	return nil
-}
-
-// Abort closes this writer, deleting any and all objects and/or files associated
-// with it.
-func (w *WriterURI) Abort(ctx context.Context) error {
-	firstErr := w.writer.Close()
-	if err := w.engine.DeleteByPrefix(ctx, w.uri); firstErr == nil {
-		firstErr = err
-	}
-	return firstErr
-}
-
-func (w *WriterURI) Close() error {
-	if err := w.finalize(); err != nil {
-		w.writer.Close()
-		return err
-	}
-	return w.writer.Close()
 }
 
 func (w *Writer) flush(eof bool) error {

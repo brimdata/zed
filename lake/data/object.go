@@ -148,7 +148,7 @@ func (o Object) VectorURI(path *storage.URI) *storage.URI {
 }
 
 func VectorURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
-	return path.AppendPath(fmt.Sprintf("%s.zst", id))
+	return path.AppendPath(fmt.Sprintf("%s.vng", id))
 }
 
 func (o Object) Range() string {

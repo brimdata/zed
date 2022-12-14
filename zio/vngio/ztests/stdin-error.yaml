@@ -1,6 +1,6 @@
 script: |
-  zq -f zst -o t.zst in.zson
-  ! cat t.zst | zq -i zst -
+  zq -f vng -o t.vng in.zson
+  ! cat t.vng | zq -i vng -
 
 inputs:
   - name: in.zson
@@ -11,4 +11,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      stdio:stdin: zst must be used with a seekable input
+      stdio:stdin: VNG must be used with a seekable input
