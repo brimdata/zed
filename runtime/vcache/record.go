@@ -3,8 +3,8 @@ package vcache
 import (
 	"io"
 
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zst/vector"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -2,7 +2,6 @@ package expr_test
 
 import (
 	"fmt"
-	"net"
 	"net/netip"
 	"strings"
 	"testing"
@@ -74,7 +73,7 @@ func zip(t *testing.T, s string) zed.Value {
 	return zed.Value{Type: zed.TypeIP, Bytes: zed.EncodeIP(netip.MustParseAddr(s))}
 }
 func znet(t *testing.T, s string) zed.Value {
-	_, net, err := net.ParseCIDR(s)
+	net, err := netip.ParsePrefix(s)
 	require.NoError(t, err)
 	return zed.Value{Type: zed.TypeNet, Bytes: zed.EncodeNet(net)}
 }

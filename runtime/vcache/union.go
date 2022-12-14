@@ -5,9 +5,9 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zst"
-	"github.com/brimdata/zed/zst/vector"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -34,7 +34,7 @@ func NewUnion(union *vector.Union, r io.ReaderAt) (*Union, error) {
 
 func (u *Union) NewIter(reader io.ReaderAt) (iterator, error) {
 	if u.tags == nil {
-		tags, err := zst.ReadIntVector(u.segmap, reader)
+		tags, err := vng.ReadIntVector(u.segmap, reader)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +62,7 @@ func (u *Union) NewIter(reader io.ReaderAt) (iterator, error) {
 		tag := u.tags[off]
 		off++
 		if tag < 0 || int(tag) >= len(iters) {
-			return fmt.Errorf("zst cache: bad union tag encountered %d of %d", tag, len(iters))
+			return fmt.Errorf("VNG cache: bad union tag encountered %d of %d", tag, len(iters))
 		}
 		b.BeginContainer()
 		b.Append(zed.EncodeInt(int64(tag)))

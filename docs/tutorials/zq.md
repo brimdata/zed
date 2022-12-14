@@ -154,7 +154,7 @@ The human-readable format of Zed is called [ZSON](../formats/zson.md)
 
 ZSON is nice because it has a comprehensive type system and you can
 go from ZSON to an efficient binary row format ([ZNG](../formats/zng.md))
-and columnar ([ZST](../formats/zst.md)) --- and vice versa ---
+and columnar ([VNG](../formats/vng.md)) --- and vice versa ---
 with complete fidelity and no loss of information.  In this tour,
 we'll stick to ZSON (though for large data sets,
 [ZNG is much faster](../commands/zq.md#7-performance)).

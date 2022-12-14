@@ -1,12 +1,12 @@
 script: |
-  zq -f zst -o test.zst -
-  zed dev vcache project -z test.zst x y z
+  zq -f vng -o test.vng -
+  zed dev vcache project -z test.vng x y z
   echo ===
-  zed dev vcache project -z test.zst s
+  zed dev vcache project -z test.vng s
   echo ===
-  zed dev vcache project -z test.zst x s
+  zed dev vcache project -z test.vng x s
   echo ===
-  zed dev vcache project -z test.zst s x
+  zed dev vcache project -z test.vng s x
 
 inputs:
   - name: stdin

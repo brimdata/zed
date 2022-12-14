@@ -1,4 +1,4 @@
-package zst
+package vng
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	FileType = "zst"
+	FileType = "vng"
 	Version  = 3
 )
 
@@ -24,10 +24,10 @@ func readTrailer(r io.ReaderAt, n int64) (*FileMeta, []int64, error) {
 		return nil, nil, err
 	}
 	if trailer.Type != FileType {
-		return nil, nil, fmt.Errorf("not a ZST file: trailer type is %q", trailer.Type)
+		return nil, nil, fmt.Errorf("not a VNG file: trailer type is %q", trailer.Type)
 	}
 	if trailer.Version != Version {
-		return nil, nil, fmt.Errorf("ZST version %d found while expecting version %d", trailer.Version, Version)
+		return nil, nil, fmt.Errorf("VNG version %d found while expecting version %d", trailer.Version, Version)
 	}
 	var meta FileMeta
 	if err := zson.UnmarshalZNG(&trailer.Meta, &meta); err != nil {

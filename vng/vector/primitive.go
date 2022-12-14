@@ -99,7 +99,7 @@ func (p *PrimitiveReader) next() error {
 		return err
 	}
 	if n < int(segment.Length) {
-		return errors.New("truncated read of ZST vector")
+		return errors.New("truncated read of VNG vector")
 	}
 	p.it = zcode.Iter(b)
 	return nil
