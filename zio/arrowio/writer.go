@@ -31,7 +31,9 @@ var (
 
 // Writer is a zio.Writer for the Arrow IPC stream format.  Given Zed values
 // with appropriately named types (see the newArrowDataType implementation), it
-// can write all Arrow types except dictionaries and sparse unions.
+// can write all Arrow types except dictionaries and sparse unions.  (Although
+// dictionaries are not part of the Zed data model, write support could be added
+// using a named type.)
 type Writer struct {
 	w                io.WriteCloser
 	writer           *ipc.Writer
