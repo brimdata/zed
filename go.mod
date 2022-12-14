@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/agnivade/levenshtein v1.1.1
 	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
-	github.com/apache/arrow/go/v11 v11.0.0-20221207134140-26a426f32525
+	github.com/apache/arrow/go/v11 v11.0.0-20221214174703-0dfec8e98f4f
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/aws/aws-sdk-go v1.36.17
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
