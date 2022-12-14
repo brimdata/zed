@@ -174,12 +174,8 @@ func Load(dirname string) ([]Bundle, error) {
 			continue
 		}
 		testname := strings.TrimSuffix(filename, dotyaml)
-		// An absolute path in errors makes the offending file easier to find.
-		filename, err := filepath.Abs(filepath.Join(dirname, filename))
-		var zt *ZTest
-		if err == nil {
-			zt, err = FromYAMLFile(filename)
-		}
+		filename = filepath.Join(dirname, filename)
+		zt, err := FromYAMLFile(filename)
 		bundles = append(bundles, Bundle{testname, filename, zt, err})
 	}
 	return bundles, nil
