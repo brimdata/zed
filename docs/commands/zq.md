@@ -381,7 +381,7 @@ as soon as they happen and cause the `zq` process to exit.
 On the other hand,
 runtime errors resulting from the Zed query itself
 do not halt execution.  Instead, these error conditions produce
-[first-class Zed errors](../language/overview.md#53-first-class-errors)
+[first-class Zed errors](../language/overview.md#63-first-class-errors)
 in the data output stream interleaved with any valid results.
 Such errors are easily queried with the
 [is_error function](../language/functions/is_error.md).

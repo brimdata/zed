@@ -370,7 +370,7 @@ produces
 ## Union Types
 
 One of the tricks `zq` uses to represent JSON data in its structured type system
-is [union types](../language/overview.md#6116-union-values).
+is [union types](../language/overview.md#7116-union-values).
 Most of the time, you don't need to worry about unions
 but they show up from time to time.  Even when
 they show up, Zed just tries to "do the right thing" so you usually
@@ -922,7 +922,7 @@ DATE                 NUMBER TITLE
 2019-11-12T16:49:07Z PR #6  a few clarifications to the zson spec
 ...
 ```
-Note that we used [string interpolation](../language/overview.md#6111-string-interpolation)
+Note that we used [string interpolation](../language/overview.md#7111-string-interpolation)
 to convert the field `number` into a string and format it with surrounding text.
 
 Instead of old PRs, we can get the latest list of PRs using the
@@ -988,7 +988,7 @@ in the graph and each set of reviewers is another node.
 
 So as a first step, let's figure out how to create each edge, where an edge
 is a relation between the requesting user and the set of reviewers.  We can
-create this in Zed with a ["lateral subquery"](../language/overview.md#8-lateral-subqueries).
+create this in Zed with a ["lateral subquery"](../language/overview.md#9-lateral-subqueries).
 Instead of computing a set-union over all the reviewers across all PRs,
 we instead want to compute the set-union over the reviewers in each PR.
 We can do this as follows:
@@ -1004,7 +1004,7 @@ which produces an output like this:
 {reviewers:|["henridf","mccanne","mattnibs"]|}
 ...
 ```
-Note that the syntax `=> ( ... )` defines a [lateral scope](../language/overview.md#81-lateral-scope) where any Zed subquery can
+Note that the syntax `=> ( ... )` defines a [lateral scope](../language/overview.md#91-lateral-scope) where any Zed subquery can
 run in isolation over the input values created from the sequence of values
 traversed by the outer `over`.
 
@@ -1013,7 +1013,7 @@ To do this, we need to reference the `user.login` from the top-level scope withi
 lateral scope.  This can be done by
 bringing that value into the scope using a `with` clause appended to the
 `over` expression and yielding a
-[record literal](../language/overview.md#6112-record-expressions) with the desired value:
+[record literal](../language/overview.md#7112-record-expressions) with the desired value:
 ```mdtest-command dir=docs/tutorials
 zq -z 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers}) | sort user,len(reviewers)' prs.zng
 ```

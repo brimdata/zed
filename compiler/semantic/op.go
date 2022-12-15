@@ -16,6 +16,7 @@ import (
 	"github.com/brimdata/zed/pkg/reglob"
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/segmentio/ksuid"
+	"golang.org/x/exp/slices"
 )
 
 func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish) (*dag.From, error) {
@@ -281,7 +282,7 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 	}
 	scope.Enter()
 	defer scope.Exit()
-	consts, err := semConsts(scope, seq.Consts)
+	consts, funcs, err := semDecls(scope, seq.Decls)
 	if err != nil {
 		return nil, err
 	}
@@ -296,6 +297,7 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 	return &dag.Sequential{
 		Kind:   "Sequential",
 		Consts: consts,
+		Funcs:  funcs,
 		Ops:    ops,
 	}, nil
 }
@@ -642,19 +644,75 @@ func semOver(ctx context.Context, scope *Scope, in *ast.Over, ds *data.Source, h
 	}, nil
 }
 
-func semConsts(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
-	var out []dag.Def
-	for _, def := range defs {
-		e, err := semExpr(scope, def.Expr)
-		if err != nil {
-			return nil, err
+func semDecls(scope *Scope, decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
+	var consts []dag.Def
+	var fds []*ast.FuncDecl
+	for _, d := range decls {
+		switch d := d.(type) {
+		case *ast.ConstDecl:
+			c, err := semConstDecl(scope, d)
+			if err != nil {
+				return nil, nil, err
+			}
+			consts = append(consts, c)
+		case *ast.FuncDecl:
+			fds = append(fds, d)
+		default:
+			return nil, nil, fmt.Errorf("invalid declaration type %T", d)
 		}
-		if err := scope.DefineConst(def.Name, e); err != nil {
-			return nil, err
-		}
-		out = append(out, dag.Def{Name: def.Name, Expr: e})
 	}
-	return out, nil
+	funcs, err := semFuncDecls(scope, fds)
+	if err != nil {
+		return nil, nil, err
+	}
+	return consts, funcs, nil
+}
+
+func semConstDecl(scope *Scope, c *ast.ConstDecl) (dag.Def, error) {
+	e, err := semExpr(scope, c.Expr)
+	if err != nil {
+		return dag.Def{}, err
+	}
+	if err := scope.DefineConst(c.Name, e); err != nil {
+		return dag.Def{}, err
+	}
+	return dag.Def{
+		Name: c.Name,
+		Expr: e,
+	}, nil
+}
+
+func semFuncDecls(scope *Scope, decls []*ast.FuncDecl) ([]*dag.Func, error) {
+	funcs := make([]*dag.Func, 0, len(decls))
+	for _, d := range decls {
+		f := &dag.Func{
+			Kind:   "Func",
+			Name:   d.Name,
+			Params: slices.Clone(d.Params),
+		}
+		if err := scope.DefineFunc(f); err != nil {
+			return nil, err
+		}
+		funcs = append(funcs, f)
+	}
+	for i, d := range decls {
+		var err error
+		if funcs[i].Expr, err = semFuncBody(scope, d.Params, d.Expr); err != nil {
+			return nil, err
+		}
+	}
+	return funcs, nil
+}
+
+func semFuncBody(scope *Scope, params []string, body ast.Expr) (dag.Expr, error) {
+	scope.Enter()
+	defer scope.Exit()
+	for _, p := range params {
+		if err := scope.DefineVar(p); err != nil {
+			return nil, err
+		}
+	}
+	return semExpr(scope, body)
 }
 
 func semVars(scope *Scope, defs []ast.Def) ([]dag.Def, error) {

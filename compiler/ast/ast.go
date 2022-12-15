@@ -20,6 +20,10 @@ type Op interface {
 	OpAST()
 }
 
+type Decl interface {
+	DeclAST()
+}
+
 type Expr interface {
 	ExprAST()
 }
@@ -194,6 +198,22 @@ func (*OverExpr) ExprAST() {}
 
 func (*SQLExpr) ExprAST() {}
 
+type ConstDecl struct {
+	Kind string `json:"kind" unpack:""`
+	Name string `json:"name"`
+	Expr Expr   `json:"expr"`
+}
+
+type FuncDecl struct {
+	Kind   string   `json:"kind" unpack:""`
+	Name   string   `json:"name"`
+	Params []string `json:"params"`
+	Expr   Expr     `json:"expr"`
+}
+
+func (*ConstDecl) DeclAST() {}
+func (*FuncDecl) DeclAST()  {}
+
 // ----------------------------------------------------------------------------
 // Operators
 
@@ -205,9 +225,9 @@ type (
 	// and each subsequent operator processes the output records from the
 	// previous operator.
 	Sequential struct {
-		Kind   string `json:"kind" unpack:""`
-		Consts []Def  `json:"consts"`
-		Ops    []Op   `json:"ops"`
+		Kind  string `json:"kind" unpack:""`
+		Decls []Decl `json:"decls"`
+		Ops   []Op   `json:"ops"`
 	}
 	// A Parallel operator represents a set of operators that each get
 	// a stream of Zed values from their parent.

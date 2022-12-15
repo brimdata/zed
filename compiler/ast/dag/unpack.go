@@ -20,6 +20,7 @@ var unpacker = unpack.New(
 	File{},
 	Filter{},
 	From{},
+	Func{},
 	Fuse{},
 	Summarize{},
 	Head{},

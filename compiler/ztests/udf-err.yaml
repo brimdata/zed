@@ -1,0 +1,26 @@
+script: |
+  ! zq -I duplicate.zed -
+  ! zq -I call-non-func.zed -
+  ! zq -I wrong-args.zed -
+
+inputs:
+  - name: duplicate.zed
+    data: |
+      func dup(n): (n+1)
+      func dup(n): (n+2)
+      yield dup(this)
+  - name: call-non-func.zed
+    data: |
+      const notAFunc = "foo"
+      yield notAFunc(this)
+  - name: wrong-args.zed
+    data: |
+      func f(a,b): (a+b)
+      yield f(this)
+
+outputs:
+  - name: stderr
+    data: |
+      symbol "dup" redefined
+      notAFunc(): definition is not a function type: *dag.Literal
+      f(): expects 2 argument(s)

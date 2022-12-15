@@ -35,7 +35,7 @@ For any input value that is not a record, an error is emitted.
 
 Note that when the field references are all top level,
 `put` is a special case of a `yield` with a
-[record literal](../overview.md#6112-record-expressions)
+[record literal](../overview.md#7112-record-expressions)
 using a spread operator of the form:
 ```
 yield {...this, <field>:<expr> [, <field>:<expr>...]}
