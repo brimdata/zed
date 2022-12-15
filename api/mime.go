@@ -8,16 +8,17 @@ import (
 )
 
 const (
-	MediaTypeAny     = "*/*"
-	MediaTypeCSV     = "text/csv"
-	MediaTypeJSON    = "application/json"
-	MediaTypeLine    = "application/x-line"
-	MediaTypeNDJSON  = "application/x-ndjson"
-	MediaTypeParquet = "application/x-parquet"
-	MediaTypeZeek    = "application/x-zeek"
-	MediaTypeZJSON   = "application/x-zjson"
-	MediaTypeZNG     = "application/x-zng"
-	MediaTypeZSON    = "application/x-zson"
+	MediaTypeAny         = "*/*"
+	MediaTypeArrowStream = "application/vnd.apache.arrow.stream"
+	MediaTypeCSV         = "text/csv"
+	MediaTypeJSON        = "application/json"
+	MediaTypeLine        = "application/x-line"
+	MediaTypeNDJSON      = "application/x-ndjson"
+	MediaTypeParquet     = "application/x-parquet"
+	MediaTypeZeek        = "application/x-zeek"
+	MediaTypeZJSON       = "application/x-zjson"
+	MediaTypeZNG         = "application/x-zng"
+	MediaTypeZSON        = "application/x-zson"
 )
 
 type ErrUnsupportedMimeType struct {
@@ -41,6 +42,8 @@ func MediaTypeToFormat(s string, dflt string) (string, error) {
 	switch typ {
 	case MediaTypeAny, "":
 		return dflt, nil
+	case MediaTypeArrowStream:
+		return "arrows", nil
 	case MediaTypeCSV:
 		return "csv", nil
 	case MediaTypeJSON:
@@ -65,6 +68,8 @@ func MediaTypeToFormat(s string, dflt string) (string, error) {
 
 func FormatToMediaType(format string) string {
 	switch format {
+	case "arrows":
+		return MediaTypeArrowStream
 	case "csv":
 		return MediaTypeCSV
 	case "json":

@@ -97,6 +97,7 @@ Note here that the query `1+1` [implies](../language/overview.md#26-implied-oper
 
 |  Option   | Auto | Specification                            |
 |-----------|------|------------------------------------------|
+| `arrows`  |  yes | [Arrow IPC Stream Format](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format) |
 | `json`    |  yes | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
 | `csv`     |  yes | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
 | `parquet` |  no  | [Apache Parquet](https://github.com/apache/parquet-format) |
@@ -285,14 +286,14 @@ produces
 
 ### 3.4 Schema-rigid Outputs
 
-Certain data formats like Parquet are "schema rigid" in the sense that they
-require a schema to be defined before values can be written into the file and
-all the values in the file must conform to this schema.
+Certain data formats like Arrow and Parquet are "schema rigid" in the sense that
+they require a schema to be defined before values can be written into the file
+and all the values in the file must conform to this schema.
 
 Zed, however, has a fine-grained type system instead of schemas and a sequence
 of data values are completely self-describing and may be heterogeneous in nature.
 This creates a challenge converting the type-flexible Zed formats to a schema-rigid
-format like Parquet.
+format like Arrow and Parquet.
 
 For example, this seemingly simple conversion:
 ```mdtest-command fails
@@ -319,8 +320,8 @@ but the data was necessarily changed (by inserting nulls):
 
 #### 3.4.2 Splitting Schemas
 
-Another common approach to dealing with the schema-rigid limitation of Parquet
-is to create a separate file for each schema.
+Another common approach to dealing with the schema-rigid limitation of Arrow and
+Parquet is to create a separate file for each schema.
 
 `zq` can do this too with the `-split` option, which specifies a path
 to a directory for the output files.  If the path is `.`, then files

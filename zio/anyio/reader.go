@@ -2,6 +2,7 @@ package anyio
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/arrowio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/zeekio"
@@ -34,6 +36,13 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	}
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
+
+	arrowsErr := isArrowStream(track)
+	if arrowsErr == nil {
+		return arrowio.NewReader(zctx, recorder)
+	}
+	arrowsErr = fmt.Errorf("arrows: %w", arrowsErr)
+	track.Reset()
 
 	zeekErr := match(zeekio.NewReader(zed.NewContext(), track), "zeek", 1)
 	if zeekErr == nil {
@@ -94,7 +103,37 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	vngErr := errors.New("vng: auto-detection not supported")
 	lineErr := errors.New("line: auto-detection not supported")
-	return nil, joinErrs([]error{zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, vngErr, lineErr})
+	return nil, joinErrs([]error{arrowsErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, vngErr, lineErr})
+}
+
+func isArrowStream(track *Track) error {
+	// Streams created by Arrow 0.15.0 or later begin with a 4-byte
+	// continuation indicator (0xffffffff) followed by a 4-byte
+	// little-endian schema message length.  Older streams begin with the
+	// length.
+	buf := make([]byte, 4)
+	if _, err := io.ReadFull(track, buf); err != nil {
+		return err
+	}
+	if string(buf) == "\xff\xff\xff\xff" {
+		// This looks like a continuation indicator.  Skip it.
+		if _, err := io.ReadFull(track, buf); err != nil {
+			return err
+		}
+	}
+	if binary.LittleEndian.Uint32(buf) > 1048576 {
+		// Prevent arrowio.NewReader from attempting to read an
+		// unreasonable amount.
+		return errors.New("schema message length exceeds 1 MiB")
+	}
+	track.Reset()
+	zrc, err := arrowio.NewReader(zed.NewContext(), track)
+	if err != nil {
+		return err
+	}
+	defer zrc.Close()
+	_, err = zrc.Read()
+	return err
 }
 
 func joinErrs(errs []error) error {

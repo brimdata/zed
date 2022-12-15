@@ -721,8 +721,8 @@ Geyserville New Tech Academy,Geyserville Unified,Geyserville,Sonoma,95441-9670,3
 ,,,,,,,,,,,,,,,,Sonoma,Geyserville Unified,Geyserville New Tech Academy
 ,,,,,,,,,,,,,,,,Sonoma,Geyserville Unified,
 ```
-In addition to the `csv` format, the `parquet`, `table`, and `zeek` formats
-also benefit from fused records.
+In addition to the `csv` format, the `arrows`, `parquet`, `table`, and `zeek`
+formats also benefit from fused records.
 
 ### 4.4 [put](../language/operators/drop.md)
 

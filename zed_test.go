@@ -16,6 +16,7 @@ import (
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/arrowio"
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -34,6 +35,7 @@ func TestZed(t *testing.T) {
 		t.Parallel()
 		data, err := loadZTestInputsAndOutputs(dirs)
 		require.NoError(t, err)
+		runAllBoomerangs(t, "arrows", data)
 		runAllBoomerangs(t, "parquet", data)
 		runAllBoomerangs(t, "zson", data)
 	})
@@ -151,7 +153,10 @@ func runOneBoomerang(t *testing.T, format, data string) {
 		require.NoError(t, baselineWriter.Close())
 	}
 	if err != nil {
-		if errors.Is(err, parquetio.ErrEmptyRecordType) ||
+		if errors.Is(err, arrowio.ErrMultipleTypes) ||
+			errors.Is(err, arrowio.ErrNotRecord) ||
+			errors.Is(err, arrowio.ErrUnsupportedType) ||
+			errors.Is(err, parquetio.ErrEmptyRecordType) ||
 			errors.Is(err, parquetio.ErrNullType) ||
 			errors.Is(err, parquetio.ErrUnionType) ||
 			strings.Contains(err.Error(), "Parquet output encountered non-record value") ||

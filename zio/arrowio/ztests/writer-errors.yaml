@@ -1,0 +1,11 @@
+script: |
+  ! echo '{a:1} {b:2}' | zq -f arrows -
+  ! echo 1 | zq -f arrows -
+  ! echo {} | zq -f arrows -
+
+outputs:
+  - name: stderr
+    data: |
+        arrowio: encountered multiple types (consider 'fuse'): {a:int64} and {b:int64}
+        arrowio: not a record: 1
+        arrowio: unsupported type: empty record
