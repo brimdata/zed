@@ -268,7 +268,7 @@ As is often the case with semi-structured systems, you deal with
 nested values all the time: in JSON, data is nested with objects and arrays,
 while in Zed, data is nested with "records" and arrays (as well as other complex types).
 
-[Record expressions](../language/overview.md#6112-record-expressions)
+[Record expressions](../language/overview.md#7112-record-expressions)
 are rather flexible with `zq` and look a bit like JavaScript
 or `jq` syntax, e.g.,
 ```mdtest-command
