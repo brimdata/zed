@@ -41,7 +41,7 @@ environment variable to the hostname or URI of the provider.
 
 ## Wildcard Support
 
-[Like the AWS CLI tools themselves](https://aws.amazon.com/premiumsupport/knowledge-center/s3-event-notification-filter-wildcard),
+[Like the AWS CLI tools themselves](https://repost.aws/knowledge-center/s3-event-notification-filter-wildcard),
 Zed does not currently expand UNIX-style `*` wildcards in S3 URIs. If you
 find this limitation is impacting your workflow, please add your use case
 details as a comment in issue [zed/1994](https://github.com/brimdata/zed/issues/1994)
