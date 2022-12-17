@@ -1,12 +1,12 @@
 script: |
   zq -f vng -o o1.vng p1.zson
-  zq -z -o o1.zson -i vng o1.vng
+  zq -z -o o1.zson o1.vng
   zq -f vng -o o2.vng p2.zson
-  zq -z -o o2.zson -i vng o2.vng
+  zq -z -o o2.zson o2.vng
   zq -f vng -o o3.vng p3.zson
-  zq -z -o o3.zson -i vng o3.vng
+  zq -z -o o3.zson o3.vng
   zq -f vng -o o4.vng p4.zson
-  zq -z -o o4.zson -i vng o4.vng
+  zq -z -o o4.zson o4.vng
 
 inputs:
   - name: p1.zson

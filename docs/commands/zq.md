@@ -311,7 +311,7 @@ As suggested by the error above, the Zed `fuse` operator can merge different rec
 types into a blended type, e.g., here we create the file and read it back:
 ```mdtest-command
 echo '{x:1}{s:"hello"}' | zq -o out.parquet -f parquet fuse -
-zq -z -i parquet out.parquet
+zq -z out.parquet
 ```
 but the data was necessarily changed (by inserting nulls):
 ```mdtest-output
@@ -336,7 +336,7 @@ For example, the example above would produce two output files,
 which can then be read separately to reproduce the original data, e.g.,
 ```mdtest-command
 echo '{x:1}{s:"hello"}' | zq -o out -split . -f parquet -
-zq -z -i parquet out-*.parquet
+zq -z out-*.parquet
 ```
 produces the original data
 ```mdtest-output
@@ -487,7 +487,7 @@ produces
 _Make a schema-rigid Parquet file using fuse and turn it back into Zed_
 ```
 echo '{a:1}{a:2}{b:3}' | zq -f parquet -o tmp.parquet fuse -
-zq -z -i parquet tmp.parquet
+zq -z tmp.parquet
 ```
 produces
 ```
