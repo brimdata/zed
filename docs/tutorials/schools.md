@@ -1261,7 +1261,7 @@ San Francisco   San Francisco Unified                              454.368421052
 ...
 ```
 Instead of a simple field name, any of the comma-separated group-by elements
-can be any [Zed expression](../language/overview.md#6-expressions), which may
+can be any [Zed expression](../language/overview.md#7-expressions), which may
 appear in the form of a field assignment `field:=expr`
 
 To see a count of how many school names of a particular character length
