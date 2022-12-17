@@ -13,6 +13,7 @@ outputs:
   - name: stderr
     data: |
       stdio:stdin: format detection error
+      	arrows: schema message length exceeds 1 MiB
       	zeek: line 1: bad types/fields definition in zeek header
       	zjson: line 1: invalid character 'T' looking for beginning of value
       	zson: ZSON syntax error

@@ -34,7 +34,7 @@ resulting in `error("missing")` for expressions that reference fields of `this`.
 
 Note that when the field references are all top level,
 `cut` is a special case of a yield with a
-[record literal](../overview.md#6112-record-expressions) having the form:
+[record literal](../overview.md#7112-record-expressions) having the form:
 ```
 yield {<field>:<expr> [, <field>:<expr>...]}
 ```

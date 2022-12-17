@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/arrowio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/lineio"
@@ -19,6 +20,8 @@ import (
 
 func lookupReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.ReadCloser, error) {
 	switch opts.Format {
+	case "arrows":
+		return arrowio.NewReader(zctx, r)
 	case "csv":
 		return zio.NopReadCloser(csvio.NewReader(zctx, r)), nil
 	case "line":

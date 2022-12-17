@@ -80,9 +80,10 @@ type (
 		Args []Assignment `json:"args"`
 	}
 	Sequential struct {
-		Kind   string `json:"kind" unpack:""`
-		Consts []Def  `json:"consts"`
-		Ops    []Op   `json:"ops"`
+		Kind   string  `json:"kind" unpack:""`
+		Consts []Def   `json:"consts"`
+		Funcs  []*Func `json:"funcs"`
+		Ops    []Op    `json:"ops"`
 	}
 	Shape struct {
 		Kind string `json:"kind" unpack:""`

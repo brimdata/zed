@@ -49,26 +49,37 @@
 start = __ ast:Sequential __ EOF { RETURN(ast) }
 
 Sequential
-  = consts:Consts __ first:Operation rest:SequentialTail* {
-      RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest), "consts":consts))
+  = decls:Decls __ first:Operation rest:SequentialTail* {
+      RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest), "decls": decls))
     }
 
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
 
-Consts
-  = Const+
+Decls
+  = Decl+
   / __ { RETURN(ARRAY()) }
 
-Const = __ v:ConstDef { RETURN(v) }
+Decl
+  = __ v:(ConstDecl / FuncDecl) { RETURN(v) }
 
-ConstDef
+ConstDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
-      RETURN(MAP("name":id, "expr":expr))
+      RETURN(MAP("kind":"ConstDecl", "name":id, "expr":expr))
     }
   / "type" _ id:(IdentifierName / QuotedString) __ "=" __ typ:Type {
       RETURN(MAP(
+        "kind":"ConstDecl",
         "name":id,
         "expr":MAP("kind":"TypeValue","value":MAP("kind":"TypeDef","name":id,"type":typ))))
+    }
+
+FuncDecl
+  = "func" _ id:IdentifierName __ "(" __ params:IdentifierNames __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
+      RETURN(MAP(
+        "kind":"FuncDecl",
+        "name":id,
+        "params":params,
+        "expr":expr))
     }
 
 Operation
@@ -425,7 +436,7 @@ JoinKey
 
 SampleOp
   = "sample" &EOKW e:SampleExpr {
-      RETURN(MAP("kind": "Sequential", "consts": ARRAY(), "ops": ARRAY(
+      RETURN(MAP("kind": "Sequential", "decls": ARRAY(), "ops": ARRAY(
         MAP("kind": "Summarize",
           "keys": ARRAY(MAP("kind": "Assignment",
                    "lhs": MAP("kind": "ID", "name": "shape"),
@@ -1173,6 +1184,11 @@ IdentifierName
   // "type" is a search guard but should not be an id guard
   / "type" { RETURN(TEXT) }
   / id:SQLTokenSentinels &(__ "(") { RETURN(id) }
+
+IdentifierNames
+  = first:IdentifierName rest:(__ "," __ id:IdentifierName { RETURN(id)})* {
+    RETURN(PREPEND(first, rest))
+  }
 
 IDGuard
   = BooleanLiteral

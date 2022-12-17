@@ -1,0 +1,39 @@
+script: |
+  zc -C -I test.zed
+  echo "==="
+  zc -s -C -I test.zed
+
+inputs:
+  - name: test.zed
+    data: |
+      func fib(n): (n <= 1 ? n : fib(n-1) + fib(n-2))
+      const foo = "bar"
+      func add(a,b): (a+b)
+      const bar = "baz"
+      pass
+
+outputs:
+  - name: stdout
+    data: |
+      func fib(n): (
+        (n<=1) ? n : fib(n-1)+fib(n-2)
+      )
+      const foo = "bar"
+      func add(a, b): (
+        a+b
+      )
+      const bar = "baz"
+      pass
+      ===
+      const foo = "bar"
+      const bar = "baz"
+      func fib(n): (
+        (n<=1) ? n : fib(n-1)+fib(n-2)
+      )
+      func add(a, b): (
+        a+b
+      )
+      from (
+        (internal reader)
+      )
+      | pass

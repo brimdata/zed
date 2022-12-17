@@ -56,6 +56,15 @@ func (s *Scope) DefineAs(name string) error {
 	return nil
 }
 
+func (s *Scope) DefineFunc(f *dag.Func) error {
+	b := s.tos()
+	if _, ok := b.symbols[f.Name]; ok {
+		return fmt.Errorf("symbol %q redefined", f.Name)
+	}
+	b.Define(f.Name, f)
+	return nil
+}
+
 func (s *Scope) DefineConst(name string, def dag.Expr) error {
 	b := s.tos()
 	if _, ok := b.symbols[name]; ok {

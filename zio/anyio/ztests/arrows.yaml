@@ -1,0 +1,11 @@
+script: |
+  zq -f arrows - | zq -z -
+
+inputs:
+  - name: stdin
+    data: &stdin |
+      {x:1}
+
+outputs:
+  - name: stdout
+    data: *stdin

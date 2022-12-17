@@ -188,7 +188,27 @@ func (c *canonDAG) op(p dag.Op) {
 		if p == nil {
 			return
 		}
-		//XXX format consts block
+		for _, d := range p.Consts {
+			c.write("const %s = ", d.Name)
+			c.expr(d.Expr, "")
+			c.ret()
+		}
+		for _, f := range p.Funcs {
+			c.write("func %s(", f.Name)
+			for i := range f.Params {
+				if i != 0 {
+					c.write(", ")
+				}
+				c.write(f.Params[i])
+			}
+			c.open("): (")
+			c.ret()
+			c.expr(f.Expr, f.Name)
+			c.close()
+			c.ret()
+			c.flush()
+			c.write(")\n")
+		}
 		for _, p := range p.Ops {
 			c.op(p)
 		}

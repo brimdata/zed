@@ -1,0 +1,20 @@
+zed: |
+  func is_even(n): (
+    n == 0 ? true : is_odd(n-1)
+  )
+
+  func is_odd(n): (
+    n == 0 ? false: is_even(n-1)
+  )
+
+  yield is_even(this), is_odd(this)
+
+input: |
+  10
+  11
+
+output: |
+  true
+  false
+  false
+  true

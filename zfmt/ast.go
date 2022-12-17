@@ -324,9 +324,40 @@ func (c *canon) next() {
 	}
 }
 
+func (c *canon) decl(d ast.Decl) {
+	switch d := d.(type) {
+	case *ast.ConstDecl:
+		c.write("const %s = ", d.Name)
+		c.expr(d.Expr, "")
+	case *ast.FuncDecl:
+		c.write("func %s(", d.Name)
+		for i := range d.Params {
+			if i != 0 {
+				c.write(", ")
+			}
+			c.write(d.Params[i])
+		}
+		c.open("): (")
+		c.ret()
+		c.expr(d.Expr, d.Name)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
+	default:
+		c.open("unknown decl: %T", d)
+		c.close()
+	}
+}
+
 func (c *canon) proc(p ast.Op) {
 	switch p := p.(type) {
 	case *ast.Sequential:
+		for _, d := range p.Decls {
+			c.decl(d)
+			c.ret()
+		}
+		c.flush()
 		for _, p := range p.Ops {
 			c.proc(p)
 		}

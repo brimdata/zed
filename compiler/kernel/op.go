@@ -47,6 +47,7 @@ type Builder struct {
 	pools    map[dag.Source]*lake.Pool
 	progress *zbuf.Progress
 	deletes  *sync.Map
+	funcs    map[string]expr.Function
 }
 
 func NewBuilder(pctx *op.Context, source *data.Source) *Builder {
@@ -61,6 +62,7 @@ func NewBuilder(pctx *op.Context, source *data.Source) *Builder {
 			RecordsRead:    0,
 			RecordsMatched: 0,
 		},
+		funcs: make(map[string]expr.Function),
 	}
 }
 
@@ -308,6 +310,9 @@ func splitAssignments(assignments []expr.Assignment) (field.List, []expr.Evaluat
 }
 
 func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	if err := b.compileFuncs(seq.Funcs); err != nil {
+		return nil, err
+	}
 	for _, o := range seq.Ops {
 		var err error
 		parents, err = b.compile(o, parents)
@@ -341,6 +346,25 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller)
 		ops = append(ops, op...)
 	}
 	return ops, nil
+}
+
+func (b *Builder) compileFuncs(fns []*dag.Func) error {
+	udfs := make([]*expr.UDF, 0, len(fns))
+	for _, f := range fns {
+		if _, ok := b.funcs[f.Name]; ok {
+			return fmt.Errorf("internal error: func %q declared twice", f.Name)
+		}
+		u := &expr.UDF{}
+		b.funcs[f.Name] = u
+		udfs = append(udfs, u)
+	}
+	for i := range fns {
+		var err error
+		if udfs[i].Body, err = b.compileExpr(fns[i].Expr); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
