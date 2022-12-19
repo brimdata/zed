@@ -62,8 +62,8 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 		parquetErr = fmt.Errorf("parquet: %w", parquetErr)
 		vngErr = fmt.Errorf("vng: %w", vngErr)
 	} else {
-		parquetErr = errors.New("parquet: reader cannot seek")
-		vngErr = errors.New("vng: reader cannot seek")
+		parquetErr = errors.New("parquet: auto-detection requires seekable input")
+		vngErr = errors.New("vng: auto-detection requires seekable input")
 	}
 
 	recorder := NewRecorder(r)
