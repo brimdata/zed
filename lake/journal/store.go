@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
 )
@@ -74,34 +76,41 @@ func (s *Store) load(ctx context.Context) error {
 		return err
 	}
 	s.mu.RLock()
-	at := s.at
+	current := s.at
 	s.mu.RUnlock()
-	if head == at {
+	if head == current {
 		return nil
 	}
-	r, err := s.journal.OpenAsZNG(ctx, zed.NewContext(), head, 0)
+	at, table, err := s.getSnapshot(ctx)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	r, err := s.journal.OpenAsZNG(ctx, zed.NewContext(), head, at)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
-	table := make(map[string]Entry)
 	for {
-		rec, err := r.Read()
+		v, err := r.Read()
 		if err != nil {
 			return err
 		}
-		if rec == nil {
+		if v == nil {
 			now := time.Now()
 			s.mu.Lock()
 			s.table = table
 			s.at = head
 			s.loadTime = now
 			s.mu.Unlock()
+			// Reduce the amount of times we write snapshots to disk by only writing when there are 10 or more new entries since
+			// the last snapshot.
+			if head-at > 10 {
+				return s.putSnapshot(ctx, head, table)
+			}
 			return nil
-
 		}
 		var e Entry
-		if err := s.unmarshaler.Unmarshal(rec, &e); err != nil {
+		if err := s.unmarshaler.Unmarshal(v, &e); err != nil {
 			return err
 		}
 		switch e := e.(type) {
@@ -115,10 +124,68 @@ func (s *Store) load(ctx context.Context) error {
 			table[key] = e.Entry
 		case *Delete:
 			delete(table, e.EntryKey)
-		default:
-			return fmt.Errorf("unknown type in journal store: %T", e)
 		}
 	}
+}
+
+func (s *Store) getSnapshot(ctx context.Context) (ID, map[string]Entry, error) {
+	table := make(map[string]Entry)
+	r, err := s.journal.engine.Get(ctx, s.snapshotURI())
+	if err != nil {
+		return Nil, table, err
+	}
+	defer r.Close()
+	zr := zngio.NewReader(zed.NewContext(), r)
+	defer zr.Close()
+	v, err := zr.Read()
+	if v == nil || err != nil {
+		return Nil, table, err
+	}
+	if v.Type.ID() != zed.IDUint64 {
+		return Nil, table, errors.New("corrupted journal snapshot")
+	}
+	at := ID(zed.DecodeUint(v.Bytes))
+	for {
+		v, err := zr.Read()
+		if v == nil || err != nil {
+			return at, table, err
+		}
+		var e Entry
+		if err := s.unmarshaler.Unmarshal(v, &e); err != nil {
+			return at, nil, err
+		}
+		table[e.Key()] = e
+	}
+}
+
+func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) error {
+	// XXX This needs to be an atomic write for file systems.
+	w, err := s.journal.engine.Put(ctx, s.snapshotURI())
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	zw := zngio.NewWriter(w)
+	v := zed.NewValue(zed.TypeUint64, zed.EncodeUint(uint64(at)))
+	if err := zw.Write(v); err != nil {
+		return err
+	}
+	marshaler := zson.NewZNGMarshaler()
+	marshaler.Decorate(s.style)
+	for _, entry := range table {
+		v, err := marshaler.Marshal(entry)
+		if err != nil {
+			return err
+		}
+		if err := zw.Write(v); err != nil {
+			return err
+		}
+	}
+	return zw.Close()
+}
+
+func (s *Store) snapshotURI() *storage.URI {
+	return s.journal.path.AppendPath(fmt.Sprintf("snap.%s", ext))
 }
 
 func (s *Store) stale() bool {
