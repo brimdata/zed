@@ -19,7 +19,6 @@ import (
 	"github.com/brimdata/zed/zio/arrowio"
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -185,19 +184,4 @@ func runOneBoomerang(t *testing.T, format, data string) {
 	require.NoError(t, boomerangWriter.Close())
 
 	require.Equal(t, baseline.String(), boomerang.String(), "baseline and boomerang differ")
-}
-
-func TestTranslateNameConflictUnion(t *testing.T) {
-	// This test confirms that a union with complicated type renaming is properly
-	// decoded.  There was a bug where child typedefs would override the
-	// top level typedef in TranslateTypeValue so foo in the value below had
-	// two of the same union type instead of the two it should have had.
-	zctx := zed.NewContext()
-	val := zson.MustParseValue(zctx, `[{x:{y:63}}(=foo),{x:{abcdef:{x:{y:127}}(foo)}}(=foo)]`)
-	foreign := zed.NewContext()
-	twin, err := foreign.TranslateType(val.Type)
-	require.NoError(t, err)
-	union := twin.(*zed.TypeArray).Type.(*zed.TypeUnion)
-	assert.Equal(t, `foo={x:{abcdef:foo={x:{y:int64}}}}`, zson.String(union.Types[0]))
-	assert.Equal(t, `foo={x:{y:int64}}`, zson.String(union.Types[1]))
 }
