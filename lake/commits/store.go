@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zngbytes"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/segmentio/ksuid"
 )
 
@@ -28,21 +28,21 @@ type Store struct {
 	path   *storage.URI
 	engine storage.Engine
 
-	cache     *lru.ARCCache // Used like a map[ksuid.KSUID]*Object.
-	paths     *lru.ARCCache // Used like a map[ksuid.KSUID][]ksuid.KSUID.
-	snapshots *lru.ARCCache // Used like a map[ksuid.KSUID]*Snapshot.
+	cache     *lru.ARCCache[ksuid.KSUID, *Object]
+	paths     *lru.ARCCache[ksuid.KSUID, []ksuid.KSUID]
+	snapshots *lru.ARCCache[ksuid.KSUID, *Snapshot]
 }
 
 func OpenStore(engine storage.Engine, path *storage.URI) (*Store, error) {
-	cache, err := lru.NewARC(1024)
+	cache, err := lru.NewARC[ksuid.KSUID, *Object](1024)
 	if err != nil {
 		return nil, err
 	}
-	paths, err := lru.NewARC(1024)
+	paths, err := lru.NewARC[ksuid.KSUID, []ksuid.KSUID](1024)
 	if err != nil {
 		return nil, err
 	}
-	snapshots, err := lru.NewARC(32)
+	snapshots, err := lru.NewARC[ksuid.KSUID, *Snapshot](32)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func OpenStore(engine storage.Engine, path *storage.URI) (*Store, error) {
 
 func (s *Store) Get(ctx context.Context, commit ksuid.KSUID) (*Object, error) {
 	if o, ok := s.cache.Get(commit); ok {
-		return o.(*Object), nil
+		return o, nil
 	}
 	r, err := s.engine.Get(ctx, s.pathOf(commit))
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *Store) Remove(ctx context.Context, o *Object) error {
 
 func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, error) {
 	if snap, ok := s.snapshots.Get(leaf); ok {
-		return snap.(*Snapshot), nil
+		return snap, nil
 	}
 	if snap, err := s.getSnapshot(ctx, leaf); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
@@ -108,7 +108,7 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 	var base *Snapshot
 	for at := leaf; at != ksuid.Nil; {
 		if snap, ok := s.snapshots.Get(at); ok {
-			base = snap.(*Snapshot)
+			base = snap
 			break
 		}
 		var o *Object
@@ -184,7 +184,7 @@ func (s *Store) Path(ctx context.Context, leaf ksuid.KSUID) ([]ksuid.KSUID, erro
 		return nil, errors.New("no path for nil commit ID")
 	}
 	if path, ok := s.paths.Get(leaf); ok {
-		return path.([]ksuid.KSUID), nil
+		return path, nil
 	}
 	path, err := s.PathRange(ctx, leaf, ksuid.Nil)
 	if err != nil {
@@ -198,7 +198,7 @@ func (s *Store) PathRange(ctx context.Context, from, to ksuid.KSUID) ([]ksuid.KS
 	var path []ksuid.KSUID
 	for at := from; at != ksuid.Nil; {
 		if cache, ok := s.paths.Get(at); ok {
-			for _, id := range cache.([]ksuid.KSUID) {
+			for _, id := range cache {
 				path = append(path, id)
 				if id == to {
 					break
