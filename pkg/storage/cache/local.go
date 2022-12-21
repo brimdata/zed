@@ -6,19 +6,19 @@ import (
 
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/pkg/storage"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 type LocalCache struct {
 	storage.Engine
 	metrics
-	lru       *lru.ARCCache
+	lru       *lru.ARCCache[string, []byte]
 	cacheable Cacheable
 }
 
 func NewLocalCache(engine storage.Engine, cacheable Cacheable, size int, registerer prometheus.Registerer) (*LocalCache, error) {
-	lru, err := lru.NewARC(size)
+	lru, err := lru.NewARC[string, []byte](size)
 	if err != nil {
 		return nil, err
 	}
@@ -38,15 +38,15 @@ func (c *LocalCache) Get(ctx context.Context, u *storage.URI) (storage.Reader, e
 		return c.Engine.Get(ctx, u)
 	}
 	kind, _, _ := data.FileMatch(path.Base(u.Path))
-	if v, ok := c.lru.Get(u.String()); ok {
+	if b, ok := c.lru.Get(u.String()); ok {
 		c.hits.WithLabelValues(kind.Description()).Inc()
-		return storage.NewBytesReader(v.([]byte)), nil
+		return storage.NewBytesReader(b), nil
 	}
-	b, err := c.Engine.Get(ctx, u)
+	b, err := storage.Get(ctx, c.Engine, u)
 	if err != nil {
 		return nil, err
 	}
 	c.lru.Add(u.String(), b)
 	c.misses.WithLabelValues(kind.Description()).Inc()
-	return b, nil
+	return storage.NewBytesReader(b), nil
 }

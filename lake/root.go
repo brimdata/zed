@@ -20,7 +20,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/segmentio/ksuid"
 )
 
@@ -37,7 +37,7 @@ const (
 type Root struct {
 	engine     storage.Engine
 	path       *storage.URI
-	poolCache  *lru.ARCCache // Used like a map[ksuid.KSUID]*Pool.
+	poolCache  *lru.ARCCache[ksuid.KSUID, *Pool]
 	pools      *pools.Store
 	indexRules *index.Store
 }
@@ -48,7 +48,7 @@ type LakeMagic struct {
 }
 
 func newRoot(engine storage.Engine, path *storage.URI) *Root {
-	poolCache, err := lru.NewARC(1024)
+	poolCache, err := lru.NewARC[ksuid.KSUID, *Pool](1024)
 	if err != nil {
 		panic(err)
 	}
@@ -277,11 +277,11 @@ func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
 }
 
 func (r *Root) openPool(ctx context.Context, config *pools.Config) (*Pool, error) {
-	if v, ok := r.poolCache.Get(config.ID); ok {
+	if p, ok := r.poolCache.Get(config.ID); ok {
 		// The cached pool's config may be outdated, so rather than
 		// return the pool directly, we return a copy whose config we
 		// can safely update without locking.
-		p := *v.(*Pool)
+		p := *p
 		p.Config = *config
 		return &p, nil
 	}

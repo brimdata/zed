@@ -15,7 +15,7 @@ require (
 	github.com/golang/mock v1.5.0
 	github.com/gorilla/mux v1.7.5-0.20200711200521-98cb6bf42e08
 	github.com/gosuri/uilive v0.0.4
-	github.com/hashicorp/golang-lru v0.5.4
+	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/kr/text v0.2.0
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
