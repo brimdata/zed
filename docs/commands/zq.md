@@ -108,8 +108,8 @@ Note here that the query `1+1` [implies](../language/overview.md#26-implied-oper
 | `zeek`    |  yes | [Zeek Logs](https://docs.zeek.org/en/master/logs/index.html) |
 
 The input format is typically detected automatically and the formats for which
-`Auto` is `yes` in the table above support _auto detection_.
-Formats without auto detection require the `-i` option.
+`Auto` is `yes` in the table above support _auto-detection_.
+Formats without auto-detection require the `-i` option.
 
 ### 2.1 Hard-wired Input Format
 
@@ -120,7 +120,7 @@ in the indicated format.
 
 ### 2.2 Auto-detection
 
-When using _auto detection_, each input's format is independently determined
+When using _auto-detection_, each input's format is independently determined
 so it is possible to easily blend different input formats into a unified
 output format.
 
