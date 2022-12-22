@@ -3,7 +3,6 @@ package zed
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"sort"
 
 	"github.com/brimdata/zed/zcode"
@@ -233,23 +232,6 @@ func NewTypeRecord(id int, columns []Column) *TypeRecord {
 
 func (t *TypeRecord) ID() int {
 	return t.id
-}
-
-// XXX we shouldn't need this... tests are using it
-func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
-	if zv == nil {
-		return nil, nil
-	}
-	var vals []Value
-	for i, it := 0, zv.Iter(); !it.Done(); i++ {
-		val := it.Next()
-		if i >= len(t.Columns) {
-			return nil, fmt.Errorf("too many values for record element %s", val)
-		}
-		v := Value{t.Columns[i].Type, val}
-		vals = append(vals, v)
-	}
-	return vals, nil
 }
 
 func (t *TypeRecord) Marshal(zv zcode.Bytes) interface{} {
