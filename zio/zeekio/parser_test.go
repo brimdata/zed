@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -129,6 +130,7 @@ func TestNestedRecords(t *testing.T) {
 	parser := startLegacyTest(t, fields, types, "")
 	record, err := sendLegacyValues(parser, vals)
 	require.NoError(t, err)
+	require.NoError(t, zngio.Validate(record))
 
 	// First check that the descriptor was created correctly
 	cols := zed.TypeRecordOf(record.Type).Columns
@@ -159,38 +161,26 @@ func TestNestedRecords(t *testing.T) {
 	assert.Equal(t, "z", nest3Type.Columns[0].Name, "column in nest3 is z")
 
 	// Now check the actual values
-	v := record.Deref("a").AsInt()
-	assert.Equal(t, int64(1), v, "Field a has value 1")
+	assert.Equal(t, 1, int(record.Deref("a").AsInt()), "Field a has value 1")
 
 	e := record.Deref("nest1")
 	assert.Equal(t, nest1Type, e.Type, "Got right type for field nest1")
-	subVals, err := nest1Type.Decode(e.Bytes)
-	require.NoError(t, err)
-	assert.Equal(t, 3, len(subVals), "nest1 has 3 elements")
-	assertInt64(t, 2, &subVals[0], "nest1.a")
-	assertInt64(t, 3, &subVals[1], "nest1.b")
-	assert.Equal(t, nestnestType, subVals[2].Type, "Got right type for field nest1.nestnest")
-	nestnestVals, err := nestnestType.Decode(subVals[2].Bytes)
-	require.NoError(t, err)
-	assert.Equal(t, 1, len(nestnestVals), "nest1.nestnest has 1 element")
-	assertInt64(t, 6, &nestnestVals[0], "nest1.nestnest.c")
+	assert.Equal(t, 2, int(e.Deref("a").AsInt()), "nest1.a")
+	assert.Equal(t, 3, int(e.Deref("b").AsInt()), "nest1.b")
 
-	v = record.Deref("b").AsInt()
-	assert.Equal(t, int64(4), v, "Field b has value 4")
+	e = e.Deref("nestnest")
+	assert.Equal(t, nestnestType, e.Type, "Got right type for field nest1.nestnest")
+	assert.Equal(t, 6, int(e.Deref("c").AsInt()), "nest1.nestnest.c")
+
+	assert.Equal(t, 4, int(record.Deref("b").AsInt()), "Field b has value 4")
 
 	e = record.Deref("nest2")
 	assert.Equal(t, nest2Type, e.Type, "Got right type for field nest2")
-	subVals, err = nest2Type.Decode(e.Bytes)
-	require.NoError(t, err)
-	assert.Equal(t, 1, len(subVals), "nest2 has 1 element")
-	assertInt64(t, 5, &subVals[0], "nest2.y")
+	assert.Equal(t, 5, int(e.Deref("y").AsInt()), "nest2.y")
 
 	e = record.Deref("nest3")
 	assert.Equal(t, nest3Type, e.Type, "Got right type for field nest3")
-	subVals, err = nest3Type.Decode(e.Bytes)
-	require.NoError(t, err)
-	assert.Equal(t, 1, len(subVals), "nest3 has 1 element")
-	assertInt64(t, 7, &subVals[0], "nest3.z")
+	assert.Equal(t, 7, int(e.Deref("z").AsInt()), "nest3.z")
 }
 
 // Test things related to legacy zeek records that should cause the
