@@ -9,20 +9,6 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-var ErrNonAdjacent = errors.New("non adjacent fields")
-
-type errNonAdjacent struct {
-	record string
-}
-
-func (e errNonAdjacent) Error() string {
-	return fmt.Sprintf("fields in record %s must be adjacent", e.record)
-}
-
-func (e errNonAdjacent) Unwrap() error {
-	return ErrNonAdjacent
-}
-
 // fieldInfo encodes the structure of a particular proc that writes a
 // sequence of fields, which may potentially be inside nested records.
 // This encoding enables the runtime processing to happen as efficiently
@@ -115,7 +101,7 @@ func NewColumnBuilder(zctx *Context, fields field.List) (*ColumnBuilder, error) 
 				recname := strings.Join(record[:pos2+1], ".")
 				_, seen := seenRecords[recname]
 				if seen {
-					return nil, errNonAdjacent{recname}
+					return nil, fmt.Errorf("fields in record %s must be adjacent", recname)
 				}
 				seenRecords[recname] = true
 				containerBegins = append(containerBegins, record[pos2])
