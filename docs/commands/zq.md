@@ -100,8 +100,9 @@ Note here that the query `1+1` [implies](../language/overview.md#26-implied-oper
 | `arrows`  |  yes | [Arrow IPC Stream Format](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format) |
 | `json`    |  yes | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
 | `csv`     |  yes | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
-| `parquet` |  no  | [Apache Parquet](https://github.com/apache/parquet-format) |
-| `vng`     |  no  | [VNG - Binary Columnar Format](../formats/vng.md) |
+| `line`    |  no  | One string value per input line |
+| `parquet` |  yes | [Apache Parquet](https://github.com/apache/parquet-format) |
+| `vng`     |  yes | [VNG - Binary Columnar Format](../formats/vng.md) |
 | `zson`    |  yes | [ZSON - Human-readable Format](../formats/zson.md) |
 | `zng`     |  yes | [ZNG - Binary Row Format](../formats/zson.md) |
 | `zjson`   |  yes | [ZJSON - Zed over JSON](../formats/zjson.md) |
@@ -310,7 +311,7 @@ As suggested by the error above, the Zed `fuse` operator can merge different rec
 types into a blended type, e.g., here we create the file and read it back:
 ```mdtest-command
 echo '{x:1}{s:"hello"}' | zq -o out.parquet -f parquet fuse -
-zq -z -i parquet out.parquet
+zq -z out.parquet
 ```
 but the data was necessarily changed (by inserting nulls):
 ```mdtest-output
@@ -335,7 +336,7 @@ For example, the example above would produce two output files,
 which can then be read separately to reproduce the original data, e.g.,
 ```mdtest-command
 echo '{x:1}{s:"hello"}' | zq -o out -split . -f parquet -
-zq -z -i parquet out-*.parquet
+zq -z out-*.parquet
 ```
 produces the original data
 ```mdtest-output
@@ -486,7 +487,7 @@ produces
 _Make a schema-rigid Parquet file using fuse and turn it back into Zed_
 ```
 echo '{a:1}{a:2}{b:3}' | zq -f parquet -o tmp.parquet fuse -
-zq -z -i parquet tmp.parquet
+zq -z tmp.parquet
 ```
 produces
 ```

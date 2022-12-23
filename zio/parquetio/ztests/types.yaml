@@ -1,6 +1,6 @@
 script: |
   zq -f parquet -o f.parquet -
-  zq -Z -i parquet f.parquet
+  zq -Z f.parquet
 
 inputs:
   - name: stdin

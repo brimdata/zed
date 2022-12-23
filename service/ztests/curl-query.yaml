@@ -12,7 +12,7 @@ script: |
     zq -z -i arrows -
   echo === application/x-parquet ===
   curl -H 'Accept: application/x-parquet' -d '{"query":"from test"}' -o out.parquet $ZED_LAKE/query
-  zq -z -i parquet out.parquet
+  zq -z out.parquet
 
 inputs:
   - name: service.sh

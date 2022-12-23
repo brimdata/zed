@@ -604,12 +604,6 @@ zed load sample1.json sample2.zng sample3.zson
 ```
 loads files of varying formats in a single commit to the working branch.
 
-Parquet and VNG formats are not auto-detected so you must currently
-specify `-i` with these formats, e.g.,
-```
-zed load -i parquet sample4.parquet
-zed load -i vng sample5.vng
-```
 An alternative branch may be specified with a branch reference with the
 `-use` option, i.e., `<pool>@<branch>`.  Supposing a branch
 called `live` existed, data can be committed into this branch as follows:

@@ -514,8 +514,12 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err := flags.Parse(inputFlags); err != nil {
 		return "", "", err
 	}
+	r, err := anyio.GzipReader(strings.NewReader(input))
+	if err != nil {
+		return "", err.Error(), err
+	}
 	zctx := zed.NewContext()
-	zrc, err := anyio.NewReaderWithOpts(zctx, anyio.GzipReader(strings.NewReader(input)), inflags.Options())
+	zrc, err := anyio.NewReaderWithOpts(zctx, r, inflags.Options())
 	if err != nil {
 		return "", err.Error(), err
 	}

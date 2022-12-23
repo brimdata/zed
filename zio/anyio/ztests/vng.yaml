@@ -1,12 +1,11 @@
 script: |
-  zq -f vng -o out.vng -
-  zq -z out.vng
+  zq -f vng -o f -
+  zq -z f
 
 inputs:
   - name: stdin
     data: &stdin |
-      {a:{aa:0}}
-      {a:{aa:0},b:[{bb:0}]}
+      {a:1}
 
 outputs:
   - name: stdout

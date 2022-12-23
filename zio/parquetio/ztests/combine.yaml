@@ -2,7 +2,7 @@
 # schemas, ensuring that they properly share a ZNG type context.
 
 script: |
-  zq -i parquet conn.parquet dns.parquet | zq -z -
+  zq conn.parquet dns.parquet | zq -z -
 
 inputs:
   - name: conn.parquet
