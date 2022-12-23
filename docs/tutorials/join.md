@@ -74,6 +74,10 @@ produces
 
 ## Left Join
 
+:::tip note
+In some databases a left join is called a _left outer join_.
+:::
+
 By performing a left join that targets the same key fields, now all of our
 fruits will be shown in the results even if no one likes them (e.g., `avocado`).
 
@@ -106,6 +110,10 @@ produces
 ```
 
 ## Right join
+
+:::tip note
+In some databases a right join is called a _right outer join_.
+:::
 
 Next we'll change the join type from `left` to `right`. Notice that this causes
 the `note` field from the right-hand input to appear in the joined results.
