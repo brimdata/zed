@@ -48,7 +48,7 @@ type Aggregator struct {
 	keyExprs       []expr.Evaluator
 	aggRefs        []expr.Evaluator
 	aggs           []*expr.Aggregator
-	builder        *zed.ColumnBuilder
+	builder        *zed.RecordBuilder
 	recordTypes    map[int]*zed.TypeRecord
 	table          map[string]*Row
 	limit          int
@@ -69,7 +69,7 @@ type Row struct {
 	reducers valRow
 }
 
-func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *zed.ColumnBuilder, limit int, inputDir order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
+func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *zed.RecordBuilder, limit int, inputDir order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
@@ -125,7 +125,7 @@ func New(pctx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames 
 		names = append(names, e.LHS)
 	}
 	names = append(names, aggNames...)
-	builder, err := zed.NewColumnBuilder(pctx.Zctx, names)
+	builder, err := zed.NewRecordBuilder(pctx.Zctx, names)
 	if err != nil {
 		return nil, err
 	}

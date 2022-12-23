@@ -43,19 +43,19 @@ type fieldInfo struct {
 	containerEnds   int
 }
 
-type ColumnBuilder struct {
+type RecordBuilder struct {
 	fields   []fieldInfo
 	builder  *zcode.Builder
 	zctx     *Context
 	curField int
 }
 
-// NewColumnBuilder constructs the zcode.Bytes representation for columns
+// NewRecordBuilder constructs the zcode.Bytes representation for records
 // built from an array of input field selectors expressed as field.Path.
 // Append should be called to enter field values in the left to right order
 // of the provided fields and Encode is called to retrieve the nested zcode.Bytes
 // value.  Reset should be called before encoding the next record.
-func NewColumnBuilder(zctx *Context, fields field.List) (*ColumnBuilder, error) {
+func NewRecordBuilder(zctx *Context, fields field.List) (*RecordBuilder, error) {
 	seenRecords := make(map[string]bool)
 	fieldInfos := make([]fieldInfo, 0, len(fields))
 	var currentRecord []string
@@ -117,7 +117,7 @@ func NewColumnBuilder(zctx *Context, fields field.List) (*ColumnBuilder, error) 
 		fieldInfos[len(fieldInfos)-1].containerEnds = len(currentRecord)
 	}
 
-	return &ColumnBuilder{
+	return &RecordBuilder{
 		fields:  fieldInfos,
 		builder: zcode.NewBuilder(),
 		zctx:    zctx,
@@ -160,36 +160,36 @@ func sameRecord(names1, names2 []string) bool {
 	return true
 }
 
-func (c *ColumnBuilder) Reset() {
-	c.builder.Reset()
-	c.curField = 0
+func (r *RecordBuilder) Reset() {
+	r.builder.Reset()
+	r.curField = 0
 }
 
-func (c *ColumnBuilder) Append(leaf []byte) {
-	field := c.fields[c.curField]
-	c.curField++
+func (r *RecordBuilder) Append(leaf []byte) {
+	field := r.fields[r.curField]
+	r.curField++
 	for range field.containerBegins {
-		c.builder.BeginContainer()
+		r.builder.BeginContainer()
 	}
-	c.builder.Append(leaf)
+	r.builder.Append(leaf)
 	for i := 0; i < field.containerEnds; i++ {
-		c.builder.EndContainer()
+		r.builder.EndContainer()
 	}
 }
 
-func (c *ColumnBuilder) Encode() (zcode.Bytes, error) {
-	if c.curField != len(c.fields) {
+func (r *RecordBuilder) Encode() (zcode.Bytes, error) {
+	if r.curField != len(r.fields) {
 		return nil, errors.New("did not receive enough columns")
 	}
-	return c.builder.Bytes(), nil
+	return r.builder.Bytes(), nil
 }
 
-// A ColumnBuilder understands the shape of a sequence of FieldExprs
+// A RecordBuilder understands the shape of a sequence of FieldExprs
 // (i.e., which columns are inside nested records) but not the types.
 // TypedColumns takes an array of Types for the individual fields
 // and constructs an array of Columns that reflects the fullly
 // typed structure.  This is suitable for e.g. allocating a descriptor.
-func (c *ColumnBuilder) TypedColumns(types []Type) []Column {
+func (r *RecordBuilder) TypedColumns(types []Type) []Column {
 	type rec struct {
 		name string
 		cols []Column
@@ -198,7 +198,7 @@ func (c *ColumnBuilder) TypedColumns(types []Type) []Column {
 	stack := make([]*rec, 1)
 	stack[0] = current
 
-	for i, fi := range c.fields {
+	for i, fi := range r.fields {
 		for _, name := range fi.containerBegins {
 			current = &rec{name, nil}
 			stack = append(stack, current)
@@ -207,7 +207,7 @@ func (c *ColumnBuilder) TypedColumns(types []Type) []Column {
 		current.cols = append(current.cols, NewColumn(fi.field.Leaf(), types[i]))
 
 		for j := 0; j < fi.containerEnds; j++ {
-			recType := c.zctx.MustLookupTypeRecord(current.cols)
+			recType := r.zctx.MustLookupTypeRecord(current.cols)
 			slen := len(stack)
 			stack = stack[:slen-1]
 			cur := stack[slen-2]

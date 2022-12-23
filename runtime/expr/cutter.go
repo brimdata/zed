@@ -11,7 +11,7 @@ import (
 
 type Cutter struct {
 	zctx        *zed.Context
-	builder     *zed.ColumnBuilder
+	builder     *zed.RecordBuilder
 	fieldRefs   field.List
 	fieldExprs  []Evaluator
 	typeCache   []zed.Type
@@ -34,11 +34,11 @@ func NewCutter(zctx *zed.Context, fieldRefs field.List, fieldExprs []Evaluator) 
 			return nil, errors.New("cut: 'this' not allowed (use record literal)")
 		}
 	}
-	var b *zed.ColumnBuilder
+	var b *zed.RecordBuilder
 	if len(fieldRefs) == 0 || !fieldRefs[0].IsEmpty() {
 		// A root field will cause NewColumnBuilder to panic.
 		var err error
-		b, err = zed.NewColumnBuilder(zctx, fieldRefs)
+		b, err = zed.NewRecordBuilder(zctx, fieldRefs)
 		if err != nil {
 			return nil, err
 		}

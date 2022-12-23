@@ -8,7 +8,7 @@ import (
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nest_dotted.md
 type NestDotted struct {
 	zctx        *zed.Context
-	builders    map[int]*zed.ColumnBuilder
+	builders    map[int]*zed.RecordBuilder
 	recordTypes map[int]*zed.TypeRecord
 }
 
@@ -22,12 +22,12 @@ type NestDotted struct {
 func NewNestDotted(zctx *zed.Context) *NestDotted {
 	return &NestDotted{
 		zctx:        zctx,
-		builders:    make(map[int]*zed.ColumnBuilder),
+		builders:    make(map[int]*zed.RecordBuilder),
 		recordTypes: make(map[int]*zed.TypeRecord),
 	}
 }
 
-func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuilder, *zed.TypeRecord, error) {
+func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.RecordBuilder, *zed.TypeRecord, error) {
 	if b, ok := n.builders[in.ID()]; ok {
 		return b, n.recordTypes[in.ID()], nil
 	}
@@ -45,7 +45,7 @@ func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuilde
 	if !foundDotted {
 		return nil, nil, nil
 	}
-	b, err := zed.NewColumnBuilder(n.zctx, fields)
+	b, err := zed.NewRecordBuilder(n.zctx, fields)
 	if err != nil {
 		return nil, nil, err
 	}
