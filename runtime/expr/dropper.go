@@ -8,7 +8,7 @@ import (
 
 type dropper struct {
 	typ       zed.Type
-	builder   *zed.ColumnBuilder
+	builder   *zed.RecordBuilder
 	fieldRefs []Evaluator
 }
 
@@ -62,7 +62,7 @@ func (d *Dropper) newDropper(zctx *zed.Context, r *zed.Value) *dropper {
 	for _, f := range fields {
 		fieldRefs = append(fieldRefs, NewDottedExpr(zctx, f))
 	}
-	builder, err := zed.NewColumnBuilder(d.zctx, fields)
+	builder, err := zed.NewRecordBuilder(d.zctx, fields)
 	if err != nil {
 		panic(err)
 	}
