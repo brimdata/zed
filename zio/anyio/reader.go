@@ -133,7 +133,18 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	track.Reset()
 
 	lineErr := errors.New("line: auto-detection not supported")
-	return nil, joinErrs([]error{arrowsErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, vngErr, lineErr})
+	return nil, joinErrs([]error{
+		arrowsErr,
+		csvErr,
+		jsonErr,
+		lineErr,
+		parquetErr,
+		vngErr,
+		zeekErr,
+		zjsonErr,
+		zngErr,
+		zsonErr,
+	})
 }
 
 func isArrowStream(track *Track) error {
