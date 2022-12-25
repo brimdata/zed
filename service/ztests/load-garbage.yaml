@@ -14,13 +14,13 @@ outputs:
     data: |
       stdio:stdin: format detection error
       	arrows: schema message length exceeds 1 MiB
-      	zeek: line 1: bad types/fields definition in zeek header
-      	zjson: line 1: invalid character 'T' looking for beginning of value
-      	zson: ZSON syntax error
-      	zng: malformed zng record
       	csv: line 1: no comma found
       	json: invalid character 'T' looking for beginning of value
+      	line: auto-detection not supported
       	parquet: auto-detection requires seekable input
       	vng: auto-detection requires seekable input
-      	line: auto-detection not supported
+      	zeek: line 1: bad types/fields definition in zeek header
+      	zjson: line 1: invalid character 'T' looking for beginning of value
+      	zng: malformed zng record
+      	zson: ZSON syntax error
       status code 400: no records in request
