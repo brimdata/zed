@@ -8,7 +8,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/arrowio"
@@ -25,7 +24,6 @@ import (
 type ReaderOpts struct {
 	Format string
 	ZNG    zngio.ReaderOpts
-	AwsCfg *aws.Config
 }
 
 func NewReader(zctx *zed.Context, r io.Reader) (zio.ReadCloser, error) {
