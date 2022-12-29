@@ -4,7 +4,7 @@
       "pattern": "^http://localhost:9867"
     },
     {
-      "pattern": ^https://suricata.io"
+      "pattern": "^https://suricata.io"
     }
   ],
   "retryOn429": true,
