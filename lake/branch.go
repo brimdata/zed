@@ -397,10 +397,12 @@ func (b *Branch) commit(ctx context.Context, create constructor) (ksuid.KSUID, e
 			return false
 		}
 		if err := b.pool.branches.Update(ctx, config, parentCheck); err != nil {
+			// Branch update failed so remove commit.
+			rmerr := b.pool.commits.Remove(ctx, object)
 			if err == journal.ErrConstraint {
 				// Parent check failed so try again.
-				if err := b.pool.commits.Remove(ctx, object); err != nil {
-					return ksuid.Nil, err
+				if rmerr != nil {
+					return ksuid.Nil, rmerr
 				}
 				continue
 			}
