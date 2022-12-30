@@ -323,7 +323,7 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 	valRef.Type = typ
 	valRef.Bytes = b
 	if w.validate {
-		if err := Validate(valRef); err != nil {
+		if err := valRef.Validate(); err != nil {
 			return err
 		}
 	}

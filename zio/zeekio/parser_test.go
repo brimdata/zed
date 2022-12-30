@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zio/zngio"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -130,7 +129,7 @@ func TestNestedRecords(t *testing.T) {
 	parser := startLegacyTest(t, fields, types, "")
 	record, err := sendLegacyValues(parser, vals)
 	require.NoError(t, err)
-	require.NoError(t, zngio.Validate(record))
+	require.NoError(t, record.Validate())
 
 	// First check that the descriptor was created correctly
 	cols := zed.TypeRecordOf(record.Type).Columns
