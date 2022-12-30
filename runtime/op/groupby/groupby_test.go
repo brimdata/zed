@@ -269,12 +269,12 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 	// spill before that all records for that key have been
 	// written to the spill.
 	//
-	savedBatchSize := zbuf.ScannerBatchSize
-	zbuf.ScannerBatchSize = 1
+	savedPullerBatchSize := zbuf.PullerBatchSize
+	zbuf.PullerBatchSize = 1
 	savedBatchSizeGroupByLimit := groupby.DefaultLimit
 	groupby.DefaultLimit = 2
 	defer func() {
-		zbuf.ScannerBatchSize = savedBatchSize
+		zbuf.PullerBatchSize = savedPullerBatchSize
 		groupby.DefaultLimit = savedBatchSizeGroupByLimit
 	}()
 

@@ -8,7 +8,6 @@ import (
 )
 
 var MemMaxBytes = 128 * 1024 * 1024
-var BatchSize = 100
 
 type Proc struct {
 	pctx   *op.Context
@@ -65,7 +64,7 @@ func (p *Proc) pullInput() error {
 }
 
 func (p *Proc) pushOutput() error {
-	puller := zbuf.NewPuller(p.fuser, BatchSize)
+	puller := zbuf.NewPuller(p.fuser)
 	for {
 		if err := p.pctx.Err(); err != nil {
 			return err

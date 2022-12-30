@@ -78,8 +78,7 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 		return batch, nil
 	}
 	heap.Push(p, min)
-	const batchLen = 100 // XXX
-	return zbuf.NewPuller(p, batchLen).Pull(false)
+	return zbuf.NewPuller(p).Pull(false)
 }
 
 func (p *Proc) Read() (*zed.Value, error) {

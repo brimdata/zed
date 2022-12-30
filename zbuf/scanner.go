@@ -79,8 +79,6 @@ func (p *Progress) Progress() Progress {
 	return p.Copy()
 }
 
-var ScannerBatchSize = 100
-
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
 // If r implements fmt.Stringer, the scanner reports errors using a prefix of the
 // string returned by its String method.
@@ -113,7 +111,7 @@ func newScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 		}
 	}
 	sc := &scanner{reader: r, filter: f, ctx: ctx}
-	sc.Puller = NewPuller(sc, ScannerBatchSize)
+	sc.Puller = NewPuller(sc)
 	return sc, nil
 }
 

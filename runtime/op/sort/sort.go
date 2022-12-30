@@ -156,7 +156,7 @@ func (p *Proc) send(vals []zed.Value) bool {
 }
 
 func (p *Proc) sendSpills(spiller *spill.MergeSort) bool {
-	puller := zbuf.NewPuller(spiller, 100)
+	puller := zbuf.NewPuller(spiller)
 	for {
 		if err := p.pctx.Err(); err != nil {
 			return false
