@@ -52,7 +52,7 @@ func (f *fuse) ConsumeAsPartial(partial *zed.Value) {
 	if partial.Type != zed.TypeType {
 		panic("fuse: partial not a type value")
 	}
-	f.partials = append(f.partials, *partial)
+	f.partials = append(f.partials, *partial.Copy())
 }
 
 func (f *fuse) ResultAsPartial(zctx *zed.Context) *zed.Value {
