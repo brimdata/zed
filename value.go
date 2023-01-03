@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
@@ -319,4 +320,61 @@ func (v *Value) Under() *Value {
 		}
 		typ, bytes = union.Untag(bytes)
 	}
+}
+
+// Validate checks that v.Bytes is structurally consistent
+// with v.Type.  It does not check that the actual leaf
+// values when parsed are type compatible with the leaf types.
+func (v *Value) Validate() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %+v\n%s", r, debug.Stack())
+		}
+	}()
+	return v.Walk(func(typ Type, body zcode.Bytes) error {
+		if typset, ok := typ.(*TypeSet); ok {
+			if err := checkSet(typset, body); err != nil {
+				return err
+			}
+			return SkipContainer
+		}
+		if typ, ok := typ.(*TypeEnum); ok {
+			if err := checkEnum(typ, body); err != nil {
+				return err
+			}
+			return SkipContainer
+		}
+		return nil
+	})
+}
+
+func checkSet(typ *TypeSet, body zcode.Bytes) error {
+	if body == nil {
+		return nil
+	}
+	it := body.Iter()
+	var prev zcode.Bytes
+	for !it.Done() {
+		tagAndBody := it.NextTagAndBody()
+		if prev != nil {
+			switch bytes.Compare(prev, tagAndBody) {
+			case 0:
+				return errors.New("invalid ZNG: duplicate set element")
+			case 1:
+				return errors.New("invalid ZNG: set elements not sorted")
+			}
+		}
+		prev = tagAndBody
+	}
+	return nil
+}
+
+func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
+	if body == nil {
+		return nil
+	}
+	if selector := DecodeUint(body); int(selector) >= len(typ.Symbols) {
+		return errors.New("enum selector out of range")
+	}
+	return nil
 }

@@ -1,4 +1,4 @@
-package zngio
+package zed_test
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidate(t *testing.T) {
+func TestValueValidate(t *testing.T) {
 	r := zed.NewValue(
 		zed.NewTypeRecord(0, []zed.Column{
 			zed.NewColumn("f", zed.NewTypeSet(0, zed.TypeString)),
@@ -22,7 +22,7 @@ func TestValidate(t *testing.T) {
 		// Don't normalize.
 		b.EndContainer()
 		r.Bytes = b.Bytes()
-		assert.EqualError(t, Validate(r), "invalid ZNG: duplicate set element")
+		assert.EqualError(t, r.Validate(), "invalid ZNG: duplicate set element")
 	})
 	t.Run("set/error/unsorted-elements", func(t *testing.T) {
 		var b zcode.Builder
@@ -33,7 +33,7 @@ func TestValidate(t *testing.T) {
 		// Don't normalize.
 		b.EndContainer()
 		r.Bytes = b.Bytes()
-		assert.EqualError(t, Validate(r), "invalid ZNG: set elements not sorted")
+		assert.EqualError(t, r.Validate(), "invalid ZNG: set elements not sorted")
 	})
 	t.Run("set/primitive-elements", func(t *testing.T) {
 		var b zcode.Builder
@@ -45,7 +45,7 @@ func TestValidate(t *testing.T) {
 		b.TransformContainer(zed.NormalizeSet)
 		b.EndContainer()
 		r.Bytes = b.Bytes()
-		assert.NoError(t, Validate(r))
+		assert.NoError(t, r.Validate())
 	})
 	t.Run("set/complex-elements", func(t *testing.T) {
 		var b zcode.Builder
@@ -64,6 +64,6 @@ func TestValidate(t *testing.T) {
 				}))),
 			}),
 			b.Bytes())
-		assert.NoError(t, Validate(r))
+		assert.NoError(t, r.Validate())
 	})
 }
