@@ -27,8 +27,7 @@ func (f *fuse) Consume(val *zed.Value) {
 
 func (f *fuse) Result(zctx *zed.Context) *zed.Value {
 	if len(f.shapes)+len(f.partials) == 0 {
-		// empty input, return type(null)... XXX singleton
-		return zed.NewValue(zed.TypeType, nil)
+		return zed.NullType
 	}
 	schema := NewSchema(zctx)
 	for _, p := range f.partials {
