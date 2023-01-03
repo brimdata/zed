@@ -9,7 +9,6 @@
 * Add pool level configuration to `zed manage` (#4234)
 * The `mask` argument of the [`network_of()` function](docs/language/functions/network_of.md) now accepts an `ip`-type netmask instead of a `net` type (#4247, #4253)
 * Drop support for the older "zng21" format (#4255)
-* Update LZ4 dependency for improved performance and bug fixes (#4197)
 * Add support for [user defined functions](docs/language/overview.md#4-func-statements) (UDFs) to the Zed language (#4264)
 * Add journal snapshots, significantly improving performance when a pool contains many small commits (#4274)
 
