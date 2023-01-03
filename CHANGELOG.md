@@ -1,8 +1,8 @@
 ## v1.4.0
 * The ZST format is now called [VNG](docs/formats/vng.md) (#4256)
-* Allow loading of "line" format over the Zed API (#4229)
-* Allow loading of Parquet format over the Zed API (#4235)
-* Allow loading of Zeek TSV format over the Zed API (#4246)
+* Allow loading of "line" format over the lake API (#4229)
+* Allow loading of Parquet format over the lake API (#4235)
+* Allow loading of Zeek TSV format over the lake API (#4246)
 * Add auto-detect support for loading Parquet and VNG formats (#4270)
 * Add support for Arrow IPC stream format (#4252)
 * Fix an issue where records lacking a pool key could cause a crash during compaction (#4230)
