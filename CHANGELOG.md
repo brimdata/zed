@@ -5,7 +5,6 @@
 * Allow loading of Zeek TSV format over the lake API (#4246)
 * Auto-detect Parquet and VNG formats (#4270)
 * Add support for Arrow IPC stream format (#4252)
-* Fix an issue where records lacking a pool key could cause a crash during compaction (#4230)
 * Add pool level configuration to `zed manage` (#4234)
 * The `mask` argument of the [`network_of()` function](docs/language/functions/network_of.md) now accepts an `ip`-type netmask instead of a `net` type (#4247, #4253)
 * Drop support for the older "zng21" format (#4255)
