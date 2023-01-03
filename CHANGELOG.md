@@ -1,3 +1,16 @@
+## v1.4.0
+* The ZST format is now called [VNG](docs/formats/vng.md) (#4256)
+* Allow loading of "line" format over the lake API (#4229)
+* Allow loading of Parquet format over the lake API (#4235)
+* Allow loading of Zeek TSV format over the lake API (#4246)
+* Auto-detect Parquet and VNG formats (#4270)
+* Add support for Arrow IPC stream format (#4252)
+* Add pool level configuration to `zed manage` (#4234)
+* The `mask` argument of the [`network_of()` function](docs/language/functions/network_of.md) now accepts an `ip`-type netmask instead of a `net` type (#4247, #4253)
+* Drop support for the older "zng21" format (#4255)
+* Add support for [user defined functions](docs/language/overview.md#4-func-statements) (UDFs) to the Zed language (#4264)
+* Add journal snapshots, significantly improving performance when a pool contains many small commits (#4274)
+
 ## v1.3.0
 * Optimize performance of filters on pool key fields (#3930)
 * Improve handling of errors during [shaping](docs/language/overview.md#9-shaping) (#4067, #4069)
