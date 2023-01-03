@@ -3,7 +3,7 @@
 * Allow loading of "line" format over the lake API (#4229)
 * Allow loading of Parquet format over the lake API (#4235)
 * Allow loading of Zeek TSV format over the lake API (#4246)
-* Add auto-detect support for loading Parquet and VNG formats (#4270)
+* Auto-detect Parquet and VNG formats (#4270)
 * Add support for Arrow IPC stream format (#4252)
 * Fix an issue where records lacking a pool key could cause a crash during compaction (#4230)
 * Add pool level configuration to `zed manage` (#4234)
