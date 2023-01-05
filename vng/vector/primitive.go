@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 type PrimitiveWriter struct {
@@ -52,9 +53,11 @@ func (p *PrimitiveWriter) Metadata() Metadata {
 }
 
 type PrimitiveReader struct {
-	it     zcode.Iter
 	segmap []Segment
 	reader io.ReaderAt
+
+	buf []byte
+	it  zcode.Iter
 }
 
 func NewPrimitiveReader(primitive *Primitive, reader io.ReaderAt) *PrimitiveReader {
@@ -90,17 +93,10 @@ func (p *PrimitiveReader) next() error {
 	if segment.Length > 2*MaxSegmentThresh {
 		return errors.New("segment too big")
 	}
-	b := make([]byte, segment.Length)
-	//XXX this where lots of seeks can happen until we put intelligent
-	// scheduling in a layer below this informed by the reassembly maps
-	// and the query that is going to run.
-	n, err := p.reader.ReadAt(b, segment.Offset)
-	if err != nil {
+	p.buf = slices.Grow(p.buf[:0], int(segment.MemLength))[:segment.MemLength]
+	if err := segment.Read(p.reader, p.buf); err != nil {
 		return err
 	}
-	if n < int(segment.Length) {
-		return errors.New("truncated read of VNG vector")
-	}
-	p.it = zcode.Iter(b)
+	p.it = zcode.Iter(p.buf)
 	return nil
 }

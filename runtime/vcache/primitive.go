@@ -24,17 +24,15 @@ func (p *Primitive) NewIter(r io.ReaderAt) (iterator, error) {
 		// (for random access, not used yet).
 		var n int
 		for _, segment := range p.meta.Segmap {
-			n += int(segment.Length)
+			n += int(segment.MemLength)
 		}
 		data := make([]byte, n)
-		off := 0
+		var off int
 		for _, segment := range p.meta.Segmap {
-			section := io.NewSectionReader(r, segment.Offset, int64(segment.Length))
-			if _, err := io.ReadFull(section, data[off:off+int(segment.Length)]); err != nil {
+			if err := segment.Read(r, data[off:]); err != nil {
 				return nil, err
-
 			}
-			off += int(segment.Length)
+			off += int(segment.MemLength)
 		}
 		p.bytes = data
 	}
