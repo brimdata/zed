@@ -113,14 +113,18 @@ func (c *Pair) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, bool) {
 
 func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 	if zed.IsFloat(aid) {
-		if aid == zed.IDFloat32 {
+		if aid == zed.IDFloat16 {
+			c.A = c.buf2.Float64(float64(zed.DecodeFloat16(c.A)))
+		} else if aid == zed.IDFloat32 {
 			c.A = c.buf2.Float64(float64(zed.DecodeFloat32(c.A)))
 		}
 		c.B = c.Float64(intToFloat(bid, c.B))
 		return aid, true
 	}
 	if zed.IsFloat(bid) {
-		if bid == zed.IDFloat32 {
+		if bid == zed.IDFloat16 {
+			c.B = c.buf2.Float64(float64(zed.DecodeFloat16(c.B)))
+		} else if bid == zed.IDFloat32 {
 			c.B = c.buf2.Float64(float64(zed.DecodeFloat32(c.B)))
 		}
 		c.A = c.Float64(intToFloat(aid, c.A))
@@ -292,7 +296,7 @@ func ToDuration(in *zed.Value) (nano.Duration, bool) {
 		v := zed.DecodeInt(in.Bytes)
 		//XXX check for overflow here
 		return nano.Duration(v) * nano.Second, true
-	case zed.IDFloat32, zed.IDFloat64:
+	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 		return nano.Duration(zed.DecodeFloat(in.Bytes)), true
 	}
 	return 0, false

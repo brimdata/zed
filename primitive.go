@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
+	"github.com/x448/float16"
 )
 
 type TypeOfBool struct{}
@@ -113,6 +114,9 @@ func DecodeFloat(zb zcode.Bytes) float64 {
 		return 0
 	}
 	switch len(zb) {
+	case 2:
+		bits := binary.LittleEndian.Uint16(zb)
+		return float64(float16.Frombits(bits).Float32())
 	case 4:
 		bits := binary.LittleEndian.Uint32(zb)
 		return float64(math.Float32frombits(bits))
@@ -121,6 +125,41 @@ func DecodeFloat(zb zcode.Bytes) float64 {
 		return math.Float64frombits(bits)
 	}
 	panic("float encoding is neither 4 nor 8 bytes")
+}
+
+type TypeOfFloat16 struct{}
+
+func NewFloat16(f float32) *Value {
+	return &Value{TypeFloat16, EncodeFloat16(f)}
+}
+
+func AppendFloat16(zb zcode.Bytes, f float32) zcode.Bytes {
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf, float16.Fromfloat32(f).Bits())
+	return append(zb, buf...)
+}
+
+func EncodeFloat16(d float32) zcode.Bytes {
+	return AppendFloat16(nil, d)
+}
+
+func DecodeFloat16(zb zcode.Bytes) float32 {
+	if zb == nil {
+		return 0
+	}
+	return float16.Frombits(binary.LittleEndian.Uint16(zb)).Float32()
+}
+
+func (t *TypeOfFloat16) ID() int {
+	return IDFloat16
+}
+
+func (t *TypeOfFloat16) Kind() Kind {
+	return PrimitiveKind
+}
+
+func (t *TypeOfFloat16) Marshal(zb zcode.Bytes) interface{} {
+	return DecodeFloat16(zb)
 }
 
 type TypeOfFloat32 struct{}

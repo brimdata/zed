@@ -15,7 +15,7 @@ inputs:
           int32: -32 (int32),
           uint64: 64 (uint64),
           int64: -64,
-          float16: 16. (arrow_float16=float32),
+          float16: 16. (float16),
           float32: 32. (float32),
           float64: 64.,
           string: "",

@@ -34,6 +34,8 @@ func LookupPrimitiveCaster(zctx *zed.Context, typ zed.Type) Evaluator {
 		return &casterUintN{zctx, zed.TypeUint32, math.MaxUint32}
 	case zed.TypeUint64:
 		return &casterUintN{zctx, zed.TypeUint64, 0}
+	case zed.TypeFloat16:
+		return &casterFloat16{zctx}
 	case zed.TypeFloat32:
 		return &casterFloat32{zctx}
 	case zed.TypeFloat64:
@@ -96,6 +98,18 @@ func (c *casterBool) Eval(ectx Context, val *zed.Value) *zed.Value {
 		return ectx.CopyValue(c.zctx.NewErrorf("cannot cast %s to bool", zson.MustFormatValue(val)))
 	}
 	return ectx.NewValue(zed.TypeBool, zed.EncodeBool(b))
+}
+
+type casterFloat16 struct {
+	zctx *zed.Context
+}
+
+func (c *casterFloat16) Eval(ectx Context, val *zed.Value) *zed.Value {
+	f, ok := coerce.ToFloat(val)
+	if !ok {
+		return ectx.CopyValue(c.zctx.NewErrorf("cannot cast %s to type float16", zson.MustFormatValue(val)))
+	}
+	return ectx.NewValue(zed.TypeFloat16, zed.EncodeFloat16(float32(f)))
 }
 
 type casterFloat32 struct {

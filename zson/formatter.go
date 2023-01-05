@@ -841,6 +841,13 @@ func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
 		b.WriteString(zed.DecodeDuration(bytes).String())
 	case *zed.TypeOfTime:
 		b.WriteString(zed.DecodeTime(bytes).Time().Format(time.RFC3339Nano))
+	case *zed.TypeOfFloat16:
+		f := zed.DecodeFloat16(bytes)
+		if f == float32(int64(f)) {
+			b.WriteString(fmt.Sprintf("%d.", int64(f)))
+		} else {
+			b.WriteString(strconv.FormatFloat(float64(f), 'g', -1, 32))
+		}
 	case *zed.TypeOfFloat32:
 		f := zed.DecodeFloat32(bytes)
 		if f == float32(int64(f)) {

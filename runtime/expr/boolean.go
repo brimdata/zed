@@ -87,7 +87,7 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 			if v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
-		case zed.IDFloat32, zed.IDFloat64:
+		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 			return CompareFloat(zed.DecodeFloat(zv), float64(pattern))
 		case zed.IDTime:
 			return CompareInt(int64(zed.DecodeTime(zv)), pattern)
@@ -115,7 +115,7 @@ func CompareTime(op string, pattern int64) (Boolean, error) {
 			if v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
-		case zed.IDFloat32, zed.IDFloat64:
+		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 			return CompareFloat(zed.DecodeFloat(zv), float64(pattern))
 		case zed.IDTime:
 			return CompareInt(int64(zed.DecodeTime(zv)), pattern)
@@ -171,7 +171,7 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		// integers that cause float64 overflow?  user can always
 		// use an integer constant instead of a float constant to
 		// compare with the integer-y field.
-		case zed.IDFloat32, zed.IDFloat64:
+		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 			return compare(zed.DecodeFloat(zv), pattern)
 		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
 			return compare(float64(zed.DecodeInt(zv)), pattern)

@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
+	"github.com/x448/float16"
 	"golang.org/x/exp/slices"
 )
 
@@ -282,6 +283,10 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 	}
 	if v.Type().Implements(marshalerTypeZNG) {
 		return v.Interface().(ZNGMarshaler).MarshalZNG(m)
+	}
+	if v, ok := v.Interface().(float16.Float16); ok {
+		m.Builder.Append(zed.EncodeFloat16(v.Float32()))
+		return zed.TypeFloat16, nil
 	}
 	if ts, ok := v.Interface().(nano.Ts); ok {
 		m.Builder.Append(zed.EncodeTime(ts))
@@ -712,6 +717,13 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	m, v = indirect(v, zv)
 	if m != nil {
 		return m.UnmarshalZNG(u, zv)
+	}
+	if _, ok := v.Interface().(float16.Float16); ok {
+		if zv.Type != zed.TypeFloat16 {
+			return incompatTypeError(zv.Type, v)
+		}
+		v.SetUint(uint64(float16.Fromfloat32(zed.DecodeFloat16(zv.Bytes)).Bits()))
+		return nil
 	}
 	if _, ok := v.Interface().(zed.Value); ok {
 		// For zed.Values we simply set the reflect value to the
@@ -1277,6 +1289,8 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zed.Type) (reflect.Type, e
 		v = int32(0)
 	case *zed.TypeOfInt64:
 		v = int64(0)
+	case *zed.TypeOfFloat16:
+		v = float16.Fromfloat32(0)
 	case *zed.TypeOfFloat32:
 		v = float32(0)
 	case *zed.TypeOfFloat64:

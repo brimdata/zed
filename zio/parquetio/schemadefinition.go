@@ -141,8 +141,7 @@ func newColumnDefinition(name string, typ zed.Type) (*parquetschema.ColumnDefini
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT64, convertedInt64, logicalInt64)
 	case *zed.TypeOfTime:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT64, nil, logicalTimestampNanos)
-	// XXX add TypeFloat16
-	case *zed.TypeOfFloat32:
+	case *zed.TypeOfFloat16, *zed.TypeOfFloat32:
 		return newPrimitiveColumnDefinition(name, parquet.Type_FLOAT, nil, nil)
 	case *zed.TypeOfFloat64:
 		return newPrimitiveColumnDefinition(name, parquet.Type_DOUBLE, nil, nil)

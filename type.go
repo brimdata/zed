@@ -87,9 +87,9 @@ var (
 	TypeInt64    = &TypeOfInt64{}
 	TypeDuration = &TypeOfDuration{}
 	TypeTime     = &TypeOfTime{}
-	// XXX add TypeFloat16
-	TypeFloat32 = &TypeOfFloat32{}
-	TypeFloat64 = &TypeOfFloat64{}
+	TypeFloat16  = &TypeOfFloat16{}
+	TypeFloat32  = &TypeOfFloat32{}
+	TypeFloat64  = &TypeOfFloat64{}
 	// XXX add TypeDecimal
 	TypeBool   = &TypeOfBool{}
 	TypeBytes  = &TypeOfBytes{}
@@ -157,7 +157,7 @@ func IsInteger(id int) bool {
 }
 
 // True iff the type id is encoded as a zng signed or unsigned integer zcode.Bytes,
-// float32 zcode.Bytes, or float64 zcode.Bytes.
+// float16 zcode.Bytes, float32 zcode.Bytes, or float64 zcode.Bytes.
 func IsNumber(id int) bool {
 	return id <= IDDecimal256
 }
@@ -195,6 +195,8 @@ func LookupPrimitive(name string) Type {
 		return TypeDuration
 	case "time":
 		return TypeTime
+	case "float16":
+		return TypeFloat16
 	case "float32":
 		return TypeFloat32
 	case "float64":
@@ -239,6 +241,8 @@ func PrimitiveName(typ Type) string {
 		return "duration"
 	case *TypeOfTime:
 		return "time"
+	case *TypeOfFloat16:
+		return "float16"
 	case *TypeOfFloat32:
 		return "float32"
 	case *TypeOfFloat64:
@@ -288,6 +292,8 @@ func LookupPrimitiveByID(id int) (Type, error) {
 		return TypeInt64, nil
 	case IDUint64:
 		return TypeUint64, nil
+	case IDFloat16:
+		return TypeFloat16, nil
 	case IDFloat32:
 		return TypeFloat32, nil
 	case IDFloat64:

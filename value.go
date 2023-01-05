@@ -35,6 +35,7 @@ var (
 	NullInt64    = &Value{Type: TypeInt64}
 	NullDuration = &Value{Type: TypeDuration}
 	NullTime     = &Value{Type: TypeTime}
+	NullFloat16  = &Value{Type: TypeFloat16}
 	NullFloat32  = &Value{Type: TypeFloat32}
 	NullFloat64  = &Value{Type: TypeFloat64}
 	NullBool     = &Value{Type: TypeBool}

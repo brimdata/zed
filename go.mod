@@ -28,6 +28,7 @@ require (
 	github.com/rs/cors v1.8.0
 	github.com/segmentio/ksuid v1.0.2
 	github.com/stretchr/testify v1.8.0
+	github.com/x448/float16 v0.8.4
 	github.com/yuin/goldmark v1.4.13
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.23.0
