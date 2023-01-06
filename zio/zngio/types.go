@@ -268,7 +268,7 @@ func (d *Decoder) decode(b *buffer) error {
 func (d *Decoder) readTypeRecord(b *buffer) error {
 	ncol, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	var columns []zed.Column
 	for k := 0; k < int(ncol); k++ {
@@ -293,7 +293,7 @@ func (d *Decoder) readColumn(b *buffer) (zed.Column, error) {
 	}
 	id, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.Column{}, zed.ErrBadFormat
+		return zed.Column{}, errBadFormat
 	}
 	typ, err := d.local.zctx.LookupType(id)
 	if err != nil {
@@ -305,7 +305,7 @@ func (d *Decoder) readColumn(b *buffer) (zed.Column, error) {
 func (d *Decoder) readTypeArray(b *buffer) error {
 	id, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	inner, err := d.local.zctx.LookupType(int(id))
 	if err != nil {
@@ -319,7 +319,7 @@ func (d *Decoder) readTypeArray(b *buffer) error {
 func (d *Decoder) readTypeSet(b *buffer) error {
 	id, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	innerType, err := d.local.zctx.LookupType(int(id))
 	if err != nil {
@@ -333,7 +333,7 @@ func (d *Decoder) readTypeSet(b *buffer) error {
 func (d *Decoder) readTypeMap(b *buffer) error {
 	id, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	keyType, err := d.local.zctx.LookupType(int(id))
 	if err != nil {
@@ -341,7 +341,7 @@ func (d *Decoder) readTypeMap(b *buffer) error {
 	}
 	id, err = readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	valType, err := d.local.zctx.LookupType(int(id))
 	if err != nil {
@@ -355,7 +355,7 @@ func (d *Decoder) readTypeMap(b *buffer) error {
 func (d *Decoder) readTypeUnion(b *buffer) error {
 	ntyp, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	if ntyp == 0 {
 		return errors.New("type union: zero columns not allowed")
@@ -364,7 +364,7 @@ func (d *Decoder) readTypeUnion(b *buffer) error {
 	for k := 0; k < int(ntyp); k++ {
 		id, err := readUvarintAsInt(b)
 		if err != nil {
-			return zed.ErrBadFormat
+			return errBadFormat
 		}
 		typ, err := d.local.zctx.LookupType(int(id))
 		if err != nil {
@@ -380,7 +380,7 @@ func (d *Decoder) readTypeUnion(b *buffer) error {
 func (d *Decoder) readTypeEnum(b *buffer) error {
 	nsym, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	var symbols []string
 	for k := 0; k < int(nsym); k++ {
@@ -398,11 +398,11 @@ func (d *Decoder) readTypeEnum(b *buffer) error {
 func (d *Decoder) readCountedString(b *buffer) (string, error) {
 	n, err := readUvarintAsInt(b)
 	if err != nil {
-		return "", zed.ErrBadFormat
+		return "", errBadFormat
 	}
 	name, err := b.read(n)
 	if err != nil {
-		return "", zed.ErrBadFormat
+		return "", errBadFormat
 	}
 	// pull the name out before the next read which might overwrite the buffer
 	return string(name), nil
@@ -415,7 +415,7 @@ func (d *Decoder) readTypeName(b *buffer) error {
 	}
 	id, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	inner, err := d.local.zctx.LookupType(int(id))
 	if err != nil {
@@ -432,7 +432,7 @@ func (d *Decoder) readTypeName(b *buffer) error {
 func (d *Decoder) readTypeError(b *buffer) error {
 	id, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	inner, err := d.local.zctx.LookupType(int(id))
 	if err != nil {

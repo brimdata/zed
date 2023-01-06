@@ -13,15 +13,8 @@ import (
 )
 
 var (
-	ErrMissingField  = errors.New("record missing a field")
-	ErrExtraField    = errors.New("record with extra field")
-	ErrNotContainer  = errors.New("expected container type, got primitive")
-	ErrNotPrimitive  = errors.New("expected primitive type, got container")
-	ErrTypeIDInvalid = errors.New("zng type ID out of range")
-	ErrBadValue      = errors.New("malformed zng value")
-	ErrBadFormat     = errors.New("malformed zng record")
-	ErrTypeMismatch  = errors.New("type/value mismatch")
-	ErrTypeSyntax    = errors.New("syntax error parsing type string")
+	ErrMissingField = errors.New("record missing a field")
+	ErrNotContainer = errors.New("expected container type, got primitive")
 )
 
 var (
