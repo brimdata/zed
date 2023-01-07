@@ -29,10 +29,6 @@ func Not(zb zcode.Bytes) *Value {
 	return True
 }
 
-func NewBool(b bool) *Value {
-	return &Value{TypeBool, EncodeBool(b)}
-}
-
 func AppendBool(zb zcode.Bytes, b bool) zcode.Bytes {
 	if b {
 		return append(zb, 1)
@@ -58,10 +54,6 @@ func (t *TypeOfBool) Kind() Kind {
 
 type TypeOfBytes struct{}
 
-func NewBytes(b []byte) *Value {
-	return &Value{TypeBytes, EncodeBytes(b)}
-}
-
 func EncodeBytes(b []byte) zcode.Bytes {
 	return zcode.Bytes(b)
 }
@@ -83,10 +75,6 @@ func (t *TypeOfBytes) Format(zv zcode.Bytes) string {
 }
 
 type TypeOfDuration struct{}
-
-func NewDuration(d nano.Duration) *Value {
-	return &Value{TypeDuration, EncodeDuration(d)}
-}
 
 func EncodeDuration(d nano.Duration) zcode.Bytes {
 	return EncodeInt(int64(d))
@@ -125,10 +113,6 @@ func DecodeFloat(zb zcode.Bytes) float64 {
 
 type TypeOfFloat32 struct{}
 
-func NewFloat32(f float32) *Value {
-	return &Value{TypeFloat32, EncodeFloat32(f)}
-}
-
 func AppendFloat32(zb zcode.Bytes, f float32) zcode.Bytes {
 	return binary.LittleEndian.AppendUint32(zb, math.Float32bits(f))
 }
@@ -158,10 +142,6 @@ func (t *TypeOfFloat32) Marshal(zb zcode.Bytes) interface{} {
 
 type TypeOfFloat64 struct{}
 
-func NewFloat64(f float64) *Value {
-	return &Value{TypeFloat64, EncodeFloat64(f)}
-}
-
 func AppendFloat64(zb zcode.Bytes, d float64) zcode.Bytes {
 	return binary.LittleEndian.AppendUint64(zb, math.Float64bits(d))
 }
@@ -187,10 +167,6 @@ func (t *TypeOfFloat64) Kind() Kind {
 
 func (t *TypeOfFloat64) Marshal(zv zcode.Bytes) interface{} {
 	return DecodeFloat64(zv)
-}
-
-func NewUint64(v uint64) *Value {
-	return &Value{TypeUint64, EncodeUint(v)}
 }
 
 func EncodeInt(i int64) zcode.Bytes {
@@ -303,10 +279,6 @@ func (t *TypeOfUint64) Kind() Kind {
 
 type TypeOfIP struct{}
 
-func NewIP(a netip.Addr) *Value {
-	return &Value{TypeIP, EncodeIP(a)}
-}
-
 func AppendIP(zb zcode.Bytes, a netip.Addr) zcode.Bytes {
 	return append(zb, a.AsSlice()...)
 }
@@ -332,10 +304,6 @@ func (t *TypeOfIP) Kind() Kind {
 }
 
 type TypeOfNet struct{}
-
-func NewNet(p netip.Prefix) *Value {
-	return &Value{TypeNet, EncodeNet(p)}
-}
 
 var ones = [16]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 
@@ -399,10 +367,6 @@ func (t *TypeOfNull) Kind() Kind {
 
 type TypeOfString struct{}
 
-func NewString(s string) *Value {
-	return &Value{TypeString, EncodeString(s)}
-}
-
 func EncodeString(s string) zcode.Bytes {
 	return zcode.Bytes(s)
 }
@@ -420,10 +384,6 @@ func (t *TypeOfString) Kind() Kind {
 }
 
 type TypeOfTime struct{}
-
-func NewTime(ts nano.Ts) *Value {
-	return &Value{TypeTime, EncodeTime(ts)}
-}
 
 func EncodeTime(t nano.Ts) zcode.Bytes {
 	var b [8]byte
