@@ -16,6 +16,12 @@ jobs:
       matrix:
         repo: [brim, brimcap]
     steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1-node16
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
     - name: Populate "merged" variable
       run: |
         # GITHUB_EVENT_PATH
@@ -39,3 +45,7 @@ jobs:
         # https://developer.github.com/v3/repos/#create-a-repository-dispatch-event
         jq '.pull_request | { "event_type": "zed-pr-merged", "client_payload": {body, "branch": .head.ref, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' "${GITHUB_EVENT_PATH}" > payload.json
         curl -XPOST -u "${{ secrets.PAT_USERNAME }}:${{ secrets.PAT_TOKEN }}" -H "Accept: application/vnd.github.v3+json"  -H "Content-Type: application/json" https://api.github.com/repos/brimdata/${{ matrix.repo }}/dispatches --data @payload.json
+    - name: Queue merged commits for an Autoperf run
+      if: steps.vars.outputs.merged == 'true' && ! contains(github.event.pull_request.labels.*.name, 'skip-autoperf')
+      run: |
+        aws sqs send-message --queue-url ${{ secrets.AWS_SQS_QUEUE_URL_AUTOPERF }} --message-group-id autoperf --message-body $(jq '.pull_request.merge_commit_sha' "${GITHUB_EVENT_PATH}" | sed 's/"//g')
