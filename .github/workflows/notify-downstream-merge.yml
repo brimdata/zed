@@ -39,3 +39,11 @@ jobs:
         # https://developer.github.com/v3/repos/#create-a-repository-dispatch-event
         jq '.pull_request | { "event_type": "zed-pr-merged", "client_payload": {body, "branch": .head.ref, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' "${GITHUB_EVENT_PATH}" > payload.json
         curl -XPOST -u "${{ secrets.PAT_USERNAME }}:${{ secrets.PAT_TOKEN }}" -H "Accept: application/vnd.github.v3+json"  -H "Content-Type: application/json" https://api.github.com/repos/brimdata/${{ matrix.repo }}/dispatches --data @payload.json
+    - name: Queue merged commits for an Autoperf run
+      if: steps.vars.outputs.merged == 'true' && ! contains(github.event.pull_request.labels.*.name, 'skip-autoperf')
+      run: |
+        aws sqs send-message --queue-url ${{ secrets.AWS_SQS_QUEUE_URL_AUTOPERF }} --message-group-id autoperf --message-body ${{ github.event.pull_request.merge_commit_sha }}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: us-east-2
