@@ -204,16 +204,16 @@ func (p *Proc) enterType(combined, left, right *zed.TypeRecord) {
 }
 
 func (p *Proc) buildType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
-	cols := make([]zed.Column, 0, len(left.Columns)+len(right.Columns))
-	for _, c := range left.Columns {
+	cols := make([]zed.Field, 0, len(left.Fields)+len(right.Fields))
+	for _, c := range left.Fields {
 		cols = append(cols, c)
 	}
-	for _, c := range right.Columns {
+	for _, c := range right.Fields {
 		name := c.Name
 		for k := 2; left.HasField(name); k++ {
 			name = fmt.Sprintf("%s_%d", c.Name, k)
 		}
-		cols = append(cols, zed.Column{Name: name, Type: c.Type})
+		cols = append(cols, zed.Field{Name: name, Type: c.Type})
 	}
 	return p.pctx.Zctx.LookupTypeRecord(cols)
 }

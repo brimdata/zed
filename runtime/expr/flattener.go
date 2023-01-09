@@ -28,7 +28,7 @@ func NewFlattener(zctx *zed.Context) *Flattener {
 
 func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, error) {
 	if in == nil {
-		for _, col := range typ.Columns {
+		for _, col := range typ.Fields {
 			if typ, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord); ok {
 				var err error
 				dst, err = recode(dst, typ, nil)
@@ -45,7 +45,7 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 	colno := 0
 	for !it.Done() {
 		val := it.Next()
-		col := typ.Columns[colno]
+		col := typ.Fields[colno]
 		colno++
 		if childType, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord); ok {
 			var err error
@@ -64,7 +64,7 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 	id := r.Type.ID()
 	flatType := f.mapper.Lookup(id)
 	if flatType == nil {
-		cols := FlattenColumns(r.Columns())
+		cols := FlattenColumns(r.Fields())
 		flatType = f.zctx.MustLookupTypeRecord(cols)
 		f.mapper.EnterType(id, flatType)
 	}
@@ -83,11 +83,11 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 
 // FlattenColumns turns nested records into a series of columns of
 // the form "outer.inner".
-func FlattenColumns(cols []zed.Column) []zed.Column {
-	ret := []zed.Column{}
+func FlattenColumns(cols []zed.Field) []zed.Field {
+	ret := []zed.Field{}
 	for _, c := range cols {
 		if recType, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
-			inners := FlattenColumns(recType.Columns)
+			inners := FlattenColumns(recType.Fields)
 			for i := range inners {
 				inners[i].Name = fmt.Sprintf("%s.%s", c.Name, inners[i].Name)
 			}

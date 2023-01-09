@@ -42,8 +42,8 @@ func merge(zctx *zed.Context, a, b zed.Type) zed.Type {
 	}
 	if a, ok := aUnder.(*zed.TypeRecord); ok {
 		if b, ok := bUnder.(*zed.TypeRecord); ok {
-			cols := slices.Clone(a.Columns)
-			for _, c := range b.Columns {
+			cols := slices.Clone(a.Fields)
+			for _, c := range b.Fields {
 				if i, ok := columnOfField(cols, c.Name); !ok {
 					cols = append(cols, c)
 				} else if cols[i] != c {
@@ -107,7 +107,7 @@ func appendIfAbsent(types []zed.Type, typ zed.Type) []zed.Type {
 	return append(types, typ)
 }
 
-func columnOfField(cols []zed.Column, name string) (int, bool) {
+func columnOfField(cols []zed.Field, name string) (int, bool) {
 	for i, c := range cols {
 		if c.Name == name {
 			return i, true

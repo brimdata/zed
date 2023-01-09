@@ -14,7 +14,7 @@ type RecordWriter []*FieldWriter
 
 func NewRecordWriter(typ *zed.TypeRecord, spiller *Spiller) RecordWriter {
 	var r RecordWriter
-	for _, col := range typ.Columns {
+	for _, col := range typ.Fields {
 		fw := &FieldWriter{
 			name:   col.Name,
 			values: NewWriter(col.Type, spiller),

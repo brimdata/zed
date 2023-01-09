@@ -64,7 +64,7 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 func marshalRecord(typ *zed.TypeRecord, bytes zcode.Bytes) interface{} {
 	it := bytes.Iter()
 	rec := record{}
-	for _, col := range typ.Columns {
+	for _, col := range typ.Fields {
 		rec = append(rec, field{col.Name, marshalAny(col.Type, it.Next())})
 	}
 	return rec

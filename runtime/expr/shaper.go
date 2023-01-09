@@ -174,10 +174,10 @@ func shaperType(zctx *zed.Context, tf ShaperTransform, in, out zed.Type) (zed.Ty
 				return nil, err
 			}
 			if tf&Cast != 0 {
-				if equalColumns(cols, outRec.Columns) {
+				if equalColumns(cols, outRec.Fields) {
 					return out, nil
 				}
-			} else if equalColumns(cols, inRec.Columns) {
+			} else if equalColumns(cols, inRec.Fields) {
 				return in, nil
 			}
 			return zctx.LookupTypeRecord(cols)
@@ -204,14 +204,14 @@ func shaperType(zctx *zed.Context, tf ShaperTransform, in, out zed.Type) (zed.Ty
 	return in, nil
 }
 
-func shaperColumns(zctx *zed.Context, tf ShaperTransform, in, out *zed.TypeRecord) ([]zed.Column, error) {
+func shaperColumns(zctx *zed.Context, tf ShaperTransform, in, out *zed.TypeRecord) ([]zed.Field, error) {
 	crop, fill := tf&Crop != 0, tf&Fill != 0
 	if tf&Order == 0 {
 		crop, fill = !fill, !crop
 		out, in = in, out
 	}
-	var cols []zed.Column
-	for _, outCol := range out.Columns {
+	var cols []zed.Field
+	for _, outCol := range out.Fields {
 		if inColType, ok := in.TypeOfField(outCol.Name); ok {
 			outColType := outCol.Type
 			if tf&Order == 0 {
@@ -222,13 +222,13 @@ func shaperColumns(zctx *zed.Context, tf ShaperTransform, in, out *zed.TypeRecor
 			if err != nil {
 				return nil, err
 			}
-			cols = append(cols, zed.Column{Name: outCol.Name, Type: t})
+			cols = append(cols, zed.Field{Name: outCol.Name, Type: t})
 		} else if fill {
 			cols = append(cols, outCol)
 		}
 	}
 	if !crop {
-		inColumns := in.Columns
+		inColumns := in.Fields
 		if tf&Order != 0 {
 			// Order appends unknown fields in lexicographic order.
 			inColumns = slices.Clone(inColumns)
@@ -277,7 +277,7 @@ func bestUnionTag(in, out zed.Type) int {
 	return compatible
 }
 
-func equalColumns(a, b []zed.Column) bool {
+func equalColumns(a, b []zed.Field) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -374,13 +374,13 @@ Switch:
 // step is inserted.
 func newRecordStep(zctx *zed.Context, in *zed.TypeRecord, out zed.Type) (step, error) {
 	var children []step
-	for _, outCol := range zed.TypeRecordOf(out).Columns {
+	for _, outCol := range zed.TypeRecordOf(out).Fields {
 		ind, ok := in.ColumnOfField(outCol.Name)
 		if !ok {
 			children = append(children, step{op: null, toType: outCol.Type})
 			continue
 		}
-		child, err := newStep(zctx, in.Columns[ind].Type, outCol.Type)
+		child, err := newStep(zctx, in.Fields[ind].Type, outCol.Type)
 		if err != nil {
 			return step{}, err
 		}
@@ -505,7 +505,7 @@ func (s *step) buildRecord(zctx *zed.Context, ectx Context, in zcode.Bytes, b *z
 		s.types = append(s.types, typ)
 	}
 	if needNewRecordType {
-		fields := slices.Clone(zed.TypeUnder(s.toType).(*zed.TypeRecord).Columns)
+		fields := slices.Clone(zed.TypeUnder(s.toType).(*zed.TypeRecord).Fields)
 		for i, t := range s.types {
 			fields[i].Type = t
 		}

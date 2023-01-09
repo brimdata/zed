@@ -143,7 +143,7 @@ func (h *HasError) hasError(t zed.Type, b zcode.Bytes) (bool, bool) {
 	switch typ := typ.(type) {
 	case *zed.TypeRecord:
 		it := b.Iter()
-		for _, col := range typ.Columns {
+		for _, col := range typ.Fields {
 			e, c := h.hasError(col.Type, it.Next())
 			hasErr = hasErr || e
 			canCache = !canCache || c

@@ -585,9 +585,8 @@ func (a *Aggregator) lookupRecordType(types []zed.Type) (*zed.TypeRecord, error)
 	id := a.outTypes.Lookup(types)
 	typ, ok := a.recordTypes[id]
 	if !ok {
-		cols := a.builder.TypedColumns(types)
 		var err error
-		typ, err = a.zctx.LookupTypeRecord(cols)
+		typ, err = a.zctx.LookupTypeRecord(a.builder.Fields(types))
 		if err != nil {
 			return nil, err
 		}

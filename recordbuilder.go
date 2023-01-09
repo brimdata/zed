@@ -189,10 +189,10 @@ func (r *RecordBuilder) Encode() (zcode.Bytes, error) {
 // TypedColumns takes an array of Types for the individual fields
 // and constructs an array of Columns that reflects the fullly
 // typed structure.  This is suitable for e.g. allocating a descriptor.
-func (r *RecordBuilder) TypedColumns(types []Type) []Column {
+func (r *RecordBuilder) Fields(types []Type) []Field {
 	type rec struct {
-		name string
-		cols []Column
+		name   string
+		fields []Field
 	}
 	current := &rec{"", nil}
 	stack := make([]*rec, 1)
@@ -204,19 +204,19 @@ func (r *RecordBuilder) TypedColumns(types []Type) []Column {
 			stack = append(stack, current)
 		}
 
-		current.cols = append(current.cols, NewColumn(fi.field.Leaf(), types[i]))
+		current.fields = append(current.fields, Field{fi.field.Leaf(), types[i]})
 
 		for j := 0; j < fi.containerEnds; j++ {
-			recType := r.zctx.MustLookupTypeRecord(current.cols)
+			recType := r.zctx.MustLookupTypeRecord(current.fields)
 			slen := len(stack)
 			stack = stack[:slen-1]
 			cur := stack[slen-2]
-			cur.cols = append(cur.cols, NewColumn(current.name, recType))
+			cur.fields = append(cur.fields, Field{current.name, recType})
 			current = cur
 		}
 	}
 	if len(stack) != 1 {
 		panic("Mismatched container begin/end")
 	}
-	return stack[0].cols
+	return stack[0].fields
 }

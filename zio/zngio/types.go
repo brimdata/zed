@@ -85,13 +85,13 @@ func (e *Encoder) encode(ext zed.Type) (zed.Type, error) {
 }
 
 func (e *Encoder) encodeTypeRecord(ext *zed.TypeRecord) (zed.Type, error) {
-	var columns []zed.Column
-	for _, col := range ext.Columns {
+	var columns []zed.Field
+	for _, col := range ext.Fields {
 		child, err := e.Encode(col.Type)
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.NewColumn(col.Name, child))
+		columns = append(columns, zed.NewField(col.Name, child))
 	}
 	typ, err := e.zctx.LookupTypeRecord(columns)
 	if err != nil {
@@ -270,7 +270,7 @@ func (d *Decoder) readTypeRecord(b *buffer) error {
 	if err != nil {
 		return errBadFormat
 	}
-	var columns []zed.Column
+	var columns []zed.Field
 	for k := 0; k < int(ncol); k++ {
 		col, err := d.readColumn(b)
 		if err != nil {
@@ -286,20 +286,20 @@ func (d *Decoder) readTypeRecord(b *buffer) error {
 	return err
 }
 
-func (d *Decoder) readColumn(b *buffer) (zed.Column, error) {
+func (d *Decoder) readColumn(b *buffer) (zed.Field, error) {
 	name, err := d.readCountedString(b)
 	if err != nil {
-		return zed.Column{}, err
+		return zed.Field{}, err
 	}
 	id, err := readUvarintAsInt(b)
 	if err != nil {
-		return zed.Column{}, errBadFormat
+		return zed.Field{}, errBadFormat
 	}
 	typ, err := d.local.zctx.LookupType(id)
 	if err != nil {
-		return zed.Column{}, err
+		return zed.Field{}, err
 	}
-	return zed.NewColumn(name, typ), nil
+	return zed.NewField(name, typ), nil
 }
 
 func (d *Decoder) readTypeArray(b *buffer) error {

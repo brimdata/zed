@@ -248,11 +248,11 @@ func newMapColumnDefinition(name string, keyType, valueType zed.Type) (*parquets
 }
 
 func newRecordColumnDefinition(name string, typ *zed.TypeRecord) (*parquetschema.ColumnDefinition, error) {
-	if len(typ.Columns) == 0 {
+	if len(typ.Fields) == 0 {
 		return nil, ErrEmptyRecordType
 	}
 	var children []*parquetschema.ColumnDefinition
-	for _, c := range typ.Columns {
+	for _, c := range typ.Fields {
 		c, err := newColumnDefinition(c.Name, c.Type)
 		if err != nil {
 			return nil, err

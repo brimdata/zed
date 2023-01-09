@@ -44,7 +44,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 		return nil, err
 	}
 	r.builder.Truncate()
-	for _, c := range r.typ.Columns {
+	for _, c := range r.typ.Fields {
 		r.builder.appendValue(c.Type, data[c.Name])
 	}
 	r.val = *zed.NewValue(r.typ, r.builder.Bytes())

@@ -391,19 +391,19 @@ func CompareTypes(a, b Type) int {
 		return compareInts(a.ID(), b.ID())
 	case RecordKind:
 		ra, rb := TypeRecordOf(a), TypeRecordOf(b)
-		// First compare column lengths.
-		if len(ra.Columns) != len(rb.Columns) {
-			return compareInts(len(ra.Columns), len(rb.Columns))
+		// First compare number of fields.
+		if len(ra.Fields) != len(rb.Fields) {
+			return compareInts(len(ra.Fields), len(rb.Fields))
 		}
-		// Second compare column names.
-		for i := 0; i < len(ra.Columns); i++ {
-			if cmp := strings.Compare(ra.Columns[i].Name, rb.Columns[i].Name); cmp != 0 {
+		// Second compare field names.
+		for i := 0; i < len(ra.Fields); i++ {
+			if cmp := strings.Compare(ra.Fields[i].Name, rb.Fields[i].Name); cmp != 0 {
 				return cmp
 			}
 		}
-		// Lastly compare column types.
-		for i := 0; i < len(ra.Columns); i++ {
-			if cmp := CompareTypes(ra.Columns[i].Type, rb.Columns[i].Type); cmp != 0 {
+		// Lastly compare field types.
+		for i := 0; i < len(ra.Fields); i++ {
+			if cmp := CompareTypes(ra.Fields[i].Type, rb.Fields[i].Type); cmp != 0 {
 				return cmp
 			}
 		}
@@ -503,11 +503,11 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 
 	case *TypeRecord:
 		b = append(b, TypeValueRecord)
-		b = binary.AppendUvarint(b, uint64(len(t.Columns)))
-		for _, col := range t.Columns {
-			b = binary.AppendUvarint(b, uint64(len(col.Name)))
-			b = append(b, col.Name...)
-			b = appendTypeValue(b, col.Type, typedefs)
+		b = binary.AppendUvarint(b, uint64(len(t.Fields)))
+		for _, f := range t.Fields {
+			b = binary.AppendUvarint(b, uint64(len(f.Name)))
+			b = append(b, f.Name...)
+			b = appendTypeValue(b, f.Type, typedefs)
 		}
 		return b
 	case *TypeUnion:

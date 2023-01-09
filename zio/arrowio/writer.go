@@ -88,7 +88,7 @@ func (w *Writer) Write(val *zed.Value) error {
 		if it != nil {
 			b = it.Next()
 		}
-		w.buildArrowValue(builder, recType.Columns[i].Type, b)
+		w.buildArrowValue(builder, recType.Fields[i].Type, b)
 	}
 	return w.flush(recordBatchSize)
 }
@@ -194,25 +194,25 @@ func (w *Writer) newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 	case *zed.TypeOfNull:
 		return arrow.Null, nil
 	case *zed.TypeRecord:
-		if len(typ.Columns) == 0 {
+		if len(typ.Fields) == 0 {
 			return nil, fmt.Errorf("%w: empty record", ErrUnsupportedType)
 		}
 		switch name {
 		case "arrow_day_time_interval":
-			if fieldsEqual(typ.Columns, dayTimeIntervalFields) {
+			if fieldsEqual(typ.Fields, dayTimeIntervalFields) {
 				return arrow.FixedWidthTypes.DayTimeInterval, nil
 			}
 		case "arrow_decimal128":
-			if fieldsEqual(typ.Columns, decimal128Fields) {
+			if fieldsEqual(typ.Fields, decimal128Fields) {
 				return &arrow.Decimal128Type{}, nil
 			}
 		case "arrow_month_day_nano_interval":
-			if fieldsEqual(typ.Columns, monthDayNanoIntervalFields) {
+			if fieldsEqual(typ.Fields, monthDayNanoIntervalFields) {
 				return arrow.FixedWidthTypes.MonthDayNanoInterval, nil
 			}
 		}
 		var fields []arrow.Field
-		for _, field := range typ.Columns {
+		for _, field := range typ.Fields {
 			dt, err := w.newArrowDataType(field.Type)
 			if err != nil {
 				return nil, err
@@ -286,7 +286,7 @@ func (w *Writer) newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 	}
 }
 
-func fieldsEqual(a, b []zed.Column) bool {
+func fieldsEqual(a, b []zed.Field) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -418,7 +418,7 @@ func (w *Writer) buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Byte
 	case *array.StructBuilder:
 		b.Append(true)
 		it := bytes.Iter()
-		for i, field := range zed.TypeRecordOf(typ).Columns {
+		for i, field := range zed.TypeRecordOf(typ).Fields {
 			w.buildArrowValue(b.FieldBuilder(i), field.Type, it.Next())
 		}
 	case *array.DenseUnionBuilder:

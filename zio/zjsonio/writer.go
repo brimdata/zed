@@ -149,7 +149,7 @@ func (w *Writer) encodeRecord(zctx *zed.Context, typ *zed.TypeRecord, val zcode.
 	out := []interface{}{}
 	k := 0
 	for it := val.Iter(); !it.Done(); k++ {
-		v, err := w.encodeValue(zctx, typ.Columns[k].Type, it.Next())
+		v, err := w.encodeValue(zctx, typ.Fields[k].Type, it.Next())
 		if err != nil {
 			return nil, err
 		}

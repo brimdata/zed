@@ -151,13 +151,13 @@ func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) 
 		return nil, errors.New("fields and columns don't match")
 	}
 	m.Builder.Reset()
-	var cols []zed.Column
+	var cols []zed.Field
 	for k, field := range fields {
 		typ, err := m.encodeValue(reflect.ValueOf(field))
 		if err != nil {
 			return nil, err
 		}
-		cols = append(cols, zed.Column{Name: names[k], Type: typ})
+		cols = append(cols, zed.Field{Name: names[k], Type: typ})
 	}
 	// XXX issue #1836
 	// Since this can be the inner loop here and nowhere else do we call
@@ -432,7 +432,7 @@ func (m *MarshalZNGContext) encodeNil(t reflect.Type) (zed.Type, error) {
 
 func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 	m.Builder.BeginContainer()
-	var columns []zed.Column
+	var columns []zed.Field
 	stype := sval.Type()
 	for i := 0; i < stype.NumField(); i++ {
 		sf := stype.Field(i)
@@ -462,7 +462,7 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Column{Name: name, Type: typ})
+		columns = append(columns, zed.Field{Name: name, Type: typ})
 	}
 	m.Builder.EndContainer()
 	return m.Context.LookupTypeRecord(columns)
@@ -590,7 +590,7 @@ func (m *MarshalZNGContext) lookupType(t reflect.Type) (zed.Type, error) {
 }
 
 func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type, error) {
-	var columns []zed.Column
+	var columns []zed.Field
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 		name := fieldName(field)
@@ -598,7 +598,7 @@ func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type,
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Column{Name: name, Type: fieldType})
+		columns = append(columns, zed.Field{Name: name, Type: fieldType})
 	}
 	return m.Context.LookupTypeRecord(columns)
 }
@@ -996,13 +996,13 @@ func (u *UnmarshalZNGContext) decodeRecord(zv *zed.Value, sval reflect.Value) er
 		nameToField[name] = i
 	}
 	for i, it := 0, zv.Iter(); !it.Done(); i++ {
-		if i >= len(recType.Columns) {
+		if i >= len(recType.Fields) {
 			return errors.New("malformed Zed value")
 		}
 		itzv := it.Next()
-		name := recType.Columns[i].Name
+		name := recType.Fields[i].Name
 		if fieldIdx, ok := nameToField[name]; ok {
-			typ := recType.Columns[i].Type
+			typ := recType.Fields[i].Type
 			if err := u.decodeAny(zed.NewValue(typ, itzv), sval.Field(fieldIdx)); err != nil {
 				return err
 			}

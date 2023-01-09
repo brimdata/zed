@@ -204,9 +204,9 @@ func (r *Value) Walk(rv Visitor) error {
 	return Walk(r.Type, r.Bytes, rv)
 }
 
-func (r *Value) nth(column int) zcode.Bytes {
+func (r *Value) nth(n int) zcode.Bytes {
 	var zv zcode.Bytes
-	for i, it := 0, r.Bytes.Iter(); i <= column; i++ {
+	for i, it := 0, r.Bytes.Iter(); i <= n; i++ {
 		if it.Done() {
 			return nil
 		}
@@ -215,14 +215,14 @@ func (r *Value) nth(column int) zcode.Bytes {
 	return zv
 }
 
-func (r *Value) Columns() []Column {
-	return TypeRecordOf(r.Type).Columns
+func (r *Value) Fields() []Field {
+	return TypeRecordOf(r.Type).Fields
 }
 
 func (v *Value) DerefByColumn(col int) *Value {
 	if v != nil {
 		if bytes := v.nth(col); bytes != nil {
-			v = &Value{v.Columns()[col].Type, bytes}
+			v = &Value{v.Fields()[col].Type, bytes}
 		} else {
 			v = nil
 		}

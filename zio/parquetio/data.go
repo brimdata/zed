@@ -96,13 +96,13 @@ func newMapData(keyType, valType zed.Type, zb zcode.Bytes) (map[string]interface
 }
 
 func newRecordData(typ *zed.TypeRecord, zb zcode.Bytes) (map[string]interface{}, error) {
-	m := make(map[string]interface{}, len(typ.Columns))
+	m := make(map[string]interface{}, len(typ.Fields))
 	for i, it := 0, zb.Iter(); !it.Done(); i++ {
-		v, err := newData(typ.Columns[i].Type, it.Next())
+		v, err := newData(typ.Fields[i].Type, it.Next())
 		if err != nil {
 			return nil, err
 		}
-		m[typ.Columns[i].Name] = v
+		m[typ.Fields[i].Name] = v
 	}
 	return m, nil
 }

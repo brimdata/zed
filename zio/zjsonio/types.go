@@ -110,7 +110,7 @@ func (e encoder) newType(typ zed.Type) zType {
 		}
 	case *zed.TypeRecord:
 		var fields []zField
-		for _, c := range typ.Columns {
+		for _, c := range typ.Fields {
 			fields = append(fields, zField{
 				Name: c.Name,
 				Type: e.encodeType(c.Type),
@@ -239,13 +239,13 @@ func (d decoder) decodeType(zctx *zed.Context, t zType) (zed.Type, error) {
 }
 
 func (d decoder) decodeTypeRecord(zctx *zed.Context, typ *zRecord) (*zed.TypeRecord, error) {
-	columns := make([]zed.Column, 0, len(typ.Fields))
+	columns := make([]zed.Field, 0, len(typ.Fields))
 	for _, field := range typ.Fields {
 		typ, err := d.decodeType(zctx, field.Type)
 		if err != nil {
 			return nil, err
 		}
-		column := zed.Column{
+		column := zed.Field{
 			Name: field.Name,
 			Type: typ,
 		}

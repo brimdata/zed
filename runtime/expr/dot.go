@@ -52,14 +52,14 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if !ok {
 		return d.zctx.Missing()
 	}
-	typ := recType.Columns[idx].Type
+	typ := recType.Fields[idx].Type
 	if val.IsNull() {
 		// The record is null.  Return null value of the field type.
 		return ectx.NewValue(typ, nil)
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
 	field := getNthFromContainer(val.Bytes, idx)
-	return ectx.NewValue(recType.Columns[idx].Type, field)
+	return ectx.NewValue(recType.Fields[idx].Type, field)
 }
 
 func (d *DotExpr) evalTypeOfType(ectx Context, b zcode.Bytes) *zed.Value {
