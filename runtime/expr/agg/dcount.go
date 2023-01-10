@@ -34,7 +34,7 @@ func (d *DCount) Consume(val *zed.Value) {
 }
 
 func (d *DCount) Result(*zed.Context) *zed.Value {
-	return zed.NewValue(zed.TypeUint64, zed.EncodeUint(d.sketch.Estimate()))
+	return zed.NewUint64(d.sketch.Estimate())
 }
 
 func (d *DCount) ConsumeAsPartial(partial *zed.Value) {

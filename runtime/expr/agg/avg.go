@@ -29,8 +29,7 @@ func (a *Avg) Consume(val *zed.Value) {
 
 func (a *Avg) Result(*zed.Context) *zed.Value {
 	if a.count > 0 {
-		avg := a.sum / float64(a.count)
-		return zed.NewValue(zed.TypeFloat64, zed.EncodeFloat64(avg))
+		return zed.NewFloat64(a.sum / float64(a.count))
 	}
 	return zed.NullFloat64
 }

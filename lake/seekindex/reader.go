@@ -58,8 +58,8 @@ func (r *SectionReader) Next() (*Section, error) {
 	if err := r.unmarshal.Unmarshal(val, &last); err != nil {
 		return nil, err
 	}
-	firstCount := *zed.NewValue(zed.TypeUint64, zed.EncodeUint(first.Count))
-	lastCount := *zed.NewValue(zed.TypeUint64, zed.EncodeUint(last.Count))
+	firstCount := *zed.NewUint64(first.Count)
+	lastCount := *zed.NewUint64(last.Count)
 	return &Section{
 		Range:  Range{Start: first.Offset, End: last.Offset},
 		Keys:   extent.NewGeneric(*first.Key, *last.Key, r.cmp),
