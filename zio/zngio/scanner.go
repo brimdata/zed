@@ -302,7 +302,7 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 	}
 	n, err := zcode.ReadTag(buf)
 	if err != nil {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	var b []byte
 	if n == 0 {
@@ -313,7 +313,7 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 			if err == peeker.ErrBufferOverflow {
 				return fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
 			}
-			return zed.ErrBadFormat
+			return errBadFormat
 		}
 	}
 	typ := w.mapperLookupCache.Lookup(id)

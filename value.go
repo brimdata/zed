@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/netip"
 	"runtime/debug"
 
 	"github.com/brimdata/zed/pkg/field"
@@ -13,15 +14,8 @@ import (
 )
 
 var (
-	ErrMissingField  = errors.New("record missing a field")
-	ErrExtraField    = errors.New("record with extra field")
-	ErrNotContainer  = errors.New("expected container type, got primitive")
-	ErrNotPrimitive  = errors.New("expected primitive type, got container")
-	ErrTypeIDInvalid = errors.New("zng type ID out of range")
-	ErrBadValue      = errors.New("malformed zng value")
-	ErrBadFormat     = errors.New("malformed zng record")
-	ErrTypeMismatch  = errors.New("type/value mismatch")
-	ErrTypeSyntax    = errors.New("syntax error parsing type string")
+	ErrMissingField = errors.New("record missing a field")
+	ErrNotContainer = errors.New("expected container type, got primitive")
 )
 
 var (
@@ -60,6 +54,25 @@ type Value struct {
 func NewValue(zt Type, zb zcode.Bytes) *Value {
 	return &Value{zt, zb}
 }
+
+func NewUint8(u uint8) *Value            { return &Value{TypeUint8, EncodeUint(uint64(u))} }
+func NewUint16(u uint16) *Value          { return &Value{TypeUint16, EncodeUint(uint64(u))} }
+func NewUint32(u uint32) *Value          { return &Value{TypeUint32, EncodeUint(uint64(u))} }
+func NewUint64(u uint64) *Value          { return &Value{TypeUint64, EncodeUint(u)} }
+func NewInt8(i int8) *Value              { return &Value{TypeInt8, EncodeInt(int64(i))} }
+func NewInt16(i int16) *Value            { return &Value{TypeInt16, EncodeInt(int64(i))} }
+func NewInt32(i int32) *Value            { return &Value{TypeInt32, EncodeInt(int64(i))} }
+func NewInt64(i int64) *Value            { return &Value{TypeInt64, EncodeInt(i)} }
+func NewDuration(d nano.Duration) *Value { return &Value{TypeDuration, EncodeDuration(d)} }
+func NewTime(ts nano.Ts) *Value          { return &Value{TypeTime, EncodeTime(ts)} }
+func NewFloat32(f float32) *Value        { return &Value{TypeFloat32, EncodeFloat32(f)} }
+func NewFloat64(f float64) *Value        { return &Value{TypeFloat64, EncodeFloat64(f)} }
+func NewBool(b bool) *Value              { return &Value{TypeBool, EncodeBool(b)} }
+func NewBytes(b []byte) *Value           { return &Value{TypeBytes, EncodeBytes(b)} }
+func NewString(s string) *Value          { return &Value{TypeString, EncodeString(s)} }
+func NewIP(a netip.Addr) *Value          { return &Value{TypeIP, EncodeIP(a)} }
+func NewNet(p netip.Prefix) *Value       { return &Value{TypeNet, EncodeNet(p)} }
+func NewTypeValue(t Type) *Value         { return &Value{TypeType, EncodeTypeValue(t)} }
 
 func (v *Value) IsContainer() bool {
 	return IsContainerType(v.Type)

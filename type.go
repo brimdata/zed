@@ -471,10 +471,6 @@ func (t *TypeOfType) Kind() Kind {
 	return PrimitiveKind
 }
 
-func NewTypeValue(t Type) *Value {
-	return &Value{TypeType, AppendTypeValue(nil, t)}
-}
-
 func EncodeTypeValue(t Type) zcode.Bytes {
 	return AppendTypeValue(nil, t)
 }

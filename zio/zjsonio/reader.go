@@ -124,7 +124,8 @@ func (r *Reader) decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface
 	b.BeginContainer()
 	for k, val := range values {
 		if k >= len(cols) {
-			return zed.ErrExtraField
+			return errors.New("record with extra field")
+
 		}
 		// Each column is either a string value or an array of string values.
 		if val == nil {
@@ -141,7 +142,7 @@ func (r *Reader) decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface
 
 func (r *Reader) decodePrimitive(builder *zcode.Builder, typ zed.Type, v interface{}) error {
 	if zed.IsContainerType(typ) && !zed.IsUnionType(typ) {
-		return zed.ErrNotPrimitive
+		return errors.New("expected primitive type, got container")
 	}
 	if v == nil {
 		builder.Append(nil)

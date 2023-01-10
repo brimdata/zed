@@ -334,13 +334,6 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 	c.publishEvent(w, "branch-delete", api.EventBranch{PoolID: poolID, Branch: branchName})
 }
 
-type warningCollector []string
-
-func (w *warningCollector) Warn(msg string) error {
-	*w = append(*w, msg)
-	return nil
-}
-
 func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	poolID, ok := r.PoolID(w, c.root)
 	if !ok {
@@ -407,8 +400,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	defer zrc.Close()
-	warnings := warningCollector{}
-	wr := zio.NewWarningReader(zrc, &warnings)
+	wr := &warningsReader{zrc, []string{}}
 	kommit, err := branch.Load(r.Context(), zctx, wr, message.Author, message.Body, message.Meta)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
@@ -421,7 +413,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	w.Respond(http.StatusOK, api.CommitResponse{
-		Warnings: warnings,
+		Warnings: wr.warnings,
 		Commit:   kommit,
 	})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
@@ -429,6 +421,20 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		PoolID:   pool.ID,
 		Branch:   branch.Name,
 	})
+}
+
+type warningsReader struct {
+	zio.Reader
+	warnings []string
+}
+
+func (w *warningsReader) Read() (*zed.Value, error) {
+	val, err := w.Reader.Read()
+	if err != nil {
+		w.warnings = append(w.warnings, err.Error())
+		return nil, nil
+	}
+	return val, nil
 }
 
 func handleCompact(c *Core, w *ResponseWriter, r *Request) {

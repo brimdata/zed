@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/peeker"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"golang.org/x/exp/slices"
 )
+
+var errBadFormat = errors.New("malformed zng record")
 
 // parser decodes the framing protocol for ZNG updating and resetting its
 // Zed type context in conformance with ZNG frames.
@@ -125,7 +126,7 @@ func (p *parser) decodeControl(code byte) error {
 		blk.free()
 	}
 	if len(bytes) == 0 {
-		return zed.ErrBadFormat
+		return errBadFormat
 	}
 	// Insert this control message into the result queue to preserve
 	// order between values frames and messages.  Note that a back-to-back
@@ -187,7 +188,7 @@ func (p *parser) readCompressedFrame(code byte) (frame, error) {
 		if err == peeker.ErrBufferOverflow {
 			return frame{}, fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
 		}
-		return frame{}, zed.ErrBadFormat
+		return frame{}, errBadFormat
 	}
 	return frame{
 		fmt:  CompressionFormat(format),
