@@ -17,11 +17,6 @@ import (
 
 //XXX handle new TypeError => marshal as a ZSON string?
 
-var (
-	marshalerTypeZNG   = reflect.TypeOf((*ZNGMarshaler)(nil)).Elem()
-	unmarshalerTypeZNG = reflect.TypeOf((*ZNGUnmarshaler)(nil)).Elem()
-)
-
 func Marshal(v interface{}) (string, error) {
 	return NewMarshaler().Marshal(v)
 }
@@ -280,35 +275,31 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		m.Builder.Append(nil)
 		return zed.TypeNull, nil
 	}
-	if v.Type().Implements(marshalerTypeZNG) {
-		return v.Interface().(ZNGMarshaler).MarshalZNG(m)
-	}
-	if ts, ok := v.Interface().(nano.Ts); ok {
-		m.Builder.Append(zed.EncodeTime(ts))
+	switch v := v.Interface().(type) {
+	case ZNGMarshaler:
+		return v.MarshalZNG(m)
+	case nano.Ts:
+		m.Builder.Append(zed.EncodeTime(v))
 		return zed.TypeTime, nil
-	}
-	if zv, ok := v.Interface().(zed.Value); ok {
-		typ, err := m.TranslateType(zv.Type)
-		if err != nil {
-			return nil, err
-		}
-		m.Builder.Append(zv.Bytes)
-		return typ, nil
-	}
-	if typ, ok := v.Interface().(zed.Type); ok {
-		val := m.Context.LookupTypeValue(typ)
-		m.Builder.Append(val.Bytes)
-		return val.Type, nil
-	}
-	if ip, ok := v.Interface().(net.IP); ok {
-		if a, err := netip.ParseAddr(ip.String()); err == nil {
+	case net.IP:
+		if a, err := netip.ParseAddr(v.String()); err == nil {
 			m.Builder.Append(zed.EncodeIP(a))
 			return zed.TypeIP, nil
 		}
-	}
-	if t, ok := v.Interface().(time.Time); ok {
-		m.Builder.Append(zed.EncodeTime(nano.TimeToTs(t)))
+	case time.Time:
+		m.Builder.Append(zed.EncodeTime(nano.TimeToTs(v)))
 		return zed.TypeTime, nil
+	case zed.Type:
+		val := m.Context.LookupTypeValue(v)
+		m.Builder.Append(val.Bytes)
+		return val.Type, nil
+	case zed.Value:
+		typ, err := m.TranslateType(v.Type)
+		if err != nil {
+			return nil, err
+		}
+		m.Builder.Append(v.Bytes)
+		return typ, nil
 	}
 	switch v.Kind() {
 	case reflect.Array:
@@ -708,12 +699,18 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	if !v.IsValid() {
 		return errors.New("cannot unmarshal into value provided")
 	}
-	var m ZNGUnmarshaler
-	m, v = indirect(v, zv)
+	m, v := indirect(v, zv)
 	if m != nil {
 		return m.UnmarshalZNG(u, zv)
 	}
-	if _, ok := v.Interface().(zed.Value); ok {
+	switch v.Interface().(type) {
+	case nano.Ts:
+		if zv.Type != zed.TypeTime {
+			return incompatTypeError(zv.Type, v)
+		}
+		v.Set(reflect.ValueOf(zed.DecodeTime(zv.Bytes)))
+		return nil
+	case zed.Value:
 		// For zed.Values we simply set the reflect value to the
 		// zed.Value that has been decoded.
 		v.Set(reflect.ValueOf(*zv.Copy()))
@@ -727,17 +724,6 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 	}
 	if v.Kind() == reflect.Pointer && zv.Bytes == nil {
 		return u.decodeNull(zv, v)
-	}
-	if _, ok := v.Interface().(nano.Ts); ok {
-		if zv.Type != zed.TypeTime {
-			return incompatTypeError(zv.Type, v)
-		}
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
-		}
-		v.Set(reflect.ValueOf(zed.DecodeTime(zv.Bytes)))
-		return nil
 	}
 	switch v.Kind() {
 	case reflect.Array:
@@ -806,19 +792,11 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		default:
 			return incompatTypeError(zv.Type, v)
 		}
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
-		}
 		v.SetString(zed.DecodeString(zv.Bytes))
 		return nil
 	case reflect.Bool:
 		if zed.TypeUnder(zv.Type) != zed.TypeBool {
 			return incompatTypeError(zv.Type, v)
-		}
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
 		}
 		v.SetBool(zed.DecodeBool(zv.Bytes))
 		return nil
@@ -828,10 +806,6 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		default:
 			return incompatTypeError(zv.Type, v)
 		}
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
-		}
 		v.SetInt(zed.DecodeInt(zv.Bytes))
 		return nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -840,29 +814,17 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		default:
 			return incompatTypeError(zv.Type, v)
 		}
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
-		}
 		v.SetUint(zed.DecodeUint(zv.Bytes))
 		return nil
 	case reflect.Float32:
 		if zed.TypeUnder(zv.Type) != zed.TypeFloat32 {
 			return incompatTypeError(zv.Type, v)
 		}
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
-		}
 		v.SetFloat(float64(zed.DecodeFloat32(zv.Bytes)))
 		return nil
 	case reflect.Float64:
 		if zed.TypeUnder(zv.Type) != zed.TypeFloat64 {
 			return incompatTypeError(zv.Type, v)
-		}
-		if zv.Bytes == nil {
-			v.Set(reflect.Zero(v.Type()))
-			return nil
 		}
 		v.SetFloat(zed.DecodeFloat64(zv.Bytes))
 		return nil
@@ -874,17 +836,14 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 // Adapted from:
 // https://github.com/golang/go/blob/46ab7a5c4f80d912f25b6b3e1044282a2a79df8b/src/encoding/json/decode.go#L426
 func indirect(v reflect.Value, zv *zed.Value) (ZNGUnmarshaler, reflect.Value) {
-	var nilptr reflect.Value
 	// If v is a named type and is addressable,
 	// start with its address, so that if the type has pointer methods,
 	// we find them.
 	if v.Kind() != reflect.Pointer && v.Type().Name() != "" && v.CanAddr() {
 		v = v.Addr()
 	}
-	for {
-		if v.Kind() != reflect.Pointer {
-			break
-		}
+	var nilptr reflect.Value
+	for v.Kind() == reflect.Pointer {
 		if v.CanSet() && zv.Bytes == nil {
 			// If the reflect value can be set and the zed Value is nil we want
 			// to store this pointer since if destination is not a zed.Value the
@@ -930,10 +889,6 @@ func (u *UnmarshalZNGContext) decodeNetipAddr(zv *zed.Value, v reflect.Value) er
 	if zed.TypeUnder(zv.Type) != zed.TypeIP {
 		return incompatTypeError(zv.Type, v)
 	}
-	if zv.Bytes == nil {
-		v.Set(reflect.Zero(v.Type()))
-		return nil
-	}
 	v.Set(reflect.ValueOf(zed.DecodeIP(zv.Bytes)))
 	return nil
 }
@@ -941,10 +896,6 @@ func (u *UnmarshalZNGContext) decodeNetipAddr(zv *zed.Value, v reflect.Value) er
 func (u *UnmarshalZNGContext) decodeNetIP(zv *zed.Value, v reflect.Value) error {
 	if zed.TypeUnder(zv.Type) != zed.TypeIP {
 		return incompatTypeError(zv.Type, v)
-	}
-	if zv.Bytes == nil {
-		v.Set(reflect.Zero(v.Type()))
-		return nil
 	}
 	v.Set(reflect.ValueOf(net.ParseIP(zed.DecodeIP(zv.Bytes).String())))
 	return nil
