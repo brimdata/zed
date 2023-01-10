@@ -65,6 +65,7 @@ func NewInt32(i int32) *Value            { return &Value{TypeInt32, EncodeInt(in
 func NewInt64(i int64) *Value            { return &Value{TypeInt64, EncodeInt(i)} }
 func NewDuration(d nano.Duration) *Value { return &Value{TypeDuration, EncodeDuration(d)} }
 func NewTime(ts nano.Ts) *Value          { return &Value{TypeTime, EncodeTime(ts)} }
+func NewFloat16(f float32) *Value        { return &Value{TypeFloat16, EncodeFloat16(f)} }
 func NewFloat32(f float32) *Value        { return &Value{TypeFloat32, EncodeFloat32(f)} }
 func NewFloat64(f float64) *Value        { return &Value{TypeFloat64, EncodeFloat64(f)} }
 func NewBool(b bool) *Value              { return &Value{TypeBool, EncodeBool(b)} }

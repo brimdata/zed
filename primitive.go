@@ -117,10 +117,6 @@ func DecodeFloat(zb zcode.Bytes) float64 {
 
 type TypeOfFloat16 struct{}
 
-func NewFloat16(f float32) *Value {
-	return &Value{TypeFloat16, EncodeFloat16(f)}
-}
-
 func AppendFloat16(zb zcode.Bytes, f float32) zcode.Bytes {
 	buf := make([]byte, 2)
 	binary.LittleEndian.PutUint16(buf, float16.Fromfloat32(f).Bits())
