@@ -32,6 +32,8 @@ func formatAny(zv *zed.Value, inContainer bool) string {
 		return formatTime(nano.Ts(zed.DecodeDuration(zv.Bytes)))
 	case *zed.TypeEnum:
 		return formatAny(zed.NewValue(zed.TypeUint64, zv.Bytes), false)
+	case *zed.TypeOfFloat16:
+		return strconv.FormatFloat(float64(zed.DecodeFloat16(zv.Bytes)), 'f', -1, 32)
 	case *zed.TypeOfFloat32:
 		return strconv.FormatFloat(float64(zed.DecodeFloat32(zv.Bytes)), 'f', -1, 32)
 	case *zed.TypeOfFloat64:

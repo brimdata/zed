@@ -151,7 +151,7 @@ func (r *Reader) newZedType(dt arrow.DataType) (zed.Type, error) {
 	case arrow.INT64:
 		return zed.TypeInt64, nil
 	case arrow.FLOAT16:
-		return r.zctx.LookupTypeNamed("arrow_float16", zed.TypeFloat32)
+		return zed.TypeFloat16, nil
 	case arrow.FLOAT32:
 		return zed.TypeFloat32, nil
 	case arrow.FLOAT64:
@@ -314,7 +314,7 @@ func (r *Reader) buildZcode(a arrow.Array, i int) error {
 	case arrow.INT64:
 		b.Append(zed.EncodeInt(array.NewInt64Data(data).Value(i)))
 	case arrow.FLOAT16:
-		b.Append(zed.EncodeFloat32(array.NewFloat16Data(data).Value(i).Float32()))
+		b.Append(zed.EncodeFloat16(array.NewFloat16Data(data).Value(i).Float32()))
 	case arrow.FLOAT32:
 		b.Append(zed.EncodeFloat32(array.NewFloat32Data(data).Value(i)))
 	case arrow.FLOAT64:

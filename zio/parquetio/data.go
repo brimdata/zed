@@ -23,7 +23,8 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 		return int32(zed.DecodeInt(zb)), nil
 	case *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
 		return zed.DecodeInt(zb), nil
-	// XXX add TypeFloat16
+	case *zed.TypeOfFloat16:
+		return zed.DecodeFloat16(zb), nil
 	case *zed.TypeOfFloat32:
 		return zed.DecodeFloat32(zb), nil
 	case *zed.TypeOfFloat64:

@@ -17,6 +17,10 @@ type Abs struct {
 func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
+	if id == zed.IDFloat16 {
+		f := math.Abs(float64(zed.DecodeFloat16(v.Bytes)))
+		return newFloat16(ctx, float32(f))
+	}
 	if id == zed.IDFloat32 {
 		f := math.Abs(float64(zed.DecodeFloat32(v.Bytes)))
 		return newFloat32(ctx, float32(f))
@@ -47,6 +51,9 @@ func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	switch {
+	case id == zed.IDFloat16:
+		f := math.Ceil(float64(zed.DecodeFloat16(v.Bytes)))
+		return newFloat16(ctx, float32(f))
 	case id == zed.IDFloat32:
 		f := math.Ceil(float64(zed.DecodeFloat32(v.Bytes)))
 		return newFloat32(ctx, float32(f))
@@ -69,6 +76,9 @@ func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	switch {
+	case id == zed.IDFloat16:
+		v := math.Floor(float64(zed.DecodeFloat16(v.Bytes)))
+		return newFloat16(ctx, float32(v))
 	case id == zed.IDFloat32:
 		v := math.Floor(float64(zed.DecodeFloat32(v.Bytes)))
 		return newFloat32(ctx, float32(v))
@@ -156,6 +166,10 @@ type Round struct {
 func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := &args[0]
 	id := zv.Type.ID()
+	if id == zed.IDFloat16 {
+		f := zed.DecodeFloat16(zv.Bytes)
+		return newFloat16(ctx, float32(math.Round(float64(f))))
+	}
 	if id == zed.IDFloat32 {
 		f := zed.DecodeFloat32(zv.Bytes)
 		return newFloat32(ctx, float32(math.Round(float64(f))))

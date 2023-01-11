@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
+	"github.com/x448/float16"
 )
 
 func testSuccessful(t *testing.T, e string, input string, expectedVal zed.Value) {
@@ -94,7 +95,7 @@ func TestPrimitives(t *testing.T) {
 
 func TestCompareNumbers(t *testing.T) {
 	var numericTypes = []string{
-		"uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float32", "float64"}
+		"uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float16", "float32", "float64"}
 	var intFields = []string{"u8", "i16", "u16", "i32", "u32", "i64", "u64"}
 
 	for _, typ := range numericTypes {
@@ -567,6 +568,10 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, "uint64(-1)", "", ZSON(`error("cannot cast -1 to type uint64")`))
 	testSuccessful(t, `uint64("foo")`, "", ZSON(`error("cannot cast \"foo\" to type uint64")`))
 
+	// Test casts to float16
+	testSuccessful(t, "float16(10)", "", *zed.NewFloat16(10))
+	testSuccessful(t, `float16("foo")`, "", ZSON(`error("cannot cast \"foo\" to type float16")`))
+
 	// Test casts to float32
 	testSuccessful(t, "float32(10)", "", zfloat32(10))
 	testSuccessful(t, `float32("foo")`, "", ZSON(`error("cannot cast \"foo\" to type float32")`))
@@ -588,6 +593,8 @@ func TestCasts(t *testing.T) {
 
 	// Test casts to time
 	const ts = 1589126400_000_000_000
+	// float16 lacks sufficient precision to represent ts exactly.
+	testSuccessful(t, "time(float16(1589126400000000000))", "", *zed.NewTime(nano.Ts(float16.Fromfloat32(float32(ts)).Float32())))
 	// float32 lacks sufficient precision to represent ts exactly.
 	testSuccessful(t, "time(float32(1589126400000000000))", "", *zed.NewTime(nano.Ts(float32(ts))))
 	testSuccessful(t, "time(float64(1589126400000000000))", "", *zed.NewTime(ts))
@@ -599,12 +606,14 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, "string(1.2.3.4)", "", zstring("1.2.3.4"))
 	testSuccessful(t, `int64("1")`, "", zint64(1))
 	testSuccessful(t, `int64("-1")`, "", zint64(-1))
+	testSuccessful(t, `float16("5.5")`, "", *zed.NewFloat16(5.5))
 	testSuccessful(t, `float32("5.5")`, "", zfloat32(5.5))
 	testSuccessful(t, `float64("5.5")`, "", zfloat64(5.5))
 	testSuccessful(t, `ip("1.2.3.4")`, "", zaddr("1.2.3.4"))
 
 	testSuccessful(t, "ip(1)", "", ZSON(`error("cannot cast 1 to type ip")`))
 	testSuccessful(t, `int64("abc")`, "", ZSON(`error("cannot cast \"abc\" to type int64")`))
+	testSuccessful(t, `float16("abc")`, "", ZSON(`error("cannot cast \"abc\" to type float16")`))
 	testSuccessful(t, `float32("abc")`, "", ZSON(`error("cannot cast \"abc\" to type float32")`))
 	testSuccessful(t, `float64("abc")`, "", ZSON(`error("cannot cast \"abc\" to type float64")`))
 	testSuccessful(t, `ip("abc")`, "", ZSON(`error("cannot cast \"abc\" to type ip")`))

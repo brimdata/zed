@@ -164,10 +164,9 @@ func (w *Writer) newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 			return arrow.FixedWidthTypes.Time64ns, nil
 		}
 		return arrow.FixedWidthTypes.Timestamp_ns, nil
+	case *zed.TypeOfFloat16:
+		return arrow.FixedWidthTypes.Float16, nil
 	case *zed.TypeOfFloat32:
-		if name == "arrow_float16" {
-			return arrow.FixedWidthTypes.Float16, nil
-		}
 		return arrow.PrimitiveTypes.Float32, nil
 	case *zed.TypeOfFloat64:
 		return arrow.PrimitiveTypes.Float64, nil
@@ -331,7 +330,7 @@ func (w *Writer) buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Byte
 	case *array.Int64Builder:
 		b.Append(zed.DecodeInt(bytes))
 	case *array.Float16Builder:
-		b.Append(float16.New(zed.DecodeFloat32(bytes)))
+		b.Append(float16.New(zed.DecodeFloat16(bytes)))
 	case *array.Float32Builder:
 		b.Append(zed.DecodeFloat32(bytes))
 	case *array.Float64Builder:

@@ -581,6 +581,11 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := u.expr.Eval(ectx, this)
 	typ := val.Type
 	switch typ.ID() {
+	case zed.IDFloat16:
+		if val.Bytes == nil {
+			return val
+		}
+		return ectx.NewValue(typ, zed.EncodeFloat16(-zed.DecodeFloat16(val.Bytes)))
 	case zed.IDFloat32:
 		if val.Bytes == nil {
 			return val

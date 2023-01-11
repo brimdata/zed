@@ -26,6 +26,8 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 		return zed.DecodeDuration(bytes).String()
 	case *zed.TypeOfTime:
 		return zed.DecodeTime(bytes).Time().Format(time.RFC3339Nano)
+	case *zed.TypeOfFloat16:
+		return zed.DecodeFloat16(bytes)
 	case *zed.TypeOfFloat32:
 		return zed.DecodeFloat32(bytes)
 	case *zed.TypeOfFloat64:
