@@ -179,16 +179,15 @@ func (r *RecordBuilder) Append(leaf []byte) {
 
 func (r *RecordBuilder) Encode() (zcode.Bytes, error) {
 	if r.curField != len(r.fields) {
-		return nil, errors.New("did not receive enough columns")
+		return nil, errors.New("did not receive enough fields")
 	}
 	return r.builder.Bytes(), nil
 }
 
-// A RecordBuilder understands the shape of a sequence of FieldExprs
-// (i.e., which columns are inside nested records) but not the types.
-// TypedColumns takes an array of Types for the individual fields
-// and constructs an array of Columns that reflects the fullly
-// typed structure.  This is suitable for e.g. allocating a descriptor.
+// A RecordBuilder understands the shape of the [field.List] from which it was
+// created (i.e., which fields are inside nested records) but not the types.
+// Fields takes types for the individual fields and constructs [Field] slice
+// that reflects the fully typed structure.
 func (r *RecordBuilder) Fields(types []Type) []Field {
 	type rec struct {
 		name   string
