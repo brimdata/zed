@@ -115,7 +115,7 @@ func NewFloat64(f *anymath.Function, val *zed.Value) *Float64 {
 }
 
 func (f *Float64) result() *zed.Value {
-	return zed.NewValue(zed.TypeFloat64, zed.EncodeFloat64(f.state))
+	return zed.NewFloat64(f.state)
 }
 
 func (f *Float64) consume(val *zed.Value) {
@@ -147,7 +147,7 @@ func NewInt64(f *anymath.Function, val *zed.Value) *Int64 {
 }
 
 func (i *Int64) result() *zed.Value {
-	return zed.NewValue(zed.TypeInt64, zed.EncodeInt(i.state))
+	return zed.NewInt64(i.state)
 }
 
 func (i *Int64) consume(val *zed.Value) {
@@ -179,7 +179,7 @@ func NewUint64(f *anymath.Function, val *zed.Value) *Uint64 {
 }
 
 func (u *Uint64) result() *zed.Value {
-	return zed.NewValue(zed.TypeUint64, zed.EncodeUint(u.state))
+	return zed.NewUint64(u.state)
 }
 
 func (u *Uint64) consume(val *zed.Value) {
@@ -211,7 +211,7 @@ func NewDuration(f *anymath.Function, val *zed.Value) *Duration {
 }
 
 func (d *Duration) result() *zed.Value {
-	return zed.NewValue(zed.TypeDuration, zed.EncodeDuration(nano.Duration(d.state)))
+	return zed.NewDuration(nano.Duration(d.state))
 }
 
 func (d *Duration) consume(val *zed.Value) {
@@ -243,7 +243,7 @@ func NewTime(f *anymath.Function, val *zed.Value) *Time {
 }
 
 func (t *Time) result() *zed.Value {
-	return zed.NewValue(zed.TypeTime, zed.EncodeTime(t.state))
+	return zed.NewTime(t.state)
 }
 
 func (t *Time) consume(val *zed.Value) {

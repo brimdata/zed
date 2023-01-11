@@ -53,7 +53,7 @@ func (s *searchByPred) searchType(typ zed.Type) bool {
 		var nameIter FieldNameIter
 		nameIter.Init(recType)
 		for !nameIter.Done() {
-			if s.pred(zed.NewValue(zed.TypeString, nameIter.Next())) {
+			if s.pred(zed.NewString(string(nameIter.Next()))) {
 				match = true
 				break
 			}
