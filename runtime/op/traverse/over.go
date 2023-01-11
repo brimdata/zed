@@ -94,9 +94,9 @@ func appendOver(zctx *zed.Context, vals []zed.Value, zv zed.Value) []zed.Value {
 		}
 		return vals
 	case *zed.TypeMap:
-		rtyp := zctx.MustLookupTypeRecord([]zed.Column{
-			zed.NewColumn("key", typ.KeyType),
-			zed.NewColumn("value", typ.ValType),
+		rtyp := zctx.MustLookupTypeRecord([]zed.Field{
+			zed.NewField("key", typ.KeyType),
+			zed.NewField("value", typ.ValType),
 		})
 		for it := zv.Bytes.Iter(); !it.Done(); {
 			bytes := zcode.Append(zcode.Append(nil, it.Next()), it.Next())
@@ -105,11 +105,11 @@ func appendOver(zctx *zed.Context, vals []zed.Value, zv zed.Value) []zed.Value {
 		return vals
 	case *zed.TypeRecord:
 		builder := zcode.NewBuilder()
-		columns := typ.Columns
+		columns := typ.Fields
 		for i, it := 0, zv.Bytes.Iter(); !it.Done(); i++ {
 			builder.Reset()
 			col := columns[i]
-			typ := zctx.MustLookupTypeRecord([]zed.Column{
+			typ := zctx.MustLookupTypeRecord([]zed.Field{
 				{Name: "key", Type: zctx.LookupTypeArray(zed.TypeString)},
 				{Name: "value", Type: col.Type},
 			})

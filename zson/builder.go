@@ -84,6 +84,14 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		}
 		b.Append(zed.EncodeTime(nano.TimeToTs(t)))
 		return nil
+	case *zed.TypeOfFloat16:
+		v, err := strconv.ParseFloat(val.Text, 32)
+		if err != nil {
+			return fmt.Errorf("invalid floating point: %s", val.Text)
+		}
+
+		b.Append(zed.EncodeFloat16(float32(v)))
+		return nil
 	case *zed.TypeOfFloat32:
 		v, err := strconv.ParseFloat(val.Text, 32)
 		if err != nil {

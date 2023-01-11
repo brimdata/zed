@@ -16,7 +16,7 @@ func (l *LenFn) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	switch typ := zed.TypeUnder(args[0].Type).(type) {
 	case *zed.TypeOfNull:
 	case *zed.TypeRecord:
-		length = len(typ.Columns)
+		length = len(typ.Fields)
 	case *zed.TypeArray, *zed.TypeSet, *zed.TypeMap:
 		var err error
 		length, err = val.ContainerLength()
@@ -44,7 +44,7 @@ func typeLength(typ zed.Type) int {
 	case *zed.TypeNamed:
 		return typeLength(typ.Type)
 	case *zed.TypeRecord:
-		return len(typ.Columns)
+		return len(typ.Fields)
 	case *zed.TypeUnion:
 		return len(typ.Types)
 	case *zed.TypeSet:

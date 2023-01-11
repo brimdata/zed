@@ -106,7 +106,7 @@ func (c *Cutter) lookupTypeRecord(types []zed.Type) *zed.TypeRecord {
 	id := c.outTypes.Lookup(types)
 	typ, ok := c.recordTypes[id]
 	if !ok {
-		cols := c.builder.TypedColumns(types)
+		cols := c.builder.Fields(types)
 		typ = c.zctx.MustLookupTypeRecord(cols)
 		c.recordTypes[id] = typ
 	}

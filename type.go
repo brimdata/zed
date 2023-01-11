@@ -87,9 +87,9 @@ var (
 	TypeInt64    = &TypeOfInt64{}
 	TypeDuration = &TypeOfDuration{}
 	TypeTime     = &TypeOfTime{}
-	// XXX add TypeFloat16
-	TypeFloat32 = &TypeOfFloat32{}
-	TypeFloat64 = &TypeOfFloat64{}
+	TypeFloat16  = &TypeOfFloat16{}
+	TypeFloat32  = &TypeOfFloat32{}
+	TypeFloat64  = &TypeOfFloat64{}
 	// XXX add TypeDecimal
 	TypeBool   = &TypeOfBool{}
 	TypeBytes  = &TypeOfBytes{}
@@ -157,7 +157,7 @@ func IsInteger(id int) bool {
 }
 
 // True iff the type id is encoded as a zng signed or unsigned integer zcode.Bytes,
-// float32 zcode.Bytes, or float64 zcode.Bytes.
+// float16 zcode.Bytes, float32 zcode.Bytes, or float64 zcode.Bytes.
 func IsNumber(id int) bool {
 	return id <= IDDecimal256
 }
@@ -195,6 +195,8 @@ func LookupPrimitive(name string) Type {
 		return TypeDuration
 	case "time":
 		return TypeTime
+	case "float16":
+		return TypeFloat16
 	case "float32":
 		return TypeFloat32
 	case "float64":
@@ -239,6 +241,8 @@ func PrimitiveName(typ Type) string {
 		return "duration"
 	case *TypeOfTime:
 		return "time"
+	case *TypeOfFloat16:
+		return "float16"
 	case *TypeOfFloat32:
 		return "float32"
 	case *TypeOfFloat64:
@@ -288,6 +292,8 @@ func LookupPrimitiveByID(id int) (Type, error) {
 		return TypeInt64, nil
 	case IDUint64:
 		return TypeUint64, nil
+	case IDFloat16:
+		return TypeFloat16, nil
 	case IDFloat32:
 		return TypeFloat32, nil
 	case IDFloat64:
@@ -391,19 +397,19 @@ func CompareTypes(a, b Type) int {
 		return compareInts(a.ID(), b.ID())
 	case RecordKind:
 		ra, rb := TypeRecordOf(a), TypeRecordOf(b)
-		// First compare column lengths.
-		if len(ra.Columns) != len(rb.Columns) {
-			return compareInts(len(ra.Columns), len(rb.Columns))
+		// First compare number of fields.
+		if len(ra.Fields) != len(rb.Fields) {
+			return compareInts(len(ra.Fields), len(rb.Fields))
 		}
-		// Second compare column names.
-		for i := 0; i < len(ra.Columns); i++ {
-			if cmp := strings.Compare(ra.Columns[i].Name, rb.Columns[i].Name); cmp != 0 {
+		// Second compare field names.
+		for i := 0; i < len(ra.Fields); i++ {
+			if cmp := strings.Compare(ra.Fields[i].Name, rb.Fields[i].Name); cmp != 0 {
 				return cmp
 			}
 		}
-		// Lastly compare column types.
-		for i := 0; i < len(ra.Columns); i++ {
-			if cmp := CompareTypes(ra.Columns[i].Type, rb.Columns[i].Type); cmp != 0 {
+		// Lastly compare field types.
+		for i := 0; i < len(ra.Fields); i++ {
+			if cmp := CompareTypes(ra.Fields[i].Type, rb.Fields[i].Type); cmp != 0 {
 				return cmp
 			}
 		}
@@ -499,11 +505,11 @@ func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Byt
 
 	case *TypeRecord:
 		b = append(b, TypeValueRecord)
-		b = binary.AppendUvarint(b, uint64(len(t.Columns)))
-		for _, col := range t.Columns {
-			b = binary.AppendUvarint(b, uint64(len(col.Name)))
-			b = append(b, col.Name...)
-			b = appendTypeValue(b, col.Type, typedefs)
+		b = binary.AppendUvarint(b, uint64(len(t.Fields)))
+		for _, f := range t.Fields {
+			b = binary.AppendUvarint(b, uint64(len(f.Name)))
+			b = append(b, f.Name...)
+			b = appendTypeValue(b, f.Type, typedefs)
 		}
 		return b
 	case *TypeUnion:

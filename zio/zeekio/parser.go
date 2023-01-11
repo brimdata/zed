@@ -16,7 +16,7 @@ type header struct {
 	Path         string
 	open         string
 	close        string
-	columns      []zed.Column
+	columns      []zed.Field
 }
 
 type Parser struct {
@@ -48,7 +48,7 @@ func badfield(field string) error {
 
 func (p *Parser) parseFields(fields []string) error {
 	if len(p.columns) != len(fields) {
-		p.columns = make([]zed.Column, len(fields))
+		p.columns = make([]zed.Field, len(fields))
 		p.needtypes = true
 	}
 	for k, field := range fields {
@@ -62,7 +62,7 @@ func (p *Parser) parseFields(fields []string) error {
 
 func (p *Parser) parseTypes(types []string) error {
 	if len(p.columns) != len(types) {
-		p.columns = make([]zed.Column, len(types))
+		p.columns = make([]zed.Field, len(types))
 		p.needfields = true
 	}
 	for k, name := range types {
@@ -222,7 +222,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // bool indicating if a _path column was added.
 // Note that according to the zng spec, all the fields for a nested
 // record must be adjacent which simplifies the logic here.
-func Unflatten(zctx *zed.Context, columns []zed.Column, addPath bool) ([]zed.Column, bool, error) {
+func Unflatten(zctx *zed.Context, columns []zed.Field, addPath bool) ([]zed.Field, bool, error) {
 	hasPath := false
 	for _, col := range columns {
 		// XXX could validate field names here...
@@ -237,20 +237,20 @@ func Unflatten(zctx *zed.Context, columns []zed.Column, addPath bool) ([]zed.Col
 
 	var needpath bool
 	if addPath && !hasPath {
-		pathcol := zed.NewColumn("_path", zed.TypeString)
-		out = append([]zed.Column{pathcol}, out...)
+		pathcol := zed.NewField("_path", zed.TypeString)
+		out = append([]zed.Field{pathcol}, out...)
 		needpath = true
 	}
 	return out, needpath, nil
 }
 
-func unflattenRecord(zctx *zed.Context, cols []zed.Column) ([]zed.Column, error) {
+func unflattenRecord(zctx *zed.Context, cols []zed.Field) ([]zed.Field, error) {
 	// extract a []Column consisting of all the leading columns
 	// from the input that belong to the same record, with the
 	// common prefix removed from their name.
 	// returns the prefix and the extracted same-record columns.
-	recCols := func(cols []zed.Column) (string, []zed.Column) {
-		var ret []zed.Column
+	recCols := func(cols []zed.Field) (string, []zed.Field) {
+		var ret []zed.Field
 		var prefix string
 		if dot := strings.IndexByte(cols[0].Name, '.'); dot != -1 {
 			prefix = cols[0].Name[:dot]
@@ -260,11 +260,11 @@ func unflattenRecord(zctx *zed.Context, cols []zed.Column) ([]zed.Column, error)
 				break
 			}
 			trimmed := strings.TrimPrefix(cols[i].Name, prefix+".")
-			ret = append(ret, zed.NewColumn(trimmed, cols[i].Type))
+			ret = append(ret, zed.NewField(trimmed, cols[i].Type))
 		}
 		return prefix, ret
 	}
-	var out []zed.Column
+	var out []zed.Field
 	i := 0
 	for i < len(cols) {
 		col := cols[i]
@@ -283,7 +283,7 @@ func unflattenRecord(zctx *zed.Context, cols []zed.Column) ([]zed.Column, error)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, zed.NewColumn(prefix, recType))
+		out = append(out, zed.NewField(prefix, recType))
 		i += len(nestedCols)
 	}
 	return out, nil
@@ -312,9 +312,9 @@ func (p *Parser) setDescriptor() error {
 // coalesceRecordColumns returns a permutation of cols in which the columns of
 // each nested record have been made adjacent along with a slice containing the
 // index of the source field for each column in that permutation.
-func coalesceRecordColumns(cols []zed.Column) ([]zed.Column, []int) {
+func coalesceRecordColumns(cols []zed.Field) ([]zed.Field, []int) {
 	prefixes := map[string]bool{"": true}
-	var outcols []zed.Column
+	var outcols []zed.Field
 	var sourceFields []int
 	for i, c := range cols {
 		outcols = append(outcols, c)

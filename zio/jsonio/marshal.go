@@ -26,6 +26,8 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 		return zed.DecodeDuration(bytes).String()
 	case *zed.TypeOfTime:
 		return zed.DecodeTime(bytes).Time().Format(time.RFC3339Nano)
+	case *zed.TypeOfFloat16:
+		return zed.DecodeFloat16(bytes)
 	case *zed.TypeOfFloat32:
 		return zed.DecodeFloat32(bytes)
 	case *zed.TypeOfFloat64:
@@ -64,7 +66,7 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 func marshalRecord(typ *zed.TypeRecord, bytes zcode.Bytes) interface{} {
 	it := bytes.Iter()
 	rec := record{}
-	for _, col := range typ.Columns {
+	for _, col := range typ.Fields {
 		rec = append(rec, field{col.Name, marshalAny(col.Type, it.Next())})
 	}
 	return rec

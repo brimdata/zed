@@ -60,15 +60,15 @@ type FieldNameIter struct {
 }
 
 type fieldNameIterInfo struct {
-	columns []zed.Column
+	columns []zed.Field
 	offset  int
 }
 
 func (f *FieldNameIter) Init(t *zed.TypeRecord) {
 	f.buf = f.buf[:0]
 	f.stack = f.stack[:0]
-	if len(t.Columns) > 0 {
-		f.stack = append(f.stack, fieldNameIterInfo{t.Columns, 0})
+	if len(t.Fields) > 0 {
+		f.stack = append(f.stack, fieldNameIterInfo{t.Fields, 0})
 	}
 }
 
@@ -83,10 +83,10 @@ func (f *FieldNameIter) Next() []byte {
 		col := info.columns[info.offset]
 		f.buf = append(f.buf, "."+col.Name...)
 		t, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord)
-		if !ok || len(t.Columns) == 0 {
+		if !ok || len(t.Fields) == 0 {
 			break
 		}
-		f.stack = append(f.stack, fieldNameIterInfo{t.Columns, 0})
+		f.stack = append(f.stack, fieldNameIterInfo{t.Fields, 0})
 	}
 	// Skip leading dot.
 	name := f.buf[1:]

@@ -10,13 +10,13 @@ import (
 )
 
 func newRecordType(zctx *zed.Context, children []*parquetschema.ColumnDefinition) (*zed.TypeRecord, error) {
-	var cols []zed.Column
+	var cols []zed.Field
 	for _, c := range children {
 		typ, err := newType(zctx, c)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", c.SchemaElement.Name, err)
 		}
-		cols = append(cols, zed.Column{
+		cols = append(cols, zed.Field{
 			Name: c.SchemaElement.Name,
 			Type: typ,
 		})

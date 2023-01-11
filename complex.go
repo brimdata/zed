@@ -202,29 +202,29 @@ func TypeUnder(typ Type) Type {
 	return typ
 }
 
-// Column defines the field name and type of a column in a record type.
-type Column struct {
+// Field defines the name and type of a field for [TypeRecord].
+type Field struct {
 	Name string
 	Type Type
 }
 
-func NewColumn(name string, typ Type) Column {
-	return Column{name, typ}
+func NewField(name string, typ Type) Field {
+	return Field{name, typ}
 }
 
 type TypeRecord struct {
-	id      int
-	Columns []Column
-	LUT     map[string]int
+	id     int
+	Fields []Field
+	LUT    map[string]int
 }
 
-func NewTypeRecord(id int, columns []Column) *TypeRecord {
-	if columns == nil {
-		columns = []Column{}
+func NewTypeRecord(id int, fields []Field) *TypeRecord {
+	if fields == nil {
+		fields = []Field{}
 	}
 	r := &TypeRecord{
-		id:      id,
-		Columns: columns,
+		id:     id,
+		Fields: fields,
 	}
 	r.createLUT()
 	return r
@@ -237,8 +237,8 @@ func (t *TypeRecord) ID() int {
 func (t *TypeRecord) Marshal(zv zcode.Bytes) interface{} {
 	m := make(map[string]*Value)
 	it := zv.Iter()
-	for _, col := range t.Columns {
-		m[col.Name] = &Value{col.Type, it.Next()}
+	for _, f := range t.Fields {
+		m[f.Name] = &Value{f.Type, it.Next()}
 	}
 	return m
 }
@@ -253,7 +253,7 @@ func (t *TypeRecord) TypeOfField(field string) (Type, bool) {
 	if !ok {
 		return nil, false
 	}
-	return t.Columns[n].Type, true
+	return t.Fields[n].Type, true
 }
 
 func (t *TypeRecord) HasField(field string) bool {
@@ -263,8 +263,8 @@ func (t *TypeRecord) HasField(field string) bool {
 
 func (t *TypeRecord) createLUT() {
 	t.LUT = make(map[string]int)
-	for k, col := range t.Columns {
-		t.LUT[string(col.Name)] = k
+	for k, f := range t.Fields {
+		t.LUT[string(f.Name)] = k
 	}
 }
 

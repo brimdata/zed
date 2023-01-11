@@ -120,7 +120,7 @@ func (r *Reader) decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface
 	if !ok {
 		return errors.New("ZJSON record value must be a JSON array")
 	}
-	cols := typ.Columns
+	cols := typ.Fields
 	b.BeginContainer()
 	for k, val := range values {
 		if k >= len(cols) {

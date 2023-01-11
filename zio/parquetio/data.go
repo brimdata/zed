@@ -23,7 +23,8 @@ func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 		return int32(zed.DecodeInt(zb)), nil
 	case *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
 		return zed.DecodeInt(zb), nil
-	// XXX add TypeFloat16
+	case *zed.TypeOfFloat16:
+		return zed.DecodeFloat16(zb), nil
 	case *zed.TypeOfFloat32:
 		return zed.DecodeFloat32(zb), nil
 	case *zed.TypeOfFloat64:
@@ -96,13 +97,13 @@ func newMapData(keyType, valType zed.Type, zb zcode.Bytes) (map[string]interface
 }
 
 func newRecordData(typ *zed.TypeRecord, zb zcode.Bytes) (map[string]interface{}, error) {
-	m := make(map[string]interface{}, len(typ.Columns))
+	m := make(map[string]interface{}, len(typ.Fields))
 	for i, it := 0, zb.Iter(); !it.Done(); i++ {
-		v, err := newData(typ.Columns[i].Type, it.Next())
+		v, err := newData(typ.Fields[i].Type, it.Next())
 		if err != nil {
 			return nil, err
 		}
-		m[typ.Columns[i].Name] = v
+		m[typ.Fields[i].Name] = v
 	}
 	return m, nil
 }

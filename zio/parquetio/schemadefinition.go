@@ -141,8 +141,7 @@ func newColumnDefinition(name string, typ zed.Type) (*parquetschema.ColumnDefini
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT64, convertedInt64, logicalInt64)
 	case *zed.TypeOfTime:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT64, nil, logicalTimestampNanos)
-	// XXX add TypeFloat16
-	case *zed.TypeOfFloat32:
+	case *zed.TypeOfFloat16, *zed.TypeOfFloat32:
 		return newPrimitiveColumnDefinition(name, parquet.Type_FLOAT, nil, nil)
 	case *zed.TypeOfFloat64:
 		return newPrimitiveColumnDefinition(name, parquet.Type_DOUBLE, nil, nil)
@@ -248,11 +247,11 @@ func newMapColumnDefinition(name string, keyType, valueType zed.Type) (*parquets
 }
 
 func newRecordColumnDefinition(name string, typ *zed.TypeRecord) (*parquetschema.ColumnDefinition, error) {
-	if len(typ.Columns) == 0 {
+	if len(typ.Fields) == 0 {
 		return nil, ErrEmptyRecordType
 	}
 	var children []*parquetschema.ColumnDefinition
-	for _, c := range typ.Columns {
+	for _, c := range typ.Fields {
 		c, err := newColumnDefinition(c.Name, c.Type)
 		if err != nil {
 			return nil, err

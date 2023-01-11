@@ -11,7 +11,8 @@ input: &input |
   0 (=myint64)
   0s (=myduration)
   1970-01-01T00:00:00Z (=mytime)
-  0. (=myfloat32)
+  0. (myfloat16=float16)
+  0. (myfloat32=float32)
   0. (=myfloat64)
   false (=mybool)
   0x00 (=mybytes)
@@ -31,7 +32,8 @@ input: &input |
     i64: 0 (=myint64),
     dur: 0s (=myduration),
     tim: 1970-01-01T00:00:00Z (=mytime),
-    f32: 0. (=myfloat32),
+    f16: 0. (myfloat16=float16),
+    f32: 0. (myfloat32=float32),
     f64: 0. (=myfloat64),
     boo: false (=mybool),
     byt: 0x00 (=mybytes),

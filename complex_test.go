@@ -96,15 +96,15 @@ func TestNormalizeSet(t *testing.T) {
 func TestDuplicates(t *testing.T) {
 	ctx := zed.NewContext()
 	setType := ctx.LookupTypeSet(zed.TypeInt32)
-	typ1, err := ctx.LookupTypeRecord([]zed.Column{
-		zed.NewColumn("a", zed.TypeString),
-		zed.NewColumn("b", setType),
+	typ1, err := ctx.LookupTypeRecord([]zed.Field{
+		{"a", zed.TypeString},
+		{"b", setType},
 	})
 	require.NoError(t, err)
 	typ2, err := zson.ParseType(ctx, "{a:string,b:|[int32]|}")
 	require.NoError(t, err)
 	assert.EqualValues(t, typ1.ID(), typ2.ID())
-	assert.EqualValues(t, setType.ID(), typ2.(*zed.TypeRecord).Columns[1].Type.ID())
+	assert.EqualValues(t, setType.ID(), typ2.(*zed.TypeRecord).Fields[1].Type.ID())
 	typ3, err := ctx.LookupByValue(zed.EncodeTypeValue(setType))
 	require.NoError(t, err)
 	assert.Equal(t, setType.ID(), typ3.ID())
@@ -126,11 +126,11 @@ func TestTranslateNamed(t *testing.T) {
 	assert.Equal(t, named2, named3)
 }
 
-func TestCopyMutateColumns(t *testing.T) {
+func TestCopyMutateFields(t *testing.T) {
 	c := zed.NewContext()
-	cols := []zed.Column{{"foo", zed.TypeString}, {"bar", zed.TypeInt64}}
-	typ, err := c.LookupTypeRecord(cols)
+	fields := []zed.Field{{"foo", zed.TypeString}, {"bar", zed.TypeInt64}}
+	typ, err := c.LookupTypeRecord(fields)
 	require.NoError(t, err)
-	cols[0].Type = nil
-	require.NotNil(t, typ.Columns[0].Type)
+	fields[0].Type = nil
+	require.NotNil(t, typ.Fields[0].Type)
 }

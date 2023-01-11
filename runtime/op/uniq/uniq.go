@@ -31,9 +31,9 @@ func (p *Proc) wrap(t *zed.Value) *zed.Value {
 		p.builder.Reset()
 		p.builder.Append(t.Bytes)
 		p.builder.Append(zed.EncodeUint(p.count))
-		typ := p.pctx.Zctx.MustLookupTypeRecord([]zed.Column{
-			zed.NewColumn("value", t.Type),
-			zed.NewColumn("count", zed.TypeUint64),
+		typ := p.pctx.Zctx.MustLookupTypeRecord([]zed.Field{
+			zed.NewField("value", t.Type),
+			zed.NewField("count", zed.TypeUint64),
 		})
 		return zed.NewValue(typ, p.builder.Bytes()).Copy()
 	}

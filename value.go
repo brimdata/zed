@@ -29,6 +29,7 @@ var (
 	NullInt64    = &Value{Type: TypeInt64}
 	NullDuration = &Value{Type: TypeDuration}
 	NullTime     = &Value{Type: TypeTime}
+	NullFloat16  = &Value{Type: TypeFloat16}
 	NullFloat32  = &Value{Type: TypeFloat32}
 	NullFloat64  = &Value{Type: TypeFloat64}
 	NullBool     = &Value{Type: TypeBool}
@@ -64,6 +65,7 @@ func NewInt32(i int32) *Value            { return &Value{TypeInt32, EncodeInt(in
 func NewInt64(i int64) *Value            { return &Value{TypeInt64, EncodeInt(i)} }
 func NewDuration(d nano.Duration) *Value { return &Value{TypeDuration, EncodeDuration(d)} }
 func NewTime(ts nano.Ts) *Value          { return &Value{TypeTime, EncodeTime(ts)} }
+func NewFloat16(f float32) *Value        { return &Value{TypeFloat16, EncodeFloat16(f)} }
 func NewFloat32(f float32) *Value        { return &Value{TypeFloat32, EncodeFloat32(f)} }
 func NewFloat64(f float64) *Value        { return &Value{TypeFloat64, EncodeFloat64(f)} }
 func NewBool(b bool) *Value              { return &Value{TypeBool, EncodeBool(b)} }
@@ -224,9 +226,9 @@ func (r *Value) Walk(rv Visitor) error {
 	return Walk(r.Type, r.Bytes, rv)
 }
 
-func (r *Value) nth(column int) zcode.Bytes {
+func (r *Value) nth(n int) zcode.Bytes {
 	var zv zcode.Bytes
-	for i, it := 0, r.Bytes.Iter(); i <= column; i++ {
+	for i, it := 0, r.Bytes.Iter(); i <= n; i++ {
 		if it.Done() {
 			return nil
 		}
@@ -235,14 +237,14 @@ func (r *Value) nth(column int) zcode.Bytes {
 	return zv
 }
 
-func (r *Value) Columns() []Column {
-	return TypeRecordOf(r.Type).Columns
+func (r *Value) Fields() []Field {
+	return TypeRecordOf(r.Type).Fields
 }
 
 func (v *Value) DerefByColumn(col int) *Value {
 	if v != nil {
 		if bytes := v.nth(col); bytes != nil {
-			v = &Value{v.Columns()[col].Type, bytes}
+			v = &Value{v.Fields()[col].Type, bytes}
 		} else {
 			v = nil
 		}

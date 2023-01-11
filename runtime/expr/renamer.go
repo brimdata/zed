@@ -33,7 +33,7 @@ func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRe
 	}
 	var innerType zed.Type
 	if len(src) > 1 {
-		recType, ok := typ.Columns[c].Type.(*zed.TypeRecord)
+		recType, ok := typ.Fields[c].Type.(*zed.TypeRecord)
 		if !ok {
 			return typ, nil
 		}
@@ -43,10 +43,10 @@ func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRe
 		}
 		innerType = typ
 	} else {
-		innerType = typ.Columns[c].Type
+		innerType = typ.Fields[c].Type
 	}
-	newcols := slices.Clone(typ.Columns)
-	newcols[c] = zed.Column{Name: dst[0], Type: innerType}
+	newcols := slices.Clone(typ.Fields)
+	newcols[c] = zed.Field{Name: dst[0], Type: innerType}
 	typ, err := r.zctx.LookupTypeRecord(newcols)
 	if err != nil {
 		var dferr *zed.DuplicateFieldError

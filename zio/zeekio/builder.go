@@ -24,7 +24,7 @@ type builder struct {
 func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Value, error) {
 	b.Truncate()
 	b.Grow(len(data))
-	columns := typ.Columns
+	columns := typ.Fields
 	if path != nil {
 		if columns[0].Name != "_path" {
 			return nil, errors.New("no _path in column 0")
@@ -64,7 +64,7 @@ func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, da
 	return &b.val, nil
 }
 
-func (b *builder) appendColumns(columns []zed.Column, fields [][]byte) ([][]byte, error) {
+func (b *builder) appendColumns(columns []zed.Field, fields [][]byte) ([][]byte, error) {
 	const setSeparator = ','
 	const emptyContainer = "(empty)"
 	for _, c := range columns {
@@ -104,7 +104,7 @@ func (b *builder) appendColumns(columns []zed.Column, fields [][]byte) ([][]byte
 		case *zed.TypeRecord:
 			b.BeginContainer()
 			var err error
-			if fields, err = b.appendColumns(typ.Columns, fields); err != nil {
+			if fields, err = b.appendColumns(typ.Fields, fields); err != nil {
 				return nil, err
 			}
 			b.EndContainer()

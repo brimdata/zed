@@ -17,8 +17,9 @@ input: |
   -1
   1(uint64)
   -9223372036854775808
-  1.
+  1.(float16)
   1.(float32)
+  1.
   "foo"
   10.0.0.1
   [1,2,3]
@@ -32,6 +33,9 @@ input: |
   null(uint16)
   null(uint32)
   null(uint64)
+  null(float16)
+  null(float32)
+  null(float64)
 
 output: |
   -1(int8)
@@ -50,8 +54,9 @@ output: |
   1
   -1
   error("unary '-' underflow: int64(-9223372036854775808)")
-  -1.
+  -1.(float16)
   -1.(float32)
+  -1.
   error({message:"type incompatible with unary '-' operator",on:"foo"})
   error({message:"type incompatible with unary '-' operator",on:10.0.0.1})
   error({message:"type incompatible with unary '-' operator",on:[1,2,3]})
@@ -65,3 +70,6 @@ output: |
   null(uint16)
   null(uint32)
   null(uint64)
+  null(float16)
+  null(float32)
+  null(float64)

@@ -113,15 +113,15 @@ func (r *Reader) Read() (*zed.Value, error) {
 	return &r.val, nil
 }
 
-var dayTimeIntervalFields = []zed.Column{
+var dayTimeIntervalFields = []zed.Field{
 	{Name: "days", Type: zed.TypeInt32},
 	{Name: "milliseconds", Type: zed.TypeUint32},
 }
-var decimal128Fields = []zed.Column{
+var decimal128Fields = []zed.Field{
 	{Name: "high", Type: zed.TypeInt64},
 	{Name: "low", Type: zed.TypeUint64},
 }
-var monthDayNanoIntervalFields = []zed.Column{
+var monthDayNanoIntervalFields = []zed.Field{
 	{Name: "month", Type: zed.TypeInt32},
 	{Name: "day", Type: zed.TypeInt32},
 	{Name: "nanoseconds", Type: zed.TypeInt64},
@@ -151,7 +151,7 @@ func (r *Reader) newZedType(dt arrow.DataType) (zed.Type, error) {
 	case arrow.INT64:
 		return zed.TypeInt64, nil
 	case arrow.FLOAT16:
-		return r.zctx.LookupTypeNamed("arrow_float16", zed.TypeFloat32)
+		return zed.TypeFloat16, nil
 	case arrow.FLOAT32:
 		return zed.TypeFloat32, nil
 	case arrow.FLOAT64:
@@ -201,13 +201,13 @@ func (r *Reader) newZedType(dt arrow.DataType) (zed.Type, error) {
 		}
 		return r.zctx.LookupTypeArray(typ), nil
 	case arrow.STRUCT:
-		var fields []zed.Column
+		var fields []zed.Field
 		for _, f := range dt.(*arrow.StructType).Fields() {
 			typ, err := r.newZedType(f.Type)
 			if err != nil {
 				return nil, err
 			}
-			fields = append(fields, zed.NewColumn(f.Name, typ))
+			fields = append(fields, zed.NewField(f.Name, typ))
 		}
 		return r.zctx.LookupTypeRecord(fields)
 	case arrow.SPARSE_UNION, arrow.DENSE_UNION:
@@ -314,7 +314,7 @@ func (r *Reader) buildZcode(a arrow.Array, i int) error {
 	case arrow.INT64:
 		b.Append(zed.EncodeInt(array.NewInt64Data(data).Value(i)))
 	case arrow.FLOAT16:
-		b.Append(zed.EncodeFloat32(array.NewFloat16Data(data).Value(i).Float32()))
+		b.Append(zed.EncodeFloat16(array.NewFloat16Data(data).Value(i).Float32()))
 	case arrow.FLOAT32:
 		b.Append(zed.EncodeFloat32(array.NewFloat32Data(data).Value(i)))
 	case arrow.FLOAT64:

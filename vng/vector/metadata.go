@@ -14,10 +14,10 @@ type Record struct {
 }
 
 func (r *Record) Type(zctx *zed.Context) zed.Type {
-	cols := make([]zed.Column, 0, len(r.Fields))
+	cols := make([]zed.Field, 0, len(r.Fields))
 	for _, field := range r.Fields {
 		typ := field.Values.Type(zctx)
-		cols = append(cols, zed.Column{Name: field.Name, Type: typ})
+		cols = append(cols, zed.Field{Name: field.Name, Type: typ})
 	}
 	return zctx.MustLookupTypeRecord(cols)
 }

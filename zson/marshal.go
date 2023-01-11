@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
+	"github.com/x448/float16"
 	"golang.org/x/exp/slices"
 )
 
@@ -146,13 +147,13 @@ func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) 
 		return nil, errors.New("fields and columns don't match")
 	}
 	m.Builder.Reset()
-	var cols []zed.Column
+	var cols []zed.Field
 	for k, field := range fields {
 		typ, err := m.encodeValue(reflect.ValueOf(field))
 		if err != nil {
 			return nil, err
 		}
-		cols = append(cols, zed.Column{Name: names[k], Type: typ})
+		cols = append(cols, zed.Field{Name: names[k], Type: typ})
 	}
 	// XXX issue #1836
 	// Since this can be the inner loop here and nowhere else do we call
@@ -278,6 +279,9 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 	switch v := v.Interface().(type) {
 	case ZNGMarshaler:
 		return v.MarshalZNG(m)
+	case float16.Float16:
+		m.Builder.Append(zed.EncodeFloat16(v.Float32()))
+		return zed.TypeFloat16, nil
 	case nano.Ts:
 		m.Builder.Append(zed.EncodeTime(v))
 		return zed.TypeTime, nil
@@ -423,7 +427,7 @@ func (m *MarshalZNGContext) encodeNil(t reflect.Type) (zed.Type, error) {
 
 func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 	m.Builder.BeginContainer()
-	var columns []zed.Column
+	var columns []zed.Field
 	stype := sval.Type()
 	for i := 0; i < stype.NumField(); i++ {
 		sf := stype.Field(i)
@@ -453,7 +457,7 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Column{Name: name, Type: typ})
+		columns = append(columns, zed.Field{Name: name, Type: typ})
 	}
 	m.Builder.EndContainer()
 	return m.Context.LookupTypeRecord(columns)
@@ -581,7 +585,7 @@ func (m *MarshalZNGContext) lookupType(t reflect.Type) (zed.Type, error) {
 }
 
 func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type, error) {
-	var columns []zed.Column
+	var columns []zed.Field
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 		name := fieldName(field)
@@ -589,7 +593,7 @@ func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type,
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Column{Name: name, Type: fieldType})
+		columns = append(columns, zed.Field{Name: name, Type: fieldType})
 	}
 	return m.Context.LookupTypeRecord(columns)
 }
@@ -704,6 +708,12 @@ func (u *UnmarshalZNGContext) decodeAny(zv *zed.Value, v reflect.Value) error {
 		return m.UnmarshalZNG(u, zv)
 	}
 	switch v.Interface().(type) {
+	case float16.Float16:
+		if zv.Type != zed.TypeFloat16 {
+			return incompatTypeError(zv.Type, v)
+		}
+		v.SetUint(uint64(float16.Fromfloat32(zed.DecodeFloat16(zv.Bytes)).Bits()))
+		return nil
 	case nano.Ts:
 		if zv.Type != zed.TypeTime {
 			return incompatTypeError(zv.Type, v)
@@ -947,13 +957,13 @@ func (u *UnmarshalZNGContext) decodeRecord(zv *zed.Value, sval reflect.Value) er
 		nameToField[name] = i
 	}
 	for i, it := 0, zv.Iter(); !it.Done(); i++ {
-		if i >= len(recType.Columns) {
+		if i >= len(recType.Fields) {
 			return errors.New("malformed Zed value")
 		}
 		itzv := it.Next()
-		name := recType.Columns[i].Name
+		name := recType.Fields[i].Name
 		if fieldIdx, ok := nameToField[name]; ok {
-			typ := recType.Columns[i].Type
+			typ := recType.Fields[i].Type
 			if err := u.decodeAny(zed.NewValue(typ, itzv), sval.Field(fieldIdx)); err != nil {
 				return err
 			}
@@ -1228,6 +1238,8 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zed.Type) (reflect.Type, e
 		v = int32(0)
 	case *zed.TypeOfInt64:
 		v = int64(0)
+	case *zed.TypeOfFloat16:
+		v = float16.Fromfloat32(0)
 	case *zed.TypeOfFloat32:
 		v = float32(0)
 	case *zed.TypeOfFloat64:

@@ -34,7 +34,7 @@ func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.RecordBuilde
 	var foundDotted bool
 	var fields field.List
 	var types []zed.Type
-	for _, c := range in.Columns {
+	for _, c := range in.Fields {
 		dotted := field.Dotted(c.Name)
 		if len(dotted) > 1 {
 			foundDotted = true
@@ -49,7 +49,7 @@ func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.RecordBuilde
 	if err != nil {
 		return nil, nil, err
 	}
-	typ := n.zctx.MustLookupTypeRecord(b.TypedColumns(types))
+	typ := n.zctx.MustLookupTypeRecord(b.Fields(types))
 	n.builders[in.ID()] = b
 	n.recordTypes[in.ID()] = typ
 	return b, typ, nil

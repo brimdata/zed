@@ -30,6 +30,7 @@ input: |
   <null>
   <time>
   <float32>
+  <float16>
   <bool>
   <bytes>
   <int16>
@@ -49,6 +50,7 @@ output: |
   <int64>
   <duration>
   <time>
+  <float16>
   <float32>
   <float64>
   <bool>
