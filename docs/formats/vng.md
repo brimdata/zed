@@ -80,6 +80,7 @@ data section.  Each segment contains a sequence of
 [primitive-type Zed values](zed.md#1-primitive-types),
 encoded as counted-length byte sequences where the counted-length is
 variable-length encoded as in the [ZNG specification](zng.md).
+Segments may be compressed.
 
 There is no information in the data section for how segments relate
 to one another or how they are reconstructed into columns.  They are just
@@ -106,20 +107,6 @@ blobs of ZNG data.
 > elephants so the read path requires less buffering to align columns.  Or you can
 > do two passes where you store segments in separate files then merge them at close
 > according to an optimization plan.
-
-Segments are subdivided into frames where frames are compressed
-independently of each other, similar to ZNG compression framing.
-
-> TBD: use the
-> [same compression format](zng.md#2-the-zng-format)
-> exactly?
->
-> The intent here is that segments are sized so that sequential read access
-> performs well (e.g., 5MB) while frames are comparatively smaller (say 32KB)
-> so that they can be decompressed and processed in a multi-threaded fashion where
-> search and analytics can be performed on the decompressed buffer by the same
-> thread that decompressed the frame enhancing read-locality and L1/L2 cache
-> performance.
 
 ### The Reassembly Section
 
@@ -171,8 +158,9 @@ Each segment map that appears within the reassembly records is represented
 with a Zed array of records that represent seek ranges conforming to this
 type signature:
 ```
-[{offset:uint64,length:uint32}]
+[{offset:uint64,length:uint32,mem_length:uint32,compression_format:uint8}]
 ```
+
 In the rest of this document, we will refer to this type as `<segmap>` for
 shorthand and refer to the concept as a "segmap".
 
@@ -318,7 +306,7 @@ Instead the presence column is encoded as a sequence of alternating runs.
 First, the number of values present is encoded, then the number of values not present,
 then the number of values present, and so forth.   These runs are then stored
 as Zed `int32` values in the presence column (which may be subject to further
-compression based on segment framing).
+compression based on segment compression).
 
 ### The Trailer
 
