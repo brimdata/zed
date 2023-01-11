@@ -49,7 +49,7 @@ func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.RecordBuilde
 	if err != nil {
 		return nil, nil, err
 	}
-	typ := n.zctx.MustLookupTypeRecord(b.Fields(types))
+	typ := b.Type(types)
 	n.builders[in.ID()] = b
 	n.recordTypes[in.ID()] = typ
 	return b, typ, nil

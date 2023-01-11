@@ -66,8 +66,7 @@ func (d *Dropper) newDropper(zctx *zed.Context, r *zed.Value) *dropper {
 	if err != nil {
 		panic(err)
 	}
-	cols := builder.Fields(fieldTypes)
-	typ := d.zctx.MustLookupTypeRecord(cols)
+	typ := builder.Type(fieldTypes)
 	return &dropper{typ, builder, fieldRefs}
 }
 

@@ -499,10 +499,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 		types = append(types, v.Type)
 		a.builder.Append(v.Bytes)
 	}
-	typ, err := a.lookupRecordType(types)
-	if err != nil {
-		return nil, err
-	}
+	typ := a.lookupRecordType(types)
 	bytes, err := a.builder.Encode()
 	if err != nil {
 		return nil, err
@@ -551,10 +548,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 			types = append(types, v.Type)
 			a.builder.Append(v.Bytes)
 		}
-		typ, err := a.lookupRecordType(types)
-		if err != nil {
-			return nil, err
-		}
+		typ := a.lookupRecordType(types)
 		zv, err := a.builder.Encode()
 		if err != nil {
 			return nil, err
@@ -574,16 +568,12 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 	return zbuf.NewBatch(batch, recs), nil
 }
 
-func (a *Aggregator) lookupRecordType(types []zed.Type) (*zed.TypeRecord, error) {
+func (a *Aggregator) lookupRecordType(types []zed.Type) *zed.TypeRecord {
 	id := a.outTypes.Lookup(types)
 	typ, ok := a.recordTypes[id]
 	if !ok {
-		var err error
-		typ, err = a.zctx.LookupTypeRecord(a.builder.Fields(types))
-		if err != nil {
-			return nil, err
-		}
+		typ = a.builder.Type(types)
 		a.recordTypes[id] = typ
 	}
-	return typ, nil
+	return typ
 }
