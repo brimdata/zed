@@ -95,6 +95,17 @@ The short-hand query from above might be typed into a search box while the
 latter query might be composed in a query editor or in Zed source files
 maintained in GitHub.  Both forms are valid Zed queries.
 
+To further ease the maintenance and readability of source files, comments
+beginning with `//` may appear in Zed.
+
+```
+// Copyright (C) 2023 Fictional Corp Ultd. - All Rights Reserved
+
+search "example.com" AND "urgent"
+| where message_length > 100       // We only care about long messages
+| summarize kinds:=union(type) by net:=network_of(srcip)
+```
+
 ## 2. The Dataflow Model
 
 In Zed, each operator takes its input from the output of its upstream operator beginning
