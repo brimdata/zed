@@ -10,8 +10,8 @@ import (
 
 func TestValueValidate(t *testing.T) {
 	r := zed.NewValue(
-		zed.NewTypeRecord(0, []zed.Column{
-			zed.NewColumn("f", zed.NewTypeSet(0, zed.TypeString)),
+		zed.NewTypeRecord(0, []zed.Field{
+			zed.NewField("f", zed.NewTypeSet(0, zed.TypeString)),
 		}),
 		nil)
 	t.Run("set/error/duplicate-element", func(t *testing.T) {
@@ -58,9 +58,9 @@ func TestValueValidate(t *testing.T) {
 		b.TransformContainer(zed.NormalizeSet)
 		b.EndContainer()
 		r := zed.NewValue(
-			zed.NewTypeRecord(0, []zed.Column{
-				zed.NewColumn("f", zed.NewTypeSet(0, zed.NewTypeRecord(0, []zed.Column{
-					zed.NewColumn("g", zed.TypeString),
+			zed.NewTypeRecord(0, []zed.Field{
+				zed.NewField("f", zed.NewTypeSet(0, zed.NewTypeRecord(0, []zed.Field{
+					zed.NewField("g", zed.TypeString),
 				}))),
 			}),
 			b.Bytes())

@@ -56,7 +56,7 @@ func (w *Writer) Write(r *zed.Value) error {
 		w.nline = 0
 	}
 	var out []string
-	for k, col := range r.Columns() {
+	for k, col := range r.Fields() {
 		var v string
 		value := r.DerefByColumn(k).MissingAsNull()
 		if col.Type == zed.TypeTime {
@@ -78,7 +78,7 @@ func (w *Writer) flush() error {
 }
 
 func (w *Writer) writeHeader(typ *zed.TypeRecord) {
-	for i, c := range typ.Columns {
+	for i, c := range typ.Fields {
 		if i > 0 {
 			w.table.Write([]byte{'\t'})
 		}

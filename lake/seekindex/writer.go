@@ -35,7 +35,7 @@ func (w *Writer) Write(key zed.Value, count uint64, offset int64) error {
 	b.Append(zed.EncodeUint(count))
 	b.Append(zed.EncodeInt(offset))
 	if w.typ != key.Type {
-		var schema = []zed.Column{
+		var schema = []zed.Field{
 			{Name: "key", Type: key.Type},
 			{Name: "count", Type: zed.TypeUint64},
 			{Name: "offset", Type: zed.TypeInt64},

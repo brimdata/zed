@@ -66,7 +66,7 @@ func (d *Dropper) newDropper(zctx *zed.Context, r *zed.Value) *dropper {
 	if err != nil {
 		panic(err)
 	}
-	cols := builder.TypedColumns(fieldTypes)
+	cols := builder.Fields(fieldTypes)
 	typ := d.zctx.MustLookupTypeRecord(cols)
 	return &dropper{typ, builder, fieldRefs}
 }
@@ -78,7 +78,7 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 	var fields field.List
 	var types []zed.Type
 	var match bool
-	for _, c := range typ.Columns {
+	for _, c := range typ.Fields {
 		fld := append(prefix, c.Name)
 		if drops.Has(fld) {
 			match = true

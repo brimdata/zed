@@ -48,11 +48,11 @@ func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 		return nil
 	}
 	it := body.Iter()
-	for _, col := range typ.Columns {
+	for _, f := range typ.Fields {
 		if it.Done() {
 			return ErrMissingField
 		}
-		if err := Walk(col.Type, it.Next(), visit); err != nil {
+		if err := Walk(f.Type, it.Next(), visit); err != nil {
 			return err
 		}
 	}

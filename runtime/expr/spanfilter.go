@@ -13,7 +13,7 @@ type SpanFilter struct {
 	eval Evaluator
 
 	builder zcode.Builder
-	cols    []zed.Column
+	cols    []zed.Field
 	ectx    Context
 	val     zed.Value
 	zctx    *zed.Context
@@ -22,7 +22,7 @@ type SpanFilter struct {
 func NewSpanFilter(eval Evaluator) *SpanFilter {
 	return &SpanFilter{
 		eval: eval,
-		cols: []zed.Column{
+		cols: []zed.Field{
 			{Name: "lower"},
 			{Name: "upper"},
 		},

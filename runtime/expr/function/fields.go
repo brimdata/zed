@@ -20,7 +20,7 @@ func NewFields(zctx *zed.Context) *Fields {
 
 func buildPath(typ *zed.TypeRecord, b *zcode.Builder, prefix []string) []string {
 	var out []string
-	for _, c := range typ.Columns {
+	for _, c := range typ.Fields {
 		if typ, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
 			buildPath(typ, b, append(prefix, c.Name))
 		} else {

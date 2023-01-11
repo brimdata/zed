@@ -32,13 +32,13 @@ func (n *Flatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if typ == nil {
 		return &val
 	}
-	inner := n.innerTypeOf(val.Bytes, typ.Columns)
+	inner := n.innerTypeOf(val.Bytes, typ.Fields)
 	n.Reset()
-	n.encode(typ.Columns, inner, field.Path{}, val.Bytes)
+	n.encode(typ.Fields, inner, field.Path{}, val.Bytes)
 	return ctx.NewValue(n.zctx.LookupTypeArray(inner), n.Bytes())
 }
 
-func (n *Flatten) innerTypeOf(b zcode.Bytes, cols []zed.Column) zed.Type {
+func (n *Flatten) innerTypeOf(b zcode.Bytes, cols []zed.Field) zed.Type {
 	n.types = n.appendTypes(n.types[:0], b, cols)
 	unique := zed.UniqueTypes(n.types)
 	if len(unique) == 1 {
@@ -47,19 +47,19 @@ func (n *Flatten) innerTypeOf(b zcode.Bytes, cols []zed.Column) zed.Type {
 	return n.zctx.LookupTypeUnion(unique)
 }
 
-func (n *Flatten) appendTypes(types []zed.Type, b zcode.Bytes, cols []zed.Column) []zed.Type {
+func (n *Flatten) appendTypes(types []zed.Type, b zcode.Bytes, cols []zed.Field) []zed.Type {
 	it := b.Iter()
 	for _, col := range cols {
 		val := it.Next()
 		if typ := zed.TypeRecordOf(col.Type); typ != nil && val != nil {
-			types = n.appendTypes(types, val, typ.Columns)
+			types = n.appendTypes(types, val, typ.Fields)
 			continue
 		}
 		typ, ok := n.entryTypes[col.Type]
 		if !ok {
-			typ = n.zctx.MustLookupTypeRecord([]zed.Column{
-				zed.NewColumn("key", n.keyType),
-				zed.NewColumn("value", col.Type),
+			typ = n.zctx.MustLookupTypeRecord([]zed.Field{
+				zed.NewField("key", n.keyType),
+				zed.NewField("value", col.Type),
 			})
 			n.entryTypes[col.Type] = typ
 		}
@@ -68,13 +68,13 @@ func (n *Flatten) appendTypes(types []zed.Type, b zcode.Bytes, cols []zed.Column
 	return types
 }
 
-func (n *Flatten) encode(cols []zed.Column, inner zed.Type, base field.Path, b zcode.Bytes) {
+func (n *Flatten) encode(cols []zed.Field, inner zed.Type, base field.Path, b zcode.Bytes) {
 	it := b.Iter()
 	for _, col := range cols {
 		val := it.Next()
 		key := append(base, col.Name)
 		if typ := zed.TypeRecordOf(col.Type); typ != nil && val != nil {
-			n.encode(typ.Columns, inner, key, val)
+			n.encode(typ.Fields, inner, key, val)
 			continue
 		}
 		typ := n.entryTypes[col.Type]

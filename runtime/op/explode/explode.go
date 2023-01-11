@@ -22,7 +22,7 @@ type Proc struct {
 func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string) (zbuf.Puller, error) {
 	return &Proc{
 		parent:  parent,
-		outType: zctx.MustLookupTypeRecord([]zed.Column{{Name: name, Type: typ}}),
+		outType: zctx.MustLookupTypeRecord([]zed.Field{{Name: name, Type: typ}}),
 		typ:     typ,
 		args:    args,
 	}, nil

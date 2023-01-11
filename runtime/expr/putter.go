@@ -185,12 +185,12 @@ func findOverwriteClause(path field.Path, clauses []Assignment) (int, field.Path
 }
 
 func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value, clauses []Assignment) (putStep, zed.Type) {
-	return p.deriveRecordSteps(field.NewEmpty(), inType.Columns, vals, clauses)
+	return p.deriveRecordSteps(field.NewEmpty(), inType.Fields, vals, clauses)
 }
 
-func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value, clauses []Assignment) (putStep, *zed.TypeRecord) {
+func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Field, vals []zed.Value, clauses []Assignment) (putStep, *zed.TypeRecord) {
 	s := putStep{op: putRecord}
-	cols := make([]zed.Column, 0)
+	cols := make([]zed.Field, 0)
 
 	// First look at all input columns to see which should
 	// be copied over and which should be overwritten by
@@ -214,19 +214,19 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 				container: zed.IsContainerType(vals[matchIndex].Type),
 				index:     matchIndex,
 			})
-			cols = append(cols, zed.Column{Name: inCol.Name, Type: vals[matchIndex].Type})
+			cols = append(cols, zed.Field{Name: inCol.Name, Type: vals[matchIndex].Type})
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zed.IsRecordType(inCol.Type):
-			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Columns, vals, clauses)
+			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Fields, vals, clauses)
 			nestedStep.index = i
 			s.append(nestedStep)
-			cols = append(cols, zed.Column{Name: inCol.Name, Type: typ})
+			cols = append(cols, zed.Field{Name: inCol.Name, Type: typ})
 		// input non-record field overwritten by nested assignment(s): recurse.
 		case len(path) < len(matchPath) && !zed.IsRecordType(inCol.Type):
-			nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals, clauses)
+			nestedStep, typ := p.deriveRecordSteps(path, []zed.Field{}, vals, clauses)
 			nestedStep.index = i
 			s.append(nestedStep)
-			cols = append(cols, zed.Column{Name: inCol.Name, Type: typ})
+			cols = append(cols, zed.Field{Name: inCol.Name, Type: typ})
 		default:
 			panic("put: internal error computing record steps")
 		}
@@ -249,13 +249,13 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 					container: zed.IsContainerType(vals[i].Type),
 					index:     i,
 				})
-				cols = append(cols, zed.Column{Name: cl.LHS[len(parentPath)], Type: vals[i].Type})
+				cols = append(cols, zed.Field{Name: cl.LHS[len(parentPath)], Type: vals[i].Type})
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(cl.LHS) > len(parentPath)+1:
 				path := append(parentPath, cl.LHS[len(parentPath)])
-				nestedStep, typ := p.deriveRecordSteps(path, []zed.Column{}, vals, clauses)
+				nestedStep, typ := p.deriveRecordSteps(path, []zed.Field{}, vals, clauses)
 				nestedStep.index = -1
-				cols = append(cols, zed.Column{Name: cl.LHS[len(parentPath)], Type: typ})
+				cols = append(cols, zed.Field{Name: cl.LHS[len(parentPath)], Type: typ})
 				s.append(nestedStep)
 			}
 		}
@@ -267,7 +267,7 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, v
 	return s, typ
 }
 
-func hasField(name string, cols []zed.Column) bool {
+func hasField(name string, cols []zed.Field) bool {
 	for _, col := range cols {
 		if col.Name == name {
 			return true

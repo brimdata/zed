@@ -44,7 +44,7 @@ func (w *Writer) Write(r *zed.Value) error {
 	w.buf.Reset()
 	var needSeparator bool
 	it := r.Bytes.Iter()
-	for _, col := range zed.TypeRecordOf(r.Type).Columns {
+	for _, col := range zed.TypeRecordOf(r.Type).Fields {
 		bytes := it.Next()
 		if col.Name == "_path" {
 			continue
@@ -88,7 +88,7 @@ func (w *Writer) writeHeader(r *zed.Value, path string) error {
 	}
 	if d != w.typ {
 		s += "#fields"
-		for _, col := range zed.TypeRecordOf(d).Columns {
+		for _, col := range zed.TypeRecordOf(d).Fields {
 			if col.Name == "_path" {
 				continue
 			}
@@ -96,7 +96,7 @@ func (w *Writer) writeHeader(r *zed.Value, path string) error {
 		}
 		s += "\n"
 		s += "#types"
-		for _, col := range zed.TypeRecordOf(d).Columns {
+		for _, col := range zed.TypeRecordOf(d).Fields {
 			if col.Name == "_path" {
 				continue
 			}

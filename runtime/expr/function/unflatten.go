@@ -72,7 +72,7 @@ func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.T
 		inner, vb = union.Untag(vb)
 	}
 	typ := zed.TypeRecordOf(inner)
-	if typ == nil || len(typ.Columns) != 2 {
+	if typ == nil || len(typ.Fields) != 2 {
 		return nil, nil, nil, nil
 	}
 	nkey, ok := typ.ColumnOfField("key")
@@ -89,7 +89,7 @@ func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.T
 	if nkey == 1 {
 		kbytes, vbytes = vbytes, kbytes
 	}
-	ktyp := typ.Columns[nkey].Type
+	ktyp := typ.Fields[nkey].Type
 	if ktyp.ID() == zed.IDString {
 		u.path = append(u.path[:0], zed.DecodeString(kbytes))
 		return u.path, vtyp, vbytes, nil
@@ -129,7 +129,7 @@ func (c *recordCache) reset() {
 }
 
 type record struct {
-	columns []zed.Column
+	columns []zed.Field
 	records []*record
 }
 
@@ -139,7 +139,7 @@ func (r *record) addPath(c *recordCache, p []string) (removed int) {
 	}
 	at := len(r.columns) - 1
 	if len(r.columns) == 0 || r.columns[at].Name != p[0] {
-		r.columns = append(r.columns, zed.NewColumn(p[0], nil))
+		r.columns = append(r.columns, zed.NewField(p[0], nil))
 		var rec *record
 		if len(p) > 1 {
 			rec = c.new()

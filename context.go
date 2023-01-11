@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	MaxColumns     = 100_000
-	MaxEnumSymbols = 100_000
-	MaxUnionTypes  = 100_000
+	MaxEnumSymbols  = 100_000
+	MaxRecordFields = 100_000
+	MaxUnionTypes   = 100_000
 )
 
 // A Context implements the "type context" in the Zed model.  For a
@@ -96,24 +96,24 @@ func (d *DuplicateFieldError) Error() string {
 }
 
 // LookupTypeRecord returns a TypeRecord within this context that binds with the
-// indicated columns.  Subsequent calls with the same columns will return the
+// indicated fields.  Subsequent calls with the same fields will return the
 // same record pointer.  If the type doesn't exist, it's created, stored,
-// and returned.  The closure of types within the columns must all be from
-// this type context.  If you want to use columns from a different type context,
+// and returned.  The closure of types within the fields must all be from
+// this type context.  If you want to use fields from a different type context,
 // use TranslateTypeRecord.
-func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
+func (c *Context) LookupTypeRecord(fields []Field) (*TypeRecord, error) {
 	tv := tvPool.Get().(*[]byte)
-	*tv = AppendTypeValue((*tv)[:0], &TypeRecord{Columns: columns})
+	*tv = AppendTypeValue((*tv)[:0], &TypeRecord{Fields: fields})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[string(*tv)]; ok {
 		tvPool.Put(tv)
 		return typ.(*TypeRecord), nil
 	}
-	if name, ok := duplicateField(columns); ok {
+	if name, ok := duplicateField(fields); ok {
 		return nil, &DuplicateFieldError{name}
 	}
-	typ := NewTypeRecord(c.nextIDWithLock(), slices.Clone(columns))
+	typ := NewTypeRecord(c.nextIDWithLock(), slices.Clone(fields))
 	c.enterWithLock(*tv, typ)
 	return typ, nil
 }
@@ -127,15 +127,15 @@ var namesPool = sync.Pool{
 	},
 }
 
-func duplicateField(columns []Column) (string, bool) {
-	if len(columns) < 2 {
+func duplicateField(fields []Field) (string, bool) {
+	if len(fields) < 2 {
 		return "", false
 	}
 	names := namesPool.Get().(*[]string)
 	defer namesPool.Put(names)
 	*names = (*names)[:0]
-	for _, col := range columns {
-		*names = append(*names, col.Name)
+	for _, f := range fields {
+		*names = append(*names, f.Name)
 	}
 	sort.Strings(*names)
 	prev := (*names)[0]
@@ -148,8 +148,8 @@ func duplicateField(columns []Column) (string, bool) {
 	return "", false
 }
 
-func (c *Context) MustLookupTypeRecord(columns []Column) *TypeRecord {
-	r, err := c.LookupTypeRecord(columns)
+func (c *Context) MustLookupTypeRecord(fields []Field) *TypeRecord {
+	r, err := c.LookupTypeRecord(fields)
 	if err != nil {
 		panic(err)
 	}
@@ -279,24 +279,23 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 	return typ
 }
 
-// AddColumns returns a new Record with columns equal to the given
-// record along with new rightmost columns as indicated with the given values.
-// If any of the newly provided columns already exists in the specified value,
+// AddFields returns a new Record with fields equal to the given
+// record along with new rightmost fields as indicated with the given values.
+// If any of the newly provided fieldss already exists in the specified value,
 // an error is returned.
-func (c *Context) AddColumns(r *Value, newCols []Column, vals []Value) (*Value, error) {
-	oldCols := TypeRecordOf(r.Type).Columns
-	outCols := slices.Clone(oldCols)
-	for _, col := range newCols {
-		if r.HasField(string(col.Name)) {
-			return nil, fmt.Errorf("field already exists: %s", col.Name)
+func (c *Context) AddFields(r *Value, newFields []Field, vals []Value) (*Value, error) {
+	fields := slices.Clone(r.Fields())
+	for _, f := range newFields {
+		if r.HasField(f.Name) {
+			return nil, fmt.Errorf("field already exists: %s", f.Name)
 		}
-		outCols = append(outCols, col)
+		fields = append(fields, f)
 	}
 	zv := slices.Clone(r.Bytes)
 	for _, val := range vals {
 		zv = val.Encode(zv)
 	}
-	typ, err := c.LookupTypeRecord(outCols)
+	typ, err := c.LookupTypeRecord(fields)
 	if err != nil {
 		return nil, err
 	}
@@ -390,10 +389,10 @@ func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 		return typ, tv
 	case TypeValueRecord:
 		n, tv := DecodeLength(tv)
-		if tv == nil || n > MaxColumns {
+		if tv == nil || n > MaxRecordFields {
 			return nil, nil
 		}
-		cols := make([]Column, 0, n)
+		fields := make([]Field, 0, n)
 		for k := 0; k < n; k++ {
 			var name string
 			name, tv = DecodeName(tv)
@@ -405,9 +404,9 @@ func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 			if tv == nil {
 				return nil, nil
 			}
-			cols = append(cols, Column{name, typ})
+			fields = append(fields, Field{name, typ})
 		}
-		typ, err := c.LookupTypeRecord(cols)
+		typ, err := c.LookupTypeRecord(fields)
 		if err != nil {
 			return nil, nil
 		}
@@ -571,11 +570,10 @@ func (c *Context) StringTypeError() *TypeError {
 }
 
 func (c *Context) WrapError(msg string, val *Value) *Value {
-	cols := []Column{
+	recType := c.MustLookupTypeRecord([]Field{
 		{"message", TypeString},
 		{"on", val.Type},
-	}
-	recType := c.MustLookupTypeRecord(cols)
+	})
 	errType := c.LookupTypeError(recType)
 	var b zcode.Builder
 	b.Append(EncodeString(msg))

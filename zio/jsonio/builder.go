@@ -16,7 +16,7 @@ type builder struct {
 
 	// These exist only to reduce memory allocations.
 	bytes    []byte
-	columns  []zed.Column
+	columns  []zed.Field
 	itemptrs []*item
 	types    []zed.Type
 	val      zed.Value
@@ -126,7 +126,7 @@ func (b *builder) endRecord() {
 	for {
 		b.columns = b.columns[:0]
 		for _, item := range itemptrs {
-			b.columns = append(b.columns, zed.NewColumn(item.fieldName, item.typ))
+			b.columns = append(b.columns, zed.NewField(item.fieldName, item.typ))
 		}
 		var err error
 		container.typ, err = b.zctx.LookupTypeRecord(b.columns)

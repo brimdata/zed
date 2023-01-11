@@ -9,7 +9,7 @@ type recordExpr struct {
 	zctx    *zed.Context
 	typ     *zed.TypeRecord
 	builder *zcode.Builder
-	columns []zed.Column
+	columns []zed.Field
 	exprs   []Evaluator
 }
 
@@ -23,15 +23,15 @@ func NewRecordExpr(zctx *zed.Context, elems []RecordElem) (Evaluator, error) {
 }
 
 func newRecordExpr(zctx *zed.Context, elems []RecordElem) *recordExpr {
-	columns := make([]zed.Column, 0, len(elems))
+	columns := make([]zed.Field, 0, len(elems))
 	exprs := make([]Evaluator, 0, len(elems))
 	for _, elem := range elems {
-		columns = append(columns, zed.Column{Name: elem.Name})
+		columns = append(columns, zed.Field{Name: elem.Name})
 		exprs = append(exprs, elem.Field)
 	}
 	var typ *zed.TypeRecord
 	if len(exprs) == 0 {
-		typ = zctx.MustLookupTypeRecord([]zed.Column{})
+		typ = zctx.MustLookupTypeRecord([]zed.Field{})
 	}
 	return &recordExpr{
 		zctx:    zctx,
@@ -75,7 +75,7 @@ type recordSpreadExpr struct {
 	zctx    *zed.Context
 	elems   []RecordElem
 	builder zcode.Builder
-	columns []zed.Column
+	columns []zed.Field
 	bytes   []zcode.Bytes
 	cache   *zed.TypeRecord
 }
@@ -106,7 +106,7 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 				continue
 			}
 			it := rec.Iter()
-			for _, col := range typ.Columns {
+			for _, col := range typ.Fields {
 				c, ok := object[col.Name]
 				if ok {
 					c.value = zed.Value{Type: col.Type, Bytes: it.Next()}
@@ -133,7 +133,7 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		b := r.builder
 		b.Reset()
 		b.Append(nil)
-		return ectx.NewValue(r.zctx.MustLookupTypeRecord([]zed.Column{}), b.Bytes())
+		return ectx.NewValue(r.zctx.MustLookupTypeRecord([]zed.Field{}), b.Bytes())
 	}
 	r.update(object)
 	b := r.builder
@@ -153,7 +153,7 @@ func (r *recordSpreadExpr) update(object map[string]column) {
 		return
 	}
 	for name, field := range object {
-		col := zed.Column{Name: name, Type: field.value.Type}
+		col := zed.Field{Name: name, Type: field.value.Type}
 		if r.columns[field.colno] != col {
 			r.invalidate(object)
 			return
@@ -164,14 +164,14 @@ func (r *recordSpreadExpr) update(object map[string]column) {
 
 func (r *recordSpreadExpr) invalidate(object map[string]column) {
 	if n := len(object); cap(r.columns) < n {
-		r.columns = make([]zed.Column, n)
+		r.columns = make([]zed.Field, n)
 		r.bytes = make([]zcode.Bytes, n)
 	} else {
 		r.columns = r.columns[:n]
 		r.bytes = r.bytes[:n]
 	}
 	for name, field := range object {
-		r.columns[field.colno] = zed.Column{Name: name, Type: field.value.Type}
+		r.columns[field.colno] = zed.Field{Name: name, Type: field.value.Type}
 		r.bytes[field.colno] = field.value.Bytes
 	}
 	r.cache = r.zctx.MustLookupTypeRecord(r.columns)

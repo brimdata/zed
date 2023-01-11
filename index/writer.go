@@ -344,9 +344,9 @@ func (w *indexWriter) addToParentIndex(key *zed.Value, offset int64) error {
 }
 
 func (w *indexWriter) writeIndexRecord(keys *zed.Value, offset int64) error {
-	col := []zed.Column{{Name: w.base.childField, Type: zed.TypeInt64}}
+	col := []zed.Field{{Name: w.base.childField, Type: zed.TypeInt64}}
 	val := zed.EncodeInt(offset)
-	rec, err := w.base.zctx.AddColumns(keys, col, []zed.Value{{Type: zed.TypeInt64, Bytes: val}})
+	rec, err := w.base.zctx.AddFields(keys, col, []zed.Value{{Type: zed.TypeInt64, Bytes: val}})
 	if err != nil {
 		return err
 	}

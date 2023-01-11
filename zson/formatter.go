@@ -428,14 +428,14 @@ func (f *Formatter) decorate(typ zed.Type, known, null bool) {
 
 func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.Bytes, known, parentImplied bool) error {
 	f.build("{")
-	if len(typ.Columns) == 0 {
+	if len(typ.Fields) == 0 {
 		f.build("}")
 		return nil
 	}
 	indent += f.tab
 	sep := f.newline
 	it := bytes.Iter()
-	for _, field := range typ.Columns {
+	for _, field := range typ.Fields {
 		if it.Done() {
 			return zed.ErrMissingField
 		}
@@ -671,7 +671,7 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 
 func (f *Formatter) formatTypeRecord(typ *zed.TypeRecord) {
 	f.build("{")
-	for k, col := range typ.Columns {
+	for k, col := range typ.Fields {
 		if k > 0 {
 			f.build(",")
 		}
@@ -771,7 +771,7 @@ func formatType(b *strings.Builder, typedefs map[string]*zed.TypeNamed, typ zed.
 		}
 	case *zed.TypeRecord:
 		b.WriteByte('{')
-		for k, col := range t.Columns {
+		for k, col := range t.Fields {
 			if k > 0 {
 				b.WriteByte(',')
 			}
