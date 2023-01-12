@@ -32,9 +32,9 @@ type Lexer struct {
 	err error
 }
 
-func New(br *bufio.Reader) *Lexer {
+func New(r io.Reader) *Lexer {
 	return &Lexer{
-		br:  br,
+		br:  bufio.NewReader(r),
 		buf: make([]byte, 0, 128),
 	}
 }
