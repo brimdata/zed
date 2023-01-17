@@ -19,10 +19,32 @@ func GzipReader(r io.Reader) (io.Reader, error) {
 	}
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
+	// gzip.NewReader blocks until it reads ten bytes.  readGzipID only
+	// reads two bytes.
+	if !readGzipID(track) {
+		return recorder, nil
+	}
+	track.Reset()
 	_, err := gzip.NewReader(track)
 	if err == nil {
 		// create a new reader from recorder (track keeps a copy of read data)
 		return gzip.NewReader(recorder)
 	}
 	return recorder, nil
+}
+
+// RFC 1952, Section 2.3.1
+const (
+	gzipID1 = 0x1f
+	gzipID2 = 0x8b
+)
+
+// readGzipID returns true if it can read gzipID1 followed by gzipID2 from r.
+// It reads exactly two bytes from r.
+func readGzipID(r io.Reader) bool {
+	var buf [2]byte
+	if _, err := io.ReadFull(r, buf[:]); err != nil {
+		return false
+	}
+	return buf[0] == gzipID1 && buf[1] == gzipID2
 }
