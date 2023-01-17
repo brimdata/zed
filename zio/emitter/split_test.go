@@ -35,7 +35,7 @@ func TestDirS3Source(t *testing.T) {
 
 	r := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	require.NoError(t, err)
-	w, err := NewSplit(context.Background(), engine, uri, "", anyio.WriterOpts{Format: "zson"})
+	w, err := NewSplit(context.Background(), engine, uri, "", false, anyio.WriterOpts{Format: "zson"})
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(w, r))
 }
