@@ -81,7 +81,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 		// groupby.
 		nullsMax := inputDir > 0
 
-		vs := expr.NewValueCompareFn(nullsMax)
+		vs := expr.NewValueCompareFn(order.Asc, nullsMax)
 		if inputDir < 0 {
 			valueCompare = func(a, b *zed.Value) int { return vs(b, a) }
 		} else {

@@ -34,20 +34,6 @@ type Generic struct {
 	cmp   expr.CompareFn
 }
 
-// CompareFunc returns a generic comparator suitable for use in a Range
-// based on the order of values in the range, i.e., when order is desc
-// then the first value is larger than the last value and Before is true
-// for larger values while After is true for smaller values, etc.
-func CompareFunc(o order.Which) expr.CompareFn {
-	// The values of nullsMax here (used during lake data reads) and in
-	// zbuf.NewCompareFn (used during lake data writes) must agree.
-	cmp := expr.NewValueCompareFn(o == order.Asc)
-	if o == order.Asc {
-		return cmp
-	}
-	return func(a, b *zed.Value) int { return cmp(b, a) }
-}
-
 // Create a new Range from generic range of zed.Values according
 // to lower and upper.  The range is not sensitive to the absolute order
 // of lower and upper.
@@ -63,7 +49,7 @@ func NewGeneric(lower, upper zed.Value, cmp expr.CompareFn) *Generic {
 }
 
 func NewGenericFromOrder(first, last zed.Value, o order.Which) *Generic {
-	return NewGeneric(first, last, CompareFunc(o))
+	return NewGeneric(first, last, expr.NewValueCompareFn(o, o == order.Asc))
 }
 
 func (g *Generic) In(val *zed.Value) bool {

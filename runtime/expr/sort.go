@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
@@ -110,8 +111,8 @@ func NewCompareFn(nullsMax bool, exprs ...Evaluator) CompareFn {
 	return NewComparator(nullsMax, false, exprs...).WithMissingAsNull().Compare
 }
 
-func NewValueCompareFn(nullsMax bool) CompareFn {
-	return NewComparator(nullsMax, false, &This{}).Compare
+func NewValueCompareFn(o order.Which, nullsMax bool) CompareFn {
+	return NewComparator(nullsMax, o == order.Desc, &This{}).Compare
 }
 
 type Comparator struct {

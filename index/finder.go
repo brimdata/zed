@@ -206,7 +206,7 @@ func compareFn(zctx *zed.Context, kvs []KeyValue) keyCompareFn {
 		accessors[i] = expr.NewDottedExpr(zctx, kvs[i].Key)
 		values[i] = kvs[i].Value
 	}
-	fn := expr.NewValueCompareFn(false)
+	fn := expr.NewValueCompareFn(order.Asc, false)
 	return func(ectx expr.Context, this *zed.Value) int {
 		for i := range kvs {
 			val := accessors[i].Eval(ectx, this)

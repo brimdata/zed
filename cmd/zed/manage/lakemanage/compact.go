@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -34,7 +35,7 @@ func CompactionScan(ctx context.Context, it DataObjectIterator, pool *pools.Conf
 		return nil
 	}
 	var nextcold *time.Time
-	cmp := extent.CompareFunc(order.Asc)
+	cmp := expr.NewValueCompareFn(order.Asc, true)
 	run := NewRun(cmp)
 	for {
 		object, err := it.Next()
