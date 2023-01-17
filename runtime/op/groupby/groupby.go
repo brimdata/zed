@@ -80,14 +80,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 		// nullsMax=false for descending order is also expected for streaming
 		// groupby.
 		nullsMax := inputDir > 0
-
-		vs := expr.NewValueCompareFn(nullsMax)
-		if inputDir < 0 {
-			valueCompare = func(a, b *zed.Value) int { return vs(b, a) }
-		} else {
-			valueCompare = vs
-		}
-
+		valueCompare = expr.NewValueCompareFn(order.Which(inputDir < 0), nullsMax)
 		rs := expr.NewCompareFn(true, keyRefs[0])
 		if inputDir < 0 {
 			keyCompare = func(a, b *zed.Value) int { return rs(b, a) }

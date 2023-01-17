@@ -31,7 +31,7 @@ func partitionObjects(objects []*data.Object, o order.Which) []Partition {
 	if len(objects) == 0 {
 		return nil
 	}
-	cmp := extent.CompareFunc(o)
+	cmp := expr.NewValueCompareFn(o, o == order.Asc)
 	spans := sortedObjectSpans(objects, cmp)
 	var s stack
 	s.pushObjectSpan(spans[0], cmp)

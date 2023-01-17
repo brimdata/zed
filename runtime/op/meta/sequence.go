@@ -192,7 +192,7 @@ func objectRange(ctx context.Context, pool *lake.Pool, snap commits.View, filter
 			return seekindex.Range{}, err
 		}
 	}
-	cmp := expr.NewValueCompareFn(pool.Layout.Order == order.Asc)
+	cmp := expr.NewValueCompareFn(order.Asc, pool.Layout.Order == order.Asc)
 	span := extent.NewGeneric(o.First, o.Last, cmp)
 	if indexSpan != nil || cropped != nil && cropped.Eval(span.First(), span.Last()) {
 		// There's an index available or the object's span is cropped by

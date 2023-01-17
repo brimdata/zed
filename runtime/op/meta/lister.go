@@ -91,7 +91,7 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 }
 
 func filterObjects(objects []*data.Object, filter *expr.SpanFilter, o order.Which) []*data.Object {
-	cmp := expr.NewValueCompareFn(o == order.Asc)
+	cmp := expr.NewValueCompareFn(order.Asc, o == order.Asc)
 	out := objects[:0]
 	for _, obj := range objects {
 		span := extent.NewGeneric(obj.First, obj.Last, cmp)

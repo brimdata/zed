@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
@@ -48,7 +49,7 @@ func New(pctx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, r
 		left:        newPuller(left, ctx),
 		right:       zio.NewPeeker(newPuller(right, ctx)),
 		// XXX need to make sure nullsmax agrees with inbound merge
-		compare: expr.NewValueCompareFn(false),
+		compare: expr.NewValueCompareFn(order.Asc, false),
 		cutter:  cutter,
 		types:   make(map[int]map[int]*zed.TypeRecord),
 	}, nil

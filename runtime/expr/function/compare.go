@@ -2,6 +2,7 @@ package function
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
 )
 
@@ -13,8 +14,8 @@ type Compare struct {
 
 func NewCompare(zctx *zed.Context) *Compare {
 	return &Compare{
-		nullsMax: expr.NewValueCompareFn(true),
-		nullsMin: expr.NewValueCompareFn(false),
+		nullsMax: expr.NewValueCompareFn(order.Asc, true),
+		nullsMin: expr.NewValueCompareFn(order.Asc, false),
 		zctx:     zctx,
 	}
 }
