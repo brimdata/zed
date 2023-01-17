@@ -35,7 +35,7 @@ go mod edit -replace=github.com/org/repo=../repo
 
 Before any PRs are merged to main, all tests must pass.
 
-To run unit tests in your local repo, execute:
+Unit tests require Node.js.  To run them, execute:
 ```
 make test-unit
 ```
