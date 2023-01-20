@@ -1285,7 +1285,7 @@ When a value is missing for a specified field, it will appear as `error("missing
 
 For instance, if we'd made an typographical error in our
 prior example when attempting to reference the `dname` field,
-the misspelled column would appear as embedded missing errors, e.g.,
+the misspelled field would appear as embedded missing errors, e.g.,
 ```mdtest-command dir=testdata/edu
 zq -Z 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' testscores.zson
 ```
