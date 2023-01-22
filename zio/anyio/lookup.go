@@ -23,7 +23,7 @@ func lookupReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.ReadClos
 	case "arrows":
 		return arrowio.NewReader(zctx, r)
 	case "csv":
-		return zio.NopReadCloser(csvio.NewReader(zctx, r)), nil
+		return zio.NopReadCloser(csvio.NewReader(zctx, r, opts.CSV)), nil
 	case "line":
 		return zio.NopReadCloser(lineio.NewReader(r)), nil
 	case "json":

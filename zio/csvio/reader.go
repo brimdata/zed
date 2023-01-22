@@ -19,6 +19,9 @@ type Reader struct {
 	hdr       []string
 	vals      []interface{}
 }
+type ReaderOpts struct {
+	Delim     string
+}
 
 // XXX This is a placeholder for an option that will allow one to convert
 // all csv fields to strings and defer any type coercion presumably to
@@ -29,9 +32,12 @@ type Reader struct {
 //	StringsOnly bool
 //}
 
-func NewReader(zctx *zed.Context, r io.Reader) *Reader {
+func NewReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) *Reader {
 	preprocess := newPreprocess(r)
 	reader := csv.NewReader(preprocess)
+	if opts.Delim != "," {
+		reader.Comma = ';'
+	}
 	reader.ReuseRecord = true
 	reader.TrimLeadingSpace = true
 	return &Reader{
