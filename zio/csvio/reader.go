@@ -20,7 +20,7 @@ type Reader struct {
 	vals      []interface{}
 }
 type ReaderOpts struct {
-	Delim     string
+	Delim string
 }
 
 // XXX This is a placeholder for an option that will allow one to convert
