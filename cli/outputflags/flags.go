@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/pkg/terminal/color"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
@@ -31,6 +32,7 @@ type Flags struct {
 	zsonPretty    bool
 	zsonPersist   string
 	color         bool
+	unbuffered    bool
 }
 
 func (f *Flags) Options() anyio.WriterOpts {
@@ -58,6 +60,7 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 		"split output into one file per data type in this directory (but see -splitsize)")
 	fs.Var(&f.splitSize, "splitsize",
 		"if >0 and -split is set, split into files at least this big rather than by data type")
+	fs.BoolVar(&f.unbuffered, "unbuffered", false, "disable output buffering")
 	fs.StringVar(&f.outputFile, "o", "", "write data to output file")
 }
 
@@ -112,6 +115,9 @@ func (f *Flags) Init() error {
 		f.Format = "zson"
 		f.ZSON.Pretty = 0
 	}
+	if f.unbuffered {
+		zbuf.ScannerBatchSize = 1
+	}
 	return nil
 }
 
@@ -126,9 +132,9 @@ func (f *Flags) Open(ctx context.Context, engine storage.Engine) (zio.WriteClose
 			return nil, fmt.Errorf("-split option: %w", err)
 		}
 		if size := f.splitSize.Bytes; size > 0 {
-			return emitter.NewSizeSplitter(ctx, engine, dir, f.outputFile, f.WriterOpts, int64(size))
+			return emitter.NewSizeSplitter(ctx, engine, dir, f.outputFile, f.unbuffered, f.WriterOpts, int64(size))
 		}
-		d, err := emitter.NewSplit(ctx, engine, dir, f.outputFile, f.WriterOpts)
+		d, err := emitter.NewSplit(ctx, engine, dir, f.outputFile, f.unbuffered, f.WriterOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +143,7 @@ func (f *Flags) Open(ctx context.Context, engine storage.Engine) (zio.WriteClose
 	if f.outputFile == "" && f.color && terminal.IsTerminalFile(os.Stdout) {
 		color.Enabled = true
 	}
-	w, err := emitter.NewFileFromPath(ctx, engine, f.outputFile, f.WriterOpts)
+	w, err := emitter.NewFileFromPath(ctx, engine, f.outputFile, f.unbuffered, f.WriterOpts)
 	if err != nil {
 		return nil, err
 	}

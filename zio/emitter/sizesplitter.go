@@ -14,12 +14,13 @@ import (
 )
 
 type sizeSplitter struct {
-	ctx    context.Context
-	engine storage.Engine
-	dir    *storage.URI
-	prefix string
-	opts   anyio.WriterOpts
-	size   int64
+	ctx        context.Context
+	engine     storage.Engine
+	dir        *storage.URI
+	prefix     string
+	unbuffered bool
+	opts       anyio.WriterOpts
+	size       int64
 
 	cwc countingWriteCloser
 	ext string
@@ -32,7 +33,7 @@ type sizeSplitter struct {
 // creating a new file after the current one reaches size bytes.  Files may
 // exceed size substantially due to buffering in the underlying writer as
 // determined by opts.Format.
-func NewSizeSplitter(ctx context.Context, engine storage.Engine, dir *storage.URI, prefix string,
+func NewSizeSplitter(ctx context.Context, engine storage.Engine, dir *storage.URI, prefix string, unbuffered bool,
 	opts anyio.WriterOpts, size int64) (zio.WriteCloser, error) {
 	ext := zio.Extension(opts.Format)
 	if ext == "" {
@@ -42,13 +43,14 @@ func NewSizeSplitter(ctx context.Context, engine storage.Engine, dir *storage.UR
 		prefix = prefix + "-"
 	}
 	return &sizeSplitter{
-		ctx:    ctx,
-		engine: engine,
-		dir:    dir,
-		prefix: prefix,
-		opts:   opts,
-		size:   size,
-		ext:    ext,
+		ctx:        ctx,
+		engine:     engine,
+		dir:        dir,
+		prefix:     prefix,
+		unbuffered: unbuffered,
+		opts:       opts,
+		size:       size,
+		ext:        ext,
 	}, nil
 }
 
@@ -84,7 +86,10 @@ func (s *sizeSplitter) nextFile() error {
 	if err != nil {
 		return err
 	}
-	s.cwc = countingWriteCloser{bufwriter.New(wc), 0}
+	if s.unbuffered {
+		wc = bufwriter.New(wc)
+	}
+	s.cwc = countingWriteCloser{wc, 0}
 	s.zwc, err = anyio.NewWriter(&s.cwc, s.opts)
 	if err != nil {
 		wc.Close()

@@ -12,19 +12,20 @@ import (
 )
 
 type Split struct {
-	ctx     context.Context
-	dir     *storage.URI
-	prefix  string
-	ext     string
-	opts    anyio.WriterOpts
-	writers map[zed.Type]zio.WriteCloser
-	seen    map[string]struct{}
-	engine  storage.Engine
+	ctx        context.Context
+	dir        *storage.URI
+	prefix     string
+	unbuffered bool
+	ext        string
+	opts       anyio.WriterOpts
+	writers    map[zed.Type]zio.WriteCloser
+	seen       map[string]struct{}
+	engine     storage.Engine
 }
 
 var _ zio.Writer = (*Split)(nil)
 
-func NewSplit(ctx context.Context, engine storage.Engine, dir *storage.URI, prefix string, opts anyio.WriterOpts) (*Split, error) {
+func NewSplit(ctx context.Context, engine storage.Engine, dir *storage.URI, prefix string, unbuffered bool, opts anyio.WriterOpts) (*Split, error) {
 	e := zio.Extension(opts.Format)
 	if e == "" {
 		return nil, fmt.Errorf("unknown format: %s", opts.Format)
@@ -33,14 +34,15 @@ func NewSplit(ctx context.Context, engine storage.Engine, dir *storage.URI, pref
 		prefix = prefix + "-"
 	}
 	return &Split{
-		ctx:     ctx,
-		dir:     dir,
-		prefix:  prefix,
-		ext:     e,
-		opts:    opts,
-		writers: make(map[zed.Type]zio.WriteCloser),
-		seen:    make(map[string]struct{}),
-		engine:  engine,
+		ctx:        ctx,
+		dir:        dir,
+		prefix:     prefix,
+		unbuffered: unbuffered,
+		ext:        e,
+		opts:       opts,
+		writers:    make(map[zed.Type]zio.WriteCloser),
+		seen:       make(map[string]struct{}),
+		engine:     engine,
 	}, nil
 }
 
@@ -58,7 +60,7 @@ func (s *Split) lookupOutput(val *zed.Value) (zio.WriteCloser, error) {
 	if ok {
 		return w, nil
 	}
-	w, err := NewFileFromURI(s.ctx, s.engine, s.path(val), s.opts)
+	w, err := NewFileFromURI(s.ctx, s.engine, s.path(val), s.unbuffered, s.opts)
 	if err != nil {
 		return nil, err
 	}
