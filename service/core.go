@@ -43,11 +43,12 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Auth        AuthConfig
-	Root        *storage.URI
-	RootContent io.ReadSeeker
-	Version     string
-	Logger      *zap.Logger
+	Auth               AuthConfig
+	CORSAllowedOrigins []string
+	Root               *storage.URI
+	RootContent        io.ReadSeeker
+	Version            string
+	Logger             *zap.Logger
 }
 
 type Core struct {
@@ -105,7 +106,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 
 	routerAux := mux.NewRouter()
-	routerAux.Use(corsMiddleware())
+	routerAux.Use(corsMiddleware(conf.CORSAllowedOrigins))
 
 	routerAux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeContent(w, r, "", time.Time{}, conf.RootContent)
@@ -131,7 +132,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	routerAPI.Use(requestIDMiddleware())
 	routerAPI.Use(accessLogMiddleware(conf.Logger))
 	routerAPI.Use(panicCatchMiddleware(conf.Logger))
-	routerAPI.Use(corsMiddleware())
+	routerAPI.Use(corsMiddleware(conf.CORSAllowedOrigins))
 
 	c := &Core{
 		auth:          authenticator,
