@@ -8,7 +8,7 @@ sidebar_label: ZJSON
 ## 1. Introduction
 
 The [Zed data model](zed.md)
-is based on richly typed records with a deterministic column order,
+is based on richly typed records with a deterministic field order,
 as is implemented by the [ZSON](zson.md), [ZNG](zng.md), and [VNG](vng.md) formats.
 Given the ubiquity of JSON, it is desirable to also be able to serialize
 Zed data into the JSON format.   However, encoding Zed data values
@@ -70,7 +70,7 @@ to manipulate the rich, structured Zed types that are implemented on top of
 the basic JavaScript types.
 
 In other words,
-because JSON objects do not have a deterministic column order nor does JSON
+because JSON objects do not have a deterministic field order nor does JSON
 in general have typing beyond the basics (i.e., strings, floating point numbers,
 objects, arrays, and booleans), we decided to encode Zed data with
 its embedded type model all in a layer above regular JSON.
@@ -150,7 +150,7 @@ where each of the fields has the form
   "type": <type>,
 }
 ```
-and `<name>` is a string defining the column name and `<type>` is a
+and `<name>` is a string defining the field name and `<type>` is a
 recursively encoded type.
 
 #### 2.1.2 Array Type
@@ -259,7 +259,7 @@ as described recursively herein,
 is encoded as a string conforming to its ZSON representation, as described in the
 [corresponding section of the ZSON specification](zson.md#23-primitive-values).
 
-For example, a record with three columns --- a string, an array of integers,
+For example, a record with three fields --- a string, an array of integers,
 and an array of union of string, and float64 --- might have a value that looks like this:
 ```
 [ "hello, world", ["1","2","3","4"], ["1:foo", "0:10" ] ]

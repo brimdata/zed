@@ -188,21 +188,21 @@ A record typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 ---------------------------------------------------------
-|0x00|<ncolumns>|<name1><type-id-1><name2><type-id-2>...|
+|0x00|<nfields>|<name1><type-id-1><name2><type-id-2>...|
 ---------------------------------------------------------
 ```
-Record types consist of an ordered set of columns where each column consists of
-a name and its type.  Unlike JSON, the ordering of the columns is significant
+Record types consist of an ordered set of fields where each field consists of
+a name and its type.  Unlike JSON, the ordering of the fields is significant
 and must be preserved through any APIs that consume, process, and emit ZNG records.
 
-A record type is encoded as a count of fields, i.e., `<ncolumns>` from above,
+A record type is encoded as a count of fields, i.e., `<nfields>` from above,
 followed by the field definitions,
 where a field definition is a field name followed by a type ID, i.e.,
 `<name1>` followed by `<type-id-1>` etc. as indicated above.
 
 The field names in a record must be unique.
 
-The `<ncolumns>` value is encoded as a `uvarint`.
+The `<nfields>` value is encoded as a `uvarint`.
 
 The field name is encoded as a UTF-8 string defining a "ZNG identifier".
 The UTF-8 string
@@ -548,10 +548,10 @@ complex type it represents as described below.
 A record type value has the form:
 ```
 ---------------------------------------------------
-|30|<ncolumns>|<name1><typeval><name2><typeval>...|
+|30|<nfields>|<name1><typeval><name2><typeval>...|
 ---------------------------------------------------
 ```
-where `<ncolumns>` is the number of columns in the record encoded as a `uvarint`,
+where `<nfields>` is the number of fields in the record encoded as a `uvarint`,
 `<name1>` etc. are the field names encoded as in the
 record typedef, and each `<typeval>` is a recursive encoding of a type value.
 
