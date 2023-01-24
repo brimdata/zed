@@ -142,26 +142,26 @@ func (m *MarshalZNGContext) Marshal(v interface{}) (*zed.Value, error) {
 	return zed.NewValue(typ, it.Next()), nil
 }
 
-func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) (*zed.Value, error) {
-	if len(names) != len(fields) {
-		return nil, errors.New("fields and columns don't match")
+func (m *MarshalZNGContext) MarshalCustom(names []string, vals []interface{}) (*zed.Value, error) {
+	if len(names) != len(vals) {
+		return nil, errors.New("names and vals have different lengths")
 	}
 	m.Builder.Reset()
-	var cols []zed.Field
-	for k, field := range fields {
-		typ, err := m.encodeValue(reflect.ValueOf(field))
+	var fields []zed.Field
+	for k, v := range vals {
+		typ, err := m.encodeValue(reflect.ValueOf(v))
 		if err != nil {
 			return nil, err
 		}
-		cols = append(cols, zed.Field{Name: names[k], Type: typ})
+		fields = append(fields, zed.Field{Name: names[k], Type: typ})
 	}
 	// XXX issue #1836
 	// Since this can be the inner loop here and nowhere else do we call
 	// LookupTypeRecord on the inner loop, now may be the time to put an
-	// efficient cache ahead of formatting the columns into a string,
+	// efficient cache ahead of formatting the fields into a string,
 	// e.g., compute a has in place across the field names then do a
 	// closed-address exact match for the values in the slot.
-	recType, err := m.Context.LookupTypeRecord(cols)
+	recType, err := m.Context.LookupTypeRecord(fields)
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +427,7 @@ func (m *MarshalZNGContext) encodeNil(t reflect.Type) (zed.Type, error) {
 
 func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 	m.Builder.BeginContainer()
-	var columns []zed.Field
+	var fields []zed.Field
 	stype := sval.Type()
 	for i := 0; i < stype.NumField(); i++ {
 		sf := stype.Field(i)
@@ -457,10 +457,10 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zed.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Field{Name: name, Type: typ})
+		fields = append(fields, zed.Field{Name: name, Type: typ})
 	}
 	m.Builder.EndContainer()
-	return m.Context.LookupTypeRecord(columns)
+	return m.Context.LookupTypeRecord(fields)
 }
 
 func (m *MarshalZNGContext) encodeSliceBytes(sliceVal reflect.Value) (zed.Type, error) {
@@ -585,7 +585,7 @@ func (m *MarshalZNGContext) lookupType(t reflect.Type) (zed.Type, error) {
 }
 
 func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type, error) {
-	var columns []zed.Field
+	var fields []zed.Field
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 		name := fieldName(field)
@@ -593,9 +593,9 @@ func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zed.Type,
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Field{Name: name, Type: fieldType})
+		fields = append(fields, zed.Field{Name: name, Type: fieldType})
 	}
-	return m.Context.LookupTypeRecord(columns)
+	return m.Context.LookupTypeRecord(fields)
 }
 
 // lookupTypeNamed returns a named type for typ with a name derived from t.  It

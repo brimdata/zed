@@ -671,13 +671,13 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 
 func (f *Formatter) formatTypeRecord(typ *zed.TypeRecord) {
 	f.build("{")
-	for k, col := range typ.Fields {
+	for k, field := range typ.Fields {
 		if k > 0 {
 			f.build(",")
 		}
-		f.build(QuotedName(col.Name))
+		f.build(QuotedName(field.Name))
 		f.build(":")
-		f.formatType(col.Type)
+		f.formatType(field.Type)
 	}
 	f.build("}")
 }
@@ -771,13 +771,13 @@ func formatType(b *strings.Builder, typedefs map[string]*zed.TypeNamed, typ zed.
 		}
 	case *zed.TypeRecord:
 		b.WriteByte('{')
-		for k, col := range t.Fields {
+		for k, f := range t.Fields {
 			if k > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString(QuotedName(col.Name))
+			b.WriteString(QuotedName(f.Name))
 			b.WriteString(":")
-			formatType(b, typedefs, col.Type)
+			formatType(b, typedefs, f.Type)
 		}
 		b.WriteByte('}')
 	case *zed.TypeArray:
