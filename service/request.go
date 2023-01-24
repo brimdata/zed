@@ -83,7 +83,7 @@ func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool)
 }
 
 func (r *Request) CommitID(w *ResponseWriter) (ksuid.KSUID, bool) {
-	return r.TagFromPath("commit", w)
+	return r.TagFromPath(w, "commit")
 }
 
 func (r *Request) decodeCommitMessage(w *ResponseWriter) (api.CommitMessage, bool) {
@@ -109,7 +109,7 @@ func (r *Request) StringFromPath(w *ResponseWriter, arg string) (string, bool) {
 	return decoded, err == nil
 }
 
-func (r *Request) TagFromPath(arg string, w *ResponseWriter) (ksuid.KSUID, bool) {
+func (r *Request) TagFromPath(w *ResponseWriter, arg string) (ksuid.KSUID, bool) {
 	v := mux.Vars(r.Request)
 	s, ok := v[arg]
 	if !ok {
@@ -124,7 +124,7 @@ func (r *Request) TagFromPath(arg string, w *ResponseWriter) (ksuid.KSUID, bool)
 	return id, true
 }
 
-func (r *Request) JournalIDFromQuery(param string, w *ResponseWriter) (journal.ID, bool) {
+func (r *Request) JournalIDFromQuery(w *ResponseWriter, param string) (journal.ID, bool) {
 	s := r.URL.Query().Get(param)
 	if s == "" {
 		return journal.Nil, true
@@ -137,7 +137,7 @@ func (r *Request) JournalIDFromQuery(param string, w *ResponseWriter) (journal.I
 	return journal.ID(id), true
 }
 
-func (r *Request) BoolFromQuery(param string, w *ResponseWriter) (bool, bool) {
+func (r *Request) BoolFromQuery(w *ResponseWriter, param string) (bool, bool) {
 	s := r.URL.Query().Get(param)
 	if s == "" {
 		return false, true
