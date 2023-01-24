@@ -36,7 +36,7 @@ type ReaderOpts struct {
 func NewReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) *Reader {
 	preprocess := newPreprocess(r)
 	reader := csv.NewReader(preprocess)
-	if opts.Delim != ',' {
+	if opts.Delim != 0 {
 		reader.Comma = opts.Delim
 	}
 	reader.ReuseRecord = true

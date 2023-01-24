@@ -23,7 +23,7 @@ import (
 
 type ReaderOpts struct {
 	Format string
-        CSV    csvio.ReaderOpts
+	CSV    csvio.ReaderOpts
 	ZNG    zngio.ReaderOpts
 }
 
