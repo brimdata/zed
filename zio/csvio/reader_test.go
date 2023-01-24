@@ -10,7 +10,7 @@ import (
 
 func TestNewReaderUsesContextParameter(t *testing.T) {
 	zctx := zed.NewContext()
-	rec, err := NewReader(zctx, strings.NewReader("f\n1\n"), ReaderOpts{}).Read()
+	rec, err := NewReader(zctx, strings.NewReader("f\n1\n"), ReaderOpts{','}).Read()
 	require.NoError(t, err)
 	typ, err := zctx.LookupType(rec.Type.ID())
 	require.NoError(t, err)

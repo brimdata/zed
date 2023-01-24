@@ -1,6 +1,6 @@
 zed: '*'
 
-input-flags: -i csv -d ";"
+input-flags: -i csv -csv.delim ;
 
 input: |
   a;b;c

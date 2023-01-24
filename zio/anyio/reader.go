@@ -23,8 +23,8 @@ import (
 
 type ReaderOpts struct {
 	Format string
+        CSV    csvio.ReaderOpts
 	ZNG    zngio.ReaderOpts
-	CSV    csvio.ReaderOpts
 }
 
 func NewReader(zctx *zed.Context, r io.Reader) (zio.ReadCloser, error) {
