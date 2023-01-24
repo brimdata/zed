@@ -182,7 +182,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []Ke
 	defer reader.Close()
 	for {
 		// As long as we have an exact key-match, where unset key
-		// columns are "don't care", keep reading records and return
+		// fields are "don't care", keep reading records and return
 		// them via the channel.
 		rec, err := lookup(reader, compare, f.meta.Order, EQL)
 		if err != nil {
