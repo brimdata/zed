@@ -186,9 +186,9 @@ func (r *RecordBuilder) Encode() (zcode.Bytes, error) {
 
 // A RecordBuilder understands the shape of the [field.List] from which it was
 // created (i.e., which fields are inside nested records) but not the types.
-// Fields takes types for the individual fields and constructs [Field] slice
-// that reflects the fully typed structure.
-func (r *RecordBuilder) Fields(types []Type) []Field {
+// Type takes types for the individual fields and constructs a [TypeRecord]
+// reflecting the fully typed structure.
+func (r *RecordBuilder) Type(types []Type) *TypeRecord {
 	type rec struct {
 		name   string
 		fields []Field
@@ -217,5 +217,5 @@ func (r *RecordBuilder) Fields(types []Type) []Field {
 	if len(stack) != 1 {
 		panic("Mismatched container begin/end")
 	}
-	return stack[0].fields
+	return r.zctx.MustLookupTypeRecord(stack[0].fields)
 }
