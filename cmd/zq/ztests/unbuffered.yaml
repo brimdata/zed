@@ -6,7 +6,7 @@ script: |
   exec {fd}> fifo
   echo 1 > fifo
   # Wait for out.zson to have size greater than zero.
-  while [ ! -s out.zson -a $((i++)) < 50 ]; do sleep 0.1; done
+  while [ ! -s out.zson -a $((i++)) -lt 50 ]; do sleep 0.1; done
   # Get out.zson contents now, before zq exits.
   cat out.zson
 
