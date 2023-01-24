@@ -23,6 +23,7 @@ import (
 
 type ReaderOpts struct {
 	Format string
+	CSV    csvio.ReaderOpts
 	ZNG    zngio.ReaderOpts
 }
 
@@ -123,9 +124,9 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 		csvErr = errors.New("csv: line 1: no comma found")
 	} else {
 		track.Reset()
-		csvErr = match(csvio.NewReader(zed.NewContext(), track), "csv", 1)
+		csvErr = match(csvio.NewReader(zed.NewContext(), track, opts.CSV), "csv", 1)
 		if csvErr == nil {
-			return zio.NopReadCloser(csvio.NewReader(zctx, recorder)), nil
+			return zio.NopReadCloser(csvio.NewReader(zctx, recorder, opts.CSV)), nil
 		}
 	}
 	track.Reset()

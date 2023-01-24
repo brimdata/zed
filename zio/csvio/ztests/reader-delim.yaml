@@ -1,0 +1,12 @@
+zed: '*'
+
+input-flags: -i csv -csv.delim ;
+
+input: |
+  a;b;c
+  1;2;3
+  hello;world;4
+
+output: |
+  {a:1.,b:2.,c:3.}
+  {a:"hello",b:"world",c:4.}
