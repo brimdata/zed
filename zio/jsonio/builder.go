@@ -15,8 +15,7 @@ type builder struct {
 	items      []item // Stack of items.
 
 	// These exist only to reduce memory allocations.
-	bytes    []byte
-	columns  []zed.Field
+	fields   []zed.Field
 	itemptrs []*item
 	types    []zed.Type
 	val      zed.Value
@@ -124,12 +123,12 @@ func (b *builder) endRecord() {
 	}
 	itemptrs := b.itemptrs
 	for {
-		b.columns = b.columns[:0]
+		b.fields = b.fields[:0]
 		for _, item := range itemptrs {
-			b.columns = append(b.columns, zed.NewField(item.fieldName, item.typ))
+			b.fields = append(b.fields, zed.NewField(item.fieldName, item.typ))
 		}
 		var err error
-		container.typ, err = b.zctx.LookupTypeRecord(b.columns)
+		container.typ, err = b.zctx.LookupTypeRecord(b.fields)
 		if err == nil {
 			break
 		}

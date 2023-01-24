@@ -56,8 +56,8 @@ func (w *Writer) Write(rec *zed.Value) error {
 	if w.first == nil {
 		w.first = zed.TypeRecordOf(rec.Type)
 		var hdr []string
-		for _, col := range rec.Fields() {
-			hdr = append(hdr, col.Name)
+		for _, f := range rec.Fields() {
+			hdr = append(hdr, f.Name)
 		}
 		if err := w.encoder.Write(hdr); err != nil {
 			return err
@@ -66,11 +66,11 @@ func (w *Writer) Write(rec *zed.Value) error {
 		return ErrNotDataFrame
 	}
 	w.strings = w.strings[:0]
-	cols := rec.Fields()
-	for i, it := 0, rec.Bytes.Iter(); i < len(cols) && !it.Done(); i++ {
+	fields := rec.Fields()
+	for i, it := 0, rec.Bytes.Iter(); i < len(fields) && !it.Done(); i++ {
 		var s string
 		if zb := it.Next(); zb != nil {
-			typ := cols[i].Type
+			typ := fields[i].Type
 			id := typ.ID()
 			switch {
 			case id == zed.IDBytes && len(zb) == 0:

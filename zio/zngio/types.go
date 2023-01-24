@@ -85,24 +85,24 @@ func (e *Encoder) encode(ext zed.Type) (zed.Type, error) {
 }
 
 func (e *Encoder) encodeTypeRecord(ext *zed.TypeRecord) (zed.Type, error) {
-	var columns []zed.Field
-	for _, col := range ext.Fields {
-		child, err := e.Encode(col.Type)
+	var fields []zed.Field
+	for _, f := range ext.Fields {
+		child, err := e.Encode(f.Type)
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.NewField(col.Name, child))
+		fields = append(fields, zed.NewField(f.Name, child))
 	}
-	typ, err := e.zctx.LookupTypeRecord(columns)
+	typ, err := e.zctx.LookupTypeRecord(fields)
 	if err != nil {
 		return nil, err
 	}
 	e.bytes = append(e.bytes, TypeDefRecord)
-	e.bytes = binary.AppendUvarint(e.bytes, uint64(len(columns)))
-	for _, col := range columns {
-		e.bytes = binary.AppendUvarint(e.bytes, uint64(len(col.Name)))
-		e.bytes = append(e.bytes, col.Name...)
-		e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(col.Type)))
+	e.bytes = binary.AppendUvarint(e.bytes, uint64(len(fields)))
+	for _, f := range fields {
+		e.bytes = binary.AppendUvarint(e.bytes, uint64(len(f.Name)))
+		e.bytes = append(e.bytes, f.Name...)
+		e.bytes = binary.AppendUvarint(e.bytes, uint64(zed.TypeID(f.Type)))
 	}
 	return typ, nil
 }
@@ -266,19 +266,19 @@ func (d *Decoder) decode(b *buffer) error {
 }
 
 func (d *Decoder) readTypeRecord(b *buffer) error {
-	ncol, err := readUvarintAsInt(b)
+	nfields, err := readUvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
-	var columns []zed.Field
-	for k := 0; k < int(ncol); k++ {
-		col, err := d.readColumn(b)
+	var fields []zed.Field
+	for k := 0; k < int(nfields); k++ {
+		f, err := d.readField(b)
 		if err != nil {
 			return err
 		}
-		columns = append(columns, col)
+		fields = append(fields, f)
 	}
-	typ, err := d.local.zctx.LookupTypeRecord(columns)
+	typ, err := d.local.zctx.LookupTypeRecord(fields)
 	if err != nil {
 		return err
 	}
@@ -286,7 +286,7 @@ func (d *Decoder) readTypeRecord(b *buffer) error {
 	return err
 }
 
-func (d *Decoder) readColumn(b *buffer) (zed.Field, error) {
+func (d *Decoder) readField(b *buffer) (zed.Field, error) {
 	name, err := d.readCountedString(b)
 	if err != nil {
 		return zed.Field{}, err
@@ -358,7 +358,7 @@ func (d *Decoder) readTypeUnion(b *buffer) error {
 		return errBadFormat
 	}
 	if ntyp == 0 {
-		return errors.New("type union: zero columns not allowed")
+		return errors.New("type union: zero types not allowed")
 	}
 	var types []zed.Type
 	for k := 0; k < int(ntyp); k++ {

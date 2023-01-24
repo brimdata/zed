@@ -44,16 +44,16 @@ func (w *Writer) Write(r *zed.Value) error {
 	w.buf.Reset()
 	var needSeparator bool
 	it := r.Bytes.Iter()
-	for _, col := range zed.TypeRecordOf(r.Type).Fields {
+	for _, f := range zed.TypeRecordOf(r.Type).Fields {
 		bytes := it.Next()
-		if col.Name == "_path" {
+		if f.Name == "_path" {
 			continue
 		}
 		if needSeparator {
 			w.buf.WriteByte('\t')
 		}
 		needSeparator = true
-		w.buf.WriteString(FormatValue(zed.NewValue(col.Type, bytes)))
+		w.buf.WriteString(FormatValue(zed.NewValue(f.Type, bytes)))
 	}
 	w.buf.WriteByte('\n')
 	_, err = w.writer.Write(w.buf.Bytes())
@@ -88,19 +88,19 @@ func (w *Writer) writeHeader(r *zed.Value, path string) error {
 	}
 	if d != w.typ {
 		s += "#fields"
-		for _, col := range zed.TypeRecordOf(d).Fields {
-			if col.Name == "_path" {
+		for _, f := range zed.TypeRecordOf(d).Fields {
+			if f.Name == "_path" {
 				continue
 			}
-			s += fmt.Sprintf("\t%s", col.Name)
+			s += fmt.Sprintf("\t%s", f.Name)
 		}
 		s += "\n"
 		s += "#types"
-		for _, col := range zed.TypeRecordOf(d).Fields {
-			if col.Name == "_path" {
+		for _, f := range zed.TypeRecordOf(d).Fields {
+			if f.Name == "_path" {
 				continue
 			}
-			t, err := zngTypeToZeek(col.Type)
+			t, err := zngTypeToZeek(f.Type)
 			if err != nil {
 				return err
 			}

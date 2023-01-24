@@ -251,8 +251,8 @@ func newRecordColumnDefinition(name string, typ *zed.TypeRecord) (*parquetschema
 		return nil, ErrEmptyRecordType
 	}
 	var children []*parquetschema.ColumnDefinition
-	for _, c := range typ.Fields {
-		c, err := newColumnDefinition(c.Name, c.Type)
+	for _, f := range typ.Fields {
+		c, err := newColumnDefinition(f.Name, f.Type)
 		if err != nil {
 			return nil, err
 		}

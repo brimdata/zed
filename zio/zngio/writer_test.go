@@ -23,19 +23,19 @@ func TestWriter(t *testing.T) {
 	expectedHex := `
 # types block, uncompressed, len = 1*16+0 = 16
 00 01
-# typedef record with 3 columns
+# typedef record with 3 fields
 00 03
-# first column name is _path (len 5)
+# first field name is _path (len 5)
 05 5f 70 61 74 68
-# first column type is string (25)
+# first field type is string (25)
 19
-# second column name is ts (len 2)
+# second field name is ts (len 2)
 02 74 73
-# second column type is time (13)
+# second field type is time (13)
 0d
-# third column name is d (len 1)
+# third field name is d (len 1)
 01 64
-# third column type is float64 (16)
+# third field type is float64 (16)
 10
 # values block, uncompressed, len = 1*16+3 = 19 bytes
 13 01
@@ -43,16 +43,16 @@ func TestWriter(t *testing.T) {
 1e
 # tag len of this record is 16+2-1=17 bytes
 12
-# first column is a primitive value, 2 total bytes
+# first field is a primitive value, 2 total bytes
 02
-# value of the first column is the string "a"
+# value of the first field is the string "a"
 61
-# second column is a 6-byte value
+# second field is a 6-byte value
 06
 # time value is encoded in nanoseconds shifted one bit left
 # 2000000000 == 0x04a817c800
 00 c8 17 a8 04
-# third column is a 9-byte value
+# third field is a 9-byte value
 09
 # 8 bytes of float64 data representing 1.0
 00 00 00 00 00 00 f0 3f
@@ -61,11 +61,11 @@ func TestWriter(t *testing.T) {
 1e
 # tag len = 16+3-1 = 19 bytes
 14
-# first column: primitive value of 4 total byte, values xyz
+# first field: primitive value of 4 total byte, values xyz
 04 78 79 7a
-# second column: primitive value of 20 (converted to nanoseconds, encoded <<1)
+# second field: primitive value of 20 (converted to nanoseconds, encoded <<1)
 06 00 90 2f 50 09
-# third column, primitive value of 9 total bytes, float64 1.5
+# third field, primitive value of 9 total bytes, float64 1.5
 09 00 00 00 00 00 00 f8 3f
 # end of stream
 ff
