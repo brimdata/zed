@@ -24,6 +24,7 @@ import (
 	"github.com/brimdata/zed/service/srverr"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/segmentio/ksuid"
 )
@@ -347,6 +348,14 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
+	var csvDelim rune
+	if s := r.URL.Query().Get("csv.delim"); s != "" {
+		if len(s) != 1 {
+			w.Error(srverr.ErrInvalid(`invalid query param "csv.delim": must be exactly one character`))
+			return
+		}
+		csvDelim = rune(s[0])
+	}
 	message, ok := r.decodeCommitMessage(w)
 	if !ok {
 		return
@@ -390,6 +399,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	}
 	opts := anyio.ReaderOpts{
 		Format: format,
+		CSV:    csvio.ReaderOpts{Delim: csvDelim},
 		// Force validation of ZNG when loading into the lake.
 		ZNG: zngio.ReaderOpts{Validate: true},
 	}
