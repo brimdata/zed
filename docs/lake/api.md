@@ -145,7 +145,6 @@ POST /pool/{pool}/branch/{branch}
 | Content-Type | string | header | MIME type of the posted content. If undefined, the service will attempt to introspect the data and determine type automatically. |
 | csv.delim | string | query | Exactly one character specifing the field delimiter for CSV data. Defaults to ",". |
 
-
 **Example Request**
 
 ```
