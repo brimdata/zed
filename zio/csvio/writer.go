@@ -70,15 +70,14 @@ func (w *Writer) Write(rec *zed.Value) error {
 	for i, it := 0, rec.Bytes.Iter(); i < len(cols) && !it.Done(); i++ {
 		var s string
 		if zb := it.Next(); zb != nil {
-			typ := cols[i].Type
-			id := typ.ID()
-			switch {
-			case id == zed.IDBytes && len(zb) == 0:
-				// We want "" instead of "0x" from typ.Format.
+			val := zed.NewValue(cols[i].Type, zb).Under()
+			switch id := val.Type.ID(); {
+			case id == zed.IDBytes && len(val.Bytes) == 0:
+				// We want "" instead of "0x" for a zero-length value.
 			case id == zed.IDString:
-				s = string(zb)
+				s = string(val.Bytes)
 			default:
-				s = formatValue(typ, zb)
+				s = formatValue(val.Type, val.Bytes)
 				if zed.IsFloat(id) && strings.HasSuffix(s, ".") {
 					s = strings.TrimSuffix(s, ".")
 				}
