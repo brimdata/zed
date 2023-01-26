@@ -91,7 +91,7 @@ do
         case $OUTPUT in
           ndjson ) zq_flags="$zq_flags -f json -I ../zeek/shaper.zed" zed="| $zed";;
           zeek ) zq_flags="$zq_flags -f zeek -I ../zeek/shaper.zed" zed="| $zed";;
-          zng-uncompressed ) zq_flags="$zq_flags -f zng -zngcompress=false" ;;
+          zng-uncompressed ) zq_flags="$zq_flags -f zng -zng.compress=false" ;;
           * ) zq_flags="$zq_flags -f $OUTPUT" ;;
         esac
         ALL_TIMES=$(time -p (zq $zq_flags "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
