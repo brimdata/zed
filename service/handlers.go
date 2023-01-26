@@ -34,7 +34,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	ctrl, ok := r.BoolFromQuery("ctrl", w)
+	ctrl, ok := r.BoolFromQuery(w, "ctrl")
 	if !ok {
 		return
 	}
