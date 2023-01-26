@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
+	"golang.org/x/sync/errgroup"
 )
 
 type Proc struct {
@@ -109,18 +110,16 @@ func (p *Proc) block(parent *puller) {
 
 func (p *Proc) propagateDone() error {
 	var mu sync.Mutex
-	var wg sync.WaitGroup
+	var group errgroup.Group
 	for _, parent := range p.parents {
 		if parent.blocked {
 			continue
 		}
 		parent := parent
-		wg.Add(1)
 		// We use a goroutine here because sending to parents[i].doneCh
 		// can block until we've sent to parents[i+1].doneCh, as with
 		// "fork (=> count() => pass) | head".
-		go func() {
-			defer wg.Done()
+		group.Go(func() error {
 		again:
 			select {
 			case <-p.queue:
@@ -134,11 +133,15 @@ func (p *Proc) propagateDone() error {
 				mu.Lock()
 				p.block(parent)
 				mu.Unlock()
+				return nil
 			case <-p.ctx.Done():
+				return p.ctx.Err()
 			}
-		}()
+		})
 	}
-	wg.Wait()
+	if err := group.Wait(); err != nil {
+		return err
+	}
 	// Make sure all the dones that canceled pending queue entries
 	// are clear.  Otherwise, this will block the queue on the next
 	// platoon.
