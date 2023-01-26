@@ -1,0 +1,29 @@
+script: |
+  source service.sh
+  zed create -q test
+  curl -H Content-Type:text/csv --data-binary @in.csv \
+    --fail $ZED_LAKE/pool/test/branch/main | zq -z commit:=0 -
+  curl -H Content-Type:text/csv --data-binary @in-dot.csv \
+    --fail $ZED_LAKE/pool/test/branch/main?csv.delim=. | zq -z commit:=0 -
+  echo //
+  zed query -z 'from test'
+
+inputs:
+  - name: in.csv
+    data: |
+      a,b
+      1,2
+  - name: in-dot.csv
+    data: |
+      a.b
+      3.4
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {commit:0,warnings:[]([string])}
+      {commit:0,warnings:[]([string])}
+      //
+      {a:1.,b:2.}
+      {a:3.,b:4.}

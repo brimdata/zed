@@ -143,6 +143,7 @@ POST /pool/{pool}/branch/{branch}
 | branch | string | path | **Required.** Name of branch to which data will be loaded. |
 |   | various | body | **Required.** Contents of the posted data. |
 | Content-Type | string | header | MIME type of the posted content. If undefined, the service will attempt to introspect the data and determine type automatically. |
+| csv.delim | string | query | Exactly one character specifing the field delimiter for CSV data. Defaults to ",". |
 
 **Example Request**
 
