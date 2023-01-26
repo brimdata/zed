@@ -30,9 +30,7 @@ func requestIDMiddleware() mux.MiddlewareFunc {
 	}
 }
 
-var allowedOrigins = []string{"*.observableusercontent.com", "localhost"}
-
-func corsMiddleware() mux.MiddlewareFunc {
+func corsMiddleware(allowedOrigins []string) mux.MiddlewareFunc {
 	return cors.New(cors.Options{
 		AllowedOrigins: allowedOrigins,
 		AllowedMethods: []string{

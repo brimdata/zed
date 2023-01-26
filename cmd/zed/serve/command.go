@@ -53,6 +53,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.conf.Version = cli.Version
 	c.logflags.SetFlags(f)
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
+	f.Func("cors.origin", "CORS allowed origin (may be repeated)", func(s string) error {
+		c.conf.CORSAllowedOrigins = append(c.conf.CORSAllowedOrigins, s)
+		return nil
+	})
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.StringVar(&c.rootContentFile, "rootcontentfile", "", "file to serve for GET /")
