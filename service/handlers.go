@@ -124,17 +124,12 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w, c.root)
-	if !ok {
-		return
-	}
 	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
 	}
-	pool, err := c.root.OpenPool(r.Context(), id)
-	if err != nil {
-		w.Error(err)
+	pool, ok := r.openPool(w, c.root)
+	if !ok {
 		return
 	}
 	if branchName != "" {
@@ -150,13 +145,8 @@ func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w, c.root)
+	pool, ok := r.openPool(w, c.root)
 	if !ok {
-		return
-	}
-	pool, err := c.root.OpenPool(r.Context(), id)
-	if err != nil {
-		w.Error(err)
 		return
 	}
 	//XXX app uses this for key range... should handle this differently
@@ -335,10 +325,6 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w, c.root)
-	if !ok {
-		return
-	}
 	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
@@ -351,9 +337,8 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	pool, err := c.root.OpenPool(r.Context(), poolID)
-	if err != nil {
-		w.Error(err)
+	pool, ok := r.openPool(w, c.root)
+	if !ok {
 		return
 	}
 	branch, err := pool.OpenBranchByName(r.Context(), branchName)
@@ -442,10 +427,6 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	poolID, ok := r.PoolID(w, c.root)
-	if !ok {
-		return
-	}
 	branch, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
@@ -454,9 +435,8 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	pool, err := c.root.OpenPool(r.Context(), poolID)
-	if err != nil {
-		w.Error(err)
+	pool, ok := r.openPool(w, c.root)
+	if !ok {
 		return
 	}
 	commit, err := exec.Compact(r.Context(), c.root, pool, branch, req.ObjectIDs, message.Author, message.Body, message.Meta)
@@ -467,16 +447,12 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   poolID,
+		PoolID:   pool.ID,
 		Branch:   branch,
 	})
 }
 
 func handleDelete(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w, c.root)
-	if !ok {
-		return
-	}
 	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
@@ -489,9 +465,8 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &payload) {
 		return
 	}
-	pool, err := c.root.OpenPool(r.Context(), poolID)
-	if err != nil {
-		w.Error(err)
+	pool, ok := r.openPool(w, c.root)
+	if !ok {
 		return
 	}
 	branch, err := pool.OpenBranchByName(r.Context(), branchName)
@@ -534,7 +509,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	w.Marshal(api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   poolID,
+		PoolID:   pool.ID,
 		Branch:   branchName,
 	})
 }

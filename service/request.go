@@ -62,6 +62,19 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 	return nil, nil, false
 }
 
+func (r *Request) openPool(w *ResponseWriter, root *lake.Root) (*lake.Pool, bool) {
+	id, ok := r.PoolID(w, root)
+	if !ok {
+		return nil, false
+	}
+	pool, err := root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return nil, false
+	}
+	return pool, true
+}
+
 func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool) {
 	s, ok := r.StringFromPath(w, "pool")
 	if !ok {
