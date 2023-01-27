@@ -234,15 +234,6 @@ func (t *TypeRecord) ID() int {
 	return t.id
 }
 
-func (t *TypeRecord) Marshal(zv zcode.Bytes) interface{} {
-	m := make(map[string]*Value)
-	it := zv.Iter()
-	for _, f := range t.Fields {
-		m[f.Name] = &Value{f.Type, it.Next()}
-	}
-	return m
-}
-
 func (t *TypeRecord) ColumnOfField(field string) (int, bool) {
 	v, ok := t.LUT[field]
 	return v, ok

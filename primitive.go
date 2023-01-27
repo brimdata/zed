@@ -142,10 +142,6 @@ func (t *TypeOfFloat16) Kind() Kind {
 	return PrimitiveKind
 }
 
-func (t *TypeOfFloat16) Marshal(zb zcode.Bytes) interface{} {
-	return DecodeFloat16(zb)
-}
-
 type TypeOfFloat32 struct{}
 
 func AppendFloat32(zb zcode.Bytes, f float32) zcode.Bytes {
@@ -171,10 +167,6 @@ func (t *TypeOfFloat32) Kind() Kind {
 	return PrimitiveKind
 }
 
-func (t *TypeOfFloat32) Marshal(zb zcode.Bytes) interface{} {
-	return DecodeFloat32(zb)
-}
-
 type TypeOfFloat64 struct{}
 
 func AppendFloat64(zb zcode.Bytes, d float64) zcode.Bytes {
@@ -198,10 +190,6 @@ func (t *TypeOfFloat64) ID() int {
 
 func (t *TypeOfFloat64) Kind() Kind {
 	return PrimitiveKind
-}
-
-func (t *TypeOfFloat64) Marshal(zv zcode.Bytes) interface{} {
-	return DecodeFloat64(zv)
 }
 
 func EncodeInt(i int64) zcode.Bytes {
