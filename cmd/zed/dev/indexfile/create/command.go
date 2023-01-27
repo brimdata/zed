@@ -61,8 +61,8 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
 	c.opts.ZNGWriterOpts = &zngio.WriterOpts{}
-	f.BoolVar(&c.opts.ZNGWriterOpts.Compress, "zngcompress", true, "compress ZNG frames")
-	f.IntVar(&c.opts.ZNGWriterOpts.FrameThresh, "zngframethresh", zngio.DefaultFrameThresh,
+	f.BoolVar(&c.opts.ZNGWriterOpts.Compress, "zng.compress", true, "compress ZNG frames")
+	f.IntVar(&c.opts.ZNGWriterOpts.FrameThresh, "zng.framethresh", zngio.DefaultFrameThresh,
 		"minimum ZNG frame size in uncompressed bytes")
 	c.inputFlags.SetFlags(f, true)
 	return c, nil

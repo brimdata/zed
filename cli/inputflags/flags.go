@@ -37,12 +37,12 @@ func (f *Flags) SetFlags(fs *flag.FlagSet, validate bool) {
 		return nil
 
 	})
-	fs.BoolVar(&f.ZNG.Validate, "validate", validate, "validate the input format when reading ZNG streams")
-	fs.IntVar(&f.ZNG.Threads, "threads", 0, "number of threads used for scanning ZNG input")
+	fs.BoolVar(&f.ZNG.Validate, "zng.validate", validate, "validate format when reading ZNG")
+	fs.IntVar(&f.ZNG.Threads, "zng.threads", 0, "number of ZNG read threads (0=GOMAXPROCS)")
 	f.ReadMax = auto.NewBytes(zngio.MaxSize)
-	fs.Var(&f.ReadMax, "readmax", "maximum memory used read buffers in MiB, MB, etc")
+	fs.Var(&f.ReadMax, "zng.readmax", "maximum ZNG read buffer size in MiB, MB, etc.")
 	f.ReadSize = auto.NewBytes(zngio.ReadSize)
-	fs.Var(&f.ReadSize, "readsize", "target memory used read buffers in MiB, MB, etc")
+	fs.Var(&f.ReadSize, "zng.readsize", "target ZNG read buffer size in MiB, MB, etc.")
 }
 
 // Init is called after flags have been parsed.
