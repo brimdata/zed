@@ -43,8 +43,8 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	// zio stuff
 	fs.BoolVar(&f.color, "color", true, "enable/disable color formatting for -Z and lake text output")
 	f.ZNG = &zngio.WriterOpts{}
-	fs.BoolVar(&f.ZNG.Compress, "zngcompress", true, "compress ZNG frames")
-	fs.IntVar(&f.ZNG.FrameThresh, "zngframethresh", zngio.DefaultFrameThresh,
+	fs.BoolVar(&f.ZNG.Compress, "zng.compress", true, "compress ZNG frames")
+	fs.IntVar(&f.ZNG.FrameThresh, "zng.framethresh", zngio.DefaultFrameThresh,
 		"minimum ZNG frame size in uncompressed bytes")
 	fs.IntVar(&f.ZSON.Pretty, "pretty", 4,
 		"tab size to pretty print ZSON output (0 for newline-delimited ZSON")
