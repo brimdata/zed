@@ -75,8 +75,8 @@ func (b *builder) appendValue(typ zed.Type, v interface{}) {
 			}
 		case *zed.TypeRecord:
 			b.BeginContainer()
-			for _, c := range typ.Fields {
-				b.appendValue(c.Type, v[c.Name])
+			for _, f := range typ.Fields {
+				b.appendValue(f.Type, v[f.Name])
 			}
 			b.EndContainer()
 		default:

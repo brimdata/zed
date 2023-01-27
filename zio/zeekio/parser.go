@@ -16,7 +16,7 @@ type header struct {
 	Path         string
 	open         string
 	close        string
-	columns      []zed.Field
+	fields       []zed.Field
 }
 
 type Parser struct {
@@ -46,14 +46,14 @@ func badfield(field string) error {
 	return fmt.Errorf("encountered bad header field %s parsing zeek log", field)
 }
 
-func (p *Parser) parseFields(fields []string) error {
-	if len(p.columns) != len(fields) {
-		p.columns = make([]zed.Field, len(fields))
+func (p *Parser) parseFields(fieldNames []string) error {
+	if len(p.fields) != len(fieldNames) {
+		p.fields = make([]zed.Field, len(fieldNames))
 		p.needtypes = true
 	}
-	for k, field := range fields {
+	for k, name := range fieldNames {
 		//XXX check that string conforms to a field name syntax
-		p.columns[k].Name = field
+		p.fields[k].Name = name
 	}
 	p.needfields = false
 	p.descriptor = nil
@@ -61,8 +61,8 @@ func (p *Parser) parseFields(fields []string) error {
 }
 
 func (p *Parser) parseTypes(types []string) error {
-	if len(p.columns) != len(types) {
-		p.columns = make([]zed.Field, len(types))
+	if len(p.fields) != len(types) {
+		p.fields = make([]zed.Field, len(types))
 		p.needfields = true
 	}
 	for k, name := range types {
@@ -73,7 +73,7 @@ func (p *Parser) parseTypes(types []string) error {
 		if !isValidInputType(typ) {
 			return ErrIncompatibleZeekType
 		}
-		p.columns[k].Type = typ
+		p.fields[k].Type = typ
 	}
 	p.needtypes = false
 	p.descriptor = nil
@@ -215,92 +215,89 @@ func (p *Parser) ParseDirective(line []byte) error {
 	return nil
 }
 
-// Unflatten() turns a set of columns from legacy zeek logs into a
-// zng-compatible format by creating nested records for any dotted
-// field names. If addpath is true, a _path column is added if not
-// already present. The columns are returned as a slice along with a
-// bool indicating if a _path column was added.
-// Note that according to the zng spec, all the fields for a nested
+// Unflatten turns a set of fields from legacy Zeek logs into a
+// Zed-compatible format by creating nested records for any dotted
+// field names. If addpath is true, a _path field is added if not
+// already present. The fields are returned as a slice along with a
+// bool indicating if a _path field was added.
+// Note that according to the Zed spec, all the fields for a nested
 // record must be adjacent which simplifies the logic here.
-func Unflatten(zctx *zed.Context, columns []zed.Field, addPath bool) ([]zed.Field, bool, error) {
+func Unflatten(zctx *zed.Context, fields []zed.Field, addPath bool) ([]zed.Field, bool, error) {
 	hasPath := false
-	for _, col := range columns {
+	for _, f := range fields {
 		// XXX could validate field names here...
-		if col.Name == "_path" {
+		if f.Name == "_path" {
 			hasPath = true
 		}
 	}
-	out, err := unflattenRecord(zctx, columns)
+	out, err := unflattenRecord(zctx, fields)
 	if err != nil {
 		return nil, false, err
 	}
 
 	var needpath bool
 	if addPath && !hasPath {
-		pathcol := zed.NewField("_path", zed.TypeString)
-		out = append([]zed.Field{pathcol}, out...)
+		out = append([]zed.Field{zed.NewField("_path", zed.TypeString)}, out...)
 		needpath = true
 	}
 	return out, needpath, nil
 }
 
-func unflattenRecord(zctx *zed.Context, cols []zed.Field) ([]zed.Field, error) {
-	// extract a []Column consisting of all the leading columns
+func unflattenRecord(zctx *zed.Context, fields []zed.Field) ([]zed.Field, error) {
+	// Extract a []zed.Field consisting of all the leading fields
 	// from the input that belong to the same record, with the
 	// common prefix removed from their name.
-	// returns the prefix and the extracted same-record columns.
-	recCols := func(cols []zed.Field) (string, []zed.Field) {
+	// Returns the prefix and the extracted same-record fields.
+	recFields := func(fields []zed.Field) (string, []zed.Field) {
 		var ret []zed.Field
 		var prefix string
-		if dot := strings.IndexByte(cols[0].Name, '.'); dot != -1 {
-			prefix = cols[0].Name[:dot]
+		if dot := strings.IndexByte(fields[0].Name, '.'); dot != -1 {
+			prefix = fields[0].Name[:dot]
 		}
-		for i := range cols {
-			if !strings.HasPrefix(cols[i].Name, prefix+".") {
+		for i := range fields {
+			if !strings.HasPrefix(fields[i].Name, prefix+".") {
 				break
 			}
-			trimmed := strings.TrimPrefix(cols[i].Name, prefix+".")
-			ret = append(ret, zed.NewField(trimmed, cols[i].Type))
+			trimmed := strings.TrimPrefix(fields[i].Name, prefix+".")
+			ret = append(ret, zed.NewField(trimmed, fields[i].Type))
 		}
 		return prefix, ret
 	}
 	var out []zed.Field
 	i := 0
-	for i < len(cols) {
-		col := cols[i]
-		if strings.IndexByte(col.Name, '.') < 0 {
+	for i < len(fields) {
+		f := fields[i]
+		if strings.IndexByte(f.Name, '.') < 0 {
 			// Just a top-level field.
-			out = append(out, col)
+			out = append(out, f)
 			i++
 			continue
 		}
-		prefix, nestedCols := recCols(cols[i:])
-		recCols, err := unflattenRecord(zctx, nestedCols)
+		prefix, nestedFields := recFields(fields[i:])
+		recFields, err := unflattenRecord(zctx, nestedFields)
 		if err != nil {
 			return nil, err
 		}
-		recType, err := zctx.LookupTypeRecord(recCols)
+		recType, err := zctx.LookupTypeRecord(recFields)
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, zed.NewField(prefix, recType))
-		i += len(nestedCols)
+		i += len(nestedFields)
 	}
 	return out, nil
 }
 
 func (p *Parser) setDescriptor() error {
-	// add descriptor and _path, form the columns, and lookup the td
-	// in the space's descriptor table.
-	if len(p.columns) == 0 || p.needfields || p.needtypes {
+	if len(p.fields) == 0 || p.needfields || p.needtypes {
 		return ErrBadRecordDef
 	}
-	cols, sourceFields := coalesceRecordColumns(p.columns)
-	cols, addpath, err := Unflatten(p.zctx, cols, p.Path != "")
+	fields, sourceFields := coalesceRecordFields(p.fields)
+	fields, addpath, err := Unflatten(p.zctx, fields, p.Path != "")
 	if err != nil {
 		return err
 	}
-	p.descriptor, err = p.zctx.LookupTypeRecord(cols)
+	p.descriptor, err = p.zctx.LookupTypeRecord(fields)
 	if err != nil {
 		return err
 	}
@@ -309,27 +306,27 @@ func (p *Parser) setDescriptor() error {
 	return nil
 }
 
-// coalesceRecordColumns returns a permutation of cols in which the columns of
+// coalesceRecordFields returns a permutation of fields in which the fields of
 // each nested record have been made adjacent along with a slice containing the
-// index of the source field for each column in that permutation.
-func coalesceRecordColumns(cols []zed.Field) ([]zed.Field, []int) {
+// index of the source field for each field in that permutation.
+func coalesceRecordFields(fields []zed.Field) ([]zed.Field, []int) {
 	prefixes := map[string]bool{"": true}
-	var outcols []zed.Field
+	var outFields []zed.Field
 	var sourceFields []int
-	for i, c := range cols {
-		outcols = append(outcols, c)
+	for i, f := range fields {
+		outFields = append(outFields, f)
 		sourceFields = append(sourceFields, i)
-		prefix := getPrefix(c.Name)
+		prefix := getPrefix(f.Name)
 		for !prefixes[prefix] {
 			prefixes[prefix] = true
 			prefix = getPrefix(prefix)
 		}
 		if prefix != "" {
 			for j := i; j > 0; j-- {
-				if strings.HasPrefix(outcols[j-1].Name, prefix) {
+				if strings.HasPrefix(outFields[j-1].Name, prefix) {
 					// Insert c at j.
-					copy(outcols[j+1:], outcols[j:])
-					outcols[j] = c
+					copy(outFields[j+1:], outFields[j:])
+					outFields[j] = f
 					copy(sourceFields[j+1:], sourceFields[j:])
 					sourceFields[j] = i
 					break
@@ -337,7 +334,7 @@ func coalesceRecordColumns(cols []zed.Field) ([]zed.Field, []int) {
 			}
 		}
 	}
-	return outcols, sourceFields
+	return outFields, sourceFields
 }
 
 // getPrefix returns the prefix of dotpath up to and including its final period.

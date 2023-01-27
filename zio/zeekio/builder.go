@@ -24,12 +24,12 @@ type builder struct {
 func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Value, error) {
 	b.Truncate()
 	b.Grow(len(data))
-	columns := typ.Fields
+	fields := typ.Fields
 	if path != nil {
-		if columns[0].Name != "_path" {
-			return nil, errors.New("no _path in column 0")
+		if fields[0].Name != "_path" {
+			return nil, errors.New("no _path in field 0")
 		}
-		columns = columns[1:]
+		fields = fields[1:]
 		b.Append(path)
 	}
 	b.fields = b.fields[:0]
@@ -53,7 +53,7 @@ func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, da
 	for _, s := range sourceFields {
 		b.reorderedFields = append(b.reorderedFields, b.fields[s])
 	}
-	leftoverFields, err := b.appendColumns(columns, b.reorderedFields)
+	leftoverFields, err := b.appendFields(fields, b.reorderedFields)
 	if err != nil {
 		return nil, err
 	}
@@ -64,17 +64,17 @@ func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, da
 	return &b.val, nil
 }
 
-func (b *builder) appendColumns(columns []zed.Field, fields [][]byte) ([][]byte, error) {
+func (b *builder) appendFields(fields []zed.Field, values [][]byte) ([][]byte, error) {
 	const setSeparator = ','
 	const emptyContainer = "(empty)"
-	for _, c := range columns {
-		if len(fields) == 0 {
+	for _, f := range fields {
+		if len(values) == 0 {
 			return nil, errors.New("too few values")
 		}
-		switch typ := c.Type.(type) {
+		switch typ := f.Type.(type) {
 		case *zed.TypeArray, *zed.TypeSet:
-			val := fields[0]
-			fields = fields[1:]
+			val := values[0]
+			values = values[1:]
 			if string(val) == "-" {
 				b.Append(nil)
 				continue
@@ -104,18 +104,18 @@ func (b *builder) appendColumns(columns []zed.Field, fields [][]byte) ([][]byte,
 		case *zed.TypeRecord:
 			b.BeginContainer()
 			var err error
-			if fields, err = b.appendColumns(typ.Fields, fields); err != nil {
+			if values, err = b.appendFields(typ.Fields, values); err != nil {
 				return nil, err
 			}
 			b.EndContainer()
 		default:
-			if err := b.appendPrimitive(c.Type, fields[0]); err != nil {
+			if err := b.appendPrimitive(f.Type, values[0]); err != nil {
 				return nil, err
 			}
-			fields = fields[1:]
+			values = values[1:]
 		}
 	}
-	return fields, nil
+	return values, nil
 }
 
 func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {

@@ -121,43 +121,42 @@ func TestNestedRecords(t *testing.T) {
 	//  - nested records separated by a regular field
 	//  - adjacent nested records (nest2, nest3)
 	//  - nested record containing nonadjacent fields (nest1)
-	//  - nested record as the final column
-	fields := []string{"a", "nest1.a", "nest1.b", "b", "nest2.y", "nest1.nestnest.c", "nest3.z"}
+	//  - nested record as the final field
+	names := []string{"a", "nest1.a", "nest1.b", "b", "nest2.y", "nest1.nestnest.c", "nest3.z"}
 	types := []string{"int", "int", "int", "int", "int", "int", "int"}
 	vals := []string{"1", "2", "3", "4", "5", "6", "7"}
 
-	parser := startLegacyTest(t, fields, types, "")
+	parser := startLegacyTest(t, names, types, "")
 	record, err := sendLegacyValues(parser, vals)
 	require.NoError(t, err)
 	require.NoError(t, record.Validate())
 
 	// First check that the descriptor was created correctly
-	cols := zed.TypeRecordOf(record.Type).Fields
-	assert.Equal(t, 5, len(cols), "Descriptor has 5 columns")
-	//assert.Equal(t, "_path", cols[0].Name, "Column 0 is _path")
-	assert.Equal(t, "a", cols[0].Name, "Column 0 is a")
-	assert.Equal(t, "nest1", cols[1].Name, "Column 1 is nest1")
-	nest1Type, ok := cols[1].Type.(*zed.TypeRecord)
-	assert.True(t, ok, "Columns nest1 is a record")
-	assert.Equal(t, 3, len(nest1Type.Fields), "nest1 has 3 columns")
-	assert.Equal(t, "a", nest1Type.Fields[0].Name, "First column in nest1 is a")
-	assert.Equal(t, "b", nest1Type.Fields[1].Name, "Second column in nest1 is b")
-	assert.Equal(t, "nestnest", nest1Type.Fields[2].Name, "Third column in nest1 is nestnest")
+	fields := zed.TypeRecordOf(record.Type).Fields
+	assert.Equal(t, 5, len(fields), "Descriptor has 5 fields")
+	assert.Equal(t, "a", fields[0].Name, "Field 0 is a")
+	assert.Equal(t, "nest1", fields[1].Name, "Field 1 is nest1")
+	nest1Type, ok := fields[1].Type.(*zed.TypeRecord)
+	assert.True(t, ok, "Fields nest1 is a record")
+	assert.Equal(t, 3, len(nest1Type.Fields), "nest1 has 3 fields")
+	assert.Equal(t, "a", nest1Type.Fields[0].Name, "First field in nest1 is a")
+	assert.Equal(t, "b", nest1Type.Fields[1].Name, "Second field in nest1 is b")
+	assert.Equal(t, "nestnest", nest1Type.Fields[2].Name, "Third field in nest1 is nestnest")
 	nestnestType, ok := nest1Type.Fields[2].Type.(*zed.TypeRecord)
 	assert.True(t, ok, "nest1.nestnest is a record")
-	assert.Equal(t, 1, len(nestnestType.Fields), "nest1.nestnest has 1 column")
-	assert.Equal(t, "c", nestnestType.Fields[0].Name, "First column in nest1.nestnest is c")
-	assert.Equal(t, "b", cols[2].Name, "Column 2 is b")
-	assert.Equal(t, "nest2", cols[3].Name, "Column 3 is nest2")
-	nest2Type, ok := cols[3].Type.(*zed.TypeRecord)
-	assert.True(t, ok, "Columns nest2 is a record")
-	assert.Equal(t, 1, len(nest2Type.Fields), "nest2 has 1 column")
-	assert.Equal(t, "y", nest2Type.Fields[0].Name, "column in nest2 is y")
-	assert.Equal(t, "nest3", cols[4].Name, "Column 4 is nest3")
-	nest3Type, ok := cols[4].Type.(*zed.TypeRecord)
-	assert.True(t, ok, "Column nest3 is a record")
-	assert.Equal(t, 1, len(nest3Type.Fields), "nest3 has 1 column")
-	assert.Equal(t, "z", nest3Type.Fields[0].Name, "column in nest3 is z")
+	assert.Equal(t, 1, len(nestnestType.Fields), "nest1.nestnest has 1 field")
+	assert.Equal(t, "c", nestnestType.Fields[0].Name, "First field in nest1.nestnest is c")
+	assert.Equal(t, "b", fields[2].Name, "Field 2 is b")
+	assert.Equal(t, "nest2", fields[3].Name, "Field 3 is nest2")
+	nest2Type, ok := fields[3].Type.(*zed.TypeRecord)
+	assert.True(t, ok, "Fields nest2 is a record")
+	assert.Equal(t, 1, len(nest2Type.Fields), "nest2 has 1 field")
+	assert.Equal(t, "y", nest2Type.Fields[0].Name, "field in nest2 is y")
+	assert.Equal(t, "nest3", fields[4].Name, "Field 4 is nest3")
+	nest3Type, ok := fields[4].Type.(*zed.TypeRecord)
+	assert.True(t, ok, "Field nest3 is a record")
+	assert.Equal(t, 1, len(nest3Type.Fields), "nest3 has 1 field")
+	assert.Equal(t, "z", nest3Type.Fields[0].Name, "field in nest3 is z")
 
 	// Now check the actual values
 	assert.Equal(t, 1, int(record.Deref("a").AsInt()), "Field a has value 1")

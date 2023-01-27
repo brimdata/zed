@@ -114,7 +114,7 @@ func formatRecord(t *zed.TypeRecord, zv zcode.Bytes) string {
 	separator := byte(',')
 	first := true
 	it := zv.Iter()
-	for _, col := range t.Fields {
+	for _, f := range t.Fields {
 		if first {
 			first = false
 		} else {
@@ -123,7 +123,7 @@ func formatRecord(t *zed.TypeRecord, zv zcode.Bytes) string {
 		if val := it.Next(); val == nil {
 			b.WriteByte('-')
 		} else {
-			b.WriteString(formatAny(zed.NewValue(col.Type, val), false))
+			b.WriteString(formatAny(zed.NewValue(f.Type, val), false))
 		}
 	}
 	return b.String()

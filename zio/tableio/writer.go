@@ -56,10 +56,10 @@ func (w *Writer) Write(r *zed.Value) error {
 		w.nline = 0
 	}
 	var out []string
-	for k, col := range r.Fields() {
+	for k, f := range r.Fields() {
 		var v string
 		value := r.DerefByColumn(k).MissingAsNull()
-		if col.Type == zed.TypeTime {
+		if f.Type == zed.TypeTime {
 			if !value.IsNull() {
 				v = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
 			}
@@ -78,11 +78,11 @@ func (w *Writer) flush() error {
 }
 
 func (w *Writer) writeHeader(typ *zed.TypeRecord) {
-	for i, c := range typ.Fields {
+	for i, f := range typ.Fields {
 		if i > 0 {
 			w.table.Write([]byte{'\t'})
 		}
-		w.table.Write([]byte(c.Name))
+		w.table.Write([]byte(f.Name))
 	}
 	w.table.Write([]byte{'\n'})
 }
