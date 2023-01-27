@@ -1,3 +1,13 @@
+## v1.5.0
+* Add `float16` primitive type (#4301)
+* Add segment compression to the [VNG](docs/formats/vng.md) format (#4299)
+* Add `-unbuffered` flag to `zed` and `zq` (#4320)
+* Add `-csv.delim` flag to `zed` and `zq` for reading CSV with non-comma delimiter (#4325)
+* Add `csv.delim` query parameter to Zed API for reading CSV with non-comma delimiter (#4333)
+* Add `-cors.origin` flag to `zed serve`, which defaults to a wildcard (#4334)
+* Use `zng.` prefix for ZNG-related flags in `zed` and `zq` (#4336)
+* Fix an issue where type decorators of union values were leaking into CSV output (#4338)
+
 ## v1.4.0
 * The ZST format is now called [VNG](docs/formats/vng.md) (#4256)
 * Allow loading of "line" format over the lake API (#4229)
