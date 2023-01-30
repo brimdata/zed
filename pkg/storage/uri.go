@@ -41,12 +41,8 @@ func (u *URI) HasScheme(s Scheme) bool {
 	return Scheme(u.Scheme) == s
 }
 
-func (p *URI) AppendPath(elem ...string) *URI {
-	u := *p
-	for _, el := range elem {
-		u.Path = u.Path + "/" + el
-	}
-	return &u
+func (p *URI) JoinPath(elem ...string) *URI {
+	return (*URI)((*url.URL)(p).JoinPath(elem...))
 }
 
 func (u *URI) RelPath(target URI) string {

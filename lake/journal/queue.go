@@ -40,8 +40,8 @@ func New(engine storage.Engine, path *storage.URI) *Queue {
 	return &Queue{
 		engine:   engine,
 		path:     path,
-		headPath: path.AppendPath("HEAD"),
-		tailPath: path.AppendPath("TAIL"),
+		headPath: path.JoinPath("HEAD"),
+		tailPath: path.JoinPath("TAIL"),
 	}
 }
 
@@ -140,7 +140,7 @@ func (q *Queue) NewReader(ctx context.Context, head, tail ID) *Reader {
 }
 
 func (q *Queue) uri(id ID) *storage.URI {
-	return q.path.AppendPath(fmt.Sprintf("%d.%s", id, ext))
+	return q.path.JoinPath(fmt.Sprintf("%d.%s", id, ext))
 }
 
 func (q *Queue) Load(ctx context.Context, id ID) ([]byte, error) {

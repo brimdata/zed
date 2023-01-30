@@ -78,7 +78,7 @@ func (s *Store) Get(ctx context.Context, commit ksuid.KSUID) (*Object, error) {
 }
 
 func (s *Store) pathOf(commit ksuid.KSUID) *storage.URI {
-	return s.path.AppendPath(commit.String() + ".zng")
+	return s.path.JoinPath(commit.String() + ".zng")
 }
 
 func (s *Store) Put(ctx context.Context, o *Object) error {
@@ -174,7 +174,7 @@ func (s *Store) putSnapshot(ctx context.Context, commit ksuid.KSUID, snap *Snaps
 }
 
 func (s *Store) snapshotPathOf(commit ksuid.KSUID) *storage.URI {
-	return s.path.AppendPath(commit.String() + ".snap.zng")
+	return s.path.JoinPath(commit.String() + ".snap.zng")
 }
 
 // Path return the entire path from the commit object to the root

@@ -27,7 +27,7 @@ func (o Object) Path(path *storage.URI) *storage.URI {
 }
 
 func ObjectPath(path *storage.URI, ruleID, id ksuid.KSUID) *storage.URI {
-	return path.AppendPath(ruleID.String(), id.String()+".zng")
+	return path.JoinPath(ruleID.String(), id.String()+".zng")
 }
 
 type Map map[ksuid.KSUID]ObjectRules

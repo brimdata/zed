@@ -42,5 +42,5 @@ func (p *Config) Key() string {
 }
 
 func (p *Config) Path(root *storage.URI) *storage.URI {
-	return root.AppendPath(p.ID.String())
+	return root.JoinPath(p.ID.String())
 }

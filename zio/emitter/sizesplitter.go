@@ -80,7 +80,7 @@ func (s *sizeSplitter) Write(val *zed.Value) error {
 }
 
 func (s *sizeSplitter) nextFile() error {
-	path := s.dir.AppendPath(s.prefix + strconv.Itoa(s.seq) + s.ext)
+	path := s.dir.JoinPath(s.prefix + strconv.Itoa(s.seq) + s.ext)
 	s.seq++
 	wc, err := s.engine.Put(s.ctx, path)
 	if err != nil {
