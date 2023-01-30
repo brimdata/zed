@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/jsonio"
+	"github.com/brimdata/zed/zio/vngio"
 )
 
 type controlWriter interface {
@@ -44,7 +45,13 @@ func NewWriter(w io.WriteCloser, format string, flusher http.Flusher, ctrl bool)
 	case "ndjson":
 		d.writer = jsonio.NewWriter(w)
 	default:
-		d.writer, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{Format: format})
+		d.writer, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{
+			Format: format,
+			VNG: vngio.WriterOpts{
+				ColumnThresh: vngio.DefaultColumnThresh,
+				SkewThresh:   vngio.DefaultSkewThresh,
+			},
+		})
 	}
 	return d, err
 }

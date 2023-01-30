@@ -10,9 +10,11 @@ script: |
   echo === application/vnd.apache.arrow.stream ===
   curl -H 'Accept: application/vnd.apache.arrow.stream' -d '{"query":"from test"}' $ZED_LAKE/query |
     zq -z -i arrows -
-  echo === application/x-parquet ===
-  curl -H 'Accept: application/x-parquet' -d '{"query":"from test"}' -o out.parquet $ZED_LAKE/query
-  zq -z out.parquet
+  for format in parquet vng; do
+    echo === application/x-$format ===
+    curl -H "Accept: application/x-$format" -d '{"query":"from test"}' -o out.$format $ZED_LAKE/query
+    zq -z out.$format
+  done
 
 inputs:
   - name: service.sh
@@ -58,5 +60,8 @@ outputs:
       {a:"hello",b:{c:"world",d:"goodbye"}}
       {a:"one",b:{c:"two",d:"three"}}
       === application/x-parquet ===
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+      {a:"one",b:{c:"two",d:"three"}}
+      === application/x-vng ===
       {a:"hello",b:{c:"world",d:"goodbye"}}
       {a:"one",b:{c:"two",d:"three"}}
