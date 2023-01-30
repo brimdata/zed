@@ -21,8 +21,8 @@ func Implied(typ zed.Type) bool {
 	case *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime, *zed.TypeOfFloat64, *zed.TypeOfBool, *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfType, *zed.TypeOfNull:
 		return true
 	case *zed.TypeRecord:
-		for _, c := range typ.Fields {
-			if !Implied(c.Type) {
+		for _, f := range typ.Fields {
+			if !Implied(f.Type) {
 				return false
 			}
 		}

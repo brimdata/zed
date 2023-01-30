@@ -2,10 +2,10 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q logs
-  ! zed load -q -use logs missingcol.zson
+  ! zed load -q -use logs missingfield.zson
 
 inputs:
-  - name: missingcol.zson
+  - name: missingfield.zson
     data: |
       {a:"a",b:"b"} (=foo)
       {a:"a"} (foo)
@@ -13,4 +13,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      .*record decorator columns \(2\) mismatched with value columns \(1\)
+      .*record decorator fields \(2\) mismatched with value fields \(1\)

@@ -285,7 +285,7 @@ func (a Analyzer) convertRecord(zctx *zed.Context, val *astzed.Record, cast zed.
 			return nil, fmt.Errorf("record decorator not of type record: %T", cast)
 		}
 		if len(recType.Fields) != len(val.Fields) {
-			return nil, fmt.Errorf("record decorator columns (%d) mismatched with value columns (%d)", len(recType.Fields), len(val.Fields))
+			return nil, fmt.Errorf("record decorator fields (%d) mismatched with value fields (%d)", len(recType.Fields), len(val.Fields))
 		}
 		fields, err = a.convertFields(zctx, val.Fields, recType.Fields)
 	} else {
@@ -304,28 +304,28 @@ func (a Analyzer) convertRecord(zctx *zed.Context, val *astzed.Record, cast zed.
 	}, nil
 }
 
-func (a Analyzer) convertFields(zctx *zed.Context, in []astzed.Field, cols []zed.Field) ([]Value, error) {
-	fields := make([]Value, 0, len(in))
+func (a Analyzer) convertFields(zctx *zed.Context, in []astzed.Field, fields []zed.Field) ([]Value, error) {
+	vals := make([]Value, 0, len(in))
 	for k, f := range in {
 		var cast zed.Type
-		if cols != nil {
-			cast = cols[k].Type
+		if fields != nil {
+			cast = fields[k].Type
 		}
 		v, err := a.convertValue(zctx, f.Value, cast)
 		if err != nil {
 			return nil, err
 		}
-		fields = append(fields, v)
+		vals = append(vals, v)
 	}
-	return fields, nil
+	return vals, nil
 }
 
-func lookupRecordType(zctx *zed.Context, fields []astzed.Field, vals []Value) (*zed.TypeRecord, error) {
-	columns := make([]zed.Field, 0, len(fields))
-	for k, f := range fields {
-		columns = append(columns, zed.Field{Name: f.Name, Type: vals[k].TypeOf()})
+func lookupRecordType(zctx *zed.Context, in []astzed.Field, vals []Value) (*zed.TypeRecord, error) {
+	fields := make([]zed.Field, 0, len(in))
+	for k, f := range in {
+		fields = append(fields, zed.Field{Name: f.Name, Type: vals[k].TypeOf()})
 	}
-	return zctx.LookupTypeRecord(columns)
+	return zctx.LookupTypeRecord(fields)
 }
 
 // Figure out what the cast should be for the elements and for the union conversion if any.
@@ -640,16 +640,15 @@ func (a Analyzer) convertType(zctx *zed.Context, typ astzed.Type) (zed.Type, err
 }
 
 func (a Analyzer) convertTypeRecord(zctx *zed.Context, typ *astzed.TypeRecord) (*zed.TypeRecord, error) {
-	fields := typ.Fields
-	columns := make([]zed.Field, 0, len(fields))
-	for _, f := range fields {
+	fields := make([]zed.Field, 0, len(typ.Fields))
+	for _, f := range typ.Fields {
 		typ, err := a.convertType(zctx, f.Type)
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zed.Field{Name: f.Name, Type: typ})
+		fields = append(fields, zed.Field{Name: f.Name, Type: typ})
 	}
-	return zctx.LookupTypeRecord(columns)
+	return zctx.LookupTypeRecord(fields)
 }
 
 func (a Analyzer) convertTypeMap(zctx *zed.Context, tmap *astzed.TypeMap) (*zed.TypeMap, error) {
