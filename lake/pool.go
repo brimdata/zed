@@ -38,7 +38,7 @@ func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine
 	poolPath := config.Path(root)
 	// branchesPath is the path to the kvs journal of BranchConfigs
 	// for the pool while the commit log is stored in <pool-id>/<branch-id>.
-	branchesPath := poolPath.AppendPath(BranchesTag)
+	branchesPath := poolPath.JoinPath(BranchesTag)
 	// create the branches journal store
 	_, err := branches.CreateStore(ctx, engine, branchesPath)
 	if err != nil {
@@ -52,7 +52,7 @@ func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine
 
 func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.Engine, root *storage.URI, name string, parent ksuid.KSUID) (*branches.Config, error) {
 	poolPath := poolConfig.Path(root)
-	branchesPath := poolPath.AppendPath(BranchesTag)
+	branchesPath := poolPath.JoinPath(BranchesTag)
 	store, err := branches.OpenStore(ctx, engine, branchesPath)
 	if err != nil {
 		return nil, err
@@ -69,12 +69,12 @@ func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.
 
 func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) (*Pool, error) {
 	path := config.Path(root)
-	branchesPath := path.AppendPath(BranchesTag)
+	branchesPath := path.JoinPath(BranchesTag)
 	branches, err := branches.OpenStore(ctx, engine, branchesPath)
 	if err != nil {
 		return nil, err
 	}
-	commitsPath := path.AppendPath(CommitsTag)
+	commitsPath := path.JoinPath(CommitsTag)
 	commits, err := commits.OpenStore(engine, commitsPath)
 	if err != nil {
 		return nil, err
@@ -205,9 +205,9 @@ func (p *Pool) Main(ctx context.Context) (BranchMeta, error) {
 }
 
 func DataPath(poolPath *storage.URI) *storage.URI {
-	return poolPath.AppendPath(DataTag)
+	return poolPath.JoinPath(DataTag)
 }
 
 func IndexPath(poolPath *storage.URI) *storage.URI {
-	return poolPath.AppendPath(IndexTag)
+	return poolPath.JoinPath(IndexTag)
 }

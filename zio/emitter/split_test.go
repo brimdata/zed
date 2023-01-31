@@ -28,9 +28,9 @@ func TestDirS3Source(t *testing.T) {
 	defer ctrl.Finish()
 	engine := storagemock.NewMockEngine(ctrl)
 
-	engine.EXPECT().Put(context.Background(), uri.AppendPath("conn.zson")).
+	engine.EXPECT().Put(context.Background(), uri.JoinPath("conn.zson")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
-	engine.EXPECT().Put(context.Background(), uri.AppendPath("http.zson")).
+	engine.EXPECT().Put(context.Background(), uri.JoinPath("http.zson")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
 
 	r := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))

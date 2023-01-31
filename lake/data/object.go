@@ -128,7 +128,7 @@ func (o Object) Span(order order.Which) *extent.Generic {
 // a data object so they can all be deleted with the storage engine's
 // DeleteByPrefix method.
 func (o Object) ObjectPrefix(path *storage.URI) *storage.URI {
-	return path.AppendPath(o.ID.String())
+	return path.JoinPath(o.ID.String())
 }
 
 func (o Object) SequenceURI(path *storage.URI) *storage.URI {
@@ -136,11 +136,11 @@ func (o Object) SequenceURI(path *storage.URI) *storage.URI {
 }
 
 func SequenceURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
-	return path.AppendPath(fmt.Sprintf("%s.zng", id))
+	return path.JoinPath(fmt.Sprintf("%s.zng", id))
 }
 
 func (o Object) SeekIndexURI(path *storage.URI) *storage.URI {
-	return path.AppendPath(fmt.Sprintf("%s-seek.zng", o.ID))
+	return path.JoinPath(fmt.Sprintf("%s-seek.zng", o.ID))
 }
 
 func (o Object) VectorURI(path *storage.URI) *storage.URI {
@@ -148,7 +148,7 @@ func (o Object) VectorURI(path *storage.URI) *storage.URI {
 }
 
 func VectorURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
-	return path.AppendPath(fmt.Sprintf("%s.vng", id))
+	return path.JoinPath(fmt.Sprintf("%s.vng", id))
 }
 
 func (o Object) Range() string {

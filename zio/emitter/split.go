@@ -82,7 +82,7 @@ func (s *Split) path(r *zed.Value) *storage.URI {
 			s.seen[_path] = struct{}{}
 		}
 	}
-	return s.dir.AppendPath(s.prefix + uniq + s.ext)
+	return s.dir.JoinPath(s.prefix + uniq + s.ext)
 }
 
 func (s *Split) Close() error {

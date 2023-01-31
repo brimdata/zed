@@ -90,8 +90,8 @@ func CreateOrOpen(ctx context.Context, engine storage.Engine, path *storage.URI)
 }
 
 func (r *Root) createConfig(ctx context.Context) error {
-	poolPath := r.path.AppendPath(PoolsTag)
-	rulesPath := r.path.AppendPath(IndexRulesTag)
+	poolPath := r.path.JoinPath(PoolsTag)
+	rulesPath := r.path.JoinPath(IndexRulesTag)
 	var err error
 	r.pools, err = pools.CreateStore(ctx, r.engine, poolPath)
 	if err != nil {
@@ -108,8 +108,8 @@ func (r *Root) loadConfig(ctx context.Context) error {
 	if err := r.readLakeMagic(ctx); err != nil {
 		return err
 	}
-	poolPath := r.path.AppendPath(PoolsTag)
-	rulesPath := r.path.AppendPath(IndexRulesTag)
+	poolPath := r.path.JoinPath(PoolsTag)
+	rulesPath := r.path.JoinPath(IndexRulesTag)
 	var err error
 	r.pools, err = pools.OpenStore(ctx, r.engine, poolPath)
 	if err != nil {
@@ -135,7 +135,7 @@ func (r *Root) writeLakeMagic(ctx context.Context) error {
 	if err := serializer.Close(); err != nil {
 		return err
 	}
-	path := r.path.AppendPath(LakeMagicFile)
+	path := r.path.JoinPath(LakeMagicFile)
 	err := r.engine.PutIfNotExists(ctx, path, serializer.Bytes())
 	if err == storage.ErrNotSupported {
 		//XXX workaround for now: see issue #2686
@@ -146,7 +146,7 @@ func (r *Root) writeLakeMagic(ctx context.Context) error {
 }
 
 func (r *Root) readLakeMagic(ctx context.Context) error {
-	path := r.path.AppendPath(LakeMagicFile)
+	path := r.path.JoinPath(LakeMagicFile)
 	reader, err := r.engine.Get(ctx, path)
 	if err != nil {
 		return err

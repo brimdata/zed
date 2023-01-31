@@ -186,7 +186,7 @@ func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) 
 }
 
 func (s *Store) snapshotURI() *storage.URI {
-	return s.journal.path.AppendPath(fmt.Sprintf("snap.%s", ext))
+	return s.journal.path.JoinPath(fmt.Sprintf("snap.%s", ext))
 }
 
 func (s *Store) stale() bool {
