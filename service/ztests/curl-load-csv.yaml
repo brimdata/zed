@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zed create -q test
+  zed create -q -orderby a test
   curl -H Content-Type:text/csv --data-binary @in.csv \
     --fail $ZED_LAKE/pool/test/branch/main | zq -z commit:=0 -
   curl -H Content-Type:text/csv --data-binary @in-dot.csv \

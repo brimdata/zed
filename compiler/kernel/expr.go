@@ -235,7 +235,7 @@ func (b *Builder) compileUnary(unary dag.UnaryExpr) (expr.Evaluator, error) {
 	case "!":
 		return expr.NewLogicalNot(b.zctx(), e), nil
 	default:
-		return nil, fmt.Errorf("unknown unary operator %s\n", unary.Op)
+		return nil, fmt.Errorf("unknown unary operator %s", unary.Op)
 	}
 }
 

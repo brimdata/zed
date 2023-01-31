@@ -43,7 +43,7 @@ var ErrJoinParents = errors.New("join requires two upstream parallel query paths
 type Builder struct {
 	pctx     *op.Context
 	source   *data.Source
-	listers  map[dag.Source]*meta.Lister
+	slicers  map[dag.Source]*meta.Slicer
 	pools    map[dag.Source]*lake.Pool
 	progress *zbuf.Progress
 	deletes  *sync.Map
@@ -54,7 +54,7 @@ func NewBuilder(pctx *op.Context, source *data.Source) *Builder {
 	return &Builder{
 		pctx:    pctx,
 		source:  source,
-		listers: make(map[dag.Source]*meta.Lister),
+		slicers: make(map[dag.Source]*meta.Slicer),
 		pools:   make(map[dag.Source]*lake.Pool),
 		progress: &zbuf.Progress{
 			BytesRead:      0,
@@ -220,6 +220,9 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			return nil, err
 		}
 		as, err := compileLval(v.As)
+		if err != nil {
+			return nil, err
+		}
 		if len(as) != 1 {
 			return nil, errors.New("explode field must be a top-level field")
 		}
@@ -578,29 +581,35 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		// common "from" source are distributed across the collection
 		// of SequenceScanner operators and the upstream parent distributes work
 		// across the parallel instances of trunks.
-		lister, ok := b.listers[src]
+		slicer, ok := b.slicers[src]
 		if !ok {
 			lk := b.source.Lake()
 			pool, err := lk.OpenPool(b.pctx.Context, src.ID)
 			if err != nil {
 				return nil, err
 			}
-			l, err := meta.NewSortedLister(b.pctx.Context, lk, pool, src.Commit, filter)
+			// We pass a new type context in here because we don't want the metadata types to interfere
+			// with the downstream flowgraph.  And there's no need to map between contexts because
+			// the metadata here is intercepted by the scanner and these zed values never enter
+			// the flowgraph.  For the metaqueries below, we pass in the flowgraph's type context
+			// because this data does, in fact, flow into the downstream flowgraph.
+			zctx := zed.NewContext()
+			l, err := meta.NewSortedLister(b.pctx.Context, zctx, lk, pool, src.Commit, filter)
 			if err != nil {
 				return nil, err
 			}
+			slicer = meta.NewSlicer(l, zctx, pool.Layout.Order)
 			b.pools[src] = pool
-			b.listers[src] = l
-			lister = l
+			b.slicers[src] = slicer
 		}
 		pool := b.pools[src]
 		if src.Delete {
 			if b.deletes == nil {
 				b.deletes = &sync.Map{}
 			}
-			source = meta.NewDeleter(b.pctx, lister, pool, lister.Snapshot(), filter, b.progress, b.deletes)
+			source = meta.NewDeleter(b.pctx, slicer, pool, slicer.Snapshot(), filter, b.progress, b.deletes)
 		} else {
-			source = meta.NewSequenceScanner(b.pctx, lister, pool, lister.Snapshot(), filter, b.progress)
+			source = meta.NewSequenceScanner(b.pctx, slicer, pool, slicer.Snapshot(), filter, b.progress)
 		}
 	case *dag.PoolMeta:
 		scanner, err := meta.NewPoolMetaScanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)

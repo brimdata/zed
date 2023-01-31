@@ -1,165 +1,130 @@
 package meta
 
 import (
-	"bytes"
-	"context"
+	"errors"
 	"fmt"
-	"sort"
+	"sync"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
-	"github.com/segmentio/ksuid"
 )
 
-// partitionObjects takes a sorted set of data objects with possibly overlapping
-// key ranges and returns an ordered list of Ranges such that none of the
-// Ranges overlap with one another.  This is the straightforward computational
-// geometry problem of merging overlapping intervals,
-// e.g., https://www.geeksforgeeks.org/merging-intervals/
-//
-// XXX this algorithm doesn't quite do what we want because it continues
-// to merge *anything* that overlaps.  It's easy to fix though.
-// Issue #2538
-func partitionObjects(objects []*data.Object, o order.Which) []Partition {
-	if len(objects) == 0 {
-		return nil
+// Slicer implements an op that pulls data objects and organizes
+// them into overlapping object Slices forming a sequence of
+// non-overlapping Partitions.
+type Slicer struct {
+	parent      zbuf.Puller
+	marshaler   *zson.MarshalZNGContext
+	unmarshaler *zson.UnmarshalZNGContext
+	objects     []*data.Object
+	cmp         expr.CompareFn
+	last        *zed.Value
+	mu          sync.Mutex
+}
+
+func NewSlicer(parent zbuf.Puller, zctx *zed.Context, o order.Which) *Slicer {
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StylePackage)
+	return &Slicer{
+		parent:      parent,
+		marshaler:   m,
+		unmarshaler: zson.NewZNGUnmarshaler(),
+		//XXX check nullsmax is consistent for both dirs in lake ops
+		cmp: expr.NewValueCompareFn(o, o == order.Asc),
 	}
-	cmp := expr.NewValueCompareFn(o, o == order.Asc)
-	spans := sortedObjectSpans(objects, cmp)
-	var s stack
-	s.pushObjectSpan(spans[0], cmp)
-	for _, span := range spans[1:] {
-		tos := s.tos()
-		if span.Before(tos.Last()) {
-			s.pushObjectSpan(span, cmp)
-		} else {
-			tos.Objects = append(tos.Objects, span.object)
-			tos.Extend(span.Last())
+}
+
+func (s *Slicer) Snapshot() commits.View {
+	//XXX
+	return s.parent.(*Lister).Snapshot()
+}
+
+func (s *Slicer) Pull(done bool) (zbuf.Batch, error) {
+	//XXX for now we use a mutex because multiple downstream trunks can call
+	// Pull concurrently here.  We should change this to use a fork.  But for now,
+	// this does not seem like a performance critical issue because the bottleneck
+	// will be each trunk and the lister parent should run fast in comparison.
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for {
+		batch, err := s.parent.Pull(done)
+		if err != nil {
+			return nil, err
+		}
+		if batch == nil {
+			return s.nextPartition()
+		}
+		vals := batch.Values()
+		if len(vals) != 1 {
+			// We currently support only one object per batch.
+			return nil, errors.New("system error: Slicer encountered multi-valued batch")
+		}
+		var object data.Object
+		if err := s.unmarshaler.Unmarshal(&vals[0], &object); err != nil {
+			return nil, err
+		}
+		if batch, err := s.stash(&object); batch != nil || err != nil {
+			return batch, err
 		}
 	}
-	// On exit, the ranges in the stack are properly sorted so
-	// we just turn the ranges back into partitions.
-	partitions := make([]Partition, 0, len(s))
-	for _, r := range s {
-		partitions = append(partitions, Partition{
-			First:   r.First(),
-			Last:    r.Last(),
-			Objects: r.Objects,
-		})
+}
+
+// nextPartition takes collected up slices and forms a partition returning
+// a batch containing a single value comprising the serialized partition.
+func (s *Slicer) nextPartition() (zbuf.Batch, error) {
+	if len(s.objects) == 0 {
+		return nil, nil
 	}
-	return partitions
-}
-
-type Range struct {
-	extent.Span
-	Objects []*data.Object
-}
-
-type stack []Range
-
-func (s *stack) pushObjectSpan(span objectSpan, cmp expr.CompareFn) {
-	s.push(Range{
-		Span:    span.Span,
-		Objects: []*data.Object{span.object},
-	})
-}
-
-func (s *stack) push(r Range) {
-	*s = append(*s, r)
-}
-
-/* unused right now
-func (s *stack) pop() Range {
-	n := len(*s)
-	p := (*s)[n-1]
-	*s = (*s)[:n-1]
-	return p
-}
-*/
-
-func (s *stack) tos() *Range {
-	return &(*s)[len(*s)-1]
-}
-
-type objectSpan struct {
-	extent.Span
-	object *data.Object
-}
-
-func sortedObjectSpans(objects []*data.Object, cmp expr.CompareFn) []objectSpan {
-	spans := make([]objectSpan, 0, len(objects))
-	for _, o := range objects {
-		spans = append(spans, objectSpan{
-			Span:   extent.NewGeneric(o.First, o.Last, cmp),
-			object: o,
-		})
-	}
-	sort.Slice(spans, func(i, j int) bool {
-		return objectSpanLess(spans[i], spans[j])
-	})
-	return spans
-}
-
-func objectSpanLess(a, b objectSpan) bool {
-	if b.Before(a.First()) {
-		return true
-	}
-	if !bytes.Equal(a.First().Bytes, b.First().Bytes) {
-		return false
-	}
-	if bytes.Equal(a.Last().Bytes, b.Last().Bytes) {
-		if a.object.Count != b.object.Count {
-			return a.object.Count < b.object.Count
+	first := &s.objects[0].First
+	last := &s.objects[0].Last
+	for _, o := range s.objects[1:] {
+		if s.cmp(&o.First, first) < 0 {
+			first = &o.First
 		}
-		return ksuid.Compare(a.object.ID, b.object.ID) < 0
+		if s.cmp(&o.Last, last) > 0 {
+			last = &o.Last
+		}
 	}
-	return a.After(b.Last())
-}
-
-func partitionReader(ctx context.Context, zctx *zed.Context, layout order.Layout, snap commits.View, filter zbuf.Filter) (zio.Reader, error) {
-	parts, err := sortedPartitions(snap, layout, filter)
+	val, err := s.marshaler.Marshal(&Partition{
+		First:   first,
+		Last:    last,
+		Objects: s.objects,
+	})
+	s.objects = s.objects[:0]
 	if err != nil {
 		return nil, err
 	}
-	m := zson.NewZNGMarshalerWithContext(zctx)
-	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zed.Value, error) {
-		if len(parts) == 0 {
-			return nil, nil
-		}
-		p := parts[0]
-		val, err := m.Marshal(p)
-		parts = parts[1:]
-		return val, err
-	}), nil
+	return zbuf.NewArray([]zed.Value{*val}), nil
 }
 
-func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
-	indexes := snap.SelectIndexes(nil, order)
-	m := zson.NewZNGMarshalerWithContext(zctx)
-	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zed.Value, error) {
-		if len(indexes) == 0 {
-			return nil, nil
+func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
+	var batch zbuf.Batch
+	if len(s.objects) > 0 {
+		// We collect all the subsequent objects that overlap with any object in the
+		// accumulated set so far.  Since first times are non-decreasing this is
+		// guaranteed to generate partitions that are non-decreasing and non-overlapping.
+		if s.cmp(&o.First, s.last) >= 0 {
+			var err error
+			batch, err = s.nextPartition()
+			if err != nil {
+				return nil, err
+			}
+			s.last = nil
 		}
-		val, err := m.Marshal(indexes[0])
-		indexes = indexes[1:]
-		return val, err
-	}), nil
+	}
+	s.objects = append(s.objects, o)
+	if s.last == nil || s.cmp(s.last, &o.Last) < 0 {
+		s.last = &o.Last
+	}
+	return batch, nil
 }
 
-type readerFunc func() (*zed.Value, error)
-
-func (r readerFunc) Read() (*zed.Value, error) { return r() }
-
-// A Partition is a logical view of the records within a time span, stored
+// A Partition is a logical view of the records within a pool-key span, stored
 // in one or more data objects.  This provides a way to return the list of
 // objects that should be scanned along with a span to limit the scan
 // to only the span involved.

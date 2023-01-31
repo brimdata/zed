@@ -1,3 +1,5 @@
+skip: search index tests disabled as we will reimplement with vcache
+
 script: |
   source service.sh
   zed create -q test

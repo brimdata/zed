@@ -117,11 +117,11 @@ func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller,
 		}
 	}
 	for _, o := range part.Objects {
-		rg, err := objectRange(p.pctx.Context, p.pool, p.snap, p.filter, o)
+		rg, err := seekRange(p.pctx.Context, p.pool, p.snap, p.filter, o)
 		if err != nil {
 			return nil, err
 		}
-		rc, err := o.NewReader(p.pctx.Context, p.pool.Storage(), p.pool.DataPath, rg)
+		rc, err := o.NewReader(p.pctx.Context, p.pool.Storage(), p.pool.DataPath, *rg)
 		if err != nil {
 			pullersDone()
 			return nil, err
@@ -167,42 +167,48 @@ func (s *statScanner) Pull(done bool) (zbuf.Batch, error) {
 	return batch, err
 }
 
-func objectRange(ctx context.Context, pool *lake.Pool, snap commits.View, filter zbuf.Filter, o *data.Object) (seekindex.Range, error) {
+func seekRange(ctx context.Context, pool *lake.Pool, snap commits.View, filter zbuf.Filter, o *data.Object) (*seekindex.Range, error) {
 	var indexSpan extent.Span
 	var cropped *expr.SpanFilter
 	//XXX this is suboptimal because we traverse every index rule of every object
 	// even though we should know what rules we need upstream by analyzing the
 	// type of index lookup we're doing and select only the rules needed
+	// XXX let's take out the search index here and implement indexes as part
+	// of VNG.
 	if filter != nil {
 		if idx := index.NewFilter(pool.Storage(), pool.IndexPath, filter); idx != nil {
-			rules, err := snap.LookupIndexObjectRules(o.ID)
+			rules, err := snap.LookupIndexObjectRules(o.ID) // XXX move this into metadata
 			if err != nil && !errors.Is(err, commits.ErrNotFound) {
-				return seekindex.Range{}, err
+				return nil, err
 			}
 			if len(rules) > 0 {
 				indexSpan, err = idx.Apply(ctx, o.ID, rules)
-				if err != nil || indexSpan == nil {
-					return seekindex.Range{}, err
+				if err != nil {
+					return nil, err
 				}
 			}
 		}
 		var err error
 		cropped, err = filter.AsKeyCroppedByFilter(pool.Layout.Primary(), pool.Layout.Order)
 		if err != nil {
-			return seekindex.Range{}, err
+			return nil, err
 		}
 	}
-	cmp := expr.NewValueCompareFn(order.Asc, pool.Layout.Order == order.Asc)
-	span := extent.NewGeneric(o.First, o.Last, cmp)
-	if indexSpan != nil || cropped != nil && cropped.Eval(span.First(), span.Last()) {
+	cmp := expr.NewValueCompareFn(pool.Layout.Order, pool.Layout.Order == order.Asc)
+	first := &o.First
+	last := &o.Last
+	if pool.Layout.Order == order.Desc {
+		first, last = last, first
+	}
+	if indexSpan != nil || cropped != nil && cropped.Eval(first, last) {
 		// There's an index available or the object's span is cropped by
 		// p.filter, so use the seek index to find the range to scan.
 		spanFilter, err := filter.AsKeySpanFilter(pool.Layout.Primary(), pool.Layout.Order)
 		if err != nil {
-			return seekindex.Range{}, err
+			return nil, err
 		}
-		return data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, o, cmp, spanFilter, indexSpan)
+		return data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, o, cmp, spanFilter, indexSpan, pool.Layout.Order)
 	}
 	// Scan the entire object.
-	return seekindex.Range{End: o.Size}, nil
+	return &seekindex.Range{End: o.Size}, nil
 }

@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zed create -q test
+  zed create -q -orderby x:desc test
   zed use -q test
   zed load -q 1.zson
   id=$(zed query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")

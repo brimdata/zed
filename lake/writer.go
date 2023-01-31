@@ -209,6 +209,9 @@ func (w *SortedWriter) Objects() []*data.Object {
 }
 
 func (w *SortedWriter) Close() error {
+	if w.writer == nil {
+		return nil
+	}
 	return w.writer.Close(w.ctx)
 }
 

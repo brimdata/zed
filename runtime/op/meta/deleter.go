@@ -105,11 +105,11 @@ func newDeleterScanner(d *Deleter, part Partition) (zbuf.Puller, error) {
 	}
 	for _, o := range part.Objects {
 		//XXX not sure this is right... filter applies here?
-		rg, err := objectRange(d.pctx.Context, d.pool, d.snap, d.filter, o)
+		rg, err := seekRange(d.pctx.Context, d.pool, d.snap, d.filter, o)
 		if err != nil {
 			return nil, err
 		}
-		rc, err := o.NewReader(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, rg)
+		rc, err := o.NewReader(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, *rg)
 		if err != nil {
 			pullersDone()
 			return nil, err
