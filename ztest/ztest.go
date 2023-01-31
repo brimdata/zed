@@ -219,9 +219,6 @@ type File struct {
 	// Re is a regular expression describing the contents of the file,
 	// which is only applicable to output files.
 	Re string `yaml:"regexp,omitempty"`
-	// Symlink creates a symlink on the specified directory into a test's local
-	// directory. Only applicable to input files.
-	Symlink string `yaml:"symlink,omitempty"`
 }
 
 func (f *File) check() error {
@@ -230,9 +227,6 @@ func (f *File) check() error {
 		cnt++
 	}
 	if f.Source != "" {
-		cnt++
-	}
-	if f.Symlink != "" {
 		cnt++
 	}
 	if cnt > 1 {
@@ -252,10 +246,6 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 	if f.Re != "" {
 		re, err := regexp.Compile(f.Re)
 		return nil, re, err
-	}
-	if f.Symlink != "" {
-		f.Symlink = filepath.Join(dir, f.Symlink)
-		return nil, nil, nil
 	}
 	b, err := os.ReadFile(filepath.Join(dir, f.Name))
 	if err == nil {
@@ -305,9 +295,6 @@ func (z *ZTest) check() error {
 		for _, f := range z.Outputs {
 			if err := f.check(); err != nil {
 				return err
-			}
-			if f.Symlink != "" {
-				return fmt.Errorf("%s: cannot use symlink in an output", f.Name)
 			}
 		}
 	} else if z.Zed == "" {
@@ -432,12 +419,6 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 		b, _, err := f.load(testDir)
 		if err != nil {
 			return err
-		}
-		if f.Symlink != "" {
-			if err := os.Symlink(f.Symlink, filepath.Join(tempDir, f.Name)); err != nil {
-				return err
-			}
-			continue
 		}
 		if f.Name == "stdin" {
 			stdin = bytes.NewReader(b)
