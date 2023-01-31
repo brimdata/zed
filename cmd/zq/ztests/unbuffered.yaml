@@ -3,7 +3,7 @@ script: |
   # "-i json" avoids reader buffering.
   zq -i json -unbuffered -z fifo > out.zson &
   # Prevent zq from seeing EOF on fifo and exiting before the shell exits.
-  exec {fd}> fifo
+  exec 10> fifo
   echo 1 > fifo
   # Wait for out.zson to have size greater than zero.
   while [ ! -s out.zson -a $((i++)) -lt 50 ]; do sleep 0.1; done
