@@ -195,7 +195,6 @@ func seekRange(ctx context.Context, pool *lake.Pool, snap commits.View, filter z
 		}
 	}
 	cmp := expr.NewValueCompareFn(pool.Layout.Order, pool.Layout.Order == order.Asc)
-	//span := extent.NewGeneric(o.First, o.Last, cmp)
 	first := &o.First
 	last := &o.Last
 	if pool.Layout.Order == order.Desc {

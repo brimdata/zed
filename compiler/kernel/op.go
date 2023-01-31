@@ -593,11 +593,12 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			// the metadata here is intercepted by the scanner and these zed values never enter
 			// the flowgraph.  For the metaqueries below, we pass in the flowgraph's type context
 			// because this data does, in fact, flow into the downstream flowgraph.
-			l, err := meta.NewSortedLister(b.pctx.Context, b.pctx.Zctx, lk, pool, src.Commit, filter)
+			zctx := zed.NewContext()
+			l, err := meta.NewSortedLister(b.pctx.Context, zctx, lk, pool, src.Commit, filter)
 			if err != nil {
 				return nil, err
 			}
-			slicer = meta.NewSlicer(l, b.pctx.Zctx, pool.Layout.Order)
+			slicer = meta.NewSlicer(l, zctx, pool.Layout.Order)
 			b.pools[src] = pool
 			b.slicers[src] = slicer
 		}
