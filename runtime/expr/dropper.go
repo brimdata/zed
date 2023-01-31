@@ -77,13 +77,13 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 	var fields field.List
 	var types []zed.Type
 	var match bool
-	for _, c := range typ.Fields {
-		fld := append(prefix, c.Name)
+	for _, f := range typ.Fields {
+		fld := append(prefix, f.Name)
 		if drops.Has(fld) {
 			match = true
 			continue
 		}
-		if typ, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
+		if typ, ok := zed.TypeUnder(f.Type).(*zed.TypeRecord); ok {
 			if fs, ts, m := complementFields(drops, fld, typ); m {
 				fields = append(fields, fs...)
 				types = append(types, ts...)
@@ -92,7 +92,7 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 			}
 		}
 		fields = append(fields, slices.Clone(fld))
-		types = append(types, c.Type)
+		types = append(types, f.Type)
 	}
 	return fields, types, match
 }

@@ -489,12 +489,12 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 		types = append(types, keyVal.Type)
 		a.builder.Append(keyVal.Bytes)
 	}
-	for _, col := range row {
+	for _, f := range row {
 		var v *zed.Value
 		if a.partialsOut {
-			v = col.ResultAsPartial(a.zctx)
+			v = f.ResultAsPartial(a.zctx)
 		} else {
-			v = col.Result(a.zctx)
+			v = f.Result(a.zctx)
 		}
 		types = append(types, v.Type)
 		a.builder.Append(v.Bytes)
@@ -538,12 +538,12 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 			a.builder.Append(flatVal)
 			types = append(types, typ)
 		}
-		for _, col := range row.reducers {
+		for _, f := range row.reducers {
 			var v *zed.Value
 			if partialsOut {
-				v = col.ResultAsPartial(a.zctx)
+				v = f.ResultAsPartial(a.zctx)
 			} else {
-				v = col.Result(a.zctx)
+				v = f.Result(a.zctx)
 			}
 			types = append(types, v.Type)
 			a.builder.Append(v.Bytes)

@@ -9,7 +9,7 @@ type recordExpr struct {
 	zctx    *zed.Context
 	typ     *zed.TypeRecord
 	builder *zcode.Builder
-	columns []zed.Field
+	fields  []zed.Field
 	exprs   []Evaluator
 }
 
@@ -23,10 +23,10 @@ func NewRecordExpr(zctx *zed.Context, elems []RecordElem) (Evaluator, error) {
 }
 
 func newRecordExpr(zctx *zed.Context, elems []RecordElem) *recordExpr {
-	columns := make([]zed.Field, 0, len(elems))
+	fields := make([]zed.Field, 0, len(elems))
 	exprs := make([]Evaluator, 0, len(elems))
 	for _, elem := range elems {
-		columns = append(columns, zed.Field{Name: elem.Name})
+		fields = append(fields, zed.NewField(elem.Name, nil))
 		exprs = append(exprs, elem.Field)
 	}
 	var typ *zed.TypeRecord
@@ -37,7 +37,7 @@ func newRecordExpr(zctx *zed.Context, elems []RecordElem) *recordExpr {
 		zctx:    zctx,
 		typ:     typ,
 		builder: zcode.NewBuilder(),
-		columns: columns,
+		fields:  fields,
 		exprs:   exprs,
 	}
 }
@@ -48,14 +48,14 @@ func (r *recordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	b.Reset()
 	for k, e := range r.exprs {
 		zv := e.Eval(ectx, this)
-		if r.columns[k].Type != zv.Type {
-			r.columns[k].Type = zv.Type
+		if r.fields[k].Type != zv.Type {
+			r.fields[k].Type = zv.Type
 			changed = true
 		}
 		b.Append(zv.Bytes)
 	}
 	if changed {
-		r.typ = r.zctx.MustLookupTypeRecord(r.columns)
+		r.typ = r.zctx.MustLookupTypeRecord(r.fields)
 	}
 	bytes := b.Bytes()
 	if bytes == nil {
@@ -75,7 +75,7 @@ type recordSpreadExpr struct {
 	zctx    *zed.Context
 	elems   []RecordElem
 	builder zcode.Builder
-	columns []zed.Field
+	fields  []zed.Field
 	bytes   []zcode.Bytes
 	cache   *zed.TypeRecord
 }
@@ -87,13 +87,13 @@ func newRecordSpreadExpr(zctx *zed.Context, elems []RecordElem) (*recordSpreadEx
 	}, nil
 }
 
-type column struct {
-	colno int
+type fieldValue struct {
+	index int
 	value zed.Value
 }
 
 func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	object := make(map[string]column)
+	object := make(map[string]fieldValue)
 	for _, elem := range r.elems {
 		if elem.Spread != nil {
 			rec := elem.Spread.Eval(ectx, this)
@@ -106,27 +106,27 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 				continue
 			}
 			it := rec.Iter()
-			for _, col := range typ.Fields {
-				c, ok := object[col.Name]
+			for _, f := range typ.Fields {
+				fv, ok := object[f.Name]
 				if ok {
-					c.value = zed.Value{Type: col.Type, Bytes: it.Next()}
+					fv.value = zed.Value{Type: f.Type, Bytes: it.Next()}
 				} else {
-					c = column{
-						colno: len(object),
-						value: zed.Value{Type: col.Type, Bytes: it.Next()},
+					fv = fieldValue{
+						index: len(object),
+						value: zed.Value{Type: f.Type, Bytes: it.Next()},
 					}
 				}
-				object[col.Name] = c
+				object[f.Name] = fv
 			}
 		} else {
 			val := elem.Field.Eval(ectx, this)
-			c, ok := object[elem.Name]
+			fv, ok := object[elem.Name]
 			if ok {
-				c.value = *val
+				fv.value = *val
 			} else {
-				c = column{colno: len(object), value: *val}
+				fv = fieldValue{index: len(object), value: *val}
 			}
-			object[elem.Name] = c
+			object[elem.Name] = fv
 		}
 	}
 	if len(object) == 0 {
@@ -143,35 +143,34 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 
 // update maps the object into the receiver's vals slice while also
 // seeing if we can reuse the cached record type.  If not we look up
-// a new type, cache it, and save the columns for the cache check.
-func (r *recordSpreadExpr) update(object map[string]column) {
-	if len(r.columns) != len(object) {
+// a new type, cache it, and save the field for the cache check.
+func (r *recordSpreadExpr) update(object map[string]fieldValue) {
+	if len(r.fields) != len(object) {
 		r.invalidate(object)
 		return
 	}
 	for name, field := range object {
-		col := zed.Field{Name: name, Type: field.value.Type}
-		if r.columns[field.colno] != col {
+		if r.fields[field.index] != zed.NewField(name, field.value.Type) {
 			r.invalidate(object)
 			return
 		}
-		r.bytes[field.colno] = field.value.Bytes
+		r.bytes[field.index] = field.value.Bytes
 	}
 }
 
-func (r *recordSpreadExpr) invalidate(object map[string]column) {
-	if n := len(object); cap(r.columns) < n {
-		r.columns = make([]zed.Field, n)
+func (r *recordSpreadExpr) invalidate(object map[string]fieldValue) {
+	if n := len(object); cap(r.fields) < n {
+		r.fields = make([]zed.Field, n)
 		r.bytes = make([]zcode.Bytes, n)
 	} else {
-		r.columns = r.columns[:n]
+		r.fields = r.fields[:n]
 		r.bytes = r.bytes[:n]
 	}
 	for name, field := range object {
-		r.columns[field.colno] = zed.Field{Name: name, Type: field.value.Type}
-		r.bytes[field.colno] = field.value.Bytes
+		r.fields[field.index] = zed.NewField(name, field.value.Type)
+		r.bytes[field.index] = field.value.Bytes
 	}
-	r.cache = r.zctx.MustLookupTypeRecord(r.columns)
+	r.cache = r.zctx.MustLookupTypeRecord(r.fields)
 }
 
 type VectorElem struct {

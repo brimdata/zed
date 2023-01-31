@@ -62,10 +62,9 @@ func (a *Avg) ResultAsPartial(zctx *zed.Context) *zed.Value {
 	var zv zcode.Bytes
 	zv = zed.NewFloat64(a.sum).Encode(zv)
 	zv = zed.NewUint64(a.count).Encode(zv)
-	cols := []zed.Field{
+	typ := zctx.MustLookupTypeRecord([]zed.Field{
 		zed.NewField(sumName, zed.TypeFloat64),
 		zed.NewField(countName, zed.TypeUint64),
-	}
-	typ := zctx.MustLookupTypeRecord(cols)
+	})
 	return zed.NewValue(typ, zv)
 }

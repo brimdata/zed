@@ -20,15 +20,15 @@ func NewFields(zctx *zed.Context) *Fields {
 
 func buildPath(typ *zed.TypeRecord, b *zcode.Builder, prefix []string) []string {
 	var out []string
-	for _, c := range typ.Fields {
-		if typ, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
-			buildPath(typ, b, append(prefix, c.Name))
+	for _, f := range typ.Fields {
+		if typ, ok := zed.TypeUnder(f.Type).(*zed.TypeRecord); ok {
+			buildPath(typ, b, append(prefix, f.Name))
 		} else {
 			b.BeginContainer()
 			for _, s := range prefix {
 				b.Append([]byte(s))
 			}
-			b.Append([]byte(c.Name))
+			b.Append([]byte(f.Name))
 			b.EndContainer()
 		}
 	}

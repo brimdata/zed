@@ -60,8 +60,8 @@ type FieldNameIter struct {
 }
 
 type fieldNameIterInfo struct {
-	columns []zed.Field
-	offset  int
+	fields []zed.Field
+	offset int
 }
 
 func (f *FieldNameIter) Init(t *zed.TypeRecord) {
@@ -80,9 +80,9 @@ func (f *FieldNameIter) Next() []byte {
 	// Step into non-empty records.
 	for {
 		info := &f.stack[len(f.stack)-1]
-		col := info.columns[info.offset]
-		f.buf = append(f.buf, "."+col.Name...)
-		t, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord)
+		field := info.fields[info.offset]
+		f.buf = append(f.buf, "."+field.Name...)
+		t, ok := zed.TypeUnder(field.Type).(*zed.TypeRecord)
 		if !ok || len(t.Fields) == 0 {
 			break
 		}
@@ -93,10 +93,10 @@ func (f *FieldNameIter) Next() []byte {
 	// Advance our position and step out of records.
 	for len(f.stack) > 0 {
 		info := &f.stack[len(f.stack)-1]
-		col := info.columns[info.offset]
-		f.buf = f.buf[:len(f.buf)-len(col.Name)-1]
+		field := info.fields[info.offset]
+		f.buf = f.buf[:len(f.buf)-len(field.Name)-1]
 		info.offset++
-		if info.offset < len(info.columns) {
+		if info.offset < len(info.fields) {
 			break
 		}
 		f.stack = f.stack[:len(f.stack)-1]

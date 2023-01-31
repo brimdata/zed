@@ -18,7 +18,7 @@ type Proc struct {
 }
 
 // New creates a exploder for type typ, where the
-// output records' single column is named name.
+// output records' single field is named name.
 func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string) (zbuf.Puller, error) {
 	return &Proc{
 		parent:  parent,

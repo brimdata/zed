@@ -12,8 +12,8 @@ import (
 // Putter is an Applier that modifies the record stream with computed values.
 // Each new value is called a clause and consists of a field name and
 // an expression. Each put clause either replaces an existing value in
-// the column specified or appends a value as a new column.  Appended
-// values appear as new columns in the order that the clause appears
+// the field specified or appends a value as a new field.  Appended
+// values appear as new fields in the order that the clause appears
 // in the put expression.
 type Putter struct {
 	zctx    *zed.Context
@@ -28,7 +28,7 @@ type Putter struct {
 }
 
 // A putRule describes how a given record type is modified by describing
-// which input columns should be replaced with which clause expression and
+// which input fields should be replaced with which clause expression and
 // which clauses should be appended.  The type of each clause expression
 // is recorded since a new rule must be created if any of the types change.
 // Such changes aren't typically expected but are possible in the expression
@@ -188,25 +188,25 @@ func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value, clauses [
 	return p.deriveRecordSteps(field.NewEmpty(), inType.Fields, vals, clauses)
 }
 
-func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Field, vals []zed.Value, clauses []Assignment) (putStep, *zed.TypeRecord) {
+func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, vals []zed.Value, clauses []Assignment) (putStep, *zed.TypeRecord) {
 	s := putStep{op: putRecord}
-	cols := make([]zed.Field, 0)
+	fields := make([]zed.Field, 0)
 
-	// First look at all input columns to see which should
+	// First look at all input fields to see which should
 	// be copied over and which should be overwritten by
 	// assignments.
-	for i, inCol := range inCols {
-		path := append(parentPath, inCol.Name)
+	for i, f := range inFields {
+		path := append(parentPath, f.Name)
 		matchIndex, matchPath, found := findOverwriteClause(path, clauses)
 		switch {
 		// input not overwritten by assignment: copy input value.
 		case !found:
 			s.append(putStep{
 				op:        putFromInput,
-				container: zed.IsContainerType(inCol.Type),
+				container: zed.IsContainerType(f.Type),
 				index:     i,
 			})
-			cols = append(cols, inCol)
+			fields = append(fields, f)
 		// input field overwritten by non-nested assignment: copy assignment value.
 		case len(path) == len(matchPath):
 			s.append(putStep{
@@ -214,19 +214,19 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Field, va
 				container: zed.IsContainerType(vals[matchIndex].Type),
 				index:     matchIndex,
 			})
-			cols = append(cols, zed.Field{Name: inCol.Name, Type: vals[matchIndex].Type})
+			fields = append(fields, zed.NewField(f.Name, vals[matchIndex].Type))
 		// input record field overwritten by nested assignment: recurse.
-		case len(path) < len(matchPath) && zed.IsRecordType(inCol.Type):
-			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Fields, vals, clauses)
+		case len(path) < len(matchPath) && zed.IsRecordType(f.Type):
+			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(f.Type).Fields, vals, clauses)
 			nestedStep.index = i
 			s.append(nestedStep)
-			cols = append(cols, zed.Field{Name: inCol.Name, Type: typ})
+			fields = append(fields, zed.NewField(f.Name, typ))
 		// input non-record field overwritten by nested assignment(s): recurse.
-		case len(path) < len(matchPath) && !zed.IsRecordType(inCol.Type):
+		case len(path) < len(matchPath) && !zed.IsRecordType(f.Type):
 			nestedStep, typ := p.deriveRecordSteps(path, []zed.Field{}, vals, clauses)
 			nestedStep.index = i
 			s.append(nestedStep)
-			cols = append(cols, zed.Field{Name: inCol.Name, Type: typ})
+			fields = append(fields, zed.NewField(f.Name, typ))
 		default:
 			panic("put: internal error computing record steps")
 		}
@@ -236,7 +236,7 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Field, va
 		if !cl.LHS.HasPrefix(parentPath) {
 			return false
 		}
-		return !hasField(cl.LHS[len(parentPath)], cols)
+		return !hasField(cl.LHS[len(parentPath)], fields)
 	}
 	// Then, look at put assignments to see if there are any new fields to append.
 	for i, cl := range clauses {
@@ -249,27 +249,27 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inCols []zed.Field, va
 					container: zed.IsContainerType(vals[i].Type),
 					index:     i,
 				})
-				cols = append(cols, zed.Field{Name: cl.LHS[len(parentPath)], Type: vals[i].Type})
+				fields = append(fields, zed.NewField(cl.LHS[len(parentPath)], vals[i].Type))
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(cl.LHS) > len(parentPath)+1:
 				path := append(parentPath, cl.LHS[len(parentPath)])
 				nestedStep, typ := p.deriveRecordSteps(path, []zed.Field{}, vals, clauses)
 				nestedStep.index = -1
-				cols = append(cols, zed.Field{Name: cl.LHS[len(parentPath)], Type: typ})
+				fields = append(fields, zed.NewField(cl.LHS[len(parentPath)], typ))
 				s.append(nestedStep)
 			}
 		}
 	}
-	typ, err := p.zctx.LookupTypeRecord(cols)
+	typ, err := p.zctx.LookupTypeRecord(fields)
 	if err != nil {
 		panic(err)
 	}
 	return s, typ
 }
 
-func hasField(name string, cols []zed.Field) bool {
-	for _, col := range cols {
-		if col.Name == name {
+func hasField(name string, fields []zed.Field) bool {
+	for _, f := range fields {
+		if f.Name == name {
 			return true
 		}
 	}

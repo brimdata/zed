@@ -99,10 +99,10 @@ func findCuts(o *Object, names []string) ([]*cut, error) {
 func newCut(zctx *zed.Context, typ *zed.TypeRecord, fields []Vector, actuals []string, reader storage.Reader) (*cut, error) {
 	var group errgroup.Group
 	iters := make([]iterator, len(actuals))
-	columns := make([]zed.Field, len(actuals))
+	outFields := make([]zed.Field, len(actuals))
 	for k, name := range actuals {
 		col, _ := typ.ColumnOfField(name)
-		columns[k] = typ.Fields[col]
+		outFields[k] = typ.Fields[col]
 		which := k
 		group.Go(func() error {
 			it, err := fields[col].NewIter(reader)
@@ -116,7 +116,7 @@ func newCut(zctx *zed.Context, typ *zed.TypeRecord, fields []Vector, actuals []s
 	if err := group.Wait(); err != nil {
 		return nil, err
 	}
-	outType, err := zctx.LookupTypeRecord(columns)
+	outType, err := zctx.LookupTypeRecord(outFields)
 	if err != nil {
 		return nil, err
 	}

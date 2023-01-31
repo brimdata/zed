@@ -205,7 +205,7 @@ func (s *searchString) Eval(ectx Context, val *zed.Value) *zed.Value {
 		}
 	}
 	// Memoize the result of a search across the names in the
-	// record columns for each unique record type.
+	// record fields for each unique record type.
 	if s.searchType(val.Type) {
 		return zed.True
 	}

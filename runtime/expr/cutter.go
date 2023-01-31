@@ -36,7 +36,7 @@ func NewCutter(zctx *zed.Context, fieldRefs field.List, fieldExprs []Evaluator) 
 	}
 	var b *zed.RecordBuilder
 	if len(fieldRefs) == 0 || !fieldRefs[0].IsEmpty() {
-		// A root field will cause NewColumnBuilder to panic.
+		// A root field will cause NewFieldBuilder to panic.
 		var err error
 		b, err = zed.NewRecordBuilder(zctx, fieldRefs)
 		if err != nil {
@@ -130,5 +130,5 @@ func (c *Cutter) Warning() string {
 	if c.quiet || c.FoundCut() {
 		return ""
 	}
-	return fmt.Sprintf("no record found with columns %s", fieldList(c.fieldExprs))
+	return fmt.Sprintf("no record found with fields %s", fieldList(c.fieldExprs))
 }

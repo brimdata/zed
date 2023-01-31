@@ -13,8 +13,8 @@ type SpanFilter struct {
 	eval Evaluator
 
 	builder zcode.Builder
-	cols    []zed.Field
 	ectx    Context
+	fields  []zed.Field
 	val     zed.Value
 	zctx    *zed.Context
 }
@@ -22,20 +22,20 @@ type SpanFilter struct {
 func NewSpanFilter(eval Evaluator) *SpanFilter {
 	return &SpanFilter{
 		eval: eval,
-		cols: []zed.Field{
+		ectx: NewContext(),
+		fields: []zed.Field{
 			{Name: "lower"},
 			{Name: "upper"},
 		},
-		ectx: NewContext(),
 		zctx: zed.NewContext(),
 	}
 }
 
 func (o *SpanFilter) Eval(lower, upper *zed.Value) bool {
-	o.cols[0].Type = lower.Type
-	o.cols[1].Type = upper.Type
-	if o.val.Type == nil || o.cols[0].Type != lower.Type || o.cols[1].Type != upper.Type {
-		o.val.Type = o.zctx.MustLookupTypeRecord(o.cols)
+	o.fields[0].Type = lower.Type
+	o.fields[1].Type = upper.Type
+	if o.val.Type == nil || o.fields[0].Type != lower.Type || o.fields[1].Type != upper.Type {
+		o.val.Type = o.zctx.MustLookupTypeRecord(o.fields)
 	}
 	o.builder.Reset()
 	o.builder.Append(lower.Bytes)

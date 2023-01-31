@@ -42,15 +42,15 @@ func merge(zctx *zed.Context, a, b zed.Type) zed.Type {
 	}
 	if a, ok := aUnder.(*zed.TypeRecord); ok {
 		if b, ok := bUnder.(*zed.TypeRecord); ok {
-			cols := slices.Clone(a.Fields)
-			for _, c := range b.Fields {
-				if i, ok := columnOfField(cols, c.Name); !ok {
-					cols = append(cols, c)
-				} else if cols[i] != c {
-					cols[i].Type = merge(zctx, cols[i].Type, c.Type)
+			fields := slices.Clone(a.Fields)
+			for _, f := range b.Fields {
+				if i, ok := indexOfField(fields, f.Name); !ok {
+					fields = append(fields, f)
+				} else if fields[i] != f {
+					fields[i].Type = merge(zctx, fields[i].Type, f.Type)
 				}
 			}
-			return zctx.MustLookupTypeRecord(cols)
+			return zctx.MustLookupTypeRecord(fields)
 		}
 	}
 	if a, ok := aUnder.(*zed.TypeArray); ok {
@@ -107,9 +107,9 @@ func appendIfAbsent(types []zed.Type, typ zed.Type) []zed.Type {
 	return append(types, typ)
 }
 
-func columnOfField(cols []zed.Field, name string) (int, bool) {
-	for i, c := range cols {
-		if c.Name == name {
+func indexOfField(fields []zed.Field, name string) (int, bool) {
+	for i, f := range fields {
+		if f.Name == name {
 			return i, true
 		}
 	}
