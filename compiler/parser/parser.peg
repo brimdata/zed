@@ -514,8 +514,8 @@ PoolAt
 KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
 
 PoolSpec
-  = pool:PoolName commit:PoolCommit? meta:PoolMeta? {
-      RETURN(MAP("pool": pool, "commit": commit, "meta": meta))
+  = pool:PoolName commit:PoolCommit? meta:PoolMeta? tap:TapArg {
+      RETURN(MAP("pool": pool, "commit": commit, "meta": meta, "tap":tap))
     }
   / meta:PoolMeta {
       RETURN(MAP("pool": NULL, "commit": NULL, "meta": meta))
@@ -545,6 +545,10 @@ LayoutArg
   = _ "order" _ keys:FieldExprs order:OrderSuffix {
       RETURN(MAP("kind": "Layout", "keys": keys, "order": order))
     }
+
+TapArg
+  = _ "tap" { RETURN(true) }
+  / "" { RETURN(false) }
 
 FormatArg
   = _ "format" _ val:IdentifierName { RETURN(val) }

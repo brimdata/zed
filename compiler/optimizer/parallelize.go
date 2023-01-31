@@ -228,10 +228,11 @@ func replicateTrunk(from *dag.From, trunk *dag.Trunk, replicas int) {
 			pd = copyOp(pd)
 		}
 		replica := dag.Trunk{
-			Kind:     "Trunk",
-			Source:   src,
-			Seq:      newSeq,
-			Pushdown: pd,
+			Kind:      "Trunk",
+			Source:    src,
+			Seq:       newSeq,
+			Pushdown:  pd,
+			KeyPruner: trunk.KeyPruner,
 		}
 		from.Trunks = append(from.Trunks, replica)
 	}

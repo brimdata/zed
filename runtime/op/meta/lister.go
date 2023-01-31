@@ -26,7 +26,7 @@ type Lister struct {
 	ctx       context.Context
 	pool      *lake.Pool
 	snap      commits.View
-	filter    zbuf.Filter
+	pruner    *Pruner
 	group     *errgroup.Group
 	marshaler *zson.MarshalZNGContext
 	mu        sync.Mutex
@@ -36,33 +36,36 @@ type Lister struct {
 
 var _ zbuf.Puller = (*Lister)(nil)
 
-func NewSortedLister(ctx context.Context, zctx *zed.Context, r *lake.Root, pool *lake.Pool, commit ksuid.KSUID, filter zbuf.Filter) (*Lister, error) {
+func NewSortedLister(ctx context.Context, zctx *zed.Context, r *lake.Root, pool *lake.Pool, commit ksuid.KSUID, pruner expr.Evaluator) (*Lister, error) {
 	snap, err := pool.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err
 	}
-	return NewSortedListerFromSnap(ctx, zctx, r, pool, snap, filter), nil
+	return NewSortedListerFromSnap(ctx, zctx, r, pool, snap, pruner), nil
 }
 
-func NewSortedListerByID(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, filter zbuf.Filter) (*Lister, error) {
+func NewSortedListerByID(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, pruner expr.Evaluator) (*Lister, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
 	}
-	return NewSortedLister(ctx, zctx, r, pool, commit, filter)
+	return NewSortedLister(ctx, zctx, r, pool, commit, pruner)
 }
 
-func NewSortedListerFromSnap(ctx context.Context, zctx *zed.Context, r *lake.Root, pool *lake.Pool, snap commits.View, filter zbuf.Filter) *Lister {
+func NewSortedListerFromSnap(ctx context.Context, zctx *zed.Context, r *lake.Root, pool *lake.Pool, snap commits.View, pruner expr.Evaluator) *Lister {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return &Lister{
+	l := &Lister{
 		ctx:       ctx,
 		pool:      pool,
 		snap:      snap,
-		filter:    filter,
 		group:     &errgroup.Group{},
 		marshaler: m,
 	}
+	if pruner != nil {
+		l.pruner = NewPruner(pruner, pool.Layout.Order)
+	}
+	return l
 }
 
 func (l *Lister) Snapshot() commits.View {
@@ -73,62 +76,31 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.objects == nil {
-		l.objects, l.err = initObjectScan(l.snap, l.pool.Layout, l.filter)
-		if l.err != nil {
-			return nil, l.err
-		}
+		l.objects = initObjectScan(l.snap, l.pool.Layout)
 	}
-	// End after the last object.  XXX we could change this so a scan can appear
-	// inside of a subgraph and be restarted after each time done is called
-	// (like how head/tail work).
-	if l.err != nil || len(l.objects) == 0 {
+	if l.err != nil {
 		return nil, l.err
 	}
-	o := l.objects[0]
-	l.objects = l.objects[1:]
-	val, err := l.marshaler.Marshal(o)
-	if err != nil {
-		l.err = err
-		return nil, err
-	}
-	return zbuf.NewArray([]zed.Value{*val}), nil
-}
-
-type Slice struct {
-	First  *zed.Value
-	Last   *zed.Value
-	Object *data.Object
-}
-
-func initObjectScan(snap commits.View, layout order.Layout, filter zbuf.Filter) ([]*data.Object, error) {
-	objects := snap.Select(nil, layout.Order)
-	var f *expr.SpanFilter //XXX get rid of this
-	if filter != nil {
-		var err error
-		// Order is passed here just to handle nullsmax in the comparison.
-		// So we still need to swap first/last when descending order.
-		f, err = filter.AsKeySpanFilter(layout.Primary(), layout.Order)
+	for len(l.objects) != 0 {
+		o := l.objects[0]
+		l.objects = l.objects[1:]
+		val, err := l.marshaler.Marshal(o)
 		if err != nil {
+			l.err = err
 			return nil, err
 		}
-		if f != nil {
-			var filtered []*data.Object
-			for _, obj := range objects {
-				from := &obj.From
-				to := &obj.To
-				if layout.Order == order.Desc {
-					from, to = to, from
-				}
-				if !f.Eval(from, to) {
-					filtered = append(filtered, obj)
-				}
-			}
-			objects = filtered
+		if !l.pruner.prune(val) {
+			return zbuf.NewArray([]zed.Value{*val}), nil
 		}
 	}
+	return nil, nil
+}
+
+func initObjectScan(snap commits.View, layout order.Layout) []*data.Object {
+	objects := snap.Select(nil, layout.Order)
 	//XXX at some point sorting should be optional.
 	sortObjects(objects, layout.Order)
-	return objects, nil
+	return objects
 }
 
 func sortObjects(objects []*data.Object, o order.Which) {

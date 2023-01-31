@@ -257,15 +257,19 @@ func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName 
 }
 
 func (r *Root) Layout(ctx context.Context, src dag.Source) order.Layout {
-	poolSrc, ok := src.(*dag.Pool)
-	if !ok {
-		return order.Nil
+	switch src := src.(type) {
+	case *dag.Pool:
+		if config, err := r.pools.LookupByID(ctx, src.ID); err == nil {
+			return config.Layout
+		}
+	case *dag.CommitMeta:
+		if src.Tap {
+			if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
+				return config.Layout
+			}
+		}
 	}
-	config, err := r.pools.LookupByID(ctx, poolSrc.ID)
-	if err != nil {
-		return order.Nil
-	}
-	return config.Layout
+	return order.Nil
 }
 
 func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {

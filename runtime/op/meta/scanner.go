@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -60,14 +61,14 @@ func NewPoolMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, po
 	return zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
 }
 
-func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, filter zbuf.Filter) (zbuf.Puller, error) {
+func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, filter zbuf.Filter, pruner expr.Evaluator) (zbuf.Puller, error) {
 	p, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
 	}
 	switch meta {
 	case "objects":
-		return NewSortedLister(ctx, zctx, r, p, commit, filter)
+		return NewSortedLister(ctx, zctx, r, p, commit, pruner)
 	case "indexes":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
@@ -79,7 +80,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		}
 		return zbuf.NewScanner(ctx, reader, filter)
 	case "partitions":
-		lister, err := NewSortedLister(ctx, zctx, r, p, commit, filter)
+		lister, err := NewSortedLister(ctx, zctx, r, p, commit, pruner)
 		if err != nil {
 			return nil, err
 		}

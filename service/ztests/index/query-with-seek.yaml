@@ -1,3 +1,5 @@
+skip: search tests disabled for now
+
 script: |
   source service.sh
   zed create -q -seekstride 1KiB -orderby dname:asc test

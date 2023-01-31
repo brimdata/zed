@@ -1,3 +1,5 @@
+skip: search indexes disabled for now
+
 script: |
   export ZED_LAKE=test
   zed init -q
