@@ -34,7 +34,6 @@ func NewSlicer(parent zbuf.Puller, zctx *zed.Context, o order.Which) *Slicer {
 		parent:      parent,
 		marshaler:   m,
 		unmarshaler: zson.NewZNGUnmarshaler(),
-		objects:     []*data.Object{},
 		//XXX check nullsmax is consistent for both dirs in lake ops
 		cmp: expr.NewValueCompareFn(o, o == order.Asc),
 	}
@@ -63,7 +62,7 @@ func (s *Slicer) Pull(done bool) (zbuf.Batch, error) {
 		vals := batch.Values()
 		if len(vals) != 1 {
 			// We currently support only one object per batch.
-			return nil, errors.New("system error: Searcher encountered multi-valued batch")
+			return nil, errors.New("system error: Slicer encountered multi-valued batch")
 		}
 		var object data.Object
 		if err := s.unmarshaler.Unmarshal(&vals[0], &object); err != nil {
@@ -81,19 +80,14 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 	if len(s.objects) == 0 {
 		return nil, nil
 	}
-	var first *zed.Value
-	var last *zed.Value
-	for _, o := range s.objects {
-		if first == nil {
+	first := &s.objects[0].First
+	last := &s.objects[0].Last
+	for _, o := range s.objects[1:] {
+		if s.cmp(&o.First, first) < 0 {
 			first = &o.First
+		}
+		if s.cmp(&o.Last, last) > 0 {
 			last = &o.Last
-		} else {
-			if s.cmp(&o.First, first) < 0 {
-				first = &o.First
-			}
-			if s.cmp(&o.Last, last) > 0 {
-				last = &o.Last
-			}
 		}
 	}
 	val, err := s.marshaler.Marshal(&Partition{

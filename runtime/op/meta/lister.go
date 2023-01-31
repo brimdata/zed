@@ -19,7 +19,7 @@ import (
 )
 
 // Lister enumerates all the data.Objects in a scan.  A Slicer downstream may
-// optionally organizes objects into non-overlapping partitions for merge on read.
+// optionally organize objects into non-overlapping partitions for merge on read.
 // The optimizer may decide when partitions are necessary based on the order
 // sensitivity of the downstream flowgraph.
 type Lister struct {
@@ -78,13 +78,10 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 			return nil, l.err
 		}
 	}
-	if l.err != nil || len(l.objects) == 0 {
-		return nil, l.err
-	}
 	// End after the last object.  XXX we could change this so a scan can appear
 	// inside of a subgraph and be restarted after each time done is called
 	// (like how head/tail work).
-	if len(l.objects) == 0 {
+	if l.err != nil || len(l.objects) == 0 {
 		return nil, l.err
 	}
 	o := l.objects[0]

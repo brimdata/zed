@@ -11,14 +11,15 @@ import (
 )
 
 func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.URI,
-	o *Object, cmp expr.CompareFn, filter *expr.SpanFilter, countSpan extent.Span, dir order.Which) (seekindex.Range, error) {
-	r, err := engine.Get(ctx, o.SeekIndexURI(path))
+	obj *Object, cmp expr.CompareFn, filter *expr.SpanFilter, countSpan extent.Span, o order.Which) (*seekindex.Range, error) {
+	r, err := engine.Get(ctx, obj.SeekIndexURI(path))
 	if err != nil {
-		return seekindex.Range{}, err
+		return nil, err
 	}
 	defer r.Close()
-	rg := seekindex.Range{Start: -1}
-	reader := seekindex.NewSectionReader(r, o.Last, o.Count, o.Size, cmp)
+	rg := &seekindex.Range{Start: -1}
+	reader := seekindex.NewSectionReader(r, obj.Last, obj.Count, obj.Size, cmp)
+	swapper := expr.NewValueCompareFn(order.Asc, o == order.Asc)
 	for {
 		s, err := reader.Next()
 		if s == nil || err != nil {
@@ -26,7 +27,6 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 		}
 		first := s.Keys.First()
 		last := s.Keys.Last()
-		swapper := expr.NewValueCompareFn(order.Asc, dir == order.Asc)
 		if swapper(first, last) > 0 {
 			first, last = last, first
 		}

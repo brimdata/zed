@@ -207,11 +207,7 @@ func seekRange(ctx context.Context, pool *lake.Pool, snap commits.View, filter z
 		if err != nil {
 			return nil, err
 		}
-		r, err := data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, o, cmp, spanFilter, indexSpan, pool.Layout.Order)
-		if err != nil {
-			return nil, err
-		}
-		return &r, nil
+		return data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, o, cmp, spanFilter, indexSpan, pool.Layout.Order)
 	}
 	// Scan the entire object.
 	return &seekindex.Range{End: o.Size}, nil
