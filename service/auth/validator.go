@@ -102,18 +102,22 @@ func (v *TokenValidator) Validate(token string) (Identity, error) {
 	if !verifyAPIAudience(claims) {
 		return Identity{}, srverr.ErrNoCredentials("invalid audience")
 	}
-	tid, _ := claims[TenantIDClaim].(string)
-	if tid == "" || TenantID(tid) == AnonymousTenantID {
-		return Identity{}, srverr.ErrNoCredentials("invalid tenant id")
+	ident := Identity{AnonymousTenantID, AnonymousUserID}
+	if v, ok := claims[TenantIDClaim]; ok {
+		s, _ := v.(string)
+		if s == "" || TenantID(s) == AnonymousTenantID {
+			return Identity{}, srverr.ErrNoCredentials("invalid tenant ID")
+		}
+		ident.TenantID = TenantID(s)
 	}
-	uid, _ := claims[UserIDClaim].(string)
-	if uid == "" || UserID(uid) == AnonymousUserID {
-		return Identity{}, srverr.ErrNoCredentials("invalid user id")
+	if v, ok := claims[UserIDClaim]; ok {
+		s, _ := v.(string)
+		if s == "" || UserID(s) == AnonymousUserID {
+			return Identity{}, srverr.ErrNoCredentials("invalid tenant ID")
+		}
+		ident.UserID = UserID(s)
 	}
-	return Identity{
-		TenantID: TenantID(tid),
-		UserID:   UserID(uid),
-	}, nil
+	return ident, nil
 }
 
 func verifyAPIAudience(claims jwt.MapClaims) bool {
