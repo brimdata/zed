@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/service/srverr"
 	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/request"
 )
 
 const (
@@ -57,20 +57,11 @@ func NewTokenValidator(domain, jwksPath string) (*TokenValidator, error) {
 	}, nil
 }
 
-func getBearerToken(r *http.Request) string {
-	hdr := r.Header.Get("Authorization")
-	if hdr == "" {
-		return ""
-	}
-	s := strings.Fields(hdr)
-	if len(s) != 2 || strings.ToLower(s[0]) != "bearer" {
-		return ""
-	}
-	return s[1]
-}
-
 func (v *TokenValidator) ValidateRequest(r *http.Request) (string, Identity, error) {
-	token := getBearerToken(r)
+	token, err := request.AuthorizationHeaderExtractor.ExtractToken(r)
+	if err != nil {
+		return "", Identity{}, srverr.ErrNoCredentials(err)
+	}
 	ident, err := v.Validate(token)
 	if err != nil {
 		return "", Identity{}, err
@@ -90,6 +81,9 @@ func (v *TokenValidator) Validate(token string) (Identity, error) {
 		return Identity{}, srverr.ErrNoCredentials("invalid signing method")
 	}
 	claims := parsed.Claims.(jwt.MapClaims)
+	if !claims.VerifyAudience(AudienceClaimValue, true) {
+		return Identity{}, srverr.ErrNoCredentials("invalid audience")
+	}
 	// jwt-go verifies any expiry claim, but will not fail if the expiry claim
 	// is missing. The call here with req=true ensures that the claim is both
 	// present and valid.
@@ -98,9 +92,6 @@ func (v *TokenValidator) Validate(token string) (Identity, error) {
 	}
 	if !claims.VerifyIssuer(v.expectedIssuer, true) {
 		return Identity{}, srverr.ErrNoCredentials("invalid issuer")
-	}
-	if !verifyAPIAudience(claims) {
-		return Identity{}, srverr.ErrNoCredentials("invalid audience")
 	}
 	tid, _ := claims[TenantIDClaim].(string)
 	if tid == "" || TenantID(tid) == AnonymousTenantID {
@@ -114,24 +105,6 @@ func (v *TokenValidator) Validate(token string) (Identity, error) {
 		TenantID: TenantID(tid),
 		UserID:   UserID(uid),
 	}, nil
-}
-
-func verifyAPIAudience(claims jwt.MapClaims) bool {
-	// Audience claim may either be a string, or a slice of interfaces that are
-	// strings.
-	// https://auth0.com/docs/tokens/access-tokens/get-access-tokens#multiple-audiences
-	if str, ok := claims["aud"].(string); ok {
-		return str == AudienceClaimValue
-	}
-	if arr, ok := claims["aud"].([]interface{}); ok {
-		for _, a := range arr {
-			s, _ := a.(string)
-			if s == AudienceClaimValue {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // jwks matches the format of a JSON Web Key Set file:
