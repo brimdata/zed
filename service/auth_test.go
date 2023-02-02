@@ -18,6 +18,7 @@ func testAuthConfig() service.AuthConfig {
 	return service.AuthConfig{
 		Enabled:  true,
 		JWKSPath: "testdata/auth-public-jwks.json",
+		Audience: "testaudience",
 		Domain:   "https://testdomain",
 		ClientID: "testclientid",
 	}
@@ -26,7 +27,7 @@ func testAuthConfig() service.AuthConfig {
 func genToken(t *testing.T, tenantID auth.TenantID, userID auth.UserID) string {
 	ac := testAuthConfig()
 	token, err := auth.GenerateAccessToken("testkey", "testdata/auth-private-key",
-		1*time.Hour, ac.Domain, tenantID, userID)
+		1*time.Hour, ac.Audience, ac.Domain, tenantID, userID)
 	require.NoError(t, err)
 	return token
 }
@@ -80,7 +81,7 @@ func TestAuthMethodGet(t *testing.T) {
 		require.Equal(t, api.AuthMethodResponse{
 			Kind: "auth0",
 			Auth0: &api.AuthMethodAuth0Details{
-				Audience: auth.AudienceClaimValue,
+				Audience: authConfig.Audience,
 				Domain:   authConfig.Domain,
 				ClientID: authConfig.ClientID,
 			},

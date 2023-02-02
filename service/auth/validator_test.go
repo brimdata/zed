@@ -10,13 +10,14 @@ import (
 )
 
 const (
+	testAudience = "testaudience"
 	testKeyID    = "testkey"
 	testKeyFile  = "../testdata/auth-private-key"
 	testJWKSFile = "../testdata/auth-public-jwks.json"
 )
 
 func testValidator(t *testing.T) *TokenValidator {
-	v, err := NewTokenValidator("https://testdomain", testJWKSFile)
+	v, err := NewTokenValidator(testAudience, "https://testdomain", testJWKSFile)
 	require.NoError(t, err)
 	return v
 }
@@ -33,7 +34,7 @@ func TestValidate(t *testing.T) {
 		UserID:   "test_user_id",
 	}
 	token, err := GenerateAccessToken(testKeyID, testKeyFile, 1*time.Hour,
-		"https://testdomain", "test_tenant_id", "test_user_id")
+		testAudience, "https://testdomain", "test_tenant_id", "test_user_id")
 	require.NoError(t, err)
 	validator := testValidator(t)
 
@@ -57,7 +58,7 @@ func TestValidate(t *testing.T) {
 
 func TestValidateNoTenantIDAndUserIDClaims(t *testing.T) {
 	token, err := makeToken(testKeyID, testKeyFile, jwt.MapClaims{
-		"aud": AudienceClaimValue,
+		"aud": testAudience,
 		"exp": time.Now().Add(time.Hour).Unix(),
 		"iss": "https://testdomain/",
 	})
@@ -94,7 +95,7 @@ func TestBadClaims(t *testing.T) {
 		{
 			name: "missing expiration",
 			token: genToken(t, jwt.MapClaims{
-				"aud":         AudienceClaimValue,
+				"aud":         testAudience,
 				"iss":         "https://testdomain/",
 				TenantIDClaim: "test_tenant_id",
 				UserIDClaim:   "test_user_id",
@@ -103,7 +104,7 @@ func TestBadClaims(t *testing.T) {
 		{
 			name: "expired expiration",
 			token: genToken(t, jwt.MapClaims{
-				"aud":         AudienceClaimValue,
+				"aud":         testAudience,
 				"exp":         time.Now().Add(-1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
 				TenantIDClaim: "test_tenant_id",
@@ -113,7 +114,7 @@ func TestBadClaims(t *testing.T) {
 		{
 			name: "missing issuer",
 			token: genToken(t, jwt.MapClaims{
-				"aud":         AudienceClaimValue,
+				"aud":         testAudience,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				TenantIDClaim: "test_tenant_id",
 				UserIDClaim:   "test_user_id",
@@ -122,7 +123,7 @@ func TestBadClaims(t *testing.T) {
 		{
 			name: "invalid issuer",
 			token: genToken(t, jwt.MapClaims{
-				"aud":         AudienceClaimValue,
+				"aud":         testAudience,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "foo",
 				TenantIDClaim: "test_tenant_id",
@@ -132,7 +133,7 @@ func TestBadClaims(t *testing.T) {
 		{
 			name: "empty user id",
 			token: genToken(t, jwt.MapClaims{
-				"aud":         AudienceClaimValue,
+				"aud":         testAudience,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
 				TenantIDClaim: "test_tenant_id",
@@ -142,7 +143,7 @@ func TestBadClaims(t *testing.T) {
 		{
 			name: "anonymous user id",
 			token: genToken(t, jwt.MapClaims{
-				"aud":         AudienceClaimValue,
+				"aud":         testAudience,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
 				TenantIDClaim: "test_tenant_id",
@@ -152,7 +153,7 @@ func TestBadClaims(t *testing.T) {
 		{
 			name: "empty tenant id",
 			token: genToken(t, jwt.MapClaims{
-				"aud":         AudienceClaimValue,
+				"aud":         testAudience,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
 				TenantIDClaim: "",
@@ -162,7 +163,7 @@ func TestBadClaims(t *testing.T) {
 		{
 			name: "anonymous tenant id",
 			token: genToken(t, jwt.MapClaims{
-				"aud":         AudienceClaimValue,
+				"aud":         testAudience,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
 				TenantIDClaim: AnonymousTenantID,
@@ -182,7 +183,7 @@ func TestBadClaims(t *testing.T) {
 
 func TestKeyID(t *testing.T) {
 	claims := jwt.MapClaims{
-		"aud":         AudienceClaimValue,
+		"aud":         testAudience,
 		"exp":         time.Now().Add(1 * time.Hour).Unix(),
 		"iss":         "https://testdomain/",
 		TenantIDClaim: "test_tenant_id",
@@ -216,7 +217,7 @@ func TestAudienceSlice(t *testing.T) {
 		UserID:   "test_user_id",
 	}
 	token := genToken(t, jwt.MapClaims{
-		"aud":         []string{AudienceClaimValue, "foobar"},
+		"aud":         []string{testAudience, "foobar"},
 		"exp":         time.Now().Add(1 * time.Hour).Unix(),
 		"iss":         "https://testdomain/",
 		TenantIDClaim: "test_tenant_id",

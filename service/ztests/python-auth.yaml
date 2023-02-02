@@ -7,8 +7,8 @@ script: |
   # -qq supresses warnings about availability of newer pip versions.
   pip install -qq ./zed
 
-  LAKE_EXTRA_FLAGS='-auth.enabled=t -auth.clientid=c -auth.domain=d -auth.jwkspath=auth-public-jwks.json' source service.sh source service.sh
-  token=$(gentoken -domain d -keyid testkey -privatekeyfile auth-private-key -tenantid t -userid u)
+  LAKE_EXTRA_FLAGS='-auth.enabled=t -auth.audience=a -auth.clientid=c -auth.domain=d -auth.jwkspath=auth-public-jwks.json' source service.sh source service.sh
+  token=$(gentoken -audience a -domain d -keyid testkey -privatekeyfile auth-private-key -tenantid t -userid u)
   zed auth store -access $token -lake $ZED_LAKE
 
   python <<EOF

@@ -21,6 +21,7 @@ var CLI = &charm.Spec{
 type Command struct {
 	charm.Command
 
+	audience       string
 	domain         string
 	expiration     time.Duration
 	privateKeyFile string
@@ -31,6 +32,7 @@ type Command struct {
 
 func New(_ charm.Command, fs *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
+	fs.StringVar(&c.audience, "audience", "", "audience claim in generated token")
 	fs.StringVar(&c.domain, "domain", "", "domain to use to generate token issuer")
 	fs.DurationVar(&c.expiration, "expiration", 4*time.Hour, "expiry duration for generated token")
 	fs.StringVar(&c.privateKeyFile, "privatekeyfile", "", "path of file containing private key (required)")
@@ -47,7 +49,8 @@ func (c *Command) Run(args []string) error {
 	if c.privateKeyFile == "" {
 		return errors.New("must specify a keyfile")
 	}
-	token, err := auth.GenerateAccessToken(c.keyID, c.privateKeyFile, c.expiration, c.domain, auth.TenantID(c.tenantID), auth.UserID(c.userID))
+	token, err := auth.GenerateAccessToken(
+		c.keyID, c.privateKeyFile, c.expiration, c.audience, c.domain, auth.TenantID(c.tenantID), auth.UserID(c.userID))
 	if err != nil {
 		return fmt.Errorf("GenerateAccessToken failed: %w", err)
 	}
