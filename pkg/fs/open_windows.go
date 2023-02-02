@@ -30,7 +30,7 @@ import (
 // required variable to do so is not exported from package os.
 func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 	if name == "" {
-		return nil, &os.PathError{"open", name, syscall.ENOENT}
+		return nil, &os.PathError{Op: "open", Path: name, Err: syscall.ENOENT}
 	}
 	h, e := syscallOpen(fixLongPath(name), flag|syscall.O_CLOEXEC, syscallMode(perm))
 	if e != nil {
