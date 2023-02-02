@@ -46,13 +46,26 @@ func TestValidate(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Add("Authorization", "Bearer "+token)
 	tokstr, ident, err := validator.ValidateRequest(req)
+	require.NoError(t, err)
 	require.Equal(t, expectedIdent, ident)
 	require.Equal(t, token, tokstr)
 
 	req, err = http.NewRequest("GET", "https://testdomain", nil)
 	require.NoError(t, err)
-	tokstr, ident, err = validator.ValidateRequest(req)
+	_, _, err = validator.ValidateRequest(req)
 	require.Error(t, err)
+}
+
+func TestValidateNoTenantIDAndUserIDClaims(t *testing.T) {
+	token, err := makeToken(testKeyID, testKeyFile, jwt.MapClaims{
+		"aud": testAudience,
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"iss": "https://testdomain/",
+	})
+	require.NoError(t, err)
+	ident, err := testValidator(t).Validate(token)
+	require.NoError(t, err)
+	require.Equal(t, Identity{AnonymousTenantID, AnonymousUserID}, ident)
 }
 
 func TestBadClaims(t *testing.T) {
@@ -118,12 +131,13 @@ func TestBadClaims(t *testing.T) {
 			}),
 		},
 		{
-			name: "missing user id",
+			name: "empty user id",
 			token: genToken(t, jwt.MapClaims{
 				"aud":         testAudience,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
 				TenantIDClaim: "test_tenant_id",
+				UserIDClaim:   "",
 			}),
 		},
 		{
@@ -137,16 +151,17 @@ func TestBadClaims(t *testing.T) {
 			}),
 		},
 		{
-			name: "missing tenant id",
+			name: "empty tenant id",
 			token: genToken(t, jwt.MapClaims{
-				"aud":       testAudience,
-				"exp":       time.Now().Add(1 * time.Hour).Unix(),
-				"iss":       "https://testdomain/",
-				UserIDClaim: "test_user_id",
+				"aud":         testAudience,
+				"exp":         time.Now().Add(1 * time.Hour).Unix(),
+				"iss":         "https://testdomain/",
+				TenantIDClaim: "",
+				UserIDClaim:   "test_user_id",
 			}),
 		},
 		{
-			name: "anonymous user id",
+			name: "anonymous tenant id",
 			token: genToken(t, jwt.MapClaims{
 				"aud":         testAudience,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),

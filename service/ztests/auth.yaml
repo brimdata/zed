@@ -17,7 +17,7 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      status code 401: missing authentication credentials
+      status code 401: no token present in request
   - name: stdout
     data: |
       {

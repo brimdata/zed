@@ -43,4 +43,4 @@ outputs:
     data: |
       {'a': 1}
       ===
-      RequestError('missing authentication credentials')
+      RequestError('no token present in request')
