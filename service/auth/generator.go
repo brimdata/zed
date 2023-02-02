@@ -31,13 +31,13 @@ func makeToken(keyID string, keyFile string, claims jwt.MapClaims) (string, erro
 
 // GenerateAccessToken creates a JWT in string format with the expected audience,
 // issuer, and claims to pass zqd authentication checks.
-func GenerateAccessToken(keyID string, privateKeyFile string, expiration time.Duration, domain string, tenantID TenantID, userID UserID) (string, error) {
+func GenerateAccessToken(keyID string, privateKeyFile string, expiration time.Duration, audience, domain string, tenantID TenantID, userID UserID) (string, error) {
 	dstr, err := url.Parse(domain)
 	if err != nil {
 		return "", fmt.Errorf("bad domain URL: %w", err)
 	}
 	return makeToken(keyID, privateKeyFile, jwt.MapClaims{
-		"aud":         AudienceClaimValue,
+		"aud":         audience,
 		"exp":         time.Now().Add(expiration).Unix(),
 		"iss":         dstr.String() + "/",
 		TenantIDClaim: string(tenantID),

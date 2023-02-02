@@ -15,23 +15,19 @@ import (
 )
 
 const (
-	// AudienceClaimValue is the value of the "aud" standard claim that clients
-	// should use when requesting access tokens for this api.
-	// Though formatted as a URL, it does not need to be a reachable location.
-	AudienceClaimValue = "https://lake.brimdata.io"
-
 	// These are the namespaced custom claims we expect on any JWT
 	// access token.
-	TenantIDClaim = AudienceClaimValue + "/tenant_id"
-	UserIDClaim   = AudienceClaimValue + "/user_id"
+	TenantIDClaim = "https://lake.brimdata.io/tenant_id"
+	UserIDClaim   = "https://lake.brimdata.io/user_id"
 )
 
 type TokenValidator struct {
-	keyGetter      jwt.Keyfunc
-	expectedIssuer string
+	expectedAudience string
+	expectedIssuer   string
+	keyGetter        jwt.Keyfunc
 }
 
-func NewTokenValidator(domain, jwksPath string) (*TokenValidator, error) {
+func NewTokenValidator(audience, domain, jwksPath string) (*TokenValidator, error) {
 	domainURL, err := url.Parse(domain)
 	if err != nil {
 		return nil, fmt.Errorf("bad auth.domain URL: %w", err)
@@ -52,8 +48,9 @@ func NewTokenValidator(domain, jwksPath string) (*TokenValidator, error) {
 		return key, nil
 	}
 	return &TokenValidator{
-		expectedIssuer: expectedIssuer,
-		keyGetter:      keyGetter,
+		expectedAudience: audience,
+		expectedIssuer:   expectedIssuer,
+		keyGetter:        keyGetter,
 	}, nil
 }
 
@@ -99,7 +96,7 @@ func (v *TokenValidator) Validate(token string) (Identity, error) {
 	if !claims.VerifyIssuer(v.expectedIssuer, true) {
 		return Identity{}, srverr.ErrNoCredentials("invalid issuer")
 	}
-	if !verifyAPIAudience(claims) {
+	if !verifyAPIAudience(v.expectedAudience, claims) {
 		return Identity{}, srverr.ErrNoCredentials("invalid audience")
 	}
 	tid, _ := claims[TenantIDClaim].(string)
@@ -116,17 +113,17 @@ func (v *TokenValidator) Validate(token string) (Identity, error) {
 	}, nil
 }
 
-func verifyAPIAudience(claims jwt.MapClaims) bool {
+func verifyAPIAudience(expected string, claims jwt.MapClaims) bool {
 	// Audience claim may either be a string, or a slice of interfaces that are
 	// strings.
 	// https://auth0.com/docs/tokens/access-tokens/get-access-tokens#multiple-audiences
 	if str, ok := claims["aud"].(string); ok {
-		return str == AudienceClaimValue
+		return str == expected
 	}
 	if arr, ok := claims["aud"].([]interface{}); ok {
 		for _, a := range arr {
 			s, _ := a.(string)
-			if s == AudienceClaimValue {
+			if s == expected {
 				return true
 			}
 		}

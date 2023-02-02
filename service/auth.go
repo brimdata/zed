@@ -16,16 +16,18 @@ type AuthConfig struct {
 	Enabled  bool
 	JWKSPath string
 
-	// ClientID and Domain are sent in the /auth/method response so that api
-	// clients can interact with the right Auth0 tenant (production, testing, etc)
+	// Audience, ClientID, and Domain are sent in the /auth/method response so API
+	// clients can interact with the right Auth0 tenant (production, testing, etc.)
 	// to obtain tokens.
+	Audience string
 	ClientID string
 	Domain   string
 }
 
 func (c *AuthConfig) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&c.Enabled, "auth.enabled", false, "enable authentication checks")
-	fs.StringVar(&c.ClientID, "auth.clientid", "", "Auth0 client ID for API clients (will be publicly accessible")
+	fs.StringVar(&c.Audience, "auth.audience", "", "Auth0 audience for API clients (will be publicly accessible)")
+	fs.StringVar(&c.ClientID, "auth.clientid", "", "Auth0 client ID for API clients (will be publicly accessible)")
 	fs.StringVar(&c.Domain, "auth.domain", "", "Auth0 domain (as a URL) for API clients (will be publicly accessible)")
 	fs.StringVar(&c.JWKSPath, "auth.jwkspath", "", "path to JSON Web Key Set file")
 }
@@ -41,10 +43,10 @@ type Auth0Authenticator struct {
 // by a key referenced in the JWKS file, has the required audience and issuer
 // claims, and contains claims for a brim tenant and user id.
 func NewAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (*Auth0Authenticator, error) {
-	if config.ClientID == "" || config.Domain == "" || config.JWKSPath == "" {
-		return nil, errors.New("auth.clientid, auth.domain, and auth.jwkspath must be set when auth enabled")
+	if config.Audience == "" || config.ClientID == "" || config.Domain == "" || config.JWKSPath == "" {
+		return nil, errors.New("auth.audience, auth.clientid, auth.domain, and auth.jwkspath must be set when auth enabled")
 	}
-	validator, err := auth.NewTokenValidator(config.Domain, config.JWKSPath)
+	validator, err := auth.NewTokenValidator(config.Audience, config.Domain, config.JWKSPath)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +59,7 @@ func NewAuthenticator(ctx context.Context, logger *zap.Logger, registerer promet
 		methodResponse: api.AuthMethodResponse{
 			Kind: api.AuthMethodAuth0,
 			Auth0: &api.AuthMethodAuth0Details{
-				Audience: auth.AudienceClaimValue,
+				Audience: config.Audience,
 				Domain:   config.Domain,
 				ClientID: config.ClientID,
 			},
