@@ -130,10 +130,7 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 	}
 	if len(object) == 0 {
-		b := r.builder
-		b.Reset()
-		b.Append(nil)
-		return ectx.NewValue(r.zctx.MustLookupTypeRecord([]zed.Field{}), b.Bytes())
+		return ectx.NewValue(r.zctx.MustLookupTypeRecord([]zed.Field{}), []byte{})
 	}
 	r.update(object)
 	b := r.builder
