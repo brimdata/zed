@@ -74,7 +74,7 @@ by the following commands:
 ```mdtest-command
 export ZED_LAKE=example
 zed -q init
-zed -q create coinflips
+zed -q create -orderby flip:desc coinflips
 echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' | zed -q -use coinflips load -
 zed -q -use coinflips branch trial 
 echo '{flip:3,result:"heads"}' | zed -q -use coinflips@trial load -
