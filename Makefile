@@ -1,7 +1,5 @@
 export GO111MODULE=on
 
-# If VERSION or LDFLAGS change, please also change
-# npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 BUILD_COMMANDS = ./cmd/zed ./cmd/zq
@@ -70,7 +68,6 @@ perf-compare: build $(SAMPLEDATA)
 output-check: build $(SAMPLEDATA)
 	scripts/output-check.sh
 
-# If the build recipe changes, please also change npm/build.
 build: $(PEG_DEP)
 	@mkdir -p dist
 	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
