@@ -62,7 +62,7 @@ is the best way to learn about `zq` in depth.
 All of its examples use `zq` commands run on the command line.
 Run `zq -h` for a list of command options and online help.
 
-The [Zed Lake documentation](commands/zed.md)
+The [Zed lake documentation](commands/zed.md)
 is the best way to learn about `zed`.
 All of its examples use `zed` commands run on the command line.
 Run `zed -h` or `-h` with any subcommand for a list of command options
