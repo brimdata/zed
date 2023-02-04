@@ -146,7 +146,7 @@ pull our respective inputs from named file sources. However, if the inputs are
 stored in pools in a Zed lake, the pool names would instead be specified in the
 `from()` block.
 
-Here we'll load our input data to pools in a temporary Zed Lake, then execute
+Here we'll load our input data to pools in a temporary Zed lake, then execute
 our inner join using `zed query`.
 
 Notice that because we happened to use `-orderby` to sort our pools by the same

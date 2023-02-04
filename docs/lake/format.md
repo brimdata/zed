@@ -19,9 +19,9 @@ an open specification for the Zed lake storage format described in this document
 As we make progress on the Zed lake model, we will update this document
 as we go.
 
-The Zed Lake storage format is somewhat analagous the emerging
+The Zed lake storage format is somewhat analagous the emerging
 cloud table formats like [Iceberg](https://iceberg.apache.org/spec/),
-but differs but differs in a fundamental way: there are no tables in a Zed Lake.
+but differs but differs in a fundamental way: there are no tables in a Zed lake.
 
 On the contrary, we believe a better approach for organizing modern, eclectic
 data is based on a type system rather than a collection of tables

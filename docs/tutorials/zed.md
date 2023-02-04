@@ -282,7 +282,7 @@ $ zed query 'count()'
 ## Running as a service
 
 Now that we've compiled an interesting data set, how might we share this with
-others? Using the `zed serve` command we can launch our Zed Lake as a service
+others? Using the `zed serve` command we can launch our Zed lake as a service
 that will allow multiple clients to query and add data to the same lake. In a
 separate console window run:
 
@@ -317,7 +317,7 @@ $ zed query -Z 'min(created_at), max(created_at)'
 Obviously this is only the tip of the iceberg in terms of things that can be done with
 the `zed` command. Some suggested next steps:
 
-1. Dig deeper into Zed Lakes by having a look at the [`zed` README](../commands/zed.md).
+1. Dig deeper into Zed lakes by having a look at the [`zed` README](../commands/zed.md).
 2. Get a better idea of ways you can query your data by looking at the
 [Zed language documentation](../language/README.md).
 
