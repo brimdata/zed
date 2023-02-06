@@ -45,9 +45,9 @@ func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRe
 	} else {
 		innerType = typ.Fields[c].Type
 	}
-	newcols := slices.Clone(typ.Fields)
-	newcols[c] = zed.Field{Name: dst[0], Type: innerType}
-	typ, err := r.zctx.LookupTypeRecord(newcols)
+	fields := slices.Clone(typ.Fields)
+	fields[c] = zed.NewField(dst[0], innerType)
+	typ, err := r.zctx.LookupTypeRecord(fields)
 	if err != nil {
 		var dferr *zed.DuplicateFieldError
 		if errors.As(err, &dferr) {

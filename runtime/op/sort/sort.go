@@ -228,13 +228,13 @@ func GuessSortKey(val *zed.Value) field.Path {
 }
 
 func firstMatchingField(typ *zed.TypeRecord, pred func(id int) bool) field.Path {
-	for _, col := range typ.Fields {
-		if pred(col.Type.ID()) {
-			return field.New(col.Name)
+	for _, f := range typ.Fields {
+		if pred(f.Type.ID()) {
+			return field.New(f.Name)
 		}
-		if typ := zed.TypeRecordOf(col.Type); typ != nil {
-			if f := firstMatchingField(typ, pred); f != nil {
-				return append(field.New(col.Name), f...)
+		if typ := zed.TypeRecordOf(f.Type); typ != nil {
+			if ff := firstMatchingField(typ, pred); ff != nil {
+				return append(field.New(f.Name), ff...)
 			}
 		}
 	}

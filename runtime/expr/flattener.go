@@ -28,8 +28,8 @@ func NewFlattener(zctx *zed.Context) *Flattener {
 
 func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, error) {
 	if in == nil {
-		for _, col := range typ.Fields {
-			if typ, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord); ok {
+		for _, f := range typ.Fields {
+			if typ, ok := zed.TypeUnder(f.Type).(*zed.TypeRecord); ok {
 				var err error
 				dst, err = recode(dst, typ, nil)
 				if err != nil {
@@ -42,12 +42,12 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 		return dst, nil
 	}
 	it := in.Iter()
-	colno := 0
+	fieldno := 0
 	for !it.Done() {
 		val := it.Next()
-		col := typ.Fields[colno]
-		colno++
-		if childType, ok := zed.TypeUnder(col.Type).(*zed.TypeRecord); ok {
+		f := typ.Fields[fieldno]
+		fieldno++
+		if childType, ok := zed.TypeUnder(f.Type).(*zed.TypeRecord); ok {
 			var err error
 			dst, err = recode(dst, childType, val)
 			if err != nil {
@@ -64,8 +64,7 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 	id := r.Type.ID()
 	flatType := f.mapper.Lookup(id)
 	if flatType == nil {
-		cols := FlattenColumns(r.Fields())
-		flatType = f.zctx.MustLookupTypeRecord(cols)
+		flatType = f.zctx.MustLookupTypeRecord(FlattenFields(r.Fields()))
 		f.mapper.EnterType(id, flatType)
 	}
 	// Since we are mapping the input context to itself we can do a
@@ -81,19 +80,19 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 	return zed.NewValue(flatType.(*zed.TypeRecord), zv), nil
 }
 
-// FlattenColumns turns nested records into a series of columns of
+// FlattenFields turns nested records into a series of fields of
 // the form "outer.inner".
-func FlattenColumns(cols []zed.Field) []zed.Field {
+func FlattenFields(fields []zed.Field) []zed.Field {
 	ret := []zed.Field{}
-	for _, c := range cols {
-		if recType, ok := zed.TypeUnder(c.Type).(*zed.TypeRecord); ok {
-			inners := FlattenColumns(recType.Fields)
+	for _, f := range fields {
+		if recType, ok := zed.TypeUnder(f.Type).(*zed.TypeRecord); ok {
+			inners := FlattenFields(recType.Fields)
 			for i := range inners {
-				inners[i].Name = fmt.Sprintf("%s.%s", c.Name, inners[i].Name)
+				inners[i].Name = fmt.Sprintf("%s.%s", f.Name, inners[i].Name)
 			}
 			ret = append(ret, inners...)
 		} else {
-			ret = append(ret, c)
+			ret = append(ret, f)
 		}
 	}
 	return ret

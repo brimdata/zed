@@ -118,7 +118,7 @@ func (c *recordCache) new() *record {
 		c.records = append(c.records, new(record))
 	}
 	r := c.records[c.index]
-	r.columns = r.columns[:0]
+	r.fields = r.fields[:0]
 	r.records = r.records[:0]
 	c.index++
 	return r
@@ -129,7 +129,7 @@ func (c *recordCache) reset() {
 }
 
 type record struct {
-	columns []zed.Field
+	fields  []zed.Field
 	records []*record
 }
 
@@ -137,16 +137,16 @@ func (r *record) addPath(c *recordCache, p []string) (removed int) {
 	if len(p) == 0 {
 		return 0
 	}
-	at := len(r.columns) - 1
-	if len(r.columns) == 0 || r.columns[at].Name != p[0] {
-		r.columns = append(r.columns, zed.NewField(p[0], nil))
+	at := len(r.fields) - 1
+	if len(r.fields) == 0 || r.fields[at].Name != p[0] {
+		r.fields = append(r.fields, zed.NewField(p[0], nil))
 		var rec *record
 		if len(p) > 1 {
 			rec = c.new()
 		}
 		r.records = append(r.records, rec)
 	} else if len(p) == 1 || r.records[at] == nil {
-		// If this isn't a new column and we're either at a leaf or the
+		// If this isn't a new field and we're either at a leaf or the
 		// previously value was a leaf, we're stacking on a previously created
 		// record and need to signal that values have been removed.
 		removed = r.records[at].countLeaves()
@@ -175,16 +175,16 @@ func (r *record) build(zctx *zed.Context, b *zcode.Builder, next func() (zed.Typ
 		if rec == nil {
 			typ, value := next()
 			b.Append(value)
-			r.columns[i].Type = typ
+			r.fields[i].Type = typ
 			continue
 		}
 		b.BeginContainer()
 		var err error
-		r.columns[i].Type, err = rec.build(zctx, b, next)
+		r.fields[i].Type, err = rec.build(zctx, b, next)
 		if err != nil {
 			return nil, err
 		}
 		b.EndContainer()
 	}
-	return zctx.LookupTypeRecord(r.columns)
+	return zctx.LookupTypeRecord(r.fields)
 }

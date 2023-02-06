@@ -38,8 +38,8 @@ func (n *Flatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	return ctx.NewValue(n.zctx.LookupTypeArray(inner), n.Bytes())
 }
 
-func (n *Flatten) innerTypeOf(b zcode.Bytes, cols []zed.Field) zed.Type {
-	n.types = n.appendTypes(n.types[:0], b, cols)
+func (n *Flatten) innerTypeOf(b zcode.Bytes, fields []zed.Field) zed.Type {
+	n.types = n.appendTypes(n.types[:0], b, fields)
 	unique := zed.UniqueTypes(n.types)
 	if len(unique) == 1 {
 		return unique[0]
@@ -47,37 +47,37 @@ func (n *Flatten) innerTypeOf(b zcode.Bytes, cols []zed.Field) zed.Type {
 	return n.zctx.LookupTypeUnion(unique)
 }
 
-func (n *Flatten) appendTypes(types []zed.Type, b zcode.Bytes, cols []zed.Field) []zed.Type {
+func (n *Flatten) appendTypes(types []zed.Type, b zcode.Bytes, fields []zed.Field) []zed.Type {
 	it := b.Iter()
-	for _, col := range cols {
+	for _, f := range fields {
 		val := it.Next()
-		if typ := zed.TypeRecordOf(col.Type); typ != nil && val != nil {
+		if typ := zed.TypeRecordOf(f.Type); typ != nil && val != nil {
 			types = n.appendTypes(types, val, typ.Fields)
 			continue
 		}
-		typ, ok := n.entryTypes[col.Type]
+		typ, ok := n.entryTypes[f.Type]
 		if !ok {
 			typ = n.zctx.MustLookupTypeRecord([]zed.Field{
 				zed.NewField("key", n.keyType),
-				zed.NewField("value", col.Type),
+				zed.NewField("value", f.Type),
 			})
-			n.entryTypes[col.Type] = typ
+			n.entryTypes[f.Type] = typ
 		}
 		types = append(types, typ)
 	}
 	return types
 }
 
-func (n *Flatten) encode(cols []zed.Field, inner zed.Type, base field.Path, b zcode.Bytes) {
+func (n *Flatten) encode(fields []zed.Field, inner zed.Type, base field.Path, b zcode.Bytes) {
 	it := b.Iter()
-	for _, col := range cols {
+	for _, f := range fields {
 		val := it.Next()
-		key := append(base, col.Name)
-		if typ := zed.TypeRecordOf(col.Type); typ != nil && val != nil {
+		key := append(base, f.Name)
+		if typ := zed.TypeRecordOf(f.Type); typ != nil && val != nil {
 			n.encode(typ.Fields, inner, key, val)
 			continue
 		}
-		typ := n.entryTypes[col.Type]
+		typ := n.entryTypes[f.Type]
 		union, _ := inner.(*zed.TypeUnion)
 		if union != nil {
 			n.BeginContainer()

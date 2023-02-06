@@ -25,7 +25,7 @@ type Shaper struct {
 
 type anchor struct {
 	typ      *zed.TypeRecord
-	columns  []zed.Field
+	fields   []zed.Field
 	integers []integer
 	next     *anchor
 }
@@ -39,23 +39,23 @@ func nulltype(t zed.Type) bool {
 	return zed.TypeUnder(t) == zed.TypeNull
 }
 
-func (a *anchor) match(cols []zed.Field) bool {
-	if len(cols) != len(a.columns) {
+func (a *anchor) match(fields []zed.Field) bool {
+	if len(fields) != len(a.fields) {
 		return false
 	}
-	for k, c := range a.columns {
-		in := cols[k]
-		if c.Type != in.Type && !nulltype(c.Type) && !nulltype(in.Type) {
+	for k, f := range a.fields {
+		in := fields[k]
+		if f.Type != in.Type && !nulltype(f.Type) && !nulltype(in.Type) {
 			return false
 		}
 	}
 	return true
 }
 
-func (a *anchor) mixIn(cols []zed.Field) {
-	for k, c := range a.columns {
-		if nulltype(c.Type) {
-			a.columns[k].Type = cols[k].Type
+func (a *anchor) mixIn(fields []zed.Field) {
+	for k, f := range a.fields {
+		if nulltype(f.Type) {
+			a.fields[k].Type = fields[k].Type
 		}
 	}
 }
@@ -85,24 +85,24 @@ func (i *integer) check(zv zed.Value) {
 
 func (a *anchor) updateInts(rec *zed.Value) error {
 	it := rec.Bytes.Iter()
-	for k, c := range rec.Fields() {
-		zv := zed.Value{Type: c.Type, Bytes: it.Next()}
+	for k, f := range rec.Fields() {
+		zv := zed.Value{Type: f.Type, Bytes: it.Next()}
 		a.integers[k].check(zv)
 	}
 	return nil
 }
 
 func (a *anchor) recodeType() []zed.Field {
-	var cols []zed.Field
-	for k, c := range a.typ.Fields {
+	var fields []zed.Field
+	for k, f := range a.typ.Fields {
 		if i := a.integers[k]; i.signed {
-			c.Type = zed.TypeInt64
+			f.Type = zed.TypeInt64
 		} else if i.unsigned {
-			c.Type = zed.TypeUint64
+			f.Type = zed.TypeUint64
 		}
-		cols = append(cols, c)
+		fields = append(fields, f)
 	}
-	return cols
+	return fields
 }
 
 func (a *anchor) needRecode() []zed.Field {
@@ -132,29 +132,29 @@ func (s *Shaper) Close() error {
 	return nil
 }
 
-func hash(h *maphash.Hash, cols []zed.Field) uint64 {
+func hash(h *maphash.Hash, fields []zed.Field) uint64 {
 	h.Reset()
-	for _, c := range cols {
-		h.WriteString(c.Name)
+	for _, f := range fields {
+		h.WriteString(f.Name)
 	}
 	return h.Sum64()
 }
 
-func (s *Shaper) lookupAnchor(columns []zed.Field) *anchor {
-	h := hash(&s.hash, columns)
+func (s *Shaper) lookupAnchor(fields []zed.Field) *anchor {
+	h := hash(&s.hash, fields)
 	for a := s.anchors[h]; a != nil; a = a.next {
-		if a.match(columns) {
+		if a.match(fields) {
 			return a
 		}
 	}
 	return nil
 }
 
-func (s *Shaper) newAnchor(columns []zed.Field) *anchor {
-	h := hash(&s.hash, columns)
+func (s *Shaper) newAnchor(fields []zed.Field) *anchor {
+	h := hash(&s.hash, fields)
 	a := &anchor{
-		columns:  columns,
-		integers: make([]integer, len(columns)),
+		fields:   fields,
+		integers: make([]integer, len(fields)),
 		next:     s.anchors[h],
 	}
 	s.anchors[h] = a
@@ -172,12 +172,12 @@ func (s *Shaper) update(rec *zed.Value) {
 		a.updateInts(rec)
 		return
 	}
-	columns := rec.Fields()
-	a := s.lookupAnchor(columns)
+	fields := rec.Fields()
+	a := s.lookupAnchor(fields)
 	if a == nil {
-		a = s.newAnchor(columns)
+		a = s.newAnchor(fields)
 	} else {
-		a.mixIn(columns)
+		a.mixIn(fields)
 	}
 	a.updateInts(rec)
 	s.typeAnchor[rec.Type] = a
@@ -187,10 +187,10 @@ func (s *Shaper) needRecode(typ zed.Type) (*zed.TypeRecord, error) {
 	target, ok := s.recode[typ]
 	if !ok {
 		a := s.typeAnchor[typ]
-		cols := a.needRecode()
-		if cols != nil {
+		fields := a.needRecode()
+		if fields != nil {
 			var err error
-			target, err = s.zctx.LookupTypeRecord(cols)
+			target, err = s.zctx.LookupTypeRecord(fields)
 			if err != nil {
 				return nil, err
 			}
@@ -208,7 +208,7 @@ func (s *Shaper) lookupType(in zed.Type) (*zed.TypeRecord, error) {
 	typ := a.typ
 	if typ == nil {
 		var err error
-		typ, err = s.zctx.LookupTypeRecord(a.columns)
+		typ, err = s.zctx.LookupTypeRecord(a.fields)
 		if err != nil {
 			return nil, err
 		}
@@ -275,11 +275,11 @@ func (s *Shaper) Read() (*zed.Value, error) {
 func recode(from, to []zed.Field, bytes zcode.Bytes) (zcode.Bytes, error) {
 	out := make(zcode.Bytes, 0, len(bytes))
 	it := bytes.Iter()
-	for k, fromCol := range from {
+	for k, fromField := range from {
 		b := it.Next()
 		toType := to[k].Type
-		if fromCol.Type != toType && b != nil {
-			if fromCol.Type != zed.TypeFloat64 {
+		if fromField.Type != toType && b != nil {
+			if fromField.Type != zed.TypeFloat64 {
 				return nil, errors.New("shape: can't recode from non float64")
 			}
 			f := zed.DecodeFloat64(b)

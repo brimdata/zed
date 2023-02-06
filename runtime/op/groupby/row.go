@@ -12,11 +12,11 @@ import (
 type valRow []agg.Function
 
 func newValRow(aggs []*expr.Aggregator) valRow {
-	cols := make([]agg.Function, 0, len(aggs))
+	row := make([]agg.Function, 0, len(aggs))
 	for _, a := range aggs {
-		cols = append(cols, a.NewFunction())
+		row = append(row, a.NewFunction())
 	}
-	return cols
+	return row
 }
 
 func (v valRow) apply(zctx *zed.Context, ectx expr.Context, aggs []*expr.Aggregator, this *zed.Value) {

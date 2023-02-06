@@ -34,13 +34,13 @@ func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.RecordBuilde
 	var foundDotted bool
 	var fields field.List
 	var types []zed.Type
-	for _, c := range in.Fields {
-		dotted := field.Dotted(c.Name)
+	for _, f := range in.Fields {
+		dotted := field.Dotted(f.Name)
 		if len(dotted) > 1 {
 			foundDotted = true
 		}
 		fields = append(fields, dotted)
-		types = append(types, c.Type)
+		types = append(types, f.Type)
 	}
 	if !foundDotted {
 		return nil, nil, nil
