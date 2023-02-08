@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/client/auth0"
@@ -38,11 +39,11 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
 	l.Lake = "http://localhost:9867"
 	if s, ok := os.LookupEnv("ZED_LAKE"); ok {
-		l.Lake = s
+		l.Lake = strings.TrimRight(s, "/")
 		l.LakeSpecified = true
 	}
 	fs.Func("lake", fmt.Sprintf("lake location (env ZED_LAKE) (default %s)", l.Lake), func(s string) error {
-		l.Lake = s
+		l.Lake = strings.TrimRight(s, "/")
 		l.LakeSpecified = true
 		return nil
 	})
