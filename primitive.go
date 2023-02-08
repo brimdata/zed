@@ -124,7 +124,8 @@ func AppendFloat16(zb zcode.Bytes, f float32) zcode.Bytes {
 }
 
 func EncodeFloat16(d float32) zcode.Bytes {
-	return AppendFloat16(nil, d)
+	var b [2]byte
+	return AppendFloat16(b[:0], d)
 }
 
 func DecodeFloat16(zb zcode.Bytes) float32 {
@@ -149,7 +150,8 @@ func AppendFloat32(zb zcode.Bytes, f float32) zcode.Bytes {
 }
 
 func EncodeFloat32(d float32) zcode.Bytes {
-	return AppendFloat32(nil, d)
+	var b [4]byte
+	return AppendFloat32(b[:0], d)
 }
 
 func DecodeFloat32(zb zcode.Bytes) float32 {
@@ -174,7 +176,8 @@ func AppendFloat64(zb zcode.Bytes, d float64) zcode.Bytes {
 }
 
 func EncodeFloat64(d float64) zcode.Bytes {
-	return AppendFloat64(nil, d)
+	var b [8]byte
+	return AppendFloat64(b[:0], d)
 }
 
 func DecodeFloat64(zv zcode.Bytes) float64 {
