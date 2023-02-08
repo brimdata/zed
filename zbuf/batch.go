@@ -78,14 +78,18 @@ type Puller interface {
 	Pull(bool) (Batch, error)
 }
 
-// NewPuller returns a Puller for zr that returns Batches of up to n records.
-func NewPuller(zr zio.Reader, n int) Puller {
-	return &puller{zr: zr, n: n}
+// PullerBatchSize is the maximum number of values per batch for a [Puller]
+// created by [NewPuller].
+var PullerBatchSize = 100
+
+// NewPuller returns a puller for zr that returns batches containing up to
+// [PullerBatchSize] values.
+func NewPuller(zr zio.Reader) Puller {
+	return &puller{zr: zr}
 }
 
 type puller struct {
 	zr zio.Reader
-	n  int
 
 	eos bool
 }
@@ -94,8 +98,8 @@ func (p *puller) Pull(bool) (Batch, error) {
 	if p.eos {
 		return nil, nil
 	}
-	batch, err := readBatch(p.zr, p.n)
-	if err == nil && (batch == nil || len(batch.Values()) < p.n) {
+	batch, err := readBatch(p.zr, PullerBatchSize)
+	if err == nil && (batch == nil || len(batch.Values()) < PullerBatchSize) {
 		p.eos = true
 	}
 	return batch, err
