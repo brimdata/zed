@@ -10,8 +10,8 @@ import (
 
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/service/srverr"
-	"github.com/golang-jwt/jwt"
-	"github.com/golang-jwt/jwt/request"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v4/request"
 )
 
 const (
