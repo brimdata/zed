@@ -1,7 +1,7 @@
 export GO111MODULE=on
 
 VERSION = $(shell git describe --tags --dirty --always)
-LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
+LDFLAGS = -s -X github.com/brimdata/zed/cli.version=$(VERSION)
 BUILD_COMMANDS = ./cmd/zed ./cmd/zq
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:

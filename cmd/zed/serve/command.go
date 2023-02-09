@@ -50,7 +50,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Auth.SetFlags(f)
-	c.conf.Version = cli.Version
+	c.conf.Version = cli.Version()
 	c.logflags.SetFlags(f)
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.Func("cors.origin", "CORS allowed origin (may be repeated)", func(s string) error {
