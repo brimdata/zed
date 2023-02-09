@@ -5,7 +5,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -X github.com/brimdata/zed/cli.Version={{ .Tag }}
+      - -s -X github.com/brimdata/zed/cli.version={{ .Tag }}
     goarch:
       - amd64
       - arm64
@@ -19,7 +19,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -X github.com/brimdata/zed/cli.Version={{ .Tag }}
+      - -s -X github.com/brimdata/zed/cli.version={{ .Tag }}
     goarch:
       - amd64
       - arm64
