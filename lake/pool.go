@@ -35,7 +35,7 @@ type Pool struct {
 	commits   *commits.Store
 }
 
-func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine, logger *zap.Logger, root *storage.URI) error {
+func CreatePool(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, config *pools.Config) error {
 	poolPath := config.Path(root)
 	// branchesPath is the path to the kvs journal of BranchConfigs
 	// for the pool while the commit log is stored in <pool-id>/<branch-id>.
@@ -47,11 +47,11 @@ func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine
 	}
 	// create the main branch in the branches journal store.  The parent
 	// commit object of the initial main branch is ksuid.Nil.
-	_, err = CreateBranch(ctx, config, engine, logger, root, "main", ksuid.Nil)
+	_, err = CreateBranch(ctx, engine, logger, root, config, "main", ksuid.Nil)
 	return err
 }
 
-func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.Engine, logger *zap.Logger, root *storage.URI, name string, parent ksuid.KSUID) (*branches.Config, error) {
+func CreateBranch(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, poolConfig *pools.Config, name string, parent ksuid.KSUID) (*branches.Config, error) {
 	poolPath := poolConfig.Path(root)
 	branchesPath := poolPath.JoinPath(BranchesTag)
 	store, err := branches.OpenStore(ctx, engine, logger, branchesPath)
@@ -68,7 +68,7 @@ func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.
 	return branchConfig, err
 }
 
-func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, logger *zap.Logger, root *storage.URI) (*Pool, error) {
+func OpenPool(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, config *pools.Config) (*Pool, error) {
 	path := config.Path(root)
 	branchesPath := path.JoinPath(BranchesTag)
 	branches, err := branches.OpenStore(ctx, engine, logger, branchesPath)
@@ -91,7 +91,7 @@ func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, 
 	}, nil
 }
 
-func RemovePool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) error {
+func RemovePool(ctx context.Context, engine storage.Engine, root *storage.URI, config *pools.Config) error {
 	return engine.DeleteByPrefix(ctx, config.Path(root))
 }
 
