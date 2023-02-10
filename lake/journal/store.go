@@ -27,7 +27,6 @@ var (
 
 type Store struct {
 	journal     *Queue
-	style       zson.TypeStyle
 	unmarshaler *zson.UnmarshalZNGContext
 
 	mu       sync.RWMutex // Protects everything below.
@@ -61,13 +60,8 @@ func newStore(path *storage.URI, entryTypes ...interface{}) *Store {
 	u.Bind(Add{}, Delete{}, Update{})
 	u.Bind(entryTypes...)
 	return &Store{
-		style:       zson.StylePackage,
 		unmarshaler: u,
 	}
-}
-
-func (s *Store) Decorate(style zson.TypeStyle) {
-	s.style = style
 }
 
 func (s *Store) load(ctx context.Context) error {
@@ -172,7 +166,7 @@ func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) 
 		return err
 	}
 	marshaler := zson.NewZNGMarshaler()
-	marshaler.Decorate(s.style)
+	marshaler.Decorate(zson.StylePackage)
 	for _, entry := range table {
 		val, err := marshaler.Marshal(entry)
 		if err != nil {
@@ -311,7 +305,7 @@ func (s *Store) commitWithConstraint(ctx context.Context, key string, c Constrai
 
 func (s *Store) commit(ctx context.Context, fn func() error, entries ...Entry) error {
 	serializer := zngbytes.NewSerializer()
-	serializer.Decorate(s.style)
+	serializer.Decorate(zson.StylePackage)
 	for _, e := range entries {
 		if err := serializer.Write(e); err != nil {
 			return err
