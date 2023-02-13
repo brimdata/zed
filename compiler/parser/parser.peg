@@ -554,10 +554,6 @@ OrderSuffix
   / ":desc"  { RETURN("desc") }
   / "" { RETURN("asc") }
 
-OrderArg
-  = _ "order" _ "asc"  { RETURN("asc") }
-  / _ "order" _ "desc"  { RETURN("desc") }
-
 PassOp
   = "pass" &EOKW {
       RETURN(MAP("kind":"Pass"))
