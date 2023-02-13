@@ -260,6 +260,12 @@ type (
 		Kind string `json:"kind" unpack:""`
 		Args []Expr `json:"args"`
 	}
+	Explode struct {
+		Kind string      `json:"kind" unpack:""`
+		Args []Expr      `json:"args"`
+		Type astzed.Type `json:"type"`
+		As   Expr        `json:"as"`
+	}
 	Head struct {
 		Kind  string `json:"kind" unpack:""`
 		Count int    `json:"count"`
@@ -392,12 +398,6 @@ type (
 		Spec   PoolSpec `json:"spec"`
 		At     string   `json:"at"`
 		Delete bool     `json:"delete"`
-	}
-	Explode struct {
-		Kind string      `json:"kind" unpack:""`
-		Args []Expr      `json:"args"`
-		Type astzed.Type `json:"type"`
-		As   Expr        `json:"as"`
 	}
 )
 
