@@ -1,0 +1,39 @@
+script: |
+  zc -C -O 'where a | where b'
+  echo ===
+  zc -C -O 'from ( file a => where b | where c file d => where e | where f )'
+  echo ===
+  zc -C -O 'over a => ( where b | where c )'
+  echo ===
+  zc -C -O 'fork ( => where a | where b => where c | where d  )'
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        (pushdown
+          where a and b)
+        (internal reader)
+      )
+      ===
+      from (
+        file a =>
+          where b and c
+        file d =>
+          where e and f
+      )
+      ===
+      from (
+        (internal reader) =>
+          over a
+      )
+      ===
+      from (
+        (internal reader)
+      )
+      | fork (
+        =>
+          where a and b
+        =>
+          where c and d
+      )

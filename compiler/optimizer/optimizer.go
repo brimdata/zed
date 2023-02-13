@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"golang.org/x/exp/slices"
 )
 
 type Optimizer struct {
@@ -29,6 +30,46 @@ func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optim
 
 func (o *Optimizer) Entry() *dag.Sequential {
 	return o.entry
+}
+
+// MergeFilters transforms the DAG by merging adjacent filter operators so that,
+// e.g., "where a | where b" becomes "where a and b".
+//
+// Note: MergeFilters does not descend into dag.OverExpr.Scope, so it cannot
+// merge filters in "over" expressions like "sum(over a | where b | where c)".
+func (o *Optimizer) MergeFilters() { mergeFilters(o.entry) }
+
+func mergeFilters(op dag.Op) {
+	switch op := op.(type) {
+	case *dag.From:
+		for _, t := range op.Trunks {
+			mergeFilters(t.Seq)
+		}
+	case *dag.Over:
+		mergeFilters(op.Scope)
+	case *dag.Parallel:
+		for _, o := range op.Ops {
+			mergeFilters(o)
+		}
+	case *dag.Sequential:
+		if op == nil {
+			return
+		}
+		for _, o := range op.Ops {
+			mergeFilters(o)
+		}
+		// Start at the next to last element and work toward the first.
+		for i := len(op.Ops) - 2; i >= 0; i-- {
+			if f1, ok := op.Ops[i].(*dag.Filter); ok {
+				if f2, ok := op.Ops[i+1].(*dag.Filter); ok {
+					// Merge the second filter into the
+					// first and then delete the second.
+					f1.Expr = dag.NewBinaryExpr("and", f1.Expr, f2.Expr)
+					op.Ops = slices.Delete(op.Ops, i+1, i+2)
+				}
+			}
+		}
+	}
 }
 
 // OptimizeScan transforms the DAG by attempting to lift stateless operators
