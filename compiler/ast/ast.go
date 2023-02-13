@@ -388,12 +388,10 @@ type (
 		Layout *Layout `json:"layout"`
 	}
 	Pool struct {
-		Kind      string   `json:"kind" unpack:""`
-		Spec      PoolSpec `json:"spec"`
-		At        string   `json:"at"`
-		Delete    bool     `json:"delete"`
-		Range     *Range   `json:"range"`
-		ScanOrder string   `json:"scan_order"` // asc, desc, or unknown
+		Kind   string   `json:"kind" unpack:""`
+		Spec   PoolSpec `json:"spec"`
+		At     string   `json:"at"`
+		Delete bool     `json:"delete"`
 	}
 	Explode struct {
 		Kind string      `json:"kind" unpack:""`
@@ -407,12 +405,6 @@ type PoolSpec struct {
 	Pool   Pattern `json:"pool"`
 	Commit string  `json:"commit"`
 	Meta   string  `json:"meta"`
-}
-
-type Range struct {
-	Kind  string `json:"kind" unpack:""`
-	Lower Expr   `json:"lower"`
-	Upper Expr   `json:"upper"`
 }
 
 type Source interface {

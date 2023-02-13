@@ -184,21 +184,6 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 			return nil, err
 		}
 	}
-	var lower, upper dag.Expr
-	if r := p.Range; r != nil {
-		if r.Lower != nil {
-			lower, err = semExpr(scope, r.Lower)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if r.Upper != nil {
-			upper, err = semExpr(scope, r.Upper)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 	if p.At != "" {
 		// XXX
 		// We no longer use "at" to refer to a commit tag, but if there
@@ -221,13 +206,10 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 	if p.Spec.Meta != "" {
 		if commit != "" {
 			return &dag.CommitMeta{
-				Kind:      "CommitMeta",
-				Meta:      p.Spec.Meta,
-				Pool:      poolID,
-				Commit:    commitID,
-				ScanLower: lower,
-				ScanUpper: upper,
-				ScanOrder: p.ScanOrder,
+				Kind:   "CommitMeta",
+				Meta:   p.Spec.Meta,
+				Pool:   poolID,
+				Commit: commitID,
 			}, nil
 		}
 		return &dag.PoolMeta{
@@ -245,13 +227,10 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		}
 	}
 	return &dag.Pool{
-		Kind:      "Pool",
-		ID:        poolID,
-		Commit:    commitID,
-		Delete:    p.Delete,
-		ScanLower: lower,
-		ScanUpper: upper,
-		ScanOrder: p.ScanOrder,
+		Kind:   "Pool",
+		ID:     poolID,
+		Commit: commitID,
+		Delete: p.Delete,
 	}, nil
 }
 
