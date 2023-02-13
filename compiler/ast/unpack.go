@@ -52,7 +52,6 @@ var unpacker = unpack.New(
 	Pool{},
 	astzed.Primitive{},
 	Put{},
-	Range{},
 	astzed.Record{},
 	Agg{},
 	Regexp{},

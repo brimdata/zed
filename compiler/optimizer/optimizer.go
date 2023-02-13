@@ -62,49 +62,7 @@ func (o *Optimizer) OptimizeScan() error {
 		}
 		seq.Delete(1, len)
 	}
-	// Add pool range query to pushdown (if available).
-	for k := range from.Trunks {
-		trunk := &from.Trunks[k]
-		if layout, ok := o.layouts[trunk.Source]; ok {
-			addRangeToPushdown(trunk, layout.Primary())
-		}
-	}
 	return nil
-}
-
-func addRangeToPushdown(trunk *dag.Trunk, key field.Path) {
-	rangeExpr := convertRangeScan(trunk.Source, key)
-	if rangeExpr == nil {
-		return
-	}
-	if trunk.Pushdown == nil {
-		trunk.Pushdown = &dag.Filter{Kind: "Filter", Expr: rangeExpr}
-		return
-	}
-	filter := trunk.Pushdown.(*dag.Filter)
-	filter.Expr = dag.NewBinaryExpr("and", rangeExpr, filter.Expr)
-}
-
-func convertRangeScan(source dag.Source, key field.Path) dag.Expr {
-	p, ok := source.(*dag.Pool)
-	if !ok {
-		return nil
-	}
-	this := &dag.This{Kind: "This", Path: key}
-	var lower, upper dag.Expr
-	if p.ScanLower != nil {
-		lower = dag.NewBinaryExpr(">=", this, p.ScanLower)
-	}
-	if p.ScanUpper != nil {
-		upper = dag.NewBinaryExpr("<=", this, p.ScanUpper)
-	}
-	if lower == nil {
-		return upper
-	}
-	if upper == nil {
-		return lower
-	}
-	return dag.NewBinaryExpr("and", lower, upper)
 }
 
 // propagateScanOrder analyzes each trunk of the From input node and
@@ -205,17 +163,6 @@ func (o *Optimizer) layoutOfSource(s dag.Source, parent order.Layout) (order.Lay
 			return order.Nil, err
 		}
 		o.layouts[s] = layout
-	}
-	if pool, ok := s.(*dag.Pool); ok {
-		scanOrder, _ := order.ParseDirection(pool.ScanOrder)
-		// If the requested scan order is the same order as the pool,
-		// then we can use it.  Otherwise, the scan is going against
-		// the grain and we don't yet have the logic to reverse the
-		// scan of each object, though this should be relatively
-		// easy to add.  See issue #2665.
-		if scanOrder != order.Unknown && !scanOrder.HasOrder(layout.Order) {
-			layout = order.Nil
-		}
 	}
 	return layout, nil
 }

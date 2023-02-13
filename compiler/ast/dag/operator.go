@@ -178,13 +178,10 @@ type (
 		Layout order.Layout `json:"layout"`
 	}
 	Pool struct {
-		Kind      string      `json:"kind" unpack:""`
-		ID        ksuid.KSUID `json:"id"`
-		Commit    ksuid.KSUID `json:"commit"`
-		Delete    bool        `json:"delete"`
-		ScanLower Expr        `json:"scan_lower"`
-		ScanUpper Expr        `json:"scan_upper"`
-		ScanOrder string      `json:"scan_order"`
+		Kind   string      `json:"kind" unpack:""`
+		ID     ksuid.KSUID `json:"id"`
+		Commit ksuid.KSUID `json:"commit"`
+		Delete bool        `json:"delete"`
 	}
 	PoolMeta struct {
 		Kind string      `json:"kind" unpack:""`
@@ -192,13 +189,10 @@ type (
 		Meta string      `json:"meta"`
 	}
 	CommitMeta struct {
-		Kind      string      `json:"kind" unpack:""`
-		Pool      ksuid.KSUID `json:"pool"`
-		Commit    ksuid.KSUID `json:"branch"`
-		Meta      string      `json:"meta"`
-		ScanLower Expr        `json:"scan_lower"`
-		ScanUpper Expr        `json:"scan_upper"`
-		ScanOrder string      `json:"scan_order"`
+		Kind   string      `json:"kind" unpack:""`
+		Pool   ksuid.KSUID `json:"pool"`
+		Commit ksuid.KSUID `json:"branch"`
+		Meta   string      `json:"meta"`
 	}
 	LakeMeta struct {
 		Kind string `json:"kind" unpack:""`
