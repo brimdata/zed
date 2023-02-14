@@ -165,8 +165,12 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		commit = head.Branch
 	}
 	if poolName == "" {
-		if p.Spec.Meta == "" {
+		meta := p.Spec.Meta
+		if meta == "" {
 			return nil, errors.New("pool name missing")
+		}
+		if _, ok := dag.LakeMetas[meta]; !ok {
+			return nil, fmt.Errorf("unknown lake metadata type %q in from operator", meta)
 		}
 		return &dag.LakeMeta{
 			Kind: "LakeMeta",
@@ -176,9 +180,7 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 	// If a name appears as an 0x bytes ksuid, convert it to the
 	// ksuid string form since the backend doesn't parse the 0x format.
 	poolID, err := lakeparse.ParseID(poolName)
-	if err == nil {
-		poolName = poolID.String()
-	} else {
+	if err != nil {
 		poolID, err = ds.PoolID(ctx, poolName)
 		if err != nil {
 			return nil, err
@@ -203,20 +205,29 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 			}
 		}
 	}
-	if p.Spec.Meta != "" {
-		if commit != "" {
+	if meta := p.Spec.Meta; meta != "" {
+		if _, ok := dag.CommitMetas[meta]; ok {
+			if commitID == ksuid.Nil {
+				commitID, err = ds.CommitObject(ctx, poolID, "main")
+				if err != nil {
+					return nil, err
+				}
+			}
 			return &dag.CommitMeta{
 				Kind:   "CommitMeta",
-				Meta:   p.Spec.Meta,
+				Meta:   meta,
 				Pool:   poolID,
 				Commit: commitID,
 			}, nil
 		}
-		return &dag.PoolMeta{
-			Kind: "PoolMeta",
-			Meta: p.Spec.Meta,
-			ID:   poolID,
-		}, nil
+		if _, ok := dag.PoolMetas[meta]; ok {
+			return &dag.PoolMeta{
+				Kind: "PoolMeta",
+				Meta: meta,
+				ID:   poolID,
+			}, nil
+		}
+		return nil, fmt.Errorf("unknown metadata type %q in from operator", meta)
 	}
 	if commitID == ksuid.Nil {
 		// This trick here allows us to default to the main branch when

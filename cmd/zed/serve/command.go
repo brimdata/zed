@@ -30,7 +30,7 @@ The serve command listens for Zed lake API requests on the provided
 interface and port, executes the requests, and returns results.
 Requests may be issued to this service via the "zed api" command.
 `,
-	HiddenFlags: "brimfd,filestorereadonly,nodename,podip,recruiter,workers",
+	HiddenFlags: "brimfd,portfile",
 	New:         New,
 }
 

@@ -214,8 +214,10 @@ func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, 
 		return s.Layout, nil
 	case *dag.HTTP:
 		return s.Layout, nil
-	case *dag.Pool, *dag.LakeMeta, *dag.PoolMeta, *dag.CommitMeta:
+	case *dag.Pool:
 		return o.source.Layout(o.ctx, s), nil
+	case *dag.LakeMeta, *dag.PoolMeta, *dag.CommitMeta:
+		return order.Nil, nil
 	case *dag.Pass:
 		return parent, nil
 	case *kernel.Reader:
