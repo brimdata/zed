@@ -69,31 +69,31 @@ func MediaTypeToFormat(s string, dflt string) (string, error) {
 	return "", &ErrUnsupportedMimeType{typ}
 }
 
-func FormatToMediaType(format string) string {
+func FormatToMediaType(format string) (string, error) {
 	switch format {
 	case "arrows":
-		return MediaTypeArrowStream
+		return MediaTypeArrowStream, nil
 	case "csv":
-		return MediaTypeCSV
+		return MediaTypeCSV, nil
 	case "json":
-		return MediaTypeJSON
+		return MediaTypeJSON, nil
 	case "line":
-		return MediaTypeLine
+		return MediaTypeLine, nil
 	case "ndjson":
-		return MediaTypeNDJSON
+		return MediaTypeNDJSON, nil
 	case "parquet":
-		return MediaTypeParquet
+		return MediaTypeParquet, nil
 	case "vng":
-		return MediaTypeVNG
+		return MediaTypeVNG, nil
 	case "zeek":
-		return MediaTypeZeek
+		return MediaTypeZeek, nil
 	case "zjson":
-		return MediaTypeZJSON
+		return MediaTypeZJSON, nil
 	case "zng":
-		return MediaTypeZNG
+		return MediaTypeZNG, nil
 	case "zson":
-		return MediaTypeZSON
+		return MediaTypeZSON, nil
 	default:
-		panic(fmt.Sprintf("unknown format type: %s", format))
+		return "", fmt.Errorf("unknown format type: %s", format)
 	}
 }

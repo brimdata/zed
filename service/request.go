@@ -51,7 +51,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, c *Core) (*ResponseWrite
 		ss = []string{""}
 	}
 	for _, mime := range ss {
-		format, err := api.MediaTypeToFormat(mime, c.conf.DefaultZedFormat)
+		format, err := api.MediaTypeToFormat(mime, c.conf.DefaultResponseFormat)
 		if err != nil {
 			continue
 		}
@@ -222,8 +222,12 @@ func (w *ResponseWriter) ContentType() string {
 
 func (w *ResponseWriter) ZioWriter() zio.WriteCloser {
 	if w.zw == nil {
-		w.Header().Set("Content-Type", api.FormatToMediaType(w.Format))
-		var err error
+		typ, err := api.FormatToMediaType(w.Format)
+		if err != nil {
+			w.Error(err)
+			return nil
+		}
+		w.Header().Set("Content-Type", typ)
 		w.zw, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{Format: w.Format})
 		if err != nil {
 			w.Error(err)
@@ -234,7 +238,11 @@ func (w *ResponseWriter) ZioWriter() zio.WriteCloser {
 }
 func (w *ResponseWriter) Write(b []byte) (int, error) {
 	if atomic.CompareAndSwapInt32(&w.written, 0, 1) {
-		w.Header().Set("Content-Type", api.FormatToMediaType(w.Format))
+		typ, err := api.FormatToMediaType(w.Format)
+		if err != nil {
+			return 0, err
+		}
+		w.Header().Set("Content-Type", typ)
 	}
 	return w.ResponseWriter.Write(b)
 }

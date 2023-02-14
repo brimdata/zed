@@ -43,13 +43,13 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Auth               AuthConfig
-	CORSAllowedOrigins []string
-	DefaultZedFormat   string
-	Root               *storage.URI
-	RootContent        io.ReadSeeker
-	Version            string
-	Logger             *zap.Logger
+	Auth                  AuthConfig
+	CORSAllowedOrigins    []string
+	DefaultResponseFormat string
+	Root                  *storage.URI
+	RootContent           io.ReadSeeker
+	Version               string
+	Logger                *zap.Logger
 }
 
 type Core struct {
@@ -68,6 +68,12 @@ type Core struct {
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
+	if conf.DefaultResponseFormat == "" {
+		conf.DefaultResponseFormat = DefaultZedFormat
+	}
+	if _, err := api.FormatToMediaType(conf.DefaultResponseFormat); err != nil {
+		return nil, fmt.Errorf("invalid default response format: %w", err)
+	}
 	if conf.Logger == nil {
 		conf.Logger = zap.NewNop()
 	}
@@ -76,9 +82,6 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 	if conf.Version == "" {
 		conf.Version = "unknown"
-	}
-	if conf.DefaultZedFormat == "" {
-		conf.DefaultZedFormat = DefaultZedFormat
 	}
 
 	registry := prometheus.NewRegistry()
