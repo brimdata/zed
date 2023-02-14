@@ -200,6 +200,25 @@ type (
 	}
 )
 
+var LakeMetas = map[string]struct{}{
+	"branches":    {},
+	"index_rules": {},
+	"pools":       {},
+}
+
+var PoolMetas = map[string]struct{}{
+	"branches": {},
+}
+
+var CommitMetas = map[string]struct{}{
+	"indexes":    {},
+	"log":        {},
+	"objects":    {},
+	"partitions": {},
+	"rawlog":     {},
+	"vectors":    {},
+}
+
 type Source interface {
 	Source()
 }
