@@ -33,8 +33,8 @@ type Request struct {
 	Logger *zap.Logger
 }
 
-func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*ResponseWriter, *Request, bool) {
-	logger = logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
+func newRequest(w http.ResponseWriter, r *http.Request, c *Core) (*ResponseWriter, *Request, bool) {
+	logger := c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 	req := &Request{
 		Request: r,
 		Logger:  logger,
@@ -51,7 +51,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 		ss = []string{""}
 	}
 	for _, mime := range ss {
-		format, err := api.MediaTypeToFormat(mime, DefaultZedFormat)
+		format, err := api.MediaTypeToFormat(mime, c.conf.DefaultZedFormat)
 		if err != nil {
 			continue
 		}

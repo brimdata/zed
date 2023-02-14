@@ -45,6 +45,7 @@ const indexPage = `
 type Config struct {
 	Auth               AuthConfig
 	CORSAllowedOrigins []string
+	DefaultZedFormat   string
 	Root               *storage.URI
 	RootContent        io.ReadSeeker
 	Version            string
@@ -75,6 +76,9 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 	if conf.Version == "" {
 		conf.Version = "unknown"
+	}
+	if conf.DefaultZedFormat == "" {
+		conf.DefaultZedFormat = DefaultZedFormat
 	}
 
 	registry := prometheus.NewRegistry()
@@ -178,7 +182,7 @@ func (c *Core) addAPIServerRoutes() {
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if res, req, ok := newRequest(w, r, c.logger); ok {
+		if res, req, ok := newRequest(w, r, c); ok {
 			f(c, res, req)
 		}
 	})
