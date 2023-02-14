@@ -37,39 +37,46 @@ func (o *Optimizer) Entry() *dag.Sequential {
 //
 // Note: MergeFilters does not descend into dag.OverExpr.Scope, so it cannot
 // merge filters in "over" expressions like "sum(over a | where b | where c)".
-func (o *Optimizer) MergeFilters() { mergeFilters(o.entry) }
-
-func mergeFilters(op dag.Op) {
-	switch op := op.(type) {
-	case *dag.From:
-		for _, t := range op.Trunks {
-			mergeFilters(t.Seq)
-		}
-	case *dag.Over:
-		mergeFilters(op.Scope)
-	case *dag.Parallel:
-		for _, o := range op.Ops {
-			mergeFilters(o)
-		}
-	case *dag.Sequential:
-		if op == nil {
-			return
-		}
-		for _, o := range op.Ops {
-			mergeFilters(o)
-		}
-		// Start at the next to last element and work toward the first.
-		for i := len(op.Ops) - 2; i >= 0; i-- {
-			if f1, ok := op.Ops[i].(*dag.Filter); ok {
-				if f2, ok := op.Ops[i+1].(*dag.Filter); ok {
-					// Merge the second filter into the
-					// first and then delete the second.
-					f1.Expr = dag.NewBinaryExpr("and", f1.Expr, f2.Expr)
-					op.Ops = slices.Delete(op.Ops, i+1, i+2)
+func (o *Optimizer) MergeFilters() {
+	walkOp(o.entry, func(op dag.Op) {
+		if seq, ok := op.(*dag.Sequential); ok {
+			// Start at the next to last element and work toward the first.
+			for i := len(seq.Ops) - 2; i >= 0; i-- {
+				if f1, ok := seq.Ops[i].(*dag.Filter); ok {
+					if f2, ok := seq.Ops[i+1].(*dag.Filter); ok {
+						// Merge the second filter into the
+						// first and then delete the second.
+						f1.Expr = dag.NewBinaryExpr("and", f1.Expr, f2.Expr)
+						seq.Ops = slices.Delete(seq.Ops, i+1, i+2)
+					}
 				}
 			}
 		}
+	})
+}
+
+func walkOp(op dag.Op, post func(dag.Op)) {
+	switch op := op.(type) {
+	case *dag.From:
+		for _, t := range op.Trunks {
+			if t.Seq != nil {
+				walkOp(t.Seq, post)
+			}
+		}
+	case *dag.Over:
+		if op.Scope != nil {
+			walkOp(op.Scope, post)
+		}
+	case *dag.Parallel:
+		for _, o := range op.Ops {
+			walkOp(o, post)
+		}
+	case *dag.Sequential:
+		for _, o := range op.Ops {
+			walkOp(o, post)
+		}
 	}
+	post(op)
 }
 
 // OptimizeScan transforms the DAG by attempting to lift stateless operators
