@@ -8,7 +8,7 @@ script: |
   zed query -Z 'from :pools | drop id | sort name | drop ts'
   echo ===
   zed query -Z 'from poolA@main:objects | cut nameof(this),meta'
-  zed query -Z 'from poolA@main:log | cut nameof(this) | drop ts'
+  zed query -Z 'from poolA:log | cut nameof(this) | drop ts'
   echo ===
   zed index create -q Rule field a
   zed query -Z 'from :index_rules | nameof:=nameof(this) | drop ts,id'
