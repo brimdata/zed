@@ -17,10 +17,12 @@ outputs:
       )
       ===
       from (
-        file a =>
-          where b and c
-        file d =>
-          where e and f
+        (pushdown
+          where b and c)
+        file a
+        (pushdown
+          where e and f)
+        file d
       )
       ===
       from (
