@@ -612,10 +612,10 @@ func (c *canon) proc(p ast.Op) {
 		c.next()
 		c.write("merge ")
 		c.expr(p.Expr, "")
+	case *ast.Let:
+		c.over(p.Over, p.Locals)
 	case *ast.Over:
-		c.next()
-		c.write("over ")
-		c.exprs(p.Exprs)
+		c.over(p, nil)
 	case *ast.Yield:
 		c.next()
 		c.write("yield ")
@@ -623,6 +623,26 @@ func (c *canon) proc(p ast.Op) {
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()
+	}
+}
+
+func (c *canon) over(o *ast.Over, locals []ast.Def) {
+	c.next()
+	c.write("over ")
+	c.exprs(o.Exprs)
+	if len(locals) > 0 {
+		c.write(" with ")
+		c.defs(locals, ", ")
+	}
+	if o.Scope != nil {
+		c.write(" => (")
+		c.open()
+		c.head = true
+		c.proc(o.Scope)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	}
 }
 

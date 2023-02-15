@@ -99,6 +99,25 @@ func (c *canonDAG) expr(e dag.Expr, parent string) {
 		c.write("%s(", e.Name)
 		c.exprs(e.Args)
 		c.write(")")
+	case *dag.OverExpr:
+		c.open("(")
+		c.ret()
+		c.write("over ")
+		c.exprs(e.Exprs)
+		if len(e.Defs) > 0 {
+			for i, d := range e.Defs {
+				if i > 0 {
+					c.write(", ")
+				}
+				c.write("%s=", d.Name)
+				c.expr(d.Expr, "")
+			}
+		}
+		c.op(e.Scope)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	case *dag.Search:
 		c.write("search(%s)", e.Value)
 	case *dag.This:
@@ -379,10 +398,10 @@ func (c *canonDAG) op(p dag.Op) {
 		c.ret()
 		c.close()
 		c.write(")")
+	case *dag.Let:
+		c.over(p.Over, p.Defs)
 	case *dag.Over:
-		c.next()
-		c.write("over ")
-		c.exprs(p.Exprs)
+		c.over(p, nil)
 	case *dag.Yield:
 		c.next()
 		c.write("yield ")
@@ -390,6 +409,32 @@ func (c *canonDAG) op(p dag.Op) {
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()
+	}
+}
+
+func (c *canonDAG) over(o *dag.Over, locals []dag.Def) {
+	c.next()
+	c.write("over ")
+	c.exprs(o.Exprs)
+	if len(locals) > 0 {
+		c.write(" with ")
+		for i, l := range locals {
+			if i > 0 {
+				c.write(", ")
+			}
+			c.write("%s=", l.Name)
+			c.expr(l.Expr, "")
+		}
+	}
+	if o.Scope != nil {
+		c.write(" => (")
+		c.open()
+		c.head = true
+		c.op(o.Scope)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	}
 }
 

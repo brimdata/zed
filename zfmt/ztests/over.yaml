@@ -1,0 +1,69 @@
+script: |
+  zc -C -I test.zed
+  echo ===
+  zc -s -C -I test.zed
+
+inputs:
+  - name: test.zed
+    data: |
+      // Expressions
+      yield (over a | b)
+      | yield (over a with b=c | d)
+      | yield (over a, b with c=d, e=f | g)
+      // Operators
+      | over a
+      | over a => ( b )
+      | over a with b=c => ( d )
+      | over a, b with c=d, e=f => ( g )
+
+outputs:
+  - name: stdout
+    data: |
+      yield (
+        over a
+        | search b
+      )
+      | yield (
+        over a with b=c
+        | search d
+      )
+      | yield (
+        over a, b with c=d, e=f
+        | search g
+      )
+      | over a
+      | over a => (
+        search b
+      )
+      | over a with b=c => (
+        search d
+      )
+      | over a, b with c=d, e=f => (
+        search g
+      )
+      ===
+      from (
+        (internal reader)
+      )
+      | yield (
+        over a
+        | where search("b")
+      )
+      | yield (
+        over ab=c
+        | where search("d")
+      )
+      | yield (
+        over a, bc=d, e=f
+        | where search("g")
+      )
+      | over a
+      | over a => (
+        where search("b")
+      )
+      | over a with b=c => (
+        where search("d")
+      )
+      | over a, b with c=d, e=f => (
+        where search("g")
+      )
