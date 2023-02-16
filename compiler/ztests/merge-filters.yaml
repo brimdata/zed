@@ -25,7 +25,9 @@ outputs:
       ===
       from (
         (internal reader) =>
-          over a
+          over a => (
+            where b and c
+          )
       )
       ===
       from (
