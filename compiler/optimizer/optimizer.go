@@ -104,11 +104,12 @@ func (o *Optimizer) OptimizeScan() error {
 	if len > 0 {
 		chain = chain[:len]
 		for k := range from.Trunks {
-			trunk := &from.Trunks[k]
-			liftInto(trunk, copyOps(chain))
-			pushDown(trunk)
+			liftInto(&from.Trunks[k], copyOps(chain))
 		}
 		seq.Delete(1, len)
+	}
+	for k := range from.Trunks {
+		pushDown(&from.Trunks[k])
 	}
 	return nil
 }
