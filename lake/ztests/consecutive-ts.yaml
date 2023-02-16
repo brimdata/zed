@@ -33,7 +33,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {key:1970-01-01T00:00:08Z,count:0(uint64),offset:0}
-      {key:1970-01-01T00:00:06Z,count:2(uint64),offset:27}
-      {key:1970-01-01T00:00:02Z,count:10(uint64),offset:78}
-      {key:1970-01-01T00:00:00Z,count:15(uint64),offset:116}
+      {from:1970-01-01T00:00:08Z,to:1970-01-01T00:00:06Z,val_off:0(uint64),val_cnt:3(uint64),offset:0(uint64),length:27(uint64)}
+      {from:1970-01-01T00:00:03Z,to:1970-01-01T00:00:03Z,val_off:3(uint64),val_cnt:3(uint64),offset:27(uint64),length:35(uint64)}
+      {from:1970-01-01T00:00:03Z,to:1970-01-01T00:00:03Z,val_off:6(uint64),val_cnt:3(uint64),offset:62(uint64),length:35(uint64)}
+      {from:1970-01-01T00:00:03Z,to:1970-01-01T00:00:02Z,val_off:9(uint64),val_cnt:3(uint64),offset:97(uint64),length:34(uint64)}
+      {from:1970-01-01T00:00:02Z,to:1970-01-01T00:00:02Z,val_off:12(uint64),val_cnt:3(uint64),offset:131(uint64),length:32(uint64)}
+      {from:1970-01-01T00:00:00Z,to:1970-01-01T00:00:00Z,val_off:15(uint64),val_cnt:1(uint64),offset:163(uint64),length:21(uint64)}

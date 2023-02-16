@@ -195,12 +195,12 @@ func seekRange(ctx context.Context, pool *lake.Pool, snap commits.View, filter z
 		}
 	}
 	cmp := expr.NewValueCompareFn(pool.Layout.Order, pool.Layout.Order == order.Asc)
-	first := &o.First
-	last := &o.Last
+	from := &o.From
+	to := &o.To
 	if pool.Layout.Order == order.Desc {
-		first, last = last, first
+		from, to = to, from
 	}
-	if indexSpan != nil || cropped != nil && cropped.Eval(first, last) {
+	if indexSpan != nil || cropped != nil && cropped.Eval(from, to) {
 		// There's an index available or the object's span is cropped by
 		// p.filter, so use the seek index to find the range to scan.
 		spanFilter, err := filter.AsKeySpanFilter(pool.Layout.Primary(), pool.Layout.Order)
@@ -210,5 +210,5 @@ func seekRange(ctx context.Context, pool *lake.Pool, snap commits.View, filter z
 		return data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, o, cmp, spanFilter, indexSpan, pool.Layout.Order)
 	}
 	// Scan the entire object.
-	return &seekindex.Range{End: o.Size}, nil
+	return &seekindex.Range{Length: o.Size}, nil
 }

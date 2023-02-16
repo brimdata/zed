@@ -4,7 +4,7 @@ script: |
   zed init -q
   zed create -q logs
   zed load -q -use logs babble.zson
-  zed query -Z "from logs@main:objects | cut m:=meta"
+  zed query -Z "from logs@main:objects | drop id"
 
 inputs:
   - name: babble.zson
@@ -16,10 +16,8 @@ outputs:
   - name: stdout
     data: |
       {
-          m: {
-              first: 2020-04-22T01:23:40.0622373Z,
-              last: 2020-04-21T22:40:30.06852324Z,
-              count: 1000 (uint64),
-              size: 33493
-          } (=data.Meta)
+          from: 2020-04-22T01:23:40.0622373Z,
+          to: 2020-04-21T22:40:30.06852324Z,
+          count: 1000 (uint64),
+          size: 33493
       }

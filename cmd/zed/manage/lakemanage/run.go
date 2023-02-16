@@ -28,17 +28,17 @@ func (p Run) Overlaps(first, last *zed.Value) bool {
 func (p *Run) Add(o *data.Object) {
 	p.Objects = append(p.Objects, o)
 	if p.Span == nil {
-		p.Span = extent.NewGeneric(o.First, o.Last, p.Compare)
+		p.Span = extent.NewGeneric(o.From, o.To, p.Compare)
 		return
 	}
-	p.Span.Extend(&o.First)
-	p.Span.Extend(&o.Last)
+	p.Span.Extend(&o.From)
+	p.Span.Extend(&o.To)
 }
 
 func (p *Run) SizeUncoveredBy(span extent.Span) int64 {
 	var size int64
 	for _, o := range p.Objects {
-		if span == nil || !span.Overlaps(&o.First, &o.Last) {
+		if span == nil || !span.Overlaps(&o.From, &o.To) {
 			size += o.Size
 		}
 	}

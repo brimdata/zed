@@ -25,12 +25,10 @@ outputs:
   - name: stdout
     data: |
       {
-          meta: {
-              first: null,
-              last: null,
-              count: 5 (uint64),
-              size: 72
-          } (=data.Meta)
+          from: null,
+          to: null,
+          count: 5 (uint64),
+          size: 72
       }
       ===
       ===

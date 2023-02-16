@@ -24,10 +24,10 @@ func GetPoolStats(ctx context.Context, p *lake.Pool, snap commits.View) (info Po
 	for _, object := range snap.Select(nil, p.Layout.Order) {
 		info.Size += object.Size
 		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, p.Layout.Order)
+			poolSpan = extent.NewGenericFromOrder(object.From, object.To, p.Layout.Order)
 		} else {
-			poolSpan.Extend(&object.First)
-			poolSpan.Extend(&object.Last)
+			poolSpan.Extend(&object.From)
+			poolSpan.Extend(&object.To)
 		}
 	}
 	//XXX need to change API to take return key range
@@ -59,10 +59,10 @@ func GetBranchStats(ctx context.Context, b *lake.Branch, snap commits.View) (inf
 	for _, object := range snap.Select(nil, b.Pool().Layout.Order) {
 		info.Size += object.Size
 		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, b.Pool().Layout.Order)
+			poolSpan = extent.NewGenericFromOrder(object.From, object.To, b.Pool().Layout.Order)
 		} else {
-			poolSpan.Extend(&object.First)
-			poolSpan.Extend(&object.Last)
+			poolSpan.Extend(&object.From)
+			poolSpan.Extend(&object.To)
 		}
 	}
 	//XXX need to change API to take return key range

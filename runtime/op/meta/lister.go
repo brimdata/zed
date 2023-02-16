@@ -114,12 +114,12 @@ func initObjectScan(snap commits.View, layout order.Layout, filter zbuf.Filter) 
 		if f != nil {
 			var filtered []*data.Object
 			for _, obj := range objects {
-				first := &obj.First
-				last := &obj.Last
+				from := &obj.From
+				to := &obj.To
 				if layout.Order == order.Desc {
-					first, last = last, first
+					from, to = to, from
 				}
-				if !f.Eval(first, last) {
+				if !f.Eval(from, to) {
 					filtered = append(filtered, obj)
 				}
 			}
@@ -134,13 +134,13 @@ func initObjectScan(snap commits.View, layout order.Layout, filter zbuf.Filter) 
 func sortObjects(objects []*data.Object, o order.Which) {
 	cmp := expr.NewValueCompareFn(o, o == order.Asc) //XXX is nullsMax correct here?
 	lessFunc := func(a, b *data.Object) bool {
-		if cmp(&a.First, &b.First) < 0 {
+		if cmp(&a.From, &b.From) < 0 {
 			return true
 		}
-		if !bytes.Equal(a.First.Bytes, b.First.Bytes) {
+		if !bytes.Equal(a.From.Bytes, b.From.Bytes) {
 			return false
 		}
-		if bytes.Equal(a.Last.Bytes, b.Last.Bytes) {
+		if bytes.Equal(a.To.Bytes, b.To.Bytes) {
 			// If the pool keys are equal for both the first and last values
 			// in the object, we return false here so that the stable sort preserves
 			// the commit order of the objects in the log. XXX we might want to
@@ -148,7 +148,7 @@ func sortObjects(objects []*data.Object, o order.Which) {
 			// presume commit-order in the object snapshot.
 			return false
 		}
-		return cmp(&a.Last, &b.Last) < 0
+		return cmp(&a.To, &b.To) < 0
 	}
 	sort.SliceStable(objects, func(i, j int) bool {
 		return lessFunc(objects[i], objects[j])

@@ -70,27 +70,17 @@ func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 	return k, id, true
 }
 
-type Meta struct {
-	First zed.Value `zed:"first"`
-	Last  zed.Value `zed:"last"`
-	Count uint64    `zed:"count"`
-	Size  int64     `zed:"size"`
-}
-
-//XXX
-// An Object represents a cloud object of file that holds Zed records
-// ordered according to the pool's data order.
-// seekIndexPath returns the path of an associated seek index for the ZNG
-// version of data, which can be used to lookup a nearby seek offset
-// for a desired pool-key value.
-// MetadataPath returns the path of an associated ZNG file that holds
-// information about the records in the chunk, including the total number,
-// and the first and last (hence smallest and largest) record values of the pool key.
-// XXX should First/Last be wrt pool order or be smallest and largest?
-
+// An Object represents a cloud object or file that holds an ordered sequence
+// of Zed values sorted according to the pool's data order where From is the
+// the first value in the sequence and To is the last value.  Count is the number
+// of values in the sequence and Size is total size in bytes of the Object as
+// persisted to storage (i.e., its compressed size).
 type Object struct {
-	ID   ksuid.KSUID `zed:"id"`
-	Meta `zed:"meta"`
+	ID    ksuid.KSUID `zed:"id"`
+	From  zed.Value   `zed:"from"`
+	To    zed.Value   `zed:"to"`
+	Count uint64      `zed:"count"`
+	Size  int64       `zed:"size"`
 }
 
 func (o Object) IsZero() bool {
@@ -109,7 +99,7 @@ func plural(ordinal int) string {
 }
 
 func (o Object) StringRange() string {
-	return fmt.Sprintf("%s %s %s", o.ID, o.First, o.Last)
+	return fmt.Sprintf("%s %s %s", o.ID, o.From, o.To)
 }
 
 func (o *Object) Equal(to *Object) bool {
@@ -121,7 +111,7 @@ func NewObject() Object {
 }
 
 func (o Object) Span(order order.Which) *extent.Generic {
-	return extent.NewGenericFromOrder(o.First, o.Last, order)
+	return extent.NewGenericFromOrder(o.From, o.To, order)
 }
 
 // ObjectPrefix returns a prefix for the various objects that comprise
@@ -153,7 +143,7 @@ func VectorURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
 
 func (o Object) Range() string {
 	//XXX need to handle any key... will the String method work?
-	return fmt.Sprintf("[%d-%d]", o.First, o.Last)
+	return fmt.Sprintf("[%d-%d]", o.From, o.To)
 }
 
 // Remove deletes the row object and its seek index.

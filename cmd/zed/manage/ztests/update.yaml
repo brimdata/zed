@@ -7,7 +7,7 @@ script: |
     seq 200 | zq '{ts:this}' - | zed load -q -
   done
   zed manage update -q -config manage.yaml
-  zed query -z 'from test@main:objects | yield meta'
+  zed query -z 'from test@main:objects | drop id'
 
 inputs:
   - name: manage.yaml
@@ -18,4 +18,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {first:200,last:1,count:2000(uint64),size:1035}(=data.Meta)
+      {from:200,to:1,count:2000(uint64),size:1035}
