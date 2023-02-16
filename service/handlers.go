@@ -27,6 +27,7 @@ import (
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 func handleQuery(c *Core, w *ResponseWriter, r *Request) {
@@ -35,6 +36,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
+	r.Logger.Debug("Running Query", zap.String("query", req.Query))
 	ctrl, ok := r.BoolFromQuery(w, "ctrl")
 	if !ok {
 		return
