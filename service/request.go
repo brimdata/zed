@@ -33,8 +33,8 @@ type Request struct {
 	Logger *zap.Logger
 }
 
-func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*ResponseWriter, *Request, bool) {
-	logger = logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
+func newRequest(w http.ResponseWriter, r *http.Request, c *Core) (*ResponseWriter, *Request, bool) {
+	logger := c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 	req := &Request{
 		Request: r,
 		Logger:  logger,
@@ -51,7 +51,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 		ss = []string{""}
 	}
 	for _, mime := range ss {
-		format, err := api.MediaTypeToFormat(mime, DefaultZedFormat)
+		format, err := api.MediaTypeToFormat(mime, c.conf.DefaultResponseFormat)
 		if err != nil {
 			continue
 		}
@@ -222,8 +222,12 @@ func (w *ResponseWriter) ContentType() string {
 
 func (w *ResponseWriter) ZioWriter() zio.WriteCloser {
 	if w.zw == nil {
-		w.Header().Set("Content-Type", api.FormatToMediaType(w.Format))
-		var err error
+		typ, err := api.FormatToMediaType(w.Format)
+		if err != nil {
+			w.Error(err)
+			return nil
+		}
+		w.Header().Set("Content-Type", typ)
 		w.zw, err = anyio.NewWriter(zio.NopCloser(w), anyio.WriterOpts{Format: w.Format})
 		if err != nil {
 			w.Error(err)
@@ -234,7 +238,11 @@ func (w *ResponseWriter) ZioWriter() zio.WriteCloser {
 }
 func (w *ResponseWriter) Write(b []byte) (int, error) {
 	if atomic.CompareAndSwapInt32(&w.written, 0, 1) {
-		w.Header().Set("Content-Type", api.FormatToMediaType(w.Format))
+		typ, err := api.FormatToMediaType(w.Format)
+		if err != nil {
+			return 0, err
+		}
+		w.Header().Set("Content-Type", typ)
 	}
 	return w.ResponseWriter.Write(b)
 }

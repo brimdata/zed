@@ -43,12 +43,13 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Auth               AuthConfig
-	CORSAllowedOrigins []string
-	Root               *storage.URI
-	RootContent        io.ReadSeeker
-	Version            string
-	Logger             *zap.Logger
+	Auth                  AuthConfig
+	CORSAllowedOrigins    []string
+	DefaultResponseFormat string
+	Root                  *storage.URI
+	RootContent           io.ReadSeeker
+	Version               string
+	Logger                *zap.Logger
 }
 
 type Core struct {
@@ -67,6 +68,12 @@ type Core struct {
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
+	if conf.DefaultResponseFormat == "" {
+		conf.DefaultResponseFormat = DefaultZedFormat
+	}
+	if _, err := api.FormatToMediaType(conf.DefaultResponseFormat); err != nil {
+		return nil, fmt.Errorf("invalid default response format: %w", err)
+	}
 	if conf.Logger == nil {
 		conf.Logger = zap.NewNop()
 	}
@@ -178,7 +185,7 @@ func (c *Core) addAPIServerRoutes() {
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if res, req, ok := newRequest(w, r, c.logger); ok {
+		if res, req, ok := newRequest(w, r, c); ok {
 			f(c, res, req)
 		}
 	})
