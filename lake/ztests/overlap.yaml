@@ -5,7 +5,7 @@ script: |
   zed use -q logs
   zed load -q babble-split1.zson
   zed load -q babble-split2.zson
-  zed query -Z "from logs@main:objects | cut meta | sort -r meta.size"
+  zed query -Z "from logs@main:objects | sort -r size | drop id"
 
 inputs:
   - name: babble.zson
@@ -19,18 +19,14 @@ outputs:
   - name: stdout
     data: |
       {
-          meta: {
-              first: 2020-04-22T01:23:40.0622373Z,
-              last: 2020-04-21T22:40:30.06852324Z,
-              count: 500 (uint64),
-              size: 17073
-          } (=data.Meta)
+          from: 2020-04-22T01:23:40.0622373Z,
+          to: 2020-04-21T22:40:30.06852324Z,
+          count: 500 (uint64),
+          size: 17073
       }
       {
-          meta: {
-              first: 2020-04-22T01:23:21.06632034Z,
-              last: 2020-04-21T22:40:49.0635839Z,
-              count: 500 (uint64),
-              size: 17039
-          } (=data.Meta)
+          from: 2020-04-22T01:23:21.06632034Z,
+          to: 2020-04-21T22:40:49.0635839Z,
+          count: 500 (uint64),
+          size: 17039
       }

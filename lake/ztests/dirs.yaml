@@ -3,7 +3,7 @@ script: |
   zed init -q
   zed create -q logs
   zed load -q -use logs babble.zson
-  zed query "from logs@main:objects" | zq -z "cut first:=meta.first,last:=meta.last" -
+  zed query "from logs@main:objects" | zq -z "{from,to}" -
   zed drop -q -f logs
   ! zed query "from logs@main:objects"
 
@@ -14,7 +14,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {first:2020-04-22T01:23:40.0622373Z,last:2020-04-21T22:40:30.06852324Z}
+      {from:2020-04-22T01:23:40.0622373Z,to:2020-04-21T22:40:30.06852324Z}
   - name: stderr
     data: |
       logs: pool not found

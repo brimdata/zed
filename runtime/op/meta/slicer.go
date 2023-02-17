@@ -23,7 +23,7 @@ type Slicer struct {
 	unmarshaler *zson.UnmarshalZNGContext
 	objects     []*data.Object
 	cmp         expr.CompareFn
-	last        *zed.Value
+	to          *zed.Value
 	mu          sync.Mutex
 }
 
@@ -80,19 +80,19 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 	if len(s.objects) == 0 {
 		return nil, nil
 	}
-	first := &s.objects[0].First
-	last := &s.objects[0].Last
+	from := &s.objects[0].From
+	to := &s.objects[0].To
 	for _, o := range s.objects[1:] {
-		if s.cmp(&o.First, first) < 0 {
-			first = &o.First
+		if s.cmp(&o.From, from) < 0 {
+			from = &o.From
 		}
-		if s.cmp(&o.Last, last) > 0 {
-			last = &o.Last
+		if s.cmp(&o.To, to) > 0 {
+			to = &o.To
 		}
 	}
 	val, err := s.marshaler.Marshal(&Partition{
-		First:   first,
-		Last:    last,
+		From:    from,
+		To:      to,
 		Objects: s.objects,
 	})
 	s.objects = s.objects[:0]
@@ -108,18 +108,18 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 		// We collect all the subsequent objects that overlap with any object in the
 		// accumulated set so far.  Since first times are non-decreasing this is
 		// guaranteed to generate partitions that are non-decreasing and non-overlapping.
-		if s.cmp(&o.First, s.last) >= 0 {
+		if s.cmp(&o.From, s.to) >= 0 {
 			var err error
 			batch, err = s.nextPartition()
 			if err != nil {
 				return nil, err
 			}
-			s.last = nil
+			s.to = nil
 		}
 	}
 	s.objects = append(s.objects, o)
-	if s.last == nil || s.cmp(s.last, &o.Last) < 0 {
-		s.last = &o.Last
+	if s.to == nil || s.cmp(s.to, &o.To) < 0 {
+		s.to = &o.To
 	}
 	return batch, nil
 }
@@ -129,9 +129,9 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 // objects that should be scanned along with a span to limit the scan
 // to only the span involved.
 type Partition struct {
-	First   *zed.Value
-	Last    *zed.Value
-	Objects []*data.Object
+	From    *zed.Value     `zed:"from"`
+	To      *zed.Value     `zed:"to"`
+	Objects []*data.Object `zed:"objects"`
 }
 
 func (p Partition) IsZero() bool {
@@ -140,9 +140,9 @@ func (p Partition) IsZero() bool {
 
 func (p Partition) FormatRangeOf(index int) string {
 	o := p.Objects[index]
-	return fmt.Sprintf("[%s-%s,%s-%s]", zson.String(p.First), zson.String(p.Last), zson.String(o.First), zson.String(o.Last))
+	return fmt.Sprintf("[%s-%s,%s-%s]", zson.String(p.From), zson.String(p.To), zson.String(o.From), zson.String(o.To))
 }
 
 func (p Partition) FormatRange() string {
-	return fmt.Sprintf("[%s-%s]", zson.String(p.First), zson.String(p.Last))
+	return fmt.Sprintf("[%s-%s]", zson.String(p.From), zson.String(p.To))
 }

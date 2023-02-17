@@ -1,7 +1,6 @@
 package data
 
 import (
-	"bytes"
 	"context"
 	"io"
 
@@ -21,13 +20,13 @@ type Writer struct {
 	byteCounter      *writeCounter
 	count            uint64
 	writer           *zngio.Writer
-	lastSOS          int64
 	order            order.Which
 	seekWriter       *zngio.Writer
 	seekIndex        *seekindex.Writer
 	seekIndexStride  int
 	seekIndexTrigger int
 	first            bool
+	from             *zed.Value
 	poolKey          field.Path
 }
 
@@ -47,8 +46,8 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 		byteCounter: counter,
 		writer:      zngio.NewWriter(counter),
 		order:       order,
-		first:       true,
 		poolKey:     poolKey,
+		first:       true,
 	}
 	if seekIndexStride == 0 {
 		seekIndexStride = DefaultSeekStride
@@ -63,38 +62,49 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	return w, nil
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
-	key := rec.DerefPath(w.poolKey).MissingAsNull()
+func (w *Writer) Write(val *zed.Value) error {
+	w.count++
+	key := val.DerefPath(w.poolKey).MissingAsNull()
 	if w.seekIndex != nil {
-		if err := w.writeIndex(*key); err != nil {
+		if err := w.writeIndex(key); err != nil {
 			return err
 		}
 	}
-	if err := w.writer.Write(rec); err != nil {
+	if err := w.writer.Write(val); err != nil {
 		return err
 	}
-	w.object.Last.CopyFrom(key)
-	w.count++
+	w.object.To.CopyFrom(key)
 	return nil
 }
 
-func (w *Writer) writeIndex(key zed.Value) error {
+func (w *Writer) writeIndex(key *zed.Value) error {
 	w.seekIndexTrigger += len(key.Bytes)
 	if w.first {
 		w.first = false
-		w.object.First.CopyFrom(&key)
-		w.object.Last.CopyFrom(&key)
-		return w.seekIndex.Write(key, 0, 0)
+		w.object.From.CopyFrom(key)
 	}
-	if w.seekIndexTrigger < w.seekIndexStride || bytes.Equal(key.Bytes, w.object.Last.Bytes) {
+	if w.from == nil {
+		w.from = key.Copy()
+	}
+	w.object.To.CopyFrom(key)
+	if w.seekIndexTrigger < w.seekIndexStride {
 		return nil
 	}
 	if err := w.writer.EndStream(); err != nil {
 		return err
 	}
-	w.seekIndexTrigger = 0
-	pos := w.writer.Position()
-	return w.seekIndex.Write(key, w.count, pos)
+	return w.flushSeekIndex()
+}
+
+func (w *Writer) flushSeekIndex() error {
+	if w.from != nil {
+		w.seekIndexTrigger = 0
+		from := w.from
+		to := w.object.To.Copy()
+		w.from = nil
+		return w.seekIndex.Write(from, to, w.count, uint64(w.writer.Position()))
+	}
+	return nil
 }
 
 // Abort is called when an error occurs during write. Errors are ignored
@@ -105,8 +115,11 @@ func (w *Writer) Abort() {
 }
 
 func (w *Writer) Close(ctx context.Context) error {
-	err := w.writer.Close()
-	if err != nil {
+	if err := w.writer.Close(); err != nil {
+		w.Abort()
+		return err
+	}
+	if err := w.flushSeekIndex(); err != nil {
 		w.Abort()
 		return err
 	}

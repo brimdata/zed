@@ -26,4 +26,4 @@ outputs:
     data: |
       {bytes_read:127768,bytes_matched:136,records_read:2331,records_matched:2}
       ===
-      {bytes_read:3500,bytes_matched:136,records_read:58,records_matched:2}
+      {bytes_read:2530,bytes_matched:136,records_read:41,records_matched:2}

@@ -2,12 +2,16 @@ package data
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zson"
 )
 
 func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.URI,
@@ -17,28 +21,37 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 		return nil, err
 	}
 	defer r.Close()
-	rg := &seekindex.Range{Start: -1}
-	reader := seekindex.NewSectionReader(r, obj.Last, obj.Count, obj.Size, cmp)
+	var rg *seekindex.Range
+	unmarshaler := zson.NewZNGUnmarshaler()
+	reader := zngio.NewReader(zed.NewContext(), r)
 	swapper := expr.NewValueCompareFn(order.Asc, o == order.Asc)
 	for {
-		s, err := reader.Next()
-		if s == nil || err != nil {
+		val, err := reader.Read()
+		if val == nil || err != nil {
 			return rg, err
 		}
-		first := s.Keys.First()
-		last := s.Keys.Last()
-		if swapper(first, last) > 0 {
-			first, last = last, first
+		var entry seekindex.Entry
+		if err := unmarshaler.Unmarshal(val, &entry); err != nil {
+			return nil, fmt.Errorf("corrupt seek index entry for %q at value: %q (%w)", obj.ID.String(), zson.String(val), err)
 		}
-		if filter != nil && filter.Eval(first, last) {
+		from := entry.From
+		to := entry.To
+		if swapper(from, to) > 0 {
+			from, to = to, from
+		}
+		if filter != nil && filter.Eval(from, to) {
 			continue
 		}
-		if countSpan != nil && !countSpan.Overlaps(s.Counts.First(), s.Counts.Last()) {
-			continue
+		if countSpan != nil {
+			seqFrom := zed.NewValue(zed.TypeUint64, zed.EncodeUint(entry.ValOff))
+			seqTo := zed.NewValue(zed.TypeUint64, zed.EncodeUint(entry.ValOff+entry.ValCnt-1))
+			if !countSpan.Overlaps(seqFrom, seqTo) {
+				continue
+			}
 		}
-		if rg.Start == -1 {
-			rg.Start = s.Range.Start
+		if rg == nil {
+			rg = &seekindex.Range{Offset: int64(entry.Offset)}
 		}
-		rg.End = s.Range.End
+		rg.Length += int64(entry.Length)
 	}
 }

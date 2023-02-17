@@ -33,6 +33,6 @@ func (o *Object) NewReader(ctx context.Context, engine storage.Engine, path *sto
 		Reader:     r,
 		Closer:     reader,
 		TotalBytes: o.Size,
-		ReadBytes:  rg.Size(),
+		ReadBytes:  rg.Length,
 	}, nil
 }

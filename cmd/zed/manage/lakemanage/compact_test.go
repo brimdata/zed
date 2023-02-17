@@ -94,13 +94,11 @@ func newTestObjectReader(objs []testObj, pool *pools.Config, coldthresh time.Dur
 			panic(err)
 		}
 		objects = append(objects, &data.Object{
-			ID: id,
-			Meta: data.Meta{
-				First: *zed.NewInt64(o.first),
-				Last:  *zed.NewInt64(o.last),
-				Count: 2,
-				Size:  o.size,
-			},
+			ID:    id,
+			From:  *zed.NewInt64(o.first),
+			To:    *zed.NewInt64(o.last),
+			Count: 2,
+			Size:  o.size,
 		})
 	}
 	reader := testObjectReader(objects)
