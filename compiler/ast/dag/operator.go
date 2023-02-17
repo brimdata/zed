@@ -22,6 +22,12 @@ var PassOp = &Pass{Kind: "Pass"}
 // Ops
 
 type (
+	CustomOp struct {
+		Kind  string      `json:"kind" unpack:""`
+		ID    string      `json:"id"`
+		Expr  Expr        `json:"expr"`
+		Scope *Sequential `json:"scope"`
+	}
 	Cut struct {
 		Kind  string       `json:"kind" unpack:""`
 		Args  []Assignment `json:"args"`
@@ -284,6 +290,7 @@ func (*Over) OpNode()       {}
 func (*Let) OpNode()        {}
 func (*Yield) OpNode()      {}
 func (*Merge) OpNode()      {}
+func (*CustomOp) OpNode()   {}
 
 func (seq *Sequential) IsEntry() bool {
 	if len(seq.Ops) == 0 {

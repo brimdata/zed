@@ -60,7 +60,7 @@ Decls
   / __ { RETURN(ARRAY()) }
 
 Decl
-  = __ v:(ConstDecl / FuncDecl) { RETURN(v) }
+  = __ v:(ConstDecl / FuncDecl / OpDecl) { RETURN(v) }
 
 ConstDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
@@ -80,6 +80,15 @@ FuncDecl
         "name":id,
         "params":params,
         "expr":expr))
+    }
+
+OpDecl
+  = "op" _ name:IdentifierName __ "(" __ params:IdentifierNames __ ")" scope:Scope {
+      RETURN(MAP(
+        "kind":"OpDecl",
+        "name":name,
+        "params":params,
+        "scope":scope))
     }
 
 Operation

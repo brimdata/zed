@@ -12,6 +12,7 @@ var unpacker = unpack.New(
 	BinaryExpr{},
 	Call{},
 	Conditional{},
+	CustomOp{},
 	Cut{},
 	Dot{},
 	Drop{},

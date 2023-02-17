@@ -272,7 +272,7 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 	}
 	scope.Enter()
 	defer scope.Exit()
-	consts, funcs, err := semDecls(scope, seq.Decls)
+	consts, funcs, err := semDecls(ctx, scope, seq.Decls, ds, head)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +437,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Pass:
 		return &dag.Pass{Kind: "Pass"}, nil
 	case *ast.OpExpr:
-		return semOpExpr(scope, o.Expr)
+		return semOpExpr(ctx, scope, o.Expr, ds, head)
 	case *ast.Search:
 		e, err := semExpr(scope, o.Expr)
 		if err != nil {
@@ -634,7 +634,7 @@ func semOver(ctx context.Context, scope *Scope, in *ast.Over, ds *data.Source, h
 	}, nil
 }
 
-func semDecls(scope *Scope, decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
+func semDecls(ctx context.Context, scope *Scope, decls []ast.Decl, ds *data.Source, head *lakeparse.Commitish) ([]dag.Def, []*dag.Func, error) {
 	var consts []dag.Def
 	var fds []*ast.FuncDecl
 	for _, d := range decls {
@@ -647,6 +647,10 @@ func semDecls(scope *Scope, decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
 			consts = append(consts, c)
 		case *ast.FuncDecl:
 			fds = append(fds, d)
+		case *ast.OpDecl:
+			if err := scope.DefineOp(d); err != nil {
+				return nil, nil, err
+			}
 		default:
 			return nil, nil, fmt.Errorf("invalid declaration type %T", d)
 		}
@@ -755,9 +759,9 @@ func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
 	}, nil
 }
 
-func semOpExpr(scope *Scope, e ast.Expr) (dag.Op, error) {
+func semOpExpr(ctx context.Context, scope *Scope, e ast.Expr, ds *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
 	if call, ok := e.(*ast.Call); ok {
-		if op, err := semCallOp(scope, call); op != nil || err != nil {
+		if op, err := semCallOp(ctx, scope, call, ds, head); op != nil || err != nil {
 			return op, err
 		}
 	}
@@ -810,7 +814,10 @@ func isBool(e dag.Expr) bool {
 	}
 }
 
-func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
+func semCallOp(ctx context.Context, scope *Scope, call *ast.Call, ds *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
+	if op, err := maybeConvertCustomOp(ctx, scope, call, ds, head); err != nil || op != nil {
+		return op, err
+	}
 	if agg, err := maybeConvertAgg(scope, call); err == nil && agg != nil {
 		return &dag.Summarize{
 			Kind: "Summarize",
@@ -834,4 +841,55 @@ func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 		Kind: "Filter",
 		Expr: c,
 	}, nil
+}
+
+// maybeConvertCustomOp returns nil, nil if the call is not determined to be a
+// custom op, otherwise it returns the compile op or the encountered will
+// compiling.
+func maybeConvertCustomOp(ctx context.Context, scope *Scope, call *ast.Call, ds *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
+	op, err := scope.LookupOp(call.Name)
+	if op == nil || err != nil {
+		if _, ok := err.(errOpCycle); !ok {
+			err = nil
+		}
+		return nil, err
+	}
+	if call.Where != nil {
+		return nil, fmt.Errorf("%s(): custom ops cannot have a where clause", call.Name)
+	}
+	params, args := op.Params, call.Args
+	if len(params) != len(args) {
+		return nil, fmt.Errorf("%s(): %d arg%s provided when op expects %d arg%s", call.Name, len(params), plural(params), len(args), plural(args))
+	}
+	fields := make([]dag.RecordElem, len(args))
+	for i, arg := range args {
+		f := &dag.Field{Kind: "Field", Name: params[i]}
+		fields[i] = f
+		var err error
+		if f.Value, err = semExpr(scope, arg); err != nil {
+			return nil, err
+		}
+	}
+	scope.EnterOp(op.Name)
+	defer scope.Exit()
+	seq, err := semSequential(ctx, scope, op.Scope, ds, head)
+	if err != nil {
+		return nil, err
+	}
+	return &dag.CustomOp{
+		Kind: "CustomOp",
+		ID:   call.Name,
+		Expr: &dag.RecordExpr{
+			Kind:  "RecordExpr",
+			Elems: fields,
+		},
+		Scope: seq,
+	}, nil
+}
+
+func plural[S ~[]E, E any](s S) string {
+	if len(s) == 1 {
+		return ""
+	}
+	return "s"
 }

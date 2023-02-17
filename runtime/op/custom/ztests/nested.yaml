@@ -1,0 +1,18 @@
+zed: |
+  op addfoo(outer) => ( 
+      yield {...outer, foo:"foo"} | addbar(this)
+  )
+  op addbar(outer) => (
+      yield {...outer, bar:"bar"} | addbaz(this)
+  )
+  op addbaz(outer) => (
+      yield {...outer, baz:"baz"}
+  )
+  addfoo(this)
+
+input: '{x:1} {x:2} {x:3}'
+
+output: |
+  {x:1,foo:"foo",bar:"bar",baz:"baz"}
+  {x:2,foo:"foo",bar:"bar",baz:"baz"}
+  {x:3,foo:"foo",bar:"bar",baz:"baz"}

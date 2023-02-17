@@ -67,6 +67,7 @@ var unpacker = unpack.New(
 	SQLOrderBy{},
 	Sort{},
 	String{},
+	OpDecl{},
 	Switch{},
 	Tail{},
 	Term{},

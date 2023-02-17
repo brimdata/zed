@@ -16,6 +16,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/combine"
+	"github.com/brimdata/zed/runtime/op/custom"
 	"github.com/brimdata/zed/runtime/op/explode"
 	"github.com/brimdata/zed/runtime/op/exprswitch"
 	"github.com/brimdata/zed/runtime/op/fork"
@@ -245,6 +246,25 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			return nil, err
 		}
 		return b.compileOver(parent, v.Over, names, exprs)
+	case *dag.CustomOp:
+		e, err := b.compileExpr(v.Expr)
+		if err != nil {
+			return nil, err
+		}
+		op := custom.New(parent, v.ID, e)
+		exits, err := b.compile(v.Scope, []zbuf.Puller{op})
+		if err != nil {
+			return nil, err
+		}
+		var exit zbuf.Puller
+		if len(exits) == 1 {
+			exit = exits[0]
+		} else {
+			// This can happen when output of over body
+			// is a fork or switch.
+			exit = combine.New(b.pctx, exits)
+		}
+		return exit, nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}

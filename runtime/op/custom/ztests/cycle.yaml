@@ -1,0 +1,9 @@
+zed: |
+  op callA(outer) => (callB(outer))
+  op callB(outer) => (callC(outer))
+  op callC(outer) => (callA(outer))
+  callA(this)
+
+input: '{x:1}'
+
+errorRE: "op cycle found: callA -> callB -> callC -> callA"

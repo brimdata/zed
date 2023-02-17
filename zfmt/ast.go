@@ -331,12 +331,7 @@ func (c *canon) decl(d ast.Decl) {
 		c.expr(d.Expr, "")
 	case *ast.FuncDecl:
 		c.write("func %s(", d.Name)
-		for i := range d.Params {
-			if i != 0 {
-				c.write(", ")
-			}
-			c.write(d.Params[i])
-		}
+		c.params(d.Params)
 		c.open("): (")
 		c.ret()
 		c.expr(d.Expr, d.Name)
@@ -344,9 +339,29 @@ func (c *canon) decl(d ast.Decl) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *ast.OpDecl:
+		c.write("op %s(", d.Name)
+		c.params(d.Params)
+		c.open(") => (")
+		c.ret()
+		c.proc(d.Scope)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
+		c.head, c.first = true, true
 	default:
 		c.open("unknown decl: %T", d)
 		c.close()
+	}
+}
+
+func (c *canon) params(params []string) {
+	for i := range params {
+		if i != 0 {
+			c.write(", ")
+		}
+		c.write(params[i])
 	}
 }
 
