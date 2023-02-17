@@ -43,7 +43,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Value: zson.MustFormatValue(val),
 		}, nil
 	case *ast.ID:
-		return semID(scope, e), nil
+		return semID(scope, e)
 	case *ast.Term:
 		var val string
 		switch t := e.Value.(type) {
@@ -169,10 +169,14 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 					Value: e,
 				})
 			case *ast.ID:
+				v, err := semID(scope, elem)
+				if err != nil {
+					return nil, err
+				}
 				out = append(out, &dag.Field{
 					Kind:  "Field",
 					Name:  elem.Name,
-					Value: semID(scope, elem),
+					Value: v,
 				})
 			case *ast.Spread:
 				e, err := semExpr(scope, elem.Expr)
@@ -252,16 +256,20 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 	return nil, fmt.Errorf("invalid expression type %T", e)
 }
 
-func semID(scope *Scope, id *ast.ID) dag.Expr {
+func semID(scope *Scope, id *ast.ID) (dag.Expr, error) {
 	// We use static scoping here to see if an identifier is
 	// a "var" reference to the name or a field access
 	// and transform the AST node appropriately.  The resulting DAG
 	// doesn't have Identifiers as they are resolved here
 	// one way or the other.
-	if ref := scope.Lookup(id.Name); ref != nil {
-		return ref
+	ref, err := scope.LookupExpr(id.Name)
+	if err != nil {
+		return nil, err
 	}
-	return pathOf(id.Name)
+	if ref != nil {
+		return ref, nil
+	}
+	return pathOf(id.Name), nil
 }
 
 func semDynamicType(scope *Scope, tv astzed.Type) *dag.Call {
@@ -458,7 +466,11 @@ func semCall(scope *Scope, call *ast.Call) (dag.Expr, error) {
 	}
 	// Call could be to a user defined func. Check if we have a matching func in
 	// scope.
-	if e := scope.Lookup(call.Name); e != nil {
+	e, err := scope.LookupExpr(call.Name)
+	if err != nil {
+		return nil, err
+	}
+	if e != nil {
 		f, ok := e.(*dag.Func)
 		if !ok {
 			return nil, fmt.Errorf("%s(): definition is not a function type: %T", call.Name, e)

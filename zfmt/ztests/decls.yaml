@@ -10,6 +10,7 @@ inputs:
       const foo = "bar"
       func add(a,b): (a+b)
       const bar = "baz"
+      op stamp(outer, assignee) => ( yield {...outer, assignee, ts: now()} )
       pass
 
 outputs:
@@ -23,6 +24,9 @@ outputs:
         a+b
       )
       const bar = "baz"
+      op stamp(outer, assignee) => (
+        yield {...outer,assignee,ts:now()}
+      )
       pass
       ===
       const foo = "bar"

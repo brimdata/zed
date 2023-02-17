@@ -220,7 +220,11 @@ func convertSQLTableRef(scope *Scope, e ast.Expr) (dag.Op, error) {
 	// then convert it to a type name as it is otherwise expected that
 	// the type name will be defined by the data stream.
 	if id, ok := dag.TopLevelField(converted); ok {
-		if scope.Lookup(id) == nil {
+		e, err := scope.LookupExpr(id)
+		if err != nil {
+			return nil, err
+		}
+		if e == nil {
 			converted = dynamicTypeName(id)
 		}
 	}

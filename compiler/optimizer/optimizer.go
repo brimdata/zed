@@ -75,6 +75,8 @@ func walkOp(op dag.Op, post func(dag.Op)) {
 		for _, o := range op.Ops {
 			walkOp(o, post)
 		}
+	case *dag.CustomOp:
+		walkOp(op.Scope, post)
 	}
 	post(op)
 }

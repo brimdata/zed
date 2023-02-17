@@ -211,8 +211,16 @@ type FuncDecl struct {
 	Expr   Expr     `json:"expr"`
 }
 
+type OpDecl struct {
+	Kind   string      `json:"kind" unpack:""`
+	Name   string      `json:"name"`
+	Params []string    `json:"params"`
+	Scope  *Sequential `json:"scope"`
+}
+
 func (*ConstDecl) DeclAST() {}
 func (*FuncDecl) DeclAST()  {}
+func (*OpDecl) DeclAST()    {}
 
 // ----------------------------------------------------------------------------
 // Operators
