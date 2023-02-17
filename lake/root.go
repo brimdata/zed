@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -30,6 +31,11 @@ const (
 	IndexRulesTag   = "index_rules"
 	LakeMagicFile   = "lake.zng"
 	LakeMagicString = "ZED LAKE"
+)
+
+var (
+	ErrExist    = errors.New("lake already exists")
+	ErrNotExist = errors.New("lake does not exist")
 )
 
 // The Root of the lake represents the path prefix and configuration state
@@ -63,7 +69,7 @@ func Open(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root,
 	r := newRoot(engine, path)
 	if err := r.loadConfig(ctx); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			err = fmt.Errorf("%s: no such lake", path)
+			err = fmt.Errorf("%s: %w", path, ErrNotExist)
 		}
 		return nil, err
 	}
@@ -73,7 +79,7 @@ func Open(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root,
 func Create(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
 	r := newRoot(engine, path)
 	if err := r.loadConfig(ctx); err == nil {
-		return nil, fmt.Errorf("%s: lake already exists", path)
+		return nil, fmt.Errorf("%s: %w", path, ErrExist)
 	}
 	if err := r.createConfig(ctx); err != nil {
 		return nil, err
@@ -83,10 +89,10 @@ func Create(ctx context.Context, engine storage.Engine, path *storage.URI) (*Roo
 
 func CreateOrOpen(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
 	r, err := Open(ctx, engine, path)
-	if err == nil {
-		return r, err
+	if errors.Is(err, ErrNotExist) {
+		return Create(ctx, engine, path)
 	}
-	return Create(ctx, engine, path)
+	return r, err
 }
 
 func (r *Root) createConfig(ctx context.Context) error {
@@ -151,17 +157,21 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	deserializer := zngbytes.NewDeserializer(reader, []interface{}{
-		LakeMagic{},
-	})
-	defer deserializer.Close()
-	v, err := deserializer.Read()
+	zr := zngio.NewReader(zed.NewContext(), reader)
+	val, err := zr.Read()
 	if err != nil {
 		return err
 	}
-	magic, ok := v.(*LakeMagic)
-	if !ok {
-		return fmt.Errorf("corrupt lake version file %q: unknown type: %T", LakeMagicFile, v)
+	last, err := zr.Read()
+	if err != nil {
+		return err
+	}
+	if last != nil {
+		return fmt.Errorf("corrupt lake version file: more than one Zed value at %s", zson.String(last))
+	}
+	var magic LakeMagic
+	if err := zson.UnmarshalZNG(val, &magic); err != nil {
+		return fmt.Errorf("corrupt lake version file: %w", err)
 	}
 	if magic.Magic != LakeMagicString {
 		return fmt.Errorf("corrupt lake version file: magic %q should be %q", magic.Magic, LakeMagicString)
