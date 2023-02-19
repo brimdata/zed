@@ -106,13 +106,17 @@ func initObjectScan(snap commits.View, layout order.Layout) []*data.Object {
 func sortObjects(objects []*data.Object, o order.Which) {
 	cmp := expr.NewValueCompareFn(o, o == order.Asc) //XXX is nullsMax correct here?
 	lessFunc := func(a, b *data.Object) bool {
-		if cmp(&a.From, &b.From) < 0 {
+		aFrom, aTo, bFrom, bTo := &a.Min, &a.Max, &b.Min, &b.Max
+		if o == order.Desc {
+			aFrom, aTo, bFrom, bTo = aTo, aFrom, bTo, bFrom
+		}
+		if cmp(aFrom, bFrom) < 0 {
 			return true
 		}
-		if !bytes.Equal(a.From.Bytes, b.From.Bytes) {
+		if !bytes.Equal(aFrom.Bytes, bFrom.Bytes) {
 			return false
 		}
-		if bytes.Equal(a.To.Bytes, b.To.Bytes) {
+		if bytes.Equal(aTo.Bytes, bTo.Bytes) {
 			// If the pool keys are equal for both the first and last values
 			// in the object, we return false here so that the stable sort preserves
 			// the commit order of the objects in the log. XXX we might want to
@@ -120,7 +124,7 @@ func sortObjects(objects []*data.Object, o order.Which) {
 			// presume commit-order in the object snapshot.
 			return false
 		}
-		return cmp(&a.To, &b.To) < 0
+		return cmp(aTo, bTo) < 0
 	}
 	sort.SliceStable(objects, func(i, j int) bool {
 		return lessFunc(objects[i], objects[j])

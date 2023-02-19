@@ -56,8 +56,8 @@ outputs:
       ===
       {
           nameof: "data.Object",
-          from: 1,
-          to: 2,
+          min: 1,
+          max: 2,
           count: 2 (uint64),
           size: 18
       }

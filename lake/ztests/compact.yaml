@@ -13,4 +13,4 @@ outputs:
   - name: stdout
     regexp: |
       \w{27} 121B bytes 20 records
-         from 9 to 0
+         min 0 max 9

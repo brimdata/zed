@@ -77,8 +77,8 @@ func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 // persisted to storage (i.e., its compressed size).
 type Object struct {
 	ID    ksuid.KSUID `zed:"id"`
-	From  zed.Value   `zed:"from"`
-	To    zed.Value   `zed:"to"`
+	Min   zed.Value   `zed:"min"`
+	Max   zed.Value   `zed:"max"`
 	Count uint64      `zed:"count"`
 	Size  int64       `zed:"size"`
 }
@@ -99,7 +99,7 @@ func plural(ordinal int) string {
 }
 
 func (o Object) StringRange() string {
-	return fmt.Sprintf("%s %s %s", o.ID, o.From, o.To)
+	return fmt.Sprintf("%s %s %s", o.ID, o.Min, o.Max)
 }
 
 func (o *Object) Equal(to *Object) bool {
@@ -111,7 +111,7 @@ func NewObject() Object {
 }
 
 func (o Object) Span(order order.Which) *extent.Generic {
-	return extent.NewGenericFromOrder(o.From, o.To, order)
+	return extent.NewGenericFromOrder(o.Min, o.Max, order)
 }
 
 // ObjectPrefix returns a prefix for the various objects that comprise
@@ -143,7 +143,7 @@ func VectorURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
 
 func (o Object) Range() string {
 	//XXX need to handle any key... will the String method work?
-	return fmt.Sprintf("[%d-%d]", o.From, o.To)
+	return fmt.Sprintf("[%d-%d]", o.Min, o.Max)
 }
 
 // Remove deletes the row object and its seek index.

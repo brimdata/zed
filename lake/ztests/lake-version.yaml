@@ -9,4 +9,4 @@ script: |
 outputs:
   - name: stderr
     data: |
-      unsupported lake version: found version 1 while expecting 2
+      unsupported lake version: found version 1 while expecting 3

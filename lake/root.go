@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	Version         = 2
+	Version         = 3
 	PoolsTag        = "pools"
 	IndexRulesTag   = "index_rules"
 	LakeMagicFile   = "lake.zng"

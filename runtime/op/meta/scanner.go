@@ -84,7 +84,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		return NewSlicer(lister, zctx, p.Layout.Order), nil
+		return NewSlicer(lister, zctx), nil
 	case "log":
 		tips, err := p.BatchifyBranchTips(ctx, zctx, nil)
 		if err != nil {
