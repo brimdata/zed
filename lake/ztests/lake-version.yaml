@@ -1,0 +1,12 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  mv test/lake.zng lake-orig.zng
+  zq -o test/lake.zng 'version:=1' lake-orig.zng
+  ! zed serve
+
+outputs:
+  - name: stderr
+    data: |
+      unsupported lake version: found version 1 while expecting 2
