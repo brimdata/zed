@@ -718,7 +718,7 @@ func NewIndexExpr(zctx *zed.Context, container, index Evaluator) Evaluator {
 func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 	container := i.container.Eval(ectx, this)
 	index := i.index.Eval(ectx, this)
-	switch typ := container.Type.(type) {
+	switch typ := zed.TypeUnder(container.Type).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
 		return indexVector(i.zctx, ectx, zed.InnerType(typ), container.Bytes, index)
 	case *zed.TypeRecord:
