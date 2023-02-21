@@ -511,7 +511,9 @@ receive responses in the desired format, include the MIME type of the format in
 the request's Accept HTTP header.
 
 If the Accept header is not specified, the service will return ZSON as the
-default response format for the endpoints described above.
+default response format for the endpoints described above. A different default
+response format can be specified by invoking the `-defaultfmt` option when
+running [`zed serve`](../commands/zed.md#213-serve).
 
 The supported MIME types are as follows:
 
