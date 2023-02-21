@@ -804,7 +804,7 @@ specify a metadata source using an extended syntax in the `from` operator.
 There are three types of meta-queries:
 * `from :<meta>` - lake level
 * `from pool:<meta>` - pool level
-* `from pool@branch<:meta>` - branch level
+* `from pool[@<branch>]<:meta>` - branch level
 
 `<meta>` is the name of the metadata being queried. The available metadata
 sources vary based on level.
@@ -834,6 +834,13 @@ You can also pretty-print in human-readable form most of the metadata Zed record
 using the "lake" format, e.g.,
 ```
 zed query -f lake "from logs@live:objects"
+```
+
+The `main` branch is queried by default if an explicit branch is not specified,
+e.g.,
+
+```
+zed query -f lake "from logs:objects"
 ```
 
 ### 2.12 Rename
