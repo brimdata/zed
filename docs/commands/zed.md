@@ -226,7 +226,7 @@ In particular, the working branch set by the [use command](#214-use) is a commit
 
 A commitish may be abbreviated in several ways where the missing detail is
 obtained from the working-branch commitish, e.g.,
-* `<pool>` - When just a pool name is given, then the comittish is assumed to be
+* `<pool>` - When just a pool name is given, then the commitish is assumed to be
 `<pool>@main`.
 * `@<id>` or `<id>`- When an ID is given (optionally with the `@` prefix), then the commitish is assumed to be `<pool>@<id>` where `<pool>` is obtained from the working-branch commitish.
 * `@<branch>` - When a branch name is given with the `@` prefix, then the commitish is assumed to be `<pool>@<id>` where `<pool>` is obtained from the working-branch commitish.
@@ -248,7 +248,7 @@ non-record types), then the pool key would typically be configured
 as the [special value `this`](../language/overview.md#23-the-special-value-this).
 
 Data can be efficiently scanned if a query has a filter operating on the pool
-key.  For example on a pool with pool key `ts`, the query `ts == 100`
+key.  For example, on a pool with pool key `ts`, the query `ts == 100`
 will be optimized to scan only the data objects where the value `100` could be
 present.
 
@@ -383,7 +383,7 @@ case but this design allows different workloads like these to be custom tuned.
 ## 2. Zed Commands
 
 The `zed` command is structured as a primary command
-consististing of a large number of interrelated sub-commands, similar to the
+consisting of a large number of interrelated sub-commands, similar to the
 [docker](https://docs.docker.com/engine/reference/commandline/cli/)
 or [kubectl](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands)
 commands.
