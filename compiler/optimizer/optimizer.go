@@ -32,12 +32,12 @@ func (o *Optimizer) Entry() *dag.Sequential {
 	return o.entry
 }
 
-// MergeFilters transforms the DAG by merging adjacent filter operators so that,
+// mergeFilters transforms the DAG by merging adjacent filter operators so that,
 // e.g., "where a | where b" becomes "where a and b".
 //
-// Note: MergeFilters does not descend into dag.OverExpr.Scope, so it cannot
+// Note: mergeFilters does not descend into dag.OverExpr.Scope, so it cannot
 // merge filters in "over" expressions like "sum(over a | where b | where c)".
-func (o *Optimizer) MergeFilters() {
+func (o *Optimizer) mergeFilters() {
 	walkOp(o.entry, func(op dag.Op) {
 		if seq, ok := op.(*dag.Sequential); ok {
 			// Start at the next to last element and work toward the first.
@@ -108,6 +108,7 @@ func (o *Optimizer) OptimizeScan() error {
 		}
 		seq.Delete(1, len)
 	}
+	o.mergeFilters()
 	for k := range from.Trunks {
 		trunk := &from.Trunks[k]
 		pushDown(trunk)

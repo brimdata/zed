@@ -1,7 +1,7 @@
 script: |
   zc -C -O 'where a | where b'
   echo ===
-  zc -C -O 'from ( file a => where b | where c file d => where e | where f )'
+  zc -C -O 'from ( file a => where b | where c file d => where e | where f ) | where g'
   echo ===
   zc -C -O 'over a => ( where b | where c )'
   echo ===
@@ -18,10 +18,10 @@ outputs:
       ===
       from (
         (pushdown
-          where b and c)
+          where b and c and g)
         file a
         (pushdown
-          where e and f)
+          where e and f and g)
         file d
       )
       ===
