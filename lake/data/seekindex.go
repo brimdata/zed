@@ -28,6 +28,7 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 	var rg *seekindex.Range
 	unmarshaler := zson.NewZNGUnmarshaler()
 	reader := zngio.NewReader(zed.NewContext(), r)
+	defer reader.Close()
 	ectx := expr.NewContext()
 	for {
 		val, err := reader.Read()

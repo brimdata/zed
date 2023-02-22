@@ -109,10 +109,10 @@ func (o *Optimizer) OptimizeScan() error {
 		seq.Delete(1, len)
 	}
 	for k := range from.Trunks {
-		pushDown(&from.Trunks[k])
+		trunk := &from.Trunks[k]
+		pushDown(trunk)
 		// Check to see if we can add a range pruner when the pool-key is used
 		// in a normal filtering operation.
-		trunk := &from.Trunks[k]
 		if layout, ok := o.layouts[trunk.Source]; ok {
 			if pushdown, ok := trunk.Pushdown.(*dag.Filter); ok {
 				if p := newRangePruner(pushdown.Expr, layout.Primary(), layout.Order); p != nil {
@@ -238,7 +238,7 @@ func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, 
 		if s.Tap && s.Meta == "objects" {
 			// For a tap into the object stream, we compile the downstream
 			// DAG as if it were a normal query (so the optimizer can prune
-			// objects etc) but we execute it in the end as a meta-query.
+			// objects etc.) but we execute it in the end as a meta-query.
 			return o.source.Layout(o.ctx, s), nil
 		}
 		return order.Nil, nil
@@ -346,7 +346,7 @@ func pushDown(trunk *dag.Trunk) {
 // true if comparisons in pred against literal values can for certain rule out
 // that pred would be true for any value in the from/to range.  From/to are presumed
 // to be ordered according to the order o.  This is used to prune metadata objects
-// from a scan when we know the pool-key range of the object could not satisfy
+// from a scan when we know the pool key range of the object could not satisfy
 // the filter predicate of any of the values in the object.
 func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) *dag.BinaryExpr {
 	lower := &dag.This{Kind: "This", Path: field.New("from")}
@@ -354,16 +354,15 @@ func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) *dag.BinaryExp
 	if o == order.Desc {
 		lower, upper = upper, lower
 	}
-	e, _ := buildRangePruner(pred, fld, lower, upper, o)
-	return e
+	return buildRangePruner(pred, fld, lower, upper, o)
 }
 
 // buildRangePruner creates a DAG comparison expression that can evalaute whether
-// a Zed value adhering to the From/To pattern can be excluded from a scan because
-// the expression "pred" would evalate to false for all values of "fld" in the
-// From/To value range.  If a pruning decision can be reliably determined then
-// the boolean return value is true; otherwise, false.
-func buildRangePruner(pred dag.Expr, fld field.Path, lower, upper *dag.This, o order.Which) (*dag.BinaryExpr, bool) {
+// a Zed value adhering to the from/to pattern can be excluded from a scan because
+// the expression pred would evaluate to false for all values of fld in the
+// from/to value range.  If a pruning decision cannot be reliably determined then
+// the return value is nil.
+func buildRangePruner(pred dag.Expr, fld field.Path, lower, upper *dag.This, o order.Which) *dag.BinaryExpr {
 	e, ok := pred.(*dag.BinaryExpr)
 	if !ok {
 		// If this isn't a binary predicate composed of comparison operators, we
@@ -371,48 +370,42 @@ func buildRangePruner(pred dag.Expr, fld field.Path, lower, upper *dag.This, o o
 		// unknown part (from here) appears in the context of an "and", then we
 		// can still prune the known side of the "and" as implemented in the
 		// logic below.
-		return nil, false
+		return nil
 	}
 	switch e.Op {
 	case "and":
 		// For an "and", if we know either side is prunable, then we can prune
 		// because both conditions are required.  So we "or" together the result
 		// when both sub-expressions are valid.
-		lhs, lok := buildRangePruner(e.LHS, fld, lower, upper, o)
-		rhs, rok := buildRangePruner(e.RHS, fld, lower, upper, o)
-		if !lok || lhs == nil {
-			return rhs, rok
+		lhs := buildRangePruner(e.LHS, fld, lower, upper, o)
+		rhs := buildRangePruner(e.RHS, fld, lower, upper, o)
+		if lhs == nil {
+			return rhs
 		}
-		if !rok || rhs == nil {
-			return lhs, lok
+		if rhs == nil {
+			return lhs
 		}
-		return dag.NewBinaryExpr("or", lhs, rhs), true
+		return dag.NewBinaryExpr("or", lhs, rhs)
 	case "or":
 		// For an "or", if we know both sides are prunable, then we can prune
 		// because either condition is required.  So we "and" together the result
 		// when both sub-expressions are valid.
-		lhs, lok := buildRangePruner(e.LHS, fld, lower, upper, o)
-		rhs, rok := buildRangePruner(e.RHS, fld, lower, upper, o)
-		if !lok || !rok {
-			return nil, false
+		lhs := buildRangePruner(e.LHS, fld, lower, upper, o)
+		rhs := buildRangePruner(e.RHS, fld, lower, upper, o)
+		if lhs == nil || rhs == nil {
+			return nil
 		}
-		if lhs == nil {
-			return rhs, true
-		}
-		if rhs == nil {
-			return lhs, true
-		}
-		return dag.NewBinaryExpr("and", lhs, rhs), true
+		return dag.NewBinaryExpr("and", lhs, rhs)
 	case "==", "<", "<=", ">", ">=":
 		this, literal, op := literalComparison(e)
 		if this == nil || !fld.Equal(this.Path) {
-			return nil, false
+			return nil
 		}
 		// At this point, we know we can definitely run a pruning decision based
 		// on the literal value we found, the comparison op, and the lower/upper bounds.
-		return rangePrunerPred(op, literal, lower, upper, o), true
+		return rangePrunerPred(op, literal, lower, upper, o)
 	default:
-		return nil, false
+		return nil
 	}
 }
 

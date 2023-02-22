@@ -26,7 +26,7 @@ type Lister struct {
 	ctx       context.Context
 	pool      *lake.Pool
 	snap      commits.View
-	pruner    *Pruner
+	pruner    *pruner
 	group     *errgroup.Group
 	marshaler *zson.MarshalZNGContext
 	mu        sync.Mutex
@@ -63,7 +63,7 @@ func NewSortedListerFromSnap(ctx context.Context, zctx *zed.Context, r *lake.Roo
 		marshaler: m,
 	}
 	if pruner != nil {
-		l.pruner = NewPruner(pruner, pool.Layout.Order)
+		l.pruner = newPruner(pruner)
 	}
 	return l
 }
@@ -75,11 +75,11 @@ func (l *Lister) Snapshot() commits.View {
 func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.objects == nil {
-		l.objects = initObjectScan(l.snap, l.pool.Layout)
-	}
 	if l.err != nil {
 		return nil, l.err
+	}
+	if l.objects == nil {
+		l.objects = initObjectScan(l.snap, l.pool.Layout)
 	}
 	for len(l.objects) != 0 {
 		o := l.objects[0]
