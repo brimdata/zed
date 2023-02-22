@@ -136,7 +136,6 @@ func (j *Job) Entry() dag.Op {
 
 // This must be called before the zbuf.Filter interface will work.
 func (j *Job) Optimize() error {
-	j.optimizer.MergeFilters()
 	return j.optimizer.OptimizeScan()
 }
 
