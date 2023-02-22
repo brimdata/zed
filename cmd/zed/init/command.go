@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
+	"go.uber.org/zap"
 )
 
 var Cmd = &charm.Spec{
@@ -46,7 +47,7 @@ func (c *Command) Run(args []string) error {
 	if api.IsLakeService(path) {
 		return fmt.Errorf("init command not valid on remote lake")
 	}
-	if _, err := api.CreateLocalLake(ctx, path); err != nil {
+	if _, err := api.CreateLocalLake(ctx, zap.Must(zap.NewProduction()), path); err != nil {
 		return err
 	}
 	if !c.LakeFlags.Quiet {

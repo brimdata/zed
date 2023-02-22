@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/storage"
+	"go.uber.org/zap"
 )
 
 var ErrNoHEAD = errors.New("HEAD not specified: indicate with -use or run the \"use\" command")
@@ -90,7 +91,7 @@ func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
 		}
 		return api.NewRemoteLake(conn), nil
 	}
-	return api.OpenLocalLake(ctx, uri.String())
+	return api.OpenLocalLake(ctx, zap.Must(zap.NewProduction()), uri.String())
 }
 
 func (l *Flags) AuthStore() *auth0.Store {

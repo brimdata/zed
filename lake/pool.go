@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 const (
@@ -34,26 +35,26 @@ type Pool struct {
 	commits   *commits.Store
 }
 
-func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) error {
+func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine, logger *zap.Logger, root *storage.URI) error {
 	poolPath := config.Path(root)
 	// branchesPath is the path to the kvs journal of BranchConfigs
 	// for the pool while the commit log is stored in <pool-id>/<branch-id>.
 	branchesPath := poolPath.JoinPath(BranchesTag)
 	// create the branches journal store
-	_, err := branches.CreateStore(ctx, engine, branchesPath)
+	_, err := branches.CreateStore(ctx, engine, logger, branchesPath)
 	if err != nil {
 		return err
 	}
 	// create the main branch in the branches journal store.  The parent
 	// commit object of the initial main branch is ksuid.Nil.
-	_, err = CreateBranch(ctx, config, engine, root, "main", ksuid.Nil)
+	_, err = CreateBranch(ctx, config, engine, logger, root, "main", ksuid.Nil)
 	return err
 }
 
-func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.Engine, root *storage.URI, name string, parent ksuid.KSUID) (*branches.Config, error) {
+func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.Engine, logger *zap.Logger, root *storage.URI, name string, parent ksuid.KSUID) (*branches.Config, error) {
 	poolPath := poolConfig.Path(root)
 	branchesPath := poolPath.JoinPath(BranchesTag)
-	store, err := branches.OpenStore(ctx, engine, branchesPath)
+	store, err := branches.OpenStore(ctx, engine, logger, branchesPath)
 	if err != nil {
 		return nil, err
 	}
@@ -67,15 +68,15 @@ func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.
 	return branchConfig, err
 }
 
-func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) (*Pool, error) {
+func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, logger *zap.Logger, root *storage.URI) (*Pool, error) {
 	path := config.Path(root)
 	branchesPath := path.JoinPath(BranchesTag)
-	branches, err := branches.OpenStore(ctx, engine, branchesPath)
+	branches, err := branches.OpenStore(ctx, engine, logger, branchesPath)
 	if err != nil {
 		return nil, err
 	}
 	commitsPath := path.JoinPath(CommitsTag)
-	commits, err := commits.OpenStore(engine, commitsPath)
+	commits, err := commits.OpenStore(engine, logger, commitsPath)
 	if err != nil {
 		return nil, err
 	}

@@ -107,7 +107,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	default:
 		return nil, fmt.Errorf("root path cannot have scheme %q", path.Scheme)
 	}
-	root, err := lake.CreateOrOpen(ctx, engine, path)
+	root, err := lake.CreateOrOpen(ctx, engine, conf.Logger.Named("lake"), path)
 	if err != nil {
 		return nil, err
 	}

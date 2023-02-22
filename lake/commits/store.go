@@ -16,6 +16,7 @@ import (
 	"github.com/brimdata/zed/zngbytes"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 var (
@@ -25,15 +26,16 @@ var (
 )
 
 type Store struct {
-	path   *storage.URI
 	engine storage.Engine
+	logger *zap.Logger
+	path   *storage.URI
 
 	cache     *lru.ARCCache[ksuid.KSUID, *Object]
 	paths     *lru.ARCCache[ksuid.KSUID, []ksuid.KSUID]
 	snapshots *lru.ARCCache[ksuid.KSUID, *Snapshot]
 }
 
-func OpenStore(engine storage.Engine, path *storage.URI) (*Store, error) {
+func OpenStore(engine storage.Engine, logger *zap.Logger, path *storage.URI) (*Store, error) {
 	cache, err := lru.NewARC[ksuid.KSUID, *Object](1024)
 	if err != nil {
 		return nil, err
@@ -47,8 +49,9 @@ func OpenStore(engine storage.Engine, path *storage.URI) (*Store, error) {
 		return nil, err
 	}
 	return &Store{
-		path:      path,
 		engine:    engine,
+		logger:    logger.Named("commits"),
+		path:      path,
 		cache:     cache,
 		paths:     paths,
 		snapshots: snapshots,
@@ -99,7 +102,7 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 		return snap, nil
 	}
 	if snap, err := s.getSnapshot(ctx, leaf); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, err
+		s.logger.Error("Loading snapshot", zap.Error(err))
 	} else if err == nil {
 		s.snapshots.Add(leaf, snap)
 		return snap, nil
@@ -122,7 +125,7 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 		}()
 		// Concurrently check for a snapshot.
 		if snap, err := s.getSnapshot(ctx, at); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return nil, err
+			s.logger.Error("Loading snapshot", zap.Error(err))
 		} else if err == nil {
 			s.snapshots.Add(at, snap)
 			base = snap
@@ -150,7 +153,7 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 		}
 	}
 	if err := s.putSnapshot(ctx, leaf, snap); err != nil {
-		return nil, err
+		s.logger.Error("Storing snapshot", zap.Error(err))
 	}
 	s.snapshots.Add(leaf, snap)
 	return snap, nil
