@@ -1,0 +1,43 @@
+# This test makes sure the type context from metadata processing doesn't 
+# leak into the flowgraph, except for metaqueries, where it should.
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby k:asc tmp
+  zed use -q tmp
+  seq 10 15 | zq '{k:this}' - | zed load -q -
+  seq 8 12 | zq '{k:this}' - | zed load -q -
+  seq 20 25 | zq '{k:this}' - | zed load -q -
+  seq 14 16 | zq '{k:this}' - | zed load -q -
+  zed query "from tmp:objects tap | k > 18" | zq -z "drop id" -
+  echo ===
+  zed query "from tmp:objects tap | k <= 10" | zq -z "drop id" -
+  echo ===
+  zed query "from tmp:objects tap | k >= 15 and k < 20" | zq -z "drop id" -
+  echo ===
+  zed query  "from tmp:objects tap | k <= 9 or k > 24" | zq -z "drop id" -
+  echo ===
+  zed query  'from tmp:objects tap | a[k] == "foo" or k >= 20' | zq -z "drop id" -
+  echo ===
+  zed query  'from tmp:objects tap | a[k] == "foo" and k >= 20' | zq -z "drop id" -
+
+outputs:
+  - name: stdout
+    data: |
+      {from:20,to:25,count:6(uint64),size:34}
+      ===
+      {from:8,to:12,count:5(uint64),size:30}
+      {from:10,to:15,count:6(uint64),size:34}
+      ===
+      {from:10,to:15,count:6(uint64),size:34}
+      {from:14,to:16,count:3(uint64),size:22}
+      ===
+      {from:8,to:12,count:5(uint64),size:30}
+      {from:20,to:25,count:6(uint64),size:34}
+      ===
+      {from:8,to:12,count:5(uint64),size:30}
+      {from:10,to:15,count:6(uint64),size:34}
+      {from:14,to:16,count:3(uint64),size:22}
+      {from:20,to:25,count:6(uint64),size:34}
+      ===
+      {from:20,to:25,count:6(uint64),size:34}

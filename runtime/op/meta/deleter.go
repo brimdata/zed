@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/zbuf"
@@ -19,6 +20,7 @@ type Deleter struct {
 	parent      zbuf.Puller
 	current     zbuf.Puller
 	filter      zbuf.Filter
+	pruner      expr.Evaluator
 	pctx        *op.Context
 	pool        *lake.Pool
 	progress    *zbuf.Progress
@@ -30,10 +32,11 @@ type Deleter struct {
 }
 
 // XXX shouldn't pass in snap
-func NewDeleter(pctx *op.Context, parent zbuf.Puller, pool *lake.Pool, snap commits.View, filter zbuf.Filter, progress *zbuf.Progress, deletes *sync.Map) *Deleter {
+func NewDeleter(pctx *op.Context, parent zbuf.Puller, pool *lake.Pool, snap commits.View, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress, deletes *sync.Map) *Deleter {
 	return &Deleter{
 		parent:      parent,
 		filter:      filter,
+		pruner:      pruner,
 		pctx:        pctx,
 		pool:        pool,
 		progress:    progress,
@@ -103,13 +106,12 @@ func newDeleterScanner(d *Deleter, part Partition) (zbuf.Puller, error) {
 			puller.Pull(true)
 		}
 	}
-	for _, o := range part.Objects {
-		//XXX not sure this is right... filter applies here?
-		rg, err := seekRange(d.pctx.Context, d.pool, d.snap, d.filter, o)
+	for _, object := range part.Objects {
+		ranges, err := data.LookupSeekRange(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, object, d.pruner, d.pool.Layout.Order)
 		if err != nil {
 			return nil, err
 		}
-		rc, err := o.NewReader(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, *rg)
+		rc, err := object.NewReader(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, ranges)
 		if err != nil {
 			pullersDone()
 			return nil, err
@@ -121,7 +123,7 @@ func newDeleterScanner(d *Deleter, part Partition) (zbuf.Puller, error) {
 			return nil, err
 		}
 		pullers = append(pullers, &deleteScanner{
-			object:  o,
+			object:  object,
 			scanner: scanner,
 			closer:  rc,
 			deleter: d,

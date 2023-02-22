@@ -588,13 +588,20 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
+			var pruner expr.Evaluator
+			if trunk.KeyPruner != nil {
+				pruner, err = compileExpr(trunk.KeyPruner)
+				if err != nil {
+					return nil, err
+				}
+			}
 			// We pass a new type context in here because we don't want the metadata types to interfere
 			// with the downstream flowgraph.  And there's no need to map between contexts because
 			// the metadata here is intercepted by the scanner and these zed values never enter
 			// the flowgraph.  For the metaqueries below, we pass in the flowgraph's type context
 			// because this data does, in fact, flow into the downstream flowgraph.
 			zctx := zed.NewContext()
-			l, err := meta.NewSortedLister(b.pctx.Context, zctx, lk, pool, src.Commit, filter)
+			l, err := meta.NewSortedLister(b.pctx.Context, zctx, lk, pool, src.Commit, pruner)
 			if err != nil {
 				return nil, err
 			}
@@ -602,14 +609,21 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			b.pools[src] = pool
 			b.slicers[src] = slicer
 		}
+		var pruner expr.Evaluator
+		if trunk.KeyPruner != nil {
+			pruner, err = compileExpr(trunk.KeyPruner)
+			if err != nil {
+				return nil, err
+			}
+		}
 		pool := b.pools[src]
 		if src.Delete {
 			if b.deletes == nil {
 				b.deletes = &sync.Map{}
 			}
-			source = meta.NewDeleter(b.pctx, slicer, pool, slicer.Snapshot(), filter, b.progress, b.deletes)
+			source = meta.NewDeleter(b.pctx, slicer, pool, slicer.Snapshot(), filter, pruner, b.progress, b.deletes)
 		} else {
-			source = meta.NewSequenceScanner(b.pctx, slicer, pool, slicer.Snapshot(), filter, b.progress)
+			source = meta.NewSequenceScanner(b.pctx, slicer, pool, slicer.Snapshot(), filter, pruner, b.progress)
 		}
 	case *dag.PoolMeta:
 		scanner, err := meta.NewPoolMetaScanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
@@ -618,7 +632,14 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		}
 		source = scanner
 	case *dag.CommitMeta:
-		scanner, err := meta.NewCommitMetaScanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, pushdown)
+		var pruner expr.Evaluator
+		if src.Tap && trunk.KeyPruner != nil {
+			pruner, err = compileExpr(trunk.KeyPruner)
+			if err != nil {
+				return nil, err
+			}
+		}
+		scanner, err := meta.NewCommitMetaScanner(b.pctx.Context, b.pctx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, pushdown, pruner)
 		if err != nil {
 			return nil, err
 		}

@@ -157,10 +157,11 @@ type (
 	// optimized pushdown is naturally carried in the serialized DAG via
 	// each Trunk.
 	Trunk struct {
-		Kind     string      `json:"kind" unpack:""`
-		Source   Source      `json:"source"`
-		Seq      *Sequential `json:"seq"`
-		Pushdown Op          `json:"pushdown"`
+		Kind      string      `json:"kind" unpack:""`
+		Source    Source      `json:"source"`
+		Seq       *Sequential `json:"seq"`
+		Pushdown  Op          `json:"pushdown"`
+		KeyPruner Expr        `json:"key_pruner"`
 	}
 
 	// Leaf sources
@@ -193,6 +194,7 @@ type (
 		Pool   ksuid.KSUID `json:"pool"`
 		Commit ksuid.KSUID `json:"branch"`
 		Meta   string      `json:"meta"`
+		Tap    bool        `json:"tap"`
 	}
 	LakeMeta struct {
 		Kind string `json:"kind" unpack:""`

@@ -1,0 +1,41 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -seekstride 1KB -orderby k:asc asc
+  zed create -q -seekstride 1KB -orderby k:desc desc
+  seq 1 15000 | zq '{k:this,foo:123}' - | zed load -q -use asc -
+  seq 1 15000 | zq '{k:this,foo:123}' - | zed load -q -use desc -
+  zed query -s -z 'from asc | k >= 1000 and k <= 1002'
+  zed query -s -z 'from asc | k == 12321'
+  zed query -s -z 'from asc | k == 12322 or foo != 123'
+  zed query -s -z 'from asc | k == 12323 and foo == 123'
+  zed query -s -z 'from desc | k >= 1000 and k <= 1002'
+  zed query -s -z 'from desc | k == 12321'
+  zed query -s -z 'from desc | k == 12322 or foo != 123'
+  zed query -s -z 'from desc | k == 12323 and foo == 123'  
+
+outputs:
+  - name: stdout
+    data: |
+      {k:1000,foo:123}
+      {k:1001,foo:123}
+      {k:1002,foo:123}
+      {k:12321,foo:123}
+      {k:12322,foo:123}
+      {k:12323,foo:123}
+      {k:1002,foo:123}
+      {k:1001,foo:123}
+      {k:1000,foo:123}
+      {k:12321,foo:123}
+      {k:12322,foo:123}
+      {k:12323,foo:123}
+  - name: stderr
+    data: |
+      {bytes_read:2500,bytes_matched:15,records_read:500,records_matched:3}
+      {bytes_read:2500,bytes_matched:5,records_read:500,records_matched:1}
+      {bytes_read:74873,bytes_matched:5,records_read:15000,records_matched:1}
+      {bytes_read:2500,bytes_matched:5,records_read:500,records_matched:1}
+      {bytes_read:5000,bytes_matched:15,records_read:1000,records_matched:3}
+      {bytes_read:2500,bytes_matched:5,records_read:500,records_matched:1}
+      {bytes_read:74873,bytes_matched:5,records_read:15000,records_matched:1}
+      {bytes_read:2500,bytes_matched:5,records_read:500,records_matched:1}

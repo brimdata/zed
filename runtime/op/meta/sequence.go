@@ -1,18 +1,13 @@
 package meta
 
 import (
-	"context"
 	"errors"
 	"io"
 
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/seekindex"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/zbuf"
@@ -26,6 +21,7 @@ type SequenceScanner struct {
 	parent      zbuf.Puller
 	current     zbuf.Puller
 	filter      zbuf.Filter
+	pruner      expr.Evaluator
 	pctx        *op.Context
 	pool        *lake.Pool
 	progress    *zbuf.Progress
@@ -35,11 +31,12 @@ type SequenceScanner struct {
 	err         error
 }
 
-func NewSequenceScanner(pctx *op.Context, parent zbuf.Puller, pool *lake.Pool, snap commits.View, filter zbuf.Filter, progress *zbuf.Progress) *SequenceScanner {
+func NewSequenceScanner(pctx *op.Context, parent zbuf.Puller, pool *lake.Pool, snap commits.View, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress) *SequenceScanner {
 	return &SequenceScanner{
 		pctx:        pctx,
 		parent:      parent,
 		filter:      filter,
+		pruner:      pruner,
 		pool:        pool,
 		progress:    progress,
 		snap:        snap,
@@ -116,12 +113,12 @@ func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller,
 			puller.Pull(true)
 		}
 	}
-	for _, o := range part.Objects {
-		rg, err := seekRange(p.pctx.Context, p.pool, p.snap, p.filter, o)
+	for _, object := range part.Objects {
+		ranges, err := data.LookupSeekRange(p.pctx.Context, p.pool.Storage(), p.pool.DataPath, object, p.pruner, p.pool.Layout.Order)
 		if err != nil {
 			return nil, err
 		}
-		rc, err := o.NewReader(p.pctx.Context, p.pool.Storage(), p.pool.DataPath, *rg)
+		rc, err := object.NewReader(p.pctx.Context, p.pool.Storage(), p.pool.DataPath, ranges)
 		if err != nil {
 			pullersDone()
 			return nil, err
@@ -165,50 +162,4 @@ func (s *statScanner) Pull(done bool) (zbuf.Batch, error) {
 		s.scanner = nil
 	}
 	return batch, err
-}
-
-func seekRange(ctx context.Context, pool *lake.Pool, snap commits.View, filter zbuf.Filter, o *data.Object) (*seekindex.Range, error) {
-	var indexSpan extent.Span
-	var cropped *expr.SpanFilter
-	//XXX this is suboptimal because we traverse every index rule of every object
-	// even though we should know what rules we need upstream by analyzing the
-	// type of index lookup we're doing and select only the rules needed
-	// XXX let's take out the search index here and implement indexes as part
-	// of VNG.
-	if filter != nil {
-		if idx := index.NewFilter(pool.Storage(), pool.IndexPath, filter); idx != nil {
-			rules, err := snap.LookupIndexObjectRules(o.ID) // XXX move this into metadata
-			if err != nil && !errors.Is(err, commits.ErrNotFound) {
-				return nil, err
-			}
-			if len(rules) > 0 {
-				indexSpan, err = idx.Apply(ctx, o.ID, rules)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-		var err error
-		cropped, err = filter.AsKeyCroppedByFilter(pool.Layout.Primary(), pool.Layout.Order)
-		if err != nil {
-			return nil, err
-		}
-	}
-	cmp := expr.NewValueCompareFn(pool.Layout.Order, pool.Layout.Order == order.Asc)
-	from := &o.From
-	to := &o.To
-	if pool.Layout.Order == order.Desc {
-		from, to = to, from
-	}
-	if indexSpan != nil || cropped != nil && cropped.Eval(from, to) {
-		// There's an index available or the object's span is cropped by
-		// p.filter, so use the seek index to find the range to scan.
-		spanFilter, err := filter.AsKeySpanFilter(pool.Layout.Primary(), pool.Layout.Order)
-		if err != nil {
-			return nil, err
-		}
-		return data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, o, cmp, spanFilter, indexSpan, pool.Layout.Order)
-	}
-	// Scan the entire object.
-	return &seekindex.Range{Length: o.Size}, nil
 }

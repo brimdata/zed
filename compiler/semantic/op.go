@@ -218,6 +218,7 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 				Meta:   meta,
 				Pool:   poolID,
 				Commit: commitID,
+				Tap:    p.Spec.Tap,
 			}, nil
 		}
 		if _, ok := dag.PoolMetas[meta]; ok {

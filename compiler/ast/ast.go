@@ -405,6 +405,7 @@ type PoolSpec struct {
 	Pool   Pattern `json:"pool"`
 	Commit string  `json:"commit"`
 	Meta   string  `json:"meta"`
+	Tap    bool    `json:"tap"`
 }
 
 type Source interface {
