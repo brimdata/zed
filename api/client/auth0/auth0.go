@@ -41,9 +41,9 @@ type DeviceCodeResponse struct {
 
 type tokenRequest struct {
 	ClientID     string `json:"client_id"`
-	DeviceCode   string `json:"device_code,-"`
+	DeviceCode   string `json:"device_code,omitempty"`
 	GrantType    string `json:"grant_type"`
-	RefreshToken string `json:"refresh_token,-"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
 type tokenResponse struct {
