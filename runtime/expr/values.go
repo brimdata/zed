@@ -47,12 +47,12 @@ func (r *recordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	b := r.builder
 	b.Reset()
 	for k, e := range r.exprs {
-		zv := e.Eval(ectx, this)
-		if r.fields[k].Type != zv.Type {
-			r.fields[k].Type = zv.Type
+		val := e.Eval(ectx, this)
+		if r.fields[k].Type != val.Type {
+			r.fields[k].Type = val.Type
 			changed = true
 		}
-		b.Append(zv.Bytes)
+		b.Append(val.Bytes)
 	}
 	if changed {
 		r.typ = r.zctx.MustLookupTypeRecord(r.fields)

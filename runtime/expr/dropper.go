@@ -22,11 +22,11 @@ func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
 		val := e.Eval(ectx, in)
 		b.Append(val.Bytes)
 	}
-	zv, err := b.Encode()
+	val, err := b.Encode()
 	if err != nil {
 		panic(err)
 	}
-	return zed.NewValue(d.typ, zv)
+	return zed.NewValue(d.typ, val)
 }
 
 type Dropper struct {

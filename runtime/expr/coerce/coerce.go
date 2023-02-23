@@ -166,105 +166,105 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 	return id, ok
 }
 
-func ToFloat(zv *zed.Value) (float64, bool) {
-	id := zv.Type.ID()
+func ToFloat(val *zed.Value) (float64, bool) {
+	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return zed.DecodeFloat(zv.Bytes), true
+		return zed.DecodeFloat(val.Bytes), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			return float64(zed.DecodeInt(zv.Bytes)), true
+			return float64(zed.DecodeInt(val.Bytes)), true
 		} else {
-			return float64(zed.DecodeUint(zv.Bytes)), true
+			return float64(zed.DecodeUint(val.Bytes)), true
 		}
 	}
 	if id == zed.IDDuration {
-		return float64(zed.DecodeInt(zv.Bytes)), true
+		return float64(zed.DecodeInt(val.Bytes)), true
 	}
 	if id == zed.IDTime {
-		return float64(zed.DecodeTime(zv.Bytes)), true
+		return float64(zed.DecodeTime(val.Bytes)), true
 	}
 	if id == zed.IDString {
-		v, err := strconv.ParseFloat(string(zv.Bytes), 64)
+		v, err := strconv.ParseFloat(string(val.Bytes), 64)
 		return v, err == nil
 	}
 	return 0, false
 }
 
-func ToUint(zv *zed.Value) (uint64, bool) {
-	id := zv.Type.ID()
+func ToUint(val *zed.Value) (uint64, bool) {
+	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return uint64(zed.DecodeFloat(zv.Bytes)), true
+		return uint64(zed.DecodeFloat(val.Bytes)), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			v := zed.DecodeInt(zv.Bytes)
+			v := zed.DecodeInt(val.Bytes)
 			if v < 0 {
 				return 0, false
 			}
 			return uint64(v), true
 		} else {
-			return uint64(zed.DecodeUint(zv.Bytes)), true
+			return uint64(zed.DecodeUint(val.Bytes)), true
 		}
 	}
 	if id == zed.IDDuration {
-		return uint64(zed.DecodeInt(zv.Bytes)), true
+		return uint64(zed.DecodeInt(val.Bytes)), true
 	}
 	if id == zed.IDTime {
-		return uint64(zed.DecodeTime(zv.Bytes)), true
+		return uint64(zed.DecodeTime(val.Bytes)), true
 	}
 	if id == zed.IDString {
-		v, err := strconv.ParseUint(string(zv.Bytes), 10, 64)
+		v, err := strconv.ParseUint(string(val.Bytes), 10, 64)
 		return v, err == nil
 	}
 	return 0, false
 }
 
-func ToInt(zv *zed.Value) (int64, bool) {
-	id := zv.Type.ID()
+func ToInt(val *zed.Value) (int64, bool) {
+	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return int64(zed.DecodeFloat(zv.Bytes)), true
+		return int64(zed.DecodeFloat(val.Bytes)), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
 			// XXX check if negative? should -1:uint64 be maxint64 or an error?
-			return int64(zed.DecodeInt(zv.Bytes)), true
+			return int64(zed.DecodeInt(val.Bytes)), true
 		} else {
-			return int64(zed.DecodeUint(zv.Bytes)), true
+			return int64(zed.DecodeUint(val.Bytes)), true
 		}
 	}
 	if id == zed.IDDuration {
-		return int64(zed.DecodeInt(zv.Bytes)), true
+		return int64(zed.DecodeInt(val.Bytes)), true
 	}
 	if id == zed.IDTime {
-		return int64(zed.DecodeTime(zv.Bytes)), true
+		return int64(zed.DecodeTime(val.Bytes)), true
 	}
 	if id == zed.IDString {
-		v, err := strconv.ParseInt(string(zv.Bytes), 10, 64)
+		v, err := strconv.ParseInt(string(val.Bytes), 10, 64)
 		return v, err == nil
 	}
 	return 0, false
 }
 
-func ToBool(zv *zed.Value) (bool, bool) {
-	if zv.IsString() {
-		v, err := strconv.ParseBool(string(zv.Bytes))
+func ToBool(val *zed.Value) (bool, bool) {
+	if val.IsString() {
+		v, err := strconv.ParseBool(string(val.Bytes))
 		return v, err == nil
 	}
-	v, ok := ToInt(zv)
+	v, ok := ToInt(val)
 	return v != 0, ok
 }
 
-func ToTime(zv *zed.Value) (nano.Ts, bool) {
-	id := zv.Type.ID()
+func ToTime(val *zed.Value) (nano.Ts, bool) {
+	id := val.Type.ID()
 	if id == zed.IDTime {
-		return zed.DecodeTime(zv.Bytes), true
+		return zed.DecodeTime(val.Bytes), true
 	}
 	if zed.IsSigned(id) {
-		return nano.Ts(zed.DecodeInt(zv.Bytes)), true
+		return nano.Ts(zed.DecodeInt(val.Bytes)), true
 	}
 	if zed.IsInteger(id) {
-		v := zed.DecodeUint(zv.Bytes)
+		v := zed.DecodeUint(val.Bytes)
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
@@ -272,7 +272,7 @@ func ToTime(zv *zed.Value) (nano.Ts, bool) {
 		return nano.Ts(v), true
 	}
 	if zed.IsFloat(id) {
-		return nano.Ts(zed.DecodeFloat(zv.Bytes)), true
+		return nano.Ts(zed.DecodeFloat(val.Bytes)), true
 	}
 	return 0, false
 }

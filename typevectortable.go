@@ -50,8 +50,8 @@ func newTypeVector(in []Type) typeVector {
 
 func newTypeVectorFromValues(vals []Value) typeVector {
 	out := make(typeVector, 0, len(vals))
-	for _, zv := range vals {
-		out = append(out, zv.Type)
+	for _, val := range vals {
+		out = append(out, val.Type)
 	}
 	return out
 }

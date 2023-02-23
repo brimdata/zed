@@ -386,9 +386,9 @@ func (a *Aggregator) spillTable(eof bool, ref zbuf.Batch) error {
 
 // updateMaxTableKey is called with a volatile zed.Value to update the
 // max value seen in the table for the streaming logic when the input is sorted.
-func (a *Aggregator) updateMaxTableKey(zv *zed.Value) *zed.Value {
-	if a.maxTableKey == nil || a.valueCompare(zv, a.maxTableKey) > 0 {
-		a.maxTableKey = zv.Copy()
+func (a *Aggregator) updateMaxTableKey(val *zed.Value) *zed.Value {
+	if a.maxTableKey == nil || a.valueCompare(val, a.maxTableKey) > 0 {
+		a.maxTableKey = val.Copy()
 	}
 	return a.maxTableKey
 }

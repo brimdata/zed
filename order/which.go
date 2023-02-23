@@ -58,8 +58,8 @@ func (w Which) MarshalZNG(m *zson.MarshalZNGContext) (zed.Type, error) {
 	return m.MarshalValue(w.String())
 }
 
-func (w *Which) UnmarshalZNG(u *zson.UnmarshalZNGContext, zv *zed.Value) error {
-	which, err := Parse(string(zv.Bytes))
+func (w *Which) UnmarshalZNG(u *zson.UnmarshalZNGContext, val *zed.Value) error {
+	which, err := Parse(string(val.Bytes))
 	if err != nil {
 		return err
 	}

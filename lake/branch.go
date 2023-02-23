@@ -103,11 +103,11 @@ func loadMeta(zctx *zed.Context, meta string) (*zed.Value, error) {
 	if meta == "" {
 		return zed.Null, nil
 	}
-	zv, err := zson.ParseValue(zed.NewContext(), meta)
+	val, err := zson.ParseValue(zed.NewContext(), meta)
 	if err != nil {
-		return zctx.Missing(), fmt.Errorf("%w %s: %v", ErrInvalidCommitMeta, zv, err)
+		return zctx.Missing(), fmt.Errorf("%w %q: %s", ErrInvalidCommitMeta, meta, err)
 	}
-	return zv, nil
+	return val, nil
 }
 
 func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message string) (ksuid.KSUID, error) {

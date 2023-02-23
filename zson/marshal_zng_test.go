@@ -311,9 +311,9 @@ func (m testMarshaler) MarshalZNG(mc *zson.MarshalZNGContext) (zed.Type, error) 
 	return mc.MarshalValue("marshal-" + string(m))
 }
 
-func (m *testMarshaler) UnmarshalZNG(mc *zson.UnmarshalZNGContext, zv *zed.Value) error {
+func (m *testMarshaler) UnmarshalZNG(mc *zson.UnmarshalZNGContext, val *zed.Value) error {
 	var s string
-	if err := mc.Unmarshal(zv, &s); err != nil {
+	if err := mc.Unmarshal(val, &s); err != nil {
 		return err
 	}
 	ss := strings.Split(s, "-")

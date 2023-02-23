@@ -15,58 +15,58 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func formatAny(zv *zed.Value, inContainer bool) string {
-	switch t := zv.Type.(type) {
+func formatAny(val *zed.Value, inContainer bool) string {
+	switch t := val.Type.(type) {
 	case *zed.TypeArray:
-		return formatArray(t, zv.Bytes)
+		return formatArray(t, val.Bytes)
 	case *zed.TypeNamed:
-		return formatAny(zed.NewValue(t.Type, zv.Bytes), inContainer)
+		return formatAny(zed.NewValue(t.Type, val.Bytes), inContainer)
 	case *zed.TypeOfBool:
-		if zed.DecodeBool(zv.Bytes) {
+		if zed.DecodeBool(val.Bytes) {
 			return "T"
 		}
 		return "F"
 	case *zed.TypeOfBytes:
-		return base64.StdEncoding.EncodeToString(zv.Bytes)
+		return base64.StdEncoding.EncodeToString(val.Bytes)
 	case *zed.TypeOfDuration:
-		return formatTime(nano.Ts(zed.DecodeDuration(zv.Bytes)))
+		return formatTime(nano.Ts(zed.DecodeDuration(val.Bytes)))
 	case *zed.TypeEnum:
-		return formatAny(zed.NewValue(zed.TypeUint64, zv.Bytes), false)
+		return formatAny(zed.NewValue(zed.TypeUint64, val.Bytes), false)
 	case *zed.TypeOfFloat16:
-		return strconv.FormatFloat(float64(zed.DecodeFloat16(zv.Bytes)), 'f', -1, 32)
+		return strconv.FormatFloat(float64(zed.DecodeFloat16(val.Bytes)), 'f', -1, 32)
 	case *zed.TypeOfFloat32:
-		return strconv.FormatFloat(float64(zed.DecodeFloat32(zv.Bytes)), 'f', -1, 32)
+		return strconv.FormatFloat(float64(zed.DecodeFloat32(val.Bytes)), 'f', -1, 32)
 	case *zed.TypeOfFloat64:
-		return strconv.FormatFloat(zed.DecodeFloat64(zv.Bytes), 'f', -1, 64)
+		return strconv.FormatFloat(zed.DecodeFloat64(val.Bytes), 'f', -1, 64)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
-		return strconv.FormatInt(zed.DecodeInt(zv.Bytes), 10)
+		return strconv.FormatInt(zed.DecodeInt(val.Bytes), 10)
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
-		return strconv.FormatUint(zed.DecodeUint(zv.Bytes), 10)
+		return strconv.FormatUint(zed.DecodeUint(val.Bytes), 10)
 	case *zed.TypeOfIP:
-		return zed.DecodeIP(zv.Bytes).String()
+		return zed.DecodeIP(val.Bytes).String()
 	case *zed.TypeMap:
-		return formatMap(t, zv.Bytes)
+		return formatMap(t, val.Bytes)
 	case *zed.TypeOfNet:
-		return zed.DecodeNet(zv.Bytes).String()
+		return zed.DecodeNet(val.Bytes).String()
 	case *zed.TypeOfNull:
 		return "-"
 	case *zed.TypeRecord:
-		return formatRecord(t, zv.Bytes)
+		return formatRecord(t, val.Bytes)
 	case *zed.TypeSet:
-		return formatSet(t, zv.Bytes)
+		return formatSet(t, val.Bytes)
 	case *zed.TypeOfString:
-		return formatString(t, zv.Bytes, inContainer)
+		return formatString(t, val.Bytes, inContainer)
 	case *zed.TypeOfTime:
-		return formatTime(zed.DecodeTime(zv.Bytes))
+		return formatTime(zed.DecodeTime(val.Bytes))
 	case *zed.TypeOfType:
-		return zson.String(zv)
+		return zson.String(val)
 	case *zed.TypeUnion:
-		return formatUnion(t, zv.Bytes)
+		return formatUnion(t, val.Bytes)
 	case *zed.TypeError:
 		if zed.TypeUnder(t.Type) == zed.TypeString {
-			return string(zv.Bytes)
+			return string(val.Bytes)
 		}
-		return zson.MustFormatValue(zv)
+		return zson.MustFormatValue(val)
 	default:
 		return fmt.Sprintf("zeekio.StringOf(): unknown type: %T", t)
 	}
