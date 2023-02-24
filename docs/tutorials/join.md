@@ -257,6 +257,56 @@ produces
 {name:"strawberry",color:"red",flavor:"sweet",fruitkey:{name:"strawberry",color:"red"},quantity:3000}
 ```
 
+## Joining More Than Two Inputs
+
+While the `join` operator takes only two inputs, more inputs can be joined by
+extending the Zed pipeline.
+
+To illustrate this, we'll introduce some new input data `prices.ndjson`.
+
+```mdtest-input prices.ndjson
+{"name":"apple","price":3.15}
+{"name":"banana","price":4.01}
+{"name":"avocado","price":2.50}
+{"name":"strawberry","price":1.05}
+{"name":"dates","price":6.70}
+{"name":"figs","price": 1.60}
+```
+
+In our Zed script `three-way-join.zed` we'll extend the pipeline we used
+previously for our inner join by piping its output to an additional join
+against the price list. The [`pass` operator](../language/operators/pass.md)
+is used to feed the output of the first `join` into the first input of our
+second `join`.
+
+```mdtest-input three-way-join.zed
+from (
+  file fruit.ndjson => sort flavor
+  file people.ndjson => sort likes
+) | inner join on flavor=likes eater:=name | sort name
+| from (
+  pass
+  file prices.ndjson => sort name
+) | inner join on name=name price:=price
+```
+
+Executing the Zed script:
+
+```mdtest-command
+zq -z -I three-way-join.zed
+```
+
+produces
+
+```mdtest-output
+{name:"apple",color:"red",flavor:"tart",eater:"morgan",price:3.15}
+{name:"apple",color:"red",flavor:"tart",eater:"chris",price:3.15}
+{name:"banana",color:"yellow",flavor:"sweet",eater:"quinn",price:4.01}
+{name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn",price:6.7}
+{name:"figs",color:"brown",flavor:"plain",eater:"jessie",price:1.6}
+{name:"strawberry",color:"red",flavor:"sweet",eater:"quinn",price:1.05}
+```
+
 ## Embedding the entire opposite record
 
 In the current `join` implementation, explicit entries must be provided in the
