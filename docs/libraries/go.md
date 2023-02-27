@@ -126,29 +126,23 @@ func main() {
 	}
 	uri, err := storage.ParseURI(os.Args[1])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		log.Fatalln(err)
 	}
 	ctx := context.TODO()
-	zctx := zed.NewContext()
-	var lake api.Interface
-	if api.IsLakeService(uri.String()) {
-		lake, err = api.OpenLake(ctx, uri.String())
-	} else {
-		lake, err = api.OpenLocalLake(ctx, uri.String())
-	}
+	lake, err := api.OpenLake(ctx, uri.String())
 	if err != nil {
-		log.Fatalln("URI of Zed lake not provided")
+		log.Fatalln(err)
 	}
 	reader, err := lake.Query(ctx, nil, "from Demo")
 	if err != nil {
-		log.Fatalln("URI of Zed lake not provided")
+		log.Fatalln(err)
 	}
 	defer reader.Close()
+	zctx := zed.NewContext()
 	for {
 		val, err := reader.Read()
 		if err != nil {
-			log.Fatalln("URI of Zed lake not provided")
+			log.Fatalln(err)
 		}
 		if val == nil {
 			return
