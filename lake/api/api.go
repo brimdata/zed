@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 type Interface interface {
@@ -45,11 +46,11 @@ type Interface interface {
 	DeleteVectors(ctx context.Context, pool ksuid.KSUID, branch string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
 }
 
-func OpenLake(ctx context.Context, u string) (Interface, error) {
+func OpenLake(ctx context.Context, logger *zap.Logger, u string) (Interface, error) {
 	if IsLakeService(u) {
 		return NewRemoteLake(client.NewConnectionTo(u)), nil
 	}
-	return OpenLocalLake(ctx, u)
+	return OpenLocalLake(ctx, logger, u)
 }
 
 func IsLakeService(u string) bool {

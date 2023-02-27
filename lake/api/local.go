@@ -17,6 +17,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 type local struct {
@@ -27,13 +28,13 @@ type local struct {
 
 var _ Interface = (*local)(nil)
 
-func OpenLocalLake(ctx context.Context, lakePath string) (Interface, error) {
+func OpenLocalLake(ctx context.Context, logger *zap.Logger, lakePath string) (Interface, error) {
 	uri, err := storage.ParseURI(lakePath)
 	if err != nil {
 		return nil, err
 	}
 	engine := storage.NewLocalEngine()
-	root, err := lake.Open(ctx, engine, uri)
+	root, err := lake.Open(ctx, engine, logger, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -44,13 +45,13 @@ func OpenLocalLake(ctx context.Context, lakePath string) (Interface, error) {
 	}, nil
 }
 
-func CreateLocalLake(ctx context.Context, lakePath string) (Interface, error) {
+func CreateLocalLake(ctx context.Context, logger *zap.Logger, lakePath string) (Interface, error) {
 	uri, err := storage.ParseURI(lakePath)
 	if err != nil {
 		return nil, err
 	}
 	engine := storage.NewLocalEngine()
-	root, err := lake.Create(ctx, engine, uri)
+	root, err := lake.Create(ctx, engine, logger, uri)
 	if err != nil {
 		return nil, err
 	}

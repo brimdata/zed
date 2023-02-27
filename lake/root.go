@@ -23,6 +23,7 @@ import (
 	"github.com/brimdata/zed/zson"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 const (
@@ -41,8 +42,10 @@ var (
 // The Root of the lake represents the path prefix and configuration state
 // for all of the data pools in the lake.
 type Root struct {
-	engine     storage.Engine
-	path       *storage.URI
+	engine storage.Engine
+	logger *zap.Logger
+	path   *storage.URI
+
 	poolCache  *lru.ARCCache[ksuid.KSUID, *Pool]
 	pools      *pools.Store
 	indexRules *index.Store
@@ -53,20 +56,21 @@ type LakeMagic struct {
 	Version int    `zed:"version"`
 }
 
-func newRoot(engine storage.Engine, path *storage.URI) *Root {
+func newRoot(engine storage.Engine, logger *zap.Logger, path *storage.URI) *Root {
 	poolCache, err := lru.NewARC[ksuid.KSUID, *Pool](1024)
 	if err != nil {
 		panic(err)
 	}
 	return &Root{
 		engine:    engine,
+		logger:    logger,
 		path:      path,
 		poolCache: poolCache,
 	}
 }
 
-func Open(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
-	r := newRoot(engine, path)
+func Open(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI) (*Root, error) {
+	r := newRoot(engine, logger, path)
 	if err := r.loadConfig(ctx); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			err = fmt.Errorf("%s: %w", path, ErrNotExist)
@@ -76,8 +80,8 @@ func Open(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root,
 	return r, nil
 }
 
-func Create(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
-	r := newRoot(engine, path)
+func Create(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI) (*Root, error) {
+	r := newRoot(engine, logger, path)
 	if err := r.loadConfig(ctx); err == nil {
 		return nil, fmt.Errorf("%s: %w", path, ErrExist)
 	}
@@ -87,10 +91,10 @@ func Create(ctx context.Context, engine storage.Engine, path *storage.URI) (*Roo
 	return r, nil
 }
 
-func CreateOrOpen(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
-	r, err := Open(ctx, engine, path)
+func CreateOrOpen(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI) (*Root, error) {
+	r, err := Open(ctx, engine, logger, path)
 	if errors.Is(err, ErrNotExist) {
-		return Create(ctx, engine, path)
+		return Create(ctx, engine, logger, path)
 	}
 	return r, err
 }
@@ -99,7 +103,7 @@ func (r *Root) createConfig(ctx context.Context) error {
 	poolPath := r.path.JoinPath(PoolsTag)
 	rulesPath := r.path.JoinPath(IndexRulesTag)
 	var err error
-	r.pools, err = pools.CreateStore(ctx, r.engine, poolPath)
+	r.pools, err = pools.CreateStore(ctx, r.engine, r.logger, poolPath)
 	if err != nil {
 		return err
 	}
@@ -117,7 +121,7 @@ func (r *Root) loadConfig(ctx context.Context) error {
 	poolPath := r.path.JoinPath(PoolsTag)
 	rulesPath := r.path.JoinPath(IndexRulesTag)
 	var err error
-	r.pools, err = pools.OpenStore(ctx, r.engine, poolPath)
+	r.pools, err = pools.OpenStore(ctx, r.engine, r.logger, poolPath)
 	if err != nil {
 		return err
 	}
@@ -299,7 +303,7 @@ func (r *Root) openPool(ctx context.Context, config *pools.Config) (*Pool, error
 		p.Config = *config
 		return &p, nil
 	}
-	p, err := OpenPool(ctx, config, r.engine, r.path)
+	p, err := OpenPool(ctx, config, r.engine, r.logger, r.path)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +326,7 @@ func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout,
 		thresh = data.DefaultThreshold
 	}
 	config := pools.NewConfig(name, layout, thresh, seekStride)
-	if err := CreatePool(ctx, config, r.engine, r.path); err != nil {
+	if err := CreatePool(ctx, config, r.engine, r.logger, r.path); err != nil {
 		return nil, err
 	}
 	pool, err := r.openPool(ctx, config)
@@ -359,7 +363,7 @@ func (r *Root) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string
 	if err != nil {
 		return nil, err
 	}
-	return CreateBranch(ctx, config, r.engine, r.path, name, parent)
+	return CreateBranch(ctx, config, r.engine, r.logger, r.path, name, parent)
 }
 
 func (r *Root) RemoveBranch(ctx context.Context, poolID ksuid.KSUID, name string) error {

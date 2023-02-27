@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
+	"go.uber.org/zap"
 )
 
 const maxRetries = 10
@@ -27,6 +28,7 @@ var (
 
 type Store struct {
 	journal     *Queue
+	logger      *zap.Logger
 	unmarshaler *zson.UnmarshalZNGContext
 
 	mu       sync.RWMutex // Protects everything below.
@@ -55,11 +57,12 @@ func (d *Delete) Key() string {
 	return d.EntryKey
 }
 
-func newStore(path *storage.URI, entryTypes ...interface{}) *Store {
+func newStore(logger *zap.Logger, entryTypes ...interface{}) *Store {
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(Add{}, Delete{}, Update{})
 	u.Bind(entryTypes...)
 	return &Store{
+		logger:      logger.Named("journal"),
 		unmarshaler: u,
 	}
 }
@@ -77,7 +80,7 @@ func (s *Store) load(ctx context.Context) error {
 	}
 	at, table, err := s.getSnapshot(ctx)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
+		s.logger.Error("Loading snapshot", zap.Error(err))
 	}
 	r, err := s.journal.OpenAsZNG(ctx, zed.NewContext(), head, at)
 	if err != nil {
@@ -99,7 +102,9 @@ func (s *Store) load(ctx context.Context) error {
 			// Reduce the amount of times we write snapshots to disk by only writing when there are
 			// more than 10 new entries since the last snapshot.
 			if head-at > 10 {
-				return s.putSnapshot(ctx, head, table)
+				if err := s.putSnapshot(ctx, head, table); err != nil {
+					s.logger.Error("Storing snapshot", zap.Error(err))
+				}
 			}
 			return nil
 		}
@@ -341,8 +346,8 @@ func (s *Store) commit(ctx context.Context, fn func() error, entries ...Entry) e
 	return ErrRetriesExceeded
 }
 
-func OpenStore(ctx context.Context, engine storage.Engine, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
-	s := newStore(path, keyTypes...)
+func OpenStore(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
+	s := newStore(logger, keyTypes...)
 	var err error
 	s.journal, err = Open(ctx, engine, path)
 	if err != nil {
@@ -351,8 +356,8 @@ func OpenStore(ctx context.Context, engine storage.Engine, path *storage.URI, ke
 	return s, nil
 }
 
-func CreateStore(ctx context.Context, engine storage.Engine, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
-	s := newStore(path, keyTypes...)
+func CreateStore(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
+	s := newStore(logger, keyTypes...)
 	j, err := Create(ctx, engine, path, Nil)
 	if err != nil {
 		return nil, err

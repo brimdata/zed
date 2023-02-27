@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 var (
@@ -19,16 +20,16 @@ type Store struct {
 	store *journal.Store
 }
 
-func CreateStore(ctx context.Context, engine storage.Engine, path *storage.URI) (*Store, error) {
-	store, err := journal.CreateStore(ctx, engine, path, Config{})
+func CreateStore(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI) (*Store, error) {
+	store, err := journal.CreateStore(ctx, engine, logger, path, Config{})
 	if err != nil {
 		return nil, err
 	}
 	return &Store{store}, nil
 }
 
-func OpenStore(ctx context.Context, engine storage.Engine, path *storage.URI) (*Store, error) {
-	store, err := journal.OpenStore(ctx, engine, path, Config{})
+func OpenStore(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI) (*Store, error) {
+	store, err := journal.OpenStore(ctx, engine, logger, path, Config{})
 	if err != nil {
 		return nil, err
 	}
