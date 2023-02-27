@@ -242,12 +242,6 @@ func (*From) OpNode() {}
 // Various Op fields
 
 type (
-	Agg struct {
-		Kind  string `json:"kind" unpack:""`
-		Name  string `json:"name"`
-		Expr  Expr   `json:"expr"`
-		Where Expr   `json:"where"`
-	}
 	Case struct {
 		Expr Expr `json:"expr"`
 		Op   Op   `json:"op"`
