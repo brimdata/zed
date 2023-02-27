@@ -287,6 +287,14 @@ func (*Let) OpNode()        {}
 func (*Yield) OpNode()      {}
 func (*Merge) OpNode()      {}
 
+// NewFilter returns a filter node for e.
+func NewFilter(e Expr) *Filter {
+	return &Filter{
+		Kind: "Filter",
+		Expr: e,
+	}
+}
+
 func (seq *Sequential) IsEntry() bool {
 	if len(seq.Ops) == 0 {
 		return false
@@ -328,13 +336,6 @@ func FanIn(op Op) int {
 		return 2
 	}
 	return 1
-}
-
-func FilterToOp(e Expr) *Filter {
-	return &Filter{
-		Kind: "Filter",
-		Expr: e,
-	}
 }
 
 func (t *This) String() string {

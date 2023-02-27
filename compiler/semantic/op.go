@@ -444,19 +444,13 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Filter{
-			Kind: "Filter",
-			Expr: e,
-		}, nil
+		return dag.NewFilter(e), nil
 	case *ast.Where:
 		e, err := semExpr(scope, o.Expr)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Filter{
-			Kind: "Filter",
-			Expr: e,
-		}, nil
+		return dag.NewFilter(e), nil
 	case *ast.Top:
 		args, err := semExprs(scope, o.Args)
 		if err != nil {
@@ -767,10 +761,7 @@ func semOpExpr(scope *Scope, e ast.Expr) (dag.Op, error) {
 		return nil, err
 	}
 	if isBool(out) {
-		return &dag.Filter{
-			Kind: "Filter",
-			Expr: out,
-		}, nil
+		return dag.NewFilter(out), nil
 	}
 	return &dag.Yield{
 		Kind:  "Yield",
@@ -831,8 +822,5 @@ func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &dag.Filter{
-		Kind: "Filter",
-		Expr: c,
-	}, nil
+	return dag.NewFilter(c), nil
 }
