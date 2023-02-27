@@ -256,10 +256,6 @@ type (
 		Name string `json:"name"`
 		Expr Expr   `json:"expr"`
 	}
-	Method struct {
-		Name string `json:"name"`
-		Args []Expr `json:"args"`
-	}
 )
 
 func (*Sequential) OpNode() {}
