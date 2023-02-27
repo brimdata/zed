@@ -67,10 +67,6 @@ type (
 	Pass struct {
 		Kind string `json:"kind" unpack:""`
 	}
-	Pick struct {
-		Kind string       `json:"kind" unpack:""`
-		Args []Assignment `json:"args"`
-	}
 	Put struct {
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
@@ -267,7 +263,6 @@ func (*Parallel) OpNode()   {}
 func (*Switch) OpNode()     {}
 func (*Sort) OpNode()       {}
 func (*Cut) OpNode()        {}
-func (*Pick) OpNode()       {}
 func (*Drop) OpNode()       {}
 func (*Head) OpNode()       {}
 func (*Tail) OpNode()       {}

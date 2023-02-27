@@ -158,7 +158,7 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		egress := copyOp(ingress)
 		extend(trunk, egress)
 		return replicateAndMerge(seq, layout, from, trunk, replicas)
-	case *dag.Cut, *dag.Pick, *dag.Drop, *dag.Put, *dag.Rename:
+	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename:
 		//XXX shouldn't these check for mergeKey = nil?
 		return replicateAndMerge(seq, layout, from, trunk, replicas)
 	default:
