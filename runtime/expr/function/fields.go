@@ -36,8 +36,8 @@ func buildPath(typ *zed.TypeRecord, b *zcode.Builder, prefix []string) []string 
 }
 
 func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	zvSubject := args[0]
-	typ := f.recordType(zvSubject)
+	subjectVal := args[0]
+	typ := f.recordType(subjectVal)
 	if typ == nil {
 		return f.zctx.Missing()
 	}
@@ -47,12 +47,12 @@ func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	return ctx.NewValue(f.typ, b.Bytes())
 }
 
-func (f *Fields) recordType(zv zed.Value) *zed.TypeRecord {
-	if typ, ok := zed.TypeUnder(zv.Type).(*zed.TypeRecord); ok {
+func (f *Fields) recordType(val zed.Value) *zed.TypeRecord {
+	if typ, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord); ok {
 		return typ
 	}
-	if zv.Type == zed.TypeType {
-		typ, err := f.zctx.LookupByValue(zv.Bytes)
+	if val.Type == zed.TypeType {
+		typ, err := f.zctx.LookupByValue(val.Bytes)
 		if err != nil {
 			return nil
 		}

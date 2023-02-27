@@ -14,24 +14,24 @@ type Base64 struct {
 }
 
 func (b *Base64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	zv := args[0]
-	switch zv.Type.ID() {
+	val := args[0]
+	switch val.Type.ID() {
 	case zed.IDBytes:
-		if zv.Bytes == nil {
+		if val.Bytes == nil {
 			return newErrorf(b.zctx, ctx, "base64: illegal null argument")
 		}
-		return newString(ctx, base64.StdEncoding.EncodeToString(zv.Bytes))
+		return newString(ctx, base64.StdEncoding.EncodeToString(val.Bytes))
 	case zed.IDString:
-		if zv.Bytes == nil {
+		if val.Bytes == nil {
 			return zed.Null
 		}
-		bytes, err := base64.StdEncoding.DecodeString(zed.DecodeString(zv.Bytes))
+		bytes, err := base64.StdEncoding.DecodeString(zed.DecodeString(val.Bytes))
 		if err != nil {
-			return newErrorf(b.zctx, ctx, "base64: string argument is not base64: %q", string(zv.Bytes))
+			return newErrorf(b.zctx, ctx, "base64: string argument is not base64: %q", string(val.Bytes))
 		}
 		return newBytes(ctx, bytes)
 	default:
-		return newErrorf(b.zctx, ctx, "base64: argument must a bytes or string type (bad argument: %s)", zson.String(zv))
+		return newErrorf(b.zctx, ctx, "base64: argument must a bytes or string type (bad argument: %s)", zson.String(val))
 	}
 }
 

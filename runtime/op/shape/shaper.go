@@ -60,8 +60,8 @@ func (a *anchor) mixIn(fields []zed.Field) {
 	}
 }
 
-func (i *integer) check(zv zed.Value) {
-	id := zv.Type.ID()
+func (i *integer) check(val zed.Value) {
+	id := val.Type.ID()
 	if zed.IsInteger(id) || id == zed.IDNull {
 		return
 	}
@@ -70,7 +70,7 @@ func (i *integer) check(zv zed.Value) {
 		i.unsigned = false
 		return
 	}
-	f := zed.DecodeFloat64(zv.Bytes)
+	f := zed.DecodeFloat64(val.Bytes)
 	//XXX We could track signed vs unsigned and overflow,
 	// but for now, we leave it as float64 unless we can
 	// guarantee int64.
@@ -86,8 +86,8 @@ func (i *integer) check(zv zed.Value) {
 func (a *anchor) updateInts(rec *zed.Value) error {
 	it := rec.Bytes.Iter()
 	for k, f := range rec.Fields() {
-		zv := zed.Value{Type: f.Type, Bytes: it.Next()}
-		a.integers[k].check(zv)
+		val := zed.Value{Type: f.Type, Bytes: it.Next()}
+		a.integers[k].check(val)
 	}
 	return nil
 }

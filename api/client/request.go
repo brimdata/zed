@@ -95,13 +95,13 @@ func (r *Request) reader() (io.Reader, error) {
 	}
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StylePackage)
-	zv, err := m.Marshal(r.Body)
+	val, err := m.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 	var buf bytes.Buffer
 	zw := zngio.NewWriter(zio.NopCloser(&buf))
-	if err := zw.Write(zv); err != nil {
+	if err := zw.Write(val); err != nil {
 		return nil, err
 	}
 	if err := zw.Close(); err != nil {

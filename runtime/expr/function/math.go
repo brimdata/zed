@@ -115,15 +115,15 @@ type reducer struct {
 }
 
 func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	zv := &args[0]
-	typ := zv.Type
+	val0 := &args[0]
+	typ := val0.Type
 	id := typ.ID()
 	if zed.IsFloat(id) {
 		//XXX this is wrong like math aggregators...
 		// need to be more robust and adjust type as new types encountered
-		result := zed.DecodeFloat(zv.Bytes)
+		result := zed.DecodeFloat(val0.Bytes)
 		for _, val := range args[1:] {
-			v, ok := coerce.ToFloat(zv)
+			v, ok := coerce.ToFloat(&val)
 			if !ok {
 				return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(&val))
 			}
@@ -132,10 +132,10 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newFloat64(ctx, result)
 	}
 	if !zed.IsNumber(id) {
-		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(zv))
+		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val0))
 	}
 	if zed.IsSigned(id) {
-		result := zed.DecodeInt(zv.Bytes)
+		result := zed.DecodeInt(val0.Bytes)
 		for _, val := range args[1:] {
 			//XXX this is really bad because we silently coerce
 			// floats to ints if we hit a float first
@@ -147,7 +147,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		return newInt64(ctx, result)
 	}
-	result := zed.DecodeUint(zv.Bytes)
+	result := zed.DecodeUint(val0.Bytes)
 	for _, val := range args[1:] {
 		v, ok := coerce.ToUint(&val)
 		if !ok {
@@ -164,22 +164,22 @@ type Round struct {
 }
 
 func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	zv := &args[0]
-	id := zv.Type.ID()
+	val := &args[0]
+	id := val.Type.ID()
 	if id == zed.IDFloat16 {
-		f := zed.DecodeFloat16(zv.Bytes)
+		f := zed.DecodeFloat16(val.Bytes)
 		return newFloat16(ctx, float32(math.Round(float64(f))))
 	}
 	if id == zed.IDFloat32 {
-		f := zed.DecodeFloat32(zv.Bytes)
+		f := zed.DecodeFloat32(val.Bytes)
 		return newFloat32(ctx, float32(math.Round(float64(f))))
 	}
 	if id == zed.IDFloat64 {
-		f := zed.DecodeFloat64(zv.Bytes)
+		f := zed.DecodeFloat64(val.Bytes)
 		return newFloat64(ctx, math.Round(f))
 	}
 	if !zed.IsNumber(id) {
-		return newErrorf(r.zctx, ctx, "round: not a number: %s", zson.MustFormatValue(zv))
+		return newErrorf(r.zctx, ctx, "round: not a number: %s", zson.MustFormatValue(val))
 	}
 	return ctx.CopyValue(&args[0])
 }

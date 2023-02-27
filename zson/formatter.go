@@ -81,15 +81,15 @@ func (f *Formatter) FormatRecord(rec *zed.Value) (string, error) {
 	return f.builder.String(), nil
 }
 
-func FormatValue(zv *zed.Value) (string, error) {
+func FormatValue(val *zed.Value) (string, error) {
 	f := NewFormatter(0, nil)
-	return f.Format(zv)
+	return f.Format(val)
 }
 
-func MustFormatValue(zv *zed.Value) string {
-	s, err := FormatValue(zv)
+func MustFormatValue(val *zed.Value) string {
+	s, err := FormatValue(val)
 	if err != nil {
-		panic(fmt.Errorf("ZSON format value failed: type %s, bytes %s", zv.Type, hex.EncodeToString(zv.Bytes)))
+		panic(fmt.Errorf("ZSON format value failed: type %s, bytes %s", val.Type, hex.EncodeToString(val.Bytes)))
 	}
 	return s
 }
@@ -108,9 +108,9 @@ func String(p interface{}) string {
 	}
 }
 
-func (f *Formatter) Format(zv *zed.Value) (string, error) {
+func (f *Formatter) Format(val *zed.Value) (string, error) {
 	f.builder.Reset()
-	if err := f.formatValueAndDecorate(zv.Type, zv.Bytes); err != nil {
+	if err := f.formatValueAndDecorate(val.Type, val.Bytes); err != nil {
 		return "", err
 	}
 	return f.builder.String(), nil
@@ -457,9 +457,9 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 	return nil
 }
 
-func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, zv *zed.Value, known, parentImplied bool) (bool, error) {
+func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, val *zed.Value, known, parentImplied bool) (bool, error) {
 	f.build(open)
-	n, err := zv.ContainerLength()
+	n, err := val.ContainerLength()
 	if err != nil {
 		return true, err
 	}
@@ -469,7 +469,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 	}
 	indent += f.tab
 	sep := f.newline
-	it := zv.Iter()
+	it := val.Iter()
 	elems := newElemBuilder(inner)
 	for !it.Done() {
 		f.build(sep)
@@ -485,7 +485,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 	if elems.needsDecoration() {
 		// If we haven't seen all the types in the union, print the decorator
 		// so the fullness of the union is persevered.
-		f.decorate(zv.Type, false, true)
+		f.decorate(val.Type, false, true)
 	}
 	return false, nil
 }
