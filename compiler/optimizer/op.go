@@ -2,6 +2,7 @@ package optimizer
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/order"
@@ -209,12 +210,7 @@ func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout
 }
 
 func fieldKey(f field.Path) string {
-	var b []byte
-	for _, s := range f {
-		b = append(b, s...)
-		b = append(b, 0)
-	}
-	return string(b)
+	return strings.Join(f, "\x00")
 }
 
 func fieldOf(e dag.Expr) field.Path {
