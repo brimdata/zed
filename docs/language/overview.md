@@ -2143,7 +2143,7 @@ Now, we can turn around and write a "shaper" for data that has the patterns
 we "discovered" above, e.g., if this Zed source text is in `shape.zed`
 ```mdtest-input shape.zed
 switch len(this) (
-    case 1 => pass
+    case 1 => yield this
     case 2 => yield shape(this, <{x:(int64,string),y:string}>)
     default => yield error({kind:"unrecognized shape",value:this})
 )

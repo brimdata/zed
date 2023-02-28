@@ -21,7 +21,7 @@ and its semantics of undefined merge order.
 
 _Copy input to two paths and combine with the implied operator_
 ```mdtest-command
-echo '1 2' | zq -z 'fork (=>pass =>pass) | sort this' -
+echo '1 2' | zq -z 'fork (=>yield this =>yield this) | sort this' -
 ```
 =>
 ```mdtest-output

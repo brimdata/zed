@@ -18,7 +18,7 @@ where the values from the upstream paths are forwarded based on these expression
 
 _Copy input to two paths and combine
 ```mdtest-command
-echo '1 2' | zq -z 'fork (=>pass =>pass) | merge this' -
+echo '1 2' | zq -z 'fork (=>yield this =>yield this) | merge this' -
 ```
 =>
 ```mdtest-output

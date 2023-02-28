@@ -24,7 +24,7 @@ merged with an automatically inserted [combine operator](combine.md).
 
 _Copy input to two paths and merge_
 ```mdtest-command
-echo '1 2' | zq -z 'fork (=>pass =>pass) | sort this' -
+echo '1 2' | zq -z 'fork (=>yield this =>yield this) | sort this' -
 ```
 =>
 ```mdtest-output
