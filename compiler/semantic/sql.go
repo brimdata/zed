@@ -60,11 +60,7 @@ func convertSQLOp(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {
 		}
 	}
 	if where != nil {
-		filter := &dag.Filter{
-			Kind: "Filter",
-			Expr: where,
-		}
-		ops = append(ops, filter)
+		ops = append(ops, dag.NewFilter(where))
 	}
 	if sql.GroupBy != nil {
 		groupby, err := convertSQLGroupBy(scope, sql.GroupBy, selection)
@@ -77,11 +73,7 @@ func convertSQLOp(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {
 			if err != nil {
 				return nil, err
 			}
-			filter := &dag.Filter{
-				Kind: "Filter",
-				Expr: having,
-			}
-			ops = append(ops, filter)
+			ops = append(ops, dag.NewFilter(having))
 		}
 	} else if sql.Select != nil {
 		if sql.Having != nil {
@@ -137,10 +129,7 @@ func liftWhereFilter(aliasID string, where dag.Expr, joins []ast.SQLJoin) *dag.F
 	if eligible == nil {
 		return nil
 	}
-	return &dag.Filter{
-		Kind: "Filter",
-		Expr: eligible,
-	}
+	return dag.NewFilter(eligible)
 }
 
 func eligiblePred(aliasID string, e dag.Expr) dag.Expr {
@@ -224,14 +213,11 @@ func convertSQLTableRef(scope *Scope, e ast.Expr) (dag.Op, error) {
 			converted = dynamicTypeName(id)
 		}
 	}
-	return &dag.Filter{
-		Kind: "Filter",
-		Expr: &dag.Call{
-			Kind: "Call",
-			Name: "is",
-			Args: []dag.Expr{converted},
-		},
-	}, nil
+	return dag.NewFilter(&dag.Call{
+		Kind: "Call",
+		Name: "is",
+		Args: []dag.Expr{converted},
+	}), nil
 }
 
 func convertSQLAlias(scope *Scope, e ast.Expr) (*dag.Cut, string, error) {
