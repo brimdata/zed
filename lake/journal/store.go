@@ -57,11 +57,28 @@ func (d *Delete) Key() string {
 	return d.EntryKey
 }
 
-func newStore(logger *zap.Logger, entryTypes ...interface{}) *Store {
+func CreateStore(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
+	journal, err := Create(ctx, engine, path, Nil)
+	if err != nil {
+		return nil, err
+	}
+	return newStore(journal, logger, keyTypes...), nil
+}
+
+func OpenStore(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
+	journal, err := Open(ctx, engine, path)
+	if err != nil {
+		return nil, err
+	}
+	return newStore(journal, logger, keyTypes...), nil
+}
+
+func newStore(journal *Queue, logger *zap.Logger, keyTypes ...interface{}) *Store {
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(Add{}, Delete{}, Update{})
-	u.Bind(entryTypes...)
+	u.Bind(keyTypes...)
 	return &Store{
+		journal:     journal,
 		logger:      logger.Named("journal"),
 		unmarshaler: u,
 	}
@@ -344,24 +361,4 @@ func (s *Store) commit(ctx context.Context, fn func() error, entries ...Entry) e
 		return nil
 	}
 	return ErrRetriesExceeded
-}
-
-func OpenStore(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
-	s := newStore(logger, keyTypes...)
-	var err error
-	s.journal, err = Open(ctx, engine, path)
-	if err != nil {
-		return nil, err
-	}
-	return s, nil
-}
-
-func CreateStore(ctx context.Context, engine storage.Engine, logger *zap.Logger, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
-	s := newStore(logger, keyTypes...)
-	j, err := Create(ctx, engine, path, Nil)
-	if err != nil {
-		return nil, err
-	}
-	s.journal = j
-	return s, nil
 }
