@@ -27,8 +27,6 @@ func (o *Optimizer) analyzeOp(op dag.Op, layout order.Layout) (order.Layout, err
 		return layout, nil
 	case *dag.Cut:
 		return analyzeCuts(op.Args, layout), nil
-	case *dag.Pick:
-		return analyzeCuts(op.Args, layout), nil
 	case *dag.Drop:
 		for _, f := range op.Args {
 			if fieldOf(f).Equal(key) {

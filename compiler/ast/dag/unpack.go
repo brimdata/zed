@@ -35,7 +35,6 @@ var unpacker = unpack.New(
 	OverExpr{},
 	Parallel{},
 	Pass{},
-	Pick{},
 	Pool{},
 	Put{},
 	Agg{},
