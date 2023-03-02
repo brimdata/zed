@@ -15,6 +15,7 @@ outputs:
         =>
           summarize
               sum:=sum(x)
+          | yield sum
         =>
           put a:=b*c
       )

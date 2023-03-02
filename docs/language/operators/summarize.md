@@ -44,7 +44,7 @@ echo '1 2 3 4' | zq -z 'summarize avg(this)' -
 ```
 =>
 ```mdtest-output
-{avg:2.5}
+2.5
 ```
 
 Sum the input sequence, leaving out the `summarize` keyword:
@@ -53,7 +53,7 @@ echo '1 2 3 4' | zq -z 'sum(this)' -
 ```
 =>
 ```mdtest-output
-{sum:10}
+10
 ```
 
 Create integer sets by key and sort the output to get a deterministic order:

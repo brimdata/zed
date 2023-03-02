@@ -652,7 +652,7 @@ zq -z 'over this | sample | count()' prs.json
 ```
 produces
 ```mdtest-output
-{count:3(uint64)}
+3(uint64)
 ```
 All that data across the samples and only three shapes.
 They must each be really big.  Let's check that out.
@@ -964,7 +964,7 @@ Oops, this gives us an array of the reviewer logins
 with repetitions since [collect](../language/aggregates/collect.md)
 collects each item that it encounters into an array:
 ```mdtest-output
-{collect:["mccanne","nwt","henridf","mccanne","nwt","mccanne","mattnibs","henridf","mccanne","mattnibs","henridf","mccanne","mattnibs","henridf","mccanne","nwt","aswan","henridf","mccanne","nwt","aswan","philrz","mccanne","mccanne","aswan","henridf","aswan","mccanne","nwt","aswan","mikesbrown","henridf","aswan","mattnibs","henridf","mccanne","aswan","nwt","henridf","mattnibs","aswan","aswan","mattnibs","aswan","henridf","aswan","henridf","mccanne","aswan","aswan","mccanne","nwt","aswan","henridf","aswan"]}
+["mccanne","nwt","henridf","mccanne","nwt","mccanne","mattnibs","henridf","mccanne","mattnibs","henridf","mccanne","mattnibs","henridf","mccanne","nwt","aswan","henridf","mccanne","nwt","aswan","philrz","mccanne","mccanne","aswan","henridf","aswan","mccanne","nwt","aswan","mikesbrown","henridf","aswan","mattnibs","henridf","mccanne","aswan","nwt","henridf","mattnibs","aswan","aswan","mattnibs","aswan","henridf","aswan","henridf","mccanne","aswan","aswan","mccanne","nwt","aswan","henridf","aswan"]
 ```
 What we'd prefer is a set of reviewers where each reviewer appears only once.  This
 is easily done with the [union](../language/aggregates/union.md) aggregate function

@@ -307,6 +307,11 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if err != nil {
 			return nil, err
 		}
+		if len(keys) == 0 {
+			if op := singleRowAgg(scope, o.Aggs); op != nil {
+				return op, nil
+			}
+		}
 		aggs, err := semAssignments(scope, o.Aggs, true)
 		if err != nil {
 			return nil, err
@@ -629,6 +634,38 @@ func semOver(ctx context.Context, scope *Scope, in *ast.Over, ds *data.Source, h
 	}, nil
 }
 
+func singleRowAgg(scope *Scope, aggs []ast.Assignment) dag.Op {
+	for _, a := range aggs {
+		if a.LHS != nil {
+			return nil
+		}
+	}
+	outs, err := semAssignments(scope, aggs, true)
+	if err != nil {
+		return nil
+	}
+	yield := &dag.Yield{
+		Kind: "Yield",
+	}
+	for _, a := range outs {
+		this, ok := a.LHS.(*dag.This)
+		if !ok || len(this.Path) != 1 {
+			return nil
+		}
+		yield.Exprs = append(yield.Exprs, this)
+	}
+	return &dag.Sequential{
+		Kind: "Sequential",
+		Ops: []dag.Op{
+			&dag.Summarize{
+				Kind: "Summarize",
+				Aggs: outs,
+			},
+			yield,
+		},
+	}
+}
+
 func semDecls(scope *Scope, decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
 	var consts []dag.Def
 	var fds []*ast.FuncDecl
@@ -804,7 +841,7 @@ func isBool(e dag.Expr) bool {
 
 func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 	if agg, err := maybeConvertAgg(scope, call); err == nil && agg != nil {
-		return &dag.Summarize{
+		summarize := &dag.Summarize{
 			Kind: "Summarize",
 			Aggs: []dag.Assignment{
 				{
@@ -813,6 +850,14 @@ func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 					RHS:  agg,
 				},
 			},
+		}
+		yield := &dag.Yield{
+			Kind:  "Yield",
+			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.New(call.Name)}},
+		}
+		return &dag.Sequential{
+			Kind: "Sequential",
+			Ops:  []dag.Op{summarize, yield},
 		}, nil
 	}
 	if !function.HasBoolResult(call.Name) {

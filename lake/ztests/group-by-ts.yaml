@@ -11,11 +11,11 @@ script: |
   echo ===
   zed query -z 'from logs | tail 1'
   echo ===
-  zed query -z 'from logs | avg(g)'
+  zed query -z 'from logs | avg:=avg(g)'
   echo ===
-  zed query -z 'from logs | count() by g | sort g'
+  zed query -z 'from logs | count:=count() by g | sort g'
   echo ===
-  zed query -z 'from logs | count() by every(3600s), g | sort ts, g'
+  zed query -z 'from logs | count:=count() by every(3600s), g | sort ts, g'
 
 inputs:
   - name: group-by-ts.zson

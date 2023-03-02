@@ -21,7 +21,7 @@ echo '1 2 3 3' | zq -z 'union(this)' -
 ```
 =>
 ```mdtest-output
-{union:|[1,2,3]|}
+|[1,2,3]|
 ```
 
 Continuous average of simple sequence:

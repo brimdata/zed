@@ -115,7 +115,7 @@ echo '{a:[1,2]} {a:[3,4,5]}' | zq -z 'over a | sum(this)' -
 ```
 =>
 ```mdtest-output
-{sum:15}
+15
 ```
 _Aggregate the traversed values in a lateral query_
 ```mdtest-command
@@ -123,12 +123,12 @@ echo '{a:[1,2]} {a:[3,4,5]}' | zq -z 'over a => ( sum(this) )' -
 ```
 =>
 ```mdtest-output
-{sum:3}
-{sum:12}
+3
+12
 ```
 _Access the outer values in a lateral query_
 ```mdtest-command
-echo '{a:[1,2],s:"foo"} {a:[3,4,5],s:"bar"}' | zq -z 'over a with s => (sum(this) | yield {s,sum})' -
+echo '{a:[1,2],s:"foo"} {a:[3,4,5],s:"bar"}' | zq -z 'over a with s => (sum(this) | yield {s,sum:this})' -
 ```
 =>
 ```mdtest-output

@@ -1,4 +1,4 @@
-zed: count()
+zed: count:=count()
 
 input: |
   {_path:"conn",foo:"1"}

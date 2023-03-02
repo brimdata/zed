@@ -18,7 +18,7 @@ echo '1 2 3 4' | zq -z 'min(this)' -
 ```
 =>
 ```mdtest-output
-{min:1}
+1
 ```
 
 Continuous minimum of simple sequence:
@@ -38,5 +38,5 @@ echo '1 2 3 4 "foo"' | zq -z 'min(this)' -
 ```
 =>
 ```mdtest-output
-{min:1}
+1
 ```

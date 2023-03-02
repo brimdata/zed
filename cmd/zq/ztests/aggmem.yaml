@@ -10,7 +10,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {collect:null}
+      null
   - name: stderr
     data: |
       aggmem value must be greater than zero

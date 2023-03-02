@@ -18,7 +18,7 @@ echo '1 2 3' | zq -z 'count()' -
 ```
 =>
 ```mdtest-output
-{count:3(uint64)}
+3(uint64)
 ```
 
 Continuous count of simple sequence:

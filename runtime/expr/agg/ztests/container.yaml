@@ -15,7 +15,7 @@ inputs:
 outputs:
   - name: union.zson
     data: |
-      {union:|[1(int32),-1(int32),2(int32),8(int32)]|}
+      |[1(int32),-1(int32),2(int32),8(int32)]|
   - name: collect.zson
     data: |
-      {collect:[1(int32),-1(int32),2(int32),1(int32),8(int32),1(int32)]}
+      [1(int32),-1(int32),2(int32),1(int32),8(int32),1(int32)]
