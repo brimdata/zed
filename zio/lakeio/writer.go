@@ -167,18 +167,18 @@ func formatDataObject(b *bytes.Buffer, object *data.Object, prefix string, inden
 	b.WriteString(fmt.Sprintf(" %s bytes %d records", objectSize, object.Count))
 	b.WriteString("\n  ")
 	tab(b, indent)
-	b.WriteString(" from ")
-	b.WriteString(zson.String(object.From))
-	b.WriteString(" to ")
-	b.WriteString(zson.String(object.To))
+	b.WriteString(" min ")
+	b.WriteString(zson.String(object.Min))
+	b.WriteString(" max ")
+	b.WriteString(zson.String(object.Max))
 	b.WriteByte('\n')
 }
 
 func formatPartition(b *bytes.Buffer, p meta.Partition) {
-	b.WriteString("from ")
-	b.WriteString(zson.String(p.From))
-	b.WriteString(" to ")
-	b.WriteString(zson.String(p.To))
+	b.WriteString("min ")
+	b.WriteString(zson.String(p.Min))
+	b.WriteString(" max ")
+	b.WriteString(zson.String(p.Max))
 	b.WriteByte('\n')
 	for _, o := range p.Objects {
 		formatDataObject(b, o, "", 2)

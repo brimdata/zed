@@ -238,7 +238,7 @@ func (s *ImportStats) Copy() ImportStats {
 func ImportComparator(zctx *zed.Context, pool *Pool) *expr.Comparator {
 	layout := pool.Layout
 	layout.Keys = field.List{poolKey(layout)}
-	return zbuf.NewComparator(zctx, layout)
+	return zbuf.NewComparatorNullsMax(zctx, layout)
 }
 
 func poolKey(layout order.Layout) field.Path {

@@ -350,12 +350,9 @@ func pushDown(trunk *dag.Trunk) {
 // from a scan when we know the pool key range of the object could not satisfy
 // the filter predicate of any of the values in the object.
 func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) *dag.BinaryExpr {
-	lower := &dag.This{Kind: "This", Path: field.New("from")}
-	upper := &dag.This{Kind: "This", Path: field.New("to")}
-	if o == order.Desc {
-		lower, upper = upper, lower
-	}
-	return buildRangePruner(pred, fld, lower, upper, o)
+	min := &dag.This{Kind: "This", Path: field.New("min")}
+	max := &dag.This{Kind: "This", Path: field.New("max")}
+	return buildRangePruner(pred, fld, min, max)
 }
 
 // buildRangePruner creates a DAG comparison expression that can evalaute whether
@@ -363,7 +360,7 @@ func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) *dag.BinaryExp
 // the expression pred would evaluate to false for all values of fld in the
 // from/to value range.  If a pruning decision cannot be reliably determined then
 // the return value is nil.
-func buildRangePruner(pred dag.Expr, fld field.Path, lower, upper *dag.This, o order.Which) *dag.BinaryExpr {
+func buildRangePruner(pred dag.Expr, fld field.Path, min, max *dag.This) *dag.BinaryExpr {
 	e, ok := pred.(*dag.BinaryExpr)
 	if !ok {
 		// If this isn't a binary predicate composed of comparison operators, we
@@ -378,8 +375,8 @@ func buildRangePruner(pred dag.Expr, fld field.Path, lower, upper *dag.This, o o
 		// For an "and", if we know either side is prunable, then we can prune
 		// because both conditions are required.  So we "or" together the result
 		// when both sub-expressions are valid.
-		lhs := buildRangePruner(e.LHS, fld, lower, upper, o)
-		rhs := buildRangePruner(e.RHS, fld, lower, upper, o)
+		lhs := buildRangePruner(e.LHS, fld, min, max)
+		rhs := buildRangePruner(e.RHS, fld, min, max)
 		if lhs == nil {
 			return rhs
 		}
@@ -391,8 +388,8 @@ func buildRangePruner(pred dag.Expr, fld field.Path, lower, upper *dag.This, o o
 		// For an "or", if we know both sides are prunable, then we can prune
 		// because either condition is required.  So we "and" together the result
 		// when both sub-expressions are valid.
-		lhs := buildRangePruner(e.LHS, fld, lower, upper, o)
-		rhs := buildRangePruner(e.RHS, fld, lower, upper, o)
+		lhs := buildRangePruner(e.LHS, fld, min, max)
+		rhs := buildRangePruner(e.RHS, fld, min, max)
 		if lhs == nil || rhs == nil {
 			return nil
 		}
@@ -404,31 +401,31 @@ func buildRangePruner(pred dag.Expr, fld field.Path, lower, upper *dag.This, o o
 		}
 		// At this point, we know we can definitely run a pruning decision based
 		// on the literal value we found, the comparison op, and the lower/upper bounds.
-		return rangePrunerPred(op, literal, lower, upper, o)
+		return rangePrunerPred(op, literal, min, max)
 	default:
 		return nil
 	}
 }
 
-func rangePrunerPred(op string, literal *dag.Literal, lower, upper *dag.This, o order.Which) *dag.BinaryExpr {
+func rangePrunerPred(op string, literal *dag.Literal, min, max *dag.This) *dag.BinaryExpr {
 	switch op {
 	case "<":
 		// key < CONST
-		return compare("<=", literal, lower, o)
+		return compare("<=", literal, min)
 	case "<=":
 		// key <= CONST
-		return compare("<", literal, lower, o)
+		return compare("<", literal, min)
 	case ">":
 		// key > CONST
-		return compare(">=", literal, upper, o)
+		return compare(">=", literal, max)
 	case ">=":
 		// key >= CONST
-		return compare(">", literal, upper, o)
+		return compare(">", literal, max)
 	case "==":
 		// key == CONST
 		return dag.NewBinaryExpr("or",
-			compare(">", lower, literal, o),
-			compare("<", upper, literal, o))
+			compare(">", min, literal),
+			compare("<", max, literal))
 	}
 	panic("rangePrunerPred unknown op " + op)
 }
@@ -437,11 +434,8 @@ func rangePrunerPred(op string, literal *dag.Literal, lower, upper *dag.This, o 
 // uses a call to the Zed language function "compare()" as standard comparisons
 // do not handle nullsmax or cross-type comparisons (which can arise when the
 // pool key value type changes).
-func compare(op string, lhs, rhs dag.Expr, o order.Which) *dag.BinaryExpr {
-	nullsMax := &dag.Literal{Kind: "Literal", Value: "false"}
-	if o == order.Asc {
-		nullsMax.Value = "true"
-	}
+func compare(op string, lhs, rhs dag.Expr) *dag.BinaryExpr {
+	nullsMax := &dag.Literal{Kind: "Literal", Value: "true"}
 	call := &dag.Call{Kind: "Call", Name: "compare", Args: []dag.Expr{lhs, rhs, nullsMax}}
 	return dag.NewBinaryExpr(op, call, &dag.Literal{Kind: "Literal", Value: "0"})
 }

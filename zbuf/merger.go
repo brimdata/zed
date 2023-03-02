@@ -17,6 +17,17 @@ func NewComparator(zctx *zed.Context, layout order.Layout) *expr.Comparator {
 	return expr.NewComparator(nullsMax, !nullsMax, exprs...).WithMissingAsNull()
 }
 
+func NewComparatorNullsMax(zctx *zed.Context, layout order.Layout) *expr.Comparator {
+	exprs := make([]expr.Evaluator, len(layout.Keys))
+	for i, key := range layout.Keys {
+		exprs[i] = expr.NewDottedExpr(zctx, key)
+	}
+	// valueAsBytes establishes a total order.
+	exprs = append(exprs, &valueAsBytes{})
+	reverse := layout.Order == order.Desc
+	return expr.NewComparator(true, reverse, exprs...).WithMissingAsNull()
+}
+
 type valueAsBytes struct{}
 
 func (v *valueAsBytes) Eval(_ expr.Context, val *zed.Value) *zed.Value {

@@ -62,7 +62,7 @@ func CompactionScan(ctx context.Context, it DataObjectIterator, pool *pools.Conf
 		// 2. Consolidating patches of small objects into larger single blocks.
 		// add object to current run if it overlaps *or* object size is less than
 		// a quarter of thresh.
-		if cold && (object.Size <= pool.Threshold/4 || run.Overlaps(&object.From, &object.To)) {
+		if cold && (object.Size <= pool.Threshold/4 || run.Overlaps(&object.Min, &object.Max)) {
 			run.Add(object)
 			continue
 		}

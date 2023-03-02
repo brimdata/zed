@@ -23,11 +23,12 @@ type Slicer struct {
 	unmarshaler *zson.UnmarshalZNGContext
 	objects     []*data.Object
 	cmp         expr.CompareFn
-	to          *zed.Value
+	min         *zed.Value
+	max         *zed.Value
 	mu          sync.Mutex
 }
 
-func NewSlicer(parent zbuf.Puller, zctx *zed.Context, o order.Which) *Slicer {
+func NewSlicer(parent zbuf.Puller, zctx *zed.Context) *Slicer {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	return &Slicer{
@@ -35,7 +36,7 @@ func NewSlicer(parent zbuf.Puller, zctx *zed.Context, o order.Which) *Slicer {
 		marshaler:   m,
 		unmarshaler: zson.NewZNGUnmarshaler(),
 		//XXX check nullsmax is consistent for both dirs in lake ops
-		cmp: expr.NewValueCompareFn(o, o == order.Asc),
+		cmp: expr.NewValueCompareFn(order.Asc, true),
 	}
 }
 
@@ -80,19 +81,20 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 	if len(s.objects) == 0 {
 		return nil, nil
 	}
-	from := &s.objects[0].From
-	to := &s.objects[0].To
+	//XXX let's keep this as we go!... need to reorder stuff in stash() to make this work
+	min := &s.objects[0].Min
+	max := &s.objects[0].Max
 	for _, o := range s.objects[1:] {
-		if s.cmp(&o.From, from) < 0 {
-			from = &o.From
+		if s.cmp(&o.Min, min) < 0 {
+			min = &o.Min
 		}
-		if s.cmp(&o.To, to) > 0 {
-			to = &o.To
+		if s.cmp(&o.Max, max) > 0 {
+			max = &o.Max
 		}
 	}
 	val, err := s.marshaler.Marshal(&Partition{
-		From:    from,
-		To:      to,
+		Min:     min,
+		Max:     max,
 		Objects: s.objects,
 	})
 	s.objects = s.objects[:0]
@@ -108,18 +110,27 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 		// We collect all the subsequent objects that overlap with any object in the
 		// accumulated set so far.  Since first times are non-decreasing this is
 		// guaranteed to generate partitions that are non-decreasing and non-overlapping.
-		if s.cmp(&o.From, s.to) >= 0 {
+		if s.cmp(&o.Max, s.min) < 0 || s.cmp(&o.Min, s.max) > 0 {
 			var err error
 			batch, err = s.nextPartition()
 			if err != nil {
 				return nil, err
 			}
-			s.to = nil
+			s.min = nil
+			s.max = nil
 		}
 	}
 	s.objects = append(s.objects, o)
-	if s.to == nil || s.cmp(s.to, &o.To) < 0 {
-		s.to = &o.To
+	if s.min == nil {
+		s.min = o.Min.Copy()
+		s.max = o.Max.Copy()
+	} else {
+		if s.cmp(s.min, &o.Min) > 0 {
+			s.min = o.Min.Copy()
+		}
+		if s.cmp(s.max, &o.Max) < 0 {
+			s.max = o.Max.Copy()
+		}
 	}
 	return batch, nil
 }
@@ -129,8 +140,8 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 // objects that should be scanned along with a span to limit the scan
 // to only the span involved.
 type Partition struct {
-	From    *zed.Value     `zed:"from"`
-	To      *zed.Value     `zed:"to"`
+	Min     *zed.Value     `zed:"min"`
+	Max     *zed.Value     `zed:"max"`
 	Objects []*data.Object `zed:"objects"`
 }
 
@@ -140,9 +151,9 @@ func (p Partition) IsZero() bool {
 
 func (p Partition) FormatRangeOf(index int) string {
 	o := p.Objects[index]
-	return fmt.Sprintf("[%s-%s,%s-%s]", zson.String(p.From), zson.String(p.To), zson.String(o.From), zson.String(o.To))
+	return fmt.Sprintf("[%s-%s,%s-%s]", zson.String(p.Min), zson.String(p.Max), zson.String(o.Min), zson.String(o.Max))
 }
 
 func (p Partition) FormatRange() string {
-	return fmt.Sprintf("[%s-%s]", zson.String(p.From), zson.String(p.To))
+	return fmt.Sprintf("[%s-%s]", zson.String(p.Min), zson.String(p.Max))
 }

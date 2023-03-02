@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime/expr/extent"
 )
@@ -24,10 +25,10 @@ func GetPoolStats(ctx context.Context, p *lake.Pool, snap commits.View) (info Po
 	for _, object := range snap.Select(nil, p.Layout.Order) {
 		info.Size += object.Size
 		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(object.From, object.To, p.Layout.Order)
+			poolSpan = extent.NewGenericFromOrder(object.Min, object.Max, order.Asc)
 		} else {
-			poolSpan.Extend(&object.From)
-			poolSpan.Extend(&object.To)
+			poolSpan.Extend(&object.Min)
+			poolSpan.Extend(&object.Max)
 		}
 	}
 	//XXX need to change API to take return key range
@@ -59,10 +60,10 @@ func GetBranchStats(ctx context.Context, b *lake.Branch, snap commits.View) (inf
 	for _, object := range snap.Select(nil, b.Pool().Layout.Order) {
 		info.Size += object.Size
 		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(object.From, object.To, b.Pool().Layout.Order)
+			poolSpan = extent.NewGenericFromOrder(object.Min, object.Max, order.Asc)
 		} else {
-			poolSpan.Extend(&object.From)
-			poolSpan.Extend(&object.To)
+			poolSpan.Extend(&object.Min)
+			poolSpan.Extend(&object.Max)
 		}
 	}
 	//XXX need to change API to take return key range

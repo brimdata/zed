@@ -1,0 +1,80 @@
+# This test makes sure overlapping objects are merged propertly
+# into partitions.
+
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby k:asc tmp
+  zed use -q tmp
+  echo '{k:1}' | zed load -q -
+  echo '{k:2}{k:3}' | zed load -q -
+  echo '{k:4}{k:5}' | zed load -q -
+  echo '{k:6}{k:8}' | zed load -q -
+  echo '{k:7}{k:12}' | zed load -q -
+  echo '{k:9}{k:11}' | zed load -q -
+  echo '{k:10}{k:13}' | zed load -q -
+  zed query -z "from tmp"
+  echo ===
+  zed query -Z "from tmp:partitions | over objects => (collect({min,max}))"
+
+outputs:
+  - name: stdout
+    data: |
+      {k:1}
+      {k:2}
+      {k:3}
+      {k:4}
+      {k:5}
+      {k:6}
+      {k:7}
+      {k:8}
+      {k:9}
+      {k:10}
+      {k:11}
+      {k:12}
+      {k:13}
+      ===
+      {
+          collect: [
+              {
+                  min: 1,
+                  max: 1
+              }
+          ]
+      }
+      {
+          collect: [
+              {
+                  min: 2,
+                  max: 3
+              }
+          ]
+      }
+      {
+          collect: [
+              {
+                  min: 4,
+                  max: 5
+              }
+          ]
+      }
+      {
+          collect: [
+              {
+                  min: 6,
+                  max: 8
+              },
+              {
+                  min: 7,
+                  max: 12
+              },
+              {
+                  min: 9,
+                  max: 11
+              },
+              {
+                  min: 10,
+                  max: 13
+              }
+          ]
+      }

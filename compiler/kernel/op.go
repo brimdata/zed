@@ -605,7 +605,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if err != nil {
 				return nil, err
 			}
-			slicer = meta.NewSlicer(l, zctx, pool.Layout.Order)
+			slicer = meta.NewSlicer(l, zctx)
 			b.pools[src] = pool
 			b.slicers[src] = slicer
 		}

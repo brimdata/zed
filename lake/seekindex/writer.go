@@ -7,8 +7,8 @@ import (
 )
 
 type Entry struct {
-	From   *zed.Value `zed:"from"`
-	To     *zed.Value `zed:"to"`
+	Min    *zed.Value `zed:"min"`
+	Max    *zed.Value `zed:"max"`
 	ValOff uint64     `zed:"val_off"`
 	ValCnt uint64     `zed:"val_cnt"`
 	Offset uint64     `zed:"offset"`
@@ -29,10 +29,10 @@ func NewWriter(w zio.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(from, to *zed.Value, valoff uint64, offset uint64) error {
+func (w *Writer) Write(min, max *zed.Value, valoff uint64, offset uint64) error {
 	val, err := w.marshal.Marshal(&Entry{
-		From:   from,
-		To:     to,
+		Min:    min,
+		Max:    max,
 		ValOff: w.valoff,
 		ValCnt: valoff - w.valoff,
 		Offset: w.offset,
