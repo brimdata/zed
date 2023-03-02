@@ -134,7 +134,7 @@ func (c *canonDAG) expr(e dag.Expr, parent string) {
 	case *dag.RecordExpr:
 		c.write("{")
 		for k, elem := range e.Elems {
-			if k != 0 {
+			if k > 0 {
 				c.write(",")
 			}
 			switch e := elem.(type) {
@@ -161,7 +161,7 @@ func (c *canonDAG) expr(e dag.Expr, parent string) {
 	case *dag.MapExpr:
 		c.write("|{")
 		for k, e := range e.Entries {
-			if k != 0 {
+			if k > 0 {
 				c.write(",")
 			}
 			c.expr(e.Key, "")
@@ -221,6 +221,8 @@ func (c *canonDAG) vectorElems(elems []dag.VectorElem) {
 			c.expr(elem.Expr, "")
 		case *dag.VectorValue:
 			c.expr(elem.Expr, "")
+		default:
+			c.write("zfmt: unknown vector elem type: %T", elem)
 		}
 	}
 }
