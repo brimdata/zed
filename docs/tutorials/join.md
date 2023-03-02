@@ -262,7 +262,7 @@ produces
 While the `join` operator takes only two inputs, more inputs can be joined by
 extending the Zed pipeline.
 
-To illustrate this, we'll introduce some new input data `prices.ndjson`.
+To illustrate this, we'll introduce some new input data in `prices.ndjson`.
 
 ```mdtest-input prices.ndjson
 {"name":"apple","price":3.15}
