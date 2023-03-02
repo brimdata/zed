@@ -17,10 +17,11 @@ with operators that handle multiple legs of the dataflow path such as
 
 _Copy input to output_
 ```mdtest-command
-echo -e "hello\nworld" | zq -z -i line 'pass' -
+echo '1 2 3' | zq -z 'pass' -
 ```
 =>
 ```mdtest-output
-"hello"
-"world"
+1
+2
+3
 ```
