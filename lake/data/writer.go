@@ -26,7 +26,7 @@ type Writer struct {
 	seekIndexStride  int
 	seekIndexTrigger int
 	first            bool
-	seek_min         *zed.Value
+	seekMin          *zed.Value
 	poolKey          field.Path
 }
 
@@ -83,8 +83,8 @@ func (w *Writer) writeIndex(key *zed.Value) error {
 		w.first = false
 		w.object.Min.CopyFrom(key)
 	}
-	if w.seek_min == nil {
-		w.seek_min = key.Copy()
+	if w.seekMin == nil {
+		w.seekMin = key.Copy()
 	}
 	w.object.Max.CopyFrom(key)
 	if w.seekIndexTrigger < w.seekIndexStride {
@@ -97,14 +97,14 @@ func (w *Writer) writeIndex(key *zed.Value) error {
 }
 
 func (w *Writer) flushSeekIndex() error {
-	if w.seek_min != nil {
+	if w.seekMin != nil {
 		w.seekIndexTrigger = 0
-		min := w.seek_min
+		min := w.seekMin
 		max := w.object.Max.Copy()
 		if w.order == order.Desc {
 			min, max = max, min
 		}
-		w.seek_min = nil
+		w.seekMin = nil
 		return w.seekIndex.Write(min, max, w.count, uint64(w.writer.Position()))
 	}
 	return nil
