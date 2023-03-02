@@ -4,6 +4,12 @@ script: |
   zc -C '|["foo","bar"]|'
   zc -C '|{"foo":1,"bar":2}|'
   zc -C '<(int64,string)>(1)'
+  echo "==="
+  zc -s -C '{x:1,...y}'
+  zc -s -C '[1,2,3]'
+  zc -s -C '|["foo","bar"]|'
+  zc -s -C '|{"foo":1,"bar":2}|'
+  zc -s -C '<(int64,string)>(1)'
 
 outputs:
   - name: stdout
@@ -13,3 +19,24 @@ outputs:
       yield |["foo","bar"]|
       yield |{"foo":1,"bar":2}|
       yield <(int64,string)>(1)
+      ===
+      from (
+        (internal reader)
+      )
+      | yield {x:1,...y}
+      from (
+        (internal reader)
+      )
+      | yield [1,2,3]
+      from (
+        (internal reader)
+      )
+      | yield |["foo","bar"]|
+      from (
+        (internal reader)
+      )
+      | yield |{"foo":1,"bar":2}|
+      from (
+        (internal reader)
+      )
+      | yield cast(1, <(int64,string)>)

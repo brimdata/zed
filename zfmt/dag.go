@@ -7,6 +7,7 @@ import (
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/zson"
 )
 
 func DAG(op dag.Op) string {
@@ -130,6 +131,44 @@ func (c *canonDAG) expr(e dag.Expr, parent string) {
 		c.write("type<")
 		c.typ(e.Value)
 		c.write(">")
+	case *dag.RecordExpr:
+		c.write("{")
+		for k, elem := range e.Elems {
+			if k > 0 {
+				c.write(",")
+			}
+			switch e := elem.(type) {
+			case *dag.Field:
+				c.write(zson.QuotedName(e.Name))
+				c.write(":")
+				c.expr(e.Value, "")
+			case *dag.Spread:
+				c.write("...")
+				c.expr(e.Expr, "")
+			default:
+				c.write("zfmt: unknown record elem type: %T", e)
+			}
+		}
+		c.write("}")
+	case *dag.ArrayExpr:
+		c.write("[")
+		c.vectorElems(e.Elems)
+		c.write("]")
+	case *dag.SetExpr:
+		c.write("|[")
+		c.vectorElems(e.Elems)
+		c.write("]|")
+	case *dag.MapExpr:
+		c.write("|{")
+		for k, e := range e.Entries {
+			if k > 0 {
+				c.write(",")
+			}
+			c.expr(e.Key, "")
+			c.write(":")
+			c.expr(e.Value, "")
+		}
+		c.write("}|")
 	default:
 		c.open("(unknown expr %T)", e)
 		c.close()
@@ -168,6 +207,23 @@ func (c *canonDAG) binary(e *dag.BinaryExpr, parent string) {
 		c.write("%s", e.Op)
 		c.expr(e.RHS, e.Op)
 		c.maybewrite(")", parens)
+	}
+}
+
+func (c *canonDAG) vectorElems(elems []dag.VectorElem) {
+	for k, elem := range elems {
+		if k > 0 {
+			c.write(",")
+		}
+		switch elem := elem.(type) {
+		case *dag.Spread:
+			c.write("...")
+			c.expr(elem.Expr, "")
+		case *dag.VectorValue:
+			c.expr(elem.Expr, "")
+		default:
+			c.write("zfmt: unknown vector elem type: %T", elem)
+		}
 	}
 }
 
