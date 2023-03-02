@@ -1,3 +1,22 @@
+## v1.6.0
+
+> ## Note: Changes to the Zed lake storage format
+> 
+> This release includes a change to the Zed lake storage format that is **not**
+> backward compatible. To migrate your pools to the new format there is a 
+> [Zed lake migration](https://github.com/brimdata/zed-lake-migration) kit and
+> [specific guidance for users of the Zed CLI tools](https://github.com/brimdata/zed-lake-migration#zed-cli-tools).
+
+* Zed lake storage format is now at v2 (#4386, #4415)
+* Allow loading and responses in [VNG](docs/formats/vng.md) format over the lake API (#4345)
+* Fix an issue where [record spread expressions](docs/language/overview.md#7112-record-expressions) could cause a crash (#4359)
+* Fix an issue where the Zed service `/version` endpoint returned "unknown" if it had been built via `go install` (#4371)
+* Branch-level [meta-queries](docs/commands/zed.md#meta-queries) on the `main` branch no longer require an explicit `@main` reference (#4377, #4394)
+* Add `-defaultfmt` flag to `zed serve` to specify the lake API's default response format (#4379, #4396)
+* Zed queries now appear in the lake log when `zed serve` is run at `-log.level debug` (#4385)
+* Fix an issue where elements of complex [named types](docs/formats/zed.md#3-named-type) could not be accessed (#4391)
+* Add docs for the [`pass` operator](docs/language/operators/pass.md) and an example of [`join` on more than two inputs](docs/tutorials/join.md#joining-more-than-two-inputs) (#4403)
+
 ## v1.5.0
 * Add `float16` primitive type (#4301)
 * Add segment compression to the [VNG](docs/formats/vng.md) format (#4299)
