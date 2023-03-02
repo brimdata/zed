@@ -118,18 +118,20 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 			}
 			s.min = nil
 			s.max = nil
+		} else {
+
 		}
 	}
 	s.objects = append(s.objects, o)
 	if s.min == nil {
-		s.min = &o.Min
-		s.max = &o.Max
+		s.min = o.Min.Copy()
+		s.max = o.Max.Copy()
 	} else {
-		if s.cmp(s.min, &o.Min) < 0 {
-			s.min = &o.Min
+		if s.cmp(s.min, &o.Min) > 0 {
+			s.min = o.Min.Copy()
 		}
-		if s.cmp(s.max, &o.Max) > 0 {
-			s.max = &o.Max
+		if s.cmp(s.max, &o.Max) < 0 {
+			s.max = o.Max.Copy()
 		}
 	}
 	return batch, nil
