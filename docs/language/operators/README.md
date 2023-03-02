@@ -17,6 +17,7 @@ and appear as the components of a dataflow pipeline.
 * [head](head.md) - copy leading values of input sequence
 * [join](join.md) - combine data from two inputs using a join predicate
 * [over](over.md) - traverse nested values as a lateral query
+* [pass](pass.md) - copy input values to output
 * [put](put.md) - add or modify fields of records
 * [rename](rename.md) - change the name of record fields
 * [sample](sample.md) - select one value of each shape
