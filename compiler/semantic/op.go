@@ -307,8 +307,8 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if err != nil {
 			return nil, err
 		}
-		if len(keys) == 0 {
-			if op := singleRowAgg(scope, o.Aggs); op != nil {
+		if len(keys) == 0 && len(o.Aggs) == 1 {
+			if op := singletonAgg(scope, o.Aggs[0]); op != nil {
 				return op, nil
 			}
 		}
@@ -634,32 +634,28 @@ func semOver(ctx context.Context, scope *Scope, in *ast.Over, ds *data.Source, h
 	}, nil
 }
 
-func singleRowAgg(scope *Scope, aggs []ast.Assignment) dag.Op {
-	for _, a := range aggs {
-		if a.LHS != nil {
-			return nil
-		}
+func singletonAgg(scope *Scope, agg ast.Assignment) dag.Op {
+	if agg.LHS != nil {
+		return nil
 	}
-	outs, err := semAssignments(scope, aggs, true)
+	out, err := semAssignment(scope, agg, true)
 	if err != nil {
 		return nil
 	}
 	yield := &dag.Yield{
 		Kind: "Yield",
 	}
-	for _, a := range outs {
-		this, ok := a.LHS.(*dag.This)
-		if !ok || len(this.Path) != 1 {
-			return nil
-		}
-		yield.Exprs = append(yield.Exprs, this)
+	this, ok := out.LHS.(*dag.This)
+	if !ok || len(this.Path) != 1 {
+		return nil
 	}
+	yield.Exprs = append(yield.Exprs, this)
 	return &dag.Sequential{
 		Kind: "Sequential",
 		Ops: []dag.Op{
 			&dag.Summarize{
 				Kind: "Summarize",
-				Aggs: outs,
+				Aggs: []dag.Assignment{out},
 			},
 			yield,
 		},
