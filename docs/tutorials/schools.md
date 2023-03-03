@@ -871,7 +871,7 @@ As with SQL, multiple aggregate functions may be invoked at the same time.
 For example, to simultaneously calculate the minimum, maximum, and average of
 the math test scores:
 ```mdtest-command dir=testdata/edu
-zq -f table 'min:=min(AvgScrMath),max:=max(AvgScrMath),avg:=avg(AvgScrMath)' testscores.zson
+zq -f table 'min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)' testscores.zson
 ```
 produces
 ```mdtest-output
