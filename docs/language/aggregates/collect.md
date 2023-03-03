@@ -20,7 +20,7 @@ echo '1 2 3 4' | zq -z 'collect(this)' -
 ```
 =>
 ```mdtest-output
-{collect:[1,2,3,4]}
+[1,2,3,4]
 ```
 
 Continuous collection over a simple sequence:
@@ -40,5 +40,5 @@ echo '1 2 3 4 "foo"' | zq -z 'collect(this)' -
 ```
 =>
 ```mdtest-output
-{collect:[1,2,3,4,"foo"]}
+[1,2,3,4,"foo"]
 ```

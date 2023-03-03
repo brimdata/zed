@@ -5,9 +5,9 @@ script: |
   zed use -q test
   zed load -q in.zson
   ! zed delete -q -where 'uid==C3UeSqaSOFRReHD68'
-  zed query -z 'count()'
+  zed query -z 'count:=count()'
   zed delete -q -where 'uid=="C3UeSqaSOFRReHD68"'
-  zed query -z 'count()'
+  zed query -z 'count:=count()'
 
 inputs:
   - name: in.zson

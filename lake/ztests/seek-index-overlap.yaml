@@ -6,12 +6,12 @@ script: |
   zed use -q asc
   zq "tail 900" babble.zson | zed load -q -
   zq "head 250" babble.zson | zed load -q -
-  zed query -z -s "from asc | count()"
+  zed query -z -s "from asc | count:=count()"
   echo === | tee /dev/stderr
   zed use -q desc
   zq "tail 900" babble.zson | zed load -q -
   zq "head 250" babble.zson | zed load -q -
-  zed query -z -s "from desc | count()"
+  zed query -z -s "from desc | count:=count()"
 
 inputs:
   - name: babble.zson

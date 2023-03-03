@@ -18,7 +18,7 @@ echo '1 2 3 4' | zq -z 'avg(this)' -
 ```
 =>
 ```mdtest-output
-{avg:2.5}
+2.5
 ```
 
 Continuous average of simple sequence:
@@ -38,5 +38,5 @@ echo '1 2 3 4 "foo"' | zq -z 'avg(this)' -
 ```
 =>
 ```mdtest-output
-{avg:2.5}
+2.5
 ```

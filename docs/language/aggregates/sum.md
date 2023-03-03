@@ -18,7 +18,7 @@ echo '1 2 3 4' | zq -z 'sum(this)' -
 ```
 =>
 ```mdtest-output
-{sum:10}
+10
 ```
 
 Continuous sum of simple sequence:
@@ -38,5 +38,5 @@ echo '1 2 3 4 "foo"' | zq -z 'sum(this)' -
 ```
 =>
 ```mdtest-output
-{sum:10}
+10
 ```

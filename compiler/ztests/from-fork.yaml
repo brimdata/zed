@@ -9,5 +9,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {count:2(uint64)}
-      {count:2(uint64)}
+      2(uint64)
+      2(uint64)

@@ -2,8 +2,9 @@
 
 ---
 
-Aggregate functions appear in either summarization
-or expression context and produce an aggregate value for a sequence of inputs values.
+Aggregate functions appear in either [summarization](../operators/summarize.md)
+or [expression](../overview.md#7-expressions) context and produce an aggregate
+value for a sequence of input values.
 
 - [and](and.md) - logical AND of input values
 - [any](any.md) - select an arbitrary value from its input

@@ -871,7 +871,7 @@ As with SQL, multiple aggregate functions may be invoked at the same time.
 For example, to simultaneously calculate the minimum, maximum, and average of
 the math test scores:
 ```mdtest-command dir=testdata/edu
-zq -f table 'min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)' testscores.zson
+zq -f table 'min:=min(AvgScrMath),max:=max(AvgScrMath),avg:=avg(AvgScrMath)' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -973,7 +973,7 @@ For small inputs that fit in memory, this will typically be the first such
 field in the stream, but in general you should not rely upon this.  In this
 case, the output is:
 ```mdtest-output
-{any:"'3R' Middle"}
+"'3R' Middle"
 ```
 
 #### 5.4.3 [avg](../language/aggregates/avg.md)
@@ -982,7 +982,7 @@ The `avg` function computes an arithmetic mean over all of all of its input.
 
 This query calculates the average of the math test scores:
 ```mdtest-command dir=testdata/edu
-zq -f table 'avg(AvgScrMath)' testscores.zson
+zq -f table 'avg:=avg(AvgScrMath)' testscores.zson
 ```
 and produces
 ```mdtest-output
@@ -1041,9 +1041,9 @@ zq -z 'count()' webaddrs.zson
 ```
 and produces
 ```mdtest-output
-{count:17686(uint64)}
-{count:2331(uint64)}
-{count:2223(uint64)}
+17686(uint64)
+2331(uint64)
+2223(uint64)
 ```
 The `Website` field is known to be in our school and website address data
 sources, but not in the test score data. To confirm this, we can count across
@@ -1053,7 +1053,7 @@ zq -z 'count(Website)' *.zson
 ```
 produces
 ```mdtest-output
-{count:19909(uint64)}
+19909(uint64)
 ```
 Since `17686 + 2223 = 19909`, the count result is what we expected.
 
@@ -1069,23 +1069,19 @@ from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog).
 This query generates an approcimate count the number of unique school names
 in our sample data set:
 ```mdtest-command dir=testdata/edu
-zq -Z 'dcount(School)' schools.zson
+zq -z 'dcount(School)' schools.zson
 ```
 and produces
 ```mdtest-output
-{
-    dcount: 13804 (uint64)
-}
+13804(uint64)
 ```
 To see the precise value, which may take longer to execute, this query
 ```mdtest-command dir=testdata/edu
-zq -Z 'count() by School | count()' schools.zson
+zq -z 'count() by School | count()' schools.zson
 ```
 produces
 ```mdtest-output
-{
-    count: 13876 (uint64)
-}
+13876(uint64)
 ```
 Here we saw the approximation was off by 0.3%.
 
@@ -1095,7 +1091,7 @@ The `max` function computes the maximum numeric value over all of its input.
 
 To see the highest reported math test score, this query:
 ```mdtest-command dir=testdata/edu
-zq -f table 'max(AvgScrMath)' testscores.zson
+zq -f table 'max:=max(AvgScrMath)' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -1109,7 +1105,7 @@ The `min` function computes the minimum numeric value over all of its input.
 
 To see the lowest reported math test score, this query
 ```mdtest-command dir=testdata/edu
-zq -f table 'min(AvgScrMath)' testscores.zson
+zq -f table 'min:=min(AvgScrMath)' testscores.zson
 ```
 produces
 ```mdtest-output

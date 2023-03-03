@@ -1,4 +1,4 @@
-zed: over this => (union(this) | yield union)
+zed: over this => (union(this))
 
 input: |
   [

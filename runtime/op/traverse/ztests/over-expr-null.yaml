@@ -1,4 +1,4 @@
-zed: yield (over a | sum(this)) | yield sum
+zed: yield (over a | sum(this))
 
 input: |
   {a:[1,2]}

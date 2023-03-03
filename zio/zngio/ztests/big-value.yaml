@@ -4,8 +4,8 @@ script: |
     cat out.zng out.zng out.zng out.zng > out2.zng
     mv out2.zng out.zng
   done
-  zq -zng.compress=false -o bigrow.zng "collect(s)" out.zng
-  ! zq  -i zng -o /dev/null -zng.readmax 10KB "count()" bigrow.zng
+  zq -zng.compress=false -o bigrow.zng "collect:=collect(s)" out.zng
+  ! zq  -i zng -o /dev/null -zng.readmax 10KB "count:=count()" bigrow.zng
 
 inputs:
   - name: in.zson

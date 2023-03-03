@@ -1,4 +1,4 @@
-zed: "map(|{k:v}|) | yield map"
+zed: "map(|{k:v}|)"
 
 output-flags: -pretty 2
 

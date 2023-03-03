@@ -21,7 +21,7 @@ echo '{stock:"APPL",price:145.03} {stock:"GOOG",price:87.07}' | zq -z 'map(|{sto
 ```
 =>
 ```mdtest-output
-{map:|{"APPL":145.03,"GOOG":87.07}|}
+|{"APPL":145.03,"GOOG":87.07}|
 ```
 
 Continuous collection over a simple sequence:

@@ -19,7 +19,7 @@ echo '1 2 3 4' | zq -z 'any(this)' -
 ```
 =>
 ```mdtest-output
-{any:1}
+1
 ```
 
 Continuous any over a simple sequence:
@@ -39,5 +39,5 @@ echo '"foo" 1 2 3 ' | zq -z 'any(this)' -
 ```
 =>
 ```mdtest-output
-{any:"foo"}
+"foo"
 ```

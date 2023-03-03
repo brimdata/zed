@@ -7,9 +7,9 @@ script: |
     zed use -q test
     seq 1000 | zq '{ts:this-1,s:"val${this-1}"}' - | zed load -q -
     zed delete -q -where 'ts > 400 and ts <= 500'
-    zed query -z 'count()'
+    zed query -z 'count:=count()'
     zed delete -q -where 's == "val1" or s == "val999"'
-    zed query -z 'count()'
+    zed query -z 'count:=count()'
     zed drop -f -q test
   done 
 
