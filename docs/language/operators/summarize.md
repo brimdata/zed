@@ -32,7 +32,7 @@ is `lower`.
 
 When the result of `summarize` is a single value (e.g., a single aggregate
 function without group-by keys) and there is no field name specified, then
-output is the Zed value of that result rather than a single-field record
+the output is that single value rather than a single-field record
 containing that value.
 
 If the cardinality of group-by keys causes the memory footprint to exceed
@@ -53,7 +53,7 @@ echo '1 2 3 4' | zq -z 'summarize avg(this)' -
 ```
 
 To format the output of a single-valued aggregation into a record, simply specify
-an explicit field for the output as in:
+an explicit field for the output:
 ```mdtest-command
 echo '1 2 3 4' | zq -z 'summarize mean:=avg(this)' -
 ```
@@ -63,7 +63,7 @@ echo '1 2 3 4' | zq -z 'summarize mean:=avg(this)' -
 ```
 
 When multiple aggregate functions are specified, even without explicit field names,
-a record result is generated from the implied fields names of the functions:
+a record result is generated with field names implied by the functions:
 ```mdtest-command
 echo '1 2 3 4' | zq -z 'summarize avg(this),sum(this),count()' -
 ```
