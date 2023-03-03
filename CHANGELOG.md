@@ -7,7 +7,7 @@
 > [Zed lake migration](https://github.com/brimdata/zed-lake-migration) kit and
 > [specific guidance for users of the Zed CLI tools](https://github.com/brimdata/zed-lake-migration#zed-cli-tools).
 
-* Zed lake storage format is now at v2 (#4386, #4415)
+* Zed lake storage format is now at version 3 (#4386, #4415)
 * Allow loading and responses in [VNG](docs/formats/vng.md) format over the lake API (#4345)
 * Fix an issue where [record spread expressions](docs/language/overview.md#7112-record-expressions) could cause a crash (#4359)
 * Fix an issue where the Zed service `/version` endpoint returned "unknown" if it had been built via `go install` (#4371)
