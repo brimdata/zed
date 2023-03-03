@@ -18,7 +18,7 @@ echo 'true false true' | zq -z 'and(this)' -
 ```
 =>
 ```mdtest-output
-{and:false}
+false
 ```
 
 Continuous AND of simple sequence:

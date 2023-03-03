@@ -18,7 +18,7 @@ echo 'false true false' | zq -z 'or(this)' -
 ```
 =>
 ```mdtest-output
-{or:true}
+true
 ```
 
 Continuous OR of simple sequence:

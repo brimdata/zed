@@ -18,23 +18,23 @@ inputs:
 outputs:
   - name: avg.zson
     data: |
-      {avg:5.}
+      5.
   - name: count.zson
     data: |
-      {count:3(uint64)}
+      3(uint64)
   - name: dcount.zson
     data: |
-      {dcount:3(uint64)}
+      3(uint64)
   - name: dcount-partials.zson
     data: |
-      {dcount:3(uint64)}
+      3(uint64)
   # Note: min/max shouldn't be int64 (especially for uint)  Issue #1506.
   - name: any.zson
     data: |
-      {any:0(int32)}
+      0(int32)
   - name: min.zson
     data: |
-      {min:0}
+      0
   - name: max.zson
     data: |
-      {max:10}
+      10

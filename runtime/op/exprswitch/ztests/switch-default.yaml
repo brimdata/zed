@@ -3,7 +3,7 @@ zed: |
      case 2 => put v:='two'
      case 1 => put v:='one'
      case 3 => filter null
-     default => count() | put a:=-1
+     default => count:=count() | put a:=-1
   ) | sort a
 
 input: |

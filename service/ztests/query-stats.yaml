@@ -2,7 +2,7 @@ script: |
   source service.sh
   zed create -q test
   zed load -q -use test babble.zson
-  zed query -s -Z "from test | count()"
+  zed query -s -z "from test | count()"
 
 inputs:
   - name: service.sh
@@ -13,9 +13,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {
-          count: 1000 (uint64)
-      }
+      1000(uint64)
   - name: stderr
     data: |
       {bytes_read:32889,bytes_matched:32889,records_read:1000,records_matched:1000}

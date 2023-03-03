@@ -6,7 +6,7 @@ script: |
   id=$(zed load -use test in.zson | awk '{print $1}')
   curl -d "{\"rules\":[\"$ruleid\"],\"tags\": [\"$id\"]}" \
        $ZED_LAKE/pool/test/branch/main/index  > /dev/null
-  zed query -z 'from test@main:indexes | count() | yield count'
+  zed query -z 'from test@main:indexes | count()'
 
 inputs:
   - name: service.sh

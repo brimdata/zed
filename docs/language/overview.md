@@ -1079,11 +1079,11 @@ produces
 ```
 In contrast, calling aggregate functions within the [`summarize` operator](operators/summarize.md)
 ```mdtest-command
-echo '"foo" "bar" "baz"' | zq -z 'summarize count(),union(this)' -
+echo '"foo" "bar" "baz"' | zq -z 'summarize count:=count(),set:=union(this)' -
 ```
 produces just one output value
 ```mdtest-output
-{count:3(uint64),union:|["bar","baz","foo"]|}
+{count:3(uint64),set:|["bar","baz","foo"]|}
 ```
 
 ### 7.11 Literals
@@ -1796,9 +1796,9 @@ echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z 'over this => (sort this | collect(this))
 ```
 produces
 ```mdtest-output
-{collect:[1,2,3]}
-{collect:[1,4,7]}
-{collect:[1,2,3]}
+[1,2,3]
+[1,4,7]
+[1,2,3]
 ```
 
 ### 9.2 Lateral Expressions
@@ -1825,15 +1825,15 @@ echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z 'yield (over this | sum(this))' -
 ```
 produces
 ```mdtest-output
-{sum:6}
-{sum:12}
-{sum:6}
+6
+12
+6
 ```
 This structure generalizes to any more complicated expression context,
 e.g., we can embed multiple lateral expressions inside of a record literal
 and use the spread operator to tighten up the output:
 ```mdtest-command
-echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z '{...(over this | sort this | sorted:=collect(this)),...(over this | sum(this))}' -
+echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z '{...(over this | sort this | sorted:=collect(this)),...(over this | sum:=sum(this))}' -
 ```
 produces
 ```mdtest-output
@@ -2124,7 +2124,7 @@ echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this)' -
 ```
 results in
 ```mdtest-output
-{fuse:<{x:(int64,string),y:string}>}
+<{x:(int64,string),y:string}>
 ```
 Since the `fuse` here is an aggregate function, it can also be used with
 group-by keys.  Supposing we want to divide records into categories and fuse

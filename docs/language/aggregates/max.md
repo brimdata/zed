@@ -18,7 +18,7 @@ echo '1 2 3 4' | zq -z 'max(this)' -
 ```
 =>
 ```mdtest-output
-{max:4}
+4
 ```
 
 Continuous maximum of simple sequence:
@@ -38,5 +38,5 @@ echo '1 2 3 4 "foo"' | zq -z 'max(this)' -
 ```
 =>
 ```mdtest-output
-{max:4}
+4
 ```
