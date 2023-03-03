@@ -1079,11 +1079,11 @@ produces
 ```
 In contrast, calling aggregate functions within the [`summarize` operator](operators/summarize.md)
 ```mdtest-command
-echo '"foo" "bar" "baz"' | zq -z 'summarize count:=count(),set:=union(this)' -
+echo '"foo" "bar" "baz"' | zq -z 'summarize count(),union(this)' -
 ```
 produces just one output value
 ```mdtest-output
-{count:3(uint64),set:|["bar","baz","foo"]|}
+{count:3(uint64),union:|["bar","baz","foo"]|}
 ```
 
 ### 7.11 Literals
