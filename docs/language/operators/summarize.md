@@ -30,7 +30,7 @@ A key may be either an expression or a field.  If the key field is omitted,
 it is inferred from the expression, e.g., the field name for `by lower(s)`
 is `lower`.
 
-When the result of `summarize` is a single value (e.g., a single aggregate 
+When the result of `summarize` is a single value (e.g., a single aggregate
 function without group-by keys) and there is no field name specified, then
 output is the Zed value of that result rather than a single-field record
 containing that value.
