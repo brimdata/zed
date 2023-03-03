@@ -16,6 +16,7 @@
 * Zed queries now appear in the lake log when `zed serve` is run at `-log.level debug` (#4385)
 * Fix an issue where elements of complex [named types](docs/formats/zed.md#3-named-type) could not be accessed (#4391)
 * Add docs for the [`pass` operator](docs/language/operators/pass.md) and an example of [`join` on more than two inputs](docs/tutorials/join.md#joining-more-than-two-inputs) (#4403)
+* When the result of [`summarize`](docs/language/operators/summarize.md) is a single value and there is no field name specified, the output is now that single value rather than a single-field record containing that value (#4420)
 
 ## v1.5.0
 * Add `float16` primitive type (#4301)
