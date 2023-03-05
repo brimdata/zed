@@ -45,7 +45,7 @@ declare -a DESCRIPTIONS=(
 declare -a ZED_QUERIES=(
     '*'
     'cut ts'
-    'count()'
+    'count:=count()'
     'count() by quiet(id.orig_h)'
     'id.resp_h==52.85.83.116'
 )
