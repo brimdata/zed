@@ -79,16 +79,16 @@ for a quick and easy install.
 Detailed documentation for the entire Zed system and language
 is available on the [Zed docs site](https://zed.brimdata.io/docs).
 
-### Brim
+### Zui
 
-The [Brim app](https://github.com/brimdata/brim) is an electron-based
+The [Zui app](https://github.com/brimdata/zui) is an Electron-based
 desktop app to explore, query, and shape data in your Zed lake.
 
-We originally developed Brim for security-oriented use cases
+We originally developed Zui for security-oriented use cases
 (having tight integration with [Zeek](https://zeek.org/),
 [Suricata](https://suricata.io/), and
 [Wireshark](https://www.wireshark.org/)),
-but we are actively extending Brim with UX for handling generic
+but we are actively extending Zui with UX for handling generic
 data sets to support data science, data engineering, and ETL use cases.
 
 ## Contributing

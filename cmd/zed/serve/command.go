@@ -39,7 +39,7 @@ type Command struct {
 	conf     service.Config
 	logflags logflags.Flags
 
-	// brimfd is a file descriptor passed through by brim desktop. If set the
+	// brimfd is a file descriptor passed through by Zui desktop. If set the
 	// command will exit if the fd is closed.
 	brimfd          int
 	listenAddr      string
@@ -52,7 +52,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.conf.Auth.SetFlags(f)
 	c.conf.Version = cli.Version()
 	c.logflags.SetFlags(f)
-	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
+	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by Zui to signal Zui closure")
 	f.Func("cors.origin", "CORS allowed origin (may be repeated)", func(s string) error {
 		c.conf.CORSAllowedOrigins = append(c.conf.CORSAllowedOrigins, s)
 		return nil
@@ -129,7 +129,7 @@ func (c *Command) watchBrimFd(ctx context.Context, logger *zap.Logger) (context.
 		return nil, errors.New("flag -brimfd not applicable to windows")
 	}
 	f := os.NewFile(uintptr(c.brimfd), "brimfd")
-	logger.Info("Listening to brim process pipe", zap.String("fd", f.Name()))
+	logger.Info("Listening to Zui process pipe", zap.String("fd", f.Name()))
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		io.Copy(io.Discard, f)

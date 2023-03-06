@@ -72,7 +72,7 @@ components come together.
 While the CLI-first approach provides these benefits,
 all of the functionality is also exposed through [an API](../lake/api.md) to
 a Zed service.  Many use cases involve an application like
-[Brim](https://github.com/brimdata/brim) or a
+[Zui](https://github.com/brimdata/zui) or a
 programming environment like Python/Pandas interacting
 with the service API in place of direct use with the `zed` command.
 
@@ -401,7 +401,7 @@ sub-command and so forth.
 zed auth login|logout|method|verify
 ```
 Access to a Zed lake can be secured with [Auth0 authentication](https://auth0.com/).
-Please reach out to us on our [Brim community Slack](https://www.brimdata.io/join-slack/)
+Please reach out to us on our [community Slack](https://www.brimdata.io/join-slack/)
 if you'd like help setting this up and trying it out.
 
 ### 2.2 Branch

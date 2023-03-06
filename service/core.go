@@ -37,7 +37,7 @@ const indexPage = `
   <body style="padding:10px">
     <h2>zed serve</h2>
     <p>A <a href="https://github.com/brimdata/zed/tree/main/cmd/zed/serve">zed service</a> is listening on this host/port.</p>
-    <p>If you're a <a href="https://www.brimdata.io/">Brim</a> user, connect to this host/port from the <a href="https://github.com/brimdata/brim">Brim application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
+    <p>If you're a <a href="https://www.brimdata.io/">Zui</a> user, connect to this host/port from the <a href="https://github.com/brimdata/zui">Zui application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
     <p>If your goal is to perform command line operations against this Zed lake, use the <a href="https://github.com/brimdata/zed/tree/main/cmd/zed"><code>zed</code></a> command.</p>
   </body>
 </html>`

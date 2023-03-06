@@ -1,13 +1,13 @@
 script: |
-  source mockbrim.sh
+  source mockzui.sh
   zed create test
   echo ===
-  kill -9 $MOCKBRIM_PID 2>/dev/null
+  kill -9 $MOCKZUI_PID 2>/dev/null
   awaitdeadservice
 
 inputs:
-  - name: mockbrim.sh
-    source: mockbrim.sh
+  - name: mockzui.sh
+    source: mockzui.sh
 
 outputs:
   - name: stdout
