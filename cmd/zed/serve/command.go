@@ -52,7 +52,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.conf.Auth.SetFlags(f)
 	c.conf.Version = cli.Version()
 	c.logflags.SetFlags(f)
-	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by zui to signal zui closure")
+	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by Zui to signal Zui closure")
 	f.Func("cors.origin", "CORS allowed origin (may be repeated)", func(s string) error {
 		c.conf.CORSAllowedOrigins = append(c.conf.CORSAllowedOrigins, s)
 		return nil
