@@ -81,7 +81,7 @@ is available on the [Zed docs site](https://zed.brimdata.io/docs).
 
 ### Zui
 
-The [Zui app](https://github.com/brimdata/zui) is an electron-based
+The [Zui app](https://github.com/brimdata/zui) is an Electron-based
 desktop app to explore, query, and shape data in your Zed lake.
 
 We originally developed Zui for security-oriented use cases
