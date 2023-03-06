@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This file simulates a running version of zui desktop. It forks a service process
+# This file simulates a running version of Zui desktop. It forks a service process
 # then sits forever on the main thread.
 
 function awaitdeadservice {
