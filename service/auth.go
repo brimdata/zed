@@ -41,7 +41,7 @@ type Auth0Authenticator struct {
 
 // NewAuthenticator returns an Auth0Authenticator that checks for a JWT signed
 // by a key referenced in the JWKS file, has the required audience and issuer
-// claims, and contains claims for a brim tenant and user id.
+// claims, and contains claims for a zui tenant and user id.
 func NewAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (*Auth0Authenticator, error) {
 	if config.Audience == "" || config.ClientID == "" || config.Domain == "" || config.JWKSPath == "" {
 		return nil, errors.New("auth.audience, auth.clientid, auth.domain, and auth.jwkspath must be set when auth enabled")

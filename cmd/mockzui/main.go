@@ -1,4 +1,4 @@
-// mockbrim is a command for testing purposes only. It is designed to simulate
+// mockzui is a command for testing purposes only. It is designed to simulate
 // the exact way brim launches then forks a separate zqd process. zqd must be
 // in $PATH for this to work.
 

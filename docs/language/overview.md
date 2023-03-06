@@ -304,13 +304,13 @@ in later expressions.
 
 ### 2.6 Implied Operators
 
-When Zed is run in an application like [Brim](https://github.com/brimdata/brim),
+When Zed is run in an application like [Zui](https://github.com/brimdata/zui),
 queries are often composed interactively in a "search bar" experience.
 The language design here attempts to support both this "lean forward" pattern of usage
 along with a "coding style" of query writing where the queries might be large
 and complex, e.g., to perform transformations in a data pipeline, where
 the Zed queries are stored under source-code control perhaps in GitHub or
-in Brim's query library.
+in Zui's query library.
 
 To facilitate both a programming-like model as well as an ad hoc search
 experience, Zed has a canonical, long form that can be abbreviated
@@ -364,7 +364,7 @@ can be expressed simply as
 ```
 y:=2*x+1
 ```
-When composing long-form queries that are shared via Brim or managed in GitHub,
+When composing long-form queries that are shared via Zui or managed in GitHub,
 it is best practice to include all operator names in the Zed source text.
 
 In summary, if no operator name is given, the implied operator is determined

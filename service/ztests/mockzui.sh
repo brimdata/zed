@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This file simulates a running version of brim desktop. It forks a service process
+# This file simulates a running version of zui desktop. It forks a service process
 # then sits forever on the main thread.
 
 function awaitdeadservice {
@@ -33,8 +33,8 @@ mkdir -p lakeroot
 lakeroot=lakeroot
 tempdir=$(mktemp -d)
 
-mockbrim -lake="$lakeroot" -portfile="$tempdir/port" -pidfile="$tempdir/pid" &
-mockbrimpid=$!
+mockzui -lake="$lakeroot" -portfile="$tempdir/port" -pidfile="$tempdir/pid" &
+mockzuipid=$!
 
 # wait for service to start
 awaitfile $tempdir/port
@@ -42,7 +42,7 @@ awaitfile $tempdir/pid
 
 export ZED_LAKE=http://localhost:$(cat $tempdir/port)
 export LAKE_PID=$(cat $tempdir/pid)
-export MOCKBRIM_PID=$mockbrimpid
+export MOCKZUI_PID=$mockzuipid
 
 # ensure that lake service process isn't leaked
 trap "kill -9 $LAKE_PID 2>/dev/null || :" EXIT

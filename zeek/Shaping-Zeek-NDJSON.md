@@ -9,15 +9,8 @@
   * [Mapping From `_path` Values to Types](#mapping-from-_path-values-to-types)
   * [Zed Pipeline](#zed-pipeline)
 - [Invoking the Shaper From `zq`](#invoking-the-shaper-from-zq)
-- [Importing Shaped Data Into Brim](#importing-shaped-data-into-brim)
+- [Importing Shaped Data Into Zui](#importing-shaped-data-into-zui)
 - [Contact us!](#contact-us)
-
-> **Note:** This document describes functionality that's available in Zed
-> `v0.30.0` and newer (hence also [Brim](https://github.com/brimdata/brim)
-> `v0.25.0` and newer). If you're looking for docs regarding the legacy
->`types.json` approach that was used in Zed [`v0.29.0`](https://github.com/brimdata/zed/releases/tag/v0.29.0)
-> (or Brim [`0.24.0`](https://github.com/brimdata/brim/releases/tag/v0.24.0))
-> and older you can find it [here](https://github.com/brimdata/zed/blob/v0.29.0/zeek/README.md).
 
 # Summary
 
@@ -222,15 +215,15 @@ of your finalized shaper. [zed/1059](https://github.com/brimdata/zed/issues/1059
 tracks a planned enhancement to persist such settings within Zed itself rather
 than relying on external mechanisms such as shell aliases.
 
-# Importing Shaped Data Into Brim
+# Importing Shaped Data Into Zui
 
-If you wish to browse your shaped data with [Brim](https://github.com/brimdata/brim),
+If you wish to browse your shaped data with [Zui](https://github.com/brimdata/zui),
 the best way to accomplish this at the moment would be to use `zq` to convert
 it to ZNG [as shown above](#invoking-the-shaper-from-zq), then drag the ZNG
-into Brim as you would any other log. An enhancement [zed/2695](https://github.com/brimdata/zed/issues/2695)
+into Zui as you would any other log. An enhancement [zed/2695](https://github.com/brimdata/zed/issues/2695)
 is planned that will soon make it possible to attach your shaper to a
 Pool. This will allow you to drag the original NDJSON logs directly into the
-Pool in Brim and have the shaping applied as the records are being committed to
+Pool in Zui and have the shaping applied as the records are being committed to
 the Pool.
 
 # Contact us!
