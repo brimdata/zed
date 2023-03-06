@@ -129,7 +129,7 @@ func (c *Command) watchBrimFd(ctx context.Context, logger *zap.Logger) (context.
 		return nil, errors.New("flag -brimfd not applicable to windows")
 	}
 	f := os.NewFile(uintptr(c.brimfd), "brimfd")
-	logger.Info("Listening to zui process pipe", zap.String("fd", f.Name()))
+	logger.Info("Listening to Zui process pipe", zap.String("fd", f.Name()))
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		io.Copy(io.Discard, f)
