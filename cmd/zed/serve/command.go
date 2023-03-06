@@ -39,7 +39,7 @@ type Command struct {
 	conf     service.Config
 	logflags logflags.Flags
 
-	// brimfd is a file descriptor passed through by zui desktop. If set the
+	// brimfd is a file descriptor passed through by Zui desktop. If set the
 	// command will exit if the fd is closed.
 	brimfd          int
 	listenAddr      string
