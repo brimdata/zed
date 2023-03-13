@@ -9,9 +9,9 @@ refinement via Q&A, come talk to us on [Slack](https://www.brimdata.io/join-slac
 `zed` is early in its life cycle and will be expanding quickly.  Please star and/or
 watch the repo so you can follow and track our progress.
 
-In particular, we will be adding many more processors and aggregate functions.
+In particular, we will be adding many more operators and aggregate functions.
 If you want a fun, small project to help out, pick some functionality that is missing and
-add a processor in [runtime/op](runtime/op) or an aggregate function
+add an operator in [runtime/op](runtime/op) or an aggregate function
 in [runtime/expr/agg](runtime/expr/agg).
 
 
