@@ -727,10 +727,14 @@ Cast
 
 Function
   = Grep
-  // Special case to handle `regexp(/x/, y)`.
+  // Special case to handle `regexp(/x/, y)` and `regexp_replace(x, /y/, z)`.
   / "regexp" __ "(" __ arg0Text:RegexpPattern __ "," __ arg1:Expr __ ")" where:WhereClause? {
       VAR(arg0) = MAP("kind": "Primitive", "type": "string", "text": arg0Text)
       RETURN(MAP("kind": "Call", "name": "regexp", "args": ARRAY(arg0, arg1), "where": where))
+    }
+  / "regexp_replace" __ "(" __ arg0:Expr __ "," __ arg1Text:RegexpPattern __ "," __ arg2:Expr __ ")" where:WhereClause? {
+      VAR(arg1) = MAP("kind": "Primitive", "type": "string", "text": arg1Text)
+      RETURN(MAP("kind": "Call", "name": "regexp_replace", "args": ARRAY(arg0, arg1, arg2), "where": where))
     }
   / !FuncGuard fn:IdentifierName __ "(" __ args:FunctionArgs __ ")" where:WhereClause? {
       RETURN(MAP("kind": "Call", "name": fn, "args": args, "where": where))

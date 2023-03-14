@@ -158,6 +158,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "regexp":
 		argmin, argmax = 2, 2
 		f = &Regexp{zctx: zctx}
+	case "regexp_replace":
+		argmin, argmax = 3, 3
+		f = &RegexpReplace{zctx: zctx}
 	case "under":
 		f = &Under{zctx: zctx}
 	case "unflatten":
