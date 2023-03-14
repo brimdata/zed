@@ -1,12 +1,11 @@
 export GO111MODULE=on
 
 VERSION = $(shell git describe --tags --dirty --always)
-GOARCH = $(shell go env GOARCH)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.version=$(VERSION)
 BUILD_COMMANDS = ./cmd/zed ./cmd/zq
 
-ifneq "" "$(filter $(GOARCH), 386 arm mipsle mips wasm)"
-unsupported-32-bit:
+ifeq "$(filter-out 386 arm mips mipsle, $(shell go env GOARCH))" ""
+$(error 32-bit architectures are unsupported; see https://github.com/brimdata/zed/issues/4044)
 endif
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
@@ -39,7 +38,7 @@ sampledata: $(SAMPLEDATA)
 
 bin/minio: Makefile
 	@curl -o $@ --compressed --create-dirs \
-		https://dl.min.io/server/minio/release/$$(go env GOOS)-$(GOARCH)/archive/minio.RELEASE.2022-05-04T07-45-27Z
+		https://dl.min.io/server/minio/release/$$(go env GOOS)-$$(go env GOARCH)/archive/minio.RELEASE.2022-05-04T07-45-27Z
 	@chmod +x $@
 
 generate:
@@ -112,8 +111,3 @@ clean:
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
 .PHONY: perf-compare build install clean generate test-generate
-
-.PHONY: unsupported-32-bit
-unsupported-32-bit:
-	$(warning unsupported 32-bit architecture detected: $(GOARCH))
-	$(error see https://github.com/brimdata/zed/issues/4044)
