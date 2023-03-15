@@ -65,7 +65,7 @@ echo '"hello" "world"' | zq -j 'collect(this)' -
 
 which produces
 
-```
+```mdtest-output
 ["hello","world"]
 ```
 
