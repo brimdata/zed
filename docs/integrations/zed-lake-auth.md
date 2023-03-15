@@ -104,7 +104,6 @@ the most recent Zed tools from source.
    $ go install github.com/brimdata/zed/cmd/zed@latest
    go: downloading github.com/brimdata/zed v1.6.0
 
-
    $ zed -version
    Version: v1.6.0
    ```
