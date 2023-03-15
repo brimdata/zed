@@ -42,7 +42,32 @@ than `jq`.
 
 To this end, if you want full JSON compatibility without having to delve into the
 details of Zed, just use the `-j` option with `zq` and this will tell `zq` to
-expect JSON input and produce JSON output.
+expect JSON input and produce JSON output. For example:
+
+```mdtest-command
+echo '"hello" "world"' | zq -j -
+```
+
+produces
+
+```mdtest-output
+"hello"
+"world"
+```
+
+If your downstream JSON tooling expects only a single JSON value, we can
+[`collect()`](../language/aggregates/collect.md) the sequence of values into
+an array via
+
+```mdtest-command
+echo '"hello" "world"' | zq -j 'collect(this)' -
+```
+
+which produces
+
+```
+["hello","world"]
+```
 
 ## `this` vs `.`
 
