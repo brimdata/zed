@@ -780,7 +780,7 @@ produces the native time value:
 ```mdtest-output
 2019-11-11T19:50:46Z
 ```
-To be sure, you can check any value's type with the `tyepof` function, e.g.,
+To be sure, you can check any value's type with the `typeof` function, e.g.,
 ```mdtest-command dir=docs/tutorials
 zq -z 'over this | head 1 | yield time(created_at) | typeof(this)' prs.json
 ```
