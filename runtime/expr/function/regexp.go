@@ -63,8 +63,7 @@ func (r *RegexpReplace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if reVal.Bytes == nil || newVal.Bytes == nil {
 		return newErrorf(r.zctx, ctx, "regexp_replace: an input arg is null")
 	}
-	re := zed.DecodeString(reVal.Bytes)
-	if r.restr != re {
+	if re := zed.DecodeString(reVal.Bytes); r.restr != re {
 		r.restr = re
 		r.re, r.err = regexp.Compile(re)
 	}

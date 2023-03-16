@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **regexp_replace** &mdash; replace regexp matches with a string
+&emsp; **regexp_replace** &mdash; replace regular expression matches in a string
 
 ### Synopsis
 

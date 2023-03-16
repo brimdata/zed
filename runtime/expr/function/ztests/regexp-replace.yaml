@@ -9,4 +9,3 @@ output: |
   "-T-T-"
   "foo bar"
   error("regexp_replace: error parsing regexp: missing closing ): `foo(.?`")
-
