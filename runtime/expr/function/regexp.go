@@ -70,5 +70,5 @@ func (r *RegexpReplace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if r.err != nil {
 		return newErrorf(r.zctx, ctx, "regexp_replace: %s", r.err)
 	}
-	return ctx.NewValue(zed.TypeString, r.re.ReplaceAllLiteral(sVal.Bytes, newVal.Bytes))
+	return ctx.NewValue(zed.TypeString, r.re.ReplaceAll(sVal.Bytes, newVal.Bytes))
 }

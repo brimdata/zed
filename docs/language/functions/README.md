@@ -42,6 +42,7 @@ take Zed values as arguments and produce a value as a result.
 * [pow](pow.md) - exponential function of any base
 * [quiet](quiet.md) - quiet "missing" errors
 * [regexp](regexp.md) - perform a regular expression search on a string
+* [regexp_replace](regexp_replace.md) - replace regular expression matches in a string
 * [replace](replace.md) - replace one string for another
 * [round](round.md) - round a number
 * [rune_len](rune_len.md) - length of a string in Unicode code points

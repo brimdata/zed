@@ -9,8 +9,9 @@ regexp_replace(s: string, re: string|regexp, new: string) -> string
 ```
 ### Description
 
-The _regexp_replace_ function substitutes all characters matching the regular
-expression `re` in string `s` with the string `new`.
+The _regexp_replace_ function substitutes all characters matching the
+[regular expression](../overview.md#regular-expressions) `re` in string `s` with
+the string `new`.
 
 #### Example:
 

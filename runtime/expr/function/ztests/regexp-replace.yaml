@@ -2,10 +2,12 @@ zed: "yield regexp_replace(in, re, new)"
 
 input: |
   {in:"-ab-axxb-",re:"a(x*)b",new:"T"}
+  {in:"-ab-axxb-",re:"a(x*)b",new:"$1"}
   {in:"Foo bar",re:"Foo",new:"foo"}
   {in: "seafood fool",re:"foo(.?",new:"food"}
 
 output: |
   "-T-T-"
+  "--xx-"
   "foo bar"
   error("regexp_replace: error parsing regexp: missing closing ): `foo(.?`")
