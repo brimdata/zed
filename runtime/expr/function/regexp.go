@@ -41,3 +41,34 @@ func (r *Regexp) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	return ctx.NewValue(r.typ, r.builder.Bytes())
 }
+
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#regexp_replace
+type RegexpReplace struct {
+	zctx  *zed.Context
+	re    *regexp.Regexp
+	restr string
+	err   error
+}
+
+func (r *RegexpReplace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+	sVal := args[0]
+	reVal := args[1]
+	newVal := args[2]
+	if !sVal.IsString() || !reVal.IsString() || !newVal.IsString() {
+		return newErrorf(r.zctx, ctx, "regexp_replace: string values required for all args")
+	}
+	if sVal.Bytes == nil {
+		return zed.Null
+	}
+	if reVal.Bytes == nil || newVal.Bytes == nil {
+		return newErrorf(r.zctx, ctx, "regexp_replace: 2nd and 3rd args cannot be null")
+	}
+	if re := zed.DecodeString(reVal.Bytes); r.restr != re {
+		r.restr = re
+		r.re, r.err = regexp.Compile(re)
+	}
+	if r.err != nil {
+		return newErrorf(r.zctx, ctx, "regexp_replace: %s", r.err)
+	}
+	return ctx.NewValue(zed.TypeString, r.re.ReplaceAll(sVal.Bytes, newVal.Bytes))
+}

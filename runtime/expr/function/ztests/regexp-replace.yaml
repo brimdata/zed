@@ -1,0 +1,18 @@
+zed: "yield regexp_replace(in, re, new)"
+
+input: |
+  {in:"-ab-axxb-",re:"a(x*)b",new:"T"}
+  {in:"-ab-axxb-",re:"a(x*)b",new:"$1"}
+  {in:"Foo bar",re:"Foo",new:"foo"}
+  {in:"seafood fool",re:"foo(.?",new:"food"}
+  {in:4,re:5,new:["foo"]}
+  {in:"foo",re:null(string),new:null(string)}
+
+output: |
+  "-T-T-"
+  "--xx-"
+  "foo bar"
+  error("regexp_replace: error parsing regexp: missing closing ): `foo(.?`")
+  error("regexp_replace: string values required for all args")
+  error("regexp_replace: 2nd and 3rd args cannot be null")
+
