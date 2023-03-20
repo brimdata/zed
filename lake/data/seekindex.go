@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/seekindex"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio/zngio"
@@ -14,7 +13,7 @@ import (
 )
 
 func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.URI,
-	obj *Object, pruner expr.Evaluator, o order.Which) ([]seekindex.Range, error) {
+	obj *Object, pruner expr.Evaluator) ([]seekindex.Range, error) {
 	if pruner == nil {
 		// scan whole object
 		return nil, nil
