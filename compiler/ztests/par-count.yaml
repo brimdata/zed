@@ -3,6 +3,8 @@ script: |
   zed init -q
   zed create -q -orderby ts test
   zc -C -P 2 "from test | count() by y" | sed -e 's/pool .* =>/pool POOL =>/'
+  echo ===
+  zc -C -P 2 "from test | count()" | sed -e 's/pool .* =>/pool POOL =>/'
 
 outputs:
   - name: stdout
@@ -17,3 +19,15 @@ outputs:
       )
       | summarize partials-in
           count:=count() by y:=y
+      ===
+      from (
+        pool POOL =>
+          summarize partials-out
+              count:=count()
+        pool POOL =>
+          summarize partials-out
+              count:=count()
+      )
+      | summarize partials-in
+          count:=count()
+      | yield count

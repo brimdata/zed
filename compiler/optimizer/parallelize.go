@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"golang.org/x/exp/slices"
 )
 
 func orderAsDirection(which order.Which) int {
@@ -46,6 +47,7 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 	if err != nil {
 		return err
 	}
+	inlineSequentials(seq)
 	// Check that the path consisting of the original from
 	// sequence and any lifted sequence is still parallelizable.
 	if trunk.Seq != nil && len(trunk.Seq.Ops) > 0 {
@@ -176,6 +178,23 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		}
 		return replicateAndMerge(seq, layout, from, trunk, replicas)
 	}
+}
+
+// inlineSequentials transforms op by inlining nested sequential operators
+// without constant or function definitions, replacing each with the operators
+// it contains.
+func inlineSequentials(op dag.Op) {
+	walkOp(op, func(op dag.Op) {
+		if seq, ok := op.(*dag.Sequential); ok {
+			// Can't use range because we might change the length.
+			for i := 0; i < len(seq.Ops); i++ {
+				seq2, ok := seq.Ops[i].(*dag.Sequential)
+				if ok && seq2.Consts == nil && seq2.Funcs == nil {
+					seq.Ops = slices.Replace(seq.Ops, i, i+1, seq2.Ops...)
+				}
+			}
+		}
+	})
 }
 
 func replicateAndMerge(seq *dag.Sequential, layout order.Layout, from *dag.From, trunk *dag.Trunk, replicas int) error {
