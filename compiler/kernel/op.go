@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/lake"
@@ -35,15 +36,15 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 )
 
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
 type Builder struct {
 	octx     *op.Context
+	mctx     *zed.Context
 	source   *data.Source
-	slicers  map[dag.Source]*meta.Slicer
-	pools    map[dag.Source]*lake.Pool
 	progress *zbuf.Progress
 	deletes  *sync.Map
 	funcs    map[string]expr.Function
@@ -51,10 +52,9 @@ type Builder struct {
 
 func NewBuilder(octx *op.Context, source *data.Source) *Builder {
 	return &Builder{
-		octx:    octx,
-		source:  source,
-		slicers: make(map[dag.Source]*meta.Slicer),
-		pools:   make(map[dag.Source]*lake.Pool),
+		octx:   octx,
+		mctx:   zed.NewContext(),
+		source: source,
 		progress: &zbuf.Progress{
 			BytesRead:      0,
 			BytesMatched:   0,
@@ -67,15 +67,18 @@ func NewBuilder(octx *op.Context, source *data.Source) *Builder {
 
 type Reader struct {
 	SortKey order.SortKey
+	Filter  dag.Expr
 	Readers []zio.Reader
 }
 
-var _ dag.Source = (*Reader)(nil)
+var _ dag.Op = (*Reader)(nil)
+var _ ast.Source = (*Reader)(nil)
 
+func (*Reader) OpNode() {}
 func (*Reader) Source() {}
 
 func (b *Builder) Build(seq *dag.Sequential) ([]zbuf.Puller, error) {
-	if !dag.IsEntry(seq) {
+	if !isEntry(seq) {
 		return nil, errors.New("internal error: DAG entry point is not a data source")
 	}
 	return b.compile(seq, nil)
@@ -244,6 +247,94 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			return nil, err
 		}
 		return b.compileOver(parent, v.Over, names, exprs)
+	case *dag.PoolScan:
+		if parent != nil {
+			return nil, errors.New("a pool scan cannot have a parent")
+		}
+		return b.compilePoolScan(v)
+	case *dag.PoolMetaScan:
+		return meta.NewPoolMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), v.ID, v.Meta)
+	case *dag.CommitMetaScan:
+		var pruner expr.Evaluator
+		if v.Tap && v.KeyPruner != nil {
+			var err error
+			pruner, err = compileExpr(v.KeyPruner)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return meta.NewCommitMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), v.Pool, v.Commit, v.Meta, pruner)
+	case *dag.LakeMetaScan:
+		return meta.NewLakeMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), v.Meta)
+	case *dag.HTTPScan:
+		return b.source.Open(b.octx.Context, b.octx.Zctx, v.URL, v.Format, nil)
+	case *dag.FileScan:
+		return b.source.Open(b.octx.Context, b.octx.Zctx, v.Path, v.Format, b.PushdownOf(v.Filter))
+	case *Reader:
+		pushdown := b.PushdownOf(v.Filter)
+		if len(v.Readers) == 1 {
+			return zbuf.NewScanner(b.octx.Context, v.Readers[0], pushdown)
+		}
+		scanners := make([]zbuf.Scanner, 0, len(v.Readers))
+		for _, r := range v.Readers {
+			scanner, err := zbuf.NewScanner(b.octx.Context, r, pushdown)
+			if err != nil {
+				return nil, err
+			}
+			scanners = append(scanners, scanner)
+		}
+		return zbuf.MultiScanner(scanners...), nil
+	case *dag.Lister:
+		if parent != nil {
+			return nil, errors.New("data source cannot have a parent operator")
+		}
+		pool, err := b.lookupPool(v.Pool)
+		if err != nil {
+			return nil, err
+		}
+		var pruner expr.Evaluator
+		if v.KeyPruner != nil {
+			pruner, err = compileExpr(v.KeyPruner)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return meta.NewSortedLister(b.octx.Context, b.mctx, b.source.Lake(), pool, v.Commit, pruner)
+	case *dag.Slicer:
+		return meta.NewSlicer(parent, b.mctx), nil
+	case *dag.SeqScan:
+		pool, err := b.lookupPool(v.Pool)
+		if err != nil {
+			return nil, err
+		}
+		var pruner expr.Evaluator
+		if v.KeyPruner != nil {
+			pruner, err = compileExpr(v.KeyPruner)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return meta.NewSequenceScanner(b.octx, parent, pool, b.PushdownOf(v.Filter), pruner, b.progress), nil
+	case *dag.Deleter:
+		pool, err := b.lookupPool(v.Pool)
+		if err != nil {
+			return nil, err
+		}
+		var pruner expr.Evaluator
+		if v.KeyPruner != nil {
+			pruner, err = compileExpr(v.KeyPruner)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if b.deletes == nil {
+			b.deletes = &sync.Map{}
+		}
+		var filter *DeleteFilter
+		if f := b.PushdownOf(v.Where); f != nil {
+			filter = &DeleteFilter{f}
+		}
+		return meta.NewDeleter(b.octx, parent, pool, filter, pruner, b.progress, b.deletes), nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
@@ -325,7 +416,21 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 	return parents, nil
 }
 
-func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	if parallel.Any {
+		if len(parents) != 1 {
+			return nil, errors.New("internal compiler error: any-path parallel dag operators requires a single parent")
+		}
+		var ops []zbuf.Puller
+		for _, o := range parallel.Ops {
+			op, err := b.compile(o, []zbuf.Puller{parents[0]})
+			if err != nil {
+				return nil, err
+			}
+			ops = append(ops, op...)
+		}
+		return ops, nil
+	}
 	var f *fork.Op
 	switch len(parents) {
 	case 0:
@@ -338,9 +443,9 @@ func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]z
 		f = fork.New(b.octx, combine.New(b.octx, parents))
 	}
 	var ops []zbuf.Puller
-	for _, o := range par.Ops {
+	for _, o := range parallel.Ops {
 		var parent zbuf.Puller
-		if f != nil && !dag.IsEntry(o) {
+		if f != nil && !isEntry(o) {
 			parent = f.AddExit()
 		}
 		op, err := b.compile(o, []zbuf.Puller{parent})
@@ -446,15 +551,6 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 			return b.compileExprSwitch(o, parents)
 		}
 		return b.compileSwitch(o, parents)
-	case *dag.From:
-		if len(parents) > 1 {
-			return nil, errors.New("'from' operator can have at most one parent")
-		}
-		var parent zbuf.Puller
-		if len(parents) == 1 {
-			parent = parents[0]
-		}
-		return b.compileFrom(o, parent)
 	case *dag.Join:
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
@@ -499,11 +595,13 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		nullsMax := o.Order == order.Asc
 		cmp := expr.NewComparator(nullsMax, !nullsMax, e).WithMissingAsNull()
 		return []zbuf.Puller{merge.New(b.octx, parents, cmp.Compare)}, nil
+	case *dag.Combine:
+		return []zbuf.Puller{combine.New(b.octx, parents)}, nil
 	default:
 		var parent zbuf.Puller
 		if len(parents) == 1 {
 			parent = parents[0]
-		} else {
+		} else if len(parents) > 1 {
 			parent = combine.New(b.octx, parents)
 		}
 		p, err := b.compileLeaf(o, parent)
@@ -514,177 +612,36 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 	}
 }
 
-func (b *Builder) compileFrom(from *dag.From, parent zbuf.Puller) ([]zbuf.Puller, error) {
-	var parents []zbuf.Puller
-	var npass int
-	for k := range from.Trunks {
-		outputs, err := b.compileTrunk(&from.Trunks[k], parent)
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := from.Trunks[k].Source.(*dag.Pass); ok {
-			npass++
-		}
-		parents = append(parents, outputs...)
-	}
-	if parent == nil && npass > 0 {
-		return nil, errors.New("no data source for 'from operator' pass-through branch")
-	}
-	if parent != nil {
-		if npass > 1 {
-			return nil, errors.New("cannot have multiple pass-through branches in 'from operator'")
-		}
-		if npass == 0 {
-			return nil, errors.New("upstream data source blocked by 'from operator'")
-		}
-	}
-	return parents, nil
-}
-
-func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Puller, error) {
-	pushdown, err := b.PushdownOf(trunk)
+func (b *Builder) compilePoolScan(scan *dag.PoolScan) (zbuf.Puller, error) {
+	// Here we convert PoolScan to lister->slicer->seqscan for the slow path as
+	// optimizer should do this conversion, but this allows us to run
+	// unoptimized scans too.
+	lk := b.source.Lake()
+	pool, err := lk.OpenPool(b.octx.Context, scan.ID)
 	if err != nil {
 		return nil, err
 	}
-	var source zbuf.Puller
-	switch src := trunk.Source.(type) {
-	case *Reader:
-		if len(src.Readers) == 1 {
-			source, err = zbuf.NewScanner(b.octx.Context, src.Readers[0], pushdown)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			scanners := make([]zbuf.Scanner, 0, len(src.Readers))
-			for _, r := range src.Readers {
-				scanner, err := zbuf.NewScanner(b.octx.Context, r, pushdown)
-				if err != nil {
-					return nil, err
-				}
-				scanners = append(scanners, scanner)
-			}
-			source = zbuf.MultiScanner(scanners...)
-		}
-	case *dag.Pass:
-		source = parent
-	case *dag.PoolScan:
-		var filter zbuf.Filter
-		if pushdown != nil {
-			if src.Delete {
-				filter = &DeleteFilter{pushdown}
-			} else {
-				filter = pushdown
-			}
-		}
-		// For pool sources, we keep a map of listers indexed by *dag.Pool so we
-		// properly share parallel instances of a given object schedule
-		// across different DAG entry points.  The listers from a
-		// common "from" source are distributed across the collection
-		// of SequenceScanner operators and the upstream parent distributes work
-		// across the parallel instances of trunks.
-		slicer, ok := b.slicers[src]
-		if !ok {
-			lk := b.source.Lake()
-			pool, err := lk.OpenPool(b.octx.Context, src.ID)
-			if err != nil {
-				return nil, err
-			}
-			var pruner expr.Evaluator
-			if trunk.KeyPruner != nil {
-				pruner, err = compileExpr(trunk.KeyPruner)
-				if err != nil {
-					return nil, err
-				}
-			}
-			// We pass a new type context in here because we don't want the metadata types to interfere
-			// with the downstream flowgraph.  And there's no need to map between contexts because
-			// the metadata here is intercepted by the scanner and these zed values never enter
-			// the flowgraph.  For the metaqueries below, we pass in the flowgraph's type context
-			// because this data does, in fact, flow into the downstream flowgraph.
-			zctx := zed.NewContext()
-			l, err := meta.NewSortedLister(b.octx.Context, zctx, lk, pool, src.Commit, pruner)
-			if err != nil {
-				return nil, err
-			}
-			slicer = meta.NewSlicer(l, zctx)
-			b.pools[src] = pool
-			b.slicers[src] = slicer
-		}
-		var pruner expr.Evaluator
-		if trunk.KeyPruner != nil {
-			pruner, err = compileExpr(trunk.KeyPruner)
-			if err != nil {
-				return nil, err
-			}
-		}
-		pool := b.pools[src]
-		if src.Delete {
-			if b.deletes == nil {
-				b.deletes = &sync.Map{}
-			}
-			source = meta.NewDeleter(b.octx, slicer, pool, filter, pruner, b.progress, b.deletes)
-		} else {
-			source = meta.NewSequenceScanner(b.octx, slicer, pool, filter, pruner, b.progress)
-		}
-	case *dag.PoolMetaScan:
-		scanner, err := meta.NewPoolMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
-		if err != nil {
-			return nil, err
-		}
-		source = scanner
-	case *dag.CommitMetaScan:
-		var pruner expr.Evaluator
-		if src.Tap {
-			// disable pushdown if Tap is activated for meta queries.
-			pushdown = nil
-			if trunk.KeyPruner != nil {
-				pruner, err = compileExpr(trunk.KeyPruner)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-		scanner, err := meta.NewCommitMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, pushdown, pruner)
-		if err != nil {
-			return nil, err
-		}
-		source = scanner
-	case *dag.LakeMetaScan:
-		scanner, err := meta.NewLakeMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.Meta, pushdown)
-		if err != nil {
-			return nil, err
-		}
-		source = scanner
-	case *dag.HTTPScan:
-		puller, err := b.source.Open(b.octx.Context, b.octx.Zctx, src.URL, src.Format, pushdown)
-		if err != nil {
-			return nil, err
-		}
-		source = puller
-	case *dag.FileScan:
-		scanner, err := b.source.Open(b.octx.Context, b.octx.Zctx, src.Path, src.Format, pushdown)
-		if err != nil {
-			return nil, err
-		}
-		source = scanner
-	default:
-		return nil, fmt.Errorf("Builder.compileTrunk: unknown type: %T", src)
+	l, err := meta.NewSortedLister(b.octx.Context, b.mctx, lk, pool, scan.Commit, nil)
+	if err != nil {
+		return nil, err
 	}
-	if trunk.Seq == nil {
-		return []zbuf.Puller{source}, nil
-	}
-	return b.compileSequential(trunk.Seq, []zbuf.Puller{source})
+	slicer := meta.NewSlicer(l, b.mctx)
+	return meta.NewSequenceScanner(b.octx, slicer, pool, nil, nil, b.progress), nil
 }
 
-func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {
-	if trunk.Pushdown == nil {
-		return nil, nil
+func (b *Builder) PushdownOf(e dag.Expr) *Filter {
+	if e == nil {
+		return nil
 	}
-	f, ok := trunk.Pushdown.(*dag.Filter)
-	if !ok {
-		return nil, errors.New("non-filter pushdown operator not yet supported")
+	return &Filter{e, b}
+}
+
+func (b *Builder) lookupPool(id ksuid.KSUID) (*lake.Pool, error) {
+	if b.source == nil || b.source.Lake() == nil {
+		return nil, errors.New("system error: lake operation cannot be used in non-lake context")
 	}
-	return &Filter{f.Expr, b}, nil
+	// This is fast because of the pool cache in the lake.
+	return b.source.Lake().OpenPool(b.octx.Context, id)
 }
 
 func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {
@@ -715,4 +672,28 @@ func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err erro
 	// related, which is not currently allowed in an expression sub-query.
 	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil)
 	return b.evalAtCompileTime(in)
+}
+
+func isEntry(op dag.Op) bool {
+	switch op := op.(type) {
+	case *Reader, *dag.Lister, *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan:
+		return true
+	case *dag.Sequential:
+		if len(op.Ops) == 0 {
+			return false
+		}
+		return isEntry(op.Ops[0])
+	case *dag.Parallel:
+		if len(op.Ops) == 0 {
+			return false
+		}
+		for _, o := range op.Ops {
+			if s, ok := o.(*dag.Sequential); !ok || !isEntry(s) {
+				return false
+			}
+		}
+		return true
+
+	}
+	return false
 }

@@ -270,8 +270,16 @@ func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return branchRef.Commit, nil
 }
 
-func (r *Root) SortKey(ctx context.Context, src dag.Source) order.SortKey {
+func (r *Root) SortKey(ctx context.Context, src dag.Op) order.SortKey {
 	switch src := src.(type) {
+	case *dag.Lister:
+		if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
+			return config.SortKey
+		}
+	case *dag.SeqScan:
+		if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
+			return config.SortKey
+		}
 	case *dag.PoolScan:
 		if config, err := r.pools.LookupByID(ctx, src.ID); err == nil {
 			return config.SortKey

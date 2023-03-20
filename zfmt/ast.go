@@ -671,6 +671,9 @@ func (c *canon) pool(p *ast.Pool) {
 	if p.Spec.Meta != "" {
 		s += ":" + p.Spec.Meta
 	}
+	if p.Spec.Tap {
+		s += " tap"
+	}
 	c.write("pool %s", s)
 }
 

@@ -358,6 +358,9 @@ func (c *canonDAG) op(p dag.Op) {
 		}
 		c.close()
 		c.close()
+	case *dag.Combine:
+		c.next()
+		c.write("combine")
 	case *dag.Cut:
 		c.next()
 		c.write("cut ")
@@ -391,9 +394,6 @@ func (c *canonDAG) op(p dag.Op) {
 		if p.Cflag {
 			c.write(" -c")
 		}
-	case *dag.Pass:
-		c.next()
-		c.write("pass")
 	case *dag.Filter:
 		c.next()
 		c.open("where ")
@@ -429,32 +429,35 @@ func (c *canonDAG) op(p dag.Op) {
 			c.assignments(p.Args)
 		}
 		c.close()
-	case *dag.From:
-		// XXX cleanup for single trunk
+	case *dag.Lister:
 		c.next()
-		c.open("from (")
-		for _, trunk := range p.Trunks {
-			c.ret()
-			if trunk.Pushdown != nil {
-				c.head = true
-				c.open("(pushdown")
-				c.op(trunk.Pushdown)
-				c.write(")")
-				c.close()
-				c.ret()
-			}
-			c.write("%s", source(trunk.Source))
-			if trunk.Seq != nil && len(trunk.Seq.Ops) != 0 {
-				c.open()
-				c.head = true
-				c.write(" =>")
-				c.op(trunk.Seq)
-				c.close()
-			}
+		c.open("lister")
+		c.write(fmt.Sprintf(" pool %s commit %s", p.Pool, p.Commit))
+		if p.KeyPruner != nil {
+			c.write(" pruner (")
+			c.expr(p.KeyPruner, "")
+			c.write(")")
 		}
-		c.ret()
 		c.close()
-		c.write(")")
+	case *dag.SeqScan:
+		c.next()
+		c.open("seqscan")
+		c.write(fmt.Sprintf(" pool %s", p.Pool))
+		if p.KeyPruner != nil {
+			c.write(" pruner (")
+			c.expr(p.KeyPruner, "")
+			c.write(")")
+		}
+		if p.Filter != nil {
+			c.write(" filter (")
+			c.expr(p.Filter, "")
+			c.write(")")
+		}
+		c.close()
+	case *dag.Slicer:
+		c.next()
+		c.open("slicer")
+		c.close()
 	case *dag.Let:
 		c.over(p.Over, p.Defs)
 	case *dag.Over:
@@ -463,7 +466,51 @@ func (c *canonDAG) op(p dag.Op) {
 		c.next()
 		c.write("yield ")
 		c.exprs(p.Exprs)
+	case *dag.FileScan:
+		c.next()
+		c.write(fmt.Sprintf("file %s", p.Path))
+		if p.Format != "" {
+			c.write(fmt.Sprintf(" format %s", p.Format))
+		}
+		if !p.SortKey.IsNil() {
+			c.write(fmt.Sprintf(" order %s", p.SortKey))
+		}
+		if p.Filter != nil {
+			c.write(" filter (")
+			c.expr(p.Filter, "")
+			c.write(")")
+		}
+	case *dag.HTTPScan:
+		c.next()
+		c.write(fmt.Sprintf("get %s", p.URL))
+	case *dag.PoolScan:
+		c.next()
+		c.write(fmt.Sprintf("pool %s", p.ID))
+	case *dag.PoolMetaScan:
+		c.next()
+		c.write(fmt.Sprintf("pool %s:%s", p.ID, p.Meta))
+	case *dag.CommitMetaScan:
+		c.next()
+		c.write(fmt.Sprintf("pool %s@%s:%s", p.Pool, p.Commit, p.Meta))
+		if p.Tap {
+			c.write(" tap")
+		}
+	case *dag.LakeMetaScan:
+		c.next()
+		c.write(fmt.Sprintf(":%s", p.Meta))
+	case *dag.Pass:
+		c.next()
+		c.write("pass")
+	case *kernel.Reader:
+		c.next()
+		c.write("reader")
+		if p.Filter != nil {
+			c.open(" filter (")
+			c.expr(p.Filter, "")
+			c.write(")")
+		}
 	default:
+		c.next()
 		c.open("unknown proc: %T", p)
 		c.close()
 	}
@@ -492,37 +539,6 @@ func (c *canonDAG) over(o *dag.Over, locals []dag.Def) {
 		c.ret()
 		c.flush()
 		c.write(")")
-	}
-}
-
-func source(src dag.Source) string {
-	switch p := src.(type) {
-	case *dag.FileScan:
-		s := fmt.Sprintf("file %s", p.Path)
-		if p.Format != "" {
-			s += fmt.Sprintf(" format %s", p.Format)
-		}
-		if !p.SortKey.IsNil() {
-			s += fmt.Sprintf(" order %s", p.SortKey)
-		}
-		return s
-	case *dag.HTTPScan:
-		return fmt.Sprintf("get %s", p.URL)
-	case *dag.PoolScan:
-		return fmt.Sprintf("pool %s", p.ID)
-	case *dag.PoolMetaScan:
-		return fmt.Sprintf("pool %s:%s", p.ID, p.Meta)
-	case *dag.CommitMetaScan:
-		return fmt.Sprintf("pool %s@%s:%s", p.Pool, p.Commit, p.Meta)
-	case *dag.LakeMetaScan:
-		return fmt.Sprintf(":%s", p.Meta)
-		//XXX from, to, order
-	case *dag.Pass:
-		return "pass"
-	case *kernel.Reader:
-		return "reader"
-	default:
-		return fmt.Sprintf("unknown source %T", p)
 	}
 }
 

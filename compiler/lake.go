@@ -60,10 +60,7 @@ func (l *lakeCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head
 	if err != nil {
 		return nil, err
 	}
-	if err := job.Optimize(); err != nil {
-		return nil, err
-	}
-	if err := job.Parallelize(Parallelism); err != nil {
+	if err := job.OptimizeDeleter(Parallelism); err != nil {
 		return nil, err
 	}
 	if err := job.Build(); err != nil {

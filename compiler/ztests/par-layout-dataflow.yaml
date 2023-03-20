@@ -3,25 +3,33 @@ script: |
   zed init -q
   zed create -q -orderby ts:asc ASC
   zed create -q -orderby ts:desc DESC
-  zc -C -P 2 "from ASC | cut x:=ts,ts:=1" | sed -e 's/pool .* =>/pool POOL =>/'
+  zc -C -P 2 "from ASC | cut x:=ts,ts:=1" | sed -e 's/lister pool.*/lister .../' -e 's/seqscan pool .*/seqscan .../'
   echo ===
-  zc -C -P 2 "from DESC | cut x:=ts,ts:=1" | sed -e 's/pool .* =>/pool POOL =>/'
+  zc -C -P 2 "from DESC | cut x:=ts,ts:=1" | sed -e 's/lister pool.*/lister .../' -e 's/seqscan pool .*/seqscan .../'
 
 outputs:
   - name: stdout
     data: |
-      from (
-        pool POOL =>
-          cut x:=ts,ts:=1
-        pool POOL =>
-          cut x:=ts,ts:=1
+      lister ...
+      | slicer
+      | fork (
+        =>
+          seqscan ...
+          | cut x:=ts,ts:=1
+        =>
+          seqscan ...
+          | cut x:=ts,ts:=1
       )
       | merge x:asc
       ===
-      from (
-        pool POOL =>
-          cut x:=ts,ts:=1
-        pool POOL =>
-          cut x:=ts,ts:=1
+      lister ...
+      | slicer
+      | fork (
+        =>
+          seqscan ...
+          | cut x:=ts,ts:=1
+        =>
+          seqscan ...
+          | cut x:=ts,ts:=1
       )
       | merge x:desc

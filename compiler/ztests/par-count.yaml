@@ -2,32 +2,40 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -orderby ts test
-  zc -C -P 2 "from test | count() by y" | sed -e 's/pool .* =>/pool POOL =>/'
+  zc -C -P 2 "from test | count() by y" | sed -e 's/lister pool.*/lister .../' -e 's/seqscan pool .*/seqscan .../'
   echo ===
-  zc -C -P 2 "from test | count()" | sed -e 's/pool .* =>/pool POOL =>/'
+  zc -C -P 2 "from test | count()" | sed -e 's/lister pool.*/lister .../' -e 's/seqscan pool .*/seqscan .../'
 
 outputs:
   - name: stdout
     data: |
-      from (
-        pool POOL =>
-          summarize partials-out
+      lister ...
+      | fork (
+        =>
+          seqscan ...
+          | summarize partials-out
               count:=count() by y:=y
-        pool POOL =>
-          summarize partials-out
+        =>
+          seqscan ...
+          | summarize partials-out
               count:=count() by y:=y
       )
+      | combine
       | summarize partials-in
           count:=count() by y:=y
       ===
-      from (
-        pool POOL =>
-          summarize partials-out
+      lister ...
+      | fork (
+        =>
+          seqscan ...
+          | summarize partials-out
               count:=count()
-        pool POOL =>
-          summarize partials-out
+        =>
+          seqscan ...
+          | summarize partials-out
               count:=count()
       )
+      | combine
       | summarize partials-in
           count:=count()
       | yield count
