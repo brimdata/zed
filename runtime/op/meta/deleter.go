@@ -107,7 +107,7 @@ func newDeleterScanner(d *Deleter, part Partition) (zbuf.Puller, error) {
 		}
 	}
 	for _, object := range part.Objects {
-		ranges, err := data.LookupSeekRange(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, object, d.pruner, d.pool.Layout.Order)
+		ranges, err := data.LookupSeekRange(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, object, d.pruner)
 		if err != nil {
 			return nil, err
 		}

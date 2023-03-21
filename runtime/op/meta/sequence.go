@@ -114,7 +114,7 @@ func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller,
 		}
 	}
 	for _, object := range part.Objects {
-		ranges, err := data.LookupSeekRange(p.pctx.Context, p.pool.Storage(), p.pool.DataPath, object, p.pruner, p.pool.Layout.Order)
+		ranges, err := data.LookupSeekRange(p.pctx.Context, p.pool.Storage(), p.pool.DataPath, object, p.pruner)
 		if err != nil {
 			return nil, err
 		}
