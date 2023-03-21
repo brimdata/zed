@@ -767,14 +767,14 @@ func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.
 	}
 	if key.Type != typ.KeyType {
 		if union, ok := zed.TypeUnder(typ.KeyType).(*zed.TypeUnion); ok {
-		if tag := union.TagOf(key.Type); tag >= 0 {
-					var b zcode.Builder
-					zed.BuildUnion(&b, union.TagOf(key.Type), key.Bytes)
-					if valBytes, ok := lookupKey(mapBytes, b.Bytes().Body()); ok {
-						return deunion(ectx, typ.ValType, valBytes)
-					}
+			if tag := union.TagOf(key.Type); tag >= 0 {
+				var b zcode.Builder
+				zed.BuildUnion(&b, union.TagOf(key.Type), key.Bytes)
+				if valBytes, ok := lookupKey(mapBytes, b.Bytes().Body()); ok {
+					return deunion(ectx, typ.ValType, valBytes)
 				}
 			}
+		}
 		return zctx.Missing()
 	}
 	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
