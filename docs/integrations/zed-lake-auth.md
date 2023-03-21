@@ -108,7 +108,7 @@ the most recent Zed tools from source.
    Version: v1.6.0
    ```
 
-2. Set environment variables with the values you noted previously from the
+2. Set shell variables with the values you noted previously from the
 Auth0 configuration for the API **Identifier** and the **Domain** and
 **Client ID** values from the application configuration. Make sure the
 `https://` prefix is included in the **Identifier** value.
