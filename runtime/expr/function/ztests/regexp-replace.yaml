@@ -12,7 +12,7 @@ input: |
 output: |
   "-T-T-"
   "--xx-"
-  "-foo bar-fooxx bar-"
+  "--xx-"
   "foo bar"
   error("regexp_replace: error parsing regexp: missing closing ): `foo(.?`")
   error("regexp_replace: string values required for all args")
