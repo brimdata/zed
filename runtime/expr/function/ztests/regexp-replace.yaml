@@ -1,7 +1,7 @@
 zed: "yield regexp_replace(in, re, new)"
 
 input: |
-  {in:"-ab-axxb-",re:"a(x*)b",new:"T"}
+  {in:"-ab-axxb-",re:"ax*b",new:"T"}
   {in:"-ab-axxb-",re:"a(x*)b",new:"$1"}
   {in:"-ab-axxb-",re:"a(?P<X>x*)b",new:"$X"}
   {in:"Foo bar",re:"Foo",new:"foo"}
