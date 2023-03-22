@@ -1,8 +1,9 @@
 zed: "yield regexp_replace(in, re, new)"
 
 input: |
-  {in:"-ab-axxb-",re:"a(x*)b",new:"T"}
+  {in:"-ab-axxb-",re:"ax*b",new:"T"}
   {in:"-ab-axxb-",re:"a(x*)b",new:"$1"}
+  {in:"-ab-axxb-",re:"a(?P<X>x*)b",new:"$X"}
   {in:"Foo bar",re:"Foo",new:"foo"}
   {in:"seafood fool",re:"foo(.?",new:"food"}
   {in:4,re:5,new:["foo"]}
@@ -10,6 +11,7 @@ input: |
 
 output: |
   "-T-T-"
+  "--xx-"
   "--xx-"
   "foo bar"
   error("regexp_replace: error parsing regexp: missing closing ): `foo(.?`")
