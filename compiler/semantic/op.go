@@ -420,9 +420,9 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Head:
 		expr, _ := semExpr(scope, o.Count)
 		val, _ := kernel.EvalAtCompileTime(scope.zctx, expr)
-                if val.AsInt() < 0 {
-                        return nil, errors.New("expression must be of positive value")
-                }
+		if val.AsInt() < 0 {
+			return nil, errors.New("expression must be of positive value")
+		}
 		return &dag.Head{
 			Kind:  "Head",
 			Count: int(val.AsInt()),
