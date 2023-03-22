@@ -138,7 +138,7 @@ func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller,
 	if len(pullers) == 1 {
 		return pullers[0], nil
 	}
-	return merge.New(p.octx.Context, pullers, lake.ImportComparator(p.octx.Zctx, p.pool).Compare), nil
+	return merge.New(p.octx.Context, pullers, lake.ImportComparator(p.octx.Zctx, p.pool)), nil
 }
 
 type statScanner struct {

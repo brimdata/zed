@@ -51,3 +51,33 @@ func (s *Scope) Pop(n int) {
 func (s *Scope) Push(val zed.Value) {
 	*s = append(*s, val)
 }
+
+var _ Context = (*ResetContext)(nil)
+
+type ResetContext struct {
+	buf  []byte
+	vals []zed.Value
+}
+
+func (r *ResetContext) NewValue(typ zed.Type, b zcode.Bytes) *zed.Value {
+	n := len(r.buf)
+	r.buf = append(r.buf, b...)
+	r.vals = append(r.vals, zed.Value{
+		Type:  typ,
+		Bytes: r.buf[n:],
+	})
+	return &r.vals[len(r.vals)-1]
+}
+
+func (r *ResetContext) CopyValue(val *zed.Value) *zed.Value {
+	return r.NewValue(val.Type, val.Bytes)
+}
+
+func (r *ResetContext) Reset() {
+	r.buf = r.buf[:0]
+	r.vals = r.vals[:0]
+}
+
+func (r *ResetContext) Vars() []zed.Value {
+	return nil
+}

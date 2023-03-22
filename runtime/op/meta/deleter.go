@@ -132,7 +132,7 @@ func newDeleterScanner(d *Deleter, part Partition) (zbuf.Puller, error) {
 	if len(pullers) == 1 {
 		return pullers[0], nil
 	}
-	return merge.New(d.octx.Context, pullers, lake.ImportComparator(d.octx.Zctx, d.pool).Compare), nil
+	return merge.New(d.octx.Context, pullers, lake.ImportComparator(d.octx.Zctx, d.pool)), nil
 }
 
 type deleteScanner struct {

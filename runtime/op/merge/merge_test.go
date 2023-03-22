@@ -103,7 +103,7 @@ func TestParallelOrder(t *testing.T) {
 				parents = append(parents, zbuf.NewPuller(r))
 			}
 			layout := order.NewLayout(c.order, field.DottedList(c.field))
-			cmp := zbuf.NewComparator(zctx, layout).Compare
+			cmp := zbuf.NewComparator(zctx, layout)
 			om := merge.New(octx.Context, parents, cmp)
 
 			var sb strings.Builder
