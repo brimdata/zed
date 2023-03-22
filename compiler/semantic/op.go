@@ -418,13 +418,14 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			NullsFirst: o.NullsFirst,
 		}, nil
 	case *ast.Head:
-		limit := o.Count
-		if limit == 0 {
-			limit = 1
-		}
+		expr, _ := semExpr(scope, o.Count)
+		val, _ := kernel.EvalAtCompileTime(scope.zctx, expr)
+                if val.AsInt() < 0 {
+                        return nil, errors.New("expression must be of positive value")
+                }
 		return &dag.Head{
 			Kind:  "Head",
-			Count: limit,
+			Count: int(val.AsInt()),
 		}, nil
 	case *ast.Tail:
 		limit := o.Count
