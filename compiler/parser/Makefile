@@ -17,7 +17,7 @@ endif
 ifeq "$(shell go version -m $(deps)/bin/pigeon 2>&1 | fgrep $(PIGEON_VERSION))" ""
 	GOBIN=$(deps)/bin go install github.com/mna/pigeon@$(PIGEON_VERSION)
 endif
-	cpp -DGO -E -P parser.peg | $(deps)/bin/pigeon -o $@
+	cpp -std=gnu90 -DGO -E -P parser.peg | $(deps)/bin/pigeon -o $@
 	$(deps)/bin/goimports -w $@
 
 .PHONY: parser.js
@@ -25,7 +25,7 @@ parser.js:
 ifeq "$(shell $(deps)/bin/pegjs --version 2>&1 | fgrep $(PEGJS_VERSION))" ""
 	$(npm) install pegjs@$(PEGJS_VERSION)
 endif
-	cpp -E -P parser.peg | $(deps)/bin/pegjs --allowed-start-rules start,Expr -o $@
+	cpp -std=gnu90 -E -P parser.peg | $(deps)/bin/pegjs --allowed-start-rules start,Expr -o $@
 
 .PHONY: parser.es.js
 parser.es.js: parser.js
