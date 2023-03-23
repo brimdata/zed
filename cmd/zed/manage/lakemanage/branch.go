@@ -41,10 +41,10 @@ func newBranch(c Config, pool *pools.Config, indexes []index.Rule, lake lakeapi.
 		pool: pool,
 		name: branchName,
 	}
-	if !c.Compact.Disabled {
+	if !compact.Disabled {
 		b.tasks = append(b.tasks, &compactTask{b, b.logger.Named("compact")})
 	}
-	if c.Index.Enabled() {
+	if index.Enabled() {
 		b.tasks = append(b.tasks, &indexTask{b, b.logger.Named("index")})
 	}
 	return b, nil
