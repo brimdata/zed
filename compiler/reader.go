@@ -16,16 +16,16 @@ func NewCompiler() runtime.Compiler {
 	return &anyCompiler{}
 }
 
-func (i *anyCompiler) NewQuery(pctx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
+func (i *anyCompiler) NewQuery(octx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
 	if len(readers) != 1 {
 		return nil, fmt.Errorf("NewQuery: Zed program expected %d readers", len(readers))
 	}
-	return CompileWithLayout(pctx, o, readers[0], order.Layout{})
+	return CompileWithLayout(octx, o, readers[0], order.Layout{})
 }
 
 // XXX currently used only by group-by test, need to deprecate
-func CompileWithLayout(pctx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
-	job, err := NewJob(pctx, o, data.NewSource(nil, nil), nil)
+func CompileWithLayout(octx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
+	job, err := NewJob(octx, o, data.NewSource(nil, nil), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -38,10 +38,10 @@ func CompileWithLayout(pctx *op.Context, o ast.Op, r zio.Reader, layout order.La
 	return optimizeAndBuild(job)
 }
 
-func (*anyCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
+func (*anyCompiler) NewLakeQuery(octx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
 	panic("NewLakeQuery called on compiler.anyCompiler")
 }
 
-func (*anyCompiler) NewLakeDeleteQuery(pctx *op.Context, program ast.Op, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
+func (*anyCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
 	panic("NewLakeDeleteQuery called on compiler.anyCompiler")
 }

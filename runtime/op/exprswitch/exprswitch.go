@@ -21,8 +21,8 @@ type switchCase struct {
 	vals  []zed.Value
 }
 
-func New(pctx *op.Context, parent zbuf.Puller, e expr.Evaluator) *ExprSwitch {
-	router := op.NewRouter(pctx, parent)
+func New(octx *op.Context, parent zbuf.Puller, e expr.Evaluator) *ExprSwitch {
+	router := op.NewRouter(octx, parent)
 	s := &ExprSwitch{
 		Router: router,
 		expr:   e,

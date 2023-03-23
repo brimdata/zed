@@ -328,10 +328,10 @@ type nopCloser struct{ io.Writer }
 func (*nopCloser) Close() error { return nil }
 
 func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, layout order.Layout) (*runtime.Query, error) {
-	pctx := op.NewContext(ctx, zctx, nil)
-	q, err := compiler.CompileWithLayout(pctx, program, reader, layout)
+	octx := op.NewContext(ctx, zctx, nil)
+	q, err := compiler.CompileWithLayout(octx, program, reader, layout)
 	if err != nil {
-		pctx.Cancel()
+		octx.Cancel()
 		return nil, err
 	}
 	return q, nil

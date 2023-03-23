@@ -10,7 +10,7 @@ import (
 )
 
 type Proc struct {
-	pctx    *op.Context
+	octx    *op.Context
 	parent  zbuf.Puller
 	builder zcode.Builder
 	cflag   bool
@@ -18,9 +18,9 @@ type Proc struct {
 	last    *zed.Value
 }
 
-func New(pctx *op.Context, parent zbuf.Puller, cflag bool) *Proc {
+func New(octx *op.Context, parent zbuf.Puller, cflag bool) *Proc {
 	return &Proc{
-		pctx:   pctx,
+		octx:   octx,
 		parent: parent,
 		cflag:  cflag,
 	}
@@ -31,7 +31,7 @@ func (p *Proc) wrap(t *zed.Value) *zed.Value {
 		p.builder.Reset()
 		p.builder.Append(t.Bytes)
 		p.builder.Append(zed.EncodeUint(p.count))
-		typ := p.pctx.Zctx.MustLookupTypeRecord([]zed.Field{
+		typ := p.octx.Zctx.MustLookupTypeRecord([]zed.Field{
 			zed.NewField("value", t.Type),
 			zed.NewField("count", zed.TypeUint64),
 		})

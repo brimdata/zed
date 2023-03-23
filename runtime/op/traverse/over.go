@@ -19,11 +19,11 @@ type Over struct {
 	zctx   *zed.Context
 }
 
-func NewOver(pctx *op.Context, parent zbuf.Puller, exprs []expr.Evaluator) *Over {
+func NewOver(octx *op.Context, parent zbuf.Puller, exprs []expr.Evaluator) *Over {
 	return &Over{
 		parent: parent,
 		exprs:  exprs,
-		zctx:   pctx.Zctx,
+		zctx:   octx.Zctx,
 	}
 }
 

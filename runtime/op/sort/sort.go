@@ -17,7 +17,7 @@ import (
 var MemMaxBytes = 128 * 1024 * 1024
 
 type Proc struct {
-	pctx       *op.Context
+	octx       *op.Context
 	parent     zbuf.Puller
 	order      order.Which
 	nullsFirst bool
@@ -32,9 +32,9 @@ type Proc struct {
 	sorter         expr.Sorter
 }
 
-func New(pctx *op.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
+func New(octx *op.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
 	return &Proc{
-		pctx:           pctx,
+		octx:           octx,
 		parent:         parent,
 		order:          order,
 		nullsFirst:     nullsFirst,
@@ -47,13 +47,13 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	p.once.Do(func() {
 		// Block p.ctx's cancel function until p.run finishes its
 		// cleanup.
-		p.pctx.WaitGroup.Add(1)
+		p.octx.WaitGroup.Add(1)
 		go p.run()
 	})
 	for {
 		r, ok := <-p.resultCh
 		if !ok {
-			return nil, p.pctx.Err()
+			return nil, p.octx.Err()
 		}
 		if !done || r.Batch == nil || r.Err != nil {
 			return r.Batch, r.Err
@@ -70,7 +70,7 @@ func (p *Proc) run() {
 			spiller.Cleanup()
 		}
 		// Tell p.ctx's cancel function that we've finished our cleanup.
-		p.pctx.WaitGroup.Done()
+		p.octx.WaitGroup.Done()
 	}()
 	var nbytes int
 	var out []zed.Value
@@ -97,7 +97,7 @@ func (p *Proc) run() {
 				continue
 			}
 			if len(out) > 0 {
-				if err := spiller.Spill(p.pctx.Context, out); err != nil {
+				if err := spiller.Spill(p.octx.Context, out); err != nil {
 					if ok := p.sendResult(nil, err); !ok {
 						return
 					}
@@ -138,7 +138,7 @@ func (p *Proc) run() {
 				continue
 			}
 		}
-		if err := spiller.Spill(p.pctx.Context, out); err != nil {
+		if err := spiller.Spill(p.octx.Context, out); err != nil {
 			if ok := p.sendResult(nil, err); !ok {
 				return
 			}
@@ -158,7 +158,7 @@ func (p *Proc) send(vals []zed.Value) bool {
 func (p *Proc) sendSpills(spiller *spill.MergeSort) bool {
 	puller := zbuf.NewPuller(spiller)
 	for {
-		if err := p.pctx.Err(); err != nil {
+		if err := p.octx.Err(); err != nil {
 			return false
 		}
 		// Reading from the spiller merges the spilt files.
@@ -176,7 +176,7 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) bool {
 	select {
 	case p.resultCh <- op.Result{Batch: b, Err: err}:
 		return true
-	case <-p.pctx.Done():
+	case <-p.octx.Done():
 		return false
 	}
 }
@@ -197,7 +197,7 @@ func (p *Proc) setComparator(r *zed.Value) {
 	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
-		resolver := expr.NewDottedExpr(p.pctx.Zctx, fld)
+		resolver := expr.NewDottedExpr(p.octx.Zctx, fld)
 		resolvers = []expr.Evaluator{resolver}
 	}
 	reverse := p.order == order.Desc

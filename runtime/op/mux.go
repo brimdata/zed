@@ -32,7 +32,7 @@ func Unwrap(batch zbuf.Batch) (zbuf.Batch, int) {
 // DFS traversal order of the flowgraph).  This proc requires more than one
 // parent; use proc.Latcher for a single-output flowgraph.
 type Mux struct {
-	pctx     *Context
+	octx     *Context
 	once     sync.Once
 	ch       <-chan result
 	parents  []*puller
@@ -65,7 +65,7 @@ func (p *puller) run(ctx context.Context) {
 	}
 }
 
-func NewMux(pctx *Context, parents []zbuf.Puller) *Mux {
+func NewMux(octx *Context, parents []zbuf.Puller) *Mux {
 	if len(parents) <= 1 {
 		panic("mux.New() must be called with two or more parents")
 	}
@@ -75,7 +75,7 @@ func NewMux(pctx *Context, parents []zbuf.Puller) *Mux {
 		pullers = append(pullers, &puller{NewCatcher(parent), ch, label})
 	}
 	return &Mux{
-		pctx:     pctx,
+		octx:     octx,
 		ch:       ch,
 		parents:  pullers,
 		nparents: len(parents),
@@ -87,12 +87,12 @@ func (m *Mux) Pull(bool) (zbuf.Batch, error) {
 	if m.nparents == 0 {
 		// When we get to EOS, we make sure all the flowgraph
 		// goroutines terminate by canceling the proc context.
-		m.pctx.Cancel()
+		m.octx.Cancel()
 		return nil, nil
 	}
 	m.once.Do(func() {
 		for _, puller := range m.parents {
-			go puller.run(m.pctx.Context)
+			go puller.run(m.octx.Context)
 		}
 	})
 	for {
@@ -101,7 +101,7 @@ func (m *Mux) Pull(bool) (zbuf.Batch, error) {
 			batch := res.batch
 			err := res.err
 			if err != nil {
-				m.pctx.Cancel()
+				m.octx.Cancel()
 				return nil, err
 			}
 			if batch != nil {
@@ -112,8 +112,8 @@ func (m *Mux) Pull(bool) (zbuf.Batch, error) {
 				m.nparents--
 			}
 			return batch, err
-		case <-m.pctx.Context.Done():
-			return nil, m.pctx.Context.Err()
+		case <-m.octx.Context.Done():
+			return nil, m.octx.Context.Err()
 		}
 	}
 }

@@ -11,8 +11,8 @@ type splitter []zbuf.Puller
 
 var _ op.Selector = (*splitter)(nil)
 
-func New(pctx *op.Context, parent zbuf.Puller, n int) []zbuf.Puller {
-	router := op.NewRouter(pctx, parent)
+func New(octx *op.Context, parent zbuf.Puller, n int) []zbuf.Puller {
+	router := op.NewRouter(octx, parent)
 	exits := make([]zbuf.Puller, 0, n)
 	for k := 0; k < n; k++ {
 		exits = append(exits, router.AddRoute())

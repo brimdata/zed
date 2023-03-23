@@ -19,7 +19,7 @@ var DefaultLimit = 1000000
 
 // Proc computes aggregations using an Aggregator.
 type Proc struct {
-	pctx     *op.Context
+	octx     *op.Context
 	parent   zbuf.Puller
 	agg      *Aggregator
 	once     sync.Once
@@ -112,32 +112,32 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	}, nil
 }
 
-func New(pctx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Proc, error) {
+func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Proc, error) {
 	names := make(field.List, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
 		names = append(names, e.LHS)
 	}
 	names = append(names, aggNames...)
-	builder, err := zed.NewRecordBuilder(pctx.Zctx, names)
+	builder, err := zed.NewRecordBuilder(octx.Zctx, names)
 	if err != nil {
 		return nil, err
 	}
 	valRefs := make([]expr.Evaluator, 0, len(aggNames))
 	for _, fieldName := range aggNames {
-		valRefs = append(valRefs, expr.NewDottedExpr(pctx.Zctx, fieldName))
+		valRefs = append(valRefs, expr.NewDottedExpr(octx.Zctx, fieldName))
 	}
 	keyRefs := make([]expr.Evaluator, 0, len(keys))
 	keyExprs := make([]expr.Evaluator, 0, len(keys))
 	for _, e := range keys {
-		keyRefs = append(keyRefs, expr.NewDottedExpr(pctx.Zctx, e.LHS))
+		keyRefs = append(keyRefs, expr.NewDottedExpr(octx.Zctx, e.LHS))
 		keyExprs = append(keyExprs, e.RHS)
 	}
-	agg, err := NewAggregator(pctx.Context, pctx.Zctx, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
+	agg, err := NewAggregator(octx.Context, octx.Zctx, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {
 		return nil, err
 	}
 	return &Proc{
-		pctx:     pctx,
+		octx:     octx,
 		parent:   parent,
 		agg:      agg,
 		resultCh: make(chan op.Result),
@@ -150,20 +150,20 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 		select {
 		case p.doneCh <- struct{}{}:
 			return nil, nil
-		case <-p.pctx.Done():
-			return nil, p.pctx.Err()
+		case <-p.octx.Done():
+			return nil, p.octx.Err()
 		}
 	}
 	p.once.Do(func() {
 		// Block p.ctx's cancel function until p.run finishes its
 		// cleanup.
-		p.pctx.WaitGroup.Add(1)
+		p.octx.WaitGroup.Add(1)
 		go p.run()
 	})
 	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
 	}
-	return nil, p.pctx.Err()
+	return nil, p.octx.Err()
 }
 
 func (p *Proc) run() {
@@ -172,7 +172,7 @@ func (p *Proc) run() {
 			p.agg.spiller.Cleanup()
 		}
 		// Tell p.ctx's cancel function that we've finished our cleanup.
-		p.pctx.WaitGroup.Done()
+		p.octx.WaitGroup.Done()
 	}()
 	sendResults := func(p *Proc) bool {
 		for {
@@ -263,7 +263,7 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) (bool, bool) {
 			select {
 			case p.resultCh <- op.Result{Err: err}:
 				return true, false
-			case <-p.pctx.Done():
+			case <-p.octx.Done():
 				return false, false
 			}
 		}
@@ -271,7 +271,7 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) (bool, bool) {
 			b.Unref()
 		}
 		return true, true
-	case <-p.pctx.Done():
+	case <-p.octx.Done():
 		return false, false
 	}
 }

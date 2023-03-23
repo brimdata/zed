@@ -13,9 +13,9 @@ type DeleteQuery struct {
 	deletes *sync.Map
 }
 
-func NewDeleteQuery(pctx *op.Context, puller zbuf.Puller, deletes *sync.Map) *DeleteQuery {
+func NewDeleteQuery(octx *op.Context, puller zbuf.Puller, deletes *sync.Map) *DeleteQuery {
 	return &DeleteQuery{
-		Query:   NewQuery(pctx, puller, nil),
+		Query:   NewQuery(octx, puller, nil),
 		deletes: deletes,
 	}
 }

@@ -15,7 +15,7 @@ import (
 )
 
 type Proc struct {
-	pctx        *op.Context
+	octx        *op.Context
 	anti        bool
 	inner       bool
 	ctx         context.Context
@@ -32,14 +32,14 @@ type Proc struct {
 	types       map[int]map[int]*zed.TypeRecord
 }
 
-func New(pctx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
-	cutter, err := expr.NewCutter(pctx.Zctx, lhs, rhs)
+func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
+	cutter, err := expr.NewCutter(octx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithCancel(pctx.Context)
+	ctx, cancel := context.WithCancel(octx.Context)
 	return &Proc{
-		pctx:        pctx,
+		octx:        octx,
 		anti:        anti,
 		inner:       inner,
 		ctx:         ctx,
@@ -214,7 +214,7 @@ func (p *Proc) buildType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
 		}
 		fields = append(fields, zed.NewField(name, f.Type))
 	}
-	return p.pctx.Zctx.LookupTypeRecord(fields)
+	return p.octx.Zctx.LookupTypeRecord(fields)
 }
 
 func (p *Proc) combinedType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {

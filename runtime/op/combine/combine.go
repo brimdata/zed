@@ -19,8 +19,8 @@ type Proc struct {
 	nblocked int
 }
 
-func New(pctx *op.Context, parents []zbuf.Puller) *Proc {
-	ctx := pctx.Context
+func New(octx *op.Context, parents []zbuf.Puller) *Proc {
+	ctx := octx.Context
 	queue := make(chan *puller, len(parents))
 	pullers := make([]*puller, 0, len(parents))
 	waitCh := make(chan struct{})

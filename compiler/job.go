@@ -17,7 +17,7 @@ import (
 )
 
 type Job struct {
-	pctx      *op.Context
+	octx      *op.Context
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
 	consts    []dag.Op
@@ -26,7 +26,7 @@ type Job struct {
 	puller    zbuf.Puller
 }
 
-func NewJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
+func NewJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
 	parserAST := ast.Copy(inAST)
 	// An AST always begins with a Sequential op with at least one
 	// operator.  If the first op is a From or a Parallel whose branches
@@ -95,14 +95,14 @@ func NewJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 	if from != nil {
 		seq.Prepend(from)
 	}
-	entry, err := semantic.Analyze(pctx.Context, seq, src, head)
+	entry, err := semantic.Analyze(octx.Context, seq, src, head)
 	if err != nil {
 		return nil, err
 	}
 	return &Job{
-		pctx:      pctx,
-		builder:   kernel.NewBuilder(pctx, src),
-		optimizer: optimizer.New(pctx.Context, entry, src),
+		octx:      octx,
+		builder:   kernel.NewBuilder(octx, src),
+		optimizer: optimizer.New(octx.Context, entry, src),
 		readers:   readers,
 	}, nil
 }
@@ -181,7 +181,7 @@ func (j *Job) Puller() zbuf.Puller {
 		case 1:
 			j.puller = op.NewCatcher(op.NewSingle(outputs[0]))
 		default:
-			j.puller = op.NewMux(j.pctx, outputs)
+			j.puller = op.NewMux(j.octx, outputs)
 		}
 	}
 	return j.puller

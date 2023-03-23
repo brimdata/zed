@@ -10,7 +10,7 @@ import (
 var MemMaxBytes = 128 * 1024 * 1024
 
 type Proc struct {
-	pctx   *op.Context
+	octx   *op.Context
 	parent zbuf.Puller
 
 	shaper   *Shaper
@@ -18,11 +18,11 @@ type Proc struct {
 	resultCh chan op.Result
 }
 
-func New(pctx *op.Context, parent zbuf.Puller) (*Proc, error) {
+func New(octx *op.Context, parent zbuf.Puller) (*Proc, error) {
 	return &Proc{
-		pctx:     pctx,
+		octx:     octx,
 		parent:   parent,
-		shaper:   NewShaper(pctx.Zctx, MemMaxBytes),
+		shaper:   NewShaper(octx.Zctx, MemMaxBytes),
 		resultCh: make(chan op.Result),
 	}, nil
 }
@@ -36,7 +36,7 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
 	}
-	return nil, p.pctx.Err()
+	return nil, p.octx.Err()
 }
 
 func (p *Proc) run() {
@@ -49,7 +49,7 @@ func (p *Proc) run() {
 
 func (p *Proc) pullInput() error {
 	for {
-		if err := p.pctx.Err(); err != nil {
+		if err := p.octx.Err(); err != nil {
 			return err
 		}
 		batch, err := p.parent.Pull(false)
@@ -67,7 +67,7 @@ func (p *Proc) pullInput() error {
 func (p *Proc) pushOutput() error {
 	puller := zbuf.NewPuller(p.shaper)
 	for {
-		if err := p.pctx.Err(); err != nil {
+		if err := p.octx.Err(); err != nil {
 			return err
 		}
 		batch, err := puller.Pull(false)
@@ -81,7 +81,7 @@ func (p *Proc) pushOutput() error {
 func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	select {
 	case p.resultCh <- op.Result{Batch: b, Err: err}:
-	case <-p.pctx.Done():
+	case <-p.octx.Done():
 	}
 }
 
