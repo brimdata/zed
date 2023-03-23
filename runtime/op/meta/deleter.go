@@ -21,7 +21,7 @@ type Deleter struct {
 	current     zbuf.Puller
 	filter      zbuf.Filter
 	pruner      expr.Evaluator
-	pctx        *op.Context
+	octx        *op.Context
 	pool        *lake.Pool
 	progress    *zbuf.Progress
 	snap        commits.View
@@ -32,12 +32,12 @@ type Deleter struct {
 }
 
 // XXX shouldn't pass in snap
-func NewDeleter(pctx *op.Context, parent zbuf.Puller, pool *lake.Pool, snap commits.View, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress, deletes *sync.Map) *Deleter {
+func NewDeleter(octx *op.Context, parent zbuf.Puller, pool *lake.Pool, snap commits.View, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress, deletes *sync.Map) *Deleter {
 	return &Deleter{
 		parent:      parent,
 		filter:      filter,
 		pruner:      pruner,
-		pctx:        pctx,
+		octx:        octx,
 		pool:        pool,
 		progress:    progress,
 		snap:        snap,
@@ -107,16 +107,16 @@ func newDeleterScanner(d *Deleter, part Partition) (zbuf.Puller, error) {
 		}
 	}
 	for _, object := range part.Objects {
-		ranges, err := data.LookupSeekRange(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, object, d.pruner)
+		ranges, err := data.LookupSeekRange(d.octx.Context, d.pool.Storage(), d.pool.DataPath, object, d.pruner)
 		if err != nil {
 			return nil, err
 		}
-		rc, err := object.NewReader(d.pctx.Context, d.pool.Storage(), d.pool.DataPath, ranges)
+		rc, err := object.NewReader(d.octx.Context, d.pool.Storage(), d.pool.DataPath, ranges)
 		if err != nil {
 			pullersDone()
 			return nil, err
 		}
-		scanner, err := zngio.NewReader(d.pctx.Zctx, rc).NewScanner(d.pctx.Context, d.filter)
+		scanner, err := zngio.NewReader(d.octx.Zctx, rc).NewScanner(d.octx.Context, d.filter)
 		if err != nil {
 			pullersDone()
 			rc.Close()
@@ -132,7 +132,7 @@ func newDeleterScanner(d *Deleter, part Partition) (zbuf.Puller, error) {
 	if len(pullers) == 1 {
 		return pullers[0], nil
 	}
-	return merge.New(d.pctx.Context, pullers, lake.ImportComparator(d.pctx.Zctx, d.pool).Compare), nil
+	return merge.New(d.octx.Context, pullers, lake.ImportComparator(d.octx.Zctx, d.pool).Compare), nil
 }
 
 type deleteScanner struct {

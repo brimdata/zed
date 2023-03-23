@@ -484,9 +484,9 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 	if err != nil {
 		return nil, err
 	}
-	parent := traverse.NewExpr(b.pctx.Context, b.zctx())
-	enter := traverse.NewOver(b.pctx, parent, exprs)
-	scope := enter.AddScope(b.pctx.Context, names, lets)
+	parent := traverse.NewExpr(b.octx.Context, b.zctx())
+	enter := traverse.NewOver(b.octx, parent, exprs)
+	scope := enter.AddScope(b.octx.Context, names, lets)
 	exits, err := b.compile(over.Scope, []zbuf.Puller{scope})
 	if err != nil {
 		return nil, err
@@ -497,7 +497,7 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 	} else {
 		// This can happen when output of over body
 		// is a fork or switch.
-		exit = combine.New(b.pctx, exits)
+		exit = combine.New(b.octx, exits)
 	}
 	parent.SetExit(scope.NewExit(exit))
 	return parent, nil

@@ -20,8 +20,8 @@ type switchCase struct {
 	vals   []zed.Value
 }
 
-func New(pctx *op.Context, parent zbuf.Puller) *Selector {
-	router := op.NewRouter(pctx, parent)
+func New(octx *op.Context, parent zbuf.Puller) *Selector {
+	router := op.NewRouter(octx, parent)
 	s := &Selector{
 		Router: router,
 	}

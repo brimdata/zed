@@ -32,8 +32,8 @@ func NewLakeCompiler(r *lake.Root) zedruntime.Compiler {
 	return &lakeCompiler{src: data.NewSource(storage.NewRemoteEngine(), r)}
 }
 
-func (l *lakeCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*zedruntime.Query, error) {
-	job, err := NewJob(pctx, program, l.src, head)
+func (l *lakeCompiler) NewLakeQuery(octx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*zedruntime.Query, error) {
+	job, err := NewJob(octx, program, l.src, head)
 	if err != nil {
 		return nil, err
 	}
@@ -52,11 +52,11 @@ func (l *lakeCompiler) NewLakeQuery(pctx *op.Context, program ast.Op, parallelis
 	if err := job.Build(); err != nil {
 		return nil, err
 	}
-	return zedruntime.NewQuery(job.pctx, job.Puller(), job.builder.Meter()), nil
+	return zedruntime.NewQuery(job.octx, job.Puller(), job.builder.Meter()), nil
 }
 
-func (l *lakeCompiler) NewLakeDeleteQuery(pctx *op.Context, program ast.Op, head *lakeparse.Commitish) (*zedruntime.DeleteQuery, error) {
-	job, err := newDeleteJob(pctx, program, l.src, head)
+func (l *lakeCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head *lakeparse.Commitish) (*zedruntime.DeleteQuery, error) {
+	job, err := newDeleteJob(octx, program, l.src, head)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (l *lakeCompiler) NewLakeDeleteQuery(pctx *op.Context, program ast.Op, head
 	if err := job.Build(); err != nil {
 		return nil, err
 	}
-	return zedruntime.NewDeleteQuery(pctx, job.Puller(), job.builder.Deletes()), nil
+	return zedruntime.NewDeleteQuery(octx, job.Puller(), job.builder.Deletes()), nil
 }
 
 type InvalidDeleteWhereQuery struct{}
@@ -78,7 +78,7 @@ func (InvalidDeleteWhereQuery) Error() string {
 	return "invalid delete where query: must be a single filter operation"
 }
 
-func newDeleteJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
+func newDeleteJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
 	parserAST := ast.Copy(inAST)
 	seq, ok := parserAST.(*ast.Sequential)
 	if !ok {
@@ -107,7 +107,7 @@ func newDeleteJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakepa
 			},
 		}},
 	})
-	entry, err := semantic.Analyze(pctx.Context, seq, src, head)
+	entry, err := semantic.Analyze(octx.Context, seq, src, head)
 	if err != nil {
 		return nil, err
 	}
@@ -115,8 +115,8 @@ func newDeleteJob(pctx *op.Context, inAST ast.Op, src *data.Source, head *lakepa
 		return nil, &InvalidDeleteWhereQuery{}
 	}
 	return &Job{
-		pctx:      pctx,
-		builder:   kernel.NewBuilder(pctx, src),
-		optimizer: optimizer.New(pctx.Context, entry, src),
+		octx:      octx,
+		builder:   kernel.NewBuilder(octx, src),
+		optimizer: optimizer.New(octx.Context, entry, src),
 	}, nil
 }

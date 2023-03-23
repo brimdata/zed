@@ -18,16 +18,16 @@ import (
 // methods provide a convenient means to run a flowgraph as zio.Reader.
 type Query struct {
 	zbuf.Puller
-	pctx  *op.Context
+	octx  *op.Context
 	meter zbuf.Meter
 }
 
 var _ zbuf.Puller = (*Query)(nil)
 
-func NewQuery(pctx *op.Context, puller zbuf.Puller, meter zbuf.Meter) *Query {
+func NewQuery(octx *op.Context, puller zbuf.Puller, meter zbuf.Meter) *Query {
 	return &Query{
 		Puller: puller,
-		pctx:   pctx,
+		octx:   octx,
 		meter:  meter,
 	}
 }
@@ -40,20 +40,20 @@ type Compiler interface {
 }
 
 func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Op, readers []zio.Reader) (*Query, error) {
-	pctx := op.NewContext(ctx, zctx, nil)
-	q, err := c.NewQuery(pctx, program, readers)
+	octx := op.NewContext(ctx, zctx, nil)
+	q, err := c.NewQuery(octx, program, readers)
 	if err != nil {
-		pctx.Cancel()
+		octx.Cancel()
 		return nil, err
 	}
 	return q, nil
 }
 
 func CompileLakeQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Op, head *lakeparse.Commitish, logger *zap.Logger) (*Query, error) {
-	pctx := op.NewContext(ctx, zctx, logger)
-	q, err := c.NewLakeQuery(pctx, program, 0, head)
+	octx := op.NewContext(ctx, zctx, logger)
+	q, err := c.NewLakeQuery(octx, program, 0, head)
 	if err != nil {
-		pctx.Cancel()
+		octx.Cancel()
 		return nil, err
 	}
 	return q, nil
@@ -80,13 +80,13 @@ func (q *Query) Meter() zbuf.Meter {
 }
 
 func (q *Query) Close() error {
-	q.pctx.Cancel()
+	q.octx.Cancel()
 	return nil
 }
 
 func (q *Query) Pull(done bool) (zbuf.Batch, error) {
 	if done {
-		q.pctx.Cancel()
+		q.octx.Cancel()
 	}
 	return q.Puller.Pull(done)
 }
