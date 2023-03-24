@@ -121,7 +121,7 @@ type Comparator struct {
 	reverse  bool
 
 	comparefns map[zed.Type]comparefn
-	ectx       Context
+	ectx       ResetContext
 	pair       coerce.Pair
 }
 
@@ -138,7 +138,6 @@ func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
 		nullsMax:   nullsMax,
 		reverse:    reverse,
 		comparefns: make(map[zed.Type]comparefn),
-		ectx:       NewContext(),
 	}
 }
 
@@ -167,9 +166,10 @@ func (c *Comparator) Compare(a, b *zed.Value) int {
 	if c.reverse {
 		a, b = b, a
 	}
+	c.ectx.Reset()
 	for _, k := range c.exprs {
-		aval := k.Eval(c.ectx, a)
-		bval := k.Eval(c.ectx, b)
+		aval := k.Eval(&c.ectx, a)
+		bval := k.Eval(&c.ectx, b)
 		if v := compareValues(aval, bval, c.comparefns, &c.pair, c.nullsMax); v != 0 {
 			return v
 		}
