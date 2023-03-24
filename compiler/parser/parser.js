@@ -4302,15 +4302,6 @@ function peg$parse(input, options) {
         s3 = peg$currPos;
         peg$silentFails++;
         s4 = peg$parseEndOfOp();
-        if (s4 === peg$FAILED) {
-          if (input.substr(peg$currPos, 4) === peg$c48) {
-            s4 = peg$c48;
-            peg$currPos += 4;
-          } else {
-            s4 = peg$FAILED;
-            if (peg$silentFails === 0) { peg$fail(peg$c49); }
-          }
-        }
         peg$silentFails--;
         if (s4 === peg$FAILED) {
           s3 = void 0;

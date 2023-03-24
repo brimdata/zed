@@ -528,7 +528,9 @@ func (c *canon) proc(p ast.Op) {
 		}
 	case *ast.Head:
 		c.next()
-		c.write("head %d", p.Count)
+		c.open("head ")
+		c.expr(p.Count, "")
+		c.close()
 	case *ast.Tail:
 		c.next()
 		c.write("tail %d", p.Count)
