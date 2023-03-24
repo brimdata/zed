@@ -17,7 +17,6 @@ import (
 // implementing an external merge sort.
 type MergeSort struct {
 	comparator *expr.Comparator
-	ectx       expr.ResetContext
 	nspill     int
 	runs       []*peeker
 	tempDir    string
@@ -140,8 +139,7 @@ func (r *MergeSort) SpillSize() int64 {
 func (r *MergeSort) Len() int { return len(r.runs) }
 
 func (r *MergeSort) Less(i, j int) bool {
-	r.ectx.Reset()
-	if v := r.comparator.CompareCtx(&r.ectx, r.runs[i].nextRecord, r.runs[j].nextRecord); v != 0 {
+	if v := r.comparator.Compare(r.runs[i].nextRecord, r.runs[j].nextRecord); v != 0 {
 		return v < 0
 	}
 	// Maintain stability.

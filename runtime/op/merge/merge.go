@@ -19,9 +19,8 @@ import (
 // would otherwise block waiting for an adjacent puller to finish but the
 // Merger is waiting on the upstream puller.
 type Proc struct {
-	ectx expr.ResetContext
 	ctx  context.Context
-	cmp  *expr.Comparator
+	cmp  expr.CompareFn
 	once sync.Once
 	// parents holds all of the upstream pullers and never changes.
 	parents []*puller
@@ -34,7 +33,7 @@ type Proc struct {
 var _ zbuf.Puller = (*Proc)(nil)
 var _ zio.Reader = (*Proc)(nil)
 
-func New(ctx context.Context, parents []zbuf.Puller, cmp *expr.Comparator) *Proc {
+func New(ctx context.Context, parents []zbuf.Puller, cmp expr.CompareFn) *Proc {
 	pullers := make([]*puller, 0, len(parents))
 	for _, p := range parents {
 		pullers = append(pullers, newPuller(ctx, p))
@@ -61,8 +60,7 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 		return nil, p.start()
 	}
 	min := heap.Pop(p).(*puller)
-	p.ectx.Reset()
-	if p.Len() == 0 || p.cmp.CompareCtx(&p.ectx, &min.vals[len(min.vals)-1], &p.hol[0].vals[0]) <= 0 {
+	if p.Len() == 0 || p.cmp(&min.vals[len(min.vals)-1], &p.hol[0].vals[0]) <= 0 {
 		// Either min is the only upstreams or min's last value is less
 		// than or equal to the next upstream's first value.  Either
 		// way, it's safe to return min's remaining values as a batch.
@@ -160,8 +158,7 @@ func (p *Proc) propagateDone() error {
 func (m *Proc) Len() int { return len(m.hol) }
 
 func (m *Proc) Less(i, j int) bool {
-	m.ectx.Reset()
-	return m.cmp.CompareCtx(&m.ectx, &m.hol[i].vals[0], &m.hol[j].vals[0]) < 0
+	return m.cmp(&m.hol[i].vals[0], &m.hol[j].vals[0]) < 0
 }
 
 func (m *Proc) Swap(i, j int) { m.hol[i], m.hol[j] = m.hol[j], m.hol[i] }

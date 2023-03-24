@@ -497,7 +497,7 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		}
 		nullsMax := o.Order == order.Asc
 		cmp := expr.NewComparator(nullsMax, !nullsMax, e).WithMissingAsNull()
-		return []zbuf.Puller{merge.New(b.octx, parents, cmp)}, nil
+		return []zbuf.Puller{merge.New(b.octx, parents, cmp.Compare)}, nil
 	default:
 		var parent zbuf.Puller
 		if len(parents) == 1 {
