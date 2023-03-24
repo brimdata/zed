@@ -10,7 +10,7 @@ import (
 // A an explode Proc is a proc that, given an input record and a
 // zng type T, outputs one record for each field of the input record of
 // type T. It is useful for type-based indexing.
-type Proc struct {
+type Op struct {
 	parent  zbuf.Puller
 	outType zed.Type
 	typ     zed.Type
@@ -20,7 +20,7 @@ type Proc struct {
 // New creates a exploder for type typ, where the
 // output records' single field is named name.
 func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string) (zbuf.Puller, error) {
-	return &Proc{
+	return &Op{
 		parent:  parent,
 		outType: zctx.MustLookupTypeRecord([]zed.Field{{Name: name, Type: typ}}),
 		typ:     typ,
@@ -28,16 +28,16 @@ func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.T
 	}, nil
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	for {
-		batch, err := p.parent.Pull(done)
+		batch, err := o.parent.Pull(done)
 		if batch == nil || err != nil {
 			return nil, err
 		}
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
-			for _, arg := range p.args {
+			for _, arg := range o.args {
 				val := arg.Eval(batch, &vals[i])
 				if val.IsError() {
 					if !val.IsMissing() {
@@ -46,9 +46,9 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 					continue
 				}
 				zed.Walk(val.Type, val.Bytes, func(typ zed.Type, body zcode.Bytes) error {
-					if typ == p.typ && body != nil {
+					if typ == o.typ && body != nil {
 						bytes := zcode.Append(nil, body)
-						out = append(out, *zed.NewValue(p.outType, bytes))
+						out = append(out, *zed.NewValue(o.outType, bytes))
 						return zed.SkipContainer
 					}
 					return nil

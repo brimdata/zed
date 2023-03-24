@@ -18,7 +18,7 @@ import (
 var DefaultLimit = 1000000
 
 // Proc computes aggregations using an Aggregator.
-type Proc struct {
+type Op struct {
 	octx     *op.Context
 	parent   zbuf.Puller
 	agg      *Aggregator
@@ -112,7 +112,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	}, nil
 }
 
-func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Proc, error) {
+func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Op, error) {
 	names := make(field.List, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
 		names = append(names, e.LHS)
@@ -136,7 +136,7 @@ func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames 
 	if err != nil {
 		return nil, err
 	}
-	return &Proc{
+	return &Op{
 		octx:     octx,
 		parent:   parent,
 		agg:      agg,
@@ -145,39 +145,39 @@ func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames 
 	}, nil
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	if done {
 		select {
-		case p.doneCh <- struct{}{}:
+		case o.doneCh <- struct{}{}:
 			return nil, nil
-		case <-p.octx.Done():
-			return nil, p.octx.Err()
+		case <-o.octx.Done():
+			return nil, o.octx.Err()
 		}
 	}
-	p.once.Do(func() {
+	o.once.Do(func() {
 		// Block p.ctx's cancel function until p.run finishes its
 		// cleanup.
-		p.octx.WaitGroup.Add(1)
-		go p.run()
+		o.octx.WaitGroup.Add(1)
+		go o.run()
 	})
-	if r, ok := <-p.resultCh; ok {
+	if r, ok := <-o.resultCh; ok {
 		return r.Batch, r.Err
 	}
-	return nil, p.octx.Err()
+	return nil, o.octx.Err()
 }
 
-func (p *Proc) run() {
+func (o *Op) run() {
 	defer func() {
-		if p.agg.spiller != nil {
-			p.agg.spiller.Cleanup()
+		if o.agg.spiller != nil {
+			o.agg.spiller.Cleanup()
 		}
 		// Tell p.ctx's cancel function that we've finished our cleanup.
-		p.octx.WaitGroup.Done()
+		o.octx.WaitGroup.Done()
 	}()
-	sendResults := func(p *Proc) bool {
+	sendResults := func(o *Op) bool {
 		for {
-			b, err := p.agg.nextResult(true, p.batch)
-			done, ok := p.sendResult(b, err)
+			b, err := o.agg.nextResult(true, o.batch)
+			done, ok := o.sendResult(b, err)
 			if !ok {
 				return false
 			}
@@ -187,46 +187,46 @@ func (p *Proc) run() {
 		}
 	}
 	defer func() {
-		close(p.resultCh)
+		close(o.resultCh)
 	}()
 	for {
-		batch, err := p.parent.Pull(false)
+		batch, err := o.parent.Pull(false)
 		if err != nil {
-			if _, ok := p.sendResult(nil, err); !ok {
+			if _, ok := o.sendResult(nil, err); !ok {
 				return
 			}
 			continue
 		}
 		if batch == nil {
-			if ok := sendResults(p); !ok {
+			if ok := sendResults(o); !ok {
 				return
 			}
-			if p.batch != nil {
-				p.batch.Unref()
-				p.batch = nil
+			if o.batch != nil {
+				o.batch.Unref()
+				o.batch = nil
 			}
 			continue
 		}
-		if p.batch == nil {
+		if o.batch == nil {
 			batch.Ref()
-			p.batch = batch
+			o.batch = batch
 		}
 		vals := batch.Values()
 		for i := range vals {
-			if err := p.agg.Consume(batch, &vals[i]); err != nil {
-				p.sendResult(nil, err)
+			if err := o.agg.Consume(batch, &vals[i]); err != nil {
+				o.sendResult(nil, err)
 				return
 			}
 		}
 		batch.Unref()
-		if p.agg.inputDir == 0 {
+		if o.agg.inputDir == 0 {
 			continue
 		}
 		// sorted input: see if we have any completed keys we can emit.
 		for {
-			res, err := p.agg.nextResult(false, batch)
+			res, err := o.agg.nextResult(false, batch)
 			if err != nil {
-				if _, ok := p.sendResult(nil, err); !ok {
+				if _, ok := o.sendResult(nil, err); !ok {
 					return
 				}
 				break
@@ -234,8 +234,8 @@ func (p *Proc) run() {
 			if res == nil {
 				break
 			}
-			expr.SortStable(res.Values(), p.agg.keyCompare)
-			done, ok := p.sendResult(res, nil)
+			expr.SortStable(res.Values(), o.agg.keyCompare)
+			done, ok := o.sendResult(res, nil)
 			if !ok {
 				return
 			}
@@ -246,24 +246,24 @@ func (p *Proc) run() {
 	}
 }
 
-func (p *Proc) sendResult(b zbuf.Batch, err error) (bool, bool) {
+func (o *Op) sendResult(b zbuf.Batch, err error) (bool, bool) {
 	select {
-	case p.resultCh <- op.Result{Batch: b, Err: err}:
+	case o.resultCh <- op.Result{Batch: b, Err: err}:
 		return false, true
-	case <-p.doneCh:
+	case <-o.doneCh:
 		if b != nil {
 			b.Unref()
 		}
-		p.reset()
-		b, pullErr := p.parent.Pull(true)
+		o.reset()
+		b, pullErr := o.parent.Pull(true)
 		if err == nil {
 			err = pullErr
 		}
 		if err != nil {
 			select {
-			case p.resultCh <- op.Result{Err: err}:
+			case o.resultCh <- op.Result{Err: err}:
 				return true, false
-			case <-p.octx.Done():
+			case <-o.octx.Done():
 				return false, false
 			}
 		}
@@ -271,20 +271,20 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) (bool, bool) {
 			b.Unref()
 		}
 		return true, true
-	case <-p.octx.Done():
+	case <-o.octx.Done():
 		return false, false
 	}
 }
 
-func (p *Proc) reset() {
-	if p.agg.spiller != nil {
-		p.agg.spiller.Cleanup()
-		p.agg.spiller = nil
+func (o *Op) reset() {
+	if o.agg.spiller != nil {
+		o.agg.spiller.Cleanup()
+		o.agg.spiller = nil
 	}
-	p.agg.table = make(map[string]*Row)
-	if p.batch != nil {
-		p.batch.Unref()
-		p.batch = nil
+	o.agg.table = make(map[string]*Row)
+	if o.batch != nil {
+		o.batch.Unref()
+		o.batch = nil
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
-type Proc struct {
+type Op struct {
 	parent zbuf.Puller
 	limit  int
 	batch  zbuf.Batch
@@ -15,73 +15,73 @@ type Proc struct {
 	eos    bool
 }
 
-func New(parent zbuf.Puller, limit int) *Proc {
+func New(parent zbuf.Puller, limit int) *Op {
 	//XXX should have a limit check on limit
-	return &Proc{
+	return &Op{
 		parent: parent,
 		limit:  limit,
 		q:      make([]zed.Value, limit),
 	}
 }
 
-func (p *Proc) tail() zbuf.Batch {
-	if p.count <= 0 {
+func (o *Op) tail() zbuf.Batch {
+	if o.count <= 0 {
 		return nil
 	}
-	start := p.off
-	if p.count < p.limit {
+	start := o.off
+	if o.count < o.limit {
 		start = 0
 	}
-	out := make([]zed.Value, p.count)
-	for k := 0; k < p.count; k++ {
-		out[k] = p.q[(start+k)%p.limit]
+	out := make([]zed.Value, o.count)
+	for k := 0; k < o.count; k++ {
+		out[k] = o.q[(start+k)%o.limit]
 	}
-	return zbuf.NewBatch(p.batch, out)
+	return zbuf.NewBatch(o.batch, out)
 
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
-	if p.eos {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
+	if o.eos {
 		// We don't check done here because if we already got EOS,
 		// we don't propagate done.
-		p.eos = false
+		o.eos = false
 		return nil, nil
 	}
 	if done {
-		p.off = 0
-		p.count = 0
-		p.eos = false
-		return p.parent.Pull(true)
+		o.off = 0
+		o.count = 0
+		o.eos = false
+		return o.parent.Pull(true)
 	}
 	for {
-		batch, err := p.parent.Pull(false)
+		batch, err := o.parent.Pull(false)
 		if err != nil {
 			return nil, err
 		}
 		if batch == nil {
-			batch = p.tail()
+			batch = o.tail()
 			if batch != nil {
-				p.eos = true
-				if p.batch != nil {
-					p.batch.Unref()
-					p.batch = nil
+				o.eos = true
+				if o.batch != nil {
+					o.batch.Unref()
+					o.batch = nil
 				}
 			}
-			p.off = 0
-			p.count = 0
+			o.off = 0
+			o.count = 0
 			return batch, nil
 		}
-		if p.batch == nil {
+		if o.batch == nil {
 			batch.Ref()
-			p.batch = batch
+			o.batch = batch
 		}
 		vals := batch.Values()
 		for i := range vals {
-			p.q[p.off] = *vals[i].Copy()
-			p.off = (p.off + 1) % p.limit
-			p.count++
-			if p.count >= p.limit {
-				p.count = p.limit
+			o.q[o.off] = *vals[i].Copy()
+			o.off = (o.off + 1) % o.limit
+			o.count++
+			if o.count >= o.limit {
+				o.count = o.limit
 			}
 		}
 		batch.Unref()

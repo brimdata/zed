@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type Proc struct {
+type Op struct {
 	ctx      context.Context
 	once     sync.Once
 	parents  []*puller
@@ -19,7 +19,7 @@ type Proc struct {
 	nblocked int
 }
 
-func New(octx *op.Context, parents []zbuf.Puller) *Proc {
+func New(octx *op.Context, parents []zbuf.Puller) *Op {
 	ctx := octx.Context
 	queue := make(chan *puller, len(parents))
 	pullers := make([]*puller, 0, len(parents))
@@ -27,7 +27,7 @@ func New(octx *op.Context, parents []zbuf.Puller) *Proc {
 	for _, parent := range parents {
 		pullers = append(pullers, newPuller(ctx, waitCh, parent, queue))
 	}
-	return &Proc{
+	return &Op{
 		ctx:     ctx,
 		parents: pullers,
 		queue:   queue,
@@ -35,17 +35,17 @@ func New(octx *op.Context, parents []zbuf.Puller) *Proc {
 	}
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
-	p.once.Do(func() {
-		for _, parent := range p.parents {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
+	o.once.Do(func() {
+		for _, parent := range o.parents {
 			go parent.run()
 		}
 	})
 	if done {
-		return nil, p.propagateDone()
+		return nil, o.propagateDone()
 	}
 	for {
-		next, err := p.next()
+		next, err := o.next()
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +55,7 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 			// ready for the next platoon and send an EOS
 			// downstream representing the fact that all fan-in
 			// legs hit their EOS.
-			return nil, p.unwait()
+			return nil, o.unwait()
 		}
 		select {
 		case result := <-next.resultCh:
@@ -63,55 +63,55 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 				return nil, result.Err
 			}
 			if result.Batch == nil {
-				p.block(next)
+				o.block(next)
 				continue
 			}
 			return result.Batch, nil
-		case <-p.ctx.Done():
-			return nil, p.ctx.Err()
+		case <-o.ctx.Done():
+			return nil, o.ctx.Err()
 		}
 	}
 }
 
-func (p *Proc) next() (*puller, error) {
-	if p.nblocked >= len(p.parents) {
+func (o *Op) next() (*puller, error) {
+	if o.nblocked >= len(o.parents) {
 		return nil, nil
 	}
 	select {
-	case parent := <-p.queue:
+	case parent := <-o.queue:
 		return parent, nil
-	case <-p.ctx.Done():
-		return nil, p.ctx.Err()
+	case <-o.ctx.Done():
+		return nil, o.ctx.Err()
 	}
 }
 
-func (p *Proc) unwait() error {
-	if len(p.parents) != p.nblocked {
+func (o *Op) unwait() error {
+	if len(o.parents) != o.nblocked {
 		panic("unwait called without all parents blocked")
 	}
-	for _, parent := range p.parents {
+	for _, parent := range o.parents {
 		select {
-		case <-p.waitCh:
-		case <-p.ctx.Done():
-			return p.ctx.Err()
+		case <-o.waitCh:
+		case <-o.ctx.Done():
+			return o.ctx.Err()
 		}
 		parent.blocked = false
 	}
-	p.nblocked = 0
+	o.nblocked = 0
 	return nil
 }
 
-func (p *Proc) block(parent *puller) {
+func (o *Op) block(parent *puller) {
 	if !parent.blocked {
 		parent.blocked = true
-		p.nblocked++
+		o.nblocked++
 	}
 }
 
-func (p *Proc) propagateDone() error {
+func (o *Op) propagateDone() error {
 	var mu sync.Mutex
 	var group errgroup.Group
-	for _, parent := range p.parents {
+	for _, parent := range o.parents {
 		if parent.blocked {
 			continue
 		}
@@ -122,7 +122,7 @@ func (p *Proc) propagateDone() error {
 		group.Go(func() error {
 		again:
 			select {
-			case <-p.queue:
+			case <-o.queue:
 				// If a parent is waiting on the queue, we need to
 				// read the queue to avoid deadlock.  Since we
 				// are going to throw away the batch anyway, we can
@@ -131,11 +131,11 @@ func (p *Proc) propagateDone() error {
 				goto again
 			case parent.doneCh <- struct{}{}:
 				mu.Lock()
-				p.block(parent)
+				o.block(parent)
 				mu.Unlock()
 				return nil
-			case <-p.ctx.Done():
-				return p.ctx.Err()
+			case <-o.ctx.Done():
+				return o.ctx.Err()
 			}
 		})
 	}
@@ -147,14 +147,14 @@ func (p *Proc) propagateDone() error {
 	// platoon.
 drain:
 	select {
-	case <-p.queue:
+	case <-o.queue:
 		goto drain
 	default:
 	}
 	// Now that everyone is blocked either because they sent us an EOS,
 	// we sent them a done, or and EOS/done collided at the same time,
 	// we can unblock everything.
-	return p.unwait()
+	return o.unwait()
 }
 
 type puller struct {

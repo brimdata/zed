@@ -18,7 +18,7 @@ import (
 // in its own goroutine so that deadlock is avoided when the upstream pullers
 // would otherwise block waiting for an adjacent puller to finish but the
 // Merger is waiting on the upstream puller.
-type Proc struct {
+type Op struct {
 	ctx  context.Context
 	cmp  expr.CompareFn
 	once sync.Once
@@ -30,37 +30,37 @@ type Proc struct {
 	hol []*puller
 }
 
-var _ zbuf.Puller = (*Proc)(nil)
-var _ zio.Reader = (*Proc)(nil)
+var _ zbuf.Puller = (*Op)(nil)
+var _ zio.Reader = (*Op)(nil)
 
-func New(ctx context.Context, parents []zbuf.Puller, cmp expr.CompareFn) *Proc {
+func New(ctx context.Context, parents []zbuf.Puller, cmp expr.CompareFn) *Op {
 	pullers := make([]*puller, 0, len(parents))
 	for _, p := range parents {
 		pullers = append(pullers, newPuller(ctx, p))
 	}
-	return &Proc{
+	return &Op{
 		ctx:     ctx,
 		cmp:     cmp,
 		parents: pullers,
 	}
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	var err error
-	p.once.Do(func() { err = p.run() })
+	o.once.Do(func() { err = o.run() })
 	if err != nil {
 		return nil, err
 	}
 	if done {
-		return nil, p.propagateDone()
+		return nil, o.propagateDone()
 	}
-	if p.Len() == 0 {
+	if o.Len() == 0 {
 		// No more batches in head of line.  So, let's resume
 		// everything and return an EOS.
-		return nil, p.start()
+		return nil, o.start()
 	}
-	min := heap.Pop(p).(*puller)
-	if p.Len() == 0 || p.cmp(&min.vals[len(min.vals)-1], &p.hol[0].vals[0]) <= 0 {
+	min := heap.Pop(o).(*puller)
+	if o.Len() == 0 || o.cmp(&min.vals[len(min.vals)-1], &o.hol[0].vals[0]) <= 0 {
 		// Either min is the only upstreams or min's last value is less
 		// than or equal to the next upstream's first value.  Either
 		// way, it's safe to return min's remaining values as a batch.
@@ -73,19 +73,19 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 			return nil, err
 		}
 		if ok {
-			heap.Push(p, min)
+			heap.Push(o, min)
 		}
 		return batch, nil
 	}
-	heap.Push(p, min)
-	return zbuf.NewPuller(p).Pull(false)
+	heap.Push(o, min)
+	return zbuf.NewPuller(o).Pull(false)
 }
 
-func (p *Proc) Read() (*zed.Value, error) {
-	if p.Len() == 0 {
+func (o *Op) Read() (*zed.Value, error) {
+	if o.Len() == 0 {
 		return nil, nil
 	}
-	u := p.hol[0]
+	u := o.hol[0]
 	val := &u.vals[0]
 	u.vals = u.vals[1:]
 	if len(u.vals) == 0 {
@@ -94,52 +94,52 @@ func (p *Proc) Read() (*zed.Value, error) {
 			return nil, err
 		}
 		if !ok {
-			heap.Pop(p)
+			heap.Pop(o)
 			return val, nil
 		}
 	}
-	heap.Fix(p, 0)
+	heap.Fix(o, 0)
 	return val, nil
 }
 
-func (p *Proc) run() error {
+func (o *Op) run() error {
 	// Start up all the goroutines before initializing the heap.
 	// If we do one at a time, there is a deadlock for an upstream
 	// split because the split waits for Pulls to arrive before
 	// responding.
-	for _, parent := range p.parents {
+	for _, parent := range o.parents {
 		go parent.run()
 	}
-	return p.start()
+	return o.start()
 }
 
 // start replenishes each parent's head-of-line batch either at initialization
 // or after an EOS and intializes the blocked table with the status of
 // each parent, e.g., a parent may be immediately blocked because it has
 // no data at (re)start and should not be re-entered into the HOL queue.
-func (p *Proc) start() error {
-	p.hol = p.hol[:0]
-	for _, parent := range p.parents {
+func (o *Op) start() error {
+	o.hol = o.hol[:0]
+	for _, parent := range o.parents {
 		parent.blocked = false
 		ok, err := parent.replenish()
 		if err != nil {
 			return err
 		}
 		if ok {
-			heap.Push(p, parent)
+			heap.Push(o, parent)
 		}
 	}
-	heap.Init(p)
+	heap.Init(o)
 	return nil
 }
 
-func (p *Proc) propagateDone() error {
+func (o *Op) propagateDone() error {
 	// For everything in the HOL queue (i.e., not already blocked),
 	// propagate a done and read until EOS.  This will result in
 	// all parents at EOS and blocked; then we can resume everything
 	// together.
-	for len(p.hol) > 0 {
-		m := p.Pop().(*puller)
+	for len(o.hol) > 0 {
+		m := o.Pop().(*puller)
 		select {
 		case m.doneCh <- struct{}{}:
 			if m.batch != nil {
@@ -152,22 +152,22 @@ func (p *Proc) propagateDone() error {
 	}
 	// Now the heap is empty and all pullers are at EOS.
 	// Unblock and initialize them so we can resume on the next bill.
-	return p.start()
+	return o.start()
 }
 
-func (m *Proc) Len() int { return len(m.hol) }
+func (o *Op) Len() int { return len(o.hol) }
 
-func (m *Proc) Less(i, j int) bool {
-	return m.cmp(&m.hol[i].vals[0], &m.hol[j].vals[0]) < 0
+func (o *Op) Less(i, j int) bool {
+	return o.cmp(&o.hol[i].vals[0], &o.hol[j].vals[0]) < 0
 }
 
-func (m *Proc) Swap(i, j int) { m.hol[i], m.hol[j] = m.hol[j], m.hol[i] }
+func (o *Op) Swap(i, j int) { o.hol[i], o.hol[j] = o.hol[j], o.hol[i] }
 
-func (m *Proc) Push(x interface{}) { m.hol = append(m.hol, x.(*puller)) }
+func (o *Op) Push(x interface{}) { o.hol = append(o.hol, x.(*puller)) }
 
-func (m *Proc) Pop() interface{} {
-	x := m.hol[len(m.hol)-1]
-	m.hol = m.hol[:len(m.hol)-1]
+func (o *Op) Pop() interface{} {
+	x := o.hol[len(o.hol)-1]
+	o.hol = o.hol[:len(o.hol)-1]
 	return x
 }
 

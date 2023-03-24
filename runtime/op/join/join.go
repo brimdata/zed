@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-type Proc struct {
+type Op struct {
 	octx        *op.Context
 	anti        bool
 	inner       bool
@@ -32,13 +32,13 @@ type Proc struct {
 	types       map[int]map[int]*zed.TypeRecord
 }
 
-func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
+func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Op, error) {
 	cutter, err := expr.NewCutter(octx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(octx.Context)
-	return &Proc{
+	return &Op{
 		octx:        octx,
 		anti:        anti,
 		inner:       inner,
@@ -56,17 +56,17 @@ func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, r
 }
 
 // Pull implements the merge logic for returning data from the upstreams.
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	// XXX see issue #3437 regarding done protocol.
-	p.once.Do(func() {
-		go p.left.run()
-		go p.right.Reader.(*puller).run()
+	o.once.Do(func() {
+		go o.left.run()
+		go o.right.Reader.(*puller).run()
 	})
 	var out []zed.Value
 	// See #3366
 	ectx := expr.NewContext()
 	for {
-		leftRec, err := p.left.Read()
+		leftRec, err := o.left.Read()
 		if err != nil {
 			return nil, err
 		}
@@ -77,26 +77,26 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 			//XXX See issue #3427.
 			return zbuf.NewArray(out), nil
 		}
-		key := p.getLeftKey.Eval(ectx, leftRec)
+		key := o.getLeftKey.Eval(ectx, leftRec)
 		if key.IsMissing() {
 			// If the left key isn't present (which is not a thing
 			// in a sql join), then drop the record and return only
 			// left records that can eval the key expression.
 			continue
 		}
-		rightRecs, err := p.getJoinSet(key)
+		rightRecs, err := o.getJoinSet(key)
 		if err != nil {
 			return nil, err
 		}
 		if rightRecs == nil {
 			// Nothing to add to the left join.
 			// Accumulate this record for an outer join.
-			if !p.inner {
+			if !o.inner {
 				out = append(out, *leftRec.Copy())
 			}
 			continue
 		}
-		if p.anti {
+		if o.anti {
 			continue
 		}
 		// For every record on the right with a key matching
@@ -109,8 +109,8 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 		// Batch and lives in a pool so the downstream user can
 		// release the batch with and bypass GC.
 		for _, rightRec := range rightRecs {
-			cutRec := p.cutter.Eval(ectx, rightRec)
-			rec, err := p.splice(leftRec, cutRec)
+			cutRec := o.cutter.Eval(ectx, rightRec)
+			rec, err := o.splice(leftRec, cutRec)
 			if err != nil {
 				return nil, err
 			}
@@ -119,32 +119,32 @@ func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
 	}
 }
 
-func (p *Proc) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
-	if p.joinKey != nil && p.compare(leftKey, p.joinKey) == 0 {
-		return p.joinSet, nil
+func (o *Op) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
+	if o.joinKey != nil && o.compare(leftKey, o.joinKey) == 0 {
+		return o.joinSet, nil
 	}
 	// See #3366
 	ectx := expr.NewContext()
 	for {
-		rec, err := p.right.Peek()
+		rec, err := o.right.Peek()
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		rightKey := p.getRightKey.Eval(ectx, rec)
+		rightKey := o.getRightKey.Eval(ectx, rec)
 		if rightKey.IsMissing() {
-			p.right.Read()
+			o.right.Read()
 			continue
 		}
-		cmp := p.compare(leftKey, rightKey)
+		cmp := o.compare(leftKey, rightKey)
 		if cmp == 0 {
 			// Copy leftKey.Bytes since it might get reused.
-			if p.joinKey == nil {
-				p.joinKey = leftKey.Copy()
+			if o.joinKey == nil {
+				o.joinKey = leftKey.Copy()
 			} else {
-				p.joinKey.CopyFrom(leftKey)
+				o.joinKey.CopyFrom(leftKey)
 			}
-			p.joinSet, err = p.readJoinSet(p.joinKey)
-			return p.joinSet, err
+			o.joinSet, err = o.readJoinSet(o.joinKey)
+			return o.joinSet, err
 		}
 		if cmp < 0 {
 			// If the left key is smaller than the next eligible
@@ -155,56 +155,56 @@ func (p *Proc) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
 		// Discard the peeked-at record and keep looking for
 		// a righthand key that either matches or exceeds the
 		// lefthand key.
-		p.right.Read()
+		o.right.Read()
 	}
 }
 
 // fillJoinSet is called when a join key has been found that matches
 // the current lefthand key.  It returns the all the subsequent records
 // from the righthand stream that match this key.
-func (p *Proc) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
+func (o *Op) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
 	var recs []*zed.Value
 	// See #3366
 	ectx := expr.NewContext()
 	for {
-		rec, err := p.right.Peek()
+		rec, err := o.right.Peek()
 		if err != nil {
 			return nil, err
 		}
 		if rec == nil {
 			return recs, nil
 		}
-		key := p.getRightKey.Eval(ectx, rec)
+		key := o.getRightKey.Eval(ectx, rec)
 		if key.IsMissing() {
-			p.right.Read()
+			o.right.Read()
 			continue
 		}
-		if p.compare(key, joinKey) != 0 {
+		if o.compare(key, joinKey) != 0 {
 			return recs, nil
 		}
 		recs = append(recs, rec.Copy())
-		p.right.Read()
+		o.right.Read()
 	}
 }
 
-func (p *Proc) lookupType(left, right *zed.TypeRecord) *zed.TypeRecord {
-	if table, ok := p.types[left.ID()]; ok {
+func (o *Op) lookupType(left, right *zed.TypeRecord) *zed.TypeRecord {
+	if table, ok := o.types[left.ID()]; ok {
 		return table[right.ID()]
 	}
 	return nil
 }
 
-func (p *Proc) enterType(combined, left, right *zed.TypeRecord) {
+func (o *Op) enterType(combined, left, right *zed.TypeRecord) {
 	id := left.ID()
-	table := p.types[id]
+	table := o.types[id]
 	if table == nil {
 		table = make(map[int]*zed.TypeRecord)
-		p.types[id] = table
+		o.types[id] = table
 	}
 	table[right.ID()] = combined
 }
 
-func (p *Proc) buildType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
+func (o *Op) buildType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
 	fields := make([]zed.Field, 0, len(left.Fields)+len(right.Fields))
 	fields = append(fields, left.Fields...)
 	for _, f := range right.Fields {
@@ -214,22 +214,22 @@ func (p *Proc) buildType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
 		}
 		fields = append(fields, zed.NewField(name, f.Type))
 	}
-	return p.octx.Zctx.LookupTypeRecord(fields)
+	return o.octx.Zctx.LookupTypeRecord(fields)
 }
 
-func (p *Proc) combinedType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
-	if typ := p.lookupType(left, right); typ != nil {
+func (o *Op) combinedType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
+	if typ := o.lookupType(left, right); typ != nil {
 		return typ, nil
 	}
-	typ, err := p.buildType(left, right)
+	typ, err := o.buildType(left, right)
 	if err != nil {
 		return nil, err
 	}
-	p.enterType(typ, left, right)
+	o.enterType(typ, left, right)
 	return typ, nil
 }
 
-func (p *Proc) splice(left, right *zed.Value) (*zed.Value, error) {
+func (o *Op) splice(left, right *zed.Value) (*zed.Value, error) {
 	if right == nil {
 		// This happens on a simple join, i.e., "join key",
 		// where there are no cut expressions.  For left joins,
@@ -240,7 +240,7 @@ func (p *Proc) splice(left, right *zed.Value) (*zed.Value, error) {
 	}
 	left = left.Under()
 	right = right.Under()
-	typ, err := p.combinedType(zed.TypeRecordOf(left.Type), zed.TypeRecordOf(right.Type))
+	typ, err := o.combinedType(zed.TypeRecordOf(left.Type), zed.TypeRecordOf(right.Type))
 	if err != nil {
 		return nil, err
 	}
