@@ -367,8 +367,9 @@ DropOp
     }
 
 HeadOp
-  = "head" _ count:Expr { RETURN(MAP("kind": "Head", "count": count)) }
-  / "head" { RETURN(MAP("kind": "Head", "count": MAP("kind": "Primitive", "type": "int64", "text": "1"))) }
+  = "head" _ !(EndOfOp/"case") count:Expr { RETURN(MAP("kind": "Head", "count": count)) }
+  / "head"  { RETURN(MAP("kind": "Head", "count": MAP("kind": "Primitive", "type": "int64", "text": "1"))) }
+
 
 TailOp
   = "tail" _ count:UInt { RETURN(MAP("kind": "Tail", "count": count)) }
