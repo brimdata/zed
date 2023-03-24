@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-type Proc struct {
+type Op struct {
 	octx    *op.Context
 	parent  zbuf.Puller
 	builder zcode.Builder
@@ -18,63 +18,63 @@ type Proc struct {
 	last    *zed.Value
 }
 
-func New(octx *op.Context, parent zbuf.Puller, cflag bool) *Proc {
-	return &Proc{
+func New(octx *op.Context, parent zbuf.Puller, cflag bool) *Op {
+	return &Op{
 		octx:   octx,
 		parent: parent,
 		cflag:  cflag,
 	}
 }
 
-func (p *Proc) wrap(t *zed.Value) *zed.Value {
-	if p.cflag {
-		p.builder.Reset()
-		p.builder.Append(t.Bytes)
-		p.builder.Append(zed.EncodeUint(p.count))
-		typ := p.octx.Zctx.MustLookupTypeRecord([]zed.Field{
+func (o *Op) wrap(t *zed.Value) *zed.Value {
+	if o.cflag {
+		o.builder.Reset()
+		o.builder.Append(t.Bytes)
+		o.builder.Append(zed.EncodeUint(o.count))
+		typ := o.octx.Zctx.MustLookupTypeRecord([]zed.Field{
 			zed.NewField("value", t.Type),
 			zed.NewField("count", zed.TypeUint64),
 		})
-		return zed.NewValue(typ, p.builder.Bytes()).Copy()
+		return zed.NewValue(typ, o.builder.Bytes()).Copy()
 	}
 	return t
 }
 
-func (p *Proc) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
-	if p.count == 0 {
-		p.last = t.Copy()
-		p.count = 1
+func (o *Op) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
+	if o.count == 0 {
+		o.last = t.Copy()
+		o.count = 1
 		return out
-	} else if bytes.Equal(t.Bytes, p.last.Bytes) {
-		p.count++
+	} else if bytes.Equal(t.Bytes, o.last.Bytes) {
+		o.count++
 		return out
 	}
-	out = append(out, *p.wrap(p.last))
-	p.last = t.Copy()
-	p.count = 1
+	out = append(out, *o.wrap(o.last))
+	o.last = t.Copy()
+	o.count = 1
 	return out
 }
 
 // uniq is a little bit complicated because we have to check uniqueness
 // across records between calls to Pull.
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	for {
-		batch, err := p.parent.Pull(done)
+		batch, err := o.parent.Pull(done)
 		if err != nil {
 			return nil, err
 		}
 		if batch == nil {
-			if p.last == nil {
+			if o.last == nil {
 				return nil, nil
 			}
-			t := p.wrap(p.last)
-			p.last = nil
+			t := o.wrap(o.last)
+			o.last = nil
 			return zbuf.NewArray([]zed.Value{*t}), nil
 		}
 		var out []zed.Value
 		vals := batch.Values()
 		for i := range vals {
-			out = p.appendUniq(out, &vals[i])
+			out = o.appendUniq(out, &vals[i])
 		}
 		batch.Unref()
 		if len(out) > 0 {

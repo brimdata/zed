@@ -9,7 +9,7 @@ import (
 
 var MemMaxBytes = 128 * 1024 * 1024
 
-type Proc struct {
+type Op struct {
 	octx   *op.Context
 	parent zbuf.Puller
 
@@ -18,8 +18,8 @@ type Proc struct {
 	resultCh chan op.Result
 }
 
-func New(octx *op.Context, parent zbuf.Puller) (*Proc, error) {
-	return &Proc{
+func New(octx *op.Context, parent zbuf.Puller) (*Op, error) {
+	return &Op{
 		octx:     octx,
 		parent:   parent,
 		fuser:    NewFuser(octx.Zctx, MemMaxBytes),
@@ -27,67 +27,67 @@ func New(octx *op.Context, parent zbuf.Puller) (*Proc, error) {
 	}, nil
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	// XXX ignoring the done indicator.  See issue #3436.
-	p.once.Do(func() { go p.run() })
-	if r, ok := <-p.resultCh; ok {
+	o.once.Do(func() { go o.run() })
+	if r, ok := <-o.resultCh; ok {
 		return r.Batch, r.Err
 	}
-	return nil, p.octx.Err()
+	return nil, o.octx.Err()
 }
 
-func (p *Proc) run() {
-	if err := p.pullInput(); err != nil {
-		p.shutdown(err)
+func (o *Op) run() {
+	if err := o.pullInput(); err != nil {
+		o.shutdown(err)
 		return
 	}
-	p.shutdown(p.pushOutput())
+	o.shutdown(o.pushOutput())
 }
 
-func (p *Proc) pullInput() error {
+func (o *Op) pullInput() error {
 	for {
-		if err := p.octx.Err(); err != nil {
+		if err := o.octx.Err(); err != nil {
 			return err
 		}
-		batch, err := p.parent.Pull(false)
+		batch, err := o.parent.Pull(false)
 		if err != nil {
 			return err
 		}
 		if batch == nil {
 			return nil
 		}
-		if err := zbuf.WriteBatch(p.fuser, batch); err != nil {
+		if err := zbuf.WriteBatch(o.fuser, batch); err != nil {
 			return err
 		}
 		batch.Unref()
 	}
 }
 
-func (p *Proc) pushOutput() error {
-	puller := zbuf.NewPuller(p.fuser)
+func (o *Op) pushOutput() error {
+	puller := zbuf.NewPuller(o.fuser)
 	for {
-		if err := p.octx.Err(); err != nil {
+		if err := o.octx.Err(); err != nil {
 			return err
 		}
 		batch, err := puller.Pull(false)
 		if err != nil || batch == nil {
 			return err
 		}
-		p.sendResult(batch, nil)
+		o.sendResult(batch, nil)
 	}
 }
 
-func (p *Proc) sendResult(b zbuf.Batch, err error) {
+func (o *Op) sendResult(b zbuf.Batch, err error) {
 	select {
-	case p.resultCh <- op.Result{Batch: b, Err: err}:
-	case <-p.octx.Done():
+	case o.resultCh <- op.Result{Batch: b, Err: err}:
+	case <-o.octx.Done():
 	}
 }
 
-func (p *Proc) shutdown(err error) {
-	if err2 := p.fuser.Close(); err == nil {
+func (o *Op) shutdown(err error) {
+	if err2 := o.fuser.Close(); err == nil {
 		err = err2
 	}
-	p.sendResult(nil, err)
-	close(p.resultCh)
+	o.sendResult(nil, err)
+	close(o.resultCh)
 }

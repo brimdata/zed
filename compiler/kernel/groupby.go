@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
-func (b *Builder) compileGroupBy(parent zbuf.Puller, summarize *dag.Summarize) (*groupby.Proc, error) {
+func (b *Builder) compileGroupBy(parent zbuf.Puller, summarize *dag.Summarize) (*groupby.Op, error) {
 	keys, err := b.compileAssignments(summarize.Keys)
 	if err != nil {
 		return nil, err

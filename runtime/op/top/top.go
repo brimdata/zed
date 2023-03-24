@@ -16,7 +16,7 @@ const defaultTopLimit = 100
 // - It utilizes a MaxHeap, immediately discarding records that are not in
 // the top N of the sort.
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
-type Proc struct {
+type Op struct {
 	parent     zbuf.Puller
 	zctx       *zed.Context
 	limit      int
@@ -26,11 +26,11 @@ type Proc struct {
 	flushEvery bool
 }
 
-func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool) *Proc {
+func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool) *Op {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
-	return &Proc{
+	return &Op{
 		parent:     parent,
 		limit:      limit,
 		fields:     fields,
@@ -38,54 +38,54 @@ func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluat
 	}
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	for {
-		batch, err := p.parent.Pull(done)
+		batch, err := o.parent.Pull(done)
 		if err != nil {
 			return nil, err
 		}
 		if batch == nil {
-			return p.sorted(), nil
+			return o.sorted(), nil
 		}
 		vals := batch.Values()
 		for i := range vals {
-			p.consume(&vals[i])
+			o.consume(&vals[i])
 		}
 		batch.Unref()
-		if p.flushEvery {
-			return p.sorted(), nil
+		if o.flushEvery {
+			return o.sorted(), nil
 		}
 	}
 }
 
-func (p *Proc) consume(rec *zed.Value) {
-	if p.fields == nil {
+func (o *Op) consume(rec *zed.Value) {
+	if o.fields == nil {
 		fld := sort.GuessSortKey(rec)
-		accessor := expr.NewDottedExpr(p.zctx, fld)
-		p.fields = []expr.Evaluator{accessor}
+		accessor := expr.NewDottedExpr(o.zctx, fld)
+		o.fields = []expr.Evaluator{accessor}
 	}
-	if p.records == nil {
-		p.compare = expr.NewCompareFn(false, p.fields...)
-		p.records = expr.NewRecordSlice(p.compare)
-		heap.Init(p.records)
+	if o.records == nil {
+		o.compare = expr.NewCompareFn(false, o.fields...)
+		o.records = expr.NewRecordSlice(o.compare)
+		heap.Init(o.records)
 	}
-	if p.records.Len() < p.limit || p.compare(p.records.Index(0), rec) < 0 {
-		heap.Push(p.records, rec.Copy())
+	if o.records.Len() < o.limit || o.compare(o.records.Index(0), rec) < 0 {
+		heap.Push(o.records, rec.Copy())
 	}
-	if p.records.Len() > p.limit {
-		heap.Pop(p.records)
+	if o.records.Len() > o.limit {
+		heap.Pop(o.records)
 	}
 }
 
-func (t *Proc) sorted() zbuf.Batch {
-	if t.records == nil {
+func (o *Op) sorted() zbuf.Batch {
+	if o.records == nil {
 		return nil
 	}
-	out := make([]zed.Value, t.records.Len())
-	for i := t.records.Len() - 1; i >= 0; i-- {
-		out[i] = *heap.Pop(t.records).(*zed.Value)
+	out := make([]zed.Value, o.records.Len())
+	for i := o.records.Len() - 1; i >= 0; i-- {
+		out[i] = *heap.Pop(o.records).(*zed.Value)
 	}
 	// clear records
-	t.records = nil
+	o.records = nil
 	return zbuf.NewArray(out)
 }

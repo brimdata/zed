@@ -4,14 +4,14 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
-type Proc struct {
+type Op struct {
 	parent zbuf.Puller
 }
 
-func New(parent zbuf.Puller) *Proc {
-	return &Proc{parent}
+func New(parent zbuf.Puller) *Op {
+	return &Op{parent}
 }
 
-func (p *Proc) Pull(done bool) (zbuf.Batch, error) {
-	return p.parent.Pull(done)
+func (o *Op) Pull(done bool) (zbuf.Batch, error) {
+	return o.parent.Pull(done)
 }
