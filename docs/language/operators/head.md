@@ -24,7 +24,7 @@ echo '1 "foo" [1,2,3]' | zq -z 'head 2' -
 "foo"
 ```
 
-_Grab first two values of arbitrary sequence, with a different representation_
+_Grab first two values of arbitrary sequence, using a different representation of two_
 ```mdtest-command
 echo '1 "foo" [1,2,3]' | zq -z 'head 1+1' -
 ```
