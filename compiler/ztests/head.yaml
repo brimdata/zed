@@ -1,0 +1,25 @@
+script: |
+  zc -C -s 'head 1'
+  echo ===
+  zc -C -s 'const x=1 head x + 1'
+  ! zc -C -s 'head 1.'
+  echo === | tee /dev/stderr
+  ! zc -C -s 'head "1"'
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        (internal reader)
+      )
+      | head 1
+      ===
+      const x = 1from (
+        (internal reader)
+      )
+      | head 2
+  - name: stderr
+    data: |
+      head: expression value is not a positive integer: 1.
+      ===
+      head: should get error here

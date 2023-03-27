@@ -5,18 +5,28 @@
 ### Synopsis
 
 ```
-head [ n ]
+head [ <expr> ]
 ```
 ### Description
 
-The `head` operator copies the first `n` values from its input to its output
-and ends the sequence thereafter.  `n` must be an integer.
+The `head` operator copies the first `n` values, evaluated from `<expr>`, from its input to its output
+and ends the sequence thereafter. `<expr>` must evaluate to a positive integer at compile time.
 
 ### Examples
 
 _Grab first two values of arbitrary sequence_
 ```mdtest-command
 echo '1 "foo" [1,2,3]' | zq -z 'head 2' -
+```
+=>
+```mdtest-output
+1
+"foo"
+```
+
+_Grab first two values of arbitrary sequence, with a different representation_
+```mdtest-command
+echo '1 "foo" [1,2,3]' | zq -z 'head 1+1' -
 ```
 =>
 ```mdtest-output
