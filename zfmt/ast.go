@@ -533,7 +533,9 @@ func (c *canon) proc(p ast.Op) {
 		c.close()
 	case *ast.Tail:
 		c.next()
-		c.write("tail %d", p.Count)
+		c.open("tail ")
+		c.expr(p.Count, "")
+		c.close()
 	case *ast.Uniq:
 		c.next()
 		c.write("uniq")

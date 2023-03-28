@@ -441,7 +441,7 @@ function peg$parse(input, options) {
       peg$c151 = "tail",
       peg$c152 = peg$literalExpectation("tail", false),
       peg$c153 = function(count) { return {"kind": "Tail", "count": count} },
-      peg$c154 = function() { return {"kind": "Tail", "count": 1} },
+      peg$c154 = function() { return {"kind": "Tail", "count": {"kind": "Primitive", "type": "int64", "text": "1"}} },
       peg$c155 = function(expr) {
             return {"kind": "Where", "expr": expr}
           },
@@ -4451,7 +4451,7 @@ function peg$parse(input, options) {
   }
 
   function peg$parseTailOp() {
-    var s0, s1, s2, s3;
+    var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
     if (input.substr(peg$currPos, 4) === peg$c151) {
@@ -4464,11 +4464,26 @@ function peg$parse(input, options) {
     if (s1 !== peg$FAILED) {
       s2 = peg$parse_();
       if (s2 !== peg$FAILED) {
-        s3 = peg$parseUInt();
+        s3 = peg$currPos;
+        peg$silentFails++;
+        s4 = peg$parseEndOfOp();
+        peg$silentFails--;
+        if (s4 === peg$FAILED) {
+          s3 = void 0;
+        } else {
+          peg$currPos = s3;
+          s3 = peg$FAILED;
+        }
         if (s3 !== peg$FAILED) {
-          peg$savedPos = s0;
-          s1 = peg$c153(s3);
-          s0 = s1;
+          s4 = peg$parseConditionalExpr();
+          if (s4 !== peg$FAILED) {
+            peg$savedPos = s0;
+            s1 = peg$c153(s4);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
         } else {
           peg$currPos = s0;
           s0 = peg$FAILED;

@@ -371,8 +371,8 @@ HeadOp
   / "head" { RETURN(MAP("kind": "Head", "count": MAP("kind": "Primitive", "type": "int64", "text": "1"))) }
 
 TailOp
-  = "tail" _ count:UInt { RETURN(MAP("kind": "Tail", "count": count)) }
-  / "tail" { RETURN(MAP("kind": "Tail", "count": 1)) }
+  = "tail" _ !EndOfOp count:Expr { RETURN(MAP("kind": "Tail", "count": count)) }
+  / "tail" { RETURN(MAP("kind": "Tail", "count": MAP("kind": "Primitive", "type": "int64", "text": "1"))) }
 
 WhereOp
   = "where" _ expr:Expr {
