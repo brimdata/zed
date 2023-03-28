@@ -1,0 +1,25 @@
+script: |
+  zc -C -s 'tail 1'
+  echo ===
+  zc -C -s 'const x=1 tail x + 1'
+  ! zc -C -s 'tail 1.'
+  ! zc -C -s 'tail "1"'
+  ! zc -C -s 'tail x'
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        (internal reader)
+      )
+      | tail 1
+      ===
+      const x = 1from (
+        (internal reader)
+      )
+      | tail 2
+  - name: stderr
+    data: |
+      tail: expression value is not a positive integer: 1.
+      tail: expression value is not a positive integer: "1"
+      tail: expression value is not a positive integer: error("missing")
