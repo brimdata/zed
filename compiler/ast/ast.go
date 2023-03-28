@@ -268,7 +268,7 @@ type (
 	}
 	Head struct {
 		Kind  string `json:"kind" unpack:""`
-		Count int    `json:"count"`
+		Count Expr   `json:"count"`
 	}
 	Tail struct {
 		Kind  string `json:"kind" unpack:""`

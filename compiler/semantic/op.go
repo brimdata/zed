@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/reglob"
 	"github.com/brimdata/zed/runtime/expr/function"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/exp/slices"
 )
@@ -418,13 +419,20 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			NullsFirst: o.NullsFirst,
 		}, nil
 	case *ast.Head:
-		limit := o.Count
-		if limit == 0 {
-			limit = 1
+		expr, err := semExpr(scope, o.Count)
+		if err != nil {
+			return nil, fmt.Errorf("head: %w", err)
+		}
+		val, err := kernel.EvalAtCompileTime(scope.zctx, expr)
+		if err != nil {
+			return nil, fmt.Errorf("head: %w", err)
+		}
+		if val.AsInt() < 1 {
+			return nil, fmt.Errorf("head: expression value is not a positive integer: %s", zson.MustFormatValue(val))
 		}
 		return &dag.Head{
 			Kind:  "Head",
-			Count: limit,
+			Count: int(val.AsInt()),
 		}, nil
 	case *ast.Tail:
 		limit := o.Count
