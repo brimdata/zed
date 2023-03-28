@@ -435,13 +435,20 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Count: int(val.AsInt()),
 		}, nil
 	case *ast.Tail:
-		limit := o.Count
-		if limit == 0 {
-			limit = 1
+		expr, err := semExpr(scope, o.Count)
+		if err != nil {
+			return nil, fmt.Errorf("tail: %w", err)
+		}
+		val, err := kernel.EvalAtCompileTime(scope.zctx, expr)
+		if err != nil {
+			return nil, fmt.Errorf("tail: %w", err)
+		}
+		if val.AsInt() < 1 {
+			return nil, fmt.Errorf("tail: expression value is not a positive integer: %s", zson.MustFormatValue(val))
 		}
 		return &dag.Tail{
 			Kind:  "Tail",
-			Count: limit,
+			Count: int(val.AsInt()),
 		}, nil
 	case *ast.Uniq:
 		return &dag.Uniq{
