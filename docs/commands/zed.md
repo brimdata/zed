@@ -860,9 +860,9 @@ from instances of Zed's client personality.
 It listens for Zed lake API requests on the interface and port
 specified by the `-l` option, executes the requests, and returns results.
 
-The verbosity of the server's log output can be varied with the `-log.level`
-option. Available levels ordered from most to least verbose are: `debug`, `info` (the
-default), `warn`, `error`, `dpanic`, `panic`, and `fatal`. Suggestions for use:
+The `-log.level` option controls log verbosity.  Available levels, ordered
+from most to least verbose, are `debug`, `info` (the default), `warn`,
+`error`, `dpanic`, `panic`, and `fatal`. Suggestions for use:
 
 * As its name implies, `debug` level is likely to only be required when actively debugging issues.
 
