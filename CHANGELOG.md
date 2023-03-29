@@ -1,3 +1,10 @@
+## v1.7.0
+* Add [`regexp_replace()`](docs/language/functions/regexp_replace.md) function for replacing regular expression matches in a string (#4435, #4449)
+* Add [documentation](docs/integrations/zed-lake-auth.md) showing how to configure Auth0 for authenticated access to a Zed lake service (#4439)
+* Fix an issue where elements of map could not be accessed if the key was of a union type (#4447)
+* Allow [`head`](docs/language/operators/head.md) operator to accept an expression (#4451)
+* Allow [`tail`](docs/language/operators/tail.md) operator to accept an expression (#4464)
+
 ## v1.6.0
 
 > ## Note: Changes to the Zed lake storage format
