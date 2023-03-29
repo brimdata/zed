@@ -43,7 +43,7 @@ func (s *Sorter) SortStable(vals []zed.Value, cmp *Comparator) {
 		s.indices[i] = uint32(i)
 		val := cmp.exprs[0].Eval(ectx, &vals[i])
 		s.vals[i] = val
-		if id := val.Type.ID(); zed.IsInteger(id) {
+		if id := val.Type.ID(); id <= zed.IDTime {
 			if val.IsNull() {
 				if cmp.nullsMax {
 					s.i64s[i] = math.MaxInt64
