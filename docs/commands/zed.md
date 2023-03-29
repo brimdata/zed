@@ -862,12 +862,9 @@ specified by the `-l` option, executes the requests, and returns results.
 
 The `-log.level` option controls log verbosity.  Available levels, ordered
 from most to least verbose, are `debug`, `info` (the default), `warn`,
-`error`, `dpanic`, `panic`, and `fatal`.  Suggestions for use:
-
-* As its name implies, `debug` level is likely to only be required when actively debugging issues.
-
-* If the volume of logging output at the default `info` level seems too
-excessive for production use, `warn` level is recommended.
+`error`, `dpanic`, `panic`, and `fatal`.  If the volume of logging output at
+the default `info` level seems too excessive for production use, `warn` level
+is recommended.
 
 ### 2.14 Use
 ```
