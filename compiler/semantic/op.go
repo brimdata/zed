@@ -526,6 +526,10 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Fuse:
 		return &dag.Fuse{Kind: "Fuse"}, nil
 	case *ast.Join:
+		rightInput, err := semSequential(ctx, scope, o.RightInput, ds, head)
+		if err != nil {
+			return nil, err
+		}
 		leftKey, err := semExpr(scope, o.LeftKey)
 		if err != nil {
 			return nil, err
@@ -538,13 +542,24 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Join{
+		join := &dag.Join{
 			Kind:     "Join",
 			Style:    o.Style,
 			LeftKey:  leftKey,
 			RightKey: rightKey,
 			Args:     assignments,
-		}, nil
+		}
+		if rightInput != nil {
+			par := &dag.Parallel{
+				Kind: "Parallel",
+				Ops:  []dag.Op{dag.PassOp, rightInput},
+			}
+			return &dag.Sequential{
+				Kind: "Sequential",
+				Ops:  []dag.Op{par, join},
+			}, nil
+		}
+		return join, nil
 	case *ast.SQLExpr:
 		converted, err := convertSQLOp(scope, o)
 		if err != nil {

@@ -345,11 +345,12 @@ type (
 		Kind string `json:"kind" unpack:""`
 	}
 	Join struct {
-		Kind     string       `json:"kind" unpack:""`
-		Style    string       `json:"style"`
-		LeftKey  Expr         `json:"left_key"`
-		RightKey Expr         `json:"right_key"`
-		Args     []Assignment `json:"args"`
+		Kind       string       `json:"kind" unpack:""`
+		Style      string       `json:"style"`
+		RightInput *Sequential  `json:"right_input"`
+		LeftKey    Expr         `json:"left_key"`
+		RightKey   Expr         `json:"right_key"`
+		Args       []Assignment `json:"args"`
 	}
 	// A SQLExpr can be an operator, an expression inside of a SQL FROM clause,
 	// or an expression used as a Zed value generator.  Currenly, the "select"
