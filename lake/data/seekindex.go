@@ -1,8 +1,12 @@
 package data
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/seekindex"
@@ -49,4 +53,47 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 		}
 		rg.Length += int64(entry.Length)
 	}
+}
+
+func FetchSeekIndex(ctx context.Context, engine storage.Engine, path *storage.URI, obj *Object) ([]seekindex.Entry, error) {
+	var r io.ReadCloser
+	r, err := engine.Get(ctx, obj.SeekIndexURI(path))
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
+		r = io.NopCloser(bytes.NewReader(nil))
+	}
+	defer r.Close()
+	unmarshaler := zson.NewZNGUnmarshaler()
+	reader := zngio.NewReader(zed.NewContext(), r)
+	defer reader.Close()
+	var entries []seekindex.Entry
+	for {
+		val, err := reader.Read()
+		if err != nil {
+			return nil, err
+		}
+		if val == nil {
+			break
+		}
+		var entry seekindex.Entry
+		if err := unmarshaler.Unmarshal(val, &entry); err != nil {
+			return nil, fmt.Errorf("corrupt seek index entry for %q at value: %q (%w)", obj.ID.String(), zson.String(val), err)
+		}
+		entries = append(entries, entry)
+	}
+	if len(entries) == 0 {
+		// If there's no entries just create an entry the represents the entire
+		// object.
+		entries = append(entries, seekindex.Entry{
+			Min:    obj.Min.Copy(),
+			Max:    obj.Max.Copy(),
+			ValOff: 0,
+			ValCnt: obj.Count,
+			Offset: 0,
+			Length: uint64(obj.Size),
+		})
+	}
+	return entries, nil
 }

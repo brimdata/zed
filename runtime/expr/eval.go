@@ -22,6 +22,12 @@ type Function interface {
 	Call(zed.Allocator, []zed.Value) *zed.Value
 }
 
+type EvaluatorFunc func(Context, *zed.Value) *zed.Value
+
+func (e EvaluatorFunc) Eval(ectx Context, val *zed.Value) *zed.Value {
+	return e(ectx, val)
+}
+
 type Not struct {
 	zctx *zed.Context
 	expr Evaluator

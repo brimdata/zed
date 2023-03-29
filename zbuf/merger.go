@@ -30,6 +30,6 @@ func NewComparatorNullsMax(zctx *zed.Context, layout order.Layout) *expr.Compara
 
 type valueAsBytes struct{}
 
-func (v *valueAsBytes) Eval(_ expr.Context, val *zed.Value) *zed.Value {
-	return zed.NewBytes(val.Bytes)
+func (v *valueAsBytes) Eval(expr expr.Context, val *zed.Value) *zed.Value {
+	return expr.NewValue(zed.TypeBytes, val.Bytes)
 }

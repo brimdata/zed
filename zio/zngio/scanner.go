@@ -57,7 +57,7 @@ func newScanner(ctx context.Context, zctx *zed.Context, r io.Reader, filter zbuf
 				return nil, err
 			}
 		}
-		s.workers = append(s.workers, newWorker(ctx, &s.progress, bf, f, expr.NewContext(), s.validate))
+		s.workers = append(s.workers, newWorker(ctx, &s.progress, bf, f, &expr.ResetContext{}, s.validate))
 	}
 	return s, nil
 }
@@ -181,7 +181,7 @@ type worker struct {
 	workCh       chan work
 	bufferFilter *expr.BufferFilter
 	filter       expr.Evaluator
-	ectx         expr.Context
+	ectx         *expr.ResetContext
 	validate     bool
 
 	mapperLookupCache zed.MapperLookupCache
@@ -196,7 +196,7 @@ type work struct {
 	resultCh chan op.Result
 }
 
-func newWorker(ctx context.Context, p *zbuf.Progress, bf *expr.BufferFilter, f expr.Evaluator, ectx expr.Context, validate bool) *worker {
+func newWorker(ctx context.Context, p *zbuf.Progress, bf *expr.BufferFilter, f expr.Evaluator, ectx *expr.ResetContext, validate bool) *worker {
 	return &worker{
 		ctx:          ctx,
 		progress:     p,
@@ -346,7 +346,8 @@ func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
 	return false
 }
 
-func check(ectx expr.Context, this *zed.Value, filter expr.Evaluator) bool {
+func check(ectx *expr.ResetContext, this *zed.Value, filter expr.Evaluator) bool {
+	ectx.Reset()
 	val := filter.Eval(ectx, this)
 	return val.Type == zed.TypeBool && zed.IsTrue(val.Bytes)
 }
