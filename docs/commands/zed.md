@@ -389,8 +389,7 @@ or [`kubectl`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-co
 commands.
 
 The following sections describe each of the available commands and highlight
-some key options. Built-in help shows all commands and options that can be
-invoked as follows:
+some key options. Built-in help shows the commands and their options:
 
 * `zed -h` with no args displays a list of `zed` commands.
 * `zed command -h`, where `command` is a sub-command, displays help
