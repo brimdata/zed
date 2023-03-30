@@ -500,7 +500,6 @@ func (*Where) OpAST()        {}
 func (*Yield) OpAST()        {}
 func (*Load) OpAST()         {}
 
-
 func (*SQLExpr) OpAST() {}
 
 func (seq *Sequential) Prepend(front Op) {

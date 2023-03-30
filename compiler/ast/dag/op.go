@@ -141,7 +141,6 @@ type (
 // Input structure
 
 type (
-
 	From struct {
 		Kind   string  `json:"kind" unpack:""`
 		Trunks []Trunk `json:"trunks"`
