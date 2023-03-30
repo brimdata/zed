@@ -510,7 +510,7 @@ URL = ("http:" / "https:") Path { RETURN(TEXT) }
 
 Path
   = v:QuotedString { RETURN(v) }
-  / [0-9a-zA-Z!@$%^&*()_=<>,./?:[\]{}~|+-]+ { RETURN(TEXT) }
+  / [0-9a-zA-Z!@$%^&*_=<>,./?:[\]{}~+-]+ { RETURN(TEXT) }
 
 //XXX this should be a timestamp
 PoolAt

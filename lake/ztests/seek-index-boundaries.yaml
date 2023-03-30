@@ -1,0 +1,73 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  for o in asc desc; do
+    echo // $o | tee /dev/stderr
+    zed create -q -seekstride 1B -orderby ts:$o $o
+    zed use -q $o
+    seq 20 | zq 'yield {ts:this}' - | zed load -q -
+    source query.sh 'ts == 5'
+    source query.sh 'ts < 2'
+    source query.sh 'ts <= 2'
+    source query.sh 'ts > 19'
+    source query.sh 'ts >= 19'
+  done
+
+inputs:
+  - name: query.sh
+    data: |
+      echo // $1 | tee /dev/stderr
+      zed query -z -s "$1"
+outputs:
+  - name: stdout
+    data: |
+      // asc
+      // ts == 5
+      {ts:5}
+      // ts < 2
+      {ts:1}
+      // ts <= 2
+      {ts:1}
+      {ts:2}
+      // ts > 19
+      {ts:20}
+      // ts >= 19
+      {ts:19}
+      {ts:20}
+      // desc
+      // ts == 5
+      {ts:5}
+      // ts < 2
+      {ts:1}
+      // ts <= 2
+      {ts:2}
+      {ts:1}
+      // ts > 19
+      {ts:20}
+      // ts >= 19
+      {ts:20}
+      {ts:19}
+  - name: stderr
+    data: |
+      // asc
+      // ts == 5
+      {bytes_read:2,bytes_matched:2,records_read:1,records_matched:1}
+      // ts < 2
+      {bytes_read:2,bytes_matched:2,records_read:1,records_matched:1}
+      // ts <= 2
+      {bytes_read:4,bytes_matched:4,records_read:2,records_matched:2}
+      // ts > 19
+      {bytes_read:2,bytes_matched:2,records_read:1,records_matched:1}
+      // ts >= 19
+      {bytes_read:4,bytes_matched:4,records_read:2,records_matched:2}
+      // desc
+      // ts == 5
+      {bytes_read:2,bytes_matched:2,records_read:1,records_matched:1}
+      // ts < 2
+      {bytes_read:2,bytes_matched:2,records_read:1,records_matched:1}
+      // ts <= 2
+      {bytes_read:4,bytes_matched:4,records_read:2,records_matched:2}
+      // ts > 19
+      {bytes_read:2,bytes_matched:2,records_read:1,records_matched:1}
+      // ts >= 19
+      {bytes_read:4,bytes_matched:4,records_read:2,records_matched:2}

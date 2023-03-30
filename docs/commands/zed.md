@@ -384,13 +384,14 @@ case but this design allows different workloads like these to be custom tuned.
 
 The `zed` command is structured as a primary command
 consisting of a large number of interrelated sub-commands, similar to the
-[docker](https://docs.docker.com/engine/reference/commandline/cli/)
-or [kubectl](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands)
+[`docker`](https://docs.docker.com/engine/reference/commandline/cli/)
+or [`kubectl`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands)
 commands.
 
-The following sections describe each of the available commands, but built-in
-help is also available:
-* `zed -h` with no args displays a list of zed commands.
+The following sections describe each of the available commands and highlight
+some key options.  Built-in help shows the commands and their options:
+
+* `zed -h` with no args displays a list of `zed` commands.
 * `zed command -h`, where `command` is a sub-command, displays help
 for that sub-command.
 * `zed command sub-command -h` displays help for a sub-command of a
@@ -854,10 +855,16 @@ pool `<existing>`, which may be referenced by its ID or its previous name.
 ```
 zed serve [options]
 ```
-The serve command implements Zed's server personality to service requests
+The `serve` command implements Zed's server personality to service requests
 from instances of Zed's client personality.
 It listens for Zed lake API requests on the interface and port
 specified by the `-l` option, executes the requests, and returns results.
+
+The `-log.level` option controls log verbosity.  Available levels, ordered
+from most to least verbose, are `debug`, `info` (the default), `warn`,
+`error`, `dpanic`, `panic`, and `fatal`.  If the volume of logging output at
+the default `info` level seems too excessive for production use, `warn` level
+is recommended.
 
 ### 2.14 Use
 ```

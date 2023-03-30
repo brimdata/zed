@@ -17,6 +17,8 @@ func BenchmarkSort(b *testing.B) {
 		{zed.TypeInt64, func() []byte { return zed.EncodeInt(int64(rand.Uint64())) }},
 		{zed.TypeUint64, func() []byte { return zed.EncodeUint(rand.Uint64()) }},
 		{zed.TypeString, func() []byte { return strconv.AppendUint(nil, rand.Uint64(), 16) }},
+		{zed.TypeDuration, func() []byte { return zed.EncodeInt(int64(rand.Uint64())) }},
+		{zed.TypeTime, func() []byte { return zed.EncodeInt(int64(rand.Uint64())) }},
 	}
 	for _, c := range cases {
 		b.Run(zson.FormatType(c.typ), func(b *testing.B) {

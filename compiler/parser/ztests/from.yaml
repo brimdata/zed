@@ -1,5 +1,13 @@
 script: |
   zc -C 'from ( pool a => x pool b)'
+  echo === No spaces around parentheses.
+  zc -C 'from(file a)'
+  zc -C 'from(get http://a)'
+  zc -C 'from(pool a)'
+  echo === No space before vertical bar.
+  zc -C 'file a| b'
+  zc -C 'get http://a| b'
+  zc -C 'from a| b'
 
 outputs:
   - name: stdout
@@ -8,3 +16,26 @@ outputs:
         pool "a" =>
           search x and pool and b
       )
+      === No spaces around parentheses.
+      from (
+        file a
+      )
+      from (
+        get http://a
+      )
+      from (
+        pool "a"
+      )
+      === No space before vertical bar.
+      from (
+        file a
+      )
+      | search b
+      from (
+        get http://a
+      )
+      | search b
+      from (
+        pool "a"
+      )
+      | search b
