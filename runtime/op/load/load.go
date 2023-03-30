@@ -1,17 +1,16 @@
 package load
-//at some point will needs an args to create possibility of using different branches etc.
-// must use load method (in lake/branch.go)
+
 import (
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/zbuf"
 )
 
 type Op struct {
-    	octx    *op.Context
-    	lk      *lake.Root
-	parent  zbuf.Puller
-	pool    string
+    	octx   *op.Context
+    	lk     *lake.Root
+	parent zbuf.Puller
+	pool   string
 }
 
 func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool string) *Op {

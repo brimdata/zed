@@ -628,8 +628,8 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		}, nil
 	case *ast.Load:
 		return &dag.Load{
-	        	Kind:   "Load",
-	        	Pool:   o.Pool,
+	        	Kind: "Load",
+	        	Pool: o.Pool,
 	    	}, nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
