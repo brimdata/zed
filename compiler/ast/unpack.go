@@ -40,6 +40,7 @@ var unpacker = unpack.New(
 	Join{},
 	Layout{},
 	Let{},
+	Load{},
 	Merge{},
 	Over{},
 	Trunk{},

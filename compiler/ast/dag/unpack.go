@@ -27,6 +27,7 @@ var unpacker = unpack.New(
 	HTTP{},
 	Join{},
 	Literal{},
+	Load{},
 	MapExpr{},
 	Merge{},
 	Shape{},
