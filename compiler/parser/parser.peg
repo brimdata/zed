@@ -297,6 +297,7 @@ Operator
   / MergeOp
   / OverOp
   / YieldOp
+  / LoadOp
 
 AssertOp
   = "assert" _ expr:(e:Expr { RETURN(ARRAY(e, TEXT)) }) {
@@ -468,6 +469,11 @@ OpAssignment
 SampleExpr
   = _ lval:Lval { RETURN(lval)}
   / "" { RETURN(MAP("kind":"ID", "name":"this")) }
+
+LoadOp
+    = "load" _ pool:PoolName {
+        RETURN(MAP("kind": "Load", "pool": pool))
+    }
 
 FromOp
   = source:FromAny {

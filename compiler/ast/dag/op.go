@@ -55,6 +55,10 @@ type (
 		RightKey Expr         `json:"right_key"`
 		Args     []Assignment `json:"args"`
 	}
+	Load struct {
+        Kind   string            `json:"kind" unpack:""`
+        Pool   string            `json:"pool"`
+    }
 	Merge struct {
 		Kind  string      `json:"kind" unpack:""`
 		Expr  Expr        `json:"expr"`
@@ -137,6 +141,7 @@ type (
 // Input structure
 
 type (
+
 	From struct {
 		Kind   string  `json:"kind" unpack:""`
 		Trunks []Trunk `json:"trunks"`
@@ -271,6 +276,7 @@ func (*Over) OpNode()       {}
 func (*Let) OpNode()        {}
 func (*Yield) OpNode()      {}
 func (*Merge) OpNode()      {}
+func (*Load) OpNode()       {}
 
 // NewFilter returns a filter node for e.
 func NewFilter(e Expr) *Filter {

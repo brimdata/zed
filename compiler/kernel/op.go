@@ -22,6 +22,7 @@ import (
 	"github.com/brimdata/zed/runtime/op/fuse"
 	"github.com/brimdata/zed/runtime/op/head"
 	"github.com/brimdata/zed/runtime/op/join"
+	"github.com/brimdata/zed/runtime/op/load"
 	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/runtime/op/meta"
 	"github.com/brimdata/zed/runtime/op/pass"
@@ -245,6 +246,9 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			return nil, err
 		}
 		return b.compileOver(parent, v.Over, names, exprs)
+	case *dag.Load:
+	    lk := b.source.Lake()
+	    return load.New(b.octx, lk, parent, v.Pool), nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}

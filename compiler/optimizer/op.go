@@ -24,7 +24,7 @@ func (o *Optimizer) analyzeOp(op dag.Op, layout order.Layout) (order.Layout, err
 		return order.Nil, nil
 	}
 	switch op := op.(type) {
-	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse:
+	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse, *dag.Load:
 		return layout, nil
 	case *dag.Cut:
 		return analyzeCuts(op.Args, layout), nil

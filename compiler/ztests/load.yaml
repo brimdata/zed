@@ -1,0 +1,17 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q samples
+  zed load -q -use samples schools.zson
+  zed create -q Orange
+  echo ===
+  zed query 'from samples | County=="Orange" | load Orange'
+
+inputs:
+  - name: schools.zson
+    source: ../../testdata/edu/schools.zson
+outputs:
+  - name: stdout
+    data: |
+      ===
+      error here?

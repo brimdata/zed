@@ -376,6 +376,10 @@ type (
 		Kind   string  `json:"kind" unpack:""`
 		Trunks []Trunk `json:"trunks"`
 	}
+	Load struct {
+	    Kind  string  `json:"kind" unpack:""`
+	    Pool  string  `json:"pool"`
+	}
 )
 
 // Source structure
@@ -494,6 +498,8 @@ func (*Let) OpAST()          {}
 func (*Search) OpAST()       {}
 func (*Where) OpAST()        {}
 func (*Yield) OpAST()        {}
+func (*Load) OpAST()         {}
+
 
 func (*SQLExpr) OpAST() {}
 
