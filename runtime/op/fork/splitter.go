@@ -5,21 +5,28 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
+type Op struct {
+	router *op.Router
+	exits  []zbuf.Puller
+}
+
+func New(octx *op.Context, parent zbuf.Puller) *Op {
+	return &Op{router: op.NewRouter(octx, parent)}
+}
+
+func (o *Op) AddExit() zbuf.Puller {
+	exit := o.router.AddRoute()
+	o.exits = append(o.exits, exit)
+	// Calling Link repeatedly is safe.
+	o.router.Link(splitter(o.exits))
+	return exit
+}
+
 // A splitter splits its input into multiple output operators by implementing
 // op.Selector and selecting all downstream legs of the flowgraph.
 type splitter []zbuf.Puller
 
 var _ op.Selector = (*splitter)(nil)
-
-func New(octx *op.Context, parent zbuf.Puller, n int) []zbuf.Puller {
-	router := op.NewRouter(octx, parent)
-	exits := make([]zbuf.Puller, 0, n)
-	for k := 0; k < n; k++ {
-		exits = append(exits, router.AddRoute())
-	}
-	router.Link(splitter(exits))
-	return exits
-}
 
 // Forward copies every batch to every output thus implementing fork.
 func (s splitter) Forward(r *op.Router, b zbuf.Batch) bool {
