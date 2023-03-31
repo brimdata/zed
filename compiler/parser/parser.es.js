@@ -5144,7 +5144,7 @@ function peg$parse(input, options) {
     if (s1 !== peg$FAILED) {
       s2 = peg$parse_();
       if (s2 !== peg$FAILED) {
-        s3 = peg$parsePoolName();
+        s3 = peg$parsePoolNameString();
         if (s3 !== peg$FAILED) {
           peg$savedPos = s0;
           s1 = peg$c198(s3);

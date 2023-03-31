@@ -471,7 +471,7 @@ SampleExpr
   / "" { RETURN(MAP("kind":"ID", "name":"this")) }
 
 LoadOp
-    = "load" _ pool:PoolName {
+    = "load" _ pool:PoolNameString {
         RETURN(MAP("kind": "Load", "pool": pool))
     }
 
