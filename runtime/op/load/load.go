@@ -55,5 +55,5 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	if err_load != nil {
 		return nil, err_load
 	}
-	return zbuf.NewBatch(batch, batch.Values()), nil //is this what we want to return?
+	return zbuf.NewBatch(batch, batch.Values()), nil
 }
