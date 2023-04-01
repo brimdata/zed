@@ -20,7 +20,6 @@ type MergeSort struct {
 	nspill     int
 	runs       []*peeker
 	tempDir    string
-	sorter     expr.Sorter
 	spillSize  int64
 	zctx       *zed.Context
 }
@@ -64,7 +63,7 @@ func (r *MergeSort) Cleanup() {
 func (r *MergeSort) Spill(ctx context.Context, vals []zed.Value) error {
 	// Sorting can be slow, so check for cancellation.
 	if err := goWithContext(ctx, func() {
-		r.sorter.SortStable(vals, r.comparator)
+		r.comparator.SortStable(vals)
 	}); err != nil {
 		return err
 	}

@@ -34,7 +34,6 @@ type Writer struct {
 	// data efficiently in one big backing store.
 	buffer      chan []zed.Value
 	comparator  *expr.Comparator
-	sorter      expr.Sorter
 	memBuffered int64
 	stats       ImportStats
 }
@@ -128,7 +127,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if !w.inputSorted {
 		done := make(chan struct{})
 		go func() {
-			w.sorter.SortStable(recs, w.comparator)
+			w.comparator.SortStable(recs)
 			close(done)
 		}()
 		select {
