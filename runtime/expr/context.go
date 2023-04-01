@@ -60,7 +60,7 @@ type ResetContext struct {
 var _ Context = (*ResetContext)(nil)
 
 func (r *ResetContext) NewValue(typ zed.Type, b zcode.Bytes) *zed.Value {
-	// Preserve nil b and empty b.
+	// Preserve b if nil or empty.
 	if len(b) > 0 {
 		n := len(r.buf)
 		r.buf = append(r.buf, b...)
