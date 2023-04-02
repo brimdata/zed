@@ -621,9 +621,9 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if b.deletes == nil {
 				b.deletes = &sync.Map{}
 			}
-			source = meta.NewDeleter(b.octx, slicer, pool, slicer.Snapshot(), filter, pruner, b.progress, b.deletes)
+			source = meta.NewDeleter(b.octx, slicer, pool, filter, pruner, b.progress, b.deletes)
 		} else {
-			source = meta.NewSequenceScanner(b.octx, slicer, pool, slicer.Snapshot(), filter, pruner, b.progress)
+			source = meta.NewSequenceScanner(b.octx, slicer, pool, filter, pruner, b.progress)
 		}
 	case *dag.PoolMeta:
 		scanner, err := meta.NewPoolMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
