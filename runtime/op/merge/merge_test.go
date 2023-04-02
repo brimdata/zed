@@ -102,8 +102,8 @@ func TestParallelOrder(t *testing.T) {
 				r := zsonio.NewReader(zctx, strings.NewReader(input))
 				parents = append(parents, zbuf.NewPuller(r))
 			}
-			layout := order.NewLayout(c.order, field.DottedList(c.field))
-			cmp := zbuf.NewComparator(zctx, layout).Compare
+			sortKey := order.NewSortKey(c.order, field.DottedList(c.field))
+			cmp := zbuf.NewComparator(zctx, sortKey).Compare
 			om := merge.New(octx.Context, parents, cmp)
 
 			var sb strings.Builder

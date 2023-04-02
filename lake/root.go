@@ -270,16 +270,16 @@ func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return branchRef.Commit, nil
 }
 
-func (r *Root) Layout(ctx context.Context, src dag.Source) order.Layout {
+func (r *Root) SortKey(ctx context.Context, src dag.Source) order.SortKey {
 	switch src := src.(type) {
 	case *dag.Pool:
 		if config, err := r.pools.LookupByID(ctx, src.ID); err == nil {
-			return config.Layout
+			return config.SortKey
 		}
 	case *dag.CommitMeta:
 		if src.Tap {
 			if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
-				return config.Layout
+				return config.SortKey
 			}
 		}
 	}
@@ -315,7 +315,7 @@ func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newName string) e
 	return r.pools.Rename(ctx, id, newName)
 }
 
-func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout, seekStride int, thresh int64) (*Pool, error) {
+func (r *Root) CreatePool(ctx context.Context, name string, sortKey order.SortKey, seekStride int, thresh int64) (*Pool, error) {
 	if name == "HEAD" {
 		return nil, fmt.Errorf("pool cannot be named %q", name)
 	}
@@ -325,7 +325,7 @@ func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout,
 	if thresh == 0 {
 		thresh = data.DefaultThreshold
 	}
-	config := pools.NewConfig(name, layout, thresh, seekStride)
+	config := pools.NewConfig(name, sortKey, thresh, seekStride)
 	if err := CreatePool(ctx, config, r.engine, r.logger, r.path); err != nil {
 		return nil, err
 	}

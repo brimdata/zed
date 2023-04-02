@@ -382,16 +382,16 @@ type (
 
 type (
 	File struct {
-		Kind   string  `json:"kind" unpack:""`
-		Path   string  `json:"path"`
-		Format string  `json:"format"`
-		Layout *Layout `json:"layout"`
+		Kind    string   `json:"kind" unpack:""`
+		Path    string   `json:"path"`
+		Format  string   `json:"format"`
+		SortKey *SortKey `json:"sort_key"`
 	}
 	HTTP struct {
-		Kind   string  `json:"kind" unpack:""`
-		URL    string  `json:"url"`
-		Format string  `json:"format"`
-		Layout *Layout `json:"layout"`
+		Kind    string   `json:"kind" unpack:""`
+		URL     string   `json:"url"`
+		Format  string   `json:"format"`
+		SortKey *SortKey `json:"sort_key"`
 	}
 	Pool struct {
 		Kind   string   `json:"kind" unpack:""`
@@ -417,7 +417,7 @@ func (*File) Source() {}
 func (*HTTP) Source() {}
 func (*Pass) Source() {}
 
-type Layout struct {
+type SortKey struct {
 	Kind  string `json:"kind" unpack:""`
 	Keys  []Expr `json:"keys"`
 	Order string `json:"order"`

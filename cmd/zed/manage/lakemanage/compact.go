@@ -80,12 +80,12 @@ type PoolDataObjectIterator struct {
 }
 
 func NewPoolDataObjectIterator(ctx context.Context, lake api.Interface, head *lakeparse.Commitish,
-	layout order.Layout) (*PoolDataObjectIterator, error) {
+	sortKey order.SortKey) (*PoolDataObjectIterator, error) {
 	query, err := head.FromSpec("objects")
 	if err != nil {
 		return nil, err
 	}
-	if layout.Order == order.Asc {
+	if sortKey.Order == order.Asc {
 		query += " | sort meta.first"
 	} else {
 		query += " | sort meta.last"

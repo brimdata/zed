@@ -59,7 +59,6 @@ type Command struct {
 	semantic bool
 	optimize bool
 	parallel int
-	layout   string
 	n        int
 	includes includes
 }

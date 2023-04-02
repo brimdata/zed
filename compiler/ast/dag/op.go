@@ -163,16 +163,16 @@ type (
 	// Leaf sources
 
 	File struct {
-		Kind   string       `json:"kind" unpack:""`
-		Path   string       `json:"path"`
-		Format string       `json:"format"`
-		Layout order.Layout `json:"layout"`
+		Kind    string        `json:"kind" unpack:""`
+		Path    string        `json:"path"`
+		Format  string        `json:"format"`
+		SortKey order.SortKey `json:"sort_key"`
 	}
 	HTTP struct {
-		Kind   string       `json:"kind" unpack:""`
-		URL    string       `json:"url"`
-		Format string       `json:"format"`
-		Layout order.Layout `json:"layout"`
+		Kind    string        `json:"kind" unpack:""`
+		URL     string        `json:"url"`
+		Format  string        `json:"format"`
+		SortKey order.SortKey `json:"sort_key"`
 	}
 	Pool struct {
 		Kind   string      `json:"kind" unpack:""`

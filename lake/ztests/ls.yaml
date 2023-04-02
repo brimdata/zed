@@ -11,6 +11,7 @@ inputs:
   - name: babble.zson
     source: ../../testdata/babble.zson
 
+#XXX this is fixed
 # The keys field should be labeled with (field.)Path.
 # See bug #2576
 outputs:
@@ -25,7 +26,7 @@ outputs:
                       "ts"
                   ] (=field.Path)
               ] (=field.List)
-          } (=order.Layout),
+          } (=order.SortKey),
           seek_stride: 65536,
           threshold: 524288000
       }

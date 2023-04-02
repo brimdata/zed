@@ -33,17 +33,17 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 	if len(from.Trunks) == 0 {
 		return errors.New("internal error: no trunks in dag.From")
 	}
-	egressLayout, err := o.layoutOfTrunk(trunk)
+	egressSortKey, err := o.sortKeyOfTrunk(trunk)
 	if err != nil {
 		return err
 	}
-	if len(egressLayout.Keys) > 1 {
+	if len(egressSortKey.Keys) > 1 {
 		// XXX don't yet support multi-key ordering
 		return nil
 	}
 	// This logic requires that there is only one trunk in the From,
 	// as checked above.
-	layout, err := o.layoutOfSource(trunk.Source, order.Nil)
+	sortKey, err := o.sortKeyOfSource(trunk.Source, order.Nil)
 	if err != nil {
 		return err
 	}
@@ -51,21 +51,21 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 	// Check that the path consisting of the original from
 	// sequence and any lifted sequence is still parallelizable.
 	if trunk.Seq != nil && len(trunk.Seq.Ops) > 0 {
-		n, newLayout, err := o.splittablePath(trunk.Seq.Ops, layout)
+		n, newSortKey, err := o.splittablePath(trunk.Seq.Ops, sortKey)
 		if err != nil {
 			return err
 		}
 		if n != len(trunk.Seq.Ops) {
 			return nil
 		}
-		// If the trunk operators affect the scan layout, then update
+		// If the trunk operators affect the scan sort key, then update
 		// it here so the merge will properly happen below...
-		layout = newLayout
+		sortKey = newSortKey
 	}
 	if len(seq.Ops) < 2 {
 		// There are no operators past the trunk.  Just parallelize
 		// and merge the trunk here.
-		if err := insertMerge(seq, layout); err != nil {
+		if err := insertMerge(seq, sortKey); err != nil {
 			return err
 		}
 		replicateTrunk(from, trunk, replicas)
@@ -96,7 +96,7 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		//
 		if canOptimizeEvery(egress) {
 			// We insert a mergeby ts in front of the partialsIn aggregator.
-			// If the inbound layout doesn't match up here then the
+			// If the inbound sort key doesn't match up here then the
 			// every operator won't work right so we flag
 			// a compilation error..., e.g., it's like saying
 			//   sort x | every 1h count() by _path
@@ -106,10 +106,10 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 			// Note: combiner has a nice flow-control feature in that it
 			// allows a fast upstream send to complete without HOL blocking
 			// while the slow guys continue on.  See Issue #2662.
-			if !layout.Primary().Equal(field.New("ts")) {
+			if !sortKey.Primary().Equal(field.New("ts")) {
 				return errors.New("aggregation requiring 'every' semantics requires input sorted by 'ts'")
 			}
-			if err := insertMerge(seq, layout); err != nil {
+			if err := insertMerge(seq, sortKey); err != nil {
 				return err
 			}
 		}
@@ -148,10 +148,10 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		// the main sequence, then add back a merge to effect a merge sort.
 		extend(trunk, ingress)
 		seq.Delete(1, 1)
-		layout := order.NewLayout(ingress.Order, field.List{mergeKey})
-		return replicateAndMerge(seq, layout, from, trunk, replicas)
+		sortKey := order.NewSortKey(ingress.Order, field.List{mergeKey})
+		return replicateAndMerge(seq, sortKey, from, trunk, replicas)
 	case *dag.Head, *dag.Tail:
-		if layout.IsNil() {
+		if sortKey.IsNil() {
 			// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
 			return nil
 		}
@@ -159,16 +159,16 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		// place which will apply another head/tail after the merge.
 		egress := copyOp(ingress)
 		extend(trunk, egress)
-		return replicateAndMerge(seq, layout, from, trunk, replicas)
+		return replicateAndMerge(seq, sortKey, from, trunk, replicas)
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename:
 		//XXX shouldn't these check for mergeKey = nil?
-		return replicateAndMerge(seq, layout, from, trunk, replicas)
+		return replicateAndMerge(seq, sortKey, from, trunk, replicas)
 	default:
 		// If we're here, we reached the end of the flowgraph without
 		// coming across a merge-forcing op. If inputs are sorted,
 		// we can parallelize the entire chain and do an ordered
 		// merge. Otherwise, no parallelization.
-		if layout.IsNil() {
+		if sortKey.IsNil() {
 			// Unknown order: we can't parallelize because
 			// we can't maintain this unknown order at the merge point,
 			// but we shouldn't care if the client doesn't care
@@ -176,7 +176,7 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 			// specified in the source. See Issue #2661.
 			return nil
 		}
-		return replicateAndMerge(seq, layout, from, trunk, replicas)
+		return replicateAndMerge(seq, sortKey, from, trunk, replicas)
 	}
 }
 
@@ -197,28 +197,28 @@ func inlineSequentials(op dag.Op) {
 	})
 }
 
-func replicateAndMerge(seq *dag.Sequential, layout order.Layout, from *dag.From, trunk *dag.Trunk, replicas int) error {
-	if err := insertMerge(seq, layout); err != nil {
+func replicateAndMerge(seq *dag.Sequential, sortKey order.SortKey, from *dag.From, trunk *dag.Trunk, replicas int) error {
+	if err := insertMerge(seq, sortKey); err != nil {
 		return err
 	}
 	replicateTrunk(from, trunk, replicas)
 	return nil
 }
 
-func insertMerge(seq *dag.Sequential, layout order.Layout) error {
-	// layout represents the order we need to preserve at exit from the
+func insertMerge(seq *dag.Sequential, sortKey order.SortKey) error {
+	// sortKey represents the order we need to preserve at exit from the
 	// parallel paths within the trunk.  It is nil if the order implied
 	// by the DAG is unknown, meaning we do not need to preserve it and
 	// thus do not need to insert a merge operator (resulting in the runtime
 	// building a more efficient combine operator).
-	if layout.IsNil() {
+	if sortKey.IsNil() {
 		return nil
 	}
 	// XXX Fix this to handle multi-key merge. See Issue #2657.
 	head := []dag.Op{seq.Ops[0], &dag.Merge{
 		Kind:  "Merge",
-		Expr:  &dag.This{Kind: "This", Path: layout.Primary()},
-		Order: layout.Order,
+		Expr:  &dag.This{Kind: "This", Path: sortKey.Primary()},
+		Order: sortKey.Order,
 	}}
 	seq.Ops = append(head, seq.Ops[1:]...)
 	return nil
@@ -266,46 +266,46 @@ func canOptimizeEvery(s *dag.Summarize) bool {
 	return false
 }
 
-func (o *Optimizer) layoutOfFrom(from *dag.From) (order.Layout, error) {
-	layout, err := o.layoutOfTrunk(&from.Trunks[0])
+func (o *Optimizer) sortKeyOfFrom(from *dag.From) (order.SortKey, error) {
+	sortKey, err := o.sortKeyOfTrunk(&from.Trunks[0])
 	if err != nil {
 		return order.Nil, err
 	}
 	for k := range from.Trunks[1:] {
-		next, err := o.layoutOfTrunk(&from.Trunks[k])
-		if err != nil || !next.Equal(layout) {
+		next, err := o.sortKeyOfTrunk(&from.Trunks[k])
+		if err != nil || !next.Equal(sortKey) {
 			return order.Nil, err
 		}
 	}
-	return layout, nil
+	return sortKey, nil
 }
 
-func (o *Optimizer) layoutOfTrunk(trunk *dag.Trunk) (order.Layout, error) {
-	layout, err := o.layoutOfSource(trunk.Source, order.Nil)
+func (o *Optimizer) sortKeyOfTrunk(trunk *dag.Trunk) (order.SortKey, error) {
+	sortKey, err := o.sortKeyOfSource(trunk.Source, order.Nil)
 	if err != nil {
 		return order.Nil, err
 	}
 	if trunk.Seq == nil {
-		return layout, nil
+		return sortKey, nil
 	}
 	if trunk.Pushdown != nil {
-		layout, err = o.analyzeOp(trunk.Pushdown, layout)
+		sortKey, err = o.analyzeOp(trunk.Pushdown, sortKey)
 		if err != nil {
 			return order.Nil, err
 		}
 	}
-	return o.analyzeOp(trunk.Seq, layout)
+	return o.analyzeOp(trunk.Seq, sortKey)
 }
 
 // splittablePath returns the largest path within ops from front to end that is splittable.
 // The length of the splittablePath path is returned and the stream order at
-// exit from that path is returned.  If layout is zero, then the
+// exit from that path is returned.  If sortKey is zero, then the
 // splittable path is allowed to include operators that do not guarantee
 // a stream order.  The property of the returned path is that it may be
 // executed in parallel with some way to merge of the the parallel results.
-// The layout parameter defines the input layout.
-func (o *Optimizer) splittablePath(ops []dag.Op, layout order.Layout) (int, order.Layout, error) {
-	requireOrder := !layout.IsNil()
+// The sortKey parameter defines the input scan order.
+func (o *Optimizer) splittablePath(ops []dag.Op, sortKey order.SortKey) (int, order.SortKey, error) {
+	requireOrder := !sortKey.IsNil()
 	if requireOrder {
 		// If the input stream is ordered, then we will preserve order,
 		// but only if we have to because there are nor order-destructive ops.
@@ -325,17 +325,17 @@ func (o *Optimizer) splittablePath(ops []dag.Op, layout order.Layout) (int, orde
 		// what the meaning is here exactly.  This is all still a bit
 		// of a heuristic.  See #2660 and #2661.
 		case *dag.Summarize, *dag.Sort, *dag.Parallel, *dag.Head, *dag.Tail, *dag.Uniq, *dag.Fuse, *dag.Sequential, *dag.Join:
-			return k, layout, nil
+			return k, sortKey, nil
 		default:
-			next, err := o.analyzeOp(op, layout)
+			next, err := o.analyzeOp(op, sortKey)
 			if err != nil {
 				return 0, order.Nil, err
 			}
 			if requireOrder && next.IsNil() {
-				return k, layout, nil
+				return k, sortKey, nil
 			}
-			layout = next
+			sortKey = next
 		}
 	}
-	return len(ops), layout, nil
+	return len(ops), sortKey, nil
 }
