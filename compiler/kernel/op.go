@@ -67,7 +67,7 @@ func NewBuilder(octx *op.Context, source *data.Source) *Builder {
 }
 
 type Reader struct {
-	Layout  order.Layout
+	SortKey order.SortKey
 	Readers []zio.Reader
 }
 
@@ -690,8 +690,8 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 	}
 	var span extent.Span
 	if lower.Bytes != nil || upper.Bytes != nil {
-		layout := b.source.Layout(b.octx.Context, src)
-		span = extent.NewGenericFromOrder(*lower, *upper, layout.Order)
+		sortKey := b.source.SortKey(b.octx.Context, src)
+		span = extent.NewGenericFromOrder(*lower, *upper, sortKey.Order)
 	}
 	return span, nil
 }

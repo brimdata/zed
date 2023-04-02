@@ -49,9 +49,9 @@ func (s *Source) CommitObject(ctx context.Context, id ksuid.KSUID, name string) 
 	return ksuid.Nil, nil
 }
 
-func (s *Source) Layout(ctx context.Context, src dag.Source) order.Layout {
+func (s *Source) SortKey(ctx context.Context, src dag.Source) order.SortKey {
 	if s.lake != nil {
-		return s.lake.Layout(ctx, src)
+		return s.lake.SortKey(ctx, src)
 	}
 	return order.Nil
 }

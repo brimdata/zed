@@ -77,7 +77,7 @@ type compactTask struct {
 func (b *compactTask) run(ctx context.Context, at ksuid.KSUID) (*time.Time, error) {
 	b.log.Debug("compaction started")
 	head := lakeparse.Commitish{Pool: b.pool.Name, Branch: at.String()}
-	it, err := NewPoolDataObjectIterator(ctx, b.lake, &head, b.pool.Layout)
+	it, err := NewPoolDataObjectIterator(ctx, b.lake, &head, b.pool.SortKey)
 	if err != nil {
 		return nil, err
 	}

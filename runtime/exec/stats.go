@@ -22,7 +22,7 @@ func GetPoolStats(ctx context.Context, p *lake.Pool, snap commits.View) (info Po
 	// XXX this doesn't scale... it should be stored in the snapshot and is
 	// not easy to compute in the face of deletes...
 	var poolSpan *extent.Generic
-	for _, object := range snap.Select(nil, p.Layout.Order) {
+	for _, object := range snap.Select(nil, p.SortKey.Order) {
 		info.Size += object.Size
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.Min, object.Max, order.Asc)
@@ -57,7 +57,7 @@ func GetBranchStats(ctx context.Context, b *lake.Branch, snap commits.View) (inf
 	// XXX this doesn't scale... it should be stored in the snapshot and is
 	// not easy to compute in the face of deletes...
 	var poolSpan *extent.Generic
-	for _, object := range snap.Select(nil, b.Pool().Layout.Order) {
+	for _, object := range snap.Select(nil, b.Pool().SortKey.Order) {
 		info.Size += object.Size
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.Min, object.Max, order.Asc)

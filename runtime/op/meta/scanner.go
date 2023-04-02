@@ -74,7 +74,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		reader, err := indexObjectReader(ctx, zctx, snap, p.Layout.Order)
+		reader, err := indexObjectReader(ctx, zctx, snap, p.SortKey.Order)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 			return nil, err
 		}
 		vectors := commits.Vectors(snap)
-		reader, err := objectReader(ctx, zctx, vectors, p.Layout.Order)
+		reader, err := objectReader(ctx, zctx, vectors, p.SortKey.Order)
 		if err != nil {
 			return nil, err
 		}

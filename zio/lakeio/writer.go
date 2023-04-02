@@ -125,9 +125,9 @@ func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
 	b.WriteByte(' ')
 	b.WriteString(p.ID.String())
 	b.WriteString(" key ")
-	b.WriteString(field.List(p.Layout.Keys).String())
+	b.WriteString(field.List(p.SortKey.Keys).String())
 	b.WriteString(" order ")
-	b.WriteString(p.Layout.Order.String())
+	b.WriteString(p.SortKey.Order.String())
 	b.WriteByte('\n')
 }
 

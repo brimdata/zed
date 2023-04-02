@@ -79,7 +79,7 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 		return nil, l.err
 	}
 	if l.objects == nil {
-		l.objects = initObjectScan(l.snap, l.pool.Layout)
+		l.objects = initObjectScan(l.snap, l.pool.SortKey)
 	}
 	for len(l.objects) != 0 {
 		o := l.objects[0]
@@ -96,10 +96,10 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 	return nil, nil
 }
 
-func initObjectScan(snap commits.View, layout order.Layout) []*data.Object {
-	objects := snap.Select(nil, layout.Order)
+func initObjectScan(snap commits.View, sortKey order.SortKey) []*data.Object {
+	objects := snap.Select(nil, sortKey.Order)
 	//XXX at some point sorting should be optional.
-	sortObjects(objects, layout.Order)
+	sortObjects(objects, sortKey.Order)
 	return objects
 }
 
