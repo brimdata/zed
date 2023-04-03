@@ -51,7 +51,6 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		return nil, err
 	}
 	_, err_load := branch.Load(o.octx.Context, o.octx.Zctx, reader, "", "", "")
-	//_, err_load := branch.Load(o.octx.Context, o.octx.Zctx, reader, o.params["author"], o.params["message"], o.params["meta"])// so Params be a map[string]string
 	if err_load != nil {
 		return nil, err_load
 	}
