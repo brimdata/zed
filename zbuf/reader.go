@@ -68,10 +68,3 @@ func (m *meterReadCloser) Read() (*zed.Value, error) {
 	}
 	return val, err
 }
-
-func ReadAll(r zio.Reader) (arr *Array, err error) {
-	if err := zio.Copy(arr, r); err != nil {
-		return nil, err
-	}
-	return
-}
