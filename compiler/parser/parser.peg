@@ -486,8 +486,8 @@ FromAny
   / From
 
 File
-  = "file" _ path:Path format:FormatArg? layout:LayoutArg?  {
-      RETURN(MAP("kind": "File", "path": path, "format": format, "layout": layout ))
+  = "file" _ path:Path format:FormatArg? sort_key:SortKeyArg?  {
+      RETURN(MAP("kind": "File", "path": path, "format": format, "sort_key": sort_key ))
     }
 
 From
@@ -502,8 +502,8 @@ PoolBody
     }
 
 Get
-  = "get" _ url:URL format:FormatArg? layout:LayoutArg? {
-      RETURN(MAP("kind": "HTTP", "url": url, "format": format, "layout": layout ))
+  = "get" _ url:URL format:FormatArg? sort_key:SortKeyArg? {
+      RETURN(MAP("kind": "HTTP", "url": url, "format": format, "sort_key": sort_key ))
     }
 
 URL = ("http:" / "https:") Path { RETURN(TEXT) }
@@ -547,9 +547,9 @@ PoolNameString
 PoolIdentifier
   = (IdentifierStart / ".") (IdentifierRest / ".")* {  RETURN(TEXT) }
 
-LayoutArg
+SortKeyArg
   = _ "order" _ keys:FieldExprs order:OrderSuffix {
-      RETURN(MAP("kind": "Layout", "keys": keys, "order": order))
+      RETURN(MAP("kind": "SortKey", "keys": keys, "order": order))
     }
 
 TapArg

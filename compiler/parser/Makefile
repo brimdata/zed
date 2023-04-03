@@ -4,6 +4,9 @@ PIGEON_VERSION = v1.0.1-0.20190520151103-9fec3898cef8
 ROLLUP_PLUGIN_COMMONJS_VERSION = 14.0.0
 ROLLUP_VERSION = 2.23.1
 
+# GNU cpp needs -std=gnu90 to prevent errors on \uHHHH sequences, and Clang cpp
+# with -std=gnu90 needs -Wno-unicode to prevent warnings on \uHHHH sequences.
+cpp = cpp -E -P -std=gnu90 -Wno-unicode
 deps = $(CURDIR)/deps
 npm = npm --global --prefix $(deps)
 
@@ -17,7 +20,7 @@ endif
 ifeq "$(shell go version -m $(deps)/bin/pigeon 2>&1 | fgrep $(PIGEON_VERSION))" ""
 	GOBIN=$(deps)/bin go install github.com/mna/pigeon@$(PIGEON_VERSION)
 endif
-	cpp -DGO -E -P parser.peg | $(deps)/bin/pigeon -o $@
+	$(cpp) -DGO parser.peg | $(deps)/bin/pigeon -o $@
 	$(deps)/bin/goimports -w $@
 
 .PHONY: parser.js
@@ -25,7 +28,7 @@ parser.js:
 ifeq "$(shell $(deps)/bin/pegjs --version 2>&1 | fgrep $(PEGJS_VERSION))" ""
 	$(npm) install pegjs@$(PEGJS_VERSION)
 endif
-	cpp -E -P parser.peg | $(deps)/bin/pegjs --allowed-start-rules start,Expr -o $@
+	$(cpp) parser.peg | $(deps)/bin/pegjs --allowed-start-rules start,Expr -o $@
 
 .PHONY: parser.es.js
 parser.es.js: parser.js

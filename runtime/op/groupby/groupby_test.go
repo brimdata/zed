@@ -307,8 +307,8 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 				}
 			},
 		}
-		layout := order.NewLayout(order.Asc, field.List{field.New(inputSortKey)})
-		query, err := newQueryOnOrderedReader(context.Background(), zctx, proc, cr, layout)
+		sortKey := order.NewSortKey(order.Asc, field.List{field.New(inputSortKey)})
+		query, err := newQueryOnOrderedReader(context.Background(), zctx, proc, cr, sortKey)
 		require.NoError(t, err)
 		defer query.Pull(true)
 		err = zbuf.CopyPuller(checker, query)
@@ -327,9 +327,9 @@ type nopCloser struct{ io.Writer }
 
 func (*nopCloser) Close() error { return nil }
 
-func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, layout order.Layout) (*runtime.Query, error) {
+func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
 	octx := op.NewContext(ctx, zctx, nil)
-	q, err := compiler.CompileWithLayout(octx, program, reader, layout)
+	q, err := compiler.CompileWithSortKey(octx, program, reader, sortKey)
 	if err != nil {
 		octx.Cancel()
 		return nil, err

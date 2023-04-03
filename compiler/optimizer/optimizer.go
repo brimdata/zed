@@ -13,18 +13,18 @@ import (
 )
 
 type Optimizer struct {
-	ctx     context.Context
-	entry   *dag.Sequential
-	source  *data.Source
-	layouts map[dag.Source]order.Layout
+	ctx      context.Context
+	entry    *dag.Sequential
+	source   *data.Source
+	sortKeys map[dag.Source]order.SortKey
 }
 
 func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optimizer {
 	return &Optimizer{
-		ctx:     ctx,
-		entry:   entry,
-		source:  source,
-		layouts: make(map[dag.Source]order.Layout),
+		ctx:      ctx,
+		entry:    entry,
+		source:   source,
+		sortKeys: make(map[dag.Source]order.SortKey),
 	}
 }
 
@@ -93,11 +93,11 @@ func (o *Optimizer) OptimizeScan() error {
 	o.propagateScanOrder(seq, order.Nil)
 	from := seq.Ops[0].(*dag.From)
 	chain := seq.Ops[1:]
-	layout, err := o.layoutOfFrom(from)
+	sortKey, err := o.sortKeyOfFrom(from)
 	if err != nil {
 		return err
 	}
-	len, _, err := o.splittablePath(chain, layout)
+	len, _, err := o.splittablePath(chain, sortKey)
 	if err != nil {
 		return err
 	}
@@ -114,9 +114,9 @@ func (o *Optimizer) OptimizeScan() error {
 		pushDown(trunk)
 		// Check to see if we can add a range pruner when the pool-key is used
 		// in a normal filtering operation.
-		if layout, ok := o.layouts[trunk.Source]; ok {
+		if sortKey, ok := o.sortKeys[trunk.Source]; ok {
 			if pushdown, ok := trunk.Pushdown.(*dag.Filter); ok {
-				if p := newRangePruner(pushdown.Expr, layout.Primary(), layout.Order); p != nil {
+				if p := newRangePruner(pushdown.Expr, sortKey.Primary(), sortKey.Order); p != nil {
 					trunk.KeyPruner = p
 				}
 			}
@@ -131,13 +131,13 @@ func (o *Optimizer) OptimizeScan() error {
 // point but don't bother yet because we do not yet support any optimization
 // past the first aggregation.)  If there are multiple trunks, we only
 // propagate the scan order if its the same at egress of all of the trunks.
-func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.Layout) (order.Layout, error) {
+func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.SortKey) (order.SortKey, error) {
 	switch op := op.(type) {
 	case *dag.From:
-		var egress order.Layout
+		var egress order.SortKey
 		for k := range op.Trunks {
 			trunk := &op.Trunks[k]
-			l, err := o.layoutOfSource(trunk.Source, parent)
+			l, err := o.sortKeyOfSource(trunk.Source, parent)
 			if err != nil {
 				return order.Nil, err
 			}
@@ -187,7 +187,7 @@ func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.Layout) (order.La
 		}
 		return parent, nil
 	case *dag.Parallel:
-		var egress order.Layout
+		var egress order.SortKey
 		for k, op := range op.Ops {
 			out, err := o.propagateScanOrder(op, parent)
 			if err != nil {
@@ -201,46 +201,46 @@ func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.Layout) (order.La
 		}
 		return egress, nil
 	case *dag.Merge:
-		layout := order.NewLayout(op.Order, nil)
+		sortKey := order.NewSortKey(op.Order, nil)
 		if this, ok := op.Expr.(*dag.This); ok {
-			layout.Keys = field.List{this.Path}
+			sortKey.Keys = field.List{this.Path}
 		}
-		if !layout.Equal(parent) {
-			layout = order.Nil
+		if !sortKey.Equal(parent) {
+			sortKey = order.Nil
 		}
-		return layout, nil
+		return sortKey, nil
 	default:
 		return o.analyzeOp(op, parent)
 	}
 }
 
-func (o *Optimizer) layoutOfSource(s dag.Source, parent order.Layout) (order.Layout, error) {
-	layout, ok := o.layouts[s]
+func (o *Optimizer) sortKeyOfSource(s dag.Source, parent order.SortKey) (order.SortKey, error) {
+	sortKey, ok := o.sortKeys[s]
 	if !ok {
 		var err error
-		layout, err = o.getLayout(s, parent)
+		sortKey, err = o.getSortKey(s, parent)
 		if err != nil {
 			return order.Nil, err
 		}
-		o.layouts[s] = layout
+		o.sortKeys[s] = sortKey
 	}
-	return layout, nil
+	return sortKey, nil
 }
 
-func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, error) {
+func (o *Optimizer) getSortKey(s dag.Source, parent order.SortKey) (order.SortKey, error) {
 	switch s := s.(type) {
 	case *dag.File:
-		return s.Layout, nil
+		return s.SortKey, nil
 	case *dag.HTTP:
-		return s.Layout, nil
+		return s.SortKey, nil
 	case *dag.Pool:
-		return o.source.Layout(o.ctx, s), nil
+		return o.source.SortKey(o.ctx, s), nil
 	case *dag.CommitMeta:
 		if s.Tap && s.Meta == "objects" {
 			// For a tap into the object stream, we compile the downstream
 			// DAG as if it were a normal query (so the optimizer can prune
 			// objects etc.) but we execute it in the end as a meta-query.
-			return o.source.Layout(o.ctx, s), nil
+			return o.source.SortKey(o.ctx, s), nil
 		}
 		return order.Nil, nil
 	case *dag.LakeMeta, *dag.PoolMeta:
@@ -248,7 +248,7 @@ func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, 
 	case *dag.Pass:
 		return parent, nil
 	case *kernel.Reader:
-		return s.Layout, nil
+		return s.SortKey, nil
 	default:
 		return order.Nil, fmt.Errorf("unknown dag.Source type %T", s)
 	}

@@ -36,7 +36,7 @@ outputs:
                       "a"
                   ] (=field.Path)
               ] (=field.List)
-          } (=order.Layout),
+          } (=order.SortKey),
           seek_stride: 65536,
           threshold: 524288000
       }
@@ -49,7 +49,7 @@ outputs:
                       "b"
                   ] (=field.Path)
               ] (=field.List)
-          } (=order.Layout),
+          } (=order.SortKey),
           seek_stride: 65536,
           threshold: 524288000
       }

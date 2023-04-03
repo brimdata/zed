@@ -68,7 +68,7 @@ func NewBuilder(octx *op.Context, source *data.Source) *Builder {
 }
 
 type Reader struct {
-	Layout  order.Layout
+	SortKey order.SortKey
 	Readers []zio.Reader
 }
 
@@ -625,9 +625,9 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			if b.deletes == nil {
 				b.deletes = &sync.Map{}
 			}
-			source = meta.NewDeleter(b.octx, slicer, pool, slicer.Snapshot(), filter, pruner, b.progress, b.deletes)
+			source = meta.NewDeleter(b.octx, slicer, pool, filter, pruner, b.progress, b.deletes)
 		} else {
-			source = meta.NewSequenceScanner(b.octx, slicer, pool, slicer.Snapshot(), filter, pruner, b.progress)
+			source = meta.NewSequenceScanner(b.octx, slicer, pool, filter, pruner, b.progress)
 		}
 	case *dag.PoolMeta:
 		scanner, err := meta.NewPoolMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
@@ -694,8 +694,8 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 	}
 	var span extent.Span
 	if lower.Bytes != nil || upper.Bytes != nil {
-		layout := b.source.Layout(b.octx.Context, src)
-		span = extent.NewGenericFromOrder(*lower, *upper, layout.Order)
+		sortKey := b.source.SortKey(b.octx.Context, src)
+		span = extent.NewGenericFromOrder(*lower, *upper, sortKey.Order)
 	}
 	return span, nil
 }

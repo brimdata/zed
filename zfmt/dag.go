@@ -501,8 +501,8 @@ func source(src dag.Source) string {
 		if p.Format != "" {
 			s += fmt.Sprintf(" format %s", p.Format)
 		}
-		if !p.Layout.IsNil() {
-			s += fmt.Sprintf(" order %s", p.Layout)
+		if !p.SortKey.IsNil() {
+			s += fmt.Sprintf(" order %s", p.SortKey)
 		}
 		return s
 	case *dag.HTTP:

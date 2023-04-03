@@ -472,8 +472,8 @@ function peg$parse(input, options) {
           },
       peg$c200 = "file",
       peg$c201 = peg$literalExpectation("file", false),
-      peg$c202 = function(path, format, layout) {
-            return {"kind": "File", "path": path, "format": format, "layout": layout}
+      peg$c202 = function(path, format, sort_key) {
+            return {"kind": "File", "path": path, "format": format, "sort_key": sort_key}
           },
       peg$c203 = function(body) { return body },
       peg$c204 = "pool",
@@ -483,8 +483,8 @@ function peg$parse(input, options) {
           },
       peg$c207 = "get",
       peg$c208 = peg$literalExpectation("get", false),
-      peg$c209 = function(url, format, layout) {
-            return {"kind": "HTTP", "url": url, "format": format, "layout": layout}
+      peg$c209 = function(url, format, sort_key) {
+            return {"kind": "HTTP", "url": url, "format": format, "sort_key": sort_key}
           },
       peg$c210 = "http:",
       peg$c211 = peg$literalExpectation("http:", false),
@@ -512,7 +512,7 @@ function peg$parse(input, options) {
       peg$c229 = "order",
       peg$c230 = peg$literalExpectation("order", false),
       peg$c231 = function(keys, order) {
-            return {"kind": "Layout", "keys": keys, "order": order}
+            return {"kind": "SortKey", "keys": keys, "order": order}
           },
       peg$c232 = "tap",
       peg$c233 = peg$literalExpectation("tap", false),
@@ -5214,7 +5214,7 @@ function peg$parse(input, options) {
             s4 = null;
           }
           if (s4 !== peg$FAILED) {
-            s5 = peg$parseLayoutArg();
+            s5 = peg$parseSortKeyArg();
             if (s5 === peg$FAILED) {
               s5 = null;
             }
@@ -5363,7 +5363,7 @@ function peg$parse(input, options) {
             s4 = null;
           }
           if (s4 !== peg$FAILED) {
-            s5 = peg$parseLayoutArg();
+            s5 = peg$parseSortKeyArg();
             if (s5 === peg$FAILED) {
               s5 = null;
             }
@@ -5783,7 +5783,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseLayoutArg() {
+  function peg$parseSortKeyArg() {
     var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;

@@ -14,53 +14,53 @@ import (
 // to known (e.g., sort) or from known to unknown (e.g., parallel paths).
 // Also, when op is a Summarize operator, it's input direction (where the
 // order key is presumed to be the primary group-by key) is set based
-// on the layout argument.  This is clumsy and needs to change.
+// on the sortKey argument.  This is clumsy and needs to change.
 // See issue #2658.
-func (o *Optimizer) analyzeOp(op dag.Op, layout order.Layout) (order.Layout, error) {
+func (o *Optimizer) analyzeOp(op dag.Op, sortKey order.SortKey) (order.SortKey, error) {
 	// We should handle secondary keys at some point.
 	// See issue #2657.
-	key := layout.Primary()
+	key := sortKey.Primary()
 	if key == nil {
 		return order.Nil, nil
 	}
 	switch op := op.(type) {
 	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse, *dag.Load:
-		return layout, nil
+		return sortKey, nil
 	case *dag.Cut:
-		return analyzeCuts(op.Args, layout), nil
+		return analyzeCuts(op.Args, sortKey), nil
 	case *dag.Drop:
 		for _, f := range op.Args {
 			if fieldOf(f).Equal(key) {
 				return order.Nil, nil
 			}
 		}
-		return layout, nil
+		return sortKey, nil
 	case *dag.Rename:
 		for _, assignment := range op.Args {
 			if fieldOf(assignment.RHS).Equal(key) {
 				lhs := fieldOf(assignment.LHS)
-				layout = order.NewLayout(layout.Order, field.List{lhs})
+				sortKey = order.NewSortKey(sortKey.Order, field.List{lhs})
 			}
 		}
-		return layout, nil
+		return sortKey, nil
 	case *dag.Summarize:
-		return analyzeOpSummarize(op, layout), nil
+		return analyzeOpSummarize(op, sortKey), nil
 	case *dag.Put:
 		for _, assignment := range op.Args {
 			if fieldOf(assignment.LHS).Equal(key) {
 				return order.Nil, nil
 			}
 		}
-		return layout, nil
+		return sortKey, nil
 	case *dag.Sequential:
 		for _, op := range op.Ops {
 			var err error
-			layout, err = o.analyzeOp(op, layout)
+			sortKey, err = o.analyzeOp(op, sortKey)
 			if err != nil {
 				return order.Nil, err
 			}
 		}
-		return layout, nil
+		return sortKey, nil
 	case *dag.Sort:
 		// XXX Only single sort keys.  See issue #2657.
 		if len(op.Args) != 1 {
@@ -71,12 +71,12 @@ func (o *Optimizer) analyzeOp(op dag.Op, layout order.Layout) (order.Layout, err
 			// Not a field
 			return order.Nil, nil
 		}
-		return order.NewLayout(op.Order, field.List{key}), nil
+		return order.NewSortKey(op.Order, field.List{key}), nil
 	case *dag.From:
-		var egress order.Layout
+		var egress order.SortKey
 		for k := range op.Trunks {
 			trunk := &op.Trunks[k]
-			l, err := o.layoutOfSource(trunk.Source, layout)
+			l, err := o.sortKeyOfSource(trunk.Source, sortKey)
 			if err != nil || l.IsNil() {
 				return order.Nil, err
 			}
@@ -101,10 +101,10 @@ func (o *Optimizer) analyzeOp(op dag.Op, layout order.Layout) (order.Layout, err
 // sets ast.Summarize.InputSortDir to the propagated scan order.  It returns
 // the new order (or order.Nil if unknown) that will arise after the summarize
 // is applied to its input.
-func analyzeOpSummarize(summarize *dag.Summarize, layout order.Layout) order.Layout {
+func analyzeOpSummarize(summarize *dag.Summarize, sortKey order.SortKey) order.SortKey {
 	// Set p.InputSortDir and return true if the first grouping key
 	// is inputSortField or an order-preserving function of it.
-	key := layout.Keys[0]
+	key := sortKey.Keys[0]
 	if len(summarize.Keys) == 0 {
 		return order.Nil
 	}
@@ -113,7 +113,7 @@ func analyzeOpSummarize(summarize *dag.Summarize, layout order.Layout) order.Lay
 		rhsExpr := summarize.Keys[0].RHS
 		rhs := fieldOf(rhsExpr)
 		if rhs.Equal(key) || orderPreservingCall(rhsExpr, groupByKey) {
-			return layout
+			return sortKey
 		}
 	}
 	return order.Nil
@@ -136,8 +136,8 @@ func orderPreservingCall(e dag.Expr, key field.Path) bool {
 	return false
 }
 
-func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout {
-	key := layout.Primary()
+func analyzeCuts(assignments []dag.Assignment, sortKey order.SortKey) order.SortKey {
+	key := sortKey.Primary()
 	if key == nil {
 		return order.Nil
 	}
@@ -147,7 +147,7 @@ func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout
 	// framework cannot handle this so we return unknown (order.Nil)
 	// as a conservative stance to prevent any problematic optimizations.
 	// If there is precisely one field of known order, then that is the
-	// layout we return.  In a future version of the optimizer, we will
+	// sort key we return.  In a future version of the optimizer, we will
 	// generalize this scoreboard concept across the flowgraph for a
 	// comprehensive approach to dataflow analysis.  See issue #2756.
 	scoreboard := make(map[string]field.Path)
@@ -204,7 +204,7 @@ func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout
 		return order.Nil
 	}
 	for _, f := range scoreboard {
-		return order.Layout{Keys: field.List{f}, Order: layout.Order}
+		return order.SortKey{Keys: field.List{f}, Order: sortKey.Order}
 	}
 	panic("unreachable")
 }
