@@ -6,7 +6,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
-	"golang.org/x/exp/slices"
 )
 
 type Collect struct {
@@ -23,7 +22,7 @@ func (c *Collect) Consume(val *zed.Value) {
 }
 
 func (c *Collect) update(val *zed.Value) {
-	c.values = append(c.values, zed.Value{Type: val.Type, Bytes: slices.Clone(val.Bytes)})
+	c.values = append(c.values, *val.Copy())
 	c.size += len(val.Bytes)
 	for c.size > MaxValueSize {
 		// XXX See issue #1813.  For now we silently discard entries
@@ -55,13 +54,10 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 
 func innerType(zctx *zed.Context, vals []zed.Value) zed.Type {
 	var types []zed.Type
-	m := make(map[zed.Type]struct{})
 	for _, val := range vals {
-		if _, ok := m[val.Type]; !ok {
-			m[val.Type] = struct{}{}
-			types = append(types, val.Type)
-		}
+		types = append(types, val.Type)
 	}
+	types = zed.UniqueTypes(types)
 	if len(types) == 1 {
 		return types[0]
 	}
@@ -78,10 +74,8 @@ func (c *Collect) ConsumeAsPartial(val *zed.Value) {
 		panic(fmt.Errorf("collect partial: partial not an array type: %s", zson.MustFormatValue(val)))
 	}
 	typ := arrayType.Type
-	elem := zed.Value{Type: typ}
 	for it := val.Iter(); !it.Done(); {
-		elem.Bytes = it.Next()
-		c.update(&elem)
+		c.update(zed.NewValue(typ, it.Next()))
 	}
 }
 
