@@ -29,7 +29,6 @@ type Op struct {
 	comparator     *expr.Comparator
 	ectx           expr.Context
 	eof            bool
-	sorter         expr.Sorter
 }
 
 func New(octx *op.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Op, error) {
@@ -150,7 +149,7 @@ func (o *Op) run() {
 
 // send sorts vals in memory and sends the result downstream.
 func (o *Op) send(vals []zed.Value) bool {
-	o.sorter.SortStable(vals, o.comparator)
+	o.comparator.SortStable(vals)
 	out := zbuf.NewBatch(o.lastBatch, vals)
 	return o.sendResult(out, nil)
 }
