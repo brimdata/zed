@@ -163,16 +163,16 @@ type (
 	// Leaf sources
 
 	File struct {
-		Kind   string       `json:"kind" unpack:""`
-		Path   string       `json:"path"`
-		Format string       `json:"format"`
-		Layout order.Layout `json:"layout"`
+		Kind    string        `json:"kind" unpack:""`
+		Path    string        `json:"path"`
+		Format  string        `json:"format"`
+		SortKey order.SortKey `json:"sort_key"`
 	}
 	HTTP struct {
-		Kind   string       `json:"kind" unpack:""`
-		URL    string       `json:"url"`
-		Format string       `json:"format"`
-		Layout order.Layout `json:"layout"`
+		Kind    string        `json:"kind" unpack:""`
+		URL     string        `json:"url"`
+		Format  string        `json:"format"`
+		SortKey order.SortKey `json:"sort_key"`
 	}
 	Pool struct {
 		Kind   string      `json:"kind" unpack:""`
@@ -280,11 +280,10 @@ func NewFilter(e Expr) *Filter {
 	}
 }
 
-func (seq *Sequential) IsEntry() bool {
-	if len(seq.Ops) == 0 {
-		return false
-	}
-	switch op := seq.Ops[0].(type) {
+// IsEntry tests whether op is an entry node, meaning that it does not require a
+// parent node.
+func IsEntry(op Op) bool {
+	switch op := op.(type) {
 	case *From:
 		return true
 	case *Parallel:
@@ -292,11 +291,16 @@ func (seq *Sequential) IsEntry() bool {
 			return false
 		}
 		for _, o := range op.Ops {
-			if s, ok := o.(*Sequential); !ok || !s.IsEntry() {
+			if !IsEntry(o) {
 				return false
 			}
 		}
 		return true
+	case *Sequential:
+		if len(op.Ops) == 0 {
+			return false
+		}
+		return IsEntry(op.Ops[0])
 	}
 	return false
 }

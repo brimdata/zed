@@ -68,13 +68,17 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 	}
 	switch meta {
 	case "objects":
-		return NewSortedLister(ctx, zctx, r, p, commit, pruner)
+		lister, err := NewSortedLister(ctx, zctx, r, p, commit, pruner)
+		if err != nil {
+			return nil, err
+		}
+		return zbuf.NewScanner(ctx, zbuf.PullerReader(lister), filter)
 	case "indexes":
 		snap, err := p.Snapshot(ctx, commit)
 		if err != nil {
 			return nil, err
 		}
-		reader, err := indexObjectReader(ctx, zctx, snap, p.Layout.Order)
+		reader, err := indexObjectReader(ctx, zctx, snap, p.SortKey.Order)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +88,11 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		return NewSlicer(lister, zctx), nil
+		slicer, err := NewSlicer(lister, zctx), nil
+		if err != nil {
+			return nil, err
+		}
+		return zbuf.NewScanner(ctx, zbuf.PullerReader(slicer), filter)
 	case "log":
 		tips, err := p.BatchifyBranchTips(ctx, zctx, nil)
 		if err != nil {
@@ -112,7 +120,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 			return nil, err
 		}
 		vectors := commits.Vectors(snap)
-		reader, err := objectReader(ctx, zctx, vectors, p.Layout.Order)
+		reader, err := objectReader(ctx, zctx, vectors, p.SortKey.Order)
 		if err != nil {
 			return nil, err
 		}

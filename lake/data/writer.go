@@ -64,17 +64,12 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 
 func (w *Writer) Write(val *zed.Value) error {
 	w.count++
-	key := val.DerefPath(w.poolKey).MissingAsNull()
-	if w.seekIndex != nil {
-		if err := w.writeIndex(key); err != nil {
-			return err
-		}
-	}
 	if err := w.writer.Write(val); err != nil {
 		return err
 	}
+	key := val.DerefPath(w.poolKey).MissingAsNull()
 	w.object.Max.CopyFrom(key)
-	return nil
+	return w.writeIndex(key)
 }
 
 func (w *Writer) writeIndex(key *zed.Value) error {
@@ -86,7 +81,6 @@ func (w *Writer) writeIndex(key *zed.Value) error {
 	if w.seekMin == nil {
 		w.seekMin = key.Copy()
 	}
-	w.object.Max.CopyFrom(key)
 	if w.seekIndexTrigger < w.seekIndexStride {
 		return nil
 	}

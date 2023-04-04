@@ -20,11 +20,11 @@ func (i *anyCompiler) NewQuery(octx *op.Context, o ast.Op, readers []zio.Reader)
 	if len(readers) != 1 {
 		return nil, fmt.Errorf("NewQuery: Zed program expected %d readers", len(readers))
 	}
-	return CompileWithLayout(octx, o, readers[0], order.Layout{})
+	return CompileWithSortKey(octx, o, readers[0], order.SortKey{})
 }
 
 // XXX currently used only by group-by test, need to deprecate
-func CompileWithLayout(octx *op.Context, o ast.Op, r zio.Reader, layout order.Layout) (*runtime.Query, error) {
+func CompileWithSortKey(octx *op.Context, o ast.Op, r zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
 	job, err := NewJob(octx, o, data.NewSource(nil, nil), nil)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func CompileWithLayout(octx *op.Context, o ast.Op, r zio.Reader, layout order.La
 		return nil, fmt.Errorf("CompileForInternalWithOrder: Zed program expected %d readers", len(readers))
 	}
 	readers[0].Readers = []zio.Reader{r}
-	readers[0].Layout = layout
+	readers[0].SortKey = sortKey
 	return optimizeAndBuild(job)
 }
 

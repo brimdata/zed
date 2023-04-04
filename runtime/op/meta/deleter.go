@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
@@ -24,15 +23,13 @@ type Deleter struct {
 	octx        *op.Context
 	pool        *lake.Pool
 	progress    *zbuf.Progress
-	snap        commits.View
 	unmarshaler *zson.UnmarshalZNGContext
 	done        bool
 	err         error
 	deletes     *sync.Map
 }
 
-// XXX shouldn't pass in snap
-func NewDeleter(octx *op.Context, parent zbuf.Puller, pool *lake.Pool, snap commits.View, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress, deletes *sync.Map) *Deleter {
+func NewDeleter(octx *op.Context, parent zbuf.Puller, pool *lake.Pool, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress, deletes *sync.Map) *Deleter {
 	return &Deleter{
 		parent:      parent,
 		filter:      filter,
@@ -40,7 +37,6 @@ func NewDeleter(octx *op.Context, parent zbuf.Puller, pool *lake.Pool, snap comm
 		octx:        octx,
 		pool:        pool,
 		progress:    progress,
-		snap:        snap,
 		unmarshaler: zson.NewZNGUnmarshaler(),
 		deletes:     deletes,
 	}

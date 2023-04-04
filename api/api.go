@@ -36,10 +36,10 @@ type VersionResponse struct {
 }
 
 type PoolPostRequest struct {
-	Name       string       `json:"name"`
-	Layout     order.Layout `json:"layout"`
-	SeekStride int          `json:"seek_stride"`
-	Thresh     int64        `json:"thresh"`
+	Name       string        `json:"name"`
+	SortKey    order.SortKey `json:"layout"`
+	SeekStride int           `json:"seek_stride"`
+	Thresh     int64         `json:"thresh"`
 }
 
 type PoolPutRequest struct {

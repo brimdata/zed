@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -14,12 +13,12 @@ type peeker struct {
 	ordinal    int
 }
 
-func newPeeker(ctx context.Context, zctx *zed.Context, filename string, ordinal int, arr *zbuf.Array) (*peeker, error) {
+func newPeeker(ctx context.Context, zctx *zed.Context, filename string, ordinal int, zr zio.Reader) (*peeker, error) {
 	f, err := NewFileWithPath(filename)
 	if err != nil {
 		return nil, err
 	}
-	if err := zio.CopyWithContext(ctx, f, arr); err != nil {
+	if err := zio.CopyWithContext(ctx, f, zr); err != nil {
 		f.CloseAndRemove()
 		return nil, err
 	}

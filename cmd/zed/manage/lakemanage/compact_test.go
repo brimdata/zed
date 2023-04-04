@@ -23,7 +23,7 @@ func TestScan(t *testing.T) {
 	pool := pools.Config{
 		Name:      "test",
 		ID:        ksuid.New(),
-		Layout:    order.NewLayout(order.Asc, field.DottedList("ts")),
+		SortKey:   order.NewSortKey(order.Asc, field.DottedList("ts")),
 		Threshold: 10 * MB,
 	}
 	// Test cases:

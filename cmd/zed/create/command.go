@@ -37,7 +37,7 @@ By default, a branch called "main" is initialized in the newly created pool.
 
 type Command struct {
 	*root.Command
-	layout     string
+	sortKey    string
 	thresh     units.Bytes
 	seekStride units.Bytes
 }
@@ -49,7 +49,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	}
 	c.thresh = data.DefaultThreshold
 	f.Var(&c.thresh, "S", "target size of pool data objects, as '10MB' or '4GiB', etc.")
-	f.StringVar(&c.layout, "orderby", "ts:desc", "comma-separated pool keys with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
+	f.StringVar(&c.sortKey, "orderby", "ts:desc", "comma-separated pool keys with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
 	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
 	return c, nil
 }
@@ -67,12 +67,12 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	layout, err := order.ParseLayout(c.layout)
+	sortKey, err := order.ParseSortKey(c.sortKey)
 	if err != nil {
 		return err
 	}
 	poolName := args[0]
-	id, err := lake.CreatePool(ctx, poolName, layout, int(c.seekStride), int64(c.thresh))
+	id, err := lake.CreatePool(ctx, poolName, sortKey, int(c.seekStride), int64(c.thresh))
 	if err != nil {
 		return err
 	}

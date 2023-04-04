@@ -6,25 +6,25 @@ import (
 	"github.com/brimdata/zed/runtime/expr"
 )
 
-func NewComparator(zctx *zed.Context, layout order.Layout) *expr.Comparator {
-	exprs := make([]expr.Evaluator, len(layout.Keys))
-	for i, key := range layout.Keys {
+func NewComparator(zctx *zed.Context, sortKey order.SortKey) *expr.Comparator {
+	exprs := make([]expr.Evaluator, len(sortKey.Keys))
+	for i, key := range sortKey.Keys {
 		exprs[i] = expr.NewDottedExpr(zctx, key)
 	}
 	// valueAsBytes establishes a total order.
 	exprs = append(exprs, &valueAsBytes{})
-	nullsMax := layout.Order == order.Asc
+	nullsMax := sortKey.Order == order.Asc
 	return expr.NewComparator(nullsMax, !nullsMax, exprs...).WithMissingAsNull()
 }
 
-func NewComparatorNullsMax(zctx *zed.Context, layout order.Layout) *expr.Comparator {
-	exprs := make([]expr.Evaluator, len(layout.Keys))
-	for i, key := range layout.Keys {
+func NewComparatorNullsMax(zctx *zed.Context, sortKey order.SortKey) *expr.Comparator {
+	exprs := make([]expr.Evaluator, len(sortKey.Keys))
+	for i, key := range sortKey.Keys {
 		exprs[i] = expr.NewDottedExpr(zctx, key)
 	}
 	// valueAsBytes establishes a total order.
 	exprs = append(exprs, &valueAsBytes{})
-	reverse := layout.Order == order.Desc
+	reverse := sortKey.Order == order.Desc
 	return expr.NewComparator(true, reverse, exprs...).WithMissingAsNull()
 }
 

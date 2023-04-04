@@ -66,29 +66,29 @@ func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Sourc
 func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.Source, head *lakeparse.Commitish) ([]dag.Source, error) {
 	switch p := source.(type) {
 	case *ast.File:
-		layout, err := semLayout(p.Layout)
+		sortKey, err := semSortKey(p.SortKey)
 		if err != nil {
 			return nil, err
 		}
 		return []dag.Source{
 			&dag.File{
-				Kind:   "File",
-				Path:   p.Path,
-				Format: p.Format,
-				Layout: layout,
+				Kind:    "File",
+				Path:    p.Path,
+				Format:  p.Format,
+				SortKey: sortKey,
 			},
 		}, nil
 	case *ast.HTTP:
-		layout, err := semLayout(p.Layout)
+		sortKey, err := semSortKey(p.SortKey)
 		if err != nil {
 			return nil, err
 		}
 		return []dag.Source{
 			&dag.HTTP{
-				Kind:   "HTTP",
-				URL:    p.URL,
-				Format: p.Format,
-				Layout: layout,
+				Kind:    "HTTP",
+				URL:     p.URL,
+				Format:  p.Format,
+				SortKey: sortKey,
 			},
 		}, nil
 	case *ast.Pool:
@@ -106,7 +106,7 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 	}
 }
 
-func semLayout(p *ast.Layout) (order.Layout, error) {
+func semSortKey(p *ast.SortKey) (order.SortKey, error) {
 	if p == nil || p.Keys == nil {
 		return order.Nil, nil
 	}
@@ -122,7 +122,7 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 	if err != nil {
 		return order.Nil, err
 	}
-	return order.NewLayout(which, keys), nil
+	return order.NewSortKey(which, keys), nil
 }
 
 func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, head *lakeparse.Commitish) ([]dag.Source, error) {

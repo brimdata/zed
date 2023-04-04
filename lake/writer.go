@@ -34,7 +34,6 @@ type Writer struct {
 	// data efficiently in one big backing store.
 	buffer      chan []zed.Value
 	comparator  *expr.Comparator
-	sorter      expr.Sorter
 	memBuffered int64
 	stats       ImportStats
 }
@@ -128,7 +127,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if !w.inputSorted {
 		done := make(chan struct{})
 		go func() {
-			w.sorter.SortStable(recs, w.comparator)
+			w.comparator.SortStable(recs)
 			close(done)
 		}()
 		select {
@@ -137,7 +136,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 			return w.ctx.Err()
 		}
 	}
-	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, poolKey(w.pool.Layout), w.pool.SeekStride)
+	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.SortKey.Order, poolKey(w.pool.SortKey), w.pool.SeekStride)
 	if err != nil {
 		return err
 	}
@@ -177,7 +176,7 @@ func (w *SortedWriter) Write(val *zed.Value) error {
 		o := data.NewObject()
 		w.objects = append(w.objects, &o)
 		var err error
-		w.writer, err = o.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, poolKey(w.pool.Layout), w.pool.SeekStride)
+		w.writer, err = o.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.SortKey.Order, poolKey(w.pool.SortKey), w.pool.SeekStride)
 		if err != nil {
 			return err
 		}
@@ -236,15 +235,15 @@ func (s *ImportStats) Copy() ImportStats {
 }
 
 func ImportComparator(zctx *zed.Context, pool *Pool) *expr.Comparator {
-	layout := pool.Layout
-	layout.Keys = field.List{poolKey(layout)}
-	return zbuf.NewComparatorNullsMax(zctx, layout)
+	sortKey := pool.SortKey
+	sortKey.Keys = field.List{poolKey(sortKey)}
+	return zbuf.NewComparatorNullsMax(zctx, sortKey)
 }
 
-func poolKey(layout order.Layout) field.Path {
-	if len(layout.Keys) != 0 {
+func poolKey(sortKey order.SortKey) field.Path {
+	if len(sortKey.Keys) != 0 {
 		// XXX We don't yet handle multiple pool keys.
-		return layout.Keys[0]
+		return sortKey.Keys[0]
 	}
 	return field.New("ts")
 }
