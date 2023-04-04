@@ -1,6 +1,7 @@
 package load
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
@@ -33,16 +34,12 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		}
 		return nil, nil
 	}
-	batch, err := o.parent.Pull(false)
-	if batch == nil || err != nil {
-		return nil, err
-	}
 	reader := zbuf.PullerReader(o.parent)
-	poolID, err := (o.lk).PoolID(o.octx.Context, o.pool)
+	poolID, err := o.lk.PoolID(o.octx.Context, o.pool)
 	if err != nil {
 		return nil, err
 	}
-	pool, err := (o.lk).OpenPool(o.octx.Context, poolID)
+	pool, err := o.lk.OpenPool(o.octx.Context, poolID)
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +47,11 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err_load := branch.Load(o.octx.Context, o.octx.Zctx, reader, "", "", "")
-	if err_load != nil {
-		return nil, err_load
+	commitID, err := branch.Load(o.octx.Context, o.octx.Zctx, reader, "", "", "") // make last 3 optional.
+	if err != nil {
+		return nil, err
 	}
-	return zbuf.NewBatch(batch, batch.Values()), nil
+	commitByte := zed.NewBytes(commitID[:])
+	valueID := []zed.Value{*commitByte}
+	return zbuf.NewArray(valueID), nil
 }

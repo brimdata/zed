@@ -2,16 +2,14 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q samples
-  zed load -q -use samples babble.zson
-  zed create -q Pot
-  echo ===
-  zed query 'from samples | s=="Potamogalidae-precommissure" | load Pot'
+  zed load -q -use samples schools.zson
+  zed create -q Orange
+  zed query 'from samples | County=="Orange" | load Orange'
 
 inputs:
-  - name: babble.zson
-    source: ../../testdata/babble.zson
+  - name: schools.zson
+    source: ../../testdata/edu/schools.zson
 outputs:
   - name: stdout
     data: |
-      ===
       getting empty transaction?

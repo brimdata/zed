@@ -247,8 +247,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		return b.compileOver(parent, v.Over, names, exprs)
 	case *dag.Load:
-		lk := b.source.Lake()
-		return load.New(b.octx, lk, parent, v.Pool), nil
+		return load.New(b.octx, b.source.Lake(), parent, v.Pool), nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
