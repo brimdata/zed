@@ -633,10 +633,14 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		source = scanner
 	case *dag.CommitMeta:
 		var pruner expr.Evaluator
-		if src.Tap && trunk.KeyPruner != nil {
-			pruner, err = compileExpr(trunk.KeyPruner)
-			if err != nil {
-				return nil, err
+		if src.Tap {
+			// disable pushdown if Tap is activated for meta queries.
+			pushdown = nil
+			if trunk.KeyPruner != nil {
+				pruner, err = compileExpr(trunk.KeyPruner)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 		scanner, err := meta.NewCommitMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, pushdown, pruner)
