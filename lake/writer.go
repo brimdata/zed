@@ -124,10 +124,13 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
-	if !w.inputSorted {
+	var zr zio.Reader
+	if w.inputSorted {
+		zr = zbuf.NewArray(recs)
+	} else {
 		done := make(chan struct{})
 		go func() {
-			w.comparator.SortStable(recs)
+			zr = w.comparator.SortStableReader(recs)
 			close(done)
 		}()
 		select {
@@ -140,8 +143,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if err != nil {
 		return err
 	}
-	r := zbuf.NewArray(recs).NewReader()
-	if err := zio.CopyWithContext(w.ctx, writer, r); err != nil {
+	if err := zio.CopyWithContext(w.ctx, writer, zr); err != nil {
 		writer.Abort()
 		return err
 	}

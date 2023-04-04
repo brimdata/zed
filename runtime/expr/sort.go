@@ -10,13 +10,14 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/exp/slices"
 )
 
-func (c *Comparator) SortStable(vals []zed.Value) {
+func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	if len(c.exprs) == 0 {
-		return
+		return nil
 	}
 	n := len(vals)
 	if max := math.MaxUint32; n > max {
@@ -77,15 +78,7 @@ func (c *Comparator) SortStable(vals []zed.Value) {
 		}
 		return false
 	})
-	tmp := make([]zed.Value, n)
-	for i, index := range indices {
-		tmp[i] = vals[i]
-		if j := int(index); i < j {
-			vals[i] = vals[j]
-		} else if i > int(index) {
-			vals[i] = tmp[j]
-		}
-	}
+	return indices
 }
 
 type CompareFn func(a *zed.Value, b *zed.Value) int
@@ -212,6 +205,43 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 	}
 
 	return cfn(abytes, bbytes)
+}
+
+// SortStable sorts vals according to c, with equal values in their original
+// order.  SortStable allocates more memory than [SortStableReader].
+func (c *Comparator) SortStable(vals []zed.Value) {
+	tmp := make([]zed.Value, len(vals))
+	for i, index := range c.sortStableIndices(vals) {
+		tmp[i] = vals[i]
+		if j := int(index); i < j {
+			vals[i] = vals[j]
+		} else if i > j {
+			vals[i] = tmp[j]
+		}
+	}
+}
+
+// SortStableReader returns a reader for vals sorted according to c, with equal
+// values in their original order.
+func (c *Comparator) SortStableReader(vals []zed.Value) zio.Reader {
+	return &sortStableReader{
+		indices: c.sortStableIndices(vals),
+		vals:    vals,
+	}
+}
+
+type sortStableReader struct {
+	indices []uint32
+	vals    []zed.Value
+}
+
+func (s *sortStableReader) Read() (*zed.Value, error) {
+	if len(s.indices) == 0 {
+		return nil, nil
+	}
+	val := &s.vals[s.indices[0]]
+	s.indices = s.indices[1:]
+	return val, nil
 }
 
 // SortStable performs a stable sort on the provided records.

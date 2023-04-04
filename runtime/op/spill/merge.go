@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 )
 
 // MergeSort manages "runs" (files of sorted zng records) that are spilled to
@@ -61,14 +61,15 @@ func (r *MergeSort) Cleanup() {
 // different chunks can be easily merged into sorted order when reading back
 // the chunks sequentially.
 func (r *MergeSort) Spill(ctx context.Context, vals []zed.Value) error {
+	var zr zio.Reader
 	// Sorting can be slow, so check for cancellation.
 	if err := goWithContext(ctx, func() {
-		r.comparator.SortStable(vals)
+		zr = r.comparator.SortStableReader(vals)
 	}); err != nil {
 		return err
 	}
 	filename := filepath.Join(r.tempDir, strconv.Itoa(r.nspill))
-	runFile, err := newPeeker(ctx, r.zctx, filename, r.nspill, zbuf.NewArray(vals))
+	runFile, err := newPeeker(ctx, r.zctx, filename, r.nspill, zr)
 	if err != nil {
 		return err
 	}
