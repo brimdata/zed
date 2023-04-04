@@ -1,0 +1,13 @@
+zed: |
+  zq 'fork (=> from (file a.zson) => pass)' a.zson
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {a:1}
