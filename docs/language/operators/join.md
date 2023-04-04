@@ -5,7 +5,12 @@
 ### Synopsis
 
 ```
-( => left path => right path )
+<left-input>
+| [anti|inner|left|right] join (
+  <right-input>
+) on <left-key>=<right-key> [<field>:=<right-expr>, ...]
+
+( => <left-input> => <right-input> )
 | [anti|inner|left|right] join on <left-key>=<right-key> [<field>:=<right-expr>, ...]
 ```
 ### Description
