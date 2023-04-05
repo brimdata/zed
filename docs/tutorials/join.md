@@ -305,9 +305,7 @@ To illustrate this, we'll introduce some new input data in `prices.ndjson`.
 
 In our Zed script `three-way-join.zed` we'll extend the pipeline we used
 previously for our inner join by piping its output to an additional join
-against the price list. The [`pass` operator](../language/operators/pass.md)
-is used to feed the output of the first `join` into the first input of our
-second `join`.
+against the price list.
 
 ```mdtest-input three-way-join.zed
 file fruit.ndjson | sort flavor
