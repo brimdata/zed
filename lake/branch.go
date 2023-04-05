@@ -191,7 +191,8 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 			}
 			var added []*data.Object
 			for _, o := range w.Objects() {
-				added = append(added, &o)
+				obj := o
+				added = append(added, &obj)
 			}
 			message = deleteWhereMessage(deletedObjs, added)
 		}
