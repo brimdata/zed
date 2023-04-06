@@ -5,14 +5,11 @@ sidebar_label: Join
 
 # Join Overview
 
-This is a brief primer on Zed's experimental [`join` operator](../language/operators/join.md).
+This is a brief primer on Zed's [`join` operator](../language/operators/join.md).
 
 Currently, `join` is limited in the following ways:
-* the joined inputs both come from the parent so the query must be split before join,
 * only merge join is implemented, requiring inputs to be explicitly sorted, and
 * only equi-join (i.e., a join predicate containing `=`) is supported.
-
-A more comprehensive join design with easier-to-use syntax is forthcoming.
 
 ## Example Data
 
@@ -47,15 +44,12 @@ the joined results.
 Because we're performing an inner join (the default), the
 explicit `inner` is not strictly necessary, but including it clarifies our intention.
 
-Notice how each input is specified separately within the parentheses-wrapped
-`from()` block before the `join` appears in our Zed pipeline.
-
 The Zed script `inner-join.zed`:
 ```mdtest-input inner-join.zed
-from (
-  file fruit.ndjson => sort flavor
-  file people.ndjson => sort likes
-) | inner join on flavor=likes eater:=name
+file fruit.ndjson | sort flavor
+| inner join (
+  file people.ndjson | sort likes
+) on flavor=likes eater:=name
 ```
 
 Executing the Zed script:
@@ -87,10 +81,10 @@ original field name `age` is maintained in the results.
 
 The Zed script `left-join.zed`:
 ```mdtest-input left-join.zed
-from (
-  file fruit.ndjson => sort flavor
-  file people.ndjson => sort likes
-) | left join on flavor=likes eater:=name,age
+file fruit.ndjson | sort flavor
+| left join (
+  file people.ndjson | sort likes
+) on flavor=likes eater:=name,age
 ```
 
 Executing the Zed script:
@@ -120,10 +114,10 @@ the `note` field from the right-hand input to appear in the joined results.
 
 The Zed script `right-join.zed`:
 ```mdtest-input right-join.zed
-from (
-  file fruit.ndjson => sort flavor
-  file people.ndjson => sort likes
-) | right join on flavor=likes fruit:=name
+file fruit.ndjson | sort flavor
+| right join (
+  file people.ndjson | sort likes
+) on flavor=likes fruit:=name
 ```
 Executing the Zed script:
 ```mdtest-command
@@ -141,10 +135,11 @@ produces
 
 ## Inputs from Pools
 
-As our prior examples all used `zq`, we used `file` in our `from()` block to
-pull our respective inputs from named file sources. However, if the inputs are
-stored in pools in a Zed lake, the pool names would instead be specified in the
-`from()` block.
+As our prior examples all used `zq`, we used the
+[`file` operator](../language/operators/file.md) to pull our respective inputs
+from named file sources.  However, if the inputs are stored in pools in a Zed
+lake, we would instead specify those pools using the
+[`from` operator](../language/operators/from.md).
 
 Here we'll load our input data to pools in a temporary Zed lake, then execute
 our inner join using `zed query`.
@@ -156,10 +151,10 @@ upstream `sort`.
 The Zed script `inner-join-pools.zed`:
 
 ```mdtest-input inner-join-pools.zed
-from (
-  pool fruit
-  pool people
-) | inner join on flavor=likes eater:=name
+from fruit
+| inner join (
+  from people
+) on flavor=likes eater:=name
 ```
 
 Populating the pools, then executing the Zed script:
@@ -183,14 +178,49 @@ produces
 {name:"apple",color:"red",flavor:"tart",eater:"morgan"}
 ```
 
+## Alternate Syntax
+
+In addition to the syntax shown so far, `join` supports an alternate syntax in
+which left and right inputs are specified by the two legs of a preceding
+[`fork` operator](../language/operators/fork.md),
+[`from` operator](../language/operators/from.md), or
+[`switch` operator](../language/operators/switch.md).
+
+Here we'll use the alternate syntax to perform the same inner join shown earlier
+in the [Inner Join section](#inner-join).
+
+The Zed script `inner-join-alternate.zed`:
+```mdtest-input inner-join-alternate.zed
+from (
+  file fruit.ndjson => sort flavor
+  file people.ndjson => sort likes
+) | inner join on flavor=likes eater:=name
+```
+
+Executing the Zed script:
+```mdtest-command
+zq -z -I inner-join-alternate.zed
+```
+produces
+```mdtest-output
+{name:"figs",color:"brown",flavor:"plain",eater:"jessie"}
+{name:"banana",color:"yellow",flavor:"sweet",eater:"quinn"}
+{name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
+{name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
+{name:"apple",color:"red",flavor:"tart",eater:"morgan"}
+{name:"apple",color:"red",flavor:"tart",eater:"chris"}
+```
+
 ## Self Joins
 
 In addition to the named files and pools like we've used in the prior examples,
-Zed is also intended to work on a single sequence of data that is split
-and joined to itself.  Here we'll combine our file
-sources into a stream that we'll pipe into `zq` via stdin. Because `join` requires
-two separate inputs, here we'll use the `has()` function to identify the
-records in the stream that will be treated as the left and right sides.
+Zed is also intended to work on a single sequence of data that is split and
+joined to itself.  Here we'll combine our file sources into a stream that we'll
+pipe into `zq` via stdin.  Because `join` requires two separate inputs, here
+we'll use the `has()` function inside a `switch` operator to identify the
+records in the stream that will be treated as the left and right sides.  Then
+we'll use the [alternate syntax for `join`](#alternate-syntax) to read those two
+inputs.
 
 The Zed script `inner-join-streamed.zed`:
 
@@ -241,10 +271,10 @@ they look like, but since it represents redundant data, in practice we'd
 typically [`drop`](../language/operators/drop.md) it after the `join` in our Zed pipeline.
 
 ```mdtest-input multi-value-join.zed
-from (
-  file fruit.ndjson => put fruitkey:={name,color} | sort fruitkey
-  file inventory.ndjson => put invkey:={name,color} | sort invkey
-) | inner join on fruitkey=invkey quantity
+file fruit.ndjson | put fruitkey:={name,color} | sort fruitkey
+| inner join (
+  file inventory.ndjson | put invkey:={name,color} | sort invkey
+) on fruitkey=invkey quantity
 ```
 
 Executing the Zed script:
@@ -275,19 +305,16 @@ To illustrate this, we'll introduce some new input data in `prices.ndjson`.
 
 In our Zed script `three-way-join.zed` we'll extend the pipeline we used
 previously for our inner join by piping its output to an additional join
-against the price list. The [`pass` operator](../language/operators/pass.md)
-is used to feed the output of the first `join` into the first input of our
-second `join`.
+against the price list.
 
 ```mdtest-input three-way-join.zed
-from (
-  file fruit.ndjson => sort flavor
-  file people.ndjson => sort likes
-) | inner join on flavor=likes eater:=name | sort name
-| from (
-  pass
-  file prices.ndjson => sort name
-) | inner join on name=name price:=price
+file fruit.ndjson | sort flavor
+| inner join (
+  file people.ndjson | sort likes
+) on flavor=likes eater:=name | sort name
+| inner join (
+  file prices.ndjson | sort name
+) on name=name price:=price
 ```
 
 Executing the Zed script:
@@ -322,10 +349,10 @@ in the result.
 The Zed script `embed-opposite.zed`:
 
 ```mdtest-input embed-opposite.zed
-from (
-  file fruit.ndjson => sort flavor
-  file people.ndjson => sort likes
-) | inner join on flavor=likes eaterinfo:=this
+file fruit.ndjson | sort flavor
+| inner join (
+  file people.ndjson | sort likes
+) on flavor=likes eaterinfo:=this
 ```
 
 Executing the Zed script:
