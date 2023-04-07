@@ -1,0 +1,23 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  for o in asc desc; do
+    echo // $o
+    zed create -q -orderby ts:$o -S 300B -seekstride=1B $o
+    zed use -q $o
+    seq -f "{ts:%1.0f}" 1 20 | zed load -q -
+    seq -f "{ts:%1.0f}" 6 25 | zed load -q -
+    seq -f "{ts:%1.0f}" 11 30 | zed load -q -
+    zed query -Z "from $o:partitions | count()"
+    zed query -Z 'count()'
+  done
+
+outputs:
+  - name: stdout
+    data: |
+      // asc
+      3 (uint64)
+      60 (uint64)
+      // desc
+      3 (uint64)
+      60 (uint64)

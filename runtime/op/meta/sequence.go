@@ -4,8 +4,11 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/merge"
@@ -27,6 +30,7 @@ type SequenceScanner struct {
 	unmarshaler *zson.UnmarshalZNGContext
 	done        bool
 	err         error
+	cmp         expr.CompareFn
 }
 
 func NewSequenceScanner(octx *op.Context, parent zbuf.Puller, pool *lake.Pool, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress) *SequenceScanner {
@@ -38,6 +42,7 @@ func NewSequenceScanner(octx *op.Context, parent zbuf.Puller, pool *lake.Pool, f
 		pool:        pool,
 		progress:    progress,
 		unmarshaler: zson.NewZNGUnmarshaler(),
+		cmp:         expr.NewValueCompareFn(order.Asc, true),
 	}
 }
 
@@ -110,8 +115,16 @@ func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller,
 			puller.Pull(true)
 		}
 	}
+	// Objects in a Partition may or may not extend the boundaries of the
+	// Partition. As such both the pruner and the filter need to be wrapped
+	// so only the data within the partition is scanned.
+	pruner := newPartitionPruner(p.octx.Zctx, p.pruner, part, p.cmp)
+	// XXX Since this filter is evaluated on every value perhaps we should
+	// check if this is needed for each object (i.e., objects that are
+	// completely enveloped by the partition do not need this filter wrapper).
+	filter := newPartitionFilter(p.octx.Zctx, p.cmp, part, p.filter, p.pool.SortKey.Primary())
 	for _, object := range part.Objects {
-		ranges, err := data.LookupSeekRange(p.octx.Context, p.pool.Storage(), p.pool.DataPath, object, p.pruner)
+		ranges, err := data.LookupSeekRange(p.octx.Context, p.pool.Storage(), p.pool.DataPath, object, pruner)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +133,7 @@ func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller,
 			pullersDone()
 			return nil, err
 		}
-		scanner, err := zngio.NewReader(p.octx.Zctx, rc).NewScanner(p.octx.Context, p.filter)
+		scanner, err := zngio.NewReader(p.octx.Zctx, rc).NewScanner(p.octx.Context, filter)
 		if err != nil {
 			pullersDone()
 			rc.Close()
@@ -136,6 +149,78 @@ func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller,
 		return pullers[0], nil
 	}
 	return merge.New(p.octx.Context, pullers, lake.ImportComparator(p.octx.Zctx, p.pool).Compare), nil
+}
+
+type partitionPruner struct {
+	min, max expr.Evaluator
+	part     Partition
+	cmp      expr.CompareFn
+	pruner   expr.Evaluator
+}
+
+func newPartitionPruner(zctx *zed.Context, pruner expr.Evaluator, part Partition, cmp expr.CompareFn) expr.Evaluator {
+	min := expr.NewDottedExpr(zctx, field.New("min"))
+	max := expr.NewDottedExpr(zctx, field.New("max"))
+	return &partitionPruner{min: min, max: max, part: part, cmp: cmp, pruner: pruner}
+}
+
+func (p *partitionPruner) Eval(ectx expr.Context, val *zed.Value) *zed.Value {
+	if p.pruner != nil {
+		if r := p.pruner.Eval(ectx, val); r.Type == zed.TypeBool && zed.IsTrue(r.Bytes) {
+			return r
+		}
+	}
+	min := p.min.Eval(ectx, val).MissingAsNull()
+	max := p.max.Eval(ectx, val).MissingAsNull()
+	if p.part.Overlaps(p.cmp, min, max) {
+		return zed.False
+	}
+	return zed.True
+}
+
+type partitionFilter struct {
+	filter zbuf.Filter
+	part   Partition
+	cmp    expr.CompareFn
+	pk     expr.Evaluator
+}
+
+func newPartitionFilter(zctx *zed.Context, cmp expr.CompareFn, part Partition, f zbuf.Filter, poolkey field.Path) *partitionFilter {
+	pk := expr.NewDottedExpr(zctx, poolkey)
+	return &partitionFilter{filter: f, part: part, cmp: cmp, pk: pk}
+}
+
+func (p *partitionFilter) AsEvaluator() (expr.Evaluator, error) {
+	var e expr.Evaluator
+	if p.filter != nil {
+		var err error
+		if e, err = p.filter.AsEvaluator(); err != nil {
+			return nil, err
+		}
+	}
+	return evalFunc(func(ectx expr.Context, val *zed.Value) *zed.Value {
+		pk := p.pk.Eval(ectx, val).MissingAsNull()
+		if p.part.In(p.cmp, pk) {
+			if e != nil {
+				return e.Eval(ectx, val)
+			}
+			return zed.True
+		}
+		return zed.False
+	}), nil
+}
+
+type evalFunc func(expr.Context, *zed.Value) *zed.Value
+
+func (e evalFunc) Eval(ectx expr.Context, val *zed.Value) *zed.Value {
+	return e(ectx, val)
+}
+
+func (p *partitionFilter) AsBufferFilter() (*expr.BufferFilter, error) {
+	if p.filter == nil {
+		return nil, nil
+	}
+	return p.filter.AsBufferFilter()
 }
 
 type statScanner struct {

@@ -88,7 +88,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		if err != nil {
 			return nil, err
 		}
-		slicer, err := NewSlicer(lister, zctx), nil
+		slicer, err := NewSlicer(ctx, lister, zctx, p), nil
 		if err != nil {
 			return nil, err
 		}

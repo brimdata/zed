@@ -36,7 +36,7 @@ func Compact(ctx context.Context, lk *lake.Root, pool *lake.Pool, branchName str
 	zctx := zed.NewContext()
 	lister := meta.NewSortedListerFromSnap(ctx, zed.NewContext(), lk, pool, compact, nil)
 	octx := op.NewContext(ctx, zctx, nil)
-	slicer := meta.NewSlicer(lister, zctx)
+	slicer := meta.NewSlicer(ctx, lister, zctx, pool)
 	puller := meta.NewSequenceScanner(octx, slicer, pool, nil, nil, nil)
 	w := lake.NewSortedWriter(ctx, pool)
 	if err := zbuf.CopyPuller(w, puller); err != nil {
