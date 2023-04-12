@@ -369,3 +369,38 @@ produces
 {name:"apple",color:"red",flavor:"tart",eaterinfo:{name:"morgan",age:61,likes:"tart"}}
 {name:"apple",color:"red",flavor:"tart",eaterinfo:{name:"chris",age:47,likes:"tart"}}
 ```
+
+If having the data in an embedded record is undesirable, it can easily be
+copied to another location, such as with the
+[spread operator](../language/overview.md#7112-record-expressions). Additional
+processing may be necessary to handle conflicting field names, such as
+in the example just shown where the `name` field is used differently in the
+left and right data sources. We can account for this by augmenting our Zed into
+a new script `upleveled-opposite.zed`.
+
+```mdtest-input upleveled-opposite.zed
+from (
+  file fruit.ndjson => sort flavor
+  file people.ndjson => sort likes
+) | inner join on flavor=likes eaterinfo:=this
+| rename fruit:=name
+| yield {...this,...eaterinfo}
+| drop eaterinfo
+```
+
+Executing the Zed script:
+
+```mdtest-command
+zq -z -I upleveled-opposite.zed
+```
+
+produces
+
+```mdtest-output
+{fruit:"figs",color:"brown",flavor:"plain",name:"jessie",age:30,likes:"plain"}
+{fruit:"banana",color:"yellow",flavor:"sweet",name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets"}
+{fruit:"strawberry",color:"red",flavor:"sweet",name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets"}
+{fruit:"dates",color:"brown",flavor:"sweet",note:"many kids enjoy sweets",name:"quinn",age:14,likes:"sweet"}
+{fruit:"apple",color:"red",flavor:"tart",name:"morgan",age:61,likes:"tart"}
+{fruit:"apple",color:"red",flavor:"tart",name:"chris",age:47,likes:"tart"}
+```
