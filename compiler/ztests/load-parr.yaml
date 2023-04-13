@@ -1,0 +1,17 @@
+skip: ensures load is not being parallelized. Output should be syntactically similar to the one below. 
+
+script: |
+  zed init -q tmp
+  zed create -lake tmp -q src
+  zc -lake tmp -C -P 2 'from src | load dst'
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        pool 2ONJF6QKpQSLFqzgWzO3rGptCYi
+        pool 2ONJF6QKpQSLFqzgWzO3rGptCYi
+      )
+      | merge ts:desc
+      | load dst
+

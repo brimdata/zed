@@ -378,6 +378,9 @@ func (c *canonDAG) op(p dag.Op) {
 			c.space()
 			c.exprs(p.Args)
 		}
+	case *dag.Load:
+		c.next()
+		c.write("load %s", p.Pool)
 	case *dag.Head:
 		c.next()
 		c.write("head %d", p.Count)

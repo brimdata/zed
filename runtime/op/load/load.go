@@ -12,6 +12,7 @@ type Op struct {
 	lk     *lake.Root
 	parent zbuf.Puller
 	pool   string
+	done   bool
 }
 
 func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool string) *Op {
@@ -24,6 +25,10 @@ func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool string) *Op {
 }
 
 func (o *Op) Pull(done bool) (zbuf.Batch, error) {
+	if o.done {
+		o.done = false
+		return nil, nil
+	}
 	if done {
 		b, err := o.parent.Pull(true)
 		if err != nil {
@@ -32,8 +37,10 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		if b != nil {
 			panic("non-nil done batch")
 		}
+		o.done = false
 		return nil, nil
 	}
+	o.done = true
 	reader := zbuf.PullerReader(o.parent)
 	poolID, err := o.lk.PoolID(o.octx.Context, o.pool)
 	if err != nil {

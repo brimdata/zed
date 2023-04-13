@@ -324,7 +324,7 @@ func (o *Optimizer) splittablePath(ops []dag.Op, sortKey order.SortKey) (int, or
 		// function can be parallelized... need to think through
 		// what the meaning is here exactly.  This is all still a bit
 		// of a heuristic.  See #2660 and #2661.
-		case *dag.Summarize, *dag.Sort, *dag.Parallel, *dag.Head, *dag.Tail, *dag.Uniq, *dag.Fuse, *dag.Sequential, *dag.Join:
+		case *dag.Summarize, *dag.Sort, *dag.Parallel, *dag.Head, *dag.Tail, *dag.Uniq, *dag.Fuse, *dag.Sequential, *dag.Join, *dag.Load:
 			return k, sortKey, nil
 		default:
 			next, err := o.analyzeOp(op, sortKey)
