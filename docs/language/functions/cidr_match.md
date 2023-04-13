@@ -11,7 +11,7 @@ cidr_match(mask: net, val: any) -> bool
 
 The _cidr_match_ function returns true if `val` contains an IP address that
 falls within the network given by `mask`.  When `val` is a complex type, the
-function traverses its nested structured to find any network values.
+function traverses its nested structure to find any network values.
 If `mask` is not type `net`, then an error is returned.
 
 ### Examples
