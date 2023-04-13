@@ -413,8 +413,8 @@ ShapeOp
     }
 
 JoinOp
-  = style:JoinStyle "join" _ ON _ key:JoinKey optKey:(__ "=" __ JoinKey)? optArgs:(_ FlexAssignments)? {
-      VAR(m) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
+  = style:JoinStyle "join" rightInput:JoinRightInput ON _ key:JoinKey optKey:(__ "=" __ JoinKey)? optArgs:(_ FlexAssignments)? {
+      VAR(m) = MAP("kind": "Join", "style": style, "right_input": rightInput, "left_key": key, "right_key": key, "args": NULL)
       if ISNOTNULL(optKey) {
         m["right_key"] = ASSERT_ARRAY(optKey)[3]
       }
@@ -430,6 +430,10 @@ JoinStyle
   / "left"  _ { RETURN("left") }
   / "right" _ { RETURN("right") }
   / ""         { RETURN("inner") }
+
+JoinRightInput
+  = __ "(" __ s:Sequential __ ")" __ { RETURN(s) }
+  / _ { RETURN(NULL) }
 
 JoinKey
   = Lval

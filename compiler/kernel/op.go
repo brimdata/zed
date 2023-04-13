@@ -77,7 +77,7 @@ var _ dag.Source = (*Reader)(nil)
 func (*Reader) Source() {}
 
 func (b *Builder) Build(seq *dag.Sequential) ([]zbuf.Puller, error) {
-	if !seq.IsEntry() {
+	if !dag.IsEntry(seq) {
 		return nil, errors.New("internal error: DAG entry point is not a data source")
 	}
 	return b.compile(seq, nil)
@@ -329,23 +329,25 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 	return parents, nil
 }
 
-func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	n := len(parallel.Ops)
+func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	var f *fork.Op
 	switch len(parents) {
 	case 0:
-		// No parents: create n nil parents.
-		parents = make([]zbuf.Puller, n)
+		// No parents: no need for a fork since every op gets a nil parent.
 	case 1:
 		// Single parent: insert a fork for n-way fanout.
-		parents = fork.New(b.octx, parents[0], n)
+		f = fork.New(b.octx, parents[0])
 	default:
 		// Multiple parents: insert a combine followed by a fork for n-way fanout.
-		c := combine.New(b.octx, parents)
-		parents = fork.New(b.octx, c, n)
+		f = fork.New(b.octx, combine.New(b.octx, parents))
 	}
 	var ops []zbuf.Puller
-	for k, o := range parallel.Ops {
-		op, err := b.compile(o, []zbuf.Puller{parents[k]})
+	for _, o := range par.Ops {
+		var parent zbuf.Puller
+		if f != nil && !dag.IsEntry(o) {
+			parent = f.AddExit()
+		}
+		op, err := b.compile(o, []zbuf.Puller{parent})
 		if err != nil {
 			return nil, err
 		}
@@ -636,10 +638,14 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		source = scanner
 	case *dag.CommitMeta:
 		var pruner expr.Evaluator
-		if src.Tap && trunk.KeyPruner != nil {
-			pruner, err = compileExpr(trunk.KeyPruner)
-			if err != nil {
-				return nil, err
+		if src.Tap {
+			// disable pushdown if Tap is activated for meta queries.
+			pushdown = nil
+			if trunk.KeyPruner != nil {
+				pruner, err = compileExpr(trunk.KeyPruner)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 		scanner, err := meta.NewCommitMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.Pool, src.Commit, src.Meta, pushdown, pruner)

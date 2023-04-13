@@ -1,0 +1,29 @@
+script: |
+  zc -C 'file a | join (file b) on c'
+  echo ===
+  zc -C -s 'file a | join (file b) on c'
+
+outputs:
+  - name: stdout
+    data: |
+        from (
+          file a
+        )
+        | join (
+          from (
+            file b
+          )
+        ) on c=c
+        ===
+        from (
+          file a
+        )
+        | fork (
+          =>
+            pass
+          =>
+            from (
+              file b
+            )
+        )
+        | join on c=c

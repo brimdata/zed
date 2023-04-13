@@ -59,10 +59,6 @@ func (a *Array) Read() (*zed.Value, error) {
 	return rec, nil
 }
 
-func (a Array) NewReader() zio.Reader {
-	return &a
-}
-
 func (*Array) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
 	// XXX can make this more efficient later
 	return zed.NewValue(typ, bytes)

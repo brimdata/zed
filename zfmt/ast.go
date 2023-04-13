@@ -590,7 +590,17 @@ func (c *canon) proc(p ast.Op) {
 		c.write("fuse")
 	case *ast.Join:
 		c.next()
-		c.open("join on ")
+		c.write("join ")
+		if p.RightInput != nil {
+			c.open("(")
+			c.head = true
+			c.proc(p.RightInput)
+			c.close()
+			c.ret()
+			c.flush()
+			c.write(") ")
+		}
+		c.write("on ")
 		c.expr(p.LeftKey, "")
 		c.write("=")
 		c.expr(p.RightKey, "")
@@ -598,7 +608,6 @@ func (c *canon) proc(p ast.Op) {
 			c.write(" ")
 			c.assignments(p.Args)
 		}
-		c.close()
 	case *ast.OpAssignment:
 		c.next()
 		which := "put "
