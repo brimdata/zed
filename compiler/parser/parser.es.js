@@ -464,8 +464,8 @@ function peg$parse(input, options) {
       peg$c195 = function() { return {"kind":"ID", "name":"this"} },
       peg$c196 = "load",
       peg$c197 = peg$literalExpectation("load", false),
-      peg$c198 = function(pool) {
-              return {"kind": "Load", "pool": pool}
+      peg$c198 = function(pool, author) {
+              return {"kind": "Load", "pool": pool, "author": author}
           },
       peg$c199 = function(source) {
             return {"kind":"From", "trunks": [{"kind": "Trunk","source": source}]}
@@ -5205,7 +5205,7 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLoadOp() {
-    var s0, s1, s2, s3;
+    var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
     if (input.substr(peg$currPos, 4) === peg$c196) {
@@ -5220,9 +5220,18 @@ function peg$parse(input, options) {
       if (s2 !== peg$FAILED) {
         s3 = peg$parsePoolNameString();
         if (s3 !== peg$FAILED) {
-          peg$savedPos = s0;
-          s1 = peg$c198(s3);
-          s0 = s1;
+          s4 = peg$parseQuotedString();
+          if (s4 === peg$FAILED) {
+            s4 = null;
+          }
+          if (s4 !== peg$FAILED) {
+            peg$savedPos = s0;
+            s1 = peg$c198(s3, s4);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
         } else {
           peg$currPos = s0;
           s0 = peg$FAILED;

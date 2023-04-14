@@ -642,9 +642,14 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Exprs: exprs,
 		}, nil
 	case *ast.Load:
+		//commits, err := semExprs(scope, o.Commit)
+		//if err != nil {
+		//	return nil, err
+		//}
 		return &dag.Load{
-			Kind: "Load",
-			Pool: o.Pool,
+			Kind:   "Load",
+			Pool:   o.Pool,
+			Author: o.Author,
 		}, nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)

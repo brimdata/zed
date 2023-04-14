@@ -12,15 +12,18 @@ type Op struct {
 	lk     *lake.Root
 	parent zbuf.Puller
 	pool   string
+	author string
 	done   bool
 }
 
-func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool string) *Op {
+// commit []expr.Evaluator
+func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, author string) *Op {
 	return &Op{
 		octx:   octx,
 		lk:     lk,
 		parent: parent,
 		pool:   pool,
+		author: author,
 	}
 }
 
@@ -54,7 +57,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	commitID, err := branch.Load(o.octx.Context, o.octx.Zctx, reader, "", "", "") // make last 3 optional.
+	commitID, err := branch.Load(o.octx.Context, o.octx.Zctx, reader, o.author, "", "")
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,7 @@ script: |
   zed create -q samples
   zed load -q -use samples schools.zson
   zed create -q Orange
-  zed query -z 'from samples | County=="Orange" | load Orange' | sed -E 's/[0-9a-zA-Z]{42}/xxx/'
+  zed query -z 'from samples | County=="Orange" | load Orange "Diane"' | sed -E 's/[0-9a-zA-Z]{42}/xxx/'
 
 inputs:
   - name: schools.zson

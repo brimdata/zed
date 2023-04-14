@@ -247,7 +247,11 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		return b.compileOver(parent, v.Over, names, exprs)
 	case *dag.Load:
-		return load.New(b.octx, b.source.Lake(), parent, v.Pool), nil
+		//commits, err := b.compileExprs(v.Commit)
+		//if err != nil {
+		//	return nil, err
+		//}
+		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Author), nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}

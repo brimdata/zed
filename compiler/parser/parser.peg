@@ -474,9 +474,10 @@ SampleExpr
   = _ lval:Lval { RETURN(lval)}
   / "" { RETURN(MAP("kind":"ID", "name":"this")) }
 
+//commit:Exprs?
 LoadOp
-    = "load" _ pool:PoolNameString {
-        RETURN(MAP("kind": "Load", "pool": pool))
+    = "load" _ pool:PoolNameString author:QuotedString? {
+        RETURN(MAP("kind": "Load", "pool": pool, "author": author))
     }
 
 FromOp

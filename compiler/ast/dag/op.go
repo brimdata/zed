@@ -56,8 +56,10 @@ type (
 		Args     []Assignment `json:"args"`
 	}
 	Load struct {
-		Kind string `json:"kind" unpack:""`
-		Pool string `json:"pool"`
+		Kind   string `json:"kind" unpack:""`
+		Pool   string `json:"pool"`
+		Author string `json:"author"`
+		//		Commit []Expr `json:"commit"`
 	}
 	Merge struct {
 		Kind  string      `json:"kind" unpack:""`
