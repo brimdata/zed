@@ -379,10 +379,10 @@ left and right data sources. We can account for this by augmenting our Zed into
 a new script `upleveled-opposite.zed`.
 
 ```mdtest-input upleveled-opposite.zed
-from (
-  file fruit.ndjson => sort flavor
-  file people.ndjson => sort likes
-) | inner join on flavor=likes eaterinfo:=this
+file fruit.ndjson | sort flavor
+| inner join (
+  file people.ndjson | sort likes
+) on flavor=likes eaterinfo:=this
 | rename fruit:=name
 | yield {...this,...eaterinfo}
 | drop eaterinfo
