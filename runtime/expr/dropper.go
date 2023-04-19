@@ -30,10 +30,9 @@ func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
 }
 
 type Dropper struct {
-	zctx      *zed.Context
-	fields    field.List
-	resolvers []Evaluator
-	droppers  map[int]*dropper
+	zctx     *zed.Context
+	fields   field.List
+	droppers map[int]*dropper
 }
 
 func NewDropper(zctx *zed.Context, fields field.List) *Dropper {

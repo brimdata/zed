@@ -74,15 +74,6 @@ func (c *canon) exprs(exprs []ast.Expr) {
 	}
 }
 
-func (c *canon) exprsTight(exprs []ast.Expr) {
-	for k, e := range exprs {
-		if k > 0 {
-			c.write(",")
-		}
-		c.expr(e, "")
-	}
-}
-
 func (c *canon) expr(e ast.Expr, parent string) {
 	switch e := e.(type) {
 	case nil:
@@ -785,11 +776,4 @@ func (c *canon) source(src ast.Source) {
 	default:
 		c.write("unknown source type: %T", src)
 	}
-}
-
-func isTrue(e ast.Expr) bool {
-	if p, ok := e.(*astzed.Primitive); ok {
-		return p.Type == "bool" && p.Text == "true"
-	}
-	return false
 }

@@ -27,8 +27,6 @@ type Op struct {
 	once           sync.Once
 	resultCh       chan op.Result
 	comparator     *expr.Comparator
-	ectx           expr.Context
-	eof            bool
 }
 
 func New(octx *op.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Op, error) {

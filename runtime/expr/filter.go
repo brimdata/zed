@@ -160,10 +160,9 @@ func (s *searchCIDR) Eval(_ Context, val *zed.Value) *zed.Value {
 }
 
 type searchString struct {
-	term    string
-	compare Boolean
-	expr    Evaluator
-	types   map[zed.Type]bool
+	term  string
+	expr  Evaluator
+	types map[zed.Type]bool
 }
 
 // NewSearchString is like NewSeach but handles the special case of matching

@@ -43,11 +43,6 @@ func (f *formatter) write(args ...interface{}) {
 	f.WriteString(s)
 }
 
-func (f *formatter) cont(args ...interface{}) {
-	format := args[0].(string)
-	f.WriteString(fmt.Sprintf(format, args[1:]...))
-}
-
 func (f *formatter) open(args ...interface{}) {
 	if len(args) > 0 {
 		f.write(args...)
