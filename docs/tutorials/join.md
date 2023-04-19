@@ -375,8 +375,8 @@ records can easily be merged with the
 [spread operator](../language/overview.md#7112-record-expressions). Additional
 processing may be necessary to handle conflicting field names, such as
 in the example just shown where the `name` field is used differently in the
-left and right data sources. We can account for this by augmenting our Zed into
-a new script `upleveled-opposite.zed`.
+left and right inputs. We'll demonstrate this by augmenting `embed-opposite.zed`
+to produce `merge-opposite.zed`.
 
 ```mdtest-input upleveled-opposite.zed
 file fruit.ndjson | sort flavor
