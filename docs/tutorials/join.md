@@ -334,7 +334,7 @@ produces
 {name:"strawberry",color:"red",flavor:"sweet",eater:"quinn",price:1.05}
 ```
 
-## Embedding the entire opposite record
+## Including the entire opposite record
 
 In the current `join` implementation, explicit entries must be provided in the
 `[field-list]` in order to copy values from the opposite input into the joined
