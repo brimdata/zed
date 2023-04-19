@@ -370,8 +370,8 @@ produces
 {name:"apple",color:"red",flavor:"tart",eaterinfo:{name:"chris",age:47,likes:"tart"}}
 ```
 
-If having the data in an embedded record is undesirable, it can easily be
-copied to another location, such as with the
+If embedding the opposite record is undesirable, the left and right
+records can easily be merged with the
 [spread operator](../language/overview.md#7112-record-expressions). Additional
 processing may be necessary to handle conflicting field names, such as
 in the example just shown where the `name` field is used differently in the
