@@ -7,13 +7,19 @@ script: |
   done
   zed query -z 'from * | sort this'
   echo ===
+  zed query -z 'from /.*/ | sort this'
+  echo ===
   zed query -z 'from match* | sort this'
   echo ===
-  zed query -z 'from (pool /match/) | sort this'
+  zed query -z 'from /match/ | sort this'
 
 outputs:
   - name: stdout
     data: |
+      "match1"
+      "match2"
+      "nope"
+      ===
       "match1"
       "match2"
       "nope"
