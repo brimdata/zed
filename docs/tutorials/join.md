@@ -378,7 +378,7 @@ in the example just shown where the `name` field is used differently in the
 left and right inputs. We'll demonstrate this by augmenting `embed-opposite.zed`
 to produce `merge-opposite.zed`.
 
-```mdtest-input upleveled-opposite.zed
+```mdtest-input merge-opposite.zed
 file fruit.ndjson | sort flavor
 | inner join (
   file people.ndjson | sort likes
@@ -391,7 +391,7 @@ file fruit.ndjson | sort flavor
 Executing the Zed script:
 
 ```mdtest-command
-zq -z -I upleveled-opposite.zed
+zq -z -I merge-opposite.zed
 ```
 
 produces
