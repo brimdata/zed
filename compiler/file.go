@@ -28,7 +28,7 @@ func (f *fsCompiler) NewQuery(octx *op.Context, o ast.Op, readers []zio.Reader) 
 	}
 	if isJoin(o) {
 		if len(readers) != 2 {
-			return nil, errors.New("join operaetor requires two inputs")
+			return nil, errors.New("join operator requires two inputs")
 		}
 		if len(job.readers) != 2 {
 			return nil, errors.New("internal error: join expected by semantic analyzer")
