@@ -17,7 +17,6 @@ type Scope struct {
 	enter       *Enter
 	subgraph    zbuf.Puller
 	once        sync.Once
-	outer       []zed.Value
 	resultCh    chan op.Result
 	exitDoneCh  chan struct{}
 	subDoneCh   chan struct{}

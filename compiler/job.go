@@ -20,7 +20,6 @@ type Job struct {
 	octx      *op.Context
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
-	consts    []dag.Op
 	outputs   []zbuf.Puller
 	readers   []*kernel.Reader
 	puller    zbuf.Puller

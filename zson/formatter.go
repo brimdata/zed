@@ -20,8 +20,6 @@ type Formatter struct {
 	persist   *regexp.Regexp
 	tab       int
 	newline   string
-	typeTab   int
-	nid       int
 	builder   strings.Builder
 	stack     []strings.Builder
 	implied   map[zed.Type]bool
@@ -391,12 +389,6 @@ func (f *Formatter) truncTypeValueErr() {
 	f.build("<ERR truncated type value>")
 }
 
-func (f *Formatter) nextInternalType() string {
-	name := strconv.Itoa(f.nid)
-	f.nid++
-	return name
-}
-
 func (f *Formatter) decorate(typ zed.Type, known, null bool) {
 	if known || (!(null && typ != zed.TypeNull) && f.isImplied(typ)) {
 		return
@@ -747,13 +739,6 @@ func FormatType(typ zed.Type) string {
 	var b strings.Builder
 	formatType(&b, make(map[string]*zed.TypeNamed), typ)
 	return b.String()
-}
-
-func nameOf(typedefs map[string]*zed.TypeNamed, typ *zed.TypeNamed) string {
-	if typ == typedefs[typ.Name] {
-		return typ.Name
-	}
-	return ""
 }
 
 func formatType(b *strings.Builder, typedefs map[string]*zed.TypeNamed, typ zed.Type) {

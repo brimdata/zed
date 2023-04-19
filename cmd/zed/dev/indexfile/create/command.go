@@ -44,7 +44,6 @@ func init() {
 type Command struct {
 	*indexfile.Command
 	opts       index.WriterOpts
-	order      string
 	outputFile string
 	keys       string
 	inputFlags inputflags.Flags

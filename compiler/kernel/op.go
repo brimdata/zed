@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/combine"
 	"github.com/brimdata/zed/runtime/op/explode"
@@ -675,31 +674,6 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		return []zbuf.Puller{source}, nil
 	}
 	return b.compileSequential(trunk.Seq, []zbuf.Puller{source})
-}
-
-func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
-	lower := zed.Null
-	upper := zed.Null
-	if exprLower != nil {
-		var err error
-		lower, err = b.evalAtCompileTime(exprLower)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if exprUpper != nil {
-		var err error
-		upper, err = b.evalAtCompileTime(exprUpper)
-		if err != nil {
-			return nil, err
-		}
-	}
-	var span extent.Span
-	if lower.Bytes != nil || upper.Bytes != nil {
-		sortKey := b.source.SortKey(b.octx.Context, src)
-		span = extent.NewGenericFromOrder(*lower, *upper, sortKey.Order)
-	}
-	return span, nil
 }
 
 func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {

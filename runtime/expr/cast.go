@@ -273,9 +273,7 @@ func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
 	return ectx.NewValue(zed.TypeString, zed.EncodeString(result))
 }
 
-type casterBytes struct {
-	zctx *zed.Context
-}
+type casterBytes struct{}
 
 func (c *casterBytes) Eval(ectx Context, val *zed.Value) *zed.Value {
 	return ectx.NewValue(zed.TypeBytes, val.Bytes)

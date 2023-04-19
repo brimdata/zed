@@ -35,8 +35,6 @@ func init() {
 type Command struct {
 	*dig.Command
 	outputFlags outputflags.Flags
-	trailer     bool
-	section     int
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {

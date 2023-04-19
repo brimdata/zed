@@ -8,8 +8,6 @@ import (
 
 type Map struct {
 	entries map[string]mapEntry
-	values  []zed.Value
-	size    int
 	scratch []byte
 }
 
