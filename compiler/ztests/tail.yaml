@@ -14,7 +14,8 @@ outputs:
       )
       | tail 1
       ===
-      const x = 1from (
+      const x = 1
+      from (
         (internal reader)
       )
       | tail 2

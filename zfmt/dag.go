@@ -267,6 +267,7 @@ func (c *canonDAG) op(p dag.Op) {
 			c.write("const %s = ", d.Name)
 			c.expr(d.Expr, "")
 			c.ret()
+			c.flush()
 		}
 		for _, f := range p.Funcs {
 			c.write("func %s(", f.Name)
