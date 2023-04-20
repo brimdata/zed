@@ -7,6 +7,6 @@ outputs:
     data: |
       search is(<foo>) and bar
       from (
-        (internal reader)
+        <reader>
       )
       | where is(<(uint16,ip)>) and search(80)

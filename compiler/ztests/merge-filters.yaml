@@ -13,7 +13,7 @@ outputs:
       from (
         (pushdown
           where a and b)
-        (internal reader)
+        <reader>
       )
       ===
       from (
@@ -26,14 +26,14 @@ outputs:
       )
       ===
       from (
-        (internal reader) =>
+        <reader> =>
           over a => (
             where b and c
           )
       )
       ===
       from (
-        (internal reader)
+        <reader>
       )
       | fork (
         =>

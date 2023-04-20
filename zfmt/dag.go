@@ -520,7 +520,7 @@ func source(src dag.Source) string {
 	case *dag.Pass:
 		return "pass"
 	case *kernel.Reader:
-		return "(internal reader)"
+		return "<reader>"
 	default:
 		return fmt.Sprintf("unknown source %T", p)
 	}

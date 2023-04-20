@@ -10,13 +10,13 @@ outputs:
   - name: stdout
     data: |
       from (
-        (internal reader)
+        <reader>
       )
       | head 1
       ===
       const x = 1
       from (
-        (internal reader)
+        <reader>
       )
       | head 2
   - name: stderr
