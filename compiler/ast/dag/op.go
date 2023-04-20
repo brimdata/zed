@@ -162,37 +162,37 @@ type (
 
 	// Leaf sources
 
-	File struct {
+	FileScan struct {
 		Kind    string        `json:"kind" unpack:""`
 		Path    string        `json:"path"`
 		Format  string        `json:"format"`
 		SortKey order.SortKey `json:"sort_key"`
 	}
-	HTTP struct {
+	HTTPScan struct {
 		Kind    string        `json:"kind" unpack:""`
 		URL     string        `json:"url"`
 		Format  string        `json:"format"`
 		SortKey order.SortKey `json:"sort_key"`
 	}
-	Pool struct {
+	PoolScan struct {
 		Kind   string      `json:"kind" unpack:""`
 		ID     ksuid.KSUID `json:"id"`
 		Commit ksuid.KSUID `json:"commit"`
 		Delete bool        `json:"delete"`
 	}
-	PoolMeta struct {
+	PoolMetaScan struct {
 		Kind string      `json:"kind" unpack:""`
 		ID   ksuid.KSUID `json:"id"`
 		Meta string      `json:"meta"`
 	}
-	CommitMeta struct {
+	CommitMetaScan struct {
 		Kind   string      `json:"kind" unpack:""`
 		Pool   ksuid.KSUID `json:"pool"`
 		Commit ksuid.KSUID `json:"branch"`
 		Meta   string      `json:"meta"`
 		Tap    bool        `json:"tap"`
 	}
-	LakeMeta struct {
+	LakeMetaScan struct {
 		Kind string `json:"kind" unpack:""`
 		Meta string `json:"meta"`
 	}
@@ -221,13 +221,13 @@ type Source interface {
 	Source()
 }
 
-func (*File) Source()       {}
-func (*HTTP) Source()       {}
-func (*Pool) Source()       {}
-func (*LakeMeta) Source()   {}
-func (*PoolMeta) Source()   {}
-func (*CommitMeta) Source() {}
-func (*Pass) Source()       {}
+func (*FileScan) Source()       {}
+func (*HTTPScan) Source()       {}
+func (*PoolScan) Source()       {}
+func (*LakeMetaScan) Source()   {}
+func (*PoolMetaScan) Source()   {}
+func (*CommitMetaScan) Source() {}
+func (*Pass) Source()           {}
 
 // A From node can be a DAG entrypoint or an operator.  When it appears
 // as an operator it mixes its single parent in with other Trunks to

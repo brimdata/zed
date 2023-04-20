@@ -229,13 +229,13 @@ func (o *Optimizer) sortKeyOfSource(s dag.Source, parent order.SortKey) (order.S
 
 func (o *Optimizer) getSortKey(s dag.Source, parent order.SortKey) (order.SortKey, error) {
 	switch s := s.(type) {
-	case *dag.File:
+	case *dag.FileScan:
 		return s.SortKey, nil
-	case *dag.HTTP:
+	case *dag.HTTPScan:
 		return s.SortKey, nil
-	case *dag.Pool:
+	case *dag.PoolScan:
 		return o.source.SortKey(o.ctx, s), nil
-	case *dag.CommitMeta:
+	case *dag.CommitMetaScan:
 		if s.Tap && s.Meta == "objects" {
 			// For a tap into the object stream, we compile the downstream
 			// DAG as if it were a normal query (so the optimizer can prune
@@ -243,7 +243,7 @@ func (o *Optimizer) getSortKey(s dag.Source, parent order.SortKey) (order.SortKe
 			return o.source.SortKey(o.ctx, s), nil
 		}
 		return order.Nil, nil
-	case *dag.LakeMeta, *dag.PoolMeta:
+	case *dag.LakeMetaScan, *dag.PoolMetaScan:
 		return order.Nil, nil
 	case *dag.Pass:
 		return parent, nil
@@ -297,7 +297,7 @@ func poolTrunks(from *dag.From) []*dag.Trunk {
 	var trunks []*dag.Trunk
 	for k := range from.Trunks {
 		trunk := &from.Trunks[k]
-		if _, ok := trunk.Source.(*dag.Pool); ok {
+		if _, ok := trunk.Source.(*dag.PoolScan); ok {
 			trunks = append(trunks, trunk)
 		}
 	}
