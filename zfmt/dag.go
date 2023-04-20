@@ -496,7 +496,7 @@ func (c *canonDAG) over(o *dag.Over, locals []dag.Def) {
 
 func source(src dag.Source) string {
 	switch p := src.(type) {
-	case *dag.File:
+	case *dag.FileScan:
 		s := fmt.Sprintf("file %s", p.Path)
 		if p.Format != "" {
 			s += fmt.Sprintf(" format %s", p.Format)
@@ -505,15 +505,15 @@ func source(src dag.Source) string {
 			s += fmt.Sprintf(" order %s", p.SortKey)
 		}
 		return s
-	case *dag.HTTP:
+	case *dag.HTTPScan:
 		return fmt.Sprintf("get %s", p.URL)
-	case *dag.Pool:
+	case *dag.PoolScan:
 		return fmt.Sprintf("pool %s", p.ID)
-	case *dag.PoolMeta:
+	case *dag.PoolMetaScan:
 		return fmt.Sprintf("pool %s:%s", p.ID, p.Meta)
-	case *dag.CommitMeta:
+	case *dag.CommitMetaScan:
 		return fmt.Sprintf("pool %s@%s:%s", p.Pool, p.Commit, p.Meta)
-	case *dag.LakeMeta:
+	case *dag.LakeMetaScan:
 		return fmt.Sprintf(":%s", p.Meta)
 		//XXX from, to, order
 	case *dag.Pass:

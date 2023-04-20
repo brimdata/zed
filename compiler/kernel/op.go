@@ -567,7 +567,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		}
 	case *dag.Pass:
 		source = parent
-	case *dag.Pool:
+	case *dag.PoolScan:
 		var filter zbuf.Filter
 		if pushdown != nil {
 			if src.Delete {
@@ -626,13 +626,13 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 		} else {
 			source = meta.NewSequenceScanner(b.octx, slicer, pool, filter, pruner, b.progress)
 		}
-	case *dag.PoolMeta:
+	case *dag.PoolMetaScan:
 		scanner, err := meta.NewPoolMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.ID, src.Meta, pushdown)
 		if err != nil {
 			return nil, err
 		}
 		source = scanner
-	case *dag.CommitMeta:
+	case *dag.CommitMetaScan:
 		var pruner expr.Evaluator
 		if src.Tap {
 			// disable pushdown if Tap is activated for meta queries.
@@ -649,19 +649,19 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent zbuf.Puller) ([]zbuf.Pul
 			return nil, err
 		}
 		source = scanner
-	case *dag.LakeMeta:
+	case *dag.LakeMetaScan:
 		scanner, err := meta.NewLakeMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), src.Meta, pushdown)
 		if err != nil {
 			return nil, err
 		}
 		source = scanner
-	case *dag.HTTP:
+	case *dag.HTTPScan:
 		puller, err := b.source.Open(b.octx.Context, b.octx.Zctx, src.URL, src.Format, pushdown)
 		if err != nil {
 			return nil, err
 		}
 		source = puller
-	case *dag.File:
+	case *dag.FileScan:
 		scanner, err := b.source.Open(b.octx.Context, b.octx.Zctx, src.Path, src.Format, pushdown)
 		if err != nil {
 			return nil, err

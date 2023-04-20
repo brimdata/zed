@@ -71,8 +71,8 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 			return nil, err
 		}
 		return []dag.Source{
-			&dag.File{
-				Kind:    "File",
+			&dag.FileScan{
+				Kind:    "FileScan",
 				Path:    p.Path,
 				Format:  p.Format,
 				SortKey: sortKey,
@@ -84,8 +84,8 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 			return nil, err
 		}
 		return []dag.Source{
-			&dag.HTTP{
-				Kind:    "HTTP",
+			&dag.HTTPScan{
+				Kind:    "HTTPScan",
 				URL:     p.URL,
 				Format:  p.Format,
 				SortKey: sortKey,
@@ -173,8 +173,8 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		if _, ok := dag.LakeMetas[meta]; !ok {
 			return nil, fmt.Errorf("unknown lake metadata type %q in from operator", meta)
 		}
-		return &dag.LakeMeta{
-			Kind: "LakeMeta",
+		return &dag.LakeMetaScan{
+			Kind: "LakeMetaScan",
 			Meta: p.Spec.Meta,
 		}, nil
 	}
@@ -214,8 +214,8 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 					return nil, err
 				}
 			}
-			return &dag.CommitMeta{
-				Kind:   "CommitMeta",
+			return &dag.CommitMetaScan{
+				Kind:   "CommitMetaScan",
 				Meta:   meta,
 				Pool:   poolID,
 				Commit: commitID,
@@ -223,8 +223,8 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 			}, nil
 		}
 		if _, ok := dag.PoolMetas[meta]; ok {
-			return &dag.PoolMeta{
-				Kind: "PoolMeta",
+			return &dag.PoolMetaScan{
+				Kind: "PoolMetaScan",
 				Meta: meta,
 				ID:   poolID,
 			}, nil
@@ -239,8 +239,8 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 			return nil, err
 		}
 	}
-	return &dag.Pool{
-		Kind:   "Pool",
+	return &dag.PoolScan{
+		Kind:   "PoolScan",
 		ID:     poolID,
 		Commit: commitID,
 		Delete: p.Delete,
