@@ -148,7 +148,6 @@ POST /pool/{pool}/branch/{branch}
 | Content-Type | string | header | [MIME type](#mime-types) of the posted content. If undefined, the service will attempt to introspect the data and determine type automatically. |
 | Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
-
 **Example Request**
 
 ```
@@ -184,7 +183,6 @@ GET /pool/{pool}/branch/{branch}
 | pool | string | path | **Required.** ID or name of the pool. |
 | branch | string | path | **Required.** Name of branch. |
 | Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
-
 
 **Example Request**
 
