@@ -43,7 +43,7 @@ outputs:
       )
       ===
       from (
-        (internal reader)
+        reader
       )
       | yield (
         over a
