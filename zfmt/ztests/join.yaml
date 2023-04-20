@@ -9,7 +9,7 @@ outputs:
       join on x=x p:=a
       ===
       from (
-        <reader>
-        <reader>
+        reader
+        reader
       )
       | join on x=x p:=a

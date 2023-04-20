@@ -43,7 +43,7 @@ outputs:
       )
       ===
       from (
-        <reader>
+        reader
       )
       | yield (
         over a

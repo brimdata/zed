@@ -34,6 +34,6 @@ outputs:
         a+b
       )
       from (
-        <reader>
+        reader
       )
       | pass

@@ -21,22 +21,22 @@ outputs:
       yield <(int64,string)>(1)
       ===
       from (
-        <reader>
+        reader
       )
       | yield {x:1,...y}
       from (
-        <reader>
+        reader
       )
       | yield [1,2,3]
       from (
-        <reader>
+        reader
       )
       | yield |["foo","bar"]|
       from (
-        <reader>
+        reader
       )
       | yield |{"foo":1,"bar":2}|
       from (
-        <reader>
+        reader
       )
       | yield cast(1, <(int64,string)>)
