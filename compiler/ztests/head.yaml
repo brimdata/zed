@@ -14,7 +14,8 @@ outputs:
       )
       | head 1
       ===
-      const x = 1from (
+      const x = 1
+      from (
         (internal reader)
       )
       | head 2
