@@ -1,8 +1,6 @@
 package zfmt
 
 import (
-	"fmt"
-
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
@@ -432,7 +430,7 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Lister:
 		c.next()
 		c.open("lister")
-		c.write(fmt.Sprintf(" pool %s commit %s", p.Pool, p.Commit))
+		c.write(" pool %s commit %s", p.Pool, p.Commit)
 		if p.KeyPruner != nil {
 			c.write(" pruner (")
 			c.expr(p.KeyPruner, "")
@@ -442,7 +440,7 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.SeqScan:
 		c.next()
 		c.open("seqscan")
-		c.write(fmt.Sprintf(" pool %s", p.Pool))
+		c.write(" pool %s", p.Pool)
 		if p.KeyPruner != nil {
 			c.write(" pruner (")
 			c.expr(p.KeyPruner, "")
@@ -468,12 +466,12 @@ func (c *canonDAG) op(p dag.Op) {
 		c.exprs(p.Exprs)
 	case *dag.FileScan:
 		c.next()
-		c.write(fmt.Sprintf("file %s", p.Path))
+		c.write("file %s", p.Path)
 		if p.Format != "" {
-			c.write(fmt.Sprintf(" format %s", p.Format))
+			c.write(" format %s", p.Format)
 		}
 		if !p.SortKey.IsNil() {
-			c.write(fmt.Sprintf(" order %s", p.SortKey))
+			c.write(" order %s", p.SortKey)
 		}
 		if p.Filter != nil {
 			c.write(" filter (")
@@ -482,22 +480,22 @@ func (c *canonDAG) op(p dag.Op) {
 		}
 	case *dag.HTTPScan:
 		c.next()
-		c.write(fmt.Sprintf("get %s", p.URL))
+		c.write("get %s", p.URL)
 	case *dag.PoolScan:
 		c.next()
-		c.write(fmt.Sprintf("pool %s", p.ID))
+		c.write("pool %s", p.ID)
 	case *dag.PoolMetaScan:
 		c.next()
-		c.write(fmt.Sprintf("pool %s:%s", p.ID, p.Meta))
+		c.write("pool %s:%s", p.ID, p.Meta)
 	case *dag.CommitMetaScan:
 		c.next()
-		c.write(fmt.Sprintf("pool %s@%s:%s", p.Pool, p.Commit, p.Meta))
+		c.write("pool %s@%s:%s", p.Pool, p.Commit, p.Meta)
 		if p.Tap {
 			c.write(" tap")
 		}
 	case *dag.LakeMetaScan:
 		c.next()
-		c.write(fmt.Sprintf(":%s", p.Meta))
+		c.write(":%s", p.Meta)
 	case *dag.Pass:
 		c.next()
 		c.write("pass")

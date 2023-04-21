@@ -143,7 +143,7 @@ type (
 type (
 	Lister struct {
 		Kind      string      `json:"kind" unpack:""`
-		Pool      ksuid.KSUID `json:"id"`
+		Pool      ksuid.KSUID `json:"pool"`
 		Commit    ksuid.KSUID `json:"commit"`
 		KeyPruner Expr        `json:"key_pruner"`
 	}
