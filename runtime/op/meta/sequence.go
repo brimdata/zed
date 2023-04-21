@@ -1,9 +1,11 @@
 package meta
 
 import (
+	"context"
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/runtime/expr"
@@ -111,31 +113,38 @@ func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller,
 		}
 	}
 	for _, object := range part.Objects {
-		ranges, err := data.LookupSeekRange(p.octx.Context, p.pool.Storage(), p.pool.DataPath, object, p.pruner)
-		if err != nil {
-			return nil, err
-		}
-		rc, err := object.NewReader(p.octx.Context, p.pool.Storage(), p.pool.DataPath, ranges)
+		s, err := newObjectScanner(p.octx.Context, p.octx.Zctx, p.pool, object, p.filter, p.pruner, p.progress)
 		if err != nil {
 			pullersDone()
 			return nil, err
 		}
-		scanner, err := zngio.NewReader(p.octx.Zctx, rc).NewScanner(p.octx.Context, p.filter)
-		if err != nil {
-			pullersDone()
-			rc.Close()
-			return nil, err
-		}
-		pullers = append(pullers, &statScanner{
-			scanner:  scanner,
-			closer:   rc,
-			progress: p.progress,
-		})
+		pullers = append(pullers, s)
 	}
 	if len(pullers) == 1 {
 		return pullers[0], nil
 	}
 	return merge.New(p.octx.Context, pullers, lake.ImportComparator(p.octx.Zctx, p.pool).Compare), nil
+}
+
+func newObjectScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, object *data.Object, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress) (zbuf.Puller, error) {
+	ranges, err := data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, object, pruner)
+	if err != nil {
+		return nil, err
+	}
+	rc, err := object.NewReader(ctx, pool.Storage(), pool.DataPath, ranges)
+	if err != nil {
+		return nil, err
+	}
+	scanner, err := zngio.NewReader(zctx, rc).NewScanner(ctx, filter)
+	if err != nil {
+		rc.Close()
+		return nil, err
+	}
+	return &statScanner{
+		scanner:  scanner,
+		closer:   rc,
+		progress: progress,
+	}, nil
 }
 
 type statScanner struct {
