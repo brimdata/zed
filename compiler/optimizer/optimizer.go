@@ -384,8 +384,8 @@ func (o *Optimizer) Parallelize(n int) error {
 		return nil
 	}
 	concurrency := n / len(o.sources)
-	if concurrency < 1 {
-		return nil
+	if concurrency < 2 {
+		concurrency = 2
 	}
 	if concurrency > 50 {
 		// arbitrary circuit breaker
