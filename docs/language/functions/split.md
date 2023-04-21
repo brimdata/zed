@@ -10,7 +10,7 @@ split(s: string, sep: string) -> [string]
 ### Description
 
 The _split_ function slices string `s` into all substrings separated by the
-string`sep` appearing in `s` and returns an array of the substrings
+string `sep` appearing in `s` and returns an array of the substrings
 spanning those separators.
 
 ### Examples
