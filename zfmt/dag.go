@@ -456,10 +456,8 @@ func (c *canonDAG) op(p dag.Op) {
 		c.next()
 		c.open("slicer")
 		c.close()
-	case *dag.Let:
-		c.over(p.Over, p.Defs)
 	case *dag.Over:
-		c.over(p, nil)
+		c.over(p)
 	case *dag.Yield:
 		c.next()
 		c.write("yield ")
@@ -514,18 +512,18 @@ func (c *canonDAG) op(p dag.Op) {
 	}
 }
 
-func (c *canonDAG) over(o *dag.Over, locals []dag.Def) {
+func (c *canonDAG) over(o *dag.Over) {
 	c.next()
 	c.write("over ")
 	c.exprs(o.Exprs)
-	if len(locals) > 0 {
+	if len(o.Defs) > 0 {
 		c.write(" with ")
-		for i, l := range locals {
+		for i, d := range o.Defs {
 			if i > 0 {
 				c.write(", ")
 			}
-			c.write("%s=", l.Name)
-			c.expr(l.Expr, "")
+			c.write("%s=", d.Name)
+			c.expr(d.Expr, "")
 		}
 	}
 	if o.Scope != nil {

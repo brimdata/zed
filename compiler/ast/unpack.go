@@ -38,7 +38,6 @@ var unpacker = unpack.New(
 	ID{},
 	astzed.ImpliedValue{},
 	Join{},
-	Let{},
 	Merge{},
 	Over{},
 	Trunk{},

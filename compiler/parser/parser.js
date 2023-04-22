@@ -630,11 +630,7 @@ function peg$parse(input, options) {
       peg$c252 = "over",
       peg$c253 = peg$literalExpectation("over", false),
       peg$c254 = function(exprs, locals, scope) {
-            let over = {"kind": "Over", "exprs": exprs, "scope": scope}
-            if (locals) {
-              return {"kind": "Let", "locals": locals, "over": over}
-            }
-            return over
+            return {"kind": "Over", "exprs": exprs, "locals": locals, "scope": scope}
           },
       peg$c255 = function(seq) { return seq },
       peg$c256 = function(first, a) { return a },

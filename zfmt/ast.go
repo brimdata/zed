@@ -616,10 +616,8 @@ func (c *canon) proc(p ast.Op) {
 		c.next()
 		c.write("merge ")
 		c.expr(p.Expr, "")
-	case *ast.Let:
-		c.over(p.Over, p.Locals)
 	case *ast.Over:
-		c.over(p, nil)
+		c.over(p)
 	case *ast.Yield:
 		c.next()
 		c.write("yield ")
@@ -630,13 +628,13 @@ func (c *canon) proc(p ast.Op) {
 	}
 }
 
-func (c *canon) over(o *ast.Over, locals []ast.Def) {
+func (c *canon) over(o *ast.Over) {
 	c.next()
 	c.write("over ")
 	c.exprs(o.Exprs)
-	if len(locals) > 0 {
+	if len(o.Locals) > 0 {
 		c.write(" with ")
-		c.defs(locals, ", ")
+		c.defs(o.Locals, ", ")
 	}
 	if o.Scope != nil {
 		c.write(" => (")

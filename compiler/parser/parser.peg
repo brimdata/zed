@@ -581,11 +581,7 @@ MergeOp
 
 OverOp
   = "over" _ exprs:Exprs locals:Locals? scope:Scope? {
-      VAR(over) = MAP("kind": "Over", "exprs": exprs, "scope": scope)
-      if ISNOTNULL(locals) {
-        RETURN(MAP("kind": "Let", "locals": locals, "over": over))
-      }
-      RETURN(over)
+      RETURN(MAP("kind": "Over", "exprs": exprs, "locals": locals, "scope": scope))
     }
 
 Scope

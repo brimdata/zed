@@ -639,13 +639,8 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:
-		return semOver(ctx, scope, o, ds, head)
-	case *ast.Let:
-		if o.Over == nil {
-			return nil, errors.New("let operator missing traversal in AST")
-		}
-		if o.Over.Scope == nil {
-			return nil, errors.New("let operator missing scope in AST")
+		if len(o.Locals) != 0 && o.Scope == nil {
+			return nil, errors.New("over operator: cannot have a with clause without a lateral query")
 		}
 		scope.Enter()
 		defer scope.Exit()
@@ -653,14 +648,22 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if err != nil {
 			return nil, err
 		}
-		over, err := semOver(ctx, scope, o.Over, ds, head)
+		exprs, err := semExprs(scope, o.Exprs)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Let{
-			Kind: "Let",
-			Defs: locals,
-			Over: over,
+		var seq *dag.Sequential
+		if o.Scope != nil {
+			seq, err = semSequential(ctx, scope, o.Scope, ds, head)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &dag.Over{
+			Kind:  "Over",
+			Defs:  locals,
+			Exprs: exprs,
+			Scope: seq,
 		}, nil
 	case *ast.Yield:
 		exprs, err := semExprs(scope, o.Exprs)
@@ -673,25 +676,6 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		}, nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
-}
-
-func semOver(ctx context.Context, scope *Scope, in *ast.Over, ds *data.Source, head *lakeparse.Commitish) (*dag.Over, error) {
-	exprs, err := semExprs(scope, in.Exprs)
-	if err != nil {
-		return nil, err
-	}
-	var seq *dag.Sequential
-	if in.Scope != nil {
-		seq, err = semSequential(ctx, scope, in.Scope, ds, head)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &dag.Over{
-		Kind:  "Over",
-		Exprs: exprs,
-		Scope: seq,
-	}, nil
 }
 
 func singletonAgg(scope *Scope, agg ast.Assignment) dag.Op {

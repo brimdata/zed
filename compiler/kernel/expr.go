@@ -476,7 +476,7 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 	if over.Scope == nil {
 		return nil, errors.New("over expression requires flow body")
 	}
-	names, lets, err := b.compileLets(over.Defs)
+	names, lets, err := b.compileDefs(over.Defs)
 	if err != nil {
 		return nil, err
 	}
