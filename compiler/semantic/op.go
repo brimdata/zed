@@ -23,7 +23,7 @@ import (
 func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
 	switch len(from.Trunks) {
 	case 0:
-		return nil, errors.New("from operator has no paths")
+		return nil, errors.New("internal error: from operator has no paths")
 	case 1:
 		return semTrunk(ctx, scope, from.Trunks[0], source, head)
 	default:

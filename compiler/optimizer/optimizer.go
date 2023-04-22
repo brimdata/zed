@@ -18,7 +18,7 @@ import (
 type Optimizer struct {
 	ctx     context.Context
 	entry   *dag.Sequential
-	sources map[dag.Op]struct{}
+	sources map[*dag.Sequential]struct{}
 	lake    *lake.Root
 }
 
@@ -30,7 +30,7 @@ func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optim
 	return &Optimizer{
 		ctx:     ctx,
 		entry:   entry,
-		sources: make(map[dag.Op]struct{}),
+		sources: make(map[*dag.Sequential]struct{}),
 		lake:    lk,
 	}
 }
@@ -47,7 +47,6 @@ func (o *Optimizer) Entry() *dag.Sequential {
 func mergeFilters(op dag.Op) {
 	walkOp(op, true, func(op dag.Op) {
 		if seq, ok := op.(*dag.Sequential); ok {
-			// Start at the next to last element and work toward the first.
 			for i := len(seq.Ops) - 2; i >= 0; i-- {
 				if f1, ok := seq.Ops[i].(*dag.Filter); ok {
 					if f2, ok := seq.Ops[i+1].(*dag.Filter); ok {
@@ -69,10 +68,11 @@ func removePassOps(op dag.Op) {
 			for i := 0; i < len(seq.Ops); i++ {
 				if _, ok := seq.Ops[i].(*dag.Pass); ok {
 					seq.Ops = slices.Delete(seq.Ops, i, i+1)
+					continue
 				}
 			}
 			if len(seq.Ops) == 0 {
-				seq.Ops = []dag.Op{&dag.Pass{Kind: "Pass"}}
+				seq.Ops = []dag.Op{dag.PassOp}
 			}
 		}
 	})
@@ -124,13 +124,9 @@ func (o *Optimizer) OptimizeDeleter(replicas int) error {
 	if err != nil {
 		return err
 	}
-	// Check to see if we can add a range pruner when the pool-key is used
+	// Check to see if we can add a range pruner when the pool key is used
 	// in a normal filtering operation.
-	if !sortKey.IsNil() && filter != nil {
-		if p := newRangePruner(filter.Expr, sortKey.Primary(), sortKey.Order); p != nil {
-			lister.KeyPruner = p
-		}
-	}
+	lister.KeyPruner = maybeNewRangePruner(filter.Expr, sortKey)
 	deleter.Where = filter.Expr
 	chain := []dag.Op{deleter}
 	par := &dag.Parallel{Kind: "Parallel", Any: true}
@@ -183,10 +179,10 @@ func (o *Optimizer) optimizeSourcePaths(op dag.Op) error {
 	}
 	seq, ok := op.(*dag.Sequential)
 	if !ok {
-		return fmt.Errorf("an entry point to the query is not a source: %T", op)
+		return fmt.Errorf("internal error: entry point is not a source: %T", op)
 	}
 	if len(seq.Ops) == 0 {
-		return errors.New("optimizer encountered empty sequential operator")
+		return errors.New("internal error: empty sequential operator")
 	}
 	if par, ok := seq.Ops[0].(*dag.Parallel); ok {
 		return o.optimizeSourcePaths(par)
@@ -205,23 +201,19 @@ func (o *Optimizer) optimizeSourcePaths(op dag.Op) error {
 	case *dag.PoolScan:
 		// Here we transform a PoolScan into a Lister followed by one or more chains
 		// of slicers and sequence scanners.  We'll eventually choose other configurations
-		// here based on metadata and availability of vzng.
+		// here based on metadata and availability of VNG.
 		lister := &dag.Lister{
 			Kind:   "Lister",
 			Pool:   op.ID,
 			Commit: op.Commit,
 		}
-		// Check to see if we can add a range pruner when the pool-key is used
+		// Check to see if we can add a range pruner when the pool key is used
 		// in a normal filtering operation.
 		sortKey, err := o.sortKeyOfSource(op)
 		if err != nil {
 			return err
 		}
-		if !sortKey.IsNil() && filter != nil {
-			if p := newRangePruner(filter, sortKey.Primary(), sortKey.Order); p != nil {
-				lister.KeyPruner = p
-			}
-		}
+		lister.KeyPruner = maybeNewRangePruner(filter, sortKey)
 		seq.Ops = []dag.Op{lister}
 		_, _, orderRequired, _, err := o.concurrentPath(chain, sortKey)
 		if err != nil {
@@ -247,13 +239,9 @@ func (o *Optimizer) optimizeSourcePaths(op dag.Op) error {
 			if err != nil {
 				return err
 			}
-			// Check to see if we can add a range pruner when the pool-key is used
+			// Check to see if we can add a range pruner when the pool key is used
 			// in a normal filtering operation.
-			if !sortKey.IsNil() && filter != nil {
-				if p := newRangePruner(filter, sortKey.Primary(), sortKey.Order); p != nil {
-					op.KeyPruner = p
-				}
-			}
+			op.KeyPruner = maybeNewRangePruner(filter, sortKey)
 			// Delete the downstream operators when we are tapping the object list.
 			seq.Ops = []dag.Op{op}
 		}
@@ -262,7 +250,7 @@ func (o *Optimizer) optimizeSourcePaths(op dag.Op) error {
 		seq.Ops = append([]dag.Op{op}, chain...)
 	case *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.HTTPScan:
 	default:
-		return fmt.Errorf("an entry point to the query is not a source: %T", op)
+		return fmt.Errorf("internal error:  point to the query is not a source: %T", op)
 	}
 	return nil
 }
@@ -339,32 +327,32 @@ func (o *Optimizer) propagateSortKey(op dag.Op, parent order.SortKey) (order.Sor
 	}
 }
 
-func (o *Optimizer) sortKeyOfSource(src dag.Op) (order.SortKey, error) {
-	switch src := src.(type) {
+func (o *Optimizer) sortKeyOfSource(op dag.Op) (order.SortKey, error) {
+	switch op := op.(type) {
 	case *dag.FileScan:
-		return src.SortKey, nil
+		return op.SortKey, nil
 	case *dag.HTTPScan:
-		return src.SortKey, nil
+		return op.SortKey, nil
 	case *dag.PoolScan:
-		return o.sortKey(src.ID)
+		return o.sortKey(op.ID)
 	case *dag.Lister:
-		return o.sortKey(src.Pool)
+		return o.sortKey(op.Pool)
 	case *dag.SeqScan:
-		return o.sortKey(src.Pool)
+		return o.sortKey(op.Pool)
 	case *dag.CommitMetaScan:
-		if src.Tap && src.Meta == "objects" {
+		if op.Tap && op.Meta == "objects" {
 			// For a tap into the object stream, we compile the downstream
 			// DAG as if it were a normal query (so the optimizer can prune
 			// objects etc.) but we execute it in the end as a meta-query.
-			return o.sortKey(src.Pool)
+			return o.sortKey(op.Pool)
 		}
 		return order.Nil, nil
 	case *dag.LakeMetaScan, *dag.PoolMetaScan:
 		return order.Nil, nil
 	case *kernel.Reader:
-		return src.SortKey, nil
+		return op.SortKey, nil
 	default:
-		return order.Nil, fmt.Errorf("unknown source type %T", src)
+		return order.Nil, fmt.Errorf("internal error: unknown source type %T", op)
 	}
 }
 
@@ -391,8 +379,7 @@ func (o *Optimizer) Parallelize(n int) error {
 		// arbitrary circuit breaker
 		return fmt.Errorf("parallelization factor too big: %d", n)
 	}
-	for src := range o.sources {
-		seq := src.(*dag.Sequential)
+	for seq := range o.sources {
 		lister, slicer, rest := matchSource(seq.Ops)
 		// We parallelize the scanning to achieve the desired concurrency,
 		// then the step below pulls downstream operators into the parallel
@@ -459,10 +446,20 @@ func filterPushdown(in []dag.Op) (dag.Expr, []dag.Op) {
 // to be ordered according to the order o.  This is used to prune metadata objects
 // from a scan when we know the pool key range of the object could not satisfy
 // the filter predicate of any of the values in the object.
-func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) *dag.BinaryExpr {
+func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) dag.Expr {
 	min := &dag.This{Kind: "This", Path: field.New("min")}
 	max := &dag.This{Kind: "This", Path: field.New("max")}
-	return buildRangePruner(pred, fld, min, max)
+	if e := buildRangePruner(pred, fld, min, max); e != nil {
+		return e
+	}
+	return nil
+}
+
+func maybeNewRangePruner(pred dag.Expr, sortKey order.SortKey) dag.Expr {
+	if !sortKey.IsNil() && pred != nil {
+		return newRangePruner(pred, sortKey.Primary(), sortKey.Order)
+	}
+	return nil
 }
 
 // buildRangePruner creates a DAG comparison expression that can evalaute whether

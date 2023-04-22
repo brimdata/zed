@@ -91,7 +91,7 @@ func (d *Deleter) nextDeletion() ([]zbuf.Batch, error) {
 			vals := batch.Values()
 			if len(vals) != 1 {
 				// We currently support only one partition per batch.
-				return nil, errors.New("system error: meta.Deleter encountered multi-valued batch")
+				return nil, errors.New("internal error: meta.Deleter encountered multi-valued batch")
 			}
 			scanner, object, err = newScanner(d.octx.Context, d.octx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, d.progress, &vals[0])
 			if err != nil {

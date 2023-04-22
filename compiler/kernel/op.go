@@ -249,7 +249,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return b.compileOver(parent, v.Over, names, exprs)
 	case *dag.PoolScan:
 		if parent != nil {
-			return nil, errors.New("pool scan cannot have a parent operator")
+			return nil, errors.New("internal error: pool scan cannot have a parent operator")
 		}
 		return b.compilePoolScan(v)
 	case *dag.PoolMetaScan:
@@ -286,7 +286,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return zbuf.MultiScanner(scanners...), nil
 	case *dag.Lister:
 		if parent != nil {
-			return nil, errors.New("data source cannot have a parent operator")
+			return nil, errors.New("internal error: data source cannot have a parent operator")
 		}
 		pool, err := b.lookupPool(v.Pool)
 		if err != nil {
@@ -419,7 +419,7 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	if par.Any {
 		if len(parents) != 1 {
-			return nil, errors.New("internal compiler error: any-path parallel operator requires a single parent")
+			return nil, errors.New("internal error: any-path parallel operator requires a single parent")
 		}
 		var ops []zbuf.Puller
 		for _, o := range par.Ops {
@@ -637,7 +637,7 @@ func (b *Builder) PushdownOf(e dag.Expr) *Filter {
 
 func (b *Builder) lookupPool(id ksuid.KSUID) (*lake.Pool, error) {
 	if b.source == nil || b.source.Lake() == nil {
-		return nil, errors.New("system error: lake operation cannot be used in non-lake context")
+		return nil, errors.New("internal error: lake operation cannot be used in non-lake context")
 	}
 	// This is fast because of the pool cache in the lake.
 	return b.source.Lake().OpenPool(b.octx.Context, id)
