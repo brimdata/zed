@@ -661,8 +661,8 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		}
 		return &dag.Over{
 			Kind:  "Over",
-			Exprs: exprs,
 			Defs:  locals,
+			Exprs: exprs,
 			Scope: seq,
 		}, nil
 	case *ast.Yield:

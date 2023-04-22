@@ -331,7 +331,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	}
 }
 
-func (b *Builder) compileLets(defs []dag.Def) ([]string, []expr.Evaluator, error) {
+func (b *Builder) compileDefs(defs []dag.Def) ([]string, []expr.Evaluator, error) {
 	exprs := make([]expr.Evaluator, 0, len(defs))
 	names := make([]string, 0, len(defs))
 	for _, def := range defs {
@@ -349,7 +349,7 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 	if len(over.Defs) != 0 && over.Scope == nil {
 		return nil, errors.New("internal error: over operator has defs but no body")
 	}
-	withNames, withExprs, err := b.compileLets(over.Defs)
+	withNames, withExprs, err := b.compileDefs(over.Defs)
 	if err != nil {
 		return nil, err
 	}

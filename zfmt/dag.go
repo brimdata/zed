@@ -518,12 +518,12 @@ func (c *canonDAG) over(o *dag.Over) {
 	c.exprs(o.Exprs)
 	if len(o.Defs) > 0 {
 		c.write(" with ")
-		for i, l := range o.Defs {
+		for i, d := range o.Defs {
 			if i > 0 {
 				c.write(", ")
 			}
-			c.write("%s=", l.Name)
-			c.expr(l.Expr, "")
+			c.write("%s=", d.Name)
+			c.expr(d.Expr, "")
 		}
 	}
 	if o.Scope != nil {
