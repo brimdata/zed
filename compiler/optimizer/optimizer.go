@@ -106,7 +106,7 @@ func (o *Optimizer) Optimize() error {
 	inlineSequentials(o.entry)
 	removePassOps(o.entry)
 	mergeFilters(o.entry)
-	o.findParPullups(o.entry)
+	o.optimizeParallels(o.entry)
 	mergeFilters(o.entry)
 	if err := o.optimizeSourcePaths(o.entry); err != nil {
 		return err
@@ -402,7 +402,7 @@ func (o *Optimizer) Parallelize(n int) error {
 		// Replace the source path with the parallelized gadget.
 		seq.Ops = append(front, parallel...)
 	}
-	o.findParPullups(o.entry)
+	o.optimizeParallels(o.entry)
 	removePassOps(o.entry)
 	return nil
 }

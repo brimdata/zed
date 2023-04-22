@@ -75,20 +75,20 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 	return append([]dag.Op{par, merge}, tail...), nil
 }
 
-func (o *Optimizer) findParPullups(op dag.Op) {
+func (o *Optimizer) optimizeParallels(op dag.Op) {
 	walkOp(op, false, func(op dag.Op) {
 		if seq, ok := op.(*dag.Sequential); ok {
 			for ops := seq.Ops; len(ops) >= 3; ops = ops[1:] {
-				o.parPullUp(ops)
+				o.liftIntoParPaths(ops)
 			}
 		}
 	})
 }
 
-// parPullUp examines a sequence of Ops to see if there's an opportunity to
-// lift operations downstream from a parallel Op into the parallel paths to
+// liftIntoParPaths examines a sequence of Ops to see if there's an opportunity to
+// lift operations downstream from a parallel Op into its parallel paths to
 // enhance concurrency.  If so, we modify the sequential ops in place.
-func (o *Optimizer) parPullUp(ops []dag.Op) {
+func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 	if len(ops) < 2 {
 		// Need a parallel, an optional merge/combine, and something downstream.
 		return
