@@ -127,7 +127,7 @@ func newObjectsScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, 
 		}
 	}
 	for _, object := range objects {
-		s, err := newStatScanner(ctx, zctx, pool, object, pruner, filter, progress)
+		s, err := newObjectScanner(ctx, zctx, pool, object, filter, pruner, progress)
 		if err != nil {
 			pullersDone()
 			return nil, err
@@ -138,27 +138,6 @@ func newObjectsScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, 
 		return pullers[0], nil
 	}
 	return merge.New(ctx, pullers, lake.ImportComparator(zctx, pool).Compare), nil
-}
-
-func newStatScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, object *data.Object, pruner expr.Evaluator, filter zbuf.Filter, progress *zbuf.Progress) (zbuf.Puller, error) {
-	ranges, err := data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, object, pruner)
-	if err != nil {
-		return nil, err
-	}
-	rc, err := object.NewReader(ctx, pool.Storage(), pool.DataPath, ranges)
-	if err != nil {
-		return nil, err
-	}
-	scanner, err := zngio.NewReader(zctx, rc).NewScanner(ctx, filter)
-	if err != nil {
-		rc.Close()
-		return nil, err
-	}
-	return &statScanner{
-		scanner:  scanner,
-		closer:   rc,
-		progress: progress,
-	}, nil
 }
 
 func newObjectScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, object *data.Object, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress) (zbuf.Puller, error) {
