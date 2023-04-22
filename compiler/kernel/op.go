@@ -77,11 +77,11 @@ var _ ast.Source = (*Reader)(nil)
 func (*Reader) OpNode() {}
 func (*Reader) Source() {}
 
-func (b *Builder) Build(seq *dag.Sequential) ([]zbuf.Puller, error) {
-	if !isEntry(seq) {
+func (b *Builder) Build(scope *dag.Scope) ([]zbuf.Puller, error) {
+	if !isEntry(scope) {
 		return nil, errors.New("internal error: DAG entry point is not a data source")
 	}
-	return b.compile(seq, nil)
+	return b.compileScope(scope, nil)
 }
 
 func (b *Builder) zctx() *zed.Context {
@@ -346,7 +346,7 @@ func (b *Builder) compileDefs(defs []dag.Def) ([]string, []expr.Evaluator, error
 }
 
 func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, error) {
-	if len(over.Defs) != 0 && over.Scope == nil {
+	if len(over.Defs) != 0 && over.Body == nil {
 		return nil, errors.New("internal error: over operator has defs but no body")
 	}
 	withNames, withExprs, err := b.compileDefs(over.Defs)
@@ -358,11 +358,11 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 		return nil, err
 	}
 	enter := traverse.NewOver(b.octx, parent, exprs)
-	if over.Scope == nil {
+	if over.Body == nil {
 		return enter, nil
 	}
 	scope := enter.AddScope(b.octx.Context, withNames, withExprs)
-	exits, err := b.compile(over.Scope, []zbuf.Puller{scope})
+	exits, err := b.compile(over.Body, []zbuf.Puller{scope})
 	if err != nil {
 		return nil, err
 	}
@@ -401,9 +401,6 @@ func splitAssignments(assignments []expr.Assignment) (field.List, []expr.Evaluat
 }
 
 func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	if err := b.compileFuncs(seq.Funcs); err != nil {
-		return nil, err
-	}
 	for _, o := range seq.Ops {
 		var err error
 		parents, err = b.compile(o, parents)
@@ -412,6 +409,13 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 		}
 	}
 	return parents, nil
+}
+
+func (b *Builder) compileScope(scope *dag.Scope, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	if err := b.compileFuncs(scope.Funcs); err != nil {
+		return nil, err
+	}
+	return b.compileSequential(scope.Body, parents)
 }
 
 func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
@@ -542,6 +546,8 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 			return nil, errors.New("empty sequential operator")
 		}
 		return b.compileSequential(o, parents)
+	case *dag.Scope:
+		return b.compileScope(o, parents)
 	case *dag.Parallel:
 		return b.compileParallel(o, parents)
 	case *dag.Switch:
@@ -680,6 +686,8 @@ func isEntry(op dag.Op) bool {
 			return false
 		}
 		return isEntry(op.Ops[0])
+	case *dag.Scope:
+		return isEntry(op.Body)
 	case *dag.Parallel:
 		if len(op.Ops) == 0 {
 			return false

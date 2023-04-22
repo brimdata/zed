@@ -14,7 +14,11 @@ func DAG(op dag.Op) string {
 		head:     true,
 		first:    true,
 	}
-	d.op(op)
+	if scope, ok := op.(*dag.Scope); ok {
+		d.scope(scope, false)
+	} else {
+		d.op(op)
+	}
 	d.flush()
 	return d.String()
 }
@@ -261,31 +265,11 @@ func (c *canonDAG) op(p dag.Op) {
 		if p == nil {
 			return
 		}
-		for _, d := range p.Consts {
-			c.write("const %s = ", d.Name)
-			c.expr(d.Expr, "")
-			c.ret()
-			c.flush()
-		}
-		for _, f := range p.Funcs {
-			c.write("func %s(", f.Name)
-			for i := range f.Params {
-				if i != 0 {
-					c.write(", ")
-				}
-				c.write(f.Params[i])
-			}
-			c.open("): (")
-			c.ret()
-			c.expr(f.Expr, f.Name)
-			c.close()
-			c.ret()
-			c.flush()
-			c.write(")\n")
-		}
 		for _, p := range p.Ops {
 			c.op(p)
 		}
+	case *dag.Scope:
+		c.scope(p, true)
 	case *dag.Parallel:
 		c.next()
 		c.open("fork (")
@@ -501,7 +485,7 @@ func (c *canonDAG) op(p dag.Op) {
 		c.next()
 		c.write("reader")
 		if p.Filter != nil {
-			c.open(" filter (")
+			c.write(" filter (")
 			c.expr(p.Filter, "")
 			c.write(")")
 		}
@@ -526,11 +510,48 @@ func (c *canonDAG) over(o *dag.Over) {
 			c.expr(d.Expr, "")
 		}
 	}
-	if o.Scope != nil {
+	if o.Body != nil {
 		c.write(" => (")
 		c.open()
 		c.head = true
-		c.op(o.Scope)
+		c.op(o.Body)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
+	}
+}
+
+func (c *canonDAG) scope(p *dag.Scope, parens bool) {
+	if parens {
+		c.open("(")
+		c.ret()
+		c.flush()
+	}
+	for _, d := range p.Consts {
+		c.write("const %s = ", d.Name)
+		c.expr(d.Expr, "")
+		c.ret()
+		c.flush()
+	}
+	for _, f := range p.Funcs {
+		c.write("func %s(", f.Name)
+		for i := range f.Params {
+			if i != 0 {
+				c.write(", ")
+			}
+			c.write(f.Params[i])
+		}
+		c.open("): (")
+		c.ret()
+		c.expr(f.Expr, f.Name)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")\n")
+	}
+	c.op(p.Body)
+	if parens {
 		c.close()
 		c.ret()
 		c.flush()

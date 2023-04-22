@@ -211,7 +211,7 @@ func inlineSequentials(op dag.Op) {
 			// Can't use range because we might change the length.
 			for i := 0; i < len(seq.Ops); i++ {
 				seq2, ok := seq.Ops[i].(*dag.Sequential)
-				if ok && seq2.Consts == nil && seq2.Funcs == nil {
+				if ok {
 					seq.Ops = slices.Replace(seq.Ops, i, i+1, seq2.Ops...)
 				}
 			}

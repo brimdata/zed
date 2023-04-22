@@ -37,12 +37,13 @@ func NewJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 	// caller via runtime.readers.  In most cases, the AST is left
 	// with an ast.From at the entry point, and hence a dag.From for the
 	// DAG's entry point.
-	seq, ok := parserAST.(*ast.Sequential)
+	scope, ok := parserAST.(*ast.Scope)
 	if !ok {
-		return nil, fmt.Errorf("internal error: AST must begin with a Sequential op: %T", parserAST)
+		return nil, fmt.Errorf("internal error: AST must begin with a Scope op: %T", parserAST)
 	}
+	seq := scope.Body
 	if len(seq.Ops) == 0 {
-		return nil, errors.New("internal error: AST Sequential op cannot be empty")
+		return nil, errors.New("internal error: AST Scope op body cannot be empty")
 	}
 	var readers []*kernel.Reader
 	var from *ast.From
@@ -94,7 +95,7 @@ func NewJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 	if from != nil {
 		seq.Prepend(from)
 	}
-	entry, err := semantic.Analyze(octx.Context, seq, src, head)
+	entry, err := semantic.Analyze(octx.Context, scope, src, head)
 	if err != nil {
 		return nil, err
 	}
@@ -146,12 +147,24 @@ func (j *Job) Parallelize(n int) error {
 	return j.optimizer.Parallelize(n)
 }
 
-func Parse(src string, filenames ...string) (ast.Op, error) {
+func ParseNoWrap(src string, filenames ...string) (ast.Op, error) {
 	parsed, err := parser.ParseZed(filenames, src)
 	if err != nil {
 		return nil, err
 	}
 	return ast.UnpackMapAsOp(parsed)
+}
+
+func Parse(src string, filenames ...string) (ast.Op, error) {
+	op, err := ParseNoWrap(src, filenames...)
+	return wrapScope(op), err
+}
+
+func wrapScope(op ast.Op) ast.Op {
+	if seq, ok := op.(*ast.Sequential); ok {
+		op = &ast.Scope{Kind: "Scope", Body: seq}
+	}
+	return op
 }
 
 // MustParse is like Parse but panics if an error is encountered.

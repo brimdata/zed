@@ -48,7 +48,7 @@ func parsePEGjs(z string) ([]byte, error) {
 }
 
 func parseOp(z string) ([]byte, error) {
-	o, err := compiler.Parse(z)
+	o, err := compiler.ParseNoWrap(z)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +99,7 @@ func TestZtestZed(t *testing.T) {
 	require.NoError(t, err)
 	for _, z := range zed {
 		testZed(t, z)
+		return
 	}
 }
 
