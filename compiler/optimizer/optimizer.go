@@ -18,8 +18,8 @@ import (
 type Optimizer struct {
 	ctx     context.Context
 	entry   *dag.Sequential
-	sources map[*dag.Sequential]struct{}
 	lake    *lake.Root
+	sources map[*dag.Sequential]struct{}
 }
 
 func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optimizer {
@@ -30,8 +30,8 @@ func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optim
 	return &Optimizer{
 		ctx:     ctx,
 		entry:   entry,
-		sources: make(map[*dag.Sequential]struct{}),
 		lake:    lk,
+		sources: make(map[*dag.Sequential]struct{}),
 	}
 }
 
@@ -64,7 +64,6 @@ func mergeFilters(op dag.Op) {
 func removePassOps(op dag.Op) {
 	walkOp(op, true, func(op dag.Op) {
 		if seq, ok := op.(*dag.Sequential); ok {
-			// Start at the next to last element and work toward the first.
 			for i := 0; i < len(seq.Ops); i++ {
 				if _, ok := seq.Ops[i].(*dag.Pass); ok {
 					seq.Ops = slices.Delete(seq.Ops, i, i+1)
@@ -105,6 +104,7 @@ func walkOp(op dag.Op, over bool, post func(dag.Op)) {
 // TBD: we need to do pushdown for search/cut to optimize columnar extraction.
 func (o *Optimizer) Optimize() error {
 	inlineSequentials(o.entry)
+	removePassOps(o.entry)
 	mergeFilters(o.entry)
 	o.findParPullups(o.entry)
 	mergeFilters(o.entry)
@@ -197,7 +197,7 @@ func (o *Optimizer) optimizeSourcePaths(op dag.Op) error {
 	// See if we can lift a filtering predicate into the source op.
 	// Filter might be nil in which case we just put the chain back
 	// on the source op and zero out the source's filter.
-	filter, chain := filterPushdown(chain)
+	filter, chain := matchFilter(chain)
 	switch op := seq.Ops[0].(type) {
 	case *dag.PoolScan:
 		// Here we transform a PoolScan into a Lister followed by one or more chains
@@ -365,6 +365,8 @@ func (o *Optimizer) sortKey(id ksuid.KSUID) (order.SortKey, error) {
 	return pool.SortKey, nil
 }
 
+// Parallelize takes tries to parallelize the DAG by splitting each source
+// path as much as possible of the sequence into n parallel branches.
 func (o *Optimizer) Parallelize(n int) error {
 	// Compute the number of parallel paths across all input sources to
 	// achieve the desired level of concurrency.  At some point, we should
@@ -426,10 +428,10 @@ func matchSource(ops []dag.Op) (*dag.Lister, *dag.Slicer, []dag.Op) {
 	return lister, slicer, ops
 }
 
-// filterPushdown attempts to move any filter from the front of op chain
-// and returns the filter's expression (and the modified chain) so that
-// the runtime can push the filter predicate into the scanner.
-func filterPushdown(in []dag.Op) (dag.Expr, []dag.Op) {
+// matchFilter attempts to find a filter from the front of op chain
+// and returns the filter's expression (and the modified chain) so
+// we can lift the filter predicate into the scanner.
+func matchFilter(in []dag.Op) (dag.Expr, []dag.Op) {
 	if len(in) == 0 {
 		return nil, in
 	}

@@ -21,10 +21,10 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 	// For now we parallelize only pool scans and no metadata scans.
 	// We can do the latter when we want to scale the performance of metadata.
 	if replicas < 2 {
-		panic(fmt.Sprintf("parallelizeScan: bad replicas: %d", replicas))
+		return nil, fmt.Errorf("internal error: parallelizeScan: bad replicas: %d", replicas)
 	}
 	if len(ops) < 1 {
-		panic("parallelizeScan: short path")
+		return nil, errors.New("internal error: parallelizeScan: short path")
 	}
 	scan, ok := ops[0].(*dag.SeqScan)
 	if !ok {
@@ -41,7 +41,7 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 	if len(ops) == 1 && scan.Filter == nil {
 		return nil, nil
 	}
-	// concurrentPath will check that the path consisting of the original from
+	// concurrentPath will check that the path consisting of the original source
 	// sequence and any lifted sequence is still parallelizable.
 	n, outputKey, _, needMerge, err := o.concurrentPath(ops[1:], srcSortKey)
 	if err != nil {
