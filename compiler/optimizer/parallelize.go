@@ -119,8 +119,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 			// Need an unmodified summarize to split into its parials pieces.
 			return
 		}
-		for k := 0; k < len(par.Ops); k++ {
-			path := par.Ops[k].(*dag.Sequential)
+		for _, o := range par.Ops {
+			path := o.(*dag.Sequential)
 			partial := copyOp(op).(*dag.Summarize)
 			partial.PartialsOut = true
 			path.Ops = append(path.Ops, partial)
@@ -149,8 +149,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 				return
 			}
 		}
-		for k := 0; k < len(par.Ops); k++ {
-			path := par.Ops[k].(*dag.Sequential)
+		for _, o := range par.Ops {
+			path := o.(*dag.Sequential)
 			sort := copyOp(op).(*dag.Sort)
 			path.Ops = append(path.Ops, sort)
 		}
@@ -162,20 +162,20 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 			}
 			if egress == 2 {
 				ops[1] = merge
-				ops[2] = &dag.Pass{Kind: "Pass"}
+				ops[2] = dag.PassOp
 			} else {
 				ops[egress] = merge
 			}
 		} else {
 			// There already was an appropriate merge.
 			// Smash the sort into a nop.
-			ops[egress] = &dag.Pass{Kind: "Pass"}
+			ops[egress] = dag.PassOp
 		}
 	case *dag.Head, *dag.Tail:
 		// Copy the head or tail into the parallel path and leave the original in
 		// place which will apply another head or tail after the merge.
-		for k := 0; k < len(par.Ops); k++ {
-			path := par.Ops[k].(*dag.Sequential)
+		for _, o := range par.Ops {
+			path := o.(*dag.Sequential)
 			path.Ops = append(path.Ops, copyOp(op))
 		}
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename, *dag.Filter:
@@ -193,12 +193,12 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 				return
 			}
 		}
-		for k := 0; k < len(par.Ops); k++ {
-			path := par.Ops[k].(*dag.Sequential)
+		for _, o := range par.Ops {
+			path := o.(*dag.Sequential)
 			path.Ops = append(path.Ops, copyOp(op))
 		}
 		// this will get removed later
-		ops[egress] = &dag.Pass{Kind: "Pass"}
+		ops[egress] = dag.PassOp
 	}
 }
 
