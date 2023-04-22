@@ -249,7 +249,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return b.compileOver(parent, v.Over, names, exprs)
 	case *dag.PoolScan:
 		if parent != nil {
-			return nil, errors.New("a pool scan cannot have a parent")
+			return nil, errors.New("pool scan cannot have a parent operator")
 		}
 		return b.compilePoolScan(v)
 	case *dag.PoolMetaScan:
@@ -419,7 +419,7 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	if par.Any {
 		if len(parents) != 1 {
-			return nil, errors.New("internal compiler error: any-path parallel dag operators requires a single parent")
+			return nil, errors.New("internal compiler error: any-path parallel operator requires a single parent")
 		}
 		var ops []zbuf.Puller
 		for _, o := range par.Ops {
@@ -616,12 +616,11 @@ func (b *Builder) compilePoolScan(scan *dag.PoolScan) (zbuf.Puller, error) {
 	// Here we convert PoolScan to lister->slicer->seqscan for the slow path as
 	// optimizer should do this conversion, but this allows us to run
 	// unoptimized scans too.
-	lk := b.source.Lake()
-	pool, err := lk.OpenPool(b.octx.Context, scan.ID)
+	pool, err := b.lookupPool(scan.ID)
 	if err != nil {
 		return nil, err
 	}
-	l, err := meta.NewSortedLister(b.octx.Context, b.mctx, lk, pool, scan.Commit, nil)
+	l, err := meta.NewSortedLister(b.octx.Context, b.mctx, b.source.Lake(), pool, scan.Commit, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -693,7 +692,6 @@ func isEntry(op dag.Op) bool {
 			}
 		}
 		return true
-
 	}
 	return false
 }

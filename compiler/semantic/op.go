@@ -23,7 +23,7 @@ import (
 func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
 	switch len(from.Trunks) {
 	case 0:
-		return nil, errors.New("from command has no paths")
+		return nil, errors.New("from operator has no paths")
 	case 1:
 		return semTrunk(ctx, scope, from.Trunks[0], source, head)
 	default:
@@ -112,7 +112,7 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 		return semPool(ctx, scope, p, ds, head)
 	case *ast.Pass:
 		//XXX just connect parent
-		return []dag.Op{&dag.Pass{Kind: "Pass"}}, nil
+		return []dag.Op{dag.PassOp}, nil
 	case *kernel.Reader:
 		// kernel.Reader implements both ast.Source and dag.Op
 		return []dag.Op{p}, nil
@@ -275,7 +275,6 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		ID:     poolID,
 		Commit: commitID,
 	}, nil
-
 }
 
 func matchPools(ctx context.Context, ds *data.Source, pattern, origPattern, patternDesc string) ([]string, error) {

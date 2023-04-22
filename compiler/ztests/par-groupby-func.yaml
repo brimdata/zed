@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -orderby s:asc test
-  zc -P 2 -C "from test | union(s) by n:=len(s)" | sed -e 's/lister pool.*/lister .../' -e 's/seqscan pool .*/seqscan .../'
+  zc -P 2 -C "from test | union(s) by n:=len(s)" | sed -e 's/pool .*/.../'
 
 outputs:
   - name: stdout

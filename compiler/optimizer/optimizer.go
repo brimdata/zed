@@ -137,7 +137,7 @@ func (o *Optimizer) OptimizeDeleter(replicas int) error {
 	for k := 0; k < replicas; k++ {
 		par.Ops = append(par.Ops, &dag.Sequential{
 			Kind: "Sequential",
-			Ops:  CopyOps(chain),
+			Ops:  copyOps(chain),
 		})
 	}
 	var merge dag.Op

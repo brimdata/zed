@@ -55,7 +55,7 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 	tail := ops[n+1:]
 	par := &dag.Parallel{Kind: "Parallel", Any: true}
 	for k := 0; k < replicas; k++ {
-		par.Ops = append(par.Ops, &dag.Sequential{Kind: "Sequential", Ops: CopyOps(head)})
+		par.Ops = append(par.Ops, &dag.Sequential{Kind: "Sequential", Ops: copyOps(head)})
 	}
 	var merge dag.Op
 	if !needMerge {
@@ -121,7 +121,7 @@ func (o *Optimizer) parPullUp(ops []dag.Op) {
 		}
 		for k := 0; k < len(par.Ops); k++ {
 			path := par.Ops[k].(*dag.Sequential)
-			partial := CopyOp(op).(*dag.Summarize)
+			partial := copyOp(op).(*dag.Summarize)
 			partial.PartialsOut = true
 			path.Ops = append(path.Ops, partial)
 		}
@@ -151,7 +151,7 @@ func (o *Optimizer) parPullUp(ops []dag.Op) {
 		}
 		for k := 0; k < len(par.Ops); k++ {
 			path := par.Ops[k].(*dag.Sequential)
-			sort := CopyOp(op).(*dag.Sort)
+			sort := copyOp(op).(*dag.Sort)
 			path.Ops = append(path.Ops, sort)
 		}
 		if merge == nil {
@@ -176,7 +176,7 @@ func (o *Optimizer) parPullUp(ops []dag.Op) {
 		// place which will apply another head or tail after the merge.
 		for k := 0; k < len(par.Ops); k++ {
 			path := par.Ops[k].(*dag.Sequential)
-			path.Ops = append(path.Ops, CopyOp(op))
+			path.Ops = append(path.Ops, copyOp(op))
 		}
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename, *dag.Filter:
 		if merge != nil {
@@ -195,7 +195,7 @@ func (o *Optimizer) parPullUp(ops []dag.Op) {
 		}
 		for k := 0; k < len(par.Ops); k++ {
 			path := par.Ops[k].(*dag.Sequential)
-			path.Ops = append(path.Ops, CopyOp(op))
+			path.Ops = append(path.Ops, copyOp(op))
 		}
 		// this will get removed later
 		ops[egress] = &dag.Pass{Kind: "Pass"}

@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -orderby ts pool-ts
-  zc -C -O "from 'pool-ts'| count() by every(1h)" |  sed -e 's/lister pool.*/lister .../' -e 's/seqscan pool .*/seqscan .../'
+  zc -C -O "from 'pool-ts'| count() by every(1h)" |  sed -e 's/pool .*/.../'
 
 outputs:
   - name: stdout

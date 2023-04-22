@@ -3,9 +3,9 @@ script: |
   zed init -q
   zed create -q -orderby ts:asc ASC
   zed create -q -orderby ts:desc DESC
-  zc -C -P 2 "from ASC | cut x:=ts,ts:=1" | sed -e 's/lister pool.*/lister .../' -e 's/seqscan pool .*/seqscan .../'
+  zc -C -P 2 "from ASC | cut x:=ts,ts:=1" | sed -e 's/pool .*/.../'
   echo ===
-  zc -C -P 2 "from DESC | cut x:=ts,ts:=1" | sed -e 's/lister pool.*/lister .../' -e 's/seqscan pool .*/seqscan .../'
+  zc -C -P 2 "from DESC | cut x:=ts,ts:=1" | sed -e 's/pool .*/.../'
 
 outputs:
   - name: stdout

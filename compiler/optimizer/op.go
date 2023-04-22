@@ -13,13 +13,13 @@ import (
 // analyzeSortKey returns how an input order maps to an output order based
 // on the semantics of the operator.  Note that an order can go from unknown
 // to known (e.g., sort) or from known to unknown (e.g., conflicting parallel paths).
-// Also, when op is a Summarize operator, it's input direction (where the
+// Also, when op is a Summarize operator, its input direction (where the
 // order key is presumed to be the primary group-by key) is set based
 // on the in sort key.  This is clumsy and needs to change.
 // See issue #2658.
 func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, error) {
 	if scan, ok := op.(*dag.PoolScan); ok {
-		// Ignore the null in value and just return the sort order of the pool.
+		// Ignore in and just return the sort order of the pool.
 		pool, err := o.lookupPool(scan.ID)
 		if err != nil {
 			return order.Nil, err
@@ -101,8 +101,9 @@ func sortKeyOfExpr(e dag.Expr, o order.Which) order.SortKey {
 	return order.NewSortKey(o, field.List{key})
 }
 
-// isKeyOfSummarize returns true iff its first groupby key is the
-// same as the given sort order or an order-preserving function thereof.
+// isKeyOfSummarize returns true iff its any of the groupby keys is the
+// same as the given primary-key sort order or an order-preserving function
+// thereof.
 func isKeyOfSummarize(summarize *dag.Summarize, in order.SortKey) bool {
 	key := in.Keys[0]
 	for _, outputKeyExpr := range summarize.Keys {
@@ -149,7 +150,6 @@ func analyzeCuts(assignments []dag.Assignment, sortKey order.SortKey) order.Sort
 	// sort key we return.  In a future version of the optimizer, we will
 	// generalize this scoreboard concept across the flowgraph for a
 	// comprehensive approach to dataflow analysis.  See issue #2756.
-	//XXX 2756
 	scoreboard := make(map[string]field.Path)
 	scoreboard[fieldKey(key)] = key
 	for _, a := range assignments {
@@ -220,15 +220,15 @@ func fieldOf(e dag.Expr) field.Path {
 	return nil
 }
 
-func CopyOps(ops []dag.Op) []dag.Op {
+func copyOps(ops []dag.Op) []dag.Op {
 	var copies []dag.Op
 	for _, o := range ops {
-		copies = append(copies, CopyOp(o))
+		copies = append(copies, copyOp(o))
 	}
 	return copies
 }
 
-func CopyOp(o dag.Op) dag.Op {
+func copyOp(o dag.Op) dag.Op {
 	if o == nil {
 		panic("copyOp nil")
 	}
@@ -242,6 +242,7 @@ func CopyOp(o dag.Op) dag.Op {
 	}
 	return copy
 }
+
 func fieldsOf(e dag.Expr) (field.List, bool) {
 	if e == nil {
 		return nil, false
