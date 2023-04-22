@@ -24,13 +24,8 @@ func NewFileFromPath(ctx context.Context, engine storage.Engine, path string, un
 }
 
 func IsTerminal(w io.Writer) bool {
-	if f, ok := w.(*os.File); ok {
-		return terminal.IsTerminalFile(f)
-	}
-	if nc, ok := w.(*storage.NopCloser); ok {
-		return IsTerminal(nc.Writer)
-	}
-	return false
+	f, ok := w.(*os.File)
+	return ok && terminal.IsTerminalFile(f)
 }
 
 func NewFileFromURI(ctx context.Context, engine storage.Engine, path *storage.URI, unbuffered bool, opts anyio.WriterOpts) (zio.WriteCloser, error) {
