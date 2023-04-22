@@ -2,6 +2,7 @@ package optimizer
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -9,114 +10,113 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 )
 
-// analyzeOp returns how an input order maps to an output order based
+// analyzeSortKey returns how an input order maps to an output order based
 // on the semantics of the operator.  Note that an order can go from unknown
-// to known (e.g., sort) or from known to unknown (e.g., parallel paths).
-// Also, when op is a Summarize operator, it's input direction (where the
+// to known (e.g., sort) or from known to unknown (e.g., conflicting parallel paths).
+// Also, when op is a Summarize operator, its input direction (where the
 // order key is presumed to be the primary group-by key) is set based
-// on the sortKey argument.  This is clumsy and needs to change.
+// on the in sort key.  This is clumsy and needs to change.
 // See issue #2658.
-func (o *Optimizer) analyzeOp(op dag.Op, sortKey order.SortKey) (order.SortKey, error) {
+func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, error) {
+	if scan, ok := op.(*dag.PoolScan); ok {
+		// Ignore in and just return the sort order of the pool.
+		pool, err := o.lookupPool(scan.ID)
+		if err != nil {
+			return order.Nil, err
+		}
+		return pool.SortKey, nil
+	}
 	// We should handle secondary keys at some point.
 	// See issue #2657.
-	key := sortKey.Primary()
+	key := in.Primary()
 	if key == nil {
 		return order.Nil, nil
 	}
 	switch op := op.(type) {
+	case *dag.Lister:
+		// This shouldn't happen.
+		return order.Nil, errors.New("internal error: dag.Lister encountered in anaylzeSortKey")
 	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse:
-		return sortKey, nil
+		return in, nil
 	case *dag.Cut:
-		return analyzeCuts(op.Args, sortKey), nil
+		return analyzeCuts(op.Args, in), nil
 	case *dag.Drop:
 		for _, f := range op.Args {
 			if fieldOf(f).Equal(key) {
 				return order.Nil, nil
 			}
 		}
-		return sortKey, nil
+		return in, nil
 	case *dag.Rename:
+		out := in
 		for _, assignment := range op.Args {
 			if fieldOf(assignment.RHS).Equal(key) {
 				lhs := fieldOf(assignment.LHS)
-				sortKey = order.NewSortKey(sortKey.Order, field.List{lhs})
+				out = order.NewSortKey(in.Order, field.List{lhs})
 			}
 		}
-		return sortKey, nil
+		return out, nil
 	case *dag.Summarize:
-		return analyzeOpSummarize(op, sortKey), nil
+		if isKeyOfSummarize(op, in) {
+			return in, nil
+		}
+		return order.Nil, nil
 	case *dag.Put:
 		for _, assignment := range op.Args {
 			if fieldOf(assignment.LHS).Equal(key) {
 				return order.Nil, nil
 			}
 		}
-		return sortKey, nil
+		return in, nil
 	case *dag.Sequential:
+		out := in
 		for _, op := range op.Ops {
 			var err error
-			sortKey, err = o.analyzeOp(op, sortKey)
+			out, err = o.analyzeSortKey(op, out)
 			if err != nil {
 				return order.Nil, err
 			}
 		}
-		return sortKey, nil
+		return out, nil
 	case *dag.Sort:
-		// XXX Only single sort keys.  See issue #2657.
-		if len(op.Args) != 1 {
-			return order.Nil, nil
-		}
-		newKey := fieldOf(op.Args[0])
-		if newKey == nil {
-			// Not a field
-			return order.Nil, nil
-		}
-		return order.NewSortKey(op.Order, field.List{key}), nil
-	case *dag.From:
-		var egress order.SortKey
-		for k := range op.Trunks {
-			trunk := &op.Trunks[k]
-			l, err := o.sortKeyOfSource(trunk.Source, sortKey)
-			if err != nil || l.IsNil() {
-				return order.Nil, err
-			}
-			l, err = o.analyzeOp(trunk.Seq, l)
-			if err != nil {
-				return order.Nil, err
-			}
-			if k == 0 {
-				egress = l
-			} else if !egress.Equal(l) {
-				return order.Nil, nil
-			}
-		}
-		return egress, nil
+		return sortKeyOfSort(op), nil
 	default:
 		return order.Nil, nil
 	}
 }
 
-// summarizeOrderAndAssign determines whether its first groupby key is the
-// same as the scan order or an order-preserving function thereof, and if so,
-// sets ast.Summarize.InputSortDir to the propagated scan order.  It returns
-// the new order (or order.Nil if unknown) that will arise after the summarize
-// is applied to its input.
-func analyzeOpSummarize(summarize *dag.Summarize, sortKey order.SortKey) order.SortKey {
-	// Set p.InputSortDir and return true if the first grouping key
-	// is inputSortField or an order-preserving function of it.
-	key := sortKey.Keys[0]
-	if len(summarize.Keys) == 0 {
+func sortKeyOfSort(op *dag.Sort) order.SortKey {
+	// XXX Only single sort keys.  See issue #2657.
+	if len(op.Args) != 1 {
 		return order.Nil
 	}
-	groupByKey := fieldOf(summarize.Keys[0].LHS)
-	if groupByKey.Equal(key) {
-		rhsExpr := summarize.Keys[0].RHS
-		rhs := fieldOf(rhsExpr)
-		if rhs.Equal(key) || orderPreservingCall(rhsExpr, groupByKey) {
-			return sortKey
+	return sortKeyOfExpr(op.Args[0], op.Order)
+}
+
+func sortKeyOfExpr(e dag.Expr, o order.Which) order.SortKey {
+	key := fieldOf(e)
+	if key == nil {
+		return order.Nil
+	}
+	return order.NewSortKey(o, field.List{key})
+}
+
+// isKeyOfSummarize returns true iff its any of the groupby keys is the
+// same as the given primary-key sort order or an order-preserving function
+// thereof.
+func isKeyOfSummarize(summarize *dag.Summarize, in order.SortKey) bool {
+	key := in.Keys[0]
+	for _, outputKeyExpr := range summarize.Keys {
+		groupByKey := fieldOf(outputKeyExpr.LHS)
+		if groupByKey.Equal(key) {
+			rhsExpr := outputKeyExpr.RHS
+			rhs := fieldOf(rhsExpr)
+			if rhs.Equal(key) || orderPreservingCall(rhsExpr, groupByKey) {
+				return true
+			}
 		}
 	}
-	return order.Nil
+	return false
 }
 
 func orderPreservingCall(e dag.Expr, key field.Path) bool {
@@ -241,19 +241,6 @@ func copyOp(o dag.Op) dag.Op {
 		panic(err)
 	}
 	return copy
-}
-
-func orderSensitive(ops []dag.Op) bool {
-	for _, op := range ops {
-		switch op.(type) {
-		case *dag.Sort, *dag.Summarize:
-			return false
-		case *dag.Parallel, *dag.From, *dag.Join:
-			// Don't try to analyze past these operators.
-			return true
-		}
-	}
-	return true
 }
 
 func fieldsOf(e dag.Expr) (field.List, bool) {

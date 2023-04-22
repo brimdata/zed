@@ -2,53 +2,41 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -orderby ts pool-ts
-  zc -C -O "from 'pool-ts'| x=='hello' or x==1.0" | sed -e 's/pool .*/pool POOL/'
+  zc -C -O "from 'pool-ts' | x=='hello' or x==1.0" | sed -e 's/lister .*/lister/' -e 's/seqscan .*filter/seqscan filter/'
   echo ===
-  zc -C -O "from 'pool-ts'| x > 1 y <= 1.0" | sed -e 's/pool .*/pool POOL/'
+  zc -C -O "from 'pool-ts' | x > 1 y <= 1.0" | sed -e 's/lister .*/lister/' -e 's/seqscan .*filter/seqscan filter/'
   echo ===
-  zc -C -O "from 'pool-ts'| x=='hello' or x!=1.0" | sed -e 's/pool .*/pool POOL/'
+  zc -C -O "from 'pool-ts' | x=='hello' or x!=1.0" | sed -e 's/lister .*/lister/' -e 's/seqscan .*filter/seqscan filter/'
   echo ===
-  zc -C -O "from 'pool-ts'| x=='hello' or !(y==2 or y==3)" | sed -e 's/pool .*/pool POOL/'
+  zc -C -O "from 'pool-ts' | x=='hello' or !(y==2 or y==3)" | sed -e 's/lister .*/lister/' -e 's/seqscan .*filter/seqscan filter/'
   echo ===
-  zc -C -O "from 'pool-ts' | ts >= 0 and ts <= 2" | sed -e 's/pool .*/pool POOL/'
+  zc -C -O "from 'pool-ts' | ts >= 0 and ts <= 2" | sed -e 's/lister .*pruner/lister pruner/' -e 's/seqscan .*pruner/seqscan pruner/'
   echo ===
-  zc -C -O "from 'pool-ts' | ts >= 0 and ts <= 2 and x=='hello'" | sed -e 's/pool .*/pool POOL/'
+  zc -C -O "from 'pool-ts' | ts >= 0 and ts <= 2 and x=='hello'"| sed -e 's/lister .*pruner/lister pruner/' -e 's/seqscan .*pruner/seqscan pruner/'
 
 outputs:
   - name: stdout
     data: |
-      from (
-        (pushdown
-          where x=="hello" or x==1.)
-        pool POOL
-      )
+      lister
+      | slicer
+      | seqscan filter (x=="hello" or x==1.)
       ===
-      from (
-        (pushdown
-          where x>1 and y<=1.)
-        pool POOL
-      )
+      lister
+      | slicer
+      | seqscan filter (x>1 and y<=1.)
       ===
-      from (
-        (pushdown
-          where x=="hello" or x!=1.)
-        pool POOL
-      )
+      lister
+      | slicer
+      | seqscan filter (x=="hello" or x!=1.)
       ===
-      from (
-        (pushdown
-          where x=="hello" or !(y==2 or y==3))
-        pool POOL
-      )
+      lister
+      | slicer
+      | seqscan filter (x=="hello" or !(y==2 or y==3))
       ===
-      from (
-        (pushdown
-          where ts>=0 and ts<=2)
-        pool POOL
-      )
+      lister pruner (compare(0, max, true)>0 or compare(2, min, true)<0)
+      | slicer
+      | seqscan pruner (compare(0, max, true)>0 or compare(2, min, true)<0) filter (ts>=0 and ts<=2)
       ===
-      from (
-        (pushdown
-          where ts>=0 and ts<=2 and x=="hello")
-        pool POOL
-      )
+      lister pruner (compare(0, max, true)>0 or compare(2, min, true)<0)
+      | slicer
+      | seqscan pruner (compare(0, max, true)>0 or compare(2, min, true)<0) filter (ts>=0 and ts<=2 and x=="hello")

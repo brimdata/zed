@@ -17,9 +17,7 @@ outputs:
           tail 1
       )
       ===
-      from (
-        reader
-      )
+      reader
       | switch (
           case search("a") =>
             head 1
@@ -34,9 +32,7 @@ outputs:
           tail 1
       )
       ===
-      from (
-        reader
-      )
+      reader
       | switch (
           case search("a") =>
             head 1

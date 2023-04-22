@@ -4,9 +4,7 @@ script: |
 outputs:
   - name: stdout
     data: |
-      from (
-        file bar
-      )
+      file bar
       | where search("foo")
       | fork (
         =>

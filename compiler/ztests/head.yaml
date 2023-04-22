@@ -9,15 +9,11 @@ script: |
 outputs:
   - name: stdout
     data: |
-      from (
-        reader
-      )
+      reader
       | head 1
       ===
       const x = 1
-      from (
-        reader
-      )
+      reader
       | head 2
   - name: stderr
     data: |

@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zcode"
@@ -61,12 +62,8 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			err = job.Build()
 			require.NoError(t, err, "filter: %q", c.filter)
 			seq := job.Entry().(*dag.Sequential)
-			from := seq.Ops[0].(*dag.From)
-			require.Exactly(t, 1, len(from.Trunks), "filter DAG is not a single trunk")
-			trunk := &from.Trunks[0]
-			require.NotNil(t, trunk.Pushdown)
-			filterMaker, err := job.Builder().PushdownOf(trunk)
-			require.NoError(t, err, "filter: %q", c.filter)
+			reader := seq.Ops[0].(*kernel.Reader)
+			filterMaker := job.Builder().PushdownOf(reader.Filter)
 			f, err := filterMaker.AsEvaluator()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {

@@ -49,7 +49,7 @@ func (s *Source) CommitObject(ctx context.Context, id ksuid.KSUID, name string) 
 	return ksuid.Nil, nil
 }
 
-func (s *Source) SortKey(ctx context.Context, src dag.Source) order.SortKey {
+func (s *Source) SortKey(ctx context.Context, src dag.Op) order.SortKey {
 	if s.lake != nil {
 		return s.lake.SortKey(ctx, src)
 	}
