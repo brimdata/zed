@@ -191,7 +191,7 @@ type (
 	CommitMetaScan struct {
 		Kind      string      `json:"kind" unpack:""`
 		Pool      ksuid.KSUID `json:"pool"`
-		Commit    ksuid.KSUID `json:"branch"`
+		Commit    ksuid.KSUID `json:"commit"`
 		Meta      string      `json:"meta"`
 		Tap       bool        `json:"tap"`
 		KeyPruner Expr        `json:"key_pruner"`

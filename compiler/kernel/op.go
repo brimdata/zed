@@ -416,14 +416,14 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) 
 	return parents, nil
 }
 
-func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	if parallel.Any {
+func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	if par.Any {
 		if len(parents) != 1 {
 			return nil, errors.New("internal compiler error: any-path parallel dag operators requires a single parent")
 		}
 		var ops []zbuf.Puller
-		for _, o := range parallel.Ops {
-			op, err := b.compile(o, []zbuf.Puller{parents[0]})
+		for _, o := range par.Ops {
+			op, err := b.compile(o, parents[:1])
 			if err != nil {
 				return nil, err
 			}
@@ -443,7 +443,7 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []zbuf.Puller)
 		f = fork.New(b.octx, combine.New(b.octx, parents))
 	}
 	var ops []zbuf.Puller
-	for _, o := range parallel.Ops {
+	for _, o := range par.Ops {
 		var parent zbuf.Puller
 		if f != nil && !isEntry(o) {
 			parent = f.AddExit()

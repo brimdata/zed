@@ -68,12 +68,10 @@ func (s *SequenceScanner) Pull(done bool) (zbuf.Batch, error) {
 			}
 			vals := batch.Values()
 			if len(vals) != 1 {
-				if len(vals) != 1 {
-					// We currently support only one partition per batch.
-					err := errors.New("system error: SequenceScanner encountered multi-valued batch")
-					s.close(err)
-					return nil, err
-				}
+				// We currently support only one partition per batch.
+				err := errors.New("system error: SequenceScanner encountered multi-valued batch")
+				s.close(err)
+				return nil, err
 			}
 			s.scanner, _, err = newScanner(s.octx.Context, s.octx.Zctx, s.pool, s.unmarshaler, s.pruner, s.filter, s.progress, &vals[0])
 			if err != nil {
