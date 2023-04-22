@@ -68,6 +68,7 @@ func removePassOps(op dag.Op) {
 			for i := 0; i < len(seq.Ops); i++ {
 				if _, ok := seq.Ops[i].(*dag.Pass); ok {
 					seq.Ops = slices.Delete(seq.Ops, i, i+1)
+					i--
 					continue
 				}
 			}
