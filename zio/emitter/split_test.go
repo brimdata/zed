@@ -29,9 +29,9 @@ func TestDirS3Source(t *testing.T) {
 	engine := storagemock.NewMockEngine(ctrl)
 
 	engine.EXPECT().Put(context.Background(), uri.JoinPath("conn.zson")).
-		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
+		Return(zio.NopCloser(bytes.NewBuffer(nil)), nil)
 	engine.EXPECT().Put(context.Background(), uri.JoinPath("http.zson")).
-		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
+		Return(zio.NopCloser(bytes.NewBuffer(nil)), nil)
 
 	r := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	require.NoError(t, err)
@@ -39,7 +39,3 @@ func TestDirS3Source(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(w, r))
 }
-
-type nopCloser struct{ *bytes.Buffer }
-
-func (nopCloser) Close() error { return nil }
