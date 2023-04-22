@@ -84,7 +84,7 @@ func DotExprToString(e Evaluator) (string, error) {
 func DotExprToField(e Evaluator) (field.Path, error) {
 	switch e := e.(type) {
 	case *This:
-		return field.NewEmpty(), nil
+		return field.Path{}, nil
 	case *DotExpr:
 		lhs, err := DotExprToField(e.record)
 		if err != nil {
@@ -92,7 +92,7 @@ func DotExprToField(e Evaluator) (field.Path, error) {
 		}
 		return append(lhs, e.field), nil
 	case *Literal:
-		return field.New(e.val.String()), nil
+		return field.Path{e.val.String()}, nil
 	case *Index:
 		lhs, err := DotExprToField(e.container)
 		if err != nil {

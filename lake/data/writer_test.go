@@ -20,7 +20,7 @@ func TestDataReaderWriterVector(t *testing.T) {
 	tmp := storage.MustParseURI(t.TempDir())
 	object := data.NewObject()
 	ctx := context.Background()
-	w, err := object.NewWriter(ctx, engine, tmp, order.Asc, field.New("a"), 1000)
+	w, err := object.NewWriter(ctx, engine, tmp, order.Asc, field.Path{"a"}, 1000)
 	require.NoError(t, err)
 	zctx := zed.NewContext()
 	require.NoError(t, w.Write(zson.MustParseValue(zctx, "{a:1,b:4}")))

@@ -139,7 +139,7 @@ func matchFieldRule(rules []Rule, in index.KeyValue) (index.KeyValue, Rule) {
 		// and other rule types.
 		if fr, ok := rule.(*FieldRule); ok && in.Key.Equal(fr.Fields[0]) {
 			return index.KeyValue{
-				Key:   append(field.New("key"), in.Key...),
+				Key:   append(field.Path{"key"}, in.Key...),
 				Value: in.Value,
 			}, rule
 		}

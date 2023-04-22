@@ -247,5 +247,5 @@ func poolKey(sortKey order.SortKey) field.Path {
 		// XXX We don't yet handle multiple pool keys.
 		return sortKey.Keys[0]
 	}
-	return field.New("ts")
+	return field.Path{"ts"}
 }

@@ -614,7 +614,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if o.As == nil {
 			as = &dag.This{
 				Kind: "This",
-				Path: field.New("value"),
+				Path: field.Path{"value"},
 			}
 		} else {
 			as, err = semExpr(scope, o.As)
@@ -902,14 +902,14 @@ func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 			Aggs: []dag.Assignment{
 				{
 					Kind: "Assignment",
-					LHS:  &dag.This{Kind: "This", Path: field.New(call.Name)},
+					LHS:  &dag.This{Kind: "This", Path: field.Path{call.Name}},
 					RHS:  agg,
 				},
 			},
 		}
 		yield := &dag.Yield{
 			Kind:  "Yield",
-			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.New(call.Name)}},
+			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{call.Name}}},
 		}
 		return &dag.Sequential{
 			Kind: "Sequential",
