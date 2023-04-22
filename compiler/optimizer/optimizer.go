@@ -365,7 +365,7 @@ func (o *Optimizer) sortKey(id ksuid.KSUID) (order.SortKey, error) {
 	return pool.SortKey, nil
 }
 
-// Parallelize takes tries to parallelize the DAG by splitting each source
+// Parallelize tries to parallelize the DAG by splitting each source
 // path as much as possible of the sequence into n parallel branches.
 func (o *Optimizer) Parallelize(n int) error {
 	// Compute the number of parallel paths across all input sources to
