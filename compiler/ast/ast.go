@@ -302,14 +302,10 @@ type (
 		Expr Expr   `json:"expr"`
 	}
 	Over struct {
-		Kind  string      `json:"kind" unpack:""`
-		Exprs []Expr      `json:"exprs"`
-		Scope *Sequential `json:"scope"`
-	}
-	Let struct {
-		Kind   string `json:"kind" unpack:""`
-		Locals []Def  `json:"locals"`
-		Over   *Over  `json:"over"`
+		Kind   string      `json:"kind" unpack:""`
+		Exprs  []Expr      `json:"exprs"`
+		Locals []Def       `json:"locals"`
+		Scope  *Sequential `json:"scope"`
 	}
 	Search struct {
 		Kind string `json:"kind" unpack:""`
@@ -491,7 +487,6 @@ func (*From) OpAST()         {}
 func (*Explode) OpAST()      {}
 func (*Merge) OpAST()        {}
 func (*Over) OpAST()         {}
-func (*Let) OpAST()          {}
 func (*Search) OpAST()       {}
 func (*Where) OpAST()        {}
 func (*Yield) OpAST()        {}

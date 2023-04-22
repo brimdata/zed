@@ -230,7 +230,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		return explode.New(b.octx.Zctx, parent, args, typ, as.Leaf())
 	case *dag.Over:
-		return b.compileOver(parent, v, nil, nil)
+		return b.compileOver(parent, v)
 	case *dag.Yield:
 		exprs, err := b.compileExprs(v.Exprs)
 		if err != nil {
@@ -238,15 +238,6 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		t := yield.New(parent, exprs)
 		return t, nil
-	case *dag.Let:
-		if v.Over == nil {
-			return nil, errors.New("let operator missing over expression in DAG")
-		}
-		names, exprs, err := b.compileLets(v.Defs)
-		if err != nil {
-			return nil, err
-		}
-		return b.compileOver(parent, v.Over, names, exprs)
 	case *dag.PoolScan:
 		if parent != nil {
 			return nil, errors.New("internal error: pool scan cannot have a parent operator")
@@ -354,7 +345,14 @@ func (b *Builder) compileLets(defs []dag.Def) ([]string, []expr.Evaluator, error
 	return names, exprs, nil
 }
 
-func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over, names []string, lets []expr.Evaluator) (zbuf.Puller, error) {
+func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, error) {
+	if len(over.Defs) != 0 && over.Scope == nil {
+		return nil, errors.New("internal error: over operator has defs but no body")
+	}
+	withNames, withExprs, err := b.compileLets(over.Defs)
+	if err != nil {
+		return nil, err
+	}
 	exprs, err := b.compileExprs(over.Exprs)
 	if err != nil {
 		return nil, err
@@ -363,7 +361,7 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over, names []string
 	if over.Scope == nil {
 		return enter, nil
 	}
-	scope := enter.AddScope(b.octx.Context, names, lets)
+	scope := enter.AddScope(b.octx.Context, withNames, withExprs)
 	exits, err := b.compile(over.Scope, []zbuf.Puller{scope})
 	if err != nil {
 		return nil, err
