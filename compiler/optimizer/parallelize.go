@@ -30,15 +30,15 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 	if !ok {
 		return nil, errors.New("internal error: parallelizeScan: entry has no dag.SeqScan")
 	}
+	if len(ops) == 1 && scan.Filter == nil {
+		return nil, nil
+	}
 	srcSortKey, err := o.sortKeyOfSource(scan)
 	if err != nil {
 		return nil, err
 	}
 	if len(srcSortKey.Keys) > 1 {
 		// XXX Don't yet support multi-key ordering.  See Issue #2657.
-		return nil, nil
-	}
-	if len(ops) == 1 && scan.Filter == nil {
 		return nil, nil
 	}
 	// concurrentPath will check that the path consisting of the original source
