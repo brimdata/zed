@@ -409,7 +409,7 @@ func (o *Optimizer) Parallelize(n int) error {
 
 func (o *Optimizer) lookupPool(id ksuid.KSUID) (*lake.Pool, error) {
 	if o.lake == nil {
-		return nil, errors.New("system error: lake operation cannot be used in non-lake context")
+		return nil, errors.New("internal error: lake operation cannot be used in non-lake context")
 	}
 	// This is fast because of the pool cache in the lake.
 	return o.lake.OpenPool(o.ctx, id)

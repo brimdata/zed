@@ -58,9 +58,7 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 		par.Ops = append(par.Ops, &dag.Sequential{Kind: "Sequential", Ops: copyOps(head)})
 	}
 	var merge dag.Op
-	if !needMerge {
-		merge = &dag.Combine{Kind: "Combine"}
-	} else {
+	if needMerge {
 		// At this point, we always insert a merge as we don't know if the
 		// downstream DAG requires the sort order.  A later step will look at
 		// the fanin from this parallel structure and see if the merge can be
@@ -71,6 +69,8 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 			Expr:  &dag.This{Kind: "This", Path: outputKey.Primary()},
 			Order: outputKey.Order,
 		}
+	} else {
+		merge = &dag.Combine{Kind: "Combine"}
 	}
 	return append([]dag.Op{par, merge}, tail...), nil
 }
@@ -180,14 +180,14 @@ func (o *Optimizer) parPullUp(ops []dag.Op) {
 		}
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename, *dag.Filter:
 		if merge != nil {
-			// See if drop, put, or rename would disrupt the merge-on key
+			// See if this op would disrupt the merge-on key
 			mergeKey, err := o.propagateSortKey(merge, order.Nil)
 			if err != nil || mergeKey.IsNil() {
 				// Bail if there's a merge with a non-key expression.
 				return
 			}
 			key, err := o.propagateSortKey(op, mergeKey)
-			if !key.Equal(mergeKey) {
+			if err != nil || !key.Equal(mergeKey) {
 				// This operator destroys the merge order so we cannot
 				// lift it up into the parallel legs in front of the merge.
 				return
@@ -217,15 +217,6 @@ func inlineSequentials(op dag.Op) {
 			}
 		}
 	})
-}
-
-func canOptimizeEvery(s *dag.Summarize) bool {
-	for _, assignment := range s.Keys {
-		if call, ok := assignment.RHS.(*dag.Call); ok && call.Name == "every" {
-			return true
-		}
-	}
-	return false
 }
 
 // concurrentPath returns the largest path within ops from front to end that can
