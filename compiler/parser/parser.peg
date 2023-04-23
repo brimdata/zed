@@ -443,7 +443,7 @@ JoinKey
 
 SampleOp
   = "sample" &EOKW e:SampleExpr {
-      RETURN(MAP("kind": "Sequential", "decls": ARRAY(), "ops": ARRAY(
+      RETURN(MAP("kind": "Sequential", "ops": ARRAY(
         MAP("kind": "Summarize",
           "keys": ARRAY(MAP("kind": "Assignment",
                    "lhs": MAP("kind": "ID", "name": "shape"),

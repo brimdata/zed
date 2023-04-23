@@ -514,7 +514,7 @@ function peg$parse(input, options) {
       peg$c191 = "sample",
       peg$c192 = peg$literalExpectation("sample", false),
       peg$c193 = function(e) {
-            return {"kind": "Sequential", "decls": [], "ops": [
+            return {"kind": "Sequential", "ops": [
               
             {"kind": "Summarize",
                 
