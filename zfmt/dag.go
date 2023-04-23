@@ -522,19 +522,19 @@ func (c *canonDAG) over(o *dag.Over) {
 	}
 }
 
-func (c *canonDAG) scope(p *dag.Scope, parens bool) {
+func (c *canonDAG) scope(s *dag.Scope, parens bool) {
 	if parens {
 		c.open("(")
 		c.ret()
 		c.flush()
 	}
-	for _, d := range p.Consts {
+	for _, d := range s.Consts {
 		c.write("const %s = ", d.Name)
 		c.expr(d.Expr, "")
 		c.ret()
 		c.flush()
 	}
-	for _, f := range p.Funcs {
+	for _, f := range s.Funcs {
 		c.write("func %s(", f.Name)
 		for i := range f.Params {
 			if i != 0 {
@@ -550,7 +550,7 @@ func (c *canonDAG) scope(p *dag.Scope, parens bool) {
 		c.flush()
 		c.write(")\n")
 	}
-	c.op(p.Body)
+	c.op(s.Body)
 	if parens {
 		c.close()
 		c.ret()

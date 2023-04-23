@@ -99,7 +99,6 @@ func TestZtestZed(t *testing.T) {
 	require.NoError(t, err)
 	for _, z := range zed {
 		testZed(t, z)
-		return
 	}
 }
 

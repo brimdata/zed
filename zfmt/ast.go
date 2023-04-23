@@ -649,18 +649,18 @@ func (c *canon) over(o *ast.Over) {
 	}
 }
 
-func (c *canon) scope(p *ast.Scope, parens bool) {
+func (c *canon) scope(s *ast.Scope, parens bool) {
 	if parens {
 		c.open("(")
 		c.ret()
 	}
-	for _, d := range p.Decls {
+	for _, d := range s.Decls {
 		c.decl(d)
 		c.ret()
 	}
 	//XXX functions?
 	c.flush()
-	c.proc(p.Body)
+	c.proc(s.Body)
 	if parens {
 		c.close()
 		c.ret()
