@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/ztest"
@@ -48,9 +49,12 @@ func parsePEGjs(z string) ([]byte, error) {
 }
 
 func parseOp(z string) ([]byte, error) {
-	o, err := compiler.ParseNoWrap(z)
+	o, err := compiler.Parse(z)
 	if err != nil {
 		return nil, err
+	}
+	if scope, ok := o.(*ast.Scope); ok && len(scope.Decls) == 0 && len(scope.Funcs) == 0 {
+		o = scope.Body
 	}
 	return json.Marshal(o)
 }

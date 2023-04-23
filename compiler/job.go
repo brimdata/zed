@@ -147,24 +147,12 @@ func (j *Job) Parallelize(n int) error {
 	return j.optimizer.Parallelize(n)
 }
 
-func ParseNoWrap(src string, filenames ...string) (ast.Op, error) {
+func Parse(src string, filenames ...string) (ast.Op, error) {
 	parsed, err := parser.ParseZed(filenames, src)
 	if err != nil {
 		return nil, err
 	}
 	return ast.UnpackMapAsOp(parsed)
-}
-
-func Parse(src string, filenames ...string) (ast.Op, error) {
-	op, err := ParseNoWrap(src, filenames...)
-	return wrapScope(op), err
-}
-
-func wrapScope(op ast.Op) ast.Op {
-	if seq, ok := op.(*ast.Sequential); ok {
-		op = &ast.Scope{Kind: "Scope", Body: seq}
-	}
-	return op
 }
 
 // MustParse is like Parse but panics if an error is encountered.

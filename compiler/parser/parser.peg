@@ -48,11 +48,13 @@
 
 start
   = __ scope:Scope __ EOF { RETURN(scope) }
-  / __ seq:Sequential __ EOF { RETURN(seq) }
+  / __ body:Sequential __ EOF {
+      RETURN(MAP("kind": "Scope", "body": body, "decls": nil))
+    }
 
 Scope
-  = decls:Decl+ seq:Sequential {
-      RETURN(MAP("kind": "Scope", "body": seq, "decls": decls))
+  = decls:Decl+ body:Sequential {
+      RETURN(MAP("kind": "Scope", "body": body, "decls": decls))
     }
 
 Sequential
