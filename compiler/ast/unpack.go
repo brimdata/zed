@@ -56,6 +56,7 @@ var unpacker = unpack.New(
 	Glob{},
 	RecordExpr{},
 	Rename{},
+	Scope{},
 	Search{},
 	Sequential{},
 	astzed.Set{},

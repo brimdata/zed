@@ -4,7 +4,7 @@ script: |
   echo === cast
   zc -C 'uint8(over a | b)'
   echo === expression
-  zc -C '(over a | b)'
+  zc -C 'yield (over a | b)'
   echo === function
   zc -C 'quiet(over a | b)'
   echo === grep
@@ -26,9 +26,9 @@ outputs:
         ))
       === expression
       yield (
-          over a
-          | search b
-        )
+        over a
+        | search b
+      )
       === function
       yield quiet((
           over a

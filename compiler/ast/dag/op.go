@@ -79,11 +79,15 @@ type (
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
+	Scope struct {
+		Kind   string      `json:"kind" unpack:""`
+		Consts []Def       `json:"consts"`
+		Funcs  []*Func     `json:"funcs"`
+		Body   *Sequential `json:"body"`
+	}
 	Sequential struct {
-		Kind   string  `json:"kind" unpack:""`
-		Consts []Def   `json:"consts"`
-		Funcs  []*Func `json:"funcs"`
-		Ops    []Op    `json:"ops"`
+		Kind string `json:"kind" unpack:""`
+		Ops  []Op   `json:"ops"`
 	}
 	Shape struct {
 		Kind string `json:"kind" unpack:""`
@@ -122,7 +126,8 @@ type (
 		Kind  string      `json:"kind" unpack:""`
 		Defs  []Def       `json:"defs"`
 		Exprs []Expr      `json:"exprs"`
-		Scope *Sequential `json:"scope"`
+		Vars  []Def       `json:"vars"`
+		Body  *Sequential `json:"body"`
 	}
 	Uniq struct {
 		Kind  string `json:"kind" unpack:""`
@@ -243,6 +248,7 @@ type (
 )
 
 func (*Sequential) OpNode() {}
+func (*Scope) OpNode()      {}
 func (*Parallel) OpNode()   {}
 func (*Switch) OpNode()     {}
 func (*Sort) OpNode()       {}

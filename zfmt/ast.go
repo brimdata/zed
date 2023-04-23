@@ -14,7 +14,11 @@ import (
 
 func AST(p ast.Op) string {
 	c := &canon{canonZed: canonZed{formatter{tab: 2}}, head: true, first: true}
-	c.proc(p)
+	if scope, ok := p.(*ast.Scope); ok {
+		c.scope(scope, false)
+	} else {
+		c.proc(p)
+	}
 	c.flush()
 	return c.String()
 }
@@ -193,7 +197,7 @@ func (c *canon) expr(e ast.Expr, parent string) {
 			c.write(" with ")
 			c.defs(e.Locals, ", ")
 		}
-		c.proc(e.Scope)
+		c.proc(e.Body)
 		c.close()
 		c.ret()
 		c.flush()
@@ -344,14 +348,11 @@ func (c *canon) decl(d ast.Decl) {
 func (c *canon) proc(p ast.Op) {
 	switch p := p.(type) {
 	case *ast.Sequential:
-		for _, d := range p.Decls {
-			c.decl(d)
-			c.ret()
-		}
-		c.flush()
 		for _, p := range p.Ops {
 			c.proc(p)
 		}
+	case *ast.Scope:
+		c.scope(p, true)
 	case *ast.Parallel:
 		c.next()
 		c.open("fork (")
@@ -636,11 +637,31 @@ func (c *canon) over(o *ast.Over) {
 		c.write(" with ")
 		c.defs(o.Locals, ", ")
 	}
-	if o.Scope != nil {
+	if o.Body != nil {
 		c.write(" => (")
 		c.open()
 		c.head = true
-		c.proc(o.Scope)
+		c.proc(o.Body)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
+	}
+}
+
+func (c *canon) scope(s *ast.Scope, parens bool) {
+	if parens {
+		c.open("(")
+		c.ret()
+	}
+	for _, d := range s.Decls {
+		c.decl(d)
+		c.ret()
+	}
+	//XXX functions?
+	c.flush()
+	c.proc(s.Body)
+	if parens {
 		c.close()
 		c.ret()
 		c.flush()

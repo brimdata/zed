@@ -302,12 +302,6 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 	if seq == nil {
 		return nil, nil
 	}
-	scope.Enter()
-	defer scope.Exit()
-	consts, funcs, err := semDecls(scope, seq.Decls)
-	if err != nil {
-		return nil, err
-	}
 	var ops []dag.Op
 	for _, o := range seq.Ops {
 		converted, err := semOp(ctx, scope, o, ds, head)
@@ -317,10 +311,27 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 		ops = append(ops, converted)
 	}
 	return &dag.Sequential{
-		Kind:   "Sequential",
+		Kind: "Sequential",
+		Ops:  ops,
+	}, nil
+}
+
+func semScope(ctx context.Context, scope *Scope, op *ast.Scope, ds *data.Source, head *lakeparse.Commitish) (*dag.Scope, error) {
+	scope.Enter()
+	defer scope.Exit()
+	consts, funcs, err := semDecls(scope, op.Decls)
+	if err != nil {
+		return nil, err
+	}
+	seq, err := semSequential(ctx, scope, op.Body, ds, head)
+	if err != nil {
+		return nil, err
+	}
+	return &dag.Scope{
+		Kind:   "Scope",
 		Consts: consts,
 		Funcs:  funcs,
-		Ops:    ops,
+		Body:   seq,
 	}, nil
 }
 
@@ -377,6 +388,8 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		}, nil
 	case *ast.Sequential:
 		return semSequential(ctx, scope, o, ds, head)
+	case *ast.Scope:
+		return semScope(ctx, scope, o, ds, head)
 	case *ast.Switch:
 		var expr dag.Expr
 		if o.Expr != nil {
@@ -639,7 +652,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:
-		if len(o.Locals) != 0 && o.Scope == nil {
+		if len(o.Locals) != 0 && o.Body == nil {
 			return nil, errors.New("over operator: cannot have a with clause without a lateral query")
 		}
 		scope.Enter()
@@ -653,8 +666,8 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			return nil, err
 		}
 		var seq *dag.Sequential
-		if o.Scope != nil {
-			seq, err = semSequential(ctx, scope, o.Scope, ds, head)
+		if o.Body != nil {
+			seq, err = semSequential(ctx, scope, o.Body, ds, head)
 			if err != nil {
 				return nil, err
 			}
@@ -663,7 +676,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Kind:  "Over",
 			Defs:  locals,
 			Exprs: exprs,
-			Scope: seq,
+			Body:  seq,
 		}, nil
 	case *ast.Yield:
 		exprs, err := semExprs(scope, o.Exprs)

@@ -17,12 +17,12 @@ import (
 
 type Optimizer struct {
 	ctx     context.Context
-	entry   *dag.Sequential
+	entry   *dag.Scope
 	lake    *lake.Root
 	sources map[*dag.Sequential]struct{}
 }
 
-func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optimizer {
+func New(ctx context.Context, entry *dag.Scope, source *data.Source) *Optimizer {
 	var lk *lake.Root
 	if source != nil {
 		lk = source.Lake()
@@ -35,7 +35,7 @@ func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optim
 	}
 }
 
-func (o *Optimizer) Entry() *dag.Sequential {
+func (o *Optimizer) Entry() *dag.Scope {
 	return o.entry
 }
 
@@ -81,13 +81,15 @@ func removePassOps(op dag.Op) {
 func walkOp(op dag.Op, over bool, post func(dag.Op)) {
 	switch op := op.(type) {
 	case *dag.Over:
-		if over && op.Scope != nil {
-			walkOp(op.Scope, over, post)
+		if over && op.Body != nil {
+			walkOp(op.Body, over, post)
 		}
 	case *dag.Parallel:
 		for _, o := range op.Ops {
 			walkOp(o, over, post)
 		}
+	case *dag.Scope:
+		walkOp(op.Body, over, post)
 	case *dag.Sequential:
 		for _, o := range op.Ops {
 			walkOp(o, over, post)
@@ -116,8 +118,8 @@ func (o *Optimizer) Optimize() error {
 }
 
 func (o *Optimizer) OptimizeDeleter(replicas int) error {
-	inlineSequentials(o.entry)
-	lister, deleter, filter := matchDeleter(o.entry.Ops)
+	inlineSequentials(o.entry.Body)
+	lister, deleter, filter := matchDeleter(o.entry.Body.Ops)
 	if lister == nil {
 		return errors.New("internal error: bad deleter structure")
 	}
@@ -152,7 +154,7 @@ func (o *Optimizer) OptimizeDeleter(replicas int) error {
 			Order: sortKey.Order,
 		}
 	}
-	o.entry.Ops = []dag.Op{lister, par, merge}
+	o.entry.Body.Ops = []dag.Op{lister, par, merge}
 	return nil
 }
 
@@ -178,9 +180,14 @@ func (o *Optimizer) optimizeSourcePaths(op dag.Op) error {
 		}
 		return nil
 	}
-	seq, ok := op.(*dag.Sequential)
-	if !ok {
-		return fmt.Errorf("internal error: entry point is not a source: %T", op)
+	var seq *dag.Sequential
+	if scope, ok := op.(*dag.Scope); ok {
+		seq = scope.Body
+	} else {
+		seq, ok = op.(*dag.Sequential)
+		if !ok {
+			return fmt.Errorf("internal error: entry point is not a source: %T", op)
+		}
 	}
 	if len(seq.Ops) == 0 {
 		return errors.New("internal error: empty sequential operator")

@@ -67,7 +67,11 @@ func (*fsCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head *la
 }
 
 func isJoin(o ast.Op) bool {
-	seq, ok := o.(*ast.Sequential)
+	scope, ok := o.(*ast.Scope)
+	if !ok {
+		return false
+	}
+	seq := scope.Body
 	if !ok || len(seq.Ops) == 0 {
 		return false
 	}
