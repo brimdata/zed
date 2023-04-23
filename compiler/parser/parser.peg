@@ -49,7 +49,7 @@
 start
   = __ scope:Scope __ EOF { RETURN(scope) }
   / __ body:Sequential __ EOF {
-      RETURN(MAP("kind": "Scope", "body": body, "decls": nil))
+      RETURN(MAP("kind": "Scope", "body": body, "decls": NULL))
     }
 
 Scope

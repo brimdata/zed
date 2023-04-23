@@ -135,7 +135,7 @@ function peg$parse(input, options) {
 
       peg$c0 = function(scope) { return scope },
       peg$c1 = function(body) {
-            return {"kind": "Scope", "body": body, "decls": nil}
+            return {"kind": "Scope", "body": body, "decls": null}
           },
       peg$c2 = function(decls, body) {
             return {"kind": "Scope", "body": body, "decls": decls}
