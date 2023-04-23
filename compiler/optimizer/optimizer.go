@@ -450,8 +450,8 @@ func matchFilter(in []dag.Op) (dag.Expr, []dag.Op) {
 // from a scan when we know the pool key range of the object could not satisfy
 // the filter predicate of any of the values in the object.
 func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) dag.Expr {
-	min := &dag.This{Kind: "This", Path: field.New("min")}
-	max := &dag.This{Kind: "This", Path: field.New("max")}
+	min := &dag.This{Kind: "This", Path: field.Path{"min"}}
+	max := &dag.This{Kind: "This", Path: field.Path{"max"}}
 	if e := buildRangePruner(pred, fld, min, max); e != nil {
 		return e
 	}

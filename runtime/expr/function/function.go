@@ -39,7 +39,7 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "abs":
 		f = &Abs{zctx: zctx}
 	case "every":
-		path = field.New("ts")
+		path = field.Path{"ts"}
 		f = &Bucket{
 			zctx: zctx,
 			name: "every",

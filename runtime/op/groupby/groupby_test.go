@@ -306,7 +306,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 				}
 			},
 		}
-		sortKey := order.NewSortKey(order.Asc, field.List{field.New(inputSortKey)})
+		sortKey := order.NewSortKey(order.Asc, field.List{field.Path{inputSortKey}})
 		query, err := newQueryOnOrderedReader(context.Background(), zctx, proc, cr, sortKey)
 		require.NoError(t, err)
 		defer query.Pull(true)

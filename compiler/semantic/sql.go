@@ -300,8 +300,8 @@ func convertSQLJoin(scope *Scope, leftPath []dag.Op, sqlJoin ast.SQLJoin) ([]dag
 	}
 	alias := dag.Assignment{
 		Kind: "Assignment",
-		LHS:  &dag.This{Kind: "This", Path: field.New(aliasID)},
-		RHS:  &dag.This{Kind: "This", Path: field.New(aliasID)},
+		LHS:  &dag.This{Kind: "This", Path: field.Path{aliasID}},
+		RHS:  &dag.This{Kind: "This", Path: field.Path{aliasID}},
 	}
 	join := &dag.Join{
 		Kind:     "Join",

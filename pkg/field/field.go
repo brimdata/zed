@@ -6,15 +6,6 @@ import (
 
 type Path []string
 
-func New(name string) Path {
-	return Path{name}
-}
-
-// NewEmpty returns a new, empty path.
-func NewEmpty() Path {
-	return Path{}
-}
-
 func (p Path) String() string {
 	if len(p) == 0 {
 		return "this"
