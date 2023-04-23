@@ -53,7 +53,7 @@ func parseOp(z string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if scope, ok := o.(*ast.Scope); ok && len(scope.Decls) == 0 && len(scope.Funcs) == 0 {
+	if scope, ok := o.(*ast.Scope); ok && len(scope.Decls) == 0 {
 		o = scope.Body
 	}
 	return json.Marshal(o)
