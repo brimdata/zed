@@ -589,8 +589,6 @@ OverOp
       RETURN(MAP("kind": "Over", "exprs": exprs, "locals": locals, "body": body))
     }
 
-// This is a little weird that you can have double parens, e.g., => ((count()))
-// But we need the parens to define the subquery boundaries. Not sure how to fix it.
 Lateral
   = __ "=>" __ "(" __ scope:Scope __ ")" { RETURN(scope) }
   / __ "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
