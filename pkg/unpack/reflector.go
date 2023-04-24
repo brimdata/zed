@@ -69,45 +69,37 @@ func (r Reflector) AddAs(template interface{}, as string) Reflector {
 	return r
 }
 
-func (r Reflector) UnmarshalString(s string) (interface{}, error) {
-	return r.Unmarshal([]byte(s))
-}
-
-func (r Reflector) Unmarshal(b []byte) (interface{}, error) {
-	var val interface{}
-	if err := json.Unmarshal(b, &val); err != nil {
-		return nil, fmt.Errorf("unpacker error parsing JSON: %w", err)
-	}
-	skeleton, err := walk(val, r.unpack)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(b, &skeleton); err != nil {
-		return nil, err
-	}
-	return skeleton, err
-}
-
-// XXX We added method in branch seq but we realized we should replace
-// Unmarshal with this logic, which is consistent with json.Unmarshal.
-// See issue #4557.
-func (r Reflector) UnmarshalInto(b []byte, result interface{}) error {
+func (r Reflector) Unmarshal(b []byte, result interface{}) error {
 	var from interface{}
 	if err := json.Unmarshal(b, &from); err != nil {
 		return fmt.Errorf("unpacker error parsing JSON: %w", err)
 	}
+	toVal := reflect.ValueOf(result)
+	if toVal.Kind() == reflect.Pointer && toVal.IsNil() && toVal.Elem().Kind() == reflect.Interface && toVal.NumMethod() == 0 {
+		// Empty interface... invoke the pre-order walk.
+		from, err := walk(from, r.unpack)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(b, &from); err != nil {
+			return err
+		}
+		toVal.Elem().Set(reflect.ValueOf(from))
+		return nil
+	}
+	// User supplied a typed result.  Build the template from this.
 	if err := r.unpackVal(reflect.ValueOf(result), from); err != nil {
 		return err
 	}
 	return json.Unmarshal(b, &result)
 }
 
-func (r Reflector) UnmarshalObject(v interface{}) (interface{}, error) {
-	b, err := json.Marshal(v)
+func (r Reflector) UnmarshalObject(object interface{}, result interface{}) error {
+	b, err := json.Marshal(object)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return r.Unmarshal(b)
+	return r.Unmarshal(b, result)
 }
 
 func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) {

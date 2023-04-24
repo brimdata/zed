@@ -1,7 +1,7 @@
 package dag
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/brimdata/zed/pkg/unpack"
 )
@@ -62,34 +62,11 @@ var unpacker = unpack.New(
 	Yield{},
 )
 
-func UnpackJSON(buf []byte) (interface{}, error) {
-	if len(buf) == 0 {
-		return nil, nil
-	}
-	return unpacker.Unmarshal(buf)
-}
-
-// UnpackJSONAsOp transforms a JSON representation of an operator into an dag.Op.
-func UnpackJSONAsOp(buf []byte) (Op, error) {
-	result, err := UnpackJSON(buf)
-	if result == nil || err != nil {
-		return nil, err
-	}
-	op, ok := result.(Op)
-	if !ok {
-		return nil, errors.New("JSON object is not a DAG operator")
-	}
-	return op, nil
-}
-
-func UnpackMapAsOp(m interface{}) (Op, error) {
-	object, err := unpacker.UnmarshalObject(m)
-	if object == nil || err != nil {
-		return nil, err
-	}
-	op, ok := object.(Op)
-	if !ok {
-		return nil, errors.New("dag.UnpackMapAsOp: not an Op")
+// UnmarshalOp transforms a JSON representation of an operator into an dag.Op.
+func UnmarshalOp(buf []byte) (Op, error) {
+	var op Op
+	if err := unpacker.Unmarshal(buf, &op); err != nil {
+		return nil, fmt.Errorf("system error: JSON object is not a DAG operator: %w", err)
 	}
 	return op, nil
 }

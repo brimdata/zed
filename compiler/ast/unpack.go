@@ -2,7 +2,6 @@ package ast
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
@@ -90,40 +89,29 @@ var unpacker = unpack.New(
 	Sample{},
 )
 
-func UnpackJSON(buf []byte) (interface{}, error) {
-	if len(buf) == 0 {
-		return nil, nil
-	}
-	return unpacker.Unmarshal(buf)
-}
-
-// UnpackJSONAsOp transforms a JSON representation of an operator into an Op.
-func UnpackJSONAsOp(buf []byte) (Op, error) {
-	result, err := UnpackJSON(buf)
-	if result == nil || err != nil {
+// UnmarshalOp transforms a JSON representation of an operator into an Op.
+func UnmarshalOp(buf []byte) (Op, error) {
+	var op Op
+	if err := unpacker.Unmarshal(buf, &op); err != nil {
 		return nil, err
 	}
-	o, ok := result.(Op)
-	if !ok {
-		return nil, errors.New("not an operator")
-	}
-	return o, nil
+	return op, nil
 }
 
-func unpackJSONAsSeq(buf []byte) (Seq, error) {
+func unmarshalSeq(buf []byte) (Seq, error) {
 	var seq Seq
-	if err := unpacker.UnmarshalInto(buf, &seq); err != nil {
+	if err := unpacker.Unmarshal(buf, &seq); err != nil {
 		return nil, err
 	}
 	return seq, nil
 }
 
-func UnpackAsSeq(anon interface{}) (Seq, error) {
+func UnmarshalObject(anon interface{}) (Seq, error) {
 	b, err := json.Marshal(anon)
 	if err != nil {
-		return nil, fmt.Errorf("internal error: ast.UnpackAsSeq: %w", err)
+		return nil, fmt.Errorf("internal error: ast.UnmarshalObject: %w", err)
 	}
-	return unpackJSONAsSeq(b)
+	return unmarshalSeq(b)
 }
 
 func Copy(in Op) Op {
@@ -131,7 +119,7 @@ func Copy(in Op) Op {
 	if err != nil {
 		panic(err)
 	}
-	out, err := UnpackJSONAsOp(b)
+	out, err := UnmarshalOp(b)
 	if err != nil {
 		panic(err)
 	}
@@ -143,7 +131,7 @@ func CopySeq(in Seq) Seq {
 	if err != nil {
 		panic(err)
 	}
-	out, err := unpackJSONAsSeq(b)
+	out, err := unmarshalSeq(b)
 	if err != nil {
 		panic(err)
 	}

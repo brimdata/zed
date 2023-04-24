@@ -95,13 +95,9 @@ func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) e
 			b.Append(nil)
 			return nil
 		}
-		typeObj, err := unpacker.UnmarshalObject(body)
-		if err != nil {
-			return err
-		}
-		t, ok := typeObj.(zType)
-		if !ok {
-			return errors.New("type value is not a valid ZJSON type")
+		var t zType
+		if err := unpacker.UnmarshalObject(body, &t); err != nil {
+			return fmt.Errorf("zjsonio reader:type value is not a valid ZJSON type: %w", err)
 		}
 		local, err := r.decoder.decodeType(r.zctx, t)
 		if err != nil {
