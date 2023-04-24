@@ -16,32 +16,32 @@ func NewCompiler() runtime.Compiler {
 	return &anyCompiler{}
 }
 
-func (i *anyCompiler) NewQuery(octx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
+func (i *anyCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reader) (*runtime.Query, error) {
 	if len(readers) != 1 {
 		return nil, fmt.Errorf("NewQuery: Zed program expected %d readers", len(readers))
 	}
-	return CompileWithSortKey(octx, o, readers[0], order.SortKey{})
+	return CompileWithSortKey(octx, seq, readers[0], order.SortKey{})
 }
 
 // XXX currently used only by group-by test, need to deprecate
-func CompileWithSortKey(octx *op.Context, o ast.Op, r zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
-	job, err := NewJob(octx, o, data.NewSource(nil, nil), nil)
+func CompileWithSortKey(octx *op.Context, seq ast.Seq, r zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
+	job, err := NewJob(octx, seq, data.NewSource(nil, nil), nil)
 	if err != nil {
 		return nil, err
 	}
 	readers := job.readers
 	if len(readers) != 1 {
-		return nil, fmt.Errorf("CompileForInternalWithOrder: Zed program expected %d readers", len(readers))
+		return nil, fmt.Errorf("CompileWithSortKey: Zed program expected %d readers", len(readers))
 	}
 	readers[0].Readers = []zio.Reader{r}
 	readers[0].SortKey = sortKey
 	return optimizeAndBuild(job)
 }
 
-func (*anyCompiler) NewLakeQuery(octx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
+func (*anyCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
 	panic("NewLakeQuery called on compiler.anyCompiler")
 }
 
-func (*anyCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
+func (*anyCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Seq, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
 	panic("NewLakeDeleteQuery called on compiler.anyCompiler")
 }

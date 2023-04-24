@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
@@ -61,8 +60,8 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			require.NoError(t, err, "filter: %q", c.filter)
 			err = job.Build()
 			require.NoError(t, err, "filter: %q", c.filter)
-			scope := job.Entry().(*dag.Scope)
-			reader := scope.Body.Ops[0].(*kernel.Reader)
+			seq := job.Entry()
+			reader := seq[0].(*kernel.Reader)
 			filterMaker := job.Builder().PushdownOf(reader.Filter)
 			f, err := filterMaker.AsEvaluator()
 			assert.NoError(t, err, "filter: %q", c.filter)

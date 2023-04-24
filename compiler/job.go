@@ -2,7 +2,6 @@ package compiler
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -23,10 +22,11 @@ type Job struct {
 	outputs   []zbuf.Puller
 	readers   []*kernel.Reader
 	puller    zbuf.Puller
+	entry     dag.Seq
 }
 
-func NewJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
-	parserAST := ast.Copy(inAST)
+func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
+	seq := ast.CopySeq(in)
 	// An AST always begins with a Sequential op with at least one
 	// operator.  If the first op is a From or a Parallel whose branches
 	// are Sequentials with a leading From, then we presume there is
@@ -37,18 +37,35 @@ func NewJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 	// caller via runtime.readers.  In most cases, the AST is left
 	// with an ast.From at the entry point, and hence a dag.From for the
 	// DAG's entry point.
-	scope, ok := parserAST.(*ast.Scope)
-	if !ok {
-		return nil, fmt.Errorf("internal error: AST must begin with a Scope op: %T", parserAST)
+	if len(seq) == 0 {
+		return nil, errors.New("internal error: AST seq cannot be empty")
 	}
-	seq := scope.Body
-	if len(seq.Ops) == 0 {
-		return nil, errors.New("internal error: AST Scope op body cannot be empty")
+	from, readers, err := buildFrom(seq[0], head)
+	if err != nil {
+		return nil, err
 	}
+	if from != nil {
+		seq.Prepend(from)
+	}
+	entry, err := semantic.Analyze(octx.Context, seq, src, head)
+	if err != nil {
+		return nil, err
+	}
+	return &Job{
+		octx:      octx,
+		builder:   kernel.NewBuilder(octx, src),
+		optimizer: optimizer.New(octx.Context, src),
+		readers:   readers,
+		entry:     entry,
+	}, nil
+}
+
+func buildFrom(op ast.Op, head *lakeparse.Commitish) (*ast.From, []*kernel.Reader, error) {
 	var readers []*kernel.Reader
 	var from *ast.From
-	switch o := seq.Ops[0].(type) {
+	switch op := op.(type) {
 	case *ast.From:
+		return nil, nil, nil
 		// Already have an entry point with From.  Do nothing.
 	case *ast.Join:
 		readers = []*kernel.Reader{{}, {}}
@@ -60,10 +77,15 @@ func NewJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 			Kind:   "Trunk",
 			Source: readers[1],
 		}
-		from = &ast.From{
+		return &ast.From{
 			Kind:   "From",
 			Trunks: []ast.Trunk{trunk0, trunk1},
+		}, readers, nil
+	case *ast.Scope:
+		if len(op.Body) == 0 {
+			return nil, nil, errors.New("system error: scope op has empty body")
 		}
+		return buildFrom(op.Body[0], head)
 	default:
 		trunk := ast.Trunk{Kind: "Trunk"}
 		if head != nil {
@@ -87,24 +109,13 @@ func NewJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Co
 			Kind:   "From",
 			Trunks: []ast.Trunk{trunk},
 		}
-		if isParallelWithLeadingFroms(o) {
+		// XXX why not move this above? or
+		if isParallelWithLeadingFroms(op) {
 			from = nil
 			readers = nil
 		}
+		return from, readers, nil
 	}
-	if from != nil {
-		seq.Prepend(from)
-	}
-	entry, err := semantic.Analyze(octx.Context, scope, src, head)
-	if err != nil {
-		return nil, err
-	}
-	return &Job{
-		octx:      octx,
-		builder:   kernel.NewBuilder(octx, src),
-		optimizer: optimizer.New(octx.Context, entry, src),
-		readers:   readers,
-	}, nil
 }
 
 func isParallelWithLeadingFroms(o ast.Op) bool {
@@ -112,56 +123,61 @@ func isParallelWithLeadingFroms(o ast.Op) bool {
 	if !ok {
 		return false
 	}
-	for _, o := range par.Ops {
-		if !isSequentialWithLeadingFrom(o) {
+	for _, seq := range par.Paths {
+		if !hasLeadingFrom(seq) {
 			return false
 		}
 	}
 	return true
 }
 
-func isSequentialWithLeadingFrom(o ast.Op) bool {
-	seq, ok := o.(*ast.Sequential)
-	if !ok && len(seq.Ops) == 0 {
+func hasLeadingFrom(seq ast.Seq) bool {
+	if len(seq) == 0 {
 		return false
 	}
-	_, ok = seq.Ops[0].(*ast.From)
+	_, ok := seq[0].(*ast.From)
 	return ok
 }
 
-func (j *Job) Entry() dag.Op {
+func (j *Job) Entry() dag.Seq {
 	//XXX need to prepend consts depending on context
-	return j.optimizer.Entry()
+	return j.entry
 }
 
 // This must be called before the zbuf.Filter interface will work.
 func (j *Job) Optimize() error {
-	return j.optimizer.Optimize()
+	var err error
+	j.entry, err = j.optimizer.Optimize(j.entry)
+	return err
 }
 
 func (j *Job) OptimizeDeleter(replicas int) error {
-	return j.optimizer.OptimizeDeleter(replicas)
+	var err error
+	j.entry, err = j.optimizer.OptimizeDeleter(j.entry, replicas)
+	return err
 }
 
 func (j *Job) Parallelize(n int) error {
-	return j.optimizer.Parallelize(n)
+	var err error
+	j.entry, err = j.optimizer.Parallelize(j.entry, n)
+	return err
 }
 
-func Parse(src string, filenames ...string) (ast.Op, error) {
+func Parse(src string, filenames ...string) (ast.Seq, error) {
 	parsed, err := parser.ParseZed(filenames, src)
 	if err != nil {
 		return nil, err
 	}
-	return ast.UnpackMapAsOp(parsed)
+	return ast.UnpackAsSeq(parsed)
 }
 
 // MustParse is like Parse but panics if an error is encountered.
-func MustParse(query string) ast.Op {
-	o, err := (*anyCompiler)(nil).Parse(query)
+func MustParse(query string) ast.Seq {
+	seq, err := (*anyCompiler)(nil).Parse(query)
 	if err != nil {
 		panic(err)
 	}
-	return o
+	return seq
 }
 
 func (j *Job) Builder() *kernel.Builder {
@@ -169,7 +185,7 @@ func (j *Job) Builder() *kernel.Builder {
 }
 
 func (j *Job) Build() error {
-	outputs, err := j.builder.Build(j.optimizer.Entry())
+	outputs, err := j.builder.Build(j.entry)
 	if err != nil {
 		return err
 	}
@@ -195,6 +211,6 @@ type anyCompiler struct{}
 
 // Parse concatenates the source files in filenames followed by src and parses
 // the resulting program.
-func (*anyCompiler) Parse(src string, filenames ...string) (ast.Op, error) {
+func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, error) {
 	return Parse(src, filenames...)
 }

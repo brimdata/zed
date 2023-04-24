@@ -68,21 +68,23 @@ func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, 
 			}
 		}
 		return in, nil
-	case *dag.Sequential:
-		out := in
-		for _, op := range op.Ops {
-			var err error
-			out, err = o.analyzeSortKey(op, out)
-			if err != nil {
-				return order.Nil, err
-			}
-		}
-		return out, nil
 	case *dag.Sort:
 		return sortKeyOfSort(op), nil
 	default:
 		return order.Nil, nil
 	}
+}
+
+func (o *Optimizer) analyzeSortKeySeq(seq dag.Seq, in order.SortKey) (order.SortKey, error) {
+	out := in
+	for _, op := range seq {
+		var err error
+		out, err = o.analyzeSortKey(op, out)
+		if err != nil {
+			return order.Nil, err
+		}
+	}
+	return out, nil
 }
 
 func sortKeyOfSort(op *dag.Sort) order.SortKey {
@@ -105,6 +107,9 @@ func sortKeyOfExpr(e dag.Expr, o order.Which) order.SortKey {
 // same as the given primary-key sort order or an order-preserving function
 // thereof.
 func isKeyOfSummarize(summarize *dag.Summarize, in order.SortKey) bool {
+	if len(in.Keys) == 0 {
+		return false
+	}
 	key := in.Keys[0]
 	for _, outputKeyExpr := range summarize.Keys {
 		groupByKey := fieldOf(outputKeyExpr.LHS)
@@ -220,15 +225,15 @@ func fieldOf(e dag.Expr) field.Path {
 	return nil
 }
 
-func copyOps(ops []dag.Op) []dag.Op {
+func CopyOps(ops []dag.Op) []dag.Op {
 	var copies []dag.Op
 	for _, o := range ops {
-		copies = append(copies, copyOp(o))
+		copies = append(copies, CopyOp(o))
 	}
 	return copies
 }
 
-func copyOp(o dag.Op) dag.Op {
+func CopyOp(o dag.Op) dag.Op {
 	if o == nil {
 		panic("copyOp nil")
 	}

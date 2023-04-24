@@ -170,12 +170,12 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		fmt.Println(s)
 	}
 	if c.proc {
-		p, err := compiler.Parse(z)
+		seq, err := compiler.Parse(z)
 		if err != nil {
 			return err
 		}
 		c.header("proc")
-		c.writeProc(p)
+		c.writeAST(seq)
 	}
 	if c.semantic {
 		runtime, err := c.compile(z, lk)
@@ -183,7 +183,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 			return err
 		}
 		c.header("semantic")
-		c.writeOp(runtime.Entry())
+		c.writeDAG(runtime.Entry())
 	}
 	if c.optimize {
 		runtime, err := c.compile(z, lk)
@@ -194,7 +194,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 			return err
 		}
 		c.header("optimized")
-		c.writeOp(runtime.Entry())
+		c.writeDAG(runtime.Entry())
 	}
 	if c.parallel > 0 {
 		runtime, err := c.compile(z, lk)
@@ -208,13 +208,13 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 			return err
 		}
 		c.header("parallelized")
-		c.writeOp(runtime.Entry())
+		c.writeDAG(runtime.Entry())
 	}
 	return nil
 }
 
-func (c *Command) writeProc(p ast.Op) {
-	s, err := procFmt(p, c.canon)
+func (c *Command) writeAST(p ast.Seq) {
+	s, err := astFmt(p, c.canon)
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -222,8 +222,8 @@ func (c *Command) writeProc(p ast.Op) {
 	}
 }
 
-func (c *Command) writeOp(op dag.Op) {
-	s, err := dagFmt(op, c.canon)
+func (c *Command) writeDAG(seq dag.Seq) {
+	s, err := dagFmt(seq, c.canon)
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -273,22 +273,22 @@ func parsePEGjs(z string) (string, error) {
 	return normalize(b)
 }
 
-func procFmt(proc ast.Op, canon bool) (string, error) {
+func astFmt(seq ast.Seq, canon bool) (string, error) {
 	if canon {
-		return zfmt.AST(proc), nil
+		return zfmt.AST(seq), nil
 	}
-	procJSON, err := json.Marshal(proc)
+	seqJSON, err := json.Marshal(seq)
 	if err != nil {
 		return "", err
 	}
-	return normalize(procJSON)
+	return normalize(seqJSON)
 }
 
-func dagFmt(op dag.Op, canon bool) (string, error) {
+func dagFmt(seq dag.Seq, canon bool) (string, error) {
 	if canon {
-		return zfmt.DAG(op), nil
+		return zfmt.DAG(seq), nil
 	}
-	dagJSON, err := json.Marshal(op)
+	dagJSON, err := json.Marshal(seq)
 	if err != nil {
 		return "", err
 	}

@@ -67,10 +67,10 @@ type (
 		Entries []Entry `json:"entries"`
 	}
 	OverExpr struct {
-		Kind  string      `json:"kind" unpack:""`
-		Defs  []Def       `json:"defs"`
-		Exprs []Expr      `json:"exprs"`
-		Scope *Sequential `json:"scope"`
+		Kind  string `json:"kind" unpack:""`
+		Defs  []Def  `json:"defs"`
+		Exprs []Expr `json:"exprs"`
+		Body  Seq    `json:"body"`
 	}
 	RecordExpr struct {
 		Kind  string       `json:"kind" unpack:""`
