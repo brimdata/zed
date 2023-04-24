@@ -8,8 +8,10 @@ outputs:
     data: |
       join on x=x p:=a
       ===
-      from (
-        (internal reader)
-        (internal reader)
+      fork (
+        =>
+          reader
+        =>
+          reader
       )
       | join on x=x p:=a

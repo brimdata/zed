@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 	"sync"
@@ -296,7 +295,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		zr := zsonio.NewReader(zctx, strings.NewReader(strings.Join(data, "\n")))
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
-		zw := zsonio.NewWriter(&nopCloser{&outbuf}, zsonio.WriterOpts{})
+		zw := zsonio.NewWriter(zio.NopCloser(&outbuf), zsonio.WriterOpts{})
 		checker := &testGroupByWriter{
 			writer: zw,
 			cb: func(n int) {
@@ -307,7 +306,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 				}
 			},
 		}
-		sortKey := order.NewSortKey(order.Asc, field.List{field.New(inputSortKey)})
+		sortKey := order.NewSortKey(order.Asc, field.List{field.Path{inputSortKey}})
 		query, err := newQueryOnOrderedReader(context.Background(), zctx, proc, cr, sortKey)
 		require.NoError(t, err)
 		defer query.Pull(true)
@@ -322,10 +321,6 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 	resStreaming := runOne("ts")
 	require.Equal(t, res, resStreaming)
 }
-
-type nopCloser struct{ io.Writer }
-
-func (*nopCloser) Close() error { return nil }
 
 func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
 	octx := op.NewContext(ctx, zctx, nil)

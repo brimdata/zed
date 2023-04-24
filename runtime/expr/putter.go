@@ -185,7 +185,7 @@ func findOverwriteClause(path field.Path, clauses []Assignment) (int, field.Path
 }
 
 func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value, clauses []Assignment) (putStep, zed.Type) {
-	return p.deriveRecordSteps(field.NewEmpty(), inType.Fields, vals, clauses)
+	return p.deriveRecordSteps(field.Path{}, inType.Fields, vals, clauses)
 }
 
 func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, vals []zed.Value, clauses []Assignment) (putStep, *zed.TypeRecord) {

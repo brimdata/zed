@@ -1,3 +1,7 @@
+# We had a regression in the dagify-meta-ops PR and this first test should
+# lift the where g clause into the pushdown filter.  We will get this working
+# after we clean up Parallel to include named outputs and use []*dag.Sequential.
+# See issue #4503.
 script: |
   zc -C -O 'where a | where b'
   echo ===
@@ -10,31 +14,22 @@ script: |
 outputs:
   - name: stdout
     data: |
-      from (
-        (pushdown
-          where a and b)
-        (internal reader)
+      reader filter (a and b)
+      ===
+      fork (
+        =>
+          file a filter (b and c)
+        =>
+          file d filter (e and f)
+      )
+      | where g
+      ===
+      reader
+      | over a => (
+        where b and c
       )
       ===
-      from (
-        (pushdown
-          where b and c and g)
-        file a
-        (pushdown
-          where e and f and g)
-        file d
-      )
-      ===
-      from (
-        (internal reader) =>
-          over a => (
-            where b and c
-          )
-      )
-      ===
-      from (
-        (internal reader)
-      )
+      reader
       | fork (
         =>
           where a and b

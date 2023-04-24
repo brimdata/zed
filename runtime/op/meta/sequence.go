@@ -1,9 +1,11 @@
 package meta
 
 import (
+	"context"
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/runtime/expr"
@@ -18,7 +20,7 @@ import (
 // from its parent and for each partition, scans the object.
 type SequenceScanner struct {
 	parent      zbuf.Puller
-	current     zbuf.Puller
+	scanner     zbuf.Puller
 	filter      zbuf.Filter
 	pruner      expr.Evaluator
 	octx        *op.Context
@@ -46,34 +48,38 @@ func (s *SequenceScanner) Pull(done bool) (zbuf.Batch, error) {
 		return nil, s.err
 	}
 	if done {
-		if s.current != nil {
-			_, err := s.current.Pull(true)
+		if s.scanner != nil {
+			_, err := s.scanner.Pull(true)
 			s.close(err)
-			s.current = nil
+			s.scanner = nil
 		}
 		return nil, s.err
 	}
 	for {
-		if s.current == nil {
+		if s.scanner == nil {
 			if s.parent == nil { //XXX
 				s.close(nil)
 				return nil, nil
 			}
-			// Pull the next partition from the parent snapshot and
-			// set up the next scanner to pull from.
-			var part Partition
-			ok, err := nextPartition(s.parent, &part, s.unmarshaler)
-			if !ok || err != nil {
+			batch, err := s.parent.Pull(false)
+			if batch == nil || err != nil {
 				s.close(err)
 				return nil, err
 			}
-			s.current, err = newSortedPartitionScanner(s, part)
+			vals := batch.Values()
+			if len(vals) != 1 {
+				// We currently support only one partition per batch.
+				err := errors.New("system error: SequenceScanner encountered multi-valued batch")
+				s.close(err)
+				return nil, err
+			}
+			s.scanner, _, err = newScanner(s.octx.Context, s.octx.Zctx, s.pool, s.unmarshaler, s.pruner, s.filter, s.progress, &vals[0])
 			if err != nil {
 				s.close(err)
 				return nil, err
 			}
 		}
-		batch, err := s.current.Pull(false)
+		batch, err := s.scanner.Pull(false)
 		if err != nil {
 			s.close(err)
 			return nil, err
@@ -81,7 +87,7 @@ func (s *SequenceScanner) Pull(done bool) (zbuf.Batch, error) {
 		if batch != nil {
 			return batch, nil
 		}
-		s.current = nil
+		s.scanner = nil
 	}
 }
 
@@ -90,52 +96,69 @@ func (s *SequenceScanner) close(err error) {
 	s.done = true
 }
 
-func nextPartition(puller zbuf.Puller, part *Partition, u *zson.UnmarshalZNGContext) (bool, error) {
-	batch, err := puller.Pull(false)
-	if batch == nil || err != nil {
-		return false, err
+func newScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, u *zson.UnmarshalZNGContext, pruner expr.Evaluator, filter zbuf.Filter, progress *zbuf.Progress, val *zed.Value) (zbuf.Puller, *data.Object, error) {
+	named, ok := val.Type.(*zed.TypeNamed)
+	if !ok {
+		return nil, nil, errors.New("system error: SequenceScanner encountered unnamed object")
 	}
-	vals := batch.Values()
-	if len(vals) != 1 {
-		// We currently support only one partition per batch.
-		return false, errors.New("system error: SequenceScanner encountered multi-valued batch")
+	var objects []*data.Object
+	if named.Name == "data.Object" {
+		var object data.Object
+		if err := u.Unmarshal(val, &object); err != nil {
+			return nil, nil, err
+		}
+		objects = []*data.Object{&object}
+	} else {
+		var part Partition
+		if err := u.Unmarshal(val, &part); err != nil {
+			return nil, nil, err
+		}
+		objects = part.Objects
 	}
-	return true, u.Unmarshal(&vals[0], part)
+	scanner, err := newObjectsScanner(ctx, zctx, pool, objects, pruner, filter, progress)
+	return scanner, objects[0], err
 }
 
-func newSortedPartitionScanner(p *SequenceScanner, part Partition) (zbuf.Puller, error) {
-	pullers := make([]zbuf.Puller, 0, len(part.Objects))
+func newObjectsScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, objects []*data.Object, pruner expr.Evaluator, filter zbuf.Filter, progress *zbuf.Progress) (zbuf.Puller, error) {
+	pullers := make([]zbuf.Puller, 0, len(objects))
 	pullersDone := func() {
 		for _, puller := range pullers {
 			puller.Pull(true)
 		}
 	}
-	for _, object := range part.Objects {
-		ranges, err := data.LookupSeekRange(p.octx.Context, p.pool.Storage(), p.pool.DataPath, object, p.pruner)
-		if err != nil {
-			return nil, err
-		}
-		rc, err := object.NewReader(p.octx.Context, p.pool.Storage(), p.pool.DataPath, ranges)
+	for _, object := range objects {
+		s, err := newObjectScanner(ctx, zctx, pool, object, filter, pruner, progress)
 		if err != nil {
 			pullersDone()
 			return nil, err
 		}
-		scanner, err := zngio.NewReader(p.octx.Zctx, rc).NewScanner(p.octx.Context, p.filter)
-		if err != nil {
-			pullersDone()
-			rc.Close()
-			return nil, err
-		}
-		pullers = append(pullers, &statScanner{
-			scanner:  scanner,
-			closer:   rc,
-			progress: p.progress,
-		})
+		pullers = append(pullers, s)
 	}
 	if len(pullers) == 1 {
 		return pullers[0], nil
 	}
-	return merge.New(p.octx.Context, pullers, lake.ImportComparator(p.octx.Zctx, p.pool).Compare), nil
+	return merge.New(ctx, pullers, lake.ImportComparator(zctx, pool).Compare), nil
+}
+
+func newObjectScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, object *data.Object, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress) (zbuf.Puller, error) {
+	ranges, err := data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, object, pruner)
+	if err != nil {
+		return nil, err
+	}
+	rc, err := object.NewReader(ctx, pool.Storage(), pool.DataPath, ranges)
+	if err != nil {
+		return nil, err
+	}
+	scanner, err := zngio.NewReader(zctx, rc).NewScanner(ctx, filter)
+	if err != nil {
+		rc.Close()
+		return nil, err
+	}
+	return &statScanner{
+		scanner:  scanner,
+		closer:   rc,
+		progress: progress,
+	}, nil
 }
 
 type statScanner struct {

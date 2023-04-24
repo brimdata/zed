@@ -10,7 +10,6 @@ import (
 type Flatten struct {
 	zcode.Builder
 	keyType    zed.Type
-	mapper     *zed.Mapper
 	entryTypes map[zed.Type]zed.Type
 	zctx       *zed.Context
 

@@ -22,6 +22,9 @@ var PassOp = &Pass{Kind: "Pass"}
 // Ops
 
 type (
+	Combine struct {
+		Kind string `json:"kind" unpack:""`
+	}
 	Cut struct {
 		Kind  string       `json:"kind" unpack:""`
 		Args  []Assignment `json:"args"`
@@ -70,6 +73,7 @@ type (
 	Parallel struct {
 		Kind string `json:"kind" unpack:""`
 		Ops  []Op   `json:"ops"`
+		Any  bool   `json:"any"`
 	}
 	Pass struct {
 		Kind string `json:"kind" unpack:""`
@@ -82,11 +86,15 @@ type (
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
+	Scope struct {
+		Kind   string      `json:"kind" unpack:""`
+		Consts []Def       `json:"consts"`
+		Funcs  []*Func     `json:"funcs"`
+		Body   *Sequential `json:"body"`
+	}
 	Sequential struct {
-		Kind   string  `json:"kind" unpack:""`
-		Consts []Def   `json:"consts"`
-		Funcs  []*Func `json:"funcs"`
-		Ops    []Op    `json:"ops"`
+		Kind string `json:"kind" unpack:""`
+		Ops  []Op   `json:"ops"`
 	}
 	Shape struct {
 		Kind string `json:"kind" unpack:""`
@@ -121,15 +129,12 @@ type (
 		Args  []Expr `json:"args"`
 		Flush bool   `json:"flush"`
 	}
-	Let struct {
-		Kind string `json:"kind" unpack:""`
-		Defs []Def  `json:"defs"`
-		Over *Over  `json:"over"`
-	}
 	Over struct {
 		Kind  string      `json:"kind" unpack:""`
+		Defs  []Def       `json:"defs"`
 		Exprs []Expr      `json:"exprs"`
-		Scope *Sequential `json:"scope"`
+		Vars  []Def       `json:"vars"`
+		Body  *Sequential `json:"body"`
 	}
 	Uniq struct {
 		Kind  string `json:"kind" unpack:""`
@@ -144,62 +149,62 @@ type (
 // Input structure
 
 type (
-	From struct {
-		Kind   string  `json:"kind" unpack:""`
-		Trunks []Trunk `json:"trunks"`
-	}
-
-	// A Trunk is the path into a DAG for any input source.  It contains
-	// the source to scan as well as the sequential operators to apply
-	// to the scan before being joined, merged, or output.  A DAG can be
-	// just one Trunk or an assembly of different Trunks mixed in using
-	// the From Op.  The Trunk is the one place where the optimizer places
-	// pushed down predicates so the runtime can move the pushed down
-	// operators into each scan scheduler for each source when the runtime
-	// is built.  When computation is distribtued over the network, the
-	// optimized pushdown is naturally carried in the serialized DAG via
-	// each Trunk.
-	Trunk struct {
+	Lister struct {
 		Kind      string      `json:"kind" unpack:""`
-		Source    Source      `json:"source"`
-		Seq       *Sequential `json:"seq"`
-		Pushdown  Op          `json:"pushdown"`
+		Pool      ksuid.KSUID `json:"pool"`
+		Commit    ksuid.KSUID `json:"commit"`
+		KeyPruner Expr        `json:"key_pruner"`
+	}
+	Slicer struct {
+		Kind string `json:"kind" unpack:""`
+	}
+	SeqScan struct {
+		Kind      string      `json:"kind" unpack:""`
+		Pool      ksuid.KSUID `json:"pool"`
+		Filter    Expr        `json:"filter"`
+		KeyPruner Expr        `json:"key_pruner"`
+	}
+	Deleter struct {
+		Kind      string      `json:"kind" unpack:""`
+		Pool      ksuid.KSUID `json:"pool"`
+		Where     Expr        `json:"where"`
 		KeyPruner Expr        `json:"key_pruner"`
 	}
 
 	// Leaf sources
 
-	File struct {
+	FileScan struct {
 		Kind    string        `json:"kind" unpack:""`
 		Path    string        `json:"path"`
 		Format  string        `json:"format"`
 		SortKey order.SortKey `json:"sort_key"`
+		Filter  Expr          `json:"filter"`
 	}
-	HTTP struct {
+	HTTPScan struct {
 		Kind    string        `json:"kind" unpack:""`
 		URL     string        `json:"url"`
 		Format  string        `json:"format"`
 		SortKey order.SortKey `json:"sort_key"`
 	}
-	Pool struct {
+	PoolScan struct {
 		Kind   string      `json:"kind" unpack:""`
 		ID     ksuid.KSUID `json:"id"`
 		Commit ksuid.KSUID `json:"commit"`
-		Delete bool        `json:"delete"`
 	}
-	PoolMeta struct {
+	PoolMetaScan struct {
 		Kind string      `json:"kind" unpack:""`
 		ID   ksuid.KSUID `json:"id"`
 		Meta string      `json:"meta"`
 	}
-	CommitMeta struct {
-		Kind   string      `json:"kind" unpack:""`
-		Pool   ksuid.KSUID `json:"pool"`
-		Commit ksuid.KSUID `json:"branch"`
-		Meta   string      `json:"meta"`
-		Tap    bool        `json:"tap"`
+	CommitMetaScan struct {
+		Kind      string      `json:"kind" unpack:""`
+		Pool      ksuid.KSUID `json:"pool"`
+		Commit    ksuid.KSUID `json:"commit"`
+		Meta      string      `json:"meta"`
+		Tap       bool        `json:"tap"`
+		KeyPruner Expr        `json:"key_pruner"`
 	}
-	LakeMeta struct {
+	LakeMetaScan struct {
 		Kind string `json:"kind" unpack:""`
 		Meta string `json:"meta"`
 	}
@@ -224,23 +229,17 @@ var CommitMetas = map[string]struct{}{
 	"vectors":    {},
 }
 
-type Source interface {
-	Source()
-}
+func (*FileScan) OpNode()       {}
+func (*HTTPScan) OpNode()       {}
+func (*PoolScan) OpNode()       {}
+func (*LakeMetaScan) OpNode()   {}
+func (*PoolMetaScan) OpNode()   {}
+func (*CommitMetaScan) OpNode() {}
 
-func (*File) Source()       {}
-func (*HTTP) Source()       {}
-func (*Pool) Source()       {}
-func (*LakeMeta) Source()   {}
-func (*PoolMeta) Source()   {}
-func (*CommitMeta) Source() {}
-func (*Pass) Source()       {}
-
-// A From node can be a DAG entrypoint or an operator.  When it appears
-// as an operator it mixes its single parent in with other Trunks to
-// form a parallel structure whose output must be joined or merged.
-
-func (*From) OpNode() {}
+func (*Lister) OpNode()  {}
+func (*Slicer) OpNode()  {}
+func (*SeqScan) OpNode() {}
+func (*Deleter) OpNode() {}
 
 // Various Op fields
 
@@ -256,6 +255,7 @@ type (
 )
 
 func (*Sequential) OpNode() {}
+func (*Scope) OpNode()      {}
 func (*Parallel) OpNode()   {}
 func (*Switch) OpNode()     {}
 func (*Sort) OpNode()       {}
@@ -275,10 +275,10 @@ func (*Join) OpNode()       {}
 func (*Shape) OpNode()      {}
 func (*Explode) OpNode()    {}
 func (*Over) OpNode()       {}
-func (*Let) OpNode()        {}
 func (*Yield) OpNode()      {}
 func (*Merge) OpNode()      {}
 func (*Load) OpNode()       {}
+func (*Combine) OpNode()    {}
 
 // NewFilter returns a filter node for e.
 func NewFilter(e Expr) *Filter {
@@ -286,31 +286,6 @@ func NewFilter(e Expr) *Filter {
 		Kind: "Filter",
 		Expr: e,
 	}
-}
-
-// IsEntry tests whether op is an entry node, meaning that it does not require a
-// parent node.
-func IsEntry(op Op) bool {
-	switch op := op.(type) {
-	case *From:
-		return true
-	case *Parallel:
-		if len(op.Ops) == 0 {
-			return false
-		}
-		for _, o := range op.Ops {
-			if !IsEntry(o) {
-				return false
-			}
-		}
-		return true
-	case *Sequential:
-		if len(op.Ops) == 0 {
-			return false
-		}
-		return IsEntry(op.Ops[0])
-	}
-	return false
 }
 
 func (seq *Sequential) Prepend(front Op) {

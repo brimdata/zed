@@ -24,16 +24,14 @@ func (*StdioEngine) Get(_ context.Context, u *URI) (Reader, error) {
 }
 
 func (*StdioEngine) Put(ctx context.Context, u *URI) (io.WriteCloser, error) {
-	var f *os.File
 	switch u.Path {
 	case "stdout", "":
-		f = os.Stdout
+		return os.Stdout, nil
 	case "stderr":
-		f = os.Stderr
+		return os.Stderr, nil
 	default:
 		return nil, fmt.Errorf("cannot write to '%s'", u.Path)
 	}
-	return &NopCloser{f}, nil
 }
 
 func (*StdioEngine) PutIfNotExists(context.Context, *URI, []byte) error {
@@ -58,12 +56,4 @@ func (*StdioEngine) Exists(_ context.Context, u *URI) (bool, error) {
 
 func (*StdioEngine) List(_ context.Context, _ *URI) ([]Info, error) {
 	return nil, errStdioNotSupport
-}
-
-type NopCloser struct {
-	io.Writer
-}
-
-func (*NopCloser) Close() error {
-	return nil
 }

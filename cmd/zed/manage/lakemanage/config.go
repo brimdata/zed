@@ -65,8 +65,6 @@ type PoolConfig struct {
 	// Index specifies the indexing options for this pool. If nil the Index
 	// options from the global settings will be used.
 	Index *PoolIndexConfig `yaml:"index"`
-
-	pool pools.Config
 }
 
 type CompactConfig struct {

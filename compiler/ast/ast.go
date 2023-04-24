@@ -172,7 +172,7 @@ type OverExpr struct {
 	Kind   string      `json:"kind" unpack:""`
 	Locals []Def       `json:"locals"`
 	Exprs  []Expr      `json:"exprs"`
-	Scope  *Sequential `json:"scope"`
+	Body   *Sequential `json:"body"`
 }
 
 func (*UnaryExpr) ExprAST()   {}
@@ -225,9 +225,13 @@ type (
 	// and each subsequent operator processes the output records from the
 	// previous operator.
 	Sequential struct {
-		Kind  string `json:"kind" unpack:""`
-		Decls []Decl `json:"decls"`
-		Ops   []Op   `json:"ops"`
+		Kind string `json:"kind" unpack:""`
+		Ops  []Op   `json:"ops"`
+	}
+	Scope struct {
+		Kind  string      `json:"kind" unpack:""`
+		Decls []Decl      `json:"decls"`
+		Body  *Sequential `json:"body"`
 	}
 	// A Parallel operator represents a set of operators that each get
 	// a stream of Zed values from their parent.
@@ -302,14 +306,10 @@ type (
 		Expr Expr   `json:"expr"`
 	}
 	Over struct {
-		Kind  string      `json:"kind" unpack:""`
-		Exprs []Expr      `json:"exprs"`
-		Scope *Sequential `json:"scope"`
-	}
-	Let struct {
-		Kind   string `json:"kind" unpack:""`
-		Locals []Def  `json:"locals"`
-		Over   *Over  `json:"over"`
+		Kind   string      `json:"kind" unpack:""`
+		Exprs  []Expr      `json:"exprs"`
+		Locals []Def       `json:"locals"`
+		Body   *Sequential `json:"body"`
 	}
 	Search struct {
 		Kind string `json:"kind" unpack:""`
@@ -475,6 +475,7 @@ type Def struct {
 	Expr Expr   `json:"expr"`
 }
 
+func (*Scope) OpAST()        {}
 func (*Sequential) OpAST()   {}
 func (*Parallel) OpAST()     {}
 func (*Switch) OpAST()       {}
@@ -498,7 +499,6 @@ func (*From) OpAST()         {}
 func (*Explode) OpAST()      {}
 func (*Merge) OpAST()        {}
 func (*Over) OpAST()         {}
-func (*Let) OpAST()          {}
 func (*Search) OpAST()       {}
 func (*Where) OpAST()        {}
 func (*Yield) OpAST()        {}

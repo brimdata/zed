@@ -33,7 +33,5 @@ outputs:
       func add(a, b): (
         a+b
       )
-      from (
-        (internal reader)
-      )
+      reader
       | pass

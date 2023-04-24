@@ -14,7 +14,6 @@ type Shaper struct {
 	memMaxBytes int
 
 	nbytes     int
-	queue      []*zed.Value
 	typeAnchor map[zed.Type]*anchor
 	anchors    map[uint64]*anchor
 	recode     map[zed.Type]*zed.TypeRecord

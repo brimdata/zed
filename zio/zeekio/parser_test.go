@@ -109,12 +109,6 @@ func TestLegacyZeekValid(t *testing.T) {
 	// XXX test overriding separator, setSeparator
 }
 
-func assertInt64(t *testing.T, i int64, val *zed.Value, what string) {
-	ok := val.Type == zed.TypeInt64
-	assert.Truef(t, ok, "%s is type int", what)
-	assert.Equalf(t, i, zed.DecodeInt(val.Bytes), "%s has value %d", what, i)
-}
-
 func TestNestedRecords(t *testing.T) {
 	// Test the parser handling of nested records.
 	// The schema used here touches several edge cases:

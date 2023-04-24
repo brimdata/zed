@@ -46,21 +46,26 @@
 #define VAR(x) let x
 #endif
 
-start = __ ast:Sequential __ EOF { RETURN(ast) }
+start
+  = __ scope:Scope __ EOF { RETURN(scope) }
+  / __ body:Sequential __ EOF {
+      RETURN(MAP("kind": "Scope", "body": body, "decls": NULL))
+    }
+
+Scope
+  = decls:Decl+ body:Sequential {
+      RETURN(MAP("kind": "Scope", "body": body, "decls": decls))
+    }
 
 Sequential
-  = decls:Decls __ first:Operation rest:SequentialTail* {
-      RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest), "decls": decls))
-    }
+  = first:Operation rest:SequentialTail* {
+      RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest)))
+    }    
 
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
 
-Decls
-  = Decl+
-  / __ { RETURN(ARRAY()) }
-
 Decl
-  = __ v:(ConstDecl / FuncDecl) { RETURN(v) }
+  = v:(ConstDecl / FuncDecl) _ { RETURN(v) }
 
 ConstDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
@@ -95,6 +100,7 @@ Operation
   / "from" __ "(" trunks:FromLeg+ __ ")" {
       RETURN(MAP("kind": "From", "trunks": trunks))
     }
+  / "(" __ scope:Scope __ ")" { RETURN(scope) }
   / op:Operator
   / a:OpAssignment &EndOfOp { RETURN(a) }
   / !(Function EndOfOp) a:Aggregation &EndOfOp  { RETURN(a) }
@@ -114,12 +120,11 @@ Operation
 EndOfOp = __ (Pipe / SearchKeywordGuard / "=>" / ")" / EOF)
 Pipe = "|" !("{" / "[")
 
-Leg
-  = __ "=>" __ s:Sequential { RETURN(s) }
+Leg = __ "=>" __ seq:Sequential { RETURN(seq) }
 
 SwitchLeg
-  = __ expr:Case __ "=>" __ op:Sequential {
-      RETURN(MAP("expr": expr, "op": op))
+  = __ expr:Case leg:Leg {
+      RETURN(MAP("expr": expr, "op": leg))
     }
 
 Case
@@ -441,7 +446,7 @@ JoinKey
 
 SampleOp
   = "sample" &EOKW e:SampleExpr {
-      RETURN(MAP("kind": "Sequential", "decls": ARRAY(), "ops": ARRAY(
+      RETURN(MAP("kind": "Sequential", "ops": ARRAY(
         MAP("kind": "Summarize",
           "keys": ARRAY(MAP("kind": "Assignment",
                    "lhs": MAP("kind": "ID", "name": "shape"),
@@ -595,16 +600,13 @@ MergeOp
     }
 
 OverOp
-  = "over" _ exprs:Exprs locals:Locals? scope:Scope? {
-      VAR(over) = MAP("kind": "Over", "exprs": exprs, "scope": scope)
-      if ISNOTNULL(locals) {
-        RETURN(MAP("kind": "Let", "locals": locals, "over": over))
-      }
-      RETURN(over)
+  = "over" _ exprs:Exprs locals:Locals? body:Lateral? {
+      RETURN(MAP("kind": "Over", "exprs": exprs, "locals": locals, "body": body))
     }
 
-Scope
-  = __ "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
+Lateral
+  = __ "=>" __ "(" __ scope:Scope __ ")" { RETURN(scope) }
+  / __ "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
 
 Locals
   = _ "with" _ first:LocalsAssignment rest:(__ "," __ a:LocalsAssignment { RETURN(a) })* {
@@ -815,8 +817,8 @@ Primary
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 OverExpr
-  = "over" _ exprs:Exprs locals:Locals? __ "|" __ scope:Sequential {
-      RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "scope": scope))
+  = "over" _ exprs:Exprs locals:Locals? __ "|" __ body:Sequential {
+      RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "body": body))
     }
 
 Record

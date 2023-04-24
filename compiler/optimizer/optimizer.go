@@ -2,33 +2,40 @@ package optimizer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/kernel"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/segmentio/ksuid"
 	"golang.org/x/exp/slices"
 )
 
 type Optimizer struct {
-	ctx      context.Context
-	entry    *dag.Sequential
-	source   *data.Source
-	sortKeys map[dag.Source]order.SortKey
+	ctx     context.Context
+	entry   *dag.Scope
+	lake    *lake.Root
+	sources map[*dag.Sequential]struct{}
 }
 
-func New(ctx context.Context, entry *dag.Sequential, source *data.Source) *Optimizer {
+func New(ctx context.Context, entry *dag.Scope, source *data.Source) *Optimizer {
+	var lk *lake.Root
+	if source != nil {
+		lk = source.Lake()
+	}
 	return &Optimizer{
-		ctx:      ctx,
-		entry:    entry,
-		source:   source,
-		sortKeys: make(map[dag.Source]order.SortKey),
+		ctx:     ctx,
+		entry:   entry,
+		lake:    lk,
+		sources: make(map[*dag.Sequential]struct{}),
 	}
 }
 
-func (o *Optimizer) Entry() *dag.Sequential {
+func (o *Optimizer) Entry() *dag.Scope {
 	return o.entry
 }
 
@@ -37,10 +44,9 @@ func (o *Optimizer) Entry() *dag.Sequential {
 //
 // Note: mergeFilters does not descend into dag.OverExpr.Scope, so it cannot
 // merge filters in "over" expressions like "sum(over a | where b | where c)".
-func (o *Optimizer) mergeFilters() {
-	walkOp(o.entry, func(op dag.Op) {
+func mergeFilters(op dag.Op) {
+	walkOp(op, true, func(op dag.Op) {
 		if seq, ok := op.(*dag.Sequential); ok {
-			// Start at the next to last element and work toward the first.
 			for i := len(seq.Ops) - 2; i >= 0; i-- {
 				if f1, ok := seq.Ops[i].(*dag.Filter); ok {
 					if f2, ok := seq.Ops[i+1].(*dag.Filter); ok {
@@ -55,103 +61,216 @@ func (o *Optimizer) mergeFilters() {
 	})
 }
 
-func walkOp(op dag.Op, post func(dag.Op)) {
-	switch op := op.(type) {
-	case *dag.From:
-		for _, t := range op.Trunks {
-			if t.Seq != nil {
-				walkOp(t.Seq, post)
+func removePassOps(op dag.Op) {
+	walkOp(op, true, func(op dag.Op) {
+		if seq, ok := op.(*dag.Sequential); ok {
+			for i := 0; i < len(seq.Ops); i++ {
+				if _, ok := seq.Ops[i].(*dag.Pass); ok {
+					seq.Ops = slices.Delete(seq.Ops, i, i+1)
+					i--
+					continue
+				}
+			}
+			if len(seq.Ops) == 0 {
+				seq.Ops = []dag.Op{dag.PassOp}
 			}
 		}
+	})
+}
+
+func walkOp(op dag.Op, over bool, post func(dag.Op)) {
+	switch op := op.(type) {
 	case *dag.Over:
-		if op.Scope != nil {
-			walkOp(op.Scope, post)
+		if over && op.Body != nil {
+			walkOp(op.Body, over, post)
 		}
 	case *dag.Parallel:
 		for _, o := range op.Ops {
-			walkOp(o, post)
+			walkOp(o, over, post)
 		}
+	case *dag.Scope:
+		walkOp(op.Body, over, post)
 	case *dag.Sequential:
 		for _, o := range op.Ops {
-			walkOp(o, post)
+			walkOp(o, over, post)
 		}
 	}
 	post(op)
 }
 
-// OptimizeScan transforms the DAG by attempting to lift stateless operators
+// Optimize transforms the DAG by attempting to lift stateless operators
 // from the downstream sequence into the trunk of each data source in the From
 // operator at the entry point of the DAG.  Once these paths are lifted,
 // it also attempts to move any candidate filtering operations into the
 // source's pushdown predicate.  This should be called before ParallelizeScan().
 // TBD: we need to do pushdown for search/cut to optimize columnar extraction.
-func (o *Optimizer) OptimizeScan() error {
-	if _, ok := o.entry.Ops[0].(*dag.From); !ok {
-		return nil
+func (o *Optimizer) Optimize() error {
+	inlineSequentials(o.entry)
+	removePassOps(o.entry)
+	mergeFilters(o.entry)
+	o.optimizeParallels(o.entry)
+	mergeFilters(o.entry)
+	if err := o.optimizeSourcePaths(o.entry); err != nil {
+		return err
 	}
-	seq := o.entry
-	o.propagateScanOrder(seq, order.Nil)
-	from := seq.Ops[0].(*dag.From)
-	chain := seq.Ops[1:]
-	sortKey, err := o.sortKeyOfFrom(from)
+	removePassOps(o.entry)
+	return nil
+}
+
+func (o *Optimizer) OptimizeDeleter(replicas int) error {
+	inlineSequentials(o.entry.Body)
+	lister, deleter, filter := matchDeleter(o.entry.Body.Ops)
+	if lister == nil {
+		return errors.New("internal error: bad deleter structure")
+	}
+	sortKey, err := o.sortKeyOfSource(lister)
 	if err != nil {
 		return err
 	}
-	len, _, err := o.splittablePath(chain, sortKey)
-	if err != nil {
-		return err
+	// Check to see if we can add a range pruner when the pool key is used
+	// in a normal filtering operation.
+	lister.KeyPruner = maybeNewRangePruner(filter.Expr, sortKey)
+	deleter.Where = filter.Expr
+	chain := []dag.Op{deleter}
+	par := &dag.Parallel{Kind: "Parallel", Any: true}
+	for k := 0; k < replicas; k++ {
+		par.Ops = append(par.Ops, &dag.Sequential{
+			Kind: "Sequential",
+			Ops:  copyOps(chain),
+		})
 	}
-	if len > 0 {
-		chain = chain[:len]
-		for k := range from.Trunks {
-			liftInto(&from.Trunks[k], copyOps(chain))
+	var merge dag.Op
+	if sortKey.IsNil() {
+		merge = &dag.Combine{Kind: "Combine"}
+	} else {
+		// At this point, we always insert a merge as we don't know if the
+		// downstream DAG requires the sort order.  A later step will look at
+		// the fanin from this parallel structure and see if the merge can be
+		// removed while also pushing additional ops from the output segment up into
+		// the parallel branches to enhance concurrency.
+		merge = &dag.Merge{
+			Kind:  "Merge",
+			Expr:  &dag.This{Kind: "This", Path: sortKey.Primary()},
+			Order: sortKey.Order,
 		}
-		seq.Delete(1, len)
 	}
-	o.mergeFilters()
-	for k := range from.Trunks {
-		trunk := &from.Trunks[k]
-		pushDown(trunk)
-		// Check to see if we can add a range pruner when the pool-key is used
-		// in a normal filtering operation.
-		if sortKey, ok := o.sortKeys[trunk.Source]; ok {
-			if pushdown, ok := trunk.Pushdown.(*dag.Filter); ok {
-				if p := newRangePruner(pushdown.Expr, sortKey.Primary(), sortKey.Order); p != nil {
-					trunk.KeyPruner = p
+	o.entry.Body.Ops = []dag.Op{lister, par, merge}
+	return nil
+}
+
+func matchDeleter(ops []dag.Op) (*dag.Lister, *dag.Deleter, *dag.Filter) {
+	if len(ops) == 3 {
+		if lister, ok := ops[0].(*dag.Lister); ok {
+			if deleter, ok := ops[1].(*dag.Deleter); ok {
+				if filter, ok := ops[2].(*dag.Filter); ok {
+					return lister, deleter, filter
 				}
 			}
 		}
 	}
+	return nil, nil, nil
+}
+
+func (o *Optimizer) optimizeSourcePaths(op dag.Op) error {
+	if par, ok := op.(*dag.Parallel); ok {
+		for _, op := range par.Ops {
+			if err := o.optimizeSourcePaths(op); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	var seq *dag.Sequential
+	if scope, ok := op.(*dag.Scope); ok {
+		seq = scope.Body
+	} else {
+		seq, ok = op.(*dag.Sequential)
+		if !ok {
+			return fmt.Errorf("internal error: entry point is not a source: %T", op)
+		}
+	}
+	if len(seq.Ops) == 0 {
+		return errors.New("internal error: empty sequential operator")
+	}
+	if par, ok := seq.Ops[0].(*dag.Parallel); ok {
+		return o.optimizeSourcePaths(par)
+	}
+	chain := seq.Ops[1:]
+	if len(chain) == 0 {
+		// Nothing to push down.
+		return nil
+	}
+	o.propagateSortKey(seq, order.Nil)
+	// See if we can lift a filtering predicate into the source op.
+	// Filter might be nil in which case we just put the chain back
+	// on the source op and zero out the source's filter.
+	filter, chain := matchFilter(chain)
+	switch op := seq.Ops[0].(type) {
+	case *dag.PoolScan:
+		// Here we transform a PoolScan into a Lister followed by one or more chains
+		// of slicers and sequence scanners.  We'll eventually choose other configurations
+		// here based on metadata and availability of VNG.
+		lister := &dag.Lister{
+			Kind:   "Lister",
+			Pool:   op.ID,
+			Commit: op.Commit,
+		}
+		// Check to see if we can add a range pruner when the pool key is used
+		// in a normal filtering operation.
+		sortKey, err := o.sortKeyOfSource(op)
+		if err != nil {
+			return err
+		}
+		lister.KeyPruner = maybeNewRangePruner(filter, sortKey)
+		seq.Ops = []dag.Op{lister}
+		_, _, orderRequired, _, err := o.concurrentPath(chain, sortKey)
+		if err != nil {
+			return err
+		}
+		if orderRequired {
+			seq.Ops = append(seq.Ops, &dag.Slicer{Kind: "Slicer"})
+		}
+		seq.Ops = append(seq.Ops, &dag.SeqScan{
+			Kind:      "SeqScan",
+			Pool:      op.ID,
+			Filter:    filter,
+			KeyPruner: lister.KeyPruner,
+		})
+		seq.Ops = append(seq.Ops, chain...)
+		o.sources[seq] = struct{}{}
+	case *dag.FileScan:
+		op.Filter = filter
+		seq.Ops = append([]dag.Op{op}, chain...)
+	case *dag.CommitMetaScan:
+		if op.Tap {
+			sortKey, err := o.sortKeyOfSource(op)
+			if err != nil {
+				return err
+			}
+			// Check to see if we can add a range pruner when the pool key is used
+			// in a normal filtering operation.
+			op.KeyPruner = maybeNewRangePruner(filter, sortKey)
+			// Delete the downstream operators when we are tapping the object list.
+			seq.Ops = []dag.Op{op}
+		}
+	case *kernel.Reader:
+		op.Filter = filter
+		seq.Ops = append([]dag.Op{op}, chain...)
+	case *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.HTTPScan:
+	default:
+		return fmt.Errorf("internal error:  point to the query is not a source: %T", op)
+	}
 	return nil
 }
 
-// propagateScanOrder analyzes each trunk of the From input node and
+// propagateSortKey analyzes each trunk of the input node
 // attempts to push the scan order of the data source into the first
 // downstream aggregation.  (We could continue the analysis past that
 // point but don't bother yet because we do not yet support any optimization
-// past the first aggregation.)  If there are multiple trunks, we only
-// propagate the scan order if its the same at egress of all of the trunks.
-func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.SortKey) (order.SortKey, error) {
+// past the first aggregation.)  For parallel paths, we propagate
+// the scan order if its the same at egress of all of the paths.
+func (o *Optimizer) propagateSortKey(op dag.Op, parent order.SortKey) (order.SortKey, error) {
 	switch op := op.(type) {
-	case *dag.From:
-		var egress order.SortKey
-		for k := range op.Trunks {
-			trunk := &op.Trunks[k]
-			l, err := o.sortKeyOfSource(trunk.Source, parent)
-			if err != nil {
-				return order.Nil, err
-			}
-			l, err = o.propagateScanOrder(trunk.Seq, l)
-			if err != nil {
-				return order.Nil, err
-			}
-			if k == 0 {
-				egress = l
-			} else if !egress.Equal(l) {
-				egress = order.Nil
-			}
-		}
-		return egress, nil
 	case *dag.Summarize:
 		//XXX handle only primary key for now
 		key := parent.Primary()
@@ -180,7 +299,7 @@ func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.SortKey) (order.S
 		}
 		for _, op := range op.Ops {
 			var err error
-			parent, err = o.propagateScanOrder(op, parent)
+			parent, err = o.propagateSortKey(op, parent)
 			if err != nil {
 				return order.Nil, err
 			}
@@ -189,7 +308,7 @@ func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.SortKey) (order.S
 	case *dag.Parallel:
 		var egress order.SortKey
 		for k, op := range op.Ops {
-			out, err := o.propagateScanOrder(op, parent)
+			out, err := o.propagateSortKey(op, parent)
 			if err != nil {
 				return order.Nil, err
 			}
@@ -209,137 +328,125 @@ func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.SortKey) (order.S
 			sortKey = order.Nil
 		}
 		return sortKey, nil
+	case *dag.PoolScan, *dag.Lister, *dag.SeqScan, *kernel.Reader:
+		return o.sortKeyOfSource(op)
 	default:
-		return o.analyzeOp(op, parent)
+		return o.analyzeSortKey(op, parent)
 	}
 }
 
-func (o *Optimizer) sortKeyOfSource(s dag.Source, parent order.SortKey) (order.SortKey, error) {
-	sortKey, ok := o.sortKeys[s]
-	if !ok {
-		var err error
-		sortKey, err = o.getSortKey(s, parent)
-		if err != nil {
-			return order.Nil, err
-		}
-		o.sortKeys[s] = sortKey
-	}
-	return sortKey, nil
-}
-
-func (o *Optimizer) getSortKey(s dag.Source, parent order.SortKey) (order.SortKey, error) {
-	switch s := s.(type) {
-	case *dag.File:
-		return s.SortKey, nil
-	case *dag.HTTP:
-		return s.SortKey, nil
-	case *dag.Pool:
-		return o.source.SortKey(o.ctx, s), nil
-	case *dag.CommitMeta:
-		if s.Tap && s.Meta == "objects" {
+func (o *Optimizer) sortKeyOfSource(op dag.Op) (order.SortKey, error) {
+	switch op := op.(type) {
+	case *dag.FileScan:
+		return op.SortKey, nil
+	case *dag.HTTPScan:
+		return op.SortKey, nil
+	case *dag.PoolScan:
+		return o.sortKey(op.ID)
+	case *dag.Lister:
+		return o.sortKey(op.Pool)
+	case *dag.SeqScan:
+		return o.sortKey(op.Pool)
+	case *dag.CommitMetaScan:
+		if op.Tap && op.Meta == "objects" {
 			// For a tap into the object stream, we compile the downstream
 			// DAG as if it were a normal query (so the optimizer can prune
 			// objects etc.) but we execute it in the end as a meta-query.
-			return o.source.SortKey(o.ctx, s), nil
+			return o.sortKey(op.Pool)
 		}
 		return order.Nil, nil
-	case *dag.LakeMeta, *dag.PoolMeta:
+	case *dag.LakeMetaScan, *dag.PoolMetaScan:
 		return order.Nil, nil
-	case *dag.Pass:
-		return parent, nil
 	case *kernel.Reader:
-		return s.SortKey, nil
+		return op.SortKey, nil
 	default:
-		return order.Nil, fmt.Errorf("unknown dag.Source type %T", s)
+		return order.Nil, fmt.Errorf("internal error: unknown source type %T", op)
 	}
 }
 
-// Parallelize takes a sequential operation and tries to
-// parallelize it by splitting as much as possible of the sequence
-// into n parallel branches. The boolean return argument indicates
-// whether the flowgraph could be parallelized.
+func (o *Optimizer) sortKey(id ksuid.KSUID) (order.SortKey, error) {
+	pool, err := o.lookupPool(id)
+	if err != nil {
+		return order.Nil, err
+	}
+	return pool.SortKey, nil
+}
+
+// Parallelize tries to parallelize the DAG by splitting each source
+// path as much as possible of the sequence into n parallel branches.
 func (o *Optimizer) Parallelize(n int) error {
-	replicas := n - 1
-	if replicas < 1 {
-		return fmt.Errorf("bad parallelization factor: %d", n)
-	}
-	if replicas > 50 {
-		// XXX arbitrary circuit breaker
-		return fmt.Errorf("parallelization factor too big: %d", n)
-	}
-	seq := o.entry
-	from, ok := seq.Ops[0].(*dag.From)
-	if !ok {
+	// Compute the number of parallel paths across all input sources to
+	// achieve the desired level of concurrency.  At some point, we should
+	// use a semaphore here and let each possible path use the max concurrency.
+	if len(o.sources) == 0 {
 		return nil
 	}
-	trunks := poolTrunks(from)
-	if len(trunks) == 1 {
-		quietCuts(trunks[0])
-		if err := o.parallelizeTrunk(seq, trunks[0], replicas); err != nil {
+	concurrency := n / len(o.sources)
+	if concurrency < 2 {
+		concurrency = 2
+	}
+	if concurrency > 50 {
+		// arbitrary circuit breaker
+		return fmt.Errorf("parallelization factor too big: %d", n)
+	}
+	for seq := range o.sources {
+		lister, slicer, rest := matchSource(seq.Ops)
+		// We parallelize the scanning to achieve the desired concurrency,
+		// then the step below pulls downstream operators into the parallel
+		// branches when possible, e.g., to parallelize aggregations etc.
+		parallel, err := o.parallelizeScan(rest, concurrency)
+		if err != nil {
 			return err
 		}
+		if parallel == nil {
+			// Leave the source path unmodified.
+			continue
+		}
+		front := []dag.Op{lister}
+		if slicer != nil {
+			front = append(front, slicer)
+		}
+		// Replace the source path with the parallelized gadget.
+		seq.Ops = append(front, parallel...)
 	}
+	o.optimizeParallels(o.entry)
+	removePassOps(o.entry)
 	return nil
 }
 
-func quietCuts(trunk *dag.Trunk) {
-	if trunk.Seq == nil {
-		return
+func (o *Optimizer) lookupPool(id ksuid.KSUID) (*lake.Pool, error) {
+	if o.lake == nil {
+		return nil, errors.New("internal error: lake operation cannot be used in non-lake context")
 	}
-	for _, op := range trunk.Seq.Ops {
-		if cut, ok := op.(*dag.Cut); ok {
-			cut.Quiet = true
-		}
-	}
+	// This is fast because of the pool cache in the lake.
+	return o.lake.OpenPool(o.ctx, id)
 }
 
-func poolTrunks(from *dag.From) []*dag.Trunk {
-	var trunks []*dag.Trunk
-	for k := range from.Trunks {
-		trunk := &from.Trunks[k]
-		if _, ok := trunk.Source.(*dag.Pool); ok {
-			trunks = append(trunks, trunk)
-		}
+func matchSource(ops []dag.Op) (*dag.Lister, *dag.Slicer, []dag.Op) {
+	lister := ops[0].(*dag.Lister)
+	ops = ops[1:]
+	slicer, ok := ops[0].(*dag.Slicer)
+	if ok {
+		ops = ops[1:]
 	}
-	return trunks
+	if _, ok := ops[0].(*dag.SeqScan); !ok {
+		panic("parseSource: no SeqScan")
+	}
+	return lister, slicer, ops
 }
 
-func liftInto(trunk *dag.Trunk, branch []dag.Op) {
-	if trunk.Seq == nil {
-		trunk.Seq = &dag.Sequential{
-			Kind: "Sequential",
-		}
+// matchFilter attempts to find a filter from the front of op chain
+// and returns the filter's expression (and the modified chain) so
+// we can lift the filter predicate into the scanner.
+func matchFilter(in []dag.Op) (dag.Expr, []dag.Op) {
+	if len(in) == 0 {
+		return nil, in
 	}
-	trunk.Seq.Ops = append(trunk.Seq.Ops, branch...)
-}
-
-func extend(trunk *dag.Trunk, op dag.Op) {
-	if trunk.Seq == nil {
-		trunk.Seq = &dag.Sequential{Kind: "Sequential"}
-	}
-	trunk.Seq.Append(op)
-}
-
-// pushDown attempts to move any filter from the front of the trunk's sequence
-// into the PushDown field of the Trunk so that the runtime can push the
-// filter predicate into the scanner.  This is a very simple optimization for now
-// that works for only a single filter operator.  In the future, the pushown
-// logic to handle arbitrary columnar operations will happen here, perhaps with
-// some involvement from the DataAdaptor.
-func pushDown(trunk *dag.Trunk) {
-	seq := trunk.Seq
-	if seq == nil || len(seq.Ops) == 0 {
-		return
-	}
-	filter, ok := seq.Ops[0].(*dag.Filter)
+	filter, ok := in[0].(*dag.Filter)
 	if !ok {
-		return
+		return nil, in
 	}
-	seq.Ops = seq.Ops[1:]
-	if len(seq.Ops) == 0 {
-		trunk.Seq = nil
-	}
-	trunk.Pushdown = filter
+	return filter.Expr, in[1:]
 }
 
 // newRangePruner returns a new predicate based on the input predicate pred
@@ -349,10 +456,20 @@ func pushDown(trunk *dag.Trunk) {
 // to be ordered according to the order o.  This is used to prune metadata objects
 // from a scan when we know the pool key range of the object could not satisfy
 // the filter predicate of any of the values in the object.
-func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) *dag.BinaryExpr {
-	min := &dag.This{Kind: "This", Path: field.New("min")}
-	max := &dag.This{Kind: "This", Path: field.New("max")}
-	return buildRangePruner(pred, fld, min, max)
+func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) dag.Expr {
+	min := &dag.This{Kind: "This", Path: field.Path{"min"}}
+	max := &dag.This{Kind: "This", Path: field.Path{"max"}}
+	if e := buildRangePruner(pred, fld, min, max); e != nil {
+		return e
+	}
+	return nil
+}
+
+func maybeNewRangePruner(pred dag.Expr, sortKey order.SortKey) dag.Expr {
+	if !sortKey.IsNil() && pred != nil {
+		return newRangePruner(pred, sortKey.Primary(), sortKey.Order)
+	}
+	return nil
 }
 
 // buildRangePruner creates a DAG comparison expression that can evalaute whether

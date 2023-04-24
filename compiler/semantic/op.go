@@ -20,22 +20,29 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish) (*dag.From, error) {
-	var trunks []dag.Trunk
-	for _, in := range from.Trunks {
-		converted, err := semTrunk(ctx, scope, in, source, head)
-		if err != nil {
-			return nil, err
+func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
+	switch len(from.Trunks) {
+	case 0:
+		return nil, errors.New("internal error: from operator has no paths")
+	case 1:
+		return semTrunk(ctx, scope, from.Trunks[0], source, head)
+	default:
+		ops := make([]dag.Op, 0, len(from.Trunks))
+		for _, in := range from.Trunks {
+			converted, err := semTrunk(ctx, scope, in, source, head)
+			if err != nil {
+				return nil, err
+			}
+			ops = append(ops, converted)
 		}
-		trunks = append(trunks, converted...)
+		return &dag.Parallel{
+			Kind: "Parallel",
+			Ops:  ops,
+		}, nil
 	}
-	return &dag.From{
-		Kind:   "From",
-		Trunks: trunks,
-	}, nil
 }
 
-func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish) ([]dag.Trunk, error) {
+func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
 	if pool, ok := trunk.Source.(*ast.Pool); ok && trunk.Seq != nil {
 		switch pool.Spec.Pool.(type) {
 		case *ast.Glob, *ast.Regexp:
@@ -50,29 +57,36 @@ func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Sourc
 	if err != nil {
 		return nil, err
 	}
-	var trunks []dag.Trunk
-	for _, source := range sources {
-		trunks = append(trunks, dag.Trunk{
-			Kind:   "Trunk",
-			Source: source,
-			Seq:    seq,
-		})
+	if len(sources) == 1 {
+		out := &dag.Sequential{Kind: "Sequential", Ops: []dag.Op{sources[0]}}
+		if seq != nil {
+			out.Ops = append(out.Ops, seq.Ops...)
+		}
+		return out, nil
 	}
-	return trunks, nil
+	ops := make([]dag.Op, 0, len(sources))
+	for _, source := range sources {
+		out := &dag.Sequential{Kind: "Sequential", Ops: []dag.Op{source}}
+		if seq != nil {
+			out.Ops = append(out.Ops, seq.Ops...)
+		}
+		ops = append(ops, out)
+	}
+	return &dag.Parallel{Kind: "Parallel", Ops: ops}, nil
 }
 
 //XXX make sure you can't read files from a lake instance
 
-func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.Source, head *lakeparse.Commitish) ([]dag.Source, error) {
+func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.Source, head *lakeparse.Commitish) ([]dag.Op, error) {
 	switch p := source.(type) {
 	case *ast.File:
 		sortKey, err := semSortKey(p.SortKey)
 		if err != nil {
 			return nil, err
 		}
-		return []dag.Source{
-			&dag.File{
-				Kind:    "File",
+		return []dag.Op{
+			&dag.FileScan{
+				Kind:    "FileScan",
 				Path:    p.Path,
 				Format:  p.Format,
 				SortKey: sortKey,
@@ -83,9 +97,9 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 		if err != nil {
 			return nil, err
 		}
-		return []dag.Source{
-			&dag.HTTP{
-				Kind:    "HTTP",
+		return []dag.Op{
+			&dag.HTTPScan{
+				Kind:    "HTTPScan",
 				URL:     p.URL,
 				Format:  p.Format,
 				SortKey: sortKey,
@@ -97,10 +111,11 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 		}
 		return semPool(ctx, scope, p, ds, head)
 	case *ast.Pass:
-		return []dag.Source{&dag.Pass{Kind: "Pass"}}, nil
+		//XXX just connect parent
+		return []dag.Op{dag.PassOp}, nil
 	case *kernel.Reader:
-		// kernel.Reader implements both ast.Source and dag.Source
-		return []dag.Source{p}, nil
+		// kernel.Reader implements both ast.Source and dag.Op
+		return []dag.Op{p}, nil
 	default:
 		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
 	}
@@ -125,7 +140,7 @@ func semSortKey(p *ast.SortKey) (order.SortKey, error) {
 	return order.NewSortKey(which, keys), nil
 }
 
-func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, head *lakeparse.Commitish) ([]dag.Source, error) {
+func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, head *lakeparse.Commitish) ([]dag.Op, error) {
 	var poolNames []string
 	var err error
 	switch specPool := p.Spec.Pool.(type) {
@@ -144,7 +159,7 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 	if err != nil {
 		return nil, err
 	}
-	var sources []dag.Source
+	var sources []dag.Op
 	for _, name := range poolNames {
 		source, err := semPoolWithName(ctx, scope, p, name, ds, head)
 		if err != nil {
@@ -156,7 +171,7 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 }
 
 func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName string, ds *data.Source,
-	head *lakeparse.Commitish) (dag.Source, error) {
+	head *lakeparse.Commitish) (dag.Op, error) {
 	commit := p.Spec.Commit
 	if poolName == "HEAD" {
 		if head == nil {
@@ -173,8 +188,8 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		if _, ok := dag.LakeMetas[meta]; !ok {
 			return nil, fmt.Errorf("unknown lake metadata type %q in from operator", meta)
 		}
-		return &dag.LakeMeta{
-			Kind: "LakeMeta",
+		return &dag.LakeMetaScan{
+			Kind: "LakeMetaScan",
 			Meta: p.Spec.Meta,
 		}, nil
 	}
@@ -214,8 +229,8 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 					return nil, err
 				}
 			}
-			return &dag.CommitMeta{
-				Kind:   "CommitMeta",
+			return &dag.CommitMetaScan{
+				Kind:   "CommitMetaScan",
 				Meta:   meta,
 				Pool:   poolID,
 				Commit: commitID,
@@ -223,8 +238,8 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 			}, nil
 		}
 		if _, ok := dag.PoolMetas[meta]; ok {
-			return &dag.PoolMeta{
-				Kind: "PoolMeta",
+			return &dag.PoolMetaScan{
+				Kind: "PoolMetaScan",
 				Meta: meta,
 				ID:   poolID,
 			}, nil
@@ -239,11 +254,26 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 			return nil, err
 		}
 	}
-	return &dag.Pool{
-		Kind:   "Pool",
+	if p.Delete {
+		return &dag.Sequential{
+			Kind: "Sequential",
+			Ops: []dag.Op{
+				&dag.Lister{
+					Kind:   "Lister",
+					Pool:   poolID,
+					Commit: commitID,
+				},
+				&dag.Deleter{
+					Kind: "Deleter",
+					Pool: poolID,
+				},
+			},
+		}, nil
+	}
+	return &dag.PoolScan{
+		Kind:   "PoolScan",
 		ID:     poolID,
 		Commit: commitID,
-		Delete: p.Delete,
 	}, nil
 }
 
@@ -272,12 +302,6 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 	if seq == nil {
 		return nil, nil
 	}
-	scope.Enter()
-	defer scope.Exit()
-	consts, funcs, err := semDecls(scope, seq.Decls)
-	if err != nil {
-		return nil, err
-	}
 	var ops []dag.Op
 	for _, o := range seq.Ops {
 		converted, err := semOp(ctx, scope, o, ds, head)
@@ -287,10 +311,27 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *d
 		ops = append(ops, converted)
 	}
 	return &dag.Sequential{
-		Kind:   "Sequential",
+		Kind: "Sequential",
+		Ops:  ops,
+	}, nil
+}
+
+func semScope(ctx context.Context, scope *Scope, op *ast.Scope, ds *data.Source, head *lakeparse.Commitish) (*dag.Scope, error) {
+	scope.Enter()
+	defer scope.Exit()
+	consts, funcs, err := semDecls(scope, op.Decls)
+	if err != nil {
+		return nil, err
+	}
+	seq, err := semSequential(ctx, scope, op.Body, ds, head)
+	if err != nil {
+		return nil, err
+	}
+	return &dag.Scope{
+		Kind:   "Scope",
 		Consts: consts,
 		Funcs:  funcs,
-		Ops:    ops,
+		Body:   seq,
 	}, nil
 }
 
@@ -347,6 +388,8 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		}, nil
 	case *ast.Sequential:
 		return semSequential(ctx, scope, o, ds, head)
+	case *ast.Scope:
+		return semScope(ctx, scope, o, ds, head)
 	case *ast.Switch:
 		var expr dag.Expr
 		if o.Expr != nil {
@@ -584,7 +627,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if o.As == nil {
 			as = &dag.This{
 				Kind: "This",
-				Path: field.New("value"),
+				Path: field.Path{"value"},
 			}
 		} else {
 			as, err = semExpr(scope, o.As)
@@ -609,13 +652,8 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Order: order.Asc, //XXX
 		}, nil
 	case *ast.Over:
-		return semOver(ctx, scope, o, ds, head)
-	case *ast.Let:
-		if o.Over == nil {
-			return nil, errors.New("let operator missing traversal in AST")
-		}
-		if o.Over.Scope == nil {
-			return nil, errors.New("let operator missing scope in AST")
+		if len(o.Locals) != 0 && o.Body == nil {
+			return nil, errors.New("over operator: cannot have a with clause without a lateral query")
 		}
 		scope.Enter()
 		defer scope.Exit()
@@ -623,14 +661,22 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if err != nil {
 			return nil, err
 		}
-		over, err := semOver(ctx, scope, o.Over, ds, head)
+		exprs, err := semExprs(scope, o.Exprs)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Let{
-			Kind: "Let",
-			Defs: locals,
-			Over: over,
+		var seq *dag.Sequential
+		if o.Body != nil {
+			seq, err = semSequential(ctx, scope, o.Body, ds, head)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &dag.Over{
+			Kind:  "Over",
+			Defs:  locals,
+			Exprs: exprs,
+			Body:  seq,
 		}, nil
 	case *ast.Yield:
 		exprs, err := semExprs(scope, o.Exprs)
@@ -648,25 +694,6 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		}, nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
-}
-
-func semOver(ctx context.Context, scope *Scope, in *ast.Over, ds *data.Source, head *lakeparse.Commitish) (*dag.Over, error) {
-	exprs, err := semExprs(scope, in.Exprs)
-	if err != nil {
-		return nil, err
-	}
-	var seq *dag.Sequential
-	if in.Scope != nil {
-		seq, err = semSequential(ctx, scope, in.Scope, ds, head)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &dag.Over{
-		Kind:  "Over",
-		Exprs: exprs,
-		Scope: seq,
-	}, nil
 }
 
 func singletonAgg(scope *Scope, agg ast.Assignment) dag.Op {
@@ -877,14 +904,14 @@ func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 			Aggs: []dag.Assignment{
 				{
 					Kind: "Assignment",
-					LHS:  &dag.This{Kind: "This", Path: field.New(call.Name)},
+					LHS:  &dag.This{Kind: "This", Path: field.Path{call.Name}},
 					RHS:  agg,
 				},
 			},
 		}
 		yield := &dag.Yield{
 			Kind:  "Yield",
-			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.New(call.Name)}},
+			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{call.Name}}},
 		}
 		return &dag.Sequential{
 			Kind: "Sequential",

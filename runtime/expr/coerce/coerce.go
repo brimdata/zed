@@ -81,13 +81,6 @@ func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
 	return 0, IncompatibleTypes
 }
 
-func (c *Pair) compare(lhs, rhs *zed.Value) (bool, error) {
-	if _, err := c.Coerce(lhs, rhs); err != nil {
-		return false, err
-	}
-	return c.Equal(), nil
-}
-
 func intToFloat(id int, b zcode.Bytes) float64 {
 	if zed.IsSigned(id) {
 		return float64(zed.DecodeInt(b))

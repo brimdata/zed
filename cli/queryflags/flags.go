@@ -53,16 +53,16 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Op, bool, e
 }
 
 func isFrom(o ast.Op) bool {
-	if seq, ok := o.(*ast.Sequential); ok && len(seq.Ops) > 0 {
-		_, ok := seq.Ops[0].(*ast.From)
+	if scope, ok := o.(*ast.Scope); ok && len(scope.Body.Ops) > 0 {
+		_, ok := scope.Body.Ops[0].(*ast.From)
 		return ok
 	}
 	return false
 }
 
 func isYield(o ast.Op) bool {
-	if seq, ok := o.(*ast.Sequential); ok && len(seq.Ops) >= 1 {
-		o := seq.Ops[0]
+	if scope, ok := o.(*ast.Scope); ok && len(scope.Body.Ops) >= 1 {
+		o := scope.Body.Ops[0]
 		if _, ok := o.(*ast.Yield); ok {
 			return true
 		}

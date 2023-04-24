@@ -15,15 +15,11 @@ outputs:
           )
         ) on c=c
         ===
-        from (
-          file a
-        )
+        file a
         | fork (
           =>
             pass
           =>
-            from (
-              file b
-            )
+            file b
         )
         | join on c=c

@@ -1,0 +1,6 @@
+script: zc -O -C 'x>1 | pass | pass | x>2 | pass'
+
+outputs:
+  - name: stdout
+    data: |
+      reader filter (x>1 and x>2)

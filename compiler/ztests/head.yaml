@@ -9,14 +9,11 @@ script: |
 outputs:
   - name: stdout
     data: |
-      from (
-        (internal reader)
-      )
+      reader
       | head 1
       ===
-      const x = 1from (
-        (internal reader)
-      )
+      const x = 1
+      reader
       | head 2
   - name: stderr
     data: |

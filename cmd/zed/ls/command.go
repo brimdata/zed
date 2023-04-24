@@ -28,7 +28,6 @@ along with the ID of their commit object, which points at the tip of each branch
 
 type Command struct {
 	*root.Command
-	partition   bool
 	at          string
 	outputFlags outputflags.Flags
 }

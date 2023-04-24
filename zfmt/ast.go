@@ -14,7 +14,11 @@ import (
 
 func AST(p ast.Op) string {
 	c := &canon{canonZed: canonZed{formatter{tab: 2}}, head: true, first: true}
-	c.proc(p)
+	if scope, ok := p.(*ast.Scope); ok {
+		c.scope(scope, false)
+	} else {
+		c.proc(p)
+	}
 	c.flush()
 	return c.String()
 }
@@ -69,15 +73,6 @@ func (c *canon) exprs(exprs []ast.Expr) {
 	for k, e := range exprs {
 		if k > 0 {
 			c.write(", ")
-		}
-		c.expr(e, "")
-	}
-}
-
-func (c *canon) exprsTight(exprs []ast.Expr) {
-	for k, e := range exprs {
-		if k > 0 {
-			c.write(",")
 		}
 		c.expr(e, "")
 	}
@@ -202,7 +197,7 @@ func (c *canon) expr(e ast.Expr, parent string) {
 			c.write(" with ")
 			c.defs(e.Locals, ", ")
 		}
-		c.proc(e.Scope)
+		c.proc(e.Body)
 		c.close()
 		c.ret()
 		c.flush()
@@ -353,14 +348,11 @@ func (c *canon) decl(d ast.Decl) {
 func (c *canon) proc(p ast.Op) {
 	switch p := p.(type) {
 	case *ast.Sequential:
-		for _, d := range p.Decls {
-			c.decl(d)
-			c.ret()
-		}
-		c.flush()
 		for _, p := range p.Ops {
 			c.proc(p)
 		}
+	case *ast.Scope:
+		c.scope(p, true)
 	case *ast.Parallel:
 		c.next()
 		c.open("fork (")
@@ -625,10 +617,8 @@ func (c *canon) proc(p ast.Op) {
 		c.next()
 		c.write("merge ")
 		c.expr(p.Expr, "")
-	case *ast.Let:
-		c.over(p.Over, p.Locals)
 	case *ast.Over:
-		c.over(p, nil)
+		c.over(p)
 	case *ast.Yield:
 		c.next()
 		c.write("yield ")
@@ -639,19 +629,39 @@ func (c *canon) proc(p ast.Op) {
 	}
 }
 
-func (c *canon) over(o *ast.Over, locals []ast.Def) {
+func (c *canon) over(o *ast.Over) {
 	c.next()
 	c.write("over ")
 	c.exprs(o.Exprs)
-	if len(locals) > 0 {
+	if len(o.Locals) > 0 {
 		c.write(" with ")
-		c.defs(locals, ", ")
+		c.defs(o.Locals, ", ")
 	}
-	if o.Scope != nil {
+	if o.Body != nil {
 		c.write(" => (")
 		c.open()
 		c.head = true
-		c.proc(o.Scope)
+		c.proc(o.Body)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
+	}
+}
+
+func (c *canon) scope(s *ast.Scope, parens bool) {
+	if parens {
+		c.open("(")
+		c.ret()
+	}
+	for _, d := range s.Decls {
+		c.decl(d)
+		c.ret()
+	}
+	//XXX functions?
+	c.flush()
+	c.proc(s.Body)
+	if parens {
 		c.close()
 		c.ret()
 		c.flush()
@@ -679,6 +689,9 @@ func (c *canon) pool(p *ast.Pool) {
 	}
 	if p.Spec.Meta != "" {
 		s += ":" + p.Spec.Meta
+	}
+	if p.Spec.Tap {
+		s += " tap"
 	}
 	c.write("pool %s", s)
 }
@@ -785,11 +798,4 @@ func (c *canon) source(src ast.Source) {
 	default:
 		c.write("unknown source type: %T", src)
 	}
-}
-
-func isTrue(e ast.Expr) bool {
-	if p, ok := e.(*astzed.Primitive); ok {
-		return p.Type == "bool" && p.Text == "true"
-	}
-	return false
 }

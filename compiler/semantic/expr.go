@@ -229,8 +229,8 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		if e.Scope == nil {
-			return nil, errors.New("over expression missing scope in AST")
+		if e.Body == nil {
+			return nil, errors.New("over expression missing lateral scope")
 		}
 		scope.Enter()
 		defer scope.Exit()
@@ -238,7 +238,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		seq, err := semSequential(nil, scope, e.Scope, nil, nil)
+		seq, err := semSequential(nil, scope, e.Body, nil, nil)
 		if err != nil {
 			return nil, err
 		}

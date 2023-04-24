@@ -60,10 +60,7 @@ func (l *lakeCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head
 	if err != nil {
 		return nil, err
 	}
-	if err := job.Optimize(); err != nil {
-		return nil, err
-	}
-	if err := job.Parallelize(Parallelism); err != nil {
+	if err := job.OptimizeDeleter(Parallelism); err != nil {
 		return nil, err
 	}
 	if err := job.Build(); err != nil {
@@ -80,12 +77,13 @@ func (InvalidDeleteWhereQuery) Error() string {
 
 func newDeleteJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
 	parserAST := ast.Copy(inAST)
-	seq, ok := parserAST.(*ast.Sequential)
+	scope, ok := parserAST.(*ast.Scope)
 	if !ok {
-		return nil, fmt.Errorf("internal error: AST must begin with a Sequential op: %T", parserAST)
+		return nil, fmt.Errorf("internal error: AST must begin with a Scope op: %T", parserAST)
 	}
+	seq := scope.Body
 	if len(seq.Ops) == 0 {
-		return nil, errors.New("internal error: AST Sequential op cannot be empty")
+		return nil, errors.New("internal error: AST Scope op body cannot be empty")
 	}
 	if len(seq.Ops) != 1 {
 		return nil, &InvalidDeleteWhereQuery{}
@@ -107,11 +105,11 @@ func newDeleteJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakepa
 			},
 		}},
 	})
-	entry, err := semantic.Analyze(octx.Context, seq, src, head)
+	entry, err := semantic.Analyze(octx.Context, scope, src, head)
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := entry.Ops[1].(*dag.Filter); !ok {
+	if _, ok := entry.Body.Ops[1].(*dag.Filter); !ok {
 		return nil, &InvalidDeleteWhereQuery{}
 	}
 	return &Job{

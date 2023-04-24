@@ -511,7 +511,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err := flags.Parse(outputFlags); err != nil {
 		return "", "", err
 	}
-	zw, err := anyio.NewWriter(&nopCloser{&outbuf}, outflags.Options())
+	zw, err := anyio.NewWriter(zio.NopCloser(&outbuf), outflags.Options())
 	if err != nil {
 		return "", "", err
 	}
@@ -542,7 +542,3 @@ func lookupzq(path string) (string, error) {
 	}
 	return "", err
 }
-
-type nopCloser struct{ io.Writer }
-
-func (*nopCloser) Close() error { return nil }

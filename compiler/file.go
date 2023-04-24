@@ -28,7 +28,7 @@ func (f *fsCompiler) NewQuery(octx *op.Context, o ast.Op, readers []zio.Reader) 
 	}
 	if isJoin(o) {
 		if len(readers) != 2 {
-			return nil, errors.New("join operaetor requires two inputs")
+			return nil, errors.New("join operator requires two inputs")
 		}
 		if len(job.readers) != 2 {
 			return nil, errors.New("internal error: join expected by semantic analyzer")
@@ -67,7 +67,11 @@ func (*fsCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head *la
 }
 
 func isJoin(o ast.Op) bool {
-	seq, ok := o.(*ast.Sequential)
+	scope, ok := o.(*ast.Scope)
+	if !ok {
+		return false
+	}
+	seq := scope.Body
 	if !ok || len(seq.Ops) == 0 {
 		return false
 	}

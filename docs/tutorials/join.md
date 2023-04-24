@@ -334,7 +334,7 @@ produces
 {name:"strawberry",color:"red",flavor:"sweet",eater:"quinn",price:1.05}
 ```
 
-## Embedding the entire opposite record
+## Including the entire opposite record
 
 In the current `join` implementation, explicit entries must be provided in the
 `[field-list]` in order to copy values from the opposite input into the joined
@@ -368,4 +368,39 @@ produces
 {name:"dates",color:"brown",flavor:"sweet",note:"in season",eaterinfo:{name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets"}}
 {name:"apple",color:"red",flavor:"tart",eaterinfo:{name:"morgan",age:61,likes:"tart"}}
 {name:"apple",color:"red",flavor:"tart",eaterinfo:{name:"chris",age:47,likes:"tart"}}
+```
+
+If embedding the opposite record is undesirable, the left and right
+records can easily be merged with the
+[spread operator](../language/overview.md#7112-record-expressions). Additional
+processing may be necessary to handle conflicting field names, such as
+in the example just shown where the `name` field is used differently in the
+left and right inputs. We'll demonstrate this by augmenting `embed-opposite.zed`
+to produce `merge-opposite.zed`.
+
+```mdtest-input merge-opposite.zed
+file fruit.ndjson | sort flavor
+| inner join (
+  file people.ndjson | sort likes
+) on flavor=likes eaterinfo:=this
+| rename fruit:=name
+| yield {...this,...eaterinfo}
+| drop eaterinfo
+```
+
+Executing the Zed script:
+
+```mdtest-command
+zq -z -I merge-opposite.zed
+```
+
+produces
+
+```mdtest-output
+{fruit:"figs",color:"brown",flavor:"plain",name:"jessie",age:30,likes:"plain"}
+{fruit:"banana",color:"yellow",flavor:"sweet",name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets"}
+{fruit:"strawberry",color:"red",flavor:"sweet",name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets"}
+{fruit:"dates",color:"brown",flavor:"sweet",note:"many kids enjoy sweets",name:"quinn",age:14,likes:"sweet"}
+{fruit:"apple",color:"red",flavor:"tart",name:"morgan",age:61,likes:"tart"}
+{fruit:"apple",color:"red",flavor:"tart",name:"chris",age:47,likes:"tart"}
 ```

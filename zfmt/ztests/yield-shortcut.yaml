@@ -20,23 +20,13 @@ outputs:
       yield |{"foo":1,"bar":2}|
       yield <(int64,string)>(1)
       ===
-      from (
-        (internal reader)
-      )
+      reader
       | yield {x:1,...y}
-      from (
-        (internal reader)
-      )
+      reader
       | yield [1,2,3]
-      from (
-        (internal reader)
-      )
+      reader
       | yield |["foo","bar"]|
-      from (
-        (internal reader)
-      )
+      reader
       | yield |{"foo":1,"bar":2}|
-      from (
-        (internal reader)
-      )
+      reader
       | yield cast(1, <(int64,string)>)

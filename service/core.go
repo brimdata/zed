@@ -10,7 +10,6 @@ import (
 	"net/http/pprof"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/brimdata/zed/api"
@@ -62,7 +61,6 @@ type Core struct {
 	root            *lake.Root
 	routerAPI       *mux.Router
 	routerAux       *mux.Router
-	taskCount       int64
 	subscriptions   map[chan event]struct{}
 	subscriptionsMu sync.RWMutex
 }
@@ -237,14 +235,6 @@ func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (c *Core) Shutdown() {
 	c.logger.Info("Shutdown")
-}
-
-func (c *Core) nextTaskID() int64 {
-	return atomic.AddInt64(&c.taskCount, 1)
-}
-
-func (c *Core) requestLogger(r *http.Request) *zap.Logger {
-	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 }
 
 func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
