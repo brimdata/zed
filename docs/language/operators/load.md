@@ -18,15 +18,11 @@ while `author`, `message`, and `meta` are strings
 
 _Given a data pool, `samples`, loaded with a schools.zson, grab all schools located in Orange county and
 load into the empty pool, `Orange`_
-```mdtest-command
-zed query -z 'from samples | County=="Orange" | load Orange'
 ```
-=>
-```mdtest-output
-<commit hash>
+zed query -z 'from samples | County=="Orange" | load Orange'
 ```
 
 _Consider the above example, but operate under the branch, `test` with author `Steve`_
-```mdtest-command
+```
 zed query -z 'from samples | County=="Orange" | load Orange@test author "Steve"'
 ```
