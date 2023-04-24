@@ -18,7 +18,6 @@ type Op struct {
 	done    bool
 }
 
-// commit []expr.Evaluator
 func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, author, message, meta string) *Op {
 	return &Op{
 		octx:    octx,
