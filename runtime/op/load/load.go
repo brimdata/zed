@@ -12,23 +12,23 @@ type Op struct {
 	lk      *lake.Root
 	parent  zbuf.Puller
 	pool    string
+	branch  string
 	author  string
 	message string
 	meta    string
-	branch  string
 	done    bool
 }
 
-func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, author, message, meta, branch string) *Op {
+func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, branch, author, message, meta string) *Op {
 	return &Op{
 		octx:    octx,
 		lk:      lk,
 		parent:  parent,
 		pool:    pool,
+		branch:  branch,
 		author:  author,
 		message: message,
 		meta:    meta,
-		branch:  branch,
 	}
 }
 
@@ -48,7 +48,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		o.done = false
 		return nil, nil
 	}
-	if len(o.branch) == 0 { //better way to set default ?
+	if len(o.branch) == 0 {
 		o.branch = "main"
 	}
 	o.done = true

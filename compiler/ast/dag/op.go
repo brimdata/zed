@@ -61,10 +61,10 @@ type (
 	Load struct {
 		Kind    string `json:"kind" unpack:""`
 		Pool    string `json:"pool"`
+		Branch  string `json:"branch"`
 		Author  string `json:"author"`
 		Message string `json:"message"`
 		Meta    string `json:"meta"`
-		Branch  string `json:"branch"`
 	}
 	Merge struct {
 		Kind  string      `json:"kind" unpack:""`

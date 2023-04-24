@@ -470,8 +470,8 @@ function peg$parse(input, options) {
       peg$c197 = function() { return {"kind":"ID", "name":"this"} },
       peg$c198 = "load",
       peg$c199 = peg$literalExpectation("load", false),
-      peg$c200 = function(pool, author, message, meta, branch) {
-              return {"kind": "Load", "pool": pool, "author": author, "message": message, "meta": meta, "branch": branch}
+      peg$c200 = function(pool, branch, author, message, meta) {
+              return {"kind": "Load", "pool": pool, "branch": branch, "author": author, "message": message, "meta": meta}
           },
       peg$c201 = "author",
       peg$c202 = peg$literalExpectation("author", false),
@@ -5277,22 +5277,22 @@ function peg$parse(input, options) {
       if (s2 !== peg$FAILED) {
         s3 = peg$parsePoolNameString();
         if (s3 !== peg$FAILED) {
-          s4 = peg$parseAuthorArg();
+          s4 = peg$parsePoolBranch();
           if (s4 === peg$FAILED) {
             s4 = null;
           }
           if (s4 !== peg$FAILED) {
-            s5 = peg$parseMessageArg();
+            s5 = peg$parseAuthorArg();
             if (s5 === peg$FAILED) {
               s5 = null;
             }
             if (s5 !== peg$FAILED) {
-              s6 = peg$parseMetaArg();
+              s6 = peg$parseMessageArg();
               if (s6 === peg$FAILED) {
                 s6 = null;
               }
               if (s6 !== peg$FAILED) {
-                s7 = peg$parseBranchSpecification();
+                s7 = peg$parseMetaArg();
                 if (s7 === peg$FAILED) {
                   s7 = null;
                 }
@@ -5455,35 +5455,26 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseBranchSpecification() {
-    var s0, s1, s2, s3, s4;
+  function peg$parsePoolBranch() {
+    var s0, s1, s2;
 
     s0 = peg$currPos;
-    s1 = peg$parse_();
+    if (input.charCodeAt(peg$currPos) === 64) {
+      s1 = peg$c208;
+      peg$currPos++;
+    } else {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$c209); }
+    }
     if (s1 !== peg$FAILED) {
-      if (input.charCodeAt(peg$currPos) === 64) {
-        s2 = peg$c208;
-        peg$currPos++;
-      } else {
-        s2 = peg$FAILED;
-        if (peg$silentFails === 0) { peg$fail(peg$c209); }
+      s2 = peg$parsePoolIdentifier();
+      if (s2 === peg$FAILED) {
+        s2 = peg$parseQuotedString();
       }
       if (s2 !== peg$FAILED) {
-        s3 = peg$parse_();
-        if (s3 !== peg$FAILED) {
-          s4 = peg$parseQuotedString();
-          if (s4 !== peg$FAILED) {
-            peg$savedPos = s0;
-            s1 = peg$c210(s4);
-            s0 = s1;
-          } else {
-            peg$currPos = s0;
-            s0 = peg$FAILED;
-          }
-        } else {
-          peg$currPos = s0;
-          s0 = peg$FAILED;
-        }
+        peg$savedPos = s0;
+        s1 = peg$c210(s2);
+        s0 = s1;
       } else {
         peg$currPos = s0;
         s0 = peg$FAILED;
