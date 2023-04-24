@@ -694,6 +694,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Author:  o.Author,
 			Message: o.Message,
 			Meta:    o.Meta,
+			Branch:  o.Branch,
 		}, nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)

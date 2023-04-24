@@ -15,10 +15,11 @@ type Op struct {
 	author  string
 	message string
 	meta    string
+	branch  string
 	done    bool
 }
 
-func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, author, message, meta string) *Op {
+func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, author, message, meta, branch string) *Op {
 	return &Op{
 		octx:    octx,
 		lk:      lk,
@@ -27,6 +28,7 @@ func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, author, mess
 		author:  author,
 		message: message,
 		meta:    meta,
+		branch:  branch,
 	}
 }
 
@@ -46,6 +48,9 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		o.done = false
 		return nil, nil
 	}
+	if len(o.branch) == 0 { //better way to set default ?
+		o.branch = "main"
+	}
 	o.done = true
 	reader := zbuf.PullerReader(o.parent)
 	poolID, err := o.lk.PoolID(o.octx.Context, o.pool)
@@ -56,7 +61,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	branch, err := pool.OpenBranchByName(o.octx.Context, "main")
+	branch, err := pool.OpenBranchByName(o.octx.Context, o.branch)
 	if err != nil {
 		return nil, err
 	}

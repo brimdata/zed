@@ -480,8 +480,8 @@ SampleExpr
   / "" { RETURN(MAP("kind":"ID", "name":"this")) }
 
 LoadOp
-    = "load" _ pool:PoolNameString author:AuthorArg? message:MessageArg? meta:MetaArg? {
-        RETURN(MAP("kind": "Load", "pool": pool, "author": author, "message": message, "meta": meta))
+    = "load" _ pool:PoolNameString author:AuthorArg? message:MessageArg? meta:MetaArg? branch:BranchSpecification? {
+        RETURN(MAP("kind": "Load", "pool": pool, "author": author, "message": message, "meta": meta, "branch": branch))
     }
 
 AuthorArg
@@ -492,6 +492,9 @@ MessageArg
 
 MetaArg
   = _ "meta" _ val:QuotedString { RETURN(val) }
+
+BranchSpecification
+  = _ "@" _ branch:QuotedString { RETURN(branch) }
 
 FromOp
   = source:FromAny {
