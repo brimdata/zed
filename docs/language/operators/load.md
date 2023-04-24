@@ -30,4 +30,3 @@ _Consider the above example, but operate under the branch, `test` with author `S
 ```mdtest-command
 zed query -z 'from samples | County=="Orange" | load Orange@test author "Steve"'
 ```
-
