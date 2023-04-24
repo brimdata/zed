@@ -14,6 +14,7 @@ from (
    pool <pattern>
    file <path> [format <format>] [ => <leg> ]
    get <uri> [format <format>] [ => <leg> ]
+   pass
    ...
 )
 ```
@@ -23,9 +24,13 @@ The `from` operator identifies one or more data sources and transmits
 their data to its output.  A data source can be
 * the name of a data pool in a Zed lake, with optional [commitish](../../commands/zed.md#142-commitish);
 * the names of multiple data pools, expressed as a [regular expression](../overview.md#811-regular-expressions) or [glob](../overview.md#812-globs) pattern;
-* a path to a file; or
-* an HTTP, HTTPS, or S3 URI.
-Paths and URIs may be followed by an optional [format](../../commands/zq.md#2-input-formats)  specifier.
+* a path to a file;
+* an HTTP, HTTPS, or S3 URI; or
+* the [`pass` operator](pass.md), to treat the upstream data path as a source.
+
+:::tip Note
+File paths and URIs may be followed by an optional [format](../../commands/zq.md#2-input-formats) specifier.
+:::
 
 Sourcing data from pools is only possible when querying a lake, such as
 via the [`zed` command](../../commands/zed.md) or
@@ -166,6 +171,25 @@ zed -lake example query -z '
 ```
 =>
 ```mdtest-output
+{flip:1,result:"heads",word:"one"}
+{flip:2,result:"tails",word:"two"}
+```
+
+_Use `pass` to combine our join output with data from yet another source_
+```mdtest-command
+zed -lake example query -z '
+  from (
+    pool coinflips => sort flip
+    pool numbers => sort number
+  ) | join on flip=number word
+  | from (
+    pass
+    pool coinflips@trial => c:=count() | c:=int64(c) | yield "There were ${c} trial flips"
+  ) | sort this'
+```
+=>
+```mdtest-output
+"There were 3 trial flips"
 {flip:1,result:"heads",word:"one"}
 {flip:2,result:"tails",word:"two"}
 ```
