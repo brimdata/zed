@@ -60,7 +60,7 @@ func structToUnpackRule(typ reflect.Type) (string, string, bool, error) {
 			}
 			names[jsonField] = struct{}{}
 		}
-		unpackOpt, unpackOk, opts := parseTag(tagUnpack, typ.Field(k))
+		unpackOpt, unpackOk, opts := parseTag(tagUnpack, field)
 		if !unpackOk {
 			continue
 		}
