@@ -8,22 +8,26 @@ import (
 )
 
 type Op struct {
-	octx   *op.Context
-	lk     *lake.Root
-	parent zbuf.Puller
-	pool   string
-	author string
-	done   bool
+	octx    *op.Context
+	lk      *lake.Root
+	parent  zbuf.Puller
+	pool    string
+	author  string
+	message string
+	meta    string
+	done    bool
 }
 
 // commit []expr.Evaluator
-func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, author string) *Op {
+func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, author, message, meta string) *Op {
 	return &Op{
-		octx:   octx,
-		lk:     lk,
-		parent: parent,
-		pool:   pool,
-		author: author,
+		octx:    octx,
+		lk:      lk,
+		parent:  parent,
+		pool:    pool,
+		author:  author,
+		message: message,
+		meta:    meta,
 	}
 }
 
@@ -57,7 +61,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	commitID, err := branch.Load(o.octx.Context, o.octx.Zctx, reader, o.author, "", "")
+	commitID, err := branch.Load(o.octx.Context, o.octx.Zctx, reader, o.author, o.message, o.meta)
 	if err != nil {
 		return nil, err
 	}
