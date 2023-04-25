@@ -302,7 +302,7 @@ echo '{x:1}{s:"hello"}' | zq -o out.parquet -f parquet -
 ```
 causes this error
 ```mdtest-output
-Parquet output requires uniform records but multiple types encountered (consider 'fuse')
+parquetio: encountered multiple types (consider 'fuse'): {x:int64} and {s:string}
 ```
 
 #### 3.4.1 Fusing Schemas

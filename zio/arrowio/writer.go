@@ -35,15 +35,27 @@ var (
 // dictionaries are not part of the Zed data model, write support could be added
 // using a named type.)
 type Writer struct {
+	NewWriterFunc    func(io.Writer, *arrow.Schema) (WriteCloser, error)
 	w                io.WriteCloser
-	writer           *ipc.Writer
+	writer           WriteCloser
 	builder          *array.RecordBuilder
 	unionTagMappings map[zed.Type][]int
 	typ              *zed.TypeRecord
 }
 
+type WriteCloser interface {
+	Write(rec arrow.Record) error
+	Close() error
+}
+
 func NewWriter(w io.WriteCloser) *Writer {
-	return &Writer{w: w, unionTagMappings: map[zed.Type][]int{}}
+	return &Writer{
+		NewWriterFunc: func(w io.Writer, s *arrow.Schema) (WriteCloser, error) {
+			return ipc.NewWriter(w, ipc.WithSchema(s)), nil
+		},
+		w:                w,
+		unionTagMappings: map[zed.Type][]int{},
+	}
 }
 
 func (w *Writer) Close() error {
@@ -78,7 +90,10 @@ func (w *Writer) Write(val *zed.Value) error {
 		schema := arrow.NewSchema(dt.(*arrow.StructType).Fields(), nil)
 		w.builder = array.NewRecordBuilder(memory.DefaultAllocator, schema)
 		w.builder.Reserve(recordBatchSize)
-		w.writer = ipc.NewWriter(w.w, ipc.WithSchema(schema))
+		w.writer, err = w.NewWriterFunc(w.w, schema)
+		if err != nil {
+			return err
+		}
 	} else if w.typ != recType {
 		return fmt.Errorf("%w: %s and %s", ErrMultipleTypes, zson.FormatType(w.typ), zson.FormatType(recType))
 	}
