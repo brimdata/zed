@@ -156,7 +156,7 @@ func (r Reflector) unpack(p interface{}) (interface{}, error) {
 			// either install it as a field of another reflect.Value
 			// or at the root of the descent, convert it back to an
 			// empty inteface pointing a conrete instance of the
-			// converted struct to be fully decoded by mapstructure.
+			// converted struct to be fully decoded by package json.
 			return template, nil
 		}
 		return converted, nil
@@ -245,7 +245,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 				}
 				subObject, ok := o.(map[string]interface{})
 				if !ok {
-					// mapstructure can take to from here...
+					// package json can take to from here...
 					continue
 				}
 				structPtr := reflect.New(derefType)
@@ -257,14 +257,14 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 		case reflect.Struct:
 			// This could be a struct embeded inside of a concrete outer
 			// type that was created from some outer template.
-			// We either leave it empty to be filled in by mapstructure,
+			// We either leave it empty to be filled in by package json,
 			// or it has interface values and was previously converted
 			// in the recusrive descent.  We know if it was converted
 			// if there is a reflect.Value.  Otherwise, no conversion
 			// has taken place and we can leave it empty.
 			subObject, ok := o.(map[string]interface{})
 			if !ok {
-				// mapstructure can take to from here...
+				// package json can take to from here...
 				continue
 			}
 			if err := assignStruct(emptyFieldVal, subObject); err != nil {
@@ -281,7 +281,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 			}
 			if len(elems) == 0 {
 				// (I think) this empty slice will raise an error by
-				// mapstructure because we can't know why kind of
+				// package json because we can't know why kind of
 				// concrete empty slice to create.  This could be
 				// turned into null here but maybe it's better
 				// to say this isn't allowed and casuses an error.
@@ -299,7 +299,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 				// fields of the sub-object.
 				_, ok := elems[0].(map[string]interface{})
 				if !ok {
-					// mapstructure can take to from here...
+					// package json can take to from here...
 					continue
 				}
 				var err error
@@ -309,7 +309,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 				}
 				if len(elems) == 0 {
 					// There were no embedded, converted values.
-					// mapstructure can take to from here...
+					// package json can take to from here...
 					continue
 				}
 				sampleElem, ok = elems[0].(reflect.Value)
