@@ -311,7 +311,7 @@ func (r *Root) openPool(ctx context.Context, config *pools.Config) (*Pool, error
 		p.Config = *config
 		return &p, nil
 	}
-	p, err := OpenPool(ctx, config, r.engine, r.logger, r.path)
+	p, err := OpenPool(ctx, r.engine, r.logger, r.path, config)
 	if err != nil {
 		return nil, err
 	}
@@ -334,16 +334,16 @@ func (r *Root) CreatePool(ctx context.Context, name string, sortKey order.SortKe
 		thresh = data.DefaultThreshold
 	}
 	config := pools.NewConfig(name, sortKey, thresh, seekStride)
-	if err := CreatePool(ctx, config, r.engine, r.logger, r.path); err != nil {
+	if err := CreatePool(ctx, r.engine, r.logger, r.path, config); err != nil {
 		return nil, err
 	}
 	pool, err := r.openPool(ctx, config)
 	if err != nil {
-		RemovePool(ctx, config, r.engine, r.path)
+		RemovePool(ctx, r.engine, r.path, config)
 		return nil, err
 	}
 	if err := r.pools.Add(ctx, config); err != nil {
-		RemovePool(ctx, config, r.engine, r.path)
+		RemovePool(ctx, r.engine, r.path, config)
 		return nil, err
 	}
 	return pool, nil
@@ -363,7 +363,7 @@ func (r *Root) RemovePool(ctx context.Context, id ksuid.KSUID) error {
 	// With no entry in the pool store, it will be inaccessible and
 	// eventually evicted by the cache's LRU algorithm.
 	r.poolCache.Remove(config.ID)
-	return RemovePool(ctx, config, r.engine, r.path)
+	return RemovePool(ctx, r.engine, r.path, config)
 }
 
 func (r *Root) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, parent ksuid.KSUID) (*branches.Config, error) {
@@ -371,7 +371,7 @@ func (r *Root) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string
 	if err != nil {
 		return nil, err
 	}
-	return CreateBranch(ctx, config, r.engine, r.logger, r.path, name, parent)
+	return CreateBranch(ctx, r.engine, r.logger, r.path, config, name, parent)
 }
 
 func (r *Root) RemoveBranch(ctx context.Context, poolID ksuid.KSUID, name string) error {
