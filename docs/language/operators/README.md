@@ -10,12 +10,13 @@ and appear as the components of a dataflow pipeline.
 * [cut](cut.md) - extract subsets of record fields into new records
 * [drop](drop.md) - drop fields from record values
 * [file](from.md) - source data from a file
-* [from](from.md) - source data from pools, files, or URIs
 * [fork](fork.md) - copy values to parallel paths
+* [from](from.md) - source data from pools, files, or URIs
 * [fuse](fuse.md) - coerce all input values into a merged type
 * [get](from.md) - source data from a URI
 * [head](head.md) - copy leading values of input sequence
 * [join](join.md) - combine data from two inputs using a join predicate
+* [merge](merge.md) - combine parallel paths into a single, ordered output
 * [over](over.md) - traverse nested values as a lateral query
 * [pass](pass.md) - copy input values to output
 * [put](put.md) - add or modify fields of records
