@@ -518,6 +518,22 @@ func (c *canon) proc(p ast.Op) {
 			c.space()
 			c.exprs(p.Args)
 		}
+	case *ast.Load:
+		c.next()
+		c.write("load %s", p.Pool)
+		if len(p.Branch) != 0 {
+			c.write("@%s", p.Branch)
+		}
+		if len(p.Author) != 0 {
+			c.write(", %s", p.Author)
+		}
+		if len(p.Message) != 0 {
+			c.write(", %s", p.Message)
+		}
+		if len(p.Meta) != 0 {
+			c.write(", %s", p.Meta)
+		}
+		c.close()
 	case *ast.Head:
 		c.next()
 		c.open("head ")

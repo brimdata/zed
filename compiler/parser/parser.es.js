@@ -471,7 +471,7 @@ function peg$parse(input, options) {
       peg$c198 = "load",
       peg$c199 = peg$literalExpectation("load", false),
       peg$c200 = function(pool, branch, author, message, meta) {
-              return {"kind": "Load", "pool": pool, "branch": branch, "author": author, "message": message, "meta": meta}
+            return {"kind": "Load", "pool": pool, "branch": branch, "author": author, "message": message, "meta": meta}
           },
       peg$c201 = "author",
       peg$c202 = peg$literalExpectation("author", false),
