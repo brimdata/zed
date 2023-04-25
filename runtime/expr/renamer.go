@@ -87,6 +87,6 @@ func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
 	return ectx.NewValue(typ, out.Bytes)
 }
 
-func (_ *Renamer) String() string { return "rename" }
+func (*Renamer) String() string { return "rename" }
 
-func (_ *Renamer) Warning() string { return "" }
+func (*Renamer) Warning() string { return "" }
