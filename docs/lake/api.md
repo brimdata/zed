@@ -30,6 +30,8 @@ POST /pool
 | layout.order | string | body | Order of storage by primary key(s) in pool. Possible values: desc, asc. Default: asc. |
 | layout.keys | [[string]] | body | Primary key(s) of pool. The element of each inner string array should reflect the hierarchical ordering of named fields within indexed records. Default: [[ts]]. |
 | thresh | int | body | The size in bytes of each seek index. |
+| Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -85,12 +87,12 @@ PUT /pool/{pool}
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID or name of the requested pool. |
 | name | string | body | **Required.** The desired new name of the pool. Must be unique to lake. |
+| Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
 
 **Example Request**
 
 ```
 curl -X PUT \
-     -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -d '{"name": "catalog"}' \
      http://localhost:9867/pool/inventory
@@ -142,8 +144,9 @@ POST /pool/{pool}/branch/{branch}
 | pool | string | path | **Required.** ID or name of the pool. |
 | branch | string | path | **Required.** Name of branch to which data will be loaded. |
 |   | various | body | **Required.** Contents of the posted data. |
-| Content-Type | string | header | MIME type of the posted content. If undefined, the service will attempt to introspect the data and determine type automatically. |
 | csv.delim | string | query | Exactly one character specifying the field delimiter for CSV data. Defaults to ",". |
+| Content-Type | string | header | [MIME type](#mime-types) of the posted content. If undefined, the service will attempt to introspect the data and determine type automatically. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -179,6 +182,7 @@ GET /pool/{pool}/branch/{branch}
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID or name of the pool. |
 | branch | string | path | **Required.** Name of branch. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -240,6 +244,8 @@ POST /pool/{pool}/branch/{branch}/delete
 | branch | string | path | **Required.** Name of branch. |
 | object_ids | [string] | body | Object IDs to be deleted. |
 | where | string | body | Filter expression (see [limitations](../commands/zed.md#24-delete)). |
+| Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -291,6 +297,7 @@ POST /pool/{pool}/branch/{branch}/merge/{child}
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch selected as merge destination. |
 | child | string | path | **Required.** Name of child branch selected as source of merge. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -323,6 +330,7 @@ POST /pool/{pool}/branch/{branch}/revert/{commit}
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch on which to revert commit. |
 | commit | string | path | **Required.** ID of commit to be reverted. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -356,6 +364,8 @@ POST /pool/{pool}/branch/{branch}/index
 | branch | string | path | **Required.** Name of branch. |
 | rule_name | string | body | **Required.** Name of indexing rule. |
 | tags | [string] | body | IDs of data objects to index. |
+| Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -392,6 +402,8 @@ POST /pool/{pool}/branch/{branch}/index/update
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
 | rule_names | [string] | body | Name(s) of index rule(s) to apply. If undefined, all rules will be applied. |
+| Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -425,6 +437,8 @@ POST /query
 | head.pool | string | body | Pool to query against Not required if pool is specified in query. |
 | head.branch | string | body | Branch to query against. Defaults to "main". |
 | ctrl | string | query | Set to "T" to include control messages in ZNG or ZJSON responses. Defaults to "F". |
+| Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
+| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
 **Example Request**
 
@@ -467,7 +481,7 @@ curl -X POST \
 
 Subscribe to an events feed, which returns an event stream in the format of
 [server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html).
-The MIME type specified in the request's Accept HTTP header determines the format
+The [MIME type](#mime-types) specified in the request's Accept HTTP header determines the format
 of `data` field values in the event stream.
 
 ```
@@ -506,24 +520,46 @@ data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
 
 ## Media Types
 
-For response content types, the service can produce a variety of formats. To
-receive responses in the desired format, include the MIME type of the format in
-the request's Accept HTTP header.
+For both request and response payloads, the service supports a variety of
+formats.
 
-If the Accept header is not specified, the service will return ZSON as the
-default response format for the endpoints described above. A different default
-response format can be specified by invoking the `-defaultfmt` option when
-running [`zed serve`](../commands/zed.md#213-serve).
+### Request Payloads
 
-The supported MIME types are as follows:
+When sending request payloads, include the MIME type of the format in the
+request's Content-Type header. If the Content-Type header is not specified, the
+service will expect ZSON as the payload format.
 
-| Format | MIME Type |
-| ------ | --------- |
-| Arrow IPC Stream | application/vnd.apache.arrow.stream |
-| CSV | text/csv |
-| JSON | application/json |
-| NDJSON | application/x-ndjson |
-| Parquet | application/x-parquet |
-| ZJSON | application/x-zjson |
-| ZSON | application/x-zson |
-| ZNG | application/x-zng |
+An exception to this is when [loading data](#load-data) and Content-Type is not
+specified. In this case the service will attempt to introspect the data and may
+determine the type automatically. The
+[input formats](../commands/zq.md#2-input-formats) table describes which
+formats may be successfully auto-detected.
+
+### Response Payloads
+
+To receive successful (2xx) responses in a preferred format, include the MIME
+type of the format in the request's Accept HTTP header. If the Accept header is
+not specified, the service will return ZSON as the default response format. A
+different default response format can be specified by invoking the
+`-defaultfmt` option when running [`zed serve`](../commands/zed.md#213-serve).
+
+For non-2xx responses, the content type of the response will be
+`application/json` or `text/plain`.
+
+### MIME Types
+
+The following table shows the supported MIME types and where they can be used.
+
+| Format           | Request   | Response | MIME Type                             |
+| ---------------- | --------- | -------- | ------------------------------------- |
+| Arrow IPC Stream | yes       | yes      | `application/vnd.apache.arrow.stream` |
+| CSV              | yes       | yes      | `text/csv`                            |
+| JSON             | yes       | yes      | `application/json`                    |
+| Line             | yes       | no       | `application/x-line`                  |
+| NDJSON           | no        | yes      | `application/x-ndjson`                |
+| Parquet          | yes       | yes      | `application/x-parquet`               |
+| VNG              | yes       | yes      | `application/x-vng`                   |
+| Zeek             | yes       | yes      | `application/x-zeek`                  |
+| ZJSON            | yes       | yes      | `application/x-zjson`                 |
+| ZSON             | yes       | yes      | `application/x-zson`                  |
+| ZNG              | yes       | yes      | `application/x-zng`                   |

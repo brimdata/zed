@@ -16,7 +16,7 @@ where the values from the upstream paths are forwarded based on these expression
 
 ### Examples
 
-_Copy input to two paths and combine
+_Copy input to two paths and combine_
 ```mdtest-command
 echo '1 2' | zq -z 'fork (=>pass =>pass) | merge this' -
 ```

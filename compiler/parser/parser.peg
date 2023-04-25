@@ -49,18 +49,18 @@
 start
   = __ scope:Scope __ EOF { RETURN(scope) }
   / __ body:Sequential __ EOF {
-      RETURN(MAP("kind": "Scope", "body": body, "decls": NULL))
+      RETURN(MAP("kind": "Scope", "decls": NULL, "body": body))
     }
 
 Scope
   = decls:Decl+ body:Sequential {
-      RETURN(MAP("kind": "Scope", "body": body, "decls": decls))
+      RETURN(MAP("kind": "Scope", "decls": decls, "body": body))
     }
 
 Sequential
   = first:Operation rest:SequentialTail* {
       RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest)))
-    }    
+    }
 
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
 
@@ -69,22 +69,22 @@ Decl
 
 ConstDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
-      RETURN(MAP("kind":"ConstDecl", "name":id, "expr":expr))
+      RETURN(MAP("kind": "ConstDecl", "name": id, "expr": expr))
     }
   / "type" _ id:(IdentifierName / QuotedString) __ "=" __ typ:Type {
       RETURN(MAP(
-        "kind":"ConstDecl",
-        "name":id,
-        "expr":MAP("kind":"TypeValue","value":MAP("kind":"TypeDef","name":id,"type":typ))))
+        "kind": "ConstDecl",
+        "name": id,
+        "expr": MAP("kind": "TypeValue", "value": MAP("kind": "TypeDef", "name": id, "type": typ))))
     }
 
 FuncDecl
   = "func" _ id:IdentifierName __ "(" __ params:IdentifierNames __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
       RETURN(MAP(
-        "kind":"FuncDecl",
-        "name":id,
-        "params":params,
-        "expr":expr))
+        "kind": "FuncDecl",
+        "name": id,
+        "params": params,
+        "expr": expr))
     }
 
 Operation
@@ -103,7 +103,7 @@ Operation
   / "(" __ scope:Scope __ ")" { RETURN(scope) }
   / op:Operator
   / a:OpAssignment &EndOfOp { RETURN(a) }
-  / !(Function EndOfOp) a:Aggregation &EndOfOp  { RETURN(a) }
+  / !(Function EndOfOp) a:Aggregation &EndOfOp { RETURN(a) }
   / "search" _ expr:SearchBoolean {
       RETURN(MAP("kind": "Search", "expr": expr))
     }
@@ -132,7 +132,7 @@ Case
   / "default" { RETURN(NULL) }
 
 FromLeg
-  = __ source:FromSource opt:(__ "=>" __  Sequential)? {
+  = __ source:FromSource opt:(__ "=>" __ Sequential)? {
       VAR(m) = MAP("kind": "Trunk", "source": source, "seq": NULL)
       if ISNOTNULL(opt) {
         m["seq"] = ASSERT_ARRAY(opt)[3]
@@ -159,8 +159,8 @@ SearchOrTerm = _ OrToken _ t:SearchAnd { RETURN(ARRAY("or", t)) }
 
 SearchAnd
   = first:SearchFactor
-    rest:((_ AndToken)? _ !(OrToken / SearchKeywordGuard) expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
-      RETURN(makeBinaryExprChain(first,rest))
+    rest:((_ AndToken)? _ !(OrToken / SearchKeywordGuard) expr:SearchFactor { RETURN(ARRAY("and", expr)) })* {
+      RETURN(makeBinaryExprChain(first, rest))
     }
 
 SearchKeywordGuard
@@ -253,8 +253,8 @@ AggAssignment
     }
 
 Agg
-  = !FuncGuard op:AggName __ "(" __ expr:(OverExpr / Expr)?  __ ")" !(__ ".") where:WhereClause? {
-      VAR(r) = MAP("kind": "Agg", "name": op, "expr": NULL, "where":where)
+  = !FuncGuard op:AggName __ "(" __ expr:(OverExpr / Expr)? __ ")" !(__ ".") where:WhereClause? {
+      VAR(r) = MAP("kind": "Agg", "name": op, "expr": NULL, "where": where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
       }
@@ -341,14 +341,14 @@ SortOp
       RETURN(op)
     }
 
-SortArgs = args:(_ a:SortArg{ RETURN(a) })* { return makeArgMap(args) }
+SortArgs = args:(_ a:SortArg { RETURN(a) })* { return makeArgMap(args) }
 
 SortArg
   = "-r" { RETURN(MAP("name": "r", "value": NULL)) }
-  / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(MAP("name": "nulls", "value": where)) }
+  / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) }) { RETURN(MAP("name": "nulls", "value": where)) }
 
 TopOp
-  = "top" &EOKW limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
+  = "top" &EOKW limit:(_ n:UInt { RETURN(n) })? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
       VAR(op) = MAP("kind": "Top", "limit": 0, "args": NULL, "flush": false)
       if ISNOTNULL(limit) {
         op["limit"] = limit
@@ -434,7 +434,7 @@ JoinStyle
   / "inner" _ { RETURN("inner") }
   / "left"  _ { RETURN("left") }
   / "right" _ { RETURN("right") }
-  / ""         { RETURN("inner") }
+  / ""        { RETURN("inner") }
 
 JoinRightInput
   = __ "(" __ s:Sequential __ ")" __ { RETURN(s) }
@@ -476,8 +476,8 @@ OpAssignment
   }
 
 SampleExpr
-  = _ lval:Lval { RETURN(lval)}
-  / "" { RETURN(MAP("kind":"ID", "name":"this")) }
+  = _ lval:Lval { RETURN(lval) }
+  / "" { RETURN(MAP("kind": "ID", "name": "this")) }
 
 LoadOp
   = "load" _ pool:PoolNameString branch:PoolBranch? author:AuthorArg? message:MessageArg? meta:MetaArg? {
@@ -498,7 +498,7 @@ PoolBranch
 
 FromOp
   = source:FromAny {
-      RETURN(MAP("kind":"From", "trunks": ARRAY(MAP("kind": "Trunk","source": source))))
+      RETURN(MAP("kind": "From", "trunks": ARRAY(MAP("kind": "Trunk", "source": source))))
     }
 
 FromAny
@@ -507,8 +507,8 @@ FromAny
   / From
 
 File
-  = "file" _ path:Path format:FormatArg? sort_key:SortKeyArg?  {
-      RETURN(MAP("kind": "File", "path": path, "format": format, "sort_key": sort_key ))
+  = "file" _ path:Path format:FormatArg? sort_key:SortKeyArg? {
+      RETURN(MAP("kind": "File", "path": path, "format": format, "sort_key": sort_key))
     }
 
 From
@@ -524,7 +524,7 @@ PoolBody
 
 Get
   = "get" _ url:URL format:FormatArg? sort_key:SortKeyArg? {
-      RETURN(MAP("kind": "HTTP", "url": url, "format": format, "sort_key": sort_key ))
+      RETURN(MAP("kind": "HTTP", "url": url, "format": format, "sort_key": sort_key))
     }
 
 URL = ("http:" / "https:") Path { RETURN(TEXT) }
@@ -542,7 +542,7 @@ KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
 
 PoolSpec
   = pool:PoolName commit:PoolCommit? meta:PoolMeta? tap:TapArg {
-      RETURN(MAP("pool": pool, "commit": commit, "meta": meta, "tap":tap))
+      RETURN(MAP("pool": pool, "commit": commit, "meta": meta, "tap": tap))
     }
   / meta:PoolMeta {
       RETURN(MAP("pool": NULL, "commit": NULL, "meta": meta))
@@ -566,7 +566,7 @@ PoolNameString
   / QuotedString
 
 PoolIdentifier
-  = (IdentifierStart / ".") (IdentifierRest / ".")* {  RETURN(TEXT) }
+  = (IdentifierStart / ".") (IdentifierRest / ".")* { RETURN(TEXT) }
 
 SortKeyArg
   = _ "order" _ keys:FieldExprs order:OrderSuffix {
@@ -582,24 +582,24 @@ FormatArg
 
 OrderSuffix
   = ":asc"  { RETURN("asc") }
-  / ":desc"  { RETURN("desc") }
-  / "" { RETURN("asc") }
+  / ":desc" { RETURN("desc") }
+  / ""      { RETURN("asc") }
 
 PassOp
   = "pass" &EOKW {
-      RETURN(MAP("kind":"Pass"))
+      RETURN(MAP("kind": "Pass"))
     }
 
 // Currently we support only "explode by type" but this will be generalized
 // to explode arbitrary arrays, records, etc.
 ExplodeOp
   = "explode" _ args:Exprs typ:TypeArg as:AsArg? {
-      RETURN(MAP("kind":"Explode", "args": args, "as": as, "type": typ))
+      RETURN(MAP("kind": "Explode", "args": args, "as": as, "type": typ))
     }
 
 MergeOp
   = "merge" _ expr:Expr {
-	  RETURN(MAP("kind":"Merge", "expr":expr))
+      RETURN(MAP("kind": "Merge", "expr": expr))
     }
 
 OverOp
@@ -627,11 +627,11 @@ LocalsAssignment
 
 YieldOp
   = "yield" _ exprs:Exprs {
-	  RETURN(MAP("kind":"Yield", "exprs":exprs))
+      RETURN(MAP("kind": "Yield", "exprs": exprs))
     }
 
 TypeArg
-  = _ BY _ typ:Type { RETURN(typ)}
+  = _ BY _ typ:Type { RETURN(typ) }
 
 AsArg
   = _ AS _ lhs:Lval { RETURN(lhs) }
@@ -680,13 +680,13 @@ ConditionalExpr
 
 LogicalOrExpr
   = first:LogicalAndExpr
-    rest:(__ op:OrToken __ expr:LogicalAndExpr{ RETURN(ARRAY(op, expr)) })* {
+    rest:(__ op:OrToken __ expr:LogicalAndExpr { RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
 LogicalAndExpr
   = first:ComparisonExpr
-    rest:(__ op:AndToken __ expr:ComparisonExpr{ RETURN(ARRAY(op, expr)) })* {
+    rest:(__ op:AndToken __ expr:ComparisonExpr { RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
@@ -702,7 +702,7 @@ ComparisonExpr
 
 AdditiveExpr
   = first:MultiplicativeExpr
-    rest:(__ op:AdditiveOperator __ expr:MultiplicativeExpr{ RETURN(ARRAY(op, expr)) })* {
+    rest:(__ op:AdditiveOperator __ expr:MultiplicativeExpr { RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
@@ -710,7 +710,7 @@ AdditiveOperator = ("+" / "-") { RETURN(TEXT) }
 
 MultiplicativeExpr
   = first:NotExpr
-    rest:(__ op:MultiplicativeOperator __ expr:NotExpr{ RETURN(ARRAY(op, expr)) })* {
+    rest:(__ op:MultiplicativeOperator __ expr:NotExpr { RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
@@ -769,7 +769,7 @@ FunctionArgs
   / OptionalExprs
 
 Grep
-  = "grep" __ "(" __ pattern:Pattern __  opt:("," __ ( OverExpr / Expr) __)? ")" {
+  = "grep" __ "(" __ pattern:Pattern __ opt:("," __ (OverExpr / Expr) __)? ")" {
       VAR(m) = MAP("kind": "Grep", "pattern": pattern, "expr": MAP("kind": "ID", "name": "this"))
       if ISNOTNULL(opt) {
         m["expr"] = ASSERT_ARRAY(opt)[2]
@@ -800,12 +800,12 @@ DerefExpr
 
 Deref
   = "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr? "]" {
-      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op":":",
-                            "lhs":from, "rhs":to)))
+      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op": ":",
+                            "lhs": from, "rhs": to)))
     }
   / "[" __ ":" __ to:AdditiveExpr "]" {
-      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op":":",
-                            "lhs": NULL, "rhs":to)))
+      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op": ":",
+                            "lhs": NULL, "rhs": to)))
     }
   / "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
   / "." id:Identifier { RETURN(ARRAY(".", id)) }
@@ -816,7 +816,7 @@ Primary
   / Set
   / Map
   / Literal
-  / "(" __ expr:OverExpr __ ")"  { RETURN(expr) }
+  / "(" __ expr:OverExpr __ ")" { RETURN(expr) }
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 OverExpr
@@ -826,7 +826,7 @@ OverExpr
 
 Record
   = "{" __ elems:RecordElems __ "}" {
-      RETURN(MAP("kind":"RecordExpr", "elems":elems))
+      RETURN(MAP("kind": "RecordExpr", "elems": elems))
     }
 
 RecordElems
@@ -844,22 +844,22 @@ RecordElem
 
 Spread
   = "..." __ expr:Expr {
-      RETURN(MAP("kind":"Spread", "expr": expr))
+      RETURN(MAP("kind": "Spread", "expr": expr))
     }
 
 Field
   = name:FieldName __ ":" __ value:Expr {
-      RETURN(MAP("kind":"Field","name": name, "value": value))
+      RETURN(MAP("kind": "Field", "name": name, "value": value))
     }
 
 Array
   = "[" __ elems:VectorElems __ "]" {
-      RETURN(MAP("kind":"ArrayExpr", "elems":elems ))
+      RETURN(MAP("kind": "ArrayExpr", "elems": elems))
     }
 
 Set
   = "|[" __ elems:VectorElems __ "]|" {
-      RETURN(MAP("kind":"SetExpr", "elems":elems ))
+      RETURN(MAP("kind": "SetExpr", "elems": elems))
     }
 
 VectorElems
@@ -870,11 +870,11 @@ VectorElems
 
 VectorElem
   = Spread
-  / e:Expr { RETURN(MAP("kind":"VectorValue","expr":e)) }
+  / e:Expr { RETURN(MAP("kind": "VectorValue", "expr": e)) }
 
 Map
   = "|{" __ exprs:Entries __ "}|" {
-      RETURN(MAP("kind":"MapExpr", "entries":exprs ))
+      RETURN(MAP("kind": "MapExpr", "entries": exprs))
     }
 
 Entries
@@ -912,7 +912,7 @@ SQLOp
         "group_by": groupby,
         "having": having,
         "order_by": orderby,
-        "limit": limit ))
+        "limit": limit))
     }
 
 SQLSelect
@@ -976,7 +976,7 @@ SQLHaving
 
 SQLOrderBy
   = _ ORDER _ BY _ keys:Exprs order:SQLOrder {
-      RETURN(MAP("kind": "SQLOrderBy", "keys": keys, "order":order))
+      RETURN(MAP("kind": "SQLOrderBy", "keys": keys, "order": order))
     }
 
 SQLOrder
@@ -1006,7 +1006,7 @@ RIGHT = "right"i { RETURN("right") }
 INNER = "inner"i { RETURN("inner") }
 
 SQLTokenSentinels
-  = SELECT / AS / FROM /  JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT / ON
+  = SELECT / AS / FROM / JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT / ON
 
 /// === Literals ===
 
@@ -1050,11 +1050,11 @@ IntegerLiteral
     }
 
 BooleanLiteral
-  = "true"           { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true")) }
-  / "false"          { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "false")) }
+  = "true"  { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true")) }
+  / "false" { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "false")) }
 
 NullLiteral
-  = "null"           { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
+  = "null" { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
 
 BytesLiteral
   = "0x" HexDigit* {
@@ -1088,7 +1088,7 @@ AmbiguousType
   / name:QuotedString {
       RETURN(MAP("kind": "TypeName", "name": name))
     }
-  / "(" __ u:TypeUnion  ")" { RETURN(u) }
+  / "(" __ u:TypeUnion ")" { RETURN(u) }
 
 TypeUnion
   = types:TypeList {
@@ -1104,16 +1104,16 @@ TypeListTail = __ "," __ typ:Type { RETURN(typ) }
 
 ComplexType
   = "{" __ fields:TypeFieldList __ "}" {
-      RETURN(MAP("kind":"TypeRecord", "fields":fields))
+      RETURN(MAP("kind": "TypeRecord", "fields": fields))
     }
   / "[" __ typ:Type __ "]" {
-      RETURN(MAP("kind":"TypeArray", "type":typ))
+      RETURN(MAP("kind": "TypeArray", "type": typ))
     }
-  / "|[" __  typ:Type __ "]|" {
-      RETURN(MAP("kind":"TypeSet", "type":typ))
+  / "|[" __ typ:Type __ "]|" {
+      RETURN(MAP("kind": "TypeSet", "type": typ))
     }
   / "|{" __ keyType:Type __ ":" __ valType:Type __ "}|" {
-      RETURN(MAP("kind":"TypeMap", "key_type":keyType, "val_type": valType))
+      RETURN(MAP("kind": "TypeMap", "key_type": keyType, "val_type": valType))
     }
 
 TemplateLiteral
@@ -1136,7 +1136,7 @@ TemplateDoubleQuotedPart
 
 TemplateDoubleQuotedChar
   = "\\" v:"${" { RETURN(v) }
-  / !( "${" ) v:DoubleQuotedChar { RETURN(v) }
+  / !("${") v:DoubleQuotedChar { RETURN(v) }
 
 TemplateSingleQuotedPart
   = TemplateExpr
@@ -1146,7 +1146,7 @@ TemplateSingleQuotedPart
 
 TemplateSingleQuotedChar
   = "\\" v:"${" { RETURN(v) }
-  / !( "${" ) v:SingleQuotedChar { RETURN(v) }
+  / !("${") v:SingleQuotedChar { RETURN(v) }
 
 TemplateExpr
   = "${" __ e:Expr __ "}" {
@@ -1166,7 +1166,7 @@ PrimitiveType
       / "duration" / "time"
       / "bytes"
       / "ip" / "net"
-      / "type" / "null" ) {
+      / "type" / "null") {
           RETURN(MAP("kind": "TypePrimitive", "name": TEXT))
         }
 
@@ -1201,7 +1201,7 @@ Identifier
   = id:IdentifierName { RETURN(MAP("kind": "ID", "name": id)) }
 
 IdentifierName
-  = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
+  = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* { RETURN(TEXT) }
   / "$" { RETURN(TEXT) }
   / "\\" id:IDGuard { RETURN(id) }
   // "type" is a search guard but should not be an id guard
@@ -1209,7 +1209,7 @@ IdentifierName
   / id:SQLTokenSentinels &(__ "(") { RETURN(id) }
 
 IdentifierNames
-  = first:IdentifierName rest:(__ "," __ id:IdentifierName { RETURN(id)})* {
+  = first:IdentifierName rest:(__ "," __ id:IdentifierName { RETURN(id) })* {
     RETURN(PREPEND(first, rest))
   }
 
@@ -1259,7 +1259,7 @@ IP
   = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }
 
 IP6
-  = !( Hex ":" Hex !(HexDigit / ":")) v:IP6Variations { RETURN(v) }
+  = !(Hex ":" Hex !(HexDigit / ":")) v:IP6Variations { RETURN(v) }
 
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter
@@ -1317,7 +1317,7 @@ FloatString
   / "-"? "." [0-9]+ ExponentPart? {
       RETURN(TEXT)
     }
-  / ( NaN / Infinity ) { RETURN(TEXT) }
+  / (NaN / Infinity) { RETURN(TEXT) }
 
 
 ExponentPart = "e"i [+-]? UIntString
@@ -1351,7 +1351,7 @@ KeyWordRest
   = KeyWordStart
   / [0-9]
 
-KeyWordEsc = "\\" s:(KeywordEscape / EscapeSequence)  { RETURN(s) }
+KeyWordEsc = "\\" s:(KeywordEscape / EscapeSequence) { RETURN(s) }
 
 GlobPattern
   = &GlobProperStart &GlobHasStar head:GlobStart tail:GlobRest* {
@@ -1364,19 +1364,18 @@ GlobHasStar = KeyWordRest* "*"
 GlobStart
   = KeyWordChars
   / GlobEsc
-  / "*" { RETURN("*")}
+  / "*" { RETURN("*") }
 
 GlobRest
   = GlobStart
   / [0-9]
 
-GlobEsc = "\\" s:(GlobEscape / EscapeSequence)  { RETURN(s) }
+GlobEsc = "\\" s:(GlobEscape / EscapeSequence) { RETURN(s) }
 
 GlobEscape
   = "=" { RETURN("=") }
   / "*" { RETURN("\\*") }
   / [+-]
-
 
 SingleQuotedChar
   = !("'" / EscapedChar) . { RETURN(TEXT) }
@@ -1419,7 +1418,7 @@ RegexpBody
 EscapedChar
   = [\x00-\x1f\\]
 
-_  = AnySpace+
+_ = AnySpace+
 
 __ = AnySpace*
 

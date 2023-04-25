@@ -76,11 +76,10 @@ func (r Reflector) Unmarshal(b []byte) (interface{}, error) {
 	if err := json.Unmarshal(b, &m); err != nil {
 		return nil, fmt.Errorf("unpacker error parsing JSON: %w", err)
 	}
-	object, ok := m.(map[string]interface{})
-	if !ok {
+	if _, ok := m.(map[string]interface{}); !ok {
 		return nil, fmt.Errorf("cannot unpack non-object JSON value")
 	}
-	skeleton, err := r.unpack(object)
+	skeleton, err := walk(m, r.unpack)
 	if err != nil {
 		return nil, err
 	}
@@ -135,12 +134,7 @@ func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) 
 }
 
 func (r Reflector) unpack(p interface{}) (interface{}, error) {
-	switch p := p.(type) {
-	case map[string]interface{}:
-		converted, err := r.unpackObject(p)
-		if err != nil {
-			return nil, err
-		}
+	if p, ok := p.(map[string]interface{}); ok {
 		template, err := r.lookup(p)
 		if err != nil {
 			return nil, err
@@ -148,7 +142,7 @@ func (r Reflector) unpack(p interface{}) (interface{}, error) {
 		// Nil template means skip as you might have a key field
 		// but no interfaces.  In this case, we drop through to below.
 		if template != zero {
-			if err := convertStruct(template, converted); err != nil {
+			if err := convertStruct(template, p); err != nil {
 				return nil, err
 			}
 			// Return the reflect.Value struct pointer as interface{}
@@ -156,38 +150,11 @@ func (r Reflector) unpack(p interface{}) (interface{}, error) {
 			// either install it as a field of another reflect.Value
 			// or at the root of the descent, convert it back to an
 			// empty inteface pointing a conrete instance of the
-			// converted struct to be fully decoded by mapstructure.
+			// converted struct to be fully decoded by package json.
 			return template, nil
 		}
-		return converted, nil
-	case []interface{}:
-		return r.unpackArray(p)
 	}
-	return nil, nil
-}
-
-func (r Reflector) unpackObject(in map[string]interface{}) (map[string]interface{}, error) {
-	out := make(map[string]interface{})
-	for k, v := range in {
-		child, err := r.unpack(v)
-		if err != nil {
-			return nil, err
-		}
-		out[k] = child
-	}
-	return out, nil
-}
-
-func (r Reflector) unpackArray(in []interface{}) ([]interface{}, error) {
-	out := make([]interface{}, 0, len(in))
-	for _, p := range in {
-		converted, err := r.unpack(p)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, converted)
-	}
-	return out, nil
+	return p, nil
 }
 
 func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
@@ -245,7 +212,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 				}
 				subObject, ok := o.(map[string]interface{})
 				if !ok {
-					// mapstructure can take to from here...
+					// package json can take to from here...
 					continue
 				}
 				structPtr := reflect.New(derefType)
@@ -257,14 +224,14 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 		case reflect.Struct:
 			// This could be a struct embeded inside of a concrete outer
 			// type that was created from some outer template.
-			// We either leave it empty to be filled in by mapstructure,
+			// We either leave it empty to be filled in by package json,
 			// or it has interface values and was previously converted
 			// in the recusrive descent.  We know if it was converted
 			// if there is a reflect.Value.  Otherwise, no conversion
 			// has taken place and we can leave it empty.
 			subObject, ok := o.(map[string]interface{})
 			if !ok {
-				// mapstructure can take to from here...
+				// package json can take to from here...
 				continue
 			}
 			if err := assignStruct(emptyFieldVal, subObject); err != nil {
@@ -281,7 +248,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 			}
 			if len(elems) == 0 {
 				// (I think) this empty slice will raise an error by
-				// mapstructure because we can't know why kind of
+				// package json because we can't know why kind of
 				// concrete empty slice to create.  This could be
 				// turned into null here but maybe it's better
 				// to say this isn't allowed and casuses an error.
@@ -299,7 +266,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 				// fields of the sub-object.
 				_, ok := elems[0].(map[string]interface{})
 				if !ok {
-					// mapstructure can take to from here...
+					// package json can take to from here...
 					continue
 				}
 				var err error
@@ -309,7 +276,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 				}
 				if len(elems) == 0 {
 					// There were no embedded, converted values.
-					// mapstructure can take to from here...
+					// package json can take to from here...
 					continue
 				}
 				sampleElem, ok = elems[0].(reflect.Value)
@@ -426,4 +393,28 @@ func squashPtrs(elems []interface{}, elemType reflect.Type, fieldName string) ([
 
 func goName(val reflect.Value) string {
 	return val.Type().Name()
+}
+
+func walk(val interface{}, post func(interface{}) (interface{}, error)) (interface{}, error) {
+	switch val := val.(type) {
+	case map[string]interface{}:
+		for k, v := range val {
+			child, err := walk(v, post)
+			if err != nil {
+				return nil, err
+			}
+			val[k] = child
+		}
+	case []interface{}:
+		for k, v := range val {
+			child, err := walk(v, post)
+			if err != nil {
+				return nil, err
+			}
+			val[k] = child
+		}
+	default:
+		return val, nil
+	}
+	return post(val)
 }
