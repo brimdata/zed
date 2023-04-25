@@ -129,7 +129,7 @@ func TestUnpackNested(t *testing.T) {
 type Embedded struct {
 	Op   string `json:"op" unpack:""`
 	Root Pair   `json:"root"`
-	// Ptr is handled by mapstructure
+	// Ptr is handled by package json
 	Ptr *Pair `json:"ptr"`
 }
 
