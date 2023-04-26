@@ -184,7 +184,7 @@ zed -lake example query -z '
   ) on flip=number word
   | from (
     pass
-    pool coinflips@trial => c:=count() | yield "There were ${int64(c)} trial flips"
+    pool coinflips@trial => c:=count() | yield "There were ${int64(c)} flips"
   ) | sort this'
 ```
 =>
