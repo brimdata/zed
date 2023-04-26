@@ -30,9 +30,9 @@ _Copy each input value to three parallel legs and leave the values unmodified on
 ```mdtest-command
 echo '"HeLlo, WoRlD!"' | zq -z '
   fork (
-  => pass
-  => upper(this)
-  => lower(this)
+    => pass
+    => upper(this)
+    => lower(this)
 ) | sort' -
 ```
 =>
