@@ -51,9 +51,9 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.StringVar(&f.zsonPersist, "persist", "",
 		"regular expression to persist type definitions across the stream")
 	f.VNG.ColumnThresh = vngio.DefaultColumnThresh
-	fs.Var(&f.VNG.ColumnThresh, "coltresh", "minimum frame size (MiB) used for VNG columns")
+	fs.Var(&f.VNG.ColumnThresh, "vng.colthresh", "minimum frame size (MiB) used for VNG columns")
 	f.VNG.SkewThresh = vngio.DefaultSkewThresh
-	fs.Var(&f.VNG.SkewThresh, "skewtresh", "minimum skew size (MiB) used to group VNG columns")
+	fs.Var(&f.VNG.SkewThresh, "vng.skewthresh", "minimum skew size (MiB) used to group VNG columns")
 
 	// emitter stuff
 	fs.StringVar(&f.split, "split", "",
