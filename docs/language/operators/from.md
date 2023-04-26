@@ -183,13 +183,13 @@ zed -lake example query -z '
     from numbers | sort number
   ) on flip=number word
   | from (
-    pass
-    pool coinflips@trial => c:=count() | yield "There were ${int64(c)} flips"
+      pass
+      pool coinflips@trial => c:=count() | yield "There were ${int64(c)} flips"
   ) | sort this'
 ```
 =>
 ```mdtest-output
-"There were 3 trial flips"
+"There were 3 flips"
 {flip:1,result:"heads",word:"one"}
 {flip:2,result:"tails",word:"two"}
 ```
