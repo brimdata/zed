@@ -103,7 +103,7 @@ func (r record) MarshalJSON() ([]byte, error) {
 }
 
 func marshalArray(typ *zed.TypeArray, bytes zcode.Bytes) interface{} {
-	a := make([]interface{}, 0)
+	a := []interface{}{}
 	it := bytes.Iter()
 	for !it.Done() {
 		a = append(a, marshalAny(typ.Type, it.Next()))
@@ -112,7 +112,7 @@ func marshalArray(typ *zed.TypeArray, bytes zcode.Bytes) interface{} {
 }
 
 func marshalSet(typ *zed.TypeSet, bytes zcode.Bytes) interface{} {
-	s := make([]interface{}, 0)
+	s := []interface{}{}
 	it := bytes.Iter()
 	for !it.Done() {
 		s = append(s, marshalAny(typ.Type, it.Next()))
