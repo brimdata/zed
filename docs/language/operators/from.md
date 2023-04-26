@@ -164,10 +164,10 @@ zed -lake example query -f text 'from * | count()'
 _Join the data from multiple pools_
 ```mdtest-command
 zed -lake example query -z '
-  from (
-    pool coinflips => sort flip
-    pool numbers => sort number
-  ) | join on flip=number word'
+  from coinflips | sort flip
+  | join (
+    from numbers | sort number
+  ) on flip=number word'
 ```
 =>
 ```mdtest-output
@@ -178,10 +178,10 @@ zed -lake example query -z '
 _Use `pass` to combine our join output with data from yet another source_
 ```mdtest-command
 zed -lake example query -z '
-  from (
-    pool coinflips => sort flip
-    pool numbers => sort number
-  ) | join on flip=number word
+  from coinflips | sort flip
+  | join (
+    from numbers | sort number
+  ) on flip=number word
   | from (
     pass
     pool coinflips@trial => c:=count() | yield "There were ${int64(c)} trial flips"
