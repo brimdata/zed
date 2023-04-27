@@ -13,4 +13,4 @@ output: |
   {a:[]([ip]),b:[]([{b:ip}])}
   {a:[1.1.1.1,2.2.2.2],b:[{b:1.1.1.1},{b:2.2.2.2}]}
   {a:[null(ip),1.1.1.1],b:[null({b:ip}),{b:null(ip)},{b:2.2.2.2}]}
-  {a:[null,error("cannot cast \"2\" to type ip"),1.1.1.1],b:[{b:error("cannot cast \"2\" to type ip")},{b:null(ip)},{b:1.1.1.1}]}
+  {a:[null,error({message:"cannot cast to ip",on:"2"}),1.1.1.1],b:[{b:error({message:"cannot cast to ip",on:"2"})},{b:null(ip)},{b:1.1.1.1}]}

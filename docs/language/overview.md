@@ -1331,9 +1331,9 @@ echo '1 200 "123" "200"' | zq -z 'yield int8(this)' -
 produces
 ```mdtest-output
 1(int8)
-error("cannot cast 200 to type int8")
+error({message:"cannot cast to int8",on:200})
 123(int8)
-error("cannot cast \"200\" to type int8")
+error({message:"cannot cast to int8",on:"200"})
 ```
 
 Casting attempts to be fairly liberal in conversions.  For example, values
