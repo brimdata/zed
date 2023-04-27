@@ -5,4 +5,4 @@ input: |
   {a:"a",b:"b"}
 
 output: |
-  {a:error("cannot cast \"a\" to type time"),b:"b"}
+  {a:error({message:"cannot cast to time",on:"a"}),b:"b"}

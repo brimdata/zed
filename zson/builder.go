@@ -123,7 +123,7 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		var bytes []byte
 		if len(s) == 2 {
 			// '0x' is an empty byte string (not null byte string)
-			bytes = make([]byte, 0, 0)
+			bytes = []byte{}
 		} else {
 			var err error
 			bytes, err = hex.DecodeString(s[2:])

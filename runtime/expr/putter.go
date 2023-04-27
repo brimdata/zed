@@ -190,7 +190,7 @@ func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value, clauses [
 
 func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, vals []zed.Value, clauses []Assignment) (putStep, *zed.TypeRecord) {
 	s := putStep{op: putRecord}
-	fields := make([]zed.Field, 0)
+	var fields []zed.Field
 
 	// First look at all input fields to see which should
 	// be copied over and which should be overwritten by

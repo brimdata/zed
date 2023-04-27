@@ -50,8 +50,8 @@ echo '"10.0.0.1" 1 "foo"' | zq -z 'cast(this, <ip>)' -
 produces
 ```mdtest-output
 10.0.0.1
-error("cannot cast 1 to type ip")
-error("cannot cast \"foo\" to type ip")
+error({message:"cannot cast to ip",on:1})
+error({message:"cannot cast to ip",on:"foo"})
 ```
 
 _Cast a record to a different record type_
