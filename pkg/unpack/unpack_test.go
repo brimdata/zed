@@ -300,7 +300,6 @@ const cutJSON = `
             "fields": [
                 {
                     "lhs": null,
-                    "opx": "Assignment",
                     "rhs": {
                         "name": "ts",
                         "op": "Identifier"
@@ -311,7 +310,6 @@ const cutJSON = `
                         "name": "foo",
                         "op": "Identifier"
                     },
-                    "opx": "Assignment",
                     "rhs": {
                         "name": "x",
                         "op": "Identifier"
@@ -455,7 +453,6 @@ var sliceListExpected = &SliceList{
 }
 
 func TestUnpackSliceList(t *testing.T) {
-	t.Skip()
 	reflector := unpack.New(
 		BinaryExpr{},
 		UnaryExpr{},

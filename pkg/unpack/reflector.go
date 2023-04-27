@@ -1,6 +1,6 @@
 // Package unpack provides a means to unmarshal Go values that have embedded
 // interface values.  Different concrete implementations of any interface value
-// is properly decoded using an `unpack` struct tag to indicate a JSON field
+// are properly decoded using an `unpack` struct tag to indicate a JSON field
 // identifying the desired concrete type.  To do so, a client of
 // unpack registers each potential type in a Reflector, which binds a field
 // with a particular value to that type.
@@ -254,8 +254,7 @@ func (r Reflector) unpackStruct(toVal reflect.Value, from map[string]interface{}
 }
 
 func walk(val interface{}, pre func(interface{}) (interface{}, error)) (interface{}, error) {
-	done, err := pre(val)
-	if done != nil || err != nil {
+	if done, err := pre(val); done != nil || err != nil {
 		return done, err
 	}
 	switch val := val.(type) {
