@@ -155,11 +155,11 @@ func (r Reflector) unpackVal(toVal reflect.Value, from interface{}) error {
 	}
 	// If this value implements encoding.TextUnmarshaler and the JSON
 	// value is a string, then just return and let the unmarshaler handle
-	// things thus avoiding a type mismatch below.  The unmarshaler could
+	// things thus avoiding a type mismatch below.
 	if toVal.Type().NumMethod() != 0 && toVal.CanInterface() {
 		if _, ok := from.(string); ok {
-			if toVal.Type().Implements(textUnmarshalerType) ||
-				reflect.New(toVal.Type()).Type().Implements(textUnmarshalerType) {
+			if typ := toVal.Type(); typ.Implements(textUnmarshalerType) ||
+				reflect.PtrTo(typ).Implements(textUnmarshalerType) {
 				return nil
 			}
 		}
@@ -167,7 +167,7 @@ func (r Reflector) unpackVal(toVal reflect.Value, from interface{}) error {
 	switch toVal.Kind() {
 	case reflect.Interface:
 		// Here is the magical move.  For all interface values, we need to
-		// be able to find a concrete implementation that the JSON GO library
+		// be able to find a concrete implementation that package json
 		// can unmarshal into.  So we call unpack recursively here and require
 		// that this finds such a concrete value.  We install a zero-valued instance
 		// of this concrete value and let package json fill it in on the final pass.

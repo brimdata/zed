@@ -286,7 +286,6 @@ type CutProc struct {
 }
 
 type Assignment struct {
-	//Op  string `json:"op" unpack:""`
 	LHS Expr `json:"lhs"`
 	RHS Expr `json:"rhs"`
 }
@@ -328,14 +327,12 @@ var cutExpected = &CutProc{
 	Op: "CutProc",
 	Fields: []Assignment{
 		{
-			//Op: "Assignment",
 			RHS: &Identifier{
 				Op:   "Identifier",
 				Name: "ts",
 			},
 		},
 		{
-			//Op: "Assignment",
 			LHS: &Identifier{
 				Op:   "Identifier",
 				Name: "foo",
@@ -352,7 +349,6 @@ func TestUnpackCut(t *testing.T) {
 	reflector := unpack.New(
 		CutProc{},
 		Identifier{},
-		//Assignment{},
 	)
 	actual, err := reflector.UnmarshalString(cutJSON)
 	require.NoError(t, err)
