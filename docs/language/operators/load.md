@@ -5,7 +5,7 @@
 ### Synopsis
 
 ```
-load <pool> [@<branch>] [author <author>] [message <message>] [meta <meta>]
+load <pool>[@<branch>] [author <author>] [message <message>] [meta <meta>]
 ```
 ### Description
 

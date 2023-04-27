@@ -5,13 +5,14 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/segmentio/ksuid"
 )
 
 type Op struct {
 	octx    *op.Context
 	lk      *lake.Root
 	parent  zbuf.Puller
-	pool    string
+	pool    ksuid.KSUID
 	branch  string
 	author  string
 	message string
@@ -19,7 +20,7 @@ type Op struct {
 	done    bool
 }
 
-func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool, branch, author, message, meta string) *Op {
+func New(octx *op.Context, lk *lake.Root, parent zbuf.Puller, pool ksuid.KSUID, branch, author, message, meta string) *Op {
 	return &Op{
 		octx:    octx,
 		lk:      lk,
@@ -53,11 +54,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	}
 	o.done = true
 	reader := zbuf.PullerReader(o.parent)
-	poolID, err := o.lk.PoolID(o.octx.Context, o.pool)
-	if err != nil {
-		return nil, err
-	}
-	pool, err := o.lk.OpenPool(o.octx.Context, poolID)
+	pool, err := o.lk.OpenPool(o.octx.Context, o.pool)
 	if err != nil {
 		return nil, err
 	}

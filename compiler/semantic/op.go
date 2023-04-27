@@ -688,9 +688,16 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Exprs: exprs,
 		}, nil
 	case *ast.Load:
+		poolID, err := lakeparse.ParseID(o.Pool)
+		if err != nil {
+			poolID, err = ds.PoolID(ctx, o.Pool)
+			if err != nil {
+				return nil, err
+			}
+		}
 		return &dag.Load{
 			Kind:    "Load",
-			Pool:    o.Pool,
+			Pool:    poolID,
 			Branch:  o.Branch,
 			Author:  o.Author,
 			Message: o.Message,

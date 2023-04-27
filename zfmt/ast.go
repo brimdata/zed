@@ -520,20 +520,19 @@ func (c *canon) proc(p ast.Op) {
 		}
 	case *ast.Load:
 		c.next()
-		c.write("load %s", p.Pool)
-		if len(p.Branch) != 0 {
-			c.write("@%s", p.Branch)
+		c.write("load %s", zson.QuotedString([]byte(p.Pool)))
+		if p.Branch != "" {
+			c.write(p.Branch)
 		}
-		if len(p.Author) != 0 {
-			c.write(", %s", p.Author)
+		if p.Author != "" {
+			c.write(" author %s ", p.Author)
 		}
-		if len(p.Message) != 0 {
-			c.write(", %s", p.Message)
+		if p.Message != "" {
+			c.write("message %s ", p.Message)
 		}
-		if len(p.Meta) != 0 {
-			c.write(", %s", p.Meta)
+		if p.Meta != "" {
+			c.write("meta %s", p.Meta)
 		}
-		c.close()
 	case *ast.Head:
 		c.next()
 		c.open("head ")
