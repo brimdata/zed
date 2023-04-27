@@ -1,6 +1,7 @@
 package unpack_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/brimdata/zed/pkg/unpack"
@@ -202,6 +203,38 @@ func TestUnpackList(t *testing.T) {
 	assert.Equal(t, listExpected, actual)
 }
 
+type Array struct {
+	Op    string  `json:"op" unpack:""`
+	Exprs [2]Expr `json:"exprs"`
+}
+
+const arrayJSON = `
+{
+	"op": "Array",
+	"exprs": [
+		{ "op": "Terminal", "body": "elem0" },
+		{ "op": "Terminal", "body": "elem1" }
+	]
+}`
+
+var arrayExpected = &Array{
+	Op: "Array",
+	Exprs: [2]Expr{
+		&Terminal{Op: "Terminal", Body: "elem0"},
+		&Terminal{Op: "Terminal", Body: "elem1"},
+	},
+}
+
+func TestUnpackArray(t *testing.T) {
+	reflector := unpack.New(
+		Terminal{},
+		Array{},
+	)
+	actual, err := reflector.UnmarshalString(arrayJSON)
+	require.NoError(t, err)
+	assert.Equal(t, arrayExpected, actual)
+}
+
 type PairList struct {
 	Op    string `json:"op" unpack:""`
 	Pairs []Pair `json:"pairs"`
@@ -253,9 +286,8 @@ type CutProc struct {
 }
 
 type Assignment struct {
-	Op  string `json:"op" unpack:""`
-	LHS Expr   `json:"lhs"`
-	RHS Expr   `json:"rhs"`
+	LHS Expr `json:"lhs"`
+	RHS Expr `json:"rhs"`
 }
 
 type Identifier struct {
@@ -268,7 +300,6 @@ const cutJSON = `
             "fields": [
                 {
                     "lhs": null,
-                    "op": "Assignment",
                     "rhs": {
                         "name": "ts",
                         "op": "Identifier"
@@ -279,7 +310,6 @@ const cutJSON = `
                         "name": "foo",
                         "op": "Identifier"
                     },
-                    "op": "Assignment",
                     "rhs": {
                         "name": "x",
                         "op": "Identifier"
@@ -295,14 +325,12 @@ var cutExpected = &CutProc{
 	Op: "CutProc",
 	Fields: []Assignment{
 		{
-			Op: "Assignment",
 			RHS: &Identifier{
 				Op:   "Identifier",
 				Name: "ts",
 			},
 		},
 		{
-			Op: "Assignment",
 			LHS: &Identifier{
 				Op:   "Identifier",
 				Name: "foo",
@@ -319,7 +347,6 @@ func TestUnpackCut(t *testing.T) {
 	reflector := unpack.New(
 		CutProc{},
 		Identifier{},
-		Assignment{},
 	)
 	actual, err := reflector.UnmarshalString(cutJSON)
 	require.NoError(t, err)
@@ -372,5 +399,102 @@ func TestValueNotAssignableToInterfaceError(t *testing.T) {
 	reflector := unpack.New(S{}, NotAny{})
 	_, err := reflector.UnmarshalString(`{"kind": "S", "value": {"kind": "NotAny"}}`)
 	require.EqualError(t, err,
-		`JSON field "value": value of type "*unpack_test.NotAny" not assignable to interface type "unpack_test.Any" in struct type "unpack_test.S"`)
+		`JSON field "value" in Go struct type "unpack_test.S": value of type "*unpack_test.NotAny" not assignable to type "unpack_test.Any"`)
+}
+
+type SliceList struct {
+	Op     string   `json:"op" unpack:""`
+	Slices [][]Pair `json:"pairslices"`
+}
+
+const sliceListJSON = `
+{
+	"op": "SliceList",
+	"pairslices": [
+		[
+			{
+				"a": { "op": "Terminal", "body": "a1" },
+				"b": { "op": "Terminal", "body": "b1" }
+			},
+			{
+				"a": { "op": "Terminal", "body": "a2" },
+				"b": { "op": "Terminal", "body": "b2" }
+			}
+		],
+		[
+			{
+				"a": { "op": "Terminal", "body": "a3" },
+				"b": { "op": "Terminal", "body": "b3" }
+			}
+		]
+	]
+}`
+
+var sliceListExpected = &SliceList{
+	Op: "SliceList",
+	Slices: [][]Pair{
+		{
+			{
+				A: &Terminal{"Terminal", "a1"},
+				B: &Terminal{"Terminal", "b1"},
+			},
+			{
+				A: &Terminal{"Terminal", "a2"},
+				B: &Terminal{"Terminal", "b2"},
+			},
+		},
+		{
+			{
+				A: &Terminal{"Terminal", "a3"},
+				B: &Terminal{"Terminal", "b3"},
+			},
+		},
+	},
+}
+
+func TestUnpackSliceList(t *testing.T) {
+	reflector := unpack.New(
+		BinaryExpr{},
+		UnaryExpr{},
+		Terminal{},
+		SliceList{},
+	)
+	actual, err := reflector.UnmarshalString(sliceListJSON)
+	require.NoError(t, err)
+	assert.Equal(t, sliceListExpected, actual)
+}
+
+var sliceListTemplate = &SliceList{
+	Op: "SliceList",
+	Slices: [][]Pair{
+		{
+			{
+				A: &Terminal{},
+				B: &Terminal{},
+			},
+			{
+				A: &Terminal{},
+				B: &Terminal{},
+			},
+		},
+		{
+			{
+				A: &Terminal{},
+				B: &Terminal{},
+			},
+		},
+	},
+}
+
+func TestSliceListTemplate(t *testing.T) {
+	err := json.Unmarshal([]byte(sliceListJSON), &sliceListTemplate)
+	require.NoError(t, err)
+	assert.Equal(t, sliceListExpected, sliceListTemplate)
+}
+
+func TestEmptyObject(t *testing.T) {
+	reflector := unpack.New()
+	actual, err := reflector.UnmarshalString("{}")
+	require.NoError(t, err)
+	assert.Equal(t, map[string]interface{}{}, actual)
 }

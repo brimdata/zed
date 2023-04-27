@@ -1,6 +1,13 @@
+// Package unpack provides a means to unmarshal Go values that have embedded
+// interface values.  Different concrete implementations of any interface value
+// are properly decoded using an `unpack` struct tag to indicate a JSON field
+// identifying the desired concrete type.  To do so, a client of
+// unpack registers each potential type in a Reflector, which binds a field
+// with a particular value to that type.
 package unpack
 
 import (
+	"encoding"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -46,7 +53,11 @@ func (r Reflector) AddAs(template interface{}, as string) Reflector {
 	if unpackKey == "" {
 		panic(fmt.Sprintf("unpack tag not found for Go type %q", typ.String()))
 	}
-	types := r.get(unpackKey, true)
+	types, ok := r[unpackKey]
+	if !ok {
+		types = make(map[string]reflect.Type)
+		r[unpackKey] = types
+	}
 	if _, ok := types[unpackVal]; ok {
 		panic(fmt.Sprintf("unpack binding for JSON field %q and Go type %q already exists", unpackKey, unpackVal))
 	}
@@ -58,33 +69,18 @@ func (r Reflector) AddAs(template interface{}, as string) Reflector {
 	return r
 }
 
-func (r Reflector) get(unpackKey string, create bool) map[string]reflect.Type {
-	types, ok := r[unpackKey]
-	if !ok && create {
-		types = make(map[string]reflect.Type)
-		r[unpackKey] = types
-	}
-	return types
-}
-
 func (r Reflector) UnmarshalString(s string) (interface{}, error) {
 	return r.Unmarshal([]byte(s))
 }
 
 func (r Reflector) Unmarshal(b []byte) (interface{}, error) {
-	var m interface{}
-	if err := json.Unmarshal(b, &m); err != nil {
+	var val interface{}
+	if err := json.Unmarshal(b, &val); err != nil {
 		return nil, fmt.Errorf("unpacker error parsing JSON: %w", err)
 	}
-	if _, ok := m.(map[string]interface{}); !ok {
-		return nil, fmt.Errorf("cannot unpack non-object JSON value")
-	}
-	skeleton, err := walk(m, r.unpack)
+	skeleton, err := walk(val, r.unpack)
 	if err != nil {
 		return nil, err
-	}
-	if rv, ok := skeleton.(reflect.Value); ok {
-		skeleton = rv.Interface()
 	}
 	if err := json.Unmarshal(b, &skeleton); err != nil {
 		return nil, err
@@ -103,7 +99,7 @@ func (r Reflector) UnmarshalObject(v interface{}) (interface{}, error) {
 func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) {
 	var hits int
 	for key, val := range object {
-		types := r.get(key, false)
+		types := r[key]
 		if types == nil {
 			continue
 		}
@@ -123,54 +119,126 @@ func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) 
 	// If we hit a key but it didn't have any matching rule (even to skip),
 	// then we raise an error.
 	if hits > 0 {
-		b, err := json.Marshal(object)
-		objtext := string(b)
-		if err != nil {
-			objtext = err.Error()
-		}
-		return zero, fmt.Errorf("unpack: JSON object found with candidate key(s) having no template match\n%s", objtext)
+		return zero, fmt.Errorf("unpack: JSON object found with candidate key(s) having no template match\n%s", stringify(object))
 	}
 	return zero, nil
 }
 
-func (r Reflector) unpack(p interface{}) (interface{}, error) {
-	if p, ok := p.(map[string]interface{}); ok {
-		template, err := r.lookup(p)
-		if err != nil {
-			return nil, err
-		}
-		// Nil template means skip as you might have a key field
-		// but no interfaces.  In this case, we drop through to below.
-		if template != zero {
-			if err := convertStruct(template, p); err != nil {
-				return nil, err
-			}
-			// Return the reflect.Value struct pointer as interface{}
-			// so that the callee can pull out the reflect.Value and
-			// either install it as a field of another reflect.Value
-			// or at the root of the descent, convert it back to an
-			// empty inteface pointing a conrete instance of the
-			// converted struct to be fully decoded by package json.
-			return template, nil
-		}
+func stringify(val interface{}) string {
+	b, err := json.Marshal(val)
+	if err != nil {
+		return err.Error()
 	}
-	return p, nil
+	return string(b)
 }
 
-func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
+func (r Reflector) unpack(from interface{}) (interface{}, error) {
+	object, ok := from.(map[string]interface{})
+	if !ok {
+		return nil, nil
+	}
+	toVal, err := r.lookup(object)
+	if toVal == zero || err != nil {
+		return nil, err
+	}
+	if err := r.unpackStruct(toVal.Elem(), object); err != nil {
+		return nil, err
+	}
+	return toVal.Interface(), nil
+}
+
+var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+
+func (r Reflector) unpackVal(toVal reflect.Value, from interface{}) error {
+	if from == nil {
+		return nil
+	}
+	// If this value implements encoding.TextUnmarshaler and the JSON
+	// value is a string, then just return and let the unmarshaler handle
+	// things thus avoiding a type mismatch below.
+	if toVal.Type().NumMethod() != 0 && toVal.CanInterface() {
+		if _, ok := from.(string); ok {
+			if typ := toVal.Type(); typ.Implements(textUnmarshalerType) ||
+				reflect.PtrTo(typ).Implements(textUnmarshalerType) {
+				return nil
+			}
+		}
+	}
+	switch toVal.Kind() {
+	case reflect.Interface:
+		// Here is the magical move.  For all interface values, we need to
+		// be able to find a concrete implementation that package json
+		// can unmarshal into.  So we call unpack recursively here and require
+		// that this finds such a concrete value.  We install a zero-valued instance
+		// of this concrete value and let package json fill it in on the final pass.
+		child, err := r.unpack(from)
+		if err != nil {
+			return err
+		}
+		if child == nil {
+			child = from
+		}
+		if err := assign(toVal, reflect.ValueOf(child)); err != nil {
+			return err
+		}
+	case reflect.Ptr:
+		var elem reflect.Value
+		if toVal.IsNil() {
+			elem = reflect.New(toVal.Type().Elem())
+			toVal.Set(elem)
+		} else {
+			elem = toVal.Elem()
+		}
+		return r.unpackVal(elem, from)
+	case reflect.Struct:
+		if object, ok := from.(map[string]interface{}); ok {
+			return r.unpackStruct(toVal, object)
+		}
+		return typeErr(toVal, from)
+	// For arrays and slices, we always try to unpack the elements just in case
+	// there are interface values somewhere below in the hierarchy that need
+	// to be handled.  If not and everything is static, this doesn't hurt as
+	// package json would have done the same work anyway.
+	case reflect.Slice:
+		elems, ok := from.([]interface{})
+		if !ok {
+			return typeErr(toVal, elems)
+		}
+		toVal.Set(reflect.MakeSlice(toVal.Type(), len(elems), len(elems)))
+		return r.unpackElems(toVal, elems)
+	case reflect.Array:
+		elems, ok := from.([]interface{})
+		if !ok {
+			return typeErr(toVal, from)
+		}
+		toVal.Set(reflect.New(toVal.Type()).Elem())
+		return r.unpackElems(toVal, elems)
+	}
+	return nil
+}
+
+func (r Reflector) unpackElems(toVal reflect.Value, from []interface{}) error {
+	for k, elem := range from {
+		if err := r.unpackVal(toVal.Index(k), elem); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r Reflector) unpackStruct(toVal reflect.Value, from map[string]interface{}) error {
 	// Create a struct of the desired concrete type then for each field of
 	// the interface type, copy the object from the map input argment.
-	// The final pass of the JSON deocoder will fill in everything else since
+	// The final pass of the JSON decoder will fill in everything else since
 	// all we can about is getting the interfaces right.
-	val := structPtr.Elem()
-	structType := val.Type()
+	structType := toVal.Type()
 	for i := 0; i < structType.NumField(); i++ {
 		fieldName, ok := jsonFieldName(structType.Field(i))
 		if !ok {
 			// No JSON tag on this field.
 			continue
 		}
-		o, ok := in[fieldName]
+		o, ok := from[fieldName]
 		if !ok {
 			// Skip over values in the conrete struct
 			// that do not have keys in the json leaving that
@@ -178,228 +246,21 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 			// decoder does.
 			continue
 		}
-		emptyFieldVal := val.Field(i)
-		switch emptyFieldVal.Kind() {
-		case reflect.Interface:
-			if o == nil {
-				// null interface pointer
-				continue
-			}
-			// For every interface type converted, we store the value in
-			// the output map here as a reflect.Value so that the caller
-			// can set its interface pointer accordingly. If it's not a
-			// reflect.Value, it means there wasn't a template for the
-			// interface value so we return an error.
-			rval, ok := o.(reflect.Value)
-			if !ok {
-				return fmt.Errorf("JSON field %q: value for interface %q unknown inside of struct type %q", fieldName, goName(emptyFieldVal), goName(val))
-			}
-			if !rval.Type().AssignableTo(emptyFieldVal.Type()) {
-				return fmt.Errorf(
-					"JSON field %q: value of type %q not assignable to interface type %q in struct type %q",
-					fieldName, rval.Type(), emptyFieldVal.Type(), val.Type())
-			}
-			emptyFieldVal.Set(rval)
-		case reflect.Ptr:
-			derefType := emptyFieldVal.Type().Elem()
-			if derefType.Kind() == reflect.Struct {
-				if subVal, ok := o.(reflect.Value); ok {
-					if subVal.Type().AssignableTo(emptyFieldVal.Type()) {
-						emptyFieldVal.Set(subVal)
-						continue
-					}
-					return fmt.Errorf("JSON field %q: cannot assign value of type %q inside of struct type %q", fieldName, goName(subVal), goName(val))
-				}
-				subObject, ok := o.(map[string]interface{})
-				if !ok {
-					// package json can take to from here...
-					continue
-				}
-				structPtr := reflect.New(derefType)
-				if err := assignStruct(structPtr.Elem(), subObject); err != nil {
-					return err
-				}
-				emptyFieldVal.Set(structPtr)
-			}
-		case reflect.Struct:
-			// This could be a struct embeded inside of a concrete outer
-			// type that was created from some outer template.
-			// We either leave it empty to be filled in by package json,
-			// or it has interface values and was previously converted
-			// in the recusrive descent.  We know if it was converted
-			// if there is a reflect.Value.  Otherwise, no conversion
-			// has taken place and we can leave it empty.
-			subObject, ok := o.(map[string]interface{})
-			if !ok {
-				// package json can take to from here...
-				continue
-			}
-			if err := assignStruct(emptyFieldVal, subObject); err != nil {
-				return err
-			}
-		case reflect.Slice:
-			if o == nil {
-				// null slice
-				continue
-			}
-			elems, ok := o.([]interface{})
-			if !ok {
-				return fmt.Errorf("JSON field %q: attempting to decode non-array JSON into a Go slice", fieldName)
-			}
-			if len(elems) == 0 {
-				// (I think) this empty slice will raise an error by
-				// package json because we can't know why kind of
-				// concrete empty slice to create.  This could be
-				// turned into null here but maybe it's better
-				// to say this isn't allowed and casuses an error.
-				continue
-			}
-			sliceType := emptyFieldVal.Type()
-			sliceElemType := sliceType.Elem()
-			sampleElem, ok := elems[0].(reflect.Value)
-			if !ok {
-				// The slice elements aren't converted values
-				// but they could be objects that have nested
-				// converted values.  Now that we know the type
-				// of the slice here, we create it and descend
-				// into each element to try to convert the
-				// fields of the sub-object.
-				_, ok := elems[0].(map[string]interface{})
-				if !ok {
-					// package json can take to from here...
-					continue
-				}
-				var err error
-				elems, err = convertObjects(sliceElemType, elems)
-				if err != nil {
-					return err
-				}
-				if len(elems) == 0 {
-					// There were no embedded, converted values.
-					// package json can take to from here...
-					continue
-				}
-				sampleElem, ok = elems[0].(reflect.Value)
-				if !ok {
-					continue
-				}
-				// Fall through and build a slice of the newly
-				// converted elements.
-			}
-			// Make sure the previously converted elements are assignable
-			// to the slice elements.  In the case of a slice of
-			// interfaces, this means the interface type implements the
-			// concrete value that was built below in the descent.
-			// In the case of a struct with embedded interfaces, then
-			// structs would need to be the same.  This here handles
-			// both cases.
-			if !sampleElem.Type().AssignableTo(sliceElemType) {
-				var err error
-				elems, err = squashPtrs(elems, sliceElemType, fieldName)
-				if err != nil {
-					return err
-				}
-			}
-			s := reflect.MakeSlice(sliceType, 0, len(elems))
-			s, err := convertSlice(s, elems)
-			if err != nil {
-				return fmt.Errorf("JSON field %q: %w", fieldName, err)
-			}
-			emptyFieldVal.Set(s)
+		if err := r.unpackVal(toVal.Field(i), o); err != nil {
+			return fmt.Errorf("JSON field %q in Go struct type %q: %w", fieldName, toVal.Type(), err)
 		}
 	}
 	return nil
 }
 
-func assignStruct(structVal reflect.Value, object map[string]interface{}) error {
-	structType := structVal.Type()
-	for i := 0; i < structType.NumField(); i++ {
-		fieldName, ok := jsonFieldName(structType.Field(i))
-		if !ok {
-			continue
-		}
-		o, ok := object[fieldName]
-		if !ok {
-			continue
-		}
-		rval, ok := o.(reflect.Value)
-		if !ok {
-			continue
-		}
-		structField := structVal.Field(i)
-		if !rval.Type().AssignableTo(structField.Type()) {
-			return fmt.Errorf("JSON field %q: converted field not type-compatible with Go struct", fieldName)
-		}
-		structField.Set(rval)
+func walk(val interface{}, pre func(interface{}) (interface{}, error)) (interface{}, error) {
+	if done, err := pre(val); done != nil || err != nil {
+		return done, err
 	}
-	return nil
-}
-
-func convertObjects(sliceElemType reflect.Type, elems []interface{}) ([]interface{}, error) {
-	out := make([]interface{}, 0, len(elems))
-	for _, elem := range elems {
-		// This needs to be an array of objects that represent structs
-		// (no pointers) so null isn't even allowed.
-		object, ok := elem.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("array has mixed types that cannot be decoded into Go slice")
-		}
-		structPtr := reflect.New(sliceElemType)
-		if err := convertStruct(structPtr, object); err != nil {
-			return nil, err
-		}
-		out = append(out, structPtr.Elem())
-	}
-	return out, nil
-}
-
-func convertSlice(s reflect.Value, elems []interface{}) (reflect.Value, error) {
-	elemType := s.Type().Elem()
-	for _, elem := range elems {
-		elemVal, ok := elem.(reflect.Value)
-		if !ok || !elemVal.Type().AssignableTo(elemType) {
-			return zero, fmt.Errorf("array has mixed types that cannot be decoded into Go slice")
-		}
-		s = reflect.Append(s, elemVal)
-	}
-	return s, nil
-}
-
-func squashPtrs(elems []interface{}, elemType reflect.Type, fieldName string) ([]interface{}, error) {
-	// The elements aren't assignment to the skeleton slice, which could be
-	// because they are pointers to structs that implement the required interface or
-	// they are flat arrays in the skeleton slice but the descent uses struct pointers
-	// for any object that it unpacks.  In either case, it is correct to deref
-	// the pointers if the result is type compatible.  On entry, we don't know
-	// if the decoded values are pointers...
-	out := make([]interface{}, 0, len(elems))
-	sampleElemPtr := elems[0].(reflect.Value)
-	for k := range elems {
-		rval, ok := elems[k].(reflect.Value)
-		if !ok {
-			return nil, fmt.Errorf("JSON field %q: converted array elements of type %q not type-compatible with Go slice elements of type %q", fieldName, goName(sampleElemPtr), elemType.Name())
-		}
-		if rval.Type().Kind() != reflect.Ptr || rval.IsZero() {
-			return nil, fmt.Errorf("JSON field %q: converted array elements of type %q not type-compatible with Go slice elements of type %q", fieldName, goName(rval), elemType.Name())
-		}
-		deref := rval.Elem()
-		if !deref.Type().AssignableTo(elemType) {
-			return nil, fmt.Errorf("JSON field %q: converted array elements of type %q not type-compatible with Go slice elements of type %q", fieldName, goName(rval), elemType.Name())
-		}
-		out = append(out, deref)
-	}
-	return out, nil
-}
-
-func goName(val reflect.Value) string {
-	return val.Type().Name()
-}
-
-func walk(val interface{}, post func(interface{}) (interface{}, error)) (interface{}, error) {
 	switch val := val.(type) {
 	case map[string]interface{}:
 		for k, v := range val {
-			child, err := walk(v, post)
+			child, err := walk(v, pre)
 			if err != nil {
 				return nil, err
 			}
@@ -407,14 +268,24 @@ func walk(val interface{}, post func(interface{}) (interface{}, error)) (interfa
 		}
 	case []interface{}:
 		for k, v := range val {
-			child, err := walk(v, post)
+			child, err := walk(v, pre)
 			if err != nil {
 				return nil, err
 			}
 			val[k] = child
 		}
-	default:
-		return val, nil
 	}
-	return post(val)
+	return val, nil
+}
+
+func assign(dst reflect.Value, src reflect.Value) error {
+	if !src.Type().AssignableTo(dst.Type()) {
+		return fmt.Errorf("value of type %q not assignable to type %q", src.Type(), dst.Type())
+	}
+	dst.Set(src)
+	return nil
+}
+
+func typeErr(toVal reflect.Value, from interface{}) error {
+	return fmt.Errorf("unpacking into type %s: incompatible JSON: %s", toVal.Type(), stringify(from))
 }

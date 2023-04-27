@@ -1,6 +1,7 @@
 package zjsonio
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,6 +24,9 @@ func unmarshal(b []byte) (*Object, error) {
 	}
 	if err := json.Unmarshal(b, &template); err != nil {
 		return nil, err
+	}
+	if template.Type == nil {
+		return nil, fmt.Errorf("malformed ZJSON: no type object in %q", bytes.TrimSpace(b))
 	}
 	// We should enhance the unpacker to take the template struct
 	// here so we don't have to call UnmarshalObject.  But not
