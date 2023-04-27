@@ -10,4 +10,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      Parquet output encountered non-record value: 1
+      parquetio: not a record: 1

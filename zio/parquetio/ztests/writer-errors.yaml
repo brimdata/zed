@@ -1,0 +1,15 @@
+script: |
+  ! echo '{a:1} {b:2}' | zq -f parquet -
+  ! echo 1 | zq -f parquet -
+  ! echo {} | zq -f parquet -
+  ! echo {a:1s} | zq -f parquet -
+  ! echo '{a:1.(float16)}' | zq -f parquet -
+
+outputs:
+  - name: stderr
+    data: |
+        parquetio: encountered multiple types (consider 'fuse'): {a:int64} and {b:int64}
+        parquetio: not a record: 1
+        parquetio: unsupported type: empty record
+        parquetio: unsupported type: not implemented yet
+        parquetio: unsupported type: not implemented yet
