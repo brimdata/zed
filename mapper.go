@@ -2,6 +2,8 @@ package zed
 
 import (
 	"sync"
+
+	"golang.org/x/exp/slices"
 )
 
 type Mapper struct {
@@ -55,12 +57,8 @@ func (m *Mapper) EnterType(id int, typ Type) {
 		return
 	}
 	m.mu.Lock()
-	if id >= cap(m.types) {
-		new := make([]Type, id+1, id*2)
-		copy(new, m.types)
-		m.types = new
-	} else if id >= len(m.types) {
-		m.types = m.types[:id+1]
+	if id >= len(m.types) {
+		m.types = slices.Grow(m.types[:0], id+1)[:id+1]
 	}
 	m.types[id] = typ
 	m.mu.Unlock()

@@ -3,6 +3,8 @@ package peeker
 import (
 	"errors"
 	"io"
+
+	"golang.org/x/exp/slices"
 )
 
 type Reader struct {
@@ -41,9 +43,7 @@ func (r *Reader) fill(need int) error {
 	if need > r.limit {
 		return ErrBufferOverflow
 	}
-	if need > cap(r.buffer) {
-		r.buffer = make([]byte, need)
-	}
+	r.buffer = slices.Grow(r.buffer[:0], need)
 	r.buffer = r.buffer[:cap(r.buffer)]
 	copy(r.buffer, r.cursor)
 	clen := len(r.cursor)
