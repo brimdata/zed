@@ -25,7 +25,7 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.Var(&f.Includes, "I", "source file containing Zed query text (may be used multiple times)")
 }
 
-func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Op, bool, error) {
+func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, error) {
 	var src string
 	if len(paths) != 0 && !cli.FileExists(paths[0]) && !isURLWithKnownScheme(paths[0], "http", "https", "s3") {
 		src = paths[0]
@@ -52,22 +52,27 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Op, bool, e
 	return paths, query, false, nil
 }
 
-func isFrom(o ast.Op) bool {
-	if scope, ok := o.(*ast.Scope); ok && len(scope.Body.Ops) > 0 {
-		_, ok := scope.Body.Ops[0].(*ast.From)
-		return ok
+func isFrom(seq ast.Seq) bool {
+	if len(seq) > 0 {
+		switch op := seq[0].(type) {
+		case *ast.From:
+			return true
+		case *ast.Scope:
+			return isFrom(op.Body)
+		}
 	}
 	return false
 }
 
-func isYield(o ast.Op) bool {
-	if scope, ok := o.(*ast.Scope); ok && len(scope.Body.Ops) >= 1 {
-		o := scope.Body.Ops[0]
-		if _, ok := o.(*ast.Yield); ok {
+func isYield(seq ast.Seq) bool {
+	if len(seq) > 0 {
+		switch op := seq[0].(type) {
+		case *ast.Yield:
 			return true
-		}
-		if e, ok := o.(*ast.OpExpr); ok {
-			return !zfmt.IsSearch(e.Expr) && !zfmt.IsBool(e.Expr)
+		case *ast.Scope:
+			return isYield(op.Body)
+		case *ast.OpExpr:
+			return !zfmt.IsSearch(op.Expr) && !zfmt.IsBool(op.Expr)
 		}
 	}
 	return false

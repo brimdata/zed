@@ -504,7 +504,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			w.Error(srverr.ErrInvalid("either object_ids or where must be set"))
 			return
 		}
-		var program ast.Op
+		var program ast.Seq
 		if program, err = c.compiler.Parse(payload.Where); err != nil {
 			w.Error(srverr.ErrInvalid(err))
 			return

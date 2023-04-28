@@ -8,17 +8,13 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func DAG(op dag.Op) string {
+func DAG(seq dag.Seq) string {
 	d := &canonDAG{
 		canonZed: canonZed{formatter: formatter{tab: 2}},
 		head:     true,
 		first:    true,
 	}
-	if scope, ok := op.(*dag.Scope); ok {
-		d.scope(scope, false)
-	} else {
-		d.op(op)
-	}
+	d.seq(seq)
 	d.flush()
 	return d.String()
 }
@@ -116,7 +112,7 @@ func (c *canonDAG) expr(e dag.Expr, parent string) {
 				c.expr(d.Expr, "")
 			}
 		}
-		c.op(e.Scope)
+		c.seq(e.Body)
 		c.close()
 		c.ret()
 		c.flush()
@@ -259,26 +255,41 @@ func (c *canonDAG) next() {
 	}
 }
 
+func (c *canonDAG) seq(seq dag.Seq) {
+	for _, p := range seq {
+		c.op(p)
+	}
+}
+
 func (c *canonDAG) op(p dag.Op) {
 	switch p := p.(type) {
-	case *dag.Sequential:
-		if p == nil {
-			return
-		}
-		for _, p := range p.Ops {
-			c.op(p)
-		}
 	case *dag.Scope:
-		c.scope(p, true)
-	case *dag.Parallel:
+		c.next()
+		c.scope(p)
+	case *dag.Fork:
 		c.next()
 		c.open("fork (")
-		for _, p := range p.Ops {
+		for _, seq := range p.Paths {
 			c.ret()
 			c.write("=>")
 			c.open()
 			c.head = true
-			c.op(p)
+			c.seq(seq)
+			c.close()
+		}
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
+	case *dag.Scatter:
+		c.next()
+		c.open("scatter (")
+		for _, seq := range p.Paths {
+			c.ret()
+			c.write("=>")
+			c.open()
+			c.head = true
+			c.seq(seq)
 			c.close()
 		}
 		c.close()
@@ -304,7 +315,7 @@ func (c *canonDAG) op(p dag.Op) {
 			c.write(" =>")
 			c.open()
 			c.head = true
-			c.op(k.Op)
+			c.seq(k.Path)
 			c.close()
 		}
 		c.close()
@@ -514,7 +525,7 @@ func (c *canonDAG) over(o *dag.Over) {
 		c.write(" => (")
 		c.open()
 		c.head = true
-		c.op(o.Body)
+		c.seq(o.Body)
 		c.close()
 		c.ret()
 		c.flush()
@@ -522,8 +533,9 @@ func (c *canonDAG) over(o *dag.Over) {
 	}
 }
 
-func (c *canonDAG) scope(s *dag.Scope, parens bool) {
-	if parens {
+func (c *canonDAG) scope(s *dag.Scope) {
+	first := c.first
+	if !first {
 		c.open("(")
 		c.ret()
 		c.flush()
@@ -548,10 +560,13 @@ func (c *canonDAG) scope(s *dag.Scope, parens bool) {
 		c.close()
 		c.ret()
 		c.flush()
-		c.write(")\n")
+		c.write(")")
+		c.ret()
+		c.flush()
 	}
-	c.op(s.Body)
-	if parens {
+	c.head = true
+	c.seq(s.Body)
+	if !first {
 		c.close()
 		c.ret()
 		c.flush()

@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/order"
-	"golang.org/x/exp/slices"
 )
 
 // XXX Remove this and use native order.Direction in group-by.  See Issue #4505.
@@ -23,14 +22,17 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 	if replicas < 2 {
 		return nil, fmt.Errorf("internal error: parallelizeScan: bad replicas: %d", replicas)
 	}
-	if len(ops) < 1 {
-		return nil, errors.New("internal error: parallelizeScan: short path")
+	if scan, ok := ops[0].(*dag.SeqScan); ok {
+		return o.parallelizeSeqScan(scan, ops, replicas)
 	}
-	scan, ok := ops[0].(*dag.SeqScan)
-	if !ok {
-		return nil, errors.New("internal error: parallelizeScan: entry has no dag.SeqScan")
-	}
+	return nil, errors.New("parallelization of non-pool queries is not yet supported")
+}
+
+func (o *Optimizer) parallelizeSeqScan(scan *dag.SeqScan, ops []dag.Op, replicas int) ([]dag.Op, error) {
 	if len(ops) == 1 && scan.Filter == nil {
+		// We don't try to parallelize the path if it's simply scanning and does no
+		// other work.  We might want to revisit this down the road if
+		// the system would benefit for parallel reading and merging.
 		return nil, nil
 	}
 	srcSortKey, err := o.sortKeyOfSource(scan)
@@ -53,9 +55,12 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 	}
 	head := ops[:n+1]
 	tail := ops[n+1:]
-	par := &dag.Parallel{Kind: "Parallel", Any: true}
+	scatter := &dag.Scatter{
+		Kind:  "Scatter",
+		Paths: make([]dag.Seq, replicas),
+	}
 	for k := 0; k < replicas; k++ {
-		par.Ops = append(par.Ops, &dag.Sequential{Kind: "Sequential", Ops: copyOps(head)})
+		scatter.Paths[k] = copyOps(head)
 	}
 	var merge dag.Op
 	if needMerge {
@@ -72,16 +77,15 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 	} else {
 		merge = &dag.Combine{Kind: "Combine"}
 	}
-	return append([]dag.Op{par, merge}, tail...), nil
+	return append([]dag.Op{scatter, merge}, tail...), nil
 }
 
-func (o *Optimizer) optimizeParallels(op dag.Op) {
-	walkOp(op, false, func(op dag.Op) {
-		if seq, ok := op.(*dag.Sequential); ok {
-			for ops := seq.Ops; len(ops) >= 3; ops = ops[1:] {
-				o.liftIntoParPaths(ops)
-			}
+func (o *Optimizer) optimizeParallels(seq dag.Seq) {
+	walk(seq, false, func(seq dag.Seq) dag.Seq {
+		for ops := seq; len(ops) >= 3; ops = ops[1:] {
+			o.liftIntoParPaths(ops)
 		}
+		return seq
 	})
 }
 
@@ -93,7 +97,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 		// Need a parallel, an optional merge/combine, and something downstream.
 		return
 	}
-	par, ok := ops[0].(*dag.Parallel)
+	// We should optimize dag.Fork in the same way.  See issue #4559.
+	fork, ok := ops[0].(*dag.Scatter)
 	if !ok {
 		return
 	}
@@ -119,11 +124,10 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 			// Need an unmodified summarize to split into its parials pieces.
 			return
 		}
-		for _, o := range par.Ops {
-			path := o.(*dag.Sequential)
+		for k := range fork.Paths {
 			partial := copyOp(op).(*dag.Summarize)
 			partial.PartialsOut = true
-			path.Ops = append(path.Ops, partial)
+			fork.Paths[k].Append(partial)
 		}
 		op.PartialsIn = true
 		// The upstream aggregators will compute any key expressions
@@ -149,10 +153,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 				return
 			}
 		}
-		for _, o := range par.Ops {
-			path := o.(*dag.Sequential)
-			sort := copyOp(op).(*dag.Sort)
-			path.Ops = append(path.Ops, sort)
+		for k := range fork.Paths {
+			fork.Paths[k].Append(copyOp(op))
 		}
 		if merge == nil {
 			merge = &dag.Merge{
@@ -174,49 +176,30 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 	case *dag.Head, *dag.Tail:
 		// Copy the head or tail into the parallel path and leave the original in
 		// place which will apply another head or tail after the merge.
-		for _, o := range par.Ops {
-			path := o.(*dag.Sequential)
-			path.Ops = append(path.Ops, copyOp(op))
+		for k := range fork.Paths {
+			fork.Paths[k].Append(copyOp(op))
 		}
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename, *dag.Filter:
 		if merge != nil {
 			// See if this op would disrupt the merge-on key
-			mergeKey, err := o.propagateSortKey(merge, order.Nil)
+			mergeKey, err := o.propagateSortKeyOp(merge, order.Nil)
 			if err != nil || mergeKey.IsNil() {
 				// Bail if there's a merge with a non-key expression.
 				return
 			}
-			key, err := o.propagateSortKey(op, mergeKey)
+			key, err := o.propagateSortKeyOp(op, mergeKey)
 			if err != nil || !key.Equal(mergeKey) {
 				// This operator destroys the merge order so we cannot
 				// lift it up into the parallel legs in front of the merge.
 				return
 			}
 		}
-		for _, o := range par.Ops {
-			path := o.(*dag.Sequential)
-			path.Ops = append(path.Ops, copyOp(op))
+		for k := range fork.Paths {
+			fork.Paths[k].Append(copyOp(op))
 		}
 		// this will get removed later
 		ops[egress] = dag.PassOp
 	}
-}
-
-// inlineSequentials transforms op by inlining nested sequential operators
-// without constant or function definitions, replacing each with the operators
-// it contains.
-func inlineSequentials(op dag.Op) {
-	walkOp(op, true, func(op dag.Op) {
-		if seq, ok := op.(*dag.Sequential); ok {
-			// Can't use range because we might change the length.
-			for i := 0; i < len(seq.Ops); i++ {
-				seq2, ok := seq.Ops[i].(*dag.Sequential)
-				if ok {
-					seq.Ops = slices.Replace(seq.Ops, i, i+1, seq2.Ops...)
-				}
-			}
-		}
-	})
 }
 
 // concurrentPath returns the largest path within ops from front to end that can
@@ -253,7 +236,7 @@ func (o *Optimizer) concurrentPath(ops []dag.Op, sortKey order.SortKey) (int, or
 				return 0, order.Nil, false, false, nil
 			}
 			return k, newKey, false, true, nil
-		case *dag.Parallel, *dag.Head, *dag.Tail, *dag.Uniq, *dag.Fuse, *dag.Sequential, *dag.Join:
+		case *dag.Fork, *dag.Scatter, *dag.Head, *dag.Tail, *dag.Uniq, *dag.Fuse, *dag.Join:
 			return k, sortKey, true, true, nil
 		default:
 			next, err := o.analyzeSortKey(op, sortKey)

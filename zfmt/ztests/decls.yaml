@@ -25,13 +25,16 @@ outputs:
       const bar = "baz"
       pass
       ===
-      const foo = "bar"
-      const bar = "baz"
-      func fib(n): (
-        (n<=1) ? n : fib(n-1)+fib(n-2)
-      )
-      func add(a, b): (
-        a+b
-      )
       reader
-      | pass
+      | (
+        const foo = "bar"
+        const bar = "baz"
+        func fib(n): (
+          (n<=1) ? n : fib(n-1)+fib(n-2)
+        )
+        func add(a, b): (
+          a+b
+        )
+        
+        pass
+      )

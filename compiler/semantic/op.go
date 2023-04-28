@@ -20,29 +20,41 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
+func semSeq(ctx context.Context, scope *Scope, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
+	var converted dag.Seq
+	for _, op := range seq {
+		var err error
+		converted, err = semOp(ctx, scope, op, source, head, converted)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return converted, nil
+}
+
+func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish, seq dag.Seq) (dag.Seq, error) {
 	switch len(from.Trunks) {
 	case 0:
 		return nil, errors.New("internal error: from operator has no paths")
 	case 1:
-		return semTrunk(ctx, scope, from.Trunks[0], source, head)
+		return semTrunk(ctx, scope, from.Trunks[0], source, head, seq)
 	default:
-		ops := make([]dag.Op, 0, len(from.Trunks))
+		paths := make([]dag.Seq, 0, len(from.Trunks))
 		for _, in := range from.Trunks {
-			converted, err := semTrunk(ctx, scope, in, source, head)
+			converted, err := semTrunk(ctx, scope, in, source, head, nil)
 			if err != nil {
 				return nil, err
 			}
-			ops = append(ops, converted)
+			paths = append(paths, converted)
 		}
-		return &dag.Parallel{
-			Kind: "Parallel",
-			Ops:  ops,
-		}, nil
+		return append(seq, &dag.Fork{
+			Kind:  "Fork",
+			Paths: paths,
+		}), nil
 	}
 }
 
-func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
+func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish, out dag.Seq) (dag.Seq, error) {
 	if pool, ok := trunk.Source.(*ast.Pool); ok && trunk.Seq != nil {
 		switch pool.Spec.Pool.(type) {
 		case *ast.Glob, *ast.Regexp:
@@ -53,26 +65,18 @@ func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Sourc
 	if err != nil {
 		return nil, err
 	}
-	seq, err := semSequential(ctx, scope, trunk.Seq, ds, head)
+	seq, err := semSeq(ctx, scope, trunk.Seq, ds, head)
 	if err != nil {
 		return nil, err
 	}
 	if len(sources) == 1 {
-		out := &dag.Sequential{Kind: "Sequential", Ops: []dag.Op{sources[0]}}
-		if seq != nil {
-			out.Ops = append(out.Ops, seq.Ops...)
-		}
-		return out, nil
+		return append(out, append(dag.Seq{sources[0]}, seq...)...), nil
 	}
-	ops := make([]dag.Op, 0, len(sources))
+	paths := make([]dag.Seq, 0, len(sources))
 	for _, source := range sources {
-		out := &dag.Sequential{Kind: "Sequential", Ops: []dag.Op{source}}
-		if seq != nil {
-			out.Ops = append(out.Ops, seq.Ops...)
-		}
-		ops = append(ops, out)
+		paths = append(paths, append(dag.Seq{source}, seq...))
 	}
-	return &dag.Parallel{Kind: "Parallel", Ops: ops}, nil
+	return append(out, &dag.Fork{Kind: "Fork", Paths: paths}), nil
 }
 
 //XXX make sure you can't read files from a lake instance
@@ -255,19 +259,10 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		}
 	}
 	if p.Delete {
-		return &dag.Sequential{
-			Kind: "Sequential",
-			Ops: []dag.Op{
-				&dag.Lister{
-					Kind:   "Lister",
-					Pool:   poolID,
-					Commit: commitID,
-				},
-				&dag.Deleter{
-					Kind: "Deleter",
-					Pool: poolID,
-				},
-			},
+		return &dag.DeleteScan{
+			Kind:   "DeleteScan",
+			ID:     poolID,
+			Commit: commitID,
 		}, nil
 	}
 	return &dag.PoolScan{
@@ -298,24 +293,6 @@ func matchPools(ctx context.Context, ds *data.Source, pattern, origPattern, patt
 	return matches, nil
 }
 
-func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, ds *data.Source, head *lakeparse.Commitish) (*dag.Sequential, error) {
-	if seq == nil {
-		return nil, nil
-	}
-	var ops []dag.Op
-	for _, o := range seq.Ops {
-		converted, err := semOp(ctx, scope, o, ds, head)
-		if err != nil {
-			return nil, err
-		}
-		ops = append(ops, converted)
-	}
-	return &dag.Sequential{
-		Kind: "Sequential",
-		Ops:  ops,
-	}, nil
-}
-
 func semScope(ctx context.Context, scope *Scope, op *ast.Scope, ds *data.Source, head *lakeparse.Commitish) (*dag.Scope, error) {
 	scope.Enter()
 	defer scope.Exit()
@@ -323,7 +300,7 @@ func semScope(ctx context.Context, scope *Scope, op *ast.Scope, ds *data.Source,
 	if err != nil {
 		return nil, err
 	}
-	seq, err := semSequential(ctx, scope, op.Body, ds, head)
+	body, err := semSeq(ctx, scope, op.Body, ds, head)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +308,7 @@ func semScope(ctx context.Context, scope *Scope, op *ast.Scope, ds *data.Source,
 		Kind:   "Scope",
 		Consts: consts,
 		Funcs:  funcs,
-		Body:   seq,
+		Body:   body,
 	}, nil
 }
 
@@ -340,18 +317,18 @@ func semScope(ctx context.Context, scope *Scope, op *ast.Scope, ds *data.Source,
 // object.  Currently, it only replaces the group-by duration with
 // a bucket call on the ts and replaces FunctionCalls in op context
 // with either a group-by or filter op based on the function's name.
-func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *lakeparse.Commitish) (dag.Op, error) {
+func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *lakeparse.Commitish, seq dag.Seq) (dag.Seq, error) {
 	switch o := o.(type) {
 	case *ast.From:
-		return semFrom(ctx, scope, o, ds, head)
+		return semFrom(ctx, scope, o, ds, head, seq)
 	case *ast.Summarize:
 		keys, err := semAssignments(scope, o.Keys, true)
 		if err != nil {
 			return nil, err
 		}
 		if len(keys) == 0 && len(o.Aggs) == 1 {
-			if op := singletonAgg(scope, o.Aggs[0]); op != nil {
-				return op, nil
+			if seq := singletonAgg(scope, o.Aggs[0], seq); seq != nil {
+				return seq, nil
 			}
 		}
 		aggs, err := semAssignments(scope, o.Aggs, true)
@@ -367,29 +344,31 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		// so this code path isn't hit yet, but it uses this same entry point
 		// and it will soon do other stuff so we need to put in place the
 		// separation... see issue #2163.
-		return &dag.Summarize{
+		return append(seq, &dag.Summarize{
 			Kind:  "Summarize",
 			Limit: o.Limit,
 			Keys:  keys,
 			Aggs:  aggs,
-		}, nil
+		}), nil
 	case *ast.Parallel:
-		var ops []dag.Op
-		for _, o := range o.Ops {
-			converted, err := semOp(ctx, scope, o, ds, head)
+		var paths []dag.Seq
+		for _, seq := range o.Paths {
+			converted, err := semSeq(ctx, scope, seq, ds, head)
 			if err != nil {
 				return nil, err
 			}
-			ops = append(ops, converted)
+			paths = append(paths, converted)
 		}
-		return &dag.Parallel{
-			Kind: "Parallel",
-			Ops:  ops,
-		}, nil
-	case *ast.Sequential:
-		return semSequential(ctx, scope, o, ds, head)
+		return append(seq, &dag.Fork{
+			Kind:  "Fork",
+			Paths: paths,
+		}), nil
 	case *ast.Scope:
-		return semScope(ctx, scope, o, ds, head)
+		op, err := semScope(ctx, scope, o, ds, head)
+		if err != nil {
+			return nil, err
+		}
+		return append(seq, op), nil
 	case *ast.Switch:
 		var expr dag.Expr
 		if o.Expr != nil {
@@ -416,28 +395,28 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 					Value: "true",
 				}
 			}
-			o, err := semOp(ctx, scope, c.Op, ds, head)
+			path, err := semSeq(ctx, scope, c.Path, ds, head)
 			if err != nil {
 				return nil, err
 			}
-			cases = append(cases, dag.Case{Expr: e, Op: o})
+			cases = append(cases, dag.Case{Expr: e, Path: path})
 		}
-		return &dag.Switch{
+		return append(seq, &dag.Switch{
 			Kind:  "Switch",
 			Expr:  expr,
 			Cases: cases,
-		}, nil
+		}), nil
 	case *ast.Shape:
-		return &dag.Shape{Kind: "Shape"}, nil
+		return append(seq, &dag.Shape{Kind: "Shape"}), nil
 	case *ast.Cut:
 		assignments, err := semAssignments(scope, o.Args, false)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Cut{
+		return append(seq, &dag.Cut{
 			Kind: "Cut",
 			Args: assignments,
-		}, nil
+		}), nil
 	case *ast.Drop:
 		args, err := semFields(scope, o.Args)
 		if err != nil {
@@ -446,21 +425,21 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if len(args) == 0 {
 			return nil, errors.New("drop: no fields given")
 		}
-		return &dag.Drop{
+		return append(seq, &dag.Drop{
 			Kind: "Drop",
 			Args: args,
-		}, nil
+		}), nil
 	case *ast.Sort:
 		exprs, err := semExprs(scope, o.Args)
 		if err != nil {
 			return nil, fmt.Errorf("sort: %w", err)
 		}
-		return &dag.Sort{
+		return append(seq, &dag.Sort{
 			Kind:       "Sort",
 			Args:       exprs,
 			Order:      o.Order,
 			NullsFirst: o.NullsFirst,
-		}, nil
+		}), nil
 	case *ast.Head:
 		expr, err := semExpr(scope, o.Count)
 		if err != nil {
@@ -473,10 +452,10 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if val.AsInt() < 1 {
 			return nil, fmt.Errorf("head: expression value is not a positive integer: %s", zson.MustFormatValue(val))
 		}
-		return &dag.Head{
+		return append(seq, &dag.Head{
 			Kind:  "Head",
 			Count: int(val.AsInt()),
-		}, nil
+		}), nil
 	case *ast.Tail:
 		expr, err := semExpr(scope, o.Count)
 		if err != nil {
@@ -489,31 +468,31 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if val.AsInt() < 1 {
 			return nil, fmt.Errorf("tail: expression value is not a positive integer: %s", zson.MustFormatValue(val))
 		}
-		return &dag.Tail{
+		return append(seq, &dag.Tail{
 			Kind:  "Tail",
 			Count: int(val.AsInt()),
-		}, nil
+		}), nil
 	case *ast.Uniq:
-		return &dag.Uniq{
+		return append(seq, &dag.Uniq{
 			Kind:  "Uniq",
 			Cflag: o.Cflag,
-		}, nil
+		}), nil
 	case *ast.Pass:
-		return &dag.Pass{Kind: "Pass"}, nil
+		return append(seq, dag.PassOp), nil
 	case *ast.OpExpr:
-		return semOpExpr(scope, o.Expr)
+		return semOpExpr(scope, o.Expr, seq)
 	case *ast.Search:
 		e, err := semExpr(scope, o.Expr)
 		if err != nil {
 			return nil, err
 		}
-		return dag.NewFilter(e), nil
+		return append(seq, dag.NewFilter(e)), nil
 	case *ast.Where:
 		e, err := semExpr(scope, o.Expr)
 		if err != nil {
 			return nil, err
 		}
-		return dag.NewFilter(e), nil
+		return append(seq, dag.NewFilter(e)), nil
 	case *ast.Top:
 		args, err := semExprs(scope, o.Args)
 		if err != nil {
@@ -522,23 +501,27 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if len(args) == 0 {
 			return nil, errors.New("top: no arguments given")
 		}
-		return &dag.Top{
+		return append(seq, &dag.Top{
 			Kind:  "Top",
 			Args:  args,
 			Flush: o.Flush,
 			Limit: o.Limit,
-		}, nil
+		}), nil
 	case *ast.Put:
 		assignments, err := semAssignments(scope, o.Args, false)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Put{
+		return append(seq, &dag.Put{
 			Kind: "Put",
 			Args: assignments,
-		}, nil
+		}), nil
 	case *ast.OpAssignment:
-		return semOpAssignment(scope, o)
+		converted, err := semOpAssignment(scope, o)
+		if err != nil {
+			return nil, err
+		}
+		return append(seq, converted), nil
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range o.Args {
@@ -562,14 +545,14 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			}
 			assignments = append(assignments, dag.Assignment{Kind: "Assignment", LHS: dst, RHS: src})
 		}
-		return &dag.Rename{
+		return append(seq, &dag.Rename{
 			Kind: "Rename",
 			Args: assignments,
-		}, nil
+		}), nil
 	case *ast.Fuse:
-		return &dag.Fuse{Kind: "Fuse"}, nil
+		return append(seq, &dag.Fuse{Kind: "Fuse"}), nil
 	case *ast.Join:
-		rightInput, err := semSequential(ctx, scope, o.RightInput, ds, head)
+		rightInput, err := semSeq(ctx, scope, o.RightInput, ds, head)
 		if err != nil {
 			return nil, err
 		}
@@ -593,27 +576,25 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Args:     assignments,
 		}
 		if rightInput != nil {
-			par := &dag.Parallel{
-				Kind: "Parallel",
-				Ops:  []dag.Op{dag.PassOp, rightInput},
+			par := &dag.Fork{
+				Kind:  "Fork",
+				Paths: []dag.Seq{{dag.PassOp}, rightInput},
 			}
-			return &dag.Sequential{
-				Kind: "Sequential",
-				Ops:  []dag.Op{par, join},
-			}, nil
+			seq = append(seq, par)
 		}
-		return join, nil
+		return append(seq, join), nil
 	case *ast.SQLExpr:
-		converted, err := convertSQLOp(scope, o)
+		var err error
+		seq, err = convertSQLOp(scope, o, seq)
 		if err != nil {
 			return nil, err
 		}
 		// The conversion may be a group-by so we recursively
 		// invoke the transformation here...
-		if converted == nil {
+		if seq == nil {
 			return nil, errors.New("unable to covert SQL expression to Zed")
 		}
-		return converted, nil
+		return seq, nil
 	case *ast.Explode:
 		typ, err := semType(scope, o.Type)
 		if err != nil {
@@ -635,22 +616,22 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 				return nil, err
 			}
 		}
-		return &dag.Explode{
+		return append(seq, &dag.Explode{
 			Kind: "Explode",
 			Args: args,
 			Type: typ,
 			As:   as,
-		}, nil
+		}), nil
 	case *ast.Merge:
 		expr, err := semExpr(scope, o.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("merge: %w", err)
 		}
-		return &dag.Merge{
+		return append(seq, &dag.Merge{
 			Kind:  "Merge",
 			Expr:  expr,
 			Order: order.Asc, //XXX
-		}, nil
+		}), nil
 	case *ast.Over:
 		if len(o.Locals) != 0 && o.Body == nil {
 			return nil, errors.New("over operator: cannot have a with clause without a lateral query")
@@ -665,33 +646,59 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if err != nil {
 			return nil, err
 		}
-		var seq *dag.Sequential
+		var body dag.Seq
 		if o.Body != nil {
-			seq, err = semSequential(ctx, scope, o.Body, ds, head)
+			body, err = semSeq(ctx, scope, o.Body, ds, head)
 			if err != nil {
 				return nil, err
 			}
 		}
-		return &dag.Over{
+		return append(seq, &dag.Over{
 			Kind:  "Over",
 			Defs:  locals,
 			Exprs: exprs,
-			Body:  seq,
-		}, nil
+			Body:  body,
+		}), nil
+	case *ast.Sample:
+		e, err := semExpr(scope, o.Expr)
+		if err != nil {
+			return nil, err
+		}
+		seq = append(seq, &dag.Summarize{
+			Kind: "Summarize",
+			Aggs: []dag.Assignment{
+				{
+					Kind: "Assignment",
+					LHS:  &dag.This{Kind: "This", Path: field.Path{"sample"}},
+					RHS:  &dag.Agg{Kind: "Agg", Name: "any", Expr: e},
+				},
+			},
+			Keys: []dag.Assignment{
+				{
+					Kind: "Assignment",
+					LHS:  &dag.This{Kind: "This", Path: field.Path{"shape"}},
+					RHS:  &dag.Call{Kind: "Call", Name: "typeof", Args: []dag.Expr{e}},
+				},
+			},
+		})
+		return append(seq, &dag.Yield{
+			Kind:  "Yield",
+			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{"sample"}}},
+		}), nil
 	case *ast.Yield:
 		exprs, err := semExprs(scope, o.Exprs)
 		if err != nil {
 			return nil, err
 		}
-		return &dag.Yield{
+		return append(seq, &dag.Yield{
 			Kind:  "Yield",
 			Exprs: exprs,
-		}, nil
+		}), nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
 }
 
-func singletonAgg(scope *Scope, agg ast.Assignment) dag.Op {
+func singletonAgg(scope *Scope, agg ast.Assignment, seq dag.Seq) dag.Seq {
 	if agg.LHS != nil {
 		return nil
 	}
@@ -707,16 +714,11 @@ func singletonAgg(scope *Scope, agg ast.Assignment) dag.Op {
 		return nil
 	}
 	yield.Exprs = append(yield.Exprs, this)
-	return &dag.Sequential{
-		Kind: "Sequential",
-		Ops: []dag.Op{
-			&dag.Summarize{
-				Kind: "Summarize",
-				Aggs: []dag.Assignment{out},
-			},
-			yield,
-		},
-	}
+	seq = append(seq, &dag.Summarize{
+		Kind: "Summarize",
+		Aggs: []dag.Assignment{out},
+	})
+	return append(seq, yield)
 }
 
 func semDecls(scope *Scope, decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
@@ -840,10 +842,10 @@ func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
 	}, nil
 }
 
-func semOpExpr(scope *Scope, e ast.Expr) (dag.Op, error) {
+func semOpExpr(scope *Scope, e ast.Expr, seq dag.Seq) (dag.Seq, error) {
 	if call, ok := e.(*ast.Call); ok {
-		if op, err := semCallOp(scope, call); op != nil || err != nil {
-			return op, err
+		if seq, err := semCallOp(scope, call, seq); seq != nil || err != nil {
+			return seq, err
 		}
 	}
 	out, err := semExpr(scope, e)
@@ -851,12 +853,12 @@ func semOpExpr(scope *Scope, e ast.Expr) (dag.Op, error) {
 		return nil, err
 	}
 	if isBool(out) {
-		return dag.NewFilter(out), nil
+		return append(seq, dag.NewFilter(out)), nil
 	}
-	return &dag.Yield{
+	return append(seq, &dag.Yield{
 		Kind:  "Yield",
 		Exprs: []dag.Expr{out},
-	}, nil
+	}), nil
 }
 
 func isBool(e dag.Expr) bool {
@@ -892,7 +894,7 @@ func isBool(e dag.Expr) bool {
 	}
 }
 
-func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
+func semCallOp(scope *Scope, call *ast.Call, seq dag.Seq) (dag.Seq, error) {
 	if agg, err := maybeConvertAgg(scope, call); err == nil && agg != nil {
 		summarize := &dag.Summarize{
 			Kind: "Summarize",
@@ -908,10 +910,7 @@ func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 			Kind:  "Yield",
 			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{call.Name}}},
 		}
-		return &dag.Sequential{
-			Kind: "Sequential",
-			Ops:  []dag.Op{summarize, yield},
-		}, nil
+		return append(append(seq, summarize), yield), nil
 	}
 	if !function.HasBoolResult(call.Name) {
 		return nil, nil
@@ -920,5 +919,5 @@ func semCallOp(scope *Scope, call *ast.Call) (dag.Op, error) {
 	if err != nil {
 		return nil, err
 	}
-	return dag.NewFilter(c), nil
+	return append(seq, dag.NewFilter(c)), nil
 }

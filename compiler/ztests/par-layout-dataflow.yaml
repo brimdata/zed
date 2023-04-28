@@ -12,7 +12,7 @@ outputs:
     data: |
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | cut x:=ts,ts:=1
@@ -24,7 +24,7 @@ outputs:
       ===
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | cut x:=ts,ts:=1

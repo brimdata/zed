@@ -47,22 +47,20 @@
 #endif
 
 start
-  = __ scope:Scope __ EOF { RETURN(scope) }
-  / __ body:Sequential __ EOF {
-      RETURN(MAP("kind": "Scope", "decls": NULL, "body": body))
-    }
+  = __ scope:Scope __ EOF { RETURN(ARRAY(scope)) }
+  / __ seq:Seq __ EOF { RETURN(seq) }
 
 Scope
-  = decls:Decl+ body:Sequential {
+  = decls:Decl+ body:Seq {
       RETURN(MAP("kind": "Scope", "decls": decls, "body": body))
     }
 
-Sequential
-  = first:Operation rest:SequentialTail* {
-      RETURN(MAP("kind": "Sequential", "ops": PREPEND(first, rest)))
+Seq
+  = first:Operation rest:SeqTail* {
+      RETURN(PREPEND(first, rest))
     }
 
-SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
+SeqTail = __ Pipe __ o:Operation { RETURN(o) }
 
 Decl
   = v:(ConstDecl / FuncDecl) _ { RETURN(v) }
@@ -88,8 +86,8 @@ FuncDecl
     }
 
 Operation
-  = "fork" __ "(" ops:Leg+ __ ")" {
-      RETURN(MAP("kind": "Parallel", "ops": ops))
+  = "fork" __ "(" paths:Leg+ __ ")" {
+      RETURN(MAP("kind": "Parallel", "paths": paths))
     }
   / "switch" _ expr:Expr _ "(" cases:SwitchLeg+ __ ")" {
       RETURN(MAP("kind": "Switch", "expr": expr, "cases": cases))
@@ -120,11 +118,11 @@ Operation
 EndOfOp = __ (Pipe / SearchKeywordGuard / "=>" / ")" / EOF)
 Pipe = "|" !("{" / "[")
 
-Leg = __ "=>" __ seq:Sequential { RETURN(seq) }
+Leg = __ "=>" __ seq:Seq { RETURN(seq) }
 
 SwitchLeg
-  = __ expr:Case leg:Leg {
-      RETURN(MAP("expr": expr, "op": leg))
+  = __ expr:Case path:Leg {
+      RETURN(MAP("expr": expr, "path": path))
     }
 
 Case
@@ -132,7 +130,7 @@ Case
   / "default" { RETURN(NULL) }
 
 FromLeg
-  = __ source:FromSource opt:(__ "=>" __ Sequential)? {
+  = __ source:FromSource opt:(__ "=>" __ Seq)? {
       VAR(m) = MAP("kind": "Trunk", "source": source, "seq": NULL)
       if ISNOTNULL(opt) {
         m["seq"] = ASSERT_ARRAY(opt)[3]
@@ -436,7 +434,7 @@ JoinStyle
   / ""        { RETURN("inner") }
 
 JoinRightInput
-  = __ "(" __ s:Sequential __ ")" __ { RETURN(s) }
+  = __ "(" __ s:Seq __ ")" __ { RETURN(s) }
   / _ { RETURN(NULL) }
 
 JoinKey
@@ -444,25 +442,7 @@ JoinKey
   / "(" expr:Expr ")" { RETURN(expr) }
 
 SampleOp
-  = "sample" &EOKW e:SampleExpr {
-      RETURN(MAP("kind": "Sequential", "ops": ARRAY(
-        MAP("kind": "Summarize",
-          "keys": ARRAY(MAP("kind": "Assignment",
-                   "lhs": MAP("kind": "ID", "name": "shape"),
-                   "rhs": MAP("kind": "Call", "name": "typeof",
-                              "args": ARRAY(e),
-                              "where": NULL))),
-          "aggs": ARRAY(MAP("kind": "Assignment",
-                              "lhs": MAP("kind": "ID", "name": "sample"),
-                              "rhs": MAP("kind": "Agg",
-                                         "name": "any",
-                                         "expr": e,
-                                         "where": NULL))),
-          "limit": 0),
-        MAP("kind": "Yield",
-          "exprs": ARRAY(
-            MAP("kind": "ID", "name": "sample"))))))
-    }
+  = "sample" &EOKW e:SampleExpr { RETURN(MAP("kind": "Sample", "expr": e)) }
 
 // OpAssignment is a top level operator that contains a list of assignment
 // expressions. It is in an ambiguous state and could either be:
@@ -591,7 +571,7 @@ OverOp
 
 Lateral
   = __ "=>" __ "(" __ scope:Scope __ ")" { RETURN(scope) }
-  / __ "=>" __ "(" __ seq:Sequential __ ")" { RETURN(seq) }
+  / __ "=>" __ "(" __ seq:Seq __ ")" { RETURN(seq) }
 
 Locals
   = _ "with" _ first:LocalsAssignment rest:(__ "," __ a:LocalsAssignment { RETURN(a) })* {
@@ -802,7 +782,7 @@ Primary
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 OverExpr
-  = "over" _ exprs:Exprs locals:Locals? __ "|" __ body:Sequential {
+  = "over" _ exprs:Exprs locals:Locals? __ "|" __ body:Seq {
       RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "body": body))
     }
 

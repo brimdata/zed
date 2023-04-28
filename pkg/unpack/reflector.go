@@ -88,6 +88,20 @@ func (r Reflector) Unmarshal(b []byte) (interface{}, error) {
 	return skeleton, err
 }
 
+// XXX We added method in branch seq but we realized we should replace
+// Unmarshal with this logic, which is consistent with json.Unmarshal.
+// See issue #4557.
+func (r Reflector) UnmarshalInto(b []byte, result interface{}) error {
+	var from interface{}
+	if err := json.Unmarshal(b, &from); err != nil {
+		return fmt.Errorf("unpacker error parsing JSON: %w", err)
+	}
+	if err := r.unpackVal(reflect.ValueOf(result), from); err != nil {
+		return err
+	}
+	return json.Unmarshal(b, &result)
+}
+
 func (r Reflector) UnmarshalObject(v interface{}) (interface{}, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
