@@ -60,7 +60,7 @@ Seq
       RETURN(PREPEND(first, rest))
     }
 
-SeqTail = __ Pipe __ p:Operation { RETURN(p) }
+SeqTail = __ Pipe __ o:Operation { RETURN(o) }
 
 Decl
   = v:(ConstDecl / FuncDecl) _ { RETURN(v) }
@@ -121,8 +121,8 @@ Pipe = "|" !("{" / "[")
 Leg = __ "=>" __ seq:Seq { RETURN(seq) }
 
 SwitchLeg
-  = __ expr:Case leg:Leg {
-      RETURN(MAP("expr": expr, "path": leg))
+  = __ expr:Case path:Leg {
+      RETURN(MAP("expr": expr, "path": path))
     }
 
 Case

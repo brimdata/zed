@@ -213,8 +213,8 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 	return nil
 }
 
-func (c *Command) writeAST(p ast.Seq) {
-	s, err := astFmt(p, c.canon)
+func (c *Command) writeAST(seq ast.Seq) {
+	s, err := astFmt(seq, c.canon)
 	if err != nil {
 		fmt.Println(err)
 	} else {

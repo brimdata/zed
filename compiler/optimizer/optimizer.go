@@ -55,7 +55,6 @@ func mergeFilters(seq dag.Seq) dag.Seq {
 
 func removePassOps(seq dag.Seq) dag.Seq {
 	return walk(seq, true, func(seq dag.Seq) dag.Seq {
-		// Start at the next to last element and work toward the first.
 		for i := 0; i < len(seq); i++ {
 			if _, ok := seq[i].(*dag.Pass); ok {
 				seq.Delete(i, i+1)
@@ -173,7 +172,7 @@ func (o *Optimizer) OptimizeDeleter(seq dag.Seq, replicas int) (dag.Seq, error) 
 	lister.KeyPruner = maybeNewRangePruner(filter.Expr, sortKey)
 	scatter := &dag.Scatter{Kind: "Scatter"}
 	for k := 0; k < replicas; k++ {
-		scatter.Paths = append(scatter.Paths, CopyOps(dag.Seq{deleter}))
+		scatter.Paths = append(scatter.Paths, copyOps(dag.Seq{deleter}))
 	}
 	var merge dag.Op
 	if sortKey.IsNil() {
@@ -208,13 +207,13 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 		case *dag.PoolScan:
 			// Here we transform a PoolScan into a Lister followed by one or more chains
 			// of slicers and sequence scanners.  We'll eventually choose other configurations
-			// here based on metadata and availability of vzng.
+			// here based on metadata and availability of VNG.
 			lister := &dag.Lister{
 				Kind:   "Lister",
 				Pool:   op.ID,
 				Commit: op.Commit,
 			}
-			// Check to see if we can add a range pruner when the pool-key is used
+			// Check to see if we can add a range pruner when the pool key is used
 			// in a normal filtering operation.
 			sortKey, err := o.sortKeyOfSource(op)
 			if err != nil {
@@ -245,13 +244,9 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 				if err != nil {
 					return nil, err
 				}
-				// Check to see if we can add a range pruner when the pool-key is used
+				// Check to see if we can add a range pruner when the pool key is used
 				// in a normal filtering operation.
-				if !sortKey.IsNil() && filter != nil {
-					if p := newRangePruner(filter, sortKey.Primary(), sortKey.Order); p != nil {
-						op.KeyPruner = p
-					}
-				}
+				op.KeyPruner = maybeNewRangePruner(filter, sortKey)
 				// Delete the downstream operators when we are tapping the object list.
 				seq = dag.Seq{op}
 			}
@@ -260,16 +255,14 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 			seq = append(dag.Seq{op}, chain...)
 		case *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.HTTPScan:
 		default:
-			return nil, fmt.Errorf("an entry point to the query is not a source: %T", op)
+			return nil, fmt.Errorf("internal error: an entry point to the query is not a source: %T", op)
 		}
 		return seq, nil
 	})
 }
 
-// XXX update comment
-// propagateSortKey analyzes each trunk of the input node
-// attempts to push the scan order of the data source into the first
-// downstream aggregation.  (We could continue the analysis past that
+// propagateSortKey analyzes a Seq and attempts to push the scan order of the data source
+// into the first downstream aggregation.  (We could continue the analysis past that
 // point but don't bother yet because we do not yet support any optimization
 // past the first aggregation.)  For parallel paths, we propagate
 // the scan order if its the same at egress of all of the paths.

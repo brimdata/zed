@@ -65,8 +65,8 @@ func buildFrom(op ast.Op, head *lakeparse.Commitish) (*ast.From, []*kernel.Reade
 	var from *ast.From
 	switch op := op.(type) {
 	case *ast.From:
-		return nil, nil, nil
 		// Already have an entry point with From.  Do nothing.
+		return nil, nil, nil
 	case *ast.Join:
 		readers = []*kernel.Reader{{}, {}}
 		trunk0 := ast.Trunk{
@@ -83,7 +83,7 @@ func buildFrom(op ast.Op, head *lakeparse.Commitish) (*ast.From, []*kernel.Reade
 		}, readers, nil
 	case *ast.Scope:
 		if len(op.Body) == 0 {
-			return nil, nil, errors.New("system error: scope op has empty body")
+			return nil, nil, errors.New("internal error: scope op has empty body")
 		}
 		return buildFrom(op.Body[0], head)
 	default:

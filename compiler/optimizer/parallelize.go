@@ -29,7 +29,10 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 }
 
 func (o *Optimizer) parallelizeSeqScan(scan *dag.SeqScan, ops []dag.Op, replicas int) ([]dag.Op, error) {
-	if len(ops) == 1 && scan.Filter == nil { //XXX
+	if len(ops) == 1 && scan.Filter == nil {
+		// We don't try to parallelize the path if it's simply scanning and do no
+		// other work otherwise.  We might want to revisit this down the road if
+		// the system would benefit for parallel reading and merging.
 		return nil, nil
 	}
 	srcSortKey, err := o.sortKeyOfSource(scan)
@@ -57,7 +60,7 @@ func (o *Optimizer) parallelizeSeqScan(scan *dag.SeqScan, ops []dag.Op, replicas
 		Paths: make([]dag.Seq, replicas),
 	}
 	for k := 0; k < replicas; k++ {
-		scatter.Paths[k] = CopyOps(head)
+		scatter.Paths[k] = copyOps(head)
 	}
 	var merge dag.Op
 	if needMerge {
@@ -121,8 +124,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 			// Need an unmodified summarize to split into its parials pieces.
 			return
 		}
-		for k := 0; k < len(fork.Paths); k++ {
-			partial := CopyOp(op).(*dag.Summarize)
+		for k := range fork.Paths {
+			partial := copyOp(op).(*dag.Summarize)
 			partial.PartialsOut = true
 			fork.Paths[k].Append(partial)
 		}
@@ -150,8 +153,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 				return
 			}
 		}
-		for k := 0; k < len(fork.Paths); k++ {
-			sort := CopyOp(op).(*dag.Sort)
+		for k := range fork.Paths {
+			sort := copyOp(op).(*dag.Sort)
 			fork.Paths[k].Append(sort)
 		}
 		if merge == nil {
@@ -174,8 +177,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 	case *dag.Head, *dag.Tail:
 		// Copy the head or tail into the parallel path and leave the original in
 		// place which will apply another head or tail after the merge.
-		for k := 0; k < len(fork.Paths); k++ {
-			fork.Paths[k].Append(CopyOp(op))
+		for k := range fork.Paths {
+			fork.Paths[k].Append(copyOp(op))
 		}
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename, *dag.Filter:
 		if merge != nil {
@@ -192,8 +195,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 				return
 			}
 		}
-		for k := 0; k < len(fork.Paths); k++ {
-			fork.Paths[k].Append(CopyOp(op))
+		for k := range fork.Paths {
+			fork.Paths[k].Append(copyOp(op))
 		}
 		// this will get removed later
 		ops[egress] = dag.PassOp

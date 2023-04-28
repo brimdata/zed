@@ -110,7 +110,7 @@ func UnpackJSONAsOp(buf []byte) (Op, error) {
 	return o, nil
 }
 
-func UnpackJSONAsSeq(buf []byte) (Seq, error) {
+func unpackJSONAsSeq(buf []byte) (Seq, error) {
 	var seq Seq
 	if err := unpacker.UnmarshalInto(buf, &seq); err != nil {
 		return nil, err
@@ -119,11 +119,11 @@ func UnpackJSONAsSeq(buf []byte) (Seq, error) {
 }
 
 func UnpackAsSeq(anon interface{}) (Seq, error) {
-	body, err := json.Marshal(anon)
+	b, err := json.Marshal(anon)
 	if err != nil {
-		return nil, fmt.Errorf("system error: ast.UnpackAsSeq: %w", err)
+		return nil, fmt.Errorf("internal error: ast.UnpackAsSeq: %w", err)
 	}
-	return UnpackJSONAsSeq(body)
+	return unpackJSONAsSeq(b)
 }
 
 func Copy(in Op) Op {
@@ -143,7 +143,7 @@ func CopySeq(in Seq) Seq {
 	if err != nil {
 		panic(err)
 	}
-	out, err := UnpackJSONAsSeq(b)
+	out, err := unpackJSONAsSeq(b)
 	if err != nil {
 		panic(err)
 	}

@@ -447,7 +447,7 @@ func (b *Builder) compileFork(par *dag.Fork, parents []zbuf.Puller) ([]zbuf.Pull
 
 func (b *Builder) compileScatter(par *dag.Scatter, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	if len(parents) != 1 {
-		return nil, errors.New("internal compiler error: scatter operator require a single parent")
+		return nil, errors.New("internal error: scatter operator requires a single parent")
 	}
 	var ops []zbuf.Puller
 	for _, o := range par.Paths {

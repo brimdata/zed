@@ -53,7 +53,7 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, 
 }
 
 func isFrom(seq ast.Seq) bool {
-	if len(seq) != 0 {
+	if len(seq) > 0 {
 		switch op := seq[0].(type) {
 		case *ast.From:
 			return true
@@ -65,7 +65,7 @@ func isFrom(seq ast.Seq) bool {
 }
 
 func isYield(seq ast.Seq) bool {
-	if len(seq) >= 1 {
+	if len(seq) > 0 {
 		switch op := seq[0].(type) {
 		case *ast.Yield:
 			return true

@@ -75,18 +75,6 @@ func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, 
 	}
 }
 
-func (o *Optimizer) analyzeSortKeySeq(seq dag.Seq, in order.SortKey) (order.SortKey, error) {
-	out := in
-	for _, op := range seq {
-		var err error
-		out, err = o.analyzeSortKey(op, out)
-		if err != nil {
-			return order.Nil, err
-		}
-	}
-	return out, nil
-}
-
 func sortKeyOfSort(op *dag.Sort) order.SortKey {
 	// XXX Only single sort keys.  See issue #2657.
 	if len(op.Args) != 1 {
@@ -225,15 +213,15 @@ func fieldOf(e dag.Expr) field.Path {
 	return nil
 }
 
-func CopyOps(ops []dag.Op) []dag.Op {
+func copyOps(ops []dag.Op) []dag.Op {
 	var copies []dag.Op
 	for _, o := range ops {
-		copies = append(copies, CopyOp(o))
+		copies = append(copies, copyOp(o))
 	}
 	return copies
 }
 
-func CopyOp(o dag.Op) dag.Op {
+func copyOp(o dag.Op) dag.Op {
 	if o == nil {
 		panic("copyOp nil")
 	}

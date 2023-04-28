@@ -270,7 +270,6 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 		ID:     poolID,
 		Commit: commitID,
 	}, nil
-
 }
 
 func matchPools(ctx context.Context, ds *data.Source, pattern, origPattern, patternDesc string) ([]string, error) {
@@ -479,7 +478,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Cflag: o.Cflag,
 		}), nil
 	case *ast.Pass:
-		return append(seq, &dag.Pass{Kind: "Pass"}), nil
+		return append(seq, dag.PassOp), nil
 	case *ast.OpExpr:
 		return semOpExpr(scope, o.Expr, seq)
 	case *ast.Search:
