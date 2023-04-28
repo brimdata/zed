@@ -366,18 +366,18 @@ func (c *canonDAG) op(p dag.Op) {
 		}
 	case *dag.Load:
 		c.next()
-		c.write("load %s ", p.Pool)
+		c.write("load %s", p.Pool)
 		if p.Branch != "" {
 			c.write("@%s", p.Branch)
 		}
 		if p.Author != "" {
-			c.write(" author %s ", p.Author)
+			c.write(" author %s", p.Author)
 		}
 		if p.Message != "" {
-			c.write("message %s ", p.Message)
+			c.write(" message %s", p.Message)
 		}
 		if p.Meta != "" {
-			c.write("meta %s", p.Meta)
+			c.write(" meta %s", p.Meta)
 		}
 	case *dag.Head:
 		c.next()
