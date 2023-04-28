@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 type batch struct {
@@ -33,12 +34,7 @@ func newBatch(buf *buffer) *batch {
 
 func (b *batch) extend() *zed.Value {
 	n := len(b.vals)
-	if n < cap(b.vals) {
-		b.vals = b.vals[:n+1]
-	} else {
-		// Let the Go runtime figure out how to grow and copy the vals array.
-		b.vals = append(b.vals, zed.Value{})
-	}
+	b.vals = slices.Grow(b.vals, 1)[:n+1]
 	return &b.vals[n]
 }
 

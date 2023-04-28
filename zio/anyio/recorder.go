@@ -3,6 +3,8 @@ package anyio
 import (
 	"errors"
 	"io"
+
+	"golang.org/x/exp/slices"
 )
 
 var ErrBufferOverflow = errors.New("buffer exceeded max size trying to infer input format")
@@ -64,9 +66,7 @@ func (r *Recorder) fill() error {
 		if newsize >= MaxBufferSize {
 			return ErrBufferOverflow
 		}
-		newbuf := make([]byte, off, newsize)
-		copy(newbuf, r.buffer)
-		r.buffer = newbuf
+		r.buffer = slices.Grow(r.buffer, newsize-off)
 	}
 }
 
