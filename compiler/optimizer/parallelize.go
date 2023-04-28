@@ -30,8 +30,8 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 
 func (o *Optimizer) parallelizeSeqScan(scan *dag.SeqScan, ops []dag.Op, replicas int) ([]dag.Op, error) {
 	if len(ops) == 1 && scan.Filter == nil {
-		// We don't try to parallelize the path if it's simply scanning and do no
-		// other work otherwise.  We might want to revisit this down the road if
+		// We don't try to parallelize the path if it's simply scanning and does no
+		// other work.  We might want to revisit this down the road if
 		// the system would benefit for parallel reading and merging.
 		return nil, nil
 	}
@@ -154,8 +154,7 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 			}
 		}
 		for k := range fork.Paths {
-			sort := copyOp(op).(*dag.Sort)
-			fork.Paths[k].Append(sort)
+			fork.Paths[k].Append(copyOp(op))
 		}
 		if merge == nil {
 			merge = &dag.Merge{

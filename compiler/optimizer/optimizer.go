@@ -404,7 +404,7 @@ func (o *Optimizer) Parallelize(seq dag.Seq, n int) (dag.Seq, error) {
 		if len(seq) == 0 {
 			return seq, nil
 		}
-		front := dag.Seq{}
+		var front dag.Seq
 		var tail []dag.Op
 		if lister, slicer, rest := matchSource(seq); lister != nil {
 			// We parallelize the scanning to achieve the desired concurrency,

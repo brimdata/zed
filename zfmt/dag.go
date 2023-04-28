@@ -265,9 +265,6 @@ func (c *canonDAG) op(p dag.Op) {
 	switch p := p.(type) {
 	case *dag.Scope:
 		c.next()
-		if p == nil { //XXX?
-			return
-		}
 		c.scope(p)
 	case *dag.Fork:
 		c.next()
