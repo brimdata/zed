@@ -1,52 +1,45 @@
 package parquetio
 
 import (
+	"context"
 	"errors"
 	"io"
 
+	"github.com/apache/arrow/go/v12/arrow/memory"
+	"github.com/apache/arrow/go/v12/parquet"
+	"github.com/apache/arrow/go/v12/parquet/file"
+	"github.com/apache/arrow/go/v12/parquet/pqarrow"
 	"github.com/brimdata/zed"
-	goparquet "github.com/fraugster/parquet-go"
+	"github.com/brimdata/zed/zio/arrowio"
 )
 
-type Reader struct {
-	fr  *goparquet.FileReader
-	typ *zed.TypeRecord
-
-	builder builder
-	val     zed.Value
-}
-
-func NewReader(zctx *zed.Context, r io.Reader) (*Reader, error) {
-	rs, ok := r.(io.ReadSeeker)
+func NewReader(zctx *zed.Context, r io.Reader) (*arrowio.Reader, error) {
+	ras, ok := r.(parquet.ReaderAtSeeker)
 	if !ok {
 		return nil, errors.New("reader cannot seek")
 	}
-	fr, err := goparquet.NewFileReader(rs)
+	pr, err := file.NewParquetReader(ras)
 	if err != nil {
 		return nil, err
 	}
-	typ, err := newRecordType(zctx, fr.GetSchemaDefinition().RootColumn.Children)
+	props := pqarrow.ArrowReadProperties{
+		Parallel:  true,
+		BatchSize: 256 * 1024,
+	}
+	fr, err := pqarrow.NewFileReader(pr, props, memory.DefaultAllocator)
 	if err != nil {
+		pr.Close()
 		return nil, err
 	}
-	return &Reader{
-		fr:  fr,
-		typ: typ,
-	}, nil
-}
-
-func (r *Reader) Read() (*zed.Value, error) {
-	data, err := r.fr.NextRow()
+	rr, err := fr.GetRecordReader(context.TODO(), nil, nil)
 	if err != nil {
-		if err == io.EOF {
-			return nil, nil
-		}
+		pr.Close()
 		return nil, err
 	}
-	r.builder.Truncate()
-	for _, f := range r.typ.Fields {
-		r.builder.appendValue(f.Type, data[f.Name])
+	ar, err := arrowio.NewReaderFromRecordReader(zctx, rr)
+	if err != nil {
+		pr.Close()
+		return nil, err
 	}
-	r.val = *zed.NewValue(r.typ, r.builder.Bytes())
-	return &r.val, nil
+	return ar, nil
 }

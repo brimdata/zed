@@ -273,29 +273,24 @@ func (d *DataObjects) Append(objects DataObjects) {
 }
 
 func PlayAction(w Writeable, action Action) error {
-	if _, ok := action.(Action); !ok {
-		return badObject(action)
-	}
-	var err error
 	switch action := action.(type) {
 	case *Add:
-		err = w.AddDataObject(&action.Object)
+		return w.AddDataObject(&action.Object)
 	case *Delete:
-		err = w.DeleteObject(action.ID)
+		return w.DeleteObject(action.ID)
 	case *AddIndex:
-		err = w.AddIndexObject(&action.Object)
+		return w.AddIndexObject(&action.Object)
 	case *DeleteIndex:
-		err = w.DeleteIndexObject(action.RuleID, action.ID)
+		return w.DeleteIndexObject(action.RuleID, action.ID)
 	case *AddVector:
-		err = w.AddVector(action.ID)
+		return w.AddVector(action.ID)
 	case *DeleteVector:
-		err = w.DeleteVector(action.ID)
+		return w.DeleteVector(action.ID)
 	case *Commit:
 		// ignore
-	default:
-		err = fmt.Errorf("lake.commits.PlayAction: unknown action %T", action)
+		return nil
 	}
-	return err
+	return fmt.Errorf("lake.commits.PlayAction: unknown action %T", action)
 }
 
 // Play "plays" a recorded transaction into a writeable snapshot.

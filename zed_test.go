@@ -17,7 +17,6 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/arrowio"
-	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/assert"
@@ -154,13 +153,7 @@ func runOneBoomerang(t *testing.T, format, data string) {
 	if err != nil {
 		if errors.Is(err, arrowio.ErrMultipleTypes) ||
 			errors.Is(err, arrowio.ErrNotRecord) ||
-			errors.Is(err, arrowio.ErrUnsupportedType) ||
-			errors.Is(err, parquetio.ErrEmptyRecordType) ||
-			errors.Is(err, parquetio.ErrNullType) ||
-			errors.Is(err, parquetio.ErrUnionType) ||
-			strings.Contains(err.Error(), "Parquet output encountered non-record value") ||
-			strings.Contains(err.Error(), "Parquet output requires uniform records but multiple types encountered") ||
-			strings.Contains(err.Error(), "column has no name") {
+			errors.Is(err, arrowio.ErrUnsupportedType) {
 			t.Skipf("skipping due to expected error: %s", err)
 		}
 		t.Fatalf("unexpected error writing %s baseline: %s", format, err)

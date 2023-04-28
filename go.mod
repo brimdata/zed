@@ -9,7 +9,6 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/aws/aws-sdk-go v1.36.17
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
-	github.com/fraugster/parquet-go v0.10.1-0.20220222153523-e6b70a8a7212
 	github.com/go-redis/redis/v8 v8.4.11
 	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/golang/mock v1.5.0

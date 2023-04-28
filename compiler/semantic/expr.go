@@ -550,7 +550,7 @@ func semAssignment(scope *Scope, a ast.Assignment, summarize bool) (dag.Assignme
 	// Make sure we have a valid lval for lhs.
 	this, ok := lhs.(*dag.This)
 	if !ok {
-		return dag.Assignment{}, errors.New("illegal left-hand side of assignment'")
+		return dag.Assignment{}, errors.New("illegal left-hand side of assignment")
 	}
 	if len(this.Path) == 0 {
 		return dag.Assignment{}, errors.New("cannot assign to 'this'")

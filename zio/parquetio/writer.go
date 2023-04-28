@@ -1,59 +1,46 @@
 package parquetio
 
 import (
-	"errors"
 	"fmt"
 	"io"
+	"strings"
 
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/parquet/pqarrow"
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
-	goparquet "github.com/fraugster/parquet-go"
-	"github.com/fraugster/parquet-go/parquet"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/arrowio"
 )
 
 type Writer struct {
-	w io.WriteCloser
-
-	fw  *goparquet.FileWriter
-	typ *zed.TypeRecord
+	*arrowio.Writer
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
-	return &Writer{w: w}
-}
-
-func (w *Writer) Close() error {
-	var err error
-	if w.fw != nil {
-		err = w.fw.Close()
-	}
-	if err2 := w.w.Close(); err == nil {
-		err = err2
-	}
-	return err
-}
-
-func (w *Writer) Write(rec *zed.Value) error {
-	recType, ok := zed.TypeUnder(rec.Type).(*zed.TypeRecord)
-	if !ok {
-		return fmt.Errorf("Parquet output encountered non-record value: %s", zson.String(rec))
-	}
-	if w.typ == nil {
-		w.typ = recType
-		sd, err := newSchemaDefinition(recType)
+func NewWriter(wc io.WriteCloser) *Writer {
+	w := arrowio.NewWriter(wc)
+	w.NewWriterFunc = func(w io.Writer, s *arrow.Schema) (arrowio.WriteCloser, error) {
+		fw, err := pqarrow.NewFileWriter(s, zio.NopCloser(w), nil, pqarrow.DefaultWriterProps())
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("%w: %s", arrowio.ErrUnsupportedType, err)
 		}
-		w.fw = goparquet.NewFileWriter(w.w,
-			goparquet.WithCompressionCodec(parquet.CompressionCodec_SNAPPY),
-			goparquet.WithSchemaDefinition(sd))
-	} else if w.typ != recType {
-		return errors.New(
-			"Parquet output requires uniform records but multiple types encountered (consider 'fuse')")
+		return fw, nil
 	}
-	data, err := newRecordData(recType, rec.Bytes)
-	if err != nil {
-		return err
-	}
-	return w.fw.AddData(data)
+	return &Writer{w}
 }
+
+func (w *Writer) Write(val *zed.Value) error {
+	if err := w.Writer.Write(val); err != nil {
+		return parquetioError{err}
+	}
+	return nil
+}
+
+type parquetioError struct {
+	err error
+}
+
+func (p parquetioError) Error() string {
+	return "parquetio: " + strings.TrimPrefix(p.err.Error(), "arrowio: ")
+}
+
+func (p parquetioError) Unwrap() error { return p.err }
