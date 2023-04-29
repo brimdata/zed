@@ -10,7 +10,7 @@ outputs:
   - name: stdout
     data: |
       lister ...
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | summarize partials-out
@@ -25,7 +25,7 @@ outputs:
           count:=count() by y:=y
       ===
       lister ...
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | summarize partials-out

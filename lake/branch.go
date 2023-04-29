@@ -134,7 +134,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 	})
 }
 
-func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program ast.Op, author, message, meta string) (ksuid.KSUID, error) {
+func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program ast.Seq, author, message, meta string) (ksuid.KSUID, error) {
 	zctx := zed.NewContext()
 	appMeta, err := loadMeta(zctx, meta)
 	if err != nil {

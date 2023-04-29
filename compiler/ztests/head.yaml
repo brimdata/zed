@@ -12,9 +12,12 @@ outputs:
       reader
       | head 1
       ===
-      const x = 1
       reader
-      | head 2
+      | (
+        const x = 1
+        
+        head 2
+      )
   - name: stderr
     data: |
       head: expression value is not a positive integer: 1.

@@ -238,7 +238,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		seq, err := semSequential(nil, scope, e.Body, nil, nil)
+		body, err := semSeq(nil, scope, e.Body, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -246,7 +246,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Kind:  "OverExpr",
 			Defs:  locals,
 			Exprs: exprs,
-			Scope: seq,
+			Body:  body,
 		}, nil
 	}
 	return nil, fmt.Errorf("invalid expression type %T", e)

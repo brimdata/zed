@@ -3,6 +3,7 @@ package expr
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 type recordExpr struct {
@@ -159,13 +160,9 @@ func (r *recordSpreadExpr) update(object map[string]fieldValue) {
 }
 
 func (r *recordSpreadExpr) invalidate(object map[string]fieldValue) {
-	if n := len(object); cap(r.fields) < n {
-		r.fields = make([]zed.Field, n)
-		r.bytes = make([]zcode.Bytes, n)
-	} else {
-		r.fields = r.fields[:n]
-		r.bytes = r.bytes[:n]
-	}
+	n := len(object)
+	r.fields = slices.Grow(r.fields[:0], n)[:n]
+	r.bytes = slices.Grow(r.bytes[:0], n)[:n]
 	for name, field := range object {
 		r.fields[field.index] = zed.NewField(name, field.value.Type)
 		r.bytes[field.index] = field.value.Bytes

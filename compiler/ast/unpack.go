@@ -3,6 +3,7 @@ package ast
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/unpack"
@@ -59,7 +60,6 @@ var unpacker = unpack.New(
 	Rename{},
 	Scope{},
 	Search{},
-	Sequential{},
 	astzed.Set{},
 	SetExpr{},
 	Spread{},
@@ -88,6 +88,7 @@ var unpacker = unpack.New(
 	VectorValue{},
 	Where{},
 	Yield{},
+	Sample{},
 )
 
 func UnpackJSON(buf []byte) (interface{}, error) {
@@ -110,16 +111,20 @@ func UnpackJSONAsOp(buf []byte) (Op, error) {
 	return o, nil
 }
 
-func UnpackMapAsOp(m interface{}) (Op, error) {
-	object, err := unpacker.UnmarshalObject(m)
-	if object == nil || err != nil {
+func unpackJSONAsSeq(buf []byte) (Seq, error) {
+	var seq Seq
+	if err := unpacker.UnmarshalInto(buf, &seq); err != nil {
 		return nil, err
 	}
-	o, ok := object.(Op)
-	if !ok {
-		return nil, errors.New("not an operator")
+	return seq, nil
+}
+
+func UnpackAsSeq(anon interface{}) (Seq, error) {
+	b, err := json.Marshal(anon)
+	if err != nil {
+		return nil, fmt.Errorf("internal error: ast.UnpackAsSeq: %w", err)
 	}
-	return o, nil
+	return unpackJSONAsSeq(b)
 }
 
 func Copy(in Op) Op {
@@ -128,6 +133,18 @@ func Copy(in Op) Op {
 		panic(err)
 	}
 	out, err := UnpackJSONAsOp(b)
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+func CopySeq(in Seq) Seq {
+	b, err := json.Marshal(in)
+	if err != nil {
+		panic(err)
+	}
+	out, err := unpackJSONAsSeq(b)
 	if err != nil {
 		panic(err)
 	}

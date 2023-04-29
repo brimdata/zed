@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 type builder struct {
@@ -40,10 +41,7 @@ func (b *builder) pushPrimitiveItem(fieldName string, typ zed.Type, bytes zcode.
 
 func (b *builder) pushItem(fieldName string) *item {
 	n := len(b.items)
-	if n == cap(b.items) {
-		b.items = append(b.items, item{})
-	}
-	b.items = b.items[:n+1]
+	b.items = slices.Grow(b.items, 1)[:n+1]
 	i := &b.items[n]
 	i.fieldName = fieldName
 	i.zb.Truncate()

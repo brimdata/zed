@@ -78,11 +78,11 @@ var _ ast.Source = (*Reader)(nil)
 func (*Reader) OpNode() {}
 func (*Reader) Source() {}
 
-func (b *Builder) Build(scope *dag.Scope) ([]zbuf.Puller, error) {
-	if !isEntry(scope) {
+func (b *Builder) Build(seq dag.Seq) ([]zbuf.Puller, error) {
+	if !isEntry(seq) {
 		return nil, errors.New("internal error: DAG entry point is not a data source")
 	}
-	return b.compileScope(scope, nil)
+	return b.compileSeq(seq, nil)
 }
 
 func (b *Builder) zctx() *zed.Context {
@@ -365,7 +365,7 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 		return enter, nil
 	}
 	scope := enter.AddScope(b.octx.Context, withNames, withExprs)
-	exits, err := b.compile(over.Body, []zbuf.Puller{scope})
+	exits, err := b.compileSeq(over.Body, []zbuf.Puller{scope})
 	if err != nil {
 		return nil, err
 	}
@@ -403,8 +403,8 @@ func splitAssignments(assignments []expr.Assignment) (field.List, []expr.Evaluat
 	return lhs, rhs
 }
 
-func (b *Builder) compileSequential(seq *dag.Sequential, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	for _, o := range seq.Ops {
+func (b *Builder) compileSeq(seq dag.Seq, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	for _, o := range seq {
 		var err error
 		parents, err = b.compile(o, parents)
 		if err != nil {
@@ -418,24 +418,10 @@ func (b *Builder) compileScope(scope *dag.Scope, parents []zbuf.Puller) ([]zbuf.
 	if err := b.compileFuncs(scope.Funcs); err != nil {
 		return nil, err
 	}
-	return b.compileSequential(scope.Body, parents)
+	return b.compileSeq(scope.Body, parents)
 }
 
-func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	if par.Any {
-		if len(parents) != 1 {
-			return nil, errors.New("internal error: any-path parallel operator requires a single parent")
-		}
-		var ops []zbuf.Puller
-		for _, o := range par.Ops {
-			op, err := b.compile(o, parents[:1])
-			if err != nil {
-				return nil, err
-			}
-			ops = append(ops, op...)
-		}
-		return ops, nil
-	}
+func (b *Builder) compileFork(par *dag.Fork, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	var f *fork.Op
 	switch len(parents) {
 	case 0:
@@ -448,12 +434,27 @@ func (b *Builder) compileParallel(par *dag.Parallel, parents []zbuf.Puller) ([]z
 		f = fork.New(b.octx, combine.New(b.octx, parents))
 	}
 	var ops []zbuf.Puller
-	for _, o := range par.Ops {
+	for _, seq := range par.Paths {
 		var parent zbuf.Puller
-		if f != nil && !isEntry(o) {
+		if f != nil && !isEntry(seq) {
 			parent = f.AddExit()
 		}
-		op, err := b.compile(o, []zbuf.Puller{parent})
+		op, err := b.compileSeq(seq, []zbuf.Puller{parent})
+		if err != nil {
+			return nil, err
+		}
+		ops = append(ops, op...)
+	}
+	return ops, nil
+}
+
+func (b *Builder) compileScatter(par *dag.Scatter, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	if len(parents) != 1 {
+		return nil, errors.New("internal error: scatter operator requires a single parent")
+	}
+	var ops []zbuf.Puller
+	for _, o := range par.Paths {
+		op, err := b.compileSeq(o, parents[:1])
 		if err != nil {
 			return nil, err
 		}
@@ -502,7 +503,7 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 				return nil, errors.New("switch case is not a constant expression")
 			}
 		}
-		parents, err := b.compile(c.Op, []zbuf.Puller{s.AddCase(val)})
+		parents, err := b.compileSeq(c.Path, []zbuf.Puller{s.AddCase(val)})
 		if err != nil {
 			return nil, err
 		}
@@ -531,7 +532,7 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbu
 	}
 	var ops []zbuf.Puller
 	for k := 0; k < n; k++ {
-		o, err := b.compile(swtch.Cases[k].Op, []zbuf.Puller{parents[k]})
+		o, err := b.compileSeq(swtch.Cases[k].Path, []zbuf.Puller{parents[k]})
 		if err != nil {
 			return nil, err
 		}
@@ -544,15 +545,12 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbu
 // the leaves.
 func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	switch o := o.(type) {
-	case *dag.Sequential:
-		if len(o.Ops) == 0 {
-			return nil, errors.New("empty sequential operator")
-		}
-		return b.compileSequential(o, parents)
+	case *dag.Fork:
+		return b.compileFork(o, parents)
+	case *dag.Scatter:
+		return b.compileScatter(o, parents)
 	case *dag.Scope:
 		return b.compileScope(o, parents)
-	case *dag.Parallel:
-		return b.compileParallel(o, parents)
 	case *dag.Switch:
 		if o.Expr != nil {
 			return b.compileExprSwitch(o, parents)
@@ -680,23 +678,21 @@ func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err erro
 	return b.evalAtCompileTime(in)
 }
 
-func isEntry(op dag.Op) bool {
-	switch op := op.(type) {
+func isEntry(seq dag.Seq) bool {
+	if len(seq) == 0 {
+		return false
+	}
+	switch op := seq[0].(type) {
 	case *Reader, *dag.Lister, *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan:
 		return true
-	case *dag.Sequential:
-		if len(op.Ops) == 0 {
-			return false
-		}
-		return isEntry(op.Ops[0])
 	case *dag.Scope:
 		return isEntry(op.Body)
-	case *dag.Parallel:
-		if len(op.Ops) == 0 {
+	case *dag.Fork:
+		if len(op.Paths) == 0 {
 			return false
 		}
-		for _, o := range op.Ops {
-			if s, ok := o.(*dag.Sequential); !ok || !isEntry(s) {
+		for _, seq := range op.Paths {
+			if !isEntry(seq) {
 				return false
 			}
 		}

@@ -8,7 +8,7 @@ outputs:
   - name: stdout
     data: |
       lister ...
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | summarize partials-out

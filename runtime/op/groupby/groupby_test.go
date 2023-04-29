@@ -322,7 +322,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 	require.Equal(t, res, resStreaming)
 }
 
-func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Op, reader zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
+func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Seq, reader zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
 	octx := op.NewContext(ctx, zctx, nil)
 	q, err := compiler.CompileWithSortKey(octx, program, reader, sortKey)
 	if err != nil {

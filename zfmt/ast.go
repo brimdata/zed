@@ -12,12 +12,12 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func AST(p ast.Op) string {
+func AST(p ast.Seq) string {
 	c := &canon{canonZed: canonZed{formatter{tab: 2}}, head: true, first: true}
-	if scope, ok := p.(*ast.Scope); ok {
+	if scope, ok := p[0].(*ast.Scope); ok {
 		c.scope(scope, false)
 	} else {
-		c.proc(p)
+		c.seq(p)
 	}
 	c.flush()
 	return c.String()
@@ -197,7 +197,7 @@ func (c *canon) expr(e ast.Expr, parent string) {
 			c.write(" with ")
 			c.defs(e.Locals, ", ")
 		}
-		c.proc(e.Body)
+		c.seq(e.Body)
 		c.close()
 		c.ret()
 		c.flush()
@@ -343,25 +343,27 @@ func (c *canon) decl(d ast.Decl) {
 		c.open("unknown decl: %T", d)
 		c.close()
 	}
+
+}
+func (c *canon) seq(seq ast.Seq) {
+	for _, p := range seq {
+		c.op(p)
+	}
 }
 
-func (c *canon) proc(p ast.Op) {
+func (c *canon) op(p ast.Op) {
 	switch p := p.(type) {
-	case *ast.Sequential:
-		for _, p := range p.Ops {
-			c.proc(p)
-		}
 	case *ast.Scope:
 		c.scope(p, true)
 	case *ast.Parallel:
 		c.next()
 		c.open("fork (")
-		for _, p := range p.Ops {
+		for _, p := range p.Paths {
 			c.ret()
 			c.write("=>")
 			c.open()
 			c.head = true
-			c.proc(p)
+			c.seq(p)
 			c.close()
 		}
 		c.close()
@@ -394,7 +396,7 @@ func (c *canon) proc(p ast.Op) {
 			c.write(" =>")
 			c.open()
 			c.head = true
-			c.proc(k.Op)
+			c.seq(k.Path)
 			c.close()
 		}
 		c.close()
@@ -412,7 +414,7 @@ func (c *canon) proc(p ast.Op) {
 				c.write(" =>")
 				c.open()
 				c.head = true
-				c.proc(trunk.Seq)
+				c.seq(trunk.Seq)
 				c.close()
 			}
 		}
@@ -554,7 +556,7 @@ func (c *canon) proc(p ast.Op) {
 		c.write("pass")
 	case *ast.OpExpr:
 		if agg := isAggFunc(p.Expr); agg != nil {
-			c.proc(agg)
+			c.op(agg)
 			return
 		}
 		c.next()
@@ -601,7 +603,7 @@ func (c *canon) proc(p ast.Op) {
 		if p.RightInput != nil {
 			c.open("(")
 			c.head = true
-			c.proc(p.RightInput)
+			c.seq(p.RightInput)
 			c.close()
 			c.ret()
 			c.flush()
@@ -656,7 +658,7 @@ func (c *canon) over(o *ast.Over) {
 		c.write(" => (")
 		c.open()
 		c.head = true
-		c.proc(o.Body)
+		c.seq(o.Body)
 		c.close()
 		c.ret()
 		c.flush()
@@ -675,7 +677,7 @@ func (c *canon) scope(s *ast.Scope, parens bool) {
 	}
 	//XXX functions?
 	c.flush()
-	c.proc(s.Body)
+	c.seq(s.Body)
 	if parens {
 		c.close()
 		c.ret()

@@ -2,6 +2,8 @@ package zcode
 
 import (
 	"encoding/binary"
+
+	"golang.org/x/exp/slices"
 )
 
 // Builder provides an efficient API for constructing nested ZNG values.
@@ -31,11 +33,7 @@ func (b *Builder) Truncate() {
 // Grow guarantees that at least n bytes can be added to the Builder's
 // underlying buffer without another allocation.
 func (b *Builder) Grow(n int) {
-	if cap(b.bytes)-len(b.bytes) < n {
-		buf := make([]byte, len(b.bytes), 2*cap(b.bytes)+n)
-		copy(buf, b.bytes)
-		b.bytes = buf
-	}
+	b.bytes = slices.Grow(b.bytes, n)
 }
 
 // BeginContainer opens a new container.

@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/pierrec/lz4/v4"
+	"golang.org/x/exp/slices"
 )
 
 // DefaultFrameThresh is a reasonable default for WriterOpts.FrameThresh.
@@ -190,9 +191,7 @@ func (c *compressor) compress(b []byte) ([]byte, error) {
 	if c == nil || len(b) == 0 {
 		return nil, nil
 	}
-	if cap(c.zbuf) < len(b) {
-		c.zbuf = make([]byte, len(b))
-	}
+	c.zbuf = slices.Grow(c.zbuf[:0], len(b))
 	zbuf := c.zbuf[:len(b)]
 	zlen, err := c.compressor.CompressBlock(b, zbuf)
 	if err != nil && err != lz4.ErrInvalidSourceShortBuffer {

@@ -16,6 +16,7 @@ and appear as the components of a dataflow pipeline.
 * [get](from.md) - source data from a URI
 * [head](head.md) - copy leading values of input sequence
 * [join](join.md) - combine data from two inputs using a join predicate
+* [load](load.md) -  automatically populates scratch pools
 * [merge](merge.md) - combine parallel paths into a single, ordered output
 * [over](over.md) - traverse nested values as a lateral query
 * [pass](pass.md) - copy input values to output
