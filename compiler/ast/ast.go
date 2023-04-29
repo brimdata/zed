@@ -169,10 +169,10 @@ type EntryExpr struct {
 }
 
 type OverExpr struct {
-	Kind   string      `json:"kind" unpack:""`
-	Locals []Def       `json:"locals"`
-	Exprs  []Expr      `json:"exprs"`
-	Body   *Sequential `json:"body"`
+	Kind   string `json:"kind" unpack:""`
+	Locals []Def  `json:"locals"`
+	Exprs  []Expr `json:"exprs"`
+	Body   Seq    `json:"body"`
 }
 
 func (*UnaryExpr) ExprAST()   {}
@@ -217,21 +217,19 @@ func (*FuncDecl) DeclAST()  {}
 // ----------------------------------------------------------------------------
 // Operators
 
+// A Seq represents a sequence of operators that receive
+// a stream of Zed values from their parent into the first operator
+// and each subsequent operator processes the output records from the
+// previous operator.
+type Seq []Op
+
 // An Op is a node in the flowgraph that takes Zed values in, operates upon them,
 // and produces Zed values as output.
 type (
-	// A Sequential operator represents a set of operators that receive
-	// a stream of Zed values from their parent into the first operator
-	// and each subsequent operator processes the output records from the
-	// previous operator.
-	Sequential struct {
-		Kind string `json:"kind" unpack:""`
-		Ops  []Op   `json:"ops"`
-	}
 	Scope struct {
-		Kind  string      `json:"kind" unpack:""`
-		Decls []Decl      `json:"decls"`
-		Body  *Sequential `json:"body"`
+		Kind  string `json:"kind" unpack:""`
+		Decls []Decl `json:"decls"`
+		Body  Seq    `json:"body"`
 	}
 	// A Parallel operator represents a set of operators that each get
 	// a stream of Zed values from their parent.
@@ -243,7 +241,7 @@ type (
 		// XXX merge_by should be a list of expressions
 		MergeBy      field.Path `json:"merge_by,omitempty"`
 		MergeReverse bool       `json:"merge_reverse,omitempty"`
-		Ops          []Op       `json:"ops"`
+		Paths        []Seq      `json:"paths"`
 	}
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
@@ -306,10 +304,10 @@ type (
 		Expr Expr   `json:"expr"`
 	}
 	Over struct {
-		Kind   string      `json:"kind" unpack:""`
-		Exprs  []Expr      `json:"exprs"`
-		Locals []Def       `json:"locals"`
-		Body   *Sequential `json:"body"`
+		Kind   string `json:"kind" unpack:""`
+		Exprs  []Expr `json:"exprs"`
+		Locals []Def  `json:"locals"`
+		Body   Seq    `json:"body"`
 	}
 	Search struct {
 		Kind string `json:"kind" unpack:""`
@@ -347,10 +345,14 @@ type (
 	Join struct {
 		Kind       string       `json:"kind" unpack:""`
 		Style      string       `json:"style"`
-		RightInput *Sequential  `json:"right_input"`
+		RightInput Seq          `json:"right_input"`
 		LeftKey    Expr         `json:"left_key"`
 		RightKey   Expr         `json:"right_key"`
 		Args       []Assignment `json:"args"`
+	}
+	Sample struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
 	}
 	// A SQLExpr can be an operator, an expression inside of a SQL FROM clause,
 	// or an expression used as a Zed value generator.  Currenly, the "select"
@@ -433,14 +435,14 @@ type SortKey struct {
 }
 
 type Trunk struct {
-	Kind   string      `json:"kind" unpack:""`
-	Source Source      `json:"source"`
-	Seq    *Sequential `json:"seq"`
+	Kind   string `json:"kind" unpack:""`
+	Source Source `json:"source"`
+	Seq    Seq    `json:"seq"`
 }
 
 type Case struct {
 	Expr Expr `json:"expr"`
-	Op   Op   `json:"op"`
+	Path Seq  `json:"path"`
 }
 
 type SQLFrom struct {
@@ -477,7 +479,6 @@ type Def struct {
 }
 
 func (*Scope) OpAST()        {}
-func (*Sequential) OpAST()   {}
 func (*Parallel) OpAST()     {}
 func (*Switch) OpAST()       {}
 func (*Sort) OpAST()         {}
@@ -503,12 +504,13 @@ func (*Over) OpAST()         {}
 func (*Search) OpAST()       {}
 func (*Where) OpAST()        {}
 func (*Yield) OpAST()        {}
+func (*Sample) OpAST()       {}
 func (*Load) OpAST()         {}
 
 func (*SQLExpr) OpAST() {}
 
-func (seq *Sequential) Prepend(front Op) {
-	seq.Ops = append([]Op{front}, seq.Ops...)
+func (seq *Seq) Prepend(front Op) {
+	*seq = append([]Op{front}, *seq...)
 }
 
 // An Agg is an AST node that represents a aggregate function.  The Name

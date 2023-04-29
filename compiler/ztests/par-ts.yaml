@@ -29,7 +29,7 @@ outputs:
       <CUT PUT RENAME>
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | cut ts:=ts,y:=y,z:=z
@@ -45,7 +45,7 @@ outputs:
       <CUT UNIQ>
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | cut ts:=ts,foo:=x
@@ -58,7 +58,7 @@ outputs:
       <DROP UNIQ>
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | drop x
@@ -71,7 +71,7 @@ outputs:
       <EVERY COUNT>
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | summarize partials-out sort-dir 1
@@ -86,7 +86,7 @@ outputs:
           count:=count() by y:=y,ts:=ts
       <PUT COUNTDISTINCT UNIQ>
       lister ...
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | put x:=y
@@ -105,7 +105,7 @@ outputs:
       <RENAME UNIQ>
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | put x:=foo
@@ -120,7 +120,7 @@ outputs:
       <PUT TAIL>
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | put a:=1
@@ -134,7 +134,7 @@ outputs:
       | tail 1
       <SORT UNIQ>
       lister ...
-      | fork (
+      | scatter (
         =>
           seqscan ...
         =>
@@ -145,7 +145,7 @@ outputs:
       | uniq
       <SORT X UNIQ>
       lister ...
-      | fork (
+      | scatter (
         =>
           seqscan ...
           | sort x
@@ -158,7 +158,7 @@ outputs:
       <UNIQ>
       lister ...
       | slicer
-      | fork (
+      | scatter (
         =>
           seqscan ...
         =>

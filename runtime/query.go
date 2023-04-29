@@ -33,13 +33,13 @@ func NewQuery(octx *op.Context, puller zbuf.Puller, meter zbuf.Meter) *Query {
 }
 
 type Compiler interface {
-	NewQuery(*op.Context, ast.Op, []zio.Reader) (*Query, error)
-	NewLakeQuery(*op.Context, ast.Op, int, *lakeparse.Commitish) (*Query, error)
-	NewLakeDeleteQuery(*op.Context, ast.Op, *lakeparse.Commitish) (*DeleteQuery, error)
-	Parse(string, ...string) (ast.Op, error)
+	NewQuery(*op.Context, ast.Seq, []zio.Reader) (*Query, error)
+	NewLakeQuery(*op.Context, ast.Seq, int, *lakeparse.Commitish) (*Query, error)
+	NewLakeDeleteQuery(*op.Context, ast.Seq, *lakeparse.Commitish) (*DeleteQuery, error)
+	Parse(string, ...string) (ast.Seq, error)
 }
 
-func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Op, readers []zio.Reader) (*Query, error) {
+func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Seq, readers []zio.Reader) (*Query, error) {
 	octx := op.NewContext(ctx, zctx, nil)
 	q, err := c.NewQuery(octx, program, readers)
 	if err != nil {
@@ -49,7 +49,7 @@ func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program as
 	return q, nil
 }
 
-func CompileLakeQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Op, head *lakeparse.Commitish, logger *zap.Logger) (*Query, error) {
+func CompileLakeQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Seq, head *lakeparse.Commitish, logger *zap.Logger) (*Query, error) {
 	octx := op.NewContext(ctx, zctx, logger)
 	q, err := c.NewLakeQuery(octx, program, 0, head)
 	if err != nil {

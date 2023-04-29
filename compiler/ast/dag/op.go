@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/segmentio/ksuid"
+	"golang.org/x/exp/slices"
 )
 
 type Op interface {
@@ -18,6 +19,8 @@ type Op interface {
 }
 
 var PassOp = &Pass{Kind: "Pass"}
+
+type Seq []Op
 
 // Ops
 
@@ -43,6 +46,10 @@ type (
 	Filter struct {
 		Kind string `json:"kind" unpack:""`
 		Expr Expr   `json:"expr"`
+	}
+	Fork struct {
+		Kind  string `json:"kind" unpack:""`
+		Paths []Seq  `json:"paths"`
 	}
 	Fuse struct {
 		Kind string `json:"kind" unpack:""`
@@ -71,10 +78,12 @@ type (
 		Expr  Expr        `json:"expr"`
 		Order order.Which `json:"order"`
 	}
-	Parallel struct {
-		Kind string `json:"kind" unpack:""`
-		Ops  []Op   `json:"ops"`
-		Any  bool   `json:"any"`
+	Over struct {
+		Kind  string `json:"kind" unpack:""`
+		Defs  []Def  `json:"defs"`
+		Exprs []Expr `json:"exprs"`
+		Vars  []Def  `json:"vars"`
+		Body  Seq    `json:"body"`
 	}
 	Pass struct {
 		Kind string `json:"kind" unpack:""`
@@ -87,15 +96,15 @@ type (
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
-	Scope struct {
-		Kind   string      `json:"kind" unpack:""`
-		Consts []Def       `json:"consts"`
-		Funcs  []*Func     `json:"funcs"`
-		Body   *Sequential `json:"body"`
+	Scatter struct {
+		Kind  string `json:"kind" unpack:""`
+		Paths []Seq  `json:"paths"`
 	}
-	Sequential struct {
-		Kind string `json:"kind" unpack:""`
-		Ops  []Op   `json:"ops"`
+	Scope struct {
+		Kind   string  `json:"kind" unpack:""`
+		Consts []Def   `json:"consts"`
+		Funcs  []*Func `json:"funcs"`
+		Body   Seq     `json:"seq"`
 	}
 	Shape struct {
 		Kind string `json:"kind" unpack:""`
@@ -129,13 +138,6 @@ type (
 		Limit int    `json:"limit"`
 		Args  []Expr `json:"args"`
 		Flush bool   `json:"flush"`
-	}
-	Over struct {
-		Kind  string      `json:"kind" unpack:""`
-		Defs  []Def       `json:"defs"`
-		Exprs []Expr      `json:"exprs"`
-		Vars  []Def       `json:"vars"`
-		Body  *Sequential `json:"body"`
 	}
 	Uniq struct {
 		Kind  string `json:"kind" unpack:""`
@@ -192,6 +194,11 @@ type (
 		ID     ksuid.KSUID `json:"id"`
 		Commit ksuid.KSUID `json:"commit"`
 	}
+	DeleteScan struct {
+		Kind   string      `json:"kind" unpack:""`
+		ID     ksuid.KSUID `json:"id"`
+		Commit ksuid.KSUID `json:"commit"`
+	}
 	PoolMetaScan struct {
 		Kind string      `json:"kind" unpack:""`
 		ID   ksuid.KSUID `json:"id"`
@@ -233,6 +240,7 @@ var CommitMetas = map[string]struct{}{
 func (*FileScan) OpNode()       {}
 func (*HTTPScan) OpNode()       {}
 func (*PoolScan) OpNode()       {}
+func (*DeleteScan) OpNode()     {}
 func (*LakeMetaScan) OpNode()   {}
 func (*PoolMetaScan) OpNode()   {}
 func (*CommitMetaScan) OpNode() {}
@@ -247,7 +255,7 @@ func (*Deleter) OpNode() {}
 type (
 	Case struct {
 		Expr Expr `json:"expr"`
-		Op   Op   `json:"op"`
+		Path Seq  `json:"seq"`
 	}
 	Def struct {
 		Name string `json:"name"`
@@ -255,31 +263,31 @@ type (
 	}
 )
 
-func (*Sequential) OpNode() {}
-func (*Scope) OpNode()      {}
-func (*Parallel) OpNode()   {}
-func (*Switch) OpNode()     {}
-func (*Sort) OpNode()       {}
-func (*Cut) OpNode()        {}
-func (*Drop) OpNode()       {}
-func (*Head) OpNode()       {}
-func (*Tail) OpNode()       {}
-func (*Pass) OpNode()       {}
-func (*Filter) OpNode()     {}
-func (*Uniq) OpNode()       {}
-func (*Summarize) OpNode()  {}
-func (*Top) OpNode()        {}
-func (*Put) OpNode()        {}
-func (*Rename) OpNode()     {}
-func (*Fuse) OpNode()       {}
-func (*Join) OpNode()       {}
-func (*Shape) OpNode()      {}
-func (*Explode) OpNode()    {}
-func (*Over) OpNode()       {}
-func (*Yield) OpNode()      {}
-func (*Merge) OpNode()      {}
-func (*Load) OpNode()       {}
-func (*Combine) OpNode()    {}
+func (*Fork) OpNode()      {}
+func (*Scatter) OpNode()   {}
+func (*Switch) OpNode()    {}
+func (*Sort) OpNode()      {}
+func (*Cut) OpNode()       {}
+func (*Drop) OpNode()      {}
+func (*Head) OpNode()      {}
+func (*Tail) OpNode()      {}
+func (*Pass) OpNode()      {}
+func (*Filter) OpNode()    {}
+func (*Uniq) OpNode()      {}
+func (*Summarize) OpNode() {}
+func (*Top) OpNode()       {}
+func (*Put) OpNode()       {}
+func (*Rename) OpNode()    {}
+func (*Fuse) OpNode()      {}
+func (*Join) OpNode()      {}
+func (*Shape) OpNode()     {}
+func (*Explode) OpNode()   {}
+func (*Over) OpNode()      {}
+func (*Yield) OpNode()     {}
+func (*Merge) OpNode()     {}
+func (*Combine) OpNode()   {}
+func (*Scope) OpNode()     {}
+func (*Load) OpNode()      {}
 
 // NewFilter returns a filter node for e.
 func NewFilter(e Expr) *Filter {
@@ -289,22 +297,37 @@ func NewFilter(e Expr) *Filter {
 	}
 }
 
-func (seq *Sequential) Prepend(front Op) {
-	seq.Ops = append([]Op{front}, seq.Ops...)
+func (seq *Seq) Prepend(front Op) {
+	*seq = append([]Op{front}, *seq...)
 }
 
-func (seq *Sequential) Append(op Op) {
-	seq.Ops = append(seq.Ops, op)
+func (seq *Seq) Append(op Op) {
+	*seq = append(*seq, op)
 }
 
-func (seq *Sequential) Delete(at, length int) {
-	seq.Ops = append(seq.Ops[0:at], seq.Ops[at+length:]...)
+func (seq *Seq) Delete(from, to int) {
+	*seq = slices.Delete(*seq, from, to)
 }
 
-func FanIn(op Op) int {
-	switch op := op.(type) {
-	case *Sequential:
-		return FanIn(op.Ops[0])
+func FanIn(seq Seq) int {
+	if len(seq) == 0 {
+		return 0
+	}
+	switch op := seq[0].(type) {
+	case *Fork:
+		n := 0
+		for _, seq := range op.Paths {
+			n += FanIn(seq)
+		}
+		return n
+	case *Scatter:
+		n := 0
+		for _, seq := range op.Paths {
+			n += FanIn(seq)
+		}
+		return n
+	case *Scope:
+		return FanIn(op.Body)
 	case *Join:
 		return 2
 	}

@@ -1,7 +1,6 @@
 package unpack_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/brimdata/zed/pkg/unpack"
@@ -464,37 +463,42 @@ func TestUnpackSliceList(t *testing.T) {
 	assert.Equal(t, sliceListExpected, actual)
 }
 
-var sliceListTemplate = &SliceList{
-	Op: "SliceList",
-	Slices: [][]Pair{
-		{
-			{
-				A: &Terminal{},
-				B: &Terminal{},
-			},
-			{
-				A: &Terminal{},
-				B: &Terminal{},
-			},
-		},
-		{
-			{
-				A: &Terminal{},
-				B: &Terminal{},
-			},
-		},
-	},
-}
-
-func TestSliceListTemplate(t *testing.T) {
-	err := json.Unmarshal([]byte(sliceListJSON), &sliceListTemplate)
-	require.NoError(t, err)
-	assert.Equal(t, sliceListExpected, sliceListTemplate)
-}
-
 func TestEmptyObject(t *testing.T) {
 	reflector := unpack.New()
 	actual, err := reflector.UnmarshalString("{}")
 	require.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{}, actual)
+}
+
+const outerPairSlice = `
+[
+	{
+		"a": { "op": "Terminal", "body": "a1" },
+		"b": { "op": "Terminal", "body": "b1" }
+	},
+	{
+		"a": { "op": "Terminal", "body": "a2" },
+		"b": { "op": "Terminal", "body": "b2" }
+	}
+]`
+
+var outerPairSliceExpected = []Pair{
+	{
+		A: &Terminal{"Terminal", "a1"},
+		B: &Terminal{"Terminal", "b1"},
+	},
+	{
+		A: &Terminal{"Terminal", "a2"},
+		B: &Terminal{"Terminal", "b2"},
+	},
+}
+
+func TestUnpackOuterPairSlice(t *testing.T) {
+	reflector := unpack.New(
+		Terminal{},
+	)
+	var pairs []Pair
+	err := reflector.UnmarshalInto([]byte(outerPairSlice), &pairs)
+	require.NoError(t, err)
+	assert.Equal(t, outerPairSliceExpected, pairs)
 }

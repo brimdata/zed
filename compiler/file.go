@@ -21,12 +21,12 @@ func NewFileSystemCompiler(engine storage.Engine) runtime.Compiler {
 	return &fsCompiler{src: data.NewSource(engine, nil)}
 }
 
-func (f *fsCompiler) NewQuery(octx *op.Context, o ast.Op, readers []zio.Reader) (*runtime.Query, error) {
-	job, err := NewJob(octx, o, f.src, nil)
+func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reader) (*runtime.Query, error) {
+	job, err := NewJob(octx, seq, f.src, nil)
 	if err != nil {
 		return nil, err
 	}
-	if isJoin(o) {
+	if isJoin(seq) {
 		if len(readers) != 2 {
 			return nil, errors.New("join operator requires two inputs")
 		}
@@ -58,25 +58,25 @@ func (f *fsCompiler) NewQuery(octx *op.Context, o ast.Op, readers []zio.Reader) 
 	return optimizeAndBuild(job)
 }
 
-func (*fsCompiler) NewLakeQuery(octx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
+func (*fsCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
 	panic("NewLakeQuery called on compiler.fsCompiler")
 }
 
-func (*fsCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
+func (*fsCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Seq, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
 	panic("NewLakeDeleteQuery called on compiler.fsCompiler")
 }
 
-func isJoin(o ast.Op) bool {
-	scope, ok := o.(*ast.Scope)
-	if !ok {
+func isJoin(seq ast.Seq) bool {
+	if len(seq) == 0 {
 		return false
 	}
-	seq := scope.Body
-	if !ok || len(seq.Ops) == 0 {
-		return false
+	switch op := seq[0].(type) {
+	case *ast.Join:
+		return true
+	case *ast.Scope:
+		return isJoin(op.Body)
 	}
-	_, ok = seq.Ops[0].(*ast.Join)
-	return ok
+	return false
 }
 
 func optimizeAndBuild(job *Job) (*runtime.Query, error) {

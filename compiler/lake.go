@@ -2,7 +2,6 @@ package compiler
 
 import (
 	"errors"
-	"fmt"
 	"runtime"
 
 	"github.com/brimdata/zed/compiler/ast"
@@ -32,7 +31,7 @@ func NewLakeCompiler(r *lake.Root) zedruntime.Compiler {
 	return &lakeCompiler{src: data.NewSource(storage.NewRemoteEngine(), r)}
 }
 
-func (l *lakeCompiler) NewLakeQuery(octx *op.Context, program ast.Op, parallelism int, head *lakeparse.Commitish) (*zedruntime.Query, error) {
+func (l *lakeCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*zedruntime.Query, error) {
 	job, err := NewJob(octx, program, l.src, head)
 	if err != nil {
 		return nil, err
@@ -55,7 +54,7 @@ func (l *lakeCompiler) NewLakeQuery(octx *op.Context, program ast.Op, parallelis
 	return zedruntime.NewQuery(job.octx, job.Puller(), job.builder.Meter()), nil
 }
 
-func (l *lakeCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Op, head *lakeparse.Commitish) (*zedruntime.DeleteQuery, error) {
+func (l *lakeCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Seq, head *lakeparse.Commitish) (*zedruntime.DeleteQuery, error) {
 	job, err := newDeleteJob(octx, program, l.src, head)
 	if err != nil {
 		return nil, err
@@ -75,17 +74,12 @@ func (InvalidDeleteWhereQuery) Error() string {
 	return "invalid delete where query: must be a single filter operation"
 }
 
-func newDeleteJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
-	parserAST := ast.Copy(inAST)
-	scope, ok := parserAST.(*ast.Scope)
-	if !ok {
-		return nil, fmt.Errorf("internal error: AST must begin with a Scope op: %T", parserAST)
+func newDeleteJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
+	seq := ast.CopySeq(in)
+	if len(seq) == 0 {
+		return nil, errors.New("internal error: AST seq cannot be empty")
 	}
-	seq := scope.Body
-	if len(seq.Ops) == 0 {
-		return nil, errors.New("internal error: AST Scope op body cannot be empty")
-	}
-	if len(seq.Ops) != 1 {
+	if len(seq) != 1 {
 		return nil, &InvalidDeleteWhereQuery{}
 	}
 	// add trunk
@@ -105,16 +99,17 @@ func newDeleteJob(octx *op.Context, inAST ast.Op, src *data.Source, head *lakepa
 			},
 		}},
 	})
-	entry, err := semantic.Analyze(octx.Context, scope, src, head)
+	entry, err := semantic.Analyze(octx.Context, seq, src, head)
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := entry.Body.Ops[1].(*dag.Filter); !ok {
+	if _, ok := entry[1].(*dag.Filter); !ok {
 		return nil, &InvalidDeleteWhereQuery{}
 	}
 	return &Job{
 		octx:      octx,
 		builder:   kernel.NewBuilder(octx, src),
-		optimizer: optimizer.New(octx.Context, entry, src),
+		optimizer: optimizer.New(octx.Context, src),
+		entry:     entry,
 	}, nil
 }

@@ -473,8 +473,8 @@ func (b *Builder) compileMapExpr(m *dag.MapExpr) (expr.Evaluator, error) {
 }
 
 func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
-	if over.Scope == nil {
-		return nil, errors.New("over expression requires flow body")
+	if over.Body == nil {
+		return nil, errors.New("over expression requires a lateral query body")
 	}
 	names, lets, err := b.compileDefs(over.Defs)
 	if err != nil {
@@ -487,7 +487,7 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 	parent := traverse.NewExpr(b.octx.Context, b.zctx())
 	enter := traverse.NewOver(b.octx, parent, exprs)
 	scope := enter.AddScope(b.octx.Context, names, lets)
-	exits, err := b.compile(over.Scope, []zbuf.Puller{scope})
+	exits, err := b.compileSeq(over.Body, []zbuf.Puller{scope})
 	if err != nil {
 		return nil, err
 	}

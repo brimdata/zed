@@ -68,7 +68,7 @@ func NewObject(ctx context.Context, engine storage.Engine, uri *storage.URI, id 
 		return nil, fmt.Errorf("empty VNG object: %s", uri)
 	}
 	if len(metas) > MaxTypesPerObject {
-		return nil, fmt.Errorf("too many types is VNG object: %s", uri)
+		return nil, fmt.Errorf("too many types in VNG object: %s", uri)
 	}
 	types := make([]zed.Type, 0, len(metas))
 	for _, meta := range metas {

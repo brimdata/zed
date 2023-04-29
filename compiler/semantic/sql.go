@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr/agg"
 )
 
-func convertSQLOp(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {
+func convertSQLOp(scope *Scope, sql *ast.SQLExpr, seq dag.Seq) (dag.Seq, error) {
 	selection, err := newSQLSelection(scope, sql.Select)
 	if err != err {
 		return nil, err
@@ -105,9 +105,9 @@ func convertSQLOp(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {
 		ops = append(ops, p)
 	}
 	if len(ops) == 0 {
-		ops = []dag.Op{&dag.Pass{Kind: "Pass"}}
+		ops = []dag.Op{dag.PassOp}
 	}
-	return wrap(ops), nil
+	return append(seq, ops...), nil
 }
 
 func isID(e ast.Expr) (string, bool) {
@@ -243,19 +243,6 @@ func convertSQLAlias(scope *Scope, e ast.Expr) (*dag.Cut, string, error) {
 	}, id, nil
 }
 
-func wrap(ops []dag.Op) dag.Op {
-	if len(ops) == 0 {
-		return nil
-	}
-	if len(ops) == 1 {
-		return ops[0]
-	}
-	return &dag.Sequential{
-		Kind: "Sequential",
-		Ops:  ops,
-	}
-}
-
 func convertSQLJoins(scope *Scope, fromPath []dag.Op, joins []ast.SQLJoin) ([]dag.Op, error) {
 	left := fromPath
 	for _, right := range joins {
@@ -294,9 +281,9 @@ func convertSQLJoin(scope *Scope, leftPath []dag.Op, sqlJoin ast.SQLJoin) ([]dag
 		return nil, err
 	}
 	rightPath = append(rightPath, sortBy(rightKey))
-	fork := &dag.Parallel{
-		Kind: "Parallel",
-		Ops:  []dag.Op{wrap(leftPath), wrap(rightPath)},
+	fork := &dag.Fork{
+		Kind:  "Fork",
+		Paths: []dag.Seq{leftPath, rightPath},
 	}
 	alias := dag.Assignment{
 		Kind: "Assignment",
