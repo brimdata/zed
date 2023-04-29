@@ -19,7 +19,7 @@ pipeline to a pool in the same Zed lake. `<pool>` is a string indicating the
 If the optional `@<branch>` string is included then the data will be committed
 to an existing branch of that name, otherwise the `main` branch is assumed.
 The `author`, `message`, and `meta` strings may also be provided to further
-describe the committed data similar to the same `zed load` options.
+describe the committed data, similar to the same `zed load` options.
 
 ### Input Data
 
