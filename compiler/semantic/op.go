@@ -702,14 +702,14 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 				return nil, err
 			}
 		}
-		return &dag.Load{
+		return append(seq, &dag.Load{
 			Kind:    "Load",
 			Pool:    poolID,
 			Branch:  o.Branch,
 			Author:  o.Author,
 			Message: o.Message,
 			Meta:    o.Meta,
-		}, nil
+		}), nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
 }
