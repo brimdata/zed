@@ -20,7 +20,7 @@ type Object struct {
 func unmarshal(b []byte) (*Object, error) {
 	var object Object
 	if err := unpacker.Unmarshal(b, &object); err != nil {
-		return nil, fmt.Errorf("malformed ZJSON: bad type object: %w (%q)", err, bytes.TrimSpace(b))
+		return nil, fmt.Errorf("malformed ZJSON: bad type object: %q: %w", bytes.TrimSpace(b), err)
 	}
 	return &object, nil
 }
