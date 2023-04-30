@@ -229,7 +229,7 @@ func copyOp(o dag.Op) dag.Op {
 	if err != nil {
 		panic(err)
 	}
-	copy, err := dag.UnpackJSONAsOp(b)
+	copy, err := dag.UnmarshalOp(b)
 	if err != nil {
 		panic(err)
 	}
