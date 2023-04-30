@@ -149,7 +149,7 @@ function peg$parse(input, options) {
       peg$c3 = function(first, rest) {
             return [first, ... rest]
           },
-      peg$c4 = function(p) { return p },
+      peg$c4 = function(o) { return o },
       peg$c5 = function(v) { return v },
       peg$c6 = "const",
       peg$c7 = peg$literalExpectation("const", false),
@@ -229,8 +229,8 @@ function peg$parse(input, options) {
       peg$c45 = peg$literalExpectation("{", false),
       peg$c46 = "[",
       peg$c47 = peg$literalExpectation("[", false),
-      peg$c48 = function(expr, leg) {
-            return {"expr": expr, "path": leg}
+      peg$c48 = function(expr, path) {
+            return {"expr": expr, "path": path}
           },
       peg$c49 = "case",
       peg$c50 = peg$literalExpectation("case", false),
