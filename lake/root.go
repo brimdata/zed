@@ -17,6 +17,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zngbytes"
@@ -49,6 +50,7 @@ type Root struct {
 	poolCache  *lru.ARCCache[ksuid.KSUID, *Pool]
 	pools      *pools.Store
 	indexRules *index.Store
+	vCache     *vcache.Cache
 }
 
 type LakeMagic struct {
@@ -66,6 +68,7 @@ func newRoot(engine storage.Engine, logger *zap.Logger, path *storage.URI) *Root
 		logger:    logger,
 		path:      path,
 		poolCache: poolCache,
+		vCache:    vcache.NewCache(engine),
 	}
 }
 
@@ -486,4 +489,8 @@ func (r *Root) BatchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 
 func (r *Root) Open(context.Context, *zed.Context, string, string, zbuf.Filter) (zbuf.Puller, error) {
 	return nil, errors.New("cannot use 'file' or 'http' source in a lake query")
+}
+
+func (r *Root) VectorCache() *vcache.Cache {
+	return r.vCache
 }

@@ -1,4 +1,4 @@
-package read
+package agg
 
 import (
 	"errors"
@@ -11,18 +11,19 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/vam"
 	"github.com/brimdata/zed/runtime/vcache"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
 
-var Project = &charm.Spec{
-	Name:  "project",
-	Usage: "project [flags] field[,field...] path",
-	Short: "read a VNG file and run a projection as a test",
+var Agg = &charm.Spec{
+	Name:  "agg",
+	Usage: "agg [flags] field[,field...] path",
+	Short: "read a VNG file and run an aggregate as a test",
 	Long: `
 The project command reads VNG vectors from
 a VNG storage objects (local files or s3 objects) and outputs
-the reconstructed ZNG row data as a projection of one or more fields.
+the reconstructed ZNG row data as an aggregate function.
 
 This command is most useful for testing the VNG vector cache.
 `,
@@ -30,7 +31,7 @@ This command is most useful for testing the VNG vector cache.
 }
 
 func init() {
-	devvcache.Cmd.Add(Project)
+	devvcache.Cmd.Add(Agg)
 }
 
 type Command struct {
@@ -50,14 +51,15 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if len(args) < 2 {
+	if len(args) != 2 {
+		//XXX
 		return errors.New("VNG read: must be run with a single path argument followed by one or more fields")
 	}
 	uri, err := storage.ParseURI(args[0])
 	if err != nil {
 		return err
 	}
-	fields := args[1:]
+	field := args[1]
 	local := storage.NewLocalEngine()
 	cache := vcache.NewCache(local)
 	object, err := cache.Fetch(ctx, uri, ksuid.Nil)
@@ -65,15 +67,13 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer object.Close()
-	projection, err := vam.NewProjection(object, fields)
-	if err != nil {
-		return err
-	}
+	//XXX nil puller
+	agg := vam.NewCountByString(object.LocalContext(), nil, field)
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, projection); err != nil {
+	if err := zio.Copy(writer, zbuf.PullerReader(agg)); err != nil {
 		writer.Close()
 		return err
 	}

@@ -1,67 +1,31 @@
 package vcache
 
 import (
+	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/vng/vector"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/vector"
+	meta "github.com/brimdata/zed/vng/vector"
 )
 
-type Map struct {
-	segmap  []vector.Segment
-	keys    Vector
-	values  Vector
-	lengths []int32
-}
-
-func NewMap(m *vector.Map, r io.ReaderAt) (*Map, error) {
-	keys, err := NewVector(m.Keys, r)
-	if err != nil {
-		return nil, err
-	}
-	values, err := NewVector(m.Values, r)
-	if err != nil {
-		return nil, err
-	}
-	return &Map{
-		segmap: m.Lengths,
-		keys:   keys,
-		values: values,
-	}, nil
-}
-
-func (m *Map) NewIter(reader io.ReaderAt) (iterator, error) {
-	// The lengths vector is typically large and is loaded on demand.
-	if m.lengths == nil {
-		lengths, err := vng.ReadIntVector(m.segmap, reader)
+func loadMap(any *vector.Any, typ zed.Type, path field.Path, m *meta.Map, r io.ReaderAt) (*vector.Map, error) {
+	if *any == nil {
+		mapType, ok := typ.(*zed.TypeMap)
+		if !ok {
+			return nil, fmt.Errorf("internal error: vcache.loadMap encountered bad type: %s", typ)
+		}
+		var keys, values vector.Any
+		_, err := loadVector(&keys, mapType.KeyType, path, m.Keys, r)
 		if err != nil {
 			return nil, err
 		}
-		m.lengths = lengths
-	}
-	keys, err := m.keys.NewIter(reader)
-	if err != nil {
-		return nil, err
-	}
-	values, err := m.values.NewIter(reader)
-	if err != nil {
-		return nil, err
-	}
-	off := 0
-	return func(b *zcode.Builder) error {
-		len := m.lengths[off]
-		off++
-		b.BeginContainer()
-		for ; len > 0; len-- {
-			if err := keys(b); err != nil {
-				return err
-			}
-			if err := values(b); err != nil {
-				return err
-			}
+		_, err = loadVector(&values, mapType.ValType, path, m.Values, r)
+		if err != nil {
+			return nil, err
 		}
-		b.EndContainer()
-		return nil
-	}, nil
+		*any = vector.NewMap(mapType, keys, values)
+	}
+	return (*any).(*vector.Map), nil
 }
