@@ -59,8 +59,12 @@ var unpacker = unpack.New(
 	UnaryExpr{},
 	Uniq{},
 	Var{},
+	VecScan{},
 	VectorValue{},
 	Yield{},
+	//XXX
+	CountByStringHack{},
+	SumHack{},
 )
 
 // UnmarshalOp transforms a JSON representation of an operator into an Op.

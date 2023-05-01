@@ -145,6 +145,23 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Cflag bool   `json:"cflag"`
 	}
+	UserOp struct {
+		Kind   string   `json:"kind" unpack:""`
+		Name   string   `json:"id"`
+		Params []string `json:"params"`
+		Body   Seq      `json:"body"`
+	}
+	UserOpCall struct {
+		Kind  string `json:"kind" unpack:""`
+		Name  string `json:"name"`
+		Exprs []Expr `json:"exprs"`
+		Body  Seq    `json:"body"`
+	}
+	VecScan struct {
+		Kind  string      `json:"kind" unpack:""`
+		Pool  ksuid.KSUID `json:"pool"`
+		Paths [][]string  `json:"paths"` //XXX
+	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
@@ -268,6 +285,7 @@ type (
 	}
 )
 
+<<<<<<< HEAD
 func (*Fork) OpNode()      {}
 func (*Scatter) OpNode()   {}
 func (*Switch) OpNode()    {}
@@ -293,6 +311,36 @@ func (*Merge) OpNode()     {}
 func (*Combine) OpNode()   {}
 func (*Scope) OpNode()     {}
 func (*Load) OpNode()      {}
+=======
+func (*Fork) OpNode()       {}
+func (*Scatter) OpNode()    {}
+func (*Switch) OpNode()     {}
+func (*Sort) OpNode()       {}
+func (*Cut) OpNode()        {}
+func (*Drop) OpNode()       {}
+func (*Head) OpNode()       {}
+func (*Tail) OpNode()       {}
+func (*Pass) OpNode()       {}
+func (*Filter) OpNode()     {}
+func (*Uniq) OpNode()       {}
+func (*Summarize) OpNode()  {}
+func (*Top) OpNode()        {}
+func (*Put) OpNode()        {}
+func (*Rename) OpNode()     {}
+func (*Fuse) OpNode()       {}
+func (*Join) OpNode()       {}
+func (*Shape) OpNode()      {}
+func (*Explode) OpNode()    {}
+func (*Over) OpNode()       {}
+func (*Yield) OpNode()      {}
+func (*Merge) OpNode()      {}
+func (*Combine) OpNode()    {}
+func (*Scope) OpNode()      {}
+func (*Load) OpNode()       {}
+func (*UserOp) OpNode()     {}
+func (*UserOpCall) OpNode() {}
+func (*VecScan) OpNode()    {}
+>>>>>>> 75a42f29 ([vam])
 
 // NewFilter returns a filter node for e.
 func NewFilter(e Expr) *Filter {

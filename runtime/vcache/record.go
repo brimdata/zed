@@ -1,53 +1,37 @@
 package vcache
 
 import (
+	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/vng/vector"
-	"github.com/brimdata/zed/zcode"
-	"golang.org/x/sync/errgroup"
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/vector"
+	meta "github.com/brimdata/zed/vng/vector"
+	"github.com/brimdata/zed/zson"
 )
 
-type Record []Vector
+//XXX we need locking as multiple threads can access Native columns concurrently
+// should do a fast lookup on the path
 
-func NewRecord(fields []vector.Field, r io.ReaderAt) (Record, error) {
-	record := make([]Vector, 0, len(fields))
-	for _, field := range fields {
-		v, err := NewVector(field.Values, r)
-		if err != nil {
-			return nil, err
-		}
-		record = append(record, v)
+func loadRecord(any *vector.Any, typ *zed.TypeRecord, path field.Path, meta *meta.Record, r io.ReaderAt) (vector.Any, error) {
+	if *any == nil {
+		*any = vector.NewRecord(typ)
 	}
-	return record, nil
+	vec, ok := (*any).(*vector.Record)
+	if !ok {
+		return nil, fmt.Errorf("system error: vcache.loadRecord not a record type %q", zson.String(vec.Typ))
+	}
+	if len(path) == 0 {
+		return vec, nil
+	}
+	fieldName := path[0]
+	off, ok := vec.Typ.ColumnOfField(fieldName)
+	if !ok {
+		return nil, fmt.Errorf("system error: vcache.loadRecord no such field %q in record type %q", fieldName, zson.String(vec.Typ))
+	}
+	return loadVector(&vec.Fields[off], typ.Fields[off].Type, path[1:], meta.Fields[off].Values, r)
 }
 
-func (r Record) NewIter(reader io.ReaderAt) (iterator, error) {
-	fields := make([]iterator, len(r))
-	var group errgroup.Group
-	for k, f := range r {
-		which := k
-		field := f
-		group.Go(func() error {
-			it, err := field.NewIter(reader)
-			if err != nil {
-				return err
-			}
-			fields[which] = it
-			return nil
-		})
-	}
-	if err := group.Wait(); err != nil {
-		return nil, err
-	}
-	return func(b *zcode.Builder) error {
-		b.BeginContainer()
-		for _, it := range fields {
-			if err := it(b); err != nil {
-				return err
-			}
-		}
-		b.EndContainer()
-		return nil
-	}, nil
-}
+// XXX since cache is persistent across queries, does it still make sense to
+// have context.Context buried in the reader?
