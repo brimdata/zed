@@ -3,59 +3,46 @@ package vcache
 import (
 	"fmt"
 	"io"
+	"strings"
 
-	"github.com/brimdata/zed/vng/vector"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/vector"
+	meta "github.com/brimdata/zed/vng/vector"
 )
 
-type iterator func(*zcode.Builder) error
-
-// Vector is the primary interface to in-memory sequences of Zed values
-// representing the VNG vector format.  As we implement additional optimizations
-// and various forms of pushdown, we will enhance this interface with
-// corresponding methods.
-type Vector interface {
-	NewIter(io.ReaderAt) (iterator, error)
-}
-
-// NewVector converts a VNG metadata reader to its equivalent vector cache
-// metadata manager.
-func NewVector(meta vector.Metadata, r io.ReaderAt) (Vector, error) {
-	switch meta := meta.(type) {
-	case *vector.Named:
-		return NewVector(meta.Values, r)
-	case *vector.Record:
-		return NewRecord(meta.Fields, r)
-	case *vector.Primitive:
-		return NewPrimitive(meta)
-	case *vector.Array:
-		return NewArray(meta, r)
-	case *vector.Set:
-		a := *(*vector.Array)(meta)
-		return NewArray(&a, r)
-	case *vector.Map:
-		return NewMap(meta, r)
-	case *vector.Union:
-		return NewUnion(meta, r)
-	case *vector.Nulls:
-		values, err := NewVector(meta.Values, r)
-		if err != nil {
-			return nil, err
+func loadVector(any *vector.Any, typ zed.Type, path field.Path, m meta.Metadata, r io.ReaderAt) (vector.Any, error) {
+	switch m := m.(type) {
+	case *meta.Named:
+		return loadVector(any, typ.(*zed.TypeNamed).Type, path, m.Values, r)
+	case *meta.Record:
+		return loadRecord(any, typ.(*zed.TypeRecord), path, m, r)
+	case *meta.Primitive:
+		if len(path) != 0 {
+			return nil, fmt.Errorf("internal error: vcache encountered path at primitive element: %q", strings.Join(path, "."))
 		}
-		return NewNulls(meta, values, r)
-	case *vector.Const:
-		return NewConst(meta), nil
+		if *any == nil {
+			v, err := loadPrimitive(typ, m, r)
+			if err != nil {
+				return nil, err
+			}
+			*any = v
+		}
+		return *any, nil
+	case *meta.Array:
+		return loadArray(any, typ, path, m, r)
+	case *meta.Set:
+		a := *(*meta.Array)(m)
+		return loadArray(any, typ, path, &a, r)
+	case *meta.Map:
+		return loadMap(any, typ, path, m, r)
+	case *meta.Union:
+		return loadUnion(any, typ.(*zed.TypeUnion), path, m, r)
+	case *meta.Nulls:
+		return loadNulls(any, typ, path, m, r)
+	case *meta.Const:
+		return vector.NewConst(m.Value, m.Count), nil
 	default:
-		return nil, fmt.Errorf("vector cache: type %T not supported", meta)
-	}
-}
-
-func Under(v Vector) Vector {
-	for {
-		if nulls, ok := v.(*Nulls); ok {
-			v = nulls.values
-			continue
-		}
-		return v
+		return nil, fmt.Errorf("vector cache: type %T not supported", m)
 	}
 }

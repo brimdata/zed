@@ -36,6 +36,7 @@ import (
 	"github.com/brimdata/zed/runtime/op/traverse"
 	"github.com/brimdata/zed/runtime/op/uniq"
 	"github.com/brimdata/zed/runtime/op/yield"
+	"github.com/brimdata/zed/runtime/vam"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -299,6 +300,29 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return meta.NewDeleter(b.octx, parent, pool, filter, pruner, b.progress, b.deletes), nil
 	case *dag.Load:
 		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
+	case *dag.VecScan:
+		pool, err := b.lookupPool(v.Pool)
+		if err != nil {
+			return nil, err
+		}
+		var paths []field.Path
+		for _, s := range v.Paths {
+			paths = append(paths, s)
+		}
+		//XXX check VectorCache not nil
+		return vam.NewVecScanner(b.octx, b.source.Lake().VectorCache(), parent, pool, paths, nil, nil), nil
+	case *dag.CountByStringHack:
+		puller, ok := parent.(vam.Puller)
+		if !ok {
+			return nil, errors.New("CountByStringHack parent not a vam.Puller") //XXX
+		}
+		return vam.NewCountByString(b.octx.Zctx, puller, v.Field), nil
+	case *dag.SumHack:
+		puller, ok := parent.(vam.Puller)
+		if !ok {
+			return nil, errors.New("CountByStringHack parent not a vam.Puller") //XXX
+		}
+		return vam.NewSum(b.octx.Zctx, puller, v.Field), nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}

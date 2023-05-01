@@ -2,12 +2,14 @@ package vcache
 
 import (
 	"context"
+	"sync"
 
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
 
 type Cache struct {
+	mu     sync.Mutex
 	engine storage.Engine
 	// objects is currently a simple map but we will turn this into an
 	// LRU cache sometime soon.  First step is object-level granularity, though
@@ -27,6 +29,10 @@ func NewCache(engine storage.Engine) *Cache {
 }
 
 func (c *Cache) Fetch(ctx context.Context, uri *storage.URI, id ksuid.KSUID) (*Object, error) {
+	//XXX do we want finer grained mutex?  might be ok if lookups always done inside
+	// a dedicated goroutine
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if object, ok := c.objects[id]; ok {
 		return object, nil
 	}

@@ -1,54 +1,38 @@
 package vcache
 
 import (
+	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/vng/vector"
-	"github.com/brimdata/zed/zcode"
+	meta "github.com/brimdata/zed/vng/vector" //XXX rename package
 )
 
-type Array struct {
-	segmap  []vector.Segment
-	values  Vector
-	lengths []int32
-}
-
-func NewArray(array *vector.Array, r io.ReaderAt) (*Array, error) {
-	values, err := NewVector(array.Values, r)
-	if err != nil {
-		return nil, err
-	}
-	return &Array{
-		segmap: array.Lengths,
-		values: values,
-	}, nil
-}
-
-func (a *Array) NewIter(reader io.ReaderAt) (iterator, error) {
-	// The lengths vector is typically large and is loaded on demand.
-	if a.lengths == nil {
-		lengths, err := vng.ReadIntVector(a.segmap, reader)
+func loadArray(any *vector.Any, typ zed.Type, path field.Path, m *meta.Array, r io.ReaderAt) (*vector.Array, error) {
+	if *any == nil {
+		var innerType zed.Type
+		switch typ := typ.(type) {
+		case *zed.TypeArray:
+			innerType = typ.Type
+		case *zed.TypeSet:
+			innerType = typ.Type
+		default:
+			return nil, fmt.Errorf("internal error: vcache.loadArray encountered bad type: %s", typ)
+		}
+		lengths, err := vng.ReadIntVector(m.Lengths, r)
 		if err != nil {
 			return nil, err
 		}
-		a.lengths = lengths
-	}
-	values, err := a.values.NewIter(reader)
-	if err != nil {
-		return nil, err
-	}
-	off := 0
-	return func(b *zcode.Builder) error {
-		b.BeginContainer()
-		len := a.lengths[off]
-		off++
-		for ; len > 0; len-- {
-			if err := values(b); err != nil {
-				return err
-			}
+		values, err := loadVector(nil, innerType, path, m.Values, r)
+		if err != nil {
+			return nil, err
 		}
-		b.EndContainer()
-		return nil
-	}, nil
+		*any = vector.NewArray(typ.(*zed.TypeArray), lengths, values)
+	}
+	//XXX always return the array as the vector engine needs to know how to handle
+	// manipulating the array no matter what it contains
+	return (*any).(*vector.Array), nil
 }
