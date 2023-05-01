@@ -146,6 +146,11 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Cflag bool   `json:"cflag"`
 	}
+	VecScan struct {
+		Kind  string      `json:"kind" unpack:""`
+		Pool  ksuid.KSUID `json:"pool"`
+		Paths [][]string  `json:"paths"` //XXX
+	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
@@ -294,6 +299,7 @@ func (*Merge) OpNode()     {}
 func (*Combine) OpNode()   {}
 func (*Scope) OpNode()     {}
 func (*Load) OpNode()      {}
+func (*VecScan) OpNode()   {}
 
 // NewFilter returns a filter node for e.
 func NewFilter(e Expr) *Filter {

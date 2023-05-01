@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/vcache"
-	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
 
@@ -67,9 +66,11 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, object.NewReader()); err != nil {
-		writer.Close()
-		return err
-	}
+	/*
+		if err := zio.Copy(writer, object.NewReader()); err != nil {
+			writer.Close()
+			return err
+		}
+	*/
 	return writer.Close()
 }
