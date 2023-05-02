@@ -146,7 +146,8 @@ func validStream(b []byte, off int) bool {
 			return false
 		}
 		len, ok := decodeLength(b[off:], code)
-		if !ok {
+		if !ok || len < 1 {
+			// len < 1 can loop forever or cause off < 0.
 			return false
 		}
 		off += len
