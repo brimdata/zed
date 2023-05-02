@@ -38,7 +38,7 @@ const binaryExprJSON = `
 	"rhs": { "op": "Terminal", "body": "bar" }
 }`
 
-var binaryExprExpected = &BinaryExpr{
+var binaryExprExpected = BinaryExpr{
 	Op:  "BinaryExpr",
 	LHS: &Terminal{Op: "Terminal", Body: "foo"},
 	RHS: &Terminal{Op: "Terminal", Body: "bar"},
@@ -51,7 +51,8 @@ func TestUnpackBinaryExpr(t *testing.T) {
 		Terminal{},
 		List{},
 	)
-	actual, err := reflector.UnmarshalString(binaryExprJSON)
+	var actual BinaryExpr
+	err := reflector.Unmarshal([]byte(binaryExprJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, binaryExprExpected, actual)
 }
@@ -69,7 +70,7 @@ const typeTagJSON = `
 	"rhs": { "op": "Terminal", "body": "bar" }
 }`
 
-var typeTagExpected = &BinaryExpr2{
+var typeTagExpected = BinaryExpr2{
 	Op:  "FooExpr",
 	LHS: &Terminal{Op: "Terminal", Body: "foo"},
 	RHS: &Terminal{Op: "Terminal", Body: "bar"},
@@ -80,7 +81,8 @@ func TestUnpackTypeTag(t *testing.T) {
 		BinaryExpr2{},
 		Terminal{},
 	)
-	actual, err := reflector.UnmarshalString(typeTagJSON)
+	var actual BinaryExpr2
+	err := reflector.Unmarshal([]byte(typeTagJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, typeTagExpected, actual)
 }
@@ -99,7 +101,7 @@ const nestedJSON = `
 	}
 }`
 
-var nestedExpected = &BinaryExpr{
+var nestedExpected = BinaryExpr{
 	Op: "BinaryExpr",
 	LHS: &UnaryExpr{
 		Op:      "UnaryExpr",
@@ -119,7 +121,8 @@ func TestUnpackNested(t *testing.T) {
 		Terminal{},
 		List{},
 	)
-	actual, err := reflector.UnmarshalString(nestedJSON)
+	var actual BinaryExpr
+	err := reflector.Unmarshal([]byte(nestedJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, nestedExpected, actual)
 }
@@ -152,7 +155,7 @@ const embeddedJSON = `
          }
 }`
 
-var embeddedExpected = &Embedded{
+var embeddedExpected = Embedded{
 	Op: "Embedded",
 	Root: Pair{
 		A: &Terminal{"Terminal", "a"},
@@ -172,7 +175,8 @@ func TestUnpackEmbedded(t *testing.T) {
 		List{},
 		Embedded{},
 	)
-	actual, err := reflector.UnmarshalString(embeddedJSON)
+	var actual Embedded
+	err := reflector.Unmarshal([]byte(embeddedJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, embeddedExpected, actual)
 }
@@ -183,7 +187,7 @@ const listJSON = `
 	"exprs": [ { "op": "Terminal", "body": "elem" } ]
 }`
 
-var listExpected = &List{
+var listExpected = List{
 	Op: "List",
 	Exprs: []Expr{
 		&Terminal{Op: "Terminal", Body: "elem"},
@@ -197,7 +201,8 @@ func TestUnpackList(t *testing.T) {
 		Terminal{},
 		List{},
 	)
-	actual, err := reflector.UnmarshalString(listJSON)
+	var actual List
+	err := reflector.Unmarshal([]byte(listJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, listExpected, actual)
 }
@@ -216,7 +221,7 @@ const arrayJSON = `
 	]
 }`
 
-var arrayExpected = &Array{
+var arrayExpected = Array{
 	Op: "Array",
 	Exprs: [2]Expr{
 		&Terminal{Op: "Terminal", Body: "elem0"},
@@ -229,7 +234,8 @@ func TestUnpackArray(t *testing.T) {
 		Terminal{},
 		Array{},
 	)
-	actual, err := reflector.UnmarshalString(arrayJSON)
+	var actual Array
+	err := reflector.Unmarshal([]byte(arrayJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, arrayExpected, actual)
 }
@@ -253,7 +259,7 @@ const pairListJSON = `
 	} ]
 }`
 
-var pairListExpected = &PairList{
+var pairListExpected = PairList{
 	Op: "PairList",
 	Pairs: []Pair{
 		{
@@ -274,7 +280,8 @@ func TestUnpackPairList(t *testing.T) {
 		Terminal{},
 		PairList{},
 	)
-	actual, err := reflector.UnmarshalString(pairListJSON)
+	var actual PairList
+	err := reflector.Unmarshal([]byte(pairListJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, pairListExpected, actual)
 }
@@ -320,7 +327,7 @@ const cutJSON = `
 
 `
 
-var cutExpected = &CutProc{
+var cutExpected = CutProc{
 	Op: "CutProc",
 	Fields: []Assignment{
 		{
@@ -347,7 +354,8 @@ func TestUnpackCut(t *testing.T) {
 		CutProc{},
 		Identifier{},
 	)
-	actual, err := reflector.UnmarshalString(cutJSON)
+	var actual CutProc
+	err := reflector.Unmarshal([]byte(cutJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, cutExpected, actual)
 }
@@ -378,7 +386,8 @@ func TestUnpackSkip(t *testing.T) {
 		BinaryExpr3{},
 		Terminal{},
 	)
-	actual, err := reflector.UnmarshalString(skipJSON)
+	var actual interface{}
+	err := reflector.Unmarshal([]byte(skipJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, skipExpected, actual)
 }
@@ -396,7 +405,8 @@ func TestValueNotAssignableToInterfaceError(t *testing.T) {
 	}
 
 	reflector := unpack.New(S{}, NotAny{})
-	_, err := reflector.UnmarshalString(`{"kind": "S", "value": {"kind": "NotAny"}}`)
+	var dummy interface{}
+	err := reflector.Unmarshal([]byte(`{"kind": "S", "value": {"kind": "NotAny"}}`), &dummy)
 	require.EqualError(t, err,
 		`JSON field "value" in Go struct type "unpack_test.S": value of type "*unpack_test.NotAny" not assignable to type "unpack_test.Any"`)
 }
@@ -429,7 +439,7 @@ const sliceListJSON = `
 	]
 }`
 
-var sliceListExpected = &SliceList{
+var sliceListExpected = SliceList{
 	Op: "SliceList",
 	Slices: [][]Pair{
 		{
@@ -458,14 +468,16 @@ func TestUnpackSliceList(t *testing.T) {
 		Terminal{},
 		SliceList{},
 	)
-	actual, err := reflector.UnmarshalString(sliceListJSON)
+	var actual SliceList
+	err := reflector.Unmarshal([]byte(sliceListJSON), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, sliceListExpected, actual)
 }
 
 func TestEmptyObject(t *testing.T) {
 	reflector := unpack.New()
-	actual, err := reflector.UnmarshalString("{}")
+	var actual map[string]interface{}
+	err := reflector.Unmarshal([]byte("{}"), &actual)
 	require.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{}, actual)
 }
@@ -498,7 +510,7 @@ func TestUnpackOuterPairSlice(t *testing.T) {
 		Terminal{},
 	)
 	var pairs []Pair
-	err := reflector.UnmarshalInto([]byte(outerPairSlice), &pairs)
+	err := reflector.Unmarshal([]byte(outerPairSlice), &pairs)
 	require.NoError(t, err)
 	assert.Equal(t, outerPairSliceExpected, pairs)
 }

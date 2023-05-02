@@ -168,7 +168,7 @@ func Parse(src string, filenames ...string) (ast.Seq, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ast.UnpackAsSeq(parsed)
+	return ast.UnmarshalObject(parsed)
 }
 
 // MustParse is like Parse but panics if an error is encountered.
