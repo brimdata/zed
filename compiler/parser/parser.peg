@@ -300,6 +300,7 @@ Operator
   / MergeOp
   / OverOp
   / YieldOp
+  / LoadOp
 
 AssertOp
   = "assert" _ expr:(e:Expr { RETURN(ARRAY(e, TEXT)) }) {
@@ -457,6 +458,23 @@ OpAssignment
 SampleExpr
   = _ lval:Lval { RETURN(lval) }
   / "" { RETURN(MAP("kind": "ID", "name": "this")) }
+
+LoadOp
+  = "load" _ pool:PoolNameString branch:PoolBranch? author:AuthorArg? message:MessageArg? meta:MetaArg? {
+      RETURN(MAP("kind": "Load", "pool": pool, "branch": branch, "author": author, "message": message, "meta": meta))
+    }
+
+AuthorArg
+  = _ "author" _ val:QuotedString { RETURN(val) }
+
+MessageArg
+  = _ "message" _ val:QuotedString { RETURN(val) }
+
+MetaArg
+  = _ "meta" _ val:QuotedString { RETURN(val) }
+
+PoolBranch
+  = "@" branch:(PoolIdentifier / QuotedString) { RETURN(branch) }
 
 FromOp
   = source:FromAny {

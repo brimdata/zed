@@ -22,6 +22,7 @@ import (
 	"github.com/brimdata/zed/runtime/op/fuse"
 	"github.com/brimdata/zed/runtime/op/head"
 	"github.com/brimdata/zed/runtime/op/join"
+	"github.com/brimdata/zed/runtime/op/load"
 	"github.com/brimdata/zed/runtime/op/merge"
 	"github.com/brimdata/zed/runtime/op/meta"
 	"github.com/brimdata/zed/runtime/op/pass"
@@ -326,6 +327,8 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			filter = &DeleteFilter{f}
 		}
 		return meta.NewDeleter(b.octx, parent, pool, filter, pruner, b.progress, b.deletes), nil
+	case *dag.Load:
+		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}

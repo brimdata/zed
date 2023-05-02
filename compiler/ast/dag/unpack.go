@@ -30,6 +30,7 @@ var unpacker = unpack.New(
 	Join{},
 	Lister{},
 	Literal{},
+	Load{},
 	MapExpr{},
 	Merge{},
 	Shape{},

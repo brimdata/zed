@@ -694,6 +694,22 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Kind:  "Yield",
 			Exprs: exprs,
 		}), nil
+	case *ast.Load:
+		poolID, err := lakeparse.ParseID(o.Pool)
+		if err != nil {
+			poolID, err = ds.PoolID(ctx, o.Pool)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return append(seq, &dag.Load{
+			Kind:    "Load",
+			Pool:    poolID,
+			Branch:  o.Branch,
+			Author:  o.Author,
+			Message: o.Message,
+			Meta:    o.Meta,
+		}), nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
 }

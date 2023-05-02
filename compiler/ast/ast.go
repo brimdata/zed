@@ -379,6 +379,14 @@ type (
 		Kind   string  `json:"kind" unpack:""`
 		Trunks []Trunk `json:"trunks"`
 	}
+	Load struct {
+		Kind    string `json:"kind" unpack:""`
+		Pool    string `json:"pool"`
+		Branch  string `json:"branch"`
+		Author  string `json:"author"`
+		Message string `json:"message"`
+		Meta    string `json:"meta"`
+	}
 )
 
 // Source structure
@@ -497,6 +505,7 @@ func (*Search) OpAST()       {}
 func (*Where) OpAST()        {}
 func (*Yield) OpAST()        {}
 func (*Sample) OpAST()       {}
+func (*Load) OpAST()         {}
 
 func (*SQLExpr) OpAST() {}
 

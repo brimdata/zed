@@ -520,6 +520,21 @@ func (c *canon) op(p ast.Op) {
 			c.space()
 			c.exprs(p.Args)
 		}
+	case *ast.Load:
+		c.next()
+		c.write("load %s", zson.QuotedString([]byte(p.Pool)))
+		if p.Branch != "" {
+			c.write("@%s", p.Branch)
+		}
+		if p.Author != "" {
+			c.write(" author %s", p.Author)
+		}
+		if p.Message != "" {
+			c.write(" message %s", p.Message)
+		}
+		if p.Meta != "" {
+			c.write(" meta %s", p.Meta)
+		}
 	case *ast.Head:
 		c.next()
 		c.open("head ")

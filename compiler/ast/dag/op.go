@@ -65,6 +65,14 @@ type (
 		RightKey Expr         `json:"right_key"`
 		Args     []Assignment `json:"args"`
 	}
+	Load struct {
+		Kind    string      `json:"kind" unpack:""`
+		Pool    ksuid.KSUID `json:"pool"`
+		Branch  string      `json:"branch"`
+		Author  string      `json:"author"`
+		Message string      `json:"message"`
+		Meta    string      `json:"meta"`
+	}
 	Merge struct {
 		Kind  string      `json:"kind" unpack:""`
 		Expr  Expr        `json:"expr"`
@@ -279,6 +287,7 @@ func (*Yield) OpNode()     {}
 func (*Merge) OpNode()     {}
 func (*Combine) OpNode()   {}
 func (*Scope) OpNode()     {}
+func (*Load) OpNode()      {}
 
 // NewFilter returns a filter node for e.
 func NewFilter(e Expr) *Filter {
