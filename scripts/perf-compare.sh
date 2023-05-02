@@ -81,16 +81,15 @@ do
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
     for INPUT in zeek zng zng-uncompressed zson ndjson ; do
       for OUTPUT in zeek zng zng-uncompressed zson ndjson ; do
+        zed=${ZED_QUERIES[$n]}
         echo -n "|\`zq\`|\`$zed\`|$INPUT|$OUTPUT|" | tee -a "$MD"
         case $INPUT in
-          ndjson ) zq_flags="-i json" ;;
+          ndjson ) zq_flags="-i json -I ../zeek/shaper.zed" zed="| $zed" ;;
           zng-uncompressed ) zq_flags="-i zng" ;;
           * ) zq_flags="-i $INPUT" ;;
         esac
-        zed=${ZED_QUERIES[$n]}
         case $OUTPUT in
-          ndjson ) zq_flags="$zq_flags -f json -I ../zeek/shaper.zed" zed="| $zed";;
-          zeek ) zq_flags="$zq_flags -f zeek -I ../zeek/shaper.zed" zed="| $zed";;
+          ndjson ) zq_flags="$zq_flags -f json" ;;
           zng-uncompressed ) zq_flags="$zq_flags -f zng -zng.compress=false" ;;
           * ) zq_flags="$zq_flags -f $OUTPUT" ;;
         esac
