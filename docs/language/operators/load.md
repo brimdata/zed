@@ -9,7 +9,6 @@ load <pool>[@<branch>] [author <author>] [message <message>] [meta <meta>]
 ```
 ### Description
 
-
 The `load` operator populates the specified `<pool>` with the values it
 receives as input. Much like how [`zed load`](../../commands/zed.md#28-load)
 is used at the command line to populate a pool with data from files, streams,
