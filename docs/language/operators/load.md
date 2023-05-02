@@ -23,7 +23,7 @@ describe the committed data, similar to the same `zed load` options.
 
 ### Input Data
 
-Examples below below assume the existence of the Zed lake created and populated
+Examples below assume the existence of the Zed lake created and populated
 by the following commands:
 
 ```mdtest-command
