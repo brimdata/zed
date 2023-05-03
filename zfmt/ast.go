@@ -801,7 +801,7 @@ func (c *canon) http(p *ast.HTTP) {
 		c.write(" headers %s", p.Headers)
 	}
 	if p.Body != "" {
-		c.write(" body %s", p.Body) //add headers
+		c.write(" body %s", p.Body)
 	}
 }
 func (c *canon) file(p *ast.File) {
