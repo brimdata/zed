@@ -794,8 +794,16 @@ func (c *canon) http(p *ast.HTTP) {
 	if p.Format != "" {
 		c.write(" format %s", p.Format)
 	}
+	if p.Method != "" {
+		c.write(" method %s", p.Method)
+	}
+	if p.Headers != nil {
+		c.write(" headers %s", p.Headers)
+	}
+	if p.Body != "" {
+		c.write(" body %s", p.Body) //add headers
+	}
 }
-
 func (c *canon) file(p *ast.File) {
 	//XXX TBD other stuff
 	c.write("file %s", p.Path)

@@ -1,0 +1,26 @@
+script: |
+  zc -C 'get http://host/path'
+  echo ===
+  zc -C 'get http://host/path format f'
+  echo ===
+  zc -C 'get http://host/path method "m"'
+  echo ===
+  zc -C 'get http://host/path headers {}'
+outputs:
+  - name: stdout
+    data: |
+      from (
+        get http://host/path
+      )
+      ===
+      from (
+        get http://host/path format f
+      )
+      ===
+      from (
+        get http://host/path method m
+      )
+      ===
+      from (
+        get http://host/path headers &{RecordExpr []}
+      )

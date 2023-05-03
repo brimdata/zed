@@ -503,11 +503,21 @@ PoolBody
     }
 
 Get
-  = "get" _ url:URL format:FormatArg? sort_key:SortKeyArg? {
-      RETURN(MAP("kind": "HTTP", "url": url, "format": format, "sort_key": sort_key))
+  = "get" _ url:URL format:FormatArg? method:MethodArg? headers:RecordArg? body:BodyArg? sort_key:SortKeyArg? {
+      RETURN(MAP("kind": "HTTP", "url": url, "format": format, "method": method, "headers": headers,
+       "body": body, "sort_key": sort_key))
     }
 
 URL = ("http:" / "https:") Path { RETURN(TEXT) }
+
+MethodArg
+  = _ "method" _ val:QuotedString { RETURN(val) }
+
+BodyArg
+  = _ "body" _ val:QuotedString { RETURN(val) }
+
+RecordArg
+  = _ "headers" _ val:Record { RETURN(val) }
 
 Path
   = v:QuotedString { RETURN(v) }
