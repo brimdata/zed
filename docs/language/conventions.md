@@ -5,7 +5,7 @@ sidebar_label: Conventions
 
 # Type Conventions
 
-Function arguments and input values to operators are all dynamically typed,
+Function arguments and operator input values are all dynamically typed,
 yet certain functions expect certain data types or classes of data types.
 To this end, the function and operator prototypes include a number
 of type classes as follows:
