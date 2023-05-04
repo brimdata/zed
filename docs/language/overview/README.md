@@ -65,7 +65,6 @@ you can specify an operator including keyword search terms, Boolean predicates,
 etc. using the same [search expression](search-expressions.md) syntax at any point
 in the pipeline.
 
-
 For example,
 the predicate `message_length > 100` can simply be tacked onto the keyword search
 from above, e.g.,
