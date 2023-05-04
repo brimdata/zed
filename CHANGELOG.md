@@ -16,7 +16,7 @@
 
 * Zed lake storage format is now at version 3 (#4386, #4415)
 * Allow loading and responses in [VNG](docs/formats/vng.md) format over the lake API (#4345)
-* Fix an issue where [record spread expressions](docs/language/overview/expressions#record-expressions) could cause a crash (#4359)
+* Fix an issue where [record spread expressions](docs/language/overview/expressions.md#record-expressions) could cause a crash (#4359)
 * Fix an issue where the Zed service `/version` endpoint returned "unknown" if it had been built via `go install` (#4371)
 * Branch-level [meta-queries](docs/commands/zed.md#meta-queries) on the `main` branch no longer require an explicit `@main` reference (#4377, #4394)
 * Add `-defaultfmt` flag to `zed serve` to specify the lake API's default response format (#4379, #4396)
