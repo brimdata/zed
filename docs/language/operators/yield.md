@@ -12,10 +12,10 @@
 The `yield` operator produces output values by evaluating one or more
 expressions on each input value and sending each result to the output
 in left-to-right order.  Each `<expr>` may be any valid
-[Zed expression](../overview.md#7-expressions).
+[Zed expression](../overview/expressions.md).
 
 The `yield` keyword is optional since it is an
-[implied operator](../overview.md#26-implied-operators).
+[implied operator](../overview/dataflow-model.md#implied-operators).
 
 ### Examples
 

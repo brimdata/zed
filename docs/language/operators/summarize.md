@@ -15,7 +15,7 @@ the `by` keyword, and at the end of input produces one or more aggregations
 for each unique set of group-by key values.
 
 The `summarize` keyword is optional since it is an
-[implied operator](../overview.md#26-implied-operators).
+[implied operator](../overview/dataflow-model.md#implied-operators).
 
 Each aggregate function may be optionally followed by a `where` clause, which
 applies a Boolean expression that indicates, for each input value,

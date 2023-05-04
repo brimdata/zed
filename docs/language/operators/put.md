@@ -9,7 +9,7 @@
 ### Description
 
 The `put` operator modifies its input with
-one or more [field assignments](../overview.md#25-field-assignments).
+one or more [field assignments](../overview/dataflow-model.md#field-assignments).
 Each expression is evaluated based on the input record
 and the result is either assigned to a new field of the input record if it does not
 exist, or the existing field is modified in its original location with the result.
@@ -23,7 +23,7 @@ a computed value cannot be referenced in another expression.  If you need
 to re-use a computed result, this can be done by chaining multiple `put` operators.
 
 The `put` keyword is optional since it is an
-[implied operator](../overview.md#26-implied-operators).
+[implied operator](../overview/dataflow-model.md#implied-operators).
 
 Each `<field>` expression must be a field reference expressed as a dotted path or one more
 constant index operations on `this`, e.g., `a.b`, `this["a"]["b"]`,
@@ -35,7 +35,7 @@ For any input value that is not a record, an error is emitted.
 
 Note that when the field references are all top level,
 `put` is a special case of a `yield` with a
-[record literal](../overview.md#7112-record-expressions)
+[record literal](../overview/expressions.md#record-expressions)
 using a spread operator of the form:
 ```
 yield {...this, <field>:<expr> [, <field>:<expr>...]}
