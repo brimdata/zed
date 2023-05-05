@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/lake"
+	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
@@ -619,6 +620,28 @@ func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Bran
 		PoolID:   branch.Pool().ID,
 		Branch:   branch.Name,
 	})
+}
+
+func handleVacuum(c *Core, w *ResponseWriter, r *Request) {
+	pool, ok := r.StringFromPath(w, "pool")
+	if !ok {
+		return
+	}
+	revision, ok := r.StringFromPath(w, "revision")
+	if !ok {
+		return
+	}
+	dryrun, ok := r.BoolFromQuery(w, "dryrun")
+	if !ok {
+		return
+	}
+	lk := lakeapi.FromRoot(c.root)
+	oids, err := lk.Vacuum(r.Context(), pool, revision, dryrun)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, api.VacuumResponse{ObjectIDs: oids})
 }
 
 func handleAuthIdentityGet(c *Core, w *ResponseWriter, r *Request) {

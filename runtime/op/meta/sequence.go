@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
@@ -147,6 +148,12 @@ func newObjectScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, o
 	}
 	rc, err := object.NewReader(ctx, pool.Storage(), pool.DataPath, ranges)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// If the object does not exist return a zbuf.Puller that returns a
+			// single value- a zed error.
+			vals := zbuf.NewArray([]zed.Value{*zctx.NewError(err)})
+			return zbuf.NewPuller(vals), nil
+		}
 		return nil, err
 	}
 	scanner, err := zngio.NewReader(zctx, rc).NewScanner(ctx, filter)

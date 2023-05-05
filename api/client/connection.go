@@ -421,6 +421,17 @@ func (c *Connection) delete(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return commit, err
 }
 
+func (c *Connection) Vacuum(ctx context.Context, pool, ref string, dryrun bool) (api.VacuumResponse, error) {
+	path := urlPath("pool", pool, "revision", ref, "vacuum")
+	if dryrun {
+		path += "?dryrun=true"
+	}
+	req := c.NewRequest(ctx, http.MethodPost, path, nil)
+	var res api.VacuumResponse
+	err := c.doAndUnmarshal(req, &res)
+	return res, err
+}
+
 func (c *Connection) SubscribeEvents(ctx context.Context) (*EventsClient, error) {
 	req := c.NewRequest(ctx, http.MethodGet, "/events", nil)
 	req.Header.Set("Accept", api.MediaTypeZSON)
