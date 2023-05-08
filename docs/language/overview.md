@@ -99,7 +99,7 @@ To further ease the maintenance and readability of source files, comments
 beginning with `//` may appear in Zed.
 
 ```
-// Copyright (C) 2023 Fictional Corp Ultd. - All Rights Reserved
+// This includes a search with boolean logic, an expression, and an aggregation.
 
 search "example.com" AND "urgent"
 | where message_length > 100       // We only care about long messages
