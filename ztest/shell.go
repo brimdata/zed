@@ -6,28 +6,23 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"runtime"
 )
 
 func RunShell(dir, bindir, script string, stdin io.Reader, useenvs []string) (string, string, error) {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd.exe", "/c", script)
-	} else {
-		// "-e -o pipefile" ensures a test will fail if any command
-		// fails unexpectedly.
-		cmd = exec.Command("bash", "-e", "-o", "pipefail", "-c", script)
+	// "-e -o pipefile" ensures a test will fail if any command
+	// fails unexpectedly.
+	cmd := exec.Command("bash", "-e", "-o", "pipefail", "-c", script)
+	cmd.Dir = dir
+	cmd.Env = []string{
+		"AppData=" + dir, // For os.User*Dir on Windows.
+		"HOME=" + dir,    // For os.User*Dir on Unix.
+		"PATH=" + bindir + string(os.PathListSeparator) + os.Getenv("PATH"),
 	}
-
 	for _, env := range useenvs {
 		if v, ok := os.LookupEnv(env); ok {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", env, v))
 		}
 	}
-
-	cmd.Env = append(cmd.Env, "HOME="+dir)
-	cmd.Env = append(cmd.Env, "PATH=/bin:/usr/bin:"+bindir)
-	cmd.Dir = dir
 	cmd.Stdin = stdin
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
