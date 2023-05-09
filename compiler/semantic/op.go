@@ -102,17 +102,21 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 		if err != nil {
 			return nil, err
 		}
-		expr, err := semExpr(scope, p.Headers)
-		if err != nil {
-			return nil, err
-		}
-		val, err := kernel.EvalAtCompileTime(scope.zctx, expr)
-		if err != nil {
-			return nil, fmt.Errorf("headers: %w", err)
-		}
-		headers, err := unmarshalHeaders(val)
-		if err != nil {
-			return nil, err
+		var headers = map[string][]string{}
+		if p.Headers != nil {
+			expr, err := semExpr(scope, p.Headers)
+			if err != nil {
+				return nil, err
+			}
+			val, err := kernel.EvalAtCompileTime(scope.zctx, expr)
+			if err != nil {
+				return nil, fmt.Errorf("headers: %w", err)
+			}
+			output, err := unmarshalHeaders(val)
+			if err != nil {
+				return nil, err
+			}
+			headers = output
 		}
 		return []dag.Op{
 			&dag.HTTPScan{
