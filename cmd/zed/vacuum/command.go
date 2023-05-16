@@ -53,26 +53,19 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if c.dryrun {
-		oids, err := lk.Vacuum(ctx, at.Pool, at.Branch, true)
-		if err != nil {
+	verb := "would vacuum"
+	if !c.dryrun {
+		verb = "vacuumed"
+		if err := c.confirm(at.String()); err != nil {
 			return err
 		}
-		// It's a bit weird to specify -q and -dryrun, but do as they say.
-		if !c.LakeFlags.Quiet {
-			fmt.Printf("would vacuum %d object%s\n", len(oids), plural.Slice(oids, "s"))
-		}
-		return nil
 	}
-	if err := c.confirm(at.String()); err != nil {
-		return err
-	}
-	oids, err := lk.Vacuum(ctx, at.Pool, at.Branch, false)
+	oids, err := lk.Vacuum(ctx, at.Pool, at.Branch, c.dryrun)
 	if err != nil {
 		return err
 	}
 	if !c.LakeFlags.Quiet {
-		fmt.Printf("vacuumed %d object%s\n", len(oids), plural.Slice(oids, "s"))
+		fmt.Printf("%s %d object%s\n", verb, len(oids), plural.Slice(oids, "s"))
 	}
 	return nil
 }
