@@ -28,14 +28,14 @@ previous commits causing missing data when time traveling to those commits.
 
 type Command struct {
 	*root.Command
-	force  bool
 	dryrun bool
+	force  bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.BoolVar(&c.force, "f", false, "do not prompt for confirmation")
 	f.BoolVar(&c.dryrun, "dryrun", false, "vacuum without deleting objects")
+	f.BoolVar(&c.force, "f", false, "do not prompt for confirmation")
 	return c, nil
 }
 

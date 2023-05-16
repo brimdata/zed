@@ -37,10 +37,7 @@ func OpenLocalLake(ctx context.Context, logger *zap.Logger, lakePath string) (In
 	if err != nil {
 		return nil, err
 	}
-	return &local{
-		root:     root,
-		compiler: compiler.NewLakeCompiler(root),
-	}, nil
+	return FromRoot(root), nil
 }
 
 func CreateLocalLake(ctx context.Context, logger *zap.Logger, lakePath string) (Interface, error) {
@@ -53,9 +50,7 @@ func CreateLocalLake(ctx context.Context, logger *zap.Logger, lakePath string) (
 	if err != nil {
 		return nil, err
 	}
-	return &local{
-		root: root,
-	}, nil
+	return FromRoot(root), nil
 }
 
 func FromRoot(root *lake.Root) Interface {
