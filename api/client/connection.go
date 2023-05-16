@@ -421,8 +421,8 @@ func (c *Connection) delete(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return commit, err
 }
 
-func (c *Connection) Vacuum(ctx context.Context, pool, ref string, dryrun bool) (api.VacuumResponse, error) {
-	path := urlPath("pool", pool, "revision", ref, "vacuum")
+func (c *Connection) Vacuum(ctx context.Context, pool, revision string, dryrun bool) (api.VacuumResponse, error) {
+	path := urlPath("pool", pool, "revision", revision, "vacuum")
 	if dryrun {
 		path += "?dryrun=true"
 	}
