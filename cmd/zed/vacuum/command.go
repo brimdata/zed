@@ -47,7 +47,7 @@ func (c *Command) Run(args []string) error {
 	defer cleanup()
 	at, err := c.LakeFlags.HEAD()
 	if err != nil {
-		return errors.New("default pool and branch unset")
+		return err
 	}
 	lk, err := c.LakeFlags.Open(ctx)
 	if err != nil {
