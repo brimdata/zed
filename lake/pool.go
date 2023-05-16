@@ -146,10 +146,10 @@ func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, erro
 
 // ResolveRevision returns the commit id for revision. revision can be either a
 // commit ID in string form or a branch name.
-func (p *Pool) ResolveRevision(ctx context.Context, ref string) (ksuid.KSUID, error) {
-	id, err := lakeparse.ParseID(ref)
+func (p *Pool) ResolveRevision(ctx context.Context, revision string) (ksuid.KSUID, error) {
+	id, err := lakeparse.ParseID(revision)
 	if err != nil {
-		branch, err := p.LookupBranchByName(ctx, ref)
+		branch, err := p.LookupBranchByName(ctx, revision)
 		if err != nil {
 			return ksuid.Nil, err
 		}
