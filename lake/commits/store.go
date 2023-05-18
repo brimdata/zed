@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -338,4 +339,39 @@ func (s *Store) PatchOfPath(ctx context.Context, base *Snapshot, baseID, commit 
 		}
 	}
 	return patch, nil
+}
+
+// Vacuumable returns the set of data.Objects in the path of leaf that are not referenced
+// by the leaf's snapshot.
+func (s *Store) Vacuumable(ctx context.Context, leaf ksuid.KSUID, out chan<- *data.Object) error {
+	snap, err := s.Snapshot(ctx, leaf)
+	if err != nil {
+		return err
+	}
+	for at := leaf; at != ksuid.Nil; {
+		o, err := s.Get(ctx, at)
+		if err != nil {
+			return nil
+		}
+		at = o.Parent
+		if o.Commit == leaf {
+			// skip the leaf commit.
+			continue
+		}
+		for _, action := range o.Actions {
+			switch a := action.(type) {
+			case *Add:
+				if !snap.Exists(a.Object.ID) {
+					select {
+					case out <- &a.Object:
+					case <-ctx.Done():
+					}
+				}
+			// XXX Support *AddVector, but currently Vector only has an ID and descriptive object.
+			default:
+				continue
+			}
+		}
+	}
+	return nil
 }

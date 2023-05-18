@@ -2,13 +2,17 @@ package lake
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
+	"sync"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zio"
@@ -16,6 +20,7 @@ import (
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -139,6 +144,20 @@ func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, erro
 	return p.openBranch(ctx, branchRef)
 }
 
+// ResolveRevision returns the commit id for revision. revision can be either a
+// commit ID in string form or a branch name.
+func (p *Pool) ResolveRevision(ctx context.Context, revision string) (ksuid.KSUID, error) {
+	id, err := lakeparse.ParseID(revision)
+	if err != nil {
+		branch, err := p.LookupBranchByName(ctx, revision)
+		if err != nil {
+			return ksuid.Nil, err
+		}
+		id = branch.Commit
+	}
+	return id, nil
+}
+
 func (p *Pool) BatchifyBranches(ctx context.Context, zctx *zed.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
@@ -195,6 +214,57 @@ func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 // XXX this is inefficient but is only meant for interactive queries...?
 func (p *Pool) ObjectExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
 	return p.engine.Exists(ctx, data.SequenceURI(p.DataPath, id))
+}
+
+func (p *Pool) Vacuum(ctx context.Context, commit ksuid.KSUID, dryrun bool) ([]ksuid.KSUID, error) {
+	group, ctx := errgroup.WithContext(ctx)
+	ch := make(chan *data.Object)
+	group.Go(func() error {
+		defer close(ch)
+		return p.commits.Vacuumable(ctx, commit, ch)
+	})
+	var vacuumed []ksuid.KSUID
+	var mu sync.Mutex
+	for o := range ch {
+		o := o
+		if dryrun {
+			// For dryrun just check if the object exists and append existing
+			// objects to list of results.
+			group.Go(func() error {
+				ok, err := p.engine.Exists(ctx, data.SequenceURI(p.DataPath, o.ID))
+				if ok {
+					mu.Lock()
+					vacuumed = append(vacuumed, o.ID)
+					mu.Unlock()
+				}
+				return err
+			})
+		}
+		group.Go(func() error {
+			err := p.engine.Delete(ctx, data.SequenceURI(p.DataPath, o.ID))
+			if err == nil {
+				mu.Lock()
+				vacuumed = append(vacuumed, o.ID)
+				mu.Unlock()
+			}
+			if errors.Is(err, fs.ErrNotExist) {
+				err = nil
+			}
+			return err
+		})
+		// Delete the seek index as well.
+		group.Go(func() error {
+			err := p.engine.Delete(ctx, data.SeekIndexURI(p.DataPath, o.ID))
+			if errors.Is(err, fs.ErrNotExist) {
+				err = nil
+			}
+			return err
+		})
+	}
+	if err := group.Wait(); err != nil {
+		return nil, err
+	}
+	return vacuumed, nil
 }
 
 func (p *Pool) Main(ctx context.Context) (BranchMeta, error) {
