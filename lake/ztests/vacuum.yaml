@@ -8,11 +8,12 @@ script: |
   r=$(zed revert $r | awk '{print $5}')
   zed vacuum -f
   zed revert -q $r
-  zed query -z '*'
+  ! zed query -z '*'
 
 outputs:
   - name: stdout
-    regexp: |
+    data: |
       vacuumed 1 object
-      \{x:1\}
-      error\("file:.*file does not exist"\)
+  - name: stderr
+    regexp:
+      file:.*file does not exist
