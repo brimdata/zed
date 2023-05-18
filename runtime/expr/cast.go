@@ -262,8 +262,7 @@ func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
 	}
 	// Otherwise, we'll use a canonical ZSON value for the string rep
 	// of an arbitrary value cast to a string.
-	result := zson.MustFormatValue(val)
-	return ectx.NewValue(zed.TypeString, zed.EncodeString(result))
+	return ectx.NewValue(zed.TypeString, zed.EncodeString(zson.FormatValue(val)))
 }
 
 type casterBytes struct{}

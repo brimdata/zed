@@ -39,7 +39,7 @@ func (d *DCount) Result(*zed.Context) *zed.Value {
 
 func (d *DCount) ConsumeAsPartial(partial *zed.Value) {
 	if partial.Type != zed.TypeBytes {
-		panic(fmt.Errorf("dcount: partial has bad type: %s", zson.MustFormatValue(partial)))
+		panic(fmt.Errorf("dcount: partial has bad type: %s", zson.FormatValue(partial)))
 	}
 	var s hyperloglog.Sketch
 	if err := s.UnmarshalBinary(partial.Bytes()); err != nil {

@@ -102,14 +102,8 @@ func (g *Generic) String() string {
 }
 
 func Format(s Span) string {
-	first, err := zson.FormatValue(s.First())
-	if err != nil {
-		first = fmt.Sprintf("<%s>", err)
-	}
-	last, err := zson.FormatValue(s.Last())
-	if err != nil {
-		last = fmt.Sprintf("<%s>", err)
-	}
+	first := zson.FormatValue(s.First())
+	last := zson.FormatValue(s.Last())
 	return fmt.Sprintf("first %s last %s", first, last)
 }
 

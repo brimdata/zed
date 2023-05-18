@@ -67,7 +67,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
 				assert.Equal(t, c.expected, filter(expr.NewContext(), rec, f),
-					"filter: %q\nrecord: %s", c.filter, zson.MustFormatValue(rec))
+					"filter: %q\nrecord: %s", c.filter, zson.FormatValue(rec))
 			}
 			bf, err := filterMaker.AsBufferFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
@@ -79,7 +79,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 				buf := binary.AppendUvarint(nil, uint64(rec.Type.ID()))
 				buf = zcode.Append(buf, rec.Bytes())
 				assert.Equal(t, expected, bf.Eval(zctx, buf),
-					"filter: %q\nvalues:%s\nbuffer:\n%s", c.filter, zson.MustFormatValue(rec), hex.Dump(buf))
+					"filter: %q\nvalues:%s\nbuffer:\n%s", c.filter, zson.FormatValue(rec), hex.Dump(buf))
 			}
 		})
 	}

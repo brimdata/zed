@@ -488,7 +488,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			return nil, fmt.Errorf("head: %w", err)
 		}
 		if val.AsInt() < 1 {
-			return nil, fmt.Errorf("head: expression value is not a positive integer: %s", zson.MustFormatValue(val))
+			return nil, fmt.Errorf("head: expression value is not a positive integer: %s", zson.FormatValue(val))
 		}
 		return append(seq, &dag.Head{
 			Kind:  "Head",
@@ -504,7 +504,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			return nil, fmt.Errorf("tail: %w", err)
 		}
 		if val.AsInt() < 1 {
-			return nil, fmt.Errorf("tail: expression value is not a positive integer: %s", zson.MustFormatValue(val))
+			return nil, fmt.Errorf("tail: expression value is not a positive integer: %s", zson.FormatValue(val))
 		}
 		return append(seq, &dag.Tail{
 			Kind:  "Tail",
@@ -1088,7 +1088,7 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, erro
 			}
 			consts = append(consts, &dag.Literal{
 				Kind:  "Literal",
-				Value: zson.MustFormatValue(val),
+				Value: zson.FormatValue(val),
 			})
 		}
 	}

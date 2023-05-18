@@ -62,7 +62,7 @@ func formatAny(val *zed.Value, inContainer bool) string {
 		if zed.TypeUnder(t.Type) == zed.TypeString {
 			return string(val.Bytes())
 		}
-		return zson.MustFormatValue(val)
+		return zson.FormatValue(val)
 	default:
 		return fmt.Sprintf("zeekio.StringOf(): unknown type: %T", t)
 	}

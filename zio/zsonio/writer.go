@@ -30,13 +30,9 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(rec *zed.Value) error {
-	s, err := w.formatter.FormatRecord(rec)
-	if err != nil {
+	if _, err := io.WriteString(w.writer, w.formatter.FormatRecord(rec)); err != nil {
 		return err
 	}
-	if _, err := io.WriteString(w.writer, s); err != nil {
-		return err
-	}
-	_, err = w.writer.Write([]byte("\n"))
+	_, err := w.writer.Write([]byte("\n"))
 	return err
 }

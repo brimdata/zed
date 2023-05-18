@@ -72,14 +72,10 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) WriteZSON(rec *zed.Value) error {
-	s, err := w.zson.FormatRecord(rec)
-	if err != nil {
+	if _, err := io.WriteString(w.writer, w.zson.FormatRecord(rec)); err != nil {
 		return err
 	}
-	if _, err := io.WriteString(w.writer, s); err != nil {
-		return err
-	}
-	_, err = io.WriteString(w.writer, "\n")
+	_, err := io.WriteString(w.writer, "\n")
 	return err
 }
 

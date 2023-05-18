@@ -40,7 +40,7 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 		}
 		return &dag.Literal{
 			Kind:  "Literal",
-			Value: zson.MustFormatValue(val),
+			Value: zson.FormatValue(val),
 		}, nil
 	case *ast.ID:
 		return a.semID(e)
@@ -52,7 +52,7 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			val = zson.MustFormatValue(v)
+			val = zson.FormatValue(v)
 		case *astzed.TypeValue:
 			tv, err := a.semType(t.Value)
 			if err != nil {
