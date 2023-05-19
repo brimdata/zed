@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/pkg/plural"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/op"
@@ -82,11 +83,7 @@ func (b *Branch) Load(ctx context.Context, zctx *zed.Context, r zio.Reader, auth
 
 func loadMessage(objects []data.Object) string {
 	var b strings.Builder
-	plural := "s"
-	if len(objects) == 1 {
-		plural = ""
-	}
-	b.WriteString(fmt.Sprintf("loaded %d data object%s\n\n", len(objects), plural))
+	b.WriteString(fmt.Sprintf("loaded %d data object%s\n\n", len(objects), plural.Slice(objects, "s")))
 	for k, o := range objects {
 		b.WriteString("  ")
 		b.WriteString(o.String())
@@ -126,7 +123,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		}
 		if message == "" {
 			var b strings.Builder
-			fmt.Fprintf(&b, "deleted %d data object%s\n\n", len(objects), plural(objects))
+			fmt.Fprintf(&b, "deleted %d data object%s\n\n", len(objects), plural.Slice(objects, "s"))
 			printObjects(&b, objects, maxMessageObjects)
 			message = b.String()
 		}
@@ -202,10 +199,10 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 
 func deleteWhereMessage(deleted, added []*data.Object) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "deleted %d data object%s\n\n", len(deleted), plural(deleted))
+	fmt.Fprintf(&b, "deleted %d data object%s\n\n", len(deleted), plural.Slice(deleted, "s"))
 	printObjects(&b, deleted, maxMessageObjects)
 	if len(added) > 0 {
-		fmt.Fprintf(&b, "\nadded %d data object%s\n\n", len(added), plural(added))
+		fmt.Fprintf(&b, "\nadded %d data object%s\n\n", len(added), plural.Slice(added, "s"))
 		printObjects(&b, added, maxMessageObjects-len(deleted))
 	}
 	return b.String()
@@ -218,13 +215,6 @@ func printObjects(b *strings.Builder, objects []*data.Object, maxMessageObjects 
 			b.WriteString("  ...\n")
 		}
 	}
-}
-
-func plural[S ~[]E, E any](s S) string {
-	if len(s) == 1 {
-		return ""
-	}
-	return "s"
 }
 
 func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
@@ -275,9 +265,9 @@ func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, 
 		}
 		if message == "" {
 			var b strings.Builder
-			fmt.Fprintf(&b, "compacted %d object%s\n\n", len(src), plural(src))
+			fmt.Fprintf(&b, "compacted %d object%s\n\n", len(src), plural.Slice(src, "s"))
 			printObjects(&b, src, maxMessageObjects)
-			fmt.Fprintf(&b, "\ncreated %d object%s\n\n", len(rollup), plural(rollup))
+			fmt.Fprintf(&b, "\ncreated %d object%s\n\n", len(rollup), plural.Slice(rollup, "s"))
 			printObjects(&b, rollup, maxMessageObjects-len(src))
 			message = b.String()
 		}
