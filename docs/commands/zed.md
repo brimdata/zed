@@ -904,4 +904,4 @@ previously been subject to a [`delete`](#24-delete) operation.  As this is a
 DANGER ZONE command, you must confirm that you want to delete
 the pool to proceed.  The `-f` option can be used to force the deletion
 without confirmation.  The `-dryrun` option may also be used to see a summary
-of how many objects would be deleted by a `vacuum`.
+of how many objects would be deleted by a `vacuum` but without deleting them.
