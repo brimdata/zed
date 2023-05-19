@@ -265,10 +265,10 @@ Create a commit that reflects the deletion of some data in the branch. The data
 to delete can be specified via a list of object IDs or
 as a filter expression (see [limitations](../commands/zed.md#24-delete)).
 
-This endpoint simply removes the data from the branch without actually deleting the
-underlying data objects thereby allowing time travel to work in the face
-of deletes. Permanent deletion of underlying data objects is handled by the
-separate [`vacuum`](#vacuum-pool) endpoint.
+This simply removes the data from the branch without actually deleting the
+underlying data objects thereby allowing [time travel](../commands/zed.md#15-time-travel) to work in the face
+of deletes. Permanent deletion of underlying data objects is handled by a
+separate [vacuum](#vacuum-pool) operation.
 
 ```
 POST /pool/{pool}/branch/{branch}/delete
