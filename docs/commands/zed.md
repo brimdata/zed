@@ -465,17 +465,16 @@ The `delete` command removes one or more data objects indicated by their ID from
 This command
 simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
-of deletes.
+of deletes.  Permanent deletion of underlying data objects is handled by the
+separate [`vacuum`](#215-vacuum) command.
 
 If the `-where` flag is specified, delete will remove all values for which the
-provided filter expression is true. The value provided to `-where` must be a
+provided filter expression is true.  The value provided to `-where` must be a
 single filter expression, e.g.:
 
 ```
 zed delete -where 'ts > 2022-10-05T17:20:00Z and ts < 2022-10-05T17:21:00Z'
 ```
-
-> A vacuum command to delete permanently from a pool is under development.
 
 ### 2.5 Drop
 ```
@@ -894,3 +893,15 @@ the pool name to the desired branch:
 zed use otherpool@otherbranch
 ```
 This command stores the working branch in `$HOME/.zed_head`.
+
+### 2.15 Vacuum
+```
+zed vacuum [options]
+```
+
+The `vacuum` command permanently deletes underlying data objects that have
+previously been subject to a [`delete`](#24-delete) operation.  As this is a
+DANGER ZONE command, you must confirm that you want to delete
+the pool to proceed.  The `-f` option can be used to force the deletion
+without confirmation.  The `-dryrun` option may also be used to see a summary
+of how many objects would be deleted by a `vacuum`.

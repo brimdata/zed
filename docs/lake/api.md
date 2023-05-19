@@ -120,10 +120,43 @@ DELETE /pool/{pool}
 
 ```
 curl -X DELETE \
-      http://localhost:9867/pool/inventory
+     http://localhost:9867/pool/inventory
 ```
 
 On success, HTTP 204 is returned with no response payload.
+
+---
+
+#### Vacuum pool
+
+Clear storage space by permanently deleting underlying data objects that have
+previously been subject to a [delete](#delete-data) operation.
+
+```
+POST /pool/{pool}/revision/{revision}/vacuum
+```
+
+**Params**
+
+| Name | Type | In | Description |
+| ---- | ---- | -- | ----------- |
+| pool | string | path | **Required.** ID or name of the requested pool. |
+| revision | string | path | **Required.** The starting point for locating objects that can be vacuumed. Can be the name of a branch (whose tip would be used) or a commit ID. |
+| dryrun | string | query | Set to "T" to return the list of objects that could be vacuumed, but don't actually delete them. Defaults to "F". |
+
+**Example Request**
+
+```
+curl -X POST \
+     -H 'Accept: application/json' \
+     http://localhost:9867/pool/inventory/revision/main/vacuum
+```
+
+**Example Response**
+
+```
+{"object_ids":["0x10f5a24253887eaf179ee385532ee411c2ed8050","0x10f5a2410ccd08f72e5d98f6d054477173b4f13f"]}
+```
 
 ---
 
@@ -219,7 +252,7 @@ DELETE /pool/{pool}/branch/{branch}
 
 ```
 curl -X DELETE \
-      http://localhost:9867/pool/inventory/branch/staging
+     http://localhost:9867/pool/inventory/branch/staging
 ```
 
 On success, HTTP 204 is returned with no response payload.
@@ -231,6 +264,11 @@ On success, HTTP 204 is returned with no response payload.
 Create a commit that reflects the deletion of some data in the branch. The data
 to delete can be specified via a list of object IDs or
 as a filter expression (see [limitations](../commands/zed.md#24-delete)).
+
+This endpoint simply removes the data from the branch without actually deleting the
+underlying data objects thereby allowing time travel to work in the face
+of deletes. Permanent deletion of underlying data objects is handled by the
+separate [`vacuum`](#vacuum-pool) endpoint.
 
 ```
 POST /pool/{pool}/branch/{branch}/delete
@@ -375,7 +413,6 @@ curl -X POST \
      -H 'Content-Type: application/json' \
      -d '{"rule_name": "MyRuleGroup", "tags": ["27DAbmqxukfABARaAHauARBJOXH", "27DAbeUBW7llN2mXAadYz00Zjpk"]}' \
      http://localhost:9867/pool/inventory/branch/main/index
-
 ```
 
 **Example Response**
