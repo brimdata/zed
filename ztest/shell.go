@@ -14,11 +14,14 @@ func RunShell(dir, bindir, script string, stdin io.Reader, useenvs []string) (st
 	cmd := exec.Command("bash", "-e", "-o", "pipefail", "-c", script)
 	cmd.Dir = dir
 	cmd.Env = []string{
-		"AppData=" + dir, // For os.User*Dir on Windows.
-		"HOME=" + dir,    // For os.User*Dir on Unix.
+		"AppData=" + dir,      // For os.UserConfigDir on Windows.
+		"HOME=" + dir,         // For os.User*Dir on Unix.
+		"LocalAppData=" + dir, // For os.UserCacheDir on Windows.
 		"PATH=" + bindir + string(os.PathListSeparator) + os.Getenv("PATH"),
+		"USERPROFILE=" + dir, // For os.UserHomeDir on Windows.
 	}
-	for _, env := range useenvs {
+	// Forward TMPDIR, TMP, and TEMP for os.TempDir.
+	for _, env := range append(useenvs, "TMPDIR", "TMP", "TEMP") {
 		if v, ok := os.LookupEnv(env); ok {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", env, v))
 		}
