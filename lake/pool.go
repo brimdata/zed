@@ -239,6 +239,7 @@ func (p *Pool) Vacuum(ctx context.Context, commit ksuid.KSUID, dryrun bool) ([]k
 				}
 				return err
 			})
+			continue
 		}
 		group.Go(func() error {
 			err := p.engine.Delete(ctx, data.SequenceURI(p.DataPath, o.ID))
