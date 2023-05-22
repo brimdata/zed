@@ -142,7 +142,7 @@ POST /pool/{pool}/revision/{revision}/vacuum
 | ---- | ---- | -- | ----------- |
 | pool | string | path | **Required.** ID or name of the requested pool. |
 | revision | string | path | **Required.** The starting point for locating objects that can be vacuumed. Can be the name of a branch (whose tip would be used) or a commit ID. |
-| dryrun | string | query | Set to "T" to return the list of objects that could be vacuumed, but don't actually delete them. Defaults to "F". |
+| dryrun | string | query | Set to "T" to return the list of objects that could be vacuumed, but don't actually remove them. Defaults to "F". |
 
 **Example Request**
 
