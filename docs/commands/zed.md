@@ -899,9 +899,9 @@ This command stores the working branch in `$HOME/.zed_head`.
 zed vacuum [options]
 ```
 
-The `vacuum` command permanently deletes underlying data objects that have
+The `vacuum` command permanently removes underlying data objects that have
 previously been subject to a [`delete`](#24-delete) operation.  As this is a
-DANGER ZONE command, you must confirm that you want to delete
-the pool to proceed.  The `-f` option can be used to force the deletion
+DANGER ZONE command, you must confirm that you want to remove
+the objects to proceed.  The `-f` option can be used to force removal
 without confirmation.  The `-dryrun` option may also be used to see a summary
-of how many objects would be deleted by a `vacuum` but without deleting them.
+of how many objects would be removed by a `vacuum` but without removing them.
