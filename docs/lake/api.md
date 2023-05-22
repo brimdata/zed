@@ -129,7 +129,7 @@ On success, HTTP 204 is returned with no response payload.
 
 #### Vacuum pool
 
-Clear storage space by permanently deleting underlying data objects that have
+Free storage space by permanently removing underlying data objects that have
 previously been subject to a [delete](#delete-data) operation.
 
 ```
