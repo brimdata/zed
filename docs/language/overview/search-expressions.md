@@ -9,7 +9,7 @@ Search expressions provide a hybrid syntax between keyword search
 and boolean expressions.  In this way, a search is a shorthand for
 a "lean forward" style activity where one is interactively exploring
 data with ad hoc searches.  All shorthand searches have a corresponding
-long form built from the expression syntax above in combination with the
+long form built from the [expression syntax](expressions.md) in combination with the
 [search term syntax](search-expressions.md#search-terms) described below.
 
 ## Search Patterns

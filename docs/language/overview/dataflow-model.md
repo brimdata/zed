@@ -116,7 +116,7 @@ forwarded from the switch to the downstream operator in an undefined order.
 ## The Special Value `this`
 
 In Zed, there are no looping constructs and variables are limited to binding
-values between [lateral scopes](lateral-subqueries.md#lateral-scope) as described below.
+values between [lateral scopes](lateral-subqueries.md#lateral-scope).
 Instead, the input sequence
 to an operator is produced continuously and any output values are derived
 from input values.

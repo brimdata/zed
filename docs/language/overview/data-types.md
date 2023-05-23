@@ -19,8 +19,7 @@ In particular, the syntax of primitive types follows the
 [primitive-value definitions](../../formats/zson.md#23-primitive-values) in ZSON
 as well as the various [complex value definitions](../../formats/zson.md#24-complex-values)
 like records, arrays, sets, and so forth.  However, complex values are not limited to
-constant values like ZSON and can be composed from literal expressions as
-[defined below](expressions.md#literals).
+constant values like ZSON and can be composed from [literal expressions](expressions.md#literals).
 
 ## First-class Types
 

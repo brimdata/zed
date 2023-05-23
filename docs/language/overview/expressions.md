@@ -262,7 +262,7 @@ produces just one output value
 
 ## Literals
 
-Any of the [data types listed above](data-types.md) may be used in expressions
+Any of the [data types](data-types.md) may be used in expressions
 as long as it is compatible with the semantics of the expression.
 
 String literals are enclosed in either single quotes or double quotes and
