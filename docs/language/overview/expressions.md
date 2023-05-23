@@ -228,7 +228,7 @@ produces
 Zed includes many [built-in functions](../functions/README.md), some of which take
 a variable number of arguments.  
 
-Zed also allows you to create [user-defined functions](func-statements.md).
+Zed also allows you to create [user-defined functions](statements.md#func-statements).
 
 ## Aggregate Function Calls
 

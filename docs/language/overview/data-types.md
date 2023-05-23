@@ -88,7 +88,7 @@ As in any modern programming language, types can be named and the type names
 persist into the data model and thus into the serialized input and output.
 
 Named types may be defined in three ways:
-* with a [`type` statement as described above](type-statements.md),
+* with a [`type` statement](statements.md#type-statements),
 * with a definition inside of another type, or
 * by the input data itself.
 

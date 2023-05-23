@@ -106,14 +106,11 @@ search "example.com" AND "urgent"
 The following sections continue the overview of the Zed language.
 
 * [The Dataflow Model](dataflow-model.md)
-* [Const Statements](const-statements.md)
-* [Func Statements](func-statements.md)
-* [Type Statements](type-statements.md)
+* [Const, Func, and Type Statements](statements.md)
 * [Data Types](data-types.md)
 * [Expressions](expressions.md)
 * [Search Expressions](search-expressions.md)
 * [Lateral Subqueries](lateral-subqueries.md)
-* [Shaping](shaping.md)
-* [Type Fusion](type-fusion.md)
+* [Shaping and Type Fusion](shaping.md)
 
 You may also be interested in the detailed reference materials on [operators](../operators/README.md), [functions](../functions/README.md), and [aggregate functions](../aggregates/README.md), as well as the [conventions](../conventions.md) for how they're described.
