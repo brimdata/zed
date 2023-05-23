@@ -167,3 +167,8 @@ func (r *remote) AddVectors(ctx context.Context, pool ksuid.KSUID, branch string
 func (r *remote) DeleteVectors(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
 	panic("TBD")
 }
+
+func (r *remote) Vacuum(ctx context.Context, pool, revision string, dryrun bool) ([]ksuid.KSUID, error) {
+	res, err := r.conn.Vacuum(ctx, pool, revision, dryrun)
+	return res.ObjectIDs, err
+}

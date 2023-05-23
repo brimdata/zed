@@ -1,0 +1,21 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby x:asc test
+  zed use -q test
+  echo {x:1} | zed load -q -
+  r=$(echo {x:2} | zed load - | head -1 | awk '{print $1}')
+  r=$(zed revert $r | awk '{print $5}')
+  zed vacuum -dryrun
+  zed vacuum -f
+  zed revert -q $r
+  ! zed query -z '*'
+
+outputs:
+  - name: stdout
+    data: |
+      would vacuum 1 object
+      vacuumed 1 object
+  - name: stderr
+    regexp:
+      file:.*file does not exist

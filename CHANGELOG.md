@@ -1,3 +1,20 @@
+## v1.8.0
+* Improve [`sort`](docs/language/operators/sort.md) performance for `duration` and `time` types (#4469)
+* Improve performance and reduce memory used by `zed load` and `sort` on multi-GB inputs (#4476, #4484)
+* Fix an issue where [meta-queries](docs/commands/zed.md#meta-queries) were incorrectly returning results (#4474)
+* The [`join` operator](docs/language/operators/join.md) now has an additional syntax that uses subqueries, which is more reminiscent of SQL (#4467, #4473, #4492, #4502)
+* Improve performance when a Zed lake scan is not order sensitive (#4526)
+* The [lake API documentation](docs/lake/api.md) now includes both request & response MIME types (#4512)
+* Add more usage examples for the [`pass` operator](docs/language/operators/pass.md) in documentation (#4541)
+* [`cast()`](docs/language/functions/cast.md) errors are now structured and contain more detail (#4548)
+* A different Parquet library is now used, which allows for reading more dialects (#4547)
+* Fix an issue where reading certain ZNG files via auto-detect caused a panic (#4569)
+* Add a [`load` operator](docs/language/operators/load.md) that can be invoked in a Zed pipeline to commit data to a pool (#4471)
+* Fix an issue where certain ZNG files could not be read and caused a `control` error (#4579)
+* Fix an issue where `zed serve` would exit if it tried to write to a closed socket (#4587)
+* Improve JSON output for Zed [maps](docs/formats/zed.md#24-map) (#4589)
+* Add the [`zed vacuum`](docs/commands/zed.md#215-vacuum) command (#4577, #4598, #4600)
+
 ## v1.7.0
 * Add [`regexp_replace()`](docs/language/functions/regexp_replace.md) function for replacing regular expression matches in a string (#4435, #4449)
 * Add [documentation](docs/integrations/zed-lake-auth.md) showing how to configure Auth0 for authenticated access to a Zed lake service (#4439)

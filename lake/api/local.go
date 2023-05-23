@@ -23,7 +23,6 @@ import (
 type local struct {
 	root     *lake.Root
 	compiler runtime.Compiler
-	engine   storage.Engine
 }
 
 var _ Interface = (*local)(nil)
@@ -38,11 +37,7 @@ func OpenLocalLake(ctx context.Context, logger *zap.Logger, lakePath string) (In
 	if err != nil {
 		return nil, err
 	}
-	return &local{
-		root:     root,
-		compiler: compiler.NewLakeCompiler(root),
-		engine:   engine,
-	}, nil
+	return FromRoot(root), nil
 }
 
 func CreateLocalLake(ctx context.Context, logger *zap.Logger, lakePath string) (Interface, error) {
@@ -55,10 +50,11 @@ func CreateLocalLake(ctx context.Context, logger *zap.Logger, lakePath string) (
 	if err != nil {
 		return nil, err
 	}
-	return &local{
-		root:   root,
-		engine: engine,
-	}, nil
+	return FromRoot(root), nil
+}
+
+func FromRoot(root *lake.Root) Interface {
+	return &local{root: root, compiler: compiler.NewLakeCompiler(root)}
 }
 
 func (l *local) Root() *lake.Root {
@@ -247,4 +243,20 @@ func (l *local) DeleteVectors(ctx context.Context, poolID ksuid.KSUID, branchNam
 		return ksuid.Nil, err
 	}
 	return branch.DeleteVectors(ctx, ids, message.Author, message.Body)
+}
+
+func (l *local) Vacuum(ctx context.Context, pool, revision string, dryrun bool) ([]ksuid.KSUID, error) {
+	poolID, err := l.PoolID(ctx, pool)
+	if err != nil {
+		return nil, err
+	}
+	p, err := l.root.OpenPool(ctx, poolID)
+	if err != nil {
+		return nil, err
+	}
+	commit, err := p.ResolveRevision(ctx, revision)
+	if err != nil {
+		return nil, err
+	}
+	return p.Vacuum(ctx, commit, dryrun)
 }

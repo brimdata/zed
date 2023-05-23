@@ -130,7 +130,11 @@ func SequenceURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
 }
 
 func (o Object) SeekIndexURI(path *storage.URI) *storage.URI {
-	return path.JoinPath(fmt.Sprintf("%s-seek.zng", o.ID))
+	return SeekIndexURI(path, o.ID)
+}
+
+func SeekIndexURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
+	return path.JoinPath(fmt.Sprintf("%s-seek.zng", id))
 }
 
 func (o Object) VectorURI(path *storage.URI) *storage.URI {
