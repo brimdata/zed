@@ -3,7 +3,9 @@ sidebar_position: 3
 sidebar_label: Const, Func, and Type Statements
 ---
 
-# Const Statements
+# Statements
+
+## Const Statements
 
 Constants may be defined and assigned to a symbolic name with the syntax
 ```
@@ -32,7 +34,7 @@ scope but can override identifiers defined in ancestor scopes.
 
 `const` statements may appear intermixed with `func` and `type` statements.
 
-# Func Statements
+## Func Statements
 
 User-defined functions may be created with the syntax
 ```
@@ -65,7 +67,7 @@ scope but can override identifiers defined in ancestor scopes.
 
 `func` statements may appear intermixed with `const` and `type` statements.
 
-# Type Statements
+## Type Statements
 
 Named types may be created with the syntax
 ```

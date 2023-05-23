@@ -3,7 +3,9 @@ sidebar_position: 7
 sidebar_label: Shaping and Type Fusion
 ---
 
-# Shaping
+# Shaping and Type Fusion
+
+## Shaping
 
 Data that originates from heterogeneous sources typically has
 inconsistent structure and is thus difficult to reason about or query.
@@ -66,7 +68,7 @@ We also use this sample JSON input in a file called `sample.json`:
 }
 ```
 
-## Cast
+### Cast
 
 The `cast` function applies a cast operation to each leaf value that matches the
 field path in the specified type, e.g.,
@@ -92,7 +94,7 @@ order of the `server` and `client` fields:
 }
 ```
 
-## Crop
+### Crop
 
 Cropping is useful when you want records to "fit" a schema tightly, e.g.,
 ```mdtest-command
@@ -113,7 +115,7 @@ removes the `uid` field since it is not in the `connection` type:
 }
 ```
 
-## Fill
+### Fill
 
 Use `fill` when you want to fill out missing fields with nulls, e.g.,
 ```mdtest-command
@@ -137,7 +139,7 @@ the `connection` type has it:
 }
 ```
 
-## Order
+### Order
 
 The `order` function changes the order of fields in its input to match the
 order in the specified type, as field order is significant in Zed records, e.g.,
@@ -161,7 +163,7 @@ about the `uid` field as it is not in the `connection` type:
 }
 ```
 
-## Shape
+### Shape
 
 The `shape` function brings everything together by applying `cast`,
 `fill`, and `order` all in one step, e.g.,
@@ -206,7 +208,7 @@ drops the `uid` field after shaping:
 }
 ```
 
-# Type Fusion
+## Type Fusion
 
 Type fusion is another important building block of data shaping.
 Here, types are operated upon by fusing them together, where the
@@ -249,7 +251,7 @@ To perform fusion, Zed currently includes two key mechanisms
 * the [`fuse` operator](../operators/fuse.md), and
 * the [`fuse` aggregate function](../aggregates/fuse.md).
 
-## Fuse Operator
+### Fuse Operator
 
 The `fuse` operator reads all of its input, computes a fused type using
 the techniques above, and outputs the result, e.g.,
@@ -273,7 +275,7 @@ requires a type union for field `x` and produces:
 {x:2((int64,string)),y:"bar"}
 ```
 
-## Fuse Aggregate Function
+### Fuse Aggregate Function
 
 The `fuse` aggregate function is most often useful during data exploration and discovery
 where you might interactively run queries to determine the shapes of some new
