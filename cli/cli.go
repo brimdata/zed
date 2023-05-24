@@ -30,7 +30,15 @@ type Initializer interface {
 	Init() error
 }
 
+// Init is equivalent to InitWithSignals with SIGINT, SIGPIPE, and SIGTERM.
 func (f *Flags) Init(all ...Initializer) (context.Context, context.CancelFunc, error) {
+	return f.InitWithSignals(all, syscall.SIGINT, syscall.SIGPIPE, syscall.SIGTERM)
+}
+
+// InitWithSignals handles the flags defined in SetFlags, calls the Init method
+// for each element of all, and returns a context canceled when any signal in
+// signals is raised.
+func (f *Flags) InitWithSignals(all []Initializer, signals ...os.Signal) (context.Context, context.CancelFunc, error) {
 	if f.showVersion {
 		fmt.Printf("Version: %s\n", Version())
 		os.Exit(0)
@@ -47,8 +55,7 @@ func (f *Flags) Init(all ...Initializer) (context.Context, context.CancelFunc, e
 	if f.cpuprofile != "" {
 		f.runCPUProfile(f.cpuprofile)
 	}
-	ctx, cancel := signal.NotifyContext(
-		context.Background(), syscall.SIGINT, syscall.SIGPIPE, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(context.Background(), signals...)
 	cleanup := func() {
 		cancel()
 		f.cleanup()

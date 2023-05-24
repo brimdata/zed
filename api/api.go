@@ -138,3 +138,7 @@ type QueryStats struct {
 type QueryWarning struct {
 	Warning string `json:"warning" zed:"warning"`
 }
+
+type VacuumResponse struct {
+	ObjectIDs []ksuid.KSUID `zed:"object_ids"`
+}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"syscall"
 
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/logflags"
@@ -65,7 +66,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init()
+	// Don't include SIGPIPE here or else a write to a closed socket (i.e.,
+	// a broken network connection) will cancel the context on Linux.
+	ctx, cleanup, err := c.InitWithSignals(nil, syscall.SIGINT, syscall.SIGTERM)
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,6 @@
 package root
 
 import (
-	"context"
 	"flag"
 
 	"github.com/brimdata/zed/cli"
@@ -21,23 +20,19 @@ querying, and orchestrating Zed data lakes.`,
 
 type Command struct {
 	charm.Command
+	cli.Flags
 	LakeFlags lakeflags.Flags
-	cli       cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
-	c.cli.SetFlags(f)
+	c.SetFlags(f)
 	c.LakeFlags.SetFlags(f)
 	return c, nil
 }
 
-func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) {
-	return c.cli.Init(all...)
-}
-
 func (c *Command) Run(args []string) error {
-	_, cancel, err := c.cli.Init()
+	_, cancel, err := c.Init()
 	if err != nil {
 		return err
 	}

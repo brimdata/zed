@@ -84,9 +84,9 @@ func (s *scanner) Pull(done bool) (zbuf.Batch, error) {
 				continue
 			}
 			if result.Batch == nil || result.Err != nil {
-				if err, ok := result.Err.(*zbuf.Control); !ok {
+				if _, ok := result.Err.(*zbuf.Control); !ok {
 					s.eof = true
-					s.err = err
+					s.err = result.Err
 					s.cancel()
 				}
 			}

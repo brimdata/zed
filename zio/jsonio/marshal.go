@@ -120,20 +120,32 @@ func marshalSet(typ *zed.TypeSet, bytes zcode.Bytes) interface{} {
 	return s
 }
 
-type Entry struct {
-	Key   interface{} `json:"key"`
-	Value interface{} `json:"value"`
-}
-
 func marshalMap(typ *zed.TypeMap, bytes zcode.Bytes) interface{} {
-	var entries []Entry
-	it := bytes.Iter()
-	for !it.Done() {
-		key := marshalAny(typ.KeyType, it.Next())
+	keyType := zed.TypeUnder(typ.KeyType)
+	rec := record{}
+	for it := bytes.Iter(); !it.Done(); {
+		var key string
+		switch kind := keyType.Kind(); {
+		case keyType == zed.TypeString:
+			// Don't quote strings.
+			key = zed.DecodeString(it.Next())
+		case kind == zed.PrimitiveKind:
+			// Undecorated ZSON.
+			key = zson.FormatPrimitive(keyType, it.Next())
+		case kind == zed.UnionKind:
+			// Untagged, decorated ZSON so
+			// |{0:1,0(uint64):2,0(=t):3,"0":4}| gets unique keys.
+			typ, bytes := keyType.(*zed.TypeUnion).Untag(it.Next())
+			key = zson.MustFormatValue(zed.NewValue(typ, bytes))
+		case kind == zed.EnumKind:
+			key = marshalEnum(keyType.(*zed.TypeEnum), it.Next()).(string)
+		default:
+			key = zson.MustFormatValue(zed.NewValue(keyType, it.Next()))
+		}
 		val := marshalAny(typ.ValType, it.Next())
-		entries = append(entries, Entry{key, val})
+		rec = append(rec, field{key, val})
 	}
-	return entries
+	return rec
 }
 
 func marshalEnum(typ *zed.TypeEnum, bytes zcode.Bytes) interface{} {

@@ -3,7 +3,6 @@ package ztest
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,19 +10,12 @@ import (
 )
 
 func TestShouldSkip(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		assert.Equal(t, "script test on Windows", (&ZTest{Script: "x"}).ShouldSkip(""))
-	} else {
-		assert.Equal(t, "script test on in-process run", (&ZTest{Script: "x"}).ShouldSkip(""))
-	}
+	assert.Equal(t, "script test on in-process run", (&ZTest{Script: "x"}).ShouldSkip(""))
 	assert.Equal(t, "reason", (&ZTest{Skip: "reason"}).ShouldSkip(""))
 	assert.Equal(t, `tag "x" does not match ZTEST_TAG=""`, (&ZTest{Tag: "x"}).ShouldSkip(""))
 }
 
 func TestRunScript(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping test on Windows because RunScript uses cmd.exe instead of bash")
-	}
 	t.Run("outputs", func(t *testing.T) {
 		testDir := t.TempDir()
 		require.NoError(t, os.WriteFile(filepath.Join(testDir, "testdirfile"), []byte("testdirfile\n"), 0644))
