@@ -385,7 +385,7 @@ func TestMarshalNetIP(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, `10.0.0.1`, b)
 	var after net.IP
-	err = zson.Unmarshal(string(b), &after)
+	err = zson.Unmarshal(b, &after)
 	require.NoError(t, err)
 	assert.Equal(t, before, after)
 }
@@ -396,7 +396,7 @@ func TestMarshalNetipAddr(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, `10.0.0.1`, b)
 	var after netip.Addr
-	err = zson.Unmarshal(string(b), &after)
+	err = zson.Unmarshal(b, &after)
 	require.NoError(t, err)
 	assert.Equal(t, before, after)
 }

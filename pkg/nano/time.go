@@ -55,7 +55,7 @@ func (t *Ts) UnmarshalJSON(in []byte) error {
 			if !ok {
 				ns = 0
 			}
-			*t = Ts(int64(sec)*1000000000 + int64(ns))
+			*t = Ts(sec*1000000000 + ns)
 			return nil
 		}
 		return fmt.Errorf("time object is not of the form {sec:x, ns:y}")
@@ -78,7 +78,7 @@ func (t Ts) MarshalJSON() ([]byte, error) {
 
 func (t Ts) Time() time.Time {
 	sec, ns := t.Split()
-	return time.Unix(int64(sec), int64(ns)).UTC()
+	return time.Unix(sec, ns).UTC()
 }
 
 func (t Ts) Trunc(bin Duration) Ts {
@@ -177,5 +177,5 @@ func Min(a, b Ts) Ts {
 // Unix returns a Ts corresponding to the given Unix time, sec seconds
 // and nsec nanoseconds since January 1, 1970 UTC.
 func Unix(sec, ns int64) Ts {
-	return Ts(int64(sec)*1000000000 + int64(ns))
+	return Ts(sec*1000000000 + ns)
 }

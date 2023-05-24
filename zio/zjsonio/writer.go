@@ -164,7 +164,7 @@ func (w *Writer) encodeMap(zctx *zed.Context, typ *zed.TypeMap, v zcode.Bytes) (
 		return nil, nil
 	}
 	var out []interface{}
-	it := zcode.Bytes(v).Iter()
+	it := v.Iter()
 	for !it.Done() {
 		pair := make([]interface{}, 2)
 		var err error

@@ -255,7 +255,7 @@ func (t *TypeRecord) HasField(field string) bool {
 func (t *TypeRecord) createLUT() {
 	t.LUT = make(map[string]int)
 	for k, f := range t.Fields {
-		t.LUT[string(f.Name)] = k
+		t.LUT[f.Name] = k
 	}
 }
 
