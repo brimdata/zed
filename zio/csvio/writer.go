@@ -93,5 +93,5 @@ func formatValue(typ zed.Type, bytes zcode.Bytes) string {
 	if typ.ID() < zed.IDTypeComplex {
 		return zson.FormatPrimitive(zed.TypeUnder(typ), bytes)
 	}
-	return zson.String(zed.Value{Type: typ, Bytes: bytes})
+	return zson.MustFormatValue(zed.NewValue(typ, bytes))
 }
