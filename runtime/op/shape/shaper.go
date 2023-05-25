@@ -85,8 +85,7 @@ func (i *integer) check(val zed.Value) {
 func (a *anchor) updateInts(rec *zed.Value) error {
 	it := rec.Bytes.Iter()
 	for k, f := range rec.Fields() {
-		val := zed.Value{Type: f.Type, Bytes: it.Next()}
-		a.integers[k].check(val)
+		a.integers[k].check(*zed.NewValue(f.Type, it.Next()))
 	}
 	return nil
 }
