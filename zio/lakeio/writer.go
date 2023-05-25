@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/runtime/op/meta"
@@ -125,7 +124,7 @@ func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
 	b.WriteByte(' ')
 	b.WriteString(p.ID.String())
 	b.WriteString(" key ")
-	b.WriteString(field.List(p.SortKey.Keys).String())
+	b.WriteString(p.SortKey.Keys.String())
 	b.WriteString(" order ")
 	b.WriteString(p.SortKey.Order.String())
 	b.WriteByte('\n')

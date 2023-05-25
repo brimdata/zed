@@ -230,7 +230,7 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 	}
 	switch n {
 	default:
-		typ, err := zed.LookupPrimitiveByID(int(n))
+		typ, err := zed.LookupPrimitiveByID(n)
 		if err != nil {
 			f.buildf("<ERR bad type ID in type value: %s>", err)
 			return nil
