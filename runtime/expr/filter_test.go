@@ -36,7 +36,7 @@ func filter(ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
 		return true
 	}
 	val := e.Eval(ectx, this)
-	if val.Type == zed.TypeBool && zed.IsTrue(val.Bytes) {
+	if val.Type == zed.TypeBool && zed.DecodeBool(val.Bytes) {
 		return true
 	}
 	return false

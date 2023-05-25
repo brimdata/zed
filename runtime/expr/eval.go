@@ -38,7 +38,7 @@ func (n *Not) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if !ok {
 		return val
 	}
-	if val.Bytes != nil && zed.IsTrue(val.Bytes) {
+	if zed.DecodeBool(val.Bytes) {
 		return zed.False
 	}
 	return zed.True
@@ -83,14 +83,14 @@ func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if !ok {
 		return lhs
 	}
-	if lhs.Bytes == nil || !zed.IsTrue(lhs.Bytes) {
+	if !zed.DecodeBool(lhs.Bytes) {
 		return zed.False
 	}
 	rhs, ok := EvalBool(a.zctx, ectx, this, a.rhs)
 	if !ok {
 		return rhs
 	}
-	if rhs.Bytes == nil || !zed.IsTrue(rhs.Bytes) {
+	if !zed.DecodeBool(rhs.Bytes) {
 		return zed.False
 	}
 	return zed.True
@@ -98,7 +98,7 @@ func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
 
 func (o *Or) Eval(ectx Context, this *zed.Value) *zed.Value {
 	lhs, ok := EvalBool(o.zctx, ectx, this, o.lhs)
-	if ok && lhs.Bytes != nil && zed.IsTrue(lhs.Bytes) {
+	if ok && zed.DecodeBool(lhs.Bytes) {
 		return zed.True
 	}
 	if lhs.IsError() && !lhs.IsMissing() {
@@ -106,7 +106,7 @@ func (o *Or) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	rhs, ok := EvalBool(o.zctx, ectx, this, o.rhs)
 	if ok {
-		if rhs.Bytes != nil && zed.IsTrue(rhs.Bytes) {
+		if zed.DecodeBool(rhs.Bytes) {
 			return zed.True
 		}
 		return zed.False
@@ -812,7 +812,7 @@ func (c *Conditional) Eval(ectx Context, this *zed.Value) *zed.Value {
 		val := *c.zctx.NewErrorf("?-operator: bool predicate required")
 		return &val
 	}
-	if zed.IsTrue(val.Bytes) {
+	if zed.DecodeBool(val.Bytes) {
 		return c.thenExpr.Eval(ectx, this)
 	}
 	return c.elseExpr.Eval(ectx, this)
