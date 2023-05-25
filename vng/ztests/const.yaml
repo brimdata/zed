@@ -1,0 +1,26 @@
+script: |
+  zq -f vng -o out.vng -
+  zed dev dig section -Z 1 out.vng
+
+inputs:
+  - name: stdin
+    data: |
+      1
+      1
+      1
+
+outputs:
+  - name: stdout
+    data: |
+      [
+          {
+              Offset: 3,
+              Length: 3 (int32),
+              MemLength: 3 (int32),
+              CompressionFormat: 0 (uint8)
+          } (=Segment)
+      ]
+      {
+          Value: 1,
+          Count: 3 (uint32)
+      } (=Const)

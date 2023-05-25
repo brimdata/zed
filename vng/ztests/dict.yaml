@@ -1,0 +1,33 @@
+script: |
+  zq -f vng -o out.vng -
+  zed dev dig section 1 out.vng | zq -Z "over Fields | yield Values.Dict" -
+
+inputs:
+  - name: stdin
+    data: |
+      {a:"hello",b:1}
+      {a:"world",b:2}
+
+outputs:
+  - name: stdout
+    data: |
+      [
+          {
+              Value: "hello",
+              Count: 1 (uint32)
+          } (=DictEntry),
+          {
+              Value: "world",
+              Count: 1
+          } (DictEntry)
+      ]
+      [
+          {
+              Value: 1,
+              Count: 1 (uint32)
+          } (=DictEntry),
+          {
+              Value: 2,
+              Count: 1
+          } (DictEntry)
+      ]
