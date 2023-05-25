@@ -10,12 +10,11 @@ import (
 )
 
 type Scope struct {
-	zctx  *zed.Context
 	stack []*Binder
 }
 
 func NewScope() *Scope {
-	return &Scope{zctx: zed.NewContext()}
+	return &Scope{}
 }
 
 func (s *Scope) tos() *Binder {
@@ -65,12 +64,12 @@ func (s *Scope) DefineFunc(f *dag.Func) error {
 	return nil
 }
 
-func (s *Scope) DefineConst(name string, def dag.Expr) error {
+func (s *Scope) DefineConst(zctx *zed.Context, name string, def dag.Expr) error {
 	b := s.tos()
 	if _, ok := b.symbols[name]; ok {
 		return fmt.Errorf("symbol %q redefined", name)
 	}
-	val, err := kernel.EvalAtCompileTime(s.zctx, def)
+	val, err := kernel.EvalAtCompileTime(zctx, def)
 	if err != nil {
 		return err
 	}
