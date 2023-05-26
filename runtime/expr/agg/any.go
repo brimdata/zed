@@ -15,7 +15,7 @@ func NewAny() *Any {
 func (a *Any) Consume(val *zed.Value) {
 	// Copy any value from the input while favoring any-typed non-null values
 	// over null values.
-	if a.Type == nil || (a.Bytes == nil && val.Bytes != nil) {
+	if a.Type == nil || (*zed.Value)(a).IsNull() && !val.IsNull() {
 		*a = Any(*val.Copy())
 	}
 }

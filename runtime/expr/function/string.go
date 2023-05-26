@@ -21,10 +21,10 @@ func (r *Replace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !sVal.IsString() || !oldVal.IsString() || !newVal.IsString() {
 		return newErrorf(r.zctx, ctx, "replace: string arg required")
 	}
-	if sVal.Bytes == nil {
+	if sVal.IsNull() {
 		return zed.Null
 	}
-	if oldVal.Bytes == nil || newVal.Bytes == nil {
+	if oldVal.IsNull() || newVal.IsNull() {
 		return newErrorf(r.zctx, ctx, "replace: an input arg is null")
 	}
 	s := zed.DecodeString(sVal.Bytes)
@@ -43,7 +43,7 @@ func (r *RuneLen) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !val.IsString() {
 		return newErrorf(r.zctx, ctx, "rune_len: string arg required")
 	}
-	if val.Bytes == nil {
+	if val.IsNull() {
 		return newInt64(ctx, 0)
 	}
 	s := zed.DecodeString(val.Bytes)

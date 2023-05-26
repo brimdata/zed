@@ -146,7 +146,7 @@ func (v *Value) ContainerLength() (int, error) {
 		}
 		return n, nil
 	case *TypeMap:
-		if v.Bytes == nil {
+		if v.IsNull() {
 			return 0, nil
 		}
 		var n int
@@ -176,9 +176,9 @@ func (v *Value) Copy() *Value {
 // to nil if and only if from.Bytes is nil.
 func (v *Value) CopyFrom(from *Value) {
 	v.Type = from.Type
-	if from.Bytes == nil {
+	if from.IsNull() {
 		v.Bytes = nil
-	} else if v.Bytes == nil {
+	} else if v.IsNull() {
 		v.Bytes = slices.Clone(from.Bytes)
 	} else {
 		v.Bytes = append(v.Bytes[:0], from.Bytes...)

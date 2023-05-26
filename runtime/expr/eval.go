@@ -582,22 +582,22 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 	typ := val.Type
 	switch typ.ID() {
 	case zed.IDFloat16:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		return ectx.NewValue(typ, zed.EncodeFloat16(-zed.DecodeFloat16(val.Bytes)))
 	case zed.IDFloat32:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		return ectx.NewValue(typ, zed.EncodeFloat32(-zed.DecodeFloat32(val.Bytes)))
 	case zed.IDFloat64:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		return ectx.NewValue(typ, zed.EncodeFloat64(-zed.DecodeFloat64(val.Bytes)))
 	case zed.IDInt8:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		v := zed.DecodeInt(val.Bytes)
@@ -606,7 +606,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(typ, zed.EncodeInt(-v))
 	case zed.IDInt16:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		v := zed.DecodeInt(val.Bytes)
@@ -615,7 +615,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(typ, zed.EncodeInt(-v))
 	case zed.IDInt32:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		v := zed.DecodeInt(val.Bytes)
@@ -624,7 +624,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(typ, zed.EncodeInt(-v))
 	case zed.IDInt64:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		v := zed.DecodeInt(val.Bytes)
@@ -633,7 +633,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(typ, zed.EncodeInt(-v))
 	case zed.IDUint8:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		v := zed.DecodeUint(val.Bytes)
@@ -642,7 +642,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(zed.TypeInt8, zed.EncodeInt(-int64(v)))
 	case zed.IDUint16:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		v := zed.DecodeUint(val.Bytes)
@@ -651,7 +651,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(zed.TypeInt16, zed.EncodeInt(-int64(v)))
 	case zed.IDUint32:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		v := zed.DecodeUint(val.Bytes)
@@ -660,7 +660,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.NewValue(zed.TypeInt32, zed.EncodeInt(-int64(v)))
 	case zed.IDUint64:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return val
 		}
 		v := zed.DecodeUint(val.Bytes)

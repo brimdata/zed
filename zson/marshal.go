@@ -732,7 +732,7 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
-	if v.Kind() == reflect.Pointer && val.Bytes == nil {
+	if v.Kind() == reflect.Pointer && val.IsNull() {
 		return u.decodeNull(val, v)
 	}
 	switch v.Kind() {
@@ -854,7 +854,7 @@ func indirect(v reflect.Value, val *zed.Value) (ZNGUnmarshaler, reflect.Value) {
 	}
 	var nilptr reflect.Value
 	for v.Kind() == reflect.Pointer {
-		if v.CanSet() && val.Bytes == nil {
+		if v.CanSet() && val.IsNull() {
 			// If the reflect value can be set and the zed Value is nil we want
 			// to store this pointer since if destination is not a zed.Value the
 			// pointer will be set to nil.
@@ -916,7 +916,7 @@ func (u *UnmarshalZNGContext) decodeMap(val *zed.Value, mapVal reflect.Value) er
 	if !ok {
 		return errors.New("not a map")
 	}
-	if val.Bytes == nil {
+	if val.IsNull() {
 		// XXX The inner types of the null should be checked.
 		mapVal.Set(reflect.Zero(mapVal.Type()))
 		return nil
@@ -975,7 +975,7 @@ func (u *UnmarshalZNGContext) decodeRecord(val *zed.Value, sval reflect.Value) e
 func (u *UnmarshalZNGContext) decodeArray(val *zed.Value, arrVal reflect.Value) error {
 	typ := zed.TypeUnder(val.Type)
 	if typ == zed.TypeBytes && arrVal.Type().Elem().Kind() == reflect.Uint8 {
-		if val.Bytes == nil {
+		if val.IsNull() {
 			arrVal.Set(reflect.Zero(arrVal.Type()))
 			return nil
 		}
@@ -990,7 +990,7 @@ func (u *UnmarshalZNGContext) decodeArray(val *zed.Value, arrVal reflect.Value) 
 	if !ok {
 		return fmt.Errorf("unmarshaling type %q: not an array", String(typ))
 	}
-	if val.Bytes == nil {
+	if val.IsNull() {
 		// XXX The inner type of the null should be checked.
 		arrVal.Set(reflect.Zero(arrVal.Type()))
 		return nil
