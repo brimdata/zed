@@ -101,7 +101,7 @@ type Float64 struct {
 
 func NewFloat64(f *anymath.Function, val *zed.Value) *Float64 {
 	state := f.Init.Float64
-	if val.Bytes != nil {
+	if !val.IsNull() {
 		var ok bool
 		state, ok = coerce.ToFloat(val)
 		if !ok {

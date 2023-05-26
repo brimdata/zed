@@ -22,5 +22,5 @@ func (p *pruner) prune(val *zed.Value) bool {
 		return false
 	}
 	result := p.pred.Eval(p.ectx, val)
-	return result.Type == zed.TypeBool && zed.IsTrue(result.Bytes)
+	return result.Type == zed.TypeBool && zed.DecodeBool(result.Bytes)
 }

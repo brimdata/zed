@@ -87,7 +87,7 @@ func (u *UnionReader) Read(b *zcode.Builder) error {
 		return errors.New("bad tag in VNG union reader")
 	}
 	b.BeginContainer()
-	b.Append(zed.EncodeInt(int64(tag)))
+	b.Append(zed.EncodeInt(tag))
 	if err := u.readers[tag].Read(b); err != nil {
 		return err
 	}

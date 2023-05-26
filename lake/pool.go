@@ -182,7 +182,7 @@ func filter(zctx *zed.Context, ectx expr.Context, this *zed.Value, e expr.Evalua
 		return true
 	}
 	val, ok := expr.EvalBool(zctx, ectx, this, e)
-	return ok && val.Bytes != nil && zed.IsTrue(val.Bytes)
+	return ok && zed.DecodeBool(val.Bytes)
 }
 
 type BranchTip struct {

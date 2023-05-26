@@ -271,7 +271,7 @@ func (d *Decoder) readTypeRecord(b *buffer) error {
 		return errBadFormat
 	}
 	var fields []zed.Field
-	for k := 0; k < int(nfields); k++ {
+	for k := 0; k < nfields; k++ {
 		f, err := d.readField(b)
 		if err != nil {
 			return err
@@ -307,7 +307,7 @@ func (d *Decoder) readTypeArray(b *buffer) error {
 	if err != nil {
 		return errBadFormat
 	}
-	inner, err := d.local.zctx.LookupType(int(id))
+	inner, err := d.local.zctx.LookupType(id)
 	if err != nil {
 		return err
 	}
@@ -321,7 +321,7 @@ func (d *Decoder) readTypeSet(b *buffer) error {
 	if err != nil {
 		return errBadFormat
 	}
-	innerType, err := d.local.zctx.LookupType(int(id))
+	innerType, err := d.local.zctx.LookupType(id)
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func (d *Decoder) readTypeMap(b *buffer) error {
 	if err != nil {
 		return errBadFormat
 	}
-	keyType, err := d.local.zctx.LookupType(int(id))
+	keyType, err := d.local.zctx.LookupType(id)
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ func (d *Decoder) readTypeMap(b *buffer) error {
 	if err != nil {
 		return errBadFormat
 	}
-	valType, err := d.local.zctx.LookupType(int(id))
+	valType, err := d.local.zctx.LookupType(id)
 	if err != nil {
 		return err
 	}
@@ -361,12 +361,12 @@ func (d *Decoder) readTypeUnion(b *buffer) error {
 		return errors.New("type union: zero types not allowed")
 	}
 	var types []zed.Type
-	for k := 0; k < int(ntyp); k++ {
+	for k := 0; k < ntyp; k++ {
 		id, err := readUvarintAsInt(b)
 		if err != nil {
 			return errBadFormat
 		}
-		typ, err := d.local.zctx.LookupType(int(id))
+		typ, err := d.local.zctx.LookupType(id)
 		if err != nil {
 			return err
 		}
@@ -383,7 +383,7 @@ func (d *Decoder) readTypeEnum(b *buffer) error {
 		return errBadFormat
 	}
 	var symbols []string
-	for k := 0; k < int(nsym); k++ {
+	for k := 0; k < nsym; k++ {
 		s, err := d.readCountedString(b)
 		if err != nil {
 			return err
@@ -417,7 +417,7 @@ func (d *Decoder) readTypeName(b *buffer) error {
 	if err != nil {
 		return errBadFormat
 	}
-	inner, err := d.local.zctx.LookupType(int(id))
+	inner, err := d.local.zctx.LookupType(id)
 	if err != nil {
 		return err
 	}
@@ -434,7 +434,7 @@ func (d *Decoder) readTypeError(b *buffer) error {
 	if err != nil {
 		return errBadFormat
 	}
-	inner, err := d.local.zctx.LookupType(int(id))
+	inner, err := d.local.zctx.LookupType(id)
 	if err != nil {
 		return err
 	}

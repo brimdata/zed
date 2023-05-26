@@ -31,7 +31,7 @@ func (s SortKey) Equal(to SortKey) bool {
 }
 
 func (s SortKey) String() string {
-	return fmt.Sprintf("%s:%s", field.List(s.Keys), s.Order)
+	return fmt.Sprintf("%s:%s", s.Keys, s.Order)
 }
 
 func NewSortKey(order Which, keys field.List) SortKey {

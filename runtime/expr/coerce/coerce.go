@@ -197,7 +197,7 @@ func ToUint(val *zed.Value) (uint64, bool) {
 			}
 			return uint64(v), true
 		} else {
-			return uint64(zed.DecodeUint(val.Bytes)), true
+			return zed.DecodeUint(val.Bytes), true
 		}
 	}
 	if id == zed.IDDuration {
@@ -221,13 +221,13 @@ func ToInt(val *zed.Value) (int64, bool) {
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
 			// XXX check if negative? should -1:uint64 be maxint64 or an error?
-			return int64(zed.DecodeInt(val.Bytes)), true
+			return zed.DecodeInt(val.Bytes), true
 		} else {
 			return int64(zed.DecodeUint(val.Bytes)), true
 		}
 	}
 	if id == zed.IDDuration {
-		return int64(zed.DecodeInt(val.Bytes)), true
+		return zed.DecodeInt(val.Bytes), true
 	}
 	if id == zed.IDTime {
 		return int64(zed.DecodeTime(val.Bytes)), true

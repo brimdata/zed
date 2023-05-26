@@ -230,7 +230,7 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 	}
 	switch n {
 	default:
-		typ, err := zed.LookupPrimitiveByID(int(n))
+		typ, err := zed.LookupPrimitiveByID(n)
 		if err != nil {
 			f.buildf("<ERR bad type ID in type value: %s>", err)
 			return nil
@@ -848,7 +848,7 @@ func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
 			b.WriteString(strconv.FormatFloat(f, 'g', -1, 64))
 		}
 	case *zed.TypeOfBool:
-		if zed.IsTrue(bytes) {
+		if zed.DecodeBool(bytes) {
 			b.WriteString("true")
 		} else {
 			b.WriteString("false")

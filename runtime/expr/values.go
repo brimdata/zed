@@ -109,14 +109,10 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			it := rec.Iter()
 			for _, f := range typ.Fields {
 				fv, ok := object[f.Name]
-				if ok {
-					fv.value = zed.Value{Type: f.Type, Bytes: it.Next()}
-				} else {
-					fv = fieldValue{
-						index: len(object),
-						value: zed.Value{Type: f.Type, Bytes: it.Next()},
-					}
+				if !ok {
+					fv = fieldValue{index: len(object)}
 				}
+				fv.value = *zed.NewValue(f.Type, it.Next())
 				object[f.Name] = fv
 			}
 		} else {
