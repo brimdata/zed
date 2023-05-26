@@ -15,7 +15,7 @@ long form built from the [expression syntax](expressions.md) in combination with
 ## Search Patterns
 
 Several styles of string search can be performed with a search expression
-(as well as the [`grep` function](../functions/grep.md)) using "patterns",
+(as well as the [`grep` function](functions/grep.md)) using "patterns",
 where a pattern is a regular expression, glob, or simple string.
 
 ### Regular Expressions
@@ -40,8 +40,8 @@ produces
 {s:"bar"}
 {foo:1}
 ```
-Regular expressions may also appear in the [`grep`](../functions/grep.md),
-[`regexp`](../functions/regexp.md), and [`regexp_replace`](../functions/regexp_replace.md) functions:
+Regular expressions may also appear in the [`grep`](functions/grep.md),
+[`regexp`](functions/regexp.md), and [`regexp_replace`](functions/regexp_replace.md) functions:
 ```mdtest-command
 echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z 'yield {ba_start:grep(/^ba.*/, s),last_s_char:regexp(/(.)$/,s)[1]}' -
 ```
@@ -126,10 +126,10 @@ is a Boolean comparison between the product `a*b` and `c`.
 The search patterns described above can be combined with other "search terms"
 using Boolean logic to form search expressions.
 
-> Note that when processing [ZNG](../../formats/zng.md) data, the Zed runtime performs a multi-threaded
+> Note that when processing [ZNG](../formats/zng.md) data, the Zed runtime performs a multi-threaded
 > Boyer-Moore scan over decompressed data buffers before parsing any data.
 > This allows large buffers of data to be efficiently discarded and skipped when
-> searching for rarely occurring values.  For a [Zed lake](../../lake/format.md), search indexes
+> searching for rarely occurring values.  For a [Zed lake](../lake/format.md), search indexes
 > may also be configured to further accelerate searches.
 > In a forthcoming release, Zed will also offer an approach for locating
 > delimited words within string fields, which will allow accelerated
@@ -277,7 +277,7 @@ the "in" operator, e.g.,
 
 #### Predicate Search Term
 
-Any Boolean-valued [function](../functions/README.md) like `is`, `has`,
+Any Boolean-valued [function](functions/README.md) like `is`, `has`,
 `grep`, etc. and any [comparison expression](expressions.md#comparisons)
 may be used as a search term and mixed into a search expression.
 

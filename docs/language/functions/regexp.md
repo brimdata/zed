@@ -12,7 +12,7 @@ See also: [Type conventions](../conventions.md)
 ### Description
 The _regexp_ function returns an array of strings holding the text
 of the left most match of the regular expression `re`, which can be either
-a string value or a [regular expression](../overview/search-expressions.md#regular-expressions),
+a string value or a [regular expression](../search-expressions.md#regular-expressions),
 and the matches of each parenthesized subexpression (also known as capturing
 groups) if there are any. A null value indicates no match.
 

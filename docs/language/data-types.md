@@ -6,18 +6,18 @@ sidebar_label: Data Types
 # Data Types
 
 The Zed language includes most data types of a typical programming language
-as defined in the [Zed data model](../../formats/zed.md).
+as defined in the [Zed data model](../formats/zed.md).
 
 The syntax of individual literal values generally follows
-the [ZSON syntax](../../formats/zson.md) with the exception that
-[type decorators](../../formats/zson.md#22-type-decorators)
+the [ZSON syntax](../formats/zson.md) with the exception that
+[type decorators](../formats/zson.md#22-type-decorators)
 are not included in the language.  Instead, a
 [type cast](expressions.md#casts) may be used in any expression for explicit
 type conversion.
 
 In particular, the syntax of primitive types follows the
-[primitive-value definitions](../../formats/zson.md#23-primitive-values) in ZSON
-as well as the various [complex value definitions](../../formats/zson.md#24-complex-values)
+[primitive-value definitions](../formats/zson.md#23-primitive-values) in ZSON
+as well as the various [complex value definitions](../formats/zson.md#24-complex-values)
 like records, arrays, sets, and so forth.  However, complex values are not limited to
 constant values like ZSON and can be composed from [literal expressions](expressions.md#literals).
 
@@ -27,7 +27,7 @@ Like the Zed data model, the Zed language has first-class types:
 any Zed type may be used as a value.
 
 The primitive types are listed in the
-[data model specification](../../formats/zed.md#1-primitive-types)
+[data model specification](../formats/zed.md#1-primitive-types)
 and have the same syntax in the Zed language.  Complex types also follow
 the ZSON syntax.  Note that the type of a type value is simply `type`.
 
@@ -46,7 +46,7 @@ a few examples:
 Complex types may be composed, as in `[({s:string},{x:int64})]` which is
 an array of type `union` of two types of records.
 
-The [`typeof` function](../functions/typeof.md) returns a value's type as
+The [`typeof` function](functions/typeof.md) returns a value's type as
 a value, e.g., `typeof(1)` is `<int64>` and `typeof(<int64>)` is `<type>`.
 
 First-class types are quite powerful because types can
@@ -160,7 +160,7 @@ the scope of the Zed data model and language.  That said, Zed provides flexible
 building blocks so systems can define their own schema versioning and schema
 management policies on top of these Zed primitives.
 
-Zed's [super-structured data model](../../formats/README.md#2-zed-a-super-structured-pattern)
+Zed's [super-structured data model](../formats/README.md#2-zed-a-super-structured-pattern)
 is a superset of relational tables and
 the Zed language's type system can easily make this connection.
 As an example, consider this type definition for "employee":
@@ -178,7 +178,7 @@ In Zed, you would say
 ```
 from anywhere | typeof(this)==<employee> | cut last,salary | sort salary | head 5
 ```
-and since type comparisons are so useful and common, the [`is` function](../functions/is.md)
+and since type comparisons are so useful and common, the [`is` function](functions/is.md)
 can be used to perform the type match:
 ```
 from anywhere | is(<employee>) | cut last,salary | sort salary | head 5
@@ -193,7 +193,7 @@ to work.
 ## First-class Errors
 
 As with types, errors in Zed are first-class: any value can be transformed
-into an error by wrapping it in the Zed [`error` type](../../formats/zed.md#27-error).
+into an error by wrapping it in the Zed [`error` type](../formats/zed.md#27-error).
 
 In general, expressions and functions that result in errors simply return
 a value of type `error` as a result.  This encourages a powerful flow-style
@@ -245,13 +245,13 @@ For example, suppose a bad value shows up:
 {kind:"bad", stuff:{foo:1,bar:2}}
 ```
 A Zed [shaper](shaping.md) could catch the bad value (e.g., as a default
-case in a [`switch`](../operators/switch.md) topology) and propagate it as
+case in a [`switch`](operators/switch.md) topology) and propagate it as
 an error using the Zed expression:
 ```
 yield error({message:"unrecognized input",input:this})
 ```
 then such errors could be detected and searched for downstream with the
-[`is_error` function](../functions/is_error.md).
+[`is_error` function](functions/is_error.md).
 For example,
 ```
 is_error(this)
@@ -324,7 +324,7 @@ produces
 error("missing")
 ```
 Sometimes you want missing errors to show up and sometimes you don't.
-The [`quiet` function](../functions/quiet.md) transforms missing errors into
+The [`quiet` function](functions/quiet.md) transforms missing errors into
 "quiet errors".  A quiet error is the value `error("quiet")` and is ignored
 by most operators, in particular `yield`.  For example,
 ```mdtest-command
@@ -336,7 +336,7 @@ produces
 ```
 
 And what if you want a default value instead of a missing error?  The
-[`coalesce` function](../functions/coalesce.md) returns the first value that is not
+[`coalesce` function](functions/coalesce.md) returns the first value that is not
 null, `error("missing")`, or `error("quiet")`.  For example,
 ```mdtest-command
 echo "{x:1} {y:2}" | zq -z "yield coalesce(x, 0)" -

@@ -372,7 +372,7 @@ produces
 
 If embedding the opposite record is undesirable, the left and right
 records can easily be merged with the
-[spread operator](../language/overview/expressions.md#record-expressions). Additional
+[spread operator](../language/expressions.md#record-expressions). Additional
 processing may be necessary to handle conflicting field names, such as
 in the example just shown where the `name` field is used differently in the
 left and right inputs. We'll demonstrate this by augmenting `embed-opposite.zed`

@@ -14,7 +14,7 @@ a well-defined set of schemas, which combines the data into a unified
 store like a data warehouse.
 
 In Zed, this cleansing process is called "shaping" the data, and Zed leverages
-its rich, [super-structured](../../formats/README.md#2-zed-a-super-structured-pattern)
+its rich, [super-structured](../formats/README.md#2-zed-a-super-structured-pattern)
 type system to perform core aspects of data transformation.
 In a data model with nesting and multiple scalar types (such as Zed or JSON),
 shaping includes converting the type of leaf fields, adding or removing fields
@@ -23,21 +23,21 @@ to "fit" a given shape, and reordering fields.
 While shaping remains an active area of development, the core functions in Zed
 that currently perform shaping are:
 
-* [`cast`](../functions/cast.md) - coerce a value to a different type
-* [`crop`](../functions/crop.md) - remove fields from a value that are missing in a specified type
-* [`fill`](../functions/fill.md) - add null values for missing fields
-* [`order`](../functions/order.md) - reorder record fields
-* [`shape`](../functions/shape.md) - apply `cast`, `fill`, and `order`
+* [`cast`](functions/cast.md) - coerce a value to a different type
+* [`crop`](functions/crop.md) - remove fields from a value that are missing in a specified type
+* [`fill`](functions/fill.md) - add null values for missing fields
+* [`order`](functions/order.md) - reorder record fields
+* [`shape`](functions/shape.md) - apply `cast`, `fill`, and `order`
 
 They all have the same signature, taking two parameters: the value to be
 transformed and a type value for the target type.
 
 > Another type of transformation that's needed for shaping is renaming fields,
-> which is supported by the [`rename` operator](../operators/rename.md).
-> Also, the [`yield` operator](../operators/yield.md)
+> which is supported by the [`rename` operator](operators/rename.md).
+> Also, the [`yield` operator](operators/yield.md)
 > is handy for simply emitting new, arbitrary record literals based on
 > input values and mixing in these shaping functions in an embedded record literal.
-> The [`fuse` aggregate function](../aggregates/fuse.md) is also useful for fusing
+> The [`fuse` aggregate function](aggregates/fuse.md) is also useful for fusing
 > values into a common schema, though a type is returned rather than values.
 
 In the examples below, we will use the following named type `connection`
@@ -248,8 +248,8 @@ fused into the single-type sequence:
 
 To perform fusion, Zed currently includes two key mechanisms
 (though this is an active area of development):
-* the [`fuse` operator](../operators/fuse.md), and
-* the [`fuse` aggregate function](../aggregates/fuse.md).
+* the [`fuse` operator](operators/fuse.md), and
+* the [`fuse` aggregate function](aggregates/fuse.md).
 
 ### Fuse Operator
 
@@ -294,7 +294,7 @@ Since the `fuse` here is an aggregate function, it can also be used with
 group-by keys.  Supposing we want to divide records into categories and fuse
 the records in each category, we can use a group-by.  In this simple example, we
 will fuse records based on their number of fields using the
-[`len` function:](../functions/len.md)
+[`len` function:](functions/len.md)
 ```mdtest-command
 echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this) by len(this) | sort len' -
 ```

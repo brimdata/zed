@@ -11,7 +11,7 @@ The inner query may be _any Zed query_ and may refer to values from
 the outer sequence.
 
 Lateral subqueries are created using the scoped form of the
-[`over` operator](../operators/over.md) and may be nested to arbitrary depth.
+[`over` operator](operators/over.md) and may be nested to arbitrary depth.
 
 For example,
 ```mdtest-command
@@ -61,7 +61,7 @@ produces
 ## Lateral Scope
 
 A lateral scope has the form `=> ( <query> )` and currently appears
-only the context of an [`over` operator](../operators/over.md),
+only the context of an [`over` operator](operators/over.md),
 as illustrated above, and has the form:
 ```
 over ... with <elem> [, <elem> ...] => ( <query> )
@@ -113,7 +113,7 @@ parenthesized form:
 > dataflow operator.
 
 This form must always include a lateral scope as indicated by `<lateral>`,
-which can be any dataflow operator sequence excluding [`from` operators](../operators/from.md).
+which can be any dataflow operator sequence excluding [`from` operators](operators/from.md).
 As with the `over` operator, values from the outer scope can be brought into
 the lateral scope using the `with` clause.
 

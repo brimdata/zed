@@ -3,7 +3,7 @@
 ---
 
 Aggregate functions appear in either [summarization](../operators/summarize.md)
-or [expression](../overview/expressions.md) context and produce an aggregate
+or [expression](../expressions.md) context and produce an aggregate
 value for a sequence of input values.
 
 - [and](and.md) - logical AND of input values

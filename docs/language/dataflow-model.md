@@ -8,19 +8,19 @@ sidebar_label: Dataflow Model
 In Zed, each operator takes its input from the output of its upstream operator beginning
 either with a data source or with an implied source.
 
-All available operators are listed on the [reference page](../operators/README.md).
+All available operators are listed on the [reference page](operators/README.md).
 
 ## Dataflow Sources
 
 In addition to the data sources specified as files on the `zq` command line,
-a source may also be specified with the [`from` operator](../operators/from.md).
+a source may also be specified with the [`from` operator](operators/from.md).
 
 When running on the command-line, `from` may refer to a file, an HTTP
-endpoint, or an [S3](../../integrations/amazon-s3.md) URI.  When running in a [Zed lake](../../commands/zed.md), `from` typically
+endpoint, or an [S3](../integrations/amazon-s3.md) URI.  When running in a [Zed lake](../commands/zed.md), `from` typically
 refers to a collection of data called a "data pool" and is referenced using
 the pool's name much as SQL references database tables by their name.
 
-For more detail, see the reference page of the [`from` operator](../operators/from.md),
+For more detail, see the reference page of the [`from` operator](operators/from.md),
 but as an example, you might use the `get` form of `from` to fetch data from an
 HTTP endpoint and process it with Zed, in this case, to extract the description
 and license of a GitHub repository:
@@ -36,7 +36,7 @@ echo '"hello, world"' | zq  -
 The examples throughout the language documentation use this "echo pattern"
 to standard input of `zq -` to illustrate language semantics.
 Note that in these examples, the input values are expressed as Zed values serialized
-in the [ZSON text format](../../formats/zson.md)
+in the [ZSON text format](../formats/zson.md)
 and the `zq` query text expressed as the first argument of the `zq` command
 is expressed in the syntax of the Zed language described here.
 
@@ -46,7 +46,7 @@ Each operator is identified by name and performs a specific operation
 on a stream of records.
 
 Some operators, like
-[`summarize`](../operators/summarize.md) or [`sort`](../operators/sort.md),
+[`summarize`](operators/summarize.md) or [`sort`](operators/sort.md),
 read all of their input before producing output, though
 `summarize` can produce incremental results when the group-by key is
 aligned with the order of the input.
@@ -59,24 +59,24 @@ on values as they are produced.  For example, a long running query that
 produces incremental output will stream results as they are produced, i.e.,
 running `zq` to standard output will display results incrementally.
 
-The [`search`](../operators/search.md) and [`where`](../operators/where.md)
+The [`search`](operators/search.md) and [`where`](operators/where.md)
 operators "find" values in their input and drop
 the ones that do not match what is being looked for.
 
-The [`yield` operator](../operators/yield.md) emits one or more output values
+The [`yield` operator](operators/yield.md) emits one or more output values
 for each input value based on arbitrary [expressions](expressions.md),
 providing a convenient means to derive arbitrary output values as a function
 of each input value, much like the map concept in the MapReduce framework.
 
-The [`fork` operator](../operators/fork.md) copies its input to parallel
+The [`fork` operator](operators/fork.md) copies its input to parallel
 legs of a query.  The output of these parallel paths can be combined
 in a number of ways:
-* merged in sorted order using the [`merge` operator](../operators/merge.md),
-* joined using the [`join` operator](../operators/join.md), or
-* combined in an undefined order using the implied [`combine` operator](../operators/combine.md).
+* merged in sorted order using the [`merge` operator](operators/merge.md),
+* joined using the [`join` operator](operators/join.md), or
+* combined in an undefined order using the implied [`combine` operator](operators/combine.md).
 
 A path can also be split to multiple query legs using the
-[`switch` operator](../operators/switch.md), in which data is routed to only one
+[`switch` operator](operators/switch.md), in which data is routed to only one
 corresponding leg (or dropped) based on the switch clauses.
 
 Switch operators typically
@@ -102,10 +102,10 @@ produces
 ```
 Note that the output order of the switch legs is undefined (indeed they run
 in parallel on multiple threads).  To establish a consistent sequence order,
-a [`merge` operator](../operators/merge.md)
+a [`merge` operator](operators/merge.md)
 may be applied at the output of the switch specifying a sort key upon which
 to order the upstream data.  Often such order does not matter (e.g., when the output
-of the switch hits an [aggregator](../aggregates/README.md)), in which case it is typically more performant
+of the switch hits an [aggregator](aggregates/README.md)), in which case it is typically more performant
 to omit the merge (though the Zed system will often delete such unnecessary
 operations automatically as part optimizing queries when they are compiled).
 
@@ -135,7 +135,7 @@ produces this case-sensitive output:
 "bar"
 "foo"
 ```
-But we can make the sort case-insensitive by applying a [function](../functions/README.md) to the
+But we can make the sort case-insensitive by applying a [function](functions/README.md) to the
 input values with the expression `lower(this)`, which converts
 each value to lower-case for use in in the sort without actually modifying
 the input value, e.g.,
@@ -154,7 +154,7 @@ produces
 A common use case for Zed is to process sequences of record-oriented data
 (e.g., arising from formats like JSON or Avro) in the form of events
 or structured logs.  In this case, the input values to the operators
-are Zed [records](../../formats/zed.md#21-record) and the fields of a record are referenced with the dot operator.
+are Zed [records](../formats/zed.md#21-record) and the fields of a record are referenced with the dot operator.
 
 For example, if the input above were a sequence of records instead of strings
 and perhaps contained a second field, e.g.,
@@ -181,8 +181,8 @@ is shorthand for `sort this.s`
 ## Field Assignments
 
 A typical operation in records involves
-adding or changing the fields of a record using the [`put` operator](../operators/put.md)
-or extracting a subset of fields using the [`cut` operator](../operators/cut.md).
+adding or changing the fields of a record using the [`put` operator](operators/put.md)
+or extracting a subset of fields using the [`cut` operator](operators/cut.md).
 Also, when aggregating data using group-by keys, the group-by assignments
 create new named record fields.
 
@@ -214,7 +214,7 @@ experience, Zed has a canonical, long form that can be abbreviated
 using syntax that supports an agile, interactive query workflow.
 To this end, Zed allows certain operator names to be optionally omitted when
 they can be inferred from context.  For example, the expression following
-the [`summarize` operator](../operators/summarize.md)
+the [`summarize` operator](operators/summarize.md)
 ```
 summarize count() by id
 ```
@@ -250,7 +250,7 @@ the implied record field named `foo`.
 
 Another common query pattern involves adding or mutating fields of records
 where the input is presumed to be a sequence of records.
-The [`put` operator](../operators/put.md) provides this mechanism and the `put`
+The [`put` operator](operators/put.md) provides this mechanism and the `put`
 keyword is implied by the [field assignment](dataflow-model.md#field-assignments) syntax `:=`.
 
 For example, the operation

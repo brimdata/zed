@@ -10,7 +10,7 @@ See also: [Type conventions](../conventions.md)
 
 ### Description
 
-The _fuse_ aggregate function applies [type fusion](../overview/shaping.md#type-fusion)
+The _fuse_ aggregate function applies [type fusion](../shaping.md#type-fusion)
 to its input and returns the fused type.
 
 This aggregation is useful with group-by for data exploration and discovery  

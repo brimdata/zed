@@ -25,7 +25,7 @@ produces
 
 One or more `const` statements may appear only at the beginning of a scope
 (i.e., the main scope at the start of a Zed program or a [lateral scope](lateral-subqueries.md/#lateral-scope))
-defined by an [`over` operator](../operators/over.md)
+defined by an [`over` operator](operators/over.md)
 and binds the identifier to the value in the scope in which it appears in addition
 to any contained scopes.
 
@@ -58,7 +58,7 @@ produces
 
 One or more `func` statements may appear at the beginning of a scope
 (i.e., the main scope at the start of a Zed program or a [lateral scope](lateral-subqueries.md#lateral-scope)
-defined by an [`over` operator](../operators/over.md))
+defined by an [`over` operator](operators/over.md))
 and binds the identifier to the expression in the scope in which it appears in addition
 to any contained scopes.
 
@@ -85,7 +85,7 @@ produces
 
 One or more `type` statements may appear at the beginning of a scope
 (i.e., the main scope at the start of a Zed program or a [lateral scope](lateral-subqueries.md#lateral-scope)
-defined by an [`over` operator](../operators/over.md))
+defined by an [`over` operator](operators/over.md))
 and binds the identifier to the type in the scope in which it appears in addition
 to any contained scopes.
 

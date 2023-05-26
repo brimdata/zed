@@ -20,7 +20,7 @@ However, in Zed, the entities that transform data are called
 "operators" instead of "commands" and unlike Unix pipelines,
 the streams of data in a Zed query
 are typed data sequences that adhere to the
-[Zed data model](../../formats/zed.md).
+[Zed data model](../formats/zed.md).
 Moreover, Zed sequences can be forked and joined:
 ```
 operator
@@ -49,7 +49,7 @@ the flow implied by the pipeline yet reaching the same result &mdash;
 much as a modern SQL engine optimizes a declarative SQL query.
 
 Zed is also intended to provide a seamless transition from a simple search experience
-(e.g., typed into a search bar or as the query argument of the [`zq`](../../commands/zq.md) command-line
+(e.g., typed into a search bar or as the query argument of the [`zq`](../commands/zq.md) command-line
 tool) to more a complex analytics experience composed of complex joins and aggregations
 where the Zed language source text would typically be authored in a editor and
 managed under source-code control.
@@ -108,7 +108,7 @@ search "example.com" AND "urgent"
 
 ## What's Next?
 
-The following sections continue the overview of the Zed language.
+The following sections continue describing the Zed language.
 
 * [The Dataflow Model](dataflow-model.md)
 * [Const, Func, and Type Statements](statements.md)
@@ -118,4 +118,4 @@ The following sections continue the overview of the Zed language.
 * [Lateral Subqueries](lateral-subqueries.md)
 * [Shaping and Type Fusion](shaping.md)
 
-You may also be interested in the detailed reference materials on [operators](../operators/README.md), [functions](../functions/README.md), and [aggregate functions](../aggregates/README.md), as well as the [conventions](../conventions.md) for how they're described.
+You may also be interested in the detailed reference materials on [operators](operators/README.md), [functions](functions/README.md), and [aggregate functions](aggregates/README.md), as well as the [conventions](conventions.md) for how they're described.

@@ -225,15 +225,15 @@ produces
 <int64>
 ```
 
-Zed includes many [built-in functions](../functions/README.md), some of which take
+Zed includes many [built-in functions](functions/README.md), some of which take
 a variable number of arguments.  
 
 Zed also allows you to create [user-defined functions](statements.md#func-statements).
 
 ## Aggregate Function Calls
 
-[Aggregate functions](../aggregates/README.md) may be called within an expression.
-Unlike the aggregation context provided by a [summarizing group-by](../operators/summarize.md), such calls
+[Aggregate functions](aggregates/README.md) may be called within an expression.
+Unlike the aggregation context provided by a [summarizing group-by](operators/summarize.md), such calls
 in expression context yield an output value for each input value.
 
 Note that because aggregate functions carry state which is typically
@@ -251,7 +251,7 @@ produces
 {id:2(uint64),value:"bar"}
 {id:3(uint64),value:"baz"}
 ```
-In contrast, calling aggregate functions within the [`summarize` operator](../operators/summarize.md)
+In contrast, calling aggregate functions within the [`summarize` operator](operators/summarize.md)
 ```mdtest-command
 echo '"foo" "bar" "baz"' | zq -z 'summarize count(),union(this)' -
 ```
@@ -463,7 +463,7 @@ produces
 "foo"((int64,string))
 ```
 The value underlying a union-tagged value is accessed with the
-[`under` function](../functions/under.md):
+[`under` function](functions/under.md):
 ```mdtest-command
 echo '1((int64,string))' | zq -z 'yield under(this)' -
 ```
@@ -486,7 +486,7 @@ produces
 
 ## Casts
 
-Type conversion is performed with casts and the built-in [`cast` function](../functions/cast.md).
+Type conversion is performed with casts and the built-in [`cast` function](functions/cast.md).
 
 Casts for primitive types have a function-style syntax of the form
 ```
