@@ -128,7 +128,7 @@ func newPullerBatch() *pullerBatch {
 func (b *pullerBatch) appendVal(val *zed.Value) bool {
 	var bytes []byte
 	var bufFull bool
-	if val.Bytes != nil {
+	if !val.IsNull() {
 		if avail := cap(b.buf) - len(b.buf); avail >= len(val.Bytes) {
 			// Append to b.buf since that won't reallocate.
 			start := len(b.buf)

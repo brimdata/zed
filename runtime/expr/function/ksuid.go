@@ -18,7 +18,7 @@ func (k *KSUIDToString) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	switch val.Type.ID() {
 	case zed.IDBytes:
-		if val.Bytes == nil {
+		if val.IsNull() {
 			return newErrorf(k.zctx, ctx, "ksuid: illegal null argument")
 		}
 		// XXX GC

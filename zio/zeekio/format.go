@@ -203,7 +203,7 @@ func formatUnion(t *zed.TypeUnion, zv zcode.Bytes) string {
 }
 
 func FormatValue(v *zed.Value) string {
-	if v.Bytes == nil {
+	if v.IsNull() {
 		return "-"
 	}
 	return formatAny(v, false)

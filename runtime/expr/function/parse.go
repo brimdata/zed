@@ -18,7 +18,7 @@ type ParseURI struct {
 
 func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	in := args[0]
-	if !in.IsString() || in.Bytes == nil {
+	if !in.IsString() || in.IsNull() {
 		return newErrorf(p.zctx, ctx, "parse_uri: non-empty string arg required")
 	}
 	s := zed.DecodeString(in.Bytes)
@@ -86,7 +86,7 @@ func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !in.IsString() {
 		return newErrorf(p.zctx, ctx, "parse_zson: string arg required")
 	}
-	if in.Bytes == nil {
+	if in.IsNull() {
 		return zed.Null
 	}
 	s := zed.DecodeString(in.Bytes)

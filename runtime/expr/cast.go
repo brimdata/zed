@@ -211,7 +211,7 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	switch {
 	case id == zed.IDTime:
 		return ectx.CopyValue(val)
-	case val.Bytes == nil:
+	case val.IsNull():
 		// Do nothing. Any nil value is cast to a zero time.
 	case id == zed.IDString:
 		gotime, err := dateparse.ParseAny(byteconv.UnsafeString(val.Bytes))
