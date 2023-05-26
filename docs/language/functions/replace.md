@@ -7,6 +7,8 @@
 ```
 replace(s: string, old: string, new: string) -> string
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _replace_ function substitutes all instances of the string `old`

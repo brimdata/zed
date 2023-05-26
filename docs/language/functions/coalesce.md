@@ -7,6 +7,8 @@
 ```
 coalesce(val: any [, ... val: any]) -> bool
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _coalesce_ function returns the first of its arguments that is not null,

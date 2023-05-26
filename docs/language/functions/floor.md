@@ -7,6 +7,8 @@
 ```
 floor(n: number) -> number
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _floor_ function returns the greatest integer less than or equal to its argument `n`,

@@ -8,6 +8,8 @@ record.
 ```
 unflatten(val: [{key:string|[string],value:any}]) -> record
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 The _unflatten_ function converts the key/value records in array `val` into
 a single record. _unflatten_ is the inverse of _flatten_, i.e., `unflatten(flatten(r))`

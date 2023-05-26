@@ -6,6 +6,8 @@
 ```
 fuse(any) -> type
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _fuse_ aggregate function applies [type fusion](../overview/shaping.md#type-fusion)

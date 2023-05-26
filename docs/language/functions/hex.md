@@ -8,6 +8,8 @@
 hex(b: bytes) -> string
 hex(s: string) -> bytes
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _hex_ function encodes a Zed bytes value  `b` as

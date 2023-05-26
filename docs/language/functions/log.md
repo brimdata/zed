@@ -7,6 +7,8 @@
 ```
 log(val: number) -> float64
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _log_ function returns the natural logarithm of its argument `val`, which

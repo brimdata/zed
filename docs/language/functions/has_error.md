@@ -7,6 +7,8 @@
 ```
 has_error(val: any) -> bool
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _has_error_ function returns true if its argument is or contains an error.

@@ -7,6 +7,8 @@
 is(t: type) -> bool
 is(val: any, t: type) -> bool
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _is_ function returns true if the argument `val` is of type `t`. If `val`

@@ -7,6 +7,8 @@
 ```
 under(val: any) -> any
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _under_ function returns the value underlying the argument `val`:

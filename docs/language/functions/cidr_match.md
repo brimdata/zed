@@ -7,6 +7,8 @@
 ```
 cidr_match(network: net, val: any) -> bool
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _cidr_match_ function returns true if `val` contains an IP address that

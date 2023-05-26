@@ -7,6 +7,8 @@
 ```
 round(val: number) -> number
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _round_ function returns the number `val` rounded to the nearest integer value.

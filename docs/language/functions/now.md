@@ -7,6 +7,8 @@
 ```
 now() -> time
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _now_ function takes no arguments and returns the current UTC time as a value of type `time`.

@@ -8,6 +8,7 @@
 cast(val: any, t: type) -> any
 cast(val: any, name: string) -> any
 ```
+See also: [Type conventions](../conventions.md)
 
 ### Description
 

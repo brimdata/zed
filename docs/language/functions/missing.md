@@ -7,6 +7,8 @@
 ```
 missing(val: any) -> bool
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _missing_ function returns true if its argument is `error("missing")`

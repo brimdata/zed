@@ -6,6 +6,8 @@
 ```
 count() -> uint64
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _count_ aggregate function computes the number of values in its input.

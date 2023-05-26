@@ -6,6 +6,8 @@
 ```
 any(any) -> any
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _any_ aggregate function returns an arbitrary element from its input.

@@ -7,6 +7,8 @@
 ```
 quiet(val: any) -> any
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 The _quiet_ function returns its argument `val` unless `val` is
 `error("missing")`, in which case it returns `error("quiet")`.

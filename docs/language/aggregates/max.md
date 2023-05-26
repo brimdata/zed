@@ -6,6 +6,8 @@
 ```
 max(number) -> number
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _max_ aggregate function computes the maximum value of its input.

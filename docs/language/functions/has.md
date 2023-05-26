@@ -7,6 +7,8 @@
 ```
 has(val: any [, ... val: any]) -> bool
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _has_ function returns false if any of its arguments are `error("missing")`

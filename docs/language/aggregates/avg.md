@@ -6,6 +6,8 @@
 ```
 avg(number) -> number
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _avg_ aggregate function computes the mathematical average value of its input.

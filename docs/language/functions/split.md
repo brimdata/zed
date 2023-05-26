@@ -7,6 +7,8 @@
 ```
 split(s: string, sep: string) -> [string]
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _split_ function slices string `s` into all substrings separated by the

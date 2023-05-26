@@ -7,6 +7,8 @@
 ```
 grep(<pattern> [, e: any]) -> bool
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _grep_ function searches all of the strings in its input value `e`

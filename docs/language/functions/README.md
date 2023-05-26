@@ -2,7 +2,7 @@
 
 ---
 
-Functions appear in expression context and
+Functions appear in [expression](../expressions.md) context and
 take Zed values as arguments and produce a value as a result.
 
 * [abs](abs.md) - absolute value of a number

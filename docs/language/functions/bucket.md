@@ -8,6 +8,7 @@
 bucket(val: time, span: duration|number) -> time
 bucket(val: duration, span: duration|number) -> duration
 ```
+See also: [Type conventions](../conventions.md)
 
 ### Description
 

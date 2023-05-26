@@ -6,6 +6,8 @@
 ```
 sum(number) -> number
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _sum_ aggregate function computes the mathematical sum of its input.

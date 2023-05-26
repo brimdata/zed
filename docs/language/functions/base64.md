@@ -8,6 +8,8 @@
 base64(b: bytes) -> string
 base64(s: string) -> bytes
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _base64_ function encodes a Zed bytes value `b` as a

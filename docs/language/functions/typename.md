@@ -7,6 +7,8 @@
 ```
 typename(name: string) -> type
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _typename_ function returns the [type](../../formats/zson.md#25-types) of the

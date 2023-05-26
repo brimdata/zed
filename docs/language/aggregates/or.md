@@ -6,6 +6,8 @@
 ```
 or(bool) -> bool
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _or_ aggregate function computes the logical OR over all of its input.

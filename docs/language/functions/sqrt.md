@@ -6,6 +6,8 @@
 ```
 sqrt(val: number) -> float64
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 The _sqrt_ function returns the square root of its argument `val`, which
 must be numeric.  The return value is a float64.  Negative values

@@ -7,6 +7,8 @@
 ```
 nameof(val: any) -> string
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _nameof_ function returns the type name of `val` as a string if `val` is a named type.

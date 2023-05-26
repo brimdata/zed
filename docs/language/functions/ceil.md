@@ -7,6 +7,8 @@
 ```
 ceil(n: number) -> number
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _ceil_ function returns the smallest integer greater than or equal to its argument `n`,

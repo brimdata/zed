@@ -7,6 +7,8 @@
 ```
 rune_len(s: string) -> int64
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _rune_len_ function returns the number of Unicode code points in

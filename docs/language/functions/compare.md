@@ -7,6 +7,7 @@
 ```
 compare(a: any, b: any [, nullsMax: bool]) -> int64
 ```
+See also: [Type conventions](../conventions.md)
 
 ### Description
 

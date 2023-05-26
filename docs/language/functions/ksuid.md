@@ -9,6 +9,8 @@ ksuid() -> bytes
 ksuid(b: bytes) -> string
 ksuid(s: string) -> bytes
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _ksuid_ function either encodes a [KSUID](https://github.com/segmentio/ksuid)

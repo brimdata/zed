@@ -7,6 +7,8 @@
 ```
 kind(val: any) -> string
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _kind_ function returns the category of the type of `v` as a string,

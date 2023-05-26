@@ -7,6 +7,8 @@
 ```
 typeunder(val: any) -> type
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _typeunder_ function returns the type of its argument `val`.  If this type is a

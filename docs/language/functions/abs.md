@@ -7,6 +7,8 @@
 ```
 abs(n: number) -> number
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _abs_ function returns the absolute value of its argument `n`, which

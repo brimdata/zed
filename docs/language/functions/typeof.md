@@ -7,6 +7,8 @@
 ```
 typeof(val: any) -> type
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _typeof_ function returns the [type](../../formats/zson.md#25-types) of

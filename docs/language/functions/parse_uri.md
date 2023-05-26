@@ -7,6 +7,8 @@
 ```
 parse_uri(uri: string) -> record
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _parse_uri_ function parses the `uri` argument that must have the form of a

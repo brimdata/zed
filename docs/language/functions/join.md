@@ -7,6 +7,8 @@
 ```
 join(val: [string], sep: string) -> string
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _join_ function concatenates the elements of string array `val` to create a single

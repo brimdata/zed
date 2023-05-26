@@ -6,6 +6,8 @@
 ```
 min(...number) -> number
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _min_ aggregate function computes the minimum value of its input.

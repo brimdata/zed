@@ -7,6 +7,8 @@
 ```
 regexp_replace(s: string, re: string|regexp, new: string) -> string
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _regexp_replace_ function substitutes all characters matching the

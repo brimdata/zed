@@ -7,6 +7,8 @@
 ```
 fields(r: record) -> [[string]]
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _fields_ function returns an array of string arrays of all the field names in record `r`.

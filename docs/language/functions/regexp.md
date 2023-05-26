@@ -7,6 +7,8 @@
 ```
 regexp(re: string|regexp, s: string) -> any
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 The _regexp_ function returns an array of strings holding the text
 of the left most match of the regular expression `re`, which can be either

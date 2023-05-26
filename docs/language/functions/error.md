@@ -7,6 +7,8 @@
 ```
 error(val: any) -> error
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _error_ function returns an error version of a Zed value.

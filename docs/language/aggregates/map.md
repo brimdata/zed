@@ -6,6 +6,8 @@
 ```
 map(|{any:any}|) -> |{any:any}|
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _map_ aggregate function combines map inputs into a single map output.

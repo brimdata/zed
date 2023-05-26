@@ -6,6 +6,8 @@
 ```
 dcount(<any>) -> uint64
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _dcount_ aggregation function uses hyperloglog to estimate distinct values

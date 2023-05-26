@@ -7,6 +7,8 @@
 ```
 trim(s: string) -> string
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _trim_ function converts stips all leading and trailing whitespace

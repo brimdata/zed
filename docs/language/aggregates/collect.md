@@ -6,6 +6,8 @@
 ```
 collect(any) -> [any]
 ```
+See also: [Type conventions](../conventions.md)
+
 ### Description
 
 The _collect_ aggregate function organizes its input into an array.
