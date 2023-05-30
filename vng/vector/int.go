@@ -15,7 +15,7 @@ func NewInt64Writer(spiller *Spiller) *Int64Writer {
 }
 
 func (p *Int64Writer) Write(v int64) error {
-	return p.PrimitiveWriter.Write(zed.EncodeInt(int64(v)))
+	return p.PrimitiveWriter.Write(zed.EncodeInt(v))
 }
 
 type Int64Reader struct {

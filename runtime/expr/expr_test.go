@@ -417,9 +417,13 @@ func TestArithmetic(t *testing.T) {
 			w = w2
 		}
 		if sign {
-			return zed.Value{Type: signed(w), Bytes: zed.AppendInt(nil, int64(v))}
+			val := zed.NewInt64(int64(v))
+			val.Type = signed(w)
+			return *val
 		}
-		return zed.Value{Type: unsigned(w), Bytes: zed.AppendUint(nil, v)}
+		val := zed.NewUint64(v)
+		val.Type = unsigned(w)
+		return *val
 	}
 
 	var intTypes = []string{"int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"}

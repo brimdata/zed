@@ -11,25 +11,25 @@ import (
 	"github.com/brimdata/zed/runtime/expr/agg"
 )
 
-func convertSQLOp(scope *Scope, sql *ast.SQLExpr, seq dag.Seq) (dag.Seq, error) {
-	selection, err := newSQLSelection(scope, sql.Select)
+func (a *analyzer) convertSQLOp(sql *ast.SQLExpr, seq dag.Seq) (dag.Seq, error) {
+	selection, err := a.newSQLSelection(sql.Select)
 	if err != err {
 		return nil, err
 	}
 	var where dag.Expr
 	if sql.Where != nil {
-		where, err = semExpr(scope, sql.Where)
+		where, err = a.semExpr(sql.Where)
 		if err != nil {
 			return nil, err
 		}
 	}
 	var ops []dag.Op
 	if sql.From != nil {
-		alias, aliasID, err := convertSQLAlias(scope, sql.From.Alias)
+		alias, aliasID, err := a.convertSQLAlias(sql.From.Alias)
 		if err != nil {
 			return nil, err
 		}
-		tableFilter, err := convertSQLTableRef(scope, sql.From.Table)
+		tableFilter, err := a.convertSQLTableRef(sql.From.Table)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +54,7 @@ func convertSQLOp(scope *Scope, sql *ast.SQLExpr, seq dag.Seq) (dag.Seq, error) 
 		if len(ops) == 0 {
 			return nil, errors.New("cannot JOIN without a FROM")
 		}
-		ops, err = convertSQLJoins(scope, ops, sql.Joins)
+		ops, err = a.convertSQLJoins(ops, sql.Joins)
 		if err != nil {
 			return nil, err
 		}
@@ -63,13 +63,13 @@ func convertSQLOp(scope *Scope, sql *ast.SQLExpr, seq dag.Seq) (dag.Seq, error) 
 		ops = append(ops, dag.NewFilter(where))
 	}
 	if sql.GroupBy != nil {
-		groupby, err := convertSQLGroupBy(scope, sql.GroupBy, selection)
+		groupby, err := a.convertSQLGroupBy(sql.GroupBy, selection)
 		if err != nil {
 			return nil, err
 		}
 		ops = append(ops, groupby)
 		if sql.Having != nil {
-			having, err := semExpr(scope, sql.Having)
+			having, err := a.semExpr(sql.Having)
 			if err != nil {
 				return nil, err
 			}
@@ -91,7 +91,7 @@ func convertSQLOp(scope *Scope, sql *ast.SQLExpr, seq dag.Seq) (dag.Seq, error) 
 		}
 	}
 	if sql.OrderBy != nil {
-		keys, err := semExprs(scope, sql.OrderBy.Keys)
+		keys, err := a.semExprs(sql.OrderBy.Keys)
 		if err != nil {
 			return nil, err
 		}
@@ -200,8 +200,8 @@ func eligibleFieldRef(aliasID string, e *dag.Dot) dag.Expr {
 	return nil
 }
 
-func convertSQLTableRef(scope *Scope, e ast.Expr) (dag.Op, error) {
-	converted, err := semExpr(scope, e)
+func (a *analyzer) convertSQLTableRef(e ast.Expr) (dag.Op, error) {
+	converted, err := a.semExpr(e)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func convertSQLTableRef(scope *Scope, e ast.Expr) (dag.Op, error) {
 	// then convert it to a type name as it is otherwise expected that
 	// the type name will be defined by the data stream.
 	if id, ok := dag.TopLevelField(converted); ok {
-		if scope.Lookup(id) == nil {
+		if a.scope.Lookup(id) == nil {
 			converted = dynamicTypeName(id)
 		}
 	}
@@ -220,11 +220,11 @@ func convertSQLTableRef(scope *Scope, e ast.Expr) (dag.Op, error) {
 	}), nil
 }
 
-func convertSQLAlias(scope *Scope, e ast.Expr) (*dag.Cut, string, error) {
+func (a *analyzer) convertSQLAlias(e ast.Expr) (*dag.Cut, string, error) {
 	if e == nil {
 		return nil, "", nil
 	}
-	fld, err := semField(scope, e)
+	fld, err := a.semField(e)
 	if err != nil {
 		return nil, "", fmt.Errorf("illegal SQL alias: %w", err)
 	}
@@ -243,11 +243,11 @@ func convertSQLAlias(scope *Scope, e ast.Expr) (*dag.Cut, string, error) {
 	}, id, nil
 }
 
-func convertSQLJoins(scope *Scope, fromPath []dag.Op, joins []ast.SQLJoin) ([]dag.Op, error) {
+func (a *analyzer) convertSQLJoins(fromPath []dag.Op, joins []ast.SQLJoin) ([]dag.Op, error) {
 	left := fromPath
 	for _, right := range joins {
 		var err error
-		left, err = convertSQLJoin(scope, left, right)
+		left, err = a.convertSQLJoin(left, right)
 		if err != nil {
 			return nil, err
 		}
@@ -257,26 +257,26 @@ func convertSQLJoins(scope *Scope, fromPath []dag.Op, joins []ast.SQLJoin) ([]da
 
 // For now, each joining table is on the right...
 // We don't have logic to not care about the side of the JOIN ON keys...
-func convertSQLJoin(scope *Scope, leftPath []dag.Op, sqlJoin ast.SQLJoin) ([]dag.Op, error) {
+func (a *analyzer) convertSQLJoin(leftPath []dag.Op, sqlJoin ast.SQLJoin) ([]dag.Op, error) {
 	if sqlJoin.Alias == nil {
 		return nil, errors.New("JOIN currently requires alias, e.g., JOIN <type> <alias> (will be fixed soon)")
 	}
-	leftKey, err := semExpr(scope, sqlJoin.LeftKey)
+	leftKey, err := a.semExpr(sqlJoin.LeftKey)
 	if err != nil {
 		return nil, err
 	}
 	leftPath = append(leftPath, sortBy(leftKey))
-	joinFilter, err := convertSQLTableRef(scope, sqlJoin.Table)
+	joinFilter, err := a.convertSQLTableRef(sqlJoin.Table)
 	if err != nil {
 		return nil, err
 	}
 	rightPath := []dag.Op{joinFilter}
-	cut, aliasID, err := convertSQLAlias(scope, sqlJoin.Alias)
+	cut, aliasID, err := a.convertSQLAlias(sqlJoin.Alias)
 	if err != nil {
 		return nil, errors.New("JOIN alias must be a name")
 	}
 	rightPath = append(rightPath, cut)
-	rightKey, err := semExpr(scope, sqlJoin.RightKey)
+	rightKey, err := a.semExpr(sqlJoin.RightKey)
 	if err != nil {
 		return nil, err
 	}
@@ -349,10 +349,10 @@ func convertSQLSelect(selection sqlSelection) (dag.Op, error) {
 	}, nil
 }
 
-func convertSQLGroupBy(scope *Scope, groupByKeys []ast.Expr, selection sqlSelection) (dag.Op, error) {
+func (a *analyzer) convertSQLGroupBy(groupByKeys []ast.Expr, selection sqlSelection) (dag.Op, error) {
 	var keys field.List
 	for _, key := range groupByKeys {
-		name, err := sqlField(scope, key)
+		name, err := a.sqlField(key)
 		if err != nil {
 			return nil, fmt.Errorf("bad GROUP BY key: %w", err)
 		}
@@ -413,23 +413,23 @@ type sqlPick struct {
 
 type sqlSelection []sqlPick
 
-func newSQLSelection(scope *Scope, assignments []ast.Assignment) (sqlSelection, error) {
+func (a *analyzer) newSQLSelection(assignments []ast.Assignment) (sqlSelection, error) {
 	// Make a cut from a SQL select.  This should just work
 	// without having to track identifier names of columns because
 	// the transformations will all relable data from stage to stage
 	// and Select names refer to the names at the last stage of
 	// the table.
 	var s sqlSelection
-	for _, a := range assignments {
-		name, err := deriveAs(scope, a)
+	for _, assign := range assignments {
+		name, err := a.deriveAs(assign)
 		if err != nil {
 			return nil, err
 		}
-		agg, err := isAgg(scope, a.RHS)
+		agg, err := a.isAgg(assign.RHS)
 		if err != nil {
 			return nil, err
 		}
-		assignment, err := semAssignment(scope, a, false)
+		assignment, err := a.semAssignment(assign, false)
 		if err != nil {
 			return nil, err
 		}
@@ -480,7 +480,7 @@ func (s sqlSelection) cut() *dag.Cut {
 	}
 }
 
-func isAgg(scope *Scope, e ast.Expr) (*dag.Agg, error) {
+func (a *analyzer) isAgg(e ast.Expr) (*dag.Agg, error) {
 	call, ok := e.(*ast.Call)
 	if !ok {
 		return nil, nil
@@ -498,7 +498,7 @@ func isAgg(scope *Scope, e ast.Expr) (*dag.Agg, error) {
 	var dagArg dag.Expr
 	if arg != nil {
 		var err error
-		dagArg, err = semExpr(scope, arg)
+		dagArg, err = a.semExpr(arg)
 		if err != nil {
 			return nil, err
 		}
@@ -510,8 +510,8 @@ func isAgg(scope *Scope, e ast.Expr) (*dag.Agg, error) {
 	}, nil
 }
 
-func deriveAs(scope *Scope, a ast.Assignment) (field.Path, error) {
-	sa, err := semAssignment(scope, a, false)
+func (a *analyzer) deriveAs(as ast.Assignment) (field.Path, error) {
+	sa, err := a.semAssignment(as, false)
 	if err != nil {
 		return nil, fmt.Errorf("AS clause of SELECT: %w", err)
 	}
@@ -521,8 +521,8 @@ func deriveAs(scope *Scope, a ast.Assignment) (field.Path, error) {
 	return nil, fmt.Errorf("AS clause not a field: %w", err)
 }
 
-func sqlField(scope *Scope, e ast.Expr) (field.Path, error) {
-	f, err := semField(scope, e)
+func (a *analyzer) sqlField(e ast.Expr) (field.Path, error) {
+	f, err := a.semField(e)
 	if err != nil {
 		return nil, errors.New("expression is not a field reference")
 	}

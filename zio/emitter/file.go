@@ -33,7 +33,7 @@ func NewFileFromURI(ctx context.Context, engine storage.Engine, path *storage.UR
 	if err != nil {
 		return nil, err
 	}
-	wc := io.WriteCloser(f)
+	wc := f
 	if path.Scheme == "stdio" {
 		// Don't close stdio in case we live inside something
 		// that has multiple stdio users.

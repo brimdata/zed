@@ -419,7 +419,7 @@ func (r *Reader) buildZcode(a arrow.Array, i int) error {
 		b.BeginContainer()
 		b.Append(zed.EncodeInt(int64(v.Months)))
 		b.Append(zed.EncodeInt(int64(v.Days)))
-		b.Append(zed.EncodeInt(int64(v.Nanoseconds)))
+		b.Append(zed.EncodeInt(v.Nanoseconds))
 		b.EndContainer()
 	default:
 		return fmt.Errorf("unimplemented Arrow type: %s", a.DataType().Name())

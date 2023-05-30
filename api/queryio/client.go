@@ -58,7 +58,7 @@ func controlToError(ctrl interface{}) error {
 	case *api.QueryChannelEnd:
 		return &zbuf.Control{Message: zbuf.EndChannel(ctrl.ChannelID)}
 	case *api.QueryStats:
-		return &zbuf.Control{Message: zbuf.Progress(ctrl.Progress)}
+		return &zbuf.Control{Message: ctrl.Progress}
 	case *api.QueryError:
 		return errors.New(ctrl.Error)
 	default:

@@ -501,7 +501,7 @@ func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
 
 func DecodeName(tv zcode.Bytes) (string, zcode.Bytes) {
 	namelen, tv := DecodeLength(tv)
-	if tv == nil || int(namelen) > len(tv) {
+	if tv == nil || namelen > len(tv) {
 		return "", nil
 	}
 	return string(tv[:namelen]), tv[namelen:]

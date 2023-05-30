@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -9,7 +8,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
@@ -21,11 +19,11 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func semSeq(ctx context.Context, scope *Scope, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
+func (a *analyzer) semSeq(seq ast.Seq) (dag.Seq, error) {
 	var converted dag.Seq
 	for _, op := range seq {
 		var err error
-		converted, err = semOp(ctx, scope, op, source, head, converted)
+		converted, err = a.semOp(op, converted)
 		if err != nil {
 			return nil, err
 		}
@@ -33,16 +31,16 @@ func semSeq(ctx context.Context, scope *Scope, seq ast.Seq, source *data.Source,
 	return converted, nil
 }
 
-func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Source, head *lakeparse.Commitish, seq dag.Seq) (dag.Seq, error) {
+func (a *analyzer) semFrom(from *ast.From, seq dag.Seq) (dag.Seq, error) {
 	switch len(from.Trunks) {
 	case 0:
 		return nil, errors.New("internal error: from operator has no paths")
 	case 1:
-		return semTrunk(ctx, scope, from.Trunks[0], source, head, seq)
+		return a.semTrunk(from.Trunks[0], seq)
 	default:
 		paths := make([]dag.Seq, 0, len(from.Trunks))
 		for _, in := range from.Trunks {
-			converted, err := semTrunk(ctx, scope, in, source, head, nil)
+			converted, err := a.semTrunk(in, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -55,18 +53,18 @@ func semFrom(ctx context.Context, scope *Scope, from *ast.From, source *data.Sou
 	}
 }
 
-func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Source, head *lakeparse.Commitish, out dag.Seq) (dag.Seq, error) {
+func (a *analyzer) semTrunk(trunk ast.Trunk, out dag.Seq) (dag.Seq, error) {
 	if pool, ok := trunk.Source.(*ast.Pool); ok && trunk.Seq != nil {
 		switch pool.Spec.Pool.(type) {
 		case *ast.Glob, *ast.Regexp:
 			return nil, errors.New("=> not allowed after pool pattern in 'from' operator")
 		}
 	}
-	sources, err := semSource(ctx, scope, trunk.Source, ds, head)
+	sources, err := a.semSource(trunk.Source)
 	if err != nil {
 		return nil, err
 	}
-	seq, err := semSeq(ctx, scope, trunk.Seq, ds, head)
+	seq, err := a.semSeq(trunk.Seq)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +80,7 @@ func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, ds *data.Sourc
 
 //XXX make sure you can't read files from a lake instance
 
-func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.Source, head *lakeparse.Commitish) ([]dag.Op, error) {
+func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 	switch p := source.(type) {
 	case *ast.File:
 		sortKey, err := semSortKey(p.SortKey)
@@ -130,10 +128,10 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, ds *data.So
 			},
 		}, nil
 	case *ast.Pool:
-		if !ds.IsLake() {
+		if !a.source.IsLake() {
 			return nil, errors.New("semantic analyzer: from pool cannot be used without a lake")
 		}
-		return semPool(ctx, scope, p, ds, head)
+		return a.semPool(p)
 	case *ast.Pass:
 		//XXX just connect parent
 		return []dag.Op{dag.PassOp}, nil
@@ -184,7 +182,7 @@ func semSortKey(p *ast.SortKey) (order.SortKey, error) {
 	return order.NewSortKey(which, keys), nil
 }
 
-func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, head *lakeparse.Commitish) ([]dag.Op, error) {
+func (a *analyzer) semPool(p *ast.Pool) ([]dag.Op, error) {
 	var poolNames []string
 	var err error
 	switch specPool := p.Spec.Pool.(type) {
@@ -192,9 +190,9 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 		// This is a lake meta-query.
 		poolNames = []string{""}
 	case *ast.Glob:
-		poolNames, err = matchPools(ctx, ds, reglob.Reglob(specPool.Pattern), specPool.Pattern, "glob")
+		poolNames, err = a.matchPools(reglob.Reglob(specPool.Pattern), specPool.Pattern, "glob")
 	case *ast.Regexp:
-		poolNames, err = matchPools(ctx, ds, specPool.Pattern, specPool.Pattern, "regexp")
+		poolNames, err = a.matchPools(specPool.Pattern, specPool.Pattern, "regexp")
 	case *ast.String:
 		poolNames = []string{specPool.Text}
 	default:
@@ -205,7 +203,7 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 	}
 	var sources []dag.Op
 	for _, name := range poolNames {
-		source, err := semPoolWithName(ctx, scope, p, name, ds, head)
+		source, err := a.semPoolWithName(p, name)
 		if err != nil {
 			return nil, err
 		}
@@ -214,15 +212,14 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, ds *data.Source, he
 	return sources, nil
 }
 
-func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName string, ds *data.Source,
-	head *lakeparse.Commitish) (dag.Op, error) {
+func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error) {
 	commit := p.Spec.Commit
 	if poolName == "HEAD" {
-		if head == nil {
+		if a.head == nil {
 			return nil, errors.New("cannot scan from unknown HEAD")
 		}
-		poolName = head.Pool
-		commit = head.Branch
+		poolName = a.head.Pool
+		commit = a.head.Branch
 	}
 	if poolName == "" {
 		meta := p.Spec.Meta
@@ -241,7 +238,7 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 	// ksuid string form since the backend doesn't parse the 0x format.
 	poolID, err := lakeparse.ParseID(poolName)
 	if err != nil {
-		poolID, err = ds.PoolID(ctx, poolName)
+		poolID, err = a.source.PoolID(a.ctx, poolName)
 		if err != nil {
 			return nil, err
 		}
@@ -259,7 +256,7 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 	if commit != "" {
 		commitID, err = lakeparse.ParseID(commit)
 		if err != nil {
-			commitID, err = ds.CommitObject(ctx, poolID, commit)
+			commitID, err = a.source.CommitObject(a.ctx, poolID, commit)
 			if err != nil {
 				return nil, err
 			}
@@ -268,7 +265,7 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 	if meta := p.Spec.Meta; meta != "" {
 		if _, ok := dag.CommitMetas[meta]; ok {
 			if commitID == ksuid.Nil {
-				commitID, err = ds.CommitObject(ctx, poolID, "main")
+				commitID, err = a.source.CommitObject(a.ctx, poolID, "main")
 				if err != nil {
 					return nil, err
 				}
@@ -293,7 +290,7 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 	if commitID == ksuid.Nil {
 		// This trick here allows us to default to the main branch when
 		// there is a "from pool" operator with no meta query or commit object.
-		commitID, err = ds.CommitObject(ctx, poolID, "main")
+		commitID, err = a.source.CommitObject(a.ctx, poolID, "main")
 		if err != nil {
 			return nil, err
 		}
@@ -312,12 +309,12 @@ func semPoolWithName(ctx context.Context, scope *Scope, p *ast.Pool, poolName st
 	}, nil
 }
 
-func matchPools(ctx context.Context, ds *data.Source, pattern, origPattern, patternDesc string) ([]string, error) {
+func (a *analyzer) matchPools(pattern, origPattern, patternDesc string) ([]string, error) {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err
 	}
-	pools, err := ds.Lake().ListPools(ctx)
+	pools, err := a.source.Lake().ListPools(a.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -333,14 +330,14 @@ func matchPools(ctx context.Context, ds *data.Source, pattern, origPattern, patt
 	return matches, nil
 }
 
-func semScope(ctx context.Context, scope *Scope, op *ast.Scope, ds *data.Source, head *lakeparse.Commitish) (*dag.Scope, error) {
-	scope.Enter()
-	defer scope.Exit()
-	consts, funcs, err := semDecls(scope, op.Decls)
+func (a *analyzer) semScope(op *ast.Scope) (*dag.Scope, error) {
+	a.scope.Enter()
+	defer a.scope.Exit()
+	consts, funcs, err := a.semDecls(op.Decls)
 	if err != nil {
 		return nil, err
 	}
-	body, err := semSeq(ctx, scope, op.Body, ds, head)
+	body, err := a.semSeq(op.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -357,21 +354,21 @@ func semScope(ctx context.Context, scope *Scope, op *ast.Scope, ds *data.Source,
 // object.  Currently, it only replaces the group-by duration with
 // a bucket call on the ts and replaces FunctionCalls in op context
 // with either a group-by or filter op based on the function's name.
-func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *lakeparse.Commitish, seq dag.Seq) (dag.Seq, error) {
+func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 	switch o := o.(type) {
 	case *ast.From:
-		return semFrom(ctx, scope, o, ds, head, seq)
+		return a.semFrom(o, seq)
 	case *ast.Summarize:
-		keys, err := semAssignments(scope, o.Keys, true)
+		keys, err := a.semAssignments(o.Keys, true)
 		if err != nil {
 			return nil, err
 		}
 		if len(keys) == 0 && len(o.Aggs) == 1 {
-			if seq := singletonAgg(scope, o.Aggs[0], seq); seq != nil {
+			if seq := a.singletonAgg(o.Aggs[0], seq); seq != nil {
 				return seq, nil
 			}
 		}
-		aggs, err := semAssignments(scope, o.Aggs, true)
+		aggs, err := a.semAssignments(o.Aggs, true)
 		if err != nil {
 			return nil, err
 		}
@@ -393,7 +390,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Parallel:
 		var paths []dag.Seq
 		for _, seq := range o.Paths {
-			converted, err := semSeq(ctx, scope, seq, ds, head)
+			converted, err := a.semSeq(seq)
 			if err != nil {
 				return nil, err
 			}
@@ -404,7 +401,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Paths: paths,
 		}), nil
 	case *ast.Scope:
-		op, err := semScope(ctx, scope, o, ds, head)
+		op, err := a.semScope(o)
 		if err != nil {
 			return nil, err
 		}
@@ -413,7 +410,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		var expr dag.Expr
 		if o.Expr != nil {
 			var err error
-			expr, err = semExpr(scope, o.Expr)
+			expr, err = a.semExpr(o.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -423,7 +420,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			var e dag.Expr
 			if c.Expr != nil {
 				var err error
-				e, err = semExpr(scope, c.Expr)
+				e, err = a.semExpr(c.Expr)
 				if err != nil {
 					return nil, err
 				}
@@ -435,7 +432,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 					Value: "true",
 				}
 			}
-			path, err := semSeq(ctx, scope, c.Path, ds, head)
+			path, err := a.semSeq(c.Path)
 			if err != nil {
 				return nil, err
 			}
@@ -449,7 +446,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Shape:
 		return append(seq, &dag.Shape{Kind: "Shape"}), nil
 	case *ast.Cut:
-		assignments, err := semAssignments(scope, o.Args, false)
+		assignments, err := a.semAssignments(o.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -458,7 +455,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Args: assignments,
 		}), nil
 	case *ast.Drop:
-		args, err := semFields(scope, o.Args)
+		args, err := a.semFields(o.Args)
 		if err != nil {
 			return nil, fmt.Errorf("drop: %w", err)
 		}
@@ -470,7 +467,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Args: args,
 		}), nil
 	case *ast.Sort:
-		exprs, err := semExprs(scope, o.Args)
+		exprs, err := a.semExprs(o.Args)
 		if err != nil {
 			return nil, fmt.Errorf("sort: %w", err)
 		}
@@ -481,11 +478,11 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			NullsFirst: o.NullsFirst,
 		}), nil
 	case *ast.Head:
-		expr, err := semExpr(scope, o.Count)
+		expr, err := a.semExpr(o.Count)
 		if err != nil {
 			return nil, fmt.Errorf("head: %w", err)
 		}
-		val, err := kernel.EvalAtCompileTime(scope.zctx, expr)
+		val, err := kernel.EvalAtCompileTime(a.zctx, expr)
 		if err != nil {
 			return nil, fmt.Errorf("head: %w", err)
 		}
@@ -497,11 +494,11 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Count: int(val.AsInt()),
 		}), nil
 	case *ast.Tail:
-		expr, err := semExpr(scope, o.Count)
+		expr, err := a.semExpr(o.Count)
 		if err != nil {
 			return nil, fmt.Errorf("tail: %w", err)
 		}
-		val, err := kernel.EvalAtCompileTime(scope.zctx, expr)
+		val, err := kernel.EvalAtCompileTime(a.zctx, expr)
 		if err != nil {
 			return nil, fmt.Errorf("tail: %w", err)
 		}
@@ -520,21 +517,21 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Pass:
 		return append(seq, dag.PassOp), nil
 	case *ast.OpExpr:
-		return semOpExpr(scope, o.Expr, seq)
+		return a.semOpExpr(o.Expr, seq)
 	case *ast.Search:
-		e, err := semExpr(scope, o.Expr)
+		e, err := a.semExpr(o.Expr)
 		if err != nil {
 			return nil, err
 		}
 		return append(seq, dag.NewFilter(e)), nil
 	case *ast.Where:
-		e, err := semExpr(scope, o.Expr)
+		e, err := a.semExpr(o.Expr)
 		if err != nil {
 			return nil, err
 		}
 		return append(seq, dag.NewFilter(e)), nil
 	case *ast.Top:
-		args, err := semExprs(scope, o.Args)
+		args, err := a.semExprs(o.Args)
 		if err != nil {
 			return nil, fmt.Errorf("top: %w", err)
 		}
@@ -548,7 +545,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Limit: o.Limit,
 		}), nil
 	case *ast.Put:
-		assignments, err := semAssignments(scope, o.Args, false)
+		assignments, err := a.semAssignments(o.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -557,7 +554,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Args: assignments,
 		}), nil
 	case *ast.OpAssignment:
-		converted, err := semOpAssignment(scope, o)
+		converted, err := a.semOpAssignment(o)
 		if err != nil {
 			return nil, err
 		}
@@ -565,11 +562,11 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range o.Args {
-			dst, err := semField(scope, fa.LHS)
+			dst, err := a.semField(fa.LHS)
 			if err != nil {
 				return nil, errors.New("'rename' requires explicit field references")
 			}
-			src, err := semField(scope, fa.RHS)
+			src, err := a.semField(fa.RHS)
 			if err != nil {
 				return nil, errors.New("'rename' requires explicit field references")
 			}
@@ -592,19 +589,19 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Fuse:
 		return append(seq, &dag.Fuse{Kind: "Fuse"}), nil
 	case *ast.Join:
-		rightInput, err := semSeq(ctx, scope, o.RightInput, ds, head)
+		rightInput, err := a.semSeq(o.RightInput)
 		if err != nil {
 			return nil, err
 		}
-		leftKey, err := semExpr(scope, o.LeftKey)
+		leftKey, err := a.semExpr(o.LeftKey)
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := semExpr(scope, o.RightKey)
+		rightKey, err := a.semExpr(o.RightKey)
 		if err != nil {
 			return nil, err
 		}
-		assignments, err := semAssignments(scope, o.Args, false)
+		assignments, err := a.semAssignments(o.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -625,7 +622,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		return append(seq, join), nil
 	case *ast.SQLExpr:
 		var err error
-		seq, err = convertSQLOp(scope, o, seq)
+		seq, err = a.convertSQLOp(o, seq)
 		if err != nil {
 			return nil, err
 		}
@@ -636,11 +633,11 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		}
 		return seq, nil
 	case *ast.Explode:
-		typ, err := semType(scope, o.Type)
+		typ, err := a.semType(o.Type)
 		if err != nil {
 			return nil, err
 		}
-		args, err := semExprs(scope, o.Args)
+		args, err := a.semExprs(o.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -651,7 +648,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 				Path: field.Path{"value"},
 			}
 		} else {
-			as, err = semExpr(scope, o.As)
+			as, err = a.semExpr(o.As)
 			if err != nil {
 				return nil, err
 			}
@@ -663,7 +660,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			As:   as,
 		}), nil
 	case *ast.Merge:
-		expr, err := semExpr(scope, o.Expr)
+		expr, err := a.semExpr(o.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("merge: %w", err)
 		}
@@ -676,19 +673,19 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 		if len(o.Locals) != 0 && o.Body == nil {
 			return nil, errors.New("over operator: cannot have a with clause without a lateral query")
 		}
-		scope.Enter()
-		defer scope.Exit()
-		locals, err := semVars(scope, o.Locals)
+		a.scope.Enter()
+		defer a.scope.Exit()
+		locals, err := a.semVars(o.Locals)
 		if err != nil {
 			return nil, err
 		}
-		exprs, err := semExprs(scope, o.Exprs)
+		exprs, err := a.semExprs(o.Exprs)
 		if err != nil {
 			return nil, err
 		}
 		var body dag.Seq
 		if o.Body != nil {
-			body, err = semSeq(ctx, scope, o.Body, ds, head)
+			body, err = a.semSeq(o.Body)
 			if err != nil {
 				return nil, err
 			}
@@ -700,7 +697,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Body:  body,
 		}), nil
 	case *ast.Sample:
-		e, err := semExpr(scope, o.Expr)
+		e, err := a.semExpr(o.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -726,7 +723,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{"sample"}}},
 		}), nil
 	case *ast.Yield:
-		exprs, err := semExprs(scope, o.Exprs)
+		exprs, err := a.semExprs(o.Exprs)
 		if err != nil {
 			return nil, err
 		}
@@ -737,7 +734,7 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	case *ast.Load:
 		poolID, err := lakeparse.ParseID(o.Pool)
 		if err != nil {
-			poolID, err = ds.PoolID(ctx, o.Pool)
+			poolID, err = a.source.PoolID(a.ctx, o.Pool)
 			if err != nil {
 				return nil, err
 			}
@@ -754,11 +751,11 @@ func semOp(ctx context.Context, scope *Scope, o ast.Op, ds *data.Source, head *l
 	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
 }
 
-func singletonAgg(scope *Scope, agg ast.Assignment, seq dag.Seq) dag.Seq {
+func (a *analyzer) singletonAgg(agg ast.Assignment, seq dag.Seq) dag.Seq {
 	if agg.LHS != nil {
 		return nil
 	}
-	out, err := semAssignment(scope, agg, true)
+	out, err := a.semAssignment(agg, true)
 	if err != nil {
 		return nil
 	}
@@ -777,13 +774,13 @@ func singletonAgg(scope *Scope, agg ast.Assignment, seq dag.Seq) dag.Seq {
 	return append(seq, yield)
 }
 
-func semDecls(scope *Scope, decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
+func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
 	var consts []dag.Def
 	var fds []*ast.FuncDecl
 	for _, d := range decls {
 		switch d := d.(type) {
 		case *ast.ConstDecl:
-			c, err := semConstDecl(scope, d)
+			c, err := a.semConstDecl(d)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -794,19 +791,19 @@ func semDecls(scope *Scope, decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
 			return nil, nil, fmt.Errorf("invalid declaration type %T", d)
 		}
 	}
-	funcs, err := semFuncDecls(scope, fds)
+	funcs, err := a.semFuncDecls(fds)
 	if err != nil {
 		return nil, nil, err
 	}
 	return consts, funcs, nil
 }
 
-func semConstDecl(scope *Scope, c *ast.ConstDecl) (dag.Def, error) {
-	e, err := semExpr(scope, c.Expr)
+func (a *analyzer) semConstDecl(c *ast.ConstDecl) (dag.Def, error) {
+	e, err := a.semExpr(c.Expr)
 	if err != nil {
 		return dag.Def{}, err
 	}
-	if err := scope.DefineConst(c.Name, e); err != nil {
+	if err := a.scope.DefineConst(a.zctx, c.Name, e); err != nil {
 		return dag.Def{}, err
 	}
 	return dag.Def{
@@ -815,7 +812,7 @@ func semConstDecl(scope *Scope, c *ast.ConstDecl) (dag.Def, error) {
 	}, nil
 }
 
-func semFuncDecls(scope *Scope, decls []*ast.FuncDecl) ([]*dag.Func, error) {
+func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) ([]*dag.Func, error) {
 	funcs := make([]*dag.Func, 0, len(decls))
 	for _, d := range decls {
 		f := &dag.Func{
@@ -823,40 +820,40 @@ func semFuncDecls(scope *Scope, decls []*ast.FuncDecl) ([]*dag.Func, error) {
 			Name:   d.Name,
 			Params: slices.Clone(d.Params),
 		}
-		if err := scope.DefineFunc(f); err != nil {
+		if err := a.scope.DefineFunc(f); err != nil {
 			return nil, err
 		}
 		funcs = append(funcs, f)
 	}
 	for i, d := range decls {
 		var err error
-		if funcs[i].Expr, err = semFuncBody(scope, d.Params, d.Expr); err != nil {
+		if funcs[i].Expr, err = a.semFuncBody(d.Params, d.Expr); err != nil {
 			return nil, err
 		}
 	}
 	return funcs, nil
 }
 
-func semFuncBody(scope *Scope, params []string, body ast.Expr) (dag.Expr, error) {
-	scope.Enter()
-	defer scope.Exit()
+func (a *analyzer) semFuncBody(params []string, body ast.Expr) (dag.Expr, error) {
+	a.scope.Enter()
+	defer a.scope.Exit()
 	for _, p := range params {
-		if err := scope.DefineVar(p); err != nil {
+		if err := a.scope.DefineVar(p); err != nil {
 			return nil, err
 		}
 	}
-	return semExpr(scope, body)
+	return a.semExpr(body)
 }
 
-func semVars(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
+func (a *analyzer) semVars(defs []ast.Def) ([]dag.Def, error) {
 	var locals []dag.Def
 	for _, def := range defs {
-		e, err := semExpr(scope, def.Expr)
+		e, err := a.semExpr(def.Expr)
 		if err != nil {
 			return nil, err
 		}
 		name := def.Name
-		if err := scope.DefineVar(name); err != nil {
+		if err := a.scope.DefineVar(name); err != nil {
 			return nil, err
 		}
 		locals = append(locals, dag.Def{
@@ -867,13 +864,13 @@ func semVars(scope *Scope, defs []ast.Def) ([]dag.Def, error) {
 	return locals, nil
 }
 
-func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
+func (a *analyzer) semOpAssignment(p *ast.OpAssignment) (dag.Op, error) {
 	var aggs, puts []dag.Assignment
-	for _, a := range p.Assignments {
+	for _, assign := range p.Assignments {
 		// Parition assignments into agg vs. puts.
 		// It's okay to pass false here for the summarize bool because
 		// semAssignment will check if the RHS is a dag.Agg and override.
-		assignment, err := semAssignment(scope, a, false)
+		assignment, err := a.semAssignment(assign, false)
 		if err != nil {
 			return nil, err
 		}
@@ -898,13 +895,13 @@ func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
 	}, nil
 }
 
-func semOpExpr(scope *Scope, e ast.Expr, seq dag.Seq) (dag.Seq, error) {
+func (a *analyzer) semOpExpr(e ast.Expr, seq dag.Seq) (dag.Seq, error) {
 	if call, ok := e.(*ast.Call); ok {
-		if seq, err := semCallOp(scope, call, seq); seq != nil || err != nil {
+		if seq, err := a.semCallOp(call, seq); seq != nil || err != nil {
 			return seq, err
 		}
 	}
-	out, err := semExpr(scope, e)
+	out, err := a.semExpr(e)
 	if err != nil {
 		return nil, err
 	}
@@ -950,8 +947,8 @@ func isBool(e dag.Expr) bool {
 	}
 }
 
-func semCallOp(scope *Scope, call *ast.Call, seq dag.Seq) (dag.Seq, error) {
-	if agg, err := maybeConvertAgg(scope, call); err == nil && agg != nil {
+func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
+	if agg, err := a.maybeConvertAgg(call); err == nil && agg != nil {
 		summarize := &dag.Summarize{
 			Kind: "Summarize",
 			Aggs: []dag.Assignment{
@@ -971,7 +968,7 @@ func semCallOp(scope *Scope, call *ast.Call, seq dag.Seq) (dag.Seq, error) {
 	if !function.HasBoolResult(call.Name) {
 		return nil, nil
 	}
-	c, err := semCall(scope, call)
+	c, err := a.semCall(call)
 	if err != nil {
 		return nil, err
 	}

@@ -57,10 +57,10 @@ func (r *RegexpReplace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !sVal.IsString() || !reVal.IsString() || !newVal.IsString() {
 		return newErrorf(r.zctx, ctx, "regexp_replace: string values required for all args")
 	}
-	if sVal.Bytes == nil {
+	if sVal.IsNull() {
 		return zed.Null
 	}
-	if reVal.Bytes == nil || newVal.Bytes == nil {
+	if reVal.IsNull() || newVal.IsNull() {
 		return newErrorf(r.zctx, ctx, "regexp_replace: 2nd and 3rd args cannot be null")
 	}
 	if re := zed.DecodeString(reVal.Bytes); r.restr != re {
