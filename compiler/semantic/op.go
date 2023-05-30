@@ -102,7 +102,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 		}
 		var headers = map[string][]string{}
 		if p.Headers != nil {
-			expr, err := semExpr(scope, p.Headers)
+			expr, err := a.semExpr(p.Headers)
 			if err != nil {
 				return nil, err
 			}
