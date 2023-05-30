@@ -106,7 +106,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 			if err != nil {
 				return nil, err
 			}
-			val, err := kernel.EvalAtCompileTime(scope.zctx, expr)
+			val, err := kernel.EvalAtCompileTime(a.zctx, expr)
 			if err != nil {
 				return nil, fmt.Errorf("headers: %w", err)
 			}
