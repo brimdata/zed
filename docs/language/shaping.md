@@ -318,8 +318,8 @@ echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"} {a:1,b:2,c:3}' | zq -z -I shape.zed 
 ```
 we get
 ```mdtest-output
-{x:1}
+error({kind:"unrecognized shape",value:{a:1,b:2,c:3}})
 {x:"foo"((int64,string)),y:"foo"}
 {x:2((int64,string)),y:"bar"}
-error({kind:"unrecognized shape",value:{a:1,b:2,c:3}})
+{x:1}
 ```
