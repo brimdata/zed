@@ -322,7 +322,7 @@ func (w *Writer) buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Byte
 		name = n.Name
 		typ = zed.TypeUnder(n.Type)
 	}
-	// Order here follows that of the arrow.Time constants.
+	// Order here follows that of the arrow.Type constants.
 	switch b := b.(type) {
 	case *array.NullBuilder:
 		b.AppendNull()
