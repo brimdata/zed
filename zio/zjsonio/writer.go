@@ -79,7 +79,7 @@ func (w *Writer) Transform(r *zed.Value) (Object, error) {
 	// Encode type before encoding value in case there are type values
 	// in the value.  We want to keep the order consistent.
 	typ := w.encoder.encodeType(local)
-	v, err := w.encodeValue(w.zctx, local, r.Bytes)
+	v, err := w.encodeValue(w.zctx, local, r.Bytes())
 	if err != nil {
 		return Object{}, err
 	}

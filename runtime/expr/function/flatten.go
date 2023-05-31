@@ -31,9 +31,9 @@ func (n *Flatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if typ == nil {
 		return &val
 	}
-	inner := n.innerTypeOf(val.Bytes, typ.Fields)
+	inner := n.innerTypeOf(val.Bytes(), typ.Fields)
 	n.Reset()
-	n.encode(typ.Fields, inner, field.Path{}, val.Bytes)
+	n.encode(typ.Fields, inner, field.Path{}, val.Bytes())
 	return ctx.NewValue(n.zctx.LookupTypeArray(inner), n.Bytes())
 }
 

@@ -23,12 +23,12 @@ func (c *Collect) Consume(val *zed.Value) {
 
 func (c *Collect) update(val *zed.Value) {
 	c.values = append(c.values, *val.Copy())
-	c.size += len(val.Bytes)
+	c.size += len(val.Bytes())
 	for c.size > MaxValueSize {
 		// XXX See issue #1813.  For now we silently discard entries
 		// to maintain the size limit.
 		//c.MemExceeded++
-		c.size -= len(c.values[0].Bytes)
+		c.size -= len(c.values[0].Bytes())
 		c.values = c.values[1:]
 	}
 }
@@ -42,11 +42,11 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 	inner := innerType(zctx, c.values)
 	if union, ok := inner.(*zed.TypeUnion); ok {
 		for _, val := range c.values {
-			zed.BuildUnion(&b, union.TagOf(val.Type), val.Bytes)
+			zed.BuildUnion(&b, union.TagOf(val.Type), val.Bytes())
 		}
 	} else {
 		for _, val := range c.values {
-			b.Append(val.Bytes)
+			b.Append(val.Bytes())
 		}
 	}
 	return zed.NewValue(zctx.LookupTypeArray(inner), b.Bytes())
@@ -66,7 +66,7 @@ func innerType(zctx *zed.Context, vals []zed.Value) zed.Type {
 
 func (c *Collect) ConsumeAsPartial(val *zed.Value) {
 	//XXX These should not be passed in here. See issue #3175
-	if len(val.Bytes) == 0 {
+	if len(val.Bytes()) == 0 {
 		return
 	}
 	arrayType, ok := val.Type.(*zed.TypeArray)

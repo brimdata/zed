@@ -66,5 +66,5 @@ func (*Array) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
 
 func (*Array) CopyValue(val *zed.Value) *zed.Value {
 	// XXX can make this more efficient later
-	return zed.NewValue(val.Type, val.Bytes)
+	return zed.NewValue(val.Type, val.Bytes())
 }

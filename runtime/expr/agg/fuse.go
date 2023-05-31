@@ -31,7 +31,7 @@ func (f *fuse) Result(zctx *zed.Context) *zed.Value {
 	}
 	schema := NewSchema(zctx)
 	for _, p := range f.partials {
-		typ, err := zctx.LookupByValue(p.Bytes)
+		typ, err := zctx.LookupByValue(p.Bytes())
 		if err != nil {
 			panic(fmt.Errorf("fuse: invalid partial value: %w", err))
 		}

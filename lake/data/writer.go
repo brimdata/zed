@@ -73,7 +73,7 @@ func (w *Writer) Write(val *zed.Value) error {
 }
 
 func (w *Writer) writeIndex(key *zed.Value) error {
-	w.seekIndexTrigger += len(key.Bytes)
+	w.seekIndexTrigger += len(key.Bytes())
 	if w.first {
 		w.first = false
 		w.object.Min.CopyFrom(key)

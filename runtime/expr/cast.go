@@ -144,7 +144,7 @@ func (c *casterIP) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !val.IsString() {
 		return c.zctx.WrapError("cannot cast to ip", val)
 	}
-	ip, err := byteconv.ParseIP(val.Bytes)
+	ip, err := byteconv.ParseIP(val.Bytes())
 	if err != nil {
 		return c.zctx.WrapError("cannot cast to ip", val)
 	}
@@ -162,7 +162,7 @@ func (c *casterNet) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !val.IsString() {
 		return c.zctx.WrapError("cannot cast to net", val)
 	}
-	net, err := netip.ParsePrefix(string(val.Bytes))
+	net, err := netip.ParsePrefix(string(val.Bytes()))
 	if err != nil {
 		return c.zctx.WrapError("cannot cast to net", val)
 	}
@@ -179,9 +179,9 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 		return ectx.CopyValue(val)
 	}
 	if id == zed.IDString {
-		d, err := nano.ParseDuration(byteconv.UnsafeString(val.Bytes))
+		d, err := nano.ParseDuration(byteconv.UnsafeString(val.Bytes()))
 		if err != nil {
-			f, ferr := byteconv.ParseFloat64(val.Bytes)
+			f, ferr := byteconv.ParseFloat64(val.Bytes())
 			if ferr != nil {
 				return c.zctx.WrapError("cannot cast to duration", val)
 			}
@@ -190,7 +190,7 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
 	if zed.IsFloat(id) {
-		d := nano.Duration(zed.DecodeFloat(val.Bytes))
+		d := nano.Duration(zed.DecodeFloat(val.Bytes()))
 		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
 	}
 	v, ok := coerce.ToInt(val)
@@ -214,9 +214,9 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	case val.IsNull():
 		// Do nothing. Any nil value is cast to a zero time.
 	case id == zed.IDString:
-		gotime, err := dateparse.ParseAny(byteconv.UnsafeString(val.Bytes))
+		gotime, err := dateparse.ParseAny(byteconv.UnsafeString(val.Bytes()))
 		if err != nil {
-			v, err := byteconv.ParseFloat64(val.Bytes)
+			v, err := byteconv.ParseFloat64(val.Bytes())
 			if err != nil {
 				return c.zctx.WrapError("cannot cast to time", val)
 			}
@@ -244,13 +244,13 @@ type casterString struct {
 func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
 	id := val.Type.ID()
 	if id == zed.IDBytes {
-		if !utf8.Valid(val.Bytes) {
+		if !utf8.Valid(val.Bytes()) {
 			return c.zctx.WrapError("cannot cast to string: invalid UTF-8", val)
 		}
-		return ectx.NewValue(zed.TypeString, val.Bytes)
+		return ectx.NewValue(zed.TypeString, val.Bytes())
 	}
 	if enum, ok := val.Type.(*zed.TypeEnum); ok {
-		selector := zed.DecodeUint(val.Bytes)
+		selector := zed.DecodeUint(val.Bytes())
 		symbol, err := enum.Symbol(int(selector))
 		if err != nil {
 			return ectx.CopyValue(c.zctx.NewError(err))
@@ -260,7 +260,7 @@ func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if id == zed.IDString {
 		// If it's already stringy, then the Zed encoding can stay
 		// the same and we just update the stringy type.
-		return ectx.NewValue(zed.TypeString, val.Bytes)
+		return ectx.NewValue(zed.TypeString, val.Bytes())
 	}
 	// Otherwise, we'll use a canonical ZSON value for the string rep
 	// of an arbitrary value cast to a string.
@@ -271,5 +271,5 @@ func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
 type casterBytes struct{}
 
 func (c *casterBytes) Eval(ectx Context, val *zed.Value) *zed.Value {
-	return ectx.NewValue(zed.TypeBytes, val.Bytes)
+	return ectx.NewValue(zed.TypeBytes, val.Bytes())
 }

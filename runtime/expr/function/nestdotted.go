@@ -65,7 +65,7 @@ func (n *NestDotted) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return this
 	}
 	b.Reset()
-	for it := this.Bytes.Iter(); !it.Done(); {
+	for it := this.Bytes().Iter(); !it.Done(); {
 		b.Append(it.Next())
 	}
 	zbytes, err := b.Encode()

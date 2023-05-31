@@ -244,9 +244,9 @@ func (o *Op) splice(left, right *zed.Value) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	n := len(left.Bytes)
-	bytes := make([]byte, n+len(right.Bytes))
-	copy(bytes, left.Bytes)
-	copy(bytes[n:], right.Bytes)
+	n := len(left.Bytes())
+	bytes := make([]byte, n+len(right.Bytes()))
+	copy(bytes, left.Bytes())
+	copy(bytes[n:], right.Bytes())
 	return zed.NewValue(typ, bytes), nil
 }

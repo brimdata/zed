@@ -29,7 +29,7 @@ func New(octx *op.Context, parent zbuf.Puller, cflag bool) *Op {
 func (o *Op) wrap(t *zed.Value) *zed.Value {
 	if o.cflag {
 		o.builder.Reset()
-		o.builder.Append(t.Bytes)
+		o.builder.Append(t.Bytes())
 		o.builder.Append(zed.EncodeUint(o.count))
 		typ := o.octx.Zctx.MustLookupTypeRecord([]zed.Field{
 			zed.NewField("value", t.Type),
@@ -45,7 +45,7 @@ func (o *Op) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
 		o.last = t.Copy()
 		o.count = 1
 		return out
-	} else if bytes.Equal(t.Bytes, o.last.Bytes) {
+	} else if bytes.Equal(t.Bytes(), o.last.Bytes()) {
 		o.count++
 		return out
 	}

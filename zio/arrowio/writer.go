@@ -97,7 +97,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	} else if w.typ != recType {
 		return fmt.Errorf("%w: %s and %s", ErrMultipleTypes, zson.FormatType(w.typ), zson.FormatType(recType))
 	}
-	it := val.Bytes.Iter()
+	it := val.Bytes().Iter()
 	for i, builder := range w.builder.Fields() {
 		var b zcode.Bytes
 		if it != nil {

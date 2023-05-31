@@ -39,10 +39,10 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := d.record.Eval(ectx, this).Under()
 	if _, ok := val.Type.(*zed.TypeOfType); ok {
-		return d.evalTypeOfType(ectx, val.Bytes)
+		return d.evalTypeOfType(ectx, val.Bytes())
 	}
 	if typ, ok := val.Type.(*zed.TypeMap); ok {
-		return indexMap(d.zctx, ectx, typ, val.Bytes, zed.NewString(d.field))
+		return indexMap(d.zctx, ectx, typ, val.Bytes(), zed.NewString(d.field))
 	}
 	recType, ok := val.Type.(*zed.TypeRecord)
 	if !ok {
@@ -58,7 +58,7 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(typ, nil)
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
-	field := getNthFromContainer(val.Bytes, idx)
+	field := getNthFromContainer(val.Bytes(), idx)
 	return ectx.NewValue(recType.Fields[idx].Type, field)
 }
 

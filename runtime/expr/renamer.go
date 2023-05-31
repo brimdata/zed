@@ -84,7 +84,7 @@ func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
 		r.typeMap[id] = typ
 	}
 	out := this.Copy()
-	return ectx.NewValue(typ, out.Bytes)
+	return ectx.NewValue(typ, out.Bytes())
 }
 
 func (*Renamer) String() string { return "rename" }

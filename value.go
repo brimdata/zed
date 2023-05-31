@@ -48,7 +48,7 @@ type Allocator interface {
 
 type Value struct {
 	Type  Type
-	Bytes zcode.Bytes
+	bytes zcode.Bytes
 }
 
 func NewValue(zt Type, zb zcode.Bytes) *Value {
@@ -75,6 +75,9 @@ func NewIP(a netip.Addr) *Value          { return &Value{TypeIP, EncodeIP(a)} }
 func NewNet(p netip.Prefix) *Value       { return &Value{TypeNet, EncodeNet(p)} }
 func NewTypeValue(t Type) *Value         { return &Value{TypeType, EncodeTypeValue(t)} }
 
+// Bytes returns the ZNG representation for v.
+func (v *Value) Bytes() zcode.Bytes { return v.bytes }
+
 func (v *Value) IsContainer() bool {
 	return IsContainerType(v.Type)
 }
@@ -91,11 +94,11 @@ func (v *Value) String() string {
 // be the same underlying buffer, as with append(), depending on its capacity)
 func (v *Value) Encode(dst zcode.Bytes) zcode.Bytes {
 	//XXX don't need this...
-	return zcode.Append(dst, v.Bytes)
+	return zcode.Append(dst, v.Bytes())
 }
 
 func (v *Value) Iter() zcode.Iter {
-	return v.Bytes.Iter()
+	return v.Bytes().Iter()
 }
 
 // If the passed-in element is an array, attempt to get the idx'th
@@ -163,13 +166,13 @@ func (v *Value) ContainerLength() (int, error) {
 
 // IsNull returns true if and only if v is a null value of any type.
 func (v *Value) IsNull() bool {
-	return v.Bytes == nil
+	return v.bytes == nil
 }
 
 // Copy returns a copy of v that does not share v.Bytes.  The copy's Bytes field
 // is nil if and only if v.Bytes is nil.
 func (v *Value) Copy() *Value {
-	return &Value{v.Type, slices.Clone(v.Bytes)}
+	return &Value{v.Type, slices.Clone(v.Bytes())}
 }
 
 // CopyFrom copies from into v, reusing v.Bytes if possible and setting v.Bytes
@@ -177,11 +180,11 @@ func (v *Value) Copy() *Value {
 func (v *Value) CopyFrom(from *Value) {
 	v.Type = from.Type
 	if from.IsNull() {
-		v.Bytes = nil
+		v.bytes = nil
 	} else if v.IsNull() {
-		v.Bytes = slices.Clone(from.Bytes)
+		v.bytes = slices.Clone(from.bytes)
 	} else {
-		v.Bytes = append(v.Bytes[:0], from.Bytes...)
+		v.bytes = append(v.bytes[:0], from.bytes...)
 	}
 }
 
@@ -200,20 +203,20 @@ func (v *Value) IsMissing() bool {
 		return true
 	}
 	if typ, ok := v.Type.(*TypeError); ok {
-		return typ.IsMissing(v.Bytes)
+		return typ.IsMissing(v.Bytes())
 	}
 	return false
 }
 
 func (v *Value) IsQuiet() bool {
 	if typ, ok := v.Type.(*TypeError); ok {
-		return typ.IsQuiet(v.Bytes)
+		return typ.IsQuiet(v.Bytes())
 	}
 	return false
 }
 
 func (v *Value) Equal(p Value) bool {
-	return v.Type == p.Type && bytes.Equal(v.Bytes, p.Bytes)
+	return v.Type == p.Type && bytes.Equal(v.Bytes(), p.Bytes())
 }
 
 func (r *Value) HasField(field string) bool {
@@ -223,12 +226,12 @@ func (r *Value) HasField(field string) bool {
 // Walk traverses a value in depth-first order, calling a
 // Visitor on the way.
 func (r *Value) Walk(rv Visitor) error {
-	return Walk(r.Type, r.Bytes, rv)
+	return Walk(r.Type, r.Bytes(), rv)
 }
 
 func (r *Value) nth(n int) zcode.Bytes {
 	var zv zcode.Bytes
-	for i, it := 0, r.Bytes.Iter(); i <= n; i++ {
+	for i, it := 0, r.Bytes().Iter(); i <= n; i++ {
 		if it.Done() {
 			return nil
 		}
@@ -280,14 +283,14 @@ func (v *Value) DerefPath(path field.Path) *Value {
 
 func (v *Value) AsString() string {
 	if v != nil && TypeUnder(v.Type) == TypeString {
-		return DecodeString(v.Bytes)
+		return DecodeString(v.Bytes())
 	}
 	return ""
 }
 
 func (v *Value) AsBool() bool {
 	if v != nil && TypeUnder(v.Type) == TypeBool {
-		return DecodeBool(v.Bytes)
+		return DecodeBool(v.Bytes())
 	}
 	return false
 }
@@ -296,9 +299,9 @@ func (v *Value) AsInt() int64 {
 	if v != nil {
 		switch TypeUnder(v.Type).(type) {
 		case *TypeOfUint8, *TypeOfUint16, *TypeOfUint32, *TypeOfUint64:
-			return int64(DecodeUint(v.Bytes))
+			return int64(DecodeUint(v.Bytes()))
 		case *TypeOfInt8, *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
-			return DecodeInt(v.Bytes)
+			return DecodeInt(v.Bytes())
 		}
 	}
 	return 0
@@ -306,7 +309,7 @@ func (v *Value) AsInt() int64 {
 
 func (v *Value) AsTime() nano.Ts {
 	if v != nil && TypeUnder(v.Type) == TypeTime {
-		return DecodeTime(v.Bytes)
+		return DecodeTime(v.Bytes())
 	}
 	return 0
 }
@@ -326,7 +329,7 @@ func (v *Value) Under() *Value {
 			return v
 		}
 	}
-	bytes := v.Bytes
+	bytes := v.Bytes()
 	for {
 		typ = TypeUnder(typ)
 		union, ok := typ.(*TypeUnion)

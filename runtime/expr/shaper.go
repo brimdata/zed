@@ -53,15 +53,15 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return typeVal
 	}
 	if typeVal.Type == zed.TypeString {
-		typ, _ := s.zctx.LookupTypeNamed(string(typeVal.Bytes), this.Type)
-		return ectx.NewValue(typ, this.Bytes)
+		typ, _ := s.zctx.LookupTypeNamed(string(typeVal.Bytes()), this.Type)
+		return ectx.NewValue(typ, this.Bytes())
 	}
 	//XXX TypeUnder?
 	if typeVal.Type != zed.TypeType {
 		return ectx.CopyValue(s.zctx.NewErrorf(
 			"shaper type argument is not a type: %s", zson.MustFormatValue(typeVal)))
 	}
-	shapeTo, err := s.zctx.LookupByValue(typeVal.Bytes)
+	shapeTo, err := s.zctx.LookupByValue(typeVal.Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -113,10 +113,10 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		c.shapers[id] = s
 	}
 	if s.typ.ID() == id {
-		return ectx.NewValue(s.typ, val.Bytes)
+		return ectx.NewValue(s.typ, val.Bytes())
 	}
 	c.b.Reset()
-	typ := s.step.build(c.zctx, ectx, val.Bytes, &c.b)
+	typ := s.step.build(c.zctx, ectx, val.Bytes(), &c.b)
 	return ectx.NewValue(typ, c.b.Bytes().Body())
 }
 
@@ -411,7 +411,7 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 		// For a successful cast, v.Type == zed.TypeUnder(s.toType).
 		// For a failed cast, v.Type is a zed.TypeError.
 		v := s.caster.Eval(ectx, zed.NewValue(s.fromType, in))
-		b.Append(v.Bytes)
+		b.Append(v.Bytes())
 		if zed.TypeUnder(v.Type) == zed.TypeUnder(s.toType) {
 			// Prefer s.toType in case it's a named type.
 			return s.toType
