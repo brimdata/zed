@@ -75,7 +75,7 @@ func NewIP(a netip.Addr) *Value          { return &Value{TypeIP, EncodeIP(a)} }
 func NewNet(p netip.Prefix) *Value       { return &Value{TypeNet, EncodeNet(p)} }
 func NewTypeValue(t Type) *Value         { return &Value{TypeType, EncodeTypeValue(t)} }
 
-// Bytes returns the ZNG representation for v.
+// Bytes returns v's ZNG representation.
 func (v *Value) Bytes() zcode.Bytes { return v.bytes }
 
 func (v *Value) IsContainer() bool {
