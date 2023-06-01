@@ -1,13 +1,15 @@
 script: |
   source service.sh
   for order in desc asc; do
-    echo === $order ===
+    echo === $order === | tee >(cat >&2)
     zed create -q -S 1KB -orderby ts:$order test
     zed use -q test
     seq 1000 | zq '{ts:this-1,s:"val${this-1}"}' - | zed load -q -
     zed delete -q -where 'ts > 400 and ts <= 500'
     zed query -z 'count()'
     zed delete -q -where 's == "val1" or s == "val999"'
+    zed query -z 'count()'
+    ! zed delete -q -where 's == "val1" or s == "val999"'
     zed query -z 'count()'
     zed drop -f -q test
   done 
@@ -21,6 +23,14 @@ outputs:
       === desc ===
       900(uint64)
       898(uint64)
+      898(uint64)
       === asc ===
       900(uint64)
       898(uint64)
+      898(uint64)
+  - name: stderr
+    data: |
+      === desc ===
+      status code 400: empty transaction
+      === asc ===
+      status code 400: empty transaction
