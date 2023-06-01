@@ -7,7 +7,10 @@ script: |
   echo '{x:6}{x:7}{x:8}' | zed load -q -
   curl -s -d '{where:"x <= 4"}' $ZED_LAKE/pool/test/branch/main/delete |
     sed -E 's/0x[0-9a-f]{40}/xxx/'
-  echo ===
+  echo === | tee >(cat >&2)
+  zed query -z '*'
+  echo === | tee >(cat >&2)
+  ! curl --fail --no-progress-meter -d '{where:"x <= 4"}' $ZED_LAKE/pool/test/branch/main/delete
   zed query -z '*'
 
 inputs:
@@ -22,3 +25,13 @@ outputs:
       {x:6}
       {x:7}
       {x:8}
+      ===
+      {x:5}
+      {x:6}
+      {x:7}
+      {x:8}
+  - name: stderr
+    data: |
+      ===
+      ===
+      curl: (22) The requested URL returned error: 400
