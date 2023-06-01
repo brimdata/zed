@@ -173,8 +173,8 @@ SearchFactor
   / SearchExpr
 
 SearchExpr
-  = Glob
-  / Regexp
+  = Regexp
+  / Glob
   / v:SearchValue (!ExprGuard / &(_ Glob)) {
       RETURN(MAP("kind": "Term", "text": TEXT, "value": v))
     }
@@ -535,9 +535,9 @@ PoolMeta
   = ":" meta:PoolIdentifier { RETURN(meta) }
 
 PoolName
-  = Glob
+  = Regexp
+  / Glob
   / "*" !ExprGuard { RETURN(MAP("kind": "Glob", "pattern": "*")) }
-  / Regexp
   / name:PoolNameString { RETURN(MAP("kind": "String", "text": name)) }
 
 PoolNameString
