@@ -22,14 +22,14 @@ func (k *KSUIDToString) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			return newErrorf(k.zctx, ctx, "ksuid: illegal null argument")
 		}
 		// XXX GC
-		id, err := ksuid.FromBytes(val.Bytes)
+		id, err := ksuid.FromBytes(val.Bytes())
 		if err != nil {
 			panic(err)
 		}
 		return newString(ctx, id.String())
 	case zed.IDString:
 		// XXX GC
-		id, err := ksuid.Parse(string(val.Bytes))
+		id, err := ksuid.Parse(string(val.Bytes()))
 		if err != nil {
 			return newErrorf(k.zctx, ctx, "ksuid: %s (bad argument: %s)", err, zson.String(val))
 		}

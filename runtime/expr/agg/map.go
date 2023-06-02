@@ -31,7 +31,7 @@ func (m *Map) Consume(val *zed.Value) {
 		return
 	}
 	// Copy val.Bytes since we're going to keep slices of it.
-	it := zcode.Iter(slices.Clone(val.Bytes))
+	it := zcode.Iter(slices.Clone(val.Bytes()))
 	for !it.Done() {
 		keyTagAndBody := it.NextTagAndBody()
 		key := valueUnder(mtyp.KeyType, keyTagAndBody.Body())
@@ -78,9 +78,9 @@ func (m *Map) ResultAsPartial(zctx *zed.Context) *zed.Value {
 func appendMapVal(b *zcode.Builder, typ zed.Type, val *zed.Value, uniq int) {
 	if uniq > 1 {
 		u := zed.TypeUnder(typ).(*zed.TypeUnion)
-		zed.BuildUnion(b, u.TagOf(val.Type), val.Bytes)
+		zed.BuildUnion(b, u.TagOf(val.Type), val.Bytes())
 	} else {
-		b.Append(val.Bytes)
+		b.Append(val.Bytes())
 	}
 }
 

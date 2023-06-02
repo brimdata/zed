@@ -61,7 +61,7 @@ func (w *Writer) Write(r *zed.Value) error {
 		value := r.DerefByColumn(k).MissingAsNull()
 		if f.Type == zed.TypeTime {
 			if !value.IsNull() {
-				v = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
+				v = zed.DecodeTime(value.Bytes()).Time().Format(time.RFC3339Nano)
 			}
 		} else {
 			v = zeekio.FormatValue(value)

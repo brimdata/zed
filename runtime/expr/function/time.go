@@ -27,7 +27,7 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	var bin nano.Duration
 	if binArg.Type == zed.TypeDuration {
-		bin = zed.DecodeDuration(binArg.Bytes)
+		bin = zed.DecodeDuration(binArg.Bytes())
 	} else {
 		d, ok := coerce.ToInt(binArg)
 		if !ok {
@@ -36,7 +36,7 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		bin = nano.Duration(d) * nano.Second
 	}
 	if zed.TypeUnder(tsArg.Type) == zed.TypeDuration {
-		dur := zed.DecodeDuration(tsArg.Bytes)
+		dur := zed.DecodeDuration(tsArg.Bytes())
 		return newDuration(ctx, dur.Trunc(bin))
 	}
 	ts, ok := coerce.ToTime(tsArg)

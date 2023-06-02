@@ -38,7 +38,7 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	root := u.recordCache.new()
 	u.types = u.types[:0]
 	u.values = u.values[:0]
-	for it := val.Bytes.Iter(); !it.Done(); {
+	for it := val.Bytes().Iter(); !it.Done(); {
 		bytes := it.Next()
 		path, typ, vb, err := u.parseElem(array.Type, bytes)
 		if err != nil {

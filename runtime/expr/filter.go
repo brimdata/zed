@@ -102,8 +102,8 @@ type search struct {
 func NewSearch(searchtext string, searchval *zed.Value, expr Evaluator) (Evaluator, error) {
 	if zed.TypeUnder(searchval.Type) == zed.TypeNet {
 		return &searchCIDR{
-			net:   zed.DecodeNet(searchval.Bytes),
-			bytes: searchval.Bytes,
+			net:   zed.DecodeNet(searchval.Bytes()),
+			bytes: searchval.Bytes(),
 		}, nil
 	}
 	typedCompare, err := Comparison("==", searchval)
@@ -255,7 +255,7 @@ func NewFilterApplier(zctx *zed.Context, e Evaluator) Applier {
 func (f *filterApplier) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val, ok := EvalBool(f.zctx, ectx, this, f.expr)
 	if ok {
-		if zed.DecodeBool(val.Bytes) {
+		if zed.DecodeBool(val.Bytes()) {
 			return this
 		}
 		return f.zctx.Missing()

@@ -54,8 +54,8 @@ func (a *Avg) ConsumeAsPartial(partial *zed.Value) {
 	if countVal.Type != zed.TypeUint64 {
 		panic(fmt.Errorf("avg: partial count has bad type: %s", zson.MustFormatValue(countVal)))
 	}
-	a.sum += zed.DecodeFloat64(sumVal.Bytes)
-	a.count += zed.DecodeUint(countVal.Bytes)
+	a.sum += zed.DecodeFloat64(sumVal.Bytes())
+	a.count += zed.DecodeUint(countVal.Bytes())
 }
 
 func (a *Avg) ResultAsPartial(zctx *zed.Context) *zed.Value {

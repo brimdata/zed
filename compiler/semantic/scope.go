@@ -77,7 +77,7 @@ func (s *Scope) DefineConst(zctx *zed.Context, name string, def dag.Expr) error 
 		if val.IsMissing() {
 			return fmt.Errorf("const %q: cannot have variable dependency", name)
 		} else {
-			return fmt.Errorf("const %q: %q", name, string(val.Bytes))
+			return fmt.Errorf("const %q: %q", name, string(val.Bytes()))
 		}
 	}
 	literal := &dag.Literal{

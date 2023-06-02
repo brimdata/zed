@@ -202,7 +202,7 @@ func (b *Builder) compileSearch(search *dag.Search) (expr.Evaluator, error) {
 	if zed.TypeUnder(val.Type) == zed.TypeString {
 		// Do a grep-style substring search instead of an
 		// exact match on each value.
-		term := norm.NFC.Bytes(val.Bytes)
+		term := norm.NFC.Bytes(val.Bytes())
 		return expr.NewSearchString(string(term), e), nil
 	}
 	return expr.NewSearch(search.Text, val, e)

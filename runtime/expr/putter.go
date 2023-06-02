@@ -126,7 +126,7 @@ func (p *putStep) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zed.Value
 			}
 			b.Append(bytes)
 		case putFromClause:
-			b.Append(vals[step.index].Bytes)
+			b.Append(vals[step.index].Bytes())
 		case putRecord:
 			b.BeginContainer()
 			bytes, err := in, error(nil)
@@ -314,7 +314,7 @@ func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return this
 	}
 	rule := p.lookupRule(recType, vals, clauses)
-	bytes := rule.step.build(this.Bytes, &p.builder, vals)
+	bytes := rule.step.build(this.Bytes(), &p.builder, vals)
 	return zed.NewValue(rule.typ, bytes)
 }
 

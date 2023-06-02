@@ -89,10 +89,10 @@ func (w *Writer) Write(val *zed.Value) error {
 	if err := w.root.Write(int64(typeNo)); err != nil {
 		return err
 	}
-	if err := w.writers[typeNo].Write(val.Bytes); err != nil {
+	if err := w.writers[typeNo].Write(val.Bytes()); err != nil {
 		return err
 	}
-	w.footprint += len(val.Bytes)
+	w.footprint += len(val.Bytes())
 	if w.footprint >= w.skewThresh {
 		w.footprint = 0
 		return w.flush(false)

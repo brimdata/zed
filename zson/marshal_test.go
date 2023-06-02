@@ -209,7 +209,7 @@ func TestMixedTypeArrayInsideRecord(t *testing.T) {
 
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer))
-	recExpected := zed.NewValue(zv.Type, zv.Bytes)
+	recExpected := zed.NewValue(zv.Type, zv.Bytes())
 	writer.Write(recExpected)
 	writer.Close()
 
@@ -271,7 +271,7 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer))
-	recExpected := zed.NewValue(zv.Type, zv.Bytes)
+	recExpected := zed.NewValue(zv.Type, zv.Bytes())
 	writer.Write(recExpected)
 	writer.Close()
 

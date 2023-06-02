@@ -34,7 +34,7 @@ func (a *Aggregator) NewFunction() agg.Function {
 
 func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this *zed.Value) {
 	if a.where != nil {
-		if val, ok := EvalBool(zctx, ectx, this, a.where); !ok || !zed.DecodeBool(val.Bytes) {
+		if val, ok := EvalBool(zctx, ectx, this, a.where); !ok || !zed.DecodeBool(val.Bytes()) {
 			// XXX Issue #3401: do something with "where" errors.
 			return
 		}

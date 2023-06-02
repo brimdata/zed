@@ -49,8 +49,8 @@ func (c *Pair) Equal() bool {
 }
 
 func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
-	c.A = a.Bytes
-	c.B = b.Bytes
+	c.A = a.Bytes()
+	c.B = b.Bytes()
 	if a.Type == nil {
 		a.Type = zed.TypeNull
 	}
@@ -162,23 +162,23 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 func ToFloat(val *zed.Value) (float64, bool) {
 	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return zed.DecodeFloat(val.Bytes), true
+		return zed.DecodeFloat(val.Bytes()), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			return float64(zed.DecodeInt(val.Bytes)), true
+			return float64(zed.DecodeInt(val.Bytes())), true
 		} else {
-			return float64(zed.DecodeUint(val.Bytes)), true
+			return float64(zed.DecodeUint(val.Bytes())), true
 		}
 	}
 	if id == zed.IDDuration {
-		return float64(zed.DecodeInt(val.Bytes)), true
+		return float64(zed.DecodeInt(val.Bytes())), true
 	}
 	if id == zed.IDTime {
-		return float64(zed.DecodeTime(val.Bytes)), true
+		return float64(zed.DecodeTime(val.Bytes())), true
 	}
 	if id == zed.IDString {
-		v, err := strconv.ParseFloat(string(val.Bytes), 64)
+		v, err := strconv.ParseFloat(string(val.Bytes()), 64)
 		return v, err == nil
 	}
 	return 0, false
@@ -187,27 +187,27 @@ func ToFloat(val *zed.Value) (float64, bool) {
 func ToUint(val *zed.Value) (uint64, bool) {
 	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return uint64(zed.DecodeFloat(val.Bytes)), true
+		return uint64(zed.DecodeFloat(val.Bytes())), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			v := zed.DecodeInt(val.Bytes)
+			v := zed.DecodeInt(val.Bytes())
 			if v < 0 {
 				return 0, false
 			}
 			return uint64(v), true
 		} else {
-			return zed.DecodeUint(val.Bytes), true
+			return zed.DecodeUint(val.Bytes()), true
 		}
 	}
 	if id == zed.IDDuration {
-		return uint64(zed.DecodeInt(val.Bytes)), true
+		return uint64(zed.DecodeInt(val.Bytes())), true
 	}
 	if id == zed.IDTime {
-		return uint64(zed.DecodeTime(val.Bytes)), true
+		return uint64(zed.DecodeTime(val.Bytes())), true
 	}
 	if id == zed.IDString {
-		v, err := strconv.ParseUint(string(val.Bytes), 10, 64)
+		v, err := strconv.ParseUint(string(val.Bytes()), 10, 64)
 		return v, err == nil
 	}
 	return 0, false
@@ -216,24 +216,24 @@ func ToUint(val *zed.Value) (uint64, bool) {
 func ToInt(val *zed.Value) (int64, bool) {
 	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return int64(zed.DecodeFloat(val.Bytes)), true
+		return int64(zed.DecodeFloat(val.Bytes())), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
 			// XXX check if negative? should -1:uint64 be maxint64 or an error?
-			return zed.DecodeInt(val.Bytes), true
+			return zed.DecodeInt(val.Bytes()), true
 		} else {
-			return int64(zed.DecodeUint(val.Bytes)), true
+			return int64(zed.DecodeUint(val.Bytes())), true
 		}
 	}
 	if id == zed.IDDuration {
-		return zed.DecodeInt(val.Bytes), true
+		return zed.DecodeInt(val.Bytes()), true
 	}
 	if id == zed.IDTime {
-		return int64(zed.DecodeTime(val.Bytes)), true
+		return int64(zed.DecodeTime(val.Bytes())), true
 	}
 	if id == zed.IDString {
-		v, err := strconv.ParseInt(string(val.Bytes), 10, 64)
+		v, err := strconv.ParseInt(string(val.Bytes()), 10, 64)
 		return v, err == nil
 	}
 	return 0, false
@@ -241,7 +241,7 @@ func ToInt(val *zed.Value) (int64, bool) {
 
 func ToBool(val *zed.Value) (bool, bool) {
 	if val.IsString() {
-		v, err := strconv.ParseBool(string(val.Bytes))
+		v, err := strconv.ParseBool(string(val.Bytes()))
 		return v, err == nil
 	}
 	v, ok := ToInt(val)
@@ -251,13 +251,13 @@ func ToBool(val *zed.Value) (bool, bool) {
 func ToTime(val *zed.Value) (nano.Ts, bool) {
 	id := val.Type.ID()
 	if id == zed.IDTime {
-		return zed.DecodeTime(val.Bytes), true
+		return zed.DecodeTime(val.Bytes()), true
 	}
 	if zed.IsSigned(id) {
-		return nano.Ts(zed.DecodeInt(val.Bytes)), true
+		return nano.Ts(zed.DecodeInt(val.Bytes())), true
 	}
 	if zed.IsInteger(id) {
-		v := zed.DecodeUint(val.Bytes)
+		v := zed.DecodeUint(val.Bytes())
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
@@ -265,7 +265,7 @@ func ToTime(val *zed.Value) (nano.Ts, bool) {
 		return nano.Ts(v), true
 	}
 	if zed.IsFloat(id) {
-		return nano.Ts(zed.DecodeFloat(val.Bytes)), true
+		return nano.Ts(zed.DecodeFloat(val.Bytes())), true
 	}
 	return 0, false
 }
@@ -277,20 +277,20 @@ func ToTime(val *zed.Value) (nano.Ts, bool) {
 func ToDuration(in *zed.Value) (nano.Duration, bool) {
 	switch in.Type.ID() {
 	case zed.IDDuration:
-		return zed.DecodeDuration(in.Bytes), true
+		return zed.DecodeDuration(in.Bytes()), true
 	case zed.IDUint16, zed.IDUint32, zed.IDUint64:
-		v := zed.DecodeUint(in.Bytes)
+		v := zed.DecodeUint(in.Bytes())
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
 		}
 		return nano.Duration(v) * nano.Second, true
 	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
-		v := zed.DecodeInt(in.Bytes)
+		v := zed.DecodeInt(in.Bytes())
 		//XXX check for overflow here
 		return nano.Duration(v) * nano.Second, true
 	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-		return nano.Duration(zed.DecodeFloat(in.Bytes)), true
+		return nano.Duration(zed.DecodeFloat(in.Bytes())), true
 	}
 	return 0, false
 }

@@ -291,7 +291,7 @@ func (c *Context) AddFields(r *Value, newFields []Field, vals []Value) (*Value, 
 		}
 		fields = append(fields, f)
 	}
-	zv := slices.Clone(r.Bytes)
+	zv := slices.Clone(r.Bytes())
 	for _, val := range vals {
 		zv = val.Encode(zv)
 	}
@@ -577,6 +577,6 @@ func (c *Context) WrapError(msg string, val *Value) *Value {
 	errType := c.LookupTypeError(recType)
 	var b zcode.Builder
 	b.Append(EncodeString(msg))
-	b.Append(val.Bytes)
+	b.Append(val.Bytes())
 	return &Value{errType, b.Bytes()}
 }

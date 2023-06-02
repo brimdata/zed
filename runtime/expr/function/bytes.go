@@ -20,14 +20,14 @@ func (b *Base64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if val.IsNull() {
 			return newErrorf(b.zctx, ctx, "base64: illegal null argument")
 		}
-		return newString(ctx, base64.StdEncoding.EncodeToString(val.Bytes))
+		return newString(ctx, base64.StdEncoding.EncodeToString(val.Bytes()))
 	case zed.IDString:
 		if val.IsNull() {
 			return zed.Null
 		}
-		bytes, err := base64.StdEncoding.DecodeString(zed.DecodeString(val.Bytes))
+		bytes, err := base64.StdEncoding.DecodeString(zed.DecodeString(val.Bytes()))
 		if err != nil {
-			return newErrorf(b.zctx, ctx, "base64: string argument is not base64: %q", string(val.Bytes))
+			return newErrorf(b.zctx, ctx, "base64: string argument is not base64: %q", string(val.Bytes()))
 		}
 		return newBytes(ctx, bytes)
 	default:
@@ -47,14 +47,14 @@ func (h *Hex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if val.IsNull() {
 			return newErrorf(h.zctx, ctx, "hex: illegal null argument")
 		}
-		return newString(ctx, hex.EncodeToString(val.Bytes))
+		return newString(ctx, hex.EncodeToString(val.Bytes()))
 	case zed.IDString:
 		if val.IsNull() {
 			return zed.NullString
 		}
-		b, err := hex.DecodeString(zed.DecodeString(val.Bytes))
+		b, err := hex.DecodeString(zed.DecodeString(val.Bytes()))
 		if err != nil {
-			return newErrorf(h.zctx, ctx, "hex: string argument is not hexidecimal: %q", string(val.Bytes))
+			return newErrorf(h.zctx, ctx, "hex: string argument is not hexidecimal: %q", string(val.Bytes()))
 		}
 		return newBytes(ctx, b)
 	default:

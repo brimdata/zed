@@ -82,7 +82,7 @@ func (e *Expr) makeArray(ectx expr.Context, vals []zed.Value) *zed.Value {
 	}
 	typ := vals[0].Type
 	if len(vals) == 1 {
-		return ectx.NewValue(typ, vals[0].Bytes)
+		return ectx.NewValue(typ, vals[0].Bytes())
 	}
 	for _, val := range vals[1:] {
 		if typ != val.Type {
@@ -91,7 +91,7 @@ func (e *Expr) makeArray(ectx expr.Context, vals []zed.Value) *zed.Value {
 	}
 	var b zcode.Builder
 	for _, val := range vals {
-		b.Append(val.Bytes)
+		b.Append(val.Bytes())
 	}
 	return ectx.NewValue(e.zctx.LookupTypeArray(typ), b.Bytes())
 }
@@ -108,7 +108,7 @@ func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) *zed.Value {
 	union := e.zctx.LookupTypeUnion(utypes)
 	var b zcode.Builder
 	for _, val := range vals {
-		zed.BuildUnion(&b, union.TagOf(val.Type), val.Bytes)
+		zed.BuildUnion(&b, union.TagOf(val.Type), val.Bytes())
 	}
 	return ectx.NewValue(e.zctx.LookupTypeArray(union), b.Bytes())
 }

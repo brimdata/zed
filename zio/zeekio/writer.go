@@ -43,7 +43,7 @@ func (w *Writer) Write(r *zed.Value) error {
 	}
 	w.buf.Reset()
 	var needSeparator bool
-	it := r.Bytes.Iter()
+	it := r.Bytes().Iter()
 	for _, f := range zed.TypeRecordOf(r.Type).Fields {
 		bytes := it.Next()
 		if f.Name == "_path" {

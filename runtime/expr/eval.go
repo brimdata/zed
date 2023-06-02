@@ -38,7 +38,7 @@ func (n *Not) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if !ok {
 		return val
 	}
-	if zed.DecodeBool(val.Bytes) {
+	if zed.DecodeBool(val.Bytes()) {
 		return zed.False
 	}
 	return zed.True
@@ -83,14 +83,14 @@ func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if !ok {
 		return lhs
 	}
-	if !zed.DecodeBool(lhs.Bytes) {
+	if !zed.DecodeBool(lhs.Bytes()) {
 		return zed.False
 	}
 	rhs, ok := EvalBool(a.zctx, ectx, this, a.rhs)
 	if !ok {
 		return rhs
 	}
-	if !zed.DecodeBool(rhs.Bytes) {
+	if !zed.DecodeBool(rhs.Bytes()) {
 		return zed.False
 	}
 	return zed.True
@@ -98,7 +98,7 @@ func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
 
 func (o *Or) Eval(ectx Context, this *zed.Value) *zed.Value {
 	lhs, ok := EvalBool(o.zctx, ectx, this, o.lhs)
-	if ok && zed.DecodeBool(lhs.Bytes) {
+	if ok && zed.DecodeBool(lhs.Bytes()) {
 		return zed.True
 	}
 	if lhs.IsError() && !lhs.IsMissing() {
@@ -106,7 +106,7 @@ func (o *Or) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	rhs, ok := EvalBool(o.zctx, ectx, this, o.rhs)
 	if ok {
-		if zed.DecodeBool(rhs.Bytes) {
+		if zed.DecodeBool(rhs.Bytes()) {
 			return zed.True
 		}
 		return zed.False
@@ -216,7 +216,7 @@ func NewRegexpMatch(re *regexp.Regexp, e Evaluator) *RegexpMatch {
 
 func (r *RegexpMatch) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := r.expr.Eval(ectx, this)
-	if val.Type.ID() == zed.IDString && r.re.Match(val.Bytes) {
+	if val.Type.ID() == zed.IDString && r.re.Match(val.Bytes()) {
 		return zed.True
 	}
 	return zed.False
@@ -239,7 +239,7 @@ func newNumeric(lhs, rhs Evaluator) numeric {
 func enumify(val *zed.Value) *zed.Value {
 	// automatically convert an enum to its index value when coercing
 	if _, ok := val.Type.(*zed.TypeEnum); ok {
-		return zed.NewValue(zed.TypeUint64, val.Bytes)
+		return zed.NewValue(zed.TypeUint64, val.Bytes())
 	}
 	return val
 }
@@ -585,22 +585,22 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if val.IsNull() {
 			return val
 		}
-		return ectx.NewValue(typ, zed.EncodeFloat16(-zed.DecodeFloat16(val.Bytes)))
+		return ectx.NewValue(typ, zed.EncodeFloat16(-zed.DecodeFloat16(val.Bytes())))
 	case zed.IDFloat32:
 		if val.IsNull() {
 			return val
 		}
-		return ectx.NewValue(typ, zed.EncodeFloat32(-zed.DecodeFloat32(val.Bytes)))
+		return ectx.NewValue(typ, zed.EncodeFloat32(-zed.DecodeFloat32(val.Bytes())))
 	case zed.IDFloat64:
 		if val.IsNull() {
 			return val
 		}
-		return ectx.NewValue(typ, zed.EncodeFloat64(-zed.DecodeFloat64(val.Bytes)))
+		return ectx.NewValue(typ, zed.EncodeFloat64(-zed.DecodeFloat64(val.Bytes())))
 	case zed.IDInt8:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeInt(val.Bytes)
+		v := zed.DecodeInt(val.Bytes())
 		if v == math.MinInt8 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int8(%d)", v))
 		}
@@ -609,7 +609,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeInt(val.Bytes)
+		v := zed.DecodeInt(val.Bytes())
 		if v == math.MinInt16 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int16(%d)", v))
 		}
@@ -618,7 +618,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeInt(val.Bytes)
+		v := zed.DecodeInt(val.Bytes())
 		if v == math.MinInt32 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int32(%d)", v))
 		}
@@ -627,7 +627,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeInt(val.Bytes)
+		v := zed.DecodeInt(val.Bytes())
 		if v == math.MinInt64 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int64(%d)", v))
 		}
@@ -636,7 +636,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeUint(val.Bytes)
+		v := zed.DecodeUint(val.Bytes())
 		if v > math.MaxInt8 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint8(%d)", v))
 		}
@@ -645,7 +645,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeUint(val.Bytes)
+		v := zed.DecodeUint(val.Bytes())
 		if v > math.MaxInt16 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint16(%d)", v))
 		}
@@ -654,7 +654,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeUint(val.Bytes)
+		v := zed.DecodeUint(val.Bytes())
 		if v > math.MaxInt32 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint32(%d)", v))
 		}
@@ -663,7 +663,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeUint(val.Bytes)
+		v := zed.DecodeUint(val.Bytes())
 		if v > math.MaxInt64 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint64(%d)", v))
 		}
@@ -720,11 +720,11 @@ func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 	index := i.index.Eval(ectx, this)
 	switch typ := zed.TypeUnder(container.Type).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
-		return indexVector(i.zctx, ectx, zed.InnerType(typ), container.Bytes, index)
+		return indexVector(i.zctx, ectx, zed.InnerType(typ), container.Bytes(), index)
 	case *zed.TypeRecord:
-		return indexRecord(i.zctx, ectx, typ, container.Bytes, index)
+		return indexRecord(i.zctx, ectx, typ, container.Bytes(), index)
 	case *zed.TypeMap:
-		return indexMap(i.zctx, ectx, typ, container.Bytes, index)
+		return indexMap(i.zctx, ectx, typ, container.Bytes(), index)
 	default:
 		return i.zctx.Missing()
 	}
@@ -737,9 +737,9 @@ func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.B
 	}
 	var idx int
 	if zed.IsSigned(id) {
-		idx = int(zed.DecodeInt(index.Bytes))
+		idx = int(zed.DecodeInt(index.Bytes()))
 	} else {
-		idx = int(zed.DecodeUint(index.Bytes))
+		idx = int(zed.DecodeUint(index.Bytes()))
 	}
 	zv := getNthFromContainer(vector, idx)
 	if zv == nil {
@@ -753,7 +753,7 @@ func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zc
 	if id != zed.IDString {
 		return ectx.CopyValue(zctx.NewErrorf("record index is not a string"))
 	}
-	field := zed.DecodeString(index.Bytes)
+	field := zed.DecodeString(index.Bytes())
 	val := zed.NewValue(typ, record).Deref(field)
 	if val == nil {
 		return zctx.Missing()
@@ -769,7 +769,7 @@ func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.
 		if union, ok := zed.TypeUnder(typ.KeyType).(*zed.TypeUnion); ok {
 			if tag := union.TagOf(key.Type); tag >= 0 {
 				var b zcode.Builder
-				zed.BuildUnion(&b, union.TagOf(key.Type), key.Bytes)
+				zed.BuildUnion(&b, union.TagOf(key.Type), key.Bytes())
 				if valBytes, ok := lookupKey(mapBytes, b.Bytes().Body()); ok {
 					return deunion(ectx, typ.ValType, valBytes)
 				}
@@ -777,7 +777,7 @@ func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.
 		}
 		return zctx.Missing()
 	}
-	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
+	if valBytes, ok := lookupKey(mapBytes, key.Bytes()); ok {
 		return deunion(ectx, typ.ValType, valBytes)
 	}
 	return zctx.Missing()
@@ -812,7 +812,7 @@ func (c *Conditional) Eval(ectx Context, this *zed.Value) *zed.Value {
 		val := *c.zctx.NewErrorf("?-operator: bool predicate required")
 		return &val
 	}
-	if zed.DecodeBool(val.Bytes) {
+	if zed.DecodeBool(val.Bytes()) {
 		return c.thenExpr.Eval(ectx, this)
 	}
 	return c.elseExpr.Eval(ectx, this)
@@ -864,7 +864,7 @@ func (c *evalCast) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if val.IsNull() || val.Type == c.typ {
 		// If value is null or the type won't change, just return a
 		// copy of the value.
-		return ectx.NewValue(c.typ, val.Bytes)
+		return ectx.NewValue(c.typ, val.Bytes())
 	}
 	return c.caster.Eval(ectx, val)
 }

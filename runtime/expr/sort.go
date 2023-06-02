@@ -40,9 +40,9 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 					i64s[i] = math.MinInt64
 				}
 			} else if zed.IsSigned(id) {
-				i64s[i] = zed.DecodeInt(val.Bytes)
+				i64s[i] = zed.DecodeInt(val.Bytes())
 			} else {
-				v := zed.DecodeUint(val.Bytes)
+				v := zed.DecodeUint(val.Bytes())
 				if v > math.MaxInt64 {
 					v = math.MaxInt64
 				}
@@ -182,7 +182,7 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 	}
 
 	typ := a.Type
-	abytes, bbytes := a.Bytes, b.Bytes
+	abytes, bbytes := a.Bytes(), b.Bytes()
 	if a.Type.ID() != b.Type.ID() {
 		id, err := pair.Coerce(a, b)
 		if err == nil {

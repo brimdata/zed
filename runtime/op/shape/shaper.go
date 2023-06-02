@@ -69,7 +69,7 @@ func (i *integer) check(val zed.Value) {
 		i.unsigned = false
 		return
 	}
-	f := zed.DecodeFloat64(val.Bytes)
+	f := zed.DecodeFloat64(val.Bytes())
 	//XXX We could track signed vs unsigned and overflow,
 	// but for now, we leave it as float64 unless we can
 	// guarantee int64.
@@ -83,7 +83,7 @@ func (i *integer) check(val zed.Value) {
 }
 
 func (a *anchor) updateInts(rec *zed.Value) error {
-	it := rec.Bytes.Iter()
+	it := rec.Bytes().Iter()
 	for k, f := range rec.Fields() {
 		a.integers[k].check(*zed.NewValue(f.Type, it.Next()))
 	}
@@ -228,7 +228,7 @@ func (s *Shaper) Write(rec *zed.Value) error {
 }
 
 func (s *Shaper) stash(rec *zed.Value) error {
-	s.nbytes += len(rec.Bytes)
+	s.nbytes += len(rec.Bytes())
 	if s.nbytes >= s.memMaxBytes {
 		var err error
 		s.spiller, err = spill.NewTempFile()
@@ -256,7 +256,7 @@ func (s *Shaper) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	bytes := rec.Bytes
+	bytes := rec.Bytes()
 	targetType, err := s.needRecode(rec.Type)
 	if err != nil {
 		return nil, err

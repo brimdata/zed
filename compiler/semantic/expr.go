@@ -416,7 +416,7 @@ func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 func isStringConst(zctx *zed.Context, e dag.Expr) (field string, ok bool) {
 	val, err := kernel.EvalAtCompileTime(zctx, e)
 	if err == nil && !val.IsError() && zed.TypeUnder(val.Type) == zed.TypeString {
-		return string(val.Bytes), true
+		return string(val.Bytes()), true
 	}
 	return "", false
 }

@@ -113,10 +113,10 @@ func sortObjects(objects []*data.Object, o order.Which) {
 		if cmp(aFrom, bFrom) < 0 {
 			return true
 		}
-		if !bytes.Equal(aFrom.Bytes, bFrom.Bytes) {
+		if !bytes.Equal(aFrom.Bytes(), bFrom.Bytes()) {
 			return false
 		}
-		if bytes.Equal(aTo.Bytes, bTo.Bytes) {
+		if bytes.Equal(aTo.Bytes(), bTo.Bytes()) {
 			// If the pool keys are equal for both the first and last values
 			// in the object, we return false here so that the stable sort preserves
 			// the commit order of the objects in the log. XXX we might want to

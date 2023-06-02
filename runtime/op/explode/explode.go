@@ -45,7 +45,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 					}
 					continue
 				}
-				zed.Walk(val.Type, val.Bytes, func(typ zed.Type, body zcode.Bytes) error {
+				zed.Walk(val.Type, val.Bytes(), func(typ zed.Type, body zcode.Bytes) error {
 					if typ == o.typ && body != nil {
 						bytes := zcode.Append(nil, body)
 						out = append(out, *zed.NewValue(o.outType, bytes))
