@@ -1,3 +1,8 @@
+## v1.8.1
+* Send an HTTP 400 response instead of HTTP 500 for attempted deletes that find nothing to delete (#4618)
+* Send an HTTP 400 response instead of HTTP 500 for queries that parse ok but fail to compile, such as searches lacking a leading [`from`](docs/language/operators/from.md) (#4620)
+* Fix an issue where some regexps were not matching pool names when used in a `from` (#4619)
+
 ## v1.8.0
 * Improve [`sort`](docs/language/operators/sort.md) performance for `duration` and `time` types (#4469)
 * Improve performance and reduce memory used by `zed load` and `sort` on multi-GB inputs (#4476, #4484)
