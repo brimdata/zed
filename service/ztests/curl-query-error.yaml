@@ -1,0 +1,25 @@
+script: |
+  source service.sh
+  zed create -q test
+  curl -w 'code %{response_code}\n' -d '' $ZED_LAKE/query
+  curl -w 'code %{response_code}\n' -d '{"query":""}' $ZED_LAKE/query
+  curl -w 'code %{response_code}\n' -d '{"query":"from HEAD"}' $ZED_LAKE/query
+  curl -w 'code %{response_code}\n' -d '{"query":"from :unknownmeta"}' $ZED_LAKE/query
+  curl -w 'code %{response_code}\n' -d '{"query":"from doesnotexist"}' $ZED_LAKE/query
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {"type":"Error","kind":"invalid operation","error":"pool name missing"}
+      code 400
+      {"type":"Error","kind":"invalid operation","error":"pool name missing"}
+      code 400
+      {"type":"Error","kind":"invalid operation","error":"pool name missing"}
+      code 400
+      {"type":"Error","kind":"invalid operation","error":"unknown lake metadata type \"unknownmeta\" in from operator"}
+      code 400
+      {"type":"Error","kind":"item does not exist","error":"doesnotexist: pool not found"}
+      code 404

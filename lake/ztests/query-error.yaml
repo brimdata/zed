@@ -1,0 +1,15 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  ! zed query ''
+  ! zed query 'from HEAD'
+  ! zed query 'from :unknownmeta'
+  ! zed query 'from doesnotexist'
+
+outputs:
+  - name: stderr
+    data: |
+      query must include a 'from' operator
+      cannot scan from unknown HEAD
+      unknown lake metadata type "unknownmeta" in from operator
+      doesnotexist: pool not found
