@@ -68,7 +68,7 @@ is a search for values with both the strings "example.com" and "urgent" present.
 Unlike typical log search systems, the Zed language operators are uniform:
 you can specify an operator including keyword search terms, Boolean predicates,
 etc. using the same syntax at any point in the pipeline as
-[described below](#8-search-expressions).
+[described below](#9-search-expressions).
 
 For example,
 the predicate `message_length > 100` can simply be tacked onto the keyword search
@@ -167,7 +167,7 @@ operators "find" values in their input and drop
 the ones that do not match what is being looked for.
 
 The [`yield` operator](operators/yield.md) emits one or more output values
-for each input value based on arbitrary [expressions](#7-expressions),
+for each input value based on arbitrary [expressions](#8-expressions),
 providing a convenient means to derive arbitrary output values as a function
 of each input value, much like the map concept in the MapReduce framework.
 
@@ -219,7 +219,7 @@ forwarded from the switch to the downstream operator in an undefined order.
 ### 2.3 The Special Value `this`
 
 In Zed, there are no looping constructs and variables are limited to binding
-values between [lateral scopes](#91-lateral-scope) as described below.
+values between [lateral scopes](#101-lateral-scope) as described below.
 Instead, the input sequence
 to an operator is produced continuously and any output values are derived
 from input values.
@@ -335,7 +335,7 @@ is abbreviated
 foo bar or x > 100
 ```
 Furthermore, if an operator-free expression is not valid syntax for
-a search expression but is a valid [Zed expression](#7-expressions),
+a search expression but is a valid [Zed expression](#8-expressions),
 then the abbreviation is treated as having an implied `yield` operator, e.g.,
 ```
 {s:lower(s)}
@@ -401,7 +401,7 @@ Constants may be defined and assigned to a symbolic name with the syntax
 ```
 const <id> = <expr>
 ```
-where `<id>` is an identifier and `<expr>` is a constant [expression](#7-expressions)
+where `<id>` is an identifier and `<expr>` is a constant [expression](#8-expressions)
 that must evaluate to a constant at compile time and not reference any
 runtime state such as `this`, e.g.,
 ```mdtest-command
@@ -414,7 +414,7 @@ produces
 ```
 
 One or more `const` statements may appear only at the beginning of a scope
-(i.e., the main scope at the start of a Zed program or a [lateral scope](#91-lateral-scope)
+(i.e., the main scope at the start of a Zed program or a [lateral scope](#101-lateral-scope)
 defined by an [`over` operator](operators/over.md))
 and binds the identifier to the value in the scope in which it appears in addition
 to any contained scopes.
@@ -431,7 +431,7 @@ User-defined functions may be created with the syntax
 func <id> ( [<param> [, <param> ...]] ) : ( <expr> )
 ```
 where `<id>` and `<param>` are identifiers and `<expr>` is an
-[expression](#7-expressions) that may refer to parameters but not to runtime
+[expression](#8-expressions) that may refer to parameters but not to runtime
 state such as `this`.
 
 For example,
@@ -447,7 +447,7 @@ produces
 ```
 
 One or more `func` statements may appear at the beginning of a scope
-(i.e., the main scope at the start of a Zed program or a [lateral scope](#91-lateral-scope)
+(i.e., the main scope at the start of a Zed program or a [lateral scope](#101-lateral-scope)
 defined by an [`over` operator](operators/over.md))
 and binds the identifier to the expression in the scope in which it appears in addition
 to any contained scopes.
@@ -457,13 +457,102 @@ scope but can override identifiers defined in ancestor scopes.
 
 `func` statements may appear intermixed with `const` and `type` statements.
 
-## 5. Type Statements
+## 5. Operator Statements
+
+User-defined operators may be created with the syntax
+
+```
+op <id> ( [<param> [, <param> ...]] ) : ( 
+  <sequence>
+)
+```
+where `<id>` is the operator identifier, `<param>` are the parameters for the
+operator, and `<sequence>` is the chain of operators (e.g., `operator | ...`)
+where the operator does its work.
+
+A user-defined operator can then be called with using the familiar call syntax
+```
+<id> ( [<expr> [, <expr> ...]] )
+```
+where `<id>` is the identifier of the user-defined operator and `<expr>` is a list
+of [expressions](#8-expressions) matching the number of `<param>`s defined in
+the operator's signature.
+
+### 5.1 Sequence `this` Value
+
+The `this` value of a user-defined operator's sequence is a record value
+comprised of the paramters provided in the operator's signature.
+
+For instance the `this` value of operator
+```
+op myop(foo, bar, baz): (
+  ...
+)
+myop("foo", "bar", "baz")
+```
+would be `{foo:"foo",bar:"bar",baz:"baz"}`.
+
+### 5.2 Spread Parameters
+
+In addition to the standard named parameter syntax, user-defined operators may
+use the spread operator `...` to indicate that the operator expects a record
+value whose key/values will be expanded as entries in the operator's `this`
+record value.
+
+The most common use of spread parameters will be to carry the `this` value of
+the calling context into the operator's sequence.
+
+For instance the program in `spread.zed`
+```mdtest-input spread.zed
+op stamp(...): (
+  put ts := 2021-01-01T00:00:00Z
+)
+stamp(this)
+```
+run via
+```mdtest-command
+echo '{foo:"foo",bar:"bar"}' | zq -z -I spread.zed -
+```
+produces
+```mdtest-output
+{foo:"foo",bar:"bar",ts:2021-01-01T00:00:00Z}
+```
+
+### 5.3 Nested Calls
+
+User-defined operators can make calls to other user-defined operators that
+are declared within the same scope or in a parent's scope. To illustrate, a program in `nested.zed`
+```mdtest-input nested.zed
+op add2(x): (
+  x := x + 2
+)
+
+op add4(x): (
+  add2(x) | add2(x)
+)
+
+add4(x)
+```
+run via
+```mdtest-command
+echo '{x:1}' | zq -z -I nested.zed -
+```
+produces
+```mdtest-output
+{x:5}
+```
+
+One caveat with nested calls is that calls to other user-defined operators must
+not produce a cycle, i.e., recursive and mutually recursive operators are not
+allowed and will produce an error.
+
+## 6. Type Statements
 
 Named types may be created with the syntax
 ```
 type <id> = <type>
 ```
-where `<id>` is an identifier and `<type>` is a [Zed type](#61-first-class-types).
+where `<id>` is an identifier and `<type>` is a [Zed type](#71-first-class-types).
 This creates a new type with the given name in the Zed type system, e.g.,
 ```mdtest-command
 echo 80 | zq -z 'type port=uint16 cast(this, <port>)' -
@@ -474,7 +563,7 @@ produces
 ```
 
 One or more `type` statements may appear at the beginning of a scope
-(i.e., the main scope at the start of a Zed program or a [lateral scope](#91-lateral-scope)
+(i.e., the main scope at the start of a Zed program or a [lateral scope](#101-lateral-scope)
 defined by an [`over` operator](operators/over.md))
 and binds the identifier to the type in the scope in which it appears in addition
 to any contained scopes.
@@ -484,7 +573,7 @@ scope but can override identifiers defined in ancestor scopes.
 
 `type` statements may appear intermixed with `const` and `func` statements.
 
-## 6. Data Types
+## 7. Data Types
 
 The Zed language includes most data types of a typical programming language
 as defined in the [Zed data model](../formats/zed.md).
@@ -493,7 +582,7 @@ The syntax of individual literal values generally follows
 the [ZSON syntax](../formats/zson.md) with the exception that
 [type decorators](../formats/zson.md#22-type-decorators)
 are not included in the language.  Instead, a
-[type cast](#712-casts) may be used in any expression for explicit
+[type cast](#812-casts) may be used in any expression for explicit
 type conversion.
 
 In particular, the syntax of primitive types follows the
@@ -501,9 +590,9 @@ In particular, the syntax of primitive types follows the
 as well as the various [complex value definitions](../formats/zson.md#24-complex-values)
 like records, arrays, sets, and so forth.  However, complex values are not limited to
 constant values like ZSON and can be composed from literal expressions as
-[defined below](#711-literals).
+[defined below](#811-literals).
 
-### 6.1 First-class Types
+### 7.1 First-class Types
 
 Like the Zed data model, the Zed language has first-class types:
 any Zed type may be used as a value.
@@ -532,7 +621,7 @@ The [`typeof` function](functions/typeof.md) returns a value's type as
 a value, e.g., `typeof(1)` is `<int64>` and `typeof(<int64>)` is `<type>`.
 
 First-class types are quite powerful because types can
-serve as group-by keys or be used in ["data shaping"](#10-shaping) logic.
+serve as group-by keys or be used in ["data shaping"](#11-shaping) logic.
 A common workflow for data introspection is to first perform a search of
 exploratory data and then count the shapes of each type of data as follows:
 ```
@@ -563,13 +652,13 @@ and a record type used as a value
 <{t:string}>
 ```
 
-### 6.2 Named Types
+### 7.2 Named Types
 
 As in any modern programming language, types can be named and the type names
 persist into the data model and thus into the serialized input and output.
 
 Named types may be defined in three ways:
-* with a [`type` statement as described above](#5-type-statements),
+* with a [`type` statement as described above](#6-type-statements),
 * with a definition inside of another type, or
 * by the input data itself.
 
@@ -672,7 +761,7 @@ and put the data into the table before that data can be queried as an "employee"
 And if the schema or type name for "employee" changes, queries still continue
 to work.
 
-### 6.3 First-class Errors
+### 7.3 First-class Errors
 
 As with types, errors in Zed are first-class: any value can be transformed
 into an error by wrapping it in the Zed [`error` type](../formats/zed.md#27-error).
@@ -726,7 +815,7 @@ For example, suppose a bad value shows up:
 ```
 {kind:"bad", stuff:{foo:1,bar:2}}
 ```
-A Zed [shaper](#10-shaping) could catch the bad value (e.g., as a default
+A Zed [shaper](#11-shaping) could catch the bad value (e.g., as a default
 case in a [`switch`](operators/switch.md) topology) and propagate it as
 an error using the Zed expression:
 ```
@@ -755,7 +844,7 @@ but having a first-class data type to manage them all while allowing them to
 peacefully coexist with valid production data is a novel and
 useful approach that Zed enables.
 
-#### 6.3.1 Missing and Quiet
+#### 7.3.1 Missing and Quiet
 
 Zed's heterogeneous data model allows for queries
 that operate over different types of data whose structure and type
@@ -829,7 +918,7 @@ produces
 0
 ```
 
-## 7. Expressions
+## 8. Expressions
 
 Zed expressions follow the typical patterns in programming languages.
 Expressions are typically used within data flow operators
@@ -839,7 +928,7 @@ input value [`this`](#23-the-special-value-this).
 For example, `yield`, `where`, `cut`, `put`, `sort` and so forth all take
 various expressions as part of their operation.
 
-### 7.1 Arithmetic
+### 8.1 Arithmetic
 
 Arithmetic operations (`*`, `/`, `%`, `+`, `-`) follow customary syntax
 and semantics and are left-associative with multiplication and division having
@@ -857,7 +946,7 @@ error("divide by zero")
 "foobar"
 ```
 
-### 7.2 Comparisons
+### 8.2 Comparisons
 
 Comparison operations (`<`, `<=`, `==`, `!=`, `>`, `>=`) follow customary syntax
 and semantics and result in a truth value of type `bool` or an error.
@@ -884,7 +973,7 @@ false
 error("missing")
 ```
 
-### 7.3 Containment
+### 8.3 Containment
 
 The `in` operator has the form
 ```
@@ -914,7 +1003,7 @@ produces
 {id:2}
 ```
 
-### 7.4 Logic
+### 8.4 Logic
 
 The keywords `and`, `or`, and `not` perform logic on operands of type `bool`.
 The binary operators `and` and `or` operate on Boolean values and result in
@@ -923,7 +1012,7 @@ on its unary operand and results in an error if its operand is not type `bool`.
 Unlike many other languages, non-Boolean values are not automatically converted to
 Boolean type using "truthiness" heuristics.
 
-### 7.5 Field Dereference
+### 8.5 Field Dereference
 
 Record fields are dereferenced with the dot operator `.` as is customary
 in other languages and have the form
@@ -931,7 +1020,7 @@ in other languages and have the form
 <value> . <id>
 ```
 where `<id>` is an identifier representing the field name referenced.
-If a field name is not representable as an identifier, then [indexing](#76-indexing)
+If a field name is not representable as an identifier, then [indexing](#86-indexing)
 may be used with a quoted string to represent any valid field name.
 Such field names can be accessed using
 [`this`](#23-the-special-value-this) and an array-style reference, e.g.,
@@ -941,7 +1030,7 @@ If the dot operator is applied to a value that is not a record
 or if the record does not have the given field, then the result is
 `error("missing")`.
 
-### 7.6 Indexing
+### 8.6 Indexing
 
 The index operation can be applied to various data types and has the form:
 ```
@@ -972,7 +1061,7 @@ If the `<value>` expression is type `bytes`, then the `<index>` operand
 must be coercible to an integer and the result is an unsigned 8-bit integer
 representing the byte value at that offset in the bytes sequence.
 
-### 7.7 Slices
+### 8.7 Slices
 
 The slice operation can be applied to various data types and has the form:
 ```
@@ -997,7 +1086,7 @@ consisting of unicode code points comprising the given range.
 If the `<value>` expression is type `bytes`, then the result is a bytes sequence
 consisting of bytes comprising the given range.
 
-### 7.8 Conditional
+### 8.8 Conditional
 
 A conditional expression has the form
 ```
@@ -1021,7 +1110,7 @@ produces
 ```
 
 Note that if the expression has side effects,
-as with [aggregate function calls](#710-aggregate-function-calls), only the selected expression
+as with [aggregate function calls](#810-aggregate-function-calls), only the selected expression
 will be evaluated.
 
 For example,
@@ -1035,7 +1124,7 @@ produces
 {foocount:2(uint64)}
 ```
 
-### 7.9 Function Calls
+### 8.9 Function Calls
 
 Functions perform stateless transformations of their input value to their return
 value and utilize call-by value semantics with positional and unnamed arguments.
@@ -1056,7 +1145,7 @@ a variable number of arguments.
 
 Zed also allows you to create [user-defined functions](#4-func-statements).
 
-### 7.10 Aggregate Function Calls
+### 8.10 Aggregate Function Calls
 
 [Aggregate functions](aggregates/README.md) may be called within an expression.
 Unlike the aggregation context provided by a [summarizing group-by](operators/summarize.md), such calls
@@ -1086,9 +1175,9 @@ produces just one output value
 {count:3(uint64),union:|["bar","baz","foo"]|}
 ```
 
-### 7.11 Literals
+### 8.11 Literals
 
-Any of the [data types listed above](#6-data-types) may be used in expressions
+Any of the [data types listed above](#7-data-types) may be used in expressions
 as long as it is compatible with the semantics of the expression.
 
 String literals are enclosed in either single quotes or double quotes and
@@ -1096,7 +1185,7 @@ must conform to UTF-8 encoding and follow the JavaScript escaping
 conventions and unicode escape syntax.  Also, if the sequence `${` appears
 in a string the `$` character must be escaped, i.e., `\$`.
 
-#### 7.11.1 String Interpolation
+#### 8.11.1 String Interpolation
 
 Strings may include interpolation expressions, which has the form
 ```
@@ -1134,7 +1223,7 @@ produces
 "oh hi!"
 ```
 
-#### 7.11.2 Record Expressions
+#### 8.11.2 Record Expressions
 
 Record literals have the form
 ```
@@ -1171,7 +1260,7 @@ produces
 {a:1,b:3}
 ```
 
-#### 7.11.3 Array Expressions
+#### 8.11.3 Array Expressions
 
 Array literals have the form
 ```
@@ -1210,7 +1299,7 @@ produces
 [1,2,3,4,5]
 ```
 
-#### 7.11.4 Set Expressions
+#### 8.11.4 Set Expressions
 
 Set literals have the form
 ```
@@ -1252,7 +1341,7 @@ produces
 |[1,2,3,4]|
 ```
 
-#### 7.11.5 Map Expressions
+#### 8.11.5 Map Expressions
 
 Map literals have the form
 ```
@@ -1273,9 +1362,9 @@ produces
 |{"foo":1,"barbaz":5}|
 ```
 
-#### 7.11.6 Union Values
+#### 8.11.6 Union Values
 
-A union value can be created with a [cast](#712-casts).  For example, a union of types `int64`
+A union value can be created with a [cast](#812-casts).  For example, a union of types `int64`
 and `string` is expressed as `(int64,string)` and any value that has a type
 that appears in the union type may be cast to that union type.
 Since 1 is an `int64` and "foo" is a `string`, they both can be
@@ -1310,7 +1399,7 @@ produces
 <[(int64,string)]>
 ```
 
-### 7.12 Casts
+### 8.12 Casts
 
 Type conversion is performed with casts and the built-in [`cast` function](functions/cast.md).
 
@@ -1318,7 +1407,7 @@ Casts for primitive types have a function-style syntax of the form
 ```
 <type> ( <expr> )
 ```
-where `<type>` is a [Zed type](#61-first-class-types) and `<expr>` is any Zed expression.
+where `<type>` is a [Zed type](#71-first-class-types) and `<expr>` is any Zed expression.
 In the case of primitive types, the type-value angle brackets
 may be omitted, e.g., `<string>(1)` is equivalent to `string(1)`.
 If the result of `<expr>` cannot be converted
@@ -1349,7 +1438,7 @@ produces
 1970-10-07T00:00:00Z
 ```
 
-Casts of complex or [named types](#62-named-types) may be performed using type values
+Casts of complex or [named types](#72-named-types) may be performed using type values
 either in functional form or with `cast`:
 ```
 <type-value> ( <expr> )
@@ -1385,22 +1474,22 @@ produces
 {ts:2022-01-02T00:00:00Z,r:{x:3.,y:4.}}
 ```
 
-## 8. Search Expressions
+## 9. Search Expressions
 
 Search expressions provide a hybrid syntax between keyword search
 and boolean expressions.  In this way, a search is a shorthand for
 a "lean forward" style activity where one is interactively exploring
 data with ad hoc searches.  All shorthand searches have a corresponding
 long form built from the expression syntax above in combination with the
-[search term syntax](#821-search-terms) described below.
+[search term syntax](#921-search-terms) described below.
 
-### 8.1 Search Patterns
+### 9.1 Search Patterns
 
 Several styles of string search can be performed with a search expression
 (as well as the [`grep` function](functions/grep.md)) using "patterns",
 where a pattern is a regular expression, glob, or simple string.
 
-#### 8.1.1 Regular Expressions
+#### 9.1.1 Regular Expressions
 
 A regular expression is specified in the familiar slash syntax where the
 expression begins with a `/` character and ends with a terminating `/` character.
@@ -1435,7 +1524,7 @@ produces
 {ba_start:false,last_s_char:error("missing")}
 ```
 
-#### 8.1.2 Globs
+#### 9.1.2 Globs
 
 Globs provide a convenient short-hand for regular expressions and follow
 the familiar pattern of "file globbing" supported by Unix shells.
@@ -1503,7 +1592,7 @@ a*b==c
 ```
 is a Boolean comparison between the product `a*b` and `c`.
 
-### 8.2 Search Logic
+### 9.2 Search Logic
 
 The search patterns described above can be combined with other "search terms"
 using Boolean logic to form search expressions.
@@ -1518,7 +1607,7 @@ using Boolean logic to form search expressions.
 > search using a full-text search index.  Currently, search indexes may be built
 > for exact value match as text segmentation is in the works.
 
-#### 8.2.1 Search Terms
+#### 9.2.1 Search Terms
 
 A "search term" is one of the following;
 * a regular expression as described above,
@@ -1527,7 +1616,7 @@ A "search term" is one of the following;
 * any literal of a primitive type, or
 * expression predicates.
 
-##### 8.2.1.1 Regular Expression Search Term
+##### 9.2.1.1 Regular Expression Search Term
 
 A regular expression `/re/` is equivalent to
 ```
@@ -1542,7 +1631,7 @@ For example,
 Searches for any string that begins with `foo` or `bar` has the string
 `baz` in it and ends with `.com`.
 
-##### 8.2.1.2 Glob Search Term
+##### 9.2.1.2 Glob Search Term
 
 A glob search term `<glob>` is equivalent to
 ```
@@ -1557,7 +1646,7 @@ foo*baz*.com
 Searches for any string that begins with `foo` has the string
 `baz` in it and ends with `.com`.
 
-##### 8.2.1.3 Keyword Search Term
+##### 9.2.1.3 Keyword Search Term
 
 Keywords and string literals are equivalent search terms so it is often
 easier to quote a string search term instead of using escapes in a keyword.
@@ -1597,7 +1686,7 @@ foo
 As above, this program searches the implied input for values that
 contain the string "foo".
 
-##### 8.2.1.4 String Literal Search Term
+##### 9.2.1.4 String Literal Search Term
 
 A string literal as a search term is simply a search for that string and is
 equivalent to
@@ -1619,7 +1708,7 @@ where grep("foo", this)
 > will match segmented words from string fields so that they can be efficiently
 > queried in search indexes.
 
-##### 8.2.1.5 Non-String Literal Search Term
+##### 9.2.1.5 Non-String Literal Search Term
 
 Search terms representing non-string Zed values search for both an exact
 match for the given value as well as a string search for the term exactly
@@ -1657,10 +1746,10 @@ the "in" operator, e.g.,
 {s:"foo"} in this
 ```
 
-##### 8.2.1.6 Predicate Search Term
+##### 9.2.1.6 Predicate Search Term
 
 Any Boolean-valued [function](functions/README.md) like `is`, `has`,
-`grep`, etc. and any [comparison expression](#72-comparisons)
+`grep`, etc. and any [comparison expression](#82-comparisons)
 may be used as a search term and mixed into a search expression.
 
 For example,
@@ -1673,7 +1762,7 @@ is a valid search expression but
 ```
 is not.
 
-#### 8.3 Boolean Logic
+#### 9.3 Boolean Logic
 
 Search terms may be combined into boolean expressions using logical operators
 `and`, `or` and `not`.  `and` may be elided; i.e., concatenation of search terms
@@ -1702,7 +1791,7 @@ means
 grep("foo") and (grep("bar)) or grep("baz"))
 ```
 
-## 9. Lateral Subqueries
+## 10. Lateral Subqueries
 
 Lateral subqueries provide a powerful means to apply a Zed query
 to each subsequence of values generated from an outer sequence of values.
@@ -1757,7 +1846,7 @@ produces
 {s:"bar",elem:3}
 ```
 
-### 9.1 Lateral Scope
+### 10.1 Lateral Scope
 
 A lateral scope has the form `=> ( <query> )` and currently appears
 only the context of an [`over` operator](operators/over.md),
@@ -1801,7 +1890,7 @@ produces
 [1,2,3]
 ```
 
-### 9.2 Lateral Expressions
+### 10.2 Lateral Expressions
 
 Lateral subqueries can also appear in expression context using the
 parenthesized form:
@@ -1842,7 +1931,7 @@ produces
 {sorted:[1,2,3],sum:6}
 ```
 
-## 10. Shaping
+## 11. Shaping
 
 Data that originates from heterogeneous sources typically has
 inconsistent structure and is thus difficult to reason about or query.
@@ -1905,7 +1994,7 @@ We also use this sample JSON input in a file called `sample.json`:
 }
 ```
 
-### 10.1 Cast
+### 11.1 Cast
 
 The `cast` function applies a cast operation to each leaf value that matches the
 field path in the specified type, e.g.,
@@ -1913,7 +2002,7 @@ field path in the specified type, e.g.,
 zq -Z -I connection.zed "cast(this, <connection>)" sample.json
 ```
 casts the address fields to type `ip`, the port fields to type `port`
-(which is a [named type](#62-named-types) for type `uint16`) and the address port pairs to
+(which is a [named type](#72-named-types) for type `uint16`) and the address port pairs to
 type `socket` without modifying the `uid` field or changing the
 order of the `server` and `client` fields:
 ```mdtest-output
@@ -1931,7 +2020,7 @@ order of the `server` and `client` fields:
 }
 ```
 
-### 10.2 Crop
+### 11.2 Crop
 
 Cropping is useful when you want records to "fit" a schema tightly, e.g.,
 ```mdtest-command
@@ -1952,7 +2041,7 @@ removes the `uid` field since it is not in the `connection` type:
 }
 ```
 
-### 10.3 Fill
+### 11.3 Fill
 
 Use `fill` when you want to fill out missing fields with nulls, e.g.,
 ```mdtest-command
@@ -1976,7 +2065,7 @@ the `connection` type has it:
 }
 ```
 
-### 10.4 Order
+### 11.4 Order
 
 The `order` function changes the order of fields in its input to match the
 order in the specified type, as field order is significant in Zed records, e.g.,
@@ -2000,7 +2089,7 @@ about the `uid` field as it is not in the `connection` type:
 }
 ```
 
-### 10.5 Shape
+### 11.5 Shape
 
 The `shape` function brings everything together by applying `cast`,
 `fill`, and `order` all in one step, e.g.,
@@ -2044,7 +2133,7 @@ drops the `uid` field after shaping:
     vlan: null (uint16)
 }
 ```
-## 11. Type Fusion
+## 12. Type Fusion
 
 Type fusion is another important building block of data shaping.
 Here, types are operated upon by fusing them together, where the
@@ -2087,7 +2176,7 @@ To perform fusion, Zed currently includes two key mechanisms
 * the [`fuse` operator](operators/fuse.md), and
 * the [`fuse` aggregate function](aggregates/fuse.md).
 
-### 11.1 Fuse Operator
+### 12.1 Fuse Operator
 
 The `fuse` operator reads all of its input, computes a fused type using
 the techniques above, and outputs the result, e.g.,
@@ -2111,7 +2200,7 @@ requires a type union for field `x` and produces:
 {x:2((int64,string)),y:"bar"}
 ```
 
-### 11.2 Fuse Aggregate Function
+### 12.2 Fuse Aggregate Function
 
 The `fuse` aggregate function is most often useful during data exploration and discovery
 where you might interactively run queries to determine the shapes of some new

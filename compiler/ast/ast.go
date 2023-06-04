@@ -28,6 +28,10 @@ type Expr interface {
 	ExprAST()
 }
 
+type Param interface {
+	ParamAST()
+}
+
 type ID struct {
 	Kind string `json:"kind" unpack:""`
 	Name string `json:"name"`
@@ -211,8 +215,16 @@ type FuncDecl struct {
 	Expr   Expr     `json:"expr"`
 }
 
+type OpDecl struct {
+	Kind   string  `json:"kind" unpack:""`
+	Name   string  `json:"name"`
+	Params []Param `json:"params"`
+	Body   Seq     `json:"body"`
+}
+
 func (*ConstDecl) DeclAST() {}
 func (*FuncDecl) DeclAST()  {}
+func (*OpDecl) DeclAST()    {}
 
 // ----------------------------------------------------------------------------
 // Operators
@@ -525,3 +537,19 @@ type Agg struct {
 	Expr  Expr   `json:"expr"`
 	Where Expr   `json:"where"`
 }
+
+// ----------------------------------------------------------------------------
+// Params
+
+type (
+	NamedParam struct {
+		Kind string `json:"kind" unpack:""`
+		Name string `json:"name"`
+	}
+	SpreadParam struct {
+		Kind string `json:"kind" unpack:""`
+	}
+)
+
+func (*NamedParam) ParamAST()  {}
+func (*SpreadParam) ParamAST() {}

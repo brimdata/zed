@@ -10,7 +10,9 @@ inputs:
       const foo = "bar"
       func add(a,b): (a+b)
       const bar = "baz"
-      pass
+      op stamp(outer, assignee): ( yield {...outer, assignee, ts: now()} )
+      op addbar(...): ( pass )
+      stamp(this, "bob")
 
 outputs:
   - name: stdout
@@ -23,7 +25,13 @@ outputs:
         a+b
       )
       const bar = "baz"
-      pass
+      op stamp(outer, assignee): (
+        yield {...outer,assignee,ts:now()}
+      )
+      op addbar(...): (
+        pass
+      )
+      stamp(this, "bob")
       ===
       reader
       | (
@@ -35,6 +43,12 @@ outputs:
         func add(a, b): (
           a+b
         )
+        op stamp(outer, assignee): (
+          yield {...outer,assignee:assignee,ts:now()}
+        )
+        op addbar(...): (
+          pass
+        )
         
-        pass
+        stamp(this, "bob")
       )
