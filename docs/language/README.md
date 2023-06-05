@@ -8,6 +8,6 @@ The language documents:
 
 * describe the syntax of [expressions](expressions.md) and [search expressions](search-expressions.md),
 * explain [lateral subqueries](lateral-subqueries.md),
-* describe the the concepts of [shaping and type fusion](shaping.md), and
+* describe [shaping and type fusion](shaping.md), and
 * enumerate the [operators](operators/README.md), [functions](functions/README.md),
 and [aggregate functions](aggregates/README.md) in reference format.
