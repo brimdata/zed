@@ -7,7 +7,6 @@
 ```
 typename(name: string) -> type
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

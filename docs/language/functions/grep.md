@@ -7,7 +7,6 @@
 ```
 grep(<pattern> [, e: any]) -> bool
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

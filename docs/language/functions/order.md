@@ -7,7 +7,6 @@
 ```
 order(val: any, t: type) -> any
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

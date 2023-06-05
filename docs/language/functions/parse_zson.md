@@ -7,7 +7,6 @@
 ```
 parse_zson(s: string) -> any
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

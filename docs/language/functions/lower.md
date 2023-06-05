@@ -7,7 +7,6 @@
 ```
 lower(s: string) -> string
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

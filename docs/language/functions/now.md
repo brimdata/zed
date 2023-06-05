@@ -7,7 +7,6 @@
 ```
 now() -> time
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

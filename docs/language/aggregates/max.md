@@ -6,7 +6,6 @@
 ```
 max(number) -> number
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

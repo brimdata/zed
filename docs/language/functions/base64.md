@@ -8,7 +8,6 @@
 base64(b: bytes) -> string
 base64(s: string) -> bytes
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

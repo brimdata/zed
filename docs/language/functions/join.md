@@ -7,7 +7,6 @@
 ```
 join(val: [string], sep: string) -> string
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

@@ -7,7 +7,6 @@
 ```
 kind(val: any) -> string
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

@@ -8,7 +8,6 @@ record.
 ```
 unflatten(val: [{key:string|[string],value:any}]) -> record
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 The _unflatten_ function converts the key/value records in array `val` into

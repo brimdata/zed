@@ -6,7 +6,6 @@
 ```
 or(bool) -> bool
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

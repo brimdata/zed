@@ -7,7 +7,6 @@
 ```
 parse_uri(uri: string) -> record
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

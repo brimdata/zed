@@ -1,6 +1,6 @@
 ---
-sidebar_position: 13
-sidebar_label: Type Conventions
+sidebar_position: 9
+sidebar_label: Conventions
 ---
 
 # Type Conventions

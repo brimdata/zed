@@ -7,7 +7,6 @@
 ```
 replace(s: string, old: string, new: string) -> string
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

@@ -7,7 +7,6 @@
 ```
 under(val: any) -> any
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

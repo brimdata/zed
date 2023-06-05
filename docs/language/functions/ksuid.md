@@ -9,7 +9,6 @@ ksuid() -> bytes
 ksuid(b: bytes) -> string
 ksuid(s: string) -> bytes
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

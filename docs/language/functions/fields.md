@@ -7,7 +7,6 @@
 ```
 fields(r: record) -> [[string]]
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

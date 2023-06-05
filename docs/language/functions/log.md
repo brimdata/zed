@@ -7,7 +7,6 @@
 ```
 log(val: number) -> float64
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

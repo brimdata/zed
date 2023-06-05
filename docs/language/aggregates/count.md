@@ -6,7 +6,6 @@
 ```
 count() -> uint64
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

@@ -7,7 +7,6 @@
 ```
 has(val: any [, ... val: any]) -> bool
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

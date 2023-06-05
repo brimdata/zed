@@ -7,7 +7,6 @@
 ```
 flatten(val: record) -> [{key:[string],value:<any>}]
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 The _flatten_ function returns an array of records `[{key:[string],value:<any>}]`

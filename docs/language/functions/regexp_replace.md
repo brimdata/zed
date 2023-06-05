@@ -7,7 +7,6 @@
 ```
 regexp_replace(s: string, re: string|regexp, new: string) -> string
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

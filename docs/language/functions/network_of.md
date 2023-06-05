@@ -7,7 +7,6 @@
 ```
 network_of(val: ip [, mask: ip|int|uint]) -> net
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

@@ -7,7 +7,6 @@
 is(t: type) -> bool
 is(val: any, t: type) -> bool
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

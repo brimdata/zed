@@ -6,7 +6,6 @@
 ```
 map(|{any:any}|) -> |{any:any}|
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

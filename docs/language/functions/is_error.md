@@ -7,7 +7,6 @@
 ```
 is_error(val: any) -> bool
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

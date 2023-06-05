@@ -7,7 +7,6 @@
 ```
 rune_len(s: string) -> int64
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

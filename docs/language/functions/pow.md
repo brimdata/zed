@@ -7,7 +7,6 @@
 ```
 pow(x: number, y: number) -> float64
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 

@@ -7,7 +7,6 @@
 ```
 every(d: duration) -> time
 ```
-See also: [Type conventions](../conventions.md)
 
 ### Description
 
