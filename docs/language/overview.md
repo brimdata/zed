@@ -111,8 +111,8 @@ search "example.com" AND "urgent"
 The following sections continue describing the Zed language.
 
 * [The Dataflow Model](dataflow-model.md)
-* [Const, Func, and Type Statements](statements.md)
 * [Data Types](data-types.md)
+* [Const, Func, and Type Statements](statements.md)
 * [Expressions](expressions.md)
 * [Search Expressions](search-expressions.md)
 * [Lateral Subqueries](lateral-subqueries.md)
