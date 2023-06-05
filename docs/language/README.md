@@ -6,7 +6,7 @@ The language documents:
 * explain Zed's [data types](data-types.md),
 * show the syntax of [statements](statements.md) that define constants, functions, and named types,
 
-* describe [expression](expressions.md) syntax, including for [search](search-expressions.md),
+* describe the syntax of [expressions](expressions.md) and [search expressions](search-expressions.md),
 * explain how [lateral queries](lateral-subqueries.md) are used,
 * describe the the concepts of [shaping and type fusion](shaping.md), and
 * enumerate the [operators](operators/README.md), [functions](functions/README.md),
