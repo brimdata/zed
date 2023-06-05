@@ -7,6 +7,7 @@
 ```
 typeunder(val: any) -> type
 ```
+
 ### Description
 
 The _typeunder_ function returns the type of its argument `val`.  If this type is a

@@ -7,6 +7,7 @@
 ```
 has_error(val: any) -> bool
 ```
+
 ### Description
 
 The _has_error_ function returns true if its argument is or contains an error.

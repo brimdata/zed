@@ -9,6 +9,7 @@ ksuid() -> bytes
 ksuid(b: bytes) -> string
 ksuid(s: string) -> bytes
 ```
+
 ### Description
 
 The _ksuid_ function either encodes a [KSUID](https://github.com/segmentio/ksuid)

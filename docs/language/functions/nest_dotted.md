@@ -8,6 +8,7 @@ to nested records.
 ```
 nest_dotted(val: record) -> record
 ```
+
 ### Description
 The _nest_dotted_ function returns a copy of `val` with all dotted field names
 converted into nested records. If no argument is supplied to `nest_dotted`,

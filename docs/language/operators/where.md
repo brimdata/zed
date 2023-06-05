@@ -13,10 +13,10 @@ to each input value and dropping each value for which the expression evaluates
 to `false` or to an error.
 
 The `where` keyword is optional since it is an
-[implied operator](../overview.md#26-implied-operators).
+[implied operator](../dataflow-model.md#implied-operators).
 
 The "where" keyword requires a regular Zed expression and does not support
-[search expressions](../overview.md#8-search-expressions).  Use the
+[search expressions](../search-expressions.md).  Use the
 [search operator](search.md) if you want search syntax.
 
 When Zed queries are run interactively, it is highly convenient to be able to omit

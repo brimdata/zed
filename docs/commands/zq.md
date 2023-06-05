@@ -88,7 +88,7 @@ emits
 ```mdtest-output
 2
 ```
-Note here that the query `1+1` [implies](../language/overview.md#26-implied-operators)
+Note here that the query `1+1` [implies](../language/dataflow-model.md#implied-operators)
 `yield 1+1`.
 
 ## 2. Input Formats
@@ -353,7 +353,7 @@ If you are ever stumped about how the `zq` compiler is parsing your query,
 you can always run `zq -C` to compile and display your query in canonical form
 without running it.
 This can be especially handy when you are learning the language and
-[its shortcuts](../language/overview.md#26-implied-operators).
+[its shortcuts](../language/dataflow-model.md#implied-operators).
 
 For example, this query
 ```mdtest-command
@@ -382,7 +382,7 @@ as soon as they happen and cause the `zq` process to exit.
 On the other hand,
 runtime errors resulting from the Zed query itself
 do not halt execution.  Instead, these error conditions produce
-[first-class Zed errors](../language/overview.md#63-first-class-errors)
+[first-class Zed errors](../language/data-types.md#first-class-errors)
 in the data output stream interleaved with any valid results.
 Such errors are easily queried with the
 [is_error function](../language/functions/is_error.md).

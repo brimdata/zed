@@ -6,6 +6,7 @@
 ```
 max(number) -> number
 ```
+
 ### Description
 
 The _max_ aggregate function computes the maximum value of its input.

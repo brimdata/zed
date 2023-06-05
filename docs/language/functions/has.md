@@ -7,6 +7,7 @@
 ```
 has(val: any [, ... val: any]) -> bool
 ```
+
 ### Description
 
 The _has_ function returns false if any of its arguments are `error("missing")`

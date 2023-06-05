@@ -7,6 +7,7 @@
 ```
 quiet(val: any) -> any
 ```
+
 ### Description
 The _quiet_ function returns its argument `val` unless `val` is
 `error("missing")`, in which case it returns `error("quiet")`.

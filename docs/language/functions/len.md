@@ -7,6 +7,7 @@
 ```
 len(v: record|array|set|map|type|bytes|string|ip|net|error) -> int64
 ```
+
 ### Description
 
 The _len_ function returns the length of its argument `val`.

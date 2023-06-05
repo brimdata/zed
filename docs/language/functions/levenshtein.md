@@ -7,6 +7,7 @@
 ```
 levenshtein(a: string, b: string) -> int64
 ```
+
 ### Description
 
 The _levenshtein_ function computes the [Levenshtein

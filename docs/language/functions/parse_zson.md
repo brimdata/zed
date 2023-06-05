@@ -7,6 +7,7 @@
 ```
 parse_zson(s: string) -> any
 ```
+
 ### Description
 
 The _parse_zson_ function parses the `s` argument that must be in the form
