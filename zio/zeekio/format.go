@@ -22,7 +22,7 @@ func formatAny(val *zed.Value, inContainer bool) string {
 	case *zed.TypeNamed:
 		return formatAny(zed.NewValue(t.Type, val.Bytes()), inContainer)
 	case *zed.TypeOfBool:
-		if zed.DecodeBool(val.Bytes()) {
+		if val.Bool() {
 			return "T"
 		}
 		return "F"

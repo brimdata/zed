@@ -18,7 +18,7 @@ func (a *And) Consume(val *zed.Value) {
 		b := true
 		a.val = &b
 	}
-	*a.val = *a.val && zed.DecodeBool(val.Bytes())
+	*a.val = *a.val && val.Bool()
 }
 
 func (a *And) Result(*zed.Context) *zed.Value {
@@ -56,7 +56,7 @@ func (o *Or) Consume(val *zed.Value) {
 		b := false
 		o.val = &b
 	}
-	*o.val = *o.val || zed.DecodeBool(val.Bytes())
+	*o.val = *o.val || val.Bool()
 }
 
 func (o *Or) Result(*zed.Context) *zed.Value {

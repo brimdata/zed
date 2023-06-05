@@ -808,7 +808,7 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		if zed.TypeUnder(val.Type) != zed.TypeBool {
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetBool(zed.DecodeBool(val.Bytes()))
+		v.SetBool(val.Bool())
 		return nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		switch zed.TypeUnder(val.Type) {

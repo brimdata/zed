@@ -15,17 +15,6 @@ import (
 
 type TypeOfBool struct{}
 
-var False = &Value{TypeBool, []byte{0}}
-var True = &Value{TypeBool, []byte{1}}
-
-// Not returns the inverse Value of the Boolean-typed bytes value of zb.
-func Not(zb zcode.Bytes) *Value {
-	if DecodeBool(zb) {
-		return False
-	}
-	return True
-}
-
 func AppendBool(zb zcode.Bytes, b bool) zcode.Bytes {
 	if b {
 		return append(zb, 1)

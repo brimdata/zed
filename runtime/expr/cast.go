@@ -94,7 +94,7 @@ func (c *casterBool) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to bool", val)
 	}
-	return ectx.NewValue(zed.TypeBool, zed.EncodeBool(b))
+	return ectx.CopyValue(zed.NewBool(b))
 }
 
 type casterFloat16 struct {

@@ -255,7 +255,7 @@ func NewFilterApplier(zctx *zed.Context, e Evaluator) Applier {
 func (f *filterApplier) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val, ok := EvalBool(f.zctx, ectx, this, f.expr)
 	if ok {
-		if zed.DecodeBool(val.Bytes()) {
+		if val.Bool() {
 			return this
 		}
 		return f.zctx.Missing()

@@ -30,9 +30,7 @@ func (*allocator) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
 	return zed.NewValue(typ, bytes)
 }
 
-func (*allocator) CopyValue(val *zed.Value) *zed.Value {
-	return zed.NewValue(val.Type, val.Bytes())
-}
+func (*allocator) CopyValue(val *zed.Value) *zed.Value { return val.Copy() }
 
 func (*allocator) Vars() []zed.Value {
 	return nil
@@ -57,7 +55,9 @@ func (r *ResetContext) NewValue(typ zed.Type, b zcode.Bytes) *zed.Value {
 }
 
 func (r *ResetContext) CopyValue(val *zed.Value) *zed.Value {
-	return r.NewValue(val.Type, val.Bytes())
+	val2 := r.NewValue(nil, nil)
+	*val2 = *val
+	return val2
 }
 
 func (r *ResetContext) Reset() {
