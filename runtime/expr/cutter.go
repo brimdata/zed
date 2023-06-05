@@ -2,7 +2,6 @@ package expr
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/brimdata/zed"
@@ -122,13 +121,4 @@ func fieldList(fields []Evaluator) string {
 		each = append(each, s)
 	}
 	return strings.Join(each, ",")
-}
-
-func (*Cutter) String() string { return "cut" }
-
-func (c *Cutter) Warning() string {
-	if c.quiet || c.FoundCut() {
-		return ""
-	}
-	return fmt.Sprintf("no record found with fields %s", fieldList(c.fieldExprs))
 }
