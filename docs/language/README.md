@@ -5,7 +5,6 @@ The language documents:
 * describe Zed's [dataflow model](dataflow-model.md),
 * explain Zed's [data types](data-types.md),
 * show the syntax of [statements](statements.md) that define constants, functions, and named types,
-
 * describe the syntax of [expressions](expressions.md) and [search expressions](search-expressions.md),
 * explain [lateral subqueries](lateral-subqueries.md),
 * describe [shaping and type fusion](shaping.md), and
