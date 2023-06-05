@@ -85,7 +85,7 @@ A user-defined operator can then be called with using the familiar call syntax
 <id> ( [<expr> [, <expr> ...]] )
 ```
 where `<id>` is the identifier of the user-defined operator and `<expr>` is a list
-of [expressions](#8-expressions) matching the number of `<param>`s defined in
+of [expressions](expressions.md) matching the number of `<param>`s defined in
 the operator's signature.
 
 ### Sequence `this` Value
