@@ -93,14 +93,21 @@ the operator's signature.
 The `this` value of a user-defined operator's sequence is a record value
 comprised of the parameters provided in the operator's signature.
 
-For instance the `this` value of operator
-```
+For instance the program in `myop.zed`
+```mdtest-input myop.zed
 op myop(foo, bar, baz): (
-  ...
+  yield this
 )
-myop("foo", "bar", "baz")
+myop("foo", true, {pi: this})
 ```
-would be `{foo:"foo",bar:"bar",baz:"baz"}`.
+run via
+```mdtest-command
+echo 3.14 | zq -z -I myop.zed -
+```
+produces
+```mdtest-output
+{foo:"foo",bar:true,baz:{pi:3.14}}
+```
 
 ### Spread Parameters
 
