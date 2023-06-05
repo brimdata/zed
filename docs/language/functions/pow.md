@@ -7,6 +7,7 @@
 ```
 pow(x: number, y: number) -> float64
 ```
+
 ### Description
 
 The _pow_ function returns the value `x` raised to the power of `y`.

@@ -7,6 +7,7 @@
 ```
 under(val: any) -> any
 ```
+
 ### Description
 
 The _under_ function returns the value underlying the argument `val`:

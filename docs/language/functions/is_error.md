@@ -7,6 +7,7 @@
 ```
 is_error(val: any) -> bool
 ```
+
 ### Description
 
 The _is_error_ function returns true if its argument's type is error.

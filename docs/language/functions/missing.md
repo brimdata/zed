@@ -7,6 +7,7 @@
 ```
 missing(val: any) -> bool
 ```
+
 ### Description
 
 The _missing_ function returns true if its argument is `error("missing")`

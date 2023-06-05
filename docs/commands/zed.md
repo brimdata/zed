@@ -245,7 +245,7 @@ As pool data is often comprised of Zed records (analogous to JSON objects),
 the pool key is typically a field of the stored records.
 When pool data is not structured as records/objects (e.g., scalar or arrays or other
 non-record types), then the pool key would typically be configured
-as the [special value `this`](../language/overview.md#23-the-special-value-this).
+as the [special value `this`](../language/dataflow-model.md#the-special-value-this).
 
 Data can be efficiently scanned if a query has a filter operating on the pool
 key.  For example, on a pool with pool key `ts`, the query `ts == 100`
@@ -448,7 +448,7 @@ The `-orderby` option indicates the pool key that is used to sort
 the data in lake, which may be in ascending or descending order.
 
 If a pool key is not specified, then it defaults to
-the [special value `this`](../language/overview.md#23-the-special-value-this).
+the [special value `this`](../language/dataflow-model.md#the-special-value-this).
 
 A newly created pool is initialized with a branch called `main`.
 

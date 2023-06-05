@@ -7,6 +7,7 @@
 ```
 floor(n: number) -> number
 ```
+
 ### Description
 
 The _floor_ function returns the greatest integer less than or equal to its argument `n`,

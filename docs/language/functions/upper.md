@@ -7,6 +7,7 @@
 ```
 upper(s: string) -> string
 ```
+
 ### Description
 
 The _upper_ function converts all lower case Unicode characters in `s`

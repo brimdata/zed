@@ -6,6 +6,7 @@
 ```
 sum(number) -> number
 ```
+
 ### Description
 
 The _sum_ aggregate function computes the mathematical sum of its input.

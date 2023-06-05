@@ -13,7 +13,7 @@ to each input value and dropping each value for which the expression evaluates
 to `false` or to an error.
 
 The `search` keyword is optional since it is an
-[implied operator](../overview.md#26-implied-operators).
+[implied operator](../dataflow-model.md#implied-operators).
 
 When Zed queries are run interactively, it is convenient to be able to omit
 the "search" keyword, but when search filters appear in Zed source files,
