@@ -314,7 +314,7 @@ approach because it lacks first-class errors.
 
 But Zed has first-class errors so
 a reference to something that does not exist is an error of type
-`<error(string)>` whose value is `error("missing")`.  For example,
+`error(string)` whose value is `error("missing")`.  For example,
 ```mdtest-command
 echo "{x:1} {y:2}" | zq -z 'yield x' -
 ```
