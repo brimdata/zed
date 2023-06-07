@@ -248,7 +248,7 @@ type filterApplier struct {
 	expr Evaluator
 }
 
-func NewFilterApplier(zctx *zed.Context, e Evaluator) Applier {
+func NewFilterApplier(zctx *zed.Context, e Evaluator) Evaluator {
 	return &filterApplier{zctx, e}
 }
 
@@ -262,7 +262,3 @@ func (f *filterApplier) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	return val
 }
-
-func (*filterApplier) String() string { return "filter" }
-
-func (*filterApplier) Warning() string { return "" }

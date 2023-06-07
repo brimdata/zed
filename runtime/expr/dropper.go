@@ -96,10 +96,6 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 	return fields, types, match
 }
 
-func (*Dropper) String() string { return "drop" }
-
-func (*Dropper) Warning() string { return "" }
-
 func (d *Dropper) Eval(ectx Context, in *zed.Value) *zed.Value {
 	if !zed.IsRecordType(in.Type) {
 		return in

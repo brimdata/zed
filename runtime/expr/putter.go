@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-// Putter is an Applier that modifies the record stream with computed values.
+// Putter is an Evaluator that modifies the record stream with computed values.
 // Each new value is called a clause and consists of a field name and
 // an expression. Each put clause either replaces an existing value in
 // the field specified or appends a value as a new field.  Appended
@@ -317,7 +317,3 @@ func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
 	bytes := rule.step.build(this.Bytes(), &p.builder, vals)
 	return zed.NewValue(rule.typ, bytes)
 }
-
-func (*Putter) String() string { return "put" }
-
-func (*Putter) Warning() string { return "" }
