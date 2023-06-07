@@ -410,16 +410,9 @@ func (m *MarshalZNGContext) encodeMap(v reflect.Value) (zed.Type, error) {
 }
 
 func (m *MarshalZNGContext) encodeNil(t reflect.Type) (zed.Type, error) {
-	var typ zed.Type
-	if t.Kind() == reflect.Interface {
-		// Encode the nil interface as TypeNull.
-		typ = zed.TypeNull
-	} else {
-		var err error
-		typ, err = m.lookupType(t)
-		if err != nil {
-			return nil, err
-		}
+	typ, err := m.lookupType(t)
+	if err != nil {
+		return nil, err
 	}
 	m.Builder.Append(nil)
 	return typ, nil
@@ -578,6 +571,9 @@ func (m *MarshalZNGContext) lookupType(t reflect.Type) (zed.Type, error) {
 		typ = zed.TypeFloat32
 	case reflect.Float64:
 		typ = zed.TypeFloat64
+	case reflect.Interface:
+		// Encode interfaces when we don't knwo the underlying concrete type as null type.
+		typ = zed.TypeNull
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", t.Kind())
 	}
