@@ -267,7 +267,7 @@ type ZTest struct {
 	InputFlags  string `yaml:"input-flags,omitempty"`
 	Output      string `yaml:"output,omitempty"`
 	OutputFlags string `yaml:"output-flags,omitempty"`
-	ErrorRE     string `yaml:"errorRE"`
+	ErrorRE     string `yaml:"errorRE,omitempty"`
 	errRegex    *regexp.Regexp
 	Warnings    string `yaml:"warnings,omitempty"`
 
