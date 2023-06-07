@@ -36,6 +36,10 @@ zq -Z 'sample | sort this' schools.zson testscores.zson webaddrs.zson
 displays
 ```mdtest-output
 {
+    Website: "abbott.lynwood.edlioschool.com",
+    addr: 151.101.0.80
+}
+{
     AvgScrMath: null (uint16),
     AvgScrRead: null (uint16),
     AvgScrWrite: null (uint16),
@@ -57,10 +61,6 @@ displays
     Phone: null (string),
     StatusType: "Merged",
     Website: null (string)
-}
-{
-    Website: "abbott.lynwood.edlioschool.com",
-    addr: 151.101.0.80
 }
 ```
 >Note that the `-Z` option tells `zq` to "pretty print" the output in

@@ -28,8 +28,8 @@ echo '1 2 3 "foo" "bar" 10.0.0.1 10.0.0.2' | zq -z 'sample | sort this' -
 =>
 ```mdtest-output
 1
-10.0.0.1
 "foo"
+10.0.0.1
 ```
 
 _Sampling record shapes_

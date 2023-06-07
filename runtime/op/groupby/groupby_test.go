@@ -73,10 +73,10 @@ const differentTypeIn = `
 `
 
 const differentTypeOut = `
-{key1:10.0.0.1,count:2(uint64)}
-{key1:10.0.0.2,count:1(uint64)}
 {key1:"a",count:2(uint64)}
 {key1:"b",count:1(uint64)}
+{key1:10.0.0.1,count:2(uint64)}
+{key1:10.0.0.2,count:1(uint64)}
 `
 
 const reducersOut = `
