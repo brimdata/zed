@@ -517,3 +517,12 @@ func TestSimpleUnionUnmarshal(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, i)
 }
+
+func TestEmbeddedNilInterface(t *testing.T) {
+	in := &Record{
+		Fields: nil,
+	}
+	val, err := zson.Marshal(in)
+	require.NoError(t, err)
+	assert.Equal(t, `{Fields:null([{Name:string,Values:null}])}`, val)
+}
