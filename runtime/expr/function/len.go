@@ -36,7 +36,7 @@ func (l *LenFn) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	default:
 		return l.zctx.NewErrorf("len: bad type: %s", zson.FormatType(typ))
 	}
-	return newInt64(ectx, int64(length))
+	return ectx.CopyValue(zed.NewInt64(int64(length)))
 }
 
 func typeLength(typ zed.Type) int {

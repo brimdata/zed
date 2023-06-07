@@ -6,7 +6,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/anymath"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zson"
 )
@@ -187,16 +186,6 @@ func HasBoolResult(name string) bool {
 	return false
 }
 
-func newInt64(ctx zed.Allocator, native int64) *zed.Value {
-	return newInt(ctx, zed.TypeInt64, native)
-}
-
-func newInt(ctx zed.Allocator, typ zed.Type, native int64) *zed.Value {
-	//XXX we should have an interface to allocator where we can
-	// append into some new bytes; for now, the byte slice goes through GC.
-	return ctx.NewValue(typ, zed.EncodeInt(native))
-}
-
 func newFloat16(ctx zed.Allocator, native float32) *zed.Value {
 	return ctx.NewValue(zed.TypeFloat16, zed.EncodeFloat16(native))
 }
@@ -207,14 +196,6 @@ func newFloat32(ctx zed.Allocator, native float32) *zed.Value {
 
 func newFloat64(ctx zed.Allocator, native float64) *zed.Value {
 	return ctx.NewValue(zed.TypeFloat64, zed.EncodeFloat64(native))
-}
-
-func newDuration(ctx zed.Allocator, native nano.Duration) *zed.Value {
-	return ctx.NewValue(zed.TypeDuration, zed.EncodeDuration(native))
-}
-
-func newTime(ctx zed.Allocator, native nano.Ts) *zed.Value {
-	return ctx.NewValue(zed.TypeTime, zed.EncodeTime(native))
 }
 
 func newString(ctx zed.Allocator, native string) *zed.Value {

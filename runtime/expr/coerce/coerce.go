@@ -166,13 +166,13 @@ func ToFloat(val *zed.Value) (float64, bool) {
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			return float64(zed.DecodeInt(val.Bytes())), true
+			return float64(val.Int()), true
 		} else {
 			return float64(val.Uint()), true
 		}
 	}
 	if id == zed.IDDuration {
-		return float64(zed.DecodeInt(val.Bytes())), true
+		return float64(val.Int()), true
 	}
 	if id == zed.IDTime {
 		return float64(zed.DecodeTime(val.Bytes())), true
@@ -191,7 +191,7 @@ func ToUint(val *zed.Value) (uint64, bool) {
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
-			v := zed.DecodeInt(val.Bytes())
+			v := val.Int()
 			if v < 0 {
 				return 0, false
 			}
@@ -201,7 +201,7 @@ func ToUint(val *zed.Value) (uint64, bool) {
 		}
 	}
 	if id == zed.IDDuration {
-		return uint64(zed.DecodeInt(val.Bytes())), true
+		return uint64(val.Int()), true
 	}
 	if id == zed.IDTime {
 		return uint64(zed.DecodeTime(val.Bytes())), true
@@ -221,13 +221,13 @@ func ToInt(val *zed.Value) (int64, bool) {
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
 			// XXX check if negative? should -1:uint64 be maxint64 or an error?
-			return zed.DecodeInt(val.Bytes()), true
+			return val.Int(), true
 		} else {
 			return int64(val.Uint()), true
 		}
 	}
 	if id == zed.IDDuration {
-		return zed.DecodeInt(val.Bytes()), true
+		return val.Int(), true
 	}
 	if id == zed.IDTime {
 		return int64(zed.DecodeTime(val.Bytes())), true
@@ -254,7 +254,7 @@ func ToTime(val *zed.Value) (nano.Ts, bool) {
 		return zed.DecodeTime(val.Bytes()), true
 	}
 	if zed.IsSigned(id) {
-		return nano.Ts(zed.DecodeInt(val.Bytes())), true
+		return nano.Ts(val.Int()), true
 	}
 	if zed.IsInteger(id) {
 		v := val.Uint()
@@ -286,7 +286,7 @@ func ToDuration(in *zed.Value) (nano.Duration, bool) {
 		}
 		return nano.Duration(v) * nano.Second, true
 	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
-		v := zed.DecodeInt(in.Bytes())
+		v := in.Int()
 		//XXX check for overflow here
 		return nano.Duration(v) * nano.Second, true
 	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:

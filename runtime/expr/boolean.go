@@ -80,18 +80,14 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 	return func(val *zed.Value) bool {
 		zv := val.Bytes()
 		switch val.Type.ID() {
-		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
-			return CompareInt(zed.DecodeInt(zv), pattern)
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
 			if v := val.Uint(); v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
+		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64, zed.IDTime, zed.IDDuration:
+			return CompareInt(val.Int(), pattern)
 		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 			return CompareFloat(zed.DecodeFloat(zv), float64(pattern))
-		case zed.IDTime:
-			return CompareInt(int64(zed.DecodeTime(zv)), pattern)
-		case zed.IDDuration:
-			return CompareInt(int64(zed.DecodeDuration(zv)), pattern)
 		}
 		return false
 	}, nil
@@ -144,14 +140,10 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		// compare with the integer-y field.
 		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 			return compare(zed.DecodeFloat(zv), pattern)
-		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
-			return compare(float64(zed.DecodeInt(zv)), pattern)
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
 			return compare(float64(val.Uint()), pattern)
-		case zed.IDTime:
-			return compare(float64(zed.DecodeTime(zv)), pattern)
-		case zed.IDDuration:
-			return compare(float64(zed.DecodeDuration(zv)), pattern)
+		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64, zed.IDTime, zed.IDDuration:
+			return compare(float64(val.Int()), pattern)
 		}
 		return false
 	}, nil
