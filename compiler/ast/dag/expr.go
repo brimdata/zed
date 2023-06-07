@@ -195,6 +195,10 @@ func TopLevelField(e Expr) (string, bool) {
 // Params
 
 type (
+	ConstParam struct {
+		Kind string `json:"kind" unpack:""`
+		Name string `json:"name"`
+	}
 	NamedParam struct {
 		Kind string `json:"kind" unpack:""`
 		Name string `json:"name"`
@@ -204,5 +208,6 @@ type (
 	}
 )
 
+func (*ConstParam) paramDAG()  {}
 func (*NamedParam) paramDAG()  {}
 func (*SpreadParam) paramDAG() {}

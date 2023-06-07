@@ -844,6 +844,8 @@ func (c *canon) source(src ast.Source) {
 
 func (c *canon) param(param ast.Param) {
 	switch param := param.(type) {
+	case *ast.ConstParam:
+		c.write("const %s", param.Name)
 	case *ast.NamedParam:
 		c.write(param.Name)
 	case *ast.SpreadParam:

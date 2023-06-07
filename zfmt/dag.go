@@ -623,6 +623,8 @@ func (c *canonDAG) userOp(o *dag.UserOp) {
 
 func (c *canonDAG) param(p dag.Param) {
 	switch p := p.(type) {
+	case *dag.ConstParam:
+		c.write("const %s", p.Name)
 	case *dag.SpreadParam:
 		c.write("...")
 	case *dag.NamedParam:

@@ -11,7 +11,7 @@ inputs:
       func add(a,b): (a+b)
       const bar = "baz"
       op stamp(outer, assignee): ( yield {...outer, assignee, ts: now()} )
-      op nop(...): ( pass )
+      op nop(..., const foo): ( pass )
       stamp(this, "bob")
 
 outputs:
@@ -28,7 +28,7 @@ outputs:
       op stamp(outer, assignee): (
         yield {...outer,assignee,ts:now()}
       )
-      op nop(...): (
+      op nop(..., const foo): (
         pass
       )
       stamp(this, "bob")
@@ -46,7 +46,7 @@ outputs:
         op stamp(outer, assignee): (
           yield {...outer,assignee:assignee,ts:now()}
         )
-        op nop(...): (
+        op nop(..., const foo): (
           pass
         )
         
