@@ -339,6 +339,24 @@ func (c *canon) decl(d ast.Decl) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *ast.OpDecl:
+		c.write("op %s(", d.Name)
+		for k, p := range d.Params {
+			if k > 0 {
+				c.write(", ")
+			}
+			c.param(p)
+		}
+		c.open("): (")
+		c.ret()
+		c.flush()
+		c.head = true
+		c.seq(d.Body)
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
+		c.head, c.first = true, true
 	default:
 		c.open("unknown decl: %T", d)
 		c.close()
@@ -566,12 +584,19 @@ func (c *canon) op(p ast.Op) {
 			which = "search "
 		} else if IsBool(e) {
 			which = "where "
-		} else {
+		} else if _, ok := e.(*ast.Call); !ok {
 			which = "yield "
 		}
-		c.open(which)
+		// Since we can't determine whether the expression is a func call or
+		// an op call until the semantic pass, leave this ambiguous.
+		// XXX (nibs) - I don't think we should be doing this kind introspection
+		// here. This is why we have the semantic pass and canonical zed here
+		// should reflect the ambiguous nature of the expression.
+		if which != "" {
+			c.open(which)
+			defer c.close()
+		}
 		c.expr(e, "")
-		c.close()
 	case *ast.Search:
 		c.next()
 		c.open("search ")
@@ -814,5 +839,16 @@ func (c *canon) source(src ast.Source) {
 		c.file(src)
 	default:
 		c.write("unknown source type: %T", src)
+	}
+}
+
+func (c *canon) param(param ast.Param) {
+	switch param := param.(type) {
+	case *ast.NamedParam:
+		c.write(param.Name)
+	case *ast.SpreadParam:
+		c.write("...")
+	default:
+		c.write("unknown param: %T", param)
 	}
 }

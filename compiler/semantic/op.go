@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/pkg/plural"
 	"github.com/brimdata/zed/pkg/reglob"
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
@@ -291,9 +292,9 @@ func (a *analyzer) matchPools(pattern, origPattern, patternDesc string) ([]strin
 }
 
 func (a *analyzer) semScope(op *ast.Scope) (*dag.Scope, error) {
-	a.scope.Enter()
-	defer a.scope.Exit()
-	consts, funcs, err := a.semDecls(op.Decls)
+	a.scope = NewScope(a.scope)
+	defer a.exitScope()
+	consts, funcs, ops, err := a.semDecls(op.Decls)
 	if err != nil {
 		return nil, err
 	}
@@ -302,10 +303,11 @@ func (a *analyzer) semScope(op *ast.Scope) (*dag.Scope, error) {
 		return nil, err
 	}
 	return &dag.Scope{
-		Kind:   "Scope",
-		Consts: consts,
-		Funcs:  funcs,
-		Body:   body,
+		Kind:    "Scope",
+		Consts:  consts,
+		Funcs:   funcs,
+		UserOps: ops,
+		Body:    body,
 	}, nil
 }
 
@@ -633,8 +635,8 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		if len(o.Locals) != 0 && o.Body == nil {
 			return nil, errors.New("over operator: cannot have a with clause without a lateral query")
 		}
-		a.scope.Enter()
-		defer a.scope.Exit()
+		a.enterScope()
+		defer a.exitScope()
 		locals, err := a.semVars(o.Locals)
 		if err != nil {
 			return nil, err
@@ -734,28 +736,35 @@ func (a *analyzer) singletonAgg(agg ast.Assignment, seq dag.Seq) dag.Seq {
 	return append(seq, yield)
 }
 
-func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
+func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, []*dag.UserOp, error) {
 	var consts []dag.Def
-	var fds []*ast.FuncDecl
+	var fnDecls []*ast.FuncDecl
+	var opDecls []*ast.OpDecl
 	for _, d := range decls {
 		switch d := d.(type) {
 		case *ast.ConstDecl:
 			c, err := a.semConstDecl(d)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			consts = append(consts, c)
 		case *ast.FuncDecl:
-			fds = append(fds, d)
+			fnDecls = append(fnDecls, d)
+		case *ast.OpDecl:
+			opDecls = append(opDecls, d)
 		default:
-			return nil, nil, fmt.Errorf("invalid declaration type %T", d)
+			return nil, nil, nil, fmt.Errorf("invalid declaration type %T", d)
 		}
 	}
-	funcs, err := a.semFuncDecls(fds)
+	funcs, err := a.semFuncDecls(fnDecls)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return consts, funcs, nil
+	ops, err := a.semOpDecls(opDecls)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return consts, funcs, ops, nil
 }
 
 func (a *analyzer) semConstDecl(c *ast.ConstDecl) (dag.Def, error) {
@@ -780,7 +789,7 @@ func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) ([]*dag.Func, error) {
 			Name:   d.Name,
 			Params: slices.Clone(d.Params),
 		}
-		if err := a.scope.DefineFunc(f); err != nil {
+		if err := a.scope.DefineAs(f.Name, f); err != nil {
 			return nil, err
 		}
 		funcs = append(funcs, f)
@@ -795,14 +804,69 @@ func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) ([]*dag.Func, error) {
 }
 
 func (a *analyzer) semFuncBody(params []string, body ast.Expr) (dag.Expr, error) {
-	a.scope.Enter()
-	defer a.scope.Exit()
+	a.enterScope()
+	defer a.exitScope()
 	for _, p := range params {
 		if err := a.scope.DefineVar(p); err != nil {
 			return nil, err
 		}
 	}
 	return a.semExpr(body)
+}
+
+func (a *analyzer) semOpDecls(decls []*ast.OpDecl) ([]*dag.UserOp, error) {
+	ops := make([]*dag.UserOp, len(decls))
+	// First define ops.
+	for i, d := range decls {
+		op := &dag.UserOp{
+			Kind:   "UserOp",
+			Name:   d.Name,
+			Params: make([]dag.Param, len(d.Params)),
+		}
+		for i, p := range d.Params {
+			var err error
+			if op.Params[i], err = a.semParam(p); err != nil {
+				return nil, err
+			}
+		}
+		if err := a.scope.DefineAs(op.Name, op); err != nil {
+			return nil, err
+		}
+		a.opDeclMap[op] = &opDecl{op: op}
+		ops[i] = op
+	}
+	// Now compile op bodies.
+	for i, d := range decls {
+		if err := a.semOpDeclBody(ops[i], d.Params, d.Body); err != nil {
+			return nil, err
+		}
+	}
+	return ops, nil
+}
+
+func (a *analyzer) semOpDeclBody(op *dag.UserOp, params []ast.Param, seq ast.Seq) error {
+	old := a.opDecl
+	a.opDecl = a.opDeclMap[op]
+	a.enterScope()
+	var err error
+	op.Body, err = a.semSeq(seq)
+	a.opDecl = old
+	a.exitScope()
+	return err
+}
+
+func (a *analyzer) semParam(p ast.Param) (dag.Param, error) {
+	switch p := p.(type) {
+	case *ast.NamedParam:
+		return &dag.NamedParam{
+			Kind: "NamedParam",
+			Name: p.Name,
+		}, nil
+	case *ast.SpreadParam:
+		return &dag.SpreadParam{Kind: "SpreadParam"}, nil
+	default:
+		return nil, fmt.Errorf("invalid param type %T", p)
+	}
 }
 
 func (a *analyzer) semVars(defs []ast.Def) ([]dag.Def, error) {
@@ -908,6 +972,11 @@ func isBool(e dag.Expr) bool {
 }
 
 func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
+	if op, err := a.maybeConvertUserOp(call, seq); err != nil {
+		return nil, err
+	} else if op != nil {
+		return append(seq, op), nil
+	}
 	if agg, err := a.maybeConvertAgg(call); err == nil && agg != nil {
 		summarize := &dag.Summarize{
 			Kind: "Summarize",
@@ -933,4 +1002,39 @@ func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
 		return nil, err
 	}
 	return append(seq, dag.NewFilter(c)), nil
+}
+
+// maybeConvertUserOp returns nil, nil if the call is determined to not be a
+// UserOp, otherwise it returns the compiled op or the encountered error.
+func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, error) {
+	op, err := a.scope.LookupOp(call.Name)
+	if op == nil || err != nil {
+		return nil, nil
+	}
+	if call.Where != nil {
+		return nil, fmt.Errorf("%s(): user defined operators cannot have a where clause", call.Name)
+	}
+	params, args := op.Params, call.Args
+	if len(params) != len(args) {
+		return nil, fmt.Errorf("%s(): %d arg%s provided when operator expects %d arg%s", call.Name, len(params), plural.Slice(params, "s"), len(args), plural.Slice(args, "s"))
+	}
+	exprs := make([]dag.Expr, len(op.Params))
+	for i, arg := range args {
+		var err error
+		exprs[i], err = a.semExpr(arg)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// Add references so we can construct the graph of user op calls in order
+	// to later detect cycles.
+	if a.opDecl != nil {
+		a.opDecl.deps = append(a.opDecl.deps, op)
+	}
+	return &dag.UserOpCall{
+		Kind:   "UserOpCall",
+		Name:   call.Name,
+		Exprs:  exprs,
+		UserOp: op,
+	}, nil
 }

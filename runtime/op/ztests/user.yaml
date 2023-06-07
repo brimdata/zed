@@ -1,0 +1,12 @@
+zed: |
+  op stamper(..., assignee, foo): ( 
+      pass
+  )
+  stamper(this, "bob", "bar")
+
+input: '{x:1} {x:2} {x:3}'
+
+output: |
+  {x:1,assignee:"bob",foo:"bar"}
+  {x:2,assignee:"bob",foo:"bar"}
+  {x:3,assignee:"bob",foo:"bar"}

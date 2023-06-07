@@ -10,6 +10,9 @@ type (
 	VectorElem interface {
 		vectorElem()
 	}
+	Param interface {
+		paramDAG()
+	}
 )
 
 // Exprs
@@ -188,3 +191,18 @@ func TopLevelField(e Expr) (string, bool) {
 	}
 	return "", false
 }
+
+// Params
+
+type (
+	NamedParam struct {
+		Kind string `json:"kind" unpack:""`
+		Name string `json:"name"`
+	}
+	SpreadParam struct {
+		Kind string `json:"kind" unpack:""`
+	}
+)
+
+func (*NamedParam) paramDAG()  {}
+func (*SpreadParam) paramDAG() {}

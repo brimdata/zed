@@ -329,6 +329,38 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return meta.NewDeleter(b.octx, parent, pool, filter, pruner, b.progress, b.deletes), nil
 	case *dag.Load:
 		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
+	case *dag.UserOpCall:
+		// Construct the "this" record value.
+		elems := make([]expr.RecordElem, len(v.UserOp.Params))
+		for i, p := range v.UserOp.Params {
+			val, err := compileExpr(v.Exprs[i])
+			if err != nil {
+				return nil, err
+			}
+			switch p := p.(type) {
+			case *dag.NamedParam:
+				elems[i] = expr.RecordElem{Name: p.Name, Field: val}
+			case *dag.SpreadParam:
+				elems[i] = expr.RecordElem{Spread: val}
+			default:
+				return nil, fmt.Errorf("internal error: unknown DAG param type: %#v", p)
+			}
+		}
+		this, err := expr.NewRecordExpr(b.octx.Zctx, elems)
+		if err != nil {
+			return nil, err
+		}
+		apply := op.NewApplier(b.octx, parent, this)
+		exits, err := b.compileSeq(v.UserOp.Body, []zbuf.Puller{apply})
+		if err != nil {
+			return nil, err
+		}
+		if len(exits) > 1 {
+			// This can happen when output of the body
+			// is a fork or switch.
+			return combine.New(b.octx, exits), nil
+		}
+		return exits[0], nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
