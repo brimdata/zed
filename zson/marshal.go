@@ -572,7 +572,7 @@ func (m *MarshalZNGContext) lookupType(t reflect.Type) (zed.Type, error) {
 	case reflect.Float64:
 		typ = zed.TypeFloat64
 	case reflect.Interface:
-		// Encode interfaces when we don't knwo the underlying concrete type as null type.
+		// Encode interfaces when we don't know the underlying concrete type as null type.
 		typ = zed.TypeNull
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", t.Kind())
