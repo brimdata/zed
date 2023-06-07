@@ -162,7 +162,7 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 func ToFloat(val *zed.Value) (float64, bool) {
 	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return zed.DecodeFloat(val.Bytes()), true
+		return val.Float(), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
@@ -187,7 +187,7 @@ func ToFloat(val *zed.Value) (float64, bool) {
 func ToUint(val *zed.Value) (uint64, bool) {
 	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return uint64(zed.DecodeFloat(val.Bytes())), true
+		return uint64(val.Float()), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
@@ -216,7 +216,7 @@ func ToUint(val *zed.Value) (uint64, bool) {
 func ToInt(val *zed.Value) (int64, bool) {
 	id := val.Type.ID()
 	if zed.IsFloat(id) {
-		return int64(zed.DecodeFloat(val.Bytes())), true
+		return int64(val.Float()), true
 	}
 	if zed.IsInteger(id) {
 		if zed.IsSigned(id) {
@@ -290,7 +290,7 @@ func ToDuration(in *zed.Value) (nano.Duration, bool) {
 		//XXX check for overflow here
 		return nano.Duration(v) * nano.Second, true
 	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-		return nano.Duration(zed.DecodeFloat(in.Bytes())), true
+		return nano.Duration(in.Float()), true
 	}
 	return 0, false
 }

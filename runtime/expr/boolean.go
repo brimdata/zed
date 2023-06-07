@@ -78,7 +78,6 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 	}
 	// many different Zed data types can be compared with integers
 	return func(val *zed.Value) bool {
-		zv := val.Bytes()
 		switch val.Type.ID() {
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
 			if v := val.Uint(); v <= math.MaxInt64 {
@@ -87,7 +86,7 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64, zed.IDTime, zed.IDDuration:
 			return CompareInt(val.Int(), pattern)
 		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-			return CompareFloat(zed.DecodeFloat(zv), float64(pattern))
+			return CompareFloat(val.Float(), float64(pattern))
 		}
 		return false
 	}, nil
@@ -130,7 +129,6 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		return nil, fmt.Errorf("unknown double comparator: %s", op)
 	}
 	return func(val *zed.Value) bool {
-		zv := val.Bytes()
 		switch val.Type.ID() {
 		// We allow comparison of float constant with integer-y
 		// fields and just use typeDouble to parse since it will do
@@ -138,12 +136,12 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		// integers that cause float64 overflow?  user can always
 		// use an integer constant instead of a float constant to
 		// compare with the integer-y field.
-		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-			return compare(zed.DecodeFloat(zv), pattern)
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
 			return compare(float64(val.Uint()), pattern)
 		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64, zed.IDTime, zed.IDDuration:
 			return compare(float64(val.Int()), pattern)
+		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
+			return compare(val.Float(), pattern)
 		}
 		return false
 	}, nil
@@ -259,7 +257,7 @@ func Comparison(op string, val *zed.Value) (Boolean, error) {
 	case *zed.TypeOfBool:
 		return CompareBool(op, val.Bool())
 	case *zed.TypeOfFloat64:
-		return CompareFloat64(op, zed.DecodeFloat64(val.Bytes()))
+		return CompareFloat64(op, val.Float())
 	case *zed.TypeOfString:
 		return CompareString(op, val.Bytes())
 	case *zed.TypeOfBytes, *zed.TypeOfType:
