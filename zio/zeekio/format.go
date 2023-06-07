@@ -41,7 +41,7 @@ func formatAny(val *zed.Value, inContainer bool) string {
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
 		return strconv.FormatInt(zed.DecodeInt(val.Bytes()), 10)
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
-		return strconv.FormatUint(zed.DecodeUint(val.Bytes()), 10)
+		return strconv.FormatUint(val.Uint(), 10)
 	case *zed.TypeOfIP:
 		return zed.DecodeIP(val.Bytes()).String()
 	case *zed.TypeMap:

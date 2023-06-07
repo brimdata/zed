@@ -83,8 +83,7 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
 			return CompareInt(zed.DecodeInt(zv), pattern)
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
-			v := zed.DecodeUint(zv)
-			if v <= math.MaxInt64 {
+			if v := val.Uint(); v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
 		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
@@ -148,7 +147,7 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
 			return compare(float64(zed.DecodeInt(zv)), pattern)
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
-			return compare(float64(zed.DecodeUint(zv)), pattern)
+			return compare(float64(val.Uint()), pattern)
 		case zed.IDTime:
 			return compare(float64(zed.DecodeTime(zv)), pattern)
 		case zed.IDDuration:

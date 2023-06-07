@@ -197,14 +197,6 @@ func newInt(ctx zed.Allocator, typ zed.Type, native int64) *zed.Value {
 	return ctx.NewValue(typ, zed.EncodeInt(native))
 }
 
-func newUint64(ctx zed.Allocator, native uint64) *zed.Value {
-	return newUint(ctx, zed.TypeUint64, native)
-}
-
-func newUint(ctx zed.Allocator, typ zed.Type, native uint64) *zed.Value {
-	return ctx.NewValue(typ, zed.EncodeUint(native))
-}
-
 func newFloat16(ctx zed.Allocator, native float32) *zed.Value {
 	return ctx.NewValue(zed.TypeFloat16, zed.EncodeFloat16(native))
 }
