@@ -86,18 +86,18 @@ func (v *Value) Bool() bool {
 	if v.Type.ID() != IDBool {
 		panic(fmt.Sprintf("zed.Value.Bool called on %T", v.Type))
 	}
-	if n, ok := decodeNative(v.bytes); ok {
-		return n != 0
+	if x, ok := decodeNative(v.bytes); ok {
+		return x != 0
 	}
 	return DecodeBool(v.bytes)
 }
 
 // Bytes returns v's ZNG representation.
 func (v *Value) Bytes() zcode.Bytes {
-	if n, ok := decodeNative(v.bytes); ok {
+	if x, ok := decodeNative(v.bytes); ok {
 		switch v.Type.ID() {
 		case IDBool:
-			return EncodeBool(n != 0)
+			return EncodeBool(x != 0)
 		}
 		panic(v.Type)
 	}
@@ -109,11 +109,11 @@ func (v *Value) Bytes() zcode.Bytes {
 // bits of the value's native representation.
 var nativeBase struct{}
 
-func encodeNative(n uint64) zcode.Bytes {
+func encodeNative(x uint64) zcode.Bytes {
 	var b zcode.Bytes
 	s := (*reflect.SliceHeader)(unsafe.Pointer(&b))
 	s.Data = uintptr(unsafe.Pointer(&nativeBase))
-	s.Cap = int(n)
+	s.Cap = int(x)
 	return b
 }
 
@@ -275,9 +275,9 @@ func (v *Value) Equal(p Value) bool {
 	if v.Type != p.Type {
 		return false
 	}
-	if n1, ok := decodeNative(v.bytes); ok {
-		if n2, ok := decodeNative(p.bytes); ok {
-			return n1 == n2
+	if x, ok := decodeNative(v.bytes); ok {
+		if y, ok := decodeNative(p.bytes); ok {
+			return x == y
 		}
 	}
 	return bytes.Equal(v.Bytes(), p.Bytes())
