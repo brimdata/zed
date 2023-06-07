@@ -244,15 +244,12 @@ func CompareNull(op string) (Boolean, error) {
 // predicate that implements the "in" comparison.
 func Contains(compare Boolean) Boolean {
 	return func(val *zed.Value) bool {
-		if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
+		return errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 			if compare(zed.NewValue(typ, body)) {
 				return errMatch
 			}
 			return nil
-		}) {
-			return true
-		}
-		return false
+		})
 	}
 }
 
