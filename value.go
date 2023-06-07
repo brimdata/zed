@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"reflect"
 	"runtime/debug"
+	"unsafe"
 
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
@@ -39,6 +41,9 @@ var (
 	NullNet      = &Value{Type: TypeNet}
 	NullType     = &Value{Type: TypeType}
 	Null         = &Value{Type: TypeNull}
+
+	False = NewBool(false)
+	True  = NewBool(true)
 )
 
 type Allocator interface {
@@ -68,15 +73,61 @@ func NewTime(ts nano.Ts) *Value          { return &Value{TypeTime, EncodeTime(ts
 func NewFloat16(f float32) *Value        { return &Value{TypeFloat16, EncodeFloat16(f)} }
 func NewFloat32(f float32) *Value        { return &Value{TypeFloat32, EncodeFloat32(f)} }
 func NewFloat64(f float64) *Value        { return &Value{TypeFloat64, EncodeFloat64(f)} }
-func NewBool(b bool) *Value              { return &Value{TypeBool, EncodeBool(b)} }
+func NewBool(b bool) *Value              { return &Value{TypeBool, encodeNative(boolToUint64(b))} }
 func NewBytes(b []byte) *Value           { return &Value{TypeBytes, EncodeBytes(b)} }
 func NewString(s string) *Value          { return &Value{TypeString, EncodeString(s)} }
 func NewIP(a netip.Addr) *Value          { return &Value{TypeIP, EncodeIP(a)} }
 func NewNet(p netip.Prefix) *Value       { return &Value{TypeNet, EncodeNet(p)} }
 func NewTypeValue(t Type) *Value         { return &Value{TypeType, EncodeTypeValue(t)} }
 
+// Bool returns v's underlying value.  It panics if v's underlying type is not
+// TypeBool.
+func (v *Value) Bool() bool {
+	if v.Type.ID() != IDBool {
+		panic(fmt.Sprintf("zed.Value.Bool called on %T", v.Type))
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		return x != 0
+	}
+	return DecodeBool(v.bytes)
+}
+
 // Bytes returns v's ZNG representation.
-func (v *Value) Bytes() zcode.Bytes { return v.bytes }
+func (v *Value) Bytes() zcode.Bytes {
+	if x, ok := decodeNative(v.bytes); ok {
+		switch v.Type.ID() {
+		case IDBool:
+			return EncodeBool(x != 0)
+		}
+		panic(v.Type)
+	}
+	return v.bytes
+}
+
+// nativeBase is the base address for all native Values, which are encoded as a
+// zcode.Bytes with this base address, a length of zero, and capacity set to the
+// bits of the value's native representation.
+var nativeBase struct{}
+
+func encodeNative(x uint64) zcode.Bytes {
+	var b zcode.Bytes
+	s := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	s.Data = uintptr(unsafe.Pointer(&nativeBase))
+	s.Cap = int(x)
+	return b
+}
+
+func decodeNative(b zcode.Bytes) (uint64, bool) {
+	s := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	return uint64(s.Cap), s.Data == uintptr(unsafe.Pointer(&nativeBase))
+}
+
+func boolToUint64(b bool) uint64 {
+	if b {
+		return 1
+	}
+	return 0
+}
 
 func (v *Value) IsContainer() bool {
 	return IsContainerType(v.Type)
@@ -169,17 +220,20 @@ func (v *Value) IsNull() bool {
 	return v.bytes == nil
 }
 
-// Copy returns a copy of v that does not share v.Bytes.  The copy's Bytes field
-// is nil if and only if v.Bytes is nil.
+// Copy returns a copy of v that shares no storage.
 func (v *Value) Copy() *Value {
-	return &Value{v.Type, slices.Clone(v.Bytes())}
+	if _, ok := decodeNative(v.bytes); ok {
+		return &Value{v.Type, v.bytes}
+	}
+	return &Value{v.Type, slices.Clone(v.bytes)}
 }
 
-// CopyFrom copies from into v, reusing v.Bytes if possible and setting v.Bytes
-// to nil if and only if from.Bytes is nil.
+// CopyFrom copies from into v, reusing v's storage if possible.
 func (v *Value) CopyFrom(from *Value) {
 	v.Type = from.Type
-	if from.IsNull() {
+	if _, ok := decodeNative(from.bytes); ok {
+		v.bytes = from.bytes
+	} else if from.IsNull() {
 		v.bytes = nil
 	} else if v.IsNull() {
 		v.bytes = slices.Clone(from.bytes)
@@ -215,8 +269,18 @@ func (v *Value) IsQuiet() bool {
 	return false
 }
 
+// Equal reports whether p and v have the same type and the same ZNG
+// representation.
 func (v *Value) Equal(p Value) bool {
-	return v.Type == p.Type && bytes.Equal(v.Bytes(), p.Bytes())
+	if v.Type != p.Type {
+		return false
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		if y, ok := decodeNative(p.bytes); ok {
+			return x == y
+		}
+	}
+	return bytes.Equal(v.Bytes(), p.Bytes())
 }
 
 func (r *Value) HasField(field string) bool {
@@ -288,9 +352,11 @@ func (v *Value) AsString() string {
 	return ""
 }
 
+// AsBool returns v's underlying value.  It returns false if v is nil or v's
+// underlying type is not TypeBool.
 func (v *Value) AsBool() bool {
 	if v != nil && TypeUnder(v.Type) == TypeBool {
-		return DecodeBool(v.Bytes())
+		return v.Bool()
 	}
 	return false
 }

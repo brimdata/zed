@@ -46,7 +46,7 @@ func CompareBool(op string, pattern bool) (Boolean, error) {
 		if val.Type.ID() != zed.IDBool {
 			return false
 		}
-		b := zed.DecodeBool(val.Bytes())
+		b := val.Bool()
 		return compare(b, pattern)
 	}, nil
 }
@@ -269,7 +269,7 @@ func Comparison(op string, val *zed.Value) (Boolean, error) {
 	case *zed.TypeOfIP:
 		return CompareIP(op, zed.DecodeIP(val.Bytes()))
 	case *zed.TypeOfBool:
-		return CompareBool(op, zed.DecodeBool(val.Bytes()))
+		return CompareBool(op, val.Bool())
 	case *zed.TypeOfFloat64:
 		return CompareFloat64(op, zed.DecodeFloat64(val.Bytes()))
 	case *zed.TypeOfString:

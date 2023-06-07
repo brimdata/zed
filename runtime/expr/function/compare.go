@@ -26,7 +26,7 @@ func (e *Compare) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if zed.TypeUnder(args[2].Type) != zed.TypeBool {
 			return e.zctx.WrapError("compare: nullsMax arg is not bool", &args[2])
 		}
-		nullsMax = zed.DecodeBool(args[2].Bytes())
+		nullsMax = args[2].Bool()
 	}
 	cmp := e.nullsMax
 	if !nullsMax {
