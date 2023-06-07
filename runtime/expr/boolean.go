@@ -98,34 +98,6 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 	}, nil
 }
 
-func CompareTime(op string, pattern int64) (Boolean, error) {
-	CompareInt, ok1 := compareInt[op]
-	CompareFloat, ok2 := compareFloat[op]
-	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("unknown int comparator: %s", op)
-	}
-	// many different Zed data types can be compared with integers
-	return func(val *zed.Value) bool {
-		zv := val.Bytes()
-		switch val.Type.ID() {
-		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
-			return CompareInt(zed.DecodeInt(zv), pattern)
-		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
-			v := zed.DecodeUint(zv)
-			if v <= math.MaxInt64 {
-				return CompareInt(int64(v), pattern)
-			}
-		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-			return CompareFloat(zed.DecodeFloat(zv), float64(pattern))
-		case zed.IDTime:
-			return CompareInt(int64(zed.DecodeTime(zv)), pattern)
-		case zed.IDDuration:
-			return CompareInt(int64(zed.DecodeDuration(zv)), pattern)
-		}
-		return false
-	}, nil
-}
-
 // XXX should just do equality and we should compare in the encoded domain
 // and not make copies and have separate cases for len 4 and len 16
 var compareAddr = map[string]func(netip.Addr, netip.Addr) bool{
@@ -304,10 +276,8 @@ func Comparison(op string, val *zed.Value) (Boolean, error) {
 		return CompareString(op, val.Bytes())
 	case *zed.TypeOfBytes, *zed.TypeOfType:
 		return CompareBytes(op, val.Bytes())
-	case *zed.TypeOfInt64:
+	case *zed.TypeOfInt64, *zed.TypeOfTime, *zed.TypeOfDuration:
 		return CompareInt64(op, zed.DecodeInt(val.Bytes()))
-	case *zed.TypeOfTime, *zed.TypeOfDuration:
-		return CompareTime(op, zed.DecodeInt(val.Bytes()))
 	default:
 		return nil, fmt.Errorf("literal comparison of type %q unsupported", val.Type)
 	}
