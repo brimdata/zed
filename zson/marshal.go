@@ -820,7 +820,7 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		default:
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetUint(zed.DecodeUint(val.Bytes()))
+		v.SetUint(val.Uint())
 		return nil
 	case reflect.Float32:
 		if zed.TypeUnder(val.Type) != zed.TypeFloat32 {

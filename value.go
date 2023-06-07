@@ -60,10 +60,11 @@ func NewValue(zt Type, zb zcode.Bytes) *Value {
 	return &Value{zt, zb}
 }
 
-func NewUint8(u uint8) *Value            { return &Value{TypeUint8, EncodeUint(uint64(u))} }
-func NewUint16(u uint16) *Value          { return &Value{TypeUint16, EncodeUint(uint64(u))} }
-func NewUint32(u uint32) *Value          { return &Value{TypeUint32, EncodeUint(uint64(u))} }
-func NewUint64(u uint64) *Value          { return &Value{TypeUint64, EncodeUint(u)} }
+func NewUint(t Type, u uint64) *Value    { return &Value{t, encodeNative(u)} }
+func NewUint8(u uint8) *Value            { return NewUint(TypeUint8, uint64(u)) }
+func NewUint16(u uint16) *Value          { return NewUint(TypeUint16, uint64(u)) }
+func NewUint32(u uint32) *Value          { return NewUint(TypeUint32, uint64(u)) }
+func NewUint64(u uint64) *Value          { return NewUint(TypeUint64, u) }
 func NewInt8(i int8) *Value              { return &Value{TypeInt8, EncodeInt(int64(i))} }
 func NewInt16(i int16) *Value            { return &Value{TypeInt16, EncodeInt(int64(i))} }
 func NewInt32(i int32) *Value            { return &Value{TypeInt32, EncodeInt(int64(i))} }
@@ -79,6 +80,18 @@ func NewString(s string) *Value          { return &Value{TypeString, EncodeStrin
 func NewIP(a netip.Addr) *Value          { return &Value{TypeIP, EncodeIP(a)} }
 func NewNet(p netip.Prefix) *Value       { return &Value{TypeNet, EncodeNet(p)} }
 func NewTypeValue(t Type) *Value         { return &Value{TypeType, EncodeTypeValue(t)} }
+
+// Uint returns v's underlying value.  It panics if v's underlying type is not
+// TypeUint8, TypeUint16, TypeUint32, or TypeUint64.
+func (v *Value) Uint() uint64 {
+	if v.Type.ID() > IDUint64 {
+		panic(fmt.Sprintf("zed.Value.Uint called on %T", v.Type))
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		return x
+	}
+	return DecodeUint(v.bytes)
+}
 
 // Bool returns v's underlying value.  It panics if v's underlying type is not
 // TypeBool.
@@ -96,6 +109,8 @@ func (v *Value) Bool() bool {
 func (v *Value) Bytes() zcode.Bytes {
 	if x, ok := decodeNative(v.bytes); ok {
 		switch v.Type.ID() {
+		case IDUint8, IDUint16, IDUint32, IDUint64:
+			return EncodeUint(x)
 		case IDBool:
 			return EncodeBool(x != 0)
 		}
@@ -365,7 +380,7 @@ func (v *Value) AsInt() int64 {
 	if v != nil {
 		switch TypeUnder(v.Type).(type) {
 		case *TypeOfUint8, *TypeOfUint16, *TypeOfUint32, *TypeOfUint64:
-			return int64(DecodeUint(v.Bytes()))
+			return int64(v.Uint())
 		case *TypeOfInt8, *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
 			return DecodeInt(v.Bytes())
 		}

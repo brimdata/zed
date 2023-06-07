@@ -147,7 +147,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		return newInt64(ctx, result)
 	}
-	result := zed.DecodeUint(val0.Bytes())
+	result := val0.Uint()
 	for _, val := range args[1:] {
 		v, ok := coerce.ToUint(&val)
 		if !ok {
@@ -155,7 +155,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		result = r.fn.Uint64(result, v)
 	}
-	return newUint64(ctx, result)
+	return ctx.CopyValue(zed.NewUint64(result))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round

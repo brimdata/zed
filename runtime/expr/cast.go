@@ -82,7 +82,7 @@ func (c *casterUintN) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok || (c.max != 0 && v > c.max) {
 		return c.zctx.WrapError("cannot cast to "+zson.FormatType(c.typ), val)
 	}
-	return ectx.NewValue(c.typ, zed.EncodeUint(v))
+	return ectx.CopyValue(zed.NewUint(c.typ, v))
 }
 
 type casterBool struct {
