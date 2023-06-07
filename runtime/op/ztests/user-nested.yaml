@@ -1,0 +1,18 @@
+zed: |
+  op addfoo(...): ( 
+      put foo := "foo" | addbar(this)
+  )
+  op addbar(...): (
+      put bar := "bar" | addbaz(this)
+  )
+  op addbaz(...): (
+      put baz := "baz"
+  )
+  addfoo(this)
+
+input: '{x:1} {x:2} {x:3}'
+
+output: |
+  {x:1,foo:"foo",bar:"bar",baz:"baz"}
+  {x:2,foo:"foo",bar:"bar",baz:"baz"}
+  {x:3,foo:"foo",bar:"bar",baz:"baz"}

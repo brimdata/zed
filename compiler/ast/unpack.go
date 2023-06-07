@@ -40,6 +40,7 @@ var unpacker = unpack.New(
 	Join{},
 	Load{},
 	Merge{},
+	NamedParam{},
 	Over{},
 	Trunk{},
 	astzed.Map{},
@@ -66,6 +67,7 @@ var unpacker = unpack.New(
 	SQLOrderBy{},
 	Sort{},
 	String{},
+	OpDecl{},
 	Switch{},
 	Tail{},
 	Term{},
@@ -88,6 +90,7 @@ var unpacker = unpack.New(
 	Where{},
 	Yield{},
 	Sample{},
+	SpreadParam{},
 )
 
 // UnmarshalOp transforms a JSON representation of an operator into an Op.
