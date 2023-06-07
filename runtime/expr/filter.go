@@ -144,7 +144,7 @@ func (s *searchCIDR) Eval(_ Context, val *zed.Value) *zed.Value {
 	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 		switch typ.ID() {
 		case zed.IDNet:
-			if bytes.Compare(body, s.bytes) == 0 {
+			if bytes.Equal(body, s.bytes) {
 				return errMatch
 			}
 		case zed.IDIP:

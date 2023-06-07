@@ -696,7 +696,7 @@ func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
 	for it := mapBytes.Iter(); !it.Done(); {
 		key := it.Next()
 		val := it.Next()
-		if bytes.Compare(key, target) == 0 {
+		if bytes.Equal(key, target) {
 			return val, true
 		}
 	}
