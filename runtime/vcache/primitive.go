@@ -36,9 +36,33 @@ func (p *Primitive) NewIter(r io.ReaderAt) (iterator, error) {
 		}
 		p.bytes = data
 	}
+	if dict := p.meta.Dict; dict != nil {
+		bytes := p.bytes
+		return func(b *zcode.Builder) error {
+			pos := bytes[0]
+			bytes = bytes[1:]
+			b.Append(dict[pos].Value.Bytes())
+			return nil
+		}, nil
+	}
 	it := zcode.Iter(p.bytes)
 	return func(b *zcode.Builder) error {
 		b.Append(it.Next())
+		return nil
+	}, nil
+}
+
+type Const struct {
+	bytes zcode.Bytes
+}
+
+func NewConst(meta *vector.Const) *Const {
+	return &Const{bytes: meta.Value.Bytes()}
+}
+
+func (c *Const) NewIter(r io.ReaderAt) (iterator, error) {
+	return func(b *zcode.Builder) error {
+		b.Append(c.bytes)
 		return nil
 	}, nil
 }

@@ -43,6 +43,8 @@ func NewVector(meta vector.Metadata, r io.ReaderAt) (Vector, error) {
 			return nil, err
 		}
 		return NewNulls(meta, values, r)
+	case *vector.Const:
+		return NewConst(meta), nil
 	default:
 		return nil, fmt.Errorf("vector cache: type %T not supported", meta)
 	}

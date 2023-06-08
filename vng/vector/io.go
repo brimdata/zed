@@ -76,7 +76,7 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 		if !zed.IsPrimitiveType(typ) {
 			panic(fmt.Sprintf("unsupported type in VNG file: %T", typ))
 		}
-		return NewPrimitiveWriter(typ, spiller)
+		return NewPrimitiveWriter(typ, spiller, true)
 	}
 }
 
@@ -116,7 +116,12 @@ func NewReader(meta Metadata, r io.ReaderAt) (Reader, error) {
 	case *Union:
 		return NewUnionReader(meta, r)
 	case *Primitive:
+		if len(meta.Dict) != 0 {
+			return NewDictReader(meta, r), nil
+		}
 		return NewPrimitiveReader(meta, r), nil
+	case *Const:
+		return NewConstReader(meta), nil
 	default:
 		return nil, fmt.Errorf("unknown VNG metadata type: %T", meta)
 	}

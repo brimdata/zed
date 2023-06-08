@@ -118,9 +118,19 @@ func (n *Named) Type(zctx *zed.Context) zed.Type {
 	return t
 }
 
+type DictEntry struct {
+	Value *zed.Value
+	Count uint32
+}
+
 type Primitive struct {
 	Typ    zed.Type `zed:"Type"`
 	Segmap []Segment
+	Dict   []DictEntry
+	Min    *zed.Value
+	Max    *zed.Value
+	Count  uint32
+	Nulls  uint32
 }
 
 func (p *Primitive) Type(zctx *zed.Context) zed.Type {
@@ -136,6 +146,15 @@ func (n *Nulls) Type(zctx *zed.Context) zed.Type {
 	return n.Values.Type(zctx)
 }
 
+type Const struct {
+	Value *zed.Value
+	Count uint32
+}
+
+func (c *Const) Type(zctx *zed.Context) zed.Type {
+	return c.Value.Type
+}
+
 var Template = []interface{}{
 	Record{},
 	Array{},
@@ -145,4 +164,5 @@ var Template = []interface{}{
 	Primitive{},
 	Named{},
 	Nulls{},
+	Const{},
 }
