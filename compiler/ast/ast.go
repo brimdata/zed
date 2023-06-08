@@ -542,6 +542,10 @@ type Agg struct {
 // Params
 
 type (
+	ConstParam struct {
+		Kind string `json:"kind" unpack:""`
+		Name string `json:"name"`
+	}
 	NamedParam struct {
 		Kind string `json:"kind" unpack:""`
 		Name string `json:"name"`
@@ -551,5 +555,6 @@ type (
 	}
 )
 
+func (*ConstParam) ParamAST()  {}
 func (*NamedParam) ParamAST()  {}
 func (*SpreadParam) ParamAST() {}

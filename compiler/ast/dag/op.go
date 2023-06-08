@@ -151,10 +151,11 @@ type (
 		Body   Seq     `json:"body"`
 	}
 	UserOpCall struct {
-		Kind   string  `json:"kind" unpack:""`
-		Name   string  `json:"name"`
-		Exprs  []Expr  `json:"exprs"`
-		UserOp *UserOp `json:"user_op"`
+		Kind   string     `json:"kind" unpack:""`
+		Name   string     `json:"name"`
+		Exprs  []Expr     `json:"exprs"`
+		Consts []*Literal `json:"consts"`
+		UserOp *UserOp    `json:"user_op"`
 	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`

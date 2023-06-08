@@ -100,7 +100,8 @@ Params
     }
     
 Param
-  = "..." { RETURN(MAP("kind": "SpreadParam")) }
+  = "const" _ id:IdentifierName { RETURN(MAP("kind": "ConstParam", "name": id)) }
+  / "..." { RETURN(MAP("kind": "SpreadParam")) }
   / id:IdentifierName { RETURN(MAP("kind": "NamedParam", "name": id)) }
 
 Operation

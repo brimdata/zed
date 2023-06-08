@@ -330,37 +330,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Load:
 		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
 	case *dag.UserOpCall:
-		// Construct the "this" record value.
-		elems := make([]expr.RecordElem, len(v.UserOp.Params))
-		for i, p := range v.UserOp.Params {
-			val, err := compileExpr(v.Exprs[i])
-			if err != nil {
-				return nil, err
-			}
-			switch p := p.(type) {
-			case *dag.NamedParam:
-				elems[i] = expr.RecordElem{Name: p.Name, Field: val}
-			case *dag.SpreadParam:
-				elems[i] = expr.RecordElem{Spread: val}
-			default:
-				return nil, fmt.Errorf("internal error: unknown DAG param type: %#v", p)
-			}
-		}
-		this, err := expr.NewRecordExpr(b.octx.Zctx, elems)
-		if err != nil {
-			return nil, err
-		}
-		apply := op.NewApplier(b.octx, parent, this)
-		exits, err := b.compileSeq(v.UserOp.Body, []zbuf.Puller{apply})
-		if err != nil {
-			return nil, err
-		}
-		if len(exits) > 1 {
-			// This can happen when output of the body
-			// is a fork or switch.
-			return combine.New(b.octx, exits), nil
-		}
-		return exits[0], nil
+		return b.compileUserOpCall(parent, v)
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
@@ -410,6 +380,55 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 		exit = combine.New(b.octx, exits)
 	}
 	return scope.NewExit(exit), nil
+}
+
+func (b *Builder) compileUserOpCall(parent zbuf.Puller, u *dag.UserOpCall) (zbuf.Puller, error) {
+	// Construct the "this" record value.
+	var elems []expr.RecordElem
+	for i, p := range u.UserOp.Params {
+		if _, ok := p.(*dag.ConstParam); ok {
+			continue
+		}
+		val, err := compileExpr(u.Exprs[i])
+		if err != nil {
+			return nil, err
+		}
+		switch p := p.(type) {
+		case *dag.NamedParam:
+			elems = append(elems, expr.RecordElem{Name: p.Name, Field: val})
+		case *dag.SpreadParam:
+			elems = append(elems, expr.RecordElem{Spread: val})
+		default:
+			return nil, fmt.Errorf("internal error: unknown DAG param type: %#v", p)
+		}
+	}
+	this, err := expr.NewRecordExpr(b.octx.Zctx, elems)
+	if err != nil {
+		return nil, err
+	}
+	consts := make([]zed.Value, len(u.Consts))
+	for i, c := range u.Consts {
+		val, err := EvalAtCompileTime(b.octx.Zctx, c)
+		if err != nil {
+			return nil, err
+		}
+		consts[i] = *val
+	}
+	apply := op.NewApplier(b.octx, parent, this)
+	enter := op.NewEnterScope(apply, consts)
+	exits, err := b.compileSeq(u.UserOp.Body, []zbuf.Puller{enter})
+	if err != nil {
+		return nil, err
+	}
+	var exit zbuf.Puller
+	if len(exits) > 1 {
+		// This can happen when output of the body
+		// is a fork or switch.
+		exit = combine.New(b.octx, exits)
+	} else {
+		exit = exits[0]
+	}
+	return op.NewExitScope(exit, len(consts)), nil
 }
 
 func (b *Builder) compileAssignments(assignments []dag.Assignment) ([]expr.Assignment, error) {
