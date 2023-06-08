@@ -190,7 +190,7 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 		return ectx.CopyValue(zed.NewDuration(d))
 	}
 	if zed.IsFloat(id) {
-		return ectx.CopyValue(zed.NewDuration(nano.Duration(zed.DecodeFloat(val.Bytes()))))
+		return ectx.CopyValue(zed.NewDuration(nano.Duration(val.Float())))
 	}
 	v, ok := coerce.ToInt(val)
 	if !ok {

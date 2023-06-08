@@ -823,12 +823,6 @@ func (a *analyzer) semOpDecls(decls []*ast.OpDecl) ([]*dag.UserOp, error) {
 			Name:   d.Name,
 			Params: make([]dag.Param, len(d.Params)),
 		}
-		for i, p := range d.Params {
-			var err error
-			if op.Params[i], err = a.semParam(p); err != nil {
-				return nil, err
-			}
-		}
 		if err := a.scope.DefineAs(op.Name, op); err != nil {
 			return nil, err
 		}
@@ -848,15 +842,30 @@ func (a *analyzer) semOpDeclBody(op *dag.UserOp, params []ast.Param, seq ast.Seq
 	old := a.opDecl
 	a.opDecl = a.opDeclMap[op]
 	a.enterScope()
+	defer func() {
+		a.opDecl = old
+		a.exitScope()
+	}()
 	var err error
+	for i, p := range params {
+		if op.Params[i], err = a.semParam(p); err != nil {
+			return nil
+		}
+	}
 	op.Body, err = a.semSeq(seq)
-	a.opDecl = old
-	a.exitScope()
 	return err
 }
 
 func (a *analyzer) semParam(p ast.Param) (dag.Param, error) {
 	switch p := p.(type) {
+	case *ast.ConstParam:
+		if err := a.scope.DefineVar(p.Name); err != nil {
+			return nil, err
+		}
+		return &dag.ConstParam{
+			Kind: "ConstParam",
+			Name: p.Name,
+		}, nil
 	case *ast.NamedParam:
 		return &dag.NamedParam{
 			Kind: "NamedParam",
@@ -1018,12 +1027,30 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, erro
 	if len(params) != len(args) {
 		return nil, fmt.Errorf("%s(): %d arg%s provided when operator expects %d arg%s", call.Name, len(params), plural.Slice(params, "s"), len(args), plural.Slice(args, "s"))
 	}
+	var consts []*dag.Literal
 	exprs := make([]dag.Expr, len(op.Params))
 	for i, arg := range args {
 		var err error
 		exprs[i], err = a.semExpr(arg)
 		if err != nil {
 			return nil, err
+		}
+		if p, ok := op.Params[i].(*dag.ConstParam); ok {
+			val, err := kernel.EvalAtCompileTime(a.zctx, exprs[i])
+			if err != nil {
+				return nil, err
+			}
+			if val.IsError() {
+				if val.IsMissing() {
+					return nil, fmt.Errorf("const %q: cannot have variable dependency", p.Name)
+				} else {
+					return nil, fmt.Errorf("const %q: %q", p.Name, string(val.Bytes()))
+				}
+			}
+			consts = append(consts, &dag.Literal{
+				Kind:  "Literal",
+				Value: zson.MustFormatValue(val),
+			})
 		}
 	}
 	// Add references so we can construct the graph of user op calls in order
@@ -1035,6 +1062,7 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, erro
 		Kind:   "UserOpCall",
 		Name:   call.Name,
 		Exprs:  exprs,
+		Consts: consts,
 		UserOp: op,
 	}, nil
 }

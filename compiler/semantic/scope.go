@@ -27,9 +27,8 @@ func NewScope(parent *Scope) *Scope {
 }
 
 type entry struct {
-	ref    any
-	refcnt int
-	order  int
+	ref   any
+	order int
 }
 
 func (s *Scope) DefineVar(name string) error {
@@ -79,7 +78,6 @@ func (s *Scope) LookupExpr(name string) (dag.Expr, error) {
 		if !ok {
 			return nil, fmt.Errorf("symbol %q is not bound to an expression", name)
 		}
-		entry.refcnt++
 		return e, nil
 	}
 	return nil, nil
@@ -91,7 +89,6 @@ func (s *Scope) LookupOp(name string) (*dag.UserOp, error) {
 		if !ok {
 			return nil, fmt.Errorf("symbol %q is not bound to an operator", name)
 		}
-		entry.refcnt++
 		return d, nil
 	}
 	return nil, nil

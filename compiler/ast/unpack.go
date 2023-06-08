@@ -20,6 +20,7 @@ var unpacker = unpack.New(
 	astzed.CastValue{},
 	Conditional{},
 	ConstDecl{},
+	ConstParam{},
 	Cut{},
 	astzed.DefValue{},
 	Drop{},

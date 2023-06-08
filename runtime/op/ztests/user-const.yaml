@@ -1,0 +1,39 @@
+script: |
+  ! zc -s -I err-not-const.zed
+  echo '{_path:"http",hostname:"facebook.com"} {_path:"http",hostname:"www.google.com"}' \
+    | zq -z -I find-host.zed -
+  echo '// ==='
+  echo '{foo:"foo"} {foo:"bar"}' | zq -z -I nonleaking-scope.zed -
+
+inputs:
+  - name: err-not-const.zed
+    data: |
+      op test(..., const foo): (
+        pass
+      )
+      test(this, a)
+  - name: find-host.zed
+    data: |
+      op find_host(..., const p, const h): (
+        _path==p
+        | hostname==h
+      )
+      find_host(this, "http", "www.google.com")
+  - name: nonleaking-scope.zed
+    data: |
+      op filter_foo(..., const f): (
+        foo==f
+      )
+      filter_foo(this, "bar")
+      | yield this, f
+
+outputs:
+  - name: stderr
+    data: |
+      const "foo": cannot have variable dependency
+  - name: stdout
+    data: |
+      {_path:"http",hostname:"www.google.com"}
+      // ===
+      {foo:"bar"}
+      error("missing")

@@ -135,6 +135,30 @@ produces
 {foo:"foo",bar:"bar",ts:2021-01-01T00:00:00Z}
 ```
 
+### Const Parameters
+
+User-defined operators may use the `const` keyword to indicate that a parameter
+is expecting a constant value. Const parameters are different from standard named
+parameters in that they are not included in the operator's `this` value but may
+also be accessed within the operator's sequence.
+
+For instance the program in `const.zed`
+```mdtest-input const.zed
+op find_host(..., const p, const h): (
+  _path==p
+  | hostname==h
+)
+find_host(this, "http", "google.com")
+```
+run via
+```mdtest-command
+echo '{_path:"http",hostname:"google.com"} {_path:"http",hostname:"meta.com"}' | zq -z -I const.zed -
+```
+produces
+```mdtest-output
+{_path:"http",hostname:"google.com"}
+```
+
 ### Nested Calls
 
 User-defined operators can make calls to other user-defined operators that

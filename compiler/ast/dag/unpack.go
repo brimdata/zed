@@ -14,6 +14,7 @@ var unpacker = unpack.New(
 	Call{},
 	Combine{},
 	Conditional{},
+	ConstParam{},
 	Cut{},
 	Deleter{},
 	Dot{},
