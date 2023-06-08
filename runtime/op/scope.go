@@ -3,6 +3,7 @@ package op
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zbuf"
+	"golang.org/x/exp/slices"
 )
 
 type enterScope struct {
@@ -20,7 +21,7 @@ func NewEnterScope(parent zbuf.Puller, vars []zed.Value) zbuf.Puller {
 func (s *enterScope) Pull(done bool) (zbuf.Batch, error) {
 	batch, err := s.parent.Pull(done)
 	if batch != nil {
-		vars := append(batch.Vars(), s.vars...)
+		vars := append(slices.Clone(batch.Vars()), s.vars...)
 		batch = &scopedBatch{batch, vars}
 	}
 	return batch, err
