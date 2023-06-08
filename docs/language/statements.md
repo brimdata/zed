@@ -139,8 +139,8 @@ produces
 
 User-defined operators may use the `const` keyword to indicate that a parameter
 is expecting a constant value. Const parameters are different from standard named
-parameters in that they are not included in the operator's `this` value but can
-be accessed within the operator's sequence as a variable.
+parameters in that they are not included in the operator's `this` value but may
+also be accessed within the operator's sequence.
 
 For instance the program in `const.zed`
 ```mdtest-input const.zed
