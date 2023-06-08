@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"math"
-	"strconv"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/runtime/expr/result"
 	"github.com/brimdata/zed/zcode"
 )
@@ -159,80 +159,50 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 }
 
 func ToFloat(val *zed.Value) (float64, bool) {
-	id := val.Type.ID()
-	if zed.IsFloat(id) {
-		return val.Float(), true
-	}
-	if zed.IsInteger(id) {
-		if zed.IsSigned(id) {
-			return float64(val.Int()), true
-		} else {
-			return float64(val.Uint()), true
-		}
-	}
-	if id == zed.IDDuration {
+	switch id := val.Type.ID(); {
+	case zed.IsUnsigned(id):
+		return float64(val.Uint()), true
+	case zed.IsSigned(id):
 		return float64(val.Int()), true
-	}
-	if id == zed.IDTime {
-		return float64(zed.DecodeTime(val.Bytes())), true
-	}
-	if id == zed.IDString {
-		v, err := strconv.ParseFloat(string(val.Bytes()), 64)
+	case zed.IsFloat(id):
+		return val.Float(), true
+	case id == zed.IDString:
+		v, err := byteconv.ParseFloat64(val.Bytes())
 		return v, err == nil
 	}
 	return 0, false
 }
 
 func ToUint(val *zed.Value) (uint64, bool) {
-	id := val.Type.ID()
-	if zed.IsFloat(id) {
-		return uint64(val.Float()), true
-	}
-	if zed.IsInteger(id) {
-		if zed.IsSigned(id) {
-			v := val.Int()
-			if v < 0 {
-				return 0, false
-			}
-			return uint64(v), true
-		} else {
-			return val.Uint(), true
+	switch id := val.Type.ID(); {
+	case zed.IsUnsigned(id):
+		return val.Uint(), true
+	case zed.IsSigned(id):
+		v := val.Int()
+		if v < 0 {
+			return 0, false
 		}
-	}
-	if id == zed.IDDuration {
-		return uint64(val.Int()), true
-	}
-	if id == zed.IDTime {
-		return uint64(zed.DecodeTime(val.Bytes())), true
-	}
-	if id == zed.IDString {
-		v, err := strconv.ParseUint(string(val.Bytes()), 10, 64)
+		return uint64(v), true
+	case zed.IsFloat(id):
+		return uint64(val.Float()), true
+	case id == zed.IDString:
+		v, err := byteconv.ParseUint64(val.Bytes())
 		return v, err == nil
 	}
 	return 0, false
 }
 
 func ToInt(val *zed.Value) (int64, bool) {
-	id := val.Type.ID()
-	if zed.IsFloat(id) {
-		return int64(val.Float()), true
-	}
-	if zed.IsInteger(id) {
-		if zed.IsSigned(id) {
-			// XXX check if negative? should -1:uint64 be maxint64 or an error?
-			return val.Int(), true
-		} else {
-			return int64(val.Uint()), true
-		}
-	}
-	if id == zed.IDDuration {
+	switch id := val.Type.ID(); {
+	case zed.IsUnsigned(id):
+		return int64(val.Uint()), true
+	case zed.IsSigned(id):
+		// XXX check if negative? should -1:uint64 be maxint64 or an error?
 		return val.Int(), true
-	}
-	if id == zed.IDTime {
-		return int64(zed.DecodeTime(val.Bytes())), true
-	}
-	if id == zed.IDString {
-		v, err := strconv.ParseInt(string(val.Bytes()), 10, 64)
+	case zed.IsFloat(id):
+		return int64(val.Float()), true
+	case id == zed.IDString:
+		v, err := byteconv.ParseInt64(val.Bytes())
 		return v, err == nil
 	}
 	return 0, false
@@ -240,7 +210,7 @@ func ToInt(val *zed.Value) (int64, bool) {
 
 func ToBool(val *zed.Value) (bool, bool) {
 	if val.IsString() {
-		v, err := strconv.ParseBool(string(val.Bytes()))
+		v, err := byteconv.ParseBool(val.Bytes())
 		return v, err == nil
 	}
 	v, ok := ToInt(val)
