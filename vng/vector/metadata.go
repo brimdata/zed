@@ -1,11 +1,8 @@
 package vector
 
 import (
-	"sort"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/expr"
 )
 
 type Metadata interface {
@@ -124,12 +121,6 @@ func (n *Named) Type(zctx *zed.Context) zed.Type {
 type DictEntry struct {
 	Value *zed.Value
 	Count uint32
-}
-
-func sortDict(entries []DictEntry, cmp expr.CompareFn) {
-	sort.Slice(entries, func(i, j int) bool {
-		return cmp(entries[i].Value, entries[j].Value) < 0
-	})
 }
 
 type Primitive struct {

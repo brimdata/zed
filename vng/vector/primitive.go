@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
@@ -54,17 +55,15 @@ func (p *PrimitiveWriter) update(body zcode.Bytes) {
 		p.hasNull = 1
 		return
 	}
-	if body != nil {
-		val := zed.NewValue(p.typ, body)
-		if p.min == nil || p.cmp(val, p.min) < 0 {
-			p.min = val
-		}
-		if p.max == nil || p.cmp(val, p.max) > 0 {
-			p.max = val
-		}
+	val := zed.NewValue(p.typ, body)
+	if p.min == nil || p.cmp(val, p.min) < 0 {
+		p.min = val
+	}
+	if p.max == nil || p.cmp(val, p.max) > 0 {
+		p.max = val
 	}
 	if p.dict != nil {
-		p.dict[string(body)] += 1
+		p.dict[string(body)]++
 		if len(p.dict)+p.hasNull > MaxDictSize {
 			p.dict = nil
 		}
@@ -158,7 +157,7 @@ func (p *PrimitiveWriter) makeDict() []DictEntry {
 	for key, cnt := range p.dict {
 		dict = append(dict, DictEntry{
 			zed.NewValue(p.typ, zcode.Bytes(key)),
-			uint32(cnt),
+			cnt,
 		})
 	}
 	if p.nulls != 0 {
@@ -169,6 +168,12 @@ func (p *PrimitiveWriter) makeDict() []DictEntry {
 	}
 	sortDict(dict, expr.NewValueCompareFn(order.Asc, false))
 	return dict
+}
+
+func sortDict(entries []DictEntry, cmp expr.CompareFn) {
+	sort.Slice(entries, func(i, j int) bool {
+		return cmp(entries[i].Value, entries[j].Value) < 0
+	})
 }
 
 type PrimitiveReader struct {
