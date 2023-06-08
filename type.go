@@ -173,6 +173,11 @@ func IsSigned(id int) bool {
 	return id >= IDInt8 && id <= IDTime
 }
 
+// True iff the type id is encoded as a number encoding and is unsigned.
+func IsUnsigned(id int) bool {
+	return id <= IDUint256
+}
+
 func LookupPrimitive(name string) Type {
 	switch name {
 	case "uint8":
