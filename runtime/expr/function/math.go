@@ -35,11 +35,11 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !zed.IsSigned(id) {
 		return ctx.CopyValue(&args[0])
 	}
-	x := zed.DecodeInt(v.Bytes())
+	x := v.Int()
 	if x < 0 {
 		x = -x
 	}
-	return newInt64(ctx, x)
+	return ctx.CopyValue(zed.NewInt64(x))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
@@ -135,7 +135,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val0))
 	}
 	if zed.IsSigned(id) {
-		result := zed.DecodeInt(val0.Bytes())
+		result := val0.Int()
 		for _, val := range args[1:] {
 			//XXX this is really bad because we silently coerce
 			// floats to ints if we hit a float first
@@ -145,7 +145,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			}
 			result = r.fn.Int64(result, v)
 		}
-		return newInt64(ctx, result)
+		return ctx.CopyValue(zed.NewInt64(result))
 	}
 	result := val0.Uint()
 	for _, val := range args[1:] {

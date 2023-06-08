@@ -329,7 +329,8 @@ func TestZNGValueField(t *testing.T) {
 	var out ZNGValueField
 	err = u.Unmarshal(zv, &out)
 	require.NoError(t, err)
-	assert.Equal(t, *zngValueField, out)
+	assert.Equal(t, zngValueField.Name, out.Name)
+	assert.True(t, zngValueField.Field.Equal(out.Field))
 	// Include a Zed record inside a Go struct in a zed.Value field.
 	z := `{s:"foo",a:[1,2,3]}`
 	zv2, err := zson.ParseValue(zed.NewContext(), z)

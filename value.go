@@ -65,12 +65,13 @@ func NewUint8(u uint8) *Value            { return NewUint(TypeUint8, uint64(u)) 
 func NewUint16(u uint16) *Value          { return NewUint(TypeUint16, uint64(u)) }
 func NewUint32(u uint32) *Value          { return NewUint(TypeUint32, uint64(u)) }
 func NewUint64(u uint64) *Value          { return NewUint(TypeUint64, u) }
-func NewInt8(i int8) *Value              { return &Value{TypeInt8, EncodeInt(int64(i))} }
-func NewInt16(i int16) *Value            { return &Value{TypeInt16, EncodeInt(int64(i))} }
-func NewInt32(i int32) *Value            { return &Value{TypeInt32, EncodeInt(int64(i))} }
-func NewInt64(i int64) *Value            { return &Value{TypeInt64, EncodeInt(i)} }
-func NewDuration(d nano.Duration) *Value { return &Value{TypeDuration, EncodeDuration(d)} }
-func NewTime(ts nano.Ts) *Value          { return &Value{TypeTime, EncodeTime(ts)} }
+func NewInt(t Type, i int64) *Value      { return &Value{t, encodeNative(uint64(i))} }
+func NewInt8(i int8) *Value              { return NewInt(TypeInt8, int64(i)) }
+func NewInt16(i int16) *Value            { return NewInt(TypeInt16, int64(i)) }
+func NewInt32(i int32) *Value            { return NewInt(TypeInt32, int64(i)) }
+func NewInt64(i int64) *Value            { return NewInt(TypeInt64, i) }
+func NewDuration(d nano.Duration) *Value { return NewInt(TypeDuration, int64(d)) }
+func NewTime(ts nano.Ts) *Value          { return NewInt(TypeTime, int64(ts)) }
 func NewFloat16(f float32) *Value        { return &Value{TypeFloat16, EncodeFloat16(f)} }
 func NewFloat32(f float32) *Value        { return &Value{TypeFloat32, EncodeFloat32(f)} }
 func NewFloat64(f float64) *Value        { return &Value{TypeFloat64, EncodeFloat64(f)} }
@@ -93,6 +94,18 @@ func (v *Value) Uint() uint64 {
 	return DecodeUint(v.bytes)
 }
 
+// Int returns v's underlying value.  It panics if v's underlying type is not
+// TypeInt8, TypeInt16, TypeInt32, TypeInt64, TypeDuration, or TypeTime.
+func (v *Value) Int() int64 {
+	if !IsSigned(v.Type.ID()) {
+		panic(fmt.Sprintf("zed.Value.Int called on %T", v.Type))
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		return int64(x)
+	}
+	return DecodeInt(v.bytes)
+}
+
 // Bool returns v's underlying value.  It panics if v's underlying type is not
 // TypeBool.
 func (v *Value) Bool() bool {
@@ -111,6 +124,8 @@ func (v *Value) Bytes() zcode.Bytes {
 		switch v.Type.ID() {
 		case IDUint8, IDUint16, IDUint32, IDUint64:
 			return EncodeUint(x)
+		case IDInt8, IDInt16, IDInt32, IDInt64, IDDuration, IDTime:
+			return EncodeInt(int64(x))
 		case IDBool:
 			return EncodeBool(x != 0)
 		}
@@ -382,7 +397,7 @@ func (v *Value) AsInt() int64 {
 		case *TypeOfUint8, *TypeOfUint16, *TypeOfUint32, *TypeOfUint64:
 			return int64(v.Uint())
 		case *TypeOfInt8, *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
-			return DecodeInt(v.Bytes())
+			return v.Int()
 		}
 	}
 	return 0

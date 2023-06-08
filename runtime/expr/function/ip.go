@@ -47,7 +47,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			}
 		case zed.IsInteger(id):
 			if zed.IsSigned(id) {
-				bits = int(zed.DecodeInt(body))
+				bits = int(args[1].Int())
 			} else {
 				bits = int(args[1].Uint())
 			}

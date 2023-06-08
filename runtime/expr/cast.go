@@ -68,7 +68,7 @@ func (c *casterIntN) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok || (c.min != 0 && (v < c.min || v > c.max)) {
 		return c.zctx.WrapError("cannot cast to "+zson.FormatType(c.typ), val)
 	}
-	return ectx.NewValue(c.typ, zed.EncodeInt(v))
+	return ectx.CopyValue(zed.NewInt(c.typ, v))
 }
 
 type casterUintN struct {
@@ -187,18 +187,16 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 			}
 			d = nano.Duration(f)
 		}
-		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
+		return ectx.CopyValue(zed.NewDuration(d))
 	}
 	if zed.IsFloat(id) {
-		d := nano.Duration(zed.DecodeFloat(val.Bytes()))
-		return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
+		return ectx.CopyValue(zed.NewDuration(nano.Duration(zed.DecodeFloat(val.Bytes()))))
 	}
 	v, ok := coerce.ToInt(val)
 	if !ok {
 		return c.zctx.WrapError("cannot cast to duration", val)
 	}
-	d := nano.Duration(v)
-	return ectx.NewValue(zed.TypeDuration, zed.EncodeDuration(d))
+	return ectx.CopyValue(zed.NewDuration(nano.Duration(v)))
 }
 
 type casterTime struct {
@@ -234,7 +232,7 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	default:
 		return c.zctx.WrapError("cannot cast to time", val)
 	}
-	return ectx.NewValue(zed.TypeTime, zed.EncodeTime(ts))
+	return ectx.CopyValue(zed.NewTime(ts))
 }
 
 type casterString struct {

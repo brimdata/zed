@@ -28,8 +28,8 @@ func formatAny(val *zed.Value, inContainer bool) string {
 		return "F"
 	case *zed.TypeOfBytes:
 		return base64.StdEncoding.EncodeToString(val.Bytes())
-	case *zed.TypeOfDuration:
-		return formatTime(nano.Ts(zed.DecodeDuration(val.Bytes())))
+	case *zed.TypeOfDuration, *zed.TypeOfTime:
+		return formatTime(nano.Ts(val.Int()))
 	case *zed.TypeEnum:
 		return formatAny(zed.NewValue(zed.TypeUint64, val.Bytes()), false)
 	case *zed.TypeOfFloat16:
@@ -39,7 +39,7 @@ func formatAny(val *zed.Value, inContainer bool) string {
 	case *zed.TypeOfFloat64:
 		return strconv.FormatFloat(zed.DecodeFloat64(val.Bytes()), 'f', -1, 64)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
-		return strconv.FormatInt(zed.DecodeInt(val.Bytes()), 10)
+		return strconv.FormatInt(val.Int(), 10)
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
 		return strconv.FormatUint(val.Uint(), 10)
 	case *zed.TypeOfIP:
@@ -56,8 +56,6 @@ func formatAny(val *zed.Value, inContainer bool) string {
 		return formatSet(t, val.Bytes())
 	case *zed.TypeOfString:
 		return formatString(t, val.Bytes(), inContainer)
-	case *zed.TypeOfTime:
-		return formatTime(zed.DecodeTime(val.Bytes()))
 	case *zed.TypeOfType:
 		return zson.String(val)
 	case *zed.TypeUnion:

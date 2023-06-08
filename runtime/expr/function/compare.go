@@ -32,5 +32,5 @@ func (e *Compare) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !nullsMax {
 		cmp = e.nullsMin
 	}
-	return newInt64(ctx, int64(cmp(&args[0], &args[1])))
+	return ctx.CopyValue(zed.NewInt64(int64(cmp(&args[0], &args[1]))))
 }

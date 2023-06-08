@@ -39,7 +39,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 					i64s[i] = math.MinInt64
 				}
 			} else if zed.IsSigned(id) {
-				i64s[i] = zed.DecodeInt(val.Bytes())
+				i64s[i] = val.Int()
 			} else {
 				v := val.Uint()
 				if v > math.MaxInt64 {

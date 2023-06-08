@@ -44,10 +44,10 @@ func (r *RuneLen) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(r.zctx, ctx, "rune_len: string arg required")
 	}
 	if val.IsNull() {
-		return newInt64(ctx, 0)
+		return ctx.CopyValue(zed.NewInt64(0))
 	}
 	s := zed.DecodeString(val.Bytes())
-	return newInt64(ctx, int64(utf8.RuneCountInString(s)))
+	return ctx.CopyValue(zed.NewInt64(int64(utf8.RuneCountInString(s))))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#lower
@@ -182,5 +182,5 @@ func (l *Levenshtein) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return l.zctx.WrapError("levenshtein: string args required", b)
 	}
 	as, bs := zed.DecodeString(a.Bytes()), zed.DecodeString(b.Bytes())
-	return newInt64(ctx, int64(levenshtein.ComputeDistance(as, bs)))
+	return ctx.CopyValue(zed.NewInt64(int64(levenshtein.ComputeDistance(as, bs))))
 }
