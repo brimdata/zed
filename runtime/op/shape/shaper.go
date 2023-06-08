@@ -69,7 +69,7 @@ func (i *integer) check(val zed.Value) {
 		i.unsigned = false
 		return
 	}
-	f := zed.DecodeFloat64(val.Bytes())
+	f := val.Float()
 	//XXX We could track signed vs unsigned and overflow,
 	// but for now, we leave it as float64 unless we can
 	// guarantee int64.

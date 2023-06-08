@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 	"golang.org/x/exp/slices"
 )
 
@@ -40,9 +39,9 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 					i64s[i] = math.MinInt64
 				}
 			} else if zed.IsSigned(id) {
-				i64s[i] = zed.DecodeInt(val.Bytes())
+				i64s[i] = val.Int()
 			} else {
-				v := zed.DecodeUint(val.Bytes())
+				v := val.Uint()
 				if v > math.MaxInt64 {
 					v = math.MaxInt64
 				}
@@ -189,11 +188,7 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 			typ, err = zed.LookupPrimitiveByID(id)
 		}
 		if err != nil {
-			// If values cannot be coerced, just compare the native
-			// representation of the type.
-			// XXX This is heavyweight and should probably just compare
-			// the zcode.Bytes.  See issue #2354.
-			return bytes.Compare([]byte(zson.String(a.Type)), []byte(zson.String(b.Type)))
+			return zed.CompareTypes(a.Type, b.Type)
 		}
 		abytes, bbytes = pair.A, pair.B
 	}

@@ -366,12 +366,12 @@ where has(foo)
 ```
 while this query
 ```mdtest-command
-zq -C 'lower(foo)'
+zq -C 'a:=x+1'
 ```
-is an implied [yield operator](../language/operators/yield.md), which produces the lower case
-version of the presumed string in field `foo`, i.e.,
+is an implied [put operator](../language/operators/put.md), which creates a new field `a`
+with the value `x+1`, i.e.,
 ```mdtest-output
-yield lower(foo)
+put a:=x+1
 ```
 
 ## 5. Error Handling

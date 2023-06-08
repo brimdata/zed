@@ -112,7 +112,7 @@ The following sections continue describing the Zed language.
 
 * [The Dataflow Model](dataflow-model.md)
 * [Data Types](data-types.md)
-* [Const, Func, and Type Statements](statements.md)
+* [Const, Func, Operator, and Type Statements](statements.md)
 * [Expressions](expressions.md)
 * [Search Expressions](search-expressions.md)
 * [Lateral Subqueries](lateral-subqueries.md)

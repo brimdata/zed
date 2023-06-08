@@ -38,7 +38,7 @@ func (n *Not) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if !ok {
 		return val
 	}
-	if zed.DecodeBool(val.Bytes()) {
+	if val.Bool() {
 		return zed.False
 	}
 	return zed.True
@@ -83,14 +83,14 @@ func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if !ok {
 		return lhs
 	}
-	if !zed.DecodeBool(lhs.Bytes()) {
+	if !lhs.Bool() {
 		return zed.False
 	}
 	rhs, ok := EvalBool(a.zctx, ectx, this, a.rhs)
 	if !ok {
 		return rhs
 	}
-	if !zed.DecodeBool(rhs.Bytes()) {
+	if !rhs.Bool() {
 		return zed.False
 	}
 	return zed.True
@@ -98,7 +98,7 @@ func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
 
 func (o *Or) Eval(ectx Context, this *zed.Value) *zed.Value {
 	lhs, ok := EvalBool(o.zctx, ectx, this, o.lhs)
-	if ok && zed.DecodeBool(lhs.Bytes()) {
+	if ok && lhs.Bool() {
 		return zed.True
 	}
 	if lhs.IsError() && !lhs.IsMissing() {
@@ -106,7 +106,7 @@ func (o *Or) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	rhs, ok := EvalBool(o.zctx, ectx, this, o.rhs)
 	if ok {
-		if zed.DecodeBool(rhs.Bytes()) {
+		if rhs.Bool() {
 			return zed.True
 		}
 		return zed.False
@@ -433,10 +433,10 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(typ, zed.EncodeFloat64(v1+v2))
 	case zed.IsSigned(id):
 		v1, v2 := a.operands.ints()
-		return ectx.NewValue(typ, zed.EncodeInt(v1+v2))
+		return ectx.CopyValue(zed.NewInt(typ, v1+v2))
 	case zed.IsNumber(id):
 		v1, v2 := a.operands.uints()
-		return ectx.NewValue(typ, zed.EncodeUint(v1+v2))
+		return ectx.CopyValue(zed.NewUint(typ, v1+v2))
 	case id == zed.IDString:
 		v1, v2 := zed.DecodeString(a.operands.vals.A), zed.DecodeString(a.operands.vals.B)
 		// XXX GC
@@ -467,10 +467,10 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 			// Return the difference of two times as a duration.
 			typ = zed.TypeDuration
 		}
-		return ectx.NewValue(typ, zed.EncodeInt(v1-v2))
+		return ectx.CopyValue(zed.NewInt(typ, v1-v2))
 	case zed.IsNumber(id):
 		v1, v2 := s.operands.uints()
-		return ectx.NewValue(typ, zed.EncodeUint(v1-v2))
+		return ectx.CopyValue(zed.NewUint(typ, v1-v2))
 	}
 	return ectx.CopyValue(s.zctx.NewErrorf("type %s incompatible with '-' operator", zson.FormatType(typ)))
 }
@@ -493,10 +493,10 @@ func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.NewValue(typ, zed.EncodeFloat64(v1*v2))
 	case zed.IsSigned(id):
 		v1, v2 := m.operands.ints()
-		return ectx.NewValue(typ, zed.EncodeInt(v1*v2))
+		return ectx.CopyValue(zed.NewInt(typ, v1*v2))
 	case zed.IsNumber(id):
 		v1, v2 := m.operands.uints()
-		return ectx.NewValue(typ, zed.EncodeUint(v1*v2))
+		return ectx.CopyValue(zed.NewUint(typ, v1*v2))
 	}
 	return ectx.CopyValue(m.zctx.NewErrorf("type %s incompatible with '*' operator", zson.FormatType(typ)))
 }
@@ -525,13 +525,13 @@ func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if v2 == 0 {
 			return d.zctx.NewError(DivideByZero)
 		}
-		return ectx.NewValue(typ, zed.EncodeInt(v1/v2))
+		return ectx.CopyValue(zed.NewInt(typ, v1/v2))
 	case zed.IsNumber(id):
 		v1, v2 := d.operands.uints()
 		if v2 == 0 {
 			return d.zctx.NewError(DivideByZero)
 		}
-		return ectx.NewValue(typ, zed.EncodeUint(v1/v2))
+		return ectx.CopyValue(zed.NewUint(typ, v1/v2))
 	}
 	return ectx.CopyValue(d.zctx.NewErrorf("type %s incompatible with '/' operator", zson.FormatType(typ)))
 }
@@ -556,13 +556,13 @@ func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if y == 0 {
 			return m.zctx.NewError(DivideByZero)
 		}
-		return ectx.NewValue(typ, zed.EncodeInt(x%y))
+		return ectx.CopyValue(zed.NewInt(typ, x%y))
 	}
 	x, y := m.operands.uints()
 	if y == 0 {
 		return m.zctx.NewError(DivideByZero)
 	}
-	return ectx.NewValue(typ, zed.EncodeUint(x%y))
+	return ectx.CopyValue(zed.NewUint(typ, x%y))
 }
 
 type UnaryMinus struct {
@@ -581,93 +581,83 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := u.expr.Eval(ectx, this)
 	typ := val.Type
 	switch typ.ID() {
-	case zed.IDFloat16:
+	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 		if val.IsNull() {
 			return val
 		}
-		return ectx.NewValue(typ, zed.EncodeFloat16(-zed.DecodeFloat16(val.Bytes())))
-	case zed.IDFloat32:
-		if val.IsNull() {
-			return val
-		}
-		return ectx.NewValue(typ, zed.EncodeFloat32(-zed.DecodeFloat32(val.Bytes())))
-	case zed.IDFloat64:
-		if val.IsNull() {
-			return val
-		}
-		return ectx.NewValue(typ, zed.EncodeFloat64(-zed.DecodeFloat64(val.Bytes())))
+		return zed.NewFloat(typ, -val.Float())
 	case zed.IDInt8:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeInt(val.Bytes())
+		v := val.Int()
 		if v == math.MinInt8 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int8(%d)", v))
 		}
-		return ectx.NewValue(typ, zed.EncodeInt(-v))
+		return ectx.CopyValue(zed.NewInt8(int8(-v)))
 	case zed.IDInt16:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeInt(val.Bytes())
+		v := val.Int()
 		if v == math.MinInt16 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int16(%d)", v))
 		}
-		return ectx.NewValue(typ, zed.EncodeInt(-v))
+		return ectx.CopyValue(zed.NewInt16(int16(-v)))
 	case zed.IDInt32:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeInt(val.Bytes())
+		v := val.Int()
 		if v == math.MinInt32 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int32(%d)", v))
 		}
-		return ectx.NewValue(typ, zed.EncodeInt(-v))
+		return ectx.CopyValue(zed.NewInt32(int32(-v)))
 	case zed.IDInt64:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeInt(val.Bytes())
+		v := val.Int()
 		if v == math.MinInt64 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int64(%d)", v))
 		}
-		return ectx.NewValue(typ, zed.EncodeInt(-v))
+		return ectx.CopyValue(zed.NewInt64(-v))
 	case zed.IDUint8:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeUint(val.Bytes())
+		v := val.Uint()
 		if v > math.MaxInt8 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint8(%d)", v))
 		}
-		return ectx.NewValue(zed.TypeInt8, zed.EncodeInt(-int64(v)))
+		return ectx.CopyValue(zed.NewInt8(int8(-v)))
 	case zed.IDUint16:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeUint(val.Bytes())
+		v := val.Uint()
 		if v > math.MaxInt16 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint16(%d)", v))
 		}
-		return ectx.NewValue(zed.TypeInt16, zed.EncodeInt(-int64(v)))
+		return ectx.CopyValue(zed.NewInt16(int16(-v)))
 	case zed.IDUint32:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeUint(val.Bytes())
+		v := val.Uint()
 		if v > math.MaxInt32 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint32(%d)", v))
 		}
-		return ectx.NewValue(zed.TypeInt32, zed.EncodeInt(-int64(v)))
+		return ectx.CopyValue(zed.NewInt32(int32(-v)))
 	case zed.IDUint64:
 		if val.IsNull() {
 			return val
 		}
-		v := zed.DecodeUint(val.Bytes())
+		v := val.Uint()
 		if v > math.MaxInt64 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint64(%d)", v))
 		}
-		return ectx.NewValue(zed.TypeInt64, zed.EncodeInt(-int64(v)))
+		return ectx.CopyValue(zed.NewInt64(int64(-v)))
 	}
 	return u.zctx.WrapError("type incompatible with unary '-' operator", val)
 }
@@ -696,7 +686,7 @@ func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
 	for it := mapBytes.Iter(); !it.Done(); {
 		key := it.Next()
 		val := it.Next()
-		if bytes.Compare(key, target) == 0 {
+		if bytes.Equal(key, target) {
 			return val, true
 		}
 	}
@@ -737,9 +727,9 @@ func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.B
 	}
 	var idx int
 	if zed.IsSigned(id) {
-		idx = int(zed.DecodeInt(index.Bytes()))
+		idx = int(index.Int())
 	} else {
-		idx = int(zed.DecodeUint(index.Bytes()))
+		idx = int(index.Uint())
 	}
 	zv := getNthFromContainer(vector, idx)
 	if zv == nil {
@@ -812,7 +802,7 @@ func (c *Conditional) Eval(ectx Context, this *zed.Value) *zed.Value {
 		val := *c.zctx.NewErrorf("?-operator: bool predicate required")
 		return &val
 	}
-	if zed.DecodeBool(val.Bytes()) {
+	if val.Bool() {
 		return c.thenExpr.Eval(ectx, this)
 	}
 	return c.elseExpr.Eval(ectx, this)

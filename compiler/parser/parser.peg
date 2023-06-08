@@ -63,7 +63,7 @@ Seq
 SeqTail = __ Pipe __ o:Operation { RETURN(o) }
 
 Decl
-  = v:(ConstDecl / FuncDecl) _ { RETURN(v) }
+  = v:(ConstDecl / FuncDecl / OpDecl) _ { RETURN(v) }
 
 ConstDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
@@ -84,6 +84,25 @@ FuncDecl
         "params": params,
         "expr": expr))
     }
+
+OpDecl
+  = "op" _ name:IdentifierName __ "(" __ params:Params __ ")" __ ":" __ "(" __ body:Seq __ ")" {
+      RETURN(MAP(
+        "kind": "OpDecl",
+        "name": name,
+        "params": params,
+        "body": body))
+    }
+
+Params 
+  = first:Param rest:(__ "," __ p:Param { RETURN(p) })* {
+      RETURN(PREPEND(first, rest))
+    }
+    
+Param
+  = "const" _ id:IdentifierName { RETURN(MAP("kind": "ConstParam", "name": id)) }
+  / "..." { RETURN(MAP("kind": "SpreadParam")) }
+  / id:IdentifierName { RETURN(MAP("kind": "NamedParam", "name": id)) }
 
 Operation
   = "fork" __ "(" paths:Leg+ __ ")" {

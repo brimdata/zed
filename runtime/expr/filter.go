@@ -144,7 +144,7 @@ func (s *searchCIDR) Eval(_ Context, val *zed.Value) *zed.Value {
 	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 		switch typ.ID() {
 		case zed.IDNet:
-			if bytes.Compare(body, s.bytes) == 0 {
+			if bytes.Equal(body, s.bytes) {
 				return errMatch
 			}
 		case zed.IDIP:
@@ -248,21 +248,17 @@ type filterApplier struct {
 	expr Evaluator
 }
 
-func NewFilterApplier(zctx *zed.Context, e Evaluator) Applier {
+func NewFilterApplier(zctx *zed.Context, e Evaluator) Evaluator {
 	return &filterApplier{zctx, e}
 }
 
 func (f *filterApplier) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val, ok := EvalBool(f.zctx, ectx, this, f.expr)
 	if ok {
-		if zed.DecodeBool(val.Bytes()) {
+		if val.Bool() {
 			return this
 		}
 		return f.zctx.Missing()
 	}
 	return val
 }
-
-func (*filterApplier) String() string { return "filter" }
-
-func (*filterApplier) Warning() string { return "" }

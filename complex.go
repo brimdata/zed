@@ -68,11 +68,11 @@ func (t *TypeError) Kind() Kind {
 }
 
 func (t *TypeError) IsMissing(zv zcode.Bytes) bool {
-	return t.Type == TypeString && bytes.Compare(zv, Missing) == 0
+	return t.Type == TypeString && bytes.Equal(zv, Missing)
 }
 
 func (t *TypeError) IsQuiet(zv zcode.Bytes) bool {
-	return t.Type == TypeString && bytes.Compare(zv, Quiet) == 0
+	return t.Type == TypeString && bytes.Equal(zv, Quiet)
 }
 
 type TypeEnum struct {

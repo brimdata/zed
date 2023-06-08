@@ -329,7 +329,8 @@ func TestZNGValueField(t *testing.T) {
 	var out ZNGValueField
 	err = u.Unmarshal(zv, &out)
 	require.NoError(t, err)
-	assert.Equal(t, *zngValueField, out)
+	assert.Equal(t, zngValueField.Name, out.Name)
+	assert.True(t, zngValueField.Field.Equal(out.Field))
 	// Include a Zed record inside a Go struct in a zed.Value field.
 	z := `{s:"foo",a:[1,2,3]}`
 	zv2, err := zson.ParseValue(zed.NewContext(), z)
@@ -516,4 +517,13 @@ func TestSimpleUnionUnmarshal(t *testing.T) {
 	err := zson.Unmarshal(`1((int64,string))`, &i)
 	require.NoError(t, err)
 	assert.Equal(t, 1, i)
+}
+
+func TestEmbeddedNilInterface(t *testing.T) {
+	in := &Record{
+		Fields: nil,
+	}
+	val, err := zson.Marshal(in)
+	require.NoError(t, err)
+	assert.Equal(t, `{Fields:null([{Name:string,Values:null}])}`, val)
 }

@@ -86,7 +86,3 @@ func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
 	out := this.Copy()
 	return ectx.NewValue(typ, out.Bytes())
 }
-
-func (*Renamer) String() string { return "rename" }
-
-func (*Renamer) Warning() string { return "" }

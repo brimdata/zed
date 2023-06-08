@@ -20,20 +20,20 @@ outputs:
             | search d
           ))
       === cast
-      yield uint8((
-          over a
-          | search b
-        ))
+      uint8((
+        over a
+        | search b
+      ))
       === expression
       yield (
         over a
         | search b
       )
       === function
-      yield quiet((
-          over a
-          | search b
-        ))
+      quiet((
+        over a
+        | search b
+      ))
       === grep
       where grep(/regexp/,(
           over a

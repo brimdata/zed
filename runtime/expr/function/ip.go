@@ -47,9 +47,9 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			}
 		case zed.IsInteger(id):
 			if zed.IsSigned(id) {
-				bits = int(zed.DecodeInt(body))
+				bits = int(args[1].Int())
 			} else {
-				bits = int(zed.DecodeUint(body))
+				bits = int(args[1].Uint())
 			}
 			if bits > 128 || bits > 32 && ip.Is4() {
 				return newErrorf(n.zctx, ctx, "network_of: cidr bit count out of range")
