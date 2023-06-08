@@ -138,7 +138,7 @@ produces
 ### Const Parameters
 
 User-defined operators may use the `const` keyword to indicate that a parameter
-is expecting a const value. Const parameters are different from standard named
+is expecting a constant value. Const parameters are different from standard named
 parameters in that they are not included in the operator's `this` value but can
 be accessed within the operator's sequence as a variable.
 
