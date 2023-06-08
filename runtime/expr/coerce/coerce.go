@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime/expr/result"
 	"github.com/brimdata/zed/zcode"
 )
@@ -246,51 +245,4 @@ func ToBool(val *zed.Value) (bool, bool) {
 	}
 	v, ok := ToInt(val)
 	return v != 0, ok
-}
-
-func ToTime(val *zed.Value) (nano.Ts, bool) {
-	id := val.Type.ID()
-	if id == zed.IDTime {
-		return zed.DecodeTime(val.Bytes()), true
-	}
-	if zed.IsSigned(id) {
-		return nano.Ts(val.Int()), true
-	}
-	if zed.IsInteger(id) {
-		v := val.Uint()
-		// check for overflow
-		if v > math.MaxInt64 {
-			return 0, false
-		}
-		return nano.Ts(v), true
-	}
-	if zed.IsFloat(id) {
-		return nano.Ts(zed.DecodeFloat(val.Bytes())), true
-	}
-	return 0, false
-}
-
-// ToDuration attempts to convert a value to a duration.  Int
-// and Double are converted as seconds. The resulting coerced value is
-// written to out, and true is returned. If the value cannot be
-// coerced, then false is returned.
-func ToDuration(in *zed.Value) (nano.Duration, bool) {
-	switch in.Type.ID() {
-	case zed.IDDuration:
-		return zed.DecodeDuration(in.Bytes()), true
-	case zed.IDUint16, zed.IDUint32, zed.IDUint64:
-		v := in.Uint()
-		// check for overflow
-		if v > math.MaxInt64 {
-			return 0, false
-		}
-		return nano.Duration(v) * nano.Second, true
-	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
-		v := in.Int()
-		//XXX check for overflow here
-		return nano.Duration(v) * nano.Second, true
-	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-		return nano.Duration(in.Float()), true
-	}
-	return 0, false
 }

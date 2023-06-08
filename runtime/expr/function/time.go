@@ -39,11 +39,11 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		dur := nano.Duration(tsArg.Int())
 		return ctx.CopyValue(zed.NewDuration(dur.Trunc(bin)))
 	}
-	ts, ok := coerce.ToTime(tsArg)
+	v, ok := coerce.ToInt(tsArg)
 	if !ok {
 		return newErrorf(b.zctx, ctx, "%s: time arg required", b)
 	}
-	return ctx.CopyValue(zed.NewTime(ts.Trunc(bin)))
+	return ctx.CopyValue(zed.NewTime(nano.Ts(v).Trunc(bin)))
 }
 
 func (b *Bucket) String() string {

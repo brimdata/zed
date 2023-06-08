@@ -215,8 +215,8 @@ func (d *Duration) result() *zed.Value {
 }
 
 func (d *Duration) consume(val *zed.Value) {
-	if v, ok := coerce.ToDuration(val); ok {
-		d.state = d.function(d.state, int64(v))
+	if v, ok := coerce.ToInt(val); ok {
+		d.state = d.function(d.state, v)
 	}
 }
 
@@ -247,8 +247,8 @@ func (t *Time) result() *zed.Value {
 }
 
 func (t *Time) consume(val *zed.Value) {
-	if v, ok := coerce.ToTime(val); ok {
-		t.state = nano.Ts(t.function(int64(t.state), int64(v)))
+	if v, ok := coerce.ToInt(val); ok {
+		t.state = nano.Ts(t.function(int64(t.state), v))
 	}
 }
 
