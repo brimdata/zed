@@ -1,0 +1,12 @@
+zed: |
+  func no_params(): (
+    "hello"
+  )
+
+  yield no_params()
+
+input: |
+  null
+
+output: |
+  "hello"

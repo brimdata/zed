@@ -77,7 +77,7 @@ ConstDecl
     }
 
 FuncDecl
-  = "func" _ id:IdentifierName __ "(" __ params:IdentifierNames __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
+  = "func" _ id:IdentifierName __ "(" __ params:IdentifierNames? __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
       RETURN(MAP(
         "kind": "FuncDecl",
         "name": id,
