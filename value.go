@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"net/netip"
 	"reflect"
 	"runtime/debug"
@@ -72,9 +73,10 @@ func NewInt32(i int32) *Value            { return NewInt(TypeInt32, int64(i)) }
 func NewInt64(i int64) *Value            { return NewInt(TypeInt64, i) }
 func NewDuration(d nano.Duration) *Value { return NewInt(TypeDuration, int64(d)) }
 func NewTime(ts nano.Ts) *Value          { return NewInt(TypeTime, int64(ts)) }
-func NewFloat16(f float32) *Value        { return &Value{TypeFloat16, EncodeFloat16(f)} }
-func NewFloat32(f float32) *Value        { return &Value{TypeFloat32, EncodeFloat32(f)} }
-func NewFloat64(f float64) *Value        { return &Value{TypeFloat64, EncodeFloat64(f)} }
+func NewFloat(t Type, f float64) *Value  { return &Value{t, encodeNative(math.Float64bits(f))} }
+func NewFloat16(f float32) *Value        { return NewFloat(TypeFloat16, float64(f)) }
+func NewFloat32(f float32) *Value        { return NewFloat(TypeFloat32, float64(f)) }
+func NewFloat64(f float64) *Value        { return NewFloat(TypeFloat64, f) }
 func NewBool(b bool) *Value              { return &Value{TypeBool, encodeNative(boolToUint64(b))} }
 func NewBytes(b []byte) *Value           { return &Value{TypeBytes, EncodeBytes(b)} }
 func NewString(s string) *Value          { return &Value{TypeString, EncodeString(s)} }
@@ -106,6 +108,18 @@ func (v *Value) Int() int64 {
 	return DecodeInt(v.bytes)
 }
 
+// Float returns v's underlying value.  It panics if v's underlying type is not
+// TypeFloat16, TypeFloat32, or TypeFloat64.
+func (v *Value) Float() float64 {
+	if !IsFloat(v.Type.ID()) {
+		panic(fmt.Sprintf("zed.Value.Float called on %T", v.Type))
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		return math.Float64frombits(x)
+	}
+	return DecodeFloat(v.bytes)
+}
+
 // Bool returns v's underlying value.  It panics if v's underlying type is not
 // TypeBool.
 func (v *Value) Bool() bool {
@@ -126,6 +140,12 @@ func (v *Value) Bytes() zcode.Bytes {
 			return EncodeUint(x)
 		case IDInt8, IDInt16, IDInt32, IDInt64, IDDuration, IDTime:
 			return EncodeInt(int64(x))
+		case IDFloat16:
+			return EncodeFloat16(float32(math.Float64frombits(x)))
+		case IDFloat32:
+			return EncodeFloat32(float32(math.Float64frombits(x)))
+		case IDFloat64:
+			return EncodeFloat64(math.Float64frombits(x))
 		case IDBool:
 			return EncodeBool(x != 0)
 		}

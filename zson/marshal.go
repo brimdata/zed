@@ -708,7 +708,7 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		if val.Type != zed.TypeFloat16 {
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetUint(uint64(float16.Fromfloat32(zed.DecodeFloat16(val.Bytes())).Bits()))
+		v.SetUint(uint64(float16.Fromfloat32(float32(val.Float()))))
 		return nil
 	case nano.Ts:
 		if val.Type != zed.TypeTime {
@@ -826,13 +826,13 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		if zed.TypeUnder(val.Type) != zed.TypeFloat32 {
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetFloat(float64(zed.DecodeFloat32(val.Bytes())))
+		v.SetFloat(val.Float())
 		return nil
 	case reflect.Float64:
 		if zed.TypeUnder(val.Type) != zed.TypeFloat64 {
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetFloat(zed.DecodeFloat64(val.Bytes()))
+		v.SetFloat(val.Float())
 		return nil
 	default:
 		return fmt.Errorf("unsupported type: %v", v.Kind())
