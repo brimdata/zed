@@ -201,10 +201,10 @@ type (
 		Kind    string              `json:"kind" unpack:""`
 		URL     string              `json:"url"`
 		Format  string              `json:"format"`
+		SortKey order.SortKey       `json:"sort_key"`
 		Method  string              `json:"method"`
 		Headers map[string][]string `json:"headers"`
 		Body    string              `json:"body"`
-		SortKey order.SortKey       `json:"sort_key"`
 	}
 	PoolScan struct {
 		Kind   string      `json:"kind" unpack:""`

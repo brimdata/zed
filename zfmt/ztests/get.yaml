@@ -1,11 +1,9 @@
 script: |
   zc -C 'get http://host/path'
   echo ===
-  zc -C 'get http://host/path format f'
+  zc -C 'get http://host/path format f method m headers {a:["b"]} body b'
   echo ===
-  zc -C 'get http://host/path method "m"'
-  echo ===
-  zc -C 'get http://host/path headers {}'
+  zc -C 'get http://host/path method "m|" body "b|"'
 outputs:
   - name: stdout
     data: |
@@ -14,13 +12,9 @@ outputs:
       )
       ===
       from (
-        get http://host/path format f
+        get http://host/path format f method m headers {a:["b"]} body b
       )
       ===
       from (
-        get http://host/path method m
-      )
-      ===
-      from (
-        get http://host/path headers &{RecordExpr []}
+        get http://host/path method "m|" body "b|"
       )

@@ -101,7 +101,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 		if err != nil {
 			return nil, err
 		}
-		var headers = map[string][]string{}
+		var headers map[string][]string
 		if p.Headers != nil {
 			expr, err := a.semExpr(p.Headers)
 			if err != nil {
@@ -111,21 +111,20 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 			if err != nil {
 				return nil, fmt.Errorf("headers: %w", err)
 			}
-			output, err := unmarshalHeaders(val)
+			headers, err = unmarshalHeaders(val)
 			if err != nil {
 				return nil, err
 			}
-			headers = output
 		}
 		return []dag.Op{
 			&dag.HTTPScan{
 				Kind:    "HTTPScan",
 				URL:     p.URL,
 				Format:  p.Format,
+				SortKey: sortKey,
 				Method:  p.Method,
 				Headers: headers,
 				Body:    p.Body,
-				SortKey: sortKey,
 			},
 		}, nil
 	case *ast.Pool:
