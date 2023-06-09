@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -71,6 +72,29 @@ func (s *Source) Open(ctx context.Context, zctx *zed.Context, path, format strin
 	}
 	sn := zbuf.NamedScanner(scanner, path)
 	return &closePuller{sn, file}, nil
+}
+
+func (s *Source) OpenHTTP(ctx context.Context, zctx *zed.Context, url, format, method string, headers http.Header, body io.Reader) (zbuf.Puller, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = headers
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	file, err := anyio.NewFile(zctx, resp.Body, url, anyio.ReaderOpts{Format: format})
+	if err != nil {
+		resp.Body.Close()
+		return nil, fmt.Errorf("%s: %w", url, err)
+	}
+	scanner, err := zbuf.NewScanner(ctx, file, nil)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	return &closePuller{scanner, file}, nil
 }
 
 type closePuller struct {

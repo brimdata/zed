@@ -819,6 +819,16 @@ func (c *canon) http(p *ast.HTTP) {
 	if p.Format != "" {
 		c.write(" format %s", p.Format)
 	}
+	if p.Method != "" {
+		c.write(" method %s", zson.QuotedName(p.Method))
+	}
+	if p.Headers != nil {
+		c.write(" headers ")
+		c.expr(p.Headers, "")
+	}
+	if p.Body != "" {
+		c.write(" body %s", zson.QuotedName(p.Body))
+	}
 }
 
 func (c *canon) file(p *ast.File) {

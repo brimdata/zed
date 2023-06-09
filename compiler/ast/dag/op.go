@@ -198,10 +198,13 @@ type (
 		Filter  Expr          `json:"filter"`
 	}
 	HTTPScan struct {
-		Kind    string        `json:"kind" unpack:""`
-		URL     string        `json:"url"`
-		Format  string        `json:"format"`
-		SortKey order.SortKey `json:"sort_key"`
+		Kind    string              `json:"kind" unpack:""`
+		URL     string              `json:"url"`
+		Format  string              `json:"format"`
+		SortKey order.SortKey       `json:"sort_key"`
+		Method  string              `json:"method"`
+		Headers map[string][]string `json:"headers"`
+		Body    string              `json:"body"`
 	}
 	PoolScan struct {
 		Kind   string      `json:"kind" unpack:""`

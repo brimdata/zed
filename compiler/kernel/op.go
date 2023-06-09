@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -259,7 +260,8 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.LakeMetaScan:
 		return meta.NewLakeMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), v.Meta)
 	case *dag.HTTPScan:
-		return b.source.Open(b.octx.Context, b.octx.Zctx, v.URL, v.Format, nil)
+		body := strings.NewReader(v.Body)
+		return b.source.OpenHTTP(b.octx.Context, b.octx.Zctx, v.URL, v.Format, v.Method, v.Headers, body)
 	case *dag.FileScan:
 		return b.source.Open(b.octx.Context, b.octx.Zctx, v.Path, v.Format, b.PushdownOf(v.Filter))
 	case *Reader:

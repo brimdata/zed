@@ -411,10 +411,13 @@ type (
 		SortKey *SortKey `json:"sort_key"`
 	}
 	HTTP struct {
-		Kind    string   `json:"kind" unpack:""`
-		URL     string   `json:"url"`
-		Format  string   `json:"format"`
-		SortKey *SortKey `json:"sort_key"`
+		Kind    string      `json:"kind" unpack:""`
+		URL     string      `json:"url"`
+		Format  string      `json:"format"`
+		SortKey *SortKey    `json:"sort_key"`
+		Method  string      `json:"method"`
+		Headers *RecordExpr `json:"headers"`
+		Body    string      `json:"body"`
 	}
 	Pool struct {
 		Kind   string   `json:"kind" unpack:""`

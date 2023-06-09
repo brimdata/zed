@@ -1,0 +1,20 @@
+script: |
+  zc -C 'get http://host/path'
+  echo ===
+  zc -C 'get http://host/path format f method m headers {a:["b"]} body b'
+  echo ===
+  zc -C 'get http://host/path method "m|" body "b|"'
+outputs:
+  - name: stdout
+    data: |
+      from (
+        get http://host/path
+      )
+      ===
+      from (
+        get http://host/path format f method m headers {a:["b"]} body b
+      )
+      ===
+      from (
+        get http://host/path method "m|" body "b|"
+      )

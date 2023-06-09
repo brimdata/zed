@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/kernel"
@@ -100,12 +101,30 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 		if err != nil {
 			return nil, err
 		}
+		var headers map[string][]string
+		if p.Headers != nil {
+			expr, err := a.semExpr(p.Headers)
+			if err != nil {
+				return nil, err
+			}
+			val, err := kernel.EvalAtCompileTime(a.zctx, expr)
+			if err != nil {
+				return nil, fmt.Errorf("headers: %w", err)
+			}
+			headers, err = unmarshalHeaders(val)
+			if err != nil {
+				return nil, err
+			}
+		}
 		return []dag.Op{
 			&dag.HTTPScan{
 				Kind:    "HTTPScan",
 				URL:     p.URL,
 				Format:  p.Format,
 				SortKey: sortKey,
+				Method:  p.Method,
+				Headers: headers,
+				Body:    p.Body,
 			},
 		}, nil
 	case *ast.Pool:
@@ -123,7 +142,27 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
 	}
 }
-
+func unmarshalHeaders(val *zed.Value) (map[string][]string, error) {
+	if !zed.IsRecordType(val.Type) {
+		return nil, errors.New("headers value must be a record")
+	}
+	headers := map[string][]string{}
+	for i, f := range val.Fields() {
+		if inner := zed.InnerType(f.Type); inner == nil || inner.ID() != zed.IDString {
+			return nil, errors.New("headers field value must be an array or set of strings")
+		}
+		fieldVal := val.DerefByColumn(i)
+		if fieldVal == nil {
+			continue
+		}
+		for it := fieldVal.Iter(); !it.Done(); {
+			if b := it.Next(); b != nil {
+				headers[f.Name] = append(headers[f.Name], zed.DecodeString(b))
+			}
+		}
+	}
+	return headers, nil
+}
 func semSortKey(p *ast.SortKey) (order.SortKey, error) {
 	if p == nil || p.Keys == nil {
 		return order.Nil, nil
