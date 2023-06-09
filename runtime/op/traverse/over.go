@@ -86,7 +86,7 @@ func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value 
 	switch typ := zed.TypeUnder(val.Type).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
 		typ = zed.InnerType(typ)
-		for it := val.Bytes.Iter(); !it.Done(); {
+		for it := val.Bytes().Iter(); !it.Done(); {
 			// XXX when we do proper expr.Context, we can allocate
 			// this copy through the batch.
 			val := zed.NewValue(typ, it.Next()).Under()
@@ -98,14 +98,14 @@ func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value 
 			zed.NewField("key", typ.KeyType),
 			zed.NewField("value", typ.ValType),
 		})
-		for it := val.Bytes.Iter(); !it.Done(); {
+		for it := val.Bytes().Iter(); !it.Done(); {
 			bytes := zcode.Append(zcode.Append(nil, it.Next()), it.Next())
 			vals = append(vals, *zed.NewValue(rtyp, bytes))
 		}
 		return vals
 	case *zed.TypeRecord:
 		builder := zcode.NewBuilder()
-		for i, it := 0, val.Bytes.Iter(); !it.Done(); i++ {
+		for i, it := 0, val.Bytes().Iter(); !it.Done(); i++ {
 			builder.Reset()
 			field := typ.Fields[i]
 			typ := zctx.MustLookupTypeRecord([]zed.Field{

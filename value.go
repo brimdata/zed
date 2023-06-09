@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"net/netip"
+	"reflect"
 	"runtime/debug"
+	"unsafe"
 
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
@@ -39,6 +42,9 @@ var (
 	NullNet      = &Value{Type: TypeNet}
 	NullType     = &Value{Type: TypeType}
 	Null         = &Value{Type: TypeNull}
+
+	False = NewBool(false)
+	True  = NewBool(true)
 )
 
 type Allocator interface {
@@ -48,32 +54,130 @@ type Allocator interface {
 
 type Value struct {
 	Type  Type
-	Bytes zcode.Bytes
+	bytes zcode.Bytes
 }
 
 func NewValue(zt Type, zb zcode.Bytes) *Value {
 	return &Value{zt, zb}
 }
 
-func NewUint8(u uint8) *Value            { return &Value{TypeUint8, EncodeUint(uint64(u))} }
-func NewUint16(u uint16) *Value          { return &Value{TypeUint16, EncodeUint(uint64(u))} }
-func NewUint32(u uint32) *Value          { return &Value{TypeUint32, EncodeUint(uint64(u))} }
-func NewUint64(u uint64) *Value          { return &Value{TypeUint64, EncodeUint(u)} }
-func NewInt8(i int8) *Value              { return &Value{TypeInt8, EncodeInt(int64(i))} }
-func NewInt16(i int16) *Value            { return &Value{TypeInt16, EncodeInt(int64(i))} }
-func NewInt32(i int32) *Value            { return &Value{TypeInt32, EncodeInt(int64(i))} }
-func NewInt64(i int64) *Value            { return &Value{TypeInt64, EncodeInt(i)} }
-func NewDuration(d nano.Duration) *Value { return &Value{TypeDuration, EncodeDuration(d)} }
-func NewTime(ts nano.Ts) *Value          { return &Value{TypeTime, EncodeTime(ts)} }
-func NewFloat16(f float32) *Value        { return &Value{TypeFloat16, EncodeFloat16(f)} }
-func NewFloat32(f float32) *Value        { return &Value{TypeFloat32, EncodeFloat32(f)} }
-func NewFloat64(f float64) *Value        { return &Value{TypeFloat64, EncodeFloat64(f)} }
-func NewBool(b bool) *Value              { return &Value{TypeBool, EncodeBool(b)} }
+func NewUint(t Type, u uint64) *Value    { return &Value{t, encodeNative(u)} }
+func NewUint8(u uint8) *Value            { return NewUint(TypeUint8, uint64(u)) }
+func NewUint16(u uint16) *Value          { return NewUint(TypeUint16, uint64(u)) }
+func NewUint32(u uint32) *Value          { return NewUint(TypeUint32, uint64(u)) }
+func NewUint64(u uint64) *Value          { return NewUint(TypeUint64, u) }
+func NewInt(t Type, i int64) *Value      { return &Value{t, encodeNative(uint64(i))} }
+func NewInt8(i int8) *Value              { return NewInt(TypeInt8, int64(i)) }
+func NewInt16(i int16) *Value            { return NewInt(TypeInt16, int64(i)) }
+func NewInt32(i int32) *Value            { return NewInt(TypeInt32, int64(i)) }
+func NewInt64(i int64) *Value            { return NewInt(TypeInt64, i) }
+func NewDuration(d nano.Duration) *Value { return NewInt(TypeDuration, int64(d)) }
+func NewTime(ts nano.Ts) *Value          { return NewInt(TypeTime, int64(ts)) }
+func NewFloat(t Type, f float64) *Value  { return &Value{t, encodeNative(math.Float64bits(f))} }
+func NewFloat16(f float32) *Value        { return NewFloat(TypeFloat16, float64(f)) }
+func NewFloat32(f float32) *Value        { return NewFloat(TypeFloat32, float64(f)) }
+func NewFloat64(f float64) *Value        { return NewFloat(TypeFloat64, f) }
+func NewBool(b bool) *Value              { return &Value{TypeBool, encodeNative(boolToUint64(b))} }
 func NewBytes(b []byte) *Value           { return &Value{TypeBytes, EncodeBytes(b)} }
 func NewString(s string) *Value          { return &Value{TypeString, EncodeString(s)} }
 func NewIP(a netip.Addr) *Value          { return &Value{TypeIP, EncodeIP(a)} }
 func NewNet(p netip.Prefix) *Value       { return &Value{TypeNet, EncodeNet(p)} }
 func NewTypeValue(t Type) *Value         { return &Value{TypeType, EncodeTypeValue(t)} }
+
+// Uint returns v's underlying value.  It panics if v's underlying type is not
+// TypeUint8, TypeUint16, TypeUint32, or TypeUint64.
+func (v *Value) Uint() uint64 {
+	if v.Type.ID() > IDUint64 {
+		panic(fmt.Sprintf("zed.Value.Uint called on %T", v.Type))
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		return x
+	}
+	return DecodeUint(v.bytes)
+}
+
+// Int returns v's underlying value.  It panics if v's underlying type is not
+// TypeInt8, TypeInt16, TypeInt32, TypeInt64, TypeDuration, or TypeTime.
+func (v *Value) Int() int64 {
+	if !IsSigned(v.Type.ID()) {
+		panic(fmt.Sprintf("zed.Value.Int called on %T", v.Type))
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		return int64(x)
+	}
+	return DecodeInt(v.bytes)
+}
+
+// Float returns v's underlying value.  It panics if v's underlying type is not
+// TypeFloat16, TypeFloat32, or TypeFloat64.
+func (v *Value) Float() float64 {
+	if !IsFloat(v.Type.ID()) {
+		panic(fmt.Sprintf("zed.Value.Float called on %T", v.Type))
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		return math.Float64frombits(x)
+	}
+	return DecodeFloat(v.bytes)
+}
+
+// Bool returns v's underlying value.  It panics if v's underlying type is not
+// TypeBool.
+func (v *Value) Bool() bool {
+	if v.Type.ID() != IDBool {
+		panic(fmt.Sprintf("zed.Value.Bool called on %T", v.Type))
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		return x != 0
+	}
+	return DecodeBool(v.bytes)
+}
+
+// Bytes returns v's ZNG representation.
+func (v *Value) Bytes() zcode.Bytes {
+	if x, ok := decodeNative(v.bytes); ok {
+		switch v.Type.ID() {
+		case IDUint8, IDUint16, IDUint32, IDUint64:
+			return EncodeUint(x)
+		case IDInt8, IDInt16, IDInt32, IDInt64, IDDuration, IDTime:
+			return EncodeInt(int64(x))
+		case IDFloat16:
+			return EncodeFloat16(float32(math.Float64frombits(x)))
+		case IDFloat32:
+			return EncodeFloat32(float32(math.Float64frombits(x)))
+		case IDFloat64:
+			return EncodeFloat64(math.Float64frombits(x))
+		case IDBool:
+			return EncodeBool(x != 0)
+		}
+		panic(v.Type)
+	}
+	return v.bytes
+}
+
+// nativeBase is the base address for all native Values, which are encoded as a
+// zcode.Bytes with this base address, a length of zero, and capacity set to the
+// bits of the value's native representation.
+var nativeBase struct{}
+
+func encodeNative(x uint64) zcode.Bytes {
+	var b zcode.Bytes
+	s := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	s.Data = uintptr(unsafe.Pointer(&nativeBase))
+	s.Cap = int(x)
+	return b
+}
+
+func decodeNative(b zcode.Bytes) (uint64, bool) {
+	s := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	return uint64(s.Cap), s.Data == uintptr(unsafe.Pointer(&nativeBase))
+}
+
+func boolToUint64(b bool) uint64 {
+	if b {
+		return 1
+	}
+	return 0
+}
 
 func (v *Value) IsContainer() bool {
 	return IsContainerType(v.Type)
@@ -91,11 +195,11 @@ func (v *Value) String() string {
 // be the same underlying buffer, as with append(), depending on its capacity)
 func (v *Value) Encode(dst zcode.Bytes) zcode.Bytes {
 	//XXX don't need this...
-	return zcode.Append(dst, v.Bytes)
+	return zcode.Append(dst, v.Bytes())
 }
 
 func (v *Value) Iter() zcode.Iter {
-	return v.Bytes.Iter()
+	return v.Bytes().Iter()
 }
 
 // If the passed-in element is an array, attempt to get the idx'th
@@ -163,25 +267,28 @@ func (v *Value) ContainerLength() (int, error) {
 
 // IsNull returns true if and only if v is a null value of any type.
 func (v *Value) IsNull() bool {
-	return v.Bytes == nil
+	return v.bytes == nil
 }
 
-// Copy returns a copy of v that does not share v.Bytes.  The copy's Bytes field
-// is nil if and only if v.Bytes is nil.
+// Copy returns a copy of v that shares no storage.
 func (v *Value) Copy() *Value {
-	return &Value{v.Type, slices.Clone(v.Bytes)}
+	if _, ok := decodeNative(v.bytes); ok {
+		return &Value{v.Type, v.bytes}
+	}
+	return &Value{v.Type, slices.Clone(v.bytes)}
 }
 
-// CopyFrom copies from into v, reusing v.Bytes if possible and setting v.Bytes
-// to nil if and only if from.Bytes is nil.
+// CopyFrom copies from into v, reusing v's storage if possible.
 func (v *Value) CopyFrom(from *Value) {
 	v.Type = from.Type
-	if from.IsNull() {
-		v.Bytes = nil
+	if _, ok := decodeNative(from.bytes); ok {
+		v.bytes = from.bytes
+	} else if from.IsNull() {
+		v.bytes = nil
 	} else if v.IsNull() {
-		v.Bytes = slices.Clone(from.Bytes)
+		v.bytes = slices.Clone(from.bytes)
 	} else {
-		v.Bytes = append(v.Bytes[:0], from.Bytes...)
+		v.bytes = append(v.bytes[:0], from.bytes...)
 	}
 }
 
@@ -200,20 +307,30 @@ func (v *Value) IsMissing() bool {
 		return true
 	}
 	if typ, ok := v.Type.(*TypeError); ok {
-		return typ.IsMissing(v.Bytes)
+		return typ.IsMissing(v.Bytes())
 	}
 	return false
 }
 
 func (v *Value) IsQuiet() bool {
 	if typ, ok := v.Type.(*TypeError); ok {
-		return typ.IsQuiet(v.Bytes)
+		return typ.IsQuiet(v.Bytes())
 	}
 	return false
 }
 
+// Equal reports whether p and v have the same type and the same ZNG
+// representation.
 func (v *Value) Equal(p Value) bool {
-	return v.Type == p.Type && bytes.Equal(v.Bytes, p.Bytes)
+	if v.Type != p.Type {
+		return false
+	}
+	if x, ok := decodeNative(v.bytes); ok {
+		if y, ok := decodeNative(p.bytes); ok {
+			return x == y
+		}
+	}
+	return bytes.Equal(v.Bytes(), p.Bytes())
 }
 
 func (r *Value) HasField(field string) bool {
@@ -223,12 +340,12 @@ func (r *Value) HasField(field string) bool {
 // Walk traverses a value in depth-first order, calling a
 // Visitor on the way.
 func (r *Value) Walk(rv Visitor) error {
-	return Walk(r.Type, r.Bytes, rv)
+	return Walk(r.Type, r.Bytes(), rv)
 }
 
 func (r *Value) nth(n int) zcode.Bytes {
 	var zv zcode.Bytes
-	for i, it := 0, r.Bytes.Iter(); i <= n; i++ {
+	for i, it := 0, r.Bytes().Iter(); i <= n; i++ {
 		if it.Done() {
 			return nil
 		}
@@ -280,14 +397,16 @@ func (v *Value) DerefPath(path field.Path) *Value {
 
 func (v *Value) AsString() string {
 	if v != nil && TypeUnder(v.Type) == TypeString {
-		return DecodeString(v.Bytes)
+		return DecodeString(v.Bytes())
 	}
 	return ""
 }
 
+// AsBool returns v's underlying value.  It returns false if v is nil or v's
+// underlying type is not TypeBool.
 func (v *Value) AsBool() bool {
 	if v != nil && TypeUnder(v.Type) == TypeBool {
-		return DecodeBool(v.Bytes)
+		return v.Bool()
 	}
 	return false
 }
@@ -296,9 +415,9 @@ func (v *Value) AsInt() int64 {
 	if v != nil {
 		switch TypeUnder(v.Type).(type) {
 		case *TypeOfUint8, *TypeOfUint16, *TypeOfUint32, *TypeOfUint64:
-			return int64(DecodeUint(v.Bytes))
+			return int64(v.Uint())
 		case *TypeOfInt8, *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
-			return DecodeInt(v.Bytes)
+			return v.Int()
 		}
 	}
 	return 0
@@ -306,7 +425,7 @@ func (v *Value) AsInt() int64 {
 
 func (v *Value) AsTime() nano.Ts {
 	if v != nil && TypeUnder(v.Type) == TypeTime {
-		return DecodeTime(v.Bytes)
+		return DecodeTime(v.Bytes())
 	}
 	return 0
 }
@@ -326,7 +445,7 @@ func (v *Value) Under() *Value {
 			return v
 		}
 	}
-	bytes := v.Bytes
+	bytes := v.Bytes()
 	for {
 		typ = TypeUnder(typ)
 		union, ok := typ.(*TypeUnion)

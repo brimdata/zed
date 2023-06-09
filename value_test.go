@@ -9,11 +9,9 @@ import (
 )
 
 func TestValueValidate(t *testing.T) {
-	r := zed.NewValue(
-		zed.NewTypeRecord(0, []zed.Field{
-			zed.NewField("f", zed.NewTypeSet(0, zed.TypeString)),
-		}),
-		nil)
+	recType := zed.NewTypeRecord(0, []zed.Field{
+		zed.NewField("f", zed.NewTypeSet(0, zed.TypeString)),
+	})
 	t.Run("set/error/duplicate-element", func(t *testing.T) {
 		var b zcode.Builder
 		b.BeginContainer()
@@ -21,8 +19,8 @@ func TestValueValidate(t *testing.T) {
 		b.Append([]byte("dup"))
 		// Don't normalize.
 		b.EndContainer()
-		r.Bytes = b.Bytes()
-		assert.EqualError(t, r.Validate(), "invalid ZNG: duplicate set element")
+		val := zed.NewValue(recType, b.Bytes())
+		assert.EqualError(t, val.Validate(), "invalid ZNG: duplicate set element")
 	})
 	t.Run("set/error/unsorted-elements", func(t *testing.T) {
 		var b zcode.Builder
@@ -32,8 +30,8 @@ func TestValueValidate(t *testing.T) {
 		b.Append([]byte("b"))
 		// Don't normalize.
 		b.EndContainer()
-		r.Bytes = b.Bytes()
-		assert.EqualError(t, r.Validate(), "invalid ZNG: set elements not sorted")
+		val := zed.NewValue(recType, b.Bytes())
+		assert.EqualError(t, val.Validate(), "invalid ZNG: set elements not sorted")
 	})
 	t.Run("set/primitive-elements", func(t *testing.T) {
 		var b zcode.Builder
@@ -44,8 +42,8 @@ func TestValueValidate(t *testing.T) {
 		b.Append([]byte("a"))
 		b.TransformContainer(zed.NormalizeSet)
 		b.EndContainer()
-		r.Bytes = b.Bytes()
-		assert.NoError(t, r.Validate())
+		val := zed.NewValue(recType, b.Bytes())
+		assert.NoError(t, val.Validate())
 	})
 	t.Run("set/complex-elements", func(t *testing.T) {
 		var b zcode.Builder

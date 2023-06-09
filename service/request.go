@@ -298,18 +298,15 @@ func errorResponse(e error) (status int, ae *api.Error) {
 
 	var ze *srverr.Error
 	if !errors.As(e, &ze) {
-		var kind srverr.Kind
-		switch {
-		case errors.Is(e, branches.ErrExists) || errors.Is(e, pools.ErrExists):
-			kind = srverr.Conflict
-		case errors.Is(e, branches.ErrNotFound) || errors.Is(e, commits.ErrNotFound) ||
-			errors.Is(e, pools.ErrNotFound) || errors.Is(e, fs.ErrNotExist):
-			kind = srverr.NotFound
-		default:
-			ae.Message = e.Error()
-			return
-		}
-		ze = &srverr.Error{Kind: kind, Err: e}
+		ze = &srverr.Error{Err: e}
+	}
+
+	switch {
+	case errors.Is(e, branches.ErrExists) || errors.Is(e, pools.ErrExists):
+		ze.Kind = srverr.Conflict
+	case errors.Is(e, branches.ErrNotFound) || errors.Is(e, commits.ErrNotFound) ||
+		errors.Is(e, pools.ErrNotFound) || errors.Is(e, fs.ErrNotExist):
+		ze.Kind = srverr.NotFound
 	}
 
 	switch ze.Kind {

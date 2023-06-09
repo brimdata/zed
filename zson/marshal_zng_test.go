@@ -618,8 +618,8 @@ func TestMultipleZedValues(t *testing.T) {
 	var bar zed.Value
 	err = u.Unmarshal(zed.NewValue(zed.TypeString, bytes), &bar)
 	require.NoError(t, err)
-	assert.Equal(t, "foo", string(foo.Bytes))
-	assert.Equal(t, "bar", string(bar.Bytes))
+	assert.Equal(t, "foo", string(foo.Bytes()))
+	assert.Equal(t, "bar", string(bar.Bytes()))
 }
 
 func TestZedValues(t *testing.T) {

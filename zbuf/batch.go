@@ -129,15 +129,15 @@ func (b *pullerBatch) appendVal(val *zed.Value) bool {
 	var bytes []byte
 	var bufFull bool
 	if !val.IsNull() {
-		if avail := cap(b.buf) - len(b.buf); avail >= len(val.Bytes) {
+		if avail := cap(b.buf) - len(b.buf); avail >= len(val.Bytes()) {
 			// Append to b.buf since that won't reallocate.
 			start := len(b.buf)
-			b.buf = append(b.buf, val.Bytes...)
+			b.buf = append(b.buf, val.Bytes()...)
 			bytes = b.buf[start:]
-			bufFull = avail == len(val.Bytes)
+			bufFull = avail == len(val.Bytes())
 		} else {
 			// Copy since appending to b.buf would reallocate.
-			bytes = slices.Clone(val.Bytes)
+			bytes = slices.Clone(val.Bytes())
 			bufFull = true
 		}
 	}

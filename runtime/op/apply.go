@@ -9,16 +9,14 @@ import (
 type applier struct {
 	octx   *Context
 	parent zbuf.Puller
-	expr   expr.Applier
-	warned map[string]struct{}
+	expr   expr.Evaluator
 }
 
-func NewApplier(octx *Context, parent zbuf.Puller, apply expr.Applier) *applier {
+func NewApplier(octx *Context, parent zbuf.Puller, expr expr.Evaluator) *applier {
 	return &applier{
 		octx:   octx,
 		parent: parent,
-		expr:   apply,
-		warned: make(map[string]struct{}),
+		expr:   expr,
 	}
 }
 

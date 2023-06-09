@@ -47,7 +47,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 		return nil, nil
 	}
 	if typeNo < 0 || int(typeNo) >= len(r.readers) {
-		return nil, fmt.Errorf("system error: type number out of range in VNG root metadata")
+		return nil, fmt.Errorf("system error: type number out of range in VNG root metadata: %d out of %d", typeNo, len(r.readers))
 	}
 	tr := r.readers[typeNo]
 	if err := tr.reader.Read(&r.builder); err != nil {

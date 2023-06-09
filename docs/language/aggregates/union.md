@@ -6,6 +6,7 @@
 ```
 union(any) -> |[any]|
 ```
+
 ### Description
 
 The _union_ aggregate function computes a set union of its input values.

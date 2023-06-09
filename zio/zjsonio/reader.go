@@ -104,7 +104,7 @@ func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) e
 			return err
 		}
 		tv := r.zctx.LookupTypeValue(local)
-		b.Append(tv.Bytes)
+		b.Append(tv.Bytes())
 		return nil
 	default:
 		return r.decodePrimitive(b, typ, body)

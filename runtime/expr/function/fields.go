@@ -52,7 +52,7 @@ func (f *Fields) recordType(val zed.Value) *zed.TypeRecord {
 		return typ
 	}
 	if val.Type == zed.TypeType {
-		typ, err := f.zctx.LookupByValue(val.Bytes)
+		typ, err := f.zctx.LookupByValue(val.Bytes())
 		if err != nil {
 			return nil
 		}

@@ -73,7 +73,7 @@ func (f *Formatter) FormatRecord(rec *zed.Value) (string, error) {
 	// by putting a record number/nonce in the map but ZSON
 	// is already intended to be the low performance path.
 	f.typedefs = make(map[string]*zed.TypeNamed)
-	if err := f.formatValueAndDecorate(rec.Type, rec.Bytes); err != nil {
+	if err := f.formatValueAndDecorate(rec.Type, rec.Bytes()); err != nil {
 		return "", err
 	}
 	return f.builder.String(), nil
@@ -87,7 +87,7 @@ func FormatValue(val *zed.Value) (string, error) {
 func MustFormatValue(val *zed.Value) string {
 	s, err := FormatValue(val)
 	if err != nil {
-		panic(fmt.Errorf("ZSON format value failed: type %s, bytes %s", val.Type, hex.EncodeToString(val.Bytes)))
+		panic(fmt.Errorf("ZSON format value failed: type %s, bytes %s", val.Type, hex.EncodeToString(val.Bytes())))
 	}
 	return s
 }
@@ -108,7 +108,7 @@ func String(p interface{}) string {
 
 func (f *Formatter) Format(val *zed.Value) (string, error) {
 	f.builder.Reset()
-	if err := f.formatValueAndDecorate(val.Type, val.Bytes); err != nil {
+	if err := f.formatValueAndDecorate(val.Type, val.Bytes()); err != nil {
 		return "", err
 	}
 	return f.builder.String(), nil

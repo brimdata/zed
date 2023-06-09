@@ -25,7 +25,7 @@ type Missing struct {
 func (m *Missing) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := m.has.Call(ctx, args)
 	if val.Type == zed.TypeBool {
-		return zed.Not(val.Bytes)
+		return ctx.CopyValue(zed.NewBool(!val.Bool()))
 	}
 	return val
 }

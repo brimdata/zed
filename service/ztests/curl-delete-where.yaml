@@ -9,6 +9,9 @@ script: |
     sed -E 's/0x[0-9a-f]{40}/xxx/'
   echo ===
   zed query -z '*'
+  echo ===
+  curl -w 'code %{response_code}\n' -d '{where:"x <= 4"}' $ZED_LAKE/pool/test/branch/main/delete
+  zed query -z '*'
 
 inputs:
   - name: service.sh
@@ -18,6 +21,13 @@ outputs:
     data: |
       {commit:xxx(=ksuid.KSUID),warnings:null([string])}(=api.CommitResponse)
       ===
+      {x:5}
+      {x:6}
+      {x:7}
+      {x:8}
+      ===
+      {"type":"Error","kind":"invalid operation","error":"empty transaction"}
+      code 400
       {x:5}
       {x:6}
       {x:7}

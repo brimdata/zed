@@ -6,6 +6,7 @@
 ```
 and(bool) -> bool
 ```
+
 ### Description
 
 The _and_ aggregate function computes the logical AND over all of its input.

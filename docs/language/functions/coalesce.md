@@ -7,6 +7,7 @@
 ```
 coalesce(val: any [, ... val: any]) -> bool
 ```
+
 ### Description
 
 The _coalesce_ function returns the first of its arguments that is not null,

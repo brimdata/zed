@@ -7,68 +7,52 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 type Scope struct {
-	stack []*Binder
+	parent   *Scope
+	children []*Scope
+	nvar     int
+	symbols  map[string]*entry
 }
 
-func NewScope() *Scope {
-	return &Scope{}
+func NewScope(parent *Scope) *Scope {
+	s := &Scope{parent: parent, symbols: make(map[string]*entry)}
+	if parent != nil {
+		parent.children = append(parent.children, s)
+	}
+	return s
 }
 
-func (s *Scope) tos() *Binder {
-	return s.stack[len(s.stack)-1]
-}
-
-func (s *Scope) Enter() {
-	s.stack = append(s.stack, NewBinder())
-}
-
-func (s *Scope) Exit() {
-	s.stack = s.stack[:len(s.stack)-1]
+type entry struct {
+	ref   any
+	order int
 }
 
 func (s *Scope) DefineVar(name string) error {
-	b := s.tos()
-	if _, ok := b.symbols[name]; ok {
-		return fmt.Errorf("symbol %q redefined", name)
-	}
 	ref := &dag.Var{
 		Kind: "Var",
 		Name: name,
 		Slot: s.nvars(),
 	}
-	b.Define(name, ref)
-	b.nvar++
+	if err := s.DefineAs(name, ref); err != nil {
+		return err
+	}
+	s.nvar++
 	return nil
 }
 
-func (s *Scope) DefineAs(name string) error {
-	b := s.tos()
-	if _, ok := b.symbols[name]; ok {
+func (s *Scope) DefineAs(name string, e any) error {
+	if _, ok := s.symbols[name]; ok {
 		return fmt.Errorf("symbol %q redefined", name)
 	}
-	// We add the symbol to the table but don't bump nvars because
-	// it's not a var and doesn't take a slot in the batch vars.
-	b.Define(name, &dag.This{Kind: "This"})
-	return nil
-}
-
-func (s *Scope) DefineFunc(f *dag.Func) error {
-	b := s.tos()
-	if _, ok := b.symbols[f.Name]; ok {
-		return fmt.Errorf("symbol %q redefined", f.Name)
-	}
-	b.Define(f.Name, f)
+	s.symbols[name] = &entry{ref: e, order: len(s.symbols)}
 	return nil
 }
 
 func (s *Scope) DefineConst(zctx *zed.Context, name string, def dag.Expr) error {
-	b := s.tos()
-	if _, ok := b.symbols[name]; ok {
-		return fmt.Errorf("symbol %q redefined", name)
-	}
 	val, err := kernel.EvalAtCompileTime(zctx, def)
 	if err != nil {
 		return err
@@ -77,22 +61,43 @@ func (s *Scope) DefineConst(zctx *zed.Context, name string, def dag.Expr) error 
 		if val.IsMissing() {
 			return fmt.Errorf("const %q: cannot have variable dependency", name)
 		} else {
-			return fmt.Errorf("const %q: %q", name, string(val.Bytes))
+			return fmt.Errorf("const %q: %q", name, string(val.Bytes()))
 		}
 	}
 	literal := &dag.Literal{
 		Kind:  "Literal",
 		Value: zson.MustFormatValue(val),
 	}
-	b.Define(name, literal)
+	s.DefineAs(name, literal)
 	return nil
 }
 
-func (s *Scope) Lookup(name string) dag.Expr {
-	for k := len(s.stack) - 1; k >= 0; k-- {
-		if e, ok := s.stack[k].symbols[name]; ok {
-			e.refcnt++
-			return e.ref
+func (s *Scope) LookupExpr(name string) (dag.Expr, error) {
+	if entry := s.lookupEntry(name); entry != nil {
+		e, ok := entry.ref.(dag.Expr)
+		if !ok {
+			return nil, fmt.Errorf("symbol %q is not bound to an expression", name)
+		}
+		return e, nil
+	}
+	return nil, nil
+}
+
+func (s *Scope) LookupOp(name string) (*dag.UserOp, error) {
+	if entry := s.lookupEntry(name); entry != nil {
+		d, ok := entry.ref.(*dag.UserOp)
+		if !ok {
+			return nil, fmt.Errorf("symbol %q is not bound to an operator", name)
+		}
+		return d, nil
+	}
+	return nil, nil
+}
+
+func (s *Scope) lookupEntry(name string) *entry {
+	for scope := s; scope != nil; scope = scope.parent {
+		if entry, ok := scope.symbols[name]; ok {
+			return entry
 		}
 	}
 	return nil
@@ -100,26 +105,16 @@ func (s *Scope) Lookup(name string) dag.Expr {
 
 func (s *Scope) nvars() int {
 	var n int
-	for _, scope := range s.stack {
+	for scope := s; scope != nil; scope = scope.parent {
 		n += scope.nvar
 	}
 	return n
 }
 
-type entry struct {
-	ref    dag.Expr
-	refcnt int
-}
-
-type Binder struct {
-	nvar    int
-	symbols map[string]*entry
-}
-
-func NewBinder() *Binder {
-	return &Binder{symbols: make(map[string]*entry)}
-}
-
-func (b *Binder) Define(name string, ref dag.Expr) {
-	b.symbols[name] = &entry{ref: ref}
+func (s *Scope) sortedEntries() []*entry {
+	entries := maps.Values(s.symbols)
+	slices.SortFunc(entries, func(i, j *entry) bool {
+		return i.order < j.order
+	})
+	return entries
 }

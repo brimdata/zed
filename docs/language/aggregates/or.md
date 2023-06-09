@@ -6,6 +6,7 @@
 ```
 or(bool) -> bool
 ```
+
 ### Description
 
 The _or_ aggregate function computes the logical OR over all of its input.

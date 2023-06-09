@@ -111,7 +111,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	}
 	id := zed.TypeID(typ)
 	w.values = binary.AppendUvarint(w.values, uint64(id))
-	w.values = zcode.Append(w.values, val.Bytes)
+	w.values = zcode.Append(w.values, val.Bytes())
 	if thresh := w.opts.FrameThresh; len(w.values) >= thresh || len(w.types.bytes) >= thresh {
 		return w.flush()
 	}

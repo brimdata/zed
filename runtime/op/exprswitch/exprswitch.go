@@ -37,7 +37,7 @@ func (s *ExprSwitch) AddCase(val *zed.Value) zbuf.Puller {
 	if val == nil {
 		s.defaultCase = &switchCase{route: route}
 	} else {
-		s.cases[string(val.Bytes)] = &switchCase{route: route}
+		s.cases[string(val.Bytes())] = &switchCase{route: route}
 	}
 	return route
 }
@@ -49,7 +49,7 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 		if val.IsMissing() {
 			continue
 		}
-		which, ok := s.cases[string(val.Bytes)]
+		which, ok := s.cases[string(val.Bytes())]
 		if !ok {
 			which = s.defaultCase
 		}

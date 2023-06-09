@@ -20,7 +20,7 @@ func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
 	b.Reset()
 	for _, e := range d.fieldRefs {
 		val := e.Eval(ectx, in)
-		b.Append(val.Bytes)
+		b.Append(val.Bytes())
 	}
 	val, err := b.Encode()
 	if err != nil {
@@ -95,10 +95,6 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 	}
 	return fields, types, match
 }
-
-func (*Dropper) String() string { return "drop" }
-
-func (*Dropper) Warning() string { return "" }
 
 func (d *Dropper) Eval(ectx Context, in *zed.Value) *zed.Value {
 	if !zed.IsRecordType(in.Type) {

@@ -131,15 +131,15 @@ func (s *scanner) Read() (*zed.Value, error) {
 		if err != nil || this == nil {
 			return nil, err
 		}
-		atomic.AddInt64(&s.progress.BytesRead, int64(len(this.Bytes)))
+		atomic.AddInt64(&s.progress.BytesRead, int64(len(this.Bytes())))
 		atomic.AddInt64(&s.progress.RecordsRead, 1)
 		if s.filter != nil {
 			val := s.filter.Eval(s.ectx, this)
-			if !(val.Type == zed.TypeBool && zed.DecodeBool(val.Bytes)) {
+			if !(val.Type == zed.TypeBool && val.Bool()) {
 				continue
 			}
 		}
-		atomic.AddInt64(&s.progress.BytesMatched, int64(len(this.Bytes)))
+		atomic.AddInt64(&s.progress.BytesMatched, int64(len(this.Bytes())))
 		atomic.AddInt64(&s.progress.RecordsMatched, 1)
 		return this, nil
 	}

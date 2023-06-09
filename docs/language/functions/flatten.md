@@ -7,6 +7,7 @@
 ```
 flatten(val: record) -> [{key:[string],value:<any>}]
 ```
+
 ### Description
 The _flatten_ function returns an array of records `[{key:[string],value:<any>}]`
 where `key` is a string array of the path of each record field of `val` and

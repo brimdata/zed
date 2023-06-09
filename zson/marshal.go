@@ -295,14 +295,14 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		return zed.TypeTime, nil
 	case zed.Type:
 		val := m.Context.LookupTypeValue(v)
-		m.Builder.Append(val.Bytes)
+		m.Builder.Append(val.Bytes())
 		return val.Type, nil
 	case zed.Value:
 		typ, err := m.TranslateType(v.Type)
 		if err != nil {
 			return nil, err
 		}
-		m.Builder.Append(v.Bytes)
+		m.Builder.Append(v.Bytes())
 		return typ, nil
 	}
 	switch v.Kind() {
@@ -410,16 +410,9 @@ func (m *MarshalZNGContext) encodeMap(v reflect.Value) (zed.Type, error) {
 }
 
 func (m *MarshalZNGContext) encodeNil(t reflect.Type) (zed.Type, error) {
-	var typ zed.Type
-	if t.Kind() == reflect.Interface {
-		// Encode the nil interface as TypeNull.
-		typ = zed.TypeNull
-	} else {
-		var err error
-		typ, err = m.lookupType(t)
-		if err != nil {
-			return nil, err
-		}
+	typ, err := m.lookupType(t)
+	if err != nil {
+		return nil, err
 	}
 	m.Builder.Append(nil)
 	return typ, nil
@@ -578,6 +571,9 @@ func (m *MarshalZNGContext) lookupType(t reflect.Type) (zed.Type, error) {
 		typ = zed.TypeFloat32
 	case reflect.Float64:
 		typ = zed.TypeFloat64
+	case reflect.Interface:
+		// Encode interfaces when we don't know the underlying concrete type as null type.
+		typ = zed.TypeNull
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", t.Kind())
 	}
@@ -712,13 +708,13 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		if val.Type != zed.TypeFloat16 {
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetUint(uint64(float16.Fromfloat32(zed.DecodeFloat16(val.Bytes)).Bits()))
+		v.SetUint(uint64(float16.Fromfloat32(float32(val.Float()))))
 		return nil
 	case nano.Ts:
 		if val.Type != zed.TypeTime {
 			return incompatTypeError(val.Type, v)
 		}
-		v.Set(reflect.ValueOf(zed.DecodeTime(val.Bytes)))
+		v.Set(reflect.ValueOf(zed.DecodeTime(val.Bytes())))
 		return nil
 	case zed.Value:
 		// For zed.Values we simply set the reflect value to the
@@ -755,7 +751,7 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 			if u.zctx == nil {
 				return errors.New("cannot unmarshal type value without type context")
 			}
-			typ, err := u.zctx.LookupByValue(val.Bytes)
+			typ, err := u.zctx.LookupByValue(val.Bytes())
 			if err != nil {
 				return err
 			}
@@ -768,7 +764,7 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		if !v.IsNil() {
 			return u.decodeAny(val, v.Elem())
 		}
-		template, err := u.lookupGoType(val.Type, val.Bytes)
+		template, err := u.lookupGoType(val.Type, val.Bytes())
 		if err != nil {
 			return err
 		}
@@ -802,13 +798,13 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		default:
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetString(zed.DecodeString(val.Bytes))
+		v.SetString(zed.DecodeString(val.Bytes()))
 		return nil
 	case reflect.Bool:
 		if zed.TypeUnder(val.Type) != zed.TypeBool {
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetBool(zed.DecodeBool(val.Bytes))
+		v.SetBool(val.Bool())
 		return nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		switch zed.TypeUnder(val.Type) {
@@ -816,7 +812,7 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		default:
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetInt(zed.DecodeInt(val.Bytes))
+		v.SetInt(val.Int())
 		return nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		switch zed.TypeUnder(val.Type) {
@@ -824,19 +820,19 @@ func (u *UnmarshalZNGContext) decodeAny(val *zed.Value, v reflect.Value) error {
 		default:
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetUint(zed.DecodeUint(val.Bytes))
+		v.SetUint(val.Uint())
 		return nil
 	case reflect.Float32:
 		if zed.TypeUnder(val.Type) != zed.TypeFloat32 {
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetFloat(float64(zed.DecodeFloat32(val.Bytes)))
+		v.SetFloat(val.Float())
 		return nil
 	case reflect.Float64:
 		if zed.TypeUnder(val.Type) != zed.TypeFloat64 {
 			return incompatTypeError(val.Type, v)
 		}
-		v.SetFloat(zed.DecodeFloat64(val.Bytes))
+		v.SetFloat(val.Float())
 		return nil
 	default:
 		return fmt.Errorf("unsupported type: %v", v.Kind())
@@ -899,7 +895,7 @@ func (u *UnmarshalZNGContext) decodeNetipAddr(val *zed.Value, v reflect.Value) e
 	if zed.TypeUnder(val.Type) != zed.TypeIP {
 		return incompatTypeError(val.Type, v)
 	}
-	v.Set(reflect.ValueOf(zed.DecodeIP(val.Bytes)))
+	v.Set(reflect.ValueOf(zed.DecodeIP(val.Bytes())))
 	return nil
 }
 
@@ -907,7 +903,7 @@ func (u *UnmarshalZNGContext) decodeNetIP(val *zed.Value, v reflect.Value) error
 	if zed.TypeUnder(val.Type) != zed.TypeIP {
 		return incompatTypeError(val.Type, v)
 	}
-	v.Set(reflect.ValueOf(net.ParseIP(zed.DecodeIP(val.Bytes).String())))
+	v.Set(reflect.ValueOf(net.ParseIP(zed.DecodeIP(val.Bytes()).String())))
 	return nil
 }
 
@@ -942,7 +938,7 @@ func (u *UnmarshalZNGContext) decodeMap(val *zed.Value, mapVal reflect.Value) er
 
 func (u *UnmarshalZNGContext) decodeRecord(val *zed.Value, sval reflect.Value) error {
 	if union, ok := val.Type.(*zed.TypeUnion); ok {
-		typ, bytes := union.Untag(val.Bytes)
+		typ, bytes := union.Untag(val.Bytes())
 		val = zed.NewValue(typ, bytes)
 	}
 	recType, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord)
@@ -983,7 +979,7 @@ func (u *UnmarshalZNGContext) decodeArray(val *zed.Value, arrVal reflect.Value) 
 			return u.decodeArrayBytes(val, arrVal)
 		}
 		// arrVal is a slice here.
-		arrVal.SetBytes(val.Bytes)
+		arrVal.SetBytes(val.Bytes())
 		return nil
 	}
 	arrType, ok := typ.(*zed.TypeArray)
@@ -1024,10 +1020,10 @@ func (u *UnmarshalZNGContext) decodeArray(val *zed.Value, arrVal reflect.Value) 
 }
 
 func (u *UnmarshalZNGContext) decodeArrayBytes(val *zed.Value, arrayVal reflect.Value) error {
-	if len(val.Bytes) != arrayVal.Len() {
+	if len(val.Bytes()) != arrayVal.Len() {
 		return errors.New("ZNG bytes value length differs from Go array")
 	}
-	for k, b := range val.Bytes {
+	for k, b := range val.Bytes() {
 		arrayVal.Index(k).Set(reflect.ValueOf(b))
 	}
 	return nil

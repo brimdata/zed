@@ -2,7 +2,6 @@ package expr
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/brimdata/zed"
@@ -81,11 +80,11 @@ func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
 				c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
 			}
 			droppers = append(droppers, c.droppers[k])
-			b.Append(val.Bytes)
+			b.Append(val.Bytes())
 			types[k] = zed.TypeNull
 			continue
 		}
-		b.Append(val.Bytes)
+		b.Append(val.Bytes())
 		types[k] = val.Type
 	}
 	bytes, err := b.Encode()
@@ -122,13 +121,4 @@ func fieldList(fields []Evaluator) string {
 		each = append(each, s)
 	}
 	return strings.Join(each, ",")
-}
-
-func (*Cutter) String() string { return "cut" }
-
-func (c *Cutter) Warning() string {
-	if c.quiet || c.FoundCut() {
-		return ""
-	}
-	return fmt.Sprintf("no record found with fields %s", fieldList(c.fieldExprs))
 }

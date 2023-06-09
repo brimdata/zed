@@ -21,7 +21,7 @@ func (r *Regexp) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !args[0].IsString() {
 		return newErrorf(r.zctx, ctx, "regexp: string required for first arg")
 	}
-	s := zed.DecodeString(args[0].Bytes)
+	s := zed.DecodeString(args[0].Bytes())
 	if r.restr != s {
 		r.restr = s
 		r.re, r.err = regexp.Compile(r.restr)
@@ -33,7 +33,7 @@ func (r *Regexp) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(r.zctx, ctx, "regexp: string required for second arg")
 	}
 	r.builder.Reset()
-	for _, b := range r.re.FindSubmatch(args[1].Bytes) {
+	for _, b := range r.re.FindSubmatch(args[1].Bytes()) {
 		r.builder.Append(b)
 	}
 	if r.typ == nil {
@@ -63,12 +63,12 @@ func (r *RegexpReplace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if reVal.IsNull() || newVal.IsNull() {
 		return newErrorf(r.zctx, ctx, "regexp_replace: 2nd and 3rd args cannot be null")
 	}
-	if re := zed.DecodeString(reVal.Bytes); r.restr != re {
+	if re := zed.DecodeString(reVal.Bytes()); r.restr != re {
 		r.restr = re
 		r.re, r.err = regexp.Compile(re)
 	}
 	if r.err != nil {
 		return newErrorf(r.zctx, ctx, "regexp_replace: %s", r.err)
 	}
-	return ctx.NewValue(zed.TypeString, r.re.ReplaceAll(sVal.Bytes, newVal.Bytes))
+	return ctx.NewValue(zed.TypeString, r.re.ReplaceAll(sVal.Bytes(), newVal.Bytes()))
 }

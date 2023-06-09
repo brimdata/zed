@@ -7,6 +7,7 @@
 ```
 error(val: any) -> error
 ```
+
 ### Description
 
 The _error_ function returns an error version of a Zed value.

@@ -1,0 +1,18 @@
+script: |
+  source service.sh
+  ! zed query ''
+  ! zed query 'from HEAD'
+  ! zed query 'from :unknownmeta'
+  ! zed query 'from doesnotexist'
+
+inputs:
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stderr
+    data: |
+      status code 400: pool name missing
+      status code 400: pool name missing
+      status code 400: unknown lake metadata type "unknownmeta" in from operator
+      status code 404: doesnotexist: pool not found

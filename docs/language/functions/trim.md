@@ -7,6 +7,7 @@
 ```
 trim(s: string) -> string
 ```
+
 ### Description
 
 The _trim_ function converts stips all leading and trailing whitespace

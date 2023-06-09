@@ -85,7 +85,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 	// recycled buffer and keep around an array of ts + byte-slice structs for
 	// sorting.
 	w.vals = append(w.vals, *rec.Copy())
-	w.memBuffered += int64(len(rec.Bytes))
+	w.memBuffered += int64(len(rec.Bytes()))
 	//XXX change name LogSizeThreshold
 	// XXX the previous logic estimated the object size with divide by 2...?!
 	if w.memBuffered >= w.pool.Threshold {

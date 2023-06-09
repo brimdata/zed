@@ -7,6 +7,7 @@
 ```
 replace(s: string, old: string, new: string) -> string
 ```
+
 ### Description
 
 The _replace_ function substitutes all instances of the string `old`

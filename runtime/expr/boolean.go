@@ -46,7 +46,7 @@ func CompareBool(op string, pattern bool) (Boolean, error) {
 		if val.Type.ID() != zed.IDBool {
 			return false
 		}
-		b := zed.DecodeBool(val.Bytes)
+		b := val.Bool()
 		return compare(b, pattern)
 	}, nil
 }
@@ -78,49 +78,15 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 	}
 	// many different Zed data types can be compared with integers
 	return func(val *zed.Value) bool {
-		zv := val.Bytes
 		switch val.Type.ID() {
-		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
-			return CompareInt(zed.DecodeInt(zv), pattern)
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
-			v := zed.DecodeUint(zv)
-			if v <= math.MaxInt64 {
+			if v := val.Uint(); v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
+		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64, zed.IDTime, zed.IDDuration:
+			return CompareInt(val.Int(), pattern)
 		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-			return CompareFloat(zed.DecodeFloat(zv), float64(pattern))
-		case zed.IDTime:
-			return CompareInt(int64(zed.DecodeTime(zv)), pattern)
-		case zed.IDDuration:
-			return CompareInt(int64(zed.DecodeDuration(zv)), pattern)
-		}
-		return false
-	}, nil
-}
-
-func CompareTime(op string, pattern int64) (Boolean, error) {
-	CompareInt, ok1 := compareInt[op]
-	CompareFloat, ok2 := compareFloat[op]
-	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("unknown int comparator: %s", op)
-	}
-	// many different Zed data types can be compared with integers
-	return func(val *zed.Value) bool {
-		zv := val.Bytes
-		switch val.Type.ID() {
-		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
-			return CompareInt(zed.DecodeInt(zv), pattern)
-		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
-			v := zed.DecodeUint(zv)
-			if v <= math.MaxInt64 {
-				return CompareInt(int64(v), pattern)
-			}
-		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-			return CompareFloat(zed.DecodeFloat(zv), float64(pattern))
-		case zed.IDTime:
-			return CompareInt(int64(zed.DecodeTime(zv)), pattern)
-		case zed.IDDuration:
-			return CompareInt(int64(zed.DecodeDuration(zv)), pattern)
+			return CompareFloat(val.Float(), float64(pattern))
 		}
 		return false
 	}, nil
@@ -149,7 +115,7 @@ func CompareIP(op string, pattern netip.Addr) (Boolean, error) {
 		if val.Type.ID() != zed.IDIP {
 			return false
 		}
-		return compare(zed.DecodeIP(val.Bytes), pattern)
+		return compare(zed.DecodeIP(val.Bytes()), pattern)
 	}, nil
 }
 
@@ -163,7 +129,6 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		return nil, fmt.Errorf("unknown double comparator: %s", op)
 	}
 	return func(val *zed.Value) bool {
-		zv := val.Bytes
 		switch val.Type.ID() {
 		// We allow comparison of float constant with integer-y
 		// fields and just use typeDouble to parse since it will do
@@ -171,16 +136,12 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		// integers that cause float64 overflow?  user can always
 		// use an integer constant instead of a float constant to
 		// compare with the integer-y field.
-		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-			return compare(zed.DecodeFloat(zv), pattern)
-		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
-			return compare(float64(zed.DecodeInt(zv)), pattern)
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
-			return compare(float64(zed.DecodeUint(zv)), pattern)
-		case zed.IDTime:
-			return compare(float64(zed.DecodeTime(zv)), pattern)
-		case zed.IDDuration:
-			return compare(float64(zed.DecodeDuration(zv)), pattern)
+			return compare(float64(val.Uint()), pattern)
+		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64, zed.IDTime, zed.IDDuration:
+			return compare(float64(val.Int()), pattern)
+		case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
+			return compare(val.Float(), pattern)
 		}
 		return false
 	}, nil
@@ -203,7 +164,7 @@ func CompareString(op string, pattern []byte) (Boolean, error) {
 	s := string(pattern)
 	return func(val *zed.Value) bool {
 		if val.Type.ID() == zed.IDString {
-			return compare(byteconv.UnsafeString(val.Bytes), s)
+			return compare(byteconv.UnsafeString(val.Bytes()), s)
 		}
 		return false
 	}, nil
@@ -226,7 +187,7 @@ func CompareBytes(op string, pattern []byte) (Boolean, error) {
 	return func(val *zed.Value) bool {
 		switch val.Type.ID() {
 		case zed.IDBytes, zed.IDType:
-			return compare(val.Bytes, pattern)
+			return compare(val.Bytes(), pattern)
 		}
 		return false
 	}, nil
@@ -248,7 +209,7 @@ func CompileRegexp(pattern string) (*regexp.Regexp, error) {
 func NewRegexpBoolean(re *regexp.Regexp) Boolean {
 	return func(val *zed.Value) bool {
 		if val.IsString() {
-			return re.Match(val.Bytes)
+			return re.Match(val.Bytes())
 		}
 		return false
 	}
@@ -273,15 +234,12 @@ func CompareNull(op string) (Boolean, error) {
 // predicate that implements the "in" comparison.
 func Contains(compare Boolean) Boolean {
 	return func(val *zed.Value) bool {
-		if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
+		return errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 			if compare(zed.NewValue(typ, body)) {
 				return errMatch
 			}
 			return nil
-		}) {
-			return true
-		}
-		return false
+		})
 	}
 }
 
@@ -295,19 +253,17 @@ func Comparison(op string, val *zed.Value) (Boolean, error) {
 	case *zed.TypeOfNull:
 		return CompareNull(op)
 	case *zed.TypeOfIP:
-		return CompareIP(op, zed.DecodeIP(val.Bytes))
+		return CompareIP(op, zed.DecodeIP(val.Bytes()))
 	case *zed.TypeOfBool:
-		return CompareBool(op, zed.DecodeBool(val.Bytes))
+		return CompareBool(op, val.Bool())
 	case *zed.TypeOfFloat64:
-		return CompareFloat64(op, zed.DecodeFloat64(val.Bytes))
+		return CompareFloat64(op, val.Float())
 	case *zed.TypeOfString:
-		return CompareString(op, val.Bytes)
+		return CompareString(op, val.Bytes())
 	case *zed.TypeOfBytes, *zed.TypeOfType:
-		return CompareBytes(op, val.Bytes)
-	case *zed.TypeOfInt64:
-		return CompareInt64(op, zed.DecodeInt(val.Bytes))
-	case *zed.TypeOfTime, *zed.TypeOfDuration:
-		return CompareTime(op, zed.DecodeInt(val.Bytes))
+		return CompareBytes(op, val.Bytes())
+	case *zed.TypeOfInt64, *zed.TypeOfTime, *zed.TypeOfDuration:
+		return CompareInt64(op, zed.DecodeInt(val.Bytes()))
 	default:
 		return nil, fmt.Errorf("literal comparison of type %q unsupported", val.Type)
 	}

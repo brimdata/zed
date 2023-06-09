@@ -22,7 +22,7 @@ func (u *Union) Consume(val *zed.Value) {
 	if val.IsNull() {
 		return
 	}
-	u.update(val.Type, val.Bytes)
+	u.update(val.Type, val.Bytes())
 }
 
 func (u *Union) update(typ zed.Type, b zcode.Bytes) {

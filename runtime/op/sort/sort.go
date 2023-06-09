@@ -183,7 +183,7 @@ func (o *Op) append(out []zed.Value, batch zbuf.Batch) ([]zed.Value, int) {
 	vals := batch.Values()
 	for i := range vals {
 		val := &vals[i]
-		nbytes += len(val.Bytes)
+		nbytes += len(val.Bytes())
 		// We're keeping records owned by batch so don't call Unref.
 		out = append(out, *val)
 	}

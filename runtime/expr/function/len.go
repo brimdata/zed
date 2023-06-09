@@ -24,11 +24,11 @@ func (l *LenFn) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 			panic(err)
 		}
 	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet:
-		length = len(val.Bytes)
+		length = len(val.Bytes())
 	case *zed.TypeError:
 		return l.zctx.WrapError("len()", &val)
 	case *zed.TypeOfType:
-		t, err := l.zctx.LookupByValue(val.Bytes)
+		t, err := l.zctx.LookupByValue(val.Bytes())
 		if err != nil {
 			return newError(l.zctx, ectx, err)
 		}
@@ -36,7 +36,7 @@ func (l *LenFn) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	default:
 		return l.zctx.NewErrorf("len: bad type: %s", zson.FormatType(typ))
 	}
-	return newInt64(ectx, int64(length))
+	return ectx.CopyValue(zed.NewInt64(int64(length)))
 }
 
 func typeLength(typ zed.Type) int {

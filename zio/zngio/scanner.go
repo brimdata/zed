@@ -320,8 +320,7 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 	if typ == nil {
 		return fmt.Errorf("zngio: type ID %d not in context", id)
 	}
-	valRef.Type = typ
-	valRef.Bytes = b
+	*valRef = *zed.NewValue(typ, b)
 	if w.validate {
 		if err := valRef.Validate(); err != nil {
 			return err
@@ -331,7 +330,7 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 }
 
 func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
-	progress.BytesRead += int64(len(val.Bytes))
+	progress.BytesRead += int64(len(val.Bytes()))
 	progress.RecordsRead++
 	// It's tempting to call w.bufferFilter.Eval on rec.Bytes here, but that
 	// might call FieldNameFinder.Find, which could explode or return false
@@ -339,7 +338,7 @@ func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
 	// rec.Bytes is just a ZNG value.  (A ZNG value message is a header
 	// indicating a type ID followed by a value of that type.)
 	if w.filter == nil || check(w.ectx, val, w.filter) {
-		progress.BytesMatched += int64(len(val.Bytes))
+		progress.BytesMatched += int64(len(val.Bytes()))
 		progress.RecordsMatched++
 		return true
 	}
@@ -348,5 +347,5 @@ func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
 
 func check(ectx expr.Context, this *zed.Value, filter expr.Evaluator) bool {
 	val := filter.Eval(ectx, this)
-	return val.Type == zed.TypeBool && zed.DecodeBool(val.Bytes)
+	return val.Type == zed.TypeBool && val.Bool()
 }

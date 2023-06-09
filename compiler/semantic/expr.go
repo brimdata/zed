@@ -43,7 +43,7 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 			Value: zson.MustFormatValue(val),
 		}, nil
 	case *ast.ID:
-		return a.semID(e), nil
+		return a.semID(e)
 	case *ast.Term:
 		var val string
 		switch t := e.Value.(type) {
@@ -169,10 +169,14 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 					Value: e,
 				})
 			case *ast.ID:
+				v, err := a.semID(elem)
+				if err != nil {
+					return nil, err
+				}
 				out = append(out, &dag.Field{
 					Kind:  "Field",
 					Name:  elem.Name,
-					Value: a.semID(elem),
+					Value: v,
 				})
 			case *ast.Spread:
 				e, err := a.semExpr(elem.Expr)
@@ -232,8 +236,8 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 		if e.Body == nil {
 			return nil, errors.New("over expression missing lateral scope")
 		}
-		a.scope.Enter()
-		defer a.scope.Exit()
+		a.enterScope()
+		defer a.exitScope()
 		locals, err := a.semVars(e.Locals)
 		if err != nil {
 			return nil, err
@@ -252,16 +256,20 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 	return nil, fmt.Errorf("invalid expression type %T", e)
 }
 
-func (a *analyzer) semID(id *ast.ID) dag.Expr {
+func (a *analyzer) semID(id *ast.ID) (dag.Expr, error) {
 	// We use static scoping here to see if an identifier is
 	// a "var" reference to the name or a field access
 	// and transform the AST node appropriately.  The resulting DAG
 	// doesn't have Identifiers as they are resolved here
 	// one way or the other.
-	if ref := a.scope.Lookup(id.Name); ref != nil {
-		return ref
+	ref, err := a.scope.LookupExpr(id.Name)
+	if err != nil {
+		return nil, err
 	}
-	return pathOf(id.Name)
+	if ref != nil {
+		return ref, nil
+	}
+	return pathOf(id.Name), nil
 }
 
 func semDynamicType(tv astzed.Type) *dag.Call {
@@ -416,7 +424,7 @@ func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 func isStringConst(zctx *zed.Context, e dag.Expr) (field string, ok bool) {
 	val, err := kernel.EvalAtCompileTime(zctx, e)
 	if err == nil && !val.IsError() && zed.TypeUnder(val.Type) == zed.TypeString {
-		return string(val.Bytes), true
+		return string(val.Bytes()), true
 	}
 	return "", false
 }
@@ -458,7 +466,11 @@ func (a *analyzer) semCall(call *ast.Call) (dag.Expr, error) {
 	}
 	// Call could be to a user defined func. Check if we have a matching func in
 	// scope.
-	if e := a.scope.Lookup(call.Name); e != nil {
+	e, err := a.scope.LookupExpr(call.Name)
+	if err != nil {
+		return nil, err
+	}
+	if e != nil {
 		f, ok := e.(*dag.Func)
 		if !ok {
 			return nil, fmt.Errorf("%s(): definition is not a function type: %T", call.Name, e)

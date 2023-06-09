@@ -50,9 +50,7 @@ func (b *batch) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
 	return zed.NewValue(typ, bytes)
 }
 
-func (b *batch) CopyValue(val *zed.Value) *zed.Value {
-	return zed.NewValue(val.Type, val.Bytes)
-}
+func (b *batch) CopyValue(val *zed.Value) *zed.Value { return val.Copy() }
 
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
 

@@ -58,13 +58,13 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	}
 	flowgraph, err := runtime.CompileLakeQuery(r.Context(), zed.NewContext(), c.compiler, query, &req.Head, r.Logger)
 	if err != nil {
-		w.Error(err)
+		w.Error(srverr.ErrInvalid(err))
 		return
 	}
 	flusher, _ := w.ResponseWriter.(http.Flusher)
 	writer, err := queryio.NewWriter(zio.NopCloser(w), w.Format, flusher, ctrl)
 	if err != nil {
-		w.Error(err)
+		w.Error(srverr.ErrInvalid(err))
 		return
 	}
 	// Once we defer writer.Close() are going to write ZNG to the HTTP
@@ -511,7 +511,8 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			return
 		}
 		commit, err = branch.DeleteWhere(r.Context(), c.compiler, program, message.Author, message.Body, message.Meta)
-		if errors.Is(err, &compiler.InvalidDeleteWhereQuery{}) {
+		if errors.Is(err, commits.ErrEmptyTransaction) ||
+			errors.Is(err, &compiler.InvalidDeleteWhereQuery{}) {
 			err = srverr.ErrInvalid(err)
 		}
 	}

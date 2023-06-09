@@ -35,8 +35,8 @@ func GetPoolStats(ctx context.Context, p *lake.Pool, snap commits.View) (info Po
 	if poolSpan != nil {
 		min := poolSpan.First()
 		if min.Type == zed.TypeTime {
-			firstTs := zed.DecodeTime(min.Bytes)
-			lastTs := zed.DecodeTime(poolSpan.Last().Bytes)
+			firstTs := zed.DecodeTime(min.Bytes())
+			lastTs := zed.DecodeTime(poolSpan.Last().Bytes())
 			if lastTs < firstTs {
 				firstTs, lastTs = lastTs, firstTs
 			}
@@ -70,8 +70,8 @@ func GetBranchStats(ctx context.Context, b *lake.Branch, snap commits.View) (inf
 	if poolSpan != nil {
 		min := poolSpan.First()
 		if min.Type == zed.TypeTime {
-			firstTs := zed.DecodeTime(min.Bytes)
-			lastTs := zed.DecodeTime(poolSpan.Last().Bytes)
+			firstTs := zed.DecodeTime(min.Bytes())
+			lastTs := zed.DecodeTime(poolSpan.Last().Bytes())
 			if lastTs < firstTs {
 				firstTs, lastTs = lastTs, firstTs
 			}

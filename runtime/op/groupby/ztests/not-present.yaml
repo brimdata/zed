@@ -1,0 +1,7 @@
+zed: max(val) by key | sort
+
+input: |
+  {key:"key1"}
+
+output: |
+  {key:"key1",max:null}

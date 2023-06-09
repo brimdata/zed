@@ -7,6 +7,7 @@
 ```
 every(d: duration) -> time
 ```
+
 ### Description
 
 The _every_ function is a shortcut for `bucket(ts, d)`.

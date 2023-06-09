@@ -1,0 +1,8 @@
+script: |
+  seq 1000 | zq -f vng -o out.vng "{x:this}" -
+  zed dev dig section 1 out.vng | zq -Z "over Fields | yield Values.Dict" -
+
+outputs:
+  - name: stdout
+    data: |
+      null ([DictEntry={Value:{Type:null,bytes:Bytes=bytes},Count:uint32}])

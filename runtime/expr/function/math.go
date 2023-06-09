@@ -18,15 +18,15 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	if id == zed.IDFloat16 {
-		f := math.Abs(float64(zed.DecodeFloat16(v.Bytes)))
+		f := math.Abs(v.Float())
 		return newFloat16(ctx, float32(f))
 	}
 	if id == zed.IDFloat32 {
-		f := math.Abs(float64(zed.DecodeFloat32(v.Bytes)))
+		f := math.Abs(v.Float())
 		return newFloat32(ctx, float32(f))
 	}
 	if id == zed.IDFloat64 {
-		f := math.Abs(zed.DecodeFloat64(v.Bytes))
+		f := math.Abs(v.Float())
 		return newFloat64(ctx, f)
 	}
 	if !zed.IsInteger(id) {
@@ -35,11 +35,11 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !zed.IsSigned(id) {
 		return ctx.CopyValue(&args[0])
 	}
-	x := zed.DecodeInt(v.Bytes)
+	x := v.Int()
 	if x < 0 {
 		x = -x
 	}
-	return newInt64(ctx, x)
+	return ctx.CopyValue(zed.NewInt64(x))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
@@ -52,13 +52,13 @@ func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	id := v.Type.ID()
 	switch {
 	case id == zed.IDFloat16:
-		f := math.Ceil(float64(zed.DecodeFloat16(v.Bytes)))
+		f := math.Ceil(v.Float())
 		return newFloat16(ctx, float32(f))
 	case id == zed.IDFloat32:
-		f := math.Ceil(float64(zed.DecodeFloat32(v.Bytes)))
+		f := math.Ceil(v.Float())
 		return newFloat32(ctx, float32(f))
 	case id == zed.IDFloat64:
-		f := math.Ceil(zed.DecodeFloat64(v.Bytes))
+		f := math.Ceil(v.Float())
 		return newFloat64(ctx, f)
 	case zed.IsInteger(id):
 		return ctx.CopyValue(&args[0])
@@ -77,13 +77,13 @@ func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	id := v.Type.ID()
 	switch {
 	case id == zed.IDFloat16:
-		v := math.Floor(float64(zed.DecodeFloat16(v.Bytes)))
+		v := math.Floor(v.Float())
 		return newFloat16(ctx, float32(v))
 	case id == zed.IDFloat32:
-		v := math.Floor(float64(zed.DecodeFloat32(v.Bytes)))
+		v := math.Floor(v.Float())
 		return newFloat32(ctx, float32(v))
 	case id == zed.IDFloat64:
-		v := math.Floor(zed.DecodeFloat64(v.Bytes))
+		v := math.Floor(v.Float())
 		return newFloat64(ctx, v)
 	case zed.IsInteger(id):
 		return ctx.CopyValue(&args[0])
@@ -121,7 +121,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if zed.IsFloat(id) {
 		//XXX this is wrong like math aggregators...
 		// need to be more robust and adjust type as new types encountered
-		result := zed.DecodeFloat(val0.Bytes)
+		result := val0.Float()
 		for _, val := range args[1:] {
 			v, ok := coerce.ToFloat(&val)
 			if !ok {
@@ -135,7 +135,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val0))
 	}
 	if zed.IsSigned(id) {
-		result := zed.DecodeInt(val0.Bytes)
+		result := val0.Int()
 		for _, val := range args[1:] {
 			//XXX this is really bad because we silently coerce
 			// floats to ints if we hit a float first
@@ -145,9 +145,9 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			}
 			result = r.fn.Int64(result, v)
 		}
-		return newInt64(ctx, result)
+		return ctx.CopyValue(zed.NewInt64(result))
 	}
-	result := zed.DecodeUint(val0.Bytes)
+	result := val0.Uint()
 	for _, val := range args[1:] {
 		v, ok := coerce.ToUint(&val)
 		if !ok {
@@ -155,7 +155,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		result = r.fn.Uint64(result, v)
 	}
-	return newUint64(ctx, result)
+	return ctx.CopyValue(zed.NewUint64(result))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
@@ -167,16 +167,13 @@ func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := &args[0]
 	id := val.Type.ID()
 	if id == zed.IDFloat16 {
-		f := zed.DecodeFloat16(val.Bytes)
-		return newFloat16(ctx, float32(math.Round(float64(f))))
+		return newFloat16(ctx, float32(math.Round(val.Float())))
 	}
 	if id == zed.IDFloat32 {
-		f := zed.DecodeFloat32(val.Bytes)
-		return newFloat32(ctx, float32(math.Round(float64(f))))
+		return newFloat32(ctx, float32(math.Round(val.Float())))
 	}
 	if id == zed.IDFloat64 {
-		f := zed.DecodeFloat64(val.Bytes)
-		return newFloat64(ctx, math.Round(f))
+		return newFloat64(ctx, math.Round(val.Float()))
 	}
 	if !zed.IsNumber(id) {
 		return newErrorf(r.zctx, ctx, "round: not a number: %s", zson.MustFormatValue(val))

@@ -18,53 +18,49 @@ import (
 func formatAny(val *zed.Value, inContainer bool) string {
 	switch t := val.Type.(type) {
 	case *zed.TypeArray:
-		return formatArray(t, val.Bytes)
+		return formatArray(t, val.Bytes())
 	case *zed.TypeNamed:
-		return formatAny(zed.NewValue(t.Type, val.Bytes), inContainer)
+		return formatAny(zed.NewValue(t.Type, val.Bytes()), inContainer)
 	case *zed.TypeOfBool:
-		if zed.DecodeBool(val.Bytes) {
+		if val.Bool() {
 			return "T"
 		}
 		return "F"
 	case *zed.TypeOfBytes:
-		return base64.StdEncoding.EncodeToString(val.Bytes)
-	case *zed.TypeOfDuration:
-		return formatTime(nano.Ts(zed.DecodeDuration(val.Bytes)))
+		return base64.StdEncoding.EncodeToString(val.Bytes())
+	case *zed.TypeOfDuration, *zed.TypeOfTime:
+		return formatTime(nano.Ts(val.Int()))
 	case *zed.TypeEnum:
-		return formatAny(zed.NewValue(zed.TypeUint64, val.Bytes), false)
-	case *zed.TypeOfFloat16:
-		return strconv.FormatFloat(float64(zed.DecodeFloat16(val.Bytes)), 'f', -1, 32)
-	case *zed.TypeOfFloat32:
-		return strconv.FormatFloat(float64(zed.DecodeFloat32(val.Bytes)), 'f', -1, 32)
+		return formatAny(zed.NewValue(zed.TypeUint64, val.Bytes()), false)
+	case *zed.TypeOfFloat16, *zed.TypeOfFloat32:
+		return strconv.FormatFloat(val.Float(), 'f', -1, 32)
 	case *zed.TypeOfFloat64:
-		return strconv.FormatFloat(zed.DecodeFloat64(val.Bytes), 'f', -1, 64)
+		return strconv.FormatFloat(val.Float(), 'f', -1, 64)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
-		return strconv.FormatInt(zed.DecodeInt(val.Bytes), 10)
+		return strconv.FormatInt(val.Int(), 10)
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
-		return strconv.FormatUint(zed.DecodeUint(val.Bytes), 10)
+		return strconv.FormatUint(val.Uint(), 10)
 	case *zed.TypeOfIP:
-		return zed.DecodeIP(val.Bytes).String()
+		return zed.DecodeIP(val.Bytes()).String()
 	case *zed.TypeMap:
-		return formatMap(t, val.Bytes)
+		return formatMap(t, val.Bytes())
 	case *zed.TypeOfNet:
-		return zed.DecodeNet(val.Bytes).String()
+		return zed.DecodeNet(val.Bytes()).String()
 	case *zed.TypeOfNull:
 		return "-"
 	case *zed.TypeRecord:
-		return formatRecord(t, val.Bytes)
+		return formatRecord(t, val.Bytes())
 	case *zed.TypeSet:
-		return formatSet(t, val.Bytes)
+		return formatSet(t, val.Bytes())
 	case *zed.TypeOfString:
-		return formatString(t, val.Bytes, inContainer)
-	case *zed.TypeOfTime:
-		return formatTime(zed.DecodeTime(val.Bytes))
+		return formatString(t, val.Bytes(), inContainer)
 	case *zed.TypeOfType:
 		return zson.String(val)
 	case *zed.TypeUnion:
-		return formatUnion(t, val.Bytes)
+		return formatUnion(t, val.Bytes())
 	case *zed.TypeError:
 		if zed.TypeUnder(t.Type) == zed.TypeString {
-			return string(val.Bytes)
+			return string(val.Bytes())
 		}
 		return zson.MustFormatValue(val)
 	default:

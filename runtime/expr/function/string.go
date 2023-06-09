@@ -27,9 +27,9 @@ func (r *Replace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if oldVal.IsNull() || newVal.IsNull() {
 		return newErrorf(r.zctx, ctx, "replace: an input arg is null")
 	}
-	s := zed.DecodeString(sVal.Bytes)
-	old := zed.DecodeString(oldVal.Bytes)
-	new := zed.DecodeString(newVal.Bytes)
+	s := zed.DecodeString(sVal.Bytes())
+	old := zed.DecodeString(oldVal.Bytes())
+	new := zed.DecodeString(newVal.Bytes())
 	return newString(ctx, strings.ReplaceAll(s, old, new))
 }
 
@@ -44,10 +44,10 @@ func (r *RuneLen) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(r.zctx, ctx, "rune_len: string arg required")
 	}
 	if val.IsNull() {
-		return newInt64(ctx, 0)
+		return ctx.CopyValue(zed.NewInt64(0))
 	}
-	s := zed.DecodeString(val.Bytes)
-	return newInt64(ctx, int64(utf8.RuneCountInString(s)))
+	s := zed.DecodeString(val.Bytes())
+	return ctx.CopyValue(zed.NewInt64(int64(utf8.RuneCountInString(s))))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#lower
@@ -63,7 +63,7 @@ func (t *ToLower) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if val.IsNull() {
 		return zed.NullString
 	}
-	s := zed.DecodeString(val.Bytes)
+	s := zed.DecodeString(val.Bytes())
 	return newString(ctx, strings.ToLower(s))
 }
 
@@ -80,7 +80,7 @@ func (t *ToUpper) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if val.IsNull() {
 		return zed.NullString
 	}
-	s := zed.DecodeString(val.Bytes)
+	s := zed.DecodeString(val.Bytes())
 	return newString(ctx, strings.ToUpper(s))
 }
 
@@ -97,7 +97,7 @@ func (t *Trim) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if val.IsNull() {
 		return zed.NullString
 	}
-	s := zed.DecodeString(val.Bytes)
+	s := zed.DecodeString(val.Bytes())
 	return newString(ctx, strings.TrimSpace(s))
 }
 
@@ -123,8 +123,8 @@ func (s *Split) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if sVal.IsNull() || sepVal.IsNull() {
 		return ctx.NewValue(s.typ, nil)
 	}
-	str := zed.DecodeString(sVal.Bytes)
-	sep := zed.DecodeString(sepVal.Bytes)
+	str := zed.DecodeString(sVal.Bytes())
+	sep := zed.DecodeString(sepVal.Bytes())
 	splits := strings.Split(str, sep)
 	var b zcode.Bytes
 	for _, substr := range splits {
@@ -154,11 +154,11 @@ func (j *Join) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if !sepVal.IsString() {
 			return newErrorf(j.zctx, ctx, "join: separator must be string")
 		}
-		separator = zed.DecodeString(sepVal.Bytes)
+		separator = zed.DecodeString(sepVal.Bytes())
 	}
 	b := j.builder
 	b.Reset()
-	it := splitsVal.Bytes.Iter()
+	it := splitsVal.Bytes().Iter()
 	var sep string
 	for !it.Done() {
 		b.WriteString(sep)
@@ -181,6 +181,6 @@ func (l *Levenshtein) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !b.IsString() {
 		return l.zctx.WrapError("levenshtein: string args required", b)
 	}
-	as, bs := zed.DecodeString(a.Bytes), zed.DecodeString(b.Bytes)
-	return newInt64(ctx, int64(levenshtein.ComputeDistance(as, bs)))
+	as, bs := zed.DecodeString(a.Bytes()), zed.DecodeString(b.Bytes())
+	return ctx.CopyValue(zed.NewInt64(int64(levenshtein.ComputeDistance(as, bs))))
 }

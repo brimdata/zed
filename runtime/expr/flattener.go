@@ -73,7 +73,7 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 	if zed.TypeUnder(r.Type) == flatType {
 		return r, nil
 	}
-	zv, err := recode(nil, zed.TypeRecordOf(r.Type), r.Bytes)
+	zv, err := recode(nil, zed.TypeRecordOf(r.Type), r.Bytes())
 	if err != nil {
 		return nil, err
 	}

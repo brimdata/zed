@@ -46,7 +46,7 @@ func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	if zed.TypeUnder(args[0].Type) != zed.TypeString {
 		return newErrorf(t.zctx, ectx, "typename: first argument not a string")
 	}
-	name := string(args[0].Bytes)
+	name := string(args[0].Bytes())
 	if len(args) == 1 {
 		typ := t.zctx.LookupTypeDef(name)
 		if typ == nil {
@@ -57,7 +57,7 @@ func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	if zed.TypeUnder(args[1].Type) != zed.TypeType {
 		return newErrorf(t.zctx, ectx, "typename: second argument not a type value")
 	}
-	typ, err := t.zctx.LookupByValue(args[1].Bytes)
+	typ, err := t.zctx.LookupByValue(args[1].Bytes())
 	if err != nil {
 		return newError(t.zctx, ectx, err)
 	}
@@ -70,7 +70,7 @@ type Error struct {
 }
 
 func (e *Error) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	return ctx.NewValue(e.zctx.LookupTypeError(args[0].Type), args[0].Bytes)
+	return ctx.NewValue(e.zctx.LookupTypeError(args[0].Type), args[0].Bytes())
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr
@@ -98,9 +98,9 @@ func (i *Is) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	var typ zed.Type
 	var err error
 	if zvTypeVal.IsString() {
-		typ, err = zson.ParseType(i.zctx, string(zvTypeVal.Bytes))
+		typ, err = zson.ParseType(i.zctx, string(zvTypeVal.Bytes()))
 	} else {
-		typ, err = i.zctx.LookupByValue(zvTypeVal.Bytes)
+		typ, err = i.zctx.LookupByValue(zvTypeVal.Bytes())
 	}
 	if err == nil && typ == zvSubject.Type {
 		return zed.True
@@ -120,7 +120,7 @@ func NewHasError() *HasError {
 
 func (h *HasError) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
-	if yes, _ := h.hasError(v.Type, v.Bytes); yes {
+	if yes, _ := h.hasError(v.Type, v.Bytes()); yes {
 		return zed.True
 	}
 	return zed.False
@@ -207,7 +207,7 @@ func (k *Kind) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	var typ zed.Type
 	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeOfType); ok {
 		var err error
-		typ, err = k.zctx.LookupByValue(val.Bytes)
+		typ, err = k.zctx.LookupByValue(val.Bytes())
 		if err != nil {
 			panic(err)
 		}

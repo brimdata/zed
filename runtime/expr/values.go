@@ -53,7 +53,7 @@ func (r *recordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			r.fields[k].Type = val.Type
 			changed = true
 		}
-		b.Append(val.Bytes)
+		b.Append(val.Bytes())
 	}
 	if changed {
 		r.typ = r.zctx.MustLookupTypeRecord(r.fields)
@@ -151,7 +151,7 @@ func (r *recordSpreadExpr) update(object map[string]fieldValue) {
 			r.invalidate(object)
 			return
 		}
-		r.bytes[field.index] = field.value.Bytes
+		r.bytes[field.index] = field.value.Bytes()
 	}
 }
 
@@ -161,7 +161,7 @@ func (r *recordSpreadExpr) invalidate(object map[string]fieldValue) {
 	r.bytes = slices.Grow(r.bytes[:0], n)[:n]
 	for name, field := range object {
 		r.fields[field.index] = zed.NewField(name, field.value.Type)
-		r.bytes[field.index] = field.value.Bytes
+		r.bytes[field.index] = field.value.Bytes()
 	}
 	r.cache = r.zctx.MustLookupTypeRecord(r.fields)
 }
@@ -200,7 +200,7 @@ func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			// Treat non-list spread values values like missing.
 			continue
 		}
-		a.collection.appendSpread(inner, val.Bytes)
+		a.collection.appendSpread(inner, val.Bytes())
 	}
 	if len(a.collection.types) == 0 {
 		return ectx.NewValue(a.zctx.LookupTypeArray(zed.TypeNull), []byte{})
@@ -240,7 +240,7 @@ func (a *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			// Treat non-list spread values values like missing.
 			continue
 		}
-		a.collection.appendSpread(inner, val.Bytes)
+		a.collection.appendSpread(inner, val.Bytes())
 	}
 	if len(a.collection.types) == 0 {
 		return ectx.NewValue(a.zctx.LookupTypeSet(zed.TypeNull), []byte{})
@@ -308,7 +308,7 @@ func (c *collectionBuilder) reset() {
 
 func (c *collectionBuilder) append(val *zed.Value) {
 	c.types = append(c.types, val.Type)
-	c.bytes = append(c.bytes, val.Bytes)
+	c.bytes = append(c.bytes, val.Bytes())
 }
 
 func (c *collectionBuilder) appendSpread(inner zed.Type, b zcode.Bytes) {

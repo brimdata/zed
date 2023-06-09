@@ -48,7 +48,7 @@ func (w *Writer) writeRecord(rec *zed.Value) error {
 			if value.IsNull() {
 				s = "-"
 			} else {
-				s = zed.DecodeTime(value.Bytes).Time().Format(time.RFC3339Nano)
+				s = zed.DecodeTime(value.Bytes()).Time().Format(time.RFC3339Nano)
 			}
 		} else {
 			s = zeekio.FormatValue(value)

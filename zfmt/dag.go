@@ -468,6 +468,16 @@ func (c *canonDAG) op(p dag.Op) {
 		c.close()
 	case *dag.Over:
 		c.over(p)
+	case *dag.UserOpCall:
+		c.next()
+		c.write("%s(", p.Name)
+		for i, e := range p.Exprs {
+			if i > 0 {
+				c.write(", ")
+			}
+			c.expr(e, "")
+		}
+		c.write(")")
 	case *dag.Yield:
 		c.next()
 		c.write("yield ")
@@ -579,6 +589,9 @@ func (c *canonDAG) scope(s *dag.Scope) {
 		c.ret()
 		c.flush()
 	}
+	for _, o := range s.UserOps {
+		c.userOp(o)
+	}
 	c.head = true
 	c.seq(s.Body)
 	if !first {
@@ -586,6 +599,38 @@ func (c *canonDAG) scope(s *dag.Scope) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	}
+}
+
+func (c *canonDAG) userOp(o *dag.UserOp) {
+	c.head = true
+	c.write("op %s(", o.Name)
+	for i, p := range o.Params {
+		if i > 0 {
+			c.write(", ")
+		}
+		c.param(p)
+	}
+	c.open("): (")
+	c.seq(o.Body)
+	c.close()
+	c.ret()
+	c.flush()
+	c.write(")")
+	c.ret()
+	c.flush()
+}
+
+func (c *canonDAG) param(p dag.Param) {
+	switch p := p.(type) {
+	case *dag.ConstParam:
+		c.write("const %s", p.Name)
+	case *dag.SpreadParam:
+		c.write("...")
+	case *dag.NamedParam:
+		c.write(p.Name)
+	default:
+		c.write("unknown param type: %T", p)
 	}
 }
 

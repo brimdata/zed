@@ -81,7 +81,7 @@ echo '{x:1,y:2}{r:3}{x:4,y:5}' | zq -z 'switch ( case has(x) => cast(this, "poin
 ```
 produces
 ```mdtest-output
+{r:3}(=radius)
 {x:1,y:2}(=point)
 {x:4,y:5}(=point)
-{r:3}(=radius)
 ```

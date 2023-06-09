@@ -97,7 +97,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	} else if w.typ != recType {
 		return fmt.Errorf("%w: %s and %s", ErrMultipleTypes, zson.FormatType(w.typ), zson.FormatType(recType))
 	}
-	it := val.Bytes.Iter()
+	it := val.Bytes().Iter()
 	for i, builder := range w.builder.Fields() {
 		var b zcode.Bytes
 		if it != nil {
@@ -322,7 +322,7 @@ func (w *Writer) buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Byte
 		name = n.Name
 		typ = zed.TypeUnder(n.Type)
 	}
-	// Order here follows that of the arrow.Time constants.
+	// Order here follows that of the arrow.Type constants.
 	switch b := b.(type) {
 	case *array.NullBuilder:
 		b.AppendNull()

@@ -6,6 +6,7 @@
 ```
 count() -> uint64
 ```
+
 ### Description
 
 The _count_ aggregate function computes the number of values in its input.

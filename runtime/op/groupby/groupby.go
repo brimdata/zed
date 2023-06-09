@@ -326,7 +326,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) error {
 		types = append(types, key.Type)
 		// Append each value to the key as a flat value, independent
 		// of whether this is a primitive or container.
-		keyBytes = zcode.Append(keyBytes, key.Bytes)
+		keyBytes = zcode.Append(keyBytes, key.Bytes())
 	}
 	// We conveniently put the key type code at the end of the key string,
 	// so when we recontruct the key values below, we don't have skip over it.
@@ -487,7 +487,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 	for _, e := range a.keyRefs {
 		keyVal := e.Eval(ectx, firstRec)
 		types = append(types, keyVal.Type)
-		a.builder.Append(keyVal.Bytes)
+		a.builder.Append(keyVal.Bytes())
 	}
 	for _, f := range row {
 		var v *zed.Value
@@ -497,7 +497,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 			v = f.Result(a.zctx)
 		}
 		types = append(types, v.Type)
-		a.builder.Append(v.Bytes)
+		a.builder.Append(v.Bytes())
 	}
 	typ := a.lookupRecordType(types)
 	bytes, err := a.builder.Encode()
@@ -546,7 +546,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 				v = f.Result(a.zctx)
 			}
 			types = append(types, v.Type)
-			a.builder.Append(v.Bytes)
+			a.builder.Append(v.Bytes())
 		}
 		typ := a.lookupRecordType(types)
 		zv, err := a.builder.Encode()

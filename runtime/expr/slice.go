@@ -36,9 +36,9 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	var length int
 	switch zed.TypeUnder(elem.Type).(type) {
 	case *zed.TypeOfBytes:
-		length = len(elem.Bytes)
+		length = len(elem.Bytes())
 	case *zed.TypeOfString:
-		length = utf8.RuneCount(elem.Bytes)
+		length = utf8.RuneCount(elem.Bytes())
 	case *zed.TypeArray:
 		n, err := elem.ContainerLength()
 		if err != nil {
@@ -62,7 +62,7 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		to = length
 	}
-	bytes := elem.Bytes
+	bytes := elem.Bytes()
 	switch zed.TypeUnder(elem.Type).(type) {
 	case *zed.TypeOfBytes:
 		bytes = bytes[from:to]

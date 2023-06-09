@@ -6,6 +6,7 @@
 ```
 any(any) -> any
 ```
+
 ### Description
 
 The _any_ aggregate function returns an arbitrary element from its input.
