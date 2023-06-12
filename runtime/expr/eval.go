@@ -580,79 +580,55 @@ func NewUnaryMinus(zctx *zed.Context, e Evaluator) *UnaryMinus {
 func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := u.expr.Eval(ectx, this)
 	typ := val.Type
+	if val.IsNull() && zed.IsNumber(typ.ID()) {
+		return val
+	}
 	switch typ.ID() {
 	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-		if val.IsNull() {
-			return val
-		}
 		return zed.NewFloat(typ, -val.Float())
 	case zed.IDInt8:
-		if val.IsNull() {
-			return val
-		}
 		v := val.Int()
 		if v == math.MinInt8 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int8(%d)", v))
 		}
 		return ectx.CopyValue(zed.NewInt8(int8(-v)))
 	case zed.IDInt16:
-		if val.IsNull() {
-			return val
-		}
 		v := val.Int()
 		if v == math.MinInt16 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int16(%d)", v))
 		}
 		return ectx.CopyValue(zed.NewInt16(int16(-v)))
 	case zed.IDInt32:
-		if val.IsNull() {
-			return val
-		}
 		v := val.Int()
 		if v == math.MinInt32 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int32(%d)", v))
 		}
 		return ectx.CopyValue(zed.NewInt32(int32(-v)))
 	case zed.IDInt64:
-		if val.IsNull() {
-			return val
-		}
 		v := val.Int()
 		if v == math.MinInt64 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' underflow: int64(%d)", v))
 		}
 		return ectx.CopyValue(zed.NewInt64(-v))
 	case zed.IDUint8:
-		if val.IsNull() {
-			return val
-		}
 		v := val.Uint()
 		if v > math.MaxInt8 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint8(%d)", v))
 		}
 		return ectx.CopyValue(zed.NewInt8(int8(-v)))
 	case zed.IDUint16:
-		if val.IsNull() {
-			return val
-		}
 		v := val.Uint()
 		if v > math.MaxInt16 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint16(%d)", v))
 		}
 		return ectx.CopyValue(zed.NewInt16(int16(-v)))
 	case zed.IDUint32:
-		if val.IsNull() {
-			return val
-		}
 		v := val.Uint()
 		if v > math.MaxInt32 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint32(%d)", v))
 		}
 		return ectx.CopyValue(zed.NewInt32(int32(-v)))
 	case zed.IDUint64:
-		if val.IsNull() {
-			return val
-		}
 		v := val.Uint()
 		if v > math.MaxInt64 {
 			return ectx.CopyValue(u.zctx.NewErrorf("unary '-' overflow: uint64(%d)", v))
