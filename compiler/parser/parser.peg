@@ -86,7 +86,7 @@ FuncDecl
     }
 
 OpDecl
-  = "op" _ name:IdentifierName __ "(" __ params:Params __ ")" __ ":" __ "(" __ body:Seq __ ")" {
+  = "op" _ name:IdentifierName __ "(" __ params:Params? __ ")" __ ":" __ "(" __ body:Seq __ ")" {
       RETURN(MAP(
         "kind": "OpDecl",
         "name": name,
