@@ -12,6 +12,7 @@ type Run struct {
 	extent.Span
 	Compare expr.CompareFn
 	Objects []*data.Object
+	Size    int64
 }
 
 func NewRun(cmp expr.CompareFn) Run {
@@ -31,18 +32,9 @@ func (p *Run) Add(o *data.Object) {
 		p.Span = extent.NewGeneric(o.Min, o.Max, p.Compare)
 		return
 	}
+	p.Size += o.Size
 	p.Span.Extend(&o.Min)
 	p.Span.Extend(&o.Max)
-}
-
-func (p *Run) SizeUncoveredBy(span extent.Span) int64 {
-	var size int64
-	for _, o := range p.Objects {
-		if span == nil || !span.Overlaps(&o.Min, &o.Max) {
-			size += o.Size
-		}
-	}
-	return size
 }
 
 func (p *Run) ObjectIDs() []ksuid.KSUID {
