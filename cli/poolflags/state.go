@@ -1,4 +1,4 @@
-package lakeflags
+package poolflags
 
 import (
 	"fmt"

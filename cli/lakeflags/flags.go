@@ -12,7 +12,6 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/client/auth0"
 	"github.com/brimdata/zed/lake/api"
-	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/storage"
 	"go.uber.org/zap"
 )
@@ -26,13 +25,10 @@ type Flags struct {
 	LakeSpecified bool
 	Lake          string
 	Quiet         bool
-	defaultHead   string
 }
 
 func (l *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&l.Quiet, "q", false, "quiet mode")
-	defaultHead, _ := readHead()
-	fs.StringVar(&l.defaultHead, "use", defaultHead, "commit to use, i.e., pool, pool@branch, or pool@commit")
 	dir, _ := os.UserHomeDir()
 	if dir != "" {
 		dir = filepath.Join(dir, ".zed")
@@ -48,20 +44,6 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 		l.LakeSpecified = true
 		return nil
 	})
-}
-
-func (f *Flags) HEAD() (*lakeparse.Commitish, error) {
-	c, err := lakeparse.ParseCommitish(f.defaultHead)
-	if err != nil {
-		return nil, err
-	}
-	if c.Pool == "" {
-		return nil, errors.New("pool unspecified")
-	}
-	if c.Branch == "" {
-		c.Branch = "main"
-	}
-	return c, nil
 }
 
 func (l *Flags) Connection() (*client.Connection, error) {

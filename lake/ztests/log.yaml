@@ -1,8 +1,7 @@
 script: |
   export ZED_LAKE=test
   zed init -q
-  zed create -q test
-  zed use -q test
+  zed create -use -q test
   zed load -q -user testuser 1.zson
   zed load -q -user testuser 2.zson
   zed log

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/plural"
@@ -28,12 +29,14 @@ previous commits causing missing data when time traveling to those commits.
 
 type Command struct {
 	*root.Command
-	dryrun bool
-	force  bool
+	poolFlags poolflags.Flags
+	dryrun    bool
+	force     bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	c.poolFlags.SetFlags(f)
 	f.BoolVar(&c.dryrun, "dryrun", false, "vacuum without deleting objects")
 	f.BoolVar(&c.force, "f", false, "do not prompt for confirmation")
 	return c, nil
@@ -45,7 +48,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	at, err := c.LakeFlags.HEAD()
+	at, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}

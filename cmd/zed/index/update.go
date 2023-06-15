@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/lakeflags"
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/pkg/charm"
 )
 
@@ -22,10 +23,13 @@ If no rules are given, the update is performed for all index rules.`,
 
 type updateCommand struct {
 	*Command
+	poolFlags poolflags.Flags
 }
 
 func newUpdate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	return &updateCommand{Command: parent.(*Command)}, nil
+	c := &updateCommand{Command: parent.(*Command)}
+	c.poolFlags.SetFlags(f)
+	return c, nil
 }
 
 func (c *updateCommand) Run(args []string) error {
@@ -38,7 +42,7 @@ func (c *updateCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.LakeFlags.HEAD()
+	head, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/cli/commitflags"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/lakeflags"
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cli/runtimeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
@@ -39,6 +40,7 @@ type Command struct {
 	*root.Command
 	commitFlags  commitflags.Flags
 	inputFlags   inputflags.Flags
+	poolFlags    poolflags.Flags
 	runtimeFlags runtimeflags.Flags
 
 	// status output
@@ -52,6 +54,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.commitFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f, true)
+	c.poolFlags.SetFlags(f)
 	c.runtimeFlags.SetFlags(f)
 	return c, nil
 }
@@ -77,7 +80,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	head, err := c.LakeFlags.HEAD()
+	head, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}

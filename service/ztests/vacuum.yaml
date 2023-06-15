@@ -1,7 +1,6 @@
 script: |
   source service.sh
-  zed create -q -orderby x:asc test
-  zed use -q test
+  zed create -use -q -orderby x:asc test
   echo {x:1} | zed load -q -
   r=$(echo {x:2} | zed load - | head -1 | awk '{print $1}')
   r=$(zed revert $r | awk '{print $5}')

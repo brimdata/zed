@@ -29,8 +29,8 @@ by the following commands:
 export ZED_LAKE=example
 zed -q init
 zed -q create -orderby flip:asc coinflips
-zed -q -use coinflips branch onlytails
-echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' | zed -q -use coinflips load -
+zed branch -q -use coinflips onlytails
+echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' | zed load -q -use coinflips -
 zed -q create -orderby flip:asc bigflips
 zed query -f text 'from :branches | yield pool.name + "@" + branch.name | sort'
 ```

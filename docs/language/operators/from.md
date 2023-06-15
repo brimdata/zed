@@ -80,11 +80,11 @@ by the following commands:
 export ZED_LAKE=example
 zed -q init
 zed -q create -orderby flip:desc coinflips
-echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' | zed -q -use coinflips load -
-zed -q -use coinflips branch trial 
-echo '{flip:3,result:"heads"}' | zed -q -use coinflips@trial load -
+echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' | zed load -q -use coinflips -
+zed branch -q -use coinflips trial 
+echo '{flip:3,result:"heads"}' | zed load -q -use coinflips@trial -
 zed -q create numbers
-echo '{number:1,word:"one"} {number:2,word:"two"} {number:3,word:"three"}' | zed -q -use numbers load -
+echo '{number:1,word:"one"} {number:2,word:"two"} {number:3,word:"three"}' | zed load -q -use numbers -
 zed query -f text 'from :branches | yield pool.name + "@" + branch.name | sort'
 ```
 

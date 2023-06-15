@@ -1,8 +1,7 @@
 script: |
   export ZED_LAKE=test
   zed init -q
-  zed create -q -orderby k POOL
-  zed use -q POOL
+  zed create -use -q -orderby k POOL
   zed load -q -message "initial load of a.zson into main" a.zson
   zed branch -q child
   zed use -q @child

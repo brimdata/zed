@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lakeparse"
@@ -40,6 +41,7 @@ type Command struct {
 	*root.Command
 	delete      bool
 	outputFlags outputflags.Flags
+	poolFlags   poolflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -47,6 +49,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.delete, "d", false, "delete the branch instead of creating it")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
+	c.poolFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -67,7 +70,7 @@ func (c *Command) Run(args []string) error {
 		return c.list(ctx, lake)
 	}
 	branchName := args[0]
-	head, err := c.LakeFlags.HEAD()
+	head, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}
@@ -108,7 +111,7 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) list(ctx context.Context, lake api.Interface) error {
-	head, err := c.LakeFlags.HEAD()
+	head, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}

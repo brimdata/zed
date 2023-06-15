@@ -1,8 +1,7 @@
 script: |
   export ZED_LAKE=test
   zed init -q
-  zed create -q POOL
-  zed use -q POOL
+  zed create -use -q POOL
   zed load -q in.zson
   id=$(zed query -f text 'from POOL@main:objects | yield ksuid(id)')
   zed vector add -q $id

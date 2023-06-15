@@ -1,8 +1,7 @@
 script: |
   export ZED_LAKE=test
   zed init -q
-  zed create -q test
-  zed use -q test 
+  zed create -use -q test
   echo '{ts:0}' | zed load -q -
   ! zed delete -where 'ts > 1'
 

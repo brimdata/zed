@@ -3,8 +3,7 @@ script: |
   zed init -q
   for o in asc desc; do
     echo // $o | tee /dev/stderr
-    zed create -q -seekstride 1B -orderby ts:$o $o
-    zed use -q $o
+    zed create -use -q -seekstride 1B -orderby ts:$o $o
     seq 20 | zq 'yield {ts:this}' - | zed load -q -
     source query.sh 'ts == 5'
     source query.sh 'ts < 2'

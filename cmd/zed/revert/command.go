@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/cli/commitflags"
 	"github.com/brimdata/zed/cli/lakeflags"
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
@@ -28,11 +29,13 @@ The new commit may recursively be reverted by an additional revert operation.
 type Command struct {
 	*root.Command
 	commitFlags commitflags.Flags
+	poolFlags   poolflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.commitFlags.SetFlags(f)
+	c.poolFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -49,7 +52,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.LakeFlags.HEAD()
+	head, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}

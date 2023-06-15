@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/lakeflags"
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -19,11 +20,13 @@ var apply = &charm.Spec{
 
 type applyCommand struct {
 	*Command
-	rules []string
+	poolFlags poolflags.Flags
+	rules     []string
 }
 
 func newApply(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &applyCommand{Command: parent.(*Command)}
+	c.poolFlags.SetFlags(f)
 	f.Func("r", "name of index rule to apply; can be set multiple times", func(s string) error {
 		if s == "" {
 			return errors.New("rule cannot be an empty string")
@@ -54,7 +57,7 @@ func (c *applyCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.LakeFlags.HEAD()
+	head, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}
