@@ -47,7 +47,7 @@ func (w *Writer) Flush() error {
 
 func (w *Writer) Write(rec *zed.Value) error {
 	if rec.Type.Kind() != zed.RecordKind {
-		return fmt.Errorf("CSV output encountered non-record value: %s", zson.MustFormatValue(rec))
+		return fmt.Errorf("CSV output encountered non-record value: %s", zson.FormatValue(rec))
 	}
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
@@ -93,5 +93,5 @@ func formatValue(typ zed.Type, bytes zcode.Bytes) string {
 	if typ.ID() < zed.IDTypeComplex {
 		return zson.FormatPrimitive(zed.TypeUnder(typ), bytes)
 	}
-	return zson.MustFormatValue(zed.NewValue(typ, bytes))
+	return zson.FormatValue(zed.NewValue(typ, bytes))
 }

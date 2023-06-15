@@ -2,7 +2,6 @@ package zson
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -65,7 +64,7 @@ func (f *Formatter) pop() {
 	f.stack = f.stack[:n-1]
 }
 
-func (f *Formatter) FormatRecord(rec *zed.Value) (string, error) {
+func (f *Formatter) FormatRecord(rec *zed.Value) string {
 	f.builder.Reset()
 	// We reset tyepdefs so named types are emitted with their
 	// definition at first use in each record according to the
@@ -73,23 +72,12 @@ func (f *Formatter) FormatRecord(rec *zed.Value) (string, error) {
 	// by putting a record number/nonce in the map but ZSON
 	// is already intended to be the low performance path.
 	f.typedefs = make(map[string]*zed.TypeNamed)
-	if err := f.formatValueAndDecorate(rec.Type, rec.Bytes()); err != nil {
-		return "", err
-	}
-	return f.builder.String(), nil
+	f.formatValueAndDecorate(rec.Type, rec.Bytes())
+	return f.builder.String()
 }
 
-func FormatValue(val *zed.Value) (string, error) {
-	f := NewFormatter(0, nil)
-	return f.Format(val)
-}
-
-func MustFormatValue(val *zed.Value) string {
-	s, err := FormatValue(val)
-	if err != nil {
-		panic(fmt.Errorf("ZSON format value failed: type %s, bytes %s", val.Type, hex.EncodeToString(val.Bytes())))
-	}
-	return s
+func FormatValue(val *zed.Value) string {
+	return NewFormatter(0, nil).Format(val)
 }
 
 func String(p interface{}) string {
@@ -98,20 +86,18 @@ func String(p interface{}) string {
 	}
 	switch val := p.(type) {
 	case *zed.Value:
-		return MustFormatValue(val)
+		return FormatValue(val)
 	case zed.Value:
-		return MustFormatValue(&val)
+		return FormatValue(&val)
 	default:
 		panic("zson.String takes a zed.Type or *zed.Value")
 	}
 }
 
-func (f *Formatter) Format(val *zed.Value) (string, error) {
+func (f *Formatter) Format(val *zed.Value) string {
 	f.builder.Reset()
-	if err := f.formatValueAndDecorate(val.Type, val.Bytes()); err != nil {
-		return "", err
-	}
-	return f.builder.String(), nil
+	f.formatValueAndDecorate(val.Type, val.Bytes())
+	return f.builder.String()
 }
 
 func (f *Formatter) hasName(typ zed.Type) bool {
@@ -154,17 +140,14 @@ func (f *Formatter) saveType(named *zed.TypeNamed) {
 	}
 }
 
-func (f *Formatter) formatValueAndDecorate(typ zed.Type, bytes zcode.Bytes) error {
+func (f *Formatter) formatValueAndDecorate(typ zed.Type, bytes zcode.Bytes) {
 	known := f.hasName(typ)
 	implied := f.isImplied(typ)
-	if err := f.formatValue(0, typ, bytes, known, implied, false); err != nil {
-		return err
-	}
+	f.formatValue(0, typ, bytes, known, implied, false)
 	f.decorate(typ, false, bytes == nil)
-	return nil
 }
 
-func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, parentKnown, parentImplied, decorate bool) error {
+func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, parentKnown, parentImplied, decorate bool) {
 	known := parentKnown || f.hasName(typ)
 	if bytes == nil {
 		f.build("null")
@@ -174,9 +157,8 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 		if decorate {
 			f.decorate(typ, parentKnown, true)
 		}
-		return nil
+		return
 	}
-	var err error
 	var null bool
 	switch t := typ.(type) {
 	default:
@@ -184,30 +166,26 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 		formatPrimitive(&f.builder, typ, bytes)
 		f.endColor()
 	case *zed.TypeNamed:
-		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
+		f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
 	case *zed.TypeRecord:
-		err = f.formatRecord(indent, t, bytes, known, parentImplied)
+		f.formatRecord(indent, t, bytes, known, parentImplied)
 	case *zed.TypeArray:
-		null, err = f.formatVector(indent, "[", "]", t.Type, zed.NewValue(t, bytes), known, parentImplied)
+		null = f.formatVector(indent, "[", "]", t.Type, zed.NewValue(t, bytes), known, parentImplied)
 	case *zed.TypeSet:
-		null, err = f.formatVector(indent, "|[", "]|", t.Type, zed.NewValue(t, bytes), known, parentImplied)
+		null = f.formatVector(indent, "|[", "]|", t.Type, zed.NewValue(t, bytes), known, parentImplied)
 	case *zed.TypeUnion:
-		err = f.formatUnion(indent, t, bytes)
+		f.formatUnion(indent, t, bytes)
 	case *zed.TypeMap:
-		null, err = f.formatMap(indent, t, bytes, known, parentImplied)
+		null = f.formatMap(indent, t, bytes, known, parentImplied)
 	case *zed.TypeEnum:
-		id := zed.DecodeUint(bytes)
-		if id >= uint64(len(t.Symbols)) {
-			return errors.New("enum index out of range")
-		}
 		f.build("%")
-		f.build(t.Symbols[id])
+		f.build(t.Symbols[zed.DecodeUint(bytes)])
 	case *zed.TypeError:
 		f.startColor(color.Red)
 		f.build("error")
 		f.endColor()
 		f.build("(")
-		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
+		f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
 		f.build(")")
 	case *zed.TypeOfType:
 		f.startColor(color.Gray(200))
@@ -216,10 +194,9 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 		f.build(">")
 		f.endColor()
 	}
-	if err == nil && decorate {
+	if decorate {
 		f.decorate(typ, parentKnown, null)
 	}
-	return err
 }
 
 func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
@@ -418,19 +395,16 @@ func (f *Formatter) decorate(typ zed.Type, known, null bool) {
 	}
 }
 
-func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.Bytes, known, parentImplied bool) error {
+func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.Bytes, known, parentImplied bool) {
 	f.build("{")
 	if len(typ.Fields) == 0 {
 		f.build("}")
-		return nil
+		return
 	}
 	indent += f.tab
 	sep := f.newline
 	it := bytes.Iter()
 	for _, field := range typ.Fields {
-		if it.Done() {
-			return zed.ErrMissingField
-		}
 		f.build(sep)
 		f.startColor(color.Blue)
 		f.indent(indent, QuotedName(field.Name))
@@ -439,25 +413,22 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 		if f.tab > 0 {
 			f.build(" ")
 		}
-		if err := f.formatValue(indent, field.Type, it.Next(), known, parentImplied, true); err != nil {
-			return err
-		}
+		f.formatValue(indent, field.Type, it.Next(), known, parentImplied, true)
 		sep = "," + f.newline
 	}
 	f.build(f.newline)
 	f.indent(indent-f.tab, "}")
-	return nil
 }
 
-func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, val *zed.Value, known, parentImplied bool) (bool, error) {
+func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, val *zed.Value, known, parentImplied bool) bool {
 	f.build(open)
 	n, err := val.ContainerLength()
 	if err != nil {
-		return true, err
+		panic(err)
 	}
 	if n == 0 {
 		f.build(close)
-		return true, nil
+		return true
 	}
 	indent += f.tab
 	sep := f.newline
@@ -467,9 +438,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 		f.build(sep)
 		f.indent(indent, "")
 		typ, b := elems.add(it.Next())
-		if err := f.formatValue(indent, typ, b, known, parentImplied, true); err != nil {
-			return true, err
-		}
+		f.formatValue(indent, typ, b, known, parentImplied, true)
 		sep = "," + f.newline
 	}
 	f.build(f.newline)
@@ -479,7 +448,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 		// so the fullness of the union is persevered.
 		f.decorate(val.Type, false, true)
 	}
-	return false, nil
+	return false
 }
 
 type elemHelper struct {
@@ -516,7 +485,7 @@ func (e *elemHelper) needsDecoration() bool {
 	return e.union != nil && (isnamed || len(e.seen) < len(e.union.Types))
 }
 
-func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.Bytes) error {
+func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.Bytes) {
 	typ, bytes := union.Untag(bytes)
 	// XXX For now, we always decorate a union value so that
 	// we can determine the tag from the value's explicit type.
@@ -528,10 +497,10 @@ func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.By
 	// we know the type of a particular value of that union.
 	const known = false
 	const parentImplied = true
-	return f.formatValue(indent, typ, bytes, known, parentImplied, true)
+	f.formatValue(indent, typ, bytes, known, parentImplied, true)
 }
 
-func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, known, parentImplied bool) (bool, error) {
+func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, known, parentImplied bool) bool {
 	empty := true
 	f.build("|{")
 	indent += f.tab
@@ -540,17 +509,12 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 	valElems := newElemBuilder(typ.ValType)
 	for it := bytes.Iter(); !it.Done(); {
 		keyBytes := it.Next()
-		if it.Done() {
-			return empty, errors.New("truncated map value")
-		}
 		empty = false
 		f.build(sep)
 		f.indent(indent, "")
 		var keyType zed.Type
 		keyType, keyBytes = keyElems.add(keyBytes)
-		if err := f.formatValue(indent, keyType, keyBytes, known, parentImplied, true); err != nil {
-			return empty, err
-		}
+		f.formatValue(indent, keyType, keyBytes, known, parentImplied, true)
 		if zed.TypeUnder(keyType) == zed.TypeIP && len(keyBytes) == 16 {
 			// To avoid ambiguity, whitespace must separate an IPv6
 			// map key from the colon that follows it.
@@ -561,9 +525,7 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 			f.build(" ")
 		}
 		valType, valBytes := valElems.add(it.Next())
-		if err := f.formatValue(indent, valType, valBytes, known, parentImplied, true); err != nil {
-			return empty, err
-		}
+		f.formatValue(indent, valType, valBytes, known, parentImplied, true)
 		sep = "," + f.newline
 	}
 	f.build(f.newline)
@@ -571,7 +533,7 @@ func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, k
 	if keyElems.needsDecoration() || valElems.needsDecoration() {
 		f.decorate(typ, false, true)
 	}
-	return empty, nil
+	return empty
 }
 
 func (f *Formatter) indent(tab int, s string) {
@@ -619,10 +581,10 @@ func (f *Formatter) formatType(typ zed.Type) {
 	f.build(s)
 }
 
-func (f *Formatter) formatTypeBody(typ zed.Type) error {
+func (f *Formatter) formatTypeBody(typ zed.Type) {
 	if name := f.nameOf(typ); name != "" {
 		f.build(name)
-		return nil
+		return
 	}
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
@@ -648,7 +610,7 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 	case *zed.TypeUnion:
 		f.formatTypeUnion(typ)
 	case *zed.TypeEnum:
-		return f.formatTypeEnum(typ)
+		f.formatTypeEnum(typ)
 	case *zed.TypeError:
 		f.build("error(")
 		formatType(&f.builder, make(map[string]*zed.TypeNamed), typ.Type)
@@ -658,7 +620,6 @@ func (f *Formatter) formatTypeBody(typ zed.Type) error {
 	default:
 		panic("unknown case in formatTypeBody(): " + String(typ))
 	}
-	return nil
 }
 
 func (f *Formatter) formatTypeRecord(typ *zed.TypeRecord) {
@@ -685,7 +646,7 @@ func (f *Formatter) formatTypeUnion(typ *zed.TypeUnion) {
 	f.build(")")
 }
 
-func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) error {
+func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) {
 	f.build("enum(")
 	for k, s := range typ.Symbols {
 		if k > 0 {
@@ -694,7 +655,6 @@ func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) error {
 		f.buildf("%s", QuotedName(s))
 	}
 	f.build(")")
-	return nil
 }
 
 var colors = map[zed.Type]color.Code{

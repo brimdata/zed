@@ -59,7 +59,7 @@ func marshalAny(typ zed.Type, bytes zcode.Bytes) interface{} {
 	case *zed.TypeError:
 		return map[string]interface{}{"error": marshalAny(typ.Type, bytes)}
 	default:
-		return zson.MustFormatValue(zed.NewValue(typ, bytes))
+		return zson.FormatValue(zed.NewValue(typ, bytes))
 	}
 }
 
@@ -136,11 +136,11 @@ func marshalMap(typ *zed.TypeMap, bytes zcode.Bytes) interface{} {
 			// Untagged, decorated ZSON so
 			// |{0:1,0(uint64):2,0(=t):3,"0":4}| gets unique keys.
 			typ, bytes := keyType.(*zed.TypeUnion).Untag(it.Next())
-			key = zson.MustFormatValue(zed.NewValue(typ, bytes))
+			key = zson.FormatValue(zed.NewValue(typ, bytes))
 		case kind == zed.EnumKind:
 			key = marshalEnum(keyType.(*zed.TypeEnum), it.Next()).(string)
 		default:
-			key = zson.MustFormatValue(zed.NewValue(keyType, it.Next()))
+			key = zson.FormatValue(zed.NewValue(keyType, it.Next()))
 		}
 		val := marshalAny(typ.ValType, it.Next())
 		rec = append(rec, field{key, val})

@@ -79,7 +79,7 @@ const recordBatchSize = 1024
 func (w *Writer) Write(val *zed.Value) error {
 	recType, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord)
 	if !ok {
-		return fmt.Errorf("%w: %s", ErrNotRecord, zson.MustFormatValue(val))
+		return fmt.Errorf("%w: %s", ErrNotRecord, zson.FormatValue(val))
 	}
 	if w.typ == nil {
 		w.typ = recType
@@ -367,7 +367,7 @@ func (w *Writer) buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Byte
 			}
 			b.Append(s)
 		case *zed.TypeError:
-			b.Append(zson.MustFormatValue(zed.NewValue(typ, bytes)))
+			b.Append(zson.FormatValue(zed.NewValue(typ, bytes)))
 		default:
 			panic(fmt.Sprintf("unexpected Zed type for StringBuilder: %s", zson.FormatType(typ)))
 		}

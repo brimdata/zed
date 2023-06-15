@@ -49,7 +49,7 @@ func (m *MarshalContext) Marshal(v interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return m.formatter.Format(val)
+	return m.formatter.Format(val), nil
 }
 
 func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (string, error) {
@@ -57,7 +57,7 @@ func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (st
 	if err != nil {
 		return "", err
 	}
-	return m.formatter.FormatRecord(rec)
+	return m.formatter.FormatRecord(rec), nil
 }
 
 type UnmarshalContext struct {

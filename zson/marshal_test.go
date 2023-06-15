@@ -216,10 +216,8 @@ func TestMixedTypeArrayInsideRecord(t *testing.T) {
 	reader := zngio.NewReader(zed.NewContext(), &buffer)
 	defer reader.Close()
 	recActual, err := reader.Read()
-	exp, err := zson.FormatValue(recExpected)
-	require.NoError(t, err)
-	actual, err := zson.FormatValue(recActual)
-	require.NoError(t, err)
+	exp := zson.FormatValue(recExpected)
+	actual := zson.FormatValue(recActual)
 	assert.Equal(t, exp, actual)
 	// Double check that all the proper typing made it into the implied union.
 	assert.Equal(t, `{X:"hello",S:[[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]]}(=RecordWithInterfaceSlice)`, actual)
@@ -278,10 +276,8 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 	reader := zngio.NewReader(zed.NewContext(), &buffer)
 	defer reader.Close()
 	recActual, err := reader.Read()
-	exp, err := zson.FormatValue(recExpected)
-	require.NoError(t, err)
-	actual, err := zson.FormatValue(recActual)
-	require.NoError(t, err)
+	exp := zson.FormatValue(recExpected)
+	actual := zson.FormatValue(recActual)
 	assert.Equal(t, trim(exp), trim(actual))
 	// Double check that all the proper typing made it into the implied union.
 	assert.Equal(t, `[{Message:"hello",Thing:{MyColor:"red"}(=Plant)}(=MessageThing),{Message:"world",Thing:{MyColor:"blue"}(=Animal)}(=MessageThing)]`, actual)
@@ -322,8 +318,7 @@ func TestZNGValueField(t *testing.T) {
 	zv, err := m.Marshal(zngValueField)
 	require.NoError(t, err)
 	expected := `{Name:"test1",field:123}(=ZNGValueField)`
-	actual, err := zson.FormatValue(zv)
-	require.NoError(t, err)
+	actual := zson.FormatValue(zv)
 	assert.Equal(t, trim(expected), trim(actual))
 	u := zson.NewZNGUnmarshaler()
 	var out ZNGValueField
@@ -344,8 +339,7 @@ func TestZNGValueField(t *testing.T) {
 	zv3, err := m2.Marshal(zngValueField2)
 	require.NoError(t, err)
 	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}}(=ZNGValueField)`
-	actual2, err := zson.FormatValue(zv3)
-	require.NoError(t, err)
+	actual2 := zson.FormatValue(zv3)
 	assert.Equal(t, trim(expected2), trim(actual2))
 	u2 := zson.NewZNGUnmarshaler()
 	var out2 ZNGValueField

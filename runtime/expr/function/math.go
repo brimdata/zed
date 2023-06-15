@@ -30,7 +30,7 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newFloat64(ctx, f)
 	}
 	if !zed.IsInteger(id) {
-		return newErrorf(a.zctx, ctx, "abs: not a number: %s", zson.MustFormatValue(&args[0]))
+		return newErrorf(a.zctx, ctx, "abs: not a number: %s", zson.FormatValue(&args[0]))
 	}
 	if !zed.IsSigned(id) {
 		return ctx.CopyValue(&args[0])
@@ -103,7 +103,7 @@ func (l *Log) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(l.zctx, ctx, "log: numeric argument required")
 	}
 	if x <= 0 {
-		return newErrorf(l.zctx, ctx, "log: illegal argument: %s", zson.MustFormatValue(&args[0]))
+		return newErrorf(l.zctx, ctx, "log: illegal argument: %s", zson.FormatValue(&args[0]))
 	}
 	return newFloat64(ctx, math.Log(x))
 }
@@ -125,14 +125,14 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		for _, val := range args[1:] {
 			v, ok := coerce.ToFloat(&val)
 			if !ok {
-				return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(&val))
+				return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.FormatValue(&val))
 			}
 			result = r.fn.Float64(result, v)
 		}
 		return newFloat64(ctx, result)
 	}
 	if !zed.IsNumber(id) {
-		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(val0))
+		return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.FormatValue(val0))
 	}
 	if zed.IsSigned(id) {
 		result := val0.Int()
@@ -141,7 +141,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			// floats to ints if we hit a float first
 			v, ok := coerce.ToInt(&val)
 			if !ok {
-				return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(&val))
+				return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.FormatValue(&val))
 			}
 			result = r.fn.Int64(result, v)
 		}
@@ -151,7 +151,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	for _, val := range args[1:] {
 		v, ok := coerce.ToUint(&val)
 		if !ok {
-			return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.MustFormatValue(&val))
+			return newErrorf(r.zctx, ctx, "%s: not a number: %s", r.name, zson.FormatValue(&val))
 		}
 		result = r.fn.Uint64(result, v)
 	}
@@ -176,7 +176,7 @@ func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newFloat64(ctx, math.Round(val.Float()))
 	}
 	if !zed.IsNumber(id) {
-		return newErrorf(r.zctx, ctx, "round: not a number: %s", zson.MustFormatValue(val))
+		return newErrorf(r.zctx, ctx, "round: not a number: %s", zson.FormatValue(val))
 	}
 	return ctx.CopyValue(&args[0])
 }
@@ -189,11 +189,11 @@ type Pow struct {
 func (p *Pow) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(&args[0])
 	if !ok {
-		return newErrorf(p.zctx, ctx, "pow: not a number: %s", zson.MustFormatValue(&args[0]))
+		return newErrorf(p.zctx, ctx, "pow: not a number: %s", zson.FormatValue(&args[0]))
 	}
 	y, ok := coerce.ToFloat(&args[1])
 	if !ok {
-		return newErrorf(p.zctx, ctx, "pow: not a number: %s", zson.MustFormatValue(&args[1]))
+		return newErrorf(p.zctx, ctx, "pow: not a number: %s", zson.FormatValue(&args[1]))
 	}
 	return newFloat64(ctx, math.Pow(x, y))
 }
@@ -206,7 +206,7 @@ type Sqrt struct {
 func (s *Sqrt) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(&args[0])
 	if !ok {
-		return newErrorf(s.zctx, ctx, "sqrt: not a number: %s", zson.MustFormatValue(&args[0]))
+		return newErrorf(s.zctx, ctx, "sqrt: not a number: %s", zson.FormatValue(&args[0]))
 	}
 	return newFloat64(ctx, math.Sqrt(x))
 }
