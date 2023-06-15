@@ -269,7 +269,7 @@ func stringToEnum(val *astzed.Primitive, cast zed.Type) Value {
 func castType(typ, cast zed.Type) (zed.Type, error) {
 	typID, castID := typ.ID(), cast.ID()
 	if typID == castID || typID == zed.IDNull ||
-		zed.IsInteger(typID) && zed.IsInteger(castID) ||
+		zed.IsInteger(typID) && (zed.IsInteger(castID) || zed.IsFloat(castID)) ||
 		zed.IsFloat(typID) && zed.IsFloat(castID) {
 		return cast, nil
 	}
