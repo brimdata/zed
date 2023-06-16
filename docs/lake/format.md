@@ -13,7 +13,7 @@ as we add new capabilities to the system.
 
 ## Introduction
 
-To support the client-facing [Zed lake semantics](../commands/zed.md#1-the-lake-model)
+To support the client-facing [Zed lake semantics](../commands/zed.md#the-lake-model)
 implemented by the [`zed` command](../commands/zed.md), we are developing
 an open specification for the Zed lake storage format described in this document.
 As we make progress on the Zed lake model, we will update this document

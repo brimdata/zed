@@ -37,7 +37,7 @@ doing interesting things on that input, and emitting results, of course, as JSON
 
 `jq` is awesome and powerful, but its syntax and computational model can
 sometimes be daunting and difficult.  We tried to make `zq` really easy and intuitive,
-and it is usually faster, sometimes [much faster](../commands/zq.md#7-performance),
+and it is usually faster, sometimes [much faster](../commands/zq.md#performance),
 than `jq`.
 
 To this end, if you want full JSON compatibility without having to delve into the

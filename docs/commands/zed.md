@@ -15,6 +15,8 @@ sidebar_label: zed
 > and transformation as well as serving as a queryable and searchable store
 > for super-structured data both for online and archive use cases.
 
+<p id="status"></p>
+
 :::tip Status
 While [`zq`](zq.md) and the [Zed formats](../formats/README.md)
 are production quality, the Zed lake is still fairly early in development
@@ -435,8 +437,8 @@ schema-agnostic fashion.  Data of any _shape_ can be stored in any pool
 and arbitrary data _shapes_ can coexist side by side.
 
 As with `zq`,
-the [input arguments](zq.md#1-usage) can be in
-any [supported format](zq.md#2-input-formats) and
+the [input arguments](zq.md#usage) can be in
+any [supported format](zq.md#input-formats) and
 the input format is auto-detected if `-i` is not provided.  Likewise,
 the inputs may be URLs, in which case, the `load` command streams
 the data from a Web server or [S3](../integrations/amazon-s3.md) and into the lake.
