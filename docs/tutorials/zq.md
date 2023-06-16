@@ -164,7 +164,7 @@ go from ZSON to an efficient binary row format ([ZNG](../formats/zng.md))
 and columnar ([VNG](../formats/vng.md)) --- and vice versa ---
 with complete fidelity and no loss of information.  In this tour,
 we'll stick to ZSON (though for large data sets,
-[ZNG is much faster](../commands/zq.md#7-performance)).
+[ZNG is much faster](../commands/zq.md#performance)).
 
 The first thing you'll notice about ZSON is that you don't need
 quotations around field names.  We can see this by taking some JSON

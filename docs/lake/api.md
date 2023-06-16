@@ -281,7 +281,7 @@ POST /pool/{pool}/branch/{branch}/delete
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
 | object_ids | [string] | body | Object IDs to be deleted. |
-| where | string | body | Filter expression (see [limitations](../commands/zed.md#24-delete)). |
+| where | string | body | Filter expression (see [limitations](../commands/zed.md#delete)). |
 | Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
 | Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
