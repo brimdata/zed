@@ -42,7 +42,7 @@ that underlie the Zed formats.
 [sequential (ZNG)](formats/zng.md), [columnar (VNG)](formats/vng.md),
 and [human-readable (ZSON)](formats/zson.md) formats that all adhere to the
 same abstract Zed data model.
-* A [Zed lake](commands/zed.md) is a collection of optionally-indexed Zed data stored
+* A [Zed lake](commands/zed.md) is a collection of Zed data stored
 across one or more [data pools](commands/zed.md#14-data-pools) with ACID commit semantics and
 accessed via a [Git](https://git-scm.com/)-like API.
 * The [Zed language](language/README.md) is the system's dataflow language for performing
@@ -92,16 +92,12 @@ or other third-party services to interpret the lake data.
 Once copied, a new service can be instantiated by pointing a `zed serve`
 at the copy of the lake.
 
-Functionality like indexing, data compaction, and retention are all
-API-driven.
+Functionality like data compaction and retention are all API-driven.
 
 Bite-sized components are unified by the Zed data, usually in the ZNG format:
 * All lake meta-data is available via meta-queries.
 * All like operations available through the service API are also available
 directly via the `zed` command.
-* Search indexes and aggregate partials are all just ZNG files and you can
-learn about the Zed lake by simply running `zq` on the various ZNG files
-in a cloud store.
 * Lake management is agent-driven through the API.  For example, instead of complex policies
 like data compaction being implemented in the core with some fixed set of
 algorithms and policies, an agent can simply hit the API to obtain the meta-data

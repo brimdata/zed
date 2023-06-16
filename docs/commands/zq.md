@@ -15,7 +15,7 @@ It is particularly fast when operating on data in the Zed-native [ZNG](../format
 of `jq`, `awk`, and `grep` with the command-line, embedded database approach
 of `sqlite` and `duckdb`.
 
-## 1. Usage
+## Usage
 
 ```
 zq [ options ] [ query ] input [ input ... ]
@@ -91,7 +91,7 @@ emits
 Note here that the query `1+1` [implies](../language/dataflow-model.md#implied-operators)
 `yield 1+1`.
 
-## 2. Input Formats
+## Input Formats
 
 `zq` currently supports the following input formats:
 
@@ -112,14 +112,14 @@ The input format is typically detected automatically and the formats for which
 `Auto` is `yes` in the table above support _auto-detection_.
 Formats without auto-detection require the `-i` option.
 
-### 2.1 Hard-wired Input Format
+### Hard-wired Input Format
 
 The input format is specified with the `-i` flag.
 
 When `-i` is specified, all of the inputs on the command-line must be
 in the indicated format.
 
-### 2.2 Auto-detection
+### Auto-detection
 
 When using _auto-detection_, each input's format is independently determined
 so it is possible to easily blend different input formats into a unified
@@ -146,7 +146,7 @@ would produce this output in the default ZSON format
 {a:3,b:"baz"}
 ```
 
-### 2.3 ZSON-JSON Auto-detection
+### ZSON-JSON Auto-detection
 
 Since ZSON is a superset of JSON, `zq` must be careful in whether it
 interprets input as ZSON as JSON.  While you can always clarify your intent
@@ -172,7 +172,7 @@ as an outer object or as a value nested somewhere within a JSON array.
 This heuristic almost always works in practice because ZSON records
 typically omit quotes around field names.
 
-## 3. Output Formats
+## Output Formats
 
 The output format defaults to either ZSON or ZNG and may be specified
 with the `-f` option.  The supported output formats include all of
@@ -187,7 +187,7 @@ described below.
 And since JSON is another common format choice, the `-j` flag is a shortcut for
 `-f json.`
 
-### 3.1 Output Format Selection
+### Output Format Selection
 
 When the format is not specified with `-f`, it defaults to ZSON if the output
 is a terminal and to ZNG otherwise.
@@ -206,7 +206,7 @@ binary output to their terminal when forgetting to type `-f zson`.
 In practice, we have found that the output defaults
 "just do the right thing" almost all of the time.
 
-### 3.2 ZSON Pretty Printing
+### ZSON Pretty Printing
 
 ZSON text may be "pretty printed" with the `-pretty` option, which takes
 the number of spaces to use for indentation.  As this is a common option,
@@ -250,7 +250,7 @@ produces
 When pretty printing, colorization is enabled by default when writing to a terminal,
 and can be disabled with `-color false`.
 
-### 3.3 Pipeline-friendly ZNG
+### Pipeline-friendly ZNG
 
 Though it's a compressed binary format, ZNG data is self-describing and stream-oriented
 and thus is pipeline friendly.
@@ -285,7 +285,7 @@ produces
 00000012
 ```
 
-### 3.4 Schema-rigid Outputs
+### Schema-rigid Outputs
 
 Certain data formats like Arrow and Parquet are "schema rigid" in the sense that
 they require a schema to be defined before values can be written into the file
@@ -305,7 +305,7 @@ causes this error
 parquetio: encountered multiple types (consider 'fuse'): {x:int64} and {s:string}
 ```
 
-#### 3.4.1 Fusing Schemas
+#### Fusing Schemas
 
 As suggested by the error above, the Zed `fuse` operator can merge different record
 types into a blended type, e.g., here we create the file and read it back:
@@ -319,7 +319,7 @@ but the data was necessarily changed (by inserting nulls):
 {x:null(int64),s:"hello"}
 ```
 
-#### 3.4.2 Splitting Schemas
+#### Splitting Schemas
 
 Another common approach to dealing with the schema-rigid limitation of Arrow and
 Parquet is to create a separate file for each schema.
@@ -347,7 +347,7 @@ produces the original data
 While the `-split` option is most useful for schema-rigid formats, it can
 be used with any output format.
 
-## 4. Query Debugging
+## Query Debugging
 
 If you are ever stumped about how the `zq` compiler is parsing your query,
 you can always run `zq -C` to compile and display your query in canonical form
@@ -374,7 +374,7 @@ with the value `x+1`, i.e.,
 put a:=x+1
 ```
 
-## 5. Error Handling
+## Error Handling
 
 Fatal errors like "file not found" or "file system full" are reported
 as soon as they happen and cause the `zq` process to exit.
@@ -413,7 +413,7 @@ produces just
 error("divide by zero")
 ```
 
-## 6. Examples
+## Examples
 
 As you may have noticed, many examples of the [Zed language](../language/README.md)
 are illustrated using this pattern
@@ -496,13 +496,13 @@ produces
 {a:null(int64),b:3}
 ```
 
-## 7. Performance
+## Performance
 
 Your mileage may vary, but many new users of `zq` are surprised by its speed
 compared to tools like `jq`, `grep`, `awk`, or `sqlite` especially when running
 `zq` over files in the ZNG format.
 
-### 7.1 Fast Pattern Matching
+### Fast Pattern Matching
 
 One important technique that helps `zq` run fast is to take advantage of queries
 that involve fine-grained searches.
@@ -531,12 +531,11 @@ for sparse results, many frames are discarded without their uncompressed bytes
 having to be processed any further.
 
 While this pre-search technique results in very fast brute-force pattern matching,
-[search indexes](zed.md#16-search-indexes)
-can also be created when Zed data is managed by a Zed lake
-thereby avoiding scans of data altogether as the index pinpoints the locations
-of specific values in the lake.
+a planned feature will allow search indexes to be created when Zed data is
+managed by a Zed lake thereby avoiding scans of data altogether as the index
+pinpoints the locations of specific values in the lake.
 
-### 7.2 Efficient JSON Processing
+### Efficient JSON Processing
 
 While processing data in the ZNG format is far more efficient than JSON,
 there is substantial JSON data in the world and it is important for JSON
@@ -557,12 +556,12 @@ processor cache performance.
 The net effect is a JSON parser that is typically a bit faster than the
 native C implementation in `jq`.
 
-### 7.3 Performance Comparisons
+### Performance Comparisons
 
 To provide a rough sense of the performance tradeoffs between `zq` and
 other tooling, this section provides results of a few simple speed tests.
 
-#### 7.3.1 Test Data
+#### Test Data
 
 These tests are easy to reproduce.  The input data comes from the
 [Zed sample data repository](https://github.com/brimdata/zed-sample-data),
@@ -596,7 +595,7 @@ sqlite-utils insert conn.db conn conn.json --nl
 (If you need a cup of coffee, a good time to get it would be when
 loading the JSON into SQLite.)
 
-#### 7.3.2 File Sizes
+#### File Sizes
 
 Note the resulting file sizes:
 ```
@@ -615,7 +614,7 @@ That said, there are quite a few more opportunities to further improve
 the performance of `zq` and the Zed system and we have a number of projects
 forthcoming on this front.
 
-#### 7.3.3 Tests
+#### Tests
 
 We ran three styles of tests on a Mac quad-core 2.3GHz i7:
 * `count` - compute the number of values present
@@ -662,7 +661,7 @@ adder(inputs | {key:.id.orig_h,val:.orig_bytes})
 | {orig_h: (.key), sum: .value}
 ```
 
-#### 7.3.4 Results
+#### Results
 
 The following table summarizes the results of each test as a column and
 each tool as a row with the speed-up factor (relative to `jq`)
@@ -698,9 +697,6 @@ In fact, if you implement these changes, `sqlite` performs better than `zq` on t
 However, the benefit of Zed is that no flattening is required.  And unlike `sqlite`,
 `zq` is not intended to be a database.  That said, there is no reason why database
 performance techniques cannot be applied to the Zed model and this is precisely what the
-open-source Zed project intends to do.  As a first step, with a
-[Zed lake](zed.md), you can build type-flexible
-[search indexes](zed.md#16-search-indexes)
-to scale searches across very large stores of Zed data.
+open-source Zed project intends to do.
 
 Stay tuned!

@@ -129,12 +129,11 @@ using Boolean logic to form search expressions.
 > Note that when processing [ZNG](../formats/zng.md) data, the Zed runtime performs a multi-threaded
 > Boyer-Moore scan over decompressed data buffers before parsing any data.
 > This allows large buffers of data to be efficiently discarded and skipped when
-> searching for rarely occurring values.  For a [Zed lake](../lake/format.md), search indexes
-> may also be configured to further accelerate searches.
-> In a forthcoming release, Zed will also offer an approach for locating
+> searching for rarely occurring values.  For a [Zed lake](../lake/format.md),
+> a planned feature will introduce search indexes to further accelerate searches.
+> This will include an approach for locating
 > delimited words within string fields, which will allow accelerated
-> search using a full-text search index.  Currently, search indexes may be built
-> for exact value match as text segmentation is in the works.
+> search using a full-text search index.
 
 ### Search Terms
 
