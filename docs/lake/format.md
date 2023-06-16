@@ -79,9 +79,8 @@ Since the object's name is globally unique and the
 resulting object is immutable, there is no possible write concurrency to manage
 with respect to a given object.
 
-A data object is composed of
-* the primary data object stored as one or two objects (for sequence and/or vector layout), and
-* an optional seek index
+A data object is composed of the primary data object stored as one or two objects
+(for sequence and/or vector layout) and an optional seek index.
 
 Data objects may be either in sequence form (i.e., ZNG) or vector form (i.e., VNG),
 or both forms may be present as a query optimizer may choose to use whatever
