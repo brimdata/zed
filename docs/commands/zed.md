@@ -171,8 +171,8 @@ A lake is made up of _data pools_, which are like "collections" in NoSQL
 document stores.  Pools may have one or more branches and every pool always
 has a branch called `main`.
 
-A pool is created with the [create command](#23-create)
-and a branch of a pool is created with the [branch command](#22-branch).
+A pool is created with the [create command](#create)
+and a branch of a pool is created with the [branch command](#branch).
 
 A pool name can be any valid UTF-8 string and is allocated a unique ID
 when created.  The pool can be referred to by its name or by its ID.
@@ -200,7 +200,7 @@ commit object's parent); if the constraint is violated, then the transaction
 is aborted.
 
 The _working branch_ of a pool may be selected on any command with the `-use` option
-or may be persisted across commands with the [use command](#214-use) so that
+or may be persisted across commands with the [use command](#use) so that
 `-use` does not have to be specified on each command-line.  For interactive
 workflows, the `use` command is convenient but for automated workflows
 in scripts, it is good practice to explicitly specify the branch in each
@@ -220,7 +220,7 @@ A commitish is always relative to the pool and has the form:
 where `<pool>` is a pool name or pool ID, `<id>` is a commit object ID,
 and `<branch>` is a branch name.
 
-In particular, the working branch set by the [use command](#214-use) is a commitish.
+In particular, the working branch set by the [use command](#use) is a commitish.
 
 A commitish may be abbreviated in several ways where the missing detail is
 obtained from the working-branch commitish, e.g.,
@@ -389,7 +389,7 @@ This command
 simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
 of deletes.  Permanent deletion of underlying data objects is handled by the
-separate [`vacuum`](#215-vacuum) command.
+separate [`vacuum`](#vacuum) command.
 
 If the `-where` flag is specified, delete will remove all values for which the
 provided filter expression is true.  The value provided to `-where` must be a
@@ -413,7 +413,7 @@ without confirmation.
 zed init [path]
 ```
 A new lake is initialized with the `init` command.  The `path` argument
-is a [storage path](#12-storage-layer) and is optional.  If not present,
+is a [storage path](#storage-layer) and is optional.  If not present,
 the path is taken from the `ZED_LAKE` environment variable, which must be defined.
 
 If the lake already exists, `init` reports an error and does nothing.
@@ -528,7 +528,7 @@ zed log -f zng | zq 'has(meta) | yield {id,meta}' -
 zed log [options] [commitish]
 ```
 The `log` command, like `git log`, displays a history of the commit objects
-starting from any commit, expressed as a [commitish](#142-commitish).  If no argument is
+starting from any commit, expressed as a [commitish](#commitish).  If no argument is
 given, the tip of the working branch is used.
 
 Run `zed log -h` for a list of command-line options.
@@ -755,7 +755,7 @@ zed vacuum [options]
 ```
 
 The `vacuum` command permanently removes underlying data objects that have
-previously been subject to a [`delete`](#24-delete) operation.  As this is a
+previously been subject to a [`delete`](#delete) operation.  As this is a
 DANGER ZONE command, you must confirm that you want to remove
 the objects to proceed.  The `-f` option can be used to force removal
 without confirmation.  The `-dryrun` option may also be used to see a summary

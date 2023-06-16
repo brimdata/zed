@@ -34,7 +34,7 @@ an S3 URL, or standard input specified with `-`.
 For built-in command help and a listing of all available options,
 simply run `zq` with no arguments.
 
-`zq` supports a [number of formats](#2-input-formats) but [ZNG](../formats/zng.md)
+`zq` supports a [number of formats](#input-formats) but [ZNG](../formats/zng.md)
 tends to be the most space-efficient and most performant.  ZNG has efficiency similar to
 [Avro](https://avro.apache.org/docs/current/spec.html)
 and [Protocol Buffers](https://developers.google.com/protocol-buffers)
@@ -50,7 +50,7 @@ default format when output is directed to the terminal.  ZNG is the default
 when redirecting to a non-terminal output like a file or pipe.
 
 When run with input arguments, each input's format is automatically inferred
-([as described below](#22-auto-detection)) and each input is scanned
+([as described below](#auto-detection)) and each input is scanned
 in the order appearing on the command line forming the input stream.
 
 A query expressed in the [Zed language](../language/README.md)
