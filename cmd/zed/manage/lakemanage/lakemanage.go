@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"io"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	lakeapi "github.com/brimdata/zed/lake/api"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -21,26 +19,18 @@ func Update(ctx context.Context, lk lakeapi.Interface, conf Config, logger *zap.
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	indexes, err := lakeapi.GetIndexRules(ctx, lk)
-	if err != nil {
-		return err
-	}
-	branches, err := getBranches(ctx, conf, indexes, lk, logger)
+	branches, err := getBranches(ctx, conf, lk, logger)
 	if err != nil {
 		return err
 	}
 	group, ctx := errgroup.WithContext(ctx)
 	for _, branch := range branches {
 		branch := branch
-		branch.logger.Info("updating pool", zap.Object("config", branch))
+		branch.logger.Info("updating pool")
 		group.Go(func() error {
-			head, err := branch.head(ctx)
-			if err != nil {
-				return err
-			}
 			for _, task := range branch.tasks {
-				if _, err := task.run(ctx, head); err != nil {
-					task.logger().Error("task error", zap.Error(err))
+				if err := task.run(ctx); err != nil {
+					branch.logger.Error("task error", zap.Error(err))
 					return err
 				}
 			}
@@ -71,11 +61,7 @@ func Monitor(ctx context.Context, conn *client.Connection, conf Config, logger *
 
 func runMonitor(ctx context.Context, conf Config, conn *client.Connection, logger *zap.Logger) error {
 	lk := lakeapi.NewRemoteLake(conn)
-	indexes, err := lakeapi.GetIndexRules(ctx, lk)
-	if err != nil {
-		return err
-	}
-	branches, err := getBranches(ctx, conf, indexes, lk, logger)
+	branches, err := getBranches(ctx, conf, lk, logger)
 	if err != nil {
 		return err
 	}
@@ -88,27 +74,25 @@ func runMonitor(ctx context.Context, conf Config, conn *client.Connection, logge
 	for _, pool := range branches {
 		monitorBranch(ctx, pool, monitors)
 	}
-	return listen(ctx, monitors, conf, indexes, conn, logger)
+	return listen(ctx, monitors, conf, conn, logger)
 }
 
-func getBranches(ctx context.Context, conf Config, indexes []index.Rule, lk lakeapi.Interface, logger *zap.Logger) ([]*branch, error) {
+func getBranches(ctx context.Context, conf Config, lk lakeapi.Interface, logger *zap.Logger) ([]*branch, error) {
 	pools, err := lakeapi.GetPools(ctx, lk)
 	if err != nil {
 		return nil, err
 	}
 	var branches []*branch
 	for _, pool := range pools {
-		b, err := newBranch(conf, pool, indexes, lk, logger)
-		if err != nil {
-			return nil, err
+		if b := newBranch(conf, pool, lk, logger); b != nil {
+			branches = append(branches, b)
 		}
-		branches = append(branches, b)
 	}
 	return branches, nil
 }
 
 func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config,
-	indexes []index.Rule, conn *client.Connection, logger *zap.Logger) error {
+	conn *client.Connection, logger *zap.Logger) error {
 	ev, err := conn.SubscribeEvents(ctx)
 	if err != nil {
 		return err
@@ -131,11 +115,9 @@ func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config,
 			if err != nil {
 				return err
 			}
-			b, err := newBranch(conf, pool, indexes, lk, logger)
-			if err != nil {
-				return err
+			if b := newBranch(conf, pool, lk, logger); b != nil {
+				monitorBranch(ctx, b, monitors)
 			}
-			monitorBranch(ctx, b, monitors)
 		case "pool-delete":
 			detail := detail.(*api.EventPool)
 			if m, ok := monitors[detail.PoolID]; ok {
@@ -143,12 +125,7 @@ func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config,
 				delete(monitors, detail.PoolID)
 				m.branch.logger.Info("pool deleted")
 			}
-		case "branch-commit":
-			detail := detail.(*api.EventBranchCommit)
-			if m, ok := monitors[detail.PoolID]; ok && m.branch.name == detail.Branch {
-				m.run()
-			}
-		case "branch-update", "branch-delete":
+		case "branch-commit", "branch-update", "branch-delete":
 			// Ignore these events.
 		default:
 			logger.Warn("unexpected event kind received", zap.String("kind", kind))
@@ -158,7 +135,7 @@ func listen(ctx context.Context, monitors map[ksuid.KSUID]*monitor, conf Config,
 
 func monitorBranch(ctx context.Context, b *branch, monitors map[ksuid.KSUID]*monitor) {
 	if _, ok := monitors[b.pool.ID]; !ok {
-		b.logger.Info("monitoring pool", zap.Object("config", b))
+		b.logger.Info("monitoring pool")
 		m := newMonitor(ctx, b)
 		monitors[b.pool.ID] = m
 		m.run()
@@ -187,10 +164,9 @@ func (b *monitor) run() {
 }
 
 type thread struct {
-	ctx     context.Context
-	branch  *branch
-	task    branchTask
-	running int32
+	ctx    context.Context
+	branch *branch
+	task   branchTask
 }
 
 func newThread(ctx context.Context, branch *branch, task branchTask) *thread {
@@ -198,39 +174,18 @@ func newThread(ctx context.Context, branch *branch, task branchTask) *thread {
 }
 
 func (t *thread) run() {
-	if !atomic.CompareAndSwapInt32(&t.running, 0, 1) {
-		return
-	}
-	t.task.logger().Info("thread running")
+	t.branch.logger.Info("thread running")
+	interval := t.branch.config.interval()
 	go func() {
-		defer atomic.StoreInt32(&t.running, 0)
 		timer := time.NewTimer(0)
 		<-timer.C
-		var head ksuid.KSUID
 		for t.ctx.Err() == nil {
-			current, err := t.branch.head(t.ctx)
-			if err != nil {
-				t.task.logger().Error("error fetching branch head", zap.Error(err))
+			if err := t.task.run(t.ctx); err != nil {
+				t.branch.logger.Error("thread exited with error", zap.Error(err))
 				return
 			}
-			if current == head {
-				t.task.logger().Info("thread exiting")
-				return
-			}
-			head = current
-			next, err := t.task.run(t.ctx, head)
-			if err != nil {
-				t.task.logger().Error("thread exited with error", zap.Error(err))
-				return
-			}
-			if next == nil {
-				// This means there's no further work, but before exiting check
-				// to see if there are any new commits since the task was run.
-				continue
-			}
-			sleep := time.Until(*next)
-			t.task.logger().Debug("sleeping", zap.Duration("duration", sleep))
-			timer.Reset(sleep)
+			t.branch.logger.Debug("sleeping")
+			timer.Reset(interval)
 			select {
 			case <-timer.C:
 			case <-t.ctx.Done():

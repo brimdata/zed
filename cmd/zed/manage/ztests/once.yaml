@@ -1,19 +1,13 @@
 script: |
   export ZED_LAKE=test
   zed init -q
-  zed create -S 10KB -q test
+  zed create -q test
   zed use -q test
   for i in {1..10}; do
     seq 200 | zq '{ts:this}' - | zed load -q -
   done
-  zed manage update -q -config manage.yaml
+  zed manage -q -once
   zed query -z 'from test@main:objects | drop id'
-
-inputs:
-  - name: manage.yaml
-    data: |
-      compact:
-        cold_threshold: 0s
 
 outputs:
   - name: stdout
