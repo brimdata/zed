@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/commitflags"
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -24,11 +25,13 @@ in the commit history.  The vacate command may be used to delete the actual data
 type deleteCommand struct {
 	*Command
 	commitFlags commitflags.Flags
+	poolFlags   poolflags.Flags
 }
 
 func newDelete(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &deleteCommand{Command: parent.(*Command)}
 	c.commitFlags.SetFlags(f)
+	c.poolFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -46,7 +49,7 @@ func (c *deleteCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.LakeFlags.HEAD()
+	head, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}

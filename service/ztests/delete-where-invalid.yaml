@@ -1,7 +1,6 @@
 script: |
   source service.sh
-  zed create -q test
-  zed use -q test 
+  zed create -use -q test
   ! zed delete -where 'me == "hi" | cut me'
   ! zed delete -where 'cut that'
 

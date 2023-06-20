@@ -3,8 +3,7 @@ script: |
   zed init -q
   for o in asc desc; do
     echo // $o | tee /dev/stderr
-    zed create -seekstride 2KB -orderby ts:$o -q $o
-    zed use -q $o
+    zed create -use -seekstride 2KB -orderby ts:$o -q $o
     zed load -q babble.zson
     source query.sh "ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z"
     source query.sh "ts == 2020-04-21T23:59:26.06326664Z"

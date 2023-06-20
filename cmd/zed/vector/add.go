@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/commitflags"
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -23,11 +24,13 @@ by the indicated object IDs.
 type addCommand struct {
 	*Command
 	commitFlags commitflags.Flags
+	poolFlags   poolflags.Flags
 }
 
 func newAdd(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &addCommand{Command: parent.(*Command)}
 	c.commitFlags.SetFlags(f)
+	c.poolFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -45,7 +48,7 @@ func (c *addCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.LakeFlags.HEAD()
+	head, err := c.poolFlags.HEAD()
 	if err != nil {
 		return err
 	}

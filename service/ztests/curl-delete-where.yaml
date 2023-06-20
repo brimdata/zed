@@ -1,7 +1,6 @@
 script: |
   source service.sh
-  zed create -q -orderby x:asc test
-  zed use -q test
+  zed create -use -q -orderby x:asc test
   echo '{x:1}{x:2}{x:3}' | zed load -q -
   echo '{x:3}{x:4}{x:5}' | zed load -q -
   echo '{x:6}{x:7}{x:8}' | zed load -q -

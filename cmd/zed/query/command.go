@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cli/queryflags"
 	"github.com/brimdata/zed/cli/runtimeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
@@ -26,6 +27,7 @@ var Cmd = &charm.Spec{
 type Command struct {
 	*root.Command
 	outputFlags  outputflags.Flags
+	poolFlags    poolflags.Flags
 	queryFlags   queryflags.Flags
 	runtimeFlags runtimeflags.Flags
 }
@@ -33,6 +35,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.SetFlags(f)
+	c.poolFlags.SetFlags(f)
 	c.queryFlags.SetFlags(f)
 	c.runtimeFlags.SetFlags(f)
 	return c, nil
@@ -59,7 +62,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, _ := c.LakeFlags.HEAD()
+	head, _ := c.poolFlags.HEAD()
 	query, err := lake.QueryWithControl(ctx, head, src, c.queryFlags.Includes...)
 	if err != nil {
 		w.Close()
