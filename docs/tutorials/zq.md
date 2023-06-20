@@ -37,7 +37,7 @@ doing interesting things on that input, and emitting results, of course, as JSON
 
 `jq` is awesome and powerful, but its syntax and computational model can
 sometimes be daunting and difficult.  We tried to make `zq` really easy and intuitive,
-and it is usually faster, sometimes [much faster](../commands/zq.md#7-performance),
+and it is usually faster, sometimes [much faster](../commands/zq.md#performance),
 than `jq`.
 
 To this end, if you want full JSON compatibility without having to delve into the
@@ -164,7 +164,7 @@ go from ZSON to an efficient binary row format ([ZNG](../formats/zng.md))
 and columnar ([VNG](../formats/vng.md)) --- and vice versa ---
 with complete fidelity and no loss of information.  In this tour,
 we'll stick to ZSON (though for large data sets,
-[ZNG is much faster](../commands/zq.md#7-performance)).
+[ZNG is much faster](../commands/zq.md#performance)).
 
 The first thing you'll notice about ZSON is that you don't need
 quotations around field names.  We can see this by taking some JSON

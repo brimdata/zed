@@ -10,11 +10,11 @@ load <pool>[@<branch>] [author <author>] [message <message>] [meta <meta>]
 ### Description
 
 The `load` operator populates the specified `<pool>` with the values it
-receives as input. Much like how [`zed load`](../../commands/zed.md#28-load)
+receives as input. Much like how [`zed load`](../../commands/zed.md#load)
 is used at the command line to populate a pool with data from files, streams,
 and URIs, the `load` operator is used to save query results from your Zed
 pipeline to a pool in the same Zed lake. `<pool>` is a string indicating the
-[name or ID](../../commands/zed.md#14-data-pools) of the destination pool.
+[name or ID](../../commands/zed.md#data-pools) of the destination pool.
 If the optional `@<branch>` string is included then the data will be committed
 to an existing branch of that name, otherwise the `main` branch is assumed.
 The `author`, `message`, and `meta` strings may also be provided to further

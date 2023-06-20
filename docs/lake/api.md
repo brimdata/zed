@@ -263,10 +263,10 @@ On success, HTTP 204 is returned with no response payload.
 
 Create a commit that reflects the deletion of some data in the branch. The data
 to delete can be specified via a list of object IDs or
-as a filter expression (see [limitations](../commands/zed.md#24-delete)).
+as a filter expression (see [limitations](../commands/zed.md#delete)).
 
 This simply removes the data from the branch without actually removing the
-underlying data objects thereby allowing [time travel](../commands/zed.md#15-time-travel) to work in the face
+underlying data objects thereby allowing [time travel](../commands/zed.md#time-travel) to work in the face
 of deletes. Permanent removal of underlying data objects is handled by a
 separate [vacuum](#vacuum-pool) operation.
 
@@ -281,7 +281,7 @@ POST /pool/{pool}/branch/{branch}/delete
 | pool | string | path | **Required.** ID of the pool. |
 | branch | string | path | **Required.** Name of branch. |
 | object_ids | [string] | body | Object IDs to be deleted. |
-| where | string | body | Filter expression (see [limitations](../commands/zed.md#24-delete)). |
+| where | string | body | Filter expression (see [limitations](../commands/zed.md#delete)). |
 | Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
 | Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
@@ -385,78 +385,6 @@ curl -X POST \
 ```
 
 ---
-
-#### Index Objects
-
-Create an index of object(s) for the specified rule.
-
-```
-POST /pool/{pool}/branch/{branch}/index
-```
-
-**Params**
-
-| Name | Type | In | Description |
-| ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID of the pool. |
-| branch | string | path | **Required.** Name of branch. |
-| rule_name | string | body | **Required.** Name of indexing rule. |
-| tags | [string] | body | IDs of data objects to index. |
-| Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
-| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
-
-**Example Request**
-
-```
-curl -X POST \
-     -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -d '{"rule_name": "MyRuleGroup", "tags": ["27DAbmqxukfABARaAHauARBJOXH", "27DAbeUBW7llN2mXAadYz00Zjpk"]}' \
-     http://localhost:9867/pool/inventory/branch/main/index
-```
-
-**Example Response**
-
-```
-{"commit":"0x0ed510f4648da9742e8e9c35e3439d5b708843e1","warnings":null}
-```
-
----
-
-#### Update Index
-
-Apply all rules or a range of index rules for all objects that are not indexed
-in a branch.
-
-```
-POST /pool/{pool}/branch/{branch}/index/update
-```
-
-**Params**
-
-| Name | Type | In | Description |
-| ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID of the pool. |
-| branch | string | path | **Required.** Name of branch. |
-| rule_names | [string] | body | Name(s) of index rule(s) to apply. If undefined, all rules will be applied. |
-| Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
-| Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
-
-**Example Request**
-
-```
-curl -X POST \
-     -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -d '{"rule_names": ["MyRuleGroup", "AnotherRuleGroup"]}' \
-     http://localhost:9867/pool/inventory/branch/main/index/update
-```
-
-**Example Response**
-
-```
-{"commit":"0x0ed51322b7d69bd0bddad10e31e3211408e34a88","warnings":null}
-```
 
 ### Query
 
@@ -569,7 +497,7 @@ service will expect ZSON as the payload format.
 An exception to this is when [loading data](#load-data) and Content-Type is not
 specified. In this case the service will attempt to introspect the data and may
 determine the type automatically. The
-[input formats](../commands/zq.md#2-input-formats) table describes which
+[input formats](../commands/zq.md#input-formats) table describes which
 formats may be successfully auto-detected.
 
 ### Response Payloads
@@ -578,7 +506,7 @@ To receive successful (2xx) responses in a preferred format, include the MIME
 type of the format in the request's Accept HTTP header. If the Accept header is
 not specified, the service will return ZSON as the default response format. A
 different default response format can be specified by invoking the
-`-defaultfmt` option when running [`zed serve`](../commands/zed.md#213-serve).
+`-defaultfmt` option when running [`zed serve`](../commands/zed.md#serve).
 
 For non-2xx responses, the content type of the response will be
 `application/json` or `text/plain`.

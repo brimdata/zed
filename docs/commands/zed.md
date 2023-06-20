@@ -15,19 +15,21 @@ sidebar_label: zed
 > and transformation as well as serving as a queryable and searchable store
 > for super-structured data both for online and archive use cases.
 
-## _Status_
+<p id="status"></p>
 
-> While [`zq`](zq.md) and the [Zed formats](../formats/README.md)
-> are production quality, the Zed lake is still fairly early in development
-> and alpha quality.
-> That said, Zed lakes can be utilized quite effectively at small scale,
-> or at larger scales when scripted automation
-> is deployed to manage the lake's data layout and create any needed search indexes
-> via the [lake API](../lake/api.md).
->
-> Enhanced scalability with self-tuning configuration is under development.
+:::tip Status
+While [`zq`](zq.md) and the [Zed formats](../formats/README.md)
+are production quality, the Zed lake is still fairly early in development
+and alpha quality.
+That said, Zed lakes can be utilized quite effectively at small scale,
+or at larger scales when scripted automation
+is deployed to manage the lake's data layout via the
+[lake API](../lake/api.md).
 
-## 1. The Lake Model
+Enhanced scalability with self-tuning configuration is under development.
+:::
+
+## The Lake Model
 
 A Zed lake is a cloud-native arrangement of data, optimized for search,
 analytics, ETL, data discovery, and data preparation
@@ -60,7 +62,7 @@ And because Zed supports a large family of formats and the load endpoint
 automatically detects most formats, it's easy to just load data into a lake
 without thinking about how to convert it into the right format.
 
-### 1.1 CLI-First Approach
+### CLI-First Approach
 
 The Zed project has taken a _CLI-first approach_ to designing and implementing
 the system.  Any time a new piece of functionality is added to the lake,
@@ -76,7 +78,7 @@ a Zed service.  Many use cases involve an application like
 programming environment like Python/Pandas interacting
 with the service API in place of direct use with the `zed` command.
 
-### 1.2 Storage Layer
+### Storage Layer
 
 The Zed lake storage model is designed to leverage modern cloud object stores
 and separates compute from storage.
@@ -97,8 +99,6 @@ commands may reference various lake entities by their ID, e.g.,
 * _Pool ID_ - the KSUID of a pool
 * _Commit object ID_ - the KSUID of a commit object
 * _Data object ID_ - the KSUID of a committed data object
-* _Index rule ID_ - the KSUID of an index rule
-* _Index object ID_ - the KSUID of an index object relative to a data object
 
 Data is added and deleted from the lake only with new commits that
 are implemented in a transactionally consistent fashion.  Thus, each
@@ -116,7 +116,7 @@ This design makes backup/restore, data migration, archive, and
 replication easy to support and deploy.
 
 The cloud objects that comprise a lake, e.g., data objects,
-commit history, transaction journals, search indexes, partial aggregations, etc.,
+commit history, transaction journals, partial aggregations, etc.,
 are stored as Zed data, i.e., either as [row-based ZNG](../formats/zng.md)
 or [columnar VNG](../formats/vng.md).
 This makes introspection of the lake structure straightforward as many key
@@ -126,7 +126,7 @@ to a client as Zed data for further processing by downstream tooling.
 Zed's implementation also includes a storage abstraction that maps the cloud object
 model onto a file system so that Zed lakes can also be deployed on standard file systems.
 
-### 1.3 Zed Command Personalities
+### Zed Command Personalities
 
 The `zed` command provides a single command-line interface to Zed lakes, but
 different personalities are taken on by `zed` depending on the particular
@@ -167,20 +167,20 @@ all adhere to the consistency semantics of the Zed lake.
 > a server instance of `zed` on the same file system and data consistency will
 > be maintained.
 
-### 1.4 Data Pools
+### Data Pools
 
 A lake is made up of _data pools_, which are like "collections" in NoSQL
 document stores.  Pools may have one or more branches and every pool always
 has a branch called `main`.
 
-A pool is created with the [create command](#23-create)
-and a branch of a pool is created with the [branch command](#22-branch).
+A pool is created with the [create command](#create)
+and a branch of a pool is created with the [branch command](#branch).
 
 A pool name can be any valid UTF-8 string and is allocated a unique ID
 when created.  The pool can be referred to by its name or by its ID.
 A pool may be renamed but the unique ID is always fixed.
 
-### 1.4.1 Commit Objects
+#### Commit Objects
 
 Data is added into a pool in atomic units called _commit objects_.
 
@@ -202,13 +202,13 @@ commit object's parent); if the constraint is violated, then the transaction
 is aborted.
 
 The _working branch_ of a pool may be selected on any command with the `-use` option
-or may be persisted across commands with the [use command](#214-use) so that
+or may be persisted across commands with the [use command](#use) so that
 `-use` does not have to be specified on each command-line.  For interactive
 workflows, the `use` command is convenient but for automated workflows
 in scripts, it is good practice to explicitly specify the branch in each
 command invocation with the `-use` option.
 
-### 1.4.2 Commitish
+#### Commitish
 
 Many `zed` commands operate with respect to a commit object.
 While commit objects are always referenceable by their commit ID, it is also convenient
@@ -222,7 +222,7 @@ A commitish is always relative to the pool and has the form:
 where `<pool>` is a pool name or pool ID, `<id>` is a commit object ID,
 and `<branch>` is a branch name.
 
-In particular, the working branch set by the [use command](#214-use) is a commitish.
+In particular, the working branch set by the [use command](#use) is a commitish.
 
 A commitish may be abbreviated in several ways where the missing detail is
 obtained from the working-branch commitish, e.g.,
@@ -234,7 +234,7 @@ obtained from the working-branch commitish, e.g.,
 An argument to a command that takes a commit object is called a _commitish_
 since it can be expressed as a branch or as a commit ID.
 
-### 1.4.3 Pool Key
+#### Pool Key
 
 Each data pool is organized according to its configured _pool key_,
 which is the sort key for all data stored in the lake.  Different data pools
@@ -268,7 +268,7 @@ to have a null value with regard to range scans.  If large amounts
 of such "keyless data" are loaded into a pool, the ability to
 optimize scans over such data is impaired.
 
-### 1.5 Time Travel
+### Time Travel
 
 Because commits are transactional and immutable, a query
 sees its entire data scan as a fixed "snapshot" with respect to the
@@ -287,7 +287,7 @@ does not see the new data since it's scanning the snapshot that existed
 before these new writes occurred.
 
 Also, arbitrary metadata can be committed to the log as described below,
-e.g., to associate index objects or derived analytics to a specific
+e.g., to associate derived analytics to a specific
 journal commit point potentially across different data pools in
 a transactionally consistent fashion.
 
@@ -305,82 +305,7 @@ past point in time.
 
  > Note that time travel using timestamps is a forthcoming feature.
 
-### 1.6 Search Indexes
-
-Unlike traditional indexing systems based on an inverted-keyword index,
-indexing in Zed is decentralized and incremental.  Instead of rolling up
-index data structures across many data objects, a Zed lake stores a small
-amount of index state for each data object.  Moreover, the design relies on
-indexes only to enhance performance, not to implement the data semantics.
-Thus, indexes need not exist to operate a lake and can be incrementally added or
-deleted without large indexing jobs needing to rebuild a monolithic index
-after each configuration change.
-
-To optimize pool scans, the lake design relies on the well-known pruning
-concept to skip any data object that the planner determines can be skipped
-based on one or more indexes of that object.  For example, if an object
-has been indexed for field "foo" and the query
-```
-foo == "bar" | ...
-```
-is run, then the scan will consult the "foo" index and skip the data object
-if the value "bar" is not in that index.
-
-Also, each data object is broken up into seekable chunks and the chunk location
-of each index value is stored in the index so that only parts of large
-data objects need to be scanned based on this information.
-
-This approach works well for "needle in the haystack"-style searches.  When
-a search hits every object, this style of indexing would not eliminate any
-objects and thus does not help nor does any such indexing scheme.
-
-While an individual index lookup involves latency to cloud storage to lookup
-a key in each index, each lookup is cheap and involves a small amount of data
-and the lookups can all be run in parallel, even from a single node, so
-the scan schedule can be quickly computed in a small number of round-trips
-(that navigate very wide B-trees) to cloud object storage or to a cache
-of cloud objects.
-
-> Future plans for indexing include full-text keyword indexing and
-> type-based indexing (e.g., index all values that are IP addresses
-> including values inside arrays, sets, and sub-records).
-
-#### 1.6.1 Index Rules
-
-Indexes are created and managed with one or more _index rules_.
-
-While you can simply create rules and run `zed index update` to ensure
-that indexes are all up to date with committed data, the process here
-involves indexing each data object and storing its index object
-as another cloud object in the data pool.  Once an index is successfully
-computed, the binding between a data object and its index is transactionally
-committed to its branch so that the query planner always has a consistent
-view of the index relative to the data.
-
-When data is merged from one branch to another, the indexes are retained
-and need not be recomputed.
-
-Rules are organized into groups by name and defined at the lake level
-so that any named group of rules can be applied to data objects from
-any pool.  The group name provides no meaning beyond a reference to
-a set of index rules at any given time.
-
-When rules are created or changed, indexes may be updated simply by running
-the [index update command](#265-index-update).
-
-#### 1.6.2 Indexing Workflows
-
-Indexes are all created and managed explicitly via the `zed index` commands
-and equivalent API endpoints.  It is the responsibility of external agents
-to create indexes that can be utilized by the service.  This design allows
-the indexing system to be scaled out and run independently from the ingest
-and query functions and be tailored to diverse workloads, e.g., the needs of
-a real-time log search use case are very different from those of an ETL use
-case but this design allows different workloads like these to be custom tuned.
-
-> Agents to perform automatic indexing are under development.
-
-## 2. Zed Commands
+## Zed Commands
 
 The `zed` command is structured as a primary command
 consisting of a large number of interrelated sub-commands, similar to the
@@ -397,7 +322,7 @@ for that sub-command.
 * `zed command sub-command -h` displays help for a sub-command of a
 sub-command and so forth.
 
-### 2.1 Auth
+### Auth
 ```
 zed auth login|logout|method|verify
 ```
@@ -405,7 +330,7 @@ Access to a Zed lake can be secured with [Auth0 authentication](https://auth0.co
 Please reach out to us on our [community Slack](https://www.brimdata.io/join-slack/)
 if you'd like help setting this up and trying it out.
 
-### 2.2 Branch
+### Branch
 ```
 zed branch [options] [name]
 ```
@@ -437,7 +362,7 @@ and list the branches as follows:
 zed branch
 ```
 
-### 2.3 Create
+### Create
 ```
 zed create [-orderby key[,key...][:asc|:desc]] <name>
 ```
@@ -456,7 +381,7 @@ A newly created pool is initialized with a branch called `main`.
 > a branch, the tooling presumes the "main" branch as the default, and everything
 > can be done on main without having to think about branching.
 
-### 2.4 Delete
+### Delete
 ```
 zed delete [options] <id> [<id>...]
 zed delete [options] -where <filter>
@@ -466,7 +391,7 @@ This command
 simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
 of deletes.  Permanent deletion of underlying data objects is handled by the
-separate [`vacuum`](#215-vacuum) command.
+separate [`vacuum`](#vacuum) command.
 
 If the `-where` flag is specified, delete will remove all values for which the
 provided filter expression is true.  The value provided to `-where` must be a
@@ -476,7 +401,7 @@ single filter expression, e.g.:
 zed delete -where 'ts > 2022-10-05T17:20:00Z and ts < 2022-10-05T17:21:00Z'
 ```
 
-### 2.5 Drop
+### Drop
 ```
 zed drop [options] <name>|<id>
 ```
@@ -485,80 +410,12 @@ As this is a DANGER ZONE command, you must confirm that you want to delete
 the pool to proceed.  The `-f` option can be used to force the deletion
 without confirmation.
 
-### 2.6 Index
-```
-zed index [options] apply|create|drop|ls|update
-```
-The `index` command has a number of sub-commands to create, manage, and delete
-indexing rules and apply these rules to create indexes of data objects.
-
-#### 2.6.1 Index Apply
-```
-zed index apply [options ]<rule> <id> [<id>, ...]
-```
-The `index apply` command applies the indexing rules defined by the
-index name `<rule>` to one or more data object IDs given by the
-`<id>` arguments to create new index objects.
-
-The new objects are recorded in a new commit object in the working branch
-(or in the branch indicated with the `-use` option.)  The options used to
-set metadata in the [load command](#28-load) may also be specified here.
-
-#### 2.6.2 Index Create
-```
-zed index create <rule> field <field>
-```
-The `index create` command creates a field rule under the group of
-rules called `<rule>` for the field referenced by `<field>`, which should
-be an identifier or dotted-field path.
-
-For example,
-```
-zed index create IndexGroupExample field foo
-```
-adds a field rule for field `foo` to the index group named `IndexGroupExample`.
-This rule can then be applied to a data object having a given `<id>`
-in a pool, e.g.,
-```
-zed index apply -use logs@main IndexGroupExample <id>
-```
-The index is created and transactionally added to the working branch's
-commit history so it becomes available to the query optimizer.
-
-#### 2.6.3 Index Drop
-```
-zed index drop <id> [<id> ...]
-```
-The `index drop` command deletes one or more index rules specified by `<id>`.
-Once deleted, no more indexes will be created for that rule but the underlying
-indexes are not actually deleted from the lake.
-
-> Commands to delete the underlying indexes and data from a lake are
-> under development.
-
-#### 2.6.4 Index Ls
-```
-zed index ls [options]
-```
-The `index ls` command lists the indexes organized by groups that are
-configured in the lake.
-
-#### 2.6.5 Index Update
-```
-zed index update [rule [rule ...]]
-```
-The `index update` command creates index objects for all data objects
-in the working branch (or the branch specified by `-use`)
-that do not have an index object for the list of index rules given.
-
-If no index rules are given, the update is performed for all index rules.
-
-### 2.7 Init
+### Init
 ```
 zed init [path]
 ```
 A new lake is initialized with the `init` command.  The `path` argument
-is a [storage path](#12-storage-layer) and is optional.  If not present,
+is a [storage path](#storage-layer) and is optional.  If not present,
 the path is taken from the `ZED_LAKE` environment variable, which must be defined.
 
 If the lake already exists, `init` reports an error and does nothing.
@@ -566,7 +423,7 @@ If the lake already exists, `init` reports an error and does nothing.
 Otherwise, the `init` command writes the initial cloud objects to the
 storage path to create a new, empty lake at the specified path.
 
-### 2.8 Load
+### Load
 ```
 zed load [options] input [input ...]
 ```
@@ -580,8 +437,8 @@ schema-agnostic fashion.  Data of any _shape_ can be stored in any pool
 and arbitrary data _shapes_ can coexist side by side.
 
 As with `zq`,
-the [input arguments](zq.md#1-usage) can be in
-any [supported format](zq.md#2-input-formats) and
+the [input arguments](zq.md#usage) can be in
+any [supported format](zq.md#input-formats) and
 the input format is auto-detected if `-i` is not provided.  Likewise,
 the inputs may be URLs, in which case, the `load` command streams
 the data from a Web server or [S3](../integrations/amazon-s3.md) and into the lake.
@@ -668,12 +525,12 @@ as in:
 zed log -f zng | zq 'has(meta) | yield {id,meta}' -
 ```
 
-### 2.9 Log
+### Log
 ```
 zed log [options] [commitish]
 ```
 The `log` command, like `git log`, displays a history of the commit objects
-starting from any commit, expressed as a [commitish](#142-commitish).  If no argument is
+starting from any commit, expressed as a [commitish](#commitish).  If no argument is
 given, the tip of the working branch is used.
 
 Run `zed log -h` for a list of command-line options.
@@ -699,7 +556,7 @@ API for automation.
 
 > Note that the branchlog meta-query source is not yet implemented.
 
-### 2.10 Merge
+### Merge
 
 Data is merged from one branch into another with the `merge` command, e.g.,
 ```
@@ -721,10 +578,10 @@ This Git-like behavior for a data lake provides a clean solution to
 the live ingest problem.
 For example, data can be continuously ingested into a branch of main called `live`
 and orchestration logic can periodically merge updates from branch `live` to
-branch `main`, possibly compacting and indexing data after the merge
+branch `main`, possibly compacting data after the merge
 according to configured policies and logic.
 
-### 2.11 Query
+### Query
 ```
 zed query [options] <query>
 ```
@@ -843,14 +700,14 @@ e.g.,
 zed query -f lake "from logs:objects"
 ```
 
-### 2.12 Rename
+### Rename
 ```
 zed rename <existing> <new-name>
 ```
 The `rename` command assigns a new name `<new-name>` to an existing
 pool `<existing>`, which may be referenced by its ID or its previous name.
 
-### 2.13 Serve
+### Serve
 ```
 zed serve [options]
 ```
@@ -865,7 +722,7 @@ from most to least verbose, are `debug`, `info` (the default), `warn`,
 the default `info` level seems too excessive for production use, `warn` level
 is recommended.
 
-### 2.14 Use
+### Use
 ```
 zed use [<commitish>]
 ```
@@ -894,13 +751,13 @@ zed use otherpool@otherbranch
 ```
 This command stores the working branch in `$HOME/.zed_head`.
 
-### 2.15 Vacuum
+### Vacuum
 ```
 zed vacuum [options]
 ```
 
 The `vacuum` command permanently removes underlying data objects that have
-previously been subject to a [`delete`](#24-delete) operation.  As this is a
+previously been subject to a [`delete`](#delete) operation.  As this is a
 DANGER ZONE command, you must confirm that you want to remove
 the objects to proceed.  The `-f` option can be used to force removal
 without confirmation.  The `-dryrun` option may also be used to see a summary

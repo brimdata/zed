@@ -13,7 +13,7 @@ as we add new capabilities to the system.
 
 ## Introduction
 
-To support the client-facing [Zed lake semantics](../commands/zed.md#1-the-lake-model)
+To support the client-facing [Zed lake semantics](../commands/zed.md#the-lake-model)
 implemented by the [`zed` command](../commands/zed.md), we are developing
 an open specification for the Zed lake storage format described in this document.
 As we make progress on the Zed lake model, we will update this document
@@ -37,10 +37,7 @@ a SQL table definition.  SQL tables can essentially be dynamically projected
 via a table virtualization layer built on top of the Zed lake model.
 
 All data and metadata in a Zed lake conforms to the Zed data model, which materially
-simplifies development, test, introspection, and so forth.  For example,
-search indexes are just ZNG files with an embedded B-Tree structure.
-There is no need to create a special index file format and all the related
-tooling and support functions to manipulate a custom format.
+simplifies development, test, introspection, and so forth.
 
 ## Cloud Object Model
 
@@ -82,10 +79,8 @@ Since the object's name is globally unique and the
 resulting object is immutable, there is no possible write concurrency to manage
 with respect to a given object.
 
-A data object is composed of
-* the primary data object stored as one or two objects (for sequence and/or vector layout),
-* an optional seek index, and
-* zero or more search indexes.
+A data object is composed of the primary data object stored as one or two objects
+(for sequence and/or vector layout) and an optional seek index.
 
 Data objects may be either in sequence form (i.e., ZNG) or vector form (i.e., VNG),
 or both forms may be present as a query optimizer may choose to use whatever
@@ -100,12 +95,8 @@ Immutable objects are named as follows:
 |vector data|`<pool-id>/data/<id>.vng`|
 |sequence data|`<pool-id>/data/<id>.zng`|
 |sequence seek index|`<pool-id>/data/<id>-seek.zng`|
-|search index|`<pool-id>/index/<id>-<index-id>.zng`|
 
 `<id>` is the KSUID of the data object.
-`<index-id>` is the KSUID of an index object created according to the
-index rules described above.  Every index object is defined
-with respect to a data object.
 
 The seek index maps pool key values to seek offsets in the ZNG file thereby
 allowing a scan to do a byte-range retrieval of the ZNG object when
@@ -136,9 +127,6 @@ Each commit object contains a sequence of _actions_:
 
 * `Add` to add a data object reference to a pool,
 * `Delete` to delete a data object reference from a pool,
-* `AddIndex` to bind an index object to a data object to prune the data object
-from a scan when possible using the index,
-* `DeleteIndex` to remove an index object reference to its data object, and
 * `Commit` for providing metadata about each commit.
 
 The actions are not grouped directly by their commit ID but instead each
@@ -224,8 +212,8 @@ a mutex lock for each pool's journal.
 
 Configuration state describing a lake or pool is also stored in mutable objects.
 Zed lakes simply use a commit journal to store configuration like the
-list of pools and pool attributes, indexing rules used across pools,
-etc.  Here, a generic interface to a commit journal manages any configuration
+list of pools and pool attributes.
+Here, a generic interface to a commit journal manages any configuration
 state simply as a key-value store of snapshots providing time travel over
 the configuration history.
 
@@ -268,13 +256,6 @@ do not overlap.  This is just the basic LSM algorithm at work.
     1.zng
     2.zng
     ...
-  index_rules/
-    HEAD
-    TAIL
-    1.zng
-    2.zng
-    ...
-    ...
   <pool-id-1>/
     branches/
       HEAD
@@ -289,12 +270,6 @@ do not overlap.  This is just the basic LSM algorithm at work.
     data/
       <id1>.{zng,vng}
       <id2>.{zng,vng}
-      ...
-    index/
-      <id1>-<index-id-1>.zng
-      <id1>-<index-id-2>.zng
-      ...
-      <id2>-<index-id-1>.zng
       ...
   <pool-id-2>/
   ...

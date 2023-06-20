@@ -5,7 +5,7 @@ sidebar_label: Authentication Configuration
 
 # Configuring Authentication for a Zed Lake Service
 
-A [Zed lake service](../commands/zed.md#213-serve) may be configured to require
+A [Zed lake service](../commands/zed.md#serve) may be configured to require
 user authentication to be accessed from clients such as the
 [Zui](https://zui.brimdata.io/) application, the
 [`zed`](../commands/zed.md) CLI tools, or the
