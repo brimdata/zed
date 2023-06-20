@@ -49,8 +49,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		Command:    parent.(*root.Command),
 		seekStride: units.Bytes(data.DefaultSeekStride),
 	}
-	c.thresh = data.DefaultThreshold
 	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
+	c.thresh = data.DefaultThreshold
 	f.Var(&c.thresh, "S", "target size of pool data objects, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.use, "use", false, "set created pool as the current pool")
 	f.StringVar(&c.sortKey, "orderby", "ts:desc", "comma-separated pool keys with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
@@ -83,7 +83,9 @@ func (c *Command) Run(args []string) error {
 		fmt.Printf("pool created: %s %s\n", poolName, id)
 	}
 	if c.use {
-		poolflags.WriteHead(poolName, "main")
+		if err := poolflags.WriteHead(poolName, "main"); err != nil {
+			return err
+		}
 		if !c.LakeFlags.Quiet {
 			fmt.Printf("Switched to branch \"main\" on pool %q\n", poolName)
 		}
