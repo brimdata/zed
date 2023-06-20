@@ -116,7 +116,7 @@ func (f *Flags) Init() error {
 		f.ZSON.Pretty = 0
 	}
 	if f.unbuffered {
-		zbuf.PullerBatchSize = 1
+		zbuf.PullerBatchValues = 1
 	}
 	return nil
 }
