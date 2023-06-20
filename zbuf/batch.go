@@ -63,12 +63,12 @@ type Puller interface {
 // sense) per batch for a [Puller] created by [NewPuller].
 const PullerBatchBytes = 512 * 1024
 
-// PullerBatchSize is the maximum number of values per batch for a [Puller]
+// PullerBatchValues is the maximum number of values per batch for a [Puller]
 // created by [NewPuller].
-var PullerBatchSize = 100
+var PullerBatchValues = 100
 
 // NewPuller returns a puller for zr that returns batches containing up to
-// [PullerBatchBytes] bytes and [PullerBatchSize] values.
+// [PullerBatchBytes] bytes and [PullerBatchValues] values.
 func NewPuller(zr zio.Reader) Puller {
 	return &puller{zr}
 }
@@ -113,7 +113,7 @@ func newPullerBatch() *pullerBatch {
 	if !ok {
 		b = &pullerBatch{
 			buf:  make([]byte, PullerBatchBytes),
-			vals: make([]zed.Value, PullerBatchSize),
+			vals: make([]zed.Value, PullerBatchValues),
 		}
 	}
 	b.buf = b.buf[:0]
