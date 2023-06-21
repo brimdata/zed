@@ -28,13 +28,13 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 	unmarshaler := zson.NewZNGUnmarshaler()
 	reader := zngio.NewReader(zed.NewContext(), r)
 	defer reader.Close()
-	ectx := expr.NewContext()
+	var ectx expr.ResetContext
 	for {
 		val, err := reader.Read()
 		if val == nil || err != nil {
 			return ranges, err
 		}
-		result := pruner.Eval(ectx, val)
+		result := pruner.Eval(ectx.Reset(), val)
 		if result.Type == zed.TypeBool && result.Bool() {
 			rg = nil
 			continue

@@ -70,8 +70,8 @@ func lookup(reader zio.Reader, compare keyCompareFn, o order.Which, op Operator)
 }
 
 func lookupAsc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, error) {
+	var ectx expr.ResetContext
 	var prev *zed.Value
-	ectx := expr.NewContext()
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
@@ -80,7 +80,7 @@ func lookupAsc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, err
 			}
 			return prev, err
 		}
-		if cmp := fn(ectx, rec); cmp >= 0 {
+		if cmp := fn(ectx.Reset(), rec); cmp >= 0 {
 			if cmp == 0 && op.hasEqual() {
 				return rec.Copy(), nil
 			}
@@ -99,7 +99,7 @@ func lookupAsc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, err
 }
 
 func lookupDesc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, error) {
-	ectx := expr.NewContext()
+	var ectx expr.ResetContext
 	var prev *zed.Value
 	for {
 		rec, err := reader.Read()
@@ -109,7 +109,7 @@ func lookupDesc(reader zio.Reader, fn keyCompareFn, op Operator) (*zed.Value, er
 			}
 			return prev, err
 		}
-		if cmp := fn(ectx, rec); cmp <= 0 {
+		if cmp := fn(ectx.Reset(), rec); cmp <= 0 {
 			if cmp == 0 && op.hasEqual() {
 				return rec.Copy(), nil
 			}

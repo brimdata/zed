@@ -60,9 +60,10 @@ func (r *ResetContext) CopyValue(val *zed.Value) *zed.Value {
 	return val2
 }
 
-func (r *ResetContext) Reset() {
+func (r *ResetContext) Reset() *ResetContext {
 	r.buf = r.buf[:0]
 	r.vals = r.vals[:0]
+	return r
 }
 
 func (r *ResetContext) Vars() []zed.Value {
