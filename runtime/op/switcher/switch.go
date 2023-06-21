@@ -10,6 +10,7 @@ import (
 type Selector struct {
 	*op.Router
 	cases []*switchCase
+	ectx  expr.ResetContext
 }
 
 var _ op.Selector = (*Selector)(nil)
@@ -36,11 +37,12 @@ func (s *Selector) AddCase(f expr.Evaluator) zbuf.Puller {
 }
 
 func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
+	s.ectx.SetVars(batch.Vars())
 	vals := batch.Values()
 	for i := range vals {
 		this := &vals[i]
 		for _, c := range s.cases {
-			val := c.filter.Eval(batch, this)
+			val := c.filter.Eval(s.ectx.Reset(), this)
 			if val.IsMissing() {
 				continue
 			}
