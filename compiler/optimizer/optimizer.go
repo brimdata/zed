@@ -87,7 +87,7 @@ func walk(seq dag.Seq, over bool, post func(dag.Seq) dag.Seq) dag.Seq {
 		case *dag.Scope:
 			op.Body = walk(op.Body, over, post)
 		case *dag.UserOpCall:
-			op.UserOp.Body = walk(op.UserOp.Body, over, post)
+			op.Body = walk(op.Body, over, post)
 		}
 	}
 	return post(seq)

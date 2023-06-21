@@ -1,0 +1,23 @@
+script: |
+  ! zc -s -I error-duplicate-parameters.zed
+  ! zc -s -I error-const-lhs.zed
+
+inputs:
+  - name: error-duplicate-parameters.zed
+    data: |
+      op test(a, a): (
+        pass
+      )
+      op("a", "b")
+  - name: error-const-lhs.zed
+    data: |
+      op test(a): (
+        a := a
+      )
+      test("a")
+
+outputs:
+  - name: stderr
+    data: |
+      duplicate parameter "a"
+      illegal left-hand side of assignment

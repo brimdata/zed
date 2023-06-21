@@ -345,7 +345,7 @@ func (c *canon) decl(d ast.Decl) {
 			if k > 0 {
 				c.write(", ")
 			}
-			c.param(p)
+			c.write(p)
 		}
 		c.open("): (")
 		c.ret()
@@ -849,18 +849,5 @@ func (c *canon) source(src ast.Source) {
 		c.file(src)
 	default:
 		c.write("unknown source type: %T", src)
-	}
-}
-
-func (c *canon) param(param ast.Param) {
-	switch param := param.(type) {
-	case *ast.ConstParam:
-		c.write("const %s", param.Name)
-	case *ast.NamedParam:
-		c.write(param.Name)
-	case *ast.SpreadParam:
-		c.write("...")
-	default:
-		c.write("unknown param: %T", param)
 	}
 }

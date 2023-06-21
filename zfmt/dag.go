@@ -609,7 +609,7 @@ func (c *canonDAG) userOp(o *dag.UserOp) {
 		if i > 0 {
 			c.write(", ")
 		}
-		c.param(p)
+		c.write(p)
 	}
 	c.open("): (")
 	c.seq(o.Body)
@@ -619,19 +619,6 @@ func (c *canonDAG) userOp(o *dag.UserOp) {
 	c.write(")")
 	c.ret()
 	c.flush()
-}
-
-func (c *canonDAG) param(p dag.Param) {
-	switch p := p.(type) {
-	case *dag.ConstParam:
-		c.write("const %s", p.Name)
-	case *dag.SpreadParam:
-		c.write("...")
-	case *dag.NamedParam:
-		c.write(p.Name)
-	default:
-		c.write("unknown param type: %T", p)
-	}
 }
 
 func isDAGTrue(e dag.Expr) bool {

@@ -860,24 +860,27 @@ func (a *analyzer) semOpDecls(decls []*ast.OpDecl) ([]*dag.UserOp, error) {
 		op := &dag.UserOp{
 			Kind:   "UserOp",
 			Name:   d.Name,
-			Params: make([]dag.Param, len(d.Params)),
+			Params: slices.Clone(d.Params),
 		}
 		if err := a.scope.DefineAs(op.Name, op); err != nil {
 			return nil, err
 		}
-		a.opDeclMap[op] = &opDecl{op: op}
+		a.opDeclMap[op] = &opDecl{
+			ast:   d,
+			scope: a.scope,
+		}
 		ops[i] = op
 	}
 	// Now compile op bodies.
 	for i, d := range decls {
-		if err := a.semOpDeclBody(ops[i], d.Params, d.Body); err != nil {
+		if err := a.semOpDeclBody(ops[i], d.Body); err != nil {
 			return nil, err
 		}
 	}
 	return ops, nil
 }
 
-func (a *analyzer) semOpDeclBody(op *dag.UserOp, params []ast.Param, seq ast.Seq) error {
+func (a *analyzer) semOpDeclBody(op *dag.UserOp, seq ast.Seq) error {
 	old := a.opDecl
 	a.opDecl = a.opDeclMap[op]
 	a.enterScope()
@@ -885,36 +888,26 @@ func (a *analyzer) semOpDeclBody(op *dag.UserOp, params []ast.Param, seq ast.Seq
 		a.opDecl = old
 		a.exitScope()
 	}()
-	var err error
-	for i, p := range params {
-		if op.Params[i], err = a.semParam(p); err != nil {
-			return nil
+	m := make(map[string]bool)
+	for _, p := range op.Params {
+		if m[p] {
+			return fmt.Errorf("duplicate parameter %q", p)
+		}
+		m[p] = true
+		//
+		path := &dag.This{Kind: "This", Path: []string{p}}
+		// If we were to define this as a variable in the scope, we would get
+		// an error if the parameter is used as the LHS of an assignment.
+		// Because the semantic pass of an op declaration's body is only for
+		// error checking and printing the delcaration for zfmt, just define
+		// the parameter as path to avoid that error.
+		if err := a.scope.DefineAs(p, path); err != nil {
+			return err
 		}
 	}
+	var err error
 	op.Body, err = a.semSeq(seq)
 	return err
-}
-
-func (a *analyzer) semParam(p ast.Param) (dag.Param, error) {
-	switch p := p.(type) {
-	case *ast.ConstParam:
-		if err := a.scope.DefineVar(p.Name); err != nil {
-			return nil, err
-		}
-		return &dag.ConstParam{
-			Kind: "ConstParam",
-			Name: p.Name,
-		}, nil
-	case *ast.NamedParam:
-		return &dag.NamedParam{
-			Kind: "NamedParam",
-			Name: p.Name,
-		}, nil
-	case *ast.SpreadParam:
-		return &dag.SpreadParam{Kind: "SpreadParam"}, nil
-	default:
-		return nil, fmt.Errorf("invalid param type %T", p)
-	}
 }
 
 func (a *analyzer) semVars(defs []ast.Def) ([]dag.Def, error) {
@@ -1066,42 +1059,64 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, erro
 	if len(params) != len(args) {
 		return nil, fmt.Errorf("%s(): %d arg%s provided when operator expects %d arg%s", call.Name, len(params), plural.Slice(params, "s"), len(args), plural.Slice(args, "s"))
 	}
-	var consts []*dag.Literal
 	exprs := make([]dag.Expr, len(op.Params))
 	for i, arg := range args {
-		var err error
-		exprs[i], err = a.semExpr(arg)
+		e, err := a.semExpr(arg)
 		if err != nil {
 			return nil, err
 		}
-		if p, ok := op.Params[i].(*dag.ConstParam); ok {
-			val, err := kernel.EvalAtCompileTime(a.zctx, exprs[i])
+		// Transform non-path arguments into literals.
+		if _, ok := e.(*dag.This); !ok {
+			val, err := kernel.EvalAtCompileTime(a.zctx, e)
 			if err != nil {
 				return nil, err
 			}
 			if val.IsError() {
 				if val.IsMissing() {
-					return nil, fmt.Errorf("const %q: cannot have variable dependency", p.Name)
+					return nil, fmt.Errorf("%q: non-path arguments cannot have variable dependency", op.Params[i])
 				} else {
-					return nil, fmt.Errorf("const %q: %q", p.Name, string(val.Bytes()))
+					return nil, fmt.Errorf("%q: %q", op.Params[i], string(val.Bytes()))
 				}
 			}
-			consts = append(consts, &dag.Literal{
+			e = &dag.Literal{
 				Kind:  "Literal",
 				Value: zson.FormatValue(val),
-			})
+			}
 		}
+		exprs[i] = e
 	}
+	var body dag.Seq
 	// Add references so we can construct the graph of user op calls in order
 	// to later detect cycles.
 	if a.opDecl != nil {
 		a.opDecl.deps = append(a.opDecl.deps, op)
+	} else {
+		// appendOpPath will return an error if the opDecl is already in the
+		// path, which means we have a cycle.
+		if err := a.appendOpPath(op); err != nil {
+			return nil, err
+		}
+		decl := a.opDeclMap[op]
+		oldscope := a.scope
+		a.scope = NewScope(decl.scope)
+		defer func() {
+			a.opPath = a.opPath[:len(a.opPath)-1]
+			a.scope = oldscope
+		}()
+		for i, p := range params {
+			if err := a.scope.DefineAs(p, exprs[i]); err != nil {
+				return nil, err
+			}
+		}
+		if body, err = a.semSeq(decl.ast.Body); err != nil {
+			return nil, err
+		}
 	}
+	// Else we need to
 	return &dag.UserOpCall{
-		Kind:   "UserOpCall",
-		Name:   call.Name,
-		Exprs:  exprs,
-		Consts: consts,
-		UserOp: op,
+		Kind:  "UserOpCall",
+		Name:  call.Name,
+		Exprs: exprs,
+		Body:  body,
 	}, nil
 }

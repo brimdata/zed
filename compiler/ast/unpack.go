@@ -20,7 +20,6 @@ var unpacker = unpack.New(
 	astzed.CastValue{},
 	Conditional{},
 	ConstDecl{},
-	ConstParam{},
 	Cut{},
 	astzed.DefValue{},
 	Drop{},
@@ -41,7 +40,6 @@ var unpacker = unpack.New(
 	Join{},
 	Load{},
 	Merge{},
-	NamedParam{},
 	Over{},
 	Trunk{},
 	astzed.Map{},
@@ -91,7 +89,6 @@ var unpacker = unpack.New(
 	Where{},
 	Yield{},
 	Sample{},
-	SpreadParam{},
 )
 
 // UnmarshalOp transforms a JSON representation of an operator into an Op.

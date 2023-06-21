@@ -8,28 +8,20 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/lakeparse"
-	"golang.org/x/exp/slices"
 )
 
 // Analyze performs a semantic analysis of the AST, translating it from AST
 // to DAG form, resolving syntax ambiguities, and performing constant propagation.
 // After semantic analysis, the DAG is ready for either optimization or compilation.
 func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
-	a := newAnalyzer(ctx, source, head)
-	s, err := a.semSeq(seq)
-	if err != nil {
-		return nil, err
-	}
-	if err := a.checkOpCycle(); err != nil {
-		return nil, err
-	}
-	return s, nil
+	return newAnalyzer(ctx, source, head).semSeq(seq)
 }
 
 type analyzer struct {
 	ctx       context.Context
 	head      *lakeparse.Commitish
 	opDeclMap map[*dag.UserOp]*opDecl
+	opPath    []*dag.UserOp
 	source    *data.Source
 	scope     *Scope
 	zctx      *zed.Context
@@ -58,45 +50,16 @@ func (a *analyzer) exitScope() {
 }
 
 type opDecl struct {
-	op   *dag.UserOp
-	deps []*dag.UserOp
+	ast   *ast.OpDecl
+	deps  []*dag.UserOp
+	scope *Scope // parent scope of op declaration.
 }
 
-func (a *analyzer) checkOpCycle() error {
-	visited := make(map[*dag.UserOp]bool)
-	if p := a.checkScopeOpCycle(a.scope, visited); p != nil {
-		return opCycleError(p)
-	}
-	return nil
-}
-
-func (a *analyzer) checkScopeOpCycle(scope *Scope, visited map[*dag.UserOp]bool) []*dag.UserOp {
-	for _, e := range scope.sortedEntries() {
-		if op, ok := e.ref.(*dag.UserOp); ok {
-			if p := a.isCyclic(op, visited, nil); p != nil {
-				return p
-			}
-		}
-	}
-	for _, child := range scope.children {
-		if p := a.checkScopeOpCycle(child, visited); p != nil {
-			return p
-		}
-	}
-	return nil
-}
-
-func (a *analyzer) isCyclic(op *dag.UserOp, visited map[*dag.UserOp]bool, stack []*dag.UserOp) []*dag.UserOp {
-	stack = append(stack, op)
-	visited[op] = true
-	for _, neighbor := range a.opDeclMap[op].deps {
-		if !visited[neighbor] {
-			if s := a.isCyclic(neighbor, visited, stack); s != nil {
-				return s
-			}
-		} else if slices.Contains(stack, neighbor) {
-			stack = append(stack, neighbor)
-			return stack
+func (a *analyzer) appendOpPath(op *dag.UserOp) error {
+	a.opPath = append(a.opPath, op)
+	for i := len(a.opPath) - 2; i >= 0; i-- {
+		if a.opPath[i] == op {
+			return opCycleError(a.opPath)
 		}
 	}
 	return nil
