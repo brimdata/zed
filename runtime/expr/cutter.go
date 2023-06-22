@@ -2,7 +2,6 @@ package expr
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
@@ -109,16 +108,4 @@ func (c *Cutter) lookupTypeRecord(types []zed.Type) *zed.TypeRecord {
 		c.recordTypes[id] = typ
 	}
 	return typ
-}
-
-func fieldList(fields []Evaluator) string {
-	var each []string
-	for _, fieldExpr := range fields {
-		s := "<not a field>"
-		if f, err := DotExprToField(fieldExpr); err == nil {
-			s = f.String()
-		}
-		each = append(each, s)
-	}
-	return strings.Join(each, ",")
 }
