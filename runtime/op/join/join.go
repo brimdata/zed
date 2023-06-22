@@ -64,7 +64,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	})
 	var out []zed.Value
 	// See #3366
-	ectx := expr.NewContext()
+	var ectx expr.ResetContext
 	for {
 		leftRec, err := o.left.Read()
 		if err != nil {
@@ -77,7 +77,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			//XXX See issue #3427.
 			return zbuf.NewArray(out), nil
 		}
-		key := o.getLeftKey.Eval(ectx, leftRec)
+		key := o.getLeftKey.Eval(ectx.Reset(), leftRec)
 		if key.IsMissing() {
 			// If the left key isn't present (which is not a thing
 			// in a sql join), then drop the record and return only
@@ -109,7 +109,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		// Batch and lives in a pool so the downstream user can
 		// release the batch with and bypass GC.
 		for _, rightRec := range rightRecs {
-			cutRec := o.cutter.Eval(ectx, rightRec)
+			cutRec := o.cutter.Eval(ectx.Reset(), rightRec)
 			rec, err := o.splice(leftRec, cutRec)
 			if err != nil {
 				return nil, err
@@ -124,13 +124,13 @@ func (o *Op) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
 		return o.joinSet, nil
 	}
 	// See #3366
-	ectx := expr.NewContext()
+	var ectx expr.ResetContext
 	for {
 		rec, err := o.right.Peek()
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		rightKey := o.getRightKey.Eval(ectx, rec)
+		rightKey := o.getRightKey.Eval(ectx.Reset(), rec)
 		if rightKey.IsMissing() {
 			o.right.Read()
 			continue
@@ -165,7 +165,7 @@ func (o *Op) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
 func (o *Op) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
 	var recs []*zed.Value
 	// See #3366
-	ectx := expr.NewContext()
+	var ectx expr.ResetContext
 	for {
 		rec, err := o.right.Peek()
 		if err != nil {
@@ -174,7 +174,7 @@ func (o *Op) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
 		if rec == nil {
 			return recs, nil
 		}
-		key := o.getRightKey.Eval(ectx, rec)
+		key := o.getRightKey.Eval(ectx.Reset(), rec)
 		if key.IsMissing() {
 			o.right.Read()
 			continue

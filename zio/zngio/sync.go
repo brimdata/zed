@@ -44,7 +44,7 @@ func newScannerSync(ctx context.Context, zctx *zed.Context, r io.Reader, filter 
 			return nil, err
 		}
 	}
-	s.worker = newWorker(ctx, &s.progress, bf, f, expr.NewContext(), opts.Validate)
+	s.worker = newWorker(ctx, &s.progress, bf, f, opts.Validate)
 	return s, nil
 }
 

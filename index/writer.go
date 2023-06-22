@@ -48,7 +48,6 @@ type Writer struct {
 	uri        *storage.URI
 	keyer      *Keyer
 	zctx       *zed.Context
-	ectx       expr.Context
 	engine     storage.Engine
 	opts       WriterOpts
 	writer     *indexWriter
@@ -61,7 +60,7 @@ type Writer struct {
 type indexWriter struct {
 	base       *Writer
 	parent     *indexWriter
-	ectx       expr.Context
+	ectx       expr.ResetContext
 	name       string
 	buffer     *bufwriter.Writer
 	zng        *zngio.Writer
@@ -101,7 +100,6 @@ func NewWriter(ctx context.Context, zctx *zed.Context, engine storage.Engine, pa
 	}
 	w := &Writer{
 		zctx:       zctx,
-		ectx:       expr.NewContext(),
 		engine:     engine,
 		childField: uniqChildField(keys),
 		opts:       opts,
@@ -126,7 +124,7 @@ func NewWriter(ctx context.Context, zctx *zed.Context, engine storage.Engine, pa
 func (w *Writer) Write(val *zed.Value) error {
 	if w.writer == nil {
 		var err error
-		w.writer, err = newIndexWriter(w, w.iow, "", w.ectx, *w.opts.ZNGWriterOpts)
+		w.writer, err = newIndexWriter(w, w.iow, "", *w.opts.ZNGWriterOpts)
 		if err != nil {
 			return err
 		}
@@ -255,7 +253,7 @@ func (w *Writer) writeTrailer(zw *zngio.Writer, sections []int64) error {
 	return zw.EndStream()
 }
 
-func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Context, opts zngio.WriterOpts) (*indexWriter, error) {
+func newIndexWriter(base *Writer, w io.WriteCloser, name string, opts zngio.WriterOpts) (*indexWriter, error) {
 	base.nlevel++
 	if base.nlevel >= MaxLevels {
 		return nil, ErrTooManyLevels
@@ -264,7 +262,6 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string, ectx expr.Conte
 	return &indexWriter{
 		base:     base,
 		buffer:   writer,
-		ectx:     ectx,
 		name:     name,
 		zng:      zngio.NewWriterWithOpts(writer, opts),
 		frameEnd: int64(base.opts.FrameThresh),
@@ -276,7 +273,7 @@ func (w *indexWriter) newParent() (*indexWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newIndexWriter(w.base, file, file.Name(), w.ectx, *w.base.opts.ZNGWriterOpts)
+	return newIndexWriter(w.base, file, file.Name(), *w.base.opts.ZNGWriterOpts)
 }
 
 func (w *indexWriter) Close() error {
@@ -307,7 +304,7 @@ func (w *indexWriter) write(rec *zed.Value) error {
 		// (or until we know it's the last frame in the file).
 		// So we build the frame key record from the current record
 		// here ahead of its use and save it in the frameKey variable.
-		key := w.base.keyer.valueOfKeys(w.ectx, rec)
+		key := w.base.keyer.valueOfKeys(w.ectx.Reset(), rec)
 		w.frameKey = key.Copy()
 	}
 	return w.zng.Write(rec)
