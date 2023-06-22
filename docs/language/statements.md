@@ -90,97 +90,54 @@ the operator's signature.
 
 ### Sequence `this` Value
 
-The `this` value of a user-defined operator's sequence is a record value
-comprised of the parameters provided in the operator's signature.
+The `this` value of a user-defined operator's sequence is provided by the
+calling sequence.
 
 For instance the program in `myop.zed`
 ```mdtest-input myop.zed
-op myop(foo, bar, baz): (
+op myop(): (
   pass
 )
-myop("foo", true, {pi: this})
+myop()
 ```
 run via
 ```mdtest-command
-echo 3.14 | zq -z -I myop.zed -
+echo {x:1} | zq -z -I myop.zed -
 ```
 produces
 ```mdtest-output
-{foo:"foo",bar:true,baz:{pi:3.14}}
+{x:1}
 ```
 
-### Spread Parameters
+### Arguments
 
-In addition to the standard named parameter syntax, user-defined operators may
-use the spread operator `...` to indicate that the operator expects a record
-value whose key/values will be expanded as entries in the operator's `this`
-record value.
-
-The most common use of spread parameters will be to carry the `this` value of
-the calling context into the operator's sequence.
-
-For instance the program in `spread.zed`
-```mdtest-input spread.zed
-op stamp(...): (
-  put ts := 2021-01-01T00:00:00Z
-)
-stamp(this)
-```
-run via
-```mdtest-command
-echo '{foo:"foo",bar:"bar"}' | zq -z -I spread.zed -
-```
-produces
-```mdtest-output
-{foo:"foo",bar:"bar",ts:2021-01-01T00:00:00Z}
-```
-
-### Const Parameters
-
-User-defined operators may use the `const` keyword to indicate that a parameter
-is expecting a constant value. Const parameters are different from standard named
-parameters in that they are not included in the operator's `this` value but may
-also be accessed within the operator's sequence.
-
-For instance the program in `const.zed`
-```mdtest-input const.zed
-op find_host(..., const p, const h): (
-  _path==p
-  | hostname==h
-)
-find_host(this, "http", "google.com")
-```
-run via
-```mdtest-command
-echo '{_path:"http",hostname:"google.com"} {_path:"http",hostname:"meta.com"}' | zq -z -I const.zed -
-```
-produces
-```mdtest-output
-{_path:"http",hostname:"google.com"}
-```
+The arguments to a user-defined operator must be either constant values
+or path values. Any other expression will result in a compile-time error.
 
 ### Nested Calls
 
 User-defined operators can make calls to other user-defined operators that
 are declared within the same scope or in a parent's scope. To illustrate, a program in `nested.zed`
 ```mdtest-input nested.zed
-op add2(x): (
-  x := x + 2
+op add1(x): (
+  x := x + 1
 )
-
+op add2(x): (
+  add1(x) | add1(x)
+)
 op add4(x): (
   add2(x) | add2(x)
 )
 
-add4(x)
+add4(a.b)
 ```
 run via
 ```mdtest-command
-echo '{x:1}' | zq -z -I nested.zed -
+echo '{a:{b:1}}' | zq -z -I nested.zed -
 ```
 produces
 ```mdtest-output
-{x:5}
+{a:{b:5}}
 ```
 
 One caveat with nested calls is that calls to other user-defined operators must

@@ -145,17 +145,16 @@ type (
 		Cflag bool   `json:"cflag"`
 	}
 	UserOp struct {
-		Kind   string  `json:"kind" unpack:""`
-		Name   string  `json:"id"`
-		Params []Param `json:"params"`
-		Body   Seq     `json:"body"`
+		Kind   string   `json:"kind" unpack:""`
+		Name   string   `json:"id"`
+		Params []string `json:"params"`
+		Body   Seq      `json:"body"`
 	}
 	UserOpCall struct {
-		Kind   string     `json:"kind" unpack:""`
-		Name   string     `json:"name"`
-		Exprs  []Expr     `json:"exprs"`
-		Consts []*Literal `json:"consts"`
-		UserOp *UserOp    `json:"user_op"`
+		Kind  string `json:"kind" unpack:""`
+		Name  string `json:"name"`
+		Exprs []Expr `json:"exprs"`
+		Body  Seq    `json:"body"`
 	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`

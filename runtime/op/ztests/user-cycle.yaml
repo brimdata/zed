@@ -1,8 +1,8 @@
 zed: |
-  op callA(outer): (callB(outer))
-  op callB(outer): (callC(outer))
-  op callC(outer): (callA(outer))
-  callA(this)
+  op callA(): (callB())
+  op callB(): (callC())
+  op callC(): (callA())
+  callA()
 
 input: '{x:1}'
 

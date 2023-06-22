@@ -385,52 +385,16 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 }
 
 func (b *Builder) compileUserOpCall(parent zbuf.Puller, u *dag.UserOpCall) (zbuf.Puller, error) {
-	// Construct the "this" record value.
-	var elems []expr.RecordElem
-	for i, p := range u.UserOp.Params {
-		if _, ok := p.(*dag.ConstParam); ok {
-			continue
-		}
-		val, err := compileExpr(u.Exprs[i])
-		if err != nil {
-			return nil, err
-		}
-		switch p := p.(type) {
-		case *dag.NamedParam:
-			elems = append(elems, expr.RecordElem{Name: p.Name, Field: val})
-		case *dag.SpreadParam:
-			elems = append(elems, expr.RecordElem{Spread: val})
-		default:
-			return nil, fmt.Errorf("internal error: unknown DAG param type: %#v", p)
-		}
-	}
-	this, err := expr.NewRecordExpr(b.octx.Zctx, elems)
+	exits, err := b.compileSeq(u.Body, []zbuf.Puller{parent})
 	if err != nil {
 		return nil, err
 	}
-	consts := make([]zed.Value, len(u.Consts))
-	for i, c := range u.Consts {
-		val, err := EvalAtCompileTime(b.octx.Zctx, c)
-		if err != nil {
-			return nil, err
-		}
-		consts[i] = *val
-	}
-	apply := op.NewApplier(b.octx, parent, this)
-	enter := op.NewEnterScope(apply, consts)
-	exits, err := b.compileSeq(u.UserOp.Body, []zbuf.Puller{enter})
-	if err != nil {
-		return nil, err
-	}
-	var exit zbuf.Puller
 	if len(exits) > 1 {
 		// This can happen when output of the body
 		// is a fork or switch.
-		exit = combine.New(b.octx, exits)
-	} else {
-		exit = exits[0]
+		return combine.New(b.octx, exits), nil
 	}
-	return op.NewExitScope(exit, len(consts)), nil
+	return exits[0], nil
 }
 
 func (b *Builder) compileAssignments(assignments []dag.Assignment) ([]expr.Assignment, error) {

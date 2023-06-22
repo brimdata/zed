@@ -1,18 +1,18 @@
 zed: |
-  op addfoo(...): ( 
-      put foo := "foo" | addbar(this)
+  op add1(x): ( 
+    x := x+1
   )
-  op addbar(...): (
-      put bar := "bar" | addbaz(this)
+  op add2(x): (
+    add1(x) | add1(x)
   )
-  op addbaz(...): (
-      put baz := "baz"
+  op add4(x): (
+    add2(x) | add2(x)
   )
-  addfoo(this)
+  add4(y)
 
-input: '{x:1} {x:2} {x:3}'
+input: '{y:1} {y:2} {y:3}'
 
 output: |
-  {x:1,foo:"foo",bar:"bar",baz:"baz"}
-  {x:2,foo:"foo",bar:"bar",baz:"baz"}
-  {x:3,foo:"foo",bar:"bar",baz:"baz"}
+  {y:5}
+  {y:6}
+  {y:7}
