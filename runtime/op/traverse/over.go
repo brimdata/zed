@@ -17,6 +17,7 @@ type Over struct {
 	batch  zbuf.Batch
 	enter  *Enter
 	zctx   *zed.Context
+	ectx   expr.ResetContext
 }
 
 func NewOver(octx *op.Context, parent zbuf.Puller, exprs []expr.Evaluator) *Over {
@@ -67,9 +68,10 @@ func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 	// Copy the vars into a new scope since downstream, nested subgraphs
 	// can have concurrent operators.  We can optimize these copies out
 	// later depending on the nested subgraph.
+	o.ectx.SetVars(batch.Vars())
 	var vals []zed.Value
 	for _, e := range o.exprs {
-		val := e.Eval(batch, this)
+		val := e.Eval(o.ectx.Reset(), this)
 		// Propagate errors but skip missing values.
 		if !val.IsMissing() {
 			vals = appendOver(o.zctx, vals, *val)
@@ -120,6 +122,6 @@ func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value 
 		}
 		return vals
 	default:
-		return append(vals, val)
+		return append(vals, *val.Copy())
 	}
 }

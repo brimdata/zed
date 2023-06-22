@@ -148,6 +148,7 @@ again:
 type Enter struct {
 	names []string
 	exprs []expr.Evaluator
+	ectx  expr.ResetContext
 }
 
 func NewEnter(names []string, exprs []expr.Evaluator) *Enter {
@@ -159,15 +160,16 @@ func NewEnter(names []string, exprs []expr.Evaluator) *Enter {
 
 func (e *Enter) addLocals(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 	inner := newScopedBatch(batch, len(e.exprs))
-	for _, e := range e.exprs {
+	for _, expr := range e.exprs {
 		// Note that we add a var to the frame on each Eval call
 		// since subsequent expressions can refer to results from
-		// previous expressions.  Also, we push any val include
+		// previous expressions.  Also, we push any val including
 		// errors and missing as we want to propagate such conditions
-		// into the sub-graph to ease debuging. In fact, the subgrah
-		// can act accordingly into response to errors and missing.
-		val := e.Eval(inner, this)
-		inner.push(val)
+		// into the sub-graph to ease debuging. In fact, the subgraph
+		// can act accordingly in response to errors and missing.
+		e.ectx.SetVars(inner.Vars())
+		val := expr.Eval(e.ectx.Reset(), this)
+		inner.push(val.Copy())
 	}
 	return inner
 }

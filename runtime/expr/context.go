@@ -39,6 +39,7 @@ func (*allocator) Vars() []zed.Value {
 type ResetContext struct {
 	buf  []byte
 	vals []zed.Value
+	vars []zed.Value
 }
 
 var _ Context = (*ResetContext)(nil)
@@ -66,6 +67,5 @@ func (r *ResetContext) Reset() *ResetContext {
 	return r
 }
 
-func (r *ResetContext) Vars() []zed.Value {
-	return nil
-}
+func (r *ResetContext) SetVars(vars []zed.Value) { r.vars = vars }
+func (r *ResetContext) Vars() []zed.Value        { return r.vars }

@@ -9,6 +9,7 @@ import (
 type Op struct {
 	parent zbuf.Puller
 	exprs  []expr.Evaluator
+	ectx   expr.ResetContext
 }
 
 func New(parent zbuf.Puller, exprs []expr.Evaluator) *Op {
@@ -24,16 +25,15 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		if batch == nil || err != nil {
 			return nil, err
 		}
+		o.ectx.SetVars(batch.Vars())
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(o.exprs)*len(vals))
 		for i := range vals {
 			for _, e := range o.exprs {
-				val := e.Eval(batch, &vals[i])
+				val := e.Eval(o.ectx.Reset(), &vals[i])
 				if val.IsQuiet() {
 					continue
 				}
-				// Copy is necessary because argument bytes
-				// can be reused.
 				out = append(out, *val.Copy())
 			}
 		}
