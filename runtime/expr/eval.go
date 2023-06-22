@@ -430,7 +430,7 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 	switch {
 	case zed.IsFloat(id):
 		v1, v2 := a.operands.floats()
-		return ectx.NewValue(typ, zed.EncodeFloat64(v1+v2))
+		return ectx.CopyValue(zed.NewFloat(typ, v1+v2))
 	case zed.IsSigned(id):
 		v1, v2 := a.operands.ints()
 		return ectx.CopyValue(zed.NewInt(typ, v1+v2))
@@ -460,7 +460,7 @@ func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
 	switch {
 	case zed.IsFloat(id):
 		v1, v2 := s.operands.floats()
-		return ectx.NewValue(typ, zed.EncodeFloat64(v1-v2))
+		return ectx.CopyValue(zed.NewFloat(typ, v1-v2))
 	case zed.IsSigned(id):
 		v1, v2 := s.operands.ints()
 		if id == zed.IDTime {
@@ -490,7 +490,7 @@ func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
 	switch {
 	case zed.IsFloat(id):
 		v1, v2 := m.operands.floats()
-		return ectx.NewValue(typ, zed.EncodeFloat64(v1*v2))
+		return ectx.CopyValue(zed.NewFloat(typ, v1*v2))
 	case zed.IsSigned(id):
 		v1, v2 := m.operands.ints()
 		return ectx.CopyValue(zed.NewInt(typ, v1*v2))
@@ -519,7 +519,7 @@ func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if v2 == 0 {
 			return d.zctx.NewError(DivideByZero)
 		}
-		return ectx.NewValue(typ, zed.EncodeFloat64(v1/v2))
+		return ectx.CopyValue(zed.NewFloat(typ, v1/v2))
 	case zed.IsSigned(id):
 		v1, v2 := d.operands.ints()
 		if v2 == 0 {
@@ -585,7 +585,7 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	switch typ.ID() {
 	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-		return zed.NewFloat(typ, -val.Float())
+		return ectx.CopyValue(zed.NewFloat(typ, -val.Float()))
 	case zed.IDInt8:
 		v := val.Int()
 		if v == math.MinInt8 {

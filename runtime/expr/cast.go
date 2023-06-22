@@ -106,7 +106,7 @@ func (c *casterFloat16) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float16", val)
 	}
-	return ectx.NewValue(zed.TypeFloat16, zed.EncodeFloat16(float32(f)))
+	return ectx.CopyValue(zed.NewFloat16(float32(f)))
 }
 
 type casterFloat32 struct {
@@ -118,7 +118,7 @@ func (c *casterFloat32) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float32", val)
 	}
-	return ectx.NewValue(zed.TypeFloat32, zed.EncodeFloat32(float32(f)))
+	return ectx.CopyValue(zed.NewFloat32(float32(f)))
 }
 
 type casterFloat64 struct {
@@ -130,7 +130,7 @@ func (c *casterFloat64) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float64", val)
 	}
-	return ectx.NewValue(zed.TypeFloat64, zed.EncodeFloat64(f))
+	return ectx.CopyValue(zed.NewFloat64(f))
 }
 
 type casterIP struct {
