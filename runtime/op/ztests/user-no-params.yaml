@@ -1,0 +1,10 @@
+zed: |
+  op noparams(): (
+    yield "hello"
+  )
+  noparams()
+
+input: "null"
+
+output: |
+  "hello"

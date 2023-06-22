@@ -8,11 +8,11 @@ zed: |
   op add4(x): (
     add2(x) | add2(x)
   )
-  add4(x)
+  add4(y)
 
-input: '{x:1} {x:2} {x:3}'
+input: '{y:1} {y:2} {y:3}'
 
 output: |
-  {x:5}
-  {x:6}
-  {x:7}
+  {y:5}
+  {y:6}
+  {y:7}

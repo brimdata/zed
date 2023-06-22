@@ -1091,16 +1091,15 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, erro
 	if a.opDecl != nil {
 		a.opDecl.deps = append(a.opDecl.deps, op)
 	} else {
-		// appendOpPath will return an error if the opDecl is already in the
-		// path, which means we have a cycle.
-		if err := a.appendOpPath(op); err != nil {
-			return nil, err
+		if slices.Contains(a.opStack, op) {
+			return nil, opCycleError(append(a.opStack, op))
 		}
+		a.opStack = append(a.opStack, op)
 		decl := a.opDeclMap[op]
 		oldscope := a.scope
 		a.scope = NewScope(decl.scope)
 		defer func() {
-			a.opPath = a.opPath[:len(a.opPath)-1]
+			a.opStack = a.opStack[:len(a.opStack)-1]
 			a.scope = oldscope
 		}()
 		for i, p := range params {
@@ -1112,7 +1111,6 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, erro
 			return nil, err
 		}
 	}
-	// Else we need to
 	return &dag.UserOpCall{
 		Kind:  "UserOpCall",
 		Name:  call.Name,

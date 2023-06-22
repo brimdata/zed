@@ -21,7 +21,7 @@ type analyzer struct {
 	ctx       context.Context
 	head      *lakeparse.Commitish
 	opDeclMap map[*dag.UserOp]*opDecl
-	opPath    []*dag.UserOp
+	opStack   []*dag.UserOp
 	source    *data.Source
 	scope     *Scope
 	zctx      *zed.Context
@@ -53,16 +53,6 @@ type opDecl struct {
 	ast   *ast.OpDecl
 	deps  []*dag.UserOp
 	scope *Scope // parent scope of op declaration.
-}
-
-func (a *analyzer) appendOpPath(op *dag.UserOp) error {
-	a.opPath = append(a.opPath, op)
-	for i := len(a.opPath) - 2; i >= 0; i-- {
-		if a.opPath[i] == op {
-			return opCycleError(a.opPath)
-		}
-	}
-	return nil
 }
 
 type opCycleError []*dag.UserOp
