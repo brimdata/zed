@@ -5,9 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zcode"
 	"golang.org/x/exp/slices"
 )
 
@@ -43,15 +41,6 @@ func (b *batch) unextend() {
 	b.vals = b.vals[:len(b.vals)-1]
 }
 
-func (b *batch) Values() []zed.Value { return b.vals }
-
-// XXX
-func (b *batch) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
-	return zed.NewValue(typ, bytes)
-}
-
-func (b *batch) CopyValue(val *zed.Value) *zed.Value { return val.Copy() }
-
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
 
 func (b *batch) Unref() {
@@ -66,8 +55,8 @@ func (b *batch) Unref() {
 	}
 }
 
+func (b *batch) Values() []zed.Value { return b.vals }
+
 // XXX this should be ok, but we should handle nil receiver in scope so push
 // will do the right thing
 func (*batch) Vars() []zed.Value { return nil }
-
-func (b *batch) Context() expr.Context { return b }
