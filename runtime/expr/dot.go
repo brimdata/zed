@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 type This struct{}
@@ -15,9 +16,10 @@ func (*This) Eval(_ Context, this *zed.Value) *zed.Value {
 }
 
 type DotExpr struct {
-	zctx   *zed.Context
-	record Evaluator
-	field  string
+	zctx         *zed.Context
+	record       Evaluator
+	field        string
+	fieldIndices []int
 }
 
 func NewDotExpr(zctx *zed.Context, record Evaluator, field string) *DotExpr {
@@ -41,7 +43,7 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	// Cases are ordered by decreasing expected frequency.
 	switch typ := val.Type.(type) {
 	case *zed.TypeRecord:
-		i, ok := typ.ColumnOfField(d.field)
+		i, ok := d.fieldIndex(typ)
 		if !ok {
 			return d.zctx.Missing()
 		}
@@ -52,6 +54,25 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return d.evalTypeOfType(ectx, val.Bytes())
 	}
 	return d.zctx.Missing()
+}
+
+func (d *DotExpr) fieldIndex(typ *zed.TypeRecord) (int, bool) {
+	id := typ.ID()
+	if id >= len(d.fieldIndices) {
+		d.fieldIndices = slices.Grow(d.fieldIndices[:0], id+1)[:id+1]
+	}
+	if i := d.fieldIndices[id]; i > 0 {
+		return i - 1, true
+	} else if i < 0 {
+		return 0, false
+	}
+	i, ok := typ.ColumnOfField(d.field)
+	if ok {
+		d.fieldIndices[id] = i + 1
+	} else {
+		d.fieldIndices[id] = -1
+	}
+	return i, ok
 }
 
 func (d *DotExpr) evalTypeOfType(ectx Context, b zcode.Bytes) *zed.Value {
