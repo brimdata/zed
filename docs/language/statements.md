@@ -111,8 +111,43 @@ produces
 
 ### Arguments
 
-The arguments to a user-defined operator must be either constant values
-or path values. Any other expression will result in a compile-time error.
+The arguments to a user-defined operator must be either constant values (e.g.,
+a [literal](expressions.md#literals) or reference to a
+[defined constant](#const-statements)), or a reference to a path in the data
+stream (e.g., a [field reference](expressions.md#field-dereference)). Any
+other expression will result in a compile-time error.
+
+Because both constant values and path references evaluate in
+[expression](expressions.md) contexts, a `<param>` may often be used inside of
+a user-defined operator without regard to the argument's origin. For instance,
+with the program `params.zed`
+```mdtest-input params.zed
+op AddMessage(field_for_message, msg): (
+  field_for_message:=msg
+)
+```
+the `msg` parameter may be used flexibly
+```mdtest-command
+echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage(message, "hello")' -
+echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage(message, greeting)' -
+```
+to produce the respective outputs
+```mdtest-output
+{greeting:"hi",message:"hello"}
+{greeting:"hi",message:"hi"}
+```
+
+However, you may find it beneficial to use descriptive names for parameters
+where _only_ a certain category of argument is expected. For instance, having
+explicitly mentioned "field" in the name of our first parameter's name may help
+us avoid making mistakes when passing arguments, such as
+```mdtest-command fails
+echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage("message", "hello")' -
+```
+which produces
+```mdtest-output
+illegal left-hand side of assignment
+```
 
 ### Nested Calls
 
