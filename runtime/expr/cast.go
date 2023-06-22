@@ -157,7 +157,7 @@ type casterNet struct {
 
 func (c *casterNet) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if val.Type.ID() == zed.IDNet {
-		return ectx.CopyValue(val)
+		return val
 	}
 	if !val.IsString() {
 		return c.zctx.WrapError("cannot cast to net", val)
@@ -176,7 +176,7 @@ type casterDuration struct {
 func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 	id := val.Type.ID()
 	if id == zed.IDDuration {
-		return ectx.CopyValue(val)
+		return val
 	}
 	if id == zed.IDString {
 		d, err := nano.ParseDuration(byteconv.UnsafeString(val.Bytes()))
@@ -208,7 +208,7 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	var ts nano.Ts
 	switch {
 	case id == zed.IDTime:
-		return ectx.CopyValue(val)
+		return val
 	case val.IsNull():
 		// Do nothing. Any nil value is cast to a zero time.
 	case id == zed.IDString:
