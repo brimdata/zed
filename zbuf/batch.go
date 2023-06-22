@@ -5,8 +5,6 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 	"golang.org/x/exp/slices"
 )
@@ -28,10 +26,11 @@ import (
 // Regardless of reference count or implementation, an unreachable Batch will
 // eventually be reclaimed by the garbage collector.
 type Batch interface {
-	expr.Context
 	Ref()
 	Unref()
 	Values() []zed.Value
+	// Vars accesses the variables reachable in the current scope.
+	Vars() []zed.Value
 }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
@@ -155,10 +154,8 @@ func (b *pullerBatch) Unref() {
 	}
 }
 
-func (*pullerBatch) CopyValue(val *zed.Value) *zed.Value           { return val.Copy() }
-func (*pullerBatch) NewValue(t zed.Type, b zcode.Bytes) *zed.Value { return zed.NewValue(t, b) }
-func (p *pullerBatch) Values() []zed.Value                         { return p.vals }
-func (*pullerBatch) Vars() []zed.Value                             { return nil }
+func (p *pullerBatch) Values() []zed.Value { return p.vals }
+func (*pullerBatch) Vars() []zed.Value     { return nil }
 
 func CopyPuller(w zio.Writer, p Puller) error {
 	for {

@@ -2,7 +2,6 @@ package zbuf
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -57,14 +56,4 @@ func (a *Array) Read() (*zed.Value, error) {
 		a.values = a.values[1:]
 	}
 	return rec, nil
-}
-
-func (*Array) NewValue(typ zed.Type, bytes zcode.Bytes) *zed.Value {
-	// XXX can make this more efficient later
-	return zed.NewValue(typ, bytes)
-}
-
-func (*Array) CopyValue(val *zed.Value) *zed.Value {
-	// XXX can make this more efficient later
-	return val.Copy()
 }

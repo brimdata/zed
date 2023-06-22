@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zcode"
 )
 
 type labeled struct {
@@ -147,9 +146,7 @@ type EndOfChannel int
 
 var _ zbuf.Batch = (*EndOfChannel)(nil)
 
-func (*EndOfChannel) Ref()                                      {}
-func (*EndOfChannel) Unref()                                    {}
-func (*EndOfChannel) Values() []zed.Value                       { return nil }
-func (*EndOfChannel) Vars() []zed.Value                         { return nil }
-func (*EndOfChannel) CopyValue(*zed.Value) *zed.Value           { return nil }
-func (*EndOfChannel) NewValue(zed.Type, zcode.Bytes) *zed.Value { return nil }
+func (*EndOfChannel) Ref()                {}
+func (*EndOfChannel) Unref()              {}
+func (*EndOfChannel) Values() []zed.Value { return nil }
+func (*EndOfChannel) Vars() []zed.Value   { return nil }
