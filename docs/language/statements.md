@@ -90,7 +90,7 @@ the operator's signature.
 
 ### Sequence `this` Value
 
-The `this` value of a user-defined operator's sequence is inherited from the
+The `this` value of a user-defined operator's sequence is provided by the
 calling sequence.
 
 For instance the program in `myop.zed`
@@ -109,10 +109,10 @@ produces
 {x:1}
 ```
 
-### Parameter Values
+### Arguments
 
-The values used when invoking a user-defined operator must be either a constant value
-or a path value. Any other expression will result in a compile-time error.
+The arguments to a user-defined operator must be either constant values
+or path values. Any other expression will result in a compile-time error.
 
 ### Nested Calls
 
