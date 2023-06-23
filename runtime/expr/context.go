@@ -56,9 +56,8 @@ func (r *ResetContext) NewValue(typ zed.Type, b zcode.Bytes) *zed.Value {
 }
 
 func (r *ResetContext) CopyValue(val *zed.Value) *zed.Value {
-	val2 := r.NewValue(nil, nil)
-	*val2 = *val
-	return val2
+	r.vals = append(r.vals, *val)
+	return &r.vals[len(r.vals)-1]
 }
 
 func (r *ResetContext) Reset() *ResetContext {
