@@ -7,7 +7,7 @@ take Zed values as arguments and produce a value as a result.
 
 A function-style syntax is also available for converting values to each of
 Zed's [primitive types](../../formats/zed.md#1-primitive-types), e.g.,
-`uint8()`, `time()`, etc. For details and examples, learn about the
+`uint8()`, `time()`, etc. For details and examples, read about the
 [`cast` function](cast.md) and how it is [used in expressions](../expressions.md#casts).
 
 * [abs](abs.md) - absolute value of a number
