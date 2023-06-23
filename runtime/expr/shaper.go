@@ -58,7 +58,7 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	//XXX TypeUnder?
 	if typeVal.Type != zed.TypeType {
-		return ectx.CopyValue(s.zctx.NewErrorf(
+		return ectx.CopyValue(*s.zctx.NewErrorf(
 			"shaper type argument is not a type: %s", zson.FormatValue(typeVal)))
 	}
 	shapeTo, err := s.zctx.LookupByValue(typeVal.Bytes())
@@ -108,7 +108,7 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		var err error
 		s, err = newShaper(c.zctx, c.transforms, val.Type, c.shapeTo)
 		if err != nil {
-			return ectx.CopyValue(c.zctx.NewError(err))
+			return ectx.CopyValue(*c.zctx.NewError(err))
 		}
 		c.shapers[id] = s
 	}

@@ -16,15 +16,15 @@ func TestResetContext(t *testing.T) {
 	require.Nil(t, ectx.buf)
 	val = zed.NewBytes([]byte{})
 	assert.Equal(t, val, ectx.NewValue(val.Type, val.Bytes()))
-	assert.Equal(t, val, ectx.CopyValue(val))
+	assert.Equal(t, val, ectx.CopyValue(*val))
 
 	val = zed.NewBytes([]byte{'b'})
 	assert.Equal(t, val, ectx.NewValue(val.Type, val.Bytes()))
-	assert.Equal(t, val, ectx.CopyValue(val))
+	assert.Equal(t, val, ectx.CopyValue(*val))
 
 	// Test null value with ResetContext.buf != nil.
 	require.NotNil(t, ectx.buf)
 	val = zed.NewBytes(nil)
 	assert.Equal(t, val, ectx.NewValue(val.Type, val.Bytes()))
-	assert.Equal(t, val, ectx.CopyValue(val))
+	assert.Equal(t, val, ectx.CopyValue(*val))
 }
