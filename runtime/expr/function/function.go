@@ -187,15 +187,15 @@ func HasBoolResult(name string) bool {
 }
 
 func newFloat16(ctx zed.Allocator, native float32) *zed.Value {
-	return ctx.NewValue(zed.TypeFloat16, zed.EncodeFloat16(native))
+	return ctx.CopyValue(zed.NewFloat16(native))
 }
 
 func newFloat32(ctx zed.Allocator, native float32) *zed.Value {
-	return ctx.NewValue(zed.TypeFloat32, zed.EncodeFloat32(native))
+	return ctx.CopyValue(zed.NewFloat32(native))
 }
 
 func newFloat64(ctx zed.Allocator, native float64) *zed.Value {
-	return ctx.NewValue(zed.TypeFloat64, zed.EncodeFloat64(native))
+	return ctx.CopyValue(zed.NewFloat64(native))
 }
 
 func newString(ctx zed.Allocator, native string) *zed.Value {
