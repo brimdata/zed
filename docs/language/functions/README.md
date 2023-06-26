@@ -3,7 +3,9 @@
 ---
 
 Functions appear in [expression](../expressions.md) context and
-take Zed values as arguments and produce a value as a result.
+take Zed values as arguments and produce a value as a result. In addition to
+the built-in functions listed below, Zed also allows for the creation of
+[user-defined functions](../statements.md#func-statements).
 
 * [abs](abs.md) - absolute value of a number
 * [base64](base64.md) - encode/decode base64 strings
