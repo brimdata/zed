@@ -38,28 +38,20 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 
 func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := d.record.Eval(ectx, this).Under()
-	if _, ok := val.Type.(*zed.TypeOfType); ok {
+	// Cases are ordered by decreasing expected frequency.
+	switch typ := val.Type.(type) {
+	case *zed.TypeRecord:
+		i, ok := typ.ColumnOfField(d.field)
+		if !ok {
+			return d.zctx.Missing()
+		}
+		return ectx.NewValue(typ.Fields[i].Type, getNthFromContainer(val.Bytes(), i))
+	case *zed.TypeMap:
+		return indexMap(d.zctx, ectx, typ, val.Bytes(), zed.NewString(d.field))
+	case *zed.TypeOfType:
 		return d.evalTypeOfType(ectx, val.Bytes())
 	}
-	if typ, ok := val.Type.(*zed.TypeMap); ok {
-		return indexMap(d.zctx, ectx, typ, val.Bytes(), zed.NewString(d.field))
-	}
-	recType, ok := val.Type.(*zed.TypeRecord)
-	if !ok {
-		return d.zctx.Missing()
-	}
-	idx, ok := recType.ColumnOfField(d.field)
-	if !ok {
-		return d.zctx.Missing()
-	}
-	typ := recType.Fields[idx].Type
-	if val.IsNull() {
-		// The record is null.  Return null value of the field type.
-		return ectx.NewValue(typ, nil)
-	}
-	//XXX see PR #1071 to improve this (though we need this for Index anyway)
-	field := getNthFromContainer(val.Bytes(), idx)
-	return ectx.NewValue(recType.Fields[idx].Type, field)
+	return d.zctx.Missing()
 }
 
 func (d *DotExpr) evalTypeOfType(ectx Context, b zcode.Bytes) *zed.Value {
