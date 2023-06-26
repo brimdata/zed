@@ -33,13 +33,13 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(a.zctx, ctx, "abs: not a number: %s", zson.FormatValue(&args[0]))
 	}
 	if !zed.IsSigned(id) {
-		return ctx.CopyValue(&args[0])
+		return ctx.CopyValue(args[0])
 	}
 	x := v.Int()
 	if x < 0 {
 		x = -x
 	}
-	return ctx.CopyValue(zed.NewInt64(x))
+	return ctx.CopyValue(*zed.NewInt64(x))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
@@ -61,7 +61,7 @@ func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		f := math.Ceil(v.Float())
 		return newFloat64(ctx, f)
 	case zed.IsInteger(id):
-		return ctx.CopyValue(&args[0])
+		return ctx.CopyValue(args[0])
 	default:
 		return newErrorf(c.zctx, ctx, "ceil: not a number")
 	}
@@ -86,7 +86,7 @@ func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		v := math.Floor(v.Float())
 		return newFloat64(ctx, v)
 	case zed.IsInteger(id):
-		return ctx.CopyValue(&args[0])
+		return ctx.CopyValue(args[0])
 	default:
 		return newErrorf(f.zctx, ctx, "floor: not a number")
 	}
@@ -145,7 +145,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			}
 			result = r.fn.Int64(result, v)
 		}
-		return ctx.CopyValue(zed.NewInt64(result))
+		return ctx.CopyValue(*zed.NewInt64(result))
 	}
 	result := val0.Uint()
 	for _, val := range args[1:] {
@@ -155,7 +155,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		result = r.fn.Uint64(result, v)
 	}
-	return ctx.CopyValue(zed.NewUint64(result))
+	return ctx.CopyValue(*zed.NewUint64(result))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
@@ -178,7 +178,7 @@ func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !zed.IsNumber(id) {
 		return newErrorf(r.zctx, ctx, "round: not a number: %s", zson.FormatValue(val))
 	}
-	return ctx.CopyValue(&args[0])
+	return ctx.CopyValue(args[0])
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#pow

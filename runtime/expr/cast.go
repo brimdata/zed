@@ -68,7 +68,7 @@ func (c *casterIntN) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok || (c.min != 0 && (v < c.min || v > c.max)) {
 		return c.zctx.WrapError("cannot cast to "+zson.FormatType(c.typ), val)
 	}
-	return ectx.CopyValue(zed.NewInt(c.typ, v))
+	return ectx.CopyValue(*zed.NewInt(c.typ, v))
 }
 
 type casterUintN struct {
@@ -82,7 +82,7 @@ func (c *casterUintN) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok || (c.max != 0 && v > c.max) {
 		return c.zctx.WrapError("cannot cast to "+zson.FormatType(c.typ), val)
 	}
-	return ectx.CopyValue(zed.NewUint(c.typ, v))
+	return ectx.CopyValue(*zed.NewUint(c.typ, v))
 }
 
 type casterBool struct {
@@ -94,7 +94,7 @@ func (c *casterBool) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to bool", val)
 	}
-	return ectx.CopyValue(zed.NewBool(b))
+	return ectx.CopyValue(*zed.NewBool(b))
 }
 
 type casterFloat16 struct {
@@ -106,7 +106,7 @@ func (c *casterFloat16) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float16", val)
 	}
-	return ectx.CopyValue(zed.NewFloat16(float32(f)))
+	return ectx.CopyValue(*zed.NewFloat16(float32(f)))
 }
 
 type casterFloat32 struct {
@@ -118,7 +118,7 @@ func (c *casterFloat32) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float32", val)
 	}
-	return ectx.CopyValue(zed.NewFloat32(float32(f)))
+	return ectx.CopyValue(*zed.NewFloat32(float32(f)))
 }
 
 type casterFloat64 struct {
@@ -130,7 +130,7 @@ func (c *casterFloat64) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float64", val)
 	}
-	return ectx.CopyValue(zed.NewFloat64(f))
+	return ectx.CopyValue(*zed.NewFloat64(f))
 }
 
 type casterIP struct {
@@ -187,16 +187,16 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 			}
 			d = nano.Duration(f)
 		}
-		return ectx.CopyValue(zed.NewDuration(d))
+		return ectx.CopyValue(*zed.NewDuration(d))
 	}
 	if zed.IsFloat(id) {
-		return ectx.CopyValue(zed.NewDuration(nano.Duration(val.Float())))
+		return ectx.CopyValue(*zed.NewDuration(nano.Duration(val.Float())))
 	}
 	v, ok := coerce.ToInt(val)
 	if !ok {
 		return c.zctx.WrapError("cannot cast to duration", val)
 	}
-	return ectx.CopyValue(zed.NewDuration(nano.Duration(v)))
+	return ectx.CopyValue(*zed.NewDuration(nano.Duration(v)))
 }
 
 type casterTime struct {
@@ -232,7 +232,7 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	default:
 		return c.zctx.WrapError("cannot cast to time", val)
 	}
-	return ectx.CopyValue(zed.NewTime(ts))
+	return ectx.CopyValue(*zed.NewTime(ts))
 }
 
 type casterString struct {
@@ -251,7 +251,7 @@ func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
 		selector := zed.DecodeUint(val.Bytes())
 		symbol, err := enum.Symbol(int(selector))
 		if err != nil {
-			return ectx.CopyValue(c.zctx.NewError(err))
+			return ectx.CopyValue(*c.zctx.NewError(err))
 		}
 		return ectx.NewValue(zed.TypeString, zed.EncodeString(symbol))
 	}

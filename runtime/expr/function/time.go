@@ -10,7 +10,7 @@ import (
 type Now struct{}
 
 func (n *Now) Call(ctx zed.Allocator, _ []zed.Value) *zed.Value {
-	return ctx.CopyValue(zed.NewTime(nano.Now()))
+	return ctx.CopyValue(*zed.NewTime(nano.Now()))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#bucket
@@ -37,13 +37,13 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	if zed.TypeUnder(tsArg.Type) == zed.TypeDuration {
 		dur := nano.Duration(tsArg.Int())
-		return ctx.CopyValue(zed.NewDuration(dur.Trunc(bin)))
+		return ctx.CopyValue(*zed.NewDuration(dur.Trunc(bin)))
 	}
 	v, ok := coerce.ToInt(tsArg)
 	if !ok {
 		return newErrorf(b.zctx, ctx, "%s: time arg required", b)
 	}
-	return ctx.CopyValue(zed.NewTime(nano.Ts(v).Trunc(bin)))
+	return ctx.CopyValue(*zed.NewTime(nano.Ts(v).Trunc(bin)))
 }
 
 func (b *Bucket) String() string {
