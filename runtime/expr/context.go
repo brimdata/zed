@@ -37,7 +37,6 @@ func (*allocator) Vars() []zed.Value {
 }
 
 type ResetContext struct {
-	buf  []byte
 	vals []zed.Value
 	vars []zed.Value
 }
@@ -45,12 +44,6 @@ type ResetContext struct {
 var _ Context = (*ResetContext)(nil)
 
 func (r *ResetContext) NewValue(typ zed.Type, b zcode.Bytes) *zed.Value {
-	// Preserve b if nil or empty.
-	if len(b) > 0 {
-		n := len(r.buf)
-		r.buf = append(r.buf, b...)
-		b = r.buf[n:]
-	}
 	r.vals = append(r.vals, *zed.NewValue(typ, b))
 	return &r.vals[len(r.vals)-1]
 }
@@ -61,7 +54,6 @@ func (r *ResetContext) CopyValue(val *zed.Value) *zed.Value {
 }
 
 func (r *ResetContext) Reset() *ResetContext {
-	r.buf = r.buf[:0]
 	r.vals = r.vals[:0]
 	return r
 }
