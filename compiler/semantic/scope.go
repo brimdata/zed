@@ -7,8 +7,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/zson"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 type Scope struct {
@@ -109,12 +107,4 @@ func (s *Scope) nvars() int {
 		n += scope.nvar
 	}
 	return n
-}
-
-func (s *Scope) sortedEntries() []*entry {
-	entries := maps.Values(s.symbols)
-	slices.SortFunc(entries, func(i, j *entry) bool {
-		return i.order < j.order
-	})
-	return entries
 }
