@@ -358,7 +358,6 @@ error({
 })
 ```
 
-
 ## Type Fusion
 
 Type fusion is another important building block of data shaping.
