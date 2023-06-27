@@ -71,7 +71,7 @@ func findCuts(o *Object, names []string) ([]*cut, error) {
 		fields := Under(o.vectors[k]).(Record)
 		var actuals []string
 		for _, name := range names {
-			if _, ok := recType.ColumnOfField(name); !ok {
+			if _, ok := recType.IndexOfField(name); !ok {
 				continue
 			}
 			actuals = append(actuals, name)
@@ -101,11 +101,11 @@ func newCut(zctx *zed.Context, typ *zed.TypeRecord, fields []Vector, actuals []s
 	iters := make([]iterator, len(actuals))
 	outFields := make([]zed.Field, len(actuals))
 	for k, name := range actuals {
-		col, _ := typ.ColumnOfField(name)
-		outFields[k] = typ.Fields[col]
+		i, _ := typ.IndexOfField(name)
+		outFields[k] = typ.Fields[i]
 		which := k
 		group.Go(func() error {
-			it, err := fields[col].NewIter(reader)
+			it, err := fields[i].NewIter(reader)
 			if err != nil {
 				return err
 			}

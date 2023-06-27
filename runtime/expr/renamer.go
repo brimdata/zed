@@ -27,13 +27,13 @@ func NewRenamer(zctx *zed.Context, srcs, dsts field.List) *Renamer {
 }
 
 func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRecord, error) {
-	c, ok := typ.ColumnOfField(src[0])
+	i, ok := typ.IndexOfField(src[0])
 	if !ok {
 		return typ, nil
 	}
 	var innerType zed.Type
 	if len(src) > 1 {
-		recType, ok := typ.Fields[c].Type.(*zed.TypeRecord)
+		recType, ok := typ.Fields[i].Type.(*zed.TypeRecord)
 		if !ok {
 			return typ, nil
 		}
@@ -43,10 +43,10 @@ func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRe
 		}
 		innerType = typ
 	} else {
-		innerType = typ.Fields[c].Type
+		innerType = typ.Fields[i].Type
 	}
 	fields := slices.Clone(typ.Fields)
-	fields[c] = zed.NewField(dst[0], innerType)
+	fields[i] = zed.NewField(dst[0], innerType)
 	typ, err := r.zctx.LookupTypeRecord(fields)
 	if err != nil {
 		var dferr *zed.DuplicateFieldError

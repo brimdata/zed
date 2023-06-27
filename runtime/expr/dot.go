@@ -41,7 +41,7 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	// Cases are ordered by decreasing expected frequency.
 	switch typ := val.Type.(type) {
 	case *zed.TypeRecord:
-		i, ok := typ.ColumnOfField(d.field)
+		i, ok := typ.IndexOfField(d.field)
 		if !ok {
 			return d.zctx.Missing()
 		}
