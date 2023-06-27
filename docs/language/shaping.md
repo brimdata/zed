@@ -30,7 +30,7 @@ that currently perform shaping are:
 * [`shape`](functions/shape.md) - apply `cast`, `fill`, and `order`
 
 They all have the same signature, taking two parameters: the value to be
-transformed and a type value for the target type.
+transformed and a [type value](data-types.md) for the target type.
 
 > Another type of transformation that's needed for shaping is renaming fields,
 > which is supported by the [`rename` operator](operators/rename.md).
@@ -206,6 +206,111 @@ drops the `uid` field after shaping:
     } (socket),
     vlan: null (uint16)
 }
+```
+
+## Error Handling
+
+A failure during shaping produces an [error value](data-types.md#first-class-errors)
+in the problematic leaf field.  For example, consider this alternate input data
+file `malformed.json`.
+
+```mdtest-input malformed.json
+{
+  "kind": "dns",
+  "server": {
+    "addr": "10.0.0.100",
+    "port": 53
+  },
+  "client": {
+    "addr": "39 Elm Street",
+    "port": 41772
+  },
+  vlan: "available"
+}
+```
+
+When we apply our shaper via
+
+```mdtest-command
+zq -Z -I connection.zed "shape(this, <connection>)" malformed.json
+```
+
+we see two errors:
+
+```mdtest-output
+{
+    kind: "dns",
+    client: {
+        addr: error({
+            message: "cannot cast to ip",
+            on: "39 Elm Street"
+        }),
+        port: 41772 (port=uint16)
+    },
+    server: {
+        addr: 10.0.0.100,
+        port: 53 (port)
+    } (=socket),
+    vlan: error({
+        message: "cannot cast to uint16",
+        on: "available"
+    })
+}
+```
+
+Since these error values are nested inside an otherwise healthy record, adding
+[`has_error(this)`](functions/has_error.md) downstream in our Zed pipeline
+could help find or exclude such records.  If the failure to shape _any_ single
+field is considered severe enough to render the entire input record unhealthy,
+[conditional logic](expressions.md#conditional)
+could be applied to wrap the input record as an error while including detail
+to debug the problem, e.g.,
+
+```mdtest-command
+zq -Z -I connection.zed '
+  yield {original: this, shaped: shape(this, <connection>)}
+  | yield has_error(shaped)
+    ? error({msg: "shaper error (see inner errors for details)", original, shaped})
+    : shaped
+  ' malformed.json
+```
+
+which produces
+
+```mdtest-output
+error({
+    msg: "shaper error (see inner errors for details)",
+    original: {
+        kind: "dns",
+        server: {
+            addr: "10.0.0.100",
+            port: 53
+        },
+        client: {
+            addr: "39 Elm Street",
+            port: 41772
+        },
+        vlan: "available"
+    },
+    shaped: {
+        kind: "dns",
+        client: {
+            addr: error({
+                message: "cannot cast to ip",
+                on: "39 Elm Street"
+            }),
+            port: 41772 (port=uint16)
+        },
+        server: {
+            addr: 10.0.0.100,
+            port: 53 (port)
+        } (=socket),
+        vlan: error({
+            message: "cannot cast to uint16",
+            on: "available"
+        })
+    }
+}) (error({msg:string,original:{kind:string,server:{addr:string,port:int64},client:{addr:string,port:int64},vlan:string},shaped:{kind:string,client:{addr:error({message:string,on:string}),port:port=uint16},server:socket={addr:ip,port:port},vlan:error({message:string,on:string})}}))
 ```
 
 ## Type Fusion
