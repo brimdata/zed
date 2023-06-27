@@ -313,6 +313,52 @@ error({
 }) (error({msg:string,original:{kind:string,server:{addr:string,port:int64},client:{addr:string,port:int64},vlan:string},shaped:{kind:string,client:{addr:error({message:string,on:string}),port:port=uint16},server:socket={addr:ip,port:port},vlan:error({message:string,on:string})}}))
 ```
 
+If you require awareness about changes made by the core shaping functions that
+aren't surfaced as errors, a similar wrapping approach can be used with a
+general check for equality. For example, to treat cropped fields as an error,
+we can execute
+
+```mdtest-command
+zq -Z -I connection.zed '
+  yield {original: this, cropped: crop(this, <connection>)}
+  | yield original==cropped
+    ? original
+    : error({msg: "data was cropped", original, cropped})
+  ' sample.json
+```
+
+which produces
+
+```mdtest-output
+error({
+    msg: "data was cropped",
+    original: {
+        kind: "dns",
+        server: {
+            addr: "10.0.0.100",
+            port: 53
+        },
+        client: {
+            addr: "10.47.1.100",
+            port: 41772
+        },
+        uid: "C2zK5f13SbCtKcyiW5"
+    },
+    cropped: {
+        kind: "dns",
+        server: {
+            addr: "10.0.0.100",
+            port: 53
+        },
+        client: {
+            addr: "10.47.1.100",
+            port: 41772
+        }
+    }
+})
+```
+
+
 ## Type Fusion
 
 Type fusion is another important building block of data shaping.
