@@ -11,4 +11,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      join operator requires two inputs
+      join requires two upstream parallel query paths

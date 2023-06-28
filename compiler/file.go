@@ -26,19 +26,10 @@ func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reade
 	if err != nil {
 		return nil, err
 	}
-	if isJoin(seq) {
-		if len(readers) != 2 {
-			return nil, errors.New("join operator requires two inputs")
-		}
-		if len(job.readers) != 2 {
-			return nil, errors.New("internal error: join expected by semantic analyzer")
-		}
-		job.readers[0].Readers = readers[0:1]
-		job.readers[1].Readers = readers[1:2]
-	} else if len(readers) == 0 {
+	if len(readers) == 0 {
 		// If there's no reader but the DAG wants an input, then
 		// flag an error.
-		if len(job.readers) != 0 {
+		if job.reader != nil {
 			return nil, errors.New("no input specified: use a command-line file or a Zed source operator")
 		}
 	} else {
@@ -47,13 +38,10 @@ func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reade
 		// TBD: we could have such a configuration is a composite
 		// from command includes a "pass" operator, but we can add this later.
 		// See issue #2640.
-		if len(job.readers) == 0 {
+		if job.reader == nil {
 			return nil, errors.New("redundant inputs specified: use either command-line files or a Zed source operator")
 		}
-		if len(job.readers) != 1 {
-			return nil, errors.New("Zed query requires a single input path")
-		}
-		job.readers[0].Readers = readers
+		job.reader.Readers = readers
 	}
 	return optimizeAndBuild(job)
 }
@@ -64,19 +52,6 @@ func (*fsCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism i
 
 func (*fsCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Seq, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
 	panic("NewLakeDeleteQuery called on compiler.fsCompiler")
-}
-
-func isJoin(seq ast.Seq) bool {
-	if len(seq) == 0 {
-		return false
-	}
-	switch op := seq[0].(type) {
-	case *ast.Join:
-		return true
-	case *ast.Scope:
-		return isJoin(op.Body)
-	}
-	return false
 }
 
 func optimizeAndBuild(job *Job) (*runtime.Query, error) {

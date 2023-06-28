@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast"
@@ -29,12 +30,12 @@ func CompileWithSortKey(octx *op.Context, seq ast.Seq, r zio.Reader, sortKey ord
 	if err != nil {
 		return nil, err
 	}
-	readers := job.readers
-	if len(readers) != 1 {
-		return nil, fmt.Errorf("CompileWithSortKey: Zed program expected %d readers", len(readers))
+	reader := job.reader
+	if reader == nil {
+		return nil, errors.New("CompileWithSortKey: Zed program expected a reader")
 	}
-	readers[0].Readers = []zio.Reader{r}
-	readers[0].SortKey = sortKey
+	reader.Readers = []zio.Reader{r}
+	reader.SortKey = sortKey
 	return optimizeAndBuild(job)
 }
 

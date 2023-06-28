@@ -1,17 +1,22 @@
 script: |
-  zc -C "join on x=x p:=a"
+  zc -C "join (file test.zson) on x=x p:=a"
   echo ===
-  zc -C -s "join on x=x p:=a"
+  zc -C -s "join (file test.zson) on x=x p:=a"
 
 outputs:
   - name: stdout
     data: |
-      join on x=x p:=a
+      join (
+        from (
+          file test.zson
+        )
+      ) on x=x p:=a
       ===
-      fork (
+      reader
+      | fork (
         =>
-          reader
+          pass
         =>
-          reader
+          file test.zson
       )
       | join on x=x p:=a

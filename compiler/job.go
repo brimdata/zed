@@ -20,7 +20,7 @@ type Job struct {
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
 	outputs   []zbuf.Puller
-	readers   []*kernel.Reader
+	reader    *kernel.Reader
 	puller    zbuf.Puller
 	entry     dag.Seq
 }
@@ -40,7 +40,7 @@ func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Comm
 	if len(seq) == 0 {
 		return nil, errors.New("internal error: AST seq cannot be empty")
 	}
-	from, readers, err := buildFrom(seq[0], head)
+	from, reader, err := buildFrom(seq[0], head)
 	if err != nil {
 		return nil, err
 	}
@@ -55,38 +55,24 @@ func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Comm
 		octx:      octx,
 		builder:   kernel.NewBuilder(octx, src),
 		optimizer: optimizer.New(octx.Context, src),
-		readers:   readers,
+		reader:    reader,
 		entry:     entry,
 	}, nil
 }
 
-func buildFrom(op ast.Op, head *lakeparse.Commitish) (*ast.From, []*kernel.Reader, error) {
-	var readers []*kernel.Reader
+func buildFrom(op ast.Op, head *lakeparse.Commitish) (*ast.From, *kernel.Reader, error) {
 	var from *ast.From
 	switch op := op.(type) {
 	case *ast.From:
 		// Already have an entry point with From.  Do nothing.
 		return nil, nil, nil
-	case *ast.Join:
-		readers = []*kernel.Reader{{}, {}}
-		trunk0 := ast.Trunk{
-			Kind:   "Trunk",
-			Source: readers[0],
-		}
-		trunk1 := ast.Trunk{
-			Kind:   "Trunk",
-			Source: readers[1],
-		}
-		return &ast.From{
-			Kind:   "From",
-			Trunks: []ast.Trunk{trunk0, trunk1},
-		}, readers, nil
 	case *ast.Scope:
 		if len(op.Body) == 0 {
 			return nil, nil, errors.New("internal error: scope op has empty body")
 		}
 		return buildFrom(op.Body[0], head)
 	default:
+		var readers *kernel.Reader
 		trunk := ast.Trunk{Kind: "Trunk"}
 		if head != nil {
 			// For the lakes, if there is no from operator, then
@@ -102,8 +88,8 @@ func buildFrom(op ast.Op, head *lakeparse.Commitish) (*ast.From, []*kernel.Reade
 				},
 			}
 		} else {
-			readers = []*kernel.Reader{{}}
-			trunk.Source = readers[0]
+			readers = &kernel.Reader{}
+			trunk.Source = readers
 		}
 		from = &ast.From{
 			Kind:   "From",
