@@ -262,7 +262,7 @@ Since these error values are nested inside an otherwise healthy record, adding
 [`has_error(this)`](functions/has_error.md) downstream in our Zed pipeline
 could help find or exclude such records.  If the failure to shape _any_ single
 field is considered severe enough to render the entire input record unhealthy,
-[conditional logic](expressions.md#conditional)
+[a conditional expression](expressions.md#conditional)
 could be applied to wrap the input record as an error while including detail
 to debug the problem, e.g.,
 
