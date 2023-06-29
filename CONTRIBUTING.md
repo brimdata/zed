@@ -17,7 +17,7 @@ in [runtime/expr/agg](runtime/expr/agg).
 
 ## Development
 
-`zed` requires Go 1.19 or later, and uses [Go modules](https://github.com/golang/go/wiki/Modules).
+`zed` requires Go 1.20 or later, and uses [Go modules](https://github.com/golang/go/wiki/Modules).
 Compilation for 32-bit target environments is not currently supported
 (see [zed/4044](https://github.com/brimdata/zed/issues/4044)).
 Dependencies are specified in the [`go.mod` file](./go.mod) and fetched
