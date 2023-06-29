@@ -75,7 +75,7 @@ func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.T
 	if typ == nil || len(typ.Fields) != 2 {
 		return nil, nil, nil, nil
 	}
-	nkey, ok := typ.ColumnOfField("key")
+	nkey, ok := typ.IndexOfField("key")
 	if !ok {
 		return nil, nil, nil, nil
 	}

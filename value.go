@@ -369,9 +369,9 @@ func (v *Value) DerefByColumn(col int) *Value {
 	return v
 }
 
-func (v *Value) ColumnOfField(field string) (int, bool) {
+func (v *Value) IndexOfField(field string) (int, bool) {
 	if typ := TypeRecordOf(v.Type); typ != nil {
-		return typ.ColumnOfField(field)
+		return typ.IndexOfField(field)
 	}
 	return 0, false
 }
@@ -380,11 +380,11 @@ func (v *Value) Deref(field string) *Value {
 	if v == nil {
 		return nil
 	}
-	col, ok := v.ColumnOfField(field)
+	i, ok := v.IndexOfField(field)
 	if !ok {
 		return nil
 	}
-	return v.DerefByColumn(col)
+	return v.DerefByColumn(i)
 }
 
 func (v *Value) DerefPath(path field.Path) *Value {

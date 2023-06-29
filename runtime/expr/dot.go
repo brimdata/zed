@@ -66,7 +66,7 @@ func (d *DotExpr) fieldIndex(typ *zed.TypeRecord) (int, bool) {
 	} else if i < 0 {
 		return 0, false
 	}
-	i, ok := typ.ColumnOfField(d.field)
+	i, ok := typ.IndexOfField(d.field)
 	if ok {
 		d.fieldIndices[id] = i + 1
 	} else {

@@ -234,7 +234,7 @@ func (t *TypeRecord) ID() int {
 	return t.id
 }
 
-func (t *TypeRecord) ColumnOfField(field string) (int, bool) {
+func (t *TypeRecord) IndexOfField(field string) (int, bool) {
 	v, ok := t.LUT[field]
 	return v, ok
 }

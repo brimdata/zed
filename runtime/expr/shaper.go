@@ -375,7 +375,7 @@ Switch:
 func newRecordStep(zctx *zed.Context, in *zed.TypeRecord, out zed.Type) (step, error) {
 	var children []step
 	for _, outField := range zed.TypeRecordOf(out).Fields {
-		ind, ok := in.ColumnOfField(outField.Name)
+		ind, ok := in.IndexOfField(outField.Name)
 		if !ok {
 			children = append(children, step{op: null, toType: outField.Type})
 			continue
