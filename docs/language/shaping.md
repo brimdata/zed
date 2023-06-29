@@ -225,7 +225,7 @@ file `malformed.json`.
     "addr": "39 Elm Street",
     "port": 41772
   },
-  vlan: "available"
+  "vlan": "available"
 }
 ```
 
