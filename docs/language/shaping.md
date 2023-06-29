@@ -313,7 +313,7 @@ error({
 }) (error({msg:string,original:{kind:string,server:{addr:string,port:int64},client:{addr:string,port:int64},vlan:string},shaped:{kind:string,client:{addr:error({message:string,on:string}),port:port=uint16},server:socket={addr:ip,port:port},vlan:error({message:string,on:string})}}))
 ```
 
-If you require awareness about changes made by the core shaping functions that
+If you require awareness about changes made by the shaping functions that
 aren't surfaced as errors, a similar wrapping approach can be used with a
 general check for equality. For example, to treat cropped fields as an error,
 we can execute
