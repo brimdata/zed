@@ -44,7 +44,7 @@ type typeName struct {
 
 func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	if zed.TypeUnder(args[0].Type) != zed.TypeString {
-		return newErrorf(t.zctx, ectx, "typename: first argument not a string")
+		return wrapError(t.zctx, ectx, "typename: first argument not a string", &args[0])
 	}
 	name := string(args[0].Bytes())
 	if len(args) == 1 {
@@ -55,7 +55,7 @@ func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 		return t.zctx.LookupTypeValue(typ)
 	}
 	if zed.TypeUnder(args[1].Type) != zed.TypeType {
-		return newErrorf(t.zctx, ectx, "typename: second argument not a type value")
+		return wrapError(t.zctx, ectx, "typename: second argument not a type value", &args[1])
 	}
 	typ, err := t.zctx.LookupByValue(args[1].Bytes())
 	if err != nil {

@@ -19,7 +19,7 @@ type Regexp struct {
 
 func (r *Regexp) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if !args[0].IsString() {
-		return newErrorf(r.zctx, ctx, "regexp: string required for first arg")
+		return wrapError(r.zctx, ctx, "regexp: string required for first arg", &args[0])
 	}
 	s := zed.DecodeString(args[0].Bytes())
 	if r.restr != s {
@@ -30,7 +30,7 @@ func (r *Regexp) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return newErrorf(r.zctx, ctx, "regexp: %s", r.err)
 	}
 	if !args[1].IsString() {
-		return newErrorf(r.zctx, ctx, "regexp: string required for second arg")
+		return wrapError(r.zctx, ctx, "regexp: string required for second arg", &args[1])
 	}
 	r.builder.Reset()
 	for _, b := range r.re.FindSubmatch(args[1].Bytes()) {
@@ -54,8 +54,10 @@ func (r *RegexpReplace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	sVal := args[0]
 	reVal := args[1]
 	newVal := args[2]
-	if !sVal.IsString() || !reVal.IsString() || !newVal.IsString() {
-		return newErrorf(r.zctx, ctx, "regexp_replace: string values required for all args")
+	for i := range args {
+		if !args[i].IsString() {
+			return wrapError(r.zctx, ctx, "regexp_replace: string arg required", &args[i])
+		}
 	}
 	if sVal.IsNull() {
 		return zed.Null

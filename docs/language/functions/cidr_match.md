@@ -46,5 +46,5 @@ echo '10.0.0.1' | zq -z 'yield cidr_match([1,2,3], this)' -
 ```
 =>
 ```mdtest-output
-error("cidr_match: not a net: [1,2,3]")
+error({message:"cidr_match: not a net",on:[1,2,3]})
 ```

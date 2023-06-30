@@ -17,14 +17,14 @@ type NetworkOf struct {
 func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	id := args[0].Type.ID()
 	if id != zed.IDIP {
-		return newErrorf(n.zctx, ctx, "network_of: not an IP")
+		return wrapError(n.zctx, ctx, "network_of: not an IP", &args[0])
 	}
 	ip := zed.DecodeIP(args[0].Bytes())
 	var bits int
 	if len(args) == 1 {
 		switch {
 		case !ip.Is4():
-			return newErrorf(n.zctx, ctx, "network_of: not an IPv4 address")
+			return wrapError(n.zctx, ctx, "network_of: not an IPv4 address", &args[0])
 		case ip.As4()[0] < 0x80:
 			bits = 8
 		case ip.As4()[0] < 0xc0:
@@ -39,11 +39,11 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		case id == zed.IDIP:
 			mask := zed.DecodeIP(body)
 			if mask.BitLen() != ip.BitLen() {
-				return newErrorf(n.zctx, ctx, "network_of: address %s and mask %s have different lengths", ip, mask)
+				return wrapError(n.zctx, ctx, "network_of: address and mask have different lengths", addressAndMask(&args[0], &args[1]))
 			}
 			bits = zed.LeadingOnes(mask.AsSlice())
 			if netip.PrefixFrom(mask, bits).Masked().Addr() != mask {
-				return newErrorf(n.zctx, ctx, "network_of: mask %s is non-contiguous", mask)
+				return wrapError(n.zctx, ctx, "network_of: mask is non-contiguous", &args[1])
 			}
 		case zed.IsInteger(id):
 			if zed.IsSigned(id) {
@@ -52,15 +52,26 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 				bits = int(args[1].Uint())
 			}
 			if bits > 128 || bits > 32 && ip.Is4() {
-				return newErrorf(n.zctx, ctx, "network_of: cidr bit count out of range")
+				return wrapError(n.zctx, ctx, "network_of: CIDR bit count out of range", addressAndMask(&args[0], &args[1]))
 			}
 		default:
-			return newErrorf(n.zctx, ctx, "network_of: bad arg for cidr mask")
+			return wrapError(n.zctx, ctx, "network_of: bad arg for CIDR mask", &args[1])
 		}
 	}
 	// Mask for canonical form.
 	prefix := netip.PrefixFrom(ip, bits).Masked()
 	return ctx.NewValue(zed.TypeNet, zed.EncodeNet(prefix))
+}
+
+func addressAndMask(address, mask *zed.Value) *zed.Value {
+	val, err := zson.MarshalZNG(struct {
+		Address *zed.Value `zed:"address"`
+		Mask    *zed.Value `zed:"mask"`
+	}{address, mask})
+	if err != nil {
+		panic(err)
+	}
+	return val
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#cidr_match
@@ -73,7 +84,7 @@ var errMatch = errors.New("match")
 func (c *CIDRMatch) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	maskVal := args[0]
 	if maskVal.Type.ID() != zed.IDNet {
-		return newErrorf(c.zctx, ctx, "cidr_match: not a net: %s", zson.String(maskVal))
+		return wrapError(c.zctx, ctx, "cidr_match: not a net", &maskVal)
 	}
 	prefix := zed.DecodeNet(maskVal.Bytes())
 	if errMatch == args[1].Walk(func(typ zed.Type, body zcode.Bytes) error {

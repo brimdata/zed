@@ -31,7 +31,7 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	} else {
 		d, ok := coerce.ToInt(binArg)
 		if !ok {
-			return newErrorf(b.zctx, ctx, "%s: second arg must be duration or number", b)
+			return wrapError(b.zctx, ctx, b.name+": second argument is not a duration or number", binArg)
 		}
 		bin = nano.Duration(d) * nano.Second
 	}
@@ -41,14 +41,7 @@ func (b *Bucket) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	}
 	v, ok := coerce.ToInt(tsArg)
 	if !ok {
-		return newErrorf(b.zctx, ctx, "%s: time arg required", b)
+		return wrapError(b.zctx, ctx, b.name+": first argument is not a time", tsArg)
 	}
 	return ctx.CopyValue(*zed.NewTime(nano.Ts(v).Trunc(bin)))
-}
-
-func (b *Bucket) String() string {
-	if b.name == "" {
-		return "bucket"
-	}
-	return b.name
 }
