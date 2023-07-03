@@ -25,7 +25,7 @@ echo '1 -1 0 -1.0 -1(int8) 1(uint8) "foo"' | zq -z 'yield abs(this)' -
 1
 0
 1.
-1
+1(int8)
 1(uint8)
 error({message:"abs: not a number",on:"foo"})
 ```

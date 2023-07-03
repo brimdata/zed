@@ -14,31 +14,20 @@ type Abs struct {
 }
 
 func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	v := args[0]
-	id := v.Type.ID()
-	if id == zed.IDFloat16 {
-		f := math.Abs(v.Float())
-		return newFloat16(ctx, float32(f))
+	val := &args[0]
+	switch id := val.Type.ID(); {
+	case zed.IsUnsigned(id):
+		return ctx.CopyValue(*val)
+	case zed.IsSigned(id):
+		x := val.Int()
+		if x < 0 {
+			x = -x
+		}
+		return ctx.CopyValue(*zed.NewInt(val.Type, x))
+	case zed.IsFloat(id):
+		return ctx.CopyValue(*zed.NewFloat(val.Type, math.Abs(val.Float())))
 	}
-	if id == zed.IDFloat32 {
-		f := math.Abs(v.Float())
-		return newFloat32(ctx, float32(f))
-	}
-	if id == zed.IDFloat64 {
-		f := math.Abs(v.Float())
-		return newFloat64(ctx, f)
-	}
-	if !zed.IsInteger(id) {
-		return wrapError(a.zctx, ctx, "abs: not a number", &v)
-	}
-	if !zed.IsSigned(id) {
-		return ctx.CopyValue(args[0])
-	}
-	x := v.Int()
-	if x < 0 {
-		x = -x
-	}
-	return ctx.CopyValue(*zed.NewInt64(x))
+	return wrapError(a.zctx, ctx, "abs: not a number", val)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
@@ -47,23 +36,14 @@ type Ceil struct {
 }
 
 func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	v := args[0]
-	id := v.Type.ID()
-	switch {
-	case id == zed.IDFloat16:
-		f := math.Ceil(v.Float())
-		return newFloat16(ctx, float32(f))
-	case id == zed.IDFloat32:
-		f := math.Ceil(v.Float())
-		return newFloat32(ctx, float32(f))
-	case id == zed.IDFloat64:
-		f := math.Ceil(v.Float())
-		return newFloat64(ctx, f)
-	case zed.IsInteger(id):
-		return ctx.CopyValue(args[0])
-	default:
-		return wrapError(c.zctx, ctx, "ceil: not a number", &v)
+	val := &args[0]
+	switch id := val.Type.ID(); {
+	case zed.IsUnsigned(id) || zed.IsSigned(id):
+		return ctx.CopyValue(*val)
+	case zed.IsFloat(id):
+		return ctx.CopyValue(*zed.NewFloat(val.Type, math.Ceil(val.Float())))
 	}
+	return wrapError(c.zctx, ctx, "ceil: not a number", val)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#floor
@@ -72,23 +52,14 @@ type Floor struct {
 }
 
 func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	v := args[0]
-	id := v.Type.ID()
-	switch {
-	case id == zed.IDFloat16:
-		v := math.Floor(v.Float())
-		return newFloat16(ctx, float32(v))
-	case id == zed.IDFloat32:
-		v := math.Floor(v.Float())
-		return newFloat32(ctx, float32(v))
-	case id == zed.IDFloat64:
-		v := math.Floor(v.Float())
-		return newFloat64(ctx, v)
-	case zed.IsInteger(id):
-		return ctx.CopyValue(args[0])
-	default:
-		return wrapError(f.zctx, ctx, "floor: not a number", &v)
+	val := &args[0]
+	switch id := val.Type.ID(); {
+	case zed.IsUnsigned(id) || zed.IsSigned(id):
+		return ctx.CopyValue(*val)
+	case zed.IsFloat(id):
+		return ctx.CopyValue(*zed.NewFloat(val.Type, math.Floor(val.Float())))
 	}
+	return wrapError(f.zctx, ctx, "floor: not a number", val)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#log
@@ -115,25 +86,18 @@ type reducer struct {
 
 func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val0 := &args[0]
-	typ := val0.Type
-	id := typ.ID()
-	if zed.IsFloat(id) {
-		//XXX this is wrong like math aggregators...
-		// need to be more robust and adjust type as new types encountered
-		result := val0.Float()
+	switch id := val0.Type.ID(); {
+	case zed.IsUnsigned(id):
+		result := val0.Uint()
 		for _, val := range args[1:] {
-			v, ok := coerce.ToFloat(&val)
+			v, ok := coerce.ToUint(&val)
 			if !ok {
 				return wrapError(r.zctx, ctx, r.name+": not a number", &val)
 			}
-			result = r.fn.Float64(result, v)
+			result = r.fn.Uint64(result, v)
 		}
-		return newFloat64(ctx, result)
-	}
-	if !zed.IsNumber(id) {
-		return wrapError(r.zctx, ctx, r.name+": not a number", val0)
-	}
-	if zed.IsSigned(id) {
+		return ctx.CopyValue(*zed.NewUint64(result))
+	case zed.IsSigned(id):
 		result := val0.Int()
 		for _, val := range args[1:] {
 			//XXX this is really bad because we silently coerce
@@ -145,16 +109,20 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			result = r.fn.Int64(result, v)
 		}
 		return ctx.CopyValue(*zed.NewInt64(result))
-	}
-	result := val0.Uint()
-	for _, val := range args[1:] {
-		v, ok := coerce.ToUint(&val)
-		if !ok {
-			return wrapError(r.zctx, ctx, r.name+": not a number", &val)
+	case zed.IsFloat(id):
+		//XXX this is wrong like math aggregators...
+		// need to be more robust and adjust type as new types encountered
+		result := val0.Float()
+		for _, val := range args[1:] {
+			v, ok := coerce.ToFloat(&val)
+			if !ok {
+				return wrapError(r.zctx, ctx, r.name+": not a number", &val)
+			}
+			result = r.fn.Float64(result, v)
 		}
-		result = r.fn.Uint64(result, v)
+		return ctx.CopyValue(*zed.NewFloat64(result))
 	}
-	return ctx.CopyValue(*zed.NewUint64(result))
+	return wrapError(r.zctx, ctx, r.name+": not a number", val0)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
@@ -164,20 +132,13 @@ type Round struct {
 
 func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := &args[0]
-	id := val.Type.ID()
-	if id == zed.IDFloat16 {
-		return newFloat16(ctx, float32(math.Round(val.Float())))
+	switch id := val.Type.ID(); {
+	case zed.IsUnsigned(id) || zed.IsSigned(id):
+		return ctx.CopyValue(*val)
+	case zed.IsFloat(id):
+		return ctx.CopyValue(*zed.NewFloat(val.Type, math.Round(val.Float())))
 	}
-	if id == zed.IDFloat32 {
-		return newFloat32(ctx, float32(math.Round(val.Float())))
-	}
-	if id == zed.IDFloat64 {
-		return newFloat64(ctx, math.Round(val.Float()))
-	}
-	if !zed.IsNumber(id) {
-		return wrapError(r.zctx, ctx, "round: not a number", val)
-	}
-	return ctx.CopyValue(args[0])
+	return wrapError(r.zctx, ctx, "round: not a number", val)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#pow
