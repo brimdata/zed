@@ -19,7 +19,7 @@ is Zeek's default output format for logs. This format can be read automatically
 with the Zed tools such as `zq`.
 
 The following example shows a TSV `conn.log` being read via `zq` and
-output as [ZSON](../docs/formats/zson.md).
+output as [ZSON](../../formats/zson.md).
 
 #### conn.log:
 
@@ -74,9 +74,9 @@ zq -Z 'head 1' conn.log
 Other than Zed, Zeek provides one of the richest data typing systems available
 and therefore such records typically need no adjustment to their data types
 once they've been read in as is. The
-[Zed/Zeek Data Type Compatibility](Data-Type-Compatibility.md) document
+[Zed/Zeek Data Type Compatibility](data-type-compatibility.md) document
 provides further detail on how the rich data types in Zeek TSV map to the
-equivalent [rich types in Zed](../docs/formats/zson.md#33-primitive-values).
+equivalent [rich types in Zed](../../formats/zson.md#23-primitive-values).
 
 # Zeek NDJSON
 
@@ -148,10 +148,10 @@ that Zeek chose to output these values in NDJSON as it did. Furthermore, if
 you were just seeking to do quick searches on the string values or simple math
 on the numbers, these limitations may be acceptable. However, if you intended
 to perform operations like
-[aggregations with time-based grouping](../docs/language/functions/bucket.md)
-or [CIDR matches](../docs/language/functions/network_of.md)
+[aggregations with time-based grouping](../../language/functions/bucket.md)
+or [CIDR matches](../../language/functions/network_of.md)
 on IP addresses, you would likely want to restore the rich Zed data types as
-the records are being read. The document on [Shaping Zeek NDJSON](Shaping-Zeek-NDJSON.md)
+the records are being read. The document on [Shaping Zeek NDJSON](shaping-zeek-ndjson.md)
 provides details on how this can be done.
 
 # The Role of `_path`
@@ -159,7 +159,7 @@ provides details on how this can be done.
 Zeek's `_path` field plays an important role in differentiating between its
 different [log types](https://docs.zeek.org/en/master/script-reference/log-files.html)
 (`conn`, `dns`, etc.) For instance,
-[shaping Zeek NDJSON](Shaping-Zeek-NDJSON.md) relies on the value of
+[shaping Zeek NDJSON](shaping-zeek-ndjson.md) relies on the value of
 the `_path` field to know which Zed type to apply to an input NDJSON
 record.
 

@@ -14,11 +14,11 @@
 
 # Summary
 
-As described in [Reading Zeek Log Formats](Reading-Zeek-Log-Formats.md),
+As described in [Reading Zeek Log Formats](reading-zeek-log-formats.md),
 logs output by Zeek in NDJSON format lose much of their rich data typing that
 was originally present inside Zeek. This detail can be restored using a Zed
-shaper, such as the reference [`shaper.zed`](shaper.zed)
-that can be found in this directory of the repository.
+shaper, such as the reference [`shaper.zed`](https://github.com/brimdata/zed/blob/main/zio/zeekio/ztests/shaper.zed)
+that can be found in the Zed repository.
 
 A full description of all that's possible with shapers is beyond the scope of
 this doc. However, this example for shaping Zeek NDJSON is quite simple and
@@ -70,7 +70,7 @@ type port=uint16;
 type zenum=string;
 type conn_id={orig_h:ip,orig_p:port,resp_h:ip,resp_p:port};
 ```
-The `port` and `zenum` types are described further in the [Zed/Zeek Data Type Compatibility](Data-Type-Compatibility.md)
+The `port` and `zenum` types are described further in the [Zed/Zeek Data Type Compatibility](data-type-compatibility.md)
 doc. The `conn_id` type will just save us from having to repeat these fields
 individually in the many Zeek record types that contain an embedded `id`
 record.
@@ -81,7 +81,7 @@ The bulk of this Zed shaper consists of detailed per-field data type
 definitions for each record in the default set of NDJSON logs output by Zeek.
 These type definitions reference the types we defined above, such as `port`
 and `conn_id`. The syntax for defining primitive and complex types follows the
-relevant sections of the [ZSON Format](../docs/formats/zson.md#3-the-zson-format)
+relevant sections of the [ZSON Format](../../formats/zson.md#2-the-zson-format)
 specification.
 
 ```
@@ -91,7 +91,7 @@ type dce_rpc={_path:string,ts:time,uid:string,id:conn_id,rtt:duration,named_pipe
 ...
 ```
 
-> **Note:** See [the role of `_path` ](Reading-Zeek-Log-Formats.md#the-role-of-_path)
+> **Note:** See [the role of `_path` ](reading-zeek-log-formats.md#the-role-of-_path)
 > for important details if you're using Zeek's built-in [ASCII logger](https://docs.zeek.org/en/current/scripts/base/frameworks/logging/writers/ascii.zeek.html)
 > to generate NDJSON rather than the [JSON Streaming Logs](https://github.com/corelight/json-streaming-logs) package.
 
@@ -186,7 +186,7 @@ A shaper is typically invoked via the `-I` option of `zq`.
 
 For example, if working in a directory containing many NDJSON logs, the
 reference shaper can be applied to all the records they contain and
-output them all in a single binary [ZNG](../docs/formats/zng.md) file as
+output them all in a single binary [ZNG](../../formats/zng.md) file as
 follows:
 
 ```
@@ -217,7 +217,7 @@ than relying on external mechanisms such as shell aliases.
 
 # Importing Shaped Data Into Zui
 
-If you wish to browse your shaped data with [Zui](https://github.com/brimdata/zui),
+If you wish to browse your shaped data with [Zui](https://zui.brimdata.io/),
 the best way to accomplish this at the moment would be to use `zq` to convert
 it to ZNG [as shown above](#invoking-the-shaper-from-zq), then drag the ZNG
 into Zui as you would any other log. An enhancement [zed/2695](https://github.com/brimdata/zed/issues/2695)
