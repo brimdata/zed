@@ -1,17 +1,9 @@
+---
+sidebar_position: 2
+sidebar_label: Zed/Zeek Data Type Compatibility
+---
+
 # Zed/Zeek Data Type Compatibility
-
-- [Introduction](#introduction)
-- [Equivalent Types](#equivalent-types)
-- [Example](#example)
-- [Type-Specific Details](#type-specific-details)
-  * [`double`](#double)
-  * [`enum`](#enum)
-  * [`port`](#port)
-  * [`set`](#set)
-  * [`string`](#string)
-  * [`record`](#record)
-
-## Introduction
 
 As the Zed data model was in many ways inspired by the
 [Zeek TSV log format](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs),

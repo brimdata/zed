@@ -1,18 +1,9 @@
+---
+sidebar_position: 3
+sidebar_label: Shaping Zeek NDJSON
+---
+
 # Shaping Zeek NDJSON
-
-- [Summary](#summary)
-- [Zeek Version/Configuration](#zeek-versionconfiguration)
-- [Reference Shaper Contents](#reference-shaper-contents)
-  * [Leading Type Definitions](#leading-type-definitions)
-  * [Default Type Definitions Per Zeek Log `_path`](#default-type-definitions-per-zeek-log-_path)
-  * [Version-Specific Type Definitions](#version-specific-type-definitions)
-  * [Mapping From `_path` Values to Types](#mapping-from-_path-values-to-types)
-  * [Zed Pipeline](#zed-pipeline)
-- [Invoking the Shaper From `zq`](#invoking-the-shaper-from-zq)
-- [Importing Shaped Data Into Zui](#importing-shaped-data-into-zui)
-- [Contact us!](#contact-us)
-
-# Summary
 
 As described in [Reading Zeek Log Formats](reading-zeek-log-formats.md),
 logs output by Zeek in NDJSON format lose much of their rich data typing that
@@ -24,7 +15,7 @@ A full description of all that's possible with shapers is beyond the scope of
 this doc. However, this example for shaping Zeek NDJSON is quite simple and
 is described below.
 
-# Zeek Version/Configuration
+## Zeek Version/Configuration
 
 The fields and data types in the reference `shaper.zed` reflect the default
 NDJSON-format logs output by Zeek releases up to the version number referenced
@@ -55,12 +46,12 @@ inferred types to such additional fields. By exploring your data, you can then
 iteratively enhance your shaper to match your environment. If you need
 assistance, please speak up on our [public Slack](https://www.brimdata.io/join-slack/).
 
-# Reference Shaper Contents
+## Reference Shaper Contents
 
 The reference `shaper.zed` may seem large, but ultimately it follows a
 fairly simple pattern that repeats across the many [Zeek log types](https://docs.zeek.org/en/master/script-reference/log-files.html).
 
-## Leading Type Definitions
+### Leading Type Definitions
 
 The top three lines define types that are referenced further below in the main
 portion of the Zed shaper.
@@ -75,7 +66,7 @@ doc. The `conn_id` type will just save us from having to repeat these fields
 individually in the many Zeek record types that contain an embedded `id`
 record.
 
-## Default Type Definitions Per Zeek Log `_path`
+### Default Type Definitions Per Zeek Log `_path`
 
 The bulk of this Zed shaper consists of detailed per-field data type
 definitions for each record in the default set of NDJSON logs output by Zeek.
@@ -95,7 +86,7 @@ type dce_rpc={_path:string,ts:time,uid:string,id:conn_id,rtt:duration,named_pipe
 > for important details if you're using Zeek's built-in [ASCII logger](https://docs.zeek.org/en/current/scripts/base/frameworks/logging/writers/ascii.zeek.html)
 > to generate NDJSON rather than the [JSON Streaming Logs](https://github.com/corelight/json-streaming-logs) package.
 
-## Version-Specific Type Definitions
+### Version-Specific Type Definitions
 
 The next block of type definitions are exceptions for Zeek v4.1.0 where the
 names of fields for certain log types have changed from prior releases.
@@ -105,7 +96,7 @@ type ssl_4_1_0={_path:string,ts:time,uid:string,id:conn_id,version:string,cipher
 type x509_4_1_0={_path:string,ts:time,fingerprint:string,certificate:{version:uint64,serial:string,subject:string,issuer:string,not_valid_before:time,not_valid_after:time,key_alg:string,sig_alg:string,key_type:string,key_length:uint64,exponent:string,curve:string},san:{dns:[string],uri:[string],email:[string],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},host_cert:bool,client_cert:bool,_write_ts:time};
 ```
 
-## Mapping From `_path` Values to Types
+### Mapping From `_path` Values to Types
 
 The next section is just simple mapping from the string values typically found
 in the Zeek `_path` field to the name of one of the types we defined above.
@@ -121,7 +112,7 @@ const schemas = |{
 ...
 ```
 
-## Zed Pipeline
+### Zed Pipeline
 
 The Zed shaper ends with a pipeline that stitches together everything we've defined
 so far.
@@ -180,7 +171,7 @@ steps:
    [zed/2776](https://github.com/brimdata/zed/issues/2776) both track planned
    future improvements to this part of Zed shapers.
 
-# Invoking the Shaper From `zq`
+## Invoking the Shaper From `zq`
 
 A shaper is typically invoked via the `-I` option of `zq`.
 
@@ -215,7 +206,7 @@ of your finalized shaper. [zed/1059](https://github.com/brimdata/zed/issues/1059
 tracks a planned enhancement to persist such settings within Zed itself rather
 than relying on external mechanisms such as shell aliases.
 
-# Importing Shaped Data Into Zui
+## Importing Shaped Data Into Zui
 
 If you wish to browse your shaped data with [Zui](https://zui.brimdata.io/),
 the best way to accomplish this at the moment would be to use `zq` to convert
@@ -226,7 +217,7 @@ Pool. This will allow you to drag the original NDJSON logs directly into the
 Pool in Zui and have the shaping applied as the records are being committed to
 the Pool.
 
-# Contact us!
+## Contact us!
 
 If you're having difficulty, interested in shaping other data sources, or
 just have feedback, please join our [public Slack](https://www.brimdata.io/join-slack/)
