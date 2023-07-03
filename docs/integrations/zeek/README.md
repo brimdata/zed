@@ -5,6 +5,6 @@ with logs from the [Zeek](https://zeek.org/) open source network security
 monitoring tool. Depending on how you use Zeek, one or more of the following
 docs may be of interest to you.
 
-* [Reading Zeek Log Formats](Reading-Zeek-Log-Formats.md)
-* [Zed/Zeek Data Type Compatibility](Data-Type-Compatibility.md)
-* [Shaping Zeek NDJSON](Shaping-Zeek-NDJSON.md)
+* [Reading Zeek Log Formats](reading-zeek-log-formats.md)
+* [Zed/Zeek Data Type Compatibility](data-type-compatibility.md)
+* [Shaping Zeek NDJSON](shaping-zeek-ndjson.md)
