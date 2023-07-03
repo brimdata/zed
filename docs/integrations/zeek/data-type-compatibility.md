@@ -178,7 +178,6 @@ these values are represented with a ZSON type name bound to the Zed `string`
 type. See the text above regarding [type definitions](#type-specific-details)
 for more details.
 
-
 ### `port`
 
 The numeric values that appear in Zeek logs under this type are represented
