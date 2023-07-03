@@ -365,7 +365,7 @@ questions.
 * Fix an issue where temporary spill-to-disk directories were not being deleted upon exit (#3009, #3010)
 * Fix a ZSON issue with `union` types with alias decorators (#3015, #3016)
 * The ZSON format has been changed such that integer type IDs are no longer output (#3017)
-* Update the reference Zed shaper for Zeek ([shaper](zio/zeekio/ztests/shaper.zed), [docs](docs/integrations/zeek/shaping-zeek-ndjson.md)) to reflect changes in Zeek release v4.1.0 (#3021)
+* Update the reference Zed shaper for Zeek ([docs](docs/integrations/zeek/shaping-zeek-ndjson.md)) to reflect changes in Zeek release v4.1.0 (#3021)
 * Fix an issue where backslash escapes in Zed regular expressions were not accepted (#3040)
 * The ZST format has been updated to work for typedef'd outer records (#3047)
 * Fix an issue where an empty string could not be output as a JSON field name (#3054)
