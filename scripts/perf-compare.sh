@@ -6,6 +6,9 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
+SHAPER=$(mktemp)
+sed -e '1,/```mdtest-input shaper.zed/d' ../docs/integrations/zeek/shaping-zeek-ndjson.md | sed -e '/```/,$d' > "$SHAPER"
+
 DATA="../zed-sample-data"
 ln -sfn zeek-default "$DATA/zeek"
 ln -sfn zeek-ndjson "$DATA/ndjson"
@@ -84,7 +87,7 @@ do
         zed=${ZED_QUERIES[$n]}
         echo -n "|\`zq\`|\`$zed\`|$INPUT|$OUTPUT|" | tee -a "$MD"
         case $INPUT in
-          ndjson ) zq_flags="-i json -I ../zeek/shaper.zed" zed="| $zed" ;;
+          ndjson ) zq_flags="-i json -I $SHAPER" zed="| $zed" ;;
           zng-uncompressed ) zq_flags="-i zng" ;;
           * ) zq_flags="-i $INPUT" ;;
         esac
