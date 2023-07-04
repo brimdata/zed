@@ -704,6 +704,8 @@ func isEntry(seq dag.Seq) bool {
 		return true
 	case *dag.Scope:
 		return isEntry(op.Body)
+	case *dag.UserOpCall:
+		return isEntry(op.Body)
 	case *dag.Fork:
 		if len(op.Paths) == 0 {
 			return false
