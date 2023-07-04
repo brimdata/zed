@@ -117,3 +117,5 @@ do
 
     echo | tee -a "$MD"
 done
+
+rm -f "$SHAPER"
