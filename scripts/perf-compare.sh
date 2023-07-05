@@ -87,7 +87,7 @@ do
         zed=${ZED_QUERIES[$n]}
         echo -n "|\`zq\`|\`$zed\`|$INPUT|$OUTPUT|" | tee -a "$MD"
         case $INPUT in
-          ndjson ) zq_flags="-i json -I $SHAPER" zed="| $zed" ;;
+          ndjson ) zq_flags="-i json -I $shaper" zed="| $zed" ;;
           zng-uncompressed ) zq_flags="-i zng" ;;
           * ) zq_flags="-i $INPUT" ;;
         esac
@@ -118,4 +118,4 @@ do
     echo | tee -a "$MD"
 done
 
-rm -f "$SHAPER"
+rm -f "$shaper"
