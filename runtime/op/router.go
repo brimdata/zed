@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/zbuf"
+	"golang.org/x/exp/slices"
 )
 
 type Selector interface {
@@ -79,12 +80,9 @@ func (r *Router) run() {
 }
 
 func (r *Router) blocked() bool {
-	for _, p := range r.routes {
-		if !p.blocked {
-			return false
-		}
-	}
-	return true
+	return !slices.ContainsFunc(r.routes, func(route *route) bool {
+		return !route.blocked
+	})
 }
 
 // Send an EOS to each unblocked route.  On return evertyhing is unblocked

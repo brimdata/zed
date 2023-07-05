@@ -2,6 +2,8 @@ package field
 
 import (
 	"strings"
+
+	"golang.org/x/exp/slices"
 )
 
 type Path []string
@@ -18,21 +20,7 @@ func (p Path) Leaf() string {
 }
 
 func (p Path) Equal(to Path) bool {
-	if p == nil {
-		return to == nil
-	}
-	if to == nil {
-		return false
-	}
-	if len(p) != len(to) {
-		return false
-	}
-	for k := range p {
-		if p[k] != to[k] {
-			return false
-		}
-	}
-	return true
+	return slices.Equal(p, to)
 }
 
 func (p Path) IsEmpty() bool {
@@ -52,12 +40,7 @@ func (p Path) In(list List) bool {
 }
 
 func (p Path) HasPrefixIn(set []Path) bool {
-	for _, item := range set {
-		if p.HasPrefix(item) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(set, p.HasPrefix)
 }
 
 func Dotted(s string) Path {
@@ -83,22 +66,11 @@ func (l List) String() string {
 }
 
 func (l List) Has(in Path) bool {
-	for _, f := range l {
-		if f.Equal(in) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(l, in.Equal)
 }
 
 func (l List) Equal(to List) bool {
-	if len(l) != len(to) {
-		return false
-	}
-	for k, f := range l {
-		if !f.Equal(to[k]) {
-			return false
-		}
-	}
-	return true
+	return slices.EqualFunc(l, to, func(a, b Path) bool {
+		return a.Equal(b)
+	})
 }

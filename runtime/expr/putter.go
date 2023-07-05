@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/slices"
 )
 
 // Putter is an Evaluator that modifies the record stream with computed values.
@@ -268,21 +269,9 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, 
 }
 
 func hasField(name string, fields []zed.Field) bool {
-	for _, f := range fields {
-		if f.Name == name {
-			return true
-		}
-	}
-	return false
-}
-
-func sameTypes(types []zed.Type, vals []zed.Value) bool {
-	for k, typ := range types {
-		if vals[k].Type != typ {
-			return false
-		}
-	}
-	return true
+	return slices.ContainsFunc(fields, func(f zed.Field) bool {
+		return f.Name == name
+	})
 }
 
 func (p *Putter) lookupRule(inType *zed.TypeRecord, vals []zed.Value, clauses []Assignment) putRule {
@@ -298,6 +287,12 @@ func (p *Putter) lookupRule(inType *zed.TypeRecord, vals []zed.Value, clauses []
 	rule = putRule{typ, clauseTypes, step}
 	p.rules[inType.ID()] = rule
 	return rule
+}
+
+func sameTypes(types []zed.Type, vals []zed.Value) bool {
+	return slices.EqualFunc(types, vals, func(typ zed.Type, val zed.Value) bool {
+		return typ == val.Type
+	})
 }
 
 func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {

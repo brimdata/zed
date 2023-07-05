@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 // Implied returns true for primitive types whose type can be inferred
@@ -21,12 +22,9 @@ func Implied(typ zed.Type) bool {
 	case *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime, *zed.TypeOfFloat64, *zed.TypeOfBool, *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfType, *zed.TypeOfNull:
 		return true
 	case *zed.TypeRecord:
-		for _, f := range typ.Fields {
-			if !Implied(f.Type) {
-				return false
-			}
-		}
-		return true
+		return !slices.ContainsFunc(typ.Fields, func(f zed.Field) bool {
+			return !Implied(f.Type)
+		})
 	case *zed.TypeArray:
 		return Implied(typ.Type)
 	case *zed.TypeSet:

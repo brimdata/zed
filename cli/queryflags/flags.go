@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zfmt"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/slices"
 )
 
 type Flags struct {
@@ -83,12 +84,7 @@ func isURLWithKnownScheme(path string, schemes ...string) bool {
 	if err != nil {
 		return false
 	}
-	for _, s := range schemes {
-		if u.Scheme == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(schemes, u.Scheme)
 }
 
 func (f *Flags) PrintStats(stats zbuf.Progress) {

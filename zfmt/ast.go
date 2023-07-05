@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr/agg"
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/slices"
 )
 
 func AST(p ast.Seq) string {
@@ -787,12 +788,9 @@ func IsBool(e ast.Expr) bool {
 }
 
 func isAggAssignments(assigns []ast.Assignment) bool {
-	for _, a := range assigns {
-		if isAggFunc(a.RHS) == nil {
-			return false
-		}
-	}
-	return true
+	return !slices.ContainsFunc(assigns, func(a ast.Assignment) bool {
+		return isAggFunc(a.RHS) == nil
+	})
 }
 
 func IsSearch(e ast.Expr) bool {
