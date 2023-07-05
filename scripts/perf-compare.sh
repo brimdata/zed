@@ -6,8 +6,8 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
-SHAPER=$(mktemp)
-sed -e '1,/```mdtest-input shaper.zed/d' ../docs/integrations/zeek/shaping-zeek-ndjson.md | sed -e '/```/,$d' > "$SHAPER"
+shaper=$(mktemp)
+sed -e '1,/```mdtest-input shaper.zed/d' -e '/```/,$d' ../docs/integrations/zeek/shaping-zeek-ndjson.md > "$shaper"
 
 DATA="../zed-sample-data"
 ln -sfn zeek-default "$DATA/zeek"
