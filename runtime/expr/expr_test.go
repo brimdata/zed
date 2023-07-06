@@ -161,21 +161,21 @@ func TestCompareNumbers(t *testing.T) {
 			`{x:%s (%s),s:"hello",i:10.1.1.1,n:10.1.0.0/16} (=0)`, one, typ)
 
 		testSuccessful(t, "x == s", record, ZSON("false"))
-		testSuccessful(t, "x != s", record, ZSON("false"))
+		testSuccessful(t, "x != s", record, ZSON("true"))
 		testSuccessful(t, "x < s", record, ZSON("false"))
 		testSuccessful(t, "x <= s", record, ZSON("false"))
 		testSuccessful(t, "x > s", record, ZSON("false"))
 		testSuccessful(t, "x >= s", record, ZSON("false"))
 
 		testSuccessful(t, "x == i", record, ZSON("false"))
-		testSuccessful(t, "x != i", record, ZSON("false"))
+		testSuccessful(t, "x != i", record, ZSON("true"))
 		testSuccessful(t, "x < i", record, ZSON("false"))
 		testSuccessful(t, "x <= i", record, ZSON("false"))
 		testSuccessful(t, "x > i", record, ZSON("false"))
 		testSuccessful(t, "x >= i", record, ZSON("false"))
 
 		testSuccessful(t, "x == n", record, ZSON("false"))
-		testSuccessful(t, "x != n", record, ZSON("false"))
+		testSuccessful(t, "x != n", record, ZSON("true"))
 		testSuccessful(t, "x < n", record, ZSON("false"))
 		testSuccessful(t, "x <= n", record, ZSON("false"))
 		testSuccessful(t, "x > n", record, ZSON("false"))
@@ -280,7 +280,7 @@ func TestCompareNonNumbers(t *testing.T) {
 				exp := fmt.Sprintf("%s %s %s", t1.field, op, t2.field)
 				// XXX we no longer have a way to
 				// propagate boolean "warnings"...
-				testSuccessful(t, exp, record, ZSON(`false`))
+				testSuccessful(t, exp, record, *zed.NewBool(op == "!="))
 			}
 		}
 	}

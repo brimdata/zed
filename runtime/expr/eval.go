@@ -181,19 +181,15 @@ func (e *Equal) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return zerr
 	}
 	if err != nil {
-		switch {
-		case err == coerce.Overflow:
-			// If there was overflow converting one to the other,
-			// we know they can't be equal.
+		if errors.Is(err, coerce.IncompatibleTypes) || errors.Is(err, coerce.Overflow) {
+			// If the types are incompatible or there was overflow,
+			// then, then we know the values can't be equal.
 			if e.equality {
 				return zed.False
 			}
 			return zed.True
-		case err == coerce.IncompatibleTypes:
-			return zed.False
-		default:
-			return e.zctx.NewError(err)
 		}
+		return e.zctx.NewError(err)
 	}
 	result := e.vals.Equal()
 	if !e.equality {
