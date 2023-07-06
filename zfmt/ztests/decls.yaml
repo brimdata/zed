@@ -12,7 +12,14 @@ inputs:
       const bar = "baz"
       op stamp(assignee): ( yield {...this, assignee, ts: now()} )
       op nop(foo): ( pass )
-      stamp("bob")
+      op joinTest(left_file, right_file, left_key, right_key, left_dest, right_source): (
+        file left_file | sort left_key
+        | inner join (
+          file right_file | sort right_key
+        ) on left_key = right_key left_dest := right_source
+      )
+      joinTest("fruit.ndjson", "people.ndjson", flavor, likes, eater, name)
+      | stamp("bob")
 
 outputs:
   - name: stdout
@@ -31,10 +38,22 @@ outputs:
       op nop(foo): (
         pass
       )
-      stamp("bob")
+      op joinTest(left_file, right_file, left_key, right_key, left_dest, right_source): (
+        from (
+          file left_file
+        )
+        | sort left_key
+        | join (
+          from (
+            file right_file
+          )
+          | sort right_key
+        ) on left_key=right_key left_dest:=right_source
+      )
+      joinTest("fruit.ndjson", "people.ndjson", flavor, likes, eater, name)
+      | stamp("bob")
       ===
-      reader
-      | (
+      (
         const foo = "bar"
         const bar = "baz"
         func fib(n): (
@@ -43,12 +62,16 @@ outputs:
         func add(a, b): (
           a+b
         )
-        op stamp(assignee): (
-          yield {...this,assignee:assignee,ts:now()}
-        )
-        op nop(foo): (
-          pass
-        )
         
-        stamp("bob")
+        file fruit.ndjson
+        | sort flavor
+        | fork (
+          =>
+            pass
+          =>
+            file people.ndjson
+            | sort likes
+        )
+        | join on flavor=likes eater:=name
+        | yield {...this,assignee:"bob",ts:now()}
       )

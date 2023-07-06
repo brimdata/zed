@@ -713,19 +713,7 @@ func (c *canon) scope(s *ast.Scope, parens bool) {
 
 func (c *canon) pool(p *ast.Pool) {
 	//XXX TBD name, from, to, id etc
-	var s string
-	switch specPool := p.Spec.Pool.(type) {
-	case nil:
-		// This is a lake meta-query.
-	case *ast.Glob:
-		s = specPool.Pattern
-	case *ast.Regexp:
-		s = "/" + specPool.Pattern + "/"
-	case *ast.String:
-		s = zson.QuotedString([]byte(specPool.Text))
-	default:
-		s = fmt.Sprintf("(unknown pool type %T)", specPool)
-	}
+	s := pattern(p.Spec.Pool)
 	if p.Spec.Commit != "" {
 		s += "@" + p.Spec.Commit
 	}
@@ -736,6 +724,23 @@ func (c *canon) pool(p *ast.Pool) {
 		s += " tap"
 	}
 	c.write("pool %s", s)
+}
+
+func pattern(p ast.Pattern) string {
+	switch p := p.(type) {
+	case nil:
+		return ""
+	case *ast.Glob:
+		return p.Pattern
+	case *ast.Regexp:
+		return "/" + p.Pattern + "/"
+	case *ast.String:
+		return p.Text
+	case *ast.QuotedString:
+		return zson.QuotedString([]byte(p.Text))
+	default:
+		return fmt.Sprintf("(unknown pattern type %T)", p)
+	}
 }
 
 func isAggFunc(e ast.Expr) *ast.Summarize {
@@ -815,7 +820,7 @@ func IsSearch(e ast.Expr) bool {
 
 func (c *canon) http(p *ast.HTTP) {
 	//XXX TBD other stuff
-	c.write("get %s", p.URL)
+	c.write("get %s", pattern(p.URL))
 	if p.Format != "" {
 		c.write(" format %s", p.Format)
 	}
@@ -833,7 +838,7 @@ func (c *canon) http(p *ast.HTTP) {
 
 func (c *canon) file(p *ast.File) {
 	//XXX TBD other stuff
-	c.write("file %s", p.Path)
+	c.write("file %s", pattern(p.Path))
 	if p.Format != "" {
 		c.write(" format %s", p.Format)
 	}

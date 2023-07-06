@@ -4,10 +4,11 @@ script: |
 inputs:
   - name: test.zed
     data: |
-      op fileA(): (
-        file A.zson | sort a 
+      const FILE = "A.zson"
+      op test(path): (
+        file path | sort a 
       )
-      fileA()
+      test(FILE)
   - name: A.zson
     data: |
       {a:5}

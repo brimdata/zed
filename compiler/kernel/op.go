@@ -331,8 +331,6 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return meta.NewDeleter(b.octx, parent, pool, filter, pruner, b.progress, b.deletes), nil
 	case *dag.Load:
 		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
-	case *dag.UserOpCall:
-		return b.compileUserOpCall(parent, v)
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
@@ -382,19 +380,6 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 		exit = combine.New(b.octx, exits)
 	}
 	return scope.NewExit(exit), nil
-}
-
-func (b *Builder) compileUserOpCall(parent zbuf.Puller, u *dag.UserOpCall) (zbuf.Puller, error) {
-	exits, err := b.compileSeq(u.Body, []zbuf.Puller{parent})
-	if err != nil {
-		return nil, err
-	}
-	if len(exits) > 1 {
-		// This can happen when output of the body
-		// is a fork or switch.
-		return combine.New(b.octx, exits), nil
-	}
-	return exits[0], nil
 }
 
 func (b *Builder) compileAssignments(assignments []dag.Assignment) ([]expr.Assignment, error) {
@@ -703,8 +688,6 @@ func isEntry(seq dag.Seq) bool {
 	case *Reader, *dag.Lister, *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan:
 		return true
 	case *dag.Scope:
-		return isEntry(op.Body)
-	case *dag.UserOpCall:
 		return isEntry(op.Body)
 	case *dag.Fork:
 		if len(op.Paths) == 0 {

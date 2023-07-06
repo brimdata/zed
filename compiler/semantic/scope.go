@@ -81,9 +81,9 @@ func (s *Scope) LookupExpr(name string) (dag.Expr, error) {
 	return nil, nil
 }
 
-func (s *Scope) LookupOp(name string) (*dag.UserOp, error) {
+func (s *Scope) lookupOp(name string) (*opDecl, error) {
 	if entry := s.lookupEntry(name); entry != nil {
-		d, ok := entry.ref.(*dag.UserOp)
+		d, ok := entry.ref.(*opDecl)
 		if !ok {
 			return nil, fmt.Errorf("symbol %q is not bound to an operator", name)
 		}

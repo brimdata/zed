@@ -94,6 +94,11 @@ type Glob struct {
 	Pattern string `json:"pattern"`
 }
 
+type QuotedString struct {
+	Kind string `json:"kind" unpack:""`
+	Text string `json:"text"`
+}
+
 type Regexp struct {
 	Kind    string `json:"kind" unpack:""`
 	Pattern string `json:"pattern"`
@@ -108,9 +113,10 @@ type Pattern interface {
 	PatternAST()
 }
 
-func (*Glob) PatternAST()   {}
-func (*Regexp) PatternAST() {}
-func (*String) PatternAST() {}
+func (*Glob) PatternAST()         {}
+func (*QuotedString) PatternAST() {}
+func (*Regexp) PatternAST()       {}
+func (*String) PatternAST()       {}
 
 type RecordExpr struct {
 	Kind  string       `json:"kind" unpack:""`
@@ -402,13 +408,13 @@ type (
 type (
 	File struct {
 		Kind    string   `json:"kind" unpack:""`
-		Path    string   `json:"path"`
+		Path    Pattern  `json:"path"`
 		Format  string   `json:"format"`
 		SortKey *SortKey `json:"sort_key"`
 	}
 	HTTP struct {
 		Kind    string      `json:"kind" unpack:""`
-		URL     string      `json:"url"`
+		URL     Pattern     `json:"url"`
 		Format  string      `json:"format"`
 		SortKey *SortKey    `json:"sort_key"`
 		Method  string      `json:"method"`
