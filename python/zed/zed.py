@@ -142,7 +142,7 @@ def _decode_value(typ, value):
         if name == 'decimal':
             return decimal.Decimal(value)
         if name == 'bool':
-            return value == 'T'
+            return value == 'true'
         if name == 'bytes':
             return binascii.a2b_hex(value[2:])
         if name == 'string':
