@@ -32,7 +32,7 @@ func TestAbs(t *testing.T) {
 
 	testError(t, "abs()", function.ErrTooFewArgs, "abs with no args")
 	testError(t, "abs(1, 2)", function.ErrTooManyArgs, "abs with too many args")
-	testSuccessful(t, `abs("hello")`, record, ZSON(`error("abs: not a number: \"hello\"")`))
+	testSuccessful(t, `abs("hello")`, record, ZSON(`error({message:"abs: not a number", on:"hello"})`))
 }
 
 func TestSqrt(t *testing.T) {
@@ -67,10 +67,10 @@ func TestMinMax(t *testing.T) {
 	testSuccessful(t, "max(2.0, -1)", record, *zed.NewFloat64(2))
 
 	// Fails on invalid types
-	testSuccessful(t, `min("hello", 2)`, record, ZSON(`error("min: not a number: \"hello\"")`))
-	testSuccessful(t, `max("hello", 2)`, record, ZSON(`error("max: not a number: \"hello\"")`))
-	testSuccessful(t, `min(1.2.3.4, 2)`, record, ZSON(`error("min: not a number: 1.2.3.4")`))
-	testSuccessful(t, `max(1.2.3.4, 2)`, record, ZSON(`error("max: not a number: 1.2.3.4")`))
+	testSuccessful(t, `min("hello", 2)`, record, ZSON(`error({message:"min: not a number",on:"hello"})`))
+	testSuccessful(t, `max("hello", 2)`, record, ZSON(`error({message:"max: not a number",on:"hello"})`))
+	testSuccessful(t, `min(1.2.3.4, 2)`, record, ZSON(`error({message:"min: not a number",on:1.2.3.4})`))
+	testSuccessful(t, `max(1.2.3.4, 2)`, record, ZSON(`error({message:"max: not a number",on:1.2.3.4})`))
 }
 
 func TestCeilFloorRound(t *testing.T) {
@@ -102,8 +102,8 @@ func TestLogPow(t *testing.T) {
 
 	testError(t, "log()", function.ErrTooFewArgs, "log() with no args")
 	testError(t, "log(2, 3)", function.ErrTooManyArgs, "log() with too many args")
-	testSuccessful(t, "log(0)", "", ZSON(`error("log: illegal argument: 0")`))
-	testSuccessful(t, "log(-1)", "", ZSON(`error("log: illegal argument: -1")`))
+	testSuccessful(t, "log(0)", "", ZSON(`error({message:"log: illegal argument",on:0})`))
+	testSuccessful(t, "log(-1)", "", ZSON(`error({message:"log: illegal argument",on:-1})`))
 
 	testError(t, "pow()", function.ErrTooFewArgs, "pow() with no args")
 	testError(t, "pow(2, 3, r)", function.ErrTooManyArgs, "pow() with too many args")
@@ -114,7 +114,7 @@ func TestOtherStrFuncs(t *testing.T) {
 	testSuccessful(t, `replace("bann", "n", "na")`, "", *zed.NewString("banana"))
 	testError(t, `replace("foo", "bar")`, function.ErrTooFewArgs, "replace() with too few args")
 	testError(t, `replace("foo", "bar", "baz", "blort")`, function.ErrTooManyArgs, "replace() with too many args")
-	testSuccessful(t, `replace("foo", "o", 5)`, "", ZSON(`error("replace: string arg required")`))
+	testSuccessful(t, `replace("foo", "o", 5)`, "", ZSON(`error({message:"replace: string arg required",on:5})`))
 
 	testSuccessful(t, `lower("BOO")`, "", *zed.NewString("boo"))
 	testError(t, `lower()`, function.ErrTooFewArgs, "toLower() with no args")
@@ -137,7 +137,7 @@ func TestLen(t *testing.T) {
 
 	testError(t, "len()", function.ErrTooFewArgs, "len() with no args")
 	testError(t, `len("foo", "bar")`, function.ErrTooManyArgs, "len() with too many args")
-	testSuccessful(t, "len(5)", record, ZSON(`error("len: bad type: int64")`))
+	testSuccessful(t, "len(5)", record, ZSON(`error({message:"len: bad type",on:5})`))
 
 	record = `{s:"🍺",bs:0xf09f8dba}`
 

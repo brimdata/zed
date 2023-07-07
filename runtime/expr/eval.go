@@ -75,7 +75,7 @@ func EvalBool(zctx *zed.Context, ectx Context, this *zed.Value, e Evaluator) (*z
 	if val.IsError() {
 		return val, false
 	}
-	return ectx.CopyValue(*zctx.NewErrorf("not type bool: %s", zson.FormatValue(val))), false
+	return ectx.CopyValue(*zctx.WrapError("not type bool", val)), false
 }
 
 func (a *And) Eval(ectx Context, this *zed.Value) *zed.Value {
@@ -589,49 +589,49 @@ func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 	case zed.IDInt8:
 		v := val.Int()
 		if v == math.MinInt8 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int8(%d)", v))
+			return ectx.CopyValue(*u.zctx.WrapError("unary '-' underflow", val))
 		}
 		return ectx.CopyValue(*zed.NewInt8(int8(-v)))
 	case zed.IDInt16:
 		v := val.Int()
 		if v == math.MinInt16 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int16(%d)", v))
+			return ectx.CopyValue(*u.zctx.WrapError("unary '-' underflow", val))
 		}
 		return ectx.CopyValue(*zed.NewInt16(int16(-v)))
 	case zed.IDInt32:
 		v := val.Int()
 		if v == math.MinInt32 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int32(%d)", v))
+			return ectx.CopyValue(*u.zctx.WrapError("unary '-' underflow", val))
 		}
 		return ectx.CopyValue(*zed.NewInt32(int32(-v)))
 	case zed.IDInt64:
 		v := val.Int()
 		if v == math.MinInt64 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' underflow: int64(%d)", v))
+			return ectx.CopyValue(*u.zctx.WrapError("unary '-' underflow", val))
 		}
 		return ectx.CopyValue(*zed.NewInt64(-v))
 	case zed.IDUint8:
 		v := val.Uint()
 		if v > math.MaxInt8 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint8(%d)", v))
+			return ectx.CopyValue(*u.zctx.WrapError("unary '-' overflow", val))
 		}
 		return ectx.CopyValue(*zed.NewInt8(int8(-v)))
 	case zed.IDUint16:
 		v := val.Uint()
 		if v > math.MaxInt16 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint16(%d)", v))
+			return ectx.CopyValue(*u.zctx.WrapError("unary '-' overflow", val))
 		}
 		return ectx.CopyValue(*zed.NewInt16(int16(-v)))
 	case zed.IDUint32:
 		v := val.Uint()
 		if v > math.MaxInt32 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint32(%d)", v))
+			return ectx.CopyValue(*u.zctx.WrapError("unary '-' overflow", val))
 		}
 		return ectx.CopyValue(*zed.NewInt32(int32(-v)))
 	case zed.IDUint64:
 		v := val.Uint()
 		if v > math.MaxInt64 {
-			return ectx.CopyValue(*u.zctx.NewErrorf("unary '-' overflow: uint64(%d)", v))
+			return ectx.CopyValue(*u.zctx.WrapError("unary '-' overflow", val))
 		}
 		return ectx.CopyValue(*zed.NewInt64(int64(-v)))
 	}
@@ -699,7 +699,7 @@ func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsInteger(id) {
-		return ectx.CopyValue(*zctx.NewErrorf("array index is not an integer"))
+		return ectx.CopyValue(*zctx.WrapError("array index is not an integer", index))
 	}
 	var idx int
 	if zed.IsSigned(id) {
@@ -717,7 +717,7 @@ func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.B
 func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if id != zed.IDString {
-		return ectx.CopyValue(*zctx.NewErrorf("record index is not a string"))
+		return ectx.CopyValue(*zctx.WrapError("record index is not a string", index))
 	}
 	field := zed.DecodeString(index.Bytes())
 	val := zed.NewValue(typ, record).Deref(field)
@@ -775,7 +775,7 @@ func NewConditional(zctx *zed.Context, predicate, thenExpr, elseExpr Evaluator) 
 func (c *Conditional) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := c.predicate.Eval(ectx, this)
 	if val.Type.ID() != zed.IDBool {
-		val := *c.zctx.NewErrorf("?-operator: bool predicate required")
+		val := *c.zctx.WrapError("?-operator: bool predicate required", val)
 		return &val
 	}
 	if val.Bool() {

@@ -51,7 +51,7 @@ echo 1 | zq -z 'yield network_of(this)' -
 ```
 =>
 ```mdtest-output
-error("network_of: not an IP")
+error({message:"network_of: not an IP",on:1})
 ```
 
 Network masks must be contiguous:
@@ -60,5 +60,5 @@ echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.128.255)' -
 ```
 =>
 ```mdtest-output
-error("network_of: mask 255.255.128.255 is non-contiguous")
+error({message:"network_of: mask is non-contiguous",on:255.255.128.255})
 ```

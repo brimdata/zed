@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#base64
@@ -27,11 +26,11 @@ func (b *Base64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		bytes, err := base64.StdEncoding.DecodeString(zed.DecodeString(val.Bytes()))
 		if err != nil {
-			return newErrorf(b.zctx, ctx, "base64: string argument is not base64: %q", string(val.Bytes()))
+			return wrapError(b.zctx, ctx, "base64: string argument is not base64", &val)
 		}
 		return newBytes(ctx, bytes)
 	default:
-		return newErrorf(b.zctx, ctx, "base64: argument must a bytes or string type (bad argument: %s)", zson.String(val))
+		return wrapError(b.zctx, ctx, "base64: argument must a bytes or string type", &val)
 	}
 }
 
@@ -54,10 +53,10 @@ func (h *Hex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		b, err := hex.DecodeString(zed.DecodeString(val.Bytes()))
 		if err != nil {
-			return newErrorf(h.zctx, ctx, "hex: string argument is not hexidecimal: %q", string(val.Bytes()))
+			return wrapError(h.zctx, ctx, "hex: string argument is not hexidecimal", &val)
 		}
 		return newBytes(ctx, b)
 	default:
-		return newErrorf(h.zctx, ctx, "base64: argument must a bytes or string type (bad argument: %s)", zson.String(val))
+		return wrapError(h.zctx, ctx, "base64: argument must a bytes or string type", &val)
 	}
 }

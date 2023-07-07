@@ -24,7 +24,7 @@ echo '4 4.0 2.718 -1' | zq -z 'yield log(this)' -
 1.3862943611198906
 1.3862943611198906
 0.999896315728952
-error("log: illegal argument: -1")
+error({message:"log: illegal argument",on:-1})
 ```
 
 The largest power of 10 smaller than the input:

@@ -68,17 +68,29 @@ output: |
   }
   {
     s: 1,
-    uri: error("parse_uri: non-empty string arg required")
+    uri: error({
+      message: "parse_uri: non-empty string arg required",
+      on: 1
+    })
   }
   {
     s: null (string),
-    uri: error("parse_uri: non-empty string arg required")
+    uri: error({
+      message: "parse_uri: non-empty string arg required",
+      on: null (string)
+    })
   }
   {
     s: ":no-scheme",
-    uri: error("parse_uri: parse \":no-scheme\": missing protocol scheme (\":no-scheme\")")
+    uri: error({
+      message: "parse_uri: parse \":no-scheme\": missing protocol scheme",
+      on: ":no-scheme"
+    })
   }
   {
     s: "scheme://bad-port:1234567",
-    uri: error("parse_uri: invalid port: 1234567 (\"scheme://bad-port:1234567\")")
+    uri: error({
+      message: "parse_uri: invalid port: 1234567",
+      on: "scheme://bad-port:1234567"
+    })
   }

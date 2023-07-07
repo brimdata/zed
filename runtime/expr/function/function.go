@@ -215,3 +215,7 @@ func newError(zctx *zed.Context, ectx zed.Allocator, err error) *zed.Value {
 func newErrorf(zctx *zed.Context, ctx zed.Allocator, format string, args ...interface{}) *zed.Value {
 	return zctx.NewErrorf(format, args...)
 }
+
+func wrapError(zctx *zed.Context, ctx zed.Allocator, msg string, val *zed.Value) *zed.Value {
+	return ctx.CopyValue(*zctx.WrapError(msg, val))
+}

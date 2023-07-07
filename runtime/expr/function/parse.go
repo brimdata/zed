@@ -19,12 +19,12 @@ type ParseURI struct {
 func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	in := args[0]
 	if !in.IsString() || in.IsNull() {
-		return newErrorf(p.zctx, ctx, "parse_uri: non-empty string arg required")
+		return wrapError(p.zctx, ctx, "parse_uri: non-empty string arg required", &in)
 	}
 	s := zed.DecodeString(in.Bytes())
 	u, err := url.Parse(s)
 	if err != nil {
-		return newErrorf(p.zctx, ctx, "parse_uri: %s (%q)", err, s)
+		return wrapError(p.zctx, ctx, "parse_uri: "+err.Error(), &in)
 	}
 	var v struct {
 		Scheme   *string    `zed:"scheme"`
@@ -55,7 +55,7 @@ func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if portString := u.Port(); portString != "" {
 		u64, err := strconv.ParseUint(portString, 10, 16)
 		if err != nil {
-			return newErrorf(p.zctx, ctx, "parse_uri: invalid port: %s (%q)", portString, s)
+			return wrapError(p.zctx, ctx, "parse_uri: invalid port: "+portString, &in)
 		}
 		u16 := uint16(u64)
 		v.Port = &u16
@@ -84,7 +84,7 @@ type ParseZSON struct {
 func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	in := args[0]
 	if !in.IsString() {
-		return newErrorf(p.zctx, ctx, "parse_zson: string arg required")
+		return wrapError(p.zctx, ctx, "parse_zson: string arg required", &in)
 	}
 	if in.IsNull() {
 		return zed.Null
@@ -93,19 +93,18 @@ func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	parser := zson.NewParser(strings.NewReader(s))
 	ast, err := parser.ParseValue()
 	if err != nil {
-		//XXX this will be better as a structured error
-		return newErrorf(p.zctx, ctx, "parse_zson: parse error: %s (%q)", err, s)
+		return wrapError(p.zctx, ctx, "parse_zson: parse error: "+err.Error(), &in)
 	}
 	if ast == nil {
 		return zed.Null
 	}
 	val, err := zson.NewAnalyzer().ConvertValue(p.zctx, ast)
 	if err != nil {
-		return newErrorf(p.zctx, ctx, "parse_zson: semantic error: %s (%q)", err, s)
+		return wrapError(p.zctx, ctx, "parse_zson: semantic error: "+err.Error(), &in)
 	}
 	result, err := zson.Build(zcode.NewBuilder(), val)
 	if err != nil {
-		return newErrorf(p.zctx, ctx, "parse_zson: build error: %s (%q)", err, s)
+		return wrapError(p.zctx, ctx, "parse_zson: build error: "+err.Error(), &in)
 	}
 	return ctx.CopyValue(*result)
 }

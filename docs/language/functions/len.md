@@ -39,5 +39,5 @@ echo '[1,2,3] |["hello"]| {a:1,b:2} "hello" 10.0.0.1 1' | zq -z 'yield {this,len
 {this:{a:1,b:2},len:2}
 {this:"hello",len:5}
 {this:10.0.0.1,len:4}
-{this:1,len:error("len: bad type: int64")}
+{this:1,len:error({message:"len: bad type",on:1})}
 ```

@@ -18,8 +18,10 @@ func (r *Replace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	sVal := args[0]
 	oldVal := args[1]
 	newVal := args[2]
-	if !sVal.IsString() || !oldVal.IsString() || !newVal.IsString() {
-		return newErrorf(r.zctx, ctx, "replace: string arg required")
+	for i := range args {
+		if !args[i].IsString() {
+			return wrapError(r.zctx, ctx, "replace: string arg required", &args[i])
+		}
 	}
 	if sVal.IsNull() {
 		return zed.Null
@@ -41,7 +43,7 @@ type RuneLen struct {
 func (r *RuneLen) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	if !val.IsString() {
-		return newErrorf(r.zctx, ctx, "rune_len: string arg required")
+		return wrapError(r.zctx, ctx, "rune_len: string arg required", &val)
 	}
 	if val.IsNull() {
 		return ctx.CopyValue(*zed.NewInt64(0))
@@ -58,7 +60,7 @@ type ToLower struct {
 func (t *ToLower) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	if !val.IsString() {
-		return newErrorf(t.zctx, ctx, "lower: string arg required")
+		return wrapError(t.zctx, ctx, "lower: string arg required", &val)
 	}
 	if val.IsNull() {
 		return zed.NullString
@@ -75,7 +77,7 @@ type ToUpper struct {
 func (t *ToUpper) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	if !val.IsString() {
-		return newErrorf(t.zctx, ctx, "upper: string arg required")
+		return wrapError(t.zctx, ctx, "upper: string arg required", &val)
 	}
 	if val.IsNull() {
 		return zed.NullString
@@ -92,7 +94,7 @@ type Trim struct {
 func (t *Trim) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	if !val.IsString() {
-		return newErrorf(t.zctx, ctx, "trim: string arg required")
+		return wrapError(t.zctx, ctx, "trim: string arg required", &val)
 	}
 	if val.IsNull() {
 		return zed.NullString
@@ -117,8 +119,10 @@ func newSplit(zctx *zed.Context) *Split {
 func (s *Split) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	sVal := args[0]
 	sepVal := args[1]
-	if !sVal.IsString() || !sepVal.IsString() {
-		return newErrorf(s.zctx, ctx, "split: string args required")
+	for i := range args {
+		if !args[i].IsString() {
+			return wrapError(s.zctx, ctx, "split: string arg required", &args[i])
+		}
 	}
 	if sVal.IsNull() || sepVal.IsNull() {
 		return ctx.NewValue(s.typ, nil)
@@ -142,17 +146,14 @@ type Join struct {
 func (j *Join) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	splitsVal := args[0]
 	typ, ok := zed.TypeUnder(splitsVal.Type).(*zed.TypeArray)
-	if !ok {
-		return newErrorf(j.zctx, ctx, "join: array of string args required")
-	}
-	if typ.Type.ID() != zed.IDString {
-		return newErrorf(j.zctx, ctx, "join: array of string args required")
+	if !ok || typ.Type.ID() != zed.IDString {
+		return wrapError(j.zctx, ctx, "join: array of string args required", &splitsVal)
 	}
 	var separator string
 	if len(args) == 2 {
 		sepVal := args[1]
 		if !sepVal.IsString() {
-			return newErrorf(j.zctx, ctx, "join: separator must be string")
+			return wrapError(j.zctx, ctx, "join: separator must be string", &sepVal)
 		}
 		separator = zed.DecodeString(sepVal.Bytes())
 	}
