@@ -186,14 +186,6 @@ func HasBoolResult(name string) bool {
 	return false
 }
 
-func newFloat16(ctx zed.Allocator, native float32) *zed.Value {
-	return ctx.CopyValue(*zed.NewFloat16(native))
-}
-
-func newFloat32(ctx zed.Allocator, native float32) *zed.Value {
-	return ctx.CopyValue(*zed.NewFloat32(native))
-}
-
 func newFloat64(ctx zed.Allocator, native float64) *zed.Value {
 	return ctx.CopyValue(*zed.NewFloat64(native))
 }
