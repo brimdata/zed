@@ -120,7 +120,7 @@ func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 			}
 			result = r.fn.Float64(result, v)
 		}
-		return ctx.CopyValue(*zed.NewFloat64(result))
+		return newFloat64(ctx, result)
 	}
 	return wrapError(r.zctx, ctx, r.name+": not a number", val0)
 }
