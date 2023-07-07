@@ -1,0 +1,26 @@
+script: |
+  zq -z -I test.zed
+
+inputs:
+  - name: test.zed
+    data: |
+      op fileA(): (
+        file A.zson | sort a 
+      )
+      fileA()
+  - name: A.zson
+    data: |
+      {a:5}
+      {a:1}
+      {a:7}
+      {a:3}
+      {a:8}
+  
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {a:3}
+      {a:5}
+      {a:7}
+      {a:8}

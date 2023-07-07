@@ -40,17 +40,11 @@ func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Comm
 	if len(seq) == 0 {
 		return nil, errors.New("internal error: AST seq cannot be empty")
 	}
-	from, reader, err := buildFrom(seq[0], head)
-	if err != nil {
-		return nil, err
-	}
-	if from != nil {
-		seq.Prepend(from)
-	}
 	entry, err := semantic.Analyze(octx.Context, seq, src, head)
 	if err != nil {
 		return nil, err
 	}
+	reader, _ := entry[0].(*kernel.Reader)
 	return &Job{
 		octx:      octx,
 		builder:   kernel.NewBuilder(octx, src),
@@ -58,71 +52,6 @@ func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Comm
 		reader:    reader,
 		entry:     entry,
 	}, nil
-}
-
-func buildFrom(op ast.Op, head *lakeparse.Commitish) (*ast.From, *kernel.Reader, error) {
-	var from *ast.From
-	switch op := op.(type) {
-	case *ast.From:
-		// Already have an entry point with From.  Do nothing.
-		return nil, nil, nil
-	case *ast.Scope:
-		if len(op.Body) == 0 {
-			return nil, nil, errors.New("internal error: scope op has empty body")
-		}
-		return buildFrom(op.Body[0], head)
-	default:
-		var readers *kernel.Reader
-		trunk := ast.Trunk{Kind: "Trunk"}
-		if head != nil {
-			// For the lakes, if there is no from operator, then
-			// we default to scanning HEAD (without any of the
-			// from options).
-			trunk.Source = &ast.Pool{
-				Kind: "Pool",
-				Spec: ast.PoolSpec{
-					Pool: &ast.String{
-						Kind: "String",
-						Text: "HEAD",
-					},
-				},
-			}
-		} else {
-			readers = &kernel.Reader{}
-			trunk.Source = readers
-		}
-		from = &ast.From{
-			Kind:   "From",
-			Trunks: []ast.Trunk{trunk},
-		}
-		// XXX why not move this above? or
-		if isParallelWithLeadingFroms(op) {
-			from = nil
-			readers = nil
-		}
-		return from, readers, nil
-	}
-}
-
-func isParallelWithLeadingFroms(o ast.Op) bool {
-	par, ok := o.(*ast.Parallel)
-	if !ok {
-		return false
-	}
-	for _, seq := range par.Paths {
-		if !hasLeadingFrom(seq) {
-			return false
-		}
-	}
-	return true
-}
-
-func hasLeadingFrom(seq ast.Seq) bool {
-	if len(seq) == 0 {
-		return false
-	}
-	_, ok := seq[0].(*ast.From)
-	return ok
 }
 
 func (j *Job) Entry() dag.Seq {
