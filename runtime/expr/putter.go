@@ -6,7 +6,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 	"golang.org/x/exp/slices"
 )
 
@@ -302,7 +301,7 @@ func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
 			// propagate errors
 			return this
 		}
-		return ectx.CopyValue(*p.zctx.NewErrorf("put: not a record: %s", zson.FormatValue(this)))
+		return ectx.CopyValue(*p.zctx.WrapError("put: not a record", this))
 	}
 	vals, clauses := p.eval(ectx, this)
 	if len(vals) == 0 {

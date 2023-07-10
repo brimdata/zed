@@ -2,7 +2,6 @@ package function
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -31,10 +30,10 @@ func (k *KSUIDToString) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		// XXX GC
 		id, err := ksuid.Parse(string(val.Bytes()))
 		if err != nil {
-			return newErrorf(k.zctx, ctx, "ksuid: %s (bad argument: %s)", err, zson.String(val))
+			return wrapError(k.zctx, ctx, "ksuid: "+err.Error(), &val)
 		}
 		return newBytes(ctx, id.Bytes())
 	default:
-		return newErrorf(k.zctx, ctx, "ksuid: argument must a bytes or string type (bad argument: %s)", zson.String(val))
+		return wrapError(k.zctx, ctx, "ksuid: argument must a bytes or string type", &val)
 	}
 }

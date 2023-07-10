@@ -15,6 +15,6 @@ output: |
   "--xx-"
   "foo bar"
   error("regexp_replace: error parsing regexp: missing closing ): `foo(.?`")
-  error("regexp_replace: string values required for all args")
+  error({message:"regexp_replace: string arg required",on:4})
   error("regexp_replace: 2nd and 3rd args cannot be null")
 

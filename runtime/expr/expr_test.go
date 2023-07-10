@@ -489,7 +489,7 @@ func TestConditional(t *testing.T) {
 
 	testSuccessful(t, `x == 0 ? "zero" : "not zero"`, record, *zed.NewString("not zero"))
 	testSuccessful(t, `x == 1 ? "one" : "not one"`, record, *zed.NewString("one"))
-	testSuccessful(t, `x ? "x" : "not x"`, record, ZSON(`error("?-operator: bool predicate required")`))
+	testSuccessful(t, `x ? "x" : "not x"`, record, ZSON(`error({message:"?-operator: bool predicate required",on:1})`))
 
 	// Ensure that the unevaluated clause doesn't generate errors
 	// (field y doesn't exist but it shouldn't be evaluated)

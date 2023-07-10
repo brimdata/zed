@@ -2,7 +2,6 @@ package function
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
@@ -34,7 +33,7 @@ func (l *LenFn) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		length = typeLength(t)
 	default:
-		return l.zctx.NewErrorf("len: bad type: %s", zson.FormatType(typ))
+		return l.zctx.WrapError("len: bad type", &val)
 	}
 	return ectx.CopyValue(*zed.NewInt64(int64(length)))
 }
