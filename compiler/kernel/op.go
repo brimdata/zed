@@ -39,6 +39,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
+	"golang.org/x/exp/slices"
 )
 
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
@@ -707,15 +708,9 @@ func isEntry(seq dag.Seq) bool {
 	case *dag.UserOpCall:
 		return isEntry(op.Body)
 	case *dag.Fork:
-		if len(op.Paths) == 0 {
-			return false
-		}
-		for _, seq := range op.Paths {
-			if !isEntry(seq) {
-				return false
-			}
-		}
-		return true
+		return len(op.Paths) > 0 && !slices.ContainsFunc(op.Paths, func(seq dag.Seq) bool {
+			return !isEntry(seq)
+		})
 	}
 	return false
 }

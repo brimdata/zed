@@ -213,15 +213,15 @@ func (w *Writer) newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 		}
 		switch name {
 		case "arrow_day_time_interval":
-			if fieldsEqual(typ.Fields, dayTimeIntervalFields) {
+			if slices.Equal(typ.Fields, dayTimeIntervalFields) {
 				return arrow.FixedWidthTypes.DayTimeInterval, nil
 			}
 		case "arrow_decimal128":
-			if fieldsEqual(typ.Fields, decimal128Fields) {
+			if slices.Equal(typ.Fields, decimal128Fields) {
 				return &arrow.Decimal128Type{}, nil
 			}
 		case "arrow_month_day_nano_interval":
-			if fieldsEqual(typ.Fields, monthDayNanoIntervalFields) {
+			if slices.Equal(typ.Fields, monthDayNanoIntervalFields) {
 				return arrow.FixedWidthTypes.MonthDayNanoInterval, nil
 			}
 		}
@@ -298,18 +298,6 @@ func (w *Writer) newArrowDataType(typ zed.Type) (arrow.DataType, error) {
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedType, zson.FormatType(typ))
 	}
-}
-
-func fieldsEqual(a, b []zed.Field) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].Name != b[i].Name || a[i].Type != b[i].Type {
-			return false
-		}
-	}
-	return true
 }
 
 func (w *Writer) buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Bytes) {

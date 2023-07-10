@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
+	"golang.org/x/exp/slices"
 )
 
 // A Combiner is a Reader that returns records by reading from multiple Readers.
@@ -60,12 +61,7 @@ func (c *Combiner) run() {
 }
 
 func (c *Combiner) finished() bool {
-	for i := range c.done {
-		if !c.done[i] {
-			return false
-		}
-	}
-	return true
+	return slices.Contains(c.done, false)
 }
 
 func (c *Combiner) Read() (*zed.Value, error) {

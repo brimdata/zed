@@ -173,10 +173,10 @@ func shaperType(zctx *zed.Context, tf ShaperTransform, in, out zed.Type) (zed.Ty
 				return nil, err
 			}
 			if tf&Cast != 0 {
-				if sameFields(fields, outRec.Fields) {
+				if slices.Equal(fields, outRec.Fields) {
 					return out, nil
 				}
-			} else if sameFields(fields, inRec.Fields) {
+			} else if slices.Equal(fields, inRec.Fields) {
 				return in, nil
 			}
 			return zctx.LookupTypeRecord(fields)
@@ -274,18 +274,6 @@ func bestUnionTag(in, out zed.Type) int {
 		return underlying
 	}
 	return compatible
-}
-
-func sameFields(a, b []zed.Field) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func isArray(t zed.Type) bool {

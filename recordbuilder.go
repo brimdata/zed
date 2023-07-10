@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/exp/slices"
 )
 
 // fieldInfo encodes the structure of a particular proc that writes a
@@ -70,7 +71,7 @@ func NewRecordBuilder(zctx *Context, fields field.List) (*RecordBuilder, error) 
 		// figure out which records we are stepping in and out of.
 		record := names[:len(names)-1]
 		var containerBegins []string
-		if !sameRecord(record, currentRecord) {
+		if !slices.Equal(record, currentRecord) {
 			// currentRecord is what nested record the zcode.Builder
 			// is currently working on, record is the nested
 			// record for the current field.  First figure out
@@ -146,18 +147,6 @@ func isIn(fieldname field.Path, fis []fieldInfo) bool {
 		}
 	}
 	return false
-}
-
-func sameRecord(names1, names2 []string) bool {
-	if len(names1) != len(names2) {
-		return false
-	}
-	for i := range names1 {
-		if names1[i] != names2[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (r *RecordBuilder) Reset() {
