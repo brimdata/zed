@@ -61,7 +61,7 @@ func (c *Combiner) run() {
 }
 
 func (c *Combiner) finished() bool {
-	return slices.Contains(c.done, false)
+	return !slices.Contains(c.done, false)
 }
 
 func (c *Combiner) Read() (*zed.Value, error) {
