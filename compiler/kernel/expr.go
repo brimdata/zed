@@ -134,7 +134,7 @@ func (b *Builder) compileBinary(e *dag.BinaryExpr) (expr.Evaluator, error) {
 	case "in":
 		return expr.NewIn(b.zctx(), lhs, rhs), nil
 	case "==", "!=":
-		return expr.NewCompareEquality(lhs, rhs, op)
+		return expr.NewCompareEquality(b.zctx(), lhs, rhs, op)
 	case "<", "<=", ">", ">=":
 		return expr.NewCompareRelative(b.zctx(), lhs, rhs, op)
 	case "+", "-", "*", "/", "%":
