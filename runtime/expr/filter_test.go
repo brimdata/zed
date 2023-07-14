@@ -362,7 +362,7 @@ func TestFilters(t *testing.T) {
 		{"a != 50.1.168.192", true},
 		{"a in 192.168.0.0/16", false},
 		{"a == 10.0.0.0/16", false},
-		{"a != 192.168.0.0/16", false},
+		{"a != 192.168.0.0/16", true},
 	})
 
 	// Test comparisons with a named type
