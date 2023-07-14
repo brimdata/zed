@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/constraints"
 )
 
 type Evaluator interface {
@@ -118,7 +119,6 @@ type In struct {
 	zctx      *zed.Context
 	elem      Evaluator
 	container Evaluator
-	vals      coerce.Pair
 }
 
 func NewIn(zctx *zed.Context, elem, container Evaluator) *In {
@@ -141,11 +141,7 @@ func (i *In) Eval(ectx Context, this *zed.Value) *zed.Value {
 	tmpVal := ectx.NewValue(nil, nil)
 	err := container.Walk(func(typ zed.Type, body zcode.Bytes) error {
 		*tmpVal = *zed.NewValue(typ, body)
-		if _, err := i.vals.Coerce(elem, tmpVal); err != nil {
-			if err != coerce.IncompatibleTypes {
-				return err
-			}
-		} else if i.vals.Equal() {
+		if coerce.Equal(elem, tmpVal) {
 			return errMatch
 		}
 		return nil
@@ -178,22 +174,11 @@ func NewCompareEquality(zctx *zed.Context, lhs, rhs Evaluator, operator string) 
 }
 
 func (e *Equal) Eval(ectx Context, this *zed.Value) *zed.Value {
-	_, zerr, err := e.numeric.eval(ectx, this)
-	if zerr != nil {
-		return zerr
+	lhsVal, rhsVal, errVal := e.numeric.eval(ectx, this)
+	if errVal != nil {
+		return errVal
 	}
-	if err != nil {
-		if errors.Is(err, coerce.IncompatibleTypes) || errors.Is(err, coerce.Overflow) {
-			// If the types are incompatible or there was overflow,
-			// then, then we know the values can't be equal.
-			if e.equality {
-				return zed.False
-			}
-			return zed.True
-		}
-		return e.zctx.NewError(err)
-	}
-	result := e.vals.Equal()
+	result := coerce.Equal(lhsVal, rhsVal)
 	if !e.equality {
 		result = !result
 	}
@@ -224,7 +209,6 @@ type numeric struct {
 	zctx *zed.Context
 	lhs  Evaluator
 	rhs  Evaluator
-	vals coerce.Pair
 }
 
 func newNumeric(zctx *zed.Context, lhs, rhs Evaluator) numeric {
@@ -235,6 +219,18 @@ func newNumeric(zctx *zed.Context, lhs, rhs Evaluator) numeric {
 	}
 }
 
+func (n *numeric) evalAndPromote(ectx Context, this *zed.Value) (*zed.Value, *zed.Value, int, zed.Type, *zed.Value) {
+	lhsVal, rhsVal, errVal := n.eval(ectx, this)
+	if errVal != nil {
+		return nil, nil, 0, nil, errVal
+	}
+	id, typ, errVal := n.promote(ectx, lhsVal, rhsVal)
+	if errVal != nil {
+		return nil, nil, 0, nil, errVal
+	}
+	return lhsVal, rhsVal, id, typ, nil
+}
+
 func enumify(ectx Context, val *zed.Value) *zed.Value {
 	// automatically convert an enum to its index value when coercing
 	if _, ok := val.Type.(*zed.TypeEnum); ok {
@@ -243,31 +239,28 @@ func enumify(ectx Context, val *zed.Value) *zed.Value {
 	return val
 }
 
-func (n *numeric) eval(ectx Context, this *zed.Value) (int, *zed.Value, error) {
+func (n *numeric) eval(ectx Context, this *zed.Value) (*zed.Value, *zed.Value, *zed.Value) {
 	lhs := n.lhs.Eval(ectx, this)
 	if lhs.IsError() {
-		return 0, lhs, nil
+		return nil, nil, lhs
 	}
-	lhs = enumify(ectx, lhs)
 	rhs := n.rhs.Eval(ectx, this)
 	if rhs.IsError() {
-		return 0, rhs, nil
+		return nil, nil, rhs
 	}
-	rhs = enumify(ectx, rhs)
-	id, err := n.vals.Coerce(lhs, rhs)
-	return id, nil, err
+	return enumify(ectx, lhs), enumify(ectx, rhs), nil
 }
 
-func (n *numeric) floats() (float64, float64) {
-	return zed.DecodeFloat(n.vals.A), zed.DecodeFloat(n.vals.B)
-}
-
-func (n *numeric) ints() (int64, int64) {
-	return zed.DecodeInt(n.vals.A), zed.DecodeInt(n.vals.B)
-}
-
-func (n *numeric) uints() (uint64, uint64) {
-	return zed.DecodeUint(n.vals.A), zed.DecodeUint(n.vals.B)
+func (n *numeric) promote(ectx Context, lhsVal, rhsVal *zed.Value) (int, zed.Type, *zed.Value) {
+	id, err := coerce.Promote(lhsVal, rhsVal)
+	if err != nil {
+		return 0, nil, ectx.CopyValue(*n.zctx.NewError(err))
+	}
+	typ, err := zed.LookupPrimitiveByID(id)
+	if err != nil {
+		return 0, nil, ectx.CopyValue(*n.zctx.NewError(err))
+	}
+	return id, typ, nil
 }
 
 type Compare struct {
@@ -309,64 +302,68 @@ func (c *Compare) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if rhs.IsError() {
 		return rhs
 	}
-	id, err := c.vals.Coerce(lhs, rhs)
-	if err != nil {
-		// If coercion fails due to overflow, then we know there is a
-		// mixed signed and unsigned situation and either the unsigned
-		// value couldn't be converted to an int64 because it was too big,
-		// or the signed value couldn't be converted to a uint64 because
-		// it was negative.  In either case, the unsigned value is bigger
-		// than the signed value.
-		if err == coerce.Overflow {
-			result := 1
-			if zed.IsSigned(lhs.Type.ID()) {
-				result = -1
-			}
-			return c.result(result)
+
+	if lhs.IsNull() {
+		if rhs.IsNull() {
+			return c.result(0)
 		}
 		return zed.False
+	} else if rhs.IsNull() {
+		// We know lhs isn't null.
+		return zed.False
 	}
-	var result int
-	if !c.vals.Equal() {
-		switch {
-		case c.vals.A == nil || c.vals.B == nil:
-			return zed.False
-		case zed.IsFloat(id):
-			v1, v2 := c.floats()
-			if v1 < v2 {
-				result = -1
-			} else {
-				result = 1
-			}
-		case zed.IsSigned(id):
-			v1, v2 := c.ints()
-			if v1 < v2 {
-				result = -1
-			} else {
-				result = 1
-			}
-		case zed.IsNumber(id):
-			v1, v2 := c.uints()
-			if v1 < v2 {
-				result = -1
-			} else {
-				result = 1
-			}
-		case id == zed.IDString:
-			if zed.DecodeString(c.vals.A) < zed.DecodeString(c.vals.B) {
-				result = -1
-			} else {
-				result = 1
-			}
-		default:
-			return ectx.CopyValue(*c.zctx.NewErrorf("bad comparison type ID: %d", id))
+
+	switch lid, rid := lhs.Type.ID(), rhs.Type.ID(); {
+	case zed.IsNumber(lid) && zed.IsNumber(rid):
+		return c.result(compareNumbers(lhs, rhs, lid, rid))
+	// case lid == zed.IDBool && rid == zed.IDBool:
+	case lid == zed.IDBytes && rid == zed.IDBytes:
+		return c.result(bytes.Compare(zed.DecodeBytes(lhs.Bytes()), zed.DecodeBytes(rhs.Bytes())))
+	case lid == zed.IDString && rid == zed.IDString:
+		return c.result(compare(zed.DecodeString(lhs.Bytes()), zed.DecodeString(lhs.Bytes())))
+	case lid == rid:
+		if bytes.Equal(lhs.Bytes(), rhs.Bytes()) {
+			return c.result(0)
 		}
-	}
-	if c.convert(result) {
-		return zed.True
 	}
 	return zed.False
 }
+
+func compareNumbers(a, b *zed.Value, aid, bid int) int {
+	switch {
+	case zed.IsUnsigned(aid) && zed.IsUnsigned(bid):
+		return compare(a.Uint(), b.Uint())
+	case zed.IsFloat(aid):
+		return compare(a.Float(), toFloat(b))
+	case zed.IsFloat(bid):
+		return compare(toFloat(a), b.Float())
+	case zed.IsUnsigned(aid):
+		v := a.Uint()
+		if v > math.MaxInt64 {
+			return 1
+		}
+		return compare(int64(v), b.Int())
+	case zed.IsUnsigned(bid):
+		v := b.Uint()
+		if v > math.MaxInt64 {
+			return -1
+		}
+		return compare(a.Int(), int64(v))
+	}
+	return compare(a.Int(), b.Int())
+}
+
+func compare[T constraints.Ordered](a, b T) int {
+	if a < b {
+		return -1
+	} else if a > b {
+		return 1
+	}
+	return 0
+}
+
+func toFloat(val *zed.Value) float64 { return coerce.ToNumeric[float64](val) }
+func toInt(val *zed.Value) int64     { return coerce.ToNumeric[int64](val) }
 
 type Add struct {
 	zctx     *zed.Context
@@ -415,29 +412,19 @@ func NewArithmetic(zctx *zed.Context, lhs, rhs Evaluator, op string) (Evaluator,
 }
 
 func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
-	id, zerr, err := a.operands.eval(ectx, this)
-	if err != nil {
-		return a.zctx.NewError(err)
-	}
-	if zerr != nil {
-		return zerr
-	}
-	typ, err := zed.LookupPrimitiveByID(id)
-	if err != nil {
-		return a.zctx.NewError(err)
+	lhsVal, rhsVal, id, typ, errVal := a.operands.evalAndPromote(ectx, this)
+	if errVal != nil {
+		return errVal
 	}
 	switch {
-	case zed.IsFloat(id):
-		v1, v2 := a.operands.floats()
-		return ectx.CopyValue(*zed.NewFloat(typ, v1+v2))
+	case zed.IsUnsigned(id):
+		return ectx.CopyValue(*zed.NewUint(typ, lhsVal.Uint()+rhsVal.Uint()))
 	case zed.IsSigned(id):
-		v1, v2 := a.operands.ints()
-		return ectx.CopyValue(*zed.NewInt(typ, v1+v2))
-	case zed.IsNumber(id):
-		v1, v2 := a.operands.uints()
-		return ectx.CopyValue(*zed.NewUint(typ, v1+v2))
+		return ectx.CopyValue(*zed.NewInt(typ, toInt(lhsVal)+toInt(rhsVal)))
+	case zed.IsFloat(id):
+		return ectx.CopyValue(*zed.NewFloat(typ, toFloat(lhsVal)+toFloat(rhsVal)))
 	case id == zed.IDString:
-		v1, v2 := zed.DecodeString(a.operands.vals.A), zed.DecodeString(a.operands.vals.B)
+		v1, v2 := zed.DecodeString(lhsVal.Bytes()), zed.DecodeString(rhsVal.Bytes())
 		// XXX GC
 		return ectx.NewValue(typ, zed.EncodeString(v1+v2))
 	}
@@ -445,123 +432,89 @@ func (a *Add) Eval(ectx Context, this *zed.Value) *zed.Value {
 }
 
 func (s *Subtract) Eval(ectx Context, this *zed.Value) *zed.Value {
-	id, zerr, err := s.operands.eval(ectx, this)
-	if err != nil {
-		return s.zctx.NewError(err)
-	}
-	if zerr != nil {
-		return zerr
-	}
-	typ, err := zed.LookupPrimitiveByID(id)
-	if err != nil {
-		return s.zctx.NewError(err)
+	lhsVal, rhsVal, id, typ, errVal := s.operands.evalAndPromote(ectx, this)
+	if errVal != nil {
+		return errVal
 	}
 	switch {
-	case zed.IsFloat(id):
-		v1, v2 := s.operands.floats()
-		return ectx.CopyValue(*zed.NewFloat(typ, v1-v2))
+	case zed.IsUnsigned(id):
+		return ectx.CopyValue(*zed.NewUint(typ, lhsVal.Uint()-rhsVal.Uint()))
 	case zed.IsSigned(id):
-		v1, v2 := s.operands.ints()
 		if id == zed.IDTime {
 			// Return the difference of two times as a duration.
 			typ = zed.TypeDuration
 		}
-		return ectx.CopyValue(*zed.NewInt(typ, v1-v2))
-	case zed.IsNumber(id):
-		v1, v2 := s.operands.uints()
-		return ectx.CopyValue(*zed.NewUint(typ, v1-v2))
+		return ectx.CopyValue(*zed.NewInt(typ, toInt(lhsVal)-toInt(rhsVal)))
+	case zed.IsFloat(id):
+		return ectx.CopyValue(*zed.NewFloat(typ, toFloat(lhsVal)-toFloat(rhsVal)))
 	}
 	return ectx.CopyValue(*s.zctx.NewErrorf("type %s incompatible with '-' operator", zson.FormatType(typ)))
 }
 
 func (m *Multiply) Eval(ectx Context, this *zed.Value) *zed.Value {
-	id, zerr, err := m.operands.eval(ectx, this)
-	if err != nil {
-		return m.zctx.NewError(err)
-	}
-	if zerr != nil {
-		return zerr
-	}
-	typ, err := zed.LookupPrimitiveByID(id)
-	if err != nil {
-		return m.zctx.NewError(err)
+	lhsVal, rhsVal, id, typ, errVal := m.operands.evalAndPromote(ectx, this)
+	if errVal != nil {
+		return errVal
 	}
 	switch {
-	case zed.IsFloat(id):
-		v1, v2 := m.operands.floats()
-		return ectx.CopyValue(*zed.NewFloat(typ, v1*v2))
+	case zed.IsUnsigned(id):
+		return ectx.CopyValue(*zed.NewUint(typ, lhsVal.Uint()*rhsVal.Uint()))
 	case zed.IsSigned(id):
-		v1, v2 := m.operands.ints()
-		return ectx.CopyValue(*zed.NewInt(typ, v1*v2))
-	case zed.IsNumber(id):
-		v1, v2 := m.operands.uints()
-		return ectx.CopyValue(*zed.NewUint(typ, v1*v2))
+		return ectx.CopyValue(*zed.NewInt(typ, toInt(lhsVal)*toInt(rhsVal)))
+	case zed.IsFloat(id):
+		return ectx.CopyValue(*zed.NewFloat(typ, toFloat(lhsVal)*toFloat(rhsVal)))
 	}
 	return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '*' operator", zson.FormatType(typ)))
 }
 
 func (d *Divide) Eval(ectx Context, this *zed.Value) *zed.Value {
-	id, zerr, err := d.operands.eval(ectx, this)
-	if err != nil {
-		return d.zctx.NewError(err)
-	}
-	if zerr != nil {
-		return zerr
-	}
-	typ, err := zed.LookupPrimitiveByID(id)
-	if err != nil {
-		return d.zctx.NewError(err)
+	lhsVal, rhsVal, id, typ, errVal := d.operands.evalAndPromote(ectx, this)
+	if errVal != nil {
+		return errVal
 	}
 	switch {
-	case zed.IsFloat(id):
-		v1, v2 := d.operands.floats()
-		if v2 == 0 {
+	case zed.IsUnsigned(id):
+		v := rhsVal.Uint()
+		if v == 0 {
 			return d.zctx.NewError(DivideByZero)
 		}
-		return ectx.CopyValue(*zed.NewFloat(typ, v1/v2))
+		return ectx.CopyValue(*zed.NewUint(typ, lhsVal.Uint()/v))
 	case zed.IsSigned(id):
-		v1, v2 := d.operands.ints()
-		if v2 == 0 {
+		v := toInt(rhsVal)
+		if v == 0 {
 			return d.zctx.NewError(DivideByZero)
 		}
-		return ectx.CopyValue(*zed.NewInt(typ, v1/v2))
-	case zed.IsNumber(id):
-		v1, v2 := d.operands.uints()
-		if v2 == 0 {
+		return ectx.CopyValue(*zed.NewInt(typ, toInt(lhsVal)/v))
+	case zed.IsFloat(id):
+		v := toFloat(rhsVal)
+		if v == 0 {
 			return d.zctx.NewError(DivideByZero)
 		}
-		return ectx.CopyValue(*zed.NewUint(typ, v1/v2))
+		return ectx.CopyValue(*zed.NewFloat(typ, toFloat(lhsVal)/v))
 	}
 	return ectx.CopyValue(*d.zctx.NewErrorf("type %s incompatible with '/' operator", zson.FormatType(typ)))
 }
 
 func (m *Modulo) Eval(ectx Context, this *zed.Value) *zed.Value {
-	id, zerr, err := m.operands.eval(ectx, this)
-	if err != nil {
-		return m.zctx.NewError(err)
+	lhsVal, rhsVal, id, typ, errVal := m.operands.evalAndPromote(ectx, this)
+	if errVal != nil {
+		return errVal
 	}
-	if zerr != nil {
-		return zerr
-	}
-	typ, err := zed.LookupPrimitiveByID(id)
-	if err != nil {
-		return m.zctx.NewError(err)
-	}
-	if zed.IsFloat(id) || !zed.IsNumber(id) {
-		return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '%%' operator", zson.FormatType(typ)))
-	}
-	if zed.IsSigned(id) {
-		x, y := m.operands.ints()
-		if y == 0 {
+	switch {
+	case zed.IsUnsigned(id):
+		v := rhsVal.Uint()
+		if v == 0 {
 			return m.zctx.NewError(DivideByZero)
 		}
-		return ectx.CopyValue(*zed.NewInt(typ, x%y))
+		return ectx.CopyValue(*zed.NewUint(typ, lhsVal.Uint()%v))
+	case zed.IsSigned(id):
+		v := toInt(rhsVal)
+		if v == 0 {
+			return m.zctx.NewError(DivideByZero)
+		}
+		return ectx.CopyValue(*zed.NewInt(typ, toInt(lhsVal)%v))
 	}
-	x, y := m.operands.uints()
-	if y == 0 {
-		return m.zctx.NewError(DivideByZero)
-	}
-	return ectx.CopyValue(*zed.NewUint(typ, x%y))
+	return ectx.CopyValue(*m.zctx.NewErrorf("type %s incompatible with '%%' operator", zson.FormatType(typ)))
 }
 
 type UnaryMinus struct {
