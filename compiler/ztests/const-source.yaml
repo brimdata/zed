@@ -9,6 +9,7 @@ script: |
   zc -s -C 'const URL = "http://brimdata.io" get URL'
   ! zc -s -C 'const POOL = 3.14 from POOL'
   ! zc -s -C 'const FILE = 127.0.0.1 file FILE'
+  ! zc -s -C 'const URL = true get URL'
 
 outputs:
   - name: stdout
@@ -34,3 +35,4 @@ outputs:
     data: |
       invalid pool name: POOL: string value required
       invalid file path: FILE: string value required
+      invalid file path: URL: string value required
