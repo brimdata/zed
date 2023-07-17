@@ -149,6 +149,30 @@ which produces
 illegal left-hand side of assignment
 ```
 
+A constant value must be used to pass a parameter that will be referenced as
+the data source of a [`from` operator](operators/from.md). For example, we
+quote the pool name in our program `count-pool.zed`
+```mdtest-input count-pool.zed
+op CountPool(pool_name): (
+  from pool_name | count()
+)
+
+CountPool("example")
+```
+
+so that when we prepare and query the pool via
+```mdtest-command
+zed -q -lake lake init
+zed -q -lake lake create -use example
+echo '{greeting: "hello"}' | zed -q -lake lake load -
+zed -lake lake query -z -I count-pool.zed
+```
+
+it produces the output
+```mdtest-output
+1(uint64)
+```
+
 ### Nested Calls
 
 User-defined operators can make calls to other user-defined operators that
@@ -178,6 +202,18 @@ produces
 One caveat with nested calls is that calls to other user-defined operators must
 not produce a cycle, i.e., recursive and mutually recursive operators are not
 allowed and will produce an error.
+
+### Limitations
+
+User-defined operators are a new feature in Zed that has been made available
+despite known limitations described in open issues
+[zed/4651](https://github.com/brimdata/zed/issues/4651),
+[zed/4692](https://github.com/brimdata/zed/issues/4692), and
+[zed/4701](https://github.com/brimdata/zed/issues/4701). If you encounter
+these or other problems when making use of the feature please comment on the
+issues or come talk to us on the [Brim community Slack](https://www.brimdata.io/join-slack/)
+as this will help guide the priority with which these limitations are
+addressed.
 
 ## Type Statements
 
