@@ -1,0 +1,38 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zc -s -C 'const POOL = "test" from POOL' | sed -e "s/[a-zA-Z0-9]\{27\}/XXX/"
+  echo "==="
+  zc -s -C 'const FILE = "A.zson" file FILE'
+  echo "==="
+  zc -s -C 'const URL = "http://brimdata.io" get URL'
+  ! zc -s -C 'const POOL = 3.14 from POOL'
+  ! zc -s -C 'const FILE = 127.0.0.1 file FILE'
+  ! zc -s -C 'const URL = true get URL'
+
+outputs:
+  - name: stdout
+    data: |
+      (
+        const POOL = "test"
+        
+        pool XXX
+      )
+      ===
+      (
+        const FILE = "A.zson"
+        
+        file A.zson
+      )
+      ===
+      (
+        const URL = "http://brimdata.io"
+        
+        get http://brimdata.io
+      )
+  - name: stderr
+    data: |
+      invalid pool name: POOL: string value required
+      invalid file path: FILE: string value required
+      invalid file path: URL: string value required

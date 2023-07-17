@@ -512,7 +512,7 @@ PoolBody
     }
 
 Get
-  = "get" _ url:URL format:FormatArg? sort_key:SortKeyArg? method:MethodArg? headers:HeadersArg? body:BodyArg? {
+  = "get" _ url:Path format:FormatArg? sort_key:SortKeyArg? method:MethodArg? headers:HeadersArg? body:BodyArg? {
       RETURN(MAP(
         "kind": "HTTP",
         "url": url,
@@ -523,8 +523,6 @@ Get
         "body": body))
     }
 
-URL = ("http:" / "https:") Path { RETURN(TEXT) }
-
 MethodArg = _ "method" _ v:(IdentifierName / QuotedString) { RETURN(v) }
 
 HeadersArg = _ "headers" _ v:Record { RETURN(v) }
@@ -532,8 +530,8 @@ HeadersArg = _ "headers" _ v:Record { RETURN(v) }
 BodyArg = _ "body" _ v:(IdentifierName / QuotedString) { RETURN(v) }
 
 Path
-  = v:QuotedString { RETURN(v) }
-  / [0-9a-zA-Z!@$%^&*_=<>,./?:[\]{}~+-]+ { RETURN(TEXT) }
+  = v:QuotedString { RETURN(MAP("kind": "QuotedString", "text": v)) }
+  / [0-9a-zA-Z!@$%^&*_=<>,./?:[\]{}~+-]+ { RETURN(MAP("kind": "String", "text": TEXT)) }
 
 //XXX this should be a timestamp
 PoolAt
@@ -560,6 +558,7 @@ PoolName
   = Regexp
   / Glob
   / "*" !ExprGuard { RETURN(MAP("kind": "Glob", "pattern": "*")) }
+  / name:QuotedString { RETURN(MAP("kind": "QuotedString", "text": name)) }
   / name:PoolNameString { RETURN(MAP("kind": "String", "text": name)) }
 
 PoolNameString

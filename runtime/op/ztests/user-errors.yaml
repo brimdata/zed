@@ -19,5 +19,5 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      duplicate parameter "a"
+      test: duplicate parameter "a"
       illegal left-hand side of assignment

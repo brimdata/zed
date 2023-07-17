@@ -58,8 +58,6 @@ var unpacker = unpack.New(
 	Top{},
 	UnaryExpr{},
 	Uniq{},
-	UserOp{},
-	UserOpCall{},
 	Var{},
 	VectorValue{},
 	Yield{},

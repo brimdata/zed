@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
@@ -88,10 +89,22 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 		if err != nil {
 			return nil, err
 		}
+		var path string
+		switch p := p.Path.(type) {
+		case *ast.QuotedString:
+			path = p.Text
+		case *ast.String:
+			// This can be either a reference to a constant or a string.
+			if path, err = a.maybeStringConst(p.Text); err != nil {
+				return nil, fmt.Errorf("invalid file path: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("semantic analyzer: unknown AST file type %T", p)
+		}
 		return []dag.Op{
 			&dag.FileScan{
 				Kind:    "FileScan",
-				Path:    p.Path,
+				Path:    path,
 				Format:  p.Format,
 				SortKey: sortKey,
 			},
@@ -116,10 +129,25 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 				return nil, err
 			}
 		}
+		var url string
+		switch p := p.URL.(type) {
+		case *ast.QuotedString:
+			url = p.Text
+		case *ast.String:
+			// This can be either a reference to a constant or a string.
+			if url, err = a.maybeStringConst(p.Text); err != nil {
+				return nil, fmt.Errorf("invalid file path: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("semantic analyzer: unsupported AST get type %T", p)
+		}
+		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+			return nil, fmt.Errorf("get: invalid URL %s", url)
+		}
 		return []dag.Op{
 			&dag.HTTPScan{
 				Kind:    "HTTPScan",
-				URL:     p.URL,
+				URL:     url,
 				Format:  p.Format,
 				SortKey: sortKey,
 				Method:  p.Method,
@@ -194,6 +222,13 @@ func (a *analyzer) semPool(p *ast.Pool) ([]dag.Op, error) {
 	case *ast.Regexp:
 		poolNames, err = a.matchPools(specPool.Pattern, specPool.Pattern, "regexp")
 	case *ast.String:
+		// This can be either a reference to a constant or a string.
+		name, err := a.maybeStringConst(specPool.Text)
+		if err != nil {
+			return nil, fmt.Errorf("invalid pool name: %w", err)
+		}
+		poolNames = []string{name}
+	case *ast.QuotedString:
 		poolNames = []string{specPool.Text}
 	default:
 		return nil, fmt.Errorf("semantic analyzer: unknown AST pool type %T", specPool)
@@ -210,6 +245,22 @@ func (a *analyzer) semPool(p *ast.Pool) ([]dag.Op, error) {
 		sources = append(sources, source)
 	}
 	return sources, nil
+}
+
+func (a *analyzer) maybeStringConst(name string) (string, error) {
+	e, err := a.scope.LookupExpr(name)
+	if err != nil || e == nil {
+		return name, err
+	}
+	l, ok := e.(*dag.Literal)
+	if !ok {
+		return "", fmt.Errorf("%s: string value required", name)
+	}
+	val := zson.MustParseValue(a.zctx, l.Value)
+	if val.Type.ID() != zed.IDString {
+		return "", fmt.Errorf("%s: string value required", name)
+	}
+	return val.AsString(), nil
 }
 
 func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error) {
@@ -333,7 +384,7 @@ func (a *analyzer) matchPools(pattern, origPattern, patternDesc string) ([]strin
 func (a *analyzer) semScope(op *ast.Scope) (*dag.Scope, error) {
 	a.scope = NewScope(a.scope)
 	defer a.exitScope()
-	consts, funcs, ops, err := a.semDecls(op.Decls)
+	consts, funcs, err := a.semDecls(op.Decls)
 	if err != nil {
 		return nil, err
 	}
@@ -342,11 +393,10 @@ func (a *analyzer) semScope(op *ast.Scope) (*dag.Scope, error) {
 		return nil, err
 	}
 	return &dag.Scope{
-		Kind:    "Scope",
-		Consts:  consts,
-		Funcs:   funcs,
-		UserOps: ops,
-		Body:    body,
+		Kind:   "Scope",
+		Consts: consts,
+		Funcs:  funcs,
+		Body:   body,
 	}, nil
 }
 
@@ -775,35 +825,32 @@ func (a *analyzer) singletonAgg(agg ast.Assignment, seq dag.Seq) dag.Seq {
 	return append(seq, yield)
 }
 
-func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, []*dag.UserOp, error) {
+func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
 	var consts []dag.Def
 	var fnDecls []*ast.FuncDecl
-	var opDecls []*ast.OpDecl
 	for _, d := range decls {
 		switch d := d.(type) {
 		case *ast.ConstDecl:
 			c, err := a.semConstDecl(d)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, err
 			}
 			consts = append(consts, c)
 		case *ast.FuncDecl:
 			fnDecls = append(fnDecls, d)
 		case *ast.OpDecl:
-			opDecls = append(opDecls, d)
+			if err := a.semOpDecl(d); err != nil {
+				return nil, nil, err
+			}
 		default:
-			return nil, nil, nil, fmt.Errorf("invalid declaration type %T", d)
+			return nil, nil, fmt.Errorf("invalid declaration type %T", d)
 		}
 	}
 	funcs, err := a.semFuncDecls(fnDecls)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	ops, err := a.semOpDecls(opDecls)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return consts, funcs, ops, nil
+	return consts, funcs, nil
 }
 
 func (a *analyzer) semConstDecl(c *ast.ConstDecl) (dag.Def, error) {
@@ -853,61 +900,15 @@ func (a *analyzer) semFuncBody(params []string, body ast.Expr) (dag.Expr, error)
 	return a.semExpr(body)
 }
 
-func (a *analyzer) semOpDecls(decls []*ast.OpDecl) ([]*dag.UserOp, error) {
-	ops := make([]*dag.UserOp, len(decls))
-	// First define ops.
-	for i, d := range decls {
-		op := &dag.UserOp{
-			Kind:   "UserOp",
-			Name:   d.Name,
-			Params: slices.Clone(d.Params),
-		}
-		if err := a.scope.DefineAs(op.Name, op); err != nil {
-			return nil, err
-		}
-		a.opDeclMap[op] = &opDecl{
-			ast:   d,
-			scope: a.scope,
-		}
-		ops[i] = op
-	}
-	// Now compile op bodies.
-	for i, d := range decls {
-		if err := a.semOpDeclBody(ops[i], d.Body); err != nil {
-			return nil, err
-		}
-	}
-	return ops, nil
-}
-
-func (a *analyzer) semOpDeclBody(op *dag.UserOp, seq ast.Seq) error {
-	old := a.opDecl
-	a.opDecl = a.opDeclMap[op]
-	a.enterScope()
-	defer func() {
-		a.opDecl = old
-		a.exitScope()
-	}()
+func (a *analyzer) semOpDecl(d *ast.OpDecl) error {
 	m := make(map[string]bool)
-	for _, p := range op.Params {
+	for _, p := range d.Params {
 		if m[p] {
-			return fmt.Errorf("duplicate parameter %q", p)
+			return fmt.Errorf("%s: duplicate parameter %q", d.Name, p)
 		}
 		m[p] = true
-		//
-		path := &dag.This{Kind: "This", Path: []string{p}}
-		// If we were to define this as a variable in the scope, we would get
-		// an error if the parameter is used as the LHS of an assignment.
-		// Because the semantic pass of an op declaration's body is only for
-		// error checking and printing the delcaration for zfmt, just define
-		// the parameter as path to avoid that error.
-		if err := a.scope.DefineAs(p, path); err != nil {
-			return err
-		}
 	}
-	var err error
-	op.Body, err = a.semSeq(seq)
-	return err
+	return a.scope.DefineAs(d.Name, &opDecl{ast: d, scope: a.scope})
 }
 
 func (a *analyzer) semVars(defs []ast.Def) ([]dag.Def, error) {
@@ -1013,10 +1014,10 @@ func isBool(e dag.Expr) bool {
 }
 
 func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
-	if op, err := a.maybeConvertUserOp(call, seq); err != nil {
+	if body, err := a.maybeConvertUserOp(call, seq); err != nil {
 		return nil, err
-	} else if op != nil {
-		return append(seq, op), nil
+	} else if body != nil {
+		return append(seq, body...), nil
 	}
 	if agg, err := a.maybeConvertAgg(call); err == nil && agg != nil {
 		summarize := &dag.Summarize{
@@ -1047,19 +1048,19 @@ func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
 
 // maybeConvertUserOp returns nil, nil if the call is determined to not be a
 // UserOp, otherwise it returns the compiled op or the encountered error.
-func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, error) {
-	op, err := a.scope.LookupOp(call.Name)
-	if op == nil || err != nil {
+func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
+	decl, err := a.scope.lookupOp(call.Name)
+	if decl == nil || err != nil {
 		return nil, nil
 	}
 	if call.Where != nil {
 		return nil, fmt.Errorf("%s(): user defined operators cannot have a where clause", call.Name)
 	}
-	params, args := op.Params, call.Args
+	params, args := decl.ast.Params, call.Args
 	if len(params) != len(args) {
 		return nil, fmt.Errorf("%s(): %d arg%s provided when operator expects %d arg%s", call.Name, len(params), plural.Slice(params, "s"), len(args), plural.Slice(args, "s"))
 	}
-	exprs := make([]dag.Expr, len(op.Params))
+	exprs := make([]dag.Expr, len(decl.ast.Params))
 	for i, arg := range args {
 		e, err := a.semExpr(arg)
 		if err != nil {
@@ -1073,9 +1074,9 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, erro
 			}
 			if val.IsError() {
 				if val.IsMissing() {
-					return nil, fmt.Errorf("%q: non-path arguments cannot have variable dependency", op.Params[i])
+					return nil, fmt.Errorf("%q: non-path arguments cannot have variable dependency", decl.ast.Params[i])
 				} else {
-					return nil, fmt.Errorf("%q: %q", op.Params[i], string(val.Bytes()))
+					return nil, fmt.Errorf("%q: %q", decl.ast.Params[i], string(val.Bytes()))
 				}
 			}
 			e = &dag.Literal{
@@ -1085,36 +1086,20 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Op, erro
 		}
 		exprs[i] = e
 	}
-	var body dag.Seq
-	// Add references so we can construct the graph of user op calls in order
-	// to later detect cycles.
-	if a.opDecl != nil {
-		a.opDecl.deps = append(a.opDecl.deps, op)
-	} else {
-		if slices.Contains(a.opStack, op) {
-			return nil, opCycleError(append(a.opStack, op))
-		}
-		a.opStack = append(a.opStack, op)
-		decl := a.opDeclMap[op]
-		oldscope := a.scope
-		a.scope = NewScope(decl.scope)
-		defer func() {
-			a.opStack = a.opStack[:len(a.opStack)-1]
-			a.scope = oldscope
-		}()
-		for i, p := range params {
-			if err := a.scope.DefineAs(p, exprs[i]); err != nil {
-				return nil, err
-			}
-		}
-		if body, err = a.semSeq(decl.ast.Body); err != nil {
+	if slices.Contains(a.opStack, decl.ast) {
+		return nil, opCycleError(append(a.opStack, decl.ast))
+	}
+	a.opStack = append(a.opStack, decl.ast)
+	oldscope := a.scope
+	a.scope = NewScope(decl.scope)
+	defer func() {
+		a.opStack = a.opStack[:len(a.opStack)-1]
+		a.scope = oldscope
+	}()
+	for i, p := range params {
+		if err := a.scope.DefineAs(p, exprs[i]); err != nil {
 			return nil, err
 		}
 	}
-	return &dag.UserOpCall{
-		Kind:  "UserOpCall",
-		Name:  call.Name,
-		Exprs: exprs,
-		Body:  body,
-	}, nil
+	return a.semSeq(decl.ast.Body)
 }

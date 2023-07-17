@@ -13,7 +13,7 @@ outputs:
   - name: stdout
     data: |
       from (
-        pool "a" =>
+        pool a =>
           search x and pool and b
       )
       === No spaces around parentheses.
@@ -24,7 +24,7 @@ outputs:
         get http://a
       )
       from (
-        pool "a"
+        pool a
       )
       === No space before vertical bar.
       from (
@@ -36,6 +36,6 @@ outputs:
       )
       | search b
       from (
-        pool "a"
+        pool a
       )
       | search b

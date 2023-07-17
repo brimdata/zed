@@ -31,26 +31,21 @@ func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakepa
 }
 
 type analyzer struct {
-	ctx       context.Context
-	head      *lakeparse.Commitish
-	opDeclMap map[*dag.UserOp]*opDecl
-	opStack   []*dag.UserOp
-	source    *data.Source
-	scope     *Scope
-	zctx      *zed.Context
-
-	// opDecl is the current operator declaration being analyzed.
-	opDecl *opDecl
+	ctx     context.Context
+	head    *lakeparse.Commitish
+	opStack []*ast.OpDecl
+	source  *data.Source
+	scope   *Scope
+	zctx    *zed.Context
 }
 
 func newAnalyzer(ctx context.Context, source *data.Source, head *lakeparse.Commitish) *analyzer {
 	return &analyzer{
-		ctx:       ctx,
-		head:      head,
-		opDeclMap: make(map[*dag.UserOp]*opDecl),
-		source:    source,
-		scope:     NewScope(nil),
-		zctx:      zed.NewContext(),
+		ctx:    ctx,
+		head:   head,
+		source: source,
+		scope:  NewScope(nil),
+		zctx:   zed.NewContext(),
 	}
 }
 
@@ -69,8 +64,6 @@ func (a *analyzer) buildFrom(op dag.Op) (dag.Op, error) {
 	case *dag.Fork:
 		return a.buildFrom(op.Paths[0][0])
 	case *dag.Scope:
-		return a.buildFrom(op.Body[0])
-	case *dag.UserOpCall:
 		return a.buildFrom(op.Body[0])
 	}
 	// No from so add a source.
@@ -95,11 +88,10 @@ func (a *analyzer) buildFrom(op dag.Op) (dag.Op, error) {
 
 type opDecl struct {
 	ast   *ast.OpDecl
-	deps  []*dag.UserOp
 	scope *Scope // parent scope of op declaration.
 }
 
-type opCycleError []*dag.UserOp
+type opCycleError []*ast.OpDecl
 
 func (e opCycleError) Error() string {
 	b := "operator cycle found: "
