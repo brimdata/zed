@@ -397,7 +397,7 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 	case castPrimitive:
 		// For a successful cast, v.Type == zed.TypeUnder(s.toType).
 		// For a failed cast, v.Type is a zed.TypeError.
-		v := s.caster.Eval(ectx, zed.NewValue(s.fromType, in))
+		v := s.caster.Eval(ectx, ectx.NewValue(s.fromType, in))
 		b.Append(v.Bytes())
 		if zed.TypeUnder(v.Type) == zed.TypeUnder(s.toType) {
 			// Prefer s.toType in case it's a named type.

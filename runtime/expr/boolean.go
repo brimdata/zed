@@ -233,9 +233,11 @@ func CompareNull(op string) (Boolean, error) {
 // Given a predicate for comparing individual elements, produce a new
 // predicate that implements the "in" comparison.
 func Contains(compare Boolean) Boolean {
+	var tmpVal zed.Value
 	return func(val *zed.Value) bool {
 		return errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
-			if compare(zed.NewValue(typ, body)) {
+			tmpVal = *zed.NewValue(typ, body)
+			if compare(&tmpVal) {
 				return errMatch
 			}
 			return nil

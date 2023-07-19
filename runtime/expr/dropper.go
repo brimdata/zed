@@ -26,7 +26,7 @@ func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	return zed.NewValue(d.typ, val)
+	return ectx.NewValue(d.typ, val)
 }
 
 type Dropper struct {

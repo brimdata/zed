@@ -110,7 +110,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		// release the batch with and bypass GC.
 		for _, rightRec := range rightRecs {
 			cutRec := o.cutter.Eval(ectx.Reset(), rightRec)
-			rec, err := o.splice(leftRec, cutRec)
+			rec, err := o.splice(&ectx, leftRec, cutRec)
 			if err != nil {
 				return nil, err
 			}
@@ -229,7 +229,7 @@ func (o *Op) combinedType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) 
 	return typ, nil
 }
 
-func (o *Op) splice(left, right *zed.Value) (*zed.Value, error) {
+func (o *Op) splice(ectx *expr.ResetContext, left, right *zed.Value) (*zed.Value, error) {
 	if right == nil {
 		// This happens on a simple join, i.e., "join key",
 		// where there are no cut expressions.  For left joins,
@@ -248,5 +248,5 @@ func (o *Op) splice(left, right *zed.Value) (*zed.Value, error) {
 	bytes := make([]byte, n+len(right.Bytes()))
 	copy(bytes, left.Bytes())
 	copy(bytes[n:], right.Bytes())
-	return zed.NewValue(typ, bytes), nil
+	return ectx.NewValue(typ, bytes), nil
 }
