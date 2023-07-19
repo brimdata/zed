@@ -165,8 +165,8 @@ type Equal struct {
 	equality bool
 }
 
-func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
-	e := &Equal{numeric: newNumeric(lhs, rhs)} //XXX
+func NewCompareEquality(zctx *zed.Context, lhs, rhs Evaluator, operator string) (*Equal, error) {
+	e := &Equal{numeric: newNumeric(zctx, lhs, rhs)} //XXX
 	switch operator {
 	case "==":
 		e.equality = true
@@ -227,10 +227,11 @@ type numeric struct {
 	vals coerce.Pair
 }
 
-func newNumeric(lhs, rhs Evaluator) numeric {
+func newNumeric(zctx *zed.Context, lhs, rhs Evaluator) numeric {
 	return numeric{
-		lhs: lhs,
-		rhs: rhs,
+		zctx: zctx,
+		lhs:  lhs,
+		rhs:  rhs,
 	}
 }
 
@@ -276,7 +277,7 @@ type Compare struct {
 }
 
 func NewCompareRelative(zctx *zed.Context, lhs, rhs Evaluator, operator string) (*Compare, error) {
-	c := &Compare{zctx: zctx, numeric: newNumeric(lhs, rhs)}
+	c := &Compare{zctx: zctx, numeric: newNumeric(zctx, lhs, rhs)}
 	switch operator {
 	case "<":
 		c.convert = func(v int) bool { return v < 0 }
@@ -397,7 +398,7 @@ var DivideByZero = errors.New("divide by zero")
 // NewArithmetic compiles an expression of the form "expr1 op expr2"
 // for the arithmetic operators +, -, *, /
 func NewArithmetic(zctx *zed.Context, lhs, rhs Evaluator, op string) (Evaluator, error) {
-	n := newNumeric(lhs, rhs)
+	n := newNumeric(zctx, lhs, rhs)
 	switch op {
 	case "+":
 		return &Add{zctx: zctx, operands: n}, nil
