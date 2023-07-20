@@ -70,41 +70,41 @@ func TestCompareNumbers(t *testing.T) {
 			"{x:%s (%s),u8:0 (uint8),i16:0 (int16),u16:0 (uint16),i32:0 (int32),u32:0 (uint32),i64:0,u64:0 (uint64)} (=0)",
 			one, typ)
 		// Test the 6 comparison operators against a constant
-		testSuccessful(t, "x == 1", record, *zed.NewBool(true))
-		testSuccessful(t, "x == 0", record, *zed.NewBool(false))
-		testSuccessful(t, "x != 0", record, *zed.NewBool(true))
-		testSuccessful(t, "x != 1", record, *zed.NewBool(false))
-		testSuccessful(t, "x < 2", record, *zed.NewBool(true))
-		testSuccessful(t, "x < 1", record, *zed.NewBool(false))
-		testSuccessful(t, "x <= 2", record, *zed.NewBool(true))
-		testSuccessful(t, "x <= 1", record, *zed.NewBool(true))
-		testSuccessful(t, "x <= 0", record, *zed.NewBool(false))
-		testSuccessful(t, "x > 0", record, *zed.NewBool(true))
-		testSuccessful(t, "x > 1", record, *zed.NewBool(false))
-		testSuccessful(t, "x >= 0", record, *zed.NewBool(true))
-		testSuccessful(t, "x >= 1", record, *zed.NewBool(true))
-		testSuccessful(t, "x >= 2", record, *zed.NewBool(false))
+		testSuccessful(t, "x == 1", record, *zed.True)
+		testSuccessful(t, "x == 0", record, *zed.False)
+		testSuccessful(t, "x != 0", record, *zed.True)
+		testSuccessful(t, "x != 1", record, *zed.False)
+		testSuccessful(t, "x < 2", record, *zed.True)
+		testSuccessful(t, "x < 1", record, *zed.False)
+		testSuccessful(t, "x <= 2", record, *zed.True)
+		testSuccessful(t, "x <= 1", record, *zed.True)
+		testSuccessful(t, "x <= 0", record, *zed.False)
+		testSuccessful(t, "x > 0", record, *zed.True)
+		testSuccessful(t, "x > 1", record, *zed.False)
+		testSuccessful(t, "x >= 0", record, *zed.True)
+		testSuccessful(t, "x >= 1", record, *zed.True)
+		testSuccessful(t, "x >= 2", record, *zed.False)
 
 		// Test the full matrix of comparisons between all
 		// the integer types
 		for _, other := range intFields {
 			exp := fmt.Sprintf("x == %s", other)
-			testSuccessful(t, exp, record, *zed.NewBool(false))
+			testSuccessful(t, exp, record, *zed.False)
 
 			exp = fmt.Sprintf("x != %s", other)
-			testSuccessful(t, exp, record, *zed.NewBool(true))
+			testSuccessful(t, exp, record, *zed.True)
 
 			exp = fmt.Sprintf("x < %s", other)
-			testSuccessful(t, exp, record, *zed.NewBool(false))
+			testSuccessful(t, exp, record, *zed.False)
 
 			exp = fmt.Sprintf("x <= %s", other)
-			testSuccessful(t, exp, record, *zed.NewBool(false))
+			testSuccessful(t, exp, record, *zed.False)
 
 			exp = fmt.Sprintf("x > %s", other)
-			testSuccessful(t, exp, record, *zed.NewBool(true))
+			testSuccessful(t, exp, record, *zed.True)
 
 			exp = fmt.Sprintf("x >= %s", other)
-			testSuccessful(t, exp, record, *zed.NewBool(true))
+			testSuccessful(t, exp, record, *zed.True)
 		}
 
 		// For integer types, test this against other
@@ -114,46 +114,46 @@ func TestCompareNumbers(t *testing.T) {
 				"{x:%s (%s),p:80 (port=uint16),t:2020-03-09T22:54:12Z,d:16m40s}", one, typ)
 
 			// port
-			testSuccessful(t, "x == p", record, *zed.NewBool(false))
-			testSuccessful(t, "p == x", record, *zed.NewBool(false))
-			testSuccessful(t, "x != p", record, *zed.NewBool(true))
-			testSuccessful(t, "p != x", record, *zed.NewBool(true))
-			testSuccessful(t, "x < p", record, *zed.NewBool(true))
-			testSuccessful(t, "p < x", record, *zed.NewBool(false))
-			testSuccessful(t, "x <= p", record, *zed.NewBool(true))
-			testSuccessful(t, "p <= x", record, *zed.NewBool(false))
-			testSuccessful(t, "x > p", record, *zed.NewBool(false))
-			testSuccessful(t, "p > x", record, *zed.NewBool(true))
-			testSuccessful(t, "x >= p", record, *zed.NewBool(false))
-			testSuccessful(t, "p >= x", record, *zed.NewBool(true))
+			testSuccessful(t, "x == p", record, *zed.False)
+			testSuccessful(t, "p == x", record, *zed.False)
+			testSuccessful(t, "x != p", record, *zed.True)
+			testSuccessful(t, "p != x", record, *zed.True)
+			testSuccessful(t, "x < p", record, *zed.True)
+			testSuccessful(t, "p < x", record, *zed.False)
+			testSuccessful(t, "x <= p", record, *zed.True)
+			testSuccessful(t, "p <= x", record, *zed.False)
+			testSuccessful(t, "x > p", record, *zed.False)
+			testSuccessful(t, "p > x", record, *zed.True)
+			testSuccessful(t, "x >= p", record, *zed.False)
+			testSuccessful(t, "p >= x", record, *zed.True)
 
 			// time
-			testSuccessful(t, "x == t", record, *zed.NewBool(false))
-			testSuccessful(t, "t == x", record, *zed.NewBool(false))
-			testSuccessful(t, "x != t", record, *zed.NewBool(true))
-			testSuccessful(t, "t != x", record, *zed.NewBool(true))
-			testSuccessful(t, "x < t", record, *zed.NewBool(true))
-			testSuccessful(t, "t < x", record, *zed.NewBool(false))
-			testSuccessful(t, "x <= t", record, *zed.NewBool(true))
-			testSuccessful(t, "t <= x", record, *zed.NewBool(false))
-			testSuccessful(t, "x > t", record, *zed.NewBool(false))
-			testSuccessful(t, "t > x", record, *zed.NewBool(true))
-			testSuccessful(t, "x >= t", record, *zed.NewBool(false))
-			testSuccessful(t, "t >= x", record, *zed.NewBool(true))
+			testSuccessful(t, "x == t", record, *zed.False)
+			testSuccessful(t, "t == x", record, *zed.False)
+			testSuccessful(t, "x != t", record, *zed.True)
+			testSuccessful(t, "t != x", record, *zed.True)
+			testSuccessful(t, "x < t", record, *zed.True)
+			testSuccessful(t, "t < x", record, *zed.False)
+			testSuccessful(t, "x <= t", record, *zed.True)
+			testSuccessful(t, "t <= x", record, *zed.False)
+			testSuccessful(t, "x > t", record, *zed.False)
+			testSuccessful(t, "t > x", record, *zed.True)
+			testSuccessful(t, "x >= t", record, *zed.False)
+			testSuccessful(t, "t >= x", record, *zed.True)
 
 			// duration
-			testSuccessful(t, "x == d", record, *zed.NewBool(false))
-			testSuccessful(t, "d == x", record, *zed.NewBool(false))
-			testSuccessful(t, "x != d", record, *zed.NewBool(true))
-			testSuccessful(t, "d != x", record, *zed.NewBool(true))
-			testSuccessful(t, "x < d", record, *zed.NewBool(true))
-			testSuccessful(t, "d < x", record, *zed.NewBool(false))
-			testSuccessful(t, "x <= d", record, *zed.NewBool(true))
-			testSuccessful(t, "d <= x", record, *zed.NewBool(false))
-			testSuccessful(t, "x > d", record, *zed.NewBool(false))
-			testSuccessful(t, "d > x", record, *zed.NewBool(true))
-			testSuccessful(t, "x >= d", record, *zed.NewBool(false))
-			testSuccessful(t, "d >= x", record, *zed.NewBool(true))
+			testSuccessful(t, "x == d", record, *zed.False)
+			testSuccessful(t, "d == x", record, *zed.False)
+			testSuccessful(t, "x != d", record, *zed.True)
+			testSuccessful(t, "d != x", record, *zed.True)
+			testSuccessful(t, "x < d", record, *zed.True)
+			testSuccessful(t, "d < x", record, *zed.False)
+			testSuccessful(t, "x <= d", record, *zed.True)
+			testSuccessful(t, "d <= x", record, *zed.False)
+			testSuccessful(t, "x > d", record, *zed.False)
+			testSuccessful(t, "d > x", record, *zed.True)
+			testSuccessful(t, "x >= d", record, *zed.False)
+			testSuccessful(t, "d >= x", record, *zed.True)
 		}
 
 		// Test this against non-numeric types
@@ -186,33 +186,33 @@ func TestCompareNumbers(t *testing.T) {
 	// floats that cast to different integers.
 	const rec2 = "{i:-1,u:18446744073709551615 (uint64),f:-1.} (=0)"
 
-	testSuccessful(t, "i == u", rec2, *zed.NewBool(false))
-	testSuccessful(t, "i != u", rec2, *zed.NewBool(true))
-	testSuccessful(t, "i < u", rec2, *zed.NewBool(true))
-	testSuccessful(t, "i <= u", rec2, *zed.NewBool(true))
-	testSuccessful(t, "i > u", rec2, *zed.NewBool(false))
-	testSuccessful(t, "i >= u", rec2, *zed.NewBool(false))
+	testSuccessful(t, "i == u", rec2, *zed.False)
+	testSuccessful(t, "i != u", rec2, *zed.True)
+	testSuccessful(t, "i < u", rec2, *zed.True)
+	testSuccessful(t, "i <= u", rec2, *zed.True)
+	testSuccessful(t, "i > u", rec2, *zed.False)
+	testSuccessful(t, "i >= u", rec2, *zed.False)
 
-	testSuccessful(t, "u == i", rec2, *zed.NewBool(false))
-	testSuccessful(t, "u != i", rec2, *zed.NewBool(true))
-	testSuccessful(t, "u < i", rec2, *zed.NewBool(false))
-	testSuccessful(t, "u <= i", rec2, *zed.NewBool(false))
-	testSuccessful(t, "u > i", rec2, *zed.NewBool(true))
-	testSuccessful(t, "u >= i", rec2, *zed.NewBool(true))
+	testSuccessful(t, "u == i", rec2, *zed.False)
+	testSuccessful(t, "u != i", rec2, *zed.True)
+	testSuccessful(t, "u < i", rec2, *zed.False)
+	testSuccessful(t, "u <= i", rec2, *zed.False)
+	testSuccessful(t, "u > i", rec2, *zed.True)
+	testSuccessful(t, "u >= i", rec2, *zed.True)
 
-	testSuccessful(t, "f == u", rec2, *zed.NewBool(false))
-	testSuccessful(t, "f != u", rec2, *zed.NewBool(true))
-	testSuccessful(t, "f < u", rec2, *zed.NewBool(true))
-	testSuccessful(t, "f <= u", rec2, *zed.NewBool(true))
-	testSuccessful(t, "f > u", rec2, *zed.NewBool(false))
-	testSuccessful(t, "f >= u", rec2, *zed.NewBool(false))
+	testSuccessful(t, "f == u", rec2, *zed.False)
+	testSuccessful(t, "f != u", rec2, *zed.True)
+	testSuccessful(t, "f < u", rec2, *zed.True)
+	testSuccessful(t, "f <= u", rec2, *zed.True)
+	testSuccessful(t, "f > u", rec2, *zed.False)
+	testSuccessful(t, "f >= u", rec2, *zed.False)
 
-	testSuccessful(t, "u == f", rec2, *zed.NewBool(false))
-	testSuccessful(t, "u != f", rec2, *zed.NewBool(true))
-	testSuccessful(t, "u < f", rec2, *zed.NewBool(false))
-	testSuccessful(t, "u <= f", rec2, *zed.NewBool(false))
-	testSuccessful(t, "u > f", rec2, *zed.NewBool(true))
-	testSuccessful(t, "u >= f", rec2, *zed.NewBool(true))
+	testSuccessful(t, "u == f", rec2, *zed.False)
+	testSuccessful(t, "u != f", rec2, *zed.True)
+	testSuccessful(t, "u < f", rec2, *zed.False)
+	testSuccessful(t, "u <= f", rec2, *zed.False)
+	testSuccessful(t, "u > f", rec2, *zed.True)
+	testSuccessful(t, "u >= f", rec2, *zed.True)
 }
 
 func TestCompareNonNumbers(t *testing.T) {
@@ -229,33 +229,33 @@ func TestCompareNonNumbers(t *testing.T) {
 `
 
 	// bool
-	testSuccessful(t, "b == true", record, *zed.NewBool(true))
-	testSuccessful(t, "b == false", record, *zed.NewBool(false))
-	testSuccessful(t, "b != true", record, *zed.NewBool(false))
-	testSuccessful(t, "b != false", record, *zed.NewBool(true))
+	testSuccessful(t, "b == true", record, *zed.True)
+	testSuccessful(t, "b == false", record, *zed.False)
+	testSuccessful(t, "b != true", record, *zed.False)
+	testSuccessful(t, "b != false", record, *zed.True)
 
 	// string
-	testSuccessful(t, `s == "hello"`, record, *zed.NewBool(true))
-	testSuccessful(t, `s != "hello"`, record, *zed.NewBool(false))
-	testSuccessful(t, `s == "world"`, record, *zed.NewBool(false))
-	testSuccessful(t, `s != "world"`, record, *zed.NewBool(true))
+	testSuccessful(t, `s == "hello"`, record, *zed.True)
+	testSuccessful(t, `s != "hello"`, record, *zed.False)
+	testSuccessful(t, `s == "world"`, record, *zed.False)
+	testSuccessful(t, `s != "world"`, record, *zed.True)
 
 	// ip
-	testSuccessful(t, "i == 10.1.1.1", record, *zed.NewBool(true))
-	testSuccessful(t, "i != 10.1.1.1", record, *zed.NewBool(false))
-	testSuccessful(t, "i == 1.1.1.10", record, *zed.NewBool(false))
-	testSuccessful(t, "i != 1.1.1.10", record, *zed.NewBool(true))
-	testSuccessful(t, "i == i", record, *zed.NewBool(true))
+	testSuccessful(t, "i == 10.1.1.1", record, *zed.True)
+	testSuccessful(t, "i != 10.1.1.1", record, *zed.False)
+	testSuccessful(t, "i == 1.1.1.10", record, *zed.False)
+	testSuccessful(t, "i != 1.1.1.10", record, *zed.True)
+	testSuccessful(t, "i == i", record, *zed.True)
 
 	// port
-	testSuccessful(t, "p == 443", record, *zed.NewBool(true))
-	testSuccessful(t, "p != 443", record, *zed.NewBool(false))
+	testSuccessful(t, "p == 443", record, *zed.True)
+	testSuccessful(t, "p != 443", record, *zed.False)
 
 	// net
-	testSuccessful(t, "net == 10.1.0.0/16", record, *zed.NewBool(true))
-	testSuccessful(t, "net != 10.1.0.0/16", record, *zed.NewBool(false))
-	testSuccessful(t, "net == 10.1.0.0/24", record, *zed.NewBool(false))
-	testSuccessful(t, "net != 10.1.0.0/24", record, *zed.NewBool(true))
+	testSuccessful(t, "net == 10.1.0.0/16", record, *zed.True)
+	testSuccessful(t, "net != 10.1.0.0/16", record, *zed.False)
+	testSuccessful(t, "net == 10.1.0.0/24", record, *zed.False)
+	testSuccessful(t, "net != 10.1.0.0/24", record, *zed.True)
 
 	// Test comparisons between incompatible types
 	allTypes := []struct {
@@ -288,43 +288,43 @@ func TestCompareNonNumbers(t *testing.T) {
 	// relative comparisons on strings
 	record = `{s:"abc"}`
 
-	testSuccessful(t, `s < "brim"`, record, *zed.NewBool(true))
-	testSuccessful(t, `s < "aaa"`, record, *zed.NewBool(false))
-	testSuccessful(t, `s < "abc"`, record, *zed.NewBool(false))
+	testSuccessful(t, `s < "brim"`, record, *zed.True)
+	testSuccessful(t, `s < "aaa"`, record, *zed.False)
+	testSuccessful(t, `s < "abc"`, record, *zed.False)
 
-	testSuccessful(t, `s > "brim"`, record, *zed.NewBool(false))
-	testSuccessful(t, `s > "aaa"`, record, *zed.NewBool(true))
-	testSuccessful(t, `s > "abc"`, record, *zed.NewBool(false))
+	testSuccessful(t, `s > "brim"`, record, *zed.False)
+	testSuccessful(t, `s > "aaa"`, record, *zed.True)
+	testSuccessful(t, `s > "abc"`, record, *zed.False)
 
-	testSuccessful(t, `s <= "brim"`, record, *zed.NewBool(true))
-	testSuccessful(t, `s <= "aaa"`, record, *zed.NewBool(false))
-	testSuccessful(t, `s <= "abc"`, record, *zed.NewBool(true))
+	testSuccessful(t, `s <= "brim"`, record, *zed.True)
+	testSuccessful(t, `s <= "aaa"`, record, *zed.False)
+	testSuccessful(t, `s <= "abc"`, record, *zed.True)
 
-	testSuccessful(t, `s >= "brim"`, record, *zed.NewBool(false))
-	testSuccessful(t, `s >= "aaa"`, record, *zed.NewBool(true))
-	testSuccessful(t, `s >= "abc"`, record, *zed.NewBool(true))
+	testSuccessful(t, `s >= "brim"`, record, *zed.False)
+	testSuccessful(t, `s >= "aaa"`, record, *zed.True)
+	testSuccessful(t, `s >= "abc"`, record, *zed.True)
 }
 
 func TestPattern(t *testing.T) {
-	testSuccessful(t, `"abc" == "abc"`, "", *zed.NewBool(true))
-	testSuccessful(t, `"abc" != "abc"`, "", *zed.NewBool(false))
-	testSuccessful(t, "cidr_match(10.0.0.0/8, 10.1.1.1)", "", *zed.NewBool(true))
-	testSuccessful(t, "10.1.1.1 in 192.168.0.0/16", "", *zed.NewBool(false))
-	testSuccessful(t, "!cidr_match(10.0.0.0/8, 10.1.1.1)", "", *zed.NewBool(false))
-	testSuccessful(t, "!(10.1.1.1 in 192.168.0.0/16)", "", *zed.NewBool(true))
+	testSuccessful(t, `"abc" == "abc"`, "", *zed.True)
+	testSuccessful(t, `"abc" != "abc"`, "", *zed.False)
+	testSuccessful(t, "cidr_match(10.0.0.0/8, 10.1.1.1)", "", *zed.True)
+	testSuccessful(t, "10.1.1.1 in 192.168.0.0/16", "", *zed.False)
+	testSuccessful(t, "!cidr_match(10.0.0.0/8, 10.1.1.1)", "", *zed.False)
+	testSuccessful(t, "!(10.1.1.1 in 192.168.0.0/16)", "", *zed.True)
 }
 
 func TestIn(t *testing.T) {
 	const record = "{a:[1 (int32),2 (int32),3 (int32)] (=0),s:|[4 (int32),5 (int32),6 (int32)]| (=1)} (=2)"
 
-	testSuccessful(t, "1 in a", record, *zed.NewBool(true))
-	testSuccessful(t, "0 in a", record, *zed.NewBool(false))
+	testSuccessful(t, "1 in a", record, *zed.True)
+	testSuccessful(t, "0 in a", record, *zed.False)
 
-	testSuccessful(t, "1 in s", record, *zed.NewBool(false))
-	testSuccessful(t, "4 in s", record, *zed.NewBool(true))
+	testSuccessful(t, "1 in s", record, *zed.False)
+	testSuccessful(t, "4 in s", record, *zed.True)
 
-	testSuccessful(t, `"boo" in a`, record, *zed.NewBool(false))
-	testSuccessful(t, `"boo" in s`, record, *zed.NewBool(false))
+	testSuccessful(t, `"boo" in a`, record, *zed.False)
+	testSuccessful(t, `"boo" in s`, record, *zed.False)
 }
 
 func TestArithmetic(t *testing.T) {
