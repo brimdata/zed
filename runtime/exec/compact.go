@@ -38,7 +38,7 @@ func Compact(ctx context.Context, lk *lake.Root, pool *lake.Pool, branchName str
 	octx := op.NewContext(ctx, zctx, nil)
 	slicer := meta.NewSlicer(lister, zctx)
 	puller := meta.NewSequenceScanner(octx, slicer, pool, nil, nil, nil)
-	w := lake.NewSortedWriter(ctx, pool)
+	w := lake.NewSortedWriter(ctx, zctx, pool)
 	if err := zbuf.CopyPuller(w, puller); err != nil {
 		puller.Pull(true)
 		w.Abort()

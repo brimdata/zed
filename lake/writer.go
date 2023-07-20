@@ -163,17 +163,28 @@ func (w *Writer) Stats() ImportStats {
 }
 
 type SortedWriter struct {
-	ctx     context.Context
-	pool    *Pool
-	writer  *data.Writer
-	objects []*data.Object
+	comparator *expr.Comparator
+	ctx        context.Context
+	pool       *Pool
+	poolKey    field.Path
+	lastKey    *zed.Value
+	writer     *data.Writer
+	objects    []*data.Object
 }
 
-func NewSortedWriter(ctx context.Context, pool *Pool) *SortedWriter {
-	return &SortedWriter{ctx: ctx, pool: pool}
+func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool) *SortedWriter {
+	return &SortedWriter{
+		comparator: ImportComparator(zctx, pool),
+		ctx:        ctx,
+		poolKey:    poolKey(pool.SortKey),
+		pool:       pool,
+		lastKey:    &zed.Value{},
+	}
 }
 
 func (w *SortedWriter) Write(val *zed.Value) error {
+	key := val.DerefPath(w.poolKey).MissingAsNull()
+again:
 	if w.writer == nil {
 		o := data.NewObject()
 		w.objects = append(w.objects, &o)
@@ -183,14 +194,19 @@ func (w *SortedWriter) Write(val *zed.Value) error {
 			return err
 		}
 	}
-	if err := w.writer.Write(val); err != nil {
-		return err
-	}
-	if w.writer.BytesWritten() >= w.pool.Threshold {
+	if w.writer.BytesWritten() >= w.pool.Threshold &&
+		w.comparator.Compare(w.lastKey, key) != 0 {
 		writer := w.writer
 		w.writer = nil
-		return writer.Close(w.ctx)
+		if err := writer.Close(w.ctx); err != nil {
+			return err
+		}
+		goto again
 	}
+	if err := w.writer.WriteWithKey(key, val); err != nil {
+		return err
+	}
+	w.lastKey.CopyFrom(key)
 	return nil
 }
 
