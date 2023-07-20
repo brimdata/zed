@@ -37,7 +37,7 @@ func CompactionScan(ctx context.Context, it DataObjectIterator, pool *pools.Conf
 		if err != nil {
 			return err
 		}
-		if run.Overlaps(&object.Min, &object.Max) || object.Size < pool.Threshold/2 {
+		if run.Overlaps(&object.Min, &object.Max) || run.Size+object.Size < pool.Threshold {
 			run.Add(object)
 			continue
 		}
