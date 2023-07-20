@@ -309,5 +309,5 @@ func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
 	}
 	rule := p.lookupRule(recType, vals, clauses)
 	bytes := rule.step.build(this.Bytes(), &p.builder, vals)
-	return zed.NewValue(rule.typ, bytes)
+	return ectx.NewValue(rule.typ, bytes)
 }

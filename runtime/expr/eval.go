@@ -138,8 +138,10 @@ func (i *In) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if container.IsError() {
 		return container
 	}
+	tmpVal := ectx.NewValue(nil, nil)
 	err := container.Walk(func(typ zed.Type, body zcode.Bytes) error {
-		if _, err := i.vals.Coerce(elem, zed.NewValue(typ, body)); err != nil {
+		*tmpVal = *zed.NewValue(typ, body)
+		if _, err := i.vals.Coerce(elem, tmpVal); err != nil {
 			if err != coerce.IncompatibleTypes {
 				return err
 			}
@@ -233,10 +235,10 @@ func newNumeric(zctx *zed.Context, lhs, rhs Evaluator) numeric {
 	}
 }
 
-func enumify(val *zed.Value) *zed.Value {
+func enumify(ectx Context, val *zed.Value) *zed.Value {
 	// automatically convert an enum to its index value when coercing
 	if _, ok := val.Type.(*zed.TypeEnum); ok {
-		return zed.NewValue(zed.TypeUint64, val.Bytes())
+		return ectx.NewValue(zed.TypeUint64, val.Bytes())
 	}
 	return val
 }
@@ -246,12 +248,12 @@ func (n *numeric) eval(ectx Context, this *zed.Value) (int, *zed.Value, error) {
 	if lhs.IsError() {
 		return 0, lhs, nil
 	}
-	lhs = enumify(lhs)
+	lhs = enumify(ectx, lhs)
 	rhs := n.rhs.Eval(ectx, this)
 	if rhs.IsError() {
 		return 0, rhs, nil
 	}
-	rhs = enumify(rhs)
+	rhs = enumify(ectx, rhs)
 	id, err := n.vals.Coerce(lhs, rhs)
 	return id, nil, err
 }
@@ -717,7 +719,7 @@ func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zc
 		return ectx.CopyValue(*zctx.WrapError("record index is not a string", index))
 	}
 	field := zed.DecodeString(index.Bytes())
-	val := zed.NewValue(typ, record).Deref(field)
+	val := ectx.NewValue(typ, record).Deref(field)
 	if val == nil {
 		return zctx.Missing()
 	}

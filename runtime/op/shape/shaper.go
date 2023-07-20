@@ -19,6 +19,7 @@ type Shaper struct {
 	recode     map[zed.Type]*zed.TypeRecord
 	spiller    *spill.File
 	hash       maphash.Hash
+	val        zed.Value
 	vals       []*zed.Value
 }
 
@@ -267,7 +268,8 @@ func (s *Shaper) Read() (*zed.Value, error) {
 		}
 		typ = targetType
 	}
-	return zed.NewValue(typ, bytes), nil
+	s.val = *zed.NewValue(typ, bytes)
+	return &s.val, nil
 }
 
 func recode(from, to []zed.Field, bytes zcode.Bytes) (zcode.Bytes, error) {

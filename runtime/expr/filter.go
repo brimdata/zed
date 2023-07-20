@@ -32,8 +32,13 @@ func (s *searchByPred) Eval(ectx Context, val *zed.Value) *zed.Value {
 			return zed.False
 		}
 	}
+	tmpVal := ectx.NewValue(nil, nil)
 	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
-		if s.searchType(typ) || s.pred(zed.NewValue(typ, body)) {
+		if s.searchType(typ) {
+			return errMatch
+		}
+		*tmpVal = *zed.NewValue(typ, body)
+		if s.pred(tmpVal) {
 			return errMatch
 		}
 		return nil
@@ -120,12 +125,16 @@ func (s *search) Eval(ectx Context, val *zed.Value) *zed.Value {
 			return zed.False
 		}
 	}
+	tmpVal := ectx.NewValue(nil, nil)
 	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 		if typ.ID() == zed.IDString {
 			if stringSearch(byteconv.UnsafeString(body), s.text) {
 				return errMatch
 			}
-		} else if s.compare(zed.NewValue(typ, body)) {
+			return nil
+		}
+		*tmpVal = *zed.NewValue(typ, body)
+		if s.compare(tmpVal) {
 			return errMatch
 		}
 		return nil
