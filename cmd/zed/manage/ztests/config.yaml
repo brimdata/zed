@@ -5,7 +5,7 @@ script: |
   zed create -q test2
   zed create -q test3
   zed branch -use test2 -q live
-  zed manage -once -config=inherit.yaml -log.path=inherit.log
+  zed manage -config=inherit.yaml -log.path=inherit.log
   zq -Z 'msg == "updating pool" | cut name, branch, interval | sort name' inherit.log > inherit.zson
 
 inputs:

@@ -6,7 +6,7 @@ script: |
   for i in {1..10}; do
     seq 200 | zq '{ts:this}' - | zed load -q -
   done
-  zed manage -q -once
+  zed manage -q
   zed query -z 'from test@main:objects | drop id'
 
 outputs:
