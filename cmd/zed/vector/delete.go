@@ -53,11 +53,7 @@ func (c *deleteCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolID, err := lake.PoolID(ctx, head.Pool)
-	if err != nil {
-		return err
-	}
-	commit, err := lake.DeleteVectors(ctx, poolID, head.Branch, ids, c.commitFlags.CommitMessage())
+	commit, err := lake.DeleteVectors(ctx, head.Pool, head.Branch, ids, c.commitFlags.CommitMessage())
 	if err == nil && !c.LakeFlags.Quiet {
 		fmt.Printf("%s vectors deleted\n", commit)
 	}
