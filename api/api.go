@@ -142,3 +142,7 @@ type QueryWarning struct {
 type VacuumResponse struct {
 	ObjectIDs []ksuid.KSUID `zed:"object_ids"`
 }
+
+type VectorRequest struct {
+	ObjectIDs []ksuid.KSUID `zed:"object_ids"`
+}

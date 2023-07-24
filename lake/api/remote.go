@@ -160,12 +160,14 @@ func (r *remote) UpdateIndex(ctx context.Context, rules []string, poolID ksuid.K
 	return res.Commit, err
 }
 
-func (r *remote) AddVectors(ctx context.Context, pool ksuid.KSUID, branch string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
-	panic("TBD")
+func (r *remote) AddVectors(ctx context.Context, pool, revision string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	res, err := r.conn.AddVectors(ctx, pool, revision, objects, message)
+	return res.Commit, err
 }
 
-func (r *remote) DeleteVectors(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
-	panic("TBD")
+func (r *remote) DeleteVectors(ctx context.Context, pool, revision string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	res, err := r.conn.DeleteVectors(ctx, pool, revision, ids, message)
+	return res.Commit, err
 }
 
 func (r *remote) Vacuum(ctx context.Context, pool, revision string, dryrun bool) ([]ksuid.KSUID, error) {

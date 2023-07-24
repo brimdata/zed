@@ -52,11 +52,7 @@ func (c *addCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolID, err := lake.PoolID(ctx, head.Pool)
-	if err != nil {
-		return err
-	}
-	commit, err := lake.AddVectors(ctx, poolID, head.Branch, ids, c.commitFlags.CommitMessage())
+	commit, err := lake.AddVectors(ctx, head.Pool, head.Branch, ids, c.commitFlags.CommitMessage())
 	if err == nil && !c.LakeFlags.Quiet {
 		fmt.Printf("%s vectors added\n", commit)
 	}

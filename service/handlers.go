@@ -645,6 +645,58 @@ func handleVacuum(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.VacuumResponse{ObjectIDs: oids})
 }
 
+func handleVectorPost(c *Core, w *ResponseWriter, r *Request) {
+	pool, ok := r.StringFromPath(w, "pool")
+	if !ok {
+		return
+	}
+	revision, ok := r.StringFromPath(w, "revision")
+	if !ok {
+		return
+	}
+	var req api.VectorRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	message, ok := r.decodeCommitMessage(w)
+	if !ok {
+		return
+	}
+	lk := lakeapi.FromRoot(c.root)
+	commit, err := lk.AddVectors(r.Context(), pool, revision, req.ObjectIDs, message)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+}
+
+func handleVectorDelete(c *Core, w *ResponseWriter, r *Request) {
+	pool, ok := r.StringFromPath(w, "pool")
+	if !ok {
+		return
+	}
+	revision, ok := r.StringFromPath(w, "revision")
+	if !ok {
+		return
+	}
+	var req api.VectorRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	message, ok := r.decodeCommitMessage(w)
+	if !ok {
+		return
+	}
+	lk := lakeapi.FromRoot(c.root)
+	commit, err := lk.DeleteVectors(r.Context(), pool, revision, req.ObjectIDs, message)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+}
+
 func handleAuthIdentityGet(c *Core, w *ResponseWriter, r *Request) {
 	ident := auth.IdentityFromContext(r.Context())
 	w.Respond(http.StatusOK, api.AuthIdentityResponse{
