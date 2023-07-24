@@ -1,0 +1,17 @@
+# Test ensures that zed manage merges objects with the same key into one object 
+# even if the object is greater than pool threshold.
+
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -use -orderby x:asc -S 100B test
+  for i in {1..5}; do
+    seq 100 | zq '{ts:this,x:1}' - | zed load -q -
+  done
+  zed manage -q -once
+  zed query -z 'from test@main:objects | drop id'
+
+outputs:
+  - name: stdout
+    data: |
+      {min:1,max:1,count:500(uint64),size:539}
