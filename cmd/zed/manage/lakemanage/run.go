@@ -28,11 +28,11 @@ func (p Run) Overlaps(first, last *zed.Value) bool {
 
 func (p *Run) Add(o *data.Object) {
 	p.Objects = append(p.Objects, o)
+	p.Size += o.Size
 	if p.Span == nil {
 		p.Span = extent.NewGeneric(o.Min, o.Max, p.Compare)
 		return
 	}
-	p.Size += o.Size
 	p.Span.Extend(&o.Min)
 	p.Span.Extend(&o.Max)
 }
