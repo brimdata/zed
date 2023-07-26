@@ -1,3 +1,15 @@
+## v1.9.0
+* The [Zed Language Overview docs](docs/language/overview.md) have been split into multiple sections (#4576)
+* Add support for [User-Defined Operators](docs/language/statements.md#operator-statements) (#4417, #4635, #4646, #4644, #4663, #4674, #4698, #4702, #4716)
+* Add experimental support to the [`get` operator](https://github.com/brimdata/zed/blob/main/docs/language/operators/get.md) for customized methods, headers, and body (#4572)
+* Allow float decorators on integers in [ZSON](docs/formats/zson.md) (#4654)
+* The [Shaping docs](docs/language/shaping.md) have been expanded with a new section on [error handling](docs/language/shaping.md#error-handling) (#4686)
+* `zq` no longer attaches positional command line file inputs directly to [`join`](docs/language/operators/join.md) inputs (use [`file`](docs/language/operators/file.md) within a Zed program instead) (#4689)
+* [Zeek](https://zeek.org/)-related docs have been moved to the Integrations area of the [Zed docs site](https://zed.brimdata.io/docs) (#4694, #4696)
+* [`zed create`](docs/commands/zed.md#create) now has a `-use` flag to set the newly-created pool as the default pool for future operations (#4656)
+* Fix an issue where the [Zed Python client](docs/libraries/python.md) was incorrectly returning `False` for all `bool` values (#4706)
+* Fix an issue where the `!=` operator was not returning correct results when comparing certain types (#4704)
+
 ## v1.8.1
 * Send an HTTP 400 response instead of HTTP 500 for attempted deletes that find nothing to delete (#4618)
 * Send an HTTP 400 response instead of HTTP 500 for queries that parse ok but fail to compile, such as searches lacking a leading [`from`](docs/language/operators/from.md) (#4620)
