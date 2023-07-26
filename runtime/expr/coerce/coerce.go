@@ -2,7 +2,6 @@ package coerce
 
 import (
 	"bytes"
-	"math"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
@@ -20,20 +19,24 @@ func Equal(a, b *zed.Value) bool {
 	switch aid, bid := a.Type.ID(), b.Type.ID(); {
 	case !zed.IsNumber(aid) || !zed.IsNumber(bid):
 		return aid == bid && bytes.Equal(a.Bytes(), b.Bytes())
-	case zed.IsUnsigned(aid) && zed.IsUnsigned(bid):
-		return a.Uint() == b.Uint()
 	case zed.IsFloat(aid):
 		return a.Float() == ToNumeric[float64](b)
 	case zed.IsFloat(bid):
 		return b.Float() == ToNumeric[float64](a)
-	case zed.IsUnsigned(aid):
-		v := a.Uint()
-		return v <= math.MaxInt64 && int64(v) == b.Int()
-	case zed.IsUnsigned(bid):
-		v := b.Uint()
-		return v <= math.MaxInt64 && int64(v) == a.Int()
+	case zed.IsSigned(aid):
+		av := a.Int()
+		if zed.IsUnsigned(bid) {
+			return uint64(av) == b.Uint() && av >= 0
+		}
+		return av == b.Int()
+	case zed.IsSigned(bid):
+		bv := b.Int()
+		if zed.IsUnsigned(aid) {
+			return uint64(bv) == a.Uint() && bv >= 0
+		}
+		return bv == a.Int()
 	default:
-		return a.Int() == b.Int()
+		return a.Uint() == b.Uint()
 	}
 }
 

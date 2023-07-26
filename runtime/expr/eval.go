@@ -331,26 +331,30 @@ func (c *Compare) Eval(ectx Context, this *zed.Value) *zed.Value {
 
 func compareNumbers(a, b *zed.Value, aid, bid int) int {
 	switch {
-	case zed.IsUnsigned(aid) && zed.IsUnsigned(bid):
-		return compare(a.Uint(), b.Uint())
 	case zed.IsFloat(aid):
 		return compare(a.Float(), toFloat(b))
 	case zed.IsFloat(bid):
 		return compare(toFloat(a), b.Float())
-	case zed.IsUnsigned(aid):
-		v := a.Uint()
-		if v > math.MaxInt64 {
-			return 1
+	case zed.IsSigned(aid):
+		av := a.Int()
+		if zed.IsUnsigned(bid) {
+			if av < 0 {
+				return -1
+			}
+			return compare(uint64(av), b.Uint())
 		}
-		return compare(int64(v), b.Int())
-	case zed.IsUnsigned(bid):
-		v := b.Uint()
-		if v > math.MaxInt64 {
-			return -1
+		return compare(av, b.Int())
+	case zed.IsSigned(bid):
+		bv := b.Int()
+		if zed.IsUnsigned(aid) {
+			if bv < 0 {
+				return 1
+			}
+			return compare(a.Uint(), uint64(bv))
 		}
-		return compare(a.Int(), int64(v))
+		return compare(a.Int(), bv)
 	}
-	return compare(a.Int(), b.Int())
+	return compare(a.Uint(), b.Uint())
 }
 
 func compare[T constraints.Ordered](a, b T) int {
