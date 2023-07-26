@@ -224,19 +224,15 @@ func (n *numeric) evalAndPromote(ectx Context, this *zed.Value) (*zed.Value, *ze
 	if errVal != nil {
 		return nil, nil, 0, nil, errVal
 	}
-	id, typ, errVal := n.promote(ectx, lhsVal, rhsVal)
-	if errVal != nil {
-		return nil, nil, 0, nil, errVal
+	id, err := coerce.Promote(lhsVal, rhsVal)
+	if err != nil {
+		return nil, nil, 0, nil, ectx.CopyValue(*n.zctx.NewError(err))
+	}
+	typ, err := zed.LookupPrimitiveByID(id)
+	if err != nil {
+		return nil, nil, 0, nil, ectx.CopyValue(*n.zctx.NewError(err))
 	}
 	return lhsVal, rhsVal, id, typ, nil
-}
-
-func enumify(ectx Context, val *zed.Value) *zed.Value {
-	// automatically convert an enum to its index value when coercing
-	if _, ok := val.Type.(*zed.TypeEnum); ok {
-		return ectx.NewValue(zed.TypeUint64, val.Bytes())
-	}
-	return val
 }
 
 func (n *numeric) eval(ectx Context, this *zed.Value) (*zed.Value, *zed.Value, *zed.Value) {
@@ -248,19 +244,15 @@ func (n *numeric) eval(ectx Context, this *zed.Value) (*zed.Value, *zed.Value, *
 	if rhs.IsError() {
 		return nil, nil, rhs
 	}
-	return enumify(ectx, lhs), enumify(ectx, rhs), nil
+	return enumToIndex(ectx, lhs), enumToIndex(ectx, rhs), nil
 }
 
-func (n *numeric) promote(ectx Context, lhsVal, rhsVal *zed.Value) (int, zed.Type, *zed.Value) {
-	id, err := coerce.Promote(lhsVal, rhsVal)
-	if err != nil {
-		return 0, nil, ectx.CopyValue(*n.zctx.NewError(err))
+// enumToIndex converts an enum to its index value.
+func enumToIndex(ectx Context, val *zed.Value) *zed.Value {
+	if _, ok := val.Type.(*zed.TypeEnum); ok {
+		return ectx.NewValue(zed.TypeUint64, val.Bytes())
 	}
-	typ, err := zed.LookupPrimitiveByID(id)
-	if err != nil {
-		return 0, nil, ectx.CopyValue(*n.zctx.NewError(err))
-	}
-	return id, typ, nil
+	return val
 }
 
 type Compare struct {
