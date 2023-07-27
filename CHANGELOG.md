@@ -3,7 +3,7 @@
 * Add support for [user-defined operators](docs/language/statements.md#operator-statements) (#4417, #4635, #4646, #4644, #4663, #4674, #4698, #4702, #4716)
 * Add experimental support to the [`get` operator](https://github.com/brimdata/zed/blob/main/docs/language/operators/get.md) for customized methods, headers, and body (#4572)
 * Allow float decorators on integers in [ZSON](docs/formats/zson.md) (#4654)
-* The [Shaping docs](docs/language/shaping.md) have been expanded with a new section on [error handling](docs/language/shaping.md#error-handling) (#4686)
+* The [shaping docs](docs/language/shaping.md) have been expanded with a new section on [error handling](docs/language/shaping.md#error-handling) (#4686)
 * `zq` no longer attaches positional command line file inputs directly to [`join`](docs/language/operators/join.md) inputs (use [`file`](docs/language/operators/file.md) within a Zed program instead) (#4689)
 * [Zeek](https://zeek.org/)-related docs have been moved to the Integrations area of the [Zed docs site](https://zed.brimdata.io/docs) (#4694, #4696)
 * [`zed create`](docs/commands/zed.md#create) now has a `-use` flag to set the newly-created pool as the default pool for future operations (#4656)
