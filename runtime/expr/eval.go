@@ -308,12 +308,20 @@ func (c *Compare) Eval(ectx Context, this *zed.Value) *zed.Value {
 	switch lid, rid := lhs.Type.ID(), rhs.Type.ID(); {
 	case zed.IsNumber(lid) && zed.IsNumber(rid):
 		return c.result(compareNumbers(lhs, rhs, lid, rid))
-	// case lid == zed.IDBool && rid == zed.IDBool:
-	case lid == zed.IDBytes && rid == zed.IDBytes:
+	case lid != rid:
+		return zed.False
+	case lid == zed.IDBool:
+		if lhs.Bool() {
+			if rhs.Bool() {
+				return c.result(0)
+			}
+
+		}
+	case lid == zed.IDBytes:
 		return c.result(bytes.Compare(zed.DecodeBytes(lhs.Bytes()), zed.DecodeBytes(rhs.Bytes())))
-	case lid == zed.IDString && rid == zed.IDString:
+	case lid == zed.IDString:
 		return c.result(compare(zed.DecodeString(lhs.Bytes()), zed.DecodeString(lhs.Bytes())))
-	case lid == rid:
+	default:
 		if bytes.Equal(lhs.Bytes(), rhs.Bytes()) {
 			return c.result(0)
 		}
