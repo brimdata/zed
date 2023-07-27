@@ -1,6 +1,6 @@
 ## v1.9.0
 * The [Zed Language Overview docs](docs/language/overview.md) have been split into multiple sections (#4576)
-* Add support for [User-Defined Operators](docs/language/statements.md#operator-statements) (#4417, #4635, #4646, #4644, #4663, #4674, #4698, #4702, #4716)
+* Add support for [user-defined operators](docs/language/statements.md#operator-statements) (#4417, #4635, #4646, #4644, #4663, #4674, #4698, #4702, #4716)
 * Add experimental support to the [`get` operator](https://github.com/brimdata/zed/blob/main/docs/language/operators/get.md) for customized methods, headers, and body (#4572)
 * Allow float decorators on integers in [ZSON](docs/formats/zson.md) (#4654)
 * The [Shaping docs](docs/language/shaping.md) have been expanded with a new section on [error handling](docs/language/shaping.md#error-handling) (#4686)
