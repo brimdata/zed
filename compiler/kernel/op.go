@@ -600,8 +600,7 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		if err != nil {
 			return nil, err
 		}
-		nullsMax := o.Order == order.Asc
-		cmp := expr.NewComparator(nullsMax, !nullsMax, e).WithMissingAsNull()
+		cmp := expr.NewComparator(true, o.Order == order.Desc, e).WithMissingAsNull()
 		return []zbuf.Puller{merge.New(b.octx, parents, cmp.Compare)}, nil
 	case *dag.Combine:
 		return []zbuf.Puller{combine.New(b.octx, parents)}, nil
