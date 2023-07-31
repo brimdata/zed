@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
@@ -24,7 +24,6 @@ type Deleter struct {
 	unmarshaler *zson.UnmarshalZNGContext
 	done        bool
 	err         error
-	batches     []zbuf.Batch
 	deletes     *sync.Map
 }
 
@@ -53,73 +52,72 @@ func (d *Deleter) Pull(done bool) (zbuf.Batch, error) {
 		}
 		return nil, d.err
 	}
-	// Each time pull is called, we scan a whole object and see if any deletes
-	// happen in it, then return each batch of the modified object.  If the
-	// object doesn't have any deletions, we ignore it and keep scanning till
-	// we find one.
 	for {
-		if len(d.batches) != 0 {
-			batch := d.batches[0]
-			d.batches = d.batches[1:]
-			return batch, nil
-		}
-		batches, err := d.nextDeletion()
-		if batches == nil || err != nil {
-			d.close(err)
-			return nil, err
-		}
-		d.batches = batches
-	}
-}
-
-func (d *Deleter) nextDeletion() ([]zbuf.Batch, error) {
-	var object *data.Object
-	var batches []zbuf.Batch
-	var scanner zbuf.Puller
-	var count uint64
-	for {
-		if scanner == nil {
-			if d.parent == nil { //XXX
-				return nil, nil
-			}
-			// Pull the next object to be scanned.  It must be an object
-			// not a partition.
-			batch, err := d.parent.Pull(false)
-			if batch == nil || err != nil {
-				return nil, err
-			}
-			vals := batch.Values()
-			if len(vals) != 1 {
-				// We currently support only one partition per batch.
-				return nil, errors.New("internal error: meta.Deleter encountered multi-valued batch")
-			}
-			scanner, object, err = newScanner(d.octx.Context, d.octx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, d.progress, &vals[0])
-			if err != nil {
+		if d.scanner == nil {
+			scanner, err := d.nextDeletion()
+			if scanner == nil || err != nil {
 				d.close(err)
 				return nil, err
 			}
-			count = 0
+			d.scanner = scanner
 		}
-		batch, err := scanner.Pull(false)
+		if batch, err := d.scanner.Pull(false); err != nil {
+			d.close(err)
+			return nil, err
+		} else if batch != nil {
+			return batch, nil
+		}
+		d.scanner = nil
+	}
+}
+
+func (d *Deleter) nextDeletion() (zbuf.Puller, error) {
+	for {
+		if d.parent == nil { //XXX
+			return nil, nil
+		}
+		// Pull the next object to be scanned.  It must be an object
+		// not a partition.
+		batch, err := d.parent.Pull(false)
+		if batch == nil || err != nil {
+			return nil, err
+		}
+		vals := batch.Values()
+		if len(vals) != 1 {
+			// We currently support only one partition per batch.
+			return nil, errors.New("internal error: meta.Deleter encountered multi-valued batch")
+		}
+		if hasDeletes, err := d.hasDeletes(&vals[0]); err != nil {
+			return nil, err
+		} else if !hasDeletes {
+			continue
+		}
+		// Use a no-op progress so stats are not inflated.
+		var progress zbuf.Progress
+		scanner, object, err := newScanner(d.octx.Context, d.octx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, &progress, &vals[0])
 		if err != nil {
 			return nil, err
 		}
-		if batch != nil {
-			count += uint64(len(batch.Values()))
-			batches = append(batches, batch)
-			continue
+		d.deleteObject(object.ID)
+		return scanner, nil
+	}
+}
+
+func (d *Deleter) hasDeletes(val *zed.Value) (bool, error) {
+	scanner, object, err := newScanner(d.octx.Context, d.octx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, d.progress, val)
+	if err != nil {
+		return false, err
+	}
+	var count uint64
+	for {
+		batch, err := scanner.Pull(false)
+		if err != nil {
+			return false, err
 		}
-		if count != object.Count {
-			// This object had values deleted from it.  Record it to the
-			// map and return the modified batches downstream to be written
-			// to new objects.
-			d.deleteObject(object.ID)
-			return batches, nil
+		if batch == nil {
+			return count != object.Count, nil
 		}
-		scanner = nil
-		object = nil
-		count = 0
-		batches = batches[:0]
+		count += uint64(len(batch.Values()))
 	}
 }
 
