@@ -270,3 +270,21 @@ type casterBytes struct{}
 func (c *casterBytes) Eval(ectx Context, val *zed.Value) *zed.Value {
 	return ectx.NewValue(zed.TypeBytes, val.Bytes())
 }
+
+type casterNamedType struct {
+	zctx *zed.Context
+	expr Evaluator
+	name string
+}
+
+func (c *casterNamedType) Eval(ectx Context, this *zed.Value) *zed.Value {
+	val := c.expr.Eval(ectx, this)
+	if val.IsError() {
+		return val
+	}
+	typ, err := c.zctx.LookupTypeNamed(c.name, zed.TypeUnder(val.Type))
+	if err != nil {
+		return ectx.CopyValue(*c.zctx.NewError(err))
+	}
+	return ectx.NewValue(typ, val.Bytes())
+}

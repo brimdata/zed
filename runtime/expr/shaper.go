@@ -25,6 +25,36 @@ const (
 	Order
 )
 
+// NewShaper returns a shaper that will shape the result of expr
+// to the type returned by typeExpr according to tf.
+func NewShaper(zctx *zed.Context, expr, typeExpr Evaluator, tf ShaperTransform) (Evaluator, error) {
+	if l, ok := typeExpr.(*Literal); ok {
+		typeVal := l.val
+		switch id := typeVal.Type.ID(); {
+		case id == zed.IDType:
+			typ, err := zctx.LookupByValue(typeVal.Bytes())
+			if err != nil {
+				return nil, err
+			}
+			return NewConstShaper(zctx, expr, typ, tf), nil
+		case id == zed.IDString && tf == Cast:
+			name := zed.DecodeString(typeVal.Bytes())
+			if _, err := zed.NewContext().LookupTypeNamed(name, zed.TypeNull); err != nil {
+				return nil, err
+			}
+			return &casterNamedType{zctx, expr, name}, nil
+		}
+		return nil, fmt.Errorf("shaper type argument is not a type: %s", zson.FormatValue(typeVal))
+	}
+	return &Shaper{
+		zctx:       zctx,
+		expr:       expr,
+		typeExpr:   typeExpr,
+		transforms: tf,
+		shapers:    make(map[zed.Type]*ConstShaper),
+	}, nil
+}
+
 type Shaper struct {
 	zctx       *zed.Context
 	expr       Evaluator
@@ -34,44 +64,27 @@ type Shaper struct {
 	shapers map[zed.Type]*ConstShaper
 }
 
-// NewShaper returns a shaper that will shape the result of expr
-// to the type returned by typeExpr according to tf.
-func NewShaper(zctx *zed.Context, expr, typeExpr Evaluator, tf ShaperTransform) *Shaper {
-	return &Shaper{
-		zctx:       zctx,
-		expr:       expr,
-		typeExpr:   typeExpr,
-		transforms: tf,
-		shapers:    make(map[zed.Type]*ConstShaper),
-	}
-}
-
 func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
-	//XXX should have a fast path for constant types
 	typeVal := s.typeExpr.Eval(ectx, this)
-	if typeVal.IsError() {
-		return typeVal
+	switch id := typeVal.Type.ID(); {
+	case id == zed.IDType:
+		typ, err := s.zctx.LookupByValue(typeVal.Bytes())
+		if err != nil {
+			return ectx.CopyValue(*s.zctx.NewError(err))
+		}
+		shaper, ok := s.shapers[typ]
+		if !ok {
+			//XXX we should check if this is a cast-only function and
+			// and allocate a primitive caster if warranted
+			shaper = NewConstShaper(s.zctx, s.expr, typ, s.transforms)
+			s.shapers[typ] = shaper
+		}
+		return shaper.Eval(ectx, this)
+	case id == zed.IDString && s.transforms == Cast:
+		name := zed.DecodeString(typeVal.Bytes())
+		return (&casterNamedType{s.zctx, s.expr, name}).Eval(ectx, this)
 	}
-	if typeVal.Type == zed.TypeString {
-		typ, _ := s.zctx.LookupTypeNamed(string(typeVal.Bytes()), this.Type)
-		return ectx.NewValue(typ, this.Bytes())
-	}
-	//XXX TypeUnder?
-	if typeVal.Type != zed.TypeType {
-		return ectx.CopyValue(*s.zctx.WrapError("shaper type argument is not a type", typeVal))
-	}
-	shapeTo, err := s.zctx.LookupByValue(typeVal.Bytes())
-	if err != nil {
-		panic(err)
-	}
-	shaper, ok := s.shapers[shapeTo]
-	if !ok {
-		//XXX we should check if this is a cast-only function and
-		// and allocate a primitive caster if warranted
-		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
-		s.shapers[shapeTo] = shaper
-	}
-	return shaper.Eval(ectx, this)
+	return ectx.CopyValue(*s.zctx.WrapError("shaper type argument is not a type", typeVal))
 }
 
 type ConstShaper struct {

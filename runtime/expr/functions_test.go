@@ -1,6 +1,7 @@
 package expr_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -147,4 +148,25 @@ func TestLen(t *testing.T) {
 
 	testSuccessful(t, `rune_len("foo")`, record, zed.NewInt64(3))
 	testSuccessful(t, `rune_len(s)`, record, zed.NewInt64(1))
+}
+
+func TestCast(t *testing.T) {
+	// Constant type argument
+	testSuccessful(t, "cast(1, <uint64>)", "", zed.NewUint64(1))
+	testError(t, "cast(1, 2)", errors.New("shaper type argument is not a type: 2"), "cast() argument is not a type")
+
+	// Constant name argument
+	testSuccessful(t, `cast(1, "my_int64")`, "", ZSON("1(=my_int64)"))
+	testError(t, `cast(1, "uint64")`, errors.New(`bad type name "uint64": primitive type name`), "cast() argument is a primitve type name")
+
+	// Variable type argument
+	testSuccessful(t, "cast(1, type)", "{type:<uint64>}", zed.NewUint64(1))
+	testSuccessful(t, "cast(1, type)", "{type:2}", ZSON(`error({message:"shaper type argument is not a type",on:2})`))
+
+	// Variable name argument
+	testSuccessful(t, "cast(1, name)", `{name:"my_int64"}`, ZSON("1(=my_int64)"))
+	testSuccessful(t, "cast(1, name)", `{name:"uint64"}`, ZSON(`error("bad type name \"uint64\": primitive type name")`))
+
+	testError(t, "cast()", function.ErrTooFewArgs, "cast() with no args")
+	testError(t, "cast(1, 2, 3)", function.ErrTooManyArgs, "cast() with no args")
 }
