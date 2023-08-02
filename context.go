@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"unicode/utf8"
 
 	"github.com/brimdata/zed/zcode"
@@ -33,9 +34,9 @@ type Context struct {
 	toType    map[string]Type
 	toValue   map[Type]zcode.Bytes
 	typedefs  map[string]*TypeNamed
-	stringErr *TypeError
-	missing   *Value
-	quiet     *Value
+	stringErr atomic.Pointer[TypeError]
+	missing   atomic.Pointer[Value]
+	quiet     atomic.Pointer[Value]
 }
 
 func NewContext() *Context {
@@ -274,7 +275,7 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 	typ := NewTypeError(c.nextIDWithLock(), inner)
 	c.enterWithLock(*tv, typ)
 	if inner == TypeString {
-		c.stringErr = typ
+		c.stringErr.Store(typ)
 	}
 	return typ
 }
@@ -516,37 +517,19 @@ func DecodeLength(tv zcode.Bytes) (int, zcode.Bytes) {
 }
 
 func (c *Context) Missing() *Value {
-	c.mu.RLock()
-	missing := c.missing
-	if missing != nil {
-		c.mu.RUnlock()
-		return missing
+	if val := c.missing.Load(); val != nil {
+		return val
 	}
-	c.mu.RUnlock()
-	missing = c.NewErrorf("missing")
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.missing == nil {
-		c.missing = missing
-	}
-	return c.missing
+	c.missing.CompareAndSwap(nil, c.NewErrorf("missing"))
+	return c.missing.Load()
 }
 
 func (c *Context) Quiet() *Value {
-	c.mu.RLock()
-	quiet := c.quiet
-	if quiet != nil {
-		c.mu.RUnlock()
-		return quiet
+	if val := c.quiet.Load(); val != nil {
+		return val
 	}
-	c.mu.RUnlock()
-	quiet = c.NewErrorf("quiet")
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.quiet == nil {
-		c.quiet = quiet
-	}
-	return c.quiet
+	c.quiet.CompareAndSwap(nil, c.NewErrorf("quiet"))
+	return c.quiet.Load()
 }
 
 // batch/allocator should handle these?
@@ -560,13 +543,10 @@ func (c *Context) NewError(err error) *Value {
 }
 
 func (c *Context) StringTypeError() *TypeError {
-	c.mu.RLock()
-	typ := c.stringErr
-	c.mu.RUnlock()
-	if typ == nil {
-		typ = c.LookupTypeError(TypeString)
+	if typ := c.stringErr.Load(); typ != nil {
+		return typ
 	}
-	return typ
+	return c.LookupTypeError(TypeString)
 }
 
 func (c *Context) WrapError(msg string, val *Value) *Value {
