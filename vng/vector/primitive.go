@@ -71,10 +71,6 @@ func (p *PrimitiveWriter) update(body zcode.Bytes) {
 }
 
 func (p *PrimitiveWriter) Flush(eof bool) error {
-	if !eof {
-		//XXX get rid of this... re-work flush protocol?
-		panic("PrimitiveWriter.Flush")
-	}
 	if p.dict != nil {
 		p.bytes = p.makeDictVector()
 	}

@@ -1,0 +1,21 @@
+script: |
+  seq 1 100 | zq -f vng -o out.vng -vng.skewthresh 500B "yield 'test'+string(this)" -
+  zed dev dig section -Z 1 out.vng | zq -Z 'yield quiet(Segmap)' -
+
+outputs:
+  - name: "stdout"
+    data: |
+      [
+          {
+              Offset: 0,
+              Length: 85 (int32),
+              MemLength: 85 (int32),
+              CompressionFormat: 0 (uint8)
+          } (=Segment),
+          {
+              Offset: 106,
+              Length: 15,
+              MemLength: 15,
+              CompressionFormat: 0
+          } (Segment)
+      ]
