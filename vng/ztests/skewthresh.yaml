@@ -3,7 +3,7 @@ script: |
   zed dev dig section -Z 1 out.vng | zq -Z 'yield quiet(Segmap)' -
 
 outputs:
-  - name: "stdout"
+  - name: stdout
     data: |
       [
           {
