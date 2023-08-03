@@ -306,7 +306,7 @@ func isShaperFunc(name string) bool {
 	return shaperOps(name) != 0
 }
 
-func (b *Builder) compileShaper(node dag.Call) (*expr.Shaper, error) {
+func (b *Builder) compileShaper(node dag.Call) (expr.Evaluator, error) {
 	args := node.Args
 	if len(args) == 1 {
 		args = append([]dag.Expr{&dag.This{Kind: "This"}}, args...)
@@ -325,10 +325,7 @@ func (b *Builder) compileShaper(node dag.Call) (*expr.Shaper, error) {
 	if err != nil {
 		return nil, err
 	}
-	// XXX When we do constant folding, we should detect when typeExpr is
-	// a constant and allocate a ConstShaper instead of a (dynamic) Shaper.
-	// See issue #2425.
-	return expr.NewShaper(b.zctx(), field, typExpr, shaperOps(node.Name)), nil
+	return expr.NewShaper(b.zctx(), field, typExpr, shaperOps(node.Name))
 }
 
 func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
