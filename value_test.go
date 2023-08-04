@@ -8,6 +8,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func BenchmarkValueUnder(b *testing.B) {
+	b.Run("primitive", func(b *testing.B) {
+		val := zed.Null
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			val.Under()
+		}
+	})
+	b.Run("named", func(b *testing.B) {
+		typ, _ := zed.NewContext().LookupTypeNamed("name", zed.TypeNull)
+		val := zed.NewValue(typ, nil)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			val.Under()
+		}
+	})
+}
+
 func TestValueValidate(t *testing.T) {
 	recType := zed.NewTypeRecord(0, []zed.Field{
 		zed.NewField("f", zed.NewTypeSet(0, zed.TypeString)),
