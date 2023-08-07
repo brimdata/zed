@@ -437,20 +437,25 @@ func (v *Value) MissingAsNull() *Value {
 	return v
 }
 
+// Under resolves named types and untags unions repeatedly, returning a value
+// guaranteed to have neither a named type nor a union type.
 func (v *Value) Under() *Value {
-	typ := v.Type
-	if _, ok := typ.(*TypeNamed); !ok {
-		if _, ok := typ.(*TypeUnion); !ok {
-			// common fast path
-			return v
-		}
+	switch v.Type.(type) {
+	case *TypeUnion, *TypeNamed:
+		return v.under()
 	}
-	bytes := v.Bytes()
+	// This is the common case; make sure the compiler can inline it.
+	return v
+}
+
+// under contains logic for Under that the compiler won't inline.
+func (v *Value) under() *Value {
+	typ, bytes := v.Type, v.Bytes()
 	for {
 		typ = TypeUnder(typ)
 		union, ok := typ.(*TypeUnion)
 		if !ok {
-			return NewValue(typ, bytes)
+			return &Value{typ, bytes}
 		}
 		typ, bytes = union.Untag(bytes)
 	}
