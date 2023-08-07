@@ -70,7 +70,8 @@ func (w *Writer) Write(rec *zed.Value) error {
 	for i, it := 0, rec.Bytes().Iter(); i < len(fields) && !it.Done(); i++ {
 		var s string
 		if zb := it.Next(); zb != nil {
-			val := zed.NewValue(fields[i].Type, zb).Under()
+			val := zed.NewValue(fields[i].Type, zb)
+			val = val.Under(val)
 			switch id := val.Type.ID(); {
 			case id == zed.IDBytes && len(val.Bytes()) == 0:
 				// We want "" instead of "0x" for a zero-length value.

@@ -39,7 +39,8 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 }
 
 func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	val := d.record.Eval(ectx, this).Under()
+	var tmpVal zed.Value
+	val := d.record.Eval(ectx, this).Under(&tmpVal)
 	// Cases are ordered by decreasing expected frequency.
 	switch typ := val.Type.(type) {
 	case *zed.TypeRecord:

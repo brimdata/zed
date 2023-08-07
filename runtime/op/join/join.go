@@ -29,6 +29,7 @@ type Op struct {
 	cutter      *expr.Cutter
 	joinKey     *zed.Value
 	joinSet     []*zed.Value
+	tmpLeft     zed.Value
 	types       map[int]map[int]*zed.TypeRecord
 }
 
@@ -238,8 +239,10 @@ func (o *Op) splice(ectx *expr.ResetContext, left, right *zed.Value) (*zed.Value
 		// stream.
 		return left, nil
 	}
-	left = left.Under()
-	right = right.Under()
+	// tmpLeft lives in Op because the 1.20.6 compiler thinks it escapes.
+	left = left.Under(&o.tmpLeft)
+	var tmpRight zed.Value
+	right = right.Under(&tmpRight)
 	typ, err := o.combinedType(zed.TypeRecordOf(left.Type), zed.TypeRecordOf(right.Type))
 	if err != nil {
 		return nil, err

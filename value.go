@@ -438,24 +438,30 @@ func (v *Value) MissingAsNull() *Value {
 }
 
 // Under resolves named types and untags unions repeatedly, returning a value
-// guaranteed to have neither a named type nor a union type.
-func (v *Value) Under() *Value {
+// guaranteed to have neither a named type nor a union type.  When Under returns
+// a new value (i.e., one that differs from v), it uses dst if not nil.
+// Otherwise, Under allocates a new value.
+func (v *Value) Under(dst *Value) *Value {
 	switch v.Type.(type) {
 	case *TypeUnion, *TypeNamed:
-		return v.under()
+		return v.under(dst)
 	}
 	// This is the common case; make sure the compiler can inline it.
 	return v
 }
 
 // under contains logic for Under that the compiler won't inline.
-func (v *Value) under() *Value {
+func (v *Value) under(dst *Value) *Value {
 	typ, bytes := v.Type, v.Bytes()
 	for {
 		typ = TypeUnder(typ)
 		union, ok := typ.(*TypeUnion)
 		if !ok {
-			return &Value{typ, bytes}
+			if dst == nil {
+				return &Value{typ, bytes}
+			}
+			*dst = Value{typ, bytes}
+			return dst
 		}
 		typ, bytes = union.Untag(bytes)
 	}
