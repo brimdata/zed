@@ -98,5 +98,5 @@ func valueUnder(typ zed.Type, b zcode.Bytes) *zed.Value {
 	if _, ok := zed.TypeUnder(typ).(*zed.TypeUnion); !ok {
 		return val
 	}
-	return val.Under()
+	return val.Under(val)
 }

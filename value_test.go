@@ -9,11 +9,12 @@ import (
 )
 
 func BenchmarkValueUnder(b *testing.B) {
+	var tmpVal zed.Value
 	b.Run("primitive", func(b *testing.B) {
 		val := zed.Null
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			val.Under()
+			val.Under(&tmpVal)
 		}
 	})
 	b.Run("named", func(b *testing.B) {
@@ -21,7 +22,7 @@ func BenchmarkValueUnder(b *testing.B) {
 		val := zed.NewValue(typ, nil)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			val.Under()
+			val.Under(&tmpVal)
 		}
 	})
 }
