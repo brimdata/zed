@@ -806,34 +806,6 @@ func (c *Call) Eval(ectx Context, this *zed.Value) *zed.Value {
 	return c.fn.Call(ectx, c.args)
 }
 
-func NewCast(zctx *zed.Context, expr Evaluator, typ zed.Type) (Evaluator, error) {
-	// XXX should handle named type casts. need type context.
-	// compile is going to need a local type context to create literals
-	// of complex types?
-	c := LookupPrimitiveCaster(zctx, typ)
-	if c == nil {
-		// XXX See issue #1572.  To implement named cast here.
-		return nil, fmt.Errorf("cast to %q not implemented", zson.FormatType(typ))
-	}
-	return &evalCast{expr, c, typ}, nil
-}
-
-type evalCast struct {
-	expr   Evaluator
-	caster Evaluator
-	typ    zed.Type
-}
-
-func (c *evalCast) Eval(ectx Context, this *zed.Value) *zed.Value {
-	val := c.expr.Eval(ectx, this)
-	if val.IsNull() || val.Type == c.typ {
-		// If value is null or the type won't change, just return a
-		// copy of the value.
-		return ectx.NewValue(c.typ, val.Bytes())
-	}
-	return c.caster.Eval(ectx, val)
-}
-
 type Assignment struct {
 	LHS field.Path
 	RHS Evaluator
