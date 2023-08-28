@@ -24,14 +24,16 @@ a commit on HEAD replacing the old objects with the new ones.`,
 
 type Command struct {
 	*root.Command
-	commitFlags commitflags.Flags
-	poolFlags   poolflags.Flags
+	commitFlags  commitflags.Flags
+	poolFlags    poolflags.Flags
+	writeVectors bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.commitFlags.SetFlags(f)
 	c.poolFlags.SetFlags(f)
+	f.BoolVar(&c.writeVectors, "vectors", false, "write vectors for compacted objects")
 	return c, nil
 }
 
@@ -57,7 +59,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	commit, err := lake.Compact(ctx, poolID, head.Branch, ids, c.commitFlags.CommitMessage())
+	commit, err := lake.Compact(ctx, poolID, head.Branch, ids, c.writeVectors, c.commitFlags.CommitMessage())
 	if err == nil && !c.LakeFlags.Quiet {
 		fmt.Printf("%s compaction committed\n", commit)
 	}

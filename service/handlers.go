@@ -444,6 +444,10 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
+	writeVectors, ok := r.BoolFromQuery(w, "vectors")
+	if !ok {
+		return
+	}
 	message, ok := r.decodeCommitMessage(w)
 	if !ok {
 		return
@@ -452,7 +456,7 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := exec.Compact(r.Context(), c.root, pool, branch, req.ObjectIDs, message.Author, message.Body, message.Meta)
+	commit, err := exec.Compact(r.Context(), c.root, pool, branch, req.ObjectIDs, writeVectors, message.Author, message.Body, message.Meta)
 	if err != nil {
 		w.Error(err)
 		return

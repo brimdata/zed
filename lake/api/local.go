@@ -97,12 +97,12 @@ func (l *local) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch
 	return l.root.MergeBranch(ctx, poolID, childBranch, parentBranch, message.Author, message.Body)
 }
 
-func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName string, objects []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
+func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName string, objects []ksuid.KSUID, writeVectors bool, commit api.CommitMessage) (ksuid.KSUID, error) {
 	pool, err := l.root.OpenPool(ctx, poolID)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return exec.Compact(ctx, l.root, pool, branchName, objects, commit.Author, commit.Body, commit.Meta)
+	return exec.Compact(ctx, l.root, pool, branchName, objects, writeVectors, commit.Author, commit.Body, commit.Meta)
 }
 
 func (l *local) AddIndexRules(ctx context.Context, rules []index.Rule) error {
