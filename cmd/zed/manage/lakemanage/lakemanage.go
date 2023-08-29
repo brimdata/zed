@@ -28,13 +28,11 @@ func Update(ctx context.Context, lk lakeapi.Interface, conf Config, logger *zap.
 		branch := branch
 		branch.logger.Info("updating pool")
 		group.Go(func() error {
-			for _, task := range branch.tasks {
-				if err := task.run(ctx); err != nil {
-					branch.logger.Error("task error", zap.Error(err))
-					return err
-				}
+			err := branch.run(ctx)
+			if err != nil {
+				branch.logger.Error("update error", zap.Error(err))
 			}
-			return nil
+			return err
 		})
 	}
 	return group.Wait()
@@ -143,52 +141,32 @@ func monitorBranch(ctx context.Context, b *branch, monitors map[ksuid.KSUID]*mon
 }
 
 type monitor struct {
-	branch  *branch
-	cancel  context.CancelFunc
-	threads []*thread
+	branch *branch
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func newMonitor(ctx context.Context, b *branch) *monitor {
 	ctx, cancel := context.WithCancel(ctx)
-	var threads []*thread
-	for _, t := range b.tasks {
-		threads = append(threads, newThread(ctx, b, t))
-	}
-	return &monitor{branch: b, cancel: cancel, threads: threads}
+	return &monitor{branch: b, ctx: ctx, cancel: cancel}
 }
 
-func (b *monitor) run() {
-	for _, t := range b.threads {
-		t.run()
-	}
-}
-
-type thread struct {
-	ctx    context.Context
-	branch *branch
-	task   branchTask
-}
-
-func newThread(ctx context.Context, branch *branch, task branchTask) *thread {
-	return &thread{ctx: ctx, branch: branch, task: task}
-}
-
-func (t *thread) run() {
-	t.branch.logger.Info("thread running")
-	interval := t.branch.config.interval()
+func (m *monitor) run() {
+	m.branch.logger.Info("monitoring")
+	interval := m.branch.config.interval()
 	go func() {
 		timer := time.NewTimer(0)
 		<-timer.C
-		for t.ctx.Err() == nil {
-			if err := t.task.run(t.ctx); err != nil {
-				t.branch.logger.Error("thread exited with error", zap.Error(err))
+		for m.ctx.Err() == nil {
+			if err := m.branch.run(m.ctx); err != nil {
+				m.branch.logger.Error("monitor exited with error", zap.Error(err))
 				return
 			}
-			t.branch.logger.Debug("sleeping")
+			m.branch.logger.Debug("sleeping")
 			timer.Reset(interval)
 			select {
 			case <-timer.C:
-			case <-t.ctx.Done():
+			case <-m.ctx.Done():
 			}
 		}
 	}()
