@@ -60,6 +60,18 @@ echo '1 2 3 4' | zq -z 'where this in [1,4]' -
 1
 4
 ```
+_A filter with inverse containment login_
+```mdtest-command
+ echo '
+{status: "active", num: 1}
+{status: "inactive", num: 2}
+{status: "ready", num: 3}
+' | zq 'where ! (status in ["active", "ready"])' -
+```
+=>
+```mdtest-output
+{status:"inactive",num:2}
+```
 _Boolean functions may be called_
 ```mdtest-command
 echo '1 "foo" 10.0.0.1' | zq -z 'where is(<int64>)' -
