@@ -99,7 +99,7 @@ peg-run: $(PEG_GEN)
 
 .PHONY: markdown-lint
 markdown-lint:
-	@npm install --no-save markdownlint-cli
+	@npm install --no-save markdownlint-cli@0.35.0
 	@npx markdownlint docs
 
 # CI performs these actions individually since that looks nicer in the UI;
