@@ -34,16 +34,13 @@ type Request struct {
 }
 
 func newRequest(w http.ResponseWriter, r *http.Request, c *Core) (*ResponseWriter, *Request, bool) {
-	logger := c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
-	req := &Request{
-		Request: r,
-		Logger:  logger,
-	}
+	req := &Request{Request: r}
+	req.Logger = c.logger.With(zap.String("request_id", req.ID()))
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StylePackage)
 	res := &ResponseWriter{
 		ResponseWriter: w,
-		Logger:         logger,
+		Logger:         req.Logger,
 		marshaler:      m,
 	}
 	ss := strings.Split(r.Header.Get("Accept"), ",")
@@ -73,6 +70,10 @@ func (r *Request) openPool(w *ResponseWriter, root *lake.Root) (*lake.Pool, bool
 		return nil, false
 	}
 	return pool, true
+}
+
+func (r *Request) ID() string {
+	return api.RequestIDFromContext(r.Context())
 }
 
 func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool) {
