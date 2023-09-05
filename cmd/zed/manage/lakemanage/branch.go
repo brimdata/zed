@@ -7,7 +7,9 @@ import (
 	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 type branch struct {
@@ -15,7 +17,6 @@ type branch struct {
 	lake   lakeapi.Interface
 	logger *zap.Logger
 	pool   *pools.Config
-	tasks  []branchTask
 }
 
 func newBranch(c Config, pool *pools.Config, lake lakeapi.Interface, logger *zap.Logger) *branch {
@@ -25,57 +26,73 @@ func newBranch(c Config, pool *pools.Config, lake lakeapi.Interface, logger *zap
 		zap.Stringer("id", pool.ID),
 		zap.String("branch", config.Branch),
 		zap.Duration("interval", config.interval()),
+		zap.Bool("vectors", config.Vectors),
 	)
 	if config.interval() == 0 {
 		logger.Info("Manage disabled for branch")
 		return nil
 	}
-	b := &branch{
+	return &branch{
 		config: config,
 		lake:   lake,
 		logger: logger,
 		pool:   pool,
 	}
-	b.tasks = append(b.tasks, &compactTask{branch: b})
-	return b
 }
 
-type branchTask interface {
-	run(context.Context) error
-}
-
-type compactTask struct {
-	*branch
-}
-
-func (c *compactTask) run(ctx context.Context) error {
-	c.logger.Debug("compaction started")
-	head := lakeparse.Commitish{Pool: c.pool.Name, Branch: c.config.Branch}
-	it, err := NewPoolDataObjectIterator(ctx, c.lake, &head, c.pool.SortKey)
+func (b *branch) run(ctx context.Context) error {
+	b.logger.Debug("compaction started")
+	head := lakeparse.Commitish{Pool: b.pool.Name, Branch: b.config.Branch}
+	it, err := newObjectIterator(ctx, b.lake, &head)
 	if err != nil {
 		return err
 	}
-	defer it.Close()
-	ch := make(chan Run)
-	go func() {
-		err = CompactionScan(ctx, it, c.pool, ch)
-		close(ch)
-	}()
+	defer it.close()
+	runCh := make(chan []ksuid.KSUID)
+	vecCh := make(chan ksuid.KSUID)
+	group, ctx := errgroup.WithContext(ctx)
+	group.Go(func() error {
+		err := scan(ctx, it, b.pool, runCh, vecCh)
+		close(runCh)
+		close(vecCh)
+		return err
+	})
 	var found int
 	var compacted int
-	for run := range ch {
-		commit, err := c.lake.Compact(ctx, c.pool.ID, c.config.Branch, run.ObjectIDs(), false, api.CommitMessage{})
-		if err != nil {
-			return err
+	var vectors int
+	group.Go(func() error {
+		for run := range runCh {
+			commit, err := b.lake.Compact(ctx, b.pool.ID, b.config.Branch, run, b.config.Vectors, api.CommitMessage{})
+			if err != nil {
+				return err
+			}
+			found++
+			compacted += len(run)
+			b.logger.Debug("compacted", zap.Stringer("commit", commit), zap.Int("objects_compacted", len(run)))
 		}
-		found++
-		compacted += len(run.Objects)
-		c.logger.Debug("compacted", zap.Stringer("commit", commit), zap.Int("objects_compacted", len(run.Objects)))
-	}
-	level := zap.InfoLevel
-	if compacted == 0 {
-		level = zap.DebugLevel
-	}
-	c.logger.Log(level, "compaction completed", zap.Int("runs_found", found), zap.Int("objects_compacted", compacted))
+		return nil
+	})
+	group.Go(func() error {
+		var oids []ksuid.KSUID
+		for oid := range vecCh {
+			if b.config.Vectors {
+				oids = append(oids, oid)
+			}
+		}
+		if len(oids) == 0 {
+			return nil
+		}
+		_, err := b.lake.AddVectors(ctx, head.Pool, head.Branch, oids, api.CommitMessage{})
+		if err == nil {
+			vectors += len(oids)
+		}
+		return err
+	})
+	err = group.Wait()
+	b.logger.Info("compaction completed",
+		zap.Int("runs_found", found),
+		zap.Int("objects_compacted", compacted),
+		zap.Int("vectors_created", vectors),
+	)
 	return err
 }

@@ -10,6 +10,7 @@ const DefaultInterval = time.Minute
 
 type Config struct {
 	Interval *time.Duration `yaml:"interval"`
+	Vectors  bool           `yaml:"vectors"`
 	Pools    []PoolConfig   `yaml:"pools"`
 }
 
@@ -30,6 +31,7 @@ func (c *Config) poolConfig(p *pools.Config) PoolConfig {
 		Pool:     p.Name,
 		Branch:   "main",
 		Interval: c.Interval,
+		Vectors:  c.Vectors,
 	}
 }
 
@@ -37,6 +39,7 @@ type PoolConfig struct {
 	Pool     string         `yaml:"pool"`
 	Branch   string         `yaml:"branch"`
 	Interval *time.Duration `yaml:"interval"`
+	Vectors  bool           `yaml:"vectors"`
 }
 
 func (c *PoolConfig) interval() time.Duration {
