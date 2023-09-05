@@ -76,8 +76,8 @@ func (r *remote) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranc
 	return res.Commit, err
 }
 
-func (r *remote) Compact(ctx context.Context, poolID ksuid.KSUID, branch string, objects []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
-	res, err := r.conn.Compact(ctx, poolID, branch, objects, commit)
+func (r *remote) Compact(ctx context.Context, poolID ksuid.KSUID, branch string, objects []ksuid.KSUID, writeVectors bool, commit api.CommitMessage) (ksuid.KSUID, error) {
+	res, err := r.conn.Compact(ctx, poolID, branch, objects, writeVectors, commit)
 	return res.Commit, err
 }
 

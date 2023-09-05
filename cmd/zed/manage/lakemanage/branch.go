@@ -64,7 +64,7 @@ func (c *compactTask) run(ctx context.Context) error {
 	var found int
 	var compacted int
 	for run := range ch {
-		commit, err := c.lake.Compact(ctx, c.pool.ID, c.config.Branch, run.ObjectIDs(), api.CommitMessage{})
+		commit, err := c.lake.Compact(ctx, c.pool.ID, c.config.Branch, run.ObjectIDs(), false, api.CommitMessage{})
 		if err != nil {
 			return err
 		}

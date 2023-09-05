@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/segmentio/ksuid"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -163,22 +164,25 @@ func (w *Writer) Stats() ImportStats {
 }
 
 type SortedWriter struct {
-	comparator *expr.Comparator
-	ctx        context.Context
-	pool       *Pool
-	poolKey    field.Path
-	lastKey    *zed.Value
-	writer     *data.Writer
-	objects    []*data.Object
+	comparator    *expr.Comparator
+	ctx           context.Context
+	pool          *Pool
+	poolKey       field.Path
+	lastKey       *zed.Value
+	writer        *data.Writer
+	vectorEnabled bool
+	vectorWriter  *data.VectorWriter
+	objects       []*data.Object
 }
 
-func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool) *SortedWriter {
+func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorEnabled bool) *SortedWriter {
 	return &SortedWriter{
-		comparator: ImportComparator(zctx, pool),
-		ctx:        ctx,
-		poolKey:    poolKey(pool.SortKey),
-		pool:       pool,
-		lastKey:    &zed.Value{},
+		comparator:    ImportComparator(zctx, pool),
+		ctx:           ctx,
+		poolKey:       poolKey(pool.SortKey),
+		pool:          pool,
+		lastKey:       &zed.Value{},
+		vectorEnabled: vectorEnabled,
 	}
 }
 
@@ -186,25 +190,29 @@ func (w *SortedWriter) Write(val *zed.Value) error {
 	key := val.DerefPath(w.poolKey).MissingAsNull()
 again:
 	if w.writer == nil {
-		o := data.NewObject()
-		w.objects = append(w.objects, &o)
-		var err error
-		w.writer, err = o.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.SortKey.Order, poolKey(w.pool.SortKey), w.pool.SeekStride)
-		if err != nil {
+		if err := w.newWriter(); err != nil {
+			w.Abort()
 			return err
 		}
 	}
 	if w.writer.BytesWritten() >= w.pool.Threshold &&
 		w.comparator.Compare(w.lastKey, key) != 0 {
-		writer := w.writer
-		w.writer = nil
-		if err := writer.Close(w.ctx); err != nil {
+		if err := w.Close(); err != nil {
+			w.Abort()
 			return err
 		}
+		w.writer, w.vectorWriter = nil, nil
 		goto again
 	}
 	if err := w.writer.WriteWithKey(key, val); err != nil {
+		w.Abort()
 		return err
+	}
+	if w.vectorWriter != nil {
+		if err := w.vectorWriter.Write(val); err != nil {
+			w.Abort()
+			return err
+		}
 	}
 	w.lastKey.CopyFrom(key)
 	return nil
@@ -215,14 +223,46 @@ func (w *SortedWriter) Abort() {
 		w.writer.Abort()
 		w.writer = nil
 	}
+	if w.vectorWriter != nil {
+		w.vectorWriter.Abort()
+		w.vectorWriter = nil
+	}
 	// Delete all created objects.
 	for _, o := range w.objects {
 		o.Remove(w.ctx, w.pool.engine, w.pool.DataPath)
 	}
 }
 
+func (w *SortedWriter) newWriter() error {
+	o := data.NewObject()
+	var err error
+	w.writer, err = o.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.SortKey.Order, poolKey(w.pool.SortKey), w.pool.SeekStride)
+	if err != nil {
+		return err
+	}
+	if w.vectorEnabled {
+		w.vectorWriter, err = o.NewVectorWriter(w.ctx, w.pool.engine, w.pool.DataPath)
+		if err != nil {
+			return err
+		}
+	}
+	w.objects = append(w.objects, &o)
+	return nil
+}
+
 func (w *SortedWriter) Objects() []*data.Object {
 	return w.objects
+}
+
+func (w *SortedWriter) Vectors() []ksuid.KSUID {
+	if !w.vectorEnabled {
+		return nil
+	}
+	var ids []ksuid.KSUID
+	for _, o := range w.objects {
+		ids = append(ids, o.ID)
+	}
+	return ids
 }
 
 func (w *SortedWriter) Close() error {

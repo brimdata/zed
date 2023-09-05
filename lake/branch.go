@@ -238,7 +238,7 @@ func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message
 	})
 }
 
-func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, author, message, meta string) (ksuid.KSUID, error) {
+func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, rollupVecs []ksuid.KSUID, author, message, meta string) (ksuid.KSUID, error) {
 	if len(rollup) < 1 {
 		return ksuid.Nil, errors.New("compact: one or more rollup objects required")
 	}
@@ -255,6 +255,11 @@ func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, 
 		patch := commits.NewPatch(base)
 		for _, o := range rollup {
 			if err := patch.AddDataObject(o); err != nil {
+				return nil, err
+			}
+		}
+		for _, id := range rollupVecs {
+			if err := patch.AddVector(id); err != nil {
 				return nil, err
 			}
 		}
