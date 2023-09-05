@@ -88,6 +88,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		select {
 		case <-timer.C:
 			if err := writer.WriteProgress(meter.Progress()); err != nil {
+				w.Logger.Warn("Error writing progress", zap.Error(err))
 				writer.WriteError(err)
 				return
 			}
@@ -95,12 +96,14 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			batch, err := r.Batch, r.Err
 			if err != nil {
 				if !errors.Is(err, journal.ErrEmpty) {
+					w.Logger.Warn("Error pulling batch", zap.Error(err))
 					writer.WriteError(err)
 				}
 				return
 			}
 			if batch == nil {
 				if err := writer.WriteProgress(meter.Progress()); err != nil {
+					w.Logger.Warn("Error writing progress", zap.Error(err))
 					writer.WriteError(err)
 					return
 				}
@@ -111,6 +114,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			if len(batch.Values()) == 0 {
 				if eoc, ok := batch.(*op.EndOfChannel); ok {
 					if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
+						w.Logger.Warn("Error writing channel end", zap.Error(err))
 						writer.WriteError(err)
 						return
 					}
@@ -120,6 +124,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			var cid int
 			batch, cid = op.Unwrap(batch)
 			if err := writer.WriteBatch(cid, batch); err != nil {
+				w.Logger.Warn("Error writing batch", zap.Error(err))
 				writer.WriteError(err)
 				return
 			}
