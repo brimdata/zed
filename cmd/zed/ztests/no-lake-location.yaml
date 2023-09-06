@@ -1,6 +1,6 @@
 script: |
   ! zed ls -lake ''
-  ! zed serve
+  ! zed serve -lake ''
 
 outputs:
   - name: stderr

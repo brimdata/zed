@@ -1,5 +1,5 @@
 script: |
-  ! zc -C -s 'from p'
+  ! zc -lake='' -C -s 'from p'
   echo === >&2
   export ZED_LAKE=test
   zed init

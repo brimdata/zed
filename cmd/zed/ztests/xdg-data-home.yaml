@@ -1,0 +1,8 @@
+script: |
+  export XDG_DATA_HOME=path/to/lake
+  zed init
+
+outputs:
+  - name: stdout
+    data: |
+      lake created: path/to/lake/zed

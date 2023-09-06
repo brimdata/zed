@@ -21,11 +21,8 @@ var ErrNoHEAD = errors.New("HEAD not specified: indicate with -use or run the \"
 
 type Flags struct {
 	ConfigDir string
-	// LakeSpecified is set to true if the lake is explicitly set via either
-	// command line flag or environment variable.
-	LakeSpecified bool
-	Lake          string
-	Quiet         bool
+	Lake      string
+	Quiet     bool
 }
 
 func (l *Flags) SetFlags(fs *flag.FlagSet) {
@@ -35,20 +32,19 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 		dir = filepath.Join(dir, ".zed")
 	}
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
-	l.Lake = "http://localhost:9867"
 	if s, ok := os.LookupEnv("ZED_LAKE"); ok {
 		l.Lake = strings.TrimRight(s, "/")
-		l.LakeSpecified = true
+	} else {
+		l.Lake = defaultDataDir
 	}
 	fs.Func("lake", fmt.Sprintf("lake location (env ZED_LAKE) (default %s)", l.Lake), func(s string) error {
 		l.Lake = strings.TrimRight(s, "/")
-		l.LakeSpecified = true
 		return nil
 	})
 }
 
 func (l *Flags) Connection() (*client.Connection, error) {
-	uri, err := l.URI()
+	uri, err := l.ClientURI()
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +59,7 @@ func (l *Flags) Connection() (*client.Connection, error) {
 }
 
 func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
-	uri, err := l.URI()
+	uri, err := l.ClientURI()
 	if err != nil {
 		return nil, err
 	}
@@ -94,4 +90,23 @@ func (l *Flags) URI() (*storage.URI, error) {
 		err = fmt.Errorf("error parsing lake location: %w", err)
 	}
 	return u, err
+}
+
+// ClientURI returns the URI of the lake to connect to. If the lake path is
+// the defaultDataDir, it first checks if a zed service is running on
+// localhost:9867 and if so uses http://localhost:9867 as the lake location.
+func (l *Flags) ClientURI() (*storage.URI, error) {
+	u, err := l.URI()
+	if err != nil {
+		return nil, err
+	}
+	if u.String() == storage.MustParseURI(defaultDataDir).String() && localServer() {
+		u = storage.MustParseURI("http://localhost:9867")
+	}
+	return u, nil
+}
+
+func localServer() bool {
+	_, err := client.NewConnection().Ping(context.Background())
+	return err == nil
 }
