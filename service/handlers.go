@@ -71,6 +71,15 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	// response body and for errors after this point, we must call
 	// writer.WriterError() instead of w.Error().
 	defer writer.Close()
+	// Launch query status which will report and runtime errors (i.e., system
+	// errors that occur after the OK header has been sent) to the query status
+	// endpoint.
+	status := c.newQueryStatus(r)
+	defer status.Done()
+	handleError := func(err error) {
+		writer.WriteError(err)
+		status.setError(err)
+	}
 	results := make(chan op.Result)
 	go func() {
 		for {
@@ -89,7 +98,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		case <-timer.C:
 			if err := writer.WriteProgress(meter.Progress()); err != nil {
 				w.Logger.Warn("Error writing progress", zap.Error(err))
-				writer.WriteError(err)
+				handleError(err)
 				return
 			}
 		case r := <-results:
@@ -97,14 +106,14 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			if err != nil {
 				if !errors.Is(err, journal.ErrEmpty) {
 					w.Logger.Warn("Error pulling batch", zap.Error(err))
-					writer.WriteError(err)
+					handleError(err)
 				}
 				return
 			}
 			if batch == nil {
 				if err := writer.WriteProgress(meter.Progress()); err != nil {
 					w.Logger.Warn("Error writing progress", zap.Error(err))
-					writer.WriteError(err)
+					handleError(err)
 					return
 				}
 				if batch == nil {
@@ -115,7 +124,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 				if eoc, ok := batch.(*op.EndOfChannel); ok {
 					if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
 						w.Logger.Warn("Error writing channel end", zap.Error(err))
-						writer.WriteError(err)
+						handleError(err)
 						return
 					}
 				}
@@ -125,11 +134,27 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			batch, cid = op.Unwrap(batch)
 			if err := writer.WriteBatch(cid, batch); err != nil {
 				w.Logger.Warn("Error writing batch", zap.Error(err))
-				writer.WriteError(err)
+				handleError(err)
 				return
 			}
 		}
 	}
+}
+
+func handleQueryStatus(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.StringFromPath(w, "requestID")
+	if !ok {
+		return
+	}
+	c.runningQueriesMu.Lock()
+	q, ok := c.runningQueries[id]
+	c.runningQueriesMu.Unlock()
+	if !ok {
+		w.Error(srverr.ErrInvalid("query not found"))
+		return
+	}
+	q.wg.Wait()
+	w.Respond(http.StatusOK, api.QueryError{Error: q.error})
 }
 
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {

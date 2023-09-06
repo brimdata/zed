@@ -1,0 +1,15 @@
+script: |
+  source service.sh
+  zed create -use -q test
+  echo '{}' | zed load -q -
+  curl -D headers.out -s -H 'Accept: application/x-parquet' -d '{"query":"from test"}' $ZED_LAKE/query 
+  rid=$(sed -n 's/^X-Request-Id: \(.\{27\}\).*$/\1/p' headers.out)
+  curl -H 'Accept: application/json' $ZED_LAKE/query/status/$rid
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {"error":"parquetio: unsupported type: empty record"}

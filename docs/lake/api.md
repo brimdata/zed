@@ -440,6 +440,35 @@ curl -X POST \
 {"type":"QueryStats","value":{"start_time":{"sec":1658193276,"ns":964207000},"update_time":{"sec":1658193276,"ns":964592000},"bytes_read":55,"bytes_matched":55,"records_read":3,"records_matched":3}}
 ```
 
+#### Query Status
+
+Retrieve any runtime errors from a specific query. This endpoint only responds
+after the query has exited and is only available for a limited time afterwards.
+
+```
+POST /query/status/{request_id}
+```
+
+**Params**
+
+| Name | Type | In | Description |
+| ---- | ---- | -- | ----------- |
+| request_id | string | path | **Required.** The value of the response header `X-Request-Id` of the target query. |
+
+**Example Request**
+
+```
+curl -X POST \
+     -H 'Accept: application/json' \
+     http://localhost:9867/query/status/2U1oso7btnCXfDenqFOSExOBEIv
+```
+
+**Example Response**
+
+```
+{"error":"parquetio: unsupported type: empty record"}
+```
+
 ---
 
 ### Events

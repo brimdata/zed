@@ -52,17 +52,19 @@ type Config struct {
 }
 
 type Core struct {
-	auth            *Auth0Authenticator
-	compiler        runtime.Compiler
-	conf            Config
-	engine          storage.Engine
-	logger          *zap.Logger
-	registry        *prometheus.Registry
-	root            *lake.Root
-	routerAPI       *mux.Router
-	routerAux       *mux.Router
-	subscriptions   map[chan event]struct{}
-	subscriptionsMu sync.RWMutex
+	auth             *Auth0Authenticator
+	compiler         runtime.Compiler
+	conf             Config
+	engine           storage.Engine
+	logger           *zap.Logger
+	registry         *prometheus.Registry
+	root             *lake.Root
+	routerAPI        *mux.Router
+	routerAux        *mux.Router
+	runningQueries   map[string]*queryStatus
+	runningQueriesMu sync.Mutex
+	subscriptions    map[chan event]struct{}
+	subscriptionsMu  sync.RWMutex
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
@@ -140,16 +142,17 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	routerAPI.Use(corsMiddleware(conf.CORSAllowedOrigins))
 
 	c := &Core{
-		auth:          authenticator,
-		compiler:      compiler.NewLakeCompiler(root),
-		conf:          conf,
-		engine:        engine,
-		logger:        conf.Logger.Named("core"),
-		root:          root,
-		registry:      registry,
-		routerAPI:     routerAPI,
-		routerAux:     routerAux,
-		subscriptions: make(map[chan event]struct{}),
+		auth:           authenticator,
+		compiler:       compiler.NewLakeCompiler(root),
+		conf:           conf,
+		engine:         engine,
+		logger:         conf.Logger.Named("core"),
+		root:           root,
+		registry:       registry,
+		routerAPI:      routerAPI,
+		routerAux:      routerAux,
+		runningQueries: make(map[string]*queryStatus),
+		subscriptions:  make(map[chan event]struct{}),
 	}
 
 	c.addAPIServerRoutes()
@@ -182,6 +185,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/revision/{revision}/vector", handleVectorDelete).Methods("DELETE")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
 	c.authhandle("/query", handleQuery).Methods("OPTIONS", "POST")
+	c.authhandle("/query/status/{requestID}", handleQueryStatus).Methods("GET")
 }
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
@@ -256,4 +260,39 @@ func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
 		}
 		c.subscriptionsMu.RUnlock()
 	}()
+}
+
+func (c *Core) newQueryStatus(r *Request) *queryStatus {
+	id := r.ID()
+	remove := func() {
+		// Have query status wait around for a few seconds after done is signaled
+		// so late arriving queryStatus requests can still get the status.
+		time.Sleep(10 * time.Second)
+		c.runningQueriesMu.Lock()
+		delete(c.runningQueries, id)
+		c.runningQueriesMu.Unlock()
+	}
+	q := &queryStatus{remove: remove}
+	q.wg.Add(1)
+	c.runningQueriesMu.Lock()
+	c.runningQueries[id] = q
+	c.runningQueriesMu.Unlock()
+	return q
+}
+
+type queryStatus struct {
+	wg     sync.WaitGroup
+	remove func()
+	error  string
+}
+
+func (q *queryStatus) setError(err error) {
+	if err != nil {
+		q.error = err.Error()
+	}
+}
+
+func (q *queryStatus) Done() {
+	q.wg.Done()
+	go q.remove()
 }
