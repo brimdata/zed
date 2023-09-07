@@ -577,6 +577,7 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 			return nil, err
 		}
 		leftParent, rightParent := parents[0], parents[1]
+		leftOrder, rightOrder := o.LeftSortOrder, o.RightSortOrder
 		var anti, inner bool
 		switch o.Style {
 		case "anti":
@@ -587,10 +588,11 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		case "right":
 			leftKey, rightKey = rightKey, leftKey
 			leftParent, rightParent = rightParent, leftParent
+			leftOrder, rightOrder = rightOrder, leftOrder
 		default:
 			return nil, fmt.Errorf("unknown kind of join: '%s'", o.Style)
 		}
-		join, err := join.New(b.octx, anti, inner, leftParent, rightParent, leftKey, rightKey, lhs, rhs)
+		join, err := join.New(b.octx, anti, inner, leftParent, rightParent, leftKey, rightKey, leftOrder, rightOrder, lhs, rhs)
 		if err != nil {
 			return nil, err
 		}

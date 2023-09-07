@@ -18,13 +18,16 @@ import (
 // on the in sort key.  This is clumsy and needs to change.
 // See issue #2658.
 func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, error) {
-	if scan, ok := op.(*dag.PoolScan); ok {
+	switch op := op.(type) {
+	case *dag.PoolScan:
 		// Ignore in and just return the sort order of the pool.
-		pool, err := o.lookupPool(scan.ID)
+		pool, err := o.lookupPool(op.ID)
 		if err != nil {
 			return order.Nil, err
 		}
 		return pool.SortKey, nil
+	case *dag.Sort:
+		return sortKeyOfSort(op), nil
 	}
 	// We should handle secondary keys at some point.
 	// See issue #2657.
@@ -68,8 +71,6 @@ func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, 
 			}
 		}
 		return in, nil
-	case *dag.Sort:
-		return sortKeyOfSort(op), nil
 	default:
 		return order.Nil, nil
 	}
