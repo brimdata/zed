@@ -446,7 +446,7 @@ Retrieve any runtime errors from a specific query. This endpoint only responds
 after the query has exited and is only available for a limited time afterwards.
 
 ```
-POST /query/status/{request_id}
+GET /query/status/{request_id}
 ```
 
 **Params**
