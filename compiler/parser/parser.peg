@@ -718,7 +718,7 @@ MultiplicativeExpr
 MultiplicativeOperator = ("*" / "/" / "%") { RETURN(TEXT) }
 
 NotExpr
-  = "!" __ e:NotExpr {
+  = (NotToken _ / "!" __) e:NotExpr {
         RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
     }
   / NegationExpr
