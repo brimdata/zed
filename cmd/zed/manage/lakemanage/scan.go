@@ -61,10 +61,8 @@ func scan(ctx context.Context, it *objectIterator, pool *pools.Config, runCh cha
 
 const iteratorQuery = `
 from %q@%q:objects
-| sort min, id
-| left join (
-  from %q@%q:vectors | sort min, id
-) on id=id vector:=true
+| left join (from %q@%q:vectors) on id=id vector:=true
+| sort min
 `
 
 type objectIterator struct {

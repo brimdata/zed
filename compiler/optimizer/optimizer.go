@@ -286,10 +286,10 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 			return nil, errors.New("internal error: join does not have two parents")
 		}
 		if fieldOf(join.LeftKey).Equal(parents[0].Primary()) {
-			join.LeftOrder = parents[0].Order
+			join.LeftDir = parents[0].Order.Direction()
 		}
 		if fieldOf(join.RightKey).Equal(parents[1].Primary()) {
-			join.RightOrder = parents[1].Order
+			join.RightDir = parents[1].Order.Direction()
 		}
 		// XXX There is definitely a way to propagate the sort key but there's
 		// some complexity here. The propagated sort key should be whatever key

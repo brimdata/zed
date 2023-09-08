@@ -1,0 +1,43 @@
+script: |
+  zq -z 'file a.zson | join (file b.zson) on a=b'
+  echo '// ==='
+  zq -z 'file a.zson | join (file b.zson | sort -r b) on a=b'
+  echo '// ==='
+  zq -z 'file a.zson | join (file b.zson | sort b) on a=b'
+  echo '// ==='
+  zq -z 'file a.zson | sort a | join (file b.zson | sort -r b) on a=b'
+  echo '// ==='
+  zq -z 'file a.zson | sort -r a | join (file b.zson) on a=b'
+  echo '// ==='
+  zq -z 'file a.zson | sort -r a | join (file b.zson | sort b) on a=b'
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+      {a:2}
+  - name: b.zson
+    data: |
+      {b:2}
+      {b:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {a:2}
+      // ===
+      {a:2}
+      {a:1}
+      // ===
+      {a:1}
+      {a:2}
+      // ===
+      {a:1}
+      {a:2}
+      // ===
+      {a:2}
+      {a:1}
+      // ===
+      {a:2}
+      {a:1}
