@@ -458,7 +458,7 @@ GET /query/status/{request_id}
 **Example Request**
 
 ```
-curl -X POST \
+curl -X GET \
      -H 'Accept: application/json' \
      http://localhost:9867/query/status/2U1oso7btnCXfDenqFOSExOBEIv
 ```
