@@ -63,6 +63,12 @@ echo '1 2 3 4' | zq -z 'where this in [1,4]' -
 _A filter with inverse containment logic_
 ```mdtest-command
 echo '1 2 3 4' | zq -z 'where ! (this in [1,4])' -
+```
+=>
+```mdtest-output
+2
+3
+```
 _Boolean functions may be called_
 ```mdtest-command
 echo '1 "foo" 10.0.0.1' | zq -z 'where is(<int64>)' -
