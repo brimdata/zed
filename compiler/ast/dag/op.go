@@ -41,7 +41,7 @@ type (
 		Kind string `json:"kind" unpack:""`
 		Args []Expr `json:"args"`
 		Type string `json:"type"`
-		As   Expr   `json:"as"`
+		As   string `json:"as"`
 	}
 	Filter struct {
 		Kind string `json:"kind" unpack:""`
