@@ -224,14 +224,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, err
 		}
-		as, err := compileLval(v.As)
-		if err != nil {
-			return nil, err
-		}
-		if len(as) != 1 {
-			return nil, errors.New("explode field must be a top-level field")
-		}
-		return explode.New(b.octx.Zctx, parent, args, typ, as.Leaf())
+		return explode.New(b.octx.Zctx, parent, args, typ, v.As)
 	case *dag.Over:
 		return b.compileOver(parent, v)
 	case *dag.Yield:

@@ -692,17 +692,21 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		if err != nil {
 			return nil, err
 		}
-		var as dag.Expr
+		var as string
 		if o.As == nil {
-			as = &dag.This{
-				Kind: "This",
-				Path: field.Path{"value"},
-			}
+			as = "value"
 		} else {
-			as, err = a.semExpr(o.As)
+			e, err := a.semExpr(o.As)
 			if err != nil {
 				return nil, err
 			}
+			this, ok := e.(*dag.This)
+			if !ok {
+				return nil, errors.New("explode: as clause must be a field reference")
+			} else if len(this.Path) != 1 {
+				return nil, errors.New("explode: field must be a top-level field")
+			}
+			as = this.Path[0]
 		}
 		return append(seq, &dag.Explode{
 			Kind: "Explode",
