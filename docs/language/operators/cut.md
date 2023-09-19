@@ -74,3 +74,13 @@ echo '1 {a:1,b:2,c:3}' | zq -z 'cut a,b' -
 {a:error("missing"),b:error("missing")}
 {a:1,b:2}
 ```
+_Set default values for fields with null values_
+This can be helpful when using the `csv` export format, which expects a uniform record structure (which includes field types).
+```mdtest-command
+echo '{a:1,b:null}{a:1,b:2}' | zq -z 'cut a,b:=coalesce(b, 0)' -
+```
+=>
+```mdtest-output
+{a:1,b:0}
+{a:1,b:2}
+```
