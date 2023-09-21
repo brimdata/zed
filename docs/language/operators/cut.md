@@ -74,3 +74,19 @@ echo '1 {a:1,b:2,c:3}' | zq -z 'cut a,b' -
 {a:error("missing"),b:error("missing")}
 {a:1,b:2}
 ```
+_Invoke a function while cutting to set a default value for a field_
+
+:::tip
+This can be helpful to transform data into a uniform record type, such as if
+the output will be exported in formats such as `csv` or `parquet` (see also:
+[`fuse`](fuse.md)).
+:::
+
+```mdtest-command
+echo '{a:1,b:null}{a:1,b:2}' | zq -z 'cut a,b:=coalesce(b, 0)' -
+```
+=>
+```mdtest-output
+{a:1,b:0}
+{a:1,b:2}
+```
