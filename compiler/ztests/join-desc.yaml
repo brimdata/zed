@@ -1,0 +1,53 @@
+script: |
+  zq -z -I file.zed > file.zson
+  export ZED_LAKE=test
+  zed init -q 
+  zed create -q -use -orderby likes:desc people 
+  zed load -q people.zson
+  zed create -q -use -orderby flavor:desc fruits
+  zed load -q fruits.zson
+  zed query -z -I pool.zed > pool.zson
+
+inputs:
+  - name: people.zson
+    data: |
+      {"name":"morgan","age":61,"likes":"tart"}
+      {"name":"quinn","age":14,"likes":"sweet","note":"many kids enjoy sweets"}
+      {"name":"jessie","age":30,"likes":"plain"}
+      {"name":"chris","age":47,"likes":"tart"}
+  - name: fruits.zson
+    data: |
+      {"name":"apple","color":"red","flavor":"tart"}
+      {"name":"banana","color":"yellow","flavor":"sweet"}
+      {"name":"avocado","color":"green","flavor":"savory"}
+      {"name":"strawberry","color":"red","flavor":"sweet"}
+      {"name":"dates","color":"brown","flavor":"sweet","note":"in season"}
+      {"name":"figs","color":"brown","flavor":"plain"}
+  - name: file.zed
+    data: |
+      file fruits.zson | sort -r flavor
+      | join (file people.zson | sort -r likes) on flavor=likes eater:=name
+  - name: pool.zed
+    data: |
+      from fruits
+      | join (from people) on flavor=likes eater:=name
+
+outputs:
+  - name: stdout
+    data: ""
+  - name: file.zson
+    data: |
+      {name:"apple",color:"red",flavor:"tart",eater:"morgan"}
+      {name:"apple",color:"red",flavor:"tart",eater:"chris"}
+      {name:"banana",color:"yellow",flavor:"sweet",eater:"quinn"}
+      {name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
+      {name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
+      {name:"figs",color:"brown",flavor:"plain",eater:"jessie"}
+  - name: pool.zson
+    data: |
+      {name:"apple",color:"red",flavor:"tart",eater:"morgan"}
+      {name:"apple",color:"red",flavor:"tart",eater:"chris"}
+      {name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
+      {name:"banana",color:"yellow",flavor:"sweet",eater:"quinn"}
+      {name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
+      {name:"figs",color:"brown",flavor:"plain",eater:"jessie"}

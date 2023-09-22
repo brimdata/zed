@@ -33,7 +33,7 @@ type Op struct {
 	types       map[int]map[int]*zed.TypeRecord
 }
 
-func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Op, error) {
+func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator, leftOrder, rightOrder order.Which, lhs field.List, rhs []expr.Evaluator) (*Op, error) {
 	cutter, err := expr.NewCutter(octx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err
@@ -49,10 +49,9 @@ func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, r
 		getRightKey: rightKey,
 		left:        newPuller(left, ctx),
 		right:       zio.NewPeeker(newPuller(right, ctx)),
-		// XXX need to make sure nullsmax agrees with inbound merge
-		compare: expr.NewValueCompareFn(order.Asc, false),
-		cutter:  cutter,
-		types:   make(map[int]map[int]*zed.TypeRecord),
+		compare:     expr.NewValueCompareFn(leftOrder, true),
+		cutter:      cutter,
+		types:       make(map[int]map[int]*zed.TypeRecord),
 	}, nil
 }
 

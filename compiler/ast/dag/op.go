@@ -59,11 +59,13 @@ type (
 		Count int    `json:"count"`
 	}
 	Join struct {
-		Kind     string       `json:"kind" unpack:""`
-		Style    string       `json:"style"`
-		LeftKey  Expr         `json:"left_key"`
-		RightKey Expr         `json:"right_key"`
-		Args     []Assignment `json:"args"`
+		Kind       string       `json:"kind" unpack:""`
+		Style      string       `json:"style"`
+		LeftKey    Expr         `json:"left_key"`
+		LeftOrder  order.Which  `json:"left_order"`
+		RightKey   Expr         `json:"right_key"`
+		RightOrder order.Which  `json:"right_order"`
+		Args       []Assignment `json:"args"`
 	}
 	Load struct {
 		Kind    string      `json:"kind" unpack:""`

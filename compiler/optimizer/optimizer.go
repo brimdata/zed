@@ -198,7 +198,7 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 			// Nothing to push down.
 			return seq, nil
 		}
-		o.propagateSortKey(seq, order.Nil)
+		o.propagateSortKey(seq, []order.SortKey{order.Nil})
 		// See if we can lift a filtering predicate into the source op.
 		// Filter might be nil in which case we just put the chain back
 		// on the source op and zero out the source's filter.
@@ -266,21 +266,52 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 // point but don't bother yet because we do not yet support any optimization
 // past the first aggregation.)  For parallel paths, we propagate
 // the scan order if its the same at egress of all of the paths.
-func (o *Optimizer) propagateSortKey(seq dag.Seq, parent order.SortKey) (order.SortKey, error) {
+func (o *Optimizer) propagateSortKey(seq dag.Seq, parents []order.SortKey) ([]order.SortKey, error) {
 	if len(seq) == 0 {
-		return parent, nil
+		return parents, nil
 	}
 	for _, op := range seq {
 		var err error
-		parent, err = o.propagateSortKeyOp(op, parent)
+		parents, err = o.propagateSortKeyOp(op, parents)
 		if err != nil {
-			return order.Nil, err
+			return []order.SortKey{order.Nil}, err
 		}
 	}
-	return parent, nil
+	return parents, nil
 }
 
-func (o *Optimizer) propagateSortKeyOp(op dag.Op, parent order.SortKey) (order.SortKey, error) {
+func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]order.SortKey, error) {
+	if join, ok := op.(*dag.Join); ok {
+		if len(parents) != 2 {
+			return nil, errors.New("internal error: join does not have two parents")
+		}
+		if fieldOf(join.LeftKey).Equal(parents[0].Primary()) {
+			join.LeftOrder = parents[0].Order
+		}
+		if fieldOf(join.RightKey).Equal(parents[1].Primary()) {
+			join.RightOrder = parents[1].Order
+		}
+		// XXX There is definitely a way to propagate the sort key but there's
+		// some complexity here. The propagated sort key should be whatever key
+		// remains between the left and right join keys. If both the left and
+		// right key are part of the resultant record what should the
+		// propagated sort key be? Ideally in this case they both would which
+		// would allow for maximum flexibility. For now just return unspecified
+		// sort order.
+		return []order.SortKey{order.Nil}, nil
+	}
+	// If the op is not a join then condense sort order into a single parent,
+	// since all the ops only care about the sort order of multiple parents if
+	// the SortKey of all parents is unified.
+	parent := order.Nil
+	for k, p := range parents {
+		if k == 0 {
+			parent = p
+		} else if !parent.Equal(p) {
+			parent = order.Nil
+			break
+		}
+	}
 	switch op := op.(type) {
 	case *dag.Summarize:
 		//XXX handle only primary key for now
@@ -296,42 +327,34 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parent order.SortKey) (order.S
 					// should relax this and do an analysis here as
 					// to whether the sort is necessary for the
 					// downstream consumer.
-					return parent, nil
+					return []order.SortKey{parent}, nil
 				}
 			}
 		}
 		// We'll live this as unknown for now even though the groupby
 		// and not try to optimize downstream of the first groupby
 		// unless there is an excplicit sort encountered.
-		return order.Nil, nil
+		return nil, nil
 	case *dag.Fork:
-		var egress order.SortKey
-		for k, seq := range op.Paths {
-			out, err := o.propagateSortKey(seq, parent)
+		var keys []order.SortKey
+		for _, seq := range op.Paths {
+			out, err := o.propagateSortKey(seq, []order.SortKey{parent})
 			if err != nil {
-				return order.Nil, err
+				return nil, err
 			}
-			if k == 0 {
-				egress = out
-			} else if !egress.Equal(out) {
-				egress = order.Nil
-			}
+			keys = append(keys, out...)
 		}
-		return egress, nil
+		return keys, nil
 	case *dag.Scatter:
-		var egress order.SortKey
-		for k, seq := range op.Paths {
-			out, err := o.propagateSortKey(seq, parent)
+		var keys []order.SortKey
+		for _, seq := range op.Paths {
+			out, err := o.propagateSortKey(seq, []order.SortKey{parent})
 			if err != nil {
-				return order.Nil, err
+				return nil, err
 			}
-			if k == 0 {
-				egress = out
-			} else if !egress.Equal(out) {
-				egress = order.Nil
-			}
+			keys = append(keys, out...)
 		}
-		return egress, nil
+		return keys, nil
 	case *dag.Merge:
 		sortKey := order.NewSortKey(op.Order, nil)
 		if this, ok := op.Expr.(*dag.This); ok {
@@ -340,11 +363,13 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parent order.SortKey) (order.S
 		if !sortKey.Equal(parent) {
 			sortKey = order.Nil
 		}
-		return sortKey, nil
+		return []order.SortKey{sortKey}, nil
 	case *dag.PoolScan, *dag.Lister, *dag.SeqScan, *kernel.Reader:
-		return o.sortKeyOfSource(op)
+		out, err := o.sortKeyOfSource(op)
+		return []order.SortKey{out}, err
 	default:
-		return o.analyzeSortKey(op, parent)
+		out, err := o.analyzeSortKey(op, parent)
+		return []order.SortKey{out}, err
 	}
 }
 

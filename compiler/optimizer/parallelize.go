@@ -182,13 +182,13 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename, *dag.Filter:
 		if merge != nil {
 			// See if this op would disrupt the merge-on key
-			mergeKey, err := o.propagateSortKeyOp(merge, order.Nil)
-			if err != nil || mergeKey.IsNil() {
+			mergeKey, err := o.propagateSortKeyOp(merge, []order.SortKey{order.Nil})
+			if err != nil || mergeKey[0].IsNil() {
 				// Bail if there's a merge with a non-key expression.
 				return
 			}
 			key, err := o.propagateSortKeyOp(op, mergeKey)
-			if err != nil || !key.Equal(mergeKey) {
+			if err != nil || !key[0].Equal(mergeKey[0]) {
 				// This operator destroys the merge order so we cannot
 				// lift it up into the parallel legs in front of the merge.
 				return
