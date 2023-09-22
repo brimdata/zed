@@ -1,14 +1,12 @@
 script: |
-  echo "// join file desc"
-  zq -z -I file.zed
-  echo "// join pool desc"
-  export ZED_LAKE="test"
+  zq -z -I file.zed > file.zson
+  export ZED_LAKE=test
   zed init -q 
   zed create -q -use -orderby likes:desc people 
   zed load -q people.zson
   zed create -q -use -orderby flavor:desc fruits
   zed load -q fruits.zson
-  zed query -z -I pool.zed
+  zed query -z -I pool.zed > pool.zson
 
 inputs:
   - name: people.zson
@@ -25,27 +23,28 @@ inputs:
       {"name":"strawberry","color":"red","flavor":"sweet"}
       {"name":"dates","color":"brown","flavor":"sweet","note":"in season"}
       {"name":"figs","color":"brown","flavor":"plain"}
-  - name: pool.zed
-    data: |
-      from fruits
-      | join (from people) on flavor=likes eater:=name
   - name: file.zed
     data: |
       file fruits.zson | sort -r flavor
       | join (file people.zson | sort -r likes) on flavor=likes eater:=name
+  - name: pool.zed
+    data: |
+      from fruits
+      | join (from people) on flavor=likes eater:=name
 
 outputs:
   - name: stdout
-
+    data: ""
+  - name: file.zson
     data: |
-      // join file desc
       {name:"apple",color:"red",flavor:"tart",eater:"morgan"}
       {name:"apple",color:"red",flavor:"tart",eater:"chris"}
       {name:"banana",color:"yellow",flavor:"sweet",eater:"quinn"}
       {name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
       {name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
       {name:"figs",color:"brown",flavor:"plain",eater:"jessie"}
-      // join pool desc
+  - name: pool.zson
+    data: |
       {name:"apple",color:"red",flavor:"tart",eater:"morgan"}
       {name:"apple",color:"red",flavor:"tart",eater:"chris"}
       {name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}

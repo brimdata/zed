@@ -577,7 +577,7 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 			return nil, err
 		}
 		leftParent, rightParent := parents[0], parents[1]
-		leftOrder, rightOrder := o.LeftSortOrder, o.RightSortOrder
+		leftOrder, rightOrder := o.LeftOrder, o.RightOrder
 		var anti, inner bool
 		switch o.Style {
 		case "anti":
