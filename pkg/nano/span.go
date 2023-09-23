@@ -153,17 +153,3 @@ func (s Span) Pretty() string {
 	d := time.Duration(s.Dur)
 	return fmt.Sprintf("%s+%s", s.Ts.Pretty(), d.String())
 }
-
-func min(a, b Ts) Ts {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b Ts) Ts {
-	if a < b {
-		return b
-	}
-	return a
-}

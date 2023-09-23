@@ -40,15 +40,6 @@ func (m *Materializer) Read() (*zed.Value, error) {
 	return &m.value, nil
 }
 
-// TODO This exists as a builtin in go 1.21
-func min(a int, b int) int {
-	if a < b {
-		return a
-	} else {
-		return b
-	}
-}
-
 type materializer func(*zcode.Builder)
 
 func (v *bools) newMaterializer() materializer {
