@@ -157,7 +157,7 @@ func (v *Value) Bytes() zcode.Bytes {
 // nativeBase is the base address for all native Values, which are encoded as a
 // zcode.Bytes with this base address, a length of zero, and capacity set to the
 // bits of the value's native representation.
-var nativeBase struct{}
+var nativeBase uintptr
 
 func encodeNative(x uint64) zcode.Bytes {
 	var b zcode.Bytes
