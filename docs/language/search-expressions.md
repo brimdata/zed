@@ -293,7 +293,7 @@ is not.
 ### Boolean Logic
 
 Search terms may be combined into boolean expressions using logical operators
-`and`, `or` and `not` or `!`.  `and` may be elided; i.e., concatenation of
+`and`, `or`, `not`, and `!`.  `and` may be elided; i.e., concatenation of
 search terms is a logical `and`.  `not` (and its equivalent `!`) has highest
 precedence and `and` has precedence over `or`.  Parentheses may be used to
 override natural precedence.
