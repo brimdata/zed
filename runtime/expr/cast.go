@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zson"
+	"github.com/x448/float16"
 )
 
 func LookupPrimitiveCaster(zctx *zed.Context, typ zed.Type) Evaluator {
@@ -106,7 +107,8 @@ func (c *casterFloat16) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float16", val)
 	}
-	return ectx.CopyValue(*zed.NewFloat16(float32(f)))
+	f16 := float16.Fromfloat32(float32(f))
+	return ectx.CopyValue(*zed.NewFloat16(f16.Float32()))
 }
 
 type casterFloat32 struct {

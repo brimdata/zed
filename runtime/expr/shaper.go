@@ -74,8 +74,6 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		shaper, ok := s.shapers[typ]
 		if !ok {
-			//XXX we should check if this is a cast-only function and
-			// and allocate a primitive caster if warranted
 			shaper = NewConstShaper(s.zctx, s.expr, typ, s.transforms)
 			s.shapers[typ] = shaper
 		}
@@ -94,17 +92,24 @@ type ConstShaper struct {
 	transforms ShaperTransform
 
 	b       zcode.Builder
+	caster  Evaluator       // used when shapeTo is a primitive type
 	shapers map[int]*shaper // map from input type ID to shaper
 }
 
 // NewConstShaper returns a shaper that will shape the result of expr
 // to the provided shapeTo type.
 func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf ShaperTransform) *ConstShaper {
+	var caster Evaluator
+	if tf == Cast {
+		// Use a caster since it's faster.
+		caster = LookupPrimitiveCaster(zctx, zed.TypeUnder(shapeTo))
+	}
 	return &ConstShaper{
 		zctx:       zctx,
 		expr:       expr,
 		shapeTo:    shapeTo,
 		transforms: tf,
+		caster:     caster,
 		shapers:    make(map[int]*shaper),
 	}
 }
@@ -114,7 +119,26 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if val.IsError() {
 		return val
 	}
-	id := val.Type.ID()
+	if val.IsNull() {
+		// Null values can be shaped to any type.
+		return ectx.NewValue(c.shapeTo, nil)
+	}
+	id, shapeToID := val.Type.ID(), c.shapeTo.ID()
+	if id == shapeToID {
+		// Same underlying types but one or both are named.
+		val = ectx.CopyValue(*val)
+		val.Type = c.shapeTo
+		return val
+	}
+	if c.caster != nil && !zed.IsUnionType(val.Type) {
+		val = c.caster.Eval(ectx, val)
+		if val.Type != c.shapeTo && val.Type.ID() == shapeToID {
+			// Same underlying types but one or both are named.
+			val = ectx.CopyValue(*val)
+			val.Type = c.shapeTo
+		}
+		return val
+	}
 	s, ok := c.shapers[id]
 	if !ok {
 		var err error
@@ -123,9 +147,6 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 			return ectx.CopyValue(*c.zctx.NewError(err))
 		}
 		c.shapers[id] = s
-	}
-	if s.typ.ID() == id {
-		return ectx.NewValue(s.typ, val.Bytes())
 	}
 	c.b.Reset()
 	typ := s.step.build(c.zctx, ectx, val.Bytes(), &c.b)
