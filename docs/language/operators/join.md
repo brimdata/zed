@@ -38,10 +38,9 @@ The available join types are:
 
 For anti join, the `<right-expr>` is undefined and thus cannot be specified.
 
-> Currently, only exact equi-join is supported and the inputs must be sorted
-> in ascending order by their respective keys.  Also, the join keys must
-> be field expressions.  A future version of join will not require sorted inputs
-> and will have more flexible join expressions.
+> Currently, only exact equi-join is supported and join keys must be field
+> expressions. A future version of join will have more flexible join
+> expressions.
 
 ### Examples
 

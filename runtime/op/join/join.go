@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime/op/sort"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 )
@@ -33,10 +34,32 @@ type Op struct {
 	types       map[int]map[int]*zed.TypeRecord
 }
 
-func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator, leftOrder, rightOrder order.Which, lhs field.List, rhs []expr.Evaluator) (*Op, error) {
+func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator,
+	leftDir, rightDir order.Direction, lhs field.List,
+	rhs []expr.Evaluator) (*Op, error) {
 	cutter, err := expr.NewCutter(octx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err
+	}
+	var o order.Which
+	switch {
+	case leftDir != order.Unknown:
+		o = leftDir == order.Down
+	case rightDir != order.Unknown:
+		o = rightDir == order.Down
+	}
+	// Add sorts if needed.
+	if !leftDir.HasOrder(o) {
+		left, err = sort.New(octx, left, []expr.Evaluator{leftKey}, o, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !rightDir.HasOrder(o) {
+		right, err = sort.New(octx, right, []expr.Evaluator{rightKey}, o, true)
+		if err != nil {
+			return nil, err
+		}
 	}
 	ctx, cancel := context.WithCancel(octx.Context)
 	return &Op{
@@ -49,7 +72,7 @@ func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, r
 		getRightKey: rightKey,
 		left:        newPuller(left, ctx),
 		right:       zio.NewPeeker(newPuller(right, ctx)),
-		compare:     expr.NewValueCompareFn(leftOrder, true),
+		compare:     expr.NewValueCompareFn(o, true),
 		cutter:      cutter,
 		types:       make(map[int]map[int]*zed.TypeRecord),
 	}, nil

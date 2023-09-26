@@ -659,7 +659,9 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		join := &dag.Join{
 			Kind:     "Join",
 			Style:    o.Style,
+			LeftDir:  order.Unknown,
 			LeftKey:  leftKey,
+			RightDir: order.Unknown,
 			RightKey: rightKey,
 			Args:     assignments,
 		}

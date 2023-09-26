@@ -7,9 +7,8 @@ sidebar_label: Join
 
 This is a brief primer on Zed's [`join` operator](../language/operators/join.md).
 
-Currently, `join` is limited in the following ways:
-* only merge join is implemented, requiring inputs to be explicitly sorted, and
-* only equi-join (i.e., a join predicate containing `=`) is supported.
+Currently, `join` is limited in that only equi-join (i.e., a join predicate
+containing `=`) is supported.
 
 ## Example Data
 
@@ -46,9 +45,9 @@ explicit `inner` is not strictly necessary, but including it clarifies our inten
 
 The Zed script `inner-join.zed`:
 ```mdtest-input inner-join.zed
-file fruit.ndjson | sort flavor
+file fruit.ndjson
 | inner join (
-  file people.ndjson | sort likes
+  file people.ndjson
 ) on flavor=likes eater:=name
 ```
 
@@ -81,9 +80,9 @@ original field name `age` is maintained in the results.
 
 The Zed script `left-join.zed`:
 ```mdtest-input left-join.zed
-file fruit.ndjson | sort flavor
+file fruit.ndjson
 | left join (
-  file people.ndjson | sort likes
+  file people.ndjson
 ) on flavor=likes eater:=name,age
 ```
 
@@ -114,9 +113,9 @@ the `note` field from the right-hand input to appear in the joined results.
 
 The Zed script `right-join.zed`:
 ```mdtest-input right-join.zed
-file fruit.ndjson | sort flavor
+file fruit.ndjson
 | right join (
-  file people.ndjson | sort likes
+  file people.ndjson
 ) on flavor=likes fruit:=name
 ```
 Executing the Zed script:
@@ -143,10 +142,6 @@ lake, we would instead specify those pools using the
 
 Here we'll load our input data to pools in a temporary Zed lake, then execute
 our inner join using `zed query`.
-
-Notice that because we happened to use `-orderby` to sort our pools by the same
-keys that we reference in our `join`, we did not need to use any explicit
-upstream `sort`.
 
 The Zed script `inner-join-pools.zed`:
 
@@ -192,8 +187,8 @@ in the [Inner Join section](#inner-join).
 The Zed script `inner-join-alternate.zed`:
 ```mdtest-input inner-join-alternate.zed
 from (
-  file fruit.ndjson => sort flavor
-  file people.ndjson => sort likes
+  file fruit.ndjson
+  file people.ndjson
 ) | inner join on flavor=likes eater:=name
 ```
 
@@ -226,8 +221,8 @@ The Zed script `inner-join-streamed.zed`:
 
 ```mdtest-input inner-join-streamed.zed
 switch (
-  case has(color) => sort flavor
-  case has(age) => sort likes
+  case has(color) => pass
+  case has(age) => pass
 ) | inner join on flavor=likes eater:=name
 ```
 
@@ -271,9 +266,9 @@ they look like, but since it represents redundant data, in practice we'd
 typically [`drop`](../language/operators/drop.md) it after the `join` in our Zed pipeline.
 
 ```mdtest-input multi-value-join.zed
-file fruit.ndjson | put fruitkey:={name,color} | sort fruitkey
+file fruit.ndjson | put fruitkey:={name,color}
 | inner join (
-  file inventory.ndjson | put invkey:={name,color} | sort invkey
+  file inventory.ndjson | put invkey:={name,color}
 ) on fruitkey=invkey quantity
 ```
 
@@ -308,12 +303,12 @@ previously for our inner join by piping its output to an additional join
 against the price list.
 
 ```mdtest-input three-way-join.zed
-file fruit.ndjson | sort flavor
+file fruit.ndjson
 | inner join (
-  file people.ndjson | sort likes
-) on flavor=likes eater:=name | sort name
+  file people.ndjson
+) on flavor=likes eater:=name
 | inner join (
-  file prices.ndjson | sort name
+  file prices.ndjson
 ) on name=name price:=price
 ```
 
@@ -349,9 +344,9 @@ in the result.
 The Zed script `embed-opposite.zed`:
 
 ```mdtest-input embed-opposite.zed
-file fruit.ndjson | sort flavor
+file fruit.ndjson
 | inner join (
-  file people.ndjson | sort likes
+  file people.ndjson
 ) on flavor=likes eaterinfo:=this
 ```
 
@@ -379,9 +374,9 @@ left and right inputs. We'll demonstrate this by augmenting `embed-opposite.zed`
 to produce `merge-opposite.zed`.
 
 ```mdtest-input merge-opposite.zed
-file fruit.ndjson | sort flavor
+file fruit.ndjson
 | inner join (
-  file people.ndjson | sort likes
+  file people.ndjson
 ) on flavor=likes eaterinfo:=this
 | rename fruit:=name
 | yield {...this,...eaterinfo}

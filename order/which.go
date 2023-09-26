@@ -34,6 +34,13 @@ func (w Which) String() string {
 	return "asc"
 }
 
+func (w Which) Direction() Direction {
+	if w == Desc {
+		return Down
+	}
+	return Up
+}
+
 func (w Which) MarshalJSON() ([]byte, error) {
 	return json.Marshal(w.String())
 }
