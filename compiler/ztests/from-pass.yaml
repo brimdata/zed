@@ -4,8 +4,8 @@ inputs:
   - name: join.zed
     data: |
       * | from (
-        pass => sort x
-        file right.zson => sort y
+        pass
+        file right.zson
       ) | inner join on x=y matched:=true
   - name: left.zson
     data: |
@@ -15,6 +15,7 @@ inputs:
   - name: right.zson
     data: |
       {y:2,y:"y-two"}
+
 outputs:
   - name: stdout
     data: |

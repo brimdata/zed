@@ -13,9 +13,9 @@ inputs:
       op stamp(assignee): ( yield {...this, assignee, ts: now()} )
       op nop(foo): ( pass )
       op joinTest(left_file, right_file, left_key, right_key, left_dest, right_source): (
-        file left_file | sort left_key
+        file left_file
         | inner join (
-          file right_file | sort right_key
+          file right_file
         ) on left_key = right_key left_dest := right_source
       )
       joinTest("fruit.ndjson", "people.ndjson", flavor, likes, eater, name)
@@ -42,12 +42,10 @@ outputs:
         from (
           file left_file
         )
-        | sort left_key
         | join (
           from (
             file right_file
           )
-          | sort right_key
         ) on left_key=right_key left_dest:=right_source
       )
       joinTest("fruit.ndjson", "people.ndjson", flavor, likes, eater, name)
@@ -64,13 +62,11 @@ outputs:
         )
         
         file fruit.ndjson
-        | sort flavor
         | fork (
           =>
             pass
           =>
             file people.ndjson
-            | sort likes
         )
         | join on flavor=likes eater:=name
         | yield {...this,assignee:"bob",ts:now()}
