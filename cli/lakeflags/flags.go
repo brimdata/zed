@@ -11,6 +11,7 @@ import (
 
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/client/auth0"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/storage"
 	"go.uber.org/zap"
@@ -73,7 +74,11 @@ func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
 		}
 		return api.NewRemoteLake(conn), nil
 	}
-	return api.OpenLocalLake(ctx, zap.Must(zap.NewProduction()), uri.String())
+	lk, err := api.OpenLocalLake(ctx, zap.Must(zap.NewProduction()), uri.String())
+	if errors.Is(err, lake.ErrNotExist) {
+		return nil, fmt.Errorf("%w\n(hint: run 'zed init' to initialize lake at this location)", err)
+	}
+	return lk, err
 }
 
 func (l *Flags) AuthStore() *auth0.Store {

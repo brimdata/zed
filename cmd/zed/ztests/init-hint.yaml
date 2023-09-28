@@ -1,0 +1,11 @@
+script: |
+  export ZED_LAKE=path/to/zed
+  ! zed ls
+
+outputs:
+  - name: stderr
+    regexp: |
+      .* lake does not exist
+      \(hint: run 'zed init' to initialize lake at this location\)
+  - name: stdout
+    data: ""
