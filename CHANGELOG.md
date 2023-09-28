@@ -1,3 +1,15 @@
+## v1.10.0
+* Sorting is now performed automatically on [`join`](docs/language/operators/join.md) inputs when needed (explicit [`sort`](docs/language/operators/sort.md) no longer required) (#4770)
+* Various query performance improvements (#4736, #4737, #4739, #4740, #4783, #4785)
+* [`join`](docs/language/operators/join.md) now works correctly when data inputs are sorted in descending order (#4767)
+* Reduce memory consumption during [`delete -where`](docs/commands/zed.md#delete) operations (#4734)
+* Fix a `null`-handling issue that caused incorrect query results after pool compaction (#4735, #4753)
+* Allow writing of vectors when compacting objects in a pool (#4756, #4757)
+* Ensure query runtime errors are logged and made available through a new [Query Status](docs/lake/api.md#query-status) lake API endpoint (#4763, #4765, #4766, #4769)
+* Add an example to the [`where` docs](docs/language/operators/where.md) showing inverse containment logic (#4761)
+* Add an example to the [`cut` docs](docs/language/operators/cut.md) that includes setting a default value for a field (#4773, #4776)
+* Boolean `not` and `!` now both work the same in [expressions](docs/language/expressions.md#logic) and [search expressions](docs/language/search-expressions.md#boolean-logic) (#4768)
+* The [`zed` command](docs/commands/zed.md) now returns a hint mentioning [`init`](docs/commands/zed.md#init) if no lake exists at the expected path (#4786)
 ## v1.9.0
 * The [Zed Language Overview docs](docs/language/overview.md) have been split into multiple sections (#4576)
 * Add support for [user-defined operators](docs/language/statements.md#operator-statements) (#4417, #4635, #4646, #4644, #4663, #4674, #4698, #4702, #4716)
