@@ -1,12 +1,12 @@
 script: |
   echo === ANTI ===
-  zq -z 'anti join (file B.zson) on a=b' A.zson
+  zq -z 'anti join (file B.zson) on a=b | sort a' A.zson
   echo === LEFT ===
-  zq -z 'left join (file B.zson) on a=b hit:=sb' A.zson
+  zq -z 'left join (file B.zson) on a=b hit:=sb | sort a' A.zson
   echo === INNER ===
-  zq -z 'inner join (file B.zson) on a=b hit:=sb' A.zson
+  zq -z 'inner join (file B.zson) on a=b hit:=sb | sort a' A.zson
   echo === RIGHT ===
-  zq -z 'right join (file C.zson) on b=c hit:=sb' B.zson
+  zq -z 'right join (file C.zson) on b=c hit:=sb | sort c' B.zson
 
 inputs:
   - name: A.zson
