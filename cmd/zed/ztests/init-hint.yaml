@@ -1,6 +1,5 @@
 script: |
-  export ZED_LAKE=path/to/zed
-  ! zed ls
+  ! zed -lake=path/to/zed ls
 
 outputs:
   - name: stderr
