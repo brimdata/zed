@@ -26,7 +26,8 @@ The use command is like "git checkuout" but there is no local copy of
 the lake data.  Rather, the local HEAD state influences commands as
 they access the lake.
 
-With no argument, use prints the working pool and branch.
+With no argument, use prints the working pool and branch as well as the
+location of the current lake.
 
 With an argument of the form "pool", use sets the working pool as indicated
 and the working branch to "main".
@@ -83,6 +84,9 @@ func (c *Command) Run(args []string) error {
 			return errors.New("default pool and branch unset")
 		}
 		fmt.Printf("HEAD at %s\n", head)
+		if u, err := c.LakeFlags.URI(); err == nil {
+			fmt.Printf("Lake at %s\n", u)
+		}
 		return nil
 	}
 	commitish, err := lakeparse.ParseCommitish(args[0])
