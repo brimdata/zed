@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/runtime/op/traverse"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
-	"golang.org/x/exp/slices"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -398,9 +397,6 @@ func (b *Builder) compileRecordExpr(record *dag.RecordExpr) (expr.Evaluator, err
 	for _, elem := range record.Elems {
 		switch elem := elem.(type) {
 		case *dag.Field:
-			if slices.ContainsFunc(elems, func(r expr.RecordElem) bool { return r.Name == elem.Name }) {
-				return nil, fmt.Errorf("record expression: %w", &zed.DuplicateFieldError{Name: elem.Name})
-			}
 			e, err := b.compileExpr(elem.Value)
 			if err != nil {
 				return nil, err
