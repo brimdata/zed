@@ -1,0 +1,23 @@
+script: |
+  ! yes ' ' | head -c $((11 * 1024 * 1024)) > huge.zson
+  echo 0 >> huge.zson
+  zq -z huge.zson
+  ! cat huge.zson | zq -z -
+
+outputs:
+  - name: stdout
+    data: |
+      0
+  - name: stderr
+    data: |
+      stdio:stdin: format detection error
+      	arrows: schema message length exceeds 1 MiB
+      	csv: line 1: no comma found
+      	json: buffer exceeded max size trying to infer input format
+      	line: auto-detection not supported
+      	parquet: auto-detection requires seekable input
+      	vng: auto-detection requires seekable input
+      	zeek: line 1: bad types/fields definition in zeek header
+      	zjson: line 1: malformed ZJSON: bad type object: "": unpacker error parsing JSON: unexpected end of JSON input
+      	zng: buffer exceeded max size trying to infer input format
+      	zson: buffer exceeded max size trying to infer input format

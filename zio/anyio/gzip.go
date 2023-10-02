@@ -17,20 +17,18 @@ func GzipReader(r io.Reader) (io.Reader, error) {
 			return rs, nil
 		}
 	}
-	recorder := NewRecorder(r)
-	track := NewTrack(recorder)
+	track := NewTrack(r)
 	// gzip.NewReader blocks until it reads ten bytes.  readGzipID only
 	// reads two bytes.
 	if !readGzipID(track) {
-		return recorder, nil
+		return track.Reader(), nil
 	}
 	track.Reset()
 	_, err := gzip.NewReader(track)
 	if err == nil {
-		// create a new reader from recorder (track keeps a copy of read data)
-		return gzip.NewReader(recorder)
+		return gzip.NewReader(track.Reader())
 	}
-	return recorder, nil
+	return track.Reader(), nil
 }
 
 // RFC 1952, Section 2.3.1
