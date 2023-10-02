@@ -155,10 +155,15 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 			Where: where,
 		}, nil
 	case *ast.RecordExpr:
+		fields := map[string]struct{}{}
 		var out []dag.RecordElem
 		for _, elem := range e.Elems {
 			switch elem := elem.(type) {
 			case *ast.Field:
+				if _, ok := fields[elem.Name]; ok {
+					return nil, fmt.Errorf("record expression: %w", &zed.DuplicateFieldError{Name: elem.Name})
+				}
+				fields[elem.Name] = struct{}{}
 				e, err := a.semExpr(elem.Value)
 				if err != nil {
 					return nil, err
@@ -169,6 +174,10 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 					Value: e,
 				})
 			case *ast.ID:
+				if _, ok := fields[elem.Name]; ok {
+					return nil, fmt.Errorf("record expression: %w", &zed.DuplicateFieldError{Name: elem.Name})
+				}
+				fields[elem.Name] = struct{}{}
 				v, err := a.semID(elem)
 				if err != nil {
 					return nil, err
