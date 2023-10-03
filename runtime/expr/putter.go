@@ -19,12 +19,12 @@ type Putter struct {
 	zctx    *zed.Context
 	builder zcode.Builder
 	clauses []Assignment
-	// valClauses is a slice to avoid re-allocating for every value
-	valClauses []Assignment
+	rules   map[int]map[string]putRule
+	warned  map[string]struct{}
 	// vals is a slice to avoid re-allocating for every value
-	vals   []zed.Value
-	rules  map[int]putRule
-	warned map[string]struct{}
+	vals []zed.Value
+	// paths is a slice to avoid re-allocating for every path
+	paths []field.Path
 }
 
 // A putRule describes how a given record type is modified by describing
@@ -39,43 +39,32 @@ type putRule struct {
 	step        putStep
 }
 
-func NewPutter(zctx *zed.Context, clauses []Assignment) (*Putter, error) {
-	for i, p := range clauses {
-		if p.LHS.IsEmpty() {
-			return nil, fmt.Errorf("put: LHS cannot be 'this' (use 'yield' operator)")
-		}
-		for j, c := range clauses {
-			if i == j {
-				continue
-			}
-			if p.LHS.Equal(c.LHS) {
-				return nil, fmt.Errorf("put: multiple assignments to %s", p.LHS)
-			}
-			if c.LHS.HasStrictPrefix(p.LHS) {
-				return nil, fmt.Errorf("put: conflicting nested assignments to %s and %s", p.LHS, c.LHS)
-			}
-		}
-	}
+func NewPutter(zctx *zed.Context, clauses []Assignment) *Putter {
 	return &Putter{
 		zctx:    zctx,
 		clauses: clauses,
 		vals:    make([]zed.Value, len(clauses)),
-		rules:   make(map[int]putRule),
+		rules:   make(map[int]map[string]putRule),
 		warned:  make(map[string]struct{}),
-	}, nil
+	}
 }
 
-func (p *Putter) eval(ectx Context, this *zed.Value) ([]zed.Value, []Assignment) {
-	p.valClauses = p.valClauses[:0]
+func (p *Putter) eval(ectx Context, this *zed.Value) ([]zed.Value, []field.Path, *zed.Value) {
 	p.vals = p.vals[:0]
+	p.paths = p.paths[:0]
 	for _, cl := range p.clauses {
 		val := *cl.RHS.Eval(ectx, this)
-		if !val.IsQuiet() {
-			p.vals = append(p.vals, val)
-			p.valClauses = append(p.valClauses, cl)
+		if val.IsQuiet() {
+			continue
 		}
+		p.vals = append(p.vals, val)
+		path, verr := cl.LHS.Eval(ectx, this)
+		if verr != nil {
+			return nil, nil, verr
+		}
+		p.paths = append(p.paths, path)
 	}
-	return p.vals, p.valClauses
+	return p.vals, p.paths, nil
 }
 
 // A putStep is a recursive data structure encoding a series of steps to be
@@ -175,20 +164,20 @@ func (ig *getter) nth(n int) (zcode.Bytes, error) {
 	return nil, fmt.Errorf("getter.nth: array index %d out of bounds", n)
 }
 
-func findOverwriteClause(path field.Path, clauses []Assignment) (int, field.Path, bool) {
-	for i, cand := range clauses {
-		if path.Equal(cand.LHS) || cand.LHS.HasStrictPrefix(path) {
-			return i, cand.LHS, true
+func findOverwriteClause(path field.Path, paths []field.Path) (int, field.Path, bool) {
+	for i, lpath := range paths {
+		if path.Equal(lpath) || lpath.HasStrictPrefix(path) {
+			return i, lpath, true
 		}
 	}
 	return -1, nil, false
 }
 
-func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value, clauses []Assignment) (putStep, zed.Type) {
-	return p.deriveRecordSteps(field.Path{}, inType.Fields, vals, clauses)
+func (p *Putter) deriveSteps(inType *zed.TypeRecord, vals []zed.Value, paths []field.Path) (putStep, zed.Type) {
+	return p.deriveRecordSteps(field.Path{}, inType.Fields, vals, paths)
 }
 
-func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, vals []zed.Value, clauses []Assignment) (putStep, *zed.TypeRecord) {
+func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, vals []zed.Value, paths []field.Path) (putStep, *zed.TypeRecord) {
 	s := putStep{op: putRecord}
 	var fields []zed.Field
 
@@ -197,7 +186,7 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, 
 	// assignments.
 	for i, f := range inFields {
 		path := append(parentPath, f.Name)
-		matchIndex, matchPath, found := findOverwriteClause(path, clauses)
+		matchIndex, matchPath, found := findOverwriteClause(path, paths)
 		switch {
 		// input not overwritten by assignment: copy input value.
 		case !found:
@@ -217,13 +206,13 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, 
 			fields = append(fields, zed.NewField(f.Name, vals[matchIndex].Type))
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zed.IsRecordType(f.Type):
-			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(f.Type).Fields, vals, clauses)
+			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(f.Type).Fields, vals, paths)
 			nestedStep.index = i
 			s.append(nestedStep)
 			fields = append(fields, zed.NewField(f.Name, typ))
 		// input non-record field overwritten by nested assignment(s): recurse.
 		case len(path) < len(matchPath) && !zed.IsRecordType(f.Type):
-			nestedStep, typ := p.deriveRecordSteps(path, []zed.Field{}, vals, clauses)
+			nestedStep, typ := p.deriveRecordSteps(path, []zed.Field{}, vals, paths)
 			nestedStep.index = i
 			s.append(nestedStep)
 			fields = append(fields, zed.NewField(f.Name, typ))
@@ -232,30 +221,30 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, 
 		}
 	}
 
-	appendClause := func(cl Assignment) bool {
-		if !cl.LHS.HasPrefix(parentPath) {
+	appendClause := func(lpath field.Path) bool {
+		if !lpath.HasPrefix(parentPath) {
 			return false
 		}
-		return !hasField(cl.LHS[len(parentPath)], fields)
+		return !hasField(lpath[len(parentPath)], fields)
 	}
 	// Then, look at put assignments to see if there are any new fields to append.
-	for i, cl := range clauses {
-		if appendClause(cl) {
+	for i, lpath := range paths {
+		if appendClause(lpath) {
 			switch {
 			// Append value at this level
-			case len(cl.LHS) == len(parentPath)+1:
+			case len(lpath) == len(parentPath)+1:
 				s.append(putStep{
 					op:        putFromClause,
 					container: zed.IsContainerType(vals[i].Type),
 					index:     i,
 				})
-				fields = append(fields, zed.NewField(cl.LHS[len(parentPath)], vals[i].Type))
+				fields = append(fields, zed.NewField(lpath[len(parentPath)], vals[i].Type))
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
-			case len(cl.LHS) > len(parentPath)+1:
-				path := append(parentPath, cl.LHS[len(parentPath)])
-				nestedStep, typ := p.deriveRecordSteps(path, []zed.Field{}, vals, clauses)
+			case len(lpath) > len(parentPath)+1:
+				path := append(parentPath, lpath[len(parentPath)])
+				nestedStep, typ := p.deriveRecordSteps(path, []zed.Field{}, vals, paths)
 				nestedStep.index = -1
-				fields = append(fields, zed.NewField(cl.LHS[len(parentPath)], typ))
+				fields = append(fields, zed.NewField(lpath[len(parentPath)], typ))
 				s.append(nestedStep)
 			}
 		}
@@ -273,19 +262,48 @@ func hasField(name string, fields []zed.Field) bool {
 	})
 }
 
-func (p *Putter) lookupRule(inType *zed.TypeRecord, vals []zed.Value, clauses []Assignment) putRule {
-	rule, ok := p.rules[inType.ID()]
-	if ok && sameTypes(rule.clauseTypes, vals) {
-		return rule
+func (p *Putter) lookupRule(inType *zed.TypeRecord, vals []zed.Value, fields field.List) (putRule, error) {
+	m, ok := p.rules[inType.ID()]
+	if !ok {
+		m = make(map[string]putRule)
+		p.rules[inType.ID()] = m
 	}
-	step, typ := p.deriveSteps(inType, vals, clauses)
+	rule, ok := m[fields.String()]
+	if ok && sameTypes(rule.clauseTypes, vals) {
+		return rule, nil
+	}
+	// first check fields
+	if err := checkFields(fields); err != nil {
+		return putRule{}, err
+	}
+	step, typ := p.deriveSteps(inType, vals, fields)
 	var clauseTypes []zed.Type
 	for _, val := range vals {
 		clauseTypes = append(clauseTypes, val.Type)
 	}
 	rule = putRule{typ, clauseTypes, step}
-	p.rules[inType.ID()] = rule
-	return rule
+	p.rules[inType.ID()][fields.String()] = rule
+	return rule, nil
+}
+
+func checkFields(fields field.List) error {
+	for i, f := range fields {
+		if f.IsEmpty() {
+			return fmt.Errorf("put: LHS cannot be 'this' (use 'yield' operator)")
+		}
+		for j, c := range fields {
+			if i == j {
+				continue
+			}
+			if f.Equal(c) {
+				return fmt.Errorf("put: multiple assignments to %s", f)
+			}
+			if c.HasStrictPrefix(f) {
+				return fmt.Errorf("put: conflicting nested assignments to %s and %s", f, c)
+			}
+		}
+	}
+	return nil
 }
 
 func sameTypes(types []zed.Type, vals []zed.Value) bool {
@@ -303,11 +321,17 @@ func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		return ectx.CopyValue(*p.zctx.WrapError("put: not a record", this))
 	}
-	vals, clauses := p.eval(ectx, this)
+	vals, paths, verr := p.eval(ectx, this)
+	if verr != nil {
+		return verr
+	}
 	if len(vals) == 0 {
 		return this
 	}
-	rule := p.lookupRule(recType, vals, clauses)
+	rule, err := p.lookupRule(recType, vals, paths)
+	if err != nil {
+		return ectx.CopyValue(*p.zctx.WrapError(err.Error(), this))
+	}
 	bytes := rule.step.build(this.Bytes(), &p.builder, vals)
 	return ectx.NewValue(rule.typ, bytes)
 }

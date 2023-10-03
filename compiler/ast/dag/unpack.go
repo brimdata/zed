@@ -36,6 +36,8 @@ var unpacker = unpack.New(
 	Over{},
 	OverExpr{},
 	Pass{},
+	Path{},
+	StaticPathElem{},
 	PoolScan{},
 	Put{},
 	RecordExpr{},

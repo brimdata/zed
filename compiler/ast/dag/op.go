@@ -95,8 +95,9 @@ type (
 		Args []Assignment `json:"args"`
 	}
 	Rename struct {
-		Kind string       `json:"kind" unpack:""`
-		Args []Assignment `json:"args"`
+		Kind string  `json:"kind" unpack:""`
+		Dsts []*This `json:"dsts"`
+		Srcs []*This `json:"srcs"`
 	}
 	Scatter struct {
 		Kind  string `json:"kind" unpack:""`

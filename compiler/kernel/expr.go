@@ -65,6 +65,12 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 		return expr.NewDottedExpr(b.zctx(), field.Path(e.Path)), nil
 	case *dag.Dot:
 		return b.compileDotExpr(e)
+	case *dag.Path:
+		// Path only works as a general expression if it is a static path.
+		if this := e.StaticPath(); this != nil {
+			return expr.NewDottedExpr(b.zctx(), field.Path(this.Path)), nil
+		}
+		return nil, fmt.Errorf("internal error: invalid path expression %s", e)
 	case *dag.UnaryExpr:
 		return b.compileUnary(*e)
 	case *dag.BinaryExpr:
@@ -263,15 +269,27 @@ func (b *Builder) compileDotExpr(dot *dag.Dot) (expr.Evaluator, error) {
 	return expr.NewDotExpr(b.zctx(), record, dot.RHS), nil
 }
 
-func compileLval(e dag.Expr) (field.Path, error) {
-	if this, ok := e.(*dag.This); ok {
-		return field.Path(this.Path), nil
+func (b *Builder) compilePath(e *dag.Path) (*expr.Path, error) {
+	elems := make([]expr.PathElem, 0, len(e.Path))
+	for _, elem := range e.Path {
+		switch e := elem.(type) {
+		case *dag.This:
+			eval, err := b.compileExpr(e)
+			if err != nil {
+				return nil, err
+			}
+			elems = append(elems, expr.NewPathElemExpr(b.octx.Zctx, eval))
+		case *dag.StaticPathElem:
+			elems = append(elems, &expr.StaticPathElem{Name: e.Name})
+		default:
+			return nil, fmt.Errorf("internal error: invalid lval type %T", e)
+		}
 	}
-	return nil, errors.New("invalid expression on lhs of assignment")
+	return expr.NewPath(elems), nil
 }
 
 func (b *Builder) compileAssignment(node *dag.Assignment) (expr.Assignment, error) {
-	lhs, err := compileLval(node.LHS)
+	lhs, err := b.compilePath(node.LHS)
 	if err != nil {
 		return expr.Assignment{}, err
 	}

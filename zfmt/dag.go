@@ -121,6 +121,24 @@ func (c *canonDAG) expr(e dag.Expr, parent string) {
 		c.write("search(%s)", e.Value)
 	case *dag.This:
 		c.fieldpath(e.Path)
+	case *dag.Path:
+		if p := e.StaticPath(); p != nil {
+			c.fieldpath(p.Path)
+			return
+		}
+		for k, elem := range e.Path {
+			if k == 0 {
+				c.write("this")
+			}
+			c.write("[")
+			switch elem := elem.(type) {
+			case *dag.This:
+				c.fieldpath(elem.Path)
+			case *dag.StaticPathElem:
+				c.write(zson.QuotedName(elem.Name))
+			}
+			c.write("]")
+		}
 	case *dag.Var:
 		c.write("%s", e.Name)
 	case *dag.Literal:
@@ -422,7 +440,13 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Rename:
 		c.next()
 		c.write("rename ")
-		c.assignments(p.Args)
+		for k := range p.Dsts {
+			c.fieldpath(p.Dsts[k].Path)
+			c.write(":=")
+			c.fieldpath(p.Srcs[k].Path)
+		}
+		// XXX
+		// c.assignments(p.Args)
 	case *dag.Fuse:
 		c.next()
 		c.write("fuse")

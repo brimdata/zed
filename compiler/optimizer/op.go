@@ -52,9 +52,9 @@ func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, 
 		return in, nil
 	case *dag.Rename:
 		out := in
-		for _, assignment := range op.Args {
-			if fieldOf(assignment.RHS).Equal(key) {
-				lhs := fieldOf(assignment.LHS)
+		for k := range op.Dsts {
+			if fieldOf(op.Srcs[k]).Equal(key) {
+				lhs := fieldOf(op.Dsts[k])
 				out = order.NewSortKey(in.Order, field.List{lhs})
 			}
 		}
@@ -210,6 +210,11 @@ func fieldKey(f field.Path) string {
 func fieldOf(e dag.Expr) field.Path {
 	if this, ok := e.(*dag.This); ok {
 		return this.Path
+	}
+	if path, ok := e.(*dag.Path); ok {
+		if this := path.StaticPath(); this != nil {
+			return this.Path
+		}
 	}
 	return nil
 }

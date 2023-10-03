@@ -174,36 +174,13 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, err
 		}
-		putter, err := expr.NewPutter(b.octx.Zctx, clauses)
-		if err != nil {
-			return nil, err
-		}
+		putter := expr.NewPutter(b.octx.Zctx, clauses)
 		return op.NewApplier(b.octx, parent, putter), nil
 	case *dag.Rename:
 		var srcs, dsts field.List
-		for _, fa := range v.Args {
-			dst, err := compileLval(fa.LHS)
-			if err != nil {
-				return nil, err
-			}
-			// We call CompileLval on the RHS because renames are
-			// restricted to dotted field name expressions.
-			src, err := compileLval(fa.RHS)
-			if err != nil {
-				return nil, err
-			}
-			if len(dst) != len(src) {
-				return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
-			}
-			// Check that the prefixes match and, if not, report first place
-			// that they don't.
-			for i := 0; i <= len(src)-2; i++ {
-				if src[i] != dst[i] {
-					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src[i], dst[i])
-				}
-			}
-			dsts = append(dsts, dst)
-			srcs = append(srcs, src)
+		for k := range v.Dsts {
+			srcs = append(srcs, v.Srcs[k].Path)
+			dsts = append(dsts, v.Dsts[k].Path)
 		}
 		renamer := expr.NewRenamer(b.octx.Zctx, srcs, dsts)
 		return op.NewApplier(b.octx, parent, renamer), nil
@@ -376,6 +353,24 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 	return scope.NewExit(exit), nil
 }
 
+func (b *Builder) compileStaticAssignments(assignments []dag.Assignment) ([]field.Path, []expr.Evaluator, error) {
+	lhs := make([]field.Path, 0, len(assignments))
+	rhs := make([]expr.Evaluator, 0, len(assignments))
+	for _, a := range assignments {
+		this := a.LHS.StaticPath()
+		if this == nil {
+			return nil, nil, errors.New("internal error: dynamic lhs assignment when expecting a static path")
+		}
+		lhs = append(lhs, slices.Clone(this.Path))
+		r, err := b.compileExpr(a.RHS)
+		if err != nil {
+			return nil, nil, err
+		}
+		rhs = append(rhs, r)
+	}
+	return lhs, rhs, nil
+}
+
 func (b *Builder) compileAssignments(assignments []dag.Assignment) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
 	for _, assignment := range assignments {
@@ -388,9 +383,9 @@ func (b *Builder) compileAssignments(assignments []dag.Assignment) ([]expr.Assig
 	return keys, nil
 }
 
-func splitAssignments(assignments []expr.Assignment) (field.List, []expr.Evaluator) {
+func splitAssignments(assignments []expr.Assignment) ([]*expr.Path, []expr.Evaluator) {
 	n := len(assignments)
-	lhs := make(field.List, 0, n)
+	lhs := make([]*expr.Path, 0, n)
 	rhs := make([]expr.Evaluator, 0, n)
 	for _, a := range assignments {
 		lhs = append(lhs, a.LHS)

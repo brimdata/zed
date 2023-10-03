@@ -2,7 +2,6 @@ package kernel
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/order"
@@ -10,10 +9,11 @@ import (
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op/groupby"
 	"github.com/brimdata/zed/zbuf"
+	"golang.org/x/exp/slices"
 )
 
 func (b *Builder) compileGroupBy(parent zbuf.Puller, summarize *dag.Summarize) (*groupby.Op, error) {
-	keys, err := b.compileAssignments(summarize.Keys)
+	keyPaths, keyVals, err := b.compileStaticAssignments(summarize.Keys)
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (b *Builder) compileGroupBy(parent zbuf.Puller, summarize *dag.Summarize) (
 		return nil, err
 	}
 	dir := order.Direction(summarize.InputSortDir)
-	return groupby.New(b.octx, parent, keys, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut)
+	return groupby.New(b.octx, parent, keyPaths, keyVals, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut)
 }
 
 func (b *Builder) compileAggAssignments(assignments []dag.Assignment) (field.List, []*expr.Aggregator, error) {
@@ -44,12 +44,12 @@ func (b *Builder) compileAggAssignment(assignment dag.Assignment) (field.Path, *
 	if !ok {
 		return nil, nil, errors.New("aggregator is not an aggregation expression")
 	}
-	lhs, err := compileLval(assignment.LHS)
-	if err != nil {
-		return nil, nil, fmt.Errorf("lhs of aggregation: %w", err)
+	this := assignment.LHS.StaticPath()
+	if this == nil {
+		return nil, nil, errors.New("internal error: aggregator assignment must be a static path")
 	}
 	m, err := b.compileAgg(aggAST)
-	return lhs, m, err
+	return slices.Clone(this.Path), m, err
 }
 
 func (b *Builder) compileAgg(agg *dag.Agg) (*expr.Aggregator, error) {

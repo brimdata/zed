@@ -420,6 +420,55 @@ func (a *analyzer) semBinary(e *ast.BinaryExpr) (dag.Expr, error) {
 	}, nil
 }
 
+func (a *analyzer) semPath(e ast.Expr) (*dag.Path, error) {
+	switch e := e.(type) {
+	case *ast.BinaryExpr:
+		if e.Op == "." {
+			lhs, err := a.semPath(e.LHS)
+			if err != nil || lhs == nil {
+				return nil, err
+			}
+			id, ok := e.RHS.(*ast.ID)
+			if !ok {
+				return nil, nil
+			}
+			lhs.Path = append(lhs.Path, &dag.StaticPathElem{Kind: "StaticPathElem", Name: id.Name})
+			return lhs, nil
+		}
+		if e.Op == "[" {
+			lhs, err := a.semPath(e.LHS)
+			if lhs == nil || err != nil {
+				return nil, nil
+			}
+			rhs, err := a.semExpr(e.RHS)
+			if err != nil {
+				return nil, err
+			}
+			if this, ok := rhs.(*dag.This); ok {
+				lhs.Path = append(lhs.Path, this)
+				return lhs, nil
+			}
+			if p, ok := isStringConst(a.zctx, rhs); ok {
+				lhs.Path = append(lhs.Path, &dag.StaticPathElem{Kind: "StaticPathElem", Name: p})
+				return lhs, nil
+			}
+		}
+		return nil, nil
+	case *ast.ID:
+		id, err := a.semID(e)
+		if err != nil {
+			return nil, err
+		}
+		if this, ok := id.(*dag.This); ok {
+			return dag.NewStaticPath(this.Path...), nil
+		}
+		return nil, nil
+	}
+	// This includes a null Expr, which can happen if the AST is missing
+	// a field or sets it to null.
+	return nil, nil
+}
+
 func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 	if this, ok := lhs.(*dag.This); ok {
 		if s, ok := isStringConst(a.zctx, rhs); ok {
@@ -507,10 +556,10 @@ func (a *analyzer) semExprs(in []ast.Expr) ([]dag.Expr, error) {
 	return exprs, nil
 }
 
-func (a *analyzer) semAssignments(assignments []ast.Assignment, summarize bool) ([]dag.Assignment, error) {
+func (a *analyzer) semAssignments(assignments []ast.Assignment) ([]dag.Assignment, error) {
 	out := make([]dag.Assignment, 0, len(assignments))
 	for _, e := range assignments {
-		a, err := a.semAssignment(e, summarize)
+		a, err := a.semAssignment(e)
 		if err != nil {
 			return nil, err
 		}
@@ -519,70 +568,74 @@ func (a *analyzer) semAssignments(assignments []ast.Assignment, summarize bool) 
 	return out, nil
 }
 
-func (a *analyzer) semAssignment(assign ast.Assignment, summarize bool) (dag.Assignment, error) {
-	rhs, err := a.semExpr(assign.RHS)
+func (a *analyzer) semAssignment(e ast.Assignment) (dag.Assignment, error) {
+	rhs, err := a.semExpr(e.RHS)
 	if err != nil {
-		return dag.Assignment{}, fmt.Errorf("rhs of assignment expression: %w", err)
+		return dag.Assignment{}, err
 	}
-	if _, ok := rhs.(*dag.Agg); ok {
-		summarize = true
-	}
-	var lhs dag.Expr
-	if assign.LHS != nil {
-		lhs, err = a.semExpr(assign.LHS)
+	var lhs *dag.Path
+	if e.LHS == nil {
+		path, err := derriveLHSPath(rhs)
 		if err != nil {
-			return dag.Assignment{}, fmt.Errorf("lhs of assigment expression: %w", err)
+			return dag.Assignment{}, err
 		}
-	} else if call, ok := assign.RHS.(*ast.Call); ok {
-		path := []string{call.Name}
-		switch call.Name {
-		case "every":
-			// If LHS is nil and the call is every() make the LHS field ts since
-			// field ts assumed with every.
-			path = []string{"ts"}
-		case "quiet":
-			if len(call.Args) > 0 {
-				if p, ok := rhs.(*dag.Call).Args[0].(*dag.This); ok {
-					path = p.Path
-				}
-			}
-		}
-		lhs = &dag.This{Kind: "This", Path: path}
-	} else if agg, ok := assign.RHS.(*ast.Agg); ok {
-		lhs = &dag.This{Kind: "This", Path: []string{agg.Name}}
-	} else if v, ok := rhs.(*dag.Var); ok {
-		lhs = &dag.This{Kind: "This", Path: []string{v.Name}}
+		lhs = dag.NewStaticPath(path...)
 	} else {
-		lhs, err = a.semExpr(assign.RHS)
-		if err != nil {
-			return dag.Assignment{}, errors.New("assignment name could not be inferred from rhs expression")
-		}
-	}
-	if summarize {
-		// Summarize always outputs its results as new records of "this"
-		// so if we have an "as" that overrides "this", we just
-		// convert it back to a local this.
-		if dot, ok := lhs.(*dag.Dot); ok {
-			if v, ok := dot.LHS.(*dag.Var); ok && v.Name == "this" {
-				lhs = &dag.This{Kind: "This", Path: []string{dot.RHS}}
+		if lhs, err = a.semPath(e.LHS); lhs == nil {
+			if err == nil {
+				err = errors.New("illegal left-hand side of assignment")
 			}
+			return dag.Assignment{}, err
 		}
 	}
-	// Make sure we have a valid lval for lhs.
-	this, ok := lhs.(*dag.This)
-	if !ok {
-		return dag.Assignment{}, errors.New("illegal left-hand side of assignment")
-	}
-	if len(this.Path) == 0 {
+	if len(lhs.Path) == 0 {
 		return dag.Assignment{}, errors.New("cannot assign to 'this'")
 	}
 	return dag.Assignment{Kind: "Assignment", LHS: lhs, RHS: rhs}, nil
 }
 
-func (a *analyzer) semFields(exprs []ast.Expr) ([]dag.Expr, error) {
+func assignHasDynamicPath(assignments []dag.Assignment) bool {
+	for _, a := range assignments {
+		if a.LHS.StaticPath() == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func derriveLHSPath(rhs dag.Expr) ([]string, error) {
+	var path []string
+	switch rhs := rhs.(type) {
+	case *dag.Call:
+		path = []string{rhs.Name}
+		switch rhs.Name {
+		case "every":
+			// If LHS is nil and the call is every() make the LHS field ts since
+			// field ts assumed with every.
+			path = []string{"ts"}
+		case "quiet":
+			if len(rhs.Args) > 0 {
+				if this, ok := rhs.Args[0].(*dag.This); ok {
+					path = this.Path
+				}
+			}
+		}
+	case *dag.Agg:
+		path = []string{rhs.Name}
+	case *dag.Var:
+		path = []string{rhs.Name}
+	case *dag.This:
+		path = rhs.Path
+	default:
+		return nil, errors.New("assignment name could not be inferred from rhs expression")
+	}
+	return path, nil
+}
+
+func (a *analyzer) semStaticFields(exprs []ast.Expr) ([]dag.Expr, error) {
 	fields := make([]dag.Expr, 0, len(exprs))
 	for _, e := range exprs {
-		f, err := a.semField(e)
+		f, err := a.semStaticField(e)
 		if err != nil {
 			return nil, err
 		}
@@ -591,9 +644,9 @@ func (a *analyzer) semFields(exprs []ast.Expr) ([]dag.Expr, error) {
 	return fields, nil
 }
 
-// semField analyzes the expression f and makes sure that it's
+// semStaticField analyzes the expression f and makes sure that it's
 // a field reference returning an error if not.
-func (a *analyzer) semField(f ast.Expr) (*dag.This, error) {
+func (a *analyzer) semStaticField(f ast.Expr) (*dag.This, error) {
 	e, err := a.semExpr(f)
 	if err != nil {
 		return nil, errors.New("invalid expression used as a field")
@@ -641,11 +694,11 @@ func (a *analyzer) maybeConvertAgg(call *ast.Call) (dag.Expr, error) {
 	}, nil
 }
 
-func DotExprToFieldPath(e ast.Expr) *dag.This {
+func (a *analyzer) dotExprToFieldPath(e ast.Expr) *dag.This {
 	switch e := e.(type) {
 	case *ast.BinaryExpr:
 		if e.Op == "." {
-			lhs := DotExprToFieldPath(e.LHS)
+			lhs := a.dotExprToFieldPath(e.LHS)
 			if lhs == nil {
 				return nil
 			}
@@ -653,23 +706,42 @@ func DotExprToFieldPath(e ast.Expr) *dag.This {
 			if !ok {
 				return nil
 			}
-			lhs.Path = append(lhs.Path, id.Name)
+			o, err := a.semID(id)
+			if err != nil {
+				return nil
+			}
+			this, ok := o.(*dag.This)
+			if !ok {
+				return nil
+			}
+			lhs.Path = append(lhs.Path, this.Path...)
 			return lhs
 		}
 		if e.Op == "[" {
-			lhs := DotExprToFieldPath(e.LHS)
+			lhs := a.dotExprToFieldPath(e.LHS)
 			if lhs == nil {
 				return nil
 			}
-			id, ok := e.RHS.(*astzed.Primitive)
-			if !ok || id.Type != "string" {
+			rhs, err := a.semExpr(e.RHS)
+			if err != nil {
 				return nil
 			}
-			lhs.Path = append(lhs.Path, id.Text)
-			return lhs
+			if s, ok := isStringConst(a.zctx, rhs); ok {
+				lhs.Path = append(lhs.Path, s)
+				return lhs
+			}
+			return nil
 		}
 	case *ast.ID:
-		return pathOf(e.Name)
+		o, err := a.semID(e)
+		if err != nil {
+			return nil
+		}
+		this, ok := o.(*dag.This)
+		if !ok {
+			return nil
+		}
+		return this
 	}
 	// This includes a null Expr, which can happen if the AST is missing
 	// a field or sets it to null.

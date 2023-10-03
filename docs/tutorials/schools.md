@@ -843,7 +843,7 @@ zq -Z 'rename toplevel:=outer.inner' nested.zson
 ```
 produces this compile-time error message and the query is not run:
 ```mdtest-output
-cannot rename outer.inner to toplevel
+rename: cannot rename outer.inner to toplevel
 ```
 This goal could instead be achieved by combining [`put`](#44-put) and [`drop`](#42-drop),
 e.g.,

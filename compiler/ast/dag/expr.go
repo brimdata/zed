@@ -10,6 +10,9 @@ type (
 	VectorElem interface {
 		vectorElem()
 	}
+	PathElem interface {
+		pathElem()
+	}
 )
 
 // Exprs
@@ -27,7 +30,7 @@ type (
 	}
 	Assignment struct {
 		Kind string `json:"kind" unpack:""`
-		LHS  Expr   `json:"lhs"`
+		LHS  *Path  `json:"lhs"`
 		RHS  Expr   `json:"rhs"`
 	}
 	BinaryExpr struct {
@@ -71,6 +74,10 @@ type (
 		Defs  []Def  `json:"defs"`
 		Exprs []Expr `json:"exprs"`
 		Body  Seq    `json:"body"`
+	}
+	Path struct {
+		Kind string     `json:"kind" unpack:""`
+		Path []PathElem `json:"path"`
 	}
 	RecordExpr struct {
 		Kind  string       `json:"kind" unpack:""`
@@ -123,6 +130,7 @@ func (*Func) ExprDAG()         {}
 func (*Literal) ExprDAG()      {}
 func (*MapExpr) ExprDAG()      {}
 func (*OverExpr) ExprDAG()     {}
+func (*Path) ExprDAG()         {}
 func (*RecordExpr) ExprDAG()   {}
 func (*RegexpMatch) ExprDAG()  {}
 func (*RegexpSearch) ExprDAG() {}
@@ -158,6 +166,34 @@ func (*Field) recordAST()        {}
 func (*Spread) recordAST()       {}
 func (*Spread) vectorElem()      {}
 func (*VectorValue) vectorElem() {}
+
+func (p *Path) StaticPath() *This {
+	this := &This{Kind: "This"}
+	for _, elem := range p.Path {
+		if p, ok := elem.(*StaticPathElem); ok {
+			this.Path = append(this.Path, p.Name)
+		} else {
+			return nil
+		}
+	}
+	return this
+}
+
+func NewStaticPath(path ...string) *Path {
+	p := &Path{Kind: "Path"}
+	for _, name := range path {
+		p.Path = append(p.Path, &StaticPathElem{Kind: "StaticPathElem", Name: name})
+	}
+	return p
+}
+
+type StaticPathElem struct {
+	Kind string `json:"kind" unpack:""`
+	Name string `json:"name"`
+}
+
+func (*This) pathElem()           {}
+func (*StaticPathElem) pathElem() {}
 
 func NewBinaryExpr(op string, lhs, rhs Expr) *BinaryExpr {
 	return &BinaryExpr{

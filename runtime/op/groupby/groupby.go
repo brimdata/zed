@@ -109,10 +109,10 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	}, nil
 }
 
-func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Op, error) {
-	names := make(field.List, 0, len(keys)+len(aggNames))
-	for _, e := range keys {
-		names = append(names, e.LHS)
+func New(octx *op.Context, parent zbuf.Puller, keyPaths []field.Path, keyVals []expr.Evaluator, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Op, error) {
+	names := make(field.List, 0, len(keyPaths)+len(aggNames))
+	for _, p := range keyPaths {
+		names = append(names, p)
 	}
 	names = append(names, aggNames...)
 	builder, err := zed.NewRecordBuilder(octx.Zctx, names)
@@ -123,11 +123,11 @@ func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames 
 	for _, fieldName := range aggNames {
 		valRefs = append(valRefs, expr.NewDottedExpr(octx.Zctx, fieldName))
 	}
-	keyRefs := make([]expr.Evaluator, 0, len(keys))
-	keyExprs := make([]expr.Evaluator, 0, len(keys))
-	for _, e := range keys {
-		keyRefs = append(keyRefs, expr.NewDottedExpr(octx.Zctx, e.LHS))
-		keyExprs = append(keyExprs, e.RHS)
+	keyRefs := make([]expr.Evaluator, 0, len(keyPaths))
+	keyExprs := make([]expr.Evaluator, 0, len(keyPaths))
+	for i, p := range keyPaths {
+		keyRefs = append(keyRefs, expr.NewDottedExpr(octx.Zctx, p))
+		keyExprs = append(keyExprs, keyVals[i])
 	}
 	agg, err := NewAggregator(octx.Context, octx.Zctx, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {

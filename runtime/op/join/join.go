@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/sort"
@@ -35,7 +34,7 @@ type Op struct {
 }
 
 func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator,
-	leftDir, rightDir order.Direction, lhs field.List,
+	leftDir, rightDir order.Direction, lhs []*expr.Path,
 	rhs []expr.Evaluator) (*Op, error) {
 	cutter, err := expr.NewCutter(octx.Zctx, lhs, rhs)
 	if err != nil {

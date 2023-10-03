@@ -3,6 +3,7 @@ script: |
   ! zq -z "cut rec.sub1,rec.sub1" in.zson
   ! zq -z "cut rec.sub,rec.sub.sub" in.zson
   ! zq -z "cut rec.sub.sub,rec.sub" in.zson
+  # XXX Add runtime evaluatable cut (i.e., dynamic path).
 
 inputs:
   - name: in.zson
@@ -12,7 +13,7 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      duplicate field: "rec"
-      duplicate field: "rec.sub1"
-      duplicate field: "rec.sub.sub"
-      duplicate field: "rec.sub"
+      cut: duplicate field: "rec"
+      cut: duplicate field: "rec.sub1"
+      cut: duplicate field: "rec.sub.sub"
+      cut: duplicate field: "rec.sub"
