@@ -507,10 +507,10 @@ func (a *analyzer) semExprs(in []ast.Expr) ([]dag.Expr, error) {
 	return exprs, nil
 }
 
-func (a *analyzer) semAssignments(assignments []ast.Assignment, summarize bool) ([]dag.Assignment, error) {
+func (a *analyzer) semAssignments(assignments []ast.Assignment) ([]dag.Assignment, error) {
 	out := make([]dag.Assignment, 0, len(assignments))
 	for _, e := range assignments {
-		a, err := a.semAssignment(e, summarize)
+		a, err := a.semAssignment(e)
 		if err != nil {
 			return nil, err
 		}
@@ -519,64 +519,69 @@ func (a *analyzer) semAssignments(assignments []ast.Assignment, summarize bool) 
 	return out, nil
 }
 
-func (a *analyzer) semAssignment(assign ast.Assignment, summarize bool) (dag.Assignment, error) {
+func (a *analyzer) semAssignment(assign ast.Assignment) (dag.Assignment, error) {
 	rhs, err := a.semExpr(assign.RHS)
 	if err != nil {
-		return dag.Assignment{}, fmt.Errorf("rhs of assignment expression: %w", err)
-	}
-	if _, ok := rhs.(*dag.Agg); ok {
-		summarize = true
+		return dag.Assignment{}, fmt.Errorf("right-hand side of assignment: %w", err)
 	}
 	var lhs dag.Expr
-	if assign.LHS != nil {
-		lhs, err = a.semExpr(assign.LHS)
+	if assign.LHS == nil {
+		path, err := deriveLHSPath(rhs)
 		if err != nil {
-			return dag.Assignment{}, fmt.Errorf("lhs of assigment expression: %w", err)
+			return dag.Assignment{}, err
 		}
-	} else if call, ok := assign.RHS.(*ast.Call); ok {
-		path := []string{call.Name}
-		switch call.Name {
+		lhs = &dag.This{Kind: "This", Path: path}
+	} else if lhs, err = a.semExpr(assign.LHS); err != nil {
+		return dag.Assignment{}, fmt.Errorf("left-hand side of assignment: %w", err)
+	}
+	if !isLval(lhs) {
+		return dag.Assignment{}, errors.New("illegal left-hand side of assignment")
+	}
+	if this, ok := lhs.(*dag.This); ok && len(this.Path) == 0 {
+		return dag.Assignment{}, errors.New("cannot assign to 'this'")
+	}
+	return dag.Assignment{Kind: "Assignment", LHS: lhs, RHS: rhs}, nil
+}
+
+func isLval(e dag.Expr) bool {
+	switch e := e.(type) {
+	case *dag.BinaryExpr:
+		return e.Op == "[" && isLval(e.LHS)
+	case *dag.Dot:
+		return isLval(e.LHS)
+	case *dag.This:
+		return true
+	}
+	return false
+}
+
+func deriveLHSPath(rhs dag.Expr) ([]string, error) {
+	var path []string
+	switch rhs := rhs.(type) {
+	case *dag.Call:
+		path = []string{rhs.Name}
+		switch rhs.Name {
 		case "every":
 			// If LHS is nil and the call is every() make the LHS field ts since
 			// field ts assumed with every.
 			path = []string{"ts"}
 		case "quiet":
-			if len(call.Args) > 0 {
-				if p, ok := rhs.(*dag.Call).Args[0].(*dag.This); ok {
-					path = p.Path
+			if len(rhs.Args) > 0 {
+				if this, ok := rhs.Args[0].(*dag.This); ok {
+					path = this.Path
 				}
 			}
 		}
-		lhs = &dag.This{Kind: "This", Path: path}
-	} else if agg, ok := assign.RHS.(*ast.Agg); ok {
-		lhs = &dag.This{Kind: "This", Path: []string{agg.Name}}
-	} else if v, ok := rhs.(*dag.Var); ok {
-		lhs = &dag.This{Kind: "This", Path: []string{v.Name}}
-	} else {
-		lhs, err = a.semExpr(assign.RHS)
-		if err != nil {
-			return dag.Assignment{}, errors.New("assignment name could not be inferred from rhs expression")
-		}
+	case *dag.Agg:
+		path = []string{rhs.Name}
+	case *dag.Var:
+		path = []string{rhs.Name}
+	case *dag.This:
+		path = rhs.Path
+	default:
+		return nil, errors.New("cannot infer field from expression")
 	}
-	if summarize {
-		// Summarize always outputs its results as new records of "this"
-		// so if we have an "as" that overrides "this", we just
-		// convert it back to a local this.
-		if dot, ok := lhs.(*dag.Dot); ok {
-			if v, ok := dot.LHS.(*dag.Var); ok && v.Name == "this" {
-				lhs = &dag.This{Kind: "This", Path: []string{dot.RHS}}
-			}
-		}
-	}
-	// Make sure we have a valid lval for lhs.
-	this, ok := lhs.(*dag.This)
-	if !ok {
-		return dag.Assignment{}, errors.New("illegal left-hand side of assignment")
-	}
-	if len(this.Path) == 0 {
-		return dag.Assignment{}, errors.New("cannot assign to 'this'")
-	}
-	return dag.Assignment{Kind: "Assignment", LHS: lhs, RHS: rhs}, nil
+	return path, nil
 }
 
 func (a *analyzer) semFields(exprs []ast.Expr) ([]dag.Expr, error) {

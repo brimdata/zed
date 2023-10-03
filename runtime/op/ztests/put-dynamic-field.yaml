@@ -1,0 +1,41 @@
+script: |
+  echo '{a:"hi",b:"hello"}' | zq -z 'this[a][b] := "world" | drop a, b' -
+  echo "// ==="
+  echo '{a:{b:"hello"}}' | zq -z 'this[a.b]:="world" | drop a' -
+  echo "// ==="
+  echo '{a:"hello"}' | zq -z 'this[this["a"]] := "world" | drop a' -
+  echo "// ==="
+  echo '{a:{},b:"hello"}' | zq -z 'a[b] := "world" | drop b' -
+  echo "// ==="
+  echo '{a:"foo"}' | zq -z 'this[a]["bar"] := "baz" | cut foo' -
+  echo "// ==="
+  # runtime error cases
+  echo '{a:"hello",b:"hello"}' | zq -z 'this[a] := "world1", this[b] := "world2"' -
+  echo "// ==="
+  echo '{a:"foo",b:"bar"}' | zq -z 'this[a][b] := "world", this[a] := "world"' -
+  echo "// ==="
+  echo {} | zq -z 'this[doesnotexist] := "world"' - 
+  # semantic error cases
+  ! zc -s 'op foo(): ( yield "error" ) put this[foo] := "hello world"'
+
+outputs:
+  - name: stdout
+    data: |
+      {hi:{hello:"world"}}
+      // ===
+      {hello:"world"}
+      // ===
+      {hello:"world"}
+      // ===
+      {a:{hello:"world"}}
+      // ===
+      {foo:{bar:"baz"}}
+      // ===
+      error({message:"put: multiple assignments to hello",on:{a:"hello",b:"hello"}})
+      // ===
+      error({message:"put: conflicting nested assignments to foo and foo.bar",on:{a:"foo",b:"bar"}})
+      // ===
+      error({message:"put: missing",on:{}})
+  - name: stderr
+    data: |
+      left-hand side of assignment: symbol "foo" is not bound to an expression

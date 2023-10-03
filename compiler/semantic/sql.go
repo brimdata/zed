@@ -291,7 +291,7 @@ func (a *analyzer) convertSQLJoin(leftPath []dag.Op, sqlJoin ast.SQLJoin) ([]dag
 	}
 	alias := dag.Assignment{
 		Kind: "Assignment",
-		LHS:  &dag.This{Kind: "This", Path: field.Path{aliasID}},
+		LHS:  pathOf(aliasID),
 		RHS:  &dag.This{Kind: "This", Path: field.Path{aliasID}},
 	}
 	join := &dag.Join{
@@ -433,7 +433,7 @@ func (a *analyzer) newSQLSelection(assignments []ast.Assignment) (sqlSelection, 
 		if err != nil {
 			return nil, err
 		}
-		assignment, err := a.semAssignment(assign, false)
+		assignment, err := a.semAssignment(assign)
 		if err != nil {
 			return nil, err
 		}
@@ -515,12 +515,12 @@ func (a *analyzer) isAgg(e ast.Expr) (*dag.Agg, error) {
 }
 
 func (a *analyzer) deriveAs(as ast.Assignment) (field.Path, error) {
-	sa, err := a.semAssignment(as, false)
+	sa, err := a.semAssignment(as)
 	if err != nil {
 		return nil, fmt.Errorf("AS clause of SELECT: %w", err)
 	}
-	if f, ok := sa.LHS.(*dag.This); ok {
-		return f.Path, nil
+	if this, ok := sa.LHS.(*dag.This); ok {
+		return this.Path, nil
 	}
 	return nil, fmt.Errorf("AS clause not a field: %w", err)
 }

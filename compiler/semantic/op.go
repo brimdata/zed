@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/plural"
 	"github.com/brimdata/zed/pkg/reglob"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -410,18 +411,24 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 	case *ast.From:
 		return a.semFrom(o, seq)
 	case *ast.Summarize:
-		keys, err := a.semAssignments(o.Keys, true)
+		keys, err := a.semAssignments(o.Keys)
 		if err != nil {
 			return nil, err
+		}
+		if assignmentHasDynamicLHS(keys) {
+			return nil, errors.New("summarize: key output field must be static")
 		}
 		if len(keys) == 0 && len(o.Aggs) == 1 {
 			if seq := a.singletonAgg(o.Aggs[0], seq); seq != nil {
 				return seq, nil
 			}
 		}
-		aggs, err := a.semAssignments(o.Aggs, true)
+		aggs, err := a.semAssignments(o.Aggs)
 		if err != nil {
 			return nil, err
+		}
+		if assignmentHasDynamicLHS(aggs) {
+			return nil, errors.New("summarize: aggregate output field must be static")
 		}
 		// Note: InputSortDir is copied in here but it's not meaningful
 		// coming from a parser AST, only from a worker using the kernel DSL,
@@ -497,9 +504,19 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 	case *ast.Shape:
 		return append(seq, &dag.Shape{Kind: "Shape"}), nil
 	case *ast.Cut:
-		assignments, err := a.semAssignments(o.Args, false)
+		assignments, err := a.semAssignments(o.Args)
 		if err != nil {
 			return nil, err
+		}
+		// Collect static paths so we can check on what is available.
+		var fields field.List
+		for _, a := range assignments {
+			if this, ok := a.LHS.(*dag.This); ok {
+				fields = append(fields, this.Path)
+			}
+		}
+		if _, err = zed.NewRecordBuilder(a.zctx, fields); err != nil {
+			return nil, fmt.Errorf("cut: %w", err)
 		}
 		return append(seq, &dag.Cut{
 			Kind: "Cut",
@@ -596,9 +613,19 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Limit: o.Limit,
 		}), nil
 	case *ast.Put:
-		assignments, err := a.semAssignments(o.Args, false)
+		assignments, err := a.semAssignments(o.Args)
 		if err != nil {
 			return nil, err
+		}
+		// We can do collision checking on static paths, so check what we can.
+		var fields field.List
+		for _, a := range assignments {
+			if this, ok := a.LHS.(*dag.This); ok {
+				fields = append(fields, this.Path)
+			}
+		}
+		if err := expr.CheckPutFields(fields); err != nil {
+			return nil, fmt.Errorf("put: %w", err)
 		}
 		return append(seq, &dag.Put{
 			Kind: "Put",
@@ -615,20 +642,20 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		for _, fa := range o.Args {
 			dst, err := a.semField(fa.LHS)
 			if err != nil {
-				return nil, errors.New("'rename' requires explicit field references")
+				return nil, errors.New("rename: requires explicit field references")
 			}
 			src, err := a.semField(fa.RHS)
 			if err != nil {
-				return nil, errors.New("'rename' requires explicit field references")
+				return nil, errors.New("rename: requires explicit field references")
 			}
 			if len(dst.Path) != len(src.Path) {
-				return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
+				return nil, fmt.Errorf("rename: cannot rename %s to %s", src, dst)
 			}
 			// Check that the prefixes match and, if not, report first place
 			// that they don't.
 			for i := 0; i <= len(src.Path)-2; i++ {
 				if src.Path[i] != dst.Path[i] {
-					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src.Path[i], dst.Path[i])
+					return nil, fmt.Errorf("rename: cannot rename %s to %s (differ in %s vs %s)", src, dst, src.Path[i], dst.Path[i])
 				}
 			}
 			assignments = append(assignments, dag.Assignment{Kind: "Assignment", LHS: dst, RHS: src})
@@ -652,7 +679,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		if err != nil {
 			return nil, err
 		}
-		assignments, err := a.semAssignments(o.Args, false)
+		assignments, err := a.semAssignments(o.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -763,14 +790,14 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Aggs: []dag.Assignment{
 				{
 					Kind: "Assignment",
-					LHS:  &dag.This{Kind: "This", Path: field.Path{"sample"}},
+					LHS:  pathOf("sample"),
 					RHS:  &dag.Agg{Kind: "Agg", Name: "any", Expr: e},
 				},
 			},
 			Keys: []dag.Assignment{
 				{
 					Kind: "Assignment",
-					LHS:  &dag.This{Kind: "This", Path: field.Path{"shape"}},
+					LHS:  pathOf("shape"),
 					RHS:  &dag.Call{Kind: "Call", Name: "typeof", Args: []dag.Expr{e}},
 				},
 			},
@@ -812,7 +839,7 @@ func (a *analyzer) singletonAgg(agg ast.Assignment, seq dag.Seq) dag.Seq {
 	if agg.LHS != nil {
 		return nil
 	}
-	out, err := a.semAssignment(agg, true)
+	out, err := a.semAssignment(agg)
 	if err != nil {
 		return nil
 	}
@@ -940,16 +967,17 @@ func (a *analyzer) semOpAssignment(p *ast.OpAssignment) (dag.Op, error) {
 	var aggs, puts []dag.Assignment
 	for _, assign := range p.Assignments {
 		// Parition assignments into agg vs. puts.
-		// It's okay to pass false here for the summarize bool because
-		// semAssignment will check if the RHS is a dag.Agg and override.
-		assignment, err := a.semAssignment(assign, false)
+		a, err := a.semAssignment(assign)
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := assignment.RHS.(*dag.Agg); ok {
-			aggs = append(aggs, assignment)
+		if _, ok := a.RHS.(*dag.Agg); ok {
+			if _, ok := a.LHS.(*dag.This); !ok {
+				return nil, errors.New("summarize: aggregate output field must be static")
+			}
+			aggs = append(aggs, a)
 		} else {
-			puts = append(puts, assignment)
+			puts = append(puts, a)
 		}
 	}
 	if len(puts) > 0 && len(aggs) > 0 {
@@ -965,6 +993,15 @@ func (a *analyzer) semOpAssignment(p *ast.OpAssignment) (dag.Op, error) {
 		Kind: "Summarize",
 		Aggs: aggs,
 	}, nil
+}
+
+func assignmentHasDynamicLHS(assignments []dag.Assignment) bool {
+	for _, a := range assignments {
+		if _, ok := a.LHS.(*dag.This); !ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *analyzer) semOpExpr(e ast.Expr, seq dag.Seq) (dag.Seq, error) {
@@ -1031,7 +1068,7 @@ func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
 			Aggs: []dag.Assignment{
 				{
 					Kind: "Assignment",
-					LHS:  &dag.This{Kind: "This", Path: field.Path{call.Name}},
+					LHS:  pathOf(call.Name),
 					RHS:  agg,
 				},
 			},

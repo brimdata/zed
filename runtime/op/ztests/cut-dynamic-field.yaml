@@ -1,0 +1,41 @@
+script: |
+  echo '{a:"hi",b:"hello"}' | zq -z 'cut this[a][b] := "world"' -
+  echo "// ==="
+  echo '{a:{b:"hello"}}' | zq -z 'cut this[a.b]:="world"' -
+  echo "// ==="
+  echo '{a:"hello"}' | zq -z 'cut this[this["a"]] := "world"' -
+  echo "// ==="
+  echo '{a:{},b:"hello"}' | zq -z 'cut a[b] := "world"' -
+  echo "// ==="
+  echo '{a:"foo"}' | zq -z 'cut this[a]["bar"] := "baz"' -
+  echo "// ==="
+  # runtime error cases
+  echo '{a:"hello",b:"hello"}' | zq -z 'cut this[a] := "world1", this[b] := "world2"' -
+  echo "// ==="
+  echo '{a:"foo",b:"bar"}' | zq -z 'cut this[a][b] := "world", this[a] := "world"' -
+  echo "// ==="
+  echo {} | zq -z 'cut this[doesnotexist] := "world"' - 
+  # semantic error cases
+  ! zc -s 'op foo(): ( yield "error" ) cut this[foo] := "hello world"'
+
+outputs:
+  - name: stdout
+    data: |
+      {hi:{hello:"world"}}
+      // ===
+      {hello:"world"}
+      // ===
+      {hello:"world"}
+      // ===
+      {a:{hello:"world"}}
+      // ===
+      {foo:{bar:"baz"}}
+      // ===
+      error({message:"cut: duplicate field: \"hello\"",on:{a:"hello",b:"hello"}})
+      // ===
+      error({message:"cut: duplicate field: \"foo\"",on:{a:"foo",b:"bar"}})
+      // ===
+      error({message:"cut: missing",on:{}})
+  - name: stderr
+    data: |
+      left-hand side of assignment: symbol "foo" is not bound to an expression

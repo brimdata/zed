@@ -49,7 +49,7 @@ echo '{a:1,r:{b:2,c:3}}' | zq -z 'rename w:=r.b' -
 ```
 =>
 ```mdtest-output
-cannot rename r.b to w
+rename: cannot rename r.b to w
 ```
 _Record literals can be used instead of rename for mutation_
 ```mdtest-command

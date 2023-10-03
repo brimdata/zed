@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/runtime/op/sort"
@@ -35,12 +34,8 @@ type Op struct {
 }
 
 func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator,
-	leftDir, rightDir order.Direction, lhs field.List,
+	leftDir, rightDir order.Direction, lhs []*expr.Lval,
 	rhs []expr.Evaluator) (*Op, error) {
-	cutter, err := expr.NewCutter(octx.Zctx, lhs, rhs)
-	if err != nil {
-		return nil, err
-	}
 	var o order.Which
 	switch {
 	case leftDir != order.Unknown:
@@ -48,6 +43,7 @@ func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, r
 	case rightDir != order.Unknown:
 		o = rightDir == order.Down
 	}
+	var err error
 	// Add sorts if needed.
 	if !leftDir.HasOrder(o) {
 		left, err = sort.New(octx, left, []expr.Evaluator{leftKey}, o, true)
@@ -73,7 +69,7 @@ func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, r
 		left:        newPuller(left, ctx),
 		right:       zio.NewPeeker(newPuller(right, ctx)),
 		compare:     expr.NewValueCompareFn(o, true),
-		cutter:      cutter,
+		cutter:      expr.NewCutter(octx.Zctx, lhs, rhs),
 		types:       make(map[int]map[int]*zed.TypeRecord),
 	}, nil
 }
