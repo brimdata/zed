@@ -98,10 +98,6 @@ func plural(ordinal int) string {
 	return "s"
 }
 
-func (o Object) StringRange() string {
-	return fmt.Sprintf("%s %s %s", o.ID, o.Min, o.Max)
-}
-
 func (o *Object) Equal(to *Object) bool {
 	return o.ID == to.ID
 }
@@ -143,11 +139,6 @@ func (o Object) VectorURI(path *storage.URI) *storage.URI {
 
 func VectorURI(path *storage.URI, id ksuid.KSUID) *storage.URI {
 	return path.JoinPath(fmt.Sprintf("%s.vng", id))
-}
-
-func (o Object) Range() string {
-	//XXX need to handle any key... will the String method work?
-	return fmt.Sprintf("[%d-%d]", o.Min, o.Max)
 }
 
 // Remove deletes the row object and its seek index.
