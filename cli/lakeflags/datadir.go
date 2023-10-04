@@ -6,12 +6,6 @@ import (
 	"runtime"
 )
 
-var defaultDataDir string
-
-func init() {
-	defaultDataDir = getDefaultDataDir()
-}
-
 // getDefaultDataDir returns the default data directory for the current user.
 // Derived from https://github.com/btcsuite/btcd/blob/master/btcutil/appdata.go
 func getDefaultDataDir() string {

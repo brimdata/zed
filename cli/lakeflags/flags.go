@@ -23,6 +23,8 @@ type Flags struct {
 	ConfigDir string
 	Lake      string
 	Quiet     bool
+
+	lakeSpecified bool
 }
 
 func (l *Flags) SetFlags(fs *flag.FlagSet) {
@@ -33,12 +35,10 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 	}
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
 	if s, ok := os.LookupEnv("ZED_LAKE"); ok {
-		l.Lake = strings.TrimRight(s, "/")
-	} else {
-		l.Lake = defaultDataDir
+		l.Lake, l.lakeSpecified = s, true
 	}
 	fs.Func("lake", fmt.Sprintf("lake location (env ZED_LAKE) (default %s)", l.Lake), func(s string) error {
-		l.Lake = strings.TrimRight(s, "/")
+		l.Lake, l.lakeSpecified = s, true
 		return nil
 	})
 }
@@ -82,10 +82,14 @@ func (l *Flags) AuthStore() *auth0.Store {
 }
 
 func (l *Flags) URI() (*storage.URI, error) {
-	if l.Lake == "" {
+	lk := strings.TrimRight(l.Lake, "/")
+	if !l.lakeSpecified {
+		lk = getDefaultDataDir()
+	}
+	if lk == "" {
 		return nil, errors.New("lake location must be set (either with the -lake flag or ZED_LAKE environment variable)")
 	}
-	u, err := storage.ParseURI(l.Lake)
+	u, err := storage.ParseURI(lk)
 	if err != nil {
 		err = fmt.Errorf("error parsing lake location: %w", err)
 	}
@@ -100,7 +104,7 @@ func (l *Flags) ClientURI() (*storage.URI, error) {
 	if err != nil {
 		return nil, err
 	}
-	if u.String() == storage.MustParseURI(defaultDataDir).String() && localServer() {
+	if !l.lakeSpecified && localServer() {
 		u = storage.MustParseURI("http://localhost:9867")
 	}
 	return u, nil

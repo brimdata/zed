@@ -4,5 +4,5 @@ script: |
 
 outputs:
   - name: stdout
-    data: |
-      lake created: path/to/lake/zed
+    regexp: |
+      lake created: file:.*path/to/lake/zed
