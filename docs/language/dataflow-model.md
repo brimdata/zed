@@ -201,7 +201,7 @@ in later expressions.
 
 ## Implied Operators
 
-When Zed is run in an application like [Zui](https://github.com/brimdata/zui),
+When Zed is run in an application like [Zui](https://zui.brimdata.io),
 queries are often composed interactively in a "search bar" experience.
 The language design here attempts to support both this "lean forward" pattern of usage
 along with a "coding style" of query writing where the queries might be large
