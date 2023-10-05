@@ -207,8 +207,7 @@ allowed and will produce an error.
 
 User-defined operators are a new feature in Zed that has been made available
 despite known limitations described in open issues
-[zed/4651](https://github.com/brimdata/zed/issues/4651),
-[zed/4692](https://github.com/brimdata/zed/issues/4692), and
+[zed/4692](https://github.com/brimdata/zed/issues/4692) and
 [zed/4701](https://github.com/brimdata/zed/issues/4701). If you encounter
 these or other problems when making use of the feature please comment on the
 issues or come talk to us on the [Brim community Slack](https://www.brimdata.io/join-slack/)
