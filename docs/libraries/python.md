@@ -36,7 +36,7 @@ To run this example, first start a Zed lake service from your shell:
 zed init -lake scratch
 zed serve -lake scratch
 ```
-> Or you can launch the [Zui app](https://github.com/brimdata/zui) and it will run a Zed lake service
+> Or you can launch the [Zui app](https://zui.brimdata.io) and it will run a Zed lake service
 > on the default port at `http://localhost:9867`.
 
 Then, in another shell, use Python to create a pool, load some data,
