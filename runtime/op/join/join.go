@@ -50,13 +50,13 @@ func New(octx *op.Context, anti, inner bool, left, right zbuf.Puller, leftKey, r
 	}
 	// Add sorts if needed.
 	if !leftDir.HasOrder(o) {
-		left, err = sort.New(octx, left, []expr.Evaluator{leftKey}, o, true)
+		left, err = sort.New(octx, left, []expr.Evaluator{leftKey}, o, false)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if !rightDir.HasOrder(o) {
-		right, err = sort.New(octx, right, []expr.Evaluator{rightKey}, o, true)
+		right, err = sort.New(octx, right, []expr.Evaluator{rightKey}, o, false)
 		if err != nil {
 			return nil, err
 		}

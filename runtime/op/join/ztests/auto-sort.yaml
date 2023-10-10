@@ -14,30 +14,38 @@ script: |
 inputs:
   - name: a.zson
     data: |
+      {a:null(int64)}
       {a:1}
       {a:2}
   - name: b.zson
     data: |
       {b:2}
       {b:1}
+      {b:null(int64)}
 
 outputs:
   - name: stdout
     data: |
       {a:1}
       {a:2}
+      {a:null(int64)}
       // ===
       {a:2}
       {a:1}
+      {a:null(int64)}
       // ===
       {a:1}
       {a:2}
+      {a:null(int64)}
       // ===
       {a:1}
       {a:2}
+      {a:null(int64)}
       // ===
       {a:2}
       {a:1}
+      {a:null(int64)}
       // ===
       {a:2}
       {a:1}
+      {a:null(int64)}
