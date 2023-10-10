@@ -1,0 +1,6 @@
+zed: 'bjørndal'
+
+input: '{a:"bjørndal"}'
+
+output: |
+  {a:"bjørndal"}
