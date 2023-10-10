@@ -84,7 +84,7 @@ func (c *Command) Run(args []string) error {
 			return errors.New("default pool and branch unset")
 		}
 		fmt.Printf("HEAD at %s\n", head)
-		if u, err := c.LakeFlags.URI(); err == nil {
+		if u, err := c.LakeFlags.ClientURI(); err == nil {
 			fmt.Printf("Lake at %s\n", u)
 		}
 		return nil

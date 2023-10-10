@@ -73,17 +73,12 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if !c.LakeFlags.LakeSpecified {
-		c.LakeFlags.Lake = ""
-	}
-	uri, err := c.LakeFlags.URI()
-	if err != nil {
+	if c.conf.Root, err = c.LakeFlags.URI(); err != nil {
 		return err
 	}
-	if api.IsLakeService(uri.String()) {
+	if api.IsLakeService(c.conf.Root.String()) {
 		return errors.New("serve command available for local lakes only")
 	}
-	c.conf.Root = uri
 	if c.rootContentFile != "" {
 		f, err := fs.Open(c.rootContentFile)
 		if err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"go.uber.org/zap"
 )
 
@@ -35,23 +36,28 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	var path string
+	var u *storage.URI
 	if len(args) == 0 {
-		path = c.LakeFlags.Lake
+		if u, err = c.LakeFlags.URI(); err != nil {
+			return err
+		}
 	} else if len(args) == 1 {
-		path = args[0]
+		path := args[0]
+		if path == "" {
+			return errors.New("single lake path argument required")
+		}
+		if u, err = storage.ParseURI(path); err != nil {
+			return err
+		}
 	}
-	if path == "" {
-		return errors.New("single lake path argument required")
-	}
-	if api.IsLakeService(path) {
+	if api.IsLakeService(u.String()) {
 		return fmt.Errorf("init command not valid on remote lake")
 	}
-	if _, err := api.CreateLocalLake(ctx, zap.Must(zap.NewProduction()), path); err != nil {
+	if _, err := api.CreateLocalLake(ctx, zap.Must(zap.NewProduction()), u.String()); err != nil {
 		return err
 	}
 	if !c.LakeFlags.Quiet {
-		fmt.Printf("lake created: %s\n", path)
+		fmt.Printf("lake created: %s\n", u)
 	}
 	return nil
 }

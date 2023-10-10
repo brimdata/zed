@@ -21,11 +21,10 @@ var ErrNoHEAD = errors.New("HEAD not specified: indicate with -use or run the \"
 
 type Flags struct {
 	ConfigDir string
-	// LakeSpecified is set to true if the lake is explicitly set via either
-	// command line flag or environment variable.
-	LakeSpecified bool
-	Lake          string
-	Quiet         bool
+	Lake      string
+	Quiet     bool
+
+	lakeSpecified bool
 }
 
 func (l *Flags) SetFlags(fs *flag.FlagSet) {
@@ -35,20 +34,17 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 		dir = filepath.Join(dir, ".zed")
 	}
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
-	l.Lake = "http://localhost:9867"
 	if s, ok := os.LookupEnv("ZED_LAKE"); ok {
-		l.Lake = strings.TrimRight(s, "/")
-		l.LakeSpecified = true
+		l.Lake, l.lakeSpecified = s, true
 	}
 	fs.Func("lake", fmt.Sprintf("lake location (env ZED_LAKE) (default %s)", l.Lake), func(s string) error {
-		l.Lake = strings.TrimRight(s, "/")
-		l.LakeSpecified = true
+		l.Lake, l.lakeSpecified = s, true
 		return nil
 	})
 }
 
 func (l *Flags) Connection() (*client.Connection, error) {
-	uri, err := l.URI()
+	uri, err := l.ClientURI()
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +59,7 @@ func (l *Flags) Connection() (*client.Connection, error) {
 }
 
 func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
-	uri, err := l.URI()
+	uri, err := l.ClientURI()
 	if err != nil {
 		return nil, err
 	}
@@ -86,12 +82,35 @@ func (l *Flags) AuthStore() *auth0.Store {
 }
 
 func (l *Flags) URI() (*storage.URI, error) {
-	if l.Lake == "" {
+	lk := strings.TrimRight(l.Lake, "/")
+	if !l.lakeSpecified {
+		lk = getDefaultDataDir()
+	}
+	if lk == "" {
 		return nil, errors.New("lake location must be set (either with the -lake flag or ZED_LAKE environment variable)")
 	}
-	u, err := storage.ParseURI(l.Lake)
+	u, err := storage.ParseURI(lk)
 	if err != nil {
 		err = fmt.Errorf("error parsing lake location: %w", err)
 	}
 	return u, err
+}
+
+// ClientURI returns the URI of the lake to connect to. If the lake path is
+// the defaultDataDir, it first checks if a zed service is running on
+// localhost:9867 and if so uses http://localhost:9867 as the lake location.
+func (l *Flags) ClientURI() (*storage.URI, error) {
+	u, err := l.URI()
+	if err != nil {
+		return nil, err
+	}
+	if !l.lakeSpecified && localServer() {
+		u = storage.MustParseURI("http://localhost:9867")
+	}
+	return u, nil
+}
+
+func localServer() bool {
+	_, err := client.NewConnection().Ping(context.Background())
+	return err == nil
 }
