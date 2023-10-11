@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/reglob"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/agg"
+	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -473,26 +474,53 @@ func (a *analyzer) semCall(call *ast.Call) (dag.Expr, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: bad argument: %w", call.Name, err)
 	}
-	// Call could be to a user defined func. Check if we have a matching func in
-	// scope.
-	e, err := a.scope.LookupExpr(call.Name)
-	if err != nil {
-		return nil, err
-	}
-	if e != nil {
-		f, ok := e.(*dag.Func)
+	err = a.validateFnCall(call.Name, len(exprs))
+	if errors.Is(err, function.ErrNoSuchFunction) && call.Name == "apply" {
+		if len(call.Args) != 2 {
+			return nil, fmt.Errorf("apply(): expects 2 argument(s)")
+		}
+		callid, ok := call.Args[1].(*ast.ID)
 		if !ok {
-			return nil, fmt.Errorf("%s(): definition is not a function type: %T", call.Name, e)
+			return nil, fmt.Errorf("apply(): second argument must be the identifier of a func")
 		}
-		if len(f.Params) != len(call.Args) {
-			return nil, fmt.Errorf("%s(): expects %d argument(s)", call.Name, len(f.Params))
+		if err := a.validateFnCall(callid.Name, 1); err != nil {
+			return nil, fmt.Errorf("%s(): %w", callid.Name, err)
 		}
+		return &dag.ApplyExpr{
+			Kind: "ApplyExpr",
+			Expr: exprs[0],
+			Func: callid.Name,
+		}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%s(): %w", call.Name, err)
 	}
 	return &dag.Call{
 		Kind: "Call",
 		Name: call.Name,
 		Args: exprs,
 	}, nil
+}
+
+func (a *analyzer) validateFnCall(name string, nargs int) error {
+	// Call could be to a user defined func. Check if we have a matching func in
+	// scope.
+	e, err := a.scope.LookupExpr(name)
+	if err != nil {
+		return err
+	}
+	if e != nil {
+		f, ok := e.(*dag.Func)
+		if !ok {
+			return fmt.Errorf("definition is not a function type: %T", e)
+		}
+		if len(f.Params) != nargs {
+			return fmt.Errorf("expects %d argument(s)", len(f.Params))
+		}
+		return nil
+	}
+	_, _, err = function.New(a.zctx, name, nargs)
+	return err
 }
 
 func (a *analyzer) semExprs(in []ast.Expr) ([]dag.Expr, error) {

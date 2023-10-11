@@ -8,6 +8,7 @@ import (
 
 var unpacker = unpack.New(
 	Agg{},
+	ApplyExpr{},
 	ArrayExpr{},
 	Assignment{},
 	BinaryExpr{},

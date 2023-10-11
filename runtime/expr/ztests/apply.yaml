@@ -1,0 +1,7 @@
+script: |
+  echo '{a:["foo","bar","baz"]}' | zq -z 'a := apply(a,upper)' -
+
+outputs:
+  - name: stdout
+    data: |
+      {a:["FOO","BAR","BAZ"]}

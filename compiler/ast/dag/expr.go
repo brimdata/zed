@@ -21,6 +21,11 @@ type (
 		Expr  Expr   `json:"expr"`
 		Where Expr   `json:"where"`
 	}
+	ApplyExpr struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
+		Func string `json:"call"`
+	}
 	ArrayExpr struct {
 		Kind  string       `json:"kind" unpack:""`
 		Elems []VectorElem `json:"elems"`
@@ -113,6 +118,7 @@ type (
 )
 
 func (*Agg) ExprDAG()          {}
+func (*ApplyExpr) ExprDAG()    {}
 func (*ArrayExpr) ExprDAG()    {}
 func (*Assignment) ExprDAG()   {}
 func (*BinaryExpr) ExprDAG()   {}

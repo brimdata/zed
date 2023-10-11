@@ -51,6 +51,7 @@ type Builder struct {
 	progress *zbuf.Progress
 	deletes  *sync.Map
 	funcs    map[string]expr.Function
+	funcArgs map[string]int
 }
 
 func NewBuilder(octx *op.Context, source *data.Source) *Builder {

@@ -91,6 +91,8 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 			return nil, err
 		}
 		return expr.NewAggregatorExpr(agg), nil
+	case *dag.ApplyExpr:
+		return b.compileApplyExpr(e)
 	case *dag.OverExpr:
 		return b.compileOverExpr(e)
 	default:
@@ -335,13 +337,9 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 	var path field.Path
 	// First check if call is to a user defined function, otherwise check for
 	// builtin function.
-	fn, ok := b.funcs[call.Name]
-	if !ok {
-		var err error
-		fn, path, err = function.New(b.zctx(), call.Name, len(call.Args))
-		if err != nil {
-			return nil, fmt.Errorf("%s(): %w", call.Name, err)
-		}
+	fn, err := b.lookupFunc(call.Name, len(call.Args))
+	if err != nil {
+		return nil, fmt.Errorf("internal error %s(): %w", call.Name, err)
 	}
 	args := call.Args
 	if path != nil {
@@ -353,6 +351,29 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
 	return expr.NewCall(b.zctx(), fn, exprs), nil
+}
+
+func (b *Builder) lookupFunc(name string, nargs int) (expr.Function, error) {
+	fn, ok := b.funcs[name]
+	if !ok {
+		var err error
+		if fn, _, err = function.New(b.zctx(), name, nargs); err != nil {
+			return nil, err
+		}
+	}
+	return fn, nil
+}
+
+func (b *Builder) compileApplyExpr(a *dag.ApplyExpr) (expr.Evaluator, error) {
+	e, err := b.compileExpr(a.Expr)
+	if err != nil {
+		return nil, err
+	}
+	fn, err := b.lookupFunc(a.Func, 1)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewApplyFunc(b.zctx(), e, fn), nil
 }
 
 func (b *Builder) compileExprs(in []dag.Expr) ([]expr.Evaluator, error) {
