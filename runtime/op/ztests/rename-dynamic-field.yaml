@@ -1,0 +1,22 @@
+script: |
+  echo '{target:"foo",src:"bar"} {target:"fool",src:"baz"}' | zq -z 'rename this[target] := src' -
+  echo '// ==='
+  echo '{target:"a",a:"bar"} {target:"b",b:"baz"}' | zq -z 'rename dst := this[target]' -
+  # runtime error cases
+  echo '// ==='
+  echo '{foo:"a",bar:"b"}' | zq -z 'rename this[foo]["c"] := this[bar]["d"]' -
+  echo '// ==='
+  echo '{foo:"a"}' | zq -z 'rename this[foo]["c"] := this[foo]["a"]["b"]' -
+
+outputs:
+  - name: stdout
+    data: |
+      {target:"foo",foo:"bar"}
+      {target:"fool",fool:"baz"}
+      // ===
+      {target:"a",dst:"bar"}
+      {target:"b",dst:"baz"}
+      // ===
+      error({message:"rename: cannot rename b.d to a.c (differ in b vs a)",on:{foo:"a",bar:"b"}})
+      // ===
+      error({message:"rename: left-hand side and right-hand side must have the same depth (a.a.b vs a.c)",on:{foo:"a"}})

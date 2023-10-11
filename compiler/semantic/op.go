@@ -640,25 +640,23 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range o.Args {
-			dst, err := a.semField(fa.LHS)
+			assign, err := a.semAssignment(fa)
 			if err != nil {
-				return nil, errors.New("rename: requires explicit field references")
+				return nil, fmt.Errorf("rename: %w", err)
 			}
-			src, err := a.semField(fa.RHS)
-			if err != nil {
-				return nil, errors.New("rename: requires explicit field references")
+			if !isLval(assign.RHS) {
+				return nil, fmt.Errorf("rename: illegal right-hand side of assignment")
 			}
-			if len(dst.Path) != len(src.Path) {
-				return nil, fmt.Errorf("rename: cannot rename %s to %s", src, dst)
-			}
-			// Check that the prefixes match and, if not, report first place
-			// that they don't.
-			for i := 0; i <= len(src.Path)-2; i++ {
-				if src.Path[i] != dst.Path[i] {
-					return nil, fmt.Errorf("rename: cannot rename %s to %s (differ in %s vs %s)", src, dst, src.Path[i], dst.Path[i])
+			// If both paths are static validate them. Otherwise this will be
+			// done at runtime.
+			lhs, lhsOk := assign.LHS.(*dag.This)
+			rhs, rhsOk := assign.RHS.(*dag.This)
+			if rhsOk && lhsOk {
+				if err := expr.CheckRenameField(lhs.Path, rhs.Path); err != nil {
+					return nil, fmt.Errorf("rename: %w", err)
 				}
 			}
-			assignments = append(assignments, dag.Assignment{Kind: "Assignment", LHS: dst, RHS: src})
+			assignments = append(assignments, assign)
 		}
 		return append(seq, &dag.Rename{
 			Kind: "Rename",

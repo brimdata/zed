@@ -8,11 +8,20 @@ import (
 
 type Path []string
 
-func (p Path) String() string {
+func (p Path) String() string { return string(p.AppendTo(nil)) }
+
+// AppendTo appends the string representation of the path to byte slice b.
+func (p Path) AppendTo(b []byte) []byte {
 	if len(p) == 0 {
-		return "this"
+		return append(b, "this"...)
 	}
-	return strings.Join(p, ".")
+	for i, s := range p {
+		if i > 0 {
+			b = append(b, '.')
+		}
+		b = append(b, s...)
+	}
+	return b
 }
 
 func (p Path) Leaf() string {
@@ -57,12 +66,17 @@ func DottedList(s string) List {
 
 type List []Path
 
-func (l List) String() string {
-	paths := make([]string, 0, len(l))
-	for _, f := range l {
-		paths = append(paths, f.String())
+func (l List) String() string { return string(l.AppendTo(nil)) }
+
+// AppendTo appends the string representation of the list to byte slice b.
+func (l List) AppendTo(b []byte) []byte {
+	for i, p := range l {
+		if i > 0 {
+			b = append(b, ',')
+		}
+		b = p.AppendTo(b)
 	}
-	return strings.Join(paths, ",")
+	return b
 }
 
 func (l List) Has(in Path) bool {
