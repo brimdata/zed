@@ -165,13 +165,20 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "unflatten":
 		f = NewUnflatten(zctx)
 	}
-	if argmin != -1 && narg < argmin {
-		return nil, nil, ErrTooFewArgs
-	}
-	if argmax != -1 && narg > argmax {
-		return nil, nil, ErrTooManyArgs
+	if err := CheckArgCount(narg, argmin, argmax); err != nil {
+		return nil, nil, err
 	}
 	return f, path, nil
+}
+
+func CheckArgCount(narg int, argmin int, argmax int) error {
+	if argmin != -1 && narg < argmin {
+		return ErrTooFewArgs
+	}
+	if argmax != -1 && narg > argmax {
+		return ErrTooManyArgs
+	}
+	return nil
 }
 
 // HasBoolResult returns true if the function name returns a Boolean value.

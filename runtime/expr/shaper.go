@@ -25,6 +25,24 @@ const (
 	Order
 )
 
+func NewShaperTransform(s string) ShaperTransform {
+	switch s {
+	case "cast":
+		return Cast
+	case "crop":
+		return Crop
+	case "fill":
+		return Fill
+	case "fit":
+		return Crop | Fill
+	case "order":
+		return Order
+	case "shape":
+		return Cast | Fill | Order
+	}
+	return 0
+}
+
 // NewShaper returns a shaper that will shape the result of expr
 // to the type returned by typeExpr according to tf.
 func NewShaper(zctx *zed.Context, expr, typeExpr Evaluator, tf ShaperTransform) (Evaluator, error) {
