@@ -6,13 +6,13 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type Map struct {
+type CollectMap struct {
 	entries map[string]mapEntry
 	scratch []byte
 }
 
-func newMap() *Map {
-	return &Map{entries: make(map[string]mapEntry)}
+func newCollectMap() *CollectMap {
+	return &CollectMap{entries: make(map[string]mapEntry)}
 }
 
 var _ Function = (*Collect)(nil)
@@ -22,7 +22,7 @@ type mapEntry struct {
 	val *zed.Value
 }
 
-func (m *Map) Consume(val *zed.Value) {
+func (c *CollectMap) Consume(val *zed.Value) {
 	if val.IsNull() {
 		return
 	}
@@ -36,23 +36,23 @@ func (m *Map) Consume(val *zed.Value) {
 		keyTagAndBody := it.NextTagAndBody()
 		key := valueUnder(mtyp.KeyType, keyTagAndBody.Body())
 		val := valueUnder(mtyp.ValType, it.Next())
-		m.scratch = zed.AppendTypeValue(m.scratch[:0], key.Type)
-		m.scratch = append(m.scratch, keyTagAndBody...)
+		c.scratch = zed.AppendTypeValue(c.scratch[:0], key.Type)
+		c.scratch = append(c.scratch, keyTagAndBody...)
 		// This will squash existing values which is what we want.
-		m.entries[string(m.scratch)] = mapEntry{key, val}
+		c.entries[string(c.scratch)] = mapEntry{key, val}
 	}
 }
 
-func (m *Map) ConsumeAsPartial(val *zed.Value) {
-	m.Consume(val)
+func (c *CollectMap) ConsumeAsPartial(val *zed.Value) {
+	c.Consume(val)
 }
 
-func (m *Map) Result(zctx *zed.Context) *zed.Value {
-	if len(m.entries) == 0 {
+func (c *CollectMap) Result(zctx *zed.Context) *zed.Value {
+	if len(c.entries) == 0 {
 		return zed.Null
 	}
 	var ktypes, vtypes []zed.Type
-	for _, e := range m.entries {
+	for _, e := range c.entries {
 		ktypes = append(ktypes, e.key.Type)
 		vtypes = append(vtypes, e.val.Type)
 	}
@@ -62,7 +62,7 @@ func (m *Map) Result(zctx *zed.Context) *zed.Value {
 	ktyp, kuniq := unionOf(zctx, ktypes)
 	vtyp, vuniq := unionOf(zctx, vtypes)
 	var builder zcode.Builder
-	for _, e := range m.entries {
+	for _, e := range c.entries {
 		appendMapVal(&builder, ktyp, e.key, kuniq)
 		appendMapVal(&builder, vtyp, e.val, vuniq)
 	}
@@ -71,8 +71,8 @@ func (m *Map) Result(zctx *zed.Context) *zed.Value {
 	return zed.NewValue(typ, b)
 }
 
-func (m *Map) ResultAsPartial(zctx *zed.Context) *zed.Value {
-	return m.Result(zctx)
+func (c *CollectMap) ResultAsPartial(zctx *zed.Context) *zed.Value {
+	return c.Result(zctx)
 }
 
 func appendMapVal(b *zcode.Builder, typ zed.Type, val *zed.Value, uniq int) {

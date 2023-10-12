@@ -40,6 +40,7 @@ Zed's [primitive types](../../formats/zed.md#1-primitive-types), e.g.,
 * [levenshtein](levenshtein.md) Levenshtein distance
 * [log](log.md) - natural logarithm
 * [lower](lower.md) - convert a string to lower case
+* [map](map.md) - apply a function to each element of an array
 * [missing](missing.md) - test for the "missing" error
 * [nameof](nameof.md) - the name of a named type
 * [nest_dotted](nest_dotted.md) - transform fields in a record with dotted names to nested records

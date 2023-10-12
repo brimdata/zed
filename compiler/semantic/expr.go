@@ -505,6 +505,27 @@ func (a *analyzer) semCall(call *ast.Call) (dag.Expr, error) {
 		if nargs == 1 {
 			exprs = append([]dag.Expr{&dag.This{Kind: "This"}}, exprs...)
 		}
+	case name == "map":
+		if err := function.CheckArgCount(nargs, 2, 2); err != nil {
+			return nil, fmt.Errorf("%s(): %w", name, err)
+		}
+		id, ok := call.Args[1].(*ast.ID)
+		if !ok {
+			return nil, fmt.Errorf("%s(): second argument must be the identifier of a function", name)
+		}
+		inner, err := a.semCall(&ast.Call{
+			Kind: "Call",
+			Name: id.Name,
+			Args: []ast.Expr{&ast.ID{Kind: "ID", Name: "this"}},
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &dag.MapCall{
+			Kind:  "MapCall",
+			Expr:  exprs[0],
+			Inner: inner,
+		}, nil
 	default:
 		if _, _, err = function.New(a.zctx, name, nargs); err != nil {
 			return nil, fmt.Errorf("%s(): %w", name, err)

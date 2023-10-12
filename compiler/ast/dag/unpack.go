@@ -31,6 +31,7 @@ var unpacker = unpack.New(
 	Lister{},
 	Literal{},
 	Load{},
+	MapCall{},
 	MapExpr{},
 	Merge{},
 	Over{},

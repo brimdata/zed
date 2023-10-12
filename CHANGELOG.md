@@ -103,7 +103,7 @@
 * Add [`regexp()`](docs/language/functions/regexp.md) function for regular expression searches and capture groups (#4145, #4158)
 * Add [`coalesce()`](docs/language/functions/coalesce.md) function for locating non-null/non-error values (#4172)
 * Add `line` format for sourcing newline-delimited input as strings (#4175)
-* Add [`map()` aggregation function](docs/language/aggregates/map.md) for constructing [maps](docs/formats/zed.md#24-map) #4173
+* Add [`collect_map()` aggregation function](docs/language/aggregates/collect_map.md) for constructing [maps](docs/formats/zed.md#24-map) #4173
 
 ## v1.2.0
 * Compress index values (#3974)
