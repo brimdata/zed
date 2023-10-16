@@ -1051,11 +1051,11 @@ IntegerLiteral
     }
 
 BooleanLiteral
-  = "true"  { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true")) }
-  / "false" { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "false")) }
+  = TrueToken  { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true")) }
+  / FalseToken { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "false")) }
 
 NullLiteral
-  = "null" { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
+  = NullToken { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
 
 BytesLiteral
   = "0x" HexDigit* {
@@ -1189,10 +1189,13 @@ FieldName
   / QuotedString
 
 AndToken = ("and" / "AND") !IdentifierRest { RETURN("and") }
-OrToken = ("or" / "OR") !IdentifierRest { RETURN("or") }
-InToken = "in" !IdentifierRest { RETURN("in") }
+ByToken = "by" !IdentifierRest
+FalseToken = "false" !IdentifierRest
+InToken = "in" !IdentifierRest
 NotToken = ("not" / "NOT") !IdentifierRest { RETURN("not") }
-ByToken = "by" !IdentifierRest { RETURN("by") }
+NullToken = "null" !IdentifierRest
+OrToken = ("or" / "OR") !IdentifierRest { RETURN("or") }
+TrueToken = "true" !IdentifierRest
 
 Identifier
   = id:IdentifierName { RETURN(MAP("kind": "ID", "name": id)) }
