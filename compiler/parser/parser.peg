@@ -1353,11 +1353,11 @@ KeyWordStart
   = KeyWordChars
   / KeyWordEsc
 
-KeyWordChars = [a-zA-Z_.:/%#@~] { RETURN(TEXT) }
-
 KeyWordRest
   = KeyWordStart
   / [0-9]
+
+KeyWordChars = (UnicodeLetter / [_.:/%#@~]) { RETURN(TEXT) }
 
 KeyWordEsc = "\\" s:(KeywordEscape / EscapeSequence) { RETURN(s) }
 

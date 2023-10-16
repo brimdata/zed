@@ -1,0 +1,6 @@
+zed: bjørndal
+
+input: '"bjørndal"'
+
+output: |
+  "bjørndal"
