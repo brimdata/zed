@@ -1,6 +1,6 @@
-zed: 'bjørndal'
+zed: bjørndal
 
-input: '{a:"bjørndal"}'
+input: '"bjørndal"'
 
 output: |
-  {a:"bjørndal"}
+  "bjørndal"
