@@ -1,0 +1,16 @@
+script: |
+  zq -z -I countfile.zed 'countfile()'
+
+inputs:
+  - name: countfile.zed
+    data: |
+      op countfile(): (
+        file test.zson | count()
+      )
+  - name: test.zson
+    data: '{} {} {} {}'
+
+outputs:
+  - name: stdout
+    data: |
+      4(uint64)

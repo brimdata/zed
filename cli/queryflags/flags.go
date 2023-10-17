@@ -1,6 +1,7 @@
 package queryflags
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/url"
@@ -9,8 +10,8 @@ import (
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zfmt"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/exp/slices"
 )
@@ -36,11 +37,13 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, 
 			// and appears to start with a from or yield operator.
 			// Otherwise, consider it a file.
 			if query, err := compiler.Parse(src, f.Includes...); err == nil {
-				if isFrom(query) {
-					return nil, query, false, nil
-				}
-				if isYield(query) {
-					return nil, query, true, nil
+				if s, err := semantic.Analyze(context.Background(), query, nil, nil); err == nil {
+					if semantic.HasSource(s) {
+						return nil, query, false, nil
+					}
+					if semantic.StartsWithYield(s) {
+						return nil, query, true, nil
+					}
 				}
 			}
 			return nil, nil, false, fmt.Errorf("no such file: %s", src)
@@ -51,32 +54,6 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, 
 		return nil, nil, false, err
 	}
 	return paths, query, false, nil
-}
-
-func isFrom(seq ast.Seq) bool {
-	if len(seq) > 0 {
-		switch op := seq[0].(type) {
-		case *ast.From:
-			return true
-		case *ast.Scope:
-			return isFrom(op.Body)
-		}
-	}
-	return false
-}
-
-func isYield(seq ast.Seq) bool {
-	if len(seq) > 0 {
-		switch op := seq[0].(type) {
-		case *ast.Yield:
-			return true
-		case *ast.Scope:
-			return isYield(op.Body)
-		case *ast.OpExpr:
-			return !zfmt.IsSearch(op.Expr) && !zfmt.IsBool(op.Expr)
-		}
-	}
-	return false
 }
 
 func isURLWithKnownScheme(path string, schemes ...string) bool {
