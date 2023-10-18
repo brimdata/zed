@@ -33,3 +33,6 @@ NaN
 +Inf
 -Inf
 Inf
+nullkeys()
+truevals()
+falsevals()
