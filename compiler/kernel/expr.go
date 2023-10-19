@@ -282,55 +282,9 @@ func (b *Builder) compileAssignment(node *dag.Assignment) (expr.Assignment, erro
 	return expr.Assignment{LHS: lhs, RHS: rhs}, err
 }
 
-func shaperOps(name string) expr.ShaperTransform {
-	switch name {
-	case "cast":
-		return expr.Cast
-	case "crop":
-		return expr.Crop
-	case "fill":
-		return expr.Fill
-	case "fit":
-		return expr.Crop | expr.Fill
-	case "order":
-		return expr.Order
-	case "shape":
-		return expr.Cast | expr.Fill | expr.Order
-	default:
-		return 0
-	}
-
-}
-
-func isShaperFunc(name string) bool {
-	return shaperOps(name) != 0
-}
-
-func (b *Builder) compileShaper(node dag.Call) (expr.Evaluator, error) {
-	args := node.Args
-	if len(args) == 1 {
-		args = append([]dag.Expr{&dag.This{Kind: "This"}}, args...)
-	}
-	if len(args) < 2 {
-		return nil, function.ErrTooFewArgs
-	}
-	if len(args) > 2 {
-		return nil, function.ErrTooManyArgs
-	}
-	field, err := b.compileExpr(args[0])
-	if err != nil {
-		return nil, err
-	}
-	typExpr, err := b.compileExpr(args[1])
-	if err != nil {
-		return nil, err
-	}
-	return expr.NewShaper(b.zctx(), field, typExpr, shaperOps(node.Name))
-}
-
 func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
-	if isShaperFunc(call.Name) {
-		return b.compileShaper(call)
+	if tf := expr.NewShaperTransform(call.Name); tf != 0 {
+		return b.compileShaper(call, tf)
 	}
 	var path field.Path
 	// First check if call is to a user defined function, otherwise check for
@@ -353,6 +307,19 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
 	return expr.NewCall(b.zctx(), fn, exprs), nil
+}
+
+func (b *Builder) compileShaper(node dag.Call, tf expr.ShaperTransform) (expr.Evaluator, error) {
+	args := node.Args
+	field, err := b.compileExpr(args[0])
+	if err != nil {
+		return nil, err
+	}
+	typExpr, err := b.compileExpr(args[1])
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewShaper(b.zctx(), field, typExpr, tf)
 }
 
 func (b *Builder) compileExprs(in []dag.Expr) ([]expr.Evaluator, error) {

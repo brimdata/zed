@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/reglob"
 	"github.com/brimdata/zed/runtime/expr"
 	"github.com/brimdata/zed/runtime/expr/agg"
+	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -471,26 +472,47 @@ func (a *analyzer) semCall(call *ast.Call) (dag.Expr, error) {
 	}
 	exprs, err := a.semExprs(call.Args)
 	if err != nil {
-		return nil, fmt.Errorf("%s: bad argument: %w", call.Name, err)
+		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
+	name, nargs := call.Name, len(call.Args)
 	// Call could be to a user defined func. Check if we have a matching func in
 	// scope.
-	e, err := a.scope.LookupExpr(call.Name)
+	udf, err := a.scope.LookupExpr(name)
 	if err != nil {
 		return nil, err
 	}
-	if e != nil {
-		f, ok := e.(*dag.Func)
+	switch {
+	// udf should be checked first since a udf can override builtin functions.
+	case udf != nil:
+		f, ok := udf.(*dag.Func)
 		if !ok {
-			return nil, fmt.Errorf("%s(): definition is not a function type: %T", call.Name, e)
+			return nil, fmt.Errorf("%s(): definition is not a function type: %T", name, udf)
 		}
-		if len(f.Params) != len(call.Args) {
-			return nil, fmt.Errorf("%s(): expects %d argument(s)", call.Name, len(f.Params))
+		if len(f.Params) != nargs {
+			return nil, fmt.Errorf("%s(): expects %d argument(s)", name, len(f.Params))
+		}
+	case zed.LookupPrimitive(name) != nil:
+		// Primitive function call, change this to a cast.
+		if err := function.CheckArgCount(nargs, 1, 1); err != nil {
+			return nil, fmt.Errorf("%s(): %w", name, err)
+		}
+		exprs = append(exprs, &dag.Literal{Kind: "Literal", Value: "<" + name + ">"})
+		name = "cast"
+	case expr.NewShaperTransform(name) != 0:
+		if err := function.CheckArgCount(nargs, 1, 2); err != nil {
+			return nil, fmt.Errorf("%s(): %w", name, err)
+		}
+		if nargs == 1 {
+			exprs = append([]dag.Expr{&dag.This{Kind: "This"}}, exprs...)
+		}
+	default:
+		if _, _, err = function.New(a.zctx, name, nargs); err != nil {
+			return nil, fmt.Errorf("%s(): %w", name, err)
 		}
 	}
 	return &dag.Call{
 		Kind: "Call",
-		Name: call.Name,
+		Name: name,
 		Args: exprs,
 	}, nil
 }

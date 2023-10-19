@@ -746,7 +746,7 @@ NotFuncs
   / "select"
 
 Cast
-  = typ:CastType __ "(" __ expr:(OverExpr / Expr) __ ")" {
+  = typ:TypeLiteral __ "(" __ expr:(OverExpr / Expr) __ ")" {
       RETURN(MAP("kind": "Cast", "expr": expr, "type": typ))
     }
 
@@ -1064,12 +1064,6 @@ BytesLiteral
 
 TypeLiteral
   = "<" typ:Type ">" {
-      RETURN(MAP("kind": "TypeValue", "value": typ))
-    }
-
-CastType
-  = TypeLiteral
-  / typ:PrimitiveType {
       RETURN(MAP("kind": "TypeValue", "value": typ))
     }
 
