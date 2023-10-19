@@ -14,7 +14,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "use",
 	Usage: "use [pool][@branch]",
-	Short: "use a branch",
+	Short: "use a branch, or print the branch and lake currently in use",
 	Long: `
 The use command prints or sets the working pool and branch.  Setting these
 values allows commands like load, rebase, merge, etc. to function without
@@ -22,7 +22,7 @@ having to specify the working branch.  The branch specifier may also be
 a commit ID, in which case you enter a headless state and commands
 like load that require a branch will report an error.
 
-The use command is like "git checkuout" but there is no local copy of
+The use command is like "git checkout" but there is no local copy of
 the lake data.  Rather, the local HEAD state influences commands as
 they access the lake.
 
@@ -52,7 +52,7 @@ file ~/.zed_head.  This file simply contains a pointer to the HEAD branch
 and thus provides the default for the -use option.  This way, multiple working
 directories can contain different HEAD pointers (along with your local files)
 and you can easily switch between windows without having to continually
-re-specify a new HEAD.  Unlike Git, all the commited pool data remains
+re-specify a new HEAD.  Unlike Git, all the committed pool data remains
 in the lake and is not copied to this local directory.
 `,
 	New: New,

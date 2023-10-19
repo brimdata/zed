@@ -74,7 +74,7 @@ components come together.
 While the CLI-first approach provides these benefits,
 all of the functionality is also exposed through [an API](../lake/api.md) to
 a Zed service.  Many use cases involve an application like
-[Zui](https://github.com/brimdata/zui) or a
+[Zui](https://zui.brimdata.io/) or a
 programming environment like Python/Pandas interacting
 with the service API in place of direct use with the `zed` command.
 
@@ -130,18 +130,17 @@ model onto a file system so that Zed lakes can also be deployed on standard file
 
 The `zed` command provides a single command-line interface to Zed lakes, but
 different personalities are taken on by `zed` depending on the particular
-sub-command executed and the disposition of its `-lake` option
-(which defaults to the value of `ZED_LAKE` environment variable or,
-if `ZED_LAKE` is not set, to the client personality `https://localhost:9867`).
+sub-command executed and where the [lake is located](#locating-the-lake).
 
 To this end, `zed` can take on one of three personalities:
+
 * _Direct Access_ - When the lake is a storage path (`file` or `s3` URI),
 then the `zed` commands (except for `serve`) all operate directly on the
 lake located at that path.
 * _Client Personality_ - When the lake is an HTTP or HTTPS URL, then the
 lake is presumed to be a Zed lake service endpoint and the client
 commands are directed to the service managing the lake.
-* _Server Personality_ - When the `zed serve` command is executed, then
+* _Server Personality_ - When the [`zed serve`](#serve) command is executed, then
 the personality is always the server personality and the lake must be
 a storage path.  This command initiates a continuous server process
 that serves client requests for the lake at the configured storage path.
@@ -166,6 +165,25 @@ all adhere to the consistency semantics of the Zed lake.
 > deemed reliable, i.e., you can run a direct-access instance of `zed` alongside
 > a server instance of `zed` on the same file system and data consistency will
 > be maintained.
+
+### Locating the Lake
+
+At times you may want the Zed CLI tools to access the same lake storage
+used by other tools such as [Zui](https://zui.brimdata.io/). To help
+enable this by default while allowing for separate lake storage when desired,
+`zed` checks each of the following in order to attempt to locate an existing
+lake.
+
+1. The contents of the `-lake` option (if specified)
+2. The contents of the `ZED_LAKE` environment variable (if defined)
+3. A `zed` subdirectory below a path in the
+   [`XDG_DATA_HOME`](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
+   environment variable (if defined)
+4. A Zed lake service running locally at `http://localhost:9867` (if a socket
+   is listening at that port)
+5. A default file system location based on detected OS platform:
+   - `%LOCALAPPDATA%\zed` on Windows
+   - `$HOME/.local/share/zed` on Linux/macOS
 
 ### Data Pools
 
@@ -415,8 +433,8 @@ without confirmation.
 zed init [path]
 ```
 A new lake is initialized with the `init` command.  The `path` argument
-is a [storage path](#storage-layer) and is optional.  If not present,
-the path is taken from the `ZED_LAKE` environment variable, which must be defined.
+is a [storage path](#storage-layer) and is optional.  If not present, a path
+is determined by attempting to automatically [locate the lake](#locating-the-lake).
 
 If the lake already exists, `init` reports an error and does nothing.
 
@@ -712,7 +730,7 @@ pool `<existing>`, which may be referenced by its ID or its previous name.
 zed serve [options]
 ```
 The `serve` command implements Zed's server personality to service requests
-from instances of Zed's client personality.
+from instances of Zed's client [personality](#zed-command-personalities).
 It listens for Zed lake API requests on the interface and port
 specified by the `-l` option, executes the requests, and returns results.
 
@@ -727,8 +745,10 @@ is recommended.
 zed use [<commitish>]
 ```
 The `use` command sets the working branch to the indicated commitish.
-When run without a commitish argument, it displays the current commitish
-in use.
+When run without a commitish argument, it displays
+
+1. The current commitish in use, and,
+2. The current [lake location](#locating-the-lake).
 
 For example,
 ```
