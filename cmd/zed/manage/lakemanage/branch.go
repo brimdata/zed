@@ -62,7 +62,7 @@ func (b *branch) run(ctx context.Context) error {
 	var vectors int
 	group.Go(func() error {
 		for run := range runCh {
-			commit, err := b.lake.Compact(ctx, b.pool.ID, b.config.Branch, run, b.config.Vectors, api.CommitMessage{})
+			commit, err := b.lake.Compact(ctx, b.pool.ID.String(), b.config.Branch, run, b.config.Vectors, api.CommitMessage{})
 			if err != nil {
 				return err
 			}

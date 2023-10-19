@@ -246,16 +246,11 @@ func (r *Root) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	if poolName == "" {
 		return ksuid.Nil, errors.New("no pool name given")
 	}
-	poolID, err := ksuid.Parse(poolName)
-	var poolRef *pools.Config
-	if err != nil {
-		poolRef = r.pools.LookupByName(ctx, poolName)
-		if poolRef == nil {
-			return ksuid.Nil, fmt.Errorf("%s: %w", poolName, pools.ErrNotFound)
-		}
-		poolID = poolRef.ID
+	poolRef := r.pools.LookupByName(ctx, poolName)
+	if poolRef == nil {
+		return ksuid.Nil, fmt.Errorf("%s: %w", poolName, pools.ErrNotFound)
 	}
-	return poolID, nil
+	return poolRef.ID, nil
 }
 
 func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {

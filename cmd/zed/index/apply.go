@@ -64,11 +64,7 @@ func (c *applyCommand) Run(args []string) error {
 	if head.Pool == "" {
 		return lakeflags.ErrNoHEAD
 	}
-	poolID, err := lake.PoolID(ctx, head.Pool)
-	if err != nil {
-		return err
-	}
-	commit, err := lake.ApplyIndexRules(ctx, c.rules, poolID, head.Branch, tags)
+	commit, err := lake.ApplyIndexRules(ctx, c.rules, head.Pool, head.Branch, tags)
 	if err != nil {
 		return err
 	}

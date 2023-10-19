@@ -59,10 +59,6 @@ func (c *Command) Run(args []string) error {
 	if head.Pool == "" {
 		return lakeflags.ErrNoHEAD
 	}
-	poolID, err := lake.PoolID(ctx, head.Pool)
-	if err != nil {
-		return err
-	}
 	if _, err := lakeparse.ParseID(head.Branch); err == nil {
 		return errors.New("branch must be named")
 	}
@@ -70,7 +66,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	revertID, err := lake.Revert(ctx, poolID, head.Branch, commitID, c.commitFlags.CommitMessage())
+	revertID, err := lake.Revert(ctx, head.Pool, head.Branch, commitID, c.commitFlags.CommitMessage())
 	if err != nil {
 		return err
 	}

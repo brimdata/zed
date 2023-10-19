@@ -70,22 +70,18 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolName := head.Pool
-	if poolName == "" {
+	pool := head.Pool
+	if pool == "" {
 		return lakeflags.ErrNoHEAD
-	}
-	poolID, err := lake.PoolID(ctx, poolName)
-	if err != nil {
-		return err
 	}
 	var commit ksuid.KSUID
 	if c.where != "" {
 		if len(args) > 0 {
 			return errors.New("too many arguments")
 		}
-		commit, err = c.deleteWhere(ctx, lake, poolID, head.Branch)
+		commit, err = c.deleteWhere(ctx, lake, pool, head.Branch)
 	} else {
-		commit, err = c.deleteByIDs(ctx, lake, poolID, head.Branch, args)
+		commit, err = c.deleteByIDs(ctx, lake, pool, head.Branch, args)
 	}
 	if err != nil {
 		return err
@@ -96,7 +92,7 @@ func (c *Command) Run(args []string) error {
 	return nil
 }
 
-func (c *Command) deleteByIDs(ctx context.Context, lake api.Interface, poolID ksuid.KSUID, branchName string, args []string) (ksuid.KSUID, error) {
+func (c *Command) deleteByIDs(ctx context.Context, lake api.Interface, pool, branchName string, args []string) (ksuid.KSUID, error) {
 	ids, err := lakeparse.ParseIDs(args)
 	if err != nil {
 		return ksuid.Nil, err
@@ -104,9 +100,9 @@ func (c *Command) deleteByIDs(ctx context.Context, lake api.Interface, poolID ks
 	if len(ids) == 0 {
 		return ksuid.Nil, errors.New("no data object IDs specified")
 	}
-	return lake.Delete(ctx, poolID, branchName, ids, c.commitFlags.CommitMessage())
+	return lake.Delete(ctx, pool, branchName, ids, c.commitFlags.CommitMessage())
 }
 
-func (c *Command) deleteWhere(ctx context.Context, lake api.Interface, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
-	return lake.DeleteWhere(ctx, poolID, branchName, c.where, c.commitFlags.CommitMessage())
+func (c *Command) deleteWhere(ctx context.Context, lake api.Interface, pool, branchName string) (ksuid.KSUID, error) {
+	return lake.DeleteWhere(ctx, pool, branchName, c.where, c.commitFlags.CommitMessage())
 }

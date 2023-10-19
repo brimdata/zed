@@ -15,7 +15,7 @@ script: |
 outputs:
   - name: stdout
     regexp: |
-      pool \w{27} renamed from p2 to p3
+      pool renamed from p2 to p3
       ===
       p1 \w{27} key ts order desc
       p3 \w{27} key ts order desc

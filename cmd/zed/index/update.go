@@ -49,11 +49,7 @@ func (c *updateCommand) Run(args []string) error {
 	if head.Pool == "" {
 		return lakeflags.ErrNoHEAD
 	}
-	poolID, err := lake.PoolID(ctx, head.Pool)
-	if err != nil {
-		return err
-	}
-	commit, err := lake.UpdateIndex(ctx, args, poolID, head.Branch)
+	commit, err := lake.UpdateIndex(ctx, args, head.Pool, head.Branch)
 	if err != nil {
 		return err
 	}

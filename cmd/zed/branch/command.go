@@ -74,26 +74,19 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolName := head.Pool
-	if poolName == "" {
+	pool := head.Pool
+	if pool == "" {
 		return errors.New("a pool name must be included: pool@branch")
-	}
-	poolID, err := lakeparse.ParseID(poolName)
-	if err != nil {
-		poolID, err = lake.PoolID(ctx, poolName)
-		if err != nil {
-			return err
-		}
 	}
 	parentCommit, err := lakeparse.ParseID(head.Branch)
 	if err != nil {
-		parentCommit, err = lake.CommitObject(ctx, poolID, head.Branch)
+		parentCommit, err = lake.CommitObject(ctx, pool, head.Branch)
 		if err != nil {
 			return err
 		}
 	}
 	if c.delete {
-		if err := lake.RemoveBranch(ctx, poolID, branchName); err != nil {
+		if err := lake.RemoveBranch(ctx, pool, branchName); err != nil {
 			return err
 		}
 		if !c.LakeFlags.Quiet {
@@ -101,7 +94,7 @@ func (c *Command) Run(args []string) error {
 		}
 		return nil
 	}
-	if err := lake.CreateBranch(ctx, poolID, branchName, parentCommit); err != nil {
+	if err := lake.CreateBranch(ctx, pool, branchName, parentCommit); err != nil {
 		return err
 	}
 	if !c.LakeFlags.Quiet {

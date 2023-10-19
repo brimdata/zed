@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
+	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zson"
@@ -56,6 +57,7 @@ type Core struct {
 	compiler         runtime.Compiler
 	conf             Config
 	engine           storage.Engine
+	lakeapi          lakeapi.Interface
 	logger           *zap.Logger
 	registry         *prometheus.Registry
 	root             *lake.Root
@@ -146,6 +148,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		compiler:       compiler.NewLakeCompiler(root),
 		conf:           conf,
 		engine:         engine,
+		lakeapi:        lakeapi.FromRoot(root),
 		logger:         conf.Logger.Named("core"),
 		root:           root,
 		registry:       registry,
@@ -176,8 +179,8 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}", handleBranchLoad).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/compact", handleCompact).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/delete", handleDelete).Methods("POST")
-	c.authhandle("/pool/{pool}/branch/{branch}/index", branchHandle(handleIndexApply)).Methods("POST")
-	c.authhandle("/pool/{pool}/branch/{branch}/index/update", branchHandle(handleIndexUpdate)).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/index", handleIndexApply).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/index/update", handleIndexUpdate).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/revision/{revision}/vacuum", handleVacuum).Methods("POST")
@@ -201,30 +204,6 @@ func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request))
 		f = c.auth.Middleware(f)
 	}
 	return c.routerAPI.Handle(path, c.handler(f))
-}
-
-func branchHandle(f func(*Core, *ResponseWriter, *Request, *lake.Branch)) func(*Core, *ResponseWriter, *Request) {
-	return func(c *Core, w *ResponseWriter, r *Request) {
-		poolID, ok := r.PoolID(w, c.root)
-		if !ok {
-			return
-		}
-		branchName, ok := r.StringFromPath(w, "branch")
-		if !ok {
-			return
-		}
-		pool, err := c.root.OpenPool(r.Context(), poolID)
-		if err != nil {
-			w.Error(err)
-			return
-		}
-		branch, err := pool.OpenBranchByName(r.Context(), branchName)
-		if err != nil {
-			w.Error(err)
-			return
-		}
-		f(c, w, r, branch)
-	}
 }
 
 func (c *Core) Registry() *prometheus.Registry {

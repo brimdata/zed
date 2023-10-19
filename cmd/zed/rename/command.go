@@ -44,15 +44,11 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolID, err := lake.PoolID(ctx, oldName)
-	if err != nil {
-		return err
-	}
-	if err := lake.RenamePool(ctx, poolID, newName); err != nil {
+	if err := lake.RenamePool(ctx, oldName, newName); err != nil {
 		return err
 	}
 	if !c.LakeFlags.Quiet {
-		fmt.Printf("pool %s renamed from %s to %s\n", poolID, oldName, newName)
+		fmt.Printf("pool renamed from %s to %s\n", oldName, newName)
 	}
 	return nil
 }

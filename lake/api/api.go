@@ -26,22 +26,22 @@ type Interface interface {
 	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error)
 	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
-	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
+	CommitObject(ctx context.Context, pool, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.SortKey, int, int64) (ksuid.KSUID, error)
-	RemovePool(context.Context, ksuid.KSUID) error
-	RenamePool(context.Context, ksuid.KSUID, string) error
-	CreateBranch(ctx context.Context, pool ksuid.KSUID, name string, parent ksuid.KSUID) error
-	RemoveBranch(ctx context.Context, pool ksuid.KSUID, branchName string) error
-	MergeBranch(ctx context.Context, pool ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error)
-	Compact(ctx context.Context, pool ksuid.KSUID, branch string, objects []ksuid.KSUID, writeVectors bool, message api.CommitMessage) (ksuid.KSUID, error)
-	Load(ctx context.Context, zctx *zed.Context, pool ksuid.KSUID, branch string, r zio.Reader, message api.CommitMessage) (ksuid.KSUID, error)
-	Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
-	DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error)
-	Revert(ctx context.Context, poolID ksuid.KSUID, branch string, commitID ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error)
+	RemovePool(ctx context.Context, pool string) error
+	RenamePool(context.Context, string, string) error
+	CreateBranch(ctx context.Context, pool, name string, parent ksuid.KSUID) error
+	RemoveBranch(ctx context.Context, pool, branchName string) error
+	MergeBranch(ctx context.Context, pool, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error)
+	Compact(ctx context.Context, pool, branch string, objects []ksuid.KSUID, writeVectors bool, message api.CommitMessage) (ksuid.KSUID, error)
+	Load(ctx context.Context, zctx *zed.Context, pool string, branch string, r zio.Reader, message api.CommitMessage) (ksuid.KSUID, error)
+	Delete(ctx context.Context, pool, branchName string, tags []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
+	DeleteWhere(ctx context.Context, pool, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error)
+	Revert(ctx context.Context, pool, branch string, commitID ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error)
 	AddIndexRules(context.Context, []index.Rule) error
 	DeleteIndexRules(context.Context, []ksuid.KSUID) ([]index.Rule, error)
-	ApplyIndexRules(ctx context.Context, rules []string, pool ksuid.KSUID, branchName string, ids []ksuid.KSUID) (ksuid.KSUID, error)
-	UpdateIndex(ctx context.Context, names []string, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
+	ApplyIndexRules(ctx context.Context, rules []string, pool, branchName string, ids []ksuid.KSUID) (ksuid.KSUID, error)
+	UpdateIndex(ctx context.Context, names []string, pool, branchName string) (ksuid.KSUID, error)
 	AddVectors(ctx context.Context, pool, revision string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
 	DeleteVectors(ctx context.Context, pool, revision string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
 	Vacuum(ctx context.Context, pool, revision string, dryrun bool) ([]ksuid.KSUID, error)

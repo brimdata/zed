@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/lake"
+	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/journal"
@@ -59,39 +59,36 @@ func newRequest(w http.ResponseWriter, r *http.Request, c *Core) (*ResponseWrite
 	return nil, nil, false
 }
 
-func (r *Request) openPool(w *ResponseWriter, root *lake.Root) (*lake.Pool, bool) {
-	id, ok := r.PoolID(w, root)
-	if !ok {
-		return nil, false
-	}
-	pool, err := root.OpenPool(r.Context(), id)
-	if err != nil {
-		w.Error(err)
-		return nil, false
-	}
-	return pool, true
-}
-
 func (r *Request) ID() string {
 	return api.RequestIDFromContext(r.Context())
 }
 
-func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool) {
+func (r *Request) poolFromPathAndID(w *ResponseWriter, lk lakeapi.Interface) (string, ksuid.KSUID, bool) {
+	s, ok := r.StringFromPath(w, "pool")
+	if !ok {
+		return "", ksuid.Nil, false
+	}
+	id, err := lk.PoolID(r.Context(), s)
+	if err != nil {
+		w.Error(err)
+		return "", ksuid.Nil, false
+	}
+	return s, id, true
+}
+
+func (r *Request) PoolID(w *ResponseWriter, lk lakeapi.Interface) (ksuid.KSUID, bool) {
 	s, ok := r.StringFromPath(w, "pool")
 	if !ok {
 		return ksuid.Nil, false
 	}
-	id, err := lakeparse.ParseID(s)
+	id, err := lk.PoolID(r.Context(), s)
+	if errors.Is(err, pools.ErrNotFound) {
+		w.Error(err)
+		return ksuid.Nil, false
+	}
 	if err != nil {
-		id, err = root.PoolID(r.Context(), s)
-		if errors.Is(err, pools.ErrNotFound) {
-			w.Error(err)
-			return ksuid.Nil, false
-		}
-		if err != nil {
-			w.Error(srverr.ErrInvalid("invalid path param %q: %w", s, err))
-			return ksuid.Nil, false
-		}
+		w.Error(srverr.ErrInvalid("invalid path param %q: %w", s, err))
+		return ksuid.Nil, false
 	}
 	return id, true
 }

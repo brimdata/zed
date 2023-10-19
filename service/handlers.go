@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/lake"
 	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/commits"
@@ -158,29 +157,30 @@ func handleQueryStatus(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
+	pool, ok := r.StringFromPath(w, "pool")
+	if !ok {
+		return
+	}
 	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
 	}
-	pool, ok := r.openPool(w, c.root)
-	if !ok {
+	commit, err := c.lakeapi.CommitObject(r.Context(), pool, branchName)
+	if err != nil {
+		w.Error(err)
 		return
 	}
-	if branchName != "" {
-		branch, err := pool.LookupBranchByName(r.Context(), branchName)
-		if err != nil {
-			w.Error(err)
-			return
-		}
-		w.Respond(http.StatusOK, api.CommitResponse{Commit: branch.Commit})
-		return
-	}
-	w.Respond(http.StatusOK, pool.Config)
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 }
 
 func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
-	pool, ok := r.openPool(w, c.root)
+	id, ok := r.PoolID(w, c.lakeapi)
 	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
 		return
 	}
 	//XXX app uses this for key range... should handle this differently
@@ -228,15 +228,15 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
+	if !ok {
+		return
+	}
 	var req api.PoolPutRequest
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	id, ok := r.PoolID(w, c.root)
-	if !ok {
-		return
-	}
-	if err := c.root.RenamePool(r.Context(), id, req.Name); err != nil {
+	if err := c.lakeapi.RenamePool(r.Context(), pool, req.Name); err != nil {
 		w.Error(err)
 		return
 	}
@@ -245,12 +245,12 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
-	var req api.BranchPostRequest
-	if !r.Unmarshal(w, &req) {
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
+	if !ok {
 		return
 	}
-	poolID, ok := r.PoolID(w, c.root)
-	if !ok {
+	var req api.BranchPostRequest
+	if !r.Unmarshal(w, &req) {
 		return
 	}
 	commit, err := lakeparse.ParseID(req.Commit)
@@ -258,17 +258,15 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(srverr.ErrInvalid("invalid commit object: %s", req.Commit))
 		return
 	}
-	branchRef, err := c.root.CreateBranch(r.Context(), poolID, req.Name, commit)
-	if err != nil {
+	if err := c.lakeapi.CreateBranch(r.Context(), pool, req.Name, commit); err != nil {
 		w.Error(err)
 		return
 	}
-	w.Respond(http.StatusOK, branchRef)
-	c.publishEvent(w, "branch-update", api.EventBranch{PoolID: poolID, Branch: branchRef.Name})
+	c.publishEvent(w, "branch-update", api.EventBranch{PoolID: id, Branch: req.Name})
 }
 
 func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w, c.root)
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
 	if !ok {
 		return
 	}
@@ -284,7 +282,7 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := c.root.Revert(r.Context(), poolID, branch, commit, message.Author, message.Body)
+	commit, err := c.lakeapi.Revert(r.Context(), pool, branch, commit, message)
 	if err != nil {
 		w.Error(err)
 		return
@@ -292,13 +290,13 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   poolID,
+		PoolID:   id,
 		Branch:   branch,
 	})
 }
 
 func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w, c.root)
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
 	if !ok {
 		return
 	}
@@ -314,7 +312,7 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := c.root.MergeBranch(r.Context(), poolID, childBranch, parentBranch, message.Author, message.Body)
+	commit, err := c.lakeapi.MergeBranch(r.Context(), pool, childBranch, parentBranch, message)
 	if err != nil {
 		w.Error(err)
 		return
@@ -322,18 +320,18 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   poolID,
+		PoolID:   id,
 		Branch:   childBranch,
 		Parent:   parentBranch,
 	})
 }
 
 func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w, c.root)
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
 	if !ok {
 		return
 	}
-	if err := c.root.RemovePool(r.Context(), id); err != nil {
+	if err := c.lakeapi.RemovePool(r.Context(), pool); err != nil {
 		w.Error(err)
 		return
 	}
@@ -342,7 +340,7 @@ func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w, c.root)
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
 	if !ok {
 		return
 	}
@@ -350,15 +348,19 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	if err := c.root.RemoveBranch(r.Context(), poolID, branchName); err != nil {
+	if err := c.lakeapi.RemoveBranch(r.Context(), pool, branchName); err != nil {
 		w.Error(err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-	c.publishEvent(w, "branch-delete", api.EventBranch{PoolID: poolID, Branch: branchName})
+	c.publishEvent(w, "branch-delete", api.EventBranch{PoolID: id, Branch: branchName})
 }
 
 func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
+	if !ok {
+		return
+	}
 	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
@@ -377,15 +379,6 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	}
 	message, ok := r.decodeCommitMessage(w)
 	if !ok {
-		return
-	}
-	pool, ok := r.openPool(w, c.root)
-	if !ok {
-		return
-	}
-	branch, err := pool.OpenBranchByName(r.Context(), branchName)
-	if err != nil {
-		w.Error(err)
 		return
 	}
 	reader, err := anyio.GzipReader(r.Body)
@@ -429,7 +422,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	}
 	defer zrc.Close()
 	wr := &warningsReader{zrc, []string{}}
-	kommit, err := branch.Load(r.Context(), zctx, wr, message.Author, message.Body, message.Meta)
+	kommit, err := c.lakeapi.Load(r.Context(), zctx, pool, branchName, wr, message)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = srverr.ErrInvalid("no records in request")
@@ -446,8 +439,8 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: kommit,
-		PoolID:   pool.ID,
-		Branch:   branch.Name,
+		PoolID:   id,
+		Branch:   branchName,
 	})
 }
 
@@ -470,6 +463,10 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
+	if !ok {
+		return
+	}
 	branch, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
@@ -482,11 +479,7 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	pool, ok := r.openPool(w, c.root)
-	if !ok {
-		return
-	}
-	commit, err := exec.Compact(r.Context(), c.root, pool, branch, req.ObjectIDs, writeVectors, message.Author, message.Body, message.Meta)
+	commit, err := c.lakeapi.Compact(r.Context(), pool, branch, req.ObjectIDs, writeVectors, message)
 	if err != nil {
 		w.Error(err)
 		return
@@ -494,12 +487,16 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   pool.ID,
+		PoolID:   id,
 		Branch:   branch,
 	})
 }
 
 func handleDelete(c *Core, w *ResponseWriter, r *Request) {
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
+	if !ok {
+		return
+	}
 	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
@@ -512,16 +509,8 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &payload) {
 		return
 	}
-	pool, ok := r.openPool(w, c.root)
-	if !ok {
-		return
-	}
-	branch, err := pool.OpenBranchByName(r.Context(), branchName)
-	if err != nil {
-		w.Error(err)
-		return
-	}
 	var commit ksuid.KSUID
+	var err error
 	if len(payload.ObjectIDs) > 0 {
 		if payload.Where != "" {
 			w.Error(srverr.ErrInvalid("object_ids and where cannot both be set"))
@@ -533,18 +522,13 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			w.Error(srverr.ErrInvalid(err))
 			return
 		}
-		commit, err = branch.Delete(r.Context(), ids, message.Author, message.Body)
+		commit, err = c.lakeapi.Delete(r.Context(), pool, branchName, ids, message)
 	} else {
 		if payload.Where == "" {
 			w.Error(srverr.ErrInvalid("either object_ids or where must be set"))
 			return
 		}
-		var program ast.Seq
-		if program, err = c.compiler.Parse(payload.Where); err != nil {
-			w.Error(srverr.ErrInvalid(err))
-			return
-		}
-		commit, err = branch.DeleteWhere(r.Context(), c.compiler, program, message.Author, message.Body, message.Meta)
+		commit, err = c.lakeapi.DeleteWhere(r.Context(), pool, branchName, payload.Where, message)
 		if errors.Is(err, commits.ErrEmptyTransaction) ||
 			errors.Is(err, &compiler.InvalidDeleteWhereQuery{}) {
 			err = srverr.ErrInvalid(err)
@@ -557,7 +541,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	w.Marshal(api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   pool.ID,
+		PoolID:   id,
 		Branch:   branchName,
 	})
 }
@@ -591,7 +575,15 @@ func handleIndexRulesDelete(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.IndexRulesDeleteResponse{Rules: rules})
 }
 
-func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branch) {
+func handleIndexApply(c *Core, w *ResponseWriter, r *Request) {
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
+	if !ok {
+		return
+	}
+	branchName, ok := r.StringFromPath(w, "branch")
+	if !ok {
+		return
+	}
 	var req api.IndexApplyRequest
 	if !r.Unmarshal(w, &req) {
 		return
@@ -601,17 +593,7 @@ func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branc
 		w.Error(srverr.ErrInvalid(err))
 		return
 	}
-	tags, err := branch.LookupTags(r.Context(), ss)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	rules, err := c.root.LookupIndexRules(r.Context(), lakeparse.FormatIDs(req.Rules)...)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	commit, err := branch.ApplyIndexRules(r.Context(), c.compiler, rules, tags)
+	commit, err := c.lakeapi.ApplyIndexRules(r.Context(), req.Rules, pool, branchName, ss)
 	if err != nil {
 		w.Error(err)
 		return
@@ -619,29 +601,26 @@ func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branc
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   branch.Pool().ID,
-		Branch:   branch.Name,
+		PoolID:   id,
+		Branch:   branchName,
 	})
 
 }
 
-func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Branch) {
+func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request) {
+	pool, id, ok := r.poolFromPathAndID(w, c.lakeapi)
+	if !ok {
+		return
+	}
+	branchName, ok := r.StringFromPath(w, "branch")
+	if !ok {
+		return
+	}
 	var req api.IndexUpdateRequest
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	var err error
-	var rules []index.Rule
-	if len(req.Rules) > 0 {
-		rules, err = c.root.LookupIndexRules(r.Context(), lakeparse.FormatIDs(req.Rules)...)
-	} else {
-		rules, err = c.root.AllIndexRules(r.Context())
-	}
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	commit, err := branch.UpdateIndex(r.Context(), c.compiler, rules)
+	commit, err := c.lakeapi.UpdateIndex(r.Context(), req.Rules, pool, branchName)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = srverr.ErrInvalid(err)
@@ -652,8 +631,8 @@ func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Bran
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   branch.Pool().ID,
-		Branch:   branch.Name,
+		PoolID:   id,
+		Branch:   branchName,
 	})
 }
 

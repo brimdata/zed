@@ -48,19 +48,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolName := args[0]
-	poolID, err := lake.PoolID(ctx, poolName)
-	if err != nil {
+	pool := args[0]
+	if err := c.confirm(pool); err != nil {
 		return err
 	}
-	if err := c.confirm(poolName); err != nil {
-		return err
-	}
-	if err := lake.RemovePool(ctx, poolID); err != nil {
+	if err := lake.RemovePool(ctx, pool); err != nil {
 		return err
 	}
 	if !c.LakeFlags.Quiet {
-		fmt.Printf("pool deleted: %s\n", poolName)
+		fmt.Printf("pool deleted: %s\n", pool)
 	}
 	return nil
 }

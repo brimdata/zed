@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/lake"
 	lakeapi "github.com/brimdata/zed/lake/api"
-	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/zio"
@@ -27,8 +26,8 @@ type testClient struct {
 	*client.Connection
 }
 
-func (c *testClient) TestPoolStats(id ksuid.KSUID) exec.PoolStats {
-	r, err := c.Connection.PoolStats(context.Background(), id)
+func (c *testClient) TestPoolStats(pool string) exec.PoolStats {
+	r, err := c.Connection.PoolStats(context.Background(), pool)
 	require.NoError(c, err)
 	return r
 }
@@ -73,10 +72,9 @@ func (c *testClient) TestPoolPost(payload api.PoolPostRequest) ksuid.KSUID {
 	return r.Pool.ID
 }
 
-func (c *testClient) TestBranchPost(poolID ksuid.KSUID, payload api.BranchPostRequest) branches.Config {
-	r, err := c.Connection.CreateBranch(context.Background(), poolID, payload)
+func (c *testClient) TestBranchPost(pool string, payload api.BranchPostRequest) {
+	err := c.Connection.CreateBranch(context.Background(), pool, payload)
 	require.NoError(c, err)
-	return r
 }
 
 func (c *testClient) TestQuery(query string) string {
@@ -91,8 +89,8 @@ func (c *testClient) TestQuery(query string) string {
 	return buf.String()
 }
 
-func (c *testClient) TestLoad(poolID ksuid.KSUID, branchName string, r io.Reader) ksuid.KSUID {
-	commit, err := c.Connection.Load(context.Background(), poolID, branchName, "", r, api.CommitMessage{})
+func (c *testClient) TestLoad(pool, branchName string, r io.Reader) ksuid.KSUID {
+	commit, err := c.Connection.Load(context.Background(), pool, branchName, "", r, api.CommitMessage{})
 	require.NoError(c, err)
 	return commit.Commit
 }

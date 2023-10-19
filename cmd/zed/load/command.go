@@ -87,10 +87,6 @@ func (c *Command) Run(args []string) error {
 	if head.Pool == "" {
 		return lakeflags.ErrNoHEAD
 	}
-	poolID, err := lake.PoolID(ctx, head.Pool)
-	if err != nil {
-		return err
-	}
 	var d *display.Display
 	if !c.LakeFlags.Quiet && term.IsTerminal(int(os.Stderr.Fd())) {
 		c.ctx = ctx
@@ -99,7 +95,7 @@ func (c *Command) Run(args []string) error {
 		go d.Run()
 	}
 	message := c.commitFlags.CommitMessage()
-	commitID, err := lake.Load(ctx, zctx, poolID, head.Branch, zio.ConcatReader(readers...), message)
+	commitID, err := lake.Load(ctx, zctx, head.Pool, head.Branch, zio.ConcatReader(readers...), message)
 	if d != nil {
 		d.Close()
 	}

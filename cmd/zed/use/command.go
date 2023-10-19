@@ -107,14 +107,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolID, err := lakeparse.ParseID(commitish.Pool)
-	if err != nil {
-		poolID, err = lake.PoolID(ctx, commitish.Pool)
-		if err != nil {
-			return err
-		}
-	}
-	if _, err = lake.CommitObject(ctx, poolID, commitish.Branch); err != nil {
+	if _, err = lake.CommitObject(ctx, commitish.Pool, commitish.Branch); err != nil {
 		return err
 	}
 	if err := poolflags.WriteHead(commitish.Pool, commitish.Branch); err != nil {

@@ -7,8 +7,8 @@ script: |
   echo === | tee /dev/stderr
   zed ls -f zng | zq -z "cut name | sort name" -
   echo === | tee /dev/stderr
-  ! zed drop p3
-  ! zed drop -lake http://127.0.0.1:1 p3
+  ! zed drop -f p3
+  ! zed drop -f -lake http://127.0.0.1:1 p3
 
 inputs:
   - name: service.sh
@@ -26,5 +26,5 @@ outputs:
     data: |
       ===
       ===
-      "p3": pool not found
-      Post "http://127.0.0.1:1/query?ctrl=T": dial tcp 127.0.0.1:1: connect: connection refused
+      pool not found
+      Delete "http://127.0.0.1:1/pool/p3": dial tcp 127.0.0.1:1: connect: connection refused
