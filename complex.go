@@ -39,17 +39,6 @@ var ErrMissing = errors.New("missing")
 var Missing = zcode.Bytes("missing")
 var Quiet = zcode.Bytes("quiet")
 
-func EncodeError(err error) zcode.Bytes {
-	return zcode.Bytes(err.Error())
-}
-
-func DecodeError(zv zcode.Bytes) error {
-	if zv == nil {
-		return nil
-	}
-	return errors.New(string(zv))
-}
-
 type TypeError struct {
 	id   int
 	Type Type
