@@ -14,7 +14,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "use",
 	Usage: "use [pool][@branch]",
-	Short: "use a branch, or print the branch and lake currently in use",
+	Short: "use a branch or print current branch and lake",
 	Long: `
 The use command prints or sets the working pool and branch.  Setting these
 values allows commands like load, rebase, merge, etc. to function without
