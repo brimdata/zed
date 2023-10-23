@@ -9,8 +9,8 @@ import (
 
 func TestArrayWriteCopiesValueBytes(t *testing.T) {
 	var a Array
-	val := zed.NewString("old")
+	val := zed.NewBytes([]byte{0})
 	a.Write(val)
-	copy(val.Bytes(), zed.EncodeString("new"))
-	require.Equal(t, zed.NewString("old"), &a.Values()[0])
+	copy(val.Bytes(), zed.EncodeBytes([]byte{1}))
+	require.Equal(t, zed.NewBytes([]byte{0}), &a.Values()[0])
 }

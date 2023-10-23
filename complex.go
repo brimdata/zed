@@ -120,7 +120,7 @@ func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
 		return Value{}, Value{}, nil
 	}
 	it := zv.Iter()
-	return Value{t.KeyType, it.Next()}, Value{t.ValType, it.Next()}, nil
+	return *NewValue(t.KeyType, it.Next()), *NewValue(t.ValType, it.Next()), nil
 }
 
 type keyval struct {

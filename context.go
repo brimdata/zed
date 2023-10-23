@@ -341,7 +341,7 @@ func (c *Context) LookupTypeValue(typ Type) *Value {
 	bytes, ok := c.toValue[typ]
 	c.mu.Unlock()
 	if ok {
-		return &Value{TypeType, bytes}
+		return NewValue(TypeType, bytes)
 	}
 	// In general, this shouldn't happen except for a foreign
 	// type that wasn't initially created in this context.
@@ -535,11 +535,11 @@ func (c *Context) Quiet() *Value {
 // batch/allocator should handle these?
 
 func (c *Context) NewErrorf(format string, args ...interface{}) *Value {
-	return &Value{c.StringTypeError(), zcode.Bytes(fmt.Sprintf(format, args...))}
+	return NewValue(c.StringTypeError(), fmt.Appendf(nil, format, args...))
 }
 
 func (c *Context) NewError(err error) *Value {
-	return &Value{c.StringTypeError(), zcode.Bytes(err.Error())}
+	return NewValue(c.StringTypeError(), []byte(err.Error()))
 }
 
 func (c *Context) StringTypeError() *TypeError {
@@ -558,5 +558,5 @@ func (c *Context) WrapError(msg string, val *Value) *Value {
 	var b zcode.Builder
 	b.Append(EncodeString(msg))
 	b.Append(val.Bytes())
-	return &Value{errType, b.Bytes()}
+	return NewValue(errType, b.Bytes())
 }
