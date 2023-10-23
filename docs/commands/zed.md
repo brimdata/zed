@@ -130,7 +130,7 @@ model onto a file system so that Zed lakes can also be deployed on standard file
 
 The `zed` command provides a single command-line interface to Zed lakes, but
 different personalities are taken on by `zed` depending on the particular
-sub-command executed and where the [lake is located](#locating-the-lake).
+sub-command executed and the [lake location](#locating-the-lake).
 
 To this end, `zed` can take on one of three personalities:
 
