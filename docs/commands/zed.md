@@ -176,11 +176,11 @@ lake.
 
 1. The contents of the `-lake` option (if specified)
 2. The contents of the `ZED_LAKE` environment variable (if defined)
-3. A `zed` subdirectory below a path in the
+3. A Zed lake service running locally at `http://localhost:9867` (if a socket
+   is listening at that port)
+4. A `zed` subdirectory below a path in the
    [`XDG_DATA_HOME`](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
    environment variable (if defined)
-4. A Zed lake service running locally at `http://localhost:9867` (if a socket
-   is listening at that port)
 5. A default file system location based on detected OS platform:
    - `%LOCALAPPDATA%\zed` on Windows
    - `$HOME/.local/share/zed` on Linux/macOS
