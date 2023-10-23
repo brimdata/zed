@@ -433,8 +433,8 @@ without confirmation.
 zed init [path]
 ```
 A new lake is initialized with the `init` command.  The `path` argument
-is a [storage path](#storage-layer) and is optional.  If not present, a path
-is determined by attempting to automatically [locate the lake](#locating-the-lake).
+is a [storage path](#storage-layer) and is optional.  If not present, the path
+is [determined automatically](#locating-the-lake).
 
 If the lake already exists, `init` reports an error and does nothing.
 
