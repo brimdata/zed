@@ -745,10 +745,7 @@ is recommended.
 zed use [<commitish>]
 ```
 The `use` command sets the working branch to the indicated commitish.
-When run without a commitish argument, it displays
-
-1. The current commitish in use, and,
-2. The current [lake location](#locating-the-lake).
+When run with no argument, it displays the working branch and [lake](#locating-the-lake).
 
 For example,
 ```
