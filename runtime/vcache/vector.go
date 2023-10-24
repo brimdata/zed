@@ -46,20 +46,3 @@ func loadVector(any *vector.Any, typ zed.Type, path field.Path, m meta.Metadata,
 		return nil, fmt.Errorf("vector cache: type %T not supported", m)
 	}
 }
-
-/*
-<<<<<<< HEAD
-		return NewNulls(meta, values, r)
-	case *vector.Const:
-		return NewConst(meta), nil
-	default:
-		return nil, fmt.Errorf("vector cache: type %T not supported", meta)
-	}
-}
-
-func Under(v Vector) Vector {
-	for {
-		if nulls, ok := v.(*Nulls); ok {
-			v = nulls.values
-			continue
-*/
