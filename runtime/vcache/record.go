@@ -26,7 +26,7 @@ func loadRecord(any *vector.Any, typ *zed.TypeRecord, path field.Path, meta *met
 		return vec, nil
 	}
 	fieldName := path[0]
-	off, ok := vec.Typ.ColumnOfField(fieldName)
+	off, ok := vec.Typ.IndexOfField(fieldName)
 	if !ok {
 		return nil, fmt.Errorf("system error: vcache.loadRecord no such field %q in record type %q", fieldName, zson.String(vec.Typ))
 	}

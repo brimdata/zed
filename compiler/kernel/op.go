@@ -326,8 +326,6 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return meta.NewDeleter(b.octx, parent, pool, filter, pruner, b.progress, b.deletes), nil
 	case *dag.Load:
 		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
-	case *dag.UserOpCall:
-		return b.compileUserOpCall(parent, v)
 	case *dag.VecScan:
 		pool, err := b.lookupPool(v.Pool)
 		if err != nil {
