@@ -2,6 +2,7 @@ package vector
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
 )
 
 // XXX need to create memory model
@@ -32,5 +33,23 @@ func (r *Record) Type() zed.Type {
 
 func (r *Record) NewBuilder() Builder {
 	//XXX
-	return nil
+	fields := make([]Builder, 0, len(r.Fields))
+	for _, v := range r.Fields {
+		fields = append(fields, v.NewBuilder())
+	}
+	//XXX should change Builder API to not return bool because
+	// you should never be called if you would return a nil...
+	// the top level needs to know how much stuff there is, no?
+	// That said, we should be robust to file errors like bad runlens
+	// and return an error instead of panic.
+	return func(b *zcode.Builder) bool {
+		b.BeginContainer()
+		for _, f := range fields {
+			if !f(b) {
+				return false
+			}
+		}
+		b.EndContainer()
+		return true
+	}
 }
