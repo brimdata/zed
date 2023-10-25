@@ -20,3 +20,7 @@ func NewArray(typ *zed.TypeArray, lengths []int32, values Any) *Array {
 func (a *Array) Type() zed.Type {
 	return a.Typ
 }
+
+func (a *Array) NewBuilder() Builder {
+	return nil //XXX
+}

@@ -19,3 +19,7 @@ func NewUnion(typ *zed.TypeUnion) *Union {
 func (u *Union) Type() zed.Type {
 	return u.Typ
 }
+
+func (u *Union) NewBuilder() Builder {
+	return nil //XXX
+}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/vcache"
+	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 	"golang.org/x/sync/errgroup"
@@ -23,7 +24,7 @@ type Projection struct {
 // One projector per top-level type
 type projector struct {
 	recType *zed.TypeRecord
-	build   builder
+	build   vector.Builder
 }
 
 var _ zio.Reader = (*Projection)(nil)
@@ -34,10 +35,20 @@ func NewProjection(o *vcache.Object, names []string) (*Projection, error) {
 	var group errgroup.Group
 	projectors := make([]projector, len(o.Types()))
 	//XXX need concurrency over the typekeys too
+	// For each type, we create a record vector comprising each of the fields
+	// that are present in that type (or we skip the type if no such fields are
+	// found).  When we encounter a partial projection, we fill the missing fields
+	// with a const vector of error("missing").  Then, if we have no matching fields
+	// in any of the types we return an error; if we have one matching type, we
+	// use the builder on the corresponding record vector; if we have more than one,
+	// we create a union vector and map the type keys from the vector object to
+	// the tags of the computed union.
 	for typeKey := range o.Types() {
 		typeKey := uint32(typeKey)
-		builders := make([]builder, len(names))
-		types := make([]zed.Type, len(names))
+		//XXX instead of doing this we should just make vector.Records that
+		// represent the projection and call NewBuilder on that. We still have
+		// to load the underlying fields.
+		vecs := make([]vector.Any, len(names))
 		var mu sync.Mutex
 		for pos, name := range names {
 			pos := pos
@@ -47,13 +58,8 @@ func NewProjection(o *vcache.Object, names []string) (*Projection, error) {
 				if err != nil {
 					return err
 				}
-				builder, err := newBuilder(vec)
-				if err != nil {
-					return err
-				}
 				mu.Lock()
-				types[pos] = vec.Type()
-				builders[pos] = builder
+				vecs[pos] = vec
 				mu.Unlock()
 				return nil
 			})
@@ -61,15 +67,13 @@ func NewProjection(o *vcache.Object, names []string) (*Projection, error) {
 		if err := group.Wait(); err != nil {
 			return nil, err
 		}
-		var packed []builder
 		var fields []zed.Field
-		for k, b := range builders {
-			if b != nil {
-				fields = append(fields, zed.Field{Type: types[k], Name: names[k]})
-				packed = append(packed, b)
+		for k, vec := range vecs {
+			if vec != nil {
+				fields = append(fields, zed.Field{Type: vec.Type(), Name: names[k]})
 			}
 		}
-		if len(packed) == 0 {
+		if len(fields) == 0 {
 			continue
 		}
 		recType, err := o.LocalContext().LookupTypeRecord(fields)
@@ -101,7 +105,9 @@ func NewProjection(o *vcache.Object, names []string) (*Projection, error) {
 		return nil, fmt.Errorf("none of the specified fields were found: %s", strings.Join(names, ", "))
 	}
 	return &Projection{
-		object:     o,
+		object: o,
+		/* XXX this is Jamie's UnionVector idea though
+		it's not quite the same as a zed union */
 		typeKeys:   o.TypeKeys(),
 		projectors: projectors,
 	}, nil

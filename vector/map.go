@@ -20,3 +20,7 @@ func NewMap(typ *zed.TypeMap, keys Any, values Any) *Map {
 func (m *Map) Type() zed.Type {
 	return m.Typ
 }
+
+func (m *Map) NewBuilder() Builder {
+	return nil //XXX
+}

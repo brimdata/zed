@@ -2,16 +2,17 @@ package vector
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
 )
 
 type Any interface {
 	Type() zed.Type
 	Ref()
 	Unref()
+	NewBuilder() Builder
 }
 
-// XXX move to vector
-/*
+/* XXX don't need this anymore?  Nullmask carries the nulls without a special vector
 func Under(a Any) Any {
 	for {
 		if nulls, ok := a.(*Nulls); ok {
@@ -23,17 +24,4 @@ func Under(a Any) Any {
 }
 */
 
-type Const struct {
-	val *zed.Value
-}
-
-func NewConst(val *zed.Value) *Const {
-	return &Const{val: val}
-}
-
-func (c *Const) Type() zed.Type {
-	return c.val.Type
-}
-
-func (*Const) Ref()   {}
-func (*Const) Unref() {}
+type Builder func(*zcode.Builder) bool

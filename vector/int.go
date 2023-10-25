@@ -2,6 +2,7 @@ package vector
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
 )
 
 type Int struct {
@@ -19,4 +20,23 @@ func NewInt(typ zed.Type, vals []int64, nulls Nullmask) *Int {
 
 func (i *Int) Type() zed.Type {
 	return i.Typ
+}
+
+func (i *Int) NewBuilder() Builder {
+	vals := i.Values
+	nulls := i.Nulls
+	var voff int
+	return func(b *zcode.Builder) bool {
+		if voff < len(vals) {
+			if nulls.Has(uint32(voff)) {
+				b.Append(nil)
+			} else {
+				b.Append(zed.EncodeInt(vals[voff]))
+			}
+			voff++
+			return true
+
+		}
+		return false
+	}
 }
