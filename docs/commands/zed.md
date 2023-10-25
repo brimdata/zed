@@ -183,7 +183,7 @@ lake.
    environment variable (if defined)
 5. A default file system location based on detected OS platform:
    - `%LOCALAPPDATA%\zed` on Windows
-   - `$HOME/.local/share/zed` on Linux/macOS
+   - `$HOME/.local/share/zed` on Linux and macOS
 
 ### Data Pools
 
