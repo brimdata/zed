@@ -1,0 +1,11 @@
+script: |
+  ! zc -s 'count() by this[a] := key'
+  ! zc -s 'this[a] := count() by key'
+  ! zc -s 'this[a] := count()'
+
+outputs:
+  - name: stderr
+    data: |
+      summarize: key output field must be static
+      summarize: aggregate output field must be static
+      summarize: aggregate output field must be static

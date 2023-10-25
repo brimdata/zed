@@ -44,12 +44,12 @@ func (b *Builder) compileAggAssignment(assignment dag.Assignment) (field.Path, *
 	if !ok {
 		return nil, nil, errors.New("aggregator is not an aggregation expression")
 	}
-	lhs, err := compileLval(assignment.LHS)
-	if err != nil {
-		return nil, nil, fmt.Errorf("lhs of aggregation: %w", err)
+	this, ok := assignment.LHS.(*dag.This)
+	if !ok {
+		return nil, nil, fmt.Errorf("internal error: aggregator assignment LHS is not a static path: %#v", assignment.LHS)
 	}
 	m, err := b.compileAgg(aggAST)
-	return lhs, m, err
+	return this.Path, m, err
 }
 
 func (b *Builder) compileAgg(agg *dag.Agg) (*expr.Aggregator, error) {

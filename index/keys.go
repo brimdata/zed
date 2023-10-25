@@ -13,13 +13,9 @@ type Keyer struct {
 
 func NewKeyer(zctx *zed.Context, keys []field.Path) (*Keyer, error) {
 	fields, resolvers := expr.NewAssignments(zctx, keys, keys)
-	cutter, err := expr.NewCutter(zctx, fields, resolvers)
-	if err != nil {
-		return nil, err
-	}
 	return &Keyer{
 		keys:   keys,
-		cutter: cutter,
+		cutter: expr.NewCutter(zctx, fields, resolvers),
 	}, nil
 }
 

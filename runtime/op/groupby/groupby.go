@@ -3,6 +3,7 @@ package groupby
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -112,7 +113,11 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Op, error) {
 	names := make(field.List, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
-		names = append(names, e.LHS)
+		p, ok := e.LHS.Path()
+		if !ok {
+			return nil, errors.New("invalid lval in groupby key")
+		}
+		names = append(names, p)
 	}
 	names = append(names, aggNames...)
 	builder, err := zed.NewRecordBuilder(octx.Zctx, names)
@@ -125,9 +130,9 @@ func New(octx *op.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames 
 	}
 	keyRefs := make([]expr.Evaluator, 0, len(keys))
 	keyExprs := make([]expr.Evaluator, 0, len(keys))
-	for _, e := range keys {
-		keyRefs = append(keyRefs, expr.NewDottedExpr(octx.Zctx, e.LHS))
-		keyExprs = append(keyExprs, e.RHS)
+	for i := range keys {
+		keyRefs = append(keyRefs, expr.NewDottedExpr(octx.Zctx, names[i]))
+		keyExprs = append(keyExprs, keys[i].RHS)
 	}
 	agg, err := NewAggregator(octx.Context, octx.Zctx, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {

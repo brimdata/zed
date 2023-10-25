@@ -263,15 +263,41 @@ func (b *Builder) compileDotExpr(dot *dag.Dot) (expr.Evaluator, error) {
 	return expr.NewDotExpr(b.zctx(), record, dot.RHS), nil
 }
 
-func compileLval(e dag.Expr) (field.Path, error) {
-	if this, ok := e.(*dag.This); ok {
-		return field.Path(this.Path), nil
+func (b *Builder) compileLval(e dag.Expr) (*expr.Lval, error) {
+	switch e := e.(type) {
+	case *dag.BinaryExpr:
+		if e.Op != "[" {
+			return nil, fmt.Errorf("internal error: invalid lval %#v", e)
+		}
+		lhs, err := b.compileLval(e.LHS)
+		if err != nil {
+			return nil, err
+		}
+		rhs, err := b.compileExpr(e.RHS)
+		if err != nil {
+			return nil, err
+		}
+		lhs.Elems = append(lhs.Elems, expr.NewExprLvalElem(b.zctx(), rhs))
+		return lhs, nil
+	case *dag.Dot:
+		lhs, err := b.compileLval(e.LHS)
+		if err != nil {
+			return nil, err
+		}
+		lhs.Elems = append(lhs.Elems, &expr.StaticLvalElem{Name: e.RHS})
+		return lhs, nil
+	case *dag.This:
+		var elems []expr.LvalElem
+		for _, elem := range e.Path {
+			elems = append(elems, &expr.StaticLvalElem{Name: elem})
+		}
+		return expr.NewLval(elems), nil
 	}
-	return nil, errors.New("invalid expression on lhs of assignment")
+	return nil, fmt.Errorf("internal error: invalid lval %#v", e)
 }
 
 func (b *Builder) compileAssignment(node *dag.Assignment) (expr.Assignment, error) {
-	lhs, err := compileLval(node.LHS)
+	lhs, err := b.compileLval(node.LHS)
 	if err != nil {
 		return expr.Assignment{}, err
 	}

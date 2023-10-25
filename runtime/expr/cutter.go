@@ -2,6 +2,7 @@ package expr
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
@@ -9,14 +10,15 @@ import (
 
 type Cutter struct {
 	zctx        *zed.Context
-	builder     *zed.RecordBuilder
 	fieldRefs   field.List
 	fieldExprs  []Evaluator
-	typeCache   []zed.Type
+	lvals       []*Lval
 	outTypes    *zed.TypeVectorTable
 	recordTypes map[int]*zed.TypeRecord
+	typeCache   []zed.Type
 
-	droppers     []*Dropper
+	builders     map[string]*zed.RecordBuilder
+	droppers     map[string]*Dropper
 	dropperCache []*Dropper
 	dirty        bool
 	quiet        bool
@@ -26,33 +28,20 @@ type Cutter struct {
 // the Cutter copies fields that are not in fieldnames. If complement
 // is false, the Cutter copies any fields in fieldnames, where targets
 // specifies the copied field names.
-func NewCutter(zctx *zed.Context, fieldRefs field.List, fieldExprs []Evaluator) (*Cutter, error) {
-	for _, f := range fieldRefs {
-		if f.IsEmpty() {
-			return nil, errors.New("cut: 'this' not allowed (use record literal)")
-		}
-	}
-	var b *zed.RecordBuilder
-	if len(fieldRefs) == 0 || !fieldRefs[0].IsEmpty() {
-		// A root field will cause NewFieldBuilder to panic.
-		var err error
-		b, err = zed.NewRecordBuilder(zctx, fieldRefs)
-		if err != nil {
-			return nil, err
-		}
-	}
+func NewCutter(zctx *zed.Context, fieldRefs []*Lval, fieldExprs []Evaluator) *Cutter {
 	n := len(fieldRefs)
 	return &Cutter{
 		zctx:         zctx,
-		builder:      b,
-		fieldRefs:    fieldRefs,
+		builders:     make(map[string]*zed.RecordBuilder),
+		fieldRefs:    make(field.List, n),
 		fieldExprs:   fieldExprs,
-		typeCache:    make([]zed.Type, len(fieldRefs)),
+		lvals:        fieldRefs,
 		outTypes:     zed.NewTypeVectorTable(),
 		recordTypes:  make(map[int]*zed.TypeRecord),
-		droppers:     make([]*Dropper, n),
+		typeCache:    make([]zed.Type, n),
+		droppers:     make(map[string]*Dropper),
 		dropperCache: make([]*Dropper, n),
-	}, nil
+	}
 }
 
 func (c *Cutter) Quiet() {
@@ -67,30 +56,36 @@ func (c *Cutter) FoundCut() bool {
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns zed.Missing.
 func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
+	rb, paths, err := c.lookupBuilder(ectx, in)
+	if err != nil {
+		return ectx.CopyValue(*c.zctx.WrapError(fmt.Sprintf("cut: %s", err), in))
+	}
 	types := c.typeCache
-	b := c.builder
-	b.Reset()
+	rb.Reset()
 	droppers := c.dropperCache[:0]
 	for k, e := range c.fieldExprs {
 		val := e.Eval(ectx, in)
 		if val.IsQuiet() {
 			// ignore this field
-			if c.droppers[k] == nil {
-				c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
+			pathID := paths[k].String()
+			if c.droppers[pathID] == nil {
+				c.droppers[pathID] = NewDropper(c.zctx, field.List{paths[k]})
 			}
-			droppers = append(droppers, c.droppers[k])
-			b.Append(val.Bytes())
+			droppers = append(droppers, c.droppers[pathID])
+			rb.Append(val.Bytes())
 			types[k] = zed.TypeNull
 			continue
 		}
-		b.Append(val.Bytes())
+		rb.Append(val.Bytes())
 		types[k] = val.Type
 	}
-	bytes, err := b.Encode()
+	// check paths
+	bytes, err := rb.Encode()
 	if err != nil {
 		panic(err)
 	}
-	rec := ectx.NewValue(c.lookupTypeRecord(types), bytes)
+	typ := c.lookupTypeRecord(types, rb)
+	rec := ectx.NewValue(typ, bytes)
 	for _, d := range droppers {
 		rec = d.Eval(ectx, rec)
 	}
@@ -100,11 +95,34 @@ func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
 	return rec
 }
 
-func (c *Cutter) lookupTypeRecord(types []zed.Type) *zed.TypeRecord {
+func (c *Cutter) lookupBuilder(ectx Context, in *zed.Value) (*zed.RecordBuilder, field.List, error) {
+	paths := c.fieldRefs[:0]
+	for _, p := range c.lvals {
+		path, err := p.Eval(ectx, in)
+		if err != nil {
+			return nil, nil, err
+		}
+		if path.IsEmpty() {
+			return nil, nil, errors.New("'this' not allowed (use record literal)")
+		}
+		paths = append(paths, path)
+	}
+	builder, ok := c.builders[paths.String()]
+	if !ok {
+		var err error
+		if builder, err = zed.NewRecordBuilder(c.zctx, paths); err != nil {
+			return nil, nil, err
+		}
+		c.builders[paths.String()] = builder
+	}
+	return builder, paths, nil
+}
+
+func (c *Cutter) lookupTypeRecord(types []zed.Type, builder *zed.RecordBuilder) *zed.TypeRecord {
 	id := c.outTypes.Lookup(types)
 	typ, ok := c.recordTypes[id]
 	if !ok {
-		typ = c.builder.Type(types)
+		typ = builder.Type(types)
 		c.recordTypes[id] = typ
 	}
 	return typ
