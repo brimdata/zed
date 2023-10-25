@@ -20,12 +20,21 @@ func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakepa
 	if err != nil {
 		return nil, err
 	}
-	op, err := a.buildFrom(s[0])
+	return s, nil
+}
+
+// AnalyzeAddSource is the same as Analyze but it adds a default source if the
+// DAG does not have one.
+func AnalyzeAddSource(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
+	a := newAnalyzer(ctx, source, head)
+	s, err := a.semSeq(seq)
 	if err != nil {
 		return nil, err
 	}
-	if op != nil {
-		s.Prepend(op)
+	if !HasSource(s) {
+		if err = a.addDefaultSource(&s); err != nil {
+			return nil, err
+		}
 	}
 	return s, nil
 }
@@ -49,26 +58,26 @@ func newAnalyzer(ctx context.Context, source *data.Source, head *lakeparse.Commi
 	}
 }
 
-func (a *analyzer) enterScope() {
-	a.scope = NewScope(a.scope)
-}
-
-func (a *analyzer) exitScope() {
-	a.scope = a.scope.parent
-}
-
-func (a *analyzer) buildFrom(op dag.Op) (dag.Op, error) {
-	switch op := op.(type) {
+func HasSource(seq dag.Seq) bool {
+	switch op := seq[0].(type) {
 	case *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan, *dag.DeleteScan:
-		return nil, nil
+		return true
 	case *dag.Fork:
-		return a.buildFrom(op.Paths[0][0])
+		return HasSource(op.Paths[0])
 	case *dag.Scope:
-		return a.buildFrom(op.Body[0])
+		return HasSource(op.Body)
+	}
+	return false
+}
+
+func (a *analyzer) addDefaultSource(seq *dag.Seq) error {
+	if HasSource(*seq) {
+		return nil
 	}
 	// No from so add a source.
 	if a.head == nil {
-		return &kernel.Reader{}, nil
+		seq.Prepend(&kernel.Reader{})
+		return nil
 	}
 	pool := &ast.Pool{
 		Kind: "Pool",
@@ -81,9 +90,28 @@ func (a *analyzer) buildFrom(op dag.Op) (dag.Op, error) {
 	}
 	ops, err := a.semPool(pool)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return ops[0], nil
+	seq.Prepend(ops[0])
+	return nil
+}
+
+func StartsWithYield(seq dag.Seq) bool {
+	switch op := seq[0].(type) {
+	case *dag.Yield:
+		return true
+	case *dag.Scope:
+		return StartsWithYield(op.Body)
+	}
+	return false
+}
+
+func (a *analyzer) enterScope() {
+	a.scope = NewScope(a.scope)
+}
+
+func (a *analyzer) exitScope() {
+	a.scope = a.scope.parent
 }
 
 type opDecl struct {

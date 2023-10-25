@@ -40,7 +40,7 @@ func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Comm
 	if len(seq) == 0 {
 		return nil, errors.New("internal error: AST seq cannot be empty")
 	}
-	entry, err := semantic.Analyze(octx.Context, seq, src, head)
+	entry, err := semantic.AnalyzeAddSource(octx.Context, seq, src, head)
 	if err != nil {
 		return nil, err
 	}
