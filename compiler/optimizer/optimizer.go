@@ -416,10 +416,6 @@ func (o *Optimizer) Parallelize(seq dag.Seq, n int) (dag.Seq, error) {
 	if concurrency < 2 {
 		concurrency = 2
 	}
-	if concurrency > 50 {
-		// arbitrary circuit breaker
-		return nil, fmt.Errorf("parallelization factor too big: %d", n)
-	}
 	seq, err := walkEntries(seq, func(seq dag.Seq) (dag.Seq, error) {
 		if len(seq) == 0 {
 			return seq, nil
