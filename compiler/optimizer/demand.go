@@ -49,28 +49,6 @@ func demandUnion(a Demand, b Demand) Demand {
 	return DemandUnion([2]Demand{a, b})
 }
 
-func demandForKey(demand Demand, key string) Demand {
-	switch demand := demand.(type) {
-	case nil:
-		return nil
-	case DemandAll:
-		return demand
-	case DemandKey:
-		if key == demand.Key {
-			return demand.Value
-		} else {
-			return nil
-		}
-	case DemandUnion:
-		return demandUnion(
-			demandForKey(demand[0], key),
-			demandForKey(demand[1], key),
-		)
-	default:
-		panic("Unreachable")
-	}
-}
-
 func demandForSeq(seq dag.Seq) map[*dag.Op]Demand {
 	demands := make(map[*dag.Op]Demand)
 	demandForSeqInto(demands, DemandAll{}, seq)
@@ -117,28 +95,70 @@ func demandForSeqInto(demands map[*dag.Op]Demand, demandOnSeq Demand, seq dag.Se
 }
 
 func demandForExpr(demandOnExpr Demand, expr dag.Expr) Demand {
-	fmt.Printf("%v %T\n", expr, expr)
 	if demandOnExpr == nil {
 		return nil
 	}
 	switch expr := expr.(type) {
 	case *dag.BinaryExpr:
+		// Since we don't know how the expr.Op will transform the inputs, we have to assume DemandAll.
 		return demandUnion(
 			demandForExpr(DemandAll{}, expr.LHS),
 			demandForExpr(DemandAll{}, expr.RHS),
 		)
+	case *dag.Dot:
+		return demandKey(expr.RHS, demandForExpr(demandOnExpr, expr.LHS))
+	case *dag.Literal:
+		return nil
+	case *dag.MapExpr:
+		var demand Demand = nil
+		for _, entry := range expr.Entries {
+			demand = demandUnion(demand, demandForExpr(DemandAll{}, entry.Key))
+			demand = demandUnion(demand, demandForExpr(DemandAll{}, entry.Value))
+		}
+		return demand
+	case *dag.RecordExpr:
+		var demand Demand = nil
+		for _, elem := range expr.Elems {
+			switch elem := elem.(type) {
+			case *dag.Field:
+				if d := demandForKey(demandOnExpr, elem.Name); d != nil {
+					demand = demandUnion(demand, demandForExpr(d, elem.Value))
+				}
+			case *dag.Spread:
+				demand = demandUnion(demand, demandForExpr(demandOnExpr, elem.Expr))
+			}
+		}
+		return demand
 	case *dag.This:
 		var demand Demand = demandOnExpr
 		for i := len(expr.Path) - 1; i >= 0; i-- {
 			demand = demandKey(expr.Path[i], demand)
 		}
 		return demand
-	case *dag.Dot:
-		return demandKey(expr.RHS, demandForExpr(demandOnExpr, expr.LHS))
-	case *dag.Literal:
-		return nil
 	default:
 		// Conservatively assume that `expr` uses it's entire input, regardless of output demand.
 		return DemandAll{}
+	}
+}
+
+func demandForKey(demand Demand, key string) Demand {
+	switch demand := demand.(type) {
+	case nil:
+		return nil
+	case DemandAll:
+		return demand
+	case DemandKey:
+		if key == demand.Key {
+			return demand.Value
+		} else {
+			return nil
+		}
+	case DemandUnion:
+		return demandUnion(
+			demandForKey(demand[0], key),
+			demandForKey(demand[1], key),
+		)
+	default:
+		panic("Unreachable")
 	}
 }
