@@ -5,42 +5,41 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 )
 
+type DemandAll struct{}
+type DemandKeys map[string]Demand // No empty values.
+
 type Demand interface {
 	isDemand()
 }
 
-// TODO Think about normal form for Demand.
+func (demand DemandAll) isDemand()  {}
+func (demand DemandKeys) isDemand() {}
 
-// A nil Demand means 'demand nothing'.
-type DemandAll struct{}
-type DemandKey struct {
-	Key   string
-	Value Demand // Not nil
+func demandNone() Demand {
+	return DemandKeys(make(map[string]Demand, 0))
 }
-type DemandUnion [2]Demand // Disjoint. Not nil.
 
-func (demand DemandAll) isDemand()   {}
-func (demand DemandKey) isDemand()   {}
-func (demand DemandUnion) isDemand() {}
+func demandIsEmpty(demand Demand) bool {
+	switch demand := demand.(type) {
+	case DemandAll:
+		return false
+	case DemandKeys:
+		return len(demand) == 0
+	default:
+		panic("Unreachable")
+	}
+}
 
 func demandKey(key string, value Demand) Demand {
-	if value == nil {
-		return nil
+	if demandIsEmpty(value) {
+		return value
 	}
-	return DemandKey{
-		Key:   key,
-		Value: value,
-	}
+	demand := DemandKeys(make(map[string]Demand, 1))
+	demand[key] = value
+	return demand
 }
 
 func demandUnion(a Demand, b Demand) Demand {
-	if a == nil {
-		return b
-	}
-	if b == nil {
-		return a
-	}
-
 	if _, ok := a.(DemandAll); ok {
 		return a
 	}
@@ -48,18 +47,23 @@ func demandUnion(a Demand, b Demand) Demand {
 		return b
 	}
 
-	if a, ok := a.(DemandKey); ok {
-		if b, ok := b.(DemandKey); ok {
-			if a.Key == b.Key {
-				return DemandKey{
-					Key:   a.Key,
-					Value: demandUnion(a.Value, b.Value),
-				}
+	{
+		a := a.(DemandKeys)
+		b := b.(DemandKeys)
+
+		demand := DemandKeys(make(map[string]Demand, len(a)+len(b)))
+		for k, v := range a {
+			demand[k] = v
+		}
+		for k, v := range b {
+			if v2, ok := a[k]; ok {
+				demand[k] = demandUnion(v, v2)
+			} else {
+				demand[k] = v
 			}
 		}
+		return demand
 	}
-
-	return DemandUnion([2]Demand{a, b})
 }
 
 func demandForSeq(seq dag.Seq) map[*dag.Op]Demand {
@@ -85,7 +89,7 @@ func demandForSeqInto(demands map[*dag.Op]Demand, demandOnSeq Demand, seq dag.Se
 		// Infer the demand that `op` places on it's input.
 		switch op := (*op_ptr).(type) {
 		case *dag.FileScan:
-			demand = nil
+			demand = demandNone()
 		case *dag.Filter:
 			demand = demandUnion(
 				// Everything that downstream operations need.
@@ -95,7 +99,7 @@ func demandForSeqInto(demands map[*dag.Op]Demand, demandOnSeq Demand, seq dag.Se
 			)
 		case *dag.Yield:
 			yieldDemand := demand
-			demand = nil
+			demand = demandNone()
 			for _, expr := range op.Exprs {
 				demand = demandUnion(demand, demandForExpr(yieldDemand, expr))
 			}
@@ -108,8 +112,8 @@ func demandForSeqInto(demands map[*dag.Op]Demand, demandOnSeq Demand, seq dag.Se
 }
 
 func demandForExpr(demandOnExpr Demand, expr dag.Expr) Demand {
-	if demandOnExpr == nil {
-		return nil
+	if demandIsEmpty(demandOnExpr) {
+		return demandOnExpr
 	}
 	switch expr := expr.(type) {
 	case *dag.BinaryExpr:
@@ -121,20 +125,20 @@ func demandForExpr(demandOnExpr Demand, expr dag.Expr) Demand {
 	case *dag.Dot:
 		return demandKey(expr.RHS, demandForExpr(demandOnExpr, expr.LHS))
 	case *dag.Literal:
-		return nil
+		return demandNone()
 	case *dag.MapExpr:
-		var demand Demand = nil
+		var demand Demand = demandNone()
 		for _, entry := range expr.Entries {
 			demand = demandUnion(demand, demandForExpr(DemandAll{}, entry.Key))
 			demand = demandUnion(demand, demandForExpr(DemandAll{}, entry.Value))
 		}
 		return demand
 	case *dag.RecordExpr:
-		var demand Demand = nil
+		var demand Demand = demandNone()
 		for _, elem := range expr.Elems {
 			switch elem := elem.(type) {
 			case *dag.Field:
-				if d := demandForKey(demandOnExpr, elem.Name); d != nil {
+				if d := demandForKey(demandOnExpr, elem.Name); !demandIsEmpty(d) {
 					demand = demandUnion(demand, demandForExpr(d, elem.Value))
 				}
 			case *dag.Spread:
@@ -156,21 +160,14 @@ func demandForExpr(demandOnExpr Demand, expr dag.Expr) Demand {
 
 func demandForKey(demand Demand, key string) Demand {
 	switch demand := demand.(type) {
-	case nil:
-		return nil
 	case DemandAll:
 		return demand
-	case DemandKey:
-		if key == demand.Key {
-			return demand.Value
+	case DemandKeys:
+		if value, ok := demand[key]; ok {
+			return value
 		} else {
-			return nil
+			return demandNone()
 		}
-	case DemandUnion:
-		return demandUnion(
-			demandForKey(demand[0], key),
-			demandForKey(demand[1], key),
-		)
 	default:
 		panic("Unreachable")
 	}
