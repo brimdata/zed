@@ -46,7 +46,9 @@ func (l *lakeCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, paralleli
 		parallelism = Parallelism
 	}
 	if parallelism > 1 {
-		job.Parallelize(parallelism)
+		if err := job.Parallelize(parallelism); err != nil {
+			return nil, err
+		}
 	}
 	if err := job.Build(); err != nil {
 		return nil, err
