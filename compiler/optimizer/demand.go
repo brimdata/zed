@@ -19,6 +19,22 @@ func demandNone() Demand {
 	return DemandKeys(make(map[string]Demand, 0))
 }
 
+func demandIsValid(demand Demand) bool {
+	switch demand := demand.(type) {
+	case DemandAll:
+		return true
+	case DemandKeys:
+		for _, v := range demand {
+			if !demandIsValid(v) || demandIsEmpty(v) {
+				return false
+			}
+		}
+		return true
+	default:
+		panic("Unreachable")
+	}
+}
+
 func demandIsEmpty(demand Demand) bool {
 	switch demand := demand.(type) {
 	case DemandAll:
@@ -77,6 +93,11 @@ func demandForSeq(seq dag.Seq) map[*dag.Op]Demand {
 	//    return seq
 	//})
 
+	for _, demand := range demands {
+		if !demandIsValid(demand) {
+			panic("Invalid demand")
+		}
+	}
 	return demands
 }
 
