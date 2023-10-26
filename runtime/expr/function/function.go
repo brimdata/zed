@@ -33,6 +33,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 		// special grep form will make it look like a function call
 		// and we don't want the error to say unknown function.
 		return nil, nil, errors.New("syntax error")
+	case "grok":
+		argmin, argmax = 2, 3
+		f = newGrok(zctx)
 	case "len":
 		f = &LenFn{zctx: zctx}
 	case "abs":
