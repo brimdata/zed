@@ -17,7 +17,7 @@ type DemandKey struct {
 	Key   string
 	Value Demand // Not nil
 }
-type DemandUnion [2]Demand // Not nil or DemandAll
+type DemandUnion [2]Demand // Disjoint. Not nil.
 
 func (demand DemandAll) isDemand()   {}
 func (demand DemandKey) isDemand()   {}
@@ -40,12 +40,25 @@ func demandUnion(a Demand, b Demand) Demand {
 	if b == nil {
 		return a
 	}
+
 	if _, ok := a.(DemandAll); ok {
 		return a
 	}
 	if _, ok := b.(DemandAll); ok {
 		return b
 	}
+
+	if a, ok := a.(DemandKey); ok {
+		if b, ok := b.(DemandKey); ok {
+			if a.Key == b.Key {
+				return DemandKey{
+					Key:   a.Key,
+					Value: demandUnion(a.Value, b.Value),
+				}
+			}
+		}
+	}
+
 	return DemandUnion([2]Demand{a, b})
 }
 
