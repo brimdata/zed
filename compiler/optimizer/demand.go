@@ -1,7 +1,7 @@
 package optimizer
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/brimdata/zed/compiler/ast/dag"
 )
 
@@ -66,12 +66,12 @@ func demandForSeq(seq dag.Seq) map[*dag.Op]Demand {
 	demands := make(map[*dag.Op]Demand)
 	demandForSeqInto(demands, DemandAll{}, seq)
 
-	walk(seq, true, func(seq dag.Seq) dag.Seq {
-		for i := range seq {
-			fmt.Println(seq[i], " ", demands[&seq[i]])
-		}
-		return seq
-	})
+	//walk(seq, true, func(seq dag.Seq) dag.Seq {
+	//    for i := range seq {
+	//        fmt.Println(seq[i], " ", demands[&seq[i]])
+	//    }
+	//    return seq
+	//})
 
 	return demands
 }
