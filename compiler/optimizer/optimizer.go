@@ -132,6 +132,7 @@ func (o *Optimizer) Optimize(seq dag.Seq) (dag.Seq, error) {
 	seq = removePassOps(seq)
 	o.optimizeParallels(seq)
 	seq = mergeFilters(seq)
+	_ = demandForSeq(seq)
 	seq, err := o.optimizeSourcePaths(seq)
 	if err != nil {
 		return nil, err
