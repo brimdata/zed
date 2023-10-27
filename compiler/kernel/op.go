@@ -174,10 +174,18 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		putter := expr.NewPutter(b.octx.Zctx, clauses)
 		return op.NewApplier(b.octx, parent, putter), nil
 	case *dag.Rename:
-		var srcs, dsts field.List
+		var srcs, dsts []*expr.Lval
 		for _, a := range v.Args {
-			dsts = append(dsts, a.LHS.(*dag.This).Path)
-			srcs = append(srcs, a.RHS.(*dag.This).Path)
+			src, err := b.compileLval(a.RHS)
+			if err != nil {
+				return nil, err
+			}
+			dst, err := b.compileLval(a.LHS)
+			if err != nil {
+				return nil, err
+			}
+			srcs = append(srcs, src)
+			dsts = append(dsts, dst)
 		}
 		renamer := expr.NewRenamer(b.octx.Zctx, srcs, dsts)
 		return op.NewApplier(b.octx, parent, renamer), nil

@@ -17,13 +17,85 @@ type Renamer struct {
 	zctx *zed.Context
 	// For the dst field name, we just store the leaf name since the
 	// src path and the dst path are the same and only differ in the leaf name.
-	srcs    field.List
-	dsts    field.List
-	typeMap map[int]*zed.TypeRecord
+	srcs    []*Lval
+	dsts    []*Lval
+	typeMap map[int]map[string]*zed.TypeRecord
+	// fieldsStr is used to reduce allocations when computing the fields id.
+	fieldsStr []byte
 }
 
-func NewRenamer(zctx *zed.Context, srcs, dsts field.List) *Renamer {
-	return &Renamer{zctx, srcs, dsts, make(map[int]*zed.TypeRecord)}
+func NewRenamer(zctx *zed.Context, srcs, dsts []*Lval) *Renamer {
+	return &Renamer{zctx, srcs, dsts, make(map[int]map[string]*zed.TypeRecord), nil}
+}
+
+func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
+	if !zed.IsRecordType(this.Type) {
+		return this
+	}
+	srcs, dsts, err := r.evalFields(ectx, this)
+	if err != nil {
+		return ectx.CopyValue(*r.zctx.WrapError(fmt.Sprintf("rename: %s", err), this))
+	}
+	id := this.Type.ID()
+	m, ok := r.typeMap[id]
+	if !ok {
+		m = make(map[string]*zed.TypeRecord)
+		r.typeMap[id] = m
+	}
+	r.fieldsStr = dsts.AppendTo(srcs.AppendTo(r.fieldsStr[:0]))
+	typ, ok := m[string(r.fieldsStr)]
+	if !ok {
+		var err error
+		typ, err = r.computeType(zed.TypeRecordOf(this.Type), srcs, dsts)
+		if err != nil {
+			return ectx.CopyValue(*r.zctx.WrapError(fmt.Sprintf("rename: %s", err), this))
+		}
+		m[string(r.fieldsStr)] = typ
+	}
+	return ectx.NewValue(typ, this.Bytes())
+}
+
+func CheckRenameField(src, dst field.Path) error {
+	if len(src) != len(dst) {
+		return fmt.Errorf("left-hand side and right-hand side must have the same depth (%s vs %s)", src, dst)
+	}
+	for i := 0; i <= len(src)-2; i++ {
+		if src[i] != dst[i] {
+			return fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src[i], dst[i])
+		}
+	}
+	return nil
+}
+
+func (r *Renamer) evalFields(ectx Context, this *zed.Value) (field.List, field.List, error) {
+	var srcs, dsts field.List
+	for i := range r.srcs {
+		src, err := r.srcs[i].Eval(ectx, this)
+		if err != nil {
+			return nil, nil, err
+		}
+		dst, err := r.dsts[i].Eval(ectx, this)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := CheckRenameField(src, dst); err != nil {
+			return nil, nil, err
+		}
+		srcs = append(srcs, src)
+		dsts = append(dsts, dst)
+	}
+	return srcs, dsts, nil
+}
+
+func (r *Renamer) computeType(typ *zed.TypeRecord, srcs, dsts field.List) (*zed.TypeRecord, error) {
+	for k, dst := range dsts {
+		var err error
+		typ, err = r.dstType(typ, srcs[k], dst)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return typ, nil
 }
 
 func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRecord, error) {
@@ -56,33 +128,4 @@ func (r *Renamer) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRe
 		panic(err)
 	}
 	return typ, nil
-}
-
-func (r *Renamer) computeType(typ *zed.TypeRecord) (*zed.TypeRecord, error) {
-	for k, dst := range r.dsts {
-		var err error
-		typ, err = r.dstType(typ, r.srcs[k], dst)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return typ, nil
-}
-
-func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
-	if !zed.IsRecordType(this.Type) {
-		return this
-	}
-	id := this.Type.ID()
-	typ, ok := r.typeMap[id]
-	if !ok {
-		var err error
-		typ, err = r.computeType(zed.TypeRecordOf(this.Type))
-		if err != nil {
-			return r.zctx.WrapError(fmt.Sprintf("rename: %s", err), this)
-		}
-		r.typeMap[id] = typ
-	}
-	out := this.Copy()
-	return ectx.NewValue(typ, out.Bytes())
 }
