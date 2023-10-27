@@ -82,8 +82,8 @@ func demandUnion(a Demand, b Demand) Demand {
 	}
 }
 
-func demandForSeq(seq dag.Seq) map[*dag.Op]Demand {
-	demands := make(map[*dag.Op]Demand)
+func demandForSeq(seq dag.Seq) map[dag.Op]Demand {
+	demands := make(map[dag.Op]Demand)
 	demandForSeqInto(demands, DemandAll{}, seq)
 
 	//walk(seq, true, func(seq dag.Seq) dag.Seq {
@@ -101,14 +101,17 @@ func demandForSeq(seq dag.Seq) map[*dag.Op]Demand {
 	return demands
 }
 
-func demandForSeqInto(demands map[*dag.Op]Demand, demandOnSeq Demand, seq dag.Seq) {
+func demandForSeqInto(demands map[dag.Op]Demand, demandOnSeq Demand, seq dag.Seq) {
 	var demand = demandOnSeq
 	for i := len(seq) - 1; i >= 0; i-- {
-		op_ptr := &seq[i]
-		demands[op_ptr] = demand
+		op := seq[i]
+		if _, ok := demands[op]; ok {
+			panic("Duplicate op value")
+		}
+		demands[op] = demand
 
 		// Infer the demand that `op` places on it's input.
-		switch op := (*op_ptr).(type) {
+		switch op := op.(type) {
 		case *dag.FileScan:
 			demand = demandNone()
 		case *dag.Filter:
