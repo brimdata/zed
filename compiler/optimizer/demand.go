@@ -1,6 +1,7 @@
 package optimizer
 
 import (
+	//"encoding/json"
 	//"fmt"
 	"github.com/brimdata/zed/compiler/ast/dag"
 )
@@ -88,7 +89,7 @@ func demandForSeq(seq dag.Seq) map[dag.Op]Demand {
 
 	//walk(seq, true, func(seq dag.Seq) dag.Seq {
 	//    for i := range seq {
-	//        fmt.Println(seq[i], " ", demands[&seq[i]])
+	//        fmt.Println(seq[i], " ", demands[seq[i]])
 	//    }
 	//    return seq
 	//})
@@ -191,6 +192,57 @@ func demandForKey(demand Demand, key string) Demand {
 			return value
 		} else {
 			return demandNone()
+		}
+	default:
+		panic("Unreachable")
+	}
+}
+
+// --- The functions below are used for testing demand inference and can be removed once demand is used to prune inputs. ---
+
+func insertDemandTests(seq dag.Seq) dag.Seq {
+	demands := demandForSeq(seq)
+	result := walk(seq, true, func(seq dag.Seq) dag.Seq {
+		ops := make([]dag.Op, 0, 2*len(seq))
+		for _, op := range seq {
+			ops = append(ops, op)
+			if demand, ok := demands[op]; ok {
+				// We can't insert anything after a Fork.
+				if _, ok := op.(*dag.Fork); !ok {
+					testOp := dag.Yield{
+						Kind:  "Yield",
+						Exprs: []dag.Expr{yieldExprFromDemand(demand, []string{})},
+					}
+					ops = append(ops, &testOp)
+				}
+			}
+		}
+		return ops
+	})
+
+	//b, _ := json.MarshalIndent(result, "", "    ")
+	//fmt.Println(string(b))
+
+	return result
+}
+
+func yieldExprFromDemand(demand Demand, path []string) dag.Expr {
+	switch demand := demand.(type) {
+	case DemandAll:
+		return &dag.This{Kind: "This", Path: path}
+	case DemandKeys:
+		var elems = make([]dag.RecordElem, 0, len(demand))
+		for key, keyDemand := range demand {
+			keyPath := append(append(make([]string, 0, len(path)+1), path...), key)
+			elems = append(elems, &dag.Field{
+				Kind:  "Field",
+				Name:  key,
+				Value: yieldExprFromDemand(keyDemand, keyPath),
+			})
+		}
+		return &dag.RecordExpr{
+			Kind:  "RecordExpr",
+			Elems: elems,
 		}
 	default:
 		panic("Unreachable")
