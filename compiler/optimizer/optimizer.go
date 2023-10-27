@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
@@ -132,6 +133,9 @@ func (o *Optimizer) Optimize(seq dag.Seq) (dag.Seq, error) {
 	seq = removePassOps(seq)
 	o.optimizeParallels(seq)
 	seq = mergeFilters(seq)
+	if os.Getenv("ZED_DEMAND_TESTS") != "" {
+		seq = insertDemandTests(seq)
+	}
 	seq, err := o.optimizeSourcePaths(seq)
 	if err != nil {
 		return nil, err
