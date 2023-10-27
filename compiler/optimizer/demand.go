@@ -65,8 +65,7 @@ func demandUnion(a Demand, b Demand) Demand {
 	}
 
 	{
-		a := a.(DemandKeys)
-		b := b.(DemandKeys)
+		a, b := a.(DemandKeys), b.(DemandKeys)
 
 		demand := DemandKeys(make(map[string]Demand, len(a)+len(b)))
 		for k, v := range a {
@@ -103,7 +102,7 @@ func demandForSeq(seq dag.Seq) map[dag.Op]Demand {
 }
 
 func demandForSeqInto(demands map[dag.Op]Demand, demandOnSeq Demand, seq dag.Seq) {
-	var demand = demandOnSeq
+	demand := demandOnSeq
 	for i := len(seq) - 1; i >= 0; i-- {
 		op := seq[i]
 		if _, ok := demands[op]; ok {
@@ -152,14 +151,14 @@ func demandForExpr(demandOnExpr Demand, expr dag.Expr) Demand {
 	case *dag.Literal:
 		return demandNone()
 	case *dag.MapExpr:
-		var demand Demand = demandNone()
+		demand := demandNone()
 		for _, entry := range expr.Entries {
 			demand = demandUnion(demand, demandForExpr(DemandAll{}, entry.Key))
 			demand = demandUnion(demand, demandForExpr(DemandAll{}, entry.Value))
 		}
 		return demand
 	case *dag.RecordExpr:
-		var demand Demand = demandNone()
+		demand := demandNone()
 		for _, elem := range expr.Elems {
 			switch elem := elem.(type) {
 			case *dag.Field:
@@ -172,7 +171,7 @@ func demandForExpr(demandOnExpr Demand, expr dag.Expr) Demand {
 		}
 		return demand
 	case *dag.This:
-		var demand Demand = demandOnExpr
+		demand := demandOnExpr
 		for i := len(expr.Path) - 1; i >= 0; i-- {
 			demand = demandKey(expr.Path[i], demand)
 		}
@@ -190,9 +189,8 @@ func demandForKey(demand Demand, key string) Demand {
 	case DemandKeys:
 		if value, ok := demand[key]; ok {
 			return value
-		} else {
-			return demandNone()
 		}
+		return demandNone()
 	default:
 		panic("Unreachable")
 	}
@@ -231,7 +229,7 @@ func yieldExprFromDemand(demand Demand, path []string) dag.Expr {
 	case DemandAll:
 		return &dag.This{Kind: "This", Path: path}
 	case DemandKeys:
-		var elems = make([]dag.RecordElem, 0, len(demand))
+		elems := make([]dag.RecordElem, 0, len(demand))
 		for key, keyDemand := range demand {
 			keyPath := append(append(make([]string, 0, len(path)+1), path...), key)
 			elems = append(elems, &dag.Field{
