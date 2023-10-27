@@ -1,8 +1,6 @@
 package optimizer
 
 import (
-	//"encoding/json"
-	//"fmt"
 	"github.com/brimdata/zed/compiler/ast/dag"
 )
 
@@ -85,14 +83,6 @@ func demandUnion(a Demand, b Demand) Demand {
 func demandForSeq(seq dag.Seq) map[dag.Op]Demand {
 	demands := make(map[dag.Op]Demand)
 	demandForSeqInto(demands, DemandAll{}, seq)
-
-	//walk(seq, true, func(seq dag.Seq) dag.Seq {
-	//    for i := range seq {
-	//        fmt.Println(seq[i], " ", demands[seq[i]])
-	//    }
-	//    return seq
-	//})
-
 	for _, demand := range demands {
 		if !demandIsValid(demand) {
 			panic("Invalid demand")
@@ -200,7 +190,7 @@ func demandForKey(demand Demand, key string) Demand {
 
 func insertDemandTests(seq dag.Seq) dag.Seq {
 	demands := demandForSeq(seq)
-	result := walk(seq, true, func(seq dag.Seq) dag.Seq {
+	return walk(seq, true, func(seq dag.Seq) dag.Seq {
 		ops := make([]dag.Op, 0, 2*len(seq))
 		for _, op := range seq {
 			ops = append(ops, op)
@@ -217,11 +207,6 @@ func insertDemandTests(seq dag.Seq) dag.Seq {
 		}
 		return ops
 	})
-
-	//b, _ := json.MarshalIndent(result, "", "    ")
-	//fmt.Println(string(b))
-
-	return result
 }
 
 func yieldExprFromDemand(demand Demand, path []string) dag.Expr {
