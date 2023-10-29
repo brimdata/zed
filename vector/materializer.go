@@ -58,6 +58,46 @@ func (vector *bools) newMaterializer() materializer {
 	}
 }
 
+func (vector *byteses) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeBytes(vector.values[index]))
+		index += 1
+	}
+}
+
+func (vector *durations) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeDuration(vector.values[index]))
+		index += 1
+	}
+}
+
+func (vector *float16s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeFloat16(vector.values[index]))
+		index += 1
+	}
+}
+
+func (vector *float32s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeFloat32(vector.values[index]))
+		index += 1
+	}
+}
+
+func (vector *float64s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeFloat64(vector.values[index]))
+		index += 1
+	}
+}
+
 func (vector *ints) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
@@ -66,10 +106,34 @@ func (vector *ints) newMaterializer() materializer {
 	}
 }
 
+func (vector *ips) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeIP(vector.values[index]))
+		index += 1
+	}
+}
+
+func (vector *nets) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeNet(vector.values[index]))
+		index += 1
+	}
+}
+
 func (vector *strings) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
 		builder.Append(zed.EncodeString(vector.values[index]))
+		index += 1
+	}
+}
+
+func (vector *times) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeTime(vector.values[index]))
 		index += 1
 	}
 }

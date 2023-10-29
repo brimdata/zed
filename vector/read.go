@@ -3,8 +3,10 @@ package vector
 import (
 	"fmt"
 	"io"
+	"net/netip"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/vng"
 	vngVector "github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
@@ -180,8 +182,8 @@ func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) 
 		}
 		return vector, nil
 
-	case zed.TypeUint8, zed.TypeUint16, zed.TypeUint32, zed.TypeUint64:
-		values := make([]uint64, 0)
+	case zed.TypeBytes:
+		values := make([][]byte, 0)
 		for {
 			bytes, err := readBytes()
 			if err != nil {
@@ -191,9 +193,81 @@ func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) 
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeUint(bytes))
+			values = append(values, zed.DecodeBytes(bytes))
 		}
-		vector := &uints{
+		vector := &byteses{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeDuration:
+		values := make([]nano.Duration, 0)
+		for {
+			bytes, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, zed.DecodeDuration(bytes))
+		}
+		vector := &durations{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeFloat16:
+		values := make([]float32, 0)
+		for {
+			bytes, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, zed.DecodeFloat16(bytes))
+		}
+		vector := &float16s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeFloat32:
+		values := make([]float32, 0)
+		for {
+			bytes, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, zed.DecodeFloat32(bytes))
+		}
+		vector := &float32s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeFloat64:
+		values := make([]float64, 0)
+		for {
+			bytes, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, zed.DecodeFloat64(bytes))
+		}
+		vector := &float64s{
 			values: values,
 		}
 		return vector, nil
@@ -216,6 +290,42 @@ func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) 
 		}
 		return vector, nil
 
+	case zed.TypeIP:
+		values := make([]netip.Addr, 0)
+		for {
+			bytes, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, zed.DecodeIP(bytes))
+		}
+		vector := &ips{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeNet:
+		values := make([]netip.Prefix, 0)
+		for {
+			bytes, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, zed.DecodeNet(bytes))
+		}
+		vector := &nets{
+			values: values,
+		}
+		return vector, nil
+
 	case zed.TypeString:
 		values := make([]string, 0)
 		for {
@@ -234,7 +344,43 @@ func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) 
 		}
 		return vector, nil
 
-	case zed.TypeDuration, zed.TypeTime, zed.TypeFloat16, zed.TypeFloat32, zed.TypeFloat64, zed.TypeBytes, zed.TypeIP, zed.TypeNet, zed.TypeType, zed.TypeNull:
+	case zed.TypeTime:
+		values := make([]nano.Ts, 0)
+		for {
+			bytes, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, zed.DecodeTime(bytes))
+		}
+		vector := &times{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeUint8, zed.TypeUint16, zed.TypeUint32, zed.TypeUint64:
+		values := make([]uint64, 0)
+		for {
+			bytes, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, zed.DecodeUint(bytes))
+		}
+		vector := &uints{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeType, zed.TypeNull:
 		return nil, fmt.Errorf("TODO vector.read: %T", typ)
 
 	default:
