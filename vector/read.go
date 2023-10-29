@@ -66,6 +66,7 @@ func read(reader vngVector.Reader) (any, error) {
 		return vector, nil
 
 	case *vngVector.DictReader:
+		// TODO Would we be better off with a dicts vector?
 		return readPrimitive(reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case *vngVector.MapReader:
@@ -158,6 +159,7 @@ func read(reader vngVector.Reader) (any, error) {
 	}
 }
 
+// TODO This is likely to be a bottleneck. If so, inline `readBytes` and `zed.Decode*`.
 func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) {
 	switch typ {
 	case zed.TypeBool:
