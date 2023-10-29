@@ -225,6 +225,8 @@ func (p *PrimitiveReader) next() error {
 }
 
 type DictReader struct {
+	Typ zed.Type
+
 	segmap    []Segment
 	reader    io.ReaderAt
 	dict      []DictEntry
@@ -234,6 +236,7 @@ type DictReader struct {
 
 func NewDictReader(primitive *Primitive, reader io.ReaderAt) *DictReader {
 	return &DictReader{
+		Typ:    primitive.Typ,
 		reader: reader,
 		segmap: primitive.Segmap,
 		dict:   primitive.Dict,
@@ -241,14 +244,14 @@ func NewDictReader(primitive *Primitive, reader io.ReaderAt) *DictReader {
 }
 
 func (d *DictReader) Read(b *zcode.Builder) error {
-	bytes, err := d.read()
+	bytes, err := d.ReadBytes()
 	if err == nil {
 		b.Append(bytes)
 	}
 	return err
 }
 
-func (d *DictReader) read() (zcode.Bytes, error) {
+func (d *DictReader) ReadBytes() (zcode.Bytes, error) {
 	if d.off >= len(d.selectors) {
 		if len(d.segmap) == 0 {
 			return nil, io.EOF
@@ -280,12 +283,13 @@ func (d *DictReader) next() error {
 }
 
 type ConstReader struct {
+	Typ   zed.Type
 	bytes zcode.Bytes
 	cnt   uint32
 }
 
 func NewConstReader(c *Const) *ConstReader {
-	return &ConstReader{bytes: c.Value.Bytes(), cnt: c.Count}
+	return &ConstReader{Typ: c.Value.Type, bytes: c.Value.Bytes(), cnt: c.Count}
 }
 
 func (c *ConstReader) Read(b *zcode.Builder) error {

@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/vng"
 	vngVector "github.com/brimdata/zed/vng/vector"
+	"github.com/brimdata/zed/zcode"
 
 	"github.com/RoaringBitmap/roaring"
 )
@@ -53,11 +54,19 @@ func read(reader vngVector.Reader) (any, error) {
 		return vector, nil
 
 	case *vngVector.ConstReader:
-		// Why does const have a count?
-		panic("TODO")
+		var builder zcode.Builder
+		err := reader.Read(&builder)
+		if err != nil {
+			return nil, err
+		}
+		value := zed.NewValue(reader.Typ, builder.Bytes())
+		vector := &constants{
+			value: *value,
+		}
+		return vector, nil
 
 	case *vngVector.DictReader:
-		panic("TODO")
+		return readPrimitive(reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case *vngVector.MapReader:
 		keys, err := read(reader.Keys)
@@ -109,11 +118,11 @@ func read(reader vngVector.Reader) (any, error) {
 		return vector, nil
 
 	case *vngVector.PrimitiveReader:
-		return readPrimitive(reader)
+		return readPrimitive(reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
-	case *vngVector.RecordReader:
-		fields := make([]any, len(*reader))
-		for i, fieldReader := range *reader {
+	case vngVector.RecordReader: // Not a typo - RecordReader does not have a pointer receiver.
+		fields := make([]any, len(reader))
+		for i, fieldReader := range reader {
 			field, err := read(fieldReader.Values)
 			if err != nil {
 				return nil, err
@@ -149,12 +158,12 @@ func read(reader vngVector.Reader) (any, error) {
 	}
 }
 
-func readPrimitive(reader *vngVector.PrimitiveReader) (any, error) {
-	switch reader.Typ {
+func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) {
+	switch typ {
 	case zed.TypeBool:
 		values := make([]bool, 0)
 		for {
-			bytes, err := reader.ReadBytes()
+			bytes, err := readBytes()
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -172,7 +181,7 @@ func readPrimitive(reader *vngVector.PrimitiveReader) (any, error) {
 	case zed.TypeUint8, zed.TypeUint16, zed.TypeUint32, zed.TypeUint64:
 		values := make([]uint64, 0)
 		for {
-			bytes, err := reader.ReadBytes()
+			bytes, err := readBytes()
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -190,7 +199,7 @@ func readPrimitive(reader *vngVector.PrimitiveReader) (any, error) {
 	case zed.TypeInt8, zed.TypeInt16, zed.TypeInt32, zed.TypeInt64:
 		values := make([]int64, 0)
 		for {
-			bytes, err := reader.ReadBytes()
+			bytes, err := readBytes()
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -208,7 +217,7 @@ func readPrimitive(reader *vngVector.PrimitiveReader) (any, error) {
 	case zed.TypeString:
 		values := make([]string, 0)
 		for {
-			bytes, err := reader.ReadBytes()
+			bytes, err := readBytes()
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -224,10 +233,10 @@ func readPrimitive(reader *vngVector.PrimitiveReader) (any, error) {
 		return vector, nil
 
 	case zed.TypeDuration, zed.TypeTime, zed.TypeFloat16, zed.TypeFloat32, zed.TypeFloat64, zed.TypeBytes, zed.TypeIP, zed.TypeNet, zed.TypeType, zed.TypeNull:
-		panic("TODO")
+		return nil, fmt.Errorf("TODO vector.read: %T", typ)
 
 	default:
-		return nil, fmt.Errorf("unknown VNG type: %T", reader.Typ)
+		return nil, fmt.Errorf("unknown VNG type: %T", typ)
 	}
 }
 
