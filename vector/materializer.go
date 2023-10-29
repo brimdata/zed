@@ -3,7 +3,50 @@ package vector
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zio"
 )
+
+func (vector *Vector) NewMaterializer() Materializer {
+	materializers := make([]materializer, len(vector.Types))
+	for i, value := range vector.values {
+		materializers[i] = value.newMaterializer()
+	}
+	return Materializer{
+		vector:        vector,
+		materializers: materializers,
+	}
+}
+
+type Materializer struct {
+	vector        *Vector
+	materializers []materializer
+	index         int
+	builder       zcode.Builder
+	value         zed.Value
+}
+
+var _ zio.Reader = (*Materializer)(nil)
+
+func (m *Materializer) Read() (*zed.Value, error) {
+	if m.index >= len(m.vector.tags) {
+		return nil, nil
+	}
+	tag := m.vector.tags[m.index]
+	typ := m.vector.Types[tag]
+	m.builder.Truncate()
+	m.materializers[tag](&m.builder)
+	m.value = *zed.NewValue(typ, m.builder.Bytes().Body())
+	return &m.value, nil
+}
+
+// TODO This exists as a builtin in go 1.21
+func min(a int, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
 
 type materializer func(*zcode.Builder)
 
