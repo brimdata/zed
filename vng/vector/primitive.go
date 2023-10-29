@@ -173,6 +173,8 @@ func sortDict(entries []DictEntry, cmp expr.CompareFn) {
 }
 
 type PrimitiveReader struct {
+	Typ zed.Type
+
 	segmap []Segment
 	reader io.ReaderAt
 
@@ -182,20 +184,21 @@ type PrimitiveReader struct {
 
 func NewPrimitiveReader(primitive *Primitive, reader io.ReaderAt) *PrimitiveReader {
 	return &PrimitiveReader{
+		Typ:    primitive.Typ,
 		reader: reader,
 		segmap: primitive.Segmap,
 	}
 }
 
 func (p *PrimitiveReader) Read(b *zcode.Builder) error {
-	zv, err := p.read()
+	zv, err := p.ReadBytes()
 	if err == nil {
 		b.Append(zv)
 	}
 	return err
 }
 
-func (p *PrimitiveReader) read() (zcode.Bytes, error) {
+func (p *PrimitiveReader) ReadBytes() (zcode.Bytes, error) {
 	if p.it == nil || p.it.Done() {
 		if len(p.segmap) == 0 {
 			return nil, io.EOF

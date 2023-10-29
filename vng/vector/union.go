@@ -59,8 +59,8 @@ func (u *UnionWriter) Metadata() Metadata {
 }
 
 type UnionReader struct {
-	readers []Reader
-	tags    *Int64Reader
+	Readers []Reader
+	Tags    *Int64Reader
 }
 
 func NewUnionReader(union *Union, r io.ReaderAt) (*UnionReader, error) {
@@ -73,22 +73,22 @@ func NewUnionReader(union *Union, r io.ReaderAt) (*UnionReader, error) {
 		readers = append(readers, reader)
 	}
 	return &UnionReader{
-		readers: readers,
-		tags:    NewInt64Reader(union.Tags, r),
+		Readers: readers,
+		Tags:    NewInt64Reader(union.Tags, r),
 	}, nil
 }
 
 func (u *UnionReader) Read(b *zcode.Builder) error {
-	tag, err := u.tags.Read()
+	tag, err := u.Tags.Read()
 	if err != nil {
 		return err
 	}
-	if tag < 0 || int(tag) >= len(u.readers) {
+	if tag < 0 || int(tag) >= len(u.Readers) {
 		return errors.New("bad tag in VNG union reader")
 	}
 	b.BeginContainer()
 	b.Append(zed.EncodeInt(tag))
-	if err := u.readers[tag].Read(b); err != nil {
+	if err := u.Readers[tag].Read(b); err != nil {
 		return err
 	}
 	b.EndContainer()

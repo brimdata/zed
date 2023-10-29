@@ -5,11 +5,11 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
+// len(values) == len(Types)
 type Vector struct {
 	Types  []zed.Type
-	Length int
-	values []any   // len(values) == len(Types)
-	tags   []int64 // len(tags) == Len
+	values []any
+	tags   []int64
 }
 
 // Materialize a `Value`.
@@ -20,7 +20,7 @@ func (vector *Vector) NewMaterializer() Materializer {
 	var index int
 	var builder zcode.Builder
 	types := vector.Types
-	length := vector.Length
+	length := len(vector.tags)
 	tags := vector.tags
 	materializers := make([]materializer, len(vector.Types))
 	for i, value := range vector.values {

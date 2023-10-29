@@ -81,7 +81,7 @@ func (vector *nulls) newMaterializer() materializer {
 	var index int
 	valueMaterializer := vector.values.newMaterializer()
 	return func(builder *zcode.Builder) {
-		if vector.Has(int64(index)) {
+		if vector.mask.ContainsInt(index) {
 			valueMaterializer(builder)
 		} else {
 			builder.Append(nil)

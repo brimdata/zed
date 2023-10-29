@@ -63,9 +63,9 @@ func (m *MapWriter) Metadata() Metadata {
 }
 
 type MapReader struct {
-	keys    Reader
-	values  Reader
-	lengths *Int64Reader
+	Keys    Reader
+	Values  Reader
+	Lengths *Int64Reader
 }
 
 func NewMapReader(m *Map, r io.ReaderAt) (*MapReader, error) {
@@ -78,23 +78,23 @@ func NewMapReader(m *Map, r io.ReaderAt) (*MapReader, error) {
 		return nil, err
 	}
 	return &MapReader{
-		keys:    keys,
-		values:  values,
-		lengths: NewInt64Reader(m.Lengths, r),
+		Keys:    keys,
+		Values:  values,
+		Lengths: NewInt64Reader(m.Lengths, r),
 	}, nil
 }
 
 func (m *MapReader) Read(b *zcode.Builder) error {
-	len, err := m.lengths.Read()
+	len, err := m.Lengths.Read()
 	if err != nil {
 		return err
 	}
 	b.BeginContainer()
 	for k := 0; k < int(len); k++ {
-		if err := m.keys.Read(b); err != nil {
+		if err := m.Keys.Read(b); err != nil {
 			return err
 		}
-		if err := m.values.Read(b); err != nil {
+		if err := m.Values.Read(b); err != nil {
 			return err
 		}
 	}

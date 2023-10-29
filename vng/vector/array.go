@@ -48,8 +48,8 @@ func (a *ArrayWriter) Metadata() Metadata {
 }
 
 type ArrayReader struct {
-	elems   Reader
-	lengths *Int64Reader
+	Elems   Reader
+	Lengths *Int64Reader
 }
 
 func NewArrayReader(array *Array, r io.ReaderAt) (*ArrayReader, error) {
@@ -58,19 +58,19 @@ func NewArrayReader(array *Array, r io.ReaderAt) (*ArrayReader, error) {
 		return nil, err
 	}
 	return &ArrayReader{
-		elems:   elems,
-		lengths: NewInt64Reader(array.Lengths, r),
+		Elems:   elems,
+		Lengths: NewInt64Reader(array.Lengths, r),
 	}, nil
 }
 
 func (a *ArrayReader) Read(b *zcode.Builder) error {
-	len, err := a.lengths.Read()
+	len, err := a.Lengths.Read()
 	if err != nil {
 		return err
 	}
 	b.BeginContainer()
 	for k := 0; k < int(len); k++ {
-		if err := a.elems.Read(b); err != nil {
+		if err := a.Elems.Read(b); err != nil {
 			return err
 		}
 	}
