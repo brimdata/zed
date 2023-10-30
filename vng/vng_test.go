@@ -106,10 +106,10 @@ func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) 
 		valueOut := valuesOut[i]
 		t.Logf("comparing: in[%v]=%v vs out[%v]=%v", i, zson.String(&valueIn), i, zson.String(&valueOut))
 		if !bytes.Equal(zed.EncodeTypeValue(valueIn.Type), zed.EncodeTypeValue(valueOut.Type)) {
-			t.Errorf("values have different types: %v %v", valueIn.Type, valueOut.Type)
+			t.Errorf("values have different types: %v vs %v", valueIn.Type, valueOut.Type)
 		}
 		if !bytes.Equal(valueIn.Bytes(), valueOut.Bytes()) {
-			t.Errorf("values have different zng bytes: %v %v", valueIn.Bytes(), valueOut.Bytes())
+			t.Errorf("values have different zng bytes: %v vs %v", valueIn.Bytes(), valueOut.Bytes())
 		}
 	}
 	for i := range valuesOut[len(valuesIn):] {
