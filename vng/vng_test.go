@@ -214,7 +214,12 @@ func genValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcod
 			}
 			builder.TransformContainer(zed.NormalizeSet)
 			builder.EndContainer()
-		// TODO TypeUnion
+		case *zed.TypeUnion:
+			tag := binary.LittleEndian.Uint64(genBytes(b, 8)) % uint64(len(typ.Types))
+			builder.BeginContainer()
+			builder.Append(zed.EncodeInt(int64(tag)))
+			genValue(b, context, typ.Types[tag], builder)
+			builder.EndContainer()
 		default:
 			panic("Unreachable")
 		}
@@ -277,7 +282,7 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 		}
 	} else {
 		depth := depth - 1
-		switch genByte(b) % 4 {
+		switch genByte(b) % 5 {
 		case 0:
 			fieldTypes := genTypes(b, context, depth)
 			fields := make([]zed.Field, len(fieldTypes))
@@ -302,7 +307,9 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 		case 3:
 			elem := genType(b, context, depth)
 			return context.LookupTypeSet(elem)
-			// TODO TypeUnion
+		case 4:
+			types := genTypes(b, context, depth)
+			return context.LookupTypeUnion(types)
 		default:
 			panic("Unreachable")
 		}
