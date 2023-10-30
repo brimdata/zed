@@ -175,7 +175,7 @@ func (o *Object) newSectionReader(level int, sectionOff int64) *zngio.Reader {
 	off += sectionOff
 	len -= sectionOff
 	reader := io.NewSectionReader(o.readerAt, off, len)
-	return zngio.NewReader(o.zctx, reader)
+	return zngio.NewReaderWithOpts(o.zctx, reader, zngio.ReaderOpts{Threads: 1})
 }
 
 func (o *Object) NewReassemblyReader() *zngio.Reader {
