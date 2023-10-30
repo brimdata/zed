@@ -31,6 +31,12 @@ func FuzzVngRoundtrip(f *testing.F) {
 }
 
 func roundtrip(t *testing.T, valuesIn []zed.Value) {
+	// Debug
+	//for i := range valuesIn {
+	//    t.Logf("value: in[%v].Bytes()=%v", i, valuesIn[i].Bytes())
+	//    t.Logf("value: in[%v]=%v", i, zson.String(&valuesIn[i]))
+	//}
+
 	// Write
 	var fileIn mockFile
 	writer, err := vngio.NewWriter(&fileIn, vngio.WriterOpts{ColumnThresh: vngio.DefaultColumnThresh, SkewThresh: vngio.DefaultSkewThresh})
@@ -93,92 +99,88 @@ func roundtrip(t *testing.T, valuesIn []zed.Value) {
 
 func genValues(b *bytes.Reader, types []zed.Type) []zed.Value {
 	values := make([]zed.Value, 0)
+	var builder zcode.Builder
 	for genByte(b) != 0 {
-		values = append(values, *genValue(b, types))
+		typ := types[int(genByte(b))%len(types)]
+		builder.Reset()
+		genValue(b, typ, &builder)
+		it := builder.Bytes().Iter()
+		values = append(values, *zed.NewValue(typ, it.Next()).Copy())
 	}
 	return values
 }
 
-func genValue(b *bytes.Reader, types []zed.Type) *zed.Value {
-	typ := types[int(genByte(b))%len(types)]
+func genValue(b *bytes.Reader, typ zed.Type, builder *zcode.Builder) {
 	if genByte(b) == 0 {
-		return zed.NewValue(typ, nil)
+		builder.Append(nil)
+		return
 	}
 	switch typ {
 	case zed.TypeUint8:
-		return zed.NewUint8(genByte(b))
+		builder.Append(zed.EncodeUint(uint64(genByte(b))))
 	case zed.TypeUint16:
-		return zed.NewUint16(binary.LittleEndian.Uint16(genBytes(b, 2)))
+		builder.Append(zed.EncodeUint(uint64(binary.LittleEndian.Uint16(genBytes(b, 2)))))
 	case zed.TypeUint32:
-		return zed.NewUint32(binary.LittleEndian.Uint32(genBytes(b, 4)))
+		builder.Append(zed.EncodeUint(uint64(binary.LittleEndian.Uint32(genBytes(b, 4)))))
 	case zed.TypeUint64:
-		return zed.NewUint64(binary.LittleEndian.Uint64(genBytes(b, 8)))
+		builder.Append(zed.EncodeUint(uint64(binary.LittleEndian.Uint64(genBytes(b, 8)))))
 	case zed.TypeInt8:
-		return zed.NewInt8(int8(genByte(b)))
+		builder.Append(zed.EncodeInt(int64(genByte(b))))
 	case zed.TypeInt16:
-		return zed.NewInt16(int16(binary.LittleEndian.Uint16(genBytes(b, 2))))
+		builder.Append(zed.EncodeInt(int64(binary.LittleEndian.Uint16(genBytes(b, 2)))))
 	case zed.TypeInt32:
-		return zed.NewInt32(int32(binary.LittleEndian.Uint32(genBytes(b, 4))))
+		builder.Append(zed.EncodeInt(int64(binary.LittleEndian.Uint32(genBytes(b, 4)))))
 	case zed.TypeInt64:
-		return zed.NewInt64(int64(binary.LittleEndian.Uint64(genBytes(b, 8))))
+		builder.Append(zed.EncodeInt(int64(binary.LittleEndian.Uint64(genBytes(b, 8)))))
 	case zed.TypeDuration:
-		return zed.NewDuration(nano.Duration(int64(binary.LittleEndian.Uint64(genBytes(b, 8)))))
+		builder.Append(zed.EncodeDuration(nano.Duration(int64(binary.LittleEndian.Uint64(genBytes(b, 8))))))
 	case zed.TypeTime:
-		return zed.NewTime(nano.Ts(int64(binary.LittleEndian.Uint64(genBytes(b, 8)))))
+		builder.Append(zed.EncodeTime(nano.Ts(int64(binary.LittleEndian.Uint64(genBytes(b, 8))))))
 	case zed.TypeFloat16:
 		panic("Unreachable")
 	case zed.TypeFloat32:
-		return zed.NewFloat32(math.Float32frombits(binary.LittleEndian.Uint32(genBytes(b, 4))))
+		builder.Append(zed.EncodeFloat32(math.Float32frombits(binary.LittleEndian.Uint32(genBytes(b, 4)))))
 	case zed.TypeFloat64:
-		return zed.NewFloat64(math.Float64frombits(binary.LittleEndian.Uint64(genBytes(b, 8))))
+		builder.Append(zed.EncodeFloat64(math.Float64frombits(binary.LittleEndian.Uint64(genBytes(b, 8)))))
 	case zed.TypeBool:
-		return zed.NewBool(genByte(b) > 0)
+		builder.Append(zed.EncodeBool(genByte(b) > 0))
 	case zed.TypeBytes:
-		return zed.NewBytes(genBytes(b, int(genByte(b))))
+		builder.Append(zed.EncodeBytes(genBytes(b, int(genByte(b)))))
 	case zed.TypeString:
-		return zed.NewString(string(genBytes(b, int(genByte(b)))))
+		builder.Append(zed.EncodeString(string(genBytes(b, int(genByte(b))))))
 	case zed.TypeIP, zed.TypeNet, zed.TypeType:
 		panic("Unreachable")
 	case zed.TypeNull:
-		return zed.Null
+		builder.Append(nil)
 	default:
 		switch typ := typ.(type) {
 		case *zed.TypeRecord:
-			var builder zcode.Builder
+			builder.BeginContainer()
 			for _, field := range typ.Fields {
-				value := genValue(b, []zed.Type{field.Type})
-				builder.BeginContainer()
-				builder.Append(value.Bytes())
-				builder.EndContainer()
+				genValue(b, field.Type, builder)
 			}
-			return zed.NewValue(typ, builder.Bytes())
+			builder.EndContainer()
 		case *zed.TypeArray:
-			elems := genValues(b, []zed.Type{typ.Type})
-			var builder zcode.Builder
-			for _, elem := range elems {
-				builder.BeginContainer()
-				builder.Append(elem.Bytes())
-				builder.EndContainer()
-			}
-			return zed.NewValue(typ, builder.Bytes())
-		case *zed.TypeMap:
-			var builder zcode.Builder
+			builder.BeginContainer()
 			for genByte(b) != 0 {
-				builder.BeginContainer()
-				builder.Append(genValue(b, []zed.Type{typ.KeyType}).Bytes())
-				builder.Append(genValue(b, []zed.Type{typ.ValType}).Bytes())
-				builder.EndContainer()
+				genValue(b, typ.Type, builder)
 			}
-			return zed.NewValue(typ, zed.NormalizeMap(builder.Bytes()))
+			builder.EndContainer()
+		case *zed.TypeMap:
+			builder.BeginContainer()
+			for genByte(b) != 0 {
+				genValue(b, typ.KeyType, builder)
+				genValue(b, typ.ValType, builder)
+			}
+			builder.TransformContainer(zed.NormalizeMap)
+			builder.EndContainer()
 		case *zed.TypeSet:
-			elems := genValues(b, []zed.Type{typ.Type})
-			var builder zcode.Builder
-			for _, elem := range elems {
-				builder.BeginContainer()
-				builder.Append(elem.Bytes())
-				builder.EndContainer()
+			builder.BeginContainer()
+			for genByte(b) != 0 {
+				genValue(b, typ.Type, builder)
 			}
-			return zed.NewValue(typ, zed.NormalizeSet(builder.Bytes()))
+			builder.TransformContainer(zed.NormalizeSet)
+			builder.EndContainer()
 		// TODO TypeUnion
 		default:
 			panic("Unreachable")
