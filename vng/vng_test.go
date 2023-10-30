@@ -3,11 +3,13 @@ package vng_test
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math"
 	"testing"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zson"
 )
@@ -20,71 +22,76 @@ func (f *mockFile) Close() error { return nil }
 
 func FuzzVngRoundtrip(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
-		valuesIn := genValues(bytes.NewReader(b))
-
-		// Write
-		var fileIn mockFile
-		writer, err := vngio.NewWriter(&fileIn, vngio.WriterOpts{ColumnThresh: vngio.DefaultColumnThresh, SkewThresh: vngio.DefaultSkewThresh})
-		if err != nil {
-			t.Errorf("%v", err)
-		}
-		for i := range valuesIn {
-			err := writer.Write(&valuesIn[i])
-			if err != nil {
-				t.Errorf("%v", err)
-			}
-		}
-		err = writer.Close()
-		if err != nil {
-			t.Errorf("%v", err)
-		}
-
-		// Read
-		fileOut := bytes.NewReader(fileIn.Bytes())
+		bytesReader := bytes.NewReader(b)
 		context := zed.NewContext()
-		reader, err := vngio.NewReader(context, fileOut)
-		if err != nil {
-			t.Errorf("%v", err)
-		}
-		valuesOut := make([]zed.Value, 0, len(valuesIn))
-		for {
-			value, err := reader.Read()
-			if err != nil {
-				t.Errorf("%v", err)
-			}
-			if value == nil {
-				break
-			}
-			// Avoid reusing the bytes buffer in `reader`.
-			value = zed.NewValue(value.Type, bytes.Clone(value.Bytes()))
-			valuesOut = append(valuesOut, *value)
-		}
-
-		// Compare
-		t.Logf("comparing: len(in)=%v vs len(out)=%v", len(valuesIn), len(valuesOut))
-		for i := range valuesIn {
-			if i >= len(valuesOut) {
-				t.Errorf("missing value: in[%v]=%v", i, valuesIn[i])
-				continue
-			}
-			valueIn := valuesIn[i]
-			valueOut := valuesOut[i]
-			t.Logf("comparing: in[%v]=%v vs out[%v]=%v", i, zson.String(&valueIn), i, zson.String(&valueOut))
-			if valueIn.Type != valueOut.Type {
-				t.Errorf("values have different types: %v %v", valueIn.Type, valueOut.Type)
-			}
-			if !bytes.Equal(valueIn.Bytes(), valueOut.Bytes()) {
-				t.Errorf("values have different zng bytes: %v %v", valueIn.Bytes(), valueOut.Bytes())
-			}
-		}
-		for i, value := range valuesOut[len(valuesIn):] {
-			t.Errorf("extra value: out[%v]=%v", i, value)
-		}
+		types := genTypes(bytesReader, context)
+		values := genValues(bytesReader, types)
+		roundtrip(t, values)
 	})
 }
 
-func genValues(b *bytes.Reader) []zed.Value {
-	types := genTypes(b)
+func roundtrip(t *testing.T, valuesIn []zed.Value) {
+	// Write
+	var fileIn mockFile
+	writer, err := vngio.NewWriter(&fileIn, vngio.WriterOpts{ColumnThresh: vngio.DefaultColumnThresh, SkewThresh: vngio.DefaultSkewThresh})
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	for i := range valuesIn {
+		err := writer.Write(&valuesIn[i])
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+	err = writer.Close()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	// Read
+	fileOut := bytes.NewReader(fileIn.Bytes())
+	context := zed.NewContext()
+	reader, err := vngio.NewReader(context, fileOut)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	valuesOut := make([]zed.Value, 0, len(valuesIn))
+	for {
+		value, err := reader.Read()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if value == nil {
+			break
+		}
+		valuesOut = append(valuesOut, *(value.Copy()))
+	}
+
+	// Compare
+	t.Logf("comparing: len(in)=%v vs len(out)=%v", len(valuesIn), len(valuesOut))
+	for i := range valuesIn {
+		if i >= len(valuesOut) {
+			t.Errorf("missing value: in[%v].Bytes()=%v", i, valuesIn[i].Bytes())
+			t.Errorf("missing value: in[%v]=%v", i, zson.String(&valuesIn[i]))
+			continue
+		}
+		valueIn := valuesIn[i]
+		valueOut := valuesOut[i]
+		t.Logf("comparing: in[%v]=%v vs out[%v]=%v", i, zson.String(&valueIn), i, zson.String(&valueOut))
+		if !bytes.Equal(zed.EncodeTypeValue(valueIn.Type), zed.EncodeTypeValue(valueOut.Type)) {
+			t.Errorf("values have different types: %v %v", valueIn.Type, valueOut.Type)
+		}
+		if !bytes.Equal(valueIn.Bytes(), valueOut.Bytes()) {
+			t.Errorf("values have different zng bytes: %v %v", valueIn.Bytes(), valueOut.Bytes())
+		}
+	}
+	for i := range valuesOut[len(valuesIn):] {
+		t.Errorf("extra value: out[%v].Bytes()=%v", i, valuesOut[i].Bytes())
+		t.Errorf("extra value: out[%v]=%v", i, zson.String(&valuesOut[i]))
+	}
+}
+
+func genValues(b *bytes.Reader, types []zed.Type) []zed.Value {
 	values := make([]zed.Value, 0)
 	for genByte(b) != 0 {
 		values = append(values, *genValue(b, types))
@@ -135,21 +142,62 @@ func genValue(b *bytes.Reader, types []zed.Type) *zed.Value {
 	case zed.TypeNull:
 		return zed.Null
 	default:
-		panic("Unreachable")
+		switch typ := typ.(type) {
+		case *zed.TypeRecord:
+			var builder zcode.Builder
+			builder.BeginContainer()
+			for _, field := range typ.Fields {
+				value := genValue(b, []zed.Type{field.Type})
+				builder.Append(value.Bytes())
+			}
+			builder.EndContainer()
+			return zed.NewValue(typ, builder.Bytes())
+		case *zed.TypeArray:
+			elems := genValues(b, []zed.Type{typ.Type})
+			var builder zcode.Builder
+			builder.BeginContainer()
+			for _, elem := range elems {
+				builder.Append(elem.Bytes())
+			}
+			builder.EndContainer()
+			return zed.NewValue(typ, builder.Bytes())
+		case *zed.TypeMap:
+			var builder zcode.Builder
+			builder.BeginContainer()
+			for genByte(b) != 0 {
+				builder.Append(genValue(b, []zed.Type{typ.KeyType}).Bytes())
+				builder.Append(genValue(b, []zed.Type{typ.ValType}).Bytes())
+			}
+			builder.TransformContainer(zed.NormalizeMap)
+			builder.EndContainer()
+			return zed.NewValue(typ, builder.Bytes())
+		case *zed.TypeSet:
+			elems := genValues(b, []zed.Type{typ.Type})
+			var builder zcode.Builder
+			builder.BeginContainer()
+			for _, elem := range elems {
+				builder.Append(elem.Bytes())
+			}
+			builder.TransformContainer(zed.NormalizeSet)
+			builder.EndContainer()
+			return zed.NewValue(typ, builder.Bytes())
+		// TODO TypeUnion
+		default:
+			panic("Unreachable")
+		}
 	}
 }
 
-func genTypes(b *bytes.Reader) []zed.Type {
+func genTypes(b *bytes.Reader, context *zed.Context) []zed.Type {
 	types := make([]zed.Type, 0)
 	for len(types) == 0 || genByte(b) != 0 {
-		types = append(types, genType(b))
+		types = append(types, genType(b, context))
 	}
 	return types
 }
 
-func genType(b *bytes.Reader) zed.Type {
-	// TODO Compound types
-	switch genByte(b) % 19 {
+func genType(b *bytes.Reader, context *zed.Context) zed.Type {
+	switch genByte(b) % 23 {
 	case 0:
 		return zed.TypeUint8
 	case 1:
@@ -196,6 +244,31 @@ func genType(b *bytes.Reader) zed.Type {
 		return zed.TypeNull
 	case 18:
 		return zed.TypeNull
+	case 19:
+		fieldTypes := genTypes(b, context)
+		fields := make([]zed.Field, len(fieldTypes))
+		for i, fieldType := range fieldTypes {
+			fields[i] = zed.Field{
+				Name: fmt.Sprint(i),
+				Type: fieldType,
+			}
+		}
+		typ, err := context.LookupTypeRecord(fields)
+		if err != nil {
+			panic(err)
+		}
+		return typ
+	case 20:
+		elem := genType(b, context)
+		return context.LookupTypeArray(elem)
+	case 21:
+		key := genType(b, context)
+		value := genType(b, context)
+		return context.LookupTypeMap(key, value)
+	case 22:
+		elem := genType(b, context)
+		return context.LookupTypeSet(elem)
+		// TODO TypeUnion
 	default:
 		panic("Unreachable")
 	}
