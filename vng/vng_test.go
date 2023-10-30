@@ -6,26 +6,25 @@ import (
 	"math"
 	"testing"
 
-	"github.com/spf13/afero"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zson"
 )
 
+type mockFile struct {
+	bytes.Buffer
+}
+
+func (f *mockFile) Close() error { return nil }
+
 func FuzzVngRoundtrip(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		valuesIn := genValues(bytes.NewReader(b))
 
-		var Fs = afero.NewMemMapFs()
-
 		// Write
-		file, err := Fs.Create("test.vng")
-		if err != nil {
-			t.Errorf("%v", err)
-		}
-		writer, err := vngio.NewWriter(file, vngio.WriterOpts{ColumnThresh: vngio.DefaultColumnThresh, SkewThresh: vngio.DefaultSkewThresh})
+		var fileIn mockFile
+		writer, err := vngio.NewWriter(&fileIn, vngio.WriterOpts{ColumnThresh: vngio.DefaultColumnThresh, SkewThresh: vngio.DefaultSkewThresh})
 		if err != nil {
 			t.Errorf("%v", err)
 		}
@@ -41,12 +40,9 @@ func FuzzVngRoundtrip(f *testing.F) {
 		}
 
 		// Read
-		file, err = Fs.Open("test.vng")
-		if err != nil {
-			t.Errorf("%v", err)
-		}
+		fileOut := bytes.NewReader(fileIn.Bytes())
 		context := zed.NewContext()
-		reader, err := vngio.NewReader(context, file)
+		reader, err := vngio.NewReader(context, fileOut)
 		if err != nil {
 			t.Errorf("%v", err)
 		}
