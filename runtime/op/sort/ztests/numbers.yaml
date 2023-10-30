@@ -11,8 +11,13 @@ input: |
   32.32(float32)
   -64.64
   64.64
+  -Inf
+  +Inf
+  NaN
 
 output: |
+  NaN
+  -Inf
   -64.64
   -64
   -32.32(float32)
@@ -23,3 +28,4 @@ output: |
   32.32(float32)
   64(uint64)
   64.64
+  +Inf

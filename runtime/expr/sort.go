@@ -349,9 +349,10 @@ func LookupCompare(typ zed.Type) comparefn {
 	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 		return func(a, b zcode.Bytes) int {
 			va, vb := zed.DecodeFloat(a), zed.DecodeFloat(b)
-			if va < vb {
+			aNaN, bNaN := math.IsNaN(va), math.IsNaN(vb)
+			if va < vb || aNaN && !bNaN {
 				return -1
-			} else if va > vb {
+			} else if va > vb || bNaN && !aNaN {
 				return 1
 			}
 			return 0
