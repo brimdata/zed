@@ -24,7 +24,7 @@ func FuzzVngRoundtrip(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		bytesReader := bytes.NewReader(b)
 		context := zed.NewContext()
-		types := genTypes(bytesReader, context)
+		types := genTypes(bytesReader, context, 3)
 		values := genValues(bytesReader, types)
 		roundtrip(t, values)
 	})
@@ -186,89 +186,97 @@ func genValue(b *bytes.Reader, types []zed.Type) *zed.Value {
 	}
 }
 
-func genTypes(b *bytes.Reader, context *zed.Context) []zed.Type {
+func genTypes(b *bytes.Reader, context *zed.Context, depth int) []zed.Type {
 	types := make([]zed.Type, 0)
 	for len(types) == 0 || genByte(b) != 0 {
-		types = append(types, genType(b, context))
+		types = append(types, genType(b, context, depth))
 	}
 	return types
 }
 
-func genType(b *bytes.Reader, context *zed.Context) zed.Type {
-	switch genByte(b) % 23 {
-	case 0:
-		return zed.TypeUint8
-	case 1:
-		return zed.TypeUint16
-	case 2:
-		return zed.TypeUint32
-	case 3:
-		return zed.TypeUint64
-	case 4:
-		return zed.TypeInt8
-	case 5:
-		return zed.TypeInt16
-	case 6:
-		return zed.TypeInt32
-	case 7:
-		return zed.TypeInt64
-	case 8:
-		return zed.TypeDuration
-	case 9:
-		return zed.TypeTime
-	case 10:
-		// TODO Find a way to convert u16 to float16.
-		//return zed.TypeFloat16
-		return zed.TypeNull
-	case 11:
-		return zed.TypeFloat32
-	case 12:
-		return zed.TypeBool
-	case 13:
-		return zed.TypeBytes
-	case 14:
-		return zed.TypeString
-	case 15:
-		// TODO
-		//return zed.TypeIP
-		return zed.TypeNull
-	case 16:
-		// TODO
-		//return zed.TypeNet
-		return zed.TypeNull
-	case 17:
-		// TODO
-		//return zed.TypeType
-		return zed.TypeNull
-	case 18:
-		return zed.TypeNull
-	case 19:
-		fieldTypes := genTypes(b, context)
-		fields := make([]zed.Field, len(fieldTypes))
-		for i, fieldType := range fieldTypes {
-			fields[i] = zed.Field{
-				Name: fmt.Sprint(i),
-				Type: fieldType,
+func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
+	if depth < 0 || genByte(b)%2 == 0 {
+		switch genByte(b) % 19 {
+		case 0:
+			return zed.TypeUint8
+		case 1:
+			return zed.TypeUint16
+		case 2:
+			return zed.TypeUint32
+		case 3:
+			return zed.TypeUint64
+		case 4:
+			return zed.TypeInt8
+		case 5:
+			return zed.TypeInt16
+		case 6:
+			return zed.TypeInt32
+		case 7:
+			return zed.TypeInt64
+		case 8:
+			return zed.TypeDuration
+		case 9:
+			return zed.TypeTime
+		case 10:
+			// TODO Find a way to convert u16 to float16.
+			//return zed.TypeFloat16
+			return zed.TypeNull
+		case 11:
+			return zed.TypeFloat32
+		case 12:
+			return zed.TypeBool
+		case 13:
+			return zed.TypeBytes
+		case 14:
+			return zed.TypeString
+		case 15:
+			// TODO
+			//return zed.TypeIP
+			return zed.TypeNull
+		case 16:
+			// TODO
+			//return zed.TypeNet
+			return zed.TypeNull
+		case 17:
+			// TODO
+			//return zed.TypeType
+			return zed.TypeNull
+		case 18:
+			return zed.TypeNull
+		default:
+			panic("Unreachable")
+		}
+	} else {
+		depth := depth - 1
+		switch genByte(b) % 4 {
+		case 0:
+			fieldTypes := genTypes(b, context, depth)
+			fields := make([]zed.Field, len(fieldTypes))
+			for i, fieldType := range fieldTypes {
+				fields[i] = zed.Field{
+					Name: fmt.Sprint(i),
+					Type: fieldType,
+				}
 			}
+			typ, err := context.LookupTypeRecord(fields)
+			if err != nil {
+				panic(err)
+			}
+			return typ
+		case 1:
+			elem := genType(b, context, depth)
+			return context.LookupTypeArray(elem)
+		case 2:
+			key := genType(b, context, depth)
+			value := genType(b, context, depth)
+			return context.LookupTypeMap(key, value)
+		case 3:
+			elem := genType(b, context, depth)
+			return context.LookupTypeSet(elem)
+			// TODO TypeUnion
+		default:
+			panic("Unreachable")
 		}
-		typ, err := context.LookupTypeRecord(fields)
-		if err != nil {
-			panic(err)
-		}
-		return typ
-	case 20:
-		elem := genType(b, context)
-		return context.LookupTypeArray(elem)
-	case 21:
-		key := genType(b, context)
-		value := genType(b, context)
-		return context.LookupTypeMap(key, value)
-	case 22:
-		elem := genType(b, context)
-		return context.LookupTypeSet(elem)
-		// TODO TypeUnion
-	default:
-		panic("Unreachable")
 	}
 }
 
