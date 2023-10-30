@@ -26,6 +26,7 @@ var _ any = (*ips)(nil)
 var _ any = (*nets)(nil)
 var _ any = (*strings)(nil)
 var _ any = (*times)(nil)
+var _ any = (*types)(nil)
 var _ any = (*uints)(nil)
 
 var _ any = (*arrays)(nil)
@@ -82,6 +83,10 @@ type strings struct {
 
 type times struct {
 	values []nano.Ts
+}
+
+type types struct {
+	values []zed.Type
 }
 
 type uints struct {

@@ -6,7 +6,8 @@ import (
 
 // len(values) == len(Types)
 type Vector struct {
-	Types  []zed.Type
-	values []any
-	tags   []int64
+	Context *zed.Context
+	Types   []zed.Type
+	values  []any
+	tags    []int64
 }

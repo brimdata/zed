@@ -16,6 +16,7 @@ import (
 )
 
 func Read(reader *vng.Reader) (*Vector, error) {
+	context := zed.NewContext()
 	tags, err := readInt64s(reader.Root)
 	if err != nil {
 		return nil, err
@@ -23,22 +24,24 @@ func Read(reader *vng.Reader) (*Vector, error) {
 	types := make([]zed.Type, len(reader.Readers))
 	values := make([]any, len(reader.Readers))
 	for i, typedReader := range reader.Readers {
-		types[i] = typedReader.Typ
-		value, err := read(typedReader.Reader)
+		typ, _ := context.DecodeTypeValue(zed.EncodeTypeValue(typedReader.Typ))
+		types[i] = typ
+		value, err := read(context, typedReader.Reader)
 		if err != nil {
 			return nil, err
 		}
 		values[i] = value
 	}
 	vector := &Vector{
-		Types:  types,
-		values: values,
-		tags:   tags,
+		Context: context,
+		Types:   types,
+		values:  values,
+		tags:    tags,
 	}
 	return vector, nil
 }
 
-func read(reader vngVector.Reader) (any, error) {
+func read(context *zed.Context, reader vngVector.Reader) (any, error) {
 	switch reader := reader.(type) {
 
 	case *vngVector.ArrayReader:
@@ -46,7 +49,7 @@ func read(reader vngVector.Reader) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		elems, err := read(reader.Elems)
+		elems, err := read(context, reader.Elems)
 		if err != nil {
 			return nil, err
 		}
@@ -71,10 +74,10 @@ func read(reader vngVector.Reader) (any, error) {
 
 	case *vngVector.DictReader:
 		// TODO Would we be better off with a dicts vector?
-		return readPrimitive(reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
+		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case *vngVector.MapReader:
-		keys, err := read(reader.Keys)
+		keys, err := read(context, reader.Keys)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +85,7 @@ func read(reader vngVector.Reader) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		values, err := read(reader.Values)
+		values, err := read(context, reader.Values)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +115,7 @@ func read(reader vngVector.Reader) (any, error) {
 			maskBool = !maskBool
 			maskIndex += uint64(run)
 		}
-		values, err := read(reader.Values)
+		values, err := read(context, reader.Values)
 		if err != nil {
 			return nil, err
 		}
@@ -123,12 +126,12 @@ func read(reader vngVector.Reader) (any, error) {
 		return vector, nil
 
 	case *vngVector.PrimitiveReader:
-		return readPrimitive(reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
+		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case vngVector.RecordReader: // Not a typo - RecordReader does not have a pointer receiver.
 		fields := make([]any, len(reader))
 		for i, fieldReader := range reader {
-			field, err := read(fieldReader.Values)
+			field, err := read(context, fieldReader.Values)
 			if err != nil {
 				return nil, err
 			}
@@ -142,7 +145,7 @@ func read(reader vngVector.Reader) (any, error) {
 	case *vngVector.UnionReader:
 		payloads := make([]any, len(reader.Readers))
 		for i, reader := range reader.Readers {
-			payload, err := read(reader)
+			payload, err := read(context, reader)
 			if err != nil {
 				return nil, err
 			}
@@ -164,7 +167,7 @@ func read(reader vngVector.Reader) (any, error) {
 }
 
 // TODO This is likely to be a bottleneck. If so, inline `readBytes` and `zed.Decode*`.
-func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) {
+func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte, error)) (any, error) {
 	switch typ {
 	case zed.TypeBool:
 		values := make([]bool, 0)
@@ -388,8 +391,24 @@ func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) 
 		}
 		return vector, nil
 
-	case zed.TypeType, zed.TypeNull:
-		return nil, fmt.Errorf("TODO vector.read: %T", typ)
+	case zed.TypeType:
+		values := make([]zed.Type, 0)
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			typ, _ := context.DecodeTypeValue(bs)
+			values = append(values, typ)
+		}
+		vector := &types{
+			values: values,
+		}
+		return vector, nil
 
 	default:
 		return nil, fmt.Errorf("unknown VNG type: %T", typ)

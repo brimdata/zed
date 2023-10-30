@@ -131,6 +131,14 @@ func (vector *strings) newMaterializer() materializer {
 	}
 }
 
+func (vector *types) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeTypeValue(vector.values[index]))
+		index += 1
+	}
+}
+
 func (vector *times) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
