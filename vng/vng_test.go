@@ -151,6 +151,7 @@ func genTypes(b *bytes.Reader) []zed.Type {
 }
 
 func genType(b *bytes.Reader) zed.Type {
+	// TODO Compound types
 	switch genByte(b) % 19 {
 	case 0:
 		return zed.TypeUint8
