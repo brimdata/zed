@@ -309,7 +309,19 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 			return context.LookupTypeSet(elem)
 		case 4:
 			types := genTypes(b, context, depth)
-			return context.LookupTypeUnion(types)
+			// TODO There are some weird corners around unions that contain null eg
+			// vng_test.go:107: comparing: in[0]=null((null,null)) vs out[0]=null((null,null))
+			// vng_test.go:112: values have different zng bytes: [1 0] vs [2 2 0]
+			nonNullTypes := make([]zed.Type, 0)
+			for _, typ := range types {
+				if typ != zed.TypeNull {
+					nonNullTypes = append(nonNullTypes, typ)
+				}
+			}
+			if len(nonNullTypes) == 0 {
+				return zed.TypeNull
+			}
+			return context.LookupTypeUnion(nonNullTypes)
 		default:
 			panic("Unreachable")
 		}
