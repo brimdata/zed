@@ -380,6 +380,12 @@ func readPrimitive(typ zed.Type, readBytes func() ([]byte, error)) (any, error) 
 		}
 		return vector, nil
 
+	case zed.TypeNull:
+		vector := &constants{
+			value: *zed.NewValue(zed.TypeNull, nil),
+		}
+		return vector, nil
+
 	case zed.TypeType, zed.TypeNull:
 		return nil, fmt.Errorf("TODO vector.read: %T", typ)
 
