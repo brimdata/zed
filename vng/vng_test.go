@@ -59,6 +59,8 @@ func FuzzVngRoundtrip(f *testing.F) {
 			if value == nil {
 				break
 			}
+			// Avoid reusing the bytes buffer in `reader`.
+			value = zed.NewValue(value.Type, bytes.Clone(value.Bytes()))
 			valuesOut = append(valuesOut, *value)
 		}
 
