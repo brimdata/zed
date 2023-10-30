@@ -68,7 +68,8 @@ func FuzzVngRoundtrip(f *testing.F) {
 		t.Logf("comparing: len(in)=%v vs len(out)=%v", len(valuesIn), len(valuesOut))
 		for i := range valuesIn {
 			if i >= len(valuesOut) {
-				t.Errorf("missing value: %v", valuesIn[i])
+				t.Errorf("missing value: in[%v]=%v", i, valuesIn[i])
+				continue
 			}
 			valueIn := valuesIn[i]
 			valueOut := valuesOut[i]
@@ -80,8 +81,8 @@ func FuzzVngRoundtrip(f *testing.F) {
 				t.Errorf("values have different zng bytes: %v %v", valueIn.Bytes(), valueOut.Bytes())
 			}
 		}
-		for _, value := range valuesOut[len(valuesIn):] {
-			t.Errorf("extra value: %v", value)
+		for i, value := range valuesOut[len(valuesIn):] {
+			t.Errorf("extra value: out[%v]=%v", i, value)
 		}
 	})
 }
