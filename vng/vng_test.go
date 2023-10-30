@@ -28,7 +28,7 @@ func FuzzVngRoundtrip(f *testing.F) {
 		bytesReader := bytes.NewReader(b)
 		context := zed.NewContext()
 		types := genTypes(bytesReader, context, 3)
-		values := genValues(bytesReader, types)
+		values := genValues(bytesReader, context, types)
 		ColumnThresh := int(binary.LittleEndian.Uint64(genBytes(bytesReader, 8)))
 		if ColumnThresh == 0 {
 			ColumnThresh = 1
@@ -118,20 +118,20 @@ func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) 
 	}
 }
 
-func genValues(b *bytes.Reader, types []zed.Type) []zed.Value {
+func genValues(b *bytes.Reader, context *zed.Context, types []zed.Type) []zed.Value {
 	values := make([]zed.Value, 0)
 	var builder zcode.Builder
 	for genByte(b) != 0 {
 		typ := types[int(genByte(b))%len(types)]
 		builder.Reset()
-		genValue(b, typ, &builder)
+		genValue(b, context, typ, &builder)
 		it := builder.Bytes().Iter()
 		values = append(values, *zed.NewValue(typ, it.Next()).Copy())
 	}
 	return values
 }
 
-func genValue(b *bytes.Reader, typ zed.Type, builder *zcode.Builder) {
+func genValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcode.Builder) {
 	if genByte(b) == 0 {
 		builder.Append(nil)
 		return
@@ -181,7 +181,8 @@ func genValue(b *bytes.Reader, typ zed.Type, builder *zcode.Builder) {
 		}
 		builder.Append(zed.EncodeNet(net))
 	case zed.TypeType:
-		panic("Unreachable")
+		typ := genType(b, context, 3)
+		builder.Append(zed.EncodeTypeValue(typ))
 	case zed.TypeNull:
 		builder.Append(nil)
 	default:
@@ -189,27 +190,27 @@ func genValue(b *bytes.Reader, typ zed.Type, builder *zcode.Builder) {
 		case *zed.TypeRecord:
 			builder.BeginContainer()
 			for _, field := range typ.Fields {
-				genValue(b, field.Type, builder)
+				genValue(b, context, field.Type, builder)
 			}
 			builder.EndContainer()
 		case *zed.TypeArray:
 			builder.BeginContainer()
 			for genByte(b) != 0 {
-				genValue(b, typ.Type, builder)
+				genValue(b, context, typ.Type, builder)
 			}
 			builder.EndContainer()
 		case *zed.TypeMap:
 			builder.BeginContainer()
 			for genByte(b) != 0 {
-				genValue(b, typ.KeyType, builder)
-				genValue(b, typ.ValType, builder)
+				genValue(b, context, typ.KeyType, builder)
+				genValue(b, context, typ.ValType, builder)
 			}
 			builder.TransformContainer(zed.NormalizeMap)
 			builder.EndContainer()
 		case *zed.TypeSet:
 			builder.BeginContainer()
 			for genByte(b) != 0 {
-				genValue(b, typ.Type, builder)
+				genValue(b, context, typ.Type, builder)
 			}
 			builder.TransformContainer(zed.NormalizeSet)
 			builder.EndContainer()
@@ -268,9 +269,7 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 		case 16:
 			return zed.TypeNet
 		case 17:
-			// TODO
-			//return zed.TypeType
-			return zed.TypeNull
+			return zed.TypeType
 		case 18:
 			return zed.TypeNull
 		default:
