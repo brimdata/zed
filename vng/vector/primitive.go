@@ -31,9 +31,13 @@ type PrimitiveWriter struct {
 
 func NewPrimitiveWriter(typ zed.Type, spiller *Spiller, useDict bool) *PrimitiveWriter {
 	var dict map[string]uint32
-	if useDict {
-		dict = make(map[string]uint32)
-	}
+	//TODO
+	// Something in dicts is broken.
+	// Calls to makeDictVector and Metadata occasionally return differing dicts.
+	// This may be due sorting not absolutely determining order, so that the map iterator order is sometimes exposed?
+	//if useDict {
+	//    dict = make(map[string]uint32)
+	//}
 	return &PrimitiveWriter{
 		typ:     typ,
 		spiller: spiller,
