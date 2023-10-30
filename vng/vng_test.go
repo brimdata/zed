@@ -35,17 +35,17 @@ func roundtrip(t *testing.T, valuesIn []zed.Value) {
 	var fileIn mockFile
 	writer, err := vngio.NewWriter(&fileIn, vngio.WriterOpts{ColumnThresh: vngio.DefaultColumnThresh, SkewThresh: vngio.DefaultSkewThresh})
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Fatalf("%v", err)
 	}
 	for i := range valuesIn {
 		err := writer.Write(&valuesIn[i])
 		if err != nil {
-			t.Errorf("%v", err)
+			t.Fatalf("%v", err)
 		}
 	}
 	err = writer.Close()
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Fatalf("%v", err)
 	}
 
 	// Read
@@ -53,13 +53,13 @@ func roundtrip(t *testing.T, valuesIn []zed.Value) {
 	context := zed.NewContext()
 	reader, err := vngio.NewReader(context, fileOut)
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Fatalf("%v", err)
 	}
 	valuesOut := make([]zed.Value, 0, len(valuesIn))
 	for {
 		value, err := reader.Read()
 		if err != nil {
-			t.Errorf("%v", err)
+			t.Fatalf("%v", err)
 		}
 		if value == nil {
 			break
@@ -145,42 +145,40 @@ func genValue(b *bytes.Reader, types []zed.Type) *zed.Value {
 		switch typ := typ.(type) {
 		case *zed.TypeRecord:
 			var builder zcode.Builder
-			builder.BeginContainer()
 			for _, field := range typ.Fields {
 				value := genValue(b, []zed.Type{field.Type})
+				builder.BeginContainer()
 				builder.Append(value.Bytes())
+				builder.EndContainer()
 			}
-			builder.EndContainer()
 			return zed.NewValue(typ, builder.Bytes())
 		case *zed.TypeArray:
 			elems := genValues(b, []zed.Type{typ.Type})
 			var builder zcode.Builder
-			builder.BeginContainer()
 			for _, elem := range elems {
+				builder.BeginContainer()
 				builder.Append(elem.Bytes())
+				builder.EndContainer()
 			}
-			builder.EndContainer()
 			return zed.NewValue(typ, builder.Bytes())
 		case *zed.TypeMap:
 			var builder zcode.Builder
-			builder.BeginContainer()
 			for genByte(b) != 0 {
+				builder.BeginContainer()
 				builder.Append(genValue(b, []zed.Type{typ.KeyType}).Bytes())
 				builder.Append(genValue(b, []zed.Type{typ.ValType}).Bytes())
+				builder.EndContainer()
 			}
-			builder.TransformContainer(zed.NormalizeMap)
-			builder.EndContainer()
-			return zed.NewValue(typ, builder.Bytes())
+			return zed.NewValue(typ, zed.NormalizeMap(builder.Bytes()))
 		case *zed.TypeSet:
 			elems := genValues(b, []zed.Type{typ.Type})
 			var builder zcode.Builder
-			builder.BeginContainer()
 			for _, elem := range elems {
+				builder.BeginContainer()
 				builder.Append(elem.Bytes())
+				builder.EndContainer()
 			}
-			builder.TransformContainer(zed.NormalizeSet)
-			builder.EndContainer()
-			return zed.NewValue(typ, builder.Bytes())
+			return zed.NewValue(typ, zed.NormalizeSet(builder.Bytes()))
 		// TODO TypeUnion
 		default:
 			panic("Unreachable")
