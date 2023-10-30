@@ -62,7 +62,8 @@ func read(reader vngVector.Reader) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		value := zed.NewValue(reader.Typ, builder.Bytes())
+		it := zcode.Bytes(builder.Bytes()).Iter()
+		value := zed.NewValue(reader.Typ, it.Next())
 		vector := &constants{
 			value: *value,
 		}
