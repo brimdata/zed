@@ -9,6 +9,8 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/units"
+	"github.com/brimdata/zed/vng"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zson"
@@ -26,11 +28,29 @@ func FuzzVngRoundtrip(f *testing.F) {
 		context := zed.NewContext()
 		types := genTypes(bytesReader, context, 3)
 		values := genValues(bytesReader, types)
-		roundtrip(t, values)
+		ColumnThresh := int(binary.LittleEndian.Uint64(genBytes(bytesReader, 8)))
+		if ColumnThresh == 0 {
+			ColumnThresh = 1
+		}
+		if ColumnThresh > vng.MaxSegmentThresh {
+			ColumnThresh = vng.MaxSegmentThresh
+		}
+		SkewThresh := int(binary.LittleEndian.Uint64(genBytes(bytesReader, 8)))
+		if SkewThresh == 0 {
+			SkewThresh = 1
+		}
+		if SkewThresh > vng.MaxSkewThresh {
+			SkewThresh = vng.MaxSkewThresh
+		}
+		writerOpts := vngio.WriterOpts{
+			ColumnThresh: units.Bytes(ColumnThresh),
+			SkewThresh:   units.Bytes(SkewThresh),
+		}
+		roundtrip(t, values, writerOpts)
 	})
 }
 
-func roundtrip(t *testing.T, valuesIn []zed.Value) {
+func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) {
 	// Debug
 	//for i := range valuesIn {
 	//    t.Logf("value: in[%v].Bytes()=%v", i, valuesIn[i].Bytes())
@@ -39,7 +59,7 @@ func roundtrip(t *testing.T, valuesIn []zed.Value) {
 
 	// Write
 	var fileIn mockFile
-	writer, err := vngio.NewWriter(&fileIn, vngio.WriterOpts{ColumnThresh: vngio.DefaultColumnThresh, SkewThresh: vngio.DefaultSkewThresh})
+	writer, err := vngio.NewWriter(&fileIn, writerOpts)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
