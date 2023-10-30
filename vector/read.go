@@ -94,7 +94,7 @@ func read(reader vngVector.Reader) (any, error) {
 	case *vngVector.NullsReader:
 		mask := roaring.New()
 		var maskIndex uint64
-		maskBool := false
+		maskBool := true
 		for {
 			run, err := reader.Runs.Read()
 			if err != nil {
