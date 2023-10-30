@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"net/netip"
 	"testing"
 
 	"github.com/brimdata/zed"
@@ -168,7 +169,18 @@ func genValue(b *bytes.Reader, typ zed.Type, builder *zcode.Builder) {
 		builder.Append(zed.EncodeBytes(genBytes(b, int(genByte(b)))))
 	case zed.TypeString:
 		builder.Append(zed.EncodeString(string(genBytes(b, int(genByte(b))))))
-	case zed.TypeIP, zed.TypeNet, zed.TypeType:
+	case zed.TypeIP:
+		builder.Append(zed.EncodeIP(netip.AddrFrom16(*(*[16]byte)(genBytes(b, 16)))))
+	case zed.TypeNet:
+		ip := netip.AddrFrom16(*(*[16]byte)(genBytes(b, 16)))
+		numBits := int(genByte(b)) % ip.BitLen()
+		net, err := ip.Prefix(numBits)
+		if err != nil {
+			// Should be unreachable.
+			panic(err)
+		}
+		builder.Append(zed.EncodeNet(net))
+	case zed.TypeType:
 		panic("Unreachable")
 	case zed.TypeNull:
 		builder.Append(nil)
@@ -252,13 +264,9 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 		case 14:
 			return zed.TypeString
 		case 15:
-			// TODO
-			//return zed.TypeIP
-			return zed.TypeNull
+			return zed.TypeIP
 		case 16:
-			// TODO
-			//return zed.TypeNet
-			return zed.TypeNull
+			return zed.TypeNet
 		case 17:
 			// TODO
 			//return zed.TypeType
