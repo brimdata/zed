@@ -36,6 +36,7 @@ func (m *Materializer) Read() (*zed.Value, error) {
 	m.builder.Truncate()
 	m.materializers[tag](&m.builder)
 	m.value = *zed.NewValue(typ, m.builder.Bytes().Body())
+	m.index += 1
 	return &m.value, nil
 }
 
