@@ -1,0 +1,13 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -use -q test
+  echo '{ts:0} {ts:1} {ts:2} {ts:3} {ts:4} {ts:5}' | zed load -q -
+  zed query -z -filter 'ts!=1' -filter 'ts!=3' -filter 'ts!=5' 'yield ts'
+
+outputs:
+  - name: stdout
+    data: |
+      4
+      2
+      0

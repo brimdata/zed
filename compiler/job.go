@@ -25,7 +25,7 @@ type Job struct {
 	entry     dag.Seq
 }
 
-func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
+func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Commitish, addFilters []ast.Expr) (*Job, error) {
 	seq := ast.CopySeq(in)
 	// An AST always begins with a Sequential op with at least one
 	// operator.  If the first op is a From or a Parallel whose branches
@@ -40,7 +40,7 @@ func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Comm
 	if len(seq) == 0 {
 		return nil, errors.New("internal error: AST seq cannot be empty")
 	}
-	entry, err := semantic.AnalyzeAddSource(octx.Context, seq, src, head)
+	entry, err := semantic.AnalyzeAddSource(octx.Context, seq, src, head, addFilters)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +84,22 @@ func Parse(src string, filenames ...string) (ast.Seq, error) {
 		return nil, err
 	}
 	return ast.UnmarshalObject(parsed)
+}
+
+func ParseExprs(exprs []string) ([]ast.Expr, error) {
+	var out []ast.Expr
+	for _, expr := range exprs {
+		parsed, err := parser.ParseZedExpr(expr)
+		if err != nil {
+			return nil, err
+		}
+		e, err := ast.UnmarshalExpr(parsed)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, nil
 }
 
 // MustParse is like Parse but panics if an error is encountered.

@@ -17,7 +17,7 @@ func NewCompiler() runtime.Compiler {
 	return &anyCompiler{}
 }
 
-func (i *anyCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reader) (*runtime.Query, error) {
+func (i *anyCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reader, addFilters []ast.Expr) (*runtime.Query, error) {
 	if len(readers) != 1 {
 		return nil, fmt.Errorf("NewQuery: Zed program expected %d readers", len(readers))
 	}
@@ -26,7 +26,7 @@ func (i *anyCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Read
 
 // XXX currently used only by group-by test, need to deprecate
 func CompileWithSortKey(octx *op.Context, seq ast.Seq, r zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
-	job, err := NewJob(octx, seq, data.NewSource(nil, nil), nil)
+	job, err := NewJob(octx, seq, data.NewSource(nil, nil), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func CompileWithSortKey(octx *op.Context, seq ast.Seq, r zio.Reader, sortKey ord
 	return optimizeAndBuild(job)
 }
 
-func (*anyCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
+func (*anyCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish, addFilters []ast.Expr) (*runtime.Query, error) {
 	panic("NewLakeQuery called on compiler.anyCompiler")
 }
 

@@ -83,7 +83,7 @@ func (c *createCommand) Run(args []string) error {
 			return err
 		}
 		query := fmt.Sprintf("from :index_rules | name == '%s'", ruleName)
-		q, err := lake.Query(ctx, nil, query)
+		q, err := lake.Query(ctx, nil, query, nil)
 		if err != nil {
 			w.Close()
 			return err

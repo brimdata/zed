@@ -54,7 +54,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			t.Helper()
 			p, err := compiler.Parse(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			job, err := compiler.NewJob(op.DefaultContext(), p, nil, nil)
+			job, err := compiler.NewJob(op.DefaultContext(), p, nil, nil, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
 			err = job.Optimize()
 			require.NoError(t, err, "filter: %q", c.filter)

@@ -31,8 +31,8 @@ func NewLakeCompiler(r *lake.Root) zedruntime.Compiler {
 	return &lakeCompiler{src: data.NewSource(storage.NewRemoteEngine(), r)}
 }
 
-func (l *lakeCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*zedruntime.Query, error) {
-	job, err := NewJob(octx, program, l.src, head)
+func (l *lakeCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish, filters []ast.Expr) (*zedruntime.Query, error) {
+	job, err := NewJob(octx, program, l.src, head, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func newDeleteJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakepars
 			},
 		}},
 	})
-	entry, err := semantic.Analyze(octx.Context, seq, src, head)
+	entry, err := semantic.Analyze(octx.Context, seq, src, head, nil)
 	if err != nil {
 		return nil, err
 	}

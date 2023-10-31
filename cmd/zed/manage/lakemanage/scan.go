@@ -72,7 +72,7 @@ type objectIterator struct {
 
 func newObjectIterator(ctx context.Context, lake api.Interface, head *lakeparse.Commitish) (*objectIterator, error) {
 	query := fmt.Sprintf(iteratorQuery, head.Pool, head.Branch, head.Pool, head.Branch)
-	r, err := lake.Query(ctx, nil, query)
+	r, err := lake.Query(ctx, nil, query, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -297,7 +297,7 @@ func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName 
 //
 // As for Connection.Do, if the returned error is nil, the user is expected to
 // call Response.Body.Close.
-func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
+func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, addFilters []string, filenames ...string) (*Response, error) {
 	src, srcInfo, err := parser.ConcatSource(filenames, src)
 	if err != nil {
 		return nil, err

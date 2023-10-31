@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
@@ -14,18 +15,18 @@ import (
 // Analyze performs a semantic analysis of the AST, translating it from AST
 // to DAG form, resolving syntax ambiguities, and performing constant propagation.
 // After semantic analysis, the DAG is ready for either optimization or compilation.
-func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
+func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish, addFilters []ast.Expr) (dag.Seq, error) {
 	a := newAnalyzer(ctx, source, head)
 	s, err := a.semSeq(seq)
 	if err != nil {
 		return nil, err
 	}
-	return s, nil
+	return a.addFilters(s, addFilters)
 }
 
 // AnalyzeAddSource is the same as Analyze but it adds a default source if the
 // DAG does not have one.
-func AnalyzeAddSource(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
+func AnalyzeAddSource(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish, addFilters []ast.Expr) (dag.Seq, error) {
 	a := newAnalyzer(ctx, source, head)
 	s, err := a.semSeq(seq)
 	if err != nil {
@@ -36,7 +37,7 @@ func AnalyzeAddSource(ctx context.Context, seq ast.Seq, source *data.Source, hea
 			return nil, err
 		}
 	}
-	return s, nil
+	return a.addFilters(s, addFilters)
 }
 
 type analyzer struct {
@@ -60,7 +61,7 @@ func newAnalyzer(ctx context.Context, source *data.Source, head *lakeparse.Commi
 
 func HasSource(seq dag.Seq) bool {
 	switch op := seq[0].(type) {
-	case *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan, *dag.DeleteScan:
+	case *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan, *dag.DeleteScan, *kernel.Reader:
 		return true
 	case *dag.Fork:
 		return HasSource(op.Paths[0])
@@ -104,6 +105,21 @@ func StartsWithYield(seq dag.Seq) bool {
 		return StartsWithYield(op.Body)
 	}
 	return false
+}
+
+func (a *analyzer) addFilters(seq dag.Seq, exprs []ast.Expr) (dag.Seq, error) {
+	out, err := a.semExprs(exprs)
+	if err != nil {
+		return nil, err
+	}
+	var filters dag.Seq
+	for i, e := range out {
+		if !isBool(e) {
+			return nil, fmt.Errorf("filter %d: expression does not result in a boolean value", i)
+		}
+		filters = append(filters, &dag.Filter{Kind: "Filter", Expr: e})
+	}
+	return append(dag.Seq{seq[0]}, append(filters, seq[1:]...)...), nil
 }
 
 func (a *analyzer) enterScope() {

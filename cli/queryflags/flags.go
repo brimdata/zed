@@ -17,14 +17,19 @@ import (
 )
 
 type Flags struct {
-	Verbose  bool
-	Stats    bool
-	Includes Includes
+	Verbose    bool
+	Stats      bool
+	AddFilters []string
+	Includes   Includes
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.Stats, "s", false, "display search stats on stderr")
 	fs.Var(&f.Includes, "I", "source file containing Zed query text (may be used multiple times)")
+	fs.Func("filter", "add a filter expression to the query (may be used multiple times)", func(s string) error {
+		f.AddFilters = append(f.AddFilters, s)
+		return nil
+	})
 }
 
 func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, error) {
@@ -37,7 +42,7 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, 
 			// and appears to start with a from or yield operator.
 			// Otherwise, consider it a file.
 			if query, err := compiler.Parse(src, f.Includes...); err == nil {
-				if s, err := semantic.Analyze(context.Background(), query, nil, nil); err == nil {
+				if s, err := semantic.Analyze(context.Background(), query, nil, nil, nil); err == nil {
 					if semantic.HasSource(s) {
 						return nil, query, false, nil
 					}

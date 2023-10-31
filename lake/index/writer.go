@@ -113,7 +113,7 @@ func newIndexer(ctx context.Context, c runtime.Compiler, engine storage.Engine, 
 		return nil, err
 	}
 	zctx := zed.NewContext()
-	query, err := runtime.CompileQuery(ctx, zctx, c, p, []zio.Reader{r})
+	query, err := runtime.CompileQuery(ctx, zctx, c, p, []zio.Reader{r}, nil)
 	if err != nil {
 		return nil, err
 	}

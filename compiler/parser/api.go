@@ -20,6 +20,18 @@ func ParseZed(filenames []string, src string) (interface{}, error) {
 	return p, nil
 }
 
+func ParseZedExpr(expr string) (interface{}, error) {
+	expr, srcInfo, err := ConcatSource(nil, expr)
+	if err != nil {
+		return nil, err
+	}
+	p, err := Parse("", []byte(expr), Entrypoint("Expr"))
+	if err != nil {
+		return nil, ImproveError(err, expr, srcInfo)
+	}
+	return p, nil
+}
+
 // SourceInfo holds source file offsets.
 type SourceInfo struct {
 	filename string

@@ -113,20 +113,24 @@ func (l *local) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]inde
 	return l.root.DeleteIndexRules(ctx, ids)
 }
 
-func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
-	q, err := l.QueryWithControl(ctx, head, src, srcfiles...)
+func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string, addFilters []string, srcfiles ...string) (zio.ReadCloser, error) {
+	q, err := l.QueryWithControl(ctx, head, src, addFilters, srcfiles...)
 	if err != nil {
 		return nil, err
 	}
 	return zio.NewReadCloser(zbuf.NoControl(q), q), nil
 }
 
-func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
+func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, addFilters []string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
 	flowgraph, err := l.compiler.Parse(src, srcfiles...)
 	if err != nil {
 		return nil, err
 	}
-	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head, nil)
+	exprs, err := compiler.ParseExprs(addFilters)
+	if err != nil {
+		return nil, err
+	}
+	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head, exprs, nil)
 	if err != nil {
 		return nil, err
 	}

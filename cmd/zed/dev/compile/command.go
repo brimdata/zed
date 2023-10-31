@@ -52,15 +52,16 @@ func init() {
 
 type Command struct {
 	*root.Command
-	js       bool
-	pigeon   bool
-	proc     bool
-	canon    bool
-	semantic bool
-	optimize bool
-	parallel int
-	n        int
-	includes includes
+	js        bool
+	pigeon    bool
+	proc      bool
+	canon     bool
+	semantic  bool
+	optimize  bool
+	parallel  int
+	n         int
+	includes  includes
+	addFilter []string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -73,6 +74,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.IntVar(&c.parallel, "P", 0, "display parallelized AST (implies -proc)")
 	f.BoolVar(&c.canon, "C", false, "display AST in Zed canonical format (implies -proc)")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be repeated)")
+	f.Func("filter", "add filter to the query (may be repeated)", func(s string) error {
+		c.addFilter = append(c.addFilter, s)
+		return nil
+	})
 	return c, nil
 }
 
@@ -236,7 +241,11 @@ func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
 	if err != nil {
 		return nil, err
 	}
-	return compiler.NewJob(op.DefaultContext(), p, data.NewSource(nil, lk), nil)
+	filters, err := compiler.ParseExprs(c.addFilter)
+	if err != nil {
+		return nil, err
+	}
+	return compiler.NewJob(op.DefaultContext(), p, data.NewSource(nil, lk), nil, filters)
 }
 
 const nodeProblem = `

@@ -111,16 +111,16 @@ func (r *remote) Revert(ctx context.Context, poolID ksuid.KSUID, branchName stri
 	return res.Commit, err
 }
 
-func (r *remote) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
-	q, err := r.QueryWithControl(ctx, head, src, srcfiles...)
+func (r *remote) Query(ctx context.Context, head *lakeparse.Commitish, src string, addFilters []string, srcfiles ...string) (zio.ReadCloser, error) {
+	q, err := r.QueryWithControl(ctx, head, src, addFilters, srcfiles...)
 	if err != nil {
 		return nil, err
 	}
 	return zio.NewReadCloser(zbuf.NoControl(q), q), nil
 }
 
-func (r *remote) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
-	res, err := r.conn.Query(ctx, head, src, srcfiles...)
+func (r *remote) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, addFilters []string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
+	res, err := r.conn.Query(ctx, head, src, addFilters, srcfiles...)
 	if err != nil {
 		return nil, err
 	}

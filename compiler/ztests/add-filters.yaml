@@ -1,0 +1,25 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q "test"
+  zc -s -C -filter 'ts <= 100' -filter 'ts >= 90' '*'
+  echo "==="
+  zc -s -C -filter 'ts <= 100' -filter 'ts >= 90' 'from :pools | count() by id'
+  ! zc -s -C -filter 'ts <= 100' -filter "x+3" '*'
+
+outputs:
+  - name: stdout
+    data: |
+      reader
+      | where ts<=100
+      | where ts>=90
+      | where true
+      ===
+      :pools
+      | where ts<=100
+      | where ts>=90
+      | summarize
+          count:=count() by id:=id
+  - name: stderr
+    data: |
+      filter 1: expression does not result in a boolean value

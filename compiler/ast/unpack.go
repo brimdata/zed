@@ -117,6 +117,18 @@ func UnmarshalObject(anon interface{}) (Seq, error) {
 	return unmarshalSeq(b)
 }
 
+func UnmarshalExpr(anon interface{}) (Expr, error) {
+	b, err := json.Marshal(anon)
+	if err != nil {
+		return nil, fmt.Errorf("internal error: ast.UnmarshalExpr: %w", err)
+	}
+	var e Expr
+	if err := unpacker.Unmarshal(b, &e); err != nil {
+		return nil, err
+	}
+	return e, nil
+}
+
 func Copy(in Op) Op {
 	b, err := json.Marshal(in)
 	if err != nil {

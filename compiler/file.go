@@ -21,8 +21,8 @@ func NewFileSystemCompiler(engine storage.Engine) runtime.Compiler {
 	return &fsCompiler{src: data.NewSource(engine, nil)}
 }
 
-func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reader) (*runtime.Query, error) {
-	job, err := NewJob(octx, seq, f.src, nil)
+func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reader, addFilters []ast.Expr) (*runtime.Query, error) {
+	job, err := NewJob(octx, seq, f.src, nil, addFilters)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reade
 	return optimizeAndBuild(job)
 }
 
-func (*fsCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
+func (*fsCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish, addFilters []ast.Expr) (*runtime.Query, error) {
 	panic("NewLakeQuery called on compiler.fsCompiler")
 }
 

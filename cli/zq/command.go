@@ -153,8 +153,12 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	exprs, err := compiler.ParseExprs(c.queryFlags.AddFilters)
+	if err != nil {
+		return err
+	}
 	comp := compiler.NewFileSystemCompiler(local)
-	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, readers)
+	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, readers, exprs)
 	if err != nil {
 		return err
 	}

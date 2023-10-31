@@ -113,8 +113,10 @@ type EventBranch struct {
 }
 
 type QueryRequest struct {
-	Query string              `json:"query"`
-	Head  lakeparse.Commitish `json:"head"`
+	Query string `json:"query"`
+	// AddFilters are additional filters to apply to the query.
+	AddFilters []string            `json:"add_filters"`
+	Head       lakeparse.Commitish `json:"head"`
 }
 
 type QueryChannelSet struct {
