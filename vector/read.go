@@ -6,13 +6,12 @@ import (
 	"io"
 	"net/netip"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/vng"
 	vngvector "github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
-
-	"github.com/RoaringBitmap/roaring"
 )
 
 func Read(reader *vng.Reader) (*Vector, error) {
