@@ -1,6 +1,6 @@
 ### Function
 
-&emsp; **map** &mdash; calls a function on each element of an array and returns the results
+&emsp; **map** &mdash; apply a function to each element of an array or set
 
 ### Synopsis
 

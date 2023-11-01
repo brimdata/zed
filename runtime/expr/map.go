@@ -36,9 +36,9 @@ func (a *mapCall) Eval(ectx Context, in *zed.Value) *zed.Value {
 	a.vals = a.vals[:0]
 	a.types = a.types[:0]
 	for _, elem := range elems {
-		out := a.inner.Eval(ectx, &elem)
-		a.vals = append(a.vals, *out)
-		a.types = append(a.types, out.Type)
+		val := a.inner.Eval(ectx, &elem)
+		a.vals = append(a.vals, *val)
+		a.types = append(a.types, val.Type)
 	}
 	inner := a.innerType(a.types)
 	bytes := a.buildVal(inner, a.vals)
