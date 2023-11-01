@@ -33,7 +33,7 @@ func NewReader(zctx *zed.Context, r io.Reader) (zio.Reader, error) {
 		if err != nil {
 			return nil, err
 		}
-		vector, err := vector.Read(reader)
+		vector, err := vector.Read(reader, opts.demand)
 		if err != nil {
 			return nil, err
 		}

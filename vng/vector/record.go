@@ -58,25 +58,34 @@ func (r RecordWriter) Metadata() Metadata {
 	return &Record{fields}
 }
 
-type RecordReader []FieldReader
+type RecordReader struct {
+	Names  []string
+	Values []FieldReader
+}
 
-var _ Reader = (RecordReader)(nil)
+var _ Reader = (*RecordReader)(nil)
 
-func NewRecordReader(record *Record, reader io.ReaderAt) (RecordReader, error) {
-	r := make(RecordReader, 0, len(record.Fields))
+func NewRecordReader(record *Record, reader io.ReaderAt) (*RecordReader, error) {
+	names := make([]string, 0, len(record.Fields))
+	values := make([]FieldReader, 0, len(record.Fields))
 	for _, field := range record.Fields {
+		names = append(names, field.Name)
 		fr, err := NewFieldReader(field, reader)
 		if err != nil {
 			return nil, err
 		}
-		r = append(r, *fr)
+		values = append(values, *fr)
 	}
-	return r, nil
+	result := &RecordReader{
+		Names:  names,
+		Values: values,
+	}
+	return result, nil
 }
 
-func (r RecordReader) Read(b *zcode.Builder) error {
+func (r *RecordReader) Read(b *zcode.Builder) error {
 	b.BeginContainer()
-	for _, f := range r {
+	for _, f := range r.Values {
 		if err := f.Read(b); err != nil {
 			return err
 		}
