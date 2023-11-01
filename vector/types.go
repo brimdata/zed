@@ -3,10 +3,9 @@ package vector
 import (
 	"net/netip"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
-
-	"github.com/RoaringBitmap/roaring"
 )
 
 type vector interface {
