@@ -2,194 +2,108 @@ package optimizer
 
 import (
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 )
 
-type DemandAll struct{}
-type DemandKeys map[string]Demand // No empty values.
-
-type Demand interface {
-	isDemand()
-}
-
-func (demand DemandAll) isDemand()  {}
-func (demand DemandKeys) isDemand() {}
-
-func demandNone() Demand {
-	return DemandKeys(make(map[string]Demand, 0))
-}
-
-func demandIsValid(demand Demand) bool {
-	switch demand := demand.(type) {
-	case DemandAll:
-		return true
-	case DemandKeys:
-		for _, v := range demand {
-			if !demandIsValid(v) || demandIsEmpty(v) {
-				return false
-			}
-		}
-		return true
-	default:
-		panic("Unreachable")
-	}
-}
-
-func demandIsEmpty(demand Demand) bool {
-	switch demand := demand.(type) {
-	case DemandAll:
-		return false
-	case DemandKeys:
-		return len(demand) == 0
-	default:
-		panic("Unreachable")
-	}
-}
-
-func demandKey(key string, value Demand) Demand {
-	if demandIsEmpty(value) {
-		return value
-	}
-	demand := DemandKeys(make(map[string]Demand, 1))
-	demand[key] = value
-	return demand
-}
-
-func demandUnion(a Demand, b Demand) Demand {
-	if _, ok := a.(DemandAll); ok {
-		return a
-	}
-	if _, ok := b.(DemandAll); ok {
-		return b
-	}
-
-	{
-		a, b := a.(DemandKeys), b.(DemandKeys)
-
-		demand := DemandKeys(make(map[string]Demand, len(a)+len(b)))
-		for k, v := range a {
-			demand[k] = v
-		}
-		for k, v := range b {
-			if v2, ok := a[k]; ok {
-				demand[k] = demandUnion(v, v2)
-			} else {
-				demand[k] = v
-			}
-		}
-		return demand
-	}
-}
-
-func demandForSeq(seq dag.Seq) map[dag.Op]Demand {
-	demands := make(map[dag.Op]Demand)
-	demandForSeqInto(demands, DemandAll{}, seq)
-	for _, demand := range demands {
-		if !demandIsValid(demand) {
+// Returns a map from op to the demand on the output of that op.
+func inferDemandSeqOut(seq dag.Seq) map[dag.Op]demand.Demand {
+	demands := make(map[dag.Op]demand.Demand)
+	inferDemandSeqOutWith(demands, demand.All{}, seq)
+	for _, d := range demands {
+		if !demand.IsValid(d) {
 			panic("Invalid demand")
 		}
 	}
 	return demands
 }
 
-func demandForSeqInto(demands map[dag.Op]Demand, demandOnSeq Demand, seq dag.Seq) {
-	demand := demandOnSeq
+func inferDemandSeqOutWith(demands map[dag.Op]demand.Demand, demandSeqOut demand.Demand, seq dag.Seq) {
+	demandOpOut := demandSeqOut
 	for i := len(seq) - 1; i >= 0; i-- {
 		op := seq[i]
 		if _, ok := demands[op]; ok {
 			panic("Duplicate op value")
 		}
-		demands[op] = demand
+		demands[op] = demandOpOut
 
 		// Infer the demand that `op` places on it's input.
+		var demandOpIn demand.Demand
 		switch op := op.(type) {
 		case *dag.FileScan:
-			demand = demandNone()
+			demandOpIn = demand.None()
 		case *dag.Filter:
-			demand = demandUnion(
+			demandOpIn = demand.Union(
 				// Everything that downstream operations need.
-				demand,
+				demandOpOut,
 				// Everything that affects the outcome of this filter.
-				demandForExpr(DemandAll{}, op.Expr),
+				inferDemandExprIn(demand.All{}, op.Expr),
 			)
 		case *dag.Yield:
-			yieldDemand := demand
-			demand = demandNone()
+			demandOpIn = demand.None()
 			for _, expr := range op.Exprs {
-				demand = demandUnion(demand, demandForExpr(yieldDemand, expr))
+				demandOpIn = demand.Union(demandOpIn, inferDemandExprIn(demandOpOut, expr))
 			}
 		default:
 			// Conservatively assume that `op` uses it's entire input, regardless of output demand.
 			_ = op
-			demand = DemandAll{}
+			demandOpIn = demand.All{}
 		}
+		demandOpOut = demandOpIn
 	}
 }
 
-func demandForExpr(demandOnExpr Demand, expr dag.Expr) Demand {
-	if demandIsEmpty(demandOnExpr) {
-		return demandOnExpr
+func inferDemandExprIn(demandExprOut demand.Demand, expr dag.Expr) demand.Demand {
+	if demand.IsNone(demandExprOut) {
+		return demandExprOut
 	}
 	switch expr := expr.(type) {
 	case *dag.BinaryExpr:
-		// Since we don't know how the expr.Op will transform the inputs, we have to assume DemandAll.
-		return demandUnion(
-			demandForExpr(DemandAll{}, expr.LHS),
-			demandForExpr(DemandAll{}, expr.RHS),
+		// Since we don't know how the expr.Op will transform the inputs, we have to assume demand.All.
+		return demand.Union(
+			inferDemandExprIn(demand.All{}, expr.LHS),
+			inferDemandExprIn(demand.All{}, expr.RHS),
 		)
 	case *dag.Dot:
-		return demandKey(expr.RHS, demandForExpr(demandOnExpr, expr.LHS))
+		return demand.Key(expr.RHS, inferDemandExprIn(demandExprOut, expr.LHS))
 	case *dag.Literal:
-		return demandNone()
+		return demand.None()
 	case *dag.MapExpr:
-		demand := demandNone()
+		demandExprIn := demand.None()
 		for _, entry := range expr.Entries {
-			demand = demandUnion(demand, demandForExpr(DemandAll{}, entry.Key))
-			demand = demandUnion(demand, demandForExpr(DemandAll{}, entry.Value))
+			demandExprIn = demand.Union(demandExprIn, inferDemandExprIn(demand.All{}, entry.Key))
+			demandExprIn = demand.Union(demandExprIn, inferDemandExprIn(demand.All{}, entry.Value))
 		}
-		return demand
+		return demandExprIn
 	case *dag.RecordExpr:
-		demand := demandNone()
+		demandExprIn := demand.None()
 		for _, elem := range expr.Elems {
 			switch elem := elem.(type) {
 			case *dag.Field:
-				if d := demandForKey(demandOnExpr, elem.Name); !demandIsEmpty(d) {
-					demand = demandUnion(demand, demandForExpr(d, elem.Value))
+				demandValueOut := demand.GetKey(demandExprOut, elem.Name)
+				if !demand.IsNone(demandValueOut) {
+					demandExprIn = demand.Union(demandExprIn, inferDemandExprIn(demandValueOut, elem.Value))
 				}
 			case *dag.Spread:
-				demand = demandUnion(demand, demandForExpr(demandOnExpr, elem.Expr))
+				demandExprIn = demand.Union(demandExprIn, inferDemandExprIn(demand.All{}, elem.Expr))
 			}
 		}
-		return demand
+		return demandExprIn
 	case *dag.This:
-		demand := demandOnExpr
+		demandExprIn := demandExprOut
 		for i := len(expr.Path) - 1; i >= 0; i-- {
-			demand = demandKey(expr.Path[i], demand)
+			demandExprIn = demand.Key(expr.Path[i], demandExprIn)
 		}
-		return demand
+		return demandExprIn
 	default:
 		// Conservatively assume that `expr` uses it's entire input, regardless of output demand.
-		return DemandAll{}
-	}
-}
-
-func demandForKey(demand Demand, key string) Demand {
-	switch demand := demand.(type) {
-	case DemandAll:
-		return demand
-	case DemandKeys:
-		if value, ok := demand[key]; ok {
-			return value
-		}
-		return demandNone()
-	default:
-		panic("Unreachable")
+		return demand.All{}
 	}
 }
 
 // --- The functions below are used for testing demand inference and can be removed once demand is used to prune inputs. ---
 
 func insertDemandTests(seq dag.Seq) dag.Seq {
-	demands := demandForSeq(seq)
+	demands := inferDemandSeqOut(seq)
 	return walk(seq, true, func(seq dag.Seq) dag.Seq {
 		ops := make([]dag.Op, 0, 2*len(seq))
 		for _, op := range seq {
@@ -209,18 +123,18 @@ func insertDemandTests(seq dag.Seq) dag.Seq {
 	})
 }
 
-func yieldExprFromDemand(demand Demand, path []string) dag.Expr {
-	switch demand := demand.(type) {
-	case DemandAll:
+func yieldExprFromDemand(demandOut demand.Demand, path []string) dag.Expr {
+	switch demandOut := demandOut.(type) {
+	case demand.All:
 		return &dag.This{Kind: "This", Path: path}
-	case DemandKeys:
-		elems := make([]dag.RecordElem, 0, len(demand))
-		for key, keyDemand := range demand {
+	case demand.Keys:
+		elems := make([]dag.RecordElem, 0, len(demandOut))
+		for key, demandKeyOut := range demandOut {
 			keyPath := append(append(make([]string, 0, len(path)+1), path...), key)
 			elems = append(elems, &dag.Field{
 				Kind:  "Field",
 				Name:  key,
-				Value: yieldExprFromDemand(keyDemand, keyPath),
+				Value: yieldExprFromDemand(demandKeyOut, keyPath),
 			})
 		}
 		return &dag.RecordExpr{
