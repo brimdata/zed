@@ -27,7 +27,7 @@ func NewInt64Reader(segmap []Segment, r io.ReaderAt) *Int64Reader {
 }
 
 func (p *Int64Reader) Read() (int64, error) {
-	zv, err := p.read()
+	zv, err := p.ReadBytes()
 	if err != nil {
 		return 0, err
 	}

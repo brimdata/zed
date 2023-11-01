@@ -76,7 +76,7 @@ func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 		if !zed.IsPrimitiveType(typ) {
 			panic(fmt.Sprintf("unsupported type in VNG file: %T", typ))
 		}
-		return NewPrimitiveWriter(typ, spiller, true)
+		return NewNullsWriter(NewPrimitiveWriter(typ, spiller, true), spiller)
 	}
 }
 

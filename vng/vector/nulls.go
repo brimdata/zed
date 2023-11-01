@@ -79,19 +79,19 @@ func (n *NullsWriter) Metadata() Metadata {
 }
 
 type NullsReader struct {
-	vals Reader
-	runs Int64Reader
-	null bool
-	run  int
+	Values Reader
+	Runs   Int64Reader
+	null   bool
+	run    int
 }
 
-func NewNullsReader(vals Reader, segmap []Segment, r io.ReaderAt) *NullsReader {
+func NewNullsReader(values Reader, segmap []Segment, r io.ReaderAt) *NullsReader {
 	// We start out with null true so it is immediately flipped to
 	// false on the first call to Read.
 	return &NullsReader{
-		vals: vals,
-		runs: *NewInt64Reader(segmap, r),
-		null: true,
+		Values: values,
+		Runs:   *NewInt64Reader(segmap, r),
+		null:   true,
 	}
 }
 
@@ -99,7 +99,7 @@ func (n *NullsReader) Read(b *zcode.Builder) error {
 	run := n.run
 	for run == 0 {
 		n.null = !n.null
-		v, err := n.runs.Read()
+		v, err := n.Runs.Read()
 		if err != nil {
 			return err
 		}
@@ -110,5 +110,5 @@ func (n *NullsReader) Read(b *zcode.Builder) error {
 		b.Append(nil)
 		return nil
 	}
-	return n.vals.Read(b)
+	return n.Values.Read(b)
 }

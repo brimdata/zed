@@ -27,7 +27,7 @@ func (f *FieldWriter) Flush(eof bool) error {
 }
 
 type FieldReader struct {
-	values Reader
+	Values Reader
 }
 
 func NewFieldReader(field Field, r io.ReaderAt) (*FieldReader, error) {
@@ -36,10 +36,10 @@ func NewFieldReader(field Field, r io.ReaderAt) (*FieldReader, error) {
 		return nil, err
 	}
 	return &FieldReader{
-		values: values,
+		Values: values,
 	}, nil
 }
 
 func (f *FieldReader) Read(b *zcode.Builder) error {
-	return f.values.Read(b)
+	return f.Values.Read(b)
 }
