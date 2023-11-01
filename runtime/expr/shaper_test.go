@@ -47,5 +47,5 @@ func TestBestUnionTag(t *testing.T) {
 
 	// Type compatible with needle is in haystack.
 	test(u8named1, u8, []zed.Type{u8named1, u8named2, u8named3})
-	test(u8named3, u8named1, []zed.Type{u8named3, u8named2})
+	test(u8named2, u8named1, []zed.Type{u8named3, u8named2})
 }
