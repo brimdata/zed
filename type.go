@@ -393,13 +393,30 @@ func UniqueTypes(types []Type) []Type {
 }
 
 func CompareTypes(a, b Type) int {
-	a, b = TypeUnder(a), TypeUnder(b)
+	aID, bID := a.ID(), b.ID()
+	if aID == bID {
+		if a, ok := a.(*TypeNamed); ok {
+			if b, ok := b.(*TypeNamed); ok {
+				// Named types sharing an underlying type are
+				// ordered by name.
+				return strings.Compare(a.Name, b.Name)
+			}
+			// Named type a is ordered after its underlying type b.
+			return 1
+		}
+		if _, ok := b.(*TypeNamed); ok {
+			// Named type b is ordered after its underlying type a.
+			return -1
+		}
+		// a == b
+		return 0
+	}
 	if cmp := compareInts(int(a.Kind()), int(b.Kind())); cmp != 0 {
 		return cmp
 	}
 	switch a.Kind() {
 	case PrimitiveKind:
-		return compareInts(a.ID(), b.ID())
+		return compareInts(aID, bID)
 	case RecordKind:
 		ra, rb := TypeRecordOf(a), TypeRecordOf(b)
 		// First compare number of fields.

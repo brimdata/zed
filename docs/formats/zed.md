@@ -215,7 +215,10 @@ For example, if "port" is a named type for `uint16`, then two values of
 type "port" have the same type but a value of type "port" and a value of type `uint16`
 do not have the same type.
 
-The type order of two named types is the type order of their underlying types.
+The type order of a named type is the type order of its underlying type with two
+exceptions:
+* A named type is ordered after its underlying type.
+* Named types sharing an underlying type are ordered lexicographically by name.
 
 > While the Zed data model does not include explicit support for schema versioning,
 > named types provide a flexible mechanism to implement versioning
