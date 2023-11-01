@@ -7,13 +7,14 @@ import (
 	"net/netip"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/vng"
 	vngvector "github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
 )
 
-func Read(reader *vng.Reader) (*Vector, error) {
+func Read(reader *vng.Reader, demandOut demand.Demand) (*Vector, error) {
 	context := zed.NewContext()
 	tags, err := readInt64s(reader.Root)
 	if err != nil {
@@ -24,7 +25,7 @@ func Read(reader *vng.Reader) (*Vector, error) {
 	for i, typedReader := range reader.Readers {
 		typ, _ := context.DecodeTypeValue(zed.EncodeTypeValue(typedReader.Type))
 		types[i] = typ
-		value, err := read(context, typedReader.Reader)
+		value, err := read(context, typedReader.Reader, demandOut)
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +40,14 @@ func Read(reader *vng.Reader) (*Vector, error) {
 	return vector, nil
 }
 
-func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
+func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand) (vector, error) {
+	if demand.IsNone(demandOut) {
+		vector := &constants{
+			bytes: nil,
+		}
+		return vector, nil
+	}
+
 	switch reader := reader.(type) {
 
 	case *vngvector.ArrayReader:
@@ -47,7 +55,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		if err != nil {
 			return nil, err
 		}
-		elems, err := read(context, reader.Elems)
+		elems, err := read(context, reader.Elems, demand.All{})
 		if err != nil {
 			return nil, err
 		}
@@ -64,9 +72,8 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 			return nil, err
 		}
 		it := zcode.Bytes(builder.Bytes()).Iter()
-		value := zed.NewValue(reader.Typ, it.Next())
 		vector := &constants{
-			value: *value,
+			bytes: it.Next(),
 		}
 		return vector, nil
 
@@ -75,7 +82,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case *vngvector.MapReader:
-		keys, err := read(context, reader.Keys)
+		keys, err := read(context, reader.Keys, demand.All{})
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +90,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		if err != nil {
 			return nil, err
 		}
-		values, err := read(context, reader.Values)
+		values, err := read(context, reader.Values, demand.All{})
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +106,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		if err != nil {
 			return nil, err
 		}
-		values, err := read(context, reader.Values)
+		values, err := read(context, reader.Values, demandOut)
 		if err != nil {
 			return nil, err
 		}
@@ -115,10 +122,11 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 	case *vngvector.PrimitiveReader:
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
-	case vngvector.RecordReader: // Not a typo - RecordReader does not have a pointer receiver.
-		fields := make([]vector, len(reader))
-		for i, fieldReader := range reader {
-			field, err := read(context, fieldReader.Values)
+	case *vngvector.RecordReader:
+		fields := make([]vector, len(reader.Values))
+		for i, fieldReader := range reader.Values {
+			demandValueOut := demand.GetKey(demandOut, reader.Names[i])
+			field, err := read(context, fieldReader.Values, demandValueOut)
 			if err != nil {
 				return nil, err
 			}
@@ -132,7 +140,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 	case *vngvector.UnionReader:
 		payloads := make([]vector, len(reader.Readers))
 		for i, reader := range reader.Readers {
-			payload, err := read(context, reader)
+			payload, err := read(context, reader, demandOut)
 			if err != nil {
 				return nil, err
 			}
@@ -490,7 +498,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 
 	case zed.TypeNull:
 		vector := &constants{
-			value: *zed.NewValue(zed.TypeNull, nil),
+			bytes: nil,
 		}
 		return vector, nil
 
