@@ -18,7 +18,7 @@ type Reader struct {
 }
 
 type TypedReader struct {
-	Typ    zed.Type
+	Type   zed.Type
 	Reader vector.Reader
 }
 
@@ -31,7 +31,7 @@ func NewReader(o *Object) (*Reader, error) {
 		if err != nil {
 			return nil, err
 		}
-		readers = append(readers, TypedReader{Typ: m.Type(o.zctx), Reader: r})
+		readers = append(readers, TypedReader{Type: m.Type(o.zctx), Reader: r})
 	}
 	return &Reader{
 		Root:    root,
@@ -53,6 +53,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := tr.Reader.Read(&r.builder); err != nil {
 		return nil, err
 	}
-	r.val = *zed.NewValue(tr.Typ, r.builder.Bytes().Body())
+	r.val = *zed.NewValue(tr.Type, r.builder.Bytes().Body())
 	return &r.val, nil
 }

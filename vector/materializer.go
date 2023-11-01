@@ -6,23 +6,23 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-func (vector *Vector) NewMaterializer() Materializer {
-	materializers := make([]materializer, len(vector.Types))
-	for i, value := range vector.values {
-		materializers[i] = value.newMaterializer()
-	}
-	return Materializer{
-		vector:        vector,
-		materializers: materializers,
-	}
-}
-
 type Materializer struct {
 	vector        *Vector
 	materializers []materializer
 	index         int
 	builder       zcode.Builder
 	value         zed.Value
+}
+
+func (v *Vector) NewMaterializer() Materializer {
+	materializers := make([]materializer, len(v.Types))
+	for i, value := range v.values {
+		materializers[i] = value.newMaterializer()
+	}
+	return Materializer{
+		vector:        v,
+		materializers: materializers,
+	}
 }
 
 var _ zio.Reader = (*Materializer)(nil)
@@ -36,7 +36,7 @@ func (m *Materializer) Read() (*zed.Value, error) {
 	m.builder.Truncate()
 	m.materializers[tag](&m.builder)
 	m.value = *zed.NewValue(typ, m.builder.Bytes().Body())
-	m.index += 1
+	m.index++
 	return &m.value, nil
 }
 
@@ -51,164 +51,164 @@ func min(a int, b int) int {
 
 type materializer func(*zcode.Builder)
 
-func (vector *bools) newMaterializer() materializer {
+func (v *bools) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeBool(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeBool(v.values[index]))
+		index++
 	}
 }
 
-func (vector *byteses) newMaterializer() materializer {
+func (v *byteses) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeBytes(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeBytes(v.values[index]))
+		index++
 	}
 }
 
-func (vector *durations) newMaterializer() materializer {
+func (v *durations) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeDuration(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeDuration(v.values[index]))
+		index++
 	}
 }
 
-func (vector *float16s) newMaterializer() materializer {
+func (v *float16s) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeFloat16(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeFloat16(v.values[index]))
+		index++
 	}
 }
 
-func (vector *float32s) newMaterializer() materializer {
+func (v *float32s) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeFloat32(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeFloat32(v.values[index]))
+		index++
 	}
 }
 
-func (vector *float64s) newMaterializer() materializer {
+func (v *float64s) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeFloat64(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeFloat64(v.values[index]))
+		index++
 	}
 }
 
-func (vector *ints) newMaterializer() materializer {
+func (v *ints) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeInt(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeInt(v.values[index]))
+		index++
 	}
 }
 
-func (vector *ips) newMaterializer() materializer {
+func (v *ips) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeIP(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeIP(v.values[index]))
+		index++
 	}
 }
 
-func (vector *nets) newMaterializer() materializer {
+func (v *nets) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeNet(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeNet(v.values[index]))
+		index++
 	}
 }
 
-func (vector *strings) newMaterializer() materializer {
+func (v *strings) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeString(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeString(v.values[index]))
+		index++
 	}
 }
 
-func (vector *types) newMaterializer() materializer {
+func (v *types) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeTypeValue(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeTypeValue(v.values[index]))
+		index++
 	}
 }
 
-func (vector *times) newMaterializer() materializer {
+func (v *times) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeTime(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeTime(v.values[index]))
+		index++
 	}
 }
 
-func (vector *uints) newMaterializer() materializer {
+func (v *uints) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeUint(vector.values[index]))
-		index += 1
+		builder.Append(zed.EncodeUint(v.values[index]))
+		index++
 	}
 }
 
-func (vector *arrays) newMaterializer() materializer {
+func (v *arrays) newMaterializer() materializer {
 	var index int
-	elemMaterializer := vector.elems.newMaterializer()
+	elemMaterializer := v.elems.newMaterializer()
 	return func(builder *zcode.Builder) {
-		length := int(vector.lengths[index])
+		length := int(v.lengths[index])
 		builder.BeginContainer()
-		for i := 0; i < length; i += 1 {
+		for i := 0; i < length; i++ {
 			elemMaterializer(builder)
 		}
 		builder.EndContainer()
-		index += 1
+		index++
 	}
 }
 
-func (vector *constants) newMaterializer() materializer {
-	bytes := vector.value.Bytes()
+func (v *constants) newMaterializer() materializer {
+	bytes := v.value.Bytes()
 	return func(builder *zcode.Builder) {
 		builder.Append(bytes)
 	}
 }
 
-func (vector *maps) newMaterializer() materializer {
+func (v *maps) newMaterializer() materializer {
 	var index int
-	keyMaterializer := vector.keys.newMaterializer()
-	valueMaterializer := vector.values.newMaterializer()
+	keyMaterializer := v.keys.newMaterializer()
+	valueMaterializer := v.values.newMaterializer()
 	return func(builder *zcode.Builder) {
-		length := int(vector.lengths[index])
+		length := int(v.lengths[index])
 		builder.BeginContainer()
-		for i := 0; i < length; i += 1 {
+		for i := 0; i < length; i++ {
 			keyMaterializer(builder)
 			valueMaterializer(builder)
 		}
 		builder.TransformContainer(zed.NormalizeMap)
 		builder.EndContainer()
-		index += 1
+		index++
 	}
 }
 
-func (vector *nulls) newMaterializer() materializer {
+func (v *nulls) newMaterializer() materializer {
 	var index int
-	valueMaterializer := vector.values.newMaterializer()
+	valueMaterializer := v.values.newMaterializer()
 	return func(builder *zcode.Builder) {
-		if vector.mask.ContainsInt(index) {
+		if v.mask.ContainsInt(index) {
 			valueMaterializer(builder)
 		} else {
 			builder.Append(nil)
 		}
-		index += 1
+		index++
 	}
 }
 
-func (vector *records) newMaterializer() materializer {
-	fieldMaterializers := make([]materializer, len(vector.fields))
-	for i, field := range vector.fields {
+func (v *records) newMaterializer() materializer {
+	fieldMaterializers := make([]materializer, len(v.fields))
+	for i, field := range v.fields {
 		fieldMaterializers[i] = field.newMaterializer()
 	}
 	return func(builder *zcode.Builder) {
@@ -220,18 +220,18 @@ func (vector *records) newMaterializer() materializer {
 	}
 }
 
-func (vector *unions) newMaterializer() materializer {
+func (v *unions) newMaterializer() materializer {
 	var index int
-	payloadMaterializers := make([]materializer, len(vector.payloads))
-	for i, payload := range vector.payloads {
+	payloadMaterializers := make([]materializer, len(v.payloads))
+	for i, payload := range v.payloads {
 		payloadMaterializers[i] = payload.newMaterializer()
 	}
 	return func(builder *zcode.Builder) {
 		builder.BeginContainer()
-		tag := vector.tags[index]
+		tag := v.tags[index]
 		builder.Append(zed.EncodeInt(tag))
 		payloadMaterializers[tag](builder)
 		builder.EndContainer()
-		index += 1
+		index++
 	}
 }

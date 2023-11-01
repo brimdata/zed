@@ -4,10 +4,10 @@ import (
 	"github.com/brimdata/zed"
 )
 
-// len(values) == len(Types)
 type Vector struct {
 	Context *zed.Context
 	Types   []zed.Type
-	values  []any
-	tags    []int64
+	// len(values) == len(Types)
+	values []vector
+	tags   []int64
 }

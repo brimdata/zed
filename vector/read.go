@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/vng"
-	vngVector "github.com/brimdata/zed/vng/vector"
+	vngvector "github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
 
 	"github.com/RoaringBitmap/roaring"
@@ -22,9 +22,9 @@ func Read(reader *vng.Reader) (*Vector, error) {
 		return nil, err
 	}
 	types := make([]zed.Type, len(reader.Readers))
-	values := make([]any, len(reader.Readers))
+	values := make([]vector, len(reader.Readers))
 	for i, typedReader := range reader.Readers {
-		typ, _ := context.DecodeTypeValue(zed.EncodeTypeValue(typedReader.Typ))
+		typ, _ := context.DecodeTypeValue(zed.EncodeTypeValue(typedReader.Type))
 		types[i] = typ
 		value, err := read(context, typedReader.Reader)
 		if err != nil {
@@ -41,10 +41,10 @@ func Read(reader *vng.Reader) (*Vector, error) {
 	return vector, nil
 }
 
-func read(context *zed.Context, reader vngVector.Reader) (any, error) {
+func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 	switch reader := reader.(type) {
 
-	case *vngVector.ArrayReader:
+	case *vngvector.ArrayReader:
 		lengths, err := readInt64s(reader.Lengths)
 		if err != nil {
 			return nil, err
@@ -59,7 +59,7 @@ func read(context *zed.Context, reader vngVector.Reader) (any, error) {
 		}
 		return vector, nil
 
-	case *vngVector.ConstReader:
+	case *vngvector.ConstReader:
 		var builder zcode.Builder
 		err := reader.Read(&builder)
 		if err != nil {
@@ -72,11 +72,11 @@ func read(context *zed.Context, reader vngVector.Reader) (any, error) {
 		}
 		return vector, nil
 
-	case *vngVector.DictReader:
+	case *vngvector.DictReader:
 		// TODO Would we be better off with a dicts vector?
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
-	case *vngVector.MapReader:
+	case *vngvector.MapReader:
 		keys, err := read(context, reader.Keys)
 		if err != nil {
 			return nil, err
@@ -96,7 +96,7 @@ func read(context *zed.Context, reader vngVector.Reader) (any, error) {
 		}
 		return vector, nil
 
-	case *vngVector.NullsReader:
+	case *vngvector.NullsReader:
 		mask := roaring.New()
 		var maskIndex uint64
 		maskBool := true
@@ -125,11 +125,11 @@ func read(context *zed.Context, reader vngVector.Reader) (any, error) {
 		}
 		return vector, nil
 
-	case *vngVector.PrimitiveReader:
+	case *vngvector.PrimitiveReader:
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
-	case vngVector.RecordReader: // Not a typo - RecordReader does not have a pointer receiver.
-		fields := make([]any, len(reader))
+	case vngvector.RecordReader: // Not a typo - RecordReader does not have a pointer receiver.
+		fields := make([]vector, len(reader))
 		for i, fieldReader := range reader {
 			field, err := read(context, fieldReader.Values)
 			if err != nil {
@@ -142,8 +142,8 @@ func read(context *zed.Context, reader vngVector.Reader) (any, error) {
 		}
 		return vector, nil
 
-	case *vngVector.UnionReader:
-		payloads := make([]any, len(reader.Readers))
+	case *vngvector.UnionReader:
+		payloads := make([]vector, len(reader.Readers))
 		for i, reader := range reader.Readers {
 			payload, err := read(context, reader)
 			if err != nil {
@@ -167,7 +167,7 @@ func read(context *zed.Context, reader vngVector.Reader) (any, error) {
 }
 
 // TODO This is likely to be a bottleneck. If so, inline `readBytes` and `zed.Decode*`.
-func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte, error)) (any, error) {
+func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte, error)) (vector, error) {
 	switch typ {
 	case zed.TypeBool:
 		values := make([]bool, 0)
@@ -415,7 +415,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 	}
 }
 
-func readInt64s(reader *vngVector.Int64Reader) ([]int64, error) {
+func readInt64s(reader *vngvector.Int64Reader) ([]int64, error) {
 	ints := make([]int64, 0)
 	for {
 		int, err := reader.Read()

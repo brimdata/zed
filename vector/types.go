@@ -9,32 +9,32 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
-type any interface {
+type vector interface {
 	// Returned materializer may panic if called more than `Vector.Length` times.
 	// Use `Vector.NewMaterializer` for a safe interface.
 	newMaterializer() materializer
 }
 
-var _ any = (*bools)(nil)
-var _ any = (*byteses)(nil)
-var _ any = (*durations)(nil)
-var _ any = (*float16s)(nil)
-var _ any = (*float32s)(nil)
-var _ any = (*float64s)(nil)
-var _ any = (*ints)(nil)
-var _ any = (*ips)(nil)
-var _ any = (*nets)(nil)
-var _ any = (*strings)(nil)
-var _ any = (*times)(nil)
-var _ any = (*types)(nil)
-var _ any = (*uints)(nil)
+var _ vector = (*bools)(nil)
+var _ vector = (*byteses)(nil)
+var _ vector = (*durations)(nil)
+var _ vector = (*float16s)(nil)
+var _ vector = (*float32s)(nil)
+var _ vector = (*float64s)(nil)
+var _ vector = (*ints)(nil)
+var _ vector = (*ips)(nil)
+var _ vector = (*nets)(nil)
+var _ vector = (*strings)(nil)
+var _ vector = (*times)(nil)
+var _ vector = (*types)(nil)
+var _ vector = (*uints)(nil)
 
-var _ any = (*arrays)(nil)
-var _ any = (*constants)(nil)
-var _ any = (*maps)(nil)
-var _ any = (*nulls)(nil)
-var _ any = (*records)(nil)
-var _ any = (*unions)(nil)
+var _ vector = (*arrays)(nil)
+var _ vector = (*constants)(nil)
+var _ vector = (*maps)(nil)
+var _ vector = (*nulls)(nil)
+var _ vector = (*records)(nil)
+var _ vector = (*unions)(nil)
 
 // TODO Use bitset.
 type bools struct {
@@ -95,7 +95,7 @@ type uints struct {
 
 type arrays struct {
 	lengths []int64
-	elems   any
+	elems   vector
 }
 
 type constants struct {
@@ -104,20 +104,20 @@ type constants struct {
 
 type maps struct {
 	lengths []int64
-	keys    any
-	values  any
+	keys    vector
+	values  vector
 }
 
 type nulls struct {
 	mask   *roaring.Bitmap
-	values any
+	values vector
 }
 
 type records struct {
-	fields []any
+	fields []vector
 }
 
 type unions struct {
-	payloads []any
+	payloads []vector
 	tags     []int64
 }
