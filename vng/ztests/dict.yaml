@@ -1,5 +1,5 @@
 script: |
-  zq -f vng -o out.vng -
+  ZED_USE_DICT=1 zq -f vng -o out.vng -
   zed dev dig section 1 out.vng | zq -Z "over Fields | yield Values.Dict" -
 
 inputs:
