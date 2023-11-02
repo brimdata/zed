@@ -92,6 +92,7 @@ func (a *onceError) Store(err error) {
 	}
 	a.err = err
 }
+
 func (a *onceError) Load() error {
 	a.Lock()
 	defer a.Unlock()

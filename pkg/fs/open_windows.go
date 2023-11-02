@@ -225,6 +225,7 @@ func fixLongPath(path string) string {
 	}
 	return string(pathbuf[:w])
 }
+
 func makeInheritSa() *syscall.SecurityAttributes {
 	var sa syscall.SecurityAttributes
 	sa.Length = uint32(unsafe.Sizeof(sa))
