@@ -32,10 +32,7 @@ type PrimitiveWriter struct {
 
 func NewPrimitiveWriter(typ zed.Type, spiller *Spiller, useDict bool) *PrimitiveWriter {
 	var dict map[string]uint32
-	// TODO
-	// Something in dicts is broken.
-	// Calls to makeDictVector and Metadata occasionally return differing dicts.
-	// This may be due sorting not absolutely determining order, so that the map iterator order is sometimes exposed?
+	// TODO https://github.com/brimdata/zed/issues/4839
 	if useDict && os.Getenv("ZED_USE_DICT") != "" {
 		dict = make(map[string]uint32)
 	}
