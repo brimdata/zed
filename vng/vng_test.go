@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/vng"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/vngio"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -23,7 +24,7 @@ type mockFile struct {
 
 func (f *mockFile) Close() error { return nil }
 
-func FuzzVngRoundtrip(f *testing.F) {
+func FuzzVngRoundtripGen(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		bytesReader := bytes.NewReader(b)
 		context := zed.NewContext()
@@ -46,6 +47,30 @@ func FuzzVngRoundtrip(f *testing.F) {
 		writerOpts := vngio.WriterOpts{
 			ColumnThresh: units.Bytes(ColumnThresh),
 			SkewThresh:   units.Bytes(SkewThresh),
+		}
+		roundtrip(t, values, writerOpts)
+	})
+}
+
+func FuzzVngRoundtripBytes(f *testing.F) {
+	f.Fuzz(func(t *testing.T, b []byte) {
+		bytesReader := bytes.NewReader(b)
+		context := zed.NewContext()
+		reader := zngio.NewReader(context, bytesReader)
+		values := make([]zed.Value, 0)
+		for {
+			value, err := reader.Read()
+			if err != nil {
+				return
+			}
+			if value == nil {
+				break
+			}
+			values = append(values, *(value.Copy()))
+		}
+		writerOpts := vngio.WriterOpts{
+			ColumnThresh: units.Bytes(vngio.DefaultColumnThresh),
+			SkewThresh:   units.Bytes(vngio.DefaultSkewThresh),
 		}
 		roundtrip(t, values, writerOpts)
 	})
