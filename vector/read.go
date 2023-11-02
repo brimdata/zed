@@ -269,7 +269,61 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		}
 		return vector, nil
 
-	case zed.TypeInt8, zed.TypeInt16, zed.TypeInt32, zed.TypeInt64:
+	case zed.TypeInt8:
+		values := make([]int8, 0)
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, int8(zed.DecodeInt(bs)))
+		}
+		vector := &int8s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeInt16:
+		values := make([]int16, 0)
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, int16(zed.DecodeInt(bs)))
+		}
+		vector := &int16s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeInt32:
+		values := make([]int32, 0)
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, int32(zed.DecodeInt(bs)))
+		}
+		vector := &int32s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeInt64:
 		values := make([]int64, 0)
 		for {
 			bs, err := readBytes()
@@ -280,9 +334,9 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeInt(bs))
+			values = append(values, int64(zed.DecodeInt(bs)))
 		}
-		vector := &ints{
+		vector := &int64s{
 			values: values,
 		}
 		return vector, nil
@@ -364,7 +418,61 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		}
 		return vector, nil
 
-	case zed.TypeUint8, zed.TypeUint16, zed.TypeUint32, zed.TypeUint64:
+	case zed.TypeUint8:
+		values := make([]uint8, 0)
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, uint8(zed.DecodeUint(bs)))
+		}
+		vector := &uint8s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeUint16:
+		values := make([]uint16, 0)
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, uint16(zed.DecodeUint(bs)))
+		}
+		vector := &uint16s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeUint32:
+		values := make([]uint32, 0)
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, uint32(zed.DecodeUint(bs)))
+		}
+		vector := &uint32s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeUint64:
 		values := make([]uint64, 0)
 		for {
 			bs, err := readBytes()
@@ -375,9 +483,9 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeUint(bs))
+			values = append(values, uint64(zed.DecodeUint(bs)))
 		}
-		vector := &uints{
+		vector := &uint64s{
 			values: values,
 		}
 		return vector, nil
