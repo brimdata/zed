@@ -57,6 +57,7 @@ func FuzzVngRoundtripBytes(f *testing.F) {
 		bytesReader := bytes.NewReader(b)
 		context := zed.NewContext()
 		reader := zngio.NewReader(context, bytesReader)
+		defer reader.Close()
 		values := make([]zed.Value, 0)
 		for {
 			value, err := reader.Read()
