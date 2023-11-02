@@ -39,9 +39,11 @@ type bools struct {
 	values []bool
 }
 
-// TODO Read entire vector as single []byte.
 type byteses struct {
-	values [][]byte
+	data []byte
+	// offsets[0] == 0
+	// len(offsets) == len(vector) + 1
+	offsets []int
 }
 
 type durations struct {
@@ -74,9 +76,11 @@ type nets struct {
 	values []netip.Prefix
 }
 
-// TODO Read entire vector as single []byte.
 type strings struct {
-	values []string
+	data []byte
+	// offsets[0] == 0
+	// len(offsets) == len(vector) + 1
+	offsets []int
 }
 
 type times struct {

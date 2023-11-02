@@ -175,7 +175,9 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeBytes:
-		values := make([][]byte, 0)
+		data := bytes.NewBuffer(nil)
+		offsets := make([]int, 1)
+		offsets[0] = 0
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -185,10 +187,13 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeBytes(bytes.Clone(bs)))
+			data.Write(zed.DecodeBytes(bs))
+			offsets = append(offsets, data.Len())
 		}
 		vector := &byteses{
-			values: values,
+			data: data.Bytes(),
+			// TODO truncate offsets
+			offsets: offsets,
 		}
 		return vector, nil
 
@@ -319,7 +324,9 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeString:
-		values := make([]string, 0)
+		data := bytes.NewBuffer(nil)
+		offsets := make([]int, 1)
+		offsets[0] = 0
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -329,10 +336,13 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeString(bytes.Clone(bs)))
+			data.Write(zed.DecodeBytes(bs))
+			offsets = append(offsets, data.Len())
 		}
 		vector := &strings{
-			values: values,
+			data: data.Bytes(),
+			// TODO truncate offsets
+			offsets: offsets,
 		}
 		return vector, nil
 

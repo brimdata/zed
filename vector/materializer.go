@@ -62,7 +62,8 @@ func (v *bools) newMaterializer() materializer {
 func (v *byteses) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeBytes(v.values[index]))
+		data := v.data[v.offsets[index]:v.offsets[index+1]]
+		builder.Append(zed.EncodeBytes(data))
 		index++
 	}
 }
@@ -126,7 +127,8 @@ func (v *nets) newMaterializer() materializer {
 func (v *strings) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeString(v.values[index]))
+		data := v.data[v.offsets[index]:v.offsets[index+1]]
+		builder.Append(zed.EncodeBytes(data))
 		index++
 	}
 }
