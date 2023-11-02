@@ -194,15 +194,22 @@ func (v *maps) newMaterializer() materializer {
 }
 
 func (v *nulls) newMaterializer() materializer {
-	var index int
+	var runIndex int
+	var run int64
+	isNull := true
 	valueMaterializer := v.values.newMaterializer()
 	return func(builder *zcode.Builder) {
-		if v.mask.ContainsInt(index) {
-			valueMaterializer(builder)
-		} else {
-			builder.Append(nil)
+		for run == 0 {
+			isNull = !isNull
+			run = v.runs[runIndex]
+			runIndex++
 		}
-		index++
+		if isNull {
+			builder.Append(nil)
+		} else {
+			valueMaterializer(builder)
+		}
+		run--
 	}
 }
 

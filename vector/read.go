@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/netip"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/vng"
@@ -96,30 +95,19 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		return vector, nil
 
 	case *vngvector.NullsReader:
-		mask := roaring.New()
-		var maskIndex uint64
-		maskBool := true
-		for {
-			run, err := reader.Runs.Read()
-			if err != nil {
-				if err == io.EOF {
-					break
-				} else {
-					return nil, err
-				}
-			}
-			if maskBool {
-				mask.AddRange(maskIndex, maskIndex+uint64(run))
-			}
-			maskBool = !maskBool
-			maskIndex += uint64(run)
+		runs, err := readInt64s(&reader.Runs)
+		if err != nil {
+			return nil, err
 		}
 		values, err := read(context, reader.Values)
 		if err != nil {
 			return nil, err
 		}
+		if len(runs) == 0 {
+			return values, nil
+		}
 		vector := &nulls{
-			mask:   mask,
+			runs:   runs,
 			values: values,
 		}
 		return vector, nil

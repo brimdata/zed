@@ -3,7 +3,6 @@ package vector
 import (
 	"net/netip"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 )
@@ -108,7 +107,8 @@ type maps struct {
 }
 
 type nulls struct {
-	mask   *roaring.Bitmap
+	// len(runs) > 0
+	runs   []int64
 	values vector
 }
 
