@@ -17,6 +17,14 @@ type WriterOpts struct {
 	SkewThresh   units.Bytes
 }
 
-func NewWriter(w io.WriteCloser, opts WriterOpts) (*vng.Writer, error) {
+// NewWriter returns a writer to w with reasonable default options.
+func NewWriter(w io.WriteCloser) (*vng.Writer, error) {
+	return NewWriterWithOpts(w, WriterOpts{
+		ColumnThresh: DefaultColumnThresh,
+		SkewThresh:   DefaultSkewThresh,
+	})
+}
+
+func NewWriterWithOpts(w io.WriteCloser, opts WriterOpts) (*vng.Writer, error) {
 	return vng.NewWriter(w, int(opts.SkewThresh), int(opts.ColumnThresh))
 }
