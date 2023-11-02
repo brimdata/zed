@@ -350,9 +350,18 @@ func LookupCompare(typ zed.Type) comparefn {
 		return func(a, b zcode.Bytes) int {
 			va, vb := zed.DecodeFloat(a), zed.DecodeFloat(b)
 			aNaN, bNaN := math.IsNaN(va), math.IsNaN(vb)
-			if va < vb || aNaN && !bNaN {
+			if aNaN && bNaN {
+				// Order different NaNs so ZNG sets have a canonical form.
+				aBits, bBits := math.Float64bits(va), math.Float64bits(vb)
+				if aBits < bBits {
+					return -1
+				} else if aBits > bBits {
+					return 1
+				}
+				return 0
+			} else if aNaN || va < vb {
 				return -1
-			} else if va > vb || bNaN && !aNaN {
+			} else if bNaN || va > vb {
 				return 1
 			}
 			return 0
