@@ -125,7 +125,6 @@ func findCandidate(b []byte, off int) int {
 		}
 	}
 }
-
 func readTrailer(b []byte) *zed.Value {
 	zr := NewReader(zed.NewContext(), bytes.NewReader(b))
 	defer zr.Close()
