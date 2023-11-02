@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
 	"github.com/brimdata/zed/zio"
@@ -33,7 +34,7 @@ func NewReader(zctx *zed.Context, r io.Reader) (zio.Reader, error) {
 		if err != nil {
 			return nil, err
 		}
-		vector, err := vector.Read(reader)
+		vector, err := vector.Read(reader, demand.All{})
 		if err != nil {
 			return nil, err
 		}

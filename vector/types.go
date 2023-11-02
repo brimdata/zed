@@ -98,7 +98,7 @@ type arrays struct {
 }
 
 type constants struct {
-	value zed.Value
+	bytes []byte
 }
 
 type maps struct {
