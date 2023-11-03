@@ -355,7 +355,7 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 			fields := make([]zed.Field, len(fieldTypes))
 			for i, fieldType := range fieldTypes {
 				fields[i] = zed.Field{
-					Name: fmt.Sprint(i),
+					Name: fmt.Sprintf("f%d", i),
 					Type: fieldType,
 				}
 			}
