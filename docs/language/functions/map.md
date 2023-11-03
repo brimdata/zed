@@ -10,9 +10,9 @@ map(v: array|set, f: function) -> array|set
 
 ### Description
 
-The _map_ function applies function f to every element in array or set v and
-returns an array or set of the results. Function f must be a function that takes
-only one argument. A user defined function can be used for f.
+The _map_ function applies function `f` to every element in array or set `v` and
+returns an array or set of the results. Function `f` must be a function that takes
+only one argument. A [user-defined function](../statements.md#func-statements) can be used for `f`.
 
 ### Examples
 
@@ -26,7 +26,7 @@ echo '["foo","bar","baz"]' | zq -z 'yield map(this, upper)' -
 ["FOO","BAR","BAZ"]
 ```
 
-Using a user defined function to convert an epoch float to a time:
+Using a user-defined function to convert an epoch float to a time:
 
 ```mdtest-command
 echo '[1697151533.41415,1697151540.716529]' | zq -z '
