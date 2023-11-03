@@ -12,7 +12,9 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -58,22 +60,14 @@ func FuzzVngRoundtripBytes(f *testing.F) {
 		context := zed.NewContext()
 		reader := zngio.NewReader(context, bytesReader)
 		defer reader.Close()
-		values := make([]zed.Value, 0)
-		for {
-			value, err := reader.Read()
-			if err != nil {
-				return
-			}
-			if value == nil {
-				break
-			}
-			values = append(values, *(value.Copy()))
+		var a zbuf.Array
+		if zio.Copy(&a, reader) != nil {
+			return
 		}
-		writerOpts := vngio.WriterOpts{
+		roundtrip(t, a.Values(), vngio.WriterOpts{
 			ColumnThresh: units.Bytes(vngio.DefaultColumnThresh),
 			SkewThresh:   units.Bytes(vngio.DefaultSkewThresh),
-		}
-		roundtrip(t, values, writerOpts)
+		})
 	})
 }
 
@@ -102,7 +96,7 @@ func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) 
 	}
 
 	// Read
-	fileOut := bytes.NewReader(fileIn.Bytes())
+	fileOut := bytes.NewReader(buf.Bytes())
 	context := zed.NewContext()
 	reader, err := vngio.NewReader(context, fileOut)
 	if err != nil {
