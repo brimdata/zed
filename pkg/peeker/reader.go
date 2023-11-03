@@ -60,6 +60,9 @@ func (r *Reader) fill(need int) error {
 }
 
 func (r *Reader) Peek(n int) ([]byte, error) {
+	if n < 0 {
+		return nil, errors.New("peeker: negative length")
+	}
 	if len(r.cursor) == 0 && r.eof {
 		return nil, io.EOF
 	}
