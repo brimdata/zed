@@ -67,10 +67,7 @@ func NewVectorWriter(ctx context.Context, engine storage.Engine, path *storage.U
 	delete := func() {
 		DeleteVector(context.Background(), engine, path, id)
 	}
-	writer, err := vngio.NewWriter(bufwriter.New(put), vngio.WriterOpts{
-		ColumnThresh: vngio.DefaultColumnThresh,
-		SkewThresh:   vngio.DefaultSkewThresh,
-	})
+	writer, err := vngio.NewWriter(bufwriter.New(put))
 	if err != nil {
 		delete()
 		return nil, err

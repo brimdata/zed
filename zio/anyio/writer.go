@@ -23,7 +23,7 @@ import (
 type WriterOpts struct {
 	Format string
 	Lake   lakeio.WriterOpts
-	VNG    vngio.WriterOpts
+	VNG    *vngio.WriterOpts // Nil means use defaults via vngio.NewWriter.
 	ZNG    *zngio.WriterOpts // Nil means use defaults via zngio.NewWriter.
 	ZSON   zsonio.WriterOpts
 }
@@ -47,7 +47,10 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "text":
 		return textio.NewWriter(w), nil
 	case "vng":
-		return vngio.NewWriter(w, opts.VNG)
+		if opts.VNG == nil {
+			return vngio.NewWriter(w)
+		}
+		return vngio.NewWriterWithOpts(w, *opts.VNG)
 	case "zeek":
 		return zeekio.NewWriter(w), nil
 	case "zjson":
