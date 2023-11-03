@@ -81,7 +81,7 @@ func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) 
 
 	// Write
 	var buf bytes.Buffer
-	writer, err := vngio.NewWriter(zio.NopCloser(&buf), writerOpts)
+	writer, err := vngio.NewWriterWithOpts(zio.NopCloser(&buf), writerOpts)
 	require.NoError(t, err)
 	for i := range valuesIn {
 		err := writer.Write(&valuesIn[i])
