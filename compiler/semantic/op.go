@@ -171,6 +171,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
 	}
 }
+
 func unmarshalHeaders(val *zed.Value) (map[string][]string, error) {
 	if !zed.IsRecordType(val.Type) {
 		return nil, errors.New("headers value must be a record")
@@ -192,6 +193,7 @@ func unmarshalHeaders(val *zed.Value) (map[string][]string, error) {
 	}
 	return headers, nil
 }
+
 func semSortKey(p *ast.SortKey) (order.SortKey, error) {
 	if p == nil || p.Keys == nil {
 		return order.Nil, nil

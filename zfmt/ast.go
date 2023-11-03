@@ -364,6 +364,7 @@ func (c *canon) decl(d ast.Decl) {
 	}
 
 }
+
 func (c *canon) seq(seq ast.Seq) {
 	for _, p := range seq {
 		c.op(p)

@@ -237,6 +237,7 @@ func (w *ResponseWriter) ZioWriter() zio.WriteCloser {
 	}
 	return w.zw
 }
+
 func (w *ResponseWriter) Write(b []byte) (int, error) {
 	if atomic.CompareAndSwapInt32(&w.written, 0, 1) {
 		typ, err := api.FormatToMediaType(w.Format)

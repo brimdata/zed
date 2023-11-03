@@ -188,6 +188,7 @@ func NewExit(scope *Scope, nvar int) *Exit {
 		nvar:  nvar,
 	}
 }
+
 func (e *Exit) Pull(done bool) (zbuf.Batch, error) {
 	if done {
 		// Propagate the done to the enter puller then drain

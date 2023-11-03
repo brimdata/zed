@@ -150,6 +150,7 @@ func newGetter(cont zcode.Bytes) getter {
 		it:        cont.Iter(),
 	}
 }
+
 func (ig *getter) nth(n int) (zcode.Bytes, error) {
 	if n < ig.cursor {
 		ig.it = ig.container.Iter()
