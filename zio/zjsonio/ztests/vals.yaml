@@ -9,6 +9,7 @@ inputs:
       "hello"
       [3,4]
       {a:1}
+      |{}|
       true
       false
       1((int64,string))
