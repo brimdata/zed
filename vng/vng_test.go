@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
+	"github.com/stretchr/testify/require"
 )
 
 type mockFile struct {
@@ -81,33 +82,23 @@ func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) 
 	// Write
 	var buf bytes.Buffer
 	writer, err := vngio.NewWriter(zio.NopCloser(&buf), writerOpts)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	require.NoError(t, err)
 	for i := range valuesIn {
 		err := writer.Write(&valuesIn[i])
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
+		require.NoError(t, err)
 	}
 	err = writer.Close()
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	require.NoError(t, err)
 
 	// Read
 	fileOut := bytes.NewReader(buf.Bytes())
 	context := zed.NewContext()
 	reader, err := vngio.NewReader(context, fileOut)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	require.NoError(t, err)
 	valuesOut := make([]zed.Value, 0, len(valuesIn))
 	for {
 		value, err := reader.Read()
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
+		require.NoError(t, err)
 		if value == nil {
 			break
 		}
