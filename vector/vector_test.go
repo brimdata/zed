@@ -27,6 +27,10 @@ import (
 )
 
 func FuzzQuery(f *testing.F) {
+	f.Add([]byte("yield f1\x00"))
+	f.Add([]byte("yield f1, f2\x00"))
+	f.Add([]byte("f1 == null\x00"))
+	f.Add([]byte("f1 == null | yield f2\x00"))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		bytesReader := bytes.NewReader(b)
 		context := zed.NewContext()
@@ -98,8 +102,8 @@ func runQueryVng(t *testing.T, valuesIn []zed.Value, querySource string) []zed.V
 	readers := []zio.Reader{reader}
 	defer zio.CloseReaders(readers)
 
-	return runQuery(t, zctx, readers, querySource, func(demand demand.Demand) {
-		readers[0].(*vngio.Reader).Opts.Demand = demand
+	return runQuery(t, zctx, readers, querySource, func(demandIn demand.Demand) {
+		readers[0].(*vngio.Reader).Opts.Demand = demandIn
 	})
 }
 
