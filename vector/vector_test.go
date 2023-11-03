@@ -11,11 +11,9 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage/mock"
-	"github.com/brimdata/zed/pkg/units"
-	//"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
@@ -48,10 +46,7 @@ func runQueryVng(t *testing.T, valuesIn []zed.Value, querySource string) []zed.V
 
 	// Write vng file
 	var fileIn mockFile
-	writer, err := vngio.NewWriter(&fileIn, vngio.WriterOpts{
-		ColumnThresh: units.Bytes(vngio.DefaultColumnThresh),
-		SkewThresh:   units.Bytes(vngio.DefaultSkewThresh),
-	})
+	writer, err := vngio.NewWriter(&fileIn)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
