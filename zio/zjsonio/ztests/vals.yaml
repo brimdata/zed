@@ -18,6 +18,7 @@ inputs:
       null(int64)
       null(string)
       null(type)
+      null({})
 
 outputs:
   - name: stdout
