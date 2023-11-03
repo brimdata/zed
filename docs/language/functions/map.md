@@ -10,8 +10,8 @@ map(v: array|set, f: function) -> array|set
 
 ### Description
 
-The _map_ function applies function f to every element in array/set v and
-returns the augmented array/set. Function f must be a function that takes
+The _map_ function applies function f to every element in array or set v and
+returns an array or set of the results. Function f must be a function that takes
 only one argument. A user defined function can be used for f.
 
 ### Examples
