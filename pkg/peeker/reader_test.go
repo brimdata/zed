@@ -17,3 +17,11 @@ func TestEOFOnEmptyFill(t *testing.T) {
 	assert.ErrorIs(t, err, io.EOF)
 	assert.Len(t, n, 0)
 }
+
+func TestNegativeLength(t *testing.T) {
+	p := NewReader(nil, 0, 0)
+	_, err := p.Read(-1)
+	assert.ErrorContains(t, err, "peeker: negative length")
+	_, err = p.Peek(-1)
+	assert.ErrorContains(t, err, "peeker: negative length")
+}
