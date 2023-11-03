@@ -12,6 +12,10 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/optimizer"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
+	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage/mock"
 	"github.com/brimdata/zed/runtime"
@@ -42,6 +46,30 @@ func FuzzQuery(f *testing.F) {
 	})
 }
 
+func runQueryZng(t *testing.T, valuesIn []zed.Value, querySource string) []zed.Value {
+
+	// Write zng file
+	var fileIn mockFile
+	writer := zngio.NewWriter(&fileIn)
+	for i := range valuesIn {
+		err := writer.Write(&valuesIn[i])
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+	}
+	err := writer.Close()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Compile query
+	zctx := zed.NewContext()
+	readers := []zio.Reader{zngio.NewReader(zctx, bytes.NewReader(fileIn.Bytes()))}
+	defer zio.CloseReaders(readers)
+
+	return runQuery(t, zctx, readers, querySource, func(_ demand.Demand) {})
+}
+
 func runQueryVng(t *testing.T, valuesIn []zed.Value, querySource string) []zed.Value {
 
 	// Write vng file
@@ -70,52 +98,41 @@ func runQueryVng(t *testing.T, valuesIn []zed.Value, querySource string) []zed.V
 	readers := []zio.Reader{reader}
 	defer zio.CloseReaders(readers)
 
-	return runQuery(t, zctx, readers, querySource)
+	return runQuery(t, zctx, readers, querySource, func(demand demand.Demand) {
+		readers[0].(*vngio.Reader).Opts.Demand = demand
+	})
 }
 
-func runQueryZng(t *testing.T, valuesIn []zed.Value, querySource string) []zed.Value {
-
-	// Write zng file
-	var fileIn mockFile
-	writer := zngio.NewWriter(&fileIn)
-	for i := range valuesIn {
-		err := writer.Write(&valuesIn[i])
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
-	}
-	err := writer.Close()
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	// Compile query
-	zctx := zed.NewContext()
-	readers := []zio.Reader{zngio.NewReader(zctx, bytes.NewReader(fileIn.Bytes()))}
-	defer zio.CloseReaders(readers)
-
-	return runQuery(t, zctx, readers, querySource)
-}
-
-func runQuery(t *testing.T, zctx *zed.Context, readers []zio.Reader, querySource string) []zed.Value {
+func runQuery(t *testing.T, zctx *zed.Context, readers []zio.Reader, querySource string, useDemand func(demandIn demand.Demand)) []zed.Value {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Compile query
-	mockEngine := mock.NewMockEngine(gomock.NewController(t))
-	comp := compiler.NewFileSystemCompiler(mockEngine)
-	flowgraph, err := compiler.Parse(querySource)
+	engine := mock.NewMockEngine(gomock.NewController(t))
+	comp := compiler.NewFileSystemCompiler(engine)
+	ast, err := compiler.Parse(querySource)
 	if err != nil {
-		t.Logf("%v", err)
-		return []zed.Value{}
+		t.Skipf("%v", err)
 	}
-	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, readers)
+	query, err := runtime.CompileQuery(ctx, zctx, comp, ast, readers)
 	if err != nil {
-		t.Logf("%v", err)
-		return []zed.Value{}
+		t.Skipf("%v", err)
 	}
 	defer query.Pull(true)
+
+	// Infer demand
+	// TODO This is a hack and should be replaced by a cleaner interface in CompileQuery.
+	source := data.NewSource(engine, nil)
+	dag, err := semantic.AnalyzeAddSource(ctx, ast, source, nil)
+	if err != nil {
+		t.Skipf("%v", err)
+	}
+	if len(dag) > 0 {
+		demands := optimizer.InferDemandSeqOut(dag)
+		demand := demands[dag[0]]
+		useDemand(demand)
+	}
 
 	// Run query
 	valuesOut := make([]zed.Value, 0)

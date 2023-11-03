@@ -6,7 +6,7 @@ import (
 )
 
 // Returns a map from op to the demand on the output of that op.
-func inferDemandSeqOut(seq dag.Seq) map[dag.Op]demand.Demand {
+func InferDemandSeqOut(seq dag.Seq) map[dag.Op]demand.Demand {
 	demands := make(map[dag.Op]demand.Demand)
 	inferDemandSeqOutWith(demands, demand.All{}, seq)
 	for _, d := range demands {
@@ -103,7 +103,7 @@ func inferDemandExprIn(demandExprOut demand.Demand, expr dag.Expr) demand.Demand
 // --- The functions below are used for testing demand inference and can be removed once demand is used to prune inputs. ---
 
 func insertDemandTests(seq dag.Seq) dag.Seq {
-	demands := inferDemandSeqOut(seq)
+	demands := InferDemandSeqOut(seq)
 	return walk(seq, true, func(seq dag.Seq) dag.Seq {
 		ops := make([]dag.Op, 0, 2*len(seq))
 		for _, op := range seq {
