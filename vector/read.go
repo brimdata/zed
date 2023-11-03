@@ -23,7 +23,8 @@ func Read(reader *vng.Reader, demandOut demand.Demand) (*Vector, error) {
 	types := make([]zed.Type, len(reader.Readers))
 	values := make([]vector, len(reader.Readers))
 	for i, typedReader := range reader.Readers {
-		typ, _ := context.DecodeTypeValue(zed.EncodeTypeValue(typedReader.Type))
+		typeCopy, _ := context.DecodeTypeValue(zed.EncodeTypeValue(typedReader.Type))
+		typ := typeAfterDemand(context, typedReader.Reader, demandOut, typeCopy)
 		types[i] = typ
 		value, err := read(context, typedReader.Reader, demandOut)
 		if err != nil {
@@ -123,14 +124,16 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case *vngvector.RecordReader:
-		fields := make([]vector, len(reader.Values))
+		fields := make([]vector, 0)
 		for i, fieldReader := range reader.Values {
 			demandValueOut := demand.GetKey(demandOut, reader.Names[i])
-			field, err := read(context, fieldReader.Values, demandValueOut)
-			if err != nil {
-				return nil, err
+			if !demand.IsNone(demandValueOut) {
+				field, err := read(context, fieldReader.Values, demandValueOut)
+				if err != nil {
+					return nil, err
+				}
+				fields = append(fields, field)
 			}
-			fields[i] = field
 		}
 		vector := &records{
 			fields: fields,
@@ -540,4 +543,49 @@ func readInt64s(reader *vngvector.Int64Reader) ([]int64, error) {
 		ints = append(ints, int)
 	}
 	return ints, nil
+}
+
+// This must match exactly the effects of demand on `read`.
+func typeAfterDemand(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand, typ zed.Type) zed.Type {
+	if demand.IsNone(demandOut) {
+		return zed.TypeNull
+	}
+	if demand.IsAll(demandOut) {
+		return typ
+	}
+	switch reader := reader.(type) {
+	case *vngvector.NullsReader:
+		return typeAfterDemand(context, reader.Values, demandOut, typ)
+
+	case *vngvector.RecordReader:
+		typ := typ.(*zed.TypeRecord)
+		fields := make([]zed.Field, 0)
+		for i, fieldReader := range reader.Values {
+			demandValueOut := demand.GetKey(demandOut, reader.Names[i])
+			if !demand.IsNone(demandValueOut) {
+				field := typ.Fields[i]
+				fields = append(fields, zed.Field{
+					Name: field.Name,
+					Type: typeAfterDemand(context, &fieldReader, demandValueOut, field.Type),
+				})
+			}
+		}
+		result, err := context.LookupTypeRecord(fields)
+		if err != nil {
+			// This should be unreachable - any subset of a valid type is also valid.
+			panic(err)
+		}
+		return result
+
+	case *vngvector.UnionReader:
+		typ := typ.(*zed.TypeUnion)
+		types := make([]zed.Type, 0, len(typ.Types))
+		for i, unionReader := range reader.Readers {
+			types = append(types, typeAfterDemand(context, unionReader, demandOut, typ.Types[i]))
+		}
+		return context.LookupTypeUnion(types)
+
+	default:
+		return typ
+	}
 }

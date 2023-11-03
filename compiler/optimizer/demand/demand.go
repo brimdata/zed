@@ -41,6 +41,11 @@ func IsNone(demand Demand) bool {
 	}
 }
 
+func IsAll(demand Demand) bool {
+	_, ok := demand.(All)
+	return ok
+}
+
 func Key(key string, value Demand) Demand {
 	if IsNone(value) {
 		return value
