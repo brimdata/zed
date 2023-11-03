@@ -26,6 +26,7 @@ func FuzzQuery(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		bytesReader := bytes.NewReader(b)
 		context := zed.NewContext()
+		querySource := genAscii(bytesReader)
 		types := genTypes(bytesReader, context, 3)
 		values := genValues(bytesReader, context, types)
 
@@ -35,7 +36,6 @@ func FuzzQuery(f *testing.F) {
 		//    t.Logf("value: in[%v]=%v", i, zson.String(&values[i]))
 		//}
 
-		querySource := "yield this"
 		resultZng := runQueryZng(t, values, querySource)
 		resultVng := runQueryVng(t, values, querySource)
 		compareValues(t, resultZng, resultVng)
@@ -107,11 +107,13 @@ func runQuery(t *testing.T, zctx *zed.Context, readers []zio.Reader, querySource
 	comp := compiler.NewFileSystemCompiler(mockEngine)
 	flowgraph, err := compiler.Parse(querySource)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Logf("%v", err)
+		return []zed.Value{}
 	}
 	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, readers)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Logf("%v", err)
+		return []zed.Value{}
 	}
 	defer query.Pull(true)
 
@@ -397,4 +399,16 @@ func genBytes(b *bytes.Reader, n int) []byte {
 		bytes[i] = genByte(b)
 	}
 	return bytes
+}
+
+func genAscii(b *bytes.Reader) string {
+	bytes := make([]byte, 0)
+	for {
+		byte := genByte(b)
+		if byte == 0 {
+			break
+		}
+		bytes = append(bytes, byte)
+	}
+	return string(bytes)
 }
