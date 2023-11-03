@@ -103,7 +103,9 @@ func runQueryVng(t *testing.T, valuesIn []zed.Value, querySource string) []zed.V
 	defer zio.CloseReaders(readers)
 
 	return runQuery(t, zctx, readers, querySource, func(demandIn demand.Demand) {
-		readers[0].(*vngio.Reader).Opts.Demand = demandIn
+		if reader, ok := readers[0].(*vngio.Reader); ok {
+			reader.Opts.Demand = demandIn
+		}
 	})
 }
 
