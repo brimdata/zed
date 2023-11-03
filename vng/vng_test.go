@@ -85,8 +85,8 @@ func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) 
 	//}
 
 	// Write
-	var fileIn mockFile
-	writer, err := vngio.NewWriter(&fileIn, writerOpts)
+	var buf bytes.Buffer
+	writer, err := vngio.NewWriter(zio.NopCloser(&buf), writerOpts)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
