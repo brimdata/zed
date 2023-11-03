@@ -62,6 +62,11 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Value string `json:"value"`
 	}
+	MapCall struct {
+		Kind  string `json:"kind" unpack:""`
+		Expr  Expr   `json:"expr"`
+		Inner Expr   `json:"inner"`
+	}
 	MapExpr struct {
 		Kind    string  `json:"kind" unpack:""`
 		Entries []Entry `json:"entries"`
@@ -121,6 +126,7 @@ func (*Conditional) ExprDAG()  {}
 func (*Dot) ExprDAG()          {}
 func (*Func) ExprDAG()         {}
 func (*Literal) ExprDAG()      {}
+func (*MapCall) ExprDAG()      {}
 func (*MapExpr) ExprDAG()      {}
 func (*OverExpr) ExprDAG()     {}
 func (*RecordExpr) ExprDAG()   {}

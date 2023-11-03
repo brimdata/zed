@@ -83,6 +83,8 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 		return b.compileArrayExpr(e)
 	case *dag.SetExpr:
 		return b.compileSetExpr(e)
+	case *dag.MapCall:
+		return b.compileMapCall(e)
 	case *dag.MapExpr:
 		return b.compileMapExpr(e)
 	case *dag.Agg:
@@ -333,6 +335,18 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
 	return expr.NewCall(b.zctx(), fn, exprs), nil
+}
+
+func (b *Builder) compileMapCall(a *dag.MapCall) (expr.Evaluator, error) {
+	e, err := b.compileExpr(a.Expr)
+	if err != nil {
+		return nil, err
+	}
+	inner, err := b.compileExpr(a.Inner)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewMapCall(b.zctx(), e, inner), nil
 }
 
 func (b *Builder) compileShaper(node dag.Call, tf expr.ShaperTransform) (expr.Evaluator, error) {
