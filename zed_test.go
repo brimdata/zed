@@ -35,6 +35,7 @@ func TestZed(t *testing.T) {
 		require.NoError(t, err)
 		runAllBoomerangs(t, "arrows", data)
 		runAllBoomerangs(t, "parquet", data)
+		runAllBoomerangs(t, "vng", data)
 		runAllBoomerangs(t, "zson", data)
 	})
 
