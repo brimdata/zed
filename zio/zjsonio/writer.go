@@ -163,9 +163,10 @@ func (w *Writer) encodeMap(zctx *zed.Context, typ *zed.TypeMap, v zcode.Bytes) (
 	if v == nil {
 		return nil, nil
 	}
-	var out []interface{}
-	it := v.Iter()
-	for !it.Done() {
+	// We start out with a slice that contains nothing instead of nil
+	// so that an empty map encodes as a JSON empty array [].
+	out := []interface{}{}
+	for it := v.Iter(); !it.Done(); {
 		pair := make([]interface{}, 2)
 		var err error
 		pair[0], err = w.encodeValue(zctx, typ.KeyType, it.Next())
