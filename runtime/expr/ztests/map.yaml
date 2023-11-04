@@ -1,5 +1,6 @@
 script: |
   echo '{a:["foo","bar","baz"]}' | zq -z 'a := map(a,upper)' -
+  echo '{a:|["foo","bar","baz"]|}' | zq -z 'a := map(a,upper)' -
   echo '["1","2","3"]' | zq -z 'yield map(this,int64)' -
   echo '[1,2,3]' | zq -z -I udf.zed -
 
@@ -13,5 +14,6 @@ outputs:
   - name: stdout
     data: |
       {a:["FOO","BAR","BAZ"]}
+      {a:|["BAR","BAZ","FOO"]|}
       [1,2,3]
       ["1","2","3"]
