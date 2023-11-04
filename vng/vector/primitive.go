@@ -57,10 +57,10 @@ func (p *PrimitiveWriter) update(body zcode.Bytes) {
 	}
 	val := zed.NewValue(p.typ, body)
 	if p.min == nil || p.cmp(val, p.min) < 0 {
-		p.min = val
+		p.min = val.Copy()
 	}
 	if p.max == nil || p.cmp(val, p.max) > 0 {
-		p.max = val
+		p.max = val.Copy()
 	}
 	if p.dict != nil {
 		p.dict[string(body)]++
