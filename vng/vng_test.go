@@ -83,18 +83,15 @@ func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) 
 	var buf bytes.Buffer
 	writer, err := vngio.NewWriterWithOpts(zio.NopCloser(&buf), writerOpts)
 	require.NoError(t, err)
-	for i := range valuesIn {
-		err := writer.Write(&valuesIn[i])
-		require.NoError(t, err)
-	}
-	err = writer.Close()
-	require.NoError(t, err)
+	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
+	require.NoError(t, writer.Close())
 
 	// Read
 	reader, err := vngio.NewReader(zed.NewContext(), bytes.NewReader(buf.Bytes()))
 	require.NoError(t, err)
 	var a zbuf.Array
 	require.NoError(t, zio.Copy(&a, reader))
+	valuesOut := a.Values()
 
 	// Compare
 	t.Logf("comparing: len(in)=%v vs len(out)=%v", len(valuesIn), len(valuesOut))
