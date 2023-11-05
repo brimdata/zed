@@ -56,7 +56,7 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 		if err != nil {
 			return nil, err
 		}
-		elems, err := read(context, reader.Elems, demand.All{})
+		elems, err := read(context, reader.Elems, demand.All())
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +83,7 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case *vngvector.MapReader:
-		keys, err := read(context, reader.Keys, demand.All{})
+		keys, err := read(context, reader.Keys, demand.All())
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +91,7 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 		if err != nil {
 			return nil, err
 		}
-		values, err := read(context, reader.Values, demand.All{})
+		values, err := read(context, reader.Values, demand.All())
 		if err != nil {
 			return nil, err
 		}

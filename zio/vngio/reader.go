@@ -47,7 +47,7 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	}
 	if os.Getenv("ZED_USE_VECTOR") != "" {
 		if opts.Demand == nil {
-			opts.Demand = demand.All{}
+			opts.Demand = demand.All()
 		}
 		vngReader, err := vng.NewReader(o)
 		if err != nil {

@@ -4,21 +4,17 @@ type Demand interface {
 	isDemand()
 }
 
-func (demand All) isDemand()  {}
-func (demand Keys) isDemand() {}
+func (demand all) isDemand()  {}
+func (demand keys) isDemand() {}
 
-type All struct{}
-type Keys map[string]Demand // No empty values.
-
-func None() Demand {
-	return Keys(make(map[string]Demand, 0))
-}
+type all struct{}
+type keys map[string]Demand // No empty values.
 
 func IsValid(demand Demand) bool {
 	switch demand := demand.(type) {
-	case All:
+	case all:
 		return true
-	case Keys:
+	case keys:
 		for _, v := range demand {
 			if !IsValid(v) || IsNone(v) {
 				return false
@@ -30,11 +26,19 @@ func IsValid(demand Demand) bool {
 	}
 }
 
+func None() Demand {
+	return keys(make(map[string]Demand, 0))
+}
+
+func All() Demand {
+	return all{}
+}
+
 func IsNone(demand Demand) bool {
 	switch demand := demand.(type) {
-	case All:
+	case all:
 		return false
-	case Keys:
+	case keys:
 		return len(demand) == 0
 	default:
 		panic("Unreachable")
@@ -42,7 +46,7 @@ func IsNone(demand Demand) bool {
 }
 
 func IsAll(demand Demand) bool {
-	_, ok := demand.(All)
+	_, ok := demand.(all)
 	return ok
 }
 
@@ -50,23 +54,23 @@ func Key(key string, value Demand) Demand {
 	if IsNone(value) {
 		return value
 	}
-	demand := Keys(make(map[string]Demand, 1))
+	demand := keys(make(map[string]Demand, 1))
 	demand[key] = value
 	return demand
 }
 
 func Union(a Demand, b Demand) Demand {
-	if _, ok := a.(All); ok {
+	if _, ok := a.(all); ok {
 		return a
 	}
-	if _, ok := b.(All); ok {
+	if _, ok := b.(all); ok {
 		return b
 	}
 
 	{
-		a, b := a.(Keys), b.(Keys)
+		a, b := a.(keys), b.(keys)
 
-		demand := Keys(make(map[string]Demand, len(a)+len(b)))
+		demand := keys(make(map[string]Demand, len(a)+len(b)))
 		for k, v := range a {
 			demand[k] = v
 		}
@@ -83,9 +87,9 @@ func Union(a Demand, b Demand) Demand {
 
 func GetKey(demand Demand, key string) Demand {
 	switch demand := demand.(type) {
-	case All:
+	case all:
 		return demand
-	case Keys:
+	case keys:
 		if value, ok := demand[key]; ok {
 			return value
 		}
