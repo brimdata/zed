@@ -118,7 +118,7 @@ func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) 
 }
 
 func genValues(b *bytes.Reader, context *zed.Context, types []zed.Type) []zed.Value {
-	values := make([]zed.Value, 0)
+	var values []zed.Value
 	var builder zcode.Builder
 	for genByte(b) != 0 {
 		typ := types[int(genByte(b))%len(types)]
