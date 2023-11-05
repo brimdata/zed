@@ -124,8 +124,7 @@ func genValues(b *bytes.Reader, context *zed.Context, types []zed.Type) []zed.Va
 		typ := types[int(genByte(b))%len(types)]
 		builder.Reset()
 		genValue(b, context, typ, &builder)
-		it := builder.Bytes().Iter()
-		values = append(values, *zed.NewValue(typ, it.Next()).Copy())
+		values = append(values, *zed.NewValue(typ, builder.Bytes.Body())
 	}
 	return values
 }
