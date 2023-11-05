@@ -279,7 +279,7 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 			panic("Unreachable")
 		}
 	} else {
-		depth := depth - 1
+		depth--
 		switch genByte(b) % 5 {
 		case 0:
 			fieldTypes := genTypes(b, context, depth)
