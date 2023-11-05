@@ -22,16 +22,16 @@ func NewMapCall(zctx *zed.Context, e, inner Evaluator) Evaluator {
 }
 
 func (a *mapCall) Eval(ectx Context, in *zed.Value) *zed.Value {
-	v := a.eval.Eval(ectx, in)
-	if v.IsError() {
-		return v
+	val := a.eval.Eval(ectx, in)
+	if val.IsError() {
+		return val
 	}
-	elems, err := v.Elements()
+	elems, err := val.Elements()
 	if err != nil {
 		return ectx.CopyValue(*a.zctx.WrapError(err.Error(), in))
 	}
 	if len(elems) == 0 {
-		return v
+		return val
 	}
 	a.vals = a.vals[:0]
 	a.types = a.types[:0]
@@ -42,7 +42,7 @@ func (a *mapCall) Eval(ectx Context, in *zed.Value) *zed.Value {
 	}
 	inner := a.innerType(a.types)
 	bytes := a.buildVal(inner, a.vals)
-	if _, ok := zed.TypeUnder(in.Type).(*zed.TypeSet); ok {
+	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeSet); ok {
 		return ectx.NewValue(a.zctx.LookupTypeSet(inner), zed.NormalizeSet(bytes))
 	}
 	return ectx.NewValue(a.zctx.LookupTypeArray(inner), bytes)
