@@ -157,7 +157,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte, error)) (vector, error) {
 	switch typ {
 	case zed.TypeBool:
-		values := make([]bool, 0)
+		var values []bool
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -198,7 +198,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeDuration:
-		values := make([]nano.Duration, 0)
+		var values []nano.Duration
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -216,7 +216,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeFloat16:
-		values := make([]float32, 0)
+		var values []float32
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -234,7 +234,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeFloat32:
-		values := make([]float32, 0)
+		var values []float32
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -252,7 +252,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeFloat64:
-		values := make([]float64, 0)
+		var values []float64
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -270,7 +270,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeInt8:
-		values := make([]int8, 0)
+		var values []int8
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -288,7 +288,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeInt16:
-		values := make([]int16, 0)
+		var values []int16
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -306,7 +306,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeInt32:
-		values := make([]int32, 0)
+		var values []int32
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -324,7 +324,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeInt64:
-		values := make([]int64, 0)
+		var values []int64
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -342,7 +342,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeIP:
-		values := make([]netip.Addr, 0)
+		var values []netip.Addr
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -360,7 +360,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeNet:
-		values := make([]netip.Prefix, 0)
+		var values []netip.Prefix
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -401,7 +401,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeTime:
-		values := make([]nano.Ts, 0)
+		var values []nano.Ts
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -419,7 +419,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeUint8:
-		values := make([]uint8, 0)
+		var values []uint8
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -437,7 +437,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeUint16:
-		values := make([]uint16, 0)
+		var values []uint16
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -455,7 +455,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeUint32:
-		values := make([]uint32, 0)
+		var values []uint32
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -473,7 +473,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeUint64:
-		values := make([]uint64, 0)
+		var values []uint64
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -497,7 +497,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeType:
-		values := make([]zed.Type, 0)
+		var values []zed.Type
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -521,7 +521,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 }
 
 func readInt64s(reader *vngvector.Int64Reader) ([]int64, error) {
-	ints := make([]int64, 0)
+	var ints []int64
 	for {
 		int, err := reader.Read()
 		if err != nil {
