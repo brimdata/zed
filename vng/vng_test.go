@@ -3,7 +3,9 @@ package vng_test
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/netip"
 	"testing"
@@ -125,7 +127,7 @@ func genValues(b *bytes.Reader, context *zed.Context, types []zed.Type) []zed.Va
 		typ := types[int(genByte(b))%len(types)]
 		builder.Reset()
 		genValue(b, context, typ, &builder)
-		values = append(values, *zed.NewValue(typ, builder.Bytes.Body())
+		values = append(values, *zed.NewValue(typ, builder.Bytes().Body()))
 	}
 	return values
 }
@@ -169,9 +171,9 @@ func genValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcod
 	case zed.TypeString:
 		builder.Append(zed.EncodeString(string(genBytes(b, int(genByte(b))))))
 	case zed.TypeIP:
-		builder.Append(zed.EncodeIP(netip.AddrFrom16(*(*[16]byte)(genBytes(b, 16)))))
+		builder.Append(zed.EncodeIP(netip.AddrFrom16([16]byte(genBytes(b, 16)))))
 	case zed.TypeNet:
-		ip := netip.AddrFrom16(*(*[16]byte)(genBytes(b, 16)))
+		ip := netip.AddrFrom16([16]byte(genBytes(b, 16)))
 		numBits := int(genByte(b)) % ip.BitLen()
 		net, err := ip.Prefix(numBits)
 		if err != nil {
@@ -226,7 +228,7 @@ func genValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcod
 }
 
 func genTypes(b *bytes.Reader, context *zed.Context, depth int) []zed.Type {
-	types := make([]zed.Type, 0)
+	var types []zed.Type
 	for len(types) == 0 || genByte(b) != 0 {
 		types = append(types, genType(b, context, depth))
 	}
@@ -309,7 +311,7 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 			// TODO There are some weird corners around unions that contain null or duplicate types eg
 			// vng_test.go:107: comparing: in[0]=null((null,null)) vs out[0]=null((null,null))
 			// vng_test.go:112: values have different zng bytes: [1 0] vs [2 2 0]
-			unionTypes := make([]zed.Type, 0)
+			var unionTypes []zed.Type
 			for _, typ := range types {
 				skip := false
 				if typ == zed.TypeNull {
@@ -339,7 +341,7 @@ func genByte(b *bytes.Reader) byte {
 	byte, err := b.ReadByte()
 	if err != nil && !errors.Is(err, io.EOF) {
 		panic(err)
-	}	
+	}
 	return byte
 }
 
