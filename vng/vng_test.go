@@ -19,6 +19,7 @@ import (
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
+	"github.com/x448/float16"
 )
 
 type mockFile struct {
@@ -156,7 +157,7 @@ func genValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcod
 	case zed.TypeTime:
 		builder.Append(zed.EncodeTime(nano.Ts(int64(binary.LittleEndian.Uint64(genBytes(b, 8))))))
 	case zed.TypeFloat16:
-		panic("Unreachable")
+		builder.Append(zed.EncodeFloat16(float32(float16.Frombits(binary.LittleEndian.Uint16(genBytes(b, 4))))))
 	case zed.TypeFloat32:
 		builder.Append(zed.EncodeFloat32(math.Float32frombits(binary.LittleEndian.Uint32(genBytes(b, 4)))))
 	case zed.TypeFloat64:
@@ -256,9 +257,7 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 		case 9:
 			return zed.TypeTime
 		case 10:
-			// TODO Find a way to convert u16 to float16.
-			//return zed.TypeFloat16
-			return zed.TypeNull
+			return zed.TypeFloat16
 		case 11:
 			return zed.TypeFloat32
 		case 12:
