@@ -9,6 +9,8 @@ script: |
   echo "// ==="
   echo '{a:"foo"}' | zq -z 'cut this[a]["bar"] := "baz"' -
   echo "// ==="
+  echo '{key:"foo",v1:1,v2:2} {key:"bar",v1:2,v2:3}' | zq -z 'cut this[key] := [v1,v2]' -
+  echo "// ==="
   # runtime error cases
   echo '{a:"hello",b:"hello"}' | zq -z 'cut this[a] := "world1", this[b] := "world2"' -
   echo "// ==="
@@ -30,6 +32,9 @@ outputs:
       {a:{hello:"world"}}
       // ===
       {foo:{bar:"baz"}}
+      // ===
+      {foo:[1,2]}
+      {bar:[2,3]}
       // ===
       error({message:"cut: duplicate field: \"hello\"",on:{a:"hello",b:"hello"}})
       // ===
