@@ -337,7 +337,10 @@ func genType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 
 func genByte(b *bytes.Reader) byte {
 	// If we're out of bytes, return 0.
-	byte, _ := b.ReadByte()
+	byte, err := b.ReadByte()
+	if err != nil && !errors.Is(err, io.EOF) {
+		panic(err)
+	}	
 	return byte
 }
 
