@@ -124,7 +124,7 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case *vngvector.RecordReader:
-		fields := make([]vector, 0)
+		var fields []vector
 		for i, fieldReader := range reader.Values {
 			demandValueOut := demand.GetKey(demandOut, reader.Names[i])
 			if !demand.IsNone(demandValueOut) {
@@ -559,7 +559,7 @@ func typeAfterDemand(context *zed.Context, reader vngvector.Reader, demandOut de
 
 	case *vngvector.RecordReader:
 		typ := typ.(*zed.TypeRecord)
-		fields := make([]zed.Field, 0)
+		var fields []zed.Field
 		for i, fieldReader := range reader.Values {
 			demandValueOut := demand.GetKey(demandOut, reader.Names[i])
 			if !demand.IsNone(demandValueOut) {

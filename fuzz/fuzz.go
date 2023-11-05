@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"github.com/golang/mock/gomock"
+	"io"
 	"math"
 	"net/netip"
 	"testing"
@@ -19,57 +21,40 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage/mock"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
+	"github.com/stretchr/testify/require"
+	"github.com/x448/float16"
 )
 
-func WriteZng(t *testing.T, valuesIn []zed.Value, file *MockFile) {
-	writer := zngio.NewWriter(file)
-	for i := range valuesIn {
-		err := writer.Write(&valuesIn[i])
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
-	}
-	err := writer.Close()
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+func WriteZng(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer) {
+	writer := zngio.NewWriter(zio.NopCloser(buf))
+	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
+	require.NoError(t, writer.Close())
 }
 
-func WriteVng(t *testing.T, valuesIn []zed.Value, file *MockFile) {
-	writer, err := vngio.NewWriter(file)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	for i := range valuesIn {
-		err := writer.Write(&valuesIn[i])
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
-	}
-	err = writer.Close()
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+func WriteVng(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer, opts vngio.WriterOpts) {
+	writer, err := vngio.NewWriterWithOpts(zio.NopCloser(buf), opts)
+	require.NoError(t, err)
+	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
+	require.NoError(t, writer.Close())
 }
 
-func RunQueryZng(t *testing.T, file *MockFile, querySource string) []zed.Value {
+func RunQueryZng(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
 	zctx := zed.NewContext()
-	readers := []zio.Reader{zngio.NewReader(zctx, bytes.NewReader(file.Bytes()))}
+	readers := []zio.Reader{zngio.NewReader(zctx, buf)}
 	defer zio.CloseReaders(readers)
 	return RunQuery(t, zctx, readers, querySource, func(_ demand.Demand) {})
 }
 
-func RunQueryVng(t *testing.T, file *MockFile, querySource string) []zed.Value {
+func RunQueryVng(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
 	zctx := zed.NewContext()
-	reader, err := vngio.NewReader(zctx, bytes.NewReader(file.Bytes()))
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	reader, err := vngio.NewReader(zctx, bytes.NewReader(buf.Bytes()))
+	require.NoError(t, err)
 	readers := []zio.Reader{reader}
 	defer zio.CloseReaders(readers)
 	return RunQuery(t, zctx, readers, querySource, func(demandIn demand.Demand) {
@@ -111,12 +96,10 @@ func RunQuery(t *testing.T, zctx *zed.Context, readers []zio.Reader, querySource
 	}
 
 	// Run query
-	valuesOut := make([]zed.Value, 0)
+	var valuesOut []zed.Value
 	for {
 		batch, err := query.Pull(false)
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
+		require.NoError(t, err)
 		if batch == nil {
 			break
 		}
@@ -153,21 +136,14 @@ func CompareValues(t *testing.T, valuesExpected []zed.Value, valuesActual []zed.
 	}
 }
 
-type MockFile struct {
-	bytes.Buffer
-}
-
-func (f *MockFile) Close() error { return nil }
-
 func GenValues(b *bytes.Reader, context *zed.Context, types []zed.Type) []zed.Value {
-	values := make([]zed.Value, 0)
+	var values []zed.Value
 	var builder zcode.Builder
 	for GenByte(b) != 0 {
 		typ := types[int(GenByte(b))%len(types)]
 		builder.Reset()
 		GenValue(b, context, typ, &builder)
-		it := builder.Bytes().Iter()
-		values = append(values, *zed.NewValue(typ, it.Next()).Copy())
+		values = append(values, *zed.NewValue(typ, builder.Bytes().Body()))
 	}
 	return values
 }
@@ -199,7 +175,7 @@ func GenValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcod
 	case zed.TypeTime:
 		builder.Append(zed.EncodeTime(nano.Ts(int64(binary.LittleEndian.Uint64(GenBytes(b, 8))))))
 	case zed.TypeFloat16:
-		panic("Unreachable")
+		builder.Append(zed.EncodeFloat16(float32(float16.Frombits(binary.LittleEndian.Uint16(GenBytes(b, 4))))))
 	case zed.TypeFloat32:
 		builder.Append(zed.EncodeFloat32(math.Float32frombits(binary.LittleEndian.Uint32(GenBytes(b, 4)))))
 	case zed.TypeFloat64:
@@ -211,9 +187,9 @@ func GenValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcod
 	case zed.TypeString:
 		builder.Append(zed.EncodeString(string(GenBytes(b, int(GenByte(b))))))
 	case zed.TypeIP:
-		builder.Append(zed.EncodeIP(netip.AddrFrom16(*(*[16]byte)(GenBytes(b, 16)))))
+		builder.Append(zed.EncodeIP(netip.AddrFrom16([16]byte(GenBytes(b, 16)))))
 	case zed.TypeNet:
-		ip := netip.AddrFrom16(*(*[16]byte)(GenBytes(b, 16)))
+		ip := netip.AddrFrom16([16]byte(GenBytes(b, 16)))
 		numBits := int(GenByte(b)) % ip.BitLen()
 		net, err := ip.Prefix(numBits)
 		if err != nil {
@@ -268,7 +244,7 @@ func GenValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcod
 }
 
 func GenTypes(b *bytes.Reader, context *zed.Context, depth int) []zed.Type {
-	types := make([]zed.Type, 0)
+	var types []zed.Type
 	for len(types) == 0 || GenByte(b) != 0 {
 		types = append(types, GenType(b, context, depth))
 	}
@@ -299,9 +275,7 @@ func GenType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 		case 9:
 			return zed.TypeTime
 		case 10:
-			// TODO Find a way to convert u16 to float16.
-			//return zed.TypeFloat16
-			return zed.TypeNull
+			return zed.TypeFloat16
 		case 11:
 			return zed.TypeFloat32
 		case 12:
@@ -322,7 +296,7 @@ func GenType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 			panic("Unreachable")
 		}
 	} else {
-		depth := depth - 1
+		depth--
 		switch GenByte(b) % 5 {
 		case 0:
 			fieldTypes := GenTypes(b, context, depth)
@@ -353,7 +327,7 @@ func GenType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 			// TODO There are some weird corners around unions that contain null or duplicate types eg
 			// vng_test.go:107: comparing: in[0]=null((null,null)) vs out[0]=null((null,null))
 			// vng_test.go:112: values have different zng bytes: [1 0] vs [2 2 0]
-			unionTypes := make([]zed.Type, 0)
+			var unionTypes []zed.Type
 			for _, typ := range types {
 				skip := false
 				if typ == zed.TypeNull {
@@ -380,7 +354,10 @@ func GenType(b *bytes.Reader, context *zed.Context, depth int) zed.Type {
 
 func GenByte(b *bytes.Reader) byte {
 	// If we're out of bytes, return 0.
-	byte, _ := b.ReadByte()
+	byte, err := b.ReadByte()
+	if err != nil && !errors.Is(err, io.EOF) {
+		panic(err)
+	}
 	return byte
 }
 
@@ -393,7 +370,7 @@ func GenBytes(b *bytes.Reader, n int) []byte {
 }
 
 func GenAscii(b *bytes.Reader) string {
-	bytes := make([]byte, 0)
+	var bytes []byte
 	for {
 		byte := GenByte(b)
 		if byte == 0 {

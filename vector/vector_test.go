@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/fuzz"
+	"github.com/brimdata/zed/zio/vngio"
 )
 
 func FuzzQuery(f *testing.F) {
@@ -26,13 +27,16 @@ func FuzzQuery(f *testing.F) {
 		//    t.Logf("value: in[%v]=%v", i, zson.String(&values[i]))
 		//}
 
-		var zngFile fuzz.MockFile
-		fuzz.WriteZng(t, values, &zngFile)
-		resultZng := fuzz.RunQueryZng(t, &zngFile, querySource)
+		var zngBuf bytes.Buffer
+		fuzz.WriteZng(t, values, &zngBuf)
+		resultZng := fuzz.RunQueryZng(t, &zngBuf, querySource)
 
-		var vngFile fuzz.MockFile
-		fuzz.WriteVng(t, values, &vngFile)
-		resultVng := fuzz.RunQueryVng(t, &vngFile, querySource)
+		var vngBuf bytes.Buffer
+		fuzz.WriteVng(t, values, &vngBuf, vngio.WriterOpts{
+			SkewThresh:   vngio.DefaultSkewThresh,
+			ColumnThresh: vngio.DefaultColumnThresh,
+		})
+		resultVng := fuzz.RunQueryVng(t, &vngBuf, querySource)
 
 		fuzz.CompareValues(t, resultZng, resultVng)
 	})
