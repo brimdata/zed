@@ -31,6 +31,34 @@ import (
 	"github.com/x448/float16"
 )
 
+func ReadZng(bs []byte) ([]zed.Value, error) {
+	bytesReader := bytes.NewReader(bs)
+	context := zed.NewContext()
+	reader := zngio.NewReader(context, bytesReader)
+	defer reader.Close()
+	var a zbuf.Array
+	err := zio.Copy(&a, reader)
+	if err != nil {
+		return nil, err
+	}
+	return a.Values(), nil
+}
+
+func ReadVng(bs []byte) ([]zed.Value, error) {
+	bytesReader := bytes.NewReader(bs)
+	context := zed.NewContext()
+	reader, err := vngio.NewReader(context, bytesReader)
+	if err != nil {
+		return nil, err
+	}
+	var a zbuf.Array
+	err = zio.Copy(&a, reader)
+	if err != nil {
+		return nil, err
+	}
+	return a.Values(), nil
+}
+
 func WriteZng(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer) {
 	writer := zngio.NewWriter(zio.NopCloser(buf))
 	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
