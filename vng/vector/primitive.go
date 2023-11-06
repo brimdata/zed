@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -32,8 +31,7 @@ type PrimitiveWriter struct {
 
 func NewPrimitiveWriter(typ zed.Type, spiller *Spiller, useDict bool) *PrimitiveWriter {
 	var dict map[string]uint32
-	// TODO https://github.com/brimdata/zed/issues/4839
-	if useDict && os.Getenv("ZED_USE_DICT") != "" {
+	if useDict {
 		dict = make(map[string]uint32)
 	}
 	return &PrimitiveWriter{
