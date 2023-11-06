@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/netip"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/vng"
@@ -96,30 +95,19 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		return vector, nil
 
 	case *vngvector.NullsReader:
-		mask := roaring.New()
-		var maskIndex uint64
-		maskBool := true
-		for {
-			run, err := reader.Runs.Read()
-			if err != nil {
-				if err == io.EOF {
-					break
-				} else {
-					return nil, err
-				}
-			}
-			if maskBool {
-				mask.AddRange(maskIndex, maskIndex+uint64(run))
-			}
-			maskBool = !maskBool
-			maskIndex += uint64(run)
+		runs, err := readInt64s(&reader.Runs)
+		if err != nil {
+			return nil, err
 		}
 		values, err := read(context, reader.Values)
 		if err != nil {
 			return nil, err
 		}
+		if len(runs) == 0 {
+			return values, nil
+		}
 		vector := &nulls{
-			mask:   mask,
+			runs:   runs,
 			values: values,
 		}
 		return vector, nil
@@ -169,7 +157,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte, error)) (vector, error) {
 	switch typ {
 	case zed.TypeBool:
-		values := make([]bool, 0)
+		var values []bool
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -187,7 +175,8 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeBytes:
-		values := make([][]byte, 0)
+		data := bytes.NewBuffer(nil)
+		offsets := []int{0}
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -197,15 +186,18 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeBytes(bytes.Clone(bs)))
+			data.Write(zed.DecodeBytes(bs))
+			offsets = append(offsets, data.Len())
 		}
 		vector := &byteses{
-			values: values,
+			data: data.Bytes(),
+			// TODO truncate offsets
+			offsets: offsets,
 		}
 		return vector, nil
 
 	case zed.TypeDuration:
-		values := make([]nano.Duration, 0)
+		var values []nano.Duration
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -223,7 +215,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeFloat16:
-		values := make([]float32, 0)
+		var values []float32
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -241,7 +233,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeFloat32:
-		values := make([]float32, 0)
+		var values []float32
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -259,7 +251,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeFloat64:
-		values := make([]float64, 0)
+		var values []float64
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -276,8 +268,8 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		}
 		return vector, nil
 
-	case zed.TypeInt8, zed.TypeInt16, zed.TypeInt32, zed.TypeInt64:
-		values := make([]int64, 0)
+	case zed.TypeInt8:
+		var values []int8
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -287,15 +279,69 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeInt(bs))
+			values = append(values, int8(zed.DecodeInt(bs)))
 		}
-		vector := &ints{
+		vector := &int8s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeInt16:
+		var values []int16
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, int16(zed.DecodeInt(bs)))
+		}
+		vector := &int16s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeInt32:
+		var values []int32
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, int32(zed.DecodeInt(bs)))
+		}
+		vector := &int32s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeInt64:
+		var values []int64
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, int64(zed.DecodeInt(bs)))
+		}
+		vector := &int64s{
 			values: values,
 		}
 		return vector, nil
 
 	case zed.TypeIP:
-		values := make([]netip.Addr, 0)
+		var values []netip.Addr
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -313,7 +359,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeNet:
-		values := make([]netip.Prefix, 0)
+		var values []netip.Prefix
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -331,7 +377,8 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeString:
-		values := make([]string, 0)
+		data := bytes.NewBuffer(nil)
+		offsets := []int{0}
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -341,15 +388,18 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeString(bytes.Clone(bs)))
+			data.Write(zed.DecodeBytes(bs))
+			offsets = append(offsets, data.Len())
 		}
 		vector := &strings{
-			values: values,
+			data: data.Bytes(),
+			// TODO truncate offsets
+			offsets: offsets,
 		}
 		return vector, nil
 
 	case zed.TypeTime:
-		values := make([]nano.Ts, 0)
+		var values []nano.Ts
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -366,8 +416,8 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		}
 		return vector, nil
 
-	case zed.TypeUint8, zed.TypeUint16, zed.TypeUint32, zed.TypeUint64:
-		values := make([]uint64, 0)
+	case zed.TypeUint8:
+		var values []uint8
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -377,9 +427,63 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 					return nil, err
 				}
 			}
-			values = append(values, zed.DecodeUint(bs))
+			values = append(values, uint8(zed.DecodeUint(bs)))
 		}
-		vector := &uints{
+		vector := &uint8s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeUint16:
+		var values []uint16
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, uint16(zed.DecodeUint(bs)))
+		}
+		vector := &uint16s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeUint32:
+		var values []uint32
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, uint32(zed.DecodeUint(bs)))
+		}
+		vector := &uint32s{
+			values: values,
+		}
+		return vector, nil
+
+	case zed.TypeUint64:
+		var values []uint64
+		for {
+			bs, err := readBytes()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					return nil, err
+				}
+			}
+			values = append(values, uint64(zed.DecodeUint(bs)))
+		}
+		vector := &uint64s{
 			values: values,
 		}
 		return vector, nil
@@ -391,7 +495,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeType:
-		values := make([]zed.Type, 0)
+		var values []zed.Type
 		for {
 			bs, err := readBytes()
 			if err != nil {
@@ -415,7 +519,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 }
 
 func readInt64s(reader *vngvector.Int64Reader) ([]int64, error) {
-	ints := make([]int64, 0)
+	var ints []int64
 	for {
 		int, err := reader.Read()
 		if err != nil {
