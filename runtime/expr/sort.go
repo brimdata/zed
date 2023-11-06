@@ -350,9 +350,10 @@ func LookupCompare(typ zed.Type) comparefn {
 		return func(a, b zcode.Bytes) int {
 			va, vb := zed.DecodeFloat(a), zed.DecodeFloat(b)
 			aNaN, bNaN := math.IsNaN(va), math.IsNaN(vb)
-			if aNaN && bNaN {
-				// Order different NaNs so ZNG sets have a canonical form.
-				aBits, bBits := math.Float64bits(va), math.Float64bits(vb)
+			if va == 0.0 && vb == 0.0 || aNaN && bNaN {
+				// Order different zeroes and NaNs so ZNG sets
+				// have a canonical form.
+				aBits, bBits := int64(math.Float64bits(va)), int64(math.Float64bits(vb))
 				if aBits < bBits {
 					return -1
 				} else if aBits > bBits {
