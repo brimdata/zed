@@ -1,5 +1,5 @@
 script: |
-  seq 1 100 | ZED_USE_DICT=1 zq -f vng -o out.vng -vng.skewthresh 500B "yield 'test'+string(this)" -
+  seq 1 100 | zq -f vng -o out.vng -vng.skewthresh 500B "yield 'test'+string(this)" -
   zed dev dig section -Z 1 out.vng | zq -Z 'yield quiet(Segmap)' -
 
 outputs:
