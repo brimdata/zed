@@ -24,12 +24,6 @@ import (
 	"github.com/x448/float16"
 )
 
-type mockFile struct {
-	bytes.Buffer
-}
-
-func (f *mockFile) Close() error { return nil }
-
 func FuzzVngRoundtripGen(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		bytesReader := bytes.NewReader(b)
