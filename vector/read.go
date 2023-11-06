@@ -176,8 +176,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 
 	case zed.TypeBytes:
 		data := bytes.NewBuffer(nil)
-		offsets := make([]int, 1)
-		offsets[0] = 0
+		offsets := []int{0}
 		for {
 			bs, err := readBytes()
 			if err != nil {
