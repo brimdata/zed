@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
+// TODO It's much more efficient to make Materializer a Puller rather than Reader.
 type Materializer struct {
 	vector        *Vector
 	materializers []materializer

@@ -1,7 +1,6 @@
 package vector
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -213,9 +212,10 @@ func (p *PrimitiveReader) ReadBytes() (zcode.Bytes, error) {
 func (p *PrimitiveReader) next() error {
 	segment := p.segmap[0]
 	p.segmap = p.segmap[1:]
-	if segment.Length > 2*MaxSegmentThresh {
-		return errors.New("corrupt VNG: segment too big")
-	}
+	//TODO Segments are currently disabled.
+	//if segment.Length > 2*MaxSegmentThresh {
+	//    return errors.New("corrupt VNG: segment too big")
+	//}
 	p.buf = slices.Grow(p.buf[:0], int(segment.MemLength))[:segment.MemLength]
 	if err := segment.Read(p.reader, p.buf); err != nil {
 		return err
@@ -271,9 +271,10 @@ func (d *DictReader) ReadBytes() (zcode.Bytes, error) {
 func (d *DictReader) next() error {
 	segment := d.segmap[0]
 	d.segmap = d.segmap[1:]
-	if segment.Length > 2*MaxSegmentThresh {
-		return errors.New("corrupt VNG: segment too big")
-	}
+	//TODO Segments are currently disabled.
+	//if segment.Length > 2*MaxSegmentThresh {
+	//    return errors.New("corrupt VNG: segment too big")
+	//}
 	d.selectors = slices.Grow(d.selectors[:0], int(segment.MemLength))[:segment.MemLength]
 	if err := segment.Read(d.reader, d.selectors); err != nil {
 		return err

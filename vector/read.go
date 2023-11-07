@@ -560,7 +560,7 @@ func typeAfterDemand(context *zed.Context, reader vngvector.Reader, demandOut de
 				field := typ.Fields[i]
 				fields = append(fields, zed.Field{
 					Name: field.Name,
-					Type: typeAfterDemand(context, &fieldReader, demandValueOut, field.Type),
+					Type: typeAfterDemand(context, fieldReader.Values, demandValueOut, field.Type),
 				})
 			}
 		}

@@ -11,6 +11,9 @@ type all struct{}
 type keys map[string]Demand // No empty values.
 
 func IsValid(demand Demand) bool {
+	if demand == nil {
+		return false
+	}
 	switch demand := demand.(type) {
 	case all:
 		return true

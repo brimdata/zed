@@ -3,6 +3,7 @@ package commits
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/exp/maps"
 	"io"
 
 	"github.com/brimdata/zed/lake/data"
@@ -25,6 +26,7 @@ type View interface {
 	SelectAll() DataObjects
 	SelectIndexes(extent.Span, order.Which) []*index.Object
 	SelectAllIndexes() []*index.Object
+	SelectAllVectors() []ksuid.KSUID
 }
 
 type Writeable interface {
@@ -186,6 +188,10 @@ func (s *Snapshot) SelectIndexes(scan extent.Span, order order.Which) []*index.O
 
 func (s *Snapshot) SelectAllIndexes() []*index.Object {
 	return s.indexes.All()
+}
+
+func (s *Snapshot) SelectAllVectors() []ksuid.KSUID {
+	return maps.Keys(s.vectors)
 }
 
 func (s *Snapshot) Unindexed(rules []index.Rule) map[ksuid.KSUID][]index.Rule {
