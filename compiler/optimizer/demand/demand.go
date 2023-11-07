@@ -27,7 +27,7 @@ func IsValid(demand Demand) bool {
 }
 
 func None() Demand {
-	return keys(make(map[string]Demand, 0))
+	return keys{}
 }
 
 func All() Demand {
