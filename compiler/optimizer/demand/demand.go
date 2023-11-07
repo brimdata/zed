@@ -54,9 +54,7 @@ func Key(key string, value Demand) Demand {
 	if IsNone(value) {
 		return value
 	}
-	demand := keys(make(map[string]Demand, 1))
-	demand[key] = value
-	return demand
+	return keys{key: value}
 }
 
 func Union(a Demand, b Demand) Demand {
