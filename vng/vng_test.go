@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/fuzz"
 	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/vng"
@@ -57,7 +58,7 @@ func FuzzVngRoundtripBytes(f *testing.F) {
 func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) {
 	var buf bytes.Buffer
 	fuzz.WriteVNG(t, valuesIn, &buf, writerOpts)
-	valuesOut, err := fuzz.ReadVNG(buf.Bytes())
+	valuesOut, err := fuzz.ReadVNG(buf.Bytes(), demand.All())
 	require.NoError(t, err)
 	fuzz.CompareValues(t, valuesIn, valuesOut)
 }

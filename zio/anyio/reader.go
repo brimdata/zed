@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/arrowio"
 	"github.com/brimdata/zed/zio/csvio"
@@ -27,13 +28,13 @@ type ReaderOpts struct {
 	ZNG    zngio.ReaderOpts
 }
 
-func NewReader(zctx *zed.Context, r io.Reader) (zio.ReadCloser, error) {
-	return NewReaderWithOpts(zctx, r, ReaderOpts{})
+func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.ReadCloser, error) {
+	return NewReaderWithOpts(zctx, r, demandOut, ReaderOpts{})
 }
 
-func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.ReadCloser, error) {
+func NewReaderWithOpts(zctx *zed.Context, r io.Reader, demandOut demand.Demand, opts ReaderOpts) (zio.ReadCloser, error) {
 	if opts.Format != "" && opts.Format != "auto" {
-		return lookupReader(zctx, r, opts)
+		return lookupReader(zctx, r, demandOut, opts)
 	}
 
 	var parquetErr, vngErr error
@@ -47,7 +48,7 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 			if _, err := rs.Seek(n, io.SeekStart); err != nil {
 				return nil, err
 			}
-			zr, vngErr = vngio.NewReader(zctx, rs)
+			zr, vngErr = vngio.NewReader(zctx, rs, demandOut)
 			if vngErr == nil {
 				return zio.NopReadCloser(zr), nil
 			}

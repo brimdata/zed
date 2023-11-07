@@ -44,10 +44,10 @@ func ReadZNG(bs []byte) ([]zed.Value, error) {
 	return a.Values(), nil
 }
 
-func ReadVNG(bs []byte) ([]zed.Value, error) {
+func ReadVNG(bs []byte, demandOut demand.Demand) ([]zed.Value, error) {
 	bytesReader := bytes.NewReader(bs)
 	context := zed.NewContext()
-	reader, err := vngio.NewReader(context, bytesReader)
+	reader, err := vngio.NewReader(context, bytesReader, demandOut)
 	if err != nil {
 		return nil, err
 	}
@@ -81,13 +81,13 @@ func RunQueryZNG(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Valu
 
 func RunQueryVNG(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
 	zctx := zed.NewContext()
-	reader, err := vngio.NewReader(zctx, bytes.NewReader(buf.Bytes()))
+	reader, err := vngio.NewReader(zctx, bytes.NewReader(buf.Bytes()), demand.All())
 	require.NoError(t, err)
 	readers := []zio.Reader{reader}
 	defer zio.CloseReaders(readers)
 	return RunQuery(t, zctx, readers, querySource, func(demandIn demand.Demand) {
 		if reader, ok := readers[0].(*vngio.Reader); ok {
-			reader.Opts.Demand = demandIn
+			reader.Demand = demandIn
 		}
 	})
 }

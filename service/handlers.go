@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
 	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/commits"
@@ -422,7 +423,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		ZNG: zngio.ReaderOpts{Validate: true},
 	}
 	zctx := zed.NewContext()
-	zrc, err := anyio.NewReaderWithOpts(zctx, reader, opts)
+	zrc, err := anyio.NewReaderWithOpts(zctx, reader, demand.All(), opts)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return

@@ -12,6 +12,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/branches"
@@ -169,7 +170,7 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 	if !ok {
 		return false
 	}
-	zrc, err := anyio.NewReaderWithOpts(zed.NewContext(), r.Body, anyio.ReaderOpts{Format: format})
+	zrc, err := anyio.NewReaderWithOpts(zed.NewContext(), r.Body, demand.All(), anyio.ReaderOpts{Format: format})
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return false

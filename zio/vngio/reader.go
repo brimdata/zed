@@ -12,23 +12,15 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-type ReaderOpts struct {
-	Demand demand.Demand
-}
-
 type Reader struct {
 	reader *vng.Reader
-	// TODO Opts should not be public but currently needed for testing.
-	Opts ReaderOpts
+	// TODO Demand should not be public but currently needed for testing.
+	Demand demand.Demand
 	// Initially nil
 	materializer *vector.Materializer
 }
 
-func NewReader(zctx *zed.Context, r io.Reader) (zio.Reader, error) {
-	return NewReaderWithOpts(zctx, r, ReaderOpts{})
-}
-
-func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Reader, error) {
+func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Reader, error) {
 	s, ok := r.(io.Seeker)
 	if !ok {
 		return nil, errors.New("VNG must be used with a seekable input")
@@ -46,8 +38,8 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 		return nil, err
 	}
 	if os.Getenv("ZED_USE_VECTOR") != "" {
-		if opts.Demand == nil {
-			opts.Demand = demand.All()
+		if demandOut == nil {
+			demandOut = demand.All()
 		}
 		vngReader, err := vng.NewReader(o)
 		if err != nil {
@@ -55,7 +47,7 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 		}
 		reader := &Reader{
 			reader:       vngReader,
-			Opts:         opts,
+			Demand:       demandOut,
 			materializer: nil,
 		}
 		return reader, nil
@@ -66,7 +58,7 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 
 func (r *Reader) Read() (*zed.Value, error) {
 	if r.materializer == nil {
-		vector, err := vector.Read(r.reader, r.Opts.Demand)
+		vector, err := vector.Read(r.reader, r.Demand)
 		if err != nil {
 			return nil, err
 		}
