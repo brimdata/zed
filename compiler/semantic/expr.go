@@ -599,32 +599,29 @@ func isLval(e dag.Expr) bool {
 }
 
 func deriveLHSPath(rhs dag.Expr) ([]string, error) {
-	var path []string
 	switch rhs := rhs.(type) {
+	case *dag.Agg:
+		return []string{rhs.Name}, nil
 	case *dag.Call:
-		path = []string{rhs.Name}
 		switch rhs.Name {
 		case "every":
 			// If LHS is nil and the call is every() make the LHS field ts since
 			// field ts assumed with every.
-			path = []string{"ts"}
+			return []string{"ts"}, nil
 		case "quiet":
 			if len(rhs.Args) > 0 {
 				if this, ok := rhs.Args[0].(*dag.This); ok {
-					path = this.Path
+					return this.Path, nil
 				}
 			}
 		}
-	case *dag.Agg:
-		path = []string{rhs.Name}
-	case *dag.Var:
-		path = []string{rhs.Name}
+		return []string{rhs.Name}, nil
 	case *dag.This:
-		path = rhs.Path
-	default:
-		return nil, errors.New("cannot infer field from expression")
+		return rhs.Path, nil
+	case *dag.Var:
+		return []string{rhs.Name}, nil
 	}
-	return path, nil
+	return nil, errors.New("cannot infer field from expression")
 }
 
 func (a *analyzer) semFields(exprs []ast.Expr) ([]dag.Expr, error) {
