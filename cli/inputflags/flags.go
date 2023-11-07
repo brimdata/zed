@@ -9,6 +9,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/auto"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
@@ -64,7 +65,7 @@ func (f *Flags) Open(ctx context.Context, zctx *zed.Context, engine storage.Engi
 		if path == "-" {
 			path = "stdio:stdin"
 		}
-		file, err := anyio.Open(ctx, zctx, engine, path, f.ReaderOpts)
+		file, err := anyio.Open(ctx, zctx, engine, path, demand.All(), f.ReaderOpts)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if stopOnErr {

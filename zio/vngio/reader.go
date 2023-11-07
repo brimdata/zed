@@ -6,12 +6,21 @@ import (
 	"os"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
 	"github.com/brimdata/zed/zio"
 )
 
-func NewReader(zctx *zed.Context, r io.Reader) (zio.Reader, error) {
+type Reader struct {
+	reader *vng.Reader
+	// TODO Demand should not be public but currently needed for testing.
+	Demand demand.Demand
+	// Initially nil
+	materializer *vector.Materializer
+}
+
+func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Reader, error) {
 	s, ok := r.(io.Seeker)
 	if !ok {
 		return nil, errors.New("VNG must be used with a seekable input")
@@ -29,17 +38,31 @@ func NewReader(zctx *zed.Context, r io.Reader) (zio.Reader, error) {
 		return nil, err
 	}
 	if os.Getenv("ZED_USE_VECTOR") != "" {
-		reader, err := vng.NewReader(o)
+		if demandOut == nil {
+			demandOut = demand.All()
+		}
+		vngReader, err := vng.NewReader(o)
 		if err != nil {
 			return nil, err
 		}
-		vector, err := vector.Read(reader)
+		return &Reader{
+			reader:       vngReader,
+			Demand:       demandOut,
+			materializer: nil,
+		}, nil
+	} else {
+		return vng.NewReader(o)
+	}
+}
+
+func (r *Reader) Read() (*zed.Value, error) {
+	if r.materializer == nil {
+		vector, err := vector.Read(r.reader, r.Demand)
 		if err != nil {
 			return nil, err
 		}
 		materializer := vector.NewMaterializer()
-		return &materializer, nil
-	} else {
-		return vng.NewReader(o)
+		r.materializer = &materializer
 	}
+	return r.materializer.Read()
 }

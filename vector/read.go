@@ -7,13 +7,14 @@ import (
 	"net/netip"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/vng"
 	vngvector "github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zcode"
 )
 
-func Read(reader *vng.Reader) (*Vector, error) {
+func Read(reader *vng.Reader, demandOut demand.Demand) (*Vector, error) {
 	context := zed.NewContext()
 	tags, err := readInt64s(reader.Root)
 	if err != nil {
@@ -22,9 +23,10 @@ func Read(reader *vng.Reader) (*Vector, error) {
 	types := make([]zed.Type, len(reader.Readers))
 	values := make([]vector, len(reader.Readers))
 	for i, typedReader := range reader.Readers {
-		typ, _ := context.DecodeTypeValue(zed.EncodeTypeValue(typedReader.Type))
+		typeCopy, _ := context.DecodeTypeValue(zed.EncodeTypeValue(typedReader.Type))
+		typ := typeAfterDemand(context, typedReader.Reader, demandOut, typeCopy)
 		types[i] = typ
-		value, err := read(context, typedReader.Reader)
+		value, err := read(context, typedReader.Reader, demandOut)
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +41,11 @@ func Read(reader *vng.Reader) (*Vector, error) {
 	return vector, nil
 }
 
-func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
+func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand) (vector, error) {
+	if demand.IsNone(demandOut) {
+		return &constants{}, nil
+	}
+
 	switch reader := reader.(type) {
 
 	case *vngvector.ArrayReader:
@@ -47,7 +53,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		if err != nil {
 			return nil, err
 		}
-		elems, err := read(context, reader.Elems)
+		elems, err := read(context, reader.Elems, demand.All())
 		if err != nil {
 			return nil, err
 		}
@@ -64,9 +70,8 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 			return nil, err
 		}
 		it := zcode.Bytes(builder.Bytes()).Iter()
-		value := zed.NewValue(reader.Typ, it.Next())
 		vector := &constants{
-			value: *value,
+			bytes: it.Next(),
 		}
 		return vector, nil
 
@@ -75,7 +80,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
 	case *vngvector.MapReader:
-		keys, err := read(context, reader.Keys)
+		keys, err := read(context, reader.Keys, demand.All())
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +88,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		if err != nil {
 			return nil, err
 		}
-		values, err := read(context, reader.Values)
+		values, err := read(context, reader.Values, demand.All())
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +104,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 		if err != nil {
 			return nil, err
 		}
-		values, err := read(context, reader.Values)
+		values, err := read(context, reader.Values, demandOut)
 		if err != nil {
 			return nil, err
 		}
@@ -115,14 +120,17 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 	case *vngvector.PrimitiveReader:
 		return readPrimitive(context, reader.Typ, func() ([]byte, error) { return reader.ReadBytes() })
 
-	case vngvector.RecordReader: // Not a typo - RecordReader does not have a pointer receiver.
-		fields := make([]vector, len(reader))
-		for i, fieldReader := range reader {
-			field, err := read(context, fieldReader.Values)
-			if err != nil {
-				return nil, err
+	case *vngvector.RecordReader:
+		var fields []vector
+		for i, fieldReader := range reader.Values {
+			demandValueOut := demand.GetKey(demandOut, reader.Names[i])
+			if !demand.IsNone(demandValueOut) {
+				field, err := read(context, fieldReader.Values, demandValueOut)
+				if err != nil {
+					return nil, err
+				}
+				fields = append(fields, field)
 			}
-			fields[i] = field
 		}
 		vector := &records{
 			fields: fields,
@@ -132,7 +140,7 @@ func read(context *zed.Context, reader vngvector.Reader) (vector, error) {
 	case *vngvector.UnionReader:
 		payloads := make([]vector, len(reader.Readers))
 		for i, reader := range reader.Readers {
-			payload, err := read(context, reader)
+			payload, err := read(context, reader, demandOut)
 			if err != nil {
 				return nil, err
 			}
@@ -489,10 +497,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeNull:
-		vector := &constants{
-			value: *zed.NewValue(zed.TypeNull, nil),
-		}
-		return vector, nil
+		return &constants{}, nil
 
 	case zed.TypeType:
 		var values []zed.Type
@@ -532,4 +537,49 @@ func readInt64s(reader *vngvector.Int64Reader) ([]int64, error) {
 		ints = append(ints, int)
 	}
 	return ints, nil
+}
+
+// This must match exactly the effects of demand on `read`.
+func typeAfterDemand(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand, typ zed.Type) zed.Type {
+	if demand.IsNone(demandOut) {
+		return zed.TypeNull
+	}
+	if demand.IsAll(demandOut) {
+		return typ
+	}
+	switch reader := reader.(type) {
+	case *vngvector.NullsReader:
+		return typeAfterDemand(context, reader.Values, demandOut, typ)
+
+	case *vngvector.RecordReader:
+		typ := typ.(*zed.TypeRecord)
+		var fields []zed.Field
+		for i, fieldReader := range reader.Values {
+			demandValueOut := demand.GetKey(demandOut, reader.Names[i])
+			if !demand.IsNone(demandValueOut) {
+				field := typ.Fields[i]
+				fields = append(fields, zed.Field{
+					Name: field.Name,
+					Type: typeAfterDemand(context, &fieldReader, demandValueOut, field.Type),
+				})
+			}
+		}
+		result, err := context.LookupTypeRecord(fields)
+		if err != nil {
+			// This should be unreachable - any subset of a valid type is also valid.
+			panic(err)
+		}
+		return result
+
+	case *vngvector.UnionReader:
+		typ := typ.(*zed.TypeUnion)
+		types := make([]zed.Type, 0, len(typ.Types))
+		for i, unionReader := range reader.Readers {
+			types = append(types, typeAfterDemand(context, unionReader, demandOut, typ.Types[i]))
+		}
+		return context.LookupTypeUnion(types)
+
+	default:
+		return typ
+	}
 }

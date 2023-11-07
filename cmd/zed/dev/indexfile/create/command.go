@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cmd/zed/dev/indexfile"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
@@ -86,7 +87,7 @@ func (c *Command) Run(args []string) error {
 	}
 	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
-	file, err := anyio.Open(ctx, zctx, local, path, c.inputFlags.Options())
+	file, err := anyio.Open(ctx, zctx, local, path, demand.All(), c.inputFlags.Options())
 	if err != nil {
 		return err
 	}

@@ -220,9 +220,8 @@ func (v *arrays) newMaterializer() materializer {
 }
 
 func (v *constants) newMaterializer() materializer {
-	bytes := v.value.Bytes()
 	return func(builder *zcode.Builder) {
-		builder.Append(bytes)
+		builder.Append(v.bytes)
 	}
 }
 
