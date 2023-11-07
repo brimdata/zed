@@ -78,12 +78,19 @@ func (m *MapperLookupCache) Reset(mapper *Mapper) {
 }
 
 func (m *MapperLookupCache) Lookup(id int) Type {
-	if id >= len(m.cache) {
-		m.cache = append(m.cache, make([]Type, id+1-len(m.cache))...)
-	} else if typ := m.cache[id]; typ != nil {
-		return typ
+	if id < len(m.cache) {
+		if typ := m.cache[id]; typ != nil {
+			return typ
+		}
 	}
 	typ := m.mapper.Lookup(id)
+	if typ == nil {
+		// To prevent OOM, don't grow cache if id is unknown.
+		return nil
+	}
+	if id >= len(m.cache) {
+		m.cache = slices.Grow(m.cache[:0], id+1)[:id+1]
+	}
 	m.cache[id] = typ
 	return typ
 }
