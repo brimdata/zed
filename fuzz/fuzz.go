@@ -31,7 +31,7 @@ import (
 	"github.com/x448/float16"
 )
 
-func ReadZng(bs []byte) ([]zed.Value, error) {
+func ReadZNG(bs []byte) ([]zed.Value, error) {
 	bytesReader := bytes.NewReader(bs)
 	context := zed.NewContext()
 	reader := zngio.NewReader(context, bytesReader)
@@ -44,7 +44,7 @@ func ReadZng(bs []byte) ([]zed.Value, error) {
 	return a.Values(), nil
 }
 
-func ReadVng(bs []byte) ([]zed.Value, error) {
+func ReadVNG(bs []byte) ([]zed.Value, error) {
 	bytesReader := bytes.NewReader(bs)
 	context := zed.NewContext()
 	reader, err := vngio.NewReader(context, bytesReader)
@@ -59,27 +59,27 @@ func ReadVng(bs []byte) ([]zed.Value, error) {
 	return a.Values(), nil
 }
 
-func WriteZng(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer) {
+func WriteZNG(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer) {
 	writer := zngio.NewWriter(zio.NopCloser(buf))
 	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
 	require.NoError(t, writer.Close())
 }
 
-func WriteVng(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer, opts vngio.WriterOpts) {
+func WriteVNG(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer, opts vngio.WriterOpts) {
 	writer, err := vngio.NewWriterWithOpts(zio.NopCloser(buf), opts)
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
 	require.NoError(t, writer.Close())
 }
 
-func RunQueryZng(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
+func RunQueryZNG(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
 	zctx := zed.NewContext()
 	readers := []zio.Reader{zngio.NewReader(zctx, buf)}
 	defer zio.CloseReaders(readers)
 	return RunQuery(t, zctx, readers, querySource, func(_ demand.Demand) {})
 }
 
-func RunQueryVng(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
+func RunQueryVNG(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
 	zctx := zed.NewContext()
 	reader, err := vngio.NewReader(zctx, bytes.NewReader(buf.Bytes()))
 	require.NoError(t, err)

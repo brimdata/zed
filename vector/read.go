@@ -497,10 +497,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 		return vector, nil
 
 	case zed.TypeNull:
-		vector := &constants{
-			bytes: nil,
-		}
-		return vector, nil
+		return &constants{}, nil
 
 	case zed.TypeType:
 		var values []zed.Type

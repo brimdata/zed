@@ -43,7 +43,7 @@ func FuzzVngRoundtripGen(f *testing.F) {
 
 func FuzzVngRoundtripBytes(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
-		values, err := fuzz.ReadZng(b)
+		values, err := fuzz.ReadZNG(b)
 		if err != nil {
 			t.Skipf("%v", err)
 		}
@@ -56,8 +56,8 @@ func FuzzVngRoundtripBytes(f *testing.F) {
 
 func roundtrip(t *testing.T, valuesIn []zed.Value, writerOpts vngio.WriterOpts) {
 	var buf bytes.Buffer
-	fuzz.WriteVng(t, valuesIn, &buf, writerOpts)
-	valuesOut, err := fuzz.ReadVng(buf.Bytes())
+	fuzz.WriteVNG(t, valuesIn, &buf, writerOpts)
+	valuesOut, err := fuzz.ReadVNG(buf.Bytes())
 	require.NoError(t, err)
 	fuzz.CompareValues(t, valuesIn, valuesOut)
 }

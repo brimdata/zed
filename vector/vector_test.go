@@ -28,16 +28,16 @@ func FuzzQuery(f *testing.F) {
 		//}
 
 		var zngBuf bytes.Buffer
-		fuzz.WriteZng(t, values, &zngBuf)
-		resultZng := fuzz.RunQueryZng(t, &zngBuf, querySource)
+		fuzz.WriteZNG(t, values, &zngBuf)
+		resultZNG := fuzz.RunQueryZNG(t, &zngBuf, querySource)
 
 		var vngBuf bytes.Buffer
-		fuzz.WriteVng(t, values, &vngBuf, vngio.WriterOpts{
+		fuzz.WriteVNG(t, values, &vngBuf, vngio.WriterOpts{
 			SkewThresh:   vngio.DefaultSkewThresh,
 			ColumnThresh: vngio.DefaultColumnThresh,
 		})
-		resultVng := fuzz.RunQueryVng(t, &vngBuf, querySource)
+		resultVNG := fuzz.RunQueryVNG(t, &vngBuf, querySource)
 
-		fuzz.CompareValues(t, resultZng, resultVng)
+		fuzz.CompareValues(t, resultZNG, resultVNG)
 	})
 }
