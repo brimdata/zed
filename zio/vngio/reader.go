@@ -64,8 +64,6 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, opts ReaderOpts) (zio.Rea
 	}
 }
 
-var _ zio.Reader = (*Reader)(nil)
-
 func (r *Reader) Read() (*zed.Value, error) {
 	if r.materializer == nil {
 		vector, err := vector.Read(r.reader, r.Opts.Demand)
