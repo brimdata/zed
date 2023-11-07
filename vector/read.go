@@ -43,10 +43,7 @@ func Read(reader *vng.Reader, demandOut demand.Demand) (*Vector, error) {
 
 func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand) (vector, error) {
 	if demand.IsNone(demandOut) {
-		vector := &constants{
-			bytes: nil,
-		}
-		return vector, nil
+		return &constants{}, nil
 	}
 
 	switch reader := reader.(type) {
