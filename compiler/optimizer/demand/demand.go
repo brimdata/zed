@@ -68,7 +68,7 @@ func Union(a Demand, b Demand) Demand {
 	{
 		a, b := a.(keys), b.(keys)
 
-		demand := keys(make(map[string]Demand, len(a)+len(b)))
+		demand := make(keys, len(a)+len(b))
 		for k, v := range a {
 			demand[k] = v
 		}
