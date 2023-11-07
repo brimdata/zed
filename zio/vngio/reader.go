@@ -45,12 +45,11 @@ func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Rea
 		if err != nil {
 			return nil, err
 		}
-		reader := &Reader{
+		return &Reader{
 			reader:       vngReader,
 			Demand:       demandOut,
 			materializer: nil,
-		}
-		return reader, nil
+		}, nil
 	} else {
 		return vng.NewReader(o)
 	}
