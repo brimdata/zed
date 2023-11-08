@@ -11,5 +11,5 @@ outputs:
         parquetio: encountered multiple types (consider 'fuse'): {a:int64} and {b:int64}
         parquetio: not a record: 1
         parquetio: unsupported type: empty record
-        parquetio: unsupported type: not implemented yet
-        parquetio: unsupported type: not implemented yet
+        parquetio: unsupported type: not implemented: support for DURATION
+        parquetio: unsupported type: not implemented: support for FLOAT16

@@ -5,8 +5,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/parquet/pqarrow"
+	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v14/parquet/pqarrow"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/arrowio"
