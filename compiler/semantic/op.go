@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/brimdata/zed"
@@ -19,7 +20,6 @@ import (
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
-	"golang.org/x/exp/slices"
 )
 
 func (a *analyzer) semSeq(seq ast.Seq) (dag.Seq, error) {

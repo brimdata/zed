@@ -3,8 +3,7 @@ package peeker
 import (
 	"errors"
 	"io"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 type Reader struct {

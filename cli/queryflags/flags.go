@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"slices"
 
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/compiler"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
-	"golang.org/x/exp/slices"
 )
 
 type Flags struct {

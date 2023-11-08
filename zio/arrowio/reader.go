@@ -3,6 +3,7 @@ package arrowio
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"unsafe"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 // Reader is a zio.Reader for the Arrow IPC stream format.

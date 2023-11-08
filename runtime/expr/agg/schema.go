@@ -1,8 +1,9 @@
 package agg
 
 import (
+	"slices"
+
 	"github.com/brimdata/zed"
-	"golang.org/x/exp/slices"
 )
 
 // Schema constructs a fused type for types passed to Mixin.  Values of any

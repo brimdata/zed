@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -11,7 +12,6 @@ import (
 	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
-	"golang.org/x/exp/slices"
 )
 
 func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {

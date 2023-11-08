@@ -3,10 +3,10 @@ package expr
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
-	"golang.org/x/exp/slices"
 )
 
 // Renamer renames one or more fields in a record. A field can only be

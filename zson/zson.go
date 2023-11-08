@@ -7,12 +7,12 @@
 package zson
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 // Implied returns true for primitive types whose type can be inferred

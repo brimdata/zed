@@ -3,9 +3,9 @@ package zio
 import (
 	"context"
 	"io"
+	"slices"
 
 	"github.com/brimdata/zed"
-	"golang.org/x/exp/slices"
 )
 
 func Extension(format string) string {
