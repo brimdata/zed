@@ -74,6 +74,10 @@ func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) e
 	case *zed.TypeEnum:
 		return r.decodeEnum(b, typ, body)
 	case *zed.TypeRecord:
+		if body == nil {
+			b.Append(nil)
+			return nil
+		}
 		return r.decodeRecord(b, typ, body)
 	case *zed.TypeArray:
 		err := r.decodeContainer(b, typ.Type, body, "array")

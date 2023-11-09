@@ -37,6 +37,7 @@ func TestZed(t *testing.T) {
 		runAllBoomerangs(t, "arrows", data)
 		runAllBoomerangs(t, "parquet", data)
 		runAllBoomerangs(t, "vng", data)
+		runAllBoomerangs(t, "zjson", data)
 		runAllBoomerangs(t, "zson", data)
 	})
 
