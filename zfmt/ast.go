@@ -2,6 +2,7 @@ package zfmt
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/brimdata/zed/compiler/ast"
@@ -10,7 +11,6 @@ import (
 	"github.com/brimdata/zed/runtime/expr/agg"
 	"github.com/brimdata/zed/runtime/expr/function"
 	"github.com/brimdata/zed/zson"
-	"golang.org/x/exp/slices"
 )
 
 func AST(p ast.Seq) string {

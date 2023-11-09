@@ -2,9 +2,9 @@ package vector
 
 import (
 	"io"
+	"slices"
 
 	"github.com/pierrec/lz4/v4"
-	"golang.org/x/exp/slices"
 )
 
 type Spiller struct {

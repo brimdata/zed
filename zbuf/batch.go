@@ -1,12 +1,12 @@
 package zbuf
 
 import (
+	"slices"
 	"sync"
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
-	"golang.org/x/exp/slices"
 )
 
 // Batch is an interface to a bundle of values.  Reference counting allows

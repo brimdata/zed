@@ -4,13 +4,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"unicode/utf8"
 
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 const (

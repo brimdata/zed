@@ -1,9 +1,8 @@
 package zed
 
 import (
+	"slices"
 	"sync"
-
-	"golang.org/x/exp/slices"
 )
 
 type Mapper struct {

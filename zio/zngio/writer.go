@@ -3,11 +3,11 @@ package zngio
 import (
 	"encoding/binary"
 	"io"
+	"slices"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/pierrec/lz4/v4"
-	"golang.org/x/exp/slices"
 )
 
 // DefaultFrameThresh is a reasonable default for WriterOpts.FrameThresh.

@@ -3,8 +3,7 @@ package anyio
 import (
 	"errors"
 	"io"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 var ErrBufferOverflow = errors.New("buffer exceeded max size trying to infer input format")

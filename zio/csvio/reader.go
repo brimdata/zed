@@ -4,11 +4,11 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
+	"slices"
 	"strconv"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
-	"golang.org/x/exp/slices"
 )
 
 type Reader struct {

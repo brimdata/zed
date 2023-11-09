@@ -2,11 +2,11 @@ package expr
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 type This struct{}

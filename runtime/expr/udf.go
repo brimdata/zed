@@ -1,8 +1,9 @@
 package expr
 
 import (
+	"slices"
+
 	"github.com/brimdata/zed"
-	"golang.org/x/exp/slices"
 )
 
 const maxStackDepth = 10_000

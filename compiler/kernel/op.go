@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
@@ -40,7 +41,6 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
-	"golang.org/x/exp/slices"
 )
 
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")

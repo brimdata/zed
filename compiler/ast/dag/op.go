@@ -8,10 +8,11 @@ package dag
 // license that can be found in the LICENSE file.
 
 import (
+	"slices"
+
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/segmentio/ksuid"
-	"golang.org/x/exp/slices"
 )
 
 type Op interface {

@@ -2,12 +2,12 @@ package expr
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
-	"golang.org/x/exp/slices"
 )
 
 // A ShaperTransform represents one of the different transforms that a

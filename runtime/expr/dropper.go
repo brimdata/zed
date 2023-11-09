@@ -1,9 +1,10 @@
 package expr
 
 import (
+	"slices"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
-	"golang.org/x/exp/slices"
 )
 
 type dropper struct {
