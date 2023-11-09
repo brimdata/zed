@@ -2,6 +2,7 @@ package expr
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"math"
 	"slices"
@@ -326,67 +327,33 @@ func LookupCompare(typ zed.Type) comparefn {
 
 	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
 		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeInt(a), zed.DecodeInt(b)
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
+			return cmp.Compare(zed.DecodeInt(a), zed.DecodeInt(b))
 		}
 
 	case zed.IDUint16, zed.IDUint32, zed.IDUint64:
 		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeUint(a), zed.DecodeUint(b)
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
+			return cmp.Compare(zed.DecodeUint(a), zed.DecodeUint(b))
 		}
 
 	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
 		return func(a, b zcode.Bytes) int {
 			va, vb := zed.DecodeFloat(a), zed.DecodeFloat(b)
-			aNaN, bNaN := math.IsNaN(va), math.IsNaN(vb)
-			if aNaN && bNaN {
-				// Order different NaNs so ZNG sets have a canonical form.
-				aBits, bBits := math.Float64bits(va), math.Float64bits(vb)
-				if aBits < bBits {
-					return -1
-				} else if aBits > bBits {
-					return 1
-				}
-				return 0
-			} else if aNaN || va < vb {
-				return -1
-			} else if bNaN || va > vb {
-				return 1
+			if va == 0.0 && vb == 0.0 || math.IsNaN(va) && math.IsNaN(vb) {
+				// Order different zeroes and NaNs so ZNG sets
+				// have a canonical form.
+				return cmp.Compare(int64(math.Float64bits(va)), int64(math.Float64bits(vb)))
 			}
-			return 0
+			return cmp.Compare(va, vb)
 		}
 
 	case zed.IDTime:
 		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeTime(a), zed.DecodeTime(b)
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
+			return cmp.Compare(zed.DecodeTime(a), zed.DecodeTime(b))
 		}
 
 	case zed.IDDuration:
 		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeDuration(a), zed.DecodeDuration(b)
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
+			return cmp.Compare(zed.DecodeDuration(a), zed.DecodeDuration(b))
 		}
 
 	case zed.IDIP:
