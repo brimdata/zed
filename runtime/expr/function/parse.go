@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -79,6 +79,13 @@ func (p *ParseURI) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_zson
 type ParseZSON struct {
 	zctx *zed.Context
+	sr   *strings.Reader
+	zr   *zsonio.Reader
+}
+
+func newParseZSON(zctx *zed.Context) *ParseZSON {
+	var sr strings.Reader
+	return &ParseZSON{zctx, &sr, zsonio.NewReader(zctx, &sr)}
 }
 
 func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
@@ -89,22 +96,13 @@ func (p *ParseZSON) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if in.IsNull() {
 		return zed.Null
 	}
-	s := zed.DecodeString(in.Bytes())
-	parser := zson.NewParser(strings.NewReader(s))
-	ast, err := parser.ParseValue()
+	p.sr.Reset(zed.DecodeString(in.Bytes()))
+	val, err := p.zr.Read()
 	if err != nil {
-		return wrapError(p.zctx, ctx, "parse_zson: parse error: "+err.Error(), &in)
+		return wrapError(p.zctx, ctx, "parse_zson: "+err.Error(), &in)
 	}
-	if ast == nil {
+	if val == nil {
 		return zed.Null
 	}
-	val, err := zson.NewAnalyzer().ConvertValue(p.zctx, ast)
-	if err != nil {
-		return wrapError(p.zctx, ctx, "parse_zson: semantic error: "+err.Error(), &in)
-	}
-	result, err := zson.Build(zcode.NewBuilder(), val)
-	if err != nil {
-		return wrapError(p.zctx, ctx, "parse_zson: build error: "+err.Error(), &in)
-	}
-	return ctx.CopyValue(*result)
+	return ctx.CopyValue(*val)
 }

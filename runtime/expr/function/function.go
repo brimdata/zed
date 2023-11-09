@@ -151,7 +151,7 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "parse_uri":
 		f = &ParseURI{zctx: zctx, marshaler: zson.NewZNGMarshalerWithContext(zctx)}
 	case "parse_zson":
-		f = &ParseZSON{zctx: zctx}
+		f = newParseZSON(zctx)
 	case "quiet":
 		f = &Quiet{zctx: zctx}
 	case "regexp":
