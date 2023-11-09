@@ -40,15 +40,6 @@ func (m *Materializer) Read() (*zed.Value, error) {
 	return &m.value, nil
 }
 
-// TODO This exists as a builtin in go 1.21
-func min(a int, b int) int {
-	if a < b {
-		return a
-	} else {
-		return b
-	}
-}
-
 type materializer func(*zcode.Builder)
 
 func (v *bools) newMaterializer() materializer {
@@ -62,7 +53,8 @@ func (v *bools) newMaterializer() materializer {
 func (v *byteses) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeBytes(v.values[index]))
+		data := v.data[v.offsets[index]:v.offsets[index+1]]
+		builder.Append(zed.EncodeBytes(data))
 		index++
 	}
 }
@@ -99,10 +91,34 @@ func (v *float64s) newMaterializer() materializer {
 	}
 }
 
-func (v *ints) newMaterializer() materializer {
+func (v *int8s) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeInt(v.values[index]))
+		builder.Append(zed.EncodeInt(int64(v.values[index])))
+		index++
+	}
+}
+
+func (v *int16s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeInt(int64(v.values[index])))
+		index++
+	}
+}
+
+func (v *int32s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeInt(int64(v.values[index])))
+		index++
+	}
+}
+
+func (v *int64s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeInt(int64(v.values[index])))
 		index++
 	}
 }
@@ -126,7 +142,8 @@ func (v *nets) newMaterializer() materializer {
 func (v *strings) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeString(v.values[index]))
+		data := v.data[v.offsets[index]:v.offsets[index+1]]
+		builder.Append(zed.EncodeBytes(data))
 		index++
 	}
 }
@@ -147,10 +164,34 @@ func (v *times) newMaterializer() materializer {
 	}
 }
 
-func (v *uints) newMaterializer() materializer {
+func (v *uint8s) newMaterializer() materializer {
 	var index int
 	return func(builder *zcode.Builder) {
-		builder.Append(zed.EncodeUint(v.values[index]))
+		builder.Append(zed.EncodeUint(uint64(v.values[index])))
+		index++
+	}
+}
+
+func (v *uint16s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeUint(uint64(v.values[index])))
+		index++
+	}
+}
+
+func (v *uint32s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeUint(uint64(v.values[index])))
+		index++
+	}
+}
+
+func (v *uint64s) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		builder.Append(zed.EncodeUint(uint64(v.values[index])))
 		index++
 	}
 }
@@ -170,9 +211,8 @@ func (v *arrays) newMaterializer() materializer {
 }
 
 func (v *constants) newMaterializer() materializer {
-	bytes := v.value.Bytes()
 	return func(builder *zcode.Builder) {
-		builder.Append(bytes)
+		builder.Append(v.bytes)
 	}
 }
 
@@ -194,15 +234,22 @@ func (v *maps) newMaterializer() materializer {
 }
 
 func (v *nulls) newMaterializer() materializer {
-	var index int
+	var runIndex int
+	var run int64
+	isNull := true
 	valueMaterializer := v.values.newMaterializer()
 	return func(builder *zcode.Builder) {
-		if v.mask.ContainsInt(index) {
-			valueMaterializer(builder)
-		} else {
-			builder.Append(nil)
+		for run == 0 {
+			isNull = !isNull
+			run = v.runs[runIndex]
+			runIndex++
 		}
-		index++
+		if isNull {
+			builder.Append(nil)
+		} else {
+			valueMaterializer(builder)
+		}
+		run--
 	}
 }
 

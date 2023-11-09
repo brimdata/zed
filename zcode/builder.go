@@ -2,8 +2,7 @@ package zcode
 
 import (
 	"encoding/binary"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // Builder provides an efficient API for constructing nested ZNG values.

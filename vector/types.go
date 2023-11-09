@@ -3,7 +3,6 @@ package vector
 import (
 	"net/netip"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 )
@@ -20,13 +19,19 @@ var _ vector = (*durations)(nil)
 var _ vector = (*float16s)(nil)
 var _ vector = (*float32s)(nil)
 var _ vector = (*float64s)(nil)
-var _ vector = (*ints)(nil)
+var _ vector = (*int8s)(nil)
+var _ vector = (*int16s)(nil)
+var _ vector = (*int32s)(nil)
+var _ vector = (*int64s)(nil)
 var _ vector = (*ips)(nil)
 var _ vector = (*nets)(nil)
 var _ vector = (*strings)(nil)
 var _ vector = (*times)(nil)
 var _ vector = (*types)(nil)
-var _ vector = (*uints)(nil)
+var _ vector = (*uint8s)(nil)
+var _ vector = (*uint16s)(nil)
+var _ vector = (*uint32s)(nil)
+var _ vector = (*uint64s)(nil)
 
 var _ vector = (*arrays)(nil)
 var _ vector = (*constants)(nil)
@@ -40,9 +45,11 @@ type bools struct {
 	values []bool
 }
 
-// TODO Read entire vector as single []byte.
 type byteses struct {
-	values [][]byte
+	data []byte
+	// offsets[0] == 0
+	// len(offsets) == len(vector) + 1
+	offsets []int
 }
 
 type durations struct {
@@ -63,7 +70,19 @@ type float64s struct {
 	values []float64
 }
 
-type ints struct {
+type int8s struct {
+	values []int8
+}
+
+type int16s struct {
+	values []int16
+}
+
+type int32s struct {
+	values []int32
+}
+
+type int64s struct {
 	values []int64
 }
 
@@ -75,9 +94,11 @@ type nets struct {
 	values []netip.Prefix
 }
 
-// TODO Read entire vector as single []byte.
 type strings struct {
-	values []string
+	data []byte
+	// offsets[0] == 0
+	// len(offsets) == len(vector) + 1
+	offsets []int
 }
 
 type times struct {
@@ -88,7 +109,19 @@ type types struct {
 	values []zed.Type
 }
 
-type uints struct {
+type uint8s struct {
+	values []uint8
+}
+
+type uint16s struct {
+	values []uint16
+}
+
+type uint32s struct {
+	values []uint32
+}
+
+type uint64s struct {
 	values []uint64
 }
 
@@ -98,7 +131,7 @@ type arrays struct {
 }
 
 type constants struct {
-	value zed.Value
+	bytes []byte
 }
 
 type maps struct {
@@ -108,7 +141,8 @@ type maps struct {
 }
 
 type nulls struct {
-	mask   *roaring.Bitmap
+	// len(runs) > 0
+	runs   []int64
 	values vector
 }
 

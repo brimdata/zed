@@ -126,13 +126,6 @@ func (f *Finder) Next(text string) int {
 	return -1
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // CaseFinder is a Finder that ignores case for ASCII letters (but
 // not for letters with multibyte UTF-8 encodings).
 type CaseFinder Finder

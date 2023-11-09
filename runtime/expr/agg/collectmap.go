@@ -1,9 +1,10 @@
 package agg
 
 import (
+	"slices"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 type CollectMap struct {

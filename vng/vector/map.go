@@ -9,7 +9,6 @@ import (
 )
 
 type MapWriter struct {
-	typ     *zed.TypeMap
 	keys    Writer
 	values  Writer
 	lengths *Int64Writer
@@ -17,7 +16,6 @@ type MapWriter struct {
 
 func NewMapWriter(typ *zed.TypeMap, spiller *Spiller) *MapWriter {
 	return &MapWriter{
-		typ:     typ,
 		keys:    NewWriter(typ.KeyType, spiller),
 		values:  NewWriter(typ.ValType, spiller),
 		lengths: NewInt64Writer(spiller),

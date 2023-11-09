@@ -1,6 +1,6 @@
 package zed
 
-import "golang.org/x/exp/slices"
+import "slices"
 
 type TypeVectorTable struct {
 	types []typeVector

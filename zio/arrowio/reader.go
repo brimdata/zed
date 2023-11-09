@@ -3,17 +3,17 @@ package arrowio
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"unsafe"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/apache/arrow/go/v12/arrow/ipc"
-	"github.com/apache/arrow/go/v12/parquet/pqarrow"
+	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v14/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow/ipc"
+	"github.com/apache/arrow/go/v14/parquet/pqarrow"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 // Reader is a zio.Reader for the Arrow IPC stream format.

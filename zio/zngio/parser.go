@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/brimdata/zed/pkg/peeker"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 var errBadFormat = errors.New("malformed zng record")

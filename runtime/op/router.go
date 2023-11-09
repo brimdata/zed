@@ -2,10 +2,10 @@ package op
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/brimdata/zed/zbuf"
-	"golang.org/x/exp/slices"
 )
 
 type Selector interface {

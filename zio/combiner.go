@@ -2,10 +2,10 @@ package zio
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/brimdata/zed"
-	"golang.org/x/exp/slices"
 )
 
 // A Combiner is a Reader that returns records by reading from multiple Readers.

@@ -3,6 +3,7 @@ package vng
 import (
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/vng/vector"
@@ -12,7 +13,7 @@ import (
 
 const (
 	MaxSegmentThresh = vector.MaxSegmentThresh
-	MaxSkewThresh    = 512 * 1024 * 1024
+	MaxSkewThresh    = math.MaxInt
 )
 
 // Writer implements the zio.Writer interface. A Writer creates a vector
@@ -48,7 +49,7 @@ func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
 		spiller:    spiller,
 		writer:     w,
 		typeMap:    make(map[zed.Type]int),
-		skewThresh: skewThresh,
+		skewThresh: MaxSkewThresh,
 		segThresh:  segThresh,
 		root:       vector.NewInt64Writer(spiller),
 	}, nil

@@ -2,11 +2,11 @@ package jsonio
 
 import (
 	"errors"
+	"slices"
 	"sort"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 type builder struct {

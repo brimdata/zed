@@ -1,12 +1,12 @@
 package zngio
 
 import (
+	"slices"
 	"sync"
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zbuf"
-	"golang.org/x/exp/slices"
 )
 
 type batch struct {

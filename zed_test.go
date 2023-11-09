@@ -13,6 +13,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
@@ -36,6 +37,7 @@ func TestZed(t *testing.T) {
 		runAllBoomerangs(t, "arrows", data)
 		runAllBoomerangs(t, "parquet", data)
 		runAllBoomerangs(t, "vng", data)
+		runAllBoomerangs(t, "zjson", data)
 		runAllBoomerangs(t, "zson", data)
 	})
 
@@ -93,7 +95,7 @@ func loadZTestInputsAndOutputs(ztestDirs map[string]struct{}) (map[string]string
 // isValid returns true if and only if s can be read fully without error by
 // anyio and contains at least one value.
 func isValid(s string) bool {
-	zrc, err := anyio.NewReader(zed.NewContext(), strings.NewReader(s))
+	zrc, err := anyio.NewReader(zed.NewContext(), strings.NewReader(s), demand.All())
 	if err != nil {
 		return false
 	}
@@ -127,7 +129,7 @@ func runAllBoomerangs(t *testing.T, format string, data map[string]string) {
 func runOneBoomerang(t *testing.T, format, data string) {
 	// Create an auto-detecting reader for data.
 	zctx := zed.NewContext()
-	dataReadCloser, err := anyio.NewReader(zctx, strings.NewReader(data))
+	dataReadCloser, err := anyio.NewReader(zctx, strings.NewReader(data), demand.All())
 	require.NoError(t, err)
 	defer dataReadCloser.Close()
 
@@ -161,7 +163,7 @@ func runOneBoomerang(t *testing.T, format, data string) {
 	}
 
 	// Create a reader for baseline.
-	baselineReader, err := anyio.NewReaderWithOpts(zed.NewContext(), bytes.NewReader(baseline.Bytes()), anyio.ReaderOpts{
+	baselineReader, err := anyio.NewReaderWithOpts(zed.NewContext(), bytes.NewReader(baseline.Bytes()), demand.All(), anyio.ReaderOpts{
 		Format: format,
 		ZNG: zngio.ReaderOpts{
 			Validate: true,

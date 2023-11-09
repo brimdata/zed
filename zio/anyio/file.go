@@ -5,13 +5,14 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 )
 
 // Open uses engine to open path for reading.  path is a local file path or a
 // URI whose scheme is understood by engine.
-func Open(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, opts ReaderOpts) (*zbuf.File, error) {
+func Open(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, demandOut demand.Demand, opts ReaderOpts) (*zbuf.File, error) {
 	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -27,7 +28,7 @@ func Open(ctx context.Context, zctx *zed.Context, engine storage.Engine, path st
 			return
 		}
 		// NewFile reads from sr, which might block.
-		zf, err = NewFile(zctx, sr, path, opts)
+		zf, err = NewFile(zctx, sr, path, demandOut, opts)
 		if err != nil {
 			sr.Close()
 		}
@@ -40,12 +41,12 @@ func Open(ctx context.Context, zctx *zed.Context, engine storage.Engine, path st
 	}
 }
 
-func NewFile(zctx *zed.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
+func NewFile(zctx *zed.Context, rc io.ReadCloser, path string, demandOut demand.Demand, opts ReaderOpts) (*zbuf.File, error) {
 	r, err := GzipReader(rc)
 	if err != nil {
 		return nil, err
 	}
-	zr, err := NewReaderWithOpts(zctx, r, opts)
+	zr, err := NewReaderWithOpts(zctx, r, demandOut, opts)
 	if err != nil {
 		return nil, err
 	}

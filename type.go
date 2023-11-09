@@ -10,6 +10,7 @@
 package zed
 
 import (
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -411,17 +412,17 @@ func CompareTypes(a, b Type) int {
 		// a == b
 		return 0
 	}
-	if cmp := compareInts(int(a.Kind()), int(b.Kind())); cmp != 0 {
+	if cmp := cmp.Compare(a.Kind(), b.Kind()); cmp != 0 {
 		return cmp
 	}
 	switch a.Kind() {
 	case PrimitiveKind:
-		return compareInts(aID, bID)
+		return cmp.Compare(aID, bID)
 	case RecordKind:
 		ra, rb := TypeRecordOf(a), TypeRecordOf(b)
 		// First compare number of fields.
-		if len(ra.Fields) != len(rb.Fields) {
-			return compareInts(len(ra.Fields), len(rb.Fields))
+		if cmp := cmp.Compare(len(ra.Fields), len(rb.Fields)); cmp != 0 {
+			return cmp
 		}
 		// Second compare field names.
 		for i := 0; i < len(ra.Fields); i++ {
@@ -447,7 +448,7 @@ func CompareTypes(a, b Type) int {
 		return CompareTypes(ma.ValType, mb.ValType)
 	case UnionKind:
 		ua, ub := a.(*TypeUnion), b.(*TypeUnion)
-		if cmp := compareInts(len(ua.Types), len(ub.Types)); cmp != 0 {
+		if cmp := cmp.Compare(len(ua.Types), len(ub.Types)); cmp != 0 {
 			return cmp
 		}
 		for i := 0; i < len(ua.Types); i++ {
@@ -458,7 +459,7 @@ func CompareTypes(a, b Type) int {
 		return 0
 	case EnumKind:
 		ea, eb := a.(*TypeEnum), b.(*TypeEnum)
-		if cmp := compareInts(len(ea.Symbols), len(eb.Symbols)); cmp != 0 {
+		if cmp := cmp.Compare(len(ea.Symbols), len(eb.Symbols)); cmp != 0 {
 			return cmp
 		}
 		for i := 0; i < len(ea.Symbols); i++ {
@@ -470,15 +471,6 @@ func CompareTypes(a, b Type) int {
 	case ErrorKind:
 		ea, eb := a.(*TypeError), b.(*TypeError)
 		return CompareTypes(ea.Type, eb.Type)
-	}
-	return 0
-}
-
-func compareInts(a, b int) int {
-	if a < b {
-		return -1
-	} else if a > b {
-		return 1
 	}
 	return 0
 }

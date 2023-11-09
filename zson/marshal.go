@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/netip"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 	"github.com/x448/float16"
-	"golang.org/x/exp/slices"
 )
 
 //XXX handle new TypeError => marshal as a ZSON string?

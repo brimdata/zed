@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
@@ -39,7 +41,6 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
-	"golang.org/x/exp/slices"
 )
 
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
@@ -237,9 +238,9 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return meta.NewLakeMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), v.Meta)
 	case *dag.HTTPScan:
 		body := strings.NewReader(v.Body)
-		return b.source.OpenHTTP(b.octx.Context, b.octx.Zctx, v.URL, v.Format, v.Method, v.Headers, body)
+		return b.source.OpenHTTP(b.octx.Context, b.octx.Zctx, v.URL, v.Format, v.Method, v.Headers, body, demand.All())
 	case *dag.FileScan:
-		return b.source.Open(b.octx.Context, b.octx.Zctx, v.Path, v.Format, b.PushdownOf(v.Filter))
+		return b.source.Open(b.octx.Context, b.octx.Zctx, v.Path, v.Format, b.PushdownOf(v.Filter), demand.All())
 	case *Reader:
 		pushdown := b.PushdownOf(v.Filter)
 		if len(v.Readers) == 1 {

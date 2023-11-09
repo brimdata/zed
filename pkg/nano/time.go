@@ -158,22 +158,6 @@ func ParseRFC3339Nano(s []byte) (Ts, error) {
 	return TimeToTs(t), nil
 }
 
-// Max compares and returns the largest Ts.
-func Max(a, b Ts) Ts {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-// Min compares and returns the smallest Ts.
-func Min(a, b Ts) Ts {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // Unix returns a Ts corresponding to the given Unix time, sec seconds
 // and nsec nanoseconds since January 1, 1970 UTC.
 func Unix(sec, ns int64) Ts {

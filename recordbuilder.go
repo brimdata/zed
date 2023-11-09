@@ -3,11 +3,11 @@ package zed
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zcode"
-	"golang.org/x/exp/slices"
 )
 
 // fieldInfo encodes the structure of a particular proc that writes a

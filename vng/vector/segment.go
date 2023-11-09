@@ -3,10 +3,10 @@ package vector
 import (
 	"fmt"
 	"io"
+	"slices"
 	"sync"
 
 	"github.com/pierrec/lz4/v4"
-	"golang.org/x/exp/slices"
 )
 
 // Values for [Segment.CompressionFormat].

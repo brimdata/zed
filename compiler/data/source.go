@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
@@ -57,11 +58,11 @@ func (s *Source) SortKey(ctx context.Context, src dag.Op) order.SortKey {
 	return order.Nil
 }
 
-func (s *Source) Open(ctx context.Context, zctx *zed.Context, path, format string, pushdown zbuf.Filter) (zbuf.Puller, error) {
+func (s *Source) Open(ctx context.Context, zctx *zed.Context, path, format string, pushdown zbuf.Filter, demandOut demand.Demand) (zbuf.Puller, error) {
 	if path == "-" {
 		path = "stdio:stdin"
 	}
-	file, err := anyio.Open(ctx, zctx, s.engine, path, anyio.ReaderOpts{Format: format})
+	file, err := anyio.Open(ctx, zctx, s.engine, path, demandOut, anyio.ReaderOpts{Format: format})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
@@ -74,7 +75,7 @@ func (s *Source) Open(ctx context.Context, zctx *zed.Context, path, format strin
 	return &closePuller{sn, file}, nil
 }
 
-func (s *Source) OpenHTTP(ctx context.Context, zctx *zed.Context, url, format, method string, headers http.Header, body io.Reader) (zbuf.Puller, error) {
+func (s *Source) OpenHTTP(ctx context.Context, zctx *zed.Context, url, format, method string, headers http.Header, body io.Reader, demandOut demand.Demand) (zbuf.Puller, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
@@ -84,7 +85,7 @@ func (s *Source) OpenHTTP(ctx context.Context, zctx *zed.Context, url, format, m
 	if err != nil {
 		return nil, err
 	}
-	file, err := anyio.NewFile(zctx, resp.Body, url, anyio.ReaderOpts{Format: format})
+	file, err := anyio.NewFile(zctx, resp.Body, url, demandOut, anyio.ReaderOpts{Format: format})
 	if err != nil {
 		resp.Body.Close()
 		return nil, fmt.Errorf("%s: %w", url, err)
