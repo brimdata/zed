@@ -1,3 +1,17 @@
+## v1.11.0
+* Introduce new logic for the `zed` CLI command to [locate the lake](docs/commands/zed.md#locating-the-lake) (#4758, #4787, #4811)
+* [Cast expressions](docs/language/expressions.md#casts) now behave more like function calls (#4805)
+* Reduce the amount of memory needed to store a Zed value (#4812)
+* Add support for unicode in keywords and identifiers (#4799, #4796)
+* Add support for dynamic field paths in "left-hand side" contexts with [`put`](docs/language/operators/put.md), [`cut`](docs/language/operators/cut.md), and [`rename`](docs/language/operators/rename.md) operators (#4795, #4802, #4832)
+* Add a [`map()` function](docs/language/functions/map.md) that applies a function to each element of an array or set. To avoid a naming clash, the aggregate function previously called `map()` is now called [`collect_map()`](docs/language/aggregates/collect_map.md) (#4806, #4856, #4860)
+* Fix an issue where a [record expression](docs/language/expressions.md#record-expressions) with duplicate fields caused a panic (#4789)
+* Fix an issue where valid ZNG input might not be read successfully via auto-detection (#4790)
+* Fix an issue where `null` values could cause [`join`](docs/language/operators/join.md) to produce incorrect output (#4801)
+* Fix a `zq` where a call to a [user-defined operator](docs/language/statements.md#operator-statements) included via `-I` could fail (#4808)
+* Fix an issue where running `zed` commands on a system with many CPU cores caused an internal error (#4826)
+* Fix an encoding issue that caused different [map values](docs/formats/zed.md#24-map) to be rendered the same in Zui (#4853)
+
 ## v1.10.0
 * Sorting is now performed automatically on [`join`](docs/language/operators/join.md) inputs when needed (explicit [`sort`](docs/language/operators/sort.md) no longer required) (#4770)
 * Various query performance improvements (#4736, #4737, #4739, #4740, #4783, #4785)
