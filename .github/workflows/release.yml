@@ -23,6 +23,6 @@ jobs:
     - run: make test-heavy
     - uses: goreleaser/goreleaser-action@v3
       with:
-        args: release --rm-dist
+        args: release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}

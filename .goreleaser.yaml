@@ -40,7 +40,7 @@ release:
     View [change log](CHANGELOG.md#{{ replace .Tag "." "" }}).
 brews:
   - name: zed
-    tap:
+    repository:
       owner: brimdata
       name: homebrew-tap
     commit_author:
@@ -53,7 +53,7 @@ brews:
     install: |
       bin.install "zed"
   - name: zq
-    tap:
+    repository:
       owner: brimdata
       name: homebrew-tap
     commit_author:
