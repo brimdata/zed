@@ -72,6 +72,7 @@ type MapperLookupCache struct {
 }
 
 func (m *MapperLookupCache) Reset(mapper *Mapper) {
+	clear(m.cache)
 	m.cache = m.cache[:0]
 	m.mapper = mapper
 }
