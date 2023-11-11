@@ -17,7 +17,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 )
 
 var ErrNotSingleton = errors.New("value body has more than one encoded value")
@@ -57,17 +56,14 @@ func SizeOfUvarint(u64 uint64) int {
 	return n
 }
 
-func ReadTag(r io.ByteReader) (int, error) {
+// DecodeTag reads a uvarint and interprets it as a tag.
+// Returns the tag and the number of bytes read.
+func DecodeTag(b Bytes) (int, int) {
 	// The tag is zero for a null value; otherwise, it is the value's
 	// length plus one.
-	u64, err := binary.ReadUvarint(r)
-	if err != nil {
-		return 0, err
-	}
-	if tagIsNull(u64) {
-		return -1, nil
-	}
-	return tagLength(u64), nil
+	u64, n := binary.Uvarint(b)
+	// Return -1 for null tags.
+	return int(u64) - 1, n
 }
 
 func DecodeTagLength(b Bytes) int {

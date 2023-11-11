@@ -2,8 +2,10 @@ package zngio
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -265,27 +267,42 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// might make allocation work out better; at some point we can have
 	// pools of buffers based on size?
 
+	// Count the number of values in buf
+	var valueCount int
+	start := buf.off
+	for buf.length() > 0 {
+		err := skipVal(buf)
+		if err != nil {
+			buf.free()
+			return nil, err
+		}
+		valueCount++
+	}
+	buf.off = start
+
 	w.mapperLookupCache.Reset(local.mapper)
 	batch := newBatch(buf)
 	var progress zbuf.Progress
-	// We extend the batch one past its end and decode into the next
-	// potential slot and only advance the batch when we decide we want to
-	// keep the value.  Since we overshoot by one slot on every pass,
-	// we delete the overshoot with batch.unextend() on exit from the loop.
-	// I think this is what I drew on the Lawton basement whiteboard
-	// in 2018 but my previous attempts implementing that picture were
-	// horrible.  This attempts isn't so bad.
-	valRef := batch.extend()
-	for buf.length() > 0 {
+
+	// Decode values
+	vals := batch.vals
+	if len(vals) < valueCount {
+		vals = slices.Grow(vals, valueCount-len(vals))
+	}
+	vals = vals[:valueCount]
+	var valIndex int
+	for i := 0; i < valueCount; i++ {
+		valRef := &vals[valIndex]
 		if err := w.decodeVal(buf, valRef); err != nil {
 			buf.free()
 			return nil, err
 		}
 		if w.wantValue(valRef, &progress) {
-			valRef = batch.extend()
+			valIndex += 1
 		}
 	}
-	batch.unextend()
+	batch.vals = vals[:valIndex]
+
 	w.progress.Add(progress)
 	if len(batch.Values()) == 0 {
 		batch.Unref()
@@ -295,27 +312,17 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 }
 
 func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
-	id, err := readUvarintAsInt(buf)
-	if err != nil {
-		return err
-	}
-	n, err := zcode.ReadTag(buf)
-	if err != nil {
-		return errBadFormat
-	}
+	// We've already checked for errors by using skipVal in scanBatch, so we can skip most checks here.
+	id, id_len := binary.Uvarint(buf.Bytes())
+	buf.off += id_len
+	n, n_len := zcode.DecodeTag(buf.Bytes())
+	buf.off += n_len
 	var b []byte
-	if n == 0 {
-		b = []byte{}
-	} else if n > 0 {
-		b, err = buf.read(n)
-		if err != nil && err != io.EOF {
-			if err == peeker.ErrBufferOverflow {
-				return fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
-			}
-			return errBadFormat
-		}
+	if n >= 0 {
+		b = buf.Bytes()[:n]
+		buf.off += n
 	}
-	typ := w.mapperLookupCache.Lookup(id)
+	typ := w.mapperLookupCache.Lookup(int(id))
 	if typ == nil {
 		return fmt.Errorf("zngio: type ID %d not in context", id)
 	}
@@ -325,6 +332,23 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func skipVal(buf *buffer) error {
+	_, id_len := binary.Uvarint(buf.Bytes())
+	if id_len <= 0 || buf.length() < id_len {
+		return errBadFormat
+	}
+	buf.off += id_len
+	n, n_len := zcode.DecodeTag(buf.Bytes())
+	if n < 0 {
+		n = 0
+	}
+	if n_len <= 0 || buf.length() < n_len+n {
+		return errBadFormat
+	}
+	buf.off += n_len + n
 	return nil
 }
 
