@@ -70,6 +70,16 @@ func ReadTag(r io.ByteReader) (int, error) {
 	return tagLength(u64), nil
 }
 
+func DecodeTag(b Bytes) (int, int) {
+	// The tag is zero for a null value; otherwise, it is the value's
+	// length plus one.
+	u64, n := binary.Uvarint(b)
+	if n <= 0 {
+		return 0, n
+	}
+	return tagLengthOrNull(u64), n
+}
+
 func DecodeTagLength(b Bytes) int {
 	u64, n := binary.Uvarint(b)
 	if n <= 0 {
@@ -96,4 +106,8 @@ func tagLength(t uint64) int {
 		panic("tagLength called with null tag")
 	}
 	return int(t - 1)
+}
+
+func tagLengthOrNull(t uint64) int {
+	return int(t) - 1
 }

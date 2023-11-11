@@ -2,6 +2,7 @@ package zngio
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"sync"
@@ -295,27 +296,21 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 }
 
 func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
-	id, err := readUvarintAsInt(buf)
+	id, id_len := binary.Uvarint(buf.Bytes())
+	if id_len <= 0 {
+		return errBadFormat
+	}
+	buf.off += id_len
+	n, n_len := zcode.DecodeTag(buf.Bytes())
+	if n_len <= 0 {
+		return errBadFormat
+	}
+	buf.off += n_len
+	b, err := buf.read(n)
 	if err != nil {
 		return err
 	}
-	n, err := zcode.ReadTag(buf)
-	if err != nil {
-		return errBadFormat
-	}
-	var b []byte
-	if n == 0 {
-		b = []byte{}
-	} else if n > 0 {
-		b, err = buf.read(n)
-		if err != nil && err != io.EOF {
-			if err == peeker.ErrBufferOverflow {
-				return fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
-			}
-			return errBadFormat
-		}
-	}
-	typ := w.mapperLookupCache.Lookup(id)
+	typ := w.mapperLookupCache.Lookup(int(id))
 	if typ == nil {
 		return fmt.Errorf("zngio: type ID %d not in context", id)
 	}
