@@ -1,3 +1,6 @@
+## v1.11.1
+* Fix an issue where loading and querying certain data caused a panic (#4877)
+
 ## v1.11.0
 * Introduce new logic for the `zed` CLI command to [locate the lake](docs/commands/zed.md#locating-the-lake) (#4758, #4787, #4811)
 * [Cast expressions](docs/language/expressions.md#casts) now behave more like function calls (#4805)
