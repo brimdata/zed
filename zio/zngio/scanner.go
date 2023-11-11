@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -266,27 +267,42 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// might make allocation work out better; at some point we can have
 	// pools of buffers based on size?
 
+	// Count the number of values in buf
+	var valueCount int
+	start := buf.off
+	for buf.length() > 0 {
+		n, err := decodeValLen(buf)
+		if err != nil {
+			return nil, err
+		}
+		buf.off += n
+		valueCount++
+	}
+	buf.off = start
+
 	w.mapperLookupCache.Reset(local.mapper)
 	batch := newBatch(buf)
 	var progress zbuf.Progress
-	// We extend the batch one past its end and decode into the next
-	// potential slot and only advance the batch when we decide we want to
-	// keep the value.  Since we overshoot by one slot on every pass,
-	// we delete the overshoot with batch.unextend() on exit from the loop.
-	// I think this is what I drew on the Lawton basement whiteboard
-	// in 2018 but my previous attempts implementing that picture were
-	// horrible.  This attempts isn't so bad.
-	valRef := batch.extend()
-	for buf.length() > 0 {
+
+	// Decode values
+	vals := batch.vals
+	if len(vals) < valueCount {
+		vals = slices.Grow(vals, valueCount-len(vals))
+	}
+	vals = vals[:valueCount]
+	var valIndex int
+	for i := 0; i < valueCount; i++ {
+		valRef := &vals[valIndex]
 		if err := w.decodeVal(buf, valRef); err != nil {
 			buf.free()
 			return nil, err
 		}
 		if w.wantValue(valRef, &progress) {
-			valRef = batch.extend()
+			valIndex += 1
 		}
 	}
-	batch.unextend()
+	batch.vals = vals[:valIndex]
+
 	w.progress.Add(progress)
 	if len(batch.Values()) == 0 {
 		batch.Unref()
@@ -321,6 +337,20 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 		}
 	}
 	return nil
+}
+
+func decodeValLen(buf *buffer) (int, error) {
+	_, id_len := binary.Uvarint(buf.Bytes())
+	if id_len <= 0 {
+		return 0, errBadFormat
+	}
+	buf.off += id_len
+	n, n_len := zcode.DecodeTag(buf.Bytes())
+	if n_len <= 0 {
+		return 0, errBadFormat
+	}
+	buf.off += n_len
+	return n, nil
 }
 
 func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {

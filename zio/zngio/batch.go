@@ -22,11 +22,10 @@ var batchPool sync.Pool
 func newBatch(buf *buffer) *batch {
 	b, ok := batchPool.Get().(*batch)
 	if !ok {
-		b = &batch{vals: make([]zed.Value, 200)}
+		b = &batch{vals: make([]zed.Value, 0)}
 	}
 	b.buf = buf
 	b.refs = 1
-	b.vals = b.vals[:0]
 	return b
 }
 
