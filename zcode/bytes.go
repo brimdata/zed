@@ -17,7 +17,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/dennwc/varint"
 )
@@ -52,19 +51,6 @@ func Append(dst Bytes, val []byte) Bytes {
 // represent u64.
 func SizeOfUvarint(u64 uint64) int {
 	return varint.UvarintSize(u64)
-}
-
-func ReadTag(r io.ByteReader) (int, error) {
-	// The tag is zero for a null value; otherwise, it is the value's
-	// length plus one.
-	u64, err := binary.ReadUvarint(r)
-	if err != nil {
-		return 0, err
-	}
-	if tagIsNull(u64) {
-		return -1, nil
-	}
-	return tagLength(u64), nil
 }
 
 func DecodeTag(b Bytes) (int, int) {
