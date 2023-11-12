@@ -18,6 +18,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/dennwc/varint"
 )
 
 var ErrNotSingleton = errors.New("value body has more than one encoded value")
@@ -49,12 +51,7 @@ func Append(dst Bytes, val []byte) Bytes {
 // SizeOfUvarint returns the number of bytes required by binary.AppendUvarint to
 // represent u64.
 func SizeOfUvarint(u64 uint64) int {
-	n := 1
-	for u64 >= 0x80 {
-		n++
-		u64 >>= 7
-	}
-	return n
+	return varint.UvarintSize(u64)
 }
 
 func ReadTag(r io.ByteReader) (int, error) {
@@ -73,7 +70,7 @@ func ReadTag(r io.ByteReader) (int, error) {
 func DecodeTag(b Bytes) (int, int) {
 	// The tag is zero for a null value; otherwise, it is the value's
 	// length plus one.
-	u64, n := binary.Uvarint(b)
+	u64, n := varint.Uvarint(b)
 	if n <= 0 {
 		return 0, n
 	}
@@ -81,7 +78,7 @@ func DecodeTag(b Bytes) (int, int) {
 }
 
 func DecodeTagLength(b Bytes) int {
-	u64, n := binary.Uvarint(b)
+	u64, n := varint.Uvarint(b)
 	if n <= 0 {
 		panic(fmt.Sprintf("bad uvarint: %d", n))
 	}

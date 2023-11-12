@@ -1,8 +1,8 @@
 package zcode
 
 import (
-	"encoding/binary"
 	"fmt"
+	"github.com/dennwc/varint"
 )
 
 // Iter iterates over the sequence of values encoded in Bytes.
@@ -21,7 +21,7 @@ func (i *Iter) Done() bool {
 func (i *Iter) Next() Bytes {
 	// The tag is zero for a null value; otherwise, it is the value's
 	// length plus one.
-	u64, n := binary.Uvarint(*i)
+	u64, n := varint.Uvarint(*i)
 	if n <= 0 {
 		panic(fmt.Sprintf("bad uvarint: %d", n))
 	}
@@ -39,7 +39,7 @@ func (i *Iter) Next() Bytes {
 // undecoded tag followed by its body.  NextTagAndBody panics if the next
 // value is malformed.
 func (i *Iter) NextTagAndBody() Bytes {
-	u64, n := binary.Uvarint(*i)
+	u64, n := varint.Uvarint(*i)
 	if n <= 0 {
 		panic(fmt.Sprintf("bad uvarint: %d", n))
 	}

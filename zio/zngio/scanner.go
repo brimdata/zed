@@ -2,8 +2,8 @@ package zngio
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
+	"github.com/dennwc/varint"
 	"io"
 	"slices"
 	"sync"
@@ -312,7 +312,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 }
 
 func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
-	id, id_len := binary.Uvarint(buf.Bytes())
+	id, id_len := varint.Uvarint(buf.Bytes())
 	if id_len <= 0 {
 		return errBadFormat
 	}
