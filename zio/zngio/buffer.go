@@ -3,6 +3,8 @@ package zngio
 import (
 	"io"
 	"sync"
+
+	"github.com/dennwc/varint"
 )
 
 type buffer struct {

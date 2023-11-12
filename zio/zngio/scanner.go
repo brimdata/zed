@@ -3,7 +3,6 @@ package zngio
 import (
 	"context"
 	"fmt"
-	"github.com/dennwc/varint"
 	"io"
 	"slices"
 	"sync"
@@ -15,6 +14,7 @@ import (
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
+	"github.com/dennwc/varint"
 )
 
 type scanner struct {
@@ -340,7 +340,7 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 }
 
 func decodeValLen(buf *buffer) (int, error) {
-	_, id_len := binary.Uvarint(buf.Bytes())
+	_, id_len := varint.Uvarint(buf.Bytes())
 	if id_len <= 0 {
 		return 0, errBadFormat
 	}

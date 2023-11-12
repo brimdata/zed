@@ -1,7 +1,6 @@
 package zed
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"slices"
@@ -11,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/brimdata/zed/zcode"
+	"github.com/dennwc/varint"
 )
 
 const (
@@ -509,7 +509,7 @@ func DecodeName(tv zcode.Bytes) (string, zcode.Bytes) {
 }
 
 func DecodeLength(tv zcode.Bytes) (int, zcode.Bytes) {
-	namelen, n := binary.Uvarint(tv)
+	namelen, n := varint.Uvarint(tv)
 	if n <= 0 {
 		return 0, nil
 	}

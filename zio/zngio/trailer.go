@@ -2,13 +2,13 @@ package zngio
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
+	"github.com/dennwc/varint"
 )
 
 var ErrTrailerNotFound = errors.New("trailer not found")
@@ -162,7 +162,7 @@ func decodeLength(b []byte, code byte) (int, bool) {
 	if len(b) < 2 {
 		return 0, false
 	}
-	v, n := binary.Uvarint(b[1:])
+	v, n := varint.Uvarint(b[1:])
 	if n == 0 {
 		return 0, false
 	}

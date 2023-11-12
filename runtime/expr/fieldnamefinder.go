@@ -1,13 +1,13 @@
 package expr
 
 import (
-	"encoding/binary"
 	"math/big"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/stringsearch"
 	"github.com/brimdata/zed/zcode"
+	"github.com/dennwc/varint"
 )
 
 type FieldNameFinder struct {
@@ -26,7 +26,7 @@ func NewFieldNameFinder(pattern string) *FieldNameFinder {
 func (f *FieldNameFinder) Find(zctx *zed.Context, buf []byte) bool {
 	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {
-		id, idLen := binary.Uvarint(buf)
+		id, idLen := varint.Uvarint(buf)
 		if idLen <= 0 {
 			return true
 		}
