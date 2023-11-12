@@ -16,7 +16,7 @@ import (
 
 func Read(reader *vng.Reader, demandOut demand.Demand) (*Vector, error) {
 	context := zed.NewContext()
-	tags, err := readInt64s(reader.Root)
+	tags, err := ReadInt64s(reader.Root)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 	switch reader := reader.(type) {
 
 	case *vngvector.ArrayReader:
-		lengths, err := readInt64s(reader.Lengths)
+		lengths, err := ReadInt64s(reader.Lengths)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +84,7 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 		if err != nil {
 			return nil, err
 		}
-		lengths, err := readInt64s(reader.Lengths)
+		lengths, err := ReadInt64s(reader.Lengths)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 		return vector, nil
 
 	case *vngvector.NullsReader:
-		runs, err := readInt64s(&reader.Runs)
+		runs, err := ReadInt64s(&reader.Runs)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +146,7 @@ func read(context *zed.Context, reader vngvector.Reader, demandOut demand.Demand
 			}
 			payloads[i] = payload
 		}
-		tags, err := readInt64s(reader.Tags)
+		tags, err := ReadInt64s(reader.Tags)
 		if err != nil {
 			return nil, err
 		}
@@ -523,7 +523,7 @@ func readPrimitive(context *zed.Context, typ zed.Type, readBytes func() ([]byte,
 	}
 }
 
-func readInt64s(reader *vngvector.Int64Reader) ([]int64, error) {
+func ReadInt64s(reader *vngvector.Int64Reader) ([]int64, error) {
 	var ints []int64
 	for {
 		int, err := reader.Read()
