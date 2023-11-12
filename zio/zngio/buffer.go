@@ -85,3 +85,12 @@ func (b *buffer) ReadByte() (byte, error) {
 	b.off++
 	return b.data[off], nil
 }
+
+func uvarintAsInt(buf *buffer) (int, error) {
+	u64, u64_len := varint.Uvarint(buf.Bytes())
+	if u64_len <= 0 {
+		return 0, errBadFormat
+	}
+	buf.off += u64_len
+	return int(u64), nil
+}

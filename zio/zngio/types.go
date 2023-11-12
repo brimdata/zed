@@ -266,7 +266,7 @@ func (d *Decoder) decode(b *buffer) error {
 }
 
 func (d *Decoder) readTypeRecord(b *buffer) error {
-	nfields, err := readUvarintAsInt(b)
+	nfields, err := uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
@@ -291,7 +291,7 @@ func (d *Decoder) readField(b *buffer) (zed.Field, error) {
 	if err != nil {
 		return zed.Field{}, err
 	}
-	id, err := readUvarintAsInt(b)
+	id, err := uvarintAsInt(b)
 	if err != nil {
 		return zed.Field{}, errBadFormat
 	}
@@ -303,7 +303,7 @@ func (d *Decoder) readField(b *buffer) (zed.Field, error) {
 }
 
 func (d *Decoder) readTypeArray(b *buffer) error {
-	id, err := readUvarintAsInt(b)
+	id, err := uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
@@ -317,7 +317,7 @@ func (d *Decoder) readTypeArray(b *buffer) error {
 }
 
 func (d *Decoder) readTypeSet(b *buffer) error {
-	id, err := readUvarintAsInt(b)
+	id, err := uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
@@ -331,7 +331,7 @@ func (d *Decoder) readTypeSet(b *buffer) error {
 }
 
 func (d *Decoder) readTypeMap(b *buffer) error {
-	id, err := readUvarintAsInt(b)
+	id, err := uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
@@ -339,7 +339,7 @@ func (d *Decoder) readTypeMap(b *buffer) error {
 	if err != nil {
 		return err
 	}
-	id, err = readUvarintAsInt(b)
+	id, err = uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
@@ -353,7 +353,7 @@ func (d *Decoder) readTypeMap(b *buffer) error {
 }
 
 func (d *Decoder) readTypeUnion(b *buffer) error {
-	ntyp, err := readUvarintAsInt(b)
+	ntyp, err := uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
@@ -362,7 +362,7 @@ func (d *Decoder) readTypeUnion(b *buffer) error {
 	}
 	var types []zed.Type
 	for k := 0; k < ntyp; k++ {
-		id, err := readUvarintAsInt(b)
+		id, err := uvarintAsInt(b)
 		if err != nil {
 			return errBadFormat
 		}
@@ -378,7 +378,7 @@ func (d *Decoder) readTypeUnion(b *buffer) error {
 }
 
 func (d *Decoder) readTypeEnum(b *buffer) error {
-	nsym, err := readUvarintAsInt(b)
+	nsym, err := uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
@@ -396,7 +396,7 @@ func (d *Decoder) readTypeEnum(b *buffer) error {
 }
 
 func (d *Decoder) readCountedString(b *buffer) (string, error) {
-	n, err := readUvarintAsInt(b)
+	n, err := uvarintAsInt(b)
 	if err != nil {
 		return "", errBadFormat
 	}
@@ -413,7 +413,7 @@ func (d *Decoder) readTypeName(b *buffer) error {
 	if err != nil {
 		return err
 	}
-	id, err := readUvarintAsInt(b)
+	id, err := uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
@@ -430,7 +430,7 @@ func (d *Decoder) readTypeName(b *buffer) error {
 }
 
 func (d *Decoder) readTypeError(b *buffer) error {
-	id, err := readUvarintAsInt(b)
+	id, err := uvarintAsInt(b)
 	if err != nil {
 		return errBadFormat
 	}
