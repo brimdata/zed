@@ -234,17 +234,22 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, segmap []vngvector.S
 			}
 			offset += int(segment.MemLength)
 		}
-		offset = 0
+		offsetFrom := 0
+		offsetTo := 0
 		offsets := make([]int, 0, count+1)
-		offsets = append(offsets, offset)
-		for offset < len(data) {
-			dataLenPlusOne, tagLen := binary.Uvarint(data[offset:])
-			if tagLen <= 0 || dataLenPlusOne == 0 {
+		offsets = append(offsets, offsetTo)
+		for offsetFrom < len(data) {
+			tag, tagLen := binary.Uvarint(data[offsetFrom:])
+			if tagLen <= 0 || tag == 0 {
 				return nil, errBadTag
 			}
-			offset += tagLen
-			offsets = append(offsets, offset)
-			offset += int(dataLenPlusOne) - 1
+			dataLen := int(tag - 1)
+			// Shift data over to remove tag.
+			// TODO Don't store tags in the VNG file in the first place.
+			copy(data[offsetTo:offsetTo+dataLen], data[offsetFrom+tagLen:offsetFrom+tagLen+dataLen])
+			offsetFrom += tagLen + dataLen
+			offsetTo += dataLen
+			offsets = append(offsets, offsetTo)
 		}
 		vector := &byteses{
 			data:    data,
@@ -455,17 +460,22 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, segmap []vngvector.S
 			}
 			offset += int(segment.MemLength)
 		}
-		offset = 0
+		offsetFrom := 0
+		offsetTo := 0
 		offsets := make([]int, 0, count+1)
-		offsets = append(offsets, offset)
-		for offset < len(data) {
-			dataLenPlusOne, tagLen := binary.Uvarint(data[offset:])
-			if tagLen <= 0 || dataLenPlusOne == 0 {
+		offsets = append(offsets, offsetTo)
+		for offsetFrom < len(data) {
+			tag, tagLen := binary.Uvarint(data[offsetFrom:])
+			if tagLen <= 0 || tag == 0 {
 				return nil, errBadTag
 			}
-			offset += tagLen
-			offsets = append(offsets, offset)
-			offset += int(dataLenPlusOne) - 1
+			dataLen := int(tag - 1)
+			// Shift data over to remove tag.
+			// TODO Don't store tags in the VNG file in the first place.
+			copy(data[offsetTo:offsetTo+dataLen], data[offsetFrom+tagLen:offsetFrom+tagLen+dataLen])
+			offsetFrom += tagLen + dataLen
+			offsetTo += dataLen
+			offsets = append(offsets, offsetTo)
 		}
 		vector := &strings{
 			data:    data,
