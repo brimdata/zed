@@ -159,7 +159,7 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, meta vngvector.Metadata, dema
 func ReadInt64s(readerAt io.ReaderAt, segmap []vngvector.Segment) ([]int64, error) {
 	var lengthHint int
 	for _, segment := range segmap {
-		// TODO This is likely an underestimate. Store the actual length in segments.
+		// TODO This is likely an overestimate. Store the actual length in segments.
 		lengthHint += int(segment.MemLength)
 	}
 	vector, err := readPrimitive(nil, readerAt, segmap, zed.TypeInt64, lengthHint)
