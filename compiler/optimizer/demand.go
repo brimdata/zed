@@ -81,7 +81,7 @@ func inferDemandExprIn(demandOut demand.Demand, expr dag.Expr) demand.Demand {
 	switch expr := expr.(type) {
 	case *dag.Agg:
 		// Since we don't know how the expr.Name will transform the inputs, we have to assume demand.All.
-		demandIn = demand.Union(
+		return demand.Union(
 			inferDemandExprIn(demand.All(), expr.Expr),
 			inferDemandExprIn(demand.All(), expr.Where),
 		)
