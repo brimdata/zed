@@ -120,11 +120,7 @@ func newVecSequenceScanner(ctx context.Context, zctx *zed.Context, pool *lake.Po
 	if err != nil {
 		return nil, ksuid.KSUID{}, err
 	}
-	vngReader, err := vng.NewReader(object)
-	if err != nil {
-		return nil, ksuid.KSUID{}, err
-	}
-	vectorReader := vector.NewReader(vngReader, demandOut)
+	vectorReader := vector.NewReader(object, demandOut)
 	scanner, err := zbuf.NewScanner(ctx, vectorReader, nil)
 	if err != nil {
 		return nil, ksuid.KSUID{}, err

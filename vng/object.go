@@ -22,11 +22,11 @@ import (
 )
 
 type Object struct {
-	readerAt io.ReaderAt
+	ReaderAt io.ReaderAt
 	closer   io.Closer
-	zctx     *zed.Context
-	root     []vector.Segment
-	maps     []vector.Metadata
+	Zctx     *zed.Context
+	Root     []vector.Segment
+	Maps     []vector.Metadata
 	trailer  FileMeta
 	sections []int64
 	size     int64
@@ -44,8 +44,8 @@ func NewObject(zctx *zed.Context, r io.ReaderAt, size int64) (*Object, error) {
 		return nil, fmt.Errorf("vector threshold too large (%d)", trailer.SegmentThresh)
 	}
 	o := &Object{
-		readerAt: r,
-		zctx:     zctx,
+		ReaderAt: r,
+		Zctx:     zctx,
 		trailer:  *trailer,
 		sections: sections,
 		size:     size,
@@ -106,11 +106,11 @@ func (o *Object) IsEmpty() bool {
 }
 
 func (o *Object) FetchMetadata() ([]int32, []vector.Metadata, error) {
-	typeIDs, err := ReadIntVector(o.root, o.readerAt)
+	typeIDs, err := ReadIntVector(o.Root, o.ReaderAt)
 	if err != nil {
 		return nil, nil, err
 	}
-	return typeIDs, o.maps, nil
+	return typeIDs, o.Maps, nil
 }
 
 func ReadIntVector(segments []vector.Segment, r io.ReaderAt) ([]int32, error) {
@@ -138,9 +138,9 @@ func (o *Object) readMetaData() error {
 		return err
 	}
 	u := zson.NewZNGUnmarshaler()
-	u.SetContext(o.zctx)
+	u.SetContext(o.Zctx)
 	u.Bind(vector.Template...)
-	if err := u.Unmarshal(val, &o.root); err != nil {
+	if err := u.Unmarshal(val, &o.Root); err != nil {
 		return err
 	}
 	// The rest of the values are vector.Metadata, one for each
@@ -157,7 +157,7 @@ func (o *Object) readMetaData() error {
 		if err := u.Unmarshal(val, &meta); err != nil {
 			return err
 		}
-		o.maps = append(o.maps, meta)
+		o.Maps = append(o.Maps, meta)
 	}
 	return nil
 }
@@ -174,8 +174,8 @@ func (o *Object) newSectionReader(level int, sectionOff int64) *zngio.Reader {
 	off, len := o.section(level)
 	off += sectionOff
 	len -= sectionOff
-	reader := io.NewSectionReader(o.readerAt, off, len)
-	return zngio.NewReader(o.zctx, reader)
+	reader := io.NewSectionReader(o.ReaderAt, off, len)
+	return zngio.NewReader(o.Zctx, reader)
 }
 
 func (o *Object) NewReassemblyReader() *zngio.Reader {
