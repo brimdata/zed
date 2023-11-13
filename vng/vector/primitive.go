@@ -76,7 +76,7 @@ func (p *PrimitiveWriter) Flush(eof bool) error {
 	}
 	var err error
 	if len(p.bytes) > 0 {
-		p.segments, err = p.spiller.Write(p.segments, p.bytes, p.countWritten-p.count)
+		p.segments, err = p.spiller.Write(p.segments, p.bytes, p.count-p.countWritten)
 		p.bytes = p.bytes[:0]
 		p.countWritten = p.count
 	}
