@@ -181,6 +181,14 @@ type PrimitiveReader struct {
 	it  zcode.Iter
 }
 
+// TODO Remove these before merging
+func (p *PrimitiveReader) Segmap() []Segment {
+	return p.segmap
+}
+func (p *PrimitiveReader) Reader() io.ReaderAt {
+	return p.reader
+}
+
 func NewPrimitiveReader(primitive *Primitive, reader io.ReaderAt) *PrimitiveReader {
 	return &PrimitiveReader{
 		Typ:    primitive.Typ,
@@ -232,6 +240,14 @@ type DictReader struct {
 	dict      []DictEntry
 	selectors []byte
 	off       int
+}
+
+// TODO Remove these before merging
+func (p *DictReader) Segmap() []Segment {
+	return p.segmap
+}
+func (p *DictReader) Reader() io.ReaderAt {
+	return p.reader
 }
 
 func NewDictReader(primitive *Primitive, reader io.ReaderAt) *DictReader {
