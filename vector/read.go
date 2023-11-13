@@ -1,7 +1,8 @@
 package vector
 
 import (
-	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net/netip"
@@ -168,6 +169,8 @@ func ReadInt64s(readerAt io.ReaderAt, segmap []vngvector.Segment) ([]int64, erro
 	return vector.(*int64s).values, nil
 }
 
+var errBadTag = errors.New("bad tag")
+
 func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, segmap []vngvector.Segment, typ zed.Type, lengthHint int) (vector, error) {
 	var buf []byte
 	switch typ {
@@ -191,25 +194,32 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, segmap []vngvector.S
 		return vector, nil
 
 	case zed.TypeBytes:
-		// TODO Use meta.MemoryCount to size.
-		data := bytes.NewBuffer(nil)
-		offsets := make([]int, 0, lengthHint+1)
-		offsets = append(offsets, 0)
+		var memLength int
 		for _, segment := range segmap {
-			buf = slices.Grow(buf[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, buf); err != nil {
+			memLength += int(segment.MemLength)
+		}
+		data := make([]byte, memLength)
+		offset := 0
+		for _, segment := range segmap {
+			if err := segment.Read(readerAt, buf[offset:offset+int(segment.MemLength)]); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(buf)
-			for !it.Done() {
-				bs := it.Next()
-				data.Write(zed.DecodeBytes(bs))
-				offsets = append(offsets, data.Len())
+			offset += int(segment.MemLength)
+		}
+		offset = 0
+		offsets := make([]int, 0, lengthHint+1)
+		offsets = append(offsets, offset)
+		for offset < len(data) {
+			dataLenPlusOne, tagLen := binary.Uvarint(data[offset:])
+			if tagLen <= 0 || dataLenPlusOne == 0 {
+				return nil, errBadTag
 			}
+			offset += tagLen
+			offsets = append(offsets, offset)
+			offset += int(dataLenPlusOne) - 1
 		}
 		vector := &byteses{
-			data: data.Bytes(),
-			// TODO truncate offsets
+			data:    data,
 			offsets: offsets,
 		}
 		return vector, nil
@@ -399,25 +409,32 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, segmap []vngvector.S
 		return vector, nil
 
 	case zed.TypeString:
-		// TODO Use meta.MemoryCount to size.
-		data := bytes.NewBuffer(nil)
-		offsets := make([]int, 0, lengthHint+1)
-		offsets = append(offsets, 0)
+		var memLength int
 		for _, segment := range segmap {
-			buf = slices.Grow(buf[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, buf); err != nil {
+			memLength += int(segment.MemLength)
+		}
+		data := make([]byte, memLength)
+		offset := 0
+		for _, segment := range segmap {
+			if err := segment.Read(readerAt, buf[offset:offset+int(segment.MemLength)]); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(buf)
-			for !it.Done() {
-				bs := it.Next()
-				data.Write(zed.DecodeBytes(bs))
-				offsets = append(offsets, data.Len())
+			offset += int(segment.MemLength)
+		}
+		offset = 0
+		offsets := make([]int, 0, lengthHint+1)
+		offsets = append(offsets, offset)
+		for offset < len(data) {
+			dataLenPlusOne, tagLen := binary.Uvarint(data[offset:])
+			if tagLen <= 0 || dataLenPlusOne == 0 {
+				return nil, errBadTag
 			}
+			offset += tagLen
+			offsets = append(offsets, offset)
+			offset += int(dataLenPlusOne) - 1
 		}
 		vector := &strings{
-			data: data.Bytes(),
-			// TODO truncate offsets
+			data:    data,
 			offsets: offsets,
 		}
 		return vector, nil
