@@ -3,7 +3,6 @@ package commits
 import (
 	"errors"
 	"fmt"
-	"golang.org/x/exp/maps"
 	"io"
 
 	"github.com/brimdata/zed/lake/data"
@@ -191,7 +190,11 @@ func (s *Snapshot) SelectAllIndexes() []*index.Object {
 }
 
 func (s *Snapshot) SelectAllVectors() []ksuid.KSUID {
-	return maps.Keys(s.vectors)
+	ids := make([]ksuid.KSUID, 0, len(s.vectors))
+	for id := range s.vectors {
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 func (s *Snapshot) Unindexed(rules []index.Rule) map[ksuid.KSUID][]index.Rule {
