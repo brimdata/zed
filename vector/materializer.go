@@ -217,6 +217,15 @@ func (v *constants) newMaterializer() materializer {
 	}
 }
 
+func (v *dict) newMaterializer() materializer {
+	var index int
+	return func(builder *zcode.Builder) {
+		tag := v.tags[index]
+		builder.Append(v.dict[tag].Value.Bytes())
+		index++
+	}
+}
+
 func (v *maps) newMaterializer() materializer {
 	var index int
 	keyMaterializer := v.keys.newMaterializer()
@@ -265,6 +274,20 @@ func (v *records) newMaterializer() materializer {
 			fieldMaterializer(builder)
 		}
 		builder.EndContainer()
+	}
+}
+
+func (v *sets) newMaterializer() materializer {
+	var index int
+	elemMaterializer := v.elems.newMaterializer()
+	return func(builder *zcode.Builder) {
+		length := int(v.lengths[index])
+		builder.BeginContainer()
+		for i := 0; i < length; i++ {
+			elemMaterializer(builder)
+		}
+		builder.EndContainer()
+		index++
 	}
 }
 

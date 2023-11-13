@@ -15,17 +15,18 @@ import (
 const MaxDictSize = 256
 
 type PrimitiveWriter struct {
-	typ      zed.Type
-	bytes    zcode.Bytes
-	spiller  *Spiller
-	segments []Segment
-	dict     map[string]uint32
-	cmp      expr.CompareFn
-	min      *zed.Value
-	max      *zed.Value
-	count    uint32
-	nulls    uint32
-	hasNull  int
+	typ          zed.Type
+	bytes        zcode.Bytes
+	spiller      *Spiller
+	segments     []Segment
+	dict         map[string]uint32
+	cmp          expr.CompareFn
+	min          *zed.Value
+	max          *zed.Value
+	count        uint32
+	countWritten uint32
+	nulls        uint32
+	hasNull      int
 }
 
 func NewPrimitiveWriter(typ zed.Type, spiller *Spiller, useDict bool) *PrimitiveWriter {
@@ -75,8 +76,9 @@ func (p *PrimitiveWriter) Flush(eof bool) error {
 	}
 	var err error
 	if len(p.bytes) > 0 {
-		p.segments, err = p.spiller.Write(p.segments, p.bytes)
+		p.segments, err = p.spiller.Write(p.segments, p.bytes, p.countWritten-p.count)
 		p.bytes = p.bytes[:0]
+		p.countWritten = p.count
 	}
 	return err
 }
