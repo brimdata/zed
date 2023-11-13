@@ -111,17 +111,9 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 
 	case *vngvector.Primitive:
 		if len(meta.Dict) != 0 {
-			var memLength int
-			for _, segment := range meta.Segmap {
-				memLength += int(segment.MemLength)
-			}
-			tags := make([]byte, memLength)
-			offset := 0
-			for _, segment := range meta.Segmap {
-				if err := segment.Read(readerAt, tags[offset:offset+int(segment.MemLength)]); err != nil {
-					return nil, err
-				}
-				offset += int(segment.MemLength)
+			tags, err := readSegmap(readerAt, meta.Segmap)
+			if err != nil {
+				return nil, err
 			}
 			return &dict{
 				dict: meta.Dict,
@@ -198,10 +190,8 @@ func ReadInt64s(readerAt io.ReaderAt, buf *[]byte, segmap []vngvector.Segment) (
 var errBadTag = errors.New("bad tag")
 
 func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap []vngvector.Segment, typ zed.Type) (vector, error) {
-	var memLength int
 	var count int
 	for _, segment := range segmap {
-		memLength += int(segment.MemLength)
 		count += int(segment.Count)
 	}
 
@@ -209,8 +199,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeBool:
 		values := make([]bool, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -226,30 +216,13 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 		return vector, nil
 
 	case zed.TypeBytes:
-		data := make([]byte, memLength)
-		offset := 0
-		for _, segment := range segmap {
-			if err := segment.Read(readerAt, data[offset:offset+int(segment.MemLength)]); err != nil {
-				return nil, err
-			}
-			offset += int(segment.MemLength)
+		data, err := readSegmap(readerAt, segmap)
+		if err != nil {
+			return nil, err
 		}
-		offsetFrom := 0
-		offsetTo := 0
-		offsets := make([]int, 0, count+1)
-		offsets = append(offsets, offsetTo)
-		for offsetFrom < len(data) {
-			tag, tagLen := binary.Uvarint(data[offsetFrom:])
-			if tagLen <= 0 || tag == 0 {
-				return nil, errBadTag
-			}
-			dataLen := int(tag - 1)
-			// Shift data over to remove tag.
-			// TODO Don't store tags in the VNG file in the first place.
-			copy(data[offsetTo:offsetTo+dataLen], data[offsetFrom+tagLen:offsetFrom+tagLen+dataLen])
-			offsetFrom += tagLen + dataLen
-			offsetTo += dataLen
-			offsets = append(offsets, offsetTo)
+		data, offsets, err := stripContainers(data, count)
+		if err != nil {
+			return nil, err
 		}
 		vector := &byteses{
 			data:    data,
@@ -260,8 +233,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeDuration:
 		values := make([]nano.Duration, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -278,8 +251,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeFloat16:
 		values := make([]float32, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -296,8 +269,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeFloat32:
 		values := make([]float32, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -314,8 +287,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeFloat64:
 		values := make([]float64, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -332,8 +305,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeInt8:
 		values := make([]int8, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -351,8 +324,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeInt16:
 		values := make([]int16, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -370,8 +343,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeInt32:
 		values := make([]int32, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -389,8 +362,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeInt64:
 		values := make([]int64, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -408,8 +381,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeIP:
 		values := make([]netip.Addr, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -426,8 +399,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeNet:
 		values := make([]netip.Prefix, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -442,30 +415,13 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 		return vector, nil
 
 	case zed.TypeString:
-		data := make([]byte, memLength)
-		offset := 0
-		for _, segment := range segmap {
-			if err := segment.Read(readerAt, data[offset:offset+int(segment.MemLength)]); err != nil {
-				return nil, err
-			}
-			offset += int(segment.MemLength)
+		data, err := readSegmap(readerAt, segmap)
+		if err != nil {
+			return nil, err
 		}
-		offsetFrom := 0
-		offsetTo := 0
-		offsets := make([]int, 0, count+1)
-		offsets = append(offsets, offsetTo)
-		for offsetFrom < len(data) {
-			tag, tagLen := binary.Uvarint(data[offsetFrom:])
-			if tagLen <= 0 || tag == 0 {
-				return nil, errBadTag
-			}
-			dataLen := int(tag - 1)
-			// Shift data over to remove tag.
-			// TODO Don't store tags in the VNG file in the first place.
-			copy(data[offsetTo:offsetTo+dataLen], data[offsetFrom+tagLen:offsetFrom+tagLen+dataLen])
-			offsetFrom += tagLen + dataLen
-			offsetTo += dataLen
-			offsets = append(offsets, offsetTo)
+		data, offsets, err := stripContainers(data, count)
+		if err != nil {
+			return nil, err
 		}
 		vector := &strings{
 			data:    data,
@@ -476,8 +432,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeTime:
 		values := make([]nano.Ts, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -494,8 +450,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeUint8:
 		values := make([]uint8, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -512,8 +468,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeUint16:
 		values := make([]uint16, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -530,8 +486,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeUint32:
 		values := make([]uint32, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -548,8 +504,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeUint64:
 		values := make([]uint64, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -569,8 +525,8 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeType:
 		values := make([]zed.Type, 0, count)
 		for _, segment := range segmap {
-			*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-			if err := segment.Read(readerAt, *buf); err != nil {
+			err := readSegment(readerAt, buf, segment)
+			if err != nil {
 				return nil, err
 			}
 			it := zcode.Iter(*buf)
@@ -588,6 +544,48 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	default:
 		return nil, fmt.Errorf("unknown VNG type: %T", typ)
 	}
+}
+
+func readSegment(readerAt io.ReaderAt, buf *[]byte, segment vngvector.Segment) error {
+	*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
+	return segment.Read(readerAt, *buf)
+}
+
+func readSegmap(readerAt io.ReaderAt, segmap []vngvector.Segment) ([]byte, error) {
+	var memLength int
+	for _, segment := range segmap {
+		memLength += int(segment.MemLength)
+	}
+	data := make([]byte, memLength)
+	offset := 0
+	for _, segment := range segmap {
+		if err := segment.Read(readerAt, data[offset:offset+int(segment.MemLength)]); err != nil {
+			return nil, err
+		}
+		offset += int(segment.MemLength)
+	}
+	return data, nil
+}
+
+func stripContainers(data []byte, countHint int) ([]byte, []int, error) {
+	offsetFrom := 0
+	offsetTo := 0
+	offsets := make([]int, 0, countHint+1)
+	offsets = append(offsets, offsetTo)
+	for offsetFrom < len(data) {
+		tag, tagLen := binary.Uvarint(data[offsetFrom:])
+		if tagLen <= 0 || tag == 0 {
+			return nil, nil, errBadTag
+		}
+		dataLen := int(tag - 1)
+		// Shift data over to remove tag.
+		// TODO Don't store tags in the VNG file in the first place.
+		copy(data[offsetTo:offsetTo+dataLen], data[offsetFrom+tagLen:offsetFrom+tagLen+dataLen])
+		offsetFrom += tagLen + dataLen
+		offsetTo += dataLen
+		offsets = append(offsets, offsetTo)
+	}
+	return data[:offsetTo], offsets, nil
 }
 
 // This must match exactly the effects of demand on `read`.
