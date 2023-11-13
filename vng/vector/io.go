@@ -34,12 +34,13 @@ package vector
 import (
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 )
 
-const MaxSegmentThresh = 20 * 1024 * 1024
+const MaxSegmentThresh = math.MaxInt
 
 type Writer interface {
 	// Write encodes the given value into memory.  When the vector exceeds

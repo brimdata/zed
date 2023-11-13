@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	MaxSegmentThresh = math.MaxInt
+	MaxSegmentThresh = vector.MaxSegmentThresh
 	MaxSkewThresh    = math.MaxInt
 )
 
