@@ -573,6 +573,10 @@ func typeAfterDemand(zctx *zed.Context, meta vngvector.Metadata, demandOut deman
 		return typ
 	}
 	switch meta := meta.(type) {
+
+	case *vngvector.Named:
+		return typeAfterDemand(zctx, meta.Values, demandOut, typ.(*zed.TypeNamed).Type)
+
 	case *vngvector.Nulls:
 		return typeAfterDemand(zctx, meta.Values, demandOut, typ)
 
