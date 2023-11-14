@@ -12,14 +12,6 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-type Reader struct {
-	reader *vng.Reader
-	// TODO Demand should not be public but currently needed for testing.
-	Demand demand.Demand
-	// Initially nil
-	materializer *vector.Materializer
-}
-
 func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Reader, error) {
 	s, ok := r.(io.Seeker)
 	if !ok {
@@ -45,24 +37,8 @@ func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Rea
 		if err != nil {
 			return nil, err
 		}
-		return &Reader{
-			reader:       vngReader,
-			Demand:       demandOut,
-			materializer: nil,
-		}, nil
+		return vector.NewReader(vngReader, demandOut), nil
 	} else {
 		return vng.NewReader(o)
 	}
-}
-
-func (r *Reader) Read() (*zed.Value, error) {
-	if r.materializer == nil {
-		vector, err := vector.Read(r.reader, r.Demand)
-		if err != nil {
-			return nil, err
-		}
-		materializer := vector.NewMaterializer()
-		r.materializer = &materializer
-	}
-	return r.materializer.Read()
 }

@@ -12,6 +12,8 @@ type keys map[string]Demand // No empty values.
 
 func IsValid(demand Demand) bool {
 	switch demand := demand.(type) {
+	case nil:
+		return false
 	case all:
 		return true
 	case keys:

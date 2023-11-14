@@ -21,6 +21,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage/mock"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
@@ -59,40 +60,40 @@ func ReadVNG(bs []byte, demandOut demand.Demand) ([]zed.Value, error) {
 	return a.Values(), nil
 }
 
-func WriteZNG(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer) {
+func WriteZNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
 	writer := zngio.NewWriter(zio.NopCloser(buf))
 	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
 	require.NoError(t, writer.Close())
 }
 
-func WriteVNG(t *testing.T, valuesIn []zed.Value, buf *bytes.Buffer, opts vngio.WriterOpts) {
+func WriteVNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer, opts vngio.WriterOpts) {
 	writer, err := vngio.NewWriterWithOpts(zio.NopCloser(buf), opts)
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
 	require.NoError(t, writer.Close())
 }
 
-func RunQueryZNG(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
+func RunQueryZNG(t testing.TB, buf *bytes.Buffer, querySource string) []zed.Value {
 	zctx := zed.NewContext()
 	readers := []zio.Reader{zngio.NewReader(zctx, buf)}
 	defer zio.CloseReaders(readers)
 	return RunQuery(t, zctx, readers, querySource, func(_ demand.Demand) {})
 }
 
-func RunQueryVNG(t *testing.T, buf *bytes.Buffer, querySource string) []zed.Value {
+func RunQueryVNG(t testing.TB, buf *bytes.Buffer, querySource string) []zed.Value {
 	zctx := zed.NewContext()
 	reader, err := vngio.NewReader(zctx, bytes.NewReader(buf.Bytes()), demand.All())
 	require.NoError(t, err)
 	readers := []zio.Reader{reader}
 	defer zio.CloseReaders(readers)
 	return RunQuery(t, zctx, readers, querySource, func(demandIn demand.Demand) {
-		if reader, ok := readers[0].(*vngio.Reader); ok {
+		if reader, ok := readers[0].(*vector.Reader); ok {
 			reader.Demand = demandIn
 		}
 	})
 }
 
-func RunQuery(t *testing.T, zctx *zed.Context, readers []zio.Reader, querySource string, useDemand func(demandIn demand.Demand)) []zed.Value {
+func RunQuery(t testing.TB, zctx *zed.Context, readers []zio.Reader, querySource string, useDemand func(demandIn demand.Demand)) []zed.Value {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -140,7 +141,7 @@ func RunQuery(t *testing.T, zctx *zed.Context, readers []zio.Reader, querySource
 	return valuesOut
 }
 
-func CompareValues(t *testing.T, valuesExpected []zed.Value, valuesActual []zed.Value) {
+func CompareValues(t testing.TB, valuesExpected []zed.Value, valuesActual []zed.Value) {
 	t.Logf("comparing: len(expected)=%v vs len(actual)=%v", len(valuesExpected), len(valuesActual))
 	for i := range valuesExpected {
 		if i >= len(valuesActual) {

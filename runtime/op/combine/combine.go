@@ -19,8 +19,7 @@ type Op struct {
 	nblocked int
 }
 
-func New(octx *op.Context, parents []zbuf.Puller) *Op {
-	ctx := octx.Context
+func New(ctx context.Context, parents []zbuf.Puller) *Op {
 	queue := make(chan *puller, len(parents))
 	pullers := make([]*puller, 0, len(parents))
 	waitCh := make(chan struct{})
