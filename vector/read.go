@@ -87,6 +87,9 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 			values:  values,
 		}, nil
 
+	case *vngvector.Named:
+		return read(zctx, readerAt, buf, meta.Values, demandOut)
+
 	case *vngvector.Nulls:
 		runs, err := ReadInt64s(readerAt, buf, meta.Runs)
 		if err != nil {
