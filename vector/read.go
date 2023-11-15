@@ -17,18 +17,16 @@ import (
 )
 
 func Read(object *vng.Object, demandOut demand.Demand) (*Vector, error) {
-	var buf []byte
-	tags, err := ReadInt64s(object.ReaderAt, &buf, object.Root)
+	reader := &reader{object.Zctx, object.ReaderAt, nil}
+	tags, err := readInt64s(reader, object.Root)
 	if err != nil {
 		return nil, err
 	}
 	types := make([]zed.Type, len(object.Maps))
 	values := make([]vector, len(object.Maps))
 	for i, metadata := range object.Maps {
-		typeCopy := metadata.Type(object.Zctx)
-		typ := typeAfterDemand(object.Zctx, metadata, demandOut, typeCopy)
-		types[i] = typ
-		value, err := read(object.Zctx, object.ReaderAt, &buf, metadata, demandOut)
+		types[i] = typeAfterDemand(object.Zctx, metadata, demandOut, metadata.Type(object.Zctx))
+		value, err := read(reader, metadata, demandOut)
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +40,13 @@ func Read(object *vng.Object, demandOut demand.Demand) (*Vector, error) {
 	}, nil
 }
 
-func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.Metadata, demandOut demand.Demand) (vector, error) {
+type reader struct {
+	zctx     *zed.Context
+	readerAt io.ReaderAt
+	buf      []byte
+}
+
+func read(reader *reader, meta vngvector.Metadata, demandOut demand.Demand) (vector, error) {
 	if demand.IsNone(demandOut) {
 		return &constants{}, nil
 	}
@@ -50,11 +54,11 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 	switch meta := meta.(type) {
 
 	case *vngvector.Array:
-		lengths, err := ReadInt64s(readerAt, buf, meta.Lengths)
+		lengths, err := readInt64s(reader, meta.Lengths)
 		if err != nil {
 			return nil, err
 		}
-		elems, err := read(zctx, readerAt, buf, meta.Values, demand.All())
+		elems, err := read(reader, meta.Values, demand.All())
 		if err != nil {
 			return nil, err
 		}
@@ -69,15 +73,15 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 		}, nil
 
 	case *vngvector.Map:
-		keys, err := read(zctx, readerAt, buf, meta.Keys, demand.All())
+		keys, err := read(reader, meta.Keys, demand.All())
 		if err != nil {
 			return nil, err
 		}
-		lengths, err := ReadInt64s(readerAt, buf, meta.Lengths)
+		lengths, err := readInt64s(reader, meta.Lengths)
 		if err != nil {
 			return nil, err
 		}
-		values, err := read(zctx, readerAt, buf, meta.Values, demand.All())
+		values, err := read(reader, meta.Values, demand.All())
 		if err != nil {
 			return nil, err
 		}
@@ -88,14 +92,14 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 		}, nil
 
 	case *vngvector.Named:
-		return read(zctx, readerAt, buf, meta.Values, demandOut)
+		return read(reader, meta.Values, demandOut)
 
 	case *vngvector.Nulls:
-		runs, err := ReadInt64s(readerAt, buf, meta.Runs)
+		runs, err := readInt64s(reader, meta.Runs)
 		if err != nil {
 			return nil, err
 		}
-		values, err := read(zctx, readerAt, buf, meta.Values, demandOut)
+		values, err := read(reader, meta.Values, demandOut)
 		if err != nil {
 			return nil, err
 		}
@@ -108,25 +112,24 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 		}, nil
 
 	case *vngvector.Primitive:
-		if len(meta.Dict) != 0 {
-			tags, err := readSegmap(readerAt, meta.Segmap)
-			if err != nil {
-				return nil, err
-			}
-			return &dict{
-				dict: meta.Dict,
-				tags: tags,
-			}, nil
-		} else {
-			return readPrimitive(zctx, readerAt, buf, meta.Segmap, meta.Type(zctx))
+		if len(meta.Dict) == 0 {
+			return readPrimitive(reader, meta.Segmap, meta.Type(reader.zctx))
 		}
+		tags, err := readSegmap(reader.readerAt, meta.Segmap)
+		if err != nil {
+			return nil, err
+		}
+		return &dict{
+			dict: meta.Dict,
+			tags: tags,
+		}, nil
 
 	case *vngvector.Record:
 		var fields []vector
 		for _, fieldMeta := range meta.Fields {
 			demandValueOut := demand.GetKey(demandOut, fieldMeta.Name)
 			if !demand.IsNone(demandValueOut) {
-				field, err := read(zctx, readerAt, buf, fieldMeta.Values, demandValueOut)
+				field, err := read(reader, fieldMeta.Values, demandValueOut)
 				if err != nil {
 					return nil, err
 				}
@@ -138,11 +141,11 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 		}, nil
 
 	case *vngvector.Set:
-		lengths, err := ReadInt64s(readerAt, buf, meta.Lengths)
+		lengths, err := readInt64s(reader, meta.Lengths)
 		if err != nil {
 			return nil, err
 		}
-		elems, err := read(zctx, readerAt, buf, meta.Values, demand.All())
+		elems, err := read(reader, meta.Values, demand.All())
 		if err != nil {
 			return nil, err
 		}
@@ -154,13 +157,13 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 	case *vngvector.Union:
 		payloads := make([]vector, len(meta.Values))
 		for i, valueMeta := range meta.Values {
-			payload, err := read(zctx, readerAt, buf, valueMeta, demandOut)
+			payload, err := read(reader, valueMeta, demandOut)
 			if err != nil {
 				return nil, err
 			}
 			payloads[i] = payload
 		}
-		tags, err := ReadInt64s(readerAt, buf, meta.Tags)
+		tags, err := readInt64s(reader, meta.Tags)
 		if err != nil {
 			return nil, err
 		}
@@ -174,8 +177,8 @@ func read(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, meta vngvector.M
 	}
 }
 
-func ReadInt64s(readerAt io.ReaderAt, buf *[]byte, segmap []vngvector.Segment) ([]int64, error) {
-	vector, err := readPrimitive(nil, readerAt, buf, segmap, zed.TypeInt64)
+func readInt64s(reader *reader, segmap []vngvector.Segment) ([]int64, error) {
+	vector, err := readPrimitive(reader, segmap, zed.TypeInt64)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +187,7 @@ func ReadInt64s(readerAt io.ReaderAt, buf *[]byte, segmap []vngvector.Segment) (
 
 var errBadTag = errors.New("bad tag")
 
-func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap []vngvector.Segment, typ zed.Type) (vector, error) {
+func readPrimitive(reader *reader, segmap []vngvector.Segment, typ zed.Type) (vector, error) {
 	var count int
 	for _, segment := range segmap {
 		count += int(segment.Count)
@@ -194,15 +197,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeBool:
 		values := make([]bool, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				value := zed.DecodeBool(bs)
-				values = append(values, value)
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, zed.DecodeBool(it.Next()))
 			}
 		}
 		return &bools{
@@ -210,7 +209,7 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 		}, nil
 
 	case zed.TypeBytes:
-		data, err := readSegmap(readerAt, segmap)
+		data, err := readSegmap(reader.readerAt, segmap)
 		if err != nil {
 			return nil, err
 		}
@@ -226,14 +225,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeDuration:
 		values := make([]nano.Duration, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, zed.DecodeDuration(bs))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, zed.DecodeDuration(it.Next()))
 			}
 		}
 		return &durations{
@@ -243,14 +239,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeFloat16:
 		values := make([]float32, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, zed.DecodeFloat16(bs))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, zed.DecodeFloat16(it.Next()))
 			}
 		}
 		return &float16s{
@@ -260,14 +253,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeFloat32:
 		values := make([]float32, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, zed.DecodeFloat32(bs))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, zed.DecodeFloat32(it.Next()))
 			}
 		}
 		return &float32s{
@@ -277,14 +267,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeFloat64:
 		values := make([]float64, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, zed.DecodeFloat64(bs))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, zed.DecodeFloat64(it.Next()))
 			}
 		}
 		return &float64s{
@@ -294,15 +281,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeInt8:
 		values := make([]int8, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				value := int8(zed.DecodeInt(bs))
-				values = append(values, value)
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, int8(zed.DecodeInt(it.Next())))
 			}
 		}
 		return &int8s{
@@ -312,15 +295,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeInt16:
 		values := make([]int16, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				value := int16(zed.DecodeInt(bs))
-				values = append(values, value)
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, int16(zed.DecodeInt(it.Next())))
 			}
 		}
 		return &int16s{
@@ -330,15 +309,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeInt32:
 		values := make([]int32, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				value := int32(zed.DecodeInt(bs))
-				values = append(values, value)
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, int32(zed.DecodeInt(it.Next())))
 			}
 		}
 		return &int32s{
@@ -348,15 +323,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeInt64:
 		values := make([]int64, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				value := int64(zed.DecodeInt(bs))
-				values = append(values, value)
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, int64(zed.DecodeInt(it.Next())))
 			}
 		}
 		return &int64s{
@@ -366,14 +337,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeIP:
 		values := make([]netip.Addr, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, zed.DecodeIP(bs))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, zed.DecodeIP(it.Next()))
 			}
 		}
 		return &ips{
@@ -383,14 +351,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeNet:
 		values := make([]netip.Prefix, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, zed.DecodeNet(bs))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, zed.DecodeNet(it.Next()))
 			}
 		}
 		return &nets{
@@ -398,7 +363,7 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 		}, nil
 
 	case zed.TypeString:
-		data, err := readSegmap(readerAt, segmap)
+		data, err := readSegmap(reader.readerAt, segmap)
 		if err != nil {
 			return nil, err
 		}
@@ -414,14 +379,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeTime:
 		values := make([]nano.Ts, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, zed.DecodeTime(bs))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, zed.DecodeTime(it.Next()))
 			}
 		}
 		return &times{
@@ -431,14 +393,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeUint8:
 		values := make([]uint8, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, uint8(zed.DecodeUint(bs)))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, uint8(zed.DecodeUint(it.Next())))
 			}
 		}
 		return &uint8s{
@@ -448,14 +407,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeUint16:
 		values := make([]uint16, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, uint16(zed.DecodeUint(bs)))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, uint16(zed.DecodeUint(it.Next())))
 			}
 		}
 		return &uint16s{
@@ -465,14 +421,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeUint32:
 		values := make([]uint32, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, uint32(zed.DecodeUint(bs)))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, uint32(zed.DecodeUint(it.Next())))
 			}
 		}
 		return &uint32s{
@@ -482,14 +435,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeUint64:
 		values := make([]uint64, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				values = append(values, uint64(zed.DecodeUint(bs)))
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				values = append(values, uint64(zed.DecodeUint(it.Next())))
 			}
 		}
 		return &uint64s{
@@ -502,14 +452,11 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	case zed.TypeType:
 		values := make([]zed.Type, 0, count)
 		for _, segment := range segmap {
-			err := readSegment(readerAt, buf, segment)
-			if err != nil {
+			if err := readSegment(reader, segment); err != nil {
 				return nil, err
 			}
-			it := zcode.Iter(*buf)
-			for !it.Done() {
-				bs := it.Next()
-				typ, _ := zctx.DecodeTypeValue(bs)
+			for it := zcode.Iter(reader.buf); !it.Done(); {
+				typ, _ := reader.zctx.DecodeTypeValue(it.Next())
 				values = append(values, typ)
 			}
 		}
@@ -522,9 +469,9 @@ func readPrimitive(zctx *zed.Context, readerAt io.ReaderAt, buf *[]byte, segmap 
 	}
 }
 
-func readSegment(readerAt io.ReaderAt, buf *[]byte, segment vngvector.Segment) error {
-	*buf = slices.Grow((*buf)[:0], int(segment.MemLength))[:segment.MemLength]
-	return segment.Read(readerAt, *buf)
+func readSegment(reader *reader, segment vngvector.Segment) error {
+	reader.buf = slices.Grow((reader.buf)[:0], int(segment.MemLength))[:segment.MemLength]
+	return segment.Read(reader.readerAt, reader.buf)
 }
 
 func readSegmap(readerAt io.ReaderAt, segmap []vngvector.Segment) ([]byte, error) {
@@ -535,7 +482,7 @@ func readSegmap(readerAt io.ReaderAt, segmap []vngvector.Segment) ([]byte, error
 	data := make([]byte, memLength)
 	offset := 0
 	for _, segment := range segmap {
-		if err := segment.Read(readerAt, data[offset:offset+int(segment.MemLength)]); err != nil {
+		if err := segment.Read(readerAt, data[offset:]); err != nil {
 			return nil, err
 		}
 		offset += int(segment.MemLength)
@@ -544,8 +491,7 @@ func readSegmap(readerAt io.ReaderAt, segmap []vngvector.Segment) ([]byte, error
 }
 
 func stripContainers(data []byte, countHint int) ([]byte, []int, error) {
-	offsetFrom := 0
-	offsetTo := 0
+	var offsetFrom, offsetTo int
 	offsets := make([]int, 0, countHint+1)
 	offsets = append(offsets, offsetTo)
 	for offsetFrom < len(data) {
