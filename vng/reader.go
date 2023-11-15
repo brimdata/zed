@@ -24,14 +24,14 @@ type TypedReader struct {
 
 // NewReader returns a Reader for o.
 func NewReader(o *Object) (*Reader, error) {
-	root := vector.NewInt64Reader(o.root, o.readerAt)
-	readers := make([]TypedReader, 0, len(o.maps))
-	for _, m := range o.maps {
-		r, err := vector.NewReader(m, o.readerAt)
+	root := vector.NewInt64Reader(o.Root, o.ReaderAt)
+	readers := make([]TypedReader, 0, len(o.Maps))
+	for _, m := range o.Maps {
+		r, err := vector.NewReader(m, o.ReaderAt)
 		if err != nil {
 			return nil, err
 		}
-		readers = append(readers, TypedReader{Type: m.Type(o.zctx), Reader: r})
+		readers = append(readers, TypedReader{Type: m.Type(o.Zctx), Reader: r})
 	}
 	return &Reader{
 		Root:    root,

@@ -27,7 +27,7 @@ func (s *Spiller) Position() int64 {
 	return s.off
 }
 
-func (s *Spiller) Write(segments []Segment, b []byte) ([]Segment, error) {
+func (s *Spiller) Write(segments []Segment, b []byte, count uint32) ([]Segment, error) {
 	cf := CompressionFormatNone
 	contentLen := len(b)
 	// Use contentLen-1 so compression will fail if it doesn't result in
@@ -45,7 +45,7 @@ func (s *Spiller) Write(segments []Segment, b []byte) ([]Segment, error) {
 	if _, err := s.writer.Write(b); err != nil {
 		return nil, err
 	}
-	segment := Segment{s.off, int32(len(b)), int32(contentLen), cf}
+	segment := Segment{s.off, int32(len(b)), int32(contentLen), cf, count}
 	s.off += int64(len(b))
 	return append(segments, segment), nil
 }
