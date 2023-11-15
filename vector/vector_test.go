@@ -53,7 +53,7 @@ func BenchmarkReadZng(b *testing.B) {
 	rand := rand.New(rand.NewSource(42))
 	valuesIn := make([]zed.Value, N)
 	for i := range valuesIn {
-		valuesIn[i] = *zed.NewValue(zed.TypeInt64, zed.EncodeInt(int64(rand.Intn(N))))
+		valuesIn[i] = *zed.NewInt64(rand.Int63n(N))
 	}
 	var buf bytes.Buffer
 	fuzz.WriteZNG(b, valuesIn, &buf)
