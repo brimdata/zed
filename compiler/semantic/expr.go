@@ -308,29 +308,27 @@ func (a *analyzer) semGrep(grep *ast.Grep) (dag.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch pattern := grep.Pattern.(type) {
-	case *ast.String:
+	p, err := a.semExpr(grep.Pattern)
+	if err != nil {
+		return nil, err
+	}
+	if s, ok := p.(*dag.RegexpSearch); ok {
+		s.Expr = e
+		return s, nil
+	}
+	if s, ok := isStringConst(a.zctx, p); ok {
 		return &dag.Search{
 			Kind:  "Search",
-			Text:  pattern.Text,
-			Value: zson.QuotedString([]byte(pattern.Text)),
+			Text:  s,
+			Value: zson.QuotedString([]byte(s)),
 			Expr:  e,
 		}, nil
-	case *ast.Regexp:
-		return &dag.RegexpSearch{
-			Kind:    "RegexpSearch",
-			Pattern: pattern.Pattern,
-			Expr:    e,
-		}, nil
-	case *ast.Glob:
-		return &dag.RegexpSearch{
-			Kind:    "RegexpSearch",
-			Pattern: reglob.Reglob(pattern.Pattern),
-			Expr:    e,
-		}, nil
-	default:
-		return nil, fmt.Errorf("semantic analyzer: unknown grep pattern %T", pattern)
 	}
+	return &dag.Call{
+		Kind: "Call",
+		Name: "grep",
+		Args: []dag.Expr{p, e},
+	}, nil
 }
 
 func (a *analyzer) semRegexp(b *ast.BinaryExpr) (dag.Expr, error) {

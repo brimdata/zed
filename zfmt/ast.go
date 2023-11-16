@@ -132,16 +132,7 @@ func (c *canon) expr(e ast.Expr, parent string) {
 		c.write(e.Pattern)
 	case *ast.Grep:
 		c.write("grep(")
-		switch p := e.Pattern.(type) {
-		case *ast.Regexp:
-			c.write("/%s/", p.Pattern)
-		case *ast.Glob:
-			c.write(p.Pattern)
-		case *ast.String:
-			c.write(zson.QuotedString([]byte(p.Text)))
-		default:
-			c.open("(unknown grep pattern %T)", p)
-		}
+		c.expr(e.Pattern, "")
 		if !isThis(e.Expr) {
 			c.write(",")
 			c.expr(e.Expr, "")
