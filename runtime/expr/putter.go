@@ -20,7 +20,6 @@ type Putter struct {
 	builder zcode.Builder
 	clauses []Assignment
 	rules   map[int]map[string]putRule
-	warned  map[string]struct{}
 	// vals is a slice to avoid re-allocating for every value
 	vals []zed.Value
 	// paths is a slice to avoid re-allocating for every path
@@ -45,7 +44,6 @@ func NewPutter(zctx *zed.Context, clauses []Assignment) *Putter {
 		clauses: clauses,
 		vals:    make([]zed.Value, len(clauses)),
 		rules:   make(map[int]map[string]putRule),
-		warned:  make(map[string]struct{}),
 	}
 }
 
