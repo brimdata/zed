@@ -1,0 +1,14 @@
+script: |
+  zq - | zq -f tsv -
+
+inputs:
+  - name: stdin
+    data: &stdin |
+      #	Year	Winery
+      1	2019	Brutocao
+      1	2021	Cabana
+      1	2020	Castoro
+
+outputs:
+  - name: stdout
+    data: *stdin

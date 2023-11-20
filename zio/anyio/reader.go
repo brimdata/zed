@@ -117,17 +117,15 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, demandOut demand.Demand, 
 	}
 	track.Reset()
 
-	var csvErr error
-	if s, err := bufio.NewReader(track).ReadString('\n'); err != nil {
-		csvErr = fmt.Errorf("csv: line 1: %w", err)
-	} else if !strings.Contains(s, ",") {
-		csvErr = errors.New("csv: line 1: no comma found")
-	} else {
-		track.Reset()
-		csvErr = match(csvio.NewReader(zed.NewContext(), track, opts.CSV), "csv", 1)
-		if csvErr == nil {
-			return zio.NopReadCloser(csvio.NewReader(zctx, track.Reader(), opts.CSV)), nil
-		}
+	csvErr := isCSVStream(track, ',', "csv")
+	if csvErr == nil {
+		return zio.NopReadCloser(csvio.NewReader(zctx, track.Reader(), csvio.ReaderOpts{Delim: ','})), nil
+	}
+	track.Reset()
+
+	tsvErr := isCSVStream(track, '\t', "tsv")
+	if tsvErr == nil {
+		return zio.NopReadCloser(csvio.NewReader(zctx, track.Reader(), csvio.ReaderOpts{Delim: '\t'})), nil
 	}
 	track.Reset()
 
@@ -138,6 +136,7 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, demandOut demand.Demand, 
 		jsonErr,
 		lineErr,
 		parquetErr,
+		tsvErr,
 		vngErr,
 		zeekErr,
 		zjsonErr,
@@ -174,6 +173,16 @@ func isArrowStream(track *Track) error {
 	defer zrc.Close()
 	_, err = zrc.Read()
 	return err
+}
+
+func isCSVStream(track *Track, delim rune, name string) error {
+	if s, err := bufio.NewReader(track).ReadString('\n'); err != nil {
+		return fmt.Errorf("%s: line 1: %w", name, err)
+	} else if !strings.Contains(s, string(delim)) {
+		return fmt.Errorf("%s: line 1: delimiter %q not found", name, delim)
+	}
+	track.Reset()
+	return match(csvio.NewReader(zed.NewContext(), track, csvio.ReaderOpts{Delim: delim}), name, 1)
 }
 
 func joinErrs(errs []error) error {

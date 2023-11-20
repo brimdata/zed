@@ -35,6 +35,9 @@ func lookupReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand, opts 
 			return nil, err
 		}
 		return zio.NopReadCloser(zr), nil
+	case "tsv":
+		opts.CSV.Delim = '\t'
+		return zio.NopReadCloser(csvio.NewReader(zctx, r, opts.CSV)), nil
 	case "vng":
 		zr, err := vngio.NewReader(zctx, r, demandOut)
 		if err != nil {
