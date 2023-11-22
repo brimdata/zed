@@ -65,15 +65,13 @@ func (f *Formatter) pop() {
 }
 
 func (f *Formatter) FormatRecord(rec *zed.Value) string {
-	f.builder.Reset()
 	// We reset tyepdefs so named types are emitted with their
 	// definition at first use in each record according to the
 	// left-to-right DFS order.  We could make this more efficient
 	// by putting a record number/nonce in the map but ZSON
 	// is already intended to be the low performance path.
 	f.typedefs = make(map[string]*zed.TypeNamed)
-	f.formatValueAndDecorate(rec.Type, rec.Bytes())
-	return f.builder.String()
+	return f.Format(rec)
 }
 
 func FormatValue(val *zed.Value) string {
