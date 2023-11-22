@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/brimdata/zed"
@@ -19,6 +20,7 @@ type Writer struct {
 	writer    io.WriteCloser
 	encoder   *csv.Writer
 	flattener *expr.Flattener
+	types     map[int]struct{}
 	first     *zed.TypeRecord
 	strings   []string
 }
@@ -32,6 +34,7 @@ func NewWriter(w io.WriteCloser) *Writer {
 		writer:    w,
 		encoder:   csv.NewWriter(w),
 		flattener: expr.NewFlattener(zed.NewContext()),
+		types:     make(map[int]struct{}),
 	}
 }
 
@@ -62,8 +65,11 @@ func (w *Writer) Write(rec *zed.Value) error {
 		if err := w.encoder.Write(hdr); err != nil {
 			return err
 		}
-	} else if rec.Type != w.first {
-		return ErrNotDataFrame
+	} else if _, ok := w.types[rec.Type.ID()]; !ok {
+		if !fieldNamesEqual(w.first.Fields, rec.Fields()) {
+			return ErrNotDataFrame
+		}
+		w.types[rec.Type.ID()] = struct{}{}
 	}
 	w.strings = w.strings[:0]
 	fields := rec.Fields()
@@ -95,4 +101,10 @@ func formatValue(typ zed.Type, bytes zcode.Bytes) string {
 		return zson.FormatPrimitive(zed.TypeUnder(typ), bytes)
 	}
 	return zson.FormatValue(zed.NewValue(typ, bytes))
+}
+
+func fieldNamesEqual(a, b []zed.Field) bool {
+	return slices.EqualFunc(a, b, func(a, b zed.Field) bool {
+		return a.Name == b.Name
+	})
 }
