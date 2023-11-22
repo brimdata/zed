@@ -66,7 +66,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 			return err
 		}
 	} else if _, ok := w.types[rec.Type.ID()]; !ok {
-		if !fieldsEqual(w.first.Fields, rec.Fields()) {
+		if !fieldNamesEqual(w.first.Fields, rec.Fields()) {
 			return ErrNotDataFrame
 		}
 		w.types[rec.Type.ID()] = struct{}{}
@@ -103,7 +103,7 @@ func formatValue(typ zed.Type, bytes zcode.Bytes) string {
 	return zson.FormatValue(zed.NewValue(typ, bytes))
 }
 
-func fieldsEqual(a, b []zed.Field) bool {
+func fieldNamesEqual(a, b []zed.Field) bool {
 	return slices.EqualFunc(a, b, func(a, b zed.Field) bool {
 		return a.Name == b.Name
 	})
