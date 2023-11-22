@@ -770,19 +770,12 @@ FunctionArgs
   / OptionalExprs
 
 Grep
-  = "grep" __ "(" __ pattern:Pattern __ opt:("," __ (OverExpr / Expr) __)? ")" {
+  = "grep" __ "(" __ pattern:(Regexp / Glob / Expr) __ opt:("," __ (OverExpr / Expr) __)? ")" {
       VAR(m) = MAP("kind": "Grep", "pattern": pattern, "expr": MAP("kind": "ID", "name": "this"))
       if ISNOTNULL(opt) {
         m["expr"] = ASSERT_ARRAY(opt)[2]
       }
       RETURN(m)
-    }
-
-Pattern
-  = Regexp
-  / Glob
-  / s:QuotedString {
-      RETURN(MAP("kind": "String", "text": s))
     }
 
 OptionalExprs
