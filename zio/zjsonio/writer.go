@@ -90,6 +90,9 @@ func (w *Writer) Transform(r *zed.Value) (Object, error) {
 }
 
 func (w *Writer) encodeValue(zctx *zed.Context, typ zed.Type, val zcode.Bytes) (interface{}, error) {
+	if val == nil {
+		return nil, nil
+	}
 	switch typ := typ.(type) {
 	case *zed.TypeRecord:
 		return w.encodeRecord(zctx, typ, val)
@@ -108,10 +111,6 @@ func (w *Writer) encodeValue(zctx *zed.Context, typ zed.Type, val zcode.Bytes) (
 	case *zed.TypeNamed:
 		return w.encodeValue(zctx, typ.Type, val)
 	case *zed.TypeOfType:
-		if val == nil {
-			// null(type)
-			return nil, nil
-		}
 		inner, err := w.zctx.LookupByValue(val)
 		if err != nil {
 			return nil, err
@@ -123,14 +122,10 @@ func (w *Writer) encodeValue(zctx *zed.Context, typ zed.Type, val zcode.Bytes) (
 }
 
 func (w *Writer) encodeRecord(zctx *zed.Context, typ *zed.TypeRecord, val zcode.Bytes) (interface{}, error) {
-	if val == nil {
-		return nil, nil
-	}
 	// We start out with a slice that contains nothing instead of nil
 	// so that an empty container encodes as a JSON empty array [].
 	out := []interface{}{}
-	k := 0
-	for it := val.Iter(); !it.Done(); k++ {
+	for k, it := 0, val.Iter(); !it.Done(); k++ {
 		v, err := w.encodeValue(zctx, typ.Fields[k].Type, it.Next())
 		if err != nil {
 			return nil, err
@@ -141,9 +136,6 @@ func (w *Writer) encodeRecord(zctx *zed.Context, typ *zed.TypeRecord, val zcode.
 }
 
 func (w *Writer) encodeContainer(zctx *zed.Context, typ zed.Type, bytes zcode.Bytes) (interface{}, error) {
-	if bytes == nil {
-		return nil, nil
-	}
 	// We start out with a slice that contains nothing instead of nil
 	// so that an empty container encodes as a JSON empty array [].
 	out := []interface{}{}
@@ -158,11 +150,6 @@ func (w *Writer) encodeContainer(zctx *zed.Context, typ zed.Type, bytes zcode.By
 }
 
 func (w *Writer) encodeMap(zctx *zed.Context, typ *zed.TypeMap, v zcode.Bytes) (interface{}, error) {
-	// encode nil val as JSON null since
-	// zed.Escape() returns "" for nil
-	if v == nil {
-		return nil, nil
-	}
 	// We start out with a slice that contains nothing instead of nil
 	// so that an empty map encodes as a JSON empty array [].
 	out := []interface{}{}
@@ -183,11 +170,6 @@ func (w *Writer) encodeMap(zctx *zed.Context, typ *zed.TypeMap, v zcode.Bytes) (
 }
 
 func (w *Writer) encodeUnion(zctx *zed.Context, union *zed.TypeUnion, bytes zcode.Bytes) (interface{}, error) {
-	// encode nil val as JSON null since
-	// zed.Escape() returns "" for nil
-	if bytes == nil {
-		return nil, nil
-	}
 	inner, b := union.Untag(bytes)
 	val, err := w.encodeValue(zctx, inner, b)
 	if err != nil {
@@ -197,12 +179,6 @@ func (w *Writer) encodeUnion(zctx *zed.Context, union *zed.TypeUnion, bytes zcod
 }
 
 func (w *Writer) encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{}, error) {
-	// encode nil val as JSON null since
-	// zed.Escape() returns "" for nil
-	var fld interface{}
-	if v == nil {
-		return fld, nil
-	}
 	if typ == zed.TypeType {
 		typ, err := zctx.LookupByValue(v)
 		if err != nil {

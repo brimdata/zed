@@ -64,6 +64,10 @@ func (r *Reader) Read() (*zed.Value, error) {
 }
 
 func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) error {
+	if body == nil {
+		b.Append(nil)
+		return nil
+	}
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
 		return r.decodeValue(b, typ.Type, body)
@@ -74,19 +78,10 @@ func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) e
 	case *zed.TypeEnum:
 		return r.decodeEnum(b, typ, body)
 	case *zed.TypeRecord:
-		if body == nil {
-			b.Append(nil)
-			return nil
-		}
 		return r.decodeRecord(b, typ, body)
 	case *zed.TypeArray:
-		err := r.decodeContainer(b, typ.Type, body, "array")
-		return err
+		return r.decodeContainer(b, typ.Type, body, "array")
 	case *zed.TypeSet:
-		if body == nil {
-			b.Append(nil)
-			return nil
-		}
 		b.BeginContainer()
 		err := r.decodeContainerBody(b, typ.Type, body, "set")
 		b.TransformContainer(zed.NormalizeSet)
@@ -95,10 +90,6 @@ func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) e
 	case *zed.TypeError:
 		return r.decodeValue(b, typ.Type, body)
 	case *zed.TypeOfType:
-		if body == nil {
-			b.Append(nil)
-			return nil
-		}
 		var t zType
 		if err := unpacker.UnmarshalObject(body, &t); err != nil {
 			return fmt.Errorf("type value is not a valid ZJSON type: %w", err)
@@ -128,10 +119,6 @@ func (r *Reader) decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface
 
 		}
 		// Each field is either a string value or an array of string values.
-		if val == nil {
-			b.Append(nil)
-			continue
-		}
 		if err := r.decodeValue(b, fields[k].Type, val); err != nil {
 			return err
 		}
@@ -143,10 +130,6 @@ func (r *Reader) decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface
 func (r *Reader) decodePrimitive(builder *zcode.Builder, typ zed.Type, v interface{}) error {
 	if zed.IsContainerType(typ) && !zed.IsUnionType(typ) {
 		return errors.New("expected primitive type, got container")
-	}
-	if v == nil {
-		builder.Append(nil)
-		return nil
 	}
 	text, ok := v.(string)
 	if !ok {
@@ -172,10 +155,6 @@ func (r *Reader) decodeContainerBody(b *zcode.Builder, typ zed.Type, body interf
 }
 
 func (r *Reader) decodeContainer(b *zcode.Builder, typ zed.Type, body interface{}, which string) error {
-	if body == nil {
-		b.Append(nil)
-		return nil
-	}
 	b.BeginContainer()
 	err := r.decodeContainerBody(b, typ, body, which)
 	b.EndContainer()
@@ -183,10 +162,6 @@ func (r *Reader) decodeContainer(b *zcode.Builder, typ zed.Type, body interface{
 }
 
 func (r *Reader) decodeUnion(builder *zcode.Builder, typ *zed.TypeUnion, body interface{}) error {
-	if body == nil {
-		builder.Append(nil)
-		return nil
-	}
 	tuple, ok := body.([]interface{})
 	if !ok {
 		return errors.New("bad JSON for ZJSON union value")
@@ -216,10 +191,6 @@ func (r *Reader) decodeUnion(builder *zcode.Builder, typ *zed.TypeUnion, body in
 }
 
 func (r *Reader) decodeMap(b *zcode.Builder, typ *zed.TypeMap, body interface{}) error {
-	if body == nil {
-		b.Append(nil)
-		return nil
-	}
 	items, ok := body.([]interface{})
 	if !ok {
 		return errors.New("bad JSON for ZJSON union value")
