@@ -27,6 +27,11 @@ the empty record type, i.e.,
 order(val, <{}>)
 ```
 
+:::tip Note
+[Record expressions](../expressions.md#record-expressions) can also be used to
+reorder fields without specifying types ([example](../shaping.md#order)).
+:::
+
 ### Examples
 
 _Order a record_

@@ -163,6 +163,31 @@ about the `uid` field as it is not in the `connection` type:
 }
 ```
 
+As an alternative to the `order` function,
+[record expressions](expressions.md#record-expressions) can be used to reorder
+fields without specifying types. For example:
+
+```mdtest-command
+zq -Z 'yield {kind,client,server,...this}' sample.json
+```
+
+also produces
+
+```mdtest-output
+{
+    kind: "dns",
+    client: {
+        addr: "10.47.1.100",
+        port: 41772
+    },
+    server: {
+        addr: "10.0.0.100",
+        port: 53
+    },
+    uid: "C2zK5f13SbCtKcyiW5"
+}
+```
+
 ### Shape
 
 The `shape` function brings everything together by applying `cast`,
