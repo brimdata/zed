@@ -4,6 +4,7 @@ import (
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
@@ -21,6 +22,9 @@ type Config struct {
 var _ journal.Entry = (*Config)(nil)
 
 func NewConfig(name string, sortKey order.SortKey, thresh int64, seekStride int) *Config {
+	if sortKey.IsNil() {
+		sortKey = order.NewSortKey(order.Desc, field.DottedList("ts"))
+	}
 	if thresh == 0 {
 		thresh = data.DefaultThreshold
 	}
