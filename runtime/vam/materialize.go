@@ -1,5 +1,26 @@
 package vam
 
+import (
+	"errors"
+
+	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/zed/zbuf"
+)
+
+func NewMaterializer(p Puller) zbuf.Puller {
+	return p.(zbuf.Puller)
+}
+
+func NewDematerializer(p zbuf.Puller) Puller {
+	return &dematerializer{p}
+}
+
+type dematerializer struct{ zbuf.Puller }
+
+func (*dematerializer) PullVec(_ bool) (vector.Any, error) {
+	return nil, errors.New("internal error: vamPuller.PullVec called")
+}
+
 /* no slots
 func newIntBuilderIndexed(vec *vector.Int, index Index) builder {
 	slots := vec.Slots

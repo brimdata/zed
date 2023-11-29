@@ -5,52 +5,54 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 )
 
-func hackCountByString(scan *dag.SeqScan, ops []dag.Op) []dag.Op {
-	if len(ops) != 2 {
-		return nil
-	}
-	summarize, ok := ops[1].(*dag.Summarize)
-	if !ok {
-		return nil
-	}
-	if len(summarize.Aggs) != 1 {
-		return nil
-	}
-	if ok := isCount(summarize.Aggs[0]); !ok {
-		return nil
-	}
-	field, ok := isSingleField(summarize.Keys[0])
-	if !ok {
-		return nil
-	}
-	return []dag.Op{
-		&dag.VecScan{
-			Kind:  "VecScan",
-			Pool:  scan.Pool,
-			Paths: [][]string{{field}},
+func (o *Optimizer) Vectorize(seq dag.Seq) dag.Seq {
+	return walk(seq, true, func(seq dag.Seq) dag.Seq {
+		if len(seq) >= 2 && isScan(seq[0]) {
+			if _, ok := IsCountByString(seq[1]); ok {
+				return vectorize(seq, 2)
+			}
+			if _, ok := IsSum(seq[1]); ok {
+				return vectorize(seq, 2)
+			}
+		}
+		return seq
+	})
+}
+
+func vectorize(seq dag.Seq, n int) dag.Seq {
+	return append(dag.Seq{
+		&dag.Vectorize{
+			Kind: "Vectorize",
+			Body: seq[:n],
 		},
-		&dag.CountByStringHack{
-			Kind:  "CountByStringHack",
-			Field: field,
-		},
-		&dag.Summarize{
-			Kind: "Summarize",
-			Keys: []dag.Assignment{{
-				Kind: "Assignment",
-				LHS:  &dag.This{Kind: "This", Path: []string{field}},
-				RHS:  &dag.This{Kind: "This", Path: []string{field}},
-			}},
-			Aggs: []dag.Assignment{{
-				Kind: "Assignment",
-				LHS:  &dag.This{Kind: "This", Path: []string{"count"}},
-				RHS: &dag.Agg{
-					Kind: "Agg",
-					Name: "count",
-				},
-			}},
-			PartialsIn: true,
-		},
+	}, seq[n:]...)
+}
+
+func isScan(o dag.Op) bool {
+	_, ok := o.(*dag.SeqScan)
+	return ok
+}
+
+// IsCountByString returns whether o represents "count() by <top-level field>"
+// along with the field name.
+func IsCountByString(o dag.Op) (string, bool) {
+	s, ok := o.(*dag.Summarize)
+	if ok && len(s.Aggs) == 1 && len(s.Keys) == 1 && isCount(s.Aggs[0]) {
+		return isSingleField(s.Keys[0])
 	}
+	return "", false
+}
+
+// IsSum return whether o represents "sum(<top-level field>)" along with the
+// field name.
+func IsSum(o dag.Op) (string, bool) {
+	s, ok := o.(*dag.Summarize)
+	if ok && len(s.Aggs) == 1 && len(s.Keys) == 0 {
+		if path, ok := isSum(s.Aggs[0]); ok && len(path) == 1 {
+			return path[0], true
+		}
+	}
+	return "", false
 }
 
 func isCount(a dag.Assignment) bool {
@@ -88,50 +90,4 @@ func isThis(e dag.Expr) (field.Path, bool) {
 		return this.Path, true
 	}
 	return nil, false
-}
-
-func hackSum(scan *dag.SeqScan, ops []dag.Op) []dag.Op {
-	if len(ops) != 3 {
-		return nil
-	}
-	summarize, ok := ops[1].(*dag.Summarize)
-	if !ok {
-		return nil
-	}
-	if len(summarize.Aggs) != 1 {
-		return nil
-	}
-	if len(summarize.Keys) != 0 {
-		return nil
-	}
-	path, ok := isSum(summarize.Aggs[0])
-	if !ok {
-		return nil
-	}
-	field := path[len(path)-1] //XXX
-	return []dag.Op{
-		&dag.VecScan{
-			Kind:  "VecScan",
-			Pool:  scan.Pool,
-			Paths: [][]string{path},
-		},
-		&dag.SumHack{
-			Kind:  "SumHack",
-			Field: field, //XXX
-		},
-		&dag.Summarize{
-			Kind: "Summarize",
-			Aggs: []dag.Assignment{{
-				Kind: "Assignment",
-				LHS:  &dag.This{Kind: "This", Path: []string{"sum"}},
-				RHS: &dag.Agg{
-					Kind: "Agg",
-					Name: "sum",
-					Expr: &dag.This{Kind: "This", Path: []string{field}},
-				},
-			}},
-			PartialsIn: true,
-		},
-		ops[2],
-	}
 }

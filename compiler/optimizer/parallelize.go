@@ -29,28 +29,6 @@ func (o *Optimizer) parallelizeScan(ops []dag.Op, replicas int) ([]dag.Op, error
 }
 
 func (o *Optimizer) parallelizeSeqScan(scan *dag.SeqScan, ops []dag.Op, replicas int) ([]dag.Op, error) {
-	if vscan := hackCountByString(scan, ops); vscan != nil {
-		scatter := &dag.Scatter{
-			Kind:  "Scatter",
-			Paths: make([]dag.Seq, replicas),
-		}
-		for k := 0; k < replicas; k++ {
-			scatter.Paths[k] = copyOps(vscan[0:2])
-		}
-		combine := &dag.Combine{Kind: "Combine"}
-		return []dag.Op{scatter, combine, vscan[2]}, nil
-	}
-	if vscan := hackSum(scan, ops); vscan != nil {
-		scatter := &dag.Scatter{
-			Kind:  "Scatter",
-			Paths: make([]dag.Seq, replicas),
-		}
-		for k := 0; k < replicas; k++ {
-			scatter.Paths[k] = copyOps(vscan[0:2])
-		}
-		combine := &dag.Combine{Kind: "Combine"}
-		return []dag.Op{scatter, combine, vscan[2], vscan[3]}, nil
-	}
 	if len(ops) == 1 && scan.Filter == nil {
 		// We don't try to parallelize the path if it's simply scanning and does no
 		// other work.  We might want to revisit this down the road if

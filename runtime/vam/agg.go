@@ -1,6 +1,7 @@
 package vam
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/brimdata/zed"
@@ -27,6 +28,10 @@ func NewCountByString(zctx *zed.Context, parent Puller, name string) *CountByStr
 		name:   name,
 		table:  countByString{table: make(map[string]uint64)}, //XXX
 	}
+}
+
+func (*CountByString) PullVec(_ bool) (vector.Any, error) {
+	return nil, errors.New("internal error: vam.CountByString.PullVec called")
 }
 
 func (c *CountByString) Pull(done bool) (zbuf.Batch, error) {
@@ -123,6 +128,10 @@ func NewSum(zctx *zed.Context, parent Puller, name string) *Sum {
 		zctx:   zctx,
 		name:   name,
 	}
+}
+
+func (*Sum) PullVec(_ bool) (vector.Any, error) {
+	return nil, errors.New("internal error: vam.Sum.PullVec called")
 }
 
 func (c *Sum) Pull(done bool) (zbuf.Batch, error) {

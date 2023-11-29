@@ -78,6 +78,10 @@ func (j *Job) OptimizeDeleter(replicas int) error {
 func (j *Job) Parallelize(n int) error {
 	var err error
 	j.entry, err = j.optimizer.Parallelize(j.entry, n)
+	if err != nil {
+		return err
+	}
+	j.entry = j.optimizer.Vectorize(j.entry)
 	return err
 }
 
