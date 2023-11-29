@@ -6,6 +6,7 @@ import (
 	"io"
 	"slices"
 	"strconv"
+	"unicode"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
@@ -39,12 +40,16 @@ func NewReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) *Reader {
 	if opts.Delim != 0 {
 		reader.Comma = opts.Delim
 	}
+	if !unicode.IsSpace(reader.Comma) {
+		// TrimLeadingSpace will trim leading and trailing space characters
+		// even if the delimiter is a space character so only enable this if
+		// reader.Comma is not a space character.
+		reader.TrimLeadingSpace = true
+	}
 	reader.ReuseRecord = true
-	reader.TrimLeadingSpace = true
 	return &Reader{
 		reader:    reader,
 		marshaler: zson.NewZNGMarshalerWithContext(zctx),
-		//strings:   opts.StringsOnly,
 	}
 }
 
