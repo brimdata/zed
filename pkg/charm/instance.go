@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	HelpFlag   = "h"
-	HelpLongFlag   = "help"
-	HiddenFlag = "hidden"
+	HelpFlag     = "h"
+	HelpLongFlag = "help"
+	HiddenFlag   = "hidden"
 )
 
 // instance represents a command that has been created but not run.
