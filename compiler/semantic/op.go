@@ -843,19 +843,20 @@ func (a *analyzer) singletonAgg(agg ast.Assignment, seq dag.Seq) dag.Seq {
 	if err != nil {
 		return nil
 	}
-	yield := &dag.Yield{
-		Kind: "Yield",
-	}
 	this, ok := out.LHS.(*dag.This)
 	if !ok || len(this.Path) != 1 {
 		return nil
 	}
-	yield.Exprs = append(yield.Exprs, this)
-	seq = append(seq, &dag.Summarize{
-		Kind: "Summarize",
-		Aggs: []dag.Assignment{out},
-	})
-	return append(seq, yield)
+	return append(seq,
+		&dag.Summarize{
+			Kind: "Summarize",
+			Aggs: []dag.Assignment{out},
+		},
+		&dag.Yield{
+			Kind:  "Yield",
+			Exprs: []dag.Expr{this},
+		},
+	)
 }
 
 func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
