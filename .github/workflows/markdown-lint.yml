@@ -13,9 +13,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
-    - name: Extract branch name
-      run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
-      id: extract_branch
     - name: Lint
       run: make markdown-lint
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
@@ -24,11 +21,11 @@ jobs:
         use-quiet-mode: yes
     - name: Inform Slack users of link check failures
       uses: tiloio/slack-webhook-action@v1.1.2
-      if: ${{ failure() && steps.extract_branch.outputs.branch == 'main' }}
-      with: 
+      if: failure() && github.ref_name == 'main'
+      with:
         slack_web_hook_url: ${{ secrets.SLACK_WEBHOOK_BRIMLABS_DOCS }}
         slack_json: |
           {
             "username": "markdown-link",
-            "text": "Markdown link check failed: https://github.com/{{GITHUB_REPOSITORY}}/actions/runs/{{GITHUB_RUN_ID}}"
+            "text": "Markdown link check failed: ${{ github.event.workflow_run.html_url }}"
           }
