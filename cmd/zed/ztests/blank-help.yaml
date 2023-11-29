@@ -2,6 +2,6 @@ script: |
   zed
 
 outputs:
-  - name: stderr
+  - name: stdout
     regexp: |
       run Zed commands
