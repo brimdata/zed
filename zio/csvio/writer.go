@@ -26,13 +26,17 @@ type Writer struct {
 }
 
 type WriterOpts struct {
-	UTF8 bool
+	Delim rune
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
+func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
+	encoder := csv.NewWriter(w)
+	if opts.Delim != 0 {
+		encoder.Comma = opts.Delim
+	}
 	return &Writer{
 		writer:    w,
-		encoder:   csv.NewWriter(w),
+		encoder:   encoder,
 		flattener: expr.NewFlattener(zed.NewContext()),
 		types:     make(map[int]struct{}),
 	}

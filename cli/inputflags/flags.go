@@ -28,7 +28,7 @@ func (f *Flags) Options() anyio.ReaderOpts {
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet, validate bool) {
-	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,arrows,csv,json,line,parquet,vng,zeek,zjson,zng,zson]")
+	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,arrows,csv,json,line,parquet,tsv,vng,zeek,zjson,zng,zson]")
 	f.CSV.Delim = ','
 	fs.Func("csv.delim", `CSV field delimiter (default ",")`, func(s string) error {
 		if len(s) != 1 {
