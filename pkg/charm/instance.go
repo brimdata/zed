@@ -9,6 +9,7 @@ import (
 
 var (
 	HelpFlag   = "h"
+	HelpLongFlag   = "help"
 	HiddenFlag = "hidden"
 )
 
@@ -52,6 +53,7 @@ func parse(spec *Spec, args []string, parent Command) (path, []string, bool, err
 	var help, hidden, usage bool
 	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
 	flags.BoolVar(&help, HelpFlag, false, "display help")
+	flags.BoolVar(&help, HelpLongFlag, false, "display help")
 	flags.BoolVar(&hidden, HiddenFlag, false, "show hidden options")
 	flags.Usage = func() {
 		usage = true
@@ -105,6 +107,7 @@ func parseHelp(spec *Spec, args []string) (path, error) {
 	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
 	var b bool
 	flags.BoolVar(&b, HelpFlag, false, "display help")
+	flags.BoolVar(&b, HelpLongFlag, false, "display help")
 	flags.BoolVar(&b, HiddenFlag, false, "show hidden options")
 	flags.Usage = func() {}
 	var parent Command
