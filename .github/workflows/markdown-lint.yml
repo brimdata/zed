@@ -27,5 +27,5 @@ jobs:
         slack_json: |
           {
             "username": "markdown-link",
-            "text": "Markdown link check failed: {{CUSTOM_ACTION_LINK}}
+            "text": "Markdown link check failed: ${{ github.event.workflow_run.html_url }}"
           }
