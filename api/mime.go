@@ -15,7 +15,7 @@ const (
 	MediaTypeLine        = "application/x-line"
 	MediaTypeNDJSON      = "application/x-ndjson"
 	MediaTypeParquet     = "application/x-parquet"
-	MediaTypeTSV         = "application/tab-separated-values"
+	MediaTypeTSV         = "text/tab-separated-values"
 	MediaTypeVNG         = "application/x-vng"
 	MediaTypeZeek        = "application/x-zeek"
 	MediaTypeZJSON       = "application/x-zjson"

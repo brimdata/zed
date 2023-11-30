@@ -1,9 +1,9 @@
 script: |
   source service.sh
   zed create -q -orderby a test
-  curl -H Content-Type:application/tab-separated-values --data-binary @in.tsv \
+  curl -H Content-Type:text/tab-separated-values --data-binary @in.tsv \
     --fail $ZED_LAKE/pool/test/branch/main > /dev/null
-  curl -H Accept:application/tab-separated-values -d '{"query":"from test"}' $ZED_LAKE/query
+  curl -H Accept:text/tab-separated-values -d '{"query":"from test"}' $ZED_LAKE/query
 
 inputs:
   - name: in.tsv
