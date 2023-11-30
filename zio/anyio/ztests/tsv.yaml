@@ -1,8 +1,7 @@
-# This test purposely has two null values to test issue found in
-# brimdata/zed#4911
+# This test purposely has two null values to test the issue found in
+# brimdata/zed#4911.
 script: |
   zq - | zq -f tsv -
-
 
 inputs:
   - name: stdin
