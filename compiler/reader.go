@@ -30,13 +30,12 @@ func CompileWithSortKey(octx *op.Context, seq ast.Seq, r zio.Reader, sortKey ord
 	if err != nil {
 		return nil, err
 	}
-	reader := job.reader
-	if reader == nil {
+	scan, ok := job.DefaultScan()
+	if !ok {
 		return nil, errors.New("CompileWithSortKey: Zed program expected a reader")
 	}
-	reader.Readers = []zio.Reader{r}
-	reader.SortKey = sortKey
-	return optimizeAndBuild(job)
+	scan.SortKey = sortKey
+	return optimizeAndBuild(job, []zio.Reader{r})
 }
 
 func (*anyCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {

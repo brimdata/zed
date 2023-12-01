@@ -36,7 +36,7 @@ func (l *lakeCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, paralleli
 	if err != nil {
 		return nil, err
 	}
-	if job.reader != nil {
+	if _, ok := job.DefaultScan(); ok {
 		return nil, errors.New("query must include a 'from' operator")
 	}
 	if err := job.Optimize(); err != nil {

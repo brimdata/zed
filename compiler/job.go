@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 )
 
 type Job struct {
@@ -20,7 +21,6 @@ type Job struct {
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
 	outputs   []zbuf.Puller
-	reader    *kernel.Reader
 	puller    zbuf.Puller
 	entry     dag.Seq
 }
@@ -44,14 +44,17 @@ func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Comm
 	if err != nil {
 		return nil, err
 	}
-	reader, _ := entry[0].(*kernel.Reader)
 	return &Job{
 		octx:      octx,
 		builder:   kernel.NewBuilder(octx, src),
 		optimizer: optimizer.New(octx.Context, src),
-		reader:    reader,
 		entry:     entry,
 	}, nil
+}
+
+func (j *Job) DefaultScan() (*dag.DefaultScan, bool) {
+	scan, ok := j.entry[0].(*dag.DefaultScan)
+	return scan, ok
 }
 
 func (j *Job) Entry() dag.Seq {
@@ -99,8 +102,11 @@ func (j *Job) Builder() *kernel.Builder {
 	return j.builder
 }
 
-func (j *Job) Build() error {
-	outputs, err := j.builder.Build(j.entry)
+// Build builds a flowgraph for j.  If the flowgraph expects an input stream
+// from the runtime (because its DAG contains a dag.DefaultSource), Build
+// constructs it from readers.
+func (j *Job) Build(readers ...zio.Reader) error {
+	outputs, err := j.builder.Build(j.entry, readers...)
 	if err != nil {
 		return err
 	}
