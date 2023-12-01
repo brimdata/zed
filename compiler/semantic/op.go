@@ -164,9 +164,6 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 	case *ast.Pass:
 		//XXX just connect parent
 		return []dag.Op{dag.PassOp}, nil
-	case *kernel.Reader:
-		// kernel.Reader implements both ast.Source and dag.Op
-		return []dag.Op{p}, nil
 	default:
 		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
 	}

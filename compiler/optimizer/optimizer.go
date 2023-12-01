@@ -8,7 +8,6 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
@@ -274,7 +273,7 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 				// Delete the downstream operators when we are tapping the object list.
 				seq = dag.Seq{op}
 			}
-		case *kernel.Reader:
+		case *dag.DefaultScan:
 			op.Filter = filter
 			seq = append(dag.Seq{op}, chain...)
 		}
@@ -385,7 +384,7 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 			sortKey = order.Nil
 		}
 		return []order.SortKey{sortKey}, nil
-	case *dag.PoolScan, *dag.Lister, *dag.SeqScan, *kernel.Reader:
+	case *dag.PoolScan, *dag.Lister, *dag.SeqScan, *dag.DefaultScan:
 		out, err := o.sortKeyOfSource(op)
 		return []order.SortKey{out}, err
 	default:
@@ -396,6 +395,8 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 
 func (o *Optimizer) sortKeyOfSource(op dag.Op) (order.SortKey, error) {
 	switch op := op.(type) {
+	case *dag.DefaultScan:
+		return op.SortKey, nil
 	case *dag.FileScan:
 		return op.SortKey, nil
 	case *dag.HTTPScan:
@@ -414,8 +415,6 @@ func (o *Optimizer) sortKeyOfSource(op dag.Op) (order.SortKey, error) {
 			return o.sortKey(op.Pool)
 		}
 		return order.Nil, nil //XXX is this right?
-	case *kernel.Reader:
-		return op.SortKey, nil
 	default:
 		return order.Nil, fmt.Errorf("internal error: unknown source type %T", op)
 	}
@@ -457,8 +456,8 @@ func (o *Optimizer) Parallelize(seq dag.Seq, n int) (dag.Seq, error) {
 				front.Append(slicer)
 			}
 			tail = rest
-		} else if reader, ok := seq[0].(*kernel.Reader); ok {
-			front.Append(reader)
+		} else if scan, ok := seq[0].(*dag.DefaultScan); ok {
+			front.Append(scan)
 			tail = seq[1:]
 		} else {
 			return seq, nil

@@ -29,7 +29,7 @@ func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reade
 	if len(readers) == 0 {
 		// If there's no reader but the DAG wants an input, then
 		// flag an error.
-		if job.reader != nil {
+		if _, ok := job.DefaultScan(); ok {
 			return nil, errors.New("no input specified: use a command-line file or a Zed source operator")
 		}
 	} else {
@@ -38,12 +38,11 @@ func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reade
 		// TBD: we could have such a configuration is a composite
 		// from command includes a "pass" operator, but we can add this later.
 		// See issue #2640.
-		if job.reader == nil {
+		if _, ok := job.DefaultScan(); !ok {
 			return nil, errors.New("redundant inputs specified: use either command-line files or a Zed source operator")
 		}
-		job.reader.Readers = readers
 	}
-	return optimizeAndBuild(job)
+	return optimizeAndBuild(job, readers)
 }
 
 func (*fsCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
@@ -54,7 +53,7 @@ func (*fsCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Seq, head *l
 	panic("NewLakeDeleteQuery called on compiler.fsCompiler")
 }
 
-func optimizeAndBuild(job *Job) (*runtime.Query, error) {
+func optimizeAndBuild(job *Job, readers []zio.Reader) (*runtime.Query, error) {
 	// Call optimize to possible push down a filter predicate into the
 	// kernel.Reader so that the zng scanner can do boyer-moore.
 	if err := job.Optimize(); err != nil {
@@ -64,7 +63,7 @@ func optimizeAndBuild(job *Job) (*runtime.Query, error) {
 	// any parallelization right now though this could be potentially
 	// beneficial depending on where the bottleneck is for a given shaper.
 	// See issue #2641.
-	if err := job.Build(); err != nil {
+	if err := job.Build(readers...); err != nil {
 		return nil, err
 	}
 	return runtime.NewQuery(job.octx, job.Puller(), job.builder.Meter()), nil

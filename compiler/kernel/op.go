@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
@@ -49,6 +48,7 @@ type Builder struct {
 	octx     *op.Context
 	mctx     *zed.Context
 	source   *data.Source
+	readers  []zio.Reader
 	progress *zbuf.Progress
 	deletes  *sync.Map
 	funcs    map[string]expr.Function
@@ -69,22 +69,13 @@ func NewBuilder(octx *op.Context, source *data.Source) *Builder {
 	}
 }
 
-type Reader struct {
-	SortKey order.SortKey
-	Filter  dag.Expr
-	Readers []zio.Reader
-}
-
-var _ dag.Op = (*Reader)(nil)
-var _ ast.Source = (*Reader)(nil)
-
-func (*Reader) OpNode() {}
-func (*Reader) Source() {}
-
-func (b *Builder) Build(seq dag.Seq) ([]zbuf.Puller, error) {
+// Build builds a flowgraph for seq.  If seq contains a dag.DefaultSource, it
+// will read from readers.
+func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, error) {
 	if !isEntry(seq) {
 		return nil, errors.New("internal error: DAG entry point is not a data source")
 	}
+	b.readers = readers
 	return b.compileSeq(seq, nil)
 }
 
@@ -241,13 +232,13 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return b.source.OpenHTTP(b.octx.Context, b.octx.Zctx, v.URL, v.Format, v.Method, v.Headers, body, demand.All())
 	case *dag.FileScan:
 		return b.source.Open(b.octx.Context, b.octx.Zctx, v.Path, v.Format, b.PushdownOf(v.Filter), demand.All())
-	case *Reader:
+	case *dag.DefaultScan:
 		pushdown := b.PushdownOf(v.Filter)
-		if len(v.Readers) == 1 {
-			return zbuf.NewScanner(b.octx.Context, v.Readers[0], pushdown)
+		if len(b.readers) == 1 {
+			return zbuf.NewScanner(b.octx.Context, b.readers[0], pushdown)
 		}
-		scanners := make([]zbuf.Scanner, 0, len(v.Readers))
-		for _, r := range v.Readers {
+		scanners := make([]zbuf.Scanner, 0, len(b.readers))
+		for _, r := range b.readers {
 			scanner, err := zbuf.NewScanner(b.octx.Context, r, pushdown)
 			if err != nil {
 				return nil, err
@@ -678,7 +669,7 @@ func isEntry(seq dag.Seq) bool {
 		return false
 	}
 	switch op := seq[0].(type) {
-	case *Reader, *dag.Lister, *dag.VecLister, *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan:
+	case *dag.Lister, *dag.VecLister, *dag.DefaultScan, *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan:
 		return true
 	case *dag.Scope:
 		return isEntry(op.Body)

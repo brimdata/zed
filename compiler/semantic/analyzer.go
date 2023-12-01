@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/lakeparse"
 )
 
@@ -76,7 +75,7 @@ func (a *analyzer) addDefaultSource(seq *dag.Seq) error {
 	}
 	// No from so add a source.
 	if a.head == nil {
-		seq.Prepend(&kernel.Reader{})
+		seq.Prepend(&dag.DefaultScan{Kind: "DefaultScan"})
 		return nil
 	}
 	pool := &ast.Pool{
