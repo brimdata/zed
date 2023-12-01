@@ -30,7 +30,7 @@ field4,"field5 with multiple quotes to escape",field6
 x,"hello,
 "" world ,  foo",y`
 
-	p := newPreprocess(strings.NewReader(input))
+	p := newPreprocess(strings.NewReader(input), ',')
 	var buf bytes.Buffer
 	_, err := io.Copy(&buf, p)
 	require.NoError(t, err)
