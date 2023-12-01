@@ -56,16 +56,16 @@ func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.RecordBuilde
 }
 
 func (n *NestDotted) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	this := &args[0]
-	b, typ, err := n.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
+	val := &args[len(args)-1]
+	b, typ, err := n.lookupBuilderAndType(zed.TypeRecordOf(val.Type))
 	if err != nil {
-		return wrapError(n.zctx, ctx, "nest_dotted: "+err.Error(), this)
+		return wrapError(n.zctx, ctx, "nest_dotted(): "+err.Error(), val)
 	}
 	if b == nil {
-		return this
+		return val
 	}
 	b.Reset()
-	for it := this.Bytes().Iter(); !it.Done(); {
+	for it := val.Bytes().Iter(); !it.Done(); {
 		b.Append(it.Next())
 	}
 	zbytes, err := b.Encode()
