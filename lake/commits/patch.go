@@ -81,10 +81,6 @@ func (p *Patch) SelectAllIndexes() []*index.Object {
 	return append(p.base.SelectAllIndexes(), p.diff.SelectAllIndexes()...)
 }
 
-func (p *Patch) SelectAllVectors() []ksuid.KSUID {
-	return append(p.base.SelectAllVectors(), p.diff.SelectAllVectors()...)
-}
-
 func (p *Patch) DataObjects() []ksuid.KSUID {
 	var ids []ksuid.KSUID
 	for _, dataObject := range p.diff.SelectAll() {

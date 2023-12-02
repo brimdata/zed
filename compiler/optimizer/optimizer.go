@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
@@ -204,60 +203,36 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 		filter, chain := matchFilter(chain)
 		switch op := seq[0].(type) {
 		case *dag.PoolScan:
-			seq = dag.Seq{}
-			if os.Getenv("ZED_USE_VECTOR") != "" {
-				// TODO Decide whether to use vectors based on whether zng files exist and whether sorting is needed.
-				seq = dag.Seq{
-					&dag.VecLister{
-						Kind:   "VecLister",
-						Pool:   op.ID,
-						Commit: op.Commit,
-					},
-					&dag.VecSeqScan{
-						Kind: "VecSeqScan",
-						Pool: op.ID,
-					},
-				}
-				if filter != nil {
-					// TODO Push filter into VecLister and VecSeqScan where possible.
-					seq = append(seq,
-						&dag.Filter{
-							Kind: "Filter",
-							Expr: filter,
-						})
-				}
-			} else {
-				// Here we transform a PoolScan into a Lister followed by one or more chains
-				// of slicers and sequence scanners.
-				lister := &dag.Lister{
-					Kind:   "Lister",
-					Pool:   op.ID,
-					Commit: op.Commit,
-				}
-				// Check to see if we can add a range pruner when the pool key is used
-				// in a normal filtering operation.
-				sortKey, err := o.sortKeyOfSource(op)
-				if err != nil {
-					return nil, err
-				}
-				lister.KeyPruner = maybeNewRangePruner(filter, sortKey)
-				seq = dag.Seq{lister}
-				_, _, orderRequired, _, err := o.concurrentPath(chain, sortKey)
-				if err != nil {
-					return nil, err
-				}
-				if orderRequired {
-					seq = append(seq, &dag.Slicer{Kind: "Slicer"})
-				}
-				seq = append(seq, &dag.SeqScan{
-					Kind:      "SeqScan",
-					Pool:      op.ID,
-					Filter:    filter,
-					KeyPruner: lister.KeyPruner,
-				})
+			// Here we transform a PoolScan into a Lister followed by one or more chains
+			// of slicers and sequence scanners.  We'll eventually choose other configurations
+			// here based on metadata and availability of VNG.
+			lister := &dag.Lister{
+				Kind:   "Lister",
+				Pool:   op.ID,
+				Commit: op.Commit,
 			}
+			// Check to see if we can add a range pruner when the pool key is used
+			// in a normal filtering operation.
+			sortKey, err := o.sortKeyOfSource(op)
+			if err != nil {
+				return nil, err
+			}
+			lister.KeyPruner = maybeNewRangePruner(filter, sortKey)
+			seq = dag.Seq{lister}
+			_, _, orderRequired, _, err := o.concurrentPath(chain, sortKey)
+			if err != nil {
+				return nil, err
+			}
+			if orderRequired {
+				seq = append(seq, &dag.Slicer{Kind: "Slicer"})
+			}
+			seq = append(seq, &dag.SeqScan{
+				Kind:      "SeqScan",
+				Pool:      op.ID,
+				Filter:    filter,
+				KeyPruner: lister.KeyPruner,
+			})
 			seq = append(seq, chain...)
-
 		case *dag.FileScan:
 			op.Filter = filter
 			seq = append(dag.Seq{op}, chain...)

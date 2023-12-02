@@ -10,7 +10,6 @@ package dag
 import (
 	"slices"
 
-	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/segmentio/ksuid"
@@ -162,11 +161,6 @@ type (
 		Commit    ksuid.KSUID `json:"commit"`
 		KeyPruner Expr        `json:"key_pruner"`
 	}
-	VecLister struct {
-		Kind   string      `json:"kind" unpack:""`
-		Pool   ksuid.KSUID `json:"pool"`
-		Commit ksuid.KSUID `json:"commit"`
-	}
 	Slicer struct {
 		Kind string `json:"kind" unpack:""`
 	}
@@ -175,11 +169,6 @@ type (
 		Pool      ksuid.KSUID `json:"pool"`
 		Filter    Expr        `json:"filter"`
 		KeyPruner Expr        `json:"key_pruner"`
-	}
-	VecSeqScan struct {
-		Kind   string        `json:"kind" unpack:""`
-		Pool   ksuid.KSUID   `json:"pool"`
-		Demand demand.Demand `json:"demand"`
 	}
 	Deleter struct {
 		Kind      string      `json:"kind" unpack:""`
@@ -269,12 +258,10 @@ func (*LakeMetaScan) OpNode()   {}
 func (*PoolMetaScan) OpNode()   {}
 func (*CommitMetaScan) OpNode() {}
 
-func (*Lister) OpNode()     {}
-func (*VecLister) OpNode()  {}
-func (*Slicer) OpNode()     {}
-func (*SeqScan) OpNode()    {}
-func (*VecSeqScan) OpNode() {}
-func (*Deleter) OpNode()    {}
+func (*Lister) OpNode()  {}
+func (*Slicer) OpNode()  {}
+func (*SeqScan) OpNode() {}
+func (*Deleter) OpNode() {}
 
 // Various Op fields
 
