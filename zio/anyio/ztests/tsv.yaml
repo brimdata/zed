@@ -10,6 +10,7 @@ inputs:
       1	2019	Brutocao
       2		
       3	2020	Castoro
+      4	2021	"[""baz""]"
 
 outputs:
   - name: stdout

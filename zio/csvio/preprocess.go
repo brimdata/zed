@@ -15,14 +15,19 @@ import (
 // Would get converted into:
 // field1,field2 extra
 type preprocess struct {
-	leftover []byte
-	scanner  *bufio.Reader
-	scratch  []byte
+	delimiter rune
+	leftover  []byte
+	scanner   *bufio.Reader
+	scratch   []byte
 }
 
-func newPreprocess(r io.Reader) *preprocess {
+func newPreprocess(r io.Reader, delim rune) *preprocess {
+	if delim == 0 {
+		delim = ','
+	}
 	return &preprocess{
-		scanner: bufio.NewReader(r),
+		delimiter: delim,
+		scanner:   bufio.NewReader(r),
 	}
 }
 
@@ -75,7 +80,7 @@ func (p *preprocess) parseField() ([]byte, error) {
 			}
 			continue
 		}
-		if c == ',' || c == '\n' {
+		if rune(c) == p.delimiter || c == '\n' {
 			ending := []byte{c}
 			if hasstr {
 				// If field had quotes wrap entire field in quotes.
