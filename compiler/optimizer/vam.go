@@ -1,22 +1,53 @@
 package optimizer
 
 import (
+	"context"
+
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/pkg/field"
 )
 
-func (o *Optimizer) Vectorize(seq dag.Seq) dag.Seq {
-	return walk(seq, true, func(seq dag.Seq) dag.Seq {
-		if len(seq) >= 2 && isScan(seq[0]) {
-			if _, ok := IsCountByString(seq[1]); ok {
-				return vectorize(seq, 2)
-			}
-			if _, ok := IsSum(seq[1]); ok {
-				return vectorize(seq, 2)
-			}
+func (o *Optimizer) Vectorize(seq dag.Seq) (dag.Seq, error) {
+	return walkEntries(seq, func(seq dag.Seq) (dag.Seq, error) {
+		if len(seq) < 2 {
+			return seq, nil
 		}
-		return seq
+		if ok, err := o.isScanWithVectors(seq[0]); !ok || err != nil {
+			return seq, err
+		}
+		if _, ok := IsCountByString(seq[1]); ok {
+			return vectorize(seq, 2), nil
+		}
+		if _, ok := IsSum(seq[1]); ok {
+			return vectorize(seq, 2), nil
+		}
+		return seq, nil
 	})
+}
+
+func (o *Optimizer) isScanWithVectors(op dag.Op) (bool, error) {
+	scan, ok := op.(*dag.SeqScan)
+	if !ok {
+		return false, nil
+	}
+	pool, err := o.lookupPool(scan.Pool)
+	if err != nil {
+		return false, err
+	}
+	snap, err := pool.Snapshot(context.TODO(), scan.Commit)
+	if err != nil {
+		return false, err
+	}
+	objects := snap.SelectAll()
+	if len(objects) == 0 {
+		return false, nil
+	}
+	for _, obj := range objects {
+		if !snap.HasVector(obj.ID) {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func vectorize(seq dag.Seq, n int) dag.Seq {
@@ -26,11 +57,6 @@ func vectorize(seq dag.Seq, n int) dag.Seq {
 			Body: seq[:n],
 		},
 	}, seq[n:]...)
-}
-
-func isScan(o dag.Op) bool {
-	_, ok := o.(*dag.SeqScan)
-	return ok
 }
 
 // IsCountByString returns whether o represents "count() by <top-level field>"

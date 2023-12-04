@@ -172,6 +172,7 @@ type (
 	SeqScan struct {
 		Kind      string       `json:"kind" unpack:""`
 		Pool      ksuid.KSUID  `json:"pool"`
+		Commit    ksuid.KSUID  `json:"commit"`
 		Fields    []field.Path `json:"fields"`
 		Filter    Expr         `json:"filter"`
 		KeyPruner Expr         `json:"key_pruner"`

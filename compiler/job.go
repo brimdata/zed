@@ -81,7 +81,7 @@ func (j *Job) Parallelize(n int) error {
 	if err != nil {
 		return err
 	}
-	j.entry = j.optimizer.Vectorize(j.entry)
+	j.entry, err = j.optimizer.Vectorize(j.entry)
 	return err
 }
 
