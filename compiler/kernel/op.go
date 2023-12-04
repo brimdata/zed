@@ -262,15 +262,6 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			}
 		}
 		return meta.NewSortedLister(b.octx.Context, b.mctx, b.source.Lake(), pool, v.Commit, pruner)
-	case *dag.VecLister:
-		if parent != nil {
-			return nil, errors.New("internal error: data source cannot have a parent operator")
-		}
-		pool, err := b.lookupPool(v.Pool)
-		if err != nil {
-			return nil, err
-		}
-		return meta.NewVecLister(b.octx.Context, b.mctx, b.source.Lake(), pool, v.Commit)
 	case *dag.Slicer:
 		return meta.NewSlicer(parent, b.mctx), nil
 	case *dag.SeqScan:
@@ -286,12 +277,6 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			}
 		}
 		return meta.NewSequenceScanner(b.octx, parent, pool, b.PushdownOf(v.Filter), pruner, b.progress), nil
-	case *dag.VecSeqScan:
-		pool, err := b.lookupPool(v.Pool)
-		if err != nil {
-			return nil, err
-		}
-		return meta.NewVecSequenceScanner(b.octx, parent, pool, b.progress, v.Demand), nil
 	case *dag.Deleter:
 		pool, err := b.lookupPool(v.Pool)
 		if err != nil {
@@ -669,7 +654,7 @@ func isEntry(seq dag.Seq) bool {
 		return false
 	}
 	switch op := seq[0].(type) {
-	case *dag.Lister, *dag.VecLister, *dag.DefaultScan, *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan:
+	case *dag.Lister, *dag.DefaultScan, *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.LakeMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan:
 		return true
 	case *dag.Scope:
 		return isEntry(op.Body)

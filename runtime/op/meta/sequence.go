@@ -73,7 +73,7 @@ func (s *SequenceScanner) Pull(done bool) (zbuf.Batch, error) {
 				s.close(err)
 				return nil, err
 			}
-			s.scanner, _, err = newSequenceScanner(s.octx.Context, s.octx.Zctx, s.pool, s.unmarshaler, s.pruner, s.filter, s.progress, &vals[0])
+			s.scanner, _, err = newScanner(s.octx.Context, s.octx.Zctx, s.pool, s.unmarshaler, s.pruner, s.filter, s.progress, &vals[0])
 			if err != nil {
 				s.close(err)
 				return nil, err
@@ -96,7 +96,7 @@ func (s *SequenceScanner) close(err error) {
 	s.done = true
 }
 
-func newSequenceScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, u *zson.UnmarshalZNGContext, pruner expr.Evaluator, filter zbuf.Filter, progress *zbuf.Progress, val *zed.Value) (zbuf.Puller, *data.Object, error) {
+func newScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, u *zson.UnmarshalZNGContext, pruner expr.Evaluator, filter zbuf.Filter, progress *zbuf.Progress, val *zed.Value) (zbuf.Puller, *data.Object, error) {
 	named, ok := val.Type.(*zed.TypeNamed)
 	if !ok {
 		return nil, nil, errors.New("system error: SequenceScanner encountered unnamed object")
