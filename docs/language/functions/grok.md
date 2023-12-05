@@ -11,15 +11,15 @@ grok(pattern: string, s: string, definitions: string) -> any
 
 ### Description
 
-The _grok_ function parses a string using a grok pattern and returns
-a record containing the parsed fields. The syntax for a grok pattern
-is `{%pattern:field_name}` where _pattern_ is a the name of the pattern
-to match text with and _field_name_ is resultant field name of the capture
+The _grok_ function parses a string `s` using a grok pattern and returns
+a record containing the parsed fields. The syntax for `pattern`
+is `{%pattern:field_name}` where _pattern_ is the name of the pattern
+to match in `s` and _field_name_ is the resultant field name of the capture
 value.
 
-When provided with three arguments the third argument, definitions, is a string
-of named patterns seperated by new lines in the format `PATTERN_NAME PATTERN`.
-The named patterns can then be referenced in the grok pattern argument.
+When provided with three arguments, `definitions` is a string
+of named patterns in the format `PATTERN_NAME PATTERN` each separated by newlines.
+The named patterns can then be referenced in the `pattern` argument.
 
 #### Included Patterns
 
