@@ -1,5 +1,3 @@
-//go:generate go run gen.go
-
 // Adapted from github.com/logrusorgru/grokky
 package grok
 
@@ -48,12 +46,6 @@ func (h Host) Add(name, expr string) error {
 	}
 	h[name] = expr
 	return nil
-}
-
-func (h Host) Must(name, expr string) {
-	if err := h.Add(name, expr); err != nil {
-		panic(fmt.Errorf("%s: %w", name, err))
-	}
 }
 
 func (h Host) compile(name string) (*Pattern, error) {
