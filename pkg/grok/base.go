@@ -1,3 +1,5 @@
+// Adapted from https://github.com/logrusorgru/grokky/blob/f28bfe018565ac1e90d93502eae1170006dd1f48/base.go
+
 package grok
 
 func must(err error) {

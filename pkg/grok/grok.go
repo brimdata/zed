@@ -1,4 +1,5 @@
-// Adapted from github.com/logrusorgru/grokky
+// Adapted from https://github.com/logrusorgru/grokky/blob/f28bfe018565ac1e90d93502eae1170006dd1f48/grok.go
+
 package grok
 
 import (
