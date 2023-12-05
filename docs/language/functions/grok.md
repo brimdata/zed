@@ -25,7 +25,7 @@ The named patterns can then be referenced in the `pattern` argument.
 
 The _grok_ function by default includes a set of builtin named patterns
 that can be referenced in any pattern. The included named patterns can be seen
-[here](https://raw.githubusercontent.com/brimdata/zed/main/pkg/grok/grok-patterns).
+[here](https://raw.githubusercontent.com/brimdata/zed/main/pkg/grok/base.go).
 
 ### Examples
 
