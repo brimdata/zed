@@ -1,0 +1,23 @@
+zed: |
+  switch foo (
+    case "Ex" => foo := 5
+    case "Gd" => foo := 4
+    case "TA" => foo := 3
+    case "Fa" => foo := 2
+    case "Po" => foo := 1
+    default => foo := 0
+  )
+  | switch bar (
+    case "Ex" => bar := 5
+    case "Gd" => bar := 4
+    case "TA" => bar := 3
+    case "Fa" => bar := 2
+    case "Po" => bar := 1
+    default => bar := 0
+  )
+
+input: |
+  {foo:"Gd",bar:"Fa"}
+
+output: |
+  {foo:4,bar:2}
