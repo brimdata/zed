@@ -27,6 +27,13 @@ func loadPrimitive(typ zed.Type, m *meta.Primitive, r io.ReaderAt) (vector.Any, 
 		}
 		off += int(segment.MemLength)
 	}
+	if len(m.Dict) > 0 {
+		var b []byte
+		for _, i := range bytes {
+			b = m.Dict[i].Value.Encode(b)
+		}
+		bytes = b
+	}
 	switch typ := typ.(type) {
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64, *zed.TypeOfTime:
 		//XXX put valcnt in vng meta and use vector allocator
