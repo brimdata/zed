@@ -33,11 +33,7 @@ func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Rea
 		if demandOut == nil {
 			demandOut = demand.All()
 		}
-		vngReader, err := vng.NewReader(o)
-		if err != nil {
-			return nil, err
-		}
-		return vector.NewReader(vngReader, demandOut), nil
+		return vector.NewReader(o, demandOut), nil
 	} else {
 		return vng.NewReader(o)
 	}

@@ -1,0 +1,14 @@
+zed: '*'
+
+input: |
+  {a:0}
+  {a:"foo"}
+  {a:127.0.0.1}
+
+output-flags: -f csv
+
+output: |
+  a
+  0
+  foo
+  127.0.0.1

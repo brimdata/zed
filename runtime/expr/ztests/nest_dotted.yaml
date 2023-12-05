@@ -1,11 +1,11 @@
-zed: 'yield nest_dotted(this)'
+script: |
+  echo '{a:1,"b.a":2,"b.b":3,"b.c.a":4,c:5}' | zq -z 'yield nest_dotted()' -
+  echo '{a:1,b:{a:2,b:3,c:{a:4}},c:5}' | zq -z 'yield nest_dotted(this)' -
+  echo '{nest:{a:1,"b.a":2}}' | zq -z 'yield nest_dotted(nest)' -
 
-input: |
-  {a:1,"b.a":2,"b.b":3,"b.c.a":4,c:5}
-  {a:1,b:{a:2,b:3,c:{a:4}},c:5}
-  {a:1,"b.a":2}
-
-output: |
-  {a:1,b:{a:2,b:3,c:{a:4}},c:5}
-  {a:1,b:{a:2,b:3,c:{a:4}},c:5}
-  {a:1,b:{a:2}}
+outputs:
+  - name: stdout
+    data: |
+      {a:1,b:{a:2,b:3,c:{a:4}},c:5}
+      {a:1,b:{a:2,b:3,c:{a:4}},c:5}
+      {a:1,b:{a:2}}

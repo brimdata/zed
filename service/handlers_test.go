@@ -10,8 +10,6 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/exec"
@@ -22,11 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var defaultSortKey = order.SortKey{
-	Order: order.Desc,
-	Keys:  field.DottedList("ts"),
-}
-
 func TestQuery(t *testing.T) {
 	src := `
 {_path:"b",ts:1970-01-01T00:00:01Z}
@@ -35,14 +28,14 @@ func TestQuery(t *testing.T) {
 	expected := `{_path:"b",ts:1970-01-01T00:00:01Z}
 `
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", SortKey: defaultSortKey})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	conn.TestLoad(poolID, "main", strings.NewReader(src))
 	assert.Equal(t, expected, conn.TestQuery("from test | _path == 'b'"))
 }
 
 func TestQueryEmptyPool(t *testing.T) {
 	_, conn := newCore(t)
-	conn.TestPoolPost(api.PoolPostRequest{Name: "test", SortKey: defaultSortKey})
+	conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	assert.Equal(t, "", conn.TestQuery("from test"))
 }
 
@@ -57,7 +50,7 @@ func TestQueryGroupByReverse(t *testing.T) {
 {ts:1970-01-01T00:00:01Z,count:2(uint64)}
 `
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", SortKey: defaultSortKey})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	conn.TestLoad(poolID, "main", strings.NewReader(src))
 	require.Equal(t, counts, "\n"+conn.TestQuery("from test | count() by every(1s)"))
 }
@@ -68,7 +61,7 @@ func TestPoolStats(t *testing.T) {
 {_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"}
 `
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", SortKey: defaultSortKey})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	conn.TestLoad(poolID, "main", strings.NewReader(src))
 
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
@@ -81,7 +74,7 @@ func TestPoolStats(t *testing.T) {
 
 func TestPoolStatsNoData(t *testing.T) {
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", SortKey: defaultSortKey})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	info := conn.TestPoolStats(poolID)
 	expected := exec.PoolStats{
 		Size: 0,

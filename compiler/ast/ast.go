@@ -84,9 +84,9 @@ type Cast struct {
 }
 
 type Grep struct {
-	Kind    string  `json:"kind" unpack:""`
-	Pattern Pattern `json:"pattern"`
-	Expr    Expr    `json:"expr"`
+	Kind    string `json:"kind" unpack:""`
+	Pattern Expr   `json:"pattern"`
+	Expr    Expr   `json:"expr"`
 }
 
 type Glob struct {

@@ -102,6 +102,7 @@ Note here that the query `1+1` [implies](../language/dataflow-model.md#implied-o
 | `csv`     |  yes | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
 | `line`    |  no  | One string value per input line |
 | `parquet` |  yes | [Apache Parquet](https://github.com/apache/parquet-format) |
+| `tsv`     |  yes | [TSV - Tab-Separated Values](https://en.wikipedia.org/wiki/Tab-separated_values) |
 | `vng`     |  yes | [VNG - Binary Columnar Format](../formats/vng.md) |
 | `zson`    |  yes | [ZSON - Human-readable Format](../formats/zson.md) |
 | `zng`     |  yes | [ZNG - Binary Row Format](../formats/zson.md) |

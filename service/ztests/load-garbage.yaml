@@ -14,10 +14,11 @@ outputs:
     data: |
       stdio:stdin: format detection error
       	arrows: schema message length exceeds 1 MiB
-      	csv: line 1: no comma found
+      	csv: line 1: delimiter ',' not found
       	json: invalid character 'T' looking for beginning of value
       	line: auto-detection not supported
       	parquet: auto-detection requires seekable input
+      	tsv: line 1: delimiter '\t' not found
       	vng: auto-detection requires seekable input
       	zeek: line 1: bad types/fields definition in zeek header
       	zjson: line 1: malformed ZJSON: bad type object: "This file contains no records.": unpacker error parsing JSON: invalid character 'T' looking for beginning of value

@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
@@ -205,60 +203,36 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 		filter, chain := matchFilter(chain)
 		switch op := seq[0].(type) {
 		case *dag.PoolScan:
-			seq = dag.Seq{}
-			if os.Getenv("ZED_USE_VECTOR") != "" {
-				// TODO Decide whether to use vectors based on whether zng files exist and whether sorting is needed.
-				seq = dag.Seq{
-					&dag.VecLister{
-						Kind:   "VecLister",
-						Pool:   op.ID,
-						Commit: op.Commit,
-					},
-					&dag.VecSeqScan{
-						Kind: "VecSeqScan",
-						Pool: op.ID,
-					},
-				}
-				if filter != nil {
-					// TODO Push filter into VecLister and VecSeqScan where possible.
-					seq = append(seq,
-						&dag.Filter{
-							Kind: "Filter",
-							Expr: filter,
-						})
-				}
-			} else {
-				// Here we transform a PoolScan into a Lister followed by one or more chains
-				// of slicers and sequence scanners.
-				lister := &dag.Lister{
-					Kind:   "Lister",
-					Pool:   op.ID,
-					Commit: op.Commit,
-				}
-				// Check to see if we can add a range pruner when the pool key is used
-				// in a normal filtering operation.
-				sortKey, err := o.sortKeyOfSource(op)
-				if err != nil {
-					return nil, err
-				}
-				lister.KeyPruner = maybeNewRangePruner(filter, sortKey)
-				seq = dag.Seq{lister}
-				_, _, orderRequired, _, err := o.concurrentPath(chain, sortKey)
-				if err != nil {
-					return nil, err
-				}
-				if orderRequired {
-					seq = append(seq, &dag.Slicer{Kind: "Slicer"})
-				}
-				seq = append(seq, &dag.SeqScan{
-					Kind:      "SeqScan",
-					Pool:      op.ID,
-					Filter:    filter,
-					KeyPruner: lister.KeyPruner,
-				})
+			// Here we transform a PoolScan into a Lister followed by one or more chains
+			// of slicers and sequence scanners.  We'll eventually choose other configurations
+			// here based on metadata and availability of VNG.
+			lister := &dag.Lister{
+				Kind:   "Lister",
+				Pool:   op.ID,
+				Commit: op.Commit,
 			}
+			// Check to see if we can add a range pruner when the pool key is used
+			// in a normal filtering operation.
+			sortKey, err := o.sortKeyOfSource(op)
+			if err != nil {
+				return nil, err
+			}
+			lister.KeyPruner = maybeNewRangePruner(filter, sortKey)
+			seq = dag.Seq{lister}
+			_, _, orderRequired, _, err := o.concurrentPath(chain, sortKey)
+			if err != nil {
+				return nil, err
+			}
+			if orderRequired {
+				seq = append(seq, &dag.Slicer{Kind: "Slicer"})
+			}
+			seq = append(seq, &dag.SeqScan{
+				Kind:      "SeqScan",
+				Pool:      op.ID,
+				Filter:    filter,
+				KeyPruner: lister.KeyPruner,
+			})
 			seq = append(seq, chain...)
-
 		case *dag.FileScan:
 			op.Filter = filter
 			seq = append(dag.Seq{op}, chain...)
@@ -274,7 +248,7 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 				// Delete the downstream operators when we are tapping the object list.
 				seq = dag.Seq{op}
 			}
-		case *kernel.Reader:
+		case *dag.DefaultScan:
 			op.Filter = filter
 			seq = append(dag.Seq{op}, chain...)
 		}
@@ -385,7 +359,7 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 			sortKey = order.Nil
 		}
 		return []order.SortKey{sortKey}, nil
-	case *dag.PoolScan, *dag.Lister, *dag.SeqScan, *kernel.Reader:
+	case *dag.PoolScan, *dag.Lister, *dag.SeqScan, *dag.DefaultScan:
 		out, err := o.sortKeyOfSource(op)
 		return []order.SortKey{out}, err
 	default:
@@ -396,6 +370,8 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 
 func (o *Optimizer) sortKeyOfSource(op dag.Op) (order.SortKey, error) {
 	switch op := op.(type) {
+	case *dag.DefaultScan:
+		return op.SortKey, nil
 	case *dag.FileScan:
 		return op.SortKey, nil
 	case *dag.HTTPScan:
@@ -414,8 +390,6 @@ func (o *Optimizer) sortKeyOfSource(op dag.Op) (order.SortKey, error) {
 			return o.sortKey(op.Pool)
 		}
 		return order.Nil, nil //XXX is this right?
-	case *kernel.Reader:
-		return op.SortKey, nil
 	default:
 		return order.Nil, fmt.Errorf("internal error: unknown source type %T", op)
 	}
@@ -457,8 +431,8 @@ func (o *Optimizer) Parallelize(seq dag.Seq, n int) (dag.Seq, error) {
 				front.Append(slicer)
 			}
 			tail = rest
-		} else if reader, ok := seq[0].(*kernel.Reader); ok {
-			front.Append(reader)
+		} else if scan, ok := seq[0].(*dag.DefaultScan); ok {
+			front.Append(scan)
 			tail = seq[1:]
 		} else {
 			return seq, nil

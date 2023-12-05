@@ -8,23 +8,23 @@ import (
 )
 
 type Reader struct {
-	reader *vng.Reader
+	object *vng.Object
 	// TODO Demand should not be public but currently needed for testing.
 	Demand demand.Demand
 	// Initially nil
 	materializer *Materializer
 }
 
-func NewReader(reader *vng.Reader, demandOut demand.Demand) zio.Reader {
+func NewReader(object *vng.Object, demandOut demand.Demand) zio.Reader {
 	return &Reader{
-		reader: reader,
+		object: object,
 		Demand: demandOut,
 	}
 }
 
 func (r *Reader) Read() (*zed.Value, error) {
 	if r.materializer == nil {
-		vector, err := Read(r.reader, r.Demand)
+		vector, err := Read(r.object, r.Demand)
 		if err != nil {
 			return nil, err
 		}

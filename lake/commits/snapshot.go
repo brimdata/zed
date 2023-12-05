@@ -25,7 +25,6 @@ type View interface {
 	SelectAll() DataObjects
 	SelectIndexes(extent.Span, order.Which) []*index.Object
 	SelectAllIndexes() []*index.Object
-	SelectAllVectors() []ksuid.KSUID
 }
 
 type Writeable interface {
@@ -187,14 +186,6 @@ func (s *Snapshot) SelectIndexes(scan extent.Span, order order.Which) []*index.O
 
 func (s *Snapshot) SelectAllIndexes() []*index.Object {
 	return s.indexes.All()
-}
-
-func (s *Snapshot) SelectAllVectors() []ksuid.KSUID {
-	ids := make([]ksuid.KSUID, 0, len(s.vectors))
-	for id := range s.vectors {
-		ids = append(ids, id)
-	}
-	return ids
 }
 
 func (s *Snapshot) Unindexed(rules []index.Rule) map[ksuid.KSUID][]index.Rule {

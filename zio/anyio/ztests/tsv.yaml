@@ -1,0 +1,17 @@
+# This test purposely has two null values to test the issue found in
+# brimdata/zed#4911.
+script: |
+  zq - | zq -f tsv -
+
+inputs:
+  - name: stdin
+    data: &stdin |
+      #	Year	Winery
+      1	2019	Brutocao
+      2		
+      3	2020	Castoro
+      4	2021	"[""baz""]"
+
+outputs:
+  - name: stdout
+    data: *stdin

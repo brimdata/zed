@@ -333,6 +333,9 @@ func (r *Root) CreatePool(ctx context.Context, name string, sortKey order.SortKe
 	if thresh == 0 {
 		thresh = data.DefaultThreshold
 	}
+	if len(sortKey.Keys) > 1 {
+		return nil, errors.New("multiple pool keys not supported")
+	}
 	config := pools.NewConfig(name, sortKey, thresh, seekStride)
 	if err := CreatePool(ctx, r.engine, r.logger, r.path, config); err != nil {
 		return nil, err

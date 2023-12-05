@@ -12,9 +12,9 @@ grep(<pattern> [, e: any]) -> bool
 
 The _grep_ function searches all of the strings in its input value `e`
 (or `this` if `e` is not given)
- using the `<pattern>` argument, which must be a
+ using the `<pattern>` argument, which can be a
 [regular expression](../search-expressions.md#regular-expressions),
-[glob pattern](../search-expressions.md#globs), or string literal.
+[glob pattern](../search-expressions.md#globs), or string.
 If the pattern matches for any string, then the result is `true`.  Otherwise, it is `false`.
 
 > Note that string matches are case insensitive while regular expression

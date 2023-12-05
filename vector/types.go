@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
+	vngvector "github.com/brimdata/zed/vng/vector"
 )
 
 type vector interface {
@@ -35,9 +36,11 @@ var _ vector = (*uint64s)(nil)
 
 var _ vector = (*arrays)(nil)
 var _ vector = (*constants)(nil)
+var _ vector = (*dict)(nil)
 var _ vector = (*maps)(nil)
 var _ vector = (*nulls)(nil)
 var _ vector = (*records)(nil)
+var _ vector = (*sets)(nil)
 var _ vector = (*unions)(nil)
 
 // TODO Use bitset.
@@ -134,6 +137,11 @@ type constants struct {
 	bytes []byte
 }
 
+type dict struct {
+	dict []vngvector.DictEntry
+	tags []byte
+}
+
 type maps struct {
 	lengths []int64
 	keys    vector
@@ -148,6 +156,11 @@ type nulls struct {
 
 type records struct {
 	fields []vector
+}
+
+type sets struct {
+	lengths []int64
+	elems   vector
 }
 
 type unions struct {

@@ -15,13 +15,13 @@ import (
 
 var Cmd = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-orderby key[,key...][:asc|:desc]] name",
+	Usage: "create [-orderby key[:asc|:desc]] name",
 	Short: "create a new data pool",
 	Long: `
-The lake create command creates new pools.  One or more pool keys may be specified
-as the sort keys (primary, secondary, etc) of the data stored in the pool.
-The prefix ":asc" or ":desc" appearing after the comma-separated list of
-keys indicates the sort order.  If no sort order is given, ascending is assumed.
+The lake create command creates new pools.  A pool key may be specified
+as the sort key of the data stored in the pool. The prefix ":asc" or ":desc"
+appearing after the specified key indicates the sort order.  If no sort
+order is given, ascending is assumed.
 
 The single argument specifies the name for the pool.
 
@@ -53,7 +53,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.thresh = data.DefaultThreshold
 	f.Var(&c.thresh, "S", "target size of pool data objects, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.use, "use", false, "set created pool as the current pool")
-	f.StringVar(&c.sortKey, "orderby", "ts:desc", "comma-separated pool keys with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
+	f.StringVar(&c.sortKey, "orderby", "ts:desc", "pool key with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
 	return c, nil
 }
 

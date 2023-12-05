@@ -29,10 +29,8 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 		argmax = -1
 		f = &Coalesce{}
 	case "grep":
-		// We special case grep here since a syntax error with the
-		// special grep form will make it look like a function call
-		// and we don't want the error to say unknown function.
-		return nil, nil, errors.New("syntax error")
+		argmax = 2
+		f = &Grep{zctx: zctx}
 	case "grok":
 		argmin, argmax = 2, 3
 		f = newGrok(zctx)
@@ -190,7 +188,7 @@ func CheckArgCount(narg int, argmin int, argmax int) error {
 // signatures so the return type can be introspected.
 func HasBoolResult(name string) bool {
 	switch name {
-	case "has", "has_error", "is_error", "is", "missing", "cidr_match":
+	case "grep", "has", "has_error", "is_error", "is", "missing", "cidr_match":
 		return true
 	}
 	return false

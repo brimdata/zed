@@ -552,6 +552,7 @@ The following table shows the supported MIME types and where they can be used.
 | Line             | yes       | no       | `application/x-line`                  |
 | NDJSON           | no        | yes      | `application/x-ndjson`                |
 | Parquet          | yes       | yes      | `application/x-parquet`               |
+| TSV              | yes       | yes      | `text/tab-separated-values`           |
 | VNG              | yes       | yes      | `application/x-vng`                   |
 | Zeek             | yes       | yes      | `application/x-zeek`                  |
 | ZJSON            | yes       | yes      | `application/x-zjson`                 |

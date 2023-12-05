@@ -1,0 +1,14 @@
+script: |
+  zc -C -s 'func h(e): ( has(e) ) h(foo)'
+
+outputs:
+  - name: stdout
+    data: |
+      reader
+      | (
+        func h(e): (
+          has(e)
+        )
+        
+        where h(foo)
+      )

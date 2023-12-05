@@ -164,9 +164,6 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 	case *ast.Pass:
 		//XXX just connect parent
 		return []dag.Op{dag.PassOp}, nil
-	case *kernel.Reader:
-		// kernel.Reader implements both ast.Source and dag.Op
-		return []dag.Op{p}, nil
 	default:
 		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
 	}
@@ -843,19 +840,20 @@ func (a *analyzer) singletonAgg(agg ast.Assignment, seq dag.Seq) dag.Seq {
 	if err != nil {
 		return nil
 	}
-	yield := &dag.Yield{
-		Kind: "Yield",
-	}
 	this, ok := out.LHS.(*dag.This)
 	if !ok || len(this.Path) != 1 {
 		return nil
 	}
-	yield.Exprs = append(yield.Exprs, this)
-	seq = append(seq, &dag.Summarize{
-		Kind: "Summarize",
-		Aggs: []dag.Assignment{out},
-	})
-	return append(seq, yield)
+	return append(seq,
+		&dag.Summarize{
+			Kind: "Summarize",
+			Aggs: []dag.Assignment{out},
+		},
+		&dag.Yield{
+			Kind:  "Yield",
+			Exprs: []dag.Expr{this},
+		},
+	)
 }
 
 func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
@@ -1014,7 +1012,7 @@ func (a *analyzer) semOpExpr(e ast.Expr, seq dag.Seq) (dag.Seq, error) {
 	if err != nil {
 		return nil, err
 	}
-	if isBool(out) {
+	if a.isBool(out) {
 		return append(seq, dag.NewFilter(out)), nil
 	}
 	return append(seq, &dag.Yield{
@@ -1023,12 +1021,12 @@ func (a *analyzer) semOpExpr(e ast.Expr, seq dag.Seq) (dag.Seq, error) {
 	}), nil
 }
 
-func isBool(e dag.Expr) bool {
+func (a *analyzer) isBool(e dag.Expr) bool {
 	switch e := e.(type) {
 	case *dag.Literal:
 		return e.Value == "true" || e.Value == "false"
 	case *dag.UnaryExpr:
-		return isBool(e.Operand)
+		return a.isBool(e.Operand)
 	case *dag.BinaryExpr:
 		switch e.Op {
 		case "and", "or", "in", "==", "!=", "<", "<=", ">", ">=":
@@ -1037,8 +1035,12 @@ func isBool(e dag.Expr) bool {
 			return false
 		}
 	case *dag.Conditional:
-		return isBool(e.Then) && isBool(e.Else)
+		return a.isBool(e.Then) && a.isBool(e.Else)
 	case *dag.Call:
+		// If udf recurse to inner expression.
+		if f, _ := a.scope.LookupExpr(e.Name); f != nil {
+			return a.isBool(f.(*dag.Func).Expr)
+		}
 		if e.Name == "cast" {
 			if len(e.Args) != 2 {
 				return false

@@ -3,7 +3,6 @@ package zfmt
 import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zson"
 )
@@ -472,6 +471,14 @@ func (c *canonDAG) op(p dag.Op) {
 		c.next()
 		c.write("yield ")
 		c.exprs(p.Exprs)
+	case *dag.DefaultScan:
+		c.next()
+		c.write("reader")
+		if p.Filter != nil {
+			c.write(" filter (")
+			c.expr(p.Filter, "")
+			c.write(")")
+		}
 	case *dag.FileScan:
 		c.next()
 		c.write("file %s", p.Path)
@@ -507,14 +514,6 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Pass:
 		c.next()
 		c.write("pass")
-	case *kernel.Reader:
-		c.next()
-		c.write("reader")
-		if p.Filter != nil {
-			c.write(" filter (")
-			c.expr(p.Filter, "")
-			c.write(")")
-		}
 	default:
 		c.next()
 		c.open("unknown proc: %T", p)
