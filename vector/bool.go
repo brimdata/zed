@@ -12,7 +12,7 @@ type Bool struct {
 	Nulls  Nullmask
 }
 
-var _ Any = (*Int)(nil)
+var _ Any = (*Bool)(nil)
 
 func NewBool(typ zed.Type, vals []bool, nulls Nullmask) *Bool {
 	return &Bool{Typ: typ, Values: vals, Nulls: nulls}
