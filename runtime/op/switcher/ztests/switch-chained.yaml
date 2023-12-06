@@ -1,23 +1,19 @@
 zed: |
-  switch foo (
-    case "Ex" => foo := 5
-    case "Gd" => foo := 4
-    case "TA" => foo := 3
-    case "Fa" => foo := 2
-    case "Po" => foo := 1
-    default => foo := 0
+  switch this (
+    case 0 => pass
+    case 1 => yield 2
   )
-  | switch bar (
-    case "Ex" => bar := 5
-    case "Gd" => bar := 4
-    case "TA" => bar := 3
-    case "Fa" => bar := 2
-    case "Po" => bar := 1
-    default => bar := 0
+  | switch this (
+    case 0 => pass
+    case 2 => yield 3
+  )
+  | switch (
+    case this==0 => pass
+    case this==3 => yield 4
   )
 
 input: |
-  {foo:"Gd",bar:"Fa"}
+  1
 
 output: |
-  {foo:4,bar:2}
+  4
