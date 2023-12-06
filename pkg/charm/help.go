@@ -2,7 +2,6 @@ package charm
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/brimdata/zed/pkg/terminal"
@@ -55,7 +54,7 @@ func header(heading string) string {
 func helpItem(heading, body string) {
 	hdr := header(heading)
 	body = hdr + "\n" + tab + body + "\n\n"
-	fmt.Fprint(os.Stdout, body)
+	fmt.Print(body)
 }
 
 func helpDesc(heading, body string) {
@@ -66,14 +65,14 @@ func helpDesc(heading, body string) {
 	if len(body) > lineWidth {
 		body = FormatParagraph(body, tab, lineWidth)
 	}
-	fmt.Fprint(os.Stdout, hdr+"\n"+body)
+	fmt.Print(hdr+"\n"+body)
 }
 
 func helpList(heading string, lines []string) {
 	hdr := header(heading)
 	body := strings.Join(lines, "\n"+tab)
 	body = hdr + "\n" + tab + body + "\n\n"
-	fmt.Fprint(os.Stdout, body)
+	fmt.Print(body)
 }
 
 func getCommands(target *Spec, vflag bool) []string {
