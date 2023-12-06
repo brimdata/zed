@@ -31,8 +31,8 @@ that can be referenced in any pattern. The included named patterns can be seen
 
 Parsing a simple log line using the builtin named patterns:
 ```mdtest-command
-echo '"2020-09-16T04:20:42.45+01:00 DEBUG This is a sample debug log message"' \
-  | zq -Z 'yield grok("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}", this)' -
+echo '"2020-09-16T04:20:42.45+01:00 DEBUG This is a sample debug log message"' |
+  zq -Z 'yield grok("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}", this)' -
 ```
 =>
 ```mdtest-output
