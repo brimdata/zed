@@ -35,7 +35,7 @@ func loadPrimitive(typ zed.Type, m *meta.Primitive, r io.ReaderAt) (vector.Any, 
 		bytes = b
 	}
 	switch typ := typ.(type) {
-	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64, *zed.TypeOfTime:
+	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
 		//XXX put valcnt in vng meta and use vector allocator
 		var vals []uint64
 		var nullslots []uint32
@@ -50,7 +50,7 @@ func loadPrimitive(typ zed.Type, m *meta.Primitive, r io.ReaderAt) (vector.Any, 
 			}
 		}
 		return vector.NewUint(typ, vals, vector.NewNullmask(nullslots, len(vals))), nil
-	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration:
+	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
 		//XXX put valcnt in vng meta and use vector allocator
 		var vals []int64
 		var nullslots []uint32
