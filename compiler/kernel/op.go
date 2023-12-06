@@ -453,14 +453,15 @@ func (b *Builder) compileFuncs(fns []*dag.Func) error {
 }
 
 func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	if len(parents) != 1 {
-		return nil, errors.New("expression switch has multiple parents")
+	parent := parents[0]
+	if len(parents) > 1 {
+		parent = combine.New(b.octx, parents)
 	}
 	e, err := b.compileExpr(swtch.Expr)
 	if err != nil {
 		return nil, err
 	}
-	s := exprswitch.New(b.octx, parents[0], e)
+	s := exprswitch.New(b.octx, parent, e)
 	var exits []zbuf.Puller
 	for _, c := range swtch.Cases {
 		var val *zed.Value
@@ -483,22 +484,20 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 }
 
 func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	n := len(swtch.Cases)
-	if len(parents) == 1 {
-		// Single parent: insert a switcher and wire to each branch.
-		switcher := switcher.New(b.octx, parents[0])
-		parents = []zbuf.Puller{}
-		for _, c := range swtch.Cases {
-			f, err := b.compileExpr(c.Expr)
-			if err != nil {
-				return nil, fmt.Errorf("compiling switch case filter: %w", err)
-			}
-			sc := switcher.AddCase(f)
-			parents = append(parents, sc)
-		}
+	parent := parents[0]
+	if len(parents) > 1 {
+		parent = combine.New(b.octx, parents)
 	}
-	if len(parents) != n {
-		return nil, fmt.Errorf("%d parents for switch with %d branches", len(parents), len(swtch.Cases))
+	n := len(swtch.Cases)
+	switcher := switcher.New(b.octx, parent)
+	parents = []zbuf.Puller{}
+	for _, c := range swtch.Cases {
+		f, err := b.compileExpr(c.Expr)
+		if err != nil {
+			return nil, fmt.Errorf("compiling switch case filter: %w", err)
+		}
+		sc := switcher.AddCase(f)
+		parents = append(parents, sc)
 	}
 	var ops []zbuf.Puller
 	for k := 0; k < n; k++ {
