@@ -5,21 +5,21 @@
 ### Synopsis
 
 ```
-grok(pattern: string, s: string) -> any
-grok(pattern: string, s: string, definitions: string) -> any
+grok(p: string, s: string) -> any
+grok(p: string, s: string, definitions: string) -> any
 ```
 
 ### Description
 
-The _grok_ function parses a string `s` using a grok pattern and returns
-a record containing the parsed fields. The syntax for `pattern`
+The _grok_ function parses a string `s` using grok pattern `p` and returns
+a record containing the parsed fields. The syntax for pattern `p`
 is `{%pattern:field_name}` where _pattern_ is the name of the pattern
 to match in `s` and _field_name_ is the resultant field name of the capture
 value.
 
 When provided with three arguments, `definitions` is a string
 of named patterns in the format `PATTERN_NAME PATTERN` each separated by newlines.
-The named patterns can then be referenced in the `pattern` argument.
+The named patterns can then be referenced in argument `p`.
 
 #### Included Patterns
 
