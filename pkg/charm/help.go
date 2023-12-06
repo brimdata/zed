@@ -65,7 +65,7 @@ func helpDesc(heading, body string) {
 	if len(body) > lineWidth {
 		body = FormatParagraph(body, tab, lineWidth)
 	}
-	fmt.Print(hdr+"\n"+body)
+	fmt.Print(hdr + "\n" + body)
 }
 
 func helpList(heading string, lines []string) {
