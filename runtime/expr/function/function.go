@@ -31,6 +31,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "grep":
 		argmax = 2
 		f = &Grep{zctx: zctx}
+	case "grok":
+		argmin, argmax = 2, 3
+		f = newGrok(zctx)
 	case "len":
 		f = &LenFn{zctx: zctx}
 	case "abs":

@@ -28,6 +28,7 @@ Zed's [primitive types](../../formats/zed.md#1-primitive-types), e.g.,
 * [flatten](flatten.md) - transform a record into a flattened map
 * [floor](floor.md) - floor of a number
 * [grep](grep.md) - search strings inside of values
+* [grok](grok.md) - parse a string into a structured record
 * [has](has.md) - test existence of values
 * [hex](hex.md) - encode/decode hexadecimal strings
 * [has_error](has_error.md) - test if a value has an error
