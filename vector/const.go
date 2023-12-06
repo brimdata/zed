@@ -2,6 +2,7 @@ package vector
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
 )
 
 type Const struct {
@@ -21,7 +22,16 @@ func (*Const) Ref()   {}
 func (*Const) Unref() {}
 
 func (c *Const) NewBuilder() Builder {
-	return nil //XXX
+	bytes := c.val.Bytes()
+	var voff uint32
+	return func(b *zcode.Builder) bool {
+		if voff >= c.len {
+			return false
+		}
+		b.Append(bytes)
+		voff++
+		return true
+	}
 }
 
 func (c *Const) Length() int {
