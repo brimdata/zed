@@ -26,7 +26,7 @@ pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
 
 Install the version compatible with a local `zed` like this:
 ```sh
-pip3 install "git+https://github.com/brimdata/zed@$(zed -version | cut -d ' ' -f 2)#subdirectory=python/zed"
+pip3 install "git+https://github.com/brimdata/zed@v$(zed -version | cut -d ' ' -f 2)#subdirectory=python/zed"
 ```
 
 ## Example
