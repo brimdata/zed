@@ -66,8 +66,7 @@ func (s *Scope) DefineConst(zctx *zed.Context, name string, def dag.Expr) error 
 		Kind:  "Literal",
 		Value: zson.FormatValue(val),
 	}
-	s.DefineAs(name, literal)
-	return nil
+	return s.DefineAs(name, literal)
 }
 
 func (s *Scope) LookupExpr(name string) (dag.Expr, error) {
