@@ -146,6 +146,11 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Cflag bool   `json:"cflag"`
 	}
+	// Vectorize executes its body using the vector engine.
+	Vectorize struct {
+		Kind string `json:"kind" unpack:""`
+		Body Seq    `json:"body"`
+	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
@@ -165,10 +170,12 @@ type (
 		Kind string `json:"kind" unpack:""`
 	}
 	SeqScan struct {
-		Kind      string      `json:"kind" unpack:""`
-		Pool      ksuid.KSUID `json:"pool"`
-		Filter    Expr        `json:"filter"`
-		KeyPruner Expr        `json:"key_pruner"`
+		Kind      string       `json:"kind" unpack:""`
+		Pool      ksuid.KSUID  `json:"pool"`
+		Commit    ksuid.KSUID  `json:"commit"`
+		Fields    []field.Path `json:"fields"`
+		Filter    Expr         `json:"filter"`
+		KeyPruner Expr         `json:"key_pruner"`
 	}
 	Deleter struct {
 		Kind      string      `json:"kind" unpack:""`
@@ -296,6 +303,7 @@ func (*Join) OpNode()      {}
 func (*Shape) OpNode()     {}
 func (*Explode) OpNode()   {}
 func (*Over) OpNode()      {}
+func (*Vectorize) OpNode() {}
 func (*Yield) OpNode()     {}
 func (*Merge) OpNode()     {}
 func (*Combine) OpNode()   {}

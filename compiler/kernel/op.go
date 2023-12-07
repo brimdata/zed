@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
@@ -36,6 +37,7 @@ import (
 	"github.com/brimdata/zed/runtime/op/traverse"
 	"github.com/brimdata/zed/runtime/op/uniq"
 	"github.com/brimdata/zed/runtime/op/yield"
+	"github.com/brimdata/zed/runtime/vam"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -299,6 +301,8 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return meta.NewDeleter(b.octx, parent, pool, filter, pruner, b.progress, b.deletes), nil
 	case *dag.Load:
 		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
+	case *dag.Vectorize:
+		return b.compileVectorize(v.Body, parent)
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
@@ -663,4 +667,31 @@ func isEntry(seq dag.Seq) bool {
 		})
 	}
 	return false
+}
+
+func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller, error) {
+	vamParent := vam.NewDematerializer(parent)
+	for _, o := range seq {
+		switch o := o.(type) {
+		case *dag.SeqScan:
+			pool, err := b.lookupPool(o.Pool)
+			if err != nil {
+				return nil, err
+			}
+			//XXX check VectorCache not nil
+			vamParent = vam.NewVecScanner(b.octx, b.source.Lake().VectorCache(), vamParent.(zbuf.Puller), pool, o.Fields, nil, nil)
+		case *dag.Summarize:
+			if name, ok := optimizer.IsCountByString(o); ok {
+				vamParent = vam.NewCountByString(b.octx.Zctx, vamParent, name)
+			} else if name, ok := optimizer.IsSum(o); ok {
+				vamParent = vam.NewSum(b.octx.Zctx, vamParent, name)
+			} else {
+				return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
+			}
+
+		default:
+			return nil, fmt.Errorf("internal error: unknown dag.Op: %#v", o)
+		}
+	}
+	return vam.NewMaterializer(vamParent), nil
 }

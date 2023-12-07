@@ -3,28 +3,24 @@ package vcache
 import (
 	"io"
 
-	"github.com/brimdata/zed/vng/vector"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/vector"
+	meta "github.com/brimdata/zed/vng/vector"
 )
 
-type Nulls struct {
-	// The runs array encodes the run lengths of values and nulls in
-	// the same fashion as the VNG Nulls vector.
-	// This data structure provides a nice way to creator an iterator closure
-	// and (somewhat) efficiently build all the values that comprise a field
-	// into an zcode.Builder while allowing projections to intermix the calls
-	// to the iterator.  There's probably a better data structure for this
-	// but this is a prototype for now.
-	runs   []int
-	values Vector
-}
-
-func NewNulls(nulls *vector.Nulls, values Vector, r io.ReaderAt) (*Nulls, error) {
+func loadNulls(any *vector.Any, typ zed.Type, path field.Path, m *meta.Nulls, r io.ReaderAt) (vector.Any, error) {
 	// The runlengths are typically small so we load them with the metadata
 	// and don't bother waiting for a reference.
-	runlens := vector.NewInt64Reader(nulls.Runs, r)
-	var runs []int
+	runlens := meta.NewInt64Reader(m.Runs, r) //XXX 32-bit reader?
+	var off, nulls uint32
+	null := true
+	//XXX finish this loop... need to remove slots covered by nulls and subtract
+	// cumulative number of nulls for each surviving value slot.
+	// In zed, nulls are generally bad and not really needed because we don't
+	// need super-wide uber schemas with lots of nulls.
 	for {
+		//XXX need nullslots array to build vector.Nullmask and need a way to pass down Nullmask XXX
 		run, err := runlens.Read()
 		if err != nil {
 			if err == io.EOF {
@@ -32,37 +28,12 @@ func NewNulls(nulls *vector.Nulls, values Vector, r io.ReaderAt) (*Nulls, error)
 			}
 			return nil, err
 		}
-		runs = append(runs, int(run))
-	}
-	return &Nulls{
-		runs:   runs,
-		values: values,
-	}, nil
-}
-
-func (n *Nulls) NewIter(reader io.ReaderAt) (iterator, error) {
-	null := true
-	var run, off int
-	values, err := n.values.NewIter(reader)
-	if err != nil {
-		return nil, err
-	}
-	return func(b *zcode.Builder) error {
-		for run == 0 {
-			if off >= len(n.runs) {
-				//XXX this shouldn't happen... call panic?
-				b.Append(nil)
-				return nil
-			}
-			null = !null
-			run = n.runs[off]
-			off++
-		}
-		run--
+		off += uint32(run)
 		if null {
-			b.Append(nil)
-			return nil
+			nulls += uint32(run)
 		}
-		return values(b)
-	}, nil
+		null = !null
+	}
+	//newSlots := slots //XXX need to create this above
+	return loadVector(any, typ, path, m.Values, r)
 }

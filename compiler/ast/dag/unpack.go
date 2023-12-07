@@ -60,6 +60,7 @@ var unpacker = unpack.New(
 	UnaryExpr{},
 	Uniq{},
 	Var{},
+	Vectorize{},
 	VectorValue{},
 	Yield{},
 )

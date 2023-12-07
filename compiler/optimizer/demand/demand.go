@@ -1,5 +1,7 @@
 package demand
 
+import "github.com/brimdata/zed/pkg/field"
+
 type Demand interface {
 	isDemand()
 }
@@ -97,4 +99,22 @@ func GetKey(demand Demand, key string) Demand {
 	default:
 		panic("Unreachable")
 	}
+}
+
+func Fields(d Demand) []field.Path {
+	keys, ok := d.(keys)
+	if !ok {
+		return nil
+	}
+	var fields []field.Path
+	for k, v := range keys {
+		if fs := Fields(v); len(fs) > 0 {
+			for _, f := range fs {
+				fields = append(fields, append(field.Path{k}, f...))
+			}
+		} else {
+			fields = append(fields, field.Path{k})
+		}
+	}
+	return fields
 }

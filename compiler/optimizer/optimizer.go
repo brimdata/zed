@@ -229,6 +229,7 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 			seq = append(seq, &dag.SeqScan{
 				Kind:      "SeqScan",
 				Pool:      op.ID,
+				Commit:    op.Commit,
 				Filter:    filter,
 				KeyPruner: lister.KeyPruner,
 			})

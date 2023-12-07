@@ -5,33 +5,32 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/vng/vector"
-	"github.com/brimdata/zed/zcode"
-	"golang.org/x/sync/errgroup"
+	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/vector"
+	meta "github.com/brimdata/zed/vng/vector"
+	"github.com/brimdata/zed/zson"
 )
 
-type Union struct {
-	values []Vector
-	tags   []int32
-	segmap []vector.Segment
-}
-
-func NewUnion(union *vector.Union, r io.ReaderAt) (*Union, error) {
-	values := make([]Vector, 0, len(union.Values))
-	for _, val := range union.Values {
-		v, err := NewVector(val, r)
+func loadUnion(any *vector.Any, typ *zed.TypeUnion, path field.Path, m *meta.Union, r io.ReaderAt) (*vector.Union, error) {
+	if *any == nil {
+		*any = vector.NewUnion(typ)
+	}
+	vec, ok := (*any).(*vector.Union)
+	if !ok {
+		return nil, fmt.Errorf("system error: vcache.loadUnion not a union type %q", zson.String(vec.Typ))
+	}
+	//XXX should just load paths we want here?  for now, load everything.
+	for k := range vec.Values {
+		var err error
+		_, err = loadVector(&vec.Values[k], typ.Types[k], path, m.Values[k], r)
 		if err != nil {
 			return nil, err
 		}
-		values = append(values, v)
 	}
-	return &Union{
-		values: values,
-		segmap: union.Tags,
-	}, nil
+	return vec, nil
 }
 
+/*
 func (u *Union) NewIter(reader io.ReaderAt) (iterator, error) {
 	if u.tags == nil {
 		tags, err := vng.ReadIntVector(u.segmap, reader)
@@ -73,3 +72,4 @@ func (u *Union) NewIter(reader io.ReaderAt) (iterator, error) {
 		return nil
 	}, nil
 }
+*/

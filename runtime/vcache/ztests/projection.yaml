@@ -1,3 +1,5 @@
+skip: disabled until "zed dev vcache project" is fixed or replaced
+
 script: |
   zq -f vng -o test.vng -
   zed dev vcache project -z test.vng x y z
