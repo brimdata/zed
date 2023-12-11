@@ -1,0 +1,12 @@
+# For non-expression switch statements verify that a semantic error
+# is returned if a case expression is not a boolean expression.
+
+zed: |
+  switch (
+    case has(foo) => yield "has foo"
+    case "bar" => yield "has bar" 
+  )
+
+input: '{}'
+
+errorRE: 'switch: case expression must be a boolean expression'

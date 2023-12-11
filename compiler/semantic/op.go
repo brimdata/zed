@@ -489,6 +489,13 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 					Value: "true",
 				}
 			}
+			// If this is a non-expression switch verify that the case
+			// is a boolean expression.
+			if expr == nil {
+				if !a.isBool(e) {
+					return nil, fmt.Errorf("switch: case expression must be a boolean expression")
+				}
+			}
 			path, err := a.semSeq(c.Path)
 			if err != nil {
 				return nil, err
