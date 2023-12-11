@@ -492,7 +492,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			// If this is a non-expression switch verify that the case
 			// is a boolean expression.
 			if expr == nil {
-				if !a.isBool(e) {
+				if !a.isBool(e, false) {
 					return nil, fmt.Errorf("switch: case expression must be a boolean expression")
 				}
 			}
@@ -1019,7 +1019,7 @@ func (a *analyzer) semOpExpr(e ast.Expr, seq dag.Seq) (dag.Seq, error) {
 	if err != nil {
 		return nil, err
 	}
-	if a.isBool(out) {
+	if a.isBool(out, true) {
 		return append(seq, dag.NewFilter(out)), nil
 	}
 	return append(seq, &dag.Yield{
@@ -1028,25 +1028,29 @@ func (a *analyzer) semOpExpr(e ast.Expr, seq dag.Seq) (dag.Seq, error) {
 	}), nil
 }
 
-func (a *analyzer) isBool(e dag.Expr) bool {
+func (a *analyzer) isBool(e dag.Expr, strict bool) bool {
 	switch e := e.(type) {
 	case *dag.Literal:
 		return e.Value == "true" || e.Value == "false"
 	case *dag.UnaryExpr:
-		return a.isBool(e.Operand)
+		return a.isBool(e.Operand, strict)
 	case *dag.BinaryExpr:
 		switch e.Op {
 		case "and", "or", "in", "==", "!=", "<", "<=", ">", ">=":
 			return true
+		case "[":
+			return !strict
 		default:
 			return false
 		}
+	case *dag.This:
+		return !strict
 	case *dag.Conditional:
-		return a.isBool(e.Then) && a.isBool(e.Else)
+		return a.isBool(e.Then, strict) && a.isBool(e.Else, strict)
 	case *dag.Call:
 		// If udf recurse to inner expression.
 		if f, _ := a.scope.LookupExpr(e.Name); f != nil {
-			return a.isBool(f.(*dag.Func).Expr)
+			return a.isBool(f.(*dag.Func).Expr, strict)
 		}
 		if e.Name == "cast" {
 			if len(e.Args) != 2 {
