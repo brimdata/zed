@@ -39,14 +39,14 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 		length = len(elem.Bytes())
 	case *zed.TypeOfString:
 		length = utf8.RuneCount(elem.Bytes())
-	case *zed.TypeArray:
+	case *zed.TypeArray, *zed.TypeSet:
 		n, err := elem.ContainerLength()
 		if err != nil {
 			panic(err)
 		}
 		length = n
 	default:
-		return s.zctx.WrapError("sliced value is not array, bytes, or string", elem)
+		return s.zctx.WrapError("sliced value is not array, set, bytes, or string", elem)
 	}
 	if elem.IsNull() {
 		return elem
@@ -69,7 +69,7 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	case *zed.TypeOfString:
 		bytes = bytes[utf8PrefixLen(bytes, from):]
 		bytes = bytes[:utf8PrefixLen(bytes, to-from)]
-	case *zed.TypeArray:
+	case *zed.TypeArray, *zed.TypeSet:
 		it := bytes.Iter()
 		for k := 0; k < to && !it.Done(); k++ {
 			if k == from {
