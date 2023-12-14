@@ -53,3 +53,19 @@ func (r *Record) NewBuilder() Builder {
 		return true
 	}
 }
+
+func (r *Record) Key(b []byte, slot int) []byte {
+	panic("TBD")
+}
+
+func (r *Record) Length() int {
+	if len(r.Fields) == 0 {
+		//XXX need to handle vector of {}
+		panic("TBD")
+	}
+	return r.Fields[0].Length()
+}
+
+func (r *Record) Serialize(slot int) *zed.Value {
+	panic("TBD")
+}

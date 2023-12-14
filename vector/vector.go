@@ -4,6 +4,7 @@ import (
 	"github.com/brimdata/zed"
 )
 
+// XXX this isn't right
 type Vector struct {
 	Context *zed.Context
 	Types   []zed.Type

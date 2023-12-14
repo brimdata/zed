@@ -43,3 +43,15 @@ func (u *Union) NewBuilder() Builder {
 		return true
 	}
 }
+
+func (u *Union) Key(b []byte, slot int) []byte {
+	panic("TBD")
+}
+
+func (u *Union) Length() int {
+	return u.Values[0].Length()
+}
+
+func (u *Union) Serialize(slot int) *zed.Value {
+	panic("TBD")
+}

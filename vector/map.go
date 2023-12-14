@@ -47,3 +47,15 @@ func (m *Map) NewBuilder() Builder {
 	}
 
 }
+
+func (m *Map) Key(b []byte, slot int) []byte {
+	panic("TBD")
+}
+
+func (m *Map) Length() int {
+	return m.Keys.Length()
+}
+
+func (m *Map) Serialize(slot int) *zed.Value {
+	panic("TBD")
+}

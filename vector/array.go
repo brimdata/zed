@@ -44,3 +44,15 @@ func (a *Array) NewBuilder() Builder {
 		return true
 	}
 }
+
+func (a *Array) Key([]byte, int) []byte {
+	panic("TBD")
+}
+
+func (a *Array) Length() int {
+	panic("TBD")
+}
+
+func (a *Array) Serialize(int) *zed.Value {
+	panic("TBD")
+}

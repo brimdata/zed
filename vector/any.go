@@ -10,6 +10,9 @@ type Any interface {
 	Ref()
 	Unref()
 	NewBuilder() Builder
+	Key([]byte, int) []byte
+	Serialize(int) *zed.Value
+	Length() int
 }
 
 /* XXX don't need this anymore?  Nullmask carries the nulls without a special vector

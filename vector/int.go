@@ -33,3 +33,23 @@ func (i *Int) NewBuilder() Builder {
 		return false
 	}
 }
+
+func (i *Int) Key(b []byte, slot int) []byte {
+	val := i.Values[slot]
+	b = append(b, byte(val>>(8*7)))
+	b = append(b, byte(val>>(8*6)))
+	b = append(b, byte(val>>(8*5)))
+	b = append(b, byte(val>>(8*4)))
+	b = append(b, byte(val>>(8*3)))
+	b = append(b, byte(val>>(8*2)))
+	b = append(b, byte(val>>(8*1)))
+	return append(b, byte(val>>(8*0)))
+}
+
+func (i *Int) Length() int {
+	return len(i.Values)
+}
+
+func (i *Int) Serialize(slot int) *zed.Value {
+	return zed.NewValue(i.Typ, zed.EncodeInt(i.Values[slot]))
+}

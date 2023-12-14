@@ -1,6 +1,7 @@
 package vector
 
 import (
+	"math"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 )
@@ -41,4 +42,24 @@ func (f *Float) NewBuilder() Builder {
 		off++
 		return true
 	}
+}
+
+func (f *Float) Key(b []byte, slot int) []byte {
+	val := math.Float64bits(f.Values[slot])
+	b = append(b, byte(val>>(8*7)))
+	b = append(b, byte(val>>(8*6)))
+	b = append(b, byte(val>>(8*5)))
+	b = append(b, byte(val>>(8*4)))
+	b = append(b, byte(val>>(8*3)))
+	b = append(b, byte(val>>(8*2)))
+	b = append(b, byte(val>>(8*1)))
+	return append(b, byte(val>>(8*0)))
+}
+
+func (f *Float) Length() int {
+	return len(f.Values)
+}
+
+func (f *Float) Serialize(slot int) *zed.Value {
+	return zed.NewFloat64(f.Values[slot])
 }

@@ -34,3 +34,19 @@ func (b *Bool) NewBuilder() Builder {
 		return false
 	}
 }
+
+func (b *Bool) Key(bytes []byte, slot int) []byte {
+	var v byte
+	if b.Values[slot] {
+		v = 1
+	}
+	return append(bytes, v)
+}
+
+func (b *Bool) Length() int {
+	return len(b.Values)
+}
+
+func (b *Bool) Serialize(slot int) *zed.Value {
+	return zed.NewBool(b.Values[slot])
+}

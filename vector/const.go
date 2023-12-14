@@ -41,3 +41,12 @@ func (c *Const) Length() int {
 func (c *Const) Value() *zed.Value {
 	return c.val
 }
+
+// XXX should Const wrap a single-element vector?
+func (c *Const) Key(b []byte, slot int) []byte {
+	return append(b, c.val.Bytes()...)
+}
+
+func (c *Const) Serialize(slot int) *zed.Value {
+	return c.val
+}
