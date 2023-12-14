@@ -1,0 +1,7 @@
+script: |
+  ! zq 'from ( pool a )'
+
+outputs:
+  - name: stderr
+    data: |
+      zq: no such file: from ( pool a )
