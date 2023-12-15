@@ -619,16 +619,6 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		if err != nil {
 			return nil, err
 		}
-		// We can do collision checking on static paths, so check what we can.
-		var fields field.List
-		for _, a := range assignments {
-			if this, ok := a.LHS.(*dag.This); ok {
-				fields = append(fields, this.Path)
-			}
-		}
-		if err := expr.CheckPutFields(fields); err != nil {
-			return nil, fmt.Errorf("put: %w", err)
-		}
 		return append(seq, &dag.Put{
 			Kind: "Put",
 			Args: assignments,

@@ -94,11 +94,11 @@ func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
 func (c *Cutter) lookupBuilder(ectx Context, in *zed.Value) (*recordBuilderCachedTypes, field.List, error) {
 	paths := c.fieldRefs[:0]
 	for _, p := range c.lvals {
-		path, err := p.Eval(ectx, in)
+		path, err := p.EvalAsRecordPath(ectx, in)
 		if err != nil {
 			return nil, nil, err
 		}
-		if path.IsEmpty() {
+		if len(path) == 0 {
 			return nil, nil, errors.New("'this' not allowed (use record literal)")
 		}
 		paths = append(paths, path)

@@ -1,0 +1,13 @@
+script: |
+  echo '["a","b","c"]' | zq -z 'this[0] := "foo", this[1] := 1, this[2] := "baz"' -
+  echo '|["a","b","c"]|' | zq -z 'this[0] := "foo", this[1] := 1, this[2] := "baz"' -
+  echo '["a",1]' | zq -z 'this[1] := "b"' -
+  echo '[0,{a:{b:1}}]' | zq -z 'this[1]["a"]["b"] := "foo"' -
+
+outputs:
+  - name: stdout
+    data: |
+      ["foo",1,"baz"]
+      |[1,"baz","foo"]|
+      ["a","b"]
+      [0,{a:{b:"foo"}}]

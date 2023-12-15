@@ -70,11 +70,11 @@ func CheckRenameField(src, dst field.Path) error {
 func (r *Renamer) evalFields(ectx Context, this *zed.Value) (field.List, field.List, error) {
 	var srcs, dsts field.List
 	for i := range r.srcs {
-		src, err := r.srcs[i].Eval(ectx, this)
+		src, err := r.srcs[i].EvalAsRecordPath(ectx, this)
 		if err != nil {
 			return nil, nil, err
 		}
-		dst, err := r.dsts[i].Eval(ectx, this)
+		dst, err := r.dsts[i].EvalAsRecordPath(ectx, this)
 		if err != nil {
 			return nil, nil, err
 		}

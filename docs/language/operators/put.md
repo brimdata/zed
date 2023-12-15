@@ -82,5 +82,5 @@ echo '{a:1} 1' | zq -z 'b:=2' -
 =>
 ```mdtest-output
 {a:1,b:2}
-error({message:"put: not a record",on:1})
+error({message:"put: not a puttable element",on:1})
 ```
