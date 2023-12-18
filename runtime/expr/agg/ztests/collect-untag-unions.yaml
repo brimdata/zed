@@ -3,7 +3,7 @@ zed: collect(this)
 input: |
   1((int64,string))
   "foo"((time,string))
-  .5
+  0.5
 
 output: |
   [1,"foo",0.5]
