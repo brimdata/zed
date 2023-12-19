@@ -22,7 +22,7 @@ func (c *Collect) Consume(val *zed.Value) {
 }
 
 func (c *Collect) update(val *zed.Value) {
-	c.values = append(c.values, *val.Copy())
+	c.values = append(c.values, *val.Under(&zed.Value{}).Copy())
 	c.size += len(val.Bytes())
 	for c.size > MaxValueSize {
 		// XXX See issue #1813.  For now we silently discard entries
