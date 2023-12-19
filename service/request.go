@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -43,6 +44,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, c *Core) (*ResponseWrite
 		ResponseWriter: w,
 		Logger:         req.Logger,
 		marshaler:      m,
+		request:        req,
 	}
 	ss := strings.Split(r.Header.Get("Accept"), ",")
 	if len(ss) == 0 {
@@ -215,6 +217,7 @@ type ResponseWriter struct {
 	Logger    *zap.Logger
 	zw        zio.WriteCloser
 	marshaler *zson.MarshalZNGContext
+	request   *Request
 	written   int32
 }
 
@@ -256,6 +259,10 @@ func (w *ResponseWriter) Respond(status int, body interface{}) bool {
 }
 
 func (w *ResponseWriter) Error(err error) {
+	if err == context.Canceled && err == w.request.Context().Err() {
+		w.Logger.Info("Request context canceled")
+		return
+	}
 	status, res := errorResponse(err)
 	if status >= 500 {
 		w.Logger.Warn("Error", zap.Int("status", status), zap.Error(err))
