@@ -8,9 +8,9 @@
 * Canceled client requests to the Zed lake API are now logged at `info` level without stack traces (#4947)
 * Add support for [TSV](https://en.wikipedia.org/wiki/Tab-separated_values) input/output (useful for spreadsheet data) (#4891, #4913, #4912)
 * Add a [`grok()` function](docs/language/functions/grok.md) for parsing text lines (such as logs) into records (#4827)
-* Fix an issue where [`switch` operators](docs/language/operators/switch.md) could not be chained back-to-back a Zed pipeline (#4926)
+* Fix an issue where [`switch` operators](docs/language/operators/switch.md) could not be chained back-to-back in a Zed pipeline (#4926)
 * Fix a panic that occurred if the [`from` operator](docs/language/operators/from.md) was attempted in Zed run with `zq` (#4936)
-* Fix a "invalid union tag" panic that could occur when using the [`collect()` aggregate function](docs/language/aggregates/collect.md) (#4932)
+* Fix an "invalid union tag" panic that could occur when using the [`collect()` aggregate function](docs/language/aggregates/collect.md) (#4932)
 
 ## v1.11.1
 * Fix an issue where loading and querying certain data caused a panic (#4877)
