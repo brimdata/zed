@@ -84,30 +84,3 @@ func Size(r Reader) (int64, error) {
 	}
 	return 0, ErrNotSupported
 }
-
-// NewSeeker provides a seeker implementation on top of Reader.
-// Using a seeker is not optimal as cloud-oriented apps should use
-// application-level framing to do readahead and so forth based that
-// leverages knowledge of the data of the underlying storage objects.
-// This seeker interface is provided for backward compat with libraries
-// like parquet-go that are based on an io.ReadSeeker.
-func NewSeeker(r Reader) (*Seeker, error) {
-	size, err := Size(r)
-	if err != nil {
-		return nil, err
-	}
-	return &Seeker{
-		ReadSeeker: io.NewSectionReader(r, 0, size),
-		Reader:     r,
-	}, nil
-}
-
-type Seeker struct {
-	io.ReadSeeker
-	Reader
-}
-
-// Read resolves the ambiguous selector s.Read to s.ReadSeeker.Read.
-func (s *Seeker) Read(b []byte) (int, error) {
-	return s.ReadSeeker.Read(b)
-}
