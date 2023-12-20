@@ -1,5 +1,3 @@
-skip: disabled until "zed dev vcache copy" is fixed or replaced
-
 script: |
   zq -f vng -o test.vng -
   zed dev vcache copy -z test.vng

@@ -1,23 +1,60 @@
 package vector
 
-type Nullmask []byte //XXX change to uint64
+import (
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zcode"
+)
 
-func NewNullmask(slots []uint32, nvals int) Nullmask {
-	var nulls Nullmask
+type Nulls struct {
+	mem
+	bitmap []byte //XXX change to uint64
+	nvals  int
+	values Any
+}
+
+var _ Any = (*Nulls)(nil)
+
+func NewNulls(slots []uint32, nvals int, values Any) *Nulls {
+	var nulls []byte
 	if len(slots) > 0 {
 		nulls = make([]byte, (nvals+7)/8)
 		for _, slot := range slots {
 			nulls[slot>>3] |= 1 << (slot & 7)
 		}
 	}
-	return nulls
+	return &Nulls{bitmap: nulls, nvals: nvals, values: values}
 }
 
-func (n Nullmask) Has(slot uint32) bool {
-	off := slot / 8
-	if off >= uint32(len(n)) {
+func (n *Nulls) Type() zed.Type {
+	return n.values.Type()
+}
+
+func (n *Nulls) Values() Any {
+	return n.values
+}
+
+func (n *Nulls) NewBuilder() Builder {
+	valueBuilder := n.values.NewBuilder()
+	var off int
+	return func(b *zcode.Builder) bool {
+		if off >= n.nvals {
+			return false
+		}
+		if n.IsNull(off) {
+			b.Append(nil)
+		} else if !valueBuilder(b) {
+			return false
+		}
+		off++
+		return true
+	}
+}
+
+func (n *Nulls) IsNull(slot int) bool {
+	if int(slot) > n.nvals {
 		return false
 	}
+	off := slot / 8
 	pos := slot & 7
-	return (n[off] & (1 << pos)) != 0
+	return n.bitmap[off]&(1<<pos) != 0
 }
