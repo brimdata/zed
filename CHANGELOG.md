@@ -1,3 +1,17 @@
+## v1.12.0
+* Zed CSV output now handles records with the same field names but different types (#4889)
+* The [`grep()` function](docs/language/functions/grep.md) now accepts variables as pattern arguments (#4887)
+* Prevent the creation of multi-key pools in Zed lakes (support for this will be added later) (#4903)
+* Zed CLI help can now be invoked via `--help` and is printed to stdout instead of stderr (#4907)
+* Symbols (e.g., `const` and `type`) may no longer be redefined within the same scope (#4930)
+* [Set types](docs/formats/zed.md#23-set) can now be [sliced](docs/language/expressions.md#slices) (#4939)
+* Canceled client requests to the Zed lake API are now logged at `info` level without stack traces (#4947)
+* Add support for [TSV](https://en.wikipedia.org/wiki/Tab-separated_values) input/output (useful for spreadsheet data) (#4891, #4913, #4912)
+* Add a [`grok()` function](docs/language/functions/grok.md) for parsing text lines (such as logs) into records (#4827)
+* Fix an issue where [`switch` operators](docs/language/operators/switch.md) could not be chained back-to-back in a Zed pipeline (#4926)
+* Fix a panic that occurred if the [`from` operator](docs/language/operators/from.md) was attempted in Zed run with `zq` (#4936)
+* Fix an "invalid union tag" panic that could occur when using the [`collect()` aggregate function](docs/language/aggregates/collect.md) (#4932)
+
 ## v1.11.1
 * Fix an issue where loading and querying certain data caused a panic (#4877)
 
