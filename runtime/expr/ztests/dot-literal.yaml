@@ -1,0 +1,9 @@
+script: |
+  zq -z '{x:{y:"foo"}}.x.y'
+  zq -z '|{"a":"foo"}|.a'
+
+outputs:
+  - name: stdout
+    data: |
+      "foo"
+      "foo"

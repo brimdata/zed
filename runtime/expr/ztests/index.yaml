@@ -1,0 +1,15 @@
+script: |
+  zq -z '["foo","bar"][0]'
+  zq -z '|["foo","bar"]|[1]'
+  zq -z 'func returnArray(): (["foo","bar"]) returnArray()[0]'
+  zq -z 'cast([0,1], <[string]>)[0]'
+  zq -z '{x:"foo"}["x"]'
+
+outputs:
+  - name: stdout
+    data: |
+      "foo"
+      "foo"
+      "foo"
+      "0"
+      "foo"
