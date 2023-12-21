@@ -737,7 +737,6 @@ FuncExpr
       RETURN(makeBinaryExprChain(first, rest))
     }
   / DerefExpr
-  / Primary
 
 FuncGuard = NotFuncs __ "("
 
@@ -788,7 +787,7 @@ Exprs
     }
 
 DerefExpr
-  = !IP6 first:Identifier rest:(Deref)* {
+  = first:Primary rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
 
@@ -810,6 +809,7 @@ Primary
   / Set
   / Map
   / Literal
+  / Identifier
   / "(" __ expr:OverExpr __ ")" { RETURN(expr) }
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
