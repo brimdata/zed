@@ -1,15 +1,19 @@
-script: |
-  zq -z '["foo","bar"][0]'
-  zq -z '|["foo","bar"]|[1]'
-  zq -z 'func returnArray(): (["foo","bar"]) returnArray()[0]'
-  zq -z 'cast([0,1], <[string]>)[0]'
-  zq -z '{x:"foo"}["x"]'
+zed: |
+  func returnArray(): ([1])
+  yield returnArray()[0],
+    cast(["1"],<[int64]>)[0],
+    [1][0],
+    |[1]|[0],
+    |{0:1}|[0],
+    {x:1}["x"]
 
-outputs:
-  - name: stdout
-    data: |
-      "foo"
-      "foo"
-      "foo"
-      "0"
-      "foo"
+input: |
+  null
+  
+output: |
+  1
+  1
+  1
+  1
+  1
+  1
