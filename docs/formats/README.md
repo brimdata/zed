@@ -54,7 +54,7 @@ Each JSON value is self-describing in terms of its
 structure and types, though the JSON type system is limited.
 
 When a sequence of JSON objects is organized into a stream
-(perhaps [separated by newlines](https://en.wikipedia.org/wiki/JSON_streaming#Newline-Delimited_JSON))
+(perhaps [separated by newlines](https://en.wikipedia.org/wiki/JSON_streaming#NDJSON))
 each value can take on any form.
 When all the values have the same form, the JSON sequence
 begins to look like a relational table, but the lack of a comprehensive type system,
