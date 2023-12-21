@@ -1,9 +1,10 @@
-script: |
-  zq -z '{x:{y:"foo"}}.x.y'
-  zq -z '|{"a":"foo"}|.a'
+zed: |
+  yield {x:{y:1}}.x.y,
+    |{"a":"foo"}|.a
 
-outputs:
-  - name: stdout
-    data: |
-      "foo"
-      "foo"
+input: |
+  null
+
+output: |
+  1
+  1
