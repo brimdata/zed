@@ -2,16 +2,16 @@ package vcache
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/zed/vng"
 	meta "github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zson"
 )
 
-func loadUnion(any *vector.Any, typ *zed.TypeUnion, path field.Path, m *meta.Union, r io.ReaderAt) (*vector.Union, error) {
+func (l *loader) loadUnion(any *vector.Any, typ *zed.TypeUnion, path field.Path, m *meta.Union) (*vector.Union, error) {
 	if *any == nil {
 		*any = vector.NewUnion(typ)
 	}
@@ -19,10 +19,15 @@ func loadUnion(any *vector.Any, typ *zed.TypeUnion, path field.Path, m *meta.Uni
 	if !ok {
 		return nil, fmt.Errorf("system error: vcache.loadUnion not a union type %q", zson.String(vec.Typ))
 	}
+	tags, err := vng.ReadIntVector(m.Tags, l.r)
+	if err != nil {
+		return nil, err
+	}
+	vec.Tags = tags
 	//XXX should just load paths we want here?  for now, load everything.
 	for k := range vec.Values {
 		var err error
-		_, err = loadVector(&vec.Values[k], typ.Types[k], path, m.Values[k], r)
+		_, err = l.loadVector(&vec.Values[k], typ.Types[k], path, m.Values[k])
 		if err != nil {
 			return nil, err
 		}

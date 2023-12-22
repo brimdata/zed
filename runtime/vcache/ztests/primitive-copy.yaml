@@ -1,0 +1,53 @@
+# Exercise the logic that builds values from cached non-constant vectors.
+script: |
+  zq -f vng -o test.vng -
+  zed dev vcache copy -z test.vng
+
+inputs:
+  - name: stdin
+    # Two different value per type (except for null) so they won't be encoded as
+    # constant vectors.
+    data: &stdin |
+      8(uint8)
+      80(uint8)
+      16(uint16)
+      1600(uint16)
+      32(uint32)
+      320(uint32)
+      64(uint64)
+      640(uint64)
+      -8(int8)
+      -80(int8)
+      -16(int16)
+      -160(int16)
+      -32(int32)
+      -320(int32)
+      -64
+      -640
+      1h2m3s
+      1h2m30s
+      2022-12-04T00:00:00Z
+      2022-12-04T00:00:01Z
+      16.(float16)
+      160.(float16)
+      32.(float32)
+      320.(float32)
+      64.
+      640.
+      true
+      false
+      0x00
+      0x0000
+      "0"
+      "00"
+      1.2.3.4
+      1.2.3.40
+      1.2.3.0/24
+      1.2.3.0/25
+      <int64>
+      <duration>
+      null
+
+outputs:
+  - name: stdout
+    data: *stdin

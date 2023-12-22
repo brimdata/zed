@@ -9,13 +9,12 @@ type Uint struct {
 	mem
 	Typ    zed.Type
 	Values []uint64
-	Nulls  Nullmask
 }
 
 var _ Any = (*Uint)(nil)
 
-func NewUint(typ zed.Type, vals []uint64, nulls Nullmask) *Uint {
-	return &Uint{Typ: typ, Values: vals, Nulls: nulls}
+func NewUint(typ zed.Type, values []uint64) *Uint {
+	return &Uint{Typ: typ, Values: values}
 }
 
 func (u *Uint) Type() zed.Type {
@@ -24,18 +23,12 @@ func (u *Uint) Type() zed.Type {
 
 func (u *Uint) NewBuilder() Builder {
 	vals := u.Values
-	nulls := u.Nulls
 	var voff int
 	return func(b *zcode.Builder) bool {
 		if voff < len(vals) {
-			if !nulls.Has(uint32(voff)) {
-				b.Append(zed.EncodeUint(vals[voff]))
-			} else {
-				b.Append(nil)
-			}
+			b.Append(zed.EncodeUint(vals[voff]))
 			voff++
 			return true
-
 		}
 		return false
 	}

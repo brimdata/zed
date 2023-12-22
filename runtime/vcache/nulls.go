@@ -9,18 +9,16 @@ import (
 	meta "github.com/brimdata/zed/vng/vector"
 )
 
-func loadNulls(any *vector.Any, typ zed.Type, path field.Path, m *meta.Nulls, r io.ReaderAt) (vector.Any, error) {
+func (l *loader) loadNulls(any *vector.Any, typ zed.Type, path field.Path, m *meta.Nulls) (vector.Any, error) {
 	// The runlengths are typically small so we load them with the metadata
 	// and don't bother waiting for a reference.
-	runlens := meta.NewInt64Reader(m.Runs, r) //XXX 32-bit reader?
-	var off, nulls uint32
-	null := true
-	//XXX finish this loop... need to remove slots covered by nulls and subtract
-	// cumulative number of nulls for each surviving value slot.
+	runlens := meta.NewInt64Reader(m.Runs, l.r) //XXX 32-bit reader?
+	var null bool
+	var off int
+	var slots []uint32
 	// In zed, nulls are generally bad and not really needed because we don't
 	// need super-wide uber schemas with lots of nulls.
 	for {
-		//XXX need nullslots array to build vector.Nullmask and need a way to pass down Nullmask XXX
 		run, err := runlens.Read()
 		if err != nil {
 			if err == io.EOF {
@@ -28,12 +26,18 @@ func loadNulls(any *vector.Any, typ zed.Type, path field.Path, m *meta.Nulls, r 
 			}
 			return nil, err
 		}
-		off += uint32(run)
 		if null {
-			nulls += uint32(run)
+			for i := 0; int64(i) < run; i++ {
+				slots = append(slots, uint32(off+i))
+			}
 		}
+		off += int(run)
 		null = !null
 	}
-	//newSlots := slots //XXX need to create this above
-	return loadVector(any, typ, path, m.Values, r)
+	var values vector.Any
+	if _, err := l.loadVector(&values, typ, path, m.Values); err != nil {
+		return nil, err
+	}
+	*any = vector.NewNulls(slots, off, values)
+	return *any, nil
 }

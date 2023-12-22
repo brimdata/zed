@@ -135,7 +135,15 @@ func (o *Object) Len() int {
 // types in the hiearchy).  Load returns a Group for each type and the Group
 // may contain multiple vectors.
 func (o *Object) Load(typeKey uint32, path field.Path) (vector.Any, error) {
+	l := loader{o.local, o.reader}
 	o.mu[typeKey].Lock()
 	defer o.mu[typeKey].Unlock()
-	return loadVector(&o.vectors[typeKey], o.typeDict[typeKey], path, o.metas[typeKey], o.reader)
+	return l.loadVector(&o.vectors[typeKey], o.typeDict[typeKey], path, o.metas[typeKey])
+}
+
+func (o *Object) NewReader() *Reader {
+	return &Reader{
+		object:   o,
+		builders: make([]vector.Builder, len(o.vectors)),
+	}
 }

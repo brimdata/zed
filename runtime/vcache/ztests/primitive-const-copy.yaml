@@ -1,0 +1,33 @@
+# Exercise the logic that builds values from cached constant vectors.
+script: |
+  zq -f vng -o test.vng -
+  zed dev vcache copy -z test.vng
+
+inputs:
+  - name: stdin
+    # One value per type so they'll be encoded as constant vectors.
+    data: &stdin |
+      8(uint8)
+      16(uint16)
+      32(uint32)
+      64(uint64)
+      -8(int8)
+      -16(int16)
+      -32(int32)
+      -64
+      1h2m3s
+      2022-12-04T00:00:00Z
+      16.(float16)
+      32.(float32)
+      64.
+      false
+      0x00
+      "0"
+      1.2.3.4
+      1.2.3.0/24
+      <int64>
+      null
+
+outputs:
+  - name: stdout
+    data: *stdin

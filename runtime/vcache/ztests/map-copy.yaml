@@ -1,5 +1,3 @@
-skip: disabled until "zed dev vcache copy" is fixed or replaced
-
 # This test simply converts some ZSON to VNG then runs it through 
 # the vector cache to exercise the logic that builds values from 
 # cached vectors.
