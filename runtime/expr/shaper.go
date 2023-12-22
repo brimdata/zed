@@ -144,16 +144,13 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	id, shapeToID := val.Type.ID(), c.shapeTo.ID()
 	if id == shapeToID {
 		// Same underlying types but one or both are named.
-		val = ectx.CopyValue(*val)
-		val.Type = c.shapeTo
-		return val
+		return ectx.NewValue(c.shapeTo, val.Bytes())
 	}
 	if c.caster != nil && !zed.IsUnionType(val.Type) {
 		val = c.caster.Eval(ectx, val)
 		if val.Type != c.shapeTo && val.Type.ID() == shapeToID {
 			// Same underlying types but one or both are named.
-			val = ectx.CopyValue(*val)
-			val.Type = c.shapeTo
+			return ectx.NewValue(c.shapeTo, val.Bytes())
 		}
 		return val
 	}

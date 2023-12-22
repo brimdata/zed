@@ -275,9 +275,7 @@ func (v *Value) CopyFrom(from *Value) {
 	} else if _, ok := v.native(); ok || v.IsNull() || v.len < from.len {
 		*v = *NewValue(from.Type, bytes.Clone(from.bytes()))
 	} else {
-		v.Type = from.Type
-		copy(v.bytes(), from.bytes())
-		v.len = from.len
+		*v = *NewValue(from.Type, append(v.bytes()[:0], from.bytes()...))
 	}
 }
 
