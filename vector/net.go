@@ -34,3 +34,15 @@ func (n *Net) NewBuilder() Builder {
 		return true
 	}
 }
+
+func (n *Net) Key(b []byte, slot int) []byte {
+	return zed.AppendNet(b, n.Values[slot])
+}
+
+func (n *Net) Length() int {
+	return len(n.Values)
+}
+
+func (n *Net) Serialize(slot int) *zed.Value {
+	return zed.NewValue(n.Typ, zed.EncodeNet(n.Values[slot]))
+}

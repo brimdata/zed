@@ -32,3 +32,15 @@ func (b *Bytes) NewBuilder() Builder {
 		return true
 	}
 }
+
+func (b *Bytes) Key(bytes []byte, slot int) []byte {
+	return append(bytes, b.Values[slot]...)
+}
+
+func (b *Bytes) Length() int {
+	return len(b.Values)
+}
+
+func (b *Bytes) Serialize(slot int) *zed.Value {
+	return zed.NewBytes(b.Values[slot])
+}

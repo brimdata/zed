@@ -34,3 +34,15 @@ func (i *IP) NewBuilder() Builder {
 		return true
 	}
 }
+
+func (i *IP) Key(b []byte, slot int) []byte {
+	return zed.AppendIP(b, i.Values[slot])
+}
+
+func (i *IP) Length() int {
+	return len(i.Values)
+}
+
+func (i *IP) Serialize(slot int) *zed.Value {
+	return zed.NewValue(i.Typ, zed.EncodeIP(i.Values[slot]))
+}

@@ -5,6 +5,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
+// XXX this should be called TypeValue no?
 type Type struct {
 	mem
 	Typ    zed.Type
@@ -31,4 +32,16 @@ func (t *Type) NewBuilder() Builder {
 		off++
 		return true
 	}
+}
+
+func (t *Type) Key(b []byte, slot int) []byte {
+	return zed.AppendTypeValue(b, t.Values[slot])
+}
+
+func (t *Type) Length() int {
+	return len(t.Values)
+}
+
+func (t *Type) Serialize(slot int) *zed.Value {
+	return zed.NewValue(t.Typ, zed.EncodeTypeValue(t.Values[slot]))
 }

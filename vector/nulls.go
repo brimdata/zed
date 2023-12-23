@@ -58,3 +58,19 @@ func (n *Nulls) IsNull(slot int) bool {
 	pos := slot & 7
 	return n.bitmap[off]&(1<<pos) != 0
 }
+
+//XXX this here is why this nulls wrapper stuff doesn't work.
+//We need to move the nulls into the leaves (and keep them
+// where need at intermediate nodes too)
+
+func (n *Nulls) Key(b []byte, slot int) []byte {
+	panic("TBD")
+}
+
+func (n *Nulls) Length() int {
+	panic("TBD")
+}
+
+func (n *Nulls) Serialize(slot int) *zed.Value {
+	panic("TBD")
+}
