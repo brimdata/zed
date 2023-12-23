@@ -79,7 +79,7 @@ equivalent [rich types in Zed](../../formats/zson.md#23-primitive-values).
 ## Zeek NDJSON
 
 As an alternative to the default TSV format, there are two common ways that
-Zeek may instead generate logs in [NDJSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-Delimited_JSON) format.
+Zeek may instead generate logs in [NDJSON](https://en.wikipedia.org/wiki/JSON_streaming#NDJSON) format.
 
 1. Using the [JSON Streaming Logs](https://github.com/corelight/json-streaming-logs)
    package (recommended for use with Zed)

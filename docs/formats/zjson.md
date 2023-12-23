@@ -268,7 +268,7 @@ and an array of union of string, and float64 --- might have a value that looks l
 ## 3. Object Framing
 
 A ZJSON file is composed of ZJSON objects formatted as
-[newline delimited JSON (NDJSON)](https://en.wikipedia.org/wiki/JSON_streaming#Newline-Delimited_JSON).
+[newline delimited JSON (NDJSON)](https://en.wikipedia.org/wiki/JSON_streaming#NDJSON).
 e.g., the [zq](../commands/zq.md) CLI command
 writes its ZJSON output as lines of NDJSON.
 
