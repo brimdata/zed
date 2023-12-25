@@ -22,7 +22,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "vng",
 	Usage: "vng uri",
-	Short: "dump vng metadata",
+	Short: "dump VNG metadata",
 	Long: `
 vng decodes an input uri and emits the metadata sections in the format desired.`,
 	New: New,

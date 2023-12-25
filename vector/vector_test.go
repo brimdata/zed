@@ -76,8 +76,7 @@ func BenchmarkReadVng(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		bytesReader := bytes.NewReader(bs)
-		context := zed.NewContext()
-		object, err := vng.NewObject(context, bytesReader)
+		object, err := vng.NewObject(bytesReader)
 		if err != nil {
 			panic(err)
 		}

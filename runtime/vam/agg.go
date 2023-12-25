@@ -1,11 +1,8 @@
 package vam
 
 import (
-	"fmt"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/zson"
 )
 
 //XXX need to make sure vam operator objects are returned to GC as they are finished
@@ -13,6 +10,7 @@ import (
 type CountByString struct {
 	parent Puller
 	zctx   *zed.Context
+	field  Evaluator
 	name   string
 	table  countByString
 	done   bool
@@ -24,6 +22,7 @@ func NewCountByString(zctx *zed.Context, parent Puller, name string) *CountByStr
 		zctx:   zctx,
 		name:   name,
 		table:  countByString{table: make(map[string]uint64)}, //XXX
+		field:  NewDotExpr(zctx, &This{}, name),
 	}
 }
 
@@ -45,19 +44,25 @@ func (c *CountByString) Pull(done bool) (vector.Any, error) {
 			c.done = true
 			return c.table.materialize(c.zctx, c.name), nil
 		}
-		if nulls, ok := vec.(*vector.Nulls); ok {
-			vec = nulls.Values()
+		c.update(vec)
+	}
+}
+
+func (c *CountByString) update(vec vector.Any) {
+	if vec, ok := vec.(*vector.Variant); ok {
+		for _, vec := range vec.Values {
+			c.update(vec)
 		}
-		if vec, ok := vec.(*vector.String); ok {
-			c.table.count(vec)
-			continue
-		}
-		if vec, ok := vec.(*vector.Const); ok {
-			c.table.countFixed(vec)
-			continue
-		}
-		//xxx
-		fmt.Printf("vector.CountByString: bad vec %s %T\n", zson.String(vec.Type()), vec)
+		return
+	}
+	vec = c.field.Eval(vec)
+	switch vec := vec.(type) {
+	case *vector.String:
+		c.table.count(vec)
+	case *vector.DictString:
+		c.table.countDict(vec)
+	case (*vector.Const):
+		c.table.countFixed(vec)
 	}
 }
 
@@ -66,8 +71,19 @@ type countByString struct {
 }
 
 func (c *countByString) count(vec *vector.String) {
-	for _, s := range vec.Values {
-		c.table[s] += 1
+	offs := vec.Offsets
+	bytes := vec.Bytes
+	for k := range offs {
+		c.table[string(bytes[offs[k]:offs[k+1]])] += 1
+	}
+}
+
+func (c *countByString) countDict(vec *vector.DictString) {
+	offs := vec.Offs
+	bytes := vec.Bytes
+	for k := range offs {
+		tag := vec.Tags[k]
+		c.table[string(bytes[offs[tag]:offs[tag+1]])] += uint64(vec.Counts[tag])
 	}
 }
 
@@ -84,22 +100,27 @@ func (c *countByString) materialize(zctx *zed.Context, name string) *vector.Reco
 		{Type: zed.TypeString, Name: name},
 		{Type: zed.TypeUint64, Name: "count"},
 	})
-	counts := make([]uint64, len(c.table))
-	keys := make([]string, len(c.table))
-	var off int
+	length := len(c.table)
+	counts := make([]uint64, length)
+	var bytes []byte
+	offs := make([]uint32, length+1)
+	var k int
 	for key, count := range c.table {
-		keys[off] = key
-		counts[off] = count
-		off++
+		offs[k] = uint32(len(bytes))
+		bytes = append(bytes, []byte(key)...)
+		counts[k] = count
+		k++
 	}
-	keyVec := vector.NewString(zed.TypeString, keys)
-	countVec := vector.NewUint(zed.TypeUint64, counts)
-	return vector.NewRecordWithFields(typ, []vector.Any{keyVec, countVec})
+	offs[k] = uint32(len(bytes))
+	keyVec := vector.NewString(offs, bytes, nil)
+	countVec := vector.NewUint(zed.TypeUint64, counts, nil)
+	return vector.NewRecord(typ, []vector.Any{keyVec, countVec}, uint32(length), nil)
 }
 
 type Sum struct {
 	parent Puller
 	zctx   *zed.Context
+	field  Evaluator
 	name   string
 	sum    int64
 	done   bool
@@ -110,6 +131,7 @@ func NewSum(zctx *zed.Context, parent Puller, name string) *Sum {
 		parent: parent,
 		zctx:   zctx,
 		name:   name,
+		field:  NewDotExpr(zctx, &This{}, name),
 	}
 }
 
@@ -133,18 +155,34 @@ func (c *Sum) Pull(done bool) (vector.Any, error) {
 			c.done = true
 			return c.materialize(c.zctx, c.name), nil
 		}
-		if nulls, ok := vec.(*vector.Nulls); ok {
-			vec = nulls.Values()
+		c.update(vec)
+	}
+}
+
+func (c *Sum) update(vec vector.Any) {
+	if vec, ok := vec.(*vector.Variant); ok {
+		for _, vec := range vec.Values {
+			c.update(vec)
 		}
-		if vec, ok := vec.(*vector.Int); ok {
-			for _, x := range vec.Values {
-				c.sum += x
-			}
+		return
+	}
+	vec = c.field.Eval(vec)
+	switch vec := vec.(type) {
+	case *vector.Int:
+		for _, x := range vec.Values {
+			c.sum += x
 		}
-		if vec, ok := vec.(*vector.Uint); ok {
-			for _, x := range vec.Values {
-				c.sum += int64(x)
-			}
+	case *vector.DictInt:
+		for k := range vec.Values {
+			c.sum += vec.Values[k] * int64(vec.Counts[k])
+		}
+	case *vector.Uint:
+		for _, x := range vec.Values {
+			c.sum += int64(x)
+		}
+	case *vector.DictUint:
+		for k := range vec.Values {
+			c.sum += int64(vec.Values[k]) * int64(vec.Counts[k])
 		}
 	}
 }
@@ -153,5 +191,5 @@ func (c *Sum) materialize(zctx *zed.Context, name string) *vector.Record {
 	typ := zctx.MustLookupTypeRecord([]zed.Field{
 		{Type: zed.TypeInt64, Name: "sum"},
 	})
-	return vector.NewRecordWithFields(typ, []vector.Any{vector.NewInt(zed.TypeInt64, []int64{c.sum})})
+	return vector.NewRecord(typ, []vector.Any{vector.NewInt(zed.TypeInt64, []int64{c.sum}, nil)}, 1, nil)
 }

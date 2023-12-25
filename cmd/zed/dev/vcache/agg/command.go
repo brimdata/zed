@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	devvcache "github.com/brimdata/zed/cmd/zed/dev/vcache"
 	"github.com/brimdata/zed/cmd/zed/root"
@@ -68,7 +69,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer object.Close()
 	//XXX nil puller
-	agg := vam.NewCountByString(object.LocalContext(), nil, field)
+	agg := vam.NewCountByString(zed.NewContext(), nil, field)
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err

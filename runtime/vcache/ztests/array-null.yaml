@@ -1,0 +1,14 @@
+script: |
+  zq -f vng -o test.vng in.zson
+  zed dev vcache copy -z test.vng
+
+inputs:
+  - name: in.zson
+    data: &input |
+      {a:[1,2]}
+      null({a:[int64]})
+      {a:[3]}
+
+outputs:
+  - name: stdout
+    data: *input

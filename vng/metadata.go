@@ -202,6 +202,8 @@ type Variant struct {
 	Length uint32
 }
 
+var _ Metadata = (*Variant)(nil)
+
 func (*Variant) Type(zctx *zed.Context) zed.Type {
 	panic("Type should not be called on Variant")
 }

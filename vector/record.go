@@ -5,51 +5,35 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-// XXX need to create memory model
-type mem struct{}
-
-func (*mem) Ref()   {}
-func (*mem) Unref() {}
-
 type Record struct {
-	mem
 	Typ    *zed.TypeRecord
 	Fields []Any
+	len    uint32
+	Nulls  *Bool
 }
 
 var _ Any = (*Record)(nil)
 
-func NewRecord(typ *zed.TypeRecord) *Record {
-	return NewRecordWithFields(typ, make([]Any, len(typ.Fields)))
-}
-
-func NewRecordWithFields(typ *zed.TypeRecord, fields []Any) *Record {
-	return &Record{Typ: typ, Fields: fields}
+func NewRecord(typ *zed.TypeRecord, fields []Any, length uint32, nulls *Bool) *Record {
+	return &Record{Typ: typ, Fields: fields, len: length, Nulls: nulls}
 }
 
 func (r *Record) Type() zed.Type {
 	return r.Typ
 }
 
-func (r *Record) NewBuilder() Builder {
-	//XXX
-	fields := make([]Builder, 0, len(r.Fields))
-	for _, v := range r.Fields {
-		fields = append(fields, v.NewBuilder())
+func (r *Record) Len() uint32 {
+	return r.len
+}
+
+func (r *Record) Serialize(b *zcode.Builder, slot uint32) {
+	if r.Nulls != nil && r.Nulls.Value(slot) {
+		b.Append(nil)
+		return
 	}
-	//XXX should change Builder API to not return bool because
-	// you should never be called if you would return a nil...
-	// the top level needs to know how much stuff there is, no?
-	// That said, we should be robust to file errors like bad runlens
-	// and return an error instead of panic.
-	return func(b *zcode.Builder) bool {
-		b.BeginContainer()
-		for _, f := range fields {
-			if !f(b) {
-				return false
-			}
-		}
-		b.EndContainer()
-		return true
+	b.BeginContainer()
+	for _, f := range r.Fields {
+		f.Serialize(b, slot)
 	}
+	b.EndContainer()
 }

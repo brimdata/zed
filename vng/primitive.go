@@ -12,8 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// XXX reserve key 255 for null
-const MaxDictSize = 255
+const MaxDictSize = 256
 
 type PrimitiveEncoder struct {
 	typ      zed.Type
@@ -31,7 +30,13 @@ type PrimitiveEncoder struct {
 func NewPrimitiveEncoder(typ zed.Type, useDict bool) *PrimitiveEncoder {
 	var dict map[string]uint32
 	if useDict {
-		dict = make(map[string]uint32)
+		// Don't bother using a dictionary (which takes 8-bit tags) to encode
+		// other 8-bit values.
+		switch zed.TypeUnder(typ).(type) {
+		case *zed.TypeOfBool, *zed.TypeOfInt8, *zed.TypeOfUint8:
+		default:
+			dict = make(map[string]uint32)
+		}
 	}
 	return &PrimitiveEncoder{
 		typ:  typ,

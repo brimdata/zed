@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 )
@@ -25,19 +26,22 @@ func (m *Materializer) Pull(done bool) (zbuf.Batch, error) {
 	if vec == nil || err != nil {
 		return nil, err
 	}
-	b := vec.NewBuilder()
-	typ := vec.Type()
+	variant, _ := vec.(*vector.Variant)
+	var typ zed.Type
+	if variant == nil {
+		typ = vec.Type()
+	}
 	builder := zcode.NewBuilder()
 	var vals []zed.Value
-	for {
-		if !b(builder) {
-			return zbuf.NewArray(vals), nil
+	n := vec.Len()
+	for slot := uint32(0); slot < n; slot++ {
+		vec.Serialize(builder, slot)
+		if variant != nil {
+			typ = variant.TypeOf(slot)
 		}
-		//XXX Body should only be called for container types, but this
-		// will change soon anyway when we change out vector Builder to a
-		// slot-based indexing approach that isn't based on closures.
 		val := zed.NewValue(typ, bytes.Clone(builder.Bytes().Body()))
 		vals = append(vals, val)
 		builder.Reset()
 	}
+	return zbuf.NewArray(vals), nil
 }

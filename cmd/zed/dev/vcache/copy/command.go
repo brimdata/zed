@@ -4,14 +4,15 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	devvcache "github.com/brimdata/zed/cmd/zed/dev/vcache"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/runtime/vam"
 	"github.com/brimdata/zed/runtime/vcache"
-	"github.com/brimdata/zed/zio"
-	"github.com/segmentio/ksuid"
+	"github.com/brimdata/zed/zbuf"
 )
 
 var Copy = &charm.Spec{
@@ -57,8 +58,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	local := storage.NewLocalEngine()
-	cache := vcache.NewCache(local)
-	object, err := cache.Fetch(ctx, uri, ksuid.Nil)
+	object, err := vcache.NewObject(ctx, local, uri)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,8 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, object.NewReader()); err != nil {
+	puller := vam.NewProjection(zed.NewContext(), object, nil)
+	if err := zbuf.CopyPuller(writer, puller); err != nil {
 		writer.Close()
 		return err
 	}
