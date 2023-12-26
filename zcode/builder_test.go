@@ -95,12 +95,6 @@ func TestBuilder(t *testing.T) {
 		expected := Append(nil, Append(nil, v2))
 		require.Exactly(t, expected, b.Bytes())
 	})
-	t.Run("TransformContainer/panic", func(t *testing.T) {
-		b := NewBuilder()
-		require.Panics(t, func() {
-			b.TransformContainer(func(body Bytes) Bytes { return nil })
-		})
-	})
 	t.Run("Reset", func(t *testing.T) {
 		b := NewBuilder()
 		b.Append([]byte("1"))

@@ -9,7 +9,7 @@ script: |
   echo "// ==="
   echo '{a:"foo"}' | zq -z 'this[a]["bar"] := "baz" | cut foo' -
   echo "// ==="
-  # runtime error cases
+  # Test last value wins.
   echo '{a:"hello",b:"hello"}' | zq -z 'this[a] := "world1", this[b] := "world2"' -
   echo "// ==="
   echo '{a:"foo",b:"bar"}' | zq -z 'this[a][b] := "world", this[a] := "world"' -
@@ -31,9 +31,9 @@ outputs:
       // ===
       {foo:{bar:"baz"}}
       // ===
-      error({message:"put: multiple assignments to hello",on:{a:"hello",b:"hello"}})
+      {a:"hello",b:"hello",hello:"world2"}
       // ===
-      error({message:"put: conflicting nested assignments to foo and foo.bar",on:{a:"foo",b:"bar"}})
+      {a:"foo",b:"bar",foo:"world"}
       // ===
       error({message:"put: missing",on:{}})
   - name: stderr
