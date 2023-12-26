@@ -36,8 +36,8 @@ func (m *Materializer) Pull(done bool) (zbuf.Batch, error) {
 		//XXX Body should only be called for container types, but this
 		// will change soon anyway when we change out vector Builder to a
 		// slot-based indexing approach that isn't based on closures.
-		zv := zed.NewValue(typ, bytes.Clone(builder.Bytes().Body()))
-		vals = append(vals, *zv)
+		val := zed.NewValue(typ, bytes.Clone(builder.Bytes().Body()))
+		vals = append(vals, *val)
 		builder.Reset()
 	}
 }
