@@ -1,13 +1,10 @@
 package vam
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -30,13 +27,9 @@ func NewCountByString(zctx *zed.Context, parent Puller, name string) *CountByStr
 	}
 }
 
-func (*CountByString) PullVec(_ bool) (vector.Any, error) {
-	return nil, errors.New("internal error: vam.CountByString.PullVec called")
-}
-
-func (c *CountByString) Pull(done bool) (zbuf.Batch, error) {
+func (c *CountByString) Pull(done bool) (vector.Any, error) {
 	if done {
-		_, err := c.parent.PullVec(done)
+		_, err := c.parent.Pull(done)
 		return nil, err
 	}
 	if c.done {
@@ -44,13 +37,16 @@ func (c *CountByString) Pull(done bool) (zbuf.Batch, error) {
 	}
 	for {
 		//XXX check context Done
-		vec, err := c.parent.PullVec(false)
+		vec, err := c.parent.Pull(false)
 		if err != nil {
 			return nil, err
 		}
 		if vec == nil {
 			c.done = true
 			return c.table.materialize(c.zctx, c.name), nil
+		}
+		if nulls, ok := vec.(*vector.Nulls); ok {
+			vec = nulls.Values()
 		}
 		if vec, ok := vec.(*vector.String); ok {
 			c.table.count(vec)
@@ -64,17 +60,6 @@ func (c *CountByString) Pull(done bool) (zbuf.Batch, error) {
 		fmt.Printf("vector.CountByString: bad vec %s %T\n", zson.String(vec.Type()), vec)
 	}
 }
-
-/*
-// XXX Let's use Pull() here... read whole column into Batch for better perf
-func (c *CountByString) AsReader() zio.Reader {
-	cbs := countByString{make(map[string]uint64)}
-	for _, vec := range c.vecs {
-		cbs.count(vec)
-	}
-	return cbs.materialize(c.zctx, c.name)
-}
-*/
 
 type countByString struct {
 	table map[string]uint64
@@ -94,24 +79,22 @@ func (c *countByString) countFixed(vec *vector.Const) {
 	}
 }
 
-func (c *countByString) materialize(zctx *zed.Context, name string) *zbuf.Array {
+func (c *countByString) materialize(zctx *zed.Context, name string) *vector.Record {
 	typ := zctx.MustLookupTypeRecord([]zed.Field{
 		{Type: zed.TypeString, Name: name},
 		{Type: zed.TypeUint64, Name: "count"},
 	})
-	var b zcode.Builder
-	vals := make([]zed.Value, len(c.table))
+	counts := make([]uint64, len(c.table))
+	keys := make([]string, len(c.table))
 	var off int
 	for key, count := range c.table {
-		b.Reset()
-		b.BeginContainer()
-		b.Append(zed.EncodeString(key))
-		b.Append(zed.EncodeUint(count))
-		b.EndContainer()
-		vals[off] = *zed.NewValue(typ, b.Bytes().Body())
+		keys[off] = key
+		counts[off] = count
 		off++
 	}
-	return zbuf.NewArray(vals)
+	keyVec := vector.NewString(zed.TypeString, keys)
+	countVec := vector.NewUint(zed.TypeUint64, counts)
+	return vector.NewRecordWithFields(typ, []vector.Any{keyVec, countVec})
 }
 
 type Sum struct {
@@ -130,13 +113,9 @@ func NewSum(zctx *zed.Context, parent Puller, name string) *Sum {
 	}
 }
 
-func (*Sum) PullVec(_ bool) (vector.Any, error) {
-	return nil, errors.New("internal error: vam.Sum.PullVec called")
-}
-
-func (c *Sum) Pull(done bool) (zbuf.Batch, error) {
+func (c *Sum) Pull(done bool) (vector.Any, error) {
 	if done {
-		_, err := c.parent.PullVec(done)
+		_, err := c.parent.Pull(done)
 		return nil, err
 	}
 	if c.done {
@@ -146,13 +125,16 @@ func (c *Sum) Pull(done bool) (zbuf.Batch, error) {
 		//XXX check context Done
 		// XXX PullVec returns a single vector and enumerates through the
 		// different underlying types that match a particular projection
-		vec, err := c.parent.PullVec(false)
+		vec, err := c.parent.Pull(false)
 		if err != nil {
 			return nil, err
 		}
 		if vec == nil {
 			c.done = true
 			return c.materialize(c.zctx, c.name), nil
+		}
+		if nulls, ok := vec.(*vector.Nulls); ok {
+			vec = nulls.Values()
 		}
 		if vec, ok := vec.(*vector.Int); ok {
 			for _, x := range vec.Values {
@@ -167,13 +149,9 @@ func (c *Sum) Pull(done bool) (zbuf.Batch, error) {
 	}
 }
 
-func (c *Sum) materialize(zctx *zed.Context, name string) *zbuf.Array {
+func (c *Sum) materialize(zctx *zed.Context, name string) *vector.Record {
 	typ := zctx.MustLookupTypeRecord([]zed.Field{
 		{Type: zed.TypeInt64, Name: "sum"},
 	})
-	var b zcode.Builder
-	b.BeginContainer()
-	b.Append(zed.EncodeInt(c.sum))
-	b.EndContainer()
-	return zbuf.NewArray([]zed.Value{*zed.NewValue(typ, b.Bytes().Body())})
+	return vector.NewRecordWithFields(typ, []vector.Any{vector.NewInt(zed.TypeInt64, []int64{c.sum})})
 }

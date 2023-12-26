@@ -670,7 +670,7 @@ func isEntry(seq dag.Seq) bool {
 }
 
 func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller, error) {
-	vamParent := vam.NewDematerializer(parent)
+	var vamParent vam.Puller
 	for _, o := range seq {
 		switch o := o.(type) {
 		case *dag.SeqScan:
@@ -679,7 +679,7 @@ func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller
 				return nil, err
 			}
 			//XXX check VectorCache not nil
-			vamParent = vam.NewVecScanner(b.octx, b.source.Lake().VectorCache(), vamParent.(zbuf.Puller), pool, o.Fields, nil, nil)
+			vamParent = vam.NewVecScanner(b.octx, b.source.Lake().VectorCache(), parent, pool, o.Fields, nil, nil)
 		case *dag.Summarize:
 			if name, ok := optimizer.IsCountByString(o); ok {
 				vamParent = vam.NewCountByString(b.octx.Zctx, vamParent, name)
@@ -692,6 +692,9 @@ func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller
 		default:
 			return nil, fmt.Errorf("internal error: unknown dag.Op: %#v", o)
 		}
+	}
+	if vamParent == nil {
+		return nil, fmt.Errorf("internal error: vectorized DAG did not compile")
 	}
 	return vam.NewMaterializer(vamParent), nil
 }

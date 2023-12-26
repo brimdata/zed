@@ -18,12 +18,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-//XXX change PullVec to Pull and lets partition the dag operators into
-// vecops and ops and have a materlize op that has a vop parent but it
-// an op.
-
 type Puller interface {
-	PullVec(done bool) (vector.Any, error)
+	Pull(done bool) (vector.Any, error)
 }
 
 // XXX need a semaphore pattern here we scanner can run ahead and load objects
@@ -64,12 +60,6 @@ func NewVecScanner(octx *op.Context, cache *vcache.Cache, parent zbuf.Puller, po
 	}
 }
 
-// XXX this is here for the compiler to be ablet o create it as a zbuf.Puller,
-// but we will fix the compiler to understand vops and vam/vector.Puller soon.
-func (v *VecScanner) Pull(done bool) (zbuf.Batch, error) {
-	panic("VecScanner.Pull")
-}
-
 // XXX we need vector scannerstats and means to update them here.
 
 // XXX change this to pull/load vector by each type within an object and
@@ -81,7 +71,7 @@ func (v *VecScanner) Pull(done bool) (zbuf.Batch, error) {
 // a Record vec and let GC reclaim them.  Note if a col is missing, it's a constant
 // vector of error("missing").
 
-func (v *VecScanner) PullVec(done bool) (vector.Any, error) {
+func (v *VecScanner) Pull(done bool) (vector.Any, error) {
 	v.once.Do(func() {
 		// Block p.ctx's cancel function until p.run finishes its
 		// cleanup.

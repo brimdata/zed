@@ -73,7 +73,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, zbuf.PullerReader(agg)); err != nil {
+	if err := zio.Copy(writer, zbuf.PullerReader(vam.NewMaterializer(agg))); err != nil {
 		writer.Close()
 		return err
 	}

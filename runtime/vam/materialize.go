@@ -1,94 +1,43 @@
 package vam
 
 import (
-	"errors"
+	"bytes"
 
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zcode"
 )
 
+type Materializer struct {
+	parent Puller
+}
+
+var _ zbuf.Puller = (*Materializer)(nil)
+
 func NewMaterializer(p Puller) zbuf.Puller {
-	return p.(zbuf.Puller)
-}
-
-func NewDematerializer(p zbuf.Puller) Puller {
-	return &dematerializer{p}
-}
-
-type dematerializer struct{ zbuf.Puller }
-
-func (*dematerializer) PullVec(_ bool) (vector.Any, error) {
-	return nil, errors.New("internal error: vamPuller.PullVec called")
-}
-
-/* no slots
-func newIntBuilderIndexed(vec *vector.Int, index Index) builder {
-	slots := vec.Slots
-	vals := vec.Vals
-	nulls := vec.Nulls
-	var voff, ioff int
-	return func(b *zcode.Builder) bool {
-		for voff < len(index) && ioff < len(vals) {
-			if slots[voff] < index[ioff] {
-				voff++
-				continue
-			}
-			if slots[voff] > index[ioff] {
-				ioff++
-			}
-			if !nulls.Has(uint32(voff)) {
-				b.Append(zed.EncodeInt(vals[voff]))
-			} else {
-				b.Append(nil)
-			}
-			return true
-
-		}
-		return false
+	return &Materializer{
+		parent: p,
 	}
 }
-*/
 
-/* no slots
-func newUintBuilderIndexed(vec *vector.Uint, index Index) builder {
-	slots := vec.Slots
-	vals := vec.Vals
-	var voff, ioff int
-	return func(b *zcode.Builder) bool {
-		for voff < len(index) && ioff < len(vals) {
-			if slots[voff] < index[ioff] {
-				voff++
-				continue
-			}
-			if slots[voff] > index[ioff] {
-				ioff++
-			}
-			b.Append(zed.EncodeUint(vals[voff]))
-			return true
+func (m *Materializer) Pull(done bool) (zbuf.Batch, error) {
+	vec, err := m.parent.Pull(done)
+	if vec == nil || err != nil {
+		return nil, err
+	}
+	b := vec.NewBuilder()
+	typ := vec.Type()
+	builder := zcode.NewBuilder()
+	var vals []zed.Value
+	for {
+		if !b(builder) {
+			return zbuf.NewArray(vals), nil
 		}
-		return false
+		//XXX Body should only be called for container types, but this
+		// will change soon anyway when we change out vector Builder to a
+		// slot-based indexing approach that isn't based on closures.
+		val := zed.NewValue(typ, bytes.Clone(builder.Bytes().Body()))
+		vals = append(vals, *val)
+		builder.Reset()
 	}
 }
-*/
-
-/* no slots
-func newStringBuilderIndexed(vec *vector.String, index Index) builder {
-	slots := vec.Slots
-	vals := vec.Vals
-	var voff, ioff int
-	return func(b *zcode.Builder) bool {
-		for voff < len(index) && ioff < len(vals) {
-			if slots[voff] < index[ioff] {
-				voff++
-				continue
-			}
-			if slots[voff] > index[ioff] {
-				ioff++
-			}
-			b.Append(zed.EncodeString(vals[voff]))
-			return true
-		}
-		return false
-	}
-}
-*/
