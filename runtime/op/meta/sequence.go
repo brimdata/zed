@@ -97,7 +97,7 @@ func (s *SequenceScanner) close(err error) {
 }
 
 func newScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, u *zson.UnmarshalZNGContext, pruner expr.Evaluator, filter zbuf.Filter, progress *zbuf.Progress, val *zed.Value) (zbuf.Puller, *data.Object, error) {
-	named, ok := val.Type.(*zed.TypeNamed)
+	named, ok := val.Type().(*zed.TypeNamed)
 	if !ok {
 		return nil, nil, errors.New("system error: SequenceScanner encountered unnamed object")
 	}

@@ -55,7 +55,7 @@ func (s *Split) Write(r *zed.Value) error {
 }
 
 func (s *Split) lookupOutput(val *zed.Value) (zio.WriteCloser, error) {
-	typ := val.Type
+	typ := val.Type()
 	w, ok := s.writers[typ]
 	if ok {
 		return w, nil

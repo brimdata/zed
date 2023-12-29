@@ -94,7 +94,7 @@ func String(p interface{}) string {
 
 func (f *Formatter) Format(val *zed.Value) string {
 	f.builder.Reset()
-	f.formatValueAndDecorate(val.Type, val.Bytes())
+	f.formatValueAndDecorate(val.Type(), val.Bytes())
 	return f.builder.String()
 }
 
@@ -444,7 +444,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 	if elems.needsDecoration() {
 		// If we haven't seen all the types in the union, print the decorator
 		// so the fullness of the union is persevered.
-		f.decorate(val.Type, false, true)
+		f.decorate(val.Type(), false, true)
 	}
 	return false
 }

@@ -292,7 +292,7 @@ type ConstReader struct {
 }
 
 func NewConstReader(c *Const) *ConstReader {
-	return &ConstReader{Typ: c.Value.Type, bytes: c.Value.Bytes(), cnt: c.Count}
+	return &ConstReader{Typ: c.Value.Type(), bytes: c.Value.Bytes(), cnt: c.Count}
 }
 
 func (c *ConstReader) Read(b *zcode.Builder) error {

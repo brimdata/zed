@@ -53,7 +53,7 @@ func (w *Writer) Flush() error {
 }
 
 func (w *Writer) Write(rec *zed.Value) error {
-	if rec.Type.Kind() != zed.RecordKind {
+	if rec.Type().Kind() != zed.RecordKind {
 		return fmt.Errorf("CSV output encountered non-record value: %s", zson.FormatValue(rec))
 	}
 	rec, err := w.flattener.Flatten(rec)
@@ -61,7 +61,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 		return err
 	}
 	if w.first == nil {
-		w.first = zed.TypeRecordOf(rec.Type)
+		w.first = zed.TypeRecordOf(rec.Type())
 		var hdr []string
 		for _, f := range rec.Fields() {
 			hdr = append(hdr, f.Name)
@@ -69,11 +69,11 @@ func (w *Writer) Write(rec *zed.Value) error {
 		if err := w.encoder.Write(hdr); err != nil {
 			return err
 		}
-	} else if _, ok := w.types[rec.Type.ID()]; !ok {
+	} else if _, ok := w.types[rec.Type().ID()]; !ok {
 		if !fieldNamesEqual(w.first.Fields, rec.Fields()) {
 			return ErrNotDataFrame
 		}
-		w.types[rec.Type.ID()] = struct{}{}
+		w.types[rec.Type().ID()] = struct{}{}
 	}
 	w.strings = w.strings[:0]
 	fields := rec.Fields()
@@ -82,13 +82,13 @@ func (w *Writer) Write(rec *zed.Value) error {
 		if zb := it.Next(); zb != nil {
 			val := zed.NewValue(fields[i].Type, zb)
 			val = val.Under(val)
-			switch id := val.Type.ID(); {
+			switch id := val.Type().ID(); {
 			case id == zed.IDBytes && len(val.Bytes()) == 0:
 				// We want "" instead of "0x" for a zero-length value.
 			case id == zed.IDString:
 				s = string(val.Bytes())
 			default:
-				s = formatValue(val.Type, val.Bytes())
+				s = formatValue(val.Type(), val.Bytes())
 				if zed.IsFloat(id) && strings.HasSuffix(s, ".") {
 					s = strings.TrimSuffix(s, ".")
 				}

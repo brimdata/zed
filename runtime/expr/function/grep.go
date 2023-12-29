@@ -14,7 +14,7 @@ type Grep struct {
 
 func (g *Grep) Call(ectx zed.Allocator, vals []zed.Value) *zed.Value {
 	patternVal, inputVal := &vals[0], &vals[1]
-	if zed.TypeUnder(patternVal.Type) != zed.TypeString {
+	if zed.TypeUnder(patternVal.Type()) != zed.TypeString {
 		return g.error(ectx, "pattern argument must be a string", patternVal)
 	}
 	if p := patternVal.AsString(); g.grep == nil || g.pattern != p {

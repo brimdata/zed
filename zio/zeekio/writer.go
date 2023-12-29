@@ -35,16 +35,16 @@ func (w *Writer) Write(r *zed.Value) error {
 		return err
 	}
 	path := r.Deref("_path").AsString()
-	if r.Type != w.typ || path != w.Path {
+	if r.Type() != w.typ || path != w.Path {
 		if err := w.writeHeader(r, path); err != nil {
 			return err
 		}
-		w.typ = zed.TypeRecordOf(r.Type)
+		w.typ = zed.TypeRecordOf(r.Type())
 	}
 	w.buf.Reset()
 	var needSeparator bool
 	it := r.Bytes().Iter()
-	for _, f := range zed.TypeRecordOf(r.Type).Fields {
+	for _, f := range zed.TypeRecordOf(r.Type()).Fields {
 		bytes := it.Next()
 		if f.Name == "_path" {
 			continue
@@ -61,7 +61,7 @@ func (w *Writer) Write(r *zed.Value) error {
 }
 
 func (w *Writer) writeHeader(r *zed.Value, path string) error {
-	d := r.Type
+	d := r.Type()
 	var s string
 	if w.separator != "\\x90" {
 		w.separator = "\\x90"

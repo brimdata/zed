@@ -85,7 +85,7 @@ func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 
 func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value {
 	val = *val.Under(&val)
-	switch typ := zed.TypeUnder(val.Type).(type) {
+	switch typ := zed.TypeUnder(val.Type()).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
 		typ = zed.InnerType(typ)
 		for it := val.Bytes().Iter(); !it.Done(); {

@@ -49,9 +49,9 @@ func (f *Fuser) Write(rec *zed.Value) error {
 	if f.shaper != nil {
 		panic("fuser: write after read")
 	}
-	if _, ok := f.types[rec.Type]; !ok {
-		f.types[rec.Type] = struct{}{}
-		f.uberSchema.Mixin(rec.Type)
+	if _, ok := f.types[rec.Type()]; !ok {
+		f.types[rec.Type()] = struct{}{}
+		f.uberSchema.Mixin(rec.Type())
 	}
 	if f.spiller != nil {
 		return f.spiller.Write(rec)

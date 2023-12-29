@@ -33,20 +33,20 @@ func NewWriter(w io.WriteCloser) *Writer {
 }
 
 func (w *Writer) Write(r *zed.Value) error {
-	if r.Type.Kind() != zed.RecordKind {
+	if r.Type().Kind() != zed.RecordKind {
 		return fmt.Errorf("table output encountered non-record value: %s", zson.FormatValue(r))
 	}
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err
 	}
-	if r.Type != w.typ {
+	if r.Type() != w.typ {
 		if w.typ != nil {
 			w.flush()
 			w.nline = 0
 		}
 		// First time, or new descriptor, print header
-		typ := zed.TypeRecordOf(r.Type)
+		typ := zed.TypeRecordOf(r.Type())
 		w.writeHeader(typ)
 		w.typ = typ
 	}

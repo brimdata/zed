@@ -261,7 +261,7 @@ func (o *Op) splice(ectx *expr.ResetContext, left, right *zed.Value) (*zed.Value
 	left = left.Under(&o.tmpLeft)
 	var tmpRight zed.Value
 	right = right.Under(&tmpRight)
-	typ, err := o.combinedType(zed.TypeRecordOf(left.Type), zed.TypeRecordOf(right.Type))
+	typ, err := o.combinedType(zed.TypeRecordOf(left.Type()), zed.TypeRecordOf(right.Type()))
 	if err != nil {
 		return nil, err
 	}

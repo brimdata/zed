@@ -38,11 +38,11 @@ func (a *mapCall) Eval(ectx Context, in *zed.Value) *zed.Value {
 	for _, elem := range elems {
 		val := a.inner.Eval(ectx, &elem)
 		a.vals = append(a.vals, *val)
-		a.types = append(a.types, val.Type)
+		a.types = append(a.types, val.Type())
 	}
 	inner := a.innerType(a.types)
 	bytes := a.buildVal(inner, a.vals)
-	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeSet); ok {
+	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeSet); ok {
 		return ectx.NewValue(a.zctx.LookupTypeSet(inner), zed.NormalizeSet(bytes))
 	}
 	return ectx.NewValue(a.zctx.LookupTypeArray(inner), bytes)
@@ -52,7 +52,7 @@ func (a *mapCall) buildVal(inner zed.Type, vals []zed.Value) []byte {
 	a.builder.Reset()
 	if union, ok := inner.(*zed.TypeUnion); ok {
 		for _, val := range a.vals {
-			zed.BuildUnion(&a.builder, union.TagOf(val.Type), val.Bytes())
+			zed.BuildUnion(&a.builder, union.TagOf(val.Type()), val.Bytes())
 		}
 	} else {
 		for _, val := range a.vals {

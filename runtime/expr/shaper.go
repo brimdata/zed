@@ -48,7 +48,7 @@ func NewShaperTransform(s string) ShaperTransform {
 func NewShaper(zctx *zed.Context, expr, typeExpr Evaluator, tf ShaperTransform) (Evaluator, error) {
 	if l, ok := typeExpr.(*Literal); ok {
 		typeVal := l.val
-		switch id := typeVal.Type.ID(); {
+		switch id := typeVal.Type().ID(); {
 		case id == zed.IDType:
 			typ, err := zctx.LookupByValue(typeVal.Bytes())
 			if err != nil {
@@ -84,7 +84,7 @@ type Shaper struct {
 
 func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	typeVal := s.typeExpr.Eval(ectx, this)
-	switch id := typeVal.Type.ID(); {
+	switch id := typeVal.Type().ID(); {
 	case id == zed.IDType:
 		typ, err := s.zctx.LookupByValue(typeVal.Bytes())
 		if err != nil {
@@ -141,14 +141,14 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		// Null values can be shaped to any type.
 		return ectx.NewValue(c.shapeTo, nil)
 	}
-	id, shapeToID := val.Type.ID(), c.shapeTo.ID()
+	id, shapeToID := val.Type().ID(), c.shapeTo.ID()
 	if id == shapeToID {
 		// Same underlying types but one or both are named.
 		return ectx.NewValue(c.shapeTo, val.Bytes())
 	}
-	if c.caster != nil && !zed.IsUnionType(val.Type) {
+	if c.caster != nil && !zed.IsUnionType(val.Type()) {
 		val = c.caster.Eval(ectx, val)
-		if val.Type != c.shapeTo && val.Type.ID() == shapeToID {
+		if val.Type() != c.shapeTo && val.Type().ID() == shapeToID {
 			// Same underlying types but one or both are named.
 			return ectx.NewValue(c.shapeTo, val.Bytes())
 		}
@@ -157,7 +157,7 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 	s, ok := c.shapers[id]
 	if !ok {
 		var err error
-		s, err = newShaper(c.zctx, c.transforms, val.Type, c.shapeTo)
+		s, err = newShaper(c.zctx, c.transforms, val.Type(), c.shapeTo)
 		if err != nil {
 			return ectx.CopyValue(*c.zctx.NewError(err))
 		}
@@ -448,11 +448,11 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 		// For a failed cast, v.Type is a zed.TypeError.
 		v := s.caster.Eval(ectx, ectx.NewValue(s.fromType, in))
 		b.Append(v.Bytes())
-		if zed.TypeUnder(v.Type) == zed.TypeUnder(s.toType) {
+		if zed.TypeUnder(v.Type()) == zed.TypeUnder(s.toType) {
 			// Prefer s.toType in case it's a named type.
 			return s.toType
 		}
-		return v.Type
+		return v.Type()
 	case castFromUnion:
 		it := in.Iter()
 		tag := int(zed.DecodeInt(it.Next()))

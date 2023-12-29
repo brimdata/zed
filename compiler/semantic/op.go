@@ -170,7 +170,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 }
 
 func unmarshalHeaders(val *zed.Value) (map[string][]string, error) {
-	if !zed.IsRecordType(val.Type) {
+	if !zed.IsRecordType(val.Type()) {
 		return nil, errors.New("headers value must be a record")
 	}
 	headers := map[string][]string{}
@@ -257,7 +257,7 @@ func (a *analyzer) maybeStringConst(name string) (string, error) {
 		return "", fmt.Errorf("%s: string value required", name)
 	}
 	val := zson.MustParseValue(a.zctx, l.Value)
-	if val.Type.ID() != zed.IDString {
+	if val.Type().ID() != zed.IDString {
 		return "", fmt.Errorf("%s: string value required", name)
 	}
 	return val.AsString(), nil

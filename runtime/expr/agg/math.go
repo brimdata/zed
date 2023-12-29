@@ -56,7 +56,7 @@ func (m *mathReducer) consumeVal(val *zed.Value) {
 			return
 		}
 	} else {
-		id = val.Type.ID()
+		id = val.Type().ID()
 	}
 	if m.math == nil || m.math.typ().ID() != id {
 		state := zed.Null
@@ -105,7 +105,7 @@ func NewFloat64(f *anymath.Function, val *zed.Value) *Float64 {
 		var ok bool
 		state, ok = coerce.ToFloat(val)
 		if !ok {
-			panicCoercionFail(zed.TypeFloat64, val.Type)
+			panicCoercionFail(zed.TypeFloat64, val.Type())
 		}
 	}
 	return &Float64{
@@ -137,7 +137,7 @@ func NewInt64(f *anymath.Function, val *zed.Value) *Int64 {
 		var ok bool
 		state, ok = coerce.ToInt(val)
 		if !ok {
-			panicCoercionFail(zed.TypeInt64, val.Type)
+			panicCoercionFail(zed.TypeInt64, val.Type())
 		}
 	}
 	return &Int64{
@@ -169,7 +169,7 @@ func NewUint64(f *anymath.Function, val *zed.Value) *Uint64 {
 		var ok bool
 		state, ok = coerce.ToUint(val)
 		if !ok {
-			panicCoercionFail(zed.TypeUint64, val.Type)
+			panicCoercionFail(zed.TypeUint64, val.Type())
 		}
 	}
 	return &Uint64{
@@ -201,7 +201,7 @@ func NewDuration(f *anymath.Function, val *zed.Value) *Duration {
 		var ok bool
 		state, ok = coerce.ToInt(val)
 		if !ok {
-			panicCoercionFail(zed.TypeDuration, val.Type)
+			panicCoercionFail(zed.TypeDuration, val.Type())
 		}
 	}
 	return &Duration{
@@ -233,7 +233,7 @@ func NewTime(f *anymath.Function, val *zed.Value) *Time {
 		var ok bool
 		state, ok = coerce.ToInt(val)
 		if !ok {
-			panicCoercionFail(zed.TypeTime, val.Type)
+			panicCoercionFail(zed.TypeTime, val.Type())
 		}
 	}
 	return &Time{

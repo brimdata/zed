@@ -346,5 +346,5 @@ func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
 
 func check(ectx expr.Context, this *zed.Value, filter expr.Evaluator) bool {
 	val := filter.Eval(ectx, this)
-	return val.Type == zed.TypeBool && val.Bool()
+	return val.Type() == zed.TypeBool && val.Bool()
 }

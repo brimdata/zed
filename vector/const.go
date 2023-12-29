@@ -15,7 +15,7 @@ func NewConst(val *zed.Value, len uint32) *Const {
 }
 
 func (c *Const) Type() zed.Type {
-	return c.val.Type
+	return c.val.Type()
 }
 
 func (*Const) Ref()   {}

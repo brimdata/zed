@@ -50,8 +50,8 @@ func (c *Pair) Equal() bool {
 func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
 	c.A = a.Bytes()
 	c.B = b.Bytes()
-	aid := a.Type.ID()
-	bid := b.Type.ID()
+	aid := a.Type().ID()
+	bid := b.Type().ID()
 	if aid == bid {
 		return aid, nil
 	}
@@ -153,7 +153,7 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 }
 
 func ToFloat(val *zed.Value) (float64, bool) {
-	switch id := val.Type.ID(); {
+	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return float64(val.Uint()), true
 	case zed.IsSigned(id):
@@ -168,7 +168,7 @@ func ToFloat(val *zed.Value) (float64, bool) {
 }
 
 func ToUint(val *zed.Value) (uint64, bool) {
-	switch id := val.Type.ID(); {
+	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return val.Uint(), true
 	case zed.IsSigned(id):
@@ -187,7 +187,7 @@ func ToUint(val *zed.Value) (uint64, bool) {
 }
 
 func ToInt(val *zed.Value) (int64, bool) {
-	switch id := val.Type.ID(); {
+	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return int64(val.Uint()), true
 	case zed.IsSigned(id):

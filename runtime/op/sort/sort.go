@@ -206,7 +206,7 @@ func (o *Op) setComparator(r *zed.Value) {
 }
 
 func GuessSortKey(val *zed.Value) field.Path {
-	recType := zed.TypeRecordOf(val.Type)
+	recType := zed.TypeRecordOf(val.Type())
 	if recType == nil {
 		// A nil field.Path is equivalent to "this".
 		return nil

@@ -50,8 +50,8 @@ func (r *recordExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	b.Reset()
 	for k, e := range r.exprs {
 		val := e.Eval(ectx, this)
-		if r.fields[k].Type != val.Type {
-			r.fields[k].Type = val.Type
+		if r.fields[k].Type != val.Type() {
+			r.fields[k].Type = val.Type()
 			changed = true
 		}
 		b.Append(val.Bytes())
@@ -102,7 +102,7 @@ func (r *recordSpreadExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			if rec.IsMissing() {
 				continue
 			}
-			typ := zed.TypeRecordOf(rec.Type)
+			typ := zed.TypeRecordOf(rec.Type())
 			if typ == nil {
 				// Treat non-record spread values like missing.
 				continue
@@ -148,7 +148,7 @@ func (r *recordSpreadExpr) update(object map[string]fieldValue) {
 		return
 	}
 	for name, field := range object {
-		if r.fields[field.index] != zed.NewField(name, field.value.Type) {
+		if r.fields[field.index] != zed.NewField(name, field.value.Type()) {
 			r.invalidate(object)
 			return
 		}
@@ -161,7 +161,7 @@ func (r *recordSpreadExpr) invalidate(object map[string]fieldValue) {
 	r.fields = slices.Grow(r.fields[:0], n)[:n]
 	r.bytes = slices.Grow(r.bytes[:0], n)[:n]
 	for name, field := range object {
-		r.fields[field.index] = zed.NewField(name, field.value.Type)
+		r.fields[field.index] = zed.NewField(name, field.value.Type())
 		r.bytes[field.index] = field.value.Bytes()
 	}
 	r.cache = r.zctx.MustLookupTypeRecord(r.fields)
@@ -196,7 +196,7 @@ func (a *ArrayExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			continue
 		}
 		val := e.Spread.Eval(ectx, this)
-		inner := zed.InnerType(val.Type)
+		inner := zed.InnerType(val.Type())
 		if inner == nil {
 			// Treat non-list spread values values like missing.
 			continue
@@ -236,7 +236,7 @@ func (a *SetExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 			continue
 		}
 		val := e.Spread.Eval(ectx, this)
-		inner := zed.InnerType(val.Type)
+		inner := zed.InnerType(val.Type())
 		if inner == nil {
 			// Treat non-list spread values values like missing.
 			continue
@@ -308,7 +308,7 @@ func (c *collectionBuilder) reset() {
 }
 
 func (c *collectionBuilder) append(val *zed.Value) {
-	c.types = append(c.types, val.Type)
+	c.types = append(c.types, val.Type())
 	c.bytes = append(c.bytes, val.Bytes())
 }
 

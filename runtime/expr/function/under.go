@@ -11,7 +11,7 @@ type Under struct {
 
 func (u *Under) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
-	switch typ := args[0].Type.(type) {
+	switch typ := args[0].Type().(type) {
 	case *zed.TypeNamed:
 		return ectx.NewValue(typ.Type, val.Bytes())
 	case *zed.TypeError:

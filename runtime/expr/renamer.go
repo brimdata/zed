@@ -29,14 +29,14 @@ func NewRenamer(zctx *zed.Context, srcs, dsts []*Lval) *Renamer {
 }
 
 func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
-	if !zed.IsRecordType(this.Type) {
+	if !zed.IsRecordType(this.Type()) {
 		return this
 	}
 	srcs, dsts, err := r.evalFields(ectx, this)
 	if err != nil {
 		return ectx.CopyValue(*r.zctx.WrapError(fmt.Sprintf("rename: %s", err), this))
 	}
-	id := this.Type.ID()
+	id := this.Type().ID()
 	m, ok := r.typeMap[id]
 	if !ok {
 		m = make(map[string]*zed.TypeRecord)
@@ -46,7 +46,7 @@ func (r *Renamer) Eval(ectx Context, this *zed.Value) *zed.Value {
 	typ, ok := m[string(r.fieldsStr)]
 	if !ok {
 		var err error
-		typ, err = r.computeType(zed.TypeRecordOf(this.Type), srcs, dsts)
+		typ, err = r.computeType(zed.TypeRecordOf(this.Type()), srcs, dsts)
 		if err != nil {
 			return ectx.CopyValue(*r.zctx.WrapError(fmt.Sprintf("rename: %s", err), this))
 		}

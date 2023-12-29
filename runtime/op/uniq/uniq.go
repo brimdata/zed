@@ -32,7 +32,7 @@ func (o *Op) wrap(t *zed.Value) *zed.Value {
 		o.builder.Append(t.Bytes())
 		o.builder.Append(zed.EncodeUint(o.count))
 		typ := o.octx.Zctx.MustLookupTypeRecord([]zed.Field{
-			zed.NewField("value", t.Type),
+			zed.NewField("value", t.Type()),
 			zed.NewField("count", zed.TypeUint64),
 		})
 		return zed.NewValue(typ, o.builder.Bytes()).Copy()

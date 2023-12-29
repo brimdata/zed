@@ -12,7 +12,7 @@ type LenFn struct {
 func (l *LenFn) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	var length int
-	switch typ := zed.TypeUnder(args[0].Type).(type) {
+	switch typ := zed.TypeUnder(args[0].Type()).(type) {
 	case *zed.TypeOfNull:
 	case *zed.TypeRecord:
 		length = len(typ.Fields)

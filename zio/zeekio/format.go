@@ -16,7 +16,7 @@ import (
 )
 
 func formatAny(val *zed.Value, inContainer bool) string {
-	switch t := val.Type.(type) {
+	switch t := val.Type().(type) {
 	case *zed.TypeArray:
 		return formatArray(t, val.Bytes())
 	case *zed.TypeNamed:

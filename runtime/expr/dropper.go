@@ -14,7 +14,7 @@ type dropper struct {
 }
 
 func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
-	if d.typ == in.Type {
+	if d.typ == in.Type() {
 		return in
 	}
 	b := d.builder
@@ -45,12 +45,12 @@ func NewDropper(zctx *zed.Context, fields field.List) *Dropper {
 }
 
 func (d *Dropper) newDropper(zctx *zed.Context, r *zed.Value) *dropper {
-	fields, fieldTypes, match := complementFields(d.fields, nil, zed.TypeRecordOf(r.Type))
+	fields, fieldTypes, match := complementFields(d.fields, nil, zed.TypeRecordOf(r.Type()))
 	if !match {
 		// r.Type contains no fields matching d.fields, so we set
 		// dropper.typ to r.Type to indicate that records of this type
 		// should not be modified.
-		return &dropper{typ: r.Type}
+		return &dropper{typ: r.Type()}
 	}
 	// If the set of dropped fields is equal to the all of record's
 	// fields, then there is no output for this input type.
@@ -98,10 +98,10 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 }
 
 func (d *Dropper) Eval(ectx Context, in *zed.Value) *zed.Value {
-	if !zed.IsRecordType(in.Type) {
+	if !zed.IsRecordType(in.Type()) {
 		return in
 	}
-	id := in.Type.ID()
+	id := in.Type().ID()
 	dropper, ok := d.droppers[id]
 	if !ok {
 		dropper = d.newDropper(d.zctx, in)

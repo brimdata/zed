@@ -30,7 +30,7 @@ func NewUnflatten(zctx *zed.Context) *Unflatten {
 
 func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
-	array, ok := zed.TypeUnder(val.Type).(*zed.TypeArray)
+	array, ok := zed.TypeUnder(val.Type()).(*zed.TypeArray)
 	if !ok {
 		return &val
 	}

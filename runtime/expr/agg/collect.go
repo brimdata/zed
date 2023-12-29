@@ -42,7 +42,7 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 	inner := innerType(zctx, c.values)
 	if union, ok := inner.(*zed.TypeUnion); ok {
 		for _, val := range c.values {
-			zed.BuildUnion(&b, union.TagOf(val.Type), val.Bytes())
+			zed.BuildUnion(&b, union.TagOf(val.Type()), val.Bytes())
 		}
 	} else {
 		for _, val := range c.values {
@@ -55,7 +55,7 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 func innerType(zctx *zed.Context, vals []zed.Value) zed.Type {
 	var types []zed.Type
 	for _, val := range vals {
-		types = append(types, val.Type)
+		types = append(types, val.Type())
 	}
 	types = zed.UniqueTypes(types)
 	if len(types) == 1 {
@@ -69,7 +69,7 @@ func (c *Collect) ConsumeAsPartial(val *zed.Value) {
 	if len(val.Bytes()) == 0 {
 		return
 	}
-	arrayType, ok := val.Type.(*zed.TypeArray)
+	arrayType, ok := val.Type().(*zed.TypeArray)
 	if !ok {
 		panic(fmt.Errorf("collect partial: partial not an array type: %s", zson.FormatValue(val)))
 	}

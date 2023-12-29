@@ -57,7 +57,7 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 		if err != nil {
 			return nil, err
 		}
-		switch zed.TypeUnder(literal.Type) {
+		switch zed.TypeUnder(literal.Type()) {
 		case zed.TypeNet:
 			return nil, nil
 		case zed.TypeString:
@@ -98,7 +98,7 @@ func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) 
 			if err != nil {
 				return nil, err
 			}
-			if val.Type == zed.TypeNet {
+			if val.Type() == zed.TypeNet {
 				return nil, err
 			}
 			return val, nil
@@ -108,7 +108,7 @@ func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) 
 }
 
 func newBufferFilterForLiteral(val *zed.Value) (*expr.BufferFilter, error) {
-	if id := val.Type.ID(); zed.IsNumber(id) || id == zed.IDNull {
+	if id := val.Type().ID(); zed.IsNumber(id) || id == zed.IDNull {
 		// All numbers are comparable, so they can require up to three
 		// patterns: float, varint, and uvarint.
 		return nil, nil

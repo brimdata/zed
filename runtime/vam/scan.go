@@ -110,7 +110,7 @@ func (v *VecScanner) run() {
 			v.sendResult(nil, err)
 			return
 		}
-		named, ok := vals[0].Type.(*zed.TypeNamed)
+		named, ok := vals[0].Type().(*zed.TypeNamed)
 		if !ok {
 			v.sendResult(nil, fmt.Errorf("system error: VecScanner encountered unnamed object: %s", zson.String(vals[0])))
 			return

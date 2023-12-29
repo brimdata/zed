@@ -69,7 +69,7 @@ func NewLogicalOr(zctx *zed.Context, lhs, rhs Evaluator) *Or {
 // are returned.
 func EvalBool(zctx *zed.Context, ectx Context, this *zed.Value, e Evaluator) (*zed.Value, bool) {
 	val := e.Eval(ectx, this)
-	if zed.TypeUnder(val.Type) == zed.TypeBool {
+	if zed.TypeUnder(val.Type()) == zed.TypeBool {
 		return val, true
 	}
 	if val.IsError() {
@@ -214,7 +214,7 @@ func NewRegexpMatch(re *regexp.Regexp, e Evaluator) *RegexpMatch {
 
 func (r *RegexpMatch) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := r.expr.Eval(ectx, this)
-	if val.Type.ID() == zed.IDString && r.re.Match(val.Bytes()) {
+	if val.Type().ID() == zed.IDString && r.re.Match(val.Bytes()) {
 		return zed.True
 	}
 	return zed.False
@@ -237,7 +237,7 @@ func newNumeric(zctx *zed.Context, lhs, rhs Evaluator) numeric {
 
 func enumify(ectx Context, val *zed.Value) *zed.Value {
 	// automatically convert an enum to its index value when coercing
-	if _, ok := val.Type.(*zed.TypeEnum); ok {
+	if _, ok := val.Type().(*zed.TypeEnum); ok {
 		return ectx.NewValue(zed.TypeUint64, val.Bytes())
 	}
 	return val
@@ -319,7 +319,7 @@ func (c *Compare) Eval(ectx Context, this *zed.Value) *zed.Value {
 		// than the signed value.
 		if err == coerce.Overflow {
 			result := 1
-			if zed.IsSigned(lhs.Type.ID()) {
+			if zed.IsSigned(lhs.Type().ID()) {
 				result = -1
 			}
 			return c.result(result)
@@ -578,7 +578,7 @@ func NewUnaryMinus(zctx *zed.Context, e Evaluator) *UnaryMinus {
 
 func (u *UnaryMinus) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := u.expr.Eval(ectx, this)
-	typ := val.Type
+	typ := val.Type()
 	if val.IsNull() && zed.IsNumber(typ.ID()) {
 		return val
 	}
@@ -683,7 +683,7 @@ func NewIndexExpr(zctx *zed.Context, container, index Evaluator) Evaluator {
 func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 	container := i.container.Eval(ectx, this)
 	index := i.index.Eval(ectx, this)
-	switch typ := zed.TypeUnder(container.Type).(type) {
+	switch typ := zed.TypeUnder(container.Type()).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
 		return indexVector(i.zctx, ectx, zed.InnerType(typ), container.Bytes(), index)
 	case *zed.TypeRecord:
@@ -696,7 +696,7 @@ func (i *Index) Eval(ectx Context, this *zed.Value) *zed.Value {
 }
 
 func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.Bytes, index *zed.Value) *zed.Value {
-	id := index.Type.ID()
+	id := index.Type().ID()
 	if !zed.IsInteger(id) {
 		return ectx.CopyValue(*zctx.WrapError("array index is not an integer", index))
 	}
@@ -714,7 +714,7 @@ func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.B
 }
 
 func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
-	id := index.Type.ID()
+	id := index.Type().ID()
 	if id != zed.IDString {
 		return ectx.CopyValue(*zctx.WrapError("record index is not a string", index))
 	}
@@ -730,11 +730,11 @@ func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.
 	if key.IsMissing() {
 		return zctx.Missing()
 	}
-	if key.Type != typ.KeyType {
+	if key.Type() != typ.KeyType {
 		if union, ok := zed.TypeUnder(typ.KeyType).(*zed.TypeUnion); ok {
-			if tag := union.TagOf(key.Type); tag >= 0 {
+			if tag := union.TagOf(key.Type()); tag >= 0 {
 				var b zcode.Builder
-				zed.BuildUnion(&b, union.TagOf(key.Type), key.Bytes())
+				zed.BuildUnion(&b, union.TagOf(key.Type()), key.Bytes())
 				if valBytes, ok := lookupKey(mapBytes, b.Bytes().Body()); ok {
 					return deunion(ectx, typ.ValType, valBytes)
 				}
@@ -773,7 +773,7 @@ func NewConditional(zctx *zed.Context, predicate, thenExpr, elseExpr Evaluator) 
 
 func (c *Conditional) Eval(ectx Context, this *zed.Value) *zed.Value {
 	val := c.predicate.Eval(ectx, this)
-	if val.Type.ID() != zed.IDBool {
+	if val.Type().ID() != zed.IDBool {
 		val := *c.zctx.WrapError("?-operator: bool predicate required", val)
 		return &val
 	}
