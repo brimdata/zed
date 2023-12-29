@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"runtime"
 	"unsafe"
 
 	"github.com/brimdata/zed/zcode"
@@ -15,7 +16,26 @@ type Arena struct {
 	offsets []uint32
 	lengths []uint32
 	bytes   []byte
-	values  []value
+	values  []Value
+}
+
+func NewArena(zctx *Context) *Arena { return &Arena{zctx: zctx} }
+
+func (a *Arena) Zctx() *Context { return a.zctx }
+
+func (a *Arena) KeepAlive() { runtime.KeepAlive(a) }
+
+func (a *Arena) Reset() {
+	if true {
+		clear(a.offsets)
+		clear(a.lengths)
+		clear(a.bytes)
+		clear(a.values)
+	}
+	a.offsets = a.offsets[:0]
+	a.lengths = a.lengths[:0]
+	a.bytes = a.bytes[:0]
+	a.values = a.values[:0]
 }
 
 const arenaNullOffset = math.MaxUint32
@@ -25,7 +45,9 @@ func arenaDescSlot(d uint64) int    { return int(d & math.MaxUint32) }
 func arenaDescTypeID(d uint64) int  { return int(d >> 32 &^ arenaUseValues) }
 func arenaDescValues(d uint64) bool { return d&arenaUseValues != 0 }
 
-func (a *Arena) NewFromBytes(t Type, b zcode.Bytes) value {
+func (a *Arena) NewValue(t Type, b zcode.Bytes) Value { return a.NewFromBytes(t, b) }
+
+func (a *Arena) NewFromBytes(t Type, b zcode.Bytes) Value {
 	if len(a.bytes) > math.MaxUint32 {
 		panic("offset overflow")
 	}
@@ -43,10 +65,10 @@ func (a *Arena) NewFromBytes(t Type, b zcode.Bytes) value {
 	}
 	a.bytes = append(a.bytes, b...)
 	id := uint64(TypeID(t))
-	return value{uint64(uintptr(unsafe.Pointer(a))), id<<32 | uint64(len(a.offsets)-1)}
+	return Value{vArena | uint64(uintptr(unsafe.Pointer(a))), id<<32 | uint64(len(a.offsets)-1)}
 }
 
-func (a *Arena) NewFromValues(t Type, values []value) value {
+func (a *Arena) NewFromValues(t Type, values []Value) Value {
 	off := uint32(len(a.values))
 	if values == nil {
 		off = arenaNullOffset
@@ -55,26 +77,26 @@ func (a *Arena) NewFromValues(t Type, values []value) value {
 	a.lengths = append(a.lengths, uint32(len(values)))
 	a.values = append(a.values, values...)
 	id := uint64(TypeID(t))
-	return value{uint64(uintptr(unsafe.Pointer(a))), arenaUseValues | id<<32 | uint64(len(a.offsets)-1)}
+	return Value{vArena | uint64(uintptr(unsafe.Pointer(a))), arenaUseValues | id<<32 | uint64(len(a.offsets)-1)}
 }
 
-func (a *Arena) NewUint(t Type, x uint64) value {
-	return value{uint64(vPrimitive | t.ID()), x}
+func NewUint(t Type, x uint64) Value {
+	return Value{uint64(vPrimitive | t.ID()), x}
 }
 
-func (a *Arena) NewInt(t Type, x int64) value {
-	return value{uint64(vPrimitive | t.ID()), uint64(x)}
+func NewInt(t Type, x int64) Value {
+	return Value{uint64(vPrimitive | t.ID()), uint64(x)}
 }
 
-func (a *Arena) NewFloat(t Type, x float64) value {
-	return value{uint64(vPrimitive | t.ID()), uint64(math.Float64bits(x))}
+func NewFloat(t Type, x float64) Value {
+	return Value{uint64(vPrimitive | t.ID()), uint64(math.Float64bits(x))}
 }
 
-func (a *Arena) NewBool(x bool) value {
-	return value{uint64(vPrimitive | IDBool), boolToUint64(x)}
+func NewBool(x bool) Value {
+	return Value{uint64(vPrimitive | IDBool), boolToUint64(x)}
 }
 
-func (a *Arena) NewBytes(x []byte) value {
+func (a *Arena) NewBytes(x []byte) Value {
 	if len(x) > 15 || x == nil {
 		return a.NewFromBytes(TypeBytes, x)
 	}
@@ -83,7 +105,7 @@ func (a *Arena) NewBytes(x []byte) value {
 	return v
 }
 
-func (a *Arena) NewString(x string) value {
+func (a *Arena) NewString(x string) Value {
 	if len(x) > 15 {
 		return a.NewFromBytes(TypeString, []byte(x))
 	}
@@ -92,7 +114,7 @@ func (a *Arena) NewString(x string) value {
 	return v
 }
 
-func newBytes(x []byte) value {
+func newBytes(x []byte) Value {
 	a := uint64(len(x))
 	for i := 0; i < 7; i++ {
 		a <<= 8
@@ -109,7 +131,7 @@ func newBytes(x []byte) value {
 			}
 		}
 	}
-	return value{a, d}
+	return Value{a, d}
 }
 
 func (a *Arena) Type(d uint64) Type {
@@ -137,27 +159,42 @@ func (a *Arena) Bytes(d uint64) zcode.Bytes {
 	return b
 }
 
-type value struct {
+type Value struct {
 	a uint64
 	d uint64
 }
 
 const (
-	vArena               = 0 << 60
-	vPrimitive           = 1 << 60
-	vBytes               = 2 << 60
-	vString              = 3 << 60
+	vNull                = 0 << 60
+	vArena               = 1 << 60
+	vPrimitive           = 2 << 60
+	vPrimitiveNull       = 3 << 60
+	vBytes               = 4 << 60
+	vString              = 5 << 60
 	vMask                = uint64(0xf) << 60
 	vPrimitiveTypeIDMask = 0xff
 )
 
-func (v value) arena() *Arena { return (*Arena)(unsafe.Pointer(uintptr(v.a))) }
+func (v Value) arena() *Arena {
+	if v.a&vMask != vArena {
+		panic(v)
+	}
+	return (*Arena)(unsafe.Pointer(uintptr(v.a)))
+}
 
-func (v value) Type() Type {
+func (v Value) CopyNewArena() (Value, *Arena) {
+	if v.a&vMask == vArena {
+		a := NewArena(v.arena().Zctx())
+		return a.NewFromBytes(v.Type(), v.Bytes()), a
+	}
+	return v, nil
+}
+
+func (v Value) Type() Type {
 	switch v.a & vMask {
 	case vArena:
 		return v.arena().Type(v.d)
-	case vPrimitive:
+	case vPrimitive, vPrimitiveNull:
 		return idToType[v.a&vPrimitiveTypeIDMask]
 	case vBytes:
 		return TypeBytes
@@ -167,11 +204,11 @@ func (v value) Type() Type {
 	panic(v)
 }
 
-func (v value) typeID() int {
+func (v Value) typeID() int {
 	switch v.a & vMask {
 	case vArena:
 		return v.arena().Type(v.d).ID()
-	case vPrimitive:
+	case vPrimitive, vPrimitiveNull:
 		return int(v.a & vPrimitiveTypeIDMask)
 	case vBytes:
 		return IDBytes
@@ -206,7 +243,7 @@ var idToType = [...]Type{
 
 // Uint returns v's underlying value.  It panics if v's underlying type is not
 // TypeUint8, TypeUint16, TypeUint32, or TypeUint64.
-func (v value) Uint() uint64 {
+func (v Value) Uint() uint64 {
 	if !IsUnsigned(v.typeID()) {
 		panic(fmt.Sprintf("zed.Value.Uint called on %T", v.Type()))
 	}
@@ -218,7 +255,7 @@ func (v value) Uint() uint64 {
 
 // Int returns v's underlying value.  It panics if v's underlying type is not
 // TypeInt8, TypeInt16, TypeInt32, TypeInt64, TypeDuration, or TypeTime.
-func (v value) Int() int64 {
+func (v Value) Int() int64 {
 	if !IsSigned(v.typeID()) {
 		panic(fmt.Sprintf("zed.Value.Int called on %T", v.Type()))
 	}
@@ -230,7 +267,7 @@ func (v value) Int() int64 {
 
 // Float returns v's underlying value.  It panics if v's underlying type is not
 // TypeFloat16, TypeFloat32, or TypeFloat64.
-func (v value) Float() float64 {
+func (v Value) Float() float64 {
 	if !IsFloat(v.typeID()) {
 		panic(fmt.Sprintf("zed.Value.Float called on %T", v.Type))
 	}
@@ -242,7 +279,7 @@ func (v value) Float() float64 {
 
 // Bool returns v's underlying value.  It panics if v's underlying type is not
 // TypeBool.
-func (v value) Bool() bool {
+func (v Value) Bool() bool {
 	if v.typeID() != IDBool {
 		panic(fmt.Sprintf("zed.Value.Bool called on %T", v.Type))
 	}
@@ -252,7 +289,7 @@ func (v value) Bool() bool {
 	return DecodeBool(v.arena().Bytes(v.d))
 }
 
-func (v value) Bytes() zcode.Bytes {
+func (v Value) Bytes() zcode.Bytes {
 	switch v.a & vMask {
 	case vArena:
 		return v.arena().Bytes(v.d)
@@ -277,10 +314,14 @@ func (v value) Bytes() zcode.Bytes {
 		case IDBool:
 			return EncodeBool(v.d != 0)
 		}
+	case vPrimitiveNull:
+		return nil
 	}
 	panic(v)
 }
 
-func (v value) IsNull() bool {
-	return v.a&vMask == vArena && v.arena().offsets[arenaDescSlot(v.d)] == arenaNullOffset
+func (v Value) IsNull() bool {
+	return v.a&vMask == vNull ||
+		v.a&vMask == vPrimitiveNull ||
+		v.a&vMask == vArena && v.arena().offsets[arenaDescSlot(v.d)] == arenaNullOffset
 }

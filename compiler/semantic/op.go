@@ -256,7 +256,9 @@ func (a *analyzer) maybeStringConst(name string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("%s: string value required", name)
 	}
-	val := zson.MustParseValue(a.zctx, l.Value)
+	arena := zed.NewArena(a.zctx)
+	arena.KeepAlive()
+	val := zson.MustParseValue(arena, l.Value)
 	if val.Type().ID() != zed.IDString {
 		return "", fmt.Errorf("%s: string value required", name)
 	}

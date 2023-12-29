@@ -43,8 +43,9 @@ func TestContextTranslateTypeNameConflictUnion(t *testing.T) {
 	// decoded.  There was a bug where child typedefs would override the
 	// top level typedef in TranslateType so foo in the value below had
 	// two of the same union type instead of the two it should have had.
-	zctx := zed.NewContext()
-	val := zson.MustParseValue(zctx, `[{x:{y:63}}(=foo),{x:{abcdef:{x:{y:127}}(foo)}}(=foo)]`)
+	a := zed.NewArena(zed.NewContext())
+	defer a.KeepAlive()
+	val := zson.MustParseValue(a, `[{x:{y:63}}(=foo),{x:{abcdef:{x:{y:127}}(foo)}}(=foo)]`)
 	foreign := zed.NewContext()
 	twin, err := foreign.TranslateType(val.Type())
 	require.NoError(t, err)

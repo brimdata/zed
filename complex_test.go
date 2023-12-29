@@ -14,8 +14,10 @@ import (
 )
 
 func TestRecordAccessNamed(t *testing.T) {
+	a := zed.NewArena(zed.NewContext())
+	defer a.KeepAlive()
 	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
-	rec := zson.MustParseValue(zed.NewContext(), input)
+	rec := zson.MustParseValue(a, input)
 	s := rec.Deref("foo").AsString()
 	assert.Equal(t, s, "hello")
 	b := rec.Deref("bar").AsBool()
@@ -23,13 +25,15 @@ func TestRecordAccessNamed(t *testing.T) {
 }
 
 func TestNonRecordDeref(t *testing.T) {
+	a := zed.NewArena(zed.NewContext())
+	defer a.KeepAlive()
 	const input = `
 1
 192.168.1.1
 null
 [1,2,3]
 |[1,2,3]|`
-	reader := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
+	reader := zsonio.NewReader(a, strings.NewReader(input))
 	for {
 		val, err := reader.Read()
 		if val == nil {

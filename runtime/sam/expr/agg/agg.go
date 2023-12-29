@@ -19,8 +19,8 @@ type Pattern func() Function
 type Function interface {
 	Consume(zed.Value)
 	ConsumeAsPartial(zed.Value)
-	Result(*zed.Context) zed.Value
-	ResultAsPartial(*zed.Context) zed.Value
+	Result(*zed.Arena) zed.Value
+	ResultAsPartial(*zed.Arena) zed.Value
 }
 
 func NewPattern(op string, hasarg bool) (Pattern, error) {

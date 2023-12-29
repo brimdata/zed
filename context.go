@@ -282,7 +282,7 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 // record along with new rightmost fields as indicated with the given values.
 // If any of the newly provided fieldss already exists in the specified value,
 // an error is returned.
-func (c *Context) AddFields(r Value, newFields []Field, vals []Value) (Value, error) {
+func (a *Arena) AddFields(r Value, newFields []Field, vals []Value) (Value, error) {
 	fields := slices.Clone(r.Fields())
 	for _, f := range newFields {
 		if r.HasField(f.Name) {
@@ -294,11 +294,11 @@ func (c *Context) AddFields(r Value, newFields []Field, vals []Value) (Value, er
 	for _, val := range vals {
 		zv = val.Encode(zv)
 	}
-	typ, err := c.LookupTypeRecord(fields)
+	typ, err := a.zctx.LookupTypeRecord(fields)
 	if err != nil {
 		return Null, err
 	}
-	return NewValue(typ, zv), nil
+	return a.NewValue(typ, zv), nil
 }
 
 // LookupByValue returns the Type indicated by a binary-serialized type value.
@@ -334,12 +334,13 @@ func (c *Context) enterWithLock(tv zcode.Bytes, typ Type) {
 	c.byID = append(c.byID, typ)
 }
 
-func (c *Context) LookupTypeValue(typ Type) Value {
+func (a *Arena) LookupTypeValue(typ Type) Value {
+	c := a.zctx
 	c.mu.Lock()
 	bytes, ok := c.toValue[typ]
 	c.mu.Unlock()
 	if ok {
-		return NewValue(TypeType, bytes)
+		return a.NewValue(TypeType, bytes)
 	}
 	// In general, this shouldn't happen except for a foreign
 	// type that wasn't initially created in this context.
@@ -349,9 +350,9 @@ func (c *Context) LookupTypeValue(typ Type) Value {
 	typ, err := c.LookupByValue(tv)
 	if err != nil {
 		// This shouldn't happen.
-		return c.Missing()
+		return a.Missing()
 	}
-	return c.LookupTypeValue(typ)
+	return a.LookupTypeValue(typ)
 }
 
 func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
@@ -514,22 +515,22 @@ func DecodeLength(tv zcode.Bytes) (int, zcode.Bytes) {
 	return int(namelen), tv[n:]
 }
 
-func (c *Context) Missing() Value {
-	return NewValue(c.StringTypeError(), Missing)
+func (a *Arena) Missing() Value {
+	return a.NewValue(a.zctx.StringTypeError(), Missing)
 }
 
-func (c *Context) Quiet() Value {
-	return NewValue(c.StringTypeError(), Quiet)
+func (a *Arena) Quiet() Value {
+	return a.NewValue(a.zctx.StringTypeError(), Quiet)
 }
 
 // batch/allocator should handle these?
 
-func (c *Context) NewErrorf(format string, args ...interface{}) Value {
-	return NewValue(c.StringTypeError(), fmt.Appendf(nil, format, args...))
+func (a *Arena) NewErrorf(format string, args ...interface{}) Value {
+	return a.NewValue(a.zctx.StringTypeError(), fmt.Appendf(nil, format, args...))
 }
 
-func (c *Context) NewError(err error) Value {
-	return NewValue(c.StringTypeError(), []byte(err.Error()))
+func (a *Arena) NewError(err error) Value {
+	return a.NewValue(a.zctx.StringTypeError(), []byte(err.Error()))
 }
 
 func (c *Context) StringTypeError() *TypeError {
@@ -539,7 +540,8 @@ func (c *Context) StringTypeError() *TypeError {
 	return c.LookupTypeError(TypeString)
 }
 
-func (c *Context) WrapError(msg string, val Value) Value {
+func (a *Arena) WrapError(msg string, val Value) Value {
+	c := a.zctx
 	recType := c.MustLookupTypeRecord([]Field{
 		{"message", TypeString},
 		{"on", val.Type()},
@@ -548,5 +550,5 @@ func (c *Context) WrapError(msg string, val Value) Value {
 	var b zcode.Builder
 	b.Append(EncodeString(msg))
 	b.Append(val.Bytes())
-	return NewValue(errType, b.Bytes())
+	return a.NewValue(errType, b.Bytes())
 }

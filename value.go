@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math"
 	"net/netip"
 	"runtime/debug"
-	"unsafe"
 
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
@@ -20,162 +18,61 @@ var (
 )
 
 var (
-	NullUint8    = Value{typ: TypeUint8}
-	NullUint16   = Value{typ: TypeUint16}
-	NullUint32   = Value{typ: TypeUint32}
-	NullUint64   = Value{typ: TypeUint64}
-	NullInt8     = Value{typ: TypeInt8}
-	NullInt16    = Value{typ: TypeInt16}
-	NullInt32    = Value{typ: TypeInt32}
-	NullInt64    = Value{typ: TypeInt64}
-	NullDuration = Value{typ: TypeDuration}
-	NullTime     = Value{typ: TypeTime}
-	NullFloat16  = Value{typ: TypeFloat16}
-	NullFloat32  = Value{typ: TypeFloat32}
-	NullFloat64  = Value{typ: TypeFloat64}
-	NullBool     = Value{typ: TypeBool}
-	NullBytes    = Value{typ: TypeBytes}
-	NullString   = Value{typ: TypeString}
-	NullIP       = Value{typ: TypeIP}
-	NullNet      = Value{typ: TypeNet}
-	NullType     = Value{typ: TypeType}
-	Null         = Value{typ: TypeNull}
+	NullUint8    = newNullValue(IDUint8)
+	NullUint16   = newNullValue(IDUint16)
+	NullUint32   = newNullValue(IDUint32)
+	NullUint64   = newNullValue(IDUint64)
+	NullInt8     = newNullValue(IDInt8)
+	NullInt16    = newNullValue(IDInt16)
+	NullInt32    = newNullValue(IDInt32)
+	NullInt64    = newNullValue(IDInt64)
+	NullDuration = newNullValue(IDDuration)
+	NullTime     = newNullValue(IDTime)
+	NullFloat16  = newNullValue(IDFloat16)
+	NullFloat32  = newNullValue(IDFloat32)
+	NullFloat64  = newNullValue(IDFloat64)
+	NullBool     = newNullValue(IDBool)
+	NullBytes    = newNullValue(IDBytes)
+	NullString   = newNullValue(IDString)
+	NullIP       = newNullValue(IDIP)
+	NullNet      = newNullValue(IDNet)
+	NullType     = newNullValue(IDType)
+	Null         = newNullValue(IDNull)
 
 	False = NewBool(false)
 	True  = NewBool(true)
 )
 
-type Allocator interface{}
+func newNullValue(id int) Value { return Value{vPrimitiveNull | uint64(id), 0} }
 
-type Value struct {
-	typ Type
-	// If base == &nativeBase, len holds this Value's native representation.
-	// Otherwise, unsafe.Slice(base, len) holds its ZNG representation.
-	base *byte
-	len  uint64
-}
+type Allocator interface{}
 
 func (v Value) Ptr() *Value { return &v }
 
-func (v Value) Type() Type { return v.typ }
-
-func NewValue(t Type, b zcode.Bytes) Value { return Value{t, unsafe.SliceData(b), uint64(len(b))} }
-func (v Value) bytes() zcode.Bytes         { return unsafe.Slice(v.base, v.len) }
-
-// nativeBase is the base address for all native Values, which are encoded with
-// the base field set to this address and the len field set to the bits of the
-// Value's native representation.
-var nativeBase byte
-
-func newNativeValue(t Type, x uint64) Value { return Value{t, &nativeBase, x} }
-func (v Value) native() (uint64, bool)      { return v.len, v.base == &nativeBase }
-
-func NewUint(t Type, u uint64) Value    { return newNativeValue(t, u) }
-func NewUint8(u uint8) Value            { return newNativeValue(TypeUint8, uint64(u)) }
-func NewUint16(u uint16) Value          { return newNativeValue(TypeUint16, uint64(u)) }
-func NewUint32(u uint32) Value          { return newNativeValue(TypeUint32, uint64(u)) }
-func NewUint64(u uint64) Value          { return newNativeValue(TypeUint64, u) }
-func NewInt(t Type, i int64) Value      { return newNativeValue(t, uint64(i)) }
-func NewInt8(i int8) Value              { return newNativeValue(TypeInt8, uint64(i)) }
-func NewInt16(i int16) Value            { return newNativeValue(TypeInt16, uint64(i)) }
-func NewInt32(i int32) Value            { return newNativeValue(TypeInt32, uint64(i)) }
-func NewInt64(i int64) Value            { return newNativeValue(TypeInt64, uint64(i)) }
-func NewDuration(d nano.Duration) Value { return newNativeValue(TypeDuration, uint64(d)) }
-func NewTime(ts nano.Ts) Value          { return newNativeValue(TypeTime, uint64(ts)) }
-func NewFloat(t Type, f float64) Value  { return newNativeValue(t, math.Float64bits(f)) }
-func NewFloat16(f float32) Value        { return newNativeValue(TypeFloat16, math.Float64bits(float64(f))) }
-func NewFloat32(f float32) Value        { return newNativeValue(TypeFloat32, math.Float64bits(float64(f))) }
-func NewFloat64(f float64) Value        { return newNativeValue(TypeFloat64, math.Float64bits(f)) }
-func NewBool(b bool) Value              { return newNativeValue(TypeBool, boolToUint64(b)) }
-func NewBytes(b []byte) Value           { return NewValue(TypeBytes, b) }
-func NewString(s string) Value          { return Value{TypeString, nonNilUnsafeStringData(s), uint64(len(s))} }
-func NewIP(a netip.Addr) Value          { return NewValue(TypeIP, EncodeIP(a)) }
-func NewNet(p netip.Prefix) Value       { return NewValue(TypeNet, EncodeNet(p)) }
-func NewTypeValue(t Type) Value         { return NewValue(TypeNet, EncodeTypeValue(t)) }
+func NewUint8(u uint8) Value                 { return NewUint(TypeUint8, uint64(u)) }
+func NewUint16(u uint16) Value               { return NewUint(TypeUint16, uint64(u)) }
+func NewUint32(u uint32) Value               { return NewUint(TypeUint32, uint64(u)) }
+func NewUint64(u uint64) Value               { return NewUint(TypeUint64, u) }
+func NewInt8(i int8) Value                   { return NewInt(TypeInt8, int64(i)) }
+func NewInt16(i int16) Value                 { return NewInt(TypeInt16, int64(i)) }
+func NewInt32(i int32) Value                 { return NewInt(TypeInt32, int64(i)) }
+func NewInt64(i int64) Value                 { return NewInt(TypeInt64, i) }
+func NewDuration(d nano.Duration) Value      { return NewInt(TypeDuration, int64(d)) }
+func NewTime(ts nano.Ts) Value               { return NewInt(TypeTime, int64(ts)) }
+func NewFloat16(f float32) Value             { return NewFloat(TypeFloat16, float64(f)) }
+func NewFloat32(f float32) Value             { return NewFloat(TypeFloat32, float64(f)) }
+func NewFloat64(f float64) Value             { return NewFloat(TypeFloat64, f) }
+func (a *Arena) NewIP(x netip.Addr) Value    { return a.NewFromBytes(TypeIP, EncodeIP(x)) }
+func (a *Arena) NewNet(p netip.Prefix) Value { return a.NewFromBytes(TypeNet, EncodeNet(p)) }
+func (a *Arena) NewTypeValue(t Type) Value {
+	return a.NewFromBytes(TypeNet, EncodeTypeValue(t))
+}
 
 func boolToUint64(b bool) uint64 {
 	if b {
 		return 1
 	}
 	return 0
-}
-
-// nonNilUsafeStringData is like unsafe.StringData but never returns nil.
-func nonNilUnsafeStringData(s string) *byte {
-	if d := unsafe.StringData(s); d != nil {
-		return d
-	}
-	return unsafe.SliceData([]byte{})
-}
-
-// Uint returns v's underlying value.  It panics if v's underlying type is not
-// TypeUint8, TypeUint16, TypeUint32, or TypeUint64.
-func (v Value) Uint() uint64 {
-	if v.Type().ID() > IDUint64 {
-		panic(fmt.Sprintf("zed.Value.Uint called on %T", v.Type()))
-	}
-	if x, ok := v.native(); ok {
-		return x
-	}
-	return DecodeUint(v.bytes())
-}
-
-// Int returns v's underlying value.  It panics if v's underlying type is not
-// TypeInt8, TypeInt16, TypeInt32, TypeInt64, TypeDuration, or TypeTime.
-func (v Value) Int() int64 {
-	if !IsSigned(v.Type().ID()) {
-		panic(fmt.Sprintf("zed.Value.Int called on %T", v.Type()))
-	}
-	if x, ok := v.native(); ok {
-		return int64(x)
-	}
-	return DecodeInt(v.bytes())
-}
-
-// Float returns v's underlying value.  It panics if v's underlying type is not
-// TypeFloat16, TypeFloat32, or TypeFloat64.
-func (v Value) Float() float64 {
-	if !IsFloat(v.Type().ID()) {
-		panic(fmt.Sprintf("zed.Value.Float called on %T", v.Type()))
-	}
-	if x, ok := v.native(); ok {
-		return math.Float64frombits(x)
-	}
-	return DecodeFloat(v.bytes())
-}
-
-// Bool returns v's underlying value.  It panics if v's underlying type is not
-// TypeBool.
-func (v Value) Bool() bool {
-	if v.Type().ID() != IDBool {
-		panic(fmt.Sprintf("zed.Value.Bool called on %T", v.Type()))
-	}
-	if x, ok := v.native(); ok {
-		return x != 0
-	}
-	return DecodeBool(v.bytes())
-}
-
-// Bytes returns v's ZNG representation.
-func (v Value) Bytes() zcode.Bytes {
-	if x, ok := v.native(); ok {
-		switch v.Type().ID() {
-		case IDUint8, IDUint16, IDUint32, IDUint64:
-			return EncodeUint(x)
-		case IDInt8, IDInt16, IDInt32, IDInt64, IDDuration, IDTime:
-			return EncodeInt(int64(x))
-		case IDFloat16:
-			return EncodeFloat16(float32(math.Float64frombits(x)))
-		case IDFloat32:
-			return EncodeFloat32(float32(math.Float64frombits(x)))
-		case IDFloat64:
-			return EncodeFloat64(math.Float64frombits(x))
-		case IDBool:
-			return EncodeBool(x != 0)
-		}
-		panic(v.Type())
-	}
-	return v.bytes()
 }
 
 func (v Value) IsContainer() bool {
@@ -216,7 +113,7 @@ func (v Value) ArrayIndex(idx int64) (Value, error) {
 	for i, it := 0, v.Iter(); !it.Done(); i++ {
 		bytes := it.Next()
 		if i == int(idx) {
-			return NewValue(vec.Type, bytes), nil
+			return v.arena().NewValue(vec.Type, bytes), nil
 		}
 	}
 	return Null, ErrIndex
@@ -231,7 +128,7 @@ func (v Value) Elements() ([]Value, error) {
 	}
 	var elements []Value
 	for it := v.Iter(); !it.Done(); {
-		elements = append(elements, NewValue(innerType, it.Next()))
+		elements = append(elements, v.arena().NewValue(innerType, it.Next()))
 	}
 	return elements, nil
 }
@@ -264,28 +161,13 @@ func (v Value) ContainerLength() (int, error) {
 	}
 }
 
-// IsNull returns true if and only if v is a null value of any type.
-func (v Value) IsNull() bool {
-	return v.base == nil
-}
-
-// Copy returns a copy of v that shares no storage.
 func (v Value) Copy() Value {
-	if x, ok := v.native(); ok {
-		return newNativeValue(v.Type(), x)
-	}
-	return NewValue(v.Type(), bytes.Clone(v.bytes()))
+	return v
 }
 
 // CopyFrom copies from into v, reusing v's storage if possible.
 func (v *Value) CopyFrom(from Value) {
-	if _, ok := from.native(); ok || from.IsNull() {
-		*v = from
-	} else if _, ok := v.native(); ok || v.IsNull() || v.len < from.len {
-		*v = NewValue(from.Type(), bytes.Clone(from.bytes()))
-	} else {
-		*v = NewValue(from.Type(), append(v.bytes()[:0], from.bytes()...))
-	}
+	*v = from
 }
 
 func (v Value) IsString() bool {
@@ -318,13 +200,11 @@ func (v Value) IsQuiet() bool {
 // Equal reports whether p and v have the same type and the same ZNG
 // representation.
 func (v Value) Equal(p Value) bool {
+	if v == p {
+		return true
+	}
 	if v.Type() != p.Type() {
 		return false
-	}
-	if x, ok := v.native(); ok {
-		if y, ok := p.native(); ok {
-			return x == y
-		}
 	}
 	return bytes.Equal(v.Bytes(), p.Bytes())
 }
@@ -357,7 +237,7 @@ func (r Value) Fields() []Field {
 func (v *Value) DerefByColumn(col int) *Value {
 	if v != nil {
 		if bytes := v.nth(col); bytes != nil {
-			return NewValue(v.Fields()[col].Type, bytes).Ptr()
+			return v.arena().NewValue(v.Fields()[col].Type, bytes).Ptr()
 		}
 	}
 	return nil
@@ -449,7 +329,7 @@ func (v Value) under() Value {
 		typ = TypeUnder(typ)
 		union, ok := typ.(*TypeUnion)
 		if !ok {
-			return NewValue(typ, bytes)
+			return v.arena().NewValue(typ, bytes)
 		}
 		typ, bytes = union.Untag(bytes)
 	}

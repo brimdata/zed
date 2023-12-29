@@ -35,7 +35,9 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 	case *ast.Grep:
 		return a.semGrep(e)
 	case *astzed.Primitive:
-		val, err := zson.ParsePrimitive(e.Type, e.Text)
+		a := zed.NewArena(zed.NewContext()) // XXX extract this (duplicated in ast.Term)
+		defer a.KeepAlive()
+		val, err := zson.ParsePrimitive(a, e.Type, e.Text)
 		if err != nil {
 			return nil, err
 		}
@@ -49,7 +51,9 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 		var val string
 		switch t := e.Value.(type) {
 		case *astzed.Primitive:
-			v, err := zson.ParsePrimitive(t.Type, t.Text)
+			a := zed.NewArena(zed.NewContext())
+			defer a.KeepAlive()
+			v, err := zson.ParsePrimitive(a, t.Type, t.Text)
 			if err != nil {
 				return nil, err
 			}

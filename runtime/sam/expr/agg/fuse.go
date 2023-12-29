@@ -25,13 +25,13 @@ func (f *fuse) Consume(val zed.Value) {
 	}
 }
 
-func (f *fuse) Result(zctx *zed.Context) zed.Value {
+func (f *fuse) Result(a *zed.Arena) zed.Value {
 	if len(f.shapes)+len(f.partials) == 0 {
 		return zed.NullType
 	}
-	schema := NewSchema(zctx)
+	schema := NewSchema(a.Zctx())
 	for _, p := range f.partials {
-		typ, err := zctx.LookupByValue(p.Bytes())
+		typ, err := a.Zctx().LookupByValue(p.Bytes())
 		if err != nil {
 			panic(fmt.Errorf("fuse: invalid partial value: %w", err))
 		}
@@ -44,7 +44,7 @@ func (f *fuse) Result(zctx *zed.Context) zed.Value {
 	for _, typ := range shapes {
 		schema.Mixin(typ)
 	}
-	return zctx.LookupTypeValue(schema.Type())
+	return a.LookupTypeValue(schema.Type())
 }
 
 func (f *fuse) ConsumeAsPartial(partial zed.Value) {
@@ -54,6 +54,6 @@ func (f *fuse) ConsumeAsPartial(partial zed.Value) {
 	f.partials = append(f.partials, partial.Copy())
 }
 
-func (f *fuse) ResultAsPartial(zctx *zed.Context) zed.Value {
-	return f.Result(zctx)
+func (f *fuse) ResultAsPartial(a *zed.Arena) zed.Value {
+	return f.Result(a)
 }

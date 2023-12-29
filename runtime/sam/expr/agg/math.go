@@ -29,12 +29,12 @@ func newMathReducer(f *anymath.Function) *mathReducer {
 	return &mathReducer{function: f}
 }
 
-func (m *mathReducer) Result(zctx *zed.Context) zed.Value {
+func (m *mathReducer) Result(arena *zed.Arena) zed.Value {
 	if !m.hasval {
 		if m.math == nil {
 			return zed.Null
 		}
-		return zed.NewValue(m.math.typ(), nil)
+		return arena.NewValue(m.math.typ(), nil)
 	}
 	return m.math.result()
 }
@@ -50,7 +50,7 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 		// XXX We're not using the value coercion parts of coerce.Pair here.
 		// Would be better if coerce had a function that just compared types
 		// and returned the type to coerce to.
-		id, err = m.pair.Coerce(zed.NewValue(m.math.typ(), nil), val)
+		id, err = m.pair.Coerce(zed.NewArena(nil).NewValue(m.math.typ(), nil), val)
 		if err != nil {
 			// Skip invalid values.
 			return
@@ -86,8 +86,8 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 	m.math.consume(val)
 }
 
-func (m *mathReducer) ResultAsPartial(*zed.Context) zed.Value {
-	return m.Result(nil)
+func (m *mathReducer) ResultAsPartial(arena *zed.Arena) zed.Value {
+	return m.Result(arena)
 }
 
 func (m *mathReducer) ConsumeAsPartial(val zed.Value) {

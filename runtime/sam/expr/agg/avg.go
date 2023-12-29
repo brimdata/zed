@@ -27,7 +27,7 @@ func (a *Avg) Consume(val zed.Value) {
 	}
 }
 
-func (a *Avg) Result(*zed.Context) zed.Value {
+func (a *Avg) Result(*zed.Arena) zed.Value {
 	if a.count > 0 {
 		return zed.NewFloat64(a.sum / float64(a.count))
 	}
@@ -58,13 +58,13 @@ func (a *Avg) ConsumeAsPartial(partial zed.Value) {
 	a.count += countVal.Uint()
 }
 
-func (a *Avg) ResultAsPartial(zctx *zed.Context) zed.Value {
+func (a *Avg) ResultAsPartial(arena *zed.Arena) zed.Value {
 	var zv zcode.Bytes
 	zv = zed.NewFloat64(a.sum).Encode(zv)
 	zv = zed.NewUint64(a.count).Encode(zv)
-	typ := zctx.MustLookupTypeRecord([]zed.Field{
+	typ := arena.Zctx().MustLookupTypeRecord([]zed.Field{
 		zed.NewField(sumName, zed.TypeFloat64),
 		zed.NewField(countName, zed.TypeUint64),
 	})
-	return zed.NewValue(typ, zv)
+	return arena.NewValue(typ, zv)
 }

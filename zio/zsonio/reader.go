@@ -15,14 +15,16 @@ type Reader struct {
 	analyzer zson.Analyzer
 	builder  *zcode.Builder
 	val      zed.Value
+	arena    *zed.Arena
 }
 
-func NewReader(zctx *zed.Context, r io.Reader) *Reader {
+func NewReader(a *zed.Arena, r io.Reader) *Reader {
 	return &Reader{
 		reader:   r,
-		zctx:     zctx,
+		zctx:     a.Zctx(),
 		analyzer: zson.NewAnalyzer(),
 		builder:  zcode.NewBuilder(),
+		arena:    a,
 	}
 }
 
@@ -38,6 +40,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.val, err = zson.Build(r.builder, val)
+	r.val, err = zson.Build(r.arena, r.builder, val)
 	return &r.val, err
 }

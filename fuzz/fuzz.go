@@ -159,14 +159,14 @@ func CompareValues(t testing.TB, valuesExpected []zed.Value, valuesActual []zed.
 	}
 }
 
-func GenValues(b *bytes.Reader, context *zed.Context, types []zed.Type) []zed.Value {
+func GenValues(b *bytes.Reader, a *zed.Arena, context *zed.Context, types []zed.Type) []zed.Value {
 	var values []zed.Value
 	var builder zcode.Builder
 	for GenByte(b) != 0 {
 		typ := types[int(GenByte(b))%len(types)]
 		builder.Reset()
 		GenValue(b, context, typ, &builder)
-		values = append(values, zed.NewValue(typ, builder.Bytes().Body()))
+		values = append(values, a.NewValue(typ, builder.Bytes().Body()))
 	}
 	return values
 }

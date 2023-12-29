@@ -65,7 +65,9 @@ func (b *Branch) Load(ctx context.Context, zctx *zed.Context, r zio.Reader, auth
 	if message == "" {
 		message = loadMessage(objects)
 	}
-	appMeta, err := loadMeta(zctx, meta)
+	a := zed.NewArena(zctx)
+	defer a.KeepAlive()
+	appMeta, err := loadMeta(a, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -93,13 +95,13 @@ func loadMessage(objects []data.Object) string {
 	return b.String()
 }
 
-func loadMeta(zctx *zed.Context, meta string) (zed.Value, error) {
+func loadMeta(a *zed.Arena, meta string) (zed.Value, error) {
 	if meta == "" {
 		return zed.Null, nil
 	}
-	val, err := zson.ParseValue(zed.NewContext(), meta)
+	val, err := zson.ParseValue(a, meta)
 	if err != nil {
-		return zctx.Missing(), fmt.Errorf("%w %q: %s", ErrInvalidCommitMeta, meta, err)
+		return a.Missing(), fmt.Errorf("%w %q: %s", ErrInvalidCommitMeta, meta, err)
 	}
 	return val, nil
 }
@@ -129,13 +131,14 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 }
 
 func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program ast.Seq, author, message, meta string) (ksuid.KSUID, error) {
-	zctx := zed.NewContext()
-	appMeta, err := loadMeta(zctx, meta)
+	a := zed.NewArena(zed.NewContext())
+	defer a.KeepAlive()
+	appMeta, err := loadMeta(a, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		rctx := runtime.NewContext(ctx, zctx)
+		rctx := runtime.NewContext(ctx, a.Zctx())
 		defer rctx.Cancel()
 		// XXX It would be great to not do this since and just pass the snapshot
 		// into c.NewLakeDeleteQuery since we have to load the snapshot later
@@ -150,7 +153,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 			return nil, err
 		}
 		defer query.Pull(true)
-		w, err := NewWriter(ctx, zctx, b.pool)
+		w, err := NewWriter(ctx, a.Zctx(), b.pool)
 		if err != nil {
 			return nil, err
 		}
@@ -239,8 +242,9 @@ func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, 
 	if len(rollup) < 1 {
 		return ksuid.Nil, errors.New("compact: one or more rollup objects required")
 	}
-	zctx := zed.NewContext()
-	appMeta, err := loadMeta(zctx, meta)
+	a := zed.NewArena(zed.NewContext())
+	defer a.KeepAlive()
+	appMeta, err := loadMeta(a, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}

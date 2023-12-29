@@ -55,6 +55,7 @@ type Builder struct {
 	progress *zbuf.Progress
 	deletes  *sync.Map
 	funcs    map[string]expr.Function
+	a        *zed.Arena
 }
 
 func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
@@ -84,6 +85,10 @@ func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, erro
 
 func (b *Builder) BuildWithPuller(seq dag.Seq, parent vector.Puller) ([]vector.Puller, error) {
 	return b.compileVamSeq(seq, []vector.Puller{parent})
+}
+
+func (b *Builder) arena() *zed.Arena {
+	return b.a
 }
 
 func (b *Builder) zctx() *zed.Context {
@@ -657,10 +662,10 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 	// reference to a var not in scope, a field access null this, etc.
 	defer func() {
 		if recover() != nil {
-			val = b.zctx().Missing()
+			val = b.arena().Missing()
 		}
 	}()
-	return e.Eval(expr.NewContext(), b.zctx().Missing()), nil
+	return e.Eval(expr.NewContext(), b.arena().Missing()), nil
 }
 
 func compileExpr(in dag.Expr) (expr.Evaluator, error) {
