@@ -27,7 +27,7 @@ func (c *CollectMap) Consume(val *zed.Value) {
 	if val.IsNull() {
 		return
 	}
-	mtyp, ok := zed.TypeUnder(val.Type).(*zed.TypeMap)
+	mtyp, ok := zed.TypeUnder(val.Type()).(*zed.TypeMap)
 	if !ok {
 		return
 	}
@@ -37,7 +37,7 @@ func (c *CollectMap) Consume(val *zed.Value) {
 		keyTagAndBody := it.NextTagAndBody()
 		key := valueUnder(mtyp.KeyType, keyTagAndBody.Body())
 		val := valueUnder(mtyp.ValType, it.Next())
-		c.scratch = zed.AppendTypeValue(c.scratch[:0], key.Type)
+		c.scratch = zed.AppendTypeValue(c.scratch[:0], key.Type())
 		c.scratch = append(c.scratch, keyTagAndBody...)
 		// This will squash existing values which is what we want.
 		c.entries[string(c.scratch)] = mapEntry{key, val}
@@ -54,8 +54,8 @@ func (c *CollectMap) Result(zctx *zed.Context) *zed.Value {
 	}
 	var ktypes, vtypes []zed.Type
 	for _, e := range c.entries {
-		ktypes = append(ktypes, e.key.Type)
-		vtypes = append(vtypes, e.val.Type)
+		ktypes = append(ktypes, e.key.Type())
+		vtypes = append(vtypes, e.val.Type())
 	}
 	// Keep track of number of unique types in collection. If there is only one
 	// unique type we don't build a union for each value (though the base type could
@@ -79,7 +79,7 @@ func (c *CollectMap) ResultAsPartial(zctx *zed.Context) *zed.Value {
 func appendMapVal(b *zcode.Builder, typ zed.Type, val *zed.Value, uniq int) {
 	if uniq > 1 {
 		u := zed.TypeUnder(typ).(*zed.TypeUnion)
-		zed.BuildUnion(b, u.TagOf(val.Type), val.Bytes())
+		zed.BuildUnion(b, u.TagOf(val.Type()), val.Bytes())
 	} else {
 		b.Append(val.Bytes())
 	}

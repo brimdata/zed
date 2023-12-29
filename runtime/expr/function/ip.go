@@ -15,7 +15,7 @@ type NetworkOf struct {
 }
 
 func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	id := args[0].Type.ID()
+	id := args[0].Type().ID()
 	if id != zed.IDIP {
 		return wrapError(n.zctx, ctx, "network_of: not an IP", &args[0])
 	}
@@ -35,7 +35,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	} else {
 		// two args
 		body := args[1].Bytes()
-		switch id := args[1].Type.ID(); {
+		switch id := args[1].Type().ID(); {
 		case id == zed.IDIP:
 			mask := zed.DecodeIP(body)
 			if mask.BitLen() != ip.BitLen() {
@@ -83,7 +83,7 @@ var errMatch = errors.New("match")
 
 func (c *CIDRMatch) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	maskVal := args[0]
-	if maskVal.Type.ID() != zed.IDNet {
+	if maskVal.Type().ID() != zed.IDNet {
 		return wrapError(c.zctx, ctx, "cidr_match: not a net", &maskVal)
 	}
 	prefix := zed.DecodeNet(maskVal.Bytes())

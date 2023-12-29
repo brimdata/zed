@@ -54,7 +54,7 @@ func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 				//XXX don't break here?
 				//break
 			}
-			if val.Type == zed.TypeBool && val.Bool() {
+			if val.Type() == zed.TypeBool && val.Bool() {
 				c.vals = append(c.vals, *this)
 				break
 			}

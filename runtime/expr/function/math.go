@@ -15,7 +15,7 @@ type Abs struct {
 
 func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := &args[0]
-	switch id := val.Type.ID(); {
+	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return ctx.CopyValue(*val)
 	case zed.IsSigned(id):
@@ -23,9 +23,9 @@ func (a *Abs) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		if x < 0 {
 			x = -x
 		}
-		return ctx.CopyValue(*zed.NewInt(val.Type, x))
+		return ctx.CopyValue(*zed.NewInt(val.Type(), x))
 	case zed.IsFloat(id):
-		return ctx.CopyValue(*zed.NewFloat(val.Type, math.Abs(val.Float())))
+		return ctx.CopyValue(*zed.NewFloat(val.Type(), math.Abs(val.Float())))
 	}
 	return wrapError(a.zctx, ctx, "abs: not a number", val)
 }
@@ -37,11 +37,11 @@ type Ceil struct {
 
 func (c *Ceil) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := &args[0]
-	switch id := val.Type.ID(); {
+	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id) || zed.IsSigned(id):
 		return ctx.CopyValue(*val)
 	case zed.IsFloat(id):
-		return ctx.CopyValue(*zed.NewFloat(val.Type, math.Ceil(val.Float())))
+		return ctx.CopyValue(*zed.NewFloat(val.Type(), math.Ceil(val.Float())))
 	}
 	return wrapError(c.zctx, ctx, "ceil: not a number", val)
 }
@@ -53,11 +53,11 @@ type Floor struct {
 
 func (f *Floor) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := &args[0]
-	switch id := val.Type.ID(); {
+	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id) || zed.IsSigned(id):
 		return ctx.CopyValue(*val)
 	case zed.IsFloat(id):
-		return ctx.CopyValue(*zed.NewFloat(val.Type, math.Floor(val.Float())))
+		return ctx.CopyValue(*zed.NewFloat(val.Type(), math.Floor(val.Float())))
 	}
 	return wrapError(f.zctx, ctx, "floor: not a number", val)
 }
@@ -86,7 +86,7 @@ type reducer struct {
 
 func (r *reducer) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val0 := &args[0]
-	switch id := val0.Type.ID(); {
+	switch id := val0.Type().ID(); {
 	case zed.IsUnsigned(id):
 		result := val0.Uint()
 		for _, val := range args[1:] {
@@ -132,11 +132,11 @@ type Round struct {
 
 func (r *Round) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := &args[0]
-	switch id := val.Type.ID(); {
+	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id) || zed.IsSigned(id):
 		return ctx.CopyValue(*val)
 	case zed.IsFloat(id):
-		return ctx.CopyValue(*zed.NewFloat(val.Type, math.Round(val.Float())))
+		return ctx.CopyValue(*zed.NewFloat(val.Type(), math.Round(val.Float())))
 	}
 	return wrapError(r.zctx, ctx, "round: not a number", val)
 }

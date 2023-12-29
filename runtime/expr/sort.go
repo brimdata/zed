@@ -32,7 +32,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 		indices[i] = uint32(i)
 		val := c.exprs[0].Eval(ectx, &vals[i])
 		val0s[i] = val
-		if id := val.Type.ID(); id <= zed.IDTime {
+		if id := val.Type().ID(); id <= zed.IDTime {
 			if val.IsNull() {
 				if c.nullsMax {
 					i64s[i] = math.MaxInt64
@@ -181,15 +181,15 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 		}
 	}
 
-	typ := a.Type
+	typ := a.Type()
 	abytes, bbytes := a.Bytes(), b.Bytes()
-	if a.Type.ID() != b.Type.ID() {
+	if a.Type().ID() != b.Type().ID() {
 		id, err := pair.Coerce(a, b)
 		if err == nil {
 			typ, err = zed.LookupPrimitiveByID(id)
 		}
 		if err != nil {
-			return zed.CompareTypes(a.Type, b.Type)
+			return zed.CompareTypes(a.Type(), b.Type())
 		}
 		abytes, bbytes = pair.A, pair.B
 	}

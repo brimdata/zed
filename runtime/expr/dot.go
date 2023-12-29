@@ -42,7 +42,7 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 	var tmpVal zed.Value
 	val := d.record.Eval(ectx, this).Under(&tmpVal)
 	// Cases are ordered by decreasing expected frequency.
-	switch typ := val.Type.(type) {
+	switch typ := val.Type().(type) {
 	case *zed.TypeRecord:
 		i, ok := d.fieldIndex(typ)
 		if !ok {

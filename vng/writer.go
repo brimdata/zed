@@ -79,13 +79,13 @@ func (w *Writer) Write(val *zed.Value) error {
 	// We track the types seen first-come, first-served in the
 	// typeMap table and the VNG serialization structure
 	// follows accordingly.
-	typ := val.Type
+	typ := val.Type()
 	typeNo, ok := w.typeMap[typ]
 	if !ok {
 		typeNo = len(w.types)
 		w.typeMap[typ] = typeNo
 		w.writers = append(w.writers, vector.NewWriter(typ, w.spiller))
-		w.types = append(w.types, val.Type)
+		w.types = append(w.types, val.Type())
 	}
 	if err := w.root.Write(int64(typeNo)); err != nil {
 		return err

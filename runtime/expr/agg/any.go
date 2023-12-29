@@ -15,13 +15,13 @@ func NewAny() *Any {
 func (a *Any) Consume(val *zed.Value) {
 	// Copy any value from the input while favoring any-typed non-null values
 	// over null values.
-	if a.Type == nil || (*zed.Value)(a).IsNull() && !val.IsNull() {
+	if (*zed.Value)(a).Type() == nil || (*zed.Value)(a).IsNull() && !val.IsNull() {
 		*a = Any(*val.Copy())
 	}
 }
 
 func (a *Any) Result(*zed.Context) *zed.Value {
-	if a.Type == nil {
+	if (*zed.Value)(a).Type() == nil {
 		return zed.Null
 	}
 	return (*zed.Value)(a)

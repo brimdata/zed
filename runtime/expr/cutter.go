@@ -75,7 +75,7 @@ func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
 			continue
 		}
 		rb.Append(val.Bytes())
-		types[k] = val.Type
+		types[k] = val.Type()
 	}
 	bytes, err := rb.Encode()
 	if err != nil {

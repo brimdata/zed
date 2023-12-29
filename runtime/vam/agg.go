@@ -74,7 +74,7 @@ func (c *countByString) count(vec *vector.String) {
 func (c *countByString) countFixed(vec *vector.Const) {
 	//XXX
 	val := vec.Value()
-	if zed.TypeUnder(val.Type) == zed.TypeString {
+	if zed.TypeUnder(val.Type()) == zed.TypeString {
 		c.table[zed.DecodeString(val.Bytes())] += uint64(vec.Length())
 	}
 }

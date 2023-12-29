@@ -35,7 +35,7 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 			return ranges, err
 		}
 		result := pruner.Eval(ectx.Reset(), val)
-		if result.Type == zed.TypeBool && result.Bool() {
+		if result.Type() == zed.TypeBool && result.Bool() {
 			rg = nil
 			continue
 		}

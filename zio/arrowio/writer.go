@@ -77,7 +77,7 @@ func (w *Writer) Close() error {
 const recordBatchSize = 1024
 
 func (w *Writer) Write(val *zed.Value) error {
-	recType, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord)
+	recType, ok := zed.TypeUnder(val.Type()).(*zed.TypeRecord)
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrNotRecord, zson.FormatValue(val))
 	}

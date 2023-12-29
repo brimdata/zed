@@ -19,5 +19,5 @@ func (p *pruner) prune(val *zed.Value) bool {
 		return false
 	}
 	result := p.pred.Eval(p.ectx.Reset(), val)
-	return result.Type == zed.TypeBool && result.Bool()
+	return result.Type() == zed.TypeBool && result.Bool()
 }

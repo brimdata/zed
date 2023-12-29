@@ -48,10 +48,10 @@ func (f *Fields) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 }
 
 func (f *Fields) recordType(val zed.Value) *zed.TypeRecord {
-	if typ, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord); ok {
+	if typ, ok := zed.TypeUnder(val.Type()).(*zed.TypeRecord); ok {
 		return typ
 	}
-	if val.Type == zed.TypeType {
+	if val.Type() == zed.TypeType {
 		typ, err := f.zctx.LookupByValue(val.Bytes())
 		if err != nil {
 			return nil

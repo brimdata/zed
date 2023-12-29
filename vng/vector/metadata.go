@@ -152,7 +152,7 @@ type Const struct {
 }
 
 func (c *Const) Type(zctx *zed.Context) zed.Type {
-	return c.Value.Type
+	return c.Value.Type()
 }
 
 var Template = []interface{}{

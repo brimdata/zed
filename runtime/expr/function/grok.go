@@ -28,11 +28,11 @@ func (g *Grok) Call(ectx zed.Allocator, vals []zed.Value) *zed.Value {
 		defArg = &vals[2]
 	}
 	switch {
-	case zed.TypeUnder(defArg.Type) != zed.TypeString:
+	case zed.TypeUnder(defArg.Type()) != zed.TypeString:
 		return g.error(ectx, "definitions argument must be a string", defArg)
-	case zed.TypeUnder(patternArg.Type) != zed.TypeString:
+	case zed.TypeUnder(patternArg.Type()) != zed.TypeString:
 		return g.error(ectx, "pattern argument must be a string", &patternArg)
-	case zed.TypeUnder(inputArg.Type) != zed.TypeString:
+	case zed.TypeUnder(inputArg.Type()) != zed.TypeString:
 		return g.error(ectx, "input argument must be a string", &inputArg)
 	}
 	h, err := g.getHost(defArg.AsString())

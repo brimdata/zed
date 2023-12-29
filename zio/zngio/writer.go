@@ -101,10 +101,10 @@ func (w *Writer) EndStream() error {
 }
 
 func (w *Writer) Write(val *zed.Value) error {
-	typ := w.types.Lookup(val.Type)
+	typ := w.types.Lookup(val.Type())
 	if typ == nil {
 		var err error
-		typ, err = w.types.Encode(val.Type)
+		typ, err = w.types.Encode(val.Type())
 		if err != nil {
 			return err
 		}

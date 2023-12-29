@@ -126,7 +126,7 @@ func TestNestedRecords(t *testing.T) {
 	require.NoError(t, record.Validate())
 
 	// First check that the descriptor was created correctly
-	fields := zed.TypeRecordOf(record.Type).Fields
+	fields := zed.TypeRecordOf(record.Type()).Fields
 	assert.Equal(t, 5, len(fields), "Descriptor has 5 fields")
 	assert.Equal(t, "a", fields[0].Name, "Field 0 is a")
 	assert.Equal(t, "nest1", fields[1].Name, "Field 1 is nest1")
@@ -156,22 +156,22 @@ func TestNestedRecords(t *testing.T) {
 	assert.Equal(t, 1, int(record.Deref("a").AsInt()), "Field a has value 1")
 
 	e := record.Deref("nest1")
-	assert.Equal(t, nest1Type, e.Type, "Got right type for field nest1")
+	assert.Equal(t, nest1Type, e.Type(), "Got right type for field nest1")
 	assert.Equal(t, 2, int(e.Deref("a").AsInt()), "nest1.a")
 	assert.Equal(t, 3, int(e.Deref("b").AsInt()), "nest1.b")
 
 	e = e.Deref("nestnest")
-	assert.Equal(t, nestnestType, e.Type, "Got right type for field nest1.nestnest")
+	assert.Equal(t, nestnestType, e.Type(), "Got right type for field nest1.nestnest")
 	assert.Equal(t, 6, int(e.Deref("c").AsInt()), "nest1.nestnest.c")
 
 	assert.Equal(t, 4, int(record.Deref("b").AsInt()), "Field b has value 4")
 
 	e = record.Deref("nest2")
-	assert.Equal(t, nest2Type, e.Type, "Got right type for field nest2")
+	assert.Equal(t, nest2Type, e.Type(), "Got right type for field nest2")
 	assert.Equal(t, 5, int(e.Deref("y").AsInt()), "nest2.y")
 
 	e = record.Deref("nest3")
-	assert.Equal(t, nest3Type, e.Type, "Got right type for field nest3")
+	assert.Equal(t, nest3Type, e.Type(), "Got right type for field nest3")
 	assert.Equal(t, 7, int(e.Deref("z").AsInt()), "nest3.z")
 }
 

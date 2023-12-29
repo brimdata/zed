@@ -28,7 +28,7 @@ func (d *DCount) Consume(val *zed.Value) {
 	d.scratch = d.scratch[:0]
 	// append type id to vals so we get a unique count where the bytes are same
 	// but the zed.Type is different.
-	d.scratch = zed.AppendInt(d.scratch, int64(val.Type.ID()))
+	d.scratch = zed.AppendInt(d.scratch, int64(val.Type().ID()))
 	d.scratch = append(d.scratch, val.Bytes()...)
 	d.sketch.Insert(d.scratch)
 }
@@ -38,7 +38,7 @@ func (d *DCount) Result(*zed.Context) *zed.Value {
 }
 
 func (d *DCount) ConsumeAsPartial(partial *zed.Value) {
-	if partial.Type != zed.TypeBytes {
+	if partial.Type() != zed.TypeBytes {
 		panic(fmt.Errorf("dcount: partial has bad type: %s", zson.FormatValue(partial)))
 	}
 	var s hyperloglog.Sketch

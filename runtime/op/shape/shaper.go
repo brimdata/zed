@@ -61,7 +61,7 @@ func (a *anchor) mixIn(fields []zed.Field) {
 }
 
 func (i *integer) check(val zed.Value) {
-	id := val.Type.ID()
+	id := val.Type().ID()
 	if zed.IsInteger(id) || id == zed.IDNull {
 		return
 	}
@@ -167,7 +167,7 @@ func (s *Shaper) newAnchor(fields []zed.Field) *anchor {
 }
 
 func (s *Shaper) update(rec *zed.Value) {
-	if a, ok := s.typeAnchor[rec.Type]; ok {
+	if a, ok := s.typeAnchor[rec.Type()]; ok {
 		a.updateInts(rec)
 		return
 	}
@@ -179,7 +179,7 @@ func (s *Shaper) update(rec *zed.Value) {
 		a.mixIn(fields)
 	}
 	a.updateInts(rec)
-	s.typeAnchor[rec.Type] = a
+	s.typeAnchor[rec.Type()] = a
 }
 
 func (s *Shaper) needRecode(typ zed.Type) (*zed.TypeRecord, error) {
@@ -253,12 +253,12 @@ func (s *Shaper) Read() (*zed.Value, error) {
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	typ, err := s.lookupType(rec.Type)
+	typ, err := s.lookupType(rec.Type())
 	if err != nil {
 		return nil, err
 	}
 	bytes := rec.Bytes()
-	targetType, err := s.needRecode(rec.Type)
+	targetType, err := s.needRecode(rec.Type())
 	if err != nil {
 		return nil, err
 	}

@@ -199,10 +199,10 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, 
 		case len(path) == len(matchPath):
 			s.append(putStep{
 				op:        putFromClause,
-				container: zed.IsContainerType(vals[matchIndex].Type),
+				container: zed.IsContainerType(vals[matchIndex].Type()),
 				index:     matchIndex,
 			})
-			fields = append(fields, zed.NewField(f.Name, vals[matchIndex].Type))
+			fields = append(fields, zed.NewField(f.Name, vals[matchIndex].Type()))
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zed.IsRecordType(f.Type):
 			nestedStep, typ := p.deriveRecordSteps(path, zed.TypeRecordOf(f.Type).Fields, vals, paths)
@@ -234,10 +234,10 @@ func (p *Putter) deriveRecordSteps(parentPath field.Path, inFields []zed.Field, 
 			case len(lpath) == len(parentPath)+1:
 				s.append(putStep{
 					op:        putFromClause,
-					container: zed.IsContainerType(vals[i].Type),
+					container: zed.IsContainerType(vals[i].Type()),
 					index:     i,
 				})
-				fields = append(fields, zed.NewField(lpath[len(parentPath)], vals[i].Type))
+				fields = append(fields, zed.NewField(lpath[len(parentPath)], vals[i].Type()))
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(lpath) > len(parentPath)+1:
 				path := append(parentPath, lpath[len(parentPath)])
@@ -278,7 +278,7 @@ func (p *Putter) lookupRule(inType *zed.TypeRecord, vals []zed.Value, fields fie
 	step, typ := p.deriveSteps(inType, vals, fields)
 	var clauseTypes []zed.Type
 	for _, val := range vals {
-		clauseTypes = append(clauseTypes, val.Type)
+		clauseTypes = append(clauseTypes, val.Type())
 	}
 	rule = putRule{typ, clauseTypes, step}
 	p.rules[inType.ID()][fields.String()] = rule
@@ -307,12 +307,12 @@ func CheckPutFields(fields field.List) error {
 
 func sameTypes(types []zed.Type, vals []zed.Value) bool {
 	return slices.EqualFunc(types, vals, func(typ zed.Type, val zed.Value) bool {
-		return typ == val.Type
+		return typ == val.Type()
 	})
 }
 
 func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
-	recType := zed.TypeRecordOf(this.Type)
+	recType := zed.TypeRecordOf(this.Type())
 	if recType == nil {
 		if this.IsError() {
 			// propagate errors

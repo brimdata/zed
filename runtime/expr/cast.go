@@ -140,7 +140,7 @@ type casterIP struct {
 }
 
 func (c *casterIP) Eval(ectx Context, val *zed.Value) *zed.Value {
-	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeOfIP); ok {
+	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeOfIP); ok {
 		return val
 	}
 	if !val.IsString() {
@@ -158,7 +158,7 @@ type casterNet struct {
 }
 
 func (c *casterNet) Eval(ectx Context, val *zed.Value) *zed.Value {
-	if val.Type.ID() == zed.IDNet {
+	if val.Type().ID() == zed.IDNet {
 		return val
 	}
 	if !val.IsString() {
@@ -176,7 +176,7 @@ type casterDuration struct {
 }
 
 func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
-	id := val.Type.ID()
+	id := val.Type().ID()
 	if id == zed.IDDuration {
 		return val
 	}
@@ -206,7 +206,7 @@ type casterTime struct {
 }
 
 func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
-	id := val.Type.ID()
+	id := val.Type().ID()
 	var ts nano.Ts
 	switch {
 	case id == zed.IDTime:
@@ -242,14 +242,14 @@ type casterString struct {
 }
 
 func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
-	id := val.Type.ID()
+	id := val.Type().ID()
 	if id == zed.IDBytes {
 		if !utf8.Valid(val.Bytes()) {
 			return c.zctx.WrapError("cannot cast to string: invalid UTF-8", val)
 		}
 		return ectx.NewValue(zed.TypeString, val.Bytes())
 	}
-	if enum, ok := val.Type.(*zed.TypeEnum); ok {
+	if enum, ok := val.Type().(*zed.TypeEnum); ok {
 		selector := zed.DecodeUint(val.Bytes())
 		symbol, err := enum.Symbol(int(selector))
 		if err != nil {
@@ -284,7 +284,7 @@ func (c *casterNamedType) Eval(ectx Context, this *zed.Value) *zed.Value {
 	if val.IsError() {
 		return val
 	}
-	typ, err := c.zctx.LookupTypeNamed(c.name, zed.TypeUnder(val.Type))
+	typ, err := c.zctx.LookupTypeNamed(c.name, zed.TypeUnder(val.Type()))
 	if err != nil {
 		return ectx.CopyValue(*c.zctx.NewError(err))
 	}

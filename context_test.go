@@ -46,7 +46,7 @@ func TestContextTranslateTypeNameConflictUnion(t *testing.T) {
 	zctx := zed.NewContext()
 	val := zson.MustParseValue(zctx, `[{x:{y:63}}(=foo),{x:{abcdef:{x:{y:127}}(foo)}}(=foo)]`)
 	foreign := zed.NewContext()
-	twin, err := foreign.TranslateType(val.Type)
+	twin, err := foreign.TranslateType(val.Type())
 	require.NoError(t, err)
 	union := twin.(*zed.TypeArray).Type.(*zed.TypeUnion)
 	assert.Equal(t, `foo={x:{abcdef:foo={x:{y:int64}}}}`, zson.String(union.Types[0]))

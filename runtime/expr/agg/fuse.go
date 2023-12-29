@@ -20,8 +20,8 @@ func newFuse() *fuse {
 }
 
 func (f *fuse) Consume(val *zed.Value) {
-	if _, ok := f.shapes[val.Type]; !ok {
-		f.shapes[val.Type] = len(f.shapes)
+	if _, ok := f.shapes[val.Type()]; !ok {
+		f.shapes[val.Type()] = len(f.shapes)
 	}
 }
 
@@ -48,7 +48,7 @@ func (f *fuse) Result(zctx *zed.Context) *zed.Value {
 }
 
 func (f *fuse) ConsumeAsPartial(partial *zed.Value) {
-	if partial.Type != zed.TypeType {
+	if partial.Type() != zed.TypeType {
 		panic("fuse: partial not a type value")
 	}
 	f.partials = append(f.partials, *partial.Copy())

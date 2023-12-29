@@ -61,7 +61,7 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 }
 
 func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
-	id := r.Type.ID()
+	id := r.Type().ID()
 	flatType := f.mapper.Lookup(id)
 	if flatType == nil {
 		flatType = f.zctx.MustLookupTypeRecord(FlattenFields(r.Fields()))
@@ -70,10 +70,10 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 	// Since we are mapping the input context to itself we can do a
 	// pointer comparison to see if the types are the same and there
 	// is no need to record.
-	if zed.TypeUnder(r.Type) == flatType {
+	if zed.TypeUnder(r.Type()) == flatType {
 		return r, nil
 	}
-	zv, err := recode(nil, zed.TypeRecordOf(r.Type), r.Bytes())
+	zv, err := recode(nil, zed.TypeRecordOf(r.Type()), r.Bytes())
 	if err != nil {
 		return nil, err
 	}

@@ -552,7 +552,7 @@ func (c *Context) StringTypeError() *TypeError {
 func (c *Context) WrapError(msg string, val *Value) *Value {
 	recType := c.MustLookupTypeRecord([]Field{
 		{"message", TypeString},
-		{"on", val.Type},
+		{"on", val.Type()},
 	})
 	errType := c.LookupTypeError(recType)
 	var b zcode.Builder

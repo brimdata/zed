@@ -67,14 +67,14 @@ func (w *Writer) write(s string) error {
 }
 
 func (w *Writer) Transform(r *zed.Value) (Object, error) {
-	local, ok := w.types[r.Type]
+	local, ok := w.types[r.Type()]
 	if !ok {
 		var err error
-		local, err = w.zctx.TranslateType(r.Type)
+		local, err = w.zctx.TranslateType(r.Type())
 		if err != nil {
 			return Object{}, err
 		}
-		w.types[r.Type] = local
+		w.types[r.Type()] = local
 	}
 	// Encode type before encoding value in case there are type values
 	// in the value.  We want to keep the order consistent.

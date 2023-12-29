@@ -14,7 +14,7 @@ type Base64 struct {
 
 func (b *Base64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
-	switch val.Type.ID() {
+	switch val.Type().ID() {
 	case zed.IDBytes:
 		if val.IsNull() {
 			return newErrorf(b.zctx, ctx, "base64: illegal null argument")
@@ -41,7 +41,7 @@ type Hex struct {
 
 func (h *Hex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
-	switch val.Type.ID() {
+	switch val.Type().ID() {
 	case zed.IDBytes:
 		if val.IsNull() {
 			return newErrorf(h.zctx, ctx, "hex: illegal null argument")

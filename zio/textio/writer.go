@@ -28,7 +28,7 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(val *zed.Value) error {
-	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeRecord); ok {
+	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeRecord); ok {
 		return w.writeRecord(val)
 	}
 	_, err := fmt.Fprintln(w.writer, zeekio.FormatValue(val))
@@ -41,7 +41,7 @@ func (w *Writer) writeRecord(rec *zed.Value) error {
 		return err
 	}
 	var out []string
-	for k, f := range zed.TypeRecordOf(rec.Type).Fields {
+	for k, f := range zed.TypeRecordOf(rec.Type()).Fields {
 		var s string
 		value := rec.DerefByColumn(k).MissingAsNull()
 		if f.Type == zed.TypeTime {

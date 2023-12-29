@@ -20,26 +20,26 @@ var (
 )
 
 var (
-	NullUint8    = &Value{Type: TypeUint8}
-	NullUint16   = &Value{Type: TypeUint16}
-	NullUint32   = &Value{Type: TypeUint32}
-	NullUint64   = &Value{Type: TypeUint64}
-	NullInt8     = &Value{Type: TypeInt8}
-	NullInt16    = &Value{Type: TypeInt16}
-	NullInt32    = &Value{Type: TypeInt32}
-	NullInt64    = &Value{Type: TypeInt64}
-	NullDuration = &Value{Type: TypeDuration}
-	NullTime     = &Value{Type: TypeTime}
-	NullFloat16  = &Value{Type: TypeFloat16}
-	NullFloat32  = &Value{Type: TypeFloat32}
-	NullFloat64  = &Value{Type: TypeFloat64}
-	NullBool     = &Value{Type: TypeBool}
-	NullBytes    = &Value{Type: TypeBytes}
-	NullString   = &Value{Type: TypeString}
-	NullIP       = &Value{Type: TypeIP}
-	NullNet      = &Value{Type: TypeNet}
-	NullType     = &Value{Type: TypeType}
-	Null         = &Value{Type: TypeNull}
+	NullUint8    = &Value{typ: TypeUint8}
+	NullUint16   = &Value{typ: TypeUint16}
+	NullUint32   = &Value{typ: TypeUint32}
+	NullUint64   = &Value{typ: TypeUint64}
+	NullInt8     = &Value{typ: TypeInt8}
+	NullInt16    = &Value{typ: TypeInt16}
+	NullInt32    = &Value{typ: TypeInt32}
+	NullInt64    = &Value{typ: TypeInt64}
+	NullDuration = &Value{typ: TypeDuration}
+	NullTime     = &Value{typ: TypeTime}
+	NullFloat16  = &Value{typ: TypeFloat16}
+	NullFloat32  = &Value{typ: TypeFloat32}
+	NullFloat64  = &Value{typ: TypeFloat64}
+	NullBool     = &Value{typ: TypeBool}
+	NullBytes    = &Value{typ: TypeBytes}
+	NullString   = &Value{typ: TypeString}
+	NullIP       = &Value{typ: TypeIP}
+	NullNet      = &Value{typ: TypeNet}
+	NullType     = &Value{typ: TypeType}
+	Null         = &Value{typ: TypeNull}
 
 	False = NewBool(false)
 	True  = NewBool(true)
@@ -51,12 +51,14 @@ type Allocator interface {
 }
 
 type Value struct {
-	Type Type
+	typ Type
 	// If base == &nativeBase, len holds this Value's native representation.
 	// Otherwise, unsafe.Slice(base, len) holds its ZNG representation.
 	base *byte
 	len  uint64
 }
+
+func (v *Value) Type() Type { return v.typ }
 
 func NewValue(t Type, b zcode.Bytes) *Value { return &Value{t, unsafe.SliceData(b), uint64(len(b))} }
 func (v *Value) bytes() zcode.Bytes         { return unsafe.Slice(v.base, v.len) }
@@ -102,8 +104,8 @@ func boolToUint64(b bool) uint64 {
 // Uint returns v's underlying value.  It panics if v's underlying type is not
 // TypeUint8, TypeUint16, TypeUint32, or TypeUint64.
 func (v *Value) Uint() uint64 {
-	if v.Type.ID() > IDUint64 {
-		panic(fmt.Sprintf("zed.Value.Uint called on %T", v.Type))
+	if v.Type().ID() > IDUint64 {
+		panic(fmt.Sprintf("zed.Value.Uint called on %T", v.Type()))
 	}
 	if x, ok := v.native(); ok {
 		return x
@@ -114,8 +116,8 @@ func (v *Value) Uint() uint64 {
 // Int returns v's underlying value.  It panics if v's underlying type is not
 // TypeInt8, TypeInt16, TypeInt32, TypeInt64, TypeDuration, or TypeTime.
 func (v *Value) Int() int64 {
-	if !IsSigned(v.Type.ID()) {
-		panic(fmt.Sprintf("zed.Value.Int called on %T", v.Type))
+	if !IsSigned(v.Type().ID()) {
+		panic(fmt.Sprintf("zed.Value.Int called on %T", v.Type()))
 	}
 	if x, ok := v.native(); ok {
 		return int64(x)
@@ -126,8 +128,8 @@ func (v *Value) Int() int64 {
 // Float returns v's underlying value.  It panics if v's underlying type is not
 // TypeFloat16, TypeFloat32, or TypeFloat64.
 func (v *Value) Float() float64 {
-	if !IsFloat(v.Type.ID()) {
-		panic(fmt.Sprintf("zed.Value.Float called on %T", v.Type))
+	if !IsFloat(v.Type().ID()) {
+		panic(fmt.Sprintf("zed.Value.Float called on %T", v.Type()))
 	}
 	if x, ok := v.native(); ok {
 		return math.Float64frombits(x)
@@ -138,8 +140,8 @@ func (v *Value) Float() float64 {
 // Bool returns v's underlying value.  It panics if v's underlying type is not
 // TypeBool.
 func (v *Value) Bool() bool {
-	if v.Type.ID() != IDBool {
-		panic(fmt.Sprintf("zed.Value.Bool called on %T", v.Type))
+	if v.Type().ID() != IDBool {
+		panic(fmt.Sprintf("zed.Value.Bool called on %T", v.Type()))
 	}
 	if x, ok := v.native(); ok {
 		return x != 0
@@ -150,7 +152,7 @@ func (v *Value) Bool() bool {
 // Bytes returns v's ZNG representation.
 func (v *Value) Bytes() zcode.Bytes {
 	if x, ok := v.native(); ok {
-		switch v.Type.ID() {
+		switch v.Type().ID() {
 		case IDUint8, IDUint16, IDUint32, IDUint64:
 			return EncodeUint(x)
 		case IDInt8, IDInt16, IDInt32, IDInt64, IDDuration, IDTime:
@@ -164,20 +166,20 @@ func (v *Value) Bytes() zcode.Bytes {
 		case IDBool:
 			return EncodeBool(x != 0)
 		}
-		panic(v.Type)
+		panic(v.Type())
 	}
 	return v.bytes()
 }
 
 func (v *Value) IsContainer() bool {
-	return IsContainerType(v.Type)
+	return IsContainerType(v.Type())
 }
 
 // String implements fmt.Stringer.String.  It should only be used for logs,
 // debugging, etc.  Any caller that requires a specific output format should use
 // FormatAs() instead.
 func (v *Value) String() string {
-	return fmt.Sprintf("%s: %s", v.Type, v.Encode(nil))
+	return fmt.Sprintf("%s: %s", v.Type(), v.Encode(nil))
 }
 
 // Encode appends the ZNG representation of this value to the passed in
@@ -197,7 +199,7 @@ func (v *Value) Iter() zcode.Iter {
 // error if the passed-in element is not an array or if idx is
 // outside the array bounds.
 func (v *Value) ArrayIndex(idx int64) (Value, error) {
-	vec, ok := v.Type.(*TypeArray)
+	vec, ok := v.Type().(*TypeArray)
 	if !ok {
 		return Value{}, ErrNotArray
 	}
@@ -216,7 +218,7 @@ func (v *Value) ArrayIndex(idx int64) (Value, error) {
 // Elements returns an array of Values for the given container type.
 // Returns an error if the element is not an array or set.
 func (v *Value) Elements() ([]Value, error) {
-	innerType := InnerType(v.Type)
+	innerType := InnerType(v.Type())
 	if innerType == nil {
 		return nil, ErrNotContainer
 	}
@@ -228,7 +230,7 @@ func (v *Value) Elements() ([]Value, error) {
 }
 
 func (v *Value) ContainerLength() (int, error) {
-	switch v.Type.(type) {
+	switch v.Type().(type) {
 	case *TypeSet, *TypeArray:
 		if v.IsNull() {
 			return 0, nil
@@ -263,9 +265,9 @@ func (v *Value) IsNull() bool {
 // Copy returns a copy of v that shares no storage.
 func (v *Value) Copy() *Value {
 	if x, ok := v.native(); ok {
-		return newNativeValue(v.Type, x)
+		return newNativeValue(v.Type(), x)
 	}
-	return NewValue(v.Type, bytes.Clone(v.bytes()))
+	return NewValue(v.Type(), bytes.Clone(v.bytes()))
 }
 
 // CopyFrom copies from into v, reusing v's storage if possible.
@@ -273,19 +275,19 @@ func (v *Value) CopyFrom(from *Value) {
 	if _, ok := from.native(); ok || from.IsNull() {
 		*v = *from
 	} else if _, ok := v.native(); ok || v.IsNull() || v.len < from.len {
-		*v = *NewValue(from.Type, bytes.Clone(from.bytes()))
+		*v = *NewValue(from.Type(), bytes.Clone(from.bytes()))
 	} else {
-		*v = *NewValue(from.Type, append(v.bytes()[:0], from.bytes()...))
+		*v = *NewValue(from.Type(), append(v.bytes()[:0], from.bytes()...))
 	}
 }
 
 func (v *Value) IsString() bool {
-	_, ok := TypeUnder(v.Type).(*TypeOfString)
+	_, ok := TypeUnder(v.Type()).(*TypeOfString)
 	return ok
 }
 
 func (v *Value) IsError() bool {
-	_, ok := TypeUnder(v.Type).(*TypeError)
+	_, ok := TypeUnder(v.Type()).(*TypeError)
 	return ok
 }
 
@@ -293,14 +295,14 @@ func (v *Value) IsMissing() bool {
 	if v == nil {
 		return true
 	}
-	if typ, ok := v.Type.(*TypeError); ok {
+	if typ, ok := v.Type().(*TypeError); ok {
 		return typ.IsMissing(v.Bytes())
 	}
 	return false
 }
 
 func (v *Value) IsQuiet() bool {
-	if typ, ok := v.Type.(*TypeError); ok {
+	if typ, ok := v.Type().(*TypeError); ok {
 		return typ.IsQuiet(v.Bytes())
 	}
 	return false
@@ -309,7 +311,7 @@ func (v *Value) IsQuiet() bool {
 // Equal reports whether p and v have the same type and the same ZNG
 // representation.
 func (v *Value) Equal(p Value) bool {
-	if v.Type != p.Type {
+	if v.Type() != p.Type() {
 		return false
 	}
 	if x, ok := v.native(); ok {
@@ -321,13 +323,13 @@ func (v *Value) Equal(p Value) bool {
 }
 
 func (r *Value) HasField(field string) bool {
-	return TypeRecordOf(r.Type).HasField(field)
+	return TypeRecordOf(r.Type()).HasField(field)
 }
 
 // Walk traverses a value in depth-first order, calling a
 // Visitor on the way.
 func (r *Value) Walk(rv Visitor) error {
-	return Walk(r.Type, r.Bytes(), rv)
+	return Walk(r.Type(), r.Bytes(), rv)
 }
 
 func (r *Value) nth(n int) zcode.Bytes {
@@ -342,7 +344,7 @@ func (r *Value) nth(n int) zcode.Bytes {
 }
 
 func (r *Value) Fields() []Field {
-	return TypeRecordOf(r.Type).Fields
+	return TypeRecordOf(r.Type()).Fields
 }
 
 func (v *Value) DerefByColumn(col int) *Value {
@@ -357,7 +359,7 @@ func (v *Value) DerefByColumn(col int) *Value {
 }
 
 func (v *Value) IndexOfField(field string) (int, bool) {
-	if typ := TypeRecordOf(v.Type); typ != nil {
+	if typ := TypeRecordOf(v.Type()); typ != nil {
 		return typ.IndexOfField(field)
 	}
 	return 0, false
@@ -383,7 +385,7 @@ func (v *Value) DerefPath(path field.Path) *Value {
 }
 
 func (v *Value) AsString() string {
-	if v != nil && TypeUnder(v.Type) == TypeString {
+	if v != nil && TypeUnder(v.Type()) == TypeString {
 		return DecodeString(v.Bytes())
 	}
 	return ""
@@ -392,7 +394,7 @@ func (v *Value) AsString() string {
 // AsBool returns v's underlying value.  It returns false if v is nil or v's
 // underlying type is not TypeBool.
 func (v *Value) AsBool() bool {
-	if v != nil && TypeUnder(v.Type) == TypeBool {
+	if v != nil && TypeUnder(v.Type()) == TypeBool {
 		return v.Bool()
 	}
 	return false
@@ -400,7 +402,7 @@ func (v *Value) AsBool() bool {
 
 func (v *Value) AsInt() int64 {
 	if v != nil {
-		switch TypeUnder(v.Type).(type) {
+		switch TypeUnder(v.Type()).(type) {
 		case *TypeOfUint8, *TypeOfUint16, *TypeOfUint32, *TypeOfUint64:
 			return int64(v.Uint())
 		case *TypeOfInt8, *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
@@ -411,7 +413,7 @@ func (v *Value) AsInt() int64 {
 }
 
 func (v *Value) AsTime() nano.Ts {
-	if v != nil && TypeUnder(v.Type) == TypeTime {
+	if v != nil && TypeUnder(v.Type()) == TypeTime {
 		return DecodeTime(v.Bytes())
 	}
 	return 0
@@ -429,7 +431,7 @@ func (v *Value) MissingAsNull() *Value {
 // a new value (i.e., one that differs from v), it uses dst if not nil.
 // Otherwise, Under allocates a new value.
 func (v *Value) Under(dst *Value) *Value {
-	switch v.Type.(type) {
+	switch v.Type().(type) {
 	case *TypeUnion, *TypeNamed:
 		return v.under(dst)
 	}
@@ -439,7 +441,7 @@ func (v *Value) Under(dst *Value) *Value {
 
 // under contains logic for Under that the compiler won't inline.
 func (v *Value) under(dst *Value) *Value {
-	typ, bytes := v.Type, v.Bytes()
+	typ, bytes := v.Type(), v.Bytes()
 	for {
 		typ = TypeUnder(typ)
 		union, ok := typ.(*TypeUnion)

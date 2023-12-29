@@ -12,7 +12,7 @@ type TypeOf struct {
 }
 
 func (t *TypeOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	return ctx.CopyValue(*t.zctx.LookupTypeValue(args[0].Type))
+	return ctx.CopyValue(*t.zctx.LookupTypeValue(args[0].Type()))
 }
 
 type typeUnder struct {
@@ -20,7 +20,7 @@ type typeUnder struct {
 }
 
 func (t *typeUnder) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	typ := zed.TypeUnder(args[0].Type)
+	typ := zed.TypeUnder(args[0].Type())
 	return ctx.CopyValue(*t.zctx.LookupTypeValue(typ))
 }
 
@@ -30,7 +30,7 @@ type NameOf struct {
 }
 
 func (n *NameOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	typ := args[0].Type
+	typ := args[0].Type()
 	if named, ok := typ.(*zed.TypeNamed); ok {
 		return newString(ctx, named.Name)
 	}
@@ -43,7 +43,7 @@ type typeName struct {
 }
 
 func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
-	if zed.TypeUnder(args[0].Type) != zed.TypeString {
+	if zed.TypeUnder(args[0].Type()) != zed.TypeString {
 		return wrapError(t.zctx, ectx, "typename: first argument not a string", &args[0])
 	}
 	name := string(args[0].Bytes())
@@ -54,7 +54,7 @@ func (t *typeName) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 		}
 		return t.zctx.LookupTypeValue(typ)
 	}
-	if zed.TypeUnder(args[1].Type) != zed.TypeType {
+	if zed.TypeUnder(args[1].Type()) != zed.TypeType {
 		return wrapError(t.zctx, ectx, "typename: second argument not a type value", &args[1])
 	}
 	typ, err := t.zctx.LookupByValue(args[1].Bytes())
@@ -70,7 +70,7 @@ type Error struct {
 }
 
 func (e *Error) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
-	return ctx.NewValue(e.zctx.LookupTypeError(args[0].Type), args[0].Bytes())
+	return ctx.NewValue(e.zctx.LookupTypeError(args[0].Type()), args[0].Bytes())
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr
@@ -102,7 +102,7 @@ func (i *Is) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	} else {
 		typ, err = i.zctx.LookupByValue(zvTypeVal.Bytes())
 	}
-	if err == nil && typ == zvSubject.Type {
+	if err == nil && typ == zvSubject.Type() {
 		return zed.True
 	}
 	return zed.False
@@ -120,7 +120,7 @@ func NewHasError() *HasError {
 
 func (h *HasError) Call(_ zed.Allocator, args []zed.Value) *zed.Value {
 	v := args[0]
-	if yes, _ := h.hasError(v.Type, v.Bytes()); yes {
+	if yes, _ := h.hasError(v.Type(), v.Bytes()); yes {
 		return zed.True
 	}
 	return zed.False
@@ -205,14 +205,14 @@ type Kind struct {
 func (k *Kind) Call(ectx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
 	var typ zed.Type
-	if _, ok := zed.TypeUnder(val.Type).(*zed.TypeOfType); ok {
+	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeOfType); ok {
 		var err error
 		typ, err = k.zctx.LookupByValue(val.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		typ = val.Type
+		typ = val.Type()
 	}
 	return newString(ectx, typ.Kind().String())
 }

@@ -105,7 +105,7 @@ type search struct {
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
 func NewSearch(searchtext string, searchval *zed.Value, expr Evaluator) (Evaluator, error) {
-	if zed.TypeUnder(searchval.Type) == zed.TypeNet {
+	if zed.TypeUnder(searchval.Type()) == zed.TypeNet {
 		return &searchCIDR{
 			net:   zed.DecodeNet(searchval.Bytes()),
 			bytes: searchval.Bytes(),
@@ -214,7 +214,7 @@ func (s *searchString) Eval(ectx Context, val *zed.Value) *zed.Value {
 	}
 	// Memoize the result of a search across the names in the
 	// record fields for each unique record type.
-	if s.searchType(val.Type) {
+	if s.searchType(val.Type()) {
 		return zed.True
 	}
 	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {

@@ -27,7 +27,7 @@ func NewFlatten(zctx *zed.Context) *Flatten {
 
 func (n *Flatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	val := args[0]
-	typ := zed.TypeRecordOf(val.Type)
+	typ := zed.TypeRecordOf(val.Type())
 	if typ == nil {
 		return &val
 	}

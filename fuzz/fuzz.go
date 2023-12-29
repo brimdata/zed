@@ -147,8 +147,8 @@ func CompareValues(t testing.TB, valuesExpected []zed.Value, valuesActual []zed.
 		valueExpected := valuesExpected[i]
 		valueActual := valuesActual[i]
 		t.Logf("comparing: expected[%v]=%v vs actual[%v]=%v", i, zson.String(&valueExpected), i, zson.String(&valueActual))
-		if !bytes.Equal(zed.EncodeTypeValue(valueExpected.Type), zed.EncodeTypeValue(valueActual.Type)) {
-			t.Errorf("values have different types: %v vs %v", valueExpected.Type, valueActual.Type)
+		if !bytes.Equal(zed.EncodeTypeValue(valueExpected.Type()), zed.EncodeTypeValue(valueActual.Type())) {
+			t.Errorf("values have different types: %v vs %v", valueExpected.Type(), valueActual.Type())
 		}
 		if !bytes.Equal(valueExpected.Bytes(), valueActual.Bytes()) {
 			t.Errorf("values have different zng bytes: %v vs %v", valueExpected.Bytes(), valueActual.Bytes())

@@ -49,7 +49,7 @@ func newTypeVector(in []Type) typeVector {
 func newTypeVectorFromValues(vals []Value) typeVector {
 	out := make(typeVector, 0, len(vals))
 	for _, val := range vals {
-		out = append(out, val.Type)
+		out = append(out, val.Type())
 	}
 	return out
 }
@@ -60,6 +60,6 @@ func (t typeVector) equal(to []Type) bool {
 
 func (t typeVector) equalToValues(vals []Value) bool {
 	return slices.EqualFunc(t, vals, func(typ Type, val Value) bool {
-		return typ == val.Type
+		return typ == val.Type()
 	})
 }

@@ -34,7 +34,7 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return elem
 	}
 	var length int
-	switch zed.TypeUnder(elem.Type).(type) {
+	switch zed.TypeUnder(elem.Type()).(type) {
 	case *zed.TypeOfBytes:
 		length = len(elem.Bytes())
 	case *zed.TypeOfString:
@@ -63,7 +63,7 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 		to = length
 	}
 	bytes := elem.Bytes()
-	switch zed.TypeUnder(elem.Type).(type) {
+	switch zed.TypeUnder(elem.Type()).(type) {
 	case *zed.TypeOfBytes:
 		bytes = bytes[from:to]
 	case *zed.TypeOfString:
@@ -79,9 +79,9 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 		}
 		bytes = bytes[:len(bytes)-len(it)]
 	default:
-		panic(elem.Type)
+		panic(elem.Type())
 	}
-	return ectx.NewValue(elem.Type, bytes)
+	return ectx.NewValue(elem.Type(), bytes)
 }
 
 func sliceIndex(ectx Context, this *zed.Value, slot Evaluator, length int) (int, error) {

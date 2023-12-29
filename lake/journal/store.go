@@ -159,7 +159,7 @@ func (s *Store) getSnapshot(ctx context.Context) (ID, map[string]Entry, error) {
 	if val == nil || err != nil {
 		return Nil, table, err
 	}
-	if val.Type.ID() != zed.IDUint64 {
+	if val.Type().ID() != zed.IDUint64 {
 		return Nil, table, errors.New("corrupted journal snapshot")
 	}
 	at := ID(val.Uint())

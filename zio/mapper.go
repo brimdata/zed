@@ -24,10 +24,10 @@ func (m *Mapper) Read() (*zed.Value, error) {
 	if rec == nil {
 		return nil, nil
 	}
-	id := zed.TypeID(rec.Type)
+	id := zed.TypeID(rec.Type())
 	sharedType := m.mapper.Lookup(id)
 	if sharedType == nil {
-		sharedType, err = m.mapper.Enter(id, rec.Type)
+		sharedType, err = m.mapper.Enter(id, rec.Type())
 		if err != nil {
 			return nil, err
 		}

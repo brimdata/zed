@@ -140,7 +140,7 @@ func (b *pullerBatch) appendVal(val *zed.Value) bool {
 			bufFull = true
 		}
 	}
-	b.vals = append(b.vals, *zed.NewValue(val.Type, bytes))
+	b.vals = append(b.vals, *zed.NewValue(val.Type(), bytes))
 	return bufFull || len(b.vals) == cap(b.vals)
 }
 
