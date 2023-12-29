@@ -3,11 +3,9 @@ package vngio
 import (
 	"errors"
 	"io"
-	"os"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
-	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
 	"github.com/brimdata/zed/zio"
 )
@@ -29,12 +27,5 @@ func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Rea
 	if err != nil {
 		return nil, err
 	}
-	if os.Getenv("ZED_USE_VECTOR") != "" {
-		if demandOut == nil {
-			demandOut = demand.All()
-		}
-		return vector.NewReader(o, demandOut), nil
-	} else {
-		return vng.NewReader(o)
-	}
+	return vng.NewReader(o)
 }

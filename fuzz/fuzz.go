@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/golang/mock/gomock"
 	"io"
 	"math"
 	"net/netip"
@@ -21,13 +20,13 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage/mock"
 	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"github.com/x448/float16"
 )
@@ -86,11 +85,7 @@ func RunQueryVNG(t testing.TB, buf *bytes.Buffer, querySource string) []zed.Valu
 	require.NoError(t, err)
 	readers := []zio.Reader{reader}
 	defer zio.CloseReaders(readers)
-	return RunQuery(t, zctx, readers, querySource, func(demandIn demand.Demand) {
-		if reader, ok := readers[0].(*vector.Reader); ok {
-			reader.Demand = demandIn
-		}
-	})
+	return RunQuery(t, zctx, readers, querySource, func(_ demand.Demand) {})
 }
 
 func RunQuery(t testing.TB, zctx *zed.Context, readers []zio.Reader, querySource string, useDemand func(demandIn demand.Demand)) []zed.Value {

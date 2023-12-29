@@ -7,9 +7,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/fuzz"
-	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
 	"github.com/brimdata/zed/zio/vngio"
 )
@@ -90,15 +88,11 @@ func BenchmarkReadVng(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		vector, err := vector.Read(object, demand.All())
-		if err != nil {
-			panic(err)
-		}
+		_ = object
 		// TODO Expose a cheap way to get values out of vectors.
 		//if intsIn[N-1] != intsOut[N-1] {
 		//    panic("oh no")
 		//}
-		_ = vector
 	}
 }
 
