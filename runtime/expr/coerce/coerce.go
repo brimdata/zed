@@ -50,12 +50,6 @@ func (c *Pair) Equal() bool {
 func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
 	c.A = a.Bytes()
 	c.B = b.Bytes()
-	if a.Type == nil {
-		a.Type = zed.TypeNull
-	}
-	if b.Type == nil {
-		b.Type = zed.TypeNull
-	}
 	aid := a.Type.ID()
 	bid := b.Type.ID()
 	if aid == bid {
