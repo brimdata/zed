@@ -465,13 +465,9 @@ When data is loaded, it is broken up into objects of a target size determined
 by the pool's `threshold` parameter (which defaults 500MiB but can be configured
 when the pool is created).  Each object is sorted by the pool key but
 a sequence of objects is not guaranteed to be globally sorted.  When lots
-of small or unsorted commits occur, data can be fragmented impacting performance.
-
-> Note that data is easily compacted by reading from a fragmented pool and writing
-> it back to a target pool so that it is globally sorted and compacted into
-> contiguous large objects.  We will soon introduce a compaction feature that
-> does this automatically inside of a pool and can either be run manually or
-> configured to run automatically by the server.
+of small or unsorted commits occur, data can be fragmented.  The performance
+impact of fragmentation can be eliminated by regularly [compacting](#manage)
+pools.
 
 For example, this command
 ```
@@ -574,6 +570,28 @@ API for automation.
 
 > Note that the branchlog meta-query source is not yet implemented.
 
+### Manage
+```
+zed manage [options]
+```
+Maintenance tasks are performed on a lake with the `manage` command.
+
+Currently the only supported task is _compaction_, which reduces fragmentation
+by reading data objects in a pool and writing them back globally sorted and
+with their contents stored in contiguous large objects.
+
+If the `-monitor` option is specified and the lake is [located](#locating-the-lake)
+via network connection, `zed manage` will run continuously and perform updates
+as needed.  By default a check is performed once per minute to determine if
+updates are necessary.  The `-interval` option may be used to specify an
+alternate check frequency in [duration format](../formats/zson.md#23-primitive-values).
+
+If `-monitor` is not specified, a single maintenance pass is performed on the
+lake.
+
+The log output from `manage` provides a per-pool summary of the maintenance
+performed, including a count of `objects_compacted`.
+
 ### Merge
 
 Data is merged from one branch into another with the `merge` command, e.g.,
@@ -596,7 +614,7 @@ This Git-like behavior for a data lake provides a clean solution to
 the live ingest problem.
 For example, data can be continuously ingested into a branch of main called `live`
 and orchestration logic can periodically merge updates from branch `live` to
-branch `main`, possibly compacting data after the merge
+branch `main`, possibly [compacting](#manage) data after the merge
 according to configured policies and logic.
 
 ### Query

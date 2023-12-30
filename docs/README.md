@@ -92,7 +92,7 @@ or other third-party services to interpret the lake data.
 Once copied, a new service can be instantiated by pointing a `zed serve`
 at the copy of the lake.
 
-Functionality like data compaction and retention are all API-driven.
+Functionality like [data compaction](commands/zed.md#manage) and retention are all API-driven.
 
 Bite-sized components are unified by the Zed data, usually in the ZNG format:
 * All lake meta-data is available via meta-queries.
