@@ -589,7 +589,7 @@ alternate check frequency in [duration format](../formats/zson.md#23-primitive-v
 If `-monitor` is not specified, a single maintenance pass is performed on the
 lake.
 
-The log output from `manage` provides a per-pool summary of the maintenance
+The output from `manage` provides a per-pool summary of the maintenance
 performed, including a count of `objects_compacted`.
 
 ### Merge
