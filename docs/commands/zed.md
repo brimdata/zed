@@ -574,7 +574,7 @@ API for automation.
 ```
 zed manage [options]
 ```
-Maintenance tasks are performed on a lake with the `manage` command.
+The `manage` command performs maintenance tasks on a lake.
 
 Currently the only supported task is _compaction_, which reduces fragmentation
 by reading data objects in a pool and writing them back globally sorted and
