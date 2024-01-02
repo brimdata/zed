@@ -26,7 +26,8 @@ zed serve -l=localhost:0 -lake=$lakeroot -portfile=$portdir/lake -log.level=warn
 lakepid=$!
 awaitfile $portdir/lake
 
-trap "rm -rf $portdir; kill $lakepid;" EXIT
+trap "rm -rf $portdir; kill $lakepid || true" EXIT
 
 export ZED_LAKE=http://localhost:$(cat $portdir/lake)
+export ZED_PID=$lakepid
 export LAKE_PATH=$lakeroot

@@ -1,16 +1,25 @@
 script: |
-  source mockzui.sh
-  zed create test
-  echo ===
-  kill -9 $MOCKZUI_PID 2>/dev/null
-  awaitdeadservice
+  LAKE_EXTRA_FLAGS="-keepalive -log.level=info" source service.sh
+  ! curl -m 0.1 $ZED_LAKE/keepalive 2> /dev/null
+  source await.sh
+  zq -z 'msg == "Shutting down" | drop ts' lake.log
 
 inputs:
-  - name: mockzui.sh
-    source: mockzui.sh
+  - name: service.sh
+  - name: await.sh
+    data: |
+      i=0
+      function servicealive { kill -0 $ZED_PID 2> /dev/null; }
+      while servicealive ; do
+        let i+=1
+        if [ $i -gt 50 ]; then
+          echo "timed out waiting for service to exit" 
+          exit 1
+        fi
+        sleep 0.1
+      done
 
 outputs:
   - name: stdout
-    regexp: |
-      pool created: test \w{27}
-      ===
+    data: |
+      {level:"info",logger:"httpd",msg:"Shutting down",reason:"keep alive exited"}

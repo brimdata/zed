@@ -10,6 +10,7 @@ import (
 	"net/http/pprof"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/brimdata/zed/api"
@@ -65,6 +66,8 @@ type Core struct {
 	runningQueriesMu sync.Mutex
 	subscriptions    map[chan event]struct{}
 	subscriptionsMu  sync.RWMutex
+	keepAliveCancel  context.CancelCauseFunc
+	keepAliveRunning atomic.Bool
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
@@ -242,6 +245,14 @@ func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (c *Core) Shutdown() {
 	c.logger.Info("Shutdown")
+}
+
+// EnableKeepAlive enables the keepalive endpoint that once initially polled
+// with cancel the returned context if exited.
+func (c *Core) EnableKeepAlive(ctx context.Context) context.Context {
+	ctx, c.keepAliveCancel = context.WithCancelCause(ctx)
+	c.authhandle("/keepalive", handleKeepAlive).Methods("GET")
+	return ctx
 }
 
 func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {

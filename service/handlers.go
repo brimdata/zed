@@ -782,3 +782,18 @@ func handleEvents(c *Core, w *ResponseWriter, r *Request) {
 		}
 	}
 }
+
+func handleKeepAlive(c *Core, w *ResponseWriter, r *Request) {
+	if !c.keepAliveRunning.CompareAndSwap(false, true) {
+		w.Error(srverr.ErrInvalid("keep alive already being polled"))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	r.Logger.Info("Keep Alive entered")
+	<-r.Context().Done()
+	r.Logger.Info("Keep Alive exited")
+	c.keepAliveCancel(errors.New("keep alive exited"))
+}
