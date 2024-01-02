@@ -577,8 +577,8 @@ zed manage [options]
 The `manage` command performs maintenance tasks on a lake.
 
 Currently the only supported task is _compaction_, which reduces fragmentation
-by reading data objects in a pool and writing them back globally sorted and
-with their contents stored in contiguous large objects.
+by reading data objects in a pool and writing their contents back to large,
+non-overlapping objects.
 
 If the `-monitor` option is specified and the lake is [located](#locating-the-lake)
 via network connection, `zed manage` will run continuously and perform updates
