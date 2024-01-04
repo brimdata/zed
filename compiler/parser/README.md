@@ -4,7 +4,7 @@ This directory contains the Zed parser implemented in PEG.
 
 There is a single PEG input file that works with both
 [pigeon](https://github.com/mna/pigeon), which is Go based, and
-[pegjs](https://pegjs.org/), which is JavaScript based.  This allows us
+[pegjs](https://github.com/pegjs/pegjs), which is JavaScript based.  This allows us
 to embed a Zed compiler into either JavaScript or Go.
 
 The single parser file is run through the C pre-processor allowing
