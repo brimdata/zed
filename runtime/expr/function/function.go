@@ -193,29 +193,3 @@ func HasBoolResult(name string) bool {
 	}
 	return false
 }
-
-func newFloat64(ctx zed.Allocator, native float64) *zed.Value {
-	return ctx.CopyValue(*zed.NewFloat64(native))
-}
-
-func newString(ctx zed.Allocator, native string) *zed.Value {
-	return ctx.NewValue(zed.TypeString, zed.EncodeString(native))
-}
-
-func newBytes(ctx zed.Allocator, bytes []byte) *zed.Value {
-	return ctx.NewValue(zed.TypeBytes, bytes)
-}
-
-// XXX this should build the error in the allocator's memory but needs
-// zctx for the type
-func newError(zctx *zed.Context, ectx zed.Allocator, err error) *zed.Value {
-	return zctx.NewError(err)
-}
-
-func newErrorf(zctx *zed.Context, ctx zed.Allocator, format string, args ...interface{}) *zed.Value {
-	return zctx.NewErrorf(format, args...)
-}
-
-func wrapError(zctx *zed.Context, ctx zed.Allocator, msg string, val *zed.Value) *zed.Value {
-	return ctx.CopyValue(*zctx.WrapError(msg, val))
-}

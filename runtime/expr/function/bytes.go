@@ -12,25 +12,25 @@ type Base64 struct {
 	zctx *zed.Context
 }
 
-func (b *Base64) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+func (b *Base64) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[0]
 	switch val.Type().ID() {
 	case zed.IDBytes:
 		if val.IsNull() {
-			return newErrorf(b.zctx, ctx, "base64: illegal null argument")
+			return *b.zctx.NewErrorf("base64: illegal null argument")
 		}
-		return newString(ctx, base64.StdEncoding.EncodeToString(val.Bytes()))
+		return *zed.NewString(base64.StdEncoding.EncodeToString(val.Bytes()))
 	case zed.IDString:
 		if val.IsNull() {
-			return zed.Null
+			return *zed.Null
 		}
 		bytes, err := base64.StdEncoding.DecodeString(zed.DecodeString(val.Bytes()))
 		if err != nil {
-			return wrapError(b.zctx, ctx, "base64: string argument is not base64", &val)
+			return *b.zctx.WrapError("base64: string argument is not base64", &val)
 		}
-		return newBytes(ctx, bytes)
+		return *zed.NewBytes(bytes)
 	default:
-		return wrapError(b.zctx, ctx, "base64: argument must a bytes or string type", &val)
+		return *b.zctx.WrapError("base64: argument must a bytes or string type", &val)
 	}
 }
 
@@ -39,24 +39,24 @@ type Hex struct {
 	zctx *zed.Context
 }
 
-func (h *Hex) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+func (h *Hex) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[0]
 	switch val.Type().ID() {
 	case zed.IDBytes:
 		if val.IsNull() {
-			return newErrorf(h.zctx, ctx, "hex: illegal null argument")
+			return *h.zctx.NewErrorf("hex: illegal null argument")
 		}
-		return newString(ctx, hex.EncodeToString(val.Bytes()))
+		return *zed.NewString(hex.EncodeToString(val.Bytes()))
 	case zed.IDString:
 		if val.IsNull() {
-			return zed.NullString
+			return *zed.NullString
 		}
 		b, err := hex.DecodeString(zed.DecodeString(val.Bytes()))
 		if err != nil {
-			return wrapError(h.zctx, ctx, "hex: string argument is not hexidecimal", &val)
+			return *h.zctx.WrapError("hex: string argument is not hexidecimal", &val)
 		}
-		return newBytes(ctx, b)
+		return *zed.NewBytes(b)
 	default:
-		return wrapError(h.zctx, ctx, "base64: argument must a bytes or string type", &val)
+		return *h.zctx.WrapError("base64: argument must a bytes or string type", &val)
 	}
 }

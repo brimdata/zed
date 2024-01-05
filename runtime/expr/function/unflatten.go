@@ -28,11 +28,11 @@ func NewUnflatten(zctx *zed.Context) *Unflatten {
 	}
 }
 
-func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+func (u *Unflatten) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[0]
 	array, ok := zed.TypeUnder(val.Type()).(*zed.TypeArray)
 	if !ok {
-		return &val
+		return val
 	}
 	u.recordCache.reset()
 	root := u.recordCache.new()
@@ -42,7 +42,7 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		bytes := it.Next()
 		path, typ, vb, err := u.parseElem(array.Type, bytes)
 		if err != nil {
-			return u.zctx.WrapError(err.Error(), ctx.NewValue(array.Type, bytes))
+			return *u.zctx.WrapError(err.Error(), zed.NewValue(array.Type, bytes))
 		}
 		if typ == nil {
 			continue
@@ -62,9 +62,9 @@ func (u *Unflatten) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		return typ, value
 	})
 	if err != nil {
-		return u.zctx.WrapError(err.Error(), &val)
+		return *u.zctx.WrapError(err.Error(), &val)
 	}
-	return ctx.NewValue(typ, u.builder.Bytes())
+	return *zed.NewValue(typ, u.builder.Bytes())
 }
 
 func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.Type, zcode.Bytes, error) {
