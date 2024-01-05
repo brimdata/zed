@@ -89,7 +89,7 @@ func NewFloat32(f float32) *Value        { return newNativeValue(TypeFloat32, ma
 func NewFloat64(f float64) *Value        { return newNativeValue(TypeFloat64, math.Float64bits(f)) }
 func NewBool(b bool) *Value              { return newNativeValue(TypeBool, boolToUint64(b)) }
 func NewBytes(b []byte) *Value           { return NewValue(TypeBytes, b) }
-func NewString(s string) *Value          { return &Value{TypeString, unsafe.StringData(s), uint64(len(s))} }
+func NewString(s string) *Value          { return &Value{TypeString, nonNilUnsafeStringData(s), uint64(len(s))} }
 func NewIP(a netip.Addr) *Value          { return NewValue(TypeIP, EncodeIP(a)) }
 func NewNet(p netip.Prefix) *Value       { return NewValue(TypeNet, EncodeNet(p)) }
 func NewTypeValue(t Type) *Value         { return NewValue(TypeNet, EncodeTypeValue(t)) }
@@ -99,6 +99,14 @@ func boolToUint64(b bool) uint64 {
 		return 1
 	}
 	return 0
+}
+
+// nonNilUsafeStringData is like unsafe.StringData but never returns nil.
+func nonNilUnsafeStringData(s string) *byte {
+	if d := unsafe.StringData(s); d != nil {
+		return d
+	}
+	return unsafe.SliceData([]byte{})
 }
 
 // Uint returns v's underlying value.  It panics if v's underlying type is not
