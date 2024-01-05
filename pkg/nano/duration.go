@@ -140,7 +140,7 @@ var scale = map[string]Duration{
 
 func ParseDuration(s string) (Duration, error) {
 	if len(s) == 0 {
-		return 0, nil
+		return 0, fmt.Errorf("invalid duration: %q", s)
 	}
 	var negative bool
 	if s[0] == '-' {
