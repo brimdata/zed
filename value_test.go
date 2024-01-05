@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewStringNotNull(t *testing.T) {
+	assert.NotNil(t, zed.NewString("").Bytes())
+}
+
 func BenchmarkValueUnder(b *testing.B) {
 	var tmpVal zed.Value
 	b.Run("primitive", func(b *testing.B) {
