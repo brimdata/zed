@@ -18,7 +18,6 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
-      - run: go mod download
       - run: make fmt
       - run: make tidy
       - run: make vet
