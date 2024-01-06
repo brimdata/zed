@@ -1,63 +1,67 @@
 package vector
 
 import (
-	"errors"
 	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/sync/errgroup"
 )
 
 type MapWriter struct {
 	keys    Writer
 	values  Writer
 	lengths *Int64Writer
+	count   uint32
 }
 
-func NewMapWriter(typ *zed.TypeMap, spiller *Spiller) *MapWriter {
+func NewMapWriter(typ *zed.TypeMap) *MapWriter {
 	return &MapWriter{
-		keys:    NewWriter(typ.KeyType, spiller),
-		values:  NewWriter(typ.ValType, spiller),
-		lengths: NewInt64Writer(spiller),
+		keys:    NewWriter(typ.KeyType),
+		values:  NewWriter(typ.ValType),
+		lengths: NewInt64Writer(),
 	}
 }
 
-func (m *MapWriter) Write(body zcode.Bytes) error {
+func (m *MapWriter) Write(body zcode.Bytes) {
+	m.count++
 	var len int
 	it := body.Iter()
 	for !it.Done() {
-		keyBytes := it.Next()
-		if it.Done() {
-			return errors.New("VNG writer: truncated map value")
-		}
-		valBytes := it.Next()
-		if err := m.keys.Write(keyBytes); err != nil {
-			return err
-		}
-		if err := m.values.Write(valBytes); err != nil {
-			return err
-		}
+		m.keys.Write(it.Next())
+		m.values.Write(it.Next())
 		len++
 	}
-	return m.lengths.Write(int64(len))
+	m.lengths.Write(int64(len))
 }
 
-func (m *MapWriter) Flush(eof bool) error {
-	if err := m.lengths.Flush(eof); err != nil {
+func (m *MapWriter) Emit(w io.Writer) error {
+	if err := m.lengths.Emit(w); err != nil {
 		return err
 	}
-	if err := m.keys.Flush(eof); err != nil {
+	if err := m.keys.Emit(w); err != nil {
 		return err
 	}
-	return m.values.Flush(eof)
+	return m.values.Emit(w)
 }
 
-func (m *MapWriter) Metadata() Metadata {
-	return &Map{
-		Lengths: m.lengths.Segmap(),
-		Keys:    m.keys.Metadata(),
-		Values:  m.values.Metadata(),
+func (m *MapWriter) Metadata(off uint64) (uint64, Metadata) {
+	off, lens := m.lengths.Metadata(off)
+	var keys, vals Metadata
+	off, keys = m.keys.Metadata(off)
+	off, vals = m.values.Metadata(off)
+	return off, &Map{
+		Lengths: lens.(*Primitive).Location,
+		Keys:    keys,
+		Values:  vals,
+		Length:  m.count,
 	}
+}
+
+func (m *MapWriter) Encode(group *errgroup.Group) {
+	m.lengths.Encode(group)
+	m.keys.Encode(group)
+	m.values.Encode(group)
 }
 
 type MapReader struct {

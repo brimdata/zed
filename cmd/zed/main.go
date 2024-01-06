@@ -18,6 +18,7 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/dev/vcache/agg"
 	_ "github.com/brimdata/zed/cmd/zed/dev/vcache/copy"
 	_ "github.com/brimdata/zed/cmd/zed/dev/vcache/project"
+	_ "github.com/brimdata/zed/cmd/zed/dev/vng"
 	"github.com/brimdata/zed/cmd/zed/drop"
 	zedinit "github.com/brimdata/zed/cmd/zed/init"
 	"github.com/brimdata/zed/cmd/zed/load"

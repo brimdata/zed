@@ -16,7 +16,6 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
-	"github.com/brimdata/zed/zio/vngio"
 	"github.com/brimdata/zed/zio/zngio"
 )
 
@@ -42,12 +41,6 @@ func (f *Flags) Options() anyio.WriterOpts {
 func (f *Flags) setFlags(fs *flag.FlagSet) {
 	// zio stuff
 	fs.BoolVar(&f.color, "color", true, "enable/disable color formatting for -Z and lake text output")
-	f.VNG = &vngio.WriterOpts{
-		ColumnThresh: vngio.DefaultColumnThresh,
-		SkewThresh:   vngio.DefaultSkewThresh,
-	}
-	fs.Var(&f.VNG.ColumnThresh, "vng.colthresh", "minimum VNG frame size")
-	fs.Var(&f.VNG.SkewThresh, "vng.skewthresh", "minimum VNG skew size")
 	f.ZNG = &zngio.WriterOpts{}
 	fs.BoolVar(&f.ZNG.Compress, "zng.compress", true, "compress ZNG frames")
 	fs.IntVar(&f.ZNG.FrameThresh, "zng.framethresh", zngio.DefaultFrameThresh,

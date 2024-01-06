@@ -11,21 +11,13 @@ import (
 )
 
 func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Reader, error) {
-	s, ok := r.(io.Seeker)
-	if !ok {
-		return nil, errors.New("VNG must be used with a seekable input")
-	}
 	ra, ok := r.(io.ReaderAt)
 	if !ok {
-		return nil, errors.New("VNG must be used with an io.ReaderAt")
+		return nil, errors.New("VNG requires a seekable input")
 	}
-	size, err := s.Seek(0, io.SeekEnd)
+	o, err := vng.NewObject(zctx, ra)
 	if err != nil {
 		return nil, err
 	}
-	o, err := vng.NewObject(zctx, ra, size)
-	if err != nil {
-		return nil, err
-	}
-	return vng.NewReader(o)
+	return o.NewReader()
 }

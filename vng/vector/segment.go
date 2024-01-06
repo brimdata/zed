@@ -16,11 +16,10 @@ const (
 )
 
 type Segment struct {
-	Offset            int64  // Offset relative to start of file
-	Length            int32  // Length in file
-	MemLength         int32  // Length in memory
-	CompressionFormat uint8  // Compression format in file
-	Count             uint32 // Number of values encoded in segment
+	Offset            int64 // Offset relative to start of file
+	Length            int32 // Length in file
+	MemLength         int32 // Length in memory
+	CompressionFormat uint8 // Compression format in file
 }
 
 var zbufPool = sync.Pool{
@@ -57,4 +56,32 @@ func (s *Segment) Read(r io.ReaderAt, b []byte) error {
 	default:
 		return fmt.Errorf("vng: unknown compression format 0x%x", s.CompressionFormat)
 	}
+}
+
+// XXX for now we always compress, we should add a config option to
+// avoid compression when local storage is fast compared to compute
+func compressBuffer(b []byte) (uint8, []byte, error) {
+	inLen := len(b)
+	if inLen == 0 {
+		return CompressionFormatNone, nil, nil
+	}
+	zbuf := zbufPool.Get().(*[]byte)
+	defer zbufPool.Put(zbuf)
+	// Use inLen-1 so compression will fail if it doesn't result in
+	// fewer bytes. XXX make the -1 a bigger gap
+	*zbuf = slices.Grow((*zbuf)[:0], inLen-1)[:inLen-1]
+	var c lz4.Compressor
+	zlen, err := c.CompressBlock(b, *zbuf)
+	if err != nil && err != lz4.ErrInvalidSourceShortBuffer {
+		return 0, nil, err
+	}
+	if zlen > 0 {
+		// Compression succeeded.  Copy bytes... XXX we should
+		// have a way to stash the buffer in the Primitive and
+		// release it after written.
+		bytes := make([]byte, zlen)
+		copy(bytes, *zbuf)
+		return CompressionFormatLZ4, bytes, nil
+	}
+	return CompressionFormatNone, b, nil
 }

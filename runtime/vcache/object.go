@@ -2,7 +2,7 @@ package vcache
 
 import (
 	"context"
-	"fmt"
+	"io"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -26,31 +26,25 @@ type Object struct {
 	id     ksuid.KSUID
 	uri    *storage.URI
 	engine storage.Engine
-	reader storage.Reader
+	reader io.ReaderAt
 	// We keep a local context for each object since a new type context is created
 	// for each query and we need to map the VNG object context to the query
 	// context.  Of course, with Zed, this is very cheap.
 	local *zed.Context
+
+	//XXX this is all gonna change in a subsequent PR when we get the Variant
+	// data type working across vng, vcache, and vector
 	metas []meta.Metadata
-	// There is one vector per Zed type and the typeKeys array provides
-	// the sequence order of each vector to be accessed.
-	vectors  []vector.Any
-	typeDict []zed.Type
-	typeKeys []int32
-	//slots    map[int32][]int32 //XXX handle this differently?
+	types []zed.Type
+	tags  []int32
+
+	vectors []vector.Any
 }
 
 // NewObject creates a new in-memory Object corresponding to a VNG object
-// residing in storage.  It loads the list of VNG root types (one per value
-// in the file) and the VNG metadata for vector reassembly.  A table for each
-// type is also created to map the global slot number in the object to the local
-// slot number in the type so that an element's local position in the vector
-// (within a particular type) can be related to its slot number in the object,
-// e.g., so that filtering of a local vector can be turned into the list of
-// matching object slots.  The object provides the metadata needed to load vectors
-// on demand only as they are referenced.  A vector is loaded by calling its Load method,
-// which decodes its zcode.Bytes into its native representation.
-// XXX we may want to change the VNG format to code vectors in native format.
+// residing in storage.  The VNG header and metadata section are read and
+// the metadata is deserialized so that vectors can be loaded into the cache
+// on demand only as needed and retained in memory for future use.
 func NewObject(ctx context.Context, engine storage.Engine, uri *storage.URI, id ksuid.KSUID) (*Object, error) {
 	// XXX currently we open a storage.Reader for every object and never close it.
 	// We should either close after a timeout and reopen when needed or change the
@@ -61,50 +55,36 @@ func NewObject(ctx context.Context, engine storage.Engine, uri *storage.URI, id 
 	if err != nil {
 		return nil, err
 	}
-	size, err := storage.Size(reader)
-	if err != nil {
-		return nil, err
-	}
 	// XXX use the query's zctx so we don't have to map?,
 	// or maybe use a single context across all objects in the cache?
 	zctx := zed.NewContext()
-	z, err := vng.NewObject(zctx, reader, size)
+	z, err := vng.NewObject(zctx, reader)
 	if err != nil {
 		return nil, err
 	}
-	typeKeys, metas, err := z.FetchMetadata()
+	types, metas, tags, err := z.MiscMeta()
 	if err != nil {
 		return nil, err
 	}
-	if len(metas) == 0 {
-		return nil, fmt.Errorf("empty VNG object: %s", uri)
-	}
-	if len(metas) > MaxTypesPerObject {
-		return nil, fmt.Errorf("too many types in VNG object: %s", uri)
-	}
-	typeDict := make([]zed.Type, 0, len(metas))
-	for _, meta := range metas {
-		typeDict = append(typeDict, meta.Type(zctx)) //XXX commanet about context locality
-	}
-	vectors := make([]vector.Any, len(metas))
 	return &Object{
-		mu:       make([]sync.Mutex, len(typeDict)),
-		id:       id,
-		uri:      uri,
-		engine:   engine,
-		reader:   reader,
-		local:    zctx,
-		metas:    metas,
-		vectors:  vectors,
-		typeDict: typeDict,
-		typeKeys: typeKeys,
-		//slots:    slots,
+		mu:      make([]sync.Mutex, len(metas)),
+		id:      id,
+		uri:     uri,
+		engine:  engine,
+		reader:  z.DataReader(),
+		local:   zctx,
+		metas:   metas,
+		types:   types,
+		tags:    tags,
+		vectors: make([]vector.Any, len(metas)),
 	}, nil
 }
 
 func (o *Object) Close() error {
 	if o.reader != nil {
-		return o.reader.Close()
+		if closer, ok := o.reader.(io.Closer); ok {
+			return closer.Close()
+		}
 	}
 	return nil
 }
@@ -114,31 +94,14 @@ func (o *Object) LocalContext() *zed.Context {
 }
 
 func (o *Object) Types() []zed.Type {
-	return o.typeDict
+	return o.types
 }
 
-func (o *Object) TypeKeys() []int32 {
-	return o.typeKeys
-}
-
-func (o *Object) LookupType(typeKey uint32) zed.Type {
-	return o.typeDict[typeKey]
-}
-
-func (o *Object) Len() int {
-	return len(o.typeKeys)
-}
-
-// XXX fix comment
-// Due to the heterogenous nature of Zed data, a given path can appear in
-// multiple types and a given type can have multiple vectors XXX (due to union
-// types in the hiearchy).  Load returns a Group for each type and the Group
-// may contain multiple vectors.
-func (o *Object) Load(typeKey uint32, path field.Path) (vector.Any, error) {
+func (o *Object) Load(tag uint32, path field.Path) (vector.Any, error) {
 	l := loader{o.local, o.reader}
-	o.mu[typeKey].Lock()
-	defer o.mu[typeKey].Unlock()
-	return l.loadVector(&o.vectors[typeKey], o.typeDict[typeKey], path, o.metas[typeKey])
+	o.mu[tag].Lock()
+	defer o.mu[tag].Unlock()
+	return l.loadVector(&o.vectors[tag], o.types[tag], path, o.metas[tag])
 }
 
 func (o *Object) NewReader() *Reader {

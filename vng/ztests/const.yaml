@@ -1,6 +1,6 @@
 script: |
   zq -f vng -o out.vng -
-  zed dev dig section -Z 1 out.vng
+  zed dev vng -z out.vng
 
 inputs:
   - name: stdin
@@ -12,16 +12,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      [
-          {
-              Offset: 3,
-              Length: 3 (int32),
-              MemLength: 3 (int32),
-              CompressionFormat: 0 (uint8),
-              Count: 3 (uint32)
-          } (=Segment)
-      ]
-      {
-          Value: 1,
-          Count: 3 (uint32)
-      } (=Const)
+      {Version:4(uint32),MetaSize:35(uint32),DataSize:0(uint32)}
+      {Value:1,Count:3(uint32)}(=Const)

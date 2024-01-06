@@ -22,24 +22,24 @@ var _ zio.Reader = (*Reader)(nil)
 
 func (r *Reader) Read() (*zed.Value, error) {
 	o := r.object
-	if r.off >= len(o.typeKeys) {
+	if r.off >= len(o.tags) {
 		return nil, nil
 	}
-	key := o.typeKeys[r.off]
-	b := r.builders[key]
+	tag := o.tags[r.off]
+	b := r.builders[tag]
 	if b == nil {
-		vec, err := o.Load(uint32(key), nil)
+		vec, err := o.Load(uint32(tag), nil)
 		if err != nil {
 			return nil, err
 		}
 		b = vec.NewBuilder()
-		r.builders[key] = b
+		r.builders[tag] = b
 	}
 	r.builder.Truncate()
 	if !b(&r.builder) {
-		panic(fmt.Sprintf("vector.Builder returned false for key %d at offset %d", key, r.off))
+		panic(fmt.Sprintf("vector.Builder returned false for tag %d at offset %d", tag, r.off))
 	}
 	r.off++
-	r.val = zed.NewValue(o.typeDict[key], r.builder.Bytes().Body())
+	r.val = zed.NewValue(o.types[tag], r.builder.Bytes().Body())
 	return &r.val, nil
 }

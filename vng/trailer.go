@@ -1,37 +1,67 @@
 package vng
 
 import (
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
-
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 const (
-	FileType = "vng"
-	Version  = 3
+	Version     = 4
+	HeaderSize  = 16
+	MaxMetaSize = 100 * 1024 * 1024
+	MaxDataSize = 2 * 1024 * 1024 * 1024
 )
 
-type FileMeta struct {
-	SkewThresh    int `zed:"skew_thresh"`
-	SegmentThresh int `zed:"segment_thresh"`
+type Header struct {
+	Version  uint32
+	MetaSize uint32
+	DataSize uint32
 }
 
-func readTrailer(r io.ReaderAt, n int64) (*FileMeta, []int64, error) {
-	trailer, err := zngio.ReadTrailer(r, n)
+func (h Header) Serialize() []byte {
+	var bytes [HeaderSize]byte
+	bytes[0] = 'V'
+	bytes[1] = 'N'
+	bytes[2] = 'G'
+	binary.LittleEndian.PutUint32(bytes[4:], h.Version)
+	binary.LittleEndian.PutUint32(bytes[8:], h.MetaSize)
+	binary.LittleEndian.PutUint32(bytes[12:], h.DataSize)
+	return bytes[:]
+}
+
+func (h *Header) Deserialize(bytes []byte) error {
+	if len(bytes) != HeaderSize || bytes[0] != 'V' || bytes[1] != 'N' || bytes[2] != 'G' || bytes[3] != 0 {
+		return errors.New("invalid VNG header")
+	}
+	h.Version = binary.LittleEndian.Uint32(bytes[4:])
+	h.MetaSize = binary.LittleEndian.Uint32(bytes[8:])
+	h.DataSize = binary.LittleEndian.Uint32(bytes[12:])
+	if h.Version != Version {
+		return fmt.Errorf("unsupport VNG version %d: expected version %d", h.Version, Version)
+	}
+	if h.MetaSize > MaxMetaSize {
+		return fmt.Errorf("VNG metadata section too big: %d bytes", h.MetaSize)
+	}
+	if h.MetaSize > MaxDataSize {
+		return fmt.Errorf("VNG data section too big: %d bytes", h.DataSize)
+	}
+	return nil
+}
+
+func ReadHeader(r io.Reader) (Header, error) {
+	var bytes [HeaderSize]byte
+	cc, err := r.Read(bytes[:])
 	if err != nil {
-		return nil, nil, err
+		return Header{}, err
 	}
-	if trailer.Type != FileType {
-		return nil, nil, fmt.Errorf("not a VNG file: trailer type is %q", trailer.Type)
+	if cc < HeaderSize {
+		return Header{}, fmt.Errorf("short VNG file: %d bytes read", cc)
 	}
-	if trailer.Version != Version {
-		return nil, nil, fmt.Errorf("VNG version %d found while expecting version %d", trailer.Version, Version)
+	var h Header
+	if err := h.Deserialize(bytes[:]); err != nil {
+		return Header{}, err
 	}
-	var meta FileMeta
-	if err := zson.UnmarshalZNG(trailer.Meta, &meta); err != nil {
-		return nil, nil, err
-	}
-	return &meta, trailer.Sections, nil
+	return h, nil
 }

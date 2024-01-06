@@ -14,18 +14,11 @@ func (l *loader) loadPrimitive(typ zed.Type, m *meta.Primitive) (vector.Any, err
 	// The VNG primitive columns are stored as one big
 	// list of Zed values.  So we can just read the data in
 	// all at once, compute the byte offsets of each value
-	// (for random access, not used yet).
-	var n int
-	for _, segment := range m.Segmap {
-		n += int(segment.MemLength)
-	}
+	// (for random access, not used yet).XXX update comment
+	n := int(m.Location.MemLength)
 	bytes := make([]byte, n)
-	var off int
-	for _, segment := range m.Segmap {
-		if err := segment.Read(l.r, bytes[off:]); err != nil {
-			return nil, err
-		}
-		off += int(segment.MemLength)
+	if err := m.Location.Read(l.r, bytes); err != nil {
+		return nil, err
 	}
 	if len(m.Dict) > 0 {
 		var b []byte
@@ -107,12 +100,3 @@ type Const struct {
 func NewConst(m *meta.Const) *Const {
 	return &Const{bytes: m.Value.Bytes()}
 }
-
-/*
-func (c *Const) NewIter(r io.ReaderAt) (iterator, error) {
-	return func(b *zcode.Builder) error {
-		b.Append(c.bytes)
-		return nil
-	}, nil
-}
-*/

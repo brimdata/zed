@@ -1,57 +1,32 @@
 package vng
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"math"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/vng/vector"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-)
-
-const (
-	MaxSegmentThresh = vector.MaxSegmentThresh
-	MaxSkewThresh    = math.MaxInt
 )
 
 // Writer implements the zio.Writer interface. A Writer creates a vector
 // VNG object from a stream of zed.Records.
 type Writer struct {
-	zctx       *zed.Context
-	writer     io.WriteCloser
-	spiller    *vector.Spiller
-	typeMap    map[zed.Type]int
-	writers    []vector.Writer
-	types      []zed.Type
-	skewThresh int
-	segThresh  int
-	// We keep track of the size of rows we've encoded into in-memory
-	// data structures.  This is roughtly propertional to the amount of
-	// memory used and the max amount of skew between rows that will be
-	// needed for reader-side buffering.  So when the memory footprint
-	// exceeds the confired skew theshhold, we flush the vectors to storage.
-	footprint int
-	root      *vector.Int64Writer
+	zctx    *zed.Context
+	writer  io.WriteCloser
+	variant *vector.VariantWriter
 }
 
-func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
-	if err := checkThresh("skew", MaxSkewThresh, skewThresh); err != nil {
-		return nil, err
-	}
-	if err := checkThresh("vector", MaxSegmentThresh, segThresh); err != nil {
-		return nil, err
-	}
-	spiller := vector.NewSpiller(w, segThresh)
+var _ zio.Writer = (*Writer)(nil)
+
+func NewWriter(w io.WriteCloser) (*Writer, error) {
 	return &Writer{
-		zctx:       zed.NewContext(),
-		spiller:    spiller,
-		writer:     w,
-		typeMap:    make(map[zed.Type]int),
-		skewThresh: MaxSkewThresh,
-		segThresh:  segThresh,
-		root:       vector.NewInt64Writer(spiller),
+		zctx:    zed.NewContext(),
+		writer:  w,
+		variant: vector.NewVariantWriter(),
 	}, nil
 }
 
@@ -63,96 +38,43 @@ func (w *Writer) Close() error {
 	return firstErr
 }
 
-func checkThresh(which string, max, thresh int) error {
-	if thresh == 0 {
-		return fmt.Errorf("VNG %s threshold cannot be zero", which)
-	}
-	if thresh > max {
-		return fmt.Errorf("VNG %s threshold too large (%d)", which, thresh)
-	}
-	return nil
-}
-
-func (w *Writer) Write(val zed.Value) error {
-	// The VNG writer self-organizes around the types that are
-	// written to it.  No need to define the schema up front!
-	// We track the types seen first-come, first-served in the
-	// typeMap table and the VNG serialization structure
-	// follows accordingly.
-	typ := val.Type()
-	typeNo, ok := w.typeMap[typ]
-	if !ok {
-		typeNo = len(w.types)
-		w.typeMap[typ] = typeNo
-		w.writers = append(w.writers, vector.NewWriter(typ, w.spiller))
-		w.types = append(w.types, val.Type())
-	}
-	if err := w.root.Write(int64(typeNo)); err != nil {
-		return err
-	}
-	if err := w.writers[typeNo].Write(val.Bytes()); err != nil {
-		return err
-	}
-	w.footprint += len(val.Bytes())
-	if w.footprint >= w.skewThresh {
-		w.footprint = 0
-		return w.flush(false)
-	}
-	return nil
-}
-
-func (w *Writer) flush(eof bool) error {
-	for _, writer := range w.writers {
-		if err := writer.Flush(eof); err != nil {
-			return err
-		}
-	}
-	return w.root.Flush(eof)
+func (w *Writer) Write(val *zed.Value) error {
+	return w.variant.Write(val)
 }
 
 func (w *Writer) finalize() error {
-	if err := w.flush(true); err != nil {
-		return err
+	meta, dataSize, err := w.variant.Encode()
+	if err != nil {
+		//XXX can encode return an error?
+		return fmt.Errorf("system error: could not encode VNG metadata: %w", err)
 	}
 	// At this point all the vector data has been written out
 	// to the underlying spiller, so we start writing zng at this point.
-	zw := zngio.NewWriter(w.writer)
-	dataSize := w.spiller.Position()
+	metaBytes := &bytes.Buffer{}
+	zw := zngio.NewWriter(zio.NopCloser(metaBytes))
 	// First, we write the root segmap of the vector of integer type IDs.
 	m := zson.NewZNGMarshalerWithContext(w.zctx)
 	m.Decorate(zson.StyleSimple)
-	val, err := m.Marshal(w.root.Segmap())
+	val, err := m.Marshal(meta)
 	if err != nil {
-		//XXX wrap
-		return err
+		return fmt.Errorf("system error: could not marshal VNG metadata: %w", err)
 	}
 	if err := zw.Write(val); err != nil {
-		//XXX wrap
-		return err
-	}
-	// Now, write the reassembly maps for each top-level type.
-	for _, writer := range w.writers {
-		val, err = m.Marshal(writer.Metadata())
-		if err != nil {
-			//XXX wrap
-			return err
-		}
-		if err := zw.Write(val); err != nil {
-			//XXX wrap
-			return err
-		}
+		return fmt.Errorf("system error: could not serialize VNG metadata: %w", err)
 	}
 	zw.EndStream()
-	mapsSize := zw.Position()
-	// Finally, we build and write the section trailer based on the size
-	// of the data and size of the reassembly maps.
-	sections := []int64{dataSize, mapsSize}
-	trailer, err := zngio.MarshalTrailer(FileType, Version, sections, &FileMeta{w.skewThresh, w.segThresh})
-	if err != nil {
-		return err
+	metaSize := zw.Position()
+	// Header
+	if _, err := w.writer.Write(Header{Version, uint32(metaSize), uint32(dataSize)}.Serialize()); err != nil {
+		return fmt.Errorf("system error: could not write VNG header: %w", err)
 	}
-	if err := zw.Write(trailer); err != nil {
-		return err
+	// Metadata section
+	if _, err := w.writer.Write(metaBytes.Bytes()); err != nil {
+		return fmt.Errorf("system error: could not write VNG metadata section: %w", err)
 	}
-	return zw.EndStream()
+	// Data section
+	if err := w.variant.Emit(w.writer); err != nil {
+		return fmt.Errorf("system error: could not write VNG data section: %w", err)
+	}
+	return nil
 }
