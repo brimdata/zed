@@ -497,7 +497,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 		a.builder.Append(keyVal.Bytes())
 	}
 	for _, f := range row {
-		var v *zed.Value
+		var v zed.Value
 		if a.partialsOut {
 			v = f.ResultAsPartial(a.zctx)
 		} else {
@@ -546,7 +546,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 			types = append(types, typ)
 		}
 		for _, f := range row.reducers {
-			var v *zed.Value
+			var v zed.Value
 			if partialsOut {
 				v = f.ResultAsPartial(a.zctx)
 			} else {

@@ -17,10 +17,10 @@ var MaxValueSize = 1024 * 1024 * 1024
 type Pattern func() Function
 
 type Function interface {
-	Consume(*zed.Value)
-	ConsumeAsPartial(*zed.Value)
-	Result(*zed.Context) *zed.Value
-	ResultAsPartial(*zed.Context) *zed.Value
+	Consume(zed.Value)
+	ConsumeAsPartial(zed.Value)
+	Result(*zed.Context) zed.Value
+	ResultAsPartial(*zed.Context) zed.Value
 }
 
 func NewPattern(op string, hasarg bool) (Pattern, error) {

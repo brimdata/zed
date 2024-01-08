@@ -19,15 +19,15 @@ func newFuse() *fuse {
 	}
 }
 
-func (f *fuse) Consume(val *zed.Value) {
+func (f *fuse) Consume(val zed.Value) {
 	if _, ok := f.shapes[val.Type()]; !ok {
 		f.shapes[val.Type()] = len(f.shapes)
 	}
 }
 
-func (f *fuse) Result(zctx *zed.Context) *zed.Value {
+func (f *fuse) Result(zctx *zed.Context) zed.Value {
 	if len(f.shapes)+len(f.partials) == 0 {
-		return zed.NullType
+		return *zed.NullType
 	}
 	schema := NewSchema(zctx)
 	for _, p := range f.partials {
@@ -44,16 +44,16 @@ func (f *fuse) Result(zctx *zed.Context) *zed.Value {
 	for _, typ := range shapes {
 		schema.Mixin(typ)
 	}
-	return zctx.LookupTypeValue(schema.Type())
+	return *zctx.LookupTypeValue(schema.Type())
 }
 
-func (f *fuse) ConsumeAsPartial(partial *zed.Value) {
+func (f *fuse) ConsumeAsPartial(partial zed.Value) {
 	if partial.Type() != zed.TypeType {
 		panic("fuse: partial not a type value")
 	}
 	f.partials = append(f.partials, *partial.Copy())
 }
 
-func (f *fuse) ResultAsPartial(zctx *zed.Context) *zed.Value {
+func (f *fuse) ResultAsPartial(zctx *zed.Context) zed.Value {
 	return f.Result(zctx)
 }
