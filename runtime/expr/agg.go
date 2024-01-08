@@ -41,7 +41,7 @@ func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this
 	}
 	v := a.expr.Eval(ectx, this)
 	if !v.IsMissing() {
-		f.Consume(v)
+		f.Consume(*v)
 	}
 }
 
@@ -66,5 +66,5 @@ func (s *aggregatorExpr) Eval(ectx Context, val *zed.Value) *zed.Value {
 		s.zctx = zed.NewContext() //XXX
 	}
 	s.agg.Apply(s.zctx, ectx, s.fn, val)
-	return s.fn.Result(s.zctx)
+	return ectx.CopyValue(s.fn.Result(s.zctx))
 }

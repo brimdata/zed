@@ -15,13 +15,13 @@ type Collect struct {
 
 var _ Function = (*Collect)(nil)
 
-func (c *Collect) Consume(val *zed.Value) {
+func (c *Collect) Consume(val zed.Value) {
 	if !val.IsNull() {
 		c.update(val)
 	}
 }
 
-func (c *Collect) update(val *zed.Value) {
+func (c *Collect) update(val zed.Value) {
 	c.values = append(c.values, *val.Under(&zed.Value{}).Copy())
 	c.size += len(val.Bytes())
 	for c.size > MaxValueSize {
@@ -33,10 +33,10 @@ func (c *Collect) update(val *zed.Value) {
 	}
 }
 
-func (c *Collect) Result(zctx *zed.Context) *zed.Value {
+func (c *Collect) Result(zctx *zed.Context) zed.Value {
 	if len(c.values) == 0 {
 		// no values found
-		return zed.Null
+		return *zed.Null
 	}
 	var b zcode.Builder
 	inner := innerType(zctx, c.values)
@@ -49,7 +49,7 @@ func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 			b.Append(val.Bytes())
 		}
 	}
-	return zed.NewValue(zctx.LookupTypeArray(inner), b.Bytes())
+	return *zed.NewValue(zctx.LookupTypeArray(inner), b.Bytes())
 }
 
 func innerType(zctx *zed.Context, vals []zed.Value) zed.Type {
@@ -64,21 +64,21 @@ func innerType(zctx *zed.Context, vals []zed.Value) zed.Type {
 	return zctx.LookupTypeUnion(types)
 }
 
-func (c *Collect) ConsumeAsPartial(val *zed.Value) {
+func (c *Collect) ConsumeAsPartial(val zed.Value) {
 	//XXX These should not be passed in here. See issue #3175
 	if len(val.Bytes()) == 0 {
 		return
 	}
 	arrayType, ok := val.Type().(*zed.TypeArray)
 	if !ok {
-		panic(fmt.Errorf("collect partial: partial not an array type: %s", zson.FormatValue(val)))
+		panic(fmt.Errorf("collect partial: partial not an array type: %s", zson.FormatValue(&val)))
 	}
 	typ := arrayType.Type
 	for it := val.Iter(); !it.Done(); {
-		c.update(zed.NewValue(typ, it.Next()))
+		c.update(*zed.NewValue(typ, it.Next()))
 	}
 }
 
-func (c *Collect) ResultAsPartial(zctx *zed.Context) *zed.Value {
+func (c *Collect) ResultAsPartial(zctx *zed.Context) zed.Value {
 	return c.Result(zctx)
 }

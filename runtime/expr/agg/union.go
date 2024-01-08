@@ -18,7 +18,7 @@ func newUnion() *Union {
 	}
 }
 
-func (u *Union) Consume(val *zed.Value) {
+func (u *Union) Consume(val zed.Value) {
 	if val.IsNull() {
 		return
 	}
@@ -56,9 +56,9 @@ func (u *Union) deleteOne() {
 	}
 }
 
-func (u *Union) Result(zctx *zed.Context) *zed.Value {
+func (u *Union) Result(zctx *zed.Context) zed.Value {
 	if len(u.types) == 0 {
-		return zed.Null
+		return *zed.Null
 	}
 	types := make([]zed.Type, 0, len(u.types))
 	for typ := range u.types {
@@ -80,10 +80,10 @@ func (u *Union) Result(zctx *zed.Context) *zed.Value {
 			b.Append([]byte(v))
 		}
 	}
-	return zed.NewValue(zctx.LookupTypeSet(inner), zed.NormalizeSet(b.Bytes()))
+	return *zed.NewValue(zctx.LookupTypeSet(inner), zed.NormalizeSet(b.Bytes()))
 }
 
-func (u *Union) ConsumeAsPartial(val *zed.Value) {
+func (u *Union) ConsumeAsPartial(val zed.Value) {
 	if val.IsNull() {
 		return
 	}
@@ -101,6 +101,6 @@ func (u *Union) ConsumeAsPartial(val *zed.Value) {
 	}
 }
 
-func (u *Union) ResultAsPartial(zctx *zed.Context) *zed.Value {
+func (u *Union) ResultAsPartial(zctx *zed.Context) zed.Value {
 	return u.Result(zctx)
 }

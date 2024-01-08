@@ -11,8 +11,8 @@ import (
 )
 
 type consumer interface {
-	result() *zed.Value
-	consume(*zed.Value)
+	result() zed.Value
+	consume(zed.Value)
 	typ() zed.Type
 }
 
@@ -29,28 +29,28 @@ func newMathReducer(f *anymath.Function) *mathReducer {
 	return &mathReducer{function: f}
 }
 
-func (m *mathReducer) Result(zctx *zed.Context) *zed.Value {
+func (m *mathReducer) Result(zctx *zed.Context) zed.Value {
 	if !m.hasval {
 		if m.math == nil {
-			return zed.Null
+			return *zed.Null
 		}
-		return zed.NewValue(m.math.typ(), nil)
+		return *zed.NewValue(m.math.typ(), nil)
 	}
 	return m.math.result()
 }
 
-func (m *mathReducer) Consume(val *zed.Value) {
+func (m *mathReducer) Consume(val zed.Value) {
 	m.consumeVal(val)
 }
 
-func (m *mathReducer) consumeVal(val *zed.Value) {
+func (m *mathReducer) consumeVal(val zed.Value) {
 	var id int
 	if m.math != nil {
 		var err error
 		// XXX We're not using the value coercion parts of coerce.Pair here.
 		// Would be better if coerce had a function that just compared types
 		// and returned the type to coerce to.
-		id, err = m.pair.Coerce(zed.NewValue(m.math.typ(), nil), val)
+		id, err = m.pair.Coerce(zed.NewValue(m.math.typ(), nil), &val)
 		if err != nil {
 			// Skip invalid values.
 			return
@@ -59,7 +59,7 @@ func (m *mathReducer) consumeVal(val *zed.Value) {
 		id = val.Type().ID()
 	}
 	if m.math == nil || m.math.typ().ID() != id {
-		state := zed.Null
+		state := *zed.Null
 		if m.math != nil {
 			state = m.math.result()
 		}
@@ -86,11 +86,11 @@ func (m *mathReducer) consumeVal(val *zed.Value) {
 	m.math.consume(val)
 }
 
-func (m *mathReducer) ResultAsPartial(*zed.Context) *zed.Value {
+func (m *mathReducer) ResultAsPartial(*zed.Context) zed.Value {
 	return m.Result(nil)
 }
 
-func (m *mathReducer) ConsumeAsPartial(val *zed.Value) {
+func (m *mathReducer) ConsumeAsPartial(val zed.Value) {
 	m.consumeVal(val)
 }
 
@@ -99,11 +99,11 @@ type Float64 struct {
 	function anymath.Float64
 }
 
-func NewFloat64(f *anymath.Function, val *zed.Value) *Float64 {
+func NewFloat64(f *anymath.Function, val zed.Value) *Float64 {
 	state := f.Init.Float64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToFloat(val)
+		state, ok = coerce.ToFloat(&val)
 		if !ok {
 			panicCoercionFail(zed.TypeFloat64, val.Type())
 		}
@@ -114,12 +114,12 @@ func NewFloat64(f *anymath.Function, val *zed.Value) *Float64 {
 	}
 }
 
-func (f *Float64) result() *zed.Value {
-	return zed.NewFloat64(f.state)
+func (f *Float64) result() zed.Value {
+	return *zed.NewFloat64(f.state)
 }
 
-func (f *Float64) consume(val *zed.Value) {
-	if v, ok := coerce.ToFloat(val); ok {
+func (f *Float64) consume(val zed.Value) {
+	if v, ok := coerce.ToFloat(&val); ok {
 		f.state = f.function(f.state, v)
 	}
 }
@@ -131,11 +131,11 @@ type Int64 struct {
 	function anymath.Int64
 }
 
-func NewInt64(f *anymath.Function, val *zed.Value) *Int64 {
+func NewInt64(f *anymath.Function, val zed.Value) *Int64 {
 	state := f.Init.Int64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToInt(val)
+		state, ok = coerce.ToInt(&val)
 		if !ok {
 			panicCoercionFail(zed.TypeInt64, val.Type())
 		}
@@ -146,12 +146,12 @@ func NewInt64(f *anymath.Function, val *zed.Value) *Int64 {
 	}
 }
 
-func (i *Int64) result() *zed.Value {
-	return zed.NewInt64(i.state)
+func (i *Int64) result() zed.Value {
+	return *zed.NewInt64(i.state)
 }
 
-func (i *Int64) consume(val *zed.Value) {
-	if v, ok := coerce.ToInt(val); ok {
+func (i *Int64) consume(val zed.Value) {
+	if v, ok := coerce.ToInt(&val); ok {
 		i.state = i.function(i.state, v)
 	}
 }
@@ -163,11 +163,11 @@ type Uint64 struct {
 	function anymath.Uint64
 }
 
-func NewUint64(f *anymath.Function, val *zed.Value) *Uint64 {
+func NewUint64(f *anymath.Function, val zed.Value) *Uint64 {
 	state := f.Init.Uint64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToUint(val)
+		state, ok = coerce.ToUint(&val)
 		if !ok {
 			panicCoercionFail(zed.TypeUint64, val.Type())
 		}
@@ -178,12 +178,12 @@ func NewUint64(f *anymath.Function, val *zed.Value) *Uint64 {
 	}
 }
 
-func (u *Uint64) result() *zed.Value {
-	return zed.NewUint64(u.state)
+func (u *Uint64) result() zed.Value {
+	return *zed.NewUint64(u.state)
 }
 
-func (u *Uint64) consume(val *zed.Value) {
-	if v, ok := coerce.ToUint(val); ok {
+func (u *Uint64) consume(val zed.Value) {
+	if v, ok := coerce.ToUint(&val); ok {
 		u.state = u.function(u.state, v)
 	}
 }
@@ -195,11 +195,11 @@ type Duration struct {
 	function anymath.Int64
 }
 
-func NewDuration(f *anymath.Function, val *zed.Value) *Duration {
+func NewDuration(f *anymath.Function, val zed.Value) *Duration {
 	state := f.Init.Int64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToInt(val)
+		state, ok = coerce.ToInt(&val)
 		if !ok {
 			panicCoercionFail(zed.TypeDuration, val.Type())
 		}
@@ -210,12 +210,12 @@ func NewDuration(f *anymath.Function, val *zed.Value) *Duration {
 	}
 }
 
-func (d *Duration) result() *zed.Value {
-	return zed.NewDuration(nano.Duration(d.state))
+func (d *Duration) result() zed.Value {
+	return *zed.NewDuration(nano.Duration(d.state))
 }
 
-func (d *Duration) consume(val *zed.Value) {
-	if v, ok := coerce.ToInt(val); ok {
+func (d *Duration) consume(val zed.Value) {
+	if v, ok := coerce.ToInt(&val); ok {
 		d.state = d.function(d.state, v)
 	}
 }
@@ -227,11 +227,11 @@ type Time struct {
 	function anymath.Int64
 }
 
-func NewTime(f *anymath.Function, val *zed.Value) *Time {
+func NewTime(f *anymath.Function, val zed.Value) *Time {
 	state := f.Init.Int64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToInt(val)
+		state, ok = coerce.ToInt(&val)
 		if !ok {
 			panicCoercionFail(zed.TypeTime, val.Type())
 		}
@@ -242,12 +242,12 @@ func NewTime(f *anymath.Function, val *zed.Value) *Time {
 	}
 }
 
-func (t *Time) result() *zed.Value {
-	return zed.NewTime(t.state)
+func (t *Time) result() zed.Value {
+	return *zed.NewTime(t.state)
 }
 
-func (t *Time) consume(val *zed.Value) {
-	if v, ok := coerce.ToInt(val); ok {
+func (t *Time) consume(val zed.Value) {
+	if v, ok := coerce.ToInt(&val); ok {
 		t.state = nano.Ts(t.function(int64(t.state), v))
 	}
 }
