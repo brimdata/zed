@@ -17,9 +17,9 @@ type Regexp struct {
 	zctx    *zed.Context
 }
 
-func (r *Regexp) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+func (r *Regexp) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	if !args[0].IsString() {
-		return wrapError(r.zctx, ctx, "regexp: string required for first arg", &args[0])
+		return *r.zctx.WrapError("regexp: string required for first arg", &args[0])
 	}
 	s := zed.DecodeString(args[0].Bytes())
 	if r.restr != s {
@@ -27,10 +27,10 @@ func (r *Regexp) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 		r.re, r.err = regexp.Compile(r.restr)
 	}
 	if r.err != nil {
-		return newErrorf(r.zctx, ctx, "regexp: %s", r.err)
+		return *r.zctx.NewErrorf("regexp: %s", r.err)
 	}
 	if !args[1].IsString() {
-		return wrapError(r.zctx, ctx, "regexp: string required for second arg", &args[1])
+		return *r.zctx.WrapError("regexp: string required for second arg", &args[1])
 	}
 	r.builder.Reset()
 	for _, b := range r.re.FindSubmatch(args[1].Bytes()) {
@@ -39,7 +39,7 @@ func (r *Regexp) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if r.typ == nil {
 		r.typ = r.zctx.LookupTypeArray(zed.TypeString)
 	}
-	return ctx.NewValue(r.typ, r.builder.Bytes())
+	return *zed.NewValue(r.typ, r.builder.Bytes())
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#regexp_replace
@@ -50,27 +50,27 @@ type RegexpReplace struct {
 	err   error
 }
 
-func (r *RegexpReplace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
+func (r *RegexpReplace) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	sVal := args[0]
 	reVal := args[1]
 	newVal := args[2]
 	for i := range args {
 		if !args[i].IsString() {
-			return wrapError(r.zctx, ctx, "regexp_replace: string arg required", &args[i])
+			return *r.zctx.WrapError("regexp_replace: string arg required", &args[i])
 		}
 	}
 	if sVal.IsNull() {
-		return zed.Null
+		return *zed.Null
 	}
 	if reVal.IsNull() || newVal.IsNull() {
-		return newErrorf(r.zctx, ctx, "regexp_replace: 2nd and 3rd args cannot be null")
+		return *r.zctx.NewErrorf("regexp_replace: 2nd and 3rd args cannot be null")
 	}
 	if re := zed.DecodeString(reVal.Bytes()); r.restr != re {
 		r.restr = re
 		r.re, r.err = regexp.Compile(re)
 	}
 	if r.err != nil {
-		return newErrorf(r.zctx, ctx, "regexp_replace: %s", r.err)
+		return *r.zctx.NewErrorf("regexp_replace: %s", r.err)
 	}
-	return ctx.NewValue(zed.TypeString, r.re.ReplaceAll(sVal.Bytes(), newVal.Bytes()))
+	return *zed.NewString(string(r.re.ReplaceAll(sVal.Bytes(), newVal.Bytes())))
 }

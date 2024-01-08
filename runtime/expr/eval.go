@@ -19,7 +19,7 @@ type Evaluator interface {
 }
 
 type Function interface {
-	Call(zed.Allocator, []zed.Value) *zed.Value
+	Call(zed.Allocator, []zed.Value) zed.Value
 }
 
 type Not struct {
@@ -803,7 +803,13 @@ func (c *Call) Eval(ectx Context, this *zed.Value) *zed.Value {
 	for k, e := range c.exprs {
 		c.args[k] = *e.Eval(ectx, this)
 	}
-	return c.fn.Call(ectx, c.args)
+	val := c.fn.Call(ectx, c.args)
+	if r, ok := ectx.(*ResetContext); ok {
+		// The compiler can emit a direct call here since we've told it
+		// the receiver's type.
+		return r.CopyValue(val)
+	}
+	return ectx.CopyValue(val)
 }
 
 type Assignment struct {

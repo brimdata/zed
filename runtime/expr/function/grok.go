@@ -22,44 +22,44 @@ func newGrok(zctx *zed.Context) *Grok {
 	}
 }
 
-func (g *Grok) Call(ectx zed.Allocator, vals []zed.Value) *zed.Value {
+func (g *Grok) Call(_ zed.Allocator, vals []zed.Value) zed.Value {
 	patternArg, inputArg, defArg := vals[0], vals[1], zed.NullString
 	if len(vals) == 3 {
 		defArg = &vals[2]
 	}
 	switch {
 	case zed.TypeUnder(defArg.Type()) != zed.TypeString:
-		return g.error(ectx, "definitions argument must be a string", defArg)
+		return g.error("definitions argument must be a string", defArg)
 	case zed.TypeUnder(patternArg.Type()) != zed.TypeString:
-		return g.error(ectx, "pattern argument must be a string", &patternArg)
+		return g.error("pattern argument must be a string", &patternArg)
 	case zed.TypeUnder(inputArg.Type()) != zed.TypeString:
-		return g.error(ectx, "input argument must be a string", &inputArg)
+		return g.error("input argument must be a string", &inputArg)
 	}
 	h, err := g.getHost(defArg.AsString())
 	if err != nil {
-		return g.error(ectx, err.Error(), defArg)
+		return g.error(err.Error(), defArg)
 	}
 	p, err := h.getPattern(g.zctx, patternArg.AsString())
 	if err != nil {
-		return g.error(ectx, err.Error(), &patternArg)
+		return g.error(err.Error(), &patternArg)
 	}
 	ss := p.ParseValues(inputArg.AsString())
 	if ss == nil {
-		return g.error(ectx, "value does not match pattern", &inputArg)
+		return g.error("value does not match pattern", &inputArg)
 	}
 	g.builder.Reset()
 	for _, s := range ss {
 		g.builder.Append([]byte(s))
 	}
-	return ectx.NewValue(p.typ, g.builder.Bytes())
+	return *zed.NewValue(p.typ, g.builder.Bytes())
 }
 
-func (g *Grok) error(ectx zed.Allocator, err string, val *zed.Value) *zed.Value {
+func (g *Grok) error(err string, val *zed.Value) zed.Value {
 	err = fmt.Sprintf("grok(): %s", err)
 	if val == nil {
-		return ectx.CopyValue(*g.zctx.NewErrorf(err))
+		return *g.zctx.NewErrorf(err)
 	}
-	return ectx.CopyValue(*g.zctx.WrapError(err, val))
+	return *g.zctx.WrapError(err, val)
 }
 
 func (g *Grok) getHost(defs string) (*host, error) {
