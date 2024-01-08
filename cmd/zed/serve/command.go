@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/signal"
 	"runtime"
 	"syscall"
 
@@ -102,12 +101,6 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, os.Interrupt)
-	go func() {
-		sig := <-sigch
-		logger.Info("Signal received", zap.Stringer("signal", sig))
-	}()
 	srv := httpd.New(c.listenAddr, core)
 	srv.SetLogger(logger.Named("httpd"))
 	if err := srv.Start(ctx); err != nil {
@@ -127,11 +120,10 @@ func (c *Command) watchBrimFd(ctx context.Context, logger *zap.Logger) (context.
 	}
 	f := os.NewFile(uintptr(c.brimfd), "brimfd")
 	logger.Info("Listening to Zui process pipe", zap.String("fd", f.Name()))
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancelCause(ctx)
 	go func() {
 		io.Copy(io.Discard, f)
-		logger.Info("Brim fd closed, shutting down")
-		cancel()
+		cancel(errors.New("Zui pipe closed"))
 	}()
 	return ctx, nil
 }

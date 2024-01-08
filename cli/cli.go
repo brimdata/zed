@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -55,22 +54,29 @@ func (f *Flags) InitWithSignals(all []Initializer, signals ...os.Signal) (contex
 	if f.cpuprofile != "" {
 		f.runCPUProfile(f.cpuprofile)
 	}
-	ctx, cancel := signal.NotifyContext(context.Background(), signals...)
+	ctx, cancel := signalContext(context.Background(), signals...)
 	cleanup := func() {
 		cancel()
 		f.cleanup()
 	}
-	return &interruptedContext{ctx}, cleanup, nil
+	return ctx, cleanup, nil
 }
 
-type interruptedContext struct{ context.Context }
-
-func (i *interruptedContext) Err() error {
-	err := i.Context.Err()
-	if errors.Is(err, context.Canceled) {
-		return errors.New("interrupted")
+func signalContext(ctx context.Context, signals ...os.Signal) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancelCause(ctx)
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, signals...)
+	go func() {
+		select {
+		case <-ctx.Done():
+		case s := <-ch:
+			cancel(fmt.Errorf("received %s signal", s))
+		}
+	}()
+	return ctx, func() {
+		cancel(nil)
+		signal.Stop(ch)
 	}
-	return err
 }
 
 func (f *Flags) cleanup() {
