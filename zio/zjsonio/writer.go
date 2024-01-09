@@ -45,8 +45,8 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(r *zed.Value) error {
-	rec, err := w.Transform(r)
+func (w *Writer) Write(val zed.Value) error {
+	rec, err := w.Transform(&val)
 	if err != nil {
 		return err
 	}

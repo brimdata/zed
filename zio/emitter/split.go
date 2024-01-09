@@ -46,7 +46,7 @@ func NewSplit(ctx context.Context, engine storage.Engine, dir *storage.URI, pref
 	}, nil
 }
 
-func (s *Split) Write(r *zed.Value) error {
+func (s *Split) Write(r zed.Value) error {
 	out, err := s.lookupOutput(r)
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (s *Split) Write(r *zed.Value) error {
 	return out.Write(r)
 }
 
-func (s *Split) lookupOutput(val *zed.Value) (zio.WriteCloser, error) {
+func (s *Split) lookupOutput(val zed.Value) (zio.WriteCloser, error) {
 	typ := val.Type()
 	w, ok := s.writers[typ]
 	if ok {
@@ -72,7 +72,7 @@ func (s *Split) lookupOutput(val *zed.Value) (zio.WriteCloser, error) {
 // to make a unique path for each Zed type.  If the _path field is present,
 // we use that for the unique ID, but if the _path string appears with
 // different Zed types, then we prepend it to the unique ID.
-func (s *Split) path(r *zed.Value) *storage.URI {
+func (s *Split) path(r zed.Value) *storage.URI {
 	uniq := strconv.Itoa(len(s.writers))
 	if _path := r.Deref("_path").AsString(); _path != "" {
 		if _, ok := s.seen[_path]; ok {

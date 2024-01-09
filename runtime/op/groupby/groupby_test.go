@@ -61,7 +61,7 @@ type testGroupByWriter struct {
 	cb     func(n int)
 }
 
-func (w *testGroupByWriter) Write(val *zed.Value) error {
+func (w *testGroupByWriter) Write(val zed.Value) error {
 	if err := w.writer.Write(val); err != nil {
 		return err
 	}

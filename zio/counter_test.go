@@ -13,7 +13,7 @@ import (
 
 type Sink struct{}
 
-func (n *Sink) Write(rec *zed.Value) error {
+func (n *Sink) Write(rec zed.Value) error {
 	return nil
 }
 

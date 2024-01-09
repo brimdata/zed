@@ -45,7 +45,7 @@ func (f *Fuser) Close() error {
 }
 
 // Write buffers rec. If called after Read, Write panics.
-func (f *Fuser) Write(rec *zed.Value) error {
+func (f *Fuser) Write(rec zed.Value) error {
 	if f.shaper != nil {
 		panic("fuser: write after read")
 	}
@@ -59,7 +59,7 @@ func (f *Fuser) Write(rec *zed.Value) error {
 	return f.stash(rec)
 }
 
-func (f *Fuser) stash(rec *zed.Value) error {
+func (f *Fuser) stash(rec zed.Value) error {
 	f.nbytes += len(rec.Bytes())
 	if f.nbytes >= f.memMaxBytes {
 		var err error
@@ -68,7 +68,7 @@ func (f *Fuser) stash(rec *zed.Value) error {
 			return err
 		}
 		for _, rec := range f.vals {
-			if err := f.spiller.Write(rec); err != nil {
+			if err := f.spiller.Write(*rec); err != nil {
 				return err
 			}
 		}

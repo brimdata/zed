@@ -55,9 +55,9 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	return writer
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
+func (w *Writer) Write(rec zed.Value) error {
 	var v interface{}
-	if err := unmarshaler.Unmarshal(rec, &v); err != nil {
+	if err := unmarshaler.Unmarshal(&rec, &v); err != nil {
 		return w.WriteZSON(rec)
 	}
 	var b bytes.Buffer
@@ -70,8 +70,8 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) WriteZSON(rec *zed.Value) error {
-	if _, err := io.WriteString(w.writer, w.zson.FormatRecord(rec)); err != nil {
+func (w *Writer) WriteZSON(rec zed.Value) error {
+	if _, err := io.WriteString(w.writer, w.zson.FormatRecord(&rec)); err != nil {
 		return err
 	}
 	_, err := io.WriteString(w.writer, "\n")

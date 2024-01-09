@@ -38,7 +38,7 @@ type Batch interface {
 func WriteBatch(zw zio.Writer, batch Batch) error {
 	vals := batch.Values()
 	for i := range vals {
-		if err := zw.Write(&vals[i]); err != nil {
+		if err := zw.Write(vals[i]); err != nil {
 			return err
 		}
 	}

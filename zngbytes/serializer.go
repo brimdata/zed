@@ -33,7 +33,7 @@ func (s *Serializer) Write(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return s.writer.Write(rec)
+	return s.writer.Write(*rec)
 }
 
 // Bytes returns a slice holding the serialized values.  Close must be called

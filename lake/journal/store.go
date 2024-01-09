@@ -184,7 +184,7 @@ func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) 
 	}
 	zw := zngio.NewWriter(w)
 	defer zw.Close()
-	if err := zw.Write(zed.NewUint64(uint64(at))); err != nil {
+	if err := zw.Write(*zed.NewUint64(uint64(at))); err != nil {
 		return err
 	}
 	marshaler := zson.NewZNGMarshaler()
@@ -194,7 +194,7 @@ func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) 
 		if err != nil {
 			return err
 		}
-		if err := zw.Write(val); err != nil {
+		if err := zw.Write(*val); err != nil {
 			return err
 		}
 	}

@@ -217,18 +217,18 @@ func (s *Shaper) lookupType(in zed.Type) (*zed.TypeRecord, error) {
 }
 
 // Write buffers rec. If called after Read, Write panics.
-func (s *Shaper) Write(rec *zed.Value) error {
+func (s *Shaper) Write(rec zed.Value) error {
 	if s.spiller != nil {
 		return s.spiller.Write(rec)
 	}
 	if err := s.stash(rec); err != nil {
 		return err
 	}
-	s.update(rec)
+	s.update(&rec)
 	return nil
 }
 
-func (s *Shaper) stash(rec *zed.Value) error {
+func (s *Shaper) stash(rec zed.Value) error {
 	s.nbytes += len(rec.Bytes())
 	if s.nbytes >= s.memMaxBytes {
 		var err error
@@ -237,7 +237,7 @@ func (s *Shaper) stash(rec *zed.Value) error {
 			return err
 		}
 		for _, rec := range s.vals {
-			if err := s.spiller.Write(rec); err != nil {
+			if err := s.spiller.Write(*rec); err != nil {
 				return err
 			}
 		}

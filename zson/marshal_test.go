@@ -117,7 +117,7 @@ type SliceRecord struct {
 func recToZSON(t *testing.T, rec *zed.Value) string {
 	var b strings.Builder
 	w := zsonio.NewWriter(zio.NopCloser(&b), zsonio.WriterOpts{})
-	err := w.Write(rec)
+	err := w.Write(*rec)
 	require.NoError(t, err)
 	return b.String()
 }
@@ -210,7 +210,7 @@ func TestMixedTypeArrayInsideRecord(t *testing.T) {
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer))
 	recExpected := zed.NewValue(zv.Type(), zv.Bytes())
-	writer.Write(recExpected)
+	writer.Write(*recExpected)
 	writer.Close()
 
 	reader := zngio.NewReader(zed.NewContext(), &buffer)
@@ -270,7 +270,7 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer))
 	recExpected := zed.NewValue(zv.Type(), zv.Bytes())
-	writer.Write(recExpected)
+	writer.Write(*recExpected)
 	writer.Close()
 
 	reader := zngio.NewReader(zed.NewContext(), &buffer)

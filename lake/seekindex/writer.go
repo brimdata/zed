@@ -43,5 +43,5 @@ func (w *Writer) Write(min, max *zed.Value, valoff uint64, offset uint64) error 
 	if err != nil {
 		return err
 	}
-	return w.writer.Write(val.Copy())
+	return w.writer.Write(*val.Copy())
 }

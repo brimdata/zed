@@ -73,7 +73,7 @@ func (w *Writer) newObject() *data.Object {
 	return &w.objects[len(w.objects)-1]
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
+func (w *Writer) Write(rec zed.Value) error {
 	if w.ctx.Err() != nil {
 		if err := w.errgroup.Wait(); err != nil {
 			return err
@@ -185,7 +185,7 @@ func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorE
 	}
 }
 
-func (w *SortedWriter) Write(val *zed.Value) error {
+func (w *SortedWriter) Write(val zed.Value) error {
 	key := val.DerefPath(w.poolKey).MissingAsNull()
 again:
 	if w.writer == nil {
@@ -203,7 +203,7 @@ again:
 		w.writer, w.vectorWriter = nil, nil
 		goto again
 	}
-	if err := w.writer.WriteWithKey(key, val); err != nil {
+	if err := w.writer.WriteWithKey(*key, val); err != nil {
 		w.Abort()
 		return err
 	}

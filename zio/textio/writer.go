@@ -27,7 +27,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(val *zed.Value) error {
+func (w *Writer) Write(val zed.Value) error {
 	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeRecord); ok {
 		return w.writeRecord(val)
 	}
@@ -35,7 +35,7 @@ func (w *Writer) Write(val *zed.Value) error {
 	return err
 }
 
-func (w *Writer) writeRecord(rec *zed.Value) error {
+func (w *Writer) writeRecord(rec zed.Value) error {
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (w *Writer) writeRecord(rec *zed.Value) error {
 	var out []string
 	for k, f := range zed.TypeRecordOf(rec.Type()).Fields {
 		var s string
-		value := rec.DerefByColumn(k).MissingAsNull()
+		value := *rec.DerefByColumn(k).MissingAsNull()
 		if f.Type == zed.TypeTime {
 			if value.IsNull() {
 				s = "-"
