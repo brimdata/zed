@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/segmentio/ksuid"
 )
@@ -17,16 +16,9 @@ type Action interface {
 
 var ActionTypes = []interface{}{
 	Add{},
-	AddIndex{},
 	AddVector{},
-	index.AddRule{},
 	Delete{},
-	DeleteIndex{},
 	DeleteVector{},
-	index.DeleteRule{},
-	index.TypeRule{},
-	index.AggRule{},
-	index.FieldRule{},
 	Commit{},
 }
 
@@ -82,33 +74,6 @@ func (d *Delete) CommitID() ksuid.KSUID {
 
 func (d *Delete) String() string {
 	return "DEL " + d.ID.String()
-}
-
-type AddIndex struct {
-	Commit ksuid.KSUID  `zed:"commit"`
-	Object index.Object `zed:"object"`
-}
-
-func (a *AddIndex) String() string {
-	return fmt.Sprintf("ADD_INDEX %s", a.Object)
-}
-
-func (a *AddIndex) CommitID() ksuid.KSUID {
-	return a.Commit
-}
-
-type DeleteIndex struct {
-	Commit ksuid.KSUID `zed:"commit"`
-	ID     ksuid.KSUID `zed:"id"`
-	RuleID ksuid.KSUID `zed:"rule_id"`
-}
-
-func (d *DeleteIndex) String() string {
-	return fmt.Sprintf("DEL_INDEX %s/%s", d.RuleID, d.ID)
-}
-
-func (d *DeleteIndex) CommitID() ksuid.KSUID {
-	return d.Commit
 }
 
 type AddVector struct {

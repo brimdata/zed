@@ -25,19 +25,17 @@ import (
 
 const (
 	DataTag     = "data"
-	IndexTag    = "index"
 	BranchesTag = "branches"
 	CommitsTag  = "commits"
 )
 
 type Pool struct {
 	pools.Config
-	engine    storage.Engine
-	Path      *storage.URI
-	DataPath  *storage.URI
-	IndexPath *storage.URI
-	branches  *branches.Store
-	commits   *commits.Store
+	engine   storage.Engine
+	Path     *storage.URI
+	DataPath *storage.URI
+	branches *branches.Store
+	commits  *commits.Store
 }
 
 func CreatePool(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, config *pools.Config) error {
@@ -86,13 +84,12 @@ func OpenPool(ctx context.Context, engine storage.Engine, logger *zap.Logger, ro
 		return nil, err
 	}
 	return &Pool{
-		Config:    *config,
-		engine:    engine,
-		Path:      path,
-		DataPath:  DataPath(path),
-		IndexPath: IndexPath(path),
-		branches:  branches,
-		commits:   commits,
+		Config:   *config,
+		engine:   engine,
+		Path:     path,
+		DataPath: DataPath(path),
+		branches: branches,
+		commits:  commits,
 	}, nil
 }
 
@@ -278,8 +275,4 @@ func (p *Pool) Main(ctx context.Context) (BranchMeta, error) {
 
 func DataPath(poolPath *storage.URI) *storage.URI {
 	return poolPath.JoinPath(DataTag)
-}
-
-func IndexPath(poolPath *storage.URI) *storage.URI {
-	return poolPath.JoinPath(IndexTag)
 }

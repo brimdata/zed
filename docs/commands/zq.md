@@ -531,11 +531,6 @@ run in parallel very efficiently across a large number of threads.  When searchi
 for sparse results, many frames are discarded without their uncompressed bytes
 having to be processed any further.
 
-While this pre-search technique results in very fast brute-force pattern matching,
-a planned feature will allow search indexes to be created when Zed data is
-managed by a Zed lake thereby avoiding scans of data altogether as the index
-pinpoints the locations of specific values in the lake.
-
 ### Efficient JSON Processing
 
 While processing data in the ZNG format is far more efficient than JSON,

@@ -15,14 +15,10 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/dev/dig/section"
 	_ "github.com/brimdata/zed/cmd/zed/dev/dig/slice"
 	_ "github.com/brimdata/zed/cmd/zed/dev/dig/trailer"
-	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile"
-	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/create"
-	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/lookup"
 	_ "github.com/brimdata/zed/cmd/zed/dev/vcache/agg"
 	_ "github.com/brimdata/zed/cmd/zed/dev/vcache/copy"
 	_ "github.com/brimdata/zed/cmd/zed/dev/vcache/project"
 	"github.com/brimdata/zed/cmd/zed/drop"
-	"github.com/brimdata/zed/cmd/zed/index"
 	zedinit "github.com/brimdata/zed/cmd/zed/init"
 	"github.com/brimdata/zed/cmd/zed/load"
 	"github.com/brimdata/zed/cmd/zed/log"
@@ -48,7 +44,6 @@ func main() {
 	zed.Add(create.Cmd)
 	zed.Add(zeddelete.Cmd)
 	zed.Add(drop.Cmd)
-	zed.Add(index.Cmd)
 	zed.Add(zedinit.Cmd)
 	zed.Add(load.Cmd)
 	zed.Add(log.Cmd)

@@ -6,13 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"sort"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
@@ -30,7 +28,6 @@ import (
 const (
 	Version         = 3
 	PoolsTag        = "pools"
-	IndexRulesTag   = "index_rules"
 	LakeMagicFile   = "lake.zng"
 	LakeMagicString = "ZED LAKE"
 )
@@ -47,10 +44,9 @@ type Root struct {
 	logger *zap.Logger
 	path   *storage.URI
 
-	poolCache  *lru.ARCCache[ksuid.KSUID, *Pool]
-	pools      *pools.Store
-	indexRules *index.Store
-	vCache     *vcache.Cache
+	poolCache *lru.ARCCache[ksuid.KSUID, *Pool]
+	pools     *pools.Store
+	vCache    *vcache.Cache
 }
 
 type LakeMagic struct {
@@ -104,13 +100,8 @@ func CreateOrOpen(ctx context.Context, engine storage.Engine, logger *zap.Logger
 
 func (r *Root) createConfig(ctx context.Context) error {
 	poolPath := r.path.JoinPath(PoolsTag)
-	rulesPath := r.path.JoinPath(IndexRulesTag)
 	var err error
 	r.pools, err = pools.CreateStore(ctx, r.engine, r.logger, poolPath)
-	if err != nil {
-		return err
-	}
-	r.indexRules, err = index.CreateStore(ctx, r.engine, rulesPath)
 	if err != nil {
 		return err
 	}
@@ -122,13 +113,11 @@ func (r *Root) loadConfig(ctx context.Context) error {
 		return err
 	}
 	poolPath := r.path.JoinPath(PoolsTag)
-	rulesPath := r.path.JoinPath(IndexRulesTag)
 	var err error
 	r.pools, err = pools.OpenStore(ctx, r.engine, r.logger, poolPath)
 	if err != nil {
 		return err
 	}
-	r.indexRules, err = index.OpenStore(ctx, r.engine, rulesPath)
 	return err
 }
 
@@ -416,78 +405,6 @@ func (r *Root) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string
 		return ksuid.Nil, err
 	}
 	return branch.Revert(ctx, commitID, author, message)
-}
-
-func (r *Root) AddIndexRules(ctx context.Context, rules []index.Rule) error {
-	//XXX should change this to do a single commit for all of the rules
-	// and abort all if one fails.  (change Add() semantics)
-	for _, rule := range rules {
-		if err := r.indexRules.Add(ctx, rule); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *Root) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
-	deleted := make([]index.Rule, 0, len(ids))
-	for _, id := range ids {
-		rule, err := r.indexRules.Delete(ctx, id)
-		if err != nil {
-			return deleted, fmt.Errorf("index %s not found", id)
-		}
-		deleted = append(deleted, rule)
-	}
-	return deleted, nil
-}
-
-func (r *Root) LookupIndexRules(ctx context.Context, refs ...string) ([]index.Rule, error) {
-	var rules []index.Rule
-	for _, ref := range refs {
-		r, err := r.indexRules.LookupByRef(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		rules = append(rules, r...)
-	}
-	return rules, nil
-}
-
-func (r *Root) AllIndexRules(ctx context.Context) ([]index.Rule, error) {
-	return r.indexRules.All(ctx)
-}
-
-func (r *Root) BatchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
-	m := zson.NewZNGMarshalerWithContext(zctx)
-	m.Decorate(zson.StylePackage)
-	names, err := r.indexRules.Names(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var ectx expr.ResetContext
-	var vals []zed.Value
-	for _, name := range names {
-		rules, err := r.indexRules.LookupByRef(ctx, name)
-		if err != nil {
-			if err == index.ErrNoSuchRule {
-				continue
-			}
-			return nil, err
-		}
-		sort.Slice(rules, func(i, j int) bool {
-			return rules[i].CreateTime() < rules[j].CreateTime()
-		})
-		for _, rule := range rules {
-			rec, err := m.Marshal(rule)
-			if err != nil {
-				return nil, err
-			}
-			if filter(zctx, ectx.Reset(), rec, f) {
-				vals = append(vals, *rec)
-			}
-		}
-	}
-	return vals, nil
 }
 
 func (r *Root) Open(context.Context, *zed.Context, string, string, zbuf.Filter) (zbuf.Puller, error) {

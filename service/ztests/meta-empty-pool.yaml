@@ -5,7 +5,6 @@ script: |
   zed query 'from test@main:objects'
   zed query 'from test@main:partitions'
   zed query 'from test@main:rawlog'
-  zed query 'from test@main:indexes'
   zed query 'from test@main:vectors'
 
 inputs:

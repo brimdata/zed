@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
@@ -105,14 +104,6 @@ func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName stri
 	return exec.Compact(ctx, l.root, pool, branchName, objects, writeVectors, commit.Author, commit.Body, commit.Meta)
 }
 
-func (l *local) AddIndexRules(ctx context.Context, rules []index.Rule) error {
-	return l.root.AddIndexRules(ctx, rules)
-}
-
-func (l *local) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
-	return l.root.DeleteIndexRules(ctx, ids)
-}
-
 func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
 	q, err := l.QueryWithControl(ctx, head, src, srcfiles...)
 	if err != nil {
@@ -190,43 +181,6 @@ func (l *local) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName,
 
 func (l *local) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
 	return l.root.Revert(ctx, poolID, branchName, commitID, message.Author, message.Body)
-}
-
-func (l *local) ApplyIndexRules(ctx context.Context, ruleRefs []string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
-	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	tags, err := branch.LookupTags(ctx, inTags)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	rules, err := l.root.LookupIndexRules(ctx, lakeparse.FormatIDs(ruleRefs)...)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	commit, err := branch.ApplyIndexRules(ctx, l.compiler, rules, tags)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	return commit, nil
-}
-
-func (l *local) UpdateIndex(ctx context.Context, ruleRefs []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
-	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	var rules []index.Rule
-	if len(ruleRefs) == 0 {
-		rules, err = l.root.AllIndexRules(ctx)
-	} else {
-		rules, err = l.root.LookupIndexRules(ctx, lakeparse.FormatIDs(ruleRefs)...)
-	}
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	return branch.UpdateIndex(ctx, l.compiler, rules)
 }
 
 func (l *local) AddVectors(ctx context.Context, pool, revision string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {

@@ -165,8 +165,6 @@ func (c *Core) addAPIServerRoutes() {
 	// /auth/method intentionally requires no authentication
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
 	c.authhandle("/events", handleEvents).Methods("GET")
-	c.authhandle("/index", handleIndexRulesDelete).Methods("DELETE")
-	c.authhandle("/index", handleIndexRulesPost).Methods("POST")
 	c.authhandle("/pool", handlePoolPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolDelete).Methods("DELETE")
 	c.authhandle("/pool/{pool}", handleBranchPost).Methods("POST")
@@ -176,8 +174,6 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}", handleBranchLoad).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/compact", handleCompact).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/delete", handleDelete).Methods("POST")
-	c.authhandle("/pool/{pool}/branch/{branch}/index", branchHandle(handleIndexApply)).Methods("POST")
-	c.authhandle("/pool/{pool}/branch/{branch}/index/update", branchHandle(handleIndexUpdate)).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/revision/{revision}/vacuum", handleVacuum).Methods("POST")
@@ -201,30 +197,6 @@ func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request))
 		f = c.auth.Middleware(f)
 	}
 	return c.routerAPI.Handle(path, c.handler(f))
-}
-
-func branchHandle(f func(*Core, *ResponseWriter, *Request, *lake.Branch)) func(*Core, *ResponseWriter, *Request) {
-	return func(c *Core, w *ResponseWriter, r *Request) {
-		poolID, ok := r.PoolID(w, c.root)
-		if !ok {
-			return
-		}
-		branchName, ok := r.StringFromPath(w, "branch")
-		if !ok {
-			return
-		}
-		pool, err := c.root.OpenPool(r.Context(), poolID)
-		if err != nil {
-			w.Error(err)
-			return
-		}
-		branch, err := pool.OpenBranchByName(r.Context(), branchName)
-		if err != nil {
-			w.Error(err)
-			return
-		}
-		f(c, w, r, branch)
-	}
 }
 
 func (c *Core) Registry() *prometheus.Registry {

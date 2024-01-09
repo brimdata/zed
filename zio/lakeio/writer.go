@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
@@ -94,16 +93,6 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 	case *commits.Commit:
 		branches := w.branches[v.ID]
 		t.formatCommit(b, v, branches, w.headName, w.headID, width, colors)
-	case index.Rule:
-		name := v.RuleName()
-		if name != w.rulename {
-			w.rulename = name
-			b.WriteString(name)
-			b.WriteByte('\n')
-		}
-		tab(b, 4)
-		b.WriteString(v.String())
-		b.WriteByte('\n')
 	case *lake.BranchTip:
 		w.branches[v.Commit] = append(w.branches[v.Commit], v.Name)
 	default:
@@ -233,12 +222,8 @@ func (t table) formatActions(b *bytes.Buffer, id ksuid.KSUID) {
 		switch action := action.(type) {
 		case *commits.Add:
 			formatAdd(b, 4, action)
-		case *commits.AddIndex:
-			formatAddIndex(b, 4, action)
 		case *commits.Delete:
 			formatDelete(b, 4, action)
-		case *commits.DeleteIndex:
-			formatDeleteIndex(b, 4, action)
 		}
 	}
 	b.WriteString("\n")
@@ -253,22 +238,4 @@ func formatDelete(b *bytes.Buffer, indent int, delete *commits.Delete) {
 
 func formatAdd(b *bytes.Buffer, indent int, add *commits.Add) {
 	formatDataObject(b, &add.Object, "Add", indent)
-}
-
-func formatAddIndex(b *bytes.Buffer, indent int, addx *commits.AddIndex) {
-	formatIndexObject(b, addx.Object.Rule.RuleID(), addx.Object.ID, "AddIndex", indent)
-}
-
-func formatDeleteIndex(b *bytes.Buffer, indent int, delx *commits.DeleteIndex) {
-	formatIndexObject(b, delx.RuleID, delx.ID, "DeleteIndex", indent)
-}
-
-func formatIndexObject(b *bytes.Buffer, ruleID, id ksuid.KSUID, prefix string, indent int) {
-	tab(b, indent)
-	if prefix != "" {
-		b.WriteString(prefix)
-		b.WriteByte(' ')
-	}
-	fmt.Fprintf(b, "%s index %s object", ruleID, id) //XXX
-	b.WriteByte('\n')
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
@@ -56,14 +55,6 @@ func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, i
 	return o
 }
 
-func NewAddIndexesObject(parent ksuid.KSUID, author, message string, retries int, indexes []*index.Object) *Object {
-	o := NewObject(parent, author, message, *zed.Null, retries)
-	for _, index := range indexes {
-		o.appendAddIndex(index)
-	}
-	return o
-}
-
 func NewAddVectorsObject(parent ksuid.KSUID, author, message string, ids []ksuid.KSUID, retries int) *Object {
 	o := NewObject(parent, author, message, *zed.Null, retries)
 	for _, id := range ids {
@@ -90,14 +81,6 @@ func (o *Object) appendAdd(dataObject *data.Object) {
 
 func (o *Object) appendDelete(id ksuid.KSUID) {
 	o.append(&Delete{Commit: o.Commit, ID: id})
-}
-
-func (o *Object) appendAddIndex(i *index.Object) {
-	o.append(&AddIndex{Commit: o.Commit, Object: *i})
-}
-
-func (o *Object) appendDeleteIndex(ruleID, id ksuid.KSUID) {
-	o.append(&DeleteIndex{Commit: o.Commit, RuleID: ruleID, ID: id})
 }
 
 func (o *Object) appendAddVector(id ksuid.KSUID) {
