@@ -212,10 +212,6 @@ func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.routerAPI.ServeHTTP(w, r)
 }
 
-func (c *Core) Shutdown() {
-	c.logger.Info("Shutdown")
-}
-
 func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
 	marshaler := zson.NewZNGMarshaler()
 	marshaler.Decorate(zson.StyleSimple)
