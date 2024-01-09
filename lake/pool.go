@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"runtime"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -218,6 +219,7 @@ func (p *Pool) ObjectExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
 
 func (p *Pool) Vacuum(ctx context.Context, commit ksuid.KSUID, dryrun bool) ([]ksuid.KSUID, error) {
 	group, ctx := errgroup.WithContext(ctx)
+	group.SetLimit(runtime.GOMAXPROCS(0))
 	ch := make(chan *data.Object)
 	group.Go(func() error {
 		defer close(ch)
