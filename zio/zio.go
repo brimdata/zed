@@ -66,7 +66,7 @@ type Reader interface {
 //
 // Implementations must not retain val or val.Bytes.
 type Writer interface {
-	Write(val *zed.Value) error
+	Write(val zed.Value) error
 }
 
 type ReadCloser interface {
@@ -132,7 +132,7 @@ type multiWriter struct {
 	writers []Writer
 }
 
-func (m *multiWriter) Write(rec *zed.Value) error {
+func (m *multiWriter) Write(rec zed.Value) error {
 	for _, w := range m.writers {
 		if err := w.Write(rec); err != nil {
 			return err
@@ -155,7 +155,7 @@ func CopyWithContext(ctx context.Context, dst Writer, src Reader) error {
 		if err != nil || rec == nil {
 			return err
 		}
-		if err := dst.Write(rec); err != nil {
+		if err := dst.Write(*rec); err != nil {
 			return err
 		}
 	}

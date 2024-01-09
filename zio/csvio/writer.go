@@ -52,9 +52,9 @@ func (w *Writer) Flush() error {
 	return w.encoder.Error()
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
+func (w *Writer) Write(rec zed.Value) error {
 	if rec.Type().Kind() != zed.RecordKind {
-		return fmt.Errorf("CSV output encountered non-record value: %s", zson.FormatValue(rec))
+		return fmt.Errorf("CSV output encountered non-record value: %s", zson.FormatValue(&rec))
 	}
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {

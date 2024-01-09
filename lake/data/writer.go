@@ -62,25 +62,25 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	return w, nil
 }
 
-func (w *Writer) Write(val *zed.Value) error {
+func (w *Writer) Write(val zed.Value) error {
 	key := val.DerefPath(w.poolKey).MissingAsNull()
-	return w.WriteWithKey(key, val)
+	return w.WriteWithKey(*key, val)
 }
 
-func (w *Writer) WriteWithKey(key, val *zed.Value) error {
+func (w *Writer) WriteWithKey(key, val zed.Value) error {
 	w.count++
 	if err := w.writer.Write(val); err != nil {
 		return err
 	}
-	w.object.Max.CopyFrom(key)
+	w.object.Max.CopyFrom(&key)
 	return w.writeIndex(key)
 }
 
-func (w *Writer) writeIndex(key *zed.Value) error {
+func (w *Writer) writeIndex(key zed.Value) error {
 	w.seekIndexTrigger += len(key.Bytes())
 	if w.first {
 		w.first = false
-		w.object.Min.CopyFrom(key)
+		w.object.Min.CopyFrom(&key)
 	}
 	if w.seekMin == nil {
 		w.seekMin = key.Copy()

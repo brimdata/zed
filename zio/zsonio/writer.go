@@ -29,8 +29,8 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(rec *zed.Value) error {
-	if _, err := io.WriteString(w.writer, w.formatter.FormatRecord(rec)); err != nil {
+func (w *Writer) Write(rec zed.Value) error {
+	if _, err := io.WriteString(w.writer, w.formatter.FormatRecord(&rec)); err != nil {
 		return err
 	}
 	_, err := w.writer.Write([]byte("\n"))

@@ -73,7 +73,7 @@ func checkThresh(which string, max, thresh int) error {
 	return nil
 }
 
-func (w *Writer) Write(val *zed.Value) error {
+func (w *Writer) Write(val zed.Value) error {
 	// The VNG writer self-organizes around the types that are
 	// written to it.  No need to define the schema up front!
 	// We track the types seen first-come, first-served in the
@@ -126,7 +126,7 @@ func (w *Writer) finalize() error {
 		//XXX wrap
 		return err
 	}
-	if err := zw.Write(val); err != nil {
+	if err := zw.Write(*val); err != nil {
 		//XXX wrap
 		return err
 	}
@@ -137,7 +137,7 @@ func (w *Writer) finalize() error {
 			//XXX wrap
 			return err
 		}
-		if err := zw.Write(val); err != nil {
+		if err := zw.Write(*val); err != nil {
 			//XXX wrap
 			return err
 		}
@@ -151,7 +151,7 @@ func (w *Writer) finalize() error {
 	if err != nil {
 		return err
 	}
-	if err := zw.Write(&trailer); err != nil {
+	if err := zw.Write(trailer); err != nil {
 		return err
 	}
 	return zw.EndStream()

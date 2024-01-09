@@ -21,6 +21,6 @@ func NewWriter(wc io.WriteCloser) *Writer {
 	}
 }
 
-func (w *Writer) Write(val *zed.Value) error {
+func (w *Writer) Write(val zed.Value) error {
 	return w.encoder.Encode(marshalAny(val.Type(), val.Bytes()))
 }

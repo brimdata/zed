@@ -289,7 +289,7 @@ func (w *ResponseWriter) Marshal(body interface{}) bool {
 	if zw == nil {
 		return false
 	}
-	if err := zw.Write(rec); err != nil {
+	if err := zw.Write(*rec); err != nil {
 		w.Error(err)
 		return false
 	}

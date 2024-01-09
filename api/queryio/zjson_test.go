@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func mkRecord(t *testing.T, s string) *zed.Value {
+func mkRecord(t *testing.T, s string) zed.Value {
 	r := zsonio.NewReader(zed.NewContext(), strings.NewReader(s))
 	rec, err := r.Read()
 	require.NoError(t, err)
-	return rec
+	return *rec
 }
 
 func TestZJSONWriter(t *testing.T) {

@@ -29,7 +29,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(r *zed.Value) error {
+func (w *Writer) Write(r zed.Value) error {
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err
@@ -53,14 +53,14 @@ func (w *Writer) Write(r *zed.Value) error {
 			w.buf.WriteByte('\t')
 		}
 		needSeparator = true
-		w.buf.WriteString(FormatValue(zed.NewValue(f.Type, bytes)))
+		w.buf.WriteString(FormatValue(*zed.NewValue(f.Type, bytes)))
 	}
 	w.buf.WriteByte('\n')
 	_, err = w.writer.Write(w.buf.Bytes())
 	return err
 }
 
-func (w *Writer) writeHeader(r *zed.Value, path string) error {
+func (w *Writer) writeHeader(r zed.Value, path string) error {
 	d := r.Type()
 	var s string
 	if w.separator != "\\x90" {

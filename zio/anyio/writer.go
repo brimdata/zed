@@ -73,7 +73,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 
 type nullWriter struct{}
 
-func (*nullWriter) Write(*zed.Value) error {
+func (*nullWriter) Write(zed.Value) error {
 	return nil
 }
 

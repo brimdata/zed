@@ -32,9 +32,9 @@ func NewWriter(w io.WriteCloser) *Writer {
 	}
 }
 
-func (w *Writer) Write(r *zed.Value) error {
+func (w *Writer) Write(r zed.Value) error {
 	if r.Type().Kind() != zed.RecordKind {
-		return fmt.Errorf("table output encountered non-record value: %s", zson.FormatValue(r))
+		return fmt.Errorf("table output encountered non-record value: %s", zson.FormatValue(&r))
 	}
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
@@ -58,7 +58,7 @@ func (w *Writer) Write(r *zed.Value) error {
 	var out []string
 	for k, f := range r.Fields() {
 		var v string
-		value := r.DerefByColumn(k).MissingAsNull()
+		value := *r.DerefByColumn(k).MissingAsNull()
 		if f.Type == zed.TypeTime {
 			if !value.IsNull() {
 				v = zed.DecodeTime(value.Bytes()).Time().Format(time.RFC3339Nano)

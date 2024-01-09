@@ -42,7 +42,7 @@ func (a *Array) Vars() []zed.Value {
 	return nil
 }
 
-func (a *Array) Write(r *zed.Value) error {
+func (a *Array) Write(r zed.Value) error {
 	a.Append(r.Copy())
 	return nil
 }

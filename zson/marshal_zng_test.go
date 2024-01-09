@@ -21,7 +21,7 @@ import (
 
 func toZSON(t *testing.T, rec *zed.Value) string {
 	var buf strings.Builder
-	require.NoError(t, zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(rec))
+	require.NoError(t, zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(*rec))
 	return strings.TrimRight(buf.String(), "\n")
 }
 
@@ -30,7 +30,7 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 	require.NoError(t, err)
 	var buf bytes.Buffer
 	zw := zngio.NewWriter(zio.NopCloser(&buf))
-	err = zw.Write(rec)
+	err = zw.Write(*rec)
 	require.NoError(t, err)
 	require.NoError(t, zw.Close())
 	zctx := zed.NewContext()

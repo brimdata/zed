@@ -101,7 +101,7 @@ func (r *Request) reader() (io.Reader, error) {
 	}
 	var buf bytes.Buffer
 	zw := zngio.NewWriter(zio.NopCloser(&buf))
-	if err := zw.Write(val); err != nil {
+	if err := zw.Write(*val); err != nil {
 		return nil, err
 	}
 	if err := zw.Close(); err != nil {
