@@ -130,10 +130,7 @@ using Boolean logic to form search expressions.
 > Boyer-Moore scan over decompressed data buffers before parsing any data.
 > This allows large buffers of data to be efficiently discarded and skipped when
 > searching for rarely occurring values.  For a [Zed lake](../lake/format.md),
-> a planned feature will introduce search indexes to further accelerate searches.
-> This will include an approach for locating
-> delimited words within string fields, which will allow accelerated
-> search using a full-text search index.
+> a planned feature will use [VNG](../formats/vng.md) files to further accelerate searches.
 
 ### Search Terms
 
@@ -233,8 +230,7 @@ where grep("foo", this)
 > Note that this equivalency between keyword search terms and grep semantics
 > will change in the near future when we add support for full-text search.
 > In this case, grep will still support substring match but keyword search
-> will match segmented words from string fields so that they can be efficiently
-> queried in search indexes.
+> will match segmented words from string fields.
 
 #### Non-String Literal Search Term
 

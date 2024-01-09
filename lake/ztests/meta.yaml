@@ -9,9 +9,6 @@ script: |
   echo ===
   zed query -Z 'from poolA@main:objects | {nameof:nameof(this),...this} | drop id'
   zed query -Z 'from poolA:log | cut nameof(this) | drop ts'
-  echo ===
-  zed index create -q Rule field a
-  zed query -Z 'from :index_rules | nameof:=nameof(this) | drop ts,id'
 
 inputs:
   - name: a.zson
@@ -66,14 +63,4 @@ outputs:
       }
       {
           nameof: "Commit"
-      }
-      ===
-      {
-          name: "Rule",
-          fields: [
-              [
-                  "a"
-              ] (=field.Path)
-          ] (=field.List),
-          nameof: "index.FieldRule"
       }

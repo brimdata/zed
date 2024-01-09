@@ -238,9 +238,8 @@ type (
 )
 
 var LakeMetas = map[string]struct{}{
-	"branches":    {},
-	"index_rules": {},
-	"pools":       {},
+	"branches": {},
+	"pools":    {},
 }
 
 var PoolMetas = map[string]struct{}{
@@ -248,7 +247,6 @@ var PoolMetas = map[string]struct{}{
 }
 
 var CommitMetas = map[string]struct{}{
-	"indexes":    {},
 	"log":        {},
 	"objects":    {},
 	"partitions": {},

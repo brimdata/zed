@@ -8,7 +8,6 @@ import (
 	"regexp"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
@@ -815,21 +814,4 @@ func (c *Call) Eval(ectx Context, this *zed.Value) *zed.Value {
 type Assignment struct {
 	LHS *Lval
 	RHS Evaluator
-}
-
-func NewAssignments(zctx *zed.Context, dsts field.List, srcs field.List) ([]*Lval, []Evaluator) {
-	if len(srcs) != len(dsts) {
-		panic("NewAssignments: argument mismatch")
-	}
-	var resolvers []Evaluator
-	var lvals []*Lval
-	for k, dst := range dsts {
-		elems := make([]LvalElem, 0, len(dst))
-		for _, d := range dst {
-			elems = append(elems, &StaticLvalElem{Name: d})
-		}
-		lvals = append(lvals, NewLval(elems))
-		resolvers = append(resolvers, NewDottedExpr(zctx, srcs[k]))
-	}
-	return lvals, resolvers
 }

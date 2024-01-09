@@ -19,7 +19,6 @@ import (
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/branches"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/zio/zngio"
@@ -342,48 +341,6 @@ func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName, c
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
 	}
-	var commit api.CommitResponse
-	err := c.doAndUnmarshal(req, &commit)
-	return commit, err
-}
-
-func (c *Connection) AddIndexRules(ctx context.Context, rules []index.Rule) error {
-	body := api.IndexRulesAddRequest{Rules: rules}
-	req := c.NewRequest(ctx, http.MethodPost, "/index", body)
-	res, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	res.Body.Close()
-	return nil
-}
-
-func (c *Connection) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) (api.IndexRulesDeleteResponse, error) {
-	var request api.IndexRulesDeleteRequest
-	for _, id := range ids {
-		request.RuleIDs = append(request.RuleIDs, id.String())
-	}
-	req := c.NewRequest(ctx, http.MethodDelete, "/index", request)
-	var deleted api.IndexRulesDeleteResponse
-	err := c.doAndUnmarshal(req, &deleted, index.RuleTypes...)
-	return deleted, err
-}
-
-func (c *Connection) ApplyIndexRules(ctx context.Context, poolID ksuid.KSUID, branchName string, rules []string, oids []ksuid.KSUID) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", branchName, "index")
-	tags := make([]string, len(oids))
-	for i, oid := range oids {
-		tags[i] = oid.String()
-	}
-	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexApplyRequest{Rules: rules, Tags: tags})
-	var commit api.CommitResponse
-	err := c.doAndUnmarshal(req, &commit)
-	return commit, err
-}
-
-func (c *Connection) UpdateIndex(ctx context.Context, poolID ksuid.KSUID, branchName string, rules []string) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", branchName, "index", "update")
-	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexUpdateRequest{Rules: rules})
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
 	return commit, err

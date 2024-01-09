@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/plural"
@@ -19,7 +18,6 @@ import (
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -431,87 +429,6 @@ func (b *Branch) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KS
 
 func (b *Branch) Pool() *Pool {
 	return b.pool
-}
-
-func (b *Branch) ApplyIndexRules(ctx context.Context, c runtime.Compiler, rules []index.Rule, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	idxrefs := make([]*index.Object, 0, len(rules)*len(ids))
-	for _, id := range ids {
-		//XXX make issue for this.
-		// This could be easily parallized with errgroup.
-		refs, err := b.indexObject(ctx, c, rules, id)
-		if err != nil {
-			return ksuid.Nil, err
-		}
-		idxrefs = append(idxrefs, refs...)
-	}
-	author := "indexer"
-	message := indexMessage(rules)
-	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		return commits.NewAddIndexesObject(parent.Commit, author, message, retries, idxrefs), nil
-	})
-}
-
-func (b *Branch) UpdateIndex(ctx context.Context, c runtime.Compiler, rules []index.Rule) (ksuid.KSUID, error) {
-	snap, err := b.pool.commits.Snapshot(ctx, b.Commit)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	var objects []*index.Object
-	for id, rules := range snap.Unindexed(rules) {
-		o, err := b.indexObject(ctx, c, rules, id)
-		if err != nil {
-			return ksuid.Nil, err
-		}
-		objects = append(objects, o...)
-	}
-	if len(objects) == 0 {
-		return ksuid.Nil, commits.ErrEmptyTransaction
-	}
-	const author = "indexer"
-	message := indexMessage(rules)
-	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		return commits.NewAddIndexesObject(parent.Commit, author, message, retries, objects), nil
-	})
-}
-
-func indexMessage(rules []index.Rule) string {
-	skip := make(map[string]struct{})
-	var names []string
-	for _, r := range rules {
-		name := r.RuleName()
-		if _, ok := skip[name]; !ok {
-			skip[name] = struct{}{}
-			names = append(names, name)
-		}
-	}
-	if len(names) == 0 {
-		return ""
-	}
-	return "index rules applied: " + strings.Join(names, ",")
-}
-
-func (b *Branch) indexObject(ctx context.Context, c runtime.Compiler, rules []index.Rule, id ksuid.KSUID) ([]*index.Object, error) {
-	r, err := b.engine.Get(ctx, data.SequenceURI(b.pool.DataPath, id))
-	if err != nil {
-		return nil, err
-	}
-	reader := zngio.NewReader(zed.NewContext(), r)
-	defer reader.Close()
-	w, err := index.NewCombiner(ctx, c, b.engine, b.pool.IndexPath, rules, id)
-	if err != nil {
-		r.Close()
-		return nil, err
-	}
-	err = zio.CopyWithContext(ctx, w, reader)
-	if err != nil {
-		w.Abort()
-	} else {
-		err = w.Close()
-	}
-	if rerr := r.Close(); err == nil {
-		err = rerr
-	}
-	return w.References(), err
 }
 
 func (b *Branch) AddVectors(ctx context.Context, ids []ksuid.KSUID, author, message string) (ksuid.KSUID, error) {

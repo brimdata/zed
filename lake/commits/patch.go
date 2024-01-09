@@ -3,11 +3,9 @@ package commits
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/expr/extent"
 	"github.com/segmentio/ksuid"
@@ -21,7 +19,6 @@ type Patch struct {
 	base           View
 	diff           *Snapshot
 	deletedObjects []ksuid.KSUID
-	deletedIndexes []indexRef
 	deletedVectors []ksuid.KSUID
 }
 
@@ -42,20 +39,6 @@ func (p *Patch) Lookup(id ksuid.KSUID) (*data.Object, error) {
 	return p.base.Lookup(id)
 }
 
-func (p *Patch) LookupIndex(ruleID, id ksuid.KSUID) (*index.Object, error) {
-	if s, err := p.diff.LookupIndex(ruleID, id); err == nil {
-		return s, nil
-	}
-	return p.base.LookupIndex(ruleID, id)
-}
-
-func (p *Patch) LookupIndexObjectRules(id ksuid.KSUID) ([]index.Rule, error) {
-	if r, err := p.diff.LookupIndexObjectRules(id); err == nil {
-		return r, nil
-	}
-	return p.base.LookupIndexObjectRules(id)
-}
-
 func (p *Patch) HasVector(id ksuid.KSUID) bool {
 	return p.diff.HasVector(id) || p.base.HasVector(id)
 }
@@ -70,15 +53,6 @@ func (p *Patch) SelectAll() DataObjects {
 	objects := p.base.SelectAll()
 	objects.Append(p.diff.SelectAll())
 	return objects
-}
-
-func (p *Patch) SelectIndexes(span extent.Span, o order.Which) []*index.Object {
-	objects := p.base.SelectIndexes(span, o)
-	return append(objects, p.diff.SelectIndexes(span, o)...)
-}
-
-func (p *Patch) SelectAllIndexes() []*index.Object {
-	return append(p.base.SelectAllIndexes(), p.diff.SelectAllIndexes()...)
 }
 
 func (p *Patch) DataObjects() []ksuid.KSUID {
@@ -106,38 +80,6 @@ func (p *Patch) DeleteObject(id ksuid.KSUID) error {
 	// Keep track of the deletions from the base so we can add the
 	// needed delete Actions when building the transaction patch.
 	p.deletedObjects = append(p.deletedObjects, id)
-	return nil
-}
-
-func (p *Patch) AddIndexObject(object *index.Object) error {
-	if IndexExists(p.base, object.Rule.RuleID(), object.ID) {
-		return ErrExists
-	}
-	return p.diff.AddIndexObject(object)
-}
-
-type indexRef struct {
-	id     ksuid.KSUID
-	ruleID ksuid.KSUID
-}
-
-func (i indexRef) Key() string {
-	var b strings.Builder
-	b.Write(i.id.Bytes())
-	b.Write(i.ruleID.Bytes())
-	return b.String()
-}
-
-func (p *Patch) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
-	if IndexExists(p.diff, ruleID, id) {
-		return p.diff.DeleteIndexObject(ruleID, id)
-	}
-	if !IndexExists(p.base, ruleID, id) {
-		return ErrNotFound
-	}
-	// Keep track of the deletions from the base so we can add the
-	// needed delete Actions when building the transaction patch.
-	p.deletedIndexes = append(p.deletedIndexes, indexRef{id, ruleID})
 	return nil
 }
 
@@ -169,12 +111,6 @@ func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message
 	for _, s := range p.diff.objects {
 		o.appendAdd(s)
 	}
-	for _, r := range p.deletedIndexes {
-		o.appendDeleteIndex(r.ruleID, r.id)
-	}
-	for _, s := range p.diff.indexes.All() {
-		o.appendAddIndex(s)
-	}
 	for _, id := range p.deletedVectors {
 		o.appendDeleteVector(id)
 	}
@@ -204,26 +140,6 @@ func (p *Patch) Revert(tip *Snapshot, commit, parent ksuid.KSUID, retries int, a
 		}
 		if !Exists(tip, dataObject.ID) {
 			object.appendAdd(dataObject)
-		}
-	}
-	// For each index object that was added in the patch that is also in the tip, we do a delete.
-	for _, indexObject := range p.diff.indexes.All() {
-		if tip.indexes.Exists(indexObject) {
-			object.appendDeleteIndex(indexObject.Rule.RuleID(), indexObject.ID)
-		}
-	}
-	// For each deleted index object in the patch that is also not present in the
-	// tip, we do an add index.
-	for _, ref := range p.deletedIndexes {
-		if !IndexExists(tip, ref.ruleID, ref.id) {
-			o, err := p.base.LookupIndex(ref.ruleID, ref.id)
-			if err != nil {
-				return nil, err
-			}
-			if o == nil {
-				return nil, fmt.Errorf("corrupt snapshot: index object %s:%s is in patch's deleted index objects but not in patch's base snapshot", ref.ruleID, ref.id)
-			}
-			object.appendAddIndex(o)
 		}
 	}
 	if len(object.Actions) == 1 {
@@ -263,35 +179,6 @@ func Diff(parent, child *Patch) (*Patch, error) {
 			dirty = true
 		} else {
 			return nil, fmt.Errorf("delete conflict: %s", id)
-		}
-	}
-	deletedIndexes := make(map[string]struct{})
-	for _, idx := range child.deletedIndexes {
-		deletedIndexes[idx.Key()] = struct{}{}
-	}
-	// For each index entry in child that isn't in the parent, create an add-index.
-	for _, idx := range child.SelectAllIndexes() {
-		if !IndexExists(parent, idx.Rule.RuleID(), idx.ID) {
-			key := indexRef{id: idx.ID, ruleID: idx.Rule.RuleID()}.Key()
-			if _, ok := deletedIndexes[key]; ok {
-				return nil, fmt.Errorf("parent branch deletes index object that child branch adds: %s:%s", idx.Rule.RuleID(), idx.ID)
-			}
-			if err := p.AddIndexObject(idx); err != nil {
-				return nil, err
-			}
-			dirty = true
-		} else {
-			return nil, fmt.Errorf("delete conflict on index: %s:%s", idx.Rule.RuleID(), idx.ID)
-		}
-	}
-	// For each delete-index in the child patch, create a delete-index.
-	// (XXX should return an error if it's not in the parent).
-	for _, idx := range child.deletedIndexes {
-		if IndexExists(parent, idx.ruleID, idx.id) {
-			if err := p.DeleteIndexObject(idx.ruleID, idx.id); err != nil {
-				return nil, err
-			}
-			dirty = true
 		}
 	}
 	if !dirty {

@@ -67,9 +67,7 @@ and [shaping](https://zed.brimdata.io/docs/language/#9-shaping).
 
 Zed also has a cloud-based object design that was modeled after
 the `git` design pattern.  Commits to the lake are transactional
-and consistent.  Search index updates are also transactionally
-consistent with any ingested data, and searches can run with or
-without indexes.
+and consistent.
 
 ## Quick Start
 

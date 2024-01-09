@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
@@ -38,10 +37,6 @@ type Interface interface {
 	Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
 	DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error)
 	Revert(ctx context.Context, poolID ksuid.KSUID, branch string, commitID ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error)
-	AddIndexRules(context.Context, []index.Rule) error
-	DeleteIndexRules(context.Context, []ksuid.KSUID) ([]index.Rule, error)
-	ApplyIndexRules(ctx context.Context, rules []string, pool ksuid.KSUID, branchName string, ids []ksuid.KSUID) (ksuid.KSUID, error)
-	UpdateIndex(ctx context.Context, names []string, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	AddVectors(ctx context.Context, pool, revision string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
 	DeleteVectors(ctx context.Context, pool, revision string, objects []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
 	Vacuum(ctx context.Context, pool, revision string, dryrun bool) ([]ksuid.KSUID, error)
@@ -56,27 +51,6 @@ func OpenLake(ctx context.Context, logger *zap.Logger, u string) (Interface, err
 
 func IsLakeService(u string) bool {
 	return strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://")
-}
-
-func ScanIndexRules(ctx context.Context, api Interface) (zio.ReadCloser, error) {
-	return api.Query(ctx, nil, "from :index_rules")
-}
-
-func GetIndexRules(ctx context.Context, api Interface) ([]index.Rule, error) {
-	r, err := ScanIndexRules(ctx, api)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-	b := newBuffer(index.FieldRule{}, index.TypeRule{}, index.AggRule{})
-	if err := zio.Copy(b, r); err != nil {
-		return nil, err
-	}
-	var rules []index.Rule
-	for _, r := range b.results {
-		rules = append(rules, r.(index.Rule))
-	}
-	return rules, nil
 }
 
 func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {

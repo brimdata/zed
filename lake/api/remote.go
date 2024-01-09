@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
@@ -138,25 +137,6 @@ func (r *remote) Delete(ctx context.Context, poolID ksuid.KSUID, branchName stri
 
 func (r *remote) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.DeleteWhere(ctx, poolID, branchName, src, commit)
-	return res.Commit, err
-}
-
-func (r *remote) AddIndexRules(ctx context.Context, rules []index.Rule) error {
-	return r.conn.AddIndexRules(ctx, rules)
-}
-
-func (r *remote) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
-	res, err := r.conn.DeleteIndexRules(ctx, ids)
-	return res.Rules, err
-}
-
-func (r *remote) ApplyIndexRules(ctx context.Context, rules []string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
-	res, err := r.conn.ApplyIndexRules(ctx, poolID, branchName, rules, inTags)
-	return res.Commit, err
-}
-
-func (r *remote) UpdateIndex(ctx context.Context, rules []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
-	res, err := r.conn.UpdateIndex(ctx, poolID, branchName, rules)
 	return res.Commit, err
 }
 

@@ -16,7 +16,6 @@ import (
 	"github.com/brimdata/zed/lake"
 	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/runtime"
@@ -560,101 +559,6 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 		CommitID: commit,
 		PoolID:   pool.ID,
 		Branch:   branchName,
-	})
-}
-
-func handleIndexRulesPost(c *Core, w *ResponseWriter, r *Request) {
-	var body api.IndexRulesAddRequest
-	if !r.Unmarshal(w, &body, index.RuleTypes...) {
-		return
-	}
-	if err := c.root.AddIndexRules(r.Context(), body.Rules); err != nil {
-		w.Error(err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func handleIndexRulesDelete(c *Core, w *ResponseWriter, r *Request) {
-	var req api.IndexRulesDeleteRequest
-	if !r.Unmarshal(w, &req) {
-		return
-	}
-	ruleIDs, err := lakeparse.ParseIDs(req.RuleIDs)
-	if err != nil {
-		w.Error(srverr.ErrInvalid(err))
-	}
-	rules, err := c.root.DeleteIndexRules(r.Context(), ruleIDs)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	w.Respond(http.StatusOK, api.IndexRulesDeleteResponse{Rules: rules})
-}
-
-func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branch) {
-	var req api.IndexApplyRequest
-	if !r.Unmarshal(w, &req) {
-		return
-	}
-	ss, err := lakeparse.ParseIDs(req.Tags)
-	if err != nil {
-		w.Error(srverr.ErrInvalid(err))
-		return
-	}
-	tags, err := branch.LookupTags(r.Context(), ss)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	rules, err := c.root.LookupIndexRules(r.Context(), lakeparse.FormatIDs(req.Rules)...)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	commit, err := branch.ApplyIndexRules(r.Context(), c.compiler, rules, tags)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
-	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
-		CommitID: commit,
-		PoolID:   branch.Pool().ID,
-		Branch:   branch.Name,
-	})
-
-}
-
-func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Branch) {
-	var req api.IndexUpdateRequest
-	if !r.Unmarshal(w, &req) {
-		return
-	}
-	var err error
-	var rules []index.Rule
-	if len(req.Rules) > 0 {
-		rules, err = c.root.LookupIndexRules(r.Context(), lakeparse.FormatIDs(req.Rules)...)
-	} else {
-		rules, err = c.root.AllIndexRules(r.Context())
-	}
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	commit, err := branch.UpdateIndex(r.Context(), c.compiler, rules)
-	if err != nil {
-		if errors.Is(err, commits.ErrEmptyTransaction) {
-			err = srverr.ErrInvalid(err)
-		}
-		w.Error(err)
-		return
-	}
-	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
-	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
-		CommitID: commit,
-		PoolID:   branch.Pool().ID,
-		Branch:   branch.Name,
 	})
 }
 

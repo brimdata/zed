@@ -23,8 +23,6 @@ func NewLakeMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, me
 		vals, err = r.BatchifyPools(ctx, zctx, nil)
 	case "branches":
 		vals, err = r.BatchifyBranches(ctx, zctx, nil)
-	case "index_rules":
-		vals, err = r.BatchifyIndexRules(ctx, zctx, nil)
 	default:
 		return nil, fmt.Errorf("unknown lake metadata type: %q", meta)
 	}
@@ -66,16 +64,6 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 			return nil, err
 		}
 		return zbuf.NewScanner(ctx, zbuf.PullerReader(lister), nil)
-	case "indexes":
-		snap, err := p.Snapshot(ctx, commit)
-		if err != nil {
-			return nil, err
-		}
-		reader, err := indexObjectReader(ctx, zctx, snap, p.SortKey.Order)
-		if err != nil {
-			return nil, err
-		}
-		return zbuf.NewScanner(ctx, reader, nil)
 	case "partitions":
 		lister, err := NewSortedLister(ctx, zctx, r, p, commit, pruner)
 		if err != nil {
@@ -133,20 +121,6 @@ func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, ord
 		}
 		val, err := m.Marshal(objects[0])
 		objects = objects[1:]
-		return val, err
-	}), nil
-}
-
-func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
-	indexes := snap.SelectIndexes(nil, order)
-	m := zson.NewZNGMarshalerWithContext(zctx)
-	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zed.Value, error) {
-		if len(indexes) == 0 {
-			return nil, nil
-		}
-		val, err := m.Marshal(indexes[0])
-		indexes = indexes[1:]
 		return val, err
 	}), nil
 }

@@ -25,9 +25,8 @@ type Writer struct {
 	inputSorted bool
 	ctx         context.Context
 	zctx        *zed.Context
-	//defs          index.Definitions
-	errgroup *errgroup.Group
-	vals     []zed.Value
+	errgroup    *errgroup.Group
+	vals        []zed.Value
 	// XXX this is a simple double buffering model so the cloud-object
 	// writer can run in parallel with the reader filling the records
 	// buffer.  This can be later extended to pass a big bytes buffer
