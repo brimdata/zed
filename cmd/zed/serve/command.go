@@ -102,7 +102,6 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer core.Shutdown()
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, os.Interrupt)
 	go func() {
