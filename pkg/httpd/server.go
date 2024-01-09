@@ -77,6 +77,9 @@ func (s *Server) serve(ctx context.Context, ln net.Listener) {
 		reason = "server error"
 	case <-ctx.Done():
 		reason = "context closed"
+		if err := context.Cause(ctx); !errors.Is(err, context.Canceled) {
+			reason = err.Error()
+		}
 	}
 
 	s.logger.Info("Shutting down", zap.String("reason", reason), zap.Error(srvErr))
