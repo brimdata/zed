@@ -115,14 +115,6 @@ func (t *TypeMap) Kind() Kind {
 	return MapKind
 }
 
-func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
-	if zv == nil {
-		return Value{}, Value{}, nil
-	}
-	it := zv.Iter()
-	return *NewValue(t.KeyType, it.Next()), *NewValue(t.ValType, it.Next()), nil
-}
-
 type keyval struct {
 	key zcode.Bytes
 	val zcode.Bytes
