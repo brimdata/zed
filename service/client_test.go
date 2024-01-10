@@ -61,7 +61,7 @@ func (c *testClient) TestPoolList() []pools.Config {
 			return confs
 		}
 		var pool pools.Config
-		err = zson.UnmarshalZNGRecord(rec, &pool)
+		err = zson.UnmarshalZNG(rec, &pool)
 		require.NoError(c, err)
 		confs = append(confs, pool)
 	}

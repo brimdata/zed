@@ -38,7 +38,7 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 	defer zr.Close()
 	rec, err = zr.Read()
 	require.NoError(t, err)
-	err = zson.UnmarshalZNGRecord(rec, out)
+	err = zson.UnmarshalZNG(rec, out)
 	require.NoError(t, err)
 }
 
@@ -166,7 +166,7 @@ func TestIPType(t *testing.T) {
 	assert.Equal(t, "{Addr:192.168.1.1}", toZSON(t, rec))
 
 	var tip TestIP
-	err = zson.UnmarshalZNGRecord(rec, &tip)
+	err = zson.UnmarshalZNG(rec, &tip)
 	require.NoError(t, err)
 	require.Equal(t, s, tip)
 }
@@ -197,7 +197,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	require.NoError(t, err)
 
 	var v2 T1
-	err = zson.UnmarshalZNGRecord(rec, &v2)
+	err = zson.UnmarshalZNG(rec, &v2)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
 
@@ -205,7 +205,7 @@ func TestUnmarshalRecord(t *testing.T) {
 		T4f1 *T2 `zed:"top"`
 	}
 	var v3 *T4
-	err = zson.UnmarshalZNGRecord(rec, &v3)
+	err = zson.UnmarshalZNG(rec, &v3)
 	require.NoError(t, err)
 	require.NotNil(t, v3)
 	require.NotNil(t, v3.T4f1)
@@ -283,7 +283,7 @@ func TestUnmarshalSlice(t *testing.T) {
 	require.NotNil(t, rec)
 
 	var v2 T1
-	err = zson.UnmarshalZNGRecord(rec, &v2)
+	err = zson.UnmarshalZNG(rec, &v2)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
 
@@ -300,7 +300,7 @@ func TestUnmarshalSlice(t *testing.T) {
 	require.NotNil(t, rec)
 
 	var v4 T2
-	err = zson.UnmarshalZNGRecord(rec, &v4)
+	err = zson.UnmarshalZNG(rec, &v4)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
 }
@@ -337,7 +337,7 @@ func TestMarshalInterface(t *testing.T) {
 	assert.Equal(t, `{M1:"marshal-m1",M2:"marshal-m2"}`, toZSON(t, rec))
 
 	var r2 rectype
-	err = zson.UnmarshalZNGRecord(rec, &r2)
+	err = zson.UnmarshalZNG(rec, &r2)
 	require.NoError(t, err)
 	assert.Equal(t, "m1", string(*r2.M1))
 	assert.Equal(t, "m2", string(r2.M2))
@@ -358,7 +358,7 @@ func TestMarshalArray(t *testing.T) {
 	assert.Equal(t, expected, toZSON(t, rec))
 
 	var r2 rectype
-	err = zson.UnmarshalZNGRecord(rec, &r2)
+	err = zson.UnmarshalZNG(rec, &r2)
 	require.NoError(t, err)
 	assert.Equal(t, r1.A1, r2.A1)
 	assert.Equal(t, *r2.A2, *r2.A2)
@@ -403,7 +403,7 @@ func TestNumbers(t *testing.T) {
 	assert.Equal(t, expected, toZSON(t, rec))
 
 	var r2 rectype
-	err = zson.UnmarshalZNGRecord(rec, &r2)
+	err = zson.UnmarshalZNG(rec, &r2)
 	require.NoError(t, err)
 	assert.Equal(t, r1, r2)
 }

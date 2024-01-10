@@ -648,10 +648,6 @@ func UnmarshalZNG(val *zed.Value, v interface{}) error {
 	return NewZNGUnmarshaler().decodeAny(val, reflect.ValueOf(v))
 }
 
-func UnmarshalZNGRecord(rec *zed.Value, v interface{}) error {
-	return UnmarshalZNG(rec, v)
-}
-
 func incompatTypeError(zt zed.Type, v reflect.Value) error {
 	return fmt.Errorf("incompatible type translation: zng type %v go type %v go kind %v", FormatType(zt), v.Type(), v.Kind())
 }
