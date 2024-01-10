@@ -2,9 +2,11 @@ package manage
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"os"
 
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/logflags"
 	"github.com/brimdata/zed/cmd/zed/manage/lakemanage"
 	"github.com/brimdata/zed/cmd/zed/root"
@@ -58,6 +60,9 @@ func (c *Command) Run(args []string) error {
 	if c.monitor {
 		conn, err := c.LakeFlags.Connection()
 		if err != nil {
+			if errors.Is(err, lakeflags.ErrLocalLake) {
+				return errors.New("monitor on local lake not supported")
+			}
 			return err
 		}
 		return lakemanage.Monitor(ctx, conn, c.config, logger)

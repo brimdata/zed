@@ -17,7 +17,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var ErrNoHEAD = errors.New("HEAD not specified: indicate with -use or run the \"use\" command")
+var (
+	ErrNoHEAD    = errors.New("HEAD not specified: indicate with -use or run the \"use\" command")
+	ErrLocalLake = errors.New("cannot open connection on local lake")
+)
 
 type Flags struct {
 	ConfigDir string
@@ -49,7 +52,7 @@ func (l *Flags) Connection() (*client.Connection, error) {
 		return nil, err
 	}
 	if !api.IsLakeService(uri.String()) {
-		return nil, errors.New("cannot open connection on local lake")
+		return nil, ErrLocalLake
 	}
 	conn := client.NewConnectionTo(uri.String())
 	if err := conn.SetAuthStore(l.AuthStore()); err != nil {
