@@ -10,10 +10,9 @@ import (
 
 func TestTypeValue(t *testing.T) {
 	const s = "{A:{B:int64},C:int32}"
-	zctx := zed.NewContext()
 	typ, err := zson.ParseType(zed.NewContext(), s)
 	require.NoError(t, err)
-	tv := zctx.LookupTypeValue(typ)
+	tv := zed.NewContext().LookupTypeValue(typ)
 	require.Exactly(t, s, zson.FormatTypeValue(tv.Bytes()))
 }
 

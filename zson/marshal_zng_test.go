@@ -19,12 +19,6 @@ import (
 	"github.com/x448/float16"
 )
 
-func toZSON(t *testing.T, rec *zed.Value) string {
-	var buf strings.Builder
-	require.NoError(t, zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(*rec))
-	return strings.TrimRight(buf.String(), "\n")
-}
-
 func boomerang(t *testing.T, in interface{}, out interface{}) {
 	rec, err := zson.NewZNGMarshaler().Marshal(in)
 	require.NoError(t, err)
@@ -61,7 +55,7 @@ func TestMarshalZNG(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	assert.Equal(t, `{Field1:"value1",Sub1:{f2:"value2",Field3:-1},PField1:null(bool)}`, toZSON(t, rec))
+	assert.Equal(t, `{Field1:"value1",Sub1:{f2:"value2",Field3:-1},PField1:null(bool)}`, zson.FormatValue(rec))
 }
 
 func TestMarshalMap(t *testing.T) {
@@ -102,20 +96,19 @@ func TestMarshalSlice(t *testing.T) {
 	rec, err := m.Marshal(r)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	assert.Equal(t, `{Things:[{a:"hello",B:123}(=ZNGThing),{a:"world",B:0}(ZNGThing)]}(=ZNGThings)`,
-		toZSON(t, rec))
+	assert.Equal(t, `{Things:[{a:"hello",B:123}(=ZNGThing),{a:"world",B:0}(ZNGThing)]}(=ZNGThings)`, zson.FormatValue(rec))
 
 	empty := []ZNGThing{}
 	r2 := ZNGThings{empty}
 	rec2, err := m.Marshal(r2)
 	require.NoError(t, err)
 	require.NotNil(t, rec2)
-	assert.Equal(t, "{Things:[]([ZNGThing={a:string,B:int64}])}(=ZNGThings)", toZSON(t, rec2))
+	assert.Equal(t, "{Things:[]([ZNGThing={a:string,B:int64}])}(=ZNGThings)", zson.FormatValue(rec2))
 
 	rec3, err := m.Marshal(ZNGThings{nil})
 	require.NoError(t, err)
 	require.NotNil(t, rec3)
-	assert.Equal(t, "{Things:null([ZNGThing={a:string,B:int64}])}(=ZNGThings)", toZSON(t, rec3))
+	assert.Equal(t, "{Things:null([ZNGThing={a:string,B:int64}])}(=ZNGThings)", zson.FormatValue(rec3))
 
 }
 
@@ -163,7 +156,7 @@ func TestIPType(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
-	assert.Equal(t, "{Addr:192.168.1.1}", toZSON(t, rec))
+	assert.Equal(t, "{Addr:192.168.1.1}", zson.FormatValue(rec))
 
 	var tip TestIP
 	err = zson.UnmarshalZNG(rec, &tip)
@@ -191,7 +184,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	require.NotNil(t, rec)
 
 	const expected = `{top:{T2f1:{T3f1:1(int32),T3f2:1.(float32)},T2f2:"t2f2-string1"}}`
-	require.Equal(t, expected, toZSON(t, rec))
+	require.Equal(t, expected, zson.FormatValue(rec))
 
 	rec, err = zsonio.NewReader(zed.NewContext(), strings.NewReader(expected)).Read()
 	require.NoError(t, err)
@@ -334,7 +327,7 @@ func TestMarshalInterface(t *testing.T) {
 	rec, err := zson.NewZNGMarshaler().Marshal(r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	assert.Equal(t, `{M1:"marshal-m1",M2:"marshal-m2"}`, toZSON(t, rec))
+	assert.Equal(t, `{M1:"marshal-m1",M2:"marshal-m2"}`, zson.FormatValue(rec))
 
 	var r2 rectype
 	err = zson.UnmarshalZNG(rec, &r2)
@@ -355,7 +348,7 @@ func TestMarshalArray(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	const expected = `{A1:[1(int8),2(int8)],A2:["foo","bar"],A3:null([bytes])}`
-	assert.Equal(t, expected, toZSON(t, rec))
+	assert.Equal(t, expected, zson.FormatValue(rec))
 
 	var r2 rectype
 	err = zson.UnmarshalZNG(rec, &r2)
@@ -400,7 +393,7 @@ func TestNumbers(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	const expected = "{I:-9223372036854775808,I8:-128(int8),I16:-32768(int16),I32:-2147483648(int32),I64:-9223372036854775808,U:18446744073709551615(uint64),UI8:255(uint8),UI16:65535(uint16),UI32:4294967295(uint32),UI64:18446744073709551615(uint64),F16:65504.(float16),F32:3.4028235e+38(float32),F64:1.7976931348623157e+308}"
-	assert.Equal(t, expected, toZSON(t, rec))
+	assert.Equal(t, expected, zson.FormatValue(rec))
 
 	var r2 rectype
 	err = zson.UnmarshalZNG(rec, &r2)
@@ -416,7 +409,7 @@ func TestCustomRecord(t *testing.T) {
 	m := zson.NewZNGMarshaler()
 	rec, err := m.MarshalCustom([]string{"foo", "bar"}, vals)
 	require.NoError(t, err)
-	assert.Equal(t, `{foo:{a:"hello",B:123},bar:99}`, toZSON(t, rec))
+	assert.Equal(t, `{foo:{a:"hello",B:123},bar:99}`, zson.FormatValue(rec))
 
 	vals = []interface{}{
 		ZNGThing{"hello", 123},
@@ -424,7 +417,7 @@ func TestCustomRecord(t *testing.T) {
 	}
 	rec, err = m.MarshalCustom([]string{"foo", "bar"}, vals)
 	require.NoError(t, err)
-	assert.Equal(t, `{foo:{a:"hello",B:123},bar:null}`, toZSON(t, rec))
+	assert.Equal(t, `{foo:{a:"hello",B:123},bar:null}`, zson.FormatValue(rec))
 }
 
 type ThingTwo struct {
