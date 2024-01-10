@@ -11,7 +11,8 @@ grok(p: string, s: string, definitions: string) -> any
 
 ### Description
 
-The _grok_ function parses a string `s` using grok pattern `p` and returns
+The _grok_ function parses a string `s` using
+[grok pattern](https://github.com/hpcugent/logstash-patterns/blob/master/files/grok-patterns) `p` and returns
 a record containing the parsed fields. The syntax for pattern `p`
 is `{%pattern:field_name}` where _pattern_ is the name of the pattern
 to match in `s` and _field_name_ is the resultant field name of the capture
