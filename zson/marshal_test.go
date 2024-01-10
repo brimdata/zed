@@ -159,7 +159,7 @@ func TestBytes(t *testing.T) {
 	var id2 IDRecord
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(IDRecord{}, ID{})
-	err = zson.UnmarshalZNGRecord(rec, &id2)
+	err = zson.UnmarshalZNG(rec, &id2)
 	require.NoError(t, err)
 	assert.Equal(t, id, id2)
 
