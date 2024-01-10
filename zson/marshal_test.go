@@ -4,22 +4,16 @@ import (
 	"bytes"
 	"net"
 	"net/netip"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func trim(s string) string {
-	return strings.TrimSpace(s) + "\n"
-}
 
 type Thing interface {
 	Color() string
@@ -38,21 +32,16 @@ type Animal struct {
 func (a *Animal) Color() string { return a.MyColor }
 
 func TestInterfaceMarshal(t *testing.T) {
-	rose := Thing(&Plant{"red"})
-	expectedRose := `{MyColor:"red"}(=Plant)`
-	flamingo := Thing(&Animal{"pink"})
-	expectedFlamingo := `{MyColor:"pink"}(=Animal)`
-
 	m := zson.NewMarshaler()
 	m.Decorate(zson.StyleSimple)
 
-	zsonRose, err := m.Marshal(rose)
+	zsonRose, err := m.Marshal(Thing(&Plant{"red"}))
 	require.NoError(t, err)
-	assert.Equal(t, trim(expectedRose), trim(zsonRose))
+	assert.Equal(t, `{MyColor:"red"}(=Plant)`, zsonRose)
 
-	zsonFlamingo, err := m.Marshal(flamingo)
+	zsonFlamingo, err := m.Marshal(Thing(&Animal{"pink"}))
 	require.NoError(t, err)
-	assert.Equal(t, trim(expectedFlamingo), trim(zsonFlamingo))
+	assert.Equal(t, `{MyColor:"pink"}(=Animal)`, zsonFlamingo)
 
 	u := zson.NewUnmarshaler()
 	u.Bind(Plant{}, Animal{})
@@ -114,35 +103,17 @@ type SliceRecord struct {
 	S []IDSlice
 }
 
-func recToZSON(t *testing.T, rec *zed.Value) string {
-	var b strings.Builder
-	w := zsonio.NewWriter(zio.NopCloser(&b), zsonio.WriterOpts{})
-	err := w.Write(*rec)
-	require.NoError(t, err)
-	return b.String()
-}
-
 func TestBytes(t *testing.T) {
-	b := BytesRecord{B: []byte{1, 2, 3}}
 	m := zson.NewZNGMarshaler()
-	rec, err := m.Marshal(b)
+	rec, err := m.Marshal(BytesRecord{B: []byte{1, 2, 3}})
 	require.NoError(t, err)
 	require.NotNil(t, rec)
+	assert.Equal(t, "{B:0x010203}", zson.FormatValue(rec))
 
-	exp := `
-{B:0x010203}
-`
-	assert.Equal(t, trim(exp), recToZSON(t, rec))
-
-	a := BytesArrayRecord{A: [3]byte{4, 5, 6}}
-	rec, err = m.Marshal(a)
+	rec, err = m.Marshal(BytesArrayRecord{A: [3]byte{4, 5, 6}})
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp = `
-{A:0x040506}
-`
-	assert.Equal(t, trim(exp), recToZSON(t, rec))
+	assert.Equal(t, "{A:0x040506}", zson.FormatValue(rec))
 
 	id := IDRecord{A: ID{0, 1, 2, 3}, B: ID{4, 5, 6, 7}}
 	m = zson.NewZNGMarshaler()
@@ -150,11 +121,7 @@ func TestBytes(t *testing.T) {
 	rec, err = m.Marshal(id)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp = `
-{A:0x00010203(=ID),B:0x04050607(ID)}(=IDRecord)
-	`
-	assert.Equal(t, trim(exp), recToZSON(t, rec))
+	assert.Equal(t, "{A:0x00010203(=ID),B:0x04050607(ID)}(=IDRecord)", zson.FormatValue(rec))
 
 	var id2 IDRecord
 	u := zson.NewZNGUnmarshaler()
@@ -168,23 +135,14 @@ func TestBytes(t *testing.T) {
 	rec, err = m.Marshal(b2)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp = `
-{B:null(bytes)}
-`
-	assert.Equal(t, trim(exp), recToZSON(t, rec))
+	assert.Equal(t, "{B:null(bytes)}", zson.FormatValue(rec))
 
 	s := SliceRecord{S: nil}
 	m = zson.NewZNGMarshaler()
 	rec, err = m.Marshal(s)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp = `
-{S:null([bytes])}
-	`
-	assert.Equal(t, trim(exp), recToZSON(t, rec))
-
+	assert.Equal(t, "{S:null([bytes])}", zson.FormatValue(rec))
 }
 
 type RecordWithInterfaceSlice struct {
@@ -235,11 +193,10 @@ type ArrayOfThings struct {
 }
 
 func TestMixedTypeUnmarshal(t *testing.T) {
-	z := `{S:[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]}`
 	u := zson.NewUnmarshaler()
 	u.Bind(Animal{}, Plant{}, ArrayOfThings{})
 	var out ArrayOfThings
-	err := u.Unmarshal(z, &out)
+	err := u.Unmarshal(`{S:[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]}`, &out)
 	require.NoError(t, err)
 	assert.Equal(t, ArrayOfThings{S: []Thing{&Plant{"red"}, &Animal{"blue"}}}, out)
 }
@@ -276,9 +233,10 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 	reader := zngio.NewReader(zed.NewContext(), &buffer)
 	defer reader.Close()
 	recActual, err := reader.Read()
+	require.NoError(t, err)
 	exp := zson.FormatValue(recExpected)
 	actual := zson.FormatValue(recActual)
-	assert.Equal(t, trim(exp), trim(actual))
+	assert.Equal(t, exp, actual)
 	// Double check that all the proper typing made it into the implied union.
 	assert.Equal(t, `[{Message:"hello",Thing:{MyColor:"red"}(=Plant)}(=MessageThing),{Message:"world",Thing:{MyColor:"blue"}(=Animal)}(=MessageThing)]`, actual)
 
@@ -317,9 +275,7 @@ func TestZNGValueField(t *testing.T) {
 	m.Decorate(zson.StyleSimple)
 	zv, err := m.Marshal(zngValueField)
 	require.NoError(t, err)
-	expected := `{Name:"test1",field:123}(=ZNGValueField)`
-	actual := zson.FormatValue(zv)
-	assert.Equal(t, trim(expected), trim(actual))
+	assert.Equal(t, `{Name:"test1",field:123}(=ZNGValueField)`, zson.FormatValue(zv))
 	u := zson.NewZNGUnmarshaler()
 	var out ZNGValueField
 	err = u.Unmarshal(zv, &out)
@@ -327,8 +283,7 @@ func TestZNGValueField(t *testing.T) {
 	assert.Equal(t, zngValueField.Name, out.Name)
 	assert.True(t, zngValueField.Field.Equal(out.Field))
 	// Include a Zed record inside a Go struct in a zed.Value field.
-	z := `{s:"foo",a:[1,2,3]}`
-	zv2, err := zson.ParseValue(zed.NewContext(), z)
+	zv2, err := zson.ParseValue(zed.NewContext(), `{s:"foo",a:[1,2,3]}`)
 	require.NoError(t, err)
 	zngValueField2 := &ZNGValueField{
 		Name:  "test2",
@@ -338,9 +293,7 @@ func TestZNGValueField(t *testing.T) {
 	m2.Decorate(zson.StyleSimple)
 	zv3, err := m2.Marshal(zngValueField2)
 	require.NoError(t, err)
-	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}}(=ZNGValueField)`
-	actual2 := zson.FormatValue(zv3)
-	assert.Equal(t, trim(expected2), trim(actual2))
+	assert.Equal(t, `{Name:"test2",field:{s:"foo",a:[1,2,3]}}(=ZNGValueField)`, zson.FormatValue(zv3))
 	u2 := zson.NewZNGUnmarshaler()
 	var out2 ZNGValueField
 	err = u2.Unmarshal(zv3, &out2)
@@ -349,13 +302,12 @@ func TestZNGValueField(t *testing.T) {
 }
 
 func TestJSONFieldTag(t *testing.T) {
-	const expected = `{value:"test"}`
 	type jsonTag struct {
 		Value string `json:"value"`
 	}
 	s, err := zson.Marshal(jsonTag{Value: "test"})
 	require.NoError(t, err)
-	assert.Equal(t, expected, s)
+	assert.Equal(t, `{value:"test"}`, s)
 	var j jsonTag
 	require.NoError(t, zson.Unmarshal(s, &j))
 	assert.Equal(t, jsonTag{Value: "test"}, j)
