@@ -77,7 +77,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		}
 		vals := batch.Values()
 		for i := range vals {
-			o.q[o.off] = *vals[i].Copy()
+			o.q[o.off] = vals[i].Copy()
 			o.off = (o.off + 1) % o.limit
 			o.count++
 			if o.count >= o.limit {

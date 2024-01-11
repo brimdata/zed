@@ -34,7 +34,7 @@ func (n *Flatten) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	inner := n.innerTypeOf(val.Bytes(), typ.Fields)
 	n.Reset()
 	n.encode(typ.Fields, inner, field.Path{}, val.Bytes())
-	return *zed.NewValue(n.zctx.LookupTypeArray(inner), n.Bytes())
+	return zed.NewValue(n.zctx.LookupTypeArray(inner), n.Bytes())
 }
 
 func (n *Flatten) innerTypeOf(b zcode.Bytes, fields []zed.Field) zed.Type {

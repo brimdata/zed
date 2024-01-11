@@ -130,7 +130,7 @@ func (s *scanner) Read() (*zed.Value, error) {
 		atomic.AddInt64(&s.progress.BytesRead, int64(len(this.Bytes())))
 		atomic.AddInt64(&s.progress.RecordsRead, 1)
 		if s.filter != nil {
-			val := s.filter.Eval(s.ectx.Reset(), this)
+			val := s.filter.Eval(s.ectx.Reset(), *this)
 			if !(val.Type() == zed.TypeBool && val.Bool()) {
 				continue
 			}

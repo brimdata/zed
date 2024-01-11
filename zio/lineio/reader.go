@@ -20,6 +20,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if !r.scanner.Scan() || r.scanner.Err() != nil {
 		return nil, r.scanner.Err()
 	}
-	r.val = *zed.NewString(r.scanner.Text())
+	r.val = zed.NewString(r.scanner.Text())
 	return &r.val, nil
 }

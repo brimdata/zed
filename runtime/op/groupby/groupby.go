@@ -67,7 +67,7 @@ type Aggregator struct {
 
 type Row struct {
 	keyType  int
-	groupval *zed.Value // for sorting when input sorted
+	groupval zed.Value // for sorting when input sorted
 	reducers valRow
 }
 
@@ -81,7 +81,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 		valueCompare = expr.NewValueCompareFn(order.Which(inputDir < 0), true)
 		rs := expr.NewCompareFn(true, keyRefs[0])
 		if inputDir < 0 {
-			keyCompare = func(a, b *zed.Value) int { return rs(b, a) }
+			keyCompare = func(a, b zed.Value) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
@@ -215,7 +215,7 @@ func (o *Op) run() {
 		}
 		vals := batch.Values()
 		for i := range vals {
-			if err := o.agg.Consume(batch, &vals[i]); err != nil {
+			if err := o.agg.Consume(batch, vals[i]); err != nil {
 				o.sendResult(nil, err)
 				return
 			}
@@ -291,7 +291,7 @@ func (o *Op) reset() {
 }
 
 // Consume adds a value to an aggregation.
-func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) error {
+func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 	// See if we've encountered this row before.
 	// We compute a key for this row by exploiting the fact that
 	// a row key is uniquely determined by the inbound descriptor
@@ -317,7 +317,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this *zed.Value) error {
 	a.ectx.SetVars(batch.Vars())
 	types := a.typeCache[:0]
 	keyBytes := a.keyCache[:0]
-	var prim *zed.Value
+	var prim zed.Value
 	for i, keyExpr := range a.keyExprs {
 		key := keyExpr.Eval(a.ectx.Reset(), this)
 		if key.IsQuiet() {
@@ -378,7 +378,7 @@ func (a *Aggregator) spillTable(eof bool, ref zbuf.Batch) error {
 	}
 	a.ectx.SetVars(ref.Vars())
 	if !eof && a.inputDir != 0 {
-		val := a.keyExprs[0].Eval(a.ectx.Reset(), &recs[len(recs)-1])
+		val := a.keyExprs[0].Eval(a.ectx.Reset(), recs[len(recs)-1])
 		if !val.IsError() {
 			// pass volatile zed.Value since updateMaxSpillKey will make
 			// a copy if needed.
@@ -390,16 +390,16 @@ func (a *Aggregator) spillTable(eof bool, ref zbuf.Batch) error {
 
 // updateMaxTableKey is called with a volatile zed.Value to update the
 // max value seen in the table for the streaming logic when the input is sorted.
-func (a *Aggregator) updateMaxTableKey(val *zed.Value) *zed.Value {
-	if a.maxTableKey == nil || a.valueCompare(val, a.maxTableKey) > 0 {
-		a.maxTableKey = val.Copy()
+func (a *Aggregator) updateMaxTableKey(val zed.Value) zed.Value {
+	if a.maxTableKey == nil || a.valueCompare(val, *a.maxTableKey) > 0 {
+		a.maxTableKey = val.Copy().Ptr()
 	}
-	return a.maxTableKey
+	return *a.maxTableKey
 }
 
-func (a *Aggregator) updateMaxSpillKey(v *zed.Value) {
-	if a.maxSpillKey == nil || a.valueCompare(v, a.maxSpillKey) > 0 {
-		a.maxSpillKey = v.Copy()
+func (a *Aggregator) updateMaxSpillKey(v zed.Value) {
+	if a.maxSpillKey == nil || a.valueCompare(v, *a.maxSpillKey) > 0 {
+		a.maxSpillKey = v.Copy().Ptr()
 	}
 }
 
@@ -437,8 +437,8 @@ func (a *Aggregator) readSpills(eof bool, batch zbuf.Batch) (zbuf.Batch, error) 
 			if rec == nil {
 				break
 			}
-			keyVal := a.keyExprs[0].Eval(a.ectx.Reset(), rec)
-			if !keyVal.IsError() && a.valueCompare(keyVal, a.maxSpillKey) >= 0 {
+			keyVal := a.keyExprs[0].Eval(a.ectx.Reset(), *rec)
+			if !keyVal.IsError() && a.valueCompare(keyVal, *a.maxSpillKey) >= 0 {
 				break
 			}
 		}
@@ -476,11 +476,11 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 			break
 		}
 		if firstRec == nil {
-			firstRec = rec.Copy()
-		} else if a.keysComparator.Compare(firstRec, rec) != 0 {
+			firstRec = rec.Copy().Ptr()
+		} else if a.keysComparator.Compare(*firstRec, *rec) != 0 {
 			break
 		}
-		row.consumeAsPartial(rec, a.aggRefs, ectx)
+		row.consumeAsPartial(*rec, a.aggRefs, ectx)
 		if _, err := a.spiller.Read(); err != nil {
 			return nil, err
 		}
@@ -492,7 +492,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 	a.builder.Reset()
 	types := a.typeCache[:0]
 	for _, e := range a.keyRefs {
-		keyVal := e.Eval(ectx, firstRec)
+		keyVal := e.Eval(ectx, *firstRec)
 		types = append(types, keyVal.Type())
 		a.builder.Append(keyVal.Bytes())
 	}
@@ -511,7 +511,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewValue(typ, bytes), nil
+	return zed.NewValue(typ, bytes).Ptr(), nil
 }
 
 // readTable returns a slice of records from the in-memory groupby
@@ -525,7 +525,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 		if !flush && a.valueCompare == nil {
 			panic("internal bug: tried to fetch completed tuples on non-sorted input")
 		}
-		if !flush && a.valueCompare(row.groupval, a.maxTableKey) >= 0 {
+		if !flush && a.valueCompare(row.groupval, *a.maxTableKey) >= 0 {
 			continue
 		}
 		// To build the output record, we spin over the key values
@@ -560,7 +560,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 		if err != nil {
 			return nil, err
 		}
-		recs = append(recs, *zed.NewValue(typ, zv))
+		recs = append(recs, zed.NewValue(typ, zv))
 		// Delete entries from the table as we create records, so
 		// the freed enries can be GC'd incrementally as we shift
 		// state from the table to the records.  Otherwise, when

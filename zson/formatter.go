@@ -64,7 +64,7 @@ func (f *Formatter) pop() {
 	f.stack = f.stack[:n-1]
 }
 
-func (f *Formatter) FormatRecord(rec *zed.Value) string {
+func (f *Formatter) FormatRecord(rec zed.Value) string {
 	// We reset tyepdefs so named types are emitted with their
 	// definition at first use in each record according to the
 	// left-to-right DFS order.  We could make this more efficient
@@ -74,7 +74,7 @@ func (f *Formatter) FormatRecord(rec *zed.Value) string {
 	return f.Format(rec)
 }
 
-func FormatValue(val *zed.Value) string {
+func FormatValue(val zed.Value) string {
 	return NewFormatter(0, nil).Format(val)
 }
 
@@ -84,15 +84,15 @@ func String(p interface{}) string {
 	}
 	switch val := p.(type) {
 	case *zed.Value:
-		return FormatValue(val)
+		return FormatValue(*val)
 	case zed.Value:
-		return FormatValue(&val)
+		return FormatValue(val)
 	default:
 		panic("zson.String takes a zed.Type or *zed.Value")
 	}
 }
 
-func (f *Formatter) Format(val *zed.Value) string {
+func (f *Formatter) Format(val zed.Value) string {
 	f.builder.Reset()
 	f.formatValueAndDecorate(val.Type(), val.Bytes())
 	return f.builder.String()
@@ -418,7 +418,7 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 	f.indent(indent-f.tab, "}")
 }
 
-func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, val *zed.Value, known, parentImplied bool) bool {
+func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, val zed.Value, known, parentImplied bool) bool {
 	f.build(open)
 	n, err := val.ContainerLength()
 	if err != nil {

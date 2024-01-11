@@ -47,11 +47,11 @@ func NewPutter(zctx *zed.Context, clauses []Assignment) *Putter {
 	}
 }
 
-func (p *Putter) eval(ectx Context, this *zed.Value) ([]zed.Value, field.List, error) {
+func (p *Putter) eval(ectx Context, this zed.Value) ([]zed.Value, field.List, error) {
 	p.vals = p.vals[:0]
 	p.paths = p.paths[:0]
 	for _, cl := range p.clauses {
-		val := *cl.RHS.Eval(ectx, this)
+		val := cl.RHS.Eval(ectx, this)
 		if val.IsQuiet() {
 			continue
 		}
@@ -311,26 +311,26 @@ func sameTypes(types []zed.Type, vals []zed.Value) bool {
 	})
 }
 
-func (p *Putter) Eval(ectx Context, this *zed.Value) *zed.Value {
+func (p *Putter) Eval(ectx Context, this zed.Value) zed.Value {
 	recType := zed.TypeRecordOf(this.Type())
 	if recType == nil {
 		if this.IsError() {
 			// propagate errors
 			return this
 		}
-		return ectx.CopyValue(*p.zctx.WrapError("put: not a record", this))
+		return p.zctx.WrapError("put: not a record", this)
 	}
 	vals, paths, err := p.eval(ectx, this)
 	if err != nil {
-		return ectx.CopyValue(*p.zctx.WrapError(fmt.Sprintf("put: %s", err), this))
+		return p.zctx.WrapError(fmt.Sprintf("put: %s", err), this)
 	}
 	if len(vals) == 0 {
 		return this
 	}
 	rule, err := p.lookupRule(recType, vals, paths)
 	if err != nil {
-		return ectx.CopyValue(*p.zctx.WrapError(err.Error(), this))
+		return p.zctx.WrapError(err.Error(), this)
 	}
 	bytes := rule.step.build(this.Bytes(), &p.builder, vals)
-	return ectx.NewValue(rule.typ, bytes)
+	return zed.NewValue(rule.typ, bytes)
 }

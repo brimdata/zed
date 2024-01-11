@@ -79,7 +79,7 @@ func TestLegacyZeekValid(t *testing.T) {
 	record, err := sendLegacyValues(parser, values)
 	require.NoError(t, err)
 
-	assert.Equal(t, record.Deref("ts").MissingAsNull(), zed.Null)
+	assert.Equal(t, record.Deref("ts").MissingAsNull(), &zed.Null)
 	assert.Equal(t, record.Deref("ts").MissingAsNull().AsTime(), nano.Ts(0))
 	// XXX check contents of other fields?
 

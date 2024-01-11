@@ -139,7 +139,7 @@ func (r *MergeSort) SpillSize() int64 {
 func (r *MergeSort) Len() int { return len(r.runs) }
 
 func (r *MergeSort) Less(i, j int) bool {
-	if v := r.comparator.Compare(r.runs[i].nextRecord, r.runs[j].nextRecord); v != 0 {
+	if v := r.comparator.Compare(*r.runs[i].nextRecord, *r.runs[j].nextRecord); v != 0 {
 		return v < 0
 	}
 	// Maintain stability.

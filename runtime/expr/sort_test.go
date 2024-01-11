@@ -27,7 +27,7 @@ func BenchmarkSort(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				b.StopTimer()
 				for i := range vals {
-					vals[i] = *zed.NewValue(c.typ, c.bytes())
+					vals[i] = zed.NewValue(c.typ, c.bytes())
 				}
 				b.StartTimer()
 				cmp.SortStable(vals)

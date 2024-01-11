@@ -14,7 +14,7 @@ func TestBadFunction(t *testing.T) {
 	testError(t, "notafunction()", function.ErrNoSuchFunction, "calling nonexistent function")
 }
 
-func ZSON(s string) *zed.Value {
+func ZSON(s string) zed.Value {
 	val, err := zson.ParseValue(zed.NewContext(), s)
 	if err != nil {
 		panic(fmt.Sprintf("zson parse failed compiling: %q (%s)", s, err))

@@ -72,7 +72,7 @@ func (w *Writer) WriteWithKey(key, val zed.Value) error {
 	if err := w.writer.Write(val); err != nil {
 		return err
 	}
-	w.object.Max.CopyFrom(&key)
+	w.object.Max.CopyFrom(key)
 	return w.writeIndex(key)
 }
 
@@ -80,10 +80,10 @@ func (w *Writer) writeIndex(key zed.Value) error {
 	w.seekIndexTrigger += len(key.Bytes())
 	if w.first {
 		w.first = false
-		w.object.Min.CopyFrom(&key)
+		w.object.Min.CopyFrom(key)
 	}
 	if w.seekMin == nil {
-		w.seekMin = key.Copy()
+		w.seekMin = key.Copy().Ptr()
 	}
 	if w.seekIndexTrigger < w.seekIndexStride {
 		return nil
@@ -97,7 +97,7 @@ func (w *Writer) writeIndex(key zed.Value) error {
 func (w *Writer) flushSeekIndex() error {
 	if w.seekMin != nil {
 		w.seekIndexTrigger = 0
-		min := w.seekMin
+		min := *w.seekMin
 		max := w.object.Max.Copy()
 		if w.order == order.Desc {
 			min, max = max, min

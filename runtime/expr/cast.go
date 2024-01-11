@@ -64,12 +64,12 @@ type casterIntN struct {
 	max  int64
 }
 
-func (c *casterIntN) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterIntN) Eval(ectx Context, val zed.Value) zed.Value {
 	v, ok := coerce.ToInt(val)
 	if !ok || (c.min != 0 && (v < c.min || v > c.max)) {
 		return c.zctx.WrapError("cannot cast to "+zson.FormatType(c.typ), val)
 	}
-	return ectx.CopyValue(*zed.NewInt(c.typ, v))
+	return zed.NewInt(c.typ, v)
 }
 
 type casterUintN struct {
@@ -78,68 +78,68 @@ type casterUintN struct {
 	max  uint64
 }
 
-func (c *casterUintN) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterUintN) Eval(ectx Context, val zed.Value) zed.Value {
 	v, ok := coerce.ToUint(val)
 	if !ok || (c.max != 0 && v > c.max) {
 		return c.zctx.WrapError("cannot cast to "+zson.FormatType(c.typ), val)
 	}
-	return ectx.CopyValue(*zed.NewUint(c.typ, v))
+	return zed.NewUint(c.typ, v)
 }
 
 type casterBool struct {
 	zctx *zed.Context
 }
 
-func (c *casterBool) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterBool) Eval(ectx Context, val zed.Value) zed.Value {
 	b, ok := coerce.ToBool(val)
 	if !ok {
 		return c.zctx.WrapError("cannot cast to bool", val)
 	}
-	return ectx.CopyValue(*zed.NewBool(b))
+	return zed.NewBool(b)
 }
 
 type casterFloat16 struct {
 	zctx *zed.Context
 }
 
-func (c *casterFloat16) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterFloat16) Eval(ectx Context, val zed.Value) zed.Value {
 	f, ok := coerce.ToFloat(val)
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float16", val)
 	}
 	f16 := float16.Fromfloat32(float32(f))
-	return ectx.CopyValue(*zed.NewFloat16(f16.Float32()))
+	return zed.NewFloat16(f16.Float32())
 }
 
 type casterFloat32 struct {
 	zctx *zed.Context
 }
 
-func (c *casterFloat32) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterFloat32) Eval(ectx Context, val zed.Value) zed.Value {
 	f, ok := coerce.ToFloat(val)
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float32", val)
 	}
-	return ectx.CopyValue(*zed.NewFloat32(float32(f)))
+	return zed.NewFloat32(float32(f))
 }
 
 type casterFloat64 struct {
 	zctx *zed.Context
 }
 
-func (c *casterFloat64) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterFloat64) Eval(ectx Context, val zed.Value) zed.Value {
 	f, ok := coerce.ToFloat(val)
 	if !ok {
 		return c.zctx.WrapError("cannot cast to float64", val)
 	}
-	return ectx.CopyValue(*zed.NewFloat64(f))
+	return zed.NewFloat64(f)
 }
 
 type casterIP struct {
 	zctx *zed.Context
 }
 
-func (c *casterIP) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterIP) Eval(ectx Context, val zed.Value) zed.Value {
 	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeOfIP); ok {
 		return val
 	}
@@ -150,14 +150,14 @@ func (c *casterIP) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if err != nil {
 		return c.zctx.WrapError("cannot cast to ip", val)
 	}
-	return ectx.NewValue(zed.TypeIP, zed.EncodeIP(ip))
+	return zed.NewIP(ip)
 }
 
 type casterNet struct {
 	zctx *zed.Context
 }
 
-func (c *casterNet) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterNet) Eval(ectx Context, val zed.Value) zed.Value {
 	if val.Type().ID() == zed.IDNet {
 		return val
 	}
@@ -168,14 +168,14 @@ func (c *casterNet) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if err != nil {
 		return c.zctx.WrapError("cannot cast to net", val)
 	}
-	return ectx.NewValue(zed.TypeNet, zed.EncodeNet(net))
+	return zed.NewNet(net)
 }
 
 type casterDuration struct {
 	zctx *zed.Context
 }
 
-func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterDuration) Eval(ectx Context, val zed.Value) zed.Value {
 	id := val.Type().ID()
 	if id == zed.IDDuration {
 		return val
@@ -189,23 +189,23 @@ func (c *casterDuration) Eval(ectx Context, val *zed.Value) *zed.Value {
 			}
 			d = nano.Duration(f)
 		}
-		return ectx.CopyValue(*zed.NewDuration(d))
+		return zed.NewDuration(d)
 	}
 	if zed.IsFloat(id) {
-		return ectx.CopyValue(*zed.NewDuration(nano.Duration(val.Float())))
+		return zed.NewDuration(nano.Duration(val.Float()))
 	}
 	v, ok := coerce.ToInt(val)
 	if !ok {
 		return c.zctx.WrapError("cannot cast to duration", val)
 	}
-	return ectx.CopyValue(*zed.NewDuration(nano.Duration(v)))
+	return zed.NewDuration(nano.Duration(v))
 }
 
 type casterTime struct {
 	zctx *zed.Context
 }
 
-func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterTime) Eval(ectx Context, val zed.Value) zed.Value {
 	id := val.Type().ID()
 	var ts nano.Ts
 	switch {
@@ -234,43 +234,43 @@ func (c *casterTime) Eval(ectx Context, val *zed.Value) *zed.Value {
 	default:
 		return c.zctx.WrapError("cannot cast to time", val)
 	}
-	return ectx.CopyValue(*zed.NewTime(ts))
+	return zed.NewTime(ts)
 }
 
 type casterString struct {
 	zctx *zed.Context
 }
 
-func (c *casterString) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterString) Eval(ectx Context, val zed.Value) zed.Value {
 	id := val.Type().ID()
 	if id == zed.IDBytes {
 		if !utf8.Valid(val.Bytes()) {
 			return c.zctx.WrapError("cannot cast to string: invalid UTF-8", val)
 		}
-		return ectx.NewValue(zed.TypeString, val.Bytes())
+		return zed.NewValue(zed.TypeString, val.Bytes())
 	}
 	if enum, ok := val.Type().(*zed.TypeEnum); ok {
 		selector := zed.DecodeUint(val.Bytes())
 		symbol, err := enum.Symbol(int(selector))
 		if err != nil {
-			return ectx.CopyValue(*c.zctx.NewError(err))
+			return c.zctx.NewError(err)
 		}
-		return ectx.NewValue(zed.TypeString, zed.EncodeString(symbol))
+		return zed.NewString(symbol)
 	}
 	if id == zed.IDString {
 		// If it's already stringy, then the Zed encoding can stay
 		// the same and we just update the stringy type.
-		return ectx.NewValue(zed.TypeString, val.Bytes())
+		return zed.NewValue(zed.TypeString, val.Bytes())
 	}
 	// Otherwise, we'll use a canonical ZSON value for the string rep
 	// of an arbitrary value cast to a string.
-	return ectx.NewValue(zed.TypeString, zed.EncodeString(zson.FormatValue(val)))
+	return zed.NewString(zson.FormatValue(val))
 }
 
 type casterBytes struct{}
 
-func (c *casterBytes) Eval(ectx Context, val *zed.Value) *zed.Value {
-	return ectx.NewValue(zed.TypeBytes, val.Bytes())
+func (c *casterBytes) Eval(ectx Context, val zed.Value) zed.Value {
+	return zed.NewBytes(val.Bytes())
 }
 
 type casterNamedType struct {
@@ -279,14 +279,14 @@ type casterNamedType struct {
 	name string
 }
 
-func (c *casterNamedType) Eval(ectx Context, this *zed.Value) *zed.Value {
+func (c *casterNamedType) Eval(ectx Context, this zed.Value) zed.Value {
 	val := c.expr.Eval(ectx, this)
 	if val.IsError() {
 		return val
 	}
 	typ, err := c.zctx.LookupTypeNamed(c.name, zed.TypeUnder(val.Type()))
 	if err != nil {
-		return ectx.CopyValue(*c.zctx.NewError(err))
+		return c.zctx.NewError(err)
 	}
-	return ectx.NewValue(typ, val.Bytes())
+	return zed.NewValue(typ, val.Bytes())
 }

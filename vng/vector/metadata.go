@@ -119,7 +119,7 @@ func (n *Named) Type(zctx *zed.Context) zed.Type {
 }
 
 type DictEntry struct {
-	Value *zed.Value
+	Value zed.Value
 	Count uint32
 }
 
@@ -147,7 +147,7 @@ func (n *Nulls) Type(zctx *zed.Context) zed.Type {
 }
 
 type Const struct {
-	Value *zed.Value
+	Value zed.Value
 	Count uint32
 }
 

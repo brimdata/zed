@@ -54,7 +54,7 @@ func (w *Writer) Flush() error {
 
 func (w *Writer) Write(rec zed.Value) error {
 	if rec.Type().Kind() != zed.RecordKind {
-		return fmt.Errorf("CSV output encountered non-record value: %s", zson.FormatValue(&rec))
+		return fmt.Errorf("CSV output encountered non-record value: %s", zson.FormatValue(rec))
 	}
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
@@ -80,8 +80,7 @@ func (w *Writer) Write(rec zed.Value) error {
 	for i, it := 0, rec.Bytes().Iter(); i < len(fields) && !it.Done(); i++ {
 		var s string
 		if zb := it.Next(); zb != nil {
-			val := zed.NewValue(fields[i].Type, zb)
-			val = val.Under(val)
+			val := zed.NewValue(fields[i].Type, zb).Under()
 			switch id := val.Type().ID(); {
 			case id == zed.IDBytes && len(val.Bytes()) == 0:
 				// We want "" instead of "0x" for a zero-length value.

@@ -75,9 +75,9 @@ func (f *Flattener) Flatten(r zed.Value) (zed.Value, error) {
 	}
 	zv, err := recode(nil, zed.TypeRecordOf(r.Type()), r.Bytes())
 	if err != nil {
-		return *zed.Null, err
+		return zed.Null, err
 	}
-	return *zed.NewValue(flatType.(*zed.TypeRecord), zv), nil
+	return zed.NewValue(flatType.(*zed.TypeRecord), zv), nil
 }
 
 // FlattenFields turns nested records into a series of fields of

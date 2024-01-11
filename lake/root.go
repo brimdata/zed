@@ -166,7 +166,7 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 		return fmt.Errorf("corrupt lake version file: more than one Zed value at %s", zson.String(last))
 	}
 	var magic LakeMagic
-	if err := zson.UnmarshalZNG(val, &magic); err != nil {
+	if err := zson.UnmarshalZNG(*val, &magic); err != nil {
 		return fmt.Errorf("corrupt lake version file: %w", err)
 	}
 	if magic.Magic != LakeMagicString {
@@ -193,7 +193,7 @@ func (r *Root) BatchifyPools(ctx context.Context, zctx *zed.Context, f expr.Eval
 			return nil, err
 		}
 		if filter(zctx, ectx.Reset(), rec, f) {
-			vals = append(vals, *rec)
+			vals = append(vals, rec)
 		}
 	}
 	return vals, nil

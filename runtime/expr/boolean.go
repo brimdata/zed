@@ -23,7 +23,7 @@ import (
 
 // Predicate is a function that takes a Value and returns a boolean result
 // based on the typed value.
-type Boolean func(*zed.Value) bool
+type Boolean func(zed.Value) bool
 
 var compareBool = map[string]func(bool, bool) bool{
 	"==": func(a, b bool) bool { return a == b },
@@ -42,7 +42,7 @@ func CompareBool(op string, pattern bool) (Boolean, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown bool comparator: %s", op)
 	}
-	return func(val *zed.Value) bool {
+	return func(val zed.Value) bool {
 		if val.Type().ID() != zed.IDBool {
 			return false
 		}
@@ -77,7 +77,7 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 		return nil, fmt.Errorf("unknown int comparator: %s", op)
 	}
 	// many different Zed data types can be compared with integers
-	return func(val *zed.Value) bool {
+	return func(val zed.Value) bool {
 		switch val.Type().ID() {
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
 			if v := val.Uint(); v <= math.MaxInt64 {
@@ -111,7 +111,7 @@ func CompareIP(op string, pattern netip.Addr) (Boolean, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
-	return func(val *zed.Value) bool {
+	return func(val zed.Value) bool {
 		if val.Type().ID() != zed.IDIP {
 			return false
 		}
@@ -128,7 +128,7 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown double comparator: %s", op)
 	}
-	return func(val *zed.Value) bool {
+	return func(val zed.Value) bool {
 		switch val.Type().ID() {
 		// We allow comparison of float constant with integer-y
 		// fields and just use typeDouble to parse since it will do
@@ -162,7 +162,7 @@ func CompareString(op string, pattern []byte) (Boolean, error) {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
 	}
 	s := string(pattern)
-	return func(val *zed.Value) bool {
+	return func(val zed.Value) bool {
 		if val.Type().ID() == zed.IDString {
 			return compare(byteconv.UnsafeString(val.Bytes()), s)
 		}
@@ -184,7 +184,7 @@ func CompareBytes(op string, pattern []byte) (Boolean, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown bytes comparator: %s", op)
 	}
-	return func(val *zed.Value) bool {
+	return func(val zed.Value) bool {
 		switch val.Type().ID() {
 		case zed.IDBytes, zed.IDType:
 			return compare(val.Bytes(), pattern)
@@ -207,7 +207,7 @@ func CompileRegexp(pattern string) (*regexp.Regexp, error) {
 // NewRegexpBoolean returns a Booelan that compares values that must
 // be a stringy the given regexp.
 func NewRegexpBoolean(re *regexp.Regexp) Boolean {
-	return func(val *zed.Value) bool {
+	return func(val zed.Value) bool {
 		if val.IsString() {
 			return re.Match(val.Bytes())
 		}
@@ -218,11 +218,11 @@ func NewRegexpBoolean(re *regexp.Regexp) Boolean {
 func CompareNull(op string) (Boolean, error) {
 	switch op {
 	case "==":
-		return func(val *zed.Value) bool {
+		return func(val zed.Value) bool {
 			return val.IsNull()
 		}, nil
 	case "!=":
-		return func(val *zed.Value) bool {
+		return func(val zed.Value) bool {
 			return !val.IsNull()
 		}, nil
 	default:
@@ -233,11 +233,9 @@ func CompareNull(op string) (Boolean, error) {
 // Given a predicate for comparing individual elements, produce a new
 // predicate that implements the "in" comparison.
 func Contains(compare Boolean) Boolean {
-	var tmpVal zed.Value
-	return func(val *zed.Value) bool {
+	return func(val zed.Value) bool {
 		return errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
-			tmpVal = *zed.NewValue(typ, body)
-			if compare(&tmpVal) {
+			if compare(zed.NewValue(typ, body)) {
 				return errMatch
 			}
 			return nil
@@ -250,7 +248,7 @@ func Contains(compare Boolean) Boolean {
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
-func Comparison(op string, val *zed.Value) (Boolean, error) {
+func Comparison(op string, val zed.Value) (Boolean, error) {
 	switch zed.TypeUnder(val.Type()).(type) {
 	case *zed.TypeOfNull:
 		return CompareNull(op)

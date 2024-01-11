@@ -40,17 +40,17 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
 			for _, arg := range o.args {
-				val := arg.Eval(o.ectx.Reset(), &vals[i])
+				val := arg.Eval(o.ectx.Reset(), vals[i])
 				if val.IsError() {
 					if !val.IsMissing() {
-						out = append(out, *val.Copy())
+						out = append(out, val.Copy())
 					}
 					continue
 				}
 				zed.Walk(val.Type(), val.Bytes(), func(typ zed.Type, body zcode.Bytes) error {
 					if typ == o.typ && body != nil {
 						bytes := zcode.Append(nil, body)
-						out = append(out, *zed.NewValue(o.outType, bytes))
+						out = append(out, zed.NewValue(o.outType, bytes))
 						return zed.SkipContainer
 					}
 					return nil

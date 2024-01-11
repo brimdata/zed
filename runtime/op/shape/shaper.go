@@ -20,7 +20,7 @@ type Shaper struct {
 	spiller    *spill.File
 	hash       maphash.Hash
 	val        zed.Value
-	vals       []*zed.Value
+	vals       []zed.Value
 }
 
 type anchor struct {
@@ -86,7 +86,7 @@ func (i *integer) check(val zed.Value) {
 func (a *anchor) updateInts(rec *zed.Value) error {
 	it := rec.Bytes().Iter()
 	for k, f := range rec.Fields() {
-		a.integers[k].check(*zed.NewValue(f.Type, it.Next()))
+		a.integers[k].check(zed.NewValue(f.Type, it.Next()))
 	}
 	return nil
 }
@@ -237,7 +237,7 @@ func (s *Shaper) stash(rec zed.Value) error {
 			return err
 		}
 		for _, rec := range s.vals {
-			if err := s.spiller.Write(*rec); err != nil {
+			if err := s.spiller.Write(rec); err != nil {
 				return err
 			}
 		}
@@ -268,7 +268,7 @@ func (s *Shaper) Read() (*zed.Value, error) {
 		}
 		typ = targetType
 	}
-	s.val = *zed.NewValue(typ, bytes)
+	s.val = zed.NewValue(typ, bytes)
 	return &s.val, nil
 }
 
@@ -302,7 +302,7 @@ func (s *Shaper) next() (*zed.Value, error) {
 	}
 	var rec *zed.Value
 	if len(s.vals) > 0 {
-		rec = s.vals[0]
+		rec = &s.vals[0]
 		s.vals = s.vals[1:]
 	}
 	return rec, nil

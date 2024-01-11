@@ -6,11 +6,11 @@ import (
 )
 
 type Const struct {
-	val *zed.Value
+	val zed.Value
 	len uint32
 }
 
-func NewConst(val *zed.Value, len uint32) *Const {
+func NewConst(val zed.Value, len uint32) *Const {
 	return &Const{val: val, len: len}
 }
 
@@ -38,6 +38,6 @@ func (c *Const) Length() int {
 	return int(c.len)
 }
 
-func (c *Const) Value() *zed.Value {
+func (c *Const) Value() zed.Value {
 	return c.val
 }

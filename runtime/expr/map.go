@@ -21,14 +21,14 @@ func NewMapCall(zctx *zed.Context, e, inner Evaluator) Evaluator {
 	return &mapCall{eval: e, inner: inner, zctx: zctx}
 }
 
-func (a *mapCall) Eval(ectx Context, in *zed.Value) *zed.Value {
+func (a *mapCall) Eval(ectx Context, in zed.Value) zed.Value {
 	val := a.eval.Eval(ectx, in)
 	if val.IsError() {
 		return val
 	}
 	elems, err := val.Elements()
 	if err != nil {
-		return ectx.CopyValue(*a.zctx.WrapError(err.Error(), in))
+		return a.zctx.WrapError(err.Error(), in)
 	}
 	if len(elems) == 0 {
 		return val
@@ -36,16 +36,16 @@ func (a *mapCall) Eval(ectx Context, in *zed.Value) *zed.Value {
 	a.vals = a.vals[:0]
 	a.types = a.types[:0]
 	for _, elem := range elems {
-		val := a.inner.Eval(ectx, &elem)
-		a.vals = append(a.vals, *val)
+		val := a.inner.Eval(ectx, elem)
+		a.vals = append(a.vals, val)
 		a.types = append(a.types, val.Type())
 	}
 	inner := a.innerType(a.types)
 	bytes := a.buildVal(inner, a.vals)
 	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeSet); ok {
-		return ectx.NewValue(a.zctx.LookupTypeSet(inner), zed.NormalizeSet(bytes))
+		return zed.NewValue(a.zctx.LookupTypeSet(inner), zed.NormalizeSet(bytes))
 	}
-	return ectx.NewValue(a.zctx.LookupTypeArray(inner), bytes)
+	return zed.NewValue(a.zctx.LookupTypeArray(inner), bytes)
 }
 
 func (a *mapCall) buildVal(inner zed.Type, vals []zed.Value) []byte {

@@ -26,7 +26,7 @@ func New(octx *op.Context, parent zbuf.Puller, cflag bool) *Op {
 	}
 }
 
-func (o *Op) wrap(t *zed.Value) *zed.Value {
+func (o *Op) wrap(t *zed.Value) zed.Value {
 	if o.cflag {
 		o.builder.Reset()
 		o.builder.Append(t.Bytes())
@@ -37,20 +37,20 @@ func (o *Op) wrap(t *zed.Value) *zed.Value {
 		})
 		return zed.NewValue(typ, o.builder.Bytes()).Copy()
 	}
-	return t
+	return *t
 }
 
 func (o *Op) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
 	if o.count == 0 {
-		o.last = t.Copy()
+		o.last = t.Copy().Ptr()
 		o.count = 1
 		return out
 	} else if bytes.Equal(t.Bytes(), o.last.Bytes()) {
 		o.count++
 		return out
 	}
-	out = append(out, *o.wrap(o.last))
-	o.last = t.Copy()
+	out = append(out, o.wrap(o.last))
+	o.last = t.Copy().Ptr()
 	o.count = 1
 	return out
 }
@@ -69,7 +69,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			}
 			t := o.wrap(o.last)
 			o.last = nil
-			return zbuf.NewArray([]zed.Value{*t}), nil
+			return zbuf.NewArray([]zed.Value{t}), nil
 		}
 		var out []zed.Value
 		vals := batch.Values()

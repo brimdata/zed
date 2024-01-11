@@ -11,7 +11,7 @@ import (
 
 type This struct{}
 
-func (*This) Eval(_ Context, this *zed.Value) *zed.Value {
+func (*This) Eval(_ Context, this zed.Value) zed.Value {
 	return this
 }
 
@@ -38,9 +38,8 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 	return ret
 }
 
-func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
-	var tmpVal zed.Value
-	val := d.record.Eval(ectx, this).Under(&tmpVal)
+func (d *DotExpr) Eval(ectx Context, this zed.Value) zed.Value {
+	val := d.record.Eval(ectx, this).Under()
 	// Cases are ordered by decreasing expected frequency.
 	switch typ := val.Type().(type) {
 	case *zed.TypeRecord:
@@ -48,7 +47,7 @@ func (d *DotExpr) Eval(ectx Context, this *zed.Value) *zed.Value {
 		if !ok {
 			return d.zctx.Missing()
 		}
-		return ectx.NewValue(typ.Fields[i].Type, getNthFromContainer(val.Bytes(), i))
+		return zed.NewValue(typ.Fields[i].Type, getNthFromContainer(val.Bytes(), i))
 	case *zed.TypeMap:
 		return indexMap(d.zctx, ectx, typ, val.Bytes(), zed.NewString(d.field))
 	case *zed.TypeOfType:
@@ -76,7 +75,7 @@ func (d *DotExpr) fieldIndex(typ *zed.TypeRecord) (int, bool) {
 	return i, ok
 }
 
-func (d *DotExpr) evalTypeOfType(ectx Context, b zcode.Bytes) *zed.Value {
+func (d *DotExpr) evalTypeOfType(ectx Context, b zcode.Bytes) zed.Value {
 	typ, _ := d.zctx.DecodeTypeValue(b)
 	if typ, ok := zed.TypeUnder(typ).(*zed.TypeRecord); ok {
 		if typ, ok := typ.TypeOfField(d.field); ok {

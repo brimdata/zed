@@ -25,12 +25,12 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	}
 	indices := make([]uint32, n)
 	i64s := make([]int64, n)
-	val0s := make([]*zed.Value, n)
+	val0s := make([]zed.Value, n)
 	ectx := NewContext()
 	native := true
 	for i := range indices {
 		indices[i] = uint32(i)
-		val := c.exprs[0].Eval(ectx, &vals[i])
+		val := c.exprs[0].Eval(ectx, vals[i])
 		val0s[i] = val
 		if id := val.Type().ID(); id <= zed.IDTime {
 			if val.IsNull() {
@@ -58,7 +58,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 		}
 		iidx, jidx := indices[i], indices[j]
 		for k, expr := range c.exprs {
-			var ival, jval *zed.Value
+			var ival, jval zed.Value
 			if k == 0 {
 				if native {
 					if i64, j64 := i64s[iidx], i64s[jidx]; i64 != j64 {
@@ -69,8 +69,8 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 				}
 				ival, jval = val0s[iidx], val0s[jidx]
 			} else {
-				ival = expr.Eval(ectx, &vals[iidx])
-				jval = expr.Eval(ectx, &vals[jidx])
+				ival = expr.Eval(ectx, vals[iidx])
+				jval = expr.Eval(ectx, vals[jidx])
 			}
 			if v := compareValues(ival, jval, c.comparefns, &c.pair, c.nullsMax); v != 0 {
 				return v < 0
@@ -81,7 +81,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	return indices
 }
 
-type CompareFn func(a *zed.Value, b *zed.Value) int
+type CompareFn func(a, b zed.Value) int
 
 // NewCompareFn creates a function that compares two values a and b according to
 // nullsMax and exprs.  To compare a and b, it iterates over the elements e of
@@ -134,7 +134,7 @@ func (c *Comparator) WithMissingAsNull() *Comparator {
 
 type missingAsNull struct{ Evaluator }
 
-func (m *missingAsNull) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (m *missingAsNull) Eval(ectx Context, val zed.Value) zed.Value {
 	val = m.Evaluator.Eval(ectx, val)
 	if val.IsMissing() {
 		return zed.Null
@@ -144,7 +144,7 @@ func (m *missingAsNull) Eval(ectx Context, val *zed.Value) *zed.Value {
 
 // Compare returns an interger comparing two values according to the receiver's
 // configuration.  The result will be 0 if a==b, -1 if a < b, and +1 if a > b.
-func (c *Comparator) Compare(a, b *zed.Value) int {
+func (c *Comparator) Compare(a, b zed.Value) int {
 	if c.reverse {
 		a, b = b, a
 	}
@@ -159,7 +159,7 @@ func (c *Comparator) Compare(a, b *zed.Value) int {
 	return 0
 }
 
-func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
+func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
 	// Handle nulls according to nullsMax
 	nullA := a.IsNull()
 	nullB := b.IsNull()
@@ -263,24 +263,24 @@ func (r *RecordSlice) Swap(i, j int) { r.vals[i], r.vals[j] = r.vals[j], r.vals[
 
 // Less implements sort.Interface for *Record slices.
 func (r *RecordSlice) Less(i, j int) bool {
-	return r.compare(&r.vals[i], &r.vals[j]) < 0
+	return r.compare(r.vals[i], r.vals[j]) < 0
 }
 
 // Push adds x as element Len(). Implements heap.Interface.
 func (r *RecordSlice) Push(rec interface{}) {
-	r.vals = append(r.vals, *rec.(*zed.Value))
+	r.vals = append(r.vals, rec.(zed.Value))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
 func (r *RecordSlice) Pop() interface{} {
 	rec := r.vals[len(r.vals)-1]
 	r.vals = r.vals[:len(r.vals)-1]
-	return &rec
+	return rec
 }
 
 // Index returns the ith record.
-func (r *RecordSlice) Index(i int) *zed.Value {
-	return &r.vals[i]
+func (r *RecordSlice) Index(i int) zed.Value {
+	return r.vals[i]
 }
 
 func LookupCompare(typ zed.Type) comparefn {

@@ -17,9 +17,8 @@ func NewLval(evals []LvalElem) *Lval {
 	return &Lval{Elems: evals}
 }
 
-// Eval returns the path of the lval. If there's an error the returned *zed.Value
-// will not be nill.
-func (l *Lval) Eval(ectx Context, this *zed.Value) (field.Path, error) {
+// Eval returns the path of the lval.
+func (l *Lval) Eval(ectx Context, this zed.Value) (field.Path, error) {
 	l.cache = l.cache[:0]
 	for _, e := range l.Elems {
 		name, err := e.Eval(ectx, this)
@@ -46,14 +45,14 @@ func (l *Lval) Path() (field.Path, bool) {
 }
 
 type LvalElem interface {
-	Eval(ectx Context, this *zed.Value) (string, error)
+	Eval(ectx Context, this zed.Value) (string, error)
 }
 
 type StaticLvalElem struct {
 	Name string
 }
 
-func (l *StaticLvalElem) Eval(_ Context, _ *zed.Value) (string, error) {
+func (l *StaticLvalElem) Eval(_ Context, _ zed.Value) (string, error) {
 	return l.Name, nil
 }
 
@@ -69,7 +68,7 @@ func NewExprLvalElem(zctx *zed.Context, e Evaluator) *ExprLvalElem {
 	}
 }
 
-func (l *ExprLvalElem) Eval(ectx Context, this *zed.Value) (string, error) {
+func (l *ExprLvalElem) Eval(ectx Context, this zed.Value) (string, error) {
 	val := l.eval.Eval(ectx, this)
 	if val.IsError() {
 		return "", lvalErr(ectx, val)
@@ -82,8 +81,8 @@ func (l *ExprLvalElem) Eval(ectx Context, this *zed.Value) (string, error) {
 	return val.AsString(), nil
 }
 
-func lvalErr(ectx Context, errVal *zed.Value) error {
-	val := ectx.NewValue(errVal.Type().(*zed.TypeError).Type, errVal.Bytes())
+func lvalErr(ectx Context, errVal zed.Value) error {
+	val := zed.NewValue(errVal.Type().(*zed.TypeError).Type, errVal.Bytes())
 	if val.IsString() {
 		return errors.New(val.AsString())
 	}

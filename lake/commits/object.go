@@ -48,7 +48,7 @@ func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, meta
 }
 
 func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, ids []ksuid.KSUID) *Object {
-	o := NewObject(parent, author, message, *zed.Null, retries)
+	o := NewObject(parent, author, message, zed.Null, retries)
 	for _, id := range ids {
 		o.appendDelete(id)
 	}
@@ -56,7 +56,7 @@ func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, i
 }
 
 func NewAddVectorsObject(parent ksuid.KSUID, author, message string, ids []ksuid.KSUID, retries int) *Object {
-	o := NewObject(parent, author, message, *zed.Null, retries)
+	o := NewObject(parent, author, message, zed.Null, retries)
 	for _, id := range ids {
 		o.appendAddVector(id)
 	}
@@ -64,7 +64,7 @@ func NewAddVectorsObject(parent ksuid.KSUID, author, message string, ids []ksuid
 }
 
 func NewDeleteVectorsObject(parent ksuid.KSUID, author, message string, ids []ksuid.KSUID, retries int) *Object {
-	o := NewObject(parent, author, message, *zed.Null, retries)
+	o := NewObject(parent, author, message, zed.Null, retries)
 	for _, id := range ids {
 		o.appendDeleteVector(id)
 	}

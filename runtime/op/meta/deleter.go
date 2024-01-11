@@ -87,14 +87,14 @@ func (d *Deleter) nextDeletion() (zbuf.Puller, error) {
 			// We currently support only one partition per batch.
 			return nil, errors.New("internal error: meta.Deleter encountered multi-valued batch")
 		}
-		if hasDeletes, err := d.hasDeletes(&vals[0]); err != nil {
+		if hasDeletes, err := d.hasDeletes(vals[0]); err != nil {
 			return nil, err
 		} else if !hasDeletes {
 			continue
 		}
 		// Use a no-op progress so stats are not inflated.
 		var progress zbuf.Progress
-		scanner, object, err := newScanner(d.octx.Context, d.octx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, &progress, &vals[0])
+		scanner, object, err := newScanner(d.octx.Context, d.octx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, &progress, vals[0])
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (d *Deleter) nextDeletion() (zbuf.Puller, error) {
 	}
 }
 
-func (d *Deleter) hasDeletes(val *zed.Value) (bool, error) {
+func (d *Deleter) hasDeletes(val zed.Value) (bool, error) {
 	scanner, object, err := newScanner(d.octx.Context, d.octx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, d.progress, val)
 	if err != nil {
 		return false, err

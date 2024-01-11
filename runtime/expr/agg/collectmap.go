@@ -50,7 +50,7 @@ func (c *CollectMap) ConsumeAsPartial(val zed.Value) {
 
 func (c *CollectMap) Result(zctx *zed.Context) zed.Value {
 	if len(c.entries) == 0 {
-		return *zed.Null
+		return zed.Null
 	}
 	var ktypes, vtypes []zed.Type
 	for _, e := range c.entries {
@@ -69,7 +69,7 @@ func (c *CollectMap) Result(zctx *zed.Context) zed.Value {
 	}
 	typ := zctx.LookupTypeMap(ktyp, vtyp)
 	b := zed.NormalizeMap(builder.Bytes())
-	return *zed.NewValue(typ, b)
+	return zed.NewValue(typ, b)
 }
 
 func (c *CollectMap) ResultAsPartial(zctx *zed.Context) zed.Value {
@@ -95,9 +95,9 @@ func unionOf(zctx *zed.Context, types []zed.Type) (zed.Type, int) {
 
 // valueUnder is like zed.(*Value).Under but it preserves non-union named types.
 func valueUnder(typ zed.Type, b zcode.Bytes) zed.Value {
-	val := *zed.NewValue(typ, b)
+	val := zed.NewValue(typ, b)
 	if _, ok := zed.TypeUnder(typ).(*zed.TypeUnion); !ok {
 		return val
 	}
-	return *val.Under(&val)
+	return val.Under()
 }

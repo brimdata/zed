@@ -14,7 +14,7 @@ func newPruner(e expr.Evaluator) *pruner {
 	return &pruner{pred: e}
 }
 
-func (p *pruner) prune(val *zed.Value) bool {
+func (p *pruner) prune(val zed.Value) bool {
 	if p == nil {
 		return false
 	}

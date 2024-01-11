@@ -169,13 +169,13 @@ func (p *Pool) BatchifyBranches(ctx context.Context, zctx *zed.Context, recs []z
 			return nil, err
 		}
 		if filter(zctx, ectx.Reset(), rec, f) {
-			recs = append(recs, *rec)
+			recs = append(recs, rec)
 		}
 	}
 	return recs, nil
 }
 
-func filter(zctx *zed.Context, ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
+func filter(zctx *zed.Context, ectx expr.Context, this zed.Value, e expr.Evaluator) bool {
 	if e == nil {
 		return true
 	}
@@ -203,7 +203,7 @@ func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 			return nil, err
 		}
 		if filter(zctx, ectx.Reset(), rec, f) {
-			recs = append(recs, *rec)
+			recs = append(recs, rec)
 		}
 	}
 	return recs, nil

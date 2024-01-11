@@ -32,7 +32,7 @@ func (a *Aggregator) NewFunction() agg.Function {
 	return a.pattern()
 }
 
-func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this *zed.Value) {
+func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this zed.Value) {
 	if a.where != nil {
 		if val, ok := EvalBool(zctx, ectx, this, a.where); !ok || !val.Bool() {
 			// XXX Issue #3401: do something with "where" errors.
@@ -41,7 +41,7 @@ func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this
 	}
 	v := a.expr.Eval(ectx, this)
 	if !v.IsMissing() {
-		f.Consume(*v)
+		f.Consume(v)
 	}
 }
 
@@ -60,11 +60,11 @@ type aggregatorExpr struct {
 
 var _ Evaluator = (*aggregatorExpr)(nil)
 
-func (s *aggregatorExpr) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (s *aggregatorExpr) Eval(ectx Context, val zed.Value) zed.Value {
 	if s.fn == nil {
 		s.fn = s.agg.NewFunction()
 		s.zctx = zed.NewContext() //XXX
 	}
 	s.agg.Apply(s.zctx, ectx, s.fn, val)
-	return ectx.CopyValue(s.fn.Result(s.zctx))
+	return s.fn.Result(s.zctx)
 }

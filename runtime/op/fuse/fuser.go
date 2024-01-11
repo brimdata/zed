@@ -15,7 +15,7 @@ type Fuser struct {
 	memMaxBytes int
 
 	nbytes  int
-	vals    []*zed.Value
+	vals    []zed.Value
 	spiller *spill.File
 
 	types      map[zed.Type]struct{}
@@ -68,7 +68,7 @@ func (f *Fuser) stash(rec zed.Value) error {
 			return err
 		}
 		for _, rec := range f.vals {
-			if err := f.spiller.Write(*rec); err != nil {
+			if err := f.spiller.Write(rec); err != nil {
 				return err
 			}
 		}
@@ -95,7 +95,7 @@ func (f *Fuser) Read() (*zed.Value, error) {
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	return f.shaper.Eval(f.ectx.Reset(), rec), nil
+	return f.shaper.Eval(f.ectx.Reset(), *rec).Ptr(), nil
 }
 
 func (f *Fuser) next() (*zed.Value, error) {
@@ -104,7 +104,7 @@ func (f *Fuser) next() (*zed.Value, error) {
 	}
 	var rec *zed.Value
 	if len(f.vals) > 0 {
-		rec = f.vals[0]
+		rec = &f.vals[0]
 		f.vals = f.vals[1:]
 	}
 	return rec, nil

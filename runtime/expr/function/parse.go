@@ -19,12 +19,12 @@ type ParseURI struct {
 func (p *ParseURI) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	in := args[0]
 	if !in.IsString() || in.IsNull() {
-		return *p.zctx.WrapError("parse_uri: non-empty string arg required", &in)
+		return p.zctx.WrapError("parse_uri: non-empty string arg required", in)
 	}
 	s := zed.DecodeString(in.Bytes())
 	u, err := url.Parse(s)
 	if err != nil {
-		return *p.zctx.WrapError("parse_uri: "+err.Error(), &in)
+		return p.zctx.WrapError("parse_uri: "+err.Error(), in)
 	}
 	var v struct {
 		Scheme   *string    `zed:"scheme"`
@@ -55,7 +55,7 @@ func (p *ParseURI) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	if portString := u.Port(); portString != "" {
 		u64, err := strconv.ParseUint(portString, 10, 16)
 		if err != nil {
-			return *p.zctx.WrapError("parse_uri: invalid port: "+portString, &in)
+			return p.zctx.WrapError("parse_uri: invalid port: "+portString, in)
 		}
 		u16 := uint16(u64)
 		v.Port = &u16
@@ -73,7 +73,7 @@ func (p *ParseURI) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	return *out
+	return out
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_zson
@@ -91,18 +91,18 @@ func newParseZSON(zctx *zed.Context) *ParseZSON {
 func (p *ParseZSON) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	in := args[0]
 	if !in.IsString() {
-		return *p.zctx.WrapError("parse_zson: string arg required", &in)
+		return p.zctx.WrapError("parse_zson: string arg required", in)
 	}
 	if in.IsNull() {
-		return *zed.Null
+		return zed.Null
 	}
 	p.sr.Reset(zed.DecodeString(in.Bytes()))
 	val, err := p.zr.Read()
 	if err != nil {
-		return *p.zctx.WrapError("parse_zson: "+err.Error(), &in)
+		return p.zctx.WrapError("parse_zson: "+err.Error(), in)
 	}
 	if val == nil {
-		return *zed.Null
+		return zed.Null
 	}
 	return *val
 }

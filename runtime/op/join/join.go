@@ -28,8 +28,7 @@ type Op struct {
 	compare     expr.CompareFn
 	cutter      *expr.Cutter
 	joinKey     *zed.Value
-	joinSet     []*zed.Value
-	tmpLeft     zed.Value
+	joinSet     []zed.Value
 	types       map[int]map[int]*zed.TypeRecord
 }
 
@@ -96,7 +95,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			//XXX See issue #3427.
 			return zbuf.NewArray(out), nil
 		}
-		key := o.getLeftKey.Eval(ectx.Reset(), leftRec)
+		key := o.getLeftKey.Eval(ectx.Reset(), *leftRec)
 		if key.IsMissing() {
 			// If the left key isn't present (which is not a thing
 			// in a sql join), then drop the record and return only
@@ -111,7 +110,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			// Nothing to add to the left join.
 			// Accumulate this record for an outer join.
 			if !o.inner {
-				out = append(out, *leftRec.Copy())
+				out = append(out, leftRec.Copy())
 			}
 			continue
 		}
@@ -129,17 +128,17 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		// release the batch with and bypass GC.
 		for _, rightRec := range rightRecs {
 			cutRec := o.cutter.Eval(ectx.Reset(), rightRec)
-			rec, err := o.splice(&ectx, leftRec, cutRec)
+			rec, err := o.splice(&ectx, *leftRec, cutRec)
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, *rec)
+			out = append(out, rec)
 		}
 	}
 }
 
-func (o *Op) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
-	if o.joinKey != nil && o.compare(leftKey, o.joinKey) == 0 {
+func (o *Op) getJoinSet(leftKey zed.Value) ([]zed.Value, error) {
+	if o.joinKey != nil && o.compare(leftKey, *o.joinKey) == 0 {
 		return o.joinSet, nil
 	}
 	// See #3366
@@ -149,7 +148,7 @@ func (o *Op) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		rightKey := o.getRightKey.Eval(ectx.Reset(), rec)
+		rightKey := o.getRightKey.Eval(ectx.Reset(), *rec)
 		if rightKey.IsMissing() {
 			o.right.Read()
 			continue
@@ -158,7 +157,7 @@ func (o *Op) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
 		if cmp == 0 {
 			// Copy leftKey.Bytes since it might get reused.
 			if o.joinKey == nil {
-				o.joinKey = leftKey.Copy()
+				o.joinKey = leftKey.Copy().Ptr()
 			} else {
 				o.joinKey.CopyFrom(leftKey)
 			}
@@ -181,8 +180,8 @@ func (o *Op) getJoinSet(leftKey *zed.Value) ([]*zed.Value, error) {
 // fillJoinSet is called when a join key has been found that matches
 // the current lefthand key.  It returns the all the subsequent records
 // from the righthand stream that match this key.
-func (o *Op) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
-	var recs []*zed.Value
+func (o *Op) readJoinSet(joinKey *zed.Value) ([]zed.Value, error) {
+	var recs []zed.Value
 	// See #3366
 	var ectx expr.ResetContext
 	for {
@@ -193,12 +192,12 @@ func (o *Op) readJoinSet(joinKey *zed.Value) ([]*zed.Value, error) {
 		if rec == nil {
 			return recs, nil
 		}
-		key := o.getRightKey.Eval(ectx.Reset(), rec)
+		key := o.getRightKey.Eval(ectx.Reset(), *rec)
 		if key.IsMissing() {
 			o.right.Read()
 			continue
 		}
-		if o.compare(key, joinKey) != 0 {
+		if o.compare(key, *joinKey) != 0 {
 			return recs, nil
 		}
 		recs = append(recs, rec.Copy())
@@ -248,26 +247,16 @@ func (o *Op) combinedType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) 
 	return typ, nil
 }
 
-func (o *Op) splice(ectx *expr.ResetContext, left, right *zed.Value) (*zed.Value, error) {
-	if right == nil {
-		// This happens on a simple join, i.e., "join key",
-		// where there are no cut expressions.  For left joins,
-		// this does nothing, but for inner joins, it will
-		// filter the lefthand stream by what's in the righthand
-		// stream.
-		return left, nil
-	}
-	// tmpLeft lives in Op because the 1.20.6 compiler thinks it escapes.
-	left = left.Under(&o.tmpLeft)
-	var tmpRight zed.Value
-	right = right.Under(&tmpRight)
+func (o *Op) splice(ectx *expr.ResetContext, left, right zed.Value) (zed.Value, error) {
+	left = left.Under()
+	right = right.Under()
 	typ, err := o.combinedType(zed.TypeRecordOf(left.Type()), zed.TypeRecordOf(right.Type()))
 	if err != nil {
-		return nil, err
+		return zed.Null, err
 	}
 	n := len(left.Bytes())
 	bytes := make([]byte, n+len(right.Bytes()))
 	copy(bytes, left.Bytes())
 	copy(bytes[n:], right.Bytes())
-	return ectx.NewValue(typ, bytes), nil
+	return zed.NewValue(typ, bytes), nil
 }

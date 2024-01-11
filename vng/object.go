@@ -140,7 +140,7 @@ func (o *Object) readMetaData() error {
 	u := zson.NewZNGUnmarshaler()
 	u.SetContext(o.Zctx)
 	u.Bind(vector.Template...)
-	if err := u.Unmarshal(val, &o.Root); err != nil {
+	if err := u.Unmarshal(*val, &o.Root); err != nil {
 		return err
 	}
 	// The rest of the values are vector.Metadata, one for each
@@ -154,7 +154,7 @@ func (o *Object) readMetaData() error {
 			break
 		}
 		var meta vector.Metadata
-		if err := u.Unmarshal(val, &meta); err != nil {
+		if err := u.Unmarshal(*val, &meta); err != nil {
 			return err
 		}
 		o.Maps = append(o.Maps, meta)

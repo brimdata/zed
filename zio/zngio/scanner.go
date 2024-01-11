@@ -281,7 +281,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 			buf.free()
 			return nil, err
 		}
-		if w.wantValue(valRef, &progress) {
+		if w.wantValue(*valRef, &progress) {
 			valRef = batch.extend()
 		}
 	}
@@ -319,7 +319,7 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 	if typ == nil {
 		return fmt.Errorf("zngio: type ID %d not in context", id)
 	}
-	*valRef = *zed.NewValue(typ, b)
+	*valRef = zed.NewValue(typ, b)
 	if w.validate {
 		if err := valRef.Validate(); err != nil {
 			return err
@@ -328,7 +328,7 @@ func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
 	return nil
 }
 
-func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
+func (w *worker) wantValue(val zed.Value, progress *zbuf.Progress) bool {
 	progress.BytesRead += int64(len(val.Bytes()))
 	progress.RecordsRead++
 	// It's tempting to call w.bufferFilter.Eval on rec.Bytes here, but that
@@ -344,7 +344,7 @@ func (w *worker) wantValue(val *zed.Value, progress *zbuf.Progress) bool {
 	return false
 }
 
-func check(ectx expr.Context, this *zed.Value, filter expr.Evaluator) bool {
+func check(ectx expr.Context, this zed.Value, filter expr.Evaluator) bool {
 	val := filter.Eval(ectx, this)
 	return val.Type() == zed.TypeBool && val.Bool()
 }

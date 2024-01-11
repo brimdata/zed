@@ -59,7 +59,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := r.decodeValue(r.builder, typ, object.Value); err != nil {
 		return nil, e(err)
 	}
-	r.val = *zed.NewValue(typ, r.builder.Bytes().Body())
+	r.val = zed.NewValue(typ, r.builder.Bytes().Body())
 	return &r.val, nil
 }
 

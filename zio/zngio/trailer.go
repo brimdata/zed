@@ -31,19 +31,19 @@ func MarshalTrailer(typ string, version int, sections []int64, meta interface{})
 	m.Decorate(zson.StylePackage)
 	metaVal, err := m.Marshal(meta)
 	if err != nil {
-		return zed.Value{}, err
+		return zed.Null, err
 	}
 	val, err := m.Marshal(&Trailer{
 		Magic:    Magic,
 		Type:     typ,
 		Version:  version,
 		Sections: sections,
-		Meta:     *metaVal,
+		Meta:     metaVal,
 	})
 	if err != nil {
-		return zed.Value{}, err
+		return zed.Null, err
 	}
-	return *val, nil
+	return val, nil
 }
 
 func ReadTrailer(r io.ReaderAt, fileSize int64) (*Trailer, error) {
@@ -95,7 +95,7 @@ func findTrailer(b []byte) (*Trailer, []byte, error) {
 		}
 		if val := readTrailer(b[off:]); val != nil {
 			var trailer Trailer
-			uErr := u.Unmarshal(val, &trailer)
+			uErr := u.Unmarshal(*val, &trailer)
 			if uErr == nil {
 				if trailer.Magic != Magic {
 					return nil, nil, errors.New("bad trailer magic")

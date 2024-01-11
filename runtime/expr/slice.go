@@ -28,7 +28,7 @@ func NewSlice(zctx *zed.Context, elem, from, to Evaluator) *Slice {
 var ErrSliceIndex = errors.New("slice index is not a number")
 var ErrSliceIndexEmpty = errors.New("slice index is empty")
 
-func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
+func (s *Slice) Eval(ectx Context, this zed.Value) zed.Value {
 	elem := s.elem.Eval(ectx, this)
 	if elem.IsError() {
 		return elem
@@ -81,10 +81,10 @@ func (s *Slice) Eval(ectx Context, this *zed.Value) *zed.Value {
 	default:
 		panic(elem.Type())
 	}
-	return ectx.NewValue(elem.Type(), bytes)
+	return zed.NewValue(elem.Type(), bytes)
 }
 
-func sliceIndex(ectx Context, this *zed.Value, slot Evaluator, length int) (int, error) {
+func sliceIndex(ectx Context, this zed.Value, slot Evaluator, length int) (int, error) {
 	if slot == nil {
 		//XXX
 		return 0, ErrSliceIndexEmpty

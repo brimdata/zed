@@ -30,7 +30,7 @@ func runCasesExpectBufferFilterFalsePositives(t *testing.T, record string, cases
 	runCasesHelper(t, record, cases, true)
 }
 
-func filter(ectx expr.Context, this *zed.Value, e expr.Evaluator) bool {
+func filter(ectx expr.Context, this zed.Value, e expr.Evaluator) bool {
 	if e == nil {
 		return true
 	}

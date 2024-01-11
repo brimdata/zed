@@ -35,8 +35,6 @@ type Context struct {
 	toValue   map[Type]zcode.Bytes
 	typedefs  map[string]*TypeNamed
 	stringErr atomic.Pointer[TypeError]
-	missing   atomic.Pointer[Value]
-	quiet     atomic.Pointer[Value]
 }
 
 func NewContext() *Context {
@@ -284,11 +282,11 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 // record along with new rightmost fields as indicated with the given values.
 // If any of the newly provided fieldss already exists in the specified value,
 // an error is returned.
-func (c *Context) AddFields(r *Value, newFields []Field, vals []Value) (*Value, error) {
+func (c *Context) AddFields(r Value, newFields []Field, vals []Value) (Value, error) {
 	fields := slices.Clone(r.Fields())
 	for _, f := range newFields {
 		if r.HasField(f.Name) {
-			return nil, fmt.Errorf("field already exists: %s", f.Name)
+			return Null, fmt.Errorf("field already exists: %s", f.Name)
 		}
 		fields = append(fields, f)
 	}
@@ -298,7 +296,7 @@ func (c *Context) AddFields(r *Value, newFields []Field, vals []Value) (*Value, 
 	}
 	typ, err := c.LookupTypeRecord(fields)
 	if err != nil {
-		return nil, err
+		return Null, err
 	}
 	return NewValue(typ, zv), nil
 }
@@ -336,7 +334,7 @@ func (c *Context) enterWithLock(tv zcode.Bytes, typ Type) {
 	c.byID = append(c.byID, typ)
 }
 
-func (c *Context) LookupTypeValue(typ Type) *Value {
+func (c *Context) LookupTypeValue(typ Type) Value {
 	c.mu.Lock()
 	bytes, ok := c.toValue[typ]
 	c.mu.Unlock()
@@ -516,29 +514,21 @@ func DecodeLength(tv zcode.Bytes) (int, zcode.Bytes) {
 	return int(namelen), tv[n:]
 }
 
-func (c *Context) Missing() *Value {
-	if val := c.missing.Load(); val != nil {
-		return val
-	}
-	c.missing.CompareAndSwap(nil, c.NewErrorf("missing"))
-	return c.missing.Load()
+func (c *Context) Missing() Value {
+	return NewValue(c.StringTypeError(), Missing)
 }
 
-func (c *Context) Quiet() *Value {
-	if val := c.quiet.Load(); val != nil {
-		return val
-	}
-	c.quiet.CompareAndSwap(nil, c.NewErrorf("quiet"))
-	return c.quiet.Load()
+func (c *Context) Quiet() Value {
+	return NewValue(c.StringTypeError(), Quiet)
 }
 
 // batch/allocator should handle these?
 
-func (c *Context) NewErrorf(format string, args ...interface{}) *Value {
+func (c *Context) NewErrorf(format string, args ...interface{}) Value {
 	return NewValue(c.StringTypeError(), fmt.Appendf(nil, format, args...))
 }
 
-func (c *Context) NewError(err error) *Value {
+func (c *Context) NewError(err error) Value {
 	return NewValue(c.StringTypeError(), []byte(err.Error()))
 }
 
@@ -549,7 +539,7 @@ func (c *Context) StringTypeError() *TypeError {
 	return c.LookupTypeError(TypeString)
 }
 
-func (c *Context) WrapError(msg string, val *Value) *Value {
+func (c *Context) WrapError(msg string, val Value) Value {
 	recType := c.MustLookupTypeRecord([]Field{
 		{"message", TypeString},
 		{"on", val.Type()},

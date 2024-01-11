@@ -32,7 +32,7 @@ func TestScannerContext(t *testing.T) {
 		var buf bytes.Buffer
 		w := NewWriter(zio.NopCloser(&buf))
 		for j := 0; j < 100; j++ {
-			require.NoError(t, w.Write(*rec))
+			require.NoError(t, w.Write(rec))
 		}
 		require.NoError(t, w.EndStream())
 		require.NoError(t, w.Close())

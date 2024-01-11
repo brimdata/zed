@@ -47,7 +47,7 @@ func scan(ctx context.Context, it *objectIterator, pool *pools.Config, runCh cha
 		if err != nil {
 			return err
 		}
-		if run.overlaps(&o.Min, &o.Max) || run.size+o.Size < pool.Threshold {
+		if run.overlaps(o.Min, o.Max) || run.size+o.Size < pool.Threshold {
 			run.add(o)
 			continue
 		}
@@ -90,10 +90,10 @@ func (r *objectIterator) next() (*object, error) {
 	var o object
 	// XXX Embedded structs currently not supported in zed marshal so unmarshal
 	// embedded object struct separately.
-	if err := r.unmarshaler.Unmarshal(val, &o.Object); err != nil {
+	if err := r.unmarshaler.Unmarshal(*val, &o.Object); err != nil {
 		return nil, err
 	}
-	if err := r.unmarshaler.Unmarshal(val, &o); err != nil {
+	if err := r.unmarshaler.Unmarshal(*val, &o); err != nil {
 		return nil, err
 	}
 	return &o, nil
@@ -119,7 +119,7 @@ func newRunBuilder() *runBuilder {
 	return &runBuilder{cmp: expr.NewValueCompareFn(order.Asc, true)}
 }
 
-func (r *runBuilder) overlaps(first, last *zed.Value) bool {
+func (r *runBuilder) overlaps(first, last zed.Value) bool {
 	if r.span == nil {
 		return false
 	}
@@ -133,8 +133,8 @@ func (r *runBuilder) add(o *object) {
 		r.span = extent.NewGeneric(o.Min, o.Max, r.cmp)
 		return
 	}
-	r.span.Extend(&o.Min)
-	r.span.Extend(&o.Max)
+	r.span.Extend(o.Min)
+	r.span.Extend(o.Max)
 }
 
 func (r *runBuilder) objectIDs() []ksuid.KSUID {

@@ -93,7 +93,7 @@ func (p *puller) Pull(bool) (Batch, error) {
 			}
 			return batch, nil
 		}
-		if batch.appendVal(val) {
+		if batch.appendVal(*val) {
 			return batch, nil
 		}
 	}
@@ -124,7 +124,7 @@ func newPullerBatch() *pullerBatch {
 // appendVal appends a copy of val to b.  appendVal returns true if b is full
 // (i.e., b.buf is full, b.buf had insufficient space for val.Bytes, or b.val is
 // full).  appendVal never reallocates b.buf or b.vals.
-func (b *pullerBatch) appendVal(val *zed.Value) bool {
+func (b *pullerBatch) appendVal(val zed.Value) bool {
 	var bytes []byte
 	var bufFull bool
 	if !val.IsNull() {
@@ -140,7 +140,7 @@ func (b *pullerBatch) appendVal(val *zed.Value) bool {
 			bufFull = true
 		}
 	}
-	b.vals = append(b.vals, *zed.NewValue(val.Type(), bytes))
+	b.vals = append(b.vals, zed.NewValue(val.Type(), bytes))
 	return bufFull || len(b.vals) == cap(b.vals)
 }
 
@@ -230,7 +230,7 @@ func CopyVars(b Batch) []zed.Value {
 	if len(vars) > 0 {
 		newvars := make([]zed.Value, len(vars))
 		for k, v := range vars {
-			newvars[k] = *v.Copy()
+			newvars[k] = v.Copy()
 		}
 		vars = newvars
 	}

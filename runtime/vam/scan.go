@@ -120,7 +120,7 @@ func (v *VecScanner) run() {
 			return
 		}
 		var meta data.Object
-		if err := v.unmarshaler.Unmarshal(&vals[0], &meta); err != nil {
+		if err := v.unmarshaler.Unmarshal(vals[0], &meta); err != nil {
 			v.sendResult(nil, fmt.Errorf("system error: VecScanner could not unmarshal value: %q", zson.String(vals[0])))
 			return
 		}

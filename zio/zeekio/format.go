@@ -20,7 +20,7 @@ func formatAny(val zed.Value, inContainer bool) string {
 	case *zed.TypeArray:
 		return formatArray(t, val.Bytes())
 	case *zed.TypeNamed:
-		return formatAny(*zed.NewValue(t.Type, val.Bytes()), inContainer)
+		return formatAny(zed.NewValue(t.Type, val.Bytes()), inContainer)
 	case *zed.TypeOfBool:
 		if val.Bool() {
 			return "T"
@@ -31,7 +31,7 @@ func formatAny(val zed.Value, inContainer bool) string {
 	case *zed.TypeOfDuration, *zed.TypeOfTime:
 		return formatTime(nano.Ts(val.Int()))
 	case *zed.TypeEnum:
-		return formatAny(*zed.NewValue(zed.TypeUint64, val.Bytes()), false)
+		return formatAny(zed.NewValue(zed.TypeUint64, val.Bytes()), false)
 	case *zed.TypeOfFloat16, *zed.TypeOfFloat32:
 		return strconv.FormatFloat(val.Float(), 'f', -1, 32)
 	case *zed.TypeOfFloat64:
@@ -62,7 +62,7 @@ func formatAny(val zed.Value, inContainer bool) string {
 		if zed.TypeUnder(t.Type) == zed.TypeString {
 			return string(val.Bytes())
 		}
-		return zson.FormatValue(&val)
+		return zson.FormatValue(val)
 	default:
 		return fmt.Sprintf("zeekio.StringOf(): unknown type: %T", t)
 	}
@@ -87,7 +87,7 @@ func formatArray(t *zed.TypeArray, zv zcode.Bytes) string {
 		if val := it.Next(); val == nil {
 			b.WriteByte('-')
 		} else {
-			b.WriteString(formatAny(*zed.NewValue(t.Type, val), true))
+			b.WriteString(formatAny(zed.NewValue(t.Type, val), true))
 		}
 	}
 	return b.String()
@@ -98,8 +98,8 @@ func formatMap(t *zed.TypeMap, zv zcode.Bytes) string {
 	it := zv.Iter()
 	b.WriteByte('[')
 	for !it.Done() {
-		b.WriteString(formatAny(*zed.NewValue(t.KeyType, it.Next()), true))
-		b.WriteString(formatAny(*zed.NewValue(t.ValType, it.Next()), true))
+		b.WriteString(formatAny(zed.NewValue(t.KeyType, it.Next()), true))
+		b.WriteString(formatAny(zed.NewValue(t.ValType, it.Next()), true))
 	}
 	b.WriteByte(']')
 	return b.String()
@@ -119,7 +119,7 @@ func formatRecord(t *zed.TypeRecord, zv zcode.Bytes) string {
 		if val := it.Next(); val == nil {
 			b.WriteByte('-')
 		} else {
-			b.WriteString(formatAny(*zed.NewValue(f.Type, val), false))
+			b.WriteString(formatAny(zed.NewValue(f.Type, val), false))
 		}
 	}
 	return b.String()
@@ -139,7 +139,7 @@ func formatSet(t *zed.TypeSet, zv zcode.Bytes) string {
 		} else {
 			b.WriteByte(separator)
 		}
-		b.WriteString(formatAny(*zed.NewValue(t.Type, it.Next()), true))
+		b.WriteString(formatAny(zed.NewValue(t.Type, it.Next()), true))
 	}
 	return b.String()
 }
@@ -191,11 +191,11 @@ func unescape(r rune) []byte {
 
 func formatUnion(t *zed.TypeUnion, zv zcode.Bytes) string {
 	if zv == nil {
-		return FormatValue(*zed.Null)
+		return FormatValue(zed.Null)
 	}
 	typ, iv := t.Untag(zv)
 	s := strconv.FormatInt(int64(t.TagOf(typ)), 10) + ":"
-	return s + formatAny(*zed.NewValue(typ, iv), false)
+	return s + formatAny(zed.NewValue(typ, iv), false)
 }
 
 func FormatValue(v zed.Value) string {

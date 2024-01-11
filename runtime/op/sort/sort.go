@@ -118,7 +118,7 @@ func (o *Op) run() {
 		var delta int
 		out, delta = o.append(out, batch)
 		if o.comparator == nil && len(out) > 0 {
-			o.setComparator(&out[0])
+			o.setComparator(out[0])
 		}
 		nbytes += delta
 		if nbytes < MemMaxBytes {
@@ -190,7 +190,7 @@ func (o *Op) append(out []zed.Value, batch zbuf.Batch) ([]zed.Value, int) {
 	return out, nbytes
 }
 
-func (o *Op) setComparator(r *zed.Value) {
+func (o *Op) setComparator(r zed.Value) {
 	resolvers := o.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
@@ -205,7 +205,7 @@ func (o *Op) setComparator(r *zed.Value) {
 	o.comparator = expr.NewComparator(nullsMax, reverse, resolvers...).WithMissingAsNull()
 }
 
-func GuessSortKey(val *zed.Value) field.Path {
+func GuessSortKey(val zed.Value) field.Path {
 	recType := zed.TypeRecordOf(val.Type())
 	if recType == nil {
 		// A nil field.Path is equivalent to "this".

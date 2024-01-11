@@ -66,7 +66,7 @@ func (s *Slicer) Pull(done bool) (zbuf.Batch, error) {
 			return nil, errors.New("system error: Slicer encountered multi-valued batch")
 		}
 		var object data.Object
-		if err := s.unmarshaler.Unmarshal(&vals[0], &object); err != nil {
+		if err := s.unmarshaler.Unmarshal(vals[0], &object); err != nil {
 			return nil, err
 		}
 		if batch, err := s.stash(&object); batch != nil || err != nil {
@@ -82,14 +82,14 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 		return nil, nil
 	}
 	//XXX let's keep this as we go!... need to reorder stuff in stash() to make this work
-	min := &s.objects[0].Min
-	max := &s.objects[0].Max
+	min := s.objects[0].Min
+	max := s.objects[0].Max
 	for _, o := range s.objects[1:] {
-		if s.cmp(&o.Min, min) < 0 {
-			min = &o.Min
+		if s.cmp(o.Min, min) < 0 {
+			min = o.Min
 		}
-		if s.cmp(&o.Max, max) > 0 {
-			max = &o.Max
+		if s.cmp(o.Max, max) > 0 {
+			max = o.Max
 		}
 	}
 	val, err := s.marshaler.Marshal(&Partition{
@@ -101,7 +101,7 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewArray([]zed.Value{*val}), nil
+	return zbuf.NewArray([]zed.Value{val}), nil
 }
 
 func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
@@ -110,7 +110,7 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 		// We collect all the subsequent objects that overlap with any object in the
 		// accumulated set so far.  Since first times are non-decreasing this is
 		// guaranteed to generate partitions that are non-decreasing and non-overlapping.
-		if s.cmp(&o.Max, s.min) < 0 || s.cmp(&o.Min, s.max) > 0 {
+		if s.cmp(o.Max, *s.min) < 0 || s.cmp(o.Min, *s.max) > 0 {
 			var err error
 			batch, err = s.nextPartition()
 			if err != nil {
@@ -121,16 +121,11 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 		}
 	}
 	s.objects = append(s.objects, o)
-	if s.min == nil {
-		s.min = o.Min.Copy()
-		s.max = o.Max.Copy()
-	} else {
-		if s.cmp(s.min, &o.Min) > 0 {
-			s.min = o.Min.Copy()
-		}
-		if s.cmp(s.max, &o.Max) < 0 {
-			s.max = o.Max.Copy()
-		}
+	if s.min == nil || s.cmp(*s.min, o.Min) > 0 {
+		s.min = o.Min.Copy().Ptr()
+	}
+	if s.max == nil || s.cmp(*s.max, o.Max) < 0 {
+		s.max = o.Max.Copy().Ptr()
 	}
 	return batch, nil
 }
@@ -140,8 +135,8 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 // objects that should be scanned along with a span to limit the scan
 // to only the span involved.
 type Partition struct {
-	Min     *zed.Value     `zed:"min"`
-	Max     *zed.Value     `zed:"max"`
+	Min     zed.Value      `zed:"min"`
+	Max     zed.Value      `zed:"max"`
 	Objects []*data.Object `zed:"objects"`
 }
 

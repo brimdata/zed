@@ -21,7 +21,7 @@ func (a *Avg) Consume(val zed.Value) {
 	if val.IsNull() {
 		return
 	}
-	if d, ok := coerce.ToFloat(&val); ok {
+	if d, ok := coerce.ToFloat(val); ok {
 		a.sum += float64(d)
 		a.count++
 	}
@@ -29,9 +29,9 @@ func (a *Avg) Consume(val zed.Value) {
 
 func (a *Avg) Result(*zed.Context) zed.Value {
 	if a.count > 0 {
-		return *zed.NewFloat64(a.sum / float64(a.count))
+		return zed.NewFloat64(a.sum / float64(a.count))
 	}
-	return *zed.NullFloat64
+	return zed.NullFloat64
 }
 
 const (
@@ -45,14 +45,14 @@ func (a *Avg) ConsumeAsPartial(partial zed.Value) {
 		panic(errors.New("avg: partial sum is missing"))
 	}
 	if sumVal.Type() != zed.TypeFloat64 {
-		panic(fmt.Errorf("avg: partial sum has bad type: %s", zson.FormatValue(sumVal)))
+		panic(fmt.Errorf("avg: partial sum has bad type: %s", zson.FormatValue(*sumVal)))
 	}
 	countVal := partial.Deref(countName)
 	if countVal == nil {
 		panic("avg: partial count is missing")
 	}
 	if countVal.Type() != zed.TypeUint64 {
-		panic(fmt.Errorf("avg: partial count has bad type: %s", zson.FormatValue(countVal)))
+		panic(fmt.Errorf("avg: partial count has bad type: %s", zson.FormatValue(*countVal)))
 	}
 	a.sum += sumVal.Float()
 	a.count += countVal.Uint()
@@ -66,5 +66,5 @@ func (a *Avg) ResultAsPartial(zctx *zed.Context) zed.Value {
 		zed.NewField(sumName, zed.TypeFloat64),
 		zed.NewField(countName, zed.TypeUint64),
 	})
-	return *zed.NewValue(typ, zv)
+	return zed.NewValue(typ, zv)
 }

@@ -24,9 +24,9 @@ func TestDataReaderWriterVector(t *testing.T) {
 	w, err := object.NewWriter(ctx, engine, tmp, order.Asc, field.Path{"a"}, 1000)
 	require.NoError(t, err)
 	zctx := zed.NewContext()
-	require.NoError(t, w.Write(*zson.MustParseValue(zctx, "{a:1,b:4}")))
-	require.NoError(t, w.Write(*zson.MustParseValue(zctx, "{a:2,b:5}")))
-	require.NoError(t, w.Write(*zson.MustParseValue(zctx, "{a:3,b:6}")))
+	require.NoError(t, w.Write(zson.MustParseValue(zctx, "{a:1,b:4}")))
+	require.NoError(t, w.Write(zson.MustParseValue(zctx, "{a:2,b:5}")))
+	require.NoError(t, w.Write(zson.MustParseValue(zctx, "{a:3,b:6}")))
 	require.NoError(t, w.Close(ctx))
 	require.NoError(t, data.CreateVector(ctx, engine, tmp, object.ID))
 	// Read back the VNG file and make sure it's the same.
