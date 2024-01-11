@@ -52,6 +52,8 @@ func LookupPrimitiveCaster(zctx *zed.Context, typ zed.Type) Evaluator {
 		return &casterString{zctx}
 	case zed.TypeBytes:
 		return &casterBytes{}
+	case zed.TypeType:
+		return &casterType{zctx}
 	default:
 		return nil
 	}
@@ -289,4 +291,26 @@ func (c *casterNamedType) Eval(ectx Context, this *zed.Value) *zed.Value {
 		return ectx.CopyValue(*c.zctx.NewError(err))
 	}
 	return ectx.NewValue(typ, val.Bytes())
+}
+
+type casterType struct {
+	zctx *zed.Context
+}
+
+func (c *casterType) Eval(ectx Context, val *zed.Value) *zed.Value {
+	id := val.Type().ID()
+	if id == zed.IDType {
+		return val
+	}
+	if id != zed.IDString {
+		return c.zctx.WrapError("cannot cast to type", val)
+	}
+	typval, err := zson.ParseValue(c.zctx, val.AsString())
+	if err != nil {
+		return c.zctx.WrapError(err.Error(), val)
+	}
+	if typval.Type().ID() != zed.IDType {
+		return c.zctx.WrapError("cannot cast to type", val)
+	}
+	return ectx.CopyValue(*typval)
 }
