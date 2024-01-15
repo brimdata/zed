@@ -45,7 +45,6 @@ func (w *Writer) Write(val zed.Value) error {
 func (w *Writer) finalize() error {
 	meta, dataSize, err := w.variant.Encode()
 	if err != nil {
-		//XXX can encode return an error?
 		return fmt.Errorf("system error: could not encode VNG metadata: %w", err)
 	}
 	// At this point all the vector data has been written out
