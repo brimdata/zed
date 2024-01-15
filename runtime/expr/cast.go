@@ -297,7 +297,7 @@ type casterType struct {
 	zctx *zed.Context
 }
 
-func (c *casterType) Eval(ectx Context, val *zed.Value) *zed.Value {
+func (c *casterType) Eval(ectx Context, val zed.Value) zed.Value {
 	id := val.Type().ID()
 	if id == zed.IDType {
 		return val
@@ -312,5 +312,5 @@ func (c *casterType) Eval(ectx Context, val *zed.Value) *zed.Value {
 	if typval.Type().ID() != zed.IDType {
 		return c.zctx.WrapError("cannot cast to type", val)
 	}
-	return ectx.CopyValue(*typval)
+	return typval
 }
