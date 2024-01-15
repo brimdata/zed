@@ -6,20 +6,20 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/vector"
-	meta "github.com/brimdata/zed/vng/vector"
+	"github.com/brimdata/zed/vng"
 )
 
-func (l *loader) loadNulls(any *vector.Any, typ zed.Type, path field.Path, m *meta.Nulls) (vector.Any, error) {
+func (l *loader) loadNulls(any *vector.Any, typ zed.Type, path field.Path, m *vng.Nulls) (vector.Any, error) {
 	// The runlengths are typically small so we load them with the metadata
 	// and don't bother waiting for a reference.
-	runlens := meta.NewInt64Reader(m.Runs, l.r) //XXX 32-bit reader?
+	runlens := vng.NewInt64Decoder(m.Runs, l.r) //XXX 32-bit reader?
 	var null bool
 	var off int
 	var slots []uint32
 	// In zed, nulls are generally bad and not really needed because we don't
 	// need super-wide uber schemas with lots of nulls.
 	for {
-		run, err := runlens.Read()
+		run, err := runlens.Next()
 		if err != nil {
 			if err == io.EOF {
 				break

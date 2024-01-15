@@ -1,6 +1,29 @@
-// Package vng implements the reading and writing of VNG storage objects
-// to and from any Zed format.  The VNG storage format is described
-// at https://github.com/brimdata/zed/blob/main/docs/formats/vng.md.
+// Package vng implements the reading and writing of VNG serialization objects.
+// The VNG format is described at https://github.com/brimdata/zed/blob/main/docs/formats/vng.md.
+//
+// A VNG object is created by allocating an Encoder for any top-level Zed type
+// via NewEncoder, which recursively descends into the Zed type, allocating an Encoder
+// for each node in the type tree.  The top-level zng body is written via a call
+// to Write.  Each vector buffers its data in memory until the the object is encoded.
+//
+// After all of the Zed data is written, a metadata section is written consisting
+// of a single Zed value describing the lahyout of all the vector data obtained by
+// calling the Metadata method on the vng.Writer interface.
+//
+// Nulls for complex types are encoded by a special Nulls object.  Each complex
+// type is wrapped by a NullsEncoder, which runlength encodes any alternating
+// sequences of nulls and values.  If no nulls are encountered, then the Nulls
+// object is omitted from the metadata.
+//
+// Data is read from a VNG file by reading the metadata and creating vector Builders
+// for each Zed type by calling NewBuilder with the metadata, which
+// recusirvely builds reassembly segments.  An io.ReaderAt is passed to NewBuilder
+// so each vector reader can access the underlying storage object and read its
+// vector data effciently in large vector segments.
+//
+// Once the metadata is assembled in memory, the recontructed Zed sequence data can be
+// read from the vector segments by calling the Build method on the top-level
+// Builder and passing in a zcode.Builder to reconstruct the Zed value in place.
 package vng
 
 import (
@@ -8,7 +31,6 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -18,7 +40,7 @@ type Object struct {
 	readerAt io.ReaderAt
 	zctx     *zed.Context
 	header   Header
-	meta     vector.Metadata
+	meta     Metadata
 }
 
 func NewObject(zctx *zed.Context, r io.ReaderAt) (*Object, error) {
@@ -49,8 +71,8 @@ func (o *Object) DataReader() io.ReaderAt {
 	return o.readerAt
 }
 
-func (o *Object) MiscMeta() ([]zed.Type, []vector.Metadata, []int32, error) {
-	if variant, ok := o.meta.(*vector.Variant); ok {
+func (o *Object) MiscMeta() ([]zed.Type, []Metadata, []int32, error) {
+	if variant, ok := o.meta.(*Variant); ok {
 		tags, err := ReadIntVector(variant.Tags, o.readerAt)
 		if err != nil {
 			return nil, nil, nil, err
@@ -62,14 +84,14 @@ func (o *Object) MiscMeta() ([]zed.Type, []vector.Metadata, []int32, error) {
 		}
 		return types, metas, tags, nil
 	}
-	return []zed.Type{o.meta.Type(o.zctx)}, []vector.Metadata{o.meta}, make([]int32, o.meta.Len()), nil
+	return []zed.Type{o.meta.Type(o.zctx)}, []Metadata{o.meta}, make([]int32, o.meta.Len()), nil
 }
 
 func (o *Object) NewReader() (zio.Reader, error) {
-	return vector.NewZedReader(o.zctx, o.meta, o.readerAt)
+	return NewZedReader(o.zctx, o.meta, o.readerAt)
 }
 
-func readMetadata(zctx *zed.Context, r io.Reader) (vector.Metadata, error) {
+func readMetadata(zctx *zed.Context, r io.Reader) (Metadata, error) {
 	zr := zngio.NewReader(zctx, r)
 	defer zr.Close()
 	val, err := zr.Read()
@@ -78,8 +100,8 @@ func readMetadata(zctx *zed.Context, r io.Reader) (vector.Metadata, error) {
 	}
 	u := zson.NewZNGUnmarshaler()
 	u.SetContext(zctx)
-	u.Bind(vector.Template...)
-	var meta vector.Metadata
+	u.Bind(Template...)
+	var meta Metadata
 	if err := u.Unmarshal(*val, &meta); err != nil {
 		return nil, err
 	}
@@ -91,11 +113,11 @@ func readMetadata(zctx *zed.Context, r io.Reader) (vector.Metadata, error) {
 }
 
 // XXX change this to single vector read
-func ReadIntVector(loc vector.Segment, r io.ReaderAt) ([]int32, error) {
-	reader := vector.NewInt64Reader(loc, r)
+func ReadIntVector(loc Segment, r io.ReaderAt) ([]int32, error) {
+	decoder := NewInt64Decoder(loc, r)
 	var out []int32
 	for {
-		val, err := reader.Read()
+		val, err := decoder.Next()
 		if err != nil {
 			if err == io.EOF {
 				return out, nil

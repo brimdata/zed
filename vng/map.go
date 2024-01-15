@@ -1,4 +1,4 @@
-package vector
+package vng
 
 import (
 	"io"
@@ -8,22 +8,22 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type MapWriter struct {
-	keys    Writer
-	values  Writer
-	lengths *Int64Writer
+type MapEncoder struct {
+	keys    Encoder
+	values  Encoder
+	lengths *Int64Encoder
 	count   uint32
 }
 
-func NewMapWriter(typ *zed.TypeMap) *MapWriter {
-	return &MapWriter{
-		keys:    NewWriter(typ.KeyType),
-		values:  NewWriter(typ.ValType),
-		lengths: NewInt64Writer(),
+func NewMapEncoder(typ *zed.TypeMap) *MapEncoder {
+	return &MapEncoder{
+		keys:    NewEncoder(typ.KeyType),
+		values:  NewEncoder(typ.ValType),
+		lengths: NewInt64Encoder(),
 	}
 }
 
-func (m *MapWriter) Write(body zcode.Bytes) {
+func (m *MapEncoder) Write(body zcode.Bytes) {
 	m.count++
 	var len int
 	it := body.Iter()
@@ -35,7 +35,7 @@ func (m *MapWriter) Write(body zcode.Bytes) {
 	m.lengths.Write(int64(len))
 }
 
-func (m *MapWriter) Emit(w io.Writer) error {
+func (m *MapEncoder) Emit(w io.Writer) error {
 	if err := m.lengths.Emit(w); err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (m *MapWriter) Emit(w io.Writer) error {
 	return m.values.Emit(w)
 }
 
-func (m *MapWriter) Metadata(off uint64) (uint64, Metadata) {
+func (m *MapEncoder) Metadata(off uint64) (uint64, Metadata) {
 	off, lens := m.lengths.Metadata(off)
 	off, keys := m.keys.Metadata(off)
 	off, vals := m.values.Metadata(off)
@@ -57,45 +57,47 @@ func (m *MapWriter) Metadata(off uint64) (uint64, Metadata) {
 	}
 }
 
-func (m *MapWriter) Encode(group *errgroup.Group) {
+func (m *MapEncoder) Encode(group *errgroup.Group) {
 	m.lengths.Encode(group)
 	m.keys.Encode(group)
 	m.values.Encode(group)
 }
 
-type MapReader struct {
-	Keys    Reader
-	Values  Reader
-	Lengths *Int64Reader
+type MapBuilder struct {
+	Keys    Builder
+	Values  Builder
+	Lengths *Int64Decoder
 }
 
-func NewMapReader(m *Map, r io.ReaderAt) (*MapReader, error) {
-	keys, err := NewReader(m.Keys, r)
+var _ Builder = (*MapBuilder)(nil)
+
+func NewMapBuilder(m *Map, r io.ReaderAt) (*MapBuilder, error) {
+	keys, err := NewBuilder(m.Keys, r)
 	if err != nil {
 		return nil, err
 	}
-	values, err := NewReader(m.Values, r)
+	values, err := NewBuilder(m.Values, r)
 	if err != nil {
 		return nil, err
 	}
-	return &MapReader{
+	return &MapBuilder{
 		Keys:    keys,
 		Values:  values,
-		Lengths: NewInt64Reader(m.Lengths, r),
+		Lengths: NewInt64Decoder(m.Lengths, r),
 	}, nil
 }
 
-func (m *MapReader) Read(b *zcode.Builder) error {
-	len, err := m.Lengths.Read()
+func (m *MapBuilder) Build(b *zcode.Builder) error {
+	len, err := m.Lengths.Next()
 	if err != nil {
 		return err
 	}
 	b.BeginContainer()
 	for k := 0; k < int(len); k++ {
-		if err := m.Keys.Read(b); err != nil {
+		if err := m.Keys.Build(b); err != nil {
 			return err
 		}
-		if err := m.Values.Read(b); err != nil {
+		if err := m.Values.Build(b); err != nil {
 			return err
 		}
 	}

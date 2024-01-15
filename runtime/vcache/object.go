@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
-	meta "github.com/brimdata/zed/vng/vector"
 	"github.com/segmentio/ksuid"
 )
 
@@ -34,7 +33,7 @@ type Object struct {
 
 	//XXX this is all gonna change in a subsequent PR when we get the Variant
 	// data type working across vng, vcache, and vector
-	metas []meta.Metadata
+	metas []vng.Metadata
 	types []zed.Type
 	tags  []int32
 

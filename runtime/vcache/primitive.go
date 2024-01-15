@@ -6,11 +6,11 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/vector"
-	meta "github.com/brimdata/zed/vng/vector"
+	"github.com/brimdata/zed/vng"
 	"github.com/brimdata/zed/zcode"
 )
 
-func (l *loader) loadPrimitive(typ zed.Type, m *meta.Primitive) (vector.Any, error) {
+func (l *loader) loadPrimitive(typ zed.Type, m *vng.Primitive) (vector.Any, error) {
 	// The VNG primitive columns are stored as one big
 	// list of Zed values.  So we can just read the data in
 	// all at once, compute the byte offsets of each value
@@ -97,6 +97,6 @@ type Const struct {
 	bytes zcode.Bytes
 }
 
-func NewConst(m *meta.Const) *Const {
+func NewConst(m *vng.Const) *Const {
 	return &Const{bytes: m.Value.Bytes()}
 }

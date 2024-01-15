@@ -7,11 +7,10 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
-	meta "github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zson"
 )
 
-func (l *loader) loadUnion(any *vector.Any, typ *zed.TypeUnion, path field.Path, m *meta.Union) (*vector.Union, error) {
+func (l *loader) loadUnion(any *vector.Any, typ *zed.TypeUnion, path field.Path, m *vng.Union) (*vector.Union, error) {
 	if *any == nil {
 		*any = vector.NewUnion(typ)
 	}

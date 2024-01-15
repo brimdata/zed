@@ -1,4 +1,4 @@
-package vector
+package vng
 
 import (
 	"errors"
@@ -11,25 +11,25 @@ import (
 
 var ErrVectorMismatch = errors.New("zng record value doesn't match vector writer")
 
-type RecordWriter struct {
-	fields []*FieldWriter
+type RecordEncoder struct {
+	fields []*FieldEncoder
 	count  uint32
 }
 
-var _ Writer = (*RecordWriter)(nil)
+var _ Encoder = (*RecordEncoder)(nil)
 
-func NewRecordWriter(typ *zed.TypeRecord) *RecordWriter {
-	fields := make([]*FieldWriter, 0, len(typ.Fields))
+func NewRecordEncoder(typ *zed.TypeRecord) *RecordEncoder {
+	fields := make([]*FieldEncoder, 0, len(typ.Fields))
 	for _, f := range typ.Fields {
-		fields = append(fields, &FieldWriter{
+		fields = append(fields, &FieldEncoder{
 			name:   f.Name,
-			values: NewWriter(f.Type),
+			values: NewEncoder(f.Type),
 		})
 	}
-	return &RecordWriter{fields: fields}
+	return &RecordEncoder{fields: fields}
 }
 
-func (r *RecordWriter) Write(body zcode.Bytes) {
+func (r *RecordEncoder) Write(body zcode.Bytes) {
 	r.count++
 	it := body.Iter()
 	for _, f := range r.fields {
@@ -37,13 +37,13 @@ func (r *RecordWriter) Write(body zcode.Bytes) {
 	}
 }
 
-func (r *RecordWriter) Encode(group *errgroup.Group) {
+func (r *RecordEncoder) Encode(group *errgroup.Group) {
 	for _, f := range r.fields {
 		f.Encode(group)
 	}
 }
 
-func (r *RecordWriter) Metadata(off uint64) (uint64, Metadata) {
+func (r *RecordEncoder) Metadata(off uint64) (uint64, Metadata) {
 	fields := make([]Field, 0, len(r.fields))
 	for _, field := range r.fields {
 		next, m := field.Metadata(off)
@@ -53,7 +53,7 @@ func (r *RecordWriter) Metadata(off uint64) (uint64, Metadata) {
 	return off, &Record{Length: r.count, Fields: fields}
 }
 
-func (r *RecordWriter) Emit(w io.Writer) error {
+func (r *RecordEncoder) Emit(w io.Writer) error {
 	for _, f := range r.fields {
 		if err := f.Emit(w); err != nil {
 			return err
@@ -62,35 +62,35 @@ func (r *RecordWriter) Emit(w io.Writer) error {
 	return nil
 }
 
-type RecordReader struct {
+type RecordBuilder struct {
 	Names  []string
-	Values []FieldReader
+	Values []FieldBuilder
 }
 
-var _ Reader = (*RecordReader)(nil)
+var _ Builder = (*RecordBuilder)(nil)
 
-func NewRecordReader(record *Record, reader io.ReaderAt) (*RecordReader, error) {
+func NewRecordBuilder(record *Record, reader io.ReaderAt) (*RecordBuilder, error) {
 	names := make([]string, 0, len(record.Fields))
-	values := make([]FieldReader, 0, len(record.Fields))
+	values := make([]FieldBuilder, 0, len(record.Fields))
 	for _, field := range record.Fields {
 		names = append(names, field.Name)
-		fr, err := NewFieldReader(field, reader)
+		fr, err := NewFieldBuilder(field, reader)
 		if err != nil {
 			return nil, err
 		}
 		values = append(values, *fr)
 	}
-	result := &RecordReader{
+	result := &RecordBuilder{
 		Names:  names,
 		Values: values,
 	}
 	return result, nil
 }
 
-func (r *RecordReader) Read(b *zcode.Builder) error {
+func (r *RecordBuilder) Build(b *zcode.Builder) error {
 	b.BeginContainer()
 	for _, f := range r.Values {
-		if err := f.Read(b); err != nil {
+		if err := f.Build(b); err != nil {
 			return err
 		}
 	}

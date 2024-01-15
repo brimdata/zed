@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vng/vector"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -17,7 +16,7 @@ import (
 type Writer struct {
 	zctx    *zed.Context
 	writer  io.WriteCloser
-	variant *vector.VariantWriter
+	variant *VariantEncoder
 }
 
 var _ zio.Writer = (*Writer)(nil)
@@ -26,7 +25,7 @@ func NewWriter(w io.WriteCloser) (*Writer, error) {
 	return &Writer{
 		zctx:    zed.NewContext(),
 		writer:  w,
-		variant: vector.NewVariantWriter(),
+		variant: NewVariantEncoder(),
 	}, nil
 }
 

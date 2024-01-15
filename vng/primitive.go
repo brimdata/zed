@@ -1,4 +1,4 @@
-package vector
+package vng
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 // XXX reserve key 255 for null
 const MaxDictSize = 255
 
-type PrimitiveWriter struct {
+type PrimitiveEncoder struct {
 	typ      zed.Type
 	bytes    zcode.Bytes
 	bytesLen uint64
@@ -28,24 +28,24 @@ type PrimitiveWriter struct {
 	count    uint32
 }
 
-func NewPrimitiveWriter(typ zed.Type, useDict bool) *PrimitiveWriter {
+func NewPrimitiveEncoder(typ zed.Type, useDict bool) *PrimitiveEncoder {
 	var dict map[string]uint32
 	if useDict {
 		dict = make(map[string]uint32)
 	}
-	return &PrimitiveWriter{
+	return &PrimitiveEncoder{
 		typ:  typ,
 		dict: dict,
 		cmp:  expr.NewValueCompareFn(order.Asc, false),
 	}
 }
 
-func (p *PrimitiveWriter) Write(body zcode.Bytes) {
+func (p *PrimitiveEncoder) Write(body zcode.Bytes) {
 	p.update(body)
 	p.bytes = zcode.Append(p.bytes, body)
 }
 
-func (p *PrimitiveWriter) update(body zcode.Bytes) {
+func (p *PrimitiveEncoder) update(body zcode.Bytes) {
 	p.count++
 	if body == nil {
 		panic("PrimitiveWriter should not be called with null")
@@ -65,7 +65,7 @@ func (p *PrimitiveWriter) update(body zcode.Bytes) {
 	}
 }
 
-func (p *PrimitiveWriter) Encode(group *errgroup.Group) {
+func (p *PrimitiveEncoder) Encode(group *errgroup.Group) {
 	group.Go(func() error {
 		if p.dict != nil {
 			p.bytes = p.makeDictVector()
@@ -82,7 +82,7 @@ func (p *PrimitiveWriter) Encode(group *errgroup.Group) {
 	})
 }
 
-func (p *PrimitiveWriter) makeDictVector() []byte {
+func (p *PrimitiveEncoder) makeDictVector() []byte {
 	dict := p.makeDict()
 	pos := make(map[string]byte)
 	for off, entry := range dict {
@@ -107,7 +107,7 @@ func (p *PrimitiveWriter) makeDictVector() []byte {
 	return out
 }
 
-func (p *PrimitiveWriter) Const() *Const {
+func (p *PrimitiveEncoder) Const() *Const {
 	if len(p.dict) != 1 {
 		return nil
 	}
@@ -123,7 +123,7 @@ func (p *PrimitiveWriter) Const() *Const {
 	}
 }
 
-func (p *PrimitiveWriter) Metadata(off uint64) (uint64, Metadata) {
+func (p *PrimitiveEncoder) Metadata(off uint64) (uint64, Metadata) {
 	var dict []DictEntry
 	if p.dict != nil {
 		if cnt := len(p.dict); cnt != 0 {
@@ -154,7 +154,7 @@ func (p *PrimitiveWriter) Metadata(off uint64) (uint64, Metadata) {
 	}
 }
 
-func (p *PrimitiveWriter) Emit(w io.Writer) error {
+func (p *PrimitiveEncoder) Emit(w io.Writer) error {
 	var err error
 	if len(p.out) > 0 {
 		_, err = w.Write(p.out)
@@ -162,7 +162,7 @@ func (p *PrimitiveWriter) Emit(w io.Writer) error {
 	return err
 }
 
-func (p *PrimitiveWriter) makeDict() []DictEntry {
+func (p *PrimitiveEncoder) makeDict() []DictEntry {
 	dict := make([]DictEntry, 0, len(p.dict))
 	for key, cnt := range p.dict {
 		dict = append(dict, DictEntry{
@@ -180,7 +180,7 @@ func sortDict(entries []DictEntry, cmp expr.CompareFn) {
 	})
 }
 
-type PrimitiveReader struct {
+type PrimitiveBuilder struct {
 	Typ zed.Type
 
 	loc    Segment
@@ -190,15 +190,15 @@ type PrimitiveReader struct {
 	it  zcode.Iter
 }
 
-func NewPrimitiveReader(primitive *Primitive, reader io.ReaderAt) *PrimitiveReader {
-	return &PrimitiveReader{
+func NewPrimitiveBuilder(primitive *Primitive, reader io.ReaderAt) *PrimitiveBuilder {
+	return &PrimitiveBuilder{
 		Typ:    primitive.Typ,
 		reader: reader,
 		loc:    primitive.Location,
 	}
 }
 
-func (p *PrimitiveReader) Read(b *zcode.Builder) error {
+func (p *PrimitiveBuilder) Build(b *zcode.Builder) error {
 	zv, err := p.ReadBytes()
 	if err == nil {
 		b.Append(zv)
@@ -206,7 +206,7 @@ func (p *PrimitiveReader) Read(b *zcode.Builder) error {
 	return err
 }
 
-func (p *PrimitiveReader) ReadBytes() (zcode.Bytes, error) {
+func (p *PrimitiveBuilder) ReadBytes() (zcode.Bytes, error) {
 	if p.buf == nil {
 		p.buf = make([]byte, p.loc.MemLength)
 		if err := p.loc.Read(p.reader, p.buf); err != nil {
@@ -220,7 +220,7 @@ func (p *PrimitiveReader) ReadBytes() (zcode.Bytes, error) {
 	return p.it.Next(), nil
 }
 
-type DictReader struct {
+type DictBuilder struct {
 	Typ zed.Type
 
 	loc       Segment
@@ -230,8 +230,10 @@ type DictReader struct {
 	off       int
 }
 
-func NewDictReader(primitive *Primitive, reader io.ReaderAt) *DictReader {
-	return &DictReader{
+var _ Builder = (*DictBuilder)(nil)
+
+func NewDictBuilder(primitive *Primitive, reader io.ReaderAt) *DictBuilder {
+	return &DictBuilder{
 		Typ:    primitive.Typ,
 		reader: reader,
 		loc:    primitive.Location,
@@ -239,7 +241,7 @@ func NewDictReader(primitive *Primitive, reader io.ReaderAt) *DictReader {
 	}
 }
 
-func (d *DictReader) Read(b *zcode.Builder) error {
+func (d *DictBuilder) Build(b *zcode.Builder) error {
 	bytes, err := d.ReadBytes()
 	if err == nil {
 		b.Append(bytes)
@@ -247,7 +249,7 @@ func (d *DictReader) Read(b *zcode.Builder) error {
 	return err
 }
 
-func (d *DictReader) ReadBytes() (zcode.Bytes, error) {
+func (d *DictBuilder) ReadBytes() (zcode.Bytes, error) {
 	if d.selectors == nil {
 		d.selectors = make([]byte, d.loc.MemLength)
 		if err := d.loc.Read(d.reader, d.selectors); err != nil {
@@ -265,17 +267,19 @@ func (d *DictReader) ReadBytes() (zcode.Bytes, error) {
 	return d.dict[sel].Value.Bytes(), nil
 }
 
-type ConstReader struct {
+type ConstBuilder struct {
 	Typ   zed.Type
 	bytes zcode.Bytes
 	cnt   uint32
 }
 
-func NewConstReader(c *Const) *ConstReader {
-	return &ConstReader{Typ: c.Value.Type(), bytes: c.Value.Bytes(), cnt: c.Count}
+var _ Builder = (*ConstBuilder)(nil)
+
+func NewConstBuilder(c *Const) *ConstBuilder {
+	return &ConstBuilder{Typ: c.Value.Type(), bytes: c.Value.Bytes(), cnt: c.Count}
 }
 
-func (c *ConstReader) Read(b *zcode.Builder) error {
+func (c *ConstBuilder) Build(b *zcode.Builder) error {
 	if c.cnt == 0 {
 		return io.EOF
 	}

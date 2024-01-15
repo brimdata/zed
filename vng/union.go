@@ -1,4 +1,4 @@
-package vector
+package vng
 
 import (
 	"errors"
@@ -9,28 +9,28 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type UnionWriter struct {
+type UnionEncoder struct {
 	typ    *zed.TypeUnion
-	values []Writer
-	tags   *Int64Writer
+	values []Encoder
+	tags   *Int64Encoder
 	count  uint32
 }
 
-var _ Writer = (*UnionWriter)(nil)
+var _ Encoder = (*UnionEncoder)(nil)
 
-func NewUnionWriter(typ *zed.TypeUnion) *UnionWriter {
-	var values []Writer
+func NewUnionEncoder(typ *zed.TypeUnion) *UnionEncoder {
+	var values []Encoder
 	for _, typ := range typ.Types {
-		values = append(values, NewWriter(typ))
+		values = append(values, NewEncoder(typ))
 	}
-	return &UnionWriter{
+	return &UnionEncoder{
 		typ:    typ,
 		values: values,
-		tags:   NewInt64Writer(),
+		tags:   NewInt64Encoder(),
 	}
 }
 
-func (u *UnionWriter) Write(body zcode.Bytes) {
+func (u *UnionEncoder) Write(body zcode.Bytes) {
 	u.count++
 	typ, zv := u.typ.Untag(body)
 	tag := u.typ.TagOf(typ)
@@ -38,7 +38,7 @@ func (u *UnionWriter) Write(body zcode.Bytes) {
 	u.values[tag].Write(zv)
 }
 
-func (u *UnionWriter) Emit(w io.Writer) error {
+func (u *UnionEncoder) Emit(w io.Writer) error {
 	if err := u.tags.Emit(w); err != nil {
 		return err
 	}
@@ -50,14 +50,14 @@ func (u *UnionWriter) Emit(w io.Writer) error {
 	return nil
 }
 
-func (u *UnionWriter) Encode(group *errgroup.Group) {
+func (u *UnionEncoder) Encode(group *errgroup.Group) {
 	u.tags.Encode(group)
 	for _, value := range u.values {
 		value.Encode(group)
 	}
 }
 
-func (u *UnionWriter) Metadata(off uint64) (uint64, Metadata) {
+func (u *UnionEncoder) Metadata(off uint64) (uint64, Metadata) {
 	off, tags := u.tags.Metadata(off)
 	values := make([]Metadata, 0, len(u.values))
 	for _, val := range u.values {
@@ -72,37 +72,39 @@ func (u *UnionWriter) Metadata(off uint64) (uint64, Metadata) {
 	}
 }
 
-type UnionReader struct {
-	Readers []Reader
-	Tags    *Int64Reader
+type UnionBuilder struct {
+	builders []Builder
+	tags     *Int64Decoder
 }
 
-func NewUnionReader(union *Union, r io.ReaderAt) (*UnionReader, error) {
-	readers := make([]Reader, 0, len(union.Values))
+var _ Builder = (*UnionBuilder)(nil)
+
+func NewUnionBuilder(union *Union, r io.ReaderAt) (*UnionBuilder, error) {
+	builders := make([]Builder, 0, len(union.Values))
 	for _, val := range union.Values {
-		reader, err := NewReader(val, r)
+		b, err := NewBuilder(val, r)
 		if err != nil {
 			return nil, err
 		}
-		readers = append(readers, reader)
+		builders = append(builders, b)
 	}
-	return &UnionReader{
-		Readers: readers,
-		Tags:    NewInt64Reader(union.Tags, r),
+	return &UnionBuilder{
+		builders: builders,
+		tags:     NewInt64Decoder(union.Tags, r),
 	}, nil
 }
 
-func (u *UnionReader) Read(b *zcode.Builder) error {
-	tag, err := u.Tags.Read()
+func (u *UnionBuilder) Build(b *zcode.Builder) error {
+	tag, err := u.tags.Next()
 	if err != nil {
 		return err
 	}
-	if tag < 0 || int(tag) >= len(u.Readers) {
-		return errors.New("bad tag in VNG union reader")
+	if tag < 0 || int(tag) >= len(u.builders) {
+		return errors.New("bad tag in VNG union builder")
 	}
 	b.BeginContainer()
 	b.Append(zed.EncodeInt(tag))
-	if err := u.Readers[tag].Read(b); err != nil {
+	if err := u.builders[tag].Build(b); err != nil {
 		return err
 	}
 	b.EndContainer()
