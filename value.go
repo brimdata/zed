@@ -357,8 +357,7 @@ func (r Value) Fields() []Field {
 func (v *Value) DerefByColumn(col int) *Value {
 	if v != nil {
 		if bytes := v.nth(col); bytes != nil {
-			val := NewValue(v.Fields()[col].Type, bytes)
-			return &val
+			return NewValue(v.Fields()[col].Type, bytes).Ptr()
 		}
 	}
 	return nil
