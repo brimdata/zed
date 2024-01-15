@@ -50,8 +50,8 @@ func (w *Writer) finalize() error {
 	}
 	// At this point all the vector data has been written out
 	// to the underlying spiller, so we start writing zng at this point.
-	metaBytes := &bytes.Buffer{}
-	zw := zngio.NewWriter(zio.NopCloser(metaBytes))
+	var metaBuf bytes.Buffer
+	zw := zngio.NewWriter(zio.NopCloser(&metaBuf))
 	// First, we write the root segmap of the vector of integer type IDs.
 	m := zson.NewZNGMarshalerWithContext(w.zctx)
 	m.Decorate(zson.StyleSimple)
@@ -69,7 +69,7 @@ func (w *Writer) finalize() error {
 		return fmt.Errorf("system error: could not write VNG header: %w", err)
 	}
 	// Metadata section
-	if _, err := w.writer.Write(metaBytes.Bytes()); err != nil {
+	if _, err := w.writer.Write(metaBuf.Bytes()); err != nil {
 		return fmt.Errorf("system error: could not write VNG metadata section: %w", err)
 	}
 	// Data section

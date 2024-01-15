@@ -88,14 +88,14 @@ func (v *VariantWriter) Emit(w io.Writer) error {
 	return nil
 }
 
-type VariantBuilder struct {
+type variantBuilder struct {
 	types   []zed.Type
 	tags    *Int64Reader
 	values  []Reader
 	builder *zcode.Builder
 }
 
-func NewVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) (*VariantBuilder, error) {
+func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) (*variantBuilder, error) {
 	values := make([]Reader, 0, len(variant.Values))
 	types := make([]zed.Type, 0, len(variant.Values))
 	for _, val := range variant.Values {
@@ -106,7 +106,7 @@ func NewVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) 
 		values = append(values, r)
 		types = append(types, val.Type(zctx))
 	}
-	return &VariantBuilder{
+	return &variantBuilder{
 		types:   types,
 		tags:    NewInt64Reader(variant.Tags, reader),
 		values:  values,
@@ -114,7 +114,7 @@ func NewVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) 
 	}, nil
 }
 
-func (v *VariantBuilder) Read() (*zed.Value, error) {
+func (v *variantBuilder) Read() (*zed.Value, error) {
 	b := v.builder
 	b.Truncate()
 	tag, err := v.tags.Read()
@@ -135,13 +135,13 @@ func (v *VariantBuilder) Read() (*zed.Value, error) {
 
 func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, error) {
 	if variant, ok := meta.(*Variant); ok {
-		return NewVariantBuilder(zctx, variant, r)
+		return newVariantBuilder(zctx, variant, r)
 	}
 	values, err := NewReader(meta, r)
 	if err != nil {
 		return nil, err
 	}
-	return &VectorBuilder{
+	return &vectorBuilder{
 		typ:     meta.Type(zctx),
 		values:  values,
 		builder: zcode.NewBuilder(),
@@ -149,14 +149,14 @@ func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, 
 	}, nil
 }
 
-type VectorBuilder struct {
+type vectorBuilder struct {
 	typ     zed.Type
 	values  Reader
 	builder *zcode.Builder
 	count   uint32
 }
 
-func (v *VectorBuilder) Read() (*zed.Value, error) {
+func (v *vectorBuilder) Read() (*zed.Value, error) {
 	if v.count == 0 {
 		return nil, nil
 	}

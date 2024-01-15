@@ -51,7 +51,7 @@ type Writer interface {
 	// describing the layout of vectors.  This is called after all data is
 	// written and encoded by the Writer with the result marshaled to build
 	// the header section of the VNG object.  An offset is passed down into
-	//  the traversal representing where in the data section the vector data
+	// the traversal representing where in the data section the vector data
 	// will land.  This is called in a sequential fashion (no parallelism) so
 	// that the metadata can be computed and the VNG header written before the
 	// vector data is written via Emit.

@@ -47,9 +47,8 @@ func (m *MapWriter) Emit(w io.Writer) error {
 
 func (m *MapWriter) Metadata(off uint64) (uint64, Metadata) {
 	off, lens := m.lengths.Metadata(off)
-	var keys, vals Metadata
-	off, keys = m.keys.Metadata(off)
-	off, vals = m.values.Metadata(off)
+	off, keys := m.keys.Metadata(off)
+	off, vals := m.values.Metadata(off)
 	return off, &Map{
 		Lengths: lens.(*Primitive).Location,
 		Keys:    keys,

@@ -70,8 +70,7 @@ func (n *NullsWriter) Metadata(off uint64) (uint64, Metadata) {
 	if n.count == 0 {
 		return off, values
 	}
-	var runs Metadata
-	off, runs = n.runs.Metadata(off)
+	off, runs := n.runs.Metadata(off)
 	return off, &Nulls{
 		Runs:   runs.(*Primitive).Location,
 		Values: values,

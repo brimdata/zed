@@ -49,9 +49,8 @@ func (a *ArrayWriter) Emit(w io.Writer) error {
 }
 
 func (a *ArrayWriter) Metadata(off uint64) (uint64, Metadata) {
-	var lens, vals Metadata
-	off, lens = a.lengths.Metadata(off)
-	off, vals = a.values.Metadata(off)
+	off, lens := a.lengths.Metadata(off)
+	off, vals := a.values.Metadata(off)
 	return off, &Array{
 		Length:  a.count,
 		Lengths: lens.(*Primitive).Location, //XXX
