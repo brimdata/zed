@@ -47,7 +47,7 @@ func (c *Pair) Equal() bool {
 	return bytes.Equal(c.A, c.B)
 }
 
-func (c *Pair) Coerce(a, b *zed.Value) (int, error) {
+func (c *Pair) Coerce(a, b zed.Value) (int, error) {
 	c.A = a.Bytes()
 	c.B = b.Bytes()
 	aid := a.Type().ID()
@@ -152,7 +152,7 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
 	return id, ok
 }
 
-func ToFloat(val *zed.Value) (float64, bool) {
+func ToFloat(val zed.Value) (float64, bool) {
 	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return float64(val.Uint()), true
@@ -167,7 +167,7 @@ func ToFloat(val *zed.Value) (float64, bool) {
 	return 0, false
 }
 
-func ToUint(val *zed.Value) (uint64, bool) {
+func ToUint(val zed.Value) (uint64, bool) {
 	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return val.Uint(), true
@@ -186,7 +186,7 @@ func ToUint(val *zed.Value) (uint64, bool) {
 	return 0, false
 }
 
-func ToInt(val *zed.Value) (int64, bool) {
+func ToInt(val zed.Value) (int64, bool) {
 	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return int64(val.Uint()), true
@@ -202,7 +202,7 @@ func ToInt(val *zed.Value) (int64, bool) {
 	return 0, false
 }
 
-func ToBool(val *zed.Value) (bool, bool) {
+func ToBool(val zed.Value) (bool, bool) {
 	if val.IsString() {
 		v, err := byteconv.ParseBool(val.Bytes())
 		return v, err == nil

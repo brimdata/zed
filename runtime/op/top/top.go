@@ -49,7 +49,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		}
 		vals := batch.Values()
 		for i := range vals {
-			o.consume(&vals[i])
+			o.consume(vals[i])
 		}
 		batch.Unref()
 		if o.flushEvery {
@@ -58,7 +58,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	}
 }
 
-func (o *Op) consume(rec *zed.Value) {
+func (o *Op) consume(rec zed.Value) {
 	if o.fields == nil {
 		fld := sort.GuessSortKey(rec)
 		accessor := expr.NewDottedExpr(o.zctx, fld)
@@ -83,7 +83,7 @@ func (o *Op) sorted() zbuf.Batch {
 	}
 	out := make([]zed.Value, o.records.Len())
 	for i := o.records.Len() - 1; i >= 0; i-- {
-		out[i] = *heap.Pop(o.records).(*zed.Value)
+		out[i] = heap.Pop(o.records).(zed.Value)
 	}
 	// clear records
 	o.records = nil

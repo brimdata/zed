@@ -32,7 +32,7 @@ func (w *ZNGWriter) WriteControl(v interface{}) error {
 		return err
 	}
 	var buf bytes.Buffer
-	err = zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(*val)
+	err = zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(val)
 	if err != nil {
 		return err
 	}

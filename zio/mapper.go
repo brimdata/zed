@@ -32,6 +32,6 @@ func (m *Mapper) Read() (*zed.Value, error) {
 			return nil, err
 		}
 	}
-	*rec = *zed.NewValue(sharedType, rec.Bytes())
+	*rec = zed.NewValue(sharedType, rec.Bytes())
 	return rec, nil
 }

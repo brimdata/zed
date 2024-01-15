@@ -158,7 +158,7 @@ func NewEnter(names []string, exprs []expr.Evaluator) *Enter {
 	}
 }
 
-func (e *Enter) addLocals(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
+func (e *Enter) addLocals(batch zbuf.Batch, this zed.Value) zbuf.Batch {
 	inner := newScopedBatch(batch, len(e.exprs))
 	for _, expr := range e.exprs {
 		// Note that we add a var to the frame on each Eval call
@@ -271,8 +271,8 @@ func (s *scope) Vars() []zed.Value {
 	return s.vars
 }
 
-func (s *scope) push(val *zed.Value) {
-	s.vars = append(s.vars, *val)
+func (s *scope) push(val zed.Value) {
+	s.vars = append(s.vars, val)
 }
 
 type exitScope struct {

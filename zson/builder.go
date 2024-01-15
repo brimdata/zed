@@ -15,10 +15,10 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-func Build(b *zcode.Builder, val Value) (*zed.Value, error) {
+func Build(b *zcode.Builder, val Value) (zed.Value, error) {
 	b.Truncate()
 	if err := buildValue(b, val); err != nil {
-		return nil, err
+		return zed.Null, err
 	}
 	it := b.Bytes().Iter()
 	return zed.NewValue(val.TypeOf(), it.Next()), nil

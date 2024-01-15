@@ -13,7 +13,7 @@ import (
 	"github.com/x448/float16"
 )
 
-func testSuccessful(t *testing.T, e string, input string, expectedVal *zed.Value) {
+func testSuccessful(t *testing.T, e string, input string, expectedVal zed.Value) {
 	if input == "" {
 		input = "{}"
 	}
@@ -400,7 +400,7 @@ func TestArithmetic(t *testing.T) {
 		panic("signed")
 	}
 	// Test arithmetic between integer types
-	iresult := func(t1, t2 string, v uint64) *zed.Value {
+	iresult := func(t1, t2 string, v uint64) zed.Value {
 		typ1 := zed.LookupPrimitive(t1)
 		typ2 := zed.LookupPrimitive(t2)
 		id1 := typ1.ID()

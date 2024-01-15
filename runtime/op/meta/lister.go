@@ -90,7 +90,7 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 			return nil, err
 		}
 		if !l.pruner.prune(val) {
-			return zbuf.NewArray([]zed.Value{*val}), nil
+			return zbuf.NewArray([]zed.Value{val}), nil
 		}
 	}
 	return nil, nil
@@ -106,7 +106,7 @@ func initObjectScan(snap commits.View, sortKey order.SortKey) []*data.Object {
 func sortObjects(objects []*data.Object, o order.Which) {
 	cmp := expr.NewValueCompareFn(o, true)
 	lessFunc := func(a, b *data.Object) bool {
-		aFrom, aTo, bFrom, bTo := &a.Min, &a.Max, &b.Min, &b.Max
+		aFrom, aTo, bFrom, bTo := a.Min, a.Max, b.Min, b.Max
 		if o == order.Desc {
 			aFrom, aTo, bFrom, bTo = aTo, aFrom, bTo, bFrom
 		}

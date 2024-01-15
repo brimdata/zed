@@ -14,6 +14,7 @@ type Reader struct {
 	parser   *zson.Parser
 	analyzer zson.Analyzer
 	builder  *zcode.Builder
+	val      zed.Value
 }
 
 func NewReader(zctx *zed.Context, r io.Reader) *Reader {
@@ -37,5 +38,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zson.Build(r.builder, val)
+	r.val, err = zson.Build(r.builder, val)
+	return &r.val, err
 }

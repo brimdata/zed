@@ -23,9 +23,9 @@ func (a *And) Consume(val zed.Value) {
 
 func (a *And) Result(*zed.Context) zed.Value {
 	if a.val == nil {
-		return *zed.NullBool
+		return zed.NullBool
 	}
-	return *zed.NewBool(*a.val)
+	return zed.NewBool(*a.val)
 }
 
 func (a *And) ConsumeAsPartial(val zed.Value) {
@@ -58,9 +58,9 @@ func (o *Or) Consume(val zed.Value) {
 
 func (o *Or) Result(*zed.Context) zed.Value {
 	if o.val == nil {
-		return *zed.NullBool
+		return zed.NullBool
 	}
-	return *zed.NewBool(*o.val)
+	return zed.NewBool(*o.val)
 }
 
 func (o *Or) ConsumeAsPartial(val zed.Value) {

@@ -126,7 +126,7 @@ func (w *Writer) finalize() error {
 		//XXX wrap
 		return err
 	}
-	if err := zw.Write(*val); err != nil {
+	if err := zw.Write(val); err != nil {
 		//XXX wrap
 		return err
 	}
@@ -137,7 +137,7 @@ func (w *Writer) finalize() error {
 			//XXX wrap
 			return err
 		}
-		if err := zw.Write(*val); err != nil {
+		if err := zw.Write(val); err != nil {
 			//XXX wrap
 			return err
 		}

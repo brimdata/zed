@@ -173,6 +173,6 @@ func (b *builder) value() *zed.Value {
 		panic("multiple items")
 	}
 	item := &b.items[0]
-	b.val = *zed.NewValue(item.typ, item.zb.Bytes().Body())
+	b.val = zed.NewValue(item.typ, item.zb.Bytes().Body())
 	return &b.val
 }

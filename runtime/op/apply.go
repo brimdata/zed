@@ -31,13 +31,13 @@ func (a *applier) Pull(done bool) (zbuf.Batch, error) {
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
-			val := a.expr.Eval(a.ectx.Reset(), &vals[i])
+			val := a.expr.Eval(a.ectx.Reset(), vals[i])
 			if val.IsError() {
 				if val.IsQuiet() || val.IsMissing() {
 					continue
 				}
 			}
-			out = append(out, *val.Copy())
+			out = append(out, val.Copy())
 		}
 		if len(out) > 0 {
 			defer batch.Unref()

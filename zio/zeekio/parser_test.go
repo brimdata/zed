@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,7 +79,6 @@ func TestLegacyZeekValid(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, record.Deref("ts").MissingAsNull(), zed.Null)
-	assert.Equal(t, record.Deref("ts").MissingAsNull().AsTime(), nano.Ts(0))
 	// XXX check contents of other fields?
 
 	// Test standard headers with a timestamp in records

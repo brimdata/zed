@@ -84,7 +84,7 @@ func (w *Writer) Write(rec zed.Value) error {
 	// and slow down import. We should instead copy the raw record bytes into a
 	// recycled buffer and keep around an array of ts + byte-slice structs for
 	// sorting.
-	w.vals = append(w.vals, *rec.Copy())
+	w.vals = append(w.vals, rec.Copy())
 	w.memBuffered += int64(len(rec.Bytes()))
 	//XXX change name LogSizeThreshold
 	// XXX the previous logic estimated the object size with divide by 2...?!
@@ -167,7 +167,7 @@ type SortedWriter struct {
 	ctx           context.Context
 	pool          *Pool
 	poolKey       field.Path
-	lastKey       *zed.Value
+	lastKey       zed.Value
 	writer        *data.Writer
 	vectorEnabled bool
 	vectorWriter  *data.VectorWriter
@@ -180,7 +180,6 @@ func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorE
 		ctx:           ctx,
 		poolKey:       poolKey(pool.SortKey),
 		pool:          pool,
-		lastKey:       &zed.Value{},
 		vectorEnabled: vectorEnabled,
 	}
 }
@@ -203,7 +202,7 @@ again:
 		w.writer, w.vectorWriter = nil, nil
 		goto again
 	}
-	if err := w.writer.WriteWithKey(*key, val); err != nil {
+	if err := w.writer.WriteWithKey(key, val); err != nil {
 		w.Abort()
 		return err
 	}

@@ -43,7 +43,7 @@ type errorReader struct{ error }
 
 func (e *errorReader) Read() (*zed.Value, error) { return nil, e }
 
-type sliceReader []*zed.Value
+type sliceReader []zed.Value
 
 func (t *sliceReader) Read() (*zed.Value, error) {
 	if len(*t) == 0 {
@@ -51,5 +51,5 @@ func (t *sliceReader) Read() (*zed.Value, error) {
 	}
 	val := (*t)[0]
 	*t = (*t)[1:]
-	return val, nil
+	return &val, nil
 }

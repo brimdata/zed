@@ -126,7 +126,7 @@ func (s *Store) load(ctx context.Context) error {
 			return nil
 		}
 		var e Entry
-		if err := s.unmarshaler.Unmarshal(val, &e); err != nil {
+		if err := s.unmarshaler.Unmarshal(*val, &e); err != nil {
 			return err
 		}
 		switch e := e.(type) {
@@ -169,7 +169,7 @@ func (s *Store) getSnapshot(ctx context.Context) (ID, map[string]Entry, error) {
 			return at, table, err
 		}
 		var e Entry
-		if err := s.unmarshaler.Unmarshal(val, &e); err != nil {
+		if err := s.unmarshaler.Unmarshal(*val, &e); err != nil {
 			return at, nil, err
 		}
 		table[e.Key()] = e
@@ -184,7 +184,7 @@ func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) 
 	}
 	zw := zngio.NewWriter(w)
 	defer zw.Close()
-	if err := zw.Write(*zed.NewUint64(uint64(at))); err != nil {
+	if err := zw.Write(zed.NewUint64(uint64(at))); err != nil {
 		return err
 	}
 	marshaler := zson.NewZNGMarshaler()
@@ -194,7 +194,7 @@ func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) 
 		if err != nil {
 			return err
 		}
-		if err := zw.Write(*val); err != nil {
+		if err := zw.Write(val); err != nil {
 			return err
 		}
 	}

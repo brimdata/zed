@@ -169,7 +169,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 	}
 }
 
-func unmarshalHeaders(val *zed.Value) (map[string][]string, error) {
+func unmarshalHeaders(val zed.Value) (map[string][]string, error) {
 	if !zed.IsRecordType(val.Type()) {
 		return nil, errors.New("headers value must be a record")
 	}

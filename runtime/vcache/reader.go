@@ -40,6 +40,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 		panic(fmt.Sprintf("vector.Builder returned false for key %d at offset %d", key, r.off))
 	}
 	r.off++
-	r.val = *zed.NewValue(o.typeDict[key], r.builder.Bytes().Body())
+	r.val = zed.NewValue(o.typeDict[key], r.builder.Bytes().Body())
 	return &r.val, nil
 }

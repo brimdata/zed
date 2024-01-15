@@ -39,12 +39,12 @@ func (f *Fields) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	subjectVal := args[0]
 	typ := f.recordType(subjectVal)
 	if typ == nil {
-		return *f.zctx.Missing()
+		return f.zctx.Missing()
 	}
 	//XXX should have a way to append into allocator
 	var b zcode.Builder
 	buildPath(typ, &b, nil)
-	return *zed.NewValue(f.typ, b.Bytes())
+	return zed.NewValue(f.typ, b.Bytes())
 }
 
 func (f *Fields) recordType(val zed.Value) *zed.TypeRecord {

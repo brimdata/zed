@@ -30,11 +30,11 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		out := make([]zed.Value, 0, len(o.exprs)*len(vals))
 		for i := range vals {
 			for _, e := range o.exprs {
-				val := e.Eval(o.ectx.Reset(), &vals[i])
+				val := e.Eval(o.ectx.Reset(), vals[i])
 				if val.IsQuiet() {
 					continue
 				}
-				out = append(out, *val.Copy())
+				out = append(out, val.Copy())
 			}
 		}
 		if len(out) > 0 {

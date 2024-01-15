@@ -48,7 +48,7 @@ func (o *Over) Pull(done bool) (zbuf.Batch, error) {
 			o.batch = batch
 			o.outer = batch.Values()
 		}
-		this := &o.outer[0]
+		this := o.outer[0]
 		o.outer = o.outer[1:]
 		ectx := o.batch
 		if o.enter != nil {
@@ -64,7 +64,7 @@ func (o *Over) Pull(done bool) (zbuf.Batch, error) {
 	}
 }
 
-func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
+func (o *Over) over(batch zbuf.Batch, this zed.Value) zbuf.Batch {
 	// Copy the vars into a new scope since downstream, nested subgraphs
 	// can have concurrent operators.  We can optimize these copies out
 	// later depending on the nested subgraph.
@@ -74,7 +74,7 @@ func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 		val := e.Eval(o.ectx.Reset(), this)
 		// Propagate errors but skip missing values.
 		if !val.IsMissing() {
-			vals = appendOver(o.zctx, vals, *val)
+			vals = appendOver(o.zctx, vals, val)
 		}
 	}
 	if len(vals) == 0 {
@@ -84,7 +84,7 @@ func (o *Over) over(batch zbuf.Batch, this *zed.Value) zbuf.Batch {
 }
 
 func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value {
-	val = *val.Under(&val)
+	val = val.Under()
 	switch typ := zed.TypeUnder(val.Type()).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
 		typ = zed.InnerType(typ)
@@ -92,8 +92,8 @@ func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value 
 			// XXX when we do proper expr.Context, we can allocate
 			// this copy through the batch.
 			val := zed.NewValue(typ, it.Next())
-			val = val.Under(val)
-			vals = append(vals, *val.Copy())
+			val = val.Under()
+			vals = append(vals, val.Copy())
 		}
 		return vals
 	case *zed.TypeMap:
@@ -103,7 +103,7 @@ func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value 
 		})
 		for it := val.Bytes().Iter(); !it.Done(); {
 			bytes := zcode.Append(zcode.Append(nil, it.Next()), it.Next())
-			vals = append(vals, *zed.NewValue(rtyp, bytes))
+			vals = append(vals, zed.NewValue(rtyp, bytes))
 		}
 		return vals
 	case *zed.TypeRecord:
@@ -119,10 +119,10 @@ func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value 
 			builder.Append(zed.EncodeString(field.Name))
 			builder.EndContainer()
 			builder.Append(it.Next())
-			vals = append(vals, *zed.NewValue(typ, builder.Bytes()).Copy())
+			vals = append(vals, zed.NewValue(typ, builder.Bytes()).Copy())
 		}
 		return vals
 	default:
-		return append(vals, *val.Copy())
+		return append(vals, val.Copy())
 	}
 }

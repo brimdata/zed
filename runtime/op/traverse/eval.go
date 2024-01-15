@@ -41,9 +41,9 @@ func (e *Expr) SetExit(exit *Exit) {
 	e.exit = exit
 }
 
-func (e *Expr) Eval(ectx expr.Context, this *zed.Value) *zed.Value {
+func (e *Expr) Eval(ectx expr.Context, this zed.Value) zed.Value {
 	select {
-	case e.batchCh <- zbuf.NewArray([]zed.Value{*this}):
+	case e.batchCh <- zbuf.NewArray([]zed.Value{this}):
 	case <-e.ctx.Done():
 		return e.zctx.NewError(e.ctx.Err())
 	}
@@ -61,7 +61,7 @@ func (e *Expr) Eval(ectx expr.Context, this *zed.Value) *zed.Value {
 	}
 }
 
-func (e *Expr) combine(ectx expr.Context, batches []zbuf.Batch) *zed.Value {
+func (e *Expr) combine(ectx expr.Context, batches []zbuf.Batch) zed.Value {
 	switch len(batches) {
 	case 0:
 		return zed.Null
@@ -76,14 +76,14 @@ func (e *Expr) combine(ectx expr.Context, batches []zbuf.Batch) *zed.Value {
 	}
 }
 
-func (e *Expr) makeArray(ectx expr.Context, vals []zed.Value) *zed.Value {
+func (e *Expr) makeArray(ectx expr.Context, vals []zed.Value) zed.Value {
 	if len(vals) == 0 {
 		return zed.Null
 	}
-	typ := vals[0].Type()
 	if len(vals) == 1 {
-		return ectx.NewValue(typ, vals[0].Bytes())
+		return vals[0]
 	}
+	typ := vals[0].Type()
 	for _, val := range vals[1:] {
 		if typ != val.Type() {
 			return e.makeUnionArray(ectx, vals)
@@ -93,10 +93,10 @@ func (e *Expr) makeArray(ectx expr.Context, vals []zed.Value) *zed.Value {
 	for _, val := range vals {
 		b.Append(val.Bytes())
 	}
-	return ectx.NewValue(e.zctx.LookupTypeArray(typ), b.Bytes())
+	return zed.NewValue(e.zctx.LookupTypeArray(typ), b.Bytes())
 }
 
-func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) *zed.Value {
+func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) zed.Value {
 	types := make(map[zed.Type]struct{})
 	for _, val := range vals {
 		types[val.Type()] = struct{}{}
@@ -110,7 +110,7 @@ func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) *zed.Value {
 	for _, val := range vals {
 		zed.BuildUnion(&b, union.TagOf(val.Type()), val.Bytes())
 	}
-	return ectx.NewValue(e.zctx.LookupTypeArray(union), b.Bytes())
+	return zed.NewValue(e.zctx.LookupTypeArray(union), b.Bytes())
 }
 
 func (e *Expr) Pull(done bool) (zbuf.Batch, error) {

@@ -33,8 +33,8 @@ func (a *Array) Values() []zed.Value {
 	return a.values
 }
 
-func (a *Array) Append(r *zed.Value) {
-	a.values = append(a.values, *r)
+func (a *Array) Append(r zed.Value) {
+	a.values = append(a.values, r)
 }
 
 func (a *Array) Vars() []zed.Value {

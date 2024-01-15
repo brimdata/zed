@@ -82,13 +82,13 @@ type Shaper struct {
 	shapers map[zed.Type]*ConstShaper
 }
 
-func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
+func (s *Shaper) Eval(ectx Context, this zed.Value) zed.Value {
 	typeVal := s.typeExpr.Eval(ectx, this)
 	switch id := typeVal.Type().ID(); {
 	case id == zed.IDType:
 		typ, err := s.zctx.LookupByValue(typeVal.Bytes())
 		if err != nil {
-			return ectx.CopyValue(*s.zctx.NewError(err))
+			return s.zctx.NewError(err)
 		}
 		shaper, ok := s.shapers[typ]
 		if !ok {
@@ -100,7 +100,7 @@ func (s *Shaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		name := zed.DecodeString(typeVal.Bytes())
 		return (&casterNamedType{s.zctx, s.expr, name}).Eval(ectx, this)
 	}
-	return ectx.CopyValue(*s.zctx.WrapError("shaper type argument is not a type", typeVal))
+	return s.zctx.WrapError("shaper type argument is not a type", typeVal)
 }
 
 type ConstShaper struct {
@@ -132,25 +132,25 @@ func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf Shap
 	}
 }
 
-func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
+func (c *ConstShaper) Eval(ectx Context, this zed.Value) zed.Value {
 	val := c.expr.Eval(ectx, this)
 	if val.IsError() {
 		return val
 	}
 	if val.IsNull() {
 		// Null values can be shaped to any type.
-		return ectx.NewValue(c.shapeTo, nil)
+		return zed.NewValue(c.shapeTo, nil)
 	}
 	id, shapeToID := val.Type().ID(), c.shapeTo.ID()
 	if id == shapeToID {
 		// Same underlying types but one or both are named.
-		return ectx.NewValue(c.shapeTo, val.Bytes())
+		return zed.NewValue(c.shapeTo, val.Bytes())
 	}
 	if c.caster != nil && !zed.IsUnionType(val.Type()) {
 		val = c.caster.Eval(ectx, val)
 		if val.Type() != c.shapeTo && val.Type().ID() == shapeToID {
 			// Same underlying types but one or both are named.
-			return ectx.NewValue(c.shapeTo, val.Bytes())
+			return zed.NewValue(c.shapeTo, val.Bytes())
 		}
 		return val
 	}
@@ -159,13 +159,13 @@ func (c *ConstShaper) Eval(ectx Context, this *zed.Value) *zed.Value {
 		var err error
 		s, err = newShaper(c.zctx, c.transforms, val.Type(), c.shapeTo)
 		if err != nil {
-			return ectx.CopyValue(*c.zctx.NewError(err))
+			return c.zctx.NewError(err)
 		}
 		c.shapers[id] = s
 	}
 	c.b.Reset()
 	typ := s.step.build(c.zctx, ectx, val.Bytes(), &c.b)
-	return ectx.NewValue(typ, c.b.Bytes().Body())
+	return zed.NewValue(typ, c.b.Bytes().Body())
 }
 
 // A shaper is a per-input type ID "spec" that contains the output
@@ -446,7 +446,7 @@ func (s *step) build(zctx *zed.Context, ectx Context, in zcode.Bytes, b *zcode.B
 	case castPrimitive:
 		// For a successful cast, v.Type == zed.TypeUnder(s.toType).
 		// For a failed cast, v.Type is a zed.TypeError.
-		v := s.caster.Eval(ectx, ectx.NewValue(s.fromType, in))
+		v := s.caster.Eval(ectx, zed.NewValue(s.fromType, in))
 		b.Append(v.Bytes())
 		if zed.TypeUnder(v.Type()) == zed.TypeUnder(s.toType) {
 			// Prefer s.toType in case it's a named type.

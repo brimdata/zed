@@ -39,7 +39,7 @@ func newPeeker(ctx context.Context, zctx *zed.Context, filename string, ordinal 
 func (p *peeker) read() (*zed.Value, bool, error) {
 	rec := p.nextRecord
 	if rec != nil {
-		rec = rec.Copy()
+		rec = rec.Copy().Ptr()
 	}
 	var err error
 	p.nextRecord, err = p.Read()

@@ -47,7 +47,7 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 	s.ectx.SetVars(batch.Vars())
 	vals := batch.Values()
 	for i := range vals {
-		val := s.expr.Eval(s.ectx.Reset(), &vals[i])
+		val := s.expr.Eval(s.ectx.Reset(), vals[i])
 		if val.IsMissing() {
 			continue
 		}

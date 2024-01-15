@@ -7,12 +7,12 @@ import (
 )
 
 type Entry struct {
-	Min    *zed.Value `zed:"min"`
-	Max    *zed.Value `zed:"max"`
-	ValOff uint64     `zed:"val_off"`
-	ValCnt uint64     `zed:"val_cnt"`
-	Offset uint64     `zed:"offset"`
-	Length uint64     `zed:"length"`
+	Min    zed.Value `zed:"min"`
+	Max    zed.Value `zed:"max"`
+	ValOff uint64    `zed:"val_off"`
+	ValCnt uint64    `zed:"val_cnt"`
+	Offset uint64    `zed:"offset"`
+	Length uint64    `zed:"length"`
 }
 
 type Writer struct {
@@ -29,7 +29,7 @@ func NewWriter(w zio.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(min, max *zed.Value, valoff uint64, offset uint64) error {
+func (w *Writer) Write(min, max zed.Value, valoff uint64, offset uint64) error {
 	val, err := w.marshal.Marshal(&Entry{
 		Min:    min,
 		Max:    max,
@@ -43,5 +43,5 @@ func (w *Writer) Write(min, max *zed.Value, valoff uint64, offset uint64) error 
 	if err != nil {
 		return err
 	}
-	return w.writer.Write(*val.Copy())
+	return w.writer.Write(val)
 }

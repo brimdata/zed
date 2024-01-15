@@ -121,7 +121,7 @@ func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, ord
 		}
 		val, err := m.Marshal(objects[0])
 		objects = objects[1:]
-		return val, err
+		return &val, err
 	}), nil
 }
 

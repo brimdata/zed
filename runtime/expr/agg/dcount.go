@@ -34,12 +34,12 @@ func (d *DCount) Consume(val zed.Value) {
 }
 
 func (d *DCount) Result(*zed.Context) zed.Value {
-	return *zed.NewUint64(d.sketch.Estimate())
+	return zed.NewUint64(d.sketch.Estimate())
 }
 
 func (d *DCount) ConsumeAsPartial(partial zed.Value) {
 	if partial.Type() != zed.TypeBytes {
-		panic(fmt.Errorf("dcount: partial has bad type: %s", zson.FormatValue(&partial)))
+		panic(fmt.Errorf("dcount: partial has bad type: %s", zson.FormatValue(partial)))
 	}
 	var s hyperloglog.Sketch
 	if err := s.UnmarshalBinary(partial.Bytes()); err != nil {
@@ -53,5 +53,5 @@ func (d *DCount) ResultAsPartial(zctx *zed.Context) zed.Value {
 	if err != nil {
 		panic(fmt.Errorf("dcount: marshaling partial: %w", err))
 	}
-	return *zed.NewBytes(b)
+	return zed.NewBytes(b)
 }

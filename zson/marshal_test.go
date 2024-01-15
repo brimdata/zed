@@ -168,14 +168,14 @@ func TestMixedTypeArrayInsideRecord(t *testing.T) {
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer))
 	recExpected := zed.NewValue(zv.Type(), zv.Bytes())
-	writer.Write(*recExpected)
+	writer.Write(recExpected)
 	writer.Close()
 
 	reader := zngio.NewReader(zed.NewContext(), &buffer)
 	defer reader.Close()
 	recActual, err := reader.Read()
 	exp := zson.FormatValue(recExpected)
-	actual := zson.FormatValue(recActual)
+	actual := zson.FormatValue(*recActual)
 	assert.Equal(t, exp, actual)
 	// Double check that all the proper typing made it into the implied union.
 	assert.Equal(t, `{X:"hello",S:[[{MyColor:"red"}(=Plant),{MyColor:"blue"}(=Animal)]]}(=RecordWithInterfaceSlice)`, actual)
@@ -227,7 +227,7 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer))
 	recExpected := zed.NewValue(zv.Type(), zv.Bytes())
-	writer.Write(*recExpected)
+	writer.Write(recExpected)
 	writer.Close()
 
 	reader := zngio.NewReader(zed.NewContext(), &buffer)
@@ -235,7 +235,7 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 	recActual, err := reader.Read()
 	require.NoError(t, err)
 	exp := zson.FormatValue(recExpected)
-	actual := zson.FormatValue(recActual)
+	actual := zson.FormatValue(*recActual)
 	assert.Equal(t, exp, actual)
 	// Double check that all the proper typing made it into the implied union.
 	assert.Equal(t, `[{Message:"hello",Thing:{MyColor:"red"}(=Plant)}(=MessageThing),{Message:"world",Thing:{MyColor:"blue"}(=Animal)}(=MessageThing)]`, actual)
@@ -269,7 +269,7 @@ func TestZNGValueField(t *testing.T) {
 	// Include a Zed int64 inside a Go struct as a zed.Value field.
 	zngValueField := &ZNGValueField{
 		Name:  "test1",
-		Field: *zed.NewInt64(123),
+		Field: zed.NewInt64(123),
 	}
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
@@ -287,7 +287,7 @@ func TestZNGValueField(t *testing.T) {
 	require.NoError(t, err)
 	zngValueField2 := &ZNGValueField{
 		Name:  "test2",
-		Field: *zv2,
+		Field: zv2,
 	}
 	m2 := zson.NewZNGMarshaler()
 	m2.Decorate(zson.StyleSimple)

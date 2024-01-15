@@ -60,7 +60,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		return nil, o.start()
 	}
 	min := heap.Pop(o).(*puller)
-	if o.Len() == 0 || o.cmp(&min.vals[len(min.vals)-1], &o.hol[0].vals[0]) <= 0 {
+	if o.Len() == 0 || o.cmp(min.vals[len(min.vals)-1], o.hol[0].vals[0]) <= 0 {
 		// Either min is the only upstreams or min's last value is less
 		// than or equal to the next upstream's first value.  Either
 		// way, it's safe to return min's remaining values as a batch.
@@ -158,7 +158,7 @@ func (o *Op) propagateDone() error {
 func (o *Op) Len() int { return len(o.hol) }
 
 func (o *Op) Less(i, j int) bool {
-	return o.cmp(&o.hol[i].vals[0], &o.hol[j].vals[0]) < 0
+	return o.cmp(o.hol[i].vals[0], o.hol[j].vals[0]) < 0
 }
 
 func (o *Op) Swap(i, j int) { o.hol[i], o.hol[j] = o.hol[j], o.hol[i] }

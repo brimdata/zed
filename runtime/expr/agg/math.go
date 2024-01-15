@@ -32,9 +32,9 @@ func newMathReducer(f *anymath.Function) *mathReducer {
 func (m *mathReducer) Result(zctx *zed.Context) zed.Value {
 	if !m.hasval {
 		if m.math == nil {
-			return *zed.Null
+			return zed.Null
 		}
-		return *zed.NewValue(m.math.typ(), nil)
+		return zed.NewValue(m.math.typ(), nil)
 	}
 	return m.math.result()
 }
@@ -50,7 +50,7 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 		// XXX We're not using the value coercion parts of coerce.Pair here.
 		// Would be better if coerce had a function that just compared types
 		// and returned the type to coerce to.
-		id, err = m.pair.Coerce(zed.NewValue(m.math.typ(), nil), &val)
+		id, err = m.pair.Coerce(zed.NewValue(m.math.typ(), nil), val)
 		if err != nil {
 			// Skip invalid values.
 			return
@@ -59,7 +59,7 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 		id = val.Type().ID()
 	}
 	if m.math == nil || m.math.typ().ID() != id {
-		state := *zed.Null
+		state := zed.Null
 		if m.math != nil {
 			state = m.math.result()
 		}
@@ -103,7 +103,7 @@ func NewFloat64(f *anymath.Function, val zed.Value) *Float64 {
 	state := f.Init.Float64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToFloat(&val)
+		state, ok = coerce.ToFloat(val)
 		if !ok {
 			panicCoercionFail(zed.TypeFloat64, val.Type())
 		}
@@ -115,11 +115,11 @@ func NewFloat64(f *anymath.Function, val zed.Value) *Float64 {
 }
 
 func (f *Float64) result() zed.Value {
-	return *zed.NewFloat64(f.state)
+	return zed.NewFloat64(f.state)
 }
 
 func (f *Float64) consume(val zed.Value) {
-	if v, ok := coerce.ToFloat(&val); ok {
+	if v, ok := coerce.ToFloat(val); ok {
 		f.state = f.function(f.state, v)
 	}
 }
@@ -135,7 +135,7 @@ func NewInt64(f *anymath.Function, val zed.Value) *Int64 {
 	state := f.Init.Int64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToInt(&val)
+		state, ok = coerce.ToInt(val)
 		if !ok {
 			panicCoercionFail(zed.TypeInt64, val.Type())
 		}
@@ -147,11 +147,11 @@ func NewInt64(f *anymath.Function, val zed.Value) *Int64 {
 }
 
 func (i *Int64) result() zed.Value {
-	return *zed.NewInt64(i.state)
+	return zed.NewInt64(i.state)
 }
 
 func (i *Int64) consume(val zed.Value) {
-	if v, ok := coerce.ToInt(&val); ok {
+	if v, ok := coerce.ToInt(val); ok {
 		i.state = i.function(i.state, v)
 	}
 }
@@ -167,7 +167,7 @@ func NewUint64(f *anymath.Function, val zed.Value) *Uint64 {
 	state := f.Init.Uint64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToUint(&val)
+		state, ok = coerce.ToUint(val)
 		if !ok {
 			panicCoercionFail(zed.TypeUint64, val.Type())
 		}
@@ -179,11 +179,11 @@ func NewUint64(f *anymath.Function, val zed.Value) *Uint64 {
 }
 
 func (u *Uint64) result() zed.Value {
-	return *zed.NewUint64(u.state)
+	return zed.NewUint64(u.state)
 }
 
 func (u *Uint64) consume(val zed.Value) {
-	if v, ok := coerce.ToUint(&val); ok {
+	if v, ok := coerce.ToUint(val); ok {
 		u.state = u.function(u.state, v)
 	}
 }
@@ -199,7 +199,7 @@ func NewDuration(f *anymath.Function, val zed.Value) *Duration {
 	state := f.Init.Int64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToInt(&val)
+		state, ok = coerce.ToInt(val)
 		if !ok {
 			panicCoercionFail(zed.TypeDuration, val.Type())
 		}
@@ -211,11 +211,11 @@ func NewDuration(f *anymath.Function, val zed.Value) *Duration {
 }
 
 func (d *Duration) result() zed.Value {
-	return *zed.NewDuration(nano.Duration(d.state))
+	return zed.NewDuration(nano.Duration(d.state))
 }
 
 func (d *Duration) consume(val zed.Value) {
-	if v, ok := coerce.ToInt(&val); ok {
+	if v, ok := coerce.ToInt(val); ok {
 		d.state = d.function(d.state, v)
 	}
 }
@@ -231,7 +231,7 @@ func NewTime(f *anymath.Function, val zed.Value) *Time {
 	state := f.Init.Int64
 	if !val.IsNull() {
 		var ok bool
-		state, ok = coerce.ToInt(&val)
+		state, ok = coerce.ToInt(val)
 		if !ok {
 			panicCoercionFail(zed.TypeTime, val.Type())
 		}
@@ -243,11 +243,11 @@ func NewTime(f *anymath.Function, val zed.Value) *Time {
 }
 
 func (t *Time) result() zed.Value {
-	return *zed.NewTime(t.state)
+	return zed.NewTime(t.state)
 }
 
 func (t *Time) consume(val zed.Value) {
-	if v, ok := coerce.ToInt(&val); ok {
+	if v, ok := coerce.ToInt(val); ok {
 		t.state = nano.Ts(t.function(int64(t.state), v))
 	}
 }

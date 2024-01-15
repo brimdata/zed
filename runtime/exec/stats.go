@@ -27,8 +27,8 @@ func GetPoolStats(ctx context.Context, p *lake.Pool, snap commits.View) (info Po
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.Min, object.Max, order.Asc)
 		} else {
-			poolSpan.Extend(&object.Min)
-			poolSpan.Extend(&object.Max)
+			poolSpan.Extend(object.Min)
+			poolSpan.Extend(object.Max)
 		}
 	}
 	//XXX need to change API to take return key range
@@ -62,8 +62,8 @@ func GetBranchStats(ctx context.Context, b *lake.Branch, snap commits.View) (inf
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.Min, object.Max, order.Asc)
 		} else {
-			poolSpan.Extend(&object.Min)
-			poolSpan.Extend(&object.Max)
+			poolSpan.Extend(object.Min)
+			poolSpan.Extend(object.Max)
 		}
 	}
 	//XXX need to change API to take return key range

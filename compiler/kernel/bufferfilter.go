@@ -21,7 +21,7 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 			return nil, err
 		}
 		if literal != nil {
-			return newBufferFilterForLiteral(literal)
+			return newBufferFilterForLiteral(*literal)
 		}
 		if e.Op == "and" {
 			left, err := CompileBufferFilter(zctx, e.LHS)
@@ -90,7 +90,7 @@ func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) 
 			if err != nil {
 				return nil, err
 			}
-			return val, nil
+			return &val, nil
 		}
 	} else if dag.IsTopLevelField(e.RHS) && e.Op == "in" {
 		if literal, ok := e.LHS.(*dag.Literal); ok {
@@ -101,13 +101,13 @@ func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) 
 			if val.Type() == zed.TypeNet {
 				return nil, err
 			}
-			return val, nil
+			return &val, nil
 		}
 	}
 	return nil, nil
 }
 
-func newBufferFilterForLiteral(val *zed.Value) (*expr.BufferFilter, error) {
+func newBufferFilterForLiteral(val zed.Value) (*expr.BufferFilter, error) {
 	if id := val.Type().ID(); zed.IsNumber(id) || id == zed.IDNull {
 		// All numbers are comparable, so they can require up to three
 		// patterns: float, varint, and uvarint.

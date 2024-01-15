@@ -470,13 +470,14 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 	for _, c := range swtch.Cases {
 		var val *zed.Value
 		if c.Expr != nil {
-			val, err = b.evalAtCompileTime(c.Expr)
+			val2, err := b.evalAtCompileTime(c.Expr)
 			if err != nil {
 				return nil, err
 			}
-			if val.IsError() {
+			if val2.IsError() {
 				return nil, errors.New("switch case is not a constant expression")
 			}
+			val = &val2
 		}
 		parents, err := b.compileSeq(c.Path, []zbuf.Puller{s.AddCase(val)})
 		if err != nil {
@@ -622,13 +623,13 @@ func (b *Builder) lookupPool(id ksuid.KSUID) (*lake.Pool, error) {
 	return b.source.Lake().OpenPool(b.octx.Context, id)
 }
 
-func (b *Builder) evalAtCompileTime(in dag.Expr) (val *zed.Value, err error) {
+func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 	if in == nil {
 		return zed.Null, nil
 	}
 	e, err := b.compileExpr(in)
 	if err != nil {
-		return nil, err
+		return zed.Null, err
 	}
 	// Catch panic as the runtime will panic if there is a
 	// reference to a var not in scope, a field access null this, etc.
@@ -645,7 +646,7 @@ func compileExpr(in dag.Expr) (expr.Evaluator, error) {
 	return b.compileExpr(in)
 }
 
-func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val *zed.Value, err error) {
+func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val zed.Value, err error) {
 	// We pass in a nil adaptor, which causes a panic for anything adaptor
 	// related, which is not currently allowed in an expression sub-query.
 	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil)

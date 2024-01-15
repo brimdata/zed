@@ -127,7 +127,7 @@ func (p *Projection) Read() (*zed.Value, error) {
 			if ok := projector.build(&p.builder); !ok {
 				return nil, nil
 			}
-			return zed.NewValue(projector.recType, p.builder.Bytes().Body()), nil
+			return zed.NewValue(projector.recType, p.builder.Bytes().Body()).Ptr(), nil
 		}
 	}
 }

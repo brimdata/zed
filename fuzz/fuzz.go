@@ -128,7 +128,7 @@ func RunQuery(t testing.TB, zctx *zed.Context, readers []zio.Reader, querySource
 			break
 		}
 		for _, value := range batch.Values() {
-			valuesOut = append(valuesOut, *(value.Copy()))
+			valuesOut = append(valuesOut, value.Copy())
 		}
 		batch.Unref()
 	}
@@ -167,7 +167,7 @@ func GenValues(b *bytes.Reader, context *zed.Context, types []zed.Type) []zed.Va
 		typ := types[int(GenByte(b))%len(types)]
 		builder.Reset()
 		GenValue(b, context, typ, &builder)
-		values = append(values, *zed.NewValue(typ, builder.Bytes().Body()))
+		values = append(values, zed.NewValue(typ, builder.Bytes().Body()))
 	}
 	return values
 }

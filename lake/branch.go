@@ -75,7 +75,7 @@ func (b *Branch) Load(ctx context.Context, zctx *zed.Context, r zio.Reader, auth
 	// with other concurrent writers (except for updating the branch pointer
 	// which is handled by Branch.commit)
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		return commits.NewAddsObject(parent.Commit, retries, author, message, *appMeta, objects), nil
+		return commits.NewAddsObject(parent.Commit, retries, author, message, appMeta, objects), nil
 	})
 }
 
@@ -94,7 +94,7 @@ func loadMessage(objects []data.Object) string {
 	return b.String()
 }
 
-func loadMeta(zctx *zed.Context, meta string) (*zed.Value, error) {
+func loadMeta(zctx *zed.Context, meta string) (zed.Value, error) {
 	if meta == "" {
 		return zed.Null, nil
 	}
@@ -191,7 +191,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 			}
 			message = deleteWhereMessage(deletedObjs, added)
 		}
-		return patch.NewCommitObject(parent.Commit, retries, author, message, *appMeta), nil
+		return patch.NewCommitObject(parent.Commit, retries, author, message, appMeta), nil
 	})
 }
 
@@ -274,7 +274,7 @@ func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, 
 			printObjects(&b, rollup, maxMessageObjects-len(src))
 			message = b.String()
 		}
-		commit := patch.NewCommitObject(parent.Commit, retries, author, message, *appMeta)
+		commit := patch.NewCommitObject(parent.Commit, retries, author, message, appMeta)
 		return commit, nil
 	})
 }
@@ -336,7 +336,7 @@ func (b *Branch) buildMergeObject(ctx context.Context, parent *branches.Config, 
 	if err != nil {
 		return nil, fmt.Errorf("error merging %q into %q: %w", b.Name, parent.Name, err)
 	}
-	return diff.NewCommitObject(parent.Commit, retries, author, message, *zed.Null), nil
+	return diff.NewCommitObject(parent.Commit, retries, author, message, zed.Null), nil
 }
 
 func commonAncestor(a, b []ksuid.KSUID) ksuid.KSUID {

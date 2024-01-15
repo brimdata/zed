@@ -13,7 +13,7 @@ type dropper struct {
 	fieldRefs []Evaluator
 }
 
-func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
+func (d *dropper) drop(ectx Context, in zed.Value) zed.Value {
 	if d.typ == in.Type() {
 		return in
 	}
@@ -27,7 +27,7 @@ func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	return ectx.NewValue(d.typ, val)
+	return zed.NewValue(d.typ, val)
 }
 
 type Dropper struct {
@@ -44,7 +44,7 @@ func NewDropper(zctx *zed.Context, fields field.List) *Dropper {
 	}
 }
 
-func (d *Dropper) newDropper(zctx *zed.Context, r *zed.Value) *dropper {
+func (d *Dropper) newDropper(zctx *zed.Context, r zed.Value) *dropper {
 	fields, fieldTypes, match := complementFields(d.fields, nil, zed.TypeRecordOf(r.Type()))
 	if !match {
 		// r.Type contains no fields matching d.fields, so we set
@@ -97,7 +97,7 @@ func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) 
 	return fields, types, match
 }
 
-func (d *Dropper) Eval(ectx Context, in *zed.Value) *zed.Value {
+func (d *Dropper) Eval(ectx Context, in zed.Value) zed.Value {
 	if !zed.IsRecordType(in.Type()) {
 		return in
 	}

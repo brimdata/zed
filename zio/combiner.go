@@ -45,7 +45,7 @@ func (c *Combiner) run() {
 					// Make a copy since we don't wait for
 					// Combiner.Read's caller to finish with
 					// this value before we read the next.
-					rec = rec.Copy()
+					rec = rec.Copy().Ptr()
 				}
 				select {
 				case c.results <- combinerResult{err, idx, rec}:

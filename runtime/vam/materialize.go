@@ -37,7 +37,7 @@ func (m *Materializer) Pull(done bool) (zbuf.Batch, error) {
 		// will change soon anyway when we change out vector Builder to a
 		// slot-based indexing approach that isn't based on closures.
 		val := zed.NewValue(typ, bytes.Clone(builder.Bytes().Body()))
-		vals = append(vals, *val)
+		vals = append(vals, val)
 		builder.Reset()
 	}
 }

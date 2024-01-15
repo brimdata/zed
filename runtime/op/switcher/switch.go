@@ -40,7 +40,7 @@ func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 	s.ectx.SetVars(batch.Vars())
 	vals := batch.Values()
 	for i := range vals {
-		this := &vals[i]
+		this := vals[i]
 		for _, c := range s.cases {
 			val := c.filter.Eval(s.ectx.Reset(), this)
 			if val.IsMissing() {
@@ -49,13 +49,13 @@ func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 			if val.IsError() {
 				// XXX should use structured here to wrap
 				// the input value with the error
-				c.vals = append(c.vals, *val)
+				c.vals = append(c.vals, val)
 				continue
 				//XXX don't break here?
 				//break
 			}
 			if val.Type() == zed.TypeBool && val.Bool() {
-				c.vals = append(c.vals, *this)
+				c.vals = append(c.vals, this)
 				break
 			}
 		}

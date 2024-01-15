@@ -53,10 +53,10 @@ func (c *Cutter) FoundCut() bool {
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns zed.Missing.
-func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
+func (c *Cutter) Eval(ectx Context, in zed.Value) zed.Value {
 	rb, paths, err := c.lookupBuilder(ectx, in)
 	if err != nil {
-		return ectx.CopyValue(*c.zctx.WrapError(fmt.Sprintf("cut: %s", err), in))
+		return c.zctx.WrapError(fmt.Sprintf("cut: %s", err), in)
 	}
 	types := c.typeCache
 	rb.Reset()
@@ -81,7 +81,7 @@ func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	rec := ectx.NewValue(rb.Type(c.outTypes.Lookup(types), types), bytes)
+	rec := zed.NewValue(rb.Type(c.outTypes.Lookup(types), types), bytes)
 	for _, d := range droppers {
 		rec = d.Eval(ectx, rec)
 	}
@@ -91,7 +91,7 @@ func (c *Cutter) Eval(ectx Context, in *zed.Value) *zed.Value {
 	return rec
 }
 
-func (c *Cutter) lookupBuilder(ectx Context, in *zed.Value) (*recordBuilderCachedTypes, field.List, error) {
+func (c *Cutter) lookupBuilder(ectx Context, in zed.Value) (*recordBuilderCachedTypes, field.List, error) {
 	paths := c.fieldRefs[:0]
 	for _, p := range c.lvals {
 		path, err := p.Eval(ectx, in)

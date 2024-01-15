@@ -60,7 +60,7 @@ func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, da
 	if len(leftoverFields) != 0 {
 		return nil, errors.New("too many values")
 	}
-	b.val = *zed.NewValue(typ, b.Bytes())
+	b.val = zed.NewValue(typ, b.Bytes())
 	return &b.val, nil
 }
 

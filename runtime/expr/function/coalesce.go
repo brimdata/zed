@@ -12,5 +12,5 @@ func (c *Coalesce) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 			return *val
 		}
 	}
-	return *zed.Null
+	return zed.Null
 }
