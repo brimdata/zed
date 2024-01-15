@@ -7,10 +7,9 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
-	meta "github.com/brimdata/zed/vng/vector"
 )
 
-func (l *loader) loadMap(any *vector.Any, typ zed.Type, path field.Path, m *meta.Map) (*vector.Map, error) {
+func (l *loader) loadMap(any *vector.Any, typ zed.Type, path field.Path, m *vng.Map) (*vector.Map, error) {
 	if *any == nil {
 		mapType, ok := typ.(*zed.TypeMap)
 		if !ok {

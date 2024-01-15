@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/vector"
-	meta "github.com/brimdata/zed/vng/vector"
+	"github.com/brimdata/zed/vng"
 )
 
 type loader struct {
@@ -16,13 +16,13 @@ type loader struct {
 	r    io.ReaderAt
 }
 
-func (l *loader) loadVector(any *vector.Any, typ zed.Type, path field.Path, m meta.Metadata) (vector.Any, error) {
+func (l *loader) loadVector(any *vector.Any, typ zed.Type, path field.Path, m vng.Metadata) (vector.Any, error) {
 	switch m := m.(type) {
-	case *meta.Named:
+	case *vng.Named:
 		return l.loadVector(any, typ.(*zed.TypeNamed).Type, path, m.Values)
-	case *meta.Record:
+	case *vng.Record:
 		return l.loadRecord(any, typ.(*zed.TypeRecord), path, m)
-	case *meta.Primitive:
+	case *vng.Primitive:
 		if len(path) != 0 {
 			return nil, fmt.Errorf("internal error: vcache encountered path at primitive element: %q", strings.Join(path, "."))
 		}
@@ -34,18 +34,18 @@ func (l *loader) loadVector(any *vector.Any, typ zed.Type, path field.Path, m me
 			*any = v
 		}
 		return *any, nil
-	case *meta.Array:
+	case *vng.Array:
 		return l.loadArray(any, typ, path, m)
-	case *meta.Set:
-		a := *(*meta.Array)(m)
+	case *vng.Set:
+		a := *(*vng.Array)(m)
 		return l.loadArray(any, typ, path, &a)
-	case *meta.Map:
+	case *vng.Map:
 		return l.loadMap(any, typ, path, m)
-	case *meta.Union:
+	case *vng.Union:
 		return l.loadUnion(any, typ.(*zed.TypeUnion), path, m)
-	case *meta.Nulls:
+	case *vng.Nulls:
 		return l.loadNulls(any, typ, path, m)
-	case *meta.Const:
+	case *vng.Const:
 		*any = vector.NewConst(m.Value, m.Count)
 		return *any, nil
 	default:

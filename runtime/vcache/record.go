@@ -6,14 +6,14 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/vector"
-	meta "github.com/brimdata/zed/vng/vector"
+	"github.com/brimdata/zed/vng"
 	"github.com/brimdata/zed/zson"
 )
 
 //XXX we need locking as multiple threads can access Native columns concurrently
 // should do a fast lookup on the path
 
-func (l *loader) loadRecord(any *vector.Any, typ *zed.TypeRecord, path field.Path, meta *meta.Record) (vector.Any, error) {
+func (l *loader) loadRecord(any *vector.Any, typ *zed.TypeRecord, path field.Path, meta *vng.Record) (vector.Any, error) {
 	if *any == nil {
 		*any = vector.NewRecord(typ)
 	}

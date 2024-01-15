@@ -1,4 +1,4 @@
-package vector
+package vng
 
 import (
 	"github.com/brimdata/zed"

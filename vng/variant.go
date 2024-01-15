@@ -1,4 +1,4 @@
-package vector
+package vng
 
 import (
 	"fmt"
@@ -10,33 +10,32 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type VariantWriter struct {
-	tags   *Int64Writer
-	values []Writer
+type VariantEncoder struct {
+	tags   *Int64Encoder
+	values []Encoder
 	which  map[zed.Type]int
 	len    uint32
 }
 
-var _ zio.Writer = (*VariantWriter)(nil)
+var _ zio.Writer = (*VariantEncoder)(nil)
 
-func NewVariantWriter() *VariantWriter {
-	return &VariantWriter{
-		tags:  NewInt64Writer(),
+func NewVariantEncoder() *VariantEncoder {
+	return &VariantEncoder{
+		tags:  NewInt64Encoder(),
 		which: make(map[zed.Type]int),
 	}
 }
 
-// The variant writer self-organizes around the types that are
+// The variant encoder self-organizes around the types that are
 // written to it.  No need to define the schema up front!
-// We track the types seen first-come, first-served in the
-// the writer table and the VNG metadata structure follows
-// accordingly.
-func (v *VariantWriter) Write(val zed.Value) error {
+// We track the types seen first-come, first-served and the
+// VNG metadata structure follows accordingly.
+func (v *VariantEncoder) Write(val zed.Value) error {
 	typ := val.Type()
 	tag, ok := v.which[typ]
 	if !ok {
 		tag = len(v.values)
-		v.values = append(v.values, NewWriter(typ))
+		v.values = append(v.values, NewEncoder(typ))
 		v.which[typ] = tag
 	}
 	v.tags.Write(int64(tag))
@@ -45,7 +44,7 @@ func (v *VariantWriter) Write(val zed.Value) error {
 	return nil
 }
 
-func (v *VariantWriter) Encode() (Metadata, uint64, error) {
+func (v *VariantEncoder) Encode() (Metadata, uint64, error) {
 	var group errgroup.Group
 	if len(v.values) > 1 {
 		v.tags.Encode(&group)
@@ -74,7 +73,7 @@ func (v *VariantWriter) Encode() (Metadata, uint64, error) {
 	}, off, nil
 }
 
-func (v *VariantWriter) Emit(w io.Writer) error {
+func (v *VariantEncoder) Emit(w io.Writer) error {
 	if len(v.values) > 1 {
 		if err := v.tags.Emit(w); err != nil {
 			return err
@@ -90,16 +89,16 @@ func (v *VariantWriter) Emit(w io.Writer) error {
 
 type variantBuilder struct {
 	types   []zed.Type
-	tags    *Int64Reader
-	values  []Reader
+	tags    *Int64Decoder
+	values  []Builder
 	builder *zcode.Builder
 }
 
 func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) (*variantBuilder, error) {
-	values := make([]Reader, 0, len(variant.Values))
+	values := make([]Builder, 0, len(variant.Values))
 	types := make([]zed.Type, 0, len(variant.Values))
 	for _, val := range variant.Values {
-		r, err := NewReader(val, reader)
+		r, err := NewBuilder(val, reader)
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +107,7 @@ func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) 
 	}
 	return &variantBuilder{
 		types:   types,
-		tags:    NewInt64Reader(variant.Tags, reader),
+		tags:    NewInt64Decoder(variant.Tags, reader),
 		values:  values,
 		builder: zcode.NewBuilder(),
 	}, nil
@@ -117,7 +116,7 @@ func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) 
 func (v *variantBuilder) Read() (*zed.Value, error) {
 	b := v.builder
 	b.Truncate()
-	tag, err := v.tags.Read()
+	tag, err := v.tags.Next()
 	if err != nil {
 		if err == io.EOF {
 			err = nil
@@ -127,7 +126,7 @@ func (v *variantBuilder) Read() (*zed.Value, error) {
 	if int(tag) >= len(v.types) {
 		return nil, fmt.Errorf("bad tag encountered scanning VNG variant: tag %d when only %d types", tag, len(v.types))
 	}
-	if err := v.values[tag].Read(b); err != nil {
+	if err := v.values[tag].Build(b); err != nil {
 		return nil, err
 	}
 	return zed.NewValue(v.types[tag], b.Bytes().Body()).Ptr(), nil
@@ -137,7 +136,7 @@ func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, 
 	if variant, ok := meta.(*Variant); ok {
 		return newVariantBuilder(zctx, variant, r)
 	}
-	values, err := NewReader(meta, r)
+	values, err := NewBuilder(meta, r)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +150,7 @@ func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, 
 
 type vectorBuilder struct {
 	typ     zed.Type
-	values  Reader
+	values  Builder
 	builder *zcode.Builder
 	count   uint32
 }
@@ -163,7 +162,7 @@ func (v *vectorBuilder) Read() (*zed.Value, error) {
 	v.count--
 	b := v.builder
 	b.Truncate()
-	if err := v.values.Read(b); err != nil {
+	if err := v.values.Build(b); err != nil {
 		return nil, err
 	}
 	return zed.NewValue(v.typ, b.Bytes().Body()).Ptr(), nil
