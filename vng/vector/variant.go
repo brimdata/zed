@@ -31,7 +31,7 @@ func NewVariantWriter() *VariantWriter {
 // We track the types seen first-come, first-served in the
 // the writer table and the VNG metadata structure follows
 // accordingly.
-func (v *VariantWriter) Write(val *zed.Value) error {
+func (v *VariantWriter) Write(val zed.Value) error {
 	typ := val.Type()
 	tag, ok := v.which[typ]
 	if !ok {

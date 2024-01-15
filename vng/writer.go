@@ -38,7 +38,7 @@ func (w *Writer) Close() error {
 	return firstErr
 }
 
-func (w *Writer) Write(val *zed.Value) error {
+func (w *Writer) Write(val zed.Value) error {
 	return w.variant.Write(val)
 }
 
@@ -59,7 +59,7 @@ func (w *Writer) finalize() error {
 	if err != nil {
 		return fmt.Errorf("system error: could not marshal VNG metadata: %w", err)
 	}
-	if err := zw.Write(val); err != nil {
+	if err := zw.Write(*val); err != nil {
 		return fmt.Errorf("system error: could not serialize VNG metadata: %w", err)
 	}
 	zw.EndStream()
