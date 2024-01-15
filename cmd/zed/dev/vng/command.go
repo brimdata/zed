@@ -22,7 +22,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "vng",
 	Usage: "vng uri",
-	Short: "dump vng meta data",
+	Short: "dump vng metadata",
 	Long: `
 vng decodes an input uri and emits the metadata sections in the format desired.`,
 	New: New,
@@ -50,7 +50,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 1 {
-		return errors.New("a single file required")
+		return errors.New("a single file is required")
 	}
 	uri, err := storage.ParseURI(args[0])
 	if err != nil {
@@ -108,11 +108,11 @@ func (r *reader) Read() (*zed.Value, error) {
 			return r.marshaler.Marshal(hdr)
 		}
 		val, err := r.meta.Read()
-		if err != nil {
-			return nil, err
+		if val != nil || err != nil {
+			return val, err
 		}
-		if val != nil {
-			return val, nil
+		if err := r.meta.Close(); err != nil {
+			return nil, err
 		}
 		r.meta = nil
 		r.skip(r.dataSize)

@@ -71,6 +71,7 @@ func (o *Object) NewReader() (zio.Reader, error) {
 
 func readMetadata(zctx *zed.Context, r io.Reader) (vector.Metadata, error) {
 	zr := zngio.NewReader(zctx, r)
+	defer zr.Close()
 	val, err := zr.Read()
 	if err != nil {
 		return nil, err
