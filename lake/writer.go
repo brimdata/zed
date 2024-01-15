@@ -185,7 +185,7 @@ func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorE
 }
 
 func (w *SortedWriter) Write(val zed.Value) error {
-	key := *val.DerefPath(w.poolKey).MissingAsNull()
+	key := val.DerefPath(w.poolKey).MissingAsNull()
 again:
 	if w.writer == nil {
 		if err := w.newWriter(); err != nil {

@@ -424,11 +424,11 @@ func (v *Value) AsTime() nano.Ts {
 	return 0
 }
 
-func (v *Value) MissingAsNull() *Value {
+func (v *Value) MissingAsNull() Value {
 	if v.IsMissing() {
-		return &Null
+		return Null
 	}
-	return v
+	return *v
 }
 
 // Under resolves named types and untags unions repeatedly, returning a value

@@ -43,7 +43,7 @@ func (w *Writer) writeRecord(rec zed.Value) error {
 	var out []string
 	for k, f := range zed.TypeRecordOf(rec.Type()).Fields {
 		var s string
-		value := *rec.DerefByColumn(k).MissingAsNull()
+		value := rec.DerefByColumn(k).MissingAsNull()
 		if f.Type == zed.TypeTime {
 			if value.IsNull() {
 				s = "-"

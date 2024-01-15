@@ -64,7 +64,7 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 
 func (w *Writer) Write(val zed.Value) error {
 	key := val.DerefPath(w.poolKey).MissingAsNull()
-	return w.WriteWithKey(*key, val)
+	return w.WriteWithKey(key, val)
 }
 
 func (w *Writer) WriteWithKey(key, val zed.Value) error {
