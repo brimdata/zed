@@ -65,8 +65,8 @@ func WriteZNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
 	require.NoError(t, writer.Close())
 }
 
-func WriteVNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer, opts vngio.WriterOpts) {
-	writer, err := vngio.NewWriterWithOpts(zio.NopCloser(buf), opts)
+func WriteVNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
+	writer, err := vngio.NewWriter(zio.NopCloser(buf))
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
 	require.NoError(t, writer.Close())

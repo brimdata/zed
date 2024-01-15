@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/sync/errgroup"
 )
 
 // NullsWriter emits a sequence of runs of the length of alternating sequences
@@ -14,23 +15,23 @@ type NullsWriter struct {
 	runs   Int64Writer
 	run    int64
 	null   bool
-	dirty  bool
+	count  uint32
 }
 
-func NewNullsWriter(values Writer, spiller *Spiller) *NullsWriter {
+func NewNullsWriter(values Writer) *NullsWriter {
 	return &NullsWriter{
 		values: values,
-		runs:   *NewInt64Writer(spiller),
+		runs:   *NewInt64Writer(),
 	}
 }
 
-func (n *NullsWriter) Write(body zcode.Bytes) error {
+func (n *NullsWriter) Write(body zcode.Bytes) {
 	if body != nil {
 		n.touchValue()
-		return n.values.Write(body)
+		n.values.Write(body)
+	} else {
+		n.touchNull()
 	}
-	n.touchNull()
-	return nil
 }
 
 func (n *NullsWriter) touchValue() {
@@ -44,7 +45,7 @@ func (n *NullsWriter) touchValue() {
 }
 
 func (n *NullsWriter) touchNull() {
-	n.dirty = true
+	n.count++
 	if n.null {
 		n.run++
 	} else {
@@ -54,28 +55,37 @@ func (n *NullsWriter) touchNull() {
 	}
 }
 
-func (n *NullsWriter) Flush(eof bool) error {
-	if eof && n.dirty {
-		if err := n.runs.Write(n.run); err != nil {
-			return err
+func (n *NullsWriter) Encode(group *errgroup.Group) {
+	n.values.Encode(group)
+	if n.count != 0 {
+		if n.run > 0 {
+			n.runs.Write(n.run)
 		}
-		if err := n.runs.Flush(true); err != nil {
-			return err
-		}
+		n.runs.Encode(group)
 	}
-	return n.values.Flush(eof)
 }
 
-func (n *NullsWriter) Metadata() Metadata {
-	values := n.values.Metadata()
-	runs := n.runs.segments
-	if len(runs) == 0 {
-		return values
+func (n *NullsWriter) Metadata(off uint64) (uint64, Metadata) {
+	off, values := n.values.Metadata(off)
+	if n.count == 0 {
+		return off, values
 	}
-	return &Nulls{
-		Runs:   runs,
+	off, runs := n.runs.Metadata(off)
+	return off, &Nulls{
+		Runs:   runs.(*Primitive).Location,
 		Values: values,
+		Count:  n.count,
 	}
+}
+
+func (n *NullsWriter) Emit(w io.Writer) error {
+	if err := n.values.Emit(w); err != nil {
+		return err
+	}
+	if n.count != 0 {
+		return n.runs.Emit(w)
+	}
+	return nil
 }
 
 type NullsReader struct {
@@ -85,12 +95,12 @@ type NullsReader struct {
 	run    int
 }
 
-func NewNullsReader(values Reader, segmap []Segment, r io.ReaderAt) *NullsReader {
+func NewNullsReader(values Reader, loc Segment, r io.ReaderAt) *NullsReader {
 	// We start out with null true so it is immediately flipped to
 	// false on the first call to Read.
 	return &NullsReader{
 		Values: values,
-		Runs:   *NewInt64Reader(segmap, r),
+		Runs:   *NewInt64Reader(loc, r),
 		null:   true,
 	}
 }

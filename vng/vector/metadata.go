@@ -7,9 +7,11 @@ import (
 
 type Metadata interface {
 	Type(*zed.Context) zed.Type
+	Len() uint32
 }
 
 type Record struct {
+	Length uint32
 	Fields []Field
 }
 
@@ -20,6 +22,10 @@ func (r *Record) Type(zctx *zed.Context) zed.Type {
 		fields = append(fields, zed.Field{Name: field.Name, Type: typ})
 	}
 	return zctx.MustLookupTypeRecord(fields)
+}
+
+func (r *Record) Len() uint32 {
+	return r.Length
 }
 
 func (r *Record) LookupField(name string) *Field {
@@ -66,12 +72,17 @@ type Field struct {
 }
 
 type Array struct {
-	Lengths []Segment
+	Length  uint32
+	Lengths Segment
 	Values  Metadata
 }
 
 func (a *Array) Type(zctx *zed.Context) zed.Type {
 	return zctx.LookupTypeArray(a.Values.Type(zctx))
+}
+
+func (a *Array) Len() uint32 {
+	return a.Length
 }
 
 type Set Array
@@ -80,8 +91,13 @@ func (s *Set) Type(zctx *zed.Context) zed.Type {
 	return zctx.LookupTypeSet(s.Values.Type(zctx))
 }
 
+func (s *Set) Len() uint32 {
+	return s.Length
+}
+
 type Map struct {
-	Lengths []Segment
+	Length  uint32
+	Lengths Segment
 	Keys    Metadata
 	Values  Metadata
 }
@@ -92,8 +108,13 @@ func (m *Map) Type(zctx *zed.Context) zed.Type {
 	return zctx.LookupTypeMap(keyType, valType)
 }
 
+func (m *Map) Len() uint32 {
+	return m.Length
+}
+
 type Union struct {
-	Tags   []Segment
+	Length uint32
+	Tags   Segment
 	Values []Metadata
 }
 
@@ -103,6 +124,10 @@ func (u *Union) Type(zctx *zed.Context) zed.Type {
 		types = append(types, value.Type(zctx))
 	}
 	return zctx.LookupTypeUnion(types)
+}
+
+func (u *Union) Len() uint32 {
+	return u.Length
 }
 
 type Named struct {
@@ -118,32 +143,44 @@ func (n *Named) Type(zctx *zed.Context) zed.Type {
 	return t
 }
 
+func (n *Named) Len() uint32 {
+	return n.Values.Len()
+}
+
 type DictEntry struct {
 	Value zed.Value
 	Count uint32
 }
 
 type Primitive struct {
-	Typ    zed.Type `zed:"Type"`
-	Segmap []Segment
-	Dict   []DictEntry
-	Min    *zed.Value
-	Max    *zed.Value
-	Count  uint32
-	Nulls  uint32
+	Typ      zed.Type `zed:"Type"`
+	Location Segment
+	Dict     []DictEntry
+	Min      *zed.Value
+	Max      *zed.Value
+	Count    uint32
 }
 
 func (p *Primitive) Type(zctx *zed.Context) zed.Type {
 	return p.Typ
 }
 
+func (p *Primitive) Len() uint32 {
+	return p.Count
+}
+
 type Nulls struct {
-	Runs   []Segment
+	Runs   Segment
 	Values Metadata
+	Count  uint32 // Count of nulls
 }
 
 func (n *Nulls) Type(zctx *zed.Context) zed.Type {
 	return n.Values.Type(zctx)
+}
+
+func (n *Nulls) Len() uint32 {
+	return n.Count + n.Values.Len()
 }
 
 type Const struct {
@@ -153,6 +190,24 @@ type Const struct {
 
 func (c *Const) Type(zctx *zed.Context) zed.Type {
 	return c.Value.Type()
+}
+
+func (c *Const) Len() uint32 {
+	return c.Count
+}
+
+type Variant struct {
+	Tags   Segment
+	Values []Metadata
+	Length uint32
+}
+
+func (*Variant) Type(zctx *zed.Context) zed.Type {
+	panic("Type should not be called on Variant")
+}
+
+func (v *Variant) Len() uint32 {
+	return v.Length
 }
 
 var Template = []interface{}{
@@ -165,4 +220,5 @@ var Template = []interface{}{
 	Named{},
 	Nulls{},
 	Const{},
+	Variant{},
 }

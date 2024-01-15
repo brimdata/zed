@@ -6,56 +6,60 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/sync/errgroup"
 )
 
 var ErrVectorMismatch = errors.New("zng record value doesn't match vector writer")
 
-type RecordWriter []*FieldWriter
+type RecordWriter struct {
+	fields []*FieldWriter
+	count  uint32
+}
 
-func NewRecordWriter(typ *zed.TypeRecord, spiller *Spiller) RecordWriter {
-	var r RecordWriter
+var _ Writer = (*RecordWriter)(nil)
+
+func NewRecordWriter(typ *zed.TypeRecord) *RecordWriter {
+	fields := make([]*FieldWriter, 0, len(typ.Fields))
 	for _, f := range typ.Fields {
-		fw := &FieldWriter{
+		fields = append(fields, &FieldWriter{
 			name:   f.Name,
-			values: NewWriter(f.Type, spiller),
-		}
-		r = append(r, fw)
+			values: NewWriter(f.Type),
+		})
 	}
-	return r
+	return &RecordWriter{fields: fields}
 }
 
-func (r RecordWriter) Write(body zcode.Bytes) error {
+func (r *RecordWriter) Write(body zcode.Bytes) {
+	r.count++
 	it := body.Iter()
-	for _, f := range r {
-		if it.Done() {
-			return ErrVectorMismatch
-		}
-		if err := f.write(it.Next()); err != nil {
+	for _, f := range r.fields {
+		f.write(it.Next())
+	}
+}
+
+func (r *RecordWriter) Encode(group *errgroup.Group) {
+	for _, f := range r.fields {
+		f.Encode(group)
+	}
+}
+
+func (r *RecordWriter) Metadata(off uint64) (uint64, Metadata) {
+	fields := make([]Field, 0, len(r.fields))
+	for _, field := range r.fields {
+		next, m := field.Metadata(off)
+		fields = append(fields, m)
+		off = next
+	}
+	return off, &Record{Length: r.count, Fields: fields}
+}
+
+func (r *RecordWriter) Emit(w io.Writer) error {
+	for _, f := range r.fields {
+		if err := f.Emit(w); err != nil {
 			return err
 		}
 	}
-	if !it.Done() {
-		return ErrVectorMismatch
-	}
 	return nil
-}
-
-func (r RecordWriter) Flush(eof bool) error {
-	// XXX we might want to arrange these flushes differently for locality
-	for _, f := range r {
-		if err := f.Flush(eof); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (r RecordWriter) Metadata() Metadata {
-	fields := make([]Field, 0, len(r))
-	for _, field := range r {
-		fields = append(fields, field.Metadata())
-	}
-	return &Record{fields}
 }
 
 type RecordReader struct {

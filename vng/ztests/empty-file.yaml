@@ -3,5 +3,5 @@ script: |
 
 outputs:
   - name: stderr
-    regexp: |
-      .*: trailer not found
+    data: |
+      /dev/null: EOF

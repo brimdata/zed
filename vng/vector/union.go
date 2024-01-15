@@ -6,55 +6,69 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/sync/errgroup"
 )
 
 type UnionWriter struct {
 	typ    *zed.TypeUnion
 	values []Writer
 	tags   *Int64Writer
+	count  uint32
 }
 
-func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
+var _ Writer = (*UnionWriter)(nil)
+
+func NewUnionWriter(typ *zed.TypeUnion) *UnionWriter {
 	var values []Writer
 	for _, typ := range typ.Types {
-		values = append(values, NewWriter(typ, spiller))
+		values = append(values, NewWriter(typ))
 	}
 	return &UnionWriter{
 		typ:    typ,
 		values: values,
-		tags:   NewInt64Writer(spiller),
+		tags:   NewInt64Writer(),
 	}
 }
 
-func (u *UnionWriter) Write(body zcode.Bytes) error {
+func (u *UnionWriter) Write(body zcode.Bytes) {
+	u.count++
 	typ, zv := u.typ.Untag(body)
 	tag := u.typ.TagOf(typ)
-	if err := u.tags.Write(int64(tag)); err != nil {
-		return err
-	}
-	return u.values[tag].Write(zv)
+	u.tags.Write(int64(tag))
+	u.values[tag].Write(zv)
 }
 
-func (u *UnionWriter) Flush(eof bool) error {
-	if err := u.tags.Flush(eof); err != nil {
+func (u *UnionWriter) Emit(w io.Writer) error {
+	if err := u.tags.Emit(w); err != nil {
 		return err
 	}
 	for _, value := range u.values {
-		if err := value.Flush(eof); err != nil {
+		if err := value.Emit(w); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (u *UnionWriter) Metadata() Metadata {
+func (u *UnionWriter) Encode(group *errgroup.Group) {
+	u.tags.Encode(group)
+	for _, value := range u.values {
+		value.Encode(group)
+	}
+}
+
+func (u *UnionWriter) Metadata(off uint64) (uint64, Metadata) {
+	off, tags := u.tags.Metadata(off)
 	values := make([]Metadata, 0, len(u.values))
 	for _, val := range u.values {
-		values = append(values, val.Metadata())
+		var meta Metadata
+		off, meta = val.Metadata(off)
+		values = append(values, meta)
 	}
-	return &Union{
-		Tags:   u.tags.Segmap(),
+	return off, &Union{
+		Tags:   tags.(*Primitive).Location,
 		Values: values,
+		Length: u.count,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/sync/errgroup"
 )
 
 type FieldWriter struct {
@@ -11,19 +12,24 @@ type FieldWriter struct {
 	values Writer
 }
 
-func (f *FieldWriter) write(body zcode.Bytes) error {
-	return f.values.Write(body)
+func (f *FieldWriter) write(body zcode.Bytes) {
+	f.values.Write(body)
 }
 
-func (f *FieldWriter) Metadata() Field {
-	return Field{
+func (f *FieldWriter) Metadata(off uint64) (uint64, Field) {
+	off, meta := f.values.Metadata(off)
+	return off, Field{
 		Name:   f.name,
-		Values: f.values.Metadata(),
+		Values: meta,
 	}
 }
 
-func (f *FieldWriter) Flush(eof bool) error {
-	return f.values.Flush(eof)
+func (f *FieldWriter) Encode(group *errgroup.Group) {
+	f.values.Encode(group)
+}
+
+func (f *FieldWriter) Emit(w io.Writer) error {
+	return f.values.Emit(w)
 }
 
 type FieldReader struct {

@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/fuzz"
 	"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/zio/vngio"
 )
 
 func FuzzQuery(f *testing.F) {
@@ -35,10 +34,7 @@ func FuzzQuery(f *testing.F) {
 		resultZNG := fuzz.RunQueryZNG(t, &zngBuf, querySource)
 
 		var vngBuf bytes.Buffer
-		fuzz.WriteVNG(t, values, &vngBuf, vngio.WriterOpts{
-			SkewThresh:   vngio.DefaultSkewThresh,
-			ColumnThresh: vngio.DefaultColumnThresh,
-		})
+		fuzz.WriteVNG(t, values, &vngBuf)
 		resultVNG := fuzz.RunQueryVNG(t, &vngBuf, querySource)
 
 		fuzz.CompareValues(t, resultZNG, resultVNG)
@@ -75,16 +71,13 @@ func BenchmarkReadVng(b *testing.B) {
 		valuesIn[i] = zed.NewValue(zed.TypeInt64, zed.EncodeInt(int64(rand.Intn(N))))
 	}
 	var buf bytes.Buffer
-	fuzz.WriteVNG(b, valuesIn, &buf, vngio.WriterOpts{
-		SkewThresh:   vngio.DefaultSkewThresh,
-		ColumnThresh: vngio.DefaultColumnThresh,
-	})
+	fuzz.WriteVNG(b, valuesIn, &buf)
 	bs := buf.Bytes()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		bytesReader := bytes.NewReader(bs)
 		context := zed.NewContext()
-		object, err := vng.NewObject(context, bytesReader, int64(len(bs)))
+		object, err := vng.NewObject(context, bytesReader)
 		if err != nil {
 			panic(err)
 		}

@@ -34,50 +34,52 @@ package vector
 import (
 	"fmt"
 	"io"
-	"math"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"golang.org/x/sync/errgroup"
 )
 
-const MaxSegmentThresh = math.MaxInt
-
 type Writer interface {
-	// Write encodes the given value into memory.  When the vector exceeds
-	// a threshold, it is automatically flushed.  Flush may also be called
-	// explicitly to push vectors to storage and thus avoid too much row skew
-	// between vectors.
-	Write(zcode.Bytes) error
-	// Push all in-memory vector data to the storage layer.
-	Flush(bool) error
+	// Write encodes the given value into memory.
+	Write(zcode.Bytes)
+	// Encoded all in-memory vector data into its storage-ready serialized format.
+	// Vectors may be encoded concurrently and errgroup.Group is used to sync
+	// and return errors.
+	Encode(*errgroup.Group)
 	// Metadata returns the data structure conforming to the VNG specification
 	// describing the layout of vectors.  This is called after all data is
-	// written and flushed by the Writer with the result marshaled to build
-	// the metadata section of the VNG file.
-	Metadata() Metadata
+	// written and encoded by the Writer with the result marshaled to build
+	// the header section of the VNG object.  An offset is passed down into
+	// the traversal representing where in the data section the vector data
+	// will land.  This is called in a sequential fashion (no parallelism) so
+	// that the metadata can be computed and the VNG header written before the
+	// vector data is written via Emit.
+	Metadata(uint64) (uint64, Metadata)
+	Emit(w io.Writer) error
 }
 
-func NewWriter(typ zed.Type, spiller *Spiller) Writer {
+func NewWriter(typ zed.Type) Writer {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
-		return &NamedWriter{NewWriter(typ.Type, spiller), typ.Name}
+		return &NamedWriter{NewWriter(typ.Type), typ.Name}
 	case *zed.TypeRecord:
-		return NewNullsWriter(NewRecordWriter(typ, spiller), spiller)
+		return NewNullsWriter(NewRecordWriter(typ))
 	case *zed.TypeArray:
-		return NewNullsWriter(NewArrayWriter(typ.Type, spiller), spiller)
+		return NewNullsWriter(NewArrayWriter(typ))
 	case *zed.TypeSet:
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
-		return NewNullsWriter(NewSetWriter(typ.Type, spiller), spiller)
+		return NewNullsWriter(NewSetWriter(typ))
 	case *zed.TypeMap:
-		return NewNullsWriter(NewMapWriter(typ, spiller), spiller)
+		return NewNullsWriter(NewMapWriter(typ))
 	case *zed.TypeUnion:
-		return NewNullsWriter(NewUnionWriter(typ, spiller), spiller)
+		return NewNullsWriter(NewUnionWriter(typ))
 	default:
 		if !zed.IsPrimitiveType(typ) {
 			panic(fmt.Sprintf("unsupported type in VNG file: %T", typ))
 		}
-		return NewNullsWriter(NewPrimitiveWriter(typ, spiller, true), spiller)
+		return NewNullsWriter(NewPrimitiveWriter(typ, true))
 	}
 }
 
@@ -86,8 +88,9 @@ type NamedWriter struct {
 	name string
 }
 
-func (n *NamedWriter) Metadata() Metadata {
-	return &Named{n.name, n.Writer.Metadata()}
+func (n *NamedWriter) Metadata(off uint64) (uint64, Metadata) {
+	off, meta := n.Writer.Metadata(off)
+	return off, &Named{n.name, meta}
 }
 
 type Reader interface {

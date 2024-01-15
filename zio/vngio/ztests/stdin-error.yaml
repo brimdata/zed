@@ -11,4 +11,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      stdio:stdin: VNG must be used with a seekable input
+      stdio:stdin: VNG requires a seekable input
