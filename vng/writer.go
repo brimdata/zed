@@ -59,7 +59,7 @@ func (w *Writer) finalize() error {
 	if err != nil {
 		return fmt.Errorf("system error: could not marshal VNG metadata: %w", err)
 	}
-	if err := zw.Write(*val); err != nil {
+	if err := zw.Write(val); err != nil {
 		return fmt.Errorf("system error: could not serialize VNG metadata: %w", err)
 	}
 	zw.EndStream()

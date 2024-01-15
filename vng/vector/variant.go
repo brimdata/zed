@@ -130,7 +130,7 @@ func (v *VariantBuilder) Read() (*zed.Value, error) {
 	if err := v.values[tag].Read(b); err != nil {
 		return nil, err
 	}
-	return zed.NewValue(v.types[tag], b.Bytes().Body()), nil
+	return zed.NewValue(v.types[tag], b.Bytes().Body()).Ptr(), nil
 }
 
 func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, error) {
@@ -166,5 +166,5 @@ func (v *VectorBuilder) Read() (*zed.Value, error) {
 	if err := v.values.Read(b); err != nil {
 		return nil, err
 	}
-	return zed.NewValue(v.typ, b.Bytes().Body()), nil
+	return zed.NewValue(v.typ, b.Bytes().Body()).Ptr(), nil
 }

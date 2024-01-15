@@ -105,7 +105,8 @@ func (r *reader) Read() (*zed.Value, error) {
 			}
 			r.meta = zngio.NewReader(r.zctx, io.LimitReader(r.reader, int64(hdr.MetaSize)))
 			r.dataSize = int(hdr.DataSize)
-			return r.marshaler.Marshal(hdr)
+			val, err := r.marshaler.Marshal(hdr)
+			return val.Ptr(), err
 		}
 		val, err := r.meta.Read()
 		if val != nil || err != nil {

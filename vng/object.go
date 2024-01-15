@@ -80,7 +80,7 @@ func readMetadata(zctx *zed.Context, r io.Reader) (vector.Metadata, error) {
 	u.SetContext(zctx)
 	u.Bind(vector.Template...)
 	var meta vector.Metadata
-	if err := u.Unmarshal(val, &meta); err != nil {
+	if err := u.Unmarshal(*val, &meta); err != nil {
 		return nil, err
 	}
 	// Read another val to make sure there is no extra stuff after the metadata.
