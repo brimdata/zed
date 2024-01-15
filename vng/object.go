@@ -3,15 +3,15 @@
 //
 // A VNG object is created by allocating an Encoder for any top-level Zed type
 // via NewEncoder, which recursively descends into the Zed type, allocating an Encoder
-// for each node in the type tree.  The top-level zng body is written via a call
-// to Write.  Each vector buffers its data in memory until the the object is encoded.
+// for each node in the type tree.  The top-level ZNG body is written via a call
+// to Write.  Each vector buffers its data in memory until the object is encoded.
 //
 // After all of the Zed data is written, a metadata section is written consisting
-// of a single Zed value describing the lahyout of all the vector data obtained by
-// calling the Metadata method on the vng.Writer interface.
+// of a single Zed value describing the layout of all the vector data obtained by
+// calling the Metadata method on the Encoder interface.
 //
 // Nulls for complex types are encoded by a special Nulls object.  Each complex
-// type is wrapped by a NullsEncoder, which runlength encodes any alternating
+// type is wrapped by a NullsEncoder, which run-length encodes any alternating
 // sequences of nulls and values.  If no nulls are encountered, then the Nulls
 // object is omitted from the metadata.
 //

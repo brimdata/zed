@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/vng"
-	//XXX rename package
 )
 
 func (l *loader) loadArray(any *vector.Any, typ zed.Type, path field.Path, m *vng.Array) (*vector.Array, error) {

@@ -1,15 +1,12 @@
 package vng
 
 import (
-	"errors"
 	"io"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"golang.org/x/sync/errgroup"
 )
-
-var ErrVectorMismatch = errors.New("zng record value doesn't match vector writer")
 
 type RecordEncoder struct {
 	fields []*FieldEncoder
