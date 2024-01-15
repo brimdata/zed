@@ -24,7 +24,7 @@ func NewUnionWriter(typ *zed.TypeUnion) *UnionWriter {
 		values = append(values, NewWriter(typ))
 	}
 	return &UnionWriter{
-		typ:    typ, //XXX we can get rid of this if we parse the tag from zcode.Bytes
+		typ:    typ,
 		values: values,
 		tags:   NewInt64Writer(),
 	}
@@ -32,7 +32,6 @@ func NewUnionWriter(typ *zed.TypeUnion) *UnionWriter {
 
 func (u *UnionWriter) Write(body zcode.Bytes) {
 	u.count++
-	//XXX don't need the type here to untag... import iter logic
 	typ, zv := u.typ.Untag(body)
 	tag := u.typ.TagOf(typ)
 	u.tags.Write(int64(tag))
