@@ -156,7 +156,11 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 
 	c.addAPIServerRoutes()
-	c.logger.Info("Started")
+	c.logger.Info("Started",
+		zap.Bool("auth_enabled", conf.Auth.Enabled),
+		zap.Stringer("root", path),
+		zap.String("version", conf.Version),
+	)
 	return c, nil
 }
 
