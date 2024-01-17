@@ -19,7 +19,6 @@
 #define PRINT(...) fmt.Println(__VA_ARGS__)
 #define RETURN(x) return x, nil
 #define TEXT string(c.text)
-#define TOSTRING(s) fmt.Sprintf("%v", s)
 #define VAR(x) var x
 #else
 {
@@ -42,7 +41,6 @@
 #define PRINT(...) console.log(__VAR_ARGS__)
 #define RETURN(x) return x
 #define TEXT text()
-#define TOSTRING(s) s.toString()
 #define VAR(x) let x
 #endif
 
@@ -1287,12 +1285,12 @@ ColonHex = ":" v:Hex { RETURN(":" + ASSERT_STRING(v)) }
 HexColon = v:Hex ":" { RETURN(ASSERT_STRING(v) + ":") }
 
 IP4Net
-  = a:IP '/' m:UInt {
-      RETURN(ASSERT_STRING(a) + "/" + TOSTRING(m));
+  = a:IP '/' m:UIntString {
+      RETURN(ASSERT_STRING(a) + "/" + ASSERT_STRING(m));
     }
 
 IP6Net
-  = a:IP6 '/' m:UInt {
+  = a:IP6 '/' m:UIntString {
       RETURN(ASSERT_STRING(a) + "/" + ASSERT_STRING(m));
     }
 
