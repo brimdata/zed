@@ -138,7 +138,7 @@ func runOneBoomerang(t *testing.T, format, data string) {
 		// Fuse for formats that require uniform values.
 		proc, err := compiler.NewCompiler().Parse("fuse")
 		require.NoError(t, err)
-		octx := op.NewContext(context.Background(), zctx, nil)
+		octx := op.NewContext(context.Background(), zctx)
 		q, err := compiler.NewCompiler().NewQuery(octx, proc, []zio.Reader{dataReadCloser})
 		require.NoError(t, err)
 		defer q.Pull(true)

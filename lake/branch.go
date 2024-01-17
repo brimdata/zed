@@ -136,7 +136,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 		return ksuid.Nil, err
 	}
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		octx := op.NewContext(ctx, zctx, nil)
+		octx := op.NewContext(ctx, zctx)
 		defer octx.Cancel()
 		// XXX It would be great to not do this since and just pass the snapshot
 		// into c.NewLakeDeleteQuery since we have to load the snapshot later

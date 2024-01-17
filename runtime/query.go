@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"go.uber.org/zap"
 )
 
 // Query runs a flowgraph as a zbuf.Puller and implements a Close() method
@@ -40,7 +39,7 @@ type Compiler interface {
 }
 
 func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Seq, readers []zio.Reader) (*Query, error) {
-	octx := op.NewContext(ctx, zctx, nil)
+	octx := op.NewContext(ctx, zctx)
 	q, err := c.NewQuery(octx, program, readers)
 	if err != nil {
 		octx.Cancel()
@@ -49,8 +48,8 @@ func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program as
 	return q, nil
 }
 
-func CompileLakeQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Seq, head *lakeparse.Commitish, logger *zap.Logger) (*Query, error) {
-	octx := op.NewContext(ctx, zctx, logger)
+func CompileLakeQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Seq, head *lakeparse.Commitish) (*Query, error) {
+	octx := op.NewContext(ctx, zctx)
 	q, err := c.NewLakeQuery(octx, program, 0, head)
 	if err != nil {
 		octx.Cancel()

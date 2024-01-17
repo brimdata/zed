@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zbuf"
-	"go.uber.org/zap"
 )
 
 const BatchLen = 100
@@ -22,7 +21,6 @@ type Result struct {
 // in which they are running.
 type Context struct {
 	context.Context
-	Logger *zap.Logger
 	// WaitGroup is used to ensure that goroutines complete cleanup work
 	// (e.g., removing temporary files) before Cancel returns.
 	WaitGroup sync.WaitGroup
@@ -30,21 +28,17 @@ type Context struct {
 	cancel    context.CancelFunc
 }
 
-func NewContext(ctx context.Context, zctx *zed.Context, logger *zap.Logger) *Context {
+func NewContext(ctx context.Context, zctx *zed.Context) *Context {
 	ctx, cancel := context.WithCancel(ctx)
-	if logger == nil {
-		logger = zap.NewNop()
-	}
 	return &Context{
 		Context: ctx,
 		cancel:  cancel,
-		Logger:  logger,
 		Zctx:    zctx,
 	}
 }
 
 func DefaultContext() *Context {
-	return NewContext(context.Background(), zed.NewContext(), nil)
+	return NewContext(context.Background(), zed.NewContext())
 }
 
 // Cancel cancels the context.  Cancel must be called to ensure that operators
