@@ -117,7 +117,7 @@ func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish,
 	if err != nil {
 		return nil, err
 	}
-	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head, nil)
+	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head)
 	if err != nil {
 		return nil, err
 	}

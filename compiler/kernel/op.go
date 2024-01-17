@@ -642,14 +642,14 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 }
 
 func compileExpr(in dag.Expr) (expr.Evaluator, error) {
-	b := NewBuilder(op.NewContext(context.Background(), zed.NewContext(), nil), nil)
+	b := NewBuilder(op.NewContext(context.Background(), zed.NewContext()), nil)
 	return b.compileExpr(in)
 }
 
 func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val zed.Value, err error) {
 	// We pass in a nil adaptor, which causes a panic for anything adaptor
 	// related, which is not currently allowed in an expression sub-query.
-	b := NewBuilder(op.NewContext(context.Background(), zctx, nil), nil)
+	b := NewBuilder(op.NewContext(context.Background(), zctx), nil)
 	return b.evalAtCompileTime(in)
 }
 

@@ -139,7 +139,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 }
 
 func newQueryOnOrderedReader(ctx context.Context, zctx *zed.Context, program ast.Seq, reader zio.Reader, sortKey order.SortKey) (*runtime.Query, error) {
-	octx := op.NewContext(ctx, zctx, nil)
+	octx := op.NewContext(ctx, zctx)
 	q, err := compiler.CompileWithSortKey(octx, program, reader, sortKey)
 	if err != nil {
 		octx.Cancel()
