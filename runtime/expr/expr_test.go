@@ -14,30 +14,29 @@ import (
 )
 
 func testSuccessful(t *testing.T, e string, input string, expectedVal zed.Value) {
+	t.Helper()
 	if input == "" {
 		input = "{}"
 	}
-	runZTest(t, e, &ztest.ZTest{
+	zt := ztest.ZTest{
 		Zed:    fmt.Sprintf("yield %s", e),
 		Input:  input,
 		Output: zson.FormatValue(expectedVal) + "\n",
-	})
+	}
+	if err := zt.RunInternal(""); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func testError(t *testing.T, e string, expectErr error, description string) {
-	runZTest(t, e, &ztest.ZTest{
+	t.Helper()
+	zt := ztest.ZTest{
 		Zed:     fmt.Sprintf("yield %s", e),
 		ErrorRE: expectErr.Error(),
-	})
-}
-
-func runZTest(t *testing.T, e string, zt *ztest.ZTest) {
-	t.Run(e, func(t *testing.T) {
-		t.Parallel()
-		if err := zt.RunInternal(""); err != nil {
-			t.Fatal(err)
-		}
-	})
+	}
+	if err := zt.RunInternal(""); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPrimitives(t *testing.T) {
