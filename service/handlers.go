@@ -157,6 +157,19 @@ func handleQueryStatus(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.QueryError{Error: q.error})
 }
 
+func handleCompile(c *Core, w *ResponseWriter, r *Request) {
+	var req api.QueryRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	ast, err := c.compiler.Parse(req.Query)
+	if err != nil {
+		w.Error(srverr.ErrInvalid(err))
+		return
+	}
+	w.Respond(http.StatusOK, ast)
+}
+
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {

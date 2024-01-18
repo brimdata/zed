@@ -168,6 +168,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
+	c.authhandle("/compile", handleCompile).Methods("POST")
 	c.authhandle("/events", handleEvents).Methods("GET")
 	c.authhandle("/pool", handlePoolPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolDelete).Methods("DELETE")
