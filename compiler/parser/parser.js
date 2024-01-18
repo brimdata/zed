@@ -11694,12 +11694,9 @@ function peg$parse(input, options) {
   function peg$parseType() {
     var s0;
 
-    s0 = peg$parseTypeLiteral();
+    s0 = peg$parseAmbiguousType();
     if (s0 === peg$FAILED) {
-      s0 = peg$parseAmbiguousType();
-      if (s0 === peg$FAILED) {
-        s0 = peg$parseComplexType();
-      }
+      s0 = peg$parseComplexType();
     }
 
     return s0;
