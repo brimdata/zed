@@ -528,8 +528,7 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, `net(1.2.3.4)`, "", `error({message:"cannot cast to net",on:1.2.3.4})`)
 
 	// Test casts to time
-	// float16 lacks sufficient range to represent this time so the result here is time(+Inf).
-	testSuccessful(t, "time(float16(1589126400000000000))", "", "2262-04-11T23:47:16.854775807Z")
+	testSuccessful(t, "time(float16(65504))", "", "1970-01-01T00:00:00.000065504Z")
 	// float32 lacks sufficient precision to represent this time exactly.
 	testSuccessful(t, "time(float32(1589126400000000000))", "", "2020-05-10T15:59:14.647908352Z")
 	testSuccessful(t, "time(float64(1589126400000000000))", "", "2020-05-10T16:00:00Z")
