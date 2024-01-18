@@ -81,6 +81,10 @@ func (c *canonZed) typ(t astzed.Type) {
 		c.write(")")
 	case *astzed.TypeName:
 		c.write(t.Name)
+	case *astzed.TypeError:
+		c.write("error(")
+		c.typ(t.Type)
+		c.write(")")
 	}
 }
 

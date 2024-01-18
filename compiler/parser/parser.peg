@@ -1064,6 +1064,9 @@ Type
 
 AmbiguousType
   = name:PrimitiveType !IdentifierRest { RETURN(name) }
+  / "error" __ "(" __ t:Type __ ")" {
+      RETURN(MAP("kind": "TypeError", "type": t))
+    }
   / name:IdentifierName opt:(__ '=' __ Type)? {
       if ISNOTNULL(opt) {
         RETURN(MAP("kind": "TypeDef", "name": name, "type": ASSERT_ARRAY(opt)[3]))
