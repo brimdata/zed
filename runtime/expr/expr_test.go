@@ -355,6 +355,14 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, "f / 1.25", record, "2.")
 	testSuccessful(t, "5.0 / f", record, "2.")
 
+	// Union values are dereferenced when doing arithmetic on them.
+	val := "10((int64,string))"
+	testSuccessful(t, "this + 1", val, "11")
+	testSuccessful(t, "this - 1", val, "9")
+	testSuccessful(t, "this * 2", val, "20")
+	testSuccessful(t, "this / 2", val, "5")
+	testSuccessful(t, "this % 3", val, "1")
+
 	// Difference of two times is a duration
 	testSuccessful(t, "a - b", "{a:2022-09-22T00:00:01Z,b:2022-09-22T00:00:00Z}", "1s")
 

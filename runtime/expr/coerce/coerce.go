@@ -48,6 +48,7 @@ func (c *Pair) Equal() bool {
 }
 
 func (c *Pair) Coerce(a, b zed.Value) (int, error) {
+	a, b = a.Under(), b.Under()
 	c.A = a.Bytes()
 	c.B = b.Bytes()
 	aid := a.Type().ID()
