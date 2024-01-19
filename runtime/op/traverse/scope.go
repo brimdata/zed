@@ -148,7 +148,6 @@ again:
 type Enter struct {
 	names []string
 	exprs []expr.Evaluator
-	ectx  expr.ResetContext
 }
 
 func NewEnter(names []string, exprs []expr.Evaluator) *Enter {
@@ -167,8 +166,7 @@ func (e *Enter) addLocals(batch zbuf.Batch, this zed.Value) zbuf.Batch {
 		// errors and missing as we want to propagate such conditions
 		// into the sub-graph to ease debuging. In fact, the subgraph
 		// can act accordingly in response to errors and missing.
-		e.ectx.SetVars(inner.Vars())
-		val := expr.Eval(e.ectx.Reset(), this)
+		val := expr.Eval(inner, this)
 		inner.push(val.Copy())
 	}
 	return inner
