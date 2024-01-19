@@ -394,7 +394,7 @@ where `<type>` is the type of the underlying ZSON values wrapped as an error.
 
 A named type has the form:
 ```
-<name> = ( <type> )
+<name> = <type>
 ```
 where a new type is defined with the given name and type.
 
@@ -403,11 +403,11 @@ referenced by any subsequent value in left-to-right depth-first order.
 
 For example,
 ```
-{p1:80 (port=(uint16)), p2: 8080 (port)}
+{p1:80 (port=uint16), p2: 8080 (port)}
 ````
 is valid but
 ```
-{p1:80 port, p2: 8080 (port=(uint16))}
+{p1:80 (port), p2: 8080 (port=uint16)}
 ````
 is invalid.
 
