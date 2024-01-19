@@ -15,7 +15,6 @@ type Op struct {
 	outType zed.Type
 	typ     zed.Type
 	args    []expr.Evaluator
-	ectx    expr.ResetContext
 }
 
 // New creates a exploder for type typ, where the
@@ -35,12 +34,11 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		if batch == nil || err != nil {
 			return nil, err
 		}
-		o.ectx.SetVars(batch.Vars())
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
 			for _, arg := range o.args {
-				val := arg.Eval(o.ectx.Reset(), vals[i])
+				val := arg.Eval(batch, vals[i])
 				if val.IsError() {
 					if !val.IsMissing() {
 						out = append(out, val.Copy())

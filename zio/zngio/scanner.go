@@ -181,7 +181,7 @@ type worker struct {
 	workCh       chan work
 	bufferFilter *expr.BufferFilter
 	filter       expr.Evaluator
-	ectx         expr.ResetContext
+	ectx         expr.Context
 	validate     bool
 
 	mapperLookupCache zed.MapperLookupCache
@@ -203,6 +203,7 @@ func newWorker(ctx context.Context, p *zbuf.Progress, bf *expr.BufferFilter, f e
 		workCh:       make(chan work),
 		bufferFilter: bf,
 		filter:       f,
+		ectx:         expr.NewContext(),
 		validate:     validate,
 	}
 }
@@ -336,7 +337,7 @@ func (w *worker) wantValue(val zed.Value, progress *zbuf.Progress) bool {
 	// negatives because it expects a buffer of ZNG value messages, and
 	// rec.Bytes is just a ZNG value.  (A ZNG value message is a header
 	// indicating a type ID followed by a value of that type.)
-	if w.filter == nil || check(w.ectx.Reset(), val, w.filter) {
+	if w.filter == nil || check(w.ectx, val, w.filter) {
 		progress.BytesMatched += int64(len(val.Bytes()))
 		progress.RecordsMatched++
 		return true

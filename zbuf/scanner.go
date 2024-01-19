@@ -99,7 +99,7 @@ func newScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 			return nil, err
 		}
 	}
-	sc := &scanner{reader: r, filter: f, ctx: ctx}
+	sc := &scanner{reader: r, filter: f, ctx: ctx, ectx: expr.NewContext()}
 	sc.Puller = NewPuller(sc)
 	return sc, nil
 }
@@ -109,7 +109,7 @@ type scanner struct {
 	reader   zio.Reader
 	filter   expr.Evaluator
 	ctx      context.Context
-	ectx     expr.ResetContext
+	ectx     expr.Context
 	progress Progress
 }
 
@@ -130,7 +130,7 @@ func (s *scanner) Read() (*zed.Value, error) {
 		atomic.AddInt64(&s.progress.BytesRead, int64(len(this.Bytes())))
 		atomic.AddInt64(&s.progress.RecordsRead, 1)
 		if s.filter != nil {
-			val := s.filter.Eval(s.ectx.Reset(), *this)
+			val := s.filter.Eval(s.ectx, *this)
 			if !(val.Type() == zed.TypeBool && val.Bool()) {
 				continue
 			}

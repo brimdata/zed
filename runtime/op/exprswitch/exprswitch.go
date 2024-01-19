@@ -12,7 +12,6 @@ type ExprSwitch struct {
 	expr        expr.Evaluator
 	cases       map[string]*switchCase
 	defaultCase *switchCase
-	ectx        expr.ResetContext
 }
 
 var _ op.Selector = (*ExprSwitch)(nil)
@@ -44,10 +43,9 @@ func (s *ExprSwitch) AddCase(val *zed.Value) zbuf.Puller {
 }
 
 func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
-	s.ectx.SetVars(batch.Vars())
 	vals := batch.Values()
 	for i := range vals {
-		val := s.expr.Eval(s.ectx.Reset(), vals[i])
+		val := s.expr.Eval(batch, vals[i])
 		if val.IsMissing() {
 			continue
 		}

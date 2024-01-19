@@ -62,7 +62,6 @@ type Aggregator struct {
 	spiller        *spill.MergeSort
 	partialsIn     bool
 	partialsOut    bool
-	ectx           expr.ResetContext
 }
 
 type Row struct {
@@ -314,12 +313,11 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 	// structure at output time, which is the new approach that will be
 	// taken by the fix to #1701.
 
-	a.ectx.SetVars(batch.Vars())
 	types := a.typeCache[:0]
 	keyBytes := a.keyCache[:0]
 	var prim zed.Value
 	for i, keyExpr := range a.keyExprs {
-		key := keyExpr.Eval(a.ectx.Reset(), this)
+		key := keyExpr.Eval(batch, this)
 		if key.IsQuiet() {
 			return nil
 		}
@@ -353,9 +351,9 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 	}
 
 	if a.partialsIn {
-		row.reducers.consumeAsPartial(this, a.aggRefs, a.ectx.Reset())
+		row.reducers.consumeAsPartial(this, a.aggRefs, batch)
 	} else {
-		row.reducers.apply(a.zctx, a.ectx.Reset(), a.aggs, this)
+		row.reducers.apply(a.zctx, batch, a.aggs, this)
 	}
 	return nil
 }
@@ -376,9 +374,8 @@ func (a *Aggregator) spillTable(eof bool, ref zbuf.Batch) error {
 	if err := a.spiller.Spill(a.ctx, recs); err != nil {
 		return err
 	}
-	a.ectx.SetVars(ref.Vars())
 	if !eof && a.inputDir != 0 {
-		val := a.keyExprs[0].Eval(a.ectx.Reset(), recs[len(recs)-1])
+		val := a.keyExprs[0].Eval(batch, recs[len(recs)-1])
 		if !val.IsError() {
 			// pass volatile zed.Value since updateMaxSpillKey will make
 			// a copy if needed.
@@ -425,9 +422,6 @@ func (a *Aggregator) readSpills(eof bool, batch zbuf.Batch) (zbuf.Batch, error) 
 	if !eof && a.inputDir == 0 {
 		return nil, nil
 	}
-	if batch != nil {
-		a.ectx.SetVars(batch.Vars())
-	}
 	for len(recs) < op.BatchLen {
 		if !eof && a.inputDir != 0 {
 			rec, err := a.spiller.Peek()
@@ -437,12 +431,12 @@ func (a *Aggregator) readSpills(eof bool, batch zbuf.Batch) (zbuf.Batch, error) 
 			if rec == nil {
 				break
 			}
-			keyVal := a.keyExprs[0].Eval(a.ectx.Reset(), *rec)
+			keyVal := a.keyExprs[0].Eval(batch, *rec)
 			if !keyVal.IsError() && a.valueCompare(keyVal, *a.maxSpillKey) >= 0 {
 				break
 			}
 		}
-		rec, err := a.nextResultFromSpills(a.ectx.Reset())
+		rec, err := a.nextResultFromSpills(batch)
 		if err != nil {
 			return nil, err
 		}

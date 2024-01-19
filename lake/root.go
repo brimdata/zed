@@ -185,14 +185,14 @@ func (r *Root) BatchifyPools(ctx context.Context, zctx *zed.Context, f expr.Eval
 	if err != nil {
 		return nil, err
 	}
-	var ectx expr.ResetContext
+	ectx := expr.NewContext()
 	var vals []zed.Value
 	for k := range pools {
 		rec, err := m.Marshal(&pools[k])
 		if err != nil {
 			return nil, err
 		}
-		if filter(zctx, ectx.Reset(), rec, f) {
+		if filter(zctx, ectx, rec, f) {
 			vals = append(vals, rec)
 		}
 	}
