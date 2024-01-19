@@ -3,6 +3,7 @@ script: |
   zc -C 'yield <[int64]>'
   zc -C 'yield <|[int64]|>'
   zc -C 'yield <|{int64:string}|>'
+  zc -C 'yield <error({msg:string})>'
 
 outputs:
   - name: stdout
@@ -11,3 +12,4 @@ outputs:
       yield <[int64]>
       yield <|[int64]|>
       yield <|{int64:string}|>
+      yield <error({msg:string})>
