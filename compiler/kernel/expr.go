@@ -52,7 +52,7 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 	}
 	switch e := e.(type) {
 	case *dag.Literal:
-		val, err := zson.ParseValue(b.arena(), e.Value)
+		val, err := zson.ParseValue(b.arena, e.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +193,7 @@ func (b *Builder) compileConstCompare(e *dag.BinaryExpr) (expr.Evaluator, error)
 }
 
 func (b *Builder) compileSearch(search *dag.Search) (expr.Evaluator, error) {
-	val, err := zson.ParseValue(b.arena(), search.Value)
+	val, err := zson.ParseValue(b.arena, search.Value)
 	if err != nil {
 		return nil, err
 	}

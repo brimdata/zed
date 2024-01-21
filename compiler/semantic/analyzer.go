@@ -45,15 +45,18 @@ type analyzer struct {
 	source  *data.Source
 	scope   *Scope
 	zctx    *zed.Context
+	arena   *zed.Arena
 }
 
 func newAnalyzer(ctx context.Context, source *data.Source, head *lakeparse.Commitish) *analyzer {
+	zctx := zed.NewContext()
 	return &analyzer{
 		ctx:    ctx,
 		head:   head,
 		source: source,
 		scope:  NewScope(nil),
-		zctx:   zed.NewContext(),
+		zctx:   zctx,
+		arena:  zed.NewArena(zctx),
 	}
 }
 

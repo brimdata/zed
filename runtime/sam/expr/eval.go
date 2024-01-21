@@ -74,7 +74,7 @@ func EvalBool(zctx *zed.Context, ectx Context, this zed.Value, e Evaluator) (zed
 	if val.IsError() {
 		return val, false
 	}
-	return zctx.WrapError("not type bool", val), false
+	return ectx.A.WrapError("not type bool", val), false
 }
 
 func (a *And) Eval(ectx Context, this zed.Value) zed.Value {
@@ -138,7 +138,7 @@ func (i *In) Eval(ectx Context, this zed.Value) zed.Value {
 		return container
 	}
 	err := container.Walk(func(typ zed.Type, body zcode.Bytes) error {
-		if _, err := i.vals.Coerce(elem, zed.NewValue(typ, body)); err != nil {
+		if _, err := i.vals.Coerce(elem, ectx.A.NewValue(typ, body)); err != nil {
 			if err != coerce.IncompatibleTypes {
 				return err
 			}
@@ -153,7 +153,7 @@ func (i *In) Eval(ectx Context, this zed.Value) zed.Value {
 	case nil:
 		return zed.False
 	default:
-		return i.zctx.NewError(err)
+		return ectx.A.NewError(err)
 	}
 }
 
@@ -188,7 +188,7 @@ func (e *Equal) Eval(ectx Context, this zed.Value) zed.Value {
 			}
 			return zed.True
 		}
-		return e.zctx.NewError(err)
+		return ectx.A.NewError(err)
 	}
 	result := e.vals.Equal()
 	if !e.equality {
@@ -235,7 +235,7 @@ func newNumeric(zctx *zed.Context, lhs, rhs Evaluator) numeric {
 func enumify(ectx Context, val zed.Value) zed.Value {
 	// automatically convert an enum to its index value when coercing
 	if _, ok := val.Type().(*zed.TypeEnum); ok {
-		return zed.NewValue(zed.TypeUint64, val.Bytes())
+		return ectx.A.NewValue(zed.TypeUint64, val.Bytes())
 	}
 	return val
 }

@@ -48,7 +48,7 @@ func (c *CollectMap) ConsumeAsPartial(val zed.Value) {
 	c.Consume(val)
 }
 
-func (c *CollectMap) Result(zctx *zed.Context) zed.Value {
+func (c *CollectMap) Result(a *zed.Arena) zed.Value {
 	if len(c.entries) == 0 {
 		return zed.Null
 	}
@@ -60,20 +60,20 @@ func (c *CollectMap) Result(zctx *zed.Context) zed.Value {
 	// Keep track of number of unique types in collection. If there is only one
 	// unique type we don't build a union for each value (though the base type could
 	// be a union itself).
-	ktyp, kuniq := unionOf(zctx, ktypes)
-	vtyp, vuniq := unionOf(zctx, vtypes)
+	ktyp, kuniq := unionOf(a.Zctx(), ktypes)
+	vtyp, vuniq := unionOf(a.Zctx(), vtypes)
 	var builder zcode.Builder
 	for _, e := range c.entries {
 		appendMapVal(&builder, ktyp, e.key, kuniq)
 		appendMapVal(&builder, vtyp, e.val, vuniq)
 	}
-	typ := zctx.LookupTypeMap(ktyp, vtyp)
+	typ := a.Zctx().LookupTypeMap(ktyp, vtyp)
 	b := zed.NormalizeMap(builder.Bytes())
-	return zed.NewValue(typ, b)
+	return a.NewValue(typ, b)
 }
 
-func (c *CollectMap) ResultAsPartial(zctx *zed.Context) zed.Value {
-	return c.Result(zctx)
+func (c *CollectMap) ResultAsPartial(a *zed.Arena) zed.Value {
+	return c.Result(a)
 }
 
 func appendMapVal(b *zcode.Builder, typ zed.Type, val zed.Value, uniq int) {

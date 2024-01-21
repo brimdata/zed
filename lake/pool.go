@@ -156,12 +156,12 @@ func (p *Pool) ResolveRevision(ctx context.Context, revision string) (ksuid.KSUI
 	return id, nil
 }
 
-func (p *Pool) BatchifyBranches(ctx context.Context, zctx *zed.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
+func (p *Pool) BatchifyBranches(ctx context.Context, arena *zed.Arena, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
-	ectx := expr.NewContext()
+	ectx := expr.NewContext(arena)
 	for _, branchRef := range branches {
 		meta := BranchMeta{p.Config, branchRef}
 		rec, err := m.Marshal(&meta)
