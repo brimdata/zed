@@ -338,6 +338,7 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			b := d.Value.Bytes()
 			bytes = append(bytes, b...)
 			off += uint32(len(b))
+			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
 		return vector.NewDictBytes(tags, offs, bytes, counts, nulls)
@@ -351,6 +352,7 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			b := d.Value.Bytes()
 			bytes = append(bytes, b...)
 			off += uint32(len(b))
+			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
 		return vector.NewDictString(tags, offs, bytes, counts, nulls)
@@ -378,6 +380,7 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			b := d.Value.Bytes()
 			bytes = append(bytes, b...)
 			off += uint32(len(b))
+			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
 		return vector.NewDictTypeValue(tags, offs, bytes, counts, nulls)

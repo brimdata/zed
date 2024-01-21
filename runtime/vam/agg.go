@@ -1,6 +1,9 @@
 package vam
 
 import (
+	"fmt"
+	"slices"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/vector"
 )
@@ -63,10 +66,13 @@ func (c *CountByString) update(vec vector.Any) {
 		c.table.countDict(vec)
 	case (*vector.Const):
 		c.table.countFixed(vec)
+	default:
+		panic(fmt.Sprintf("UNKNOWN %T\n", vec))
 	}
 }
 
 type countByString struct {
+	nulls uint64
 	table map[string]uint64
 }
 
@@ -81,8 +87,8 @@ func (c *countByString) count(vec *vector.String) {
 func (c *countByString) countDict(vec *vector.DictString) {
 	offs := vec.Offs
 	bytes := vec.Bytes
-	for k := range offs {
-		tag := vec.Tags[k]
+	n := uint32(len(offs) - 1)
+	for tag := uint32(0); tag < n; tag++ {
 		c.table[string(bytes[offs[tag]:offs[tag+1]])] += uint64(vec.Counts[tag])
 	}
 }
@@ -92,6 +98,9 @@ func (c *countByString) countFixed(vec *vector.Const) {
 	val := vec.Value()
 	if zed.TypeUnder(val.Type()) == zed.TypeString {
 		c.table[zed.DecodeString(val.Bytes())] += uint64(vec.Length())
+	}
+	if zed.TypeUnder(val.Type()) == zed.TypeNull {
+		c.nulls += uint64(vec.Length())
 	}
 }
 
@@ -112,7 +121,20 @@ func (c *countByString) materialize(zctx *zed.Context, name string) *vector.Reco
 		k++
 	}
 	offs[k] = uint32(len(bytes))
-	keyVec := vector.NewString(offs, bytes, nil)
+	// XXX change nulls to string null... this will be fixed in
+	// prod-quality summarize op
+	var nulls *vector.Bool
+	if c.nulls > 0 {
+		length++
+		counts = slices.Grow(counts, length)[0:length]
+		offs = slices.Grow(offs, length+1)[0 : length+1]
+		counts[k] = c.nulls
+		k++
+		offs[k] = uint32(len(bytes))
+		nulls = vector.NewBoolEmpty(uint32(k), nil)
+		nulls.Set(uint32(k - 1))
+	}
+	keyVec := vector.NewString(offs, bytes, nulls)
 	countVec := vector.NewUint(zed.TypeUint64, counts, nil)
 	return vector.NewRecord(typ, []vector.Any{keyVec, countVec}, uint32(length), nil)
 }
