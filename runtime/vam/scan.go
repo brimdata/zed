@@ -98,22 +98,22 @@ func (s *Scanner) run() {
 		vals := batch.Values()
 		if len(vals) != 1 {
 			// We require exactly one data object per pull.
-			err := errors.New("system error: VecScanner encountered multi-valued batch")
+			err := errors.New("system error: vam.Scanner encountered multi-valued batch")
 			s.sendResult(nil, err)
 			return
 		}
 		named, ok := vals[0].Type().(*zed.TypeNamed)
 		if !ok {
-			s.sendResult(nil, fmt.Errorf("system error: VecScanner encountered unnamed object: %s", zson.String(vals[0])))
+			s.sendResult(nil, fmt.Errorf("system error: vam.Scanner encountered unnamed object: %s", zson.String(vals[0])))
 			return
 		}
 		if named.Name != "data.Object" {
-			s.sendResult(nil, fmt.Errorf("system error: VecScanner encountered unnamed object: %q", named.Name))
+			s.sendResult(nil, fmt.Errorf("system error: vam.Scanner encountered unnamed object: %q", named.Name))
 			return
 		}
 		var meta data.Object
 		if err := s.unmarshaler.Unmarshal(vals[0], &meta); err != nil {
-			s.sendResult(nil, fmt.Errorf("system error: VecScanner could not unmarshal value: %q", zson.String(vals[0])))
+			s.sendResult(nil, fmt.Errorf("system error: vam.Scanner could not unmarshal value: %q", zson.String(vals[0])))
 			return
 		}
 		object, err := s.cache.Fetch(s.octx.Context, meta.VectorURI(s.pool.DataPath), meta.ID)
