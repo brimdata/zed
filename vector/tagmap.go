@@ -23,8 +23,7 @@ func NewTagMapFromLens(tags []uint32, lens []uint32) *TagMap {
 	space := make([]uint32, len(tags))
 	reverse := make([][]uint32, len(lens))
 	var off uint32
-	for tag := range lens {
-		n := lens[tag]
+	for tag, n := range lens {
 		reverse[tag] = space[off : off+n]
 		off += n
 	}

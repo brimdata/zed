@@ -23,9 +23,9 @@ func NewCountByString(zctx *zed.Context, parent Puller, name string) *CountByStr
 	return &CountByString{
 		parent: parent,
 		zctx:   zctx,
+		field:  NewDotExpr(zctx, &This{}, name),
 		name:   name,
 		table:  countByString{table: make(map[string]uint64)}, //XXX
-		field:  NewDotExpr(zctx, &This{}, name),
 	}
 }
 
@@ -58,8 +58,7 @@ func (c *CountByString) update(vec vector.Any) {
 		}
 		return
 	}
-	vec = c.field.Eval(vec)
-	switch vec := vec.(type) {
+	switch vec := c.field.Eval(vec).(type) {
 	case *vector.String:
 		c.table.count(vec)
 	case *vector.DictString:
@@ -80,7 +79,7 @@ func (c *countByString) count(vec *vector.String) {
 	offs := vec.Offsets
 	bytes := vec.Bytes
 	for k := range offs {
-		c.table[string(bytes[offs[k]:offs[k+1]])] += 1
+		c.table[string(bytes[offs[k]:offs[k+1]])]++
 	}
 }
 
@@ -96,10 +95,10 @@ func (c *countByString) countDict(vec *vector.DictString) {
 func (c *countByString) countFixed(vec *vector.Const) {
 	//XXX
 	val := vec.Value()
-	if zed.TypeUnder(val.Type()) == zed.TypeString {
+	switch val.Type().ID() {
+	case zed.IDString:
 		c.table[zed.DecodeString(val.Bytes())] += uint64(vec.Length())
-	}
-	if zed.TypeUnder(val.Type()) == zed.TypeNull {
+	case zed.IDNull:
 		c.nulls += uint64(vec.Length())
 	}
 }
@@ -116,7 +115,7 @@ func (c *countByString) materialize(zctx *zed.Context, name string) *vector.Reco
 	var k int
 	for key, count := range c.table {
 		offs[k] = uint32(len(bytes))
-		bytes = append(bytes, []byte(key)...)
+		bytes = append(bytes, key...)
 		counts[k] = count
 		k++
 	}
@@ -152,8 +151,8 @@ func NewSum(zctx *zed.Context, parent Puller, name string) *Sum {
 	return &Sum{
 		parent: parent,
 		zctx:   zctx,
-		name:   name,
 		field:  NewDotExpr(zctx, &This{}, name),
+		name:   name,
 	}
 }
 
@@ -195,16 +194,16 @@ func (c *Sum) update(vec vector.Any) {
 			c.sum += x
 		}
 	case *vector.DictInt:
-		for k := range vec.Values {
-			c.sum += vec.Values[k] * int64(vec.Counts[k])
+		for k, val := range vec.Values {
+			c.sum += val * int64(vec.Counts[k])
 		}
 	case *vector.Uint:
 		for _, x := range vec.Values {
 			c.sum += int64(x)
 		}
 	case *vector.DictUint:
-		for k := range vec.Values {
-			c.sum += int64(vec.Values[k]) * int64(vec.Counts[k])
+		for k, val := range vec.Values {
+			c.sum += int64(val) * int64(vec.Counts[k])
 		}
 	}
 }

@@ -40,10 +40,10 @@ func (d *DotExpr) Eval(vec vector.Any) vector.Any {
 			return vector.NewMissing(d.zctx, vec.Len())
 		}
 		return vec.Fields[i]
-	case *vector.Map:
-		panic("vam.DotExpr Map TBD")
 	case *vector.TypeValue:
 		panic("vam.DotExpr TypeValue TBD")
+	case *vector.Map:
+		panic("vam.DotExpr Map TBD")
 	case *vector.Union:
 		vecs := make([]vector.Any, 0, len(vec.Values))
 		for _, vec := range vec.Values {

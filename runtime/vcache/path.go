@@ -7,7 +7,7 @@ import (
 )
 
 // A path is an array of string or Forks
-type Path []interface{} //XXX clean this up later
+type Path []any //XXX clean this up later
 type Fork []Path
 
 func NewProjection(paths []field.Path) Path {

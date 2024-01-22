@@ -49,20 +49,25 @@ func (c *Cache) Unlock(id ksuid.KSUID) {
 
 func (c *Cache) Fetch(ctx context.Context, uri *storage.URI, id ksuid.KSUID) (*Object, error) {
 	c.mu.Lock()
-	if object, ok := c.objects[id]; ok {
-		c.mu.Unlock()
+	object, ok := c.objects[id]
+	c.mu.Unlock()
+	if ok {
 		return object, nil
 	}
-	c.mu.Unlock()
 	c.Lock(id)
+	defer c.Unlock(id)
+	c.mu.Lock()
+	object, ok = c.objects[id]
+	c.mu.Unlock()
+	if ok {
+		return object, nil
+	}
 	object, err := NewObject(ctx, c.engine, uri)
 	if err != nil {
-		c.Unlock(id)
 		return nil, err
 	}
 	c.mu.Lock()
 	c.objects[id] = object
 	c.mu.Unlock()
-	c.Unlock(id)
 	return object, nil
 }

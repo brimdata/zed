@@ -16,12 +16,7 @@ type Union struct {
 var _ Any = (*Union)(nil)
 
 func NewUnion(typ *zed.TypeUnion, tags []uint32, vals []Any, nulls *Bool) *Union {
-	return &Union{
-		Typ:    typ,
-		Tags:   tags,
-		TagMap: *NewTagMap(tags, vals),
-		Values: vals,
-	}
+	return &Union{typ, tags, *NewTagMap(tags, vals), vals, nulls}
 }
 
 func (u *Union) Type() zed.Type {
@@ -41,10 +36,7 @@ func (u *Union) Serialize(b *zcode.Builder, slot uint32) {
 }
 
 func (u *Union) Copy(vals []Any) *Union {
-	return &Union{
-		Typ:    u.Typ,
-		Tags:   u.Tags,
-		TagMap: u.TagMap,
-		Values: vals,
-	}
+	u2 := *u
+	u2.Values = vals
+	return &u2
 }

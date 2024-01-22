@@ -11,7 +11,7 @@
 // calling the Metadata method on the Encoder interface.
 //
 // Nulls are encoded by a special Nulls object.  Each type is wrapped by a NullsEncoder,
-// which run-length encodes any alternating sequences of nulls and values.  If no nulls
+// which run-length encodes alternating sequences of nulls and values.  If no nulls
 // are encountered, then the Nulls object is omitted from the metadata.
 //
 // Data is read from a VNG object by reading the metadata and creating vector Builders

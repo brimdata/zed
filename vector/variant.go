@@ -5,7 +5,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-// An ordered sequence of values taken from one or more
+// Variant is an ordered sequence of values taken from one or more
 // hetereogenously-typed vectors.
 type Variant struct {
 	Tags   []uint32

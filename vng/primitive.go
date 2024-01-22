@@ -32,9 +32,7 @@ func NewPrimitiveEncoder(typ zed.Type, useDict bool) *PrimitiveEncoder {
 	if useDict {
 		// Don't bother using a dictionary (which takes 8-bit tags) to encode
 		// other 8-bit values.
-		switch zed.TypeUnder(typ).(type) {
-		case *zed.TypeOfBool, *zed.TypeOfInt8, *zed.TypeOfUint8:
-		default:
+		if id := typ.ID(); id != zed.IDUint8 && id != zed.IDInt8 && id != zed.IDBool {
 			dict = make(map[string]uint32)
 		}
 	}

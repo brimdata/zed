@@ -72,9 +72,6 @@ func (c *Command) Run(args []string) error {
 	}
 	defer object.Close()
 	projection := vam.NewProjection(zed.NewContext(), object, paths)
-	if err != nil {
-		return err
-	}
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
