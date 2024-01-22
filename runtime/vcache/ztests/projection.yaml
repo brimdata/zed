@@ -1,5 +1,3 @@
-skip: disabled until "zed dev vcache project" is fixed or replaced
-
 script: |
   zq -f vng -o test.vng -
   zed dev vcache project -z test.vng x y z
@@ -9,7 +7,8 @@ script: |
   zed dev vcache project -z test.vng x s
   echo ===
   zed dev vcache project -z test.vng s x
-
+  echo ===
+  zed dev vcache project -z test.vng y w.y
 inputs:
   - name: stdin
     data: |
@@ -17,28 +16,36 @@ inputs:
       {x:3,y:4}
       {x:3,y:4,s:"bar"}
       {x:3,y:4}
-      {s:"baz"}
-
+      {s:"baz",w:{y:5}}
 outputs:
   - name: stdout
     data: |
-      {x:1,y:2}
-      {x:3,y:4}
-      {x:3,y:4}
-      {x:3,y:4}
+      {x:1,y:2,z:error("missing")}
+      {x:3,y:4,z:error("missing")}
+      {x:3,y:4,z:error("missing")}
+      {x:3,y:4,z:error("missing")}
+      {x:error("missing"),y:error("missing"),z:error("missing")}
       ===
       {s:"foo"}
+      {s:error("missing")}
       {s:"bar"}
+      {s:error("missing")}
       {s:"baz"}
       ===
       {x:1,s:"foo"}
-      {x:3}
+      {x:3,s:error("missing")}
       {x:3,s:"bar"}
-      {x:3}
-      {s:"baz"}
+      {x:3,s:error("missing")}
+      {x:error("missing"),s:"baz"}
       ===
       {s:"foo",x:1}
-      {x:3}
+      {s:error("missing"),x:3}
       {s:"bar",x:3}
-      {x:3}
-      {s:"baz"}
+      {s:error("missing"),x:3}
+      {s:"baz",x:error("missing")}
+      ===
+      {y:2,w:error("missing")}
+      {y:4,w:error("missing")}
+      {y:4,w:error("missing")}
+      {y:4,w:error("missing")}
+      {y:error("missing"),w:{y:5}}

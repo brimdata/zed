@@ -6,33 +6,27 @@ import (
 )
 
 type Const struct {
-	val zed.Value
-	len uint32
+	val   zed.Value
+	len   uint32
+	Nulls *Bool
 }
 
-func NewConst(val zed.Value, len uint32) *Const {
-	return &Const{val: val, len: len}
+var _ Any = (*Const)(nil)
+
+func NewConst(val zed.Value, len uint32, nulls *Bool) *Const {
+	return &Const{val: val, len: len, Nulls: nulls}
 }
 
 func (c *Const) Type() zed.Type {
 	return c.val.Type()
 }
 
+func (c *Const) Len() uint32 {
+	return c.len
+}
+
 func (*Const) Ref()   {}
 func (*Const) Unref() {}
-
-func (c *Const) NewBuilder() Builder {
-	bytes := c.val.Bytes()
-	var voff uint32
-	return func(b *zcode.Builder) bool {
-		if voff >= c.len {
-			return false
-		}
-		b.Append(bytes)
-		voff++
-		return true
-	}
-}
 
 func (c *Const) Length() int {
 	return int(c.len)
@@ -40,4 +34,12 @@ func (c *Const) Length() int {
 
 func (c *Const) Value() zed.Value {
 	return c.val
+}
+
+func (c *Const) Serialize(b *zcode.Builder, slot uint32) {
+	if c.Nulls != nil && c.Nulls.Value(slot) {
+		b.Append(nil)
+	} else {
+		b.Append(c.val.Bytes())
+	}
 }

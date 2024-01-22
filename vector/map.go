@@ -6,44 +6,38 @@ import (
 )
 
 type Map struct {
-	mem
 	Typ     *zed.TypeMap
-	Lengths []int32
+	Offsets []uint32
 	Keys    Any
 	Values  Any
+	Nulls   *Bool
 }
 
 var _ Any = (*Map)(nil)
 
-func NewMap(typ *zed.TypeMap, lengths []int32, keys Any, values Any) *Map {
-	return &Map{Typ: typ, Lengths: lengths, Keys: keys, Values: values}
+func NewMap(typ *zed.TypeMap, offsets []uint32, keys Any, values Any, nulls *Bool) *Map {
+	return &Map{Typ: typ, Offsets: offsets, Keys: keys, Values: values, Nulls: nulls}
 }
 
 func (m *Map) Type() zed.Type {
 	return m.Typ
 }
 
-func (m *Map) NewBuilder() Builder {
-	keyBuilder := m.Keys.NewBuilder()
-	valueBuilder := m.Values.NewBuilder()
-	var off int
-	return func(b *zcode.Builder) bool {
-		if off >= len(m.Lengths) {
-			return false
-		}
-		b.BeginContainer()
-		for i := 0; i < int(m.Lengths[off]); i++ {
-			if !keyBuilder(b) {
-				panic(off)
-			}
-			if !valueBuilder(b) {
-				panic(off)
-			}
-		}
-		b.TransformContainer(zed.NormalizeMap)
-		b.EndContainer()
-		off++
-		return true
-	}
+func (m *Map) Len() uint32 {
+	return uint32(len(m.Offsets) - 1)
+}
 
+func (m *Map) Serialize(b *zcode.Builder, slot uint32) {
+	if m.Nulls != nil && m.Nulls.Value(slot) {
+		b.Append(nil)
+		return
+	}
+	off := m.Offsets[slot]
+	b.BeginContainer()
+	for end := m.Offsets[slot+1]; off < end; off++ {
+		m.Keys.Serialize(b, off)
+		m.Values.Serialize(b, off)
+	}
+	b.TransformContainer(zed.NormalizeMap)
+	b.EndContainer()
 }

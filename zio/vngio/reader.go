@@ -15,9 +15,9 @@ func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Rea
 	if !ok {
 		return nil, errors.New("VNG requires a seekable input")
 	}
-	o, err := vng.NewObject(zctx, ra)
+	o, err := vng.NewObject(ra)
 	if err != nil {
 		return nil, err
 	}
-	return o.NewReader()
+	return o.NewReader(zctx)
 }

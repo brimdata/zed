@@ -31,7 +31,7 @@ var zbufPool = sync.Pool{
 // Read returns [io.ErrShortBuffer].
 func (s *Segment) Read(r io.ReaderAt, b []byte) error {
 	if len(b) < int(s.MemLength) {
-		return io.ErrShortBuffer
+		return fmt.Errorf("vng: segment read: %w", io.ErrShortBuffer)
 	}
 	b = b[:s.MemLength]
 	switch s.CompressionFormat {

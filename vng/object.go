@@ -10,20 +10,18 @@
 // of a single Zed value describing the layout of all the vector data obtained by
 // calling the Metadata method on the Encoder interface.
 //
-// Nulls for complex types are encoded by a special Nulls object.  Each complex
-// type is wrapped by a NullsEncoder, which run-length encodes any alternating
-// sequences of nulls and values.  If no nulls are encountered, then the Nulls
-// object is omitted from the metadata.
+// Nulls are encoded by a special Nulls object.  Each type is wrapped by a NullsEncoder,
+// which run-length encodes alternating sequences of nulls and values.  If no nulls
+// are encountered, then the Nulls object is omitted from the metadata.
 //
-// Data is read from a VNG file by reading the metadata and creating vector Builders
-// for each Zed type by calling NewBuilder with the metadata, which
-// recusirvely builds reassembly segments.  An io.ReaderAt is passed to NewBuilder
-// so each vector reader can access the underlying storage object and read its
-// vector data effciently in large vector segments.
+// Data is read from a VNG object by reading the metadata and creating vector Builders
+// for each Zed type by calling NewBuilder with the metadata, which recusirvely creates
+// Builders.  An io.ReaderAt is passed to NewBuilder so each vector reader can access
+// the underlying storage object and read its vector data effciently in large vector segments.
 //
 // Once the metadata is assembled in memory, the recontructed Zed sequence data can be
 // read from the vector segments by calling the Build method on the top-level
-// Builder and passing in a zcode.Builder to reconstruct the Zed value in place.
+// Builder and passing in a zcode.Builder to reconstruct the Zed value.
 package vng
 
 import (
@@ -38,23 +36,21 @@ import (
 
 type Object struct {
 	readerAt io.ReaderAt
-	zctx     *zed.Context
 	header   Header
 	meta     Metadata
 }
 
-func NewObject(zctx *zed.Context, r io.ReaderAt) (*Object, error) {
+func NewObject(r io.ReaderAt) (*Object, error) {
 	hdr, err := ReadHeader(io.NewSectionReader(r, 0, HeaderSize))
 	if err != nil {
 		return nil, err
 	}
-	meta, err := readMetadata(zctx, io.NewSectionReader(r, HeaderSize, int64(hdr.MetaSize)))
+	meta, err := readMetadata(io.NewSectionReader(r, HeaderSize, int64(hdr.MetaSize)))
 	if err != nil {
 		return nil, err
 	}
 	return &Object{
 		readerAt: io.NewSectionReader(r, int64(HeaderSize+hdr.MetaSize), int64(hdr.DataSize)),
-		zctx:     zctx,
 		header:   hdr,
 		meta:     meta,
 	}, nil
@@ -67,31 +63,20 @@ func (o *Object) Close() error {
 	return nil
 }
 
+func (o *Object) Metadata() Metadata {
+	return o.meta
+}
+
 func (o *Object) DataReader() io.ReaderAt {
 	return o.readerAt
 }
 
-func (o *Object) MiscMeta() ([]zed.Type, []Metadata, []int32, error) {
-	if variant, ok := o.meta.(*Variant); ok {
-		tags, err := ReadIntVector(variant.Tags, o.readerAt)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		metas := variant.Values
-		types := make([]zed.Type, 0, len(metas))
-		for _, meta := range metas {
-			types = append(types, meta.Type(o.zctx))
-		}
-		return types, metas, tags, nil
-	}
-	return []zed.Type{o.meta.Type(o.zctx)}, []Metadata{o.meta}, make([]int32, o.meta.Len()), nil
+func (o *Object) NewReader(zctx *zed.Context) (zio.Reader, error) {
+	return NewZedReader(zctx, o.meta, o.readerAt)
 }
 
-func (o *Object) NewReader() (zio.Reader, error) {
-	return NewZedReader(o.zctx, o.meta, o.readerAt)
-}
-
-func readMetadata(zctx *zed.Context, r io.Reader) (Metadata, error) {
+func readMetadata(r io.Reader) (Metadata, error) {
+	zctx := zed.NewContext()
 	zr := zngio.NewReader(zctx, r)
 	defer zr.Close()
 	val, err := zr.Read()
@@ -125,5 +110,20 @@ func ReadIntVector(loc Segment, r io.ReaderAt) ([]int32, error) {
 			return nil, err
 		}
 		out = append(out, int32(val))
+	}
+}
+
+func ReadUint32Vector(loc Segment, r io.ReaderAt) ([]uint32, error) {
+	decoder := NewInt64Decoder(loc, r)
+	var out []uint32
+	for {
+		val, err := decoder.Next()
+		if err != nil {
+			if err == io.EOF {
+				return out, nil
+			}
+			return nil, err
+		}
+		out = append(out, uint32(val))
 	}
 }
