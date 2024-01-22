@@ -16,12 +16,17 @@ type Writer struct {
 	header
 	flattener *expr.Flattener
 	typ       *zed.TypeRecord
+	zctx      *zed.Context
+	arena     *zed.Arena
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
+	zctx := zed.NewContext()
 	return &Writer{
 		writer:    w,
-		flattener: expr.NewFlattener(zed.NewContext()),
+		flattener: expr.NewFlattener(zctx),
+		zctx:      zctx,
+		arena:     zed.NewArena(zctx),
 	}
 }
 
@@ -30,7 +35,8 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(r zed.Value) error {
-	r, err := w.flattener.Flatten(r)
+	w.arena.Reset()
+	r, err := w.flattener.Flatten(w.arena, r)
 	if err != nil {
 		return err
 	}
@@ -53,7 +59,7 @@ func (w *Writer) Write(r zed.Value) error {
 			w.buf.WriteByte('\t')
 		}
 		needSeparator = true
-		w.buf.WriteString(FormatValue(zed.NewValue(f.Type, bytes)))
+		w.buf.WriteString(FormatValue(w.arena, w.arena.NewValue(f.Type, bytes)))
 	}
 	w.buf.WriteByte('\n')
 	_, err = w.writer.Write(w.buf.Bytes())

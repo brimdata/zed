@@ -2,6 +2,7 @@ package function
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/runtime/expr"
 	"github.com/segmentio/ksuid"
 )
 
@@ -10,30 +11,31 @@ type KSUIDToString struct {
 	zctx *zed.Context
 }
 
-func (k *KSUIDToString) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (k *KSUIDToString) Call(ectx expr.Context, args []zed.Value) zed.Value {
+	arena := ectx.Arena()
 	if len(args) == 0 {
-		return zed.NewBytes(ksuid.New().Bytes())
+		return arena.NewBytes(ksuid.New().Bytes())
 	}
 	val := args[0]
 	switch val.Type().ID() {
 	case zed.IDBytes:
 		if val.IsNull() {
-			return k.zctx.NewErrorf("ksuid: illegal null argument")
+			return arena.NewErrorf("ksuid: illegal null argument")
 		}
 		// XXX GC
 		id, err := ksuid.FromBytes(val.Bytes())
 		if err != nil {
 			panic(err)
 		}
-		return zed.NewString(id.String())
+		return arena.NewString(id.String())
 	case zed.IDString:
 		// XXX GC
 		id, err := ksuid.Parse(string(val.Bytes()))
 		if err != nil {
-			return k.zctx.WrapError("ksuid: "+err.Error(), val)
+			return arena.WrapError("ksuid: "+err.Error(), val)
 		}
-		return zed.NewBytes(id.Bytes())
+		return arena.NewBytes(id.Bytes())
 	default:
-		return k.zctx.WrapError("ksuid: argument must a bytes or string type", val)
+		return arena.WrapError("ksuid: argument must a bytes or string type", val)
 	}
 }

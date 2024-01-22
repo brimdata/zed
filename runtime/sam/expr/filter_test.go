@@ -44,8 +44,9 @@ func filter(ectx expr.Context, this zed.Value, e expr.Evaluator) bool {
 func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferFilterFalsePositives bool) {
 	t.Helper()
 
-	zctx := zed.NewContext()
-	rec, err := zson.ParseValue(zctx, record)
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.KeepAlive()
+	rec, err := zson.ParseValue(arena, record)
 	require.NoError(t, err, "record: %q", record)
 
 	for _, c := range cases {
@@ -65,7 +66,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			f, err := filterMaker.AsEvaluator()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
-				assert.Equal(t, c.expected, filter(expr.NewContext(), rec, f),
+				assert.Equal(t, c.expected, filter(expr.NewContext(arena), rec, f),
 					"filter: %q\nrecord: %s", c.filter, zson.FormatValue(rec))
 			}
 			bf, err := filterMaker.AsBufferFilter()
@@ -77,7 +78,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 				// containing rec, assembled here.
 				buf := binary.AppendUvarint(nil, uint64(rec.Type().ID()))
 				buf = zcode.Append(buf, rec.Bytes())
-				assert.Equal(t, expected, bf.Eval(zctx, buf),
+				assert.Equal(t, expected, bf.Eval(arena.Zctx(), buf),
 					"filter: %q\nvalues:%s\nbuffer:\n%s", c.filter, zson.FormatValue(rec), hex.Dump(buf))
 			}
 		})

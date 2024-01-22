@@ -64,7 +64,7 @@ func (r *recordExpr) Eval(ectx Context, this zed.Value) zed.Value {
 		// Return empty record instead of null record.
 		bytes = []byte{}
 	}
-	return zed.NewValue(r.typ, bytes)
+	return ectx.Arena().NewValue(r.typ, bytes)
 }
 
 type RecordElem struct {

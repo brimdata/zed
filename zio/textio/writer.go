@@ -14,12 +14,15 @@ import (
 type Writer struct {
 	writer    io.WriteCloser
 	flattener *expr.Flattener
+	arena     *zed.Arena
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
+	zctx := zed.NewContext()
 	return &Writer{
 		writer:    w,
-		flattener: expr.NewFlattener(zed.NewContext()),
+		flattener: expr.NewFlattener(zctx),
+		arena:     zed.NewArena(zctx),
 	}
 }
 
@@ -28,15 +31,16 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(val zed.Value) error {
+	w.arena.Reset()
 	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeRecord); ok {
 		return w.writeRecord(val)
 	}
-	_, err := fmt.Fprintln(w.writer, zeekio.FormatValue(val))
+	_, err := fmt.Fprintln(w.writer, zeekio.FormatValue(w.arena, val))
 	return err
 }
 
 func (w *Writer) writeRecord(rec zed.Value) error {
-	rec, err := w.flattener.Flatten(rec)
+	rec, err := w.flattener.Flatten(w.arena, rec)
 	if err != nil {
 		return err
 	}
@@ -51,7 +55,7 @@ func (w *Writer) writeRecord(rec zed.Value) error {
 				s = zed.DecodeTime(value.Bytes()).Time().Format(time.RFC3339Nano)
 			}
 		} else {
-			s = zeekio.FormatValue(value)
+			s = zeekio.FormatValue(w.arena, value)
 		}
 		out = append(out, s)
 	}

@@ -9,18 +9,23 @@ import (
 // of Zed values both for let-style temporary variables accessible via
 // the scope and for allocating results.
 type Context interface {
+	Arena() *zed.Arena
 	// Vars() accesses the variables reachable in the current scope.
 	Vars() []zed.Value
 	zed.Allocator
 }
 
-type allocator struct{}
+type allocator struct {
+	arena *zed.Arena
+}
 
 var _ Context = (*allocator)(nil)
 
-func NewContext() *allocator {
-	return &allocator{}
+func NewContext(arena *zed.Arena) *allocator {
+	return &allocator{arena}
 }
+
+func (a *allocator) Arena() *zed.Arena { return a.arena }
 
 func (*allocator) Vars() []zed.Value {
 	return nil

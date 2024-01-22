@@ -26,7 +26,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	indices := make([]uint32, n)
 	i64s := make([]int64, n)
 	val0s := make([]zed.Value, n)
-	ectx := NewContext()
+	ectx := NewContext(zed.NewArena(zed.NewContext()))
 	native := true
 	for i := range indices {
 		indices[i] = uint32(i)
@@ -52,6 +52,9 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 			native = false
 		}
 	}
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.KeepAlive()
+	ectx = NewContext(arena)
 	sort.SliceStable(indices, func(i, j int) bool {
 		if c.reverse {
 			i, j = j, i
@@ -69,6 +72,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 				}
 				ival, jval = val0s[iidx], val0s[jidx]
 			} else {
+				ectx.Arena().Reset()
 				ival = expr.Eval(ectx, vals[iidx])
 				jval = expr.Eval(ectx, vals[jidx])
 			}
@@ -120,7 +124,7 @@ func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
 		nullsMax:   nullsMax,
 		reverse:    reverse,
 		comparefns: make(map[zed.Type]comparefn),
-		ectx:       NewContext(),
+		ectx:       NewContext(zed.NewArena(zed.NewContext())),
 	}
 }
 
@@ -150,6 +154,7 @@ func (c *Comparator) Compare(a, b zed.Value) int {
 		a, b = b, a
 	}
 	for _, k := range c.exprs {
+		c.ectx.Arena().Reset()
 		aval := k.Eval(c.ectx, a)
 		bval := k.Eval(c.ectx, b)
 		if v := compareValues(aval, bval, c.comparefns, &c.pair, c.nullsMax); v != 0 {

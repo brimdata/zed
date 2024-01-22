@@ -262,7 +262,7 @@ func (f *filterApplier) Eval(ectx Context, this zed.Value) zed.Value {
 		if val.Bool() {
 			return this
 		}
-		return f.zctx.Missing()
+		return ectx.Arena().Missing()
 	}
 	return val
 }

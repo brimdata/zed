@@ -1,7 +1,6 @@
 package zbuf
 
 import (
-	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -31,6 +30,7 @@ type Batch interface {
 	Values() []zed.Value
 	// Vars accesses the variables reachable in the current scope.
 	Vars() []zed.Value
+	Arena() *zed.Arena
 }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
@@ -68,19 +68,20 @@ var PullerBatchValues = 100
 
 // NewPuller returns a puller for zr that returns batches containing up to
 // [PullerBatchBytes] bytes and [PullerBatchValues] values.
-func NewPuller(zr zio.Reader) Puller {
-	return &puller{zr}
+func NewPuller(zr zio.Reader, zctx *zed.Context) Puller {
+	return &puller{zr, zctx}
 }
 
 type puller struct {
-	zr zio.Reader
+	zr   zio.Reader
+	zctx *zed.Context
 }
 
 func (p *puller) Pull(bool) (Batch, error) {
 	if p.zr == nil {
 		return nil, nil
 	}
-	batch := newPullerBatch()
+	batch := newPullerBatch(p.zctx)
 	for {
 		val, err := p.zr.Read()
 		if err != nil {
@@ -100,24 +101,23 @@ func (p *puller) Pull(bool) (Batch, error) {
 }
 
 type pullerBatch struct {
-	buf  []byte
-	refs atomic.Int32
-	vals []zed.Value
+	refs  atomic.Int32
+	vals  []zed.Value
+	arena *zed.Arena
 }
 
 var pullerBatchPool sync.Pool
 
-func newPullerBatch() *pullerBatch {
+func newPullerBatch(zctx *zed.Context) *pullerBatch {
 	b, ok := pullerBatchPool.Get().(*pullerBatch)
 	if !ok {
 		b = &pullerBatch{
-			buf:  make([]byte, PullerBatchBytes),
 			vals: make([]zed.Value, PullerBatchValues),
 		}
 	}
-	b.buf = b.buf[:0]
 	b.refs.Store(1)
 	b.vals = b.vals[:0]
+	b.arena = zed.NewArena(zctx)
 	return b
 }
 
@@ -125,23 +125,8 @@ func newPullerBatch() *pullerBatch {
 // (i.e., b.buf is full, b.buf had insufficient space for val.Bytes, or b.val is
 // full).  appendVal never reallocates b.buf or b.vals.
 func (b *pullerBatch) appendVal(val zed.Value) bool {
-	var bytes []byte
-	var bufFull bool
-	if !val.IsNull() {
-		if avail := cap(b.buf) - len(b.buf); avail >= len(val.Bytes()) {
-			// Append to b.buf since that won't reallocate.
-			start := len(b.buf)
-			b.buf = append(b.buf, val.Bytes()...)
-			bytes = b.buf[start:]
-			bufFull = avail == len(val.Bytes())
-		} else {
-			// Copy since appending to b.buf would reallocate.
-			bytes = slices.Clone(val.Bytes())
-			bufFull = true
-		}
-	}
-	b.vals = append(b.vals, zed.NewValue(val.Type(), bytes))
-	return bufFull || len(b.vals) == cap(b.vals)
+	b.vals = append(b.vals, b.arena.NewValue(val.Type(), val.Bytes()))
+	return len(b.vals) == cap(b.vals)
 }
 
 func (b *pullerBatch) Ref() { b.refs.Add(1) }
@@ -154,6 +139,7 @@ func (b *pullerBatch) Unref() {
 	}
 }
 
+func (p *pullerBatch) Arena() *zed.Arena   { return p.arena }
 func (p *pullerBatch) Values() []zed.Value { return p.vals }
 func (*pullerBatch) Vars() []zed.Value     { return nil }
 
