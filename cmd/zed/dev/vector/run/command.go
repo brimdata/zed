@@ -1,4 +1,4 @@
-package agg
+package run
 
 import (
 	"errors"
@@ -6,34 +6,35 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	devvcache "github.com/brimdata/zed/cmd/zed/dev/vcache"
+	"github.com/brimdata/zed/cmd/zed/dev/vector"
 	"github.com/brimdata/zed/cmd/zed/root"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/vam"
-	"github.com/brimdata/zed/runtime/vam/op"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
 
-var Agg = &charm.Spec{
-	Name:  "agg",
-	Usage: "agg [flags] field[,field...] path",
-	Short: "read a VNG file and run an aggregate as a test",
+var run = &charm.Spec{
+	Name:  "run",
+	Usage: "run [flags] query path",
+	Short: "run a Zed query on a VNG file",
 	Long: `
-The project command reads VNG vectors from
-a VNG storage objects (local files or s3 objects) and outputs
-the reconstructed ZNG row data as an aggregate function.
+The run command runs a query on a VNG file presuming the 
+query is entirely vectorizable.  The VNG object is read through 
+the vcache and projected as needed into the runtime.
 
-This command is most useful for testing the VNG vector cache.
+This command is most useful for testing the vector runtime
+in isolation from a Zed lake.
 `,
 	New: newCommand,
 }
 
 func init() {
-	devvcache.Cmd.Add(Agg)
+	vector.Cmd.Add(run)
 }
 
 type Command struct {
@@ -54,14 +55,13 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 2 {
-		//XXX
-		return errors.New("VNG read: must be run with a single path argument followed by one or more fields")
+		return errors.New("usage: query followed by a single path argument of VNG data")
 	}
-	uri, err := storage.ParseURI(args[0])
+	text := args[0]
+	uri, err := storage.ParseURI(args[1])
 	if err != nil {
 		return err
 	}
-	field := args[1]
 	local := storage.NewLocalEngine()
 	cache := vcache.NewCache(local)
 	object, err := cache.Fetch(ctx, uri, ksuid.Nil)
@@ -69,13 +69,16 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer object.Close()
-	//XXX nil puller
-	agg := op.NewCountByString(zed.NewContext(), nil, field)
+	rctx := runtime.NewContext(ctx, zed.NewContext())
+	puller, err := compiler.VectorCompile(rctx, text, object)
+	if err != nil {
+		return err
+	}
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, zbuf.PullerReader(vam.NewMaterializer(agg))); err != nil {
+	if err := zio.Copy(writer, zbuf.PullerReader(puller)); err != nil {
 		writer.Close()
 		return err
 	}

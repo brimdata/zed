@@ -1,7 +1,7 @@
 # Exercise the logic that builds values from cached non-constant vectors.
 script: |
   zq -f vng -o test.vng -
-  zed dev vcache copy -z test.vng
+  zed dev vector copy -z test.vng
 
 inputs:
   - name: stdin

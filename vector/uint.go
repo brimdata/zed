@@ -33,6 +33,10 @@ func (u *Uint) Serialize(b *zcode.Builder, slot uint32) {
 	}
 }
 
+func (u *Uint) Promote(typ zed.Type) *Uint {
+	return &Uint{typ, u.Values, u.Nulls}
+}
+
 type DictUint struct {
 	Typ    zed.Type
 	Tags   []byte
@@ -65,4 +69,8 @@ func (d *DictUint) Serialize(b *zcode.Builder, slot uint32) {
 	} else {
 		b.Append(zed.EncodeUint(d.Value(slot)))
 	}
+}
+
+func (d *DictUint) Promote(typ zed.Type) *DictUint {
+	return &DictUint{typ, d.Tags, d.Values, d.Counts, d.Nulls}
 }

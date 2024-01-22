@@ -52,22 +52,22 @@ func (c *CountByString) Pull(done bool) (vector.Any, error) {
 	}
 }
 
-func (c *CountByString) update(vec vector.Any) {
-	if vec, ok := vec.(*vector.Variant); ok {
-		for _, vec := range vec.Values {
-			c.update(vec)
+func (c *CountByString) update(val vector.Any) {
+	if val, ok := val.(*vector.Variant); ok {
+		for _, val := range val.Values {
+			c.update(val)
 		}
 		return
 	}
-	switch vec := c.field.Eval(vec).(type) {
+	switch v := c.field.Eval(val).(type) {
 	case *vector.String:
-		c.table.count(vec)
+		c.table.count(v)
 	case *vector.DictString:
-		c.table.countDict(vec)
+		c.table.countDict(v)
 	case (*vector.Const):
-		c.table.countFixed(vec)
+		c.table.countFixed(v)
 	default:
-		panic(fmt.Sprintf("UNKNOWN %T\n", vec))
+		panic(fmt.Sprintf("UNKNOWN %T\n", v))
 	}
 }
 
@@ -188,8 +188,7 @@ func (c *Sum) update(vec vector.Any) {
 		}
 		return
 	}
-	vec = c.field.Eval(vec)
-	switch vec := vec.(type) {
+	switch vec := c.field.Eval(vec).(type) {
 	case *vector.Int:
 		for _, x := range vec.Values {
 			c.sum += x

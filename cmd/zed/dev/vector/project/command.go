@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	devvcache "github.com/brimdata/zed/cmd/zed/dev/vcache"
+	"github.com/brimdata/zed/cmd/zed/dev/vector"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/field"
@@ -33,7 +33,7 @@ This command is most useful for testing the VNG vector cache.
 }
 
 func init() {
-	devvcache.Cmd.Add(Project)
+	vector.Cmd.Add(Project)
 }
 
 type Command struct {
