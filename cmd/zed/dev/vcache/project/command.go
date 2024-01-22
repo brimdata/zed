@@ -23,7 +23,7 @@ var Project = &charm.Spec{
 	Short: "read a VNG file and run a projection as a test",
 	Long: `
 The project command reads VNG vectors from
-a VNG storage objects (local files or s3 objects) and outputs
+VNG storage objects (local files or s3 objects) and outputs
 the reconstructed ZNG row data as a projection of zero or more fields.
 If no fields are specified, all the data is projected.
 

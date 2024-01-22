@@ -53,9 +53,9 @@ func addToFork(fork Fork, addition field.Path) Fork {
 }
 
 func convertFieldPath(path field.Path) Path {
-	var out []interface{}
+	var out []any
 	for _, s := range path {
-		out = append(out, interface{}(s))
+		out = append(out, s)
 	}
 	return out
 }

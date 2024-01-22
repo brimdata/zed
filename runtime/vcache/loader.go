@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
+	"slices"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -16,14 +17,14 @@ import (
 
 // loader handles loading vector data on demand for only the fields needed
 // as specified in the projection.  Each load is executed with a multiphase
-// process: first, we build a mirror of the vng metadata where each node has a
+// process: first, we build a mirror of the VNG metadata where each node has a
 // lock and places to store the bulk data so that it may be reused across
 // projections.  This is called the shadow object.  Then, we fill in the shadow
 // with data vectors dynamically and create runtime vectors as follows:
 //
 //	(1) create a mirror data structure (shadow)
-//	(2) concurrently load all the nulls and tags/lens/etc that will be needed (fetchNulls)
-//	(3) compute top-down flattening of nulls (concurrently) (flatten)
+//	(2) concurrently load all the nulls and tags, lens, etc. that will be needed (fetchNulls)
+//	(3) compute top-down flattening of nulls concurrently (flatten)
 //	(4) load all data that is projected using the nulls to flatten any unloaded data (fetchVals)
 //	(5) form a projection from the fully loaded data nodes (project)
 //
@@ -561,7 +562,7 @@ func flattenNulls(paths Path, s shadow, parent *vector.Bool) {
 		flattenNulls(paths, s.vals, nil)
 	case *map_:
 		s.nulls.flatten(parent)
-		flattenNulls(nil, s.vals, nil)
+		flattenNulls(nil, s.keys, nil)
 		flattenNulls(nil, s.vals, nil)
 	case *union:
 		s.nulls.flatten(parent)
@@ -580,10 +581,7 @@ func flattenNulls(paths Path, s shadow, parent *vector.Bool) {
 }
 
 func indexOfField(name string, fields []field_) int {
-	for k, f := range fields {
-		if name == f.name {
-			return k
-		}
-	}
-	return -1
+	return slices.IndexFunc(fields, func(f field_) bool {
+		return f.name == name
+	})
 }

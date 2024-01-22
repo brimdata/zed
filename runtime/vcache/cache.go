@@ -30,7 +30,7 @@ func NewCache(engine storage.Engine) *Cache {
 	}
 }
 
-func (c *Cache) Lock(id ksuid.KSUID) {
+func (c *Cache) lock(id ksuid.KSUID) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	mu, ok := c.locks[id]
@@ -41,7 +41,7 @@ func (c *Cache) Lock(id ksuid.KSUID) {
 	mu.Lock()
 }
 
-func (c *Cache) Unlock(id ksuid.KSUID) {
+func (c *Cache) unlock(id ksuid.KSUID) {
 	c.mu.Lock()
 	c.locks[id].Unlock()
 	c.mu.Unlock()
@@ -54,8 +54,8 @@ func (c *Cache) Fetch(ctx context.Context, uri *storage.URI, id ksuid.KSUID) (*O
 	if ok {
 		return object, nil
 	}
-	c.Lock(id)
-	defer c.Unlock(id)
+	c.lock(id)
+	defer c.unlock(id)
 	c.mu.Lock()
 	object, ok = c.objects[id]
 	c.mu.Unlock()

@@ -14,7 +14,6 @@ type nulls struct {
 	meta  *vng.Nulls
 	local *vector.Bool
 	flat  *vector.Bool
-	done  bool
 }
 
 func (n *nulls) fetch(g *errgroup.Group, reader io.ReaderAt) {
@@ -43,9 +42,9 @@ func (n *nulls) fetch(g *errgroup.Group, reader io.ReaderAt) {
 			run, err := runlens.Next()
 			if err != nil {
 				if err == io.EOF {
+					n.meta = nil
 					err = nil
 				}
-				n.meta = nil
 				return err
 			}
 			if null {
@@ -66,7 +65,7 @@ func (n *nulls) flatten(parent *vector.Bool) *vector.Bool {
 	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	if n.done {
+	if n.flat != nil {
 		return n.flat
 	}
 	var flat *vector.Bool
@@ -79,7 +78,6 @@ func (n *nulls) flatten(parent *vector.Bool) *vector.Bool {
 	}
 	n.flat = flat
 	n.local = nil
-	n.done = true
 	return flat
 }
 
@@ -92,13 +90,13 @@ func convolve(parent, child *vector.Bool) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	var childSlot uint32
 	for slot := uint32(0); slot < n; slot++ {
-		if !parent.Value(slot) {
+		if parent.Value(slot) {
+			out.Set(slot)
+		} else {
 			if child.Value(childSlot) {
 				out.Set(slot)
 			}
 			childSlot++
-		} else {
-			out.Set(slot)
 		}
 	}
 	return out

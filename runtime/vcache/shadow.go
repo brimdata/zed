@@ -117,7 +117,7 @@ func (c count) length() uint32 {
 	return c.nulls + c.vals
 }
 
-// newShadow converts the vng metadata structure to a complete vector.Any
+// newShadow converts the VNG metadata structure to a complete vector.Any
 // without loading any leaf columns.  Nulls are read from storage and unwrapped
 // so that all leaves of a given type have the same number of slots.  The vcache
 // is then responsible for loading leaf vectors on demand as they are required
@@ -168,11 +168,11 @@ func newShadow(m vng.Metadata, n *vng.Nulls, nullsCnt uint32) shadow {
 		}
 	case *vng.Map:
 		return &map_{
-			nulls: nulls{meta: n},
 			count: count{m.Len(), nullsCnt},
 			loc:   m.Lengths,
 			keys:  newShadow(m.Keys, nil, 0),
 			vals:  newShadow(m.Values, nil, 0),
+			nulls: nulls{meta: n},
 		}
 	case *vng.Union:
 		vals := make([]shadow, 0, len(m.Values))
@@ -188,14 +188,14 @@ func newShadow(m vng.Metadata, n *vng.Nulls, nullsCnt uint32) shadow {
 	case *vng.Primitive:
 		return &primitive{
 			count: count{m.Len(), nullsCnt},
-			nulls: nulls{meta: n},
 			vng:   m,
+			nulls: nulls{meta: n},
 		}
 	case *vng.Const:
 		return &const_{
 			count: count{m.Len(), nullsCnt},
-			nulls: nulls{meta: n},
 			val:   m.Value,
+			nulls: nulls{meta: n},
 		}
 	default:
 		panic(fmt.Sprintf("vector cache: type %T not supported", m))
