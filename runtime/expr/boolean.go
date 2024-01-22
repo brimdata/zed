@@ -8,20 +8,12 @@ import (
 	"regexp"
 	"regexp/syntax"
 
-	//XXX this shouldn't be reaching into the AST but we'll leave it for
-	// now until we factor-in the flow-based package
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/zcode"
 )
 
-//XXX TBD:
-// - change these comparisons to work in the zcode.Bytes domain
-// - add timer, interval comparisons when we add time, interval literals to the language
-// - add count comparisons when we add count literals to the language
-// - add set/array/record comparisons when we add container literals to the language
-
-// Predicate is a function that takes a Value and returns a boolean result
+// Boolean is a function that takes a Value and returns a boolean result
 // based on the typed value.
 type Boolean func(zed.Value) bool
 
@@ -204,7 +196,7 @@ func CompileRegexp(pattern string) (*regexp.Regexp, error) {
 	return re, err
 }
 
-// NewRegexpBoolean returns a Booelan that compares values that must
+// NewRegexpBoolean returns a Boolean that compares values that must
 // be a stringy the given regexp.
 func NewRegexpBoolean(re *regexp.Regexp) Boolean {
 	return func(val zed.Value) bool {
