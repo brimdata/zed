@@ -11,13 +11,14 @@ import (
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/sam/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 )
 
 type Job struct {
-	octx      *op.Context
+	rctx      *runtime.Context
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
 	outputs   []zbuf.Puller
@@ -25,7 +26,7 @@ type Job struct {
 	entry     dag.Seq
 }
 
-func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
+func NewJob(rctx *runtime.Context, in ast.Seq, src *data.Source, head *lakeparse.Commitish) (*Job, error) {
 	seq := ast.CopySeq(in)
 	// An AST always begins with a Sequential op with at least one
 	// operator.  If the first op is a From or a Parallel whose branches
@@ -40,14 +41,14 @@ func NewJob(octx *op.Context, in ast.Seq, src *data.Source, head *lakeparse.Comm
 	if len(seq) == 0 {
 		return nil, errors.New("internal error: AST seq cannot be empty")
 	}
-	entry, err := semantic.AnalyzeAddSource(octx.Context, seq, src, head)
+	entry, err := semantic.AnalyzeAddSource(rctx.Context, seq, src, head)
 	if err != nil {
 		return nil, err
 	}
 	return &Job{
-		octx:      octx,
-		builder:   kernel.NewBuilder(octx, src),
-		optimizer: optimizer.New(octx.Context, src),
+		rctx:      rctx,
+		builder:   kernel.NewBuilder(rctx, src),
+		optimizer: optimizer.New(rctx.Context, src),
 		entry:     entry,
 	}, nil
 }
@@ -126,7 +127,7 @@ func (j *Job) Puller() zbuf.Puller {
 		case 1:
 			j.puller = op.NewCatcher(op.NewSingle(outputs[0]))
 		default:
-			j.puller = op.NewMux(j.octx, outputs)
+			j.puller = op.NewMux(j.rctx, outputs)
 		}
 	}
 	return j.puller

@@ -10,9 +10,9 @@ import (
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/pkg/reglob"
-	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/agg"
-	"github.com/brimdata/zed/runtime/expr/function"
+	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/zed/runtime/sam/expr/agg"
+	"github.com/brimdata/zed/runtime/sam/expr/function"
 	"github.com/brimdata/zed/zson"
 )
 

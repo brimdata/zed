@@ -5,9 +5,9 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/auto"
-	"github.com/brimdata/zed/runtime/expr/agg"
-	"github.com/brimdata/zed/runtime/op/fuse"
-	"github.com/brimdata/zed/runtime/op/sort"
+	"github.com/brimdata/zed/runtime/sam/expr/agg"
+	"github.com/brimdata/zed/runtime/sam/op/fuse"
+	"github.com/brimdata/zed/runtime/sam/op/sort"
 	"github.com/pbnjay/memory"
 )
 

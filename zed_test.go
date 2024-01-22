@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
-	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/arrowio"
@@ -138,11 +138,11 @@ func runOneBoomerang(t *testing.T, format, data string) {
 		// Fuse for formats that require uniform values.
 		proc, err := compiler.NewCompiler().Parse("fuse")
 		require.NoError(t, err)
-		octx := op.NewContext(context.Background(), zctx)
-		q, err := compiler.NewCompiler().NewQuery(octx, proc, []zio.Reader{dataReadCloser})
+		rctx := runtime.NewContext(context.Background(), zctx)
+		q, err := compiler.NewCompiler().NewQuery(rctx, proc, []zio.Reader{dataReadCloser})
 		require.NoError(t, err)
 		defer q.Pull(true)
-		dataReader = q.AsReader()
+		dataReader = runtime.AsReader(q)
 	}
 
 	// Copy from dataReader to baseline as format.

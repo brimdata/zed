@@ -18,7 +18,7 @@ import (
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zfmt"
 )
 
@@ -236,7 +236,7 @@ func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
 	if err != nil {
 		return nil, err
 	}
-	return compiler.NewJob(op.DefaultContext(), p, data.NewSource(nil, lk), nil)
+	return compiler.NewJob(runtime.DefaultContext(), p, data.NewSource(nil, lk), nil)
 }
 
 const nodeProblem = `

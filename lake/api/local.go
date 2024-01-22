@@ -121,7 +121,7 @@ func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish,
 	if err != nil {
 		return nil, err
 	}
-	return q.AsProgressReadCloser(), nil
+	return runtime.AsProgressReadCloser(q), nil
 }
 
 func (l *local) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {

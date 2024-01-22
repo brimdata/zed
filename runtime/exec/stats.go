@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/runtime/sam/expr/extent"
 )
 
 // XXX for backward compat keep this for now, and return branchstats for pool/main

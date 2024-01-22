@@ -16,8 +16,8 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/plural"
 	"github.com/brimdata/zed/pkg/reglob"
-	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/function"
+	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/zed/runtime/sam/expr/function"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )

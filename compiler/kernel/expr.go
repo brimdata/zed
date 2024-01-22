@@ -7,10 +7,10 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/expr/function"
-	"github.com/brimdata/zed/runtime/op/combine"
-	"github.com/brimdata/zed/runtime/op/traverse"
+	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/zed/runtime/sam/expr/function"
+	"github.com/brimdata/zed/runtime/sam/op/combine"
+	"github.com/brimdata/zed/runtime/sam/op/traverse"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/text/unicode/norm"
@@ -488,9 +488,9 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 	if err != nil {
 		return nil, err
 	}
-	parent := traverse.NewExpr(b.octx.Context, b.zctx())
-	enter := traverse.NewOver(b.octx, parent, exprs)
-	scope := enter.AddScope(b.octx.Context, names, lets)
+	parent := traverse.NewExpr(b.rctx.Context, b.zctx())
+	enter := traverse.NewOver(b.rctx, parent, exprs)
+	scope := enter.AddScope(b.rctx.Context, names, lets)
 	exits, err := b.compileSeq(over.Body, []zbuf.Puller{scope})
 	if err != nil {
 		return nil, err
@@ -501,7 +501,7 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 	} else {
 		// This can happen when output of over body
 		// is a fork or switch.
-		exit = combine.New(b.octx, exits)
+		exit = combine.New(b.rctx, exits)
 	}
 	parent.SetExit(scope.NewExit(exit))
 	return parent, nil

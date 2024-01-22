@@ -6,7 +6,7 @@ import (
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/op/meta"
+	"github.com/brimdata/zed/runtime/sam/op/meta"
 	"github.com/brimdata/zed/zson"
 )
 

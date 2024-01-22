@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/expr/extent"
+	"github.com/brimdata/zed/runtime/sam/expr/extent"
 	"github.com/segmentio/ksuid"
 )
 

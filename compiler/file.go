@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -21,8 +21,8 @@ func NewFileSystemCompiler(engine storage.Engine) runtime.Compiler {
 	return &fsCompiler{src: data.NewSource(engine, nil)}
 }
 
-func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reader) (*runtime.Query, error) {
-	job, err := NewJob(octx, seq, f.src, nil)
+func (f *fsCompiler) NewQuery(rctx *runtime.Context, seq ast.Seq, readers []zio.Reader) (runtime.Query, error) {
+	job, err := NewJob(rctx, seq, f.src, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -45,15 +45,15 @@ func (f *fsCompiler) NewQuery(octx *op.Context, seq ast.Seq, readers []zio.Reade
 	return optimizeAndBuild(job, readers)
 }
 
-func (*fsCompiler) NewLakeQuery(octx *op.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (*runtime.Query, error) {
+func (*fsCompiler) NewLakeQuery(_ *runtime.Context, program ast.Seq, parallelism int, head *lakeparse.Commitish) (runtime.Query, error) {
 	panic("NewLakeQuery called on compiler.fsCompiler")
 }
 
-func (*fsCompiler) NewLakeDeleteQuery(octx *op.Context, program ast.Seq, head *lakeparse.Commitish) (*runtime.DeleteQuery, error) {
+func (*fsCompiler) NewLakeDeleteQuery(_ *runtime.Context, program ast.Seq, head *lakeparse.Commitish) (runtime.DeleteQuery, error) {
 	panic("NewLakeDeleteQuery called on compiler.fsCompiler")
 }
 
-func optimizeAndBuild(job *Job, readers []zio.Reader) (*runtime.Query, error) {
+func optimizeAndBuild(job *Job, readers []zio.Reader) (*exec.Query, error) {
 	// Call optimize to possible push down a filter predicate into the
 	// kernel.Reader so that the zng scanner can do boyer-moore.
 	if err := job.Optimize(); err != nil {
@@ -66,5 +66,5 @@ func optimizeAndBuild(job *Job, readers []zio.Reader) (*runtime.Query, error) {
 	if err := job.Build(readers...); err != nil {
 		return nil, err
 	}
-	return runtime.NewQuery(job.octx, job.Puller(), job.builder.Meter()), nil
+	return exec.NewQuery(job.rctx, job.Puller(), job.builder.Meter()), nil
 }
