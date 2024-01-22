@@ -1,0 +1,11 @@
+script: |
+  source service.sh
+  curl -d '{"query":"count("}' $ZED_LAKE/compile | zq -z 'cut info' -
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {info:{parse_error_offset:6}}
