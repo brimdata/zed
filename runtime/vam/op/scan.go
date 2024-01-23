@@ -33,7 +33,7 @@ type Scanner struct {
 
 var _ vector.Puller = (*Scanner)(nil)
 
-func NewVecScanner(rctx *runtime.Context, cache *vcache.Cache, parent zbuf.Puller, pool *lake.Pool, paths []field.Path, pruner expr.Evaluator, progress *zbuf.Progress) *Scanner {
+func NewScanner(rctx *runtime.Context, cache *vcache.Cache, parent zbuf.Puller, pool *lake.Pool, paths []field.Path, pruner expr.Evaluator, progress *zbuf.Progress) *Scanner {
 	return &Scanner{
 		cache:       cache,
 		rctx:        rctx,

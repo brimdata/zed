@@ -683,7 +683,7 @@ func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller
 				return nil, err
 			}
 			//XXX check VectorCache not nil
-			vamParent = vam.NewVecScanner(b.rctx, b.source.Lake().VectorCache(), parent, pool, o.Fields, nil, nil)
+			vamParent = vamop.NewScanner(b.rctx, b.source.Lake().VectorCache(), parent, pool, o.Fields, nil, nil)
 		case *dag.Summarize:
 			if name, ok := optimizer.IsCountByString(o); ok {
 				vamParent = vamop.NewCountByString(b.rctx.Zctx, vamParent, name)
