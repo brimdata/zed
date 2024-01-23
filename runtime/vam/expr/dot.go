@@ -5,17 +5,10 @@ import (
 	"github.com/brimdata/zed/vector"
 )
 
-//XXX this is just enough of expr to get the hacky agg demos running
-// more generalization here is coming soon!
-
-type Evaluator interface {
-	Eval(vector.Any) vector.Any
-}
-
 type This struct{}
 
-func (*This) Eval(this vector.Any) vector.Any {
-	return this
+func (*This) Eval(this vector.Any) (vector.Any, *vector.Error) {
+	return this, nil
 }
 
 type DotExpr struct {
@@ -32,25 +25,43 @@ func NewDotExpr(zctx *zed.Context, record Evaluator, field string) *DotExpr {
 	}
 }
 
-func (d *DotExpr) Eval(vec vector.Any) vector.Any {
-	switch vec := d.record.Eval(vec).(type) {
+func (d *DotExpr) Eval(val vector.Any) (vector.Any, *vector.Error) {
+	val, verr := d.record.Eval(val)
+	switch val := val.(type) {
+	case nil:
+		return nil, verr
 	case *vector.Record:
-		i, ok := vec.Typ.IndexOfField(d.field)
+		i, ok := val.Typ.IndexOfField(d.field)
 		if !ok {
-			return vector.NewMissing(d.zctx, vec.Len())
+			return nil, vector.NewMissing(d.zctx, val.Len())
 		}
-		return vec.Fields[i]
+		return val.Fields[i], nil
 	case *vector.TypeValue:
 		panic("vam.DotExpr TypeValue TBD")
 	case *vector.Map:
 		panic("vam.DotExpr Map TBD")
 	case *vector.Union:
-		vecs := make([]vector.Any, 0, len(vec.Values))
-		for _, vec := range vec.Values {
-			vecs = append(vecs, d.Eval(vec))
+		vals := make([]vector.Any, 0, len(val.Values))
+		var errs []*vector.Error
+		for _, val := range val.Values {
+			//XXX blend errors
+			val, err := d.Eval(val)
+			vals = append(vals, val)
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
-		return vec.Copy(vecs)
+		return val.Copy(vals), blendErrs(errs)
 	default:
-		return vector.NewMissing(d.zctx, vec.Len())
+		return nil, vector.NewMissing(d.zctx, val.Len())
 	}
+}
+
+// XXX
+func blendErrs(errs []*vector.Error) *vector.Error {
+	if len(errs) == 0 {
+		return nil
+	}
+	//XXX TBD
+	return nil
 }
