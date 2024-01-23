@@ -16,13 +16,14 @@ type Context interface {
 }
 
 type allocator struct {
-	arena *zed.Arena
+	arena      *zed.Arena
+	stackDepth int
 }
 
 var _ Context = (*allocator)(nil)
 
 func NewContext(arena *zed.Arena) *allocator {
-	return &allocator{arena}
+	return &allocator{arena, 0}
 }
 
 func (a *allocator) Arena() *zed.Arena { return a.arena }

@@ -70,7 +70,7 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 			RecordsMatched: 0,
 		},
 		funcs: make(map[string]expr.Function),
-		arena: zed.NewArena(octx.Zctx),
+		arena: zed.NewArena(rctx.Zctx),
 	}
 }
 
@@ -662,7 +662,7 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 			val = b.arena.Missing()
 		}
 	}()
-	return e.Eval(expr.NewContext(b.arena), b.arena().Missing()), nil
+	return e.Eval(expr.NewContext(b.arena), b.arena.Missing()), nil
 }
 
 func compileExpr(in dag.Expr) (expr.Evaluator, error) {
