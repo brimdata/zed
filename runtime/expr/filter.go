@@ -63,7 +63,6 @@ func (s *searchByPred) searchType(typ zed.Type) bool {
 		}
 	}
 	s.types[typ] = match
-	s.types[recType] = match
 	return match
 }
 
