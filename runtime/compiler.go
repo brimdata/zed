@@ -44,10 +44,10 @@ func AsProgressReadCloser(q Query) zbuf.ProgressReadCloser {
 }
 
 func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Seq, readers []zio.Reader) (Query, error) {
-	octx := NewContext(ctx, zctx)
-	q, err := c.NewQuery(octx, program, readers)
+	rctx := NewContext(ctx, zctx)
+	q, err := c.NewQuery(rctx, program, readers)
 	if err != nil {
-		octx.Cancel()
+		rctx.Cancel()
 		return nil, err
 	}
 	return q, nil

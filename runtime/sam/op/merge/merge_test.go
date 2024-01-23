@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/op/merge"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -96,7 +95,6 @@ func TestParallelOrder(t *testing.T) {
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			zctx := zed.NewContext()
-			octx := &runtime.Context{Context: context.Background(), Zctx: zctx}
 			var parents []zbuf.Puller
 			for _, input := range c.inputs {
 				r := zsonio.NewReader(zctx, strings.NewReader(input))
@@ -104,7 +102,7 @@ func TestParallelOrder(t *testing.T) {
 			}
 			sortKey := order.NewSortKey(c.order, field.DottedList(c.field))
 			cmp := zbuf.NewComparator(zctx, sortKey).Compare
-			om := merge.New(octx.Context, parents, cmp)
+			om := merge.New(context.Background(), parents, cmp)
 
 			var sb strings.Builder
 			err := zbuf.CopyPuller(zsonio.NewWriter(zio.NopCloser(&sb), zsonio.WriterOpts{}), om)
