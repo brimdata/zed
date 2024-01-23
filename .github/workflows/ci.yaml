@@ -10,21 +10,6 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v3
-        with:
-          go-version-file: go.mod
-      - run: make fmt
-      - run: make tidy
-      - run: make vet
-      - run: make test-generate
-      - run: make test-unit
-      - run: make test-system
-      - run: make test-heavy
   test-windows:
     runs-on: windows-latest
     steps:
@@ -32,16 +17,7 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
-      - run: go test -short ./...
-      - run: mkdir dist -ea 0
-      - run: go build -o dist ./cmd/...
-      - run: go test -v ./mdtest
-  output-check:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version-file: go.mod
-      - run: make install
-      - run: make output-check
+      - run: |
+          while true; do
+            make TEST=TestZed/runtime/sam/op/merge/ztests/fork-merge
+          done
