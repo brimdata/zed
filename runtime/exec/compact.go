@@ -7,8 +7,8 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/runtime/op"
-	"github.com/brimdata/zed/runtime/op/meta"
+	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/sam/op/meta"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/segmentio/ksuid"
 )
@@ -35,9 +35,9 @@ func Compact(ctx context.Context, lk *lake.Root, pool *lake.Pool, branchName str
 	}
 	zctx := zed.NewContext()
 	lister := meta.NewSortedListerFromSnap(ctx, zed.NewContext(), lk, pool, compact, nil)
-	octx := op.NewContext(ctx, zctx)
+	rctx := runtime.NewContext(ctx, zctx)
 	slicer := meta.NewSlicer(lister, zctx)
-	puller := meta.NewSequenceScanner(octx, slicer, pool, nil, nil, nil)
+	puller := meta.NewSequenceScanner(rctx, slicer, pool, nil, nil, nil)
 	w := lake.NewSortedWriter(ctx, zctx, pool, writeVectors)
 	if err := zbuf.CopyPuller(w, puller); err != nil {
 		puller.Pull(true)

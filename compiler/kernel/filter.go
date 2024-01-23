@@ -2,7 +2,7 @@ package kernel
 
 import (
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zbuf"
 )
 
@@ -24,7 +24,7 @@ func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return CompileBufferFilter(f.builder.octx.Zctx, f.pushdown)
+	return CompileBufferFilter(f.builder.rctx.Zctx, f.pushdown)
 }
 
 type DeleteFilter struct {

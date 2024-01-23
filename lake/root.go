@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"

@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )

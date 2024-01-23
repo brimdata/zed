@@ -10,12 +10,12 @@ import (
 )
 
 type Materializer struct {
-	parent Puller
+	parent vector.Puller
 }
 
 var _ zbuf.Puller = (*Materializer)(nil)
 
-func NewMaterializer(p Puller) zbuf.Puller {
+func NewMaterializer(p vector.Puller) zbuf.Puller {
 	return &Materializer{
 		parent: p,
 	}

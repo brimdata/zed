@@ -11,4 +11,8 @@ type Any interface {
 	Serialize(*zcode.Builder, uint32)
 }
 
+type Puller interface {
+	Pull(done bool) (Any, error)
+}
+
 type Builder func(*zcode.Builder) bool

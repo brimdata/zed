@@ -8,8 +8,8 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/expr/agg"
-	"github.com/brimdata/zed/runtime/expr/function"
+	"github.com/brimdata/zed/runtime/sam/expr/agg"
+	"github.com/brimdata/zed/runtime/sam/expr/function"
 	"github.com/brimdata/zed/zson"
 )
 

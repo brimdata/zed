@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/expr/agg"
+	"github.com/brimdata/zed/runtime/sam/expr/agg"
 )
 
 func (a *analyzer) convertSQLOp(sql *ast.SQLExpr, seq dag.Seq) (dag.Seq, error) {

@@ -16,7 +16,6 @@ import (
 	"github.com/brimdata/zed/pkg/plural"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/op"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -136,8 +135,8 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 		return ksuid.Nil, err
 	}
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		octx := op.NewContext(ctx, zctx)
-		defer octx.Cancel()
+		rctx := runtime.NewContext(ctx, zctx)
+		defer rctx.Cancel()
 		// XXX It would be great to not do this since and just pass the snapshot
 		// into c.NewLakeDeleteQuery since we have to load the snapshot later
 		// anyways. Unfortunately there's quite a few layers of plumbing needed
@@ -146,7 +145,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 			Pool:   b.pool.Name,
 			Branch: parent.Commit.String(),
 		}
-		query, err := c.NewLakeDeleteQuery(octx, program, commitish)
+		query, err := c.NewLakeDeleteQuery(rctx, program, commitish)
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +154,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 		if err != nil {
 			return nil, err
 		}
-		err = zio.CopyWithContext(ctx, w, query.AsReader())
+		err = zio.CopyWithContext(ctx, w, runtime.AsReader(query))
 		if closeErr := w.Close(); err == nil {
 			err = closeErr
 		}

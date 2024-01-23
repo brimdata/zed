@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/vam"
+	"github.com/brimdata/zed/runtime/vam/op"
 	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -69,7 +70,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer object.Close()
 	//XXX nil puller
-	agg := vam.NewCountByString(zed.NewContext(), nil, field)
+	agg := op.NewCountByString(zed.NewContext(), nil, field)
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err

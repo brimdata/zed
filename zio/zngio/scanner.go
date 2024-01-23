@@ -9,8 +9,8 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/peeker"
-	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/zed/runtime/sam/op"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 )

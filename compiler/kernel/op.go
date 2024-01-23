@@ -16,28 +16,31 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/expr"
-	"github.com/brimdata/zed/runtime/op"
-	"github.com/brimdata/zed/runtime/op/combine"
-	"github.com/brimdata/zed/runtime/op/explode"
-	"github.com/brimdata/zed/runtime/op/exprswitch"
-	"github.com/brimdata/zed/runtime/op/fork"
-	"github.com/brimdata/zed/runtime/op/fuse"
-	"github.com/brimdata/zed/runtime/op/head"
-	"github.com/brimdata/zed/runtime/op/join"
-	"github.com/brimdata/zed/runtime/op/load"
-	"github.com/brimdata/zed/runtime/op/merge"
-	"github.com/brimdata/zed/runtime/op/meta"
-	"github.com/brimdata/zed/runtime/op/pass"
-	"github.com/brimdata/zed/runtime/op/shape"
-	"github.com/brimdata/zed/runtime/op/sort"
-	"github.com/brimdata/zed/runtime/op/switcher"
-	"github.com/brimdata/zed/runtime/op/tail"
-	"github.com/brimdata/zed/runtime/op/top"
-	"github.com/brimdata/zed/runtime/op/traverse"
-	"github.com/brimdata/zed/runtime/op/uniq"
-	"github.com/brimdata/zed/runtime/op/yield"
+	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/zed/runtime/sam/op"
+	"github.com/brimdata/zed/runtime/sam/op/combine"
+	"github.com/brimdata/zed/runtime/sam/op/explode"
+	"github.com/brimdata/zed/runtime/sam/op/exprswitch"
+	"github.com/brimdata/zed/runtime/sam/op/fork"
+	"github.com/brimdata/zed/runtime/sam/op/fuse"
+	"github.com/brimdata/zed/runtime/sam/op/head"
+	"github.com/brimdata/zed/runtime/sam/op/join"
+	"github.com/brimdata/zed/runtime/sam/op/load"
+	"github.com/brimdata/zed/runtime/sam/op/merge"
+	"github.com/brimdata/zed/runtime/sam/op/meta"
+	"github.com/brimdata/zed/runtime/sam/op/pass"
+	"github.com/brimdata/zed/runtime/sam/op/shape"
+	"github.com/brimdata/zed/runtime/sam/op/sort"
+	"github.com/brimdata/zed/runtime/sam/op/switcher"
+	"github.com/brimdata/zed/runtime/sam/op/tail"
+	"github.com/brimdata/zed/runtime/sam/op/top"
+	"github.com/brimdata/zed/runtime/sam/op/traverse"
+	"github.com/brimdata/zed/runtime/sam/op/uniq"
+	"github.com/brimdata/zed/runtime/sam/op/yield"
 	"github.com/brimdata/zed/runtime/vam"
+	vamop "github.com/brimdata/zed/runtime/vam/op"
+	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -47,7 +50,7 @@ import (
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
 type Builder struct {
-	octx     *op.Context
+	rctx     *runtime.Context
 	mctx     *zed.Context
 	source   *data.Source
 	readers  []zio.Reader
@@ -56,9 +59,9 @@ type Builder struct {
 	funcs    map[string]expr.Function
 }
 
-func NewBuilder(octx *op.Context, source *data.Source) *Builder {
+func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 	return &Builder{
-		octx:   octx,
+		rctx:   rctx,
 		mctx:   zed.NewContext(),
 		source: source,
 		progress: &zbuf.Progress{
@@ -82,7 +85,7 @@ func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, erro
 }
 
 func (b *Builder) zctx() *zed.Context {
-	return b.octx.Zctx
+	return b.rctx.Zctx
 }
 
 func (b *Builder) Meter() zbuf.Meter {
@@ -103,11 +106,11 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		cutter := expr.NewCutter(b.octx.Zctx, lhs, rhs)
+		cutter := expr.NewCutter(b.rctx.Zctx, lhs, rhs)
 		if v.Quiet {
 			cutter.Quiet()
 		}
-		return op.NewApplier(b.octx, parent, cutter), nil
+		return op.NewApplier(b.rctx, parent, cutter), nil
 	case *dag.Drop:
 		if len(v.Args) == 0 {
 			return nil, errors.New("drop: no fields given")
@@ -120,14 +123,14 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			}
 			fields = append(fields, field.Path)
 		}
-		dropper := expr.NewDropper(b.octx.Zctx, fields)
-		return op.NewApplier(b.octx, parent, dropper), nil
+		dropper := expr.NewDropper(b.rctx.Zctx, fields)
+		return op.NewApplier(b.rctx, parent, dropper), nil
 	case *dag.Sort:
 		fields, err := b.compileExprs(v.Args)
 		if err != nil {
 			return nil, err
 		}
-		sort, err := sort.New(b.octx, parent, fields, v.Order, v.NullsFirst)
+		sort, err := sort.New(b.rctx, parent, fields, v.Order, v.NullsFirst)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
@@ -145,7 +148,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		return tail.New(parent, limit), nil
 	case *dag.Uniq:
-		return uniq.New(b.octx, parent, v.Cflag), nil
+		return uniq.New(b.rctx, parent, v.Cflag), nil
 	case *dag.Pass:
 		return pass.New(parent), nil
 	case *dag.Filter:
@@ -153,20 +156,20 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return op.NewApplier(b.octx, parent, expr.NewFilterApplier(b.octx.Zctx, f)), nil
+		return op.NewApplier(b.rctx, parent, expr.NewFilterApplier(b.rctx.Zctx, f)), nil
 	case *dag.Top:
 		fields, err := b.compileExprs(v.Args)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
-		return top.New(b.octx.Zctx, parent, v.Limit, fields, v.Flush), nil
+		return top.New(b.rctx.Zctx, parent, v.Limit, fields, v.Flush), nil
 	case *dag.Put:
 		clauses, err := b.compileAssignments(v.Args)
 		if err != nil {
 			return nil, err
 		}
-		putter := expr.NewPutter(b.octx.Zctx, clauses)
-		return op.NewApplier(b.octx, parent, putter), nil
+		putter := expr.NewPutter(b.rctx.Zctx, clauses)
+		return op.NewApplier(b.rctx, parent, putter), nil
 	case *dag.Rename:
 		var srcs, dsts []*expr.Lval
 		for _, a := range v.Args {
@@ -181,18 +184,18 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			srcs = append(srcs, src)
 			dsts = append(dsts, dst)
 		}
-		renamer := expr.NewRenamer(b.octx.Zctx, srcs, dsts)
-		return op.NewApplier(b.octx, parent, renamer), nil
+		renamer := expr.NewRenamer(b.rctx.Zctx, srcs, dsts)
+		return op.NewApplier(b.rctx, parent, renamer), nil
 	case *dag.Fuse:
-		return fuse.New(b.octx, parent)
+		return fuse.New(b.rctx, parent)
 	case *dag.Shape:
-		return shape.New(b.octx, parent)
+		return shape.New(b.rctx, parent)
 	case *dag.Join:
 		return nil, ErrJoinParents
 	case *dag.Merge:
 		return nil, errors.New("merge: multiple upstream paths required")
 	case *dag.Explode:
-		typ, err := zson.ParseType(b.octx.Zctx, v.Type)
+		typ, err := zson.ParseType(b.rctx.Zctx, v.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +203,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, err
 		}
-		return explode.New(b.octx.Zctx, parent, args, typ, v.As)
+		return explode.New(b.rctx.Zctx, parent, args, typ, v.As)
 	case *dag.Over:
 		return b.compileOver(parent, v)
 	case *dag.Yield:
@@ -216,7 +219,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		return b.compilePoolScan(v)
 	case *dag.PoolMetaScan:
-		return meta.NewPoolMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), v.ID, v.Meta)
+		return meta.NewPoolMetaScanner(b.rctx.Context, b.rctx.Zctx, b.source.Lake(), v.ID, v.Meta)
 	case *dag.CommitMetaScan:
 		var pruner expr.Evaluator
 		if v.Tap && v.KeyPruner != nil {
@@ -226,22 +229,22 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 				return nil, err
 			}
 		}
-		return meta.NewCommitMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), v.Pool, v.Commit, v.Meta, pruner)
+		return meta.NewCommitMetaScanner(b.rctx.Context, b.rctx.Zctx, b.source.Lake(), v.Pool, v.Commit, v.Meta, pruner)
 	case *dag.LakeMetaScan:
-		return meta.NewLakeMetaScanner(b.octx.Context, b.octx.Zctx, b.source.Lake(), v.Meta)
+		return meta.NewLakeMetaScanner(b.rctx.Context, b.rctx.Zctx, b.source.Lake(), v.Meta)
 	case *dag.HTTPScan:
 		body := strings.NewReader(v.Body)
-		return b.source.OpenHTTP(b.octx.Context, b.octx.Zctx, v.URL, v.Format, v.Method, v.Headers, body, demand.All())
+		return b.source.OpenHTTP(b.rctx.Context, b.rctx.Zctx, v.URL, v.Format, v.Method, v.Headers, body, demand.All())
 	case *dag.FileScan:
-		return b.source.Open(b.octx.Context, b.octx.Zctx, v.Path, v.Format, b.PushdownOf(v.Filter), demand.All())
+		return b.source.Open(b.rctx.Context, b.rctx.Zctx, v.Path, v.Format, b.PushdownOf(v.Filter), demand.All())
 	case *dag.DefaultScan:
 		pushdown := b.PushdownOf(v.Filter)
 		if len(b.readers) == 1 {
-			return zbuf.NewScanner(b.octx.Context, b.readers[0], pushdown)
+			return zbuf.NewScanner(b.rctx.Context, b.readers[0], pushdown)
 		}
 		scanners := make([]zbuf.Scanner, 0, len(b.readers))
 		for _, r := range b.readers {
-			scanner, err := zbuf.NewScanner(b.octx.Context, r, pushdown)
+			scanner, err := zbuf.NewScanner(b.rctx.Context, r, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -263,7 +266,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 				return nil, err
 			}
 		}
-		return meta.NewSortedLister(b.octx.Context, b.mctx, b.source.Lake(), pool, v.Commit, pruner)
+		return meta.NewSortedLister(b.rctx.Context, b.mctx, b.source.Lake(), pool, v.Commit, pruner)
 	case *dag.Slicer:
 		return meta.NewSlicer(parent, b.mctx), nil
 	case *dag.SeqScan:
@@ -278,7 +281,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 				return nil, err
 			}
 		}
-		return meta.NewSequenceScanner(b.octx, parent, pool, b.PushdownOf(v.Filter), pruner, b.progress), nil
+		return meta.NewSequenceScanner(b.rctx, parent, pool, b.PushdownOf(v.Filter), pruner, b.progress), nil
 	case *dag.Deleter:
 		pool, err := b.lookupPool(v.Pool)
 		if err != nil {
@@ -298,9 +301,9 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if f := b.PushdownOf(v.Where); f != nil {
 			filter = &DeleteFilter{f}
 		}
-		return meta.NewDeleter(b.octx, parent, pool, filter, pruner, b.progress, b.deletes), nil
+		return meta.NewDeleter(b.rctx, parent, pool, filter, pruner, b.progress, b.deletes), nil
 	case *dag.Load:
-		return load.New(b.octx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
+		return load.New(b.rctx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
 	case *dag.Vectorize:
 		return b.compileVectorize(v.Body, parent)
 	default:
@@ -334,11 +337,11 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 	if err != nil {
 		return nil, err
 	}
-	enter := traverse.NewOver(b.octx, parent, exprs)
+	enter := traverse.NewOver(b.rctx, parent, exprs)
 	if over.Body == nil {
 		return enter, nil
 	}
-	scope := enter.AddScope(b.octx.Context, withNames, withExprs)
+	scope := enter.AddScope(b.rctx.Context, withNames, withExprs)
 	exits, err := b.compileSeq(over.Body, []zbuf.Puller{scope})
 	if err != nil {
 		return nil, err
@@ -349,7 +352,7 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 	} else {
 		// This can happen when output of over body
 		// is a fork or switch.
-		exit = combine.New(b.octx, exits)
+		exit = combine.New(b.rctx, exits)
 	}
 	return scope.NewExit(exit), nil
 }
@@ -402,10 +405,10 @@ func (b *Builder) compileFork(par *dag.Fork, parents []zbuf.Puller) ([]zbuf.Pull
 		// No parents: no need for a fork since every op gets a nil parent.
 	case 1:
 		// Single parent: insert a fork for n-way fanout.
-		f = fork.New(b.octx, parents[0])
+		f = fork.New(b.rctx, parents[0])
 	default:
 		// Multiple parents: insert a combine followed by a fork for n-way fanout.
-		f = fork.New(b.octx, combine.New(b.octx, parents))
+		f = fork.New(b.rctx, combine.New(b.rctx, parents))
 	}
 	var ops []zbuf.Puller
 	for _, seq := range par.Paths {
@@ -459,13 +462,13 @@ func (b *Builder) compileFuncs(fns []*dag.Func) error {
 func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	parent := parents[0]
 	if len(parents) > 1 {
-		parent = combine.New(b.octx, parents)
+		parent = combine.New(b.rctx, parents)
 	}
 	e, err := b.compileExpr(swtch.Expr)
 	if err != nil {
 		return nil, err
 	}
-	s := exprswitch.New(b.octx, parent, e)
+	s := exprswitch.New(b.rctx, parent, e)
 	var exits []zbuf.Puller
 	for _, c := range swtch.Cases {
 		var val *zed.Value
@@ -491,10 +494,10 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	parent := parents[0]
 	if len(parents) > 1 {
-		parent = combine.New(b.octx, parents)
+		parent = combine.New(b.rctx, parents)
 	}
 	n := len(swtch.Cases)
-	switcher := switcher.New(b.octx, parent)
+	switcher := switcher.New(b.rctx, parent)
 	parents = []zbuf.Puller{}
 	for _, c := range swtch.Cases {
 		f, err := b.compileExpr(c.Expr)
@@ -563,7 +566,7 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		default:
 			return nil, fmt.Errorf("unknown kind of join: '%s'", o.Style)
 		}
-		join, err := join.New(b.octx, anti, inner, leftParent, rightParent, leftKey, rightKey, leftDir, rightDir, lhs, rhs)
+		join, err := join.New(b.rctx, anti, inner, leftParent, rightParent, leftKey, rightKey, leftDir, rightDir, lhs, rhs)
 		if err != nil {
 			return nil, err
 		}
@@ -574,15 +577,15 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 			return nil, err
 		}
 		cmp := expr.NewComparator(true, o.Order == order.Desc, e).WithMissingAsNull()
-		return []zbuf.Puller{merge.New(b.octx, parents, cmp.Compare)}, nil
+		return []zbuf.Puller{merge.New(b.rctx, parents, cmp.Compare)}, nil
 	case *dag.Combine:
-		return []zbuf.Puller{combine.New(b.octx, parents)}, nil
+		return []zbuf.Puller{combine.New(b.rctx, parents)}, nil
 	default:
 		var parent zbuf.Puller
 		if len(parents) == 1 {
 			parent = parents[0]
 		} else if len(parents) > 1 {
-			parent = combine.New(b.octx, parents)
+			parent = combine.New(b.rctx, parents)
 		}
 		p, err := b.compileLeaf(o, parent)
 		if err != nil {
@@ -600,12 +603,12 @@ func (b *Builder) compilePoolScan(scan *dag.PoolScan) (zbuf.Puller, error) {
 	if err != nil {
 		return nil, err
 	}
-	l, err := meta.NewSortedLister(b.octx.Context, b.mctx, b.source.Lake(), pool, scan.Commit, nil)
+	l, err := meta.NewSortedLister(b.rctx.Context, b.mctx, b.source.Lake(), pool, scan.Commit, nil)
 	if err != nil {
 		return nil, err
 	}
 	slicer := meta.NewSlicer(l, b.mctx)
-	return meta.NewSequenceScanner(b.octx, slicer, pool, nil, nil, b.progress), nil
+	return meta.NewSequenceScanner(b.rctx, slicer, pool, nil, nil, b.progress), nil
 }
 
 func (b *Builder) PushdownOf(e dag.Expr) *Filter {
@@ -620,7 +623,7 @@ func (b *Builder) lookupPool(id ksuid.KSUID) (*lake.Pool, error) {
 		return nil, errors.New("internal error: lake operation cannot be used in non-lake context")
 	}
 	// This is fast because of the pool cache in the lake.
-	return b.source.Lake().OpenPool(b.octx.Context, id)
+	return b.source.Lake().OpenPool(b.rctx.Context, id)
 }
 
 func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
@@ -642,14 +645,14 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 }
 
 func compileExpr(in dag.Expr) (expr.Evaluator, error) {
-	b := NewBuilder(op.NewContext(context.Background(), zed.NewContext()), nil)
+	b := NewBuilder(runtime.NewContext(context.Background(), zed.NewContext()), nil)
 	return b.compileExpr(in)
 }
 
 func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val zed.Value, err error) {
 	// We pass in a nil adaptor, which causes a panic for anything adaptor
 	// related, which is not currently allowed in an expression sub-query.
-	b := NewBuilder(op.NewContext(context.Background(), zctx), nil)
+	b := NewBuilder(runtime.NewContext(context.Background(), zctx), nil)
 	return b.evalAtCompileTime(in)
 }
 
@@ -671,7 +674,7 @@ func isEntry(seq dag.Seq) bool {
 }
 
 func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller, error) {
-	var vamParent vam.Puller
+	var vamParent vector.Puller
 	for _, o := range seq {
 		switch o := o.(type) {
 		case *dag.SeqScan:
@@ -680,12 +683,12 @@ func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller
 				return nil, err
 			}
 			//XXX check VectorCache not nil
-			vamParent = vam.NewVecScanner(b.octx, b.source.Lake().VectorCache(), parent, pool, o.Fields, nil, nil)
+			vamParent = vamop.NewScanner(b.rctx, b.source.Lake().VectorCache(), parent, pool, o.Fields, nil, nil)
 		case *dag.Summarize:
 			if name, ok := optimizer.IsCountByString(o); ok {
-				vamParent = vam.NewCountByString(b.octx.Zctx, vamParent, name)
+				vamParent = vamop.NewCountByString(b.rctx.Zctx, vamParent, name)
 			} else if name, ok := optimizer.IsSum(o); ok {
-				vamParent = vam.NewSum(b.octx.Zctx, vamParent, name)
+				vamParent = vamop.NewSum(b.rctx.Zctx, vamParent, name)
 			} else {
 				return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
 			}

@@ -20,7 +20,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/exec"
-	"github.com/brimdata/zed/runtime/op"
+	"github.com/brimdata/zed/runtime/sam/op"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/service/srverr"
 	"github.com/brimdata/zed/zio"
