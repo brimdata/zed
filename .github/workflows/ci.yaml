@@ -17,7 +17,10 @@ jobs:
         with:
           go-version-file: go.mod
       - run: |
+          NUM=1
           while true; do
-            make TEST=TestZed/runtime/sam/op/merge/ztests/fork-merge
+            echo "Test iteration ${NUM}:"
+            go test -short ./...
+            NUM=$(expr $NUM + 1)
           done
         shell: sh
