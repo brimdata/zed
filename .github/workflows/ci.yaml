@@ -9,7 +9,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
   test-windows:
     runs-on: windows-latest
     steps:
