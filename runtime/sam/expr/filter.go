@@ -33,10 +33,10 @@ func (s *searchByPred) Eval(ectx Context, val zed.Value) zed.Value {
 		}
 	}
 	if errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
-		if s.searchType(typ) {
+		if s.searchType(ectx, typ) {
 			return errMatch
 		}
-		if s.pred(zed.NewValue(typ, body)) {
+		if s.pred(ectx.Arena().NewValue(typ, body)) {
 			return errMatch
 		}
 		return nil
@@ -46,7 +46,7 @@ func (s *searchByPred) Eval(ectx Context, val zed.Value) zed.Value {
 	return zed.False
 }
 
-func (s *searchByPred) searchType(typ zed.Type) bool {
+func (s *searchByPred) searchType(ectx Context, typ zed.Type) bool {
 	if match, ok := s.types[typ]; ok {
 		return match
 	}
@@ -56,7 +56,7 @@ func (s *searchByPred) searchType(typ zed.Type) bool {
 		var nameIter FieldNameIter
 		nameIter.Init(recType)
 		for !nameIter.Done() {
-			if s.pred(zed.NewString(string(nameIter.Next()))) {
+			if s.pred(ectx.Arena().NewString(string(nameIter.Next()))) {
 				match = true
 				break
 			}
@@ -129,7 +129,7 @@ func (s *search) Eval(ectx Context, val zed.Value) zed.Value {
 			}
 			return nil
 		}
-		if s.compare(zed.NewValue(typ, body)) {
+		if s.compare(ectx.Arena().NewValue(typ, body)) {
 			return errMatch
 		}
 		return nil
@@ -248,16 +248,15 @@ func (f *filter) Eval(ectx Context, this zed.Value) zed.Value {
 }
 
 type filterApplier struct {
-	zctx *zed.Context
 	expr Evaluator
 }
 
-func NewFilterApplier(zctx *zed.Context, e Evaluator) Evaluator {
-	return &filterApplier{zctx, e}
+func NewFilterApplier(e Evaluator) Evaluator {
+	return &filterApplier{e}
 }
 
 func (f *filterApplier) Eval(ectx Context, this zed.Value) zed.Value {
-	val, ok := EvalBool(f.zctx, ectx, this, f.expr)
+	val, ok := EvalBool(ectx, this, f.expr)
 	if ok {
 		if val.Bool() {
 			return this

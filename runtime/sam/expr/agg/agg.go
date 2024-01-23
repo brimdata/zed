@@ -14,7 +14,7 @@ var MaxValueSize = 1024 * 1024 * 1024
 // A Pattern is a template for creating instances of aggregator functions.
 // NewPattern returns a pattern of the type that should be created and
 // an instance is created by simply invoking the pattern funtion.
-type Pattern func() Function
+type Pattern func(zctx *zed.Context) Function
 
 type Function interface {
 	Consume(zed.Value)
@@ -29,56 +29,56 @@ func NewPattern(op string, hasarg bool) (Pattern, error) {
 	switch op {
 	case "count":
 		needarg = false
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			var c Count
 			return &c
 		}
 	case "any":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return &Any{}
 		}
 	case "avg":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return &Avg{}
 		}
 	case "dcount":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return NewDCount()
 		}
 	case "fuse":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return newFuse()
 		}
 	case "sum":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return newMathReducer(anymath.Add)
 		}
 	case "collect_map":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return newCollectMap()
 		}
 	case "min":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return newMathReducer(anymath.Min)
 		}
 	case "max":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return newMathReducer(anymath.Max)
 		}
 	case "union":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return newUnion()
 		}
 	case "collect":
-		pattern = func() Function {
-			return &Collect{}
+		pattern = func(zctx *zed.Context) Function {
+			return &Collect{Arena: zed.NewArena(zctx)}
 		}
 	case "and":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return &And{}
 		}
 	case "or":
-		pattern = func() Function {
+		pattern = func(*zed.Context) Function {
 			return &Or{}
 		}
 	default:

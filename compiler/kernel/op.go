@@ -160,7 +160,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return op.NewApplier(b.rctx, parent, expr.NewFilterApplier(b.rctx.Zctx, f)), nil
+		return op.NewApplier(b.rctx, parent, expr.NewFilterApplier(f)), nil
 	case *dag.Top:
 		fields, err := b.compileExprs(v.Args)
 		if err != nil {

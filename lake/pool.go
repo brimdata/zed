@@ -168,18 +168,18 @@ func (p *Pool) BatchifyBranches(ctx context.Context, arena *zed.Arena, recs []ze
 		if err != nil {
 			return nil, err
 		}
-		if filter(zctx, ectx, rec, f) {
+		if filter(ectx, rec, f) {
 			recs = append(recs, rec)
 		}
 	}
 	return recs, nil
 }
 
-func filter(zctx *zed.Context, ectx expr.Context, this zed.Value, e expr.Evaluator) bool {
+func filter(ectx expr.Context, this zed.Value, e expr.Evaluator) bool {
 	if e == nil {
 		return true
 	}
-	val, ok := expr.EvalBool(zctx, ectx, this, e)
+	val, ok := expr.EvalBool(ectx, this, e)
 	return ok && val.Bool()
 }
 
@@ -188,21 +188,21 @@ type BranchTip struct {
 	Commit ksuid.KSUID
 }
 
-func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
+func (p *Pool) BatchifyBranchTips(ctx context.Context, arena *zed.Arena, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
-	m := zson.NewZNGMarshalerWithContext(zctx)
+	m := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StylePackage)
 	recs := make([]zed.Value, 0, len(branches))
-	ectx := expr.NewContext()
+	ectx := expr.NewContext(arena)
 	for _, branchRef := range branches {
 		rec, err := m.Marshal(&BranchTip{branchRef.Name, branchRef.Commit})
 		if err != nil {
 			return nil, err
 		}
-		if filter(zctx, ectx, rec, f) {
+		if filter(ectx, rec, f) {
 			recs = append(recs, rec)
 		}
 	}

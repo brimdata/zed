@@ -33,7 +33,7 @@ func NewLogicalNot(zctx *zed.Context, e Evaluator) *Not {
 }
 
 func (n *Not) Eval(ectx Context, this zed.Value) zed.Value {
-	val, ok := EvalBool(n.zctx, ectx, this, n.expr)
+	val, ok := EvalBool(ectx, this, n.expr)
 	if !ok {
 		return val
 	}
@@ -66,7 +66,7 @@ func NewLogicalOr(zctx *zed.Context, lhs, rhs Evaluator) *Or {
 // EvalBool evaluates e with this and if the result is a Zed bool, returns the
 // result and true.  Otherwise, a Zed error (inclusive of missing) and false
 // are returned.
-func EvalBool(zctx *zed.Context, ectx Context, this zed.Value, e Evaluator) (zed.Value, bool) {
+func EvalBool(ectx Context, this zed.Value, e Evaluator) (zed.Value, bool) {
 	val := e.Eval(ectx, this)
 	if zed.TypeUnder(val.Type()) == zed.TypeBool {
 		return val, true
@@ -78,14 +78,14 @@ func EvalBool(zctx *zed.Context, ectx Context, this zed.Value, e Evaluator) (zed
 }
 
 func (a *And) Eval(ectx Context, this zed.Value) zed.Value {
-	lhs, ok := EvalBool(a.zctx, ectx, this, a.lhs)
+	lhs, ok := EvalBool(ectx, this, a.lhs)
 	if !ok {
 		return lhs
 	}
 	if !lhs.Bool() {
 		return zed.False
 	}
-	rhs, ok := EvalBool(a.zctx, ectx, this, a.rhs)
+	rhs, ok := EvalBool(ectx, this, a.rhs)
 	if !ok {
 		return rhs
 	}
@@ -96,14 +96,14 @@ func (a *And) Eval(ectx Context, this zed.Value) zed.Value {
 }
 
 func (o *Or) Eval(ectx Context, this zed.Value) zed.Value {
-	lhs, ok := EvalBool(o.zctx, ectx, this, o.lhs)
+	lhs, ok := EvalBool(ectx, this, o.lhs)
 	if ok && lhs.Bool() {
 		return zed.True
 	}
 	if lhs.IsError() && !lhs.IsMissing() {
 		return lhs
 	}
-	rhs, ok := EvalBool(o.zctx, ectx, this, o.rhs)
+	rhs, ok := EvalBool(ectx, this, o.rhs)
 	if ok {
 		if rhs.Bool() {
 			return zed.True

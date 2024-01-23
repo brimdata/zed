@@ -28,13 +28,13 @@ func NewAggregator(op string, expr Evaluator, where Evaluator) (*Aggregator, err
 	}, nil
 }
 
-func (a *Aggregator) NewFunction() agg.Function {
-	return a.pattern()
+func (a *Aggregator) NewFunction(zctx *zed.Context) agg.Function {
+	return a.pattern(zctx)
 }
 
-func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this zed.Value) {
+func (a *Aggregator) Apply(ectx Context, f agg.Function, this zed.Value) {
 	if a.where != nil {
-		if val, ok := EvalBool(zctx, ectx, this, a.where); !ok || !val.Bool() {
+		if val, ok := EvalBool(ectx, this, a.where); !ok || !val.Bool() {
 			// XXX Issue #3401: do something with "where" errors.
 			return
 		}
@@ -48,8 +48,8 @@ func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this
 // NewAggregatorExpr returns an Evaluator from agg. The returned Evaluator
 // retains the same functionality of the aggregation only it returns it's
 // current state every time a new value is consumed.
-func NewAggregatorExpr(agg *Aggregator) Evaluator {
-	return &aggregatorExpr{agg: agg}
+func NewAggregatorExpr(zctx *zed.Context, agg *Aggregator) Evaluator {
+	return &aggregatorExpr{agg: agg, zctx: zctx}
 }
 
 type aggregatorExpr struct {
@@ -62,9 +62,8 @@ var _ Evaluator = (*aggregatorExpr)(nil)
 
 func (s *aggregatorExpr) Eval(ectx Context, val zed.Value) zed.Value {
 	if s.fn == nil {
-		s.fn = s.agg.NewFunction()
-		s.zctx = zed.NewContext() //XXX
+		s.fn = s.agg.NewFunction(s.zctx)
 	}
-	s.agg.Apply(s.zctx, ectx, s.fn, val)
-	return s.fn.Result(s.zctx)
+	s.agg.Apply(ectx, s.fn, val)
+	return s.fn.Result(ectx.Arena())
 }

@@ -179,29 +179,29 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) BatchifyPools(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
-	m := zson.NewZNGMarshalerWithContext(zctx)
+func (r *Root) BatchifyPools(ctx context.Context, arena *zed.Arena, f expr.Evaluator) ([]zed.Value, error) {
+	m := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StylePackage)
 	pools, err := r.ListPools(ctx)
 	if err != nil {
 		return nil, err
 	}
-	ectx := expr.NewContext()
+	ectx := expr.NewContext(arena)
 	var vals []zed.Value
 	for k := range pools {
 		rec, err := m.Marshal(&pools[k])
 		if err != nil {
 			return nil, err
 		}
-		if filter(zctx, ectx, rec, f) {
+		if filter(ectx, rec, f) {
 			vals = append(vals, rec)
 		}
 	}
 	return vals, nil
 }
 
-func (r *Root) BatchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
-	m := zson.NewZNGMarshalerWithContext(zctx)
+func (r *Root) BatchifyBranches(ctx context.Context, arena *zed.Arena, f expr.Evaluator) ([]zed.Value, error) {
+	m := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StylePackage)
 	poolRefs, err := r.ListPools(ctx)
 	if err != nil {
@@ -218,7 +218,7 @@ func (r *Root) BatchifyBranches(ctx context.Context, zctx *zed.Context, f expr.E
 			}
 			return nil, err
 		}
-		vals, err = pool.BatchifyBranches(ctx, zctx, vals, m, f)
+		vals, err = pool.BatchifyBranches(ctx, arena, vals, m, f)
 		if err != nil {
 			return nil, err
 		}

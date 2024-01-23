@@ -9,6 +9,7 @@ import (
 )
 
 type Collect struct {
+	Arena  *zed.Arena
 	values []zed.Value
 	size   int
 }
@@ -33,13 +34,13 @@ func (c *Collect) update(val zed.Value) {
 	}
 }
 
-func (c *Collect) Result(zctx *zed.Context) zed.Value {
+func (c *Collect) Result(arena *zed.Arena) zed.Value {
 	if len(c.values) == 0 {
 		// no values found
 		return zed.Null
 	}
 	var b zcode.Builder
-	inner := innerType(zctx, c.values)
+	inner := innerType(arena.Zctx(), c.values)
 	if union, ok := inner.(*zed.TypeUnion); ok {
 		for _, val := range c.values {
 			zed.BuildUnion(&b, union.TagOf(val.Type()), val.Bytes())
@@ -49,7 +50,7 @@ func (c *Collect) Result(zctx *zed.Context) zed.Value {
 			b.Append(val.Bytes())
 		}
 	}
-	return zed.NewValue(zctx.LookupTypeArray(inner), b.Bytes())
+	return arena.NewValue(arena.Zctx().LookupTypeArray(inner), b.Bytes())
 }
 
 func innerType(zctx *zed.Context, vals []zed.Value) zed.Type {
@@ -75,10 +76,10 @@ func (c *Collect) ConsumeAsPartial(val zed.Value) {
 	}
 	typ := arrayType.Type
 	for it := val.Iter(); !it.Done(); {
-		c.update(zed.NewValue(typ, it.Next()))
+		c.update(c.Arena.NewValue(typ, it.Next()))
 	}
 }
 
-func (c *Collect) ResultAsPartial(zctx *zed.Context) zed.Value {
-	return c.Result(zctx)
+func (c *Collect) ResultAsPartial(arena *zed.Arena) zed.Value {
+	return c.Result(arena)
 }
