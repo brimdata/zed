@@ -20,3 +20,4 @@ jobs:
           while true; do
             make TEST=TestZed/runtime/sam/op/merge/ztests/fork-merge
           done
+        shell: sh
