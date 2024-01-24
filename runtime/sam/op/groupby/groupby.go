@@ -63,6 +63,7 @@ type Aggregator struct {
 	spiller        *spill.MergeSort
 	partialsIn     bool
 	partialsOut    bool
+	reducersArena  *zed.Arena
 }
 
 type Row struct {
@@ -107,6 +108,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 		valueCompare:   valueCompare,
 		partialsIn:     partialsIn,
 		partialsOut:    partialsOut,
+		reducersArena:  zed.NewArena(zctx),
 	}, nil
 }
 
@@ -347,7 +349,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 		row = &Row{
 			keyType:  keyType,
 			groupval: prim,
-			reducers: newValRow(a.aggs),
+			reducers: newValRow(a.reducersArena, a.aggs),
 		}
 		a.table[string(keyBytes)] = row
 	}

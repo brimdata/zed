@@ -22,18 +22,16 @@ func (u *UDF) Call(ectx Context, args []zed.Value) zed.Value {
 	}
 	// args must be cloned otherwise the values will be overwritten in
 	// recursive calls.
-	f := &frame{ectx.Arena(), stack, slices.Clone(args)}
+	f := &frame{ectx, stack, slices.Clone(args)}
 	defer f.exit()
 	return u.Body.Eval(f, zed.Null)
 }
 
 type frame struct {
-	arena *zed.Arena
+	Context
 	stack int
 	vars  []zed.Value
 }
-
-func (f *frame) Arena() *zed.Arena { return f.arena }
 
 func (f *frame) Vars() []zed.Value {
 	return f.vars

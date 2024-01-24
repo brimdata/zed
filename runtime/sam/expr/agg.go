@@ -48,21 +48,20 @@ func (a *Aggregator) Apply(ectx Context, f agg.Function, this zed.Value) {
 // NewAggregatorExpr returns an Evaluator from agg. The returned Evaluator
 // retains the same functionality of the aggregation only it returns it's
 // current state every time a new value is consumed.
-func NewAggregatorExpr(zctx *zed.Context, agg *Aggregator) Evaluator {
-	return &aggregatorExpr{agg: agg, zctx: zctx}
+func NewAggregatorExpr(agg *Aggregator) Evaluator {
+	return &aggregatorExpr{agg: agg}
 }
 
 type aggregatorExpr struct {
-	agg  *Aggregator
-	fn   agg.Function
-	zctx *zed.Context
+	agg *Aggregator
+	fn  agg.Function
 }
 
 var _ Evaluator = (*aggregatorExpr)(nil)
 
 func (s *aggregatorExpr) Eval(ectx Context, val zed.Value) zed.Value {
 	if s.fn == nil {
-		s.fn = s.agg.NewFunction(s.zctx)
+		s.fn = s.agg.NewFunction(ectx.Arena().Zctx())
 	}
 	s.agg.Apply(ectx, s.fn, val)
 	return s.fn.Result(ectx.Arena())

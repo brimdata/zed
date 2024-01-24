@@ -2,7 +2,7 @@ package function
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/segmentio/ksuid"
 )
 

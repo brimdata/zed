@@ -11,17 +11,17 @@ import (
 
 type valRow []agg.Function
 
-func newValRow(aggs []*expr.Aggregator) valRow {
+func newValRow(zctx *zed.Context, aggs []*expr.Aggregator) valRow {
 	row := make([]agg.Function, 0, len(aggs))
 	for _, a := range aggs {
-		row = append(row, a.NewFunction())
+		row = append(row, a.NewFunction(zctx))
 	}
 	return row
 }
 
-func (v valRow) apply(zctx *zed.Context, ectx expr.Context, aggs []*expr.Aggregator, this zed.Value) {
+func (v valRow) apply(ectx expr.Context, aggs []*expr.Aggregator, this zed.Value) {
 	for k, a := range aggs {
-		a.Apply(zctx, ectx, v[k], this)
+		a.Apply(ectx, v[k], this)
 	}
 }
 

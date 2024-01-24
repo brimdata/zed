@@ -165,7 +165,7 @@ func (b *Builder) compileConstIn(e *dag.BinaryExpr) (expr.Evaluator, error) {
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewFilter(operand, expr.Contains(eql)), nil
+	return expr.NewFilter(operand, expr.Contains(b.zctx(), eql)), nil
 }
 
 func (b *Builder) compileConstCompare(e *dag.BinaryExpr) (expr.Evaluator, error) {
@@ -396,7 +396,7 @@ func (b *Builder) compileRegexpSearch(search *dag.RegexpSearch) (expr.Evaluator,
 		return nil, err
 	}
 	match := expr.NewRegexpBoolean(re)
-	return expr.SearchByPredicate(expr.Contains(match), e), nil
+	return expr.SearchByPredicate(expr.Contains(b.zctx(), match), e), nil
 }
 
 func (b *Builder) compileRecordExpr(record *dag.RecordExpr) (expr.Evaluator, error) {

@@ -113,7 +113,7 @@ func (r *recordSpreadExpr) Eval(ectx Context, this zed.Value) zed.Value {
 				if !ok {
 					fv = fieldValue{index: len(object)}
 				}
-				fv.value = zed.NewValue(f.Type, it.Next())
+				fv.value = ectx.Arena().NewValue(f.Type, it.Next())
 				object[f.Name] = fv
 			}
 		} else {
@@ -128,7 +128,7 @@ func (r *recordSpreadExpr) Eval(ectx Context, this zed.Value) zed.Value {
 		}
 	}
 	if len(object) == 0 {
-		return zed.NewValue(r.zctx.MustLookupTypeRecord([]zed.Field{}), []byte{})
+		return ectx.Arena().NewValue(r.zctx.MustLookupTypeRecord([]zed.Field{}), []byte{})
 	}
 	r.update(object)
 	b := r.builder
@@ -136,7 +136,7 @@ func (r *recordSpreadExpr) Eval(ectx Context, this zed.Value) zed.Value {
 	for _, bytes := range r.bytes {
 		b.Append(bytes)
 	}
-	return zed.NewValue(r.cache, b.Bytes())
+	return ectx.Arena().NewValue(r.cache, b.Bytes())
 }
 
 // update maps the object into the receiver's vals slice while also
@@ -204,13 +204,13 @@ func (a *ArrayExpr) Eval(ectx Context, this zed.Value) zed.Value {
 		a.collection.appendSpread(inner, val.Bytes())
 	}
 	if len(a.collection.types) == 0 {
-		return zed.NewValue(a.zctx.LookupTypeArray(zed.TypeNull), []byte{})
+		return ectx.Arena().NewValue(a.zctx.LookupTypeArray(zed.TypeNull), []byte{})
 	}
 	it := a.collection.iter(a.zctx)
 	for !it.done() {
 		it.appendNext(&a.builder)
 	}
-	return zed.NewValue(a.zctx.LookupTypeArray(it.typ), a.builder.Bytes())
+	return ectx.Arena().NewValue(a.zctx.LookupTypeArray(it.typ), a.builder.Bytes())
 }
 
 type SetExpr struct {
@@ -244,13 +244,13 @@ func (a *SetExpr) Eval(ectx Context, this zed.Value) zed.Value {
 		a.collection.appendSpread(inner, val.Bytes())
 	}
 	if len(a.collection.types) == 0 {
-		return zed.NewValue(a.zctx.LookupTypeSet(zed.TypeNull), []byte{})
+		return ectx.Arena().NewValue(a.zctx.LookupTypeSet(zed.TypeNull), []byte{})
 	}
 	it := a.collection.iter(a.zctx)
 	for !it.done() {
 		it.appendNext(&a.builder)
 	}
-	return zed.NewValue(a.zctx.LookupTypeSet(it.typ), zed.NormalizeSet(a.builder.Bytes()))
+	return ectx.Arena().NewValue(a.zctx.LookupTypeSet(it.typ), zed.NormalizeSet(a.builder.Bytes()))
 }
 
 type Entry struct {
@@ -282,7 +282,7 @@ func (m *MapExpr) Eval(ectx Context, this zed.Value) zed.Value {
 	}
 	if len(m.keys.types) == 0 {
 		typ := m.zctx.LookupTypeMap(zed.TypeNull, zed.TypeNull)
-		return zed.NewValue(typ, []byte{})
+		return ectx.Arena().NewValue(typ, []byte{})
 	}
 	m.builder.Reset()
 	kIter, vIter := m.keys.iter(m.zctx), m.vals.iter(m.zctx)
@@ -292,7 +292,7 @@ func (m *MapExpr) Eval(ectx Context, this zed.Value) zed.Value {
 	}
 	bytes := m.builder.Bytes()
 	typ := m.zctx.LookupTypeMap(kIter.typ, vIter.typ)
-	return zed.NewValue(typ, zed.NormalizeMap(bytes))
+	return ectx.Arena().NewValue(typ, zed.NormalizeMap(bytes))
 }
 
 type collectionBuilder struct {

@@ -54,8 +54,8 @@ func NewPattern(op string, hasarg bool) (Pattern, error) {
 			return newMathReducer(anymath.Add)
 		}
 	case "collect_map":
-		pattern = func(*zed.Context) Function {
-			return newCollectMap()
+		pattern = func(zctx *zed.Context) Function {
+			return newCollectMap(zed.NewArena(zctx))
 		}
 	case "min":
 		pattern = func(*zed.Context) Function {

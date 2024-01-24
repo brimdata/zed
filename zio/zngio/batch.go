@@ -10,45 +10,41 @@ import (
 )
 
 type batch struct {
-	buf  *buffer
-	refs int32
-	vals []zed.Value
+	arena *zed.Arena
+	refs  int32
+	vals  []zed.Value
 }
 
 var _ zbuf.Batch = (*batch)(nil)
 
 var batchPool sync.Pool
 
-func newBatch(buf *buffer) *batch {
+func newBatch(zctx *zed.Context, nbytes, nvals int) *batch {
 	b, ok := batchPool.Get().(*batch)
-	if !ok {
-		b = &batch{vals: make([]zed.Value, 200)}
+	if ok {
+		if b.refs != 0 {
+			panic("zngio: nonzero batch referece count")
+		}
+		b.arena.Reset()
+		b.vals = b.vals[:0]
+	} else {
+		b = &batch{arena: zed.NewArena(zctx)}
 	}
-	b.buf = buf
-	b.refs = 1
-	b.vals = b.vals[:0]
+	b.arena.Grow(nbytes)
+	b.vals = slices.Grow(b.vals, nvals)
 	return b
 }
 
-func (b *batch) extend() *zed.Value {
-	n := len(b.vals)
-	b.vals = slices.Grow(b.vals, 1)[:n+1]
-	return &b.vals[n]
+func (b *batch) append(val zed.Value) {
+	b.vals = append(b.vals, val)
 }
 
-// unextend undoes what extend did.
-func (b *batch) unextend() {
-	b.vals = b.vals[:len(b.vals)-1]
-}
+func (b *batch) Arena() *zed.Arena { return b.arena }
 
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
 
 func (b *batch) Unref() {
 	if refs := atomic.AddInt32(&b.refs, -1); refs == 0 {
-		if b.buf != nil {
-			b.buf.free()
-			b.buf = nil
-		}
 		batchPool.Put(b)
 	} else if refs < 0 {
 		panic("zngio: negative batch reference count")

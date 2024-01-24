@@ -10,13 +10,15 @@ import (
 // the scope and for allocating results.
 type Context interface {
 	Arena() *zed.Arena
+
 	// Vars() accesses the variables reachable in the current scope.
 	Vars() []zed.Value
 	zed.Allocator
 }
 
 type allocator struct {
-	arena      *zed.Arena
+	arena *zed.Arena
+
 	stackDepth int
 }
 

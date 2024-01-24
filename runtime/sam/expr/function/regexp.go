@@ -4,7 +4,7 @@ import (
 	"regexp"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/expr"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zcode"
 )
 

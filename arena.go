@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"runtime"
+	"slices"
 	"unsafe"
 
 	"github.com/brimdata/zed/zcode"
@@ -24,6 +25,8 @@ func NewArena(zctx *Context) *Arena { return &Arena{zctx: zctx} }
 func (a *Arena) Zctx() *Context { return a.zctx }
 
 func (a *Arena) KeepAlive() { runtime.KeepAlive(a) }
+
+func (a *Arena) Grow(n int) { a.bytes = slices.Grow(a.bytes, n) }
 
 func (a *Arena) Reset() {
 	if true {
