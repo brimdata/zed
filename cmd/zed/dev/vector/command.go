@@ -1,4 +1,4 @@
-package vcache
+package vector
 
 import (
 	"flag"
@@ -9,11 +9,11 @@ import (
 )
 
 var Cmd = &charm.Spec{
-	Name:  "vcache",
-	Usage: "vcache sub-command [arguments...]",
+	Name:  "vector",
+	Usage: "vector sub-command [arguments...]",
 	Short: "run specified VNG vector test",
 	Long: `
-vcache runs various tests of the vector cache as specified by its sub-command.`,
+vector runs various tests of the vector cache and runtime as specified by its sub-command.`,
 	New: New,
 }
 

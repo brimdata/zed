@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	devvcache "github.com/brimdata/zed/cmd/zed/dev/vcache"
+	"github.com/brimdata/zed/cmd/zed/dev/vector"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
@@ -27,13 +27,13 @@ The project command reads VNG vectors from
 a VNG storage objects (local files or s3 objects) and outputs
 the reconstructed ZNG row data as an aggregate function.
 
-This command is most useful for testing the VNG vector cache.
+This command is most useful for testing the vector cache and runtime.
 `,
 	New: newCommand,
 }
 
 func init() {
-	devvcache.Cmd.Add(Agg)
+	vector.Cmd.Add(Agg)
 }
 
 type Command struct {

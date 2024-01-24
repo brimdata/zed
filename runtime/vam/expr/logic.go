@@ -48,27 +48,6 @@ func NewLogicalOr(zctx *zed.Context, lhs, rhs Evaluator) *Or {
 	return &Or{zctx, lhs, rhs}
 }
 
-// EvalBool evaluates e using val to computs a boolean result.  For elemtents
-// of the result that are not boolean, an error is calculated for each non-bool
-// slot and they are returned as an error.  If all of the value slots are errors,
-// then the return value is nil.
-func EvalBool(zctx *zed.Context, val vector.Any, e Evaluator) (*vector.Bool, vector.Any) {
-	val, err := e.Eval(val)
-	if val == nil {
-		return nil, err
-	}
-	if val, ok := vector.Under(val).(*vector.Bool); ok {
-		return val, err
-	}
-	//XXX need to implement vector.Collection and check for that here (i.e., sparse variant)
-	// for now, if the vector is not uniformly boolean, we return error.
-	// XXX example is a field ref a union of structs where the type of
-	// the referenced field changes... there can be an arbitrary number
-	// of underlying types though any given slot has only one type
-	// obviously at any given time.
-	return nil, vector.NewStringError(zctx, "not type bool", val.Len())
-}
-
 func (a *And) Eval(val vector.Any) (vector.Any, vector.Any) {
 	lhs, err := EvalBool(a.zctx, val, a.lhs)
 	if lhs == nil {
@@ -107,4 +86,25 @@ func (o *Or) Eval(val vector.Any) (vector.Any, vector.Any) {
 	}
 	//XXX intersect nulls
 	return lhs.CopyWithBits(bits), nil
+}
+
+// EvalBool evaluates e using val to computs a boolean result.  For elemtents
+// of the result that are not boolean, an error is calculated for each non-bool
+// slot and they are returned as an error.  If all of the value slots are errors,
+// then the return value is nil.
+func EvalBool(zctx *zed.Context, val vector.Any, e Evaluator) (*vector.Bool, vector.Any) {
+	val, err := e.Eval(val)
+	if val == nil {
+		return nil, err
+	}
+	if val, ok := vector.Under(val).(*vector.Bool); ok {
+		return val, err
+	}
+	//XXX need to implement vector.Collection and check for that here (i.e., sparse variant)
+	// for now, if the vector is not uniformly boolean, we return error.
+	// XXX example is a field ref a union of structs where the type of
+	// the referenced field changes... there can be an arbitrary number
+	// of underlying types though any given slot has only one type
+	// obviously at any given time.
+	return nil, vector.NewStringError(zctx, "not type bool", val.Len())
 }
