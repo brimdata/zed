@@ -22,7 +22,7 @@ jobs:
           NUM=1
           while true; do
             echo "Test iteration ${NUM}:"
-            go test -short ./...
+            go test -short ./... -count=1
             NUM=$(expr $NUM + 1)
           done
         shell: sh
