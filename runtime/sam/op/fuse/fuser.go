@@ -33,7 +33,7 @@ func NewFuser(zctx *zed.Context, memMaxBytes int) *Fuser {
 		memMaxBytes: memMaxBytes,
 		types:       make(map[zed.Type]struct{}),
 		uberSchema:  agg.NewSchema(zctx),
-		ectx:        expr.NewContext(),
+		ectx:        expr.NewContext(zed.NewArena(zctx)),
 	}
 }
 

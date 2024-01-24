@@ -39,8 +39,6 @@ func (b *batch) append(val zed.Value) {
 	b.vals = append(b.vals, val)
 }
 
-func (b *batch) Arena() *zed.Arena { return b.arena }
-
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
 
 func (b *batch) Unref() {
@@ -56,3 +54,5 @@ func (b *batch) Values() []zed.Value { return b.vals }
 // XXX this should be ok, but we should handle nil receiver in scope so push
 // will do the right thing
 func (*batch) Vars() []zed.Value { return nil }
+
+func (b *batch) Zctx() *zed.Context { return b.arena.Zctx() }

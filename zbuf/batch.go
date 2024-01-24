@@ -1,10 +1,12 @@
 package zbuf
 
 import (
+	"slices"
 	"sync"
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -30,7 +32,7 @@ type Batch interface {
 	Values() []zed.Value
 	// Vars accesses the variables reachable in the current scope.
 	Vars() []zed.Value
-	Arena() *zed.Arena
+	Zctx() *zed.Context
 }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
@@ -60,7 +62,7 @@ type Puller interface {
 
 // PullerBatchBytes is the maximum number of bytes (in the zed.Value.Byte
 // sense) per batch for a [Puller] created by [NewPuller].
-const PullerBatchBytes = 512 * 1024
+const PullerBatchBytes = 512 * 1024 // xxx
 
 // PullerBatchValues is the maximum number of values per batch for a [Puller]
 // created by [NewPuller].
@@ -68,13 +70,13 @@ var PullerBatchValues = 100
 
 // NewPuller returns a puller for zr that returns batches containing up to
 // [PullerBatchBytes] bytes and [PullerBatchValues] values.
-func NewPuller(zr zio.Reader, zctx *zed.Context) Puller {
-	return &puller{zr, zctx}
+func NewPuller(zctx *zed.Context, zr zio.Reader) Puller {
+	return &puller{zctx, zr}
 }
 
 type puller struct {
-	zr   zio.Reader
 	zctx *zed.Context
+	zr   zio.Reader
 }
 
 func (p *puller) Pull(bool) (Batch, error) {
@@ -102,22 +104,25 @@ func (p *puller) Pull(bool) (Batch, error) {
 
 type pullerBatch struct {
 	refs  atomic.Int32
-	vals  []zed.Value
 	arena *zed.Arena
+	vals  []zed.Value
 }
 
 var pullerBatchPool sync.Pool
 
 func newPullerBatch(zctx *zed.Context) *pullerBatch {
 	b, ok := pullerBatchPool.Get().(*pullerBatch)
-	if !ok {
-		b = &pullerBatch{
-			vals: make([]zed.Value, PullerBatchValues),
+	if ok {
+		if b.arena.Zctx() != zctx {
+			panic("zed.Context mismatch")
 		}
+		b.arena.Reset()
+		b.vals = b.vals[:0]
+	} else {
+		b = &pullerBatch{arena: zed.NewArena(zctx)}
 	}
 	b.refs.Store(1)
-	b.vals = b.vals[:0]
-	b.arena = zed.NewArena(zctx)
+	b.vals = slices.Grow(b.vals, PullerBatchValues)
 	return b
 }
 
@@ -139,9 +144,9 @@ func (b *pullerBatch) Unref() {
 	}
 }
 
-func (p *pullerBatch) Arena() *zed.Arena   { return p.arena }
 func (p *pullerBatch) Values() []zed.Value { return p.vals }
 func (*pullerBatch) Vars() []zed.Value     { return nil }
+func (p *pullerBatch) Zctx() *zed.Context  { return p.arena.Zctx() }
 
 func CopyPuller(w zio.Writer, p Puller) error {
 	for {
@@ -185,32 +190,6 @@ func (r *pullerReader) Read() (*zed.Value, error) {
 	return val, nil
 }
 
-// XXX at some point the stacked scopes should not make copies of values
-// but merely refer back to the value in the wrapped batch, and we should
-// ref the wrapped batch then downstream entities will unref it, but how
-// do we carry the var frame through... protocol needs to be that any new
-// batch created by a proc needs to preserve the var frame... we don't
-// do that right now and ref counting needs to account for the dependencies.
-// procs like summarize and sort that unref their input batches merely need
-// to copy the first frame (of each batch) and the contract is that the
-// frame will not change between multiple batches within a single-EOS event.
-
-type batch struct {
-	Batch
-	vars []zed.Value
-}
-
-func NewBatch(b Batch, vals []zed.Value) Batch {
-	return &batch{
-		Batch: NewArray(vals),
-		vars:  CopyVars(b),
-	}
-}
-
-func (b *batch) Vars() []zed.Value {
-	return b.vars
-}
-
 func CopyVars(b Batch) []zed.Value {
 	vars := b.Vars()
 	if len(vars) > 0 {
@@ -222,3 +201,59 @@ func CopyVars(b Batch) []zed.Value {
 	}
 	return vars
 }
+
+type Batch2 struct {
+	refs   atomic.Int32
+	arena  *zed.Arena
+	parent Batch
+	vals   []zed.Value
+}
+
+var _ Batch = (*Batch2)(nil)
+var _ expr.Context = (*Batch2)(nil)
+
+var batch2Pool sync.Pool
+
+func NewBatch2(parent Batch) *Batch2 {
+	b, ok := batch2Pool.Get().(*Batch2)
+	if ok {
+		if b.arena.Zctx() != parent.Zctx() {
+			panic("zed.Context mismatch")
+		}
+		b.vals = b.vals[:0]
+	} else {
+		b = &Batch2{arena: zed.NewArena(parent.Zctx())}
+	}
+	b.refs.Store(1)
+	b.parent = parent
+	b.vals = slices.Grow(b.vals, len(b.Values()))
+	return b
+}
+
+func (b *Batch2) Append(val zed.Value) { b.vals = append(b.vals, val) }
+
+func (b *Batch2) Arena() *zed.Arena { return b.arena }
+
+func (b *Batch2) Ref() { b.refs.Add(1) }
+
+func (b *Batch2) Unref() {
+	if refs := b.refs.Add(-1); refs == 0 {
+		b.parent.Unref()
+		// Let parent be reclaimed separately.
+		b.parent = nil
+		pullerBatchPool.Put(b)
+	} else if refs < 0 {
+		panic("zbuf: negative batch reference count")
+	}
+}
+
+func (b *Batch2) Values() []zed.Value { return b.vals }
+
+func (b *Batch2) Vars() []zed.Value {
+	if b.parent == nil {
+		return nil
+	}
+	return b.parent.Vars()
+}
+
+func (b *Batch2) Zctx() *zed.Context { return b.arena.Zctx() }

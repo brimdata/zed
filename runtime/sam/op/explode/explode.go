@@ -34,30 +34,28 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		if batch == nil || err != nil {
 			return nil, err
 		}
-		vals := batch.Values()
-		out := make([]zed.Value, 0, len(vals))
-		for i := range vals {
+		newBatch := zbuf.NewBatch2(batch)
+		for _, val := range batch.Values() {
 			for _, arg := range o.args {
-				val := arg.Eval(batch, vals[i])
+				val := arg.Eval(newBatch, val)
 				if val.IsError() {
 					if !val.IsMissing() {
-						out = append(out, val.Copy())
+						newBatch.Append(val)
 					}
 					continue
 				}
 				zed.Walk(val.Type(), val.Bytes(), func(typ zed.Type, body zcode.Bytes) error {
 					if typ == o.typ && body != nil {
 						bytes := zcode.Append(nil, body)
-						out = append(out, zed.NewValue(o.outType, bytes))
+						newBatch.Append(newBatch.Arena().NewValue(o.outType, bytes))
 						return zed.SkipContainer
 					}
 					return nil
 				})
 			}
 		}
-		if len(out) > 0 {
-			defer batch.Unref()
-			return zbuf.NewBatch(batch, out), nil
+		if len(newBatch.Values()) > 0 {
+			return newBatch, nil
 		}
 		batch.Unref()
 	}

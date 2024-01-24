@@ -64,6 +64,7 @@ type Aggregator struct {
 	partialsIn     bool
 	partialsOut    bool
 	reducersArena  *zed.Arena
+	tmpArena       *zed.Arena
 }
 
 type Row struct {
@@ -109,6 +110,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 		partialsIn:     partialsIn,
 		partialsOut:    partialsOut,
 		reducersArena:  zed.NewArena(zctx),
+		tmpArena:       zed.NewArena(zctx),
 	}, nil
 }
 
@@ -320,8 +322,12 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 	types := a.typeCache[:0]
 	keyBytes := a.keyCache[:0]
 	var prim zed.Value
+	arena := zed.NewArena(batch.Zctx())
+	defer arena.KeepAlive()
+	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	for i, keyExpr := range a.keyExprs {
-		key := keyExpr.Eval(batch, this)
+		arena.Reset()
+		key := keyExpr.Eval(ectx, this)
 		if key.IsQuiet() {
 			return nil
 		}
@@ -349,15 +355,16 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 		row = &Row{
 			keyType:  keyType,
 			groupval: prim,
-			reducers: newValRow(a.reducersArena, a.aggs),
+			reducers: newValRow(a.zctx, a.aggs),
 		}
 		a.table[string(keyBytes)] = row
 	}
 
+	reducersEctx := expr.NewContextWithVars(a.reducersArena, batch)
 	if a.partialsIn {
-		row.reducers.consumeAsPartial(this, a.aggRefs, batch)
+		row.reducers.consumeAsPartial(this, a.aggRefs, exbatch)
 	} else {
-		row.reducers.apply(a.zctx, batch, a.aggs, this)
+		row.reducers.apply(batch, a.aggs, this)
 	}
 	return nil
 }
@@ -426,6 +433,7 @@ func (a *Aggregator) readSpills(eof bool, batch zbuf.Batch) (zbuf.Batch, error) 
 	if !eof && a.inputDir == 0 {
 		return nil, nil
 	}
+	newBatch := zbuf.NewBatch2(batch)
 	for len(recs) < op.BatchLen {
 		if !eof && a.inputDir != 0 {
 			rec, err := a.spiller.Peek()
@@ -463,7 +471,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 	// XXX This could be optimized by reusing the reducers and resetting
 	// their state instead of allocating a new one per row and sending
 	// each one to GC, but this would require a change to reducer API.
-	row := newValRow(a.aggs)
+	row := newValRow(a.zctx, a.aggs)
 	var firstRec *zed.Value
 	for {
 		rec, err := a.spiller.Peek()
@@ -497,9 +505,9 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 	for _, f := range row {
 		var v zed.Value
 		if a.partialsOut {
-			v = f.ResultAsPartial(a.zctx)
+			v = f.ResultAsPartial(ectx.Arena())
 		} else {
-			v = f.Result(a.zctx)
+			v = f.Result(ectx.Arena())
 		}
 		types = append(types, v.Type())
 		a.builder.Append(v.Bytes())
@@ -509,7 +517,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewValue(typ, bytes).Ptr(), nil
+	return ectx.Arena().NewValue(typ, bytes).Ptr(), nil
 }
 
 // readTable returns a slice of records from the in-memory groupby
@@ -546,7 +554,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 		for _, f := range row.reducers {
 			var v zed.Value
 			if partialsOut {
-				v = f.ResultAsPartial(a.zctx)
+				v = f.ResultAsPartial(zctx)
 			} else {
 				v = f.Result(a.zctx)
 			}

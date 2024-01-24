@@ -102,12 +102,15 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		data = append(data, fmt.Sprintf("{ts:%s,ip:1.1.1.%d}", nano.Unix(int64(t), 0), i%uniqueIpsPerTs))
 	}
 
+	zctx := zed.NewContext()
+	arena := zed.NewArena(zctx)
+	defer arena.KeepAlive()
+
 	runOne := func(inputSortKey string) []string {
 		proc, err := compiler.Parse("count() by every(1s), ip")
 		assert.NoError(t, err)
 
-		zctx := zed.NewContext()
-		zr := zsonio.NewReader(zctx, strings.NewReader(strings.Join(data, "\n")))
+		zr := zsonio.NewReader(arena, strings.NewReader(strings.Join(data, "\n")))
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
 		zw := zsonio.NewWriter(zio.NopCloser(&outbuf), zsonio.WriterOpts{})

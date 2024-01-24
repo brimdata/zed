@@ -47,6 +47,8 @@ func (a *Array) Write(r zed.Value) error {
 	return nil
 }
 
+func (*Array) Zctx() *zed.Arena { panic("zbuf.Array.Zctx") }
+
 // Read returns removes the first element of the Array and returns it,
 // or it returns nil if the Array is empty.
 func (a *Array) Read() (*zed.Value, error) {

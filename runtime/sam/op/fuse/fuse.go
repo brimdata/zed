@@ -65,7 +65,7 @@ func (o *Op) pullInput() error {
 }
 
 func (o *Op) pushOutput() error {
-	puller := zbuf.NewPuller(o.fuser)
+	puller := zbuf.NewPuller(o.rctx.Zctx, o.fuser)
 	for {
 		if err := o.rctx.Err(); err != nil {
 			return err
