@@ -13,8 +13,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: c9cf7f1535cb4c907c9ec70cc6b17d62a38cb9d2
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
