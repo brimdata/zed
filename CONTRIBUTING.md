@@ -11,8 +11,8 @@ watch the repo so you can follow and track our progress.
 
 In particular, we will be adding many more operators and aggregate functions.
 If you want a fun, small project to help out, pick some functionality that is missing and
-add an operator in [runtime/op](runtime/op) or an aggregate function
-in [runtime/expr/agg](runtime/expr/agg).
+add an operator in [runtime/sam/op](runtime/sam/op) or an aggregate function
+in [runtime/sam/expr/agg](runtime/sam/expr/agg).
 
 
 ## Development
