@@ -7,8 +7,8 @@ import (
 
 type This struct{}
 
-func (*This) Eval(this vector.Any) (vector.Any, *vector.Error) {
-	return this, nil
+func (*This) Eval(val vector.Any) (vector.Any, vector.Any) {
+	return val, nil
 }
 
 type DotExpr struct {
@@ -25,11 +25,11 @@ func NewDotExpr(zctx *zed.Context, record Evaluator, field string) *DotExpr {
 	}
 }
 
-func (d *DotExpr) Eval(val vector.Any) (vector.Any, *vector.Error) {
-	val, verr := d.record.Eval(val)
+func (d *DotExpr) Eval(val vector.Any) (vector.Any, vector.Any) {
+	val, err := d.record.Eval(val)
 	switch val := val.(type) {
 	case nil:
-		return nil, verr
+		return nil, err
 	case *vector.Record:
 		i, ok := val.Typ.IndexOfField(d.field)
 		if !ok {
@@ -42,7 +42,7 @@ func (d *DotExpr) Eval(val vector.Any) (vector.Any, *vector.Error) {
 		panic("vam.DotExpr Map TBD")
 	case *vector.Union:
 		vals := make([]vector.Any, 0, len(val.Values))
-		var errs []*vector.Error
+		var errs []vector.Any
 		for _, val := range val.Values {
 			//XXX blend errors
 			val, err := d.Eval(val)
@@ -51,14 +51,14 @@ func (d *DotExpr) Eval(val vector.Any) (vector.Any, *vector.Error) {
 				errs = append(errs, err)
 			}
 		}
-		return val.Copy(vals), blendErrs(errs)
+		return val.Copy(vals), blendErrors(errs)
 	default:
 		return nil, vector.NewMissing(d.zctx, val.Len())
 	}
 }
 
 // XXX
-func blendErrs(errs []*vector.Error) *vector.Error {
+func blendErrors(errs []vector.Any) vector.Any {
 	if len(errs) == 0 {
 		return nil
 	}

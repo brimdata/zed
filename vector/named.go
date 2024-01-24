@@ -18,3 +18,13 @@ func NewNamed(typ *zed.TypeNamed, v Any) Any {
 func (n *Named) Type() zed.Type {
 	return n.Typ
 }
+
+func Under(v Any) Any {
+	for {
+		n, ok := v.(*Named)
+		if !ok {
+			return v
+		}
+		v = n
+	}
+}

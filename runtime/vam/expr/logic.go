@@ -16,15 +16,16 @@ func NewLogicalNot(zctx *zed.Context, e Evaluator) *Not {
 	return &Not{zctx, e}
 }
 
-func (n *Not) Eval(val vector.Any) vector.Any {
-	val, ok := EvalBool(n.zctx, val, n.expr)
-	if !ok {
-		return val
+func (n *Not) Eval(val vector.Any) (vector.Any, vector.Any) {
+	b, err := EvalBool(n.zctx, val, n.expr)
+	if b == nil {
+		return nil, err
 	}
-	if val.Bool() {
-		return zed.False
+	bits := make([]uint64, len(b.Bits))
+	for k := range bits {
+		bits[k] = b.Bits[k]
 	}
-	return zed.True
+	return b.CopyWithBits(bits), nil
 }
 
 type And struct {
@@ -47,64 +48,63 @@ func NewLogicalOr(zctx *zed.Context, lhs, rhs Evaluator) *Or {
 	return &Or{zctx, lhs, rhs}
 }
 
-//XXX hmm we could have a mixture of errors and normal values that
-// shouldn't be carried in a union because we don't want the union
-// type to bubble up to the top-level type, e.g., some values of
-// a boolean comparison have divide-by-zero and thus error values
-// while other values are normmal boolean results.  Maybe we can
-// encode this condition as a special variant then establish the
-// variation at the top-level.  Then the semantics between vam
-// and sam will be the same.  Perhaps more cleanly the error
-// condition can be return as a second return val of Eval since
-// then we can easily wrap the errors from stage to stage also
-// consitent with sam wrapping semantics.
-
-// EvalBool evaluates e with this and if the result is a Zed bool, returns the
-// result and true.  Otherwise, a Zed error (inclusive of missing) and false
-// are returned.
-func EvalBool(zctx *zed.Context, in vector.Any, e Evaluator) (vector.Any, bool) {
-	val := e.Eval(in)
-	if val.Type() == zed.TypeBool {
-		return val, true
+// EvalBool evaluates e using val to computs a boolean result.  For elemtents
+// of the result that are not boolean, an error is calculated for each non-bool
+// slot and they are returned as an error.  If all of the value slots are errors,
+// then the return value is nil.
+func EvalBool(zctx *zed.Context, val vector.Any, e Evaluator) (*vector.Bool, vector.Any) {
+	val, err := e.Eval(val)
+	if val == nil {
+		return nil, err
 	}
-	if val.IsError() {
-		return val, false
+	if val, ok := vector.Under(val).(*vector.Bool); ok {
+		return val, err
 	}
-	return zctx.WrapError("not type bool", val), false
+	//XXX need to implement vector.Collection and check for that here (i.e., sparse variant)
+	// for now, if the vector is not uniformly boolean, we return error.
+	// XXX example is a field ref a union of structs where the type of
+	// the referenced field changes... there can be an arbitrary number
+	// of underlying types though any given slot has only one type
+	// obviously at any given time.
+	return nil, vector.NewStringError(zctx, "not type bool", val.Len())
 }
 
-func (a *And) Eval(ectx Context, this zed.Value) zed.Value {
-	lhs, ok := EvalBool(a.zctx, ectx, this, a.lhs)
-	if !ok {
-		return lhs
+func (a *And) Eval(val vector.Any) (vector.Any, vector.Any) {
+	lhs, err := EvalBool(a.zctx, val, a.lhs)
+	if lhs == nil {
+		return lhs, err
 	}
-	if !lhs.Bool() {
-		return zed.False
+	rhs, err := EvalBool(a.zctx, val, a.rhs)
+	if rhs == nil {
+		return rhs, err // XXX mix with lhs err
 	}
-	rhs, ok := EvalBool(a.zctx, ectx, this, a.rhs)
-	if !ok {
-		return rhs
+	bits := make([]uint64, len(lhs.Bits))
+	if len(lhs.Bits) != len(rhs.Bits) {
+		panic("length mistmatch")
 	}
-	if !rhs.Bool() {
-		return zed.False
+	for k := range bits {
+		bits[k] = lhs.Bits[k] & rhs.Bits[k]
 	}
-	return zed.True
+	//XXX intersect nulls
+	return lhs.CopyWithBits(bits), nil
 }
 
-func (o *Or) Eval(ectx Context, this zed.Value) zed.Value {
-	lhs, ok := EvalBool(o.zctx, ectx, this, o.lhs)
-	if ok && lhs.Bool() {
-		return zed.True
+func (o *Or) Eval(val vector.Any) (vector.Any, vector.Any) {
+	lhs, err := EvalBool(o.zctx, val, o.lhs)
+	if lhs == nil {
+		return lhs, err
 	}
-	if lhs.IsError() && !lhs.IsMissing() {
-		return lhs
+	rhs, err := EvalBool(o.zctx, val, o.rhs)
+	if rhs == nil {
+		return rhs, err // XXX mix with lhs err
 	}
-	rhs, ok := EvalBool(o.zctx, ectx, this, o.rhs)
-	if ok {
-		if rhs.Bool() {
-			return zed.True
-		}
-		return zed.False
+	bits := make([]uint64, len(lhs.Bits))
+	if len(lhs.Bits) != len(rhs.Bits) {
+		panic("length mistmatch")
 	}
-	return rhs
+	for k := range bits {
+		bits[k] = lhs.Bits[k] | rhs.Bits[k]
+	}
+	//XXX intersect nulls
+	return lhs.CopyWithBits(bits), nil
 }
