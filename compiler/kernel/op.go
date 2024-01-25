@@ -84,6 +84,13 @@ func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, erro
 	return b.compileSeq(seq, nil)
 }
 
+func (b *Builder) BuildWithPuller(seq dag.Seq, parent zbuf.Puller) ([]zbuf.Puller, error) {
+	if !isEntry(seq) {
+		return nil, errors.New("internal error: DAG entry point is not a data source")
+	}
+	return b.compileSeq(seq, []zbuf.Puller{parent})
+}
+
 func (b *Builder) zctx() *zed.Context {
 	return b.rctx.Zctx
 }
@@ -692,7 +699,12 @@ func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller
 			} else {
 				return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
 			}
-
+		case *dag.Yield:
+			exprs, err := b.compileVamExprs(v.Exprs)
+			if err != nil {
+				return nil, err
+			}
+			vamPaREnt := vamop.NewYield(parent, exprs)
 		default:
 			return nil, fmt.Errorf("internal error: unknown dag.Op: %#v", o)
 		}
