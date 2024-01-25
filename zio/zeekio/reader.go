@@ -27,7 +27,7 @@ func NewReader(zctx *zed.Context, reader io.Reader) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Value, error) {
+func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	e := func(err error) error {
 		if err == nil {
 			return err
@@ -52,7 +52,7 @@ again:
 		}
 		goto again
 	}
-	rec, err := r.parser.ParseValue(line)
+	rec, err := r.parser.ParseValue(arena, line)
 	if err != nil {
 		return nil, e(err)
 	}
