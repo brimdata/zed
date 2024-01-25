@@ -54,14 +54,14 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 2 {
-		//XXX
-		return errors.New("VNG read: must be run with a single path argument followed by one or more fields")
+		return errors.New("requires a query followed by a single path argument of the VNG data")
 	}
 	uri, err := storage.ParseURI(args[0])
 	if err != nil {
 		return err
 	}
-	field := args[1]
+	text := args[0]
+	uri := args[1]
 	local := storage.NewLocalEngine()
 	cache := vcache.NewCache(local)
 	object, err := cache.Fetch(ctx, uri, ksuid.Nil)

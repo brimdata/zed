@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/op"
+	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 )
@@ -139,4 +140,26 @@ type anyCompiler struct{}
 // the resulting program.
 func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, error) {
 	return Parse(src, filenames...)
+}
+
+// VectorCompile is used for testing queries over single VNG object scans
+// where the entire query is vectorizable.
+// XXX we do not call optimize
+func VectorCompile(rctx *runtime.Context, query string, object *vcache.Object) (zbuf.Puller, error) {
+	seq, err := Parse(query)
+	if err != nil {
+		return nil, err
+	}
+	src := &data.Source{}
+	entry, err := semantic.Analyze(rctx.Context, seq, src, nil)
+	if err != nil {
+		return nil, err
+	}
+	//optimizer:= optimizer.New(rctx.Context, src)
+	builder := kernel.NewBuilder(rctx, src)
+	outputs, err := builder.Build(entry)
+	if err != nil {
+		return nil, err
+	}
+	return outputs[0], nil
 }
