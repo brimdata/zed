@@ -270,7 +270,7 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 		tvPool.Put(tv)
 		return typ.(*TypeError)
 	}
-	typ := NewTypeError(c.nextIDWithLock(), inner)
+	typ := NewTypeError(c.nextIDWithLock(), inner, c)
 	c.enterWithLock(*tv, typ)
 	if inner == TypeString {
 		c.stringErr.Store(typ)

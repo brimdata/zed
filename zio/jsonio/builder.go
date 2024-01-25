@@ -165,7 +165,7 @@ func removeDuplicateItems(itemptrs []*item, name string) []*item {
 	return out
 }
 
-func (b *builder) value() *zed.Value {
+func (b *builder) value(arena *zed.Arena) *zed.Value {
 	if len(b.containers) > 0 {
 		panic("open container")
 	}
@@ -173,6 +173,6 @@ func (b *builder) value() *zed.Value {
 		panic("multiple items")
 	}
 	item := &b.items[0]
-	b.val = zed.NewValue(item.typ, item.zb.Bytes().Body())
+	b.val = arena.NewValue(item.typ, item.zb.Bytes().Body())
 	return &b.val
 }

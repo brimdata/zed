@@ -11,6 +11,19 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
+type ArenaValues struct {
+	arena  *Arena
+	Values []Value
+}
+
+func NewArenaValues(arena *Arena, values []Value) *ArenaValues {
+	return &ArenaValues{arena, values}
+}
+
+func (a *ArenaValues) Ref()     { /*a.arena.Ref()*/ }
+func (a *ArenaValues) Unref()   { /*a.arena.Unref()*/ }
+func (a *Arena) Zctx() *Context { return a.zctx }
+
 type Arena struct {
 	zctx *Context
 
@@ -22,7 +35,8 @@ type Arena struct {
 
 func NewArena(zctx *Context) *Arena { return &Arena{zctx: zctx} }
 
-func (a *Arena) Zctx() *Context { return a.zctx }
+func (*Arena) Ref()   {}
+func (*Arena) Unref() {}
 
 func (a *Arena) KeepAlive() { runtime.KeepAlive(a) }
 
@@ -187,7 +201,7 @@ func (v Value) arena() *Arena {
 
 func (v Value) CopyNewArena() (Value, *Arena) {
 	if v.a&vMask == vArena {
-		a := NewArena(v.arena().Zctx())
+		a := NewArena(v.arena().zctx)
 		return a.NewFromBytes(v.Type(), v.Bytes()), a
 	}
 	return v, nil

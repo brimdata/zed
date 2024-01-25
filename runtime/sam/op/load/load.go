@@ -5,6 +5,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
 
@@ -53,7 +54,15 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		o.branch = "main"
 	}
 	o.done = true
-	reader := zbuf.PullerReader(o.parent)
+	// xxx not sure about this
+	batch, err := o.parent.Pull(false)
+	if batch == nil || err != nil {
+		return batch, err
+	}
+	reader := zio.ConcatReader(
+		zbuf.NewArray(batch.Values()),
+		zbuf.PullerReader(o.parent),
+	)
 	pool, err := o.lk.OpenPool(o.rctx.Context, o.pool)
 	if err != nil {
 		return nil, err
@@ -66,6 +75,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	val := zed.NewBytes(commitID[:])
-	return zbuf.NewArray([]zed.Value{val}), nil
+	arena := o.rctx.NewArena()
+	val := arena.NewBytes(commitID[:])
+	return zbuf.NewBatchWithArena(batch, arena, []zed.Value{val}), nil
 }

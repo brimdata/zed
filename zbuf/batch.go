@@ -32,8 +32,33 @@ type Batch interface {
 	Values() []zed.Value
 	// Vars accesses the variables reachable in the current scope.
 	Vars() []zed.Value
-	Zctx() *zed.Context
 }
+
+func NewBatchWithArena(parent Batch, arena *zed.Arena, values []zed.Value) Batch {
+	return &batchWithArena{1, parent, arena, values, parent.Vars()}
+}
+
+type batchWithArena struct {
+	refs   int32
+	parent Batch
+	arena  *zed.Arena
+	values []zed.Value
+	vars   []zed.Value
+}
+
+func (b *batchWithArena) Ref() { atomic.AddInt32(&b.refs, 1) }
+
+func (b *batchWithArena) Unref() {
+	if refs := atomic.AddInt32(&b.refs, 1); refs == 0 {
+		b.parent.Unref()
+		b.arena.Unref()
+	} else if refs < 0 {
+		panic(refs)
+	}
+}
+
+func (b *batchWithArena) Values() []zed.Value { return b.values }
+func (b *batchWithArena) Vars() []zed.Value   { return b.vars }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
 // stops and returns the error.

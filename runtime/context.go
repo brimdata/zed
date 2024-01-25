@@ -37,3 +37,5 @@ func (c *Context) Cancel() {
 	c.cancel()
 	c.WaitGroup.Wait()
 }
+
+func (c *Context) NewArena() *zed.Arena { panic("not yet") }

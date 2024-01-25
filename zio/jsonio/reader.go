@@ -28,7 +28,7 @@ func NewReader(zctx *zed.Context, r io.Reader) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Value, error) {
+func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	t := r.lexer.Token()
 	if t == jsonlexer.TokenErr {
 		err := r.lexer.Err()
@@ -41,7 +41,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := r.handleToken("", t); err != nil {
 		return nil, err
 	}
-	return r.builder.value(), nil
+	return r.builder.value(arena), nil
 }
 
 func (r *Reader) handleToken(fieldName string, t jsonlexer.Token) error {

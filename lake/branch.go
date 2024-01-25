@@ -65,9 +65,9 @@ func (b *Branch) Load(ctx context.Context, zctx *zed.Context, r zio.Reader, auth
 	if message == "" {
 		message = loadMessage(objects)
 	}
-	a := zed.NewArena(zctx)
-	defer a.KeepAlive()
-	appMeta, err := loadMeta(a, meta)
+	arena := zed.NewArena(zctx)
+	defer arena.KeepAlive()
+	appMeta, err := loadMeta(arena, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -131,14 +131,15 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 }
 
 func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program ast.Seq, author, message, meta string) (ksuid.KSUID, error) {
-	a := zed.NewArena(zed.NewContext())
-	defer a.KeepAlive()
-	appMeta, err := loadMeta(a, meta)
+	zctx := zed.NewContext()
+	arena := zed.NewArena(zctx)
+	defer arena.KeepAlive()
+	appMeta, err := loadMeta(arena, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		rctx := runtime.NewContext(ctx, a.Zctx())
+		rctx := runtime.NewContext(ctx, zctx)
 		defer rctx.Cancel()
 		// XXX It would be great to not do this since and just pass the snapshot
 		// into c.NewLakeDeleteQuery since we have to load the snapshot later
@@ -153,7 +154,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program as
 			return nil, err
 		}
 		defer query.Pull(true)
-		w, err := NewWriter(ctx, a.Zctx(), b.pool)
+		w, err := NewWriter(ctx, zctx, b.pool)
 		if err != nil {
 			return nil, err
 		}
@@ -242,9 +243,9 @@ func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, 
 	if len(rollup) < 1 {
 		return ksuid.Nil, errors.New("compact: one or more rollup objects required")
 	}
-	a := zed.NewArena(zed.NewContext())
-	defer a.KeepAlive()
-	appMeta, err := loadMeta(a, meta)
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.KeepAlive()
+	appMeta, err := loadMeta(arena, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}

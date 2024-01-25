@@ -82,7 +82,7 @@ func (r *Reader) Close() error {
 	return nil
 }
 
-func (r *Reader) Read() (*zed.Value, error) {
+func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	for r.rec == nil {
 		rec, err := r.rr.Read()
 		if err != nil {
@@ -104,7 +104,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 			return nil, err
 		}
 	}
-	r.val = zed.NewValue(r.typ, r.builder.Bytes())
+	r.val = arena.NewValue(r.typ, r.builder.Bytes())
 	r.i++
 	if r.i >= int(r.rec.NumRows()) {
 		r.rec.Release()

@@ -829,3 +829,9 @@ func FormatTypeValue(tv zcode.Bytes) string {
 	f.formatTypeValue(0, tv)
 	return f.builder.String()
 }
+
+func FormatTypeAndBytes(typ zed.Type, bytes zcode.Bytes) string {
+	f := NewFormatter(0, nil)
+	f.formatValueAndDecorate(typ, bytes)
+	return f.builder.String()
+}

@@ -54,12 +54,8 @@ func NopCloser(w io.Writer) io.WriteCloser {
 //
 // Read never returns a non-nil value and non-nil error together, and it never
 // returns io.EOF.
-//
-// Implementations retain ownership of val and val.Bytes, and a subsequent Read
-// may overwrite them.  Clients that wish to use val or val.Bytes after the next
-// Read must make a copy.
 type Reader interface {
-	Read() (val *zed.Value, err error)
+	Read(arena *zed.Arena) (val *zed.Value, err error)
 }
 
 // Writer wraps the Write method.
@@ -113,9 +109,9 @@ type concatReader struct {
 	readers []Reader
 }
 
-func (c *concatReader) Read() (*zed.Value, error) {
+func (c *concatReader) Read(a *zed.Arena) (*zed.Value, error) {
 	for len(c.readers) > 0 {
-		rec, err := c.readers[0].Read()
+		rec, err := c.readers[0].Read(a)
 		if rec != nil || err != nil {
 			return rec, err
 		}
@@ -147,11 +143,13 @@ func Copy(dst Writer, src Reader) error {
 }
 
 func CopyWithContext(ctx context.Context, dst Writer, src Reader) error {
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		rec, err := src.Read()
+		rec, err := src.Read(arena)
 		if err != nil || rec == nil {
 			return err
 		}
