@@ -16,16 +16,17 @@ func NewLogicalNot(zctx *zed.Context, e Evaluator) *Not {
 	return &Not{zctx, e}
 }
 
-func (n *Not) Eval(val vector.Any) (vector.Any, vector.Any) {
-	b, err := EvalBool(n.zctx, val, n.expr)
-	if b == nil {
-		return nil, err
+func (n *Not) Eval(val vector.Any) vector.Any {
+	val, ok := EvalBool(n.zctx, val, n.expr)
+	if !ok {
+		return val
 	}
+	b := val.(*vector.Bool)
 	bits := make([]uint64, len(b.Bits))
 	for k := range bits {
 		bits[k] = b.Bits[k]
 	}
-	return b.CopyWithBits(bits), nil
+	return b.CopyWithBits(bits)
 }
 
 type And struct {
@@ -48,34 +49,40 @@ func NewLogicalOr(zctx *zed.Context, lhs, rhs Evaluator) *Or {
 	return &Or{zctx, lhs, rhs}
 }
 
-func (a *And) Eval(val vector.Any) (vector.Any, vector.Any) {
-	lhs, err := EvalBool(a.zctx, val, a.lhs)
-	if lhs == nil {
-		return lhs, err
+func (a *And) Eval(val vector.Any) vector.Any {
+	//XXX change this logic to handle variant instead of simple ok decision,
+	// if there are any valid bools then we need to and them together
+	lhs, ok := EvalBool(a.zctx, val, a.lhs)
+	if !ok {
+		//XXX mix errors
+		return lhs
 	}
-	rhs, err := EvalBool(a.zctx, val, a.rhs)
-	if rhs == nil {
-		return rhs, err // XXX mix with lhs err
+	rhs, ok := EvalBool(a.zctx, val, a.rhs)
+	if !ok {
+		//XXX mix errors
+		return rhs
 	}
-	bits := make([]uint64, len(lhs.Bits))
-	if len(lhs.Bits) != len(rhs.Bits) {
+	blhs := lhs.(*vector.Bool)
+	brhs := rhs.(*vector.Bool)
+	if len(b0.Bits) != len(b1.Bits) {
 		panic("length mistmatch")
 	}
+	bits := make([]uint64, len(blhs.Bits))
 	for k := range bits {
-		bits[k] = lhs.Bits[k] & rhs.Bits[k]
+		bits[k] = blhs.Bits[k] & brhs.Bits[k]
 	}
 	//XXX intersect nulls
-	return lhs.CopyWithBits(bits), nil
+	return blhs.CopyWithBits(bits)
 }
 
-func (o *Or) Eval(val vector.Any) (vector.Any, vector.Any) {
-	lhs, err := EvalBool(o.zctx, val, o.lhs)
-	if lhs == nil {
-		return lhs, err
+func (o *Or) Eval(val vector.Any) vector.Any {
+	lhs, ok := EvalBool(o.zctx, val, o.lhs)
+	if !ok {
+		return lhs
 	}
-	rhs, err := EvalBool(o.zctx, val, o.rhs)
-	if rhs == nil {
-		return rhs, err // XXX mix with lhs err
+	rhs, ok := EvalBool(o.zctx, val, o.rhs)
+	if !ok {
+		return err // XXX mix with lhs err
 	}
 	bits := make([]uint64, len(lhs.Bits))
 	if len(lhs.Bits) != len(rhs.Bits) {
@@ -92,13 +99,14 @@ func (o *Or) Eval(val vector.Any) (vector.Any, vector.Any) {
 // of the result that are not boolean, an error is calculated for each non-bool
 // slot and they are returned as an error.  If all of the value slots are errors,
 // then the return value is nil.
-func EvalBool(zctx *zed.Context, val vector.Any, e Evaluator) (*vector.Bool, vector.Any) {
-	val, err := e.Eval(val)
-	if val == nil {
-		return nil, err
-	}
-	if val, ok := vector.Under(val).(*vector.Bool); ok {
-		return val, err
+func EvalBool(zctx *zed.Context, val vector.Any, e Evaluator) (vector.Any, bool) {
+	//XXX Eval could return a variant of errors and bools and we should
+	// handle this correctly so the logic above is really the fast path
+	// and a slower path will handle picking apart the variant.
+	// maybe we could have a generic way to traverse variants for
+	// appliers doing their thing along the slow path
+	if val, ok := vector.Under(e.Eval(val)).(*vector.Bool); ok {
+		return val, true
 	}
 	//XXX need to implement vector.Collection and check for that here (i.e., sparse variant)
 	// for now, if the vector is not uniformly boolean, we return error.
@@ -106,5 +114,5 @@ func EvalBool(zctx *zed.Context, val vector.Any, e Evaluator) (*vector.Bool, vec
 	// the referenced field changes... there can be an arbitrary number
 	// of underlying types though any given slot has only one type
 	// obviously at any given time.
-	return nil, vector.NewStringError(zctx, "not type bool", val.Len())
+	return vector.NewStringError(zctx, "not type bool", val.Len()), false
 }

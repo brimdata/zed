@@ -700,11 +700,11 @@ func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller
 				return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
 			}
 		case *dag.Yield:
-			exprs, err := b.compileVamExprs(v.Exprs)
+			exprs, err := b.compileVamExprs(o.Exprs)
 			if err != nil {
 				return nil, err
 			}
-			vamPaREnt := vamop.NewYield(parent, exprs)
+			vamParent = vamop.NewYield(b.rctx.Zctx, vamParent, exprs)
 		default:
 			return nil, fmt.Errorf("internal error: unknown dag.Op: %#v", o)
 		}

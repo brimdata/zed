@@ -7,10 +7,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/sam/op/combine"
-	"github.com/brimdata/zed/runtime/sam/op/traverse"
 	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -79,15 +76,17 @@ func (b *Builder) compileVamBinary(e *dag.BinaryExpr) (vamexpr.Evaluator, error)
 	if slice, ok := e.RHS.(*dag.BinaryExpr); ok && slice.Op == ":" {
 		return b.compileVamSlice(e.LHS, slice)
 	}
-	if e.Op == "in" {
-		// Do a faster comparison if the LHS is a compile-time constant expression.
-		if in, err := b.compileConstIn(e); in != nil && err == nil {
-			return in, err
-		}
-	}
-	if e, err := b.compileVamConstCompare(e); e != nil && err == nil {
-		return e, nil
-	}
+	//XXX TBD
+	//if e.Op == "in" {
+	// Do a faster comparison if the LHS is a compile-time constant expression.
+	//	if in, err := b.compileConstIn(e); in != nil && err == nil {
+	//		return in, err
+	//	}
+	//}
+	// XXX don't think we need this... callee can check for const
+	//if e, err := b.compileVamConstCompare(e); e != nil && err == nil {
+	//	return e, nil
+	//}
 	lhs, err := b.compileVamExpr(e.LHS)
 	if err != nil {
 		return nil, err
@@ -101,12 +100,10 @@ func (b *Builder) compileVamBinary(e *dag.BinaryExpr) (vamexpr.Evaluator, error)
 		return vamexpr.NewLogicalAnd(b.zctx(), lhs, rhs), nil
 	case "or":
 		return vamexpr.NewLogicalOr(b.zctx(), lhs, rhs), nil
-	case "in":
-		return vamexpr.NewIn(b.zctx(), lhs, rhs), nil
-	case "==", "!=":
-		return vamexpr.NewCompareEquality(b.zctx(), lhs, rhs, op)
-	case "<", "<=", ">", ">=":
-		return vamexpr.NewCompareRelative(b.zctx(), lhs, rhs, op)
+	//case "in": XXX TBD
+	//	return vamexpr.NewIn(b.zctx(), lhs, rhs), nil
+	case "==", "!=", "<", "<=", ">", ">=":
+		return vamexpr.NewCompare(b.zctx(), lhs, rhs, op)
 	//case "+", "-", "*", "/", "%":
 	//	return vamexpr.NewArithmetic(b.zctx(), lhs, rhs, op)
 	//case "[":
@@ -155,19 +152,6 @@ func (b *Builder) compileVamDotExpr(dot *dag.Dot) (vamexpr.Evaluator, error) {
 	return vamexpr.NewDotExpr(b.zctx(), record, dot.RHS), nil
 }
 
-func (b *Builder) compileShaper(node dag.Call, tf expr.ShaperTransform) (vamexpr.Evaluator, error) {
-	args := node.Args
-	field, err := b.compileExpr(args[0])
-	if err != nil {
-		return nil, err
-	}
-	typExpr, err := b.compileExpr(args[1])
-	if err != nil {
-		return nil, err
-	}
-	return expr.NewShaper(b.zctx(), field, typExpr, tf)
-}
-
 func (b *Builder) compileVamExprs(in []dag.Expr) ([]vamexpr.Evaluator, error) {
 	var exprs []expr.Evaluator
 	for _, e := range in {
@@ -180,8 +164,8 @@ func (b *Builder) compileVamExprs(in []dag.Expr) ([]vamexpr.Evaluator, error) {
 	return exprs, nil
 }
 
-func (b *Builder) compileRegexpMatch(match *dag.RegexpMatch) (expr.Evaluator, error) {
-	e, err := b.compileExpr(match.Expr)
+func (b *Builder) compileRegexpMatch(match *dag.RegexpMatch) (vamexpr.Evaluator, error) {
+	e, err := b.compileVamExpr(match.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +173,7 @@ func (b *Builder) compileRegexpMatch(match *dag.RegexpMatch) (expr.Evaluator, er
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewRegexpMatch(re, e), nil
+	return vamexpr.NewRegexpMatch(re, e), nil
 }
 
 func (b *Builder) compileRegexpSearch(search *dag.RegexpSearch) (expr.Evaluator, error) {
@@ -205,16 +189,16 @@ func (b *Builder) compileRegexpSearch(search *dag.RegexpSearch) (expr.Evaluator,
 	return expr.SearchByPredicate(expr.Contains(match), e), nil
 }
 
-func (b *Builder) compileRecordExpr(record *dag.RecordExpr) (expr.Evaluator, error) {
+func (b *Builder) compileVamRecordExpr(record *dag.RecordExpr) (vamexpr.Evaluator, error) {
 	var elems []expr.RecordElem
 	for _, elem := range record.Elems {
 		switch elem := elem.(type) {
 		case *dag.Field:
-			e, err := b.compileExpr(elem.Value)
+			e, err := b.compileVamExpr(elem.Value)
 			if err != nil {
 				return nil, err
 			}
-			elems = append(elems, expr.RecordElem{
+			elems = append(elems, vamexpr.RecordElem{
 				Name:  elem.Name,
 				Field: e,
 			})
@@ -223,92 +207,61 @@ func (b *Builder) compileRecordExpr(record *dag.RecordExpr) (expr.Evaluator, err
 			if err != nil {
 				return nil, err
 			}
-			elems = append(elems, expr.RecordElem{Spread: e})
+			elems = append(elems, vamexpr.RecordElem{Spread: e})
 		}
 	}
-	return expr.NewRecordExpr(b.zctx(), elems)
+	return vamexpr.NewRecordExpr(b.zctx(), elems)
 }
 
-func (b *Builder) compileArrayExpr(array *dag.ArrayExpr) (expr.Evaluator, error) {
-	elems, err := b.compileVectorElems(array.Elems)
+func (b *Builder) compileVamArrayExpr(array *dag.ArrayExpr) (vamexpr.Evaluator, error) {
+	elems, err := b.compileVamVectorElems(array.Elems)
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewArrayExpr(b.zctx(), elems), nil
+	return vamexpr.NewArrayExpr(b.zctx(), elems), nil
 }
 
-func (b *Builder) compileSetExpr(set *dag.SetExpr) (expr.Evaluator, error) {
-	elems, err := b.compileVectorElems(set.Elems)
+func (b *Builder) compileVamSetExpr(set *dag.SetExpr) (vamexpr.Evaluator, error) {
+	elems, err := b.compileVamVectorElems(set.Elems)
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewSetExpr(b.zctx(), elems), nil
+	return vamexpr.NewSetExpr(b.zctx(), elems), nil
 }
 
-func (b *Builder) compileVectorElems(elems []dag.VectorElem) ([]expr.VectorElem, error) {
-	var out []expr.VectorElem
+func (b *Builder) compileVamVectorElems(elems []dag.VectorElem) ([]vamexpr.VectorElem, error) {
+	var out []vamexpr.VectorElem
 	for _, elem := range elems {
 		switch elem := elem.(type) {
 		case *dag.Spread:
-			e, err := b.compileExpr(elem.Expr)
+			e, err := b.compileVamExpr(elem.Expr)
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, expr.VectorElem{Spread: e})
+			out = append(out, vamexpr.VectorElem{Spread: e})
 		case *dag.VectorValue:
-			e, err := b.compileExpr(elem.Expr)
+			e, err := b.compileVamExpr(elem.Expr)
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, expr.VectorElem{Value: e})
+			out = append(out, vamexpr.VectorElem{Value: e})
 		}
 	}
 	return out, nil
 }
 
-func (b *Builder) compileVamMapExpr(m *dag.MapExpr) (expr.Evaluator, error) {
+func (b *Builder) compileVamMapExpr(m *dag.MapExpr) (vamexpr.Evaluator, error) {
 	var entries []expr.Entry
 	for _, f := range m.Entries {
 		key, err := b.compileVamExpr(f.Key)
 		if err != nil {
 			return nil, err
 		}
-		val, err := b.compileExpr(f.Value)
+		val, err := b.compileVamExpr(f.Value)
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, expr.Entry{Key: key, Val: val})
+		entries = append(entries, vamexpr.Entry{Key: key, Val: val})
 	}
-	return expr.NewMapExpr(b.zctx(), entries), nil
-}
-
-func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
-	if over.Body == nil {
-		return nil, errors.New("over expression requires a lateral query body")
-	}
-	names, lets, err := b.compileDefs(over.Defs)
-	if err != nil {
-		return nil, err
-	}
-	exprs, err := b.compileExprs(over.Exprs)
-	if err != nil {
-		return nil, err
-	}
-	parent := traverse.NewExpr(b.rctx.Context, b.zctx())
-	enter := traverse.NewOver(b.rctx, parent, exprs)
-	scope := enter.AddScope(b.rctx.Context, names, lets)
-	exits, err := b.compileSeq(over.Body, []zbuf.Puller{scope})
-	if err != nil {
-		return nil, err
-	}
-	var exit zbuf.Puller
-	if len(exits) == 1 {
-		exit = exits[0]
-	} else {
-		// This can happen when output of over body
-		// is a fork or switch.
-		exit = combine.New(b.rctx, exits)
-	}
-	parent.SetExit(scope.NewExit(exit))
-	return parent, nil
+	return vamexpr.NewMapExpr(b.zctx(), entries), nil
 }
