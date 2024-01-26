@@ -53,11 +53,11 @@ func TestPattern_Names(t *testing.T) {
 	require.Equal(t, []string{"zero", "three", "one", "two"}, p.Names())
 }
 
-func TestPattern_ParseValues(t *testing.T) {
+func TestPattern_ParseKeyValues(t *testing.T) {
 	h := NewBase()
 	p, err := h.Compile("%{TIMESTAMP_ISO8601:event_time} %{LOGLEVEL:log_level} %{GREEDYDATA:log_message}")
 	require.NoError(t, err)
-	ss := p.ParseValues("2020-09-16T04:20:42.45+01:00 DEBUG This is a sample debug log message")
+	_, ss := p.ParseKeyValues("2020-09-16T04:20:42.45+01:00 DEBUG This is a sample debug log message")
 	require.Equal(t, []string{"2020-09-16T04:20:42.45+01:00", "DEBUG", "This is a sample debug log message"}, ss)
 }
 
@@ -75,4 +75,13 @@ func TestPattern_NamesNested(t *testing.T) {
 	p, err := h.Compile("%{ONE:num.one}-%{ONE:[num][two]}")
 	require.NoError(t, err)
 	require.Equal(t, []string{"num.one", "[num][two]"}, p.Names())
+}
+
+func TestPattern_OptionalValues(t *testing.T) {
+	h := NewBase()
+	p, err := h.Compile("(%{INT:a}|%{INT:b})")
+	require.NoError(t, err)
+	keys, values := p.ParseKeyValues("1")
+	require.Equal(t, []string{"a"}, keys)
+	require.Equal(t, []string{"1"}, values)
 }
