@@ -39,3 +39,8 @@ func promoteInt(aid, bid int) int {
 	}
 	return id
 }
+
+// XXX
+func PromoteInt(aid, bid int) int {
+	return promoteInt(aid, bid)
+}

@@ -64,7 +64,7 @@ func (a *And) Eval(val vector.Any) vector.Any {
 	}
 	blhs := lhs.(*vector.Bool)
 	brhs := rhs.(*vector.Bool)
-	if len(b0.Bits) != len(b1.Bits) {
+	if len(blhs.Bits) != len(brhs.Bits) {
 		panic("length mistmatch")
 	}
 	bits := make([]uint64, len(blhs.Bits))
@@ -82,17 +82,19 @@ func (o *Or) Eval(val vector.Any) vector.Any {
 	}
 	rhs, ok := EvalBool(o.zctx, val, o.rhs)
 	if !ok {
-		return err // XXX mix with lhs err
+		return rhs
 	}
-	bits := make([]uint64, len(lhs.Bits))
-	if len(lhs.Bits) != len(rhs.Bits) {
+	blhs := lhs.(*vector.Bool)
+	brhs := rhs.(*vector.Bool)
+	bits := make([]uint64, len(blhs.Bits))
+	if len(blhs.Bits) != len(brhs.Bits) {
 		panic("length mistmatch")
 	}
 	for k := range bits {
-		bits[k] = lhs.Bits[k] | rhs.Bits[k]
+		bits[k] = blhs.Bits[k] | brhs.Bits[k]
 	}
 	//XXX intersect nulls
-	return lhs.CopyWithBits(bits), nil
+	return blhs.CopyWithBits(bits)
 }
 
 // EvalBool evaluates e using val to computs a boolean result.  For elemtents

@@ -10,18 +10,13 @@ type Yield struct {
 	zctx   *zed.Context
 	parent vector.Puller
 	exprs  []expr.Evaluator
-	tmp    []vector.Any
-}
-
-type valerr struct {
-	val vector.Any
-	err vector.Any
 }
 
 var _ vector.Puller = (*Yield)(nil)
 
 func NewYield(zctx *zed.Context, parent vector.Puller, exprs []expr.Evaluator) *Yield {
 	return &Yield{
+		zctx:   zctx,
 		parent: parent,
 		exprs:  exprs,
 	}
@@ -29,7 +24,7 @@ func NewYield(zctx *zed.Context, parent vector.Puller, exprs []expr.Evaluator) *
 
 func (y *Yield) Pull(done bool) (vector.Any, error) {
 	for {
-		val, err := o.parent.Pull(done)
+		val, err := y.parent.Pull(done)
 		if val == nil {
 			return nil, err
 		}
@@ -38,32 +33,14 @@ func (y *Yield) Pull(done bool) (vector.Any, error) {
 		// types then put together with an interleave
 		// e.g., yield x, x+1 needs to interleave x[0],x[0]+1,x[1],x[1]+1
 		for _, e := range y.exprs {
-			val, err := e.Eval(val, vals[i])
+			v := e.Eval(val)
 			//XXX need to quiet by row... which is just a filter step
 			// with a quiet boolean
 			//if val.IsQuiet() {
 			//	continue
 			//}
-			out = append(out, val.Copy())
+			//XXX need to interleve results
+			return v, nil
 		}
 	}
-}
-
-func apply(e expr.Evaluator, val, err vector.Any) (vector.Any, vector.Any) {
-	val, newErr := e.Eval(val)
-	if newErr != nil {
-		err = mixErr(err, newErr)
-	}
-	return val, err
-}
-
-func mixErr(e0, e1 vector.Any) vector.Any {
-	if e0 == nil {
-		return e1
-	}
-	if e1 == nil {
-		return e0
-	}
-	//XXX
-	panic("vector runtime: no support yet for stacked errors")
 }

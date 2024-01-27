@@ -59,8 +59,7 @@ func (c *CountByString) update(val vector.Any) {
 		}
 		return
 	}
-	v, _ := c.field.Eval(val) // do something with error
-	switch v := v.(type) {
+	switch v := c.field.Eval(val).(type) {
 	case *vector.String:
 		c.table.count(v)
 	case *vector.DictString:
@@ -189,8 +188,7 @@ func (c *Sum) update(vec vector.Any) {
 		}
 		return
 	}
-	vec, _ = c.field.Eval(vec)
-	switch vec := vec.(type) {
+	switch vec := c.field.Eval(vec).(type) {
 	case *vector.Int:
 		for _, x := range vec.Values {
 			c.sum += x
