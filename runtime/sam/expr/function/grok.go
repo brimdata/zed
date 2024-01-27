@@ -12,6 +12,8 @@ type Grok struct {
 	zctx    *zed.Context
 	builder zcode.Builder
 	hosts   map[string]*host
+	// fields is used as a scratch space to avoid allocating a new slice.
+	fields []zed.Field
 }
 
 func newGrok(zctx *zed.Context) *Grok {
@@ -21,10 +23,10 @@ func newGrok(zctx *zed.Context) *Grok {
 	}
 }
 
-func (g *Grok) Call(_ zed.Allocator, vals []zed.Value) zed.Value {
-	patternArg, inputArg, defArg := vals[0], vals[1], zed.NullString
-	if len(vals) == 3 {
-		defArg = vals[2]
+func (g *Grok) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+	patternArg, inputArg, defArg := args[0], args[1], zed.NullString
+	if len(args) == 3 {
+		defArg = args[2]
 	}
 	switch {
 	case zed.TypeUnder(defArg.Type()) != zed.TypeString:
@@ -38,19 +40,24 @@ func (g *Grok) Call(_ zed.Allocator, vals []zed.Value) zed.Value {
 	if err != nil {
 		return g.error(err.Error(), defArg)
 	}
-	p, err := h.getPattern(g.zctx, patternArg.AsString())
+	p, err := h.getPattern(patternArg.AsString())
 	if err != nil {
 		return g.error(err.Error(), patternArg)
 	}
-	ss := p.ParseValues(inputArg.AsString())
-	if ss == nil {
+	keys, vals := p.ParseKeyValues(inputArg.AsString())
+	if vals == nil {
 		return g.error("value does not match pattern", inputArg)
 	}
+	g.fields = g.fields[:0]
+	for _, key := range keys {
+		g.fields = append(g.fields, zed.NewField(key, zed.TypeString))
+	}
+	typ := g.zctx.MustLookupTypeRecord(g.fields)
 	g.builder.Reset()
-	for _, s := range ss {
+	for _, s := range vals {
 		g.builder.Append([]byte(s))
 	}
-	return zed.NewValue(p.typ, g.builder.Bytes())
+	return zed.NewValue(typ, g.builder.Bytes())
 }
 
 func (g *Grok) error(msg string, val zed.Value) zed.Value {
@@ -60,7 +67,7 @@ func (g *Grok) error(msg string, val zed.Value) zed.Value {
 func (g *Grok) getHost(defs string) (*host, error) {
 	h, ok := g.hosts[defs]
 	if !ok {
-		h = &host{Host: grok.NewBase(), patterns: make(map[string]*pattern)}
+		h = &host{Host: grok.NewBase(), patterns: make(map[string]*grok.Pattern)}
 		if err := h.AddFromReader(strings.NewReader(defs)); err != nil {
 			return nil, err
 		}
@@ -71,31 +78,18 @@ func (g *Grok) getHost(defs string) (*host, error) {
 
 type host struct {
 	grok.Host
-	patterns map[string]*pattern
+	patterns map[string]*grok.Pattern
 }
 
-func (h *host) getPattern(zctx *zed.Context, patternArg string) (*pattern, error) {
+func (h *host) getPattern(patternArg string) (*grok.Pattern, error) {
 	p, ok := h.patterns[patternArg]
 	if !ok {
-		pat, err := h.Host.Compile(patternArg)
+		var err error
+		p, err = h.Host.Compile(patternArg)
 		if err != nil {
 			return nil, err
 		}
-		var fields []zed.Field
-		for _, name := range pat.Names() {
-			fields = append(fields, zed.NewField(name, zed.TypeString))
-		}
-		typ, err := zctx.LookupTypeRecord(fields)
-		if err != nil {
-			return nil, err
-		}
-		p = &pattern{Pattern: pat, typ: typ}
 		h.patterns[patternArg] = p
 	}
 	return p, nil
-}
-
-type pattern struct {
-	*grok.Pattern
-	typ zed.Type
 }

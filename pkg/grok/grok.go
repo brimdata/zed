@@ -161,9 +161,10 @@ func (h Host) Compile(expr string) (*Pattern, error) {
 
 type Pattern struct {
 	*regexp.Regexp
-	s     map[string]int
-	order map[int]string
-	cache []string
+	s        map[string]int
+	order    map[int]string
+	keyCache []string
+	valCache []string
 }
 
 // Parse returns a map of matches on the input. The map can be empty.
@@ -179,19 +180,24 @@ func (p *Pattern) Parse(input string) map[string]string {
 	return r
 }
 
-func (p *Pattern) ParseValues(input string) []string {
+func (p *Pattern) ParseKeyValues(input string) ([]string, []string) {
 	a := p.FindStringSubmatchIndex(input)
 	if a == nil {
-		return nil
+		return nil, nil
 	}
-	p.cache = p.cache[:0]
-	for i := 0; len(p.cache) < len(p.s); i++ {
+	p.valCache = p.valCache[:0]
+	p.keyCache = p.keyCache[:0]
+	for i := 0; i < len(a)/2; i++ {
 		if _, ok := p.order[i]; !ok {
 			continue
 		}
-		p.cache = append(p.cache, input[a[i*2]:a[i*2+1]])
+		if a[i*2] == -1 {
+			continue
+		}
+		p.keyCache = append(p.keyCache, p.order[i])
+		p.valCache = append(p.valCache, input[a[i*2]:a[i*2+1]])
 	}
-	return p.cache
+	return p.keyCache, p.valCache
 }
 
 // Names returns all names that this pattern has in order.
