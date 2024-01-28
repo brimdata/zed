@@ -32,29 +32,31 @@ func NewCompare(zctx *zed.Context, lhs, rhs Evaluator, operator string) *Compare
 //XXX break out const
 
 func (c *Compare) Eval(val vector.Any) vector.Any {
-	lhs := vector.Under(c.lhs.Eval(val))
-	rhs := vector.Under(c.rhs.Eval(val))
-	left, right, _ := coerceVals(c.zctx, lhs, rhs)
+	l := vector.Under(c.lhs.Eval(val))
+	r := vector.Under(c.rhs.Eval(val))
+	lhs, rhs, _ := coerceVals(c.zctx, l, r)
 	op := c.op
 	switch op {
 	case ">=":
-		op = "<"
-		left, right = right, left
-	case ">":
 		op = "<="
-		left, right = right, left
+		lhs, rhs = rhs, lhs
+	case ">":
+		op = "<"
+		lhs, rhs = rhs, lhs
 	}
 	//XXX need to handle overflow (see sam)
 	//XXX unions and variants
 	//XXX nulls we can clean up nulls after the fact for primitive
 	// types... unions/variants more complicated (variant/err) too
-	switch lhs := lhs.(type) {
-	case *vector.Float, *vector.DictFloat:
-		return compareFloats(op, left, right)
-	case *vector.Int:
-		return compareInts(op, left, right)
-	case *vector.Uint:
-		return compareUints(op, left, right)
+	// XXX need to support other primitives like strings, bytes, types, etc
+	id := lhs.Type().ID()
+	switch {
+	case zed.IsFloat(id):
+		return compareFloats(op, lhs, rhs)
+	case zed.IsSigned(id):
+		return compareInts(op, lhs, rhs)
+	case zed.IsUnsigned(id):
+		return compareUints(op, lhs, rhs)
 	default:
 		//XXX incompatible types
 		return vector.NewStringError(c.zctx, coerce.IncompatibleTypes.Error(), lhs.Len())
@@ -97,7 +99,6 @@ func compareFloats(op string, lhs, rhs vector.Any) vector.Any {
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
 		case *vector.DictFloat:
-			out := vector.NewBoolEmpty(lhs.Len(), nil)
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
@@ -120,6 +121,40 @@ func compareFloats(op string, lhs, rhs vector.Any) vector.Any {
 			case "<=":
 				for k := uint32(0); k < n; k++ {
 					if lhs.Values[k] <= rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.Const:
+			literal, ok := rhs.AsFloat()
+			if !ok {
+				//XXX
+				return nil
+			}
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] == literal {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] != literal {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] < literal {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] <= literal {
 						out.Set(k)
 					}
 				}
@@ -189,6 +224,141 @@ func compareFloats(op string, lhs, rhs vector.Any) vector.Any {
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
+		case *vector.Const:
+			literal, ok := rhs.AsFloat()
+			if !ok {
+				return nil
+			}
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] == literal {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] != literal {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] < literal {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] <= literal {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		default:
+			panic(fmt.Sprintf("bad type %T", rhs))
+		}
+	case *vector.Const:
+		literal, ok := lhs.AsFloat()
+		if !ok {
+			return nil
+		}
+		switch rhs := rhs.(type) {
+		case *vector.Float:
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if literal == rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if literal != rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if literal < rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if literal <= rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.DictFloat:
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if literal == rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if literal != rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if literal < rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if literal <= rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.Const:
+			left := literal
+			right, ok := rhs.AsFloat()
+			if !ok {
+				//XXX
+				return nil
+			}
+			switch op {
+			case "==":
+				if left == right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				if left != right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "<":
+				if left < right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				if left <= right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
 		default:
 			panic(fmt.Sprintf("bad type %T", rhs))
 		}
@@ -234,7 +404,6 @@ func compareInts(op string, lhs, rhs vector.Any) vector.Any {
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
 		case *vector.DictInt:
-			out := vector.NewBoolEmpty(lhs.Len(), nil)
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
@@ -257,6 +426,39 @@ func compareInts(op string, lhs, rhs vector.Any) vector.Any {
 			case "<=":
 				for k := uint32(0); k < n; k++ {
 					if lhs.Values[k] <= rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.Const:
+			literal, ok := rhs.AsInt()
+			if !ok {
+				return nil
+			}
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] == literal {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] != literal {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] < literal {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] <= literal {
 						out.Set(k)
 					}
 				}
@@ -326,6 +528,140 @@ func compareInts(op string, lhs, rhs vector.Any) vector.Any {
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
+		case *vector.Const:
+			literal, ok := rhs.AsInt()
+			if !ok {
+				return nil
+			}
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] == literal {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] != literal {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] < literal {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] <= literal {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		default:
+			panic(fmt.Sprintf("bad type %T", rhs))
+		}
+	case *vector.Const:
+		literal, ok := lhs.AsInt()
+		if !ok {
+			return nil
+		}
+		switch rhs := rhs.(type) {
+		case *vector.Int:
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if literal == rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if literal != rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if literal < rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if literal <= rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.DictInt:
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if literal == rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if literal != rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if literal < rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if literal <= rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.Const:
+			left := literal
+			right, ok := rhs.AsInt()
+			if !ok {
+				return nil
+			}
+			switch op {
+			case "==":
+				if left == right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				if left != right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "<":
+				if left < right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				if left <= right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
 		default:
 			panic(fmt.Sprintf("bad type %T", rhs))
 		}
@@ -371,7 +707,6 @@ func compareUints(op string, lhs, rhs vector.Any) vector.Any {
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
 		case *vector.DictUint:
-			out := vector.NewBoolEmpty(lhs.Len(), nil)
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
@@ -394,6 +729,39 @@ func compareUints(op string, lhs, rhs vector.Any) vector.Any {
 			case "<=":
 				for k := uint32(0); k < n; k++ {
 					if lhs.Values[k] <= rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.Const:
+			literal, ok := rhs.AsUint()
+			if !ok {
+				return nil
+			}
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] == literal {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] != literal {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] < literal {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[k] <= literal {
 						out.Set(k)
 					}
 				}
@@ -457,6 +825,138 @@ func compareUints(op string, lhs, rhs vector.Any) vector.Any {
 			case "<=":
 				for k := uint32(0); k < n; k++ {
 					if lhs.Values[lhs.Tags[k]] <= rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			}
+		case *vector.Const:
+			literal, ok := rhs.AsUint()
+			if !ok {
+				return nil
+			}
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] == literal {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] != literal {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] < literal {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if lhs.Values[lhs.Tags[k]] <= literal {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		default:
+			panic(fmt.Sprintf("bad type %T", rhs))
+		}
+	case *vector.Const:
+		literal, ok := lhs.AsUint()
+		if !ok {
+			return nil
+		}
+		switch rhs := rhs.(type) {
+		case *vector.Uint:
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if literal == rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if literal != rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if literal < rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if literal <= rhs.Values[k] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.DictUint:
+			switch op {
+			case "==":
+				for k := uint32(0); k < n; k++ {
+					if literal == rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				for k := uint32(0); k < n; k++ {
+					if literal != rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "<":
+				for k := uint32(0); k < n; k++ {
+					if literal < rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				for k := uint32(0); k < n; k++ {
+					if literal <= rhs.Values[rhs.Tags[k]] {
+						out.Set(k)
+					}
+				}
+			default:
+				panic(fmt.Sprintf("unknown op %q", op))
+			}
+		case *vector.Const:
+			left := literal
+			right, ok := rhs.AsUint()
+			if !ok {
+				return nil
+			}
+			switch op {
+			case "==":
+				if left == right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "!=":
+				if left != right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "<":
+				if left < right {
+					for k := uint32(0); k < n; k++ {
+						out.Set(k)
+					}
+				}
+			case "<=":
+				if left <= right {
+					for k := uint32(0); k < n; k++ {
 						out.Set(k)
 					}
 				}

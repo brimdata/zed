@@ -2,6 +2,7 @@ package vector
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/runtime/sam/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -42,4 +43,16 @@ func (c *Const) Serialize(b *zcode.Builder, slot uint32) {
 	} else {
 		b.Append(c.val.Bytes())
 	}
+}
+
+func (c *Const) AsFloat() (float64, bool) {
+	return coerce.ToFloat(c.val)
+}
+
+func (c *Const) AsInt() (int64, bool) {
+	return coerce.ToInt(c.val)
+}
+
+func (c *Const) AsUint() (uint64, bool) {
+	return coerce.ToUint(c.val)
 }

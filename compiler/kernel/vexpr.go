@@ -64,13 +64,6 @@ func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {
 	}
 }
 
-func (b *Builder) compileVamExprWithEmpty(e dag.Expr) (vamexpr.Evaluator, error) {
-	if e == nil {
-		return nil, nil
-	}
-	return b.compileVamExpr(e)
-}
-
 func (b *Builder) compileVamBinary(e *dag.BinaryExpr) (vamexpr.Evaluator, error) {
 	//XXX TBD
 	//if slice, ok := e.RHS.(*dag.BinaryExpr); ok && slice.Op == ":" {

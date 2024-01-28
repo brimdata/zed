@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/op"
+	"github.com/brimdata/zed/runtime/vam"
 	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -156,14 +157,12 @@ func VectorCompile(rctx *runtime.Context, query string, object *vcache.Object) (
 		return nil, err
 	}
 	// compute demand of DAG and tack on a projection and scan
-	//
 	//optimizer:= optimizer.New(rctx.Context, src)
+	puller := vam.NewVectorProjection(rctx.Zctx, object, nil) //XXX project all
 	builder := kernel.NewBuilder(rctx, src)
-	outputs, err := builder.Build(entry)
+	outputs, err := builder.BuildWithVectorPuller(entry, puller)
 	if err != nil {
 		return nil, err
 	}
-	//XXX need to wrap Materlizer onto the output... how does
-	// vamParent (not a zbuf.Puller end up in outputs?)
 	return outputs[0], nil
 }

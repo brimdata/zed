@@ -91,6 +91,14 @@ func (b *Builder) BuildWithPuller(seq dag.Seq, parent zbuf.Puller) ([]zbuf.Pulle
 	return b.compileSeq(seq, []zbuf.Puller{parent})
 }
 
+func (b *Builder) BuildWithVectorPuller(seq dag.Seq, parent vector.Puller) ([]zbuf.Puller, error) {
+	puller, err := b.compileWithVectorPuller(seq, parent)
+	if err != nil {
+		return nil, err
+	}
+	return []zbuf.Puller{puller}, nil
+}
+
 func (b *Builder) zctx() *zed.Context {
 	return b.rctx.Zctx
 }
@@ -713,4 +721,33 @@ func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller
 		return nil, fmt.Errorf("internal error: vectorized DAG did not compile")
 	}
 	return vam.NewMaterializer(vamParent), nil
+}
+
+func (b *Builder) compileWithVectorPuller(seq dag.Seq, parent vector.Puller) (zbuf.Puller, error) {
+	for _, o := range seq {
+		switch o := o.(type) {
+		case *dag.SeqScan:
+			panic("compileWithVectorPuller SeqScan TBD")
+		case *dag.Summarize:
+			if name, ok := optimizer.IsCountByString(o); ok {
+				parent = vamop.NewCountByString(b.rctx.Zctx, parent, name)
+			} else if name, ok := optimizer.IsSum(o); ok {
+				parent = vamop.NewSum(b.rctx.Zctx, parent, name)
+			} else {
+				return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
+			}
+		case *dag.Yield:
+			exprs, err := b.compileVamExprs(o.Exprs)
+			if err != nil {
+				return nil, err
+			}
+			parent = vamop.NewYield(b.rctx.Zctx, parent, exprs)
+		default:
+			return nil, fmt.Errorf("internal error: unknown dag.Op: %#v", o)
+		}
+	}
+	if parent == nil {
+		return nil, fmt.Errorf("internal error: vectorized DAG did not compile")
+	}
+	return vam.NewMaterializer(parent), nil
 }
