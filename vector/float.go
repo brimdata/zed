@@ -84,3 +84,12 @@ func (d *DictFloat) Serialize(b *zcode.Builder, slot uint32) {
 		panic(d.Typ)
 	}
 }
+
+func (d *DictFloat) Unravel() *Float {
+	n := len(d.Tags)
+	out := make([]float64, n)
+	for k := 0; k < n; k++ {
+		out[k] = d.Values[d.Tags[k]]
+	}
+	return NewFloat(d.Typ, out, d.Nulls)
+}

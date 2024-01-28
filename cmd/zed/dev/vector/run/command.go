@@ -8,9 +8,10 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/dev/vector"
 	"github.com/brimdata/zed/cmd/zed/root"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/vam"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -54,14 +55,13 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 2 {
-		return errors.New("requires a query followed by a single path argument of the VNG data")
+		return errors.New("usage: query followed by a single path argument of VNG data")
 	}
-	uri, err := storage.ParseURI(args[0])
+	text := args[0]
+	uri, err := storage.ParseURI(args[1])
 	if err != nil {
 		return err
 	}
-	text := args[0]
-	uri := args[1]
 	local := storage.NewLocalEngine()
 	cache := vcache.NewCache(local)
 	object, err := cache.Fetch(ctx, uri, ksuid.Nil)
@@ -69,20 +69,16 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer object.Close()
-	// Make a projection to act as the source of query using the
-	// query's demand to narrow the vectors read.
-	projection := vam.NewProjection(zed.NewContext(), object, paths)
+	rctx := runtime.NewContext(ctx, zed.NewContext())
+	puller, err := compiler.VectorCompile(rctx, text, object)
+	if err != nil {
+		return err
+	}
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-
-	//XXX
-	writer, err := c.outputFlags.Open(ctx, local)
-	if err != nil {
-		return err
-	}
-	if err := zio.Copy(writer, zbuf.PullerReader(vam.NewMaterializer(agg))); err != nil {
+	if err := zio.Copy(writer, zbuf.PullerReader(puller)); err != nil {
 		writer.Close()
 		return err
 	}

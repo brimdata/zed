@@ -64,12 +64,3 @@ func (d *DotExpr) Eval(val vector.Any) vector.Any {
 		return vector.NewMissing(d.zctx, val.Len())
 	}
 }
-
-// XXX
-func blendErrors(errs []vector.Any) vector.Any {
-	if len(errs) == 0 {
-		return nil
-	}
-	//XXX TBD
-	return nil
-}

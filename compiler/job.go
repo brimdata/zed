@@ -155,11 +155,15 @@ func VectorCompile(rctx *runtime.Context, query string, object *vcache.Object) (
 	if err != nil {
 		return nil, err
 	}
+	// compute demand of DAG and tack on a projection and scan
+	//
 	//optimizer:= optimizer.New(rctx.Context, src)
 	builder := kernel.NewBuilder(rctx, src)
 	outputs, err := builder.Build(entry)
 	if err != nil {
 		return nil, err
 	}
+	//XXX need to wrap Materlizer onto the output... how does
+	// vamParent (not a zbuf.Puller end up in outputs?)
 	return outputs[0], nil
 }
