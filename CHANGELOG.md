@@ -1,3 +1,17 @@
+## v1.13.0
+* Improve the error message when [`zed manage -monitor`](docs/commands/zed.md#manage) is attempted on a local lake (#4979)
+* The [`zed serve`](docs/commands/zed.md#serve) log now includes version, storage root, and auth info at startup (#4988)
+* Add [docs for the `zed manage` command](docs/commands/zed.md#manage) to compact data for improved performance (#4961)
+* Add the ability to [cast](docs/language/expressions.md#casts) to Zed's `type` type (#4980, #4985)
+* Add the ability to [`yield`](docs/language/operators/yield.md) a Zed `error` literal (#4998)
+* Fix an issue with accessing values inside complex literals (#4953)
+* Fix an issue where [cast](docs/language/expressions.md#casts) of an empty string to a `duration` value incorrectly yielded `0s` (#4965)
+* Fix an issue where a [`zed vacuum`](docs/commands/zed.md#vacuum) on a large amount of data could crash the Zed service (#4974)
+* Fix an issue where some IPv6 values of Zed's `net` type were not parsed correctly in Zed queries (#4992)
+* Fix an issue where output of certain union-typed values was not consistent (#4995)
+* Fix an issue where parsing of `type` literals inside of `type` literals was incorrectly permitted (#4996)
+* Fix an issue where the [`grok()` function](docs/language/functions/grok.md) would panic when encountering optional fields (#5010)
+
 ## v1.12.0
 * Zed CSV output now handles records with the same field names but different types (#4889)
 * The [`grep()` function](docs/language/functions/grep.md) now accepts variables as pattern arguments (#4887)
