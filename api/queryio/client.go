@@ -19,9 +19,9 @@ type Query struct {
 
 // NewQuery returns a Query that reads a ZNG-encoded query response
 // from rc and decodes it.  Closing the Query also closes rc.
-func NewQuery(rc io.ReadCloser) *Query {
+func NewQuery(zctx *zed.Context, rc io.ReadCloser) *Query {
 	return &Query{
-		reader: zngio.NewReader(zed.NewContext(), rc),
+		reader: zngio.NewReader(zctx, rc),
 		closer: rc,
 	}
 }
@@ -32,8 +32,8 @@ func (q *Query) Close() error {
 	return err
 }
 
-func (q *Query) Read() (*zed.Value, error) {
-	val, ctrl, err := q.reader.ReadPayload()
+func (q *Query) Read(arena *zed.Arena) (*zed.Value, error) {
+	val, ctrl, err := q.reader.ReadPayload(arena)
 	if ctrl != nil {
 		if ctrl.Format != zngio.ControlFormatZSON {
 			return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Format)

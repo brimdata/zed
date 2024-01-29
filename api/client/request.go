@@ -9,6 +9,7 @@ import (
 	"net/http/httptrace"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -93,9 +94,11 @@ func (r *Request) reader() (io.Reader, error) {
 	if b, ok := r.Body.(io.Reader); ok {
 		return b, nil
 	}
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StylePackage)
-	val, err := m.Marshal(r.Body)
+	val, err := m.Marshal(arena, r.Body)
 	if err != nil {
 		return nil, err
 	}

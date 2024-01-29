@@ -128,7 +128,7 @@ func (m *MarshalZNGContext) MarshalValue(v interface{}) (zed.Type, error) {
 	return m.encodeValue(reflect.ValueOf(v))
 }
 
-func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
+func (m *MarshalZNGContext) Marshal(arena *zed.Arena, v interface{}) (zed.Value, error) {
 	m.Builder.Reset()
 	typ, err := m.encodeValue(reflect.ValueOf(v))
 	if err != nil {
@@ -139,7 +139,7 @@ func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
 	if it.Done() {
 		return zed.Null, errors.New("no value found")
 	}
-	return zed.NewValue(typ, it.Next()), nil
+	return arena.NewValue(typ, it.Next()), nil
 }
 
 func (m *MarshalZNGContext) MarshalCustom(names []string, vals []interface{}) (zed.Value, error) {

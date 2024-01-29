@@ -3,6 +3,7 @@ package query
 import (
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cli/queryflags"
@@ -62,8 +63,9 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	zctx := zed.NewContext()
 	head, _ := c.poolFlags.HEAD()
-	query, err := lake.QueryWithControl(ctx, head, src, c.queryFlags.Includes...)
+	query, err := lake.QueryWithControl(ctx, zctx, head, src, c.queryFlags.Includes...)
 	if err != nil {
 		w.Close()
 		return err

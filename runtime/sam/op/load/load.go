@@ -77,5 +77,5 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	}
 	arena := o.rctx.NewArena()
 	val := arena.NewBytes(commitID[:])
-	return zbuf.NewBatchWithArena(batch, arena, []zed.Value{val}), nil
+	return zbuf.NewBatch(batch, arena, []zed.Value{val}), nil
 }

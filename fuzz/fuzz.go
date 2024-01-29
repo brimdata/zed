@@ -59,15 +59,15 @@ func ReadVNG(bs []byte, demandOut demand.Demand) ([]zed.Value, error) {
 	return a.Values(), nil
 }
 
-func WriteZNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
+func WriteZNG(t testing.TB, arena *zed.Arena, valuesIn []zed.Value, buf *bytes.Buffer) {
 	writer := zngio.NewWriter(zio.NopCloser(buf))
-	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
+	require.NoError(t, zio.Copy(writer, zbuf.NewArray(arena, valuesIn)))
 	require.NoError(t, writer.Close())
 }
 
-func WriteVNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
+func WriteVNG(t testing.TB, arena *zed.Arena, valuesIn []zed.Value, buf *bytes.Buffer) {
 	writer := vngio.NewWriter(zio.NopCloser(buf))
-	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
+	require.NoError(t, zio.Copy(writer, zbuf.NewArray(arena, valuesIn)))
 	require.NoError(t, writer.Close())
 }
 

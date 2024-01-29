@@ -8,6 +8,7 @@ import (
 // Array is a slice of of records that implements the Batch and
 // the Reader interfaces.
 type Array struct {
+	arena  *zed.Arena
 	values []zed.Value
 }
 
@@ -17,8 +18,8 @@ var _ zio.Writer = (*Array)(nil)
 
 // XXX this should take the frame arg too and the procs that create
 // new arrays need to propagate their frames downstream.
-func NewArray(vals []zed.Value) *Array {
-	return &Array{values: vals}
+func NewArray(arena *zed.Arena, vals []zed.Value) *Array {
+	return &Array{arena, vals}
 }
 
 func (a *Array) Ref() {
@@ -51,11 +52,11 @@ func (*Array) Zctx() *zed.Arena { panic("zbuf.Array.Zctx") }
 
 // Read returns removes the first element of the Array and returns it,
 // or it returns nil if the Array is empty.
-func (a *Array) Read() (*zed.Value, error) {
-	var rec *zed.Value
-	if len(a.values) > 0 {
-		rec = &a.values[0]
-		a.values = a.values[1:]
+func (a *Array) Read(arena *zed.Arena) (*zed.Value, error) {
+	if len(a.values) == 0 {
+		return nil, nil
 	}
-	return rec, nil
+	val := a.values[0].CopyToArena(arena)
+	a.values = a.values[1:]
+	return &val, nil
 }

@@ -44,8 +44,8 @@ func (cr *countReader) records() int {
 	return cr.n
 }
 
-func (cr *countReader) Read() (*zed.Value, error) {
-	rec, err := cr.r.Read()
+func (cr *countReader) Read(arena *zed.Arena) (*zed.Value, error) {
+	rec, err := cr.r.Read(arena)
 	if rec != nil {
 		cr.mu.Lock()
 		cr.n++
@@ -102,15 +102,14 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		data = append(data, fmt.Sprintf("{ts:%s,ip:1.1.1.%d}", nano.Unix(int64(t), 0), i%uniqueIpsPerTs))
 	}
 
-	zctx := zed.NewContext()
-	arena := zed.NewArena(zctx)
+	arena := zed.NewArena(zed.NewContext())
 	defer arena.Unref()
 
 	runOne := func(inputSortKey string) []string {
 		proc, err := compiler.Parse("count() by every(1s), ip")
 		assert.NoError(t, err)
 
-		zr := zsonio.NewReader(arena, strings.NewReader(strings.Join(data, "\n")))
+		zr := zsonio.NewReader(arena.Zctx(), strings.NewReader(strings.Join(data, "\n")))
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
 		zw := zsonio.NewWriter(zio.NopCloser(&outbuf), zsonio.WriterOpts{})
@@ -125,7 +124,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 			},
 		}
 		sortKey := order.NewSortKey(order.Asc, field.List{field.Path{inputSortKey}})
-		query, err := newQueryOnOrderedReader(context.Background(), zctx, proc, cr, sortKey)
+		query, err := newQueryOnOrderedReader(context.Background(), arena.Zctx(), proc, cr, sortKey)
 		require.NoError(t, err)
 		defer query.Pull(true)
 		err = zbuf.CopyPuller(checker, query)

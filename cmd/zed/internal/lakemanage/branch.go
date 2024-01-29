@@ -3,6 +3,7 @@ package lakemanage
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/pools"
@@ -38,7 +39,7 @@ func newBranch(c Config, pool *pools.Config, lake lakeapi.Interface, logger *zap
 func (b *branch) run(ctx context.Context) error {
 	b.logger.Debug("compaction started")
 	head := lakeparse.Commitish{Pool: b.pool.Name, Branch: b.config.Branch}
-	it, err := newObjectIterator(ctx, b.lake, &head)
+	it, err := newObjectIterator(ctx, zed.NewContext(), b.lake, &head)
 	if err != nil {
 		return err
 	}

@@ -207,7 +207,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, err
 		}
-		return explode.New(b.rctx.Zctx, parent, args, typ, v.As)
+		return explode.New(b.rctx, parent, args, typ, v.As)
 	case *dag.Over:
 		return b.compileOver(parent, v)
 	case *dag.Yield:

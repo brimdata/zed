@@ -10,6 +10,7 @@ import (
 
 type ExprSwitch struct {
 	*op.Router
+	rctx        *runtime.Context
 	expr        expr.Evaluator
 	cases       map[string]*switchCase
 	defaultCase *switchCase
@@ -44,9 +45,11 @@ func (s *ExprSwitch) AddCase(val *zed.Value) zbuf.Puller {
 }
 
 func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
+	arena := zed.NewArena(s.rctx.Zctx)
+	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	vals := batch.Values()
 	for i := range vals {
-		val := s.expr.Eval(batch, vals[i])
+		val := s.expr.Eval(ectx, vals[i])
 		if val.IsMissing() {
 			continue
 		}
@@ -67,8 +70,9 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 			// XXX The new slice should come from the
 			// outgoing batch so we don't send these slices
 			// through GC.
+			arena.Ref()
 			batch.Ref()
-			out := zbuf.NewArray(c.vals)
+			out := zbuf.NewBatch(batch, arena, c.vals)
 			c.vals = nil
 			if ok := router.Send(c.route, out, nil); !ok {
 				return false
@@ -76,12 +80,14 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 		}
 	}
 	if c := s.defaultCase; c != nil && len(c.vals) > 0 {
+		arena.Ref()
 		batch.Ref()
-		out := zbuf.NewArray(c.vals)
+		out := zbuf.NewBatch(batch, arena, c.vals)
 		c.vals = nil
 		if ok := router.Send(c.route, out, nil); !ok {
 			return false
 		}
 	}
+	arena.Unref()
 	return true
 }

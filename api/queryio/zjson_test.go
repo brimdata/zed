@@ -25,7 +25,7 @@ func TestZJSONWriter(t *testing.T) {
 	err := w.WriteControl(api.QueryChannelSet{ChannelID: 1})
 	require.NoError(t, err)
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	err = w.Write(zson.MustParseValue(arena, record))
 	require.NoError(t, err)
 	err = w.WriteControl(api.QueryChannelEnd{ChannelID: 1})

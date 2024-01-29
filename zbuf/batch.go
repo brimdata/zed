@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -34,7 +33,7 @@ type Batch interface {
 	Vars() []zed.Value
 }
 
-func NewBatchWithArena(parent Batch, arena *zed.Arena, values []zed.Value) Batch {
+func NewBatch(parent Batch, arena *zed.Arena, values []zed.Value) Batch {
 	return &batchWithArena{1, parent, arena, values, parent.Vars()}
 }
 
@@ -110,7 +109,7 @@ func (p *puller) Pull(bool) (Batch, error) {
 	}
 	batch := newPullerBatch(p.zctx)
 	for {
-		val, err := p.zr.Read()
+		val, err := p.zr.Read(batch.arena)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +195,7 @@ type pullerReader struct {
 	vals  []zed.Value
 }
 
-func (r *pullerReader) Read() (*zed.Value, error) {
+func (r *pullerReader) Read(*zed.Arena) (*zed.Value, error) {
 	// Loop handles zero-length batches.
 	for len(r.vals) == 0 {
 		if r.batch != nil {
@@ -226,6 +225,8 @@ func CopyVars(b Batch) []zed.Value {
 	}
 	return vars
 }
+
+/*
 
 type Batch2 struct {
 	refs   atomic.Int32
@@ -282,3 +283,5 @@ func (b *Batch2) Vars() []zed.Value {
 }
 
 func (b *Batch2) Zctx() *zed.Context { return b.arena.Zctx() }
+
+*/

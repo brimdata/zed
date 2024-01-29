@@ -126,7 +126,7 @@ func (w *Writer) Close() error {
 func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	var zr zio.Reader
 	if w.inputSorted {
-		zr = zbuf.NewArray(recs)
+		zr = zbuf.NewArray(nil, recs)
 	} else {
 		done := make(chan struct{})
 		go func() {

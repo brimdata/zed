@@ -140,9 +140,12 @@ func (c *Connection) doAndUnmarshal(req *Request, v interface{}, templates ...in
 		return err
 	}
 	defer res.Body.Close()
-	zr := zngio.NewReader(zed.NewContext(), res.Body)
+	zctx := zed.NewContext()
+	zr := zngio.NewReader(zctx, res.Body)
 	defer zr.Close()
-	rec, err := zr.Read()
+	arena := zed.NewArena(zctx)
+	defer arena.Unref()
+	rec, err := zr.Read(arena)
 	if err != nil || rec == nil {
 		return err
 	}

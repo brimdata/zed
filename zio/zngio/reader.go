@@ -94,7 +94,7 @@ func (r *Reader) init() error {
 	return nil
 }
 
-func (r *Reader) Read() (*zed.Value, error) {
+func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	// If Read is called, then this Reader is being used as a zio.Reader and
 	// not as a zbuf.Puller.  We just wrap the scanner in a puller to
 	// implement the Reader interface.  If it's used a zbuf.Scanner, then
@@ -103,7 +103,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 		return nil, err
 	}
 	for {
-		val, err := r.wrap.Read()
+		val, err := r.wrap.Read(arena)
 		if err != nil {
 			if _, ok := err.(*zbuf.Control); ok {
 				continue
@@ -114,11 +114,11 @@ func (r *Reader) Read() (*zed.Value, error) {
 	}
 }
 
-func (r *Reader) ReadPayload() (*zed.Value, *Control, error) {
+func (r *Reader) ReadPayload(arena *zed.Arena) (*zed.Value, *Control, error) {
 	if err := r.init(); err != nil {
 		return nil, nil, err
 	}
-	val, err := r.wrap.Read()
+	val, err := r.wrap.Read(arena)
 	if err != nil {
 		if zctrl, ok := err.(*zbuf.Control); ok {
 			ctrl, ok := zctrl.Message.(*Control)

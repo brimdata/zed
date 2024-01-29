@@ -2,6 +2,7 @@ package explode
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
@@ -12,6 +13,7 @@ import (
 // type T. It is useful for type-based indexing.
 type Op struct {
 	parent  zbuf.Puller
+	rctx    *runtime.Context
 	outType zed.Type
 	typ     zed.Type
 	args    []expr.Evaluator
@@ -19,43 +21,48 @@ type Op struct {
 
 // New creates a exploder for type typ, where the
 // output records' single field is named name.
-func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string) (zbuf.Puller, error) {
+func New(rctx *runtime.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string) (zbuf.Puller, error) {
 	return &Op{
 		parent:  parent,
-		outType: zctx.MustLookupTypeRecord([]zed.Field{{Name: name, Type: typ}}),
+		rctx:    rctx,
+		outType: rctx.Zctx.MustLookupTypeRecord([]zed.Field{{Name: name, Type: typ}}),
 		typ:     typ,
 		args:    args,
 	}, nil
 }
 
 func (o *Op) Pull(done bool) (zbuf.Batch, error) {
+	arena := zed.NewArena(o.rctx.Zctx)
 	for {
 		batch, err := o.parent.Pull(done)
 		if batch == nil || err != nil {
 			return nil, err
 		}
-		newBatch := zbuf.NewBatch2(batch)
-		for _, val := range batch.Values() {
+		ectx := expr.NewContextWithVars(arena, batch.Vars())
+		vals := batch.Values()
+		out := make([]zed.Value, 0, len(vals))
+		for _, val := range vals {
 			for _, arg := range o.args {
-				val := arg.Eval(newBatch, val)
+				val := arg.Eval(ectx, val)
 				if val.IsError() {
 					if !val.IsMissing() {
-						newBatch.Append(val)
+						out = append(out, val.Copy())
 					}
 					continue
 				}
 				zed.Walk(val.Type(), val.Bytes(), func(typ zed.Type, body zcode.Bytes) error {
 					if typ == o.typ && body != nil {
 						bytes := zcode.Append(nil, body)
-						newBatch.Append(newBatch.Arena().NewValue(o.outType, bytes))
+						out = append(out, arena.NewValue(o.outType, bytes))
 						return zed.SkipContainer
 					}
 					return nil
 				})
 			}
 		}
-		if len(newBatch.Values()) > 0 {
-			return newBatch, nil
+		if len(out) > 0 {
+			defer batch.Unref()
+			return zbuf.NewBatch(batch, arena, out), nil
 		}
 		batch.Unref()
 	}

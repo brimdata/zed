@@ -236,7 +236,7 @@ type sortStableReader struct {
 	vals    []zed.Value
 }
 
-func (s *sortStableReader) Read() (*zed.Value, error) {
+func (s *sortStableReader) Read(*zed.Arena) (*zed.Value, error) {
 	if len(s.indices) == 0 {
 		return nil, nil
 	}

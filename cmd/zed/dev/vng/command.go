@@ -93,7 +93,7 @@ func newReader(r io.Reader) *reader {
 	}
 }
 
-func (r *reader) Read() (*zed.Value, error) {
+func (r *reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	for {
 		if r.meta == nil {
 			hdr, err := r.readHeader()
@@ -105,10 +105,10 @@ func (r *reader) Read() (*zed.Value, error) {
 			}
 			r.meta = zngio.NewReader(r.zctx, io.LimitReader(r.reader, int64(hdr.MetaSize)))
 			r.dataSize = int(hdr.DataSize)
-			val, err := r.marshaler.Marshal(hdr)
+			val, err := r.marshaler.Marshal(arena, hdr)
 			return val.Ptr(), err
 		}
-		val, err := r.meta.Read()
+		val, err := r.meta.Read(arena)
 		if val != nil || err != nil {
 			return val, err
 		}

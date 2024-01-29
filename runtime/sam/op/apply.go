@@ -27,10 +27,12 @@ func (a *applier) Pull(done bool) (zbuf.Batch, error) {
 		if batch == nil || err != nil {
 			return nil, err
 		}
+		arena := zed.NewArena(a.rctx.Zctx)
+		ectx := expr.NewContextWithVars(arena, batch.Vars())
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
-			val := a.expr.Eval(batch, vals[i])
+			val := a.expr.Eval(ectx, vals[i])
 			if val.IsError() {
 				if val.IsQuiet() || val.IsMissing() {
 					continue
@@ -39,7 +41,7 @@ func (a *applier) Pull(done bool) (zbuf.Batch, error) {
 			out = append(out, val)
 		}
 		if len(out) > 0 {
-			return zbuf.NewBatch(batch, out), nil
+			return zbuf.NewBatch(batch, arena, out), nil
 		}
 		batch.Unref()
 	}

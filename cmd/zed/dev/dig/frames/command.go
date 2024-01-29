@@ -111,12 +111,12 @@ type CompressedBlock struct {
 	Size   int64  `zed:"size"`
 }
 
-func (m *metaReader) Read() (*zed.Value, error) {
+func (m *metaReader) Read(arena *zed.Arena) (*zed.Value, error) {
 	f, err := m.nextFrame()
 	if f == nil || err != nil {
 		return nil, err
 	}
-	val, err := m.marshaler.Marshal(f)
+	val, err := m.marshaler.Marshal(arena, f)
 	return &val, err
 }
 

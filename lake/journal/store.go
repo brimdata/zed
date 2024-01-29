@@ -99,13 +99,15 @@ func (s *Store) load(ctx context.Context) error {
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		s.logger.Error("Loading snapshot", zap.Error(err))
 	}
-	r, err := s.journal.OpenAsZNG(ctx, zed.NewContext(), head, at)
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+	r, err := s.journal.OpenAsZNG(ctx, arena.Zctx(), head, at)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
 	for {
-		val, err := r.Read()
+		val, err := r.Read(arena)
 		if err != nil {
 			return err
 		}
@@ -153,9 +155,10 @@ func (s *Store) getSnapshot(ctx context.Context) (ID, map[string]Entry, error) {
 		return Nil, table, err
 	}
 	defer r.Close()
-	zr := zngio.NewReader(zed.NewContext(), r)
+	arena := zed.NewArena(zed.NewContext())
+	zr := zngio.NewReader(arena.Zctx(), r)
 	defer zr.Close()
-	val, err := zr.Read()
+	val, err := zr.Read(arena)
 	if val == nil || err != nil {
 		return Nil, table, err
 	}
@@ -164,7 +167,7 @@ func (s *Store) getSnapshot(ctx context.Context) (ID, map[string]Entry, error) {
 	}
 	at := ID(val.Uint())
 	for {
-		val, err := zr.Read()
+		val, err := zr.Read(arena)
 		if val == nil || err != nil {
 			return at, table, err
 		}
@@ -187,10 +190,12 @@ func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) 
 	if err := zw.Write(zed.NewUint64(uint64(at))); err != nil {
 		return err
 	}
-	marshaler := zson.NewZNGMarshaler()
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+	marshaler := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	marshaler.Decorate(zson.StylePackage)
 	for _, entry := range table {
-		val, err := marshaler.Marshal(entry)
+		val, err := marshaler.Marshal(arena, entry)
 		if err != nil {
 			return err
 		}

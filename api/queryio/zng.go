@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -27,7 +28,9 @@ func NewZNGWriter(w io.Writer) *ZNGWriter {
 }
 
 func (w *ZNGWriter) WriteControl(v interface{}) error {
-	val, err := w.marshaler.Marshal(v)
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+	val, err := w.marshaler.Marshal(arena, v)
 	if err != nil {
 		return err
 	}

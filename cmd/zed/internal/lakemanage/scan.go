@@ -66,24 +66,26 @@ from %q@%q:objects
 `
 
 type objectIterator struct {
+	arena       *zed.Arena
 	reader      zio.ReadCloser
 	unmarshaler *zson.UnmarshalZNGContext
 }
 
-func newObjectIterator(ctx context.Context, lake api.Interface, head *lakeparse.Commitish) (*objectIterator, error) {
+func newObjectIterator(ctx context.Context, zctx *zed.Context, lake api.Interface, head *lakeparse.Commitish) (*objectIterator, error) {
 	query := fmt.Sprintf(iteratorQuery, head.Pool, head.Branch, head.Pool, head.Branch)
-	r, err := lake.Query(ctx, nil, query)
+	r, err := lake.Query(ctx, zctx, nil, query)
 	if err != nil {
 		return nil, err
 	}
 	return &objectIterator{
+		arena:       zed.NewArena(zctx),
 		reader:      r,
 		unmarshaler: zson.NewZNGUnmarshaler(),
 	}, nil
 }
 
 func (r *objectIterator) next() (*object, error) {
-	val, err := r.reader.Read()
+	val, err := r.reader.Read(r.arena)
 	if val == nil || err != nil {
 		return nil, err
 	}

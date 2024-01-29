@@ -189,11 +189,25 @@ const (
 	vPrimitiveTypeIDMask = 0xff
 )
 
+func (v Value) Arena() (*Arena, bool) {
+	if v.a&vMask != vArena {
+		return nil, false
+	}
+	return (*Arena)(unsafe.Pointer(uintptr(v.a))), true
+}
+
 func (v Value) arena() *Arena {
 	if v.a&vMask != vArena {
 		panic(v)
 	}
 	return (*Arena)(unsafe.Pointer(uintptr(v.a)))
+}
+
+func (v Value) CopyToArena(a *Arena) Value {
+	if v.a&vMask != vArena {
+		return v
+	}
+	panic("todo")
 }
 
 func (v Value) CopyNewArena() (Value, *Arena) {

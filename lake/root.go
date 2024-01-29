@@ -153,13 +153,15 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	zr := zngio.NewReader(zed.NewContext(), reader)
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+	zr := zngio.NewReader(arena.Zctx(), reader)
 	defer zr.Close()
-	val, err := zr.Read()
+	val, err := zr.Read(arena)
 	if err != nil {
 		return err
 	}
-	last, err := zr.Read()
+	last, err := zr.Read(arena)
 	if err != nil {
 		return err
 	}
@@ -189,7 +191,7 @@ func (r *Root) BatchifyPools(ctx context.Context, arena *zed.Arena, f expr.Evalu
 	ectx := expr.NewContext(arena)
 	var vals []zed.Value
 	for k := range pools {
-		rec, err := m.Marshal(&pools[k])
+		rec, err := m.Marshal(arena, &pools[k])
 		if err != nil {
 			return nil, err
 		}

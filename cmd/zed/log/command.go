@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cmd/zed/root"
@@ -68,7 +69,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer w.Close()
-	q, err := lake.Query(ctx, nil, query)
+	q, err := lake.Query(ctx, zed.NewContext(), nil, query)
 	if err != nil {
 		return err
 	}

@@ -104,20 +104,20 @@ func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName stri
 	return exec.Compact(ctx, l.root, pool, branchName, objects, writeVectors, commit.Author, commit.Body, commit.Meta)
 }
 
-func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
-	q, err := l.QueryWithControl(ctx, head, src, srcfiles...)
+func (l *local) Query(ctx context.Context, zctx *zed.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
+	q, err := l.QueryWithControl(ctx, zctx, head, src, srcfiles...)
 	if err != nil {
 		return nil, err
 	}
 	return zio.NewReadCloser(zbuf.NoControl(q), q), nil
 }
 
-func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
+func (l *local) QueryWithControl(ctx context.Context, zctx *zed.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
 	flowgraph, err := l.compiler.Parse(src, srcfiles...)
 	if err != nil {
 		return nil, err
 	}
-	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head)
+	q, err := runtime.CompileLakeQuery(ctx, zctx, l.compiler, flowgraph, head)
 	if err != nil {
 		return nil, err
 	}

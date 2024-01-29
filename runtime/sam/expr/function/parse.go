@@ -68,7 +68,7 @@ func (p *ParseURI) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	if u.Fragment != "" {
 		v.Fragment = &u.Fragment
 	}
-	out, err := p.marshaler.Marshal(v)
+	out, err := p.marshaler.Marshal(ectx.Arena(), v)
 	if err != nil {
 		panic(err)
 	}

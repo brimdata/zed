@@ -141,7 +141,7 @@ func (c *Command) Run(args []string) error {
 	local := storage.NewLocalEngine()
 	var readers []zio.Reader
 	if null {
-		readers = []zio.Reader{zbuf.NewArray([]zed.Value{zed.Null})}
+		readers = []zio.Reader{zbuf.NewArray(nil, []zed.Value{zed.Null})}
 	} else {
 		readers, err = c.inputFlags.Open(ctx, zctx, local, paths, c.stopErr)
 		if err != nil {

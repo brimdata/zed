@@ -31,7 +31,7 @@ func newLogReader(ctx context.Context, zctx *zed.Context, store *Store, leaf, st
 	}
 }
 
-func (r *LogReader) Read() (*zed.Value, error) {
+func (r *LogReader) Read(arena *zed.Arena) (*zed.Value, error) {
 	if r.cursor == ksuid.Nil {
 		return nil, nil
 	}
@@ -44,6 +44,6 @@ func (r *LogReader) Read() (*zed.Value, error) {
 		next = ksuid.Nil
 	}
 	r.cursor = next
-	val, err := r.marshaler.Marshal(commitObject)
+	val, err := r.marshaler.Marshal(arena, commitObject)
 	return &val, err
 }

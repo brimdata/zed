@@ -33,7 +33,7 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 	defer arena.Unref()
 	ectx := expr.NewContext(arena)
 	for {
-		val, err := reader.Read()
+		val, err := reader.Read(arena)
 		if val == nil || err != nil {
 			return ranges, err
 		}
