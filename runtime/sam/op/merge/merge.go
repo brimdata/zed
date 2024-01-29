@@ -81,7 +81,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	return zbuf.NewPuller(o).Pull(false)
 }
 
-func (o *Op) Read() (*zed.Value, error) {
+func (o *Op) Read(*zed.Arena) (*zed.Value, error) {
 	if o.Len() == 0 {
 		return nil, nil
 	}

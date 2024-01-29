@@ -60,7 +60,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		return batch, err
 	}
 	reader := zio.ConcatReader(
-		zbuf.NewArray(batch.Values()),
+		zbuf.NewArray(nil, batch.Values()),
 		zbuf.PullerReader(o.parent),
 	)
 	pool, err := o.lk.OpenPool(o.rctx.Context, o.pool)

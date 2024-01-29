@@ -41,7 +41,7 @@ func (n *NetworkOf) Call(ectx expr.Context, args []zed.Value) zed.Value {
 		case id == zed.IDIP:
 			mask := zed.DecodeIP(body)
 			if mask.BitLen() != ip.BitLen() {
-				return arena.WrapError("network_of: address and mask have different lengths", addressAndMask(args[0], args[1]))
+				return arena.WrapError("network_of: address and mask have different lengths", addressAndMask(arena, args[0], args[1]))
 			}
 			bits = zed.LeadingOnes(mask.AsSlice())
 			if netip.PrefixFrom(mask, bits).Masked().Addr() != mask {
@@ -54,7 +54,7 @@ func (n *NetworkOf) Call(ectx expr.Context, args []zed.Value) zed.Value {
 				bits = int(args[1].Uint())
 			}
 			if bits > 128 || bits > 32 && ip.Is4() {
-				return arena.WrapError("network_of: CIDR bit count out of range", addressAndMask(args[0], args[1]))
+				return arena.WrapError("network_of: CIDR bit count out of range", addressAndMask(arena, args[0], args[1]))
 			}
 		default:
 			return arena.WrapError("network_of: bad arg for CIDR mask", args[1])
@@ -65,8 +65,8 @@ func (n *NetworkOf) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	return arena.NewNet(prefix)
 }
 
-func addressAndMask(address, mask zed.Value) zed.Value {
-	val, err := zson.MarshalZNG(struct {
+func addressAndMask(arena *zed.Arena, address, mask zed.Value) zed.Value {
+	val, err := zson.MarshalZNG(arena, struct {
 		Address zed.Value `zed:"address"`
 		Mask    zed.Value `zed:"mask"`
 	}{address, mask})
