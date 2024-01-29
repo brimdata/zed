@@ -164,5 +164,6 @@ func VectorCompile(rctx *runtime.Context, query string, object *vcache.Object) (
 	if err != nil {
 		return nil, err
 	}
-	return outputs[0], nil
+	//XXX assume one output for now
+	return vam.NewMaterializer(outputs[0]), nil
 }

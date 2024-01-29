@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
@@ -39,7 +38,6 @@ import (
 	"github.com/brimdata/zed/runtime/sam/op/uniq"
 	"github.com/brimdata/zed/runtime/sam/op/yield"
 	"github.com/brimdata/zed/runtime/vam"
-	vamop "github.com/brimdata/zed/runtime/vam/op"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -91,12 +89,8 @@ func (b *Builder) BuildWithPuller(seq dag.Seq, parent zbuf.Puller) ([]zbuf.Pulle
 	return b.compileSeq(seq, []zbuf.Puller{parent})
 }
 
-func (b *Builder) BuildWithVectorPuller(seq dag.Seq, parent vector.Puller) ([]zbuf.Puller, error) {
-	puller, err := b.compileWithVectorPuller(seq, parent)
-	if err != nil {
-		return nil, err
-	}
-	return []zbuf.Puller{puller}, nil
+func (b *Builder) BuildWithVectorPuller(seq dag.Seq, parent vector.Puller) ([]vector.Puller, error) {
+	return b.compileVamSeq(seq, []vector.Puller{parent})
 }
 
 func (b *Builder) zctx() *zed.Context {
@@ -320,7 +314,24 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Load:
 		return load.New(b.rctx, b.source.Lake(), parent, v.Pool, v.Branch, v.Author, v.Message, v.Meta), nil
 	case *dag.Vectorize:
-		return b.compileVectorize(v.Body, parent)
+		// If the first op is SeqScan, then pull it out so we can
+		// give the scanner a zio.Puller parent (i.e., the lister).
+		if scan, ok := v.Body[0].(*dag.SeqScan); ok {
+			puller, err := b.compileVamScan(scan, parent)
+			if err != nil {
+				return nil, err
+			}
+			if len(v.Body) > 1 {
+				p, err := b.compileVamSeq(v.Body[1:], []vector.Puller{puller})
+				if err != nil {
+					return nil, err
+				}
+				puller = p[0]
+			}
+			return vam.NewMaterializer(puller), nil
+		}
+		//XXX
+		return nil, errors.New("dag.Vectorize must begin with SeqScan")
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
@@ -686,68 +697,4 @@ func isEntry(seq dag.Seq) bool {
 		})
 	}
 	return false
-}
-
-func (b *Builder) compileVectorize(seq dag.Seq, parent zbuf.Puller) (zbuf.Puller, error) {
-	var vamParent vector.Puller
-	for _, o := range seq {
-		switch o := o.(type) {
-		case *dag.SeqScan:
-			pool, err := b.lookupPool(o.Pool)
-			if err != nil {
-				return nil, err
-			}
-			//XXX check VectorCache not nil
-			vamParent = vamop.NewScanner(b.rctx, b.source.Lake().VectorCache(), parent, pool, o.Fields, nil, nil)
-		case *dag.Summarize:
-			if name, ok := optimizer.IsCountByString(o); ok {
-				vamParent = vamop.NewCountByString(b.rctx.Zctx, vamParent, name)
-			} else if name, ok := optimizer.IsSum(o); ok {
-				vamParent = vamop.NewSum(b.rctx.Zctx, vamParent, name)
-			} else {
-				return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
-			}
-		case *dag.Yield:
-			exprs, err := b.compileVamExprs(o.Exprs)
-			if err != nil {
-				return nil, err
-			}
-			vamParent = vamop.NewYield(b.rctx.Zctx, vamParent, exprs)
-		default:
-			return nil, fmt.Errorf("internal error: unknown dag.Op: %#v", o)
-		}
-	}
-	if vamParent == nil {
-		return nil, fmt.Errorf("internal error: vectorized DAG did not compile")
-	}
-	return vam.NewMaterializer(vamParent), nil
-}
-
-func (b *Builder) compileWithVectorPuller(seq dag.Seq, parent vector.Puller) (zbuf.Puller, error) {
-	for _, o := range seq {
-		switch o := o.(type) {
-		case *dag.SeqScan:
-			panic("compileWithVectorPuller SeqScan TBD")
-		case *dag.Summarize:
-			if name, ok := optimizer.IsCountByString(o); ok {
-				parent = vamop.NewCountByString(b.rctx.Zctx, parent, name)
-			} else if name, ok := optimizer.IsSum(o); ok {
-				parent = vamop.NewSum(b.rctx.Zctx, parent, name)
-			} else {
-				return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
-			}
-		case *dag.Yield:
-			exprs, err := b.compileVamExprs(o.Exprs)
-			if err != nil {
-				return nil, err
-			}
-			parent = vamop.NewYield(b.rctx.Zctx, parent, exprs)
-		default:
-			return nil, fmt.Errorf("internal error: unknown dag.Op: %#v", o)
-		}
-	}
-	if parent == nil {
-		return nil, fmt.Errorf("internal error: vectorized DAG did not compile")
-	}
-	return vam.NewMaterializer(parent), nil
 }
