@@ -45,7 +45,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	t.Helper()
 
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	rec, err := zson.ParseValue(arena, record)
 	require.NoError(t, err, "record: %q", record)
 

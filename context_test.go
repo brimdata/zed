@@ -44,7 +44,7 @@ func TestContextTranslateTypeNameConflictUnion(t *testing.T) {
 	// top level typedef in TranslateType so foo in the value below had
 	// two of the same union type instead of the two it should have had.
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	val := zson.MustParseValue(arena, `[{x:{y:63}}(=foo),{x:{abcdef:{x:{y:127}}(foo)}}(=foo)]`)
 	foreign := zed.NewContext()
 	twin, err := foreign.TranslateType(val.Type())

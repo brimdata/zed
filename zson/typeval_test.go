@@ -13,7 +13,7 @@ func TestTypeValue(t *testing.T) {
 	typ, err := zson.ParseType(zed.NewContext(), s)
 	require.NoError(t, err)
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	tv := arena.LookupTypeValue(typ)
 	require.Exactly(t, s, zson.FormatTypeValue(tv.Bytes()))
 }
@@ -23,7 +23,7 @@ func TestTypeValueCrossContext(t *testing.T) {
 	typ, err := zson.ParseType(zed.NewContext(), s)
 	require.NoError(t, err)
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	tv := arena.LookupTypeValue(typ)
 	require.Exactly(t, s, zson.FormatTypeValue(tv.Bytes()))
 }

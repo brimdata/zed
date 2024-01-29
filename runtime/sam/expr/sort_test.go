@@ -23,7 +23,7 @@ func BenchmarkSort(b *testing.B) {
 	for _, c := range cases {
 		b.Run(zson.FormatType(c.typ), func(b *testing.B) {
 			arena := zed.NewArena(zed.NewContext())
-			defer arena.KeepAlive()
+			defer arena.Unref()
 			cmp := NewComparator(false, false, &This{})
 			vals := make([]zed.Value, 1048576)
 			for i := 0; i < b.N; i++ {

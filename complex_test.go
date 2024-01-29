@@ -15,7 +15,7 @@ import (
 
 func TestRecordAccessNamed(t *testing.T) {
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
 	rec := zson.MustParseValue(arena, input)
 	s := rec.Deref("foo").AsString()
@@ -26,7 +26,7 @@ func TestRecordAccessNamed(t *testing.T) {
 
 func TestNonRecordDeref(t *testing.T) {
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	const input = `
 1
 192.168.1.1

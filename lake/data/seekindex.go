@@ -30,7 +30,7 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 	reader := zngio.NewReader(zctx, r)
 	defer reader.Close()
 	arena := zed.NewArena(zctx)
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	ectx := expr.NewContext(arena)
 	for {
 		val, err := reader.Read()

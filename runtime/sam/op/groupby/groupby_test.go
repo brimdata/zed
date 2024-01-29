@@ -104,7 +104,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 
 	zctx := zed.NewContext()
 	arena := zed.NewArena(zctx)
-	defer arena.KeepAlive()
+	defer arena.Unref()
 
 	runOne := func(inputSortKey string) []string {
 		proc, err := compiler.Parse("count() by every(1s), ip")

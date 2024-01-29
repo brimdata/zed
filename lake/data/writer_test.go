@@ -24,7 +24,7 @@ func TestDataReaderWriterVector(t *testing.T) {
 	w, err := object.NewWriter(ctx, engine, tmp, order.Asc, field.Path{"a"}, 1000)
 	require.NoError(t, err)
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	require.NoError(t, w.Write(zson.MustParseValue(arena, "{a:1,b:4}")))
 	require.NoError(t, w.Write(zson.MustParseValue(arena, "{a:2,b:5}")))
 	require.NoError(t, w.Write(zson.MustParseValue(arena, "{a:3,b:6}")))

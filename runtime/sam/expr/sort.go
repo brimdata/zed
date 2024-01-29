@@ -53,7 +53,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 		}
 	}
 	arena := zed.NewArena(zed.NewContext())
-	defer arena.KeepAlive()
+	defer arena.Unref()
 	ectx = NewContext(arena)
 	sort.SliceStable(indices, func(i, j int) bool {
 		if c.reverse {

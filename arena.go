@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"runtime"
 	"slices"
 	"unsafe"
 
@@ -37,8 +36,6 @@ func NewArena(zctx *Context) *Arena { return &Arena{zctx: zctx} }
 
 func (*Arena) Ref()   {}
 func (*Arena) Unref() {}
-
-func (a *Arena) KeepAlive() { runtime.KeepAlive(a) }
 
 func (a *Arena) Grow(n int) { a.bytes = slices.Grow(a.bytes, n) }
 

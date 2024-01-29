@@ -39,7 +39,7 @@ func (q *Query) Read() (*zed.Value, error) {
 			return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Format)
 		}
 		arena := zed.NewArena(zed.NewContext())
-		defer arena.KeepAlive()
+		defer arena.Unref()
 		value, err := zson.ParseValue(arena, string(ctrl.Bytes))
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse Zed control message: %w (%s)", err, string(ctrl.Bytes))
