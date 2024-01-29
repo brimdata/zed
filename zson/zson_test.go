@@ -72,11 +72,11 @@ func TestParseValueStringEscapeSequences(t *testing.T) {
 		{` "\u0000\u000A\u000b" `, "\u0000\u000A\u000b"},
 	}
 	for _, c := range cases {
-		a := zed.NewArena(zed.NewContext())
-		val, err := zson.ParseValue(a, c.in)
+		arena := zed.NewArena(zed.NewContext())
+		val, err := zson.ParseValue(arena, c.in)
 		assert.NoError(t, err)
-		assert.Equal(t, a.NewString(c.expected), val, "in %q", c.in)
-		a.KeepAlive()
+		assert.Equal(t, arena.NewString(c.expected), val, "in %q", c.in)
+		arena.KeepAlive()
 	}
 }
 

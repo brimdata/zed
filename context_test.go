@@ -39,13 +39,13 @@ func TestContextLookupTypeNamedAndLookupTypeDef(t *testing.T) {
 }
 
 func TestContextTranslateTypeNameConflictUnion(t *testing.T) {
-	// This test confirms that a union with complicated type renaming is properly
-	// decoded.  There was a bug where child typedefs would override the
+	// This test confirms that arena union with complicated type renaming is properly
+	// decoded.  There was arena bug where child typedefs would override the
 	// top level typedef in TranslateType so foo in the value below had
 	// two of the same union type instead of the two it should have had.
-	a := zed.NewArena(zed.NewContext())
-	defer a.KeepAlive()
-	val := zson.MustParseValue(a, `[{x:{y:63}}(=foo),{x:{abcdef:{x:{y:127}}(foo)}}(=foo)]`)
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.KeepAlive()
+	val := zson.MustParseValue(arena, `[{x:{y:63}}(=foo),{x:{abcdef:{x:{y:127}}(foo)}}(=foo)]`)
 	foreign := zed.NewContext()
 	twin, err := foreign.TranslateType(val.Type())
 	require.NoError(t, err)

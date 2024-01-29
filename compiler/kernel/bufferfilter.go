@@ -16,9 +16,9 @@ import (
 func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, error) {
 	switch e := e.(type) {
 	case *dag.BinaryExpr:
-		a := zed.NewArena(zctx)
-		defer a.KeepAlive()
-		literal, err := isFieldEqualOrIn(a, e)
+		arena := zed.NewArena(zctx)
+		defer arena.KeepAlive()
+		literal, err := isFieldEqualOrIn(arena, e)
 		if err != nil {
 			return nil, err
 		}
@@ -55,9 +55,9 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 		}
 		return nil, nil
 	case *dag.Search:
-		a := zed.NewArena(zctx)
-		defer a.KeepAlive()
-		literal, err := zson.ParseValue(a, e.Value)
+		arena := zed.NewArena(zctx)
+		defer arena.KeepAlive()
+		literal, err := zson.ParseValue(arena, e.Value)
 		if err != nil {
 			return nil, err
 		}
