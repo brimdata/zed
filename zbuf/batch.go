@@ -50,7 +50,9 @@ func (b *batchWithArena) Ref() { atomic.AddInt32(&b.refs, 1) }
 func (b *batchWithArena) Unref() {
 	if refs := atomic.AddInt32(&b.refs, 1); refs == 0 {
 		b.parent.Unref()
-		b.arena.Unref()
+		if b.arena != nil {
+			b.arena.Unref()
+		}
 	} else if refs < 0 {
 		panic(refs)
 	}

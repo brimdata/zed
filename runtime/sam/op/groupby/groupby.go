@@ -322,7 +322,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 	types := a.typeCache[:0]
 	keyBytes := a.keyCache[:0]
 	var prim zed.Value
-	arena := zed.NewArena(batch.Zctx())
+	arena := zed.NewArena(a.zctx)
 	defer arena.Unref()
 	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	for i, keyExpr := range a.keyExprs {

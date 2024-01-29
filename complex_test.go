@@ -33,9 +33,9 @@ func TestNonRecordDeref(t *testing.T) {
 null
 [1,2,3]
 |[1,2,3]|`
-	reader := zsonio.NewReader(arena, strings.NewReader(input))
+	reader := zsonio.NewReader(arena.Zctx(), strings.NewReader(input))
 	for {
-		val, err := reader.Read()
+		val, err := reader.Read(arena)
 		if val == nil {
 			break
 		}

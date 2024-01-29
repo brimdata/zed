@@ -24,6 +24,7 @@ func Marshal(v interface{}) (string, error) {
 
 type MarshalContext struct {
 	*MarshalZNGContext
+	arena     *zed.Arena
 	formatter *Formatter
 }
 
@@ -41,11 +42,13 @@ func NewMarshalerIndent(indent int) *MarshalContext {
 func NewMarshalerWithContext(zctx *zed.Context) *MarshalContext {
 	return &MarshalContext{
 		MarshalZNGContext: NewZNGMarshalerWithContext(zctx),
+		arena:             zed.NewArena(zctx),
 	}
 }
 
 func (m *MarshalContext) Marshal(v interface{}) (string, error) {
-	val, err := m.MarshalZNGContext.Marshal(v)
+	m.arena.Reset()
+	val, err := m.MarshalZNGContext.Marshal(m.arena, v)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +56,8 @@ func (m *MarshalContext) Marshal(v interface{}) (string, error) {
 }
 
 func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (string, error) {
-	rec, err := m.MarshalZNGContext.MarshalCustom(names, fields)
+	m.arena.Reset()
+	rec, err := m.MarshalZNGContext.MarshalCustom(m.arena, names, fields)
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +66,7 @@ func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (st
 
 type UnmarshalContext struct {
 	*UnmarshalZNGContext
-	zctx     *zed.Context
+	arena    *zed.Arena
 	analyzer Analyzer
 	builder  *zcode.Builder
 }
@@ -70,7 +74,7 @@ type UnmarshalContext struct {
 func NewUnmarshaler() *UnmarshalContext {
 	return &UnmarshalContext{
 		UnmarshalZNGContext: NewZNGUnmarshaler(),
-		zctx:                zed.NewContext(),
+		arena:               zed.NewArena(zed.NewContext()),
 		analyzer:            NewAnalyzer(),
 		builder:             zcode.NewBuilder(),
 	}
@@ -86,11 +90,12 @@ func (u *UnmarshalContext) Unmarshal(zson string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	val, err := u.analyzer.ConvertValue(u.zctx, ast)
+	val, err := u.analyzer.ConvertValue(u.arena.Zctx(), ast)
 	if err != nil {
 		return err
 	}
-	zedVal, err := Build(u.builder, val)
+	u.arena.Reset()
+	zedVal, err := Build(u.arena, u.builder, val)
 	if err != nil {
 		return nil
 	}
@@ -101,13 +106,14 @@ type ZNGMarshaler interface {
 	MarshalZNG(*MarshalZNGContext) (zed.Type, error)
 }
 
-func MarshalZNG(v interface{}) (zed.Value, error) {
-	return NewZNGMarshaler().Marshal(v)
+func MarshalZNG(arena *zed.Arena, v interface{}) (zed.Value, error) {
+	return NewZNGMarshalerWithContext(arena.Zctx()).Marshal(arena, v)
 }
 
 type MarshalZNGContext struct {
 	*zed.Context
 	zcode.Builder
+	arena     *zed.Arena
 	decorator func(string, string) string
 	bindings  map[string]string
 }
@@ -119,6 +125,7 @@ func NewZNGMarshaler() *MarshalZNGContext {
 func NewZNGMarshalerWithContext(zctx *zed.Context) *MarshalZNGContext {
 	return &MarshalZNGContext{
 		Context: zctx,
+		arena:   zed.NewArena(zctx),
 	}
 }
 
@@ -142,7 +149,7 @@ func (m *MarshalZNGContext) Marshal(arena *zed.Arena, v interface{}) (zed.Value,
 	return arena.NewValue(typ, it.Next()), nil
 }
 
-func (m *MarshalZNGContext) MarshalCustom(names []string, vals []interface{}) (zed.Value, error) {
+func (m *MarshalZNGContext) MarshalCustom(arena *zed.Arena, names []string, vals []interface{}) (zed.Value, error) {
 	if len(names) != len(vals) {
 		return zed.Null, errors.New("names and vals have different lengths")
 	}
@@ -165,7 +172,7 @@ func (m *MarshalZNGContext) MarshalCustom(names []string, vals []interface{}) (z
 	if err != nil {
 		return zed.Null, err
 	}
-	return zed.NewValue(recType, m.Builder.Bytes()), nil
+	return arena.NewValue(recType, m.Builder.Bytes()), nil
 }
 
 const (
@@ -294,7 +301,7 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		m.Builder.Append(zed.EncodeTime(nano.TimeToTs(v)))
 		return zed.TypeTime, nil
 	case zed.Type:
-		val := m.Context.LookupTypeValue(v)
+		val := m.arena.LookupTypeValue(v)
 		m.Builder.Append(val.Bytes())
 		return val.Type(), nil
 	case zed.Value:
