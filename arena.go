@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/brimdata/zed/zcode"
 )
 
 type ArenaValues struct {
-	arena  *Arena
+	Arena  *Arena
 	Values []Value
 }
 
@@ -25,6 +27,8 @@ func (a *Arena) Zctx() *Context { return a.zctx }
 
 type Arena struct {
 	zctx *Context
+	pool *sync.Pool
+	refs atomic.Int32
 
 	offsets []uint32
 	lengths []uint32
@@ -32,10 +36,20 @@ type Arena struct {
 	values  []Value
 }
 
-func NewArena(zctx *Context) *Arena { return &Arena{zctx: zctx} }
+func NewArena(zctx *Context) *Arena                        { return &Arena{zctx: zctx} }
+func NewArenaInPool(zctx *Context, pool *sync.Pool) *Arena { return &Arena{zctx: zctx, pool: pool} }
 
-func (*Arena) Ref()   {}
-func (*Arena) Unref() {}
+func (a *Arena) Ref() { a.refs.Add(1) }
+
+func (a *Arena) Unref() {
+	if refs := a.refs.Add(-1); refs == 0 {
+		if a.pool != nil {
+			a.pool.Put(a)
+		}
+	} else if refs < 0 {
+		panic("negative arena reference count")
+	}
+}
 
 func (a *Arena) Grow(n int) { a.bytes = slices.Grow(a.bytes, n) }
 

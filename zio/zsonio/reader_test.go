@@ -13,6 +13,9 @@ import (
 )
 
 func TestReadOneLineNoEOF(t *testing.T) {
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+
 	const expected = `{msg:"record1"}`
 	type result struct {
 		err error
@@ -24,8 +27,8 @@ func TestReadOneLineNoEOF(t *testing.T) {
 		// The test needs two records because with a single record the parser
 		// will stall waiting to see if the record has a decorator.
 		reader <- []byte(expected + "\n" + expected)
-		r := zsonio.NewReader(zed.NewContext(), reader)
-		rec, err := r.Read()
+		r := zsonio.NewReader(arena.Zctx(), reader)
+		rec, err := r.Read(arena)
 		done <- result{val: rec, err: err}
 	}()
 	select {

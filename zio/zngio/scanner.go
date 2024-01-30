@@ -273,23 +273,25 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 		return nil, err
 	}
 	w.mapperLookupCache.Reset(local.mapper)
-	batch := newBatch(w.zctx, nvals, nbytes)
+	arena := zed.NewArena(w.zctx)
+	_ = nbytes // xxx resize arena
+	vals := make([]zed.Value, 0, nvals)
 	var progress zbuf.Progress
 	for i := 0; i < nvals; i++ {
-		val, err := w.decodeVal(batch.Arena(), buf)
+		val, err := w.decodeVal(arena, buf)
 		if err != nil {
 			return nil, err
 		}
 		if w.wantValue(val, &progress) {
-			batch.append(val)
+			vals = append(vals, val)
 		}
 	}
 	w.progress.Add(progress)
-	if len(batch.Values()) == 0 {
-		batch.Unref()
+	if len(vals) == 0 {
+		arena.Unref()
 		return nil, nil
 	}
-	return batch, nil
+	return zbuf.NewBatch, nil
 }
 
 func countValues(buf *buffer) (int, int, error) {
