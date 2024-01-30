@@ -2,7 +2,6 @@ package zbuf
 
 import (
 	"sync"
-	"sync/atomic"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
@@ -26,6 +25,8 @@ import (
 // eventually be reclaimed by the garbage collector.
 
 type Batch interface {
+	Ref()
+	Unref()
 	Arenas() (vals, vars *zed.Arena)
 	Values() []zed.Value
 	Vars() []zed.Value
@@ -38,9 +39,14 @@ type batch struct {
 }
 
 func NewBatch(arena *zed.Arena, vals []zed.Value, vars *zed.ArenaValues) Batch {
+	if vars == nil {
+		vars = &zed.ArenaValues{}
+	}
 	return &batch{&zed.ArenaValues{Arena: arena, Values: vals}, vars}
 }
 
+func (b *batch) Ref()                            {}
+func (b *batch) Unref()                          {}
 func (b *batch) Arenas() (vals, vars *zed.Arena) { return b.vals.Arena, b.vars.Arena }
 func (b *batch) Values() []zed.Value             { return b.vals.Values }
 func (b *batch) Vars() []zed.Value               { return b.vars.Values }
@@ -80,24 +86,30 @@ var PullerBatchValues = 100
 // NewPuller returns a puller for zr that returns batches containing up to
 // [PullerBatchBytes] bytes and [PullerBatchValues] values.
 func NewPuller(zctx *zed.Context, zr zio.Reader) Puller {
-	arenaPool := &sync.Pool{}
-	arenaPool.New = func() any {
-		return zed.NewArenaInPool(zctx, arenaPool)
-	}
-	return &puller{zr, arenaPool}
+	return &puller{zctx: zctx, zr: zr}
 }
 
 type puller struct {
+	zctx      *zed.Context
 	zr        zio.Reader
-	arenaPool *sync.Pool
+	arenaPool sync.Pool
+}
+
+func (p *puller) newArena() *zed.Arena {
+	arena := p.arenaPool.Get().(*zed.Arena)
+	if arena == nil {
+		return zed.NewArenaInPool(p.zctx, &p.arenaPool)
+	}
+	arena.Ref()
+	arena.Reset()
+	return arena
 }
 
 func (p *puller) Pull(bool) (Batch, error) {
 	if p.zr == nil {
 		return nil, nil
 	}
-	arena := p.arenaPool.Get().(*zed.Arena)
-	arena.Ref()
+	arena := p.newArena()
 	vals := make([]zed.Value, 0, PullerBatchValues)
 	for {
 		val, err := p.zr.Read(arena)
@@ -107,7 +119,6 @@ func (p *puller) Pull(bool) (Batch, error) {
 		if val == nil {
 			p.zr = nil
 			if len(vals) == 0 {
-				arena.Unref()
 				return nil, nil
 			}
 			return NewBatch(arena, vals, nil), nil
@@ -118,36 +129,6 @@ func (p *puller) Pull(bool) (Batch, error) {
 		}
 	}
 }
-
-type pullerBatch struct {
-	refs  atomic.Int32
-	arena *zed.Arena
-	vals  []zed.Value
-}
-
-var pullerBatchPool sync.Pool
-
-// appendVal appends a copy of val to b.  appendVal returns true if b is full
-// (i.e., b.buf is full, b.buf had insufficient space for val.Bytes, or b.val is
-// full).  appendVal never reallocates b.buf or b.vals.
-func (b *pullerBatch) appendVal(val zed.Value) bool {
-	b.vals = append(b.vals, b.arena.NewValue(val.Type(), val.Bytes()))
-	return len(b.vals) == cap(b.vals)
-}
-
-func (b *pullerBatch) Ref() { b.refs.Add(1) }
-
-func (b *pullerBatch) Unref() {
-	if refs := b.refs.Add(-1); refs == 0 {
-		pullerBatchPool.Put(b)
-	} else if refs < 0 {
-		panic("zbuf: negative batch reference count")
-	}
-}
-
-func (p *pullerBatch) Values() []zed.Value { return p.vals }
-func (*pullerBatch) Vars() []zed.Value     { return nil }
-func (p *pullerBatch) Zctx() *zed.Context  { return p.arena.Zctx() }
 
 func CopyPuller(w zio.Writer, p Puller) error {
 	for {
