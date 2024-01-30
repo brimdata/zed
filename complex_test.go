@@ -15,9 +15,7 @@ import (
 
 func TestRecordAccessNamed(t *testing.T) {
 	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
-	reader := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
-	rec, err := reader.Read()
-	require.NoError(t, err)
+	rec := zson.MustParseValue(zed.NewContext(), input)
 	s := rec.Deref("foo").AsString()
 	assert.Equal(t, s, "hello")
 	b := rec.Deref("bar").AsBool()

@@ -2,23 +2,15 @@ package queryio_test
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
-	"github.com/brimdata/zed/zio/zsonio"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func mkRecord(t *testing.T, s string) zed.Value {
-	r := zsonio.NewReader(zed.NewContext(), strings.NewReader(s))
-	rec, err := r.Read()
-	require.NoError(t, err)
-	return *rec
-}
 
 func TestZJSONWriter(t *testing.T) {
 	const record = `{x:1}`
@@ -32,7 +24,7 @@ func TestZJSONWriter(t *testing.T) {
 	w := queryio.NewZJSONWriter(&buf)
 	err := w.WriteControl(api.QueryChannelSet{ChannelID: 1})
 	require.NoError(t, err)
-	err = w.Write(mkRecord(t, record))
+	err = w.Write(zson.MustParseValue(zed.NewContext(), record))
 	require.NoError(t, err)
 	err = w.WriteControl(api.QueryChannelEnd{ChannelID: 1})
 	require.NoError(t, err)

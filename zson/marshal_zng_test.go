@@ -12,7 +12,6 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -185,11 +184,9 @@ func TestUnmarshalRecord(t *testing.T) {
 	const expected = `{top:{T2f1:{T3f1:1(int32),T3f2:1.(float32)},T2f2:"t2f2-string1"}}`
 	require.Equal(t, expected, zson.FormatValue(rec))
 
-	val, err := zsonio.NewReader(zed.NewContext(), strings.NewReader(expected)).Read()
-	require.NoError(t, err)
-
+	val := zson.MustParseValue(zed.NewContext(), expected)
 	var v2 T1
-	err = zson.UnmarshalZNG(*val, &v2)
+	err = zson.UnmarshalZNG(val, &v2)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
 
