@@ -33,15 +33,11 @@ func NewMarshaler() *MarshalContext {
 }
 
 func NewMarshalerIndent(indent int) *MarshalContext {
-	m := NewMarshalerWithContext(zed.NewContext())
-	m.formatter = NewFormatter(indent, nil)
-	return m
-}
-
-func NewMarshalerWithContext(zctx *zed.Context) *MarshalContext {
+	zctx := zed.NewContext()
 	return &MarshalContext{
 		MarshalZNGContext: NewZNGMarshalerWithContext(zctx),
 		arena:             zed.NewArena(zctx),
+		formatter:         NewFormatter(indent, nil),
 	}
 }
 
@@ -298,9 +294,8 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		m.Builder.Append(zed.EncodeTime(nano.TimeToTs(v)))
 		return zed.TypeTime, nil
 	case zed.Type:
-		val := m.arena.LookupTypeValue(v)
-		m.Builder.Append(val.Bytes())
-		return val.Type(), nil
+		m.Builder.Append(zed.EncodeTypeValue(v))
+		return zed.TypeType, nil
 	case zed.Value:
 		typ, err := m.TranslateType(v.Type())
 		if err != nil {
