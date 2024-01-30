@@ -24,7 +24,7 @@ func (n *Not) Eval(val vector.Any) vector.Any {
 	b := val.(*vector.Bool)
 	bits := make([]uint64, len(b.Bits))
 	for k := range bits {
-		bits[k] = b.Bits[k]
+		bits[k] = ^b.Bits[k]
 	}
 	return b.CopyWithBits(bits)
 }

@@ -1,0 +1,17 @@
+script: |
+  zq -o t.vng -f vng -
+  zed dev vector run -z "yield not (a>1)" t.vng
+
+inputs:
+  - name: stdin
+    data: |
+      {a:1,b:2}
+      {a:2,b:2}
+      {a:3,b:1}
+
+outputs:
+  - name: stdout
+    data: |
+      true
+      false
+      false
