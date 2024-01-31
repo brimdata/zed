@@ -53,7 +53,7 @@ func NewReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Value, error) {
+func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	for {
 		csvRec, err := r.reader.Read()
 		if err != nil {
@@ -70,7 +70,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 			r.init(csvRec)
 			continue
 		}
-		rec, err := r.translate(csvRec)
+		rec, err := r.translate(arena, csvRec)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +84,7 @@ func (r *Reader) init(hdr []string) {
 	r.vals = make([]interface{}, len(hdr))
 }
 
-func (r *Reader) translate(fields []string) (zed.Value, error) {
+func (r *Reader) translate(arena *zed.Arena, fields []string) (zed.Value, error) {
 	if len(fields) != len(r.vals) {
 		// This error shouldn't happen as it should be caught by the
 		// csv package but we check anyway.
@@ -98,7 +98,7 @@ func (r *Reader) translate(fields []string) (zed.Value, error) {
 			vals = append(vals, convertString(field))
 		}
 	}
-	return r.marshaler.MarshalCustom(r.hdr, vals)
+	return r.marshaler.MarshalCustom(arena, r.hdr, vals)
 }
 
 func convertString(s string) interface{} {
