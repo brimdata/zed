@@ -12,6 +12,9 @@ import (
 )
 
 func TestReaderCRLF(t *testing.T) {
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+
 	input := `
 #separator \x09
 #set_separator	,
@@ -23,14 +26,14 @@ func TestReaderCRLF(t *testing.T) {
 10.000000	1
 `
 	input = strings.ReplaceAll(input, "\n", "\r\n")
-	r := NewReader(zed.NewContext(), strings.NewReader(input))
-	rec, err := r.Read()
+	r := NewReader(arena.Zctx(), strings.NewReader(input))
+	rec, err := r.Read(arena)
 	require.NoError(t, err)
 	ts := rec.Deref("ts").AsTime()
 	assert.Exactly(t, 10*nano.Ts(time.Second), ts)
 	d := rec.Deref("i").AsInt()
 	assert.Exactly(t, int64(1), d)
-	rec, err = r.Read()
+	rec, err = r.Read(arena)
 	require.NoError(t, err)
 	assert.Nil(t, rec)
 }

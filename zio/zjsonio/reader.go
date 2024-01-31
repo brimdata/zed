@@ -35,7 +35,7 @@ func NewReader(zctx *zed.Context, reader io.Reader) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Value, error) {
+func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	e := func(err error) error {
 		if err == nil {
 			return err
@@ -59,7 +59,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 	if err := r.decodeValue(r.builder, typ, object.Value); err != nil {
 		return nil, e(err)
 	}
-	r.val = zed.NewValue(typ, r.builder.Bytes().Body())
+	r.val = arena.NewValue(typ, r.builder.Bytes().Body())
 	return &r.val, nil
 }
 
@@ -98,8 +98,7 @@ func (r *Reader) decodeValue(b *zcode.Builder, typ zed.Type, body interface{}) e
 		if err != nil {
 			return err
 		}
-		tv := r.zctx.LookupTypeValue(local)
-		b.Append(tv.Bytes())
+		b.Append(zed.EncodeTypeValue(local))
 		return nil
 	default:
 		return r.decodePrimitive(b, typ, body)
