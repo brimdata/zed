@@ -32,6 +32,10 @@ type Batch interface {
 	Vars() []zed.Value
 }
 
+func WrapBatch(b Batch, arena *zed.Arena, vals []zed.Value) Batch {
+	panic("xxx to do")
+}
+
 type batch struct {
 	vals *zed.ArenaValues
 	// Vars holds variables reachable in the current scope.

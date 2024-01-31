@@ -61,9 +61,11 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			}
 		}
 		if len(out) > 0 {
+			defer arena.Unref()
 			defer batch.Unref()
-			return zbuf.NewBatch(batch, arena, out), nil
+			return zbuf.WrapBatch(batch, arena, out), nil
 		}
+		arena.Unref()
 		batch.Unref()
 	}
 }

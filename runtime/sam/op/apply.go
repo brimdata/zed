@@ -41,8 +41,11 @@ func (a *applier) Pull(done bool) (zbuf.Batch, error) {
 			out = append(out, val)
 		}
 		if len(out) > 0 {
-			return zbuf.NewBatch(batch, arena, out), nil
+			defer arena.Unref()
+			defer batch.Unref()
+			return zbuf.WrapBatch(batch, arena, out), nil
 		}
+		arena.Unref()
 		batch.Unref()
 	}
 }
