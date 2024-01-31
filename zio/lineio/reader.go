@@ -16,10 +16,10 @@ func NewReader(r io.Reader) *Reader {
 	return &Reader{scanner: bufio.NewScanner(r)}
 }
 
-func (r *Reader) Read() (*zed.Value, error) {
+func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	if !r.scanner.Scan() || r.scanner.Err() != nil {
 		return nil, r.scanner.Err()
 	}
-	r.val = zed.NewString(r.scanner.Text())
+	r.val = arena.NewString(r.scanner.Text())
 	return &r.val, nil
 }
