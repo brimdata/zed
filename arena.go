@@ -203,6 +203,12 @@ const (
 	vPrimitiveTypeIDMask = 0xff
 )
 
+func (v Value) CheckArena(a *Arena) {
+	if a2, ok := v.Arena(); ok && a2 != a {
+		panic("arena mismatch")
+	}
+}
+
 func (v Value) Arena() (*Arena, bool) {
 	if v.a&vMask != vArena {
 		return nil, false

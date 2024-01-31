@@ -13,19 +13,21 @@ func NewPeeker(reader Reader) *Peeker {
 	return &Peeker{Reader: reader}
 }
 
-func (p *Peeker) Peek() (*zed.Value, error) {
-	var err error
-	if p.cache == nil {
-		p.cache, err = p.Reader.Read()
+func (p *Peeker) Peek(arena *zed.Arena) (*zed.Value, error) {
+	if p.cache != nil {
+		p.cache.CheckArena(arena)
+		return p.cache, nil
 	}
+	var err error
+	p.cache, err = p.Reader.Read(arena)
 	return p.cache, err
 }
 
-func (p *Peeker) Read() (*zed.Value, error) {
-	v := p.cache
-	if v != nil {
+func (p *Peeker) Read(arena *zed.Arena) (*zed.Value, error) {
+	if val := p.cache; val != nil {
+		val.CheckArena(arena)
 		p.cache = nil
-		return v, nil
+		return val, nil
 	}
-	return p.Reader.Read()
+	return p.Reader.Read(arena)
 }
