@@ -181,7 +181,7 @@ func isArrowStream(arena *zed.Arena, track *Track) error {
 	return err
 }
 
-func isCSVStream(arena, track *Track, delim rune, name string) error {
+func isCSVStream(arena *zed.Arena, track *Track, delim rune, name string) error {
 	if s, err := bufio.NewReader(track).ReadString('\n'); err != nil {
 		return fmt.Errorf("%s: line 1: %w", name, err)
 	} else if !strings.Contains(s, string(delim)) {
@@ -199,9 +199,7 @@ func joinErrs(errs []error) error {
 	return errors.New(s)
 }
 
-func match(zctx *zed.Context, r zio.Reader, name string, want int) error {
-	arena := zed.NewArena(zctx)
-	defer arena.Unref()
+func match(arena *zed.Arena, r zio.Reader, name string, want int) error {
 	for i := 0; i < want; i++ {
 		arena.Reset()
 		val, err := r.Read(arena)

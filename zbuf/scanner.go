@@ -71,8 +71,8 @@ func (p *Progress) Progress() Progress {
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
 // If r implements fmt.Stringer, the scanner reports errors using a prefix of the
 // string returned by its String method.
-func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
-	s, err := newScanner(ctx, r, filterExpr)
+func NewScanner(ctx context.Context, zctx *zed.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
+	s, err := newScanner(ctx, zctx, r, filterExpr)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 	return s, nil
 }
 
-func newScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
+func newScanner(ctx context.Context, zctx *zed.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
 	var sa ScannerAble
 	if zf, ok := r.(*File); ok {
 		sa, _ = zf.Reader.(ScannerAble)
@@ -99,8 +99,8 @@ func newScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 			return nil, err
 		}
 	}
-	sc := &scanner{reader: r, filter: f, ctx: ctx, ectx: expr.NewContext()}
-	sc.Puller = NewPuller(sc)
+	sc := &scanner{reader: r, filter: f, ctx: ctx, ectx: expr.NewContext(zed.NewArena(zctx))}
+	sc.Puller = NewPuller(zctx, sc)
 	return sc, nil
 }
 
@@ -118,18 +118,19 @@ func (s *scanner) Progress() Progress {
 }
 
 // Read implements Reader.Read.
-func (s *scanner) Read() (*zed.Value, error) {
+func (s *scanner) Read(arena *zed.Arena) (*zed.Value, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err
 		}
-		this, err := s.reader.Read()
+		this, err := s.reader.Read(arena)
 		if err != nil || this == nil {
 			return nil, err
 		}
 		atomic.AddInt64(&s.progress.BytesRead, int64(len(this.Bytes())))
 		atomic.AddInt64(&s.progress.RecordsRead, 1)
 		if s.filter != nil {
+			s.ectx.Arena().Reset()
 			val := s.filter.Eval(s.ectx, *this)
 			if !(val.Type() == zed.TypeBool && val.Bool()) {
 				continue

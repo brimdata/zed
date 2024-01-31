@@ -27,7 +27,6 @@ import (
 type Batch interface {
 	Ref()
 	Unref()
-	Arenas() (vals, vars *zed.Arena)
 	Values() []zed.Value
 	Vars() []zed.Value
 }
@@ -49,11 +48,10 @@ func NewBatch(arena *zed.Arena, vals []zed.Value, vars *zed.ArenaValues) Batch {
 	return &batch{&zed.ArenaValues{Arena: arena, Values: vals}, vars}
 }
 
-func (b *batch) Ref()                            {}
-func (b *batch) Unref()                          {}
-func (b *batch) Arenas() (vals, vars *zed.Arena) { return b.vals.Arena, b.vars.Arena }
-func (b *batch) Values() []zed.Value             { return b.vals.Values }
-func (b *batch) Vars() []zed.Value               { return b.vars.Values }
+func (b *batch) Ref()                {}
+func (b *batch) Unref()              {}
+func (b *batch) Values() []zed.Value { return b.vals.Values }
+func (b *batch) Vars() []zed.Value   { return b.vars.Values }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
 // stops and returns the error.
