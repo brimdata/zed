@@ -20,6 +20,7 @@ import (
 	"github.com/brimdata/zed/zson"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
@@ -85,7 +86,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(prometheus.NewGoCollector())
+	registry.MustRegister(collectors.NewGoCollector())
 
 	var authenticator *Auth0Authenticator
 	if conf.Auth.Enabled {
