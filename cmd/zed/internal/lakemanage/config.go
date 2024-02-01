@@ -19,32 +19,27 @@ func (c *Config) poolConfig(p *pools.Config) PoolConfig {
 		if p.Name != pconf.Pool && p.ID.String() != pconf.Pool {
 			continue
 		}
-		if pconf.Interval == nil {
-			pconf.Interval = c.Interval
-		}
 		if pconf.Branch == "" {
 			pconf.Branch = "main"
 		}
 		return pconf
 	}
 	return PoolConfig{
-		Pool:     p.Name,
-		Branch:   "main",
-		Interval: c.Interval,
-		Vectors:  c.Vectors,
+		Pool:    p.Name,
+		Branch:  "main",
+		Vectors: c.Vectors,
 	}
 }
 
-type PoolConfig struct {
-	Pool     string         `yaml:"pool"`
-	Branch   string         `yaml:"branch"`
-	Interval *time.Duration `yaml:"interval"`
-	Vectors  bool           `yaml:"vectors"`
-}
-
-func (c *PoolConfig) interval() time.Duration {
+func (c *Config) interval() time.Duration {
 	if c.Interval == nil {
 		return DefaultInterval
 	}
 	return *c.Interval
+}
+
+type PoolConfig struct {
+	Pool    string `yaml:"pool"`
+	Branch  string `yaml:"branch"`
+	Vectors bool   `yaml:"vectors"`
 }

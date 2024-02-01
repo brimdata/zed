@@ -9,9 +9,12 @@ import (
 	"os"
 	"runtime"
 	"syscall"
+	"time"
 
+	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/logflags"
+	"github.com/brimdata/zed/cmd/zed/internal/lakemanage"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
@@ -19,6 +22,7 @@ import (
 	"github.com/brimdata/zed/pkg/httpd"
 	"github.com/brimdata/zed/service"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 var Cmd = &charm.Spec{
@@ -43,6 +47,7 @@ type Command struct {
 	// command will exit if the fd is closed.
 	brimfd          int
 	listenAddr      string
+	manage          time.Duration
 	portFile        string
 	rootContentFile string
 }
@@ -59,6 +64,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	})
 	f.StringVar(&c.conf.DefaultResponseFormat, "defaultfmt", service.DefaultZedFormat, "default response format")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
+	f.DurationVar(&c.manage, "manage", 0, "manage lake (e.g., compact) every interval (default 0=never)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.StringVar(&c.rootContentFile, "rootcontentfile", "", "file to serve for GET /")
 	return c, nil
@@ -106,12 +112,20 @@ func (c *Command) Run(args []string) error {
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
+	group, ctx := errgroup.WithContext(ctx)
+	if c.manage > 0 {
+		conn := client.NewConnectionTo("http://" + srv.Addr())
+		group.Go(func() error {
+			return lakemanage.Monitor(ctx, conn, lakemanage.Config{Interval: &c.manage}, logger.Named("manage"))
+		})
+	}
 	if c.portFile != "" {
 		if err := c.writePortFile(srv.Addr()); err != nil {
 			return err
 		}
 	}
-	return srv.Wait()
+	group.Go(srv.Wait)
+	return group.Wait()
 }
 
 func (c *Command) watchBrimFd(ctx context.Context, logger *zap.Logger) (context.Context, error) {
