@@ -244,11 +244,11 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.DefaultScan:
 		pushdown := b.PushdownOf(v.Filter)
 		if len(b.readers) == 1 {
-			return zbuf.NewScanner(b.rctx.Context, b.readers[0], pushdown)
+			return zbuf.NewScanner(b.rctx.Context, b.rctx.Zctx, b.readers[0], pushdown)
 		}
 		scanners := make([]zbuf.Scanner, 0, len(b.readers))
 		for _, r := range b.readers {
-			scanner, err := zbuf.NewScanner(b.rctx.Context, r, pushdown)
+			scanner, err := zbuf.NewScanner(b.rctx.Context, b.rctx.Zctx, r, pushdown)
 			if err != nil {
 				return nil, err
 			}

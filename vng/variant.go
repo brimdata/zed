@@ -113,7 +113,7 @@ func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) 
 	}, nil
 }
 
-func (v *variantBuilder) Read() (*zed.Value, error) {
+func (v *variantBuilder) Read(arena *zed.Arena) (*zed.Value, error) {
 	b := v.builder
 	b.Truncate()
 	tag, err := v.tags.Next()
@@ -129,7 +129,7 @@ func (v *variantBuilder) Read() (*zed.Value, error) {
 	if err := v.values[tag].Build(b); err != nil {
 		return nil, err
 	}
-	return zed.NewValue(v.types[tag], b.Bytes().Body()).Ptr(), nil
+	return arena.NewValue(v.types[tag], b.Bytes().Body()).Ptr(), nil
 }
 
 func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, error) {
@@ -155,7 +155,7 @@ type vectorBuilder struct {
 	count   uint32
 }
 
-func (v *vectorBuilder) Read() (*zed.Value, error) {
+func (v *vectorBuilder) Read(arena *zed.Arena) (*zed.Value, error) {
 	if v.count == 0 {
 		return nil, nil
 	}
@@ -165,5 +165,5 @@ func (v *vectorBuilder) Read() (*zed.Value, error) {
 	if err := v.values.Build(b); err != nil {
 		return nil, err
 	}
-	return zed.NewValue(v.typ, b.Bytes().Body()).Ptr(), nil
+	return arena.NewValue(v.typ, b.Bytes().Body()).Ptr(), nil
 }

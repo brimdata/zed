@@ -5,11 +5,15 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewStringNotNull(t *testing.T) {
-	assert.NotNil(t, zed.NewString("").Bytes())
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+	assert.NotNil(t, arena.NewString("").Bytes())
 }
 
 func BenchmarkValueUnder(b *testing.B) {
@@ -21,8 +25,10 @@ func BenchmarkValueUnder(b *testing.B) {
 		}
 	})
 	b.Run("named", func(b *testing.B) {
-		typ, _ := zed.NewContext().LookupTypeNamed("name", zed.TypeNull)
-		val := zed.NewValue(typ, nil)
+		arena := zed.NewArena(zed.NewContext())
+		defer arena.Unref()
+		typ, _ := arena.Zctx().LookupTypeNamed("name", zed.TypeNull)
+		val := arena.NewValue(typ, nil)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			val.Under()
@@ -31,9 +37,10 @@ func BenchmarkValueUnder(b *testing.B) {
 }
 
 func TestValueValidate(t *testing.T) {
-	recType := zed.NewTypeRecord(0, []zed.Field{
-		zed.NewField("f", zed.NewTypeSet(0, zed.TypeString)),
-	})
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+	recType, err := zson.ParseType(arena.Zctx(), "{f:|[string]|}")
+	require.NoError(t, err)
 	t.Run("set/error/duplicate-element", func(t *testing.T) {
 		var b zcode.Builder
 		b.BeginContainer()
@@ -41,7 +48,7 @@ func TestValueValidate(t *testing.T) {
 		b.Append([]byte("dup"))
 		// Don't normalize.
 		b.EndContainer()
-		val := zed.NewValue(recType, b.Bytes())
+		val := arena.NewValue(recType, b.Bytes())
 		assert.EqualError(t, val.Validate(), "invalid ZNG: duplicate set element")
 	})
 	t.Run("set/error/unsorted-elements", func(t *testing.T) {
@@ -52,7 +59,7 @@ func TestValueValidate(t *testing.T) {
 		b.Append([]byte("b"))
 		// Don't normalize.
 		b.EndContainer()
-		val := zed.NewValue(recType, b.Bytes())
+		val := arena.NewValue(recType, b.Bytes())
 		assert.EqualError(t, val.Validate(), "invalid ZNG: set elements not sorted")
 	})
 	t.Run("set/primitive-elements", func(t *testing.T) {
@@ -64,7 +71,7 @@ func TestValueValidate(t *testing.T) {
 		b.Append([]byte("a"))
 		b.TransformContainer(zed.NormalizeSet)
 		b.EndContainer()
-		val := zed.NewValue(recType, b.Bytes())
+		val := arena.NewValue(recType, b.Bytes())
 		assert.NoError(t, val.Validate())
 	})
 	t.Run("set/complex-elements", func(t *testing.T) {
@@ -77,13 +84,9 @@ func TestValueValidate(t *testing.T) {
 		}
 		b.TransformContainer(zed.NormalizeSet)
 		b.EndContainer()
-		r := zed.NewValue(
-			zed.NewTypeRecord(0, []zed.Field{
-				zed.NewField("f", zed.NewTypeSet(0, zed.NewTypeRecord(0, []zed.Field{
-					zed.NewField("g", zed.TypeString),
-				}))),
-			}),
-			b.Bytes())
-		assert.NoError(t, r.Validate())
+		typ, err := zson.ParseType(arena.Zctx(), "{f:|[{g:string}]|}")
+		require.NoError(t, err)
+		val := arena.NewValue(typ, b.Bytes())
+		assert.NoError(t, val.Validate())
 	})
 }

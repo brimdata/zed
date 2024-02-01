@@ -69,7 +69,7 @@ func (s *Source) Open(ctx context.Context, zctx *zed.Context, path, format strin
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	scanner, err := zbuf.NewScanner(ctx, file, pushdown)
+	scanner, err := zbuf.NewScanner(ctx, zctx, file, pushdown)
 	if err != nil {
 		file.Close()
 		return nil, err
@@ -93,7 +93,7 @@ func (s *Source) OpenHTTP(ctx context.Context, zctx *zed.Context, url, format, m
 		resp.Body.Close()
 		return nil, fmt.Errorf("%s: %w", url, err)
 	}
-	scanner, err := zbuf.NewScanner(ctx, file, nil)
+	scanner, err := zbuf.NewScanner(ctx, zctx, file, nil)
 	if err != nil {
 		file.Close()
 		return nil, err
