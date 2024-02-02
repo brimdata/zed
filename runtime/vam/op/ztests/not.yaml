@@ -1,6 +1,6 @@
 script: |
   zq -o t.vng -f vng -
-  zed dev vector run -z "yield not (a>1)" t.vng
+  zed dev vector query -z "yield not (a>1)" t.vng
 
 inputs:
   - name: stdin

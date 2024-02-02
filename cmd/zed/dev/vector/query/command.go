@@ -1,4 +1,4 @@
-package run
+package query
 
 import (
 	"errors"
@@ -18,12 +18,12 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-var run = &charm.Spec{
-	Name:  "run",
-	Usage: "run [flags] query path",
+var query = &charm.Spec{
+	Name:  "query",
+	Usage: "query [flags] query path",
 	Short: "run a Zed query on a VNG file",
 	Long: `
-The run command runs a query on a VNG file presuming the 
+The query command runs a query on a VNG file presuming the 
 query is entirely vectorizable.  The VNG object is read through 
 the vcache and projected as needed into the runtime.
 
@@ -34,7 +34,7 @@ in isolation from a Zed lake.
 }
 
 func init() {
-	vector.Cmd.Add(run)
+	vector.Cmd.Add(query)
 }
 
 type Command struct {

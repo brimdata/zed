@@ -1,6 +1,6 @@
 script: |
   zq -o t.vng -f vng -
-  zed dev vector run -z "yield a >= 1, a >= b, a >= 1 or a >= b" t.vng
+  zed dev vector query -z "yield a >= 1, a >= b, a >= 1 or a >= b" t.vng
 
 inputs:
   - name: stdin
