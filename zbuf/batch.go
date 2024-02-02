@@ -155,7 +155,7 @@ type pullerReader struct {
 	vals  []zed.Value
 }
 
-func (r *pullerReader) Read(*zed.Arena) (*zed.Value, error) {
+func (r *pullerReader) Read(arena *zed.Arena) (*zed.Value, error) {
 	// Loop handles zero-length batches.
 	for len(r.vals) == 0 {
 		if r.batch != nil {
@@ -171,7 +171,7 @@ func (r *pullerReader) Read(*zed.Arena) (*zed.Value, error) {
 	}
 	val := &r.vals[0]
 	r.vals = r.vals[1:]
-	return val, nil
+	return val.CopyToArena(arena).Ptr(), nil
 }
 
 func CopyVars(b Batch) []zed.Value {

@@ -236,13 +236,13 @@ type sortStableReader struct {
 	vals    []zed.Value
 }
 
-func (s *sortStableReader) Read(*zed.Arena) (*zed.Value, error) {
+func (s *sortStableReader) Read(arena *zed.Arena) (*zed.Value, error) {
 	if len(s.indices) == 0 {
 		return nil, nil
 	}
-	val := &s.vals[s.indices[0]]
+	val := s.vals[s.indices[0]]
 	s.indices = s.indices[1:]
-	return val, nil
+	return val.CopyToArena(arena).Ptr(), nil
 }
 
 // SortStable performs a stable sort on the provided records.

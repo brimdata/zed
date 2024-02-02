@@ -126,7 +126,7 @@ func (o *Op) run() {
 			continue
 		}
 		if spiller == nil {
-			spiller, err = spill.NewMergeSort(o.comparator)
+			spiller, err = spill.NewMergeSort(o.rctx.Zctx, o.comparator)
 			if err != nil {
 				if ok := o.sendResult(nil, err); !ok {
 					return
@@ -154,7 +154,7 @@ func (o *Op) send(vals []zed.Value) bool {
 }
 
 func (o *Op) sendSpills(spiller *spill.MergeSort) bool {
-	puller := zbuf.NewPuller(spiller)
+	puller := zbuf.NewPuller(o.rctx.Zctx, spiller)
 	for {
 		if err := o.rctx.Err(); err != nil {
 			return false
