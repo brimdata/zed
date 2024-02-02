@@ -1,0 +1,23 @@
+script: |
+  zq -o t.vng -f vng -
+  zed dev vector query -z "yield a >= 1, a >= b, a >= 1 or a >= b" t.vng
+
+inputs:
+  - name: stdin
+    data: |
+      {a:1,b:2}
+      {a:2,b:2}
+      {a:3,b:1}
+
+outputs:
+  - name: stdout
+    data: |
+      true
+      false
+      true
+      true
+      true
+      true
+      true
+      true
+      true

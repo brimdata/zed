@@ -153,5 +153,5 @@ func (s *Scanner) sendResult(vec vector.Any, err error) (bool, bool) {
 
 type result struct {
 	vector vector.Any
-	err    error
+	err    error //XXX go err vs vector.Any err?
 }

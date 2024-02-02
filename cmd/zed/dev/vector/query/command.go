@@ -1,4 +1,4 @@
-package read
+package query
 
 import (
 	"errors"
@@ -6,34 +6,35 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	devvcache "github.com/brimdata/zed/cmd/zed/dev/vcache"
+	"github.com/brimdata/zed/cmd/zed/dev/vector"
 	"github.com/brimdata/zed/cmd/zed/root"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/vam"
+	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
 
-var Project = &charm.Spec{
-	Name:  "project",
-	Usage: "project [flags] path [field ...]",
-	Short: "read a VNG file and run a projection as a test",
+var query = &charm.Spec{
+	Name:  "query",
+	Usage: "query [flags] query path",
+	Short: "run a Zed query on a VNG file",
 	Long: `
-The project command reads VNG vectors from
-VNG storage objects (local files or s3 objects) and outputs
-the reconstructed ZNG row data as a projection of zero or more fields.
-If no fields are specified, all the data is projected.
+The query command runs a query on a VNG file presuming the 
+query is entirely vectorizable.  The VNG object is read through 
+the vcache and projected as needed into the runtime.
 
-This command is most useful for testing the VNG vector cache.
+This command is most useful for testing the vector runtime
+in isolation from a Zed lake.
 `,
 	New: newCommand,
 }
 
 func init() {
-	devvcache.Cmd.Add(Project)
+	vector.Cmd.Add(query)
 }
 
 type Command struct {
@@ -53,16 +54,13 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if len(args) < 2 {
-		return errors.New("VNG read: must be run with a single path argument followed by one or more fields")
+	if len(args) != 2 {
+		return errors.New("usage: query followed by a single path argument of VNG data")
 	}
-	uri, err := storage.ParseURI(args[0])
+	text := args[0]
+	uri, err := storage.ParseURI(args[1])
 	if err != nil {
 		return err
-	}
-	var paths []field.Path
-	for _, dotted := range args[1:] {
-		paths = append(paths, field.Dotted(dotted))
 	}
 	local := storage.NewLocalEngine()
 	cache := vcache.NewCache(local)
@@ -71,12 +69,16 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer object.Close()
-	projection := vam.NewProjection(zed.NewContext(), object, paths)
+	rctx := runtime.NewContext(ctx, zed.NewContext())
+	puller, err := compiler.VectorCompile(rctx, text, object)
+	if err != nil {
+		return err
+	}
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-	if err := zbuf.CopyPuller(writer, projection); err != nil {
+	if err := zio.Copy(writer, zbuf.PullerReader(puller)); err != nil {
 		writer.Close()
 		return err
 	}

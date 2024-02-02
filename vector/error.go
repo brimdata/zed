@@ -36,6 +36,11 @@ func (e *Error) Serialize(b *zcode.Builder, slot uint32) {
 
 }
 
+func NewStringError(zctx *zed.Context, msg string, len uint32) *Error {
+	vals := NewConst(zed.NewString(msg), len, nil)
+	return &Error{Typ: zctx.LookupTypeError(zed.TypeString), Vals: vals}
+}
+
 func NewMissing(zctx *zed.Context, len uint32) *Error {
 	missing := zctx.Missing()
 	vals := NewConst(missing, len, nil)
