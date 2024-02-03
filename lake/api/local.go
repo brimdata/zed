@@ -128,6 +128,11 @@ func (l *local) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error
 	if poolName == "" {
 		return ksuid.Nil, errors.New("no pool name provided")
 	}
+	if id, err := lakeparse.ParseID(poolName); err == nil {
+		if _, err := l.root.OpenPool(ctx, id); err == nil {
+			return id, nil
+		}
+	}
 	return l.root.PoolID(ctx, poolName)
 }
 
