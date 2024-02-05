@@ -80,11 +80,12 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		go o.left.run()
 		go o.right.Reader.(*puller).run()
 	})
-	var out []zed.Value
+	arena := zed.NewArena(o.rctx.Zctx)
 	// See #3366
-	ectx := expr.NewContext()
+	ectx := expr.NewContext(arena)
+	var out []zed.Value
 	for {
-		leftRec, err := o.left.Read()
+		leftRec, err := o.left.Read(arena)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +94,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 				return nil, nil
 			}
 			//XXX See issue #3427.
-			return zbuf.NewArray(out), nil
+			return zbuf.NewArray(arena, out), nil
 		}
 		key := o.getLeftKey.Eval(ectx, *leftRec)
 		if key.IsMissing() {
@@ -102,7 +103,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			// left records that can eval the key expression.
 			continue
 		}
-		rightRecs, err := o.getJoinSet(key)
+		rightRecs, err := o.getJoinSet(ectx, key)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +138,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	}
 }
 
-func (o *Op) getJoinSet(leftKey zed.Value) ([]zed.Value, error) {
+func (o *Op) getJoinSet(ectx expr.Context, leftKey zed.Value) ([]zed.Value, error) {
 	if o.joinKey != nil && o.compare(leftKey, *o.joinKey) == 0 {
 		return o.joinSet, nil
 	}
