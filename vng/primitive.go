@@ -25,6 +25,8 @@ type PrimitiveEncoder struct {
 	min      *zed.Value
 	max      *zed.Value
 	count    uint32
+
+	arena *zed.Arena
 }
 
 func NewPrimitiveEncoder(typ zed.Type, useDict bool) *PrimitiveEncoder {

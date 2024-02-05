@@ -39,6 +39,8 @@ type Arena struct {
 func NewArena(zctx *Context) *Arena                        { return &Arena{zctx: zctx} }
 func NewArenaInPool(zctx *Context, pool *sync.Pool) *Arena { return &Arena{zctx: zctx, pool: pool} }
 
+func (a *Arena) AddRefTo(v interface{ Ref() }) { v.Ref() }
+
 func (a *Arena) Ref() { a.refs.Add(1) }
 
 func (a *Arena) Unref() {

@@ -62,5 +62,5 @@ again:
 		return nil, err
 	}
 	o.count = o.limit
-	return zbuf.WrapBatch(batch, zed.NewArena(nil), vals[:remaining]), nil
+	return zbuf.NewBatch(zed.NewArena(nil), vals[:remaining], batch, batch.Vars()), nil
 }

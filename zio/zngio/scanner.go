@@ -291,7 +291,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 		arena.Unref()
 		return nil, nil
 	}
-	return zbuf.NewBatch(arena, vals, nil), nil
+	return zbuf.NewBatch(arena, vals, nil, nil), nil
 }
 
 func countValues(buf *buffer) (int, int, error) {

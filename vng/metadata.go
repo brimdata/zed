@@ -159,6 +159,8 @@ type Primitive struct {
 	Min      *zed.Value
 	Max      *zed.Value
 	Count    uint32
+
+	arena *zed.Arena
 }
 
 func (p *Primitive) Type(zctx *zed.Context) zed.Type {

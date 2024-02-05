@@ -67,7 +67,7 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 	// ref the batch for each outgoing new batch.
 	for _, c := range s.cases {
 		if len(c.vals) > 0 {
-			out := zbuf.WrapBatch(batch, arena, c.vals)
+			out := zbuf.NewBatch(arena, c.vals, batch, batch.Vars())
 			c.vals = nil
 			if ok := router.Send(c.route, out, nil); !ok {
 				return false
@@ -75,7 +75,7 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 		}
 	}
 	if c := s.defaultCase; c != nil && len(c.vals) > 0 {
-		out := zbuf.WrapBatch(batch, arena, c.vals)
+		out := zbuf.NewBatch(arena, c.vals, batch, batch.Vars())
 		c.vals = nil
 		if ok := router.Send(c.route, out, nil); !ok {
 			return false

@@ -19,8 +19,11 @@ func (a *Any) Consume(val zed.Value) {
 	// Copy any value from the input while favoring any-typed non-null values
 	// over null values.
 	if a.val.Type() == nil || a.val.IsNull() && !val.IsNull() {
-		a.arena, _ = val.Arena()
-		a.val = val.CopyToArena(a.arena)
+		if arena, ok := val.Arena(); ok {
+			arena.Ref()
+			a.arena = arena
+		}
+		a.val = val
 	}
 }
 

@@ -2,6 +2,7 @@ package zbuf
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
@@ -31,27 +32,37 @@ type Batch interface {
 	Vars() []zed.Value
 }
 
-func WrapBatch(b Batch, arena *zed.Arena, vals []zed.Value) Batch {
-	panic("xxx to do")
-}
-
 type batch struct {
-	vals *zed.ArenaValues
-	// Vars holds variables reachable in the current scope.
-	vars *zed.ArenaValues
+	refs  int32
+	arena *zed.Arena
+	vals  []zed.Value
+	batch Batch
+	vars  []zed.Value
 }
 
-func NewBatch(arena *zed.Arena, vals []zed.Value, vars *zed.ArenaValues) Batch {
-	if vars == nil {
-		vars = &zed.ArenaValues{}
+func NewBatch(arena *zed.Arena, vals []zed.Value, b Batch, vars []zed.Value) Batch {
+	return &batch{1, arena, vals, b, b.Vars()}
+}
+
+func NewBatchWithVars(arena *zed.Arena, vals []zed.Value, vars []zed.Value) Batch {
+	return &batch{1, arena, vals, nil, vars}
+}
+
+func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
+
+func (b *batch) Unref() {
+	if refs := atomic.AddInt32(&b.refs, -1); refs == 0 {
+		b.arena.Unref()
+		if b.batch != nil {
+			b.batch.Unref()
+		}
+	} else if refs < 0 {
+		panic("zbuf: negative batch reference count")
 	}
-	return &batch{&zed.ArenaValues{Arena: arena, Values: vals}, vars}
 }
 
-func (b *batch) Ref()                {}
-func (b *batch) Unref()              {}
-func (b *batch) Values() []zed.Value { return b.vals.Values }
-func (b *batch) Vars() []zed.Value   { return b.vars.Values }
+func (b *batch) Values() []zed.Value { return b.vals }
+func (b *batch) Vars() []zed.Value   { return b.vars }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
 // stops and returns the error.
@@ -123,11 +134,11 @@ func (p *puller) Pull(bool) (Batch, error) {
 			if len(vals) == 0 {
 				return nil, nil
 			}
-			return NewBatch(arena, vals, nil), nil
+			return NewBatch(arena, vals, nil, nil), nil
 		}
 		vals = append(vals, *val)
 		if len(vals) >= PullerBatchValues {
-			return NewBatch(arena, vals, nil), nil
+			return NewBatch(arena, vals, nil, nil), nil
 		}
 	}
 }
