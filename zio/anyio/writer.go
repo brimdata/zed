@@ -50,7 +50,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 		opts.CSV.Delim = '\t'
 		return csvio.NewWriter(w, opts.CSV), nil
 	case "vng":
-		return vngio.NewWriter(w)
+		return vngio.NewWriter(w), nil
 	case "zeek":
 		return zeekio.NewWriter(w), nil
 	case "zjson":
