@@ -598,7 +598,7 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 			return nil, err
 		}
 		cmp := expr.NewComparator(true, o.Order == order.Desc, e).WithMissingAsNull()
-		return []zbuf.Puller{merge.New(b.rctx, parents, cmp.Compare)}, nil
+		return []zbuf.Puller{merge.New(b.rctx.Context, b.rctx.Zctx, parents, cmp.Compare)}, nil
 	case *dag.Combine:
 		return []zbuf.Puller{combine.New(b.rctx, parents)}, nil
 	default:

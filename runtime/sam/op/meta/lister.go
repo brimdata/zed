@@ -24,6 +24,7 @@ import (
 // sensitivity of the downstream flowgraph.
 type Lister struct {
 	ctx       context.Context
+	zctx      *zed.Context
 	pool      *lake.Pool
 	snap      commits.View
 	pruner    *pruner
@@ -57,13 +58,14 @@ func NewSortedListerFromSnap(ctx context.Context, zctx *zed.Context, r *lake.Roo
 	m.Decorate(zson.StylePackage)
 	l := &Lister{
 		ctx:       ctx,
+		zctx:      zctx,
 		pool:      pool,
 		snap:      snap,
 		group:     &errgroup.Group{},
 		marshaler: m,
 	}
 	if pruner != nil {
-		l.pruner = newPruner(pruner)
+		l.pruner = newPruner(zctx, pruner)
 	}
 	return l
 }
@@ -81,16 +83,18 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 	if l.objects == nil {
 		l.objects = initObjectScan(l.snap, l.pool.SortKey)
 	}
+	arena := zed.NewArena(l.zctx)
 	for len(l.objects) != 0 {
+		arena.Reset()
 		o := l.objects[0]
 		l.objects = l.objects[1:]
-		val, err := l.marshaler.Marshal(o)
+		val, err := l.marshaler.Marshal(arena, o)
 		if err != nil {
 			l.err = err
 			return nil, err
 		}
 		if !l.pruner.prune(val) {
-			return zbuf.NewArray([]zed.Value{val}), nil
+			return zbuf.NewArray(arena, []zed.Value{val}), nil
 		}
 	}
 	return nil, nil

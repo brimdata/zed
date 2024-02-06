@@ -20,6 +20,7 @@ import (
 // Merger is waiting on the upstream puller.
 type Op struct {
 	ctx  context.Context
+	zctx *zed.Context
 	cmp  expr.CompareFn
 	once sync.Once
 	// parents holds all of the upstream pullers and never changes.
@@ -33,13 +34,14 @@ type Op struct {
 var _ zbuf.Puller = (*Op)(nil)
 var _ zio.Reader = (*Op)(nil)
 
-func New(ctx context.Context, parents []zbuf.Puller, cmp expr.CompareFn) *Op {
+func New(ctx context.Context, zctx *zed.Context, parents []zbuf.Puller, cmp expr.CompareFn) *Op {
 	pullers := make([]*puller, 0, len(parents))
 	for _, p := range parents {
 		pullers = append(pullers, newPuller(ctx, p))
 	}
 	return &Op{
 		ctx:     ctx,
+		zctx:    zctx,
 		cmp:     cmp,
 		parents: pullers,
 	}
@@ -66,7 +68,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		// way, it's safe to return min's remaining values as a batch.
 		batch := min.batch
 		if len(min.vals) < len(batch.Values()) {
-			batch = zbuf.NewArray(min.vals)
+			batch = zbuf.NewBatch(zed.NewArena(nil), min.vals, batch, nil)
 		}
 		ok, err := min.replenish()
 		if err != nil {
@@ -78,7 +80,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		return batch, nil
 	}
 	heap.Push(o, min)
-	return zbuf.NewPuller(o).Pull(false)
+	return zbuf.NewPuller(o.zctx, o).Pull(false)
 }
 
 func (o *Op) Read(arena *zed.Arena) (*zed.Value, error) {

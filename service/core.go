@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
@@ -219,17 +220,20 @@ func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
-	marshaler := zson.NewZNGMarshaler()
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+	marshaler := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	marshaler.Decorate(zson.StyleSimple)
-	zv, err := marshaler.Marshal(data)
+	zv, err := marshaler.Marshal(arena, data)
 	if err != nil {
 		w.Logger.Error("Error marshaling published event", zap.Error(err))
 		return
 	}
 	go func() {
-		ev := event{name: name, value: zv}
+		ev := event{name: name, arena: arena, value: zv}
 		c.subscriptionsMu.RLock()
 		for sub := range c.subscriptions {
+			arena.Ref()
 			sub <- ev
 		}
 		c.subscriptionsMu.RUnlock()

@@ -18,6 +18,7 @@ import (
 // them into overlapping object Slices forming a sequence of
 // non-overlapping Partitions.
 type Slicer struct {
+	zctx        *zed.Context
 	parent      zbuf.Puller
 	marshaler   *zson.MarshalZNGContext
 	unmarshaler *zson.UnmarshalZNGContext
@@ -32,6 +33,7 @@ func NewSlicer(parent zbuf.Puller, zctx *zed.Context) *Slicer {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	return &Slicer{
+		zctx:        zctx,
 		parent:      parent,
 		marshaler:   m,
 		unmarshaler: zson.NewZNGUnmarshaler(),
@@ -92,7 +94,8 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 			max = o.Max
 		}
 	}
-	val, err := s.marshaler.Marshal(&Partition{
+	arena := zed.NewArena(s.zctx)
+	val, err := s.marshaler.Marshal(arena, &Partition{
 		Min:     min,
 		Max:     max,
 		Objects: s.objects,
@@ -101,7 +104,7 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewArray([]zed.Value{val}), nil
+	return zbuf.NewArray(arena, []zed.Value{val}), nil
 }
 
 func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {

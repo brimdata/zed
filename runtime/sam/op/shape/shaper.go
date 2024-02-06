@@ -84,9 +84,11 @@ func (i *integer) check(val zed.Value) {
 }
 
 func (a *anchor) updateInts(rec *zed.Value) error {
+	arena := zed.NewArena(nil)
+	defer arena.Unref()
 	it := rec.Bytes().Iter()
 	for k, f := range rec.Fields() {
-		a.integers[k].check(zed.NewValue(f.Type, it.Next()))
+		a.integers[k].check(arena.NewValue(f.Type, it.Next()))
 	}
 	return nil
 }
@@ -248,8 +250,8 @@ func (s *Shaper) stash(rec zed.Value) error {
 	return nil
 }
 
-func (s *Shaper) Read() (*zed.Value, error) {
-	rec, err := s.next()
+func (s *Shaper) Read(arena *zed.Arena) (*zed.Value, error) {
+	rec, err := s.next(arena)
 	if rec == nil || err != nil {
 		return nil, err
 	}
@@ -268,7 +270,7 @@ func (s *Shaper) Read() (*zed.Value, error) {
 		}
 		typ = targetType
 	}
-	s.val = zed.NewValue(typ, bytes)
+	s.val = arena.NewValue(typ, bytes)
 	return &s.val, nil
 }
 
@@ -296,9 +298,9 @@ func recode(from, to []zed.Field, bytes zcode.Bytes) (zcode.Bytes, error) {
 	return out, nil
 }
 
-func (s *Shaper) next() (*zed.Value, error) {
+func (s *Shaper) next(arena *zed.Arena) (*zed.Value, error) {
 	if s.spiller != nil {
-		return s.spiller.Read()
+		return s.spiller.Read(arena)
 	}
 	var rec *zed.Value
 	if len(s.vals) > 0 {

@@ -12,6 +12,7 @@ import (
 
 type event struct {
 	name  string
+	arena *zed.Arena
 	value zed.Value
 }
 
@@ -32,6 +33,7 @@ func (e *eventStreamWriter) writeEvent(ev event) error {
 	if err := w.Close(); err != nil {
 		return err
 	}
+	ev.arena.Unref()
 	_, err = fmt.Fprintf(e.body, "event: %s\ndata: %s\n\n", ev.name, &buf)
 	return err
 }

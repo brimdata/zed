@@ -102,7 +102,7 @@ func TestParallelOrder(t *testing.T) {
 			}
 			sortKey := order.NewSortKey(c.order, field.DottedList(c.field))
 			cmp := zbuf.NewComparator(zctx, sortKey).Compare
-			om := merge.New(context.Background(), parents, cmp)
+			om := merge.New(context.Background(), zctx, parents, cmp)
 
 			var sb strings.Builder
 			err := zbuf.CopyPuller(zsonio.NewWriter(zio.NopCloser(&sb), zsonio.WriterOpts{}), om)

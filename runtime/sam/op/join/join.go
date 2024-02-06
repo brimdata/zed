@@ -129,7 +129,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		// release the batch with and bypass GC.
 		for _, rightRec := range rightRecs {
 			cutRec := o.cutter.Eval(ectx, rightRec)
-			rec, err := o.splice(*leftRec, cutRec)
+			rec, err := o.splice(arena, *leftRec, cutRec)
 			if err != nil {
 				return nil, err
 			}
@@ -143,15 +143,15 @@ func (o *Op) getJoinSet(ectx expr.Context, leftKey zed.Value) ([]zed.Value, erro
 		return o.joinSet, nil
 	}
 	// See #3366
-	ectx := expr.NewContext()
+	arena := ectx.Arena()
 	for {
-		rec, err := o.right.Peek()
+		rec, err := o.right.Peek(arena)
 		if err != nil || rec == nil {
 			return nil, err
 		}
 		rightKey := o.getRightKey.Eval(ectx, *rec)
 		if rightKey.IsMissing() {
-			o.right.Read()
+			o.right.Read(arena)
 			continue
 		}
 		cmp := o.compare(leftKey, rightKey)
@@ -162,7 +162,7 @@ func (o *Op) getJoinSet(ectx expr.Context, leftKey zed.Value) ([]zed.Value, erro
 			} else {
 				o.joinKey.CopyFrom(leftKey)
 			}
-			o.joinSet, err = o.readJoinSet(o.joinKey)
+			o.joinSet, err = o.readJoinSet(ectx, o.joinKey)
 			return o.joinSet, err
 		}
 		if cmp < 0 {
@@ -174,19 +174,19 @@ func (o *Op) getJoinSet(ectx expr.Context, leftKey zed.Value) ([]zed.Value, erro
 		// Discard the peeked-at record and keep looking for
 		// a righthand key that either matches or exceeds the
 		// lefthand key.
-		o.right.Read()
+		o.right.Read(arena)
 	}
 }
 
 // fillJoinSet is called when a join key has been found that matches
 // the current lefthand key.  It returns the all the subsequent records
 // from the righthand stream that match this key.
-func (o *Op) readJoinSet(joinKey *zed.Value) ([]zed.Value, error) {
-	var recs []zed.Value
+func (o *Op) readJoinSet(ectx expr.Context, joinKey *zed.Value) ([]zed.Value, error) {
 	// See #3366
-	ectx := expr.NewContext()
+	arena := ectx.Arena()
+	var recs []zed.Value
 	for {
-		rec, err := o.right.Peek()
+		rec, err := o.right.Peek(arena)
 		if err != nil {
 			return nil, err
 		}
@@ -195,14 +195,14 @@ func (o *Op) readJoinSet(joinKey *zed.Value) ([]zed.Value, error) {
 		}
 		key := o.getRightKey.Eval(ectx, *rec)
 		if key.IsMissing() {
-			o.right.Read()
+			o.right.Read(arena)
 			continue
 		}
 		if o.compare(key, *joinKey) != 0 {
 			return recs, nil
 		}
 		recs = append(recs, rec.Copy())
-		o.right.Read()
+		o.right.Read(arena)
 	}
 }
 
@@ -248,7 +248,7 @@ func (o *Op) combinedType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) 
 	return typ, nil
 }
 
-func (o *Op) splice(left, right zed.Value) (zed.Value, error) {
+func (o *Op) splice(arena *zed.Arena, left, right zed.Value) (zed.Value, error) {
 	left = left.Under()
 	right = right.Under()
 	typ, err := o.combinedType(zed.TypeRecordOf(left.Type()), zed.TypeRecordOf(right.Type()))
@@ -259,5 +259,5 @@ func (o *Op) splice(left, right zed.Value) (zed.Value, error) {
 	bytes := make([]byte, n+len(right.Bytes()))
 	copy(bytes, left.Bytes())
 	copy(bytes[n:], right.Bytes())
-	return zed.NewValue(typ, bytes), nil
+	return arena.NewValue(typ, bytes), nil
 }

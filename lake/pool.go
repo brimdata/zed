@@ -188,14 +188,13 @@ type BranchTip struct {
 	Commit ksuid.KSUID
 }
 
-func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Evaluator) (*zed.ArenaValues, error) {
+func (p *Pool) BatchifyBranchTips(ctx context.Context, arena *zed.Arena, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
-	m := zson.NewZNGMarshalerWithContext(zctx)
+	m := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StylePackage)
-	arena := zed.NewArena(zctx)
 	ectx := expr.NewContext(arena)
 	recs := make([]zed.Value, 0, len(branches))
 	for _, branchRef := range branches {
@@ -207,7 +206,7 @@ func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 			recs = append(recs, rec)
 		}
 	}
-	return zed.NewArenaValues(arena, recs), nil
+	return recs, nil
 }
 
 // XXX this is inefficient but is only meant for interactive queries...?
