@@ -17,12 +17,12 @@ type Entry struct {
 
 type Writer struct {
 	marshal *zson.MarshalZNGContext
-	writer  zio.Writer
+	writer  zio.WriteCloser
 	offset  uint64
 	valoff  uint64
 }
 
-func NewWriter(w zio.Writer) *Writer {
+func NewWriter(w zio.WriteCloser) *Writer {
 	return &Writer{
 		marshal: zson.NewZNGMarshaler(),
 		writer:  w,
@@ -45,3 +45,5 @@ func (w *Writer) Write(min, max zed.Value, valoff uint64, offset uint64) error {
 	}
 	return w.writer.Write(val)
 }
+
+func (w *Writer) Close() error { return w.writer.Close() }
