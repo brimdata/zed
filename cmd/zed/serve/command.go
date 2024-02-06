@@ -64,7 +64,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	})
 	f.StringVar(&c.conf.DefaultResponseFormat, "defaultfmt", service.DefaultZedFormat, "default response format")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
-	f.DurationVar(&c.manage, "manage", 0, "manage lake (e.g., compact) every interval (default 0=never)")
+	f.DurationVar(&c.manage, "manage", 0, "when positive, run lake maintenance tasks at this interval")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.StringVar(&c.rootContentFile, "rootcontentfile", "", "file to serve for GET /")
 	return c, nil
