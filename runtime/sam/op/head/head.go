@@ -1,7 +1,6 @@
 package head
 
 import (
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zbuf"
 )
 
@@ -62,5 +61,5 @@ again:
 		return nil, err
 	}
 	o.count = o.limit
-	return zbuf.NewBatch(zed.NewArena(nil), vals[:remaining], batch, batch.Vars()), nil
+	return zbuf.WrapBatch(batch, vals[:remaining]), nil
 }

@@ -7,11 +7,12 @@ import (
 )
 
 type Op struct {
+	zctx   *zed.Context
 	parent zbuf.Puller
 	exprs  []expr.Evaluator
 }
 
-func New(parent zbuf.Puller, exprs []expr.Evaluator) *Op {
+func New(zctx *zed.Context, parent zbuf.Puller, exprs []expr.Evaluator) *Op {
 	return &Op{
 		parent: parent,
 		exprs:  exprs,
@@ -24,15 +25,17 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		if batch == nil || err != nil {
 			return nil, err
 		}
+		arena := zed.NewArena(o.zctx)
+		ectx := expr.NewContextWithVars(arena, batch.Vars())
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(o.exprs)*len(vals))
 		for i := range vals {
 			for _, e := range o.exprs {
-				val := e.Eval(batch, vals[i])
+				val := e.Eval(ectx, vals[i])
 				if val.IsQuiet() {
 					continue
 				}
-				out = append(out, val.Copy())
+				out = append(out, val)
 			}
 		}
 		if len(out) > 0 {
@@ -40,5 +43,6 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			return zbuf.NewBatch(batch, out), nil
 		}
 		batch.Unref()
+		arena.Unref()
 	}
 }

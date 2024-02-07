@@ -149,7 +149,7 @@ func (o *Op) run() {
 // send sorts vals in memory and sends the result downstream.
 func (o *Op) send(vals []zed.Value) bool {
 	o.comparator.SortStable(vals)
-	out := zbuf.NewBatch(o.lastBatch, vals)
+	out := zbuf.WrapBatch(o.lastBatch, vals)
 	return o.sendResult(out, nil)
 }
 

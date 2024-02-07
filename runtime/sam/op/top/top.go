@@ -81,11 +81,12 @@ func (o *Op) sorted() zbuf.Batch {
 	if o.records == nil {
 		return nil
 	}
+	arena := zed.NewArena(o.zctx)
 	out := make([]zed.Value, o.records.Len())
 	for i := o.records.Len() - 1; i >= 0; i-- {
-		out[i] = heap.Pop(o.records).(zed.Value)
+		out[i] = heap.Pop(o.records).(zed.Value).CopyToArena(arena)
 	}
 	// clear records
 	o.records = nil
-	return zbuf.NewArray(out)
+	return zbuf.NewBatchWithVars(arena, out, nil)
 }

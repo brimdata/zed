@@ -43,9 +43,9 @@ func (e *Expr) SetExit(exit *Exit) {
 
 func (e *Expr) Eval(ectx expr.Context, this zed.Value) zed.Value {
 	select {
-	case e.batchCh <- zbuf.NewArray([]zed.Value{this}):
+	case e.batchCh <- zbuf.NewBatchWithVars(ectx.Arena(), []zed.Value{this}, nil):
 	case <-e.ctx.Done():
-		return e.zctx.NewError(e.ctx.Err())
+		return ectx.Arena().NewError(e.ctx.Err())
 	}
 	out := e.out[:0]
 	for {
@@ -93,7 +93,7 @@ func (e *Expr) makeArray(ectx expr.Context, vals []zed.Value) zed.Value {
 	for _, val := range vals {
 		b.Append(val.Bytes())
 	}
-	return zed.NewValue(e.zctx.LookupTypeArray(typ), b.Bytes())
+	return ectx.Arena().NewValue(e.zctx.LookupTypeArray(typ), b.Bytes())
 }
 
 func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) zed.Value {
@@ -110,7 +110,7 @@ func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) zed.Value {
 	for _, val := range vals {
 		zed.BuildUnion(&b, union.TagOf(val.Type()), val.Bytes())
 	}
-	return zed.NewValue(e.zctx.LookupTypeArray(union), b.Bytes())
+	return ectx.Arena().NewValue(e.zctx.LookupTypeArray(union), b.Bytes())
 }
 
 func (e *Expr) Pull(done bool) (zbuf.Batch, error) {

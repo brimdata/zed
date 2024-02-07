@@ -40,6 +40,10 @@ type batch struct {
 	vars  []zed.Value
 }
 
+func WrapBatch(b Batch, vals []zed.Value) Batch {
+	return NewBatch(nil, vals, b, b.Vars())
+}
+
 func NewBatch(arena *zed.Arena, vals []zed.Value, b Batch, vars []zed.Value) Batch {
 	return &batch{1, arena, vals, b, b.Vars()}
 }
@@ -52,7 +56,9 @@ func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
 
 func (b *batch) Unref() {
 	if refs := atomic.AddInt32(&b.refs, -1); refs == 0 {
-		b.arena.Unref()
+		if b.arena != nil {
+			b.arena.Unref()
+		}
 		if b.batch != nil {
 			b.batch.Unref()
 		}
