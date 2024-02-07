@@ -21,7 +21,6 @@ type Writer struct {
 	count            uint64
 	writer           *zngio.Writer
 	order            order.Which
-	seekWriter       *zngio.Writer
 	seekIndex        *seekindex.Writer
 	seekIndexStride  int
 	seekIndexTrigger int
@@ -57,8 +56,7 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	if err != nil {
 		return nil, err
 	}
-	w.seekWriter = zngio.NewWriter(bufwriter.New(seekOut))
-	w.seekIndex = seekindex.NewWriter(w.seekWriter)
+	w.seekIndex = seekindex.NewWriter(zngio.NewWriter(bufwriter.New(seekOut)))
 	return w, nil
 }
 
@@ -112,7 +110,7 @@ func (w *Writer) flushSeekIndex() error {
 // because the write error will be more informative and should be returned.
 func (w *Writer) Abort() {
 	w.writer.Close()
-	w.seekWriter.Close()
+	w.seekIndex.Close()
 }
 
 func (w *Writer) Close(ctx context.Context) error {
@@ -124,7 +122,7 @@ func (w *Writer) Close(ctx context.Context) error {
 		w.Abort()
 		return err
 	}
-	if err := w.seekWriter.Close(); err != nil {
+	if err := w.seekIndex.Close(); err != nil {
 		w.Abort()
 		return err
 	}
