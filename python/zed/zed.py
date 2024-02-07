@@ -46,8 +46,8 @@ class Client():
 
     def load(self, pool_name_or_id, data, branch_name='main',
              commit_author=getpass.getuser(), commit_body=''):
-        pool = urllib.parse.quote_plus(pool_name_or_id, safe='')
-        branch = urllib.parse.quote_plus(branch_name, safe='')
+        pool = urllib.parse.quote(pool_name_or_id, safe='')
+        branch = urllib.parse.quote(branch_name, safe='')
         url = self.base_url + '/pool/' + pool + '/branch/' + branch
         commit_message = {'author': commit_author, 'body': commit_body}
         headers = {'Zed-Commit': json.dumps(commit_message)}
