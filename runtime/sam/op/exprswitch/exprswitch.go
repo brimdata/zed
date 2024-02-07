@@ -46,6 +46,8 @@ func (s *ExprSwitch) AddCase(val *zed.Value) zbuf.Puller {
 
 func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 	arena := zed.NewArena(s.rctx.Zctx)
+	defer arena.Unref()
+	defer batch.Unref()
 	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	vals := batch.Values()
 	for i := range vals {
@@ -81,7 +83,5 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 			return false
 		}
 	}
-	arena.Unref()
-	batch.Unref()
 	return true
 }

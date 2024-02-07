@@ -215,7 +215,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, err
 		}
-		t := yield.New(parent, exprs)
+		t := yield.New(b.zctx(), parent, exprs)
 		return t, nil
 	case *dag.PoolScan:
 		if parent != nil {

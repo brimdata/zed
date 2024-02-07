@@ -12,23 +12,10 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-type ArenaValues struct {
-	Arena  *Arena
-	Values []Value
-}
-
-func NewArenaValues(arena *Arena, values []Value) *ArenaValues {
-	return &ArenaValues{arena, values}
-}
-
-func (a *ArenaValues) Ref()     { /*a.arena.Ref()*/ }
-func (a *ArenaValues) Unref()   { /*a.arena.Unref()*/ }
-func (a *Arena) Zctx() *Context { return a.zctx }
-
 type Arena struct {
 	zctx *Context
 	pool *sync.Pool
-	refs atomic.Int32
+	refs int32
 
 	offsets []uint32
 	lengths []uint32
@@ -36,15 +23,17 @@ type Arena struct {
 	values  []Value
 }
 
-func NewArena(zctx *Context) *Arena                        { return &Arena{zctx: zctx} }
-func NewArenaInPool(zctx *Context, pool *sync.Pool) *Arena { return &Arena{zctx: zctx, pool: pool} }
+func NewArena(zctx *Context) *Arena { return NewArenaInPool(zctx, nil) }
+func NewArenaInPool(zctx *Context, pool *sync.Pool) *Arena {
+	return &Arena{zctx: zctx, pool: pool, refs: 1}
+}
 
 func (a *Arena) AddRefTo(v interface{ Ref() }) { v.Ref() }
 
-func (a *Arena) Ref() { a.refs.Add(1) }
+func (a *Arena) Ref() { atomic.AddInt32(&a.refs, 1) }
 
 func (a *Arena) Unref() {
-	if refs := a.refs.Add(-1); refs == 0 {
+	if refs := atomic.AddInt32(&a.refs, -1); refs == 0 {
 		if a.pool != nil {
 			a.pool.Put(a)
 		}
@@ -52,6 +41,8 @@ func (a *Arena) Unref() {
 		panic("negative arena reference count")
 	}
 }
+
+func (a *Arena) Zctx() *Context { return a.zctx }
 
 func (a *Arena) Grow(n int) { a.bytes = slices.Grow(a.bytes, n) }
 
@@ -179,7 +170,7 @@ func (a *Arena) Bytes(d uint64) zcode.Bytes {
 		return nil
 	}
 	end := start + a.lengths[slot]
-	if arenaDescValues(d) {
+	if !arenaDescValues(d) {
 		return a.bytes[start:end]
 	}
 	b := zcode.Bytes{}
@@ -192,6 +183,32 @@ func (a *Arena) Bytes(d uint64) zcode.Bytes {
 type Value struct {
 	a uint64
 	d uint64
+}
+
+func (v Value) String() string {
+	s := fmt.Sprintf("%0x %0x", v.a, v.d)
+	switch v.a & vMask {
+	case vArena:
+		s += " arena " + fmt.Sprintf("%#v", v.arena().Type(v.d))
+		return s
+	case vString:
+		var b [16]byte
+		binary.LittleEndian.PutUint64(b[:8], v.a)
+		binary.LittleEndian.PutUint64(b[8:], v.d)
+		length := (v.a & ^vMask) >> 60
+		return s + " string " + string(b[1:1+length])
+	case vBytes:
+		var b [16]byte
+		binary.LittleEndian.PutUint64(b[:8], v.a)
+		binary.LittleEndian.PutUint64(b[8:], v.d)
+		length := (v.a & ^vMask) >> 60
+		return s + " bytes " + fmt.Sprintf("%v", b[1:1+length])
+	case vPrimitive:
+		return s + " primitive " + PrimitiveName(idToType[v.a&vPrimitiveTypeIDMask])
+	case vPrimitiveNull:
+		return s + " null " + PrimitiveName(idToType[v.a&vPrimitiveTypeIDMask])
+	}
+	panic(v)
 }
 
 const (
@@ -343,12 +360,12 @@ func (v Value) Bytes() zcode.Bytes {
 	switch v.a & vMask {
 	case vArena:
 		return v.arena().Bytes(v.d)
-	case vString, vBytes:
+	case vBytes, vString:
 		var b [16]byte
 		binary.LittleEndian.PutUint64(b[:8], v.a)
 		binary.LittleEndian.PutUint64(b[8:], v.d)
 		length := (v.a & ^vMask) >> 60
-		return b[1:length]
+		return b[1 : 1+length]
 	case vPrimitive:
 		switch v.a & vPrimitiveTypeIDMask {
 		case IDUint8, IDUint16, IDUint32, IDUint64:

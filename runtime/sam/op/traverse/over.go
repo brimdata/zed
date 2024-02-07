@@ -65,6 +65,7 @@ func (o *Over) Pull(done bool) (zbuf.Batch, error) {
 
 func (o *Over) over(batch zbuf.Batch, this zed.Value) zbuf.Batch {
 	arena := zed.NewArena(o.zctx)
+	defer arena.Unref()
 	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	// Copy the vars into a new scope since downstream, nested subgraphs
 	// can have concurrent operators.  We can optimize these copies out

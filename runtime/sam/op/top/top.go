@@ -82,6 +82,7 @@ func (o *Op) sorted() zbuf.Batch {
 		return nil
 	}
 	arena := zed.NewArena(o.zctx)
+	defer arena.Unref()
 	out := make([]zed.Value, o.records.Len())
 	for i := o.records.Len() - 1; i >= 0; i-- {
 		out[i] = heap.Pop(o.records).(zed.Value).CopyToArena(arena)

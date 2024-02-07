@@ -76,6 +76,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		return nil, err
 	}
 	arena := o.rctx.NewArena()
+	defer arena.Unref()
 	val := arena.NewBytes(commitID[:])
 	return zbuf.NewBatch(arena, []zed.Value{val}, batch, batch.Vars()), nil
 }

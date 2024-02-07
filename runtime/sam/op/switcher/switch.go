@@ -40,6 +40,7 @@ func (s *Selector) AddCase(f expr.Evaluator) zbuf.Puller {
 
 func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 	arena := zed.NewArena(s.zctx)
+	defer arena.Unref()
 	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	for _, this := range batch.Values() {
 		for _, c := range s.cases {
@@ -67,8 +68,6 @@ func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 	// ref the batch for each outgoing new batch.
 	for _, c := range s.cases {
 		if len(c.vals) > 0 {
-			arena.Ref()
-			batch.Ref()
 			out := zbuf.NewBatch(arena, c.vals, batch, batch.Values())
 			c.vals = nil
 			if ok := router.Send(c.route, out, nil); !ok {
@@ -76,7 +75,5 @@ func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 			}
 		}
 	}
-	arena.Unref()
-	batch.Unref()
 	return true
 }

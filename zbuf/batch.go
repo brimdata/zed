@@ -44,12 +44,18 @@ func WrapBatch(b Batch, vals []zed.Value) Batch {
 	return NewBatch(nil, vals, b, b.Vars())
 }
 
-func NewBatch(arena *zed.Arena, vals []zed.Value, b Batch, vars []zed.Value) Batch {
-	return &batch{1, arena, vals, b, b.Vars()}
+func NewBatchWithVars(arena *zed.Arena, vals []zed.Value, vars []zed.Value) Batch {
+	return NewBatch(arena, vals, nil, vars)
 }
 
-func NewBatchWithVars(arena *zed.Arena, vals []zed.Value, vars []zed.Value) Batch {
-	return &batch{1, arena, vals, nil, vars}
+func NewBatch(arena *zed.Arena, vals []zed.Value, b Batch, vars []zed.Value) Batch {
+	if arena != nil {
+		arena.Ref()
+	}
+	if b != nil {
+		b.Ref()
+	}
+	return &batch{1, arena, vals, b, b.Vars()}
 }
 
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }

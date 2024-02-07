@@ -162,6 +162,7 @@ func NewEnter(zctx *zed.Context, names []string, exprs []expr.Evaluator) *Enter 
 
 func (e *Enter) addLocals(batch zbuf.Batch, this zed.Value) zbuf.Batch {
 	arena := zed.NewArena(e.zctx)
+	defer arena.Unref()
 	vars := slices.Clone(batch.Vars())
 	for _, ex := range e.exprs {
 		// Note that we add a var to the frame on each Eval call
