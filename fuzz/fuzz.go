@@ -66,8 +66,7 @@ func WriteZNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
 }
 
 func WriteVNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
-	writer, err := vngio.NewWriter(zio.NopCloser(buf))
-	require.NoError(t, err)
+	writer := vngio.NewWriter(zio.NopCloser(buf))
 	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
 	require.NoError(t, writer.Close())
 }
