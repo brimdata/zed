@@ -1,0 +1,13 @@
+script: |
+  source service.sh
+  zed create -q test/new
+  curl -X DELETE $ZED_LAKE/pool/test%2Fnew
+  curl -X DELETE $ZED_LAKE/pool/test%2Fnew
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {"type":"Error","kind":"item does not exist","error":"test/new: pool not found"}

@@ -136,7 +136,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
 	})
 
-	routerAPI := mux.NewRouter()
+	routerAPI := mux.NewRouter().UseEncodedPath()
 	routerAPI.Use(requestIDMiddleware())
 	routerAPI.Use(accessLogMiddleware(conf.Logger))
 	routerAPI.Use(panicCatchMiddleware(conf.Logger))
