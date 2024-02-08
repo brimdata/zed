@@ -300,7 +300,7 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			values = append(values, zed.DecodeUint(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictUint(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewUint(typ, values, nulls), tags, counts)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
 		values := make([]int64, 0, length)
 		for _, d := range dict {

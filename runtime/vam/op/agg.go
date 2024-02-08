@@ -59,15 +59,19 @@ func (c *CountByString) update(val vector.Any) {
 		}
 		return
 	}
-	switch v := c.field.Eval(val).(type) {
+	switch val := val.(type) {
+	case *vector.Dict:
+		s, ok := val.Any.(*vector.String)
+		if !ok {
+			panic(fmt.Sprintf("UNKNOWN %T\n", val))
+		}
+		c.table.countDict(s, val.Index, val.Counts)
 	case *vector.String:
-		c.table.count(v)
-	case *vector.DictString:
-		c.table.countDict(v)
-	case (*vector.Const):
-		c.table.countFixed(v)
+		c.table.count(val)
+	case *vector.Const:
+		c.table.countFixed(val)
 	default:
-		panic(fmt.Sprintf("UNKNOWN %T\n", v))
+		panic(fmt.Sprintf("UNKNOWN %T\n", val))
 	}
 }
 
@@ -75,6 +79,10 @@ type countByString struct {
 	nulls uint64
 	table map[string]uint64
 }
+
+//XXX how to tell the difference between a view as a selection and a view as
+// an index into a dict... maybe just keep Dict separate and have the counts in the Dict,
+// but we still need the view on the dict to expand things...
 
 func (c *countByString) count(vec *vector.String) {
 	offs := vec.Offsets
@@ -84,12 +92,12 @@ func (c *countByString) count(vec *vector.String) {
 	}
 }
 
-func (c *countByString) countDict(vec *vector.DictString) {
-	offs := vec.Offs
-	bytes := vec.Bytes
+func (c *countByString) countDict(val *vector.String, idx []byte, counts []uint32) {
+	offs := val.Offsets
+	bytes := val.Bytes
 	n := uint32(len(offs) - 1)
 	for tag := uint32(0); tag < n; tag++ {
-		c.table[string(bytes[offs[tag]:offs[tag+1]])] += uint64(vec.Counts[tag])
+		c.table[string(bytes[offs[tag]:offs[tag+1]])] += uint64(counts[tag])
 	}
 }
 
@@ -193,17 +201,20 @@ func (c *Sum) update(vec vector.Any) {
 		for _, x := range vec.Values {
 			c.sum += x
 		}
-	case *vector.DictInt:
-		for k, val := range vec.Values {
-			c.sum += val * int64(vec.Counts[k])
-		}
 	case *vector.Uint:
 		for _, x := range vec.Values {
 			c.sum += int64(x)
 		}
-	case *vector.DictUint:
-		for k, val := range vec.Values {
-			c.sum += int64(val) * int64(vec.Counts[k])
+	case *vector.Dict:
+		switch number := vec.Any.(type) {
+		case *vector.Int:
+			for k, val := range number.Values {
+				c.sum += val * int64(vec.Counts[k])
+			}
+		case *vector.Uint:
+			for k, val := range number.Values {
+				c.sum += int64(val) * int64(vec.Counts[k])
+			}
 		}
 	}
 }

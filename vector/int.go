@@ -12,6 +12,7 @@ type Int struct {
 }
 
 var _ Any = (*Int)(nil)
+var _ Promotable = (*Int)(nil)
 
 func NewInt(typ zed.Type, values []int64, nulls *Bool) *Int {
 	return &Int{Typ: typ, Values: values, Nulls: nulls}
@@ -33,44 +34,6 @@ func (i *Int) Serialize(b *zcode.Builder, slot uint32) {
 	}
 }
 
-func (i *Int) Promote(typ zed.Type) *Int {
+func (i *Int) Promote(typ zed.Type) Promotable {
 	return &Int{typ, i.Values, i.Nulls}
-}
-
-type DictInt struct {
-	Typ    zed.Type
-	Tags   []byte
-	Values []int64
-	Counts []uint32
-	Nulls  *Bool
-}
-
-var _ Any = (*DictInt)(nil)
-
-func NewDictInt(typ zed.Type, tags []byte, values []int64, counts []uint32, nulls *Bool) *DictInt {
-	return &DictInt{Typ: typ, Tags: tags, Values: values, Counts: counts, Nulls: nulls}
-}
-
-func (d *DictInt) Type() zed.Type {
-	return d.Typ
-}
-
-func (d *DictInt) Len() uint32 {
-	return uint32(len(d.Tags))
-}
-
-func (d *DictInt) Value(slot uint32) int64 {
-	return d.Values[d.Tags[slot]]
-}
-
-func (d *DictInt) Serialize(b *zcode.Builder, slot uint32) {
-	if d.Nulls != nil && d.Nulls.Value(slot) {
-		b.Append(nil)
-	} else {
-		b.Append(zed.EncodeInt(d.Value(slot)))
-	}
-}
-
-func (d *DictInt) Promote(typ zed.Type) *DictInt {
-	return &DictInt{typ, d.Tags, d.Values, d.Counts, d.Nulls}
 }
