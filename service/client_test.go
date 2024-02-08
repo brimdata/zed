@@ -51,11 +51,13 @@ func (c *testClient) TestPoolList() []pools.Config {
 	r, err := c.Query(context.Background(), nil, "from :pools")
 	require.NoError(c, err)
 	defer r.Body.Close()
-	var confs []pools.Config
-	zr := zngio.NewReader(zed.NewContext(), r.Body)
+	arena := zed.NewArena(zed.NewContext())
+	defer arena.Unref()
+	zr := zngio.NewReader(arena.Zctx(), r.Body)
 	defer zr.Close()
+	var confs []pools.Config
 	for {
-		rec, err := zr.Read()
+		rec, err := zr.Read(arena)
 		require.NoError(c, err)
 		if rec == nil {
 			return confs
