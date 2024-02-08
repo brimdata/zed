@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/logflags"
-	"github.com/brimdata/zed/cmd/zed/manage/lakemanage"
+	"github.com/brimdata/zed/cmd/zed/internal/lakemanage"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"gopkg.in/yaml.v3"

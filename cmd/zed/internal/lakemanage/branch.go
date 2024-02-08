@@ -25,13 +25,8 @@ func newBranch(c Config, pool *pools.Config, lake lakeapi.Interface, logger *zap
 		zap.String("name", pool.Name),
 		zap.Stringer("id", pool.ID),
 		zap.String("branch", config.Branch),
-		zap.Duration("interval", config.interval()),
 		zap.Bool("vectors", config.Vectors),
 	)
-	if config.interval() == 0 {
-		logger.Info("Manage disabled for branch")
-		return nil
-	}
 	return &branch{
 		config: config,
 		lake:   lake,
