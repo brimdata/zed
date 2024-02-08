@@ -641,11 +641,11 @@ type UnmarshalZNGContext struct {
 }
 
 func NewZNGUnmarshaler() *UnmarshalZNGContext {
-	return &UnmarshalZNGContext{arena: zed.NewArena(zed.NewContext())}
+	return &UnmarshalZNGContext{zctx: zed.NewContext()}
 }
 
 func UnmarshalZNG(val zed.Value, v interface{}) error {
-	return NewZNGUnmarshaler().decodeAny(val, reflect.ValueOf(v))
+	return NewZNGUnmarshaler().Unmarshal(val, v)
 }
 
 func incompatTypeError(zt zed.Type, v reflect.Value) error {
@@ -655,12 +655,18 @@ func incompatTypeError(zt zed.Type, v reflect.Value) error {
 // SetContext provides an optional type context to the unmarshaler.  This is
 // needed only when unmarshaling Zed type values into Go zed.Type interface values.
 func (u *UnmarshalZNGContext) SetContext(zctx *zed.Context) {
-	u.arena = zed.NewArena(zctx)
 	u.zctx = zctx
 }
 
 func (u *UnmarshalZNGContext) Unmarshal(val zed.Value, v interface{}) error {
-	u.arena.Reset()
+	if arena, ok := val.Arena(); ok {
+		if u.arena == nil || u.arena.Zctx() != arena.Zctx() {
+			u.arena = zed.NewArena(arena.Zctx())
+		}
+		arena.Reset()
+	} else {
+		arena = nil
+	}
 	return u.decodeAny(val, reflect.ValueOf(v))
 }
 
