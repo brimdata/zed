@@ -17,5 +17,5 @@ func NewLiteral(arena *zed.Arena, val zed.Value) *Literal {
 }
 
 func (l Literal) Eval(val vector.Any) vector.Any {
-	return vector.NewConst(l.val, val.Len(), nil)
+	return vector.NewConst(l.arena, l.val, val.Len(), nil)
 }

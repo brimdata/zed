@@ -7,6 +7,7 @@ import (
 )
 
 type Const struct {
+	arena *zed.Arena
 	val   zed.Value
 	len   uint32
 	Nulls *Bool
@@ -14,8 +15,8 @@ type Const struct {
 
 var _ Any = (*Const)(nil)
 
-func NewConst(val zed.Value, len uint32, nulls *Bool) *Const {
-	return &Const{val: val, len: len, Nulls: nulls}
+func NewConst(arena *zed.Arena, val zed.Value, len uint32, nulls *Bool) *Const {
+	return &Const{arena: arena, val: val, len: len, Nulls: nulls}
 }
 
 func (c *Const) Type() zed.Type {

@@ -15,7 +15,7 @@ type Projection struct {
 }
 
 func NewProjection(zctx *zed.Context, o *vcache.Object, paths []field.Path) zbuf.Puller {
-	return NewMaterializer(&Projection{
+	return NewMaterializer(zctx, &Projection{
 		zctx:   zctx,
 		object: o,
 		path:   vcache.NewProjection(paths),

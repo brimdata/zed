@@ -19,6 +19,9 @@ var _ zio.Writer = (*Array)(nil)
 // XXX this should take the frame arg too and the procs that create
 // new arrays need to propagate their frames downstream.
 func NewArray(arena *zed.Arena, vals []zed.Value) *Array {
+	if arena != nil {
+		arena.Ref()
+	}
 	return &Array{arena, vals}
 }
 

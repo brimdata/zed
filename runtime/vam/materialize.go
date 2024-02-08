@@ -10,13 +10,15 @@ import (
 )
 
 type Materializer struct {
+	zctx   *zed.Context
 	parent vector.Puller
 }
 
 var _ zbuf.Puller = (*Materializer)(nil)
 
-func NewMaterializer(p vector.Puller) zbuf.Puller {
+func NewMaterializer(zctx *zed.Context, p vector.Puller) zbuf.Puller {
 	return &Materializer{
+		zctx:   zctx,
 		parent: p,
 	}
 }
@@ -31,6 +33,8 @@ func (m *Materializer) Pull(done bool) (zbuf.Batch, error) {
 	if variant == nil {
 		typ = vec.Type()
 	}
+	arena := zed.NewArena(m.zctx)
+	defer arena.Unref()
 	builder := zcode.NewBuilder()
 	var vals []zed.Value
 	n := vec.Len()
@@ -39,9 +43,9 @@ func (m *Materializer) Pull(done bool) (zbuf.Batch, error) {
 		if variant != nil {
 			typ = variant.TypeOf(slot)
 		}
-		val := zed.NewValue(typ, bytes.Clone(builder.Bytes().Body()))
+		val := arena.NewValue(typ, bytes.Clone(builder.Bytes().Body()))
 		vals = append(vals, val)
 		builder.Reset()
 	}
-	return zbuf.NewArray(vals), nil
+	return zbuf.NewArray(arena, vals), nil
 }

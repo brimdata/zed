@@ -323,7 +323,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 				}
 				puller = p[0]
 			}
-			return vam.NewMaterializer(puller), nil
+			return vam.NewMaterializer(b.zctx(), puller), nil
 		}
 		//XXX
 		return nil, errors.New("dag.Vectorize must begin with SeqScan")
