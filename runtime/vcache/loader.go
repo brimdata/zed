@@ -300,35 +300,36 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			values = append(values, zed.DecodeUint(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictUint(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewUint(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
 		values := make([]int64, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeInt(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictInt(typ, tags, values, counts, nulls)
+		//XXX nulls doesn't work right here
+		return vector.NewDict(vector.NewInt(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfFloat64:
 		values := make([]float64, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeFloat64(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictFloat(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewFloat(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfFloat32:
 		values := make([]float64, 0, length)
 		for _, d := range dict {
 			values = append(values, float64(zed.DecodeFloat32(d.Value.Bytes())))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictFloat(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewFloat(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfFloat16:
 		values := make([]float64, 0, length)
 		for _, d := range dict {
 			values = append(values, float64(zed.DecodeFloat16(d.Value.Bytes())))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictFloat(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewFloat(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfBytes:
 		//XXX fix VNG to use this single string slice and offs, and later prefix trick
 		var bytes []byte
@@ -342,7 +343,7 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
-		return vector.NewDictBytes(tags, offs, bytes, counts, nulls)
+		return vector.NewDict(vector.NewBytes(offs, bytes, nil), tags, counts, nulls)
 	case *zed.TypeOfString:
 		//XXX fix VNG to use this single string slice and offs, and later prefix trick
 		var bytes []byte
@@ -356,21 +357,21 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
-		return vector.NewDictString(tags, offs, bytes, counts, nulls)
+		return vector.NewDict(vector.NewString(offs, bytes, nil), tags, counts, nulls)
 	case *zed.TypeOfIP:
 		values := make([]netip.Addr, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeIP(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictIP(tags, values, counts, nulls)
+		return vector.NewDict(vector.NewIP(values, nil), tags, counts, nulls)
 	case *zed.TypeOfNet:
 		values := make([]netip.Prefix, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeNet(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictNet(tags, values, counts, nulls)
+		return vector.NewDict(vector.NewNet(values, nil), tags, counts, nulls)
 	case *zed.TypeOfType:
 		//XXX fix VNG to use this single string slice and offs, and later prefix trick
 		var bytes []byte
@@ -384,7 +385,7 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
-		return vector.NewDictTypeValue(tags, offs, bytes, counts, nulls)
+		return vector.NewDict(vector.NewTypeValue(offs, bytes, nil), tags, counts, nulls)
 	default:
 		panic(fmt.Sprintf("vcache: encountered bad or unknown Zed type for vector dict: %T", typ))
 	}

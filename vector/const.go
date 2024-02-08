@@ -57,3 +57,11 @@ func (c *Const) AsInt() (int64, bool) {
 func (c *Const) AsUint() (uint64, bool) {
 	return coerce.ToUint(c.val)
 }
+
+func (c *Const) AsBytes() ([]byte, bool) {
+	return c.val.Bytes(), true
+}
+
+func (c *Const) AsString() (string, bool) {
+	return zed.DecodeString(c.val.Bytes()), true
+}

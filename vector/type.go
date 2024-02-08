@@ -36,38 +36,3 @@ func (t *TypeValue) Serialize(b *zcode.Builder, slot uint32) {
 		b.Append(t.Value(slot))
 	}
 }
-
-type DictTypeValue struct {
-	Tags   []byte
-	Offs   []uint32
-	Bytes  []byte
-	Counts []uint32
-	Nulls  *Bool
-}
-
-var _ Any = (*DictTypeValue)(nil)
-
-func NewDictTypeValue(tags []byte, offs []uint32, bytes []byte, counts []uint32, nulls *Bool) *DictTypeValue {
-	return &DictTypeValue{Tags: tags, Offs: offs, Bytes: bytes, Counts: counts, Nulls: nulls}
-}
-
-func (d *DictTypeValue) Type() zed.Type {
-	return zed.TypeType
-}
-
-func (d *DictTypeValue) Len() uint32 {
-	return uint32(len(d.Tags))
-}
-
-func (d *DictTypeValue) Value(slot uint32) []byte {
-	tag := d.Tags[slot]
-	return d.Bytes[d.Offs[tag]:d.Offs[tag+1]]
-}
-
-func (d *DictTypeValue) Serialize(b *zcode.Builder, slot uint32) {
-	if d.Nulls != nil && d.Nulls.Value(slot) {
-		b.Append(nil)
-	} else {
-		b.Append(d.Value(slot))
-	}
-}

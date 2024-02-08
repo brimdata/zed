@@ -92,6 +92,11 @@ compiler/parser/parser.go: compiler/parser/Makefile compiler/parser/support.go c
 .PHONY: peg
 peg: compiler/parser/parser.go
 
+.PHONY: loops
+loops: gen/main.go
+	go run ./gen > runtime/vam/expr/loops.go
+	go fmt runtime/vam/expr/loops.go
+
 .PHONY: markdown-lint
 markdown-lint:
 	@npm install --no-save markdownlint-cli@0.35.0

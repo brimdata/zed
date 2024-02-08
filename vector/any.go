@@ -11,6 +11,11 @@ type Any interface {
 	Serialize(*zcode.Builder, uint32)
 }
 
+type Promotable interface {
+	Any
+	Promote(zed.Type) Promotable
+}
+
 type Puller interface {
 	Pull(done bool) (Any, error)
 }

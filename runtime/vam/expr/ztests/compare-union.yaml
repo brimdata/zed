@@ -1,0 +1,15 @@
+script: |
+  zq -o t.vng -f vng -
+  zed dev vector query -z "yield x<y" t.vng
+
+inputs:
+  - name: stdin
+    data: |
+      {x:1((int64,string)),y:2}
+      {x:"foo"((int64,string)),y:3}
+
+outputs:
+  - name: stdout
+    data: |
+      true
+      false

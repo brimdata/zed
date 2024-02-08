@@ -10,7 +10,7 @@ import (
 type Variant struct {
 	Tags   []uint32
 	Values []Any
-	TagMap *TagMap
+	TagMap *TagMap //XXX need to protect with lock
 }
 
 var _ Any = (*Variant)(nil)
