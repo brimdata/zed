@@ -15,12 +15,12 @@ type RecordEncoder struct {
 
 var _ Encoder = (*RecordEncoder)(nil)
 
-func NewRecordEncoder(typ *zed.TypeRecord) *RecordEncoder {
+func NewRecordEncoder(zctx *zed.Context, typ *zed.TypeRecord) *RecordEncoder {
 	fields := make([]*FieldEncoder, 0, len(typ.Fields))
 	for _, f := range typ.Fields {
 		fields = append(fields, &FieldEncoder{
 			name:   f.Name,
-			values: NewEncoder(f.Type),
+			values: NewEncoder(zctx, f.Type),
 		})
 	}
 	return &RecordEncoder{fields: fields}

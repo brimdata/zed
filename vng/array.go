@@ -17,11 +17,11 @@ type ArrayEncoder struct {
 
 var _ Encoder = (*ArrayEncoder)(nil)
 
-func NewArrayEncoder(typ *zed.TypeArray) *ArrayEncoder {
+func NewArrayEncoder(zctx *zed.Context, typ *zed.TypeArray) *ArrayEncoder {
 	return &ArrayEncoder{
 		typ:     typ.Type,
-		values:  NewEncoder(typ.Type),
-		lengths: NewInt64Encoder(),
+		values:  NewEncoder(zctx, typ.Type),
+		lengths: NewInt64Encoder(zctx),
 	}
 }
 
@@ -95,12 +95,12 @@ type SetEncoder struct {
 	ArrayEncoder
 }
 
-func NewSetEncoder(typ *zed.TypeSet) *SetEncoder {
+func NewSetEncoder(zctx *zed.Context, typ *zed.TypeSet) *SetEncoder {
 	return &SetEncoder{
 		ArrayEncoder{
 			typ:     typ.Type,
-			values:  NewEncoder(typ.Type),
-			lengths: NewInt64Encoder(),
+			values:  NewEncoder(zctx, typ.Type),
+			lengths: NewInt64Encoder(zctx),
 		},
 	}
 }

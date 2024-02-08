@@ -186,6 +186,7 @@ func (n *Nulls) Len() uint32 {
 }
 
 type Const struct {
+	Arena *zed.Arena
 	Value zed.Value
 	Count uint32
 }

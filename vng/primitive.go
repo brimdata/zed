@@ -15,6 +15,7 @@ import (
 const MaxDictSize = 256
 
 type PrimitiveEncoder struct {
+	zctx     *zed.Context
 	typ      zed.Type
 	bytes    zcode.Bytes
 	bytesLen uint64
@@ -29,7 +30,7 @@ type PrimitiveEncoder struct {
 	arena *zed.Arena
 }
 
-func NewPrimitiveEncoder(typ zed.Type, useDict bool) *PrimitiveEncoder {
+func NewPrimitiveEncoder(zctx *zed.Context, typ zed.Type, useDict bool) *PrimitiveEncoder {
 	var dict map[string]uint32
 	if useDict {
 		// Don't bother using a dictionary (which takes 8-bit tags) to encode
@@ -39,6 +40,7 @@ func NewPrimitiveEncoder(typ zed.Type, useDict bool) *PrimitiveEncoder {
 		}
 	}
 	return &PrimitiveEncoder{
+		zctx: zctx,
 		typ:  typ,
 		dict: dict,
 		cmp:  expr.NewValueCompareFn(order.Asc, false),
@@ -55,7 +57,7 @@ func (p *PrimitiveEncoder) update(body zcode.Bytes) {
 	if body == nil {
 		panic("PrimitiveWriter should not be called with null")
 	}
-	val := zed.NewValue(p.typ, body)
+	val := p.arena.NewValue(p.typ, body)
 	if p.min == nil || p.cmp(val, *p.min) < 0 {
 		p.min = val.Copy().Ptr()
 	}
@@ -122,8 +124,10 @@ func (p *PrimitiveEncoder) Const() *Const {
 			bytes = []byte(b)
 		}
 	}
+	arena := zed.NewArena(p.zctx)
 	return &Const{
-		Value: zed.NewValue(p.typ, bytes),
+		Arena: arena,
+		Value: arena.NewValue(p.typ, bytes),
 		Count: p.count,
 	}
 }
@@ -171,7 +175,7 @@ func (p *PrimitiveEncoder) makeDict() []DictEntry {
 	dict := make([]DictEntry, 0, len(p.dict))
 	for key, cnt := range p.dict {
 		dict = append(dict, DictEntry{
-			zed.NewValue(p.typ, zcode.Bytes(key)),
+			p.arena.NewValue(p.typ, zcode.Bytes(key)),
 			cnt,
 		})
 	}

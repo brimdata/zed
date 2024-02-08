@@ -85,7 +85,7 @@ func (l *loader) loadVector(g *errgroup.Group, paths Path, s shadow) {
 		s.mu.Lock()
 		vec := s.vec
 		if vec == nil {
-			vec = vector.NewConst(s.val, s.length(), s.nulls.flat)
+			vec = vector.NewConst(s.arena, s.val, s.length(), s.nulls.flat)
 			s.vec = vec
 		}
 		s.mu.Unlock()
@@ -285,7 +285,7 @@ func (l *loader) loadVals(typ zed.Type, s *primitive, nulls *vector.Bool) (vecto
 		offs[length] = off
 		return vector.NewTypeValue(offs, bytes, nulls), nil
 	case *zed.TypeOfNull:
-		return vector.NewConst(zed.Null, s.length(), nil), nil
+		return vector.NewConst(nil, zed.Null, s.length(), nil), nil
 	}
 	return nil, fmt.Errorf("internal error: vcache.loadPrimitive got unknown type %#v", typ)
 }
@@ -412,7 +412,7 @@ func empty(typ zed.Type, length uint32, nulls *vector.Bool) vector.Any {
 	case *zed.TypeOfType:
 		return vector.NewTypeValue(make([]uint32, length+1), nil, nulls)
 	case *zed.TypeOfNull:
-		return vector.NewConst(zed.Null, length, nil)
+		return vector.NewConst(nil, zed.Null, length, nil)
 	default:
 		panic(fmt.Sprintf("vcache.empty: unknown type encountered: %T", typ))
 	}

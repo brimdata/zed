@@ -10,8 +10,8 @@ type Int64Encoder struct {
 	PrimitiveEncoder
 }
 
-func NewInt64Encoder() *Int64Encoder {
-	return &Int64Encoder{*NewPrimitiveEncoder(zed.TypeInt64, false)}
+func NewInt64Encoder(zctx *zed.Context) *Int64Encoder {
+	return &Int64Encoder{*NewPrimitiveEncoder(zctx, zed.TypeInt64, false)}
 }
 
 func (p *Int64Encoder) Write(v int64) {

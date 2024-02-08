@@ -70,12 +70,13 @@ func (c *Command) Run(args []string) error {
 	}
 	defer object.Close()
 	//XXX nil puller
-	agg := op.NewCountByString(zed.NewContext(), nil, field)
+	zctx := zed.NewContext()
+	agg := op.NewCountByString(zctx, nil, field)
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, zbuf.PullerReader(vam.NewMaterializer(agg))); err != nil {
+	if err := zio.Copy(writer, zbuf.PullerReader(vam.NewMaterializer(zctx, agg))); err != nil {
 		writer.Close()
 		return err
 	}

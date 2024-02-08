@@ -18,15 +18,15 @@ type UnionEncoder struct {
 
 var _ Encoder = (*UnionEncoder)(nil)
 
-func NewUnionEncoder(typ *zed.TypeUnion) *UnionEncoder {
+func NewUnionEncoder(zctx *zed.Context, typ *zed.TypeUnion) *UnionEncoder {
 	var values []Encoder
 	for _, typ := range typ.Types {
-		values = append(values, NewEncoder(typ))
+		values = append(values, NewEncoder(zctx, typ))
 	}
 	return &UnionEncoder{
 		typ:    typ,
 		values: values,
-		tags:   NewInt64Encoder(),
+		tags:   NewInt64Encoder(zctx),
 	}
 }
 

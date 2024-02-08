@@ -44,6 +44,7 @@ func NewStringError(zctx *zed.Context, msg string, len uint32) *Error {
 
 func NewMissing(zctx *zed.Context, len uint32) *Error {
 	arena := zed.NewArena(zctx)
-	vals := NewConst(arena, arena.Missing(), len, nil)
+	missing := arena.Missing()
+	vals := NewConst(arena, missing, len, nil)
 	return &Error{Typ: missing.Type(), Vals: vals}
 }
