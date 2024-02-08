@@ -13,24 +13,26 @@ import (
 
 type ZNGWriter struct {
 	*zngio.Writer
+	arena     *zed.Arena
 	marshaler *zson.MarshalZNGContext
 }
 
 var _ controlWriter = (*ZJSONWriter)(nil)
 
 func NewZNGWriter(w io.Writer) *ZNGWriter {
-	m := zson.NewZNGMarshaler()
+	arena := zed.NewArena(zed.NewContext())
+	m := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StyleSimple)
 	return &ZNGWriter{
 		Writer:    zngio.NewWriter(zio.NopCloser(w)),
+		arena:     arena,
 		marshaler: m,
 	}
 }
 
 func (w *ZNGWriter) WriteControl(v interface{}) error {
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
-	val, err := w.marshaler.Marshal(arena, v)
+	w.arena.Reset()
+	val, err := w.marshaler.Marshal(w.arena, v)
 	if err != nil {
 		return err
 	}

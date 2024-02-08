@@ -96,7 +96,7 @@ func (r *Request) reader() (io.Reader, error) {
 	}
 	arena := zed.NewArena(zed.NewContext())
 	defer arena.Unref()
-	m := zson.NewZNGMarshaler()
+	m := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StylePackage)
 	val, err := m.Marshal(arena, r.Body)
 	if err != nil {

@@ -75,16 +75,14 @@ func (c *Command) Run(args []string) error {
 }
 
 type metaReader struct {
-	reader    *reader
-	marshaler *zson.MarshalZNGContext
+	reader *reader
 }
 
 var _ zio.Reader = (*metaReader)(nil)
 
 func newMetaReader(r io.Reader) *metaReader {
 	return &metaReader{
-		reader:    &reader{reader: bufio.NewReader(r)},
-		marshaler: zson.NewZNGMarshaler(),
+		reader: &reader{reader: bufio.NewReader(r)},
 	}
 }
 
@@ -116,7 +114,7 @@ func (m *metaReader) Read(arena *zed.Arena) (*zed.Value, error) {
 	if f == nil || err != nil {
 		return nil, err
 	}
-	val, err := m.marshaler.Marshal(arena, f)
+	val, err := zson.MarshalZNG(arena, f)
 	return &val, err
 }
 

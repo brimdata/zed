@@ -498,7 +498,7 @@ func TestInterfaceUnmarshal(t *testing.T) {
 	defer arena.Unref()
 
 	t1 := Make(1)
-	m := zson.NewZNGMarshaler()
+	m := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StylePackage)
 	zv, err := m.Marshal(arena, t1)
 	require.NoError(t, err)
@@ -617,7 +617,7 @@ func TestEmbeddedInterface(t *testing.T) {
 	t1 := &EmbeddedA{
 		A: Make(1),
 	}
-	m := zson.NewZNGMarshaler()
+	m := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StyleSimple)
 	zv, err := m.Marshal(arena, t1)
 	require.NoError(t, err)

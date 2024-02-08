@@ -119,7 +119,7 @@ func TestBytes(t *testing.T) {
 	assert.Equal(t, "{A:0x040506}", zson.FormatValue(rec))
 
 	id := IDRecord{A: ID{0, 1, 2, 3}, B: ID{4, 5, 6, 7}}
-	m = zson.NewZNGMarshaler()
+	m = zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m.Decorate(zson.StyleSimple)
 	rec, err = m.Marshal(arena, id)
 	require.NoError(t, err)
@@ -134,14 +134,14 @@ func TestBytes(t *testing.T) {
 	assert.Equal(t, id, id2)
 
 	b2 := BytesRecord{B: nil}
-	m = zson.NewZNGMarshaler()
+	m = zson.NewZNGMarshalerWithContext(arena.Zctx())
 	rec, err = m.Marshal(arena, b2)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	assert.Equal(t, "{B:null(bytes)}", zson.FormatValue(rec))
 
 	s := SliceRecord{S: nil}
-	m = zson.NewZNGMarshaler()
+	m = zson.NewZNGMarshalerWithContext(arena.Zctx())
 	rec, err = m.Marshal(arena, s)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
@@ -304,7 +304,7 @@ func TestZNGValueField(t *testing.T) {
 		Name:  "test2",
 		Field: zv2,
 	}
-	m2 := zson.NewZNGMarshaler()
+	m2 := zson.NewZNGMarshalerWithContext(arena.Zctx())
 	m2.Decorate(zson.StyleSimple)
 	zv3, err := m2.Marshal(arena, zngValueField2)
 	require.NoError(t, err)
