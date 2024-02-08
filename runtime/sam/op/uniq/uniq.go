@@ -74,7 +74,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			}
 			t := o.wrap(o.last)
 			o.count = 0
-			return zbuf.NewArray([]zed.Value{t}), nil
+			return zbuf.NewArray(o.arena, []zed.Value{t}), nil
 		}
 		var out []zed.Value
 		vals := batch.Values()

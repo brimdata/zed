@@ -22,10 +22,11 @@ type Writer struct {
 var _ zio.Writer = (*Writer)(nil)
 
 func NewWriter(w io.WriteCloser) *Writer {
+	zctx := zed.NewContext()
 	return &Writer{
-		zctx:    zed.NewContext(),
+		zctx:    zctx,
 		writer:  w,
-		variant: NewVariantEncoder(),
+		variant: NewVariantEncoder(zctx),
 	}
 }
 

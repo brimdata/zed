@@ -3,6 +3,7 @@ package vng
 import (
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"golang.org/x/sync/errgroup"
 )
@@ -18,10 +19,10 @@ type NullsEncoder struct {
 	count  uint32
 }
 
-func NewNullsEncoder(values Encoder) *NullsEncoder {
+func NewNullsEncoder(zctx *zed.Context, values Encoder) *NullsEncoder {
 	return &NullsEncoder{
 		values: values,
-		runs:   *NewInt64Encoder(),
+		runs:   *NewInt64Encoder(zctx),
 	}
 }
 

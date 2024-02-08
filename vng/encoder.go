@@ -33,22 +33,22 @@ func NewEncoder(zctx *zed.Context, typ zed.Type) Encoder {
 	case *zed.TypeNamed:
 		return &NamedEncoder{NewEncoder(zctx, typ.Type), typ.Name}
 	case *zed.TypeRecord:
-		return NewNullsEncoder(NewRecordEncoder(zctx, typ))
+		return NewNullsEncoder(zctx, NewRecordEncoder(zctx, typ))
 	case *zed.TypeArray:
-		return NewNullsEncoder(NewArrayEncoder(zctx, typ))
+		return NewNullsEncoder(zctx, NewArrayEncoder(zctx, typ))
 	case *zed.TypeSet:
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
-		return NewNullsEncoder(NewSetEncoder(zctx, typ))
+		return NewNullsEncoder(zctx, NewSetEncoder(zctx, typ))
 	case *zed.TypeMap:
-		return NewNullsEncoder(NewMapEncoder(zctx, typ))
+		return NewNullsEncoder(zctx, NewMapEncoder(zctx, typ))
 	case *zed.TypeUnion:
-		return NewNullsEncoder(NewUnionEncoder(zctx, typ))
+		return NewNullsEncoder(zctx, NewUnionEncoder(zctx, typ))
 	default:
 		if !zed.IsPrimitiveType(typ) {
 			panic(fmt.Sprintf("unsupported type in VNG file: %T", typ))
 		}
-		return NewNullsEncoder(NewPrimitiveEncoder(zctx, typ, true))
+		return NewNullsEncoder(zctx, NewPrimitiveEncoder(zctx, typ, true))
 	}
 }
 

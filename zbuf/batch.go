@@ -111,7 +111,9 @@ var PullerBatchValues = 100
 // NewPuller returns a puller for zr that returns batches containing up to
 // [PullerBatchBytes] bytes and [PullerBatchValues] values.
 func NewPuller(zctx *zed.Context, zr zio.Reader) Puller {
-	return &puller{zctx: zctx, zr: zr}
+	p := &puller{zctx: zctx, zr: zr}
+	p.arenaPool.New = func() any { return zed.NewArenaInPool(zctx, &p.arenaPool) }
+	return p
 }
 
 type puller struct {
@@ -122,9 +124,6 @@ type puller struct {
 
 func (p *puller) newArena() *zed.Arena {
 	arena := p.arenaPool.Get().(*zed.Arena)
-	if arena == nil {
-		return zed.NewArenaInPool(p.zctx, &p.arenaPool)
-	}
 	arena.Ref()
 	arena.Reset()
 	return arena

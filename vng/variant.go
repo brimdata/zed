@@ -11,6 +11,7 @@ import (
 )
 
 type VariantEncoder struct {
+	zctx   *zed.Context
 	tags   *Int64Encoder
 	values []Encoder
 	which  map[zed.Type]int
@@ -19,9 +20,10 @@ type VariantEncoder struct {
 
 var _ zio.Writer = (*VariantEncoder)(nil)
 
-func NewVariantEncoder() *VariantEncoder {
+func NewVariantEncoder(zctx *zed.Context) *VariantEncoder {
 	return &VariantEncoder{
-		tags:  NewInt64Encoder(),
+		zctx:  zctx,
+		tags:  NewInt64Encoder(zctx),
 		which: make(map[zed.Type]int),
 	}
 }
@@ -35,7 +37,7 @@ func (v *VariantEncoder) Write(val zed.Value) error {
 	tag, ok := v.which[typ]
 	if !ok {
 		tag = len(v.values)
-		v.values = append(v.values, NewEncoder(typ))
+		v.values = append(v.values, NewEncoder(v.zctx, typ))
 		v.which[typ] = tag
 	}
 	v.tags.Write(int64(tag))
