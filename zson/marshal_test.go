@@ -313,7 +313,8 @@ func TestZNGValueField(t *testing.T) {
 	var out2 ZNGValueField
 	err = u2.Unmarshal(zv3, &out2)
 	require.NoError(t, err)
-	assert.Equal(t, *zngValueField2, out2)
+	assert.Equal(t, zngValueField2.Name, out2.Name)
+	assert.True(t, zngValueField2.Field.Equal(out2.Field))
 }
 
 func TestJSONFieldTag(t *testing.T) {
