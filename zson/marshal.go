@@ -641,7 +641,7 @@ type UnmarshalZNGContext struct {
 }
 
 func NewZNGUnmarshaler() *UnmarshalZNGContext {
-	return &UnmarshalZNGContext{zctx: zed.NewContext()}
+	return &UnmarshalZNGContext{}
 }
 
 func UnmarshalZNG(val zed.Value, v interface{}) error {
