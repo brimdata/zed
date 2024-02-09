@@ -663,9 +663,9 @@ func (u *UnmarshalZNGContext) Unmarshal(val zed.Value, v interface{}) error {
 		if u.arena == nil || u.arena.Zctx() != arena.Zctx() {
 			u.arena = zed.NewArena(arena.Zctx())
 		}
-		arena.Reset()
+		u.arena.Reset()
 	} else {
-		arena = nil
+		u.arena = nil
 	}
 	return u.decodeAny(val, reflect.ValueOf(v))
 }
