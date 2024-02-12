@@ -285,14 +285,9 @@ func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error)
 			Meta: p.Spec.Meta,
 		}, nil
 	}
-	// If a name appears as an 0x bytes ksuid, convert it to the
-	// ksuid string form since the backend doesn't parse the 0x format.
-	poolID, err := lakeparse.ParseID(poolName)
+	poolID, err := a.source.PoolID(a.ctx, poolName)
 	if err != nil {
-		poolID, err = a.source.PoolID(a.ctx, poolName)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	if p.At != "" {
 		// XXX

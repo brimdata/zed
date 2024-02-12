@@ -4,8 +4,12 @@ script: |
   zed init -q
   zed create 2WwyVrZdEITo5WkKu1YsJC4dMjU
   zed use 2WwyVrZdEITo5WkKu1YsJC4dMjU
+  zed query 'from 2WwyVrZdEITo5WkKu1YsJC4dMjU'
+
 outputs:
   - name: stdout
     regexp: |
       pool created: 2WwyVrZdEITo5WkKu1YsJC4dMjU \w{27}
       Switched to branch "main" on pool "2WwyVrZdEITo5WkKu1YsJC4dMjU"
+  - name: stderr
+    data: ""
