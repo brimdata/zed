@@ -199,40 +199,39 @@ func (r *pullerReader) Read() (*zed.Value, error) {
 	return val, nil
 }
 
-// XXX at some point the stacked scopes should not make copies of values
-// but merely refer back to the value in the wrapped batch, and we should
-// ref the wrapped batch then downstream entities will unref it, but how
-// do we carry the var frame through... protocol needs to be that any new
-// batch created by a proc needs to preserve the var frame... we don't
-// do that right now and ref counting needs to account for the dependencies.
-// procs like summarize and sort that unref their input batches merely need
-// to copy the first frame (of each batch) and the contract is that the
-// frame will not change between multiple batches within a single-EOS event.
-
 type batch struct {
-	Batch
-	vars []zed.Value
+	refs   int32
+	parent Batch
+	vals   []zed.Value
+	vars   []zed.Value
 }
 
 func NewBatch(b Batch, vals []zed.Value) Batch {
+	b.Ref()
 	return &batch{
-		Batch: NewArray(vals),
-		vars:  CopyVars(b),
+		refs:   1,
+		parent: b,
+		vals:   vals,
+		vars:   b.Vars(),
 	}
+}
+
+func (b *batch) Ref() {
+	atomic.AddInt32(&b.refs, 1)
+}
+
+func (b *batch) Unref() {
+	if refs := atomic.AddInt32(&b.refs, -1); refs == 0 {
+		b.parent.Unref()
+	} else if refs < 0 {
+		panic("zbuf: negative batch reference count")
+	}
+}
+
+func (b *batch) Values() []zed.Value {
+	return b.vals
 }
 
 func (b *batch) Vars() []zed.Value {
 	return b.vars
-}
-
-func CopyVars(b Batch) []zed.Value {
-	vars := b.Vars()
-	if len(vars) > 0 {
-		newvars := make([]zed.Value, len(vars))
-		for k, v := range vars {
-			newvars[k] = v.Copy()
-		}
-		vars = newvars
-	}
-	return vars
 }
