@@ -75,7 +75,7 @@ func TestParseValueStringEscapeSequences(t *testing.T) {
 		arena := zed.NewArena(zed.NewContext())
 		val, err := zson.ParseValue(arena, c.in)
 		assert.NoError(t, err)
-		assert.Equal(t, arena.NewString(c.expected), val, "in %q", c.in)
+		assert.True(t, val.Equal(arena.NewString(c.expected)), "in %q", c.in)
 		arena.Unref()
 	}
 }

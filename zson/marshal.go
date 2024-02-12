@@ -635,7 +635,6 @@ type ZNGUnmarshaler interface {
 }
 
 type UnmarshalZNGContext struct {
-	arena  *zed.Arena
 	zctx   *zed.Context
 	binder binder
 }
@@ -659,14 +658,6 @@ func (u *UnmarshalZNGContext) SetContext(zctx *zed.Context) {
 }
 
 func (u *UnmarshalZNGContext) Unmarshal(val zed.Value, v interface{}) error {
-	if arena, ok := val.Arena(); ok {
-		if u.arena == nil || u.arena.Zctx() != arena.Zctx() {
-			u.arena = zed.NewArena(arena.Zctx())
-		}
-		u.arena.Reset()
-	} else {
-		u.arena = nil
-	}
 	return u.decodeAny(val, reflect.ValueOf(v))
 }
 
@@ -924,15 +915,18 @@ func (u *UnmarshalZNGContext) decodeMap(val zed.Value, mapVal reflect.Value) err
 	if mapVal.IsNil() {
 		mapVal.Set(reflect.MakeMap(mapVal.Type()))
 	}
+	oldArena, _ := val.Arena()
+	arena := zed.NewArena(oldArena.Zctx())
+	defer arena.Unref()
 	keyType := mapVal.Type().Key()
 	valType := mapVal.Type().Elem()
 	for it := val.Iter(); !it.Done(); {
 		key := reflect.New(keyType).Elem()
-		if err := u.decodeAny(u.arena.NewValue(typ.KeyType, it.Next()), key); err != nil {
+		if err := u.decodeAny(arena.NewValue(typ.KeyType, it.Next()), key); err != nil {
 			return err
 		}
 		val := reflect.New(valType).Elem()
-		if err := u.decodeAny(u.arena.NewValue(typ.ValType, it.Next()), val); err != nil {
+		if err := u.decodeAny(arena.NewValue(typ.ValType, it.Next()), val); err != nil {
 			return err
 		}
 		mapVal.SetMapIndex(key, val)
@@ -941,9 +935,12 @@ func (u *UnmarshalZNGContext) decodeMap(val zed.Value, mapVal reflect.Value) err
 }
 
 func (u *UnmarshalZNGContext) decodeRecord(val zed.Value, sval reflect.Value) error {
+	oldArena, _ := val.Arena()
+	arena := zed.NewArena(oldArena.Zctx())
+	defer arena.Unref()
 	if union, ok := val.Type().(*zed.TypeUnion); ok {
 		typ, bytes := union.Untag(val.Bytes())
-		val = u.arena.NewValue(typ, bytes)
+		val = arena.NewValue(typ, bytes)
 	}
 	recType, ok := zed.TypeUnder(val.Type()).(*zed.TypeRecord)
 	if !ok {
@@ -964,7 +961,7 @@ func (u *UnmarshalZNGContext) decodeRecord(val zed.Value, sval reflect.Value) er
 		name := recType.Fields[i].Name
 		if fieldIdx, ok := nameToField[name]; ok {
 			typ := recType.Fields[i].Type
-			if err := u.decodeAny(u.arena.NewValue(typ, itzv), sval.Field(fieldIdx)); err != nil {
+			if err := u.decodeAny(arena.NewValue(typ, itzv), sval.Field(fieldIdx)); err != nil {
 				return err
 			}
 		}
@@ -995,6 +992,9 @@ func (u *UnmarshalZNGContext) decodeArray(val zed.Value, arrVal reflect.Value) e
 		arrVal.Set(reflect.Zero(arrVal.Type()))
 		return nil
 	}
+	oldArena, _ := val.Arena()
+	arena := zed.NewArena(oldArena.Zctx())
+	defer arena.Unref()
 	i := 0
 	for it := val.Iter(); !it.Done(); i++ {
 		itzv := it.Next()
@@ -1010,7 +1010,7 @@ func (u *UnmarshalZNGContext) decodeArray(val zed.Value, arrVal reflect.Value) e
 		if i >= arrVal.Len() {
 			arrVal.SetLen(i + 1)
 		}
-		if err := u.decodeAny(u.arena.NewValue(arrType.Type, itzv), arrVal.Index(i)); err != nil {
+		if err := u.decodeAny(arena.NewValue(arrType.Type, itzv), arrVal.Index(i)); err != nil {
 			return err
 		}
 	}
