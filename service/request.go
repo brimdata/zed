@@ -84,17 +84,19 @@ func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool)
 	if !ok {
 		return ksuid.Nil, false
 	}
-	id, err := lakeparse.ParseID(s)
+	if id, err := lakeparse.ParseID(s); err == nil {
+		if _, err = root.OpenPool(r.Context(), id); err == nil {
+			return id, true
+		}
+	}
+	id, err := root.PoolID(r.Context(), s)
+	if errors.Is(err, pools.ErrNotFound) {
+		w.Error(err)
+		return ksuid.Nil, false
+	}
 	if err != nil {
-		id, err = root.PoolID(r.Context(), s)
-		if errors.Is(err, pools.ErrNotFound) {
-			w.Error(err)
-			return ksuid.Nil, false
-		}
-		if err != nil {
-			w.Error(srverr.ErrInvalid("invalid path param %q: %w", s, err))
-			return ksuid.Nil, false
-		}
+		w.Error(srverr.ErrInvalid("invalid path param %q: %w", s, err))
+		return ksuid.Nil, false
 	}
 	return id, true
 }

@@ -33,6 +33,11 @@ func (l *remote) Root() *lake.Root {
 }
 
 func (r *remote) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {
+	if id, err := lakeparse.ParseID(poolName); err == nil {
+		if _, err := LookupPoolByID(ctx, r, id); err == nil {
+			return id, nil
+		}
+	}
 	config, err := LookupPoolByName(ctx, r, poolName)
 	if err != nil {
 		return ksuid.Nil, err

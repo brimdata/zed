@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
@@ -37,11 +38,13 @@ func (s *Source) Lake() *lake.Root {
 	return s.lake
 }
 
-func (s *Source) PoolID(ctx context.Context, id string) (ksuid.KSUID, error) {
-	if s.lake != nil {
-		return s.lake.PoolID(ctx, id)
+func (s *Source) PoolID(ctx context.Context, name string) (ksuid.KSUID, error) {
+	if id, err := lakeparse.ParseID(name); err == nil {
+		if _, err := s.lake.OpenPool(ctx, id); err == nil {
+			return id, nil
+		}
 	}
-	return ksuid.Nil, nil
+	return s.lake.PoolID(ctx, name)
 }
 
 func (s *Source) CommitObject(ctx context.Context, id ksuid.KSUID, name string) (ksuid.KSUID, error) {
