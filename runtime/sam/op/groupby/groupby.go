@@ -220,8 +220,8 @@ func (o *Op) run() {
 				return
 			}
 		}
-		batch.Unref()
 		if o.agg.inputDir == 0 {
+			batch.Unref()
 			continue
 		}
 		// sorted input: see if we have any completed keys we can emit.
@@ -245,6 +245,7 @@ func (o *Op) run() {
 				break
 			}
 		}
+		batch.Unref()
 	}
 }
 
