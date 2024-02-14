@@ -55,7 +55,7 @@ func NewBatch(arena *zed.Arena, vals []zed.Value, b Batch, vars []zed.Value) Bat
 	if b != nil {
 		b.Ref()
 	}
-	return &batch{1, arena, vals, b, b.Vars()}
+	return &batch{1, arena, vals, b, vars}
 }
 
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }

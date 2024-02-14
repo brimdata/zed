@@ -246,15 +246,7 @@ func (v Value) CopyToArena(a *Arena) Value {
 	if v.a&vMask != vArena {
 		return v
 	}
-	panic("todo")
-}
-
-func (v Value) CopyNewArena() (Value, *Arena) {
-	if v.a&vMask == vArena {
-		a := NewArena(v.arena().zctx)
-		return a.NewFromBytes(v.Type(), v.Bytes()), a
-	}
-	return v, nil
+	return a.NewValue(v.Type(), v.Bytes())
 }
 
 func (v Value) Type() Type {
