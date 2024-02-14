@@ -136,7 +136,7 @@ func (p *puller) Pull(bool) (Batch, error) {
 	arena := p.newArena()
 	vals := make([]zed.Value, 0, PullerBatchValues)
 	for {
-		val, err := p.zr.Read(arena)
+		val, err := p.zr.Read()
 		if err != nil {
 			return nil, err
 		}
@@ -147,7 +147,7 @@ func (p *puller) Pull(bool) (Batch, error) {
 			}
 			return NewBatch(arena, vals, nil, nil), nil
 		}
-		vals = append(vals, *val)
+		vals = append(vals, val.CopyToArena(arena))
 		if len(vals) >= PullerBatchValues {
 			return NewBatch(arena, vals, nil, nil), nil
 		}
@@ -177,7 +177,7 @@ type pullerReader struct {
 	vals  []zed.Value
 }
 
-func (r *pullerReader) Read(arena *zed.Arena) (*zed.Value, error) {
+func (r *pullerReader) Read() (*zed.Value, error) {
 	// Loop handles zero-length batches.
 	for len(r.vals) == 0 {
 		if r.batch != nil {
@@ -193,7 +193,7 @@ func (r *pullerReader) Read(arena *zed.Arena) (*zed.Value, error) {
 	}
 	val := &r.vals[0]
 	r.vals = r.vals[1:]
-	return val.CopyToArena(arena).Ptr(), nil
+	return val, nil
 }
 
 func CopyVars(b Batch) []zed.Value {

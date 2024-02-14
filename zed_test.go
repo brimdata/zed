@@ -95,16 +95,14 @@ func loadZTestInputsAndOutputs(ztestDirs map[string]struct{}) (map[string]string
 // isValid returns true if and only if s can be read fully without error by
 // anyio and contains at least one value.
 func isValid(s string) bool {
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
-	zrc, err := anyio.NewReader(arena.Zctx(), strings.NewReader(s), demand.All())
+	zrc, err := anyio.NewReader(zed.NewContext(), strings.NewReader(s), demand.All())
 	if err != nil {
 		return false
 	}
 	defer zrc.Close()
 	var foundValue bool
 	for {
-		val, err := zrc.Read(arena)
+		val, err := zrc.Read()
 		if err != nil {
 			return false
 		}

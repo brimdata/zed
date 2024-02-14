@@ -19,7 +19,7 @@ type Reader struct {
 
 func NewReader(zctx *zed.Context, r io.Reader) *Reader {
 	return &Reader{
-		builder: builder{zctx: zctx},
+		builder: builder{arena: zed.NewArena(zctx), zctx: zctx},
 		// 64 KB gave the best performance when this was written.
 		lexer: jsonlexer.New(bufio.NewReaderSize(r, 64*1024)),
 		// Ensure handleToken never passes a nil buf to
@@ -28,7 +28,7 @@ func NewReader(zctx *zed.Context, r io.Reader) *Reader {
 	}
 }
 
-func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	t := r.lexer.Token()
 	if t == jsonlexer.TokenErr {
 		err := r.lexer.Err()
@@ -41,7 +41,7 @@ func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	if err := r.handleToken("", t); err != nil {
 		return nil, err
 	}
-	return r.builder.value(arena), nil
+	return r.builder.value(), nil
 }
 
 func (r *Reader) handleToken(fieldName string, t jsonlexer.Token) error {

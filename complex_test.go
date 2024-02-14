@@ -2,6 +2,7 @@ package zed_test
 
 import (
 	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -25,17 +26,16 @@ func TestRecordAccessNamed(t *testing.T) {
 }
 
 func TestNonRecordDeref(t *testing.T) {
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
 	const input = `
 1
 192.168.1.1
 null
 [1,2,3]
 |[1,2,3]|`
-	reader := zsonio.NewReader(arena.Zctx(), strings.NewReader(input))
+	reader := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
+	defer runtime.KeepAlive(reader)
 	for {
-		val, err := reader.Read(arena)
+		val, err := reader.Read()
 		if val == nil {
 			break
 		}

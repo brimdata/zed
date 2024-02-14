@@ -80,7 +80,7 @@ func readMetadata(r io.Reader) (Metadata, error) {
 	defer arena.Unref()
 	zr := zngio.NewReader(arena.Zctx(), r)
 	defer zr.Close()
-	val, err := zr.Read(arena)
+	val, err := zr.Read()
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func readMetadata(r io.Reader) (Metadata, error) {
 		return nil, err
 	}
 	// Read another val to make sure there is no extra stuff after the metadata.
-	if extra, _ := zr.Read(arena); extra != nil {
+	if extra, _ := zr.Read(); extra != nil {
 		return nil, errors.New("corrupt VNG: metadata section has more than one Zed value")
 	}
 	return meta, nil

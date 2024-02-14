@@ -469,8 +469,8 @@ type warningsReader struct {
 	warnings []string
 }
 
-func (w *warningsReader) Read(arena *zed.Arena) (*zed.Value, error) {
-	val, err := w.Reader.Read(arena)
+func (w *warningsReader) Read() (*zed.Value, error) {
+	val, err := w.Reader.Read()
 	if err != nil {
 		w.warnings = append(w.warnings, err.Error())
 		return nil, nil

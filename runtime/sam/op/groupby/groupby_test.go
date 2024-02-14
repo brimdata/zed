@@ -44,8 +44,8 @@ func (cr *countReader) records() int {
 	return cr.n
 }
 
-func (cr *countReader) Read(arena *zed.Arena) (*zed.Value, error) {
-	rec, err := cr.r.Read(arena)
+func (cr *countReader) Read() (*zed.Value, error) {
+	rec, err := cr.r.Read()
 	if rec != nil {
 		cr.mu.Lock()
 		cr.n++

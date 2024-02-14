@@ -171,15 +171,13 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 	if !ok {
 		return false
 	}
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
-	zrc, err := anyio.NewReaderWithOpts(arena.Zctx(), r.Body, demand.All(), anyio.ReaderOpts{Format: format})
+	zrc, err := anyio.NewReaderWithOpts(zed.NewContext(), r.Body, demand.All(), anyio.ReaderOpts{Format: format})
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return false
 	}
 	defer zrc.Close()
-	zv, err := zrc.Read(arena)
+	zv, err := zrc.Read()
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return false

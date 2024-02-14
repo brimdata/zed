@@ -115,19 +115,21 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 }
 
 func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
+	arena := zed.NewArena(zctx)
 	objects := snap.Select(nil, order)
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return readerFunc(func(arena *zed.Arena) (*zed.Value, error) {
+	return readerFunc(func() (*zed.Value, error) {
 		if len(objects) == 0 {
 			return nil, nil
 		}
+		arena.Reset()
 		val, err := m.Marshal(arena, objects[0])
 		objects = objects[1:]
 		return &val, err
 	}), nil
 }
 
-type readerFunc func(*zed.Arena) (*zed.Value, error)
+type readerFunc func() (*zed.Value, error)
 
-func (r readerFunc) Read(arena *zed.Arena) (*zed.Value, error) { return r(arena) }
+func (r readerFunc) Read() (*zed.Value, error) { return r() }

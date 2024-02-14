@@ -75,7 +75,7 @@ func (c *Command) Run(args []string) error {
 }
 
 type reader struct {
-	zctx      *zed.Context
+	arena     *zed.Arena
 	reader    *bufio.Reader
 	meta      *zngio.Reader
 	marshaler *zson.MarshalZNGContext
@@ -87,14 +87,15 @@ var _ zio.Reader = (*reader)(nil)
 func newReader(r io.Reader) *reader {
 	zctx := zed.NewContext()
 	return &reader{
-		zctx:      zctx,
+		arena:     zed.NewArena(zctx),
 		reader:    bufio.NewReader(r),
 		marshaler: zson.NewZNGMarshalerWithContext(zctx),
 	}
 }
 
-func (r *reader) Read(arena *zed.Arena) (*zed.Value, error) {
+func (r *reader) Read() (*zed.Value, error) {
 	for {
+		r.arena.Reset()
 		if r.meta == nil {
 			hdr, err := r.readHeader()
 			if err != nil {
@@ -103,12 +104,12 @@ func (r *reader) Read(arena *zed.Arena) (*zed.Value, error) {
 				}
 				return nil, err
 			}
-			r.meta = zngio.NewReader(r.zctx, io.LimitReader(r.reader, int64(hdr.MetaSize)))
+			r.meta = zngio.NewReader(r.arena.Zctx(), io.LimitReader(r.reader, int64(hdr.MetaSize)))
 			r.dataSize = int(hdr.DataSize)
-			val, err := r.marshaler.Marshal(arena, hdr)
+			val, err := r.marshaler.Marshal(r.arena, hdr)
 			return val.Ptr(), err
 		}
-		val, err := r.meta.Read(arena)
+		val, err := r.meta.Read()
 		if val != nil || err != nil {
 			return val, err
 		}

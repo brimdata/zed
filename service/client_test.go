@@ -57,7 +57,7 @@ func (c *testClient) TestPoolList() []pools.Config {
 	defer zr.Close()
 	var confs []pools.Config
 	for {
-		rec, err := zr.Read(arena)
+		rec, err := zr.Read()
 		require.NoError(c, err)
 		if rec == nil {
 			return confs

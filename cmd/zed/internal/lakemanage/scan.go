@@ -66,7 +66,6 @@ from %q@%q:objects
 `
 
 type objectIterator struct {
-	arena       *zed.Arena
 	reader      zio.ReadCloser
 	unmarshaler *zson.UnmarshalZNGContext
 }
@@ -78,14 +77,13 @@ func newObjectIterator(ctx context.Context, zctx *zed.Context, lake api.Interfac
 		return nil, err
 	}
 	return &objectIterator{
-		arena:       zed.NewArena(zctx),
 		reader:      r,
 		unmarshaler: zson.NewZNGUnmarshaler(),
 	}, nil
 }
 
 func (r *objectIterator) next() (*object, error) {
-	val, err := r.reader.Read(r.arena)
+	val, err := r.reader.Read()
 	if val == nil || err != nil {
 		return nil, err
 	}

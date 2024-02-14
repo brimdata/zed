@@ -498,7 +498,7 @@ func (a *Aggregator) nextResultFromSpills(ectx expr.Context) (*zed.Value, error)
 			break
 		}
 		row.consumeAsPartial(*rec, a.aggRefs, ectx)
-		if _, err := a.spiller.Read(ectx.Arena()); err != nil {
+		if _, err := a.spiller.Read(); err != nil {
 			return nil, err
 		}
 	}

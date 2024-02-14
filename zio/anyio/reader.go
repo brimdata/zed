@@ -66,74 +66,68 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, demandOut demand.Demand, 
 		vngErr = errors.New("vng: auto-detection requires seekable input")
 	}
 
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
 	track := NewTrack(r)
-	reset := func() {
-		arena.Reset()
-		track.Reset()
-	}
 
-	arrowsErr := isArrowStream(arena, track)
+	arrowsErr := isArrowStream(track)
 	if arrowsErr == nil {
 		return arrowio.NewReader(zctx, track.Reader())
 	}
 	arrowsErr = fmt.Errorf("arrows: %w", arrowsErr)
-	reset()
+	track.Reset()
 
-	zeekErr := match(arena, zeekio.NewReader(arena.Zctx(), track), "zeek", 1)
+	zeekErr := match(zeekio.NewReader(zed.NewContext(), track), "zeek", 1)
 	if zeekErr == nil {
 		return zio.NopReadCloser(zeekio.NewReader(zctx, track.Reader())), nil
 	}
-	reset()
+	track.Reset()
 
 	// ZJSON must come before JSON and ZSON since it is a subset of both.
-	zjsonErr := match(arena, zjsonio.NewReader(arena.Zctx(), track), "zjson", 1)
+	zjsonErr := match(zjsonio.NewReader(zed.NewContext(), track), "zjson", 1)
 	if zjsonErr == nil {
 		return zio.NopReadCloser(zjsonio.NewReader(zctx, track.Reader())), nil
 	}
-	reset()
+	track.Reset()
 
 	// JSON comes before ZSON because the JSON reader is faster than the
 	// ZSON reader.  The number of values wanted is greater than one for the
 	// sake of tests.
-	jsonErr := match(arena, jsonio.NewReader(arena.Zctx(), track), "json", 10)
+	jsonErr := match(jsonio.NewReader(zed.NewContext(), track), "json", 10)
 	if jsonErr == nil {
 		return zio.NopReadCloser(jsonio.NewReader(zctx, track.Reader())), nil
 	}
-	reset()
+	track.Reset()
 
-	zsonErr := match(arena, zsonio.NewReader(arena.Zctx(), track), "zson", 1)
+	zsonErr := match(zsonio.NewReader(zed.NewContext(), track), "zson", 1)
 	if zsonErr == nil {
 		return zio.NopReadCloser(zsonio.NewReader(zctx, track.Reader())), nil
 	}
-	reset()
+	track.Reset()
 
 	// For the matching reader, force validation to true so we are extra
 	// careful about auto-matching ZNG.  Then, once matched, relaxed
 	// validation to the user setting in the actual reader returned.
 	zngOpts := opts.ZNG
 	zngOpts.Validate = true
-	zngReader := zngio.NewReaderWithOpts(arena.Zctx(), track, zngOpts)
-	zngErr := match(arena, zngReader, "zng", 1)
+	zngReader := zngio.NewReaderWithOpts(zed.NewContext(), track, zngOpts)
+	zngErr := match(zngReader, "zng", 1)
 	// Close zngReader to ensure that it does not continue to call track.Read.
 	zngReader.Close()
 	if zngErr == nil {
 		return zngio.NewReaderWithOpts(zctx, track.Reader(), opts.ZNG), nil
 	}
-	reset()
+	track.Reset()
 
-	csvErr := isCSVStream(arena, track, ',', "csv")
+	csvErr := isCSVStream(track, ',', "csv")
 	if csvErr == nil {
 		return zio.NopReadCloser(csvio.NewReader(zctx, track.Reader(), csvio.ReaderOpts{Delim: ','})), nil
 	}
-	reset()
+	track.Reset()
 
-	tsvErr := isCSVStream(arena, track, '\t', "tsv")
+	tsvErr := isCSVStream(track, '\t', "tsv")
 	if tsvErr == nil {
 		return zio.NopReadCloser(csvio.NewReader(zctx, track.Reader(), csvio.ReaderOpts{Delim: '\t'})), nil
 	}
-	reset()
+	track.Reset()
 
 	lineErr := errors.New("line: auto-detection not supported")
 	return nil, joinErrs([]error{
@@ -151,7 +145,7 @@ func NewReaderWithOpts(zctx *zed.Context, r io.Reader, demandOut demand.Demand, 
 	})
 }
 
-func isArrowStream(arena *zed.Arena, track *Track) error {
+func isArrowStream(track *Track) error {
 	// Streams created by Arrow 0.15.0 or later begin with a 4-byte
 	// continuation indicator (0xffffffff) followed by a 4-byte
 	// little-endian schema message length.  Older streams begin with the
@@ -172,23 +166,23 @@ func isArrowStream(arena *zed.Arena, track *Track) error {
 		return errors.New("schema message length exceeds 1 MiB")
 	}
 	track.Reset()
-	zrc, err := arrowio.NewReader(arena.Zctx(), track)
+	zrc, err := arrowio.NewReader(zed.NewContext(), track)
 	if err != nil {
 		return err
 	}
 	defer zrc.Close()
-	_, err = zrc.Read(arena)
+	_, err = zrc.Read()
 	return err
 }
 
-func isCSVStream(arena *zed.Arena, track *Track, delim rune, name string) error {
+func isCSVStream(track *Track, delim rune, name string) error {
 	if s, err := bufio.NewReader(track).ReadString('\n'); err != nil {
 		return fmt.Errorf("%s: line 1: %w", name, err)
 	} else if !strings.Contains(s, string(delim)) {
 		return fmt.Errorf("%s: line 1: delimiter %q not found", name, delim)
 	}
 	track.Reset()
-	return match(arena, csvio.NewReader(arena.Zctx(), track, csvio.ReaderOpts{Delim: delim}), name, 1)
+	return match(csvio.NewReader(zed.NewContext(), track, csvio.ReaderOpts{Delim: delim}), name, 1)
 }
 
 func joinErrs(errs []error) error {
@@ -199,10 +193,9 @@ func joinErrs(errs []error) error {
 	return errors.New(s)
 }
 
-func match(arena *zed.Arena, r zio.Reader, name string, want int) error {
+func match(r zio.Reader, name string, want int) error {
 	for i := 0; i < want; i++ {
-		arena.Reset()
-		val, err := r.Read(arena)
+		val, err := r.Read()
 		if err != nil {
 			return fmt.Errorf("%s: %w", name, err)
 		}

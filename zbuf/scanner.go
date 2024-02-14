@@ -118,12 +118,12 @@ func (s *scanner) Progress() Progress {
 }
 
 // Read implements Reader.Read.
-func (s *scanner) Read(arena *zed.Arena) (*zed.Value, error) {
+func (s *scanner) Read() (*zed.Value, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err
 		}
-		this, err := s.reader.Read(arena)
+		this, err := s.reader.Read()
 		if err != nil || this == nil {
 			return nil, err
 		}

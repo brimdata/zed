@@ -180,7 +180,7 @@ func TestMixedTypeArrayInsideRecord(t *testing.T) {
 
 	reader := zngio.NewReader(arena.Zctx(), &buffer)
 	defer reader.Close()
-	recActual, err := reader.Read(arena)
+	recActual, err := reader.Read()
 	exp := zson.FormatValue(recExpected)
 	actual := zson.FormatValue(*recActual)
 	assert.Equal(t, exp, actual)
@@ -243,7 +243,7 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 
 	reader := zngio.NewReader(arena.Zctx(), &buffer)
 	defer reader.Close()
-	recActual, err := reader.Read(arena)
+	recActual, err := reader.Read()
 	require.NoError(t, err)
 	exp := zson.FormatValue(recExpected)
 	actual := zson.FormatValue(*recActual)

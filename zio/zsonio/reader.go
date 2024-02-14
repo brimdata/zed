@@ -10,6 +10,7 @@ import (
 
 type Reader struct {
 	reader   io.Reader
+	arena    *zed.Arena
 	zctx     *zed.Context
 	parser   *zson.Parser
 	analyzer zson.Analyzer
@@ -20,13 +21,14 @@ type Reader struct {
 func NewReader(zctx *zed.Context, r io.Reader) *Reader {
 	return &Reader{
 		reader:   r,
+		arena:    zed.NewArena(zctx),
 		zctx:     zctx,
 		analyzer: zson.NewAnalyzer(),
 		builder:  zcode.NewBuilder(),
 	}
 }
 
-func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	if r.parser == nil {
 		r.parser = zson.NewParser(r.reader)
 	}
@@ -38,6 +40,7 @@ func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.val, err = zson.Build(arena, r.builder, val)
+	r.arena.Reset()
+	r.val, err = zson.Build(r.arena, r.builder, val)
 	return &r.val, err
 }

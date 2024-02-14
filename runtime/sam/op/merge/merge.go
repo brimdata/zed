@@ -83,7 +83,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	return zbuf.NewPuller(o.zctx, o).Pull(false)
 }
 
-func (o *Op) Read(arena *zed.Arena) (*zed.Value, error) {
+func (o *Op) Read() (*zed.Value, error) {
 	if o.Len() == 0 {
 		return nil, nil
 	}
@@ -101,7 +101,7 @@ func (o *Op) Read(arena *zed.Arena) (*zed.Value, error) {
 		}
 	}
 	heap.Fix(o, 0)
-	return val.CopyToArena(arena).Ptr(), nil
+	return val, nil
 }
 
 func (o *Op) run() error {

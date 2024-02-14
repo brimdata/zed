@@ -85,7 +85,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	ectx := expr.NewContext(arena)
 	var out []zed.Value
 	for {
-		leftRec, err := o.left.Read(arena)
+		leftRec, err := o.left.Read()
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +111,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			// Nothing to add to the left join.
 			// Accumulate this record for an outer join.
 			if !o.inner {
-				out = append(out, leftRec.Copy())
+				out = append(out, leftRec.CopyToArena(arena))
 			}
 			continue
 		}
@@ -143,15 +143,14 @@ func (o *Op) getJoinSet(ectx expr.Context, leftKey zed.Value) ([]zed.Value, erro
 		return o.joinSet, nil
 	}
 	// See #3366
-	arena := ectx.Arena()
 	for {
-		rec, err := o.right.Peek(arena)
+		rec, err := o.right.Peek()
 		if err != nil || rec == nil {
 			return nil, err
 		}
 		rightKey := o.getRightKey.Eval(ectx, *rec)
 		if rightKey.IsMissing() {
-			o.right.Read(arena)
+			o.right.Read()
 			continue
 		}
 		cmp := o.compare(leftKey, rightKey)
@@ -174,7 +173,7 @@ func (o *Op) getJoinSet(ectx expr.Context, leftKey zed.Value) ([]zed.Value, erro
 		// Discard the peeked-at record and keep looking for
 		// a righthand key that either matches or exceeds the
 		// lefthand key.
-		o.right.Read(arena)
+		o.right.Read()
 	}
 }
 
@@ -183,10 +182,9 @@ func (o *Op) getJoinSet(ectx expr.Context, leftKey zed.Value) ([]zed.Value, erro
 // from the righthand stream that match this key.
 func (o *Op) readJoinSet(ectx expr.Context, joinKey *zed.Value) ([]zed.Value, error) {
 	// See #3366
-	arena := ectx.Arena()
 	var recs []zed.Value
 	for {
-		rec, err := o.right.Peek(arena)
+		rec, err := o.right.Peek()
 		if err != nil {
 			return nil, err
 		}
@@ -195,14 +193,14 @@ func (o *Op) readJoinSet(ectx expr.Context, joinKey *zed.Value) ([]zed.Value, er
 		}
 		key := o.getRightKey.Eval(ectx, *rec)
 		if key.IsMissing() {
-			o.right.Read(arena)
+			o.right.Read()
 			continue
 		}
 		if o.compare(key, *joinKey) != 0 {
 			return recs, nil
 		}
 		recs = append(recs, rec.Copy())
-		o.right.Read(arena)
+		o.right.Read()
 	}
 }
 

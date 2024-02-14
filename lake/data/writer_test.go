@@ -2,6 +2,7 @@ package data_test
 
 import (
 	"context"
+	"runtime"
 	"testing"
 
 	"github.com/brimdata/zed"
@@ -35,13 +36,14 @@ func TestDataReaderWriterVector(t *testing.T) {
 	require.NoError(t, err)
 	reader, err := vngio.NewReader(arena.Zctx(), get, demand.All())
 	require.NoError(t, err)
-	v, err := reader.Read(arena)
+	defer runtime.KeepAlive(reader)
+	v, err := reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, zson.String(v), "{a:1,b:4}")
-	v, err = reader.Read(arena)
+	v, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, zson.String(v), "{a:2,b:5}")
-	v, err = reader.Read(arena)
+	v, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, zson.String(v), "{a:3,b:6}")
 	require.NoError(t, get.Close())

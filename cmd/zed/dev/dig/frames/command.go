@@ -75,6 +75,7 @@ func (c *Command) Run(args []string) error {
 }
 
 type metaReader struct {
+	arena  *zed.Arena
 	reader *reader
 }
 
@@ -82,6 +83,7 @@ var _ zio.Reader = (*metaReader)(nil)
 
 func newMetaReader(r io.Reader) *metaReader {
 	return &metaReader{
+		arena:  zed.NewArena(zed.NewContext()),
 		reader: &reader{reader: bufio.NewReader(r)},
 	}
 }
@@ -109,12 +111,13 @@ type CompressedBlock struct {
 	Size   int64  `zed:"size"`
 }
 
-func (m *metaReader) Read(arena *zed.Arena) (*zed.Value, error) {
+func (m *metaReader) Read() (*zed.Value, error) {
 	f, err := m.nextFrame()
 	if f == nil || err != nil {
 		return nil, err
 	}
-	val, err := zson.MarshalZNG(arena, f)
+	m.arena.Reset()
+	val, err := zson.MarshalZNG(m.arena, f)
 	return &val, err
 }
 

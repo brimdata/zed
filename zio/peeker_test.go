@@ -2,6 +2,7 @@ package zio
 
 import (
 	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -10,9 +11,6 @@ import (
 )
 
 func TestPeeker(t *testing.T) {
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
-
 	const input = `
 {key:"key1",value:"value1"}
 {key:"key2",value:"value2"}
@@ -21,21 +19,22 @@ func TestPeeker(t *testing.T) {
 {key:"key5",value:"value5"}
 {key:"key6",value:"value6"}
 `
-	stream := zsonio.NewReader(arena.Zctx(), strings.NewReader(input))
+	stream := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	peeker := NewPeeker(stream)
-	rec1, err := peeker.Peek(arena)
+	defer runtime.KeepAlive(peeker)
+	rec1, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)
 	}
 	rec1 = rec1.Copy().Ptr()
-	rec2, err := peeker.Peek(arena)
+	rec2, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)
 	}
 	if !bytes.Equal(rec1.Bytes(), rec2.Bytes()) {
 		t.Error("rec1 != rec2")
 	}
-	rec3, err := peeker.Read(arena)
+	rec3, err := peeker.Read()
 	if err != nil {
 		t.Error(err)
 	}
@@ -43,7 +42,7 @@ func TestPeeker(t *testing.T) {
 	if !bytes.Equal(rec1.Bytes(), rec3.Bytes()) {
 		t.Error("rec1 != rec3")
 	}
-	rec4, err := peeker.Peek(arena)
+	rec4, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,7 +50,7 @@ func TestPeeker(t *testing.T) {
 	if bytes.Equal(rec3.Bytes(), rec4.Bytes()) {
 		t.Error("rec3 == rec4")
 	}
-	rec5, err := peeker.Read(arena)
+	rec5, err := peeker.Read()
 	if err != nil {
 		t.Error(err)
 	}

@@ -99,15 +99,13 @@ func (s *Store) load(ctx context.Context) error {
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		s.logger.Error("Loading snapshot", zap.Error(err))
 	}
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
-	r, err := s.journal.OpenAsZNG(ctx, arena.Zctx(), head, at)
+	r, err := s.journal.OpenAsZNG(ctx, zed.NewContext(), head, at)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
 	for {
-		val, err := r.Read(arena)
+		val, err := r.Read()
 		if err != nil {
 			return err
 		}
@@ -155,10 +153,9 @@ func (s *Store) getSnapshot(ctx context.Context) (ID, map[string]Entry, error) {
 		return Nil, table, err
 	}
 	defer r.Close()
-	arena := zed.NewArena(zed.NewContext())
-	zr := zngio.NewReader(arena.Zctx(), r)
+	zr := zngio.NewReader(zed.NewContext(), r)
 	defer zr.Close()
-	val, err := zr.Read(arena)
+	val, err := zr.Read()
 	if val == nil || err != nil {
 		return Nil, table, err
 	}
@@ -167,7 +164,7 @@ func (s *Store) getSnapshot(ctx context.Context) (ID, map[string]Entry, error) {
 	}
 	at := ID(val.Uint())
 	for {
-		val, err := zr.Read(arena)
+		val, err := zr.Read()
 		if val == nil || err != nil {
 			return at, table, err
 		}

@@ -153,15 +153,13 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
-	zr := zngio.NewReader(arena.Zctx(), reader)
+	zr := zngio.NewReader(zed.NewContext(), reader)
 	defer zr.Close()
-	val, err := zr.Read(arena)
+	val, err := zr.Read()
 	if err != nil {
 		return err
 	}
-	last, err := zr.Read(arena)
+	last, err := zr.Read()
 	if err != nil {
 		return err
 	}

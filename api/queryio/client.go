@@ -32,8 +32,8 @@ func (q *Query) Close() error {
 	return err
 }
 
-func (q *Query) Read(arena *zed.Arena) (*zed.Value, error) {
-	val, ctrl, err := q.reader.ReadPayload(arena)
+func (q *Query) Read() (*zed.Value, error) {
+	val, ctrl, err := q.reader.ReadPayload()
 	if ctrl != nil {
 		if ctrl.Format != zngio.ControlFormatZSON {
 			return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Format)

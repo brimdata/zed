@@ -10,7 +10,8 @@ import (
 )
 
 type builder struct {
-	zctx *zed.Context
+	arena *zed.Arena
+	zctx  *zed.Context
 
 	containers []int  // Stack of open containers (as indexes into items).
 	items      []item // Stack of items.
@@ -29,6 +30,7 @@ type item struct {
 }
 
 func (b *builder) reset() {
+	b.arena.Reset()
 	b.containers = b.containers[:0]
 	b.items = b.items[:0]
 }
@@ -165,7 +167,7 @@ func removeDuplicateItems(itemptrs []*item, name string) []*item {
 	return out
 }
 
-func (b *builder) value(arena *zed.Arena) *zed.Value {
+func (b *builder) value() *zed.Value {
 	if len(b.containers) > 0 {
 		panic("open container")
 	}
@@ -173,6 +175,6 @@ func (b *builder) value(arena *zed.Arena) *zed.Value {
 		panic("multiple items")
 	}
 	item := &b.items[0]
-	b.val = arena.NewValue(item.typ, item.zb.Bytes().Body())
+	b.val = b.arena.NewValue(item.typ, item.zb.Bytes().Body())
 	return &b.val
 }

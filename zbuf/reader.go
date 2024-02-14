@@ -26,9 +26,9 @@ func NoControl(r zio.Reader) *noControl {
 	return &noControl{Reader: r}
 }
 
-func (n *noControl) Read(arena *zed.Arena) (*zed.Value, error) {
+func (n *noControl) Read() (*zed.Value, error) {
 	for {
-		val, err := n.Reader.Read(arena)
+		val, err := n.Reader.Read()
 		if _, ok := err.(*Control); ok {
 			continue
 		}
@@ -59,8 +59,8 @@ func (m *meterReadCloser) Progress() Progress {
 	return m.progress.Copy()
 }
 
-func (m *meterReadCloser) Read(arena *zed.Arena) (*zed.Value, error) {
-	val, err := m.ReadCloser.Read(arena)
+func (m *meterReadCloser) Read() (*zed.Value, error) {
+	val, err := m.ReadCloser.Read()
 	if ctrl, ok := err.(*Control); ok {
 		if progress, ok := ctrl.Message.(Progress); ok {
 			m.progress = progress

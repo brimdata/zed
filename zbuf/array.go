@@ -55,11 +55,11 @@ func (*Array) Zctx() *zed.Arena { panic("zbuf.Array.Zctx") }
 
 // Read returns removes the first element of the Array and returns it,
 // or it returns nil if the Array is empty.
-func (a *Array) Read(arena *zed.Arena) (*zed.Value, error) {
-	if len(a.values) == 0 {
-		return nil, nil
+func (a *Array) Read() (*zed.Value, error) {
+	var rec *zed.Value
+	if len(a.values) > 0 {
+		rec = &a.values[0]
+		a.values = a.values[1:]
 	}
-	val := a.values[0].CopyToArena(arena)
-	a.values = a.values[1:]
-	return &val, nil
+	return rec, nil
 }

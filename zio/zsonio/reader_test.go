@@ -28,7 +28,10 @@ func TestReadOneLineNoEOF(t *testing.T) {
 		// will stall waiting to see if the record has a decorator.
 		reader <- []byte(expected + "\n" + expected)
 		r := zsonio.NewReader(arena.Zctx(), reader)
-		rec, err := r.Read(arena)
+		rec, err := r.Read()
+		if rec != nil {
+			rec = rec.CopyToArena(arena).Ptr()
+		}
 		done <- result{val: rec, err: err}
 	}()
 	select {

@@ -19,6 +19,7 @@ const (
 
 type Reader struct {
 	scanner *skim.Scanner
+	arena   *zed.Arena
 	zctx    *zed.Context
 	decoder decoder
 	builder *zcode.Builder
@@ -29,13 +30,14 @@ func NewReader(zctx *zed.Context, reader io.Reader) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
+		arena:   zed.NewArena(zctx),
 		zctx:    zctx,
 		decoder: make(decoder),
 		builder: zcode.NewBuilder(),
 	}
 }
 
-func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	e := func(err error) error {
 		if err == nil {
 			return err
@@ -59,7 +61,8 @@ func (r *Reader) Read(arena *zed.Arena) (*zed.Value, error) {
 	if err := r.decodeValue(r.builder, typ, object.Value); err != nil {
 		return nil, e(err)
 	}
-	r.val = arena.NewValue(typ, r.builder.Bytes().Body())
+	r.arena.Reset()
+	r.val = r.arena.NewValue(typ, r.builder.Bytes().Body())
 	return &r.val, nil
 }
 

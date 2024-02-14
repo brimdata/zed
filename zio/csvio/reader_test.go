@@ -1,6 +1,7 @@
 package csvio
 
 import (
+	"runtime"
 	"strings"
 	"testing"
 
@@ -9,11 +10,12 @@ import (
 )
 
 func TestNewReaderUsesContextParameter(t *testing.T) {
-	arena := zed.NewArena(zed.NewContext())
-	defer arena.Unref()
-	rec, err := NewReader(arena.Zctx(), strings.NewReader("f\n1\n"), ReaderOpts{}).Read(arena)
+	zctx := zed.NewContext()
+	r := NewReader(zctx, strings.NewReader("f\n1\n"), ReaderOpts{})
+	defer runtime.KeepAlive(r)
+	rec, err := r.Read()
 	require.NoError(t, err)
-	typ, err := arena.Zctx().LookupType(rec.Type().ID())
+	typ, err := zctx.LookupType(rec.Type().ID())
 	require.NoError(t, err)
 	require.Exactly(t, rec.Type(), typ)
 }

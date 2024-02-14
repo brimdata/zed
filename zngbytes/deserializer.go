@@ -10,7 +10,6 @@ import (
 
 type Deserializer struct {
 	reader      *zngio.Reader
-	arena       *zed.Arena
 	unmarshaler *zson.UnmarshalZNGContext
 }
 
@@ -23,7 +22,6 @@ func NewDeserializerWithContext(zctx *zed.Context, reader io.Reader, templates [
 	u.Bind(templates...)
 	return &Deserializer{
 		reader:      zngio.NewReader(zctx, reader),
-		arena:       zed.NewArena(zctx),
 		unmarshaler: u,
 	}
 }
@@ -31,8 +29,7 @@ func NewDeserializerWithContext(zctx *zed.Context, reader io.Reader, templates [
 func (d *Deserializer) Close() error { return d.reader.Close() }
 
 func (d *Deserializer) Read() (interface{}, error) {
-	d.arena.Reset()
-	rec, err := d.reader.Read(d.arena)
+	rec, err := d.reader.Read()
 	if err != nil || rec == nil {
 		return nil, err
 	}

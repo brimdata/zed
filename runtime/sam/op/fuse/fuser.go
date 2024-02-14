@@ -18,6 +18,7 @@ type Fuser struct {
 	vals    []zed.Value
 	spiller *spill.File
 
+	ectx       expr.Context
 	types      map[zed.Type]struct{}
 	uberSchema *agg.Schema
 	shaper     *expr.ConstShaper
@@ -30,6 +31,7 @@ func NewFuser(zctx *zed.Context, memMaxBytes int) *Fuser {
 	return &Fuser{
 		zctx:        zctx,
 		memMaxBytes: memMaxBytes,
+		ectx:        expr.NewContext(zed.NewArena(zctx)),
 		types:       make(map[zed.Type]struct{}),
 		uberSchema:  agg.NewSchema(zctx),
 	}
@@ -80,7 +82,7 @@ func (f *Fuser) stash(rec zed.Value) error {
 
 // Read returns the next buffered record after transforming it to the unified
 // schema.
-func (f *Fuser) Read(arena *zed.Arena) (*zed.Value, error) {
+func (f *Fuser) Read() (*zed.Value, error) {
 	if f.shaper == nil {
 		t := f.uberSchema.Type()
 		f.shaper = expr.NewConstShaper(f.zctx, &expr.This{}, t, expr.Cast|expr.Fill|expr.Order)
@@ -90,16 +92,17 @@ func (f *Fuser) Read(arena *zed.Arena) (*zed.Value, error) {
 			}
 		}
 	}
-	rec, err := f.next(arena)
+	rec, err := f.next()
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	return f.shaper.Eval(expr.NewContext(arena), *rec).Ptr(), nil
+	f.ectx.Arena().Reset()
+	return f.shaper.Eval(f.ectx, *rec).Ptr(), nil
 }
 
-func (f *Fuser) next(arena *zed.Arena) (*zed.Value, error) {
+func (f *Fuser) next() (*zed.Value, error) {
 	if f.spiller != nil {
-		return f.spiller.Read(arena)
+		return f.spiller.Read()
 	}
 	var rec *zed.Value
 	if len(f.vals) > 0 {

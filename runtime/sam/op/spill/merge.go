@@ -109,7 +109,7 @@ func (r *MergeSort) Peek(arena *zed.Arena) (*zed.Value, error) {
 // Read returns the smallest record (per the comparison function provided to MewMergeSort)
 // from among the next records in the spilled chunks.  It implements the merge operation
 // for an external merge sort.
-func (r *MergeSort) Read(arena *zed.Arena) (*zed.Value, error) {
+func (r *MergeSort) Read() (*zed.Value, error) {
 	for {
 		if r.Len() == 0 {
 			return nil, nil
@@ -127,7 +127,7 @@ func (r *MergeSort) Read(arena *zed.Arena) (*zed.Value, error) {
 			heap.Fix(r, 0)
 		}
 		if rec != nil {
-			return rec.CopyToArena(arena).Ptr(), nil
+			return rec, nil
 		}
 	}
 }
