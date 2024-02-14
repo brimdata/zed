@@ -154,6 +154,7 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 		return err
 	}
 	zr := zngio.NewReader(zed.NewContext(), reader)
+	defer zr.Close()
 	val, err := zr.Read()
 	if err != nil {
 		return err
