@@ -1,6 +1,7 @@
 package expr_test
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"testing"
@@ -54,7 +55,8 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			t.Helper()
 			p, err := compiler.Parse(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			job, err := compiler.NewJob(runtime.DefaultContext(), p, nil, nil)
+			rctx := runtime.NewContext(context.Background(), arena.Zctx())
+			job, err := compiler.NewJob(rctx, p, nil, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
 			err = job.Optimize()
 			require.NoError(t, err, "filter: %q", c.filter)
