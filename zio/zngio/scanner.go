@@ -268,9 +268,9 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// might make allocation work out better; at some point we can have
 	// pools of buffers based on size?
 
-	nvals, nbytes, err := countValues(buf)
+	nvals, nbytes, err := countValues(buf.Bytes())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("countValues: %w", err)
 	}
 	w.mapperLookupCache.Reset(local.mapper)
 	arena := zed.NewArena(w.zctx)
@@ -280,7 +280,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	for i := 0; i < nvals; i++ {
 		val, err := w.decodeVal(arena, buf)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("decodeVal: %w", err)
 		}
 		if w.wantValue(val, &progress) {
 			vals = append(vals, val)
@@ -294,7 +294,8 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	return zbuf.NewBatchWithVars(arena, vals, nil), nil
 }
 
-func countValues(buf *buffer) (int, int, error) {
+func countValues(b []byte) (int, int, error) {
+	buf := &buffer{data: b}
 	var nvals, nbytes int
 	for buf.length() > 0 {
 		if _, err := readUvarintAsInt(buf); err != nil {
