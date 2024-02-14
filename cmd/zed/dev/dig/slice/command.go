@@ -77,6 +77,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("slice start cannot be after the end")
 	}
 	reader := zngio.NewReader(zed.NewContext(), io.NewSectionReader(r, int64(from), int64(to-from)))
+	defer reader.Close()
 	writer, err := c.outputFlags.Open(ctx, engine)
 	if err != nil {
 		return err
