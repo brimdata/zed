@@ -43,7 +43,7 @@ var (
 	True  = NewBool(true)
 )
 
-func newNullValue(id int) Value { return Value{vPrimitiveNull | uint64(id), 0} }
+func newNullValue(id int) Value { return Value{vTypePrimitiveNull | uint64(id), 0} }
 
 type Allocator interface{}
 

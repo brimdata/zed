@@ -14,6 +14,7 @@ type Op struct {
 
 func New(zctx *zed.Context, parent zbuf.Puller, exprs []expr.Evaluator) *Op {
 	return &Op{
+		zctx:   zctx,
 		parent: parent,
 		exprs:  exprs,
 	}
