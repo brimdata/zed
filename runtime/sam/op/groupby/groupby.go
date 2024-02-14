@@ -588,6 +588,9 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 		// until this loop finished.
 		delete(a.table, key)
 	}
+	if len(recs) == 0 {
+		return nil, nil
+	}
 	return zbuf.NewBatch(arena, recs, batch, batch.Vars()), nil
 }
 

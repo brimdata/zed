@@ -85,7 +85,7 @@ func (i *integer) check(val zed.Value) {
 }
 
 func (a *anchor) updateInts(rec *zed.Value) error {
-	arena := zed.NewArena(nil)
+	arena := zed.NewArena(zed.NewContext())
 	defer arena.Unref()
 	it := rec.Bytes().Iter()
 	for k, f := range rec.Fields() {

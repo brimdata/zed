@@ -50,7 +50,9 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 		// XXX We're not using the value coercion parts of coerce.Pair here.
 		// Would be better if coerce had a function that just compared types
 		// and returned the type to coerce to.
-		id, err = m.pair.Coerce(zed.NewArena(nil).NewValue(m.math.typ(), nil), val)
+		arena := zed.NewArena(zed.NewContext())
+		defer arena.Unref()
+		id, err = m.pair.Coerce(arena.NewValue(m.math.typ(), nil), val)
 		if err != nil {
 			// Skip invalid values.
 			return

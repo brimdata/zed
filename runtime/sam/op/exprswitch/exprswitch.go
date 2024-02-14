@@ -27,6 +27,7 @@ func New(rctx *runtime.Context, parent zbuf.Puller, e expr.Evaluator) *ExprSwitc
 	router := op.NewRouter(rctx, parent)
 	s := &ExprSwitch{
 		Router: router,
+		rctx:   rctx,
 		expr:   e,
 		cases:  make(map[string]*switchCase),
 	}

@@ -39,7 +39,7 @@ func TestContextLookupTypeNamedAndLookupTypeDef(t *testing.T) {
 }
 
 func TestContextTranslateTypeNameConflictUnion(t *testing.T) {
-	// This test confirms that arena union with complicated type renaming is properly
+	// This test confirms that a union with complicated type renaming is properly
 	// decoded.  There was arena bug where child typedefs would override the
 	// top level typedef in TranslateType so foo in the value below had
 	// two of the same union type instead of the two it should have had.
