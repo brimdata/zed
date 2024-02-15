@@ -44,7 +44,6 @@ func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	for _, this := range batch.Values() {
 		for _, c := range s.cases {
-			ectx.Arena().Reset()
 			val := c.filter.Eval(ectx, this)
 			if val.IsMissing() {
 				continue
