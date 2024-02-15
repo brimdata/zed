@@ -49,5 +49,5 @@ echo '[1,2,3]' | zq -z 'count()' -
 ```
 =>
 ```mdtest-output
-1 (uint64)
+1(uint64)
 ```
