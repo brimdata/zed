@@ -2,7 +2,7 @@
 * Add the `-manage` flag to [`zed serve`](docs/commands/zed.md#serve) to have the Zed service process initiate [maintenance tasks](docs/commands/zed.md#manage) on a regular interval (#5017)
 * Fix an issue where the Python client would not allow loading to a pool with `/` in its name (#5020)
 * Fix an issue where pools with KSUID-like names could not be accessed by name (#5019)
-* Fix an reference counting issue that could cause a Zed service panic (#5029, #5030)
+* Fix a reference counting issue that could cause a Zed service panic (#5029, #5030)
 
 ## v1.13.0
 * Improve the error message when [`zed manage -monitor`](docs/commands/zed.md#manage) is attempted on a local lake (#4979)
