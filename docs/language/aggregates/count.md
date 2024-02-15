@@ -43,7 +43,7 @@ echo '1 "foo" 10.0.0.1' | zq -z 'yield count()' -
 3(uint64)
 ```
 
-Note that the number of inputs are counted, unlike _len_ which counts the number of elements in a given input:
+Note that the number of input values are counted, unlike the [`len` function](../functions/len.md) which counts the number of elements in a given value:
 ```mdtest-command
 echo '[1,2,3]' | zq -z 'count()' -
 ```
