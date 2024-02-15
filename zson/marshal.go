@@ -690,7 +690,7 @@ func (u *UnmarshalZNGContext) NamedBindings(bindings []Binding) error {
 var netipAddrType = reflect.TypeOf(netip.Addr{})
 var netIPType = reflect.TypeOf(net.IP{})
 
-func (u *UnmarshalZNGContext) decodeAny(val zed.Value, v reflect.Value) (x error) {
+func (u *UnmarshalZNGContext) decodeAny(val zed.Value, v reflect.Value) error {
 	if !v.IsValid() {
 		return errors.New("cannot unmarshal into value provided")
 	}
