@@ -172,6 +172,7 @@ type SortedWriter struct {
 	vectorEnabled bool
 	vectorWriter  *data.VectorWriter
 	objects       []*data.Object
+	zctx          *zed.Context
 }
 
 func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorEnabled bool) *SortedWriter {
@@ -181,6 +182,7 @@ func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorE
 		poolKey:       poolKey(pool.SortKey),
 		pool:          pool,
 		vectorEnabled: vectorEnabled,
+		zctx:          zctx,
 	}
 }
 
@@ -239,7 +241,7 @@ func (w *SortedWriter) newWriter() error {
 		return err
 	}
 	if w.vectorEnabled {
-		w.vectorWriter, err = o.NewVectorWriter(w.ctx, w.pool.engine, w.pool.DataPath)
+		w.vectorWriter, err = o.NewVectorWriter(w.ctx, w.zctx, w.pool.engine, w.pool.DataPath)
 		if err != nil {
 			return err
 		}

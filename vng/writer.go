@@ -54,7 +54,7 @@ func (w *Writer) finalize() error {
 	// First, we write the root segmap of the vector of integer type IDs.
 	m := zson.NewZNGMarshalerWithContext(w.zctx)
 	m.Decorate(zson.StyleSimple)
-	arena := zed.NewArena(zed.NewContext())
+	arena := zed.NewArena(w.zctx)
 	defer arena.Unref()
 	val, err := m.Marshal(arena, meta)
 	if err != nil {

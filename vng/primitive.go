@@ -40,10 +40,11 @@ func NewPrimitiveEncoder(zctx *zed.Context, typ zed.Type, useDict bool) *Primiti
 		}
 	}
 	return &PrimitiveEncoder{
-		zctx: zctx,
-		typ:  typ,
-		dict: dict,
-		cmp:  expr.NewValueCompareFn(order.Asc, false),
+		zctx:  zctx,
+		typ:   typ,
+		dict:  dict,
+		cmp:   expr.NewValueCompareFn(order.Asc, false),
+		arena: zed.NewArena(zctx),
 	}
 }
 

@@ -26,14 +26,15 @@ func CreateVector(ctx context.Context, engine storage.Engine, path *storage.URI,
 		}
 		return err
 	}
-	w, err := NewVectorWriter(ctx, engine, path, id)
+	zctx := zed.NewContext()
+	w, err := NewVectorWriter(ctx, zctx, engine, path, id)
 	if err != nil {
 		get.Close()
 		return err
 	}
 	// Note here that writer.Close closes the Put but reader.Close does not
 	// close the Get.
-	reader := zngio.NewReader(zed.NewContext(), get)
+	reader := zngio.NewReader(zctx, get)
 	err = zio.Copy(w, reader)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
@@ -55,11 +56,11 @@ type VectorWriter struct {
 	delete func()
 }
 
-func (o *Object) NewVectorWriter(ctx context.Context, engine storage.Engine, path *storage.URI) (*VectorWriter, error) {
-	return NewVectorWriter(ctx, engine, path, o.ID)
+func (o *Object) NewVectorWriter(ctx context.Context, zctx *zed.Context, engine storage.Engine, path *storage.URI) (*VectorWriter, error) {
+	return NewVectorWriter(ctx, zctx, engine, path, o.ID)
 }
 
-func NewVectorWriter(ctx context.Context, engine storage.Engine, path *storage.URI, id ksuid.KSUID) (*VectorWriter, error) {
+func NewVectorWriter(ctx context.Context, zctx *zed.Context, engine storage.Engine, path *storage.URI, id ksuid.KSUID) (*VectorWriter, error) {
 	put, err := engine.Put(ctx, VectorURI(path, id))
 	if err != nil {
 		return nil, err
