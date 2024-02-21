@@ -8,9 +8,11 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/runtime/sam/op/merge"
+	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -92,6 +94,62 @@ func (s *SequenceScanner) close(err error) {
 	s.done = true
 }
 
+type SearchScanner struct {
+	filter   zbuf.Filter
+	parent   Searcher
+	pool     *lake.Pool
+	progress *zbuf.Progress
+	rctx     *runtime.Context
+	scanner  zbuf.Puller
+}
+
+type Searcher interface {
+	Pull(bool) (*data.Object, *vector.Bool, error)
+}
+
+func NewSearchScanner(rctx *runtime.Context, parent Searcher, pool *lake.Pool, filter zbuf.Filter, progress *zbuf.Progress) *SearchScanner {
+	return &SearchScanner{
+		filter:   filter,
+		parent:   parent,
+		pool:     pool,
+		progress: progress,
+		rctx:     rctx,
+	}
+}
+
+func (s *SearchScanner) Pull(done bool) (zbuf.Batch, error) {
+	if done {
+		var err error
+		if s.scanner != nil {
+			_, err = s.scanner.Pull(true)
+			s.scanner = nil
+		}
+		return nil, err
+	}
+	for {
+		if s.scanner == nil {
+			o, b, err := s.parent.Pull(done)
+			if b == nil || err != nil {
+				return nil, err
+			}
+			ranges, err := data.RangeFromBitVector(s.rctx.Context, s.pool.Storage(), s.pool.DataPath, o, b)
+			if err != nil {
+				return nil, err
+			}
+			s.scanner, err = newObjectScanner(s.rctx.Context, s.rctx.Zctx, s.pool, o, ranges, s.filter, s.progress)
+			if err != nil {
+				return nil, err
+			}
+		}
+		batch, err := s.scanner.Pull(false)
+		if batch == nil {
+			s.scanner = nil
+			return nil, err
+		}
+		return batch, nil
+	}
+}
+
 func newScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, u *zson.UnmarshalZNGContext, pruner expr.Evaluator, filter zbuf.Filter, progress *zbuf.Progress, val zed.Value) (zbuf.Puller, *data.Object, error) {
 	named, ok := val.Type().(*zed.TypeNamed)
 	if !ok {
@@ -123,7 +181,11 @@ func newObjectsScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, 
 		}
 	}
 	for _, object := range objects {
-		s, err := newObjectScanner(ctx, zctx, pool, object, filter, pruner, progress)
+		ranges, err := data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, object, pruner)
+		if err != nil {
+			return nil, err
+		}
+		s, err := newObjectScanner(ctx, zctx, pool, object, ranges, filter, progress)
 		if err != nil {
 			pullersDone()
 			return nil, err
@@ -136,11 +198,7 @@ func newObjectsScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, 
 	return merge.New(ctx, pullers, lake.ImportComparator(zctx, pool).Compare), nil
 }
 
-func newObjectScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, object *data.Object, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress) (zbuf.Puller, error) {
-	ranges, err := data.LookupSeekRange(ctx, pool.Storage(), pool.DataPath, object, pruner)
-	if err != nil {
-		return nil, err
-	}
+func newObjectScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, object *data.Object, ranges []seekindex.Range, filter zbuf.Filter, progress *zbuf.Progress) (zbuf.Puller, error) {
 	rc, err := object.NewReader(ctx, pool.Storage(), pool.DataPath, ranges)
 	if err != nil {
 		return nil, err

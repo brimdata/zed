@@ -18,33 +18,31 @@ import (
 )
 
 type Scanner struct {
-	parent      zbuf.Puller
-	pruner      expr.Evaluator
-	rctx        *runtime.Context
-	pool        *lake.Pool
-	once        sync.Once
-	projection  vcache.Path
-	cache       *vcache.Cache
-	progress    *zbuf.Progress
-	unmarshaler *zson.UnmarshalZNGContext
-	resultCh    chan result
-	doneCh      chan struct{}
+	parent     *objectPuller
+	pruner     expr.Evaluator
+	rctx       *runtime.Context
+	pool       *lake.Pool
+	once       sync.Once
+	projection vcache.Path
+	cache      *vcache.Cache
+	progress   *zbuf.Progress
+	resultCh   chan result
+	doneCh     chan struct{}
 }
 
 var _ vector.Puller = (*Scanner)(nil)
 
 func NewScanner(rctx *runtime.Context, cache *vcache.Cache, parent zbuf.Puller, pool *lake.Pool, paths []field.Path, pruner expr.Evaluator, progress *zbuf.Progress) *Scanner {
 	return &Scanner{
-		cache:       cache,
-		rctx:        rctx,
-		parent:      parent,
-		pruner:      pruner,
-		pool:        pool,
-		projection:  vcache.NewProjection(paths),
-		progress:    progress,
-		unmarshaler: zson.NewZNGUnmarshaler(),
-		doneCh:      make(chan struct{}),
-		resultCh:    make(chan result),
+		cache:      cache,
+		rctx:       rctx,
+		parent:     newObjectPuller(parent),
+		pruner:     pruner,
+		pool:       pool,
+		projection: vcache.NewProjection(paths),
+		progress:   progress,
+		doneCh:     make(chan struct{}),
+		resultCh:   make(chan result),
 	}
 }
 
@@ -85,31 +83,9 @@ func (s *Scanner) run() {
 		s.rctx.WaitGroup.Done()
 	}()
 	for {
-		//XXX should make an object puller that wraps this...
-		batch, err := s.parent.Pull(false)
-		if batch == nil || err != nil {
+		meta, err := s.parent.Pull(false)
+		if meta == nil {
 			s.sendResult(nil, err)
-			return
-		}
-		vals := batch.Values()
-		if len(vals) != 1 {
-			// We require exactly one data object per pull.
-			err := errors.New("system error: vam.Scanner encountered multi-valued batch")
-			s.sendResult(nil, err)
-			return
-		}
-		named, ok := vals[0].Type().(*zed.TypeNamed)
-		if !ok {
-			s.sendResult(nil, fmt.Errorf("system error: vam.Scanner encountered unnamed object: %s", zson.String(vals[0])))
-			return
-		}
-		if named.Name != "data.Object" {
-			s.sendResult(nil, fmt.Errorf("system error: vam.Scanner encountered unnamed object: %q", named.Name))
-			return
-		}
-		var meta data.Object
-		if err := s.unmarshaler.Unmarshal(vals[0], &meta); err != nil {
-			s.sendResult(nil, fmt.Errorf("system error: vam.Scanner could not unmarshal value: %q", zson.String(vals[0])))
 			return
 		}
 		object, err := s.cache.Fetch(s.rctx.Context, meta.VectorURI(s.pool.DataPath), meta.ID)
@@ -130,7 +106,7 @@ func (s *Scanner) sendResult(vec vector.Any, err error) (bool, bool) {
 	case s.resultCh <- result{vec, err}:
 		return false, true
 	case <-s.doneCh:
-		b, pullErr := s.parent.Pull(true)
+		_, pullErr := s.parent.Pull(true)
 		if err == nil {
 			err = pullErr
 		}
@@ -142,9 +118,6 @@ func (s *Scanner) sendResult(vec vector.Any, err error) (bool, bool) {
 				return false, false
 			}
 		}
-		if b != nil {
-			b.Unref()
-		}
 		return true, true
 	case <-s.rctx.Done():
 		return false, false
@@ -154,4 +127,41 @@ func (s *Scanner) sendResult(vec vector.Any, err error) (bool, bool) {
 type result struct {
 	vector vector.Any
 	err    error //XXX go err vs vector.Any err?
+}
+
+type objectPuller struct {
+	parent      zbuf.Puller
+	unmarshaler *zson.UnmarshalZNGContext
+}
+
+func newObjectPuller(parent zbuf.Puller) *objectPuller {
+	return &objectPuller{
+		parent:      parent,
+		unmarshaler: zson.NewZNGUnmarshaler(),
+	}
+}
+
+func (p *objectPuller) Pull(done bool) (*data.Object, error) {
+	batch, err := p.parent.Pull(false)
+	if batch == nil || err != nil {
+		return nil, err
+	}
+	defer batch.Unref()
+	vals := batch.Values()
+	if len(vals) != 1 {
+		// We require exactly one data object per pull.
+		return nil, errors.New("system error: vam.objectPuller encountered multi-valued batch")
+	}
+	named, ok := vals[0].Type().(*zed.TypeNamed)
+	if !ok {
+		return nil, fmt.Errorf("system error: vam.objectPuller encountered unnamed object: %s", zson.String(vals[0]))
+	}
+	if named.Name != "data.Object" {
+		return nil, fmt.Errorf("system error: vam.objectPuller encountered unnamed object: %q", named.Name)
+	}
+	var meta data.Object
+	if err := p.unmarshaler.Unmarshal(vals[0], &meta); err != nil {
+		return nil, fmt.Errorf("system error: vam.objectPuller could not unmarshal value: %q", zson.String(vals[0]))
+	}
+	return &meta, nil
 }

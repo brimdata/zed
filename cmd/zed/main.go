@@ -17,6 +17,7 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/dev/vector/copy"
 	_ "github.com/brimdata/zed/cmd/zed/dev/vector/project"
 	_ "github.com/brimdata/zed/cmd/zed/dev/vector/query"
+	_ "github.com/brimdata/zed/cmd/zed/dev/vector/search"
 	_ "github.com/brimdata/zed/cmd/zed/dev/vng"
 	"github.com/brimdata/zed/cmd/zed/drop"
 	zedinit "github.com/brimdata/zed/cmd/zed/init"

@@ -165,3 +165,36 @@ func VectorCompile(rctx *runtime.Context, query string, object *vcache.Object) (
 	}
 	return vam.NewMaterializer(outputs[0]), nil
 }
+
+func VectorFilterCompile(rctx *runtime.Context, query string, src *data.Source, head *lakeparse.Commitish) (zbuf.Puller, error) {
+	// Eventually the semantic analyzer + kernel will resolve the pool but
+	// for now just do this manually.
+	if !src.IsLake() {
+		return nil, errors.New("non-lake searches not supported")
+	}
+	poolID, err := src.PoolID(rctx.Context, head.Pool)
+	if err != nil {
+		return nil, err
+	}
+	commitID, err := src.CommitObject(rctx.Context, poolID, head.Branch)
+	if err != nil {
+		return nil, err
+	}
+	seq, err := Parse(query)
+	if err != nil {
+		return nil, err
+	}
+	entry, err := semantic.Analyze(rctx.Context, seq, src, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(entry) != 1 {
+		return nil, errors.New("filter query must have a single op")
+	}
+	f, ok := entry[0].(*dag.Filter)
+	if !ok {
+		return nil, errors.New("filter query must be a single filter op")
+	}
+	d := optimizer.InferDemandSeqOut(entry)[entry[0]]
+	return kernel.NewBuilder(rctx, src).BuildVamToSeqFilter(f.Expr, d, poolID, commitID)
+}
