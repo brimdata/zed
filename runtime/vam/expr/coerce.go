@@ -101,7 +101,7 @@ func promoteWider(id int, val vector.Any) vector.Any {
 	switch val := val.(type) {
 	case *vector.Dict:
 		promoted := val.Any.(vector.Promotable).Promote(typ)
-		return vector.NewDict(promoted, val.Index, val.Counts)
+		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
 	case *vector.Int:
 		return val.Promote(typ)
 	case *vector.Uint:
@@ -124,7 +124,7 @@ func promoteToSigned(val vector.Any) vector.Any {
 		if v == val.Any {
 			return val
 		}
-		return vector.NewDict(v, val.Index, val.Counts)
+		return vector.NewDict(v, val.Index, val.Counts, val.Nulls)
 	case *vector.Int:
 		return val
 	case *vector.Uint:

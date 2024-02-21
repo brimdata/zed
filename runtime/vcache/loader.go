@@ -300,14 +300,15 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			values = append(values, zed.DecodeUint(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDict(vector.NewUint(typ, values, nulls), tags, counts)
+		return vector.NewDict(vector.NewUint(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
 		values := make([]int64, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeInt(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictInt(typ, tags, values, counts, nulls)
+		//XXX nulls doesn't work right here
+		return vector.NewDict(vector.NewInt(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfFloat64:
 		values := make([]float64, 0, length)
 		for _, d := range dict {

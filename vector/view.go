@@ -7,7 +7,7 @@ import (
 type View struct {
 	Any
 	Index []uint32
-	Nulls *Bool
+	Nulls *Bool //XXX don't think we want nulls... view inherits any underlying nulls
 }
 
 var _ Any = (*View)(nil)
