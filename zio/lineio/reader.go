@@ -13,7 +13,9 @@ type Reader struct {
 }
 
 func NewReader(r io.Reader) *Reader {
-	return &Reader{scanner: bufio.NewScanner(r)}
+	s := bufio.NewScanner(r)
+	s.Buffer(nil, 25*1024*2014)
+	return &Reader{scanner: s}
 }
 
 func (r *Reader) Read() (*zed.Value, error) {
