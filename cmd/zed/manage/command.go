@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/internal/lakemanage"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -52,11 +53,14 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	logger, err := c.logFlags.Open()
-	if err != nil {
-		return err
+	logger := zap.NewNop()
+	if !c.LakeFlags.Quiet {
+		logger, err = c.logFlags.Open()
+		if err != nil {
+			return err
+		}
+		defer logger.Sync()
 	}
-	defer logger.Sync()
 	if c.monitor {
 		conn, err := c.LakeFlags.Connection()
 		if err != nil {
