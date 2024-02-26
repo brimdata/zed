@@ -36,12 +36,12 @@ type Lister struct {
 
 var _ zbuf.Puller = (*Lister)(nil)
 
-func NewSortedLister(ctx context.Context, zctx *zed.Context, r *lake.Root, pool *lake.Pool, commit ksuid.KSUID, pruner expr.Evaluator) (*Lister, error) {
+func NewSortedLister(ctx context.Context, zctx *zed.Context, pool *lake.Pool, commit ksuid.KSUID, pruner expr.Evaluator) (*Lister, error) {
 	snap, err := pool.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err
 	}
-	return NewSortedListerFromSnap(ctx, zctx, r, pool, snap, pruner), nil
+	return NewSortedListerFromSnap(ctx, zctx, pool, snap, pruner), nil
 }
 
 func NewSortedListerByID(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, pruner expr.Evaluator) (*Lister, error) {
@@ -49,10 +49,10 @@ func NewSortedListerByID(ctx context.Context, zctx *zed.Context, r *lake.Root, p
 	if err != nil {
 		return nil, err
 	}
-	return NewSortedLister(ctx, zctx, r, pool, commit, pruner)
+	return NewSortedLister(ctx, zctx, pool, commit, pruner)
 }
 
-func NewSortedListerFromSnap(ctx context.Context, zctx *zed.Context, r *lake.Root, pool *lake.Pool, snap commits.View, pruner expr.Evaluator) *Lister {
+func NewSortedListerFromSnap(ctx context.Context, zctx *zed.Context, pool *lake.Pool, snap commits.View, pruner expr.Evaluator) *Lister {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	l := &Lister{

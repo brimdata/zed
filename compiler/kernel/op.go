@@ -268,7 +268,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 				return nil, err
 			}
 		}
-		return meta.NewSortedLister(b.rctx.Context, b.mctx, b.source.Lake(), pool, v.Commit, pruner)
+		return meta.NewSortedLister(b.rctx.Context, b.mctx, pool, v.Commit, pruner)
 	case *dag.Slicer:
 		return meta.NewSlicer(parent, b.mctx), nil
 	case *dag.SeqScan:
@@ -622,7 +622,7 @@ func (b *Builder) compilePoolScan(scan *dag.PoolScan) (zbuf.Puller, error) {
 	if err != nil {
 		return nil, err
 	}
-	l, err := meta.NewSortedLister(b.rctx.Context, b.mctx, b.source.Lake(), pool, scan.Commit, nil)
+	l, err := meta.NewSortedLister(b.rctx.Context, b.mctx, pool, scan.Commit, nil)
 	if err != nil {
 		return nil, err
 	}
