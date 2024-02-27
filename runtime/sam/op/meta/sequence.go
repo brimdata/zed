@@ -57,10 +57,6 @@ func (s *SequenceScanner) Pull(done bool) (zbuf.Batch, error) {
 	}
 	for {
 		if s.scanner == nil {
-			if s.parent == nil { //XXX
-				s.close(nil)
-				return nil, nil
-			}
 			batch, err := s.parent.Pull(false)
 			if batch == nil || err != nil {
 				s.close(err)
