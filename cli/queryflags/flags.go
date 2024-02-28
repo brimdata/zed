@@ -2,11 +2,13 @@ package queryflags
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/url"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/compiler"
@@ -48,7 +50,7 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, 
 					}
 				}
 			}
-			return nil, nil, false, fmt.Errorf("no such file: %s", src)
+			return nil, nil, false, singleArgError(src)
 		}
 	}
 	query, err := compiler.Parse(src, f.Includes...)
@@ -74,4 +76,15 @@ func (f *Flags) PrintStats(stats zbuf.Progress) {
 		}
 		fmt.Fprintln(os.Stderr, out)
 	}
+}
+
+func singleArgError(src string) error {
+	var b strings.Builder
+	b.WriteString("could not invoke zq with a single argument because:")
+	b.WriteString("\n - the argument did not parse as a valid Zed query")
+	if len(src) > 20 {
+		src = src[:20] + "..."
+	}
+	fmt.Fprintf(&b, "\n - a file could not be found with the name %q", src)
+	return errors.New(b.String())
 }

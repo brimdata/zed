@@ -1,11 +1,9 @@
 script: |
-  ! zq -z doesnotexist
+  ! zq 'file sample.zson | count('
 
 outputs:
-  - name: stdout
-    data: ""
   - name: stderr
     data: |
       zq: could not invoke zq with a single argument because:
        - the argument did not parse as a valid Zed query
-       - a file could not be found with the name "doesnotexist"
+       - a file could not be found with the name "file sample.zson | c..."
