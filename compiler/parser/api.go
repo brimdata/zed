@@ -72,10 +72,10 @@ type Error struct {
 	Offset int // offset into original source code
 
 	filename string // omitted from formatting if ""
-	lineNum  int    // zero-based; omitted from formatting if negative
+	LineNum  int    // zero-based; omitted from formatting if negative
 
 	line   string // contains no newlines
-	column int    // zero-based
+	Column int    // zero-based
 }
 
 // NewError returns an Error.  src is the source code containing the error.  If
@@ -105,10 +105,10 @@ func NewError(src string, sis []SourceInfo, offset int) error {
 	}
 	return &Error{
 		Offset:   offset,
+		LineNum:  lineNum,
+		Column:   column,
 		filename: filename,
-		lineNum:  lineNum,
 		line:     src,
-		column:   column,
 	}
 }
 
@@ -119,12 +119,19 @@ func (e *Error) Error() string {
 		fmt.Fprintf(&b, "in %s ", e.filename)
 	}
 	b.WriteString("at ")
-	if e.lineNum >= 0 {
-		fmt.Fprintf(&b, "line %d, ", e.lineNum+1)
+	if e.LineNum >= 0 {
+		fmt.Fprintf(&b, "line %d, ", e.LineNum+1)
 	}
-	fmt.Fprintf(&b, "column %d:\n%s\n", e.column+1, e.line)
-	for k := 0; k < e.column; k++ {
-		if k >= e.column-4 && k != e.column-1 {
+	fmt.Fprintf(&b, "column %d:\n", e.Column+1)
+	b.WriteString(e.ParseErrorContext())
+	return b.String()
+}
+
+func (e *Error) ParseErrorContext() string {
+	var b strings.Builder
+	b.WriteString(e.line + "\n")
+	for k := 0; k < e.Column; k++ {
+		if k >= e.Column-4 && k != e.Column-1 {
 			b.WriteByte('=')
 		} else {
 			b.WriteByte(' ')

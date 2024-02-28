@@ -5,5 +5,5 @@ outputs:
   - name: stderr
     data: |
       zq: could not invoke zq with a single argument because:
-       - the argument did not parse as a valid Zed query
        - a file could not be found with the name "from ( pool a )"
+       - the argument did not parse as a valid Zed query
