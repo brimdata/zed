@@ -1,0 +1,7 @@
+script: |
+  echo '"3' | zq -i json -
+
+outputs:
+  - name: stderr
+    data: |
+      stdio:stdin: unexpected end of JSON input

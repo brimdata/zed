@@ -160,6 +160,9 @@ func (l *Lexer) readString() Token {
 		c, err := l.br.ReadByte()
 		if err != nil {
 			l.err = err
+			if err == io.EOF {
+				l.err = errors.New("unexpected end of JSON input")
+			}
 			return TokenErr
 		}
 		l.buf = append(l.buf, c)
