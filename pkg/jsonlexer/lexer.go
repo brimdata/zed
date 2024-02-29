@@ -93,6 +93,9 @@ func (l *Lexer) readLiteral(s string, t Token) Token {
 	for i := range s {
 		c, err := l.br.ReadByte()
 		if err != nil {
+			if err == io.EOF {
+				err = io.ErrUnexpectedEOF
+			}
 			l.err = err
 			return TokenErr
 		}
@@ -161,7 +164,7 @@ func (l *Lexer) readString() Token {
 		if err != nil {
 			l.err = err
 			if err == io.EOF {
-				l.err = errors.New("unexpected end of JSON input")
+				l.err = io.ErrUnexpectedEOF
 			}
 			return TokenErr
 		}

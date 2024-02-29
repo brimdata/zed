@@ -36,7 +36,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 		if err == io.EOF {
 			return nil, nil
 		}
-		return nil, err
+		return nil, r.error(t, "")
 	}
 	r.builder.reset()
 	if err := r.handleToken("", t); err != nil {
@@ -151,7 +151,7 @@ func (r *Reader) readNameValuePair(t jsonlexer.Token) error {
 func (r *Reader) error(t jsonlexer.Token, msg string) error {
 	if t == jsonlexer.TokenErr {
 		err := r.lexer.Err()
-		if err == io.EOF {
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			return errors.New("unexpected end of JSON input")
 		}
 		return err

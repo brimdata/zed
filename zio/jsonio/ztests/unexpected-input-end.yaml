@@ -1,11 +1,14 @@
 script: |
   while IFS= read -r line; do
-    ! echo "$line" | zq -i json -
+    ! printf "$line" | zq -i json -
   done < errors.txt
 
 inputs:
   - name: errors.txt
     data: |
+      tru
+      fal
+      nu
       "3
       ["3",
       ["3"
@@ -17,6 +20,9 @@ inputs:
 outputs:
   - name: stderr
     data: |
+      stdio:stdin: unexpected end of JSON input
+      stdio:stdin: unexpected end of JSON input
+      stdio:stdin: unexpected end of JSON input
       stdio:stdin: unexpected end of JSON input
       stdio:stdin: unexpected end of JSON input
       stdio:stdin: unexpected end of JSON input
