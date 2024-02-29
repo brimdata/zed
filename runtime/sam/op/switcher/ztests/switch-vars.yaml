@@ -1,0 +1,12 @@
+zed: |
+  over this with foo = {foo:"bar"} => (
+    switch (
+      case x % 2 == 0 => yield {x, ...foo}
+    )
+  )
+
+input: "[{x:1},{x:2},{x:3},{x:4}]"
+
+output: |
+  {x:2,foo:"bar"}
+  {x:4,foo:"bar"}
