@@ -2,6 +2,7 @@ package jsonio
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 
@@ -149,7 +150,11 @@ func (r *Reader) readNameValuePair(t jsonlexer.Token) error {
 
 func (r *Reader) error(t jsonlexer.Token, msg string) error {
 	if t == jsonlexer.TokenErr {
-		return r.lexer.Err()
+		err := r.lexer.Err()
+		if err == io.EOF {
+			return errors.New("unexpected end of JSON input")
+		}
+		return err
 	}
 	return fmt.Errorf("invalid character %q %s", r.lexer.Buf()[0], msg)
 }
