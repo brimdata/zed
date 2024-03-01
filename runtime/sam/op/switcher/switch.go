@@ -68,7 +68,7 @@ func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 			// outgoing batch so we don't send these slices
 			// through GC.
 			batch.Ref()
-			out := zbuf.NewArray(c.vals)
+			out := zbuf.NewBatch(batch, c.vals)
 			c.vals = nil
 			if ok := router.Send(c.route, out, nil); !ok {
 				return false
