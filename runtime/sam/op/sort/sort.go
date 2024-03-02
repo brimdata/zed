@@ -43,8 +43,7 @@ func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.Evaluator, ord
 
 func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	o.once.Do(func() {
-		// Block p.ctx's cancel function until p.run finishes its
-		// cleanup.
+		// Block o.rctx.Cancel until p.run finishes its cleanup.
 		o.rctx.WaitGroup.Add(1)
 		go o.run()
 	})
@@ -67,7 +66,7 @@ func (o *Op) run() {
 		if spiller != nil {
 			spiller.Cleanup()
 		}
-		// Tell p.ctx's cancel function that we've finished our cleanup.
+		// Tell o.rctx.Cancel that we've finished our cleanup.
 		o.rctx.WaitGroup.Done()
 	}()
 	var nbytes int
