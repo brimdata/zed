@@ -282,7 +282,7 @@ func (d *Decoder) readTypeRecord(b *buffer) error {
 	if err != nil {
 		return err
 	}
-	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
+	_, err = d.local.mapper.Enter(typ)
 	return err
 }
 
@@ -312,7 +312,7 @@ func (d *Decoder) readTypeArray(b *buffer) error {
 		return err
 	}
 	typ := d.local.zctx.LookupTypeArray(inner)
-	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
+	_, err = d.local.mapper.Enter(typ)
 	return err
 }
 
@@ -326,7 +326,7 @@ func (d *Decoder) readTypeSet(b *buffer) error {
 		return err
 	}
 	typ := d.local.zctx.LookupTypeSet(innerType)
-	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
+	_, err = d.local.mapper.Enter(typ)
 	return err
 }
 
@@ -348,7 +348,7 @@ func (d *Decoder) readTypeMap(b *buffer) error {
 		return err
 	}
 	typ := d.local.zctx.LookupTypeMap(keyType, valType)
-	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
+	_, err = d.local.mapper.Enter(typ)
 	return err
 }
 
@@ -373,7 +373,7 @@ func (d *Decoder) readTypeUnion(b *buffer) error {
 		types = append(types, typ)
 	}
 	typ := d.local.zctx.LookupTypeUnion(types)
-	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
+	_, err = d.local.mapper.Enter(typ)
 	return err
 }
 
@@ -391,7 +391,7 @@ func (d *Decoder) readTypeEnum(b *buffer) error {
 		symbols = append(symbols, s)
 	}
 	typ := d.local.zctx.LookupTypeEnum(symbols)
-	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
+	_, err = d.local.mapper.Enter(typ)
 	return err
 }
 
@@ -425,7 +425,7 @@ func (d *Decoder) readTypeName(b *buffer) error {
 	if err != nil {
 		return err
 	}
-	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
+	_, err = d.local.mapper.Enter(typ)
 	return err
 }
 
@@ -439,6 +439,6 @@ func (d *Decoder) readTypeError(b *buffer) error {
 		return err
 	}
 	typ := d.local.zctx.LookupTypeError(inner)
-	_, err = d.local.mapper.Enter(zed.TypeID(typ), typ)
+	_, err = d.local.mapper.Enter(typ)
 	return err
 }

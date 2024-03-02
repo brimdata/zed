@@ -36,7 +36,8 @@ func (m *Mapper) Lookup(id int) Type {
 	return nil
 }
 
-func (m *Mapper) Enter(id int, ext Type) (Type, error) {
+func (m *Mapper) Enter(ext Type) (Type, error) {
+	id := TypeID(ext)
 	if id < IDTypeComplex {
 		return LookupPrimitiveByID(id)
 	}
