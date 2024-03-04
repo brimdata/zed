@@ -92,7 +92,7 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 		if err != nil {
 			return nil, err
 		}
-		return expr.NewAggregatorExpr(agg), nil
+		return expr.NewAggregatorExpr(b.zctx(), agg), nil
 	case *dag.OverExpr:
 		return b.compileOverExpr(e)
 	default:
