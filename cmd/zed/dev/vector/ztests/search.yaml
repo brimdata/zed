@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   zed init -q
   zed create -q -use test
-  seq 50000 | zq '{ts:int64(this),y:3.14,z:"foo"}' - | zed load -q -
+  seq -f '{ts:%g,y:3.14,z:"foo"}' 50000 | zed load -q -
   zed manage -log.path=/dev/null -q -vectors
   zed dev vector search -z "ts == 50000"
   echo "// ==="

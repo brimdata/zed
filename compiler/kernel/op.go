@@ -105,8 +105,7 @@ func (b *Builder) BuildVamToSeqFilter(filter dag.Expr, d demand.Demand, poolID, 
 	if err != nil {
 		return nil, err
 	}
-	f := &Filter{pushdown: filter, builder: b}
-	return meta.NewSearchScanner(b.rctx, search, pool, f, b.progress), nil
+	return meta.NewSearchScanner(b.rctx, search, pool, b.PushdownOf(filter), b.progress), nil
 }
 
 func (b *Builder) zctx() *zed.Context {

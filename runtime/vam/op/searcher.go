@@ -41,9 +41,6 @@ func NewSearcher(rctx *runtime.Context, cache *vcache.Cache, parent zbuf.Puller,
 
 func (s *Searcher) Pull(done bool) (*data.Object, *vector.Bool, error) {
 	s.once.Do(func() {
-		// Block p.ctx's cancel function until p.run finishes its
-		// cleanup.
-		s.rctx.WaitGroup.Add(1)
 		go s.run()
 	})
 	if done {
@@ -80,7 +77,7 @@ func (s *Searcher) run() {
 		}
 		b, ok := s.filter.Eval(vec).(*vector.Bool)
 		if !ok {
-			s.sendResult(nil, nil, fmt.Errorf("system error: vam.Searcher encountered a non-boolean filter result"))
+			s.sendResult(nil, nil, errors.New("system error: vam.Searcher encountered a non-boolean filter result"))
 			return
 		}
 		s.sendResult(meta, b, nil)
@@ -90,7 +87,6 @@ func (s *Searcher) run() {
 func (s *Searcher) sendResult(o *data.Object, b *vector.Bool, err error) {
 	select {
 	case s.resultCh <- searchResult{o, b, err}:
-		return
 	case <-s.doneCh:
 		_, pullErr := s.parent.Pull(true)
 		if err == nil {
