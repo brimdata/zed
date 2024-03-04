@@ -416,7 +416,7 @@ func (a *Add) Eval(ectx Context, this zed.Value) zed.Value {
 	if zerr != nil {
 		return *zerr
 	}
-	typ, err := zed.LookupPrimitiveByID(id)
+	typ, err := a.zctx.LookupType(id)
 	if err != nil {
 		return a.zctx.NewError(err)
 	}
@@ -446,7 +446,7 @@ func (s *Subtract) Eval(ectx Context, this zed.Value) zed.Value {
 	if zerr != nil {
 		return *zerr
 	}
-	typ, err := zed.LookupPrimitiveByID(id)
+	typ, err := s.zctx.LookupType(id)
 	if err != nil {
 		return s.zctx.NewError(err)
 	}
@@ -476,7 +476,7 @@ func (m *Multiply) Eval(ectx Context, this zed.Value) zed.Value {
 	if zerr != nil {
 		return *zerr
 	}
-	typ, err := zed.LookupPrimitiveByID(id)
+	typ, err := m.zctx.LookupType(id)
 	if err != nil {
 		return m.zctx.NewError(err)
 	}
@@ -502,7 +502,7 @@ func (d *Divide) Eval(ectx Context, this zed.Value) zed.Value {
 	if zerr != nil {
 		return *zerr
 	}
-	typ, err := zed.LookupPrimitiveByID(id)
+	typ, err := d.zctx.LookupType(id)
 	if err != nil {
 		return d.zctx.NewError(err)
 	}
@@ -537,7 +537,7 @@ func (m *Modulo) Eval(ectx Context, this zed.Value) zed.Value {
 	if zerr != nil {
 		return *zerr
 	}
-	typ, err := zed.LookupPrimitiveByID(id)
+	typ, err := m.zctx.LookupType(id)
 	if err != nil {
 		return m.zctx.NewError(err)
 	}
