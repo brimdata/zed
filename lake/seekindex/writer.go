@@ -6,15 +6,6 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-type Entry struct {
-	Min    zed.Value `zed:"min"`
-	Max    zed.Value `zed:"max"`
-	ValOff uint64    `zed:"val_off"`
-	ValCnt uint64    `zed:"val_cnt"`
-	Offset uint64    `zed:"offset"`
-	Length uint64    `zed:"length"`
-}
-
 type Writer struct {
 	marshal *zson.MarshalZNGContext
 	writer  zio.WriteCloser

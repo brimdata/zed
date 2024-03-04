@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
@@ -23,8 +24,7 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 		return nil, err
 	}
 	defer r.Close()
-	var ranges []seekindex.Range
-	var rg *seekindex.Range
+	var ranges seekindex.Ranges
 	unmarshaler := zson.NewZNGUnmarshaler()
 	reader := zngio.NewReader(zed.NewContext(), r)
 	defer reader.Close()
@@ -36,17 +36,43 @@ func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.U
 		}
 		result := pruner.Eval(ectx, *val)
 		if result.Type() == zed.TypeBool && result.Bool() {
-			rg = nil
 			continue
 		}
 		var entry seekindex.Entry
 		if err := unmarshaler.Unmarshal(*val, &entry); err != nil {
 			return nil, fmt.Errorf("corrupt seek index entry for %q at value: %q (%w)", obj.ID.String(), zson.String(val), err)
 		}
-		if rg == nil {
-			ranges = append(ranges, seekindex.Range{Offset: int64(entry.Offset)})
-			rg = &ranges[len(ranges)-1]
+		ranges.Append(entry)
+	}
+}
+
+func RangeFromBitVector(ctx context.Context, engine storage.Engine, path *storage.URI,
+	o *Object, b *vector.Bool) ([]seekindex.Range, error) {
+	index, err := readSeekIndex(ctx, engine, path, o)
+	if err != nil {
+		return nil, err
+	}
+	return index.Filter(b), nil
+}
+
+func readSeekIndex(ctx context.Context, engine storage.Engine, path *storage.URI, o *Object) (seekindex.Index, error) {
+	r, err := engine.Get(ctx, o.SeekIndexURI(path))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	zr := zngio.NewReader(zed.NewContext(), r)
+	u := zson.NewZNGUnmarshaler()
+	var index seekindex.Index
+	for {
+		val, err := zr.Read()
+		if val == nil {
+			return index, err
 		}
-		rg.Length += int64(entry.Length)
+		var entry seekindex.Entry
+		if err := u.Unmarshal(*val, &entry); err != nil {
+			return nil, err
+		}
+		index = append(index, entry)
 	}
 }

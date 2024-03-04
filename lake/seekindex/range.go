@@ -21,3 +21,14 @@ func (r Range) String() string {
 func (r Range) Reader(reader io.ReaderAt) (io.Reader, error) {
 	return io.NewSectionReader(reader, r.Offset, r.Length), nil
 }
+
+type Ranges []Range
+
+func (r *Ranges) Append(entry Entry) {
+	n := len(*r)
+	if n == 0 || (*r)[n-1].Offset+(*r)[n-1].Length < int64(entry.Offset) {
+		*r = append(*r, entry.Range())
+		return
+	}
+	(*r)[n-1].Length += int64(entry.Length)
+}

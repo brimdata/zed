@@ -1,0 +1,17 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -use test
+  seq -f '{ts:%g,y:3.14,z:"foo"}' 50000 | zed load -q -
+  zed manage -log.path=/dev/null -q -vectors
+  zed dev vector search -z "ts == 50000"
+  echo "// ==="
+  zed dev vector search -z "ts == 20000 or ts == 40000"
+
+outputs:
+  - name: stdout
+    data: |
+      {ts:50000,y:3.14,z:"foo"}
+      // ===
+      {ts:40000,y:3.14,z:"foo"}
+      {ts:20000,y:3.14,z:"foo"}

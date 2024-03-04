@@ -38,6 +38,7 @@ import (
 	"github.com/brimdata/zed/runtime/sam/op/uniq"
 	"github.com/brimdata/zed/runtime/sam/op/yield"
 	"github.com/brimdata/zed/runtime/vam"
+	vop "github.com/brimdata/zed/runtime/vam/op"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -84,6 +85,27 @@ func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, erro
 
 func (b *Builder) BuildWithPuller(seq dag.Seq, parent vector.Puller) ([]vector.Puller, error) {
 	return b.compileVamSeq(seq, []vector.Puller{parent})
+}
+
+func (b *Builder) BuildVamToSeqFilter(filter dag.Expr, d demand.Demand, poolID, commitID ksuid.KSUID) (zbuf.Puller, error) {
+	pool, err := b.source.Lake().OpenPool(b.rctx.Context, poolID)
+	if err != nil {
+		return nil, err
+	}
+	e, err := b.compileVamExpr(filter)
+	if err != nil {
+		return nil, err
+	}
+	l, err := meta.NewSortedLister(b.rctx.Context, b.mctx, pool, commitID, nil)
+	if err != nil {
+		return nil, err
+	}
+	cache := b.source.Lake().VectorCache()
+	search, err := vop.NewSearcher(b.rctx, cache, l, pool, e, demand.Fields(d))
+	if err != nil {
+		return nil, err
+	}
+	return meta.NewSearchScanner(b.rctx, search, pool, b.PushdownOf(filter), b.progress), nil
 }
 
 func (b *Builder) zctx() *zed.Context {
