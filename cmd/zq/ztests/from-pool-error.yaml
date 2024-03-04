@@ -4,4 +4,6 @@ script: |
 outputs:
   - name: stderr
     data: |
-      zq: no such file: from ( pool a )
+      zq: could not invoke zq with a single argument because:
+       - a file could not be found with the name "from ( pool a )"
+       - the argument did not parse as a valid Zed query

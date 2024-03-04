@@ -1,0 +1,11 @@
+script: |
+  ! zq 'file sample.zson | count('
+
+outputs:
+  - name: stderr
+    data: |
+      zq: could not invoke zq with a single argument because:
+       - a file could not be found with the name "file sample.zson | c..."
+       - the argument could not be compiled as a valid Zed query due to parse error (column 25):
+         file sample.zson | count(
+                              === ^ ===
