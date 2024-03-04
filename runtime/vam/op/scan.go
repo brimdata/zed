@@ -58,12 +58,7 @@ func NewScanner(rctx *runtime.Context, cache *vcache.Cache, parent zbuf.Puller, 
 // vector of error("missing").
 
 func (s *Scanner) Pull(done bool) (vector.Any, error) {
-	s.once.Do(func() {
-		// Block p.ctx's cancel function until p.run finishes its
-		// cleanup.
-		s.rctx.WaitGroup.Add(1)
-		go s.run()
-	})
+	s.once.Do(func() { go s.run() })
 	if done {
 		select {
 		case s.doneCh <- struct{}{}:
@@ -79,9 +74,6 @@ func (s *Scanner) Pull(done bool) (vector.Any, error) {
 }
 
 func (s *Scanner) run() {
-	defer func() {
-		s.rctx.WaitGroup.Done()
-	}()
 	for {
 		meta, err := s.parent.Pull(false)
 		if meta == nil {
