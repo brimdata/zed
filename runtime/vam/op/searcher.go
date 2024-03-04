@@ -1,7 +1,7 @@
 package op
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 
 	"github.com/brimdata/zed/lake"
@@ -40,9 +40,7 @@ func NewSearcher(rctx *runtime.Context, cache *vcache.Cache, parent zbuf.Puller,
 }
 
 func (s *Searcher) Pull(done bool) (*data.Object, *vector.Bool, error) {
-	s.once.Do(func() {
-		go s.run()
-	})
+	s.once.Do(func() { go s.run() })
 	if done {
 		select {
 		case s.doneCh <- struct{}{}:
@@ -58,7 +56,6 @@ func (s *Searcher) Pull(done bool) (*data.Object, *vector.Bool, error) {
 }
 
 func (s *Searcher) run() {
-	defer s.rctx.WaitGroup.Done()
 	for {
 		meta, err := s.parent.Pull(false)
 		if meta == nil {

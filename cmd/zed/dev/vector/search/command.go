@@ -15,7 +15,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 )
 
 var search = &charm.Spec{
@@ -73,7 +72,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zio.CopyPuller(writer, puller); err != nil {
+	if err := zbuf.CopyPuller(writer, puller); err != nil {
 		writer.Close()
 		return err
 	}

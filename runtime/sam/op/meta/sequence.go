@@ -142,11 +142,13 @@ func (s *SearchScanner) Pull(done bool) (zbuf.Batch, error) {
 			}
 		}
 		batch, err := s.scanner.Pull(false)
-		if batch == nil {
-			s.scanner = nil
+		if err != nil {
 			return nil, err
 		}
-		return batch, nil
+		if batch != nil {
+			return batch, nil
+		}
+		s.scanner = nil
 	}
 }
 
