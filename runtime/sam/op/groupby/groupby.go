@@ -157,8 +157,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		}
 	}
 	o.once.Do(func() {
-		// Block p.ctx's cancel function until p.run finishes its
-		// cleanup.
+		// Block o.rctx.Cancel until o.run finishes its cleanup.
 		o.rctx.WaitGroup.Add(1)
 		go o.run()
 	})
@@ -173,7 +172,7 @@ func (o *Op) run() {
 		if o.agg.spiller != nil {
 			o.agg.spiller.Cleanup()
 		}
-		// Tell p.ctx's cancel function that we've finished our cleanup.
+		// Tell o.rctx.Cancel that we've finished our cleanup.
 		o.rctx.WaitGroup.Done()
 	}()
 	sendResults := func(o *Op) bool {
