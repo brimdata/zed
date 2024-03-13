@@ -205,7 +205,7 @@ func newObjectsScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, 
 	if len(pullers) == 1 {
 		return pullers[0], nil
 	}
-	return merge.New(ctx, pullers, lake.ImportComparator(zctx, pool).Compare), nil
+	return merge.New(ctx, pullers, lake.ImportComparator(zctx, pool).Compare, expr.Resetters{}), nil
 }
 
 func newObjectScanner(ctx context.Context, zctx *zed.Context, pool *lake.Pool, object *data.Object, ranges []seekindex.Range, filter zbuf.Filter, progress *zbuf.Progress) (zbuf.Puller, error) {

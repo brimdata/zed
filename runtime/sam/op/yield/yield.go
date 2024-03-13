@@ -7,14 +7,16 @@ import (
 )
 
 type Op struct {
-	parent zbuf.Puller
-	exprs  []expr.Evaluator
+	parent   zbuf.Puller
+	exprs    []expr.Evaluator
+	resetter expr.Resetter
 }
 
-func New(parent zbuf.Puller, exprs []expr.Evaluator) *Op {
+func New(parent zbuf.Puller, exprs []expr.Evaluator, resetter expr.Resetter) *Op {
 	return &Op{
-		parent: parent,
-		exprs:  exprs,
+		parent:   parent,
+		exprs:    exprs,
+		resetter: resetter,
 	}
 }
 
@@ -22,6 +24,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	for {
 		batch, err := o.parent.Pull(done)
 		if batch == nil || err != nil {
+			o.resetter.Reset()
 			return nil, err
 		}
 		arena := zed.NewArena()

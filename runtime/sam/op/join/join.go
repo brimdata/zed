@@ -25,6 +25,7 @@ type Op struct {
 	right       *zio.Peeker
 	getLeftKey  expr.Evaluator
 	getRightKey expr.Evaluator
+	resetter    expr.Resetter
 	compare     expr.CompareFn
 	cutter      *expr.Cutter
 	joinKey     *zed.Value
@@ -36,8 +37,7 @@ type Op struct {
 }
 
 func New(rctx *runtime.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator,
-	leftDir, rightDir order.Direction, lhs []*expr.Lval,
-	rhs []expr.Evaluator) (*Op, error) {
+	leftDir, rightDir order.Direction, lhs []*expr.Lval, rhs []expr.Evaluator, resetter expr.Resetter) (*Op, error) {
 	var o order.Which
 	switch {
 	case leftDir != order.Unknown:
@@ -48,13 +48,13 @@ func New(rctx *runtime.Context, anti, inner bool, left, right zbuf.Puller, leftK
 	var err error
 	// Add sorts if needed.
 	if !leftDir.HasOrder(o) {
-		left, err = sort.New(rctx, left, []expr.Evaluator{leftKey}, o, false)
+		left, err = sort.New(rctx, left, []expr.Evaluator{leftKey}, o, false, resetter)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if !rightDir.HasOrder(o) {
-		right, err = sort.New(rctx, right, []expr.Evaluator{rightKey}, o, false)
+		right, err = sort.New(rctx, right, []expr.Evaluator{rightKey}, o, false, resetter)
 		if err != nil {
 			return nil, err
 		}
@@ -70,6 +70,7 @@ func New(rctx *runtime.Context, anti, inner bool, left, right zbuf.Puller, leftK
 		getRightKey:  rightKey,
 		left:         newPuller(left, ctx),
 		right:        zio.NewPeeker(newPuller(right, ctx)),
+		resetter:     resetter,
 		compare:      expr.NewValueCompareFn(o, true),
 		cutter:       expr.NewCutter(rctx.Zctx, lhs, rhs),
 		types:        make(map[int]map[int]*zed.TypeRecord),
@@ -96,6 +97,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		}
 		if leftRec == nil {
 			if len(out) == 0 {
+				o.resetter.Reset()
 				return nil, nil
 			}
 			//XXX See issue #3427.

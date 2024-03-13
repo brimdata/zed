@@ -11,19 +11,22 @@ import (
 )
 
 type Over struct {
-	parent zbuf.Puller
-	exprs  []expr.Evaluator
-	outer  []zed.Value
-	batch  zbuf.Batch
-	enter  *Enter
-	zctx   *zed.Context
+	parent   zbuf.Puller
+	exprs    []expr.Evaluator
+	resetter expr.Resetter
+
+	outer []zed.Value
+	batch zbuf.Batch
+	enter *Enter
+	zctx  *zed.Context
 }
 
-func NewOver(rctx *runtime.Context, parent zbuf.Puller, exprs []expr.Evaluator) *Over {
+func NewOver(rctx *runtime.Context, parent zbuf.Puller, exprs []expr.Evaluator, resetter expr.Resetter) *Over {
 	return &Over{
-		parent: parent,
-		exprs:  exprs,
-		zctx:   rctx.Zctx,
+		parent:   parent,
+		exprs:    exprs,
+		resetter: resetter,
+		zctx:     rctx.Zctx,
 	}
 }
 
@@ -36,12 +39,14 @@ func (o *Over) AddScope(ctx context.Context, names []string, exprs []expr.Evalua
 func (o *Over) Pull(done bool) (zbuf.Batch, error) {
 	if done {
 		o.outer = nil
+		o.resetter.Reset()
 		return o.parent.Pull(true)
 	}
 	for {
 		if len(o.outer) == 0 {
 			batch, err := o.parent.Pull(false)
 			if batch == nil || err != nil {
+				o.resetter.Reset()
 				return nil, err
 			}
 			o.batch = batch

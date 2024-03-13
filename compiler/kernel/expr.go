@@ -96,7 +96,9 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 		if err != nil {
 			return nil, err
 		}
-		return expr.NewAggregatorExpr(b.zctx(), agg), nil
+		aggexpr := expr.NewAggregatorExpr(b.zctx(), agg)
+		b.resetters = append(b.resetters, aggexpr)
+		return aggexpr, nil
 	case *dag.OverExpr:
 		return b.compileOverExpr(e)
 	default:
@@ -497,7 +499,7 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 		return nil, err
 	}
 	parent := traverse.NewExpr(b.rctx.Context, b.zctx())
-	enter := traverse.NewOver(b.rctx, parent, exprs)
+	enter := traverse.NewOver(b.rctx, parent, exprs, expr.Resetters{})
 	scope := enter.AddScope(b.rctx.Context, names, lets)
 	exits, err := b.compileSeq(over.Body, []zbuf.Puller{scope})
 	if err != nil {

@@ -22,12 +22,13 @@ type Op struct {
 	limit      int
 	fields     []expr.Evaluator
 	flushEvery bool
+	resetter   expr.Resetter
 	batches    map[zed.Value]zbuf.Batch
 	records    *expr.RecordSlice
 	compare    expr.CompareFn
 }
 
-func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool) *Op {
+func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool, resetter expr.Resetter) *Op {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
@@ -37,6 +38,7 @@ func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluat
 		limit:      limit,
 		fields:     fields,
 		flushEvery: flushEvery,
+		resetter:   resetter,
 		batches:    make(map[zed.Value]zbuf.Batch),
 	}
 }
@@ -48,6 +50,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			return nil, err
 		}
 		if batch == nil {
+			defer o.resetter.Reset()
 			return o.sorted(), nil
 		}
 		vals := batch.Values()
