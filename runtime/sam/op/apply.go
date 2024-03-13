@@ -8,16 +8,18 @@ import (
 )
 
 type applier struct {
-	rctx   *runtime.Context
-	parent zbuf.Puller
-	expr   expr.Evaluator
+	rctx     *runtime.Context
+	parent   zbuf.Puller
+	expr     expr.Evaluator
+	resetter expr.Resetter
 }
 
-func NewApplier(rctx *runtime.Context, parent zbuf.Puller, expr expr.Evaluator) *applier {
+func NewApplier(rctx *runtime.Context, parent zbuf.Puller, expr expr.Evaluator, r expr.Resetter) *applier {
 	return &applier{
-		rctx:   rctx,
-		parent: parent,
-		expr:   expr,
+		rctx:     rctx,
+		parent:   parent,
+		expr:     expr,
+		resetter: r,
 	}
 }
 
@@ -25,6 +27,7 @@ func (a *applier) Pull(done bool) (zbuf.Batch, error) {
 	for {
 		batch, err := a.parent.Pull(done)
 		if batch == nil || err != nil {
+			a.resetter.Reset()
 			return nil, err
 		}
 		vals := batch.Values()

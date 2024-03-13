@@ -125,7 +125,8 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Summarize:
 		return b.compileGroupBy(parent, v)
 	case *dag.Cut:
-		assignments, err := b.compileAssignments(v.Args)
+		var ectx exprContext
+		assignments, err := b.compileAssignments(&ectx, v.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +135,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if v.Quiet {
 			cutter.Quiet()
 		}
-		return op.NewApplier(b.rctx, parent, cutter), nil
+		return op.NewApplier(b.rctx, parent, cutter, ectx.resetters), nil
 	case *dag.Drop:
 		if len(v.Args) == 0 {
 			return nil, errors.New("drop: no fields given")
@@ -148,13 +149,14 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			fields = append(fields, field.Path)
 		}
 		dropper := expr.NewDropper(b.rctx.Zctx, fields)
-		return op.NewApplier(b.rctx, parent, dropper), nil
+		return op.NewApplier(b.rctx, parent, dropper, expr.NopResetter), nil
 	case *dag.Sort:
-		fields, err := b.compileExprs(v.Args)
+		var ectx exprContext
+		fields, err := b.compileExprs(&ectx, v.Args)
 		if err != nil {
 			return nil, err
 		}
-		sort, err := sort.New(b.rctx, parent, fields, v.Order, v.NullsFirst)
+		sort, err := sort.New(b.rctx, parent, fields, v.Order, v.NullsFirst, ectx.resetters)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
@@ -176,32 +178,36 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Pass:
 		return pass.New(parent), nil
 	case *dag.Filter:
-		f, err := b.compileExpr(v.Expr)
+		var ectx exprContext
+		f, err := b.compileExpr(&ectx, v.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return op.NewApplier(b.rctx, parent, expr.NewFilterApplier(b.rctx.Zctx, f)), nil
+		return op.NewApplier(b.rctx, parent, expr.NewFilterApplier(b.rctx.Zctx, f), ectx.resetters), nil
 	case *dag.Top:
-		fields, err := b.compileExprs(v.Args)
+		var ectx exprContext
+		fields, err := b.compileExprs(&ectx, v.Args)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
-		return top.New(b.rctx.Zctx, parent, v.Limit, fields, v.Flush), nil
+		return top.New(b.rctx.Zctx, parent, v.Limit, fields, ectx.resetters, v.Flush), nil
 	case *dag.Put:
-		clauses, err := b.compileAssignments(v.Args)
+		var ectx exprContext
+		clauses, err := b.compileAssignments(&ectx, v.Args)
 		if err != nil {
 			return nil, err
 		}
 		putter := expr.NewPutter(b.rctx.Zctx, clauses)
-		return op.NewApplier(b.rctx, parent, putter), nil
+		return op.NewApplier(b.rctx, parent, putter, ectx.resetters), nil
 	case *dag.Rename:
+		var ectx exprContext
 		var srcs, dsts []*expr.Lval
 		for _, a := range v.Args {
-			src, err := b.compileLval(a.RHS)
+			src, err := b.compileLval(&ectx, a.RHS)
 			if err != nil {
 				return nil, err
 			}
-			dst, err := b.compileLval(a.LHS)
+			dst, err := b.compileLval(&ectx, a.LHS)
 			if err != nil {
 				return nil, err
 			}
@@ -209,7 +215,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			dsts = append(dsts, dst)
 		}
 		renamer := expr.NewRenamer(b.rctx.Zctx, srcs, dsts)
-		return op.NewApplier(b.rctx, parent, renamer), nil
+		return op.NewApplier(b.rctx, parent, renamer, ectx.resetters), nil
 	case *dag.Fuse:
 		return fuse.New(b.rctx, parent)
 	case *dag.Shape:
@@ -223,19 +229,21 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, err
 		}
-		args, err := b.compileExprs(v.Args)
+		var ectx exprContext
+		args, err := b.compileExprs(&ectx, v.Args)
 		if err != nil {
 			return nil, err
 		}
-		return explode.New(b.rctx.Zctx, parent, args, typ, v.As)
+		return explode.New(b.rctx.Zctx, parent, args, ectx.resetters, typ, v.As)
 	case *dag.Over:
 		return b.compileOver(parent, v)
 	case *dag.Yield:
-		exprs, err := b.compileExprs(v.Exprs)
+		var ectx exprContext
+		exprs, err := b.compileExprs(&ectx, v.Exprs)
 		if err != nil {
 			return nil, err
 		}
-		t := yield.New(parent, exprs)
+		t := yield.New(parent, exprs, ectx.resetters)
 		return t, nil
 	case *dag.PoolScan:
 		if parent != nil {
@@ -352,11 +360,11 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	}
 }
 
-func (b *Builder) compileDefs(defs []dag.Def) ([]string, []expr.Evaluator, error) {
+func (b *Builder) compileDefs(ectx *exprContext, defs []dag.Def) ([]string, []expr.Evaluator, error) {
 	exprs := make([]expr.Evaluator, 0, len(defs))
 	names := make([]string, 0, len(defs))
 	for _, def := range defs {
-		e, err := b.compileExpr(def.Expr)
+		e, err := b.compileExpr(ectx, def.Expr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -370,15 +378,16 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 	if len(over.Defs) != 0 && over.Body == nil {
 		return nil, errors.New("internal error: over operator has defs but no body")
 	}
-	withNames, withExprs, err := b.compileDefs(over.Defs)
+	var ectx exprContext
+	withNames, withExprs, err := b.compileDefs(&ectx, over.Defs)
 	if err != nil {
 		return nil, err
 	}
-	exprs, err := b.compileExprs(over.Exprs)
+	exprs, err := b.compileExprs(&ectx, over.Exprs)
 	if err != nil {
 		return nil, err
 	}
-	enter := traverse.NewOver(b.rctx, parent, exprs)
+	enter := traverse.NewOver(b.rctx, parent, exprs, ectx.resetters)
 	if over.Body == nil {
 		return enter, nil
 	}
@@ -398,10 +407,10 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 	return scope.NewExit(exit), nil
 }
 
-func (b *Builder) compileAssignments(assignments []dag.Assignment) ([]expr.Assignment, error) {
+func (b *Builder) compileAssignments(ectx *exprContext, assignments []dag.Assignment) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
 	for _, assignment := range assignments {
-		a, err := b.compileAssignment(&assignment)
+		a, err := b.compileAssignment(ectx, &assignment)
 		if err != nil {
 			return nil, err
 		}
@@ -433,7 +442,11 @@ func (b *Builder) compileSeq(seq dag.Seq, parents []zbuf.Puller) ([]zbuf.Puller,
 }
 
 func (b *Builder) compileScope(scope *dag.Scope, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	if err := b.compileFuncs(scope.Funcs); err != nil {
+	// XXX We need to fix how udfs are compiled since there is currently a bug
+	// where aggregation expressions in udfs do not have separate state per
+	// invocation. The fix for this might use exprContext to compile udf
+	// expressions per invocation.
+	if err := b.compileFuncs(&exprContext{}, scope.Funcs); err != nil {
 		return nil, err
 	}
 	return b.compileSeq(scope.Body, parents)
@@ -481,7 +494,7 @@ func (b *Builder) compileScatter(par *dag.Scatter, parents []zbuf.Puller) ([]zbu
 	return ops, nil
 }
 
-func (b *Builder) compileFuncs(fns []*dag.Func) error {
+func (b *Builder) compileFuncs(ectx *exprContext, fns []*dag.Func) error {
 	udfs := make([]*expr.UDF, 0, len(fns))
 	for _, f := range fns {
 		if _, ok := b.funcs[f.Name]; ok {
@@ -493,7 +506,7 @@ func (b *Builder) compileFuncs(fns []*dag.Func) error {
 	}
 	for i := range fns {
 		var err error
-		if udfs[i].Body, err = b.compileExpr(fns[i].Expr); err != nil {
+		if udfs[i].Body, err = b.compileExpr(ectx, fns[i].Expr); err != nil {
 			return err
 		}
 	}
@@ -505,11 +518,12 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 	if len(parents) > 1 {
 		parent = combine.New(b.rctx, parents)
 	}
-	e, err := b.compileExpr(swtch.Expr)
+	var ectx exprContext
+	e, err := b.compileExpr(&ectx, swtch.Expr)
 	if err != nil {
 		return nil, err
 	}
-	s := exprswitch.New(b.rctx, parent, e)
+	s := exprswitch.New(b.rctx, parent, e, ectx.resetters)
 	var exits []zbuf.Puller
 	for _, c := range swtch.Cases {
 		var val *zed.Value
@@ -537,20 +551,19 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbu
 	if len(parents) > 1 {
 		parent = combine.New(b.rctx, parents)
 	}
-	n := len(swtch.Cases)
-	switcher := switcher.New(b.rctx, parent)
-	parents = []zbuf.Puller{}
-	for _, c := range swtch.Cases {
-		f, err := b.compileExpr(c.Expr)
+	var ectx exprContext
+	cases := make([]expr.Evaluator, len(swtch.Cases))
+	for i, c := range swtch.Cases {
+		var err error
+		cases[i], err = b.compileExpr(&ectx, c.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling switch case filter: %w", err)
 		}
-		sc := switcher.AddCase(f)
-		parents = append(parents, sc)
 	}
+	switcher := switcher.New(b.rctx, parent, ectx.resetters)
 	var ops []zbuf.Puller
-	for k := 0; k < n; k++ {
-		o, err := b.compileSeq(swtch.Cases[k].Path, []zbuf.Puller{parents[k]})
+	for i, c := range cases {
+		o, err := b.compileSeq(swtch.Cases[i].Path, []zbuf.Puller{switcher.AddCase(c)})
 		if err != nil {
 			return nil, err
 		}
@@ -578,16 +591,17 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
 		}
-		assignments, err := b.compileAssignments(o.Args)
+		var ectx exprContext
+		assignments, err := b.compileAssignments(&ectx, o.Args)
 		if err != nil {
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		leftKey, err := b.compileExpr(o.LeftKey)
+		leftKey, err := b.compileExpr(&ectx, o.LeftKey)
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := b.compileExpr(o.RightKey)
+		rightKey, err := b.compileExpr(&ectx, o.RightKey)
 		if err != nil {
 			return nil, err
 		}
@@ -607,18 +621,19 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		default:
 			return nil, fmt.Errorf("unknown kind of join: '%s'", o.Style)
 		}
-		join, err := join.New(b.rctx, anti, inner, leftParent, rightParent, leftKey, rightKey, leftDir, rightDir, lhs, rhs)
+		join, err := join.New(b.rctx, anti, inner, leftParent, rightParent, leftKey, rightKey, leftDir, rightDir, lhs, rhs, ectx.resetters)
 		if err != nil {
 			return nil, err
 		}
 		return []zbuf.Puller{join}, nil
 	case *dag.Merge:
-		e, err := b.compileExpr(o.Expr)
+		var ectx exprContext
+		e, err := b.compileExpr(&ectx, o.Expr)
 		if err != nil {
 			return nil, err
 		}
 		cmp := expr.NewComparator(true, o.Order == order.Desc, e).WithMissingAsNull()
-		return []zbuf.Puller{merge.New(b.rctx, parents, cmp.Compare)}, nil
+		return []zbuf.Puller{merge.New(b.rctx, parents, cmp.Compare, ectx.resetters)}, nil
 	case *dag.Combine:
 		return []zbuf.Puller{combine.New(b.rctx, parents)}, nil
 	default:
@@ -671,7 +686,7 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 	if in == nil {
 		return zed.Null, nil
 	}
-	e, err := b.compileExpr(in)
+	e, err := b.compileExpr(nil, in)
 	if err != nil {
 		return zed.Null, err
 	}
@@ -687,7 +702,7 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 
 func compileExpr(in dag.Expr) (expr.Evaluator, error) {
 	b := NewBuilder(runtime.NewContext(context.Background(), zed.NewContext()), nil)
-	return b.compileExpr(in)
+	return b.compileExpr(nil, in)
 }
 
 func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val zed.Value, err error) {

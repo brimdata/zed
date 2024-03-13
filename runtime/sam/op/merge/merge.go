@@ -27,21 +27,23 @@ type Op struct {
 	// The head-of-line (hol) queue is maintained as a min-heap on cmp of
 	// hol.vals[0] (see Less) so that the next Read always returns
 	// hol[0].vals[0].
-	hol []*puller
+	hol      []*puller
+	resetter expr.Resetter
 }
 
 var _ zbuf.Puller = (*Op)(nil)
 var _ zio.Reader = (*Op)(nil)
 
-func New(ctx context.Context, parents []zbuf.Puller, cmp expr.CompareFn) *Op {
+func New(ctx context.Context, parents []zbuf.Puller, cmp expr.CompareFn, r expr.Resetter) *Op {
 	pullers := make([]*puller, 0, len(parents))
 	for _, p := range parents {
 		pullers = append(pullers, newPuller(ctx, p))
 	}
 	return &Op{
-		ctx:     ctx,
-		cmp:     cmp,
-		parents: pullers,
+		ctx:      ctx,
+		cmp:      cmp,
+		parents:  pullers,
+		resetter: r,
 	}
 }
 
@@ -118,6 +120,7 @@ func (o *Op) run() error {
 // each parent, e.g., a parent may be immediately blocked because it has
 // no data at (re)start and should not be re-entered into the HOL queue.
 func (o *Op) start() error {
+	o.resetter.Reset()
 	o.hol = o.hol[:0]
 	for _, parent := range o.parents {
 		parent.blocked = false

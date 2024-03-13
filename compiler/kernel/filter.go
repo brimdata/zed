@@ -17,7 +17,7 @@ func (f *Filter) AsEvaluator() (expr.Evaluator, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return f.builder.compileExpr(f.pushdown)
+	return f.builder.compileExpr(nil, f.pushdown)
 }
 
 func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
@@ -39,7 +39,7 @@ func (f *DeleteFilter) AsEvaluator() (expr.Evaluator, error) {
 	// expression so we get all values that don't match. We also add a missing
 	// call so if the expression results in an error("missing") the value is
 	// kept.
-	return f.builder.compileExpr(&dag.BinaryExpr{
+	return f.builder.compileExpr(nil, &dag.BinaryExpr{
 		Kind: "BinaryExpr",
 		Op:   "or",
 		LHS: &dag.UnaryExpr{

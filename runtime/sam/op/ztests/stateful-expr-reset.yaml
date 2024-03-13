@@ -1,0 +1,83 @@
+script: |
+  echo '// yield'
+  echo null | zq -z -I yield.zed -
+  echo '// filter'
+  echo null | zq -z -I filter.zed -
+  echo '// switch'
+  echo null | zq -z -I switch.zed -
+  echo '// exprswitch'
+  echo null | zq -z -I exprswitch.zed -
+  echo '// over'
+  echo null | zq -z -I over.zed -
+  echo '// over with'
+  echo null | zq -z -I over-with.zed -
+  echo '// summarize'
+  echo null | zq -z -I summarize.zed -
+
+inputs: 
+  - name: yield.zed
+    data: |
+      yield null, null
+      | over this => ( yield count() )
+  - name: filter.zed
+    data: |
+      yield [1,2,3,4], [5,6,7]
+      | over this => ( where count() % 3 == 0 )
+  - name: switch.zed
+    data: |
+      yield [1], [1]
+      | over this => (
+        switch sum(this) (
+          case 1  => yield "sum is 1"
+        )
+      )
+  - name: exprswitch.zed
+    data: |
+      yield [1], [1]
+      | over this => (
+        switch (
+          case sum(this) == 1 => yield "sum is 1"
+        )
+      )
+  - name: over.zed
+    data: |
+      yield null, null
+      | over this => (
+        over count()
+      )
+  - name: over-with.zed
+    data: |
+      yield [1], [1]
+      | over this => (
+        over this with count = count() => ( yield count )
+      )
+  - name: summarize.zed
+    data: |
+      yield [1], [1]
+      | over this => ( sum(this) by c := count() )
+
+
+outputs:
+  - name: stdout
+    data: |
+      // yield
+      1(uint64)
+      1(uint64)
+      // filter
+      3
+      7
+      // switch
+      "sum is 1"
+      "sum is 1"
+      // exprswitch
+      "sum is 1"
+      "sum is 1"
+      // over
+      1(uint64)
+      1(uint64)
+      // over with
+      1(uint64)
+      1(uint64)
+      // summarize
+      {c:1(uint64),sum:1}
+      {c:1(uint64),sum:1}
