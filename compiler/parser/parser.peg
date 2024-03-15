@@ -84,13 +84,17 @@ FuncDecl
     }
 
 OpDecl
-  = "op" _ name:IdentifierName __ "(" __ params:IdentifierNames? __ ")" __ ":" __ "(" __ body:Seq __ ")" {
+  = "op" _ name:IdentifierName __ "(" __ params:IdentifierNames? __ ")" __ ":" __ "(" __ body:OpDeclBody __ ")" {
       RETURN(MAP(
         "kind": "OpDecl",
         "name": name,
         "params": params,
         "body": body))
     }
+
+OpDeclBody
+  = scope:Scope { RETURN(ARRAY(scope)) }
+  / seq:Seq { RETURN(seq) }
 
 Operation
   = "fork" __ "(" paths:Leg+ __ ")" {

@@ -1820,7 +1820,7 @@ function peg$parse(input, options) {
                             if (s13 !== peg$FAILED) {
                               s14 = peg$parse__();
                               if (s14 !== peg$FAILED) {
-                                s15 = peg$parseSeq();
+                                s15 = peg$parseOpDeclBody();
                                 if (s15 !== peg$FAILED) {
                                   s16 = peg$parse__();
                                   if (s16 !== peg$FAILED) {
@@ -1902,6 +1902,29 @@ function peg$parse(input, options) {
     } else {
       peg$currPos = s0;
       s0 = peg$FAILED;
+    }
+
+    return s0;
+  }
+
+  function peg$parseOpDeclBody() {
+    var s0, s1;
+
+    s0 = peg$currPos;
+    s1 = peg$parseScope();
+    if (s1 !== peg$FAILED) {
+      peg$savedPos = s0;
+      s1 = peg$c0(s1);
+    }
+    s0 = s1;
+    if (s0 === peg$FAILED) {
+      s0 = peg$currPos;
+      s1 = peg$parseSeq();
+      if (s1 !== peg$FAILED) {
+        peg$savedPos = s0;
+        s1 = peg$c1(s1);
+      }
+      s0 = s1;
     }
 
     return s0;
