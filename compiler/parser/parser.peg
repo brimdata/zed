@@ -607,7 +607,7 @@ OverOp
     }
 
 Lateral
-  = __ "=>" __ "(" __ scope:Scope __ ")" { RETURN(scope) }
+  = __ "=>" __ "(" __ scope:Scope __ ")" { RETURN(ARRAY(scope)) }
   / __ "=>" __ "(" __ seq:Seq __ ")" { RETURN(seq) }
 
 Locals

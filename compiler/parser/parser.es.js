@@ -6922,7 +6922,7 @@ function peg$parse(input, options) {
                   }
                   if (s8 !== peg$FAILED) {
                     peg$savedPos = s0;
-                    s1 = peg$c36(s6);
+                    s1 = peg$c0(s6);
                     s0 = s1;
                   } else {
                     peg$currPos = s0;
