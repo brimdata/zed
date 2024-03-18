@@ -9,6 +9,7 @@ import (
 // the Reader interfaces.
 type Array struct {
 	values []zed.Value
+	vars   []zed.Value
 }
 
 var _ Batch = (*Array)(nil)
@@ -37,9 +38,12 @@ func (a *Array) Append(r zed.Value) {
 	a.values = append(a.values, r)
 }
 
+func (a *Array) SetVars(vars []zed.Value) {
+	a.vars = vars
+}
+
 func (a *Array) Vars() []zed.Value {
-	// XXX TBD
-	return nil
+	return a.vars
 }
 
 func (a *Array) Write(r zed.Value) error {

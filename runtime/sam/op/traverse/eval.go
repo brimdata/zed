@@ -42,8 +42,10 @@ func (e *Expr) SetExit(exit *Exit) {
 }
 
 func (e *Expr) Eval(ectx expr.Context, this zed.Value) zed.Value {
+	b := zbuf.NewArray([]zed.Value{this})
+	b.SetVars(ectx.Vars())
 	select {
-	case e.batchCh <- zbuf.NewArray([]zed.Value{this}):
+	case e.batchCh <- b:
 	case <-e.ctx.Done():
 		return e.zctx.NewError(e.ctx.Err())
 	}
