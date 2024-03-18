@@ -1,0 +1,10 @@
+zed: |
+  over this => (
+    func addbar(a): ( a + " bar" )
+    yield addbar(this)
+  )
+
+input: '["foo"]'
+
+output: |
+  "foo bar"
