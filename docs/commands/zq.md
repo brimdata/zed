@@ -65,12 +65,9 @@ To determine whether the first argument is a query or an input,
 or whether the name is an URL.
 If no such file or URL exists, it attempts to parse the text as a Zed program.
 If both checks fail, then an error is reported and `zq` exits.
-
 This heuristic is convenient but can result in a rare surprise when a simple
 Zed query (like a keyword search) happens to correspond with a file of the
 same name in the local directory.
-To avoid this, you can provide the query with the `-query` flag, which specifies
-the Zed program to run and forces all arguments to be interpreted as inputs.
 
 When `zq` is run with a query and no input arguments, then the query must
 begin with a
