@@ -46,7 +46,7 @@ func (c *Compare) Eval(val vector.Any) vector.Any {
 		return compareUints(op, lhs, rhs)
 	default:
 		//XXX incompatible types
-		return vector.NewStringError(c.zctx, coerce.IncompatibleTypes.Error(), lhs.Len())
+		return vector.NewStringError(c.zctx, coerce.ErrIncompatibleTypes.Error(), lhs.Len())
 	}
 }
 
