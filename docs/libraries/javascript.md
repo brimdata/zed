@@ -5,7 +5,7 @@ sidebar_label: JavaScript
 
 # JavaScript
 
-The [zed-js library](https://github.com/brimdata/zealot/tree/main/packages/zed-js)
+The [zed-js library](https://github.com/brimdata/zui/tree/main/packages/zed-js)
 provides support for the Zed data model from within
 JavaScript as well as methods for communicating with a Zed lake.
 
