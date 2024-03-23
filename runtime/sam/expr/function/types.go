@@ -31,14 +31,17 @@ type NameOf struct {
 
 func (n *NameOf) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	typ := args[0].Type()
+	if named, ok := typ.(*zed.TypeNamed); ok {
+		return zed.NewString(named.Name)
+	}
 	if typ.ID() == zed.IDType {
 		var err error
 		if typ, err = n.zctx.LookupByValue(args[0].Bytes()); err != nil {
 			panic(err)
 		}
-	}
-	if named, ok := typ.(*zed.TypeNamed); ok {
-		return zed.NewString(named.Name)
+		if named, ok := typ.(*zed.TypeNamed); ok {
+			return zed.NewString(named.Name)
+		}
 	}
 	return n.zctx.Missing()
 }
