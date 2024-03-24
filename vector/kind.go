@@ -1,6 +1,13 @@
 package vector
 
+import (
+	"fmt"
+
+	"github.com/brimdata/zed"
+)
+
 type Kind int
+type Form int
 
 const (
 	KindInvalid = 0
@@ -10,14 +17,16 @@ const (
 	KindString  = 4
 	KindBytes   = 5
 	KindType    = 6
-	KindFlat    = 0 << 3
-	KindDict    = 1 << 3
-	KindView    = 2 << 3
-	KindConst   = 3 << 3
-	KindWidth   = 5
 )
 
-//XXX store bytes as Go string?
+const (
+	FormFlat  = 0
+	FormDict  = 1
+	FormView  = 2
+	FormConst = 3
+)
+
+//XXX might not need Kind...
 
 func KindOf(v Any) Kind {
 	switch v := v.(type) {
@@ -32,38 +41,60 @@ func KindOf(v Any) Kind {
 	case *String:
 		return KindString
 	case *View:
-		inner := KindOf(v.Any)
-		if inner == KindInvalid {
-			return KindInvalid
-		}
-		return KindView | inner
+		return KindOf(v.Any)
 	case *Dict:
-		inner := KindOf(v.Any)
-		if inner == KindInvalid {
-			return KindInvalid
-		}
-		return KindDict | inner
+		return KindOf(v.Any)
+	case *Const:
+		return KindOfType(v.Value().Type())
 	default:
 		return KindInvalid
 	}
 }
 
-func KindBinary(lhs, rhs Any) Kind {
-	left := KindOf(lhs)
-	if left == KindInvalid {
-		return KindInvalid
+func KindOfType(typ zed.Type) Kind {
+	switch zed.TypeUnder(typ).(type) {
+	case *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration:
+		return KindInt
+	case *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64, *zed.TypeOfTime:
+		return KindUint
+	case *zed.TypeOfFloat16, *zed.TypeOfFloat32, *zed.TypeOfFloat64:
+		return KindFloat
+	case *zed.TypeOfString:
+		return KindString
+	case *zed.TypeOfBytes:
+		return KindBytes
+	case *zed.TypeOfType:
+		return KindType
 	}
-	right := KindOf(rhs)
-	if right == KindInvalid {
-		return KindInvalid
-	}
-	return left<<KindWidth | right
+	return KindInvalid
 }
 
-func KindLeft(kind Kind) Kind {
-	return kind >> KindWidth
+func FormOf(v Any) (Form, bool) {
+	switch v.(type) {
+	case *Int, *Uint, *Float, *Bytes, *String, *TypeValue: //XXX IP, Net
+		return FormFlat, true
+	case *View:
+		return FormView, true
+	case *Dict:
+		return FormDict, true
+	case *Const:
+		return FormConst, true
+	default:
+		return 0, false
+	}
 }
 
-func KindRight(kind Kind) Kind {
-	return kind & ((1 << KindWidth) - 1)
+func (f Form) String() string {
+	switch f {
+	case FormFlat:
+		return "Flat"
+	case FormDict:
+		return "Dict"
+	case FormView:
+		return "View"
+	case FormConst:
+		return "Const"
+	default:
+		return fmt.Sprintf("Form-Unknown-%d", f)
+	}
 }
