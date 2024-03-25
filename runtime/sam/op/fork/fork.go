@@ -39,3 +39,5 @@ func (s splitter) Forward(r *op.Router, b zbuf.Batch) bool {
 	}
 	return true
 }
+
+func (s splitter) Reset() {}

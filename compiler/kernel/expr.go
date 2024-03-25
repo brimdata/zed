@@ -16,19 +16,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-type exprContext struct {
-	resetters expr.Resetters
-}
-
-func newExprContext() *exprContext { return new(exprContext) }
-
-func (r *exprContext) addResetter(resetter expr.Resetter) {
-	if r == nil {
-		return
-	}
-	r.resetters = append(r.resetters, resetter)
-}
-
 // compileExpr compiles the given Expression into an object
 // that evaluates the expression against a provided Record.  It returns an
 // error if compilation fails for any reason.
@@ -59,7 +46,7 @@ func (r *exprContext) addResetter(resetter expr.Resetter) {
 // TBD: string values and net.IP address do not need to be copied because they
 // are allocated by go libraries and temporary buffers are not used.  This will
 // change down the road when we implement no-allocation string and IP conversion.
-func (b *Builder) compileExpr(ectx *exprContext, e dag.Expr) (expr.Evaluator, error) {
+func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 	if e == nil {
 		return nil, errors.New("null expression not allowed")
 	}
@@ -73,43 +60,40 @@ func (b *Builder) compileExpr(ectx *exprContext, e dag.Expr) (expr.Evaluator, er
 	case *dag.Var:
 		return expr.NewVar(e.Slot), nil
 	case *dag.Search:
-		return b.compileSearch(ectx, e)
+		return b.compileSearch(e)
 	case *dag.This:
 		return expr.NewDottedExpr(b.zctx(), field.Path(e.Path)), nil
 	case *dag.Dot:
-		return b.compileDotExpr(ectx, e)
+		return b.compileDotExpr(e)
 	case *dag.UnaryExpr:
-		return b.compileUnary(ectx, *e)
+		return b.compileUnary(*e)
 	case *dag.BinaryExpr:
-		return b.compileBinary(ectx, e)
+		return b.compileBinary(e)
 	case *dag.Conditional:
-		return b.compileConditional(ectx, *e)
+		return b.compileConditional(*e)
 	case *dag.Call:
-		return b.compileCall(ectx, *e)
+		return b.compileCall(*e)
 	case *dag.RegexpMatch:
-		return b.compileRegexpMatch(ectx, e)
+		return b.compileRegexpMatch(e)
 	case *dag.RegexpSearch:
-		return b.compileRegexpSearch(ectx, e)
+		return b.compileRegexpSearch(e)
 	case *dag.RecordExpr:
-		return b.compileRecordExpr(ectx, e)
+		return b.compileRecordExpr(e)
 	case *dag.ArrayExpr:
-		return b.compileArrayExpr(ectx, e)
+		return b.compileArrayExpr(e)
 	case *dag.SetExpr:
-		return b.compileSetExpr(ectx, e)
+		return b.compileSetExpr(e)
 	case *dag.MapCall:
-		return b.compileMapCall(ectx, e)
+		return b.compileMapCall(e)
 	case *dag.MapExpr:
-		return b.compileMapExpr(ectx, e)
+		return b.compileMapExpr(e)
 	case *dag.Agg:
-		agg, err := b.compileAgg(ectx, e)
+		agg, err := b.compileAgg(e)
 		if err != nil {
 			return nil, err
 		}
-		if ectx == nil {
-			panic("system error: exprContext is nil")
-		}
 		aggexpr := expr.NewAggregatorExpr(b.zctx(), agg)
-		ectx.addResetter(aggexpr)
+		b.resetters = append(b.resetters, aggexpr)
 		return aggexpr, nil
 	case *dag.OverExpr:
 		return b.compileOverExpr(e)
@@ -118,31 +102,31 @@ func (b *Builder) compileExpr(ectx *exprContext, e dag.Expr) (expr.Evaluator, er
 	}
 }
 
-func (b *Builder) compileExprWithEmpty(ectx *exprContext, e dag.Expr) (expr.Evaluator, error) {
+func (b *Builder) compileExprWithEmpty(e dag.Expr) (expr.Evaluator, error) {
 	if e == nil {
 		return nil, nil
 	}
-	return b.compileExpr(ectx, e)
+	return b.compileExpr(e)
 }
 
-func (b *Builder) compileBinary(ectx *exprContext, e *dag.BinaryExpr) (expr.Evaluator, error) {
+func (b *Builder) compileBinary(e *dag.BinaryExpr) (expr.Evaluator, error) {
 	if slice, ok := e.RHS.(*dag.BinaryExpr); ok && slice.Op == ":" {
-		return b.compileSlice(ectx, e.LHS, slice)
+		return b.compileSlice(e.LHS, slice)
 	}
 	if e.Op == "in" {
 		// Do a faster comparison if the LHS is a compile-time constant expression.
-		if in, err := b.compileConstIn(ectx, e); in != nil && err == nil {
+		if in, err := b.compileConstIn(e); in != nil && err == nil {
 			return in, err
 		}
 	}
-	if e, err := b.compileConstCompare(ectx, e); e != nil && err == nil {
+	if e, err := b.compileConstCompare(e); e != nil && err == nil {
 		return e, nil
 	}
-	lhs, err := b.compileExpr(ectx, e.LHS)
+	lhs, err := b.compileExpr(e.LHS)
 	if err != nil {
 		return nil, err
 	}
-	rhs, err := b.compileExpr(ectx, e.RHS)
+	rhs, err := b.compileExpr(e.RHS)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +150,7 @@ func (b *Builder) compileBinary(ectx *exprContext, e *dag.BinaryExpr) (expr.Eval
 	}
 }
 
-func (b *Builder) compileConstIn(r *exprContext, e *dag.BinaryExpr) (expr.Evaluator, error) {
+func (b *Builder) compileConstIn(e *dag.BinaryExpr) (expr.Evaluator, error) {
 	literal, err := b.evalAtCompileTime(e.LHS)
 	if err != nil || literal.IsError() {
 		// If the RHS here is a literal value, it would be good
@@ -179,14 +163,14 @@ func (b *Builder) compileConstIn(r *exprContext, e *dag.BinaryExpr) (expr.Evalua
 	if eql == nil || err != nil {
 		return nil, nil
 	}
-	operand, err := b.compileExpr(r, e.RHS)
+	operand, err := b.compileExpr(e.RHS)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewFilter(operand, expr.Contains(eql)), nil
 }
 
-func (b *Builder) compileConstCompare(ectx *exprContext, e *dag.BinaryExpr) (expr.Evaluator, error) {
+func (b *Builder) compileConstCompare(e *dag.BinaryExpr) (expr.Evaluator, error) {
 	switch e.Op {
 	case "==", "!=", "<", "<=", ">", ">=":
 	default:
@@ -203,19 +187,19 @@ func (b *Builder) compileConstCompare(ectx *exprContext, e *dag.BinaryExpr) (exp
 		// non-error situation that isn't a simple comparison.
 		return nil, nil
 	}
-	operand, err := b.compileExpr(ectx, e.LHS)
+	operand, err := b.compileExpr(e.LHS)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewFilter(operand, comparison), nil
 }
 
-func (b *Builder) compileSearch(ectx *exprContext, search *dag.Search) (expr.Evaluator, error) {
+func (b *Builder) compileSearch(search *dag.Search) (expr.Evaluator, error) {
 	val, err := zson.ParseValue(b.zctx(), search.Value)
 	if err != nil {
 		return nil, err
 	}
-	e, err := b.compileExpr(ectx, search.Expr)
+	e, err := b.compileExpr(search.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -228,24 +212,24 @@ func (b *Builder) compileSearch(ectx *exprContext, search *dag.Search) (expr.Eva
 	return expr.NewSearch(search.Text, val, e)
 }
 
-func (b *Builder) compileSlice(ectx *exprContext, container dag.Expr, slice *dag.BinaryExpr) (expr.Evaluator, error) {
-	from, err := b.compileExprWithEmpty(ectx, slice.LHS)
+func (b *Builder) compileSlice(container dag.Expr, slice *dag.BinaryExpr) (expr.Evaluator, error) {
+	from, err := b.compileExprWithEmpty(slice.LHS)
 	if err != nil {
 		return nil, err
 	}
-	to, err := b.compileExprWithEmpty(ectx, slice.RHS)
+	to, err := b.compileExprWithEmpty(slice.RHS)
 	if err != nil {
 		return nil, err
 	}
-	e, err := b.compileExpr(ectx, container)
+	e, err := b.compileExpr(container)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewSlice(b.zctx(), e, from, to), nil
 }
 
-func (b *Builder) compileUnary(ectx *exprContext, unary dag.UnaryExpr) (expr.Evaluator, error) {
-	e, err := b.compileExpr(ectx, unary.Operand)
+func (b *Builder) compileUnary(unary dag.UnaryExpr) (expr.Evaluator, error) {
+	e, err := b.compileExpr(unary.Operand)
 	if err != nil {
 		return nil, err
 	}
@@ -259,48 +243,48 @@ func (b *Builder) compileUnary(ectx *exprContext, unary dag.UnaryExpr) (expr.Eva
 	}
 }
 
-func (b *Builder) compileConditional(ectx *exprContext, node dag.Conditional) (expr.Evaluator, error) {
-	predicate, err := b.compileExpr(ectx, node.Cond)
+func (b *Builder) compileConditional(node dag.Conditional) (expr.Evaluator, error) {
+	predicate, err := b.compileExpr(node.Cond)
 	if err != nil {
 		return nil, err
 	}
-	thenExpr, err := b.compileExpr(ectx, node.Then)
+	thenExpr, err := b.compileExpr(node.Then)
 	if err != nil {
 		return nil, err
 	}
-	elseExpr, err := b.compileExpr(ectx, node.Else)
+	elseExpr, err := b.compileExpr(node.Else)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewConditional(b.zctx(), predicate, thenExpr, elseExpr), nil
 }
 
-func (b *Builder) compileDotExpr(ectx *exprContext, dot *dag.Dot) (expr.Evaluator, error) {
-	record, err := b.compileExpr(ectx, dot.LHS)
+func (b *Builder) compileDotExpr(dot *dag.Dot) (expr.Evaluator, error) {
+	record, err := b.compileExpr(dot.LHS)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewDotExpr(b.zctx(), record, dot.RHS), nil
 }
 
-func (b *Builder) compileLval(ectx *exprContext, e dag.Expr) (*expr.Lval, error) {
+func (b *Builder) compileLval(e dag.Expr) (*expr.Lval, error) {
 	switch e := e.(type) {
 	case *dag.BinaryExpr:
 		if e.Op != "[" {
 			return nil, fmt.Errorf("internal error: invalid lval %#v", e)
 		}
-		lhs, err := b.compileLval(ectx, e.LHS)
+		lhs, err := b.compileLval(e.LHS)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := b.compileExpr(ectx, e.RHS)
+		rhs, err := b.compileExpr(e.RHS)
 		if err != nil {
 			return nil, err
 		}
 		lhs.Elems = append(lhs.Elems, expr.NewExprLvalElem(b.zctx(), rhs))
 		return lhs, nil
 	case *dag.Dot:
-		lhs, err := b.compileLval(ectx, e.LHS)
+		lhs, err := b.compileLval(e.LHS)
 		if err != nil {
 			return nil, err
 		}
@@ -316,21 +300,21 @@ func (b *Builder) compileLval(ectx *exprContext, e dag.Expr) (*expr.Lval, error)
 	return nil, fmt.Errorf("internal error: invalid lval %#v", e)
 }
 
-func (b *Builder) compileAssignment(ectx *exprContext, node *dag.Assignment) (expr.Assignment, error) {
-	lhs, err := b.compileLval(ectx, node.LHS)
+func (b *Builder) compileAssignment(node *dag.Assignment) (expr.Assignment, error) {
+	lhs, err := b.compileLval(node.LHS)
 	if err != nil {
 		return expr.Assignment{}, err
 	}
-	rhs, err := b.compileExpr(ectx, node.RHS)
+	rhs, err := b.compileExpr(node.RHS)
 	if err != nil {
 		return expr.Assignment{}, fmt.Errorf("rhs of assigment expression: %w", err)
 	}
 	return expr.Assignment{LHS: lhs, RHS: rhs}, err
 }
 
-func (b *Builder) compileCall(ectx *exprContext, call dag.Call) (expr.Evaluator, error) {
+func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 	if tf := expr.NewShaperTransform(call.Name); tf != 0 {
-		return b.compileShaper(ectx, call, tf)
+		return b.compileShaper(call, tf)
 	}
 	var path field.Path
 	// First check if call is to a user defined function, otherwise check for
@@ -348,42 +332,42 @@ func (b *Builder) compileCall(ectx *exprContext, call dag.Call) (expr.Evaluator,
 		dagPath := &dag.This{Kind: "This", Path: path}
 		args = append([]dag.Expr{dagPath}, args...)
 	}
-	exprs, err := b.compileExprs(ectx, args)
+	exprs, err := b.compileExprs(args)
 	if err != nil {
 		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
 	return expr.NewCall(b.zctx(), fn, exprs), nil
 }
 
-func (b *Builder) compileMapCall(ectx *exprContext, a *dag.MapCall) (expr.Evaluator, error) {
-	e, err := b.compileExpr(ectx, a.Expr)
+func (b *Builder) compileMapCall(a *dag.MapCall) (expr.Evaluator, error) {
+	e, err := b.compileExpr(a.Expr)
 	if err != nil {
 		return nil, err
 	}
-	inner, err := b.compileExpr(ectx, a.Inner)
+	inner, err := b.compileExpr(a.Inner)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewMapCall(b.zctx(), e, inner), nil
 }
 
-func (b *Builder) compileShaper(ectx *exprContext, node dag.Call, tf expr.ShaperTransform) (expr.Evaluator, error) {
+func (b *Builder) compileShaper(node dag.Call, tf expr.ShaperTransform) (expr.Evaluator, error) {
 	args := node.Args
-	field, err := b.compileExpr(ectx, args[0])
+	field, err := b.compileExpr(args[0])
 	if err != nil {
 		return nil, err
 	}
-	typExpr, err := b.compileExpr(ectx, args[1])
+	typExpr, err := b.compileExpr(args[1])
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewShaper(b.zctx(), field, typExpr, tf)
 }
 
-func (b *Builder) compileExprs(ectx *exprContext, in []dag.Expr) ([]expr.Evaluator, error) {
+func (b *Builder) compileExprs(in []dag.Expr) ([]expr.Evaluator, error) {
 	var exprs []expr.Evaluator
 	for _, e := range in {
-		ev, err := b.compileExpr(ectx, e)
+		ev, err := b.compileExpr(e)
 		if err != nil {
 			return nil, err
 		}
@@ -392,8 +376,8 @@ func (b *Builder) compileExprs(ectx *exprContext, in []dag.Expr) ([]expr.Evaluat
 	return exprs, nil
 }
 
-func (b *Builder) compileRegexpMatch(ectx *exprContext, match *dag.RegexpMatch) (expr.Evaluator, error) {
-	e, err := b.compileExpr(ectx, match.Expr)
+func (b *Builder) compileRegexpMatch(match *dag.RegexpMatch) (expr.Evaluator, error) {
+	e, err := b.compileExpr(match.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -404,8 +388,8 @@ func (b *Builder) compileRegexpMatch(ectx *exprContext, match *dag.RegexpMatch) 
 	return expr.NewRegexpMatch(re, e), nil
 }
 
-func (b *Builder) compileRegexpSearch(ectx *exprContext, search *dag.RegexpSearch) (expr.Evaluator, error) {
-	e, err := b.compileExpr(ectx, search.Expr)
+func (b *Builder) compileRegexpSearch(search *dag.RegexpSearch) (expr.Evaluator, error) {
+	e, err := b.compileExpr(search.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -417,12 +401,12 @@ func (b *Builder) compileRegexpSearch(ectx *exprContext, search *dag.RegexpSearc
 	return expr.SearchByPredicate(expr.Contains(match), e), nil
 }
 
-func (b *Builder) compileRecordExpr(ectx *exprContext, record *dag.RecordExpr) (expr.Evaluator, error) {
+func (b *Builder) compileRecordExpr(record *dag.RecordExpr) (expr.Evaluator, error) {
 	var elems []expr.RecordElem
 	for _, elem := range record.Elems {
 		switch elem := elem.(type) {
 		case *dag.Field:
-			e, err := b.compileExpr(ectx, elem.Value)
+			e, err := b.compileExpr(elem.Value)
 			if err != nil {
 				return nil, err
 			}
@@ -431,7 +415,7 @@ func (b *Builder) compileRecordExpr(ectx *exprContext, record *dag.RecordExpr) (
 				Field: e,
 			})
 		case *dag.Spread:
-			e, err := b.compileExpr(ectx, elem.Expr)
+			e, err := b.compileExpr(elem.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -441,34 +425,34 @@ func (b *Builder) compileRecordExpr(ectx *exprContext, record *dag.RecordExpr) (
 	return expr.NewRecordExpr(b.zctx(), elems)
 }
 
-func (b *Builder) compileArrayExpr(ectx *exprContext, array *dag.ArrayExpr) (expr.Evaluator, error) {
-	elems, err := b.compileVectorElems(ectx, array.Elems)
+func (b *Builder) compileArrayExpr(array *dag.ArrayExpr) (expr.Evaluator, error) {
+	elems, err := b.compileVectorElems(array.Elems)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewArrayExpr(b.zctx(), elems), nil
 }
 
-func (b *Builder) compileSetExpr(ectx *exprContext, set *dag.SetExpr) (expr.Evaluator, error) {
-	elems, err := b.compileVectorElems(ectx, set.Elems)
+func (b *Builder) compileSetExpr(set *dag.SetExpr) (expr.Evaluator, error) {
+	elems, err := b.compileVectorElems(set.Elems)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewSetExpr(b.zctx(), elems), nil
 }
 
-func (b *Builder) compileVectorElems(ectx *exprContext, elems []dag.VectorElem) ([]expr.VectorElem, error) {
+func (b *Builder) compileVectorElems(elems []dag.VectorElem) ([]expr.VectorElem, error) {
 	var out []expr.VectorElem
 	for _, elem := range elems {
 		switch elem := elem.(type) {
 		case *dag.Spread:
-			e, err := b.compileExpr(ectx, elem.Expr)
+			e, err := b.compileExpr(elem.Expr)
 			if err != nil {
 				return nil, err
 			}
 			out = append(out, expr.VectorElem{Spread: e})
 		case *dag.VectorValue:
-			e, err := b.compileExpr(ectx, elem.Expr)
+			e, err := b.compileExpr(elem.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -478,14 +462,14 @@ func (b *Builder) compileVectorElems(ectx *exprContext, elems []dag.VectorElem) 
 	return out, nil
 }
 
-func (b *Builder) compileMapExpr(ectx *exprContext, m *dag.MapExpr) (expr.Evaluator, error) {
+func (b *Builder) compileMapExpr(m *dag.MapExpr) (expr.Evaluator, error) {
 	var entries []expr.Entry
 	for _, f := range m.Entries {
-		key, err := b.compileExpr(ectx, f.Key)
+		key, err := b.compileExpr(f.Key)
 		if err != nil {
 			return nil, err
 		}
-		val, err := b.compileExpr(ectx, f.Value)
+		val, err := b.compileExpr(f.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -498,12 +482,11 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 	if over.Body == nil {
 		return nil, errors.New("over expression requires a lateral query body")
 	}
-	var ectx exprContext
-	names, lets, err := b.compileDefs(&ectx, over.Defs)
+	names, lets, err := b.compileDefs(over.Defs)
 	if err != nil {
 		return nil, err
 	}
-	exprs, err := b.compileExprs(&ectx, over.Exprs)
+	exprs, err := b.compileExprs(over.Exprs)
 	if err != nil {
 		return nil, err
 	}
