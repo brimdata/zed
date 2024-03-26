@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
@@ -87,7 +88,7 @@ func (b *Builder) BuildWithPuller(seq dag.Seq, parent vector.Puller) ([]vector.P
 	return b.compileVamSeq(seq, []vector.Puller{parent})
 }
 
-func (b *Builder) BuildVamToSeqFilter(filter dag.Expr, d demand.Demand, poolID, commitID ksuid.KSUID) (zbuf.Puller, error) {
+func (b *Builder) BuildVamToSeqFilter(filter dag.Expr, poolID, commitID ksuid.KSUID) (zbuf.Puller, error) {
 	pool, err := b.source.Lake().OpenPool(b.rctx.Context, poolID)
 	if err != nil {
 		return nil, err
@@ -101,7 +102,8 @@ func (b *Builder) BuildVamToSeqFilter(filter dag.Expr, d demand.Demand, poolID, 
 		return nil, err
 	}
 	cache := b.source.Lake().VectorCache()
-	search, err := vop.NewSearcher(b.rctx, cache, l, pool, e, demand.Fields(d))
+	project, _ := optimizer.FieldsOf(filter)
+	search, err := vop.NewSearcher(b.rctx, cache, l, pool, e, project)
 	if err != nil {
 		return nil, err
 	}

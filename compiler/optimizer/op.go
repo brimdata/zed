@@ -165,7 +165,7 @@ func analyzeCuts(assignments []dag.Assignment, sortKey order.SortKey) order.Sort
 			// to preserve, then we can continue along by clearing
 			// the LHS from the scoreboard knowing that is being set
 			// to something that does not have a defined order.
-			dependencies, ok := fieldsOf(a.RHS)
+			dependencies, ok := FieldsOf(a.RHS)
 			if !ok {
 				return order.Nil
 			}
@@ -237,7 +237,7 @@ func copyOp(o dag.Op) dag.Op {
 	return copy
 }
 
-func fieldsOf(e dag.Expr) (field.List, bool) {
+func FieldsOf(e dag.Expr) (field.List, bool) {
 	if e == nil {
 		return nil, false
 	}
@@ -250,13 +250,13 @@ func fieldsOf(e dag.Expr) (field.List, bool) {
 	case *dag.This:
 		return field.List{e.Path}, true
 	case *dag.UnaryExpr:
-		return fieldsOf(e.Operand)
+		return FieldsOf(e.Operand)
 	case *dag.BinaryExpr:
-		lhs, ok := fieldsOf(e.LHS)
+		lhs, ok := FieldsOf(e.LHS)
 		if !ok {
 			return nil, false
 		}
-		rhs, ok := fieldsOf(e.RHS)
+		rhs, ok := FieldsOf(e.RHS)
 		if !ok {
 			return nil, false
 		}
@@ -268,7 +268,7 @@ func fieldsOf(e dag.Expr) (field.List, bool) {
 		// finish with issue #2756
 		return nil, false
 	case *dag.RegexpMatch:
-		return fieldsOf(e.Expr)
+		return FieldsOf(e.Expr)
 	case *dag.RecordExpr:
 		// finish with issue #2756
 		return nil, false
