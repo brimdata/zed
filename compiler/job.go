@@ -195,6 +195,5 @@ func VectorFilterCompile(rctx *runtime.Context, query string, src *data.Source, 
 	if !ok {
 		return nil, errors.New("filter query must be a single filter op")
 	}
-	d := optimizer.InferDemandSeqOut(entry)[entry[0]]
-	return kernel.NewBuilder(rctx, src).BuildVamToSeqFilter(f.Expr, d, poolID, commitID)
+	return kernel.NewBuilder(rctx, src).BuildVamToSeqFilter(f.Expr, poolID, commitID)
 }
