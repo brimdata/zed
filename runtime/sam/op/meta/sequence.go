@@ -136,6 +136,9 @@ func (s *SearchScanner) Pull(done bool) (zbuf.Batch, error) {
 			if err != nil {
 				return nil, err
 			}
+			if len(ranges) == 0 {
+				continue
+			}
 			s.scanner, err = newObjectScanner(s.rctx.Context, s.rctx.Zctx, s.pool, o, ranges, s.filter, s.progress)
 			if err != nil {
 				return nil, err
