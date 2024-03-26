@@ -28,6 +28,7 @@ type Op struct {
 	resultCh chan op.Result
 	doneCh   chan struct{}
 	batch    zbuf.Batch
+	resetter expr.Resetter
 }
 
 // Aggregator performs the core aggregation computation for a
@@ -110,7 +111,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	}, nil
 }
 
-func New(rctx *runtime.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Op, error) {
+func New(rctx *runtime.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool, resetter expr.Resetter) (*Op, error) {
 	names := make(field.List, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
 		p, ok := e.LHS.Path()
@@ -144,6 +145,7 @@ func New(rctx *runtime.Context, parent zbuf.Puller, keys []expr.Assignment, aggN
 		agg:      agg,
 		resultCh: make(chan op.Result),
 		doneCh:   make(chan struct{}),
+		resetter: resetter,
 	}, nil
 }
 
@@ -249,6 +251,10 @@ func (o *Op) run() {
 }
 
 func (o *Op) sendResult(b zbuf.Batch, err error) (bool, bool) {
+	if b == nil {
+		// Reset stateful aggregation expression on EOS.
+		o.resetter.Reset()
+	}
 	select {
 	case o.resultCh <- op.Result{Batch: b, Err: err}:
 		return false, true
@@ -288,6 +294,7 @@ func (o *Op) reset() {
 		o.batch.Unref()
 		o.batch = nil
 	}
+	o.resetter.Reset()
 }
 
 // Consume adds a value to an aggregation.

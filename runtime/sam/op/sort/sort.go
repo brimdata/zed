@@ -28,9 +28,10 @@ type Op struct {
 	once           sync.Once
 	resultCh       chan op.Result
 	comparator     *expr.Comparator
+	resetter       expr.Resetter
 }
 
-func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Op, error) {
+func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool, r expr.Resetter) (*Op, error) {
 	return &Op{
 		rctx:           rctx,
 		parent:         parent,
@@ -38,6 +39,7 @@ func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.Evaluator, ord
 		nullsFirst:     nullsFirst,
 		fieldResolvers: fields,
 		resultCh:       make(chan op.Result),
+		resetter:       r,
 	}, nil
 }
 
@@ -170,6 +172,10 @@ func (o *Op) sendSpills(spiller *spill.MergeSort) bool {
 }
 
 func (o *Op) sendResult(b zbuf.Batch, err error) bool {
+	if b == nil && err == nil {
+		// Reset Evaluators as EOS
+		o.resetter.Reset()
+	}
 	select {
 	case o.resultCh <- op.Result{Batch: b, Err: err}:
 		return true

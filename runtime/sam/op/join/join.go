@@ -30,11 +30,12 @@ type Op struct {
 	joinKey     *zed.Value
 	joinSet     []zed.Value
 	types       map[int]map[int]*zed.TypeRecord
+	resetter    expr.Resetter
 }
 
 func New(rctx *runtime.Context, anti, inner bool, left, right zbuf.Puller, leftKey, rightKey expr.Evaluator,
 	leftDir, rightDir order.Direction, lhs []*expr.Lval,
-	rhs []expr.Evaluator) (*Op, error) {
+	rhs []expr.Evaluator, resetter expr.Resetter) (*Op, error) {
 	var o order.Which
 	switch {
 	case leftDir != order.Unknown:
@@ -45,13 +46,13 @@ func New(rctx *runtime.Context, anti, inner bool, left, right zbuf.Puller, leftK
 	var err error
 	// Add sorts if needed.
 	if !leftDir.HasOrder(o) {
-		left, err = sort.New(rctx, left, []expr.Evaluator{leftKey}, o, false)
+		left, err = sort.New(rctx, left, []expr.Evaluator{leftKey}, o, false, resetter)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if !rightDir.HasOrder(o) {
-		right, err = sort.New(rctx, right, []expr.Evaluator{rightKey}, o, false)
+		right, err = sort.New(rctx, right, []expr.Evaluator{rightKey}, o, false, resetter)
 		if err != nil {
 			return nil, err
 		}
@@ -70,6 +71,7 @@ func New(rctx *runtime.Context, anti, inner bool, left, right zbuf.Puller, leftK
 		compare:     expr.NewValueCompareFn(o, true),
 		cutter:      expr.NewCutter(rctx.Zctx, lhs, rhs),
 		types:       make(map[int]map[int]*zed.TypeRecord),
+		resetter:    resetter,
 	}, nil
 }
 
@@ -90,6 +92,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		}
 		if leftRec == nil {
 			if len(out) == 0 {
+				o.resetter.Reset()
 				return nil, nil
 			}
 			//XXX See issue #3427.
