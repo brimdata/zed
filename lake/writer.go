@@ -267,7 +267,13 @@ func (w *SortedWriter) Close() error {
 	if w.writer == nil {
 		return nil
 	}
-	return w.writer.Close(w.ctx)
+	err := w.writer.Close(w.ctx)
+	if w.vectorWriter != nil {
+		if vecErr := w.vectorWriter.Close(); err == nil {
+			err = vecErr
+		}
+	}
+	return err
 }
 
 type ImportStats struct {
