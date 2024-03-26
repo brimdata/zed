@@ -20,7 +20,6 @@ type mathReducer struct {
 	function *anymath.Function
 	hasval   bool
 	math     consumer
-	pair     coerce.Pair
 }
 
 var _ Function = (*mathReducer)(nil)
@@ -47,10 +46,7 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 	var id int
 	if m.math != nil {
 		var err error
-		// XXX We're not using the value coercion parts of coerce.Pair here.
-		// Would be better if coerce had a function that just compared types
-		// and returned the type to coerce to.
-		id, err = m.pair.Coerce(zed.NewValue(m.math.typ(), nil), val)
+		id, err = coerce.Promote(zed.NewValue(m.math.typ(), nil), val)
 		if err != nil {
 			// Skip invalid values.
 			return

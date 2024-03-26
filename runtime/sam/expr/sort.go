@@ -10,7 +10,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 )
@@ -72,7 +71,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 				ival = expr.Eval(ectx, vals[iidx])
 				jval = expr.Eval(ectx, vals[jidx])
 			}
-			if v := compareValues(ival, jval, c.comparefns, &c.pair, c.nullsMax); v != 0 {
+			if v := compareValues(ival, jval, c.nullsMax); v != 0 {
 				return v < 0
 			}
 		}
@@ -98,13 +97,10 @@ func NewValueCompareFn(o order.Which, nullsMax bool) CompareFn {
 }
 
 type Comparator struct {
+	ectx     Context
 	exprs    []Evaluator
 	nullsMax bool
 	reverse  bool
-
-	comparefns map[zed.Type]comparefn
-	ectx       Context
-	pair       coerce.Pair
 }
 
 type comparefn func(a, b zcode.Bytes) int
@@ -116,11 +112,10 @@ type comparefn func(a, b zcode.Bytes) int
 // reverse reverses the sense of comparisons.
 func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
 	return &Comparator{
-		exprs:      slices.Clone(exprs),
-		nullsMax:   nullsMax,
-		reverse:    reverse,
-		comparefns: make(map[zed.Type]comparefn),
-		ectx:       NewContext(),
+		ectx:     NewContext(),
+		exprs:    slices.Clone(exprs),
+		nullsMax: nullsMax,
+		reverse:  reverse,
 	}
 }
 
@@ -152,14 +147,14 @@ func (c *Comparator) Compare(a, b zed.Value) int {
 	for _, k := range c.exprs {
 		aval := k.Eval(c.ectx, a)
 		bval := k.Eval(c.ectx, b)
-		if v := compareValues(aval, bval, c.comparefns, &c.pair, c.nullsMax); v != 0 {
+		if v := compareValues(aval, bval, c.nullsMax); v != 0 {
 			return v
 		}
 	}
 	return 0
 }
 
-func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
+func compareValues(a, b zed.Value, nullsMax bool) int {
 	// Handle nulls according to nullsMax
 	nullA := a.IsNull()
 	nullB := b.IsNull()
@@ -180,27 +175,54 @@ func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coer
 			return 1
 		}
 	}
-
-	typ := a.Type()
-	abytes, bbytes := a.Bytes(), b.Bytes()
-	if a.Type().ID() != b.Type().ID() {
-		id, err := pair.Coerce(a, b)
-		if err == nil {
-			typ, err = zed.LookupPrimitiveByID(id)
+	switch aid, bid := a.Type().ID(), b.Type().ID(); {
+	case zed.IsNumber(aid) && zed.IsNumber(bid):
+		return compareNumbers(a, b, aid, bid)
+	case aid != bid:
+		return zed.CompareTypes(a.Type(), b.Type())
+	case aid == zed.IDBool:
+		if av, bv := a.Bool(), b.Bool(); av == bv {
+			return 0
+		} else if av {
+			return 1
 		}
-		if err != nil {
-			return zed.CompareTypes(a.Type(), b.Type())
+		return -1
+	case aid == zed.IDBytes:
+		return bytes.Compare(zed.DecodeBytes(a.Bytes()), zed.DecodeBytes(b.Bytes()))
+	case aid == zed.IDString:
+		return cmp.Compare(zed.DecodeString(a.Bytes()), zed.DecodeString(b.Bytes()))
+	case aid == zed.IDIP:
+		return zed.DecodeIP(a.Bytes()).Compare(zed.DecodeIP(b.Bytes()))
+	case aid == zed.IDType:
+		zctx := zed.NewContext() // XXX This is expensive.
+		// XXX This isn't cheap eventually we should add
+		// zed.CompareTypeValues(a, b zcode.Bytes).
+		av, _ := zctx.DecodeTypeValue(a.Bytes())
+		bv, _ := zctx.DecodeTypeValue(b.Bytes())
+		return zed.CompareTypes(av, bv)
+	}
+	// XXX record support easy to add here if we moved the creation of the
+	// field resolvers into this package.
+	if innerType := zed.InnerType(a.Type()); innerType != nil {
+		ait, bit := a.Iter(), b.Iter()
+		for {
+			if ait.Done() {
+				if bit.Done() {
+					return 0
+				}
+				return -1
+			}
+			if bit.Done() {
+				return 1
+			}
+			aa := zed.NewValue(innerType, ait.Next())
+			bb := zed.NewValue(innerType, bit.Next())
+			if v := compareValues(aa, bb, nullsMax); v != 0 {
+				return v
+			}
 		}
-		abytes, bbytes = pair.A, pair.B
 	}
-
-	cfn, ok := comparefns[typ]
-	if !ok {
-		cfn = LookupCompare(typ)
-		comparefns[typ] = cfn
-	}
-
-	return cfn(abytes, bbytes)
+	return bytes.Compare(a.Bytes(), b.Bytes())
 }
 
 // SortStable sorts vals according to c, with equal values in their original

@@ -31,7 +31,7 @@ func coerceVals(zctx *zed.Context, a, b vector.Any) (vector.Any, vector.Any, vec
 		return a, b, nil //XXX
 	}
 	if !zed.IsNumber(aid) || !zed.IsNumber(bid) {
-		return nil, nil, vector.NewStringError(zctx, coerce.IncompatibleTypes.Error(), a.Len())
+		return nil, nil, vector.NewStringError(zctx, coerce.ErrIncompatibleTypes.Error(), a.Len())
 	}
 	// Both a and b are numbers.  We need to promote to a common
 	// type based on Zed's coercion rules.
