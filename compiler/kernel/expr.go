@@ -315,8 +315,13 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 	var path field.Path
 	// First check if call is to a user defined function, otherwise check for
 	// builtin function.
-	fn, ok := b.funcs[call.Name]
-	if !ok {
+	var fn expr.Function
+	if e, ok := b.udfs[call.Name]; ok {
+		var err error
+		if fn, err = b.compileUDFCall(call.Name, e); err != nil {
+			return nil, err
+		}
+	} else {
 		var err error
 		fn, path, err = function.New(b.zctx(), call.Name, len(call.Args))
 		if err != nil {
@@ -333,6 +338,26 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
 	return expr.NewCall(b.zctx(), fn, exprs), nil
+}
+
+func (b *Builder) compileUDFCall(name string, body dag.Expr) (expr.Function, error) {
+	if b.udfStack == nil {
+		// If udfStack is nil this means we are entering a udf invocation. We
+		// will store compiled udf calls in builder.udfStack in order to avoid
+		// infinite recursion when encountering recursive udf calls.
+		b.udfStack = make(map[string]*expr.UDF)
+		defer func() { b.udfStack = nil }()
+	}
+	if fn, ok := b.udfStack[name]; ok {
+		return fn, nil
+	}
+	fn := &expr.UDF{}
+	b.udfStack[name] = fn
+	var err error
+	if fn.Body, err = b.compileExpr(body); err != nil {
+		return nil, err
+	}
+	return fn, nil
 }
 
 func (b *Builder) compileMapCall(a *dag.MapCall) (expr.Evaluator, error) {

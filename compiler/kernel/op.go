@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -57,7 +58,8 @@ type Builder struct {
 	progress  *zbuf.Progress
 	arena     *zed.Arena // For zed.Values created during compilation.
 	deletes   *sync.Map
-	funcs     map[string]expr.Function
+	udfs      map[string]dag.Expr
+	udfStack  map[string]*expr.UDF
 	resetters expr.Resetters
 }
 
@@ -75,7 +77,7 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 			RecordsMatched: 0,
 		},
 		arena: arena,
-		funcs: make(map[string]expr.Function),
+		udfs:  make(map[string]dag.Expr),
 	}
 }
 
@@ -459,11 +461,14 @@ func (b *Builder) compileSeq(seq dag.Seq, parents []zbuf.Puller) ([]zbuf.Puller,
 }
 
 func (b *Builder) compileScope(scope *dag.Scope, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	// XXX We need to fix how udfs are compiled since there is currently a bug
-	// where aggregation expressions in udfs do not have separate state per
-	// invocation.
-	if err := b.compileFuncs(scope.Funcs); err != nil {
-		return nil, err
+	// Because there can be name collisions between a child and parent scope
+	// we clone the current udf map, populate the cloned map, then restore the
+	// old scope once the current scope has been built.
+	parentUDFs := b.udfs
+	b.udfs = maps.Clone(parentUDFs)
+	defer func() { b.udfs = parentUDFs }()
+	for _, f := range scope.Funcs {
+		b.udfs[f.Name] = f.Expr
 	}
 	return b.compileSeq(scope.Body, parents)
 }
@@ -508,25 +513,6 @@ func (b *Builder) compileScatter(par *dag.Scatter, parents []zbuf.Puller) ([]zbu
 		ops = append(ops, op...)
 	}
 	return ops, nil
-}
-
-func (b *Builder) compileFuncs(fns []*dag.Func) error {
-	udfs := make([]*expr.UDF, 0, len(fns))
-	for _, f := range fns {
-		if _, ok := b.funcs[f.Name]; ok {
-			return fmt.Errorf("internal error: func %q declared twice", f.Name)
-		}
-		u := &expr.UDF{}
-		b.funcs[f.Name] = u
-		udfs = append(udfs, u)
-	}
-	for i := range fns {
-		var err error
-		if udfs[i].Body, err = b.compileExpr(fns[i].Expr); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
