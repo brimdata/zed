@@ -1,3 +1,15 @@
+## v1.15.0
+* Improve the error message when reading NDJSON data with an incomplete last line (#5055)
+* Improve the error message when math operators are applied to complex types (e.g., attempting to concatenate arrays with `+`) (#5059)
+* Improve the error message when `zq` is called with a single argument that's neither a file nor a valid Zed query (#5053)
+* Increase the buffer size for `line` input format to 25 MB (#5045, #5048)
+* The body of a [user-defined operator](docs/language/statements.md#operator-statements) is now a scope that can include locally-defined statements (#5074)
+* The [nameof() function](docs/language/functions/nameof.md) now supports type values (#5081)
+* Fix an issue where  [`yield`](docs/language/operators/yield.md) inside a [`switch`](docs/language/operators/switch.md) inside an [`over`](docs/language/operators/over.md) caused a panic (#5058)
+* Fix an issue where accessing a variable inside a `switch` inside an `over` inside a `switch` caused a panic (#5080)
+* Fix an issue where using `over` in an expression context caused a panic (#5079)
+* Fix an issue where math and [`join`](docs/language/operators/join.md) matches involving `float16` and `float32` types could yield incorrect results (#5086)
+
 ## v1.14.0
 * Add the `-manage` flag to [`zed serve`](docs/commands/zed.md#serve) to have the Zed service process initiate [maintenance tasks](docs/commands/zed.md#manage) on a regular interval (#5017)
 * Fix an issue where the Python client would not allow loading to a pool with `/` in its name (#5020)
