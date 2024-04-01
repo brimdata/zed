@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/brimdata/zed/cli/auto"
 	"github.com/brimdata/zed/pkg/storage"
@@ -27,6 +28,7 @@ type Flags struct {
 	outputFile    string
 	forceBinary   bool
 	jsonShortcut  bool
+	jsonPretty    bool
 	zsonShortcut  bool
 	zsonPretty    bool
 	zsonPersist   string
@@ -45,8 +47,14 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.ZNG.Compress, "zng.compress", true, "compress ZNG frames")
 	fs.IntVar(&f.ZNG.FrameThresh, "zng.framethresh", zngio.DefaultFrameThresh,
 		"minimum ZNG frame size in uncompressed bytes")
-	fs.IntVar(&f.ZSON.Pretty, "pretty", 4,
-		"tab size to pretty print ZSON output (0 for newline-delimited ZSON")
+	f.ZSON.Pretty, f.JSON.Pretty = 4, 4
+	fs.Func("pretty", `tab size to pretty print ZSON or JSON output (0 for newline-delimited ZSON/JSON) (default "4")`, func(s string) error {
+		p, err := strconv.ParseInt(s, 0, strconv.IntSize)
+		if err == nil {
+			f.ZSON.Pretty, f.JSON.Pretty = int(p), int(p)
+		}
+		return err
+	})
 	fs.StringVar(&f.zsonPersist, "persist", "",
 		"regular expression to persist type definitions across the stream")
 
@@ -75,6 +83,7 @@ func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 	}
 	fs.StringVar(&f.Format, "f", f.DefaultFormat, "format for output data [arrows,csv,json,lake,parquet,table,text,tsv,vng,zeek,zjson,zng,zson]")
 	fs.BoolVar(&f.jsonShortcut, "j", false, "use line-oriented JSON output independent of -f option")
+	fs.BoolVar(&f.jsonPretty, "J", false, "use formatted JSON output independent of -f option")
 	fs.BoolVar(&f.zsonShortcut, "z", false, "use line-oriented ZSON output independent of -f option")
 	fs.BoolVar(&f.zsonPretty, "Z", false, "use formatted ZSON output independent of -f option")
 	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
@@ -88,11 +97,14 @@ func (f *Flags) Init() error {
 		}
 		f.ZSON.Persist = re
 	}
-	if f.jsonShortcut {
+	if f.jsonShortcut || f.jsonPretty {
 		if f.Format != f.DefaultFormat || f.zsonShortcut || f.zsonPretty {
 			return errors.New("cannot use -j with -f, -z, or -Z")
 		}
 		f.Format = "json"
+		if !f.jsonPretty {
+			f.JSON.Pretty = 0
+		}
 	} else if f.zsonShortcut || f.zsonPretty {
 		if f.Format != f.DefaultFormat {
 			return errors.New("cannot use -z or -Z with -f")

@@ -1,0 +1,29 @@
+zed: '*'
+
+input: |
+  {
+    f1: 1.,
+    f2: true,
+    f3: null,
+    f4: "a string",
+    f5: [1,2,3],
+    f6: {foo: "bar"},
+  }
+
+output-flags: -f json -pretty 4
+
+output: |
+  {
+      "f1": 1,
+      "f2": true,
+      "f3": null,
+      "f4": "a string",
+      "f5": [
+          1,
+          2,
+          3
+      ],
+      "f6": {
+          "foo": "bar"
+      }
+  }
