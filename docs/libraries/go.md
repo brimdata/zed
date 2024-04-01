@@ -39,7 +39,7 @@ go get github.com/brimdata/zed
 ### ZSON Reader
 
 Read ZSON from stdin, dereference field `s`, and print results:
-```
+```mdtest-go-example
 package main
 
 import (
@@ -54,7 +54,7 @@ import (
 
 func main() {
 	zctx := zed.NewContext()
-	reader := zsonio.NewReader(os.Stdin, zctx)
+	reader := zsonio.NewReader(zctx, os.Stdin)
 	for {
 		val, err := reader.Read()
 		if err != nil {
@@ -65,7 +65,7 @@ func main() {
 		}
 		s := val.Deref("s")
 		if s == nil {
-			s = zctx.Missing()
+			s = zctx.Missing().Ptr()
 		}
 		fmt.Println(zson.String(s))
 	}
@@ -105,7 +105,7 @@ zed create -lake scratch Demo
 echo '{s:"hello, world"}{x:1}{s:"good bye"}' | zed load -lake scratch -use Demo -
 ```
 Now replace `main.go` with this code:
-```
+```mdtest-go-example
 package main
 
 import (
@@ -129,7 +129,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	ctx := context.TODO()
-	lake, err := api.OpenLake(ctx, uri.String())
+	lake, err := api.OpenLake(ctx, nil, uri.String())
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -149,7 +149,7 @@ func main() {
 		}
 		s := val.Deref("s")
 		if s == nil {
-			s = zctx.Missing()
+			s = zctx.Missing().Ptr()
 		}
 		fmt.Println(zson.String(s))
 	}
