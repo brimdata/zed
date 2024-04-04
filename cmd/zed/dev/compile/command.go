@@ -301,6 +301,7 @@ func parsePigeon(z string) (string, error) {
 		return "", err
 	}
 	goPEGJSON, err := json.Marshal(ast)
+	fmt.Println("string", string(goPEGJSON))
 	if err != nil {
 		return "", errors.New("go peg parser returned bad value for: " + z)
 	}

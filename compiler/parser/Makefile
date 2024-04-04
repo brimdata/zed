@@ -1,6 +1,6 @@
 GOIMPORTS_VERSION = v0.0.0-20200204192400-7124308813f3
 PEGJS_VERSION = 0.10.0
-PIGEON_VERSION = v1.0.1-0.20190520151103-9fec3898cef8
+PIGEON_VERSION = v1.2.1
 ROLLUP_PLUGIN_COMMONJS_VERSION = 14.0.0
 ROLLUP_VERSION = 2.23.1
 
@@ -10,7 +10,7 @@ cpp = cpp -E -P -std=gnu90 -Wno-unicode
 deps = $(CURDIR)/deps
 npm = npm --global --prefix $(deps)
 
-all: parser.go parser.js parser.es.js
+all: parser.go
 
 .PHONY: parser.go
 parser.go:

@@ -4,20 +4,55 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/ast/node"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 )
 
-func makeBinaryExprChain(first, rest interface{}) interface{} {
-	ret := first
-	for _, p := range rest.([]interface{}) {
-		part := p.([]interface{})
-		ret = map[string]interface{}{
-			"kind": "BinaryExpr",
-			"op":   part[0],
-			"lhs":  ret,
-			"rhs":  part[1],
-		}
+func newBase(c *current) node.Base {
+	return node.Base{
+		Start: c.pos.offset,
+		End:   c.pos.offset + len(c.text),
+	}
+}
+
+func sliceOf[E any](s any) []E {
+	arr := s.([]any)
+	out := make([]E, len(arr))
+	for i, el := range arr {
+		out[i] = el.(E)
+	}
+	return out
+}
+
+func newPrimitive(c *current, typ, text string) *astzed.Primitive {
+	return &astzed.Primitive{
+		Base: newBase(c),
+		Kind: "Primitive",
+		Type: typ,
+		Text: text,
+	}
+}
+
+func makeBinaryExprChain(c *current, first, rest any) any {
+	ret := first.(ast.Expr)
+	for _, p := range rest.([]any) {
+		part := p.([]any)
+		// XXX this current thing isn't right.
+		ret = newBinaryExpr(c, part[0].(string), ret, part[1].(ast.Expr))
 	}
 	return ret
+}
+
+func newBinaryExpr(c *current, op, lhs, rhs any) *ast.BinaryExpr {
+	return &ast.BinaryExpr{
+		Base: newBase(c),
+		Kind: "BinaryExpr",
+		Op:   op.(string),
+		LHS:  lhs.(ast.Expr),
+		RHS:  rhs.(ast.Expr),
+	}
 }
 
 func makeArgMap(args interface{}) (interface{}, error) {
@@ -97,4 +132,44 @@ func makeUnicodeChar(chars interface{}) string {
 	}
 
 	return string(r)
+}
+
+func newAssert(expr any, text string) *ast.Yield {
+	// 'assert EXPR' is equivalent to
+	// 'yield EXPR ? this : error({message: "assertion failed", "expr": EXPR_text, "on": this}'
+	// where EXPR_text is the literal text of EXPR.
+	return &ast.Yield{
+		Kind: "Yield",
+		Exprs: []ast.Expr{
+			&ast.Conditional{
+				Kind: "Conditional",
+				Cond: expr.(ast.Expr),
+				Then: &ast.ID{Kind: "ID", Name: "this"},
+				Else: &ast.Call{
+					Kind: "Call",
+					Name: "error",
+					Args: []ast.Expr{&ast.RecordExpr{
+						Kind: "RecordExpr",
+						Elems: []ast.RecordElem{
+							&ast.Field{
+								Kind:  "Field",
+								Name:  "message",
+								Value: &astzed.Primitive{Kind: "Primitive", Text: "assertion failed", Type: "string"},
+							},
+							&ast.Field{
+								Kind:  "Field",
+								Name:  "expr",
+								Value: &astzed.Primitive{Kind: "Primitive", Text: text, Type: "string"},
+							},
+							&ast.Field{
+								Kind:  "Field",
+								Name:  "on",
+								Value: &ast.ID{Kind: "ID", Name: "this"},
+							},
+						}},
+					},
+				},
+			},
+		},
+	}
 }

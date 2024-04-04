@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -93,7 +94,9 @@ func Parse(src string, filenames ...string) (ast.Seq, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ast.UnmarshalObject(parsed)
+	fmt.Println("parsed", parsed)
+	// return ast.UnmarshalObject(parsed)
+	return parsed.(ast.Seq), nil
 }
 
 // MustParse is like Parse but panics if an error is encountered.

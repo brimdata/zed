@@ -156,19 +156,23 @@ function peg$parse(input, options) {
       peg$c8 = "=",
       peg$c9 = peg$literalExpectation("=", false),
       peg$c10 = function(id, expr) {
-            return {"kind": "ConstDecl", "name": id, "expr": expr}
+            return &ast.ConstDecl{
+                Kind: "ConstDecl",
+                Name: id,
+                Expr: expr,
+            }
           },
       peg$c11 = "type",
       peg$c12 = peg$literalExpectation("type", false),
       peg$c13 = function(id, typ) {
-            return {
-              
-            "kind": "ConstDecl",
-              
-            "name": id,
-              
-            "expr": {"kind": "TypeValue", "value": {"kind": "TypeDef", "name": id, "type": typ}}}
-          
+            return &ast.ConstDecl{
+                Kind: "ConstDecl",
+                Name: id,
+                Expr: &astzed.TypeValue{
+                  Kind: "TypeValue",
+                  Value: &astzed.TypeDef{Kind: "TypeDef", Name: id, Type: typ},
+                },
+            }
           },
       peg$c14 = "func",
       peg$c15 = peg$literalExpectation("func", false),
@@ -179,48 +183,40 @@ function peg$parse(input, options) {
       peg$c20 = ":",
       peg$c21 = peg$literalExpectation(":", false),
       peg$c22 = function(id, params, expr) {
-            return {
-              
-            "kind": "FuncDecl",
-              
-            "name": id,
-              
-            "params": params,
-              
-            "expr": expr}
-          
+            return &ast.FuncDecl{
+              Kind: "FuncDecl",
+              Name: id,
+              Params: params,
+              Expr: expr,
+            }
           },
       peg$c23 = "op",
       peg$c24 = peg$literalExpectation("op", false),
       peg$c25 = function(name, params, body) {
-            return {
-              
-            "kind": "OpDecl",
-              
-            "name": name,
-              
-            "params": params,
-              
-            "body": body}
-          
+            return &ast.OpDecl{
+              Kind: "OpDecl",
+              Name: name,
+              Params: params,
+              Body: body,
+            }
           },
       peg$c26 = "fork",
       peg$c27 = peg$literalExpectation("fork", false),
       peg$c28 = function(paths) {
-            return {"kind": "Parallel", "paths": paths}
+            return &ast.Parallel{Kind: "Parallel", Paths: paths}
           },
       peg$c29 = "switch",
       peg$c30 = peg$literalExpectation("switch", false),
       peg$c31 = function(expr, cases) {
-            return {"kind": "Switch", "expr": expr, "cases": cases}
+            return &ast.Switch{Kind: "Switch", Expr: expr, Cases: cases}
           },
       peg$c32 = function(cases) {
-            return {"kind": "Switch", "expr": null, "cases": cases}
+            return &ast.Switch{Kind: "Switch", Cases: cases}
           },
       peg$c33 = "from",
       peg$c34 = peg$literalExpectation("from", false),
       peg$c35 = function(trunks) {
-            return {"kind": "From", "trunks": trunks}
+            return &ast.From{Kind:"From",Trunks:trunks}
           },
       peg$c36 = function(scope) { return scope },
       peg$c37 = function(a) { return a },
