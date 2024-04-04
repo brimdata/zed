@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/brimdata/zed/cmd/zed/dev"
@@ -35,10 +34,6 @@ shortcuts, "zc" is a short cut for the "zed dev compile" command.
 and is also useful to advanced users for understanding how Zed syntax is
 translated into an analytics requests sent to the "zed server" search endpoint.
 
-By default, it runs the built-in PEG parser built into this go binary.
-If you specify -js, it will try to run a JavaScript version of the parser
-by execing node in the currrent directory running the JavaScript in ./compiler/parser/run.js.
-
 The -O flag is handy for turning on and off the compiler, which lets you see
 how the parsed AST is transformed into a runtime object comprised of the
 Zed kernel operators.
@@ -52,7 +47,6 @@ func init() {
 
 type Command struct {
 	*root.Command
-	js       bool
 	pigeon   bool
 	proc     bool
 	canon    bool
@@ -65,7 +59,6 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.BoolVar(&c.js, "js", false, "run JavaScript version of peg parser")
 	f.BoolVar(&c.pigeon, "pigeon", false, "run pigeon version of peg parser")
 	f.BoolVar(&c.proc, "proc", false, "run pigeon version of peg parser and marshal into ast.Op")
 	f.BoolVar(&c.semantic, "s", false, "display semantically analyzed AST (implies -proc)")
@@ -97,9 +90,6 @@ func (c *Command) Run(args []string) error {
 		return charm.NeedHelp
 	}
 	c.n = 0
-	if c.js {
-		c.n++
-	}
 	if c.pigeon {
 		c.n++
 	}
@@ -153,14 +143,6 @@ func (c *Command) header(msg string) {
 }
 
 func (c *Command) parse(z string, lk *lake.Root) error {
-	if c.js {
-		s, err := parsePEGjs(z)
-		if err != nil {
-			return err
-		}
-		c.header("pegjs")
-		fmt.Println(s)
-	}
 	if c.pigeon {
 		s, err := parsePigeon(z)
 		if err != nil {
@@ -239,20 +221,6 @@ func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
 	return compiler.NewJob(runtime.DefaultContext(), p, data.NewSource(nil, lk), nil)
 }
 
-const nodeProblem = `
-Failed to run node on ./compiler/parser/run.js.  The "-js" flag is for PEG
-development and should only be used when running "zed dev compile" in the root
-directory of the Zed repository.`
-
-func runNode(dir, line string) ([]byte, error) {
-	cmd := exec.Command("node", "./compiler/parser/run.js", "-e", "start")
-	if dir != "" {
-		cmd.Dir = dir
-	}
-	cmd.Stdin = strings.NewReader(line)
-	return cmd.Output()
-}
-
 func normalize(b []byte) (string, error) {
 	var v interface{}
 	err := json.Unmarshal(b, &v)
@@ -261,16 +229,6 @@ func normalize(b []byte) (string, error) {
 	}
 	out, err := json.MarshalIndent(v, "", "    ")
 	return string(out), err
-}
-
-func parsePEGjs(z string) (string, error) {
-	b, err := runNode("", z)
-	if err != nil {
-		// parse errors don't cause this... this is only
-		// caused by a problem running node.
-		return "", errors.New(strings.TrimSpace(nodeProblem))
-	}
-	return normalize(b)
 }
 
 func astFmt(seq ast.Seq, canon bool) (string, error) {

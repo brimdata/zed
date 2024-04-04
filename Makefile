@@ -83,19 +83,14 @@ install:
 installdev:
 	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
-PEG_GEN := $(addprefix compiler/parser/parser., go js es.js)
-$(PEG_GEN): compiler/parser/Makefile compiler/parser/support.js compiler/parser/parser.peg
+compiler/parser/parser.go: compiler/parser/Makefile compiler/parser/support.go compiler/parser/parser.peg
 	$(MAKE) -C compiler/parser
 
 # This rule is best for edit-compile-debug cycle of peg development.  It should
 # properly trigger rebuilds of peg-generated code, but best to run
-# "make -C compiler/parser" when changing versions of pigeon, pegjs, or JavaScript
-# dependencies.
-.PHONY: peg peg-run
-peg: $(PEG_GEN)
-
-peg-run: $(PEG_GEN)
-	go run ./cmd/zc -repl
+# "make -C compiler/parser" when changing versions of pigeon.
+.PHONY: peg
+peg: compiler/parser/parser.go
 
 .PHONY: markdown-lint
 markdown-lint:
