@@ -174,9 +174,7 @@ SearchPredicate
   = lhs:AdditiveExpr __ op:Comparator __ rhs:AdditiveExpr {
       RETURN(MAP("kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs))
     }
-   / first:Function rest:(Deref)* {
-         RETURN(makeBinaryExprChain(first, rest))
-     }
+  / f:Function { RETURN(f) }
 
 SearchValue
   = Literal
@@ -702,19 +700,39 @@ NotExpr
   / NegationExpr
 
 NegationExpr
-  = !Literal "-" __ e:FuncExpr {
+  = !Literal "-" __ e:DerefExpr {
         RETURN(MAP("kind": "UnaryExpr", "op": "-", "operand": e))
     }
-  / FuncExpr
+  / DerefExpr
+
+DerefExpr
+  = expr:DerefExpr "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr? "]" {
+      RETURN(MAP("kind": "SliceExpr", "expr": expr, "from": from, "to": to))
+    }
+  / expr:DerefExpr "[" __ ":" __ to:AdditiveExpr "]" {
+      RETURN(MAP("kind": "SliceExpr", "expr": expr, "from": NULL, "to": to))
+    }
+  / expr:DerefExpr "[" index:Expr "]" {
+      RETURN(MAP("kind": "IndexExpr", "expr": expr, "index": index))
+    }
+  / expr:DerefExpr "." id:Identifier {
+      RETURN(MAP("kind": "BinaryExpr", "op": ".", "lhs": expr, "rhs": id))
+    }
+  / fn:FuncExpr {
+      RETURN(fn)  
+    }
+  / expr:Primary {
+      RETURN(expr)
+    }
+
 
 FuncExpr
-  = first:Cast rest:(Deref)* {
-      RETURN(makeBinaryExprChain(first, rest))
+  = cast:Cast {
+      RETURN(cast)
     }
-  / first:Function rest:(Deref)* {
-      RETURN(makeBinaryExprChain(first, rest))
+  / fn:Function {
+      RETURN(fn)
     }
-  / DerefExpr
 
 FuncGuard = NotFuncs __ "("
 
@@ -763,23 +781,6 @@ Exprs
   = first:Expr rest:(__ "," __ e:Expr { RETURN(e) })* {
       RETURN(PREPEND(first, rest))
     }
-
-DerefExpr
-  = first:Primary rest:(Deref)* {
-      RETURN(makeBinaryExprChain(first, rest))
-    }
-
-Deref
-  = "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr? "]" {
-      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op": ":",
-                            "lhs": from, "rhs": to)))
-    }
-  / "[" __ ":" __ to:AdditiveExpr "]" {
-      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op": ":",
-                            "lhs": NULL, "rhs": to)))
-    }
-  / "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
-  / "." id:Identifier { RETURN(ARRAY(".", id)) }
 
 Primary
   = Record

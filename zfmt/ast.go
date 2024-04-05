@@ -138,6 +138,22 @@ func (c *canon) expr(e ast.Expr, parent string) {
 			c.expr(e.Expr, "")
 		}
 		c.write(")")
+	case *ast.IndexExpr:
+		c.expr(e.Expr, "")
+		c.write("[")
+		c.expr(e.Index, "")
+		c.write("]")
+	case *ast.SliceExpr:
+		c.expr(e.Expr, "")
+		c.write("[")
+		if e.From != nil {
+			c.expr(e.From, "")
+		}
+		c.write(":")
+		if e.To != nil {
+			c.expr(e.To, "")
+		}
+		c.write("]")
 	case *ast.Term:
 		c.write(e.Text)
 	case *ast.RecordExpr:
@@ -222,15 +238,6 @@ func (c *canon) binary(e *ast.BinaryExpr, parent string) {
 			c.write(".")
 		}
 		c.expr(e.RHS, "")
-	case "[":
-		if isThis(e.LHS) {
-			c.write("this")
-		} else {
-			c.expr(e.LHS, "")
-		}
-		c.write("[")
-		c.expr(e.RHS, "")
-		c.write("]")
 	case "and", "or", "in":
 		parens := needsparens(parent, e.Op)
 		c.maybewrite("(", parens)

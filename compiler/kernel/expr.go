@@ -73,6 +73,10 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 		return b.compileConditional(*e)
 	case *dag.Call:
 		return b.compileCall(*e)
+	case *dag.IndexExpr:
+		return b.compileIndexExpr(e)
+	case *dag.SliceExpr:
+		return b.compileSliceExpr(e)
 	case *dag.RegexpMatch:
 		return b.compileRegexpMatch(e)
 	case *dag.RegexpSearch:
@@ -108,9 +112,6 @@ func (b *Builder) compileExprWithEmpty(e dag.Expr) (expr.Evaluator, error) {
 }
 
 func (b *Builder) compileBinary(e *dag.BinaryExpr) (expr.Evaluator, error) {
-	if slice, ok := e.RHS.(*dag.BinaryExpr); ok && slice.Op == ":" {
-		return b.compileSlice(e.LHS, slice)
-	}
 	if e.Op == "in" {
 		// Do a faster comparison if the LHS is a compile-time constant expression.
 		if in, err := b.compileConstIn(e); in != nil && err == nil {
@@ -141,8 +142,6 @@ func (b *Builder) compileBinary(e *dag.BinaryExpr) (expr.Evaluator, error) {
 		return expr.NewCompareRelative(b.zctx(), lhs, rhs, op)
 	case "+", "-", "*", "/", "%":
 		return expr.NewArithmetic(b.zctx(), lhs, rhs, op)
-	case "[":
-		return expr.NewIndexExpr(b.zctx(), lhs, rhs), nil
 	default:
 		return nil, fmt.Errorf("invalid binary operator %s", op)
 	}
@@ -210,16 +209,16 @@ func (b *Builder) compileSearch(search *dag.Search) (expr.Evaluator, error) {
 	return expr.NewSearch(search.Text, val, e)
 }
 
-func (b *Builder) compileSlice(container dag.Expr, slice *dag.BinaryExpr) (expr.Evaluator, error) {
-	from, err := b.compileExprWithEmpty(slice.LHS)
+func (b *Builder) compileSliceExpr(slice *dag.SliceExpr) (expr.Evaluator, error) {
+	e, err := b.compileExpr(slice.Expr)
 	if err != nil {
 		return nil, err
 	}
-	to, err := b.compileExprWithEmpty(slice.RHS)
+	from, err := b.compileExprWithEmpty(slice.From)
 	if err != nil {
 		return nil, err
 	}
-	e, err := b.compileExpr(container)
+	to, err := b.compileExprWithEmpty(slice.To)
 	if err != nil {
 		return nil, err
 	}
@@ -267,20 +266,17 @@ func (b *Builder) compileDotExpr(dot *dag.Dot) (expr.Evaluator, error) {
 
 func (b *Builder) compileLval(e dag.Expr) (*expr.Lval, error) {
 	switch e := e.(type) {
-	case *dag.BinaryExpr:
-		if e.Op != "[" {
-			return nil, fmt.Errorf("internal error: invalid lval %#v", e)
-		}
-		lhs, err := b.compileLval(e.LHS)
+	case *dag.IndexExpr:
+		container, err := b.compileLval(e.Expr)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := b.compileExpr(e.RHS)
+		index, err := b.compileExpr(e.Index)
 		if err != nil {
 			return nil, err
 		}
-		lhs.Elems = append(lhs.Elems, expr.NewExprLvalElem(b.zctx(), rhs))
-		return lhs, nil
+		container.Elems = append(container.Elems, expr.NewExprLvalElem(b.zctx(), index))
+		return container, nil
 	case *dag.Dot:
 		lhs, err := b.compileLval(e.LHS)
 		if err != nil {
@@ -372,6 +368,18 @@ func (b *Builder) compileExprs(in []dag.Expr) ([]expr.Evaluator, error) {
 		exprs = append(exprs, ev)
 	}
 	return exprs, nil
+}
+
+func (b *Builder) compileIndexExpr(e *dag.IndexExpr) (expr.Evaluator, error) {
+	container, err := b.compileExpr(e.Expr)
+	if err != nil {
+		return nil, err
+	}
+	index, err := b.compileExpr(e.Index)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewIndexExpr(b.zctx(), container, index), nil
 }
 
 func (b *Builder) compileRegexpMatch(match *dag.RegexpMatch) (expr.Evaluator, error) {

@@ -58,6 +58,11 @@ type (
 		Params []string `json:"params"`
 		Expr   Expr     `json:"expr"`
 	}
+	IndexExpr struct {
+		Kind  string `json:"kind" unpack:""`
+		Expr  Expr   `json:"expr"`
+		Index Expr   `json:"index"`
+	}
 	Literal struct {
 		Kind  string `json:"kind" unpack:""`
 		Value string `json:"value"`
@@ -101,6 +106,12 @@ type (
 		Kind  string       `json:"kind" unpack:""`
 		Elems []VectorElem `json:"elems"`
 	}
+	SliceExpr struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
+		From Expr   `json:"from"`
+		To   Expr   `json:"to"`
+	}
 	This struct {
 		Kind string   `json:"kind" unpack:""`
 		Path []string `json:"path"`
@@ -125,6 +136,7 @@ func (*Call) ExprDAG()         {}
 func (*Conditional) ExprDAG()  {}
 func (*Dot) ExprDAG()          {}
 func (*Func) ExprDAG()         {}
+func (*IndexExpr) ExprDAG()    {}
 func (*Literal) ExprDAG()      {}
 func (*MapCall) ExprDAG()      {}
 func (*MapExpr) ExprDAG()      {}
@@ -134,6 +146,7 @@ func (*RegexpMatch) ExprDAG()  {}
 func (*RegexpSearch) ExprDAG() {}
 func (*Search) ExprDAG()       {}
 func (*SetExpr) ExprDAG()      {}
+func (*SliceExpr) ExprDAG()    {}
 func (*This) ExprDAG()         {}
 func (*UnaryExpr) ExprDAG()    {}
 func (*Var) ExprDAG()          {}

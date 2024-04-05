@@ -83,6 +83,19 @@ type Cast struct {
 	Type Expr   `json:"type"`
 }
 
+type IndexExpr struct {
+	Kind  string `json:"kind" unpack:""`
+	Expr  Expr   `json:"expr"`
+	Index Expr   `json:"index"`
+}
+
+type SliceExpr struct {
+	Kind string `json:"kind" unpack:""`
+	Expr Expr   `json:"expr"`
+	From Expr   `json:"from"`
+	To   Expr   `json:"to"`
+}
+
 type Grep struct {
 	Kind    string `json:"kind" unpack:""`
 	Pattern Expr   `json:"pattern"`
@@ -187,6 +200,8 @@ func (*Conditional) ExprAST() {}
 func (*Call) ExprAST()        {}
 func (*Cast) ExprAST()        {}
 func (*ID) ExprAST()          {}
+func (*IndexExpr) ExprAST()   {}
+func (*SliceExpr) ExprAST()   {}
 
 func (*Assignment) ExprAST() {}
 func (*Agg) ExprAST()        {}
