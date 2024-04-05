@@ -37,17 +37,11 @@ Seq
 SeqTail = __ Pipe __ o:Operation { RETURN(o) }
 
 Decl
-  = v:(ConstDecl / FuncDecl / OpDecl) _ { RETURN(v) }
+  = v:(ConstDecl / FuncDecl / OpDecl / TypeDecl) _ { RETURN(v) }
 
 ConstDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
       RETURN(MAP("kind": "ConstDecl", "name": id, "expr": expr))
-    }
-  / "type" _ id:(IdentifierName / QuotedString) __ "=" __ typ:Type {
-      RETURN(MAP(
-        "kind": "ConstDecl",
-        "name": id,
-        "expr": MAP("kind": "TypeValue", "value": MAP("kind": "TypeDef", "name": id, "type": typ))))
     }
 
 FuncDecl
@@ -71,6 +65,14 @@ OpDecl
 OpDeclBody
   = scope:Scope { RETURN(ARRAY(scope)) }
   / seq:Seq { RETURN(seq) }
+
+TypeDecl
+  = "type" _ id:(IdentifierName / QuotedString) __ "=" __ typ:Type {
+      RETURN(MAP(
+        "kind": "TypeDecl",
+        "name": id,
+        "type": typ))
+    }
 
 Operation
   = "fork" __ "(" paths:Leg+ __ ")" {
