@@ -40,7 +40,7 @@ func newScanner(ctx context.Context, zctx *zed.Context, r io.Reader, filter zbuf
 			maxSize: opts.Max,
 		},
 		validate:   opts.Validate,
-		workerCh:   make(chan *worker),
+		workerCh:   make(chan *worker, opts.Threads+1),
 		resultChCh: make(chan chan op.Result, opts.Threads+1),
 	}
 	for i := 0; i < opts.Threads; i++ {
