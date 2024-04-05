@@ -80,11 +80,8 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 	}
 }
 
-// XXX isFieldEqualOrIn should work for any paths not just top-level fields.
-// See issue #3412
-
 func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) {
-	if dag.IsTopLevelField(e.LHS) && e.Op == "==" {
+	if _, ok := e.LHS.(*dag.This); ok && e.Op == "==" {
 		if literal, ok := e.RHS.(*dag.Literal); ok {
 			val, err := zson.ParseValue(zctx, literal.Value)
 			if err != nil {
@@ -92,7 +89,7 @@ func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) 
 			}
 			return &val, nil
 		}
-	} else if dag.IsTopLevelField(e.RHS) && e.Op == "in" {
+	} else if _, ok := e.RHS.(*dag.This); ok && e.Op == "in" {
 		if literal, ok := e.LHS.(*dag.Literal); ok {
 			val, err := zson.ParseValue(zctx, literal.Value)
 			if err != nil {
