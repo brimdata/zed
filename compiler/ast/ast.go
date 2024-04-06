@@ -423,6 +423,11 @@ type (
 		Message string `json:"message"`
 		Meta    string `json:"meta"`
 	}
+	Assert struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
+		Text string `json:"text"`
+	}
 )
 
 // Source structure
@@ -545,6 +550,7 @@ func (*Where) OpAST()        {}
 func (*Yield) OpAST()        {}
 func (*Sample) OpAST()       {}
 func (*Load) OpAST()         {}
+func (*Assert) OpAST()       {}
 
 func (*SQLExpr) OpAST() {}
 
