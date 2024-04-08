@@ -356,6 +356,9 @@ func (c *canon) decl(d ast.Decl) {
 		c.flush()
 		c.write(")")
 		c.head, c.first = true, true
+	case *ast.TypeDecl:
+		c.write("type %s = ", d.Name)
+		c.typ(d.Type)
 	default:
 		c.open("unknown decl: %T", d)
 		c.close()

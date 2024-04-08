@@ -239,9 +239,16 @@ type OpDecl struct {
 	Body   Seq      `json:"body"`
 }
 
+type TypeDecl struct {
+	Kind string      `json:"kind" unpack:""`
+	Name string      `json:"name"`
+	Type astzed.Type `json:"type"`
+}
+
 func (*ConstDecl) DeclAST() {}
 func (*FuncDecl) DeclAST()  {}
 func (*OpDecl) DeclAST()    {}
+func (*TypeDecl) DeclAST()  {}
 
 // ----------------------------------------------------------------------------
 // Operators

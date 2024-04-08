@@ -76,6 +76,7 @@ var unpacker = unpack.New(
 	Top{},
 	astzed.TypeArray{},
 	astzed.TypeDef{},
+	TypeDecl{},
 	astzed.TypeEnum{},
 	astzed.TypeError{},
 	astzed.TypeMap{},

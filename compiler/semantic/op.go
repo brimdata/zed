@@ -868,6 +868,12 @@ func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
 			if err := a.semOpDecl(d); err != nil {
 				return nil, nil, err
 			}
+		case *ast.TypeDecl:
+			c, err := a.semTypeDecl(d)
+			if err != nil {
+				return nil, nil, err
+			}
+			consts = append(consts, c)
 		default:
 			return nil, nil, fmt.Errorf("invalid declaration type %T", d)
 		}
@@ -891,6 +897,21 @@ func (a *analyzer) semConstDecl(c *ast.ConstDecl) (dag.Def, error) {
 		Name: c.Name,
 		Expr: e,
 	}, nil
+}
+
+func (a *analyzer) semTypeDecl(d *ast.TypeDecl) (dag.Def, error) {
+	typ, err := a.semType(d.Type)
+	if err != nil {
+		return dag.Def{}, err
+	}
+	e := &dag.Literal{
+		Kind:  "Literal",
+		Value: fmt.Sprintf("<%s=%s>", zson.QuotedName(d.Name), typ),
+	}
+	if err := a.scope.DefineConst(a.zctx, d.Name, e); err != nil {
+		return dag.Def{}, err
+	}
+	return dag.Def{Name: d.Name, Expr: e}, nil
 }
 
 func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) ([]*dag.Func, error) {
