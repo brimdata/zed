@@ -798,6 +798,48 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Kind:  "Yield",
 			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{"sample"}}},
 		}), nil
+	case *ast.Assert:
+		cond, err := a.semExpr(o.Expr)
+		if err != nil {
+			return nil, err
+		}
+		// 'assert EXPR' is equivalent to
+		// 'yield EXPR ? this : error({message: "assertion failed", "expr": EXPR_text, "on": this}'
+		// where EXPR_text is the literal text of EXPR.
+		return append(seq, &dag.Yield{
+			Kind: "Yield",
+			Exprs: []dag.Expr{
+				&dag.Conditional{
+					Kind: "Conditional",
+					Cond: cond,
+					Then: &dag.This{Kind: "This"},
+					Else: &dag.Call{
+						Kind: "Call",
+						Name: "error",
+						Args: []dag.Expr{&dag.RecordExpr{
+							Kind: "RecordExpr",
+							Elems: []dag.RecordElem{
+								&dag.Field{
+									Kind:  "Field",
+									Name:  "message",
+									Value: &dag.Literal{Kind: "Literal", Value: `"assertion failed"`},
+								},
+								&dag.Field{
+									Kind:  "Field",
+									Name:  "expr",
+									Value: &dag.Literal{Kind: "Literal", Value: zson.QuotedString([]byte(o.Text))},
+								},
+								&dag.Field{
+									Kind:  "Field",
+									Name:  "on",
+									Value: &dag.This{Kind: "This"},
+								},
+							},
+						}},
+					},
+				},
+			},
+		}), nil
 	case *ast.Yield:
 		exprs, err := a.semExprs(o.Exprs)
 		if err != nil {

@@ -11,6 +11,7 @@ import (
 var unpacker = unpack.New(
 	astzed.Array{},
 	ArrayExpr{},
+	Assert{},
 	Assignment{},
 	OpAssignment{},
 	OpExpr{},
