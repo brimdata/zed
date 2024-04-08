@@ -97,6 +97,22 @@ func (c *canonDAG) expr(e dag.Expr, parent string) {
 		c.write("%s(", e.Name)
 		c.exprs(e.Args)
 		c.write(")")
+	case *dag.IndexExpr:
+		c.expr(e.Expr, "")
+		c.write("[")
+		c.expr(e.Index, "")
+		c.write("]")
+	case *dag.SliceExpr:
+		c.expr(e.Expr, "")
+		c.write("[")
+		if e.From != nil {
+			c.expr(e.From, "")
+		}
+		c.write(":")
+		if e.To != nil {
+			c.expr(e.To, "")
+		}
+		c.write("]")
 	case *dag.OverExpr:
 		c.open("(")
 		c.ret()
@@ -181,15 +197,6 @@ func (c *canonDAG) binary(e *dag.BinaryExpr, parent string) {
 			c.write(".")
 		}
 		c.expr(e.RHS, "")
-	case "[":
-		if isDAGThis(e.LHS) {
-			c.write(".")
-		} else {
-			c.expr(e.LHS, "")
-		}
-		c.write("[")
-		c.expr(e.RHS, "")
-		c.write("]")
 	case "in", "and", "or":
 		parens := needsparens(parent, e.Op)
 		c.maybewrite("(", parens)

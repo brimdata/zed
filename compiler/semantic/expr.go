@@ -116,6 +116,44 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 			Name: "cast",
 			Args: []dag.Expr{expr, typ},
 		}, nil
+	case *ast.IndexExpr:
+		expr, err := a.semExpr(e.Expr)
+		if err != nil {
+			return nil, err
+		}
+		index, err := a.semExpr(e.Index)
+		if err != nil {
+			return nil, err
+		}
+		// If expr is a path and index is a string, then just extend the path.
+		if path := a.isIndexOfThis(expr, index); path != nil {
+			return path, nil
+		}
+		return &dag.IndexExpr{
+			Kind:  "IndexExpr",
+			Expr:  expr,
+			Index: index,
+		}, nil
+	case *ast.SliceExpr:
+		expr, err := a.semExpr(e.Expr)
+		if err != nil {
+			return nil, err
+		}
+		// XXX Literal indices should be type checked as int.
+		from, err := a.semExprNullable(e.From)
+		if err != nil {
+			return nil, err
+		}
+		to, err := a.semExprNullable(e.To)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.SliceExpr{
+			Kind: "SliceExpr",
+			Expr: expr,
+			From: from,
+			To:   to,
+		}, nil
 	case *astzed.TypeValue:
 		typ, err := a.semType(e.Value)
 		if err != nil {
@@ -377,25 +415,6 @@ func (a *analyzer) semBinary(e *ast.BinaryExpr) (dag.Expr, error) {
 			RHS:  id.Name,
 		}, nil
 	}
-	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Op == ":" {
-		if op != "[" {
-			return nil, errors.New("slice outside of index operator")
-		}
-		ref, err := a.semExpr(e.LHS)
-		if err != nil {
-			return nil, err
-		}
-		slice, err := a.semSlice(slice)
-		if err != nil {
-			return nil, err
-		}
-		return &dag.BinaryExpr{
-			Kind: "BinaryExpr",
-			Op:   "[",
-			LHS:  ref,
-			RHS:  slice,
-		}, nil
-	}
 	lhs, err := a.semExpr(e.LHS)
 	if err != nil {
 		return nil, err
@@ -403,13 +422,6 @@ func (a *analyzer) semBinary(e *ast.BinaryExpr) (dag.Expr, error) {
 	rhs, err := a.semExpr(e.RHS)
 	if err != nil {
 		return nil, err
-	}
-	// If we index this with a string constant, then just
-	// extend the path.
-	if op == "[" {
-		if path := a.isIndexOfThis(lhs, rhs); path != nil {
-			return path, nil
-		}
 	}
 	return &dag.BinaryExpr{
 		Kind: "BinaryExpr",
@@ -586,8 +598,8 @@ func (a *analyzer) semAssignment(assign ast.Assignment) (dag.Assignment, error) 
 
 func isLval(e dag.Expr) bool {
 	switch e := e.(type) {
-	case *dag.BinaryExpr:
-		return e.Op == "[" && isLval(e.LHS)
+	case *dag.IndexExpr:
+		return isLval(e.Expr)
 	case *dag.Dot:
 		return isLval(e.LHS)
 	case *dag.This:
@@ -699,18 +711,17 @@ func DotExprToFieldPath(e ast.Expr) *dag.This {
 			lhs.Path = append(lhs.Path, id.Name)
 			return lhs
 		}
-		if e.Op == "[" {
-			lhs := DotExprToFieldPath(e.LHS)
-			if lhs == nil {
-				return nil
-			}
-			id, ok := e.RHS.(*astzed.Primitive)
-			if !ok || id.Type != "string" {
-				return nil
-			}
-			lhs.Path = append(lhs.Path, id.Text)
-			return lhs
+	case *ast.IndexExpr:
+		this := DotExprToFieldPath(e.Expr)
+		if this == nil {
+			return nil
 		}
+		id, ok := e.Index.(*astzed.Primitive)
+		if !ok || id.Type != "string" {
+			return nil
+		}
+		this.Path = append(this.Path, id.Text)
+		return this
 	case *ast.ID:
 		return pathOf(e.Name)
 	}
