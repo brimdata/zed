@@ -1,4 +1,3 @@
-#ifdef GO
 {
     package parser
 }
@@ -20,29 +19,6 @@
 #define RETURN(x) return x, nil
 #define TEXT string(c.text)
 #define VAR(x) var x
-#else
-{
-#include "support.js"
-}
-#define APPEND(arr, value) arr.push(value)
-#define ARRAY(...) [__VA_ARGS__]
-#define ARRAY_LEN(a) a.length
-#define ASSERT_ARRAY(a) a
-#define ASSERT_INT(i) i
-#define ASSERT_MAP(m) m
-#define ASSERT_STRING(s) s
-#define FOREACH(arr, var) for(let var of arr)
-#define HAS(m, k) (k in m)
-#define ISNOTNULL(n) (n)
-#define ISNULL(n) (!n)
-#define MAP(...) {__VA_ARGS__}
-#define NULL null
-#define PREPEND(value, arr) [value, ...arr]
-#define PRINT(...) console.log(__VAR_ARGS__)
-#define RETURN(x) return x
-#define TEXT text()
-#define VAR(x) let x
-#endif
 
 start
   = __ scope:Scope __ EOF { RETURN(ARRAY(scope)) }
