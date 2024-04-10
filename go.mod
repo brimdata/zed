@@ -16,7 +16,6 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/kr/text v0.2.0
-	github.com/neilotoole/jsoncolor v0.7.1
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/peterh/liner v1.1.0
