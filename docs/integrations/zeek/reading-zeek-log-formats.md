@@ -7,16 +7,16 @@ sidebar_label: Reading Zeek Log Formats
 
 Zed is capable of reading both common Zeek log formats. This document
 provides guidance for what to expect when reading logs of these formats using
-the Zed tools such as `zq`.
+the Zed [command line tools](../../commands/README.md).
 
 ## Zeek TSV
 
 [Zeek TSV](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs)
 is Zeek's default output format for logs. This format can be read automatically
 (i.e., no `-i` command line flag is necessary to indicate the input format)
-with the Zed tools such as `zq`.
+with the Zed tools such as [`zq`](../../commands/zq.md).
 
-The following example shows a TSV `conn.log` being read via `zq` and
+The following example shows a TSV [`conn.log`](https://docs.zeek.org/en/master/logs/conn.html) being read via `zq` and
 output as [ZSON](../../formats/zson.md).
 
 #### conn.log
@@ -74,7 +74,7 @@ and therefore such records typically need no adjustment to their data types
 once they've been read in as is. The
 [Zed/Zeek Data Type Compatibility](data-type-compatibility.md) document
 provides further detail on how the rich data types in Zeek TSV map to the
-equivalent [rich types in Zed](../../formats/zson.md#23-primitive-values).
+equivalent [rich types in Zed](../../formats/zed.md#1-primitive-types).
 
 ## Zeek NDJSON
 
@@ -133,11 +133,11 @@ When we compare this to the TSV example, we notice a few things right away that
 all follow from the records having been previously output as JSON.
 
 1. The timestamps like `_write_ts` and `ts` are printed as strings rather than
-   the ZSON `time` type.
+   the Zed `time` type.
 2. The IP addresses such as `id.orig_h` and `id.resp_h` are printed as strings
-   rather than the ZSON `ip` type.
+   rather than the Zed `ip` type.
 3. The connection `duration` is printed as a floating point number rather than
-   the ZSON `duration` type.
+   the Zed `duration` type.
 4. The keys for the null-valued fields in the record read from
    TSV are not present in the record read from NDJSON.
 
@@ -149,7 +149,7 @@ to perform operations like
 [aggregations with time-based grouping](../../language/functions/bucket.md)
 or [CIDR matches](../../language/functions/network_of.md)
 on IP addresses, you would likely want to restore the rich Zed data types as
-the records are being read. The document on [Shaping Zeek NDJSON](shaping-zeek-ndjson.md)
+the records are being read. The document on [shaping Zeek NDJSON](shaping-zeek-ndjson.md)
 provides details on how this can be done.
 
 ## The Role of `_path`
