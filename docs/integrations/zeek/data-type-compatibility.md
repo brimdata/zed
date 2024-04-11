@@ -52,7 +52,7 @@ applicable to handling certain types.
 | [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](../../formats/zed.md#21-record            | See [`record` details](#record) |
 
 :::tip Note
-The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
+The [Zeek data types](https://docs.zeek.org/en/current/script-reference/types.html)
 page describes the types in the context of the
 [Zeek scripting language](https://docs.zeek.org/en/master/scripting/index.html).
 The Zeek types available in scripting are a superset of the data types that
