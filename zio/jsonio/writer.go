@@ -30,9 +30,9 @@ type Writer struct {
 	writer *bufio.Writer
 	tab    int
 
-	// Use json.Encoder to get marshal primitive Values. Have to use
-	// json.Encoder instead of json.Marshal because this is the only way to get
-	// pkg json to turn off HTML escaping.
+	// Use json.Encoder for primitive Values. Have to use
+	// json.Encoder instead of json.Marshal because it's
+	// the only way to turn off HTML escaping.
 	primEnc *json.Encoder
 	primBuf bytes.Buffer
 }
