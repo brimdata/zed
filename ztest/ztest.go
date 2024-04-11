@@ -506,6 +506,9 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err := flags.Parse(outputFlags); err != nil {
 		return "", "", err
 	}
+	if err := outflags.Init(); err != nil {
+		return "", "", err
+	}
 	zw, err := anyio.NewWriter(zio.NopCloser(&outbuf), outflags.Options())
 	if err != nil {
 		return "", "", err

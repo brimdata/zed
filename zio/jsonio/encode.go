@@ -25,10 +25,9 @@ var (
 )
 
 type encoder struct {
-	w           io.Writer
-	buf         bytes.Buffer
-	tab         int
-	newlineChar string
+	w   io.Writer
+	buf bytes.Buffer
+	tab int
 
 	// Use json.Encoder to get marshal primitive Values. Have to use
 	// json.Encoder instead of json.Marshal because this is the only way to get
@@ -41,9 +40,6 @@ func newEncoder(w io.Writer, indent int) *encoder {
 	e := &encoder{w: w, tab: indent}
 	e.primEnc = json.NewEncoder(&e.primBuf)
 	e.primEnc.SetEscapeHTML(false)
-	if indent > 0 {
-		e.newlineChar = "\n"
-	}
 	return e
 }
 
@@ -92,14 +88,7 @@ func (e *encoder) marshalRecord(tab int, typ *zed.TypeRecord, bytes zcode.Bytes)
 		if i != 0 {
 			e.punc(',')
 		}
-		e.newline()
-		e.indent(tab)
-		e.writeColor(e.marshalJSON(f.Name), fieldColor)
-		e.punc(':')
-		if e.tab != 0 {
-			e.buf.WriteByte(' ')
-		}
-		e.marshal(tab, zed.NewValue(f.Type, it.Next()))
+		e.entry(tab, f.Name, zed.NewValue(f.Type, it.Next()))
 	}
 	e.newline()
 	e.indent(tab - e.tab)
@@ -131,15 +120,8 @@ func (e *encoder) marshalMap(tab int, typ *zed.TypeMap, bytes zcode.Bytes) {
 		if i != 0 {
 			e.punc(',')
 		}
-		e.newline()
-		e.indent(tab)
 		key := mapKey(typ.KeyType, it.Next())
-		e.writeColor(e.marshalJSON(key), fieldColor)
-		e.punc(':')
-		if e.tab != 0 {
-			e.buf.WriteByte(' ')
-		}
-		e.marshal(tab, zed.NewValue(typ.ValType, it.Next()))
+		e.entry(tab, key, zed.NewValue(typ.ValType, it.Next()))
 	}
 	e.newline()
 	e.indent(tab - e.tab)
@@ -181,17 +163,21 @@ func convertEnum(typ *zed.TypeEnum, bytes zcode.Bytes) string {
 func (e *encoder) marshalError(tab int, typ *zed.TypeError, bytes zcode.Bytes) {
 	tab += e.tab
 	e.punc('{')
+	e.entry(tab, "error", zed.NewValue(typ.Type, bytes))
+	e.newline()
+	e.indent(tab - e.tab)
+	e.punc('}')
+}
+
+func (e *encoder) entry(tab int, name string, val zed.Value) {
 	e.newline()
 	e.indent(tab)
-	e.writeColor([]byte(`"error"`), fieldColor)
+	e.writeColor(e.marshalJSON(name), fieldColor)
 	e.punc(':')
 	if e.tab != 0 {
 		e.buf.WriteByte(' ')
 	}
-	e.marshal(tab, zed.NewValue(typ.Type, bytes))
-	e.newline()
-	e.indent(tab - e.tab)
-	e.punc('}')
+	e.marshal(tab, val)
 }
 
 func (e *encoder) marshalPrimitive(val zed.Value) {
@@ -247,7 +233,9 @@ func (e *encoder) writeColor(b []byte, code []byte) {
 }
 
 func (e *encoder) newline() {
-	e.buf.WriteString(e.newlineChar)
+	if e.tab > 0 {
+		e.buf.WriteByte('\n')
+	}
 }
 
 func (e *encoder) indent(tab int) {

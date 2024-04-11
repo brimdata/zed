@@ -1167,7 +1167,7 @@ which produces
 {user:"henridf",avg_reviewers:3.}
 ```
 
-Of course, if you'd like the query output in JSON, you can just say `-f json` and
+Of course, if you'd like the query output in JSON, you can just say `-j` and
 `zq` will happily format the Zed sets as JSON arrays, e.g.,
 ```mdtest-command dir=docs/tutorials
 zq -j 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers} ) | groups:=union(reviewers) by user | sort user,len(groups)' prs.zng

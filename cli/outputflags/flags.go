@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 
 	"github.com/brimdata/zed/cli/auto"
 	"github.com/brimdata/zed/pkg/storage"
@@ -33,6 +32,7 @@ type Flags struct {
 	zsonPretty    bool
 	zsonPersist   string
 	color         bool
+	pretty        int
 	unbuffered    bool
 }
 
@@ -47,14 +47,8 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.ZNG.Compress, "zng.compress", true, "compress ZNG frames")
 	fs.IntVar(&f.ZNG.FrameThresh, "zng.framethresh", zngio.DefaultFrameThresh,
 		"minimum ZNG frame size in uncompressed bytes")
-	f.ZSON.Pretty, f.JSON.Pretty = 4, 4
-	fs.Func("pretty", `tab size to pretty print ZSON or JSON output (0 for newline-delimited ZSON/JSON) (default "4")`, func(s string) error {
-		p, err := strconv.ParseInt(s, 0, strconv.IntSize)
-		if err == nil {
-			f.ZSON.Pretty, f.JSON.Pretty = int(p), int(p)
-		}
-		return err
-	})
+	fs.IntVar(&f.pretty, "pretty", 4,
+		"tab size to pretty print JSON/ZSON output (0 for newline-delimited JSON/ZSON")
 	fs.StringVar(&f.zsonPersist, "persist", "",
 		"regular expression to persist type definitions across the stream")
 
@@ -90,6 +84,7 @@ func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 }
 
 func (f *Flags) Init() error {
+	f.JSON.Pretty, f.ZSON.Pretty = f.pretty, f.pretty
 	if f.zsonPersist != "" {
 		re, err := regexp.Compile(f.zsonPersist)
 		if err != nil {
@@ -99,7 +94,7 @@ func (f *Flags) Init() error {
 	}
 	if f.jsonShortcut || f.jsonPretty {
 		if f.Format != f.DefaultFormat || f.zsonShortcut || f.zsonPretty {
-			return errors.New("cannot use -j with -f, -z, or -Z")
+			return errors.New("cannot use -j or -J with -f, -z, or -Z")
 		}
 		f.Format = "json"
 		if !f.jsonPretty {

@@ -6,13 +6,13 @@ import (
 	"github.com/brimdata/zed"
 )
 
-type WriterOpts struct {
-	Pretty int
-}
-
 type Writer struct {
 	io.Closer
 	encoder *encoder
+}
+
+type WriterOpts struct {
+	Pretty int
 }
 
 func NewWriter(wc io.WriteCloser, opts WriterOpts) *Writer {
