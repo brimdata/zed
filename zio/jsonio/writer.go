@@ -1,6 +1,7 @@
 package jsonio
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
@@ -25,8 +26,8 @@ var (
 )
 
 type Writer struct {
-	writer io.WriteCloser
-	buf    bytes.Buffer
+	io.Closer
+	writer *bufio.Writer
 	tab    int
 
 	// Use json.Encoder to get marshal primitive Values. Have to use
@@ -41,21 +42,21 @@ type WriterOpts struct {
 }
 
 func NewWriter(writer io.WriteCloser, opts WriterOpts) *Writer {
-	w := &Writer{writer: writer, tab: opts.Pretty}
+	w := &Writer{
+		Closer: writer,
+		writer: bufio.NewWriter(writer),
+		tab:    opts.Pretty,
+	}
 	w.primEnc = json.NewEncoder(&w.primBuf)
 	w.primEnc.SetEscapeHTML(false)
 	return w
 }
 
 func (w *Writer) Write(val zed.Value) error {
-	w.buf.Reset()
 	w.marshal(0, val)
-	w.buf.WriteByte('\n')
-	_, err := w.writer.Write(w.buf.Bytes())
-	return err
+	w.writer.WriteByte('\n')
+	return w.writer.Flush()
 }
-
-func (w *Writer) Close() error { return w.writer.Close() }
 
 func (w *Writer) marshal(tab int, val zed.Value) {
 	val = val.Under()
@@ -181,7 +182,7 @@ func (w *Writer) entry(tab int, name string, val zed.Value) {
 	w.writeColor(w.marshalJSON(name), fieldColor)
 	w.punc(':')
 	if w.tab != 0 {
-		w.buf.WriteByte(' ')
+		w.writer.WriteByte(' ')
 	}
 	w.marshal(tab, val)
 }
@@ -232,18 +233,18 @@ func (w *Writer) punc(b byte) {
 
 func (w *Writer) writeColor(b []byte, code []byte) {
 	if w.tab > 0 && color.Enabled {
-		w.buf.Write(code)
-		defer w.buf.WriteString(color.Reset.String())
+		w.writer.Write(code)
+		defer w.writer.WriteString(color.Reset.String())
 	}
-	w.buf.Write(b)
+	w.writer.Write(b)
 }
 
 func (w *Writer) newline() {
 	if w.tab > 0 {
-		w.buf.WriteByte('\n')
+		w.writer.WriteByte('\n')
 	}
 }
 
 func (w *Writer) indent(tab int) {
-	w.buf.Write(bytes.Repeat([]byte(" "), tab))
+	w.writer.Write(bytes.Repeat([]byte(" "), tab))
 }
