@@ -53,41 +53,42 @@ func NewWriter(writer io.WriteCloser, opts WriterOpts) *Writer {
 }
 
 func (w *Writer) Write(val zed.Value) error {
-	w.marshal(0, val)
+	// writeAny doesn't return an error because any error that occurs will be
+	// surfaced with w.writer.Flush is called.
+	w.writeAny(0, val)
 	w.writer.WriteByte('\n')
 	return w.writer.Flush()
 }
 
-func (w *Writer) marshal(tab int, val zed.Value) {
+func (w *Writer) writeAny(tab int, val zed.Value) {
 	val = val.Under()
 	if val.IsNull() {
 		w.writeColor([]byte("null"), nullColor)
 		return
 	}
 	if val.Type().ID() < zed.IDTypeComplex {
-		w.marshalPrimitive(val)
+		w.writePrimitive(val)
 		return
 	}
 	switch typ := val.Type().(type) {
 	case *zed.TypeRecord:
-		w.marshalRecord(tab, typ, val.Bytes())
+		w.writeRecord(tab, typ, val.Bytes())
 	case *zed.TypeArray:
-		w.marshalArray(tab, typ.Type, val.Bytes())
+		w.writeArray(tab, typ.Type, val.Bytes())
 	case *zed.TypeSet:
-		w.marshalArray(tab, typ.Type, val.Bytes())
+		w.writeArray(tab, typ.Type, val.Bytes())
 	case *zed.TypeMap:
-		w.marshalMap(tab, typ, val.Bytes())
+		w.writeMap(tab, typ, val.Bytes())
 	case *zed.TypeEnum:
-		w.marshalEnum(typ, val.Bytes())
+		w.writeEnum(typ, val.Bytes())
 	case *zed.TypeError:
-		w.marshalError(tab, typ, val.Bytes())
+		w.writeError(tab, typ, val.Bytes())
 	default:
-		m := fmt.Sprintf("<unsupported type: %s>", zson.FormatType(typ))
-		w.writeColor(w.marshalJSON(m), stringColor)
+		panic(fmt.Sprintf("unsupported type: %s", zson.FormatType(typ)))
 	}
 }
 
-func (w *Writer) marshalRecord(tab int, typ *zed.TypeRecord, bytes zcode.Bytes) {
+func (w *Writer) writeRecord(tab int, typ *zed.TypeRecord, bytes zcode.Bytes) {
 	tab += w.tab
 	w.punc('{')
 	it := bytes.Iter()
@@ -95,14 +96,14 @@ func (w *Writer) marshalRecord(tab int, typ *zed.TypeRecord, bytes zcode.Bytes) 
 		if i != 0 {
 			w.punc(',')
 		}
-		w.entry(tab, f.Name, zed.NewValue(f.Type, it.Next()))
+		w.writeEntry(tab, f.Name, zed.NewValue(f.Type, it.Next()))
 	}
 	w.newline()
 	w.indent(tab - w.tab)
 	w.punc('}')
 }
 
-func (w *Writer) marshalArray(tab int, typ zed.Type, bytes zcode.Bytes) {
+func (w *Writer) writeArray(tab int, typ zed.Type, bytes zcode.Bytes) {
 	tab += w.tab
 	w.punc('[')
 	it := bytes.Iter()
@@ -112,14 +113,14 @@ func (w *Writer) marshalArray(tab int, typ zed.Type, bytes zcode.Bytes) {
 		}
 		w.newline()
 		w.indent(tab)
-		w.marshal(tab, zed.NewValue(typ, it.Next()))
+		w.writeAny(tab, zed.NewValue(typ, it.Next()))
 	}
 	w.newline()
 	w.indent(tab - w.tab)
 	w.punc(']')
 }
 
-func (w *Writer) marshalMap(tab int, typ *zed.TypeMap, bytes zcode.Bytes) {
+func (w *Writer) writeMap(tab int, typ *zed.TypeMap, bytes zcode.Bytes) {
 	tab += w.tab
 	w.punc('{')
 	it := bytes.Iter()
@@ -128,7 +129,7 @@ func (w *Writer) marshalMap(tab int, typ *zed.TypeMap, bytes zcode.Bytes) {
 			w.punc(',')
 		}
 		key := mapKey(typ.KeyType, it.Next())
-		w.entry(tab, key, zed.NewValue(typ.ValType, it.Next()))
+		w.writeEntry(tab, key, zed.NewValue(typ.ValType, it.Next()))
 	}
 	w.newline()
 	w.indent(tab - w.tab)
@@ -156,7 +157,7 @@ func mapKey(typ zed.Type, b zcode.Bytes) string {
 	}
 }
 
-func (w *Writer) marshalEnum(typ *zed.TypeEnum, bytes zcode.Bytes) {
+func (w *Writer) writeEnum(typ *zed.TypeEnum, bytes zcode.Bytes) {
 	w.writeColor(w.marshalJSON(convertEnum(typ, bytes)), stringColor)
 }
 
@@ -167,16 +168,16 @@ func convertEnum(typ *zed.TypeEnum, bytes zcode.Bytes) string {
 	return "<bad enum>"
 }
 
-func (w *Writer) marshalError(tab int, typ *zed.TypeError, bytes zcode.Bytes) {
+func (w *Writer) writeError(tab int, typ *zed.TypeError, bytes zcode.Bytes) {
 	tab += w.tab
 	w.punc('{')
-	w.entry(tab, "error", zed.NewValue(typ.Type, bytes))
+	w.writeEntry(tab, "error", zed.NewValue(typ.Type, bytes))
 	w.newline()
 	w.indent(tab - w.tab)
 	w.punc('}')
 }
 
-func (w *Writer) entry(tab int, name string, val zed.Value) {
+func (w *Writer) writeEntry(tab int, name string, val zed.Value) {
 	w.newline()
 	w.indent(tab)
 	w.writeColor(w.marshalJSON(name), fieldColor)
@@ -184,10 +185,10 @@ func (w *Writer) entry(tab int, name string, val zed.Value) {
 	if w.tab != 0 {
 		w.writer.WriteByte(' ')
 	}
-	w.marshal(tab, val)
+	w.writeAny(tab, val)
 }
 
-func (w *Writer) marshalPrimitive(val zed.Value) {
+func (w *Writer) writePrimitive(val zed.Value) {
 	var v any
 	c := stringColor
 	switch id := val.Type().ID(); {
@@ -214,7 +215,7 @@ func (w *Writer) marshalPrimitive(val zed.Value) {
 	case id == zed.IDType:
 		v = zson.FormatValue(val)
 	default:
-		v = fmt.Sprintf("<unsupported id=%d>", id)
+		panic(fmt.Sprintf("unsupported id=%d", id))
 	}
 	w.writeColor(w.marshalJSON(v), c)
 }
