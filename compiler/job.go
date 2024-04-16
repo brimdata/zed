@@ -89,11 +89,7 @@ func (j *Job) Parallelize(n int) error {
 }
 
 func Parse(src string, filenames ...string) (ast.Seq, error) {
-	parsed, err := parser.ParseZed(filenames, src)
-	if err != nil {
-		return nil, err
-	}
-	return ast.UnmarshalObject(parsed)
+	return parser.ParseZed(filenames, src)
 }
 
 // MustParse is like Parse but panics if an error is encountered.

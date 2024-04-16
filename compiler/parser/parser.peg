@@ -1,130 +1,164 @@
 {
     package parser
+
+    import (
+        "github.com/brimdata/zed/compiler/ast"
+        astzed "github.com/brimdata/zed/compiler/ast/zed"
+    )
+
 }
-#define APPEND(arr, value) arr = append(arr, value)
-#define ARRAY(...) []interface{}{__VA_ARGS__}
-#define ARRAY_LEN(a) len(a.([]interface{}))
-#define ASSERT_ARRAY(a) a.([]interface{})
-#define ASSERT_INT(i) i.(int)
-#define ASSERT_MAP(m) m.(map[string]interface{})
-#define ASSERT_STRING(s) s.(string)
-#define FOREACH(arr, var) for _, var := range arr
-#define HAS(m, k) _, ok := m[k]; ok
-#define ISNOTNULL(n) n != nil
-#define ISNULL(n) n == nil
-#define MAP(...) map[string]interface{}{__VA_ARGS__}
-#define NULL nil
-#define PREPEND(value, arr) append([]interface{}{value}, (arr.([]interface{}))...)
-#define PRINT(...) fmt.Println(__VA_ARGS__)
-#define RETURN(x) return x, nil
-#define TEXT string(c.text)
-#define VAR(x) var x
 
 start
-  = __ scope:Scope __ EOF { RETURN(ARRAY(scope)) }
-  / __ seq:Seq __ EOF { RETURN(seq) }
+  = __ scope:Scope __ EOF { return []any{scope}, nil }
+  / __ seq:Seq __ EOF { return seq, nil }
 
 Scope
   = decls:Decl+ body:Seq {
-      RETURN(MAP("kind": "Scope", "decls": decls, "body": body))
+      return &ast.Scope{
+        Kind: "Scope",
+        Decls: sliceOf[ast.Decl](decls),
+        Body: sliceOf[ast.Op](body),
+      }, nil
     }
 
 Seq
   = first:Operation rest:SeqTail* {
-      RETURN(PREPEND(first, rest))
+      return prepend(first, rest), nil
     }
 
-SeqTail = __ Pipe __ o:Operation { RETURN(o) }
+SeqTail = __ Pipe __ o:Operation { return o, nil }
 
 Decl
-  = v:(ConstDecl / FuncDecl / OpDecl / TypeDecl) _ { RETURN(v) }
+  = v:(ConstDecl / FuncDecl / OpDecl / TypeDecl) _ { return v, nil }
 
 ConstDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr {
-      RETURN(MAP("kind": "ConstDecl", "name": id, "expr": expr))
+      return &ast.ConstDecl{
+          Kind: "ConstDecl",
+          Name: id.(string),
+          Expr: expr.(ast.Expr),
+          KeywordPos: c.pos.offset,
+      }, nil
     }
 
 FuncDecl
   = "func" _ id:IdentifierName __ "(" __ params:IdentifierNames? __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
-      RETURN(MAP(
-        "kind": "FuncDecl",
-        "name": id,
-        "params": params,
-        "expr": expr))
+      return &ast.FuncDecl{
+        Kind: "FuncDecl",
+        Name: id.(string),
+        Params: sliceOf[string](params),
+        Expr: expr.(ast.Expr),
+        KeywordPos: c.pos.offset,
+        Rparen: lastPos(c, ")"),
+      }, nil
     }
 
 OpDecl
   = "op" _ name:IdentifierName __ "(" __ params:IdentifierNames? __ ")" __ ":" __ "(" __ body:OpDeclBody __ ")" {
-      RETURN(MAP(
-        "kind": "OpDecl",
-        "name": name,
-        "params": params,
-        "body": body))
+      return &ast.OpDecl{
+        Kind: "OpDecl",
+        Name: name.(string),
+        Params: sliceOf[string](params),
+        Body: sliceOf[ast.Op](body),
+        KeywordPos: c.pos.offset,
+        Rparen: lastPos(c, ")"),
+      }, nil
     }
 
 OpDeclBody
-  = scope:Scope { RETURN(ARRAY(scope)) }
-  / seq:Seq { RETURN(seq) }
+  = scope:Scope { return []any{scope}, nil }
+  / seq:Seq { return seq, nil }
 
 TypeDecl
   = "type" _ id:(IdentifierName / QuotedString) __ "=" __ typ:Type {
-      RETURN(MAP(
-        "kind": "TypeDecl",
-        "name": id,
-        "type": typ))
+      return &ast.TypeDecl{
+        Kind: "TypeDecl",
+        Name: id.(string),
+        Type: typ.(astzed.Type),
+        KeywordPos: c.pos.offset,
+      }, nil
     }
 
 Operation
   = "fork" __ "(" paths:Leg+ __ ")" {
-      RETURN(MAP("kind": "Parallel", "paths": paths))
+      var seqs []ast.Seq
+      for _, p := range paths.([]any) {
+        seqs = append(seqs, sliceOf[ast.Op](p))
+      }
+      return &ast.Parallel{
+          Kind: "Parallel",
+          Paths: seqs,
+          KeywordPos: c.pos.offset,
+          Rparen: lastPos(c, ")"),
+      }, nil
     }
   / "switch" _ expr:Expr _ "(" cases:SwitchLeg+ __ ")" {
-      RETURN(MAP("kind": "Switch", "expr": expr, "cases": cases))
+      return &ast.Switch{
+          Kind: "Switch",
+          Expr: expr.(ast.Expr),
+          Cases: sliceOf[ast.Case](cases),
+          KeywordPos: c.pos.offset,
+          Rparen: lastPos(c, ")"),
+      }, nil
     }
   / "switch" __ "(" cases:SwitchLeg+ __ ")" {
-      RETURN(MAP("kind": "Switch", "expr": NULL, "cases": cases))
+      return &ast.Switch{
+          Kind: "Switch",
+          Cases: sliceOf[ast.Case](cases),
+          KeywordPos: c.pos.offset,
+          Rparen: lastPos(c, ")"),
+      }, nil
     }
   / "from" __ "(" trunks:FromLeg+ __ ")" {
-      RETURN(MAP("kind": "From", "trunks": trunks))
+      return &ast.From{
+          Kind: "From",
+          Trunks: sliceOf[ast.Trunk](trunks),
+          KeywordPos: c.pos.offset,
+          Rparen: lastPos(c, ")"),
+      }, nil
     }
-  / "(" __ scope:Scope __ ")" { RETURN(scope) }
+  / "(" __ scope:Scope __ ")" { return scope, nil }
   / op:Operator
-  / a:OpAssignment &EndOfOp { RETURN(a) }
-  / !(Function EndOfOp) a:Aggregation &EndOfOp { RETURN(a) }
+  / a:OpAssignment &EndOfOp { return a, nil }
+  / !(Function EndOfOp) a:Aggregation &EndOfOp { return a, nil }
   / "search" _ expr:SearchBoolean {
-      RETURN(MAP("kind": "Search", "expr": expr))
+      return &ast.Search{Kind:"Search",Expr:expr.(ast.Expr),KeywordPos:c.pos.offset}, nil
     }
   / expr:SearchBoolean {
-      RETURN(MAP("kind": "OpExpr", "expr": expr))
+      return &ast.OpExpr{Kind:"OpExpr",Expr:expr.(ast.Expr)}, nil
     }
   / expr:Cast {
-      RETURN(MAP("kind": "OpExpr", "expr": expr))
+      return &ast.OpExpr{Kind:"OpExpr",Expr:expr.(ast.Expr)}, nil
   }
   / expr:Expr {
-      RETURN(MAP("kind": "OpExpr", "expr": expr))
+      return &ast.OpExpr{Kind:"OpExpr",Expr:expr.(ast.Expr)}, nil
     }
 
 EndOfOp = __ (Pipe / SearchKeywordGuard / "=>" / ")" / EOF)
 Pipe = "|" !("{" / "[")
 
-Leg = __ "=>" __ seq:Seq { RETURN(seq) }
+Leg = __ "=>" __ seq:Seq { return seq, nil }
 
 SwitchLeg
   = __ expr:Case path:Leg {
-      RETURN(MAP("expr": expr, "path": path))
+      l := ast.Case{Path: sliceOf[ast.Op](path)}
+      if expr != nil {
+        l.Expr = expr.(ast.Expr)
+      }
+      return l, nil
     }
 
 Case
-  = "case" _ expr:Expr { RETURN(expr) }
-  / "default" { RETURN(NULL) }
+  = "case" _ expr:Expr { return expr, nil }
+  / "default" { return nil, nil }
 
 FromLeg
   = __ source:FromSource opt:(__ "=>" __ Seq)? {
-      VAR(m) = MAP("kind": "Trunk", "source": source, "seq": NULL)
-      if ISNOTNULL(opt) {
-        m["seq"] = ASSERT_ARRAY(opt)[3]
+      t := ast.Trunk{Kind:"Trunk",Source:source.(ast.Source)}
+      if opt != nil {
+        t.Seq = sliceOf[ast.Op](opt.([]any)[3])
       }
-      RETURN(m)
+      return t, nil
     }
 
 FromSource
@@ -135,19 +169,19 @@ FromSource
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "~")
 
-Comparator = ("==" / "!=" / ("in" !IdentifierRest) / "<=" / "<" / ">=" / ">") { RETURN(TEXT) }
+Comparator = ("==" / "!=" / ("in" !IdentifierRest) / "<=" / "<" / ">=" / ">") { return string(c.text), nil }
 
 SearchBoolean
   = first:SearchAnd rest:SearchOrTerm* {
-      RETURN(makeBinaryExprChain(first, rest))
+      return makeBinaryExprChain(first, rest), nil
     }
 
-SearchOrTerm = _ OrToken _ t:SearchAnd { RETURN(ARRAY("or", t)) }
+SearchOrTerm = _ OrToken _ t:SearchAnd { return []any{"or", t}, nil }
 
 SearchAnd
   = first:SearchFactor
-    rest:((_ AndToken)? _ !(OrToken / SearchKeywordGuard) expr:SearchFactor { RETURN(ARRAY("and", expr)) })* {
-      RETURN(makeBinaryExprChain(first, rest))
+    rest:((_ AndToken)? _ !(OrToken / SearchKeywordGuard) expr:SearchFactor { return []any{"and", expr}, nil })* {
+      return makeBinaryExprChain(first, rest), nil
     }
 
 SearchKeywordGuard
@@ -156,94 +190,131 @@ SearchKeywordGuard
 
 SearchFactor
   = (NotToken _ / "!" __) e:SearchFactor {
-      RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
+      return &ast.UnaryExpr{
+          Kind: "UnaryExpr",
+          Op: "!",
+          Operand: e.(ast.Expr),
+      }, nil
     }
-  / "(" __ expr:SearchBoolean __ ")" { RETURN(expr) }
+  / "(" __ expr:SearchBoolean __ ")" { return expr, nil }
   / SearchExpr
 
 SearchExpr
   = Regexp
   / Glob
   / v:SearchValue (!ExprGuard / &(_ Glob)) {
-      RETURN(MAP("kind": "Term", "text": TEXT, "value": v))
+      return &ast.Term{
+        Kind: "Term",
+        Text: string(c.text),
+        TextPos: c.pos.offset,
+        Value: v.(astzed.Any),
+      }, nil
     }
   / "*" !ExprGuard {
-      RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true"))
+      return &astzed.Primitive{Kind:"Primitive",Type:"bool",Text:"true"}, nil
     }
   / SearchPredicate
 
 SearchPredicate
   = lhs:AdditiveExpr __ op:Comparator __ rhs:AdditiveExpr {
-      RETURN(MAP("kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs))
+      return &ast.BinaryExpr{
+        Kind: "BinaryExpr",
+        Op: op.(string),
+        LHS: lhs.(ast.Expr),
+        RHS: rhs.(ast.Expr),
+      }, nil
     }
-  / f:Function { RETURN(f) }
+  / f:Function { return f, nil }
 
 SearchValue
   = Literal
   / !RegexpPattern v:KeyWord {
-      RETURN(MAP("kind": "Primitive", "type": "string", "text": v))
+      return newPrimitive(c, "string", v.(string)), nil
+    }
+
+QuotedStringNode 
+  = s:QuotedString {
+      return &ast.QuotedString{Kind: "QuotedString", Text: s.(string), Lquote: c.pos.offset}, nil
     }
 
 Glob
   = pattern:GlobPattern {
-      RETURN(MAP("kind": "Glob", "pattern": pattern))
-  }
+      return &ast.Glob{Kind: "Glob", Pattern: pattern.(string), PatternPos: c.pos.offset}, nil
+    }
 
 Regexp
   = pattern:RegexpPattern {
-      RETURN(MAP("kind": "Regexp", "pattern": pattern))
-  }
+      return &ast.Regexp{Kind:"Regexp", Pattern:pattern.(string), PatternPos: c.pos.offset}, nil
+    }
 
 /// === Aggregations ===
 
 Aggregation
   = Summarize? keys:GroupByKeys limit:LimitArg {
-      RETURN(MAP("kind": "Summarize", "keys": keys, "aggs": NULL, "limit": limit))
+      return &ast.Summarize{
+        Kind: "Summarize",
+        Keys: sliceOf[ast.Assignment](keys),
+        Limit: limit.(int),
+        StartPos: c.pos.offset,
+      }, nil
     }
   / Summarize? aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
-      VAR(p) = MAP("kind": "Summarize", "keys": NULL, "aggs": aggs, "limit": limit)
-      if ISNOTNULL(keys) {
-        p["keys"] = ASSERT_ARRAY(keys)[1]
+      s := &ast.Summarize{
+        Kind: "Summarize",
+        Aggs: sliceOf[ast.Assignment](aggs),
+        Limit: limit.(int),
+        StartPos: c.pos.offset,
       }
-      RETURN(p)
+      if keys != nil {
+        s.Keys = sliceOf[ast.Assignment](keys.([]any)[1])
+      }
+      return s, nil
     }
 
 Summarize = "summarize" _
 
 GroupByKeys
-  = ByToken _ columns:FlexAssignments { RETURN(columns) }
+  = ByToken _ columns:FlexAssignments { return columns, nil }
 
 LimitArg
-  = _ "with" _ "-limit" _ limit:UInt { RETURN(limit) }
-  / "" { RETURN(0) }
+  = _ "with" _ "-limit" _ limit:UInt { return limit, nil }
+  / "" { return 0, nil }
 
 // A FlexAssignment is like an Assignment but it can optionally omit the lhs,
 // in which case the semantic pass will infer a name from the rhs, e.g., for
 // an expression like "count() by foo", the rhs is Field "foo" and the lhs is nil.
 FlexAssignment
   = Assignment
-  / expr:Expr { RETURN(MAP("kind": "Assignment", "lhs": NULL, "rhs": expr)) }
+  / expr:Expr { return ast.Assignment{Kind:"Assignment",RHS:expr.(ast.Expr)}, nil }
 
 FlexAssignments
-  = first:FlexAssignment rest:(__ "," __ expr:FlexAssignment { RETURN(expr) })* {
-      RETURN(PREPEND(first, rest))
+  = first:FlexAssignment rest:(__ "," __ expr:FlexAssignment { return expr, nil })* {
+      return prepend(first, rest), nil
     }
 
 AggAssignment
   = lval:Lval __ ":=" __ agg:Agg {
-      RETURN(MAP("kind": "Assignment", "lhs": lval, "rhs": agg))
+      return ast.Assignment{Kind:"Assignment",LHS:lval.(ast.Expr),RHS:agg.(ast.Expr)}, nil
     }
   / agg:Agg {
-      RETURN(MAP("kind": "Assignment", "lhs": NULL, "rhs": agg))
+      return ast.Assignment{Kind:"Assignment",RHS:agg.(ast.Expr)}, nil
     }
 
 Agg
-  = !FuncGuard op:AggName __ "(" __ expr:(OverExpr / Expr)? __ ")" !(__ ".") where:WhereClause? {
-      VAR(r) = MAP("kind": "Agg", "name": op, "expr": NULL, "where": where)
-      if ISNOTNULL(expr) {
-        r["expr"] = expr
+  = !FuncGuard op:AggName __ "(" __ expr:(OverExpr / Expr)? __ rparen:(")" { return c.pos.offset, nil }) !(__ ".") where:WhereClause? {
+      agg := &ast.Agg{
+          Kind:"Agg", 
+          Name: op.(string),
+          NamePos: c.pos.offset,
+          Rparen: rparen.(int),
       }
-      RETURN(r)
+      if expr != nil {
+        agg.Expr = expr.(ast.Expr)
+      }
+      if where != nil {
+        agg.Where = where.(ast.Expr)
+      }
+      return agg, nil
     }
 
 AggName
@@ -251,15 +322,15 @@ AggName
   / AndToken
   / OrToken
 
-WhereClause = _ "where" _ expr:LogicalOrExpr { RETURN(expr) }
+WhereClause = _ "where" _ expr:LogicalOrExpr { return expr, nil }
 
 AggAssignments
   = first:AggAssignment rest:(__ "," __ AggAssignment)* {
-      VAR(result) = ARRAY(first)
-      FOREACH(ASSERT_ARRAY(rest), r) {
-        APPEND(result, ASSERT_ARRAY(r)[3])
+      result := []any{first}
+      for _, r := range rest.([]any) {
+          result = append(result, r.([]any)[3])
       }
-      RETURN(result)
+      return result, nil
     }
 
 /// === Operators ===
@@ -289,85 +360,144 @@ Operator
   / LoadOp
 
 AssertOp
-  = "assert" _ expr:(e:Expr { RETURN(ARRAY(e, TEXT)) }) {
-      RETURN(MAP("kind": "Assert", "expr": ASSERT_ARRAY(expr)[0], "text": ASSERT_ARRAY(expr)[1]))
+  = "assert" _ expr:(e:Expr { return []any{e, string(c.text)}, nil }) {
+      return &ast.Assert{
+          Kind: "Assert",
+          Expr: expr.([]any)[0].(ast.Expr),
+          Text: expr.([]any)[1].(string),
+          KeywordPos: c.pos.offset,
+      }, nil
     }
 
 SortOp
-  = "sort" &EOKW args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
-      VAR(argm) = ASSERT_MAP(args)
-      VAR(op) = MAP("kind": "Sort", "args": list, "order": "asc", "nullsfirst": false)
-      if HAS(argm, "r") {
-        op["order"] = "desc"
+  = "sort" &EOKW args:SortArgs list:(_ l:Exprs { return l, nil })? {
+      o := &ast.Sort{
+        Kind: "Sort",
+        Order: order.Asc,
+        NullsFirst: false,
+        KeywordPos: c.pos.offset,
       }
-      if HAS(argm, "nulls") {
-        if (argm["nulls"] == "first") {
-          op["nullsfirst"] = true
-        }
+      if list != nil {
+        o.Args = sliceOf[ast.Expr](list)
       }
-      RETURN(op)
+      argm := args.(map[string]any)
+      if _, ok := argm["r"]; ok {
+        o.Order = order.Desc
+      }
+      if n, ok := argm["nulls"]; ok && n == "first" {
+        o.NullsFirst = true
+      }
+      return o, nil
     }
 
-SortArgs = args:(_ a:SortArg { RETURN(a) })* { return makeArgMap(args) }
+SortArgs = args:(_ a:SortArg { return a, nil })* { return makeArgMap(args) }
 
 SortArg
-  = "-r" { RETURN(MAP("name": "r", "value": NULL)) }
-  / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) }) { RETURN(MAP("name": "nulls", "value": where)) }
+  = "-r" { return map[string]any{"name": "r", "value": nil}, nil }
+  / "-nulls" _ where:(("first" / "last") { return string(c.text), nil }) {
+        return map[string]any{"name": "nulls", "value": where}, nil
+      }
 
 TopOp
-  = "top" &EOKW limit:(_ n:UInt { RETURN(n) })? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
-      VAR(op) = MAP("kind": "Top", "limit": 0, "args": NULL, "flush": false)
-      if ISNOTNULL(limit) {
-        op["limit"] = limit
+  = "top" &EOKW limit:(_ e:Expr { return e, nil })? flush:(_ "-flush")? fields:(_ f:FieldExprs { return f, nil })? {
+      op := &ast.Top{
+        Kind: "Top",
+        KeywordPos: c.pos.offset,
       }
-      if ISNOTNULL(fields) {
-        op["args"] = fields
+      if limit != nil {
+        op.Limit = limit.(ast.Expr)
       }
-      if ISNOTNULL(flush) {
-        op["flush"] = true
+      if fields != nil {
+        op.Args = sliceOf[ast.Expr](fields)
       }
-      RETURN(op)
+      if flush != nil {
+        op.Flush = true
+      }
+      return op, nil
     }
 
 CutOp
   = "cut" _ args:FlexAssignments {
-      RETURN(MAP("kind": "Cut", "args": args))
+      return &ast.Cut{
+        Kind: "Cut",
+        Args: sliceOf[ast.Assignment](args),
+        KeywordPos: c.pos.offset,
+      }, nil
     }
 
 DropOp
   = "drop" _ args:FieldExprs {
-      RETURN(MAP("kind": "Drop", "args": args))
+      return &ast.Drop{
+          Kind: "Drop",
+          Args: sliceOf[ast.Expr](args),
+          KeywordPos: c.pos.offset,
+      }, nil
     }
 
 HeadOp
-  = "head" _ !EndOfOp count:Expr { RETURN(MAP("kind": "Head", "count": count)) }
-  / "head" { RETURN(MAP("kind": "Head", "count": MAP("kind": "Primitive", "type": "int64", "text": "1"))) }
+  = "head" _ !EndOfOp count:Expr {
+      return &ast.Head{
+        Kind: "Head",
+        Count: count.(ast.Expr),
+        KeywordPos: c.pos.offset,
+      }, nil
+    }
+  / "head" {
+      return &ast.Head{
+        Kind: "Head",
+        KeywordPos: c.pos.offset,
+      }, nil
+    }
 
 TailOp
-  = "tail" _ !EndOfOp count:Expr { RETURN(MAP("kind": "Tail", "count": count)) }
-  / "tail" { RETURN(MAP("kind": "Tail", "count": MAP("kind": "Primitive", "type": "int64", "text": "1"))) }
+  = "tail" _ !EndOfOp count:Expr {
+      return &ast.Tail{
+        Kind: "Tail",
+        Count: count.(ast.Expr),
+        KeywordPos: c.pos.offset,
+      }, nil
+    }
+  / "tail" {
+      return &ast.Tail{
+        Kind: "Tail",
+        KeywordPos: c.pos.offset,
+      }, nil
+    }
 
 WhereOp
   = "where" _ expr:Expr {
-      RETURN(MAP("kind": "Where", "expr": expr))
+      return &ast.Where{
+        Kind: "Where",
+        Expr: expr.(ast.Expr),
+        KeywordPos: c.pos.offset,
+      }, nil
     }
 
 UniqOp
   = "uniq" _ "-c" {
-      RETURN(MAP("kind": "Uniq", "cflag": true))
+      return &ast.Uniq{Kind: "Uniq", Cflag: true, KeywordPos: c.pos.offset}, nil
     }
   / "uniq" {
-      RETURN(MAP("kind": "Uniq", "cflag": false))
+      return &ast.Uniq{Kind: "Uniq", KeywordPos: c.pos.offset}, nil
     }
 
 PutOp
   = "put" _ args:Assignments {
-      RETURN(MAP("kind": "Put", "args": args))
+      return &ast.Put{
+          Kind: "Put",
+          Args: sliceOf[ast.Assignment](args),
+          KeywordPos: c.pos.offset,
+      }, nil
     }
 
 RenameOp
-  = "rename" _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
-      RETURN(MAP("kind": "Rename", "args": PREPEND(first, rest)))
+  = "rename" _ first:Assignment rest:(__ "," __ cl:Assignment { return cl, nil })* {
+      args := append([]any{first}, rest.([]any)...)
+      return &ast.Rename{
+        Kind: "Rename",
+        Args: sliceOf[ast.Assignment](args),
+        KeywordPos: c.pos.offset,
+      }, nil
     }
 
 // The paren guard is to allow parsing fuse() as an aggregator. This
@@ -376,43 +506,57 @@ RenameOp
 // aggregator, at which point we may no longer need this.
 FuseOp
   = "fuse" !(__ "(") &EOKW {
-      RETURN(MAP("kind": "Fuse"))
+      return &ast.Fuse{Kind: "Fuse", KeywordPos: c.pos.offset}, nil
     }
 
 ShapeOp
   = "shape" !(__ "(") &EOKW {
-      RETURN(MAP("kind": "Shape"))
+      return &ast.Shape{Kind: "Shape", KeywordPos: c.pos.offset}, nil
     }
 
 JoinOp
   = style:JoinStyle "join" rightInput:JoinRightInput "on" _ key:JoinKey optKey:(__ "=" __ JoinKey)? optArgs:(_ FlexAssignments)? {
-      VAR(m) = MAP("kind": "Join", "style": style, "right_input": rightInput, "left_key": key, "right_key": key, "args": NULL)
-      if ISNOTNULL(optKey) {
-        m["right_key"] = ASSERT_ARRAY(optKey)[3]
+      o := &ast.Join{
+        Kind: "Join",
+        Style: style.(string),
+        LeftKey: key.(ast.Expr),
+        KeywordPos: c.pos.offset,
       }
-      if ISNOTNULL(optArgs) {
-        m["args"] = ASSERT_ARRAY(optArgs)[1]
+      if rightInput != nil {
+        o.RightInput = sliceOf[ast.Op](rightInput)
       }
-      RETURN(m)
+      if optKey != nil {
+        o.RightKey = optKey.([]any)[3].(ast.Expr)
+      }
+      if optArgs != nil {
+        o.Args = sliceOf[ast.Assignment](optArgs.([]any)[1])
+      }
+      return o, nil
     }
 
 JoinStyle
-  = "anti" _  { RETURN("anti") }
-  / "inner" _ { RETURN("inner") }
-  / "left"  _ { RETURN("left") }
-  / "right" _ { RETURN("right") }
-  / ""        { RETURN("inner") }
+  = "anti" _  { return "anti", nil }
+  / "inner" _ { return "inner", nil }
+  / "left"  _ { return "left", nil }
+  / "right" _ { return "right", nil }
+  / ""        { return "inner", nil }
 
 JoinRightInput
-  = __ "(" __ s:Seq __ ")" __ { RETURN(s) }
-  / _ { RETURN(NULL) }
+  = __ "(" __ s:Seq __ ")" __ { return s, nil }
+  / _ { return nil, nil }
 
 JoinKey
   = Lval
-  / "(" expr:Expr ")" { RETURN(expr) }
+  / "(" expr:Expr ")" { return expr, nil }
 
 SampleOp
-  = "sample" &EOKW e:SampleExpr { RETURN(MAP("kind": "Sample", "expr": e)) }
+  = "sample" &EOKW expr:(_ e:Lval { return e, nil })? {
+      o := &ast.Sample{Kind: "Sample", KeywordPos: c.pos.offset}
+      if expr != nil {
+        o.Expr = expr.(ast.Expr)
+      }
+      return o, nil
+    }
 
 // OpAssignment is a top level operator that contains a list of assignment
 // expressions. It is in an ambiguous state and could either be:
@@ -421,105 +565,142 @@ SampleOp
 //  The semantic pass is responsible for converting it to one of the two.
 OpAssignment
   = a:Assignments {
-    RETURN(MAP("kind": "OpAssignment", "assignments": a))
-  }
-
-SampleExpr
-  = _ lval:Lval { RETURN(lval) }
-  / "" { RETURN(MAP("kind": "ID", "name": "this")) }
+      return &ast.OpAssignment{
+          Kind: "OpAssignment",
+          Assignments: sliceOf[ast.Assignment](a),
+      }, nil
+    }
 
 LoadOp
   = "load" _ pool:PoolNameString branch:PoolBranch? author:AuthorArg? message:MessageArg? meta:MetaArg? {
-      RETURN(MAP("kind": "Load", "pool": pool, "branch": branch, "author": author, "message": message, "meta": meta))
+      return &ast.Load{
+        Kind: "Load",
+        Pool: nullableString(pool),
+        Branch: nullableString(branch),
+        Author: nullableString(author),
+        Message: nullableString(message),
+        Meta: nullableString(meta),
+        KeywordPos: c.pos.offset,
+        EndPos: c.pos.offset+len(c.text),
+      }, nil
     }
 
 AuthorArg
-  = _ "author" _ val:QuotedString { RETURN(val) }
+  = _ "author" _ val:QuotedString { return val, nil }
 
 MessageArg
-  = _ "message" _ val:QuotedString { RETURN(val) }
+  = _ "message" _ val:QuotedString { return val, nil }
 
 MetaArg
-  = _ "meta" _ val:QuotedString { RETURN(val) }
+  = _ "meta" _ val:QuotedString { return val, nil }
 
 PoolBranch
-  = "@" branch:(PoolIdentifier / QuotedString) { RETURN(branch) }
+  = "@" branch:(PoolIdentifier / QuotedString) { return branch, nil }
 
 FromOp
-  = source:FromAny {
-      RETURN(MAP("kind": "From", "trunks": ARRAY(MAP("kind": "Trunk", "source": source))))
-    }
-
-FromAny
   = File
   / Get
   / From
 
 File
-  = "file" _ path:Path format:FormatArg? sort_key:SortKeyArg? {
-      RETURN(MAP("kind": "File", "path": path, "format": format, "sort_key": sort_key))
+  = "file" _ path:Path format:FormatArg? sortkey:SortKeyArg? {
+      f := &ast.File{
+        Kind: "File",
+        KeywordPos: c.pos.offset,
+        Path: path.(ast.Pattern),
+        Format: nullableString(format),
+        EndPos: c.pos.offset+len(c.text),
+      }
+      if sortkey != nil {
+        f.SortKey = sortkey.(*ast.SortKey)
+      }
+      return f, nil
     }
 
 From
-  = "from" _ body:PoolBody { RETURN(body) }
+  = "from" _ spec:PoolSpec {
+      return &ast.Pool{
+        Kind: "Pool",
+        Spec: spec.(ast.PoolSpec),
+        KeywordPos: c.pos.offset,
+        EndPos: c.pos.offset+len(c.text),
+      }, nil
+    }
 
 Pool
-  = "pool" _ body:PoolBody { RETURN(body) }
-
-PoolBody
-  = spec:PoolSpec at:PoolAt? {
-      RETURN(MAP("kind": "Pool", "spec": spec, "at": at))
+  = "pool" _ spec:PoolSpec {
+      return &ast.Pool{
+        Kind: "Pool",
+        Spec: spec.(ast.PoolSpec),
+        KeywordPos: c.pos.offset,
+        EndPos: c.pos.offset+len(c.text),
+      }, nil
     }
 
 Get
-  = "get" _ url:Path format:FormatArg? sort_key:SortKeyArg? method:MethodArg? headers:HeadersArg? body:BodyArg? {
-      RETURN(MAP(
-        "kind": "HTTP",
-        "url": url,
-        "format": format,
-        "sort_key": sort_key,
-        "method": method,
-        "headers": headers,
-        "body": body))
+  = "get" _ url:Path format:FormatArg? sortkey:SortKeyArg? method:MethodArg? headers:HeadersArg? body:BodyArg? {
+      h := &ast.HTTP{
+        Kind: "HTTP",
+        URL: url.(ast.Pattern),
+        Format: nullableString(format),
+        Method: nullableString(method),
+        KeywordPos: c.pos.offset,
+        Body: nullableString(body),
+        EndPos: c.pos.offset+len(c.text),
+      }
+      if sortkey != nil {
+        h.SortKey = sortkey.(*ast.SortKey)
+      }
+      if headers != nil {
+        h.Headers = headers.(*ast.RecordExpr)
+      }
+      return h, nil
     }
 
-MethodArg = _ "method" _ v:(IdentifierName / QuotedString) { RETURN(v) }
+MethodArg = _ "method" _ v:(IdentifierName / QuotedString) { return v, nil }
 
-HeadersArg = _ "headers" _ v:Record { RETURN(v) }
+HeadersArg = _ "headers" _ v:Record { return v, nil }
 
-BodyArg = _ "body" _ v:(IdentifierName / QuotedString) { RETURN(v) }
+BodyArg = _ "body" _ v:(IdentifierName / QuotedString) { return v, nil }
 
 Path
-  = v:QuotedString { RETURN(MAP("kind": "QuotedString", "text": v)) }
-  / [0-9a-zA-Z!@$%^&*_=<>,./?:[\]{}~+-]+ { RETURN(MAP("kind": "String", "text": TEXT)) }
+  = QuotedStringNode
+  / [0-9a-zA-Z!@$%^&*_=<>,./?:[\]{}~+-]+ {
+      return &ast.String{Kind: "String", Text: string(c.text), TextPos: c.pos.offset}, nil
+    }
 
 //XXX this should be a timestamp
 PoolAt
-  = _ "at" _ id:KSUID { RETURN(id) }
+  = _ "at" _ id:KSUID { return id, nil }
 
 //XXX this should allow 0x bytes format
-KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
+KSUID = ([0-9a-zA-Z])+ { return string(c.text), nil }
 
 PoolSpec
   = pool:PoolName commit:PoolCommit? meta:PoolMeta? tap:TapArg {
-      RETURN(MAP("pool": pool, "commit": commit, "meta": meta, "tap": tap))
+      return ast.PoolSpec{
+        Pool: pool.(ast.Pattern),
+        Commit: nullableString(commit),
+        Meta: nullableString(meta),
+        Tap: tap.(bool),
+      }, nil
     }
   / meta:PoolMeta {
-      RETURN(MAP("pool": NULL, "commit": NULL, "meta": meta))
+      return ast.PoolSpec{Meta: meta.(string)}, nil
     }
 
 PoolCommit
-  = "@" commit:PoolNameString { RETURN(commit) }
+  = "@" commit:PoolNameString { return commit, nil }
 
 PoolMeta
-  = ":" meta:PoolIdentifier { RETURN(meta) }
+  = ":" meta:PoolIdentifier { return meta, nil }
 
 PoolName
   = Regexp
   / Glob
-  / "*" !ExprGuard { RETURN(MAP("kind": "Glob", "pattern": "*")) }
-  / name:QuotedString { RETURN(MAP("kind": "QuotedString", "text": name)) }
-  / name:PoolNameString { RETURN(MAP("kind": "String", "text": name)) }
+  / "*" !ExprGuard { return &ast.Glob{Kind: "Glob", Pattern: "*", PatternPos: c.pos.offset}, nil }
+  / QuotedStringNode
+  / name:PoolNameString { return &ast.String{Kind: "String", Text: name.(string), TextPos: c.pos.offset}, nil }
 
 PoolNameString
   = PoolIdentifier
@@ -527,195 +708,276 @@ PoolNameString
   / QuotedString
 
 PoolIdentifier
-  = (IdentifierStart / ".") (IdentifierRest / ".")* { RETURN(TEXT) }
+  = (IdentifierStart / ".") (IdentifierRest / ".")* { return string(c.text), nil }
 
 SortKeyArg
   = _ "order" _ keys:FieldExprs order:OrderSuffix {
-      RETURN(MAP("kind": "SortKey", "keys": keys, "order": order))
+      return &ast.SortKey{
+        Kind: "SortKey",
+        Keys: sliceOf[ast.Expr](keys),
+        Order: order.(string),
+      }, nil
     }
 
 TapArg
-  = _ "tap" { RETURN(true) }
-  / "" { RETURN(false) }
+  = _ "tap" { return true, nil }
+  / "" { return false, nil }
 
 FormatArg
-  = _ "format" _ val:IdentifierName { RETURN(val) }
+  = _ "format" _ val:IdentifierName { return val, nil }
 
 OrderSuffix
-  = ":asc"  { RETURN("asc") }
-  / ":desc" { RETURN("desc") }
-  / ""      { RETURN("asc") }
+  = ":asc"  { return "asc", nil }
+  / ":desc" { return "desc", nil }
+  / ""      { return "asc", nil }
 
 PassOp
   = "pass" &EOKW {
-      RETURN(MAP("kind": "Pass"))
+      return &ast.Pass{Kind: "Pass", KeywordPos: c.pos.offset}, nil
     }
 
 // Currently we support only "explode by type" but this will be generalized
 // to explode arbitrary arrays, records, etc.
 ExplodeOp
   = "explode" _ args:Exprs typ:TypeArg as:AsArg? {
-      RETURN(MAP("kind": "Explode", "args": args, "as": as, "type": typ))
+      o := &ast.Explode{
+        Kind: "Explode",
+        Args: sliceOf[ast.Expr](args),
+        Type: typ.(astzed.Type),
+        KeywordPos: c.pos.offset,
+      }
+      if as != nil {
+        o.As = as.(ast.Expr)
+      }
+      return o, nil
     }
 
 MergeOp
   = "merge" _ expr:Expr {
-      RETURN(MAP("kind": "Merge", "expr": expr))
+      return &ast.Merge{
+        Kind: "Merge",
+        Expr: expr.(ast.Expr),
+        KeywordPos: c.pos.offset,
+      }, nil
     }
 
 OverOp
   = "over" _ exprs:Exprs locals:Locals? body:Lateral? {
-      RETURN(MAP("kind": "Over", "exprs": exprs, "locals": locals, "body": body))
+      o := &ast.Over{
+        Kind: "Over",
+        Exprs: sliceOf[ast.Expr](exprs),
+        Locals: sliceOf[ast.Def](locals),
+        KeywordPos: c.pos.offset,
+        Rparen: -1,
+      }
+      if body != nil {
+        o.Body = sliceOf[ast.Op](body.([]any)[0])
+        o.Rparen = body.([]any)[1].(int)
+      }
+      return o, nil
     }
 
 Lateral
-  = __ "=>" __ "(" __ scope:Scope __ ")" { RETURN(ARRAY(scope)) }
-  / __ "=>" __ "(" __ seq:Seq __ ")" { RETURN(seq) }
+  = __ "=>" __ "(" __ scope:Scope __ ")" {
+      return []any{[]any{scope.(*ast.Scope)}, lastPos(c, ")")}, nil
+    }
+  / __ "=>" __ "(" __ seq:Seq __ ")" {
+      return []any{seq, lastPos(c, ")")}, nil
+    }
 
 Locals
-  = _ "with" _ first:LocalsAssignment rest:(__ "," __ a:LocalsAssignment { RETURN(a) })* {
-      RETURN(PREPEND(first, rest))
+  = _ "with" _ first:LocalsAssignment rest:(__ "," __ a:LocalsAssignment { return a, nil })* {
+      return prepend(first, rest), nil
     }
 
 LocalsAssignment
   = name:IdentifierName opt:(__ "=" __ Expr)? {
-      VAR(m) = MAP("name": name, "expr": MAP("kind": "ID", "name": name))
-      if ISNOTNULL(opt) {
-         m["expr"] = ASSERT_ARRAY(opt)[3]
+      def := ast.Def{
+        Name: name.(string),
+        NamePos: c.pos.offset,
+        Expr: &ast.ID{Kind: "ID", Name: name.(string)},
       }
-      RETURN(m)
+      if opt != nil {
+        def.Expr = opt.([]any)[3].(ast.Expr)
+      }
+      return def, nil
     }
 
 YieldOp
   = "yield" _ exprs:Exprs {
-      RETURN(MAP("kind": "Yield", "exprs": exprs))
+      return &ast.Yield{
+          Kind: "Yield",
+          Exprs: sliceOf[ast.Expr](exprs),
+          KeywordPos: c.pos.offset,
+      }, nil
     }
 
 TypeArg
-  = _ "by" _ typ:Type { RETURN(typ) }
+  = _ "by" _ typ:Type { return typ, nil }
 
 AsArg
-  = _ "as" _ lhs:Lval { RETURN(lhs) }
+  = _ "as" _ lhs:Lval { return lhs, nil }
 
 /// === Expressions ===
 
 Lval = DerefExpr
 
 Lvals
-  = first:Lval rest:(__ "," __ lval:Lval { RETURN(lval) })* {
-      RETURN(PREPEND(first, rest))
+  = first:Lval rest:(__ "," __ lval:Lval { return lval, nil })* {
+      return prepend(first, rest), nil
     }
 
 FieldExpr = Lval
 
 FieldExprs
-  = first:FieldExpr rest:(__ "," __ FieldExpr)* {
-      VAR(result) = ARRAY(first)
-
-      FOREACH(ASSERT_ARRAY(rest), r) {
-        APPEND(result, ASSERT_ARRAY(r)[3])
-      }
-
-      RETURN(result)
+  = first:FieldExpr rest:(__ "," __ f:FieldExpr{ return f, nil })* {
+      return prepend(first, rest), nil
     }
 
 Assignments
-  = first:Assignment rest:(__ "," __ a:Assignment { RETURN(a) })* {
-    RETURN(PREPEND(first, rest))
+  = first:Assignment rest:(__ "," __ a:Assignment { return a, nil })* {
+    return prepend(first, rest), nil
   }
 
 Assignment
-  = lhs:Lval __ ":=" __ rhs:Expr { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
+  = lhs:Lval __ ":=" __ rhs:Expr {
+      return ast.Assignment{
+          Kind: "Assignment",
+          LHS: lhs.(ast.Expr),
+          RHS: rhs.(ast.Expr),
+      }, nil
+    }
 
 Expr = ConditionalExpr
 
 ConditionalExpr
   = cond:LogicalOrExpr opt:(__ "?" __ Expr __ ":" __ Expr)? {
-      if ISNOTNULL(opt) {
-        VAR(Then) = ASSERT_ARRAY(opt)[3]
-        VAR(Else) = ASSERT_ARRAY(opt)[7]
-        RETURN(MAP("kind": "Conditional", "cond": cond, "then": Then, "else": Else))
+      if opt != nil {
+        t, e := opt.([]any)[3], opt.([]any)[7]
+        return &ast.Conditional{
+            Kind: "Conditional",
+            Cond: cond.(ast.Expr),
+            Then: t.(ast.Expr),
+            Else: e.(ast.Expr),
+        }, nil
       }
-      RETURN(cond)
+      return cond, nil
     }
 
 LogicalOrExpr
   = first:LogicalAndExpr
-    rest:(__ op:OrToken __ expr:LogicalAndExpr { RETURN(ARRAY(op, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
+    rest:(__ op:OrToken __ expr:LogicalAndExpr { return []any{op, expr}, nil })* {
+        return makeBinaryExprChain(first, rest), nil
     }
 
 LogicalAndExpr
   = first:ComparisonExpr
-    rest:(__ op:AndToken __ expr:ComparisonExpr { RETURN(ARRAY(op, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
+    rest:(__ op:AndToken __ expr:ComparisonExpr { return []any{op, expr}, nil })* {
+        return makeBinaryExprChain(first, rest), nil
     }
 
 ComparisonExpr
-  = lhs:AdditiveExpr opAndRHS:(__ Comparator __ AdditiveExpr / __ ("~" { RETURN(TEXT) }) __ Regexp)? {
-      if ISNULL(opAndRHS) {
-        RETURN(lhs)
+  = lhs:AdditiveExpr opAndRHS:(__ Comparator __ AdditiveExpr / __ ("~" { return string(c.text), nil }) __ Regexp)? {
+      if opAndRHS == nil {
+        return lhs, nil
       }
-      VAR(op) = ASSERT_ARRAY(opAndRHS)[1]
-      VAR(rhs) = ASSERT_ARRAY(opAndRHS)[3]
-      RETURN(MAP("kind": "BinaryExpr", "op": op, "lhs": lhs, "rhs": rhs))
+      return &ast.BinaryExpr{
+        Kind: "BinaryExpr",
+        Op: opAndRHS.([]any)[1].(string),
+        LHS: lhs.(ast.Expr),
+        RHS: opAndRHS.([]any)[3].(ast.Expr),
+      }, nil
     }
 
 AdditiveExpr
   = first:MultiplicativeExpr
-    rest:(__ op:AdditiveOperator __ expr:MultiplicativeExpr { RETURN(ARRAY(op, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
+    rest:(__ op:AdditiveOperator __ expr:MultiplicativeExpr { return []any{op, expr}, nil })* {
+        return makeBinaryExprChain(first, rest), nil
     }
 
-AdditiveOperator = ("+" / "-") { RETURN(TEXT) }
+AdditiveOperator = ("+" / "-") { return string(c.text), nil }
 
 MultiplicativeExpr
   = first:NotExpr
-    rest:(__ op:MultiplicativeOperator __ expr:NotExpr { RETURN(ARRAY(op, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
+    rest:(__ op:MultiplicativeOperator __ expr:NotExpr { return []any{op, expr}, nil })* {
+        return makeBinaryExprChain(first, rest), nil
     }
 
-MultiplicativeOperator = ("*" / "/" / "%") { RETURN(TEXT) }
+MultiplicativeOperator = ("*" / "/" / "%") { return string(c.text), nil }
 
 NotExpr
   = (NotToken _ / "!" __) e:NotExpr {
-        RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
+      return &ast.UnaryExpr{
+          Kind: "UnaryExpr",
+          Op: "!",
+          OpPos: c.pos.offset,
+          Operand: e.(ast.Expr),
+      }, nil
     }
   / NegationExpr
 
 NegationExpr
   = !Literal "-" __ e:DerefExpr {
-        RETURN(MAP("kind": "UnaryExpr", "op": "-", "operand": e))
+      return &ast.UnaryExpr{
+          Kind: "UnaryExpr",
+          Op: "-",
+          OpPos: c.pos.offset,
+          Operand: e.(ast.Expr),
+      }, nil
     }
   / DerefExpr
 
 DerefExpr
   = expr:DerefExpr "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr? "]" {
-      RETURN(MAP("kind": "SliceExpr", "expr": expr, "from": from, "to": to))
+      e := &ast.SliceExpr{
+        Kind: "SliceExpr",
+        Expr: expr.(ast.Expr),
+        From: from.(ast.Expr),
+        Rbrack: lastPos(c, "]"),
+      }
+      if to != nil {
+        e.To = to.(ast.Expr)
+      }
+      return e, nil
     }
   / expr:DerefExpr "[" __ ":" __ to:AdditiveExpr "]" {
-      RETURN(MAP("kind": "SliceExpr", "expr": expr, "from": NULL, "to": to))
+      return &ast.SliceExpr{
+        Kind: "SliceExpr",
+        Expr: expr.(ast.Expr),
+        To: to.(ast.Expr),
+        Rbrack: lastPos(c, "]"),
+      }, nil
     }
   / expr:DerefExpr "[" index:Expr "]" {
-      RETURN(MAP("kind": "IndexExpr", "expr": expr, "index": index))
+      return &ast.IndexExpr{
+        Kind: "IndexExpr",
+        Expr: expr.(ast.Expr),
+        Index: index.(ast.Expr),
+        Rbrack: lastPos(c, "]"),
+      }, nil
     }
   / expr:DerefExpr "." id:Identifier {
-      RETURN(MAP("kind": "BinaryExpr", "op": ".", "lhs": expr, "rhs": id))
+      return &ast.BinaryExpr{
+        Kind: "BinaryExpr",
+        Op: ".",
+        LHS: expr.(ast.Expr),
+        RHS: id.(ast.Expr),
+      }, nil
     }
   / fn:FuncExpr {
-      RETURN(fn)  
+      return fn, nil
     }
   / expr:Primary {
-      RETURN(expr)
+      return expr, nil
     }
 
 
 FuncExpr
   = cast:Cast {
-      RETURN(cast)
+      return cast, nil
     }
   / fn:Function {
-      RETURN(fn)
+      return fn, nil
     }
 
 FuncGuard = NotFuncs __ "("
@@ -726,44 +988,50 @@ NotFuncs
 
 Cast
   = typ:TypeLiteral __ "(" __ expr:(OverExpr / Expr) __ ")" {
-      RETURN(MAP("kind": "Cast", "expr": expr, "type": typ))
+      return &ast.Cast{Kind: "Cast", Expr: expr.(ast.Expr), Type: typ.(ast.Expr), Rparen: lastPos(c, ")")}, nil
     }
 
 Function
   = Grep
   // Special case to handle `regexp(/x/, y)` and `regexp_replace(x, /y/, z)`.
-  / "regexp" __ "(" __ arg0Text:RegexpPattern __ "," __ arg1:Expr __ ")" where:WhereClause? {
-      VAR(arg0) = MAP("kind": "Primitive", "type": "string", "text": arg0Text)
-      RETURN(MAP("kind": "Call", "name": "regexp", "args": ARRAY(arg0, arg1), "where": where))
+  / "regexp" __ "(" __ arg0:RegexpPrimitive __ "," __ arg1:Expr __ ")" where:WhereClause? {
+      return newCall(c, "regexp", []any{arg0, arg1}, where), nil
     }
-  / "regexp_replace" __ "(" __ arg0:Expr __ "," __ arg1Text:RegexpPattern __ "," __ arg2:Expr __ ")" where:WhereClause? {
-      VAR(arg1) = MAP("kind": "Primitive", "type": "string", "text": arg1Text)
-      RETURN(MAP("kind": "Call", "name": "regexp_replace", "args": ARRAY(arg0, arg1, arg2), "where": where))
+  / "regexp_replace" __ "(" __ arg0:Expr __ "," __ arg1:RegexpPrimitive __ "," __ arg2:Expr __ ")" where:WhereClause? {
+      return newCall(c, "regexp_replace", []any{arg0, arg1, arg2}, where), nil
     }
   / !FuncGuard fn:IdentifierName __ "(" __ args:FunctionArgs __ ")" where:WhereClause? {
-      RETURN(MAP("kind": "Call", "name": fn, "args": args, "where": where))
+      return newCall(c, fn, args, where), nil
     }
 
+RegexpPrimitive
+  = pat:RegexpPattern { return newPrimitive(c, "string", pat.(string)), nil }
+
 FunctionArgs
-  = o:OverExpr { RETURN(ARRAY(o)) }
+  = o:OverExpr { return []any{o}, nil }
   / OptionalExprs
 
 Grep
-  = "grep" __ "(" __ pattern:(Regexp / Glob / Expr) __ opt:("," __ (OverExpr / Expr) __)? ")" {
-      VAR(m) = MAP("kind": "Grep", "pattern": pattern, "expr": MAP("kind": "ID", "name": "this"))
-      if ISNOTNULL(opt) {
-        m["expr"] = ASSERT_ARRAY(opt)[2]
+  = "grep" __ "(" __ pattern:(Regexp / Glob / Expr) __ opt:("," __ e:(OverExpr / Expr) __ { return e, nil })? ")" {
+      g := &ast.Grep{
+          Kind: "Grep",
+          KeywordPos: c.pos.offset,
+          Pattern: pattern.(ast.Expr),
+          Rparen: lastPos(c, ")"),
       }
-      RETURN(m)
+      if opt != nil {
+          g.Expr = opt.(ast.Expr)
+      }
+      return g, nil
     }
 
 OptionalExprs
   = Exprs
-  / __ { RETURN(ARRAY()) }
+  / __ { return []any{}, nil }
 
 Exprs
-  = first:Expr rest:(__ "," __ e:Expr { RETURN(e) })* {
-      RETURN(PREPEND(first, rest))
+  = first:Expr rest:(__ "," __ e:Expr { return e, nil })* {
+      return prepend(first, rest), nil
     }
 
 Primary
@@ -773,26 +1041,37 @@ Primary
   / Map
   / Literal
   / Identifier
-  / "(" __ expr:OverExpr __ ")" { RETURN(expr) }
-  / "(" __ expr:Expr __ ")" { RETURN(expr) }
+  / "(" __ expr:OverExpr __ ")" { return expr, nil }
+  / "(" __ expr:Expr __ ")" { return expr, nil }
 
 OverExpr
   = "over" _ exprs:Exprs locals:Locals? __ "|" __ body:Seq {
-      RETURN(MAP("kind": "OverExpr", "locals": locals, "exprs": exprs, "body": body))
+      return &ast.OverExpr{
+          Kind: "OverExpr",
+          KeywordPos: c.pos.offset,
+          Locals: sliceOf[ast.Def](locals),
+          Exprs: sliceOf[ast.Expr](exprs),
+          Body: sliceOf[ast.Op](body),
+      }, nil
     }
 
 Record
   = "{" __ elems:RecordElems __ "}" {
-      RETURN(MAP("kind": "RecordExpr", "elems": elems))
+      return &ast.RecordExpr{
+          Kind: "RecordExpr",
+          Lbrace: c.pos.offset,
+          Elems: sliceOf[ast.RecordElem](elems),
+          Rbrace: lastPos(c, "}"),
+      }, nil
     }
 
 RecordElems
   = first:RecordElem rest:RecordElemTail* {
-    RETURN(PREPEND(first, rest))
+    return prepend(first, rest), nil
   }
-  / __ { RETURN(ARRAY()) }
+  / __ { return nil, nil }
 
-RecordElemTail = __ "," __ elem:RecordElem { RETURN(elem) }
+RecordElemTail = __ "," __ elem:RecordElem { return elem, nil }
 
 RecordElem
   = Spread
@@ -801,51 +1080,71 @@ RecordElem
 
 Spread
   = "..." __ expr:Expr {
-      RETURN(MAP("kind": "Spread", "expr": expr))
+      return &ast.Spread{Kind: "Spread", Expr: expr.(ast.Expr), StartPos: c.pos.offset}, nil
     }
 
 Field
   = name:FieldName __ ":" __ value:Expr {
-      RETURN(MAP("kind": "Field", "name": name, "value": value))
+      return &ast.Field{
+        Kind: "Field",
+        Name: name.(string),
+        NamePos: c.pos.offset,
+        Value: value.(ast.Expr),
+      }, nil
     }
 
 Array
   = "[" __ elems:VectorElems __ "]" {
-      RETURN(MAP("kind": "ArrayExpr", "elems": elems))
+      return &ast.ArrayExpr{
+          Kind: "ArrayExpr",
+          Lbrack: c.pos.offset,
+          Elems: sliceOf[ast.VectorElem](elems),
+          Rbrack: lastPos(c, "]"),
+      }, nil
     }
 
 Set
   = "|[" __ elems:VectorElems __ "]|" {
-      RETURN(MAP("kind": "SetExpr", "elems": elems))
+      return &ast.SetExpr{
+          Kind: "SetExpr",
+          Lpipe: c.pos.offset,
+          Elems: sliceOf[ast.VectorElem](elems),
+          Rpipe: lastPos(c, "|"),
+      }, nil
     }
 
 VectorElems
-  = first:VectorElem rest:(__ "," __ e:VectorElem { RETURN(e) })* {
-      RETURN(PREPEND(first, rest))
+  = first:VectorElem rest:(__ "," __ e:VectorElem { return e, nil })* {
+      return prepend(first, rest), nil
     }
-  / __ { RETURN(ARRAY()) }
+  / __ { return nil, nil }
 
 VectorElem
   = Spread
-  / e:Expr { RETURN(MAP("kind": "VectorValue", "expr": e)) }
+  / e:Expr { return &ast.VectorValue{Kind: "VectorValue", Expr: e.(ast.Expr)}, nil }
 
 Map
   = "|{" __ exprs:Entries __ "}|" {
-      RETURN(MAP("kind": "MapExpr", "entries": exprs))
+      return &ast.MapExpr{
+          Kind: "MapExpr",
+          Lpipe: c.pos.offset,
+          Entries: sliceOf[ast.EntryExpr](exprs),
+          Rpipe: lastPos(c, "|"),
+      }, nil
     }
 
 Entries
   = first:Entry rest:EntryTail* {
-    RETURN(PREPEND(first, rest))
+    return prepend(first, rest), nil
   }
-  / __ { RETURN(ARRAY()) }
+  / __ { return nil, nil }
 
 
-EntryTail = __ "," __ e:Entry { RETURN(e) }
+EntryTail = __ "," __ e:Entry { return e, nil }
 
 Entry
   = key:Expr __ ":" __ value:Expr {
-      RETURN(MAP("key": key, "value": value))
+      return ast.EntryExpr{Key: key.(ast.Expr), Value: value.(ast.Expr)}, nil
     }
 
 /// === Literals ===
@@ -865,45 +1164,50 @@ Literal
 
 SubnetLiteral
   = v:IP6Net !IdentifierRest {
-      RETURN(MAP("kind": "Primitive", "type": "net", "text": v))
+      return newPrimitive(c, "net", v.(string)), nil
     }
   / v:IP4Net {
-      RETURN(MAP("kind": "Primitive", "type": "net", "text": v))
+      return newPrimitive(c, "net", v.(string)), nil
     }
 
 AddressLiteral
   = v:IP6 !IdentifierRest {
-      RETURN(MAP("kind": "Primitive", "type": "ip", "text": v))
+      return newPrimitive(c, "ip", v.(string)), nil
     }
   / v:IP {
-      RETURN(MAP("kind": "Primitive", "type": "ip", "text": v))
+      return newPrimitive(c, "ip", v.(string)), nil
     }
 
 FloatLiteral
   = v:FloatString {
-      RETURN(MAP("kind": "Primitive", "type": "float64", "text": v))
+      return newPrimitive(c, "float64", v.(string)), nil
     }
 
 IntegerLiteral
   = v:IntString {
-      RETURN(MAP("kind": "Primitive", "type": "int64", "text": v))
+      return newPrimitive(c, "int64", v.(string)), nil
     }
 
 BooleanLiteral
-  = TrueToken  { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true")) }
-  / FalseToken { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "false")) }
+  = TrueToken  { return newPrimitive(c, "bool", "true"), nil }
+  / FalseToken { return newPrimitive(c, "bool", "false"), nil }
 
 NullLiteral
-  = NullToken { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
+  = NullToken { return newPrimitive(c, "null", ""), nil }
 
 BytesLiteral
   = "0x" HexDigit* {
-	RETURN(MAP("kind": "Primitive", "type": "bytes", "text": TEXT))
+    return newPrimitive(c, "bytes", string(c.text)), nil
   }
 
 TypeLiteral
   = "<" typ:Type ">" {
-      RETURN(MAP("kind": "TypeValue", "value": typ))
+      return &astzed.TypeValue{
+        Kind:"TypeValue",
+        Lbrack: c.pos.offset,
+        Value: typ.(astzed.Type),
+        Rbrack: lastPos(c, ">"),
+      }, nil
     }
 
 Type
@@ -911,87 +1215,124 @@ Type
   / ComplexType
 
 AmbiguousType
-  = name:PrimitiveType !IdentifierRest { RETURN(name) }
+  = name:PrimitiveType !IdentifierRest { return name, nil }
   / "error" __ "(" __ t:Type __ ")" {
-      RETURN(MAP("kind": "TypeError", "type": t))
+      return &astzed.TypeError{
+          Kind: "TypeError",
+          Type: t.(astzed.Type),
+          KeywordPos: c.pos.offset,
+          Rparen: lastPos(c, ")"),
+      }, nil
     }
   / name:IdentifierName opt:(__ '=' __ Type)? {
-      if ISNOTNULL(opt) {
-        RETURN(MAP("kind": "TypeDef", "name": name, "type": ASSERT_ARRAY(opt)[3]))
+      if opt != nil {
+        return &astzed.TypeDef{
+            Kind: "TypeDef",
+            Name: name.(string),
+            NamePos: c.pos.offset,
+            Type: opt.([]any)[3].(astzed.Type),
+        }, nil
       }
-      RETURN(MAP("kind": "TypeName", "name": name))
+      return &astzed.TypeName{Kind: "TypeName", Name: name.(string), NamePos: c.pos.offset}, nil
     }
   / name:QuotedString {
-      RETURN(MAP("kind": "TypeName", "name": name))
+      return &astzed.TypeName{Kind: "TypeName", Name: name.(string), NamePos: c.pos.offset}, nil
     }
-  / "(" __ u:TypeUnion ")" { RETURN(u) }
-
-TypeUnion
-  = types:TypeList {
-      RETURN(MAP("kind": "TypeUnion", "types": types))
+  / "(" __ types:TypeList ")" {
+      return &astzed.TypeUnion{
+        Kind: "TypeUnion",
+        Lparen: c.pos.offset,
+        Types: sliceOf[astzed.Type](types),
+        Rparen: lastPos(c, ")"),
+      }, nil
     }
 
 TypeList
   = first:Type rest:TypeListTail+ {
-    RETURN(PREPEND(first, rest))
+    return prepend(first, rest), nil
   }
 
-TypeListTail = __ "," __ typ:Type { RETURN(typ) }
+TypeListTail = __ "," __ typ:Type { return typ, nil }
 
 ComplexType
   = "{" __ fields:TypeFieldList __ "}" {
-      RETURN(MAP("kind": "TypeRecord", "fields": fields))
+      return &astzed.TypeRecord{
+          Kind: "TypeRecord",
+          Lbrace: c.pos.offset,
+          Fields: sliceOf[astzed.TypeField](fields),
+          Rbrace: lastPos(c, "}"),
+      }, nil
     }
   / "[" __ typ:Type __ "]" {
-      RETURN(MAP("kind": "TypeArray", "type": typ))
+      return &astzed.TypeArray{
+          Kind: "TypeArray",
+          Lbrack: c.pos.offset,
+          Type: typ.(astzed.Type),
+          Rbrack: lastPos(c, "]"),
+      }, nil
     }
   / "|[" __ typ:Type __ "]|" {
-      RETURN(MAP("kind": "TypeSet", "type": typ))
+      return &astzed.TypeSet{
+          Kind: "TypeSet",
+          Lpipe: c.pos.offset,
+          Type: typ.(astzed.Type),
+          Rpipe: lastPos(c, "|"),
+      }, nil
     }
   / "|{" __ keyType:Type __ ":" __ valType:Type __ "}|" {
-      RETURN(MAP("kind": "TypeMap", "key_type": keyType, "val_type": valType))
+      return &astzed.TypeMap{
+        Kind: "TypeMap",
+        Lpipe: c.pos.offset,
+        KeyType: keyType.(astzed.Type),
+        ValType: valType.(astzed.Type),
+        Rpipe: lastPos(c, "|"),
+      }, nil
     }
 
 TemplateLiteral
   = v:TemplateLiteralParts {
-      if (ARRAY_LEN(v) == 0) {
-        RETURN(MAP("kind": "Primitive", "type": "string", "text": ""))
+      if len(v.([]any)) == 0 {
+        return newPrimitive(c, "string", ""), nil
       }
-      RETURN(makeTemplateExprChain(v))
+      return makeTemplateExprChain(v), nil
     }
 
 TemplateLiteralParts
-  = '"' v:TemplateDoubleQuotedPart* '"' { RETURN(v) }
-  / "'" v:TemplateSingleQuotedPart* "'" { RETURN(v) }
+  = '"' v:TemplateDoubleQuotedPart* '"' { return v, nil }
+  / "'" v:TemplateSingleQuotedPart* "'" { return v, nil }
 
 TemplateDoubleQuotedPart
   = TemplateExpr
   / v:TemplateDoubleQuotedChar+ {
-      RETURN(MAP("kind": "Primitive", "type": "string", "text": joinChars(v)))
+      return newPrimitive(c, "string", joinChars(v)), nil
     }
 
 TemplateDoubleQuotedChar
-  = "\\" v:"${" { RETURN(v) }
-  / !("${") v:DoubleQuotedChar { RETURN(v) }
+  = "\\" v:"${" { return v, nil }
+  / !("${") v:DoubleQuotedChar { return v, nil }
 
 TemplateSingleQuotedPart
   = TemplateExpr
   / v:TemplateSingleQuotedChar+ {
-      RETURN(MAP("kind": "Primitive", "type": "string", "text": joinChars(v)))
+      return newPrimitive(c, "string", joinChars(v)), nil
     }
 
 TemplateSingleQuotedChar
-  = "\\" v:"${" { RETURN(v) }
-  / !("${") v:SingleQuotedChar { RETURN(v) }
+  = "\\" v:"${" { return v, nil }
+  / !("${") v:SingleQuotedChar { return v, nil }
 
+// XXX This shouldn't add all this extra AST stuff but rather the semantic
+// pass should fill this stuff out.
 TemplateExpr
   = "${" __ e:Expr __ "}" {
-      RETURN(MAP(
-        "kind": "Cast",
-        "expr": e,
-        "type": MAP(
-          "kind": "TypeValue",
-          "value": MAP("kind": "TypePrimitive", "name": "string"))))
+      return &ast.Cast{
+        Kind: "Cast",
+        Expr: e.(ast.Expr),
+        Type: &astzed.TypeValue{
+            Kind: "TypeValue",
+            Value: &astzed.TypePrimitive{Kind:"TypePrimitive",Name:"string"},
+        },
+      }, nil
     }
 
 PrimitiveType
@@ -1003,48 +1344,61 @@ PrimitiveType
       / "bytes"
       / "ip" / "net"
       / "type" / "null") {
-          RETURN(MAP("kind": "TypePrimitive", "name": TEXT))
+            return &astzed.TypePrimitive{
+                Kind: "TypePrimitive",
+                Name: string(c.text),
+                NamePos: c.pos.offset,
+            }, nil
         }
 
 TypeFieldList
   = first:TypeField rest:TypeFieldListTail* {
-    RETURN(PREPEND(first, rest))
+    return prepend(first, rest), nil
   }
-  / "" { RETURN(NULL) }
+  / "" { return nil, nil }
 
-TypeFieldListTail = __ "," __ typ:TypeField { RETURN(typ) }
+TypeFieldListTail = __ "," __ typ:TypeField { return typ, nil }
 
 TypeField
   = name:FieldName __ ":" __ typ:Type {
-      RETURN(MAP("name": name, "type": typ))
+      return astzed.TypeField{
+          Name: name.(string),
+          Type: typ.(astzed.Type),
+      }, nil
     }
 
 FieldName
   = IdentifierName
   / QuotedString
 
-AndToken = ("and" / "AND") !IdentifierRest { RETURN("and") }
+AndToken = ("and" / "AND") !IdentifierRest { return "and", nil }
 ByToken = "by" !IdentifierRest
 FalseToken = "false" !IdentifierRest
 InToken = "in" !IdentifierRest
-NotToken = ("not" / "NOT") !IdentifierRest { RETURN("not") }
+NotToken = ("not" / "NOT") !IdentifierRest { return "not", nil }
 NullToken = "null" !IdentifierRest
-OrToken = ("or" / "OR") !IdentifierRest { RETURN("or") }
+OrToken = ("or" / "OR") !IdentifierRest { return "or", nil }
 TrueToken = "true" !IdentifierRest
 
 Identifier
-  = id:IdentifierName { RETURN(MAP("kind": "ID", "name": id)) }
+  = id:IdentifierName {
+      return &ast.ID{
+          Kind: "ID",
+          Name: id.(string),
+          NamePos: c.pos.offset,
+      }, nil
+    }
 
 IdentifierName
-  = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* { RETURN(TEXT) }
-  / "$" { RETURN(TEXT) }
-  / "\\" id:IDGuard { RETURN(id) }
+  = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* { return string(c.text), nil }
+  / "$" { return string(c.text), nil }
+  / "\\" id:IDGuard { return id, nil }
   // "type" is a search guard but should not be an id guard
-  / "type" { RETURN(TEXT) }
+  / "type" { return string(c.text), nil }
 
 IdentifierNames
-  = first:IdentifierName rest:(__ "," __ id:IdentifierName { RETURN(id) })* {
-    RETURN(PREPEND(first, rest))
+  = first:IdentifierName rest:(__ "," __ id:IdentifierName { return id, nil })* {
+    return prepend(first, rest), nil
   }
 
 IdentifierStart
@@ -1066,7 +1420,7 @@ IDGuard
 
 Time
   = FullDate "T" FullTime {
-      RETURN(MAP("kind": "Primitive", "type": "time", "text": TEXT))
+      return newPrimitive(c, "time", string(c.text)), nil
     }
 
 FullDate = D4 "-" D2 "-" D2
@@ -1084,7 +1438,7 @@ TimeOffset
 
 Duration
   = "-"? (Decimal TimeUnit)+ {
-      RETURN(MAP("kind": "Primitive", "type": "duration", "text": TEXT))
+      return newPrimitive(c, "duration", string(c.text)), nil
     }
 
 Decimal = UInt ("." UInt)?
@@ -1101,68 +1455,64 @@ TimeUnit
   / "y"
 
 IP
-  = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }
+  = UInt "." UInt "." UInt "." UInt { return string(c.text), nil }
 
 IP6
-  = !(Hex ":" Hex !(HexDigit / ":")) v:IP6Variations { RETURN(v) }
+  = !(Hex ":" Hex !(HexDigit / ":")) v:IP6Variations { return v, nil }
 
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter
 IP6Variations
   = a:HexColon+ b:IP6Tail {
-      RETURN(joinChars(a) + ASSERT_STRING(b))
+      return joinChars(a) + b.(string), nil
     }
   / a:Hex b:ColonHex* "::" d:HexColon* e:IP6Tail {
-      RETURN(ASSERT_STRING(a) + joinChars(b) + "::" + joinChars(d) + ASSERT_STRING(e))
+      return a.(string) + joinChars(b) + "::" + joinChars(d) + e.(string), nil
     }
   / "::" a:HexColon* b:IP6Tail {
-      RETURN("::" + joinChars(a) + ASSERT_STRING(b))
+      return "::" + joinChars(a) + b.(string), nil
     }
   / a:Hex b:ColonHex* "::" {
-      RETURN(ASSERT_STRING(a) + joinChars(b) + "::")
+      return a.(string) + joinChars(b) + "::", nil
     }
   / "::" {
-      RETURN("::")
+      return "::", nil
     }
 
 IP6Tail
   = IP
   / Hex
 
-ColonHex = ":" v:Hex { RETURN(":" + ASSERT_STRING(v)) }
+ColonHex = ":" v:Hex { return ":" + v.(string), nil }
 
-HexColon = v:Hex ":" { RETURN(ASSERT_STRING(v) + ":") }
+HexColon = v:Hex ":" { return v.(string) + ":", nil }
 
 IP4Net
   = a:IP '/' m:UIntString {
-      RETURN(ASSERT_STRING(a) + "/" + ASSERT_STRING(m));
+      return a.(string) + "/" + m.(string), nil
     }
 
 IP6Net
   = a:IP6 '/' m:UIntString {
-      RETURN(ASSERT_STRING(a) + "/" + ASSERT_STRING(m));
+      return a.(string) + "/" + m.(string), nil
     }
 
 UInt
- = s:UIntString { RETURN(parseInt(s)) }
+ = s:UIntString { return parseInt(s), nil }
 
 IntString
   = UIntString
   / MinusIntString
 
-UIntString = [0-9]+ { RETURN(TEXT) }
+UIntString = [0-9]+ { return string(c.text), nil }
 
 MinusIntString
-  = "-" UIntString { RETURN(TEXT) }
+  = "-" UIntString { return string(c.text), nil }
 
 FloatString
-  = "-"? [0-9]+ "." [0-9]* ExponentPart? {
-      RETURN(TEXT)
-    }
-  / "-"? "." [0-9]+ ExponentPart? {
-      RETURN(TEXT)
-    }
-  / (NaN / Infinity) { RETURN(TEXT) }
+  = "-"? [0-9]+ "." [0-9]* ExponentPart? { return string(c.text), nil }
+  / "-"? "." [0-9]+ ExponentPart? { return string(c.text), nil }
+  / (NaN / Infinity) { return string(c.text), nil }
 
 
 ExponentPart = "e"i [+-]? UIntString
@@ -1171,20 +1521,20 @@ NaN = "NaN"
 
 Infinity = ("-" / "+")? "Inf"
 
-Hex = HexDigit+ { RETURN(TEXT) }
+Hex = HexDigit+ { return string(c.text), nil }
 
 HexDigit = [0-9a-fA-F]
 
 QuotedString
-  = '"' v:DoubleQuotedChar* '"' { RETURN(joinChars(v)) }
-  / "'" v:SingleQuotedChar* "'" { RETURN(joinChars(v)) }
+  = '"' v:DoubleQuotedChar* '"' { return joinChars(v), nil }
+  / "'" v:SingleQuotedChar* "'" { return joinChars(v), nil }
 
 DoubleQuotedChar
-  = !('"' / EscapedChar) . { RETURN(TEXT) }
-  / "\\" s:EscapeSequence { RETURN(s) }
+  = !('"' / EscapedChar) . { return string(c.text), nil }
+  / "\\" s:EscapeSequence { return s, nil }
 
 KeyWord
-  = head:KeyWordStart tail:KeyWordRest* { RETURN(ASSERT_STRING(head) + joinChars(tail)) }
+  = head:KeyWordStart tail:KeyWordRest* { return head.(string) + joinChars(tail), nil }
 
 KeyWordStart
   = KeyWordChars
@@ -1194,13 +1544,13 @@ KeyWordRest
   = KeyWordStart
   / [0-9]
 
-KeyWordChars = (UnicodeLetter / [_.:/%#@~]) { RETURN(TEXT) }
+KeyWordChars = (UnicodeLetter / [_.:/%#@~]) { return string(c.text), nil }
 
-KeyWordEsc = "\\" s:(KeywordEscape / EscapeSequence) { RETURN(s) }
+KeyWordEsc = "\\" s:(KeywordEscape / EscapeSequence) { return s, nil }
 
 GlobPattern
   = &GlobProperStart &GlobHasStar head:GlobStart tail:GlobRest* {
-      RETURN(ASSERT_STRING(head) + joinChars(tail))
+      return head.(string) + joinChars(tail), nil
     }
 
 GlobProperStart = KeyWordStart / "*"+ KeyWordRest
@@ -1209,22 +1559,22 @@ GlobHasStar = KeyWordRest* "*"
 GlobStart
   = KeyWordChars
   / GlobEsc
-  / "*" { RETURN("*") }
+  / "*" { return "*", nil }
 
 GlobRest
   = GlobStart
   / [0-9]
 
-GlobEsc = "\\" s:(GlobEscape / EscapeSequence) { RETURN(s) }
+GlobEsc = "\\" s:(GlobEscape / EscapeSequence) { return s, nil }
 
 GlobEscape
-  = "=" { RETURN("=") }
-  / "*" { RETURN("\\*") }
+  = "=" { return "=", nil }
+  / "*" { return "\\*", nil }
   / [+-]
 
 SingleQuotedChar
-  = !("'" / EscapedChar) . { RETURN(TEXT) }
-  / "\\" s:EscapeSequence { RETURN(s) }
+  = !("'" / EscapedChar) . { return string(c.text), nil }
+  / "\\" s:EscapeSequence { return s, nil }
 
 EscapeSequence
   = SingleCharEscape
@@ -1232,33 +1582,33 @@ EscapeSequence
 
 SingleCharEscape
   = "'"
-  / "\"" { RETURN(TEXT) }
+  / "\"" { return string(c.text), nil }
   / "\\"
-  / "b" { RETURN("\b") }
-  / "f" { RETURN("\f") }
-  / "n" { RETURN("\n") }
-  / "r" { RETURN("\r") }
-  / "t" { RETURN("\t") }
-  / "v" { RETURN("\v") }
+  / "b" { return "\b", nil }
+  / "f" { return "\f", nil }
+  / "n" { return "\n", nil }
+  / "r" { return "\r", nil }
+  / "t" { return "\t", nil }
+  / "v" { return "\v", nil }
 
 KeywordEscape
-  = "=" { RETURN("=") }
-  / "*" { RETURN("*") }
+  = "=" { return "=", nil }
+  / "*" { return "*", nil }
   / [+-]
 
 UnicodeEscape
   = "u" chars:(HexDigit HexDigit HexDigit HexDigit) {
-      RETURN(makeUnicodeChar(chars))
+      return makeUnicodeChar(chars), nil
     }
   / "u" "{" chars:(HexDigit HexDigit? HexDigit? HexDigit? HexDigit? HexDigit?) "}" {
-      RETURN(makeUnicodeChar(chars))
+      return makeUnicodeChar(chars), nil
     }
 
 RegexpPattern
-  = "/" body:RegexpBody "/" !KeyWordStart { RETURN(body) }
+  = "/" body:RegexpBody "/" !KeyWordStart { return body, nil }
 
 RegexpBody
-  = ([^/\\] / "\\" .)+ { RETURN(TEXT) }
+  = ([^/\\] / "\\" .)+ { return string(c.text), nil }
 
 EscapedChar
   = [\x00-\x1f\\]

@@ -12,9 +12,9 @@ outputs:
     data: |
       switch (
         case grep("a") =>
-          head 1
+          head
         case grep("c") =>
-          tail 1
+          tail
       )
       ===
       reader
@@ -27,9 +27,9 @@ outputs:
       ===
       switch (
         case grep("a") =>
-          head 1
+          head
         default =>
-          tail 1
+          tail
       )
       ===
       reader

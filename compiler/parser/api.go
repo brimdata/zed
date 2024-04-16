@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/brimdata/zed/compiler/ast"
 )
 
 // ParseZed calls ConcatSource followed by Parse.  If Parse fails, it calls
 // ImproveError.
-func ParseZed(filenames []string, src string) (interface{}, error) {
+func ParseZed(filenames []string, src string) (ast.Seq, error) {
 	src, srcInfo, err := ConcatSource(filenames, src)
 	if err != nil {
 		return nil, err
@@ -17,7 +19,7 @@ func ParseZed(filenames []string, src string) (interface{}, error) {
 	if err != nil {
 		return nil, ImproveError(err, src, srcInfo)
 	}
-	return p, nil
+	return sliceOf[ast.Op](p), nil
 }
 
 // SourceInfo holds source file offsets.
