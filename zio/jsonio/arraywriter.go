@@ -19,7 +19,7 @@ func NewArrayWriter(wc io.WriteCloser) *ArrayWriter {
 	var buf bytes.Buffer
 	return &ArrayWriter{
 		buf: &buf,
-		w:   NewWriter(zio.NopCloser(&buf)),
+		w:   NewWriter(zio.NopCloser(&buf), WriterOpts{}),
 		wc:  wc,
 	}
 }
