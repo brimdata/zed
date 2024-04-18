@@ -217,8 +217,6 @@ func (*MapExpr) ExprAST()    {}
 
 func (*OverExpr) ExprAST() {}
 
-func (*SQLExpr) ExprAST() {}
-
 type ConstDecl struct {
 	Kind string `json:"kind" unpack:""`
 	Name string `json:"name"`
@@ -390,24 +388,6 @@ type (
 		Kind string `json:"kind" unpack:""`
 		Expr Expr   `json:"expr"`
 	}
-	// A SQLExpr can be an operator, an expression inside of a SQL FROM clause,
-	// or an expression used as a Zed value generator.  Currenly, the "select"
-	// keyword collides with the select() generator function (it can be parsed
-	// unambiguosly because of the parens but this is not user friendly
-	// so we need a new name for select()... see issue #2133).
-	// TBD: from alias, "in" over tuples, WITH sub-queries, multi-table FROM
-	// implying a JOIN, aliases for tables in FROM and JOIN.
-	SQLExpr struct {
-		Kind    string       `json:"kind" unpack:""`
-		Select  []Assignment `json:"select"`
-		From    *SQLFrom     `json:"from"`
-		Joins   []SQLJoin    `json:"joins"`
-		Where   Expr         `json:"where"`
-		GroupBy []Expr       `json:"group_by"`
-		Having  Expr         `json:"having"`
-		OrderBy *SQLOrderBy  `json:"order_by"`
-		Limit   int          `json:"limit"`
-	}
 	Shape struct {
 		Kind string `json:"kind" unpack:""`
 	}
@@ -489,25 +469,6 @@ type Case struct {
 	Path Seq  `json:"path"`
 }
 
-type SQLFrom struct {
-	Table Expr `json:"table"`
-	Alias Expr `json:"alias"`
-}
-
-type SQLOrderBy struct {
-	Kind  string      `json:"kind" unpack:""`
-	Keys  []Expr      `json:"keys"`
-	Order order.Which `json:"order"`
-}
-
-type SQLJoin struct {
-	Table    Expr   `json:"table"`
-	Style    string `json:"style"`
-	LeftKey  Expr   `json:"left_key"`
-	RightKey Expr   `json:"right_key"`
-	Alias    Expr   `json:"alias"`
-}
-
 type Assignment struct {
 	Kind string `json:"kind" unpack:""`
 	LHS  Expr   `json:"lhs"`
@@ -551,8 +512,6 @@ func (*Yield) OpAST()        {}
 func (*Sample) OpAST()       {}
 func (*Load) OpAST()         {}
 func (*Assert) OpAST()       {}
-
-func (*SQLExpr) OpAST() {}
 
 func (seq *Seq) Prepend(front Op) {
 	*seq = append([]Op{front}, *seq...)

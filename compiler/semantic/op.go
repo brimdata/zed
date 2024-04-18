@@ -692,18 +692,6 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			seq = append(seq, par)
 		}
 		return append(seq, join), nil
-	case *ast.SQLExpr:
-		var err error
-		seq, err = a.convertSQLOp(o, seq)
-		if err != nil {
-			return nil, err
-		}
-		// The conversion may be a group-by so we recursively
-		// invoke the transformation here...
-		if seq == nil {
-			return nil, errors.New("unable to covert SQL expression to Zed")
-		}
-		return seq, nil
 	case *ast.Explode:
 		typ, err := a.semType(o.Type)
 		if err != nil {

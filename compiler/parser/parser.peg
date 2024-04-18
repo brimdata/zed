@@ -280,7 +280,6 @@ Operator
   / ShapeOp
   / JoinOp
   / SampleOp
-  / SQLOp
   / FromOp
   / PassOp
   / ExplodeOp
@@ -386,7 +385,7 @@ ShapeOp
     }
 
 JoinOp
-  = style:JoinStyle "join" rightInput:JoinRightInput ON _ key:JoinKey optKey:(__ "=" __ JoinKey)? optArgs:(_ FlexAssignments)? {
+  = style:JoinStyle "join" rightInput:JoinRightInput "on" _ key:JoinKey optKey:(__ "=" __ JoinKey)? optArgs:(_ FlexAssignments)? {
       VAR(m) = MAP("kind": "Join", "style": style, "right_input": rightInput, "left_key": key, "right_key": key, "args": NULL)
       if ISNOTNULL(optKey) {
         m["right_key"] = ASSERT_ARRAY(optKey)[3]
@@ -593,10 +592,10 @@ YieldOp
     }
 
 TypeArg
-  = _ BY _ typ:Type { RETURN(typ) }
+  = _ "by" _ typ:Type { RETURN(typ) }
 
 AsArg
-  = _ AS _ lhs:Lval { RETURN(lhs) }
+  = _ "as" _ lhs:Lval { RETURN(lhs) }
 
 /// === Expressions ===
 
@@ -849,123 +848,6 @@ Entry
       RETURN(MAP("key": key, "value": value))
     }
 
-/// === SQL Compat ===
-
-SQLOp
-  = selection:SQLSelect
-    from:SQLFrom?
-    joins:SQLJoins?
-    where:SQLWhere?
-    groupby:SQLGroupBy?
-    having:SQLHaving?
-    orderby:SQLOrderBy?
-    limit:SQLLimit
-    {
-      RETURN(MAP(
-        "kind": "SQLExpr",
-        "select": selection,
-        "from": from,
-        "joins": joins,
-        "where": where,
-        "group_by": groupby,
-        "having": having,
-        "order_by": orderby,
-        "limit": limit))
-    }
-
-SQLSelect
-  = SELECT _ "*" { RETURN(NULL) }
-  / SELECT _ assignments:SQLAssignments { RETURN(assignments) }
-
-SQLAssignment
-  = rhs:Expr opt:(_ AS _ Lval)? {
-      VAR(m) = MAP("kind": "Assignment", "lhs": NULL, "rhs": rhs)
-      if ISNOTNULL(opt) {
-        m["lhs"] = ASSERT_ARRAY(opt)[3]
-      }
-      RETURN(m)
-    }
-
-SQLAssignments
-  = first:SQLAssignment rest:(__ "," __ expr:SQLAssignment { RETURN(expr) })* {
-      RETURN(PREPEND(first, rest))
-    }
-
-SQLFrom
-  = _ FROM _ table:SQLTable alias:SQLAlias? {
-      RETURN(MAP("table": table, "alias": alias))
-    }
-  / _ FROM _ "*" { RETURN(NULL) }
-
-SQLAlias
-  = _ AS _ id:Lval { RETURN(id) }
-  / _ !(SQLTokenSentinels _) id:Lval { RETURN(id) }
-
-SQLTable
-  = Expr
-
-SQLJoins
-  = first:SQLJoin rest:(join:SQLJoin { RETURN(join) })* {
-      RETURN(PREPEND(first, rest))
-    }
-
-SQLJoin
-  = style:SQLJoinStyle _ JOIN _ table:SQLTable alias:SQLAlias? _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
-      RETURN(MAP(
-        "table": table,
-        "style": style,
-        "left_key": leftKey,
-        "right_key": rightKey,
-        "alias": alias))
-    }
-
-SQLJoinStyle
-  = _ style:(ANTI / INNER / LEFT / RIGHT) { RETURN(style) }
-  / "" { RETURN("inner") }
-
-SQLWhere
-  = _ WHERE _ expr:LogicalOrExpr { RETURN(expr) }
-
-SQLGroupBy
-  = _ GROUP _ BY _ columns:FieldExprs { RETURN(columns) }
-
-SQLHaving
-  = _ HAVING _ expr:LogicalOrExpr { RETURN(expr) }
-
-SQLOrderBy
-  = _ ORDER _ BY _ keys:Exprs order:SQLOrder {
-      RETURN(MAP("kind": "SQLOrderBy", "keys": keys, "order": order))
-    }
-
-SQLOrder
-  = _ dir:(ASC / DESC) { RETURN(dir) }
-  / "" { RETURN("asc") }
-
-SQLLimit
-  = _ LIMIT _ count:UInt { RETURN(count) }
-  / "" { RETURN(0) }
-
-SELECT = "select"i { RETURN("select") }
-AS = "as"i { RETURN("as") }
-FROM = "from"i { RETURN("from") }
-JOIN = "join"i { RETURN("join") }
-WHERE = "where"i { RETURN("where") }
-GROUP = "group"i { RETURN("group") }
-BY = "by"i { RETURN("by") }
-HAVING = "having"i { RETURN("having") }
-ORDER = "order"i { RETURN("order") }
-ON = "on"i { RETURN("on") }
-LIMIT = "limit"i { RETURN("limit") }
-ASC = "asc"i { RETURN("asc") }
-DESC = "desc"i { RETURN("desc") }
-ANTI = "anti"i { RETURN("anti") }
-LEFT = "left"i { RETURN("left") }
-RIGHT = "right"i { RETURN("right") }
-INNER = "inner"i { RETURN("inner") }
-
-SQLTokenSentinels
-  = SELECT / AS / FROM / JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT / ON
-
 /// === Literals ===
 
 Literal
@@ -1159,7 +1041,6 @@ IdentifierName
   / "\\" id:IDGuard { RETURN(id) }
   // "type" is a search guard but should not be an id guard
   / "type" { RETURN(TEXT) }
-  / id:SQLTokenSentinels &(__ "(") { RETURN(id) }
 
 IdentifierNames
   = first:IdentifierName rest:(__ "," __ id:IdentifierName { RETURN(id) })* {
