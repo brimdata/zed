@@ -278,29 +278,6 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 	return typ
 }
 
-// AddFields returns a new Record with fields equal to the given
-// record along with new rightmost fields as indicated with the given values.
-// If any of the newly provided fieldss already exists in the specified value,
-// an error is returned.
-func (c *Context) AddFields(r Value, newFields []Field, vals []Value) (Value, error) {
-	fields := slices.Clone(r.Fields())
-	for _, f := range newFields {
-		if r.HasField(f.Name) {
-			return Null, fmt.Errorf("field already exists: %s", f.Name)
-		}
-		fields = append(fields, f)
-	}
-	zv := slices.Clone(r.Bytes())
-	for _, val := range vals {
-		zv = val.Encode(zv)
-	}
-	typ, err := c.LookupTypeRecord(fields)
-	if err != nil {
-		return Null, err
-	}
-	return NewValue(typ, zv), nil
-}
-
 // LookupByValue returns the Type indicated by a binary-serialized type value.
 // This provides a means to translate a type-context-independent serialized
 // encoding for an arbitrary type into the reciever Context.
