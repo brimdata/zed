@@ -233,7 +233,7 @@ func (w *Writer) punc(b byte) {
 }
 
 func (w *Writer) writeColor(b []byte, code []byte) {
-	if w.tab > 0 && color.Enabled {
+	if color.Enabled {
 		w.writer.Write(code)
 		defer w.writer.WriteString(color.Reset.String())
 	}
