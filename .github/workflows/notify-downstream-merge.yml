@@ -30,7 +30,7 @@ jobs:
         echo "merged=$merged" >> $GITHUB_OUTPUT
       id: vars
     - name: Post PR closed event, if the close was a merge
-      if: steps.vars.outputs.merged == 'true'
+      if: steps.vars.outputs.merged == 'true' && ! contains(github.event.pull_request.labels.*.name, 'skip-notify-downstream')
       run: |
         jq '.' "${GITHUB_EVENT_PATH}"
         # Get what we want from the pull request event, craft a
