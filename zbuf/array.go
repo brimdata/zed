@@ -8,8 +8,8 @@ import (
 // Array is a slice of of records that implements the Batch and
 // the Reader interfaces.
 type Array struct {
+	arena  *zed.Arena
 	values []zed.Value
-	vars   []zed.Value
 }
 
 var _ Batch = (*Array)(nil)
@@ -18,8 +18,11 @@ var _ zio.Writer = (*Array)(nil)
 
 // XXX this should take the frame arg too and the procs that create
 // new arrays need to propagate their frames downstream.
-func NewArray(vals []zed.Value) *Array {
-	return &Array{values: vals}
+func NewArray(arena *zed.Arena, vals []zed.Value) *Array {
+	if arena != nil {
+		arena.Ref()
+	}
+	return &Array{arena, vals}
 }
 
 func (a *Array) Ref() {
@@ -30,26 +33,30 @@ func (a *Array) Unref() {
 	// do nothing... let the GC reclaim it
 }
 
+func (a *Array) Reset() {
+	if a.arena != nil {
+		a.arena.Reset()
+	}
+	a.values = a.values[:0]
+}
+
 func (a *Array) Values() []zed.Value {
 	return a.values
 }
 
-func (a *Array) Append(r zed.Value) {
-	a.values = append(a.values, r)
-}
-
-func (a *Array) SetVars(vars []zed.Value) {
-	a.vars = vars
-}
-
 func (a *Array) Vars() []zed.Value {
-	return a.vars
+	return nil
 }
 
 func (a *Array) Write(r zed.Value) error {
-	a.Append(r.Copy())
+	if a.arena == nil {
+		a.arena = zed.NewArena()
+	}
+	a.values = append(a.values, r.Copy(a.arena))
 	return nil
 }
+
+func (*Array) Zctx() *zed.Arena { panic("zbuf.Array.Zctx") }
 
 // Read returns removes the first element of the Array and returns it,
 // or it returns nil if the Array is empty.

@@ -16,6 +16,7 @@ type Context struct {
 	WaitGroup sync.WaitGroup
 	Zctx      *zed.Context
 	cancel    context.CancelFunc
+	keepalive []*zed.Arena
 }
 
 func NewContext(ctx context.Context, zctx *zed.Context) *Context {
@@ -36,4 +37,9 @@ func DefaultContext() *Context {
 func (c *Context) Cancel() {
 	c.cancel()
 	c.WaitGroup.Wait()
+}
+
+// KeepAlive ensures that arena is not freed before the context.
+func (c *Context) KeepAlive(arena *zed.Arena) {
+	c.keepalive = append(c.keepalive, arena)
 }

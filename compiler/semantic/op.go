@@ -125,7 +125,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 			if err != nil {
 				return nil, fmt.Errorf("headers: %w", err)
 			}
-			headers, err = unmarshalHeaders(val)
+			headers, err = unmarshalHeaders(a.arena, val)
 			if err != nil {
 				return nil, err
 			}
@@ -169,7 +169,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 	}
 }
 
-func unmarshalHeaders(val zed.Value) (map[string][]string, error) {
+func unmarshalHeaders(arena *zed.Arena, val zed.Value) (map[string][]string, error) {
 	if !zed.IsRecordType(val.Type()) {
 		return nil, errors.New("headers value must be a record")
 	}
@@ -178,7 +178,7 @@ func unmarshalHeaders(val zed.Value) (map[string][]string, error) {
 		if inner := zed.InnerType(f.Type); inner == nil || inner.ID() != zed.IDString {
 			return nil, errors.New("headers field value must be an array or set of strings")
 		}
-		fieldVal := val.DerefByColumn(i)
+		fieldVal := val.DerefByColumn(arena, i)
 		if fieldVal == nil {
 			continue
 		}
@@ -256,7 +256,7 @@ func (a *analyzer) maybeStringConst(name string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("%s: string value required", name)
 	}
-	val := zson.MustParseValue(a.zctx, l.Value)
+	val := zson.MustParseValue(a.zctx, a.arena, l.Value)
 	if val.Type().ID() != zed.IDString {
 		return "", fmt.Errorf("%s: string value required", name)
 	}

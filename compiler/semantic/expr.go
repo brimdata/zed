@@ -35,7 +35,7 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 	case *ast.Grep:
 		return a.semGrep(e)
 	case *astzed.Primitive:
-		val, err := zson.ParsePrimitive(e.Type, e.Text)
+		val, err := zson.ParsePrimitive(a.arena, e.Type, e.Text)
 		if err != nil {
 			return nil, err
 		}
@@ -49,7 +49,7 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 		var val string
 		switch t := e.Value.(type) {
 		case *astzed.Primitive:
-			v, err := zson.ParsePrimitive(t.Type, t.Text)
+			v, err := zson.ParsePrimitive(a.arena, t.Type, t.Text)
 			if err != nil {
 				return nil, err
 			}

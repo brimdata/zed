@@ -29,26 +29,29 @@ func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.T
 }
 
 func (o *Op) Pull(done bool) (zbuf.Batch, error) {
+	arena := zed.NewArena()
+	defer arena.Unref()
 	for {
 		batch, err := o.parent.Pull(done)
 		if batch == nil || err != nil {
 			return nil, err
 		}
+		ectx := expr.NewContextWithVars(arena, batch.Vars())
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(vals))
-		for i := range vals {
+		for _, val := range vals {
 			for _, arg := range o.args {
-				val := arg.Eval(batch, vals[i])
+				val := arg.Eval(ectx, val)
 				if val.IsError() {
 					if !val.IsMissing() {
-						out = append(out, val.Copy())
+						out = append(out, val.Copy(arena))
 					}
 					continue
 				}
 				zed.Walk(val.Type(), val.Bytes(), func(typ zed.Type, body zcode.Bytes) error {
 					if typ == o.typ && body != nil {
 						bytes := zcode.Append(nil, body)
-						out = append(out, zed.NewValue(o.outType, bytes))
+						out = append(out, arena.New(o.outType, bytes))
 						return zed.SkipContainer
 					}
 					return nil
@@ -57,8 +60,9 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		}
 		if len(out) > 0 {
 			defer batch.Unref()
-			return zbuf.NewBatch(batch, out), nil
+			return zbuf.NewBatch(arena, out, batch, batch.Vars()), nil
 		}
+		arena.Reset()
 		batch.Unref()
 	}
 }

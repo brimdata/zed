@@ -38,7 +38,9 @@ func (q *Query) Read() (*zed.Value, error) {
 		if ctrl.Format != zngio.ControlFormatZSON {
 			return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Format)
 		}
-		value, err := zson.ParseValue(zed.NewContext(), string(ctrl.Bytes))
+		arena := zed.NewArena()
+		defer arena.Unref()
+		value, err := zson.ParseValue(zed.NewContext(), arena, string(ctrl.Bytes))
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse Zed control message: %w (%s)", err, string(ctrl.Bytes))
 		}

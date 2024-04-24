@@ -31,5 +31,5 @@ func NewComparatorNullsMax(zctx *zed.Context, sortKey order.SortKey) *expr.Compa
 type valueAsBytes struct{}
 
 func (v *valueAsBytes) Eval(ectx expr.Context, val zed.Value) zed.Value {
-	return zed.NewBytes(val.Bytes())
+	return ectx.Arena().NewBytes(val.Bytes())
 }

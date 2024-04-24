@@ -8,12 +8,16 @@ import (
 )
 
 type CollectMap struct {
+	arena   *zed.Arena
 	entries map[string]mapEntry
 	scratch []byte
 }
 
 func newCollectMap() *CollectMap {
-	return &CollectMap{entries: make(map[string]mapEntry)}
+	return &CollectMap{
+		arena:   zed.NewArena(),
+		entries: make(map[string]mapEntry),
+	}
 }
 
 var _ Function = (*Collect)(nil)
@@ -35,8 +39,8 @@ func (c *CollectMap) Consume(val zed.Value) {
 	it := zcode.Iter(slices.Clone(val.Bytes()))
 	for !it.Done() {
 		keyTagAndBody := it.NextTagAndBody()
-		key := valueUnder(mtyp.KeyType, keyTagAndBody.Body())
-		val := valueUnder(mtyp.ValType, it.Next())
+		key := valueUnder(c.arena, mtyp.KeyType, keyTagAndBody.Body())
+		val := valueUnder(c.arena, mtyp.ValType, it.Next())
 		c.scratch = zed.AppendTypeValue(c.scratch[:0], key.Type())
 		c.scratch = append(c.scratch, keyTagAndBody...)
 		// This will squash existing values which is what we want.
@@ -44,11 +48,11 @@ func (c *CollectMap) Consume(val zed.Value) {
 	}
 }
 
-func (c *CollectMap) ConsumeAsPartial(val zed.Value) {
+func (c *CollectMap) ConsumeAsPartial(_ *zed.Arena, val zed.Value) {
 	c.Consume(val)
 }
 
-func (c *CollectMap) Result(zctx *zed.Context) zed.Value {
+func (c *CollectMap) Result(zctx *zed.Context, arena *zed.Arena) zed.Value {
 	if len(c.entries) == 0 {
 		return zed.Null
 	}
@@ -69,11 +73,11 @@ func (c *CollectMap) Result(zctx *zed.Context) zed.Value {
 	}
 	typ := zctx.LookupTypeMap(ktyp, vtyp)
 	b := zed.NormalizeMap(builder.Bytes())
-	return zed.NewValue(typ, b)
+	return arena.New(typ, b)
 }
 
-func (c *CollectMap) ResultAsPartial(zctx *zed.Context) zed.Value {
-	return c.Result(zctx)
+func (c *CollectMap) ResultAsPartial(zctx *zed.Context, arena *zed.Arena) zed.Value {
+	return c.Result(zctx, arena)
 }
 
 func appendMapVal(b *zcode.Builder, typ zed.Type, val zed.Value, uniq int) {
@@ -94,10 +98,10 @@ func unionOf(zctx *zed.Context, types []zed.Type) (zed.Type, int) {
 }
 
 // valueUnder is like zed.(*Value).Under but it preserves non-union named types.
-func valueUnder(typ zed.Type, b zcode.Bytes) zed.Value {
-	val := zed.NewValue(typ, b)
+func valueUnder(arena *zed.Arena, typ zed.Type, b zcode.Bytes) zed.Value {
+	val := arena.New(typ, b)
 	if _, ok := zed.TypeUnder(typ).(*zed.TypeUnion); !ok {
 		return val
 	}
-	return val.Under()
+	return val.Under(arena)
 }

@@ -7,15 +7,17 @@ import (
 )
 
 type fuse struct {
-	shapes   map[zed.Type]int
-	partials []zed.Value
+	shapes        map[zed.Type]int
+	partials      []zed.Value
+	partialsArena *zed.Arena
 }
 
 var _ Function = (*fuse)(nil)
 
 func newFuse() *fuse {
 	return &fuse{
-		shapes: make(map[zed.Type]int),
+		shapes:        make(map[zed.Type]int),
+		partialsArena: zed.NewArena(),
 	}
 }
 
@@ -25,7 +27,7 @@ func (f *fuse) Consume(val zed.Value) {
 	}
 }
 
-func (f *fuse) Result(zctx *zed.Context) zed.Value {
+func (f *fuse) Result(zctx *zed.Context, arena *zed.Arena) zed.Value {
 	if len(f.shapes)+len(f.partials) == 0 {
 		return zed.NullType
 	}
@@ -44,16 +46,16 @@ func (f *fuse) Result(zctx *zed.Context) zed.Value {
 	for _, typ := range shapes {
 		schema.Mixin(typ)
 	}
-	return zctx.LookupTypeValue(schema.Type())
+	return zctx.LookupTypeValue(arena, schema.Type())
 }
 
-func (f *fuse) ConsumeAsPartial(partial zed.Value) {
+func (f *fuse) ConsumeAsPartial(_ *zed.Arena, partial zed.Value) {
 	if partial.Type() != zed.TypeType {
 		panic("fuse: partial not a type value")
 	}
-	f.partials = append(f.partials, partial.Copy())
+	f.partials = append(f.partials, partial.Copy(f.partialsArena))
 }
 
-func (f *fuse) ResultAsPartial(zctx *zed.Context) zed.Value {
-	return f.Result(zctx)
+func (f *fuse) ResultAsPartial(zctx *zed.Context, arena *zed.Arena) zed.Value {
+	return f.Result(zctx, arena)
 }

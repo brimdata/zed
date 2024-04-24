@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/fuzz"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,8 +16,9 @@ func FuzzVngRoundtripGen(f *testing.F) {
 		bytesReader := bytes.NewReader(b)
 		context := zed.NewContext()
 		types := fuzz.GenTypes(bytesReader, context, 3)
-		values := fuzz.GenValues(bytesReader, context, types)
-		roundtrip(t, values)
+		batch := fuzz.GenValues(bytesReader, context, types)
+		defer batch.Unref()
+		roundtrip(t, batch)
 	})
 }
 
@@ -30,10 +32,10 @@ func FuzzVngRoundtripBytes(f *testing.F) {
 	})
 }
 
-func roundtrip(t *testing.T, valuesIn []zed.Value) {
+func roundtrip(t *testing.T, batch zbuf.Batch) {
 	var buf bytes.Buffer
-	fuzz.WriteVNG(t, valuesIn, &buf)
-	valuesOut, err := fuzz.ReadVNG(buf.Bytes(), demand.All())
+	fuzz.WriteVNG(t, batch, &buf)
+	batchOut, err := fuzz.ReadVNG(buf.Bytes(), demand.All())
 	require.NoError(t, err)
-	fuzz.CompareValues(t, valuesIn, valuesOut)
+	fuzz.CompareValues(t, batch.Values(), batchOut.Values())
 }

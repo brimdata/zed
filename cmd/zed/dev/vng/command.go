@@ -79,6 +79,7 @@ type reader struct {
 	reader    *bufio.Reader
 	meta      *zngio.Reader
 	marshaler *zson.MarshalZNGContext
+	arena     *zed.Arena
 	dataSize  int
 }
 
@@ -90,6 +91,7 @@ func newReader(r io.Reader) *reader {
 		zctx:      zctx,
 		reader:    bufio.NewReader(r),
 		marshaler: zson.NewZNGMarshalerWithContext(zctx),
+		arena:     zed.NewArena(),
 	}
 }
 
@@ -105,7 +107,8 @@ func (r *reader) Read() (*zed.Value, error) {
 			}
 			r.meta = zngio.NewReader(r.zctx, io.LimitReader(r.reader, int64(hdr.MetaSize)))
 			r.dataSize = int(hdr.DataSize)
-			val, err := r.marshaler.Marshal(hdr)
+			r.arena.Reset()
+			val, err := r.marshaler.Marshal(r.arena, hdr)
 			return val.Ptr(), err
 		}
 		val, err := r.meta.Read()

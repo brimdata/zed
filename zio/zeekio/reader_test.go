@@ -1,6 +1,7 @@
 package zeekio
 
 import (
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +13,9 @@ import (
 )
 
 func TestReaderCRLF(t *testing.T) {
+	arena := zed.NewArena()
+	defer arena.Unref()
+
 	input := `
 #separator \x09
 #set_separator	,
@@ -24,11 +28,12 @@ func TestReaderCRLF(t *testing.T) {
 `
 	input = strings.ReplaceAll(input, "\n", "\r\n")
 	r := NewReader(zed.NewContext(), strings.NewReader(input))
+	defer runtime.KeepAlive(r)
 	rec, err := r.Read()
 	require.NoError(t, err)
-	ts := rec.Deref("ts").AsTime()
+	ts := rec.Deref(arena, "ts").AsTime()
 	assert.Exactly(t, 10*nano.Ts(time.Second), ts)
-	d := rec.Deref("i").AsInt()
+	d := rec.Deref(arena, "i").AsInt()
 	assert.Exactly(t, int64(1), d)
 	rec, err = r.Read()
 	require.NoError(t, err)

@@ -18,9 +18,9 @@ type Pattern func() Function
 
 type Function interface {
 	Consume(zed.Value)
-	ConsumeAsPartial(zed.Value)
-	Result(*zed.Context) zed.Value
-	ResultAsPartial(*zed.Context) zed.Value
+	ConsumeAsPartial(*zed.Arena, zed.Value)
+	Result(*zed.Context, *zed.Arena) zed.Value
+	ResultAsPartial(*zed.Context, *zed.Arena) zed.Value
 }
 
 func NewPattern(op string, hasarg bool) (Pattern, error) {
@@ -71,7 +71,7 @@ func NewPattern(op string, hasarg bool) (Pattern, error) {
 		}
 	case "collect":
 		pattern = func() Function {
-			return &Collect{}
+			return newCollect()
 		}
 	case "and":
 		pattern = func() Function {

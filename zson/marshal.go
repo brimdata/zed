@@ -24,6 +24,7 @@ func Marshal(v interface{}) (string, error) {
 
 type MarshalContext struct {
 	*MarshalZNGContext
+	arena     *zed.Arena
 	formatter *Formatter
 }
 
@@ -34,6 +35,7 @@ func NewMarshaler() *MarshalContext {
 func NewMarshalerIndent(indent int) *MarshalContext {
 	return &MarshalContext{
 		MarshalZNGContext: NewZNGMarshaler(),
+		arena:             zed.NewArena(),
 		formatter:         NewFormatter(indent, nil),
 	}
 }
@@ -41,11 +43,13 @@ func NewMarshalerIndent(indent int) *MarshalContext {
 func NewMarshalerWithContext(zctx *zed.Context) *MarshalContext {
 	return &MarshalContext{
 		MarshalZNGContext: NewZNGMarshalerWithContext(zctx),
+		arena:             zed.NewArena(),
 	}
 }
 
 func (m *MarshalContext) Marshal(v interface{}) (string, error) {
-	val, err := m.MarshalZNGContext.Marshal(v)
+	m.arena.Reset()
+	val, err := m.MarshalZNGContext.Marshal(m.arena, v)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +57,8 @@ func (m *MarshalContext) Marshal(v interface{}) (string, error) {
 }
 
 func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (string, error) {
-	rec, err := m.MarshalZNGContext.MarshalCustom(names, fields)
+	m.arena.Reset()
+	rec, err := m.MarshalZNGContext.MarshalCustom(m.arena, names, fields)
 	if err != nil {
 		return "", err
 	}
@@ -63,6 +68,7 @@ func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (st
 type UnmarshalContext struct {
 	*UnmarshalZNGContext
 	zctx     *zed.Context
+	arena    *zed.Arena
 	analyzer Analyzer
 	builder  *zcode.Builder
 }
@@ -71,6 +77,7 @@ func NewUnmarshaler() *UnmarshalContext {
 	return &UnmarshalContext{
 		UnmarshalZNGContext: NewZNGUnmarshaler(),
 		zctx:                zed.NewContext(),
+		arena:               zed.NewArena(),
 		analyzer:            NewAnalyzer(),
 		builder:             zcode.NewBuilder(),
 	}
@@ -90,7 +97,8 @@ func (u *UnmarshalContext) Unmarshal(zson string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	zedVal, err := Build(u.builder, val)
+	u.arena.Reset()
+	zedVal, err := Build(u.arena, u.builder, val)
 	if err != nil {
 		return nil
 	}
@@ -101,8 +109,8 @@ type ZNGMarshaler interface {
 	MarshalZNG(*MarshalZNGContext) (zed.Type, error)
 }
 
-func MarshalZNG(v interface{}) (zed.Value, error) {
-	return NewZNGMarshaler().Marshal(v)
+func MarshalZNG(zctx *zed.Context, arena *zed.Arena, v interface{}) (zed.Value, error) {
+	return NewZNGMarshalerWithContext(zctx).Marshal(arena, v)
 }
 
 type MarshalZNGContext struct {
@@ -128,7 +136,7 @@ func (m *MarshalZNGContext) MarshalValue(v interface{}) (zed.Type, error) {
 	return m.encodeValue(reflect.ValueOf(v))
 }
 
-func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
+func (m *MarshalZNGContext) Marshal(arena *zed.Arena, v interface{}) (zed.Value, error) {
 	m.Builder.Reset()
 	typ, err := m.encodeValue(reflect.ValueOf(v))
 	if err != nil {
@@ -139,10 +147,10 @@ func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
 	if it.Done() {
 		return zed.Null, errors.New("no value found")
 	}
-	return zed.NewValue(typ, it.Next()), nil
+	return arena.New(typ, it.Next()), nil
 }
 
-func (m *MarshalZNGContext) MarshalCustom(names []string, vals []interface{}) (zed.Value, error) {
+func (m *MarshalZNGContext) MarshalCustom(arena *zed.Arena, names []string, vals []interface{}) (zed.Value, error) {
 	if len(names) != len(vals) {
 		return zed.Null, errors.New("names and vals have different lengths")
 	}
@@ -165,7 +173,7 @@ func (m *MarshalZNGContext) MarshalCustom(names []string, vals []interface{}) (z
 	if err != nil {
 		return zed.Null, err
 	}
-	return zed.NewValue(recType, m.Builder.Bytes()), nil
+	return arena.New(recType, m.Builder.Bytes()), nil
 }
 
 const (
@@ -294,9 +302,8 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		m.Builder.Append(zed.EncodeTime(nano.TimeToTs(v)))
 		return zed.TypeTime, nil
 	case zed.Type:
-		val := m.Context.LookupTypeValue(v)
-		m.Builder.Append(val.Bytes())
-		return val.Type(), nil
+		m.Builder.Append(zed.EncodeTypeValue(v))
+		return zed.TypeType, nil
 	case zed.Value:
 		typ, err := m.TranslateType(v.Type())
 		if err != nil {
@@ -637,6 +644,7 @@ type ZNGUnmarshaler interface {
 
 type UnmarshalZNGContext struct {
 	zctx   *zed.Context
+	arena  *zed.Arena
 	binder binder
 }
 
@@ -644,8 +652,10 @@ func NewZNGUnmarshaler() *UnmarshalZNGContext {
 	return &UnmarshalZNGContext{}
 }
 
-func UnmarshalZNG(val zed.Value, v interface{}) error {
-	return NewZNGUnmarshaler().decodeAny(val, reflect.ValueOf(v))
+func UnmarshalZNG(zctx *zed.Context, arena *zed.Arena, val zed.Value, v interface{}) error {
+	u := NewZNGUnmarshaler()
+	u.SetContext(zctx, arena)
+	return u.Unmarshal(val, v)
 }
 
 func incompatTypeError(zt zed.Type, v reflect.Value) error {
@@ -654,8 +664,10 @@ func incompatTypeError(zt zed.Type, v reflect.Value) error {
 
 // SetContext provides an optional type context to the unmarshaler.  This is
 // needed only when unmarshaling Zed type values into Go zed.Type interface values.
-func (u *UnmarshalZNGContext) SetContext(zctx *zed.Context) {
+func (u *UnmarshalZNGContext) SetContext(zctx *zed.Context, arena *zed.Arena) *UnmarshalZNGContext {
 	u.zctx = zctx
+	u.arena = arena
+	return u
 }
 
 func (u *UnmarshalZNGContext) Unmarshal(val zed.Value, v interface{}) error {
@@ -691,7 +703,7 @@ func (u *UnmarshalZNGContext) NamedBindings(bindings []Binding) error {
 var netipAddrType = reflect.TypeOf(netip.Addr{})
 var netIPType = reflect.TypeOf(net.IP{})
 
-func (u *UnmarshalZNGContext) decodeAny(val zed.Value, v reflect.Value) (x error) {
+func (u *UnmarshalZNGContext) decodeAny(val zed.Value, v reflect.Value) error {
 	if !v.IsValid() {
 		return errors.New("cannot unmarshal into value provided")
 	}
@@ -713,9 +725,12 @@ func (u *UnmarshalZNGContext) decodeAny(val zed.Value, v reflect.Value) (x error
 		v.Set(reflect.ValueOf(zed.DecodeTime(val.Bytes())))
 		return nil
 	case zed.Value:
+		if u.arena == nil {
+			return errors.New("cannot unmarshal zed.Value without arena")
+		}
 		// For zed.Values we simply set the reflect value to the
 		// zed.Value that has been decoded.
-		v.Set(reflect.ValueOf(val.Copy()))
+		v.Set(reflect.ValueOf(val.Copy(u.arena)))
 		return nil
 	}
 	if zed.TypeUnder(val.Type()) == zed.TypeNull {
@@ -746,6 +761,9 @@ func (u *UnmarshalZNGContext) decodeAny(val zed.Value, v reflect.Value) (x error
 		if zed.TypeUnder(val.Type()) == zed.TypeType {
 			if u.zctx == nil {
 				return errors.New("cannot unmarshal type value without type context")
+			}
+			if u.arena == nil {
+				return errors.New("cannot unmarshal type value without arena")
 			}
 			typ, err := u.zctx.LookupByValue(val.Bytes())
 			if err != nil {
@@ -916,15 +934,17 @@ func (u *UnmarshalZNGContext) decodeMap(val zed.Value, mapVal reflect.Value) err
 	if mapVal.IsNil() {
 		mapVal.Set(reflect.MakeMap(mapVal.Type()))
 	}
+	arena := zed.NewArena()
+	defer arena.Unref()
 	keyType := mapVal.Type().Key()
 	valType := mapVal.Type().Elem()
 	for it := val.Iter(); !it.Done(); {
 		key := reflect.New(keyType).Elem()
-		if err := u.decodeAny(zed.NewValue(typ.KeyType, it.Next()), key); err != nil {
+		if err := u.decodeAny(arena.New(typ.KeyType, it.Next()), key); err != nil {
 			return err
 		}
 		val := reflect.New(valType).Elem()
-		if err := u.decodeAny(zed.NewValue(typ.ValType, it.Next()), val); err != nil {
+		if err := u.decodeAny(arena.New(typ.ValType, it.Next()), val); err != nil {
 			return err
 		}
 		mapVal.SetMapIndex(key, val)
@@ -933,9 +953,11 @@ func (u *UnmarshalZNGContext) decodeMap(val zed.Value, mapVal reflect.Value) err
 }
 
 func (u *UnmarshalZNGContext) decodeRecord(val zed.Value, sval reflect.Value) error {
+	arena := zed.NewArena()
+	defer arena.Unref()
 	if union, ok := val.Type().(*zed.TypeUnion); ok {
 		typ, bytes := union.Untag(val.Bytes())
-		val = zed.NewValue(typ, bytes)
+		val = arena.New(typ, bytes)
 	}
 	recType, ok := zed.TypeUnder(val.Type()).(*zed.TypeRecord)
 	if !ok {
@@ -956,7 +978,7 @@ func (u *UnmarshalZNGContext) decodeRecord(val zed.Value, sval reflect.Value) er
 		name := recType.Fields[i].Name
 		if fieldIdx, ok := nameToField[name]; ok {
 			typ := recType.Fields[i].Type
-			if err := u.decodeAny(zed.NewValue(typ, itzv), sval.Field(fieldIdx)); err != nil {
+			if err := u.decodeAny(arena.New(typ, itzv), sval.Field(fieldIdx)); err != nil {
 				return err
 			}
 		}
@@ -987,6 +1009,8 @@ func (u *UnmarshalZNGContext) decodeArray(val zed.Value, arrVal reflect.Value) e
 		arrVal.Set(reflect.Zero(arrVal.Type()))
 		return nil
 	}
+	arena := zed.NewArena()
+	defer arena.Unref()
 	i := 0
 	for it := val.Iter(); !it.Done(); i++ {
 		itzv := it.Next()
@@ -1002,7 +1026,7 @@ func (u *UnmarshalZNGContext) decodeArray(val zed.Value, arrVal reflect.Value) e
 		if i >= arrVal.Len() {
 			arrVal.SetLen(i + 1)
 		}
-		if err := u.decodeAny(zed.NewValue(arrType.Type, itzv), arrVal.Index(i)); err != nil {
+		if err := u.decodeAny(arena.New(arrType.Type, itzv), arrVal.Index(i)); err != nil {
 			return err
 		}
 	}

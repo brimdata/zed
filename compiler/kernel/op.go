@@ -55,11 +55,14 @@ type Builder struct {
 	source   *data.Source
 	readers  []zio.Reader
 	progress *zbuf.Progress
+	arena    *zed.Arena // For zed.Values created during compilation.
 	deletes  *sync.Map
 	funcs    map[string]expr.Function
 }
 
 func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
+	arena := zed.NewArena()
+	rctx.KeepAlive(arena)
 	return &Builder{
 		rctx:   rctx,
 		mctx:   zed.NewContext(),
@@ -70,8 +73,16 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 			RecordsRead:    0,
 			RecordsMatched: 0,
 		},
+		arena: arena,
 		funcs: make(map[string]expr.Function),
 	}
+}
+
+func (b *Builder) clone() *Builder {
+	return &Builder{
+		rctx:  b.rctx,
+		funcs: b.funcs,
+		arena: zed.NewArena()}
 }
 
 // Build builds a flowgraph for seq.  If seq contains a dag.DefaultSource, it
@@ -658,7 +669,7 @@ func (b *Builder) PushdownOf(e dag.Expr) *Filter {
 	if e == nil {
 		return nil
 	}
-	return &Filter{e, b}
+	return &Filter{e, b.clone()}
 }
 
 func (b *Builder) lookupPool(id ksuid.KSUID) (*lake.Pool, error) {
@@ -677,14 +688,15 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 	if err != nil {
 		return zed.Null, err
 	}
+	missing := b.zctx().Missing(b.arena)
 	// Catch panic as the runtime will panic if there is a
 	// reference to a var not in scope, a field access null this, etc.
 	defer func() {
 		if recover() != nil {
-			val = b.zctx().Missing()
+			val = missing
 		}
 	}()
-	return e.Eval(expr.NewContext(), b.zctx().Missing()), nil
+	return e.Eval(expr.NewContext(b.arena), missing), nil
 }
 
 func compileExpr(in dag.Expr) (expr.Evaluator, error) {

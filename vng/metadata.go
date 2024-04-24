@@ -159,6 +159,10 @@ type Primitive struct {
 	Min      *zed.Value
 	Max      *zed.Value
 	Count    uint32
+
+	dictArena *zed.Arena
+	minArena  *zed.Arena
+	maxArena  *zed.Arena
 }
 
 func (p *Primitive) Type(zctx *zed.Context) zed.Type {
@@ -184,6 +188,7 @@ func (n *Nulls) Len() uint32 {
 }
 
 type Const struct {
+	Arena *zed.Arena `zed:"-"`
 	Value zed.Value
 	Count uint32
 }

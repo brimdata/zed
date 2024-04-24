@@ -39,21 +39,21 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 }
 
 func (d *DotExpr) Eval(ectx Context, this zed.Value) zed.Value {
-	val := d.record.Eval(ectx, this).Under()
+	val := d.record.Eval(ectx, this).Under(ectx.Arena())
 	// Cases are ordered by decreasing expected frequency.
 	switch typ := val.Type().(type) {
 	case *zed.TypeRecord:
 		i, ok := d.fieldIndex(typ)
 		if !ok {
-			return d.zctx.Missing()
+			return d.zctx.Missing(ectx.Arena())
 		}
-		return zed.NewValue(typ.Fields[i].Type, getNthFromContainer(val.Bytes(), i))
+		return ectx.Arena().New(typ.Fields[i].Type, getNthFromContainer(val.Bytes(), i))
 	case *zed.TypeMap:
-		return indexMap(d.zctx, ectx, typ, val.Bytes(), zed.NewString(d.field))
+		return indexMap(d.zctx, ectx, typ, val.Bytes(), ectx.Arena().NewString(d.field))
 	case *zed.TypeOfType:
 		return d.evalTypeOfType(ectx, val.Bytes())
 	}
-	return d.zctx.Missing()
+	return d.zctx.Missing(ectx.Arena())
 }
 
 func (d *DotExpr) fieldIndex(typ *zed.TypeRecord) (int, bool) {
@@ -79,10 +79,10 @@ func (d *DotExpr) evalTypeOfType(ectx Context, b zcode.Bytes) zed.Value {
 	typ, _ := d.zctx.DecodeTypeValue(b)
 	if typ, ok := zed.TypeUnder(typ).(*zed.TypeRecord); ok {
 		if typ, ok := typ.TypeOfField(d.field); ok {
-			return d.zctx.LookupTypeValue(typ)
+			return d.zctx.LookupTypeValue(ectx.Arena(), typ)
 		}
 	}
-	return d.zctx.Missing()
+	return d.zctx.Missing(ectx.Arena())
 }
 
 // DotExprToString returns Zed for the Evaluator assuming it's a field expr.

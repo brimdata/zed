@@ -42,12 +42,10 @@ func (e *Expr) SetExit(exit *Exit) {
 }
 
 func (e *Expr) Eval(ectx expr.Context, this zed.Value) zed.Value {
-	b := zbuf.NewArray([]zed.Value{this})
-	b.SetVars(ectx.Vars())
 	select {
-	case e.batchCh <- b:
+	case e.batchCh <- zbuf.NewBatchWithVars(ectx.Arena(), []zed.Value{this}, ectx.Vars()):
 	case <-e.ctx.Done():
-		return e.zctx.NewError(e.ctx.Err())
+		return e.zctx.NewError(ectx.Arena(), e.ctx.Err())
 	}
 	out := e.out[:0]
 	for {
@@ -83,7 +81,7 @@ func (e *Expr) makeArray(ectx expr.Context, vals []zed.Value) zed.Value {
 		return zed.Null
 	}
 	if len(vals) == 1 {
-		return vals[0]
+		return vals[0].Copy(ectx.Arena())
 	}
 	typ := vals[0].Type()
 	for _, val := range vals[1:] {
@@ -95,7 +93,7 @@ func (e *Expr) makeArray(ectx expr.Context, vals []zed.Value) zed.Value {
 	for _, val := range vals {
 		b.Append(val.Bytes())
 	}
-	return zed.NewValue(e.zctx.LookupTypeArray(typ), b.Bytes())
+	return ectx.Arena().New(e.zctx.LookupTypeArray(typ), b.Bytes())
 }
 
 func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) zed.Value {
@@ -112,7 +110,7 @@ func (e *Expr) makeUnionArray(ectx expr.Context, vals []zed.Value) zed.Value {
 	for _, val := range vals {
 		zed.BuildUnion(&b, union.TagOf(val.Type()), val.Bytes())
 	}
-	return zed.NewValue(e.zctx.LookupTypeArray(union), b.Bytes())
+	return ectx.Arena().New(e.zctx.LookupTypeArray(union), b.Bytes())
 }
 
 func (e *Expr) Pull(done bool) (zbuf.Batch, error) {

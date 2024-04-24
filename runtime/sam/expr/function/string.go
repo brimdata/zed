@@ -6,6 +6,7 @@ import (
 
 	"github.com/agnivade/levenshtein"
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -14,25 +15,25 @@ type Replace struct {
 	zctx *zed.Context
 }
 
-func (r *Replace) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (r *Replace) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	sVal := args[0]
 	oldVal := args[1]
 	newVal := args[2]
 	for i := range args {
 		if !args[i].IsString() {
-			return r.zctx.WrapError("replace: string arg required", args[i])
+			return r.zctx.WrapError(ectx.Arena(), "replace: string arg required", args[i])
 		}
 	}
 	if sVal.IsNull() {
 		return zed.Null
 	}
 	if oldVal.IsNull() || newVal.IsNull() {
-		return r.zctx.NewErrorf("replace: an input arg is null")
+		return r.zctx.NewErrorf(ectx.Arena(), "replace: an input arg is null")
 	}
 	s := zed.DecodeString(sVal.Bytes())
 	old := zed.DecodeString(oldVal.Bytes())
 	new := zed.DecodeString(newVal.Bytes())
-	return zed.NewString(strings.ReplaceAll(s, old, new))
+	return ectx.Arena().NewString(strings.ReplaceAll(s, old, new))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#run_len
@@ -40,10 +41,10 @@ type RuneLen struct {
 	zctx *zed.Context
 }
 
-func (r *RuneLen) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (r *RuneLen) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	val := args[0]
 	if !val.IsString() {
-		return r.zctx.WrapError("rune_len: string arg required", val)
+		return r.zctx.WrapError(ectx.Arena(), "rune_len: string arg required", val)
 	}
 	if val.IsNull() {
 		return zed.NewInt64(0)
@@ -57,16 +58,16 @@ type ToLower struct {
 	zctx *zed.Context
 }
 
-func (t *ToLower) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (t *ToLower) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	val := args[0]
 	if !val.IsString() {
-		return t.zctx.WrapError("lower: string arg required", val)
+		return t.zctx.WrapError(ectx.Arena(), "lower: string arg required", val)
 	}
 	if val.IsNull() {
 		return zed.NullString
 	}
 	s := zed.DecodeString(val.Bytes())
-	return zed.NewString(strings.ToLower(s))
+	return ectx.Arena().NewString(strings.ToLower(s))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#upper
@@ -74,16 +75,16 @@ type ToUpper struct {
 	zctx *zed.Context
 }
 
-func (t *ToUpper) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (t *ToUpper) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	val := args[0]
 	if !val.IsString() {
-		return t.zctx.WrapError("upper: string arg required", val)
+		return t.zctx.WrapError(ectx.Arena(), "upper: string arg required", val)
 	}
 	if val.IsNull() {
 		return zed.NullString
 	}
 	s := zed.DecodeString(val.Bytes())
-	return zed.NewString(strings.ToUpper(s))
+	return ectx.Arena().NewString(strings.ToUpper(s))
 }
 
 type Trim struct {
@@ -91,16 +92,16 @@ type Trim struct {
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trim
-func (t *Trim) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (t *Trim) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	val := args[0]
 	if !val.IsString() {
-		return t.zctx.WrapError("trim: string arg required", val)
+		return t.zctx.WrapError(ectx.Arena(), "trim: string arg required", val)
 	}
 	if val.IsNull() {
 		return zed.NullString
 	}
 	s := zed.DecodeString(val.Bytes())
-	return zed.NewString(strings.TrimSpace(s))
+	return ectx.Arena().NewString(strings.TrimSpace(s))
 }
 
 // // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#split
@@ -116,16 +117,16 @@ func newSplit(zctx *zed.Context) *Split {
 	}
 }
 
-func (s *Split) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (s *Split) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	sVal := args[0]
 	sepVal := args[1]
 	for i := range args {
 		if !args[i].IsString() {
-			return s.zctx.WrapError("split: string arg required", args[i])
+			return s.zctx.WrapError(ectx.Arena(), "split: string arg required", args[i])
 		}
 	}
 	if sVal.IsNull() || sepVal.IsNull() {
-		return zed.NewValue(s.typ, nil)
+		return ectx.Arena().New(s.typ, nil)
 	}
 	str := zed.DecodeString(sVal.Bytes())
 	sep := zed.DecodeString(sepVal.Bytes())
@@ -134,7 +135,7 @@ func (s *Split) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	for _, substr := range splits {
 		b = zcode.Append(b, zed.EncodeString(substr))
 	}
-	return zed.NewValue(s.typ, b)
+	return ectx.Arena().New(s.typ, b)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#join
@@ -143,17 +144,17 @@ type Join struct {
 	builder strings.Builder
 }
 
-func (j *Join) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (j *Join) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	splitsVal := args[0]
 	typ, ok := zed.TypeUnder(splitsVal.Type()).(*zed.TypeArray)
 	if !ok || typ.Type.ID() != zed.IDString {
-		return j.zctx.WrapError("join: array of string args required", splitsVal)
+		return j.zctx.WrapError(ectx.Arena(), "join: array of string args required", splitsVal)
 	}
 	var separator string
 	if len(args) == 2 {
 		sepVal := args[1]
 		if !sepVal.IsString() {
-			return j.zctx.WrapError("join: separator must be string", sepVal)
+			return j.zctx.WrapError(ectx.Arena(), "join: separator must be string", sepVal)
 		}
 		separator = zed.DecodeString(sepVal.Bytes())
 	}
@@ -166,7 +167,7 @@ func (j *Join) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 		b.WriteString(zed.DecodeString(it.Next()))
 		sep = separator
 	}
-	return zed.NewString(b.String())
+	return ectx.Arena().NewString(b.String())
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#levenshtein
@@ -174,13 +175,13 @@ type Levenshtein struct {
 	zctx *zed.Context
 }
 
-func (l *Levenshtein) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (l *Levenshtein) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	a, b := args[0], args[1]
 	if !a.IsString() {
-		return l.zctx.WrapError("levenshtein: string args required", a)
+		return l.zctx.WrapError(ectx.Arena(), "levenshtein: string args required", a)
 	}
 	if !b.IsString() {
-		return l.zctx.WrapError("levenshtein: string args required", b)
+		return l.zctx.WrapError(ectx.Arena(), "levenshtein: string args required", b)
 	}
 	as, bs := zed.DecodeString(a.Bytes()), zed.DecodeString(b.Bytes())
 	return zed.NewInt64(int64(levenshtein.ComputeDistance(as, bs)))

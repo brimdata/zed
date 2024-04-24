@@ -318,19 +318,19 @@ func (p *Putter) Eval(ectx Context, this zed.Value) zed.Value {
 			// propagate errors
 			return this
 		}
-		return p.zctx.WrapError("put: not a record", this)
+		return p.zctx.WrapError(ectx.Arena(), "put: not a record", this)
 	}
 	vals, paths, err := p.eval(ectx, this)
 	if err != nil {
-		return p.zctx.WrapError(fmt.Sprintf("put: %s", err), this)
+		return p.zctx.WrapError(ectx.Arena(), fmt.Sprintf("put: %s", err), this)
 	}
 	if len(vals) == 0 {
 		return this
 	}
 	rule, err := p.lookupRule(recType, vals, paths)
 	if err != nil {
-		return p.zctx.WrapError(err.Error(), this)
+		return p.zctx.WrapError(ectx.Arena(), err.Error(), this)
 	}
 	bytes := rule.step.build(this.Bytes(), &p.builder, vals)
-	return zed.NewValue(rule.typ, bytes)
+	return ectx.Arena().New(rule.typ, bytes)
 }

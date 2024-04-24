@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
@@ -28,7 +29,7 @@ func NewUnflatten(zctx *zed.Context) *Unflatten {
 	}
 }
 
-func (u *Unflatten) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (u *Unflatten) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	val := args[0]
 	array, ok := zed.TypeUnder(val.Type()).(*zed.TypeArray)
 	if !ok {
@@ -42,7 +43,8 @@ func (u *Unflatten) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 		bytes := it.Next()
 		path, typ, vb, err := u.parseElem(array.Type, bytes)
 		if err != nil {
-			return u.zctx.WrapError(err.Error(), zed.NewValue(array.Type, bytes))
+			arena := ectx.Arena()
+			return u.zctx.WrapError(arena, err.Error(), arena.New(array.Type, bytes))
 		}
 		if typ == nil {
 			continue
@@ -62,9 +64,9 @@ func (u *Unflatten) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 		return typ, value
 	})
 	if err != nil {
-		return u.zctx.WrapError(err.Error(), val)
+		return u.zctx.WrapError(ectx.Arena(), err.Error(), val)
 	}
-	return zed.NewValue(typ, u.builder.Bytes())
+	return ectx.Arena().New(typ, u.builder.Bytes())
 }
 
 func (u *Unflatten) parseElem(inner zed.Type, vb zcode.Bytes) (field.Path, zed.Type, zcode.Bytes, error) {

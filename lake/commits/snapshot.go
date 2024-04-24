@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/sam/expr/extent"
@@ -156,9 +157,10 @@ func (s *Snapshot) serialize() ([]byte, error) {
 	return zs.Bytes(), nil
 }
 
-func decodeSnapshot(r io.Reader) (*Snapshot, error) {
+func decodeSnapshot(zctx *zed.Context, r io.Reader) (*Snapshot, error) {
+	arena := zed.NewArena()
 	s := NewSnapshot()
-	zd := zngbytes.NewDeserializer(r, ActionTypes)
+	zd := zngbytes.NewDeserializer(zctx, arena, r, ActionTypes)
 	defer zd.Close()
 	for {
 		entry, err := zd.Read()
@@ -172,6 +174,7 @@ func decodeSnapshot(r io.Reader) (*Snapshot, error) {
 		if !ok {
 			return nil, fmt.Errorf("internal error: corrupt snapshot contains unknown entry type %T", entry)
 		}
+		setActionArena(action, arena)
 		if err := PlayAction(s, action); err != nil {
 			return nil, err
 		}

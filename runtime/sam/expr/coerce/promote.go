@@ -11,7 +11,6 @@ var ErrIncompatibleTypes = errors.New("incompatible types")
 var ErrOverflow = errors.New("integer overflow: uint64 value too large for int64")
 
 func Promote(a, b zed.Value) (int, error) {
-	a, b = a.Under(), b.Under()
 	aid, bid := a.Type().ID(), b.Type().ID()
 	switch {
 	case aid == bid:

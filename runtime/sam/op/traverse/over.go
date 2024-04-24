@@ -28,7 +28,7 @@ func NewOver(rctx *runtime.Context, parent zbuf.Puller, exprs []expr.Evaluator) 
 }
 
 func (o *Over) AddScope(ctx context.Context, names []string, exprs []expr.Evaluator) *Scope {
-	scope := newScope(ctx, o, names, exprs)
+	scope := newScope(ctx, o.zctx, o, names, exprs)
 	o.enter = scope.enter
 	return scope
 }
@@ -49,11 +49,11 @@ func (o *Over) Pull(done bool) (zbuf.Batch, error) {
 		}
 		this := o.outer[0]
 		o.outer = o.outer[1:]
-		ectx := o.batch
+		batch := o.batch
 		if o.enter != nil {
-			ectx = o.enter.addLocals(ectx, this)
+			batch = o.enter.addLocals(batch, this)
 		}
-		innerBatch := o.over(ectx, this)
+		innerBatch := o.over(batch, this)
 		if len(o.outer) == 0 {
 			o.batch.Unref()
 		}
@@ -64,34 +64,34 @@ func (o *Over) Pull(done bool) (zbuf.Batch, error) {
 }
 
 func (o *Over) over(batch zbuf.Batch, this zed.Value) zbuf.Batch {
+	arena := zed.NewArena()
+	defer arena.Unref()
+	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	// Copy the vars into a new scope since downstream, nested subgraphs
 	// can have concurrent operators.  We can optimize these copies out
 	// later depending on the nested subgraph.
 	var vals []zed.Value
 	for _, e := range o.exprs {
-		val := e.Eval(batch, this)
+		val := e.Eval(ectx, this)
 		// Propagate errors but skip missing values.
 		if !val.IsMissing() {
-			vals = appendOver(o.zctx, vals, val)
+			vals = appendOver(o.zctx, arena, vals, val)
 		}
 	}
 	if len(vals) == 0 {
 		return nil
 	}
-	return zbuf.NewBatch(batch, vals)
+	return zbuf.NewBatch(arena, vals, batch, batch.Vars())
 }
 
-func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value {
-	val = val.Under()
+func appendOver(zctx *zed.Context, arena *zed.Arena, vals []zed.Value, val zed.Value) []zed.Value {
+	val = val.Under(arena)
 	switch typ := zed.TypeUnder(val.Type()).(type) {
 	case *zed.TypeArray, *zed.TypeSet:
 		typ = zed.InnerType(typ)
 		for it := val.Bytes().Iter(); !it.Done(); {
-			// XXX when we do proper expr.Context, we can allocate
-			// this copy through the batch.
-			val := zed.NewValue(typ, it.Next())
-			val = val.Under()
-			vals = append(vals, val.Copy())
+			val := arena.New(typ, it.Next()).Under(arena)
+			vals = append(vals, val)
 		}
 		return vals
 	case *zed.TypeMap:
@@ -101,7 +101,7 @@ func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value 
 		})
 		for it := val.Bytes().Iter(); !it.Done(); {
 			bytes := zcode.Append(zcode.Append(nil, it.Next()), it.Next())
-			vals = append(vals, zed.NewValue(rtyp, bytes))
+			vals = append(vals, arena.New(rtyp, bytes))
 		}
 		return vals
 	case *zed.TypeRecord:
@@ -117,10 +117,10 @@ func appendOver(zctx *zed.Context, vals []zed.Value, val zed.Value) []zed.Value 
 			builder.Append(zed.EncodeString(field.Name))
 			builder.EndContainer()
 			builder.Append(it.Next())
-			vals = append(vals, zed.NewValue(typ, builder.Bytes()).Copy())
+			vals = append(vals, arena.New(typ, builder.Bytes()))
 		}
 		return vals
 	default:
-		return append(vals, val.Copy())
+		return append(vals, val)
 	}
 }

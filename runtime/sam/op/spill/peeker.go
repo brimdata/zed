@@ -11,6 +11,7 @@ type peeker struct {
 	*File
 	nextRecord *zed.Value
 	ordinal    int
+	arena      *zed.Arena
 }
 
 func newPeeker(ctx context.Context, zctx *zed.Context, filename string, ordinal int, zr zio.Reader) (*peeker, error) {
@@ -31,7 +32,7 @@ func newPeeker(ctx context.Context, zctx *zed.Context, filename string, ordinal 
 		f.CloseAndRemove()
 		return nil, err
 	}
-	return &peeker{f, first, ordinal}, nil
+	return &peeker{f, first, ordinal, zed.NewArena()}, nil
 }
 
 // read is like Read but returns eof at the last record so a MergeSort can
@@ -39,7 +40,8 @@ func newPeeker(ctx context.Context, zctx *zed.Context, filename string, ordinal 
 func (p *peeker) read() (*zed.Value, bool, error) {
 	rec := p.nextRecord
 	if rec != nil {
-		rec = rec.Copy().Ptr()
+		p.arena.Reset()
+		rec = rec.Copy(p.arena).Ptr()
 	}
 	var err error
 	p.nextRecord, err = p.Read()
