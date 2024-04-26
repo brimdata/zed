@@ -14,13 +14,14 @@ type Writer struct {
 }
 
 type WriterOpts struct {
-	Pretty  int
-	Persist *regexp.Regexp
+	ColorDisabled bool
+	Pretty        int
+	Persist       *regexp.Regexp
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	return &Writer{
-		formatter: zson.NewFormatter(opts.Pretty, opts.Persist),
+		formatter: zson.NewFormatter(opts.Pretty, opts.ColorDisabled, opts.Persist),
 		writer:    w,
 	}
 }
