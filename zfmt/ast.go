@@ -3,7 +3,6 @@ package zfmt
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/brimdata/zed/compiler/ast"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
@@ -120,8 +119,6 @@ func (c *canon) expr(e ast.Expr, parent string) {
 		c.write("(")
 		c.expr(e.Expr, "")
 		c.write(")")
-	case *ast.SQLExpr:
-		c.sql(e)
 	case *astzed.TypeValue:
 		c.write("<")
 		c.typ(e.Value)
@@ -281,15 +278,6 @@ func precedence(op string) int {
 	}
 }
 
-func (c *canon) sql(e *ast.SQLExpr) {
-	if e.Select == nil {
-		c.write(" SELECT *")
-	} else {
-		c.write(" SELECT")
-		c.assignments(e.Select)
-	}
-}
-
 func isThis(e ast.Expr) bool {
 	if id, ok := e.(*ast.ID); ok {
 		return id.Name == "this"
@@ -443,68 +431,6 @@ func (c *canon) op(p ast.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
-	case *ast.SQLExpr:
-		c.next()
-		c.open("SELECT ")
-		if p.Select == nil {
-			c.write("*")
-		} else {
-			c.assignments(p.Select)
-		}
-		if p.From != nil {
-			c.ret()
-			c.write("FROM ")
-			c.expr(p.From.Table, "")
-			if p.From.Alias != nil {
-				c.write(" AS ")
-				c.expr(p.From.Alias, "")
-			}
-		}
-		for _, join := range p.Joins {
-			c.ret()
-			switch join.Style {
-			case "left":
-				c.write("LEFT ")
-			case "right":
-				c.write("RIGHT ")
-			}
-			c.write("JOIN ")
-			c.expr(join.Table, "")
-			if join.Alias != nil {
-				c.write(" AS ")
-				c.expr(join.Alias, "")
-			}
-			c.write(" ON ")
-			c.expr(join.LeftKey, "")
-			c.write("=")
-			c.expr(join.RightKey, "")
-		}
-		if p.Where != nil {
-			c.ret()
-			c.write("WHERE ")
-			c.expr(p.Where, "")
-		}
-		if p.GroupBy != nil {
-			c.ret()
-			c.write("GROUP BY ")
-			c.exprs(p.GroupBy)
-		}
-		if p.Having != nil {
-			c.ret()
-			c.write("HAVING ")
-			c.expr(p.Having, "")
-		}
-		if p.OrderBy != nil {
-			c.ret()
-			c.write("ORDER BY ")
-			c.exprs(p.OrderBy.Keys)
-			c.write(" ")
-			c.write(strings.ToUpper(p.OrderBy.Order.String()))
-		}
-		if p.Limit != 0 {
-			c.ret()
-			c.write("LIMIT %d", p.Limit)
-		}
 	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
@@ -654,10 +580,6 @@ func (c *canon) op(p ast.Op) {
 		c.open(which)
 		c.assignments(p.Assignments)
 		c.close()
-	//case *ast.SqlExpression:
-	//	//XXX TBD
-	//	c.open("sql")
-	//	c.close()
 	case *ast.Merge:
 		c.next()
 		c.write("merge ")
