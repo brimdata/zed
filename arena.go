@@ -13,29 +13,38 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
+// Arena is an allocator for Values. Two constraints govern its use.  First, the
+// Type of each Value in an arena must belong to a single Context.  Second, an
+// arena must be reachable at any point in a program where its Values are
+// accessed.
 type Arena struct {
 	pool *sync.Pool
 	refs int32
 
 	byID              []Type
 	offsetsAndLengths []uint64
-	bytes             []byte
-	values            []Value
-	free              func()
+
+	buf    []byte
+	free   func()
+	values []Value
 }
 
 var (
-	arenaPool          sync.Pool
-	arenaWithBytesPool sync.Pool
+	arenaPool           sync.Pool
+	arenaWithBufferPool sync.Pool
 )
 
+// NewArena returns an empty arena.
 func NewArena() *Arena {
 	return newArena(&arenaPool)
 }
 
-func NewArenaWithBytes(bytes []byte, free func()) *Arena {
-	a := newArena(&arenaWithBytesPool)
-	a.bytes = bytes
+// NewArenaWithBuffer returns an arena whose buffer is initialized to buf.  If
+// free is not nil, it is called when Unref decrements the arena's reference
+// count to zero and can be used to return buf to an allocator.
+func NewArenaWithBuffer(buf []byte, free func()) *Arena {
+	a := newArena(&arenaWithBufferPool)
+	a.buf = buf
 	a.free = free
 	return a
 }
@@ -49,8 +58,8 @@ func newArena(pool *sync.Pool) *Arena {
 		a = &Arena{pool: pool}
 	}
 	a.refs = 1
-	if a.bytes == nil {
-		a.bytes = []byte{}
+	if a.buf == nil {
+		a.buf = []byte{}
 	}
 	return a
 }
@@ -60,7 +69,7 @@ func (a *Arena) Ref() { atomic.AddInt32(&a.refs, 1) }
 func (a *Arena) Unref() {
 	if refs := atomic.AddInt32(&a.refs, -1); refs == 0 {
 		if a.free != nil {
-			a.bytes = nil
+			a.buf = nil
 			a.free()
 		}
 		a.pool.Put(a)
@@ -71,23 +80,29 @@ func (a *Arena) Unref() {
 
 func (a *Arena) Reset() {
 	a.offsetsAndLengths = a.offsetsAndLengths[:0]
-	a.bytes = a.bytes[:0]
+	a.buf = a.buf[:0]
 	a.values = a.values[:0]
 }
 
+// New return a new Value whose bytes are a slice of the receiver's buffer after
+// appending b.
 func (a *Arena) New(t Type, b zcode.Bytes) Value {
 	if b == nil {
 		return a.new(t, 0, 0, dStorageNull)
 	}
-	offset := len(a.bytes)
-	a.bytes = append(a.bytes, b...)
-	return a.new(t, offset, len(b), dStorageBytes)
+	offset := len(a.buf)
+	a.buf = append(a.buf, b...)
+	return a.new(t, offset, len(b), dStorageBuffer)
 }
 
+// NewFromOffsetAndLength returns a new Value whose bytes are a slice of the
+// receiver's buffer from offset to offet+length.  It is meant for use with
+// arenas allocated by NewArenaWithBuffer.
 func (a *Arena) NewFromOffsetAndLength(t Type, offset, length int) Value {
-	return a.new(t, offset, length, dStorageBytes)
+	return a.new(t, offset, length, dStorageBuffer)
 }
 
+// NewFrom
 func (a *Arena) NewFromValues(t Type, values []Value) Value {
 	if values == nil {
 		return a.new(t, 0, 0, dStorageNull)
@@ -117,21 +132,21 @@ func (a *Arena) new(t Type, offset, length int, dStorage uint64) Value {
 	return Value{aTypeArena | uint64(uintptr(unsafe.Pointer(a))), dStorage | uint64(id)<<32 | uint64(len(a.offsetsAndLengths)-1)}
 }
 
-func (a *Arena) NewBytes(x []byte) Value {
-	if len(x) < 16 {
-		if x == nil {
+func (a *Arena) NewBytes(b []byte) Value {
+	if len(b) < 16 {
+		if b == nil {
 			return NullBytes
 		}
-		return newNativeBytes(aTypeBytes, x)
+		return newNativeBytes(aTypeBytes, b)
 	}
-	return a.New(TypeBytes, x)
+	return a.New(TypeBytes, b)
 }
 
-func (a *Arena) NewString(x string) Value {
-	if len(x) < 16 {
-		return newNativeBytes(aTypeString, []byte(x))
+func (a *Arena) NewString(s string) Value {
+	if len(s) < 16 {
+		return newNativeBytes(aTypeString, []byte(s))
 	}
-	return a.New(TypeString, []byte(x))
+	return a.New(TypeString, []byte(s))
 }
 
 func newNativeBytes(vMaskValue uint64, x []byte) Value {
@@ -142,8 +157,8 @@ func newNativeBytes(vMaskValue uint64, x []byte) Value {
 	return Value{vMaskValue | uint64(len(x))<<56 | a, d}
 }
 
-func (a *Arena) NewIP(x netip.Addr) Value {
-	return a.New(TypeIP, EncodeIP(x))
+func (a *Arena) NewIP(A netip.Addr) Value {
+	return a.New(TypeIP, EncodeIP(A))
 }
 
 func (a *Arena) NewNet(p netip.Prefix) Value {
@@ -160,9 +175,9 @@ func (a *Arena) type_(d uint64) Type {
 
 func (a *Arena) bytes_(d uint64) zcode.Bytes {
 	switch d & dStorageMask {
-	case dStorageBytes:
+	case dStorageBuffer:
 		offset, length := a.offsetAndLength(d)
-		return a.bytes[offset : offset+length]
+		return a.buf[offset : offset+length]
 	case dStorageNull:
 		return nil
 	case dStorageValues:

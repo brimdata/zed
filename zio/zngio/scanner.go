@@ -270,7 +270,7 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// pools of buffers based on size?
 
 	w.mapperLookupCache.Reset(local.mapper)
-	arena := zed.NewArenaWithBytes(buf.Bytes(), buf.Free)
+	arena := zed.NewArenaWithBuffer(buf.Bytes(), buf.Free)
 	defer arena.Unref()
 	vals := valsPool.Get().([]zed.Value)[:0]
 	var progress zbuf.Progress

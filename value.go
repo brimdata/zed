@@ -46,23 +46,25 @@ var (
 )
 
 const (
-	dStorageUninitialized = 0 << 62
-	dStorageBytes         = 1 << 62
-	dStorageNull          = 2 << 62
-	dStorageValues        = 3 << 62
-	dStorageMask          = 0x03 << 62
+	aTypeUnknown       = 0 << 60
+	aTypeArena         = 1 << 60
+	aTypePrimitive     = 2 << 60
+	aTypePrimitiveNull = 3 << 60
+	aTypeBytes         = 4 << 60
+	aTypeString        = 5 << 60
+	aTypeMask          = uint64(0xf) << 60
 
-	aTypeUninitialized   = 0 << 60
-	aTypeArena           = 1 << 60
-	aTypePrimitive       = 2 << 60
-	aTypePrimitiveNull   = 3 << 60
-	aTypeBytes           = 4 << 60
-	aTypeString          = 5 << 60
-	aTypeMask            = uint64(0xf) << 60
-	vLengthMask          = uint64(0x0f) << 56
-	vPrimitiveTypeIDMask = 0xff
+	aLengthMask          = uint64(0x0f) << 56
+	aPrimitiveTypeIDMask = 0xff
+
+	dStorageUnknown = 0 << 62
+	dStorageBuffer  = 1 << 62
+	dStorageNull    = 2 << 62
+	dStorageValues  = 3 << 62
+	dStorageMask    = 0x03 << 62
 )
 
+// Value is a Zed value.
 type Value struct {
 	a uint64
 	d uint64
@@ -90,7 +92,7 @@ func (v Value) Type() Type {
 	case aTypeArena:
 		return v.arena().type_(v.d)
 	case aTypePrimitive, aTypePrimitiveNull:
-		return idToType[v.a&vPrimitiveTypeIDMask]
+		return idToType[v.a&aPrimitiveTypeIDMask]
 	case aTypeBytes:
 		return TypeBytes
 	case aTypeString:
@@ -154,7 +156,7 @@ func (v Value) typeID() int {
 	case aTypeArena:
 		return v.arena().type_(v.d).ID()
 	case aTypePrimitive, aTypePrimitiveNull:
-		return int(v.a & vPrimitiveTypeIDMask)
+		return int(v.a & aPrimitiveTypeIDMask)
 	case aTypeBytes:
 		return IDBytes
 	case aTypeString:
@@ -224,10 +226,10 @@ func (v Value) Bytes() zcode.Bytes {
 		var b [16]byte
 		binary.BigEndian.PutUint64(b[:8], v.a)
 		binary.BigEndian.PutUint64(b[8:], v.d)
-		length := (v.a & vLengthMask) >> 56
+		length := (v.a & aLengthMask) >> 56
 		return b[1 : 1+length]
 	case aTypePrimitive:
-		switch v.a & vPrimitiveTypeIDMask {
+		switch v.a & aPrimitiveTypeIDMask {
 		case IDUint8, IDUint16, IDUint32, IDUint64:
 			return EncodeUint(v.d)
 		case IDInt8, IDInt16, IDInt32, IDInt64, IDDuration, IDTime:
@@ -339,14 +341,16 @@ func (v Value) IsNull() bool {
 		v.a&aTypeMask == aTypeArena && v.d&dStorageMask == dStorageNull
 }
 
-// Copy returns a copy of v that shares no storage.
+// Copy copies v to arena, returning a value that does not depend on any other
+// arena.  If v was allocated from arena, Copy does nothing and returns v
+// unchanged.
 func (v Value) Copy(arena *Arena) Value {
 	a, ok := v.Arena()
 	if !ok || a == arena {
 		return v
 	}
 	switch v.d & dStorageMask {
-	case dStorageBytes:
+	case dStorageBuffer:
 		return arena.New(v.Type(), v.Bytes())
 	case dStorageNull:
 		return arena.New(v.Type(), nil)
