@@ -102,7 +102,9 @@ func (a *Arena) NewFromOffsetAndLength(t Type, offset, length int) Value {
 	return a.new(t, offset, length, dStorageBuffer)
 }
 
-// NewFrom
+// NewFromValues returns a new record, array, set, map, union, or error Value
+// with constituent values from values.  Values in other arenas are referenced
+// rather than copied.
 func (a *Arena) NewFromValues(t Type, values []Value) Value {
 	if values == nil {
 		return a.new(t, 0, 0, dStorageNull)
