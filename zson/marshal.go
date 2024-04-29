@@ -762,9 +762,6 @@ func (u *UnmarshalZNGContext) decodeAny(val zed.Value, v reflect.Value) error {
 			if u.zctx == nil {
 				return errors.New("cannot unmarshal type value without type context")
 			}
-			if u.arena == nil {
-				return errors.New("cannot unmarshal type value without arena")
-			}
 			typ, err := u.zctx.LookupByValue(val.Bytes())
 			if err != nil {
 				return err
