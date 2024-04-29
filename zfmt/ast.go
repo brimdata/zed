@@ -130,7 +130,7 @@ func (c *canon) expr(e ast.Expr, parent string) {
 	case *ast.Grep:
 		c.write("grep(")
 		c.expr(e.Pattern, "")
-		if !isThis(e.Expr) {
+		if e.Expr != nil {
 			c.write(",")
 			c.expr(e.Expr, "")
 		}
@@ -413,7 +413,6 @@ func (c *canon) op(p ast.Op) {
 		c.flush()
 		c.write(")")
 	case *ast.From:
-		//XXX cleanup for len(Trunks) = 1
 		c.next()
 		c.open("from (")
 		for _, trunk := range p.Trunks {
@@ -431,6 +430,22 @@ func (c *canon) op(p ast.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *ast.Pool:
+		c.next()
+		c.open("")
+		c.write("from ")
+		c.pool(p)
+		c.close()
+	case *ast.File:
+		c.next()
+		c.open("")
+		c.file(p)
+		c.close()
+	case *ast.HTTP:
+		c.next()
+		c.open("")
+		c.http(p)
+		c.close()
 	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
@@ -484,13 +499,19 @@ func (c *canon) op(p ast.Op) {
 		}
 	case *ast.Head:
 		c.next()
-		c.open("head ")
-		c.expr(p.Count, "")
+		c.open("head")
+		if p.Count != nil {
+			c.write(" ")
+			c.expr(p.Count, "")
+		}
 		c.close()
 	case *ast.Tail:
 		c.next()
-		c.open("tail ")
-		c.expr(p.Count, "")
+		c.open("tail")
+		if p.Count != nil {
+			c.write(" ")
+			c.expr(p.Count, "")
+		}
 		c.close()
 	case *ast.Uniq:
 		c.next()
@@ -565,8 +586,10 @@ func (c *canon) op(p ast.Op) {
 		}
 		c.write("on ")
 		c.expr(p.LeftKey, "")
-		c.write("=")
-		c.expr(p.RightKey, "")
+		if p.RightKey != nil {
+			c.write("=")
+			c.expr(p.RightKey, "")
+		}
 		if p.Args != nil {
 			c.write(" ")
 			c.assignments(p.Args)
@@ -648,7 +671,7 @@ func (c *canon) pool(p *ast.Pool) {
 	if p.Spec.Tap {
 		s += " tap"
 	}
-	c.write("pool %s", s)
+	c.write(s)
 }
 
 func pattern(p ast.Pattern) string {
@@ -769,6 +792,7 @@ func (c *canon) file(p *ast.File) {
 func (c *canon) source(src ast.Source) {
 	switch src := src.(type) {
 	case *ast.Pool:
+		c.write("pool ")
 		c.pool(src)
 	case *ast.HTTP:
 		c.http(src)

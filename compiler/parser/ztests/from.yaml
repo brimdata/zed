@@ -27,15 +27,9 @@ outputs:
         pool a
       )
       === No space before vertical bar.
-      from (
-        file a
-      )
+      file a
       | search b
-      from (
-        get http://a
-      )
+      get http://a
       | search b
-      from (
-        pool a
-      )
+      from a
       | search b

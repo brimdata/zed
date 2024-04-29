@@ -7,9 +7,7 @@ outputs:
   - name: stdout
     data: |
       join (
-        from (
-          file test.zson
-        )
+        file test.zson
       ) on x=x p:=a
       ===
       reader

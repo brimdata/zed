@@ -83,6 +83,21 @@ func (a *analyzer) semTrunk(trunk ast.Trunk, out dag.Seq) (dag.Seq, error) {
 
 //XXX make sure you can't read files from a lake instance
 
+func (a *analyzer) semOpSource(source ast.Source, out dag.Seq) (dag.Seq, error) {
+	sources, err := a.semSource(source)
+	if err != nil {
+		return nil, err
+	}
+	if len(sources) == 1 {
+		return append(sources, out...), nil
+	}
+	var paths []dag.Seq
+	for _, s := range sources {
+		paths = append(paths, dag.Seq{s})
+	}
+	return append(out, &dag.Fork{Kind: "Fork", Paths: paths}), nil
+}
+
 func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 	switch p := source.(type) {
 	case *ast.File:
@@ -289,15 +304,6 @@ func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error)
 	if err != nil {
 		return nil, err
 	}
-	if p.At != "" {
-		// XXX
-		// We no longer use "at" to refer to a commit tag, but if there
-		// is no commit tag, we could use an "at" time argument to time
-		// travel by going back in the branch log and finding the commit
-		// object with the largest time stamp <= the at time.
-		// This would require commitRef to be branch name not a commit ID.
-		return nil, errors.New("TBD: at clause in from operator needs to use time")
-	}
 	var commitID ksuid.KSUID
 	if commit != "" {
 		commitID, err = lakeparse.ParseID(commit)
@@ -404,6 +410,8 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 	switch o := o.(type) {
 	case *ast.From:
 		return a.semFrom(o, seq)
+	case *ast.Pool, *ast.File, *ast.HTTP:
+		return a.semOpSource(o.(ast.Source), seq)
 	case *ast.Summarize:
 		keys, err := a.semAssignments(o.Keys)
 		if err != nil {
@@ -540,13 +548,15 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			NullsFirst: o.NullsFirst,
 		}), nil
 	case *ast.Head:
-		expr, err := a.semExpr(o.Count)
-		if err != nil {
-			return nil, fmt.Errorf("head: %w", err)
-		}
-		val, err := kernel.EvalAtCompileTime(a.zctx, expr)
-		if err != nil {
-			return nil, fmt.Errorf("head: %w", err)
+		val := zed.NewInt64(1)
+		if o.Count != nil {
+			expr, err := a.semExpr(o.Count)
+			if err != nil {
+				return nil, fmt.Errorf("head: %w", err)
+			}
+			if val, err = kernel.EvalAtCompileTime(a.zctx, expr); err != nil {
+				return nil, fmt.Errorf("head: %w", err)
+			}
 		}
 		if val.AsInt() < 1 {
 			return nil, fmt.Errorf("head: expression value is not a positive integer: %s", zson.FormatValue(val))
@@ -556,13 +566,15 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Count: int(val.AsInt()),
 		}), nil
 	case *ast.Tail:
-		expr, err := a.semExpr(o.Count)
-		if err != nil {
-			return nil, fmt.Errorf("tail: %w", err)
-		}
-		val, err := kernel.EvalAtCompileTime(a.zctx, expr)
-		if err != nil {
-			return nil, fmt.Errorf("tail: %w", err)
+		val := zed.NewInt64(1)
+		if o.Count != nil {
+			expr, err := a.semExpr(o.Count)
+			if err != nil {
+				return nil, fmt.Errorf("tail: %w", err)
+			}
+			if val, err = kernel.EvalAtCompileTime(a.zctx, expr); err != nil {
+				return nil, fmt.Errorf("tail: %w", err)
+			}
 		}
 		if val.AsInt() < 1 {
 			return nil, fmt.Errorf("tail: expression value is not a positive integer: %s", zson.FormatValue(val))
@@ -600,11 +612,28 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		if len(args) == 0 {
 			return nil, errors.New("top: no arguments given")
 		}
+		limit := 1
+		if o.Limit != nil {
+			l, err := a.semExpr(o.Limit)
+			if err != nil {
+				return nil, err
+			}
+			val, err := kernel.EvalAtCompileTime(a.zctx, l)
+			if err != nil {
+				return nil, err
+			}
+			if !zed.IsSigned(val.Type().ID()) {
+				return nil, errors.New("top: limit argument must be an integer")
+			}
+			if limit = int(val.Int()); limit < 1 {
+				return nil, errors.New("top: limit argument value must be greater than 0")
+			}
+		}
 		return append(seq, &dag.Top{
 			Kind:  "Top",
 			Args:  args,
 			Flush: o.Flush,
-			Limit: o.Limit,
+			Limit: limit,
 		}), nil
 	case *ast.Put:
 		assignments, err := a.semAssignments(o.Args)
@@ -667,9 +696,11 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := a.semExpr(o.RightKey)
-		if err != nil {
-			return nil, err
+		rightKey := leftKey
+		if o.RightKey != nil {
+			if rightKey, err = a.semExpr(o.RightKey); err != nil {
+				return nil, err
+			}
 		}
 		assignments, err := a.semAssignments(o.Args)
 		if err != nil {
@@ -761,9 +792,12 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Body:  body,
 		}), nil
 	case *ast.Sample:
-		e, err := a.semExpr(o.Expr)
-		if err != nil {
-			return nil, err
+		e := dag.Expr(&dag.This{Kind: "This"})
+		if o.Expr != nil {
+			var err error
+			if e, err = a.semExpr(o.Expr); err != nil {
+				return nil, err
+			}
 		}
 		seq = append(seq, &dag.Summarize{
 			Kind: "Summarize",
