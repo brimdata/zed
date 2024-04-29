@@ -76,28 +76,28 @@ func (a *Arena) Reset() {
 }
 
 func (a *Arena) New(t Type, b zcode.Bytes) Value {
-	offset := len(a.bytes)
 	if b == nil {
-		offset = arenaNullOffset
+		return a.new(t, 0, 0, dStorageNull)
 	}
+	offset := len(a.bytes)
 	a.bytes = append(a.bytes, b...)
-	return a.new(t, offset, len(b), 0)
+	return a.new(t, offset, len(b), dStorageBytes)
 }
 
 func (a *Arena) NewFromOffsetAndLength(t Type, offset, length int) Value {
-	return a.new(t, offset, length, 0)
+	return a.new(t, offset, length, dStorageBytes)
 }
 
 func (a *Arena) NewFromValues(t Type, values []Value) Value {
-	offset := len(a.values)
 	if values == nil {
-		offset = arenaNullOffset
+		return a.new(t, 0, 0, dStorageNull)
 	}
+	offset := len(a.values)
 	a.values = append(a.values, values...)
-	return a.new(t, offset, len(values), arenaUseValues)
+	return a.new(t, offset, len(values), dStorageValues)
 }
 
-func (a *Arena) new(t Type, offset, length int, dFlags uint64) Value {
+func (a *Arena) new(t Type, offset, length int, dStorage uint64) Value {
 	if uint64(offset) > math.MaxUint32 {
 		panic("bad offset " + strconv.Itoa(offset))
 	}
@@ -114,7 +114,7 @@ func (a *Arena) new(t Type, offset, length int, dFlags uint64) Value {
 		panic("type conflict")
 	}
 	a.offsetsAndLengths = append(a.offsetsAndLengths, uint64(offset)<<32|uint64(length))
-	return Value{vTypeArena | uint64(uintptr(unsafe.Pointer(a))), dFlags | uint64(id)<<32 | uint64(len(a.offsetsAndLengths)-1)}
+	return Value{aTypeArena | uint64(uintptr(unsafe.Pointer(a))), dStorage | uint64(id)<<32 | uint64(len(a.offsetsAndLengths)-1)}
 }
 
 func (a *Arena) NewBytes(x []byte) Value {
@@ -122,14 +122,14 @@ func (a *Arena) NewBytes(x []byte) Value {
 		if x == nil {
 			return NullBytes
 		}
-		return newNativeBytes(vTypeBytes, x)
+		return newNativeBytes(aTypeBytes, x)
 	}
 	return a.New(TypeBytes, x)
 }
 
 func (a *Arena) NewString(x string) Value {
 	if len(x) < 16 {
-		return newNativeBytes(vTypeString, []byte(x))
+		return newNativeBytes(aTypeString, []byte(x))
 	}
 	return a.New(TypeString, []byte(x))
 }
@@ -155,28 +155,36 @@ func (a *Arena) NewTypeValue(t Type) Value {
 }
 
 func (a *Arena) type_(d uint64) Type {
-	return a.byID[arenaDescTypeID(d)]
+	return a.byID[d&^dStorageMask>>32]
 }
 
 func (a *Arena) bytes_(d uint64) zcode.Bytes {
-	slot := arenaDescSlot(d)
-	start := a.offsetsAndLengths[slot] >> 32
-	if start == arenaNullOffset {
+	switch d & dStorageMask {
+	case dStorageBytes:
+		offset, length := a.offsetAndLength(d)
+		return a.bytes[offset : offset+length]
+	case dStorageNull:
 		return nil
+	case dStorageValues:
+		offset, length := a.offsetAndLength(d)
+		if union, ok := TypeUnder(a.type_(d)).(*TypeUnion); ok {
+			val := a.values[offset]
+			tag := union.TagOf(val.Type())
+			b := zcode.Append(nil, EncodeInt(int64(tag)))
+			return zcode.Append(b, val.Bytes())
+		}
+		b := zcode.Bytes{}
+		for _, val := range a.values[offset : offset+length] {
+			b = zcode.Append(b, val.Bytes())
+		}
+		return b
 	}
-	end := start + a.offsetsAndLengths[slot]&0xffffffff
-	if !arenaDescValues(d) {
-		return a.bytes[start:end]
-	}
-	if union, ok := TypeUnder(a.type_(d)).(*TypeUnion); ok {
-		val := a.values[start]
-		tag := union.TagOf(val.Type())
-		b := zcode.Append(nil, EncodeInt(int64(tag)))
-		return zcode.Append(b, val.Bytes())
-	}
-	b := zcode.Bytes{}
-	for _, val := range a.values[start:end] {
-		b = zcode.Append(b, val.Bytes())
-	}
-	return b
+	panic(d)
+}
+
+func (a *Arena) offsetAndLength(d uint64) (uint64, uint64) {
+	slot := d & math.MaxUint32
+	offset := a.offsetsAndLengths[slot] >> 32
+	length := a.offsetsAndLengths[slot] & 0xffffffff
+	return offset, length
 }

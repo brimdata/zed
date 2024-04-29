@@ -20,49 +20,48 @@ var (
 )
 
 var (
-	NullUint8    = Value{a: vTypePrimitiveNull | IDUint8}
-	NullUint16   = Value{a: vTypePrimitiveNull | IDUint16}
-	NullUint32   = Value{a: vTypePrimitiveNull | IDUint32}
-	NullUint64   = Value{a: vTypePrimitiveNull | IDUint64}
-	NullInt8     = Value{a: vTypePrimitiveNull | IDInt8}
-	NullInt16    = Value{a: vTypePrimitiveNull | IDInt16}
-	NullInt32    = Value{a: vTypePrimitiveNull | IDInt32}
-	NullInt64    = Value{a: vTypePrimitiveNull | IDInt64}
-	NullDuration = Value{a: vTypePrimitiveNull | IDDuration}
-	NullTime     = Value{a: vTypePrimitiveNull | IDTime}
-	NullFloat16  = Value{a: vTypePrimitiveNull | IDFloat16}
-	NullFloat32  = Value{a: vTypePrimitiveNull | IDFloat32}
-	NullFloat64  = Value{a: vTypePrimitiveNull | IDFloat64}
-	NullBool     = Value{a: vTypePrimitiveNull | IDBool}
-	NullBytes    = Value{a: vTypePrimitiveNull | IDBytes}
-	NullString   = Value{a: vTypePrimitiveNull | IDString}
-	NullIP       = Value{a: vTypePrimitiveNull | IDIP}
-	NullNet      = Value{a: vTypePrimitiveNull | IDNet}
-	NullType     = Value{a: vTypePrimitiveNull | IDType}
-	Null         = Value{a: vTypePrimitiveNull | IDNull}
+	NullUint8    = Value{a: aTypePrimitiveNull | IDUint8}
+	NullUint16   = Value{a: aTypePrimitiveNull | IDUint16}
+	NullUint32   = Value{a: aTypePrimitiveNull | IDUint32}
+	NullUint64   = Value{a: aTypePrimitiveNull | IDUint64}
+	NullInt8     = Value{a: aTypePrimitiveNull | IDInt8}
+	NullInt16    = Value{a: aTypePrimitiveNull | IDInt16}
+	NullInt32    = Value{a: aTypePrimitiveNull | IDInt32}
+	NullInt64    = Value{a: aTypePrimitiveNull | IDInt64}
+	NullDuration = Value{a: aTypePrimitiveNull | IDDuration}
+	NullTime     = Value{a: aTypePrimitiveNull | IDTime}
+	NullFloat16  = Value{a: aTypePrimitiveNull | IDFloat16}
+	NullFloat32  = Value{a: aTypePrimitiveNull | IDFloat32}
+	NullFloat64  = Value{a: aTypePrimitiveNull | IDFloat64}
+	NullBool     = Value{a: aTypePrimitiveNull | IDBool}
+	NullBytes    = Value{a: aTypePrimitiveNull | IDBytes}
+	NullString   = Value{a: aTypePrimitiveNull | IDString}
+	NullIP       = Value{a: aTypePrimitiveNull | IDIP}
+	NullNet      = Value{a: aTypePrimitiveNull | IDNet}
+	NullType     = Value{a: aTypePrimitiveNull | IDType}
+	Null         = Value{a: aTypePrimitiveNull | IDNull}
 
 	False = NewBool(false)
 	True  = NewBool(true)
 )
 
 const (
-	vTypeUninitialized   = 0 << 60
-	vTypeArena           = 1 << 60
-	vTypePrimitive       = 2 << 60
-	vTypePrimitiveNull   = 3 << 60
-	vTypeBytes           = 4 << 60
-	vTypeString          = 5 << 60
-	vTypeMask            = uint64(0xf) << 60
+	dStorageUninitialized = 0 << 62
+	dStorageBytes         = 1 << 62
+	dStorageNull          = 2 << 62
+	dStorageValues        = 3 << 62
+	dStorageMask          = 0x03 << 62
+
+	aTypeUninitialized   = 0 << 60
+	aTypeArena           = 1 << 60
+	aTypePrimitive       = 2 << 60
+	aTypePrimitiveNull   = 3 << 60
+	aTypeBytes           = 4 << 60
+	aTypeString          = 5 << 60
+	aTypeMask            = uint64(0xf) << 60
 	vLengthMask          = uint64(0x0f) << 56
 	vPrimitiveTypeIDMask = 0xff
-
-	arenaNullOffset = math.MaxUint32
-	arenaUseValues  = uint64(1) << 63
 )
-
-func arenaDescSlot(d uint64) int    { return int(d & math.MaxUint32) }
-func arenaDescTypeID(d uint64) int  { return int(d &^ arenaUseValues >> 32) }
-func arenaDescValues(d uint64) bool { return d&arenaUseValues != 0 }
 
 type Value struct {
 	a uint64
@@ -70,10 +69,10 @@ type Value struct {
 }
 
 func (v Value) Arena() (*Arena, bool) {
-	if v.a&vTypeMask != vTypeArena {
+	if v.a&aTypeMask != aTypeArena {
 		return nil, false
 	}
-	return (*Arena)(unsafe.Pointer(uintptr(v.a & ^vTypeMask))), true
+	return (*Arena)(unsafe.Pointer(uintptr(v.a & ^aTypeMask))), true
 }
 
 func (v Value) arena() *Arena {
@@ -87,14 +86,14 @@ func (v Value) arena() *Arena {
 func (v Value) Ptr() *Value { return &v }
 
 func (v Value) Type() Type {
-	switch v.a & vTypeMask {
-	case vTypeArena:
+	switch v.a & aTypeMask {
+	case aTypeArena:
 		return v.arena().type_(v.d)
-	case vTypePrimitive, vTypePrimitiveNull:
+	case aTypePrimitive, aTypePrimitiveNull:
 		return idToType[v.a&vPrimitiveTypeIDMask]
-	case vTypeBytes:
+	case aTypeBytes:
 		return TypeBytes
-	case vTypeString:
+	case aTypeString:
 		return TypeString
 	}
 	panic(v)
@@ -123,12 +122,12 @@ var idToType = [...]Type{
 	IDNull:     TypeNull,
 }
 
-func NewUint(t Type, x uint64) Value    { return Value{uint64(vTypePrimitive | t.ID()), x} }
+func NewUint(t Type, x uint64) Value    { return Value{uint64(aTypePrimitive | t.ID()), x} }
 func NewUint8(u uint8) Value            { return NewUint(TypeUint8, uint64(u)) }
 func NewUint16(u uint16) Value          { return NewUint(TypeUint16, uint64(u)) }
 func NewUint32(u uint32) Value          { return NewUint(TypeUint32, uint64(u)) }
 func NewUint64(u uint64) Value          { return NewUint(TypeUint64, u) }
-func NewInt(t Type, x int64) Value      { return Value{uint64(vTypePrimitive | t.ID()), uint64(x)} }
+func NewInt(t Type, x int64) Value      { return Value{uint64(aTypePrimitive | t.ID()), uint64(x)} }
 func NewInt8(i int8) Value              { return NewInt(TypeInt8, int64(i)) }
 func NewInt16(i int16) Value            { return NewInt(TypeInt16, int64(i)) }
 func NewInt32(i int32) Value            { return NewInt(TypeInt32, int64(i)) }
@@ -136,12 +135,12 @@ func NewInt64(i int64) Value            { return NewInt(TypeInt64, i) }
 func NewDuration(d nano.Duration) Value { return NewInt(TypeDuration, int64(d)) }
 func NewTime(ts nano.Ts) Value          { return NewInt(TypeTime, int64(ts)) }
 func NewFloat(t Type, x float64) Value {
-	return Value{uint64(vTypePrimitive | t.ID()), uint64(math.Float64bits(x))}
+	return Value{uint64(aTypePrimitive | t.ID()), uint64(math.Float64bits(x))}
 }
 func NewFloat16(f float32) Value { return NewFloat(TypeFloat16, float64(f)) }
 func NewFloat32(f float32) Value { return NewFloat(TypeFloat32, float64(f)) }
 func NewFloat64(f float64) Value { return NewFloat(TypeFloat64, f) }
-func NewBool(x bool) Value       { return Value{vTypePrimitive | IDBool, boolToUint64(x)} }
+func NewBool(x bool) Value       { return Value{aTypePrimitive | IDBool, boolToUint64(x)} }
 
 func boolToUint64(b bool) uint64 {
 	if b {
@@ -151,14 +150,14 @@ func boolToUint64(b bool) uint64 {
 }
 
 func (v Value) typeID() int {
-	switch v.a & vTypeMask {
-	case vTypeArena:
+	switch v.a & aTypeMask {
+	case aTypeArena:
 		return v.arena().type_(v.d).ID()
-	case vTypePrimitive, vTypePrimitiveNull:
+	case aTypePrimitive, aTypePrimitiveNull:
 		return int(v.a & vPrimitiveTypeIDMask)
-	case vTypeBytes:
+	case aTypeBytes:
 		return IDBytes
-	case vTypeString:
+	case aTypeString:
 		return IDString
 	}
 	panic(v)
@@ -170,7 +169,7 @@ func (v Value) Uint() uint64 {
 	if !IsUnsigned(v.typeID()) {
 		panic(fmt.Sprintf("zed.Value.Uint called on %T", v.Type()))
 	}
-	if v.a&vTypeMask == vTypePrimitive {
+	if v.a&aTypeMask == aTypePrimitive {
 		return v.d
 	}
 	return DecodeUint(v.arena().bytes_(v.d))
@@ -182,7 +181,7 @@ func (v Value) Int() int64 {
 	if !IsSigned(v.typeID()) {
 		panic(fmt.Sprintf("zed.Value.Int called on %T", v.Type()))
 	}
-	if v.a&vTypeMask == vTypePrimitive {
+	if v.a&aTypeMask == aTypePrimitive {
 		return int64(v.d)
 	}
 	return DecodeInt(v.arena().bytes_(v.d))
@@ -194,7 +193,7 @@ func (v Value) Float() float64 {
 	if !IsFloat(v.typeID()) {
 		panic(fmt.Sprintf("zed.Value.Float called on %T", v.Type))
 	}
-	if v.a&vTypeMask == vTypePrimitive {
+	if v.a&aTypeMask == aTypePrimitive {
 		return math.Float64frombits(v.d)
 	}
 	return DecodeFloat(v.arena().bytes_(v.d))
@@ -210,7 +209,7 @@ func (v Value) Bool() bool {
 }
 
 func (v Value) asBool() bool {
-	if v.a&vTypeMask == vTypePrimitive {
+	if v.a&aTypeMask == aTypePrimitive {
 		return v.d != 0
 	}
 	return DecodeBool(v.arena().bytes_(v.d))
@@ -218,16 +217,16 @@ func (v Value) asBool() bool {
 
 // Bytes returns v's ZNG representation.
 func (v Value) Bytes() zcode.Bytes {
-	switch v.a & vTypeMask {
-	case vTypeArena:
+	switch v.a & aTypeMask {
+	case aTypeArena:
 		return v.arena().bytes_(v.d)
-	case vTypeBytes, vTypeString:
+	case aTypeBytes, aTypeString:
 		var b [16]byte
 		binary.BigEndian.PutUint64(b[:8], v.a)
 		binary.BigEndian.PutUint64(b[8:], v.d)
 		length := (v.a & vLengthMask) >> 56
 		return b[1 : 1+length]
-	case vTypePrimitive:
+	case aTypePrimitive:
 		switch v.a & vPrimitiveTypeIDMask {
 		case IDUint8, IDUint16, IDUint32, IDUint64:
 			return EncodeUint(v.d)
@@ -242,7 +241,7 @@ func (v Value) Bytes() zcode.Bytes {
 		case IDBool:
 			return EncodeBool(v.d != 0)
 		}
-	case vTypePrimitiveNull:
+	case aTypePrimitiveNull:
 		return nil
 	}
 	panic(v)
@@ -336,8 +335,8 @@ func (v Value) ContainerLength() (int, error) {
 
 // IsNull returns true if and only if v is a null value of any type.
 func (v Value) IsNull() bool {
-	return v.a&vTypeMask == vTypePrimitiveNull ||
-		v.a&vTypeMask == vTypeArena && v.arena().offsetsAndLengths[arenaDescSlot(v.d)]>>32 == arenaNullOffset
+	return v.a&aTypeMask == aTypePrimitiveNull ||
+		v.a&aTypeMask == aTypeArena && v.d&dStorageMask == dStorageNull
 }
 
 // Copy returns a copy of v that shares no storage.
@@ -346,20 +345,20 @@ func (v Value) Copy(arena *Arena) Value {
 	if !ok || a == arena {
 		return v
 	}
-	if arenaDescValues(v.d) {
-		slot := arenaDescSlot(v.d)
-		start := a.offsetsAndLengths[slot] >> 32
-		if start == arenaNullOffset {
-			return arena.New(v.Type(), nil)
-		}
-		end := start + a.offsetsAndLengths[slot]&0xffffffff
+	switch v.d & dStorageMask {
+	case dStorageBytes:
+		return arena.New(v.Type(), v.Bytes())
+	case dStorageNull:
+		return arena.New(v.Type(), nil)
+	case dStorageValues:
+		offset, length := a.offsetAndLength(v.d)
 		vals := make([]Value, 0, 32)
-		for _, val := range a.values[start:end] {
+		for _, val := range a.values[offset : offset+length] {
 			vals = append(vals, val.Copy(arena))
 		}
 		return arena.NewFromValues(v.Type(), vals)
 	}
-	return arena.New(v.Type(), v.Bytes())
+	panic(v)
 }
 
 func (v Value) IsString() bool {
