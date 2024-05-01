@@ -11,15 +11,15 @@ type Any struct {
 
 var _ Function = (*Any)(nil)
 
+func newAny() *Any {
+	return &Any{arena: zed.NewArena()}
+}
+
 func (a *Any) Consume(val zed.Value) {
 	// Copy any value from the input while favoring any-typed non-null values
 	// over null values.
 	if a.val == nil || a.val.IsNull() && !val.IsNull() {
-		if arena, ok := val.Arena(); ok {
-			arena.Ref()
-			a.arena = arena
-		}
-		a.val = &val
+		a.val = val.Copy(a.arena).Ptr()
 	}
 }
 

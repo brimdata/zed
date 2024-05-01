@@ -35,7 +35,7 @@ func NewPattern(op string, hasarg bool) (Pattern, error) {
 		}
 	case "any":
 		pattern = func() Function {
-			return &Any{}
+			return newAny()
 		}
 	case "avg":
 		pattern = func() Function {
