@@ -83,7 +83,7 @@ func (u *Union) Result(zctx *zed.Context, arena *zed.Arena) zed.Value {
 	return arena.New(zctx.LookupTypeSet(inner), zed.NormalizeSet(b.Bytes()))
 }
 
-func (u *Union) ConsumeAsPartial(_ *zed.Arena, val zed.Value) {
+func (u *Union) ConsumeAsPartial(val zed.Value) {
 	if val.IsNull() {
 		return
 	}

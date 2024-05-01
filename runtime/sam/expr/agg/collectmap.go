@@ -48,7 +48,7 @@ func (c *CollectMap) Consume(val zed.Value) {
 	}
 }
 
-func (c *CollectMap) ConsumeAsPartial(_ *zed.Arena, val zed.Value) {
+func (c *CollectMap) ConsumeAsPartial(val zed.Value) {
 	c.Consume(val)
 }
 

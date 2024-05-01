@@ -88,7 +88,7 @@ func (m *mathReducer) ResultAsPartial(zctx *zed.Context, arena *zed.Arena) zed.V
 	return m.Result(zctx, arena)
 }
 
-func (m *mathReducer) ConsumeAsPartial(_ *zed.Arena, val zed.Value) {
+func (m *mathReducer) ConsumeAsPartial(val zed.Value) {
 	m.consumeVal(val)
 }
 

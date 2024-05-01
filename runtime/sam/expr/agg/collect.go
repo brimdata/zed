@@ -69,7 +69,7 @@ func innerType(zctx *zed.Context, vals []zed.Value) zed.Type {
 	return zctx.LookupTypeUnion(types)
 }
 
-func (c *Collect) ConsumeAsPartial(_ *zed.Arena, val zed.Value) {
+func (c *Collect) ConsumeAsPartial(val zed.Value) {
 	//XXX These should not be passed in here. See issue #3175
 	if len(val.Bytes()) == 0 {
 		return

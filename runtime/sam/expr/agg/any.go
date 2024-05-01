@@ -30,7 +30,7 @@ func (a *Any) Result(*zed.Context, *zed.Arena) zed.Value {
 	return *a.val
 }
 
-func (a *Any) ConsumeAsPartial(_ *zed.Arena, v zed.Value) {
+func (a *Any) ConsumeAsPartial(v zed.Value) {
 	a.Consume(v)
 }
 

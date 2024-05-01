@@ -37,7 +37,7 @@ func (d *DCount) Result(*zed.Context, *zed.Arena) zed.Value {
 	return zed.NewUint64(d.sketch.Estimate())
 }
 
-func (d *DCount) ConsumeAsPartial(_ *zed.Arena, partial zed.Value) {
+func (d *DCount) ConsumeAsPartial(partial zed.Value) {
 	if partial.Type() != zed.TypeBytes {
 		panic(fmt.Errorf("dcount: partial has bad type: %s", zson.FormatValue(partial)))
 	}

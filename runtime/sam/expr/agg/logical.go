@@ -28,7 +28,7 @@ func (a *And) Result(*zed.Context, *zed.Arena) zed.Value {
 	return zed.NewBool(*a.val)
 }
 
-func (a *And) ConsumeAsPartial(_ *zed.Arena, val zed.Value) {
+func (a *And) ConsumeAsPartial(val zed.Value) {
 	if val.Type() != zed.TypeBool {
 		panic("and: partial not a bool")
 	}
@@ -63,7 +63,7 @@ func (o *Or) Result(*zed.Context, *zed.Arena) zed.Value {
 	return zed.NewBool(*o.val)
 }
 
-func (o *Or) ConsumeAsPartial(_ *zed.Arena, val zed.Value) {
+func (o *Or) ConsumeAsPartial(val zed.Value) {
 	if val.Type() != zed.TypeBool {
 		panic("or: partial not a bool")
 	}

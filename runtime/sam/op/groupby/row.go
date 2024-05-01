@@ -34,7 +34,7 @@ func (v valRow) consumeAsPartial(rec zed.Value, exprs []expr.Evaluator, ectx exp
 		//XXX should do soemthing with errors... they could come from
 		// a worker over the network?
 		if !val.IsError() {
-			r.ConsumeAsPartial(ectx.Arena(), val)
+			r.ConsumeAsPartial(val)
 		}
 	}
 }

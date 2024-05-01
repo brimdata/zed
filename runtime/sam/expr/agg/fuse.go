@@ -49,7 +49,7 @@ func (f *fuse) Result(zctx *zed.Context, arena *zed.Arena) zed.Value {
 	return zctx.LookupTypeValue(arena, schema.Type())
 }
 
-func (f *fuse) ConsumeAsPartial(_ *zed.Arena, partial zed.Value) {
+func (f *fuse) ConsumeAsPartial(partial zed.Value) {
 	if partial.Type() != zed.TypeType {
 		panic("fuse: partial not a type value")
 	}

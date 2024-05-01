@@ -16,7 +16,7 @@ func (c Count) Result(*zed.Context, *zed.Arena) zed.Value {
 	return zed.NewUint64(uint64(c))
 }
 
-func (c *Count) ConsumeAsPartial(_ *zed.Arena, partial zed.Value) {
+func (c *Count) ConsumeAsPartial(partial zed.Value) {
 	if partial.Type() != zed.TypeUint64 {
 		panic("count: partial not uint64")
 	}
