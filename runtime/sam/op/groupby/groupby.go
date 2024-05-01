@@ -64,8 +64,7 @@ type Aggregator struct {
 	partialsIn     bool
 	partialsOut    bool
 
-	reducersArena    *zed.Arena
-	tmpArena         *zed.Arena
+	ectx             *expr.Ctx
 	maxTableKeyArena *zed.Arena
 	maxSpillKeyArena *zed.Arena
 }
@@ -114,8 +113,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 		partialsIn:     partialsIn,
 		partialsOut:    partialsOut,
 
-		reducersArena:    zed.NewArena(),
-		tmpArena:         zed.NewArena(),
+		ectx:             expr.NewContext(zed.NewArena()),
 		maxTableKeyArena: zed.NewArena(),
 		maxSpillKeyArena: zed.NewArena(),
 	}, nil
@@ -325,16 +323,14 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 	// structure at output time, which is the new approach that will be
 	// taken by the fix to #1701.
 
-	arena := zed.NewArena()
-	defer arena.Unref()
-	keyEctx := expr.NewContextWithVars(arena, batch.Vars())
+	*a.ectx = *expr.NewContextWithVars(a.ectx.Arena(), batch.Vars())
 
 	types := a.typeCache[:0]
 	keyBytes := a.keyCache[:0]
 	var prim *zed.Value
 	for i, keyExpr := range a.keyExprs {
-		arena.Reset()
-		key := keyExpr.Eval(keyEctx, this)
+		a.ectx.Arena().Reset()
+		key := keyExpr.Eval(a.ectx, this)
 		if key.IsQuiet() {
 			return nil
 		}
@@ -374,10 +370,11 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 		a.table[string(keyBytes)] = row
 	}
 
+	a.ectx.Arena().Reset()
 	if a.partialsIn {
-		row.reducers.consumeAsPartial(this, a.aggRefs, keyEctx)
+		row.reducers.consumeAsPartial(this, a.aggRefs, a.ectx)
 	} else {
-		row.reducers.apply(a.zctx, keyEctx, a.aggs, this)
+		row.reducers.apply(a.zctx, a.ectx, a.aggs, this)
 	}
 	return nil
 }

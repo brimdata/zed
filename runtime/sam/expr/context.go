@@ -15,27 +15,25 @@ type Context interface {
 	Vars() []zed.Value
 }
 
-type allocator struct {
+type Ctx struct {
 	arena *zed.Arena
 	vars  []zed.Value
-
-	stackDepth int
 }
 
-var _ Context = (*allocator)(nil)
+var _ Context = (*Ctx)(nil)
 
-func NewContext(arena *zed.Arena) *allocator {
+func NewContext(arena *zed.Arena) *Ctx {
 	return NewContextWithVars(arena, nil)
 }
 
-func NewContextWithVars(arena *zed.Arena, vars []zed.Value) *allocator {
-	return &allocator{arena, vars, 0}
+func NewContextWithVars(arena *zed.Arena, vars []zed.Value) *Ctx {
+	return &Ctx{arena, vars}
 }
 
-func (a *allocator) Arena() *zed.Arena {
+func (a *Ctx) Arena() *zed.Arena {
 	return a.arena
 }
 
-func (a *allocator) Vars() []zed.Value {
+func (a *Ctx) Vars() []zed.Value {
 	return a.vars
 }
