@@ -57,8 +57,8 @@ type Aggregator struct {
 	valueCompare   expr.CompareFn   // to compare primary group keys for early key output
 	keyCompare     expr.CompareFn   // compare the first key (used when input sorted)
 	keysComparator *expr.Comparator // compare all keys
-	maxTableKey    *zed.Value
-	maxSpillKey    *zed.Value
+	maxTableKey    zed.Value
+	maxSpillKey    zed.Value
 	inputDir       order.Direction
 	spiller        *spill.MergeSort
 	partialsIn     bool
@@ -327,7 +327,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 
 	types := a.typeCache[:0]
 	keyBytes := a.keyCache[:0]
-	var prim *zed.Value
+	var prim zed.Value
 	for i, keyExpr := range a.keyExprs {
 		a.ectx.Arena().Reset()
 		key := keyExpr.Eval(a.ectx, this)
@@ -335,7 +335,7 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 			return nil
 		}
 		if i == 0 && a.inputDir != 0 {
-			prim = a.updateMaxTableKey(key).Ptr()
+			prim = a.updateMaxTableKey(key)
 		}
 		types = append(types, key.Type())
 		// Append each value to the key as a flat value, independent
@@ -355,17 +355,13 @@ func (a *Aggregator) Consume(batch zbuf.Batch, this zed.Value) error {
 				return err
 			}
 		}
-		var groupval zed.Value
-		var groupvalArena *zed.Arena
-		if prim != nil {
-			groupvalArena = zed.NewArena()
-			groupval = prim.Copy(groupvalArena)
-		}
 		row = &Row{
-			keyType:       keyType,
-			groupval:      groupval,
-			groupvalArena: groupvalArena,
-			reducers:      newValRow(a.aggs),
+			keyType:  keyType,
+			reducers: newValRow(a.aggs),
+		}
+		if !prim.IsZero() {
+			row.groupvalArena = zed.NewArena()
+			row.groupval = prim.Copy(row.groupvalArena)
 		}
 		a.table[string(keyBytes)] = row
 	}
@@ -411,17 +407,17 @@ func (a *Aggregator) spillTable(eof bool, ref zbuf.Batch) error {
 // updateMaxTableKey is called with a volatile zed.Value to update the
 // max value seen in the table for the streaming logic when the input is sorted.
 func (a *Aggregator) updateMaxTableKey(val zed.Value) zed.Value {
-	if a.maxTableKey == nil || a.valueCompare(val, *a.maxTableKey) > 0 {
+	if a.maxTableKey.IsZero() || a.valueCompare(val, a.maxTableKey) > 0 {
 		a.maxTableKeyArena.Reset()
-		a.maxTableKey = val.Copy(a.maxTableKeyArena).Ptr()
+		a.maxTableKey = val.Copy(a.maxTableKeyArena)
 	}
-	return *a.maxTableKey
+	return a.maxTableKey
 }
 
 func (a *Aggregator) updateMaxSpillKey(v zed.Value) {
-	if a.maxSpillKey == nil || a.valueCompare(v, *a.maxSpillKey) > 0 {
+	if a.maxSpillKey.IsZero() || a.valueCompare(v, a.maxSpillKey) > 0 {
 		a.maxSpillKeyArena.Reset()
-		a.maxSpillKey = v.Copy(a.maxSpillKeyArena).Ptr()
+		a.maxSpillKey = v.Copy(a.maxSpillKeyArena)
 	}
 }
 
@@ -463,7 +459,7 @@ func (a *Aggregator) readSpills(eof bool, batch zbuf.Batch) (zbuf.Batch, error) 
 				break
 			}
 			keyVal := a.keyExprs[0].Eval(ectx, *rec)
-			if !keyVal.IsError() && a.valueCompare(keyVal, *a.maxSpillKey) >= 0 {
+			if !keyVal.IsError() && a.valueCompare(keyVal, a.maxSpillKey) >= 0 {
 				break
 			}
 		}
@@ -552,7 +548,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool, batch zbuf.Batch) (zbuf.
 		if !flush && a.valueCompare == nil {
 			panic("internal bug: tried to fetch completed tuples on non-sorted input")
 		}
-		if !flush && a.valueCompare(row.groupval, *a.maxTableKey) >= 0 {
+		if !flush && a.valueCompare(row.groupval, a.maxTableKey) >= 0 {
 			continue
 		}
 		// To build the output record, we spin over the key values

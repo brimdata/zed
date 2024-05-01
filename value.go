@@ -85,6 +85,11 @@ func (v Value) arena() *Arena {
 	return arena
 }
 
+// IsZero returns whether v is the zero value (and therefore uninitialized).
+func (v Value) IsZero() bool {
+	return v.a == 0
+}
+
 func (v Value) Ptr() *Value { return &v }
 
 func (v Value) Type() Type {
