@@ -44,7 +44,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 				val := arg.Eval(ectx, val)
 				if val.IsError() {
 					if !val.IsMissing() {
-						out = append(out, val.Copy(arena))
+						out = append(out, val)
 					}
 					continue
 				}
