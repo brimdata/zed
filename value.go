@@ -342,11 +342,10 @@ func (v Value) IsNull() bool {
 }
 
 // Copy copies v to arena, returning a value that does not depend on any other
-// arena.  If v was allocated from arena, Copy does nothing and returns v
-// unchanged.
+// arena.
 func (v Value) Copy(arena *Arena) Value {
-	a, ok := v.Arena()
-	if !ok || a == arena {
+	vArena, ok := v.Arena()
+	if !ok {
 		return v
 	}
 	switch v.d & dStorageMask {
@@ -355,9 +354,9 @@ func (v Value) Copy(arena *Arena) Value {
 	case dStorageNull:
 		return arena.New(v.Type(), nil)
 	case dStorageValues:
-		offset, length := a.offsetAndLength(v.d)
+		offset, length := vArena.offsetAndLength(v.d)
 		vals := make([]Value, 0, 32)
-		for _, val := range a.values[offset : offset+length] {
+		for _, val := range vArena.values[offset : offset+length] {
 			vals = append(vals, val.Copy(arena))
 		}
 		return arena.NewFromValues(v.Type(), vals)
