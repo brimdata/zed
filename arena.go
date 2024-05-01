@@ -26,6 +26,7 @@ type Arena struct {
 
 	buf    []byte
 	free   func()
+	slices [][]byte
 	values []Value
 }
 
@@ -81,6 +82,7 @@ func (a *Arena) Unref() {
 func (a *Arena) Reset() {
 	a.offsetsAndLengths = a.offsetsAndLengths[:0]
 	a.buf = a.buf[:0]
+	a.slices = a.slices[:0]
 	a.values = a.values[:0]
 }
 
@@ -90,9 +92,9 @@ func (a *Arena) New(t Type, b zcode.Bytes) Value {
 	if b == nil {
 		return a.new(t, 0, 0, dStorageNull)
 	}
-	offset := len(a.buf)
-	a.buf = append(a.buf, b...)
-	return a.new(t, offset, len(b), dStorageBuffer)
+	offset := len(a.slices)
+	a.slices = append(a.slices, b)
+	return a.new(t, offset, 0, dStorageSlices)
 }
 
 // NewFromOffsetAndLength returns a new Value whose bytes are a slice of the
@@ -115,12 +117,6 @@ func (a *Arena) NewFromValues(t Type, values []Value) Value {
 }
 
 func (a *Arena) new(t Type, offset, length int, dStorage uint64) Value {
-	if uint64(offset) > math.MaxUint32 {
-		panic("bad offset " + strconv.Itoa(offset))
-	}
-	if uint64(length) > math.MaxUint32 {
-		panic("bad length " + strconv.Itoa(length))
-	}
 	id := TypeID(t)
 	if id >= len(a.byID) {
 		a.byID = slices.Grow(a.byID[:0], id+1)[:id+1]
@@ -130,8 +126,18 @@ func (a *Arena) new(t Type, offset, length int, dStorage uint64) Value {
 	} else if tt != t {
 		panic("type conflict")
 	}
-	a.offsetsAndLengths = append(a.offsetsAndLengths, uint64(offset)<<32|uint64(length))
-	return Value{aTypeArena | uint64(uintptr(unsafe.Pointer(a))), dStorage | uint64(id)<<32 | uint64(len(a.offsetsAndLengths)-1)}
+	var slot int
+	if dStorage != dStorageNull {
+		if uint64(offset) > math.MaxUint32 {
+			panic("bad offset " + strconv.Itoa(offset))
+		}
+		if uint64(length) > math.MaxUint32 {
+			panic("bad length " + strconv.Itoa(length))
+		}
+		a.offsetsAndLengths = append(a.offsetsAndLengths, uint64(offset)<<32|uint64(length))
+		slot = len(a.offsetsAndLengths) - 1
+	}
+	return Value{aTypeArena | uint64(uintptr(unsafe.Pointer(a))), dStorage | uint64(id)<<32 | uint64(slot)}
 }
 
 func (a *Arena) NewBytes(b []byte) Value {
@@ -182,6 +188,9 @@ func (a *Arena) bytes_(d uint64) zcode.Bytes {
 		return a.buf[offset : offset+length]
 	case dStorageNull:
 		return nil
+	case dStorageSlices:
+		offset, _ := a.offsetAndLength(d)
+		return a.slices[offset]
 	case dStorageValues:
 		offset, length := a.offsetAndLength(d)
 		if union, ok := TypeUnder(a.type_(d)).(*TypeUnion); ok {

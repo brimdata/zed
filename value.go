@@ -57,11 +57,11 @@ const (
 	aLengthMask          = uint64(0x0f) << 56
 	aPrimitiveTypeIDMask = 0xff
 
-	dStorageUnknown = 0 << 62
-	dStorageBuffer  = 1 << 62
-	dStorageNull    = 2 << 62
-	dStorageValues  = 3 << 62
-	dStorageMask    = 0x03 << 62
+	dStorageSlices = 0 << 62
+	dStorageBuffer = 1 << 62
+	dStorageNull   = 2 << 62
+	dStorageValues = 3 << 62
+	dStorageMask   = 0x03 << 62
 )
 
 // Value is a Zed value.
@@ -349,8 +349,11 @@ func (v Value) Copy(arena *Arena) Value {
 		return v
 	}
 	switch v.d & dStorageMask {
-	case dStorageBuffer:
-		return arena.New(v.Type(), v.Bytes())
+	case dStorageBuffer, dStorageSlices:
+		offset := len(arena.buf)
+		bytes := v.Bytes()
+		arena.buf = append(arena.buf, bytes...)
+		return arena.NewFromOffsetAndLength(v.Type(), offset, len(bytes))
 	case dStorageNull:
 		return arena.New(v.Type(), nil)
 	case dStorageValues:
