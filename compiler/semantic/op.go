@@ -121,7 +121,7 @@ func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
 			if err != nil {
 				return nil, err
 			}
-			val, err := kernel.EvalAtCompileTime(a.zctx, expr)
+			val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, expr)
 			if err != nil {
 				return nil, fmt.Errorf("headers: %w", err)
 			}
@@ -544,7 +544,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		if err != nil {
 			return nil, fmt.Errorf("head: %w", err)
 		}
-		val, err := kernel.EvalAtCompileTime(a.zctx, expr)
+		val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, expr)
 		if err != nil {
 			return nil, fmt.Errorf("head: %w", err)
 		}
@@ -560,7 +560,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tail: %w", err)
 		}
-		val, err := kernel.EvalAtCompileTime(a.zctx, expr)
+		val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, expr)
 		if err != nil {
 			return nil, fmt.Errorf("tail: %w", err)
 		}
@@ -932,7 +932,7 @@ func (a *analyzer) semConstDecl(c *ast.ConstDecl) (dag.Def, error) {
 	if err != nil {
 		return dag.Def{}, err
 	}
-	if err := a.scope.DefineConst(a.zctx, c.Name, e); err != nil {
+	if err := a.scope.DefineConst(a.zctx, a.arena, c.Name, e); err != nil {
 		return dag.Def{}, err
 	}
 	return dag.Def{
@@ -950,7 +950,7 @@ func (a *analyzer) semTypeDecl(d *ast.TypeDecl) (dag.Def, error) {
 		Kind:  "Literal",
 		Value: fmt.Sprintf("<%s=%s>", zson.QuotedName(d.Name), typ),
 	}
-	if err := a.scope.DefineConst(a.zctx, d.Name, e); err != nil {
+	if err := a.scope.DefineConst(a.zctx, a.arena, d.Name, e); err != nil {
 		return dag.Def{}, err
 	}
 	return dag.Def{Name: d.Name, Expr: e}, nil
@@ -1171,7 +1171,7 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Seq, err
 		}
 		// Transform non-path arguments into literals.
 		if _, ok := e.(*dag.This); !ok {
-			val, err := kernel.EvalAtCompileTime(a.zctx, e)
+			val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, e)
 			if err != nil {
 				return nil, err
 			}

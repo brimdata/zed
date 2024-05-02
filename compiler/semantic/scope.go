@@ -50,8 +50,8 @@ func (s *Scope) DefineAs(name string, e any) error {
 	return nil
 }
 
-func (s *Scope) DefineConst(zctx *zed.Context, name string, def dag.Expr) error {
-	val, err := kernel.EvalAtCompileTime(zctx, def)
+func (s *Scope) DefineConst(zctx *zed.Context, arena *zed.Arena, name string, def dag.Expr) error {
+	val, err := kernel.EvalAtCompileTime(zctx, arena, def)
 	if err != nil {
 		return err
 	}

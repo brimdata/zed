@@ -354,7 +354,7 @@ func (a *analyzer) semGrep(grep *ast.Grep) (dag.Expr, error) {
 		s.Expr = e
 		return s, nil
 	}
-	if s, ok := isStringConst(a.zctx, p); ok {
+	if s, ok := a.isStringConst(p); ok {
 		return &dag.Search{
 			Kind:  "Search",
 			Text:  s,
@@ -433,7 +433,7 @@ func (a *analyzer) semBinary(e *ast.BinaryExpr) (dag.Expr, error) {
 
 func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 	if this, ok := lhs.(*dag.This); ok {
-		if s, ok := isStringConst(a.zctx, rhs); ok {
+		if s, ok := a.isStringConst(rhs); ok {
 			this.Path = append(this.Path, s)
 			return this
 		}
@@ -441,8 +441,8 @@ func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 	return nil
 }
 
-func isStringConst(zctx *zed.Context, e dag.Expr) (field string, ok bool) {
-	val, err := kernel.EvalAtCompileTime(zctx, e)
+func (a *analyzer) isStringConst(e dag.Expr) (field string, ok bool) {
+	val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, e)
 	if err == nil && !val.IsError() && zed.TypeUnder(val.Type()) == zed.TypeString {
 		return string(val.Bytes()), true
 	}

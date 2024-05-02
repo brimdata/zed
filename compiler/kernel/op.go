@@ -697,10 +697,11 @@ func compileExpr(in dag.Expr) (expr.Evaluator, error) {
 	return b.compileExpr(in)
 }
 
-func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val zed.Value, err error) {
+func EvalAtCompileTime(zctx *zed.Context, arena *zed.Arena, in dag.Expr) (zed.Value, error) {
 	// We pass in a nil adaptor, which causes a panic for anything adaptor
 	// related, which is not currently allowed in an expression sub-query.
 	b := NewBuilder(runtime.NewContext(context.Background(), zctx), nil)
+	b.arena = arena
 	return b.evalAtCompileTime(in)
 }
 
