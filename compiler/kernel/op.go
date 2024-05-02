@@ -78,13 +78,6 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 	}
 }
 
-func (b *Builder) clone() *Builder {
-	return &Builder{
-		rctx:  b.rctx,
-		funcs: b.funcs,
-		arena: zed.NewArena()}
-}
-
 // Build builds a flowgraph for seq.  If seq contains a dag.DefaultSource, it
 // will read from readers.
 func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, error) {
@@ -669,7 +662,7 @@ func (b *Builder) PushdownOf(e dag.Expr) *Filter {
 	if e == nil {
 		return nil
 	}
-	return &Filter{e, b.clone()}
+	return &Filter{e, b}
 }
 
 func (b *Builder) lookupPool(id ksuid.KSUID) (*lake.Pool, error) {
