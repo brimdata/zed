@@ -254,7 +254,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		var pruner expr.Evaluator
 		if v.Tap && v.KeyPruner != nil {
 			var err error
-			pruner, err = compileExpr(v.KeyPruner)
+			pruner, err = b.compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -291,7 +291,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = compileExpr(v.KeyPruner)
+			pruner, err = b.compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -306,7 +306,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = compileExpr(v.KeyPruner)
+			pruner, err = b.compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -319,7 +319,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = compileExpr(v.KeyPruner)
+			pruner, err = b.compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -690,11 +690,6 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 		}
 	}()
 	return e.Eval(expr.NewContext(b.arena), missing), nil
-}
-
-func compileExpr(in dag.Expr) (expr.Evaluator, error) {
-	b := NewBuilder(runtime.NewContext(context.Background(), zed.NewContext()), nil)
-	return b.compileExpr(in)
 }
 
 func EvalAtCompileTime(zctx *zed.Context, arena *zed.Arena, in dag.Expr) (zed.Value, error) {
