@@ -78,6 +78,12 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 	}
 }
 
+func (b *Builder) clone(arena *zed.Arena) *Builder {
+	bb := *b
+	bb.arena = arena
+	return &bb
+}
+
 // Build builds a flowgraph for seq.  If seq contains a dag.DefaultSource, it
 // will read from readers.
 func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, error) {
