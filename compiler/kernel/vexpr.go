@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/pkg/field"
 	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
@@ -17,12 +16,11 @@ func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {
 	}
 	switch e := e.(type) {
 	case *dag.Literal:
-		arena := zed.NewArena()
-		val, err := zson.ParseValue(b.zctx(), arena, e.Value)
+		val, err := zson.ParseValue(b.zctx(), b.arena, e.Value)
 		if err != nil {
 			return nil, err
 		}
-		return vamexpr.NewLiteral(arena, val), nil
+		return vamexpr.NewLiteral(b.arena, val), nil
 	//case *dag.Var:
 	//	return vamexpr.NewVar(e.Slot), nil
 	//case *dag.Search:
