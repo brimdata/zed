@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -16,7 +17,7 @@ type Compiler interface {
 	NewQuery(*Context, ast.Seq, []zio.Reader) (Query, error)
 	NewLakeQuery(*Context, ast.Seq, int, *lakeparse.Commitish) (Query, error)
 	NewLakeDeleteQuery(*Context, ast.Seq, *lakeparse.Commitish) (DeleteQuery, error)
-	Parse(string, ...string) (ast.Seq, error)
+	Parse(string, ...string) (ast.Seq, *parser.SourceSet, error)
 }
 
 type Query interface {

@@ -152,7 +152,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		fmt.Println(s)
 	}
 	if c.proc {
-		seq, err := compiler.Parse(z)
+		seq, _, err := compiler.Parse(z)
 		if err != nil {
 			return err
 		}
@@ -214,11 +214,15 @@ func (c *Command) writeDAG(seq dag.Seq) {
 }
 
 func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
-	p, err := compiler.Parse(z)
+	p, set, err := compiler.Parse(z)
 	if err != nil {
-		return nil, err
+		return nil, set.LocalizeError(err)
 	}
-	return compiler.NewJob(runtime.DefaultContext(), p, data.NewSource(nil, lk), nil)
+	job, err := compiler.NewJob(runtime.DefaultContext(), p, data.NewSource(nil, lk), nil)
+	if err != nil {
+		return nil, set.LocalizeError(err)
+	}
+	return job, nil
 }
 
 func normalize(b []byte) (string, error) {
@@ -254,9 +258,9 @@ func dagFmt(seq dag.Seq, canon bool) (string, error) {
 }
 
 func parsePigeon(z string) (string, error) {
-	ast, err := parser.Parse("", []byte(z))
+	ast, set, err := parser.ParseZed(nil, z)
 	if err != nil {
-		return "", err
+		return "", set.LocalizeError(err)
 	}
 	goPEGJSON, err := json.Marshal(ast)
 	if err != nil {

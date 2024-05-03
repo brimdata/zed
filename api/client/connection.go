@@ -20,10 +20,12 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/pkg/unpack"
 	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/multierr"
 )
 
 const (
@@ -292,27 +294,37 @@ func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return commit, err
 }
 
+var queryErrUnpacker = unpack.New(parser.LocalizedError{})
+
 // Query assembles a query from src and filenames and runs it.
 //
 // As for Connection.Do, if the returned error is nil, the user is expected to
 // call Response.Body.Close.
 func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
-	src, srcInfo, err := parser.ConcatSource(filenames, src)
+	set, err := parser.ConcatSource(filenames, src)
 	if err != nil {
 		return nil, err
 	}
-	body := api.QueryRequest{Query: src}
+	body := api.QueryRequest{Query: string(set.Contents)}
 	if head != nil {
 		body.Head = *head
 	}
 	req := c.NewRequest(ctx, http.MethodPost, "/query?ctrl=T", body)
 	res, err := c.Do(req)
 	var ae *api.Error
-	if errors.As(err, &ae) {
-		if m, ok := ae.Info.(map[string]interface{}); ok {
-			if offset, ok := m["parse_error_offset"].(float64); ok {
-				return res, parser.NewError(src, srcInfo, int(offset))
+	if errors.As(err, &ae) && ae.Info != nil {
+		if list, ok := ae.Info.([]any); ok {
+			var errs error
+			for _, l := range list {
+				var lerr *parser.LocalizedError
+				if queryErrUnpacker.UnmarshalObject(l, &lerr) != nil {
+					// If an error is encountered here just return the parent
+					// error since this is more interesting.
+					return nil, err
+				}
+				errs = multierr.Append(errs, lerr)
 			}
+			return nil, set.LocalizeError(errs)
 		}
 	}
 	return res, err

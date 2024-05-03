@@ -113,13 +113,13 @@ func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string
 }
 
 func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
-	flowgraph, err := l.compiler.Parse(src, srcfiles...)
+	flowgraph, set, err := l.compiler.Parse(src, srcfiles...)
 	if err != nil {
-		return nil, err
+		return nil, set.LocalizeError(err)
 	}
 	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head)
 	if err != nil {
-		return nil, err
+		return nil, set.LocalizeError(err)
 	}
 	return runtime.AsProgressReadCloser(q), nil
 }
@@ -173,7 +173,7 @@ func (l *local) Delete(ctx context.Context, poolID ksuid.KSUID, branchName strin
 }
 
 func (l *local) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
-	op, err := l.compiler.Parse(src)
+	op, _, err := l.compiler.Parse(src)
 	if err != nil {
 		return ksuid.Nil, err
 	}

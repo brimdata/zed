@@ -51,14 +51,14 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	// The client must look at the return code and interpret the result
 	// accordingly and when it sees a ZNG error after underway,
 	// the error should be relay that to the caller/user.
-	query, err := c.compiler.Parse(req.Query)
+	query, set, err := c.compiler.Parse(req.Query)
 	if err != nil {
-		w.Error(srverr.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(set.LocalizeError(err)))
 		return
 	}
 	flowgraph, err := runtime.CompileLakeQuery(r.Context(), zed.NewContext(), c.compiler, query, &req.Head)
 	if err != nil {
-		w.Error(srverr.ErrInvalid(err))
+		w.Error(srverr.ErrInvalid(set.LocalizeError(err)))
 		return
 	}
 	flusher, _ := w.ResponseWriter.(http.Flusher)
@@ -162,9 +162,9 @@ func handleCompile(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	ast, err := c.compiler.Parse(req.Query)
+	ast, set, err := c.compiler.Parse(req.Query)
 	if err != nil {
-		w.Error(srverr.ErrInvalid(err))
+		w.Error(set.LocalizeError(err))
 		return
 	}
 	w.Respond(http.StatusOK, ast)
@@ -553,7 +553,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			return
 		}
 		var program ast.Seq
-		if program, err = c.compiler.Parse(payload.Where); err != nil {
+		if program, _, err = c.compiler.Parse(payload.Where); err != nil {
 			w.Error(srverr.ErrInvalid(err))
 			return
 		}

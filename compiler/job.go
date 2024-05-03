@@ -88,13 +88,13 @@ func (j *Job) Parallelize(n int) error {
 	return err
 }
 
-func Parse(src string, filenames ...string) (ast.Seq, error) {
+func Parse(src string, filenames ...string) (ast.Seq, *parser.SourceSet, error) {
 	return parser.ParseZed(filenames, src)
 }
 
 // MustParse is like Parse but panics if an error is encountered.
 func MustParse(query string) ast.Seq {
-	seq, err := (*anyCompiler)(nil).Parse(query)
+	seq, _, err := (*anyCompiler)(nil).Parse(query)
 	if err != nil {
 		panic(err)
 	}
@@ -135,7 +135,7 @@ type anyCompiler struct{}
 
 // Parse concatenates the source files in filenames followed by src and parses
 // the resulting program.
-func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, error) {
+func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, *parser.SourceSet, error) {
 	return Parse(src, filenames...)
 }
 
@@ -144,7 +144,7 @@ func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, error) {
 // nor does it compute the demand of the query to prune the projection
 // from the vcache.
 func VectorCompile(rctx *runtime.Context, query string, object *vcache.Object) (zbuf.Puller, error) {
-	seq, err := Parse(query)
+	seq, _, err := Parse(query)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func VectorFilterCompile(rctx *runtime.Context, query string, src *data.Source, 
 	if err != nil {
 		return nil, err
 	}
-	seq, err := Parse(query)
+	seq, _, err := Parse(query)
 	if err != nil {
 		return nil, err
 	}
