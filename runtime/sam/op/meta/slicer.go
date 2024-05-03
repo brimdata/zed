@@ -74,6 +74,7 @@ func (s *Slicer) Pull(done bool) (zbuf.Batch, error) {
 		if err := s.unmarshaler.Unmarshal(vals[0], &object); err != nil {
 			return nil, err
 		}
+		batch.Unref()
 		if batch, err := s.stash(&object); batch != nil || err != nil {
 			return batch, err
 		}
