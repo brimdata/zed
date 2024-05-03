@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/cli/clierrors"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/queryflags"
@@ -129,7 +130,7 @@ func (c *Command) Run(args []string) error {
 		// Prevent ParseSourcesAndInputs from treating args[0] as a path.
 		args = append(args, "-")
 	}
-	paths, flowgraph, null, err := c.queryFlags.ParseSourcesAndInputs(args)
+	paths, flowgraph, set, null, err := c.queryFlags.ParseSourcesAndInputs(args)
 	if err != nil {
 		return fmt.Errorf("zq: %w", err)
 	}
@@ -156,7 +157,7 @@ func (c *Command) Run(args []string) error {
 	comp := compiler.NewFileSystemCompiler(local)
 	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, readers)
 	if err != nil {
-		return err
+		return clierrors.Format(set, err)
 	}
 	defer query.Pull(true)
 	err = zbuf.CopyPuller(writer, query)

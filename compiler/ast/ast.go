@@ -3,6 +3,9 @@
 package ast
 
 import (
+	"encoding/json"
+	"errors"
+
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
@@ -896,4 +899,42 @@ func (a *Agg) End() int {
 		return a.Where.End()
 	}
 	return a.Rparen + 1
+}
+
+// Error represents an error attached to a particular Node or place in the AST.
+type Error struct {
+	Kind string `json:"kind" unpack:""`
+	Err  error
+	Pos  int
+	End  int
+}
+
+func NewError(err error, pos, end int) *Error {
+	return &Error{Kind: "Kind", Err: err, Pos: pos, End: end}
+}
+
+func (e *Error) Error() string {
+	return e.Err.Error()
+}
+
+func (e *Error) Unwrap() error { return e.Err }
+
+type errJSON struct {
+	Kind  string `json:"kind"`
+	Error string `json:"error"`
+	Pos   int    `json:"pos"`
+	End   int    `json:"end"`
+}
+
+func (e *Error) MarshalJSON() ([]byte, error) {
+	return json.Marshal(errJSON{e.Kind, e.Err.Error(), e.Pos, e.End})
+}
+
+func (e *Error) UnmarshalJSON(b []byte) error {
+	var v errJSON
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	e.Kind, e.Err, e.Pos, e.End = v.Kind, errors.New(v.Error), v.Pos, v.End
+	return nil
 }

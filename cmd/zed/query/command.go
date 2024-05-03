@@ -3,11 +3,13 @@ package query
 import (
 	"flag"
 
+	"github.com/brimdata/zed/cli/clierrors"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cli/queryflags"
 	"github.com/brimdata/zed/cli/runtimeflags"
 	"github.com/brimdata/zed/cmd/zed/root"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
@@ -63,10 +65,15 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	head, _ := c.poolFlags.HEAD()
-	query, err := lake.QueryWithControl(ctx, head, src, c.queryFlags.Includes...)
+	set, err := parser.ConcatSource(c.queryFlags.Includes, src)
 	if err != nil {
 		w.Close()
 		return err
+	}
+	query, err := lake.QueryWithControl(ctx, head, string(set.Contents))
+	if err != nil {
+		w.Close()
+		return clierrors.Format(set, err)
 	}
 	defer query.Close()
 	err = zio.Copy(w, zbuf.NoControl(query))

@@ -13,8 +13,8 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
-	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
@@ -27,6 +27,7 @@ import (
 	"github.com/brimdata/zed/zson"
 	"github.com/gorilla/mux"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -303,15 +304,11 @@ func errorResponse(e error) (status int, ae *api.Error) {
 	status = http.StatusInternalServerError
 	ae = &api.Error{Type: "Error"}
 
-	var pe *parser.Error
-	if errors.As(e, &pe) {
-		ae.Info = map[string]int{"parse_error_offset": pe.Offset}
-	}
-
 	var ze *srverr.Error
 	if !errors.As(e, &ze) {
 		ze = &srverr.Error{Err: e}
 	}
+	checkASTErrors(ae, ze.Err)
 
 	switch {
 	case errors.Is(e, branches.ErrExists) || errors.Is(e, pools.ErrExists):
@@ -339,4 +336,17 @@ func errorResponse(e error) (status int, ae *api.Error) {
 	ae.Kind = ze.Kind.String()
 	ae.Message = ze.Message()
 	return
+}
+
+func checkASTErrors(ae *api.Error, zerr error) {
+	var errs []*ast.Error
+	for _, err := range multierr.Errors(zerr) {
+		var aerr *ast.Error
+		if errors.As(err, &aerr) {
+			errs = append(errs, aerr)
+		}
+	}
+	if len(errs) > 0 {
+		ae.Info = errs
+	}
 }

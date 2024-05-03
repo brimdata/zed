@@ -22,8 +22,8 @@ import (
 
 type Interface interface {
 	Root() *lake.Root
-	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error)
-	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error)
+	Query(ctx context.Context, head *lakeparse.Commitish, src string) (zio.ReadCloser, error)
+	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string) (zbuf.ProgressReadCloser, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.SortKey, int, int64) (ksuid.KSUID, error)

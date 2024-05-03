@@ -5,9 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/brimdata/zed/cli/clierrors"
 	"github.com/brimdata/zed/cmd/zed/dev"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/compiler"
@@ -112,17 +112,10 @@ func (c *Command) Run(args []string) error {
 			c.pigeon = true
 		}
 	}
-	var src string
-	if len(c.includes) > 0 {
-		for _, path := range c.includes {
-			b, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			src += "\n" + string(b)
-		}
+	set, err := parser.ConcatSource(c.includes, strings.Join(args, " "))
+	if err != nil {
+		return err
 	}
-	src += strings.Join(args, " ")
 	var lk *lake.Root
 	if c.semantic || c.optimize || c.parallel != 0 {
 		lakeAPI, err := c.LakeFlags.Open(ctx)
@@ -130,7 +123,7 @@ func (c *Command) Run(args []string) error {
 			lk = lakeAPI.Root()
 		}
 	}
-	return c.parse(src, lk)
+	return c.parse(set, lk)
 }
 
 func (c *Command) header(msg string) {
@@ -142,9 +135,9 @@ func (c *Command) header(msg string) {
 	}
 }
 
-func (c *Command) parse(z string, lk *lake.Root) error {
+func (c *Command) parse(set *parser.SourceSet, lk *lake.Root) error {
 	if c.pigeon {
-		s, err := parsePigeon(z)
+		s, err := parsePigeon(set)
 		if err != nil {
 			return err
 		}
@@ -152,7 +145,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		fmt.Println(s)
 	}
 	if c.proc {
-		seq, err := compiler.Parse(z)
+		seq, err := compiler.Parse(string(set.Contents))
 		if err != nil {
 			return err
 		}
@@ -160,7 +153,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		c.writeAST(seq)
 	}
 	if c.semantic {
-		runtime, err := c.compile(z, lk)
+		runtime, err := c.compile(set, lk)
 		if err != nil {
 			return err
 		}
@@ -168,7 +161,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		c.writeDAG(runtime.Entry())
 	}
 	if c.optimize {
-		runtime, err := c.compile(z, lk)
+		runtime, err := c.compile(set, lk)
 		if err != nil {
 			return err
 		}
@@ -179,7 +172,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		c.writeDAG(runtime.Entry())
 	}
 	if c.parallel > 0 {
-		runtime, err := c.compile(z, lk)
+		runtime, err := c.compile(set, lk)
 		if err != nil {
 			return err
 		}
@@ -213,12 +206,16 @@ func (c *Command) writeDAG(seq dag.Seq) {
 	}
 }
 
-func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
-	p, err := compiler.Parse(z)
+func (c *Command) compile(set *parser.SourceSet, lk *lake.Root) (*compiler.Job, error) {
+	p, err := compiler.Parse(string(set.Contents))
 	if err != nil {
-		return nil, err
+		return nil, clierrors.Format(set, err)
 	}
-	return compiler.NewJob(runtime.DefaultContext(), p, data.NewSource(nil, lk), nil)
+	job, err := compiler.NewJob(runtime.DefaultContext(), p, data.NewSource(nil, lk), nil)
+	if err != nil {
+		return nil, clierrors.Format(set, err)
+	}
+	return job, nil
 }
 
 func normalize(b []byte) (string, error) {
@@ -253,14 +250,14 @@ func dagFmt(seq dag.Seq, canon bool) (string, error) {
 	return normalize(dagJSON)
 }
 
-func parsePigeon(z string) (string, error) {
-	ast, err := parser.Parse("", []byte(z))
+func parsePigeon(set *parser.SourceSet) (string, error) {
+	ast, err := parser.ParseZed(string(set.Contents))
 	if err != nil {
-		return "", err
+		return "", clierrors.Format(set, err)
 	}
 	goPEGJSON, err := json.Marshal(ast)
 	if err != nil {
-		return "", errors.New("go peg parser returned bad value for: " + z)
+		return "", errors.New("go peg parser returned bad value for: " + string(set.Contents))
 	}
 	return normalize(goPEGJSON)
 }

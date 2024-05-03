@@ -34,34 +34,34 @@ outputs:
   - name: stderr
     data: |
       =1=
-      error parsing Zed at column 11:
+      error parsing Zed (line 1, column 11):
       from test \ count()
             === ^ ===
       =2=
-      error parsing Zed at line 2, column 6:
+      error parsing Zed (line 2, column 6):
       test \ count()
        === ^ ===
       =3=
-      error parsing Zed at column 11:
+      error parsing Zed (line 1, column 11):
       from test \ count()
             === ^ ===
       =4=
-      error parsing Zed at line 2, column 6:
+      error parsing Zed (line 2, column 6):
       test \ count()
        === ^ ===
       =5=
-      error parsing Zed in bad-single-line.zed at line 1, column 11:
+      error parsing Zed (bad-single-line.zed: line 1, column 11):
       from test \ count()
             === ^ ===
       =6=
-      error parsing Zed in bad-multiple-lines.zed at line 2, column 6:
+      error parsing Zed (bad-multiple-lines.zed: line 2, column 6):
       test \ count()
        === ^ ===
       =7=
-      error parsing Zed in bad-single-line.zed at line 1, column 11:
+      error parsing Zed (bad-single-line.zed: line 1, column 11):
       from test \ count()
             === ^ ===
       =8=
-      error parsing Zed in bad-multiple-lines.zed at line 2, column 6:
+      error parsing Zed (bad-multiple-lines.zed: line 2, column 6):
       test \ count()
        === ^ ===

@@ -8,4 +8,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {info:{parse_error_offset:6}}
+      {info:[{kind:"Kind",error:"error parsing Zed",pos:6,end:-1}]}

@@ -88,8 +88,8 @@ func (j *Job) Parallelize(n int) error {
 	return err
 }
 
-func Parse(src string, filenames ...string) (ast.Seq, error) {
-	return parser.ParseZed(filenames, src)
+func Parse(src string) (ast.Seq, error) {
+	return parser.ParseZed(src)
 }
 
 // MustParse is like Parse but panics if an error is encountered.
@@ -135,8 +135,8 @@ type anyCompiler struct{}
 
 // Parse concatenates the source files in filenames followed by src and parses
 // the resulting program.
-func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, error) {
-	return Parse(src, filenames...)
+func (*anyCompiler) Parse(src string) (ast.Seq, error) {
+	return Parse(src)
 }
 
 // VectorCompile is used for testing queries over single VNG object scans

@@ -229,7 +229,7 @@ zq -z 'Defunct=' *.zson
 ```
 produces
 ```mdtest-output
-zq: error parsing Zed at column 8:
+zq: error parsing Zed (line 1, column 8):
 Defunct=
    === ^ ===
 ```
