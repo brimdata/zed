@@ -13,10 +13,10 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-// Arena is an allocator for Values. Two constraints govern its use.  First, the
-// Type of each Value in an arena must belong to a single Context.  Second, an
-// arena must be reachable at any point in a program where its Values are
-// accessed.
+// Arena is an reference-counted allocator for Values. Two constraints govern
+// its use.  First, the Type of each Value in an arena must belong to a single
+// Context.  Second, an arena must be reachable at any point in a program where
+// its Values are accessed.
 type Arena struct {
 	pool *sync.Pool
 	refs int32
