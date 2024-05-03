@@ -19,7 +19,7 @@ func NewAggregator(op string, expr Evaluator, where Evaluator) (*Aggregator, err
 	if expr == nil {
 		// Count is the only that has no argument so we just return
 		// true so it counts each value encountered.
-		expr = &Literal{nil, zed.True}
+		expr = &Literal{zed.True}
 	}
 	return &Aggregator{
 		pattern: pattern,

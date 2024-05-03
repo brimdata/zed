@@ -56,7 +56,7 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 		if err != nil {
 			return nil, err
 		}
-		return expr.NewLiteral(b.arena, val), nil
+		return expr.NewLiteral(val), nil
 	case *dag.Var:
 		return expr.NewVar(e.Slot), nil
 	case *dag.Search:
