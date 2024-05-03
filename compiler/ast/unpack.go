@@ -65,8 +65,6 @@ var unpacker = unpack.New(
 	astzed.Set{},
 	SetExpr{},
 	Spread{},
-	SQLExpr{},
-	SQLOrderBy{},
 	SliceExpr{},
 	Sort{},
 	String{},

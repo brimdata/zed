@@ -40,7 +40,7 @@ tends to be the most space-efficient and most performant.  ZNG has efficiency si
 and [Protocol Buffers](https://developers.google.com/protocol-buffers)
 but its comprehensive [Zed type system](../formats/zed.md) obviates
 the need for schema specification or registries.
-Also, the ZSON format is human-readable and entirely one-to-one with ZNG
+Also, the [ZSON](../formats/zson.md) format is human-readable and entirely one-to-one with ZNG
 so there is no need to represent non-readable formats like Avro or Protocol Buffers
 in a clunky JSON encapsulated form.  
 
@@ -49,8 +49,8 @@ human-readable bits of output, you merely format it as ZSON, which is the
 default format when output is directed to the terminal.  ZNG is the default
 when redirecting to a non-terminal output like a file or pipe.
 
-When run with input arguments, each input's format is automatically inferred
-([as described below](#auto-detection)) and each input is scanned
+When run with input arguments, each input's format is [automatically inferred](#auto-detection)
+and each input is scanned
 in the order appearing on the command line forming the input stream.
 
 A query expressed in the [Zed language](../language/README.md)
@@ -70,7 +70,7 @@ Zed query (like a keyword search) happens to correspond with a file of the
 same name in the local directory.
 
 When `zq` is run with a query and no input arguments, then the query must
-begin with a
+begin with
 * a [from, file, or get operator](../language/operators/from.md), or
 * an explicit or implied [yield operator](../language/operators/yield.md).
 

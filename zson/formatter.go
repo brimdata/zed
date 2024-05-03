@@ -14,18 +14,19 @@ import (
 )
 
 type Formatter struct {
-	typedefs  map[string]*zed.TypeNamed
-	permanent map[string]*zed.TypeNamed
-	persist   *regexp.Regexp
-	tab       int
-	newline   string
-	builder   strings.Builder
-	stack     []strings.Builder
-	implied   map[zed.Type]bool
-	colors    color.Stack
+	typedefs      map[string]*zed.TypeNamed
+	permanent     map[string]*zed.TypeNamed
+	persist       *regexp.Regexp
+	tab           int
+	newline       string
+	builder       strings.Builder
+	stack         []strings.Builder
+	implied       map[zed.Type]bool
+	colors        color.Stack
+	colorDisabled bool
 }
 
-func NewFormatter(pretty int, persist *regexp.Regexp) *Formatter {
+func NewFormatter(pretty int, colorDisabled bool, persist *regexp.Regexp) *Formatter {
 	var newline string
 	if pretty > 0 {
 		newline = "\n"
@@ -35,12 +36,13 @@ func NewFormatter(pretty int, persist *regexp.Regexp) *Formatter {
 		permanent = make(map[string]*zed.TypeNamed)
 	}
 	return &Formatter{
-		typedefs:  make(map[string]*zed.TypeNamed),
-		permanent: permanent,
-		tab:       pretty,
-		newline:   newline,
-		implied:   make(map[zed.Type]bool),
-		persist:   persist,
+		typedefs:      make(map[string]*zed.TypeNamed),
+		permanent:     permanent,
+		tab:           pretty,
+		newline:       newline,
+		implied:       make(map[zed.Type]bool),
+		persist:       persist,
+		colorDisabled: colorDisabled,
 	}
 }
 
@@ -75,7 +77,7 @@ func (f *Formatter) FormatRecord(rec zed.Value) string {
 }
 
 func FormatValue(val zed.Value) string {
-	return NewFormatter(0, nil).Format(val)
+	return NewFormatter(0, true, nil).Format(val)
 }
 
 func String(p interface{}) string {
@@ -656,7 +658,7 @@ var colors = map[zed.Type]color.Code{
 }
 
 func (f *Formatter) startColorPrimitive(typ zed.Type) {
-	if f.tab > 0 {
+	if !f.colorDisabled {
 		c, ok := colors[zed.TypeUnder(typ)]
 		if !ok {
 			c = color.Reset
@@ -666,13 +668,13 @@ func (f *Formatter) startColorPrimitive(typ zed.Type) {
 }
 
 func (f *Formatter) startColor(code color.Code) {
-	if f.tab > 0 {
+	if !f.colorDisabled {
 		f.colors.Start(&f.builder, code)
 	}
 }
 
 func (f *Formatter) endColor() {
-	if f.tab > 0 {
+	if !f.colorDisabled {
 		f.colors.End(&f.builder)
 	}
 }
@@ -825,13 +827,13 @@ func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
 }
 
 func FormatTypeValue(tv zcode.Bytes) string {
-	f := NewFormatter(0, nil)
+	f := NewFormatter(0, true, nil)
 	f.formatTypeValue(0, tv)
 	return f.builder.String()
 }
 
 func FormatTypeAndBytes(typ zed.Type, bytes zcode.Bytes) string {
-	f := NewFormatter(0, nil)
+	f := NewFormatter(0, true, nil)
 	f.formatValueAndDecorate(typ, bytes)
 	return f.builder.String()
 }

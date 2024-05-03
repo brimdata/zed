@@ -342,9 +342,12 @@ func dynamicTypeName(name string) *dag.Call {
 }
 
 func (a *analyzer) semGrep(grep *ast.Grep) (dag.Expr, error) {
-	e, err := a.semExpr(grep.Expr)
-	if err != nil {
-		return nil, err
+	e := dag.Expr(&dag.This{Kind: "This"})
+	if grep.Expr != nil {
+		var err error
+		if e, err = a.semExpr(grep.Expr); err != nil {
+			return nil, err
+		}
 	}
 	p, err := a.semExpr(grep.Pattern)
 	if err != nil {

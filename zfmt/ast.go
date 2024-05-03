@@ -3,7 +3,6 @@ package zfmt
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/brimdata/zed/compiler/ast"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
@@ -120,8 +119,6 @@ func (c *canon) expr(e ast.Expr, parent string) {
 		c.write("(")
 		c.expr(e.Expr, "")
 		c.write(")")
-	case *ast.SQLExpr:
-		c.sql(e)
 	case *astzed.TypeValue:
 		c.write("<")
 		c.typ(e.Value)
@@ -133,7 +130,7 @@ func (c *canon) expr(e ast.Expr, parent string) {
 	case *ast.Grep:
 		c.write("grep(")
 		c.expr(e.Pattern, "")
-		if !isThis(e.Expr) {
+		if e.Expr != nil {
 			c.write(",")
 			c.expr(e.Expr, "")
 		}
@@ -281,15 +278,6 @@ func precedence(op string) int {
 	}
 }
 
-func (c *canon) sql(e *ast.SQLExpr) {
-	if e.Select == nil {
-		c.write(" SELECT *")
-	} else {
-		c.write(" SELECT")
-		c.assignments(e.Select)
-	}
-}
-
 func isThis(e ast.Expr) bool {
 	if id, ok := e.(*ast.ID); ok {
 		return id.Name == "this"
@@ -425,7 +413,6 @@ func (c *canon) op(p ast.Op) {
 		c.flush()
 		c.write(")")
 	case *ast.From:
-		//XXX cleanup for len(Trunks) = 1
 		c.next()
 		c.open("from (")
 		for _, trunk := range p.Trunks {
@@ -443,68 +430,22 @@ func (c *canon) op(p ast.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
-	case *ast.SQLExpr:
+	case *ast.Pool:
 		c.next()
-		c.open("SELECT ")
-		if p.Select == nil {
-			c.write("*")
-		} else {
-			c.assignments(p.Select)
-		}
-		if p.From != nil {
-			c.ret()
-			c.write("FROM ")
-			c.expr(p.From.Table, "")
-			if p.From.Alias != nil {
-				c.write(" AS ")
-				c.expr(p.From.Alias, "")
-			}
-		}
-		for _, join := range p.Joins {
-			c.ret()
-			switch join.Style {
-			case "left":
-				c.write("LEFT ")
-			case "right":
-				c.write("RIGHT ")
-			}
-			c.write("JOIN ")
-			c.expr(join.Table, "")
-			if join.Alias != nil {
-				c.write(" AS ")
-				c.expr(join.Alias, "")
-			}
-			c.write(" ON ")
-			c.expr(join.LeftKey, "")
-			c.write("=")
-			c.expr(join.RightKey, "")
-		}
-		if p.Where != nil {
-			c.ret()
-			c.write("WHERE ")
-			c.expr(p.Where, "")
-		}
-		if p.GroupBy != nil {
-			c.ret()
-			c.write("GROUP BY ")
-			c.exprs(p.GroupBy)
-		}
-		if p.Having != nil {
-			c.ret()
-			c.write("HAVING ")
-			c.expr(p.Having, "")
-		}
-		if p.OrderBy != nil {
-			c.ret()
-			c.write("ORDER BY ")
-			c.exprs(p.OrderBy.Keys)
-			c.write(" ")
-			c.write(strings.ToUpper(p.OrderBy.Order.String()))
-		}
-		if p.Limit != 0 {
-			c.ret()
-			c.write("LIMIT %d", p.Limit)
-		}
+		c.open("")
+		c.write("from ")
+		c.pool(p)
+		c.close()
+	case *ast.File:
+		c.next()
+		c.open("")
+		c.file(p)
+		c.close()
+	case *ast.HTTP:
+		c.next()
+		c.open("")
+		c.http(p)
+		c.close()
 	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
@@ -558,13 +499,19 @@ func (c *canon) op(p ast.Op) {
 		}
 	case *ast.Head:
 		c.next()
-		c.open("head ")
-		c.expr(p.Count, "")
+		c.open("head")
+		if p.Count != nil {
+			c.write(" ")
+			c.expr(p.Count, "")
+		}
 		c.close()
 	case *ast.Tail:
 		c.next()
-		c.open("tail ")
-		c.expr(p.Count, "")
+		c.open("tail")
+		if p.Count != nil {
+			c.write(" ")
+			c.expr(p.Count, "")
+		}
 		c.close()
 	case *ast.Uniq:
 		c.next()
@@ -639,8 +586,10 @@ func (c *canon) op(p ast.Op) {
 		}
 		c.write("on ")
 		c.expr(p.LeftKey, "")
-		c.write("=")
-		c.expr(p.RightKey, "")
+		if p.RightKey != nil {
+			c.write("=")
+			c.expr(p.RightKey, "")
+		}
 		if p.Args != nil {
 			c.write(" ")
 			c.assignments(p.Args)
@@ -654,10 +603,6 @@ func (c *canon) op(p ast.Op) {
 		c.open(which)
 		c.assignments(p.Assignments)
 		c.close()
-	//case *ast.SqlExpression:
-	//	//XXX TBD
-	//	c.open("sql")
-	//	c.close()
 	case *ast.Merge:
 		c.next()
 		c.write("merge ")
@@ -726,7 +671,7 @@ func (c *canon) pool(p *ast.Pool) {
 	if p.Spec.Tap {
 		s += " tap"
 	}
-	c.write("pool %s", s)
+	c.write(s)
 }
 
 func pattern(p ast.Pattern) string {
@@ -847,6 +792,7 @@ func (c *canon) file(p *ast.File) {
 func (c *canon) source(src ast.Source) {
 	switch src := src.(type) {
 	case *ast.Pool:
+		c.write("pool ")
 		c.pool(src)
 	case *ast.HTTP:
 		c.http(src)

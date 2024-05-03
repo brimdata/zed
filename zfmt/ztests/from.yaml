@@ -24,33 +24,19 @@ script: |
 outputs:
   - name: stdout
     data: |
-      from (
-        file path
-      )
+      file path
       ===
-      from (
-        file path format f
-      )
+      file path format f
       ===
-      from (
-        get http://host/path
-      )
+      get http://host/path
       ===
-      from (
-        get http://host/path format f
-      )
+      get http://host/path format f
       ===
-      from (
-        pool foo
-      )
+      from foo
       ===
-      from (
-        pool foo*
-      )
+      from foo*
       ===
-      from (
-        pool /foo/
-      )
+      from /foo/
       ===
       from (
         file path
@@ -66,18 +52,18 @@ outputs:
       ===
       from (
         file path =>
-          head 1
+          head
         get http://host/path =>
-          head 1
+          head
         pool name =>
-          head 1
+          head
       )
       ===
       from (
         file path format f =>
-          head 1
+          head
         get http://host/path format g =>
-          head 1
+          head
         pool name =>
-          head 1
+          head
       )
