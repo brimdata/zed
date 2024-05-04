@@ -16,20 +16,21 @@ import (
 )
 
 func NewLakeMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, meta string) (zbuf.Scanner, error) {
+	arena := zed.NewArena()
 	var vals []zed.Value
 	var err error
 	switch meta {
 	case "pools":
-		vals, err = r.BatchifyPools(ctx, zctx, nil)
+		vals, err = r.BatchifyPools(ctx, zctx, arena, nil)
 	case "branches":
-		vals, err = r.BatchifyBranches(ctx, zctx, nil)
+		vals, err = r.BatchifyBranches(ctx, zctx, arena, nil)
 	default:
 		return nil, fmt.Errorf("unknown lake metadata type: %q", meta)
 	}
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewScanner(ctx, zbuf.NewArray(vals), nil)
+	return zbuf.NewScanner(ctx, zbuf.NewArray(arena, vals), nil)
 }
 
 func NewPoolMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID ksuid.KSUID, meta string) (zbuf.Scanner, error) {
@@ -37,19 +38,20 @@ func NewPoolMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, po
 	if err != nil {
 		return nil, err
 	}
+	arena := zed.NewArena()
 	var vals []zed.Value
 	switch meta {
 	case "branches":
 		m := zson.NewZNGMarshalerWithContext(zctx)
 		m.Decorate(zson.StylePackage)
-		vals, err = p.BatchifyBranches(ctx, zctx, nil, m, nil)
+		vals, err = p.BatchifyBranches(ctx, zctx, arena, nil, m, nil)
 		if err != nil {
 			return nil, err
 		}
 	default:
 		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
 	}
-	return zbuf.NewScanner(ctx, zbuf.NewArray(vals), nil)
+	return zbuf.NewScanner(ctx, zbuf.NewArray(arena, vals), nil)
 }
 
 func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, poolID, commit ksuid.KSUID, meta string, pruner expr.Evaluator) (zbuf.Puller, error) {
@@ -75,11 +77,12 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 		}
 		return zbuf.NewScanner(ctx, zbuf.PullerReader(slicer), nil)
 	case "log":
-		tips, err := p.BatchifyBranchTips(ctx, zctx, nil)
+		arena := zed.NewArena()
+		tips, err := p.BatchifyBranchTips(ctx, zctx, arena, nil)
 		if err != nil {
 			return nil, err
 		}
-		tipsScanner, err := zbuf.NewScanner(ctx, zbuf.NewArray(tips), nil)
+		tipsScanner, err := zbuf.NewScanner(ctx, zbuf.NewArray(arena, tips), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -112,6 +115,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 }
 
 func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, order order.Which) (zio.Reader, error) {
+	arena := zed.NewArena()
 	objects := snap.Select(nil, order)
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
@@ -119,7 +123,8 @@ func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, ord
 		if len(objects) == 0 {
 			return nil, nil
 		}
-		val, err := m.Marshal(objects[0])
+		arena.Reset()
+		val, err := m.Marshal(arena, objects[0])
 		objects = objects[1:]
 		return &val, err
 	}), nil

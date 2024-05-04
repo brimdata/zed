@@ -25,7 +25,9 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	indices := make([]uint32, n)
 	i64s := make([]int64, n)
 	val0s := make([]zed.Value, n)
-	ectx := NewContext()
+	arena := zed.NewArena()
+	defer arena.Unref()
+	ectx := NewContext(arena)
 	native := true
 	for i := range indices {
 		indices[i] = uint32(i)
@@ -51,12 +53,16 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 			native = false
 		}
 	}
+	arena = zed.NewArena()
+	defer arena.Unref()
+	ectx = NewContext(arena)
 	sort.SliceStable(indices, func(i, j int) bool {
 		if c.reverse {
 			i, j = j, i
 		}
 		iidx, jidx := indices[i], indices[j]
 		for k, expr := range c.exprs {
+			arena.Reset()
 			var ival, jval zed.Value
 			if k == 0 {
 				if native {
@@ -71,7 +77,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 				ival = expr.Eval(ectx, vals[iidx])
 				jval = expr.Eval(ectx, vals[jidx])
 			}
-			if v := compareValues(ival, jval, c.nullsMax); v != 0 {
+			if v := compareValues(arena, ival, jval, c.nullsMax); v != 0 {
 				return v < 0
 			}
 		}
@@ -112,7 +118,7 @@ type comparefn func(a, b zcode.Bytes) int
 // reverse reverses the sense of comparisons.
 func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
 	return &Comparator{
-		ectx:     NewContext(),
+		ectx:     NewContext(zed.NewArena()),
 		exprs:    slices.Clone(exprs),
 		nullsMax: nullsMax,
 		reverse:  reverse,
@@ -145,16 +151,17 @@ func (c *Comparator) Compare(a, b zed.Value) int {
 		a, b = b, a
 	}
 	for _, k := range c.exprs {
+		c.ectx.Arena().Reset()
 		aval := k.Eval(c.ectx, a)
 		bval := k.Eval(c.ectx, b)
-		if v := compareValues(aval, bval, c.nullsMax); v != 0 {
+		if v := compareValues(c.ectx.Arena(), aval, bval, c.nullsMax); v != 0 {
 			return v
 		}
 	}
 	return 0
 }
 
-func compareValues(a, b zed.Value, nullsMax bool) int {
+func compareValues(arena *zed.Arena, a, b zed.Value, nullsMax bool) int {
 	// Handle nulls according to nullsMax
 	nullA := a.IsNull()
 	nullB := b.IsNull()
@@ -215,9 +222,9 @@ func compareValues(a, b zed.Value, nullsMax bool) int {
 			if bit.Done() {
 				return 1
 			}
-			aa := zed.NewValue(innerType, ait.Next())
-			bb := zed.NewValue(innerType, bit.Next())
-			if v := compareValues(aa, bb, nullsMax); v != 0 {
+			aa := arena.New(innerType, ait.Next())
+			bb := arena.New(innerType, bit.Next())
+			if v := compareValues(arena, aa, bb, nullsMax); v != 0 {
 				return v
 			}
 		}

@@ -81,6 +81,7 @@ type Object struct {
 	Max   zed.Value   `zed:"max"`
 	Count uint64      `zed:"count"`
 	Size  int64       `zed:"size"`
+	Arena *zed.Arena  `zed:"-"`
 }
 
 func (o Object) IsZero() bool {

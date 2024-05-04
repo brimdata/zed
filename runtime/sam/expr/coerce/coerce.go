@@ -41,7 +41,6 @@ func Equal(a, b zed.Value) bool {
 }
 
 func ToNumeric[T constraints.Integer | constraints.Float](val zed.Value) T {
-	val = val.Under()
 	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return T(val.Uint())
@@ -54,7 +53,6 @@ func ToNumeric[T constraints.Integer | constraints.Float](val zed.Value) T {
 }
 
 func ToFloat(val zed.Value) (float64, bool) {
-	val = val.Under()
 	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return float64(val.Uint()), true
@@ -70,7 +68,6 @@ func ToFloat(val zed.Value) (float64, bool) {
 }
 
 func ToUint(val zed.Value) (uint64, bool) {
-	val = val.Under()
 	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return val.Uint(), true
@@ -90,7 +87,6 @@ func ToUint(val zed.Value) (uint64, bool) {
 }
 
 func ToInt(val zed.Value) (int64, bool) {
-	val = val.Under()
 	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return int64(val.Uint()), true
@@ -107,7 +103,6 @@ func ToInt(val zed.Value) (int64, bool) {
 }
 
 func ToBool(val zed.Value) (bool, bool) {
-	val = val.Under()
 	if val.IsString() {
 		v, err := byteconv.ParseBool(val.Bytes())
 		return v, err == nil

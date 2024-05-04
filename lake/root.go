@@ -159,16 +159,16 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	var magic LakeMagic
+	if err := zson.UnmarshalZNG(nil, nil, *val, &magic); err != nil {
+		return fmt.Errorf("corrupt lake version file: %w", err)
+	}
 	last, err := zr.Read()
 	if err != nil {
 		return err
 	}
 	if last != nil {
 		return fmt.Errorf("corrupt lake version file: more than one Zed value at %s", zson.String(last))
-	}
-	var magic LakeMagic
-	if err := zson.UnmarshalZNG(*val, &magic); err != nil {
-		return fmt.Errorf("corrupt lake version file: %w", err)
 	}
 	if magic.Magic != LakeMagicString {
 		return fmt.Errorf("corrupt lake version file: magic %q should be %q", magic.Magic, LakeMagicString)
@@ -179,17 +179,17 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) BatchifyPools(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
+func (r *Root) BatchifyPools(ctx context.Context, zctx *zed.Context, arena *zed.Arena, f expr.Evaluator) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	pools, err := r.ListPools(ctx)
 	if err != nil {
 		return nil, err
 	}
-	ectx := expr.NewContext()
+	ectx := expr.NewContext(arena)
 	var vals []zed.Value
 	for k := range pools {
-		rec, err := m.Marshal(&pools[k])
+		rec, err := m.Marshal(arena, &pools[k])
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +200,7 @@ func (r *Root) BatchifyPools(ctx context.Context, zctx *zed.Context, f expr.Eval
 	return vals, nil
 }
 
-func (r *Root) BatchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
+func (r *Root) BatchifyBranches(ctx context.Context, zctx *zed.Context, arena *zed.Arena, f expr.Evaluator) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	poolRefs, err := r.ListPools(ctx)
@@ -218,7 +218,7 @@ func (r *Root) BatchifyBranches(ctx context.Context, zctx *zed.Context, f expr.E
 			}
 			return nil, err
 		}
-		vals, err = pool.BatchifyBranches(ctx, zctx, vals, m, f)
+		vals, err = pool.BatchifyBranches(ctx, zctx, arena, vals, m, f)
 		if err != nil {
 			return nil, err
 		}

@@ -22,6 +22,15 @@ var ActionTypes = []interface{}{
 	Commit{},
 }
 
+func setActionArena(action Action, arena *zed.Arena) {
+	switch action := action.(type) {
+	case *Add:
+		action.Object.Arena = arena
+	case *Commit:
+		action.arena = arena
+	}
+}
+
 type Add struct {
 	Commit ksuid.KSUID `zed:"commit"`
 	Object data.Object `zed:"object"`
@@ -52,6 +61,7 @@ type Commit struct {
 	Date    nano.Ts     `zed:"date"`
 	Message string      `zed:"message"`
 	Meta    zed.Value   `zed:"meta"`
+	arena   *zed.Arena
 }
 
 func (c *Commit) CommitID() ksuid.KSUID {

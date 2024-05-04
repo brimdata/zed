@@ -3,6 +3,7 @@ package zngbytes
 import (
 	"bytes"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -10,15 +11,18 @@ import (
 
 type Serializer struct {
 	marshaler *zson.MarshalZNGContext
+	arena     *zed.Arena
 	buffer    bytes.Buffer
 	writer    *zngio.Writer
 }
 
 func NewSerializer() *Serializer {
-	m := zson.NewZNGMarshaler()
+	zctx := zed.NewContext()
+	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StyleSimple)
 	s := &Serializer{
 		marshaler: m,
+		arena:     zed.NewArena(),
 	}
 	s.writer = zngio.NewWriter(zio.NopCloser(&s.buffer))
 	return s
@@ -29,7 +33,8 @@ func (s *Serializer) Decorate(style zson.TypeStyle) {
 }
 
 func (s *Serializer) Write(v interface{}) error {
-	rec, err := s.marshaler.Marshal(v)
+	s.arena.Reset()
+	rec, err := s.marshaler.Marshal(s.arena, v)
 	if err != nil {
 		return err
 	}

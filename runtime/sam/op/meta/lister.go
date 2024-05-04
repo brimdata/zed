@@ -81,16 +81,18 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 	if l.objects == nil {
 		l.objects = initObjectScan(l.snap, l.pool.SortKey)
 	}
+	arena := zed.NewArena()
 	for len(l.objects) != 0 {
+		arena.Reset()
 		o := l.objects[0]
 		l.objects = l.objects[1:]
-		val, err := l.marshaler.Marshal(o)
+		val, err := l.marshaler.Marshal(arena, o)
 		if err != nil {
 			l.err = err
 			return nil, err
 		}
 		if !l.pruner.prune(val) {
-			return zbuf.NewArray([]zed.Value{val}), nil
+			return zbuf.NewArray(arena, []zed.Value{val}), nil
 		}
 	}
 	return nil, nil

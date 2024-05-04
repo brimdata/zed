@@ -20,11 +20,11 @@ func NewCompare(zctx *zed.Context) *Compare {
 	}
 }
 
-func (e *Compare) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (e *Compare) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	nullsMax := true
 	if len(args) == 3 {
 		if zed.TypeUnder(args[2].Type()) != zed.TypeBool {
-			return e.zctx.WrapError("compare: nullsMax arg is not bool", args[2])
+			return e.zctx.WrapError(ectx.Arena(), "compare: nullsMax arg is not bool", args[2])
 		}
 		nullsMax = args[2].Bool()
 	}

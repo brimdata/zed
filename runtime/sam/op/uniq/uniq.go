@@ -15,7 +15,9 @@ type Op struct {
 	builder zcode.Builder
 	cflag   bool
 	count   uint64
-	last    *zed.Value
+	last    zed.Value
+	batch   zbuf.Batch
+	arena   *zed.Arena
 }
 
 func New(rctx *runtime.Context, parent zbuf.Puller, cflag bool) *Op {
@@ -26,8 +28,11 @@ func New(rctx *runtime.Context, parent zbuf.Puller, cflag bool) *Op {
 	}
 }
 
-func (o *Op) wrap(t *zed.Value) zed.Value {
+func (o *Op) wrap(t zed.Value) zed.Value {
 	if o.cflag {
+		if o.arena == nil {
+			o.arena = zed.NewArena()
+		}
 		o.builder.Reset()
 		o.builder.Append(t.Bytes())
 		o.builder.Append(zed.EncodeUint(o.count))
@@ -35,14 +40,14 @@ func (o *Op) wrap(t *zed.Value) zed.Value {
 			zed.NewField("value", t.Type()),
 			zed.NewField("count", zed.TypeUint64),
 		})
-		return zed.NewValue(typ, o.builder.Bytes()).Copy()
+		return o.arena.New(typ, o.builder.Bytes())
 	}
-	return *t
+	return t
 }
 
-func (o *Op) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
+func (o *Op) appendUniq(out []zed.Value, t zed.Value) []zed.Value {
 	if o.count == 0 {
-		o.last = t.Copy().Ptr()
+		o.last = t
 		o.count = 1
 		return out
 	} else if bytes.Equal(t.Bytes(), o.last.Bytes()) {
@@ -50,7 +55,7 @@ func (o *Op) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
 		return out
 	}
 	out = append(out, o.wrap(o.last))
-	o.last = t.Copy().Ptr()
+	o.last = t
 	o.count = 1
 	return out
 }
@@ -64,21 +69,24 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			return nil, err
 		}
 		if batch == nil {
-			if o.last == nil {
+			if o.count == 0 {
 				return nil, nil
 			}
 			t := o.wrap(o.last)
-			o.last = nil
-			return zbuf.NewArray([]zed.Value{t}), nil
+			o.count = 0
+			return zbuf.NewArray(o.arena, []zed.Value{t}), nil
 		}
 		var out []zed.Value
 		vals := batch.Values()
 		for i := range vals {
-			out = o.appendUniq(out, &vals[i])
+			out = o.appendUniq(out, vals[i])
 		}
-		batch.Unref()
+		if o.batch != nil {
+			o.batch.Unref()
+		}
+		o.batch = batch
 		if len(out) > 0 {
-			return zbuf.NewArray(out), nil
+			return zbuf.NewBatch(o.arena, out, batch, batch.Vars()), nil
 		}
 	}
 }

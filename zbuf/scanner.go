@@ -99,7 +99,7 @@ func newScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, 
 			return nil, err
 		}
 	}
-	sc := &scanner{reader: r, filter: f, ctx: ctx, ectx: expr.NewContext()}
+	sc := &scanner{reader: r, filter: f, ctx: ctx, ectx: expr.NewContext(zed.NewArena())}
 	sc.Puller = NewPuller(sc)
 	return sc, nil
 }
@@ -130,6 +130,7 @@ func (s *scanner) Read() (*zed.Value, error) {
 		atomic.AddInt64(&s.progress.BytesRead, int64(len(this.Bytes())))
 		atomic.AddInt64(&s.progress.RecordsRead, 1)
 		if s.filter != nil {
+			s.ectx.Arena().Reset()
 			val := s.filter.Eval(s.ectx, *this)
 			if !(val.Type() == zed.TypeBool && val.Bool()) {
 				continue

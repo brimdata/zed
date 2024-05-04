@@ -1,6 +1,9 @@
 package sort
 
 import (
+	"fmt"
+	goruntime "runtime"
+	"runtime/debug"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -60,7 +63,6 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 }
 
 func (o *Op) run() {
-	defer close(o.resultCh)
 	var spiller *spill.MergeSort
 	defer func() {
 		if spiller != nil {
@@ -68,9 +70,15 @@ func (o *Op) run() {
 		}
 		// Tell o.rctx.Cancel that we've finished our cleanup.
 		o.rctx.WaitGroup.Done()
+		if r := recover(); r != nil {
+			o.sendResult(nil, fmt.Errorf("panic: %+v\n%s", r, debug.Stack()))
+		}
+		close(o.resultCh)
 	}()
 	var nbytes int
+	var batches []zbuf.Batch
 	var out []zed.Value
+	defer goruntime.KeepAlive(batches)
 	for {
 		batch, err := o.parent.Pull(false)
 		if err != nil {
@@ -82,7 +90,7 @@ func (o *Op) run() {
 		if batch == nil {
 			if spiller == nil {
 				if len(out) > 0 {
-					if ok := o.send(out); !ok {
+					if ok := o.send(batches, out); !ok {
 						return
 					}
 				}
@@ -90,6 +98,7 @@ func (o *Op) run() {
 					return
 				}
 				nbytes = 0
+				batches = nil
 				out = nil
 				continue
 			}
@@ -100,6 +109,7 @@ func (o *Op) run() {
 					}
 					spiller = nil
 					nbytes = 0
+					batches = nil
 					out = nil
 					continue
 				}
@@ -110,11 +120,13 @@ func (o *Op) run() {
 			spiller.Cleanup()
 			spiller = nil
 			nbytes = 0
+			batches = nil
 			out = nil
 			continue
 		}
 		// Safe because batch.Unref is never called.
 		o.lastBatch = batch
+		batches = append(batches, batch)
 		var delta int
 		out, delta = o.append(out, batch)
 		if o.comparator == nil && len(out) > 0 {
@@ -125,11 +137,12 @@ func (o *Op) run() {
 			continue
 		}
 		if spiller == nil {
-			spiller, err = spill.NewMergeSort(o.comparator)
+			spiller, err = spill.NewMergeSort(o.rctx.Zctx, o.comparator)
 			if err != nil {
 				if ok := o.sendResult(nil, err); !ok {
 					return
 				}
+				batches = nil
 				out = nil
 				nbytes = 0
 				continue
@@ -140,15 +153,17 @@ func (o *Op) run() {
 				return
 			}
 		}
+		batches = nil
 		out = nil
 		nbytes = 0
 	}
 }
 
 // send sorts vals in memory and sends the result downstream.
-func (o *Op) send(vals []zed.Value) bool {
+func (o *Op) send(batches []zbuf.Batch, vals []zed.Value) bool {
 	o.comparator.SortStable(vals)
-	out := zbuf.NewBatch(o.lastBatch, vals)
+	out := zbuf.WrapBatch(o.lastBatch, vals)
+	out.(interface{ AddBatches(batches ...zbuf.Batch) }).AddBatches(batches...)
 	return o.sendResult(out, nil)
 }
 

@@ -20,6 +20,7 @@ import (
 // Merger is waiting on the upstream puller.
 type Op struct {
 	ctx  context.Context
+	zctx *zed.Context
 	cmp  expr.CompareFn
 	once sync.Once
 	// parents holds all of the upstream pullers and never changes.
@@ -66,7 +67,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		// way, it's safe to return min's remaining values as a batch.
 		batch := min.batch
 		if len(min.vals) < len(batch.Values()) {
-			batch = zbuf.NewArray(min.vals)
+			batch = zbuf.WrapBatch(batch, min.vals)
 		}
 		ok, err := min.replenish()
 		if err != nil {

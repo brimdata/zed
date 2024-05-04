@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
@@ -47,7 +48,7 @@ func (c *Cache) unlock(id ksuid.KSUID) {
 	c.mu.Unlock()
 }
 
-func (c *Cache) Fetch(ctx context.Context, uri *storage.URI, id ksuid.KSUID) (*Object, error) {
+func (c *Cache) Fetch(ctx context.Context, zctx *zed.Context, uri *storage.URI, id ksuid.KSUID) (*Object, error) {
 	c.mu.Lock()
 	object, ok := c.objects[id]
 	c.mu.Unlock()
@@ -62,7 +63,7 @@ func (c *Cache) Fetch(ctx context.Context, uri *storage.URI, id ksuid.KSUID) (*O
 	if ok {
 		return object, nil
 	}
-	object, err := NewObject(ctx, c.engine, uri)
+	object, err := NewObject(ctx, zctx, c.engine, uri)
 	if err != nil {
 		return nil, err
 	}

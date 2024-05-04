@@ -16,11 +16,11 @@ func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {
 	}
 	switch e := e.(type) {
 	case *dag.Literal:
-		val, err := zson.ParseValue(b.zctx(), e.Value)
+		val, err := zson.ParseValue(b.zctx(), b.arena, e.Value)
 		if err != nil {
 			return nil, err
 		}
-		return vamexpr.NewLiteral(val), nil
+		return vamexpr.NewLiteral(b.arena, val), nil
 	//case *dag.Var:
 	//	return vamexpr.NewVar(e.Slot), nil
 	//case *dag.Search:

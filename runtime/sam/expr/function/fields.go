@@ -2,6 +2,7 @@ package function
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -35,16 +36,17 @@ func buildPath(typ *zed.TypeRecord, b *zcode.Builder, prefix []string) []string 
 	return out
 }
 
-func (f *Fields) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+func (f *Fields) Call(ectx expr.Context, args []zed.Value) zed.Value {
+	arena := ectx.Arena()
 	subjectVal := args[0]
 	typ := f.recordType(subjectVal)
 	if typ == nil {
-		return f.zctx.Missing()
+		return f.zctx.Missing(ectx.Arena())
 	}
 	//XXX should have a way to append into allocator
 	var b zcode.Builder
 	buildPath(typ, &b, nil)
-	return zed.NewValue(f.typ, b.Bytes())
+	return arena.New(f.typ, b.Bytes())
 }
 
 func (f *Fields) recordType(val zed.Value) *zed.TypeRecord {

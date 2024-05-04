@@ -355,7 +355,7 @@ func (w *Writer) buildArrowValue(b array.Builder, typ zed.Type, bytes zcode.Byte
 			}
 			b.Append(s)
 		case *zed.TypeError:
-			b.Append(zson.FormatValue(zed.NewValue(typ, bytes)))
+			b.Append(zson.FormatTypeAndBytes(typ, bytes))
 		default:
 			panic(fmt.Sprintf("unexpected Zed type for StringBuilder: %s", zson.FormatType(typ)))
 		}

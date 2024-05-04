@@ -104,42 +104,44 @@ type SliceRecord struct {
 }
 
 func TestBytes(t *testing.T) {
-	m := zson.NewZNGMarshaler()
-	rec, err := m.Marshal(BytesRecord{B: []byte{1, 2, 3}})
+	zctx := zed.NewContext()
+	arena := zed.NewArena()
+	defer arena.Unref()
+
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	rec, err := m.Marshal(arena, BytesRecord{B: []byte{1, 2, 3}})
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	assert.Equal(t, "{B:0x010203}", zson.FormatValue(rec))
 
-	rec, err = m.Marshal(BytesArrayRecord{A: [3]byte{4, 5, 6}})
+	rec, err = m.Marshal(arena, BytesArrayRecord{A: [3]byte{4, 5, 6}})
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	assert.Equal(t, "{A:0x040506}", zson.FormatValue(rec))
 
 	id := IDRecord{A: ID{0, 1, 2, 3}, B: ID{4, 5, 6, 7}}
-	m = zson.NewZNGMarshaler()
+	m = zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StyleSimple)
-	rec, err = m.Marshal(id)
+	rec, err = m.Marshal(arena, id)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	assert.Equal(t, "{A:0x00010203(=ID),B:0x04050607(ID)}(=IDRecord)", zson.FormatValue(rec))
 
 	var id2 IDRecord
-	u := zson.NewZNGUnmarshaler()
-	u.Bind(IDRecord{}, ID{})
-	err = zson.UnmarshalZNG(rec, &id2)
+	err = zson.UnmarshalZNG(zctx, arena, rec, &id2)
 	require.NoError(t, err)
 	assert.Equal(t, id, id2)
 
 	b2 := BytesRecord{B: nil}
-	m = zson.NewZNGMarshaler()
-	rec, err = m.Marshal(b2)
+	m = zson.NewZNGMarshalerWithContext(zctx)
+	rec, err = m.Marshal(arena, b2)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	assert.Equal(t, "{B:null(bytes)}", zson.FormatValue(rec))
 
 	s := SliceRecord{S: nil}
-	m = zson.NewZNGMarshaler()
-	rec, err = m.Marshal(s)
+	m = zson.NewZNGMarshalerWithContext(zctx)
+	rec, err = m.Marshal(arena, s)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	assert.Equal(t, "{S:null([bytes])}", zson.FormatValue(rec))
@@ -152,6 +154,13 @@ type RecordWithInterfaceSlice struct {
 
 func TestMixedTypeArrayInsideRecord(t *testing.T) {
 	t.Skip("see issue #4012")
+
+	arena := zed.NewArena()
+	defer arena.Unref()
+
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+
 	x := &RecordWithInterfaceSlice{
 		X: "hello",
 		S: []Thing{
@@ -159,15 +168,12 @@ func TestMixedTypeArrayInsideRecord(t *testing.T) {
 			&Animal{"blue"},
 		},
 	}
-	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
-
-	zv, err := m.Marshal(x)
+	zv, err := m.Marshal(arena, x)
 	require.NoError(t, err)
 
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer))
-	recExpected := zed.NewValue(zv.Type(), zv.Bytes())
+	recExpected := arena.New(zv.Type(), zv.Bytes())
 	writer.Write(recExpected)
 	writer.Close()
 
@@ -208,6 +214,10 @@ type MessageThing struct {
 
 func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 	t.Skip("see issue #4012")
+
+	arena := zed.NewArena()
+	defer arena.Unref()
+
 	input := []MessageThing{
 		{
 			Message: "hello",
@@ -221,12 +231,12 @@ func TestMixedTypeArrayOfStructWithInterface(t *testing.T) {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
 
-	zv, err := m.Marshal(input)
+	zv, err := m.Marshal(arena, input)
 	require.NoError(t, err)
 
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer))
-	recExpected := zed.NewValue(zv.Type(), zv.Bytes())
+	recExpected := arena.New(zv.Type(), zv.Bytes())
 	writer.Write(recExpected)
 	writer.Close()
 
@@ -254,9 +264,10 @@ type Foo struct {
 }
 
 func TestUnexported(t *testing.T) {
+	arena := zed.NewArena()
+	defer arena.Unref()
 	f := &Foo{1, 2}
-	m := zson.NewZNGMarshaler()
-	_, err := m.Marshal(f)
+	_, err := zson.MarshalZNG(zed.NewContext(), arena, f)
 	require.NoError(t, err)
 }
 
@@ -266,39 +277,46 @@ type ZNGValueField struct {
 }
 
 func TestZNGValueField(t *testing.T) {
+	zctx := zed.NewContext()
+	arena := zed.NewArena()
+	defer arena.Unref()
+
 	// Include a Zed int64 inside a Go struct as a zed.Value field.
 	zngValueField := &ZNGValueField{
 		Name:  "test1",
 		Field: zed.NewInt64(123),
 	}
-	m := zson.NewZNGMarshaler()
+	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StyleSimple)
-	zv, err := m.Marshal(zngValueField)
+	zv, err := m.Marshal(arena, zngValueField)
 	require.NoError(t, err)
 	assert.Equal(t, `{Name:"test1",field:123}(=ZNGValueField)`, zson.FormatValue(zv))
 	u := zson.NewZNGUnmarshaler()
+	u.SetContext(zctx, arena)
 	var out ZNGValueField
 	err = u.Unmarshal(zv, &out)
 	require.NoError(t, err)
 	assert.Equal(t, zngValueField.Name, out.Name)
 	assert.True(t, zngValueField.Field.Equal(out.Field))
 	// Include a Zed record inside a Go struct in a zed.Value field.
-	zv2, err := zson.ParseValue(zed.NewContext(), `{s:"foo",a:[1,2,3]}`)
+	zv2, err := zson.ParseValue(zctx, arena, `{s:"foo",a:[1,2,3]}`)
 	require.NoError(t, err)
 	zngValueField2 := &ZNGValueField{
 		Name:  "test2",
 		Field: zv2,
 	}
-	m2 := zson.NewZNGMarshaler()
+	m2 := zson.NewZNGMarshalerWithContext(zctx)
 	m2.Decorate(zson.StyleSimple)
-	zv3, err := m2.Marshal(zngValueField2)
+	zv3, err := m2.Marshal(arena, zngValueField2)
 	require.NoError(t, err)
 	assert.Equal(t, `{Name:"test2",field:{s:"foo",a:[1,2,3]}}(=ZNGValueField)`, zson.FormatValue(zv3))
 	u2 := zson.NewZNGUnmarshaler()
+	u2.SetContext(zctx, arena)
 	var out2 ZNGValueField
 	err = u2.Unmarshal(zv3, &out2)
 	require.NoError(t, err)
-	assert.Equal(t, *zngValueField2, out2)
+	assert.Equal(t, zngValueField2.Name, out2.Name)
+	assert.True(t, zngValueField2.Field.Equal(out2.Field))
 }
 
 func TestJSONFieldTag(t *testing.T) {
@@ -422,7 +440,9 @@ func TestRecordWithMixedTypeNamedArrayElems(t *testing.T) {
 	}
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
-	val, err := m.Marshal(in)
+	arena := zed.NewArena()
+	defer arena.Unref()
+	val, err := m.Marshal(arena, in)
 	require.NoError(t, err)
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(Record{}, Array{}, Primitive{})
@@ -444,11 +464,14 @@ func TestInterfaceWithConcreteEmptyValue(t *testing.T) {
 
 func TestZedType(t *testing.T) {
 	zctx := zed.NewContext()
+	arena := zed.NewArena()
+	defer arena.Unref()
+
 	u := zson.NewUnmarshaler()
 	var typ zed.Type
 	err := u.Unmarshal(`<string>`, &typ)
 	assert.EqualError(t, err, `cannot unmarshal type value without type context`)
-	u.SetContext(zctx)
+	u.SetContext(zctx, arena)
 	err = u.Unmarshal(`<string>`, &typ)
 	require.NoError(t, err)
 	assert.Equal(t, zed.TypeString, typ)

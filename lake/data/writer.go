@@ -27,6 +27,9 @@ type Writer struct {
 	first            bool
 	seekMin          *zed.Value
 	poolKey          field.Path
+	keyArena         *zed.Arena
+	seekMinArena     *zed.Arena
+	maxArena         *zed.Arena
 }
 
 // NewWriter returns a writer for writing the data of a zng-row storage object as
@@ -41,12 +44,15 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	}
 	counter := &writeCounter{bufwriter.New(out), 0}
 	w := &Writer{
-		object:      o,
-		byteCounter: counter,
-		writer:      zngio.NewWriter(counter),
-		order:       order,
-		poolKey:     poolKey,
-		first:       true,
+		object:       o,
+		byteCounter:  counter,
+		writer:       zngio.NewWriter(counter),
+		order:        order,
+		poolKey:      poolKey,
+		first:        true,
+		keyArena:     zed.NewArena(),
+		seekMinArena: zed.NewArena(),
+		maxArena:     zed.NewArena(),
 	}
 	if seekIndexStride == 0 {
 		seekIndexStride = DefaultSeekStride
@@ -61,7 +67,8 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 }
 
 func (w *Writer) Write(val zed.Value) error {
-	key := val.DerefPath(w.poolKey).MissingAsNull()
+	w.keyArena.Reset()
+	key := val.DerefPath(w.keyArena, w.poolKey).MissingAsNull()
 	return w.WriteWithKey(key, val)
 }
 
@@ -70,7 +77,8 @@ func (w *Writer) WriteWithKey(key, val zed.Value) error {
 	if err := w.writer.Write(val); err != nil {
 		return err
 	}
-	w.object.Max.CopyFrom(key)
+	w.maxArena.Reset()
+	w.object.Max = key.Copy(w.maxArena)
 	return w.writeIndex(key)
 }
 
@@ -78,10 +86,12 @@ func (w *Writer) writeIndex(key zed.Value) error {
 	w.seekIndexTrigger += len(key.Bytes())
 	if w.first {
 		w.first = false
-		w.object.Min.CopyFrom(key)
+		w.object.Arena = zed.NewArena()
+		w.object.Min = key.Copy(w.object.Arena)
 	}
 	if w.seekMin == nil {
-		w.seekMin = key.Copy().Ptr()
+		w.seekMinArena, w.keyArena = w.keyArena, w.seekMinArena
+		w.seekMin = &key
 	}
 	if w.seekIndexTrigger < w.seekIndexStride {
 		return nil
@@ -96,7 +106,7 @@ func (w *Writer) flushSeekIndex() error {
 	if w.seekMin != nil {
 		w.seekIndexTrigger = 0
 		min := *w.seekMin
-		max := w.object.Max.Copy()
+		max := w.object.Max
 		if w.order == order.Desc {
 			min, max = max, min
 		}
@@ -128,6 +138,7 @@ func (w *Writer) Close(ctx context.Context) error {
 	}
 	w.object.Count = w.count
 	w.object.Size = w.writer.Position()
+	w.object.Max = w.object.Max.Copy(w.object.Arena)
 	if w.order == order.Desc {
 		w.object.Min, w.object.Max = w.object.Max, w.object.Min
 	}

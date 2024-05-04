@@ -35,24 +35,26 @@ import (
 )
 
 type Object struct {
-	readerAt io.ReaderAt
-	header   Header
-	meta     Metadata
+	readerAt  io.ReaderAt
+	header    Header
+	meta      Metadata
+	metaArena *zed.Arena
 }
 
-func NewObject(r io.ReaderAt) (*Object, error) {
+func NewObject(zctx *zed.Context, r io.ReaderAt) (*Object, error) {
 	hdr, err := ReadHeader(io.NewSectionReader(r, 0, HeaderSize))
 	if err != nil {
 		return nil, err
 	}
-	meta, err := readMetadata(io.NewSectionReader(r, HeaderSize, int64(hdr.MetaSize)))
+	meta, arena, err := readMetadata(zctx, io.NewSectionReader(r, HeaderSize, int64(hdr.MetaSize)))
 	if err != nil {
 		return nil, err
 	}
 	return &Object{
-		readerAt: io.NewSectionReader(r, int64(HeaderSize+hdr.MetaSize), int64(hdr.DataSize)),
-		header:   hdr,
-		meta:     meta,
+		readerAt:  io.NewSectionReader(r, int64(HeaderSize+hdr.MetaSize), int64(hdr.DataSize)),
+		header:    hdr,
+		meta:      meta,
+		metaArena: arena,
 	}, nil
 }
 
@@ -72,29 +74,38 @@ func (o *Object) DataReader() io.ReaderAt {
 }
 
 func (o *Object) NewReader(zctx *zed.Context) (zio.Reader, error) {
-	return NewZedReader(zctx, o.meta, o.readerAt)
+	r, err := NewZedReader(zctx, o.meta, o.readerAt)
+	if err != nil {
+		return nil, err
+	}
+	return wrap{r, o.metaArena}, nil
 }
 
-func readMetadata(r io.Reader) (Metadata, error) {
-	zctx := zed.NewContext()
+type wrap struct {
+	zio.Reader
+	metaArena *zed.Arena
+}
+
+func readMetadata(zctx *zed.Context, r io.Reader) (Metadata, *zed.Arena, error) {
 	zr := zngio.NewReader(zctx, r)
 	defer zr.Close()
 	val, err := zr.Read()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	arena := zed.NewArena()
 	u := zson.NewZNGUnmarshaler()
-	u.SetContext(zctx)
+	u.SetContext(zctx, arena)
 	u.Bind(Template...)
 	var meta Metadata
 	if err := u.Unmarshal(*val, &meta); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// Read another val to make sure there is no extra stuff after the metadata.
 	if extra, _ := zr.Read(); extra != nil {
-		return nil, errors.New("corrupt VNG: metadata section has more than one Zed value")
+		return nil, nil, errors.New("corrupt VNG: metadata section has more than one Zed value")
 	}
-	return meta, nil
+	return meta, arena, nil
 }
 
 // XXX change this to single vector read

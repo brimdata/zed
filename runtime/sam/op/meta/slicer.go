@@ -18,9 +18,11 @@ import (
 // them into overlapping object Slices forming a sequence of
 // non-overlapping Partitions.
 type Slicer struct {
+	zctx        *zed.Context
 	parent      zbuf.Puller
 	marshaler   *zson.MarshalZNGContext
 	unmarshaler *zson.UnmarshalZNGContext
+	arena       *zed.Arena
 	objects     []*data.Object
 	cmp         expr.CompareFn
 	min         *zed.Value
@@ -32,6 +34,7 @@ func NewSlicer(parent zbuf.Puller, zctx *zed.Context) *Slicer {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	return &Slicer{
+		zctx:        zctx,
 		parent:      parent,
 		marshaler:   m,
 		unmarshaler: zson.NewZNGUnmarshaler(),
@@ -66,9 +69,12 @@ func (s *Slicer) Pull(done bool) (zbuf.Batch, error) {
 			return nil, errors.New("system error: Slicer encountered multi-valued batch")
 		}
 		var object data.Object
+		object.Arena = zed.NewArena()
+		s.unmarshaler.SetContext(s.zctx, object.Arena)
 		if err := s.unmarshaler.Unmarshal(vals[0], &object); err != nil {
 			return nil, err
 		}
+		batch.Unref()
 		if batch, err := s.stash(&object); batch != nil || err != nil {
 			return batch, err
 		}
@@ -92,7 +98,8 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 			max = o.Max
 		}
 	}
-	val, err := s.marshaler.Marshal(&Partition{
+	arena := zed.NewArena()
+	val, err := s.marshaler.Marshal(arena, &Partition{
 		Min:     min,
 		Max:     max,
 		Objects: s.objects,
@@ -101,7 +108,7 @@ func (s *Slicer) nextPartition() (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewArray([]zed.Value{val}), nil
+	return zbuf.NewArray(arena, []zed.Value{val}), nil
 }
 
 func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
@@ -122,10 +129,10 @@ func (s *Slicer) stash(o *data.Object) (zbuf.Batch, error) {
 	}
 	s.objects = append(s.objects, o)
 	if s.min == nil || s.cmp(*s.min, o.Min) > 0 {
-		s.min = o.Min.Copy().Ptr()
+		s.min = &o.Min
 	}
 	if s.max == nil || s.cmp(*s.max, o.Max) < 0 {
-		s.max = o.Max.Copy().Ptr()
+		s.max = &o.Max
 	}
 	return batch, nil
 }

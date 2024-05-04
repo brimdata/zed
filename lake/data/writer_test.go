@@ -2,6 +2,7 @@ package data_test
 
 import (
 	"context"
+	"runtime"
 	"testing"
 
 	"github.com/brimdata/zed"
@@ -24,16 +25,19 @@ func TestDataReaderWriterVector(t *testing.T) {
 	w, err := object.NewWriter(ctx, engine, tmp, order.Asc, field.Path{"a"}, 1000)
 	require.NoError(t, err)
 	zctx := zed.NewContext()
-	require.NoError(t, w.Write(zson.MustParseValue(zctx, "{a:1,b:4}")))
-	require.NoError(t, w.Write(zson.MustParseValue(zctx, "{a:2,b:5}")))
-	require.NoError(t, w.Write(zson.MustParseValue(zctx, "{a:3,b:6}")))
+	arena := zed.NewArena()
+	defer arena.Unref()
+	require.NoError(t, w.Write(zson.MustParseValue(zctx, arena, "{a:1,b:4}")))
+	require.NoError(t, w.Write(zson.MustParseValue(zctx, arena, "{a:2,b:5}")))
+	require.NoError(t, w.Write(zson.MustParseValue(zctx, arena, "{a:3,b:6}")))
 	require.NoError(t, w.Close(ctx))
 	require.NoError(t, data.CreateVector(ctx, engine, tmp, object.ID))
 	// Read back the VNG file and make sure it's the same.
 	get, err := engine.Get(ctx, object.VectorURI(tmp))
 	require.NoError(t, err)
-	reader, err := vngio.NewReader(zed.NewContext(), get, demand.All())
+	reader, err := vngio.NewReader(zctx, get, demand.All())
 	require.NoError(t, err)
+	defer runtime.KeepAlive(reader)
 	v, err := reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, zson.String(v), "{a:1,b:4}")

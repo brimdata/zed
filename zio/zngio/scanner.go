@@ -177,6 +177,7 @@ func (s *scanner) Progress() zbuf.Progress {
 // be safely used without any channel involvement.
 type worker struct {
 	ctx          context.Context
+	zctx         *zed.Context
 	progress     *zbuf.Progress
 	workCh       chan work
 	bufferFilter *expr.BufferFilter
@@ -203,7 +204,7 @@ func newWorker(ctx context.Context, p *zbuf.Progress, bf *expr.BufferFilter, f e
 		workCh:       make(chan work),
 		bufferFilter: bf,
 		filter:       f,
-		ectx:         expr.NewContext(),
+		ectx:         expr.NewContext(zed.NewArena()),
 		validate:     validate,
 	}
 }
@@ -251,6 +252,8 @@ func (w *worker) run(ctx context.Context, workerCh chan<- *worker) {
 	}
 }
 
+var valsPool = sync.Pool{New: func() any { return make([]zed.Value, 256) }}
+
 func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// If w.bufferFilter evaluates to false, we know buf cannot contain
 	// records matching w.filter.
@@ -267,85 +270,74 @@ func (w *worker) scanBatch(buf *buffer, local localctx) (zbuf.Batch, error) {
 	// pools of buffers based on size?
 
 	w.mapperLookupCache.Reset(local.mapper)
-	batch := newBatch(buf)
+	arena := zed.NewArenaWithBuffer(buf.Bytes(), buf.Free)
+	defer arena.Unref()
+	vals := valsPool.Get().([]zed.Value)[:0]
 	var progress zbuf.Progress
-	// We extend the batch one past its end and decode into the next
-	// potential slot and only advance the batch when we decide we want to
-	// keep the value.  Since we overshoot by one slot on every pass,
-	// we delete the overshoot with batch.unextend() on exit from the loop.
-	// I think this is what I drew on the Lawton basement whiteboard
-	// in 2018 but my previous attempts implementing that picture were
-	// horrible.  This attempts isn't so bad.
-	valRef := batch.extend()
+	w.ectx.Arena().Reset()
 	for buf.length() > 0 {
-		if err := w.decodeVal(buf, valRef); err != nil {
-			buf.free()
-			return nil, err
+		val, length, err := w.decodeVal(arena, buf)
+		if err != nil {
+			return nil, errBadFormat
 		}
-		if w.wantValue(*valRef, &progress) {
-			valRef = batch.extend()
+		if w.wantValue(val, length, &progress) {
+			vals = append(vals, val)
 		}
 	}
-	batch.unextend()
 	w.progress.Add(progress)
-	if len(batch.Values()) == 0 {
-		batch.Unref()
+	if len(vals) == 0 {
 		return nil, nil
 	}
-	return batch, nil
+	return zbuf.NewBatchWithVarsAndFree(arena, vals, nil, func() { valsPool.Put(vals) }), nil
 }
 
-func (w *worker) decodeVal(buf *buffer, valRef *zed.Value) error {
+func (w *worker) decodeVal(arena *zed.Arena, buf *buffer) (zed.Value, int64, error) {
 	id, err := readUvarintAsInt(buf)
 	if err != nil {
-		return err
+		return zed.Null, 0, err
 	}
 	n, err := zcode.ReadTag(buf)
 	if err != nil {
-		return errBadFormat
-	}
-	var b []byte
-	if n == 0 {
-		b = []byte{}
-	} else if n > 0 {
-		b, err = buf.read(n)
-		if err != nil && err != io.EOF {
-			if err == peeker.ErrBufferOverflow {
-				return fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
-			}
-			return errBadFormat
-		}
+		return zed.Null, 0, errBadFormat
 	}
 	typ := w.mapperLookupCache.Lookup(id)
 	if typ == nil {
-		return fmt.Errorf("zngio: type ID %d not in context", id)
+		return zed.Null, 0, fmt.Errorf("zngio: type ID %d not in context", id)
 	}
-	*valRef = zed.NewValue(typ, b)
-	if w.validate {
-		if err := valRef.Validate(); err != nil {
-			return err
+	if n < 0 {
+		return arena.New(typ, nil), 0, nil
+	}
+	off := buf.off
+	if n > 0 {
+		if _, err := buf.read(n); err != nil && err != io.EOF {
+			if err == peeker.ErrBufferOverflow {
+				return zed.Null, 0, fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
+			}
+			return zed.Null, 0, errBadFormat
 		}
 	}
-	return nil
-}
-
-func (w *worker) wantValue(val zed.Value, progress *zbuf.Progress) bool {
-	progress.BytesRead += int64(len(val.Bytes()))
-	progress.RecordsRead++
-	// It's tempting to call w.bufferFilter.Eval on rec.Bytes here, but that
-	// might call FieldNameFinder.Find, which could explode or return false
-	// negatives because it expects a buffer of ZNG value messages, and
-	// rec.Bytes is just a ZNG value.  (A ZNG value message is a header
-	// indicating a type ID followed by a value of that type.)
-	if w.filter == nil || check(w.ectx, val, w.filter) {
-		progress.BytesMatched += int64(len(val.Bytes()))
-		progress.RecordsMatched++
-		return true
+	val := arena.NewFromOffsetAndLength(typ, off, n)
+	if w.validate {
+		if err := val.Validate(); err != nil {
+			return zed.Null, 0, err
+		}
 	}
-	return false
+	return val, int64(n), nil
 }
 
-func check(ectx expr.Context, this zed.Value, filter expr.Evaluator) bool {
-	val := filter.Eval(ectx, this)
-	return val.Type() == zed.TypeBool && val.Bool()
+func (w *worker) wantValue(val zed.Value, length int64, progress *zbuf.Progress) bool {
+	progress.BytesRead += length
+	progress.RecordsRead++
+	if f := w.filter; f != nil {
+		// It's tempting to call w.bufferFilter.Eval on val.Bytes here,
+		// but that might call FieldNameFinder.Find, which could explode
+		// or return false negatives because it expects a sequence of
+		// (type ID, tag, ZNG value) but val.Bytes is just a ZNG value.
+		if !f.Eval(w.ectx, val).Ptr().AsBool() {
+			return false
+		}
+	}
+	progress.BytesMatched += length
+	progress.RecordsMatched++
+	return true
 }

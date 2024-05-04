@@ -27,7 +27,7 @@ func (d *dropper) drop(ectx Context, in zed.Value) zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	return zed.NewValue(d.typ, val)
+	return ectx.Arena().New(d.typ, val)
 }
 
 type Dropper struct {
@@ -108,7 +108,7 @@ func (d *Dropper) Eval(ectx Context, in zed.Value) zed.Value {
 		d.droppers[id] = dropper
 	}
 	if dropper == nil {
-		return d.zctx.Quiet()
+		return d.zctx.Quiet(ectx.Arena())
 	}
 	return dropper.drop(ectx, in)
 }

@@ -31,7 +31,7 @@ import (
 	"github.com/x448/float16"
 )
 
-func ReadZNG(bs []byte) ([]zed.Value, error) {
+func ReadZNG(bs []byte) (zbuf.Batch, error) {
 	bytesReader := bytes.NewReader(bs)
 	context := zed.NewContext()
 	reader := zngio.NewReader(context, bytesReader)
@@ -41,10 +41,10 @@ func ReadZNG(bs []byte) ([]zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return a.Values(), nil
+	return &a, nil
 }
 
-func ReadVNG(bs []byte, demandOut demand.Demand) ([]zed.Value, error) {
+func ReadVNG(bs []byte, demandOut demand.Demand) (zbuf.Batch, error) {
 	bytesReader := bytes.NewReader(bs)
 	context := zed.NewContext()
 	reader, err := vngio.NewReader(context, bytesReader, demandOut)
@@ -56,29 +56,29 @@ func ReadVNG(bs []byte, demandOut demand.Demand) ([]zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return a.Values(), nil
+	return &a, nil
 }
 
-func WriteZNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
+func WriteZNG(t testing.TB, batch zbuf.Batch, buf *bytes.Buffer) {
 	writer := zngio.NewWriter(zio.NopCloser(buf))
-	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
+	require.NoError(t, zbuf.WriteBatch(writer, batch))
 	require.NoError(t, writer.Close())
 }
 
-func WriteVNG(t testing.TB, valuesIn []zed.Value, buf *bytes.Buffer) {
+func WriteVNG(t testing.TB, batch zbuf.Batch, buf *bytes.Buffer) {
 	writer := vngio.NewWriter(zio.NopCloser(buf))
-	require.NoError(t, zio.Copy(writer, zbuf.NewArray(valuesIn)))
+	require.NoError(t, zbuf.WriteBatch(writer, batch))
 	require.NoError(t, writer.Close())
 }
 
-func RunQueryZNG(t testing.TB, buf *bytes.Buffer, querySource string) []zed.Value {
+func RunQueryZNG(t testing.TB, buf *bytes.Buffer, querySource string) zbuf.Batch {
 	zctx := zed.NewContext()
 	readers := []zio.Reader{zngio.NewReader(zctx, buf)}
 	defer zio.CloseReaders(readers)
 	return RunQuery(t, zctx, readers, querySource, func(_ demand.Demand) {})
 }
 
-func RunQueryVNG(t testing.TB, buf *bytes.Buffer, querySource string) []zed.Value {
+func RunQueryVNG(t testing.TB, buf *bytes.Buffer, querySource string) zbuf.Batch {
 	zctx := zed.NewContext()
 	reader, err := vngio.NewReader(zctx, bytes.NewReader(buf.Bytes()), demand.All())
 	require.NoError(t, err)
@@ -87,7 +87,7 @@ func RunQueryVNG(t testing.TB, buf *bytes.Buffer, querySource string) []zed.Valu
 	return RunQuery(t, zctx, readers, querySource, func(_ demand.Demand) {})
 }
 
-func RunQuery(t testing.TB, zctx *zed.Context, readers []zio.Reader, querySource string, useDemand func(demandIn demand.Demand)) []zed.Value {
+func RunQuery(t testing.TB, zctx *zed.Context, readers []zio.Reader, querySource string, useDemand func(demandIn demand.Demand)) zbuf.Batch {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -119,7 +119,7 @@ func RunQuery(t testing.TB, zctx *zed.Context, readers []zio.Reader, querySource
 	}
 
 	// Run query
-	var valuesOut []zed.Value
+	var a zbuf.Array
 	for {
 		batch, err := query.Pull(false)
 		require.NoError(t, err)
@@ -127,12 +127,11 @@ func RunQuery(t testing.TB, zctx *zed.Context, readers []zio.Reader, querySource
 			break
 		}
 		for _, value := range batch.Values() {
-			valuesOut = append(valuesOut, value.Copy())
+			a.Write(value)
 		}
 		batch.Unref()
 	}
-
-	return valuesOut
+	return &a
 }
 
 func CompareValues(t testing.TB, valuesExpected []zed.Value, valuesActual []zed.Value) {
@@ -159,16 +158,18 @@ func CompareValues(t testing.TB, valuesExpected []zed.Value, valuesActual []zed.
 	}
 }
 
-func GenValues(b *bytes.Reader, context *zed.Context, types []zed.Type) []zed.Value {
+func GenValues(b *bytes.Reader, context *zed.Context, types []zed.Type) zbuf.Batch {
+	arena := zed.NewArena()
+	defer arena.Unref()
 	var values []zed.Value
 	var builder zcode.Builder
 	for GenByte(b) != 0 {
 		typ := types[int(GenByte(b))%len(types)]
 		builder.Reset()
 		GenValue(b, context, typ, &builder)
-		values = append(values, zed.NewValue(typ, builder.Bytes().Body()))
+		values = append(values, arena.New(typ, builder.Bytes().Body()))
 	}
-	return values
+	return zbuf.NewArray(arena, values)
 }
 
 func GenValue(b *bytes.Reader, context *zed.Context, typ zed.Type, builder *zcode.Builder) {

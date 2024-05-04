@@ -102,6 +102,9 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		data = append(data, fmt.Sprintf("{ts:%s,ip:1.1.1.%d}", nano.Unix(int64(t), 0), i%uniqueIpsPerTs))
 	}
 
+	arena := zed.NewArena()
+	defer arena.Unref()
+
 	runOne := func(inputSortKey string) []string {
 		proc, err := compiler.Parse("count() by every(1s), ip")
 		assert.NoError(t, err)
