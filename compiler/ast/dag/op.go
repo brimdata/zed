@@ -26,6 +26,11 @@ type Seq []Op
 // Ops
 
 type (
+	// A BadOp node is a placeholder for an expression containing semantic
+	// errors.
+	BadOp struct {
+		Kind string `json:"kind" unpack:""`
+	}
 	Combine struct {
 		Kind string `json:"kind" unpack:""`
 	}
@@ -281,6 +286,7 @@ type (
 	}
 )
 
+func (*BadOp) OpNode()     {}
 func (*Fork) OpNode()      {}
 func (*Scatter) OpNode()   {}
 func (*Switch) OpNode()    {}

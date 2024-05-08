@@ -158,7 +158,9 @@ echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage("message", "hello")' -
 ```
 which produces
 ```mdtest-output
-illegal left-hand side of assignment
+illegal left-hand side of assignment (params.zed: line 2, column 3):
+  field_for_message:=msg
+  ~~~~~~~~~~~~~~~~~~~~~~
 ```
 
 A constant value must be used to pass a parameter that will be referenced as

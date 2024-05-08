@@ -30,6 +30,12 @@ type (
 		LHS  Expr   `json:"lhs"`
 		RHS  Expr   `json:"rhs"`
 	}
+	// A BadExpr node is a placeholder for an expression containing semantic
+	// errors.
+	BadExpr struct {
+		Kind string `json:"kind" unpack:""`
+	}
+
 	BinaryExpr struct {
 		Kind string `json:"kind" unpack:""`
 		Op   string `json:"op"`
@@ -131,6 +137,7 @@ type (
 func (*Agg) ExprDAG()          {}
 func (*ArrayExpr) ExprDAG()    {}
 func (*Assignment) ExprDAG()   {}
+func (*BadExpr) ExprDAG()      {}
 func (*BinaryExpr) ExprDAG()   {}
 func (*Call) ExprDAG()         {}
 func (*Conditional) ExprDAG()  {}

@@ -13,4 +13,6 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      no such type name: "null"
+      no such type name: "null" (badshaper.zed: line 1, column 10):
+      type foo={_path:string,testfield:"null"}
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

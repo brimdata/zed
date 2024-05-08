@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/lakeparse"
+	"go.uber.org/multierr"
 )
 
 // Analyze performs a semantic analysis of the AST, translating it from AST
@@ -15,9 +16,9 @@ import (
 // After semantic analysis, the DAG is ready for either optimization or compilation.
 func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
 	a := newAnalyzer(ctx, source, head)
-	s, err := a.semSeq(seq)
-	if err != nil {
-		return nil, err
+	s := a.semSeq(seq)
+	if a.errors != nil {
+		return nil, a.errors
 	}
 	return s, nil
 }
@@ -26,12 +27,12 @@ func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakepa
 // DAG does not have one.
 func AnalyzeAddSource(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
 	a := newAnalyzer(ctx, source, head)
-	s, err := a.semSeq(seq)
-	if err != nil {
-		return nil, err
+	s := a.semSeq(seq)
+	if a.errors != nil {
+		return nil, a.errors
 	}
 	if !HasSource(s) {
-		if err = a.addDefaultSource(&s); err != nil {
+		if err := a.addDefaultSource(&s); err != nil {
 			return nil, err
 		}
 	}
@@ -40,6 +41,7 @@ func AnalyzeAddSource(ctx context.Context, seq ast.Seq, source *data.Source, hea
 
 type analyzer struct {
 	ctx     context.Context
+	errors  error
 	head    *lakeparse.Commitish
 	opStack []*ast.OpDecl
 	source  *data.Source
@@ -78,6 +80,10 @@ func (a *analyzer) addDefaultSource(seq *dag.Seq) error {
 		seq.Prepend(&dag.DefaultScan{Kind: "DefaultScan"})
 		return nil
 	}
+	// Verify pool exists for HEAD
+	if _, err := a.source.PoolID(a.ctx, a.head.Pool); err != nil {
+		return err
+	}
 	pool := &ast.Pool{
 		Kind: "Pool",
 		Spec: ast.PoolSpec{
@@ -87,10 +93,7 @@ func (a *analyzer) addDefaultSource(seq *dag.Seq) error {
 			},
 		},
 	}
-	ops, err := a.semPool(pool)
-	if err != nil {
-		return err
-	}
+	ops := a.semPool(pool)
 	seq.Prepend(ops[0])
 	return nil
 }
@@ -116,6 +119,7 @@ func (a *analyzer) exitScope() {
 type opDecl struct {
 	ast   *ast.OpDecl
 	scope *Scope // parent scope of op declaration.
+	bad   bool
 }
 
 type opCycleError []*ast.OpDecl
@@ -129,4 +133,16 @@ func (e opCycleError) Error() string {
 		b += op.Name
 	}
 	return b
+}
+
+func badExpr() dag.Expr {
+	return &dag.BadExpr{Kind: "BadExpr"}
+}
+
+func badOp() dag.Op {
+	return &dag.BadOp{Kind: "BadOp"}
+}
+
+func (a *analyzer) error(n ast.Node, err error) {
+	a.errors = multierr.Append(a.errors, ast.NewError(err, n.Pos(), n.End()))
 }

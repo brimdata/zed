@@ -12,7 +12,15 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      cut: fields in record rec must be adjacent
-      cut: fields in record rec1 must be adjacent
-      cut: fields in record rec1 must be adjacent
-      cut: fields in record t.rec must be adjacent
+      fields in record rec must be adjacent (line 1, column 5):
+      cut rec.sub1,other,rec.sub2
+          ~~~~~~~~~~~~~~~~~~~~~~~
+      fields in record rec1 must be adjacent (line 1, column 5):
+      cut rec1.rec2.sub1,other,rec1.sub2
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      fields in record rec1 must be adjacent (line 1, column 5):
+      cut rec1.rec2.sub1,other,rec1.rec2.sub2
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      fields in record t.rec must be adjacent (line 1, column 5):
+      cut t.rec.sub1,t.other,t.rec.sub2
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

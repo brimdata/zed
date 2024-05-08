@@ -21,6 +21,12 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      symbol "dup" redefined
-      notAFunc(): definition is not a function type: *dag.Literal
-      f(): expects 2 argument(s)
+      symbol "dup" redefined (duplicate.zed: line 2, column 1):
+      func dup(n): (n+2)
+      ~~~~~~~~~~~~~~~~~
+      definition is not a function type: *dag.Literal (call-non-func.zed: line 2, column 7):
+      yield notAFunc(this)
+            ~~~~~~~~~~~~~~
+      call expects 2 argument(s) (wrong-args.zed: line 2, column 7):
+      yield f(this)
+            ~~~~~~~

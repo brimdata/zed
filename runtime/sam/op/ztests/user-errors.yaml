@@ -8,7 +8,7 @@ inputs:
       op test(a, a): (
         pass
       )
-      op("a", "b")
+      test("a", "b")
   - name: error-const-lhs.zed
     data: |
       op test(a): (
@@ -19,5 +19,9 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      test: duplicate parameter "a"
-      illegal left-hand side of assignment
+      duplicate parameter "a" (error-duplicate-parameters.zed: line 1, column 1):
+      op test(a, a): (
+      ~~~~~~~~~~~~~~~~
+      illegal left-hand side of assignment (error-const-lhs.zed: line 2, column 3):
+        a := a
+        ~~~~~~

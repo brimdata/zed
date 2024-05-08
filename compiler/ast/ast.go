@@ -113,7 +113,7 @@ func (c *Call) End() int {
 	if c.Where != nil {
 		return c.Where.End()
 	}
-	return c.Rparen
+	return c.Rparen + 1
 }
 
 type Cast struct {
@@ -183,7 +183,7 @@ type Regexp struct {
 }
 
 func (r *Regexp) Pos() int { return r.PatternPos }
-func (r *Regexp) End() int { return r.PatternPos + len(r.Pattern) }
+func (r *Regexp) End() int { return r.PatternPos + len(r.Pattern) + 2 }
 
 type String struct {
 	Kind    string `json:"kind" unpack:""`
@@ -435,9 +435,9 @@ type (
 		NullsFirst bool        `json:"nullsfirst"`
 	}
 	Cut struct {
-		Kind       string       `json:"kind" unpack:""`
-		KeywordPos int          `json:"keyword_pos"`
-		Args       []Assignment `json:"args"`
+		Kind       string      `json:"kind" unpack:""`
+		KeywordPos int         `json:"keyword_pos"`
+		Args       Assignments `json:"args"`
 	}
 	Drop struct {
 		Kind       string `json:"kind" unpack:""`
@@ -474,10 +474,10 @@ type (
 		Kind string `json:"kind" unpack:""`
 		// StartPos is not called KeywordPos for Summarize since the "summarize"
 		// keyword is optional.
-		StartPos int          `json:"start_pos"`
-		Limit    int          `json:"limit"`
-		Keys     []Assignment `json:"keys"`
-		Aggs     []Assignment `json:"aggs"`
+		StartPos int         `json:"start_pos"`
+		Limit    int         `json:"limit"`
+		Keys     Assignments `json:"keys"`
+		Aggs     Assignments `json:"aggs"`
 	}
 	Top struct {
 		Kind       string `json:"kind" unpack:""`
@@ -487,9 +487,9 @@ type (
 		Flush      bool   `json:"flush"`
 	}
 	Put struct {
-		Kind       string       `json:"kind" unpack:""`
-		KeywordPos int          `json:"keyword_pos"`
-		Args       []Assignment `json:"args"`
+		Kind       string      `json:"kind" unpack:""`
+		KeywordPos int         `json:"keyword_pos"`
+		Args       Assignments `json:"args"`
 	}
 	Merge struct {
 		Kind       string `json:"kind" unpack:""`
@@ -523,8 +523,8 @@ type (
 	// is unknown: It could be a Summarize or Put operator. This will be
 	// determined in the semantic phase.
 	OpAssignment struct {
-		Kind        string       `json:"kind" unpack:""`
-		Assignments []Assignment `json:"assignments"`
+		Kind        string      `json:"kind" unpack:""`
+		Assignments Assignments `json:"assignments"`
 	}
 	// An OpExpr operator is an expression that appears as an operator
 	// and requires semantic analysis to determine if it is a filter, a yield,
@@ -534,22 +534,22 @@ type (
 		Expr Expr   `json:"expr"`
 	}
 	Rename struct {
-		Kind       string       `json:"kind" unpack:""`
-		KeywordPos int          `json:"keyword_pos"`
-		Args       []Assignment `json:"args"`
+		Kind       string      `json:"kind" unpack:""`
+		KeywordPos int         `json:"keyword_pos"`
+		Args       Assignments `json:"args"`
 	}
 	Fuse struct {
 		Kind       string `json:"kind" unpack:""`
 		KeywordPos int    `json:"keyword_pos"`
 	}
 	Join struct {
-		Kind       string       `json:"kind" unpack:""`
-		KeywordPos int          `json:"keyword_pos"`
-		Style      string       `json:"style"`
-		RightInput Seq          `json:"right_input"`
-		LeftKey    Expr         `json:"left_key"`
-		RightKey   Expr         `json:"right_key"`
-		Args       []Assignment `json:"args"`
+		Kind       string      `json:"kind" unpack:""`
+		KeywordPos int         `json:"keyword_pos"`
+		Style      string      `json:"style"`
+		RightInput Seq         `json:"right_input"`
+		LeftKey    Expr        `json:"left_key"`
+		RightKey   Expr        `json:"right_key"`
+		Args       Assignments `json:"args"`
 	}
 	Sample struct {
 		Kind       string `json:"kind" unpack:""`
@@ -674,14 +674,19 @@ type Assignment struct {
 	RHS  Expr   `json:"rhs"`
 }
 
-func (a *Assignment) Pos() int {
+func (a Assignment) Pos() int {
 	if a.LHS != nil {
 		return a.LHS.Pos()
 	}
 	return a.RHS.Pos()
 }
 
-func (a *Assignment) End() int { return a.RHS.Pos() }
+func (a Assignment) End() int { return a.RHS.End() }
+
+type Assignments []Assignment
+
+func (a Assignments) Pos() int { return a[0].Pos() }
+func (a Assignments) End() int { return a[len(a)-1].End() }
 
 // Def is like Assignment but the LHS is an identifier that may be later
 // referenced.  This is used for const blocks in Sequential and var blocks

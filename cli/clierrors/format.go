@@ -48,7 +48,7 @@ func formatSpanError(b *strings.Builder, line string, start, end parser.Position
 	b.WriteString(strings.Repeat(" ", col))
 	n := len(line) - col
 	if start.Line == end.Line {
-		n = end.Column - col
+		n = end.Column - 1 - col
 	}
 	b.WriteString(strings.Repeat("~", n))
 }

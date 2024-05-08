@@ -10,4 +10,6 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      status code 404: "doesnotexist": branch not found
+      "doesnotexist": branch not found (line 1, column 1):
+      from test@doesnotexist
+      ~~~~~~~~~~~~~~~~~~~~~~

@@ -13,13 +13,13 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {"type":"Error","kind":"invalid operation","error":"pool name missing"}
+      {"type":"Error","kind":"invalid operation","error":"no pool name given"}
       code 400
-      {"type":"Error","kind":"invalid operation","error":"pool name missing"}
+      {"type":"Error","kind":"invalid operation","error":"no pool name given"}
       code 400
-      {"type":"Error","kind":"invalid operation","error":"pool name missing"}
+      {"type":"Error","kind":"invalid operation","error":"pool name missing","info":[{"kind":"Kind","error":"pool name missing","pos":0,"end":9}]}
       code 400
-      {"type":"Error","kind":"invalid operation","error":"unknown lake metadata type \"unknownmeta\" in from operator"}
+      {"type":"Error","kind":"invalid operation","error":"unknown lake metadata type \"unknownmeta\" in from operator","info":[{"kind":"Kind","error":"unknown lake metadata type \"unknownmeta\" in from operator","pos":0,"end":17}]}
       code 400
-      {"type":"Error","kind":"item does not exist","error":"doesnotexist: pool not found"}
+      {"type":"Error","kind":"item does not exist","error":"doesnotexist: pool not found","info":[{"kind":"Kind","error":"doesnotexist: pool not found","pos":5,"end":17}]}
       code 404
