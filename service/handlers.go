@@ -11,8 +11,8 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/commits"
@@ -51,12 +51,12 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	// The client must look at the return code and interpret the result
 	// accordingly and when it sees a ZNG error after underway,
 	// the error should be relay that to the caller/user.
-	query, err := c.compiler.Parse(req.Query)
+	query, sset, err := parser.ParseZed(nil, req.Query)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
 	}
-	flowgraph, err := runtime.CompileLakeQuery(r.Context(), zed.NewContext(), c.compiler, query, &req.Head)
+	flowgraph, err := runtime.CompileLakeQuery(r.Context(), zed.NewContext(), c.compiler, query, sset, &req.Head)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
@@ -162,7 +162,7 @@ func handleCompile(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	ast, err := c.compiler.Parse(req.Query)
+	ast, _, err := c.compiler.Parse(req.Query)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
@@ -552,12 +552,15 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			w.Error(srverr.ErrInvalid("either object_ids or where must be set"))
 			return
 		}
-		var program ast.Seq
-		if program, err = c.compiler.Parse(payload.Where); err != nil {
-			w.Error(srverr.ErrInvalid(err))
+		program, sset, err2 := c.compiler.Parse(payload.Where)
+		if err != nil {
+			w.Error(srverr.ErrInvalid(err2))
 			return
 		}
 		commit, err = branch.DeleteWhere(r.Context(), c.compiler, program, message.Author, message.Body, message.Meta)
+		if list, ok := err.(parser.ErrorList); ok {
+			list.SetSourceSet(sset)
+		}
 		if errors.Is(err, commits.ErrEmptyTransaction) ||
 			errors.Is(err, &compiler.InvalidDeleteWhereQuery{}) {
 			err = srverr.ErrInvalid(err)

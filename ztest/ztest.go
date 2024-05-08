@@ -480,7 +480,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := compiler.NewCompiler().Parse(zedProgram)
+	proc, sset, err := compiler.Parse(zedProgram)
 	if err != nil {
 		return "", err.Error(), err
 	}
@@ -513,7 +513,7 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err != nil {
 		return "", "", err
 	}
-	q, err := compiler.NewCompiler().NewQuery(runtime.NewContext(context.Background(), zctx), proc, []zio.Reader{zrc})
+	q, err := runtime.CompileQuery(context.Background(), zctx, compiler.NewCompiler(), proc, sset, []zio.Reader{zrc})
 	if err != nil {
 		zw.Close()
 		return "", err.Error(), err

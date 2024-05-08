@@ -10,6 +10,8 @@ var unpacker = unpack.New(
 	Agg{},
 	ArrayExpr{},
 	Assignment{},
+	BadOp{},
+	BadExpr{},
 	BinaryExpr{},
 	Call{},
 	Combine{},

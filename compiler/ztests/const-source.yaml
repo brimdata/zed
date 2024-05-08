@@ -33,6 +33,12 @@ outputs:
       )
   - name: stderr
     data: |
-      invalid pool name: POOL: string value required
-      invalid file path: FILE: string value required
-      invalid file path: URL: string value required
+      POOL: string value required at line 1, column 24:
+      const POOL = 3.14 from POOL
+                             ~~~~
+      FILE: string value required at line 1, column 29:
+      const FILE = 127.0.0.1 file FILE
+                                  ~~~~
+      URL: string value required at line 1, column 22:
+      const URL = true get URL
+                           ~~~

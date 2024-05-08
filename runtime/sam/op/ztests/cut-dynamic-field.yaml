@@ -43,4 +43,6 @@ outputs:
       error({message:"cut: missing",on:{}})
   - name: stderr
     data: |
-      left-hand side of assignment: symbol "foo" is not bound to an expression
+      symbol "foo" is not bound to an expression at line 1, column 38:
+      op foo(): ( yield "error" ) cut this[foo] := "hello world"
+                                           ~~~

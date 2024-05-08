@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/runtime"
@@ -130,7 +131,7 @@ func (c *Command) header(msg string) {
 }
 
 func (c *Command) parse(z string, lk *lake.Root) error {
-	seq, err := compiler.Parse(z, c.includes...)
+	seq, sset, err := compiler.Parse(z, c.includes...)
 	if err != nil {
 		return err
 	}
@@ -143,6 +144,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		fmt.Println(normalize(b))
 	}
 	if c.proc {
+		c.header("proc")
 		c.writeAST(seq)
 	}
 
@@ -151,6 +153,9 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 	}
 	runtime, err := compiler.NewJob(runtime.DefaultContext(), seq, data.NewSource(nil, lk), nil)
 	if err != nil {
+		if list, ok := err.(parser.ErrorList); ok {
+			list.SetSourceSet(sset)
+		}
 		return err
 	}
 	if c.semantic {

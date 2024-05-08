@@ -15,12 +15,22 @@ script: |
 outputs:
   - name: stderr
     data: |
-      semantic analyzer: from pool cannot be used without a lake
+      from pool cannot be used without a lake at line 1, column 1:
+      from p
+      ~~~~~~
       ===
-      test: pool not found
+      test: pool not found at line 1, column 6:
+      from test
+           ~~~~
       ===
-      test*: pool matching glob not found
+      test*: pool matching glob not found at line 1, column 6:
+      from test*
+           ~~~~~
       ===
-      test: pool matching regexp not found
+      test: pool matching regexp not found at line 1, column 6:
+      from /test/
+           ~~~~~~
       ===
-      => not allowed after pool pattern in 'from' operator
+      => not allowed after pool pattern in 'from' operator at line 1, column 7:
+      from (pool * => count())
+            ~~~~~~~~~~~~~~~~~
