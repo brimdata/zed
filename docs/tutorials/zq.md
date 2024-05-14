@@ -917,7 +917,7 @@ to put your clean data into all the right places.
 Let's start with something simple.  How about we output a "PR Report" listing
 the title of each PR along with its PR number and creation date:
 ```mdtest-command dir=docs/tutorials
-zq -f table '{DATE:created_at,NUMBER:"PR #${number}",TITLE:title}' prs.zng
+zq -f table '{DATE:created_at,NUMBER:f"PR #{number}",TITLE:title}' prs.zng
 ```
 and you'll see this output...
 ```mdtest-output head
@@ -929,14 +929,14 @@ DATE                 NUMBER TITLE
 2019-11-12T16:49:07Z PR #6  a few clarifications to the zson spec
 ...
 ```
-Note that we used [string interpolation](../language/expressions.md#string-interpolation)
+Note that we used a [formatted string literal](../language/expressions.md#formatted-string-literals)
 to convert the field `number` into a string and format it with surrounding text.
 
 Instead of old PRs, we can get the latest list of PRs using the
 [tail operator](../language/operators/tail.md) since we know the data is sorted
 chronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
-zq -f table 'tail 5 | {DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
+zq -f table 'tail 5 | {DATE:created_at,"NUMBER":f"PR #{number}",TITLE:title}' prs.zng
 ```
 and the output is:
 ```mdtest-output

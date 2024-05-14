@@ -1151,7 +1151,8 @@ Entry
 
 Literal
   = TypeLiteral
-  / TemplateLiteral
+  / StringLiteral
+  / FString
   / SubnetLiteral
   / AddressLiteral
   / BytesLiteral
@@ -1289,49 +1290,53 @@ ComplexType
       }, nil
     }
 
-TemplateLiteral
-  = v:TemplateLiteralParts {
-      if len(v.([]any)) == 0 {
-        return newPrimitive(c, "string", ""), nil
-      }
-      return makeTemplateExprChain(v), nil
+StringLiteral
+  = '"' v:DoubleQuotedChar* '"' { return newPrimitive(c, "string", joinChars(v)), nil }
+  / "'" v:SingleQuotedChar* "'" { return newPrimitive(c, "string", joinChars(v)), nil }
+
+FString
+  = "f\"" v:FStringDoubleQuotedElem* '"' {
+      return &ast.FString{
+        Kind: "FString",
+        StartPos: c.pos.offset,
+        Elems: sliceOf[ast.FStringElem](v),
+      }, nil
+    }
+  / "f'" v:FStringSingleQuotedElem* "'" {
+      return &ast.FString{
+        Kind: "FString",
+        StartPos: c.pos.offset,
+        Elems: sliceOf[ast.FStringElem](v),
+      }, nil
     }
 
-TemplateLiteralParts
-  = '"' v:TemplateDoubleQuotedPart* '"' { return v, nil }
-  / "'" v:TemplateSingleQuotedPart* "'" { return v, nil }
-
-TemplateDoubleQuotedPart
-  = TemplateExpr
-  / v:TemplateDoubleQuotedChar+ {
-      return newPrimitive(c, "string", joinChars(v)), nil
+FStringDoubleQuotedElem
+  = FStringExpr
+  / v:FStringDoubleQuotedChar+ {
+      return &ast.FStringText{Kind: "FStringText", TextPos: c.pos.offset, Text: joinChars(v)}, nil
     }
 
-TemplateDoubleQuotedChar
-  = "\\" v:"${" { return v, nil }
-  / !("${") v:DoubleQuotedChar { return v, nil }
+FStringDoubleQuotedChar
+  = "\\" v:"{" { return v, nil }
+  / !("{") v:DoubleQuotedChar { return v, nil }
 
-TemplateSingleQuotedPart
-  = TemplateExpr
-  / v:TemplateSingleQuotedChar+ {
-      return newPrimitive(c, "string", joinChars(v)), nil
+FStringSingleQuotedElem
+  = FStringExpr
+  / v:FStringSingleQuotedChar+ {
+      return &ast.FStringText{Kind: "FStringText", TextPos: c.pos.offset, Text: joinChars(v)}, nil
     }
 
-TemplateSingleQuotedChar
-  = "\\" v:"${" { return v, nil }
-  / !("${") v:SingleQuotedChar { return v, nil }
+FStringSingleQuotedChar
+  = "\\" v:"{" { return v, nil }
+  / !("{") v:SingleQuotedChar { return v, nil }
 
-// XXX This shouldn't add all this extra AST stuff but rather the semantic
-// pass should fill this stuff out.
-TemplateExpr
-  = "${" __ e:Expr __ "}" {
-      return &ast.Cast{
-        Kind: "Cast",
+FStringExpr
+  = "{" __ e:Expr __ "}" {
+      return &ast.FStringExpr{
+        Kind: "FStringExpr",
+        Lbrace: c.pos.offset, 
         Expr: e.(ast.Expr),
-        Type: &astzed.TypeValue{
-            Kind: "TypeValue",
-            Value: &astzed.TypePrimitive{Kind:"TypePrimitive",Name:"string"},
-        },
+        Rbrace: lastPos(c, "}"),
       }, nil
     }
 

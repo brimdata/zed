@@ -23,9 +23,9 @@ outputs:
       expression value must be an integer value: 1. at line 1, column 6:
       head 1.
            ~~
-      expression value must be an integer value: "1" at line 1, column 7:
+      expression value must be an integer value: "1" at line 1, column 6:
       head "1"
-            ~
+           ~~~
       expression value must be an integer value: error("missing") at line 1, column 6:
       head x
            ~
