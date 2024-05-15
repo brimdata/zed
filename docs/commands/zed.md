@@ -592,6 +592,10 @@ lake.
 The output from `manage` provides a per-pool summary of the maintenance
 performed, including a count of `objects_compacted`.
 
+As an alternative to running `manage` as a separate command, the `-manage`
+option is also available on the [`serve`](#serve) command to have maintenance
+tasks run at the specified interval by the service process.
+
 ### Merge
 
 Data is merged from one branch into another with the `merge` command, e.g.,
@@ -757,6 +761,9 @@ from most to least verbose, are `debug`, `info` (the default), `warn`,
 `error`, `dpanic`, `panic`, and `fatal`.  If the volume of logging output at
 the default `info` level seems too excessive for production use, `warn` level
 is recommended.
+
+The `-manage` option enables the running of the same maintenance tasks
+normally performed via the separate [`manage`](#manage) command.
 
 ### Use
 ```
