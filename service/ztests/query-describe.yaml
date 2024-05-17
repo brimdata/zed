@@ -1,0 +1,94 @@
+script: |
+  source service.sh
+  zed create -q test1
+  zed create -q test2
+  for file in multifrom.zed agg.zed agg-no-keys.zed; do
+    echo // === $file ===
+    query="$(cat $file | jq -Rsa .)"
+    curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $ZED_LAKE/query/describe |
+      zq -J 'sources := (over sources | id := "XXX")' -
+  done
+
+
+inputs:
+  - name: service.sh
+  - name: multifrom.zed
+    data: |
+      from (
+        pool test1
+        pool test2
+      ) | put foo := "bar"
+  - name: agg.zed
+    data: |
+      count() by key1:=v1, key2
+  - name: agg-no-keys.zed
+    data: |
+      sum(this)
+
+outputs:
+  - name: stdout
+    data: |
+      // === multifrom.zed ===
+      {
+          "sources": [
+              {
+                  "kind": "Pool",
+                  "name": "test1",
+                  "id": "XXX"
+              },
+              {
+                  "kind": "Pool",
+                  "name": "test2",
+                  "id": "XXX"
+              }
+          ],
+          "channels": [
+              {
+                  "aggregation_keys": null,
+                  "sort": {
+                      "order": "desc",
+                      "keys": [
+                          [
+                              "ts"
+                          ]
+                      ]
+                  }
+              }
+          ]
+      }
+      // === agg.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX"
+          },
+          "channels": [
+              {
+                  "aggregation_keys": [
+                      [
+                          "key1"
+                      ],
+                      [
+                          "key2"
+                      ]
+                  ],
+                  "sort": null
+              }
+          ]
+      }
+      // === agg-no-keys.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX"
+          },
+          "channels": [
+              {
+                  "aggregation_keys": [
+                  ],
+                  "sort": null
+              }
+          ]
+      }
