@@ -8,6 +8,9 @@ input: |
     f4: "a string",
     f5: [1,2,3],
     f6: {foo: "bar"},
+    f7: {},
+    f8: |{}|,
+    f9: [],
   }
 
 output-flags: -f json -pretty 4
@@ -25,5 +28,8 @@ output: |
       ],
       "f6": {
           "foo": "bar"
-      }
+      },
+      "f7": {},
+      "f8": {},
+      "f9": []
   }
