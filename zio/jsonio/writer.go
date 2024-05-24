@@ -94,6 +94,10 @@ func (w *Writer) writeAny(tab int, val zed.Value) {
 func (w *Writer) writeRecord(tab int, typ *zed.TypeRecord, bytes zcode.Bytes) {
 	tab += w.tab
 	w.punc('{')
+	if len(bytes) == 0 {
+		w.punc('}')
+		return
+	}
 	it := bytes.Iter()
 	for i, f := range typ.Fields {
 		if i != 0 {
@@ -109,6 +113,10 @@ func (w *Writer) writeRecord(tab int, typ *zed.TypeRecord, bytes zcode.Bytes) {
 func (w *Writer) writeArray(tab int, typ zed.Type, bytes zcode.Bytes) {
 	tab += w.tab
 	w.punc('[')
+	if len(bytes) == 0 {
+		w.punc(']')
+		return
+	}
 	it := bytes.Iter()
 	for i := 0; !it.Done(); i++ {
 		if i != 0 {
@@ -126,6 +134,10 @@ func (w *Writer) writeArray(tab int, typ zed.Type, bytes zcode.Bytes) {
 func (w *Writer) writeMap(tab int, typ *zed.TypeMap, bytes zcode.Bytes) {
 	tab += w.tab
 	w.punc('{')
+	if len(bytes) == 0 {
+		w.punc('}')
+		return
+	}
 	it := bytes.Iter()
 	for i := 0; !it.Done(); i++ {
 		if i != 0 {
