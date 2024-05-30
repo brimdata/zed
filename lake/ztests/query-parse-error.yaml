@@ -34,7 +34,7 @@ outputs:
   - name: stderr
     data: |
       =1=
-      error parsing Zed at column 11:
+      error parsing Zed at line 1, column 11:
       from test \ count()
             === ^ ===
       =2=
@@ -42,7 +42,7 @@ outputs:
       test \ count()
        === ^ ===
       =3=
-      error parsing Zed at column 11:
+      error parsing Zed at line 1, column 11:
       from test \ count()
             === ^ ===
       =4=

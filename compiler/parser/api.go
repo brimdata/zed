@@ -8,138 +8,133 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 )
 
-// ParseZed calls ConcatSource followed by Parse.  If Parse fails, it calls
-// ImproveError.
-func ParseZed(filenames []string, src string) (ast.Seq, error) {
-	src, srcInfo, err := ConcatSource(filenames, src)
+// ParseZed calls ConcatSource followed by Parse.  If Parse returns an error,
+// ConcatSource tries to convert it to an ErrorList.
+func ParseZed(filenames []string, src string) (ast.Seq, *SourceSet, error) {
+	sset, err := ConcatSource(filenames, src)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	p, err := Parse("", []byte(src))
+	p, err := Parse("", []byte(sset.Text))
 	if err != nil {
-		return nil, ImproveError(err, src, srcInfo)
+		return nil, nil, convertErrList(err, sset)
 	}
-	return sliceOf[ast.Op](p), nil
-}
-
-// SourceInfo holds source file offsets.
-type SourceInfo struct {
-	filename string
-	start    int
-	end      int
+	return sliceOf[ast.Op](p), sset, nil
 }
 
 // ConcatSource concatenates the source files in filenames followed by src,
-// returning the result and a corresponding slice of SourceInfos.
-func ConcatSource(filenames []string, src string) (string, []SourceInfo, error) {
+// returning a SourceSet.
+func ConcatSource(filenames []string, src string) (*SourceSet, error) {
 	var b strings.Builder
-	var sis []SourceInfo
+	var sis []*SourceInfo
 	for _, f := range filenames {
 		bb, err := os.ReadFile(f)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
-		start := b.Len()
+		sis = append(sis, newSourceInfo(f, b.Len(), bb))
 		b.Write(bb)
-		sis = append(sis, SourceInfo{f, start, b.Len()})
 		b.WriteByte('\n')
 	}
-	start := b.Len()
-	b.WriteString(src)
-	sis = append(sis, SourceInfo{"", start, b.Len()})
-	if b.Len() == 0 {
-		return "*", nil, nil
+	if b.Len() == 0 && src == "" {
+		src = "*"
 	}
-	return b.String(), sis, nil
+	sis = append(sis, newSourceInfo("", b.Len(), []byte(src)))
+	b.WriteString(src)
+	return &SourceSet{b.String(), sis}, nil
 }
 
-// ImproveError tries to improve an error from Parse.  err is the error.  src is
-// the source code for which Parse return err.  If src came from ConcatSource,
-// sis is the corresponding slice of SourceInfo; otherwise, sis is nil.
-func ImproveError(err error, src string, sis []SourceInfo) error {
-	el, ok := err.(errList)
-	if !ok || len(el) != 1 {
-		return err
-	}
-	pe, ok := el[0].(*parserError)
+func convertErrList(err error, sset *SourceSet) error {
+	errs, ok := err.(errList)
 	if !ok {
 		return err
 	}
-	return NewError(src, sis, pe.pos.offset)
-}
-
-// Error is a parse error with nice formatting.  It includes the source code
-// line containing the error.
-type Error struct {
-	Offset int // offset into original source code
-
-	filename string // omitted from formatting if ""
-	LineNum  int    // zero-based; omitted from formatting if negative
-
-	line   string // contains no newlines
-	Column int    // zero-based
-}
-
-// NewError returns an Error.  src is the source code containing the error.  If
-// src came from ConcatSource, sis is the corresponding slice of SourceInfo;
-// otherwise, src is nil.  offset is the offset of the error within src.
-func NewError(src string, sis []SourceInfo, offset int) error {
-	var filename string
-	for _, si := range sis {
-		if offset < si.end {
-			filename = si.filename
-			offset -= si.start
-			src = src[si.start:si.end]
-			break
+	var out ErrorList
+	for _, e := range errs {
+		pe, ok := e.(*parserError)
+		if !ok {
+			return err
 		}
+		out.Append("error parsing Zed", pe.pos.offset, -1)
 	}
-	lineNum := -1
-	if filename != "" || strings.Count(src, "\n") > 0 {
-		lineNum = strings.Count(src[:offset], "\n")
-	}
-	column := offset
-	if i := strings.LastIndexByte(src[:offset], '\n'); i != -1 {
-		column -= i + 1
-		src = src[i+1:]
-	}
-	if i := strings.IndexByte(src, '\n'); i != -1 {
-		src = src[:i]
-	}
-	return &Error{
-		Offset:   offset,
-		LineNum:  lineNum,
-		Column:   column,
-		filename: filename,
-		line:     src,
-	}
+	out.SetSourceSet(sset)
+	return out
 }
 
-func (e *Error) Error() string {
+// ErrList is a list of Errors.
+type ErrorList []*Error
+
+// Append appends an Error to e.
+func (e *ErrorList) Append(msg string, pos, end int) {
+	*e = append(*e, &Error{msg, pos, end, nil})
+}
+
+// Error concatenates the errors in e with a newline between each.
+func (e ErrorList) Error() string {
 	var b strings.Builder
-	b.WriteString("error parsing Zed ")
-	if e.filename != "" {
-		fmt.Fprintf(&b, "in %s ", e.filename)
+	for i, err := range e {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		b.WriteString(err.Error())
 	}
-	b.WriteString("at ")
-	if e.LineNum >= 0 {
-		fmt.Fprintf(&b, "line %d, ", e.LineNum+1)
-	}
-	fmt.Fprintf(&b, "column %d:\n", e.Column+1)
-	b.WriteString(e.ParseErrorContext())
 	return b.String()
 }
 
-func (e *Error) ParseErrorContext() string {
+// SetSourceSet sets the SourceSet for every Error in e.
+func (e ErrorList) SetSourceSet(sset *SourceSet) {
+	for i := range e {
+		e[i].sset = sset
+	}
+}
+
+type Error struct {
+	Msg  string
+	Pos  int
+	End  int
+	sset *SourceSet
+}
+
+func (e *Error) Error() string {
+	if e.sset == nil {
+		return e.Msg
+	}
+	src := e.sset.SourceOf(e.Pos)
+	start := src.Position(e.Pos)
+	end := src.Position(e.End)
 	var b strings.Builder
-	b.WriteString(e.line + "\n")
-	for k := 0; k < e.Column; k++ {
-		if k >= e.Column-4 && k != e.Column-1 {
+	b.WriteString(e.Msg)
+	if src.Filename != "" {
+		fmt.Fprintf(&b, " in %s", src.Filename)
+	}
+	line := src.LineOfPos(e.sset.Text, e.Pos)
+	fmt.Fprintf(&b, " at line %d, column %d:\n%s\n", start.Line, start.Column, line)
+	if end.IsValid() {
+		formatSpanError(&b, line, start, end)
+	} else {
+		formatPointError(&b, start)
+	}
+	return b.String()
+}
+
+func formatSpanError(b *strings.Builder, line string, start, end Position) {
+	col := start.Column - 1
+	b.WriteString(strings.Repeat(" ", col))
+	n := len(line) - col
+	if start.Line == end.Line {
+		n = end.Column - 1 - col
+	}
+	b.WriteString(strings.Repeat("~", n))
+}
+
+func formatPointError(b *strings.Builder, start Position) {
+	col := start.Column - 1
+	for k := 0; k < col; k++ {
+		if k >= col-4 && k != col-1 {
 			b.WriteByte('=')
 		} else {
 			b.WriteByte(' ')
 		}
 	}
-	b.WriteByte('^')
-	b.WriteString(" ===")
-	return b.String()
+	b.WriteString("^ ===")
 }

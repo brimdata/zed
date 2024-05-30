@@ -297,23 +297,19 @@ func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName 
 // As for Connection.Do, if the returned error is nil, the user is expected to
 // call Response.Body.Close.
 func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
-	src, srcInfo, err := parser.ConcatSource(filenames, src)
+	sset, err := parser.ConcatSource(filenames, src)
 	if err != nil {
 		return nil, err
 	}
-	body := api.QueryRequest{Query: src}
+	body := api.QueryRequest{Query: string(sset.Text)}
 	if head != nil {
 		body.Head = *head
 	}
 	req := c.NewRequest(ctx, http.MethodPost, "/query?ctrl=T", body)
 	res, err := c.Do(req)
-	var ae *api.Error
-	if errors.As(err, &ae) {
-		if m, ok := ae.Info.(map[string]interface{}); ok {
-			if offset, ok := m["parse_error_offset"].(float64); ok {
-				return res, parser.NewError(src, srcInfo, int(offset))
-			}
-		}
+	if ae := (*api.Error)(nil); errors.As(err, &ae) && len(ae.CompilationErrors) > 0 {
+		ae.CompilationErrors.SetSourceSet(sset)
+		return nil, ae.CompilationErrors
 	}
 	return res, err
 }
