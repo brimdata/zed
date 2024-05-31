@@ -6,6 +6,12 @@ script: |
 outputs:
   - name: stderr
     data: |
-      summarize: key output field must be static
-      summarize: aggregate output field must be static
-      summarize: aggregate output field must be static
+      output field must be static at line 1, column 12:
+      count() by this[a] := key
+                 ~~~~~~~
+      output field must be static at line 1, column 1:
+      this[a] := count() by key
+      ~~~~~~~
+      aggregate output field must be static at line 1, column 1:
+      this[a] := count()
+      ~~~~~~~

@@ -22,165 +22,151 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-func (a *analyzer) semSeq(seq ast.Seq) (dag.Seq, error) {
+func (a *analyzer) semSeq(seq ast.Seq) dag.Seq {
 	var converted dag.Seq
 	for _, op := range seq {
-		var err error
-		converted, err = a.semOp(op, converted)
-		if err != nil {
-			return nil, err
-		}
+		converted = a.semOp(op, converted)
 	}
-	return converted, nil
+	return converted
 }
 
-func (a *analyzer) semFrom(from *ast.From, seq dag.Seq) (dag.Seq, error) {
+func (a *analyzer) semFrom(from *ast.From, seq dag.Seq) dag.Seq {
 	switch len(from.Trunks) {
 	case 0:
-		return nil, errors.New("internal error: from operator has no paths")
+		a.error(from, errors.New("from operator has no paths"))
+		return append(seq, badOp())
 	case 1:
 		return a.semTrunk(from.Trunks[0], seq)
 	default:
 		paths := make([]dag.Seq, 0, len(from.Trunks))
 		for _, in := range from.Trunks {
-			converted, err := a.semTrunk(in, nil)
-			if err != nil {
-				return nil, err
-			}
-			paths = append(paths, converted)
+			paths = append(paths, a.semTrunk(in, nil))
 		}
 		return append(seq, &dag.Fork{
 			Kind:  "Fork",
 			Paths: paths,
-		}), nil
+		})
 	}
 }
 
-func (a *analyzer) semTrunk(trunk ast.Trunk, out dag.Seq) (dag.Seq, error) {
+func (a *analyzer) semTrunk(trunk ast.Trunk, out dag.Seq) dag.Seq {
 	if pool, ok := trunk.Source.(*ast.Pool); ok && trunk.Seq != nil {
 		switch pool.Spec.Pool.(type) {
 		case *ast.Glob, *ast.Regexp:
-			return nil, errors.New("=> not allowed after pool pattern in 'from' operator")
+			a.error(&trunk, errors.New("=> not allowed after pool pattern in 'from' operator"))
+			return append(out, badOp())
 		}
 	}
-	sources, err := a.semSource(trunk.Source)
-	if err != nil {
-		return nil, err
-	}
-	seq, err := a.semSeq(trunk.Seq)
-	if err != nil {
-		return nil, err
-	}
+	sources := a.semSource(trunk.Source)
+	seq := a.semSeq(trunk.Seq)
 	if len(sources) == 1 {
-		return append(out, append(dag.Seq{sources[0]}, seq...)...), nil
+		return append(out, append(dag.Seq{sources[0]}, seq...)...)
 	}
 	paths := make([]dag.Seq, 0, len(sources))
 	for _, source := range sources {
 		paths = append(paths, append(dag.Seq{source}, seq...))
 	}
-	return append(out, &dag.Fork{Kind: "Fork", Paths: paths}), nil
+	return append(out, &dag.Fork{Kind: "Fork", Paths: paths})
 }
 
 //XXX make sure you can't read files from a lake instance
 
-func (a *analyzer) semOpSource(source ast.Source, out dag.Seq) (dag.Seq, error) {
-	sources, err := a.semSource(source)
-	if err != nil {
-		return nil, err
-	}
+func (a *analyzer) semOpSource(source ast.Source, out dag.Seq) dag.Seq {
+	sources := a.semSource(source)
 	if len(sources) == 1 {
-		return append(sources, out...), nil
+		return append(sources, out...)
 	}
 	var paths []dag.Seq
 	for _, s := range sources {
 		paths = append(paths, dag.Seq{s})
 	}
-	return append(out, &dag.Fork{Kind: "Fork", Paths: paths}), nil
+	return append(out, &dag.Fork{Kind: "Fork", Paths: paths})
 }
 
-func (a *analyzer) semSource(source ast.Source) ([]dag.Op, error) {
-	switch p := source.(type) {
+func (a *analyzer) semSource(source ast.Source) []dag.Op {
+	switch s := source.(type) {
 	case *ast.File:
-		sortKey, err := semSortKey(p.SortKey)
+		sortKey, err := semSortKey(s.SortKey)
 		if err != nil {
-			return nil, err
+			a.error(source, err)
 		}
 		var path string
-		switch p := p.Path.(type) {
+		switch p := s.Path.(type) {
 		case *ast.QuotedString:
 			path = p.Text
 		case *ast.String:
 			// This can be either a reference to a constant or a string.
 			if path, err = a.maybeStringConst(p.Text); err != nil {
-				return nil, fmt.Errorf("invalid file path: %w", err)
+				a.error(s.Path, err)
 			}
 		default:
-			return nil, fmt.Errorf("semantic analyzer: unknown AST file type %T", p)
+			panic(fmt.Errorf("semantic analyzer: unknown AST file type %T", p))
 		}
 		return []dag.Op{
 			&dag.FileScan{
 				Kind:    "FileScan",
 				Path:    path,
-				Format:  p.Format,
+				Format:  s.Format,
 				SortKey: sortKey,
 			},
-		}, nil
+		}
 	case *ast.HTTP:
-		sortKey, err := semSortKey(p.SortKey)
+		sortKey, err := semSortKey(s.SortKey)
 		if err != nil {
-			return nil, err
+			a.error(source, err)
 		}
 		var headers map[string][]string
-		if p.Headers != nil {
-			expr, err := a.semExpr(p.Headers)
-			if err != nil {
-				return nil, err
-			}
+		if s.Headers != nil {
+			expr := a.semExpr(s.Headers)
 			val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, expr)
 			if err != nil {
-				return nil, fmt.Errorf("headers: %w", err)
-			}
-			headers, err = unmarshalHeaders(a.arena, val)
-			if err != nil {
-				return nil, err
+				a.error(s.Headers, err)
+			} else {
+				headers, err = unmarshalHeaders(a.arena, val)
+				if err != nil {
+					a.error(s.Headers, err)
+				}
 			}
 		}
 		var url string
-		switch p := p.URL.(type) {
+		switch p := s.URL.(type) {
 		case *ast.QuotedString:
 			url = p.Text
 		case *ast.String:
 			// This can be either a reference to a constant or a string.
 			if url, err = a.maybeStringConst(p.Text); err != nil {
-				return nil, fmt.Errorf("invalid file path: %w", err)
+				a.error(s.URL, err)
+				// Set url so we don't report an error for this twice.
+				url = "http://error"
 			}
 		default:
-			return nil, fmt.Errorf("semantic analyzer: unsupported AST get type %T", p)
+			panic(fmt.Errorf("semantic analyzer: unsupported AST get type %T", p))
 		}
 		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-			return nil, fmt.Errorf("get: invalid URL %s", url)
+			a.error(s.URL, fmt.Errorf("invalid URL %s", url))
 		}
 		return []dag.Op{
 			&dag.HTTPScan{
 				Kind:    "HTTPScan",
 				URL:     url,
-				Format:  p.Format,
+				Format:  s.Format,
 				SortKey: sortKey,
-				Method:  p.Method,
+				Method:  s.Method,
 				Headers: headers,
-				Body:    p.Body,
+				Body:    s.Body,
 			},
-		}, nil
+		}
 	case *ast.Pool:
 		if !a.source.IsLake() {
-			return nil, errors.New("semantic analyzer: from pool cannot be used without a lake")
+			a.error(s, errors.New("from pool cannot be used without a lake"))
+			return []dag.Op{badOp()}
 		}
-		return a.semPool(p)
+		return a.semPool(s)
 	case *ast.Pass:
 		//XXX just connect parent
-		return []dag.Op{dag.PassOp}, nil
+		return []dag.Op{dag.PassOp}
 	default:
-		return nil, fmt.Errorf("semantic analyzer: unknown AST source type %T", p)
+		panic(fmt.Errorf("semantic analyzer: unknown AST source type %T", s))
 	}
 }
 
@@ -206,6 +192,8 @@ func unmarshalHeaders(arena *zed.Arena, val zed.Value) (map[string][]string, err
 	return headers, nil
 }
 
+// XXX At some point SortKey should be an ast.Node but for now just have this
+// return and error and let the parent log the semantic error.
 func semSortKey(p *ast.SortKey) (order.SortKey, error) {
 	if p == nil || p.Keys == nil {
 		return order.Nil, nil
@@ -225,7 +213,7 @@ func semSortKey(p *ast.SortKey) (order.SortKey, error) {
 	return order.NewSortKey(which, keys), nil
 }
 
-func (a *analyzer) semPool(p *ast.Pool) ([]dag.Op, error) {
+func (a *analyzer) semPool(p *ast.Pool) []dag.Op {
 	var poolNames []string
 	var err error
 	switch specPool := p.Spec.Pool.(type) {
@@ -238,28 +226,26 @@ func (a *analyzer) semPool(p *ast.Pool) ([]dag.Op, error) {
 		poolNames, err = a.matchPools(specPool.Pattern, specPool.Pattern, "regexp")
 	case *ast.String:
 		// This can be either a reference to a constant or a string.
-		name, err := a.maybeStringConst(specPool.Text)
-		if err != nil {
-			return nil, fmt.Errorf("invalid pool name: %w", err)
+		var name string
+		if name, err = a.maybeStringConst(specPool.Text); err == nil {
+			poolNames = []string{name}
 		}
-		poolNames = []string{name}
 	case *ast.QuotedString:
 		poolNames = []string{specPool.Text}
 	default:
-		return nil, fmt.Errorf("semantic analyzer: unknown AST pool type %T", specPool)
+		panic(fmt.Errorf("semantic analyzer: unknown AST pool type %T", specPool))
 	}
 	if err != nil {
-		return nil, err
+		// XXX PoolSpec should have a node position but for now just report
+		// error as entire source.
+		a.error(p.Spec.Pool, err)
+		return []dag.Op{badOp()}
 	}
 	var sources []dag.Op
 	for _, name := range poolNames {
-		source, err := a.semPoolWithName(p, name)
-		if err != nil {
-			return nil, err
-		}
-		sources = append(sources, source)
+		sources = append(sources, a.semPoolWithName(p, name))
 	}
-	return sources, nil
+	return sources
 }
 
 func (a *analyzer) maybeStringConst(name string) (string, error) {
@@ -278,11 +264,12 @@ func (a *analyzer) maybeStringConst(name string) (string, error) {
 	return val.AsString(), nil
 }
 
-func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error) {
+func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) dag.Op {
 	commit := p.Spec.Commit
 	if poolName == "HEAD" {
 		if a.head == nil {
-			return nil, errors.New("cannot scan from unknown HEAD")
+			a.error(p.Spec.Pool, errors.New("cannot scan from unknown HEAD"))
+			return badOp()
 		}
 		poolName = a.head.Pool
 		commit = a.head.Branch
@@ -290,27 +277,30 @@ func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error)
 	if poolName == "" {
 		meta := p.Spec.Meta
 		if meta == "" {
-			return nil, errors.New("pool name missing")
+			a.error(p, errors.New("pool name missing"))
+			return badOp()
 		}
 		if _, ok := dag.LakeMetas[meta]; !ok {
-			return nil, fmt.Errorf("unknown lake metadata type %q in from operator", meta)
+			a.error(p, fmt.Errorf("unknown lake metadata type %q in from operator", meta))
+			return badOp()
 		}
 		return &dag.LakeMetaScan{
 			Kind: "LakeMetaScan",
 			Meta: p.Spec.Meta,
-		}, nil
+		}
 	}
 	poolID, err := a.source.PoolID(a.ctx, poolName)
 	if err != nil {
-		return nil, err
+		a.error(p.Spec.Pool, err)
+		return badOp()
 	}
 	var commitID ksuid.KSUID
 	if commit != "" {
-		commitID, err = lakeparse.ParseID(commit)
-		if err != nil {
+		if commitID, err = lakeparse.ParseID(commit); err != nil {
 			commitID, err = a.source.CommitObject(a.ctx, poolID, commit)
 			if err != nil {
-				return nil, err
+				a.error(p, err)
+				return badOp()
 			}
 		}
 	}
@@ -319,7 +309,8 @@ func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error)
 			if commitID == ksuid.Nil {
 				commitID, err = a.source.CommitObject(a.ctx, poolID, "main")
 				if err != nil {
-					return nil, err
+					a.error(p, err)
+					return badOp()
 				}
 			}
 			return &dag.CommitMetaScan{
@@ -328,23 +319,25 @@ func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error)
 				Pool:   poolID,
 				Commit: commitID,
 				Tap:    p.Spec.Tap,
-			}, nil
+			}
 		}
 		if _, ok := dag.PoolMetas[meta]; ok {
 			return &dag.PoolMetaScan{
 				Kind: "PoolMetaScan",
 				Meta: meta,
 				ID:   poolID,
-			}, nil
+			}
 		}
-		return nil, fmt.Errorf("unknown metadata type %q in from operator", meta)
+		a.error(p, fmt.Errorf("unknown metadata type %q", meta))
+		return badOp()
 	}
 	if commitID == ksuid.Nil {
 		// This trick here allows us to default to the main branch when
 		// there is a "from pool" operator with no meta query or commit object.
 		commitID, err = a.source.CommitObject(a.ctx, poolID, "main")
 		if err != nil {
-			return nil, err
+			a.error(p, err)
+			return badOp()
 		}
 	}
 	if p.Delete {
@@ -352,13 +345,13 @@ func (a *analyzer) semPoolWithName(p *ast.Pool, poolName string) (dag.Op, error)
 			Kind:   "DeleteScan",
 			ID:     poolID,
 			Commit: commitID,
-		}, nil
+		}
 	}
 	return &dag.PoolScan{
 		Kind:   "PoolScan",
 		ID:     poolID,
 		Commit: commitID,
-	}, nil
+	}
 }
 
 func (a *analyzer) matchPools(pattern, origPattern, patternDesc string) ([]string, error) {
@@ -382,23 +375,16 @@ func (a *analyzer) matchPools(pattern, origPattern, patternDesc string) ([]strin
 	return matches, nil
 }
 
-func (a *analyzer) semScope(op *ast.Scope) (*dag.Scope, error) {
+func (a *analyzer) semScope(op *ast.Scope) *dag.Scope {
 	a.scope = NewScope(a.scope)
 	defer a.exitScope()
-	consts, funcs, err := a.semDecls(op.Decls)
-	if err != nil {
-		return nil, err
-	}
-	body, err := a.semSeq(op.Body)
-	if err != nil {
-		return nil, err
-	}
+	consts, funcs := a.semDecls(op.Decls)
 	return &dag.Scope{
 		Kind:   "Scope",
 		Consts: consts,
 		Funcs:  funcs,
-		Body:   body,
-	}, nil
+		Body:   a.semSeq(op.Body),
+	}
 }
 
 // semOp does a semantic analysis on a flowgraph to an
@@ -406,32 +392,22 @@ func (a *analyzer) semScope(op *ast.Scope) (*dag.Scope, error) {
 // object.  Currently, it only replaces the group-by duration with
 // a bucket call on the ts and replaces FunctionCalls in op context
 // with either a group-by or filter op based on the function's name.
-func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
+func (a *analyzer) semOp(o ast.Op, seq dag.Seq) dag.Seq {
 	switch o := o.(type) {
 	case *ast.From:
 		return a.semFrom(o, seq)
 	case *ast.Pool, *ast.File, *ast.HTTP:
 		return a.semOpSource(o.(ast.Source), seq)
 	case *ast.Summarize:
-		keys, err := a.semAssignments(o.Keys)
-		if err != nil {
-			return nil, err
-		}
-		if assignmentHasDynamicLHS(keys) {
-			return nil, errors.New("summarize: key output field must be static")
-		}
+		keys := a.semAssignments(o.Keys)
+		a.checkStaticAssignment(o.Keys, keys)
 		if len(keys) == 0 && len(o.Aggs) == 1 {
 			if seq := a.singletonAgg(o.Aggs[0], seq); seq != nil {
-				return seq, nil
+				return seq
 			}
 		}
-		aggs, err := a.semAssignments(o.Aggs)
-		if err != nil {
-			return nil, err
-		}
-		if assignmentHasDynamicLHS(aggs) {
-			return nil, errors.New("summarize: aggregate output field must be static")
-		}
+		aggs := a.semAssignments(o.Aggs)
+		a.checkStaticAssignment(o.Aggs, aggs)
 		// Note: InputSortDir is copied in here but it's not meaningful
 		// coming from a parser AST, only from a worker using the kernel DSL,
 		// which is another reason why we need separate parser and kernel ASTs.
@@ -446,44 +422,28 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Limit: o.Limit,
 			Keys:  keys,
 			Aggs:  aggs,
-		}), nil
+		})
 	case *ast.Parallel:
 		var paths []dag.Seq
 		for _, seq := range o.Paths {
-			converted, err := a.semSeq(seq)
-			if err != nil {
-				return nil, err
-			}
-			paths = append(paths, converted)
+			paths = append(paths, a.semSeq(seq))
 		}
 		return append(seq, &dag.Fork{
 			Kind:  "Fork",
 			Paths: paths,
-		}), nil
+		})
 	case *ast.Scope:
-		op, err := a.semScope(o)
-		if err != nil {
-			return nil, err
-		}
-		return append(seq, op), nil
+		return append(seq, a.semScope(o))
 	case *ast.Switch:
 		var expr dag.Expr
 		if o.Expr != nil {
-			var err error
-			expr, err = a.semExpr(o.Expr)
-			if err != nil {
-				return nil, err
-			}
+			expr = a.semExpr(o.Expr)
 		}
 		var cases []dag.Case
 		for _, c := range o.Cases {
 			var e dag.Expr
 			if c.Expr != nil {
-				var err error
-				e, err = a.semExpr(c.Expr)
-				if err != nil {
-					return nil, err
-				}
+				e = a.semExpr(c.Expr)
 			} else if o.Expr == nil {
 				// c.Expr == nil indicates the default case,
 				// whose handling depends on p.Expr.
@@ -492,24 +452,18 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 					Value: "true",
 				}
 			}
-			path, err := a.semSeq(c.Path)
-			if err != nil {
-				return nil, err
-			}
+			path := a.semSeq(c.Path)
 			cases = append(cases, dag.Case{Expr: e, Path: path})
 		}
 		return append(seq, &dag.Switch{
 			Kind:  "Switch",
 			Expr:  expr,
 			Cases: cases,
-		}), nil
+		})
 	case *ast.Shape:
-		return append(seq, &dag.Shape{Kind: "Shape"}), nil
+		return append(seq, &dag.Shape{Kind: "Shape"})
 	case *ast.Cut:
-		assignments, err := a.semAssignments(o.Args)
-		if err != nil {
-			return nil, err
-		}
+		assignments := a.semAssignments(o.Args)
 		// Collect static paths so we can check on what is available.
 		var fields field.List
 		for _, a := range assignments {
@@ -517,116 +471,108 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 				fields = append(fields, this.Path)
 			}
 		}
-		if _, err = zed.NewRecordBuilder(a.zctx, fields); err != nil {
-			return nil, fmt.Errorf("cut: %w", err)
+		if _, err := zed.NewRecordBuilder(a.zctx, fields); err != nil {
+			a.error(o.Args, err)
+			return append(seq, badOp())
 		}
 		return append(seq, &dag.Cut{
 			Kind: "Cut",
 			Args: assignments,
-		}), nil
+		})
 	case *ast.Drop:
-		args, err := a.semFields(o.Args)
-		if err != nil {
-			return nil, fmt.Errorf("drop: %w", err)
-		}
+		args := a.semFields(o.Args)
 		if len(args) == 0 {
-			return nil, errors.New("drop: no fields given")
+			a.error(o, errors.New("no fields given"))
 		}
 		return append(seq, &dag.Drop{
 			Kind: "Drop",
 			Args: args,
-		}), nil
+		})
 	case *ast.Sort:
-		exprs, err := a.semExprs(o.Args)
-		if err != nil {
-			return nil, fmt.Errorf("sort: %w", err)
-		}
+		exprs := a.semExprs(o.Args)
 		return append(seq, &dag.Sort{
 			Kind:       "Sort",
 			Args:       exprs,
 			Order:      o.Order,
 			NullsFirst: o.NullsFirst,
-		}), nil
+		})
 	case *ast.Head:
 		val := zed.NewInt64(1)
 		if o.Count != nil {
-			expr, err := a.semExpr(o.Count)
-			if err != nil {
-				return nil, fmt.Errorf("head: %w", err)
-			}
+			expr := a.semExpr(o.Count)
+			var err error
 			if val, err = kernel.EvalAtCompileTime(a.zctx, a.arena, expr); err != nil {
-				return nil, fmt.Errorf("head: %w", err)
+				a.error(o.Count, err)
+				return append(seq, badOp())
+			}
+			if !zed.IsInteger(val.Type().ID()) {
+				a.error(o.Count, fmt.Errorf("expression value must be an integer value: %s", zson.FormatValue(val)))
+				return append(seq, badOp())
 			}
 		}
 		if val.AsInt() < 1 {
-			return nil, fmt.Errorf("head: expression value is not a positive integer: %s", zson.FormatValue(val))
+			a.error(o.Count, errors.New("expression value must be a positive integer"))
 		}
 		return append(seq, &dag.Head{
 			Kind:  "Head",
 			Count: int(val.AsInt()),
-		}), nil
+		})
 	case *ast.Tail:
 		val := zed.NewInt64(1)
 		if o.Count != nil {
-			expr, err := a.semExpr(o.Count)
-			if err != nil {
-				return nil, fmt.Errorf("tail: %w", err)
-			}
+			expr := a.semExpr(o.Count)
+			var err error
 			if val, err = kernel.EvalAtCompileTime(a.zctx, a.arena, expr); err != nil {
-				return nil, fmt.Errorf("tail: %w", err)
+				a.error(o.Count, err)
+				return append(seq, badOp())
+			}
+			if !zed.IsInteger(val.Type().ID()) {
+				a.error(o.Count, fmt.Errorf("expression value must be an integer value: %s", zson.FormatValue(val)))
+				return append(seq, badOp())
 			}
 		}
 		if val.AsInt() < 1 {
-			return nil, fmt.Errorf("tail: expression value is not a positive integer: %s", zson.FormatValue(val))
+			a.error(o.Count, errors.New("expression value must be a positive integer"))
 		}
 		return append(seq, &dag.Tail{
 			Kind:  "Tail",
 			Count: int(val.AsInt()),
-		}), nil
+		})
 	case *ast.Uniq:
 		return append(seq, &dag.Uniq{
 			Kind:  "Uniq",
 			Cflag: o.Cflag,
-		}), nil
+		})
 	case *ast.Pass:
-		return append(seq, dag.PassOp), nil
+		return append(seq, dag.PassOp)
 	case *ast.OpExpr:
 		return a.semOpExpr(o.Expr, seq)
 	case *ast.Search:
-		e, err := a.semExpr(o.Expr)
-		if err != nil {
-			return nil, err
-		}
-		return append(seq, dag.NewFilter(e)), nil
+		e := a.semExpr(o.Expr)
+		return append(seq, dag.NewFilter(e))
 	case *ast.Where:
-		e, err := a.semExpr(o.Expr)
-		if err != nil {
-			return nil, err
-		}
-		return append(seq, dag.NewFilter(e)), nil
+		e := a.semExpr(o.Expr)
+		return append(seq, dag.NewFilter(e))
 	case *ast.Top:
-		args, err := a.semExprs(o.Args)
-		if err != nil {
-			return nil, fmt.Errorf("top: %w", err)
-		}
+		args := a.semExprs(o.Args)
 		if len(args) == 0 {
-			return nil, errors.New("top: no arguments given")
+			a.error(o, errors.New("no arguments given"))
 		}
 		limit := 1
 		if o.Limit != nil {
-			l, err := a.semExpr(o.Limit)
-			if err != nil {
-				return nil, err
-			}
+			l := a.semExpr(o.Limit)
 			val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, l)
 			if err != nil {
-				return nil, err
+				a.error(o.Limit, err)
+				return append(seq, badOp())
 			}
 			if !zed.IsSigned(val.Type().ID()) {
-				return nil, errors.New("top: limit argument must be an integer")
+				a.error(o.Limit, errors.New("limit argument must be an integer"))
+				return append(seq, badOp())
 			}
 			if limit = int(val.Int()); limit < 1 {
-				return nil, errors.New("top: limit argument value must be greater than 0")
+				a.error(o.Limit, errors.New("limit argument value must be greater than 0"))
+				return append(seq, badOp())
 			}
 		}
 		return append(seq, &dag.Top{
@@ -634,12 +580,9 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Args:  args,
 			Flush: o.Flush,
 			Limit: limit,
-		}), nil
+		})
 	case *ast.Put:
-		assignments, err := a.semAssignments(o.Args)
-		if err != nil {
-			return nil, err
-		}
+		assignments := a.semAssignments(o.Args)
 		// We can do collision checking on static paths, so check what we can.
 		var fields field.List
 		for _, a := range assignments {
@@ -648,27 +591,20 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			}
 		}
 		if err := expr.CheckPutFields(fields); err != nil {
-			return nil, fmt.Errorf("put: %w", err)
+			a.error(o, err)
 		}
 		return append(seq, &dag.Put{
 			Kind: "Put",
 			Args: assignments,
-		}), nil
+		})
 	case *ast.OpAssignment:
-		converted, err := a.semOpAssignment(o)
-		if err != nil {
-			return nil, err
-		}
-		return append(seq, converted), nil
+		return append(seq, a.semOpAssignment(o))
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range o.Args {
-			assign, err := a.semAssignment(fa)
-			if err != nil {
-				return nil, fmt.Errorf("rename: %w", err)
-			}
+			assign := a.semAssignment(fa)
 			if !isLval(assign.RHS) {
-				return nil, fmt.Errorf("rename: illegal right-hand side of assignment")
+				a.error(fa.RHS, fmt.Errorf("illegal right-hand side of assignment"))
 			}
 			// If both paths are static validate them. Otherwise this will be
 			// done at runtime.
@@ -676,7 +612,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			rhs, rhsOk := assign.RHS.(*dag.This)
 			if rhsOk && lhsOk {
 				if err := expr.CheckRenameField(lhs.Path, rhs.Path); err != nil {
-					return nil, fmt.Errorf("rename: %w", err)
+					a.error(&fa, err)
 				}
 			}
 			assignments = append(assignments, assign)
@@ -684,27 +620,15 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		return append(seq, &dag.Rename{
 			Kind: "Rename",
 			Args: assignments,
-		}), nil
+		})
 	case *ast.Fuse:
-		return append(seq, &dag.Fuse{Kind: "Fuse"}), nil
+		return append(seq, &dag.Fuse{Kind: "Fuse"})
 	case *ast.Join:
-		rightInput, err := a.semSeq(o.RightInput)
-		if err != nil {
-			return nil, err
-		}
-		leftKey, err := a.semExpr(o.LeftKey)
-		if err != nil {
-			return nil, err
-		}
+		rightInput := a.semSeq(o.RightInput)
+		leftKey := a.semExpr(o.LeftKey)
 		rightKey := leftKey
 		if o.RightKey != nil {
-			if rightKey, err = a.semExpr(o.RightKey); err != nil {
-				return nil, err
-			}
-		}
-		assignments, err := a.semAssignments(o.Args)
-		if err != nil {
-			return nil, err
+			rightKey = a.semExpr(o.RightKey)
 		}
 		join := &dag.Join{
 			Kind:     "Join",
@@ -713,7 +637,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			LeftKey:  leftKey,
 			RightDir: order.Unknown,
 			RightKey: rightKey,
-			Args:     assignments,
+			Args:     a.semAssignments(o.Args),
 		}
 		if rightInput != nil {
 			par := &dag.Fork{
@@ -722,29 +646,26 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			}
 			seq = append(seq, par)
 		}
-		return append(seq, join), nil
+		return append(seq, join)
 	case *ast.Explode:
 		typ, err := a.semType(o.Type)
 		if err != nil {
-			return nil, err
+			a.error(o.Type, err)
+			typ = "<bad type expr>"
 		}
-		args, err := a.semExprs(o.Args)
-		if err != nil {
-			return nil, err
-		}
+		args := a.semExprs(o.Args)
 		var as string
 		if o.As == nil {
 			as = "value"
 		} else {
-			e, err := a.semExpr(o.As)
-			if err != nil {
-				return nil, err
-			}
+			e := a.semExpr(o.As)
 			this, ok := e.(*dag.This)
 			if !ok {
-				return nil, errors.New("explode: as clause must be a field reference")
+				a.error(o.As, errors.New("as clause must be a field reference"))
+				return append(seq, badOp())
 			} else if len(this.Path) != 1 {
-				return nil, errors.New("explode: field must be a top-level field")
+				a.error(o.As, errors.New("field must be a top-level field"))
+				return append(seq, badOp())
 			}
 			as = this.Path[0]
 		}
@@ -753,51 +674,35 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Args: args,
 			Type: typ,
 			As:   as,
-		}), nil
+		})
 	case *ast.Merge:
-		expr, err := a.semExpr(o.Expr)
-		if err != nil {
-			return nil, fmt.Errorf("merge: %w", err)
-		}
 		return append(seq, &dag.Merge{
 			Kind:  "Merge",
-			Expr:  expr,
+			Expr:  a.semExpr(o.Expr),
 			Order: order.Asc, //XXX
-		}), nil
+		})
 	case *ast.Over:
 		if len(o.Locals) != 0 && o.Body == nil {
-			return nil, errors.New("over operator: cannot have a with clause without a lateral query")
+			a.error(o, errors.New("cannot have a with clause without a lateral query"))
 		}
 		a.enterScope()
 		defer a.exitScope()
-		locals, err := a.semVars(o.Locals)
-		if err != nil {
-			return nil, err
-		}
-		exprs, err := a.semExprs(o.Exprs)
-		if err != nil {
-			return nil, err
-		}
+		locals := a.semVars(o.Locals)
+		exprs := a.semExprs(o.Exprs)
 		var body dag.Seq
 		if o.Body != nil {
-			body, err = a.semSeq(o.Body)
-			if err != nil {
-				return nil, err
-			}
+			body = a.semSeq(o.Body)
 		}
 		return append(seq, &dag.Over{
 			Kind:  "Over",
 			Defs:  locals,
 			Exprs: exprs,
 			Body:  body,
-		}), nil
+		})
 	case *ast.Sample:
 		e := dag.Expr(&dag.This{Kind: "This"})
 		if o.Expr != nil {
-			var err error
-			if e, err = a.semExpr(o.Expr); err != nil {
-				return nil, err
-			}
+			e = a.semExpr(o.Expr)
 		}
 		seq = append(seq, &dag.Summarize{
 			Kind: "Summarize",
@@ -819,12 +724,9 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 		return append(seq, &dag.Yield{
 			Kind:  "Yield",
 			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{"sample"}}},
-		}), nil
+		})
 	case *ast.Assert:
-		cond, err := a.semExpr(o.Expr)
-		if err != nil {
-			return nil, err
-		}
+		cond := a.semExpr(o.Expr)
 		// 'assert EXPR' is equivalent to
 		// 'yield EXPR ? this : error({message: "assertion failed", "expr": EXPR_text, "on": this}'
 		// where EXPR_text is the literal text of EXPR.
@@ -861,22 +763,20 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 					},
 				},
 			},
-		}), nil
+		})
 	case *ast.Yield:
-		exprs, err := a.semExprs(o.Exprs)
-		if err != nil {
-			return nil, err
-		}
+		exprs := a.semExprs(o.Exprs)
 		return append(seq, &dag.Yield{
 			Kind:  "Yield",
 			Exprs: exprs,
-		}), nil
+		})
 	case *ast.Load:
 		poolID, err := lakeparse.ParseID(o.Pool)
 		if err != nil {
 			poolID, err = a.source.PoolID(a.ctx, o.Pool)
 			if err != nil {
-				return nil, err
+				a.error(o, err)
+				return append(seq, badOp())
 			}
 		}
 		return append(seq, &dag.Load{
@@ -886,19 +786,16 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) (dag.Seq, error) {
 			Author:  o.Author,
 			Message: o.Message,
 			Meta:    o.Meta,
-		}), nil
+		})
 	}
-	return nil, fmt.Errorf("semantic transform: unknown AST operator type: %T", o)
+	panic(fmt.Errorf("semantic transform: unknown AST operator type: %T", o))
 }
 
 func (a *analyzer) singletonAgg(agg ast.Assignment, seq dag.Seq) dag.Seq {
 	if agg.LHS != nil {
 		return nil
 	}
-	out, err := a.semAssignment(agg)
-	if err != nil {
-		return nil
-	}
+	out := a.semAssignment(agg)
 	this, ok := out.LHS.(*dag.This)
 	if !ok || len(this.Path) != 1 {
 		return nil
@@ -915,70 +812,55 @@ func (a *analyzer) singletonAgg(agg ast.Assignment, seq dag.Seq) dag.Seq {
 	)
 }
 
-func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func, error) {
+func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func) {
 	var consts []dag.Def
 	var fnDecls []*ast.FuncDecl
 	for _, d := range decls {
 		switch d := d.(type) {
 		case *ast.ConstDecl:
-			c, err := a.semConstDecl(d)
-			if err != nil {
-				return nil, nil, err
-			}
-			consts = append(consts, c)
+			consts = append(consts, a.semConstDecl(d))
 		case *ast.FuncDecl:
 			fnDecls = append(fnDecls, d)
 		case *ast.OpDecl:
-			if err := a.semOpDecl(d); err != nil {
-				return nil, nil, err
-			}
+			a.semOpDecl(d)
 		case *ast.TypeDecl:
-			c, err := a.semTypeDecl(d)
-			if err != nil {
-				return nil, nil, err
-			}
-			consts = append(consts, c)
+			consts = append(consts, a.semTypeDecl(d))
 		default:
-			return nil, nil, fmt.Errorf("invalid declaration type %T", d)
+			panic(fmt.Errorf("invalid declaration type %T", d))
 		}
 	}
-	funcs, err := a.semFuncDecls(fnDecls)
-	if err != nil {
-		return nil, nil, err
-	}
-	return consts, funcs, nil
+	funcs := a.semFuncDecls(fnDecls)
+	return consts, funcs
 }
 
-func (a *analyzer) semConstDecl(c *ast.ConstDecl) (dag.Def, error) {
-	e, err := a.semExpr(c.Expr)
-	if err != nil {
-		return dag.Def{}, err
-	}
+func (a *analyzer) semConstDecl(c *ast.ConstDecl) dag.Def {
+	e := a.semExpr(c.Expr)
 	if err := a.scope.DefineConst(a.zctx, a.arena, c.Name, e); err != nil {
-		return dag.Def{}, err
+		a.error(c, err)
 	}
 	return dag.Def{
 		Name: c.Name,
 		Expr: e,
-	}, nil
+	}
 }
 
-func (a *analyzer) semTypeDecl(d *ast.TypeDecl) (dag.Def, error) {
+func (a *analyzer) semTypeDecl(d *ast.TypeDecl) dag.Def {
 	typ, err := a.semType(d.Type)
 	if err != nil {
-		return dag.Def{}, err
+		a.error(d.Type, err)
+		typ = "null"
 	}
 	e := &dag.Literal{
 		Kind:  "Literal",
 		Value: fmt.Sprintf("<%s=%s>", zson.QuotedName(d.Name), typ),
 	}
 	if err := a.scope.DefineConst(a.zctx, a.arena, d.Name, e); err != nil {
-		return dag.Def{}, err
+		a.error(d, err)
 	}
-	return dag.Def{Name: d.Name, Expr: e}, nil
+	return dag.Def{Name: d.Name, Expr: e}
 }
 
-func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) ([]*dag.Func, error) {
+func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) []*dag.Func {
 	funcs := make([]*dag.Func, 0, len(decls))
 	for _, d := range decls {
 		f := &dag.Func{
@@ -987,118 +869,117 @@ func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) ([]*dag.Func, error) {
 			Params: slices.Clone(d.Params),
 		}
 		if err := a.scope.DefineAs(f.Name, f); err != nil {
-			return nil, err
+			a.error(d, err)
 		}
 		funcs = append(funcs, f)
 	}
 	for i, d := range decls {
-		var err error
-		if funcs[i].Expr, err = a.semFuncBody(d.Params, d.Expr); err != nil {
-			return nil, err
-		}
+		funcs[i].Expr = a.semFuncBody(d, d.Params, d.Expr)
 	}
-	return funcs, nil
+	return funcs
 }
 
-func (a *analyzer) semFuncBody(params []string, body ast.Expr) (dag.Expr, error) {
+func (a *analyzer) semFuncBody(d *ast.FuncDecl, params []string, body ast.Expr) dag.Expr {
 	a.enterScope()
 	defer a.exitScope()
 	for _, p := range params {
 		if err := a.scope.DefineVar(p); err != nil {
-			return nil, err
+			// XXX Each param should be a node but now just report the error
+			// as the entire declaration.
+			a.error(d, err)
 		}
 	}
 	return a.semExpr(body)
 }
 
-func (a *analyzer) semOpDecl(d *ast.OpDecl) error {
+func (a *analyzer) semOpDecl(d *ast.OpDecl) {
 	m := make(map[string]bool)
 	for _, p := range d.Params {
 		if m[p] {
-			return fmt.Errorf("%s: duplicate parameter %q", d.Name, p)
+			a.error(d, fmt.Errorf("duplicate parameter %q", p))
+			a.scope.DefineAs(d.Name, &opDecl{bad: true})
+			return
 		}
 		m[p] = true
 	}
-	return a.scope.DefineAs(d.Name, &opDecl{ast: d, scope: a.scope})
+	if err := a.scope.DefineAs(d.Name, &opDecl{ast: d, scope: a.scope}); err != nil {
+		a.error(d, err)
+	}
 }
 
-func (a *analyzer) semVars(defs []ast.Def) ([]dag.Def, error) {
+func (a *analyzer) semVars(defs []ast.Def) []dag.Def {
 	var locals []dag.Def
 	for _, def := range defs {
-		e, err := a.semExpr(def.Expr)
-		if err != nil {
-			return nil, err
-		}
-		name := def.Name
-		if err := a.scope.DefineVar(name); err != nil {
-			return nil, err
+		e := a.semExpr(def.Expr)
+		if err := a.scope.DefineVar(def.Name); err != nil {
+			a.error(def, err)
+			continue
 		}
 		locals = append(locals, dag.Def{
-			Name: name,
+			Name: def.Name,
 			Expr: e,
 		})
 	}
-	return locals, nil
+	return locals
 }
 
-func (a *analyzer) semOpAssignment(p *ast.OpAssignment) (dag.Op, error) {
+func (a *analyzer) semOpAssignment(p *ast.OpAssignment) dag.Op {
 	var aggs, puts []dag.Assignment
-	for _, assign := range p.Assignments {
+	for _, astAssign := range p.Assignments {
 		// Parition assignments into agg vs. puts.
-		a, err := a.semAssignment(assign)
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := a.RHS.(*dag.Agg); ok {
-			if _, ok := a.LHS.(*dag.This); !ok {
-				return nil, errors.New("summarize: aggregate output field must be static")
+		assign := a.semAssignment(astAssign)
+		if _, ok := assign.RHS.(*dag.Agg); ok {
+			if _, ok := assign.LHS.(*dag.This); !ok {
+				a.error(astAssign.LHS, errors.New("aggregate output field must be static"))
 			}
-			aggs = append(aggs, a)
+			aggs = append(aggs, assign)
 		} else {
-			puts = append(puts, a)
+			puts = append(puts, assign)
 		}
 	}
 	if len(puts) > 0 && len(aggs) > 0 {
-		return nil, errors.New("mix of aggregations and non-aggregations in assignment list")
+		a.error(p, errors.New("mix of aggregations and non-aggregations in assignment list"))
+		return badOp()
 	}
 	if len(puts) > 0 {
 		return &dag.Put{
 			Kind: "Put",
 			Args: puts,
-		}, nil
+		}
 	}
 	return &dag.Summarize{
 		Kind: "Summarize",
 		Aggs: aggs,
-	}, nil
+	}
 }
 
-func assignmentHasDynamicLHS(assignments []dag.Assignment) bool {
-	for _, a := range assignments {
-		if _, ok := a.LHS.(*dag.This); !ok {
+func (a *analyzer) checkStaticAssignment(asts []ast.Assignment, assignments []dag.Assignment) bool {
+	for k, assign := range assignments {
+		if _, ok := assign.LHS.(*dag.BadExpr); ok {
+			continue
+		}
+		if _, ok := assign.LHS.(*dag.This); !ok {
+			a.error(asts[k].LHS, errors.New("output field must be static"))
 			return true
 		}
 	}
 	return false
 }
 
-func (a *analyzer) semOpExpr(e ast.Expr, seq dag.Seq) (dag.Seq, error) {
+func (a *analyzer) semOpExpr(e ast.Expr, seq dag.Seq) dag.Seq {
 	if call, ok := e.(*ast.Call); ok {
-		if seq, err := a.semCallOp(call, seq); seq != nil || err != nil {
-			return seq, err
+		if seq := a.semCallOp(call, seq); seq != nil {
+			return seq
 		}
 	}
-	out, err := a.semExpr(e)
-	if err != nil {
-		return nil, err
-	}
+	out := a.semExpr(e)
 	if a.isBool(out) {
-		return append(seq, dag.NewFilter(out)), nil
+		return append(seq, dag.NewFilter(out))
 	}
 	return append(seq, &dag.Yield{
 		Kind:  "Yield",
 		Exprs: []dag.Expr{out},
-	}), nil
+	})
 }
 
 func (a *analyzer) isBool(e dag.Expr) bool {
@@ -1138,13 +1019,11 @@ func (a *analyzer) isBool(e dag.Expr) bool {
 	}
 }
 
-func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
-	if body, err := a.maybeConvertUserOp(call, seq); err != nil {
-		return nil, err
-	} else if body != nil {
-		return append(seq, body...), nil
+func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) dag.Seq {
+	if body := a.maybeConvertUserOp(call); body != nil {
+		return append(seq, body...)
 	}
-	if agg, err := a.maybeConvertAgg(call); err == nil && agg != nil {
+	if agg := a.maybeConvertAgg(call); agg != nil {
 		summarize := &dag.Summarize{
 			Kind: "Summarize",
 			Aggs: []dag.Assignment{
@@ -1159,49 +1038,54 @@ func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
 			Kind:  "Yield",
 			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{call.Name}}},
 		}
-		return append(append(seq, summarize), yield), nil
+		return append(append(seq, summarize), yield)
 	}
 	if !function.HasBoolResult(call.Name) {
-		return nil, nil
+		return nil
 	}
-	c, err := a.semCall(call)
-	if err != nil {
-		return nil, err
-	}
-	return append(seq, dag.NewFilter(c)), nil
+	c := a.semCall(call)
+	return append(seq, dag.NewFilter(c))
 }
 
 // maybeConvertUserOp returns nil, nil if the call is determined to not be a
 // UserOp, otherwise it returns the compiled op or the encountered error.
-func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Seq, error) {
+func (a *analyzer) maybeConvertUserOp(call *ast.Call) dag.Seq {
 	decl, err := a.scope.lookupOp(call.Name)
-	if decl == nil || err != nil {
-		return nil, nil
+	if decl == nil {
+		return nil
+	}
+	if err != nil {
+		a.error(call, err)
+		return dag.Seq{badOp()}
+	}
+	if decl.bad {
+		return dag.Seq{badOp()}
 	}
 	if call.Where != nil {
-		return nil, fmt.Errorf("%s(): user defined operators cannot have a where clause", call.Name)
+		a.error(call, errors.New("user defined operators cannot have a where clause"))
+		return dag.Seq{badOp()}
 	}
 	params, args := decl.ast.Params, call.Args
 	if len(params) != len(args) {
-		return nil, fmt.Errorf("%s(): %d arg%s provided when operator expects %d arg%s", call.Name, len(params), plural.Slice(params, "s"), len(args), plural.Slice(args, "s"))
+		a.error(call, fmt.Errorf("%d arg%s provided when operator expects %d arg%s", len(params), plural.Slice(params, "s"), len(args), plural.Slice(args, "s")))
+		return dag.Seq{badOp()}
 	}
 	exprs := make([]dag.Expr, len(decl.ast.Params))
 	for i, arg := range args {
-		e, err := a.semExpr(arg)
-		if err != nil {
-			return nil, err
-		}
+		e := a.semExpr(arg)
 		// Transform non-path arguments into literals.
 		if _, ok := e.(*dag.This); !ok {
 			val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, e)
 			if err != nil {
-				return nil, err
+				a.error(arg, err)
+				exprs[i] = badExpr()
+				continue
 			}
 			if val.IsError() {
 				if val.IsMissing() {
-					return nil, fmt.Errorf("%q: non-path arguments cannot have variable dependency", decl.ast.Params[i])
+					a.error(arg, errors.New("non-path arguments cannot have variable dependency"))
 				} else {
-					return nil, fmt.Errorf("%q: %q", decl.ast.Params[i], string(val.Bytes()))
+					a.error(arg, errors.New(string(val.Bytes())))
 				}
 			}
 			e = &dag.Literal{
@@ -1212,7 +1096,8 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Seq, err
 		exprs[i] = e
 	}
 	if slices.Contains(a.opStack, decl.ast) {
-		return nil, opCycleError(append(a.opStack, decl.ast))
+		a.error(call, opCycleError(append(a.opStack, decl.ast)))
+		return dag.Seq{badOp()}
 	}
 	a.opStack = append(a.opStack, decl.ast)
 	oldscope := a.scope
@@ -1223,7 +1108,8 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call, seq dag.Seq) (dag.Seq, err
 	}()
 	for i, p := range params {
 		if err := a.scope.DefineAs(p, exprs[i]); err != nil {
-			return nil, err
+			a.error(call, err)
+			return dag.Seq{badOp()}
 		}
 	}
 	return a.semSeq(decl.ast.Body)

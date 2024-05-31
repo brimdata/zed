@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
@@ -113,11 +114,11 @@ func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string
 }
 
 func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
-	flowgraph, err := l.compiler.Parse(src, srcfiles...)
+	flowgraph, sset, err := parser.ParseZed(srcfiles, src)
 	if err != nil {
 		return nil, err
 	}
-	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, head)
+	q, err := runtime.CompileLakeQuery(ctx, zed.NewContext(), l.compiler, flowgraph, sset, head)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +174,7 @@ func (l *local) Delete(ctx context.Context, poolID ksuid.KSUID, branchName strin
 }
 
 func (l *local) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName, src string, commit api.CommitMessage) (ksuid.KSUID, error) {
-	op, err := l.compiler.Parse(src)
+	op, sset, err := l.compiler.Parse(src)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -181,7 +182,11 @@ func (l *local) DeleteWhere(ctx context.Context, poolID ksuid.KSUID, branchName,
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.DeleteWhere(ctx, l.compiler, op, commit.Author, commit.Body, commit.Meta)
+	commitID, err := branch.DeleteWhere(ctx, l.compiler, op, commit.Author, commit.Body, commit.Meta)
+	if list, ok := err.(parser.ErrorList); ok {
+		list.SetSourceSet(sset)
+	}
+	return commitID, err
 }
 
 func (l *local) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {

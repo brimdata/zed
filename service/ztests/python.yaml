@@ -161,4 +161,4 @@ outputs:
       ===
       RequestError('test: pool already exists')
       ===
-      RequestError('nosuchpool: pool not found')
+      RequestError('nosuchpool: pool not found at line 1, column 6:\nfrom nosuchpool\n     ~~~~~~~~~~')

@@ -32,7 +32,7 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.Var(&f.Includes, "I", "source file containing Zed query text (may be used multiple times)")
 }
 
-func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, error) {
+func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, *parser.SourceSet, bool, error) {
 	var src string
 	if len(paths) != 0 && !cli.FileExists(paths[0]) && !isURLWithKnownScheme(paths[0], "http", "https", "s3") {
 		src = paths[0]
@@ -41,25 +41,25 @@ func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, bool, 
 			// Consider a lone argument to be a query if it compiles
 			// and appears to start with a from or yield operator.
 			// Otherwise, consider it a file.
-			query, err := compiler.Parse(src, f.Includes...)
+			query, sset, err := compiler.Parse(src, f.Includes...)
 			if err == nil {
 				if s, err := semantic.Analyze(context.Background(), query, data.NewSource(storage.NewLocalEngine(), nil), nil); err == nil {
 					if semantic.HasSource(s) {
-						return nil, query, false, nil
+						return nil, query, sset, false, nil
 					}
 					if semantic.StartsWithYield(s) {
-						return nil, query, true, nil
+						return nil, query, sset, true, nil
 					}
 				}
 			}
-			return nil, nil, false, singleArgError(src, err)
+			return nil, nil, nil, false, singleArgError(src, err)
 		}
 	}
-	query, err := compiler.Parse(src, f.Includes...)
+	query, sset, err := parser.ParseZed(f.Includes, src)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, nil, nil, false, err
 	}
-	return paths, query, false, nil
+	return paths, query, sset, false, nil
 }
 
 func isURLWithKnownScheme(path string, schemes ...string) bool {

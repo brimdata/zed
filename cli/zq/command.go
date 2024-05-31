@@ -129,7 +129,7 @@ func (c *Command) Run(args []string) error {
 		// Prevent ParseSourcesAndInputs from treating args[0] as a path.
 		args = append(args, "-")
 	}
-	paths, flowgraph, null, err := c.queryFlags.ParseSourcesAndInputs(args)
+	paths, flowgraph, sset, null, err := c.queryFlags.ParseSourcesAndInputs(args)
 	if err != nil {
 		return fmt.Errorf("zq: %w", err)
 	}
@@ -154,7 +154,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	comp := compiler.NewFileSystemCompiler(local)
-	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, readers)
+	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, sset, readers)
 	if err != nil {
 		return err
 	}

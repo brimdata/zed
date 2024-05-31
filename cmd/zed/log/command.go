@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cmd/zed/root"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -70,6 +71,9 @@ func (c *Command) Run(args []string) error {
 	defer w.Close()
 	q, err := lake.Query(ctx, nil, query)
 	if err != nil {
+		if list := (parser.ErrorList)(nil); errors.As(err, &list) && len(list) == 1 {
+			return errors.New(list[0].Msg)
+		}
 		return err
 	}
 	defer q.Close()
