@@ -2,10 +2,8 @@ package compile
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/brimdata/zed/cmd/zed/dev"
@@ -14,7 +12,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/runtime"
@@ -112,17 +109,7 @@ func (c *Command) Run(args []string) error {
 			c.pigeon = true
 		}
 	}
-	var src string
-	if len(c.includes) > 0 {
-		for _, path := range c.includes {
-			b, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			src += "\n" + string(b)
-		}
-	}
-	src += strings.Join(args, " ")
+	src := strings.Join(args, " ")
 	var lk *lake.Root
 	if c.semantic || c.optimize || c.parallel != 0 {
 		lakeAPI, err := c.LakeFlags.Open(ctx)
@@ -143,35 +130,34 @@ func (c *Command) header(msg string) {
 }
 
 func (c *Command) parse(z string, lk *lake.Root) error {
+	seq, err := compiler.Parse(z, c.includes...)
+	if err != nil {
+		return err
+	}
 	if c.pigeon {
-		s, err := parsePigeon(z)
+		b, err := json.Marshal(seq)
 		if err != nil {
 			return err
 		}
 		c.header("pigeon")
-		fmt.Println(s)
+		fmt.Println(normalize(b))
 	}
 	if c.proc {
-		seq, err := compiler.Parse(z)
-		if err != nil {
-			return err
-		}
-		c.header("proc")
 		c.writeAST(seq)
 	}
+
+	if !c.semantic && !c.optimize && c.parallel == 0 {
+		return nil
+	}
+	runtime, err := compiler.NewJob(runtime.DefaultContext(), seq, data.NewSource(nil, lk), nil)
+	if err != nil {
+		return err
+	}
 	if c.semantic {
-		runtime, err := c.compile(z, lk)
-		if err != nil {
-			return err
-		}
 		c.header("semantic")
 		c.writeDAG(runtime.Entry())
 	}
 	if c.optimize {
-		runtime, err := c.compile(z, lk)
-		if err != nil {
-			return err
-		}
 		if err := runtime.Optimize(); err != nil {
 			return err
 		}
@@ -179,10 +165,6 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		c.writeDAG(runtime.Entry())
 	}
 	if c.parallel > 0 {
-		runtime, err := c.compile(z, lk)
-		if err != nil {
-			return err
-		}
 		if err := runtime.Optimize(); err != nil {
 			return err
 		}
@@ -211,14 +193,6 @@ func (c *Command) writeDAG(seq dag.Seq) {
 	} else {
 		fmt.Println(s)
 	}
-}
-
-func (c *Command) compile(z string, lk *lake.Root) (*compiler.Job, error) {
-	p, err := compiler.Parse(z)
-	if err != nil {
-		return nil, err
-	}
-	return compiler.NewJob(runtime.DefaultContext(), p, data.NewSource(nil, lk), nil)
 }
 
 func normalize(b []byte) (string, error) {
@@ -251,16 +225,4 @@ func dagFmt(seq dag.Seq, canon bool) (string, error) {
 		return "", err
 	}
 	return normalize(dagJSON)
-}
-
-func parsePigeon(z string) (string, error) {
-	ast, err := parser.Parse("", []byte(z))
-	if err != nil {
-		return "", err
-	}
-	goPEGJSON, err := json.Marshal(ast)
-	if err != nil {
-		return "", errors.New("go peg parser returned bad value for: " + z)
-	}
-	return normalize(goPEGJSON)
 }
