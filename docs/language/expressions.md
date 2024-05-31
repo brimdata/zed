@@ -270,38 +270,39 @@ must conform to UTF-8 encoding and follow the JavaScript escaping
 conventions and unicode escape syntax.  Also, if the sequence `${` appears
 in a string the `$` character must be escaped, i.e., `\$`.
 
-### String Interpolation
+### Formatted String Literals
 
-Strings may include interpolation expressions, which has the form
+A formatted string literal (or f-string) is a string literal prefixed with `f`.
+These strings may include replacement expressions which are delimited by curly
+braces:
 ```
-${ <expr> }
+f"{ <expr> }"
 ```
-In this case, the characters starting with `$` and ending at `}` are substituted
+In this case, the characters starting with `{` and ending at `}` are substituted
 with the result of evaluating the expression `<expr>`.  If this result is not
 a string, it is implicitly cast to a string.
 
 For example,
 ```mdtest-command
-echo '{numerator:22.0, denominator:7.0}' | zq -z 'yield "pi is approximately ${numerator / denominator}"' -
+echo '{numerator:22.0, denominator:7.0}' | zq -z 'yield f"pi is approximately {numerator / denominator}"' -
 ```
 produces
 ```mdtest-output
 "pi is approximately 3.142857142857143"
 ```
 
-If any template expression results in an error, then the value of the template
-literal is the first error encountered in left-to-right order.
+If any expression results in an error, then the value of the f-string is the
+first error encountered in left-to-right order.
 
 > TBD: we could improve an error result here by creating a structured error
 > containing the string template text along with a list of values/errors of
 > the expressions.
 
-String interpolation may be nested, where `<expr>` contains additional strings
-with interpolated expressions.
+F-strings may be nested, where a child `<expr>` may contain f-strings.
 
 For example,
 ```mdtest-command
-echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' | zq -z 'yield "oh ${this[upper("${foo + bar}")]}"' -
+echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' | zq -z 'yield f"oh {this[upper(f"{foo + bar}")]}"' -
 ```
 produces
 ```mdtest-output

@@ -236,6 +236,8 @@ func (a *analyzer) semExpr(e ast.Expr) dag.Expr {
 			Exprs: exprs,
 			Body:  a.semSeq(e.Body),
 		}
+	case *ast.FString:
+		return a.semFString(e)
 	}
 	panic(errors.New("invalid expression type"))
 }
@@ -659,6 +661,35 @@ func (a *analyzer) semVectorElems(elems []ast.VectorElem) []dag.VectorElem {
 			e := a.semExpr(elem.Expr)
 			out = append(out, &dag.VectorValue{Kind: "VectorValue", Expr: e})
 		}
+	}
+	return out
+}
+
+func (a *analyzer) semFString(f *ast.FString) dag.Expr {
+	if len(f.Elems) == 0 {
+		return &dag.Literal{Kind: "Literal", Value: `""`}
+	}
+	var out dag.Expr
+	for _, elem := range f.Elems {
+		var e dag.Expr
+		switch elem := elem.(type) {
+		case *ast.FStringExpr:
+			e = a.semExpr(elem.Expr)
+			e = &dag.Call{
+				Kind: "Call",
+				Name: "cast",
+				Args: []dag.Expr{e, &dag.Literal{Kind: "Literal", Value: "<string>"}},
+			}
+		case *ast.FStringText:
+			e = &dag.Literal{Kind: "Literal", Value: zson.QuotedString([]byte(elem.Text))}
+		default:
+			panic(fmt.Errorf("internal error: unsupported f-string elem %T", elem))
+		}
+		if out == nil {
+			out = e
+			continue
+		}
+		out = &dag.BinaryExpr{Kind: "BinaryExpr", LHS: out, Op: "+", RHS: e}
 	}
 	return out
 }
