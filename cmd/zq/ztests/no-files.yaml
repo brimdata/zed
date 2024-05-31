@@ -8,4 +8,4 @@ outputs:
     data: |
       zq: could not invoke zq with a single argument because:
        - a file could not be found with the name "doesnotexist"
-       - the argument did not parse as a valid Zed query
+       - the argument is a valid Zed query but does not begin with a source (e.g., "file input.zson") or yield operator

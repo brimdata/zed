@@ -158,7 +158,7 @@ func (a *analyzer) semSource(source ast.Source) []dag.Op {
 		}
 	case *ast.Pool:
 		if !a.source.IsLake() {
-			a.error(s, errors.New("from pool cannot be used without a lake"))
+			a.error(s, errors.New("\"from pool\" cannot be used without a lake"))
 			return []dag.Op{badOp()}
 		}
 		return a.semPool(s)
