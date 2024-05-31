@@ -257,6 +257,10 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 	})
 }
 
+func (o *Optimizer) SortKeys(seq dag.Seq) ([]order.SortKey, error) {
+	return o.propagateSortKey(copyOps(seq), []order.SortKey{order.Nil})
+}
+
 // propagateSortKey analyzes a Seq and attempts to push the scan order of the data source
 // into the first downstream aggregation.  (We could continue the analysis past that
 // point but don't bother yet because we do not yet support any optimization
@@ -330,7 +334,7 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 		// We'll live this as unknown for now even though the groupby
 		// and not try to optimize downstream of the first groupby
 		// unless there is an excplicit sort encountered.
-		return nil, nil
+		return []order.SortKey{order.Nil}, nil
 	case *dag.Fork:
 		var keys []order.SortKey
 		for _, seq := range op.Paths {

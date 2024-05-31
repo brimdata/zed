@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
@@ -18,6 +19,7 @@ import (
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/runtime/sam/op"
@@ -168,6 +170,20 @@ func handleCompile(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	w.Respond(http.StatusOK, ast)
+}
+
+func handleQueryDescribe(c *Core, w *ResponseWriter, r *Request) {
+	var req api.QueryRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	src := data.NewSource(storage.NewRemoteEngine(), c.root)
+	info, err := compiler.Describe(r.Context(), req.Query, src, &req.Head)
+	if err != nil {
+		w.Error(srverr.ErrInvalid(err))
+		return
+	}
+	w.Respond(http.StatusOK, info)
 }
 
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
