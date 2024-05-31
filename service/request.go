@@ -303,9 +303,8 @@ func errorResponse(e error) (status int, ae *api.Error) {
 	status = http.StatusInternalServerError
 	ae = &api.Error{Type: "Error"}
 
-	var pe *parser.Error
-	if errors.As(e, &pe) {
-		ae.Info = map[string]int{"parse_error_offset": pe.Offset}
+	if list := (parser.ErrorList)(nil); errors.As(e, &list) {
+		ae.CompilationErrors = list
 	}
 
 	var ze *srverr.Error

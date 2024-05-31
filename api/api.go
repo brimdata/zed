@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
@@ -20,10 +21,10 @@ func RequestIDFromContext(ctx context.Context) string {
 }
 
 type Error struct {
-	Type    string      `json:"type"`
-	Kind    string      `json:"kind"`
-	Message string      `json:"error"`
-	Info    interface{} `json:"info,omitempty"`
+	Type              string           `json:"type"`
+	Kind              string           `json:"kind"`
+	Message           string           `json:"error"`
+	CompilationErrors parser.ErrorList `json:"compilation_errors,omitempty"`
 }
 
 func (e Error) Error() string {

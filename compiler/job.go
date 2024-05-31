@@ -89,7 +89,8 @@ func (j *Job) Parallelize(n int) error {
 }
 
 func Parse(src string, filenames ...string) (ast.Seq, error) {
-	return parser.ParseZed(filenames, src)
+	seq, _, err := parser.ParseZed(filenames, src)
+	return seq, err
 }
 
 // MustParse is like Parse but panics if an error is encountered.

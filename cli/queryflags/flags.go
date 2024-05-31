@@ -87,15 +87,10 @@ func singleArgError(src string, err error) error {
 		src = src[:20] + "..."
 	}
 	fmt.Fprintf(&b, "\n - a file could not be found with the name %q", src)
-	var perr *parser.Error
-	if errors.As(err, &perr) {
-		b.WriteString("\n - the argument could not be compiled as a valid Zed query due to parse error (")
-		if perr.LineNum > 0 {
-			fmt.Fprintf(&b, "line %d, ", perr.LineNum)
-		}
-		fmt.Fprintf(&b, "column %d):", perr.Column)
-		for _, l := range strings.Split(perr.ParseErrorContext(), "\n") {
-			fmt.Fprintf(&b, "\n   %s", l)
+	if list := (parser.ErrorList)(nil); errors.As(err, &list) {
+		b.WriteString("\n - the argument could not be compiled as a valid Zed query:")
+		for _, line := range strings.Split(list.Error(), "\n") {
+			fmt.Fprintf(&b, "\n   %s", line)
 		}
 	} else {
 		b.WriteString("\n - the argument did not parse as a valid Zed query")

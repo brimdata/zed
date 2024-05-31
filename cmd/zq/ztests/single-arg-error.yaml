@@ -6,6 +6,7 @@ outputs:
     data: |
       zq: could not invoke zq with a single argument because:
        - a file could not be found with the name "file sample.zson | c..."
-       - the argument could not be compiled as a valid Zed query due to parse error (column 25):
+       - the argument could not be compiled as a valid Zed query:
+         error parsing Zed at line 1, column 26:
          file sample.zson | count(
                               === ^ ===
