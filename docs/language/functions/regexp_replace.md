@@ -58,3 +58,13 @@ echo '"option: value"' | zq -z 'yield regexp_replace(this,/(?P<key>\w+):\s+(?P<v
 ```mdtest-output
 "option=value"
 ```
+
+Wrap a named reference in curly braces to avoid ambiguity:
+
+```mdtest-command
+echo '"option: value"' | zq -z 'yield regexp_replace(this,/(?P<key>\w+):\s+(?P<value>\w+)$/,"$key=${value}AppendedText")' -
+```
+=>
+```mdtest-output
+"option=valueAppendedText"
+```
