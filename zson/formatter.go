@@ -223,7 +223,7 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 			f.truncTypeValueErr()
 			return nil
 		}
-		f.build(name)
+		f.build(QuotedName(name))
 		f.build("=")
 		tv = f.formatTypeValue(indent, tv)
 	case zed.TypeValueNameRef:
@@ -233,7 +233,7 @@ func (f *Formatter) formatTypeValue(indent int, tv zcode.Bytes) zcode.Bytes {
 			f.truncTypeValueErr()
 			return nil
 		}
-		f.build(name)
+		f.build(QuotedName(name))
 	case zed.TypeValueRecord:
 		f.build("{")
 		var n int
