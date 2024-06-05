@@ -1,0 +1,8 @@
+zed: |
+  yield <"@foo"={x:int64}>
+
+input: |
+  null
+
+output: |
+  <"@foo"={x:int64}>

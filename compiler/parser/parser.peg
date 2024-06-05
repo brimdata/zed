@@ -1225,7 +1225,7 @@ AmbiguousType
           Rparen: lastPos(c, ")"),
       }, nil
     }
-  / name:IdentifierName opt:(__ '=' __ Type)? {
+  / name:(IdentifierName / QuotedString) opt:(__ '=' __ Type)? {
       if opt != nil {
         return &astzed.TypeDef{
             Kind: "TypeDef",
@@ -1234,9 +1234,6 @@ AmbiguousType
             Type: opt.([]any)[3].(astzed.Type),
         }, nil
       }
-      return &astzed.TypeName{Kind: "TypeName", Name: name.(string), NamePos: c.pos.offset}, nil
-    }
-  / name:QuotedString {
       return &astzed.TypeName{Kind: "TypeName", Name: name.(string), NamePos: c.pos.offset}, nil
     }
   / "(" __ types:TypeList ")" {
