@@ -101,12 +101,11 @@ func promoteWider(id int, val vector.Any) vector.Any {
 	switch val := val.(type) {
 	case *vector.Int:
 		return val.Promote(typ)
-	case *vector.DictInt:
-		return val.Promote(typ)
 	case *vector.Uint:
 		return val.Promote(typ)
-	case *vector.DictUint:
-		return val.Promote(typ)
+	case *vector.Dict:
+		promoted := val.Any.(vector.Promotable).Promote(typ)
+		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
 	default:
 		panic(fmt.Sprintf("promoteWider %T", val))
 	}
@@ -120,10 +119,13 @@ func promoteToSigned(val vector.Any) vector.Any {
 	//	return nil, false
 	//}
 	switch val := val.(type) {
-	case *vector.Int, *vector.DictInt:
+	case *vector.Int:
 		return val
-	case *vector.Uint, *vector.DictUint:
+	case *vector.Uint:
 		return uintToInt(val)
+	case *vector.Dict:
+		promoted := promoteToSigned(val.Any)
+		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
 	default:
 		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
 	}
@@ -208,14 +210,6 @@ func intToFloat(val vector.Any) vector.Any {
 			f[k] = float64(vals[k])
 		}
 		return vector.NewFloat(zed.TypeFloat64, f, val.Nulls)
-	case *vector.DictInt:
-		vals := val.Values
-		n := int(len(val.Values))
-		f := make([]float64, n)
-		for k := 0; k < n; k++ {
-			f[k] = float64(vals[k])
-		}
-		return vector.NewDictFloat(zed.TypeFloat64, val.Tags, f, val.Counts, val.Nulls)
 	case *vector.Uint:
 		vals := val.Values
 		n := int(len(vals))
@@ -224,14 +218,6 @@ func intToFloat(val vector.Any) vector.Any {
 			f[k] = float64(vals[k])
 		}
 		return vector.NewFloat(zed.TypeFloat64, f, val.Nulls)
-	case *vector.DictUint:
-		vals := val.Values
-		n := int(len(vals))
-		f := make([]float64, n)
-		for k := 0; k < n; k++ {
-			f[k] = float64(vals[k])
-		}
-		return vector.NewDictFloat(zed.TypeFloat64, val.Tags, f, val.Counts, val.Nulls)
 	default:
 		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
 	}
@@ -248,14 +234,6 @@ func uintToInt(val vector.Any) vector.Any {
 			out[k] = int64(vals[k])
 		}
 		return vector.NewInt(zed.TypeInt64, out, val.Nulls)
-	case *vector.DictUint:
-		vals := val.Values
-		n := int(len(vals))
-		out := make([]int64, n)
-		for k := 0; k < n; k++ {
-			out[k] = int64(vals[k])
-		}
-		return vector.NewDictInt(zed.TypeInt64, val.Tags, out, val.Counts, val.Nulls)
 	default:
 		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
 	}
