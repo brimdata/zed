@@ -3,6 +3,6 @@ zed: "*"
 input: &input |
   <int64>
   {typ:<int64>}
-  <{a:"@foo"={bar:string},b:"@foo"}>
+  <{def:"@foo"=int64,ref:"@foo"}>
 
 output: *input
