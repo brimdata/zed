@@ -12,7 +12,7 @@ type Uint struct {
 }
 
 var _ Any = (*Uint)(nil)
-var _ Promotable = (*Int)(nil)
+var _ Promotable = (*Uint)(nil)
 
 func NewUint(typ zed.Type, values []uint64, nulls *Bool) *Uint {
 	return &Uint{Typ: typ, Values: values, Nulls: nulls}
