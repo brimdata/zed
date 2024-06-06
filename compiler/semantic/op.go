@@ -839,7 +839,7 @@ func (a *analyzer) semConstDecl(c *ast.ConstDecl) dag.Def {
 		a.error(c, err)
 	}
 	return dag.Def{
-		Name: c.Name,
+		Name: c.Name.Name,
 		Expr: e,
 	}
 }
@@ -852,24 +852,28 @@ func (a *analyzer) semTypeDecl(d *ast.TypeDecl) dag.Def {
 	}
 	e := &dag.Literal{
 		Kind:  "Literal",
-		Value: fmt.Sprintf("<%s=%s>", zson.QuotedName(d.Name), typ),
+		Value: fmt.Sprintf("<%s=%s>", zson.QuotedName(d.Name.Name), typ),
 	}
 	if err := a.scope.DefineConst(a.zctx, a.arena, d.Name, e); err != nil {
-		a.error(d, err)
+		a.error(d.Name, err)
 	}
-	return dag.Def{Name: d.Name, Expr: e}
+	return dag.Def{Name: d.Name.Name, Expr: e}
 }
 
 func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) []*dag.Func {
 	funcs := make([]*dag.Func, 0, len(decls))
 	for _, d := range decls {
+		var params []string
+		for _, p := range d.Params {
+			params = append(params, p.Name)
+		}
 		f := &dag.Func{
 			Kind:   "Func",
-			Name:   d.Name,
-			Params: slices.Clone(d.Params),
+			Name:   d.Name.Name,
+			Params: params,
 		}
-		if err := a.scope.DefineAs(f.Name, f); err != nil {
-			a.error(d, err)
+		if err := a.scope.DefineAs(d.Name, f); err != nil {
+			a.error(d.Name, err)
 		}
 		funcs = append(funcs, f)
 	}
@@ -879,7 +883,7 @@ func (a *analyzer) semFuncDecls(decls []*ast.FuncDecl) []*dag.Func {
 	return funcs
 }
 
-func (a *analyzer) semFuncBody(d *ast.FuncDecl, params []string, body ast.Expr) dag.Expr {
+func (a *analyzer) semFuncBody(d *ast.FuncDecl, params []*ast.ID, body ast.Expr) dag.Expr {
 	a.enterScope()
 	defer a.exitScope()
 	for _, p := range params {
@@ -895,12 +899,12 @@ func (a *analyzer) semFuncBody(d *ast.FuncDecl, params []string, body ast.Expr) 
 func (a *analyzer) semOpDecl(d *ast.OpDecl) {
 	m := make(map[string]bool)
 	for _, p := range d.Params {
-		if m[p] {
-			a.error(d, fmt.Errorf("duplicate parameter %q", p))
+		if m[p.Name] {
+			a.error(p, fmt.Errorf("duplicate parameter %q", p.Name))
 			a.scope.DefineAs(d.Name, &opDecl{bad: true})
 			return
 		}
-		m[p] = true
+		m[p.Name] = true
 	}
 	if err := a.scope.DefineAs(d.Name, &opDecl{ast: d, scope: a.scope}); err != nil {
 		a.error(d, err)
@@ -916,7 +920,7 @@ func (a *analyzer) semVars(defs []ast.Def) []dag.Def {
 			continue
 		}
 		locals = append(locals, dag.Def{
-			Name: def.Name,
+			Name: def.Name.Name,
 			Expr: e,
 		})
 	}
@@ -1023,24 +1027,25 @@ func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) dag.Seq {
 	if body := a.maybeConvertUserOp(call); body != nil {
 		return append(seq, body...)
 	}
+	name := call.Name.Name
 	if agg := a.maybeConvertAgg(call); agg != nil {
 		summarize := &dag.Summarize{
 			Kind: "Summarize",
 			Aggs: []dag.Assignment{
 				{
 					Kind: "Assignment",
-					LHS:  pathOf(call.Name),
+					LHS:  pathOf(name),
 					RHS:  agg,
 				},
 			},
 		}
 		yield := &dag.Yield{
 			Kind:  "Yield",
-			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{call.Name}}},
+			Exprs: []dag.Expr{&dag.This{Kind: "This", Path: field.Path{name}}},
 		}
 		return append(append(seq, summarize), yield)
 	}
-	if !function.HasBoolResult(call.Name) {
+	if !function.HasBoolResult(name) {
 		return nil
 	}
 	c := a.semCall(call)
@@ -1050,7 +1055,7 @@ func (a *analyzer) semCallOp(call *ast.Call, seq dag.Seq) dag.Seq {
 // maybeConvertUserOp returns nil, nil if the call is determined to not be a
 // UserOp, otherwise it returns the compiled op or the encountered error.
 func (a *analyzer) maybeConvertUserOp(call *ast.Call) dag.Seq {
-	decl, err := a.scope.lookupOp(call.Name)
+	decl, err := a.scope.lookupOp(call.Name.Name)
 	if decl == nil {
 		return nil
 	}

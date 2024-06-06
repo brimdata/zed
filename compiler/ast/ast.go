@@ -96,15 +96,14 @@ func (c *Conditional) End() int { return c.Else.End() }
 // a function call has the standard semantics where it takes one or more arguments
 // and returns a result.
 type Call struct {
-	Kind    string `json:"kind" unpack:""`
-	Name    string `json:"name"`
-	NamePos int    `json:"name_pos"`
-	Args    []Expr `json:"args"`
-	Rparen  int    `json:"rparen"`
-	Where   Expr   `json:"where"`
+	Kind   string `json:"kind" unpack:""`
+	Name   *ID    `json:"name"`
+	Args   []Expr `json:"args"`
+	Rparen int    `json:"rparen"`
+	Where  Expr   `json:"where"`
 }
 
-func (c *Call) Pos() int { return c.NamePos }
+func (c *Call) Pos() int { return c.Name.Pos() }
 
 func (c *Call) End() int {
 	if c.Where != nil {
@@ -185,7 +184,7 @@ func (r *Regexp) End() int { return r.PatternPos + len(r.Pattern) + 2 }
 type String struct {
 	Kind    string `json:"kind" unpack:""`
 	Text    string `json:"text"`
-	TextPos int    `json:"start_pos"`
+	TextPos int    `json:"text_pos"`
 }
 
 func (s *String) Pos() int { return s.TextPos }
@@ -364,7 +363,7 @@ func (*FString) ExprAST()    {}
 type ConstDecl struct {
 	Kind       string `json:"kind" unpack:""`
 	KeywordPos int    `json:"keyword_pos"`
-	Name       string `json:"name"`
+	Name       *ID    `json:"name"`
 	Expr       Expr   `json:"expr"`
 }
 
@@ -372,24 +371,24 @@ func (c *ConstDecl) Pos() int { return c.KeywordPos }
 func (c *ConstDecl) End() int { return c.Expr.End() }
 
 type FuncDecl struct {
-	Kind       string   `json:"kind" unpack:""`
-	KeywordPos int      `json:"keyword_pos"`
-	Name       string   `json:"name"`
-	Params     []string `json:"params"`
-	Expr       Expr     `json:"expr"`
-	Rparen     int      `json:"rparen"`
+	Kind       string `json:"kind" unpack:""`
+	KeywordPos int    `json:"keyword_pos"`
+	Name       *ID    `json:"name"`
+	Params     []*ID  `json:"params"`
+	Expr       Expr   `json:"expr"`
+	Rparen     int    `json:"rparen"`
 }
 
 func (f *FuncDecl) Pos() int { return f.KeywordPos }
 func (f *FuncDecl) End() int { return f.Rparen }
 
 type OpDecl struct {
-	Kind       string   `json:"kind" unpack:""`
-	KeywordPos int      `json:"keyword_pos"`
-	Name       string   `json:"name"`
-	Params     []string `json:"params"`
-	Body       Seq      `json:"body"`
-	Rparen     int      `json:"rparen"`
+	Kind       string `json:"kind" unpack:""`
+	KeywordPos int    `json:"keyword_pos"`
+	Name       *ID    `json:"name"`
+	Params     []*ID  `json:"params"`
+	Body       Seq    `json:"body"`
+	Rparen     int    `json:"rparen"`
 }
 
 func (o *OpDecl) Pos() int { return o.KeywordPos }
@@ -398,7 +397,7 @@ func (o *OpDecl) End() int { return o.Rparen }
 type TypeDecl struct {
 	Kind       string      `json:"kind" unpack:""`
 	KeywordPos int         `json:"keyword_pos"`
-	Name       string      `json:"name"`
+	Name       *ID         `json:"name"`
 	Type       astzed.Type `json:"type"`
 }
 
@@ -731,18 +730,17 @@ func (a Assignments) End() int { return a[len(a)-1].End() }
 // referenced.  This is used for const blocks in Sequential and var blocks
 // in a let scope.
 type Def struct {
-	Name    string `json:"name"`
-	NamePos int    `json:"name_pos"`
-	Expr    Expr   `json:"expr"`
+	Name *ID  `json:"name"`
+	Expr Expr `json:"expr"`
 }
 
-func (d Def) Pos() int { return d.NamePos }
+func (d Def) Pos() int { return d.Name.Pos() }
 
 func (d Def) End() int {
 	if d.Expr != nil {
 		d.Expr.End()
 	}
-	return d.NamePos + len(d.Name)
+	return d.Name.End()
 }
 
 func (*Scope) OpAST()        {}
