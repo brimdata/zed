@@ -11,20 +11,22 @@ import (
 // zng type T, outputs one record for each field of the input record of
 // type T. It is useful for type-based indexing.
 type Op struct {
-	parent  zbuf.Puller
-	outType zed.Type
-	typ     zed.Type
-	args    []expr.Evaluator
+	parent   zbuf.Puller
+	outType  zed.Type
+	typ      zed.Type
+	args     []expr.Evaluator
+	resetter expr.Resetter
 }
 
 // New creates a exploder for type typ, where the
 // output records' single field is named name.
-func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string) (zbuf.Puller, error) {
+func New(zctx *zed.Context, parent zbuf.Puller, args []expr.Evaluator, typ zed.Type, name string, resetter expr.Resetter) (zbuf.Puller, error) {
 	return &Op{
-		parent:  parent,
-		outType: zctx.MustLookupTypeRecord([]zed.Field{{Name: name, Type: typ}}),
-		typ:     typ,
-		args:    args,
+		parent:   parent,
+		outType:  zctx.MustLookupTypeRecord([]zed.Field{{Name: name, Type: typ}}),
+		typ:      typ,
+		args:     args,
+		resetter: resetter,
 	}, nil
 }
 
@@ -34,6 +36,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	for {
 		batch, err := o.parent.Pull(done)
 		if batch == nil || err != nil {
+			o.resetter.Reset()
 			return nil, err
 		}
 		ectx := expr.NewContextWithVars(arena, batch.Vars())

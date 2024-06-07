@@ -23,6 +23,7 @@ var DefaultLimit = 1000000
 type Op struct {
 	rctx     *runtime.Context
 	parent   zbuf.Puller
+	resetter expr.Resetter
 	agg      *Aggregator
 	once     sync.Once
 	resultCh chan op.Result
@@ -119,7 +120,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	}, nil
 }
 
-func New(rctx *runtime.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Op, error) {
+func New(rctx *runtime.Context, parent zbuf.Puller, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool, resetter expr.Resetter) (*Op, error) {
 	names := make(field.List, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
 		p, ok := e.LHS.Path()
@@ -150,6 +151,7 @@ func New(rctx *runtime.Context, parent zbuf.Puller, keys []expr.Assignment, aggN
 	return &Op{
 		rctx:     rctx,
 		parent:   parent,
+		resetter: resetter,
 		agg:      agg,
 		resultCh: make(chan op.Result),
 		doneCh:   make(chan struct{}),
@@ -258,6 +260,10 @@ func (o *Op) run() {
 }
 
 func (o *Op) sendResult(b zbuf.Batch, err error) (bool, bool) {
+	if b == nil {
+		// Reset stateful aggregation expressions on EOS.
+		o.resetter.Reset()
+	}
 	select {
 	case o.resultCh <- op.Result{Batch: b, Err: err}:
 		return false, true
@@ -297,6 +303,7 @@ func (o *Op) reset() {
 		o.batch.Unref()
 		o.batch = nil
 	}
+	o.resetter.Reset()
 }
 
 // Consume adds a value to an aggregation.

@@ -25,6 +25,7 @@ type Op struct {
 	parent     zbuf.Puller
 	order      order.Which
 	nullsFirst bool
+	resetter   expr.Resetter
 
 	fieldResolvers []expr.Evaluator
 	lastBatch      zbuf.Batch
@@ -33,12 +34,13 @@ type Op struct {
 	comparator     *expr.Comparator
 }
 
-func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Op, error) {
+func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool, resetter expr.Resetter) (*Op, error) {
 	return &Op{
 		rctx:           rctx,
 		parent:         parent,
 		order:          order,
 		nullsFirst:     nullsFirst,
+		resetter:       resetter,
 		fieldResolvers: fields,
 		resultCh:       make(chan op.Result),
 	}, nil
@@ -185,6 +187,10 @@ func (o *Op) sendSpills(spiller *spill.MergeSort) bool {
 }
 
 func (o *Op) sendResult(b zbuf.Batch, err error) bool {
+	if b == nil && err == nil {
+		// Reset stateful aggregation expressions on EOS.
+		o.resetter.Reset()
+	}
 	select {
 	case o.resultCh <- op.Result{Batch: b, Err: err}:
 		return true

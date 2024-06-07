@@ -13,6 +13,7 @@ import (
 )
 
 func (b *Builder) compileGroupBy(parent zbuf.Puller, summarize *dag.Summarize) (*groupby.Op, error) {
+	b.resetResetters()
 	keys, err := b.compileAssignments(summarize.Keys)
 	if err != nil {
 		return nil, err
@@ -22,7 +23,7 @@ func (b *Builder) compileGroupBy(parent zbuf.Puller, summarize *dag.Summarize) (
 		return nil, err
 	}
 	dir := order.Direction(summarize.InputSortDir)
-	return groupby.New(b.rctx, parent, keys, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut)
+	return groupby.New(b.rctx, parent, keys, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut, b.resetters)
 }
 
 func (b *Builder) compileAggAssignments(assignments []dag.Assignment) (field.List, []*expr.Aggregator, error) {
