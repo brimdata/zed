@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"slices"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -246,7 +247,7 @@ func (o *Op) run() {
 			if res == nil {
 				break
 			}
-			expr.SortStable(res.Values(), o.agg.keyCompare)
+			slices.SortStableFunc(res.Values(), o.agg.keyCompare)
 			done, ok := o.sendResult(res, nil)
 			if !ok {
 				return

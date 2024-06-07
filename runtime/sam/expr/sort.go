@@ -266,12 +266,6 @@ func (s *sortStableReader) Read() (*zed.Value, error) {
 	return val, nil
 }
 
-// SortStable performs a stable sort on the provided records.
-func SortStable(records []zed.Value, compare CompareFn) {
-	slice := &RecordSlice{records, compare}
-	sort.Stable(slice)
-}
-
 type RecordSlice struct {
 	vals    []zed.Value
 	compare CompareFn
