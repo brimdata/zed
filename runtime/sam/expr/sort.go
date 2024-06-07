@@ -10,7 +10,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -108,8 +107,6 @@ type Comparator struct {
 	nullsMax bool
 	reverse  bool
 }
-
-type comparefn func(a, b zcode.Bytes) int
 
 // NewComparator returns a zed.Value comparator for exprs according to nullsMax
 // and reverse.  To compare values a and b, it iterates over the elements e of
@@ -310,100 +307,4 @@ func (r *RecordSlice) Pop() interface{} {
 // Index returns the ith record.
 func (r *RecordSlice) Index(i int) zed.Value {
 	return r.vals[i]
-}
-
-func LookupCompare(typ zed.Type) comparefn {
-	// XXX record support easy to add here if we moved the creation of the
-	// field resolvers into this package.
-	if innerType := zed.InnerType(typ); innerType != nil {
-		return func(a, b zcode.Bytes) int {
-			compare := LookupCompare(innerType)
-			ia := a.Iter()
-			ib := b.Iter()
-			for {
-				if ia.Done() {
-					if ib.Done() {
-						return 0
-					}
-					return -1
-				}
-				if ib.Done() {
-					return 1
-				}
-				if v := compare(ia.Next(), ib.Next()); v != 0 {
-					return v
-				}
-			}
-		}
-	}
-	switch typ.ID() {
-	case zed.IDBool:
-		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeBool(a), zed.DecodeBool(b)
-			if va == vb {
-				return 0
-			}
-			if va {
-				return 1
-			}
-			return -1
-		}
-
-	case zed.IDString:
-		return func(a, b zcode.Bytes) int {
-			return bytes.Compare(a, b)
-		}
-
-	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
-		return func(a, b zcode.Bytes) int {
-			return cmp.Compare(zed.DecodeInt(a), zed.DecodeInt(b))
-		}
-
-	case zed.IDUint16, zed.IDUint32, zed.IDUint64:
-		return func(a, b zcode.Bytes) int {
-			return cmp.Compare(zed.DecodeUint(a), zed.DecodeUint(b))
-		}
-
-	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeFloat(a), zed.DecodeFloat(b)
-			if va == 0.0 && vb == 0.0 || math.IsNaN(va) && math.IsNaN(vb) {
-				// Order different zeroes and NaNs so ZNG sets
-				// have a canonical form.
-				return cmp.Compare(int64(math.Float64bits(va)), int64(math.Float64bits(vb)))
-			}
-			return cmp.Compare(va, vb)
-		}
-
-	case zed.IDTime:
-		return func(a, b zcode.Bytes) int {
-			return cmp.Compare(zed.DecodeTime(a), zed.DecodeTime(b))
-		}
-
-	case zed.IDDuration:
-		return func(a, b zcode.Bytes) int {
-			return cmp.Compare(zed.DecodeDuration(a), zed.DecodeDuration(b))
-		}
-
-	case zed.IDIP:
-		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeIP(a), zed.DecodeIP(b)
-			return va.Compare(vb)
-		}
-
-	case zed.IDType:
-		zctx := zed.NewContext()
-		return func(a, b zcode.Bytes) int {
-			// XXX This isn't cheap eventually we should add
-			// zed.CompareTypeValues(a, b zcode.Bytes).
-			va, _ := zctx.DecodeTypeValue(a)
-			vb, _ := zctx.DecodeTypeValue(b)
-			return zed.CompareTypes(va, vb)
-		}
-
-	default:
-		return func(a, b zcode.Bytes) int {
-			return bytes.Compare(a, b)
-		}
-	}
 }
