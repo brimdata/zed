@@ -85,29 +85,31 @@ func compareFloats(op string, lhs, rhs vector.Any) vector.Any {
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictFloat:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Float).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] == rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] != rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] < rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] <= rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
@@ -151,60 +153,64 @@ func compareFloats(op string, lhs, rhs vector.Any) vector.Any {
 		default:
 			panic(fmt.Sprintf("bad type %T", rhs))
 		}
-	case *vector.DictFloat:
+	case *vector.Dict:
+		lhsValues := lhs.Any.(*vector.Float).Values
+		lx := lhs.Index
 		switch rhs := rhs.(type) {
 		case *vector.Float:
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == rhs.Values[k] {
+					if lhsValues[lx[k]] == rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != rhs.Values[k] {
+					if lhsValues[lx[k]] != rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < rhs.Values[k] {
+					if lhsValues[lx[k]] < rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= rhs.Values[k] {
+					if lhsValues[lx[k]] <= rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictFloat:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Float).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
@@ -219,25 +225,25 @@ func compareFloats(op string, lhs, rhs vector.Any) vector.Any {
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == literal {
+					if lhsValues[lx[k]] == literal {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != literal {
+					if lhsValues[lx[k]] != literal {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < literal {
+					if lhsValues[lx[k]] < literal {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= literal {
+					if lhsValues[lx[k]] <= literal {
 						out.Set(k)
 					}
 				}
@@ -282,29 +288,31 @@ func compareFloats(op string, lhs, rhs vector.Any) vector.Any {
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictFloat:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Float).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if literal == rhs.Values[rhs.Tags[k]] {
+					if literal == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if literal != rhs.Values[rhs.Tags[k]] {
+					if literal != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if literal < rhs.Values[rhs.Tags[k]] {
+					if literal < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if literal <= rhs.Values[rhs.Tags[k]] {
+					if literal <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
@@ -390,29 +398,31 @@ func compareInts(op string, lhs, rhs vector.Any) vector.Any {
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictInt:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Int).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] == rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] != rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] < rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] <= rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
@@ -455,60 +465,64 @@ func compareInts(op string, lhs, rhs vector.Any) vector.Any {
 		default:
 			panic(fmt.Sprintf("bad type %T", rhs))
 		}
-	case *vector.DictInt:
+	case *vector.Dict:
+		lhsValues := lhs.Any.(*vector.Int).Values
+		lx := lhs.Index
 		switch rhs := rhs.(type) {
 		case *vector.Int:
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == rhs.Values[k] {
+					if lhsValues[lx[k]] == rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != rhs.Values[k] {
+					if lhsValues[lx[k]] != rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < rhs.Values[k] {
+					if lhsValues[lx[k]] < rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= rhs.Values[k] {
+					if lhsValues[lx[k]] <= rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictInt:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Int).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
@@ -523,25 +537,25 @@ func compareInts(op string, lhs, rhs vector.Any) vector.Any {
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == literal {
+					if lhsValues[lx[k]] == literal {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != literal {
+					if lhsValues[lx[k]] != literal {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < literal {
+					if lhsValues[lx[k]] < literal {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= literal {
+					if lhsValues[lx[k]] <= literal {
 						out.Set(k)
 					}
 				}
@@ -586,29 +600,31 @@ func compareInts(op string, lhs, rhs vector.Any) vector.Any {
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictInt:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Int).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if literal == rhs.Values[rhs.Tags[k]] {
+					if literal == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if literal != rhs.Values[rhs.Tags[k]] {
+					if literal != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if literal < rhs.Values[rhs.Tags[k]] {
+					if literal < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if literal <= rhs.Values[rhs.Tags[k]] {
+					if literal <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
@@ -693,29 +709,31 @@ func compareUints(op string, lhs, rhs vector.Any) vector.Any {
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictUint:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Uint).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] == rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] != rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] < rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[k] <= rhs.Values[rhs.Tags[k]] {
+					if lhs.Values[k] <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
@@ -758,60 +776,64 @@ func compareUints(op string, lhs, rhs vector.Any) vector.Any {
 		default:
 			panic(fmt.Sprintf("bad type %T", rhs))
 		}
-	case *vector.DictUint:
+	case *vector.Dict:
+		lhsValues := lhs.Any.(*vector.Uint).Values
+		lx := lhs.Index
 		switch rhs := rhs.(type) {
 		case *vector.Uint:
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == rhs.Values[k] {
+					if lhsValues[lx[k]] == rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != rhs.Values[k] {
+					if lhsValues[lx[k]] != rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < rhs.Values[k] {
+					if lhsValues[lx[k]] < rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= rhs.Values[k] {
+					if lhsValues[lx[k]] <= rhs.Values[k] {
 						out.Set(k)
 					}
 				}
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictUint:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Uint).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= rhs.Values[rhs.Tags[k]] {
+					if lhsValues[lx[k]] <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
@@ -824,25 +846,25 @@ func compareUints(op string, lhs, rhs vector.Any) vector.Any {
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] == literal {
+					if lhsValues[lx[k]] == literal {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] != literal {
+					if lhsValues[lx[k]] != literal {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] < literal {
+					if lhsValues[lx[k]] < literal {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if lhs.Values[lhs.Tags[k]] <= literal {
+					if lhsValues[lx[k]] <= literal {
 						out.Set(k)
 					}
 				}
@@ -887,29 +909,31 @@ func compareUints(op string, lhs, rhs vector.Any) vector.Any {
 			default:
 				panic(fmt.Sprintf("unknown op %q", op))
 			}
-		case *vector.DictUint:
+		case *vector.Dict:
+			rhsValues := rhs.Any.(*vector.Uint).Values
+			rx := rhs.Index
 			switch op {
 			case "==":
 				for k := uint32(0); k < n; k++ {
-					if literal == rhs.Values[rhs.Tags[k]] {
+					if literal == rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "!=":
 				for k := uint32(0); k < n; k++ {
-					if literal != rhs.Values[rhs.Tags[k]] {
+					if literal != rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<":
 				for k := uint32(0); k < n; k++ {
-					if literal < rhs.Values[rhs.Tags[k]] {
+					if literal < rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
 			case "<=":
 				for k := uint32(0); k < n; k++ {
-					if literal <= rhs.Values[rhs.Tags[k]] {
+					if literal <= rhsValues[rx[k]] {
 						out.Set(k)
 					}
 				}
