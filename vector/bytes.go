@@ -26,10 +26,12 @@ func (b *Bytes) Len() uint32 {
 }
 
 func (b *Bytes) Serialize(builder *zcode.Builder, slot uint32) {
+	builder.Append(b.Value(slot))
+}
+
+func (b *Bytes) Value(slot uint32) []byte {
 	if b.Nulls != nil && b.Nulls.Value(slot) {
-		builder.Append(nil)
-	} else {
-		bytes := b.Bytes[b.Offs[slot]:b.Offs[slot+1]]
-		builder.Append(zed.EncodeBytes(bytes))
+		return nil
 	}
+	return b.Bytes[b.Offs[slot]:b.Offs[slot+1]]
 }

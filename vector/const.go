@@ -46,6 +46,10 @@ func (c *Const) Serialize(b *zcode.Builder, slot uint32) {
 	}
 }
 
+func (c *Const) AsBytes() ([]byte, bool) {
+	return c.val.Bytes(), c.val.Type().ID() == zed.IDBytes
+}
+
 func (c *Const) AsFloat() (float64, bool) {
 	return coerce.ToFloat(c.val)
 }
@@ -56,4 +60,8 @@ func (c *Const) AsInt() (int64, bool) {
 
 func (c *Const) AsUint() (uint64, bool) {
 	return coerce.ToUint(c.val)
+}
+
+func (c *Const) AsString() (string, bool) {
+	return c.val.AsString(), c.val.IsString()
 }
