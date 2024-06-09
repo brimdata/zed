@@ -132,7 +132,7 @@ func (e opCycleError) Error() string {
 		if i > 0 {
 			b += " -> "
 		}
-		b += op.Name
+		b += op.Name.Name
 	}
 	return b
 }

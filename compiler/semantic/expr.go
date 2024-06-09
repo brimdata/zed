@@ -403,7 +403,7 @@ func (a *analyzer) semCall(call *ast.Call) dag.Expr {
 		return badExpr()
 	}
 	exprs := a.semExprs(call.Args)
-	name, nargs := call.Name, len(call.Args)
+	name, nargs := call.Name.Name, len(call.Args)
 	// Call could be to a user defined func. Check if we have a matching func in
 	// scope.
 	udf, err := a.scope.LookupExpr(name)
@@ -416,7 +416,7 @@ func (a *analyzer) semCall(call *ast.Call) dag.Expr {
 	case udf != nil:
 		f, ok := udf.(*dag.Func)
 		if !ok {
-			a.error(call, errors.New("not a function"))
+			a.error(call.Name, errors.New("not a function"))
 			return badExpr()
 		}
 		if len(f.Params) != nargs {
@@ -451,7 +451,7 @@ func (a *analyzer) semCall(call *ast.Call) dag.Expr {
 		}
 		inner := a.semCall(&ast.Call{
 			Kind: "Call",
-			Name: id.Name,
+			Name: id,
 			Args: []ast.Expr{&ast.ID{Kind: "ID", Name: "this"}},
 		})
 		return &dag.MapCall{
@@ -575,12 +575,13 @@ func (a *analyzer) semField(f ast.Expr) dag.Expr {
 }
 
 func (a *analyzer) maybeConvertAgg(call *ast.Call) dag.Expr {
-	if _, err := agg.NewPattern(call.Name, true); err != nil {
+	name := call.Name.Name
+	if _, err := agg.NewPattern(name, true); err != nil {
 		return nil
 	}
 	var e dag.Expr
 	if err := function.CheckArgCount(len(call.Args), 0, 1); err != nil {
-		if call.Name == "min" || call.Name == "max" {
+		if name == "min" || name == "max" {
 			// min and max are special cases as they are also functions. If the
 			// number of args is greater than 1 they're probably a function so do not
 			// return an error.
@@ -594,7 +595,7 @@ func (a *analyzer) maybeConvertAgg(call *ast.Call) dag.Expr {
 	}
 	return &dag.Agg{
 		Kind:  "Agg",
-		Name:  call.Name,
+		Name:  name,
 		Expr:  e,
 		Where: a.semExprNullable(call.Where),
 	}

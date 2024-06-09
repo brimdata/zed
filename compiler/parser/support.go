@@ -73,11 +73,10 @@ func makeTemplateExprChain(in any) any {
 
 func newCall(c *current, name, args, where any) ast.Expr {
 	call := &ast.Call{
-		Kind:    "Call",
-		Name:    name.(string),
-		NamePos: c.pos.offset,
-		Args:    sliceOf[ast.Expr](args),
-		Rparen:  lastPos(c, ")"),
+		Kind:   "Call",
+		Name:   name.(*ast.ID),
+		Args:   sliceOf[ast.Expr](args),
+		Rparen: lastPos(c, ")"),
 	}
 	if where != nil {
 		call.Where = where.(ast.Expr)

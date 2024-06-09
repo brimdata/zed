@@ -64,8 +64,7 @@ func (c *canon) defs(defs []ast.Def, separator string) {
 }
 
 func (c *canon) def(d ast.Def) {
-	c.write(d.Name)
-	c.write("=")
+	c.write("%s=", d.Name.Name)
 	c.expr(d.Expr, "")
 }
 
@@ -111,7 +110,7 @@ func (c *canon) expr(e ast.Expr, parent string) {
 		c.write(" : ")
 		c.expr(e.Else, "")
 	case *ast.Call:
-		c.write("%s(", e.Name)
+		c.write("%s(", e.Name.Name)
 		c.exprs(e.Args)
 		c.write(")")
 	case *ast.Cast:
@@ -324,30 +323,30 @@ func (c *canon) next() {
 func (c *canon) decl(d ast.Decl) {
 	switch d := d.(type) {
 	case *ast.ConstDecl:
-		c.write("const %s = ", d.Name)
+		c.write("const %s = ", d.Name.Name)
 		c.expr(d.Expr, "")
 	case *ast.FuncDecl:
-		c.write("func %s(", d.Name)
+		c.write("func %s(", d.Name.Name)
 		for i := range d.Params {
 			if i != 0 {
 				c.write(", ")
 			}
-			c.write(d.Params[i])
+			c.write(d.Params[i].Name)
 		}
 		c.open("): (")
 		c.ret()
-		c.expr(d.Expr, d.Name)
+		c.expr(d.Expr, d.Name.Name)
 		c.close()
 		c.ret()
 		c.flush()
 		c.write(")")
 	case *ast.OpDecl:
-		c.write("op %s(", d.Name)
+		c.write("op %s(", d.Name.Name)
 		for k, p := range d.Params {
 			if k > 0 {
 				c.write(", ")
 			}
-			c.write(p)
+			c.write(p.Name)
 		}
 		c.open("): (")
 		c.ret()
@@ -360,7 +359,7 @@ func (c *canon) decl(d ast.Decl) {
 		c.write(")")
 		c.head, c.first = true, true
 	case *ast.TypeDecl:
-		c.write("type %s = ", d.Name)
+		c.write("type %s = ", zson.QuotedName(d.Name.Name))
 		c.typ(d.Type)
 	default:
 		c.open("unknown decl: %T", d)
@@ -711,7 +710,7 @@ func isAggFunc(e ast.Expr) *ast.Summarize {
 	if !ok {
 		return nil
 	}
-	if _, err := agg.NewPattern(call.Name, true); err != nil {
+	if _, err := agg.NewPattern(call.Name.Name, true); err != nil {
 		return nil
 	}
 	return &ast.Summarize{
@@ -739,7 +738,7 @@ func IsBool(e ast.Expr) bool {
 	case *ast.Conditional:
 		return IsBool(e.Then) && IsBool(e.Else)
 	case *ast.Call:
-		return function.HasBoolResult(e.Name)
+		return function.HasBoolResult(e.Name.Name)
 	case *ast.Cast:
 		if typval, ok := e.Type.(*astzed.TypeValue); ok {
 			if typ, ok := typval.Value.(*astzed.TypePrimitive); ok {

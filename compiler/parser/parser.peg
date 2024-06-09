@@ -32,21 +32,21 @@ Decl
   = v:(ConstDecl / FuncDecl / OpDecl / TypeDecl) _ { return v, nil }
 
 ConstDecl
-  = "const" _ id:IdentifierName __ "=" __ expr:Expr {
+  = "const" _ name:Identifier __ "=" __ expr:Expr {
       return &ast.ConstDecl{
           Kind: "ConstDecl",
-          Name: id.(string),
+          Name: name.(*ast.ID),
           Expr: expr.(ast.Expr),
           KeywordPos: c.pos.offset,
       }, nil
     }
 
 FuncDecl
-  = "func" _ id:IdentifierName __ "(" __ params:IdentifierNames? __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
+  = "func" _ name:Identifier __ "(" __ params:Identifiers? __ ")" __ ":" __ "(" __ expr:Expr __ ")" {
       return &ast.FuncDecl{
         Kind: "FuncDecl",
-        Name: id.(string),
-        Params: sliceOf[string](params),
+        Name: name.(*ast.ID),
+        Params: sliceOf[*ast.ID](params),
         Expr: expr.(ast.Expr),
         KeywordPos: c.pos.offset,
         Rparen: lastPos(c, ")"),
@@ -54,11 +54,11 @@ FuncDecl
     }
 
 OpDecl
-  = "op" _ name:IdentifierName __ "(" __ params:IdentifierNames? __ ")" __ ":" __ "(" __ body:OpDeclBody __ ")" {
+  = "op" _ name:Identifier __ "(" __ params:Identifiers? __ ")" __ ":" __ "(" __ body:OpDeclBody __ ")" {
       return &ast.OpDecl{
         Kind: "OpDecl",
-        Name: name.(string),
-        Params: sliceOf[string](params),
+        Name: name.(*ast.ID),
+        Params: sliceOf[*ast.ID](params),
         Body: sliceOf[ast.Op](body),
         KeywordPos: c.pos.offset,
         Rparen: lastPos(c, ")"),
@@ -70,12 +70,21 @@ OpDeclBody
   / seq:Seq { return seq, nil }
 
 TypeDecl
-  = "type" _ id:(IdentifierName / QuotedString) __ "=" __ typ:Type {
+  = "type" _ name:(Identifier / QuotedIdentifier) __ "=" __ typ:Type {
       return &ast.TypeDecl{
         Kind: "TypeDecl",
-        Name: id.(string),
+        Name: name.(*ast.ID),
         Type: typ.(astzed.Type),
         KeywordPos: c.pos.offset,
+      }, nil
+    }
+
+QuotedIdentifier
+  = name:QuotedString {
+        return &ast.ID{
+          Kind: "ID",
+          Name: name.(string),
+          NamePos: c.pos.offset+1,
       }, nil
     }
 
@@ -791,11 +800,10 @@ Locals
     }
 
 LocalsAssignment
-  = name:IdentifierName opt:(__ "=" __ Expr)? {
+  = name:Identifier opt:(__ "=" __ Expr)? {
       def := ast.Def{
-        Name: name.(string),
-        NamePos: c.pos.offset,
-        Expr: &ast.ID{Kind: "ID", Name: name.(string)},
+        Name: name.(*ast.ID),
+        Expr: name.(*ast.ID),
       }
       if opt != nil {
         def.Expr = opt.([]any)[3].(ast.Expr)
@@ -995,12 +1003,14 @@ Function
   = Grep
   // Special case to handle `regexp(/x/, y)` and `regexp_replace(x, /y/, z)`.
   / "regexp" __ "(" __ arg0:RegexpPrimitive __ "," __ arg1:Expr __ ")" where:WhereClause? {
-      return newCall(c, "regexp", []any{arg0, arg1}, where), nil
+      id := &ast.ID{Kind: "ID", Name: "regexp", NamePos: c.pos.offset}
+      return newCall(c, id, []any{arg0, arg1}, where), nil
     }
   / "regexp_replace" __ "(" __ arg0:Expr __ "," __ arg1:RegexpPrimitive __ "," __ arg2:Expr __ ")" where:WhereClause? {
-      return newCall(c, "regexp_replace", []any{arg0, arg1, arg2}, where), nil
+      id := &ast.ID{Kind: "ID", Name: "regexp_replace", NamePos: c.pos.offset}
+      return newCall(c, id, []any{arg0, arg1, arg2}, where), nil
     }
-  / !FuncGuard fn:IdentifierName __ "(" __ args:FunctionArgs __ ")" where:WhereClause? {
+  / !FuncGuard fn:Identifier __ "(" __ args:FunctionArgs __ ")" where:WhereClause? {
       return newCall(c, fn, args, where), nil
     }
 
@@ -1391,17 +1401,17 @@ Identifier
       }, nil
     }
 
+Identifiers
+  = first:Identifier rest:(__ "," __ name:Identifier { return name, nil })* {
+    return prepend(first, rest), nil
+  }
+
 IdentifierName
   = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* { return string(c.text), nil }
   / "$" { return string(c.text), nil }
   / "\\" id:IDGuard { return id, nil }
   // "type" is a search guard but should not be an id guard
   / "type" { return string(c.text), nil }
-
-IdentifierNames
-  = first:IdentifierName rest:(__ "," __ id:IdentifierName { return id, nil })* {
-    return prepend(first, rest), nil
-  }
 
 IdentifierStart
   = UnicodeLetter
