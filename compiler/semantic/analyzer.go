@@ -32,7 +32,7 @@ func AnalyzeAddSource(ctx context.Context, seq ast.Seq, source *data.Source, hea
 		return nil, a.errors
 	}
 	if !HasSource(s) {
-		if err := a.addDefaultSource(&s); err != nil {
+		if err := AddDefaultSource(ctx, &s, source, head); err != nil {
 			return nil, err
 		}
 	}
@@ -73,17 +73,17 @@ func HasSource(seq dag.Seq) bool {
 	return false
 }
 
-func (a *analyzer) addDefaultSource(seq *dag.Seq) error {
+func AddDefaultSource(ctx context.Context, seq *dag.Seq, source *data.Source, head *lakeparse.Commitish) error {
 	if HasSource(*seq) {
 		return nil
 	}
 	// No from so add a source.
-	if a.head == nil {
+	if head == nil {
 		seq.Prepend(&dag.DefaultScan{Kind: "DefaultScan"})
 		return nil
 	}
 	// Verify pool exists for HEAD
-	if _, err := a.source.PoolID(a.ctx, a.head.Pool); err != nil {
+	if _, err := source.PoolID(ctx, head.Pool); err != nil {
 		return err
 	}
 	pool := &ast.Pool{
@@ -95,7 +95,7 @@ func (a *analyzer) addDefaultSource(seq *dag.Seq) error {
 			},
 		},
 	}
-	ops := a.semPool(pool)
+	ops := newAnalyzer(ctx, source, head).semPool(pool)
 	seq.Prepend(ops[0])
 	return nil
 }

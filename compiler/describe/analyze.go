@@ -7,7 +7,10 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
 	"github.com/brimdata/zed/compiler/optimizer"
+	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/segmentio/ksuid"
@@ -28,13 +31,15 @@ type (
 		Meta string `json:"meta"`
 	}
 	Pool struct {
-		Kind string      `json:"kind"`
-		Name string      `json:"name"`
-		ID   ksuid.KSUID `json:"id"`
+		Kind     string      `json:"kind"`
+		Name     string      `json:"name"`
+		ID       ksuid.KSUID `json:"id"`
+		Inferred bool        `json:"inferred"`
 	}
 	Path struct {
-		Kind string `json:"kind"`
-		URI  string `json:"uri"`
+		Kind     string `json:"kind"`
+		URI      string `json:"uri"`
+		Inferred bool   `json:"inferred"`
 	}
 )
 
@@ -47,17 +52,31 @@ type Channel struct {
 	Sort            *order.SortKey `json:"sort"`
 }
 
-func Analyze(ctx context.Context, source *data.Source, seq dag.Seq) (*Info, error) {
-	var info Info
-	var err error
-	if info.Sources, err = describeSources(ctx, source.Lake(), seq[0]); err != nil {
-		return nil, err
-	}
-	sortKeys, err := optimizer.New(ctx, source).SortKeys(seq)
+func Analyze(ctx context.Context, query string, src *data.Source, head *lakeparse.Commitish) (*Info, error) {
+	seq, sset, err := parser.ParseZed(nil, query)
 	if err != nil {
 		return nil, err
 	}
-	aggKeys := describeAggs(seq, []field.List{nil})
+	entry, err := semantic.Analyze(ctx, seq, src, head)
+	if err != nil {
+		if list, ok := err.(parser.ErrorList); ok {
+			list.SetSourceSet(sset)
+		}
+		return nil, err
+	}
+	srcInferred := !semantic.HasSource(entry)
+	if err = semantic.AddDefaultSource(ctx, &entry, src, head); err != nil {
+		return nil, err
+	}
+	var info Info
+	if info.Sources, err = describeSources(ctx, src.Lake(), entry[0], srcInferred); err != nil {
+		return nil, err
+	}
+	sortKeys, err := optimizer.New(ctx, src).SortKeys(entry)
+	if err != nil {
+		return nil, err
+	}
+	aggKeys := describeAggs(entry, []field.List{nil})
 	for i := range sortKeys {
 		// Convert SortKey to a pointer so a nil sort is encoded as null for
 		// JSON/ZSON.
@@ -73,12 +92,12 @@ func Analyze(ctx context.Context, source *data.Source, seq dag.Seq) (*Info, erro
 	return &info, nil
 }
 
-func describeSources(ctx context.Context, lk *lake.Root, o dag.Op) ([]Source, error) {
+func describeSources(ctx context.Context, lk *lake.Root, o dag.Op, inferred bool) ([]Source, error) {
 	switch o := o.(type) {
 	case *dag.Fork:
 		var s []Source
 		for _, p := range o.Paths {
-			out, err := describeSources(ctx, lk, p[0])
+			out, err := describeSources(ctx, lk, p[0], inferred)
 			if err != nil {
 				return nil, err
 			}
@@ -86,19 +105,19 @@ func describeSources(ctx context.Context, lk *lake.Root, o dag.Op) ([]Source, er
 		}
 		return s, nil
 	case *dag.DefaultScan:
-		return []Source{&Path{Kind: "Path", URI: "stdio://stdin"}}, nil
+		return []Source{&Path{Kind: "Path", URI: "stdio://stdin", Inferred: inferred}}, nil
 	case *dag.FileScan:
-		return []Source{&Path{Kind: "Path", URI: o.Path}}, nil
+		return []Source{&Path{Kind: "Path", URI: o.Path, Inferred: inferred}}, nil
 	case *dag.HTTPScan:
-		return []Source{&Path{Kind: "Path", URI: o.URL}}, nil
+		return []Source{&Path{Kind: "Path", URI: o.URL, Inferred: inferred}}, nil
 	case *dag.PoolScan:
-		return sourceOfPool(ctx, lk, o.ID)
+		return sourceOfPool(ctx, lk, o.ID, inferred)
 	case *dag.Lister:
-		return sourceOfPool(ctx, lk, o.Pool)
+		return sourceOfPool(ctx, lk, o.Pool, inferred)
 	case *dag.SeqScan:
-		return sourceOfPool(ctx, lk, o.Pool)
+		return sourceOfPool(ctx, lk, o.Pool, inferred)
 	case *dag.CommitMetaScan:
-		return sourceOfPool(ctx, lk, o.Pool)
+		return sourceOfPool(ctx, lk, o.Pool, inferred)
 	case *dag.LakeMetaScan:
 		return []Source{&LakeMeta{Kind: "LakeMeta", Meta: o.Meta}}, nil
 	default:
@@ -106,15 +125,16 @@ func describeSources(ctx context.Context, lk *lake.Root, o dag.Op) ([]Source, er
 	}
 }
 
-func sourceOfPool(ctx context.Context, lk *lake.Root, id ksuid.KSUID) ([]Source, error) {
+func sourceOfPool(ctx context.Context, lk *lake.Root, id ksuid.KSUID, inferred bool) ([]Source, error) {
 	p, err := lk.OpenPool(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	return []Source{&Pool{
-		Kind: "Pool",
-		ID:   id,
-		Name: p.Name,
+		Kind:     "Pool",
+		ID:       id,
+		Name:     p.Name,
+		Inferred: inferred,
 	}}, nil
 }
 

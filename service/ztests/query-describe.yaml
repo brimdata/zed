@@ -43,12 +43,14 @@ outputs:
               {
                   "kind": "Pool",
                   "name": "test1",
-                  "id": "XXX"
+                  "id": "XXX",
+                  "inferred": false
               },
               {
                   "kind": "Pool",
                   "name": "test2",
-                  "id": "XXX"
+                  "id": "XXX",
+                  "inferred": false
               }
           ],
           "channels": [
@@ -70,7 +72,8 @@ outputs:
           "sources": {
               "kind": "Pool",
               "name": "test1",
-              "id": "XXX"
+              "id": "XXX",
+              "inferred": true
           },
           "channels": [
               {
@@ -91,7 +94,8 @@ outputs:
           "sources": {
               "kind": "Pool",
               "name": "test1",
-              "id": "XXX"
+              "id": "XXX",
+              "inferred": true
           },
           "channels": [
               {
@@ -106,12 +110,14 @@ outputs:
               {
                   "kind": "Pool",
                   "name": "test1",
-                  "id": "XXX"
+                  "id": "XXX",
+                  "inferred": false
               },
               {
                   "kind": "Pool",
                   "name": "test2",
-                  "id": "XXX"
+                  "id": "XXX",
+                  "inferred": false
               }
           ],
           "channels": [
@@ -141,7 +147,8 @@ outputs:
           "sources": {
               "kind": "Pool",
               "name": "test1",
-              "id": "XXX"
+              "id": "XXX",
+              "inferred": true
           },
           "channels": [
               {
