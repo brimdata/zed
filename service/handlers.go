@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/describe"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
@@ -178,7 +179,7 @@ func handleQueryDescribe(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	src := data.NewSource(storage.NewRemoteEngine(), c.root)
-	info, err := compiler.Describe(r.Context(), req.Query, src, &req.Head)
+	info, err := describe.Analyze(r.Context(), req.Query, src, &req.Head)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
