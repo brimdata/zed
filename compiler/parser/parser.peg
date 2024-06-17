@@ -70,21 +70,12 @@ OpDeclBody
   / seq:Seq { return seq, nil }
 
 TypeDecl
-  = "type" _ name:(Identifier / QuotedIdentifier) __ "=" __ typ:Type {
+  = "type" _ name:Identifier __ "=" __ typ:Type {
       return &ast.TypeDecl{
         Kind: "TypeDecl",
         Name: name.(*ast.ID),
         Type: typ.(astzed.Type),
         KeywordPos: c.pos.offset,
-      }, nil
-    }
-
-QuotedIdentifier
-  = name:QuotedString {
-        return &ast.ID{
-          Kind: "ID",
-          Name: name.(string),
-          NamePos: c.pos.offset+1,
       }, nil
     }
 
