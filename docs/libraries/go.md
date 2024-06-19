@@ -55,6 +55,7 @@ import (
 func main() {
 	zctx := zed.NewContext()
 	reader := zsonio.NewReader(zctx, os.Stdin)
+	arena := zed.NewArena()
 	for {
 		val, err := reader.Read()
 		if err != nil {
@@ -63,9 +64,9 @@ func main() {
 		if val == nil {
 			return
 		}
-		s := val.Deref("s")
+		s := val.Deref(arena, "s")
 		if s == nil {
-			s = zctx.Missing().Ptr()
+			s = zctx.Missing(arena).Ptr()
 		}
 		fmt.Println(zson.String(s))
 	}
@@ -139,6 +140,7 @@ func main() {
 	}
 	defer reader.Close()
 	zctx := zed.NewContext()
+	arena := zed.NewArena()
 	for {
 		val, err := reader.Read()
 		if err != nil {
@@ -147,9 +149,9 @@ func main() {
 		if val == nil {
 			return
 		}
-		s := val.Deref("s")
+		s := val.Deref(arena, "s")
 		if s == nil {
-			s = zctx.Missing().Ptr()
+			s = zctx.Missing(arena).Ptr()
 		}
 		fmt.Println(zson.String(s))
 	}
