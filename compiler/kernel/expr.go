@@ -341,22 +341,18 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 }
 
 func (b *Builder) compileUDFCall(name string, body dag.Expr) (expr.Function, error) {
-	if b.udfStack == nil {
-		// If udfStack is nil this means we are entering a udf invocation. We
-		// will store compiled udf calls in builder.udfStack in order to avoid
-		// infinite recursion when encountering recursive udf calls.
-		b.udfStack = make(map[string]*expr.UDF)
-		defer func() { b.udfStack = nil }()
-	}
-	if fn, ok := b.udfStack[name]; ok {
+	if fn, ok := b.compiledUDFs[name]; ok {
 		return fn, nil
 	}
 	fn := &expr.UDF{}
-	b.udfStack[name] = fn
+	// We store compiled UDF calls here so as to avoid stack overflows on
+	// recursive calls.
+	b.compiledUDFs[name] = fn
 	var err error
 	if fn.Body, err = b.compileExpr(body); err != nil {
 		return nil, err
 	}
+	delete(b.compiledUDFs, name)
 	return fn, nil
 }
 

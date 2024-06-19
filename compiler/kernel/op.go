@@ -51,16 +51,16 @@ import (
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
 type Builder struct {
-	rctx      *runtime.Context
-	mctx      *zed.Context
-	source    *data.Source
-	readers   []zio.Reader
-	progress  *zbuf.Progress
-	arena     *zed.Arena // For zed.Values created during compilation.
-	deletes   *sync.Map
-	udfs      map[string]dag.Expr
-	udfStack  map[string]*expr.UDF
-	resetters expr.Resetters
+	rctx         *runtime.Context
+	mctx         *zed.Context
+	source       *data.Source
+	readers      []zio.Reader
+	progress     *zbuf.Progress
+	arena        *zed.Arena // For zed.Values created during compilation.
+	deletes      *sync.Map
+	udfs         map[string]dag.Expr
+	compiledUDFs map[string]*expr.UDF
+	resetters    expr.Resetters
 }
 
 func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
@@ -76,8 +76,9 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 			RecordsRead:    0,
 			RecordsMatched: 0,
 		},
-		arena: arena,
-		udfs:  make(map[string]dag.Expr),
+		arena:        arena,
+		udfs:         make(map[string]dag.Expr),
+		compiledUDFs: make(map[string]*expr.UDF),
 	}
 }
 
