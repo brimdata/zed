@@ -1,0 +1,9 @@
+zed: |
+  func c1(): ( count() )
+  func c2(): ( c1()+c1() )
+  yield [c2(),c2(),c2()]
+
+input: 'null'
+
+output: |
+  [2(uint64),2(uint64),2(uint64)]
