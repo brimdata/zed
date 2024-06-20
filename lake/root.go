@@ -59,6 +59,9 @@ func newRoot(engine storage.Engine, logger *zap.Logger, path *storage.URI) *Root
 	if err != nil {
 		panic(err)
 	}
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	return &Root{
 		engine:    engine,
 		logger:    logger,
