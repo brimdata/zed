@@ -157,7 +157,8 @@ func main() {
 	}
 }
 ```
-Now, run this command to interact with the lake via the local file system:
+After a re-run of `go mod tidy`, run this command to interact with the lake via
+the local file system:
 ```
 go run . ./scratch
 ```
