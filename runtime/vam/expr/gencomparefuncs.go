@@ -68,7 +68,7 @@ func genFunc(op, typ string, lhs, rhs vector.Form) string {
 	s += "out := vector.NewBoolEmpty(n, nil)\n"
 	s += genVarInit("l", typ, lhs)
 	s += genVarInit("r", typ, rhs)
-	s += formToLoop(typ, lhs, rhs, op)
+	s += strings.TrimLeft(formToLoop(typ, lhs, rhs, op), "\n")
 	s += "return out\n"
 	s += "}\n"
 	return s

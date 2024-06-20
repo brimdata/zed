@@ -14,7 +14,6 @@ func cmp_EQ_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == r.Values[k] {
 			out.Set(k)
@@ -30,7 +29,6 @@ func cmp_EQ_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == r.Values[rx[k]] {
 			out.Set(k)
@@ -44,7 +42,6 @@ func cmp_EQ_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == rconst {
 			out.Set(k)
@@ -60,7 +57,6 @@ func cmp_EQ_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == r.Values[k] {
 			out.Set(k)
@@ -78,7 +74,6 @@ func cmp_EQ_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == r.Values[rx[k]] {
 			out.Set(k)
@@ -94,7 +89,6 @@ func cmp_EQ_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == rconst {
 			out.Set(k)
@@ -108,7 +102,6 @@ func cmp_EQ_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst == r.Values[k] {
 			out.Set(k)
@@ -124,7 +117,6 @@ func cmp_EQ_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst == r.Values[rx[k]] {
 			out.Set(k)
@@ -138,7 +130,6 @@ func cmp_EQ_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == r.Values[k] {
 			out.Set(k)
@@ -154,7 +145,6 @@ func cmp_EQ_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == r.Values[rx[k]] {
 			out.Set(k)
@@ -168,7 +158,6 @@ func cmp_EQ_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == rconst {
 			out.Set(k)
@@ -184,7 +173,6 @@ func cmp_EQ_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == r.Values[k] {
 			out.Set(k)
@@ -202,7 +190,6 @@ func cmp_EQ_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == r.Values[rx[k]] {
 			out.Set(k)
@@ -218,7 +205,6 @@ func cmp_EQ_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == rconst {
 			out.Set(k)
@@ -232,7 +218,6 @@ func cmp_EQ_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst == r.Values[k] {
 			out.Set(k)
@@ -248,7 +233,6 @@ func cmp_EQ_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst == r.Values[rx[k]] {
 			out.Set(k)
@@ -262,7 +246,6 @@ func cmp_EQ_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == r.Values[k] {
 			out.Set(k)
@@ -278,7 +261,6 @@ func cmp_EQ_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == r.Values[rx[k]] {
 			out.Set(k)
@@ -292,7 +274,6 @@ func cmp_EQ_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] == rconst {
 			out.Set(k)
@@ -308,7 +289,6 @@ func cmp_EQ_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == r.Values[k] {
 			out.Set(k)
@@ -326,7 +306,6 @@ func cmp_EQ_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == r.Values[rx[k]] {
 			out.Set(k)
@@ -342,7 +321,6 @@ func cmp_EQ_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] == rconst {
 			out.Set(k)
@@ -356,7 +334,6 @@ func cmp_EQ_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst == r.Values[k] {
 			out.Set(k)
@@ -372,7 +349,6 @@ func cmp_EQ_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst == r.Values[rx[k]] {
 			out.Set(k)
@@ -386,7 +362,6 @@ func cmp_EQ_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(k)) == 0 {
 			out.Set(k)
@@ -402,7 +377,6 @@ func cmp_EQ_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) == 0 {
 			out.Set(k)
@@ -416,7 +390,6 @@ func cmp_EQ_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), rconst) == 0 {
 			out.Set(k)
@@ -432,7 +405,6 @@ func cmp_EQ_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) == 0 {
 			out.Set(k)
@@ -450,7 +422,6 @@ func cmp_EQ_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) == 0 {
 			out.Set(k)
@@ -466,7 +437,6 @@ func cmp_EQ_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), rconst) == 0 {
 			out.Set(k)
@@ -480,7 +450,6 @@ func cmp_EQ_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(k)) == 0 {
 			out.Set(k)
@@ -496,7 +465,6 @@ func cmp_EQ_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(uint32(rx[k]))) == 0 {
 			out.Set(k)
@@ -510,7 +478,6 @@ func cmp_EQ_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(k)) == 0 {
 			out.Set(k)
@@ -526,7 +493,6 @@ func cmp_EQ_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) == 0 {
 			out.Set(k)
@@ -540,7 +506,6 @@ func cmp_EQ_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), rconst) == 0 {
 			out.Set(k)
@@ -556,7 +521,6 @@ func cmp_EQ_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) == 0 {
 			out.Set(k)
@@ -574,7 +538,6 @@ func cmp_EQ_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) == 0 {
 			out.Set(k)
@@ -590,7 +553,6 @@ func cmp_EQ_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), rconst) == 0 {
 			out.Set(k)
@@ -604,7 +566,6 @@ func cmp_EQ_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(k)) == 0 {
 			out.Set(k)
@@ -620,7 +581,6 @@ func cmp_EQ_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) == 0 {
 			out.Set(k)
@@ -634,7 +594,6 @@ func cmp_NE_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != r.Values[k] {
 			out.Set(k)
@@ -650,7 +609,6 @@ func cmp_NE_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != r.Values[rx[k]] {
 			out.Set(k)
@@ -664,7 +622,6 @@ func cmp_NE_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != rconst {
 			out.Set(k)
@@ -680,7 +637,6 @@ func cmp_NE_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != r.Values[k] {
 			out.Set(k)
@@ -698,7 +654,6 @@ func cmp_NE_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != r.Values[rx[k]] {
 			out.Set(k)
@@ -714,7 +669,6 @@ func cmp_NE_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != rconst {
 			out.Set(k)
@@ -728,7 +682,6 @@ func cmp_NE_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst != r.Values[k] {
 			out.Set(k)
@@ -744,7 +697,6 @@ func cmp_NE_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst != r.Values[rx[k]] {
 			out.Set(k)
@@ -758,7 +710,6 @@ func cmp_NE_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != r.Values[k] {
 			out.Set(k)
@@ -774,7 +725,6 @@ func cmp_NE_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != r.Values[rx[k]] {
 			out.Set(k)
@@ -788,7 +738,6 @@ func cmp_NE_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != rconst {
 			out.Set(k)
@@ -804,7 +753,6 @@ func cmp_NE_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != r.Values[k] {
 			out.Set(k)
@@ -822,7 +770,6 @@ func cmp_NE_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != r.Values[rx[k]] {
 			out.Set(k)
@@ -838,7 +785,6 @@ func cmp_NE_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != rconst {
 			out.Set(k)
@@ -852,7 +798,6 @@ func cmp_NE_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst != r.Values[k] {
 			out.Set(k)
@@ -868,7 +813,6 @@ func cmp_NE_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst != r.Values[rx[k]] {
 			out.Set(k)
@@ -882,7 +826,6 @@ func cmp_NE_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != r.Values[k] {
 			out.Set(k)
@@ -898,7 +841,6 @@ func cmp_NE_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != r.Values[rx[k]] {
 			out.Set(k)
@@ -912,7 +854,6 @@ func cmp_NE_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] != rconst {
 			out.Set(k)
@@ -928,7 +869,6 @@ func cmp_NE_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != r.Values[k] {
 			out.Set(k)
@@ -946,7 +886,6 @@ func cmp_NE_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != r.Values[rx[k]] {
 			out.Set(k)
@@ -962,7 +901,6 @@ func cmp_NE_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] != rconst {
 			out.Set(k)
@@ -976,7 +914,6 @@ func cmp_NE_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst != r.Values[k] {
 			out.Set(k)
@@ -992,7 +929,6 @@ func cmp_NE_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst != r.Values[rx[k]] {
 			out.Set(k)
@@ -1006,7 +942,6 @@ func cmp_NE_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(k)) != 0 {
 			out.Set(k)
@@ -1022,7 +957,6 @@ func cmp_NE_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) != 0 {
 			out.Set(k)
@@ -1036,7 +970,6 @@ func cmp_NE_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), rconst) != 0 {
 			out.Set(k)
@@ -1052,7 +985,6 @@ func cmp_NE_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) != 0 {
 			out.Set(k)
@@ -1070,7 +1002,6 @@ func cmp_NE_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) != 0 {
 			out.Set(k)
@@ -1086,7 +1017,6 @@ func cmp_NE_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), rconst) != 0 {
 			out.Set(k)
@@ -1100,7 +1030,6 @@ func cmp_NE_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(k)) != 0 {
 			out.Set(k)
@@ -1116,7 +1045,6 @@ func cmp_NE_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(uint32(rx[k]))) != 0 {
 			out.Set(k)
@@ -1130,7 +1058,6 @@ func cmp_NE_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(k)) != 0 {
 			out.Set(k)
@@ -1146,7 +1073,6 @@ func cmp_NE_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) != 0 {
 			out.Set(k)
@@ -1160,7 +1086,6 @@ func cmp_NE_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), rconst) != 0 {
 			out.Set(k)
@@ -1176,7 +1101,6 @@ func cmp_NE_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) != 0 {
 			out.Set(k)
@@ -1194,7 +1118,6 @@ func cmp_NE_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) != 0 {
 			out.Set(k)
@@ -1210,7 +1133,6 @@ func cmp_NE_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), rconst) != 0 {
 			out.Set(k)
@@ -1224,7 +1146,6 @@ func cmp_NE_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(k)) != 0 {
 			out.Set(k)
@@ -1240,7 +1161,6 @@ func cmp_NE_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) != 0 {
 			out.Set(k)
@@ -1254,7 +1174,6 @@ func cmp_LT_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < r.Values[k] {
 			out.Set(k)
@@ -1270,7 +1189,6 @@ func cmp_LT_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < r.Values[rx[k]] {
 			out.Set(k)
@@ -1284,7 +1202,6 @@ func cmp_LT_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < rconst {
 			out.Set(k)
@@ -1300,7 +1217,6 @@ func cmp_LT_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < r.Values[k] {
 			out.Set(k)
@@ -1318,7 +1234,6 @@ func cmp_LT_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < r.Values[rx[k]] {
 			out.Set(k)
@@ -1334,7 +1249,6 @@ func cmp_LT_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < rconst {
 			out.Set(k)
@@ -1348,7 +1262,6 @@ func cmp_LT_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst < r.Values[k] {
 			out.Set(k)
@@ -1364,7 +1277,6 @@ func cmp_LT_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst < r.Values[rx[k]] {
 			out.Set(k)
@@ -1378,7 +1290,6 @@ func cmp_LT_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < r.Values[k] {
 			out.Set(k)
@@ -1394,7 +1305,6 @@ func cmp_LT_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < r.Values[rx[k]] {
 			out.Set(k)
@@ -1408,7 +1318,6 @@ func cmp_LT_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < rconst {
 			out.Set(k)
@@ -1424,7 +1333,6 @@ func cmp_LT_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < r.Values[k] {
 			out.Set(k)
@@ -1442,7 +1350,6 @@ func cmp_LT_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < r.Values[rx[k]] {
 			out.Set(k)
@@ -1458,7 +1365,6 @@ func cmp_LT_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < rconst {
 			out.Set(k)
@@ -1472,7 +1378,6 @@ func cmp_LT_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst < r.Values[k] {
 			out.Set(k)
@@ -1488,7 +1393,6 @@ func cmp_LT_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst < r.Values[rx[k]] {
 			out.Set(k)
@@ -1502,7 +1406,6 @@ func cmp_LT_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < r.Values[k] {
 			out.Set(k)
@@ -1518,7 +1421,6 @@ func cmp_LT_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < r.Values[rx[k]] {
 			out.Set(k)
@@ -1532,7 +1434,6 @@ func cmp_LT_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] < rconst {
 			out.Set(k)
@@ -1548,7 +1449,6 @@ func cmp_LT_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < r.Values[k] {
 			out.Set(k)
@@ -1566,7 +1466,6 @@ func cmp_LT_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < r.Values[rx[k]] {
 			out.Set(k)
@@ -1582,7 +1481,6 @@ func cmp_LT_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] < rconst {
 			out.Set(k)
@@ -1596,7 +1494,6 @@ func cmp_LT_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst < r.Values[k] {
 			out.Set(k)
@@ -1612,7 +1509,6 @@ func cmp_LT_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst < r.Values[rx[k]] {
 			out.Set(k)
@@ -1626,7 +1522,6 @@ func cmp_LT_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(k)) < 0 {
 			out.Set(k)
@@ -1642,7 +1537,6 @@ func cmp_LT_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) < 0 {
 			out.Set(k)
@@ -1656,7 +1550,6 @@ func cmp_LT_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), rconst) < 0 {
 			out.Set(k)
@@ -1672,7 +1565,6 @@ func cmp_LT_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) < 0 {
 			out.Set(k)
@@ -1690,7 +1582,6 @@ func cmp_LT_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) < 0 {
 			out.Set(k)
@@ -1706,7 +1597,6 @@ func cmp_LT_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), rconst) < 0 {
 			out.Set(k)
@@ -1720,7 +1610,6 @@ func cmp_LT_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(k)) < 0 {
 			out.Set(k)
@@ -1736,7 +1625,6 @@ func cmp_LT_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(uint32(rx[k]))) < 0 {
 			out.Set(k)
@@ -1750,7 +1638,6 @@ func cmp_LT_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(k)) < 0 {
 			out.Set(k)
@@ -1766,7 +1653,6 @@ func cmp_LT_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) < 0 {
 			out.Set(k)
@@ -1780,7 +1666,6 @@ func cmp_LT_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), rconst) < 0 {
 			out.Set(k)
@@ -1796,7 +1681,6 @@ func cmp_LT_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) < 0 {
 			out.Set(k)
@@ -1814,7 +1698,6 @@ func cmp_LT_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) < 0 {
 			out.Set(k)
@@ -1830,7 +1713,6 @@ func cmp_LT_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), rconst) < 0 {
 			out.Set(k)
@@ -1844,7 +1726,6 @@ func cmp_LT_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(k)) < 0 {
 			out.Set(k)
@@ -1860,7 +1741,6 @@ func cmp_LT_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) < 0 {
 			out.Set(k)
@@ -1874,7 +1754,6 @@ func cmp_LE_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= r.Values[k] {
 			out.Set(k)
@@ -1890,7 +1769,6 @@ func cmp_LE_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= r.Values[rx[k]] {
 			out.Set(k)
@@ -1904,7 +1782,6 @@ func cmp_LE_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= rconst {
 			out.Set(k)
@@ -1920,7 +1797,6 @@ func cmp_LE_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= r.Values[k] {
 			out.Set(k)
@@ -1938,7 +1814,6 @@ func cmp_LE_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= r.Values[rx[k]] {
 			out.Set(k)
@@ -1954,7 +1829,6 @@ func cmp_LE_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= rconst {
 			out.Set(k)
@@ -1968,7 +1842,6 @@ func cmp_LE_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst <= r.Values[k] {
 			out.Set(k)
@@ -1984,7 +1857,6 @@ func cmp_LE_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst <= r.Values[rx[k]] {
 			out.Set(k)
@@ -1998,7 +1870,6 @@ func cmp_LE_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= r.Values[k] {
 			out.Set(k)
@@ -2014,7 +1885,6 @@ func cmp_LE_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= r.Values[rx[k]] {
 			out.Set(k)
@@ -2028,7 +1898,6 @@ func cmp_LE_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= rconst {
 			out.Set(k)
@@ -2044,7 +1913,6 @@ func cmp_LE_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= r.Values[k] {
 			out.Set(k)
@@ -2062,7 +1930,6 @@ func cmp_LE_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= r.Values[rx[k]] {
 			out.Set(k)
@@ -2078,7 +1945,6 @@ func cmp_LE_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= rconst {
 			out.Set(k)
@@ -2092,7 +1958,6 @@ func cmp_LE_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst <= r.Values[k] {
 			out.Set(k)
@@ -2108,7 +1973,6 @@ func cmp_LE_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst <= r.Values[rx[k]] {
 			out.Set(k)
@@ -2122,7 +1986,6 @@ func cmp_LE_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= r.Values[k] {
 			out.Set(k)
@@ -2138,7 +2001,6 @@ func cmp_LE_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= r.Values[rx[k]] {
 			out.Set(k)
@@ -2152,7 +2014,6 @@ func cmp_LE_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] <= rconst {
 			out.Set(k)
@@ -2168,7 +2029,6 @@ func cmp_LE_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= r.Values[k] {
 			out.Set(k)
@@ -2186,7 +2046,6 @@ func cmp_LE_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= r.Values[rx[k]] {
 			out.Set(k)
@@ -2202,7 +2061,6 @@ func cmp_LE_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] <= rconst {
 			out.Set(k)
@@ -2216,7 +2074,6 @@ func cmp_LE_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst <= r.Values[k] {
 			out.Set(k)
@@ -2232,7 +2089,6 @@ func cmp_LE_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst <= r.Values[rx[k]] {
 			out.Set(k)
@@ -2246,7 +2102,6 @@ func cmp_LE_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(k)) <= 0 {
 			out.Set(k)
@@ -2262,7 +2117,6 @@ func cmp_LE_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) <= 0 {
 			out.Set(k)
@@ -2276,7 +2130,6 @@ func cmp_LE_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), rconst) <= 0 {
 			out.Set(k)
@@ -2292,7 +2145,6 @@ func cmp_LE_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) <= 0 {
 			out.Set(k)
@@ -2310,7 +2162,6 @@ func cmp_LE_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) <= 0 {
 			out.Set(k)
@@ -2326,7 +2177,6 @@ func cmp_LE_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), rconst) <= 0 {
 			out.Set(k)
@@ -2340,7 +2190,6 @@ func cmp_LE_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(k)) <= 0 {
 			out.Set(k)
@@ -2356,7 +2205,6 @@ func cmp_LE_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(uint32(rx[k]))) <= 0 {
 			out.Set(k)
@@ -2370,7 +2218,6 @@ func cmp_LE_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(k)) <= 0 {
 			out.Set(k)
@@ -2386,7 +2233,6 @@ func cmp_LE_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) <= 0 {
 			out.Set(k)
@@ -2400,7 +2246,6 @@ func cmp_LE_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), rconst) <= 0 {
 			out.Set(k)
@@ -2416,7 +2261,6 @@ func cmp_LE_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) <= 0 {
 			out.Set(k)
@@ -2434,7 +2278,6 @@ func cmp_LE_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) <= 0 {
 			out.Set(k)
@@ -2450,7 +2293,6 @@ func cmp_LE_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), rconst) <= 0 {
 			out.Set(k)
@@ -2464,7 +2306,6 @@ func cmp_LE_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(k)) <= 0 {
 			out.Set(k)
@@ -2480,7 +2321,6 @@ func cmp_LE_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) <= 0 {
 			out.Set(k)
@@ -2494,7 +2334,6 @@ func cmp_GT_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > r.Values[k] {
 			out.Set(k)
@@ -2510,7 +2349,6 @@ func cmp_GT_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > r.Values[rx[k]] {
 			out.Set(k)
@@ -2524,7 +2362,6 @@ func cmp_GT_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > rconst {
 			out.Set(k)
@@ -2540,7 +2377,6 @@ func cmp_GT_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > r.Values[k] {
 			out.Set(k)
@@ -2558,7 +2394,6 @@ func cmp_GT_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > r.Values[rx[k]] {
 			out.Set(k)
@@ -2574,7 +2409,6 @@ func cmp_GT_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > rconst {
 			out.Set(k)
@@ -2588,7 +2422,6 @@ func cmp_GT_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst > r.Values[k] {
 			out.Set(k)
@@ -2604,7 +2437,6 @@ func cmp_GT_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst > r.Values[rx[k]] {
 			out.Set(k)
@@ -2618,7 +2450,6 @@ func cmp_GT_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > r.Values[k] {
 			out.Set(k)
@@ -2634,7 +2465,6 @@ func cmp_GT_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > r.Values[rx[k]] {
 			out.Set(k)
@@ -2648,7 +2478,6 @@ func cmp_GT_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > rconst {
 			out.Set(k)
@@ -2664,7 +2493,6 @@ func cmp_GT_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > r.Values[k] {
 			out.Set(k)
@@ -2682,7 +2510,6 @@ func cmp_GT_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > r.Values[rx[k]] {
 			out.Set(k)
@@ -2698,7 +2525,6 @@ func cmp_GT_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > rconst {
 			out.Set(k)
@@ -2712,7 +2538,6 @@ func cmp_GT_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst > r.Values[k] {
 			out.Set(k)
@@ -2728,7 +2553,6 @@ func cmp_GT_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst > r.Values[rx[k]] {
 			out.Set(k)
@@ -2742,7 +2566,6 @@ func cmp_GT_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > r.Values[k] {
 			out.Set(k)
@@ -2758,7 +2581,6 @@ func cmp_GT_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > r.Values[rx[k]] {
 			out.Set(k)
@@ -2772,7 +2594,6 @@ func cmp_GT_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] > rconst {
 			out.Set(k)
@@ -2788,7 +2609,6 @@ func cmp_GT_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > r.Values[k] {
 			out.Set(k)
@@ -2806,7 +2626,6 @@ func cmp_GT_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > r.Values[rx[k]] {
 			out.Set(k)
@@ -2822,7 +2641,6 @@ func cmp_GT_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] > rconst {
 			out.Set(k)
@@ -2836,7 +2654,6 @@ func cmp_GT_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst > r.Values[k] {
 			out.Set(k)
@@ -2852,7 +2669,6 @@ func cmp_GT_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst > r.Values[rx[k]] {
 			out.Set(k)
@@ -2866,7 +2682,6 @@ func cmp_GT_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(k)) > 0 {
 			out.Set(k)
@@ -2882,7 +2697,6 @@ func cmp_GT_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) > 0 {
 			out.Set(k)
@@ -2896,7 +2710,6 @@ func cmp_GT_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), rconst) > 0 {
 			out.Set(k)
@@ -2912,7 +2725,6 @@ func cmp_GT_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) > 0 {
 			out.Set(k)
@@ -2930,7 +2742,6 @@ func cmp_GT_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) > 0 {
 			out.Set(k)
@@ -2946,7 +2757,6 @@ func cmp_GT_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), rconst) > 0 {
 			out.Set(k)
@@ -2960,7 +2770,6 @@ func cmp_GT_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(k)) > 0 {
 			out.Set(k)
@@ -2976,7 +2785,6 @@ func cmp_GT_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(uint32(rx[k]))) > 0 {
 			out.Set(k)
@@ -2990,7 +2798,6 @@ func cmp_GT_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(k)) > 0 {
 			out.Set(k)
@@ -3006,7 +2813,6 @@ func cmp_GT_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) > 0 {
 			out.Set(k)
@@ -3020,7 +2826,6 @@ func cmp_GT_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), rconst) > 0 {
 			out.Set(k)
@@ -3036,7 +2841,6 @@ func cmp_GT_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) > 0 {
 			out.Set(k)
@@ -3054,7 +2858,6 @@ func cmp_GT_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) > 0 {
 			out.Set(k)
@@ -3070,7 +2873,6 @@ func cmp_GT_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), rconst) > 0 {
 			out.Set(k)
@@ -3084,7 +2886,6 @@ func cmp_GT_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(k)) > 0 {
 			out.Set(k)
@@ -3100,7 +2901,6 @@ func cmp_GT_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) > 0 {
 			out.Set(k)
@@ -3114,7 +2914,6 @@ func cmp_GE_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= r.Values[k] {
 			out.Set(k)
@@ -3130,7 +2929,6 @@ func cmp_GE_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3144,7 +2942,6 @@ func cmp_GE_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= rconst {
 			out.Set(k)
@@ -3160,7 +2957,6 @@ func cmp_GE_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= r.Values[k] {
 			out.Set(k)
@@ -3178,7 +2974,6 @@ func cmp_GE_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3194,7 +2989,6 @@ func cmp_GE_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= rconst {
 			out.Set(k)
@@ -3208,7 +3002,6 @@ func cmp_GE_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst >= r.Values[k] {
 			out.Set(k)
@@ -3224,7 +3017,6 @@ func cmp_GE_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3238,7 +3030,6 @@ func cmp_GE_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= r.Values[k] {
 			out.Set(k)
@@ -3254,7 +3045,6 @@ func cmp_GE_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3268,7 +3058,6 @@ func cmp_GE_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= rconst {
 			out.Set(k)
@@ -3284,7 +3073,6 @@ func cmp_GE_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= r.Values[k] {
 			out.Set(k)
@@ -3302,7 +3090,6 @@ func cmp_GE_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3318,7 +3105,6 @@ func cmp_GE_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= rconst {
 			out.Set(k)
@@ -3332,7 +3118,6 @@ func cmp_GE_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst >= r.Values[k] {
 			out.Set(k)
@@ -3348,7 +3133,6 @@ func cmp_GE_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3362,7 +3146,6 @@ func cmp_GE_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= r.Values[k] {
 			out.Set(k)
@@ -3378,7 +3161,6 @@ func cmp_GE_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3392,7 +3174,6 @@ func cmp_GE_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] >= rconst {
 			out.Set(k)
@@ -3408,7 +3189,6 @@ func cmp_GE_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= r.Values[k] {
 			out.Set(k)
@@ -3426,7 +3206,6 @@ func cmp_GE_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3442,7 +3221,6 @@ func cmp_GE_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] >= rconst {
 			out.Set(k)
@@ -3456,7 +3234,6 @@ func cmp_GE_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
-
 	for k := uint32(0); k < n; k++ {
 		if lconst >= r.Values[k] {
 			out.Set(k)
@@ -3472,7 +3249,6 @@ func cmp_GE_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if lconst >= r.Values[rx[k]] {
 			out.Set(k)
@@ -3486,7 +3262,6 @@ func cmp_GE_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(k)) >= 0 {
 			out.Set(k)
@@ -3502,7 +3277,6 @@ func cmp_GE_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) >= 0 {
 			out.Set(k)
@@ -3516,7 +3290,6 @@ func cmp_GE_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(k), rconst) >= 0 {
 			out.Set(k)
@@ -3532,7 +3305,6 @@ func cmp_GE_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) >= 0 {
 			out.Set(k)
@@ -3550,7 +3322,6 @@ func cmp_GE_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) >= 0 {
 			out.Set(k)
@@ -3566,7 +3337,6 @@ func cmp_GE_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(l.Value(uint32(lx[k])), rconst) >= 0 {
 			out.Set(k)
@@ -3580,7 +3350,6 @@ func cmp_GE_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(k)) >= 0 {
 			out.Set(k)
@@ -3596,7 +3365,6 @@ func cmp_GE_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if strings.Compare(lconst, r.Value(uint32(rx[k]))) >= 0 {
 			out.Set(k)
@@ -3610,7 +3378,6 @@ func cmp_GE_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(k)) >= 0 {
 			out.Set(k)
@@ -3626,7 +3393,6 @@ func cmp_GE_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) >= 0 {
 			out.Set(k)
@@ -3640,7 +3406,6 @@ func cmp_GE_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(k), rconst) >= 0 {
 			out.Set(k)
@@ -3656,7 +3421,6 @@ func cmp_GE_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) >= 0 {
 			out.Set(k)
@@ -3674,7 +3438,6 @@ func cmp_GE_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) >= 0 {
 			out.Set(k)
@@ -3690,7 +3453,6 @@ func cmp_GE_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(l.Value(uint32(lx[k])), rconst) >= 0 {
 			out.Set(k)
@@ -3704,7 +3466,6 @@ func cmp_GE_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
 	out := vector.NewBoolEmpty(n, nil)
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(k)) >= 0 {
 			out.Set(k)
@@ -3720,7 +3481,6 @@ func cmp_GE_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
-
 	for k := uint32(0); k < n; k++ {
 		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) >= 0 {
 			out.Set(k)
