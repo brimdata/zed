@@ -98,7 +98,7 @@ const flat_flat = `
 	}
 `
 
-const flat_idx = `
+const flat_dict = `
 	for k := uint32(0); k < n; k++ {
 		if l.Values[k] %s r.Values[rx[k]] {
 			out.Set(k)
@@ -114,7 +114,7 @@ const flat_const = `
 	}
 `
 
-const idx_flat = `
+const dict_flat = `
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] %s r.Values[k] {
 			out.Set(k)
@@ -122,7 +122,7 @@ const idx_flat = `
 	}
 `
 
-const idx_idx = `
+const dict_dict = `
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] %s r.Values[rx[k]] {
 			out.Set(k)
@@ -130,7 +130,7 @@ const idx_idx = `
 	}
 `
 
-const idx_const = `
+const dict_const = `
 	for k := uint32(0); k < n; k++ {
 		if l.Values[lx[k]] %s rconst {
 			out.Set(k)
@@ -146,7 +146,7 @@ const const_flat = `
 	}
 `
 
-const const_idx = `
+const const_dict = `
 	for k := uint32(0); k < n; k++ {
 		if lconst %s r.Values[rx[k]] {
 			out.Set(k)
@@ -162,7 +162,7 @@ const flat_flat_s = `
 	}
 `
 
-const flat_idx_s = `
+const flat_dict_s = `
 	for k := uint32(0); k < n; k++ {
 		if %s.Compare(l.Value(k), r.Value(uint32(rx[k]))) %s 0 {
 			out.Set(k)
@@ -178,7 +178,7 @@ const flat_const_s = `
 	}
 `
 
-const idx_flat_s = `
+const dict_flat_s = `
 	for k := uint32(0); k < n; k++ {
 		if %s.Compare(l.Value(uint32(lx[k])), r.Value(k)) %s 0 {
 			out.Set(k)
@@ -186,7 +186,7 @@ const idx_flat_s = `
 	}
 `
 
-const idx_idx_s = `
+const dict_dict_s = `
 	for k := uint32(0); k < n; k++ {
 		if %s.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) %s 0 {
 			out.Set(k)
@@ -194,7 +194,7 @@ const idx_idx_s = `
 	}
 `
 
-const idx_const_s = `
+const dict_const_s = `
 	for k := uint32(0); k < n; k++ {
 		if %s.Compare(l.Value(uint32(lx[k])), rconst) %s 0 {
 			out.Set(k)
@@ -210,7 +210,7 @@ const const_flat_s = `
 	}
 `
 
-const const_idx_s = `
+const const_dict_s = `
 	for k := uint32(0); k < n; k++ {
 		if %s.Compare(lconst, r.Value(uint32(rx[k]))) %s 0 {
 			out.Set(k)
@@ -238,25 +238,25 @@ func formToLoops(typ string, lform, rform vector.Form, op string) string {
 		case vector.FormFlat:
 			return fmt.Sprintf(flat_flat_s, pkg, op)
 		case vector.FormDict:
-			return fmt.Sprintf(flat_idx_s, pkg, op)
+			return fmt.Sprintf(flat_dict_s, pkg, op)
 		case vector.FormConst:
 			return fmt.Sprintf(flat_const_s, pkg, op)
 		}
 	case vector.FormDict:
 		switch rform {
 		case vector.FormFlat:
-			return fmt.Sprintf(idx_flat_s, pkg, op)
+			return fmt.Sprintf(dict_flat_s, pkg, op)
 		case vector.FormDict:
-			return fmt.Sprintf(idx_idx_s, pkg, op)
+			return fmt.Sprintf(dict_dict_s, pkg, op)
 		case vector.FormConst:
-			return fmt.Sprintf(idx_const_s, pkg, op)
+			return fmt.Sprintf(dict_const_s, pkg, op)
 		}
 	case vector.FormConst:
 		switch rform {
 		case vector.FormFlat:
 			return fmt.Sprintf(const_flat_s, pkg, op)
 		case vector.FormDict:
-			return fmt.Sprintf(const_idx_s, pkg, op)
+			return fmt.Sprintf(const_dict_s, pkg, op)
 		}
 	}
 	panic("formToLoop: bad logic")
@@ -269,25 +269,25 @@ func formToLoopv(lform, rform vector.Form, op string) string {
 		case vector.FormFlat:
 			return fmt.Sprintf(flat_flat, op)
 		case vector.FormDict:
-			return fmt.Sprintf(flat_idx, op)
+			return fmt.Sprintf(flat_dict, op)
 		case vector.FormConst:
 			return fmt.Sprintf(flat_const, op)
 		}
 	case vector.FormDict:
 		switch rform {
 		case vector.FormFlat:
-			return fmt.Sprintf(idx_flat, op)
+			return fmt.Sprintf(dict_flat, op)
 		case vector.FormDict:
-			return fmt.Sprintf(idx_idx, op)
+			return fmt.Sprintf(dict_dict, op)
 		case vector.FormConst:
-			return fmt.Sprintf(idx_const, op)
+			return fmt.Sprintf(dict_const, op)
 		}
 	case vector.FormConst:
 		switch rform {
 		case vector.FormFlat:
 			return fmt.Sprintf(const_flat, op)
 		case vector.FormDict:
-			return fmt.Sprintf(const_idx, op)
+			return fmt.Sprintf(const_dict, op)
 		}
 	}
 	panic("formToLoop: bad logic")
