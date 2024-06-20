@@ -39,7 +39,7 @@ go get github.com/brimdata/zed
 ### ZSON Reader
 
 Read ZSON from stdin, dereference field `s`, and print results:
-```
+```mdtest-go-example
 package main
 
 import (
@@ -54,7 +54,8 @@ import (
 
 func main() {
 	zctx := zed.NewContext()
-	reader := zsonio.NewReader(os.Stdin, zctx)
+	reader := zsonio.NewReader(zctx, os.Stdin)
+	arena := zed.NewArena()
 	for {
 		val, err := reader.Read()
 		if err != nil {
@@ -63,9 +64,9 @@ func main() {
 		if val == nil {
 			return
 		}
-		s := val.Deref("s")
+		s := val.Deref(arena, "s")
 		if s == nil {
-			s = zctx.Missing()
+			s = zctx.Missing(arena).Ptr()
 		}
 		fmt.Println(zson.String(s))
 	}
@@ -105,7 +106,7 @@ zed create -lake scratch Demo
 echo '{s:"hello, world"}{x:1}{s:"good bye"}' | zed load -lake scratch -use Demo -
 ```
 Now replace `main.go` with this code:
-```
+```mdtest-go-example
 package main
 
 import (
@@ -129,7 +130,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	ctx := context.TODO()
-	lake, err := api.OpenLake(ctx, uri.String())
+	lake, err := api.OpenLake(ctx, nil, uri.String())
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -139,6 +140,7 @@ func main() {
 	}
 	defer reader.Close()
 	zctx := zed.NewContext()
+	arena := zed.NewArena()
 	for {
 		val, err := reader.Read()
 		if err != nil {
@@ -147,9 +149,9 @@ func main() {
 		if val == nil {
 			return
 		}
-		s := val.Deref("s")
+		s := val.Deref(arena, "s")
 		if s == nil {
-			s = zctx.Missing()
+			s = zctx.Missing(arena).Ptr()
 		}
 		fmt.Println(zson.String(s))
 	}
