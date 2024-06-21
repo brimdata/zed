@@ -1,3 +1,17 @@
+## v1.16.0
+* Improve ZNG scanning performance (#5101, #5103)
+* Improve the error message shown when `zq` is invoked with a single argument that's not a valid query and doesn't contain a source (#5119)
+* Update [Zeek integration docs](docs/integrations/zeek/README.md), including [reference shaper](docs/integrations/zeek/shaping-zeek-ndjson.md) changes for [Zeek v6.2.0](https://github.com/zeek/zeek/releases/tag/v6.2.0) data (#5106)
+* [String literals](docs/language/expressions.md#formatted-string-literals) now use the "f-string" format `f"{ <expr> }"` instead of the previous `${ <expr> }` (#5123)
+* Prototype SQL support has been dropped from the Zed language (full SQL support is expected at a later date) (#5109)
+* Empty objects and arrays in JSON output are now consistently printed on a single line (#5127)
+* Enable colorized ZSON and JSON by default when output is to a terminal (#5114)
+* Add JSON pretty print functionality (with color if supported by terminal) when activated via `-J` flag or setting format and the `-pretty` flag (#5096)
+* Add a [Grafana integration doc](docs/integrations/grafana.md) that points to the [GitHub repo for the Zed data source plugin for Grafana](https://github.com/brimdata/grafana-zed-datasource) (#5141)
+* Fix an issue where stateful expressions inside of [lateral queries](docs/language/lateral-subqueries.md) could generate incorrect results (#5069)
+* Fix an issue where stateful expressions inside [user-defined functions](docs/language/statements.md#func-statements) could generate incorrect results (#5093)
+* Fix an issue where the [Go library examples](docs/libraries/go.md) failed to compile and run (#5095, #5147)
+
 ## v1.15.0
 * Improve the error message when reading NDJSON data with an incomplete last line (#5055)
 * Improve the error message when math operators are applied to complex types (e.g., attempting to concatenate arrays with `+`) (#5059)
