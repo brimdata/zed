@@ -2,8 +2,10 @@
 
 package expr
 
-import "github.com/brimdata/zed"
-import "github.com/brimdata/zed/vector"
+import (
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/vector"
+)
 
 func arithAddIntFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
