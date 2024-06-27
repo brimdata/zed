@@ -90,8 +90,8 @@ func genVarInit(which, typ string, form vector.Form) string {
 	switch form {
 	case vector.FormFlat:
 		return fmt.Sprintf("%s := %shs.(*vector.%s)\n", which, which, typ)
-	case vector.FormDict:
-		s := fmt.Sprintf("%sd := %shs.(*vector.Dict)\n", which, which)
+	case vector.FormDict, vector.FormView:
+		s := fmt.Sprintf("%sd := %shs.(*vector.%s)\n", which, which, form)
 		s += fmt.Sprintf("%s := %sd.Any.(*vector.%s)\n", which, which, typ)
 		s += fmt.Sprintf("%sx := %sd.Index\n", which, which)
 		return s

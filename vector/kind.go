@@ -22,7 +22,8 @@ const (
 const (
 	FormFlat  = 0
 	FormDict  = 1
-	FormConst = 2
+	FormView  = 2
+	FormConst = 3
 )
 
 //XXX might not need Kind...
@@ -89,6 +90,8 @@ func FormOf(v Any) (Form, bool) {
 		return FormFlat, true
 	case *Dict:
 		return FormDict, true
+	case *View:
+		return FormView, true
 	case *Const:
 		return FormConst, true
 	default:
@@ -102,6 +105,8 @@ func (f Form) String() string {
 		return "Flat"
 	case FormDict:
 		return "Dict"
+	case FormView:
+		return "View"
 	case FormConst:
 		return "Const"
 	default:

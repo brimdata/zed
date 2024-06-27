@@ -28,6 +28,13 @@ func (a *Arith) Eval(val vector.Any) vector.Any {
 func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
+	if u, ok := lhs.(*vector.Union); ok {
+		results := make([]vector.Any, len(u.Values))
+		for tag, view := range u.Unstitch(rhs) {
+			results[tag] = a.eval(u.Values[tag], view)
+		}
+		return u.Stitch(a.zctx, results)
+	}
 	lhs, rhs, errVal := coerceVals(a.zctx, lhs, rhs)
 	if errVal != nil {
 		return errVal

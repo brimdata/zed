@@ -26,6 +26,13 @@ func (c *Compare) Eval(val vector.Any) vector.Any {
 func (c *Compare) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
+	if u, ok := lhs.(*vector.Union); ok {
+		results := make([]vector.Any, len(u.Values))
+		for tag, view := range u.Unstitch(rhs) {
+			results[tag] = c.eval(u.Values[tag], view)
+		}
+		return u.Stitch(c.zctx, results)
+	}
 	lhs, rhs, _ = coerceVals(c.zctx, lhs, rhs)
 	//XXX need to handle overflow (see sam)
 	//XXX unions and variants and single-value-with-error variant
