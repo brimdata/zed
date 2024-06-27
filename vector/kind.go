@@ -140,3 +140,32 @@ func CompareOpFromString(op string) int {
 	}
 	panic("CompareOpFromString")
 }
+
+const (
+	ArithAdd = iota
+	ArithSub
+	ArithMul
+	ArithDiv
+	ArithMod
+)
+
+func ArithOpFromString(op string) int {
+	switch op {
+	case "+":
+		return ArithAdd
+	case "-":
+		return ArithSub
+	case "*":
+		return ArithMul
+	case "/":
+		return ArithDiv
+	case "%":
+		return ArithMod
+	}
+	panic(op)
+}
+
+func FuncCode(op int, kind Kind, lform, rform Form) int {
+	// op:3, kind:3, left:2, right:2
+	return int(lform) | int(rform)<<2 | int(kind)<<4 | op<<7
+}

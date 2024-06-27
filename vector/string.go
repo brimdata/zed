@@ -17,6 +17,15 @@ func NewString(offsets []uint32, bytes []byte, nulls *Bool) *String {
 	return &String{Offsets: offsets, Bytes: bytes, Nulls: nulls}
 }
 
+func NewStringEmpty(length uint32, nulls *Bool) *String {
+	return NewString(make([]uint32, 1, length+1), nil, nulls)
+}
+
+func (s *String) Append(v string) {
+	s.Bytes = append(s.Bytes, v...)
+	s.Offsets = append(s.Offsets, uint32(len(s.Bytes)))
+}
+
 func (s *String) Type() zed.Type {
 	return zed.TypeString
 }

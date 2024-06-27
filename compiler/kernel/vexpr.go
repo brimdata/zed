@@ -98,8 +98,8 @@ func (b *Builder) compileVamBinary(e *dag.BinaryExpr) (vamexpr.Evaluator, error)
 	//	return vamexpr.NewIn(b.zctx(), lhs, rhs), nil
 	case "==", "!=", "<", "<=", ">", ">=":
 		return vamexpr.NewCompare(b.zctx(), lhs, rhs, op), nil
-	//case "+", "-", "*", "/", "%":
-	//	return vamexpr.NewArithmetic(b.zctx(), lhs, rhs, op)
+	case "+", "-", "*", "/", "%":
+		return vamexpr.NewArith(b.zctx(), lhs, rhs, op), nil
 	//case "[":
 	//	return vamexpr.NewIndexExpr(b.zctx(), lhs, rhs), nil
 	default:
