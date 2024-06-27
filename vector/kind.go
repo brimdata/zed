@@ -118,11 +118,6 @@ const (
 	CompNE = 6
 )
 
-// op:3, kind:3, left:2, right:2
-func CompareOpCode(op string, kind Kind, lform, rform Form) int {
-	return int(lform) | int(rform)<<2 | int(kind)<<4 | CompareOpFromString(op)<<7
-}
-
 func CompareOpFromString(op string) int {
 	switch op {
 	case "<":
