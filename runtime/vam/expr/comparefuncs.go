@@ -3,3731 +3,3939 @@
 package expr
 
 import (
-	"bytes"
-	"strings"
-
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/vector"
 )
 
-func cmp_EQ_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == r.Values[k] {
+		if l.Value(k) == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == r.Values[rx[k]] {
+		if l.Value(k) == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == rconst {
+		if l.Value(k) == rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == r.Values[k] {
+		if l.Value(uint32(lx[k])) == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == rconst {
+		if l.Value(uint32(lx[k])) == rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst == r.Values[k] {
+		if lconst == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst == r.Values[rx[k]] {
+		if lconst == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQIntConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	return vector.NewConst(nil, zed.NewBool(lconst == rconst), lhs.Len(), nil)
+}
+
+func compareEQUintFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == r.Values[k] {
+		if l.Value(k) == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQUintFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == r.Values[rx[k]] {
+		if l.Value(k) == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQUintFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == rconst {
+		if l.Value(k) == rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQUintDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == r.Values[k] {
+		if l.Value(uint32(lx[k])) == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQUintDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQUintDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == rconst {
+		if l.Value(uint32(lx[k])) == rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQUintConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst == r.Values[k] {
+		if lconst == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQUintConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst == r.Values[rx[k]] {
+		if lconst == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQUintConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	return vector.NewConst(nil, zed.NewBool(lconst == rconst), lhs.Len(), nil)
+}
+
+func compareEQFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == r.Values[k] {
+		if l.Value(k) == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQFloatFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == r.Values[rx[k]] {
+		if l.Value(k) == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQFloatFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] == rconst {
+		if l.Value(k) == rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQFloatDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == r.Values[k] {
+		if l.Value(uint32(lx[k])) == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQFloatDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQFloatDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] == rconst {
+		if l.Value(uint32(lx[k])) == rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQFloatConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst == r.Values[k] {
+		if lconst == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQFloatConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst == r.Values[rx[k]] {
+		if lconst == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQFloatConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	return vector.NewConst(nil, zed.NewBool(lconst == rconst), lhs.Len(), nil)
+}
+
+func compareEQStringFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(k)) == 0 {
+		if l.Value(k) == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQStringFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) == 0 {
+		if l.Value(k) == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQStringFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), rconst) == 0 {
+		if l.Value(k) == rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQStringDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) == 0 {
+		if l.Value(uint32(lx[k])) == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQStringDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) == 0 {
+		if l.Value(uint32(lx[k])) == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQStringDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), rconst) == 0 {
+		if l.Value(uint32(lx[k])) == rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQStringConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(k)) == 0 {
+		if lconst == r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQStringConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(uint32(rx[k]))) == 0 {
+		if lconst == r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQStringConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	rconst, _ := rhs.(*vector.Const).AsString()
+	return vector.NewConst(nil, zed.NewBool(lconst == rconst), lhs.Len(), nil)
+}
+
+func compareEQBytesFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(k)) == 0 {
+		if string(l.Value(k)) == string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQBytesFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) == 0 {
+		if string(l.Value(k)) == string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQBytesFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), rconst) == 0 {
+		if string(l.Value(k)) == string(rconst) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQBytesDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) == 0 {
+		if string(l.Value(uint32(lx[k]))) == string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQBytesDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) == 0 {
+		if string(l.Value(uint32(lx[k]))) == string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQBytesDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), rconst) == 0 {
+		if string(l.Value(uint32(lx[k]))) == string(rconst) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQBytesConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(k)) == 0 {
+		if string(lconst) == string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_EQ_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQBytesConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) == 0 {
+		if string(lconst) == string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_NE_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareEQBytesConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	return vector.NewConst(nil, zed.NewBool(string(lconst) == string(rconst)), lhs.Len(), nil)
+}
+
+func compareNEIntFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != r.Values[k] {
+		if l.Value(k) != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_NE_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEIntFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != r.Values[rx[k]] {
+		if l.Value(k) != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_NE_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEIntFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != rconst {
+		if l.Value(k) != rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_NE_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEIntDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != r.Values[k] {
+		if l.Value(uint32(lx[k])) != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_NE_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEIntDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_NE_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Int)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsInt()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsInt()
-	r := rhs.(*vector.Int)
-	for k := uint32(0); k < n; k++ {
-		if lconst != r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsInt()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Int)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if lconst != r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Uint)
-	r := rhs.(*vector.Uint)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Uint)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Uint)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Uint)
-	rconst, _ := rhs.(*vector.Const).AsUint()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Uint)
-	lx := ld.Index
-	r := rhs.(*vector.Uint)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Uint)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Uint)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Uint)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsUint()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsUint()
-	r := rhs.(*vector.Uint)
-	for k := uint32(0); k < n; k++ {
-		if lconst != r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsUint()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Uint)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if lconst != r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Float)
-	r := rhs.(*vector.Float)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Float)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Float)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Float)
-	rconst, _ := rhs.(*vector.Const).AsFloat()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] != rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Float)
-	lx := ld.Index
-	r := rhs.(*vector.Float)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Float)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Float)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Float)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsFloat()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] != rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsFloat()
-	r := rhs.(*vector.Float)
-	for k := uint32(0); k < n; k++ {
-		if lconst != r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsFloat()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Float)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if lconst != r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.String)
-	r := rhs.(*vector.String)
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(k)) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.String)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.String)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.String)
-	rconst, _ := rhs.(*vector.Const).AsString()
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), rconst) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.String)
-	lx := ld.Index
-	r := rhs.(*vector.String)
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.String)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.String)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.String)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsString()
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), rconst) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsString()
-	r := rhs.(*vector.String)
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(k)) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsString()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.String)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(uint32(rx[k]))) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Bytes)
-	r := rhs.(*vector.Bytes)
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(k)) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Bytes)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Bytes)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Bytes)
-	rconst, _ := rhs.(*vector.Const).AsBytes()
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), rconst) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Bytes)
-	lx := ld.Index
-	r := rhs.(*vector.Bytes)
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Bytes)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Bytes)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Bytes)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsBytes()
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), rconst) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsBytes()
-	r := rhs.(*vector.Bytes)
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(k)) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_NE_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsBytes()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Bytes)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) != 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LT_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Int)
-	r := rhs.(*vector.Int)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LT_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Int)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Int)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LT_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Int)
-	rconst, _ := rhs.(*vector.Const).AsInt()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LT_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Int)
-	lx := ld.Index
-	r := rhs.(*vector.Int)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LT_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Int)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Int)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LT_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEIntDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < rconst {
+		if l.Value(uint32(lx[k])) != rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEIntConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst < r.Values[k] {
+		if lconst != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEIntConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst < r.Values[rx[k]] {
+		if lconst != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEIntConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	return vector.NewConst(nil, zed.NewBool(lconst != rconst), lhs.Len(), nil)
+}
+
+func compareNEUintFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < r.Values[k] {
+		if l.Value(k) != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEUintFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < r.Values[rx[k]] {
+		if l.Value(k) != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEUintFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < rconst {
+		if l.Value(k) != rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEUintDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < r.Values[k] {
+		if l.Value(uint32(lx[k])) != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEUintDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEUintDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < rconst {
+		if l.Value(uint32(lx[k])) != rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEUintConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst < r.Values[k] {
+		if lconst != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEUintConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst < r.Values[rx[k]] {
+		if lconst != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEUintConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	return vector.NewConst(nil, zed.NewBool(lconst != rconst), lhs.Len(), nil)
+}
+
+func compareNEFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < r.Values[k] {
+		if l.Value(k) != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEFloatFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < r.Values[rx[k]] {
+		if l.Value(k) != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEFloatFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] < rconst {
+		if l.Value(k) != rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEFloatDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < r.Values[k] {
+		if l.Value(uint32(lx[k])) != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEFloatDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEFloatDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] < rconst {
+		if l.Value(uint32(lx[k])) != rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEFloatConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst < r.Values[k] {
+		if lconst != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEFloatConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst < r.Values[rx[k]] {
+		if lconst != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEFloatConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	return vector.NewConst(nil, zed.NewBool(lconst != rconst), lhs.Len(), nil)
+}
+
+func compareNEStringFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(k)) < 0 {
+		if l.Value(k) != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEStringFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) < 0 {
+		if l.Value(k) != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEStringFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), rconst) < 0 {
+		if l.Value(k) != rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEStringDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) < 0 {
+		if l.Value(uint32(lx[k])) != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEStringDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) < 0 {
+		if l.Value(uint32(lx[k])) != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEStringDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), rconst) < 0 {
+		if l.Value(uint32(lx[k])) != rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEStringConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(k)) < 0 {
+		if lconst != r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEStringConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(uint32(rx[k]))) < 0 {
+		if lconst != r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEStringConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	rconst, _ := rhs.(*vector.Const).AsString()
+	return vector.NewConst(nil, zed.NewBool(lconst != rconst), lhs.Len(), nil)
+}
+
+func compareNEBytesFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(k)) < 0 {
+		if string(l.Value(k)) != string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEBytesFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) < 0 {
+		if string(l.Value(k)) != string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEBytesFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), rconst) < 0 {
+		if string(l.Value(k)) != string(rconst) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEBytesDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) < 0 {
+		if string(l.Value(uint32(lx[k]))) != string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEBytesDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) < 0 {
+		if string(l.Value(uint32(lx[k]))) != string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEBytesDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), rconst) < 0 {
+		if string(l.Value(uint32(lx[k]))) != string(rconst) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEBytesConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(k)) < 0 {
+		if string(lconst) != string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LT_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEBytesConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) < 0 {
+		if string(lconst) != string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LE_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareNEBytesConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	return vector.NewConst(nil, zed.NewBool(string(lconst) != string(rconst)), lhs.Len(), nil)
+}
+
+func compareLTIntFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= r.Values[k] {
+		if l.Value(k) < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LE_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTIntFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= r.Values[rx[k]] {
+		if l.Value(k) < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LE_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTIntFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= rconst {
+		if l.Value(k) < rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LE_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTIntDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= r.Values[k] {
+		if l.Value(uint32(lx[k])) < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LE_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTIntDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_LE_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Int)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsInt()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsInt()
-	r := rhs.(*vector.Int)
-	for k := uint32(0); k < n; k++ {
-		if lconst <= r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsInt()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Int)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if lconst <= r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Uint)
-	r := rhs.(*vector.Uint)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Uint)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Uint)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Uint)
-	rconst, _ := rhs.(*vector.Const).AsUint()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Uint)
-	lx := ld.Index
-	r := rhs.(*vector.Uint)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Uint)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Uint)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Uint)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsUint()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsUint()
-	r := rhs.(*vector.Uint)
-	for k := uint32(0); k < n; k++ {
-		if lconst <= r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsUint()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Uint)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if lconst <= r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Float)
-	r := rhs.(*vector.Float)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Float)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Float)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Float)
-	rconst, _ := rhs.(*vector.Const).AsFloat()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] <= rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Float)
-	lx := ld.Index
-	r := rhs.(*vector.Float)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Float)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Float)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Float)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsFloat()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] <= rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsFloat()
-	r := rhs.(*vector.Float)
-	for k := uint32(0); k < n; k++ {
-		if lconst <= r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsFloat()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Float)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if lconst <= r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.String)
-	r := rhs.(*vector.String)
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(k)) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.String)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.String)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.String)
-	rconst, _ := rhs.(*vector.Const).AsString()
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), rconst) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.String)
-	lx := ld.Index
-	r := rhs.(*vector.String)
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.String)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.String)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.String)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsString()
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), rconst) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsString()
-	r := rhs.(*vector.String)
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(k)) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsString()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.String)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(uint32(rx[k]))) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Bytes)
-	r := rhs.(*vector.Bytes)
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(k)) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Bytes)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Bytes)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Bytes)
-	rconst, _ := rhs.(*vector.Const).AsBytes()
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), rconst) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Bytes)
-	lx := ld.Index
-	r := rhs.(*vector.Bytes)
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Bytes)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Bytes)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Bytes)
-	lx := ld.Index
-	rconst, _ := rhs.(*vector.Const).AsBytes()
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), rconst) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsBytes()
-	r := rhs.(*vector.Bytes)
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(k)) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_LE_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	lconst, _ := lhs.(*vector.Const).AsBytes()
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Bytes)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) <= 0 {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_GT_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Int)
-	r := rhs.(*vector.Int)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_GT_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Int)
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Int)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_GT_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	l := lhs.(*vector.Int)
-	rconst, _ := rhs.(*vector.Const).AsInt()
-	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > rconst {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_GT_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Int)
-	lx := ld.Index
-	r := rhs.(*vector.Int)
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > r.Values[k] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_GT_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
-	ld := lhs.(*vector.Dict)
-	l := ld.Any.(*vector.Int)
-	lx := ld.Index
-	rd := rhs.(*vector.Dict)
-	r := rd.Any.(*vector.Int)
-	rx := rd.Index
-	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > r.Values[rx[k]] {
-			out.Set(k)
-		}
-	}
-	return out
-}
-
-func cmp_GT_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTIntDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > rconst {
+		if l.Value(uint32(lx[k])) < rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTIntConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst > r.Values[k] {
+		if lconst < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTIntConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst > r.Values[rx[k]] {
+		if lconst < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTIntConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	return vector.NewConst(nil, zed.NewBool(lconst < rconst), lhs.Len(), nil)
+}
+
+func compareLTUintFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > r.Values[k] {
+		if l.Value(k) < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTUintFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > r.Values[rx[k]] {
+		if l.Value(k) < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTUintFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > rconst {
+		if l.Value(k) < rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTUintDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > r.Values[k] {
+		if l.Value(uint32(lx[k])) < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTUintDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTUintDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > rconst {
+		if l.Value(uint32(lx[k])) < rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTUintConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst > r.Values[k] {
+		if lconst < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTUintConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst > r.Values[rx[k]] {
+		if lconst < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTUintConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	return vector.NewConst(nil, zed.NewBool(lconst < rconst), lhs.Len(), nil)
+}
+
+func compareLTFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > r.Values[k] {
+		if l.Value(k) < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTFloatFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > r.Values[rx[k]] {
+		if l.Value(k) < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTFloatFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] > rconst {
+		if l.Value(k) < rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTFloatDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > r.Values[k] {
+		if l.Value(uint32(lx[k])) < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTFloatDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTFloatDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] > rconst {
+		if l.Value(uint32(lx[k])) < rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTFloatConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst > r.Values[k] {
+		if lconst < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTFloatConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst > r.Values[rx[k]] {
+		if lconst < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTFloatConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	return vector.NewConst(nil, zed.NewBool(lconst < rconst), lhs.Len(), nil)
+}
+
+func compareLTStringFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(k)) > 0 {
+		if l.Value(k) < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTStringFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) > 0 {
+		if l.Value(k) < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTStringFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), rconst) > 0 {
+		if l.Value(k) < rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTStringDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) > 0 {
+		if l.Value(uint32(lx[k])) < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTStringDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) > 0 {
+		if l.Value(uint32(lx[k])) < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTStringDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), rconst) > 0 {
+		if l.Value(uint32(lx[k])) < rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTStringConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(k)) > 0 {
+		if lconst < r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTStringConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(uint32(rx[k]))) > 0 {
+		if lconst < r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTStringConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	rconst, _ := rhs.(*vector.Const).AsString()
+	return vector.NewConst(nil, zed.NewBool(lconst < rconst), lhs.Len(), nil)
+}
+
+func compareLTBytesFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(k)) > 0 {
+		if string(l.Value(k)) < string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTBytesFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) > 0 {
+		if string(l.Value(k)) < string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTBytesFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), rconst) > 0 {
+		if string(l.Value(k)) < string(rconst) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTBytesDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) > 0 {
+		if string(l.Value(uint32(lx[k]))) < string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTBytesDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) > 0 {
+		if string(l.Value(uint32(lx[k]))) < string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTBytesDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), rconst) > 0 {
+		if string(l.Value(uint32(lx[k]))) < string(rconst) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTBytesConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(k)) > 0 {
+		if string(lconst) < string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GT_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTBytesConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) > 0 {
+		if string(lconst) < string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Int_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLTBytesConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	return vector.NewConst(nil, zed.NewBool(string(lconst) < string(rconst)), lhs.Len(), nil)
+}
+
+func compareLEIntFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= r.Values[k] {
+		if l.Value(k) <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Int_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEIntFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= r.Values[rx[k]] {
+		if l.Value(k) <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Int_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEIntFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Int)
 	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= rconst {
+		if l.Value(k) <= rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Int_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEIntDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= r.Values[k] {
+		if l.Value(uint32(lx[k])) <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Int_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEIntDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Int_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEIntDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Int)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= rconst {
+		if l.Value(uint32(lx[k])) <= rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Int_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEIntConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst >= r.Values[k] {
+		if lconst <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Int_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEIntConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Int)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst >= r.Values[rx[k]] {
+		if lconst <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Uint_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEIntConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	return vector.NewConst(nil, zed.NewBool(lconst <= rconst), lhs.Len(), nil)
+}
+
+func compareLEUintFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= r.Values[k] {
+		if l.Value(k) <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Uint_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEUintFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= r.Values[rx[k]] {
+		if l.Value(k) <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Uint_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEUintFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Uint)
 	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= rconst {
+		if l.Value(k) <= rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Uint_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEUintDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= r.Values[k] {
+		if l.Value(uint32(lx[k])) <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Uint_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEUintDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Uint_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEUintDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Uint)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= rconst {
+		if l.Value(uint32(lx[k])) <= rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Uint_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEUintConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst >= r.Values[k] {
+		if lconst <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Uint_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEUintConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Uint)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst >= r.Values[rx[k]] {
+		if lconst <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Float_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEUintConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	return vector.NewConst(nil, zed.NewBool(lconst <= rconst), lhs.Len(), nil)
+}
+
+func compareLEFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= r.Values[k] {
+		if l.Value(k) <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Float_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEFloatFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= r.Values[rx[k]] {
+		if l.Value(k) <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Float_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEFloatFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Float)
 	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[k] >= rconst {
+		if l.Value(k) <= rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Float_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEFloatDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= r.Values[k] {
+		if l.Value(uint32(lx[k])) <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Float_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEFloatDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= r.Values[rx[k]] {
+		if l.Value(uint32(lx[k])) <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Float_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEFloatDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Float)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if l.Values[lx[k]] >= rconst {
+		if l.Value(uint32(lx[k])) <= rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Float_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEFloatConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst >= r.Values[k] {
+		if lconst <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Float_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEFloatConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Float)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if lconst >= r.Values[rx[k]] {
+		if lconst <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_String_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEFloatConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	return vector.NewConst(nil, zed.NewBool(lconst <= rconst), lhs.Len(), nil)
+}
+
+func compareLEStringFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(k)) >= 0 {
+		if l.Value(k) <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_String_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEStringFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), r.Value(uint32(rx[k]))) >= 0 {
+		if l.Value(k) <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_String_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEStringFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.String)
 	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(k), rconst) >= 0 {
+		if l.Value(k) <= rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_String_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEStringDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(k)) >= 0 {
+		if l.Value(uint32(lx[k])) <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_String_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEStringDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) >= 0 {
+		if l.Value(uint32(lx[k])) <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_String_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEStringDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.String)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(l.Value(uint32(lx[k])), rconst) >= 0 {
+		if l.Value(uint32(lx[k])) <= rconst {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_String_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEStringConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(k)) >= 0 {
+		if lconst <= r.Value(k) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_String_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEStringConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.String)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if strings.Compare(lconst, r.Value(uint32(rx[k]))) >= 0 {
+		if lconst <= r.Value(uint32(rx[k])) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Bytes_Flat_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEStringConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	rconst, _ := rhs.(*vector.Const).AsString()
+	return vector.NewConst(nil, zed.NewBool(lconst <= rconst), lhs.Len(), nil)
+}
+
+func compareLEBytesFlatFlat(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(k)) >= 0 {
+		if string(l.Value(k)) <= string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Bytes_Flat_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEBytesFlatDict(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), r.Value(uint32(rx[k]))) >= 0 {
+		if string(l.Value(k)) <= string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Bytes_Flat_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEBytesFlatConst(lhs, rhs vector.Any) vector.Any {
 	l := lhs.(*vector.Bytes)
 	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(k), rconst) >= 0 {
+		if string(l.Value(k)) <= string(rconst) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Bytes_Dict_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEBytesDictFlat(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(k)) >= 0 {
+		if string(l.Value(uint32(lx[k]))) <= string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Bytes_Dict_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEBytesDictDict(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), r.Value(uint32(rx[k]))) >= 0 {
+		if string(l.Value(uint32(lx[k]))) <= string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Bytes_Dict_Const(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEBytesDictConst(lhs, rhs vector.Any) vector.Any {
 	ld := lhs.(*vector.Dict)
 	l := ld.Any.(*vector.Bytes)
 	lx := ld.Index
 	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(l.Value(uint32(lx[k])), rconst) >= 0 {
+		if string(l.Value(uint32(lx[k]))) <= string(rconst) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Bytes_Const_Flat(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEBytesConstFlat(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(k)) >= 0 {
+		if string(lconst) <= string(r.Value(k)) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-func cmp_GE_Bytes_Const_Dict(lhs, rhs vector.Any) *vector.Bool {
-	n := lhs.Len()
-	out := vector.NewBoolEmpty(n, nil)
+func compareLEBytesConstDict(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsBytes()
 	rd := rhs.(*vector.Dict)
 	r := rd.Any.(*vector.Bytes)
 	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
 	for k := uint32(0); k < n; k++ {
-		if bytes.Compare(lconst, r.Value(uint32(rx[k]))) >= 0 {
+		if string(lconst) <= string(r.Value(uint32(rx[k]))) {
 			out.Set(k)
 		}
 	}
 	return out
 }
 
-var compareFuncs = map[int]func(vector.Any, vector.Any) *vector.Bool{
-	528: cmp_EQ_Int_Flat_Flat,
-	532: cmp_EQ_Int_Flat_Dict,
-	536: cmp_EQ_Int_Flat_Const,
-	529: cmp_EQ_Int_Dict_Flat,
-	533: cmp_EQ_Int_Dict_Dict,
-	537: cmp_EQ_Int_Dict_Const,
-	530: cmp_EQ_Int_Const_Flat,
-	534: cmp_EQ_Int_Const_Dict,
-	544: cmp_EQ_Uint_Flat_Flat,
-	548: cmp_EQ_Uint_Flat_Dict,
-	552: cmp_EQ_Uint_Flat_Const,
-	545: cmp_EQ_Uint_Dict_Flat,
-	549: cmp_EQ_Uint_Dict_Dict,
-	553: cmp_EQ_Uint_Dict_Const,
-	546: cmp_EQ_Uint_Const_Flat,
-	550: cmp_EQ_Uint_Const_Dict,
-	560: cmp_EQ_Float_Flat_Flat,
-	564: cmp_EQ_Float_Flat_Dict,
-	568: cmp_EQ_Float_Flat_Const,
-	561: cmp_EQ_Float_Dict_Flat,
-	565: cmp_EQ_Float_Dict_Dict,
-	569: cmp_EQ_Float_Dict_Const,
-	562: cmp_EQ_Float_Const_Flat,
-	566: cmp_EQ_Float_Const_Dict,
-	576: cmp_EQ_String_Flat_Flat,
-	580: cmp_EQ_String_Flat_Dict,
-	584: cmp_EQ_String_Flat_Const,
-	577: cmp_EQ_String_Dict_Flat,
-	581: cmp_EQ_String_Dict_Dict,
-	585: cmp_EQ_String_Dict_Const,
-	578: cmp_EQ_String_Const_Flat,
-	582: cmp_EQ_String_Const_Dict,
-	592: cmp_EQ_Bytes_Flat_Flat,
-	596: cmp_EQ_Bytes_Flat_Dict,
-	600: cmp_EQ_Bytes_Flat_Const,
-	593: cmp_EQ_Bytes_Dict_Flat,
-	597: cmp_EQ_Bytes_Dict_Dict,
-	601: cmp_EQ_Bytes_Dict_Const,
-	594: cmp_EQ_Bytes_Const_Flat,
-	598: cmp_EQ_Bytes_Const_Dict,
-	784: cmp_NE_Int_Flat_Flat,
-	788: cmp_NE_Int_Flat_Dict,
-	792: cmp_NE_Int_Flat_Const,
-	785: cmp_NE_Int_Dict_Flat,
-	789: cmp_NE_Int_Dict_Dict,
-	793: cmp_NE_Int_Dict_Const,
-	786: cmp_NE_Int_Const_Flat,
-	790: cmp_NE_Int_Const_Dict,
-	800: cmp_NE_Uint_Flat_Flat,
-	804: cmp_NE_Uint_Flat_Dict,
-	808: cmp_NE_Uint_Flat_Const,
-	801: cmp_NE_Uint_Dict_Flat,
-	805: cmp_NE_Uint_Dict_Dict,
-	809: cmp_NE_Uint_Dict_Const,
-	802: cmp_NE_Uint_Const_Flat,
-	806: cmp_NE_Uint_Const_Dict,
-	816: cmp_NE_Float_Flat_Flat,
-	820: cmp_NE_Float_Flat_Dict,
-	824: cmp_NE_Float_Flat_Const,
-	817: cmp_NE_Float_Dict_Flat,
-	821: cmp_NE_Float_Dict_Dict,
-	825: cmp_NE_Float_Dict_Const,
-	818: cmp_NE_Float_Const_Flat,
-	822: cmp_NE_Float_Const_Dict,
-	832: cmp_NE_String_Flat_Flat,
-	836: cmp_NE_String_Flat_Dict,
-	840: cmp_NE_String_Flat_Const,
-	833: cmp_NE_String_Dict_Flat,
-	837: cmp_NE_String_Dict_Dict,
-	841: cmp_NE_String_Dict_Const,
-	834: cmp_NE_String_Const_Flat,
-	838: cmp_NE_String_Const_Dict,
-	848: cmp_NE_Bytes_Flat_Flat,
-	852: cmp_NE_Bytes_Flat_Dict,
-	856: cmp_NE_Bytes_Flat_Const,
-	849: cmp_NE_Bytes_Dict_Flat,
-	853: cmp_NE_Bytes_Dict_Dict,
-	857: cmp_NE_Bytes_Dict_Const,
-	850: cmp_NE_Bytes_Const_Flat,
-	854: cmp_NE_Bytes_Const_Dict,
-	16:  cmp_LT_Int_Flat_Flat,
-	20:  cmp_LT_Int_Flat_Dict,
-	24:  cmp_LT_Int_Flat_Const,
-	17:  cmp_LT_Int_Dict_Flat,
-	21:  cmp_LT_Int_Dict_Dict,
-	25:  cmp_LT_Int_Dict_Const,
-	18:  cmp_LT_Int_Const_Flat,
-	22:  cmp_LT_Int_Const_Dict,
-	32:  cmp_LT_Uint_Flat_Flat,
-	36:  cmp_LT_Uint_Flat_Dict,
-	40:  cmp_LT_Uint_Flat_Const,
-	33:  cmp_LT_Uint_Dict_Flat,
-	37:  cmp_LT_Uint_Dict_Dict,
-	41:  cmp_LT_Uint_Dict_Const,
-	34:  cmp_LT_Uint_Const_Flat,
-	38:  cmp_LT_Uint_Const_Dict,
-	48:  cmp_LT_Float_Flat_Flat,
-	52:  cmp_LT_Float_Flat_Dict,
-	56:  cmp_LT_Float_Flat_Const,
-	49:  cmp_LT_Float_Dict_Flat,
-	53:  cmp_LT_Float_Dict_Dict,
-	57:  cmp_LT_Float_Dict_Const,
-	50:  cmp_LT_Float_Const_Flat,
-	54:  cmp_LT_Float_Const_Dict,
-	64:  cmp_LT_String_Flat_Flat,
-	68:  cmp_LT_String_Flat_Dict,
-	72:  cmp_LT_String_Flat_Const,
-	65:  cmp_LT_String_Dict_Flat,
-	69:  cmp_LT_String_Dict_Dict,
-	73:  cmp_LT_String_Dict_Const,
-	66:  cmp_LT_String_Const_Flat,
-	70:  cmp_LT_String_Const_Dict,
-	80:  cmp_LT_Bytes_Flat_Flat,
-	84:  cmp_LT_Bytes_Flat_Dict,
-	88:  cmp_LT_Bytes_Flat_Const,
-	81:  cmp_LT_Bytes_Dict_Flat,
-	85:  cmp_LT_Bytes_Dict_Dict,
-	89:  cmp_LT_Bytes_Dict_Const,
-	82:  cmp_LT_Bytes_Const_Flat,
-	86:  cmp_LT_Bytes_Const_Dict,
-	144: cmp_LE_Int_Flat_Flat,
-	148: cmp_LE_Int_Flat_Dict,
-	152: cmp_LE_Int_Flat_Const,
-	145: cmp_LE_Int_Dict_Flat,
-	149: cmp_LE_Int_Dict_Dict,
-	153: cmp_LE_Int_Dict_Const,
-	146: cmp_LE_Int_Const_Flat,
-	150: cmp_LE_Int_Const_Dict,
-	160: cmp_LE_Uint_Flat_Flat,
-	164: cmp_LE_Uint_Flat_Dict,
-	168: cmp_LE_Uint_Flat_Const,
-	161: cmp_LE_Uint_Dict_Flat,
-	165: cmp_LE_Uint_Dict_Dict,
-	169: cmp_LE_Uint_Dict_Const,
-	162: cmp_LE_Uint_Const_Flat,
-	166: cmp_LE_Uint_Const_Dict,
-	176: cmp_LE_Float_Flat_Flat,
-	180: cmp_LE_Float_Flat_Dict,
-	184: cmp_LE_Float_Flat_Const,
-	177: cmp_LE_Float_Dict_Flat,
-	181: cmp_LE_Float_Dict_Dict,
-	185: cmp_LE_Float_Dict_Const,
-	178: cmp_LE_Float_Const_Flat,
-	182: cmp_LE_Float_Const_Dict,
-	192: cmp_LE_String_Flat_Flat,
-	196: cmp_LE_String_Flat_Dict,
-	200: cmp_LE_String_Flat_Const,
-	193: cmp_LE_String_Dict_Flat,
-	197: cmp_LE_String_Dict_Dict,
-	201: cmp_LE_String_Dict_Const,
-	194: cmp_LE_String_Const_Flat,
-	198: cmp_LE_String_Const_Dict,
-	208: cmp_LE_Bytes_Flat_Flat,
-	212: cmp_LE_Bytes_Flat_Dict,
-	216: cmp_LE_Bytes_Flat_Const,
-	209: cmp_LE_Bytes_Dict_Flat,
-	213: cmp_LE_Bytes_Dict_Dict,
-	217: cmp_LE_Bytes_Dict_Const,
-	210: cmp_LE_Bytes_Const_Flat,
-	214: cmp_LE_Bytes_Const_Dict,
-	272: cmp_GT_Int_Flat_Flat,
-	276: cmp_GT_Int_Flat_Dict,
-	280: cmp_GT_Int_Flat_Const,
-	273: cmp_GT_Int_Dict_Flat,
-	277: cmp_GT_Int_Dict_Dict,
-	281: cmp_GT_Int_Dict_Const,
-	274: cmp_GT_Int_Const_Flat,
-	278: cmp_GT_Int_Const_Dict,
-	288: cmp_GT_Uint_Flat_Flat,
-	292: cmp_GT_Uint_Flat_Dict,
-	296: cmp_GT_Uint_Flat_Const,
-	289: cmp_GT_Uint_Dict_Flat,
-	293: cmp_GT_Uint_Dict_Dict,
-	297: cmp_GT_Uint_Dict_Const,
-	290: cmp_GT_Uint_Const_Flat,
-	294: cmp_GT_Uint_Const_Dict,
-	304: cmp_GT_Float_Flat_Flat,
-	308: cmp_GT_Float_Flat_Dict,
-	312: cmp_GT_Float_Flat_Const,
-	305: cmp_GT_Float_Dict_Flat,
-	309: cmp_GT_Float_Dict_Dict,
-	313: cmp_GT_Float_Dict_Const,
-	306: cmp_GT_Float_Const_Flat,
-	310: cmp_GT_Float_Const_Dict,
-	320: cmp_GT_String_Flat_Flat,
-	324: cmp_GT_String_Flat_Dict,
-	328: cmp_GT_String_Flat_Const,
-	321: cmp_GT_String_Dict_Flat,
-	325: cmp_GT_String_Dict_Dict,
-	329: cmp_GT_String_Dict_Const,
-	322: cmp_GT_String_Const_Flat,
-	326: cmp_GT_String_Const_Dict,
-	336: cmp_GT_Bytes_Flat_Flat,
-	340: cmp_GT_Bytes_Flat_Dict,
-	344: cmp_GT_Bytes_Flat_Const,
-	337: cmp_GT_Bytes_Dict_Flat,
-	341: cmp_GT_Bytes_Dict_Dict,
-	345: cmp_GT_Bytes_Dict_Const,
-	338: cmp_GT_Bytes_Const_Flat,
-	342: cmp_GT_Bytes_Const_Dict,
-	400: cmp_GE_Int_Flat_Flat,
-	404: cmp_GE_Int_Flat_Dict,
-	408: cmp_GE_Int_Flat_Const,
-	401: cmp_GE_Int_Dict_Flat,
-	405: cmp_GE_Int_Dict_Dict,
-	409: cmp_GE_Int_Dict_Const,
-	402: cmp_GE_Int_Const_Flat,
-	406: cmp_GE_Int_Const_Dict,
-	416: cmp_GE_Uint_Flat_Flat,
-	420: cmp_GE_Uint_Flat_Dict,
-	424: cmp_GE_Uint_Flat_Const,
-	417: cmp_GE_Uint_Dict_Flat,
-	421: cmp_GE_Uint_Dict_Dict,
-	425: cmp_GE_Uint_Dict_Const,
-	418: cmp_GE_Uint_Const_Flat,
-	422: cmp_GE_Uint_Const_Dict,
-	432: cmp_GE_Float_Flat_Flat,
-	436: cmp_GE_Float_Flat_Dict,
-	440: cmp_GE_Float_Flat_Const,
-	433: cmp_GE_Float_Dict_Flat,
-	437: cmp_GE_Float_Dict_Dict,
-	441: cmp_GE_Float_Dict_Const,
-	434: cmp_GE_Float_Const_Flat,
-	438: cmp_GE_Float_Const_Dict,
-	448: cmp_GE_String_Flat_Flat,
-	452: cmp_GE_String_Flat_Dict,
-	456: cmp_GE_String_Flat_Const,
-	449: cmp_GE_String_Dict_Flat,
-	453: cmp_GE_String_Dict_Dict,
-	457: cmp_GE_String_Dict_Const,
-	450: cmp_GE_String_Const_Flat,
-	454: cmp_GE_String_Const_Dict,
-	464: cmp_GE_Bytes_Flat_Flat,
-	468: cmp_GE_Bytes_Flat_Dict,
-	472: cmp_GE_Bytes_Flat_Const,
-	465: cmp_GE_Bytes_Dict_Flat,
-	469: cmp_GE_Bytes_Dict_Dict,
-	473: cmp_GE_Bytes_Dict_Const,
-	466: cmp_GE_Bytes_Const_Flat,
-	470: cmp_GE_Bytes_Const_Dict,
+func compareLEBytesConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	return vector.NewConst(nil, zed.NewBool(string(lconst) <= string(rconst)), lhs.Len(), nil)
+}
+
+func compareGTIntFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Int)
+	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTIntFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Int)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Int)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTIntFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Int)
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTIntDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Int)
+	lx := ld.Index
+	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTIntDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Int)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Int)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTIntDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Int)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTIntConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTIntConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Int)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTIntConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	return vector.NewConst(nil, zed.NewBool(lconst > rconst), lhs.Len(), nil)
+}
+
+func compareGTUintFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Uint)
+	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTUintFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Uint)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Uint)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTUintFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Uint)
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTUintDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Uint)
+	lx := ld.Index
+	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTUintDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Uint)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Uint)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTUintDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Uint)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTUintConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTUintConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Uint)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTUintConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	return vector.NewConst(nil, zed.NewBool(lconst > rconst), lhs.Len(), nil)
+}
+
+func compareGTFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Float)
+	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTFloatFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Float)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Float)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTFloatFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Float)
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTFloatDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Float)
+	lx := ld.Index
+	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTFloatDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Float)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Float)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTFloatDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Float)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTFloatConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTFloatConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Float)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTFloatConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	return vector.NewConst(nil, zed.NewBool(lconst > rconst), lhs.Len(), nil)
+}
+
+func compareGTStringFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.String)
+	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTStringFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.String)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.String)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTStringFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.String)
+	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) > rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTStringDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.String)
+	lx := ld.Index
+	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTStringDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.String)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.String)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTStringDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.String)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) > rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTStringConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst > r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTStringConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.String)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst > r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTStringConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	rconst, _ := rhs.(*vector.Const).AsString()
+	return vector.NewConst(nil, zed.NewBool(lconst > rconst), lhs.Len(), nil)
+}
+
+func compareGTBytesFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Bytes)
+	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(k)) > string(r.Value(k)) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTBytesFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Bytes)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Bytes)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(k)) > string(r.Value(uint32(rx[k]))) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTBytesFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Bytes)
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(k)) > string(rconst) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTBytesDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Bytes)
+	lx := ld.Index
+	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(uint32(lx[k]))) > string(r.Value(k)) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTBytesDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Bytes)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Bytes)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(uint32(lx[k]))) > string(r.Value(uint32(rx[k]))) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTBytesDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Bytes)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(uint32(lx[k]))) > string(rconst) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTBytesConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(lconst) > string(r.Value(k)) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTBytesConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Bytes)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(lconst) > string(r.Value(uint32(rx[k]))) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGTBytesConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	return vector.NewConst(nil, zed.NewBool(string(lconst) > string(rconst)), lhs.Len(), nil)
+}
+
+func compareGEIntFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Int)
+	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEIntFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Int)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Int)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEIntFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Int)
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEIntDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Int)
+	lx := ld.Index
+	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEIntDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Int)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Int)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEIntDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Int)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEIntConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	r := rhs.(*vector.Int)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEIntConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Int)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEIntConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsInt()
+	rconst, _ := rhs.(*vector.Const).AsInt()
+	return vector.NewConst(nil, zed.NewBool(lconst >= rconst), lhs.Len(), nil)
+}
+
+func compareGEUintFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Uint)
+	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEUintFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Uint)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Uint)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEUintFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Uint)
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEUintDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Uint)
+	lx := ld.Index
+	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEUintDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Uint)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Uint)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEUintDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Uint)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEUintConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	r := rhs.(*vector.Uint)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEUintConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Uint)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEUintConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsUint()
+	rconst, _ := rhs.(*vector.Const).AsUint()
+	return vector.NewConst(nil, zed.NewBool(lconst >= rconst), lhs.Len(), nil)
+}
+
+func compareGEFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Float)
+	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEFloatFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Float)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Float)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEFloatFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Float)
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEFloatDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Float)
+	lx := ld.Index
+	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEFloatDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Float)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Float)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEFloatDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Float)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEFloatConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	r := rhs.(*vector.Float)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEFloatConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Float)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEFloatConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsFloat()
+	rconst, _ := rhs.(*vector.Const).AsFloat()
+	return vector.NewConst(nil, zed.NewBool(lconst >= rconst), lhs.Len(), nil)
+}
+
+func compareGEStringFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.String)
+	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEStringFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.String)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.String)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEStringFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.String)
+	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(k) >= rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEStringDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.String)
+	lx := ld.Index
+	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEStringDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.String)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.String)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEStringDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.String)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsString()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if l.Value(uint32(lx[k])) >= rconst {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEStringConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	r := rhs.(*vector.String)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst >= r.Value(k) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEStringConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.String)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if lconst >= r.Value(uint32(rx[k])) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEStringConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsString()
+	rconst, _ := rhs.(*vector.Const).AsString()
+	return vector.NewConst(nil, zed.NewBool(lconst >= rconst), lhs.Len(), nil)
+}
+
+func compareGEBytesFlatFlat(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Bytes)
+	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(k)) >= string(r.Value(k)) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEBytesFlatDict(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Bytes)
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Bytes)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(k)) >= string(r.Value(uint32(rx[k]))) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEBytesFlatConst(lhs, rhs vector.Any) vector.Any {
+	l := lhs.(*vector.Bytes)
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(k)) >= string(rconst) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEBytesDictFlat(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Bytes)
+	lx := ld.Index
+	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(uint32(lx[k]))) >= string(r.Value(k)) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEBytesDictDict(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Bytes)
+	lx := ld.Index
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Bytes)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(uint32(lx[k]))) >= string(r.Value(uint32(rx[k]))) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEBytesDictConst(lhs, rhs vector.Any) vector.Any {
+	ld := lhs.(*vector.Dict)
+	l := ld.Any.(*vector.Bytes)
+	lx := ld.Index
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(l.Value(uint32(lx[k]))) >= string(rconst) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEBytesConstFlat(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	r := rhs.(*vector.Bytes)
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(lconst) >= string(r.Value(k)) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEBytesConstDict(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	rd := rhs.(*vector.Dict)
+	r := rd.Any.(*vector.Bytes)
+	rx := rd.Index
+	n := lhs.Len()
+	out := vector.NewBoolEmpty(n, nil)
+	for k := uint32(0); k < n; k++ {
+		if string(lconst) >= string(r.Value(uint32(rx[k]))) {
+			out.Set(k)
+		}
+	}
+	return out
+}
+
+func compareGEBytesConstConst(lhs, rhs vector.Any) vector.Any {
+	lconst, _ := lhs.(*vector.Const).AsBytes()
+	rconst, _ := rhs.(*vector.Const).AsBytes()
+	return vector.NewConst(nil, zed.NewBool(string(lconst) >= string(rconst)), lhs.Len(), nil)
+}
+
+var compareFuncs = map[int]func(vector.Any, vector.Any) vector.Any{
+	528: compareEQIntFlatFlat,
+	532: compareEQIntFlatDict,
+	536: compareEQIntFlatConst,
+	529: compareEQIntDictFlat,
+	533: compareEQIntDictDict,
+	537: compareEQIntDictConst,
+	530: compareEQIntConstFlat,
+	534: compareEQIntConstDict,
+	538: compareEQIntConstConst,
+	544: compareEQUintFlatFlat,
+	548: compareEQUintFlatDict,
+	552: compareEQUintFlatConst,
+	545: compareEQUintDictFlat,
+	549: compareEQUintDictDict,
+	553: compareEQUintDictConst,
+	546: compareEQUintConstFlat,
+	550: compareEQUintConstDict,
+	554: compareEQUintConstConst,
+	560: compareEQFloatFlatFlat,
+	564: compareEQFloatFlatDict,
+	568: compareEQFloatFlatConst,
+	561: compareEQFloatDictFlat,
+	565: compareEQFloatDictDict,
+	569: compareEQFloatDictConst,
+	562: compareEQFloatConstFlat,
+	566: compareEQFloatConstDict,
+	570: compareEQFloatConstConst,
+	576: compareEQStringFlatFlat,
+	580: compareEQStringFlatDict,
+	584: compareEQStringFlatConst,
+	577: compareEQStringDictFlat,
+	581: compareEQStringDictDict,
+	585: compareEQStringDictConst,
+	578: compareEQStringConstFlat,
+	582: compareEQStringConstDict,
+	586: compareEQStringConstConst,
+	592: compareEQBytesFlatFlat,
+	596: compareEQBytesFlatDict,
+	600: compareEQBytesFlatConst,
+	593: compareEQBytesDictFlat,
+	597: compareEQBytesDictDict,
+	601: compareEQBytesDictConst,
+	594: compareEQBytesConstFlat,
+	598: compareEQBytesConstDict,
+	602: compareEQBytesConstConst,
+	784: compareNEIntFlatFlat,
+	788: compareNEIntFlatDict,
+	792: compareNEIntFlatConst,
+	785: compareNEIntDictFlat,
+	789: compareNEIntDictDict,
+	793: compareNEIntDictConst,
+	786: compareNEIntConstFlat,
+	790: compareNEIntConstDict,
+	794: compareNEIntConstConst,
+	800: compareNEUintFlatFlat,
+	804: compareNEUintFlatDict,
+	808: compareNEUintFlatConst,
+	801: compareNEUintDictFlat,
+	805: compareNEUintDictDict,
+	809: compareNEUintDictConst,
+	802: compareNEUintConstFlat,
+	806: compareNEUintConstDict,
+	810: compareNEUintConstConst,
+	816: compareNEFloatFlatFlat,
+	820: compareNEFloatFlatDict,
+	824: compareNEFloatFlatConst,
+	817: compareNEFloatDictFlat,
+	821: compareNEFloatDictDict,
+	825: compareNEFloatDictConst,
+	818: compareNEFloatConstFlat,
+	822: compareNEFloatConstDict,
+	826: compareNEFloatConstConst,
+	832: compareNEStringFlatFlat,
+	836: compareNEStringFlatDict,
+	840: compareNEStringFlatConst,
+	833: compareNEStringDictFlat,
+	837: compareNEStringDictDict,
+	841: compareNEStringDictConst,
+	834: compareNEStringConstFlat,
+	838: compareNEStringConstDict,
+	842: compareNEStringConstConst,
+	848: compareNEBytesFlatFlat,
+	852: compareNEBytesFlatDict,
+	856: compareNEBytesFlatConst,
+	849: compareNEBytesDictFlat,
+	853: compareNEBytesDictDict,
+	857: compareNEBytesDictConst,
+	850: compareNEBytesConstFlat,
+	854: compareNEBytesConstDict,
+	858: compareNEBytesConstConst,
+	16:  compareLTIntFlatFlat,
+	20:  compareLTIntFlatDict,
+	24:  compareLTIntFlatConst,
+	17:  compareLTIntDictFlat,
+	21:  compareLTIntDictDict,
+	25:  compareLTIntDictConst,
+	18:  compareLTIntConstFlat,
+	22:  compareLTIntConstDict,
+	26:  compareLTIntConstConst,
+	32:  compareLTUintFlatFlat,
+	36:  compareLTUintFlatDict,
+	40:  compareLTUintFlatConst,
+	33:  compareLTUintDictFlat,
+	37:  compareLTUintDictDict,
+	41:  compareLTUintDictConst,
+	34:  compareLTUintConstFlat,
+	38:  compareLTUintConstDict,
+	42:  compareLTUintConstConst,
+	48:  compareLTFloatFlatFlat,
+	52:  compareLTFloatFlatDict,
+	56:  compareLTFloatFlatConst,
+	49:  compareLTFloatDictFlat,
+	53:  compareLTFloatDictDict,
+	57:  compareLTFloatDictConst,
+	50:  compareLTFloatConstFlat,
+	54:  compareLTFloatConstDict,
+	58:  compareLTFloatConstConst,
+	64:  compareLTStringFlatFlat,
+	68:  compareLTStringFlatDict,
+	72:  compareLTStringFlatConst,
+	65:  compareLTStringDictFlat,
+	69:  compareLTStringDictDict,
+	73:  compareLTStringDictConst,
+	66:  compareLTStringConstFlat,
+	70:  compareLTStringConstDict,
+	74:  compareLTStringConstConst,
+	80:  compareLTBytesFlatFlat,
+	84:  compareLTBytesFlatDict,
+	88:  compareLTBytesFlatConst,
+	81:  compareLTBytesDictFlat,
+	85:  compareLTBytesDictDict,
+	89:  compareLTBytesDictConst,
+	82:  compareLTBytesConstFlat,
+	86:  compareLTBytesConstDict,
+	90:  compareLTBytesConstConst,
+	144: compareLEIntFlatFlat,
+	148: compareLEIntFlatDict,
+	152: compareLEIntFlatConst,
+	145: compareLEIntDictFlat,
+	149: compareLEIntDictDict,
+	153: compareLEIntDictConst,
+	146: compareLEIntConstFlat,
+	150: compareLEIntConstDict,
+	154: compareLEIntConstConst,
+	160: compareLEUintFlatFlat,
+	164: compareLEUintFlatDict,
+	168: compareLEUintFlatConst,
+	161: compareLEUintDictFlat,
+	165: compareLEUintDictDict,
+	169: compareLEUintDictConst,
+	162: compareLEUintConstFlat,
+	166: compareLEUintConstDict,
+	170: compareLEUintConstConst,
+	176: compareLEFloatFlatFlat,
+	180: compareLEFloatFlatDict,
+	184: compareLEFloatFlatConst,
+	177: compareLEFloatDictFlat,
+	181: compareLEFloatDictDict,
+	185: compareLEFloatDictConst,
+	178: compareLEFloatConstFlat,
+	182: compareLEFloatConstDict,
+	186: compareLEFloatConstConst,
+	192: compareLEStringFlatFlat,
+	196: compareLEStringFlatDict,
+	200: compareLEStringFlatConst,
+	193: compareLEStringDictFlat,
+	197: compareLEStringDictDict,
+	201: compareLEStringDictConst,
+	194: compareLEStringConstFlat,
+	198: compareLEStringConstDict,
+	202: compareLEStringConstConst,
+	208: compareLEBytesFlatFlat,
+	212: compareLEBytesFlatDict,
+	216: compareLEBytesFlatConst,
+	209: compareLEBytesDictFlat,
+	213: compareLEBytesDictDict,
+	217: compareLEBytesDictConst,
+	210: compareLEBytesConstFlat,
+	214: compareLEBytesConstDict,
+	218: compareLEBytesConstConst,
+	272: compareGTIntFlatFlat,
+	276: compareGTIntFlatDict,
+	280: compareGTIntFlatConst,
+	273: compareGTIntDictFlat,
+	277: compareGTIntDictDict,
+	281: compareGTIntDictConst,
+	274: compareGTIntConstFlat,
+	278: compareGTIntConstDict,
+	282: compareGTIntConstConst,
+	288: compareGTUintFlatFlat,
+	292: compareGTUintFlatDict,
+	296: compareGTUintFlatConst,
+	289: compareGTUintDictFlat,
+	293: compareGTUintDictDict,
+	297: compareGTUintDictConst,
+	290: compareGTUintConstFlat,
+	294: compareGTUintConstDict,
+	298: compareGTUintConstConst,
+	304: compareGTFloatFlatFlat,
+	308: compareGTFloatFlatDict,
+	312: compareGTFloatFlatConst,
+	305: compareGTFloatDictFlat,
+	309: compareGTFloatDictDict,
+	313: compareGTFloatDictConst,
+	306: compareGTFloatConstFlat,
+	310: compareGTFloatConstDict,
+	314: compareGTFloatConstConst,
+	320: compareGTStringFlatFlat,
+	324: compareGTStringFlatDict,
+	328: compareGTStringFlatConst,
+	321: compareGTStringDictFlat,
+	325: compareGTStringDictDict,
+	329: compareGTStringDictConst,
+	322: compareGTStringConstFlat,
+	326: compareGTStringConstDict,
+	330: compareGTStringConstConst,
+	336: compareGTBytesFlatFlat,
+	340: compareGTBytesFlatDict,
+	344: compareGTBytesFlatConst,
+	337: compareGTBytesDictFlat,
+	341: compareGTBytesDictDict,
+	345: compareGTBytesDictConst,
+	338: compareGTBytesConstFlat,
+	342: compareGTBytesConstDict,
+	346: compareGTBytesConstConst,
+	400: compareGEIntFlatFlat,
+	404: compareGEIntFlatDict,
+	408: compareGEIntFlatConst,
+	401: compareGEIntDictFlat,
+	405: compareGEIntDictDict,
+	409: compareGEIntDictConst,
+	402: compareGEIntConstFlat,
+	406: compareGEIntConstDict,
+	410: compareGEIntConstConst,
+	416: compareGEUintFlatFlat,
+	420: compareGEUintFlatDict,
+	424: compareGEUintFlatConst,
+	417: compareGEUintDictFlat,
+	421: compareGEUintDictDict,
+	425: compareGEUintDictConst,
+	418: compareGEUintConstFlat,
+	422: compareGEUintConstDict,
+	426: compareGEUintConstConst,
+	432: compareGEFloatFlatFlat,
+	436: compareGEFloatFlatDict,
+	440: compareGEFloatFlatConst,
+	433: compareGEFloatDictFlat,
+	437: compareGEFloatDictDict,
+	441: compareGEFloatDictConst,
+	434: compareGEFloatConstFlat,
+	438: compareGEFloatConstDict,
+	442: compareGEFloatConstConst,
+	448: compareGEStringFlatFlat,
+	452: compareGEStringFlatDict,
+	456: compareGEStringFlatConst,
+	449: compareGEStringDictFlat,
+	453: compareGEStringDictDict,
+	457: compareGEStringDictConst,
+	450: compareGEStringConstFlat,
+	454: compareGEStringConstDict,
+	458: compareGEStringConstConst,
+	464: compareGEBytesFlatFlat,
+	468: compareGEBytesFlatDict,
+	472: compareGEBytesFlatConst,
+	465: compareGEBytesDictFlat,
+	469: compareGEBytesDictDict,
+	473: compareGEBytesDictConst,
+	466: compareGEBytesConstFlat,
+	470: compareGEBytesConstDict,
+	474: compareGEBytesConstConst,
 }
