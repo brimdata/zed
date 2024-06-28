@@ -2,7 +2,7 @@ script: |
   source service.sh
   zed create -q test1
   zed create -q test2
-  for file in multifrom.zed agg.zed agg-no-keys.zed two-channels.zed agg-sort.zed; do
+  for file in multifrom.zed agg.zed agg-no-keys.zed two-channels.zed agg-sort.zed scope.zed; do
     echo // === $file ===
     query="$(cat $file | jq -Rsa .)"
     curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $ZED_LAKE/query/describe |
@@ -33,6 +33,10 @@ inputs:
   - name: agg-sort.zed
     data: |
       sum(this) by foo | sort x
+  - name: scope.zed
+    data: |
+      type port = uint16
+      from test1
 
 outputs:
   - name: stdout
@@ -165,6 +169,21 @@ outputs:
                           ]
                       ]
                   }
+              }
+          ]
+      }
+      // === scope.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX",
+              "inferred": false
+          },
+          "channels": [
+              {
+                  "aggregation_keys": null,
+                  "sort": null
               }
           ]
       }

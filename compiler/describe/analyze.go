@@ -94,6 +94,8 @@ func Analyze(ctx context.Context, query string, src *data.Source, head *lakepars
 
 func describeSources(ctx context.Context, lk *lake.Root, o dag.Op, inferred bool) ([]Source, error) {
 	switch o := o.(type) {
+	case *dag.Scope:
+		return describeSources(ctx, lk, o.Body[0], inferred)
 	case *dag.Fork:
 		var s []Source
 		for _, p := range o.Paths {
