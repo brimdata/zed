@@ -357,6 +357,7 @@ func compareNumbers(a, b zed.Value, aid, bid int) int {
 
 func toFloat(val zed.Value) float64 { return coerce.ToNumeric[float64](val) }
 func toInt(val zed.Value) int64     { return coerce.ToNumeric[int64](val) }
+func toUint(val zed.Value) uint64   { return coerce.ToNumeric[uint64](val) }
 
 type Add struct {
 	zctx     *zed.Context
@@ -411,7 +412,7 @@ func (a *Add) Eval(ectx Context, this zed.Value) zed.Value {
 	}
 	switch id := typ.ID(); {
 	case zed.IsUnsigned(id):
-		return zed.NewUint(typ, lhsVal.Uint()+rhsVal.Uint())
+		return zed.NewUint(typ, toUint(lhsVal)+toUint(rhsVal))
 	case zed.IsSigned(id):
 		return zed.NewInt(typ, toInt(lhsVal)+toInt(rhsVal))
 	case zed.IsFloat(id):
@@ -430,7 +431,7 @@ func (s *Subtract) Eval(ectx Context, this zed.Value) zed.Value {
 	}
 	switch id := typ.ID(); {
 	case zed.IsUnsigned(id):
-		return zed.NewUint(typ, lhsVal.Uint()-rhsVal.Uint())
+		return zed.NewUint(typ, toUint(lhsVal)-toUint(rhsVal))
 	case zed.IsSigned(id):
 		if id == zed.IDTime {
 			// Return the difference of two times as a duration.
@@ -450,7 +451,7 @@ func (m *Multiply) Eval(ectx Context, this zed.Value) zed.Value {
 	}
 	switch id := typ.ID(); {
 	case zed.IsUnsigned(id):
-		return zed.NewUint(typ, lhsVal.Uint()*rhsVal.Uint())
+		return zed.NewUint(typ, toUint(lhsVal)*toUint(rhsVal))
 	case zed.IsSigned(id):
 		return zed.NewInt(typ, toInt(lhsVal)*toInt(rhsVal))
 	case zed.IsFloat(id):
@@ -466,11 +467,11 @@ func (d *Divide) Eval(ectx Context, this zed.Value) zed.Value {
 	}
 	switch id := typ.ID(); {
 	case zed.IsUnsigned(id):
-		v := rhsVal.Uint()
+		v := toUint(rhsVal)
 		if v == 0 {
 			return d.zctx.NewError(ectx.Arena(), DivideByZero)
 		}
-		return zed.NewUint(typ, lhsVal.Uint()/v)
+		return zed.NewUint(typ, toUint(lhsVal)/v)
 	case zed.IsSigned(id):
 		v := toInt(rhsVal)
 		if v == 0 {
@@ -494,7 +495,7 @@ func (m *Modulo) Eval(ectx Context, this zed.Value) zed.Value {
 	}
 	switch id := typ.ID(); {
 	case zed.IsUnsigned(id):
-		v := rhsVal.Uint()
+		v := toUint(rhsVal)
 		if v == 0 {
 			return m.zctx.NewError(ectx.Arena(), DivideByZero)
 		}
