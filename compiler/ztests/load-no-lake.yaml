@@ -1,0 +1,3 @@
+zed: "load test"
+
+errorRE: "load operator cannot be used without a lake"
