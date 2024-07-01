@@ -1015,7 +1015,8 @@ and produces
     Schools: [
         "Auberry Elementary",
         "Balch Camp Elementary",
-        "Pine Ridge Elementary"
+        "Pine Ridge Elementary",
+        null (string)
     ]
 }
 {
@@ -1025,9 +1026,7 @@ and produces
         "www.bigcreekschool.com"
     ],
     Schools: [
-        "Big Creek Elementary"
-    ]
-}
+        "Big Creek Elementary",
 ...
 ```
 
