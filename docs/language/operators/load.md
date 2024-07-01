@@ -7,6 +7,13 @@
 ```
 load <pool>[@<branch>] [author <author>] [message <message>] [meta <meta>]
 ```
+
+:::tip Note
+The `load` operator is exclusively for working with pools in a
+[Zed lake](../../commands/zed.md) and is not available for use in
+[`zq`](../../commands/zq.md).
+:::
+
 ### Description
 
 The `load` operator populates the specified `<pool>` with the values it
