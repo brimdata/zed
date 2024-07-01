@@ -442,7 +442,7 @@ HeadOp
         KeywordPos: c.pos.offset,
       }, nil
     }
-  / "head" {
+  / "head" !(__ "(") &EOKW {
       return &ast.Head{
         Kind: "Head",
         KeywordPos: c.pos.offset,
@@ -457,7 +457,7 @@ TailOp
         KeywordPos: c.pos.offset,
       }, nil
     }
-  / "tail" {
+  / "tail" !(__ "(") &EOKW {
       return &ast.Tail{
         Kind: "Tail",
         KeywordPos: c.pos.offset,
@@ -477,7 +477,7 @@ UniqOp
   = "uniq" _ "-c" {
       return &ast.Uniq{Kind: "Uniq", Cflag: true, KeywordPos: c.pos.offset}, nil
     }
-  / "uniq" {
+  / "uniq" !(__ "(") &EOKW {
       return &ast.Uniq{Kind: "Uniq", KeywordPos: c.pos.offset}, nil
     }
 
@@ -732,7 +732,7 @@ OrderSuffix
   / ""      { return "asc", nil }
 
 PassOp
-  = "pass" &EOKW {
+  = "pass" !(__ "(") &EOKW {
       return &ast.Pass{Kind: "Pass", KeywordPos: c.pos.offset}, nil
     }
 
