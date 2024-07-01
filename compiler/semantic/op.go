@@ -771,6 +771,10 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) dag.Seq {
 			Exprs: exprs,
 		})
 	case *ast.Load:
+		if !a.source.IsLake() {
+			a.error(o, errors.New("load operator cannot be used without a lake"))
+			return []dag.Op{badOp()}
+		}
 		poolID, err := lakeparse.ParseID(o.Pool)
 		if err != nil {
 			poolID, err = a.source.PoolID(a.ctx, o.Pool)
