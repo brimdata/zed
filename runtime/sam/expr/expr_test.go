@@ -363,6 +363,16 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, "this / 2", val, "5")
 	testSuccessful(t, "this % 3", val, "1")
 
+	// Test arithmetic with null values
+	testSuccessful(t, "null + 1", val, "1")
+	testSuccessful(t, "uint64(1) + null", val, "1(uint64)")
+	testSuccessful(t, "null + 1.0", val, "1.")
+	testSuccessful(t, "1. - null", val, "1.")
+	testSuccessful(t, "uint64(1) * null", val, "0(uint64)")
+	testSuccessful(t, "null / 1.", val, "0.")
+	testSuccessful(t, "1 / uint64(null)", val, `error("divide by zero")`)
+	testSuccessful(t, "null % 1", val, "0")
+
 	// Difference of two times is a duration
 	testSuccessful(t, "a - b", "{a:2022-09-22T00:00:01Z,b:2022-09-22T00:00:00Z}", "1s")
 
