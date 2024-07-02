@@ -28,10 +28,6 @@ outputs:
           name: "test2",
           branch: "live"
       }
-      {
-          name: "test3",
-          branch: "main"
-      }
   - name: stderr
     data: ""
   - name: stdout
