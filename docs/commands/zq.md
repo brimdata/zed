@@ -220,72 +220,6 @@ binary output to their terminal when forgetting to type `-f zson`.
 In practice, we have found that the output defaults
 "just do the right thing" almost all of the time.
 
-### Simplified Text Outputs
-
-The `text` and `table` formats simplify data to fit within the
-limitations of text-based output. Because they do not capture all the
-information required to reconstruct the original data, they are not supported
-input formats. They may be a good fit for use with other text-based shell
-tools, but due to their limitations should be used with care.
-
-In `text` output, minimal formatting is applied, e.g., strings are shown
-without quotes and brackets are dropped from [arrays](../formats/zed.md#22-array)
-and [sets](../formats/zed.md#23-set). [Records](../formats/zed.md#21-record)
-are printed as tab-separated field values without their corresponding field
-names. For example:
-
-```mdtest-command
-echo '"hi" {hello:"world",good:"bye"} [1,2,3]' | zq -f text -
-```
-produces
-```mdtest-output
-hi
-world	bye
-1,2,3
-```
-
-The `table` format includes header lines showing the field names in records.
-For example:
-
-```mdtest-command
-echo '{word:"one",digit:1} {word:"two",digit:2}' | zq -f table -
-```
-produces
-```mdtest-output
-word digit
-one  1
-two  2
-```
-
-If a new record type is encountered in the input stream that does not match
-the previously-printed header line, a new header line will be output.
-For example:
-
-```mdtest-command
-echo '{word:"one",digit: 1} {word:"hello",style:"greeting"}' | zq -f table -
-```
-produces
-```mdtest-output
-word digit
-one  1
-word  style
-hello greeting
-```
-
-If this is undesirable, the [`fuse` operator](../language/operators/fuse.md)
-may prove useful to unify the input stream under a single record type that can
-be described with a single header line. Doing this to our last example, we find
-
-```mdtest-command
-echo '{word:"one",digit:1} {word:"hello",style:"greeting"}' | zq -f table 'fuse' -
-```
-now produces
-```mdtest-output
-word  digit style
-one   1     -
-hello -     greeting
-```
-
 ### Pretty Printing
 
 ZSON and JSON text may be "pretty printed" with the `-pretty` option, which takes
@@ -428,6 +362,72 @@ produces the original data
 
 While the `-split` option is most useful for schema-rigid formats, it can
 be used with any output format.
+
+### Simplified Text Outputs
+
+The `text` and `table` formats simplify data to fit within the
+limitations of text-based output. Because they do not capture all the
+information required to reconstruct the original data, they are not supported
+input formats. They may be a good fit for use with other text-based shell
+tools, but due to their limitations should be used with care.
+
+In `text` output, minimal formatting is applied, e.g., strings are shown
+without quotes and brackets are dropped from [arrays](../formats/zed.md#22-array)
+and [sets](../formats/zed.md#23-set). [Records](../formats/zed.md#21-record)
+are printed as tab-separated field values without their corresponding field
+names. For example:
+
+```mdtest-command
+echo '"hi" {hello:"world",good:"bye"} [1,2,3]' | zq -f text -
+```
+produces
+```mdtest-output
+hi
+world	bye
+1,2,3
+```
+
+The `table` format includes header lines showing the field names in records.
+For example:
+
+```mdtest-command
+echo '{word:"one",digit:1} {word:"two",digit:2}' | zq -f table -
+```
+produces
+```mdtest-output
+word digit
+one  1
+two  2
+```
+
+If a new record type is encountered in the input stream that does not match
+the previously-printed header line, a new header line will be output.
+For example:
+
+```mdtest-command
+echo '{word:"one",digit: 1} {word:"hello",style:"greeting"}' | zq -f table -
+```
+produces
+```mdtest-output
+word digit
+one  1
+word  style
+hello greeting
+```
+
+If this is undesirable, the [`fuse` operator](../language/operators/fuse.md)
+may prove useful to unify the input stream under a single record type that can
+be described with a single header line. Doing this to our last example, we find
+
+```mdtest-command
+echo '{word:"one",digit:1} {word:"hello",style:"greeting"}' | zq -f table 'fuse' -
+```
+now produces
+```mdtest-output
+word  digit style
+one   1     -
+hello -     greeting
+```
 
 ## Query Debugging
 
