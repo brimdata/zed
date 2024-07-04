@@ -517,7 +517,7 @@ produces this ZSON output
 "hello, world"
 ```
 
-_Some values of available [data types](../language/data-types)_
+_Some values of available [data types](../language/data-types.md)_
 ```
 echo '1 1.5 [1,"foo"] |["apple","banana"]|' | zq -z 'yield this' -
 ```
