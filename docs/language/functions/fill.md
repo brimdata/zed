@@ -16,7 +16,17 @@ present in the output type `t` but not in the input.
 Filled fields are added with a `null` value.  Filling is useful when
 you want to be sure that all fields in a schema are present in a record.
 
+The order of newly added fields relative to fields already present is
+undefined.  If maintaining relative order is important, consider applying the
+[`order`](./order.md) or [`shape`](./shape) function.
+
 If `val` is not a record, it is returned unmodified.
+
+:::tip
+Many users seeking the functionality of `fill` prefer to use the
+[`shape` function](./shape.md) which applies the `fill`, [`cast`](./cast.md),
+and [`order`](./order.md) functions simultaneously on a record.
+:::
 
 ### Examples
 

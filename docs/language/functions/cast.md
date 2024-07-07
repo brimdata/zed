@@ -28,7 +28,7 @@ For complex types, the cast function visits each leaf value in `val` and
 casts that value to the corresponding type in `t`.
 When a complex value has multiple levels of nesting,
 casting is applied recursively down the tree.  For example, cast is recursively
-applied to each element in array of records and recursively applied to each record.
+applied to each element in an array of records and recursively applied to each record.
 
 If `val` is a record (or if any of its nested value is a record):
 * absent fields are ignored and omitted from the result,
@@ -40,6 +40,12 @@ to match the output type's order but rather just modifies the leaf values.
 
 If a cast fails, an error is returned when casting to primitive types
 and the input value is returned when casting to complex types.
+
+:::tip
+Many users seeking to `cast` record values prefer to use the
+[`shape` function](./shape.md) which applies the `cast`, [`fill`](./fill.md),
+and [`order`](./order.md) functions simultaneously.
+:::
 
 ### Examples
 
