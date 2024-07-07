@@ -18,7 +18,7 @@ you want to be sure that all fields in a schema are present in a record.
 
 The order of newly added fields relative to fields already present is
 undefined.  If maintaining relative order is important, consider applying the
-[`order`](./order.md) or [`shape`](./shape) function.
+[`order`](./order.md) or [`shape`](./shape.md) function.
 
 If `val` is not a record, it is returned unmodified.
 
