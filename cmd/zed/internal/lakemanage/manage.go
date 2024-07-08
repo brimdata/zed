@@ -3,11 +3,15 @@ package lakemanage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"syscall"
 	"time"
 
 	"github.com/brimdata/zed/api/client"
 	lakeapi "github.com/brimdata/zed/lake/api"
+	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lakeparse"
+	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -66,7 +70,7 @@ func monitor(ctx context.Context, lk lakeapi.Interface, conf Config, logger *zap
 }
 
 func getBranches(ctx context.Context, conf Config, lk lakeapi.Interface, logger *zap.Logger) ([]*branch, error) {
-	pools, err := lakeapi.GetPools(ctx, lk)
+	pools, err := getPools(ctx, conf, lk)
 	if err != nil {
 		return nil, err
 	}
@@ -77,4 +81,38 @@ func getBranches(ctx context.Context, conf Config, lk lakeapi.Interface, logger 
 		}
 	}
 	return branches, nil
+}
+
+func getPools(ctx context.Context, conf Config, lk lakeapi.Interface) ([]*pools.Config, error) {
+	pls, err := lakeapi.GetPools(ctx, lk)
+	if err != nil {
+		return nil, err
+	}
+	if len(conf.Pools) == 0 {
+		return pls, nil
+	}
+	m := map[ksuid.KSUID]struct{}{}
+	var out []*pools.Config
+	for _, c := range conf.Pools {
+		p := selectPool(c, pls)
+		if p == nil {
+			return nil, fmt.Errorf("pool %q not found", c.Pool)
+		}
+		if _, ok := m[p.ID]; ok {
+			return nil, fmt.Errorf("duplicate pool in configuration: %q", c.Pool)
+		}
+		m[p.ID] = struct{}{}
+		out = append(out, p)
+	}
+	return out, nil
+}
+
+func selectPool(c PoolConfig, pools []*pools.Config) *pools.Config {
+	id, _ := lakeparse.ParseID(c.Pool)
+	for _, p := range pools {
+		if id == p.ID || c.Pool == p.Name {
+			return p
+		}
+	}
+	return nil
 }

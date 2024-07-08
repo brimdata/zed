@@ -64,6 +64,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		d.KnownFields(true) // returns error for unknown fields
 		return d.Decode(&c.config)
 	})
+	f.Func("pool", "pool to manage (all if unset, can be specified multiple times)", func(s string) error {
+		c.config.Pools = append(c.config.Pools, lakemanage.PoolConfig{Pool: s, Branch: "main"})
+		return nil
+	})
 	c.config.Interval = f.Duration("interval", lakemanage.DefaultInterval, "interval between updates (only applicable with -monitor")
 	f.BoolVar(&c.monitor, "monitor", false, "continuously monitor the lake for updates")
 	f.BoolVar(&c.config.Vectors, "vectors", false, "create vectors for objects")
