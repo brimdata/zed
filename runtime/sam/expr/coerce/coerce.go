@@ -41,6 +41,9 @@ func Equal(a, b zed.Value) bool {
 }
 
 func ToNumeric[T constraints.Integer | constraints.Float](val zed.Value) T {
+	if val.IsNull() {
+		return 0
+	}
 	switch id := val.Type().ID(); {
 	case zed.IsUnsigned(id):
 		return T(val.Uint())
