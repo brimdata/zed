@@ -103,7 +103,7 @@ Note here that the query `1+1` [implies](../language/dataflow-model.md#implied-o
 | `vng`     |  yes | [VNG - Binary Columnar Format](../formats/vng.md) |
 | `zeek`    |  yes | [Zeek Logs](https://docs.zeek.org/en/master/logs/index.html) |
 | `zjson`   |  yes | [ZJSON - Zed over JSON](../formats/zjson.md) |
-| `zng`     |  yes | [ZNG - Binary Row Format](../formats/zson.md) |
+| `zng`     |  yes | [ZNG - Binary Row Format](../formats/zng.md) |
 | `zson`    |  yes | [ZSON - Human-readable Format](../formats/zson.md) |
 
 The input format is typically [detected automatically](#auto-detection) and the formats for which
