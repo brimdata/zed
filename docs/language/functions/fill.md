@@ -11,14 +11,12 @@ fill(val: any, t: type) -> any
 ### Description
 
 The _fill_ function adds to the input record `val` any fields that are
-present in the output type `t` but not in the input.
+present in the output type `t` but not in the input.  Such fields are added
+after the fields already present in `t` and in the order they appear in the
+input record.
 
 Filled fields are added with a `null` value.  Filling is useful when
 you want to be sure that all fields in a schema are present in a record.
-
-The order of newly added fields relative to fields already present is
-undefined.  If maintaining relative order is important, consider applying the
-[`order`](./order.md) or [`shape`](./shape.md) function.
 
 If `val` is not a record, it is returned unmodified.
 
