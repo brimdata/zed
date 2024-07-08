@@ -28,6 +28,7 @@ func (a *Arith) Eval(val vector.Any) vector.Any {
 func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
+	fmt.Printf("%T %T\n", lhs, rhs)
 	if u, ok := lhs.(*vector.Union); ok {
 		results := make([]vector.Any, len(u.Values))
 		for tag, view := range u.Unstitch(rhs) {

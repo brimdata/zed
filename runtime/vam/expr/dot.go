@@ -35,7 +35,7 @@ func NewDottedExpr(zctx *zed.Context, f field.Path) Evaluator {
 }
 
 func (d *DotExpr) Eval(val vector.Any) vector.Any {
-	switch val := d.record.Eval(val).(type) {
+	switch val := vector.Under(d.record.Eval(val)).(type) {
 	case nil: //XXX
 		return nil
 	case *vector.Record:

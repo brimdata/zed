@@ -64,20 +64,35 @@ func (u *Union) Unstitch(v Any) []*View {
 }
 
 // XXX len(v) must be the same as len(u.Values) and len(v[k]) = len(u.Values[tag])
-//XXX resolve this with the idea of the variant sequence... we can have a varseq
-// as a result of an expr without there being a union type... and we might as well 
-// allow there to be multiple of the same type in the stitch/varseq to simplify 
+// XXX resolve this with the idea of the variant sequence... we can have a varseq
+// as a result of an expr without there being a union type... and we might as well
+// allow there to be multiple of the same type in the stitch/varseq to simplify
 // things and preserve the reverse tagmap (the stitch tags).
 func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
+	var types []zed.Type
+	for _, val := range inputs {
+		typ := val.Type()
+		if typ.Kind() == zed.UnionKind {
+			panic("result type requires nested union")
+		}
+		types = append(types, typ)
+	}
+	types = zed.UniqueTypes(types)
+	if len(types) != len(inputs) {
+		fmt.Printf("%#v\n", types)
+		fmt.Printf("%#v\n", inputs)
+		panic("multiple inputs with the same type") // XXX Does this really matter?
+	}
+	if len(types) < 2 {
+		panic("union of one type")
+	}
+	typ := zctx.LookupTypeUnion(types)
+
 	n := len(u.Values)
 	views := make([]*View, n)
-	types := make(map[zed.Type]struct{})
-	for _, v := range inputs {
-		types[v.Type()] = struct{}{}
-	}
-	if len(types)
 	for k := 0; k < n; k++ {
-		views[k] = NewView(u.TagMap.Reverse[k], v)
+		views[k] = NewView(u.TagMap.Reverse[k], inputs[k])
 	}
-	return views
+	// XXX Can we just use u.TagMap here instead of creating a new one?
+	return NewUnion(typ, u.Tags, inputs, nil)
 }

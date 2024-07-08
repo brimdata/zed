@@ -38,8 +38,8 @@ func main() {
 				typ == "String" && op != "+" {
 				continue
 			}
-			for lform := vector.Form(0); lform < 3; lform++ {
-				for rform := vector.Form(0); rform < 3; rform++ {
+			for lform := vector.Form(0); lform < 4; lform++ {
+				for rform := vector.Form(0); rform < 4; rform++ {
 					name := "arith" + opToAlpha[op] + typ + lform.String() + rform.String()
 					fmt.Fprintln(&buf, genFunc(name, op, typ, lform, rform))
 					funcCode := vector.FuncCode(vector.ArithOpFromString(op), vector.KindFromString(typ), lform, rform)
@@ -98,8 +98,8 @@ func genVarInit(which, typ string, form vector.Form) string {
 	switch form {
 	case vector.FormFlat:
 		return fmt.Sprintf("%s := %shs.(*vector.%s)\n", which, which, typ)
-	case vector.FormDict:
-		s := fmt.Sprintf("%sd := %shs.(*vector.Dict)\n", which, which)
+	case vector.FormDict, vector.FormView:
+		s := fmt.Sprintf("%sd := %shs.(*vector.%s)\n", which, which, form)
 		s += fmt.Sprintf("%s := %sd.Any.(*vector.%s)\n", which, which, typ)
 		s += fmt.Sprintf("%sx := %sd.Index\n", which, which)
 		return s
@@ -124,7 +124,7 @@ func genExpr(which string, form vector.Form) string {
 	switch form {
 	case vector.FormFlat:
 		return which + ".Value(k)"
-	case vector.FormDict:
+	case vector.FormDict, vector.FormView:
 		return fmt.Sprintf("%s.Value(uint32(%sx[k]))", which, which)
 	case vector.FormConst:
 		return which + "const"
