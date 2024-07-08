@@ -2,6 +2,7 @@ package vector
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
@@ -50,13 +51,16 @@ func (u *Union) Copy(vals []Any) *Union {
 // Unstitch returns a set of views with one for each type in the union
 // such that the input vector v is the same length as u and each
 // new view of v is congruent with the corresponding union member vector.
-func (u *Union) Unstitch(v Any) []*View {
+func (u *Union) Unstitch(v Any) []Any {
+	if vUnion, ok := v.(*Union); ok && slices.Equal(u.TagMap.Forward, vUnion.TagMap.Forward) {
+		return vUnion.Values
+	}
 	// We can simply use the reverse tagmap to create the views into v.
 	if v.Len() != u.Len() {
 		panic(fmt.Sprintf("mismatched vector sizes: %d vs %d", u.Len(), v.Len()))
 	}
 	n := len(u.Values)
-	views := make([]*View, n)
+	views := make([]Any, n)
 	for k := 0; k < n; k++ {
 		views[k] = NewView(u.TagMap.Reverse[k], v)
 	}
@@ -79,8 +83,6 @@ func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
 	}
 	types = zed.UniqueTypes(types)
 	if len(types) != len(inputs) {
-		fmt.Printf("%#v\n", types)
-		fmt.Printf("%#v\n", inputs)
 		panic("multiple inputs with the same type") // XXX Does this really matter?
 	}
 	if len(types) < 2 {
