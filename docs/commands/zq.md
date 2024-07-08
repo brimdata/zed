@@ -188,7 +188,7 @@ typically omit quotes around field names.
 | `vng`     | [VNG - Binary Columnar Format](../formats/vng.md) |
 | `zeek`    | [Zeek Logs](https://docs.zeek.org/en/master/logs/index.html) |
 | `zjson`   | [ZJSON - Zed over JSON](../formats/zjson.md) |
-| `zng`     | [ZNG - Binary Row Format](../formats/zson.md) |
+| `zng`     | [ZNG - Binary Row Format](../formats/zng.md) |
 | `zson`    | [ZSON - Human-readable Format](../formats/zson.md) |
 
 The output format defaults to either ZSON or ZNG and may be specified
