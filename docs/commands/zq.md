@@ -34,7 +34,7 @@ an S3 URL, or standard input specified with `-`.
 For built-in command help and a listing of all available options,
 simply run `zq` with no arguments.
 
-`zq` supports a [number of formats](#input-formats) but [ZNG](../formats/zng.md)
+`zq` supports a number of [input](#input-formats) and [output](#output-formats) formats, but [ZNG](../formats/zng.md)
 tends to be the most space-efficient and most performant.  ZNG has efficiency similar to
 [Avro](https://avro.apache.org/docs/current/spec.html)
 and [Protocol Buffers](https://developers.google.com/protocol-buffers)
@@ -57,7 +57,7 @@ A query expressed in the [Zed language](../language/README.md)
 may be optionally specified and applied to the input stream.
 
 If no query is specified, the inputs are scanned without modification
-and output in the desired format as described below.  This latter approach
+and output in the desired format as [described below](#input-formats).  This latter approach
 provides a convenient means to convert files from one format to another.
 
 To determine whether the first argument is a query or an input,
@@ -71,8 +71,8 @@ same name in the local directory.
 
 When `zq` is run with a query and no input arguments, then the query must
 begin with
-* a [from, file, or get operator](../language/operators/from.md), or
-* an explicit or implied [yield operator](../language/operators/yield.md).
+* a [`from`, `file`, or `get` operator](../language/operators/from.md), or
+* an explicit or implied [`yield` operator](../language/operators/yield.md).
 
 In the case of a `yield` with no inputs, the query is run with
 a single input value of `null`.  This provides a convenient means to run in a
@@ -95,19 +95,19 @@ Note here that the query `1+1` [implies](../language/dataflow-model.md#implied-o
 |  Option   | Auto | Specification                            |
 |-----------|------|------------------------------------------|
 | `arrows`  |  yes | [Arrow IPC Stream Format](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format) |
-| `json`    |  yes | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
 | `csv`     |  yes | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
+| `json`    |  yes | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
 | `line`    |  no  | One string value per input line |
 | `parquet` |  yes | [Apache Parquet](https://github.com/apache/parquet-format) |
 | `tsv`     |  yes | [TSV - Tab-Separated Values](https://en.wikipedia.org/wiki/Tab-separated_values) |
 | `vng`     |  yes | [VNG - Binary Columnar Format](../formats/vng.md) |
-| `zson`    |  yes | [ZSON - Human-readable Format](../formats/zson.md) |
-| `zng`     |  yes | [ZNG - Binary Row Format](../formats/zson.md) |
-| `zjson`   |  yes | [ZJSON - Zed over JSON](../formats/zjson.md) |
 | `zeek`    |  yes | [Zeek Logs](https://docs.zeek.org/en/master/logs/index.html) |
+| `zjson`   |  yes | [ZJSON - Zed over JSON](../formats/zjson.md) |
+| `zng`     |  yes | [ZNG - Binary Row Format](../formats/zng.md) |
+| `zson`    |  yes | [ZSON - Human-readable Format](../formats/zson.md) |
 
-The input format is typically detected automatically and the formats for which
-`Auto` is `yes` in the table above support _auto-detection_.
+The input format is typically [detected automatically](#auto-detection) and the formats for which
+"Auto" is "yes" in the table above support _auto-detection_.
 Formats without auto-detection require the `-i` option.
 
 ### Hard-wired Input Format
@@ -146,7 +146,7 @@ would produce this output in the default ZSON format
 
 ### ZSON-JSON Auto-detection
 
-Since ZSON is a superset of JSON, `zq` must be careful in whether it
+Since [ZSON](../formats/zson.md) is a superset of JSON, `zq` must be careful in whether it
 interprets input as ZSON as JSON.  While you can always clarify your intent
 with the `-i zson` or `-i json`, `zq` attempts to "just do the right thing"
 when you run it with JSON vs. ZSON.
@@ -156,11 +156,13 @@ not desirable because (1) the ZSON parser is not particularly performant and
 (2) all JSON numbers are floating point but the ZSON parser will parse as
 JSON any number that appears without a decimal point as an integer type.
 
-> The reason `zq` is not particularly performant for ZSON is that the ZNG or
-> VNG formats are semantically equivalent to ZSON but much more efficient and
-> the design intent is that these efficient binary formats should be used in
-> use cases where performance matters.  ZSON is typically used only when
-> data needs to be human-readable in interactive settings or in automated tests.
+:::tip note
+The reason `zq` is not particularly performant for ZSON is that the ZNG or
+[VNG](../formats/vng.md) formats are semantically equivalent to ZSON but much more efficient and
+the design intent is that these efficient binary formats should be used in
+use cases where performance matters.  ZSON is typically used only when
+data needs to be human-readable in interactive settings or in automated tests.
+:::
 
 To this end, `zq` uses a heuristic to select between ZSON in JSON when the
 `-i` option is not specified. Specifically, JSON is selected when the first values
@@ -172,18 +174,32 @@ typically omit quotes around field names.
 
 ## Output Formats
 
+`zq` currently supports the following output formats:
+
+|  Option   | Specification                            |
+|-----------|------------------------------------------|
+| `arrows`  | [Arrow IPC Stream Format](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format) |
+| `csv`     | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
+| `json`    | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
+| `parquet` | [Apache Parquet](https://github.com/apache/parquet-format) |
+| `table`   | (described [below](#simplified-text-outputs)) |
+| `text`    | (described [below](#simplified-text-outputs)) |
+| `tsv`     | [TSV - Tab-Separated Values](https://en.wikipedia.org/wiki/Tab-separated_values) |
+| `vng`     | [VNG - Binary Columnar Format](../formats/vng.md) |
+| `zeek`    | [Zeek Logs](https://docs.zeek.org/en/master/logs/index.html) |
+| `zjson`   | [ZJSON - Zed over JSON](../formats/zjson.md) |
+| `zng`     | [ZNG - Binary Row Format](../formats/zng.md) |
+| `zson`    | [ZSON - Human-readable Format](../formats/zson.md) |
+
 The output format defaults to either ZSON or ZNG and may be specified
-with the `-f` option.  The supported output formats include all of
-the input formats along with text and table formats, which are useful
-for displaying data.  (They do not capture all the information required
-to reconstruct the original data so they are not supported input formats.)
+with the `-f` option.
 
 Since ZSON is a common format choice, the `-z` flag is a shortcut for
-`-f zson.`  Also, `-Z` is a shortcut for `-f zson` with `-pretty 4` as
-described below.
+`-f zson`.  Also, `-Z` is a shortcut for `-f zson` with `-pretty 4` as
+[described below](#pretty-printing).
 
 And since JSON is another common format choice, the `-j` flag is a shortcut for
-`-f json.`
+`-f json` and `-J` is a shortcut for pretty printing JSON.
 
 ### Output Format Selection
 
@@ -204,11 +220,12 @@ binary output to their terminal when forgetting to type `-f zson`.
 In practice, we have found that the output defaults
 "just do the right thing" almost all of the time.
 
-### ZSON Pretty Printing
+### Pretty Printing
 
-ZSON text may be "pretty printed" with the `-pretty` option, which takes
+ZSON and JSON text may be "pretty printed" with the `-pretty` option, which takes
 the number of spaces to use for indentation.  As this is a common option,
-the `-Z` option is a shortcut for `-f zson -pretty 4`.
+the `-Z` option is a shortcut for `-f zson -pretty 4` and `-J` is a shortcut
+for `-f json -pretty 4`.
 
 For example,
 ```mdtest-command
@@ -285,7 +302,8 @@ produces
 
 ### Schema-rigid Outputs
 
-Certain data formats like Arrow and Parquet are "schema rigid" in the sense that
+Certain data formats like [Arrow](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format)
+and [Parquet](https://github.com/apache/parquet-format) are "schema rigid" in the sense that
 they require a schema to be defined before values can be written into the file
 and all the values in the file must conform to this schema.
 
@@ -305,7 +323,7 @@ parquetio: encountered multiple types (consider 'fuse'): {x:int64} and {s:string
 
 #### Fusing Schemas
 
-As suggested by the error above, the Zed `fuse` operator can merge different record
+As suggested by the error above, the Zed [`fuse` operator](../language/operators/fuse.md) can merge different record
 types into a blended type, e.g., here we create the file and read it back:
 ```mdtest-command
 echo '{x:1}{s:"hello"}' | zq -o out.parquet -f parquet fuse -
@@ -345,6 +363,72 @@ produces the original data
 While the `-split` option is most useful for schema-rigid formats, it can
 be used with any output format.
 
+### Simplified Text Outputs
+
+The `text` and `table` formats simplify data to fit within the
+limitations of text-based output. Because they do not capture all the
+information required to reconstruct the original data, they are not supported
+input formats. They may be a good fit for use with other text-based shell
+tools, but due to their limitations should be used with care.
+
+In `text` output, minimal formatting is applied, e.g., strings are shown
+without quotes and brackets are dropped from [arrays](../formats/zed.md#22-array)
+and [sets](../formats/zed.md#23-set). [Records](../formats/zed.md#21-record)
+are printed as tab-separated field values without their corresponding field
+names. For example:
+
+```mdtest-command
+echo '"hi" {hello:"world",good:"bye"} [1,2,3]' | zq -f text -
+```
+produces
+```mdtest-output
+hi
+world	bye
+1,2,3
+```
+
+The `table` format includes header lines showing the field names in records.
+For example:
+
+```mdtest-command
+echo '{word:"one",digit:1} {word:"two",digit:2}' | zq -f table -
+```
+produces
+```mdtest-output
+word digit
+one  1
+two  2
+```
+
+If a new record type is encountered in the input stream that does not match
+the previously-printed header line, a new header line will be output.
+For example:
+
+```mdtest-command
+echo '{word:"one",digit: 1} {word:"hello",style:"greeting"}' | zq -f table -
+```
+produces
+```mdtest-output
+word digit
+one  1
+word  style
+hello greeting
+```
+
+If this is undesirable, the [`fuse` operator](../language/operators/fuse.md)
+may prove useful to unify the input stream under a single record type that can
+be described with a single header line. Doing this to our last example, we find
+
+```mdtest-command
+echo '{word:"one",digit:1} {word:"hello",style:"greeting"}' | zq -f table 'fuse' -
+```
+now produces
+```mdtest-output
+word  digit style
+one   1     -
+hello -     greeting
+```
+
 ## Query Debugging
 
 If you are ever stumped about how the `zq` compiler is parsing your query,
@@ -357,7 +441,7 @@ For example, this query
 ```mdtest-command
 zq -C 'has(foo)'
 ```
-is an implied [where operator](../language/operators/where.md), which matches values
+is an implied [`where` operator](../language/operators/where.md), which matches values
 that have a field `foo`, i.e.,
 ```mdtest-output
 where has(foo)
@@ -366,7 +450,7 @@ while this query
 ```mdtest-command
 zq -C 'a:=x+1'
 ```
-is an implied [put operator](../language/operators/put.md), which creates a new field `a`
+is an implied [`put` operator](../language/operators/put.md), which creates a new field `a`
 with the value `x+1`, i.e.,
 ```mdtest-output
 put a:=x+1
@@ -383,7 +467,7 @@ do not halt execution.  Instead, these error conditions produce
 [first-class Zed errors](../language/data-types.md#first-class-errors)
 in the data output stream interleaved with any valid results.
 Such errors are easily queried with the
-[is_error function](../language/functions/is_error.md).
+[`is_error` function](../language/functions/is_error.md).
 
 This approach provides a robust technique for debugging complex query pipelines,
 where errors can be wrapped in one another providing stack-trace-like debugging
@@ -433,7 +517,7 @@ produces this ZSON output
 "hello, world"
 ```
 
-_Some values of available data types_
+_Some values of available [data types](../language/data-types.md)_
 ```
 echo '1 1.5 [1,"foo"] |["apple","banana"]|' | zq -z 'yield this' -
 ```
@@ -455,7 +539,7 @@ produces
 <[(int64,string)]>
 <|[string]|>
 ```
-_A simple aggregation_
+_A simple [aggregation](../language/aggregates/README.md)_
 ```
 echo '{key:"foo",val:1}{key:"bar",val:2}{key:"foo",val:3}' | zq -z 'sum(val) by key | sort key' -
 ```
@@ -464,7 +548,7 @@ produces
 {key:"bar",sum:2}
 {key:"foo",sum:4}
 ```
-_Convert CSV to Zed and cast a to an integer from default float_
+_Convert CSV to Zed and [cast](../language/functions/cast.md) a to an integer from default float_
 ```
 printf "a,b\n1,foo\n2,bar\n" | zq 'a:=int64(a)' -
 ```
@@ -534,7 +618,7 @@ While processing data in the ZNG format is far more efficient than JSON,
 there is substantial JSON data in the world and it is important for JSON
 input to perform well.
 
-This proved a challenge as `zq` is written in Go and Go's JSON package
+This proved a challenge as `zq` is written in [Go](https://go.dev/) and Go's JSON package
 is not particularly performant.  To this end, `zq` has its own lean and simple
 [JSON tokenizer](https://pkg.go.dev/github.com/brimdata/zed/pkg/jsonlexer),
 which performs quite well,
@@ -561,7 +645,7 @@ These tests are easy to reproduce.  The input data comes from the
 where we used a semi-structured Zeek "conn" log from the `zeek-default` directory.
 
 It is easy to convert the Zeek logs to a local ZNG file using
-zq's built-in `get` operator:
+`zq`'s built-in [`get` operator](../language/operators/get.md):
 ```
 zq -o conn.zng 'get https://raw.githubusercontent.com/brimdata/zed-sample-data/main/zeek-default/conn.log.gz'
 ```
@@ -576,7 +660,7 @@ Next, a JSON file can be converted from ZNG using:
 zq -f json conn.zng > conn.json
 ```
 Note here that we lose information in this conversion because the rich data types
-of Zed (that were [translated from the Zeek format](../integrations/zeek/data-type-compatibility.md) are lost.
+of Zed (that were [translated from the Zeek format](../integrations/zeek/data-type-compatibility.md)) are lost.
 
 We'll also make a SQLite database in the file `conn.db` as the table named `conn`.
 One easy way to do this is to install
