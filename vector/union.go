@@ -90,11 +90,6 @@ func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
 	}
 	typ := zctx.LookupTypeUnion(types)
 
-	n := len(u.Values)
-	views := make([]*View, n)
-	for k := 0; k < n; k++ {
-		views[k] = NewView(u.TagMap.Reverse[k], inputs[k])
-	}
 	// XXX Can we just use u.TagMap here instead of creating a new one?
 	return NewUnion(typ, u.Tags, inputs, nil)
 }
