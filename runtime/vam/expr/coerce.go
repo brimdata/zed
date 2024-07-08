@@ -126,6 +126,12 @@ func promoteToSigned(val vector.Any) vector.Any {
 	case *vector.Dict:
 		promoted := promoteToSigned(val.Any)
 		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
+	case *vector.Const:
+		v, ok := ToInt(val.Value())
+		if !ok {
+			panic("ToInt failed")
+		}
+		return vector.NewConst(nil, zed.NewInt64(v), val.Len(), val.Nulls)
 	default:
 		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
 	}
