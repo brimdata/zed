@@ -17,7 +17,7 @@ by a number of commands:
 command | command | command | ...
 ```
 However, in Zed, the entities that transform data are called
-"operators" instead of "commands" and unlike Unix pipelines,
+"[operators](operators/README.md)" instead of "commands" and unlike Unix pipelines,
 the streams of data in a Zed query
 are typed data sequences that adhere to the
 [Zed data model](../formats/zed.md).
@@ -47,6 +47,8 @@ and the Zed compiler optimizes the data flow computation
 &mdash; e.g., often implementing a Zed program differently than
 the flow implied by the pipeline yet reaching the same result &mdash;
 much as a modern SQL engine optimizes a declarative SQL query.
+
+## Search and Analytics
 
 Zed is also intended to provide a seamless transition from a simple search experience
 (e.g., typed into a search bar or as the query argument of the [`zq`](../commands/zq.md) command-line
@@ -94,6 +96,8 @@ in the input
 The short-hand query from above might be typed into a search box while the
 latter query might be composed in a query editor or in Zed source files
 maintained in GitHub.  Both forms are valid Zed queries.
+
+## Comments
 
 To further ease the maintenance and readability of source files, comments
 beginning with `//` may appear in Zed.
