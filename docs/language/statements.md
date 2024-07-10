@@ -108,7 +108,7 @@ calling sequence.
 For instance the program in `myop.zed`
 ```mdtest-input myop.zed
 op myop(): (
-  pass
+  yield this
 )
 myop()
 ```
