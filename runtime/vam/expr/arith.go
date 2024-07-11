@@ -65,3 +65,21 @@ func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	}
 	return f(lhs, rhs)
 }
+
+func applyToUnion(zctx *zed.Context, lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) (vector.Any, bool) {
+	if lhs, ok := lhs.(*vector.Union); ok {
+		results := make([]vector.Any, len(lhs.Values))
+		for tag, view := range lhs.Unstitch(rhs) {
+			results[tag] = eval(lhs.Values[tag], view)
+		}
+		return lhs.Stitch(zctx, results), true
+	}
+	if rhs, ok := rhs.(*vector.Union); ok {
+		results := make([]vector.Any, len(rhs.Values))
+		for tag, view := range rhs.Unstitch(lhs) {
+			results[tag] = eval(view, rhs.Values[tag])
+		}
+		return rhs.Stitch(zctx, results), true
+	}
+	return nil, false
+}

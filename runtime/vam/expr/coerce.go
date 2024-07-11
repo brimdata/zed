@@ -9,6 +9,16 @@ import (
 	"github.com/brimdata/zed/vector"
 )
 
+func isUnion(val vector.Any) bool {
+	if _, ok := val.(*vector.Union); ok {
+		return true
+	}
+	if val, ok := val.(*vector.View); ok {
+		return isUnion(val.Any)
+	}
+	return false
+}
+
 // coerceVals checks if a and b are type compatible for comparison
 // and/or math and modifies one of the vectors promoting to the
 // other's type as needed according to Zed's coercion rules (modified
@@ -16,6 +26,9 @@ import (
 // encountered an error vector is returned and the coerced values
 // are abandoned.
 func coerceVals(zctx *zed.Context, a, b vector.Any) (vector.Any, vector.Any, vector.Any) {
+	if isUnion(a) || isUnion(b) {
+		panic(fmt.Sprintf("union in coerceVals: %#v, %#v", a, b))
+	}
 	aid := a.Type().ID()
 	bid := b.Type().ID()
 	if aid == bid {

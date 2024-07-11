@@ -91,7 +91,7 @@ func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
 	}
 	types = zed.UniqueTypes(types)
 	if len(types) != len(inputs) {
-		panic("multiple inputs with the same type") // XXX Does this really matter?
+		panic(fmt.Sprintf("multiple stitch inputs with the same type: %#v", inputs)) // XXX Does this really matter?
 	}
 	if len(types) < 2 {
 		panic("union of one type")
