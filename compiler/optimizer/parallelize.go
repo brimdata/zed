@@ -82,7 +82,7 @@ func (o *Optimizer) parallelizeSeqScan(scan *dag.SeqScan, ops []dag.Op, replicas
 
 func (o *Optimizer) optimizeParallels(seq dag.Seq) {
 	walk(seq, false, func(seq dag.Seq) dag.Seq {
-		for ops := seq; len(ops) >= 3; ops = ops[1:] {
+		for ops := seq; len(ops) >= 2; ops = ops[1:] {
 			o.liftIntoParPaths(ops)
 		}
 		return seq
@@ -97,8 +97,7 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 		// Need a parallel, an optional merge/combine, and something downstream.
 		return
 	}
-	// We should optimize dag.Fork in the same way.  See issue #4559.
-	fork, ok := ops[0].(*dag.Scatter)
+	paths, ok := parallelPaths(ops[0])
 	if !ok {
 		return
 	}
@@ -124,10 +123,10 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 			// Need an unmodified summarize to split into its parials pieces.
 			return
 		}
-		for k := range fork.Paths {
+		for k := range paths {
 			partial := copyOp(op).(*dag.Summarize)
 			partial.PartialsOut = true
-			fork.Paths[k].Append(partial)
+			paths[k].Append(partial)
 		}
 		op.PartialsIn = true
 		// The upstream aggregators will compute any key expressions
@@ -153,8 +152,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 				return
 			}
 		}
-		for k := range fork.Paths {
-			fork.Paths[k].Append(copyOp(op))
+		for k := range paths {
+			paths[k].Append(copyOp(op))
 		}
 		if merge == nil {
 			merge = &dag.Merge{
@@ -176,8 +175,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 	case *dag.Head, *dag.Tail:
 		// Copy the head or tail into the parallel path and leave the original in
 		// place which will apply another head or tail after the merge.
-		for k := range fork.Paths {
-			fork.Paths[k].Append(copyOp(op))
+		for k := range paths {
+			paths[k].Append(copyOp(op))
 		}
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename, *dag.Filter:
 		if merge != nil {
@@ -194,12 +193,22 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 				return
 			}
 		}
-		for k := range fork.Paths {
-			fork.Paths[k].Append(copyOp(op))
+		for k := range paths {
+			paths[k].Append(copyOp(op))
 		}
 		// this will get removed later
 		ops[egress] = dag.PassOp
 	}
+}
+
+func parallelPaths(op dag.Op) ([]dag.Seq, bool) {
+	if s, ok := op.(*dag.Scatter); ok {
+		return s.Paths, true
+	}
+	if f, ok := op.(*dag.Fork); ok {
+		return f.Paths, true
+	}
+	return nil, false
 }
 
 // concurrentPath returns the largest path within ops from front to end that can
