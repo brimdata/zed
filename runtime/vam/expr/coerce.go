@@ -106,6 +106,9 @@ func promoteWider(id int, val vector.Any) vector.Any {
 	case *vector.Dict:
 		promoted := val.Any.(vector.Promotable).Promote(typ)
 		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
+	case *vector.View:
+		promoted := val.Any.(vector.Promotable).Promote(typ)
+		return vector.NewView(val.Index, promoted)
 	default:
 		panic(fmt.Sprintf("promoteWider %T", val))
 	}
@@ -126,6 +129,9 @@ func promoteToSigned(val vector.Any) vector.Any {
 	case *vector.Dict:
 		promoted := promoteToSigned(val.Any)
 		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
+	case *vector.View:
+		promoted := promoteToSigned(val.Any)
+		return vector.NewView(val.Index, promoted)
 	case *vector.Const:
 		v, ok := ToInt(val.Value())
 		if !ok {
@@ -133,7 +139,7 @@ func promoteToSigned(val vector.Any) vector.Any {
 		}
 		return vector.NewConst(nil, zed.NewInt64(v), val.Len(), val.Nulls)
 	default:
-		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
+		panic(fmt.Sprintf("promoteToSigned invalid type: %T", val))
 	}
 }
 
@@ -224,6 +230,8 @@ func intToFloat(val vector.Any) vector.Any {
 			f[k] = float64(vals[k])
 		}
 		return vector.NewFloat(zed.TypeFloat64, f, val.Nulls)
+	case *vector.View:
+		return vector.NewView(val.Index, intToFloat(val.Any))
 	default:
 		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
 	}

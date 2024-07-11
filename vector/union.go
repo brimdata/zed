@@ -52,9 +52,6 @@ func (u *Union) Copy(vals []Any) *Union {
 // such that the input vector v is the same length as u and each
 // new view of v is congruent with the corresponding union member vector.
 func (u *Union) Unstitch(v Any) []Any {
-	if vUnion, ok := v.(*Union); ok && slices.Equal(u.TagMap.Forward, vUnion.TagMap.Forward) {
-		return vUnion.Values
-	}
 	// We can simply use the reverse tagmap to create the views into v.
 	if v.Len() != u.Len() {
 		panic(fmt.Sprintf("mismatched vector sizes: %d vs %d", u.Len(), v.Len()))
@@ -62,9 +59,20 @@ func (u *Union) Unstitch(v Any) []Any {
 	n := len(u.Values)
 	views := make([]Any, n)
 	for k := 0; k < n; k++ {
-		views[k] = NewView(u.TagMap.Reverse[k], v)
+		views[k] = newView(u.TagMap.Reverse[k], v)
 	}
 	return views
+}
+
+func newView(index []uint32, val Any) Any {
+	if val, ok := val.(*Dict); ok {
+		index = slices.Clone(index)
+		for k, idx := range index {
+			index[k] = uint32(val.Index[idx])
+		}
+		return NewView(index, val.Any)
+	}
+	return NewView(index, val)
 }
 
 // XXX len(v) must be the same as len(u.Values) and len(v[k]) = len(u.Values[tag])

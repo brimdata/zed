@@ -35,6 +35,14 @@ func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 		}
 		return u.Stitch(a.zctx, results)
 	}
+	if u, ok := rhs.(*vector.Union); ok {
+		results := make([]vector.Any, len(u.Values))
+		for tag, view := range u.Unstitch(lhs) {
+			results[tag] = a.eval(view, u.Values[tag])
+		}
+		return u.Stitch(a.zctx, results)
+
+	}
 	lhs, rhs, errVal := coerceVals(a.zctx, lhs, rhs)
 	if errVal != nil {
 		return errVal

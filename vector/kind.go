@@ -42,6 +42,8 @@ func KindOf(v Any) Kind {
 		return KindString
 	case *Dict:
 		return KindOf(v.Any)
+	case *View:
+		return KindOf(v.Any)
 	case *Const:
 		return KindOfType(v.Value().Type())
 	default:

@@ -34,6 +34,10 @@ func (c *Const) Length() int {
 	return int(c.len)
 }
 
+func (c *Const) Arena() *zed.Arena {
+	return c.arena
+}
+
 func (c *Const) Value() zed.Value {
 	return c.val
 }
