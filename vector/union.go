@@ -96,16 +96,20 @@ func Stitch(zctx *zed.Context, tags []uint32, inputs []Any) Any {
 		return zed.CompareTypes(inputs[x[a]].Type(), inputs[x[b]].Type())
 	})
 	if len(x) < len(inputs) || !slices.IsSorted(x) {
+		xReverse := make([]int, len(inputs))
+		for k, y := range x {
+			xReverse[y] = k
+		}
+		tags = slices.Clone(tags) // XXX Only need this when we're called from Union.Stitch.
+		for k, tag := range tags {
+			tags[k] = uint32(xReverse[tag])
+		}
+
 		inputs2 := make([]Any, 0, len(x))
 		for _, y := range x {
 			inputs2 = append(inputs2, inputs[y])
 		}
 		inputs = inputs2
-
-		tags = slices.Clone(tags) // XXX Only need this when we're called from Union.Stitch.
-		for k, tag := range tags {
-			tags[k] = uint32(x[tag])
-		}
 	}
 
 	var types []zed.Type
@@ -121,7 +125,7 @@ func Stitch(zctx *zed.Context, tags []uint32, inputs []Any) Any {
 		panic(fmt.Sprintf("multiple stitch inputs with the same type: %#v", inputs)) // XXX Does this really matter?
 	}
 	if len(types) < 2 {
-		panic("union of one type")
+		return inputs[0]
 	}
 	typ := zctx.LookupTypeUnion(types)
 	return NewUnion(typ, tags, inputs, nil)
