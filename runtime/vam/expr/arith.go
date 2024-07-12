@@ -73,71 +73,51 @@ func applyToUnion(zctx *zed.Context, lhs, rhs vector.Any, eval func(lhs, rhs vec
 		}
 		return rhs.Stitch(zctx, results), true
 	}
-
 	if lhsView, ok := lhs.(*vector.View); ok {
 		if lhsUnion, ok := lhsView.Any.(*vector.Union); ok {
-			// Have a view on lhsUnion. Need to convert that to two
-			// sets of views. First has a view per element of
-			// lhsUnion.Values. Second has a corresponding view of
-			// rhs.
-			reverse := lhsUnion.TagMap.Reverse
-			// viewIndexes[k] will hold the view indexes for XXX.
-			viewIndexes := make([][]uint32, len(lhsUnion.Values))
-			// resultTags[k] is the union tag for the k-th element of the result vector.
-			resultTags := make([]uint32, lhsView.Len())
-			for k, index := range lhsView.Index {
-				tag := lhsUnion.Tags[index]
-				resultTags[k] = tag
-				unionValuesIndex, ok := slices.BinarySearch(reverse[tag], index)
-				if !ok {
-					panic("index not in reverse")
-				}
-				viewIndexes[tag] = append(viewIndexes[tag], uint32(unionValuesIndex))
-			}
-			// lhsViews[k] will hold the view for lhsUnion.Values[k].
-			lhsViews := make([]vector.Any, len(lhsUnion.Values))
-			for k := range lhsViews {
-				lhsViews[k] = vector.NewView2(viewIndexes[k], lhsUnion.Values[k])
-			}
-			// No need to allocate another slice for results.
-			results := lhsViews
-			for tag, lhsView := range lhsViews {
-				rhsView := vector.NewView2(viewIndexes[tag], rhs)
-				results[tag] = eval(lhsView, rhsView)
-			}
-			// XXX Need to merge elements of results that have the same type.
-			return vector.Stitch(zctx, resultTags, results), true
+			return applyToViewOfUnion(zctx, lhsView.Index, lhsUnion, rhs, eval), true
 		}
 	}
-
 	if rhsView, ok := rhs.(*vector.View); ok {
 		if rhsUnion, ok := rhsView.Any.(*vector.Union); ok {
-			reverse := rhsUnion.TagMap.Reverse
-			viewIndexes := make([][]uint32, len(rhsUnion.Values))
-			resultTags := make([]uint32, rhsView.Len())
-			for k, index := range rhsView.Index {
-				tag := rhsUnion.Tags[index]
-				resultTags[k] = tag
-				unionValuesIndex, ok := slices.BinarySearch(reverse[tag], index)
-				if !ok {
-					panic("index not in reverse")
-				}
-				viewIndexes[tag] = append(viewIndexes[tag], uint32(unionValuesIndex))
-			}
-			rhsViews := make([]vector.Any, len(rhsUnion.Values))
-			for k := range rhsViews {
-				rhsViews[k] = vector.NewView2(viewIndexes[k], rhsUnion.Values[k])
-			}
-			// No need to allocate another slice for results.
-			results := rhsViews
-			for tag, rhsView := range rhsViews {
-				lhsView := vector.NewView2(viewIndexes[tag], lhs)
-				results[tag] = eval(lhsView, rhsView)
-			}
-			// XXX Need to merge elements of results that have the same type.
-			return vector.Stitch(zctx, resultTags, results), true
+			return applyToViewOfUnion(zctx, rhsView.Index, rhsUnion, lhs, func(a, b vector.Any) vector.Any {
+				return eval(b, a)
+			}), true
 		}
 	}
-
 	return nil, false
+}
+
+func applyToViewOfUnion(zctx *zed.Context, lhsViewIndex []uint32, lhsUnion *vector.Union, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
+	// Have a view on lhsUnion. Need to convert that to two
+	// sets of views. First has a view per element of
+	// lhsUnion.Values. Second has a corresponding view of
+	// rhs.
+	reverse := lhsUnion.TagMap.Reverse
+	// viewIndexes[k] will hold the view indexes for XXX.
+	viewIndexes := make([][]uint32, len(lhsUnion.Values))
+	// resultTags[k] is the union tag for the k-th element of the result vector.
+	resultTags := make([]uint32, len(lhsViewIndex))
+	for k, index := range lhsViewIndex {
+		tag := lhsUnion.Tags[index]
+		resultTags[k] = tag
+		unionValuesIndex, ok := slices.BinarySearch(reverse[tag], index)
+		if !ok {
+			panic("index not in reverse")
+		}
+		viewIndexes[tag] = append(viewIndexes[tag], uint32(unionValuesIndex))
+	}
+	// lhsViews[k] will hold the view for lhsUnion.Values[k].
+	lhsViews := make([]vector.Any, len(lhsUnion.Values))
+	for k := range lhsViews {
+		lhsViews[k] = vector.NewView2(viewIndexes[k], lhsUnion.Values[k])
+	}
+	// No need to allocate another slice for results.
+	results := lhsViews
+	for tag, lhsView := range lhsViews {
+		rhsView := vector.NewView2(viewIndexes[tag], rhs)
+		results[tag] = eval(lhsView, rhsView)
+	}
+	// XXX Need to merge elements of results that have the same type.
+	return vector.Stitch(zctx, resultTags, results)
 }
