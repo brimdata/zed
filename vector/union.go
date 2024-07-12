@@ -81,25 +81,8 @@ func NewView2(index []uint32, val Any) Any {
 // allow there to be multiple of the same type in the stitch/varseq to simplify
 // things and preserve the reverse tagmap (the stitch tags).
 func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
-	var types []zed.Type
-	for _, val := range inputs {
-		typ := val.Type()
-		if typ.Kind() == zed.UnionKind {
-			panic("result type requires nested union")
-		}
-		types = append(types, typ)
-	}
-	types = zed.UniqueTypes(types)
-	if len(types) != len(inputs) {
-		panic(fmt.Sprintf("multiple stitch inputs with the same type: %#v", inputs)) // XXX Does this really matter?
-	}
-	if len(types) < 2 {
-		panic("union of one type")
-	}
-	typ := zctx.LookupTypeUnion(types)
-
 	// XXX Can we just use u.TagMap here instead of creating a new one?
-	return NewUnion(typ, u.Tags, inputs, nil)
+	return Stitch(zctx, u.Tags, inputs)
 }
 
 func Stitch(zctx *zed.Context, tags []uint32, inputs []Any) Any {
@@ -119,7 +102,5 @@ func Stitch(zctx *zed.Context, tags []uint32, inputs []Any) Any {
 		panic("union of one type")
 	}
 	typ := zctx.LookupTypeUnion(types)
-
-	// XXX Can we just use u.TagMap here instead of creating a new one?
 	return NewUnion(typ, tags, inputs, nil)
 }
