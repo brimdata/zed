@@ -86,6 +86,28 @@ func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
 }
 
 func Stitch(zctx *zed.Context, tags []uint32, inputs []Any) Any {
+	var x []int
+	for k, val := range inputs {
+		if val.Len() > 0 {
+			x = append(x, k)
+		}
+	}
+	slices.SortFunc(x, func(a, b int) int {
+		return zed.CompareTypes(inputs[x[a]].Type(), inputs[x[b]].Type())
+	})
+	if len(x) < len(inputs) || !slices.IsSorted(x) {
+		inputs2 := make([]Any, 0, len(x))
+		for _, y := range x {
+			inputs2 = append(inputs2, inputs[y])
+		}
+		inputs = inputs2
+
+		tags = slices.Clone(tags) // XXX Only need this when we're called from Union.Stitch.
+		for k, tag := range tags {
+			tags[k] = uint32(x[tag])
+		}
+	}
+
 	var types []zed.Type
 	for _, val := range inputs {
 		typ := val.Type()
