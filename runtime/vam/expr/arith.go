@@ -102,7 +102,7 @@ func applyToUnion(zctx *zed.Context, lhs, rhs vector.Any, eval func(lhs, rhs vec
 			// No need to allocate another slice for results.
 			results := lhsViews
 			for tag, lhsView := range lhsViews {
-				rhsView := vector.NewView2(reverse[tag], rhs)
+				rhsView := vector.NewView2(viewIndexes[tag], rhs)
 				results[tag] = eval(lhsView, rhsView)
 			}
 			// XXX Need to merge elements of results that have the same type.
