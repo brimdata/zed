@@ -4,6 +4,7 @@ package expr
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/sam/expr/coerce"
@@ -28,20 +29,8 @@ func (a *Arith) Eval(val vector.Any) vector.Any {
 func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
-	if u, ok := lhs.(*vector.Union); ok {
-		results := make([]vector.Any, len(u.Values))
-		for tag, view := range u.Unstitch(rhs) {
-			results[tag] = a.eval(u.Values[tag], view)
-		}
-		return u.Stitch(a.zctx, results)
-	}
-	if u, ok := rhs.(*vector.Union); ok {
-		results := make([]vector.Any, len(u.Values))
-		for tag, view := range u.Unstitch(lhs) {
-			results[tag] = a.eval(view, u.Values[tag])
-		}
-		return u.Stitch(a.zctx, results)
-
+	if val, ok := applyToUnion(a.zctx, lhs, rhs, a.eval); ok {
+		return val
 	}
 	lhs, rhs, errVal := coerceVals(a.zctx, lhs, rhs)
 	if errVal != nil {
@@ -67,6 +56,9 @@ func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 }
 
 func applyToUnion(zctx *zed.Context, lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) (vector.Any, bool) {
+	if lhs.Len() != rhs.Len() {
+		panic(fmt.Sprintf("mismatched vector lengths: %d vs %d", lhs.Len(), rhs.Len()))
+	}
 	if lhs, ok := lhs.(*vector.Union); ok {
 		results := make([]vector.Any, len(lhs.Values))
 		for tag, view := range lhs.Unstitch(rhs) {
@@ -81,5 +73,71 @@ func applyToUnion(zctx *zed.Context, lhs, rhs vector.Any, eval func(lhs, rhs vec
 		}
 		return rhs.Stitch(zctx, results), true
 	}
+
+	if lhsView, ok := lhs.(*vector.View); ok {
+		if lhsUnion, ok := lhsView.Any.(*vector.Union); ok {
+			// Have a view on lhsUnion. Need to convert that to two
+			// sets of views. First has a view per element of
+			// lhsUnion.Values. Second has a corresponding view of
+			// rhs.
+			reverse := lhsUnion.TagMap.Reverse
+			// lhsViewIndexes[k] will hold the view indexes for lhsUnion.Values[k].
+			lhsViewIndexes := make([][]uint32, len(lhsUnion.Values))
+			// resultTags[k] is the union tag for the k-th element of the result vector.
+			resultTags := make([]uint32, lhsView.Len())
+			for k, index := range lhsView.Index {
+				tag := lhsUnion.Tags[index]
+				resultTags[k] = tag
+				unionValuesIndex, ok := slices.BinarySearch(reverse[tag], index)
+				if !ok {
+					panic("index not in reverse")
+				}
+				lhsViewIndexes[tag] = append(lhsViewIndexes[tag], uint32(unionValuesIndex))
+			}
+			// lhsViews[k] will hold the view for lhsUnion.Values[k].
+			lhsViews := make([]vector.Any, len(lhsUnion.Values))
+			for k := range lhsViews {
+				lhsViews[k] = vector.NewView2(lhsViewIndexes[k], lhsUnion.Values[k])
+			}
+			// No need to allocate another slice for results.
+			results := lhsViews
+			for tag, lhsView := range lhsViews {
+				rhsView := vector.NewView2(reverse[tag], rhs)
+				results[tag] = eval(lhsView, rhsView)
+			}
+			// XXX Need to merge elements of results that have the same type.
+			return vector.Stitch(zctx, resultTags, results), true
+		}
+	}
+
+	if rhsView, ok := rhs.(*vector.View); ok {
+		if rhsUnion, ok := rhsView.Any.(*vector.Union); ok {
+			reverse := rhsUnion.TagMap.Reverse
+			rhsViewIndexes := make([][]uint32, len(rhsUnion.Values))
+			resultTags := make([]uint32, rhsView.Len())
+			for k, index := range rhsView.Index {
+				tag := rhsUnion.Tags[index]
+				resultTags[k] = tag
+				unionValuesIndex, ok := slices.BinarySearch(reverse[tag], index)
+				if !ok {
+					panic("index not in reverse")
+				}
+				rhsViewIndexes[tag] = append(rhsViewIndexes[tag], uint32(unionValuesIndex))
+			}
+			rhsViews := make([]vector.Any, len(rhsUnion.Values))
+			for k := range rhsViews {
+				rhsViews[k] = vector.NewView2(rhsViewIndexes[k], rhsUnion.Values[k])
+			}
+			// No need to allocate another slice for results.
+			results := rhsViews
+			for tag, rhsView := range rhsViews {
+				lhsView := vector.NewView2(reverse[tag], lhs)
+				results[tag] = eval(lhsView, rhsView)
+			}
+			// XXX Need to merge elements of results that have the same type.
+			return vector.Stitch(zctx, resultTags, results), true
+		}
+	}
+
 	return nil, false
 }

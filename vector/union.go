@@ -59,12 +59,12 @@ func (u *Union) Unstitch(v Any) []Any {
 	n := len(u.Values)
 	views := make([]Any, n)
 	for k := 0; k < n; k++ {
-		views[k] = newView(u.TagMap.Reverse[k], v)
+		views[k] = NewView2(u.TagMap.Reverse[k], v)
 	}
 	return views
 }
 
-func newView(index []uint32, val Any) Any {
+func NewView2(index []uint32, val Any) Any {
 	if val, ok := val.(*Dict); ok {
 		index = slices.Clone(index)
 		for k, idx := range index {
@@ -100,4 +100,26 @@ func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
 
 	// XXX Can we just use u.TagMap here instead of creating a new one?
 	return NewUnion(typ, u.Tags, inputs, nil)
+}
+
+func Stitch(zctx *zed.Context, tags []uint32, inputs []Any) Any {
+	var types []zed.Type
+	for _, val := range inputs {
+		typ := val.Type()
+		if typ.Kind() == zed.UnionKind {
+			panic("result type requires nested union")
+		}
+		types = append(types, typ)
+	}
+	types = zed.UniqueTypes(types)
+	if len(types) != len(inputs) {
+		panic(fmt.Sprintf("multiple stitch inputs with the same type: %#v", inputs)) // XXX Does this really matter?
+	}
+	if len(types) < 2 {
+		panic("union of one type")
+	}
+	typ := zctx.LookupTypeUnion(types)
+
+	// XXX Can we just use u.TagMap here instead of creating a new one?
+	return NewUnion(typ, tags, inputs, nil)
 }
