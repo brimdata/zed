@@ -67,11 +67,7 @@ func applyToUnion(zctx *zed.Context, lhs, rhs vector.Any, eval func(lhs, rhs vec
 		return lhs.Stitch(zctx, results), true
 	}
 	if rhs, ok := rhs.(*vector.Union); ok {
-		results := make([]vector.Any, len(rhs.Values))
-		for tag, view := range rhs.Unstitch(lhs) {
-			results[tag] = eval(view, rhs.Values[tag])
-		}
-		return rhs.Stitch(zctx, results), true
+		return applyToUnion(zctx, rhs, lhs, func(a, b vector.Any) vector.Any { return eval(b, a) })
 	}
 	if lhsView, ok := lhs.(*vector.View); ok {
 		if lhsUnion, ok := lhsView.Any.(*vector.Union); ok {
