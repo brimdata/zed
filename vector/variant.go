@@ -24,7 +24,11 @@ func (v *Variant) Type() zed.Type {
 }
 
 func (v *Variant) TypeOf(slot uint32) zed.Type {
-	return v.Values[v.Tags[slot]].Type()
+	values := v.Values[v.Tags[slot]]
+	if v2, ok := values.(*Variant); ok {
+		return v2.TypeOf(v.TagMap.Forward[slot])
+	}
+	return values.Type()
 }
 
 func (v *Variant) Len() uint32 {
