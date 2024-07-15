@@ -56,10 +56,23 @@ func (u *Union) Unstitch(v Any) []Any {
 	if v.Len() != u.Len() {
 		panic(fmt.Sprintf("mismatched vector sizes: %d vs %d", u.Len(), v.Len()))
 	}
-	n := len(u.Values)
-	views := make([]Any, n)
-	for k := 0; k < n; k++ {
-		views[k] = NewView2(u.TagMap.Reverse[k], v)
+	return Unstitch(u.TagMap.Reverse, v)
+}
+
+// XXX len(v) must be the same as len(u.Values) and len(v[k]) = len(u.Values[tag])
+// XXX resolve this with the idea of the variant sequence... we can have a varseq
+// as a result of an expr without there being a union type... and we might as well
+// allow there to be multiple of the same type in the stitch/varseq to simplify
+// things and preserve the reverse tagmap (the stitch tags).
+func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
+	// XXX Can we just use u.TagMap here instead of creating a new one?
+	return Stitch(zctx, u.Tags, inputs)
+}
+
+func Unstitch(reverse [][]uint32, val Any) []Any {
+	views := make([]Any, len(reverse))
+	for k, r := range reverse {
+		views[k] = NewView2(r, val)
 	}
 	return views
 }
@@ -73,16 +86,6 @@ func NewView2(index []uint32, val Any) Any {
 		return NewView(index, val.Any)
 	}
 	return NewView(index, val)
-}
-
-// XXX len(v) must be the same as len(u.Values) and len(v[k]) = len(u.Values[tag])
-// XXX resolve this with the idea of the variant sequence... we can have a varseq
-// as a result of an expr without there being a union type... and we might as well
-// allow there to be multiple of the same type in the stitch/varseq to simplify
-// things and preserve the reverse tagmap (the stitch tags).
-func (u *Union) Stitch(zctx *zed.Context, inputs []Any) Any {
-	// XXX Can we just use u.TagMap here instead of creating a new one?
-	return Stitch(zctx, u.Tags, inputs)
 }
 
 func Stitch(zctx *zed.Context, tags []uint32, inputs []Any) Any {

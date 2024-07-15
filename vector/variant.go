@@ -16,7 +16,7 @@ type Variant struct {
 var _ Any = (*Variant)(nil)
 
 func NewVariant(tags []uint32, values []Any) *Variant {
-	return &Variant{Tags: tags, Values: values}
+	return &Variant{Tags: tags, Values: values, TagMap: NewTagMap(tags, values)}
 }
 
 func (v *Variant) Type() zed.Type {
