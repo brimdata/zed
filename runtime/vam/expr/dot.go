@@ -60,6 +60,12 @@ func (d *DotExpr) Eval(val vector.Any) vector.Any {
 			vals = append(vals, d.Eval(val))
 		}
 		return val.Copy(vals)
+	case *vector.Variant:
+		vals := make([]vector.Any, 0, len(val.Values))
+		for _, val := range val.Values {
+			vals = append(vals, d.Eval(val))
+		}
+		return vector.NewVariant(val.Tags, vals)
 	default:
 		return vector.NewMissing(d.zctx, val.Len())
 	}
