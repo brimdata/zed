@@ -66,7 +66,7 @@ func applyToUnion(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any
 	case *vector.Union:
 		return applyWithTagMap(lhs.Tags, lhs.TagMap.Reverse, lhs.Values, rhs, eval), true
 	case *vector.View:
-		if lhsVariant, ok := lhs.Any.(*vector.Union); ok {
+		if lhsVariant, ok := lhs.Any.(*vector.Variant); ok {
 			return applyToViewOfUnion(lhs.Index, lhsVariant.Tags, lhsVariant.TagMap.Reverse, lhsVariant.Values, rhs, eval), true
 		}
 		if lhsUnion, ok := lhs.Any.(*vector.Union); ok {
@@ -83,7 +83,7 @@ func applyToUnion(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any
 	case *vector.Union:
 		return applyWithTagMap(rhs.Tags, rhs.TagMap.Reverse, rhs.Values, lhs, swapAndEval), true
 	case *vector.View:
-		if rhsVariant, ok := rhs.Any.(*vector.Union); ok {
+		if rhsVariant, ok := rhs.Any.(*vector.Variant); ok {
 			return applyToViewOfUnion(rhs.Index, rhsVariant.Tags, rhsVariant.TagMap.Reverse, rhsVariant.Values, lhs, swapAndEval), true
 		}
 		if rhsUnion, ok := rhs.Any.(*vector.Union); ok {
