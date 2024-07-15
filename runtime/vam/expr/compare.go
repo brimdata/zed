@@ -26,7 +26,7 @@ func (c *Compare) Eval(val vector.Any) vector.Any {
 func (c *Compare) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
-	if val, ok := applyToUnion(c.zctx, lhs, rhs, c.eval); ok {
+	if val, ok := applyToUnion(lhs, rhs, c.eval); ok {
 		return val
 	}
 	lhs, rhs, errVal := coerceVals(c.zctx, lhs, rhs)

@@ -29,7 +29,7 @@ func (a *Arith) Eval(val vector.Any) vector.Any {
 func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
-	if val, ok := applyToUnion(a.zctx, lhs, rhs, a.eval); ok {
+	if val, ok := applyToUnion(lhs, rhs, a.eval); ok {
 		return val
 	}
 	lhs, rhs, errVal := coerceVals(a.zctx, lhs, rhs)
@@ -55,58 +55,75 @@ func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	return f(lhs, rhs)
 }
 
-func applyToUnion(zctx *zed.Context, lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) (vector.Any, bool) {
+func applyToUnion(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) (vector.Any, bool) {
 	if lhs.Len() != rhs.Len() {
 		panic(fmt.Sprintf("mismatched vector lengths: %d vs %d", lhs.Len(), rhs.Len()))
 	}
-	if lhs, ok := lhs.(*vector.Union); ok {
-		results := make([]vector.Any, len(lhs.Values))
-		for tag, view := range lhs.Unstitch(rhs) {
-			results[tag] = eval(lhs.Values[tag], view)
+
+	switch lhs := lhs.(type) {
+	case *vector.Variant:
+		return applyWithTagMap(lhs.Tags, lhs.TagMap.Reverse, lhs.Values, rhs, eval), true
+	case *vector.Union:
+		return applyWithTagMap(lhs.Tags, lhs.TagMap.Reverse, lhs.Values, rhs, eval), true
+	case *vector.View:
+		if lhsVariant, ok := lhs.Any.(*vector.Union); ok {
+			return applyToViewOfUnion(lhs.Index, lhsVariant.Tags, lhsVariant.TagMap.Reverse, lhsVariant.Values, rhs, eval), true
 		}
-		return lhs.Stitch(zctx, results), true
-	}
-	if rhs, ok := rhs.(*vector.Union); ok {
-		return applyToUnion(zctx, rhs, lhs, func(a, b vector.Any) vector.Any { return eval(b, a) })
-	}
-	if lhsView, ok := lhs.(*vector.View); ok {
-		if lhsUnion, ok := lhsView.Any.(*vector.Union); ok {
-			return applyToViewOfUnion(zctx, lhsView.Index, lhsUnion, rhs, eval), true
-		}
-	}
-	if rhsView, ok := rhs.(*vector.View); ok {
-		if rhsUnion, ok := rhsView.Any.(*vector.Union); ok {
-			return applyToViewOfUnion(zctx, rhsView.Index, rhsUnion, lhs, func(a, b vector.Any) vector.Any {
-				return eval(b, a)
-			}), true
+		if lhsUnion, ok := lhs.Any.(*vector.Union); ok {
+			return applyToViewOfUnion(lhs.Index, lhsUnion.Tags, lhsUnion.TagMap.Reverse, lhsUnion.Values, rhs, eval), true
 		}
 	}
+
+	swapAndEval := func(a, b vector.Any) vector.Any {
+		return eval(b, a)
+	}
+	switch rhs := rhs.(type) {
+	case *vector.Variant:
+		return applyWithTagMap(rhs.Tags, rhs.TagMap.Reverse, rhs.Values, lhs, swapAndEval), true
+	case *vector.Union:
+		return applyWithTagMap(rhs.Tags, rhs.TagMap.Reverse, rhs.Values, lhs, swapAndEval), true
+	case *vector.View:
+		if rhsVariant, ok := rhs.Any.(*vector.Union); ok {
+			return applyToViewOfUnion(rhs.Index, rhsVariant.Tags, rhsVariant.TagMap.Reverse, rhsVariant.Values, lhs, swapAndEval), true
+		}
+		if rhsUnion, ok := rhs.Any.(*vector.Union); ok {
+			return applyToViewOfUnion(rhs.Index, rhsUnion.Tags, rhsUnion.TagMap.Reverse, rhsUnion.Values, lhs, swapAndEval), true
+		}
+	}
+
 	return nil, false
 }
 
-func applyToViewOfUnion(zctx *zed.Context, lhsViewIndex []uint32, lhsUnion *vector.Union, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
+func applyWithTagMap(lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector.Any, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
+	results := make([]vector.Any, len(lhsValues))
+	for tag, view := range vector.Unstitch(lhsReverse, rhs) {
+		results[tag] = eval(lhsValues[tag], view)
+	}
+	return vector.NewVariant(lhsTags, results)
+}
+
+func applyToViewOfUnion(lhsViewIndex []uint32, lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector.Any, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
 	// Have a view on lhsUnion. Need to convert that to two
 	// sets of views. First has a view per element of
 	// lhsUnion.Values. Second has a corresponding view of
 	// rhs.
-	reverse := lhsUnion.TagMap.Reverse
 	// viewIndexes[k] will hold the view indexes for XXX.
-	viewIndexes := make([][]uint32, len(lhsUnion.Values))
+	viewIndexes := make([][]uint32, len(lhsViewIndex))
 	// resultTags[k] is the union tag for the k-th element of the result vector.
 	resultTags := make([]uint32, len(lhsViewIndex))
 	for k, index := range lhsViewIndex {
-		tag := lhsUnion.Tags[index]
+		tag := lhsTags[index]
 		resultTags[k] = tag
-		unionValuesIndex, ok := slices.BinarySearch(reverse[tag], index)
+		unionValuesIndex, ok := slices.BinarySearch(lhsReverse[tag], index)
 		if !ok {
 			panic("index not in reverse")
 		}
 		viewIndexes[tag] = append(viewIndexes[tag], uint32(unionValuesIndex))
 	}
 	// lhsViews[k] will hold the view for lhsUnion.Values[k].
-	lhsViews := make([]vector.Any, len(lhsUnion.Values))
+	lhsViews := make([]vector.Any, len(lhsValues))
 	for k := range lhsViews {
-		lhsViews[k] = vector.NewView2(viewIndexes[k], lhsUnion.Values[k])
+		lhsViews[k] = vector.NewView2(viewIndexes[k], lhsValues[k])
 	}
 	// No need to allocate another slice for results.
 	results := lhsViews
@@ -114,6 +131,5 @@ func applyToViewOfUnion(zctx *zed.Context, lhsViewIndex []uint32, lhsUnion *vect
 		rhsView := vector.NewView2(viewIndexes[tag], rhs)
 		results[tag] = eval(lhsView, rhsView)
 	}
-	// XXX Need to merge elements of results that have the same type.
-	return vector.Stitch(zctx, resultTags, results)
+	return vector.NewVariant(resultTags, results)
 }
