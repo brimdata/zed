@@ -1,3 +1,12 @@
+## v1.17.0
+* Improve the performance of multi-pool searches (e.g., `from * | "MyFilter"`) (#5174)
+* Reduce the amount of memory consumed by the [`merge` operator](docs/language/operators/merge.md) and merge-dependent operations, such as compaction (#5171)
+* Add the `-pool` flag to [`zed manage`](docs/commands/zed.md#manage) (#5164)
+* Fix an issue where the lake API was not providing query descriptions for Zed programs that contain scopes (#5152)
+* Fix an issue where attempts to use the [`load` operator](docs/language/operators/load.md) in `zq` caused a panic (#5162)
+* Fix a parser issue with collisions between the names of [user-defined operators](docs/language/statements.md#operator-statements) and [functions](docs/language/statements.md#func-statements) and some built-in [operators](docs/language/operators/README.md) (#5161)
+* Fix an issue were using `null` values in math caused a panic (#5163)
+
 ## v1.16.0
 * Improve ZNG scanning performance (#5101, #5103)
 * Improve the error message shown when `zq` is invoked with a single argument that's not a valid query and doesn't contain a source (#5119)
