@@ -245,6 +245,12 @@ func intToFloat(val vector.Any) vector.Any {
 		return vector.NewFloat(zed.TypeFloat64, f, val.Nulls)
 	case *vector.View:
 		return vector.NewView(val.Index, intToFloat(val.Any))
+	case *vector.Const:
+		f, ok := ToFloat(val.Value())
+		if !ok {
+			panic("ToFloat failed")
+		}
+		return vector.NewConst(nil, zed.NewFloat64(f), val.Len(), val.Nulls)
 	default:
 		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
 	}
