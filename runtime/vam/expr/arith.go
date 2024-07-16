@@ -29,7 +29,7 @@ func (a *Arith) Eval(val vector.Any) vector.Any {
 func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
-	if val, ok := applyToUnion(lhs, rhs, a.eval); ok {
+	if val, ok := applyToUnionOrVariant(lhs, rhs, a.eval); ok {
 		return val
 	}
 	lhs, rhs, errVal := coerceVals(a.zctx, lhs, rhs)
@@ -55,7 +55,7 @@ func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	return f(lhs, rhs)
 }
 
-func applyToUnion(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) (vector.Any, bool) {
+func applyToUnionOrVariant(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) (vector.Any, bool) {
 	if lhs.Len() != rhs.Len() {
 		panic(fmt.Sprintf("mismatched vector lengths: %d vs %d", lhs.Len(), rhs.Len()))
 	}
