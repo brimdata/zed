@@ -119,16 +119,11 @@ func applyToViewOfUnionOrVariant(lhsViewIndex []uint32, lhsTags []uint32, lhsRev
 		}
 		viewIndexes[tag] = append(viewIndexes[tag], uint32(unionValuesIndex))
 	}
-	// lhsViews[k] will hold the view for lhsUnion.Values[k].
-	lhsViews := make([]vector.Any, len(lhsValues))
-	for k := range lhsViews {
-		lhsViews[k] = vector.NewView2(viewIndexes[k], lhsValues[k])
-	}
-	// No need to allocate another slice for results.
-	results := lhsViews
-	for tag, lhsView := range lhsViews {
-		rhsView := vector.NewView2(viewIndexes[tag], rhs)
-		results[tag] = eval(lhsView, rhsView)
+	results := make([]vector.Any, len(lhsValues))
+	for k := range lhsValues {
+		lhsView := vector.NewView2(viewIndexes[k], lhsValues[k])
+		rhsView := vector.NewView2(viewIndexes[k], rhs)
+		results[k] = eval(lhsView, rhsView)
 	}
 	return vector.NewVariant(resultTags, results)
 }
