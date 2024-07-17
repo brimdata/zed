@@ -105,9 +105,10 @@ func applyWithTagMap(lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector
 func applyToViewOfUnionOrVariant(lhsViewIndex []uint32, lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector.Any, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
 	// Have a view on lhs. Need to convert that to two sets of views. First
 	// is a (possibly empty) view per element of lhsValues. Second has a
-	// corresponding views of rhs. viewIndexes[k] will hold the view indexes
+	// corresponding views of rhs. lhsIndexes[k] will hold the view indexes
 	// for lhsValues[k].
-	viewIndexes := make([][]uint32, len(lhsValues))
+	lhsIndexes := make([][]uint32, len(lhsValues))
+	rhsIndexes := make([][]uint32, len(lhsValues))
 	// resultTags[k] is the tag for results[k].
 	resultTags := make([]uint32, len(lhsViewIndex))
 	for k, index := range lhsViewIndex {
@@ -117,12 +118,13 @@ func applyToViewOfUnionOrVariant(lhsViewIndex []uint32, lhsTags []uint32, lhsRev
 		if !ok {
 			panic("index not in reverse")
 		}
-		viewIndexes[tag] = append(viewIndexes[tag], uint32(unionValuesIndex))
+		lhsIndexes[tag] = append(lhsIndexes[tag], uint32(unionValuesIndex))
+		rhsIndexes[tag] = append(rhsIndexes[tag], uint32(k))
 	}
 	results := make([]vector.Any, len(lhsValues))
 	for k := range lhsValues {
-		lhsView := vector.NewView2(viewIndexes[k], lhsValues[k])
-		rhsView := vector.NewView2(viewIndexes[k], rhs)
+		lhsView := vector.NewView2(lhsIndexes[k], lhsValues[k])
+		rhsView := vector.NewView2(rhsIndexes[k], rhs)
 		results[k] = eval(lhsView, rhsView)
 	}
 	return vector.NewVariant(resultTags, results)
