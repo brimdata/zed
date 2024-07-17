@@ -78,12 +78,21 @@ func Unstitch(reverse [][]uint32, val Any) []Any {
 }
 
 func NewView2(index []uint32, val Any) Any {
-	if val, ok := val.(*Dict); ok {
-		index = slices.Clone(index)
+	switch val := val.(type) {
+	case *Const:
+		return NewConst(val.Arena(), val.Value(), uint32(len(index)), nil)
+	case *Dict:
+		index2 := make([]uint32, len(index))
 		for k, idx := range index {
-			index[k] = uint32(val.Index[idx])
+			index2[k] = uint32(val.Index[idx])
 		}
-		return NewView(index, val.Any)
+		return NewView(index2, val.Any)
+	case *View:
+		index2 := make([]uint32, len(index))
+		for k, idx := range index {
+			index2[k] = uint32(val.Index[idx])
+		}
+		return NewView(index2, val.Any)
 	}
 	return NewView(index, val)
 }
