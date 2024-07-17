@@ -67,10 +67,10 @@ func applyToUnionOrVariant(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) v
 		return applyWithTagMap(lhs.Tags, lhs.TagMap.Reverse, lhs.Values, rhs, eval), true
 	case *vector.View:
 		if lhsVariant, ok := lhs.Any.(*vector.Variant); ok {
-			return applyToViewOfUnion(lhs.Index, lhsVariant.Tags, lhsVariant.TagMap.Reverse, lhsVariant.Values, rhs, eval), true
+			return applyToViewOfUnionOrVariant(lhs.Index, lhsVariant.Tags, lhsVariant.TagMap.Reverse, lhsVariant.Values, rhs, eval), true
 		}
 		if lhsUnion, ok := lhs.Any.(*vector.Union); ok {
-			return applyToViewOfUnion(lhs.Index, lhsUnion.Tags, lhsUnion.TagMap.Reverse, lhsUnion.Values, rhs, eval), true
+			return applyToViewOfUnionOrVariant(lhs.Index, lhsUnion.Tags, lhsUnion.TagMap.Reverse, lhsUnion.Values, rhs, eval), true
 		}
 	}
 
@@ -84,10 +84,10 @@ func applyToUnionOrVariant(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) v
 		return applyWithTagMap(rhs.Tags, rhs.TagMap.Reverse, rhs.Values, lhs, swapAndEval), true
 	case *vector.View:
 		if rhsVariant, ok := rhs.Any.(*vector.Variant); ok {
-			return applyToViewOfUnion(rhs.Index, rhsVariant.Tags, rhsVariant.TagMap.Reverse, rhsVariant.Values, lhs, swapAndEval), true
+			return applyToViewOfUnionOrVariant(rhs.Index, rhsVariant.Tags, rhsVariant.TagMap.Reverse, rhsVariant.Values, lhs, swapAndEval), true
 		}
 		if rhsUnion, ok := rhs.Any.(*vector.Union); ok {
-			return applyToViewOfUnion(rhs.Index, rhsUnion.Tags, rhsUnion.TagMap.Reverse, rhsUnion.Values, lhs, swapAndEval), true
+			return applyToViewOfUnionOrVariant(rhs.Index, rhsUnion.Tags, rhsUnion.TagMap.Reverse, rhsUnion.Values, lhs, swapAndEval), true
 		}
 	}
 
@@ -102,14 +102,13 @@ func applyWithTagMap(lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector
 	return vector.NewVariant(lhsTags, results)
 }
 
-func applyToViewOfUnion(lhsViewIndex []uint32, lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector.Any, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
-	// Have a view on lhsUnion. Need to convert that to two
-	// sets of views. First has a view per element of
-	// lhsUnion.Values. Second has a corresponding view of
-	// rhs.
-	// viewIndexes[k] will hold the view indexes for XXX.
-	viewIndexes := make([][]uint32, len(lhsViewIndex))
-	// resultTags[k] is the union tag for the k-th element of the result vector.
+func applyToViewOfUnionOrVariant(lhsViewIndex []uint32, lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector.Any, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
+	// Have a view on lhs. Need to convert that to two sets of views. First
+	// is a (possibly empty) view per element of lhsValues. Second has a
+	// corresponding views of rhs. viewIndexes[k] will hold the view indexes
+	// for lhsValues[k].
+	viewIndexes := make([][]uint32, len(lhsValues))
+	// resultTags[k] is the tag for results[k].
 	resultTags := make([]uint32, len(lhsViewIndex))
 	for k, index := range lhsViewIndex {
 		tag := lhsTags[index]
