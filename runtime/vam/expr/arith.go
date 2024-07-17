@@ -4,7 +4,6 @@ package expr
 
 import (
 	"fmt"
-	"slices"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/sam/expr/coerce"
@@ -67,10 +66,10 @@ func applyToUnionOrVariant(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) v
 		return applyWithTagMap(lhs.Tags, lhs.TagMap.Reverse, lhs.Values, rhs, eval), true
 	case *vector.View:
 		if lhsVariant, ok := lhs.Any.(*vector.Variant); ok {
-			return applyToViewOfUnionOrVariant(lhs.Index, lhsVariant.Tags, lhsVariant.TagMap.Reverse, lhsVariant.Values, rhs, eval), true
+			return applyToViewOfUnionOrVariant(lhs.Index, lhsVariant.Tags, lhsVariant.TagMap.Forward, lhsVariant.Values, rhs, eval), true
 		}
 		if lhsUnion, ok := lhs.Any.(*vector.Union); ok {
-			return applyToViewOfUnionOrVariant(lhs.Index, lhsUnion.Tags, lhsUnion.TagMap.Reverse, lhsUnion.Values, rhs, eval), true
+			return applyToViewOfUnionOrVariant(lhs.Index, lhsUnion.Tags, lhsUnion.TagMap.Forward, lhsUnion.Values, rhs, eval), true
 		}
 	}
 
@@ -84,10 +83,10 @@ func applyToUnionOrVariant(lhs, rhs vector.Any, eval func(lhs, rhs vector.Any) v
 		return applyWithTagMap(rhs.Tags, rhs.TagMap.Reverse, rhs.Values, lhs, swapAndEval), true
 	case *vector.View:
 		if rhsVariant, ok := rhs.Any.(*vector.Variant); ok {
-			return applyToViewOfUnionOrVariant(rhs.Index, rhsVariant.Tags, rhsVariant.TagMap.Reverse, rhsVariant.Values, lhs, swapAndEval), true
+			return applyToViewOfUnionOrVariant(rhs.Index, rhsVariant.Tags, rhsVariant.TagMap.Forward, rhsVariant.Values, lhs, swapAndEval), true
 		}
 		if rhsUnion, ok := rhs.Any.(*vector.Union); ok {
-			return applyToViewOfUnionOrVariant(rhs.Index, rhsUnion.Tags, rhsUnion.TagMap.Reverse, rhsUnion.Values, lhs, swapAndEval), true
+			return applyToViewOfUnionOrVariant(rhs.Index, rhsUnion.Tags, rhsUnion.TagMap.Forward, rhsUnion.Values, lhs, swapAndEval), true
 		}
 	}
 
@@ -102,7 +101,7 @@ func applyWithTagMap(lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector
 	return vector.NewVariant(lhsTags, results)
 }
 
-func applyToViewOfUnionOrVariant(lhsViewIndex []uint32, lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector.Any, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
+func applyToViewOfUnionOrVariant(lhsViewIndex []uint32, lhsTags []uint32, lhsForward []uint32, lhsValues []vector.Any, rhs vector.Any, eval func(lhs, rhs vector.Any) vector.Any) vector.Any {
 	// Have a view on lhs. Need to convert that to two sets of views. First
 	// is a (possibly empty) view per element of lhsValues. Second has a
 	// corresponding views of rhs. lhsIndexes[k] will hold the view indexes
@@ -113,13 +112,9 @@ func applyToViewOfUnionOrVariant(lhsViewIndex []uint32, lhsTags []uint32, lhsRev
 	resultTags := make([]uint32, len(lhsViewIndex))
 	for k, index := range lhsViewIndex {
 		tag := lhsTags[index]
-		resultTags[k] = tag
-		unionValuesIndex, ok := slices.BinarySearch(lhsReverse[tag], index)
-		if !ok {
-			panic("index not in reverse")
-		}
-		lhsIndexes[tag] = append(lhsIndexes[tag], uint32(unionValuesIndex))
+		lhsIndexes[tag] = append(lhsIndexes[tag], lhsForward[index])
 		rhsIndexes[tag] = append(rhsIndexes[tag], uint32(k))
+		resultTags[k] = tag
 	}
 	results := make([]vector.Any, len(lhsValues))
 	for k := range lhsValues {
