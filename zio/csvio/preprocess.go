@@ -73,15 +73,21 @@ func (p *preprocess) parseField() ([]byte, error) {
 		}
 		if c == '"' {
 			hasstr = true
-			str, err := p.parseString()
-			p.scratch = append(p.scratch, str...)
-			if err != nil {
+			var s []byte
+			s, err = p.parseString()
+			p.scratch = append(p.scratch, s...)
+			if err == nil {
+				continue
+			}
+			if err != io.EOF {
 				return p.scratch, err
 			}
-			continue
 		}
-		if rune(c) == p.delimiter || c == '\n' {
-			ending := []byte{c}
+		if rune(c) == p.delimiter || c == '\n' || err == io.EOF {
+			var ending []byte
+			if err != io.EOF {
+				ending = []byte{c}
+			}
 			if hasstr {
 				// If field had quotes wrap entire field in quotes.
 				if last := len(p.scratch) - 1; last > 0 && p.scratch[last] == '\r' {
@@ -92,7 +98,7 @@ func (p *preprocess) parseField() ([]byte, error) {
 				p.scratch = append([]byte{'"'}, bytes.TrimSpace(p.scratch)...)
 			}
 			p.scratch = append(p.scratch, ending...)
-			return p.scratch, nil
+			return p.scratch, err
 		}
 		p.scratch = append(p.scratch, c)
 	}
@@ -108,7 +114,6 @@ func (p *preprocess) parseString() ([]byte, error) {
 		if c == '"' {
 			next, err := p.scanner.ReadByte()
 			if err != nil {
-				str = append(str, c)
 				return str, err
 			}
 			if next == '"' {
