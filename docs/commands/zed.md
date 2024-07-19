@@ -340,6 +340,11 @@ for that sub-command.
 * `zed command sub-command -h` displays help for a sub-command of a
 sub-command and so forth.
 
+By default, commands that display lake metadata (e.g., [`log`](#log) or
+[`ls`](#ls)) use the human-readable [lake metadata output](zq.md#zed-lake-metadata-output)
+format.  However, the `-f` option can be used to specify any supported
+[output format](zq.md#output-formats).
+
 ### Auth
 ```
 zed auth login|logout|method|verify
@@ -569,6 +574,18 @@ be specified as options to the `load` command, and are also available in the
 API for automation.
 
 > Note that the branchlog meta-query source is not yet implemented.
+
+### Ls
+```
+zed ls [options] [pool]
+```
+The `ls` command lists pools in a lake or branches in a pool.
+
+By default, all pools in the lake are listed along with each pool's unique ID
+and [pool key](#pool-key) configuration.
+
+If a pool name or pool ID is given, then the pool's branches are listed along
+with the ID of their commit object, which points at the tip of each branch.
 
 ### Manage
 ```
