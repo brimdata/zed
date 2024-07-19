@@ -65,6 +65,8 @@ func (b *Builder) compileVamScan(scan *dag.SeqScan, parent zbuf.Puller) (vector.
 
 func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller, error) {
 	switch o := o.(type) {
+	case *dag.Head:
+		return vamop.NewHead(parent, o.Count), nil
 	case *dag.Summarize:
 		if name, ok := optimizer.IsCountByString(o); ok {
 			return vamop.NewCountByString(b.rctx.Zctx, parent, name), nil
