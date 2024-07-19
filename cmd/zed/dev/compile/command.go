@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/describe"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -50,6 +52,7 @@ type Command struct {
 	canon    bool
 	semantic bool
 	optimize bool
+	describe bool
 	parallel int
 	n        int
 	includes includes
@@ -63,6 +66,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.optimize, "O", false, "display optimized, non-filter AST (implies -proc)")
 	f.IntVar(&c.parallel, "P", 0, "display parallelized AST (implies -proc)")
 	f.BoolVar(&c.canon, "C", false, "display AST in Zed canonical format (implies -proc)")
+	f.BoolVar(&c.describe, "D", false, "display describe summary of Zed query (implies -proc)")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be repeated)")
 	return c, nil
 }
@@ -97,6 +101,9 @@ func (c *Command) Run(args []string) error {
 	if c.semantic {
 		c.n++
 	}
+	if c.describe {
+		c.n++
+	}
 	if c.optimize {
 		c.n++
 	}
@@ -112,13 +119,13 @@ func (c *Command) Run(args []string) error {
 	}
 	src := strings.Join(args, " ")
 	var lk *lake.Root
-	if c.semantic || c.optimize || c.parallel != 0 {
+	if c.semantic || c.optimize || c.parallel != 0 || c.describe {
 		lakeAPI, err := c.LakeFlags.Open(ctx)
 		if err == nil {
 			lk = lakeAPI.Root()
 		}
 	}
-	return c.parse(src, lk)
+	return c.parse(ctx, src, lk)
 }
 
 func (c *Command) header(msg string) {
@@ -130,7 +137,7 @@ func (c *Command) header(msg string) {
 	}
 }
 
-func (c *Command) parse(z string, lk *lake.Root) error {
+func (c *Command) parse(ctx context.Context, z string, lk *lake.Root) error {
 	seq, sset, err := compiler.Parse(z, c.includes...)
 	if err != nil {
 		return err
@@ -147,8 +154,7 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 		c.header("proc")
 		c.writeAST(seq)
 	}
-
-	if !c.semantic && !c.optimize && c.parallel == 0 {
+	if !c.semantic && !c.optimize && c.parallel == 0 && !c.describe {
 		return nil
 	}
 	runtime, err := compiler.NewJob(runtime.DefaultContext(), seq, data.NewSource(nil, lk), nil)
@@ -161,6 +167,10 @@ func (c *Command) parse(z string, lk *lake.Root) error {
 	if c.semantic {
 		c.header("semantic")
 		c.writeDAG(runtime.Entry())
+	}
+	if c.describe {
+		c.header("describe")
+		c.writeDescribe(ctx, runtime.Entry(), lk)
 	}
 	if c.optimize {
 		if err := runtime.Optimize(); err != nil {
@@ -197,6 +207,20 @@ func (c *Command) writeDAG(seq dag.Seq) {
 		fmt.Println(err)
 	} else {
 		fmt.Println(s)
+	}
+}
+
+func (c *Command) writeDescribe(ctx context.Context, seq dag.Seq, lk *lake.Root) {
+	info, err := describe.AnalyzeDAG(ctx, seq, data.NewSource(nil, lk), nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	out, err := json.MarshalIndent(info, "", "    ")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(string(out))
 	}
 }
 
