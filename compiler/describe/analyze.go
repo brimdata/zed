@@ -149,6 +149,8 @@ func describeAggs(seq dag.Seq, parents []field.List) []field.List {
 
 func describeOpAggs(op dag.Op, parents []field.List) []field.List {
 	switch op := op.(type) {
+	case *dag.Scope:
+		return describeAggs(op.Body, parents)
 	case *dag.Fork:
 		var aggs []field.List
 		for _, p := range op.Paths {
