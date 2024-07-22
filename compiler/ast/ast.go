@@ -622,6 +622,11 @@ type (
 		Expr       Expr   `json:"expr"`
 		Text       string `json:"text"`
 	}
+	Output struct {
+		Kind       string `json:"kind" unpack:""`
+		KeywordPos int    `json:"keyword_pos"`
+		Name       *ID    `json:"name"`
+	}
 )
 
 // Source structure
@@ -775,6 +780,7 @@ func (*Yield) OpAST()        {}
 func (*Sample) OpAST()       {}
 func (*Load) OpAST()         {}
 func (*Assert) OpAST()       {}
+func (*Output) OpAST()       {}
 
 func (x *Scope) Pos() int {
 	if x.Decls != nil {
@@ -810,6 +816,7 @@ func (x *Yield) Pos() int        { return x.KeywordPos }
 func (x *Sample) Pos() int       { return x.KeywordPos }
 func (x *Load) Pos() int         { return x.KeywordPos }
 func (x *Assert) Pos() int       { return x.KeywordPos }
+func (x *Output) Pos() int       { return x.KeywordPos }
 
 func (x *Scope) End() int    { return x.Body.End() }
 func (x *Parallel) End() int { return x.Rparen }
@@ -918,6 +925,7 @@ func (x *Sample) End() int {
 }
 func (x *Load) End() int   { return x.EndPos }
 func (x *Assert) End() int { return x.Expr.End() }
+func (x *Output) End() int { return x.Name.End() }
 
 // An Agg is an AST node that represents a aggregate function.  The Name
 // field indicates the aggregation method while the Expr field indicates

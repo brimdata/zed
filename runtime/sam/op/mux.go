@@ -11,11 +11,11 @@ import (
 
 type labeled struct {
 	zbuf.Batch
-	label int
+	label string
 }
 
-func Unwrap(batch zbuf.Batch) (zbuf.Batch, int) {
-	var label int
+func Unwrap(batch zbuf.Batch) (zbuf.Batch, string) {
+	var label string
 	if inner, ok := batch.(*labeled); ok {
 		batch = inner
 		label = inner.label
@@ -41,14 +41,14 @@ type Mux struct {
 
 type result struct {
 	batch zbuf.Batch
-	label int
+	label string
 	err   error
 }
 
 type puller struct {
 	zbuf.Puller
 	ch    chan<- result
-	label int
+	label string
 }
 
 func (p *puller) run(ctx context.Context) {
@@ -65,7 +65,7 @@ func (p *puller) run(ctx context.Context) {
 	}
 }
 
-func NewMux(rctx *runtime.Context, parents []zbuf.Puller) *Mux {
+func NewMux(rctx *runtime.Context, parents map[string]zbuf.Puller) *Mux {
 	if len(parents) <= 1 {
 		panic("mux.New() must be called with two or more parents")
 	}
@@ -120,11 +120,12 @@ func (m *Mux) Pull(bool) (zbuf.Batch, error) {
 
 type Single struct {
 	zbuf.Puller
-	eos bool
+	label string
+	eos   bool
 }
 
-func NewSingle(parent zbuf.Puller) *Single {
-	return &Single{Puller: parent}
+func NewSingle(label string, parent zbuf.Puller) *Single {
+	return &Single{Puller: parent, label: label}
 }
 
 func (s *Single) Pull(bool) (zbuf.Batch, error) {
@@ -134,16 +135,16 @@ func (s *Single) Pull(bool) (zbuf.Batch, error) {
 	batch, err := s.Puller.Pull(false)
 	if batch == nil {
 		s.eos = true
-		eoc := EndOfChannel(0)
-		batch = &eoc
+		eoc := EndOfChannel(s.label)
+		return &eoc, err
 	}
-	return batch, err
+	return &labeled{batch, s.label}, err
 }
 
 // EndOfChannel is an empty batch that represents the termination of one
 // of the output paths of a muxed flowgraph and thus will be ignored downstream
 // unless explicitly detected.
-type EndOfChannel int
+type EndOfChannel string
 
 var _ zbuf.Batch = (*EndOfChannel)(nil)
 

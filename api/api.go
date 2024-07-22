@@ -97,11 +97,11 @@ type QueryRequest struct {
 }
 
 type QueryChannelSet struct {
-	ChannelID int `json:"channel_id" zed:"channel_id"`
+	Channel string `json:"channel" zed:"channel"`
 }
 
 type QueryChannelEnd struct {
-	ChannelID int `json:"channel_id" zed:"channel_id"`
+	Channel string `json:"channel" zed:"channel"`
 }
 
 type QueryError struct {

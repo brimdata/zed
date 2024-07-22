@@ -527,6 +527,9 @@ func (c *canonDAG) op(p dag.Op) {
 		c.head = true
 		c.seq(p.Body)
 		c.close()
+	case *dag.Output:
+		c.next()
+		c.write("output %s", p.Name)
 	default:
 		c.next()
 		c.open("unknown proc: %T", p)

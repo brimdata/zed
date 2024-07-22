@@ -2,7 +2,7 @@ script: |
   source service.sh
   zed create -q test1
   zed create -q test2
-  for file in multifrom.zed agg.zed agg-no-keys.zed two-channels.zed agg-sort.zed scope.zed; do
+  for file in multifrom.zed agg.zed agg-no-keys.zed two-channels.zed agg-sort.zed scope.zed auto-combined-channels.zed; do
     echo // === $file ===
     query="$(cat $file | jq -Rsa .)"
     curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $ZED_LAKE/query/describe |
@@ -27,8 +27,8 @@ inputs:
   - name: two-channels.zed
     data: |
       fork (
-      => from test1 | sum(y) by key1
-      => from test2 | put x := "foo"
+      => from test1 | sum(y) by key1 | output main
+      => from test2 | put x := "foo" | output secondary
       )
   - name: agg-sort.zed
     data: |
@@ -36,7 +36,10 @@ inputs:
   - name: scope.zed
     data: |
       type port = uint16
-      from test1 | fork (=> pass => yield "bar")
+      from test1 | fork (=> output main => yield "bar" | output secondary)
+  - name: auto-combined-channels.zed
+    data: |
+      from test1 | fork (=> pass => pass)
 
 outputs:
   - name: stdout
@@ -59,6 +62,7 @@ outputs:
           ],
           "channels": [
               {
+                  "name": "main",
                   "aggregation_keys": null,
                   "sort": {
                       "order": "desc",
@@ -81,6 +85,7 @@ outputs:
           },
           "channels": [
               {
+                  "name": "main",
                   "aggregation_keys": [
                       [
                           "key1"
@@ -103,6 +108,7 @@ outputs:
           },
           "channels": [
               {
+                  "name": "main",
                   "aggregation_keys": [],
                   "sort": null
               }
@@ -126,6 +132,7 @@ outputs:
           ],
           "channels": [
               {
+                  "name": "main",
                   "aggregation_keys": [
                       [
                           "key1"
@@ -134,6 +141,7 @@ outputs:
                   "sort": null
               },
               {
+                  "name": "secondary",
                   "aggregation_keys": null,
                   "sort": {
                       "order": "desc",
@@ -156,6 +164,7 @@ outputs:
           },
           "channels": [
               {
+                  "name": "main",
                   "aggregation_keys": [
                       [
                           "foo"
@@ -182,6 +191,7 @@ outputs:
           },
           "channels": [
               {
+                  "name": "main",
                   "aggregation_keys": null,
                   "sort": {
                       "order": "desc",
@@ -193,6 +203,23 @@ outputs:
                   }
               },
               {
+                  "name": "secondary",
+                  "aggregation_keys": null,
+                  "sort": null
+              }
+          ]
+      }
+      // === auto-combined-channels.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX",
+              "inferred": false
+          },
+          "channels": [
+              {
+                  "name": "main",
                   "aggregation_keys": null,
                   "sort": null
               }

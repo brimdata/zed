@@ -48,6 +48,7 @@ func (*Pool) Source()     {}
 func (*Path) Source()     {}
 
 type Channel struct {
+	Name            string         `json:"name"`
 	AggregationKeys field.List     `json:"aggregation_keys"`
 	Sort            *order.SortKey `json:"sort"`
 }
@@ -82,6 +83,8 @@ func AnalyzeDAG(ctx context.Context, entry dag.Seq, src *data.Source, head *lake
 		return nil, err
 	}
 	aggKeys := describeAggs(entry, []field.List{nil})
+	outputs := collectOutputs(entry)
+	m := make(map[string]int)
 	for i := range sortKeys {
 		// Convert SortKey to a pointer so a nil sort is encoded as null for
 		// JSON/ZSON.
@@ -89,10 +92,21 @@ func AnalyzeDAG(ctx context.Context, entry dag.Seq, src *data.Source, head *lake
 		if !sortKeys[i].IsNil() {
 			s = &sortKeys[i]
 		}
+		name := outputs[i].Name
+		if k, ok := m[name]; ok {
+			// If output already exists, this means the outputs will be
+			// combined so nil everything out.
+			// XXX This is currently what happens but is this right?
+			c := &info.Channels[k]
+			c.Sort, c.AggregationKeys = nil, nil
+			continue
+		}
 		info.Channels = append(info.Channels, Channel{
+			Name:            name,
 			Sort:            s,
 			AggregationKeys: aggKeys[i],
 		})
+		m[name] = i
 	}
 	return &info, nil
 }
@@ -182,4 +196,17 @@ func describeOpAggs(op dag.Op, parents []field.List) []field.List {
 		return []field.List{nil}
 	}
 	return parents
+}
+
+func collectOutputs(seq dag.Seq) []*dag.Output {
+	var outputs []*dag.Output
+	optimizer.Walk(seq, func(seq dag.Seq) dag.Seq {
+		if len(seq) > 0 {
+			if o, ok := seq[len(seq)-1].(*dag.Output); ok {
+				outputs = append(outputs, o)
+			}
+		}
+		return seq
+	})
+	return outputs
 }

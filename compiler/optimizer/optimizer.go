@@ -68,6 +68,10 @@ func removePassOps(seq dag.Seq) dag.Seq {
 	})
 }
 
+func Walk(seq dag.Seq, post func(dag.Seq) dag.Seq) dag.Seq {
+	return walk(seq, true, post)
+}
+
 func walk(seq dag.Seq, over bool, post func(dag.Seq) dag.Seq) dag.Seq {
 	for _, op := range seq {
 		switch op := op.(type) {
@@ -141,7 +145,7 @@ func (o *Optimizer) Optimize(seq dag.Seq) (dag.Seq, error) {
 }
 
 func (o *Optimizer) OptimizeDeleter(seq dag.Seq, replicas int) (dag.Seq, error) {
-	if len(seq) != 2 {
+	if len(seq) != 3 {
 		return nil, errors.New("internal error: bad deleter structure")
 	}
 	scan, ok := seq[0].(*dag.DeleteScan)
@@ -149,6 +153,10 @@ func (o *Optimizer) OptimizeDeleter(seq dag.Seq, replicas int) (dag.Seq, error) 
 		return nil, errors.New("internal error: bad deleter structure")
 	}
 	filter, ok := seq[1].(*dag.Filter)
+	if !ok {
+		return nil, errors.New("internal error: bad deleter structure")
+	}
+	output, ok := seq[2].(*dag.Output)
 	if !ok {
 		return nil, errors.New("internal error: bad deleter structure")
 	}
@@ -182,7 +190,7 @@ func (o *Optimizer) OptimizeDeleter(seq dag.Seq, replicas int) (dag.Seq, error) 
 			Order: sortKey.Order,
 		}
 	}
-	return dag.Seq{lister, scatter, merge}, nil
+	return dag.Seq{lister, scatter, merge, output}, nil
 }
 
 func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
@@ -247,7 +255,11 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 				// in a normal filtering operation.
 				op.KeyPruner = maybeNewRangePruner(filter, sortKey)
 				// Delete the downstream operators when we are tapping the object list.
-				seq = dag.Seq{op}
+				o, ok := seq[len(seq)-1].(*dag.Output)
+				if !ok {
+					o = &dag.Output{Kind: "Output", Name: "main"}
+				}
+				seq = dag.Seq{op, o}
 			}
 		case *dag.DefaultScan:
 			op.Filter = filter

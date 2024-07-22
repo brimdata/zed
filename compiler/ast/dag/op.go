@@ -93,6 +93,10 @@ type (
 		Vars  []Def  `json:"vars"`
 		Body  Seq    `json:"body"`
 	}
+	Output struct {
+		Kind string `json:"kind" unpack:""`
+		Name string `json:"name"`
+	}
 	Pass struct {
 		Kind string `json:"kind" unpack:""`
 	}
@@ -313,6 +317,7 @@ func (*Merge) OpNode()     {}
 func (*Combine) OpNode()   {}
 func (*Scope) OpNode()     {}
 func (*Load) OpNode()      {}
+func (*Output) OpNode()    {}
 
 // NewFilter returns a filter node for e.
 func NewFilter(e Expr) *Filter {

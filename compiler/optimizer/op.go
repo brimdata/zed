@@ -39,7 +39,7 @@ func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, 
 	case *dag.Lister:
 		// This shouldn't happen.
 		return order.Nil, errors.New("internal error: dag.Lister encountered in anaylzeSortKey")
-	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse:
+	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse, *dag.Output:
 		return in, nil
 	case *dag.Cut:
 		return analyzeCuts(op.Args, in), nil

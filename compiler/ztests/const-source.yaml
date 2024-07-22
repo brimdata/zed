@@ -18,18 +18,21 @@ outputs:
         const POOL = "test"
         
         pool XXX
+        | output main
       )
       ===
       (
         const FILE = "A.zson"
         
         file A.zson
+        | output main
       )
       ===
       (
         const URL = "http://brimdata.io"
         
         get http://brimdata.io
+        | output main
       )
   - name: stderr
     data: |

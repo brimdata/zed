@@ -358,6 +358,7 @@ Operator
   / OverOp
   / YieldOp
   / LoadOp
+  / OutputOp
 
 AssertOp
   = "assert" _ expr:(e:Expr { return []any{e, string(c.text)}, nil }) {
@@ -596,6 +597,15 @@ MetaArg
 
 PoolBranch
   = "@" branch:(PoolIdentifier / QuotedString) { return branch, nil }
+
+OutputOp
+  = "output" _ name:Identifier {
+      return &ast.Output{
+        Kind: "Output",
+        KeywordPos: c.pos.offset,
+        Name: name.(*ast.ID),
+      }, nil
+    }
 
 FromOp
   = File

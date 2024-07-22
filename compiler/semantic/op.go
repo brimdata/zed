@@ -791,6 +791,10 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) dag.Seq {
 			Message: o.Message,
 			Meta:    o.Meta,
 		})
+	case *ast.Output:
+		out := &dag.Output{Kind: "Output", Name: o.Name.Name}
+		a.outputs[out] = o
+		return append(seq, out)
 	}
 	panic(fmt.Errorf("semantic transform: unknown AST operator type: %T", o))
 }
