@@ -16,7 +16,7 @@ type Variant struct {
 var _ Any = (*Variant)(nil)
 
 func NewVariant(tags []uint32, values []Any) *Variant {
-	return &Variant{Tags: tags, Values: values}
+	return &Variant{Tags: tags, Values: values, TagMap: NewTagMap(tags, values)}
 }
 
 func (v *Variant) Type() zed.Type {
@@ -24,7 +24,11 @@ func (v *Variant) Type() zed.Type {
 }
 
 func (v *Variant) TypeOf(slot uint32) zed.Type {
-	return v.Values[v.Tags[slot]].Type()
+	vals := v.Values[v.Tags[slot]]
+	if v2, ok := vals.(*Variant); ok {
+		return v2.TypeOf(v.TagMap.Forward[slot])
+	}
+	return vals.Type()
 }
 
 func (v *Variant) Len() uint32 {
@@ -39,8 +43,5 @@ func (v *Variant) Len() uint32 {
 }
 
 func (v *Variant) Serialize(b *zcode.Builder, slot uint32) {
-	if v.TagMap == nil {
-		v.TagMap = NewTagMap(v.Tags, v.Values)
-	}
 	v.Values[v.Tags[slot]].Serialize(b, v.TagMap.Forward[slot])
 }
