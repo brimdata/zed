@@ -181,6 +181,7 @@ typically omit quotes around field names.
 | `arrows`  | [Arrow IPC Stream Format](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format) |
 | `csv`     | [CSV RFC 4180](https://www.rfc-editor.org/rfc/rfc4180.html) |
 | `json`    | [JSON RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html) |
+| `lake`    | [Zed Lake Metadata Output](#zed-lake-metadata-output) |
 | `parquet` | [Apache Parquet](https://github.com/apache/parquet-format) |
 | `table`   | (described [below](#simplified-text-outputs)) |
 | `text`    | (described [below](#simplified-text-outputs)) |
@@ -427,6 +428,46 @@ now produces
 word  digit style
 one   1     -
 hello -     greeting
+```
+
+### Zed Lake Metadata Output
+
+The `lake` format is used to pretty-print lake metadata, such as in
+[Zed command](zed.md) outputs.  Because it's `zed`'s default output format,
+it's rare to request it explicitly via `-f`.  However, since it's possible for
+`zed` to [generate output in any supported format](zed.md#zed-commands),
+the `lake` format is useful to reverse this.
+
+For example, imagine you'd executed a [meta-query](zed.md#meta-queries) via
+`zed query -Z "from :pools"` and saved the output in this file `pools.zson`.
+
+```mdtest-input pools.zson
+{
+    ts: 2024-07-19T19:28:22.893089Z,
+    name: "MyPool",
+    id: 0x132870564f00de22d252b3438c656691c87842c2 (=ksuid.KSUID),
+    layout: {
+        order: "desc" (=order.Which),
+        keys: [
+            [
+                "ts"
+            ] (=field.Path)
+        ] (=field.List)
+    } (=order.SortKey),
+    seek_stride: 65536,
+    threshold: 524288000
+} (=pools.Config)
+```
+
+Using `zq -f lake`, this can be rendered in the same pretty-printed form as it
+would have originally appeared in the output of `zed ls`, e.g.,
+
+```mdtest-command
+zq -f lake pools.zson
+```
+produces
+```mdtest-output
+MyPool 2jTi7n3sfiU7qTgPTAE1nwTUJ0M key ts order desc
 ```
 
 ## Query Debugging
