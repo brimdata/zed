@@ -128,10 +128,7 @@ func (r *remote) QueryWithControl(ctx context.Context, head *lakeparse.Commitish
 	if err != nil {
 		return nil, err
 	}
-	q, err := queryio.NewQuery(res.Body), nil
-	if err != nil {
-		return nil, err
-	}
+	q := queryio.NewQuery(res.Body)
 	return zbuf.MeterReadCloser(q), nil
 }
 
