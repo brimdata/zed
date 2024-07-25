@@ -36,7 +36,7 @@ inputs:
   - name: scope.zed
     data: |
       type port = uint16
-      from test1
+      from test1 | fork (=> pass => yield "bar")
 
 outputs:
   - name: stdout
@@ -181,6 +181,17 @@ outputs:
               "inferred": false
           },
           "channels": [
+              {
+                  "aggregation_keys": null,
+                  "sort": {
+                      "order": "desc",
+                      "keys": [
+                          [
+                              "ts"
+                          ]
+                      ]
+                  }
+              },
               {
                   "aggregation_keys": null,
                   "sort": null
