@@ -357,7 +357,7 @@ degrade as many small commits accumulate. However, the `-manage 5m` option
 that was included when starting our Zed lake service mitigates this effect
 by compacting the data in the lake's pools every five minutes. This results
 in storing the pool data across a smaller number of larger
-[data objects](../commands/zed.md#data), allowing for better query performance
+[data objects](../lake/format.md#data-objects), allowing for better query performance
 as data volumes increase.
 
 By default, even after compaction is performed, the granular commit history is
