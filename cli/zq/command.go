@@ -3,6 +3,7 @@ package zq
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli"
@@ -17,6 +18,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zfmt"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zsonio"
 )
 
 var Cmd = &charm.Spec{
@@ -159,7 +161,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer query.Pull(true)
-	err = zbuf.CopyPuller(writer, query)
+	out := map[string]zio.WriteCloser{
+		"main":  writer,
+		"debug": zsonio.NewWriter(zio.NopCloser(os.Stderr), zsonio.WriterOpts{}),
+	}
+	err = zbuf.CopyMux(out, query)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

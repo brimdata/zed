@@ -22,6 +22,7 @@ var unpacker = unpack.New(
 	Conditional{},
 	ConstDecl{},
 	Cut{},
+	Debug{},
 	astzed.DefValue{},
 	Drop{},
 	Explode{},

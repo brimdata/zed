@@ -24,7 +24,10 @@ import (
 
 func (a *analyzer) semSeq(seq ast.Seq) dag.Seq {
 	var converted dag.Seq
-	for _, op := range seq {
+	for k, op := range seq {
+		if d, ok := op.(*ast.Debug); ok {
+			return a.semDebugOp(d, seq[k+1:], converted)
+		}
 		converted = a.semOp(op, converted)
 	}
 	return converted
@@ -385,6 +388,25 @@ func (a *analyzer) semScope(op *ast.Scope) *dag.Scope {
 		Funcs:  funcs,
 		Body:   a.semSeq(op.Body),
 	}
+}
+
+func (a *analyzer) semDebugOp(o *ast.Debug, mainAst ast.Seq, in dag.Seq) dag.Seq {
+	output := &dag.Output{Kind: "Output", Name: "debug"}
+	a.outputs[output] = o
+	e := a.semExprNullable(o.Expr)
+	if e == nil {
+		e = &dag.This{Kind: "This"}
+	}
+	y := &dag.Yield{Kind: "Yield", Exprs: []dag.Expr{e}}
+	main := a.semSeq(mainAst)
+	if len(main) == 0 {
+		main.Append(&dag.Pass{Kind: "Pass"})
+	}
+	return append(in, &dag.Mirror{
+		Kind:   "Mirror",
+		Main:   main,
+		Mirror: dag.Seq{y, output},
+	})
 }
 
 // semOp does a semantic analysis on a flowgraph to an

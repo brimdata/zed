@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/segmentio/ksuid"
 )
 
@@ -89,8 +89,8 @@ func (c *Command) Run(args []string) error {
 		w.Close()
 		return err
 	}
-	defer q.Close()
-	err = zio.Copy(w, q)
+	defer q.Pull(true)
+	err = zbuf.CopyPuller(w, q)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

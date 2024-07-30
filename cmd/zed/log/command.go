@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zbuf"
 )
 
 var Cmd = &charm.Spec{
@@ -76,8 +76,8 @@ func (c *Command) Run(args []string) error {
 		}
 		return err
 	}
-	defer q.Close()
-	err = zio.Copy(w, q)
+	defer q.Pull(true)
+	err = zbuf.CopyPuller(w, q)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

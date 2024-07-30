@@ -26,6 +26,7 @@ import (
 	"github.com/brimdata/zed/runtime/sam/op"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/service/srverr"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/csvio"
@@ -124,7 +125,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 				}
 			}
 			if len(batch.Values()) == 0 {
-				if eoc, ok := batch.(*op.EndOfChannel); ok {
+				if eoc, ok := batch.(*zbuf.EndOfChannel); ok {
 					if err := writer.WhiteChannelEnd(string(*eoc)); err != nil {
 						w.Logger.Warn("Error writing channel end", zap.Error(err))
 						handleError(err)
@@ -134,7 +135,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 				continue
 			}
 			var label string
-			batch, label = op.Unwrap(batch)
+			batch, label = zbuf.Unlabel(batch)
 			if err := writer.WriteBatch(label, batch); err != nil {
 				w.Logger.Warn("Error writing batch", zap.Error(err))
 				handleError(err)

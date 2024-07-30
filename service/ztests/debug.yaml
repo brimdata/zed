@@ -1,0 +1,16 @@
+script: |
+  source service.sh
+  zed create -use -q test
+  echo '{x: "foo"}' | zed load -q -
+  zed query -z 'debug f"debug: {x}"'
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {x:"foo"}
+  - name: stderr
+    data: |
+      "debug: foo"
