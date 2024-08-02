@@ -5,6 +5,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/runtime/sam/expr/coerce"
+	"github.com/lestrrat-go/strftime"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#now
@@ -45,4 +46,29 @@ func (b *Bucket) Call(ectx expr.Context, args []zed.Value) zed.Value {
 		return b.zctx.WrapError(ectx.Arena(), b.name+": first argument is not a time", tsArg)
 	}
 	return zed.NewTime(nano.Ts(v).Trunc(bin))
+}
+
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#strftime
+type Strftime struct {
+	zctx      *zed.Context
+	formatter *strftime.Strftime
+}
+
+func (s *Strftime) Call(ectx expr.Context, args []zed.Value) zed.Value {
+	formatArg, timeArg := args[0], args[1]
+	if !formatArg.IsString() {
+		return s.zctx.WrapError(ectx.Arena(), "strftime: string value required for format arg", formatArg)
+	}
+	if zed.TypeUnder(timeArg.Type()) != zed.TypeTime {
+		return s.zctx.WrapError(ectx.Arena(), "strftime: time value required for time arg", args[1])
+	}
+	format := formatArg.AsString()
+	if s.formatter == nil || s.formatter.Pattern() != format {
+		var err error
+		if s.formatter, err = strftime.New(format); err != nil {
+			return s.zctx.WrapError(ectx.Arena(), "strftime: "+err.Error(), formatArg)
+		}
+	}
+	out := s.formatter.FormatString(timeArg.AsTime().Time())
+	return ectx.Arena().NewString(out)
 }

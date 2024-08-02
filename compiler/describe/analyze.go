@@ -64,10 +64,15 @@ func Analyze(ctx context.Context, query string, src *data.Source, head *lakepars
 		}
 		return nil, err
 	}
+	return AnalyzeDAG(ctx, entry, src, head)
+}
+
+func AnalyzeDAG(ctx context.Context, entry dag.Seq, src *data.Source, head *lakeparse.Commitish) (*Info, error) {
 	srcInferred := !semantic.HasSource(entry)
-	if err = semantic.AddDefaultSource(ctx, &entry, src, head); err != nil {
+	if err := semantic.AddDefaultSource(ctx, &entry, src, head); err != nil {
 		return nil, err
 	}
+	var err error
 	var info Info
 	if info.Sources, err = describeSources(ctx, src.Lake(), entry[0], srcInferred); err != nil {
 		return nil, err
@@ -149,6 +154,8 @@ func describeAggs(seq dag.Seq, parents []field.List) []field.List {
 
 func describeOpAggs(op dag.Op, parents []field.List) []field.List {
 	switch op := op.(type) {
+	case *dag.Scope:
+		return describeAggs(op.Body, parents)
 	case *dag.Fork:
 		var aggs []field.List
 		for _, p := range op.Paths {

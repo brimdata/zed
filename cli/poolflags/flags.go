@@ -17,6 +17,10 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 }
 
 func (f *Flags) HEAD() (*lakeparse.Commitish, error) {
+	if f.defaultHead == "" {
+		return nil, errors.New(`pool and branch are unspecified
+(specify with -use flag or "zed use" command)`)
+	}
 	c, err := lakeparse.ParseCommitish(f.defaultHead)
 	if err != nil {
 		return nil, err

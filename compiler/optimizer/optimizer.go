@@ -367,6 +367,8 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 	case *dag.PoolScan, *dag.Lister, *dag.SeqScan, *dag.DefaultScan:
 		out, err := o.sortKeyOfSource(op)
 		return []order.SortKey{out}, err
+	case *dag.Scope:
+		return o.propagateSortKey(op.Body, parents)
 	default:
 		out, err := o.analyzeSortKey(op, parent)
 		return []order.SortKey{out}, err
