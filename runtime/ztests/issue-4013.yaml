@@ -1,10 +1,11 @@
-# Make sure "fork (=> ... => ...) | head" with one leg that pulls until
-# EOS and one that does not works for an input containing multiple
-# batches.
+# Make sure "fork (=> ... => ...) | yield this | head" with one leg that pulls
+# until EOS and one that does not works for an input containing multiple
+# batches. ("yield this" prevents the optimizer from lifting "head" into the
+# legs.)
 script: |
-  seq 1000 | zq -z 'fork (=> count() => pass) | head' -
+  seq 1000 | zq -z 'fork (=> count() => pass) | yield this | head' -
   echo ===
-  seq 1000 | zq -z 'fork (=> pass => count()) | head' -
+  seq 1000 | zq -z 'fork (=> pass => count()) | yield this | head' -
 
 outputs:
   - name: stdout
