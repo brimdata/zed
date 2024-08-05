@@ -64,14 +64,14 @@ outputs:
               {
                   "name": "main",
                   "aggregation_keys": null,
-                  "sort": {
-                      "order": "desc",
-                      "keys": [
-                          [
+                  "sort": [
+                      {
+                          "order": "desc",
+                          "key": [
                               "ts"
                           ]
-                      ]
-                  }
+                      }
+                  ]
               }
           ]
       }
@@ -143,14 +143,14 @@ outputs:
               {
                   "name": "secondary",
                   "aggregation_keys": null,
-                  "sort": {
-                      "order": "desc",
-                      "keys": [
-                          [
+                  "sort": [
+                      {
+                          "order": "desc",
+                          "key": [
                               "ts"
                           ]
-                      ]
-                  }
+                      }
+                  ]
               }
           ]
       }
@@ -170,14 +170,14 @@ outputs:
                           "foo"
                       ]
                   ],
-                  "sort": {
-                      "order": "asc",
-                      "keys": [
-                          [
+                  "sort": [
+                      {
+                          "order": "asc",
+                          "key": [
                               "x"
                           ]
-                      ]
-                  }
+                      }
+                  ]
               }
           ]
       }
@@ -193,14 +193,14 @@ outputs:
               {
                   "name": "main",
                   "aggregation_keys": null,
-                  "sort": {
-                      "order": "desc",
-                      "keys": [
-                          [
+                  "sort": [
+                      {
+                          "order": "desc",
+                          "key": [
                               "ts"
                           ]
-                      ]
-                  }
+                      }
+                  ]
               },
               {
                   "name": "secondary",

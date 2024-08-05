@@ -35,22 +35,22 @@ func (o *Optimizer) parallelizeSeqScan(scan *dag.SeqScan, ops []dag.Op, replicas
 		// the system would benefit for parallel reading and merging.
 		return nil, nil
 	}
-	srcSortKey, err := o.sortKeyOfSource(scan)
+	srcSortKeys, err := o.sortKeysOfSource(scan)
 	if err != nil {
 		return nil, err
 	}
-	if len(srcSortKey.Keys) > 1 {
+	if len(srcSortKeys) > 1 {
 		// XXX Don't yet support multi-key ordering.  See Issue #2657.
 		return nil, nil
 	}
 	// concurrentPath will check that the path consisting of the original source
 	// sequence and any lifted sequence is still parallelizable.
-	n, outputKey, _, needMerge, err := o.concurrentPath(ops[1:], srcSortKey)
+	n, outputKeys, _, needMerge, err := o.concurrentPath(ops[1:], srcSortKeys)
 	if err != nil {
 		return nil, err
 	}
 	// XXX Fix this to handle multi-key merge. See Issue #2657.
-	if len(outputKey.Keys) > 1 {
+	if len(outputKeys) > 1 {
 		return nil, nil
 	}
 	head := ops[:n+1]
@@ -69,10 +69,11 @@ func (o *Optimizer) parallelizeSeqScan(scan *dag.SeqScan, ops []dag.Op, replicas
 		// the fanin from this parallel structure and see if the merge can be
 		// removed while also pushing additional ops from the output segment up into
 		// the parallel branches to enhance concurrency.
+		sortKey := outputKeys.Primary()
 		merge = &dag.Merge{
 			Kind:  "Merge",
-			Expr:  &dag.This{Kind: "This", Path: outputKey.Primary()},
-			Order: outputKey.Order,
+			Expr:  &dag.This{Kind: "This", Path: sortKey.Key},
+			Order: sortKey.Order,
 		}
 	} else {
 		merge = &dag.Combine{Kind: "Combine"}
@@ -140,15 +141,15 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 			return
 		}
 		if merge != nil {
-			mergeKey := sortKeyOfExpr(merge.Expr, merge.Order)
-			if mergeKey.IsNil() {
+			mergeKey, ok := sortKeyOfExpr(merge.Expr, merge.Order)
+			if !ok {
 				// If the merge expression isn't a field, don't try to pull it up.
 				// XXX We could generalize this to test for equal expressions by
 				// doing an expression comparison. See issue #4524.
 				return
 			}
-			sortKey := sortKeyOfSort(op)
-			if !sortKey.Equal(mergeKey) {
+			sortKey := sortKeysOfSort(op)
+			if !sortKey.Equal(order.SortKeys{mergeKey}) {
 				return
 			}
 		}
@@ -158,8 +159,8 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 		if merge == nil {
 			merge = &dag.Merge{
 				Kind:  "Merge",
-				Expr:  op.Args[0],
-				Order: op.Order,
+				Expr:  op.Args[0].Key,
+				Order: op.Args[0].Order,
 			}
 			if egress == 2 {
 				ops[1] = merge
@@ -181,7 +182,7 @@ func (o *Optimizer) liftIntoParPaths(ops []dag.Op) {
 	case *dag.Cut, *dag.Drop, *dag.Put, *dag.Rename, *dag.Filter:
 		if merge != nil {
 			// See if this op would disrupt the merge-on key
-			mergeKey, err := o.propagateSortKeyOp(merge, []order.SortKey{order.Nil})
+			mergeKey, err := o.propagateSortKeyOp(merge, []order.SortKeys{nil})
 			if err != nil || mergeKey[0].IsNil() {
 				// Bail if there's a merge with a non-key expression.
 				return
@@ -219,7 +220,7 @@ func parallelPaths(op dag.Op) ([]dag.Seq, bool) {
 // exit from that path is returned.  If sortKey is zero, then the
 // concurrent path is allowed to include operators that do not guarantee
 // an output order.
-func (o *Optimizer) concurrentPath(ops []dag.Op, sortKey order.SortKey) (int, order.SortKey, bool, bool, error) {
+func (o *Optimizer) concurrentPath(ops []dag.Op, sortKeys order.SortKeys) (int, order.SortKeys, bool, bool, error) {
 	for k := range ops {
 		switch op := ops[k].(type) {
 		// This should be a boolean in op.go that defines whether
@@ -230,38 +231,38 @@ func (o *Optimizer) concurrentPath(ops []dag.Op, sortKey order.SortKey) (int, or
 			// We want input sorted when we are preserving order into
 			// group-by so we can release values incrementally which is really
 			// important when doing a head on the group-by results
-			if isKeyOfSummarize(op, sortKey) {
+			if isKeyOfSummarize(op, sortKeys) {
 				// Keep the input ordered so we can incrementally release
 				// results from the groupby as a streaming operation.
-				return k, sortKey, true, true, nil
+				return k, sortKeys, true, true, nil
 			}
-			return k, order.Nil, false, false, nil
+			return k, nil, false, false, nil
 		case *dag.Sort:
-			newKey := sortKeyOfSort(op)
-			if newKey.IsNil() {
+			newKeys := sortKeysOfSort(op)
+			if newKeys.IsNil() {
 				// No analysis for sort without expression since we can't
 				// parallelize the heuristic.  We should revisit these semantics
 				// and define a global order across Zed type.
-				return 0, order.Nil, false, false, nil
+				return 0, nil, false, false, nil
 			}
-			return k, newKey, false, true, nil
+			return k, newKeys, false, true, nil
 		case *dag.Load:
 			// XXX At some point Load should have an optimization where if the
 			// upstream sort is the same as the Load destination sort we
 			// request a merge and set the Load operator to do a sorted write.
-			return k, order.Nil, false, false, nil
+			return k, nil, false, false, nil
 		case *dag.Fork, *dag.Scatter, *dag.Mirror, *dag.Head, *dag.Tail, *dag.Uniq, *dag.Fuse, *dag.Join, *dag.Output:
-			return k, sortKey, true, true, nil
+			return k, sortKeys, true, true, nil
 		default:
-			next, err := o.analyzeSortKey(op, sortKey)
+			next, err := o.analyzeSortKeys(op, sortKeys)
 			if err != nil {
-				return 0, order.Nil, false, false, err
+				return 0, nil, false, false, err
 			}
-			if !sortKey.IsNil() && next.IsNil() {
-				return k, sortKey, true, true, nil
+			if !sortKeys.IsNil() && next.IsNil() {
+				return k, sortKeys, true, true, nil
 			}
-			sortKey = next
+			sortKeys = next
 		}
 	}
-	return len(ops), sortKey, true, true, nil
+	return len(ops), sortKeys, true, true, nil
 }

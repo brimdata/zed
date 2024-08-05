@@ -25,7 +25,7 @@ type Interface interface {
 	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Scanner, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
-	CreatePool(context.Context, string, order.SortKey, int, int64) (ksuid.KSUID, error)
+	CreatePool(context.Context, string, order.SortKeys, int, int64) (ksuid.KSUID, error)
 	RemovePool(context.Context, ksuid.KSUID) error
 	RenamePool(context.Context, ksuid.KSUID, string) error
 	CreateBranch(ctx context.Context, pool ksuid.KSUID, name string, parent ksuid.KSUID) error

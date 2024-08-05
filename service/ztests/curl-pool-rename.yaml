@@ -2,7 +2,7 @@ script: |
   source service.sh
   curl -X POST \
     -H "Accept: application/json" \
-    -d '{"name": "test", "layout": { "order": "desc", "keys": [["ts"]] }}' \
+    -d '{"name": "test", "layout": [{ "order": "desc", "key": ["ts"] }]}' \
     $ZED_LAKE/pool > /dev/null
   curl -X PUT \
     -H "Accept: application/json" \

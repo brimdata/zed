@@ -261,28 +261,28 @@ func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return branchRef.Commit, nil
 }
 
-func (r *Root) SortKey(ctx context.Context, src dag.Op) order.SortKey {
+func (r *Root) SortKeys(ctx context.Context, src dag.Op) order.SortKeys {
 	switch src := src.(type) {
 	case *dag.Lister:
 		if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
-			return config.SortKey
+			return config.SortKeys
 		}
 	case *dag.SeqScan:
 		if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
-			return config.SortKey
+			return config.SortKeys
 		}
 	case *dag.PoolScan:
 		if config, err := r.pools.LookupByID(ctx, src.ID); err == nil {
-			return config.SortKey
+			return config.SortKeys
 		}
 	case *dag.CommitMetaScan:
 		if src.Tap {
 			if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
-				return config.SortKey
+				return config.SortKeys
 			}
 		}
 	}
-	return order.Nil
+	return nil
 }
 
 func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
@@ -314,7 +314,7 @@ func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newName string) e
 	return r.pools.Rename(ctx, id, newName)
 }
 
-func (r *Root) CreatePool(ctx context.Context, name string, sortKey order.SortKey, seekStride int, thresh int64) (*Pool, error) {
+func (r *Root) CreatePool(ctx context.Context, name string, sortKeys order.SortKeys, seekStride int, thresh int64) (*Pool, error) {
 	if name == "HEAD" {
 		return nil, fmt.Errorf("pool cannot be named %q", name)
 	}
@@ -324,10 +324,10 @@ func (r *Root) CreatePool(ctx context.Context, name string, sortKey order.SortKe
 	if thresh == 0 {
 		thresh = data.DefaultThreshold
 	}
-	if len(sortKey.Keys) > 1 {
+	if len(sortKeys) > 1 {
 		return nil, errors.New("multiple pool keys not supported")
 	}
-	config := pools.NewConfig(name, sortKey, thresh, seekStride)
+	config := pools.NewConfig(name, sortKeys, thresh, seekStride)
 	if err := CreatePool(ctx, r.engine, r.logger, r.path, config); err != nil {
 		return nil, err
 	}

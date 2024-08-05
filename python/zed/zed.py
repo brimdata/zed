@@ -35,7 +35,7 @@ class Client():
             return creds['services'][self.base_url]['access']
         return None
 
-    def create_pool(self, name, layout={'order': 'desc', 'keys': [['ts']]},
+    def create_pool(self, name, layout=[{'order': 'desc', 'key': ['ts']}],
                     thresh=0):
         r = self.session.post(self.base_url + '/pool', json={
             'name': name,

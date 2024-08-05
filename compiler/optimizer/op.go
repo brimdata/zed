@@ -10,52 +10,52 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 )
 
-// analyzeSortKey returns how an input order maps to an output order based
+// analyzeSortKeys returns how an input order maps to an output order based
 // on the semantics of the operator.  Note that an order can go from unknown
 // to known (e.g., sort) or from known to unknown (e.g., conflicting parallel paths).
 // Also, when op is a Summarize operator, its input direction (where the
 // order key is presumed to be the primary group-by key) is set based
 // on the in sort key.  This is clumsy and needs to change.
 // See issue #2658.
-func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, error) {
+func (o *Optimizer) analyzeSortKeys(op dag.Op, in order.SortKeys) (order.SortKeys, error) {
 	switch op := op.(type) {
 	case *dag.PoolScan:
 		// Ignore in and just return the sort order of the pool.
 		pool, err := o.lookupPool(op.ID)
 		if err != nil {
-			return order.Nil, err
+			return nil, err
 		}
-		return pool.SortKey, nil
+		return pool.SortKeys, nil
 	case *dag.Sort:
-		return sortKeyOfSort(op), nil
+		return sortKeysOfSort(op), nil
 	}
 	// We should handle secondary keys at some point.
 	// See issue #2657.
-	key := in.Primary()
-	if key == nil {
-		return order.Nil, nil
+	if in.IsNil() {
+		return nil, nil
 	}
+	key := in.Primary()
 	switch op := op.(type) {
 	case *dag.Lister:
 		// This shouldn't happen.
-		return order.Nil, errors.New("internal error: dag.Lister encountered in anaylzeSortKey")
+		return nil, errors.New("internal error: dag.Lister encountered in anaylzeSortKeys")
 	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse, *dag.Output:
 		return in, nil
 	case *dag.Cut:
 		return analyzeCuts(op.Args, in), nil
 	case *dag.Drop:
 		for _, f := range op.Args {
-			if fieldOf(f).Equal(key) {
-				return order.Nil, nil
+			if fieldOf(f).Equal(key.Key) {
+				return nil, nil
 			}
 		}
 		return in, nil
 	case *dag.Rename:
 		out := in
 		for _, assignment := range op.Args {
-			if fieldOf(assignment.RHS).Equal(key) {
+			if fieldOf(assignment.RHS).Equal(key.Key) {
 				lhs := fieldOf(assignment.LHS)
-				out = order.NewSortKey(in.Order, field.List{lhs})
+				out = order.SortKeys{order.NewSortKey(key.Order, lhs)}
 			}
 		}
 		return out, nil
@@ -63,43 +63,50 @@ func (o *Optimizer) analyzeSortKey(op dag.Op, in order.SortKey) (order.SortKey, 
 		if isKeyOfSummarize(op, in) {
 			return in, nil
 		}
-		return order.Nil, nil
+		return nil, nil
 	case *dag.Put:
 		for _, assignment := range op.Args {
-			if fieldOf(assignment.LHS).Equal(key) {
-				return order.Nil, nil
+			if fieldOf(assignment.LHS).Equal(key.Key) {
+				return nil, nil
 			}
 		}
 		return in, nil
 	default:
-		return order.Nil, nil
+		return nil, nil
 	}
 }
 
-func sortKeyOfSort(op *dag.Sort) order.SortKey {
+func sortKeysOfSort(op *dag.Sort) order.SortKeys {
 	// XXX Only single sort keys.  See issue #2657.
 	if len(op.Args) != 1 {
-		return order.Nil
+		return nil
 	}
-	return sortKeyOfExpr(op.Args[0], op.Order)
+	key, ok := sortKeyOfExpr(op.Args[0].Key, op.Args[0].Order)
+	if !ok {
+		return nil
+	}
+	if op.Reverse {
+		key.Order = !key.Order
+	}
+	return order.SortKeys{key}
 }
 
-func sortKeyOfExpr(e dag.Expr, o order.Which) order.SortKey {
+func sortKeyOfExpr(e dag.Expr, o order.Which) (order.SortKey, bool) {
 	key := fieldOf(e)
 	if key == nil {
-		return order.Nil
+		return order.SortKey{}, false
 	}
-	return order.NewSortKey(o, field.List{key})
+	return order.NewSortKey(o, key), true
 }
 
 // isKeyOfSummarize returns true iff its any of the groupby keys is the
 // same as the given primary-key sort order or an order-preserving function
 // thereof.
-func isKeyOfSummarize(summarize *dag.Summarize, in order.SortKey) bool {
-	if len(in.Keys) == 0 {
+func isKeyOfSummarize(summarize *dag.Summarize, in order.SortKeys) bool {
+	if in.IsNil() {
 		return false
 	}
-	key := in.Keys[0]
+	key := in[0].Key
 	for _, outputKeyExpr := range summarize.Keys {
 		groupByKey := fieldOf(outputKeyExpr.LHS)
 		if groupByKey.Equal(key) {
@@ -130,11 +137,11 @@ func orderPreservingCall(e dag.Expr, key field.Path) bool {
 	return false
 }
 
-func analyzeCuts(assignments []dag.Assignment, sortKey order.SortKey) order.SortKey {
-	key := sortKey.Primary()
-	if key == nil {
-		return order.Nil
+func analyzeCuts(assignments []dag.Assignment, sortKeys order.SortKeys) order.SortKeys {
+	if sortKeys.IsNil() {
+		return nil
 	}
+	key := sortKeys[0].Key
 	// This loop implements a very simple data flow analysis where we
 	// track the known order through the scoreboard.  If on exit, there
 	// is more than one field of known order, the current optimization
@@ -155,7 +162,7 @@ func analyzeCuts(assignments []dag.Assignment, sortKey order.SortKey) order.Sort
 			// conservative in general and will miss optimization
 			// opportunities, e.g., we could do dependency
 			// analysis of a complex RHS expression.
-			return order.Nil
+			return nil
 		}
 		lhsKey := fieldKey(lhs)
 		if rhs == nil {
@@ -167,7 +174,7 @@ func analyzeCuts(assignments []dag.Assignment, sortKey order.SortKey) order.Sort
 			// to something that does not have a defined order.
 			dependencies, ok := FieldsOf(a.RHS)
 			if !ok {
-				return order.Nil
+				return nil
 			}
 			for _, d := range dependencies {
 				key := fieldKey(d)
@@ -176,7 +183,7 @@ func analyzeCuts(assignments []dag.Assignment, sortKey order.SortKey) order.Sort
 					// field but we're not sophisticated
 					// enough here to know if this preserves
 					// its order...
-					return order.Nil
+					return nil
 				}
 			}
 			// There are no RHS dependencies on an ordered input.
@@ -195,10 +202,10 @@ func analyzeCuts(assignments []dag.Assignment, sortKey order.SortKey) order.Sort
 		delete(scoreboard, lhsKey)
 	}
 	if len(scoreboard) != 1 {
-		return order.Nil
+		return nil
 	}
 	for _, f := range scoreboard {
-		return order.SortKey{Keys: field.List{f}, Order: sortKey.Order}
+		return order.SortKeys{order.NewSortKey(sortKeys[0].Order, f)}
 	}
 	panic("unreachable")
 }

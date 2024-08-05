@@ -70,7 +70,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	sortKey, err := order.ParseSortKey(c.sortKey)
+	sortKey, err := order.ParseSortKeys(c.sortKey)
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,7 @@
 package dag
 
+import "github.com/brimdata/zed/order"
+
 type (
 	Expr interface {
 		ExprDAG()
@@ -116,6 +118,10 @@ type (
 		Expr Expr   `json:"expr"`
 		From Expr   `json:"from"`
 		To   Expr   `json:"to"`
+	}
+	SortExpr struct {
+		Key   Expr        `json:"key"`
+		Order order.Which `json:"order"`
 	}
 	This struct {
 		Kind string   `json:"kind" unpack:""`

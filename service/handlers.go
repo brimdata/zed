@@ -244,7 +244,7 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	pool, err := c.root.CreatePool(r.Context(), req.Name, req.SortKey, req.SeekStride, req.Thresh)
+	pool, err := c.root.CreatePool(r.Context(), req.Name, req.SortKeys, req.SeekStride, req.Thresh)
 	if err != nil {
 		w.Error(err)
 		return
