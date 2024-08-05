@@ -21,9 +21,7 @@ func newCollect() *Collect {
 }
 
 func (c *Collect) Consume(val zed.Value) {
-	if !val.IsNull() {
-		c.update(val)
-	}
+	c.update(val)
 }
 
 func (c *Collect) update(val zed.Value) {
