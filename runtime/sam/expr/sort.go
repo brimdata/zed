@@ -13,6 +13,15 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
+type SortEvaluator struct {
+	Evaluator
+	Order order.Which
+}
+
+func NewSortEvaluator(eval Evaluator, o order.Which) SortEvaluator {
+	return SortEvaluator{eval, o}
+}
+
 func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	if len(c.exprs) == 0 {
 		return nil
@@ -56,11 +65,11 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	defer arena.Unref()
 	ectx = NewContext(arena)
 	sort.SliceStable(indices, func(i, j int) bool {
-		if c.reverse {
-			i, j = j, i
-		}
-		iidx, jidx := indices[i], indices[j]
 		for k, expr := range c.exprs {
+			iidx, jidx := indices[i], indices[j]
+			if expr.Order == order.Desc {
+				iidx, jidx = jidx, iidx
+			}
 			arena.Reset()
 			var ival, jval zed.Value
 			if k == 0 {
@@ -94,18 +103,22 @@ type CompareFn func(a, b zed.Value) int
 // nullsMax is true, a null value is considered larger than any non-null value,
 // and vice versa.
 func NewCompareFn(nullsMax bool, exprs ...Evaluator) CompareFn {
-	return NewComparator(nullsMax, false, exprs...).WithMissingAsNull().Compare
+	var sortExprs []SortEvaluator
+	for _, e := range exprs {
+		sortExprs = append(sortExprs, SortEvaluator{e, order.Asc})
+	}
+	return NewComparator(nullsMax, sortExprs...).WithMissingAsNull().Compare
 }
 
 func NewValueCompareFn(o order.Which, nullsMax bool) CompareFn {
-	return NewComparator(nullsMax, o == order.Desc, &This{}).Compare
+	e := SortEvaluator{&This{}, o}
+	return NewComparator(nullsMax, e).Compare
 }
 
 type Comparator struct {
 	ectx     Context
-	exprs    []Evaluator
+	exprs    []SortEvaluator
 	nullsMax bool
-	reverse  bool
 }
 
 // NewComparator returns a zed.Value comparator for exprs according to nullsMax
@@ -113,12 +126,11 @@ type Comparator struct {
 // exprs, stopping when e(a)!=e(b).  nullsMax determines whether a null value
 // compares larger (if true) or smaller (if false) than a non-null value.
 // reverse reverses the sense of comparisons.
-func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
+func NewComparator(nullsMax bool, exprs ...SortEvaluator) *Comparator {
 	return &Comparator{
 		ectx:     NewContext(zed.NewArena()),
 		exprs:    slices.Clone(exprs),
 		nullsMax: nullsMax,
-		reverse:  reverse,
 	}
 }
 
@@ -126,7 +138,7 @@ func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
 // values as the null value in comparisons.
 func (c *Comparator) WithMissingAsNull() *Comparator {
 	for i, k := range c.exprs {
-		c.exprs[i] = &missingAsNull{k}
+		c.exprs[i].Evaluator = &missingAsNull{k}
 	}
 	return c
 }
@@ -144,13 +156,13 @@ func (m *missingAsNull) Eval(ectx Context, val zed.Value) zed.Value {
 // Compare returns an interger comparing two values according to the receiver's
 // configuration.  The result will be 0 if a==b, -1 if a < b, and +1 if a > b.
 func (c *Comparator) Compare(a, b zed.Value) int {
-	if c.reverse {
-		a, b = b, a
-	}
 	for _, k := range c.exprs {
 		c.ectx.Arena().Reset()
 		aval := k.Eval(c.ectx, a)
 		bval := k.Eval(c.ectx, b)
+		if k.Order == order.Desc {
+			aval, bval = bval, aval
+		}
 		if v := compareValues(c.ectx.Arena(), aval, bval, c.nullsMax); v != 0 {
 			return v
 		}

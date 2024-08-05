@@ -34,7 +34,7 @@ func CompileWithSortKey(rctx *runtime.Context, seq ast.Seq, r zio.Reader, sortKe
 	if !ok {
 		return nil, errors.New("CompileWithSortKey: Zed program expected a reader")
 	}
-	scan.SortKey = sortKey
+	scan.SortKeys = order.SortKeys{sortKey}
 	return optimizeAndBuild(job, []zio.Reader{r})
 }
 

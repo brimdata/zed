@@ -84,14 +84,19 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 	}
 	var keyCompare, valueCompare expr.CompareFn
 	nkeys := len(keyExprs)
+	o := order.Which(inputDir < 0)
 	if nkeys > 0 && inputDir != 0 {
-		valueCompare = expr.NewValueCompareFn(order.Which(inputDir < 0), true)
+		valueCompare = expr.NewValueCompareFn(o, true)
 		rs := expr.NewCompareFn(true, keyRefs[0])
 		if inputDir < 0 {
 			keyCompare = func(a, b zed.Value) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
+	}
+	var sortExprs []expr.SortEvaluator
+	for _, e := range keyRefs {
+		sortExprs = append(sortExprs, expr.NewSortEvaluator(e, o))
 	}
 	return &Aggregator{
 		ctx:            ctx,
@@ -110,7 +115,7 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 		table:          make(map[string]*Row),
 		recordTypes:    make(map[int]*zed.TypeRecord),
 		keyCompare:     keyCompare,
-		keysComparator: expr.NewComparator(true, inputDir < 0, keyRefs...).WithMissingAsNull(),
+		keysComparator: expr.NewComparator(true, sortExprs...).WithMissingAsNull(),
 		valueCompare:   valueCompare,
 		partialsIn:     partialsIn,
 		partialsOut:    partialsOut,

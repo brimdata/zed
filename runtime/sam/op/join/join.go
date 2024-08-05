@@ -48,13 +48,15 @@ func New(rctx *runtime.Context, anti, inner bool, left, right zbuf.Puller, leftK
 	var err error
 	// Add sorts if needed.
 	if !leftDir.HasOrder(o) {
-		left, err = sort.New(rctx, left, []expr.Evaluator{leftKey}, o, false, resetter)
+		s := expr.NewSortEvaluator(leftKey, o)
+		left, err = sort.New(rctx, left, []expr.SortEvaluator{s}, false, false, resetter)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if !rightDir.HasOrder(o) {
-		right, err = sort.New(rctx, right, []expr.Evaluator{rightKey}, o, false, resetter)
+		s := expr.NewSortEvaluator(rightKey, o)
+		right, err = sort.New(rctx, right, []expr.SortEvaluator{s}, false, false, resetter)
 		if err != nil {
 			return nil, err
 		}
