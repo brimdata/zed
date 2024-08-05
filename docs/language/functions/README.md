@@ -59,6 +59,7 @@ Zed's [primitive types](../../formats/zed.md#1-primitive-types), e.g.,
 * [rune_len](rune_len.md) - length of a string in Unicode code points
 * [shape](shape.md) - apply cast, fill, and order
 * [split](split.md) - slice a string into an array of strings
+* [strftime](strftime.md) - format time values
 * [sqrt](sqrt.md) - square root of a number
 * [trim](trim.md) - strip leading and trailing whitespace
 * [typename](typename.md) - look up and return a named type
