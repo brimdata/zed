@@ -18,3 +18,4 @@ outputs:
           file test.zson
       )
       | join on x=x p:=a
+      | output main

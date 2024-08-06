@@ -45,10 +45,10 @@ outputs:
       hello	world	goodbye
       one	two	three
       === application/x-zjson ===
-      {"type":"QueryChannelSet","value":{"channel_id":0}}
+      {"type":"QueryChannelSet","value":{"channel":"main"}}
       {"type":{"kind":"record","id":31,"fields":[{"name":"a","type":{"kind":"primitive","name":"string"}},{"name":"b","type":{"kind":"record","id":30,"fields":[{"name":"c","type":{"kind":"primitive","name":"string"}},{"name":"d","type":{"kind":"primitive","name":"string"}}]}}]},"value":["hello",["world","goodbye"]]}
       {"type":{"kind":"ref","id":31},"value":["one",["two","three"]]}
-      {"type":"QueryChannelEnd","value":{"channel_id":0}}
+      {"type":"QueryChannelEnd","value":{"channel":"main"}}
       {"type":"QueryStats","value":{"start_time":{"sec":xxx,"ns":xxx},"update_time":{"sec":xxx,"ns":xxx},"bytes_read":36,"bytes_matched":36,"records_read":2,"records_matched":2}}
       === application/x-zson ===
       {a:"hello",b:{c:"world",d:"goodbye"}}

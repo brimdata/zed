@@ -19,3 +19,4 @@ outputs:
             file b
         )
         | join on c=c
+        | output main

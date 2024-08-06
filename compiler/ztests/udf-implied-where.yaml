@@ -11,4 +11,5 @@ outputs:
         )
         
         where h(foo)
+        | output main
       )

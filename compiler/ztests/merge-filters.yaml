@@ -11,6 +11,7 @@ outputs:
   - name: stdout
     data: |
       reader filter (a and b)
+      | output main
       ===
       fork (
         =>
@@ -18,16 +19,20 @@ outputs:
         =>
           file d filter (e and f and g)
       )
+      | output main
       ===
       reader
       | over a => (
         where b and c
       )
+      | output main
       ===
       reader
       | fork (
         =>
           where a and b
+          | output main
         =>
           where c and d
+          | output main
       )

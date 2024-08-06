@@ -15,8 +15,8 @@ func (c *Control) Error() string {
 	return "control"
 }
 
-type SetChannel int
-type EndChannel int
+type SetChannel string
+type EndChannel string
 
 type noControl struct {
 	zio.Reader

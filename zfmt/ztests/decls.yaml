@@ -66,4 +66,5 @@ outputs:
         )
         | join on flavor=likes eater:=name
         | yield {...this,assignee:"bob",ts:now()}
+        | output main
       )

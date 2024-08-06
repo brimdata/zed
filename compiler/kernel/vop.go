@@ -79,6 +79,9 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 			return nil, err
 		}
 		return vamop.NewYield(b.rctx.Zctx, parent, exprs), nil
+	case *dag.Output:
+		// XXX Ignore Output op for vectors for now.
+		return parent, nil
 	default:
 		return nil, fmt.Errorf("internal error: unknown dag.Op while compiling for vector runtime: %#v", o)
 	}

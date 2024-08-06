@@ -56,9 +56,9 @@ func (q *Query) Read() (*zed.Value, error) {
 func controlToError(ctrl interface{}) error {
 	switch ctrl := ctrl.(type) {
 	case *api.QueryChannelSet:
-		return &zbuf.Control{Message: zbuf.SetChannel(ctrl.ChannelID)}
+		return &zbuf.Control{Message: zbuf.SetChannel(ctrl.Channel)}
 	case *api.QueryChannelEnd:
-		return &zbuf.Control{Message: zbuf.EndChannel(ctrl.ChannelID)}
+		return &zbuf.Control{Message: zbuf.EndChannel(ctrl.Channel)}
 	case *api.QueryStats:
 		return &zbuf.Control{Message: ctrl.Progress}
 	case *api.QueryError:

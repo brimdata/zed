@@ -41,6 +41,7 @@ var unpacker = unpack.New(
 	MapCall{},
 	MapExpr{},
 	Merge{},
+	Output{},
 	Over{},
 	OverExpr{},
 	Pass{},

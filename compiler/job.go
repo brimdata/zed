@@ -23,7 +23,7 @@ type Job struct {
 	rctx      *runtime.Context
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
-	outputs   []zbuf.Puller
+	outputs   map[string]zbuf.Puller
 	puller    zbuf.Puller
 	entry     dag.Seq
 }
@@ -123,7 +123,9 @@ func (j *Job) Puller() zbuf.Puller {
 		case 0:
 			return nil
 		case 1:
-			j.puller = op.NewCatcher(op.NewSingle(outputs[0]))
+			for k, p := range outputs {
+				j.puller = op.NewCatcher(op.NewSingle(k, p))
+			}
 		default:
 			j.puller = op.NewMux(j.rctx, outputs)
 		}
@@ -190,7 +192,7 @@ func VectorFilterCompile(rctx *runtime.Context, query string, src *data.Source, 
 		}
 		return nil, err
 	}
-	if len(entry) != 1 {
+	if len(entry) != 2 {
 		return nil, errors.New("filter query must have a single op")
 	}
 	f, ok := entry[0].(*dag.Filter)

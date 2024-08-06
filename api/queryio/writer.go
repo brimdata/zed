@@ -18,7 +18,7 @@ type controlWriter interface {
 }
 
 type Writer struct {
-	cid     int
+	channel string
 	start   nano.Ts
 	writer  zio.WriteCloser
 	ctrl    bool
@@ -27,7 +27,6 @@ type Writer struct {
 
 func NewWriter(w io.WriteCloser, format string, flusher http.Flusher, ctrl bool) (*Writer, error) {
 	d := &Writer{
-		cid:     -1,
 		ctrl:    ctrl,
 		start:   nano.Now(),
 		flusher: flusher,
@@ -51,10 +50,10 @@ func NewWriter(w io.WriteCloser, format string, flusher http.Flusher, ctrl bool)
 	return d, err
 }
 
-func (w *Writer) WriteBatch(cid int, batch zbuf.Batch) error {
-	if w.cid != cid {
-		w.cid = cid
-		if err := w.WriteControl(api.QueryChannelSet{ChannelID: cid}); err != nil {
+func (w *Writer) WriteBatch(channel string, batch zbuf.Batch) error {
+	if w.channel != channel {
+		w.channel = channel
+		if err := w.WriteControl(api.QueryChannelSet{Channel: channel}); err != nil {
 			return err
 		}
 	}
@@ -62,8 +61,8 @@ func (w *Writer) WriteBatch(cid int, batch zbuf.Batch) error {
 	return zbuf.WriteBatch(w.writer, batch)
 }
 
-func (w *Writer) WhiteChannelEnd(channelID int) error {
-	return w.WriteControl(api.QueryChannelEnd{ChannelID: channelID})
+func (w *Writer) WhiteChannelEnd(channel string) error {
+	return w.WriteControl(api.QueryChannelEnd{Channel: channel})
 }
 
 func (w *Writer) WriteProgress(stats zbuf.Progress) error {

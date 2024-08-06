@@ -627,6 +627,9 @@ func (c *canon) op(p ast.Op) {
 		c.next()
 		c.write("yield ")
 		c.exprs(p.Exprs)
+	case *ast.Output:
+		c.next()
+		c.write("output %s", p.Name.Name)
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()

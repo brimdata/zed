@@ -57,6 +57,7 @@ type Builder struct {
 	readers      []zio.Reader
 	progress     *zbuf.Progress
 	arena        *zed.Arena // For zed.Values created during compilation.
+	channels     map[string][]zbuf.Puller
 	deletes      *sync.Map
 	udfs         map[string]dag.Expr
 	compiledUDFs map[string]*expr.UDF
@@ -77,6 +78,7 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 			RecordsMatched: 0,
 		},
 		arena:        arena,
+		channels:     make(map[string][]zbuf.Puller),
 		udfs:         make(map[string]dag.Expr),
 		compiledUDFs: make(map[string]*expr.UDF),
 	}
@@ -90,12 +92,24 @@ func (b *Builder) clone(arena *zed.Arena) *Builder {
 
 // Build builds a flowgraph for seq.  If seq contains a dag.DefaultSource, it
 // will read from readers.
-func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, error) {
+func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) (map[string]zbuf.Puller, error) {
 	if !isEntry(seq) {
 		return nil, errors.New("internal error: DAG entry point is not a data source")
 	}
 	b.readers = readers
-	return b.compileSeq(seq, nil)
+
+	if _, err := b.compileSeq(seq, nil); err != nil {
+		return nil, err
+	}
+	channels := make(map[string]zbuf.Puller)
+	for key, pullers := range b.channels {
+		if len(pullers) == 1 {
+			channels[key] = pullers[0]
+		} else {
+			channels[key] = combine.New(b.rctx, pullers)
+		}
+	}
+	return channels, nil
 }
 
 func (b *Builder) BuildWithPuller(seq dag.Seq, parent vector.Puller) ([]vector.Puller, error) {
@@ -375,6 +389,9 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		//XXX
 		return nil, errors.New("dag.Vectorize must begin with SeqScan")
+	case *dag.Output:
+		b.channels[v.Name] = append(b.channels[v.Name], parent)
+		return parent, nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}

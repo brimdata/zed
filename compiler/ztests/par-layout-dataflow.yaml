@@ -21,6 +21,7 @@ outputs:
           | cut x:=ts,ts:=1
       )
       | merge x:asc
+      | output main
       ===
       lister ...
       | slicer
@@ -33,3 +34,4 @@ outputs:
           | cut x:=ts,ts:=1
       )
       | merge x:desc
+      | output main

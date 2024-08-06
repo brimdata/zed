@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"context"
+	"errors"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
@@ -17,6 +18,7 @@ import (
 func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
 	a := newAnalyzer(ctx, source, head)
 	s := a.semSeq(seq)
+	s = a.checkOutputs(true, s)
 	if a.errors != nil {
 		return nil, a.errors
 	}
@@ -28,6 +30,7 @@ func Analyze(ctx context.Context, seq ast.Seq, source *data.Source, head *lakepa
 func AnalyzeAddSource(ctx context.Context, seq ast.Seq, source *data.Source, head *lakeparse.Commitish) (dag.Seq, error) {
 	a := newAnalyzer(ctx, source, head)
 	s := a.semSeq(seq)
+	s = a.checkOutputs(true, s)
 	if a.errors != nil {
 		return nil, a.errors
 	}
@@ -44,6 +47,7 @@ type analyzer struct {
 	errors  parser.ErrorList
 	head    *lakeparse.Commitish
 	opStack []*ast.OpDecl
+	outputs map[*dag.Output]ast.Node
 	source  *data.Source
 	scope   *Scope
 	zctx    *zed.Context
@@ -52,12 +56,13 @@ type analyzer struct {
 
 func newAnalyzer(ctx context.Context, source *data.Source, head *lakeparse.Commitish) *analyzer {
 	return &analyzer{
-		ctx:    ctx,
-		head:   head,
-		source: source,
-		scope:  NewScope(nil),
-		zctx:   zed.NewContext(),
-		arena:  zed.NewArena(),
+		ctx:     ctx,
+		head:    head,
+		outputs: make(map[*dag.Output]ast.Node),
+		source:  source,
+		scope:   NewScope(nil),
+		zctx:    zed.NewContext(),
+		arena:   zed.NewArena(),
 	}
 }
 
@@ -147,4 +152,46 @@ func badOp() dag.Op {
 
 func (a *analyzer) error(n ast.Node, err error) {
 	a.errors.Append(err.Error(), n.Pos(), n.End())
+}
+
+func (a *analyzer) checkOutputs(isLeaf bool, seq dag.Seq) dag.Seq {
+	if len(seq) == 0 {
+		return seq
+	}
+	// - Report an error in any outputs are not located in the leaves.
+	// - Add output operators to any leaves where they do not exist.
+	lastN := len(seq) - 1
+	for i, o := range seq {
+		isLast := lastN == i
+		switch o := o.(type) {
+		case *dag.Output:
+			if !isLast || !isLeaf {
+				n, ok := a.outputs[o]
+				if !ok {
+					panic("system error: untracked user output")
+				}
+				a.error(n, errors.New("output operator must be at flowgraph leaf"))
+			}
+		case *dag.Scope:
+			o.Body = a.checkOutputs(isLast && isLeaf, o.Body)
+		case *dag.Scatter:
+			for k := range o.Paths {
+				o.Paths[k] = a.checkOutputs(isLast && isLeaf, o.Paths[k])
+			}
+		case *dag.Over:
+			o.Body = a.checkOutputs(false, o.Body)
+		case *dag.Fork:
+			for k := range o.Paths {
+				o.Paths[k] = a.checkOutputs(isLast && isLeaf, o.Paths[k])
+			}
+		}
+	}
+	switch seq[lastN].(type) {
+	case *dag.Scope, *dag.Output, *dag.Scatter, *dag.Fork:
+	default:
+		if isLeaf {
+			return append(seq, &dag.Output{Kind: "Output", Name: "main"})
+		}
+	}
+	return seq
 }

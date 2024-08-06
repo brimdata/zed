@@ -19,3 +19,4 @@ outputs:
       )
       | cut cake:=cake
       | sort -r x
+      | output main
