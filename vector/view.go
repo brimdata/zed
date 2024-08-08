@@ -21,6 +21,11 @@ func NewView(index []uint32, val Any) Any {
 			index2[k] = uint32(val.Index[idx])
 		}
 		return &View{val.Any, index2}
+	case *Union:
+		tags, values := viewForUnionOrVariant(index, val.Tags, val.TagMap.Forward, val.Values)
+		return NewUnion(val.Typ, tags, values, nil)
+	case *Variant:
+		return NewVariant(viewForUnionOrVariant(index, val.Tags, val.TagMap.Forward, val.Values))
 	case *View:
 		index2 := make([]uint32, len(index))
 		for k, idx := range index {
@@ -29,6 +34,21 @@ func NewView(index []uint32, val Any) Any {
 		return &View{val.Any, index2}
 	}
 	return &View{val, index}
+}
+
+func viewForUnionOrVariant(index, tags, forward []uint32, values []Any) ([]uint32, []Any) {
+	indexes := make([][]uint32, len(values))
+	resultTags := make([]uint32, len(index))
+	for k, index := range index {
+		tag := tags[index]
+		indexes[tag] = append(indexes[tag], forward[index])
+		resultTags[k] = tag
+	}
+	results := make([]Any, len(values))
+	for k := range results {
+		results[k] = NewView(indexes[k], values[k])
+	}
+	return resultTags, results
 }
 
 func (v *View) Len() uint32 {
