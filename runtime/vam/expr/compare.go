@@ -26,9 +26,14 @@ func (c *Compare) Eval(val vector.Any) vector.Any {
 func (c *Compare) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
-	lhs, rhs, _ = coerceVals(c.zctx, lhs, rhs)
+	if val, ok := stitch(lhs, rhs, c.eval); ok {
+		return val
+	}
+	lhs, rhs, errVal := coerceVals(c.zctx, lhs, rhs)
+	if errVal != nil {
+		return errVal
+	}
 	//XXX need to handle overflow (see sam)
-	//XXX unions and variants and single-value-with-error variant
 	//XXX nulls... for primitives we just do the compare but we need
 	// to or the nulls together
 	kind := vector.KindOf(lhs)

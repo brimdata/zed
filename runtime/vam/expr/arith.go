@@ -28,6 +28,9 @@ func (a *Arith) Eval(val vector.Any) vector.Any {
 func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
 	lhs = vector.Under(lhs)
 	rhs = vector.Under(rhs)
+	if val, ok := stitch(lhs, rhs, a.eval); ok {
+		return val
+	}
 	lhs, rhs, errVal := coerceVals(a.zctx, lhs, rhs)
 	if errVal != nil {
 		return errVal
