@@ -208,6 +208,15 @@ func TestCompareNumbers(t *testing.T) {
 	testSuccessful(t, "u <= f", rec2, "false")
 	testSuccessful(t, "u > f", rec2, "true")
 	testSuccessful(t, "u >= f", rec2, "true")
+
+	// Test comparisons with unions.
+	const rec3 = "{l:1((int64,bytes)),r:2.((string,float64))}"
+	testSuccessful(t, "l == r", rec3, "false")
+	testSuccessful(t, "l != r", rec3, "true")
+	testSuccessful(t, "l < r", rec3, "true")
+	testSuccessful(t, "l <= r", rec3, "true")
+	testSuccessful(t, "l > r", rec3, "false")
+	testSuccessful(t, "l >= r", rec3, "false")
 }
 
 func TestCompareNonNumbers(t *testing.T) {

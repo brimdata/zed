@@ -292,6 +292,8 @@ func (c *Compare) Eval(ectx Context, this zed.Value) zed.Value {
 	if rhs.IsError() {
 		return rhs
 	}
+	arena := ectx.Arena()
+	lhs, rhs = lhs.Under(arena), rhs.Under(arena)
 
 	if lhs.IsNull() {
 		if rhs.IsNull() {
