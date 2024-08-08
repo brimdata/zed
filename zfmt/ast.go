@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/sam/expr/agg"
 	"github.com/brimdata/zed/runtime/sam/expr/function"
 	"github.com/brimdata/zed/zson"
@@ -486,15 +485,21 @@ func (c *canon) op(p ast.Op) {
 	case *ast.Sort:
 		c.next()
 		c.write("sort")
-		if p.Order == order.Desc {
+		if p.Reverse {
 			c.write(" -r")
 		}
 		if p.NullsFirst {
 			c.write(" -nulls first")
 		}
-		if len(p.Args) > 0 {
+		for k, s := range p.Args {
+			if k > 0 {
+				c.write(",")
+			}
 			c.space()
-			c.exprs(p.Args)
+			c.expr(s.Expr, "")
+			if s.Order != nil {
+				c.write(" %s", s.Order.Name)
+			}
 		}
 	case *ast.Load:
 		c.next()

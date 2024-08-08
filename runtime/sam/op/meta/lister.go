@@ -79,7 +79,7 @@ func (l *Lister) Pull(done bool) (zbuf.Batch, error) {
 		return nil, l.err
 	}
 	if l.objects == nil {
-		l.objects = initObjectScan(l.snap, l.pool.SortKey)
+		l.objects = initObjectScan(l.snap, l.pool.SortKeys.Primary())
 	}
 	arena := zed.NewArena()
 	for len(l.objects) != 0 {

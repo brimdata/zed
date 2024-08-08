@@ -50,7 +50,7 @@ func (*Path) Source()     {}
 type Channel struct {
 	Name            string         `json:"name"`
 	AggregationKeys field.List     `json:"aggregation_keys"`
-	Sort            *order.SortKey `json:"sort"`
+	Sort            order.SortKeys `json:"sort"`
 }
 
 func Analyze(ctx context.Context, query string, src *data.Source, head *lakeparse.Commitish) (*Info, error) {
@@ -85,13 +85,7 @@ func AnalyzeDAG(ctx context.Context, entry dag.Seq, src *data.Source, head *lake
 	aggKeys := describeAggs(entry, []field.List{nil})
 	outputs := collectOutputs(entry)
 	m := make(map[string]int)
-	for i := range sortKeys {
-		// Convert SortKey to a pointer so a nil sort is encoded as null for
-		// JSON/ZSON.
-		var s *order.SortKey
-		if !sortKeys[i].IsNil() {
-			s = &sortKeys[i]
-		}
+	for i, s := range sortKeys {
 		name := outputs[i].Name
 		if k, ok := m[name]; ok {
 			// If output already exists, this means the outputs will be
