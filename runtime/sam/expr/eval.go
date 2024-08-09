@@ -732,15 +732,13 @@ func (c *Conditional) Eval(ectx Context, this zed.Value) zed.Value {
 }
 
 type Call struct {
-	zctx  *zed.Context
 	fn    Function
 	exprs []Evaluator
 	args  []zed.Value
 }
 
-func NewCall(zctx *zed.Context, fn Function, exprs []Evaluator) *Call {
+func NewCall(fn Function, exprs []Evaluator) *Call {
 	return &Call{
-		zctx:  zctx,
 		fn:    fn,
 		exprs: exprs,
 		args:  make([]zed.Value, len(exprs)),
