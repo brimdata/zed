@@ -1,0 +1,13 @@
+script: |
+  zed init -q
+  zed create -use -q test
+  echo '{x: "foo"}' | zed load -q -
+  zed query -z 'debug f"debug: {x}"'
+
+outputs:
+  - name: stdout
+    data: |
+      {x:"foo"}
+  - name: stderr
+    data: |
+      "debug: foo"

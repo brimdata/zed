@@ -105,15 +105,7 @@ func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName stri
 	return exec.Compact(ctx, l.root, pool, branchName, objects, writeVectors, commit.Author, commit.Body, commit.Meta)
 }
 
-func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
-	q, err := l.QueryWithControl(ctx, head, src, srcfiles...)
-	if err != nil {
-		return nil, err
-	}
-	return zio.NewReadCloser(zbuf.NoControl(q), q), nil
-}
-
-func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
+func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Scanner, error) {
 	flowgraph, sset, err := parser.ParseZed(srcfiles, src)
 	if err != nil {
 		return nil, err
@@ -122,7 +114,7 @@ func (l *local) QueryWithControl(ctx context.Context, head *lakeparse.Commitish,
 	if err != nil {
 		return nil, err
 	}
-	return runtime.AsProgressReadCloser(q), nil
+	return q, nil
 }
 
 func (l *local) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {

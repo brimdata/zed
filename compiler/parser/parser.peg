@@ -359,6 +359,7 @@ Operator
   / YieldOp
   / LoadOp
   / OutputOp
+  / DebugOp
 
 AssertOp
   = "assert" _ expr:(e:Expr { return []any{e, string(c.text)}, nil }) {
@@ -605,6 +606,18 @@ OutputOp
         KeywordPos: c.pos.offset,
         Name: name.(*ast.ID),
       }, nil
+    }
+
+DebugOp
+  = "debug" &EOKW expr:(_ e:Expr { return e, nil })? {
+      d := &ast.Debug{
+        Kind: "Debug",
+        KeywordPos: c.pos.offset,
+      }
+      if expr != nil {
+        d.Expr = expr.(ast.Expr)
+      }
+      return d, nil
     }
 
 FromOp

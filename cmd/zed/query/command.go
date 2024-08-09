@@ -2,6 +2,7 @@ package query
 
 import (
 	"flag"
+	"os"
 
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/poolflags"
@@ -12,6 +13,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zsonio"
 )
 
 var Cmd = &charm.Spec{
@@ -63,13 +65,17 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	head, _ := c.poolFlags.HEAD()
-	query, err := lake.QueryWithControl(ctx, head, src, c.queryFlags.Includes...)
+	query, err := lake.Query(ctx, head, src, c.queryFlags.Includes...)
 	if err != nil {
 		w.Close()
 		return err
 	}
-	defer query.Close()
-	err = zio.Copy(w, zbuf.NoControl(query))
+	defer query.Pull(true)
+	out := map[string]zio.WriteCloser{
+		"main":  w,
+		"debug": zsonio.NewWriter(zio.NopCloser(os.Stderr), zsonio.WriterOpts{}),
+	}
+	err = zbuf.CopyMux(out, query)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

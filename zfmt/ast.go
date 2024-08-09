@@ -630,6 +630,13 @@ func (c *canon) op(p ast.Op) {
 	case *ast.Output:
 		c.next()
 		c.write("output %s", p.Name.Name)
+	case *ast.Debug:
+		c.next()
+		c.write("debug")
+		if p.Expr != nil {
+			c.write(" ")
+			c.expr(p.Expr, "")
+		}
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()

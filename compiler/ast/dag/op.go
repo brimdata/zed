@@ -86,6 +86,11 @@ type (
 		Expr  Expr        `json:"expr"`
 		Order order.Which `json:"order"`
 	}
+	Mirror struct {
+		Kind   string `json:"kind" unpack:""`
+		Main   Seq    `json:"main"`
+		Mirror Seq    `json:"mirror"`
+	}
 	Over struct {
 		Kind  string `json:"kind" unpack:""`
 		Defs  []Def  `json:"defs"`
@@ -314,6 +319,7 @@ func (*Over) OpNode()      {}
 func (*Vectorize) OpNode() {}
 func (*Yield) OpNode()     {}
 func (*Merge) OpNode()     {}
+func (*Mirror) OpNode()    {}
 func (*Combine) OpNode()   {}
 func (*Scope) OpNode()     {}
 func (*Load) OpNode()      {}

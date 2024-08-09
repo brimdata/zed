@@ -87,6 +87,9 @@ func walk(seq dag.Seq, over bool, post func(dag.Seq) dag.Seq) dag.Seq {
 			for k := range op.Paths {
 				op.Paths[k] = walk(op.Paths[k], over, post)
 			}
+		case *dag.Mirror:
+			op.Main = walk(op.Main, over, post)
+			op.Mirror = walk(op.Mirror, over, post)
 		case *dag.Scope:
 			op.Body = walk(op.Body, over, post)
 		}
@@ -112,6 +115,14 @@ func walkEntries(seq dag.Seq, post func(dag.Seq) (dag.Seq, error)) (dag.Seq, err
 					return nil, err
 				}
 				op.Paths[k] = seq
+			}
+		case *dag.Mirror:
+			var err error
+			if op.Main, err = walkEntries(op.Main, post); err != nil {
+				return nil, err
+			}
+			if op.Mirror, err = walkEntries(op.Mirror, post); err != nil {
+				return nil, err
 			}
 		case *dag.Scope:
 			seq, err := walkEntries(op.Body, post)
@@ -360,6 +371,16 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 	case *dag.Scatter:
 		var keys []order.SortKey
 		for _, seq := range op.Paths {
+			out, err := o.propagateSortKey(seq, []order.SortKey{parent})
+			if err != nil {
+				return nil, err
+			}
+			keys = append(keys, out...)
+		}
+		return keys, nil
+	case *dag.Mirror:
+		var keys []order.SortKey
+		for _, seq := range []dag.Seq{op.Main, op.Mirror} {
 			out, err := o.propagateSortKey(seq, []order.SortKey{parent})
 			if err != nil {
 				return nil, err
