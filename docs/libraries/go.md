@@ -139,7 +139,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-    defer q.Pull(true)
+	defer q.Pull(true)
 	reader := zbuf.PullerReader(q)
 	zctx := zed.NewContext()
 	arena := zed.NewArena()

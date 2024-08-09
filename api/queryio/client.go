@@ -20,16 +20,15 @@ type scanner struct {
 	progress zbuf.Progress
 }
 
-func NewScanner(ctx context.Context, rc io.ReadCloser) zbuf.Scanner {
+func NewScanner(ctx context.Context, rc io.ReadCloser) (zbuf.Scanner, error) {
 	s, err := zngio.NewReader(zed.NewContext(), rc).NewScanner(ctx, nil)
 	if err != nil {
-		// XXX This shouldn't happen since we don't have a filter.
-		panic(err)
+		return nil, err
 	}
 	return &scanner{
 		scanner: s,
 		closer:  rc,
-	}
+	}, nil
 }
 
 func (s *scanner) Progress() zbuf.Progress {
@@ -49,7 +48,7 @@ again:
 	if !ok {
 		return nil, err
 	}
-	v, err := s.marshalControl(zctrl)
+	v, err := marshalControl(zctrl)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +69,7 @@ again:
 	}
 }
 
-func (s *scanner) marshalControl(zctrl *zbuf.Control) (any, error) {
+func marshalControl(zctrl *zbuf.Control) (any, error) {
 	ctrl, ok := zctrl.Message.(*zngio.Control)
 	if !ok {
 		return nil, fmt.Errorf("unknown control type: %T", zctrl.Message)
@@ -82,11 +81,11 @@ func (s *scanner) marshalControl(zctrl *zbuf.Control) (any, error) {
 	defer arena.Unref()
 	value, err := zson.ParseValue(zed.NewContext(), arena, string(ctrl.Bytes))
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse Zed control message: %w (%s)", err, string(ctrl.Bytes))
+		return nil, fmt.Errorf("unable to parse Zed control message: %w (%s)", err, ctrl.Bytes)
 	}
 	var v interface{}
 	if err := unmarshaler.Unmarshal(value, &v); err != nil {
-		return nil, fmt.Errorf("unable to unmarshal Zed control message: %w (%s)", err, string(ctrl.Bytes))
+		return nil, fmt.Errorf("unable to unmarshal Zed control message: %w (%s)", err, ctrl.Bytes)
 	}
 	return v, nil
 }

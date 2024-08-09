@@ -120,7 +120,7 @@ func (r *remote) Query(ctx context.Context, head *lakeparse.Commitish, src strin
 	if err != nil {
 		return nil, err
 	}
-	return queryio.NewScanner(ctx, res.Body), nil
+	return queryio.NewScanner(ctx, res.Body)
 }
 
 func (r *remote) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
