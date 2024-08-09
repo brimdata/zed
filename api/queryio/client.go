@@ -49,7 +49,7 @@ again:
 	if !ok {
 		return nil, err
 	}
-	v, err := s.marshalControl(zctrl)
+	v, err := marshalControl(zctrl)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ again:
 	}
 }
 
-func (s *scanner) marshalControl(zctrl *zbuf.Control) (any, error) {
+func marshalControl(zctrl *zbuf.Control) (any, error) {
 	ctrl, ok := zctrl.Message.(*zngio.Control)
 	if !ok {
 		return nil, fmt.Errorf("unknown control type: %T", zctrl.Message)

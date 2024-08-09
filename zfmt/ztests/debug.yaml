@@ -1,0 +1,18 @@
+script: |
+  zc -C 'debug f"debug: {this}" | head 1'
+  zc -s -C 'debug f"debug: {this}" | head 1'
+
+outputs:
+  - name: stdout
+    data: |
+      debug f"debug: {this}"
+      | head 1
+      reader
+      | mirror (
+        =>
+          yield "debug: "+cast(this, <string>)
+          | output debug
+        =>
+          head 1
+          | output main
+      )
