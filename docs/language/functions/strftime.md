@@ -8,7 +8,7 @@ strftime(format: string, t: time) -> string
 ```
 
 ### Description
-The _strftime_ function returns a string represenation of time `t`
+The _strftime_ function returns a string representation of time `t`
 as specified by the provided string `format`. `format` is a string
 containing format directives that dictate how the time string is
 formatted.
@@ -64,4 +64,13 @@ echo 2024-07-30T20:05:15.118252Z | zq -z 'strftime("%Y", this)' -
 =>
 ```mdtest-output
 "2024"
+```
+
+Print a date in European format with slashes
+```mdtest-command
+echo 2024-07-30T20:05:15.118252Z | zq -z 'strftime("%d/%m/%Y", this)' -
+```
+=>
+```mdtest-output
+"30/07/2024"
 ```

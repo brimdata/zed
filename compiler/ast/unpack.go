@@ -45,6 +45,7 @@ var unpacker = unpack.New(
 	Join{},
 	Load{},
 	Merge{},
+	Output{},
 	Over{},
 	Trunk{},
 	astzed.Map{},

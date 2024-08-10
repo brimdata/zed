@@ -8,10 +8,10 @@
 <left-input>
 | [anti|inner|left|right] join (
   <right-input>
-) on <left-key>=<right-key> [<field>:=<right-expr>, ...]
+) on <left-key>=<right-key> [[<field>:=]<right-expr>, ...]
 
 ( => <left-input> => <right-input> )
-| [anti|inner|left|right] join on <left-key>=<right-key> [<field>:=<right-expr>, ...]
+| [anti|inner|left|right] join on <left-key>=<right-key> [[<field>:=]<right-expr>, ...]
 ```
 
 :::tip Note

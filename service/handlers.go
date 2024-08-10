@@ -125,7 +125,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 			}
 			if len(batch.Values()) == 0 {
 				if eoc, ok := batch.(*op.EndOfChannel); ok {
-					if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
+					if err := writer.WhiteChannelEnd(string(*eoc)); err != nil {
 						w.Logger.Warn("Error writing channel end", zap.Error(err))
 						handleError(err)
 						return
@@ -133,9 +133,9 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 				}
 				continue
 			}
-			var cid int
-			batch, cid = op.Unwrap(batch)
-			if err := writer.WriteBatch(cid, batch); err != nil {
+			var label string
+			batch, label = op.Unwrap(batch)
+			if err := writer.WriteBatch(label, batch); err != nil {
 				w.Logger.Warn("Error writing batch", zap.Error(err))
 				handleError(err)
 				return

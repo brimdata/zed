@@ -337,7 +337,7 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
-	return expr.NewCall(b.zctx(), fn, exprs), nil
+	return expr.NewCall(fn, exprs), nil
 }
 
 func (b *Builder) compileUDFCall(name string, body dag.Expr) (expr.Function, error) {

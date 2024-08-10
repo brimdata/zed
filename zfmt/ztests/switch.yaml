@@ -24,6 +24,7 @@ outputs:
           case search("c") =>
             tail 1
         )
+        | output main
       ===
       switch (
         case grep("a") =>
@@ -39,3 +40,4 @@ outputs:
           case true =>
             tail 1
         )
+        | output main

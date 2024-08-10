@@ -41,7 +41,7 @@ fairly simple pattern that repeats across the many [Zeek log types](https://docs
 
 ```mdtest-input shaper.zed
 // This reference Zed shaper for Zeek NDJSON logs was most recently tested with
-// Zeek v6.2.0. The fields and data types reflect the default NDJSON
+// Zeek v7.0.0. The fields and data types reflect the default NDJSON
 // logs output by that Zeek version when using the JSON Streaming Logs package.
 // (https://github.com/corelight/json-streaming-logs).
 
@@ -109,8 +109,8 @@ const zeek_log_types = |{
   "ssl": <ssl={_path:string,ts:time,uid:string,id:conn_id,version:string,cipher:string,curve:string,server_name:string,resumed:bool,last_alert:string,next_protocol:string,established:bool,ssl_history:string,cert_chain_fps:[string],client_cert_chain_fps:[string],subject:string,issuer:string,client_subject:string,client_issuer:string,sni_matches_cert:bool,validation_status:string,_write_ts:time}>,
   "stats": <stats={_path:string,ts:time,peer:string,mem:uint64,pkts_proc:uint64,bytes_recv:uint64,pkts_dropped:uint64,pkts_link:uint64,pkt_lag:duration,pkts_filtered:uint64,events_proc:uint64,events_queued:uint64,active_tcp_conns:uint64,active_udp_conns:uint64,active_icmp_conns:uint64,tcp_conns:uint64,udp_conns:uint64,icmp_conns:uint64,timers:uint64,active_timers:uint64,files:uint64,active_files:uint64,dns_requests:uint64,active_dns_requests:uint64,reassem_tcp_size:uint64,reassem_file_size:uint64,reassem_frag_size:uint64,reassem_unknown_size:uint64,_write_ts:time}>,
   "syslog": <syslog={_path:string,ts:time,uid:string,id:conn_id,proto:zenum,facility:string,severity:string,message:string,_write_ts:time}>,
-  "telemetry_histogram": <telemetry_histogram={_path:string,ts:time,peer:string,prefix:string,name:string,unit:string,labels:[string],label_values:[string],bounds:[float64],values:[float64],sum:float64,observations:float64,_write_ts:time}>,
-  "telemetry": <telemetry={_path:string,ts:time,peer:string,metric_type:string,prefix:string,name:string,unit:string,labels:[string],label_values:[string],value:float64,_write_ts:time}>,
+  "telemetry_histogram": <telemetry_histogram={_path:string,ts:time,peer:string,name:string,labels:[string],label_values:[string],bounds:[float64],values:[float64],sum:float64,observations:float64,_write_ts:time}>,
+  "telemetry": <telemetry={_path:string,ts:time,peer:string,metric_type:string,name:string,labels:[string],label_values:[string],value:float64,_write_ts:time}>,
   "tunnel": <tunnel={_path:string,ts:time,uid:string,id:conn_id,tunnel_type:zenum,action:zenum,_write_ts:time}>,
   "websocket": <websocket={_path:string,ts:time,uid:string,id:conn_id,host:string,uri:string,user_agent:string,subprotocol:string,client_protocols:[string],server_extensions:[string],client_extensions:[string],_write_ts:time}>,
   "weird": <weird={_path:string,ts:time,uid:string,id:conn_id,name:string,addl:string,notice:bool,peer:string,source:string,_write_ts:time}>,

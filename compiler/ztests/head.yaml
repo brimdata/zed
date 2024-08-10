@@ -11,12 +11,14 @@ outputs:
     data: |
       reader
       | head 1
+      | output main
       ===
       reader
       | (
         const x = 1
         
         head 2
+        | output main
       )
   - name: stderr
     data: |
