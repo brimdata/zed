@@ -1,0 +1,61 @@
+# Test that comparison works on union and variant vectors.
+
+script: |
+  zq -o t.vng -f vng -
+  zed dev vector query -z "yield this,a<a,a<b,b<a,b<b" t.vng
+
+inputs:
+  - name: stdin
+    data: |
+      {a:1,b:2}
+      {a:3,b:4.}
+      {a:5,b:6}
+      {a:7,b:8.}
+      {a:1,b:2((int64,float64))}
+      {a:3,b:4.((int64,float64))}
+      {a:5,b:6((int64,float64))}
+      {a:7,b:8.((int64,float64))}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1,b:2}
+      false
+      true
+      false
+      false
+      {a:3,b:4.}
+      false
+      true
+      false
+      false
+      {a:5,b:6}
+      false
+      true
+      false
+      false
+      {a:7,b:8.}
+      false
+      true
+      false
+      false
+      {a:1,b:2((int64,float64))}
+      false
+      true
+      false
+      false
+      {a:3,b:4.((int64,float64))}
+      false
+      true
+      false
+      false
+      {a:5,b:6((int64,float64))}
+      false
+      true
+      false
+      false
+      {a:7,b:8.((int64,float64))}
+      false
+      true
+      false
+      false

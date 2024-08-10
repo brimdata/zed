@@ -114,7 +114,6 @@ func promoteWider(id int, val vector.Any) vector.Any {
 	}
 }
 
-// XXX need to handle const here
 // XXX need to handle overflow errors
 func promoteToSigned(val vector.Any) vector.Any {
 	//XXX need wide variant here if we're going to support this semantic
@@ -126,6 +125,12 @@ func promoteToSigned(val vector.Any) vector.Any {
 		return val
 	case *vector.Uint:
 		return uintToInt(val)
+	case *vector.Const:
+		v, ok := ToInt(val.Value())
+		if !ok {
+			panic("ToInt failed")
+		}
+		return vector.NewConst(nil, zed.NewInt64(v), val.Len(), val.Nulls)
 	case *vector.Dict:
 		promoted := promoteToSigned(val.Any)
 		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
@@ -224,6 +229,12 @@ func intToFloat(val vector.Any) vector.Any {
 			f[k] = float64(vals[k])
 		}
 		return vector.NewFloat(zed.TypeFloat64, f, val.Nulls)
+	case *vector.Const:
+		f, ok := ToFloat(val.Value())
+		if !ok {
+			panic("ToFloat failed")
+		}
+		return vector.NewConst(nil, zed.NewFloat64(f), val.Len(), val.Nulls)
 	case *vector.View:
 		return vector.NewView(val.Index, intToFloat(val.Any))
 	default:
