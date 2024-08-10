@@ -2,9 +2,8 @@ package expr
 
 import "github.com/brimdata/zed/vector"
 
-// stitch applies eval to lhs and rhs when either is a union, a variant, a view
-// of a union, or a view of a variant. In those cases, it returns a non-nil
-// result and true.
+// stitch applies eval to lhs and rhs when either is a union or variant. In
+// those cases, it returns a non-nil result and true.
 func stitch(lhs, rhs vector.Any, eval func(a, b vector.Any) vector.Any) (*vector.Variant, bool) {
 	if val, ok := stitchLHS(lhs, rhs, eval); ok {
 		return val, true
@@ -16,25 +15,24 @@ func stitch(lhs, rhs vector.Any, eval func(a, b vector.Any) vector.Any) (*vector
 	return nil, false
 }
 
-// stitchLHS is like stitch but only handles the case where lhs is a union, a
-// variant, a view of a union, or a view of a variant.
+// stitchLHS is like stitch but only handles the case where lhs is a union or
+// variant.
 func stitchLHS(lhs, rhs vector.Any, eval func(a, b vector.Any) vector.Any) (*vector.Variant, bool) {
+	var lhsVariant *vector.Variant
 	switch lhs := lhs.(type) {
 	case *vector.Union:
-		return stitchLHSUnionOrVariant(lhs.Tags, lhs.TagMap.Reverse, lhs.Values, rhs, eval), true
+		lhsVariant = lhs.Variant
 	case *vector.Variant:
-		return stitchLHSUnionOrVariant(lhs.Tags, lhs.TagMap.Reverse, lhs.Values, rhs, eval), true
+		lhsVariant = lhs
+	default:
+		return nil, false
 	}
-	return nil, false
-}
 
-// stitchLHSUnionOrVariant implements stitchLHS when the LHS is a union or
-// variant.
-func stitchLHSUnionOrVariant(lhsTags []uint32, lhsReverse [][]uint32, lhsValues []vector.Any, rhs vector.Any, eval func(a, b vector.Any) vector.Any) *vector.Variant {
-	results := make([]vector.Any, len(lhsValues))
-	for k := range lhsValues {
-		rhsView := vector.NewView(lhsReverse[k], rhs)
-		results[k] = eval(lhsValues[k], rhsView)
+	reverse := lhsVariant.TagMap.Reverse
+	results := make([]vector.Any, len(lhsVariant.Values))
+	for k, lhs := range lhsVariant.Values {
+		rhsView := vector.NewView(reverse[k], rhs)
+		results[k] = eval(lhs, rhsView)
 	}
-	return vector.NewVariant(lhsTags, results)
+	return vector.NewVariant(lhsVariant.Tags, results), true
 }
