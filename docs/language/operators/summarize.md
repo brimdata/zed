@@ -5,14 +5,20 @@
 ### Synopsis
 
 ```
-[summarize] [<field>:=]<agg> [where <expr>][, [<field>:=]<agg> [where <expr>] ...] [by [<field>][:=<expr>] ...]
+[summarize] [<field>:=]<agg> [where <expr>][, [<field>:=]<agg> [where <expr>] ...] [by [<field>][:=<expr>][, [<field>][:=<expr>]] ...]
+[summarize] by [<field>][:=<expr>][, [<field>][:=<expr>] ...]
 ```
 ### Description
 
-The `summarize` operator consumes all of its input, applies an [aggregate function](../aggregates/README.md)
+In the first form, the `summarize` operator consumes all of its input,
+applies an [aggregate function](../aggregates/README.md)
 to each input value optionally organized with the group-by keys specified after
 the `by` keyword, and at the end of input produces one or more aggregations
 for each unique set of group-by key values.
+
+In the second form, `summarize` consumes all of its input, then outputs each
+unique combination of values of the group-by keys specified after the `by`
+keyword.
 
 The `summarize` keyword is optional since it is an
 [implied operator](../dataflow-model.md#implied-operators).
@@ -101,4 +107,15 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' | zq -z 'set:=union(
 {key:"bar",set:|[2]|}
 {key:"baz",set:|[4]|}
 {key:"foo",set:|[3]|}
+```
+
+Output just the unique key values:
+```mdtest-command
+echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' | zq -z 'by k' - | sort
+```
+=>
+```mdtest-output
+{k:"bar"}
+{k:"baz"}
+{k:"foo"}
 ```
