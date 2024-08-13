@@ -35,3 +35,13 @@ echo '|{"APPL":145.03}| |{"GOOG":87.07}| |{"APPL":150.13}|' | zq -z 'yield colle
 |{"APPL":145.03,"GOOG":87.07}|
 |{"APPL":150.13,"GOOG":87.07}|
 ```
+
+Create maps by key:
+```mdtest-command
+echo '{stock:"APPL",price:145.03,day:0} {stock:"GOOG",price:87.07,day:0} {stock:"APPL",price:150.13,day:1} {stock:"GOOG",price:89.15,day:1}' | zq -z 'collect_map(|{stock:price}|) by day | sort' -
+```
+=>
+```mdtest-output
+{day:0,collect_map:|{"APPL":145.03,"GOOG":87.07}|}
+{day:1,collect_map:|{"APPL":150.13,"GOOG":89.15}|}
+```
