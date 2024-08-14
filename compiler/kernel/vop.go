@@ -65,6 +65,12 @@ func (b *Builder) compileVamScan(scan *dag.SeqScan, parent zbuf.Puller) (vector.
 
 func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller, error) {
 	switch o := o.(type) {
+	case *dag.Filter:
+		e, err := b.compileVamExpr(o.Expr)
+		if err != nil {
+			return nil, err
+		}
+		return vamop.NewFilter(b.rctx.Zctx, parent, e), nil
 	case *dag.Head:
 		return vamop.NewHead(parent, o.Count), nil
 	case *dag.Summarize:
