@@ -118,6 +118,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -134,11 +135,12 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	reader, err := lake.Query(ctx, nil, "from Demo")
+	q, err := lake.Query(ctx, nil, "from Demo")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer reader.Close()
+	defer q.Pull(true)
+	reader := zbuf.PullerReader(q)
 	zctx := zed.NewContext()
 	arena := zed.NewArena()
 	for {

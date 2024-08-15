@@ -1,0 +1,11 @@
+script: |
+  echo '"foo" "bar"' | zq -z 'debug f"debug: {this}" | yield f"{this}2" | head 1' -
+
+outputs:
+  - name: stderr
+    data: |
+      "debug: foo"
+      "debug: bar"
+  - name: stdout
+    data: |
+      "foo2"

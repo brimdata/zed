@@ -30,6 +30,7 @@ import (
 	"github.com/brimdata/zed/runtime/sam/op/load"
 	"github.com/brimdata/zed/runtime/sam/op/merge"
 	"github.com/brimdata/zed/runtime/sam/op/meta"
+	"github.com/brimdata/zed/runtime/sam/op/mirror"
 	"github.com/brimdata/zed/runtime/sam/op/pass"
 	"github.com/brimdata/zed/runtime/sam/op/shape"
 	"github.com/brimdata/zed/runtime/sam/op/sort"
@@ -533,6 +534,23 @@ func (b *Builder) compileScatter(par *dag.Scatter, parents []zbuf.Puller) ([]zbu
 	return ops, nil
 }
 
+func (b *Builder) compileMirror(m *dag.Mirror, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	parent := parents[0]
+	if len(parents) > 1 {
+		parent = combine.New(b.rctx, parents)
+	}
+	o := mirror.New(b.rctx, parent)
+	main, err := b.compileSeq(m.Main, []zbuf.Puller{o})
+	if err != nil {
+		return nil, err
+	}
+	mirrored, err := b.compileSeq(m.Mirror, []zbuf.Puller{o.Mirrored()})
+	if err != nil {
+		return nil, err
+	}
+	return append(main, mirrored...), nil
+}
+
 func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
 	parent := parents[0]
 	if len(parents) > 1 {
@@ -600,6 +618,8 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		return b.compileFork(o, parents)
 	case *dag.Scatter:
 		return b.compileScatter(o, parents)
+	case *dag.Mirror:
+		return b.compileMirror(o, parents)
 	case *dag.Scope:
 		return b.compileScope(o, parents)
 	case *dag.Switch:

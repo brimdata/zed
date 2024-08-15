@@ -302,6 +302,22 @@ func (c *canonDAG) op(p dag.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *dag.Mirror:
+		c.next()
+		c.open("mirror (")
+		c.ret()
+		for _, seq := range []dag.Seq{p.Mirror, p.Main} {
+			c.ret()
+			c.write("=>")
+			c.open()
+			c.head = true
+			c.seq(seq)
+			c.close()
+		}
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	case *dag.Switch:
 		c.next()
 		c.open("switch ")

@@ -1,6 +1,7 @@
 package queryio
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,58 +13,79 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-type Query struct {
-	reader *zngio.Reader
-	closer io.Closer
+type scanner struct {
+	channel  string
+	scanner  zbuf.Scanner
+	closer   io.Closer
+	progress zbuf.Progress
 }
 
-// NewQuery returns a Query that reads a ZNG-encoded query response
-// from rc and decodes it.  Closing the Query also closes rc.
-func NewQuery(rc io.ReadCloser) *Query {
-	return &Query{
-		reader: zngio.NewReader(zed.NewContext(), rc),
-		closer: rc,
+func NewScanner(ctx context.Context, rc io.ReadCloser) (zbuf.Scanner, error) {
+	s, err := zngio.NewReader(zed.NewContext(), rc).NewScanner(ctx, nil)
+	if err != nil {
+		return nil, err
 	}
+	return &scanner{
+		scanner: s,
+		closer:  rc,
+	}, nil
 }
 
-func (q *Query) Close() error {
-	err := q.reader.Close()
-	q.closer.Close()
-	return err
+func (s *scanner) Progress() zbuf.Progress {
+	return s.progress
 }
 
-func (q *Query) Read() (*zed.Value, error) {
-	val, ctrl, err := q.reader.ReadPayload()
-	if ctrl != nil {
-		if ctrl.Format != zngio.ControlFormatZSON {
-			return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Format)
+func (s *scanner) Pull(done bool) (zbuf.Batch, error) {
+again:
+	batch, err := s.scanner.Pull(done)
+	if err == nil {
+		if batch != nil {
+			return zbuf.Label(s.channel, batch), nil
 		}
-		arena := zed.NewArena()
-		defer arena.Unref()
-		value, err := zson.ParseValue(zed.NewContext(), arena, string(ctrl.Bytes))
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse Zed control message: %w (%s)", err, string(ctrl.Bytes))
-		}
-		var v interface{}
-		if err := unmarshaler.Unmarshal(value, &v); err != nil {
-			return nil, fmt.Errorf("unable to unmarshal Zed control message: %w (%s)", err, string(ctrl.Bytes))
-		}
-		return nil, controlToError(v)
+		return nil, s.closer.Close()
 	}
-	return val, err
-}
-
-func controlToError(ctrl interface{}) error {
-	switch ctrl := ctrl.(type) {
+	zctrl, ok := err.(*zbuf.Control)
+	if !ok {
+		return nil, err
+	}
+	v, err := marshalControl(zctrl)
+	if err != nil {
+		return nil, err
+	}
+	switch ctrl := v.(type) {
 	case *api.QueryChannelSet:
-		return &zbuf.Control{Message: zbuf.SetChannel(ctrl.Channel)}
+		s.channel = ctrl.Channel
+		goto again
 	case *api.QueryChannelEnd:
-		return &zbuf.Control{Message: zbuf.EndChannel(ctrl.Channel)}
+		eoc := zbuf.EndOfChannel(ctrl.Channel)
+		return &eoc, nil
 	case *api.QueryStats:
-		return &zbuf.Control{Message: ctrl.Progress}
+		s.progress.Add(ctrl.Progress)
+		goto again
 	case *api.QueryError:
-		return errors.New(ctrl.Error)
+		return nil, errors.New(ctrl.Error)
 	default:
-		return fmt.Errorf("unsupported control message: %T", ctrl)
+		return nil, fmt.Errorf("unsupported control message: %T", ctrl)
 	}
+}
+
+func marshalControl(zctrl *zbuf.Control) (any, error) {
+	ctrl, ok := zctrl.Message.(*zngio.Control)
+	if !ok {
+		return nil, fmt.Errorf("unknown control type: %T", zctrl.Message)
+	}
+	if ctrl.Format != zngio.ControlFormatZSON {
+		return nil, fmt.Errorf("unsupported app encoding: %v", ctrl.Format)
+	}
+	arena := zed.NewArena()
+	defer arena.Unref()
+	value, err := zson.ParseValue(zed.NewContext(), arena, string(ctrl.Bytes))
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse Zed control message: %w (%s)", err, ctrl.Bytes)
+	}
+	var v interface{}
+	if err := unmarshaler.Unmarshal(value, &v); err != nil {
+		return nil, fmt.Errorf("unable to unmarshal Zed control message: %w (%s)", err, ctrl.Bytes)
+	}
+	return v, nil
 }

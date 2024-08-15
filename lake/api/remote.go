@@ -115,21 +115,12 @@ func (r *remote) Revert(ctx context.Context, poolID ksuid.KSUID, branchName stri
 	return res.Commit, err
 }
 
-func (r *remote) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error) {
-	q, err := r.QueryWithControl(ctx, head, src, srcfiles...)
-	if err != nil {
-		return nil, err
-	}
-	return zio.NewReadCloser(zbuf.NoControl(q), q), nil
-}
-
-func (r *remote) QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error) {
+func (r *remote) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Scanner, error) {
 	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
 		return nil, err
 	}
-	q := queryio.NewQuery(res.Body)
-	return zbuf.MeterReadCloser(q), nil
+	return queryio.NewScanner(ctx, res.Body)
 }
 
 func (r *remote) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
