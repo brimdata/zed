@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/pkg/field"
 	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
+	vamfunc "github.com/brimdata/zed/runtime/vam/expr/function"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -35,8 +36,8 @@ func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {
 		return b.compileVamBinary(e)
 	//case *dag.Conditional:
 	//	return b.compileVamConditional(*e)
-	//case *dag.Call:
-	//	return b.compileVamCall(*e)
+	case *dag.Call:
+		return b.compileVamCall(e)
 	//case *dag.RegexpMatch:
 	//	return b.compileVamRegexpMatch(e)
 	//case *dag.RegexpSearch:
@@ -141,4 +142,21 @@ func (b *Builder) compileVamExprs(in []dag.Expr) ([]vamexpr.Evaluator, error) {
 		exprs = append(exprs, ev)
 	}
 	return exprs, nil
+}
+
+func (b *Builder) compileVamCall(call *dag.Call) (vamexpr.Evaluator, error) {
+	fn, path, err := vamfunc.New(b.zctx(), call.Name, len(call.Args))
+	if err != nil {
+		return nil, err
+	}
+	args := call.Args
+	if path != nil {
+		dagPath := &dag.This{Kind: "This", Path: path}
+		args = append([]dag.Expr{dagPath}, args...)
+	}
+	exprs, err := b.compileVamExprs(args)
+	if err != nil {
+		return nil, err
+	}
+	return vamexpr.NewCall(fn, exprs), nil
 }

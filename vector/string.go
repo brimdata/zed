@@ -45,3 +45,32 @@ func (s *String) Serialize(b *zcode.Builder, slot uint32) {
 		b.Append(zed.EncodeString(s.Value(slot)))
 	}
 }
+
+func StringValue(val Any, slot uint32) (string, bool) {
+	switch val := val.(type) {
+	case *String:
+		if val.Nulls.Value(slot) {
+			return "", true
+		}
+		return val.Value(slot), false
+	case *Const:
+		if val.Nulls.Value(slot) {
+			return "", true
+		}
+		s, _ := val.AsString()
+		return s, false
+	case *Dict:
+		if val.Nulls.Value(slot) {
+			return "", true
+		}
+		slot = uint32(val.Index[slot])
+		return val.Any.(*String).Value(slot), false
+	case *View:
+		slot = val.Index[slot]
+		if val.Any.(*String).Nulls.Value(slot) {
+			return "", true
+		}
+		return val.Any.(*String).Value(slot), false
+	}
+	panic(val)
+}
