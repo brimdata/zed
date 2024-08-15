@@ -270,7 +270,6 @@ type ZTest struct {
 	OutputFlags string `yaml:"output-flags,omitempty"`
 	ErrorRE     string `yaml:"errorRE,omitempty"`
 	errRegex    *regexp.Regexp
-	Warnings    string `yaml:"warnings,omitempty"`
 
 	// For script-style tests.
 	Script  string   `yaml:"script,omitempty"`
@@ -366,8 +365,6 @@ func (z *ZTest) RunInternal(path string) error {
 		}
 	} else if z.errRegex != nil {
 		return fmt.Errorf("no error when expecting error regex: %s", z.ErrorRE)
-	} else if z.Warnings != errout {
-		return diffErr("warnings", z.Warnings, errout)
 	}
 	if z.Output != out {
 		return diffErr("output", z.Output, out)
@@ -475,9 +472,6 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
 		err = cmd.Run()
-		// If there was an error, errbuf could potentially hold both warnings
-		// and error messages, but that's not currently an issue with existing
-		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
 	proc, sset, err := compiler.Parse(zedProgram)
