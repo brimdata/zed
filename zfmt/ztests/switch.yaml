@@ -21,10 +21,11 @@ outputs:
       | switch (
           case search("a") =>
             head 1
+            | output main
           case search("c") =>
             tail 1
+            | output main
         )
-        | output main
       ===
       switch (
         case grep("a") =>
@@ -37,7 +38,8 @@ outputs:
       | switch (
           case search("a") =>
             head 1
+            | output main
           case true =>
             tail 1
+            | output main
         )
-        | output main

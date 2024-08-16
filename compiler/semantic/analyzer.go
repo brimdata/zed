@@ -184,13 +184,17 @@ func (a *analyzer) checkOutputs(isLeaf bool, seq dag.Seq) dag.Seq {
 			for k := range o.Paths {
 				o.Paths[k] = a.checkOutputs(isLast && isLeaf, o.Paths[k])
 			}
+		case *dag.Switch:
+			for k := range o.Cases {
+				o.Cases[k].Path = a.checkOutputs(isLast && isLeaf, o.Cases[k].Path)
+			}
 		case *dag.Mirror:
 			o.Main = a.checkOutputs(isLast && isLeaf, o.Main)
 			o.Mirror = a.checkOutputs(isLast && isLeaf, o.Mirror)
 		}
 	}
 	switch seq[lastN].(type) {
-	case *dag.Scope, *dag.Output, *dag.Scatter, *dag.Fork, *dag.Mirror:
+	case *dag.Scope, *dag.Output, *dag.Scatter, *dag.Fork, *dag.Switch, *dag.Mirror:
 	default:
 		if isLeaf {
 			return append(seq, &dag.Output{Kind: "Output", Name: "main"})

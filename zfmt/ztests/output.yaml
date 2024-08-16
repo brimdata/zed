@@ -1,0 +1,25 @@
+script: |
+  zc -C -s 'fork (=> output foo => pass)'
+  echo '// ==='
+  zc -C -s 'switch x (case "foo" => output foo case "bar" => pass)'
+
+outputs:
+  - name: stdout
+    data: |
+      reader
+      | fork (
+        =>
+          output foo
+        =>
+          pass
+          | output main
+      )
+      // ===
+      reader
+      | switch x (
+          case "foo" =>
+            output foo
+          case "bar" =>
+            pass
+            | output main
+        )
