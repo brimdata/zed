@@ -17,6 +17,10 @@ channel is displayed on stderr.
 The `debug` operator is useful to view intermediate values when debugging a
 complex Zed query.
 
+If used more than once within a single Zed program, the relative order of
+outputs in the debug channel from each separate `debug` invocation is
+undefined.
+
 ### Examples
 
 The following query uses expressions containing [f-strings](../expressions.md#formatted-string-literals)
