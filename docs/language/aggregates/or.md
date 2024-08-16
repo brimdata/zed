@@ -32,6 +32,7 @@ false
 true
 true
 ```
+
 Unrecognized types are ignored and not coerced for truthiness:
 ```mdtest-command
 echo 'false "foo" 1 true false' | zq -z 'yield or(this)' -
@@ -43,4 +44,14 @@ false
 false
 true
 true
+```
+
+OR of values grouped by key:
+```mdtest-command
+echo '{a:true,k:1} {a:false,k:1} {a:false,k:2} {a:false,k:2}' | zq -z 'or(a) by k | sort' -
+```
+=>
+```mdtest-output
+{k:1,or:true}
+{k:2,or:false}
 ```

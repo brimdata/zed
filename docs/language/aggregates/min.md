@@ -33,6 +33,7 @@ echo '1 2 3 4' | zq -z 'yield min(this)' -
 1
 1
 ```
+
 Unrecognized types are ignored:
 ```mdtest-command
 echo '1 2 3 4 "foo"' | zq -z 'min(this)' -
@@ -40,4 +41,14 @@ echo '1 2 3 4 "foo"' | zq -z 'min(this)' -
 =>
 ```mdtest-output
 1
+```
+
+Minimum value within buckets grouped by key:
+```mdtest-command
+echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' | zq -z 'min(a) by k | sort' -
+```
+=>
+```mdtest-output
+{k:1,min:1}
+{k:2,min:3}
 ```

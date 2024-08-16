@@ -32,6 +32,7 @@ true
 false
 false
 ```
+
 Unrecognized types are ignored and not coerced for truthiness:
 ```mdtest-command
 echo 'true "foo" 0 false true' | zq -z 'yield and(this)' -
@@ -43,4 +44,14 @@ true
 true
 false
 false
+```
+
+AND of values grouped by key:
+```mdtest-command
+echo '{a:true,k:1} {a:true,k:1} {a:true,k:2} {a:false,k:2}' | zq -z 'and(a) by k | sort' -
+```
+=>
+```mdtest-output
+{k:1,and:true}
+{k:2,and:false}
 ```
