@@ -20,15 +20,12 @@ func NewCompare(zctx *zed.Context, lhs, rhs Evaluator, op string) *Compare {
 }
 
 func (c *Compare) Eval(val vector.Any) vector.Any {
-	return c.eval(c.lhs.Eval(val), c.rhs.Eval(val))
+	return vector.Apply(true, c.eval, c.lhs.Eval(val), c.rhs.Eval(val))
 }
 
-func (c *Compare) eval(lhs, rhs vector.Any) vector.Any {
-	lhs = vector.Under(lhs)
-	rhs = vector.Under(rhs)
-	if val, ok := stitch(lhs, rhs, c.eval); ok {
-		return val
-	}
+func (c *Compare) eval(vecs ...vector.Any) vector.Any {
+	lhs := vector.Under(vecs[0])
+	rhs := vector.Under(vecs[1])
 	lhs, rhs, errVal := coerceVals(c.zctx, lhs, rhs)
 	if errVal != nil {
 		return errVal

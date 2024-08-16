@@ -22,15 +22,12 @@ func NewArith(zctx *zed.Context, lhs, rhs Evaluator, op string) *Arith {
 }
 
 func (a *Arith) Eval(val vector.Any) vector.Any {
-	return a.eval(a.lhs.Eval(val), a.rhs.Eval(val))
+	return vector.Apply(true, a.eval, a.lhs.Eval(val), a.rhs.Eval(val))
 }
 
-func (a *Arith) eval(lhs, rhs vector.Any) vector.Any {
-	lhs = vector.Under(lhs)
-	rhs = vector.Under(rhs)
-	if val, ok := stitch(lhs, rhs, a.eval); ok {
-		return val
-	}
+func (a *Arith) eval(vecs ...vector.Any) vector.Any {
+	lhs := vector.Under(vecs[0])
+	rhs := vector.Under(vecs[1])
 	lhs, rhs, errVal := coerceVals(a.zctx, lhs, rhs)
 	if errVal != nil {
 		return errVal
