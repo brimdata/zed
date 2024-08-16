@@ -437,7 +437,7 @@ curl -X POST \
 {"type":{"kind":"record","id":30,"fields":[{"name":"warehouse","type":{"kind":"primitive","name":"string"}},{"name":"count","type":{"kind":"primitive","name":"uint64"}}]},"value":["miami","1"]}
 {"type":{"kind":"ref","id":30},"value":["chicago","2"]}
 {"type":"QueryChannelEnd","value":{"channel":"main"}}
-{"type":"QueryStats","value":{"start_time":{"sec":1723830077,"ns":168637000},"update_time":{"sec":1723830077,"ns":169204000},"bytes_read":55,"bytes_matched":55,"records_read":3,"records_matched":3}}
+{"type":"QueryStats","value":{"start_time":{"sec":1658193276,"ns":964207000},"update_time":{"sec":1658193276,"ns":964592000},"bytes_read":55,"bytes_matched":55,"records_read":3,"records_matched":3}}
 ```
 
 #### Query Status
