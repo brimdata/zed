@@ -1,0 +1,17 @@
+zed: "lower(this)"
+
+vector: true
+
+input: |
+  "fOo"
+  null(string)
+  "BaR"
+  null(string)
+  "BAz"
+
+output: |
+  "foo"
+  null(string)
+  "bar"
+  null(string)
+  "baz"
