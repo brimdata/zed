@@ -87,6 +87,7 @@ func NewBase() Host {
 	h.Must("ISO8601_TIMEZONE", `Z|[+-]%{HOUR}(?::?%{MINUTE})`)
 	h.Must("ISO8601_SECOND", `%{SECOND}|60`)
 	h.Must("TIMESTAMP_ISO8601", `%{YEAR}-%{MONTHNUM}-%{MONTHDAY}[T ]%{HOUR}:?%{MINUTE}(?::?%{SECOND})?%{ISO8601_TIMEZONE}?`)
+	h.Must("DATESTAMP_ISO8601", `%{YEAR}-%{MONTHNUM}-%{MONTHDAY}`)
 	h.Must("DATE", `%{DATE_US}|%{DATE_EU}|%{DATE_X}`)
 	h.Must("DATESTAMP", `%{DATE}[- ]%{TIME}`)
 	h.Must("TZ", `[A-Z]{3}`)
