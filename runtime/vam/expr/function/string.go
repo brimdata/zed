@@ -13,6 +13,10 @@ type ToLower struct {
 }
 
 func (t *ToLower) Call(args []vector.Any) vector.Any {
+	return vector.Apply(true, t.call, args...)
+}
+
+func (t *ToLower) call(args ...vector.Any) vector.Any {
 	v := vector.Under(args[0])
 	if v.Type() != zed.TypeString {
 		return vector.NewWrappedError(t.zctx, "lower: string arg required", v)

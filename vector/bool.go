@@ -28,7 +28,9 @@ func (b *Bool) Type() zed.Type {
 }
 
 func (b *Bool) Value(slot uint32) bool {
-	return (b.Bits[slot>>6] & (1 << (slot & 0x3f))) != 0
+	// Because Bool is used to store nulls for many vectors and it is often
+	// nil check to see if receiver is nil and return false.
+	return b != nil && (b.Bits[slot>>6]&(1<<(slot&0x3f))) != 0
 }
 
 func (b *Bool) Set(slot uint32) {

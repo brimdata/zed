@@ -4,14 +4,16 @@ vector: true
 
 input: |
   "fOo"
+  127.0.0.1
   null(string)
-  "BaR"
-  null(string)
-  "BAz"
+  null(int64)
+  "BaR"((string,int64))
+  1((string,int64))
 
 output: |
   "foo"
+  error({message:"lower: string arg required",on:127.0.0.1})
   null(string)
+  error({message:"lower: string arg required",on:null(int64)})
   "bar"
-  null(string)
-  "baz"
+  error({message:"lower: string arg required",on:1})
