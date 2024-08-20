@@ -235,6 +235,8 @@ func intToFloat(val vector.Any) vector.Any {
 			panic("ToFloat failed")
 		}
 		return vector.NewConst(nil, zed.NewFloat64(f), val.Len(), val.Nulls)
+	case *vector.Dict:
+		return vector.NewDict(intToFloat(val.Any), val.Index, val.Counts, val.Nulls)
 	case *vector.View:
 		return vector.NewView(val.Index, intToFloat(val.Any))
 	default:
