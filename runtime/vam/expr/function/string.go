@@ -15,8 +15,7 @@ type ToLower struct {
 func (t *ToLower) Call(args []vector.Any) vector.Any {
 	v := vector.Under(args[0])
 	if v.Type() != zed.TypeString {
-		// XXX This should be a wrapped error as seen in sequential world.
-		return vector.NewStringError(t.zctx, "lower: string arg required", v.Len())
+		return vector.NewWrappedError(t.zctx, "lower: string arg required", v)
 	}
 	out := vector.NewStringEmpty(v.Len(), vector.NewBoolEmpty(v.Len(), nil))
 	for i := uint32(0); i < v.Len(); i++ {

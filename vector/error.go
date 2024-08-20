@@ -48,3 +48,14 @@ func NewMissing(zctx *zed.Context, len uint32) *Error {
 	vals := NewConst(arena, missing, len, nil)
 	return &Error{Typ: missing.Type(), Vals: vals}
 }
+
+func NewWrappedError(zctx *zed.Context, msg string, val Any) *Error {
+	recType := zctx.MustLookupTypeRecord([]zed.Field{
+		{Name: "message", Type: zed.TypeString},
+		{Name: "on", Type: val.Type()},
+	})
+	arena := zed.NewArena()
+	sval := NewConst(arena, arena.NewString(msg), val.Len(), nil)
+	rval := NewRecord(recType, []Any{sval, val}, val.Len(), nil)
+	return &Error{Typ: zctx.LookupTypeError(recType), Vals: rval}
+}
