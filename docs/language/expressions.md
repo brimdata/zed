@@ -267,8 +267,7 @@ as long as it is compatible with the semantics of the expression.
 
 String literals are enclosed in either single quotes or double quotes and
 must conform to UTF-8 encoding and follow the JavaScript escaping
-conventions and unicode escape syntax.  Also, if the sequence `${` appears
-in a string the `$` character must be escaped, i.e., `\$`.
+conventions and unicode escape syntax.
 
 ### Formatted String Literals
 
@@ -307,6 +306,18 @@ echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' | zq -z 'yield f"oh {this[up
 produces
 ```mdtest-output
 "oh hi!"
+```
+
+To represent a literal `{` character inside an f-string, it must be escaped,
+i.e., `\{`.
+
+For example,
+```mdtest-command
+echo '"brackets"' | zq -z 'yield f"{this} look like: \{ }"' -
+```
+produces
+```mdtest-output
+"brackets look like: { }"
 ```
 
 ### Record Expressions
