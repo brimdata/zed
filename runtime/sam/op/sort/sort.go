@@ -2,7 +2,6 @@ package sort
 
 import (
 	"fmt"
-	goruntime "runtime"
 	"runtime/debug"
 	"sync"
 
@@ -28,7 +27,6 @@ type Op struct {
 	resetter   expr.Resetter
 
 	fieldResolvers []expr.Evaluator
-	lastBatch      zbuf.Batch
 	once           sync.Once
 	resultCh       chan op.Result
 	comparator     *expr.Comparator
@@ -80,7 +78,6 @@ func (o *Op) run() {
 	var nbytes int
 	var batches []zbuf.Batch
 	var out []zed.Value
-	defer goruntime.KeepAlive(batches)
 	for {
 		batch, err := o.parent.Pull(false)
 		if err != nil {
@@ -122,12 +119,11 @@ func (o *Op) run() {
 			spiller.Cleanup()
 			spiller = nil
 			nbytes = 0
+			unrefBatches(batches)
 			batches = nil
 			out = nil
 			continue
 		}
-		// Safe because batch.Unref is never called.
-		o.lastBatch = batch
 		batches = append(batches, batch)
 		var delta int
 		out, delta = o.append(out, batch)
@@ -155,6 +151,10 @@ func (o *Op) run() {
 				return
 			}
 		}
+		// While it's good to unref batches if this isn't here the go runtime
+		// will start garbage collecting batches before Spill is complete
+		// because batches getting set to nil.
+		unrefBatches(batches)
 		batches = nil
 		out = nil
 		nbytes = 0
@@ -164,8 +164,8 @@ func (o *Op) run() {
 // send sorts vals in memory and sends the result downstream.
 func (o *Op) send(batches []zbuf.Batch, vals []zed.Value) bool {
 	o.comparator.SortStable(vals)
-	out := zbuf.WrapBatch(o.lastBatch, vals)
-	out.(interface{ AddBatches(batches ...zbuf.Batch) }).AddBatches(batches...)
+	out := zbuf.WrapBatch(batches[0], vals)
+	out.(interface{ AddBatches(batches ...zbuf.Batch) }).AddBatches(batches[1:]...)
 	return o.sendResult(out, nil)
 }
 
@@ -257,4 +257,10 @@ func firstMatchingField(typ *zed.TypeRecord, pred func(id int) bool) field.Path 
 		}
 	}
 	return nil
+}
+
+func unrefBatches(batches []zbuf.Batch) {
+	for _, b := range batches {
+		b.Unref()
+	}
 }
