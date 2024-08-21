@@ -14,11 +14,26 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	var path field.Path
 	var f expr.Function
 	switch name {
+	case "join":
+		argmax = 2
+		f = &Join{zctx: zctx}
+	case "levenshtein":
+		argmin, argmax = 2, 2
+		f = &Levenshtein{zctx}
 	case "lower":
 		f = &ToLower{zctx}
 	case "replace":
 		argmin, argmax = 3, 3
 		f = &Replace{zctx}
+	case "rune_len":
+		f = &RuneLen{zctx}
+	case "split":
+		argmin, argmax = 2, 2
+		f = &Split{zctx}
+	case "trim":
+		f = &Trim{zctx}
+	case "upper":
+		f = &ToUpper{zctx}
 	default:
 		return nil, nil, function.ErrNoSuchFunction
 	}
