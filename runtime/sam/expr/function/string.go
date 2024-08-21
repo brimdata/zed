@@ -59,7 +59,7 @@ type ToLower struct {
 }
 
 func (t *ToLower) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	val := args[0]
+	val := args[0].Under(ectx.Arena())
 	if !val.IsString() {
 		return t.zctx.WrapError(ectx.Arena(), "lower: string arg required", val)
 	}
