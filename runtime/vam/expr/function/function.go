@@ -17,6 +17,8 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "join":
 		argmax = 2
 		f = &Join{zctx: zctx}
+	case "len":
+		f = &Len{zctx}
 	case "levenshtein":
 		argmin, argmax = 2, 2
 		f = &Levenshtein{zctx}

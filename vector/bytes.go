@@ -35,3 +35,26 @@ func (b *Bytes) Value(slot uint32) []byte {
 	}
 	return b.Bytes[b.Offs[slot]:b.Offs[slot+1]]
 }
+
+func BytesValue(val Any, slot uint32) ([]byte, bool) {
+	switch val := val.(type) {
+	case *Bytes:
+		return val.Value(slot), val.Nulls.Value(slot)
+	case *Const:
+		if val.Nulls.Value(slot) {
+			return nil, true
+		}
+		s, _ := val.AsBytes()
+		return s, false
+	case *Dict:
+		if val.Nulls.Value(slot) {
+			return nil, true
+		}
+		slot = uint32(val.Index[slot])
+		return val.Any.(*Bytes).Value(slot), false
+	case *View:
+		slot = val.Index[slot]
+		return BytesValue(val.Any, slot)
+	}
+	panic(val)
+}
