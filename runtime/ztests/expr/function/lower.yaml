@@ -9,6 +9,7 @@ input: |
   null(int64)
   "BaR"((string,int64))
   1((string,int64))
+  "BAz"(=s)
 
 output: |
   "foo"
@@ -17,3 +18,4 @@ output: |
   error({message:"lower: string arg required",on:null(int64)})
   "bar"
   error({message:"lower: string arg required",on:1})
+  "baz"
