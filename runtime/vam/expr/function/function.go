@@ -14,6 +14,10 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	var path field.Path
 	var f expr.Function
 	switch name {
+	case "base64":
+		f = &Base64{zctx}
+	case "hex":
+		f = &Hex{zctx}
 	case "join":
 		argmax = 2
 		f = &Join{zctx: zctx}

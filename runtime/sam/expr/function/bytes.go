@@ -15,7 +15,7 @@ type Base64 struct {
 
 func (b *Base64) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	arena := ectx.Arena()
-	val := args[0]
+	val := args[0].Under(arena)
 	switch val.Type().ID() {
 	case zed.IDBytes:
 		if val.IsNull() {
@@ -24,7 +24,7 @@ func (b *Base64) Call(ectx expr.Context, args []zed.Value) zed.Value {
 		return arena.NewString(base64.StdEncoding.EncodeToString(val.Bytes()))
 	case zed.IDString:
 		if val.IsNull() {
-			return zed.Null
+			return zed.NullBytes
 		}
 		bytes, err := base64.StdEncoding.DecodeString(zed.DecodeString(val.Bytes()))
 		if err != nil {
@@ -43,7 +43,7 @@ type Hex struct {
 
 func (h *Hex) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	arena := ectx.Arena()
-	val := args[0]
+	val := args[0].Under(arena)
 	switch val.Type().ID() {
 	case zed.IDBytes:
 		if val.IsNull() {
@@ -52,7 +52,7 @@ func (h *Hex) Call(ectx expr.Context, args []zed.Value) zed.Value {
 		return arena.NewString(hex.EncodeToString(val.Bytes()))
 	case zed.IDString:
 		if val.IsNull() {
-			return zed.NullString
+			return zed.NullBytes
 		}
 		b, err := hex.DecodeString(zed.DecodeString(val.Bytes()))
 		if err != nil {
