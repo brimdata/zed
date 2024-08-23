@@ -1,6 +1,8 @@
 package function
 
 import (
+	"slices"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/sam/expr/function"
@@ -16,6 +18,8 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	switch name {
 	case "base64":
 		f = &Base64{zctx}
+	case "fields":
+		f = NewFields(zctx)
 	case "hex":
 		f = &Hex{zctx}
 	case "join":
@@ -54,4 +58,24 @@ func underAll(args []vector.Any) []vector.Any {
 		args[i] = vector.Under(args[i])
 	}
 	return args
+}
+
+func mix(desiredLen uint32, vec vector.Any, index []uint32, add vector.Any) vector.Any {
+	var tags []uint32
+	var vecs []vector.Any
+	if variant, ok := vec.(*vector.Variant); ok {
+		vecs = variant.Values
+		tags = slices.Clone(variant.Tags)
+		if len(tags) < int(desiredLen) {
+			tags = slices.Grow(tags, int(desiredLen))[:desiredLen]
+		}
+	} else {
+		vecs = []vector.Any{vec}
+		tags = make([]uint32, desiredLen)
+	}
+	n := uint32(len(vecs))
+	for _, k := range index {
+		tags[k] = n
+	}
+	return vector.NewVariant(tags, append(vecs, add))
 }

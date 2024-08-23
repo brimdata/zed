@@ -19,8 +19,7 @@ func NewFields(zctx *zed.Context) *Fields {
 	}
 }
 
-func buildPath(typ *zed.TypeRecord, b *zcode.Builder, prefix []string) []string {
-	var out []string
+func buildPath(typ *zed.TypeRecord, b *zcode.Builder, prefix []string) {
 	for _, f := range typ.Fields {
 		if typ, ok := zed.TypeUnder(f.Type).(*zed.TypeRecord); ok {
 			buildPath(typ, b, append(prefix, f.Name))
@@ -33,17 +32,15 @@ func buildPath(typ *zed.TypeRecord, b *zcode.Builder, prefix []string) []string 
 			b.EndContainer()
 		}
 	}
-	return out
 }
 
 func (f *Fields) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	arena := ectx.Arena()
-	subjectVal := args[0]
+	subjectVal := args[0].Under(arena)
 	typ := f.recordType(subjectVal)
 	if typ == nil {
 		return f.zctx.Missing(ectx.Arena())
 	}
-	//XXX should have a way to append into allocator
 	var b zcode.Builder
 	buildPath(typ, &b, nil)
 	return arena.New(f.typ, b.Bytes())
