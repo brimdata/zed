@@ -23,7 +23,8 @@ extra fields in the input are propagated to the output.
 
 _Shape input records_
 ```mdtest-command
-echo '{b:1,a:2}{a:3}{b:4,c:5}' | zq -z 'shape(this, <{a:int64,b:string}>)' -
+echo '{b:1,a:2}{a:3}{b:4,c:5}' |
+  zq -z 'shape(this, <{a:int64,b:string}>)' -
 ```
 produces
 ```mdtest-output

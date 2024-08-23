@@ -109,7 +109,8 @@ echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:2}' | zq -z 'sort k,s' -
 ```
 _Sort with an expression_
 ```mdtest-command
-echo '{s:"sum 2",x:2,y:0}{s:"sum 3",x:1,y:2}{s:"sum 0",x:-1,y:-1}' | zq -z 'sort x+y' -
+echo '{s:"sum 2",x:2,y:0}{s:"sum 3",x:1,y:2}{s:"sum 0",x:-1,y:-1}' |
+  zq -z 'sort x+y' -
 ```
 =>
 ```mdtest-output

@@ -38,18 +38,19 @@ echo '1 2 3 3' | zq -z 'yield union(this)' -
 ```
 
 Mixed types create a union type for the set elements:
-```mdtest-command-issue-3610
+```mdtest-command
 echo '1 2 3 "foo"' | zq -z 'set:=union(this) | yield this,typeof(set)' -
 ```
 =>
-```mdtest-output-issue-3610
+```mdtest-output
 {set:|[1,2,3,"foo"]|}
 <|[(int64,string)]|>
 ```
 
 Create sets of values bucketed by key:
 ```mdtest-command
-echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' | zq -z 'union(a) by k | sort' -
+echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' |
+  zq -z 'union(a) by k | sort' -
 ```
 =>
 ```mdtest-output

@@ -58,7 +58,8 @@ search ... | count() by typeof(this)
 ```
 For example,
 ```mdtest-command
-echo '1 2 "foo" 10.0.0.1 <string>' | zq -z 'count() by typeof(this) | sort this' -
+echo '1 2 "foo" 10.0.0.1 <string>' |
+  zq -z 'count() by typeof(this) | sort this' -
 ```
 produces
 ```mdtest-output
@@ -142,7 +143,8 @@ Each value that references a named type retains its local definition of the
 named type retaining the proper type binding while accommodating changes in a
 particular named type.  For example,
 ```mdtest-command
-echo '1(=foo) 2(=bar) "hello"(=foo) 3(=foo)' | zq -z 'count() by typeof(this) | sort this' -
+echo '1(=foo) 2(=bar) "hello"(=foo) 3(=foo)' |
+  zq -z 'count() by typeof(this) | sort this' -
 ```
 results in
 ```mdtest-output
@@ -176,12 +178,20 @@ LIMIT 5
 ```
 In Zed, you would say
 ```
-from anywhere | typeof(this)==<employee> | cut last,salary | sort salary | head 5
+from anywhere
+| typeof(this)==<employee>
+| cut last,salary
+| sort salary
+| head 5
 ```
 and since type comparisons are so useful and common, the [`is` function](functions/is.md)
 can be used to perform the type match:
 ```
-from anywhere | is(<employee>) | cut last,salary | sort salary | head 5
+from anywhere
+| is(<employee>)
+| cut last,salary
+| sort salary
+| head 5
 ```
 The power of Zed is that you can interpret data on the fly as belonging to
 a certain schema, in this case "employee", and those records can be intermixed

@@ -19,7 +19,8 @@ If `network` is not type `net`, then an error is returned.
 
 Test whether values are IP addresses in a network:
 ```mdtest-command
-echo '10.1.2.129 11.1.2.129 10 "foo"' | zq -z 'yield cidr_match(10.0.0.0/8, this)' -
+echo '10.1.2.129 11.1.2.129 10 "foo"' |
+  zq -z 'yield cidr_match(10.0.0.0/8, this)' -
 ```
 =>
 ```mdtest-output
@@ -31,7 +32,8 @@ false
 It also works for IPs in complex values:
 
 ```mdtest-command
-echo '[10.1.2.129,11.1.2.129] {a:10.0.0.1} {a:11.0.0.1}' | zq -z 'yield cidr_match(10.0.0.0/8, this)' -
+echo '[10.1.2.129,11.1.2.129] {a:10.0.0.1} {a:11.0.0.1}' |
+  zq -z 'yield cidr_match(10.0.0.0/8, this)' -
 ```
 =>
 ```mdtest-output

@@ -29,10 +29,13 @@ echo '["foo","bar","baz"]' | zq -z 'yield map(this, upper)' -
 Using a user-defined function to convert an epoch float to a time:
 
 ```mdtest-command
-echo '[1697151533.41415,1697151540.716529]' | zq -z '
-  func floatToTime(x): ( cast(x*1000000000, <time>) )
-  yield map(this, floatToTime)
-' -
+echo '[1697151533.41415,1697151540.716529]' |
+  zq -z '
+    func floatToTime(x): (
+      cast(x*1000000000, <time>)
+    )
+    yield map(this, floatToTime)
+  ' -
 ```
 =>
 ```mdtest-output

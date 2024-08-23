@@ -34,7 +34,8 @@ echo '1 2 3 "foo" "bar" 10.0.0.1 10.0.0.2' | zq -z 'sample | sort this' -
 
 _Sampling record shapes_
 ```mdtest-command
-echo '{a:1}{a:2}{s:"foo"}{s:"bar"}{a:3,s:"baz"}' | zq -z 'sample | sort a' -
+echo '{a:1}{a:2}{s:"foo"}{s:"bar"}{a:3,s:"baz"}' |
+  zq -z 'sample | sort a' -
 ```
 =>
 ```mdtest-output
