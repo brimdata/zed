@@ -25,6 +25,6 @@ func Under(v Any) Any {
 		if !ok {
 			return v
 		}
-		v = n
+		v = n.Any
 	}
 }
