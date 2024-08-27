@@ -23,6 +23,8 @@ func NewBuilder(meta Metadata, r io.ReaderAt) (Builder, error) {
 		return NewNullsBuilder(inner, meta.Runs, r), nil
 	case *Named:
 		return NewBuilder(meta.Values, r)
+	case *Error:
+		return NewBuilder(meta.Values, r)
 	case *Record:
 		return NewRecordBuilder(meta, r)
 	case *Array:
