@@ -32,6 +32,8 @@ func NewEncoder(typ zed.Type) Encoder {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
 		return &NamedEncoder{NewEncoder(typ.Type), typ.Name}
+	case *zed.TypeError:
+		return &ErrorEncoder{NewEncoder(typ.Type)}
 	case *zed.TypeRecord:
 		return NewNullsEncoder(NewRecordEncoder(typ))
 	case *zed.TypeArray:
@@ -60,4 +62,13 @@ type NamedEncoder struct {
 func (n *NamedEncoder) Metadata(off uint64) (uint64, Metadata) {
 	off, meta := n.Encoder.Metadata(off)
 	return off, &Named{n.name, meta}
+}
+
+type ErrorEncoder struct {
+	Encoder
+}
+
+func (e *ErrorEncoder) Metadata(off uint64) (uint64, Metadata) {
+	off, meta := e.Encoder.Metadata(off)
+	return off, &Error{meta}
 }
