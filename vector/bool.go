@@ -70,3 +70,22 @@ func (b *Bool) String() string {
 	}
 	return s.String()
 }
+
+// BoolValue returns the value of slot in vec if the value is a Boolean.  It
+// returns false otherwise.
+func BoolValue(vec Any, slot uint32) bool {
+	switch vec := Under(vec).(type) {
+	case *Bool:
+		return vec.Value(slot)
+	case *Const:
+		return vec.Value().Ptr().AsBool()
+	case *Dict:
+		return BoolValue(vec.Any, uint32(vec.Index[slot]))
+	case *Variant:
+		tag := vec.Tags[slot]
+		return BoolValue(vec.Values[tag], vec.TagMap.Forward[slot])
+	case *View:
+		return BoolValue(vec.Any, vec.Index[slot])
+	}
+	return false
+}
