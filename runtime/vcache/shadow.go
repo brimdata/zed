@@ -151,7 +151,7 @@ func newShadow(m vng.Metadata, n *vng.Nulls, nullsCnt uint32) shadow {
 		nullsCnt += m.Count
 		return newShadow(m.Values, m, nullsCnt)
 	case *vng.Error:
-		return &error_{vals: newShadow(m.Values, n, nullsCnt), nulls: nulls{meta: n}}
+		return &error_{newShadow(m.Values, n, nullsCnt), nulls{meta: n}}
 	case *vng.Named:
 		return &named{m.Name, newShadow(m.Values, n, nullsCnt)}
 	case *vng.Record:
