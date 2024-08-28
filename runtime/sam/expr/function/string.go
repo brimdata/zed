@@ -16,6 +16,7 @@ type Replace struct {
 }
 
 func (r *Replace) Call(ectx expr.Context, args []zed.Value) zed.Value {
+	args = underAll(ectx.Arena(), args)
 	sVal := args[0]
 	oldVal := args[1]
 	newVal := args[2]

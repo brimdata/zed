@@ -5,6 +5,7 @@ import (
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/sam/expr/function"
 	"github.com/brimdata/zed/runtime/vam/expr"
+	"github.com/brimdata/zed/vector"
 )
 
 func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, error) {
@@ -15,6 +16,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	switch name {
 	case "lower":
 		f = &ToLower{zctx}
+	case "replace":
+		argmin, argmax = 3, 3
+		f = &Replace{zctx}
 	default:
 		return nil, nil, function.ErrNoSuchFunction
 	}
@@ -22,4 +26,11 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 		return nil, nil, err
 	}
 	return f, path, nil
+}
+
+func underAll(args []vector.Any) []vector.Any {
+	for i := range args {
+		args[i] = vector.Under(args[i])
+	}
+	return args
 }
