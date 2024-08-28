@@ -73,7 +73,13 @@ which does not utilize a terminal for standard output.
 
 You can also quickly see a list of the leaf-value data types with this query:
 ```mdtest-command dir=testdata/edu
-zq -Z "sample | over this | by typeof(value) | yield typeof | sort" schools.zson testscores.zson webaddrs.zson
+zq -Z '
+  sample
+  | over this
+  | by typeof(value)
+  | yield typeof
+  | sort
+' schools.zson testscores.zson webaddrs.zson
 ```
 which emits
 ```mdtest-output
@@ -402,7 +408,11 @@ create a [`set`](../formats/zson.md#243-set-value)-typed
 field called `Schools` that contains all unique school names per district. From
 these we'll find each set that contains a school named `Lincoln Elementary`, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -Z 'Schools:=union(School) by District | "Lincoln Elementary" in Schools | sort this' schools.zson
+zq -Z '
+  Schools:=union(School) by District
+  | "Lincoln Elementary" in Schools
+  | sort this
+' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -550,7 +560,9 @@ produces
 ```
 We can easily filter these out by negating the search for these records, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)' testscores.zson
+zq -z '
+  not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)
+' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -561,7 +573,11 @@ produces
 ```
 Parentheses can also be nested, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'grep(*High*, sname) and (not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null) and dname=="San Francisco Unified")' testscores.zson
+zq -z '
+  grep(*High*, sname)
+    and (not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)
+      and dname=="San Francisco Unified")
+' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -745,7 +761,10 @@ For example,
 to add a field to our test score records representing the computed average of the math,
 reading, and writing scores for each school that reported them, we could say:
 ```mdtest-command dir=testdata/edu
-zq -Z 'AvgScrMath!=null | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3.0' testscores.zson
+zq -Z '
+  AvgScrMath!=null
+  | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3.0
+' testscores.zson
 ```
 which produces
 ```mdtest-output head
@@ -763,7 +782,12 @@ which produces
 We can also use `put` to create derived tables and display them in tabular
 form using `-f table`, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -f table 'AvgScrMath != null | put combined_scores:=AvgScrMath+AvgScrRead+AvgScrWrite | cut sname,combined_scores,AvgScrMath,AvgScrRead,AvgScrWrite | head 5' testscores.zson
+zq -f table '
+  AvgScrMath != null
+  | put combined_scores:=AvgScrMath+AvgScrRead+AvgScrWrite
+  | cut sname,combined_scores,AvgScrMath,AvgScrRead,AvgScrWrite
+  | head 5
+' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -873,7 +897,9 @@ As with SQL, multiple aggregate functions may be invoked at the same time.
 For example, to simultaneously calculate the minimum, maximum, and average of
 the math test scores:
 ```mdtest-command dir=testdata/edu
-zq -f table 'min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)' testscores.zson
+zq -f table '
+  min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)
+' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -894,7 +920,9 @@ As just shown, by default the result returned is placed in a field with the
 same name as the aggregate function. You may instead use `:=` to specify an
 explicit name for the generated field, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -f table 'lowest:=min(AvgScrMath),highest:=max(AvgScrMath),typical:=avg(AvgScrMath)' testscores.zson
+zq -f table '
+  lowest:=min(AvgScrMath),highest:=max(AvgScrMath),typical:=avg(AvgScrMath)
+' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -919,7 +947,10 @@ For example,
 this query calculates average math test scores for the cities of Los Angeles
 and San Francisco:
 ```mdtest-command dir=testdata/edu
-zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrMath) where cname=="San Francisco"' testscores.zson
+zq -Z '
+  LA_Math:=avg(AvgScrMath) where cname=="Los Angeles",
+  SF_Math:=avg(AvgScrMath) where cname=="San Francisco"
+' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -943,7 +974,10 @@ of all of its input.
 Many of the school records in our sample data include websites, but many do
 not. The following query shows the cities in which all schools have a website. e.g.,
 ```mdtest-command dir=testdata/edu
-zq -Z 'all_schools_have_website:=and(Website!=null) by City | sort City' schools.zson
+zq -Z '
+  all_schools_have_website:=and(Website!=null) by City
+  | sort City
+' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -1000,7 +1034,11 @@ For schools in Fresno county that include websites, the following query
 constructs an ordered list per city of their websites along with a parallel
 list of which school each website represents:
 ```mdtest-command dir=testdata/edu
-zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=collect(School) by City | sort City' schools.zson
+zq -Z '
+  County=="Fresno" Website!=null
+  | Websites:=collect(Website),Schools:=collect(School) by City
+  | sort City
+' schools.zson
 ```
 and produces
 ```mdtest-output head
@@ -1124,7 +1162,10 @@ Many of the school records in our sample data include websites, but many do
 not. The following query shows the cities for which at least one school has
 a listed website:
 ```mdtest-command dir=testdata/edu
-zq -Z 'has_at_least_one_school_website:=or(Website!=null) by City | sort City' schools.zson
+zq -Z '
+  has_at_least_one_school_website:=or(Website!=null) by City
+  | sort City
+' schools.zson
 ```
 and produces
 ```mdtest-output head
@@ -1158,7 +1199,11 @@ The `sum` function computes the minimum numeric value over all of its input.
 This query calculates the total of all the math, reading, and writing test scores
 across all schools:
 ```mdtest-command dir=testdata/edu
-zq -Z 'AllMath:=sum(AvgScrMath),AllRead:=sum(AvgScrRead),AllWrite:=sum(AvgScrWrite)' testscores.zson
+zq -Z '
+  AllMath:=sum(AvgScrMath),
+  AllRead:=sum(AvgScrRead),
+  AllWrite:=sum(AvgScrWrite)
+' testscores.zson
 ```
 and produces
 ```mdtest-output
@@ -1177,7 +1222,11 @@ For schools in Fresno county that include websites, the following query
 constructs a set per city of all the unique websites for the schools in that
 city:
 ```mdtest-command dir=testdata/edu
-zq -Z 'County=="Fresno" Website!=null | Websites:=union(Website) by City | sort City' schools.zson
+zq -Z '
+  County=="Fresno" Website!=null
+  | Websites:=union(Website) by City
+  | sort City
+' schools.zson
 ```
 and produces
 ```mdtest-output head
@@ -1247,7 +1296,10 @@ When specifying multiple comma-separated field names, a group is formed for each
 unique combination of values found in those fields.  To see the average reading
 test scores and school count for each county/district pairing, this query:
 ```mdtest-command dir=testdata/edu
-zq -f table 'avg(AvgScrRead),count() by cname,dname | sort -r count' testscores.zson
+zq -f table '
+  avg(AvgScrRead),count() by cname,dname
+  | sort -r count
+' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -1285,7 +1337,10 @@ For instance, if we'd made an typographical error in our
 prior example when attempting to reference the `dname` field,
 the misspelled field would appear as embedded missing errors, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -Z 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' testscores.zson
+zq -Z '
+  avg(AvgScrRead),count() by cname,dnmae
+  | sort -r count
+' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -1510,7 +1565,10 @@ as arguments to yield.
 This example produce two simpler records for every school record listing
 the average math score with the school name and the county name:
 ```mdtest-command dir=testdata/edu
-zq -Z 'AvgScrMath!=null | yield {school:sname,avg:AvgScrMath}, {county:cname,zvg:AvgScrMath}' testscores.zson
+zq -Z '
+  AvgScrMath!=null
+  | yield {school:sname,avg:AvgScrMath}, {county:cname,zvg:AvgScrMath}
+' testscores.zson
 ```
 which produces
 ```mdtest-output head 4
@@ -1534,7 +1592,12 @@ which produces
 ```
 In earlier example, we used `put` to create a table using this query:
 ```mdtest-command dir=testdata/edu
-zq -f table 'AvgScrMath != null | put combined_scores:=AvgScrMath+AvgScrRead+AvgScrWrite | cut sname,combined_scores,AvgScrMath,AvgScrRead,AvgScrWrite | head 5' testscores.zson
+zq -f table '
+  AvgScrMath != null
+  | put combined_scores:=AvgScrMath+AvgScrRead+AvgScrWrite
+  | cut sname,combined_scores,AvgScrMath,AvgScrRead,AvgScrWrite
+  | head 5
+' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -1549,7 +1612,16 @@ Academia Avance Charter     1148            386        380        382
 The same result can be achieved by yielding a record literal,
 sometimes with a more intuitive  structure, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -f table 'AvgScrMath != null | yield  {sname,combined_scores:AvgScrMath+AvgScrRead+AvgScrWrite,AvgScrMath,AvgScrRead,AvgScrWrite} | head 5' testscores.zson
+zq -f table '
+AvgScrMath != null
+| yield {
+          sname,
+          combined_scores:AvgScrMath+AvgScrRead+AvgScrWrite,
+          AvgScrMath,
+          AvgScrRead,
+          AvgScrWrite
+        }
+| head 5' testscores.zson
 ```
 produces
 ```mdtest-output

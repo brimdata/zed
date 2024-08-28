@@ -29,7 +29,8 @@ echo '{a:1,b:2,c:{d:3,e:4}}' | zq -z 'yield fields(this)' -
 ```
 Easily convert to dotted names if you prefer:
 ```mdtest-command
-echo '{a:1,b:2,c:{d:3,e:4}}' | zq -z 'over fields(this) | yield join(this,".")' -
+echo '{a:1,b:2,c:{d:3,e:4}}' |
+  zq -z 'over fields(this) | yield join(this,".")' -
 ```
 =>
 ```mdtest-output

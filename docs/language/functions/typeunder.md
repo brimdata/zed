@@ -17,7 +17,8 @@ returned instead of the named type.
 ### Examples
 
 ```mdtest-command
-echo  '{which:"chocolate"}(=flavor)' | zq -z 'yield {typeof:typeof(this),typeunder:typeunder(this)}' -
+echo  '{which:"chocolate"}(=flavor)' |
+  zq -z 'yield {typeof:typeof(this),typeunder:typeunder(this)}' -
 ```
 =>
 ```mdtest-output

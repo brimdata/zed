@@ -22,7 +22,8 @@ returned as a bytes value.
 #### Example:
 
 ```mdtest-command
-echo  '{id:0x0dfc90519b60f362e84a3fdddd9b9e63e1fb90d1}' | zq -z 'id := ksuid(id)' -
+echo  '{id:0x0dfc90519b60f362e84a3fdddd9b9e63e1fb90d1}' |
+  zq -z 'id := ksuid(id)' -
 ```
 =>
 ```mdtest-output

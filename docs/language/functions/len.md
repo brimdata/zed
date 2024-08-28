@@ -30,7 +30,8 @@ Supported types include:
 Take the length of various types:
 
 ```mdtest-command
-echo '[1,2,3] |["hello"]| {a:1,b:2} "hello" 10.0.0.1 1' | zq -z 'yield {this,len:len(this)}' -
+echo '[1,2,3] |["hello"]| {a:1,b:2} "hello" 10.0.0.1 1' |
+  zq -z 'yield {this,len:len(this)}' -
 ```
 =>
 ```mdtest-output

@@ -35,7 +35,8 @@ true
 
 Convert an error string into a record with an indicator and a message:
 ```mdtest-command
-echo '"not an error" error("an error")' | zq -z 'yield {err:is_error(this),message:under(this)}' -
+echo '"not an error" error("an error")' |
+  zq -z 'yield {err:is_error(this),message:under(this)}' -
 ```
 =>
 ```mdtest-output

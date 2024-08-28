@@ -140,8 +140,11 @@ op AddMessage(field_for_message, msg): (
 ```
 the `msg` parameter may be used flexibly
 ```mdtest-command
-echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage(message, "hello")' -
-echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage(message, greeting)' -
+echo '{greeting: "hi"}' |
+  zq -z -I params.zed 'AddMessage(message, "hello")' -
+
+echo '{greeting: "hi"}' |
+  zq -z -I params.zed 'AddMessage(message, greeting)' -
 ```
 to produce the respective outputs
 ```mdtest-output
@@ -154,7 +157,8 @@ where _only_ a certain category of argument is expected. For instance, having
 explicitly mentioned "field" in the name of our first parameter's name may help
 us avoid making mistakes when passing arguments, such as
 ```mdtest-command fails
-echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage("message", "hello")' -
+echo '{greeting: "hi"}' |
+  zq -z -I params.zed 'AddMessage("message", "hello")' -
 ```
 which produces
 ```mdtest-output

@@ -92,7 +92,8 @@ echo '1 2 3 4' | zq -z 'sum(this)' -
 
 Create integer sets by key and sort the output to get a deterministic order:
 ```mdtest-command
-echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' | zq -z 'set:=union(v) by key:=k' - | sort
+echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
+  zq -z 'set:=union(v) by key:=k' - | sort
 ```
 =>
 ```mdtest-output
@@ -103,7 +104,8 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' | zq -z 'set:=union(
 
 Use a `where` clause:
 ```mdtest-command
-echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' | zq -z 'set:=union(v) where v > 1 by key:=k' - | sort
+echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
+  zq -z 'set:=union(v) where v > 1 by key:=k' - | sort
 ```
 =>
 ```mdtest-output
@@ -114,7 +116,8 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' | zq -z 'set:=union(
 
 Output just the unique key values:
 ```mdtest-command
-echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' | zq -z 'by k' - | sort
+echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
+  zq -z 'by k' - | sort
 ```
 =>
 ```mdtest-output

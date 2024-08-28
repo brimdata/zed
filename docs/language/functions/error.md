@@ -18,7 +18,8 @@ a means to create structured and stacked errors.
 
 Wrap a record as a structured error:
 ```mdtest-command
-echo '{foo:"foo"}' | zq -z 'yield error({message:"bad value", value:this})' -
+echo '{foo:"foo"}' |
+  zq -z 'yield error({message:"bad value", value:this})' -
 ```
 =>
 ```mdtest-output
@@ -38,7 +39,8 @@ error([1,2,3])
 
 Test if a value is an error and show its type "kind":
 ```mdtest-command
-echo 'error("exception") "exception"' | zq -Z 'yield {this,err:is_error(this),kind:kind(this)}' -
+echo 'error("exception") "exception"' |
+  zq -Z 'yield {this,err:is_error(this),kind:kind(this)}' -
 ```
 =>
 ```mdtest-output

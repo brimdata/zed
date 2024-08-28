@@ -80,7 +80,8 @@ produces
 ```
 You can also use this operator with a static array:
 ```mdtest-command
-echo '{accounts:[{id:1},{id:2},{id:3}]}' | zq -z 'over accounts | where id in [1,2]' -
+echo '{accounts:[{id:1},{id:2},{id:3}]}' |
+  zq -z 'over accounts | where id in [1,2]' -
 ```
 produces
 ```mdtest-output
@@ -200,7 +201,8 @@ will be evaluated.
 
 For example,
 ```mdtest-command
-echo '"foo" "bar" "foo"' | zq -z 'yield this=="foo" ? {foocount:count()} : {barcount:count()}' -
+echo '"foo" "bar" "foo"' |
+  zq -z 'yield this=="foo" ? {foocount:count()} : {barcount:count()}' -
 ```
 produces
 ```mdtest-output
@@ -283,7 +285,8 @@ a string, it is implicitly cast to a string.
 
 For example,
 ```mdtest-command
-echo '{numerator:22.0, denominator:7.0}' | zq -z 'yield f"pi is approximately {numerator / denominator}"' -
+echo '{numerator:22.0, denominator:7.0}' |
+  zq -z 'yield f"pi is approximately {numerator / denominator}"' -
 ```
 produces
 ```mdtest-output
@@ -301,7 +304,8 @@ F-strings may be nested, where a child `<expr>` may contain f-strings.
 
 For example,
 ```mdtest-command
-echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' | zq -z 'yield f"oh {this[upper(f"{foo + bar}")]}"' -
+echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' |
+  zq -z 'yield f"oh {this[upper(f"{foo + bar}")]}"' -
 ```
 produces
 ```mdtest-output
@@ -347,7 +351,8 @@ field's value.
 
 For example,
 ```mdtest-command
-echo '{x:1,y:2,r:{a:1,b:2}}' | zq -z 'yield {a:0},{x}, {...r}, {a:0,...r,b:3}' -
+echo '{x:1,y:2,r:{a:1,b:2}}' |
+  zq -z 'yield {a:0},{x}, {...r}, {a:0,...r,b:3}' -
 ```
 produces
 ```mdtest-output
@@ -563,7 +568,8 @@ produces
 ```
 and
 ```mdtest-command
-echo '{ts:"1/1/2022",r:{x:"1",y:"2"}} {ts:"1/2/2022",r:{x:3,y:4}}' | zq -z 'cast(this,<{ts:time,r:{x:float64,y:float64}}>)' -
+echo '{ts:"1/1/2022",r:{x:"1",y:"2"}} {ts:"1/2/2022",r:{x:3,y:4}}' |
+  zq -z 'cast(this,<{ts:time,r:{x:float64,y:float64}}>)' -
 ```
 produces
 ```mdtest-output

@@ -25,7 +25,8 @@ but as an example, you might use the `get` form of `from` to fetch data from an
 HTTP endpoint and process it with Zed, in this case, to extract the description
 and license of a GitHub repository:
 ```
-zq -f text "get https://api.github.com/repos/brimdata/zed | yield description,license.name"
+zq -f text 'get https://api.github.com/repos/brimdata/zed
+            | yield description,license.name'
 ```
 When a Zed query is run on the command-line with `zq`, the `from` source is
 typically omitted and implied instead by the command-line file arguments.

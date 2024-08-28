@@ -20,8 +20,11 @@ The _under_ function returns the value underlying the argument `val`:
 
 Unions are unwrapped:
 ```mdtest-command
-echo '1((int64,string)) "foo"((int64,string))' | zq -z 'yield this' -
-echo '1((int64,string)) "foo"((int64,string))' | zq -z 'yield under(this)' -
+echo '1((int64,string)) "foo"((int64,string))' |
+  zq -z 'yield this' -
+
+echo '1((int64,string)) "foo"((int64,string))' |
+  zq -z 'yield under(this)' -
 ```
 =>
 ```mdtest-output

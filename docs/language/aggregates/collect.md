@@ -47,7 +47,8 @@ echo '1 2 3 4 "foo"' | zq -z 'collect(this)' -
 
 Create arrays of values bucketed by key:
 ```mdtest-command
-echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' | zq -z 'collect(a) by k | sort' -
+echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' |
+  zq -z 'collect(a) by k | sort' -
 ```
 =>
 ```mdtest-output

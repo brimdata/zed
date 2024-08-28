@@ -28,7 +28,8 @@ echo '{foo:"{a:\"1\",b:2}"}' | zq -z 'foo := parse_zson(foo)' -
 
 _Parse JSON text_
 ```mdtest-command
-echo '{"foo": "{\"a\": \"1\", \"b\": 2}"}' | zq -z 'foo := parse_zson(foo)' -
+echo '{"foo": "{\"a\": \"1\", \"b\": 2}"}' |
+  zq -z 'foo := parse_zson(foo)' -
 ```
 =>
 ```mdtest-output

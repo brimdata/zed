@@ -128,7 +128,8 @@ echo '{a:[1,2]} {a:[3,4,5]}' | zq -z 'over a => ( sum(this) )' -
 ```
 _Access the outer values in a lateral query_
 ```mdtest-command
-echo '{a:[1,2],s:"foo"} {a:[3,4,5],s:"bar"}' | zq -z 'over a with s => (sum(this) | yield {s,sum:this})' -
+echo '{a:[1,2],s:"foo"} {a:[3,4,5],s:"bar"}' |
+  zq -z 'over a with s => (sum(this) | yield {s,sum:this})' -
 ```
 =>
 ```mdtest-output
@@ -137,7 +138,8 @@ echo '{a:[1,2],s:"foo"} {a:[3,4,5],s:"bar"}' | zq -z 'over a with s => (sum(this
 ```
 _Traverse a record by flattening it_
 ```mdtest-command
-echo '{s:"foo",r:{a:1,b:2}} {s:"bar",r:{a:3,b:4}} ' | zq -z 'over flatten(r) with s => (yield {s,key:key[0],value})' -
+echo '{s:"foo",r:{a:1,b:2}} {s:"bar",r:{a:3,b:4}} ' |
+  zq -z 'over flatten(r) with s => (yield {s,key:key[0],value})' -
 ```
 =>
 ```mdtest-output
