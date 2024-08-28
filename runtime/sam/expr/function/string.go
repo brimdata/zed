@@ -43,7 +43,7 @@ type RuneLen struct {
 }
 
 func (r *RuneLen) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	val := args[0]
+	val := args[0].Under(ectx.Arena())
 	if !val.IsString() {
 		return r.zctx.WrapError(ectx.Arena(), "rune_len: string arg required", val)
 	}
@@ -77,7 +77,7 @@ type ToUpper struct {
 }
 
 func (t *ToUpper) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	val := args[0]
+	val := args[0].Under(ectx.Arena())
 	if !val.IsString() {
 		return t.zctx.WrapError(ectx.Arena(), "upper: string arg required", val)
 	}
@@ -94,7 +94,7 @@ type Trim struct {
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trim
 func (t *Trim) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	val := args[0]
+	val := args[0].Under(ectx.Arena())
 	if !val.IsString() {
 		return t.zctx.WrapError(ectx.Arena(), "trim: string arg required", val)
 	}
@@ -119,13 +119,13 @@ func newSplit(zctx *zed.Context) *Split {
 }
 
 func (s *Split) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	sVal := args[0]
-	sepVal := args[1]
+	args = underAll(ectx.Arena(), args)
 	for i := range args {
 		if !args[i].IsString() {
 			return s.zctx.WrapError(ectx.Arena(), "split: string arg required", args[i])
 		}
 	}
+	sVal, sepVal := args[0], args[1]
 	if sVal.IsNull() || sepVal.IsNull() {
 		return ectx.Arena().New(s.typ, nil)
 	}
@@ -146,10 +146,11 @@ type Join struct {
 }
 
 func (j *Join) Call(ectx expr.Context, args []zed.Value) zed.Value {
+	args = underAll(ectx.Arena(), args)
 	splitsVal := args[0]
 	typ, ok := zed.TypeUnder(splitsVal.Type()).(*zed.TypeArray)
 	if !ok || typ.Type.ID() != zed.IDString {
-		return j.zctx.WrapError(ectx.Arena(), "join: array of string args required", splitsVal)
+		return j.zctx.WrapError(ectx.Arena(), "join: array of string arg required", splitsVal)
 	}
 	var separator string
 	if len(args) == 2 {
@@ -177,6 +178,7 @@ type Levenshtein struct {
 }
 
 func (l *Levenshtein) Call(ectx expr.Context, args []zed.Value) zed.Value {
+	args = underAll(ectx.Arena(), args)
 	a, b := args[0], args[1]
 	if !a.IsString() {
 		return l.zctx.WrapError(ectx.Arena(), "levenshtein: string args required", a)

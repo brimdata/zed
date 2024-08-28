@@ -1,4 +1,4 @@
-zed: "lower(this)"
+zed: lower(this)
 
 vector: true
 
