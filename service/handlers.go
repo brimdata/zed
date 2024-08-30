@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/exec"
@@ -242,9 +244,14 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 	var req api.PoolPostRequest
 	if !r.Unmarshal(w, &req) {
+		fmt.Println("unmarshal.err")
 		return
 	}
-	pool, err := c.root.CreatePool(r.Context(), req.Name, req.SortKeys, req.SeekStride, req.Thresh)
+	var sortKeys order.SortKeys
+	if len(req.SortKeys.Keys) > 0 {
+		sortKeys = append(sortKeys, order.NewSortKey(req.SortKeys.Order, req.SortKeys.Keys[0]))
+	}
+	pool, err := c.root.CreatePool(r.Context(), req.Name, sortKeys, req.SeekStride, req.Thresh)
 	if err != nil {
 		w.Error(err)
 		return
