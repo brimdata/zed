@@ -1,7 +1,14 @@
 script: |
   zc -C -s 'fork (=> output foo => pass)'
   echo '// ==='
-  zc -C -s 'switch x (case "foo" => output foo case "bar" => pass)'
+  zc -C -s 'switch x (case "foo" => output foo case "bar" => pass) | sort this'
+  echo '// ==='
+  zc -C -s 'over this => ( sum(this) | output bar )'
+  # error cases
+  ! zc -C -s 'over this => ( sum(this) | output bar ) | x := "foo"'
+  ! zc -C -s 'fork (=> output foo | "yield foo" => pass) | sort this'
+  ! zc -C -s 'fork (=> output foo => output bar) | count()'
+  ! zc -C -s 'switch x (case "foo" => output foo case "bar" => output bar) | count()'
 
 outputs:
   - name: stdout
@@ -21,5 +28,20 @@ outputs:
             output foo
           case "bar" =>
             pass
-            | output main
         )
+        | sort this
+        | output main
+      // ===
+      reader
+      | over this => (
+        summarize
+            sum:=sum(this)
+        | yield sum
+        | output bar
+      )
+  - name: stderr
+    data: |
+      unreachable operator
+      unreachable operator
+      unreachable operator
+      unreachable operator

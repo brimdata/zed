@@ -99,20 +99,22 @@ func (e *Error) Error() string {
 	if e.sset == nil {
 		return e.Msg
 	}
-	src := e.sset.SourceOf(e.Pos)
-	start := src.Position(e.Pos)
-	end := src.Position(e.End)
 	var b strings.Builder
 	b.WriteString(e.Msg)
-	if src.Filename != "" {
-		fmt.Fprintf(&b, " in %s", src.Filename)
-	}
-	line := src.LineOfPos(e.sset.Text, e.Pos)
-	fmt.Fprintf(&b, " at line %d, column %d:\n%s\n", start.Line, start.Column, line)
-	if end.IsValid() {
-		formatSpanError(&b, line, start, end)
-	} else {
-		formatPointError(&b, start)
+	if e.Pos >= 0 {
+		src := e.sset.SourceOf(e.Pos)
+		start := src.Position(e.Pos)
+		end := src.Position(e.End)
+		if src.Filename != "" {
+			fmt.Fprintf(&b, " in %s", src.Filename)
+		}
+		line := src.LineOfPos(e.sset.Text, e.Pos)
+		fmt.Fprintf(&b, " at line %d, column %d:\n%s\n", start.Line, start.Column, line)
+		if end.IsValid() {
+			formatSpanError(&b, line, start, end)
+		} else {
+			formatPointError(&b, start)
+		}
 	}
 	return b.String()
 }
