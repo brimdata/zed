@@ -89,16 +89,13 @@ func (a *analyzer) semOpSource(source ast.Source, out dag.Seq) dag.Seq {
 func (a *analyzer) semSource(source ast.Source) []dag.Op {
 	switch s := source.(type) {
 	case *ast.File:
-		sortKey, err := semSortKey(s.SortKey)
-		if err != nil {
-			a.error(source, err)
-		}
 		var path string
 		switch p := s.Path.(type) {
 		case *ast.QuotedString:
 			path = p.Text
 		case *ast.String:
 			// This can be either a reference to a constant or a string.
+			var err error
 			if path, err = a.maybeStringConst(p.Text); err != nil {
 				a.error(s.Path, err)
 			}
@@ -107,17 +104,13 @@ func (a *analyzer) semSource(source ast.Source) []dag.Op {
 		}
 		return []dag.Op{
 			&dag.FileScan{
-				Kind:    "FileScan",
-				Path:    path,
-				Format:  s.Format,
-				SortKey: sortKey,
+				Kind:     "FileScan",
+				Path:     path,
+				Format:   s.Format,
+				SortKeys: a.semSortKeys(s.SortKeys),
 			},
 		}
 	case *ast.HTTP:
-		sortKey, err := semSortKey(s.SortKey)
-		if err != nil {
-			a.error(source, err)
-		}
 		var headers map[string][]string
 		if s.Headers != nil {
 			expr := a.semExpr(s.Headers)
@@ -137,6 +130,7 @@ func (a *analyzer) semSource(source ast.Source) []dag.Op {
 			url = p.Text
 		case *ast.String:
 			// This can be either a reference to a constant or a string.
+			var err error
 			if url, err = a.maybeStringConst(p.Text); err != nil {
 				a.error(s.URL, err)
 				// Set url so we don't report an error for this twice.
@@ -150,13 +144,13 @@ func (a *analyzer) semSource(source ast.Source) []dag.Op {
 		}
 		return []dag.Op{
 			&dag.HTTPScan{
-				Kind:    "HTTPScan",
-				URL:     url,
-				Format:  s.Format,
-				SortKey: sortKey,
-				Method:  s.Method,
-				Headers: headers,
-				Body:    s.Body,
+				Kind:     "HTTPScan",
+				URL:      url,
+				Format:   s.Format,
+				SortKeys: a.semSortKeys(s.SortKeys),
+				Method:   s.Method,
+				Headers:  headers,
+				Body:     s.Body,
 			},
 		}
 	case *ast.Pool:
@@ -195,25 +189,31 @@ func unmarshalHeaders(arena *zed.Arena, val zed.Value) (map[string][]string, err
 	return headers, nil
 }
 
-// XXX At some point SortKey should be an ast.Node but for now just have this
-// return and error and let the parent log the semantic error.
-func semSortKey(p *ast.SortKey) (order.SortKey, error) {
-	if p == nil || p.Keys == nil {
-		return order.Nil, nil
-	}
-	var keys field.List
-	for _, key := range p.Keys {
-		this := DotExprToFieldPath(key)
-		if this == nil {
-			return order.Nil, fmt.Errorf("bad key expr of type %T in file operator", key)
+func (a *analyzer) semSortKeys(sortExprs []ast.SortExpr) order.SortKeys {
+	var sortKeys order.SortKeys
+	for _, e := range sortExprs {
+		s := a.semSortExpr(e)
+		switch key := s.Key.(type) {
+		case *dag.This:
+			sortKeys = append(sortKeys, order.NewSortKey(s.Order, key.Path))
+		case *dag.BadExpr: // ignore so we don't report double errors
+		default:
+			a.error(e.Expr, errors.New("field required in sort expression"))
 		}
-		keys = append(keys, this.Path)
 	}
-	which, err := order.Parse(p.Order)
-	if err != nil {
-		return order.Nil, err
+	return sortKeys
+}
+
+func (a *analyzer) semSortExpr(s ast.SortExpr) dag.SortExpr {
+	e := a.semExpr(s.Expr)
+	o := order.Asc
+	if s.Order != nil {
+		var err error
+		if o, err = order.Parse(s.Order.Name); err != nil {
+			a.error(s.Order, err)
+		}
 	}
-	return order.NewSortKey(which, keys), nil
+	return dag.SortExpr{Key: e, Order: o}
 }
 
 func (a *analyzer) semPool(p *ast.Pool) []dag.Op {
@@ -511,12 +511,15 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) dag.Seq {
 			Args: args,
 		})
 	case *ast.Sort:
-		exprs := a.semExprs(o.Args)
+		var sortExprs []dag.SortExpr
+		for _, arg := range o.Args {
+			sortExprs = append(sortExprs, a.semSortExpr(arg))
+		}
 		return append(seq, &dag.Sort{
 			Kind:       "Sort",
-			Args:       exprs,
-			Order:      o.Order,
+			Args:       sortExprs,
 			NullsFirst: o.NullsFirst,
+			Reverse:    o.Reverse,
 		})
 	case *ast.Head:
 		val := zed.NewInt64(1)

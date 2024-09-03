@@ -372,19 +372,15 @@ AssertOp
     }
 
 SortOp
-  = "sort" &EOKW args:SortArgs list:(_ l:Exprs { return l, nil })? {
+  = "sort" &EOKW args:SortArgs exprs:(__ e:SortExprs { return e, nil })? {
       o := &ast.Sort{
         Kind: "Sort",
-        Order: order.Asc,
-        NullsFirst: false,
         KeywordPos: c.pos.offset,
-      }
-      if list != nil {
-        o.Args = sliceOf[ast.Expr](list)
+        Args: sliceOf[ast.SortExpr](exprs),
       }
       argm := args.(map[string]any)
       if _, ok := argm["r"]; ok {
-        o.Order = order.Desc
+        o.Reverse = true
       }
       if n, ok := argm["nulls"]; ok && n == "first" {
         o.NullsFirst = true
@@ -626,18 +622,15 @@ FromOp
   / From
 
 File
-  = "file" _ path:Path format:FormatArg? sortkey:SortKeyArg? {
-      f := &ast.File{
+  = "file" _ path:Path format:FormatArg? sortKeys:OrderArg? {
+      return &ast.File{
         Kind: "File",
         KeywordPos: c.pos.offset,
         Path: path.(ast.Pattern),
         Format: nullableString(format),
+        SortKeys: sliceOf[ast.SortExpr](sortKeys),
         EndPos: c.pos.offset+len(c.text),
-      }
-      if sortkey != nil {
-        f.SortKey = sortkey.(*ast.SortKey)
-      }
-      return f, nil
+      }, nil
     }
 
 From
@@ -661,18 +654,16 @@ Pool
     }
 
 Get
-  = "get" _ url:Path format:FormatArg? sortkey:SortKeyArg? method:MethodArg? headers:HeadersArg? body:BodyArg? {
+  = "get" _ url:Path format:FormatArg? sortKeys:OrderArg? method:MethodArg? headers:HeadersArg? body:BodyArg? {
       h := &ast.HTTP{
         Kind: "HTTP",
         URL: url.(ast.Pattern),
         Format: nullableString(format),
+        SortKeys: sliceOf[ast.SortExpr](sortKeys),
         Method: nullableString(method),
         KeywordPos: c.pos.offset,
         Body: nullableString(body),
         EndPos: c.pos.offset+len(c.text),
-      }
-      if sortkey != nil {
-        h.SortKey = sortkey.(*ast.SortKey)
       }
       if headers != nil {
         h.Headers = headers.(*ast.RecordExpr)
@@ -733,13 +724,28 @@ PoolNameString
 PoolIdentifier
   = (IdentifierStart / ".") (IdentifierRest / ".")* { return string(c.text), nil }
 
-SortKeyArg
-  = _ "order" _ keys:FieldExprs order:OrderSuffix {
-      return &ast.SortKey{
-        Kind: "SortKey",
-        Keys: sliceOf[ast.Expr](keys),
-        Order: order.(string),
-      }, nil
+OrderArg
+  = _ "order" _ exprs:SortExprs {
+      return exprs, nil
+    }
+
+SortExprs
+  = first:SortExpr rest:(__ "," __ s:SortExpr { return s, nil })* {
+      return prepend(first, rest), nil
+    }
+
+SortExpr
+  = e:Expr order:(_ o:OrderSpec { return o, nil })? {
+      s := ast.SortExpr{Kind: "SortExpr", Expr: e.(ast.Expr)}      
+      if order != nil {
+        s.Order = order.(*ast.ID)
+      }
+      return s, nil
+    }
+
+OrderSpec
+  = ("asc" / "desc") {
+      return &ast.ID{Kind: "ID", Name: string(c.text), NamePos: c.pos.offset}, nil
     }
 
 TapArg
@@ -748,11 +754,6 @@ TapArg
 
 FormatArg
   = _ "format" _ val:IdentifierName { return val, nil }
-
-OrderSuffix
-  = ":asc"  { return "asc", nil }
-  / ":desc" { return "desc", nil }
-  / ""      { return "asc", nil }
 
 PassOp
   = "pass" !(__ "(") &EOKW {

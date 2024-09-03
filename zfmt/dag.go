@@ -3,7 +3,6 @@ package zfmt
 import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -387,15 +386,19 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Sort:
 		c.next()
 		c.write("sort")
-		if p.Order == order.Desc {
+		if p.Reverse {
 			c.write(" -r")
 		}
 		if p.NullsFirst {
 			c.write(" -nulls first")
 		}
-		if len(p.Args) > 0 {
+		for i, s := range p.Args {
+			if i > 0 {
+				c.write(",")
+			}
 			c.space()
-			c.exprs(p.Args)
+			c.expr(s.Key, "")
+			c.write(" %s", s.Order)
 		}
 	case *dag.Load:
 		c.next()
@@ -508,8 +511,14 @@ func (c *canonDAG) op(p dag.Op) {
 		if p.Format != "" {
 			c.write(" format %s", p.Format)
 		}
-		if !p.SortKey.IsNil() {
-			c.write(" order %s", p.SortKey)
+		if !p.SortKeys.IsNil() {
+			c.write(" order")
+			for i, s := range p.SortKeys {
+				if i > 0 {
+					c.write(",")
+				}
+				c.write(" %s  %s", s.Key, s.Order)
+			}
 		}
 		if p.Filter != nil {
 			c.write(" filter (")

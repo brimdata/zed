@@ -104,7 +104,7 @@ func NewCommitMetaScanner(ctx context.Context, zctx *zed.Context, r *lake.Root, 
 			return nil, err
 		}
 		vectors := commits.Vectors(snap)
-		reader, err := objectReader(ctx, zctx, vectors, p.SortKey.Order)
+		reader, err := objectReader(ctx, zctx, vectors, p.SortKeys.Primary().Order)
 		if err != nil {
 			return nil, err
 		}

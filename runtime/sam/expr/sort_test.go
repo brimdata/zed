@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -24,7 +25,7 @@ func BenchmarkSort(b *testing.B) {
 		b.Run(zson.FormatType(c.typ), func(b *testing.B) {
 			arena := zed.NewArena()
 			defer arena.Unref()
-			cmp := NewComparator(false, false, &This{})
+			cmp := NewComparator(false, SortEvaluator{&This{}, order.Asc})
 			vals := make([]zed.Value, 1048576)
 			for i := 0; i < b.N; i++ {
 				b.StopTimer()

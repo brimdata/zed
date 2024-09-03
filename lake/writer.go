@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -133,7 +132,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 			return w.ctx.Err()
 		}
 	}
-	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.SortKey.Order, poolKey(w.pool.SortKey), w.pool.SeekStride)
+	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.SortKeys.Primary(), w.pool.SeekStride)
 	if err != nil {
 		return err
 	}
@@ -160,7 +159,7 @@ type SortedWriter struct {
 	comparator    *expr.Comparator
 	ctx           context.Context
 	pool          *Pool
-	poolKey       field.Path
+	sortKey       order.SortKey
 	lastKey       zed.Value
 	writer        *data.Writer
 	vectorEnabled bool
@@ -174,7 +173,7 @@ func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorE
 	return &SortedWriter{
 		comparator:    ImportComparator(zctx, pool),
 		ctx:           ctx,
-		poolKey:       poolKey(pool.SortKey),
+		sortKey:       pool.SortKeys.Primary(),
 		pool:          pool,
 		vectorEnabled: vectorEnabled,
 		keyArena:      zed.NewArena(),
@@ -184,7 +183,7 @@ func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorE
 
 func (w *SortedWriter) Write(val zed.Value) error {
 	w.keyArena.Reset()
-	key := val.DerefPath(w.keyArena, w.poolKey).MissingAsNull()
+	key := val.DerefPath(w.keyArena, w.sortKey.Key).MissingAsNull()
 again:
 	if w.writer == nil {
 		if err := w.newWriter(); err != nil {
@@ -234,7 +233,7 @@ func (w *SortedWriter) Abort() {
 func (w *SortedWriter) newWriter() error {
 	o := data.NewObject()
 	var err error
-	w.writer, err = o.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.SortKey.Order, poolKey(w.pool.SortKey), w.pool.SeekStride)
+	w.writer, err = o.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.sortKey, w.pool.SeekStride)
 	if err != nil {
 		return err
 	}
@@ -297,15 +296,5 @@ func (s *ImportStats) Copy() ImportStats {
 }
 
 func ImportComparator(zctx *zed.Context, pool *Pool) *expr.Comparator {
-	sortKey := pool.SortKey
-	sortKey.Keys = field.List{poolKey(sortKey)}
-	return zbuf.NewComparatorNullsMax(zctx, sortKey)
-}
-
-func poolKey(sortKey order.SortKey) field.Path {
-	if len(sortKey.Keys) != 0 {
-		// XXX We don't yet handle multiple pool keys.
-		return sortKey.Keys[0]
-	}
-	return field.Path{"ts"}
+	return zbuf.NewComparatorNullsMax(zctx, pool.SortKeys)
 }

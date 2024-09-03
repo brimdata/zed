@@ -15,7 +15,6 @@ import (
 	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/expr"
@@ -187,11 +186,15 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return op.NewApplier(b.rctx, parent, dropper, expr.Resetters{}), nil
 	case *dag.Sort:
 		b.resetResetters()
-		fields, err := b.compileExprs(v.Args)
-		if err != nil {
-			return nil, err
+		var sortExprs []expr.SortEvaluator
+		for _, s := range v.Args {
+			k, err := b.compileExpr(s.Key)
+			if err != nil {
+				return nil, err
+			}
+			sortExprs = append(sortExprs, expr.NewSortEvaluator(k, s.Order))
 		}
-		sort, err := sort.New(b.rctx, parent, fields, v.Order, v.NullsFirst, b.resetters)
+		sort, err := sort.New(b.rctx, parent, sortExprs, v.NullsFirst, v.Reverse, b.resetters)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
@@ -672,7 +675,7 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		if err != nil {
 			return nil, err
 		}
-		cmp := expr.NewComparator(true, o.Order == order.Desc, e).WithMissingAsNull()
+		cmp := expr.NewComparator(true, expr.NewSortEvaluator(e, o.Order)).WithMissingAsNull()
 		return []zbuf.Puller{merge.New(b.rctx, parents, cmp.Compare, b.resetters)}, nil
 	case *dag.Combine:
 		return []zbuf.Puller{combine.New(b.rctx, parents)}, nil

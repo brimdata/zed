@@ -176,7 +176,7 @@ func (o *Optimizer) OptimizeDeleter(seq dag.Seq, replicas int) (dag.Seq, error) 
 		Pool:   scan.ID,
 		Commit: scan.Commit,
 	}
-	sortKey, err := o.sortKeyOfSource(lister)
+	sortKeys, err := o.sortKeysOfSource(lister)
 	if err != nil {
 		return nil, err
 	}
@@ -186,19 +186,19 @@ func (o *Optimizer) OptimizeDeleter(seq dag.Seq, replicas int) (dag.Seq, error) 
 		Where: filter.Expr,
 		//XXX KeyPruner?
 	}
-	lister.KeyPruner = maybeNewRangePruner(filter.Expr, sortKey)
+	lister.KeyPruner = maybeNewRangePruner(filter.Expr, sortKeys)
 	scatter := &dag.Scatter{Kind: "Scatter"}
 	for k := 0; k < replicas; k++ {
 		scatter.Paths = append(scatter.Paths, copyOps(dag.Seq{deleter}))
 	}
 	var merge dag.Op
-	if sortKey.IsNil() {
+	if sortKeys.IsNil() {
 		merge = &dag.Combine{Kind: "Combine"}
 	} else {
 		merge = &dag.Merge{
 			Kind:  "Merge",
-			Expr:  &dag.This{Kind: "This", Path: sortKey.Primary()},
-			Order: sortKey.Order,
+			Expr:  &dag.This{Kind: "This", Path: sortKeys.Primary().Key},
+			Order: sortKeys.Primary().Order,
 		}
 	}
 	return dag.Seq{lister, scatter, merge, output}, nil
@@ -215,7 +215,7 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 			// Nothing to push down.
 			return seq, nil
 		}
-		o.propagateSortKey(seq, []order.SortKey{order.Nil})
+		o.propagateSortKey(seq, []order.SortKeys{nil})
 		// See if we can lift a filtering predicate into the source op.
 		// Filter might be nil in which case we just put the chain back
 		// on the source op and zero out the source's filter.
@@ -232,13 +232,13 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 			}
 			// Check to see if we can add a range pruner when the pool key is used
 			// in a normal filtering operation.
-			sortKey, err := o.sortKeyOfSource(op)
+			sortKeys, err := o.sortKeysOfSource(op)
 			if err != nil {
 				return nil, err
 			}
-			lister.KeyPruner = maybeNewRangePruner(filter, sortKey)
+			lister.KeyPruner = maybeNewRangePruner(filter, sortKeys)
 			seq = dag.Seq{lister}
-			_, _, orderRequired, _, err := o.concurrentPath(chain, sortKey)
+			_, _, orderRequired, _, err := o.concurrentPath(chain, sortKeys)
 			if err != nil {
 				return nil, err
 			}
@@ -258,13 +258,13 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 			seq = append(dag.Seq{op}, chain...)
 		case *dag.CommitMetaScan:
 			if op.Tap {
-				sortKey, err := o.sortKeyOfSource(op)
+				sortKeys, err := o.sortKeysOfSource(op)
 				if err != nil {
 					return nil, err
 				}
 				// Check to see if we can add a range pruner when the pool key is used
 				// in a normal filtering operation.
-				op.KeyPruner = maybeNewRangePruner(filter, sortKey)
+				op.KeyPruner = maybeNewRangePruner(filter, sortKeys)
 				// Delete the downstream operators when we are tapping the object list.
 				o, ok := seq[len(seq)-1].(*dag.Output)
 				if !ok {
@@ -280,8 +280,8 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 	})
 }
 
-func (o *Optimizer) SortKeys(seq dag.Seq) ([]order.SortKey, error) {
-	return o.propagateSortKey(copyOps(seq), []order.SortKey{order.Nil})
+func (o *Optimizer) SortKeys(seq dag.Seq) ([]order.SortKeys, error) {
+	return o.propagateSortKey(copyOps(seq), []order.SortKeys{nil})
 }
 
 // propagateSortKey analyzes a Seq and attempts to push the scan order of the data source
@@ -289,7 +289,7 @@ func (o *Optimizer) SortKeys(seq dag.Seq) ([]order.SortKey, error) {
 // point but don't bother yet because we do not yet support any optimization
 // past the first aggregation.)  For parallel paths, we propagate
 // the scan order if its the same at egress of all of the paths.
-func (o *Optimizer) propagateSortKey(seq dag.Seq, parents []order.SortKey) ([]order.SortKey, error) {
+func (o *Optimizer) propagateSortKey(seq dag.Seq, parents []order.SortKeys) ([]order.SortKeys, error) {
 	if len(seq) == 0 {
 		return parents, nil
 	}
@@ -297,22 +297,22 @@ func (o *Optimizer) propagateSortKey(seq dag.Seq, parents []order.SortKey) ([]or
 		var err error
 		parents, err = o.propagateSortKeyOp(op, parents)
 		if err != nil {
-			return []order.SortKey{order.Nil}, err
+			return []order.SortKeys{nil}, err
 		}
 	}
 	return parents, nil
 }
 
-func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]order.SortKey, error) {
+func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKeys) ([]order.SortKeys, error) {
 	if join, ok := op.(*dag.Join); ok {
 		if len(parents) != 2 {
 			return nil, errors.New("internal error: join does not have two parents")
 		}
-		if fieldOf(join.LeftKey).Equal(parents[0].Primary()) {
-			join.LeftDir = parents[0].Order.Direction()
+		if !parents[0].IsNil() && fieldOf(join.LeftKey).Equal(parents[0].Primary().Key) {
+			join.LeftDir = parents[0].Primary().Order.Direction()
 		}
-		if fieldOf(join.RightKey).Equal(parents[1].Primary()) {
-			join.RightDir = parents[1].Order.Direction()
+		if !parents[1].IsNil() && fieldOf(join.RightKey).Equal(parents[1].Primary().Key) {
+			join.RightDir = parents[1].Primary().Order.Direction()
 		}
 		// XXX There is definitely a way to propagate the sort key but there's
 		// some complexity here. The propagated sort key should be whatever key
@@ -321,47 +321,50 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 		// propagated sort key be? Ideally in this case they both would which
 		// would allow for maximum flexibility. For now just return unspecified
 		// sort order.
-		return []order.SortKey{order.Nil}, nil
+		return []order.SortKeys{nil}, nil
 	}
 	// If the op is not a join then condense sort order into a single parent,
 	// since all the ops only care about the sort order of multiple parents if
 	// the SortKey of all parents is unified.
-	parent := order.Nil
+	var parent order.SortKeys
 	for k, p := range parents {
 		if k == 0 {
 			parent = p
 		} else if !parent.Equal(p) {
-			parent = order.Nil
+			parent = nil
 			break
 		}
 	}
 	switch op := op.(type) {
 	case *dag.Summarize:
-		//XXX handle only primary key for now
-		key := parent.Primary()
+		if parent.IsNil() {
+			return []order.SortKeys{nil}, nil
+		}
+		//XXX handle only primary sortKey for now
+		sortKey := parent.Primary()
 		for _, k := range op.Keys {
-			if groupByKey := fieldOf(k.LHS); groupByKey.Equal(key) {
+			if groupByKey := fieldOf(k.LHS); groupByKey.Equal(sortKey.Key) {
 				rhsExpr := k.RHS
 				rhs := fieldOf(rhsExpr)
-				if rhs.Equal(key) || orderPreservingCall(rhsExpr, groupByKey) {
-					op.InputSortDir = orderAsDirection(parent.Order)
+				if rhs.Equal(sortKey.Key) || orderPreservingCall(rhsExpr, groupByKey) {
+					op.InputSortDir = orderAsDirection(sortKey.Order)
 					// Currently, the groupby operator will sort its
 					// output according to the primary key, but we
 					// should relax this and do an analysis here as
 					// to whether the sort is necessary for the
 					// downstream consumer.
-					return []order.SortKey{parent}, nil
+					return []order.SortKeys{parent}, nil
 				}
 			}
 		}
 		// We'll live this as unknown for now even though the groupby
 		// and not try to optimize downstream of the first groupby
 		// unless there is an excplicit sort encountered.
-		return []order.SortKey{order.Nil}, nil
+		return []order.SortKeys{nil}, nil
 	case *dag.Fork:
-		var keys []order.SortKey
+		var keys []order.SortKeys
 		for _, seq := range op.Paths {
-			out, err := o.propagateSortKey(seq, []order.SortKey{parent})
+			out, err := o.propagateSortKey(seq, []order.SortKeys{parent})
 			if err != nil {
 				return nil, err
 			}
@@ -369,9 +372,9 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 		}
 		return keys, nil
 	case *dag.Scatter:
-		var keys []order.SortKey
+		var keys []order.SortKeys
 		for _, seq := range op.Paths {
-			out, err := o.propagateSortKey(seq, []order.SortKey{parent})
+			out, err := o.propagateSortKey(seq, []order.SortKeys{parent})
 			if err != nil {
 				return nil, err
 			}
@@ -379,9 +382,9 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 		}
 		return keys, nil
 	case *dag.Mirror:
-		var keys []order.SortKey
+		var keys []order.SortKeys
 		for _, seq := range []dag.Seq{op.Main, op.Mirror} {
-			out, err := o.propagateSortKey(seq, []order.SortKey{parent})
+			out, err := o.propagateSortKey(seq, []order.SortKeys{parent})
 			if err != nil {
 				return nil, err
 			}
@@ -389,33 +392,33 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKey) ([]or
 		}
 		return keys, nil
 	case *dag.Merge:
-		sortKey := order.NewSortKey(op.Order, nil)
+		var sortKeys order.SortKeys
 		if this, ok := op.Expr.(*dag.This); ok {
-			sortKey.Keys = field.List{this.Path}
+			sortKeys = append(sortKeys, order.NewSortKey(op.Order, this.Path))
 		}
-		if !sortKey.Equal(parent) {
-			sortKey = order.Nil
+		if !sortKeys.Equal(parent) {
+			sortKeys = nil
 		}
-		return []order.SortKey{sortKey}, nil
+		return []order.SortKeys{sortKeys}, nil
 	case *dag.PoolScan, *dag.Lister, *dag.SeqScan, *dag.DefaultScan:
-		out, err := o.sortKeyOfSource(op)
-		return []order.SortKey{out}, err
+		out, err := o.sortKeysOfSource(op)
+		return []order.SortKeys{out}, err
 	case *dag.Scope:
 		return o.propagateSortKey(op.Body, parents)
 	default:
-		out, err := o.analyzeSortKey(op, parent)
-		return []order.SortKey{out}, err
+		out, err := o.analyzeSortKeys(op, parent)
+		return []order.SortKeys{out}, err
 	}
 }
 
-func (o *Optimizer) sortKeyOfSource(op dag.Op) (order.SortKey, error) {
+func (o *Optimizer) sortKeysOfSource(op dag.Op) (order.SortKeys, error) {
 	switch op := op.(type) {
 	case *dag.DefaultScan:
-		return op.SortKey, nil
+		return op.SortKeys, nil
 	case *dag.FileScan:
-		return op.SortKey, nil
+		return op.SortKeys, nil
 	case *dag.HTTPScan:
-		return op.SortKey, nil
+		return op.SortKeys, nil
 	case *dag.PoolScan:
 		return o.sortKey(op.ID)
 	case *dag.Lister:
@@ -429,18 +432,18 @@ func (o *Optimizer) sortKeyOfSource(op dag.Op) (order.SortKey, error) {
 			// objects etc.) but we execute it in the end as a meta-query.
 			return o.sortKey(op.Pool)
 		}
-		return order.Nil, nil //XXX is this right?
+		return nil, nil //XXX is this right?
 	default:
-		return order.Nil, fmt.Errorf("internal error: unknown source type %T", op)
+		return nil, fmt.Errorf("internal error: unknown source type %T", op)
 	}
 }
 
-func (o *Optimizer) sortKey(id ksuid.KSUID) (order.SortKey, error) {
+func (o *Optimizer) sortKey(id ksuid.KSUID) (order.SortKeys, error) {
 	pool, err := o.lookupPool(id)
 	if err != nil {
-		return order.Nil, err
+		return nil, err
 	}
-	return pool.SortKey, nil
+	return pool.SortKeys, nil
 }
 
 // Parallelize tries to parallelize the DAG by splitting each source
@@ -543,18 +546,18 @@ func matchFilter(in []dag.Op) (dag.Expr, []dag.Op) {
 // to be ordered according to the order o.  This is used to prune metadata objects
 // from a scan when we know the pool key range of the object could not satisfy
 // the filter predicate of any of the values in the object.
-func newRangePruner(pred dag.Expr, fld field.Path, o order.Which) dag.Expr {
+func newRangePruner(pred dag.Expr, sortKey order.SortKey) dag.Expr {
 	min := &dag.This{Kind: "This", Path: field.Path{"min"}}
 	max := &dag.This{Kind: "This", Path: field.Path{"max"}}
-	if e := buildRangePruner(pred, fld, min, max); e != nil {
+	if e := buildRangePruner(pred, sortKey.Key, min, max); e != nil {
 		return e
 	}
 	return nil
 }
 
-func maybeNewRangePruner(pred dag.Expr, sortKey order.SortKey) dag.Expr {
-	if !sortKey.IsNil() && pred != nil {
-		return newRangePruner(pred, sortKey.Primary(), sortKey.Order)
+func maybeNewRangePruner(pred dag.Expr, sortKeys order.SortKeys) dag.Expr {
+	if !sortKeys.IsNil() && pred != nil {
+		return newRangePruner(pred, sortKeys.Primary())
 	}
 	return nil
 }

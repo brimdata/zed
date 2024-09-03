@@ -23,24 +23,24 @@ var MemMaxBytes = 128 * 1024 * 1024
 type Op struct {
 	rctx       *runtime.Context
 	parent     zbuf.Puller
-	order      order.Which
 	nullsFirst bool
 	resetter   expr.Resetter
+	reverse    bool
 
-	fieldResolvers []expr.Evaluator
+	fieldResolvers []expr.SortEvaluator
 	lastBatch      zbuf.Batch
 	once           sync.Once
 	resultCh       chan op.Result
 	comparator     *expr.Comparator
 }
 
-func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool, resetter expr.Resetter) (*Op, error) {
+func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.SortEvaluator, nullsFirst, reverse bool, resetter expr.Resetter) (*Op, error) {
 	return &Op{
 		rctx:           rctx,
 		parent:         parent,
-		order:          order,
 		nullsFirst:     nullsFirst,
 		resetter:       resetter,
+		reverse:        reverse,
 		fieldResolvers: fields,
 		resultCh:       make(chan op.Result),
 	}, nil
@@ -215,15 +215,19 @@ func (o *Op) setComparator(r zed.Value) {
 	resolvers := o.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
-		resolver := expr.NewDottedExpr(o.rctx.Zctx, fld)
-		resolvers = []expr.Evaluator{resolver}
+		resolver := expr.NewSortEvaluator(expr.NewDottedExpr(o.rctx.Zctx, fld), order.Asc)
+		resolvers = []expr.SortEvaluator{resolver}
 	}
-	reverse := o.order == order.Desc
 	nullsMax := !o.nullsFirst
-	if reverse {
+	if o.reverse {
+		for k := range resolvers {
+			resolvers[k].Order = !resolvers[k].Order
+		}
+	}
+	if resolvers[0].Order == order.Desc {
 		nullsMax = !nullsMax
 	}
-	o.comparator = expr.NewComparator(nullsMax, reverse, resolvers...).WithMissingAsNull()
+	o.comparator = expr.NewComparator(nullsMax, resolvers...).WithMissingAsNull()
 }
 
 func GuessSortKey(val zed.Value) field.Path {
