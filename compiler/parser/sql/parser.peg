@@ -271,7 +271,7 @@ pivot_operator
 //      'type': 'pivot',
 //      'expr': a,
 //      column: c,
-//      in_expr: i,
+//      in_ex pr: i,
 //      as,
 //    }
   }
