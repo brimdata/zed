@@ -17,6 +17,15 @@ func NewBytes(offs []uint32, bytes []byte, nulls *Bool) *Bytes {
 	return &Bytes{Offs: offs, Bytes: bytes, Nulls: nulls}
 }
 
+func NewBytesEmpty(length uint32, nulls *Bool) *Bytes {
+	return NewBytes(make([]uint32, 1, length+1), nil, nulls)
+}
+
+func (b *Bytes) Append(v []byte) {
+	b.Bytes = append(b.Bytes, v...)
+	b.Offs = append(b.Offs, uint32(len(b.Bytes)))
+}
+
 func (b *Bytes) Type() zed.Type {
 	return zed.TypeBytes
 }
