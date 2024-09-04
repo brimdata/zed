@@ -46,7 +46,8 @@ echo '"foo" 1 2 3 ' | zq -z 'any(this)' -
 
 Pick from groups bucketed by key:
 ```mdtest-command
-echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' | zq -z 'any(a) by k | sort' -
+echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' |
+  zq -z 'any(a) by k | sort' -
 ```
 =>
 ```mdtest-output

@@ -127,10 +127,10 @@ type (
 		Kind string `json:"kind" unpack:""`
 	}
 	Sort struct {
-		Kind       string      `json:"kind" unpack:""`
-		Args       []Expr      `json:"args"`
-		Order      order.Which `json:"order"`
-		NullsFirst bool        `json:"nullsfirst"`
+		Kind       string     `json:"kind" unpack:""`
+		Args       []SortExpr `json:"args"`
+		NullsFirst bool       `json:"nullsfirst"`
+		Reverse    bool       `json:"reverse"`
 	}
 	Summarize struct {
 		Kind         string       `json:"kind" unpack:""`
@@ -202,25 +202,25 @@ type (
 
 	// DefaultScan scans an input stream provided by the runtime.
 	DefaultScan struct {
-		Kind    string        `json:"kind" unpack:""`
-		Filter  Expr          `json:"filter"`
-		SortKey order.SortKey `json:"sort_key"`
+		Kind     string         `json:"kind" unpack:""`
+		Filter   Expr           `json:"filter"`
+		SortKeys order.SortKeys `json:"sort_keys"`
 	}
 	FileScan struct {
-		Kind    string        `json:"kind" unpack:""`
-		Path    string        `json:"path"`
-		Format  string        `json:"format"`
-		SortKey order.SortKey `json:"sort_key"`
-		Filter  Expr          `json:"filter"`
+		Kind     string         `json:"kind" unpack:""`
+		Path     string         `json:"path"`
+		Format   string         `json:"format"`
+		SortKeys order.SortKeys `json:"sort_keys"`
+		Filter   Expr           `json:"filter"`
 	}
 	HTTPScan struct {
-		Kind    string              `json:"kind" unpack:""`
-		URL     string              `json:"url"`
-		Format  string              `json:"format"`
-		SortKey order.SortKey       `json:"sort_key"`
-		Method  string              `json:"method"`
-		Headers map[string][]string `json:"headers"`
-		Body    string              `json:"body"`
+		Kind     string              `json:"kind" unpack:""`
+		URL      string              `json:"url"`
+		Format   string              `json:"format"`
+		SortKeys order.SortKeys      `json:"sort_keys"`
+		Method   string              `json:"method"`
+		Headers  map[string][]string `json:"headers"`
+		Body     string              `json:"body"`
 	}
 	PoolScan struct {
 		Kind   string      `json:"kind" unpack:""`

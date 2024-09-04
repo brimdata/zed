@@ -42,7 +42,8 @@ echo '"-ab-axxb-"' | zq -z 'yield regexp_replace(this, /ax*b/, "T")' -
 Replace regular expression matches using numeric references to submatches:
 
 ```mdtest-command
-echo '"option: value"' | zq -z 'yield regexp_replace(this,/(\w+):\s+(\w+)$/,"$1=$2")' -
+echo '"option: value"' |
+  zq -z 'yield regexp_replace(this,/(\w+):\s+(\w+)$/,"$1=$2")' -
 ```
 =>
 ```mdtest-output
@@ -52,7 +53,12 @@ echo '"option: value"' | zq -z 'yield regexp_replace(this,/(\w+):\s+(\w+)$/,"$1=
 Replace regular expression matches using named references:
 
 ```mdtest-command
-echo '"option: value"' | zq -z 'yield regexp_replace(this,/(?P<key>\w+):\s+(?P<value>\w+)$/,"$key=$value")' -
+echo '"option: value"' |
+  zq -z 'yield regexp_replace(
+                 this,
+                 /(?P<key>\w+):\s+(?P<value>\w+)$/,
+                 "$key=$value")
+  ' -
 ```
 =>
 ```mdtest-output
@@ -62,7 +68,12 @@ echo '"option: value"' | zq -z 'yield regexp_replace(this,/(?P<key>\w+):\s+(?P<v
 Wrap a named reference in curly braces to avoid ambiguity:
 
 ```mdtest-command
-echo '"option: value"' | zq -z 'yield regexp_replace(this,/(?P<key>\w+):\s+(?P<value>\w+)$/,"$key=${value}AppendedText")' -
+echo '"option: value"' |
+  zq -z 'yield regexp_replace(
+                 this,
+                /(?P<key>\w+):\s+(?P<value>\w+)$/,
+                "$key=${value}AppendedText")
+  ' -
 ```
 =>
 ```mdtest-output

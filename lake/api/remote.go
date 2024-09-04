@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -50,10 +51,13 @@ func (r *remote) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchNam
 	return res.Commit, err
 }
 
-func (r *remote) CreatePool(ctx context.Context, name string, sortKey order.SortKey, seekStride int, thresh int64) (ksuid.KSUID, error) {
+func (r *remote) CreatePool(ctx context.Context, name string, sortKeys order.SortKeys, seekStride int, thresh int64) (ksuid.KSUID, error) {
 	res, err := r.conn.CreatePool(ctx, api.PoolPostRequest{
-		Name:       name,
-		SortKey:    sortKey,
+		Name: name,
+		SortKeys: api.SortKeys{
+			Order: sortKeys.Primary().Order,
+			Keys:  field.List{sortKeys.Primary().Key},
+		},
 		SeekStride: seekStride,
 		Thresh:     thresh,
 	})

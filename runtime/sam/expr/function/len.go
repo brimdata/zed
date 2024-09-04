@@ -11,9 +11,9 @@ type LenFn struct {
 }
 
 func (l *LenFn) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	val := args[0]
+	val := args[0].Under(ectx.Arena())
 	var length int
-	switch typ := zed.TypeUnder(args[0].Type()).(type) {
+	switch typ := zed.TypeUnder(val.Type()).(type) {
 	case *zed.TypeOfNull:
 	case *zed.TypeRecord:
 		length = len(typ.Fields)
@@ -32,31 +32,31 @@ func (l *LenFn) Call(ectx expr.Context, args []zed.Value) zed.Value {
 		if err != nil {
 			return l.zctx.NewError(ectx.Arena(), err)
 		}
-		length = typeLength(t)
+		length = TypeLength(t)
 	default:
 		return l.zctx.WrapError(ectx.Arena(), "len: bad type", val)
 	}
 	return zed.NewInt64(int64(length))
 }
 
-func typeLength(typ zed.Type) int {
+func TypeLength(typ zed.Type) int {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
-		return typeLength(typ.Type)
+		return TypeLength(typ.Type)
 	case *zed.TypeRecord:
 		return len(typ.Fields)
 	case *zed.TypeUnion:
 		return len(typ.Types)
 	case *zed.TypeSet:
-		return typeLength(typ.Type)
+		return TypeLength(typ.Type)
 	case *zed.TypeArray:
-		return typeLength(typ.Type)
+		return TypeLength(typ.Type)
 	case *zed.TypeEnum:
 		return len(typ.Symbols)
 	case *zed.TypeMap:
-		return typeLength(typ.ValType)
+		return TypeLength(typ.ValType)
 	case *zed.TypeError:
-		return typeLength(typ.Type)
+		return TypeLength(typ.Type)
 	default:
 		// Primitive type
 		return 1

@@ -128,7 +128,10 @@ type puller struct {
 	zr zio.Reader
 }
 
-func (p *puller) Pull(bool) (Batch, error) {
+func (p *puller) Pull(done bool) (Batch, error) {
+	if done {
+		p.zr = nil
+	}
 	if p.zr == nil {
 		return nil, nil
 	}

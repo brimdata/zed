@@ -20,7 +20,8 @@ aligns with 0.
 
 Bucket a couple times to hour intervals:
 ```mdtest-command
-echo '2020-05-26T15:27:47Z "5/26/2020 3:27pm"' | zq -z 'yield bucket(time(this), 1h)' -
+echo '2020-05-26T15:27:47Z "5/26/2020 3:27pm"' |
+  zq -z 'yield bucket(time(this), 1h)' -
 ```
 =>
 ```mdtest-output

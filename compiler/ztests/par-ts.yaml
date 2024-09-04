@@ -156,10 +156,10 @@ outputs:
       | scatter (
         =>
           seqscan ...
-          | sort x
+          | sort x asc
         =>
           seqscan ...
-          | sort x
+          | sort x asc
       )
       | merge x:asc
       | uniq

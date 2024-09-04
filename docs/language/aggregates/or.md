@@ -48,7 +48,8 @@ true
 
 OR of values grouped by key:
 ```mdtest-command
-echo '{a:true,k:1} {a:false,k:1} {a:false,k:2} {a:false,k:2}' | zq -z 'or(a) by k | sort' -
+echo '{a:true,k:1} {a:false,k:1} {a:false,k:2} {a:false,k:2}' |
+  zq -z 'or(a) by k | sort' -
 ```
 =>
 ```mdtest-output

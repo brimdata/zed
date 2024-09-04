@@ -89,6 +89,8 @@ func (l *loader) loadVector(g *errgroup.Group, paths Path, s shadow) {
 			s.vec = vec
 		}
 		s.mu.Unlock()
+	case *error_:
+		l.loadVector(g, paths, s.vals)
 	case *named:
 		l.loadVector(g, paths, s.vals)
 	default:
@@ -519,6 +521,9 @@ func (l *loader) fetchNulls(g *errgroup.Group, paths Path, s shadow) {
 		s.nulls.fetch(g, l.r)
 	case *const_:
 		s.nulls.fetch(g, l.r)
+	case *error_:
+		s.nulls.fetch(g, l.r)
+		l.fetchNulls(g, paths, s.vals)
 	case *named:
 		l.fetchNulls(g, paths, s.vals)
 	default:
@@ -573,6 +578,9 @@ func flattenNulls(paths Path, s shadow, parent *vector.Bool) {
 		s.nulls.flatten(parent)
 	case *const_:
 		s.nulls.flatten(parent)
+	case *error_:
+		s.nulls.flatten(parent)
+		flattenNulls(paths, s.vals, nil)
 	case *named:
 		flattenNulls(paths, s.vals, parent)
 	default:

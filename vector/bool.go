@@ -28,7 +28,9 @@ func (b *Bool) Type() zed.Type {
 }
 
 func (b *Bool) Value(slot uint32) bool {
-	return (b.Bits[slot>>6] & (1 << (slot & 0x3f))) != 0
+	// Because Bool is used to store nulls for many vectors and it is often
+	// nil check to see if receiver is nil and return false.
+	return b != nil && (b.Bits[slot>>6]&(1<<(slot&0x3f))) != 0
 }
 
 func (b *Bool) Set(slot uint32) {
@@ -67,4 +69,23 @@ func (b *Bool) String() string {
 		}
 	}
 	return s.String()
+}
+
+// BoolValue returns the value of slot in vec if the value is a Boolean.  It
+// returns false otherwise.
+func BoolValue(vec Any, slot uint32) bool {
+	switch vec := Under(vec).(type) {
+	case *Bool:
+		return vec.Value(slot)
+	case *Const:
+		return vec.Value().Ptr().AsBool()
+	case *Dict:
+		return BoolValue(vec.Any, uint32(vec.Index[slot]))
+	case *Variant:
+		tag := vec.Tags[slot]
+		return BoolValue(vec.Values[tag], vec.TagMap.Forward[slot])
+	case *View:
+		return BoolValue(vec.Any, vec.Index[slot])
+	}
+	return false
 }

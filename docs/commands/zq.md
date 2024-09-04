@@ -36,7 +36,7 @@ simply run `zq` with no arguments.
 
 `zq` supports a number of [input](#input-formats) and [output](#output-formats) formats, but [ZNG](../formats/zng.md)
 tends to be the most space-efficient and most performant.  ZNG has efficiency similar to
-[Avro](https://avro.apache.org/docs/current/spec.html)
+[Avro](https://avro.apache.org)
 and [Protocol Buffers](https://developers.google.com/protocol-buffers)
 but its comprehensive [Zed type system](../formats/zed.md) obviates
 the need for schema specification or registries.
@@ -406,7 +406,8 @@ the previously-printed header line, a new header line will be output.
 For example:
 
 ```mdtest-command
-echo '{word:"one",digit: 1} {word:"hello",style:"greeting"}' | zq -f table -
+echo '{word:"one",digit: 1} {word:"hello",style:"greeting"}' |
+  zq -f table -
 ```
 produces
 ```mdtest-output
@@ -421,7 +422,8 @@ may prove useful to unify the input stream under a single record type that can
 be described with a single header line. Doing this to our last example, we find
 
 ```mdtest-command
-echo '{word:"one",digit:1} {word:"hello",style:"greeting"}' | zq -f table 'fuse' -
+echo '{word:"one",digit:1} {word:"hello",style:"greeting"}' |
+  zq -f table 'fuse' -
 ```
 now produces
 ```mdtest-output
@@ -517,22 +519,22 @@ alternative to the traditional technique of looking through logs for errors
 or trying to debug a halted program with a vague error message.
 
 For example, this query
-```
-echo '1 2 0 3' |  zq '10.0/this' -
+```mdtest-command
+echo '1 2 0 3' |  zq -z '10.0/this' -
 ```
 produces
-```
+```mdtest-output
 10.
 5.
 error("divide by zero")
 3.3333333333333335
 ```
 and
-```
-echo '1 2 0 3' |  zq '10.0/this' - | zq 'is_error(this)' -
+```mdtest-command
+echo '1 2 0 3' |  zq '10.0/this' - | zq -z 'is_error(this)' -
 ```
 produces just
-```
+```mdtest-output
 error("divide by zero")
 ```
 
@@ -550,70 +552,71 @@ The language documentation and [tutorials directory](../tutorials/README.md)
 have many examples, but here are a few more simple `zq` use cases.
 
 _Hello, world_
-```
+```mdtest-command
 echo '"hello, world"' | zq -z 'yield this' -
 ```
 produces this ZSON output
-```
+```mdtest-output
 "hello, world"
 ```
 
 _Some values of available [data types](../language/data-types.md)_
-```
+```mdtest-command
 echo '1 1.5 [1,"foo"] |["apple","banana"]|' | zq -z 'yield this' -
 ```
 produces
-```
+```mdtest-output
 1
 1.5
 [1,"foo"]
 |["apple","banana"]|
 ```
 _The types of various data_
-```
+```mdtest-command
 echo '1 1.5 [1,"foo"] |["apple","banana"]|' | zq -z 'yield typeof(this)' -
 ```
 produces
-```
+```mdtest-output
 <int64>
 <float64>
 <[(int64,string)]>
 <|[string]|>
 ```
 _A simple [aggregation](../language/aggregates/README.md)_
-```
-echo '{key:"foo",val:1}{key:"bar",val:2}{key:"foo",val:3}' | zq -z 'sum(val) by key | sort key' -
+```mdtest-command
+echo '{key:"foo",val:1}{key:"bar",val:2}{key:"foo",val:3}' |
+  zq -z 'sum(val) by key | sort key' -
 ```
 produces
-```
+```mdtest-output
 {key:"bar",sum:2}
 {key:"foo",sum:4}
 ```
 _Convert CSV to Zed and [cast](../language/functions/cast.md) a to an integer from default float_
-```
-printf "a,b\n1,foo\n2,bar\n" | zq 'a:=int64(a)' -
+```mdtest-command
+printf "a,b\n1,foo\n2,bar\n" | zq -z 'a:=int64(a)' -
 ```
 produces
-```
+```mdtest-output
 {a:1,b:"foo"}
 {a:2,b:"bar"}
 ```
 _Convert JSON to Zed and cast to an integer from default float_
-```
-echo '{"a":1,"b":"foo"}{"a":2,"b":"bar"}' | zq 'a:=int64(a)' -
+```mdtest-command
+echo '{"a":1,"b":"foo"}{"a":2,"b":"bar"}' | zq -z 'a:=int64(a)' -
 ```
 produces
-```
+```mdtest-output
 {a:1,b:"foo"}
 {a:2,b:"bar"}
 ```
 _Make a schema-rigid Parquet file using fuse and turn it back into Zed_
-```
+```mdtest-command
 echo '{a:1}{a:2}{b:3}' | zq -f parquet -o tmp.parquet fuse -
 zq -z tmp.parquet
 ```
 produces
-```
+```mdtest-output
 {a:1,b:null(int64)}
 {a:2,b:null(int64)}
 {a:null(int64),b:3}

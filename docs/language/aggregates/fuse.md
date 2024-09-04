@@ -28,7 +28,8 @@ echo '{a:1,b:2}{a:2,b:"foo"}' | zq -z 'fuse(this)' -
 ```
 Fuse records with a group-by key:
 ```mdtest-command
-echo '{a:1,b:"bar"}{a:2.1,b:"foo"}{a:3,b:"bar"}' | zq -z 'fuse(this) by b | sort' -
+echo '{a:1,b:"bar"}{a:2.1,b:"foo"}{a:3,b:"bar"}' |
+  zq -z 'fuse(this) by b | sort' -
 ```
 =>
 ```mdtest-output

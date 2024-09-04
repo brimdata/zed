@@ -33,7 +33,8 @@ switch (
 ```mdtest-command
 echo '{foo:10}' | zq -z 'yield {yes:has(foo),no:has(bar)}' -
 echo '{foo:[1,2,3]}' | zq -z 'yield {yes: has(foo[0]),no:has(foo[3])}' -
-echo '{foo:{bar:"value"}}' | zq -z 'yield {yes:has(foo.bar),no:has(foo.baz)}' -
+echo '{foo:{bar:"value"}}' |
+  zq -z 'yield {yes:has(foo.bar),no:has(foo.baz)}' -
 echo '{foo:10}' | zq -z 'yield {yes:has(foo+1),no:has(bar+1)}' -
 echo 1 | zq -z 'yield has(bar)' -
 echo '{x:error("missing")}' | zq -z 'yield has(x)' -

@@ -6,26 +6,29 @@ import (
 	"github.com/brimdata/zed/runtime/sam/expr"
 )
 
-func NewComparator(zctx *zed.Context, sortKey order.SortKey) *expr.Comparator {
-	exprs := make([]expr.Evaluator, len(sortKey.Keys))
-	for i, key := range sortKey.Keys {
-		exprs[i] = expr.NewDottedExpr(zctx, key)
+func NewComparator(zctx *zed.Context, sortKeys []order.SortKey) *expr.Comparator {
+	exprs := make([]expr.SortEvaluator, len(sortKeys))
+	for i, k := range sortKeys {
+		exprs[i] = expr.NewSortEvaluator(expr.NewDottedExpr(zctx, k.Key), k.Order)
 	}
 	// valueAsBytes establishes a total order.
-	exprs = append(exprs, &valueAsBytes{})
-	nullsMax := sortKey.Order == order.Asc
-	return expr.NewComparator(nullsMax, !nullsMax, exprs...).WithMissingAsNull()
+	exprs = append(exprs, expr.NewSortEvaluator(&valueAsBytes{}, order.Asc))
+	nullsMax := sortKeys[0].Order == order.Asc
+	return expr.NewComparator(nullsMax, exprs...).WithMissingAsNull()
 }
 
-func NewComparatorNullsMax(zctx *zed.Context, sortKey order.SortKey) *expr.Comparator {
-	exprs := make([]expr.Evaluator, len(sortKey.Keys))
-	for i, key := range sortKey.Keys {
-		exprs[i] = expr.NewDottedExpr(zctx, key)
+func NewComparatorNullsMax(zctx *zed.Context, sortKeys order.SortKeys) *expr.Comparator {
+	exprs := make([]expr.SortEvaluator, len(sortKeys))
+	for i, k := range sortKeys {
+		exprs[i] = expr.NewSortEvaluator(expr.NewDottedExpr(zctx, k.Key), k.Order)
+	}
+	var o order.Which
+	if !sortKeys.IsNil() {
+		o = sortKeys.Primary().Order
 	}
 	// valueAsBytes establishes a total order.
-	exprs = append(exprs, &valueAsBytes{})
-	reverse := sortKey.Order == order.Desc
-	return expr.NewComparator(true, reverse, exprs...).WithMissingAsNull()
+	exprs = append(exprs, expr.NewSortEvaluator(&valueAsBytes{}, o))
+	return expr.NewComparator(true, exprs...).WithMissingAsNull()
 }
 
 type valueAsBytes struct{}

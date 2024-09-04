@@ -83,7 +83,12 @@ produces
 
 _Name data based its properties_
 ```mdtest-command
-echo '{x:1,y:2}{r:3}{x:4,y:5}' | zq -z 'switch ( case has(x) => cast(this, "point")  default => cast(this, "radius") ) | sort this' -
+echo '{x:1,y:2}{r:3}{x:4,y:5}' |
+  zq -z 'switch (
+           case has(x) => cast(this, "point")
+           default => cast(this, "radius")
+         )
+         | sort this' -
 ```
 produces
 ```mdtest-output

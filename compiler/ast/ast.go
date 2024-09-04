@@ -4,7 +4,6 @@ package ast
 
 import (
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 )
 
@@ -466,11 +465,11 @@ type (
 		Rparen     int    `json:"rparen"`
 	}
 	Sort struct {
-		Kind       string      `json:"kind" unpack:""`
-		KeywordPos int         `json:"keyword_pos"`
-		Args       []Expr      `json:"args"`
-		Order      order.Which `json:"order"`
-		NullsFirst bool        `json:"nullsfirst"`
+		Kind       string     `json:"kind" unpack:""`
+		KeywordPos int        `json:"keyword_pos"`
+		Reverse    bool       `json:"reverse"`
+		NullsFirst bool       `json:"nullsfirst"`
+		Args       []SortExpr `json:"args"`
 	}
 	Cut struct {
 		Kind       string      `json:"kind" unpack:""`
@@ -638,19 +637,19 @@ type (
 
 type (
 	File struct {
-		Kind       string   `json:"kind" unpack:""`
-		KeywordPos int      `json:"keyword_pos"`
-		Path       Pattern  `json:"path"`
-		Format     string   `json:"format"`
-		SortKey    *SortKey `json:"sort_key"`
-		EndPos     int      `json:"end_pos"`
+		Kind       string     `json:"kind" unpack:""`
+		KeywordPos int        `json:"keyword_pos"`
+		Path       Pattern    `json:"path"`
+		Format     string     `json:"format"`
+		SortKeys   []SortExpr `json:"sort_keys"`
+		EndPos     int        `json:"end_pos"`
 	}
 	HTTP struct {
 		Kind       string      `json:"kind" unpack:""`
 		KeywordPos int         `json:"keyword_pos"`
 		URL        Pattern     `json:"url"`
 		Format     string      `json:"format"`
-		SortKey    *SortKey    `json:"sort_key"`
+		SortKeys   []SortExpr  `json:"sort_keys"`
 		Method     string      `json:"method"`
 		Headers    *RecordExpr `json:"headers"`
 		Body       string      `json:"body"`
@@ -690,10 +689,18 @@ func (x *Pool) End() int { return x.EndPos }
 func (x *File) End() int { return x.EndPos }
 func (x *HTTP) End() int { return x.EndPos }
 
-type SortKey struct {
+type SortExpr struct {
 	Kind  string `json:"kind" unpack:""`
-	Keys  []Expr `json:"keys"`
-	Order string `json:"order"`
+	Expr  Expr   `json:"expr"`
+	Order *ID    `json:"order"`
+}
+
+func (s SortExpr) Pos() int { return s.Expr.Pos() }
+func (s SortExpr) End() int {
+	if s.Order != nil {
+		s.Order.End()
+	}
+	return s.Expr.End()
 }
 
 type Trunk struct {

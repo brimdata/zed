@@ -9,7 +9,7 @@ type Evaluator interface {
 }
 
 type Function interface {
-	Call([]vector.Any) vector.Any
+	Call(...vector.Any) vector.Any
 }
 
 type Call struct {
@@ -30,5 +30,5 @@ func (c *Call) Eval(this vector.Any) vector.Any {
 	for k, e := range c.exprs {
 		c.args[k] = e.Eval(this)
 	}
-	return c.fn.Call(c.args)
+	return vector.Apply(true, c.fn.Call, c.args...)
 }

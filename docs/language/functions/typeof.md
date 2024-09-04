@@ -19,7 +19,8 @@ also a Zed value.  The type of a type is type `type`.
 The types of various values:
 
 ```mdtest-command
-echo  '1 "foo" 10.0.0.1 [1,2,3] {s:"foo"} null error("missing")' | zq -z 'yield typeof(this)' -
+echo  '1 "foo" 10.0.0.1 [1,2,3] {s:"foo"} null error("missing")' |
+  zq -z 'yield typeof(this)' -
 ```
 =>
 ```mdtest-output

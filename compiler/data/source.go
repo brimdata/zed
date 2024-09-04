@@ -54,11 +54,11 @@ func (s *Source) CommitObject(ctx context.Context, id ksuid.KSUID, name string) 
 	return ksuid.Nil, nil
 }
 
-func (s *Source) SortKey(ctx context.Context, src dag.Op) order.SortKey {
+func (s *Source) SortKeys(ctx context.Context, src dag.Op) order.SortKeys {
 	if s.lake != nil {
-		return s.lake.SortKey(ctx, src)
+		return s.lake.SortKeys(ctx, src)
 	}
-	return order.Nil
+	return nil
 }
 
 func (s *Source) Open(ctx context.Context, zctx *zed.Context, path, format string, pushdown zbuf.Filter, demandOut demand.Demand) (zbuf.Puller, error) {
