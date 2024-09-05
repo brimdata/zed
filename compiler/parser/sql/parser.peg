@@ -10,35 +10,14 @@
 }
 
 start
-  = __ n:(multiple_stmt) {
-    return n
+  = __ q:(query) __ {
+    return q
   }
 
-multiple_stmt
-  = head:stmt tail:(__ SEMICOLON __ stmt)* {
-//      const headAst = head && head.ast || head
-//      const cur = tail && tail.length && tail[0].length >= 4 ? [headAst] : headAst;
-//      for (let i = 0; i < tail.length; i++) {
-//        if(!tail[i][3] || tail[i][3].length === 0) continue;
-//        cur.push(tail[i][3] && tail[i][3].ast || tail[i][3]);
-//      }
-//      return {
-//        tableList: Array.from(tableList),
-//        columnList: columnListTableAlias(columnList),
-//        ast: cur
-//      }
-    }
-
-stmt
-  = query_statement
-
-query_statement
+query
   = query_expr
-  / s:('(' __ select_stmt __ ')') {
-//      return {
-//        ...s[2],
-//        parentheses_symbol: true,
-//      }
+  / '(' __ s:select_stmt __ ')' {
+    return s
     }
 
 query_expr
@@ -87,6 +66,7 @@ union_stmt_nake
 //        ast: head
 //      }
     }
+
 select_stmt
   = select_stmt_nake
   / s:("(" __ select_stmt __ ")") {
@@ -107,13 +87,13 @@ cte_definition
 //    return { name, stmt };
   }
 
+
 select_stmt_nake
-  = __ cte:with_clause? __ KW_SELECT ___
-    sv:struct_value? __
-    d:(KW_ALL / KW_DISTINCT)? __
+  = cte:with_clause? __
+    KW_SELECT ___
+    d:select_distinct __
     c:column_clause     __
     f:from_clause?      __
-    fs:for_sys_time_as_of? __
     w:where_clause?     __
     g:group_by_clause?  __
     h:having_clause?    __
@@ -128,7 +108,6 @@ select_stmt_nake
 //          distinct: d,
 //          columns: c,
 //          from: f,
-//          for_sys_time_as_of: fs,
 //          where: w,
 //          with: cte,
 //          groupby: g,
@@ -141,13 +120,10 @@ select_stmt_nake
 //      };
   }
 
-for_sys_time_as_of
-  = "FOR"i __ "SYSTEM_TIME"i __ "AS"i __ "OF"i __ e:expr {
-//    return {
-//      keyword: 'for system_time as of',
-//      expr: e
-//    }
-  }
+select_distinct
+  = KW_ALL          { return false }
+  / KW_DISTINCT     { return true }
+  / /* empty */     { return false }
 
 struct_value
   = a:KW_AS __ k:(KW_STRUCT / KW_VALUE) {
@@ -271,7 +247,7 @@ pivot_operator
 //      'type': 'pivot',
 //      'expr': a,
 //      column: c,
-//      in_ex pr: i,
+//      in_expr: i,
 //      as,
 //    }
   }
