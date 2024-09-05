@@ -1298,7 +1298,7 @@ test scores and school count for each county/district pairing, this query:
 ```mdtest-command dir=testdata/edu
 zq -f table '
   avg(AvgScrRead),count() by cname,dname
-  | sort -r count
+  | sort count desc
 ' testscores.zson
 ```
 produces
@@ -1339,7 +1339,7 @@ the misspelled field would appear as embedded missing errors, e.g.,
 ```mdtest-command dir=testdata/edu
 zq -Z '
   avg(AvgScrRead),count() by cname,dnmae
-  | sort -r count
+  | sort count desc
 ' testscores.zson
 ```
 produces
