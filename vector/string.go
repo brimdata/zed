@@ -63,14 +63,9 @@ func StringValue(val Any, slot uint32) (string, bool) {
 		if val.Nulls.Value(slot) {
 			return "", true
 		}
-		slot = uint32(val.Index[slot])
-		return val.Any.(*String).Value(slot), false
+		return StringValue(val.Any, uint32(val.Index[slot]))
 	case *View:
-		slot = val.Index[slot]
-		if val.Any.(*String).Nulls.Value(slot) {
-			return "", true
-		}
-		return val.Any.(*String).Value(slot), false
+		return StringValue(val.Any, val.Index[slot])
 	}
 	panic(val)
 }

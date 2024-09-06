@@ -17,7 +17,7 @@ func Apply(ripUnions bool, eval func(...Any) Any, vecs ...Any) Any {
 		return eval(vecs...)
 	}
 	var results []Any
-	for _, ripped := range rip(vecs, variant.TagMap.Reverse) {
+	for _, ripped := range rip(vecs, variant) {
 		results = append(results, Apply(ripUnions, eval, ripped...))
 	}
 	// Stitch results together by creating a Variant.
@@ -33,12 +33,12 @@ func findVariant(vecs []Any) (*Variant, bool) {
 	return nil, false
 }
 
-func rip(vecs []Any, reverse [][]uint32) [][]Any {
+func rip(vecs []Any, variant *Variant) [][]Any {
 	var ripped [][]Any
-	for j, rev := range reverse {
+	for j, rev := range variant.TagMap.Reverse {
 		var newVecs []Any
 		for _, vec := range vecs {
-			if variant, ok := vec.(*Variant); ok {
+			if vec == variant {
 				newVecs = append(newVecs, variant.Values[j])
 			} else {
 				newVecs = append(newVecs, NewView(rev, vec))
