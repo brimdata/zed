@@ -606,6 +606,10 @@ alternate check frequency in [duration format](../formats/zson.md#23-primitive-v
 If `-monitor` is not specified, a single maintenance pass is performed on the
 lake.
 
+By default, maintenance tasks are performed on all pools in the lake.  The
+`-pool` option may be specified one or more times to limit maintenance tasks
+to a subset of pools listed by name.
+
 The output from `manage` provides a per-pool summary of the maintenance
 performed, including a count of `objects_compacted`.
 
