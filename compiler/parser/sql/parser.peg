@@ -3,137 +3,93 @@
     package sql
 
     import (
-    //    "github.com/brimdata/zed/compiler/ast"
+        "github.com/brimdata/zed/compiler/ast"
+        "github.com/brimdata/zed/compiler/ast/sql"
     //   astzed "github.com/brimdata/zed/compiler/ast/zed"
     )
 
 }
 
-start
-  = __ q:(query) __ {
-    return q
-  }
+start = __ s:SelectStatement __ { return s }
 
-query
-  = query_expr
-  / '(' __ s:select_stmt __ ')' {
-    return s
-    }
+SelectStatement
+  = SelectNoParens
+  / SelectWithParens
 
-query_expr
-  = s:union_stmt __ o:order_by_clause?  __ l:limit_clause? __
-  {
-//    return {
-//      tableList: Array.from(tableList),
-//      columnList: columnListTableAlias(columnList),
-//      ast: {
-//        ...s.ast,
-//        _orderby: o,
-//        _limit: l,
-//        _parentheses: s._parentheses
-//      }
-//    }
-  }
+SelectWithParens
+  = "(" __ s:SelectNoParens __ ")"      { return s }
+  / "(" __ s:SelectWithParens __ ")"    { return s }
+  
+SelectNoParens
+  = SelectClause OptSortClause SelectLimit
+  / SelectClause SortClause
+  / SimpleSelect
+  / WithClause __ SelectClause  OptSortClause SelectLimit
+  / WithClause __ SelectClause  SortClause
+  / WithClause __ SelectClause
 
-set_op
-  = u:KW_UNION __ s:(KW_ALL / KW_DISTINCT)? {
-//    return s ? `union ${s.toLowerCase()}` : 'union'
-  }
-  / u:("INTERSECT"i / "EXCEPT"i) __ s:KW_DISTINCT {
-//    return `${u.toLowerCase()} ${s.toLowerCase()}`
-  }
+SelectClause
+  = SimpleSelect 
+  / SelectWithParens
 
-union_stmt
-  = union_stmt_nake
-  / s:("(" __ union_stmt_nake __ ")") {
-//      return {
-//        ...s[2],
-//        _parentheses: true
-//      }
-    }
+SimpleSelect 
+  = SimpleSelectClause
+  / ValuesClause 
+  / TableClause
+  / SetOperation
 
-union_stmt_nake
-  = head:select_stmt tail:(__ set_op? __ select_stmt)* __ ob: order_by_clause? __ l:limit_clause?  {
-//      let cur = head
-//      for (let i = 0; i < tail.length; i++) {
-//        cur._next = tail[i][3]
-//        cur.set_op = tail[i][1]
-//        cur = cur._next
-//      }
-//      return {
-//        tableList: Array.from(tableList),
-//        columnList: columnListTableAlias(columnList),
-//        ast: head
-//      }
-    }
+SimpleSelectClause 
+  = SimpleSelectHead OptFromClause OptWhereClause OptGroupClause OptHavingClause
 
-select_stmt
-  = select_stmt_nake
-  / s:("(" __ select_stmt __ ")") {
-//      return {
-//        ...s[2],
-//        parentheses_symbol: true
-//      }
-    }
+SimpleSelectHead
+  = KW_SELECT _ KW_DISTINCT _ KW_ON __ "("__ TargetList __ ")"
+  / KW_SELECT _ KW_DISTINCT _ TargetList 
+  / KW_SELECT OptAllClause OptTargetList  // XXX why optional target?
 
-with_clause
-  = KW_WITH __ head:cte_definition tail:(__ COMMA __ cte_definition)* {
-//      return createList(head, tail);
-    }
+OptAllClause
+  = _ KW_ALL 
+  / ""
 
-cte_definition
-  = name:(literal_string / ident_name) __ KW_AS __ LPAREN __ stmt:union_stmt __ RPAREN {
-//    if (typeof name === 'string') name = { type: 'default', value: name }
-//    return { name, stmt };
-  }
+OptFromClause 
+  = FromClause 
+  / ""
 
+FromClause 
+  = KW_FROM _ FromList // OptAsOfClause
 
-select_stmt_nake
-  = cte:with_clause? __
-    KW_SELECT ___
-    d:select_distinct __
-    c:column_clause     __
-    f:from_clause?      __
-    w:where_clause?     __
-    g:group_by_clause?  __
-    h:having_clause?    __
-    q:qualify_clause? __
-    o:order_by_clause?  __
-    l:limit_clause? __
-    win:window_clause? {
-//      if(Array.isArray(f)) f.forEach(info => info.table && tableList.add(`select::${info.db}::${info.table}`));
-//      return {
-//          type: 'select',
-//          as_struct_val: sv,
-//          distinct: d,
-//          columns: c,
-//          from: f,
-//          where: w,
-//          with: cte,
-//          groupby: g,
-//          having: h,
-//          qualify: q,
-//          orderby: o,
-//          limit: l,
-//          window:win,
-//          ...getLocationObject()
-//      };
-  }
+FromList
+  = TableRef ( __ "," __ TableRef )*
 
-select_distinct
-  = KW_ALL          { return false }
-  / KW_DISTINCT     { return true }
-  / /* empty */     { return false }
+OptWhereClause
+  = WhereClause 
+  / ""
 
-struct_value
-  = a:KW_AS __ k:(KW_STRUCT / KW_VALUE) {
-//    return `${a[0].toLowerCase()} ${k.toLowerCase()}`
-  }
+WhereClause 
+  = KW_WHERE _ Expr // XXX whitespace optional before noident
 
-expr_alias
-  = e:binary_column_expr __ alias:alias_clause? {
-//      return { expr: e, as: alias, ...getLocationObject() };
-    }
+OptGroupClause
+  = GroupClause 
+  / ""
+
+GroupClause
+  = KW_GROUP _ KW_BY _ GroupByList
+
+GroupByList 
+  = GroupByItem ( __ "," __ GroupByItem )*
+
+OptHavingClause
+  = HavingClause
+  / ""
+
+HavingClause
+  = KW_HAVING _ Expr // XXX whitespace optional before noident
+
+//XXX for whitespace in front of target need it only if it begins with 
+// an identifier, e.g., select(1); is ok
+
+OptTargetList
+  = _ TargetList
+  / ""
 
 column_clause
   = c:columns_list __ COMMA? {
