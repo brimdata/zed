@@ -87,8 +87,9 @@ and a record type used as a value
 As in any modern programming language, types can be named and the type names
 persist into the data model and thus into the serialized input and output.
 
-Named types may be defined in three ways:
+Named types may be defined in four ways:
 * with a [`type` statement](statements.md#type-statements),
+* with the [`cast` function](functions/cast.md),
 * with a definition inside of another type, or
 * by the input data itself.
 
