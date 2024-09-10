@@ -498,7 +498,7 @@ switch len(this) (
 when we run
 ```mdtest-command
 echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"} {a:1,b:2,c:3}' |
-  zq -z -I shape.zed '| sort -r this' -
+  zq -z -I shape.zed '| sort this desc' -
 ```
 we get
 ```mdtest-output

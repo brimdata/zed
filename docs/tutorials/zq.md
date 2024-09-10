@@ -981,7 +981,7 @@ DATE                 NUMBER TITLE
 How about some aggregations?  We can count the number of PRs and sort by the
 count highest first:
 ```mdtest-command dir=docs/tutorials
-zq -z "count() by user:=user.login | sort -r count" prs.zng
+zq -z "count() by user:=user.login | sort count desc" prs.zng
 ```
 produces
 ```mdtest-output
