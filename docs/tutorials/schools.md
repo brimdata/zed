@@ -304,7 +304,7 @@ produces
 Because the right-hand-side value to which we were comparing was a string, it
 was necessary to wrap it in quotes. If this string were written as a keyword,
 it would have been interpreted as a field name as
-Zed [field references](../language/dataflow-model.md#implied-field-references)
+Zed [field references](../language/pipeline-model.md#implied-field-references)
 look like keywords in the context of an expression.
 
 For example, to see the records in which the school and district name are the
@@ -890,8 +890,8 @@ performs zero or more aggregations with zero or more group-by expressions.
 Each aggregation is performed by an
 [aggregate function](../language/aggregates/README.md)
 that operates on batches of records to carry out a running computation over
-the values they contain.  The `summarize` keyword is optional as the operato
-can be [inferred from context](../language/dataflow-model.md#implied-operators).
+the values they contain.  The `summarize` keyword is optional as the operator
+can be [inferred from context](../language/pipeline-model.md#implied-operators).
 
 As with SQL, multiple aggregate functions may be invoked at the same time.
 For example, to simultaneously calculate the minimum, maximum, and average of

@@ -14,7 +14,7 @@ fork (
 ### Description
 
 The `fork` operator copies each input value to multiple, parallel legs of
-the dataflow path.
+the pipeline.
 
 The output of a fork consists of multiple legs that must be merged.
 If the downstream operator expects a single input, then the output legs are

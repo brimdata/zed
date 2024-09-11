@@ -39,11 +39,11 @@ or joined using relational-style join logic.
 Generally speaking, a [flow graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
 defines a directed acyclic graph (DAG) composed
 of data sources and operator nodes.  The Zed syntax leverages "fat arrows",
-i.e., `=>`, to indicate the start of a parallel leg of the data flow.
+i.e., `=>`, to indicate the start of a parallel leg of the pipeline.
 
 That said, the Zed language is
 [declarative](https://en.wikipedia.org/wiki/Declarative_programming)
-and the Zed compiler optimizes the data flow computation
+and the Zed compiler optimizes the pipeline computation
 &mdash; e.g., often implementing a Zed program differently than
 the flow implied by the pipeline yet reaching the same result &mdash;
 much as a modern SQL engine optimizes a declarative SQL query.
@@ -114,7 +114,7 @@ search "example.com" AND "urgent"
 
 The following sections continue describing the Zed language.
 
-* [The Dataflow Model](dataflow-model.md)
+* [The Pipeline Model](pipeline-model.md)
 * [Data Types](data-types.md)
 * [Const, Func, Operator, and Type Statements](statements.md)
 * [Expressions](expressions.md)

@@ -65,7 +65,7 @@ and you get
 ```
 With `zq`, the mysterious `jq` value `.` is instead called
 the almost-as-mysterious value
-[`this`](../language/dataflow-model.md#the-special-value-this) and you say:
+[`this`](../language/pipeline-model.md#the-special-value-this) and you say:
 ```mdtest-command
 echo '1 2 3' | zq -z 'this+1' -
 ```
@@ -102,7 +102,7 @@ expression `2` is evaluated for each input value, and the value `2`
 is produced each time, so three copies of `2` are emitted.
 
 In `zq` however, `2` by itself is interpreted as a search and is
-[shorthand for](../language/dataflow-model.md#implied-operators) `search 2` so the command
+[shorthand for](../language/pipeline-model.md#implied-operators) `search 2` so the command
 ```mdtest-command
 echo '1 2 3' | zq -z 2 -
 ```

@@ -2,8 +2,8 @@
 
 ---
 
-Dataflow operators process a sequence of input values to create an output sequence
-and appear as the components of a dataflow pipeline. In addition to the built-in
+Operators process a sequence of input values to create an output sequence
+and appear as the components of a [pipeline](../pipeline-model.md). In addition to the built-in
 operators listed below, Zed also allows for the creation of
 [user-defined operators](../statements.md#operator-statements).
 

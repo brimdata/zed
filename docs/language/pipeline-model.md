@@ -1,16 +1,16 @@
 ---
 sidebar_position: 2
-sidebar_label: Dataflow Model
+sidebar_label: Pipeline Model
 ---
 
-# The Dataflow Model
+# The Pipeline Model
 
 In Zed, each operator takes its input from the output of its upstream operator beginning
 either with a data source or with an implied source.
 
 All available operators are listed on the [reference page](operators/README.md).
 
-## Dataflow Sources
+## Pipeline Sources
 
 In addition to the data sources specified as files on the `zq` command line,
 a source may also be specified with the [`from` operator](operators/from.md).
@@ -41,7 +41,7 @@ in the [ZSON text format](../formats/zson.md)
 and the `zq` query text expressed as the first argument of the `zq` command
 is expressed in the syntax of the Zed language described here.
 
-## Dataflow Operators
+## Pipeline Operators
 
 Each operator is identified by name and performs a specific operation
 on a stream of records.
@@ -252,7 +252,7 @@ the implied record field named `foo`.
 Another common query pattern involves adding or mutating fields of records
 where the input is presumed to be a sequence of records.
 The [`put` operator](operators/put.md) provides this mechanism and the `put`
-keyword is implied by the [field assignment](dataflow-model.md#field-assignments) syntax `:=`.
+keyword is implied by the [field assignment](#field-assignments) syntax `:=`.
 
 For example, the operation
 ```

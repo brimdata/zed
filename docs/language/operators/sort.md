@@ -66,7 +66,7 @@ echo '2 null 1 3' | zq -z 'sort this' -
 3
 null
 ```
-_With no sort expression, sort will sort by [`this`](../dataflow-model.md#the-special-value-this) for non-records_
+_With no sort expression, sort will sort by [`this`](../pipeline-model.md#the-special-value-this) for non-records_
 ```mdtest-command
 echo '2 null 1 3' | zq -z sort -
 ```

@@ -116,12 +116,12 @@ parenthesized form:
 > dataflow operator.
 
 This form must always include a lateral scope as indicated by `<lateral>`,
-which can be any dataflow operator sequence excluding [`from` operators](operators/from.md).
+which can be any pipeline of operators excluding [`from`](operators/from.md).
 As with the `over` operator, values from the outer scope can be brought into
 the lateral scope using the `with` clause.
 
 The lateral expression is evaluated by evaluating each `<expr>` and feeding
-the results as inputs to the `<lateral>` dataflow operators.  Each time the
+the results as inputs to the `<lateral>` pipeline.  Each time the
 lateral expression is evaluated, the lateral operators are run to completion,
 e.g.,
 ```mdtest-command

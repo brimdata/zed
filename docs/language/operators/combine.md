@@ -10,7 +10,7 @@
 ### Description
 
 The implied `combine` operator merges inputs from multiple upstream legs of
-the dataflow path into a single output.  The order of values in the combined
+the pipeline into a single output.  The order of values in the combined
 output is undefined.
 
 You need not explicit reference the operator with any text.  Instead, the

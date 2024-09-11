@@ -22,7 +22,7 @@ switch (
 ### Description
 
 The `switch` operator routes input values to multiple, parallel legs of
-the dataflow path based on case matching.
+the pipeline based on case matching.
 
 In this first form, the expression `<expr>` is evaluated for each input value
 and its result is

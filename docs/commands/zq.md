@@ -85,7 +85,7 @@ emits
 ```mdtest-output
 2
 ```
-Note here that the query `1+1` [implies](../language/dataflow-model.md#implied-operators)
+Note here that the query `1+1` [implies](../language/pipeline-model.md#implied-operators)
 `yield 1+1`.
 
 ## Input Formats
@@ -478,7 +478,7 @@ If you are ever stumped about how the `zq` compiler is parsing your query,
 you can always run `zq -C` to compile and display your query in canonical form
 without running it.
 This can be especially handy when you are learning the language and
-[its shortcuts](../language/dataflow-model.md#implied-operators).
+[its shortcuts](../language/pipeline-model.md#implied-operators).
 
 For example, this query
 ```mdtest-command

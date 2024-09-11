@@ -10,7 +10,7 @@
 ### Description
 
 The `merge` operator merges inputs from multiple upstream legs of
-the dataflow path into a single output.  The order of values in the combined
+the pipeline into a single output.  The order of values in the combined
 output is determined by the `<expr>` arguments, which act as sort expressions
 where the values from the upstream paths are forwarded based on these expressions.
 

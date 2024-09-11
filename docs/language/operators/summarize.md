@@ -24,7 +24,7 @@ unique combination of values of the group-by keys specified after the `by`
 keyword.
 
 The `summarize` keyword is optional since it is an
-[implied operator](../dataflow-model.md#implied-operators).
+[implied operator](../pipeline-model.md#implied-operators).
 
 Each aggregate function may be optionally followed by a `where` clause, which
 applies a Boolean expression that indicates, for each input value,
