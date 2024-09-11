@@ -13,14 +13,16 @@ var _ Any = (*View)(nil)
 
 func NewView(index []uint32, val Any) Any {
 	switch val := val.(type) {
-	case *Const:
-		return NewConst(val.arena, val.Value(), uint32(len(index)), nil)
 	case *Dict:
-		index2 := make([]uint32, len(index))
+		index2 := make([]byte, len(index))
+		nulls := NewBoolEmpty(uint32(len(index)), nil)
 		for k, idx := range index {
-			index2[k] = uint32(val.Index[idx])
+			if val.Nulls.Value(idx) {
+				nulls.Set(uint32(k))
+			}
+			index2[k] = val.Index[idx]
 		}
-		return &View{val.Any, index2}
+		return NewDict(val.Any, index2, nil, nulls)
 	case *Union:
 		tags, values := viewForUnionOrVariant(index, val.Tags, val.TagMap.Forward, val.Values)
 		return NewUnion(val.Typ, tags, values, nil)
