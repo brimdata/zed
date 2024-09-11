@@ -56,3 +56,19 @@ echo '"hello" "world" "goodbye" "world" "hello" "again"' |
 "hello"
 "world"
 ```
+_Complex values must match fully to be considered duplicate (e.g., every field/value pair in adjacent records)_
+```mdtest-command
+echo '{ts:2024-09-10T21:12:33Z, action:"start"}
+      {ts:2024-09-10T21:12:34Z, action:"running"}
+      {ts:2024-09-10T21:12:34Z, action:"running"}
+      {ts:2024-09-10T21:12:35Z, action:"running"}
+      {ts:2024-09-10T21:12:36Z, action:"stop"}' |
+  zq -z 'uniq' -
+```
+=>
+```mdtest-output
+{ts:2024-09-10T21:12:33Z,action:"start"}
+{ts:2024-09-10T21:12:34Z,action:"running"}
+{ts:2024-09-10T21:12:35Z,action:"running"}
+{ts:2024-09-10T21:12:36Z,action:"stop"}
+```
