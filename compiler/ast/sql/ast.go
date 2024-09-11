@@ -29,7 +29,7 @@ type Op interface {
 type Select struct {
 	Distinct bool
 	Exprs    []ast.Expr
-	From     []TableExpr
+	From     []Source
 	Where    ast.Expr
 	GroupBy  GroupBy
 	Having   ast.Expr
@@ -37,9 +37,10 @@ type Select struct {
 	Limit    ast.Expr
 }
 
-// XXX this needs to implement different operators that return
-// dynamic data sets. XXX change name
-type TableExpr interface {
+//XXX need to handle named tables
+
+type Lateral struct {
+	Source
 }
 
 type Order struct {
@@ -90,9 +91,9 @@ type (
 		Expr ast.Expr `json:"expr"`
 	}
 	JoinTableExpr struct {
-		Left  TableExpr
+		Left  Source
 		Join  string
-		Right TableExpr
+		Right Source
 		On    ast.Expr
 	}
 	Union struct {
@@ -134,14 +135,18 @@ type PoolSpec struct {
 	Tap    bool
 }
 
+// XXX Source implements different operators that return
+// dynamic data sets. XXX change name
+
 type Source interface {
 	Node
 	Source()
 }
 
-func (*Pool) Source() {}
-func (*File) Source() {}
-func (*HTTP) Source() {}
+func (*Pool) Source()   {}
+func (*File) Source()   {}
+func (*HTTP) Source()   {}
+func (*Select) Source() {}
 
 // Def is like Assignment but the LHS is an identifier that may be later
 // referenced.  This is used for const blocks in Sequential and var blocks
