@@ -55,7 +55,7 @@ OptFromClause
   / ""
 
 FromClause 
-  = "from"i _ FromList // OptAsOfClause
+  = KW_FROM _ FromList // OptAsOfClause
 
 FromList
   = TableRef ( __ "," __ TableRef )*
@@ -65,7 +65,7 @@ OptWhereClause
   / ""
 
 WhereClause 
-  = "where"i _ Expr // XXX whitespace optional before noident
+  = KW_WHERE _ Expr // XXX whitespace optional before noident
 
 OptGroupClause
   = _ GroupClause 
@@ -114,6 +114,17 @@ TargetElem
 OptAsClause 
   = _ KW_AS _ Identifier // XXX need to expand beyond Identifier 
   / "" 
+
+OptSortClause 
+  = SortClause 
+  / ""          { return nil }
+
+SortClause 
+  = KW_ORDER _ KW_BY _ SortByList 
+
+SortByList 
+  = SortBy ( __ "," __ SortBy )* 
+
 
 SelectLimit
   = LimitClause OptOffsetClause
@@ -1135,184 +1146,161 @@ EOF = !.
 EOKW = !KeyWordChars
 
 
-KW_NULL     = "NULL"i       !ident_start
-KW_NOT_NULL = "NOT NULL"i   !ident_start
-KW_TRUE     = "TRUE"i       !ident_start
-KW_TO       = "TO"i         !ident_start
-KW_FALSE    = "FALSE"i      !ident_start
+KW_NULL     = "NULL"i       !IdentifierStart
+KW_NOT_NULL = "NOT NULL"i   !IdentifierStart
+KW_TRUE     = "TRUE"i       !IdentifierStart
+KW_TO       = "TO"i         !IdentifierStart
+KW_FALSE    = "FALSE"i      !IdentifierStart
 
-KW_SELECT   = "SELECT"i     !ident_start
-KW_RECURSIVE= "RECURSIVE"   !ident_start
-KW_IGNORE   = "IGNORE"i     !ident_start
-KW_EXPLAIN  = "EXPLAIN"i    !ident_start
-KW_PARTITION = "PARTITION"i !ident_start { return "PARTITION" }
+KW_SELECT   = "SELECT"i     !IdentifierStart
+KW_RECURSIVE= "RECURSIVE"   !IdentifierStart
+KW_IGNORE   = "IGNORE"i     !IdentifierStart
+KW_EXPLAIN  = "EXPLAIN"i    !IdentifierStart
+KW_PARTITION = "PARTITION"i !IdentifierStart { return "PARTITION" }
 
-KW_INTO     = "INTO"i       !ident_start
-KW_FROM     = "FROM"i       !ident_start
-KW_SET      = "SET"i        !ident_start { return "SET" }
-KW_UNLOCK   = "UNLOCK"i     !ident_start
-KW_LOCK     = "LOCK"i       !ident_start
+KW_INTO     = "INTO"i       !IdentifierStart
+KW_FROM     = "FROM"i       !IdentifierStart
+KW_SET      = "SET"i        !IdentifierStart { return "SET" }
+KW_UNLOCK   = "UNLOCK"i     !IdentifierStart
+KW_LOCK     = "LOCK"i       !IdentifierStart
 
-KW_AS       = "AS"i         !ident_start
-KW_TABLE    = "TABLE"i      !ident_start { return "TABLE" }
-KW_TABLES   = "TABLES"i      !ident_start { return "TABLES" }
-KW_COLLATE  = "COLLATE"i    !ident_start { return "COLLATE" }
+KW_AS       = "AS"i         !IdentifierStart
+KW_TABLE    = "TABLE"i      !IdentifierStart { return "TABLE" }
+KW_TABLES   = "TABLES"i      !IdentifierStart { return "TABLES" }
+KW_COLLATE  = "COLLATE"i    !IdentifierStart { return "COLLATE" }
 
-KW_ON       = "ON"i       !ident_start
-KW_LEFT     = "LEFT"i     !ident_start
-KW_RIGHT    = "RIGHT"i    !ident_start
-KW_FULL     = "FULL"i     !ident_start
-KW_INNER    = "INNER"i    !ident_start
-KW_CROSS    = "CROSS"i    !ident_start
-KW_JOIN     = "JOIN"i     !ident_start
-KW_OUTER    = "OUTER"i    !ident_start
-KW_OVER     = "OVER"i     !ident_start
-KW_UNION    = "UNION"i    !ident_start
-KW_INTERSECT    = "INTERSECT"i    !ident_start
-KW_EXCEPT    = "EXCEPT"i    !ident_start
+KW_ON       = "ON"i       !IdentifierStart
+KW_LEFT     = "LEFT"i     !IdentifierStart
+KW_RIGHT    = "RIGHT"i    !IdentifierStart
+KW_FULL     = "FULL"i     !IdentifierStart
+KW_INNER    = "INNER"i    !IdentifierStart
+KW_CROSS    = "CROSS"i    !IdentifierStart
+KW_JOIN     = "JOIN"i     !IdentifierStart
+KW_OUTER    = "OUTER"i    !IdentifierStart
+KW_OVER     = "OVER"i     !IdentifierStart
+KW_UNION    = "UNION"i    !IdentifierStart
+KW_INTERSECT    = "INTERSECT"i    !IdentifierStart
+KW_EXCEPT    = "EXCEPT"i    !IdentifierStart
 
-KW_VALUE    = "VALUE"i    !ident_start { return "VALUE" }
-KW_VALUES   = "VALUES"i   !ident_start
-KW_USING    = "USING"i    !ident_start
+KW_VALUE    = "VALUE"i    !IdentifierStart { return "VALUE" }
+KW_VALUES   = "VALUES"i   !IdentifierStart
+KW_USING    = "USING"i    !IdentifierStart
 
-KW_WHERE    = "WHERE"i      !ident_start
-KW_WITH     = "WITH"i       !ident_start
+KW_WHERE    = "WHERE"i      !IdentifierStart
+KW_WITH     = "WITH"i       !IdentifierStart
 
-KW_GROUP    = "GROUP"i      !ident_start
-KW_BY       = "BY"i         !ident_start
-KW_ORDER    = "ORDER"i      !ident_start
-KW_HAVING   = "HAVING"i     !ident_start
-KW_QUALIFY  = "QUALIFY"i     !ident_start
-KW_WINDOW   = "WINDOW"i  !ident_start
-KW_ORDINAL  = "ORDINAL"i !ident_start { return "ORDINAL" }
-KW_SAFE_ORDINAL  = "SAFE_ORDINAL"i !ident_start { return "SAFE_ORDINAL" }
+KW_GROUP    = "GROUP"i      !IdentifierStart
+KW_BY       = "BY"i         !IdentifierStart
+KW_ORDER    = "ORDER"i      !IdentifierStart
+KW_HAVING   = "HAVING"i     !IdentifierStart
+KW_QUALIFY  = "QUALIFY"i     !IdentifierStart
+KW_WINDOW   = "WINDOW"i  !IdentifierStart
+KW_ORDINAL  = "ORDINAL"i !IdentifierStart { return "ORDINAL" }
+KW_SAFE_ORDINAL  = "SAFE_ORDINAL"i !IdentifierStart { return "SAFE_ORDINAL" }
 
-KW_LIMIT    = "LIMIT"i      !ident_start
-KW_OFFSET   = "OFFSET"i     !ident_start { return "OFFSET" }
-KW_SAFE_OFFSET   = "SAFE_OFFSET"i     !ident_start { return "SAFE_OFFSET" }
+KW_LIMIT    = "LIMIT"i      !IdentifierStart
+KW_OFFSET   = "OFFSET"i     !IdentifierStart { return "OFFSET" }
+KW_SAFE_OFFSET   = "SAFE_OFFSET"i     !IdentifierStart { return "SAFE_OFFSET" }
 
-KW_ASC      = "ASC"i        !ident_start { return "ASC" }
-KW_DESC     = "DESC"i       !ident_start { return "DESC" }
+KW_ASC      = "ASC"i        !IdentifierStart { return "ASC" }
+KW_DESC     = "DESC"i       !IdentifierStart { return "DESC" }
 
-KW_ALL      = "ALL"i        !ident_start { return "ALL" }
-KW_DISTINCT = "DISTINCT"i   !ident_start { return "DISTINCT" }
+KW_ALL      = "ALL"i        !IdentifierStart { return "ALL" }
+KW_DISTINCT = "DISTINCT"i   !IdentifierStart { return "DISTINCT" }
 
-KW_BETWEEN  = "BETWEEN"i    !ident_start { return "BETWEEN" }
-KW_IN       = "IN"i         !ident_start { return "IN" }
-KW_IS       = "IS"i         !ident_start { return "IS" }
-KW_LIKE     = "LIKE"i       !ident_start { return "LIKE" }
-KW_EXISTS   = "EXISTS"i     !ident_start { return "EXISTS" }
+KW_BETWEEN  = "BETWEEN"i    !IdentifierStart { return "BETWEEN" }
+KW_IN       = "IN"i         !IdentifierStart { return "IN" }
+KW_IS       = "IS"i         !IdentifierStart { return "IS" }
+KW_LIKE     = "LIKE"i       !IdentifierStart { return "LIKE" }
+KW_EXISTS   = "EXISTS"i     !IdentifierStart { return "EXISTS" }
 
-KW_NOT      = "NOT"i        !ident_start { return "NOT" }
-KW_AND      = "AND"i        !ident_start { return "AND" }
-KW_OR       = "OR"i         !ident_start { return "OR" }
+KW_NOT      = "NOT"i        !IdentifierStart { return "NOT" }
+KW_AND      = "AND"i        !IdentifierStart { return "AND" }
+KW_OR       = "OR"i         !IdentifierStart { return "OR" }
 
-KW_COUNT    = "COUNT"i      !ident_start { return "COUNT" }
-KW_MAX      = "MAX"i        !ident_start { return "MAX" }
-KW_MIN      = "MIN"i        !ident_start { return "MIN" }
-KW_SUM      = "SUM"i        !ident_start { return "SUM" }
-KW_AVG      = "AVG"i        !ident_start { return "AVG" }
+KW_COUNT    = "COUNT"i      !IdentifierStart { return "COUNT" }
+KW_MAX      = "MAX"i        !IdentifierStart { return "MAX" }
+KW_MIN      = "MIN"i        !IdentifierStart { return "MIN" }
+KW_SUM      = "SUM"i        !IdentifierStart { return "SUM" }
+KW_AVG      = "AVG"i        !IdentifierStart { return "AVG" }
 
-KW_EXTRACT  = "EXTRACT"i    !ident_start { return "EXTRACT" }
-KW_CALL     = "CALL"i       !ident_start { return "CALL" }
+KW_EXTRACT  = "EXTRACT"i    !IdentifierStart { return "EXTRACT" }
+KW_CALL     = "CALL"i       !IdentifierStart { return "CALL" }
 
-KW_CASE     = "CASE"i       !ident_start
-KW_WHEN     = "WHEN"i       !ident_start
-KW_THEN     = "THEN"i       !ident_start
-KW_ELSE     = "ELSE"i       !ident_start
-KW_END      = "END"i        !ident_start
+KW_CASE     = "CASE"i       !IdentifierStart
+KW_WHEN     = "WHEN"i       !IdentifierStart
+KW_THEN     = "THEN"i       !IdentifierStart
+KW_ELSE     = "ELSE"i       !IdentifierStart
+KW_END      = "END"i        !IdentifierStart
 
-KW_CAST     = "CAST"i       !ident_start { return "CAST" }
-KW_SAFE_CAST     = "SAFE_CAST"i   !ident_start { return "SAFE_CAST" }
+KW_CAST     = "CAST"i       !IdentifierStart { return "CAST" }
+KW_SAFE_CAST     = "SAFE_CAST"i   !IdentifierStart { return "SAFE_CAST" }
 
-KW_ARRAY     = "ARRAY"i     !ident_start { return "ARRAY" }
-KW_BYTES     = "BYTES"i     !ident_start { return "BYTES" }
-KW_BOOL     = "BOOL"i     !ident_start { return "BOOL" }
-KW_CHAR     = "CHAR"i     !ident_start { return "CHAR" }
-KW_GEOGRAPHY = "GEOGRAPHY"i     !ident_start { return "GEOGRAPHY" }
-KW_VARCHAR  = "VARCHAR"i  !ident_start { return "VARCHAR" }
-KW_NUMERIC  = "NUMERIC"i  !ident_start { return "NUMERIC" }
-KW_DECIMAL  = "DECIMAL"i  !ident_start { return "DECIMAL" }
-KW_SIGNED   = "SIGNED"i   !ident_start { return "SIGNED" }
-KW_UNSIGNED = "UNSIGNED"i !ident_start { return "UNSIGNED" }
-KW_INT_64     = "INT64"i      !ident_start { return "INT64" }
-KW_ZEROFILL = "ZEROFILL"i !ident_start { return "ZEROFILL" }
-KW_INTEGER  = "INTEGER"i  !ident_start { return "INTEGER" }
-KW_JSON     = "JSON"i     !ident_start { return "JSON" }
-KW_SMALLINT = "SMALLINT"i !ident_start { return "SMALLINT" }
-KW_STRING = "STRING"i !ident_start { return "STRING" }
-KW_STRUCT = "STRUCT"i !ident_start { return "STRUCT" }
-KW_TINYINT  = "TINYINT"i  !ident_start { return "TINYINT" }
-KW_TINYTEXT = "TINYTEXT"i !ident_start { return "TINYTEXT" }
-KW_TEXT     = "TEXT"i     !ident_start { return "TEXT" }
-KW_MEDIUMTEXT = "MEDIUMTEXT"i  !ident_start { return "MEDIUMTEXT" }
-KW_LONGTEXT  = "LONGTEXT"i  !ident_start { return "LONGTEXT" }
-KW_BIGINT   = "BIGINT"i   !ident_start { return "BIGINT" }
-KW_FLOAT_64   = "FLOAT64"i   !ident_start { return "FLOAT64" }
-KW_DOUBLE   = "DOUBLE"i   !ident_start { return "DOUBLE" }
-KW_DATE     = "DATE"i     !ident_start { return "DATE" }
-KW_DATETIME = "DATETIME"i     !ident_start { return "DATETIME" }
-KW_ROWS     = "ROWS"i     !ident_start { return "ROWS" }
-KW_TIME     = "TIME"i     !ident_start { return "TIME" }
-KW_TIMESTAMP= "TIMESTAMP"i!ident_start { return "TIMESTAMP" }
+KW_ARRAY     = "ARRAY"i     !IdentifierStart { return "ARRAY" }
+KW_BYTES     = "BYTES"i     !IdentifierStart { return "BYTES" }
+KW_BOOL     = "BOOL"i     !IdentifierStart { return "BOOL" }
+KW_CHAR     = "CHAR"i     !IdentifierStart { return "CHAR" }
+KW_GEOGRAPHY = "GEOGRAPHY"i     !IdentifierStart { return "GEOGRAPHY" }
+KW_VARCHAR  = "VARCHAR"i  !IdentifierStart { return "VARCHAR" }
+KW_NUMERIC  = "NUMERIC"i  !IdentifierStart { return "NUMERIC" }
+KW_DECIMAL  = "DECIMAL"i  !IdentifierStart { return "DECIMAL" }
+KW_SIGNED   = "SIGNED"i   !IdentifierStart { return "SIGNED" }
+KW_UNSIGNED = "UNSIGNED"i !IdentifierStart { return "UNSIGNED" }
+KW_INT_64     = "INT64"i      !IdentifierStart { return "INT64" }
+KW_ZEROFILL = "ZEROFILL"i !IdentifierStart { return "ZEROFILL" }
+KW_INTEGER  = "INTEGER"i  !IdentifierStart { return "INTEGER" }
+KW_JSON     = "JSON"i     !IdentifierStart { return "JSON" }
+KW_SMALLINT = "SMALLINT"i !IdentifierStart { return "SMALLINT" }
+KW_STRING = "STRING"i !IdentifierStart { return "STRING" }
+KW_STRUCT = "STRUCT"i !IdentifierStart { return "STRUCT" }
+KW_TINYINT  = "TINYINT"i  !IdentifierStart { return "TINYINT" }
+KW_TINYTEXT = "TINYTEXT"i !IdentifierStart { return "TINYTEXT" }
+KW_TEXT     = "TEXT"i     !IdentifierStart { return "TEXT" }
+KW_MEDIUMTEXT = "MEDIUMTEXT"i  !IdentifierStart { return "MEDIUMTEXT" }
+KW_LONGTEXT  = "LONGTEXT"i  !IdentifierStart { return "LONGTEXT" }
+KW_BIGINT   = "BIGINT"i   !IdentifierStart { return "BIGINT" }
+KW_FLOAT_64   = "FLOAT64"i   !IdentifierStart { return "FLOAT64" }
+KW_DOUBLE   = "DOUBLE"i   !IdentifierStart { return "DOUBLE" }
+KW_DATE     = "DATE"i     !IdentifierStart { return "DATE" }
+KW_DATETIME = "DATETIME"i     !IdentifierStart { return "DATETIME" }
+KW_ROWS     = "ROWS"i     !IdentifierStart { return "ROWS" }
+KW_TIME     = "TIME"i     !IdentifierStart { return "TIME" }
+KW_TIMESTAMP= "TIMESTAMP"i!IdentifierStart { return "TIMESTAMP" }
 
-KW_CURRENT_DATE     = "CURRENT_DATE"i !ident_start { return "CURRENT_DATE" }
-KW_ADD_DATE         = "ADDDATE"i !ident_start { return "ADDDATE" }
-KW_INTERVAL         = "INTERVAL"i !ident_start { return "INTERVAL" }
-KW_UNIT_YEAR        = "YEAR"i !ident_start { return "YEAR" }
-KW_UNIT_ISOYEAR     = "ISOYEAR"i !ident_start { return "ISOYEAR" }
-KW_UNIT_MONTH       = "MONTH"i !ident_start { return "MONTH" }
-KW_UNIT_DAY         = "DAY"i !ident_start { return "DAY" }
-KW_UNIT_HOUR        = "HOUR"i !ident_start { return "HOUR" }
-KW_UNIT_MINUTE      = "MINUTE"i !ident_start { return "MINUTE" }
-KW_UNIT_SECOND      = "SECOND"i !ident_start { return "SECOND" }
-KW_UNIT_WEEK        = "WEEK"i !ident_start { return "WEEK" }
-KW_CURRENT_TIME     = "CURRENT_TIME"i !ident_start { return "CURRENT_TIME" }
-KW_CURRENT_TIMESTAMP= "CURRENT_TIMESTAMP"i !ident_start { return "CURRENT_TIMESTAMP" }
-KW_SESSION_USER     = "SESSION_USER"i !ident_start { return "SESSION_USER" }
+KW_CURRENT_DATE     = "CURRENT_DATE"i !IdentifierStart { return "CURRENT_DATE" }
+KW_ADD_DATE         = "ADDDATE"i !IdentifierStart { return "ADDDATE" }
+KW_INTERVAL         = "INTERVAL"i !IdentifierStart { return "INTERVAL" }
+KW_UNIT_YEAR        = "YEAR"i !IdentifierStart { return "YEAR" }
+KW_UNIT_ISOYEAR     = "ISOYEAR"i !IdentifierStart { return "ISOYEAR" }
+KW_UNIT_MONTH       = "MONTH"i !IdentifierStart { return "MONTH" }
+KW_UNIT_DAY         = "DAY"i !IdentifierStart { return "DAY" }
+KW_UNIT_HOUR        = "HOUR"i !IdentifierStart { return "HOUR" }
+KW_UNIT_MINUTE      = "MINUTE"i !IdentifierStart { return "MINUTE" }
+KW_UNIT_SECOND      = "SECOND"i !IdentifierStart { return "SECOND" }
+KW_UNIT_WEEK        = "WEEK"i !IdentifierStart { return "WEEK" }
+KW_CURRENT_TIME     = "CURRENT_TIME"i !IdentifierStart { return "CURRENT_TIME" }
+KW_CURRENT_TIMESTAMP= "CURRENT_TIMESTAMP"i !IdentifierStart { return "CURRENT_TIMESTAMP" }
+KW_SESSION_USER     = "SESSION_USER"i !IdentifierStart { return "SESSION_USER" }
 
-KW_GLOBAL         = "GLOBAL"i    !ident_start { return "GLOBAL" }
-KW_SESSION        = "SESSION"i   !ident_start { return "SESSION" }
-KW_LOCAL          = "LOCAL"i     !ident_start { return "LOCAL" }
-KW_PIVOT          = "PIVOT"i   !ident_start { return "PIVOT" }
-KW_PERSIST        = "PERSIST"i   !ident_start { return "PERSIST" }
-KW_PERSIST_ONLY   = "PERSIST_ONLY"i   !ident_start { return "PERSIST_ONLY" }
-KW_VIEW           = "VIEW"i    !ident_start { return "VIEW" }
+KW_GLOBAL         = "GLOBAL"i    !IdentifierStart { return "GLOBAL" }
+KW_SESSION        = "SESSION"i   !IdentifierStart { return "SESSION" }
+KW_LOCAL          = "LOCAL"i     !IdentifierStart { return "LOCAL" }
+KW_PIVOT          = "PIVOT"i   !IdentifierStart { return "PIVOT" }
+KW_PERSIST        = "PERSIST"i   !IdentifierStart { return "PERSIST" }
+KW_PERSIST_ONLY   = "PERSIST_ONLY"i   !IdentifierStart { return "PERSIST_ONLY" }
+KW_VIEW           = "VIEW"i    !IdentifierStart { return "VIEW" }
 
 // MySQL Alter
-KW_ADD     = "ADD"i     !ident_start { return "ADD" }
-KW_COLUMN  = "COLUMN"i  !ident_start { return "COLUMN" }
-KW_INDEX   = "INDEX"i  !ident_start { return "INDEX" }
-KW_KEY     = "KEY"i  !ident_start { return "KEY" }
-KW_FULLTEXT = "FULLTEXT"i  !ident_start { return "FULLTEXT" }
-KW_UNIQUE     = "UNIQUE"i  !ident_start { return "UNIQUE" }
-KW_COMMENT     = "COMMENT"i  !ident_start { return "COMMENT" }
-KW_CONSTRAINT  = "CONSTRAINT"i  !ident_start { return "CONSTRAINT" }
-KW_REFERENCES  = "REFERENCES"i  !ident_start { return "REFERENCES" }
+KW_ADD     = "ADD"i     !IdentifierStart { return "ADD" }
+KW_COLUMN  = "COLUMN"i  !IdentifierStart { return "COLUMN" }
+KW_INDEX   = "INDEX"i  !IdentifierStart { return "INDEX" }
+KW_KEY     = "KEY"i  !IdentifierStart { return "KEY" }
+KW_FULLTEXT = "FULLTEXT"i  !IdentifierStart { return "FULLTEXT" }
+KW_UNIQUE     = "UNIQUE"i  !IdentifierStart { return "UNIQUE" }
+KW_COMMENT     = "COMMENT"i  !IdentifierStart { return "COMMENT" }
+KW_CONSTRAINT  = "CONSTRAINT"i  !IdentifierStart { return "CONSTRAINT" }
+KW_REFERENCES  = "REFERENCES"i  !IdentifierStart { return "REFERENCES" }
 
-//special character
-DOT       = "."
-COMMA     = ","
-STAR      = "*"
-LPAREN    = "("
-RPAREN    = ")"
-LANGLE    = "<"
-RANGLE    = ">"
-LBRAKE    = "["
-RBRAKE    = "]"
-
-SEMICOLON = ";"
-
-OPERATOR_CONCATENATION = "||"
-OPERATOR_AND = "&&"
-LOGIC_OPERATOR = OPERATOR_CONCATENATION / OPERATOR_AND
-
-// separator
-__
-  = (whitespace / comment)*
-
-___
-  = (whitespace / comment)+
 
 comment
   = block_comment
@@ -1343,8 +1331,3 @@ interval_unit
 whitespace =
   [ \t\n\r]
 
-EOL
-  = EOF
-  / [\n\r]+
-
-EOF = !.
