@@ -54,8 +54,9 @@ type GroupBy struct {
 }
 
 type OrderExpr struct {
-	Expr ast.Expr
-	Dir  order.Which
+	Expr       ast.Expr
+	Order      string // asc or desc
+	NullsFirst bool
 }
 
 // An Op is a node in the flowgraph that takes Zed values in, operates upon them,
@@ -72,7 +73,7 @@ type (
 	}
 	//XXX need to fix sortList in a first PR
 	OrderBy struct {
-		Exprs []OrderExpr
+		Elems []OrderExpr
 	}
 	Limit struct {
 		Count ast.Expr

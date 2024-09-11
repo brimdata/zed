@@ -10,18 +10,26 @@
 
 }
 
-start = __ s:SelectStatement __ { return s }
+start = __ s:SelectStatement __ { return s, nil }
 
 SelectStatement
   = SelectNoParens
   / SelectWithParens
 
 SelectWithParens
-  = "(" __ s:SelectNoParens __ ")"      { return s }
-  / "(" __ s:SelectWithParens __ ")"    { return s }
+  = "(" __ s:SelectNoParens __ ")"      { return s, nil }
+  / "(" __ s:SelectWithParens __ ")"    { return s, nil }
   
 SelectNoParens
-  = SelectClause OptSortClause SelectLimit
+  = select:SelectClause sort:OptSortClause limit:SelectLimit {
+      if sort != nil {
+        select.OrderBy = sort.([]sql.Order)
+      }
+      if limit != nil {
+        select.Limit = limit.(ast.Expr)
+      }
+      return select
+    }
   / SelectClause SortClause
   / SimpleSelect
   / WithClause __ SelectClause  OptSortClause SelectLimit
@@ -34,17 +42,31 @@ SelectClause
 
 SimpleSelect 
   = SimpleSelectClause
-  / ValuesClause 
-  / TableClause
-  / SetOperation
+//XXX  / ValuesClause 
+//XXX  / TableClause
+//XXX  / SetOperation
 
 SimpleSelectClause 
   = SimpleSelectHead OptFromClause OptWhereClause OptGroupClause OptHavingClause
 
 SimpleSelectHead
-  = KW_SELECT _ KW_DISTINCT _ KW_ON __ "("__ TargetList __ ")"
-  / KW_SELECT _ KW_DISTINCT _ TargetList 
-  / KW_SELECT OptAllClause OptTargetList  // XXX why optional target?
+  = KW_SELECT _ KW_DISTINCT _ KW_ON __ "("__ list:TargetList __ ")" {
+        return &sql.Select{
+            Distinct: true,
+            Exprs: list
+        }
+    }
+  / KW_SELECT _ KW_DISTINCT _ list:TargetList  {
+        return &sql.Select{
+            Distinct: true,
+            Exprs: list
+        }
+    }
+  / KW_SELECT OptAllClause OptTargetList {  // XXX why optional target?
+        return &sql.Select{
+            Exprs: list
+        }    
+  }
 
 OptAllClause
   = _ KW_ALL 
@@ -102,7 +124,7 @@ TableName = Identifier //XXX
 // an identifier, e.g., select(1); is ok
 
 OptTargetList
-  = _ TargetList
+  = _ list:TargetList { return list }
   / ""
 
 TargetList
@@ -116,15 +138,35 @@ OptAsClause
   / "" 
 
 OptSortClause 
-  = SortClause 
-  / ""          { return nil }
+  = SortClause
+  / ""          { return nil, nil }
 
 SortClause 
-  = KW_ORDER _ KW_BY _ SortByList 
+  = KW_ORDER _ KW_BY _ list:SortByList { return list, nil }
 
 SortByList 
-  = SortBy ( __ "," __ SortBy )* 
+  = first:SortBy rest:( __ "," __ s:SortBy{ return s, nil})* {
+      return prepend(first, rest), nil
+    }
 
+SortBy 
+  = e:Expr o:OptAscDesc n:OptNullsOrder {
+      return &OrderExpr{
+        Expr: e,
+        Order: o,
+        NullsFirst: n,
+      }, nil
+  }
+
+OptAscDesc
+  = _ KW_ASC   { return "asc" }
+  / _ KW_DESC  { return "desc" }
+  / ""         { return "asc" }
+
+OptNullsOrder
+  = _ KW_NULLS _ KW_FIRST   { return true }
+  / _ KW_NULLS _ KW_LAST    { return false }
+  / ""                      { return false }
 
 SelectLimit
   = LimitClause OptOffsetClause
@@ -163,7 +205,7 @@ IdentifierName
 //  / "type" { return string(c.text), nil }
 
 
-case_expr
+CaseExpr
   = KW_CASE __
     condition_list:case_when_then_list __
     otherwise:case_else? __
@@ -202,7 +244,7 @@ case_when_then
 //    };
   }
 
-case_else = KW_ELSE __ result:expr {
+CaseElse = KW_ELSE __ result:expr {
 //    return { type: 'else', result: result }
   }
 
@@ -1146,6 +1188,7 @@ EOF = !.
 EOKW = !KeyWordChars
 
 
+KW_NULLS    = "NULLS"i       !IdentifierStart
 KW_NULL     = "NULL"i       !IdentifierStart
 KW_NOT_NULL = "NOT NULL"i   !IdentifierStart
 KW_TRUE     = "TRUE"i       !IdentifierStart
