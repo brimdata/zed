@@ -68,7 +68,7 @@ func (r *recordExpr) addOrUpdateField(name string, vec vector.Any) {
 
 func (r *recordExpr) spread(vec vector.Any) {
 	// Ignore non-record values.
-	switch vec := vec.(type) {
+	switch vec := vector.Under(vec).(type) {
 	case *vector.Record:
 		for k, f := range zed.TypeRecordOf(vec.Type()).Fields {
 			r.addOrUpdateField(f.Name, vec.Fields[k])
