@@ -37,7 +37,7 @@ func TempFile() (*os.File, error) {
 // NewMergeSort returns a MergeSort to implement external merge sorts of a large
 // zng record stream.  It creates a temporary directory to hold the collection
 // of spilled chunks.  Call Cleanup to remove it.
-func NewMergeSort(zctx *zed.Context, comparator *expr.Comparator) (*MergeSort, error) {
+func NewMergeSort(comparator *expr.Comparator) (*MergeSort, error) {
 	tempDir, err := TempDir()
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func NewMergeSort(zctx *zed.Context, comparator *expr.Comparator) (*MergeSort, e
 	return &MergeSort{
 		comparator: comparator,
 		tempDir:    tempDir,
-		zctx:       zctx,
+		zctx:       zed.NewContext(),
 	}, nil
 }
 
@@ -99,11 +99,11 @@ func goWithContext(ctx context.Context, f func()) error {
 
 // Peek returns the next record without advancing the reader.  The record stops
 // being valid at the next read call.
-func (r *MergeSort) Peek(arena *zed.Arena) (*zed.Value, error) {
+func (r *MergeSort) Peek() (*zed.Value, error) {
 	if r.Len() == 0 {
 		return nil, nil
 	}
-	return r.runs[0].nextRecord.Copy(arena).Ptr(), nil
+	return r.runs[0].nextRecord, nil
 }
 
 // Read returns the smallest record (per the comparison function provided to MewMergeSort)

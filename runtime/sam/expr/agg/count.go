@@ -12,7 +12,7 @@ func (c *Count) Consume(zed.Value) {
 	*c++
 }
 
-func (c Count) Result(*zed.Context, *zed.Arena) zed.Value {
+func (c Count) Result(*zed.Context) zed.Value {
 	return zed.NewUint64(uint64(c))
 }
 
@@ -23,6 +23,6 @@ func (c *Count) ConsumeAsPartial(partial zed.Value) {
 	*c += Count(partial.Uint())
 }
 
-func (c Count) ResultAsPartial(*zed.Context, *zed.Arena) zed.Value {
-	return c.Result(nil, nil)
+func (c Count) ResultAsPartial(*zed.Context) zed.Value {
+	return c.Result(nil)
 }

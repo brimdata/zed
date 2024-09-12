@@ -34,7 +34,6 @@ type Store struct {
 	cache     *lru.ARCCache[ksuid.KSUID, *Object]
 	paths     *lru.ARCCache[ksuid.KSUID, []ksuid.KSUID]
 	snapshots *lru.ARCCache[ksuid.KSUID, *Snapshot]
-	zctx      *zed.Context
 }
 
 func OpenStore(engine storage.Engine, logger *zap.Logger, path *storage.URI) (*Store, error) {
@@ -57,7 +56,6 @@ func OpenStore(engine storage.Engine, logger *zap.Logger, path *storage.URI) (*S
 		cache:     cache,
 		paths:     paths,
 		snapshots: snapshots,
-		zctx:      zed.NewContext(),
 	}, nil
 }
 
@@ -69,7 +67,7 @@ func (s *Store) Get(ctx context.Context, commit ksuid.KSUID) (*Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	o, err := DecodeObject(s.zctx, r)
+	o, err := DecodeObject(r)
 	if err == ErrBadCommitObject {
 		err = fmt.Errorf("system error: %s: %w", s.pathOf(commit), ErrBadCommitObject)
 	}
@@ -168,7 +166,7 @@ func (s *Store) getSnapshot(ctx context.Context, commit ksuid.KSUID) (*Snapshot,
 		return nil, err
 	}
 	defer r.Close()
-	return decodeSnapshot(s.zctx, r)
+	return decodeSnapshot(r)
 }
 
 func (s *Store) putSnapshot(ctx context.Context, commit ksuid.KSUID, snap *Snapshot) error {
@@ -230,8 +228,7 @@ func (s *Store) GetBytes(ctx context.Context, commit ksuid.KSUID) ([]byte, *Comm
 	if err != nil {
 		return nil, nil, err
 	}
-	arena := zed.NewArena()
-	reader := zngbytes.NewDeserializer(s.zctx, arena, bytes.NewReader(b), ActionTypes)
+	reader := zngbytes.NewDeserializer(bytes.NewReader(b), ActionTypes)
 	defer reader.Close()
 	entry, err := reader.Read()
 	if err != nil {
@@ -241,7 +238,6 @@ func (s *Store) GetBytes(ctx context.Context, commit ksuid.KSUID) ([]byte, *Comm
 	if !ok {
 		return nil, nil, fmt.Errorf("system error: first record of commit object is not a commit action: %s", s.pathOf(commit))
 	}
-	setActionArena(entry.(Action), arena)
 	return b, first, nil
 }
 

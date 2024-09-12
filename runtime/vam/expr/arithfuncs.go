@@ -207,9 +207,8 @@ func arithAddIntConstView(lhs, rhs vector.Any) vector.Any {
 func arithAddIntConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rconst, _ := rhs.(*vector.Const).AsInt()
-	var arena *zed.Arena
 	val := zed.NewInt64(lconst + rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithAddUintFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -412,9 +411,8 @@ func arithAddUintConstView(lhs, rhs vector.Any) vector.Any {
 func arithAddUintConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rconst, _ := rhs.(*vector.Const).AsUint()
-	var arena *zed.Arena
 	val := zed.NewUint64(lconst + rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithAddFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -617,9 +615,8 @@ func arithAddFloatConstView(lhs, rhs vector.Any) vector.Any {
 func arithAddFloatConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-	var arena *zed.Arena
 	val := zed.NewFloat64(lconst + rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithAddStringFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -822,10 +819,8 @@ func arithAddStringConstView(lhs, rhs vector.Any) vector.Any {
 func arithAddStringConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsString()
 	rconst, _ := rhs.(*vector.Const).AsString()
-	var arena *zed.Arena
-	arena = zed.NewArena()
-	val := arena.NewString(lconst + rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	val := zed.NewString(lconst + rconst)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithSubIntFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -1028,9 +1023,8 @@ func arithSubIntConstView(lhs, rhs vector.Any) vector.Any {
 func arithSubIntConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rconst, _ := rhs.(*vector.Const).AsInt()
-	var arena *zed.Arena
 	val := zed.NewInt64(lconst - rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithSubUintFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -1233,9 +1227,8 @@ func arithSubUintConstView(lhs, rhs vector.Any) vector.Any {
 func arithSubUintConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rconst, _ := rhs.(*vector.Const).AsUint()
-	var arena *zed.Arena
 	val := zed.NewUint64(lconst - rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithSubFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -1438,9 +1431,8 @@ func arithSubFloatConstView(lhs, rhs vector.Any) vector.Any {
 func arithSubFloatConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-	var arena *zed.Arena
 	val := zed.NewFloat64(lconst - rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithMulIntFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -1643,9 +1635,8 @@ func arithMulIntConstView(lhs, rhs vector.Any) vector.Any {
 func arithMulIntConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rconst, _ := rhs.(*vector.Const).AsInt()
-	var arena *zed.Arena
 	val := zed.NewInt64(lconst * rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithMulUintFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -1848,9 +1839,8 @@ func arithMulUintConstView(lhs, rhs vector.Any) vector.Any {
 func arithMulUintConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rconst, _ := rhs.(*vector.Const).AsUint()
-	var arena *zed.Arena
 	val := zed.NewUint64(lconst * rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithMulFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -2053,9 +2043,8 @@ func arithMulFloatConstView(lhs, rhs vector.Any) vector.Any {
 func arithMulFloatConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-	var arena *zed.Arena
 	val := zed.NewFloat64(lconst * rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithDivIntFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -2258,9 +2247,8 @@ func arithDivIntConstView(lhs, rhs vector.Any) vector.Any {
 func arithDivIntConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rconst, _ := rhs.(*vector.Const).AsInt()
-	var arena *zed.Arena
 	val := zed.NewInt64(lconst / rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithDivUintFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -2463,9 +2451,8 @@ func arithDivUintConstView(lhs, rhs vector.Any) vector.Any {
 func arithDivUintConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rconst, _ := rhs.(*vector.Const).AsUint()
-	var arena *zed.Arena
 	val := zed.NewUint64(lconst / rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithDivFloatFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -2668,9 +2655,8 @@ func arithDivFloatConstView(lhs, rhs vector.Any) vector.Any {
 func arithDivFloatConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsFloat()
 	rconst, _ := rhs.(*vector.Const).AsFloat()
-	var arena *zed.Arena
 	val := zed.NewFloat64(lconst / rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithModIntFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -2873,9 +2859,8 @@ func arithModIntConstView(lhs, rhs vector.Any) vector.Any {
 func arithModIntConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsInt()
 	rconst, _ := rhs.(*vector.Const).AsInt()
-	var arena *zed.Arena
 	val := zed.NewInt64(lconst % rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 func arithModUintFlatFlat(lhs, rhs vector.Any) vector.Any {
@@ -3078,9 +3063,8 @@ func arithModUintConstView(lhs, rhs vector.Any) vector.Any {
 func arithModUintConstConst(lhs, rhs vector.Any) vector.Any {
 	lconst, _ := lhs.(*vector.Const).AsUint()
 	rconst, _ := rhs.(*vector.Const).AsUint()
-	var arena *zed.Arena
 	val := zed.NewUint64(lconst % rconst)
-	return vector.NewConst(arena, val, lhs.Len(), nil)
+	return vector.NewConst(val, lhs.Len(), nil)
 }
 
 var arithFuncs = map[int]func(vector.Any, vector.Any) vector.Any{

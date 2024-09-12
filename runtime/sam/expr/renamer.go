@@ -34,7 +34,7 @@ func (r *Renamer) Eval(ectx Context, this zed.Value) zed.Value {
 	}
 	srcs, dsts, err := r.evalFields(ectx, this)
 	if err != nil {
-		return r.zctx.WrapError(ectx.Arena(), fmt.Sprintf("rename: %s", err), this)
+		return r.zctx.WrapError(fmt.Sprintf("rename: %s", err), this)
 	}
 	id := this.Type().ID()
 	m, ok := r.typeMap[id]
@@ -48,11 +48,11 @@ func (r *Renamer) Eval(ectx Context, this zed.Value) zed.Value {
 		var err error
 		typ, err = r.computeType(zed.TypeRecordOf(this.Type()), srcs, dsts)
 		if err != nil {
-			return r.zctx.WrapError(ectx.Arena(), fmt.Sprintf("rename: %s", err), this)
+			return r.zctx.WrapError(fmt.Sprintf("rename: %s", err), this)
 		}
 		m[string(r.fieldsStr)] = typ
 	}
-	return ectx.Arena().New(typ, this.Bytes())
+	return zed.NewValue(typ, this.Bytes())
 }
 
 func CheckRenameField(src, dst field.Path) error {

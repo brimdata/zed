@@ -11,7 +11,6 @@ import (
 )
 
 type VariantEncoder struct {
-	mapper *zed.Mapper
 	tags   *Int64Encoder
 	values []Encoder
 	which  map[zed.Type]int
@@ -20,11 +19,10 @@ type VariantEncoder struct {
 
 var _ zio.Writer = (*VariantEncoder)(nil)
 
-func NewVariantEncoder(zctx *zed.Context) *VariantEncoder {
+func NewVariantEncoder() *VariantEncoder {
 	return &VariantEncoder{
-		mapper: zed.NewMapper(zctx),
-		tags:   NewInt64Encoder(),
-		which:  make(map[zed.Type]int),
+		tags:  NewInt64Encoder(),
+		which: make(map[zed.Type]int),
 	}
 }
 
@@ -33,10 +31,7 @@ func NewVariantEncoder(zctx *zed.Context) *VariantEncoder {
 // We track the types seen first-come, first-served and the
 // VNG metadata structure follows accordingly.
 func (v *VariantEncoder) Write(val zed.Value) error {
-	typ, err := v.mapper.Enter(val.Type())
-	if err != nil {
-		return err
-	}
+	typ := val.Type()
 	tag, ok := v.which[typ]
 	if !ok {
 		tag = len(v.values)
@@ -97,7 +92,6 @@ type variantBuilder struct {
 	tags    *Int64Decoder
 	values  []Builder
 	builder *zcode.Builder
-	arena   *zed.Arena
 }
 
 func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) (*variantBuilder, error) {
@@ -116,7 +110,6 @@ func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) 
 		tags:    NewInt64Decoder(variant.Tags, reader),
 		values:  values,
 		builder: zcode.NewBuilder(),
-		arena:   zed.NewArena(),
 	}, nil
 }
 
@@ -136,8 +129,7 @@ func (v *variantBuilder) Read() (*zed.Value, error) {
 	if err := v.values[tag].Build(b); err != nil {
 		return nil, err
 	}
-	v.arena.Reset()
-	return v.arena.New(v.types[tag], b.Bytes().Body()).Ptr(), nil
+	return zed.NewValue(v.types[tag], b.Bytes().Body()).Ptr(), nil
 }
 
 func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, error) {
@@ -153,7 +145,6 @@ func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, 
 		values:  values,
 		builder: zcode.NewBuilder(),
 		count:   meta.Len(),
-		arena:   zed.NewArena(),
 	}, nil
 }
 
@@ -162,7 +153,6 @@ type vectorBuilder struct {
 	values  Builder
 	builder *zcode.Builder
 	count   uint32
-	arena   *zed.Arena
 }
 
 func (v *vectorBuilder) Read() (*zed.Value, error) {
@@ -175,6 +165,5 @@ func (v *vectorBuilder) Read() (*zed.Value, error) {
 	if err := v.values.Build(b); err != nil {
 		return nil, err
 	}
-	v.arena.Reset()
-	return v.arena.New(v.typ, b.Bytes().Body()).Ptr(), nil
+	return zed.NewValue(v.typ, b.Bytes().Body()).Ptr(), nil
 }

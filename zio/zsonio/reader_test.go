@@ -13,9 +13,6 @@ import (
 )
 
 func TestReadOneLineNoEOF(t *testing.T) {
-	arena := zed.NewArena()
-	defer arena.Unref()
-
 	const expected = `{msg:"record1"}`
 	type result struct {
 		err error
@@ -29,9 +26,6 @@ func TestReadOneLineNoEOF(t *testing.T) {
 		reader <- []byte(expected + "\n" + expected)
 		r := zsonio.NewReader(zed.NewContext(), reader)
 		rec, err := r.Read()
-		if rec != nil {
-			rec = rec.Copy(arena).Ptr()
-		}
 		done <- result{val: rec, err: err}
 	}()
 	select {

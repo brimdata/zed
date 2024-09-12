@@ -8,7 +8,6 @@ import (
 
 type Writer struct {
 	marshal *zson.MarshalZNGContext
-	arena   *zed.Arena
 	writer  zio.WriteCloser
 	offset  uint64
 	valoff  uint64
@@ -17,14 +16,12 @@ type Writer struct {
 func NewWriter(w zio.WriteCloser) *Writer {
 	return &Writer{
 		marshal: zson.NewZNGMarshaler(),
-		arena:   zed.NewArena(),
 		writer:  w,
 	}
 }
 
 func (w *Writer) Write(min, max zed.Value, valoff uint64, offset uint64) error {
-	w.arena.Reset()
-	val, err := w.marshal.Marshal(w.arena, &Entry{
+	val, err := w.marshal.Marshal(&Entry{
 		Min:    min,
 		Max:    max,
 		ValOff: w.valoff,

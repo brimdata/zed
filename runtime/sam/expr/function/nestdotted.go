@@ -3,7 +3,6 @@ package function
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/sam/expr"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nest_dotted.md
@@ -56,11 +55,11 @@ func (n *NestDotted) lookupBuilderAndType(in *zed.TypeRecord) (*zed.RecordBuilde
 	return b, typ, nil
 }
 
-func (n *NestDotted) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (n *NestDotted) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[len(args)-1]
 	b, typ, err := n.lookupBuilderAndType(zed.TypeRecordOf(val.Type()))
 	if err != nil {
-		return n.zctx.WrapError(ectx.Arena(), "nest_dotted(): "+err.Error(), val)
+		return n.zctx.WrapError("nest_dotted(): "+err.Error(), val)
 	}
 	if b == nil {
 		return val
@@ -73,5 +72,5 @@ func (n *NestDotted) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	return ectx.Arena().New(typ, zbytes)
+	return zed.NewValue(typ, zbytes)
 }

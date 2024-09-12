@@ -56,7 +56,6 @@ type Builder struct {
 	source       *data.Source
 	readers      []zio.Reader
 	progress     *zbuf.Progress
-	arena        *zed.Arena // For zed.Values created during compilation.
 	channels     map[string][]zbuf.Puller
 	deletes      *sync.Map
 	udfs         map[string]dag.Expr
@@ -65,8 +64,6 @@ type Builder struct {
 }
 
 func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
-	arena := zed.NewArena()
-	rctx.KeepAlive(arena)
 	return &Builder{
 		rctx:   rctx,
 		mctx:   zed.NewContext(),
@@ -77,17 +74,10 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 			RecordsRead:    0,
 			RecordsMatched: 0,
 		},
-		arena:        arena,
 		channels:     make(map[string][]zbuf.Puller),
 		udfs:         make(map[string]dag.Expr),
 		compiledUDFs: make(map[string]*expr.UDF),
 	}
-}
-
-func (b *Builder) clone(arena *zed.Arena) *Builder {
-	bb := *b
-	bb.arena = arena
-	return &bb
 }
 
 // Build builds a flowgraph for seq.  If seq contains a dag.DefaultSource, it
@@ -294,7 +284,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		var pruner expr.Evaluator
 		if v.Tap && v.KeyPruner != nil {
 			var err error
-			pruner, err = b.compileExpr(v.KeyPruner)
+			pruner, err = compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -331,7 +321,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = b.compileExpr(v.KeyPruner)
+			pruner, err = compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -346,7 +336,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = b.compileExpr(v.KeyPruner)
+			pruner, err = compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -359,7 +349,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = b.compileExpr(v.KeyPruner)
+			pruner, err = compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -733,22 +723,25 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 	if err != nil {
 		return zed.Null, err
 	}
-	missing := b.zctx().Missing(b.arena)
 	// Catch panic as the runtime will panic if there is a
 	// reference to a var not in scope, a field access null this, etc.
 	defer func() {
 		if recover() != nil {
-			val = missing
+			val = b.zctx().Missing()
 		}
 	}()
-	return e.Eval(expr.NewContext(b.arena), missing), nil
+	return e.Eval(expr.NewContext(), b.zctx().Missing()), nil
 }
 
-func EvalAtCompileTime(zctx *zed.Context, arena *zed.Arena, in dag.Expr) (zed.Value, error) {
+func compileExpr(in dag.Expr) (expr.Evaluator, error) {
+	b := NewBuilder(runtime.NewContext(context.Background(), zed.NewContext()), nil)
+	return b.compileExpr(in)
+}
+
+func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val zed.Value, err error) {
 	// We pass in a nil adaptor, which causes a panic for anything adaptor
 	// related, which is not currently allowed in an expression sub-query.
 	b := NewBuilder(runtime.NewContext(context.Background(), zctx), nil)
-	b.arena = arena
 	return b.evalAtCompileTime(in)
 }
 

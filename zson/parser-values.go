@@ -602,7 +602,7 @@ func (p *Parser) matchTypeValue() (*astzed.TypeValue, error) {
 	}, nil
 }
 
-func ParsePrimitive(arena *zed.Arena, typeText, valText string) (zed.Value, error) {
+func ParsePrimitive(typeText, valText string) (zed.Value, error) {
 	typ := zed.LookupPrimitive(typeText)
 	if typ == nil {
 		return zed.Null, fmt.Errorf("no such type: %s", typeText)
@@ -612,5 +612,5 @@ func ParsePrimitive(arena *zed.Arena, typeText, valText string) (zed.Value, erro
 		return zed.Null, err
 	}
 	it := b.Bytes().Iter()
-	return arena.New(typ, it.Next()), nil
+	return zed.NewValue(typ, it.Next()), nil
 }

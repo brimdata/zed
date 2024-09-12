@@ -38,9 +38,12 @@ type Request struct {
 func newRequest(w http.ResponseWriter, r *http.Request, c *Core) (*ResponseWriter, *Request, bool) {
 	req := &Request{Request: r}
 	req.Logger = c.logger.With(zap.String("request_id", req.ID()))
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StylePackage)
 	res := &ResponseWriter{
 		ResponseWriter: w,
 		Logger:         req.Logger,
+		marshaler:      m,
 		request:        req,
 	}
 	ss := strings.Split(r.Header.Get("Accept"), ",")
@@ -212,11 +215,12 @@ func (r *Request) format(w *ResponseWriter, dflt string) (string, bool) {
 
 type ResponseWriter struct {
 	http.ResponseWriter
-	Format  string
-	Logger  *zap.Logger
-	zw      zio.WriteCloser
-	request *Request
-	written int32
+	Format    string
+	Logger    *zap.Logger
+	zw        zio.WriteCloser
+	marshaler *zson.MarshalZNGContext
+	request   *Request
+	written   int32
 }
 
 func (w *ResponseWriter) ContentType() string {
@@ -277,11 +281,7 @@ func (w *ResponseWriter) Error(err error) {
 }
 
 func (w *ResponseWriter) Marshal(body interface{}) bool {
-	arena := zed.NewArena()
-	defer arena.Unref()
-	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StylePackage)
-	rec, err := m.Marshal(arena, body)
+	rec, err := w.marshaler.Marshal(body)
 	if err != nil {
 		// XXX If status header has not been sent this should send error.
 		w.Error(err)

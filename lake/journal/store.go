@@ -189,11 +189,8 @@ func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) 
 	}
 	marshaler := zson.NewZNGMarshaler()
 	marshaler.Decorate(zson.StylePackage)
-	arena := zed.NewArena()
-	defer arena.Unref()
 	for _, entry := range table {
-		arena.Reset()
-		val, err := marshaler.Marshal(arena, entry)
+		val, err := marshaler.Marshal(entry)
 		if err != nil {
 			return err
 		}

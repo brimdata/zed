@@ -574,7 +574,7 @@ func runvec(zedProgram string, input string, outputFlags []string) (string, stri
 		return "", "", err
 	}
 	defer cleanup()
-	object, err := cache.Fetch(context.Background(), zctx, uri, ksuid.Nil)
+	object, err := cache.Fetch(context.Background(), uri, ksuid.Nil)
 	if err != nil {
 		return "", "", err
 	}

@@ -12,7 +12,6 @@ import (
 type LogReader struct {
 	ctx       context.Context
 	marshaler *zson.MarshalZNGContext
-	arena     *zed.Arena
 	store     *Store
 	cursor    ksuid.KSUID
 	stop      ksuid.KSUID
@@ -26,7 +25,6 @@ func newLogReader(ctx context.Context, zctx *zed.Context, store *Store, leaf, st
 	return &LogReader{
 		ctx:       ctx,
 		marshaler: m,
-		arena:     zed.NewArena(),
 		store:     store,
 		cursor:    leaf,
 		stop:      stop,
@@ -46,7 +44,6 @@ func (r *LogReader) Read() (*zed.Value, error) {
 		next = ksuid.Nil
 	}
 	r.cursor = next
-	r.arena.Reset()
-	val, err := r.marshaler.Marshal(r.arena, commitObject)
+	val, err := r.marshaler.Marshal(commitObject)
 	return &val, err
 }

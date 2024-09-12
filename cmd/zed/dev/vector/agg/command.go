@@ -62,16 +62,15 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	field := args[1]
-	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
 	cache := vcache.NewCache(local)
-	object, err := cache.Fetch(ctx, zctx, uri, ksuid.Nil)
+	object, err := cache.Fetch(ctx, uri, ksuid.Nil)
 	if err != nil {
 		return err
 	}
 	defer object.Close()
 	//XXX nil puller
-	agg := op.NewCountByString(zctx, nil, field)
+	agg := op.NewCountByString(zed.NewContext(), nil, field)
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err

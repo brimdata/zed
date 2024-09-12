@@ -64,15 +64,14 @@ func (c *Command) Run(args []string) error {
 	for _, dotted := range args[1:] {
 		paths = append(paths, field.Dotted(dotted))
 	}
-	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
 	cache := vcache.NewCache(local)
-	object, err := cache.Fetch(ctx, zctx, uri, ksuid.Nil)
+	object, err := cache.Fetch(ctx, uri, ksuid.Nil)
 	if err != nil {
 		return err
 	}
 	defer object.Close()
-	projection := vam.NewProjection(zctx, object, paths)
+	projection := vam.NewProjection(zed.NewContext(), object, paths)
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err

@@ -311,12 +311,12 @@ func (c *Context) enterWithLock(tv zcode.Bytes, typ Type) {
 	c.byID = append(c.byID, typ)
 }
 
-func (c *Context) LookupTypeValue(arena *Arena, typ Type) Value {
+func (c *Context) LookupTypeValue(typ Type) Value {
 	c.mu.Lock()
 	bytes, ok := c.toValue[typ]
 	c.mu.Unlock()
 	if ok {
-		return arena.New(TypeType, bytes)
+		return NewValue(TypeType, bytes)
 	}
 	// In general, this shouldn't happen except for a foreign
 	// type that wasn't initially created in this context.
@@ -326,9 +326,9 @@ func (c *Context) LookupTypeValue(arena *Arena, typ Type) Value {
 	typ, err := c.LookupByValue(tv)
 	if err != nil {
 		// This shouldn't happen.
-		return c.Missing(arena)
+		return c.Missing()
 	}
-	return c.LookupTypeValue(arena, typ)
+	return c.LookupTypeValue(typ)
 }
 
 func (c *Context) DecodeTypeValue(tv zcode.Bytes) (Type, zcode.Bytes) {
@@ -491,20 +491,22 @@ func DecodeLength(tv zcode.Bytes) (int, zcode.Bytes) {
 	return int(namelen), tv[n:]
 }
 
-func (c *Context) Missing(arena *Arena) Value {
-	return arena.New(c.StringTypeError(), Missing)
+func (c *Context) Missing() Value {
+	return NewValue(c.StringTypeError(), Missing)
 }
 
-func (c *Context) Quiet(arena *Arena) Value {
-	return arena.New(c.StringTypeError(), Quiet)
+func (c *Context) Quiet() Value {
+	return NewValue(c.StringTypeError(), Quiet)
 }
 
-func (c *Context) NewErrorf(arena *Arena, format string, args ...interface{}) Value {
-	return arena.New(c.StringTypeError(), fmt.Appendf(nil, format, args...))
+// batch/allocator should handle these?
+
+func (c *Context) NewErrorf(format string, args ...interface{}) Value {
+	return NewValue(c.StringTypeError(), fmt.Appendf(nil, format, args...))
 }
 
-func (c *Context) NewError(arena *Arena, err error) Value {
-	return arena.New(c.StringTypeError(), []byte(err.Error()))
+func (c *Context) NewError(err error) Value {
+	return NewValue(c.StringTypeError(), []byte(err.Error()))
 }
 
 func (c *Context) StringTypeError() *TypeError {
@@ -514,7 +516,7 @@ func (c *Context) StringTypeError() *TypeError {
 	return c.LookupTypeError(TypeString)
 }
 
-func (c *Context) WrapError(arena *Arena, msg string, val Value) Value {
+func (c *Context) WrapError(msg string, val Value) Value {
 	recType := c.MustLookupTypeRecord([]Field{
 		{"message", TypeString},
 		{"on", val.Type()},
@@ -523,5 +525,5 @@ func (c *Context) WrapError(arena *Arena, msg string, val Value) Value {
 	var b zcode.Builder
 	b.Append(EncodeString(msg))
 	b.Append(val.Bytes())
-	return arena.New(errType, b.Bytes())
+	return NewValue(errType, b.Bytes())
 }

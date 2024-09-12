@@ -93,8 +93,7 @@ type primitive struct {
 type const_ struct {
 	mu sync.Mutex
 	count
-	arena *zed.Arena
-	val   zed.Value //XXX map this value? XXX, maybe wrap a shadow vector?, which could
+	val zed.Value //XXX map this value? XXX, maybe wrap a shadow vector?, which could
 	// have a named in it
 	vec   *vector.Const
 	nulls nulls
@@ -206,7 +205,6 @@ func newShadow(m vng.Metadata, n *vng.Nulls, nullsCnt uint32) shadow {
 	case *vng.Const:
 		return &const_{
 			count: count{m.Len(), nullsCnt},
-			arena: m.Arena,
 			val:   m.Value,
 			nulls: nulls{meta: n},
 		}

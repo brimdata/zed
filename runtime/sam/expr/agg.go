@@ -66,7 +66,7 @@ func (s *AggregatorExpr) Eval(ectx Context, val zed.Value) zed.Value {
 		s.fn = s.agg.NewFunction()
 	}
 	s.agg.Apply(s.zctx, ectx, s.fn, val)
-	return s.fn.Result(s.zctx, ectx.Arena())
+	return s.fn.Result(s.zctx)
 }
 
 func (s *AggregatorExpr) Reset() {

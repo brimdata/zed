@@ -31,8 +31,8 @@ func makeHeader(name string, rest []string) string {
 // startTest() creates a new parser and sends all the provided
 // directives, expecting them to all be parsed successfully.
 // A parser object ready for further testing is returned.
-func startTest(t *testing.T, zctx *zed.Context, headers []string) *Parser {
-	p := NewParser(zctx)
+func startTest(t *testing.T, headers []string) *Parser {
+	p := NewParser(zed.NewContext())
 	for _, h := range headers {
 		require.NoError(t, p.ParseDirective([]byte(h)))
 	}
@@ -44,7 +44,7 @@ func startTest(t *testing.T, zctx *zed.Context, headers []string) *Parser {
 // zeek legacy directives.  If any of fields, types, path are provided,
 // corresponding #files, #types, and #path directives are also sent.
 // A parser object ready for further testing is returned.
-func startLegacyTest(t *testing.T, zctx *zed.Context, fields, types []string, path string) *Parser {
+func startLegacyTest(t *testing.T, fields, types []string, path string) *Parser {
 	headers := standardHeaders
 	if len(path) > 0 {
 		headers = append(headers, fmt.Sprintf("#path\t%s", path))
@@ -56,13 +56,13 @@ func startLegacyTest(t *testing.T, zctx *zed.Context, fields, types []string, pa
 		headers = append(headers, makeHeader("#types", types))
 	}
 
-	return startTest(t, zctx, headers)
+	return startTest(t, headers)
 }
 
 // sendLegacyValues() formats the array of values as a legacy zeek log line
 // and parses it.
-func sendLegacyValues(arena *zed.Arena, p *Parser, vals []string) (*zed.Value, error) {
-	return p.ParseValue(arena, []byte(strings.Join(vals, "\t")))
+func sendLegacyValues(p *Parser, vals []string) (*zed.Value, error) {
+	return p.ParseValue([]byte(strings.Join(vals, "\t")))
 }
 
 func assertError(t *testing.T, err error, pattern, what string) {
@@ -73,48 +73,41 @@ func assertError(t *testing.T, err error, pattern, what string) {
 // Test things related to legacy zeek records that the parser should
 // handle successfully.
 func TestLegacyZeekValid(t *testing.T) {
-	zctx := zed.NewContext()
-	arena := zed.NewArena()
-	defer arena.Unref()
-
 	// Test standard headers but no timestamp in records
-	parser := startLegacyTest(t, zctx, fields, types, "")
-	record, err := sendLegacyValues(arena, parser, values)
+	parser := startLegacyTest(t, fields, types, "")
+	record, err := sendLegacyValues(parser, values)
 	require.NoError(t, err)
 
-	assert.Equal(t, record.Deref(arena, "ts").MissingAsNull(), zed.Null)
+	assert.Equal(t, record.Deref("ts").MissingAsNull(), zed.Null)
 	// XXX check contents of other fields?
 
 	// Test standard headers with a timestamp in records
 	fieldsWithTs := append(fields, "ts")
 	typesWithTs := append(types, "time")
-	parser = startLegacyTest(t, zctx, fieldsWithTs, typesWithTs, "")
+	parser = startLegacyTest(t, fieldsWithTs, typesWithTs, "")
 
 	timestamp := "1573588318384.000"
 	valsWithTs := append(values, timestamp)
-	record, err = sendLegacyValues(arena, parser, valsWithTs)
+	record, err = sendLegacyValues(parser, valsWithTs)
 	require.NoError(t, err)
 
 	expectedTs, err := parseTime([]byte(timestamp))
 	require.NoError(t, err)
-	x := record.Deref(arena, "ts").AsTime()
+	x := record.Deref("ts").AsTime()
 	assert.Equal(t, expectedTs, x, "Timestamp is correct")
 
 	// Test the #path header
-	parser = startLegacyTest(t, zctx, fieldsWithTs, typesWithTs, "testpath")
-	record, err = sendLegacyValues(arena, parser, valsWithTs)
+	parser = startLegacyTest(t, fieldsWithTs, typesWithTs, "testpath")
+	record, err = sendLegacyValues(parser, valsWithTs)
 	require.NoError(t, err)
 
-	path := record.Deref(arena, "_path").AsString()
+	path := record.Deref("_path").AsString()
 	assert.Equal(t, path, "testpath", "Legacy _path field was set properly")
 
 	// XXX test overriding separator, setSeparator
 }
 
 func TestNestedRecords(t *testing.T) {
-	arena := zed.NewArena()
-	defer arena.Unref()
-
 	// Test the parser handling of nested records.
 	// The schema used here touches several edge cases:
 	//  - nested records separated by a regular field
@@ -125,8 +118,8 @@ func TestNestedRecords(t *testing.T) {
 	types := []string{"int", "int", "int", "int", "int", "int", "int"}
 	vals := []string{"1", "2", "3", "4", "5", "6", "7"}
 
-	parser := startLegacyTest(t, zed.NewContext(), names, types, "")
-	record, err := sendLegacyValues(arena, parser, vals)
+	parser := startLegacyTest(t, names, types, "")
+	record, err := sendLegacyValues(parser, vals)
 	require.NoError(t, err)
 	require.NoError(t, record.Validate())
 
@@ -158,77 +151,73 @@ func TestNestedRecords(t *testing.T) {
 	assert.Equal(t, "z", nest3Type.Fields[0].Name, "field in nest3 is z")
 
 	// Now check the actual values
-	assert.Equal(t, 1, int(record.Deref(arena, "a").AsInt()), "Field a has value 1")
+	assert.Equal(t, 1, int(record.Deref("a").AsInt()), "Field a has value 1")
 
-	e := record.Deref(arena, "nest1")
+	e := record.Deref("nest1")
 	assert.Equal(t, nest1Type, e.Type(), "Got right type for field nest1")
-	assert.Equal(t, 2, int(e.Deref(arena, "a").AsInt()), "nest1.a")
-	assert.Equal(t, 3, int(e.Deref(arena, "b").AsInt()), "nest1.b")
+	assert.Equal(t, 2, int(e.Deref("a").AsInt()), "nest1.a")
+	assert.Equal(t, 3, int(e.Deref("b").AsInt()), "nest1.b")
 
-	e = e.Deref(arena, "nestnest")
+	e = e.Deref("nestnest")
 	assert.Equal(t, nestnestType, e.Type(), "Got right type for field nest1.nestnest")
-	assert.Equal(t, 6, int(e.Deref(arena, "c").AsInt()), "nest1.nestnest.c")
+	assert.Equal(t, 6, int(e.Deref("c").AsInt()), "nest1.nestnest.c")
 
-	assert.Equal(t, 4, int(record.Deref(arena, "b").AsInt()), "Field b has value 4")
+	assert.Equal(t, 4, int(record.Deref("b").AsInt()), "Field b has value 4")
 
-	e = record.Deref(arena, "nest2")
+	e = record.Deref("nest2")
 	assert.Equal(t, nest2Type, e.Type(), "Got right type for field nest2")
-	assert.Equal(t, 5, int(e.Deref(arena, "y").AsInt()), "nest2.y")
+	assert.Equal(t, 5, int(e.Deref("y").AsInt()), "nest2.y")
 
-	e = record.Deref(arena, "nest3")
+	e = record.Deref("nest3")
 	assert.Equal(t, nest3Type, e.Type(), "Got right type for field nest3")
-	assert.Equal(t, 7, int(e.Deref(arena, "z").AsInt()), "nest3.z")
+	assert.Equal(t, 7, int(e.Deref("z").AsInt()), "nest3.z")
 }
 
 // Test things related to legacy zeek records that should cause the
 // parser to generate errors.
 func TestLegacyZeekInvalid(t *testing.T) {
-	zctx := zed.NewContext()
-	arena := zed.NewArena()
-	defer arena.Unref()
-
 	// Test that a non-standard value for empty_field is rejected
-	parser := startTest(t, zctx, []string{separator, setSeparator})
+	parser := startTest(t, []string{separator, setSeparator})
 	err := parser.ParseDirective([]byte("#empty_field\tboo"))
 	assertError(t, err, "encountered bad header field", "#empty_field header")
 
 	// Test that a non-standard value for unset_field is rejected
-	parser = startTest(t, zctx, []string{separator, setSeparator})
+	parser = startTest(t, []string{separator, setSeparator})
 	err = parser.ParseDirective([]byte("#unset_field\tboo"))
 	assertError(t, err, "encountered bad header field", "#unset header")
 
 	// Test that missing #fields/#values headers is an error
-	parser = startTest(t, zctx, standardHeaders)
-	_, err = sendLegacyValues(arena, parser, values)
+	parser = startTest(t, standardHeaders)
+	_, err = sendLegacyValues(parser, values)
 	assertError(t, err, "bad types/fields definition", "missing #fields/#types header")
 
 	// Test that #fields header without #values is an error
 	fh := makeHeader("#fields", fields)
-	parser = startTest(t, zctx, append(standardHeaders, fh))
-	_, err = sendLegacyValues(arena, parser, values)
+	parser = startTest(t, append(standardHeaders, fh))
+	_, err = sendLegacyValues(parser, values)
 	assertError(t, err, "bad types/fields definition", "missing #types header")
 
 	// Test that #types header without #fields is an error
 	th := makeHeader("#types", types)
-	parser = startTest(t, zctx, append(standardHeaders, th))
-	_, err = sendLegacyValues(arena, parser, values)
+	parser = startTest(t, append(standardHeaders, th))
+	_, err = sendLegacyValues(parser, values)
 	assertError(t, err, "bad types/fields definition", "values without #fields")
 
 	// Test that mismatched #fields/#types headers is an error
 	/* XXX fixme
-	parser = startTest(t, zctx, append(standardHeaders, fh))
+	parser = startTest(t, append(standardHeaders, fh))
 	err = parser.parseDirective([]byte(makeHeader("#types", append(types, "int"))))
 	assertError(t, err, "bad types/fields definition", "mismatched #fields/#types headers")
 	*/
 
 	// Test that too many values is an error
-	parser = startTest(t, zctx, append(standardHeaders, fh, th))
-	_, err = sendLegacyValues(arena, parser, append(values, "extra"))
+	parser = startTest(t, append(standardHeaders, fh, th))
+	_, err = sendLegacyValues(parser, append(values, "extra"))
 	assertError(t, err, "too many values", "wrong number of values")
 
 	// Test that too few values is an error
-	parser = startTest(t, zctx, append(standardHeaders, fh, th))
-	_, err = sendLegacyValues(arena, parser, values[:len(values)-2])
+	parser = startTest(t, append(standardHeaders, fh, th))
+	_, err = sendLegacyValues(parser, values[:len(values)-2])
 	assertError(t, err, "too few values", "wrong number of values")
 
 	// XXX check invalid types?

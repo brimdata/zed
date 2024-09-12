@@ -16,10 +16,10 @@ func (l *Len) Call(args ...vector.Any) vector.Any {
 	out := vector.NewIntEmpty(zed.TypeInt64, val.Len(), nil)
 	switch typ := val.Type().(type) {
 	case *zed.TypeOfNull:
-		return vector.NewConst(nil, zed.NewInt64(0), val.Len(), nil)
+		return vector.NewConst(zed.NewInt64(0), val.Len(), nil)
 	case *zed.TypeRecord:
 		length := int64(len(typ.Fields))
-		return vector.NewConst(nil, zed.NewInt64(length), val.Len(), nil)
+		return vector.NewConst(zed.NewInt64(length), val.Len(), nil)
 	case *zed.TypeArray, *zed.TypeSet, *zed.TypeMap:
 		for i := uint32(0); i < val.Len(); i++ {
 			start, end, _ := vector.ContainerOffset(val, i)

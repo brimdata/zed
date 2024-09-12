@@ -114,11 +114,11 @@ func (a *analyzer) semSource(source ast.Source) []dag.Op {
 		var headers map[string][]string
 		if s.Headers != nil {
 			expr := a.semExpr(s.Headers)
-			val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, expr)
+			val, err := kernel.EvalAtCompileTime(a.zctx, expr)
 			if err != nil {
 				a.error(s.Headers, err)
 			} else {
-				headers, err = unmarshalHeaders(a.arena, val)
+				headers, err = unmarshalHeaders(val)
 				if err != nil {
 					a.error(s.Headers, err)
 				}
@@ -167,7 +167,7 @@ func (a *analyzer) semSource(source ast.Source) []dag.Op {
 	}
 }
 
-func unmarshalHeaders(arena *zed.Arena, val zed.Value) (map[string][]string, error) {
+func unmarshalHeaders(val zed.Value) (map[string][]string, error) {
 	if !zed.IsRecordType(val.Type()) {
 		return nil, errors.New("headers value must be a record")
 	}
@@ -176,7 +176,7 @@ func unmarshalHeaders(arena *zed.Arena, val zed.Value) (map[string][]string, err
 		if inner := zed.InnerType(f.Type); inner == nil || inner.ID() != zed.IDString {
 			return nil, errors.New("headers field value must be an array or set of strings")
 		}
-		fieldVal := val.DerefByColumn(arena, i)
+		fieldVal := val.DerefByColumn(i)
 		if fieldVal == nil {
 			continue
 		}
@@ -260,7 +260,7 @@ func (a *analyzer) maybeStringConst(name string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("%s: string value required", name)
 	}
-	val := zson.MustParseValue(a.zctx, a.arena, l.Value)
+	val := zson.MustParseValue(a.zctx, l.Value)
 	if val.Type().ID() != zed.IDString {
 		return "", fmt.Errorf("%s: string value required", name)
 	}
@@ -526,7 +526,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) dag.Seq {
 		if o.Count != nil {
 			expr := a.semExpr(o.Count)
 			var err error
-			if val, err = kernel.EvalAtCompileTime(a.zctx, a.arena, expr); err != nil {
+			if val, err = kernel.EvalAtCompileTime(a.zctx, expr); err != nil {
 				a.error(o.Count, err)
 				return append(seq, badOp())
 			}
@@ -547,7 +547,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) dag.Seq {
 		if o.Count != nil {
 			expr := a.semExpr(o.Count)
 			var err error
-			if val, err = kernel.EvalAtCompileTime(a.zctx, a.arena, expr); err != nil {
+			if val, err = kernel.EvalAtCompileTime(a.zctx, expr); err != nil {
 				a.error(o.Count, err)
 				return append(seq, badOp())
 			}
@@ -586,7 +586,7 @@ func (a *analyzer) semOp(o ast.Op, seq dag.Seq) dag.Seq {
 		limit := 1
 		if o.Limit != nil {
 			l := a.semExpr(o.Limit)
-			val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, l)
+			val, err := kernel.EvalAtCompileTime(a.zctx, l)
 			if err != nil {
 				a.error(o.Limit, err)
 				return append(seq, badOp())
@@ -868,7 +868,7 @@ func (a *analyzer) semDecls(decls []ast.Decl) ([]dag.Def, []*dag.Func) {
 
 func (a *analyzer) semConstDecl(c *ast.ConstDecl) dag.Def {
 	e := a.semExpr(c.Expr)
-	if err := a.scope.DefineConst(a.zctx, a.arena, c.Name, e); err != nil {
+	if err := a.scope.DefineConst(a.zctx, c.Name, e); err != nil {
 		a.error(c, err)
 	}
 	return dag.Def{
@@ -887,7 +887,7 @@ func (a *analyzer) semTypeDecl(d *ast.TypeDecl) dag.Def {
 		Kind:  "Literal",
 		Value: fmt.Sprintf("<%s=%s>", zson.QuotedName(d.Name.Name), typ),
 	}
-	if err := a.scope.DefineConst(a.zctx, a.arena, d.Name, e); err != nil {
+	if err := a.scope.DefineConst(a.zctx, d.Name, e); err != nil {
 		a.error(d.Name, err)
 	}
 	return dag.Def{Name: d.Name.Name, Expr: e}
@@ -1113,7 +1113,7 @@ func (a *analyzer) maybeConvertUserOp(call *ast.Call) dag.Seq {
 		e := a.semExpr(arg)
 		// Transform non-path arguments into literals.
 		if _, ok := e.(*dag.This); !ok {
-			val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, e)
+			val, err := kernel.EvalAtCompileTime(a.zctx, e)
 			if err != nil {
 				a.error(arg, err)
 				exprs[i] = badExpr()

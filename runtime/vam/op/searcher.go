@@ -30,7 +30,7 @@ func NewSearcher(rctx *runtime.Context, cache *vcache.Cache, parent zbuf.Puller,
 	return &Searcher{
 		cache:      cache,
 		filter:     filter,
-		parent:     newObjectPuller(rctx.Zctx, parent),
+		parent:     newObjectPuller(parent),
 		pool:       pool,
 		projection: vcache.NewProjection(project),
 		rctx:       rctx,
@@ -62,7 +62,7 @@ func (s *Searcher) run() {
 			s.sendResult(nil, nil, err)
 			return
 		}
-		object, err := s.cache.Fetch(s.rctx.Context, s.rctx.Zctx, meta.VectorURI(s.pool.DataPath), meta.ID)
+		object, err := s.cache.Fetch(s.rctx.Context, meta.VectorURI(s.pool.DataPath), meta.ID)
 		if err != nil {
 			s.sendResult(nil, nil, err)
 			return

@@ -70,7 +70,6 @@ type objectIterator struct {
 	reader      zio.Reader
 	puller      zbuf.Puller
 	unmarshaler *zson.UnmarshalZNGContext
-	arena       *zed.Arena
 }
 
 func newObjectIterator(ctx context.Context, lake api.Interface, head *lakeparse.Commitish) (*objectIterator, error) {
@@ -79,12 +78,10 @@ func newObjectIterator(ctx context.Context, lake api.Interface, head *lakeparse.
 	if err != nil {
 		return nil, err
 	}
-	arena := zed.NewArena()
 	return &objectIterator{
 		reader:      zbuf.PullerReader(q),
 		puller:      q,
-		unmarshaler: zson.NewZNGUnmarshaler().SetContext(zed.NewContext(), arena),
-		arena:       arena,
+		unmarshaler: zson.NewZNGUnmarshaler(),
 	}, nil
 }
 
@@ -99,7 +96,6 @@ func (r *objectIterator) next() (*object, error) {
 	if err := r.unmarshaler.Unmarshal(*val, &o.Object); err != nil {
 		return nil, err
 	}
-	o.Object.Arena = r.arena
 	if err := r.unmarshaler.Unmarshal(*val, &o); err != nil {
 		return nil, err
 	}

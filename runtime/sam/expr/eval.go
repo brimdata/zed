@@ -19,7 +19,7 @@ type Evaluator interface {
 }
 
 type Function interface {
-	Call(Context, []zed.Value) zed.Value
+	Call(zed.Allocator, []zed.Value) zed.Value
 }
 
 type Not struct {
@@ -75,7 +75,7 @@ func EvalBool(zctx *zed.Context, ectx Context, this zed.Value, e Evaluator) (zed
 	if val.IsError() {
 		return val, false
 	}
-	return zctx.WrapError(ectx.Arena(), "not type bool", val), false
+	return zctx.WrapError("not type bool", val), false
 }
 
 func (a *And) Eval(ectx Context, this zed.Value) zed.Value {
@@ -137,10 +137,8 @@ func (i *In) Eval(ectx Context, this zed.Value) zed.Value {
 	if container.IsError() {
 		return container
 	}
-	arena := ectx.Arena()
-	elem = elem.Under(arena)
 	err := container.Walk(func(typ zed.Type, body zcode.Bytes) error {
-		if coerce.Equal(elem, arena.New(typ, body).Under(arena)) {
+		if coerce.Equal(elem, zed.NewValue(typ, body)) {
 			return errMatch
 		}
 		return nil
@@ -151,7 +149,7 @@ func (i *In) Eval(ectx Context, this zed.Value) zed.Value {
 	case nil:
 		return zed.False
 	default:
-		return i.zctx.NewError(arena, err)
+		return i.zctx.NewError(err)
 	}
 }
 
@@ -225,11 +223,11 @@ func (n *numeric) evalAndPromote(ectx Context, this zed.Value) (zed.Value, zed.V
 	}
 	id, err := coerce.Promote(lhsVal, rhsVal)
 	if err != nil {
-		return zed.Null, zed.Null, nil, n.zctx.NewError(ectx.Arena(), err).Ptr()
+		return zed.Null, zed.Null, nil, n.zctx.NewError(err).Ptr()
 	}
 	typ, err := n.zctx.LookupType(id)
 	if err != nil {
-		return zed.Null, zed.Null, nil, n.zctx.NewError(ectx.Arena(), err).Ptr()
+		return zed.Null, zed.Null, nil, n.zctx.NewError(err).Ptr()
 	}
 	return lhsVal, rhsVal, typ, nil
 }
@@ -243,15 +241,13 @@ func (n *numeric) eval(ectx Context, this zed.Value) (zed.Value, zed.Value, *zed
 	if rhs.IsError() {
 		return zed.Null, zed.Null, &rhs
 	}
-	arena := ectx.Arena()
-	lhs, rhs = lhs.Under(arena), rhs.Under(arena)
-	return enumToIndex(arena, lhs), enumToIndex(arena, rhs), nil
+	return enumToIndex(ectx, lhs), enumToIndex(ectx, rhs), nil
 }
 
 // enumToIndex converts an enum to its index value.
-func enumToIndex(arena *zed.Arena, val zed.Value) zed.Value {
+func enumToIndex(ectx Context, val zed.Value) zed.Value {
 	if _, ok := val.Type().(*zed.TypeEnum); ok {
-		return arena.New(zed.TypeUint64, val.Bytes())
+		return zed.NewValue(zed.TypeUint64, val.Bytes())
 	}
 	return val
 }
@@ -292,8 +288,7 @@ func (c *Compare) Eval(ectx Context, this zed.Value) zed.Value {
 	if rhs.IsError() {
 		return rhs
 	}
-	arena := ectx.Arena()
-	lhs, rhs = lhs.Under(arena), rhs.Under(arena)
+	lhs, rhs = lhs.Under(), rhs.Under()
 
 	if lhs.IsNull() {
 		if rhs.IsNull() {
@@ -421,9 +416,9 @@ func (a *Add) Eval(ectx Context, this zed.Value) zed.Value {
 		return zed.NewFloat(typ, toFloat(lhsVal)+toFloat(rhsVal))
 	case id == zed.IDString:
 		v1, v2 := zed.DecodeString(lhsVal.Bytes()), zed.DecodeString(rhsVal.Bytes())
-		return ectx.Arena().New(typ, zed.EncodeString(v1+v2))
+		return zed.NewValue(typ, zed.EncodeString(v1+v2))
 	}
-	return a.zctx.NewErrorf(ectx.Arena(), "type %s incompatible with '+' operator", zson.FormatType(typ))
+	return a.zctx.NewErrorf("type %s incompatible with '+' operator", zson.FormatType(typ))
 }
 
 func (s *Subtract) Eval(ectx Context, this zed.Value) zed.Value {
@@ -443,7 +438,7 @@ func (s *Subtract) Eval(ectx Context, this zed.Value) zed.Value {
 	case zed.IsFloat(id):
 		return zed.NewFloat(typ, toFloat(lhsVal)-toFloat(rhsVal))
 	}
-	return s.zctx.NewErrorf(ectx.Arena(), "type %s incompatible with '-' operator", zson.FormatType(typ))
+	return s.zctx.NewErrorf("type %s incompatible with '-' operator", zson.FormatType(typ))
 }
 
 func (m *Multiply) Eval(ectx Context, this zed.Value) zed.Value {
@@ -459,7 +454,7 @@ func (m *Multiply) Eval(ectx Context, this zed.Value) zed.Value {
 	case zed.IsFloat(id):
 		return zed.NewFloat(typ, toFloat(lhsVal)*toFloat(rhsVal))
 	}
-	return m.zctx.NewErrorf(ectx.Arena(), "type %s incompatible with '*' operator", zson.FormatType(typ))
+	return m.zctx.NewErrorf("type %s incompatible with '*' operator", zson.FormatType(typ))
 }
 
 func (d *Divide) Eval(ectx Context, this zed.Value) zed.Value {
@@ -471,23 +466,23 @@ func (d *Divide) Eval(ectx Context, this zed.Value) zed.Value {
 	case zed.IsUnsigned(id):
 		v := toUint(rhsVal)
 		if v == 0 {
-			return d.zctx.NewError(ectx.Arena(), DivideByZero)
+			return d.zctx.NewError(DivideByZero)
 		}
 		return zed.NewUint(typ, toUint(lhsVal)/v)
 	case zed.IsSigned(id):
 		v := toInt(rhsVal)
 		if v == 0 {
-			return d.zctx.NewError(ectx.Arena(), DivideByZero)
+			return d.zctx.NewError(DivideByZero)
 		}
 		return zed.NewInt(typ, toInt(lhsVal)/v)
 	case zed.IsFloat(id):
 		v := toFloat(rhsVal)
 		if v == 0 {
-			return d.zctx.NewError(ectx.Arena(), DivideByZero)
+			return d.zctx.NewError(DivideByZero)
 		}
 		return zed.NewFloat(typ, toFloat(lhsVal)/v)
 	}
-	return d.zctx.NewErrorf(ectx.Arena(), "type %s incompatible with '/' operator", zson.FormatType(typ))
+	return d.zctx.NewErrorf("type %s incompatible with '/' operator", zson.FormatType(typ))
 }
 
 func (m *Modulo) Eval(ectx Context, this zed.Value) zed.Value {
@@ -499,17 +494,17 @@ func (m *Modulo) Eval(ectx Context, this zed.Value) zed.Value {
 	case zed.IsUnsigned(id):
 		v := toUint(rhsVal)
 		if v == 0 {
-			return m.zctx.NewError(ectx.Arena(), DivideByZero)
+			return m.zctx.NewError(DivideByZero)
 		}
 		return zed.NewUint(typ, lhsVal.Uint()%v)
 	case zed.IsSigned(id):
 		v := toInt(rhsVal)
 		if v == 0 {
-			return m.zctx.NewError(ectx.Arena(), DivideByZero)
+			return m.zctx.NewError(DivideByZero)
 		}
 		return zed.NewInt(typ, toInt(lhsVal)%v)
 	}
-	return m.zctx.NewErrorf(ectx.Arena(), "type %s incompatible with '%%' operator", zson.FormatType(typ))
+	return m.zctx.NewErrorf("type %s incompatible with '%%' operator", zson.FormatType(typ))
 }
 
 type UnaryMinus struct {
@@ -536,53 +531,53 @@ func (u *UnaryMinus) Eval(ectx Context, this zed.Value) zed.Value {
 	case zed.IDInt8:
 		v := val.Int()
 		if v == math.MinInt8 {
-			return u.zctx.WrapError(ectx.Arena(), "unary '-' underflow", val)
+			return u.zctx.WrapError("unary '-' underflow", val)
 		}
 		return zed.NewInt8(int8(-v))
 	case zed.IDInt16:
 		v := val.Int()
 		if v == math.MinInt16 {
-			return u.zctx.WrapError(ectx.Arena(), "unary '-' underflow", val)
+			return u.zctx.WrapError("unary '-' underflow", val)
 		}
 		return zed.NewInt16(int16(-v))
 	case zed.IDInt32:
 		v := val.Int()
 		if v == math.MinInt32 {
-			return u.zctx.WrapError(ectx.Arena(), "unary '-' underflow", val)
+			return u.zctx.WrapError("unary '-' underflow", val)
 		}
 		return zed.NewInt32(int32(-v))
 	case zed.IDInt64:
 		v := val.Int()
 		if v == math.MinInt64 {
-			return u.zctx.WrapError(ectx.Arena(), "unary '-' underflow", val)
+			return u.zctx.WrapError("unary '-' underflow", val)
 		}
 		return zed.NewInt64(-v)
 	case zed.IDUint8:
 		v := val.Uint()
 		if v > math.MaxInt8 {
-			return u.zctx.WrapError(ectx.Arena(), "unary '-' overflow", val)
+			return u.zctx.WrapError("unary '-' overflow", val)
 		}
 		return zed.NewInt8(int8(-v))
 	case zed.IDUint16:
 		v := val.Uint()
 		if v > math.MaxInt16 {
-			return u.zctx.WrapError(ectx.Arena(), "unary '-' overflow", val)
+			return u.zctx.WrapError("unary '-' overflow", val)
 		}
 		return zed.NewInt16(int16(-v))
 	case zed.IDUint32:
 		v := val.Uint()
 		if v > math.MaxInt32 {
-			return u.zctx.WrapError(ectx.Arena(), "unary '-' overflow", val)
+			return u.zctx.WrapError("unary '-' overflow", val)
 		}
 		return zed.NewInt32(int32(-v))
 	case zed.IDUint64:
 		v := val.Uint()
 		if v > math.MaxInt64 {
-			return u.zctx.WrapError(ectx.Arena(), "unary '-' overflow", val)
+			return u.zctx.WrapError("unary '-' overflow", val)
 		}
 		return zed.NewInt64(int64(-v))
 	}
-	return u.zctx.WrapError(ectx.Arena(), "type incompatible with unary '-' operator", val)
+	return u.zctx.WrapError("type incompatible with unary '-' operator", val)
 }
 
 func getNthFromContainer(container zcode.Bytes, idx int) zcode.Bytes {
@@ -639,14 +634,14 @@ func (i *Index) Eval(ectx Context, this zed.Value) zed.Value {
 	case *zed.TypeMap:
 		return indexMap(i.zctx, ectx, typ, container.Bytes(), index)
 	default:
-		return i.zctx.Missing(ectx.Arena())
+		return i.zctx.Missing()
 	}
 }
 
 func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.Bytes, index zed.Value) zed.Value {
 	id := index.Type().ID()
 	if !zed.IsInteger(id) {
-		return zctx.WrapError(ectx.Arena(), "array index is not an integer", index)
+		return zctx.WrapError("array index is not an integer", index)
 	}
 	var idx int
 	if zed.IsSigned(id) {
@@ -656,7 +651,7 @@ func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.B
 	}
 	zv := getNthFromContainer(vector, idx)
 	if zv == nil {
-		return zctx.Missing(ectx.Arena())
+		return zctx.Missing()
 	}
 	return deunion(ectx, inner, zv)
 }
@@ -664,20 +659,19 @@ func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.B
 func indexRecord(zctx *zed.Context, ectx Context, typ *zed.TypeRecord, record zcode.Bytes, index zed.Value) zed.Value {
 	id := index.Type().ID()
 	if id != zed.IDString {
-		return zctx.WrapError(ectx.Arena(), "record index is not a string", index)
+		return zctx.WrapError("record index is not a string", index)
 	}
 	field := zed.DecodeString(index.Bytes())
-	arena := ectx.Arena()
-	val := arena.New(typ, record).Ptr().Deref(arena, field)
+	val := zed.NewValue(typ, record).Ptr().Deref(field)
 	if val == nil {
-		return zctx.Missing(arena)
+		return zctx.Missing()
 	}
 	return *val
 }
 
 func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.Bytes, key zed.Value) zed.Value {
 	if key.IsMissing() {
-		return zctx.Missing(ectx.Arena())
+		return zctx.Missing()
 	}
 	if key.Type() != typ.KeyType {
 		if union, ok := zed.TypeUnder(typ.KeyType).(*zed.TypeUnion); ok {
@@ -689,19 +683,19 @@ func indexMap(zctx *zed.Context, ectx Context, typ *zed.TypeMap, mapBytes zcode.
 				}
 			}
 		}
-		return zctx.Missing(ectx.Arena())
+		return zctx.Missing()
 	}
 	if valBytes, ok := lookupKey(mapBytes, key.Bytes()); ok {
 		return deunion(ectx, typ.ValType, valBytes)
 	}
-	return zctx.Missing(ectx.Arena())
+	return zctx.Missing()
 }
 
 func deunion(ectx Context, typ zed.Type, b zcode.Bytes) zed.Value {
 	if union, ok := typ.(*zed.TypeUnion); ok {
 		typ, b = union.Untag(b)
 	}
-	return ectx.Arena().New(typ, b)
+	return zed.NewValue(typ, b)
 }
 
 type Conditional struct {
@@ -723,7 +717,7 @@ func NewConditional(zctx *zed.Context, predicate, thenExpr, elseExpr Evaluator) 
 func (c *Conditional) Eval(ectx Context, this zed.Value) zed.Value {
 	val := c.predicate.Eval(ectx, this)
 	if val.Type().ID() != zed.IDBool {
-		return c.zctx.WrapError(ectx.Arena(), "?-operator: bool predicate required", val)
+		return c.zctx.WrapError("?-operator: bool predicate required", val)
 	}
 	if val.Bool() {
 		return c.thenExpr.Eval(ectx, this)

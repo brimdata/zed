@@ -2,10 +2,13 @@ package vector_test
 
 import (
 	"bytes"
+	"encoding/binary"
+	"math/rand"
 	"testing"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/fuzz"
+	"github.com/brimdata/zed/vng"
 )
 
 func FuzzQuery(f *testing.F) {
@@ -16,10 +19,9 @@ func FuzzQuery(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		bytesReader := bytes.NewReader(b)
 		querySource := fuzz.GenAscii(bytesReader)
-		zctx := zed.NewContext()
-		types := fuzz.GenTypes(bytesReader, zctx, 3)
-		batch := fuzz.GenValues(bytesReader, zctx, types)
-		defer batch.Unref()
+		context := zed.NewContext()
+		types := fuzz.GenTypes(bytesReader, context, 3)
+		values := fuzz.GenValues(bytesReader, context, types)
 
 		// Debug
 		//for i := range values {
@@ -28,15 +30,88 @@ func FuzzQuery(f *testing.F) {
 		//}
 
 		var zngBuf bytes.Buffer
-		fuzz.WriteZNG(t, batch, &zngBuf)
+		fuzz.WriteZNG(t, values, &zngBuf)
 		resultZNG := fuzz.RunQueryZNG(t, &zngBuf, querySource)
-		defer resultZNG.Unref()
 
 		var vngBuf bytes.Buffer
-		fuzz.WriteVNG(t, batch, &vngBuf)
+		fuzz.WriteVNG(t, values, &vngBuf)
 		resultVNG := fuzz.RunQueryVNG(t, &vngBuf, querySource)
-		defer resultVNG.Unref()
 
-		fuzz.CompareValues(t, resultZNG.Values(), resultVNG.Values())
+		fuzz.CompareValues(t, resultZNG, resultVNG)
 	})
+}
+
+const N = 10000000
+
+func BenchmarkReadZng(b *testing.B) {
+	rand := rand.New(rand.NewSource(42))
+	valuesIn := make([]zed.Value, N)
+	for i := range valuesIn {
+		valuesIn[i] = zed.NewInt64(rand.Int63n(N))
+	}
+	var buf bytes.Buffer
+	fuzz.WriteZNG(b, valuesIn, &buf)
+	bs := buf.Bytes()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		valuesOut, err := fuzz.ReadZNG(bs)
+		if err != nil {
+			panic(err)
+		}
+		if zed.DecodeInt(valuesIn[N-1].Bytes()) != zed.DecodeInt(valuesOut[N-1].Bytes()) {
+			panic("oh no")
+		}
+	}
+}
+
+func BenchmarkReadVng(b *testing.B) {
+	rand := rand.New(rand.NewSource(42))
+	valuesIn := make([]zed.Value, N)
+	for i := range valuesIn {
+		valuesIn[i] = zed.NewValue(zed.TypeInt64, zed.EncodeInt(int64(rand.Intn(N))))
+	}
+	var buf bytes.Buffer
+	fuzz.WriteVNG(b, valuesIn, &buf)
+	bs := buf.Bytes()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bytesReader := bytes.NewReader(bs)
+		object, err := vng.NewObject(bytesReader)
+		if err != nil {
+			panic(err)
+		}
+		_ = object
+		// TODO Expose a cheap way to get values out of vectors.
+		//if intsIn[N-1] != intsOut[N-1] {
+		//    panic("oh no")
+		//}
+	}
+}
+
+func BenchmarkReadVarint(b *testing.B) {
+	rand := rand.New(rand.NewSource(42))
+	intsIn := make([]int64, N)
+	for i := range intsIn {
+		intsIn[i] = int64(rand.Intn(N))
+	}
+	var bs []byte
+	for _, int := range intsIn {
+		bs = binary.AppendVarint(bs, int)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bs := bs
+		intsOut := make([]int64, N)
+		for i := range intsOut {
+			value, n := binary.Varint(bs)
+			if n <= 0 {
+				panic("oh no")
+			}
+			bs = bs[n:]
+			intsOut[i] = value
+		}
+		if intsIn[N-1] != intsOut[N-1] {
+			panic("oh no")
+		}
+	}
 }

@@ -13,7 +13,6 @@ import (
 )
 
 type Reader struct {
-	arena     *zed.Arena
 	reader    *csv.Reader
 	marshaler *zson.MarshalZNGContext
 	strings   bool
@@ -49,7 +48,6 @@ func NewReader(zctx *zed.Context, r io.Reader, opts ReaderOpts) *Reader {
 	}
 	reader.ReuseRecord = true
 	return &Reader{
-		arena:     zed.NewArena(),
 		reader:    reader,
 		marshaler: zson.NewZNGMarshalerWithContext(zctx),
 	}
@@ -100,8 +98,7 @@ func (r *Reader) translate(fields []string) (zed.Value, error) {
 			vals = append(vals, convertString(field))
 		}
 	}
-	r.arena.Reset()
-	return r.marshaler.MarshalCustom(r.arena, r.hdr, vals)
+	return r.marshaler.MarshalCustom(r.hdr, vals)
 }
 
 func convertString(s string) interface{} {

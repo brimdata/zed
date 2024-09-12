@@ -21,7 +21,7 @@ func (a *And) Consume(val zed.Value) {
 	*a.val = *a.val && val.Bool()
 }
 
-func (a *And) Result(*zed.Context, *zed.Arena) zed.Value {
+func (a *And) Result(*zed.Context) zed.Value {
 	if a.val == nil {
 		return zed.NullBool
 	}
@@ -35,8 +35,8 @@ func (a *And) ConsumeAsPartial(val zed.Value) {
 	a.Consume(val)
 }
 
-func (a *And) ResultAsPartial(*zed.Context, *zed.Arena) zed.Value {
-	return a.Result(nil, nil)
+func (a *And) ResultAsPartial(*zed.Context) zed.Value {
+	return a.Result(nil)
 }
 
 type Or struct {
@@ -56,7 +56,7 @@ func (o *Or) Consume(val zed.Value) {
 	*o.val = *o.val || val.Bool()
 }
 
-func (o *Or) Result(*zed.Context, *zed.Arena) zed.Value {
+func (o *Or) Result(*zed.Context) zed.Value {
 	if o.val == nil {
 		return zed.NullBool
 	}
@@ -70,6 +70,6 @@ func (o *Or) ConsumeAsPartial(val zed.Value) {
 	o.Consume(val)
 }
 
-func (o *Or) ResultAsPartial(*zed.Context, *zed.Arena) zed.Value {
-	return o.Result(nil, nil)
+func (o *Or) ResultAsPartial(*zed.Context) zed.Value {
+	return o.Result(nil)
 }

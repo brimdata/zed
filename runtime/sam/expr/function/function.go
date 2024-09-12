@@ -197,9 +197,9 @@ func HasBoolResult(name string) bool {
 	return false
 }
 
-func underAll(arena *zed.Arena, args []zed.Value) []zed.Value {
+func underAll(args []zed.Value) []zed.Value {
 	for i := range args {
-		args[i] = args[i].Under(arena)
+		args[i] = args[i].Under()
 	}
 	return args
 }

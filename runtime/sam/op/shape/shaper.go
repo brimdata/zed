@@ -21,8 +21,6 @@ type Shaper struct {
 	hash       maphash.Hash
 	val        zed.Value
 	vals       []zed.Value
-	readArena  *zed.Arena
-	valsArena  *zed.Arena
 }
 
 type anchor struct {
@@ -86,11 +84,9 @@ func (i *integer) check(val zed.Value) {
 }
 
 func (a *anchor) updateInts(rec *zed.Value) error {
-	arena := zed.NewArena()
-	defer arena.Unref()
 	it := rec.Bytes().Iter()
 	for k, f := range rec.Fields() {
-		a.integers[k].check(arena.New(f.Type, it.Next()))
+		a.integers[k].check(zed.NewValue(f.Type, it.Next()))
 	}
 	return nil
 }
@@ -124,8 +120,6 @@ func NewShaper(zctx *zed.Context, memMaxBytes int) *Shaper {
 		anchors:     make(map[uint64]*anchor),
 		typeAnchor:  make(map[zed.Type]*anchor),
 		recode:      make(map[zed.Type]*zed.TypeRecord),
-		readArena:   zed.NewArena(),
-		valsArena:   zed.NewArena(),
 	}
 }
 
@@ -250,7 +244,7 @@ func (s *Shaper) stash(rec zed.Value) error {
 		s.vals = nil
 		return s.spiller.Write(rec)
 	}
-	s.vals = append(s.vals, rec.Copy(s.valsArena))
+	s.vals = append(s.vals, rec.Copy())
 	return nil
 }
 
@@ -274,8 +268,7 @@ func (s *Shaper) Read() (*zed.Value, error) {
 		}
 		typ = targetType
 	}
-	s.readArena.Reset()
-	s.val = s.readArena.New(typ, bytes)
+	s.val = zed.NewValue(typ, bytes)
 	return &s.val, nil
 }
 

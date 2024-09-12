@@ -25,9 +25,6 @@ type Writer struct {
 	seekIndexTrigger int
 	first            bool
 	seekMin          *zed.Value
-	keyArena         *zed.Arena
-	seekMinArena     *zed.Arena
-	maxArena         *zed.Arena
 }
 
 // NewWriter returns a writer for writing the data of a zng-row storage object as
@@ -42,14 +39,11 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	}
 	counter := &writeCounter{bufwriter.New(out), 0}
 	w := &Writer{
-		object:       o,
-		byteCounter:  counter,
-		writer:       zngio.NewWriter(counter),
-		sortKey:      sortKey,
-		first:        true,
-		keyArena:     zed.NewArena(),
-		seekMinArena: zed.NewArena(),
-		maxArena:     zed.NewArena(),
+		object:      o,
+		byteCounter: counter,
+		writer:      zngio.NewWriter(counter),
+		sortKey:     sortKey,
+		first:       true,
 	}
 	if seekIndexStride == 0 {
 		seekIndexStride = DefaultSeekStride
@@ -64,8 +58,7 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 }
 
 func (w *Writer) Write(val zed.Value) error {
-	w.keyArena.Reset()
-	key := val.DerefPath(w.keyArena, w.sortKey.Key).MissingAsNull()
+	key := val.DerefPath(w.sortKey.Key).MissingAsNull()
 	return w.WriteWithKey(key, val)
 }
 
@@ -74,8 +67,7 @@ func (w *Writer) WriteWithKey(key, val zed.Value) error {
 	if err := w.writer.Write(val); err != nil {
 		return err
 	}
-	w.maxArena.Reset()
-	w.object.Max = key.Copy(w.maxArena)
+	w.object.Max.CopyFrom(key)
 	return w.writeIndex(key)
 }
 
@@ -83,12 +75,10 @@ func (w *Writer) writeIndex(key zed.Value) error {
 	w.seekIndexTrigger += len(key.Bytes())
 	if w.first {
 		w.first = false
-		w.object.Arena = zed.NewArena()
-		w.object.Min = key.Copy(w.object.Arena)
+		w.object.Min.CopyFrom(key)
 	}
 	if w.seekMin == nil {
-		w.seekMinArena, w.keyArena = w.keyArena, w.seekMinArena
-		w.seekMin = &key
+		w.seekMin = key.Copy().Ptr()
 	}
 	if w.seekIndexTrigger < w.seekIndexStride {
 		return nil
@@ -135,7 +125,6 @@ func (w *Writer) Close(ctx context.Context) error {
 	}
 	w.object.Count = w.count
 	w.object.Size = w.writer.Position()
-	w.object.Max = w.object.Max.Copy(w.object.Arena)
 	if w.sortKey.Order == order.Desc {
 		w.object.Min, w.object.Max = w.object.Max, w.object.Min
 	}

@@ -72,14 +72,12 @@ func genFunc(name, op, typ string, lhs, rhs vector.Form) string {
 	s += genVarInit("l", typ, lhs)
 	s += genVarInit("r", typ, rhs)
 	if lhs == vector.FormConst && rhs == vector.FormConst {
-		s += "var arena *zed.Arena\n"
 		if typ == "String" {
-			s += "arena = zed.NewArena()\n"
-			s += fmt.Sprintf("val := arena.NewString(lconst %s rconst)\n", op)
+			s += fmt.Sprintf("val := zed.NewString(lconst %s rconst)\n", op)
 		} else {
 			s += fmt.Sprintf("val := zed.New%s64(lconst %s rconst)\n", typ, op)
 		}
-		s += "return vector.NewConst(arena, val, lhs.Len(), nil)\n"
+		s += "return vector.NewConst(val, lhs.Len(), nil)\n"
 	} else {
 		s += "n := lhs.Len()\n"
 		if typ == "String" {

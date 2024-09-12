@@ -31,8 +31,6 @@ func (m *Materializer) Pull(done bool) (zbuf.Batch, error) {
 	if variant == nil {
 		typ = vec.Type()
 	}
-	arena := zed.NewArena()
-	defer arena.Unref()
 	builder := zcode.NewBuilder()
 	var vals []zed.Value
 	n := vec.Len()
@@ -41,9 +39,9 @@ func (m *Materializer) Pull(done bool) (zbuf.Batch, error) {
 		if variant != nil {
 			typ = variant.TypeOf(slot)
 		}
-		val := arena.New(typ, bytes.Clone(builder.Bytes().Body()))
+		val := zed.NewValue(typ, bytes.Clone(builder.Bytes().Body()))
 		vals = append(vals, val)
 		builder.Reset()
 	}
-	return zbuf.NewArray(arena, vals), nil
+	return zbuf.NewArray(vals), nil
 }

@@ -17,13 +17,12 @@ const defaultTopLimit = 100
 // the top N of the sort.
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
 type Op struct {
-	zctx       *zed.Context
 	parent     zbuf.Puller
+	zctx       *zed.Context
 	limit      int
 	fields     []expr.Evaluator
 	flushEvery bool
 	resetter   expr.Resetter
-	batches    map[zed.Value]zbuf.Batch
 	records    *expr.RecordSlice
 	compare    expr.CompareFn
 }
@@ -33,13 +32,11 @@ func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluat
 		limit = defaultTopLimit
 	}
 	return &Op{
-		zctx:       zctx,
 		parent:     parent,
 		limit:      limit,
 		fields:     fields,
 		flushEvery: flushEvery,
 		resetter:   resetter,
-		batches:    make(map[zed.Value]zbuf.Batch),
 	}
 }
 
@@ -55,7 +52,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		}
 		vals := batch.Values()
 		for i := range vals {
-			o.consume(batch, vals[i])
+			o.consume(vals[i])
 		}
 		batch.Unref()
 		if o.flushEvery {
@@ -64,7 +61,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	}
 }
 
-func (o *Op) consume(batch zbuf.Batch, rec zed.Value) {
+func (o *Op) consume(rec zed.Value) {
 	if o.fields == nil {
 		fld := sort.GuessSortKey(rec)
 		accessor := expr.NewDottedExpr(o.zctx, fld)
@@ -76,17 +73,10 @@ func (o *Op) consume(batch zbuf.Batch, rec zed.Value) {
 		heap.Init(o.records)
 	}
 	if o.records.Len() < o.limit || o.compare(o.records.Index(0), rec) < 0 {
-		heap.Push(o.records, rec)
-		if _, ok := rec.Arena(); ok {
-			batch.Ref()
-			o.batches[rec] = batch
-		}
+		heap.Push(o.records, rec.Copy())
 	}
 	if o.records.Len() > o.limit {
-		val := heap.Pop(o.records).(zed.Value)
-		if batch, ok := o.batches[val]; ok {
-			batch.Unref()
-		}
+		heap.Pop(o.records)
 	}
 }
 
@@ -94,13 +84,11 @@ func (o *Op) sorted() zbuf.Batch {
 	if o.records == nil {
 		return nil
 	}
-	arena := zed.NewArena()
-	defer arena.Unref()
 	out := make([]zed.Value, o.records.Len())
 	for i := o.records.Len() - 1; i >= 0; i-- {
-		out[i] = heap.Pop(o.records).(zed.Value).Copy(arena)
+		out[i] = heap.Pop(o.records).(zed.Value)
 	}
 	// clear records
 	o.records = nil
-	return zbuf.NewArray(arena, out)
+	return zbuf.NewArray(out)
 }

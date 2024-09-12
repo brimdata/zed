@@ -23,12 +23,15 @@ type Writer struct {
 	objects     []data.Object
 	inputSorted bool
 	ctx         context.Context
+	zctx        *zed.Context
 	errgroup    *errgroup.Group
-	array       *zbuf.Array
-	// This channel implements a simple double buffering model so the
-	// cloud-object writer can run in parallel with the reader filling the
-	// records buffer.
-	buffer      chan *zbuf.Array
+	vals        []zed.Value
+	// XXX this is a simple double buffering model so the cloud-object
+	// writer can run in parallel with the reader filling the records
+	// buffer.  This can be later extended to pass a big bytes buffer
+	// back and forth where the bytes buffer holds all of the record
+	// data efficiently in one big backing store.
+	buffer      chan []zed.Value
 	comparator  *expr.Comparator
 	memBuffered int64
 	stats       ImportStats
@@ -48,13 +51,13 @@ type Writer struct {
 // to do useful things like paritioning given the context is a rollup.
 func NewWriter(ctx context.Context, zctx *zed.Context, pool *Pool) (*Writer, error) {
 	g, ctx := errgroup.WithContext(ctx)
-	ch := make(chan *zbuf.Array, 1)
-	ch <- zbuf.NewArray(nil, nil)
+	ch := make(chan []zed.Value, 1)
+	ch <- nil
 	return &Writer{
 		pool:       pool,
 		ctx:        ctx,
+		zctx:       zctx,
 		errgroup:   g,
-		array:      zbuf.NewArray(nil, nil),
 		buffer:     ch,
 		comparator: ImportComparator(zctx, pool),
 	}, nil
@@ -76,7 +79,11 @@ func (w *Writer) Write(rec zed.Value) error {
 		}
 		return w.ctx.Err()
 	}
-	w.array.Write(rec)
+	// XXX This call leads to a ton of one-off allocations that burden the GC
+	// and slow down import. We should instead copy the raw record bytes into a
+	// recycled buffer and keep around an array of ts + byte-slice structs for
+	// sorting.
+	w.vals = append(w.vals, rec.Copy())
 	w.memBuffered += int64(len(rec.Bytes()))
 	//XXX change name LogSizeThreshold
 	// XXX the previous logic estimated the object size with divide by 2...?!
@@ -87,21 +94,20 @@ func (w *Writer) Write(rec zed.Value) error {
 }
 
 func (w *Writer) flipBuffers() {
-	oldArray, ok := <-w.buffer
+	oldvals, ok := <-w.buffer
 	if !ok {
 		return
 	}
-	oldArray.Reset()
-	array := w.array
-	w.array = oldArray
+	recs := w.vals
+	w.vals = oldvals[:0]
 	w.memBuffered = 0
 	w.errgroup.Go(func() error {
-		err := w.writeObject(w.newObject(), array.Values())
+		err := w.writeObject(w.newObject(), recs)
 		if err != nil {
 			close(w.buffer)
 			return err
 		}
-		w.buffer <- array
+		w.buffer <- recs
 		return err
 	})
 }
@@ -109,7 +115,7 @@ func (w *Writer) flipBuffers() {
 func (w *Writer) Close() error {
 	// Send the last write (Note: we could reorder things so we do the
 	// record sort in this thread while waiting for the write to complete.)
-	if len(w.array.Values()) > 0 {
+	if len(w.vals) > 0 {
 		w.flipBuffers()
 	}
 	// Wait for any pending write to finish.
@@ -119,7 +125,7 @@ func (w *Writer) Close() error {
 func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	var zr zio.Reader
 	if w.inputSorted {
-		zr = zbuf.NewArray(nil, recs)
+		zr = zbuf.NewArray(recs)
 	} else {
 		done := make(chan struct{})
 		go func() {
@@ -165,8 +171,6 @@ type SortedWriter struct {
 	vectorEnabled bool
 	vectorWriter  *data.VectorWriter
 	objects       []*data.Object
-	keyArena      *zed.Arena
-	lastKeyArena  *zed.Arena
 }
 
 func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorEnabled bool) *SortedWriter {
@@ -176,14 +180,11 @@ func NewSortedWriter(ctx context.Context, zctx *zed.Context, pool *Pool, vectorE
 		sortKey:       pool.SortKeys.Primary(),
 		pool:          pool,
 		vectorEnabled: vectorEnabled,
-		keyArena:      zed.NewArena(),
-		lastKeyArena:  zed.NewArena(),
 	}
 }
 
 func (w *SortedWriter) Write(val zed.Value) error {
-	w.keyArena.Reset()
-	key := val.DerefPath(w.keyArena, w.sortKey.Key).MissingAsNull()
+	key := val.DerefPath(w.sortKey.Key).MissingAsNull()
 again:
 	if w.writer == nil {
 		if err := w.newWriter(); err != nil {
@@ -210,8 +211,7 @@ again:
 			return err
 		}
 	}
-	w.keyArena, w.lastKeyArena = w.lastKeyArena, w.keyArena
-	w.lastKey = key
+	w.lastKey.CopyFrom(key)
 	return nil
 }
 

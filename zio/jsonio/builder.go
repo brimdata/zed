@@ -10,8 +10,7 @@ import (
 )
 
 type builder struct {
-	arena *zed.Arena
-	zctx  *zed.Context
+	zctx *zed.Context
 
 	containers []int  // Stack of open containers (as indexes into items).
 	items      []item // Stack of items.
@@ -30,7 +29,6 @@ type item struct {
 }
 
 func (b *builder) reset() {
-	b.arena.Reset()
 	b.containers = b.containers[:0]
 	b.items = b.items[:0]
 }
@@ -175,6 +173,6 @@ func (b *builder) value() *zed.Value {
 		panic("multiple items")
 	}
 	item := &b.items[0]
-	b.val = b.arena.New(item.typ, item.zb.Bytes().Body())
+	b.val = zed.NewValue(item.typ, item.zb.Bytes().Body())
 	return &b.val
 }

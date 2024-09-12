@@ -62,15 +62,14 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
 	cache := vcache.NewCache(local)
-	object, err := cache.Fetch(ctx, zctx, uri, ksuid.Nil)
+	object, err := cache.Fetch(ctx, uri, ksuid.Nil)
 	if err != nil {
 		return err
 	}
 	defer object.Close()
-	rctx := runtime.NewContext(ctx, zctx)
+	rctx := runtime.NewContext(ctx, zed.NewContext())
 	puller, err := compiler.VectorCompile(rctx, text, object)
 	if err != nil {
 		return err

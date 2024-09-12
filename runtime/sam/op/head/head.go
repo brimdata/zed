@@ -61,6 +61,5 @@ again:
 		return nil, err
 	}
 	o.count = o.limit
-	defer batch.Unref()
-	return zbuf.WrapBatch(batch, vals[:remaining]), nil
+	return zbuf.NewBatch(batch, vals[:remaining]), nil
 }

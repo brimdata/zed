@@ -130,7 +130,7 @@ func promoteToSigned(val vector.Any) vector.Any {
 		if !ok {
 			panic("ToInt failed")
 		}
-		return vector.NewConst(nil, zed.NewInt64(v), val.Len(), val.Nulls)
+		return vector.NewConst(zed.NewInt64(v), val.Len(), val.Nulls)
 	case *vector.Dict:
 		promoted := promoteToSigned(val.Any)
 		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
@@ -234,7 +234,7 @@ func intToFloat(val vector.Any) vector.Any {
 		if !ok {
 			panic("ToFloat failed")
 		}
-		return vector.NewConst(nil, zed.NewFloat64(f), val.Len(), val.Nulls)
+		return vector.NewConst(zed.NewFloat64(f), val.Len(), val.Nulls)
 	case *vector.Dict:
 		return vector.NewDict(intToFloat(val.Any), val.Index, val.Counts, val.Nulls)
 	case *vector.View:

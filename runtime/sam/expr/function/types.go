@@ -2,7 +2,6 @@ package function
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
@@ -12,17 +11,17 @@ type TypeOf struct {
 	zctx *zed.Context
 }
 
-func (t *TypeOf) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	return t.zctx.LookupTypeValue(ectx.Arena(), args[0].Type())
+func (t *TypeOf) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+	return t.zctx.LookupTypeValue(args[0].Type())
 }
 
 type typeUnder struct {
 	zctx *zed.Context
 }
 
-func (t *typeUnder) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (t *typeUnder) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	typ := zed.TypeUnder(args[0].Type())
-	return t.zctx.LookupTypeValue(ectx.Arena(), typ)
+	return t.zctx.LookupTypeValue(typ)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nameof
@@ -30,10 +29,10 @@ type NameOf struct {
 	zctx *zed.Context
 }
 
-func (n *NameOf) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (n *NameOf) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	typ := args[0].Type()
 	if named, ok := typ.(*zed.TypeNamed); ok {
-		return ectx.Arena().NewString(named.Name)
+		return zed.NewString(named.Name)
 	}
 	if typ.ID() == zed.IDType {
 		var err error
@@ -41,10 +40,10 @@ func (n *NameOf) Call(ectx expr.Context, args []zed.Value) zed.Value {
 			panic(err)
 		}
 		if named, ok := typ.(*zed.TypeNamed); ok {
-			return ectx.Arena().NewString(named.Name)
+			return zed.NewString(named.Name)
 		}
 	}
-	return n.zctx.Missing(ectx.Arena())
+	return n.zctx.Missing()
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typename
@@ -52,26 +51,26 @@ type typeName struct {
 	zctx *zed.Context
 }
 
-func (t *typeName) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (t *typeName) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	if zed.TypeUnder(args[0].Type()) != zed.TypeString {
-		return t.zctx.WrapError(ectx.Arena(), "typename: first argument not a string", args[0])
+		return t.zctx.WrapError("typename: first argument not a string", args[0])
 	}
 	name := string(args[0].Bytes())
 	if len(args) == 1 {
 		typ := t.zctx.LookupTypeDef(name)
 		if typ == nil {
-			return t.zctx.Missing(ectx.Arena())
+			return t.zctx.Missing()
 		}
-		return t.zctx.LookupTypeValue(ectx.Arena(), typ)
+		return t.zctx.LookupTypeValue(typ)
 	}
 	if zed.TypeUnder(args[1].Type()) != zed.TypeType {
-		return t.zctx.WrapError(ectx.Arena(), "typename: second argument not a type value", args[1])
+		return t.zctx.WrapError("typename: second argument not a type value", args[1])
 	}
 	typ, err := t.zctx.LookupByValue(args[1].Bytes())
 	if err != nil {
-		return t.zctx.NewError(ectx.Arena(), err)
+		return t.zctx.NewError(err)
 	}
-	return t.zctx.LookupTypeValue(ectx.Arena(), typ)
+	return t.zctx.LookupTypeValue(typ)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#error
@@ -79,14 +78,14 @@ type Error struct {
 	zctx *zed.Context
 }
 
-func (e *Error) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	return ectx.Arena().New(e.zctx.LookupTypeError(args[0].Type()), args[0].Bytes())
+func (e *Error) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+	return zed.NewValue(e.zctx.LookupTypeError(args[0].Type()), args[0].Bytes())
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr
 type IsErr struct{}
 
-func (*IsErr) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (*IsErr) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewBool(args[0].IsError())
 }
 
@@ -95,7 +94,7 @@ type Is struct {
 	zctx *zed.Context
 }
 
-func (i *Is) Call(_ expr.Context, args []zed.Value) zed.Value {
+func (i *Is) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	zvSubject := args[0]
 	zvTypeVal := args[1]
 	if len(args) == 3 {
@@ -122,7 +121,7 @@ func NewHasError() *HasError {
 	}
 }
 
-func (h *HasError) Call(_ expr.Context, args []zed.Value) zed.Value {
+func (h *HasError) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[0]
 	hasError, _ := h.hasError(val.Type(), val.Bytes())
 	return zed.NewBool(hasError)
@@ -191,10 +190,10 @@ type Quiet struct {
 	zctx *zed.Context
 }
 
-func (q *Quiet) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (q *Quiet) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[0]
 	if val.IsMissing() {
-		return q.zctx.Quiet(ectx.Arena())
+		return q.zctx.Quiet()
 	}
 	return val
 }
@@ -204,7 +203,7 @@ type Kind struct {
 	zctx *zed.Context
 }
 
-func (k *Kind) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (k *Kind) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[0]
 	var typ zed.Type
 	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeOfType); ok {
@@ -216,5 +215,5 @@ func (k *Kind) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	} else {
 		typ = val.Type()
 	}
-	return ectx.Arena().NewString(typ.Kind().String())
+	return zed.NewString(typ.Kind().String())
 }

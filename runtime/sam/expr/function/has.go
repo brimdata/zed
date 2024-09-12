@@ -1,14 +1,11 @@
 package function
 
-import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-)
+import "github.com/brimdata/zed"
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#has
 type Has struct{}
 
-func (h *Has) Call(_ expr.Context, args []zed.Value) zed.Value {
+func (h *Has) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	for _, val := range args {
 		if val.IsError() {
 			if val.IsMissing() || val.IsQuiet() {
@@ -25,7 +22,7 @@ type Missing struct {
 	has Has
 }
 
-func (m *Missing) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (m *Missing) Call(ectx zed.Allocator, args []zed.Value) zed.Value {
 	val := m.has.Call(ectx, args)
 	if val.Type() == zed.TypeBool {
 		return zed.NewBool(!val.Bool())
