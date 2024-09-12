@@ -5,7 +5,6 @@ package sql
 
 import (
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/order"
 )
 
 // This module is derived from the GO AST design pattern in
@@ -43,17 +42,12 @@ type Lateral struct {
 	Source
 }
 
-type Order struct {
-	Expr ast.Expr
-	Dir  order.Which
-}
-
 type GroupBy struct {
 	Keys ast.Assignments
 	Aggs ast.Assignments
 }
 
-type OrderExpr struct {
+type Order struct {
 	Expr       ast.Expr
 	Order      string // asc or desc
 	NullsFirst bool
@@ -70,10 +64,6 @@ type (
 	When struct {
 		Cond  ast.Expr
 		Value ast.Expr
-	}
-	//XXX need to fix sortList in a first PR
-	OrderBy struct {
-		Elems []OrderExpr
 	}
 	Limit struct {
 		Count ast.Expr
@@ -100,7 +90,7 @@ type (
 	Union struct {
 		Type        string
 		Left, Right Select
-		OrderBy     OrderBy
+		OrderBy     []Order
 		Limit       *Limit
 	}
 )

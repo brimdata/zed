@@ -124,11 +124,13 @@ TableName = Identifier //XXX
 // an identifier, e.g., select(1); is ok
 
 OptTargetList
-  = _ list:TargetList { return list }
+  = _ list:TargetList { return list, nil }
   / ""
 
 TargetList
-  = TargetElem ( __ "," __ TargetElem )*
+  = first:TargetElem rest:( __ "," __ t:TargetElem{ return t, nil })* {
+      return sliceOf[ast.Expr](prepend(first, rest))
+  }
 
 TargetElem 
   = Expr OptAsClause 
@@ -146,12 +148,12 @@ SortClause
 
 SortByList 
   = first:SortBy rest:( __ "," __ s:SortBy{ return s, nil})* {
-      return prepend(first, rest), nil
+      return sliceOf[sql.Order](prepend(first, rest)), nil
     }
 
 SortBy 
   = e:Expr o:OptAscDesc n:OptNullsOrder {
-      return &OrderExpr{
+      return &sql.Order{
         Expr: e,
         Order: o,
         NullsFirst: n,
@@ -169,23 +171,38 @@ OptNullsOrder
   / ""                      { return false }
 
 SelectLimit
-  = LimitClause OptOffsetClause
-  / OffsetClause OptLimitClause
+  = l:LimitClause o:OptOffsetClause {
+      if o != nil {
+        l.Offset = o.(sql.Expr)
+      }
+      return l, nil
+    }
+  / o:OffsetClause l:OptLimitClause {
+        if l == nil {
+            return *sql.Limit{Offset: o.(sql.Expr)}, nil
+        }
+        l.Offset = o.(sql.Expr)
+        return l, nil
+      }
+    }
+  }
 
 OptLimitClause 
-  = _ LimitClause 
-  / ""
+  = _ l:LimitClause { return l, nil }
+  / ""              { return nil, nil }
 
 LimitClause 
-  = KW_LIMIT _ KW_ALL 
-  / KW_LIMIT _ Expr
+  = KW_LIMIT _ KW_ALL { return &sql.Limit{}, nil }
+  / KW_LIMIT _ e:Expr {
+      return &sql.Limit{Limit:e}, nil
+    }
 
 OptOffsetClause 
-  = _ OffsetClause 
+  = _ o:OffsetClause  { return o, nil }
   / "" 
 
 OffsetClause 
-  = KW_OFFSET _ Expr 
+  = KW_OFFSET _ e:Expr  { return e, nil }
 
 Identifier
   = id:IdentifierName {
