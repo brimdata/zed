@@ -7,8 +7,9 @@
         "github.com/brimdata/zed/compiler/ast/sql"
     //   astzed "github.com/brimdata/zed/compiler/ast/zed"
     )
-
 }
+
+//XXX we probably need sql.Expr instead of ast.Expr
 
 start = __ s:SelectStatement __ { return s, nil }
 
@@ -21,20 +22,40 @@ SelectWithParens
   / "(" __ s:SelectWithParens __ ")"    { return s, nil }
   
 SelectNoParens
-  = select:SelectClause sort:OptSortClause limit:SelectLimit {
+  = s:SelectClause sort:OptSortClause limit:SelectLimit {
+      sel := s.(*sql.Select)
       if sort != nil {
-        select.OrderBy = sort.([]sql.Order)
+        sel.OrderBy = sliceOf[sql.Order](sort)
       }
-      if limit != nil {
-        select.Limit = limit.(ast.Expr)
-      }
-      return select
+      sel.Limit = limit.(ast.Expr)
+      return sel, nil
     }
-  / SelectClause SortClause
+  / s:SelectClause sort:SortClause {
+      sel := s.(*sql.Select)
+      sel.OrderBy = sliceOf[sql.Order](sort)
+      return sel, nil
+    }
   / SimpleSelect
-  / WithClause __ SelectClause  OptSortClause SelectLimit
-  / WithClause __ SelectClause  SortClause
-  / WithClause __ SelectClause
+  / with:WithClause __ s:SelectClause  sort:OptSortClause limit:SelectLimit {
+      sel := s.(*sql.Select)
+      sel.WithClause = with
+      if sort != nil {
+        sel.OrderBy = sliceOf[sql.Order](sort)
+      }
+      sel.Limit = limit.(ast.Expr)
+      return sel, nil
+    }
+  / with:WithClause __ s:SelectClause  sort:SortClause {
+      sel := s.(*sql.Select)
+      sel.WithClause = with
+      sel.OrderBy = sliceOf[sql.Order](sort)
+      return sel, nil
+    }
+  / WithClause __ sel:SelectClause {
+      sel := s.(*sql.Select)
+      sel.WithClause = with
+      return sel, nil
+    }
 
 SelectClause
   = SimpleSelect 
@@ -47,25 +68,42 @@ SimpleSelect
 //XXX  / SetOperation
 
 SimpleSelectClause 
-  = SimpleSelectHead OptFromClause OptWhereClause OptGroupClause OptHavingClause
+  = s:SimpleSelectHead from:OptFromClause where:OptWhereClause group:OptGroupClause having:OptHavingClause {
+      sel := s.(*sql.Select)
+      if from != nil {
+        sel.From = from.(*sql.From)
+      }
+      if where != nil {
+        sel.WHere = where.(ast.Expr)
+      }
+      if group != nil {
+        sel.GroupBy = group.(*sql.GroupBy)
+      }
+      if having != nil {
+        sel.Having = having.(ast.Expr)
+      }
+      return sel, nil
+    }
 
 SimpleSelectHead
   = KW_SELECT _ KW_DISTINCT _ KW_ON __ "("__ list:TargetList __ ")" {
         return &sql.Select{
             Distinct: true,
-            Exprs: list
-        }
+            Exprs: sliceOf[ast.Expr](list),
+        }, nil
     }
   / KW_SELECT _ KW_DISTINCT _ list:TargetList  {
         return &sql.Select{
             Distinct: true,
-            Exprs: list
-        }
+            Exprs: sliceOf[ast.Expr](list),
+        }, nil
     }
-  / KW_SELECT OptAllClause OptTargetList {  // XXX why optional target?
-        return &sql.Select{
-            Exprs: list
-        }    
+  / KW_SELECT OptAllClause list:OptTargetList {  // XXX why optional target?
+        s := &sql.Select{}
+        if list != nil {
+          s.Exprs: sliceOf[ast.Expr](list)
+        }   
+        return s, nil 
   }
 
 OptAllClause
@@ -73,52 +111,99 @@ OptAllClause
   / ""
 
 OptFromClause 
-  = _ FromClause 
+  = _ from:FromClause  { return from, nil }
   / ""
 
 FromClause 
-  = KW_FROM _ FromList // OptAsOfClause
+  = KW_FROM _ list:FromList { // OptAsOfClause
+      return list, nil
+    }
 
 FromList
-  = TableRef ( __ "," __ TableRef )*
+  = first:TableRef rest:( __ "," __ t:TableRef:{ return t, nil} )* {
+      return prepend(first, rest), nil
+    }
 
 OptWhereClause
-  = _ WhereClause 
+  = _ where:WhereClause  { return where, nil }
   / ""
 
 WhereClause 
-  = KW_WHERE _ Expr // XXX whitespace optional before noident
+  = KW_WHERE _ e:Expr { // XXX whitespace optional before noident
+      return e, nil
+    }
 
 OptGroupClause
-  = _ GroupClause 
+  = _ group:GroupClause  { return group, nil }
   / ""
 
 GroupClause
-  = KW_GROUP _ KW_BY _ GroupByList
+  = KW_GROUP _ KW_BY _ list:GroupByList { return list, nil }
 
 GroupByList 
-  = GroupByItem ( __ "," __ GroupByItem )*
+  = first:first:GroupByItem rest:( __ "," __ g:GroupByItem{ return g, nil } )* {
+      return prepend(first, rest), nil
+    }
 
 OptHavingClause
-  = _ HavingClause
+  = _ h:HavingClause { return h, nil }
   / ""
 
 HavingClause
-  = KW_HAVING _ Expr // XXX whitespace optional before noident
+  = KW_HAVING _ e:Expr { return e, nil } // XXX whitespace optional before noident
 
 TableRef 
   = SelectWithParens 
-  / KW_LATERAL SelectWithParens
+    // XXX need to capture LATERAL condition here
+  / KW_LATERAL s:SelectWithParens { return sql.Lateral{s.(*sql.Select)}, nil }
   / JoinedTable
-  / "(" __ JoinedTable __ ")" OptOrdinality AliasClause
-  /  RelationExpr OptOrdinality OptAliasClause 
+  / "(" __ t:JoinedTable __ ")" OptOrdinality alias:AliasClause {
+      src := t.(sql.Source)
+      if o.(bool) { 
+        src = &sql.Ordinality{src}
+      }
+      if alias.(string) != "" {
+        return &sql.Alias{
+          Source: src,
+          Name: alias.(string)
+        }, nil
+      }
+      return src, nil
+    }
+  / t:RelationExpr o:OptOrdinality alias:OptAliasClause  {
+      table := t.(*sql.Table)
+      table.Alias = alias
+      if o.(bool) {
+        return &sql.Ordinality{table}, nil
+      }
+      return table, nil
+     }
 
 RelationExpr
-  = KW_ONLY TableName 
-  / KW_ONLY __ "(" __ TableName __ ")"
-  / TableName 
+  = KW_ONLY name:TableName {
+      return &sql.Table{Name: name.(string)}, nil
+    }
+  / KW_ONLY __ "(" __ name:TableName __ ")" {
+      return &sql.Table{Name: name.(string)}, nil
+    }
+  / name:TableName {
+      return &sql.Table{Name: name.(string)}, nil
+    }
 
-TableName = Identifier //XXX
+TableName = IdentifierName //XXX quoted string?
+
+OptAliasClause 
+  = AliasClause
+  / ""          { return "", nil }
+
+OptOrdinality 
+  = _ KW_WITH _ KW_ORDINALITY   { return true, nil }
+  / ""                          { return false, nil }
+
+AliasClause 
+  = (KW_AS _)? name:IdentifierName { // optional column defs no types
+      return name, nil
+    }
 
 //XXX for whitespace in front of target need it only if it begins with 
 // an identifier, e.g., select(1); is ok
@@ -129,7 +214,7 @@ OptTargetList
 
 TargetList
   = first:TargetElem rest:( __ "," __ t:TargetElem{ return t, nil })* {
-      return sliceOf[ast.Expr](prepend(first, rest))
+      return prepend(first, rest), nil
   }
 
 TargetElem 
@@ -137,7 +222,7 @@ TargetElem
 
 OptAsClause 
   = _ KW_AS _ Identifier // XXX need to expand beyond Identifier 
-  / "" 
+  / ""  { return nil, nil }
 
 OptSortClause 
   = SortClause
@@ -178,14 +263,12 @@ SelectLimit
       return l, nil
     }
   / o:OffsetClause l:OptLimitClause {
-        if l == nil {
-            return *sql.Limit{Offset: o.(sql.Expr)}, nil
-        }
-        l.Offset = o.(sql.Expr)
-        return l, nil
+      if l == nil {
+          return *sql.Limit{Offset: o.(sql.Expr)}, nil
       }
+      l.Offset = o.(sql.Expr)
+      return l, nil
     }
-  }
 
 OptLimitClause 
   = _ l:LimitClause { return l, nil }

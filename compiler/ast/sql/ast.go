@@ -114,8 +114,17 @@ type (
 		EndPos  int
 	}
 	Pool struct {
-		Spec   ast.PoolSpec
-		Delete bool //XXX
+		Spec ast.PoolSpec
+	}
+	Table struct {
+		Name string
+	}
+	Alias struct {
+		Source
+		Name string
+	}
+	Ordinality struct {
+		Source
 	}
 )
 
@@ -131,13 +140,16 @@ type PoolSpec struct {
 
 type Source interface {
 	Node
-	Source()
+	DDS()
 }
 
-func (*Pool) Source()   {}
-func (*File) Source()   {}
-func (*HTTP) Source()   {}
-func (*Select) Source() {}
+func (*Pool) DDS()       {}
+func (*File) DDS()       {}
+func (*HTTP) DDS()       {}
+func (*Select) DDS()     {}
+func (*Table) DDS()      {}
+func (*Alias) DDS()      {}
+func (*Ordinality) DDS() {}
 
 // Def is like Assignment but the LHS is an identifier that may be later
 // referenced.  This is used for const blocks in Sequential and var blocks
