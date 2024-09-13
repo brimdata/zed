@@ -56,6 +56,7 @@ type Command struct {
 	parallel int
 	n        int
 	includes includes
+	sql      bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -68,6 +69,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.canon, "C", false, "display AST in Zed canonical format (implies -proc)")
 	f.BoolVar(&c.describe, "D", false, "display describe summary of Zed query (implies -proc)")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be repeated)")
+	f.BoolVar(&c.sql, "c", false, "interpret query text as SuperSQL instead of Zed")
 	return c, nil
 }
 
