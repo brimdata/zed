@@ -41,6 +41,8 @@ func newBufferFromBytes(b []byte) *buffer {
 	return buf
 }
 
+func (b *buffer) Free() { b.free() }
+
 func (b *buffer) free() {
 	if b == nil {
 		return

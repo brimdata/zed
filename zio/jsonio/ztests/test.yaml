@@ -8,4 +8,8 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {"a":{"b":"1"}}
+      {
+          "a": {
+              "b": "1"
+          }
+      }

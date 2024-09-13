@@ -23,7 +23,7 @@ type Job struct {
 	rctx      *runtime.Context
 	builder   *kernel.Builder
 	optimizer *optimizer.Optimizer
-	outputs   []zbuf.Puller
+	outputs   map[string]zbuf.Puller
 	puller    zbuf.Puller
 	entry     dag.Seq
 }
@@ -88,17 +88,13 @@ func (j *Job) Parallelize(n int) error {
 	return err
 }
 
-func Parse(src string, filenames ...string) (ast.Seq, error) {
-	parsed, err := parser.ParseZed(filenames, src)
-	if err != nil {
-		return nil, err
-	}
-	return ast.UnmarshalObject(parsed)
+func Parse(src string, filenames ...string) (ast.Seq, *parser.SourceSet, error) {
+	return parser.ParseZed(filenames, src)
 }
 
 // MustParse is like Parse but panics if an error is encountered.
 func MustParse(query string) ast.Seq {
-	seq, err := (*anyCompiler)(nil).Parse(query)
+	seq, _, err := (*anyCompiler)(nil).Parse(query)
 	if err != nil {
 		panic(err)
 	}
@@ -127,7 +123,9 @@ func (j *Job) Puller() zbuf.Puller {
 		case 0:
 			return nil
 		case 1:
-			j.puller = op.NewCatcher(op.NewSingle(outputs[0]))
+			for k, p := range outputs {
+				j.puller = op.NewCatcher(op.NewSingle(k, p))
+			}
 		default:
 			j.puller = op.NewMux(j.rctx, outputs)
 		}
@@ -139,7 +137,7 @@ type anyCompiler struct{}
 
 // Parse concatenates the source files in filenames followed by src and parses
 // the resulting program.
-func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, error) {
+func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, *parser.SourceSet, error) {
 	return Parse(src, filenames...)
 }
 
@@ -148,13 +146,16 @@ func (*anyCompiler) Parse(src string, filenames ...string) (ast.Seq, error) {
 // nor does it compute the demand of the query to prune the projection
 // from the vcache.
 func VectorCompile(rctx *runtime.Context, query string, object *vcache.Object) (zbuf.Puller, error) {
-	seq, err := Parse(query)
+	seq, sset, err := Parse(query)
 	if err != nil {
 		return nil, err
 	}
 	src := &data.Source{}
 	entry, err := semantic.Analyze(rctx.Context, seq, src, nil)
 	if err != nil {
+		if list := (parser.ErrorList)(nil); errors.As(err, &list) {
+			list.SetSourceSet(sset)
+		}
 		return nil, err
 	}
 	puller := vam.NewVectorProjection(rctx.Zctx, object, nil) //XXX project all
@@ -180,21 +181,23 @@ func VectorFilterCompile(rctx *runtime.Context, query string, src *data.Source, 
 	if err != nil {
 		return nil, err
 	}
-	seq, err := Parse(query)
+	seq, sset, err := Parse(query)
 	if err != nil {
 		return nil, err
 	}
 	entry, err := semantic.Analyze(rctx.Context, seq, src, nil)
 	if err != nil {
+		if list := (parser.ErrorList)(nil); errors.As(err, &list) {
+			list.SetSourceSet(sset)
+		}
 		return nil, err
 	}
-	if len(entry) != 1 {
+	if len(entry) != 2 {
 		return nil, errors.New("filter query must have a single op")
 	}
 	f, ok := entry[0].(*dag.Filter)
 	if !ok {
 		return nil, errors.New("filter query must be a single filter op")
 	}
-	d := optimizer.InferDemandSeqOut(entry)[entry[0]]
-	return kernel.NewBuilder(rctx, src).BuildVamToSeqFilter(f.Expr, d, poolID, commitID)
+	return kernel.NewBuilder(rctx, src).BuildVamToSeqFilter(f.Expr, poolID, commitID)
 }

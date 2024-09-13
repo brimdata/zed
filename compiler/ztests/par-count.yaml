@@ -23,6 +23,7 @@ outputs:
       | combine
       | summarize partials-in
           count:=count() by y:=y
+      | output main
       ===
       lister ...
       | scatter (
@@ -39,3 +40,4 @@ outputs:
       | summarize partials-in
           count:=count()
       | yield count
+      | output main

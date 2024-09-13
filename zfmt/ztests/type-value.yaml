@@ -8,3 +8,4 @@ outputs:
       search is(<foo>) and bar
       reader
       | where is(<(uint16,ip)>) and search(80)
+      | output main

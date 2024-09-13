@@ -17,24 +17,29 @@ const defaultTopLimit = 100
 // the top N of the sort.
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
 type Op struct {
-	parent     zbuf.Puller
 	zctx       *zed.Context
+	parent     zbuf.Puller
 	limit      int
 	fields     []expr.Evaluator
+	flushEvery bool
+	resetter   expr.Resetter
+	batches    map[zed.Value]zbuf.Batch
 	records    *expr.RecordSlice
 	compare    expr.CompareFn
-	flushEvery bool
 }
 
-func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool) *Op {
+func New(zctx *zed.Context, parent zbuf.Puller, limit int, fields []expr.Evaluator, flushEvery bool, resetter expr.Resetter) *Op {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
 	return &Op{
+		zctx:       zctx,
 		parent:     parent,
 		limit:      limit,
 		fields:     fields,
 		flushEvery: flushEvery,
+		resetter:   resetter,
+		batches:    make(map[zed.Value]zbuf.Batch),
 	}
 }
 
@@ -45,11 +50,12 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			return nil, err
 		}
 		if batch == nil {
+			defer o.resetter.Reset()
 			return o.sorted(), nil
 		}
 		vals := batch.Values()
 		for i := range vals {
-			o.consume(vals[i])
+			o.consume(batch, vals[i])
 		}
 		batch.Unref()
 		if o.flushEvery {
@@ -58,7 +64,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 	}
 }
 
-func (o *Op) consume(rec zed.Value) {
+func (o *Op) consume(batch zbuf.Batch, rec zed.Value) {
 	if o.fields == nil {
 		fld := sort.GuessSortKey(rec)
 		accessor := expr.NewDottedExpr(o.zctx, fld)
@@ -70,10 +76,17 @@ func (o *Op) consume(rec zed.Value) {
 		heap.Init(o.records)
 	}
 	if o.records.Len() < o.limit || o.compare(o.records.Index(0), rec) < 0 {
-		heap.Push(o.records, rec.Copy())
+		heap.Push(o.records, rec)
+		if _, ok := rec.Arena(); ok {
+			batch.Ref()
+			o.batches[rec] = batch
+		}
 	}
 	if o.records.Len() > o.limit {
-		heap.Pop(o.records)
+		val := heap.Pop(o.records).(zed.Value)
+		if batch, ok := o.batches[val]; ok {
+			batch.Unref()
+		}
 	}
 }
 
@@ -81,11 +94,13 @@ func (o *Op) sorted() zbuf.Batch {
 	if o.records == nil {
 		return nil
 	}
+	arena := zed.NewArena()
+	defer arena.Unref()
 	out := make([]zed.Value, o.records.Len())
 	for i := o.records.Len() - 1; i >= 0; i-- {
-		out[i] = heap.Pop(o.records).(zed.Value)
+		out[i] = heap.Pop(o.records).(zed.Value).Copy(arena)
 	}
 	// clear records
 	o.records = nil
-	return zbuf.NewArray(out)
+	return zbuf.NewArray(arena, out)
 }

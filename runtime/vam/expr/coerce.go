@@ -31,7 +31,7 @@ func coerceVals(zctx *zed.Context, a, b vector.Any) (vector.Any, vector.Any, vec
 		return a, b, nil //XXX
 	}
 	if !zed.IsNumber(aid) || !zed.IsNumber(bid) {
-		return nil, nil, vector.NewStringError(zctx, coerce.IncompatibleTypes.Error(), a.Len())
+		return nil, nil, vector.NewStringError(zctx, coerce.ErrIncompatibleTypes.Error(), a.Len())
 	}
 	// Both a and b are numbers.  We need to promote to a common
 	// type based on Zed's coercion rules.
@@ -101,18 +101,19 @@ func promoteWider(id int, val vector.Any) vector.Any {
 	switch val := val.(type) {
 	case *vector.Int:
 		return val.Promote(typ)
-	case *vector.DictInt:
-		return val.Promote(typ)
 	case *vector.Uint:
 		return val.Promote(typ)
-	case *vector.DictUint:
-		return val.Promote(typ)
+	case *vector.Dict:
+		promoted := val.Any.(vector.Promotable).Promote(typ)
+		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
+	case *vector.View:
+		promoted := val.Any.(vector.Promotable).Promote(typ)
+		return vector.NewView(val.Index, promoted)
 	default:
 		panic(fmt.Sprintf("promoteWider %T", val))
 	}
 }
 
-// XXX need to handle const here
 // XXX need to handle overflow errors
 func promoteToSigned(val vector.Any) vector.Any {
 	//XXX need wide variant here if we're going to support this semantic
@@ -120,12 +121,24 @@ func promoteToSigned(val vector.Any) vector.Any {
 	//	return nil, false
 	//}
 	switch val := val.(type) {
-	case *vector.Int, *vector.DictInt:
+	case *vector.Int:
 		return val
-	case *vector.Uint, *vector.DictUint:
+	case *vector.Uint:
 		return uintToInt(val)
+	case *vector.Const:
+		v, ok := ToInt(val.Value())
+		if !ok {
+			panic("ToInt failed")
+		}
+		return vector.NewConst(nil, zed.NewInt64(v), val.Len(), val.Nulls)
+	case *vector.Dict:
+		promoted := promoteToSigned(val.Any)
+		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)
+	case *vector.View:
+		promoted := promoteToSigned(val.Any)
+		return vector.NewView(val.Index, promoted)
 	default:
-		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
+		panic(fmt.Sprintf("promoteToSigned %T", val))
 	}
 }
 
@@ -208,14 +221,6 @@ func intToFloat(val vector.Any) vector.Any {
 			f[k] = float64(vals[k])
 		}
 		return vector.NewFloat(zed.TypeFloat64, f, val.Nulls)
-	case *vector.DictInt:
-		vals := val.Values
-		n := int(len(val.Values))
-		f := make([]float64, n)
-		for k := 0; k < n; k++ {
-			f[k] = float64(vals[k])
-		}
-		return vector.NewDictFloat(zed.TypeFloat64, val.Tags, f, val.Counts, val.Nulls)
 	case *vector.Uint:
 		vals := val.Values
 		n := int(len(vals))
@@ -224,14 +229,16 @@ func intToFloat(val vector.Any) vector.Any {
 			f[k] = float64(vals[k])
 		}
 		return vector.NewFloat(zed.TypeFloat64, f, val.Nulls)
-	case *vector.DictUint:
-		vals := val.Values
-		n := int(len(vals))
-		f := make([]float64, n)
-		for k := 0; k < n; k++ {
-			f[k] = float64(vals[k])
+	case *vector.Const:
+		f, ok := ToFloat(val.Value())
+		if !ok {
+			panic("ToFloat failed")
 		}
-		return vector.NewDictFloat(zed.TypeFloat64, val.Tags, f, val.Counts, val.Nulls)
+		return vector.NewConst(nil, zed.NewFloat64(f), val.Len(), val.Nulls)
+	case *vector.Dict:
+		return vector.NewDict(intToFloat(val.Any), val.Index, val.Counts, val.Nulls)
+	case *vector.View:
+		return vector.NewView(val.Index, intToFloat(val.Any))
 	default:
 		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
 	}
@@ -248,14 +255,6 @@ func uintToInt(val vector.Any) vector.Any {
 			out[k] = int64(vals[k])
 		}
 		return vector.NewInt(zed.TypeInt64, out, val.Nulls)
-	case *vector.DictUint:
-		vals := val.Values
-		n := int(len(vals))
-		out := make([]int64, n)
-		for k := 0; k < n; k++ {
-			out[k] = int64(vals[k])
-		}
-		return vector.NewDictInt(zed.TypeInt64, val.Tags, out, val.Counts, val.Nulls)
 	default:
 		panic(fmt.Sprintf("intToFloat invalid type: %T", val))
 	}

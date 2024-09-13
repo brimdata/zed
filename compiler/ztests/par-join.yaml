@@ -33,3 +33,4 @@ outputs:
           | merge ts:asc
       )
       | join on a=b
+      | output main

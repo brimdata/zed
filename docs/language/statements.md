@@ -24,8 +24,10 @@ produces
 ```
 
 One or more `const` statements may appear only at the beginning of a scope
-(i.e., the main scope at the start of a Zed program or a [lateral scope](lateral-subqueries.md/#lateral-scope))
-defined by an [`over` operator](operators/over.md)
+(i.e., the main scope at the start of a Zed program,
+the start of the body of a [user-defined operator](#operator-statements),
+or a [lateral scope](lateral-subqueries.md/#lateral-scope)
+defined by an [`over` operator](operators/over.md))
 and binds the identifier to the value in the scope in which it appears in addition
 to any contained scopes.
 
@@ -57,7 +59,9 @@ produces
 ```
 
 One or more `func` statements may appear at the beginning of a scope
-(i.e., the main scope at the start of a Zed program or a [lateral scope](lateral-subqueries.md#lateral-scope)
+(i.e., the main scope at the start of a Zed program,
+the start of the body of a [user-defined operator](#operator-statements),
+or a [lateral scope](lateral-subqueries.md/#lateral-scope)
 defined by an [`over` operator](operators/over.md))
 and binds the identifier to the expression in the scope in which it appears in addition
 to any contained scopes.
@@ -88,6 +92,14 @@ where `<id>` is the identifier of the user-defined operator and `<expr>` is a li
 of [expressions](expressions.md) matching the number of `<param>`s defined in
 the operator's signature.
 
+One or more `op` statements may appear only at the beginning of a scope
+(i.e., the main scope at the start of a Zed program,
+the start of the body of a [user-defined operator](#operator-statements),
+or a [lateral scope](lateral-subqueries.md/#lateral-scope)
+defined by an [`over` operator](operators/over.md))
+and binds the identifier to the value in the scope in which it appears in addition
+to any contained scopes.
+
 ### Sequence `this` Value
 
 The `this` value of a user-defined operator's sequence is provided by the
@@ -96,7 +108,7 @@ calling sequence.
 For instance the program in `myop.zed`
 ```mdtest-input myop.zed
 op myop(): (
-  pass
+  yield this
 )
 myop()
 ```
@@ -128,8 +140,11 @@ op AddMessage(field_for_message, msg): (
 ```
 the `msg` parameter may be used flexibly
 ```mdtest-command
-echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage(message, "hello")' -
-echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage(message, greeting)' -
+echo '{greeting: "hi"}' |
+  zq -z -I params.zed 'AddMessage(message, "hello")' -
+
+echo '{greeting: "hi"}' |
+  zq -z -I params.zed 'AddMessage(message, greeting)' -
 ```
 to produce the respective outputs
 ```mdtest-output
@@ -142,11 +157,14 @@ where _only_ a certain category of argument is expected. For instance, having
 explicitly mentioned "field" in the name of our first parameter's name may help
 us avoid making mistakes when passing arguments, such as
 ```mdtest-command fails
-echo '{greeting: "hi"}' | zq -z -I params.zed 'AddMessage("message", "hello")' -
+echo '{greeting: "hi"}' |
+  zq -z -I params.zed 'AddMessage("message", "hello")' -
 ```
 which produces
 ```mdtest-output
-illegal left-hand side of assignment
+illegal left-hand side of assignment in params.zed at line 2, column 3:
+  field_for_message:=msg
+  ~~~~~~~~~~~~~~~~~~~~~~
 ```
 
 A constant value must be used to pass a parameter that will be referenced as
@@ -220,7 +238,9 @@ produces
 ```
 
 One or more `type` statements may appear at the beginning of a scope
-(i.e., the main scope at the start of a Zed program or a [lateral scope](lateral-subqueries.md#lateral-scope)
+(i.e., the main scope at the start of a Zed program,
+the start of the body of a [user-defined operator](#operator-statements),
+or a [lateral scope](lateral-subqueries.md/#lateral-scope)
 defined by an [`over` operator](operators/over.md))
 and binds the identifier to the type in the scope in which it appears in addition
 to any contained scopes.

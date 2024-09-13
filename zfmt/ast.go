@@ -3,11 +3,9 @@ package zfmt
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/brimdata/zed/compiler/ast"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/sam/expr/agg"
 	"github.com/brimdata/zed/runtime/sam/expr/function"
 	"github.com/brimdata/zed/zson"
@@ -65,8 +63,7 @@ func (c *canon) defs(defs []ast.Def, separator string) {
 }
 
 func (c *canon) def(d ast.Def) {
-	c.write(d.Name)
-	c.write("=")
+	c.write("%s=", d.Name.Name)
 	c.expr(d.Expr, "")
 }
 
@@ -112,7 +109,7 @@ func (c *canon) expr(e ast.Expr, parent string) {
 		c.write(" : ")
 		c.expr(e.Else, "")
 	case *ast.Call:
-		c.write("%s(", e.Name)
+		c.write("%s(", e.Name.Name)
 		c.exprs(e.Args)
 		c.write(")")
 	case *ast.Cast:
@@ -120,8 +117,6 @@ func (c *canon) expr(e ast.Expr, parent string) {
 		c.write("(")
 		c.expr(e.Expr, "")
 		c.write(")")
-	case *ast.SQLExpr:
-		c.sql(e)
 	case *astzed.TypeValue:
 		c.write("<")
 		c.typ(e.Value)
@@ -133,11 +128,27 @@ func (c *canon) expr(e ast.Expr, parent string) {
 	case *ast.Grep:
 		c.write("grep(")
 		c.expr(e.Pattern, "")
-		if !isThis(e.Expr) {
+		if e.Expr != nil {
 			c.write(",")
 			c.expr(e.Expr, "")
 		}
 		c.write(")")
+	case *ast.IndexExpr:
+		c.expr(e.Expr, "")
+		c.write("[")
+		c.expr(e.Index, "")
+		c.write("]")
+	case *ast.SliceExpr:
+		c.expr(e.Expr, "")
+		c.write("[")
+		if e.From != nil {
+			c.expr(e.From, "")
+		}
+		c.write(":")
+		if e.To != nil {
+			c.expr(e.To, "")
+		}
+		c.write("]")
 	case *ast.Term:
 		c.write(e.Text)
 	case *ast.RecordExpr:
@@ -194,6 +205,21 @@ func (c *canon) expr(e ast.Expr, parent string) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *ast.FString:
+		c.write(`f"`)
+		for _, elem := range e.Elems {
+			switch elem := elem.(type) {
+			case *ast.FStringExpr:
+				c.write("{")
+				c.expr(elem.Expr, "")
+				c.write("}")
+			case *ast.FStringText:
+				c.write(elem.Text)
+			default:
+				c.write("(unknown f-string element %T)", elem)
+			}
+		}
+		c.write(`"`)
 	default:
 		c.write("(unknown expr %T)", e)
 	}
@@ -222,15 +248,6 @@ func (c *canon) binary(e *ast.BinaryExpr, parent string) {
 			c.write(".")
 		}
 		c.expr(e.RHS, "")
-	case "[":
-		if isThis(e.LHS) {
-			c.write("this")
-		} else {
-			c.expr(e.LHS, "")
-		}
-		c.write("[")
-		c.expr(e.RHS, "")
-		c.write("]")
 	case "and", "or", "in":
 		parens := needsparens(parent, e.Op)
 		c.maybewrite("(", parens)
@@ -274,15 +291,6 @@ func precedence(op string) int {
 	}
 }
 
-func (c *canon) sql(e *ast.SQLExpr) {
-	if e.Select == nil {
-		c.write(" SELECT *")
-	} else {
-		c.write(" SELECT")
-		c.assignments(e.Select)
-	}
-}
-
 func isThis(e ast.Expr) bool {
 	if id, ok := e.(*ast.ID); ok {
 		return id.Name == "this"
@@ -314,30 +322,30 @@ func (c *canon) next() {
 func (c *canon) decl(d ast.Decl) {
 	switch d := d.(type) {
 	case *ast.ConstDecl:
-		c.write("const %s = ", d.Name)
+		c.write("const %s = ", d.Name.Name)
 		c.expr(d.Expr, "")
 	case *ast.FuncDecl:
-		c.write("func %s(", d.Name)
+		c.write("func %s(", d.Name.Name)
 		for i := range d.Params {
 			if i != 0 {
 				c.write(", ")
 			}
-			c.write(d.Params[i])
+			c.write(d.Params[i].Name)
 		}
 		c.open("): (")
 		c.ret()
-		c.expr(d.Expr, d.Name)
+		c.expr(d.Expr, d.Name.Name)
 		c.close()
 		c.ret()
 		c.flush()
 		c.write(")")
 	case *ast.OpDecl:
-		c.write("op %s(", d.Name)
+		c.write("op %s(", d.Name.Name)
 		for k, p := range d.Params {
 			if k > 0 {
 				c.write(", ")
 			}
-			c.write(p)
+			c.write(p.Name)
 		}
 		c.open("): (")
 		c.ret()
@@ -349,6 +357,9 @@ func (c *canon) decl(d ast.Decl) {
 		c.flush()
 		c.write(")")
 		c.head, c.first = true, true
+	case *ast.TypeDecl:
+		c.write("type %s = ", zson.QuotedName(d.Name.Name))
+		c.typ(d.Type)
 	default:
 		c.open("unknown decl: %T", d)
 		c.close()
@@ -415,7 +426,6 @@ func (c *canon) op(p ast.Op) {
 		c.flush()
 		c.write(")")
 	case *ast.From:
-		//XXX cleanup for len(Trunks) = 1
 		c.next()
 		c.open("from (")
 		for _, trunk := range p.Trunks {
@@ -433,68 +443,22 @@ func (c *canon) op(p ast.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
-	case *ast.SQLExpr:
+	case *ast.Pool:
 		c.next()
-		c.open("SELECT ")
-		if p.Select == nil {
-			c.write("*")
-		} else {
-			c.assignments(p.Select)
-		}
-		if p.From != nil {
-			c.ret()
-			c.write("FROM ")
-			c.expr(p.From.Table, "")
-			if p.From.Alias != nil {
-				c.write(" AS ")
-				c.expr(p.From.Alias, "")
-			}
-		}
-		for _, join := range p.Joins {
-			c.ret()
-			switch join.Style {
-			case "left":
-				c.write("LEFT ")
-			case "right":
-				c.write("RIGHT ")
-			}
-			c.write("JOIN ")
-			c.expr(join.Table, "")
-			if join.Alias != nil {
-				c.write(" AS ")
-				c.expr(join.Alias, "")
-			}
-			c.write(" ON ")
-			c.expr(join.LeftKey, "")
-			c.write("=")
-			c.expr(join.RightKey, "")
-		}
-		if p.Where != nil {
-			c.ret()
-			c.write("WHERE ")
-			c.expr(p.Where, "")
-		}
-		if p.GroupBy != nil {
-			c.ret()
-			c.write("GROUP BY ")
-			c.exprs(p.GroupBy)
-		}
-		if p.Having != nil {
-			c.ret()
-			c.write("HAVING ")
-			c.expr(p.Having, "")
-		}
-		if p.OrderBy != nil {
-			c.ret()
-			c.write("ORDER BY ")
-			c.exprs(p.OrderBy.Keys)
-			c.write(" ")
-			c.write(strings.ToUpper(p.OrderBy.Order.String()))
-		}
-		if p.Limit != 0 {
-			c.ret()
-			c.write("LIMIT %d", p.Limit)
-		}
+		c.open("")
+		c.write("from ")
+		c.pool(p)
+		c.close()
+	case *ast.File:
+		c.next()
+		c.open("")
+		c.file(p)
+		c.close()
+	case *ast.HTTP:
+		c.next()
+		c.open("")
+		c.http(p)
+		c.close()
 	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
@@ -521,15 +485,21 @@ func (c *canon) op(p ast.Op) {
 	case *ast.Sort:
 		c.next()
 		c.write("sort")
-		if p.Order == order.Desc {
+		if p.Reverse {
 			c.write(" -r")
 		}
 		if p.NullsFirst {
 			c.write(" -nulls first")
 		}
-		if len(p.Args) > 0 {
+		for k, s := range p.Args {
+			if k > 0 {
+				c.write(",")
+			}
 			c.space()
-			c.exprs(p.Args)
+			c.expr(s.Expr, "")
+			if s.Order != nil {
+				c.write(" %s", s.Order.Name)
+			}
 		}
 	case *ast.Load:
 		c.next()
@@ -548,13 +518,19 @@ func (c *canon) op(p ast.Op) {
 		}
 	case *ast.Head:
 		c.next()
-		c.open("head ")
-		c.expr(p.Count, "")
+		c.open("head")
+		if p.Count != nil {
+			c.write(" ")
+			c.expr(p.Count, "")
+		}
 		c.close()
 	case *ast.Tail:
 		c.next()
-		c.open("tail ")
-		c.expr(p.Count, "")
+		c.open("tail")
+		if p.Count != nil {
+			c.write(" ")
+			c.expr(p.Count, "")
+		}
 		c.close()
 	case *ast.Uniq:
 		c.next()
@@ -629,8 +605,10 @@ func (c *canon) op(p ast.Op) {
 		}
 		c.write("on ")
 		c.expr(p.LeftKey, "")
-		c.write("=")
-		c.expr(p.RightKey, "")
+		if p.RightKey != nil {
+			c.write("=")
+			c.expr(p.RightKey, "")
+		}
 		if p.Args != nil {
 			c.write(" ")
 			c.assignments(p.Args)
@@ -644,10 +622,6 @@ func (c *canon) op(p ast.Op) {
 		c.open(which)
 		c.assignments(p.Assignments)
 		c.close()
-	//case *ast.SqlExpression:
-	//	//XXX TBD
-	//	c.open("sql")
-	//	c.close()
 	case *ast.Merge:
 		c.next()
 		c.write("merge ")
@@ -658,6 +632,16 @@ func (c *canon) op(p ast.Op) {
 		c.next()
 		c.write("yield ")
 		c.exprs(p.Exprs)
+	case *ast.Output:
+		c.next()
+		c.write("output %s", p.Name.Name)
+	case *ast.Debug:
+		c.next()
+		c.write("debug")
+		if p.Expr != nil {
+			c.write(" ")
+			c.expr(p.Expr, "")
+		}
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()
@@ -716,7 +700,7 @@ func (c *canon) pool(p *ast.Pool) {
 	if p.Spec.Tap {
 		s += " tap"
 	}
-	c.write("pool %s", s)
+	c.write(s)
 }
 
 func pattern(p ast.Pattern) string {
@@ -741,7 +725,7 @@ func isAggFunc(e ast.Expr) *ast.Summarize {
 	if !ok {
 		return nil
 	}
-	if _, err := agg.NewPattern(call.Name, true); err != nil {
+	if _, err := agg.NewPattern(call.Name.Name, true); err != nil {
 		return nil
 	}
 	return &ast.Summarize{
@@ -769,7 +753,7 @@ func IsBool(e ast.Expr) bool {
 	case *ast.Conditional:
 		return IsBool(e.Then) && IsBool(e.Else)
 	case *ast.Call:
-		return function.HasBoolResult(e.Name)
+		return function.HasBoolResult(e.Name.Name)
 	case *ast.Cast:
 		if typval, ok := e.Type.(*astzed.TypeValue); ok {
 			if typ, ok := typval.Value.(*astzed.TypePrimitive); ok {
@@ -837,6 +821,7 @@ func (c *canon) file(p *ast.File) {
 func (c *canon) source(src ast.Source) {
 	switch src := src.(type) {
 	case *ast.Pool:
+		c.write("pool ")
 		c.pool(src)
 	case *ast.HTTP:
 		c.http(src)

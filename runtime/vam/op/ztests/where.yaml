@@ -1,0 +1,25 @@
+script: |
+  zq -o t.vng -f vng -
+  zed dev vector query -z "where true" t.vng
+  echo //
+  zed dev vector query -z "where this != 2" t.vng
+  echo //
+  zed dev vector query -z "where this" t.vng
+
+inputs:
+  - name: stdin
+    data: |
+      1
+      2
+      3
+
+outputs:
+  - name: stdout
+    data: |
+      1
+      2
+      3
+      //
+      1
+      3
+      //

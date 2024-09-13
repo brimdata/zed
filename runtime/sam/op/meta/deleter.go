@@ -9,34 +9,31 @@ import (
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
 type Deleter struct {
-	parent      zbuf.Puller
-	scanner     zbuf.Puller
-	filter      zbuf.Filter
-	pruner      expr.Evaluator
-	rctx        *runtime.Context
-	pool        *lake.Pool
-	progress    *zbuf.Progress
-	unmarshaler *zson.UnmarshalZNGContext
-	done        bool
-	err         error
-	deletes     *sync.Map
+	parent   zbuf.Puller
+	scanner  zbuf.Puller
+	filter   zbuf.Filter
+	pruner   expr.Evaluator
+	rctx     *runtime.Context
+	pool     *lake.Pool
+	progress *zbuf.Progress
+	done     bool
+	err      error
+	deletes  *sync.Map
 }
 
 func NewDeleter(rctx *runtime.Context, parent zbuf.Puller, pool *lake.Pool, filter zbuf.Filter, pruner expr.Evaluator, progress *zbuf.Progress, deletes *sync.Map) *Deleter {
 	return &Deleter{
-		parent:      parent,
-		filter:      filter,
-		pruner:      pruner,
-		rctx:        rctx,
-		pool:        pool,
-		progress:    progress,
-		unmarshaler: zson.NewZNGUnmarshaler(),
-		deletes:     deletes,
+		parent:   parent,
+		filter:   filter,
+		pruner:   pruner,
+		rctx:     rctx,
+		pool:     pool,
+		progress: progress,
+		deletes:  deletes,
 	}
 }
 
@@ -90,21 +87,25 @@ func (d *Deleter) nextDeletion() (zbuf.Puller, error) {
 		if hasDeletes, err := d.hasDeletes(vals[0]); err != nil {
 			return nil, err
 		} else if !hasDeletes {
+			batch.Unref()
 			continue
 		}
 		// Use a no-op progress so stats are not inflated.
 		var progress zbuf.Progress
-		scanner, object, err := newScanner(d.rctx.Context, d.rctx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, &progress, vals[0])
+		scanner, object, err := newScanner(d.rctx.Context, d.rctx.Zctx, d.pool, d.pruner, d.filter, &progress, vals[0])
 		if err != nil {
 			return nil, err
 		}
+		batch.Unref()
 		d.deleteObject(object.ID)
 		return scanner, nil
 	}
 }
 
 func (d *Deleter) hasDeletes(val zed.Value) (bool, error) {
-	scanner, object, err := newScanner(d.rctx.Context, d.rctx.Zctx, d.pool, d.unmarshaler, d.pruner, d.filter, d.progress, val)
+	arena := zed.NewArena()
+	defer arena.Unref()
+	scanner, object, err := newScanner(d.rctx.Context, d.rctx.Zctx, d.pool, d.pruner, d.filter, d.progress, val)
 	if err != nil {
 		return false, err
 	}

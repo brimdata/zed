@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/zson"
@@ -29,10 +30,10 @@ type entry struct {
 	order int
 }
 
-func (s *Scope) DefineVar(name string) error {
+func (s *Scope) DefineVar(name *ast.ID) error {
 	ref := &dag.Var{
 		Kind: "Var",
-		Name: name,
+		Name: name.Name,
 		Slot: s.nvars(),
 	}
 	if err := s.DefineAs(name, ref); err != nil {
@@ -42,16 +43,16 @@ func (s *Scope) DefineVar(name string) error {
 	return nil
 }
 
-func (s *Scope) DefineAs(name string, e any) error {
-	if _, ok := s.symbols[name]; ok {
-		return fmt.Errorf("symbol %q redefined", name)
+func (s *Scope) DefineAs(name *ast.ID, e any) error {
+	if _, ok := s.symbols[name.Name]; ok {
+		return fmt.Errorf("symbol %q redefined", name.Name)
 	}
-	s.symbols[name] = &entry{ref: e, order: len(s.symbols)}
+	s.symbols[name.Name] = &entry{ref: e, order: len(s.symbols)}
 	return nil
 }
 
-func (s *Scope) DefineConst(zctx *zed.Context, name string, def dag.Expr) error {
-	val, err := kernel.EvalAtCompileTime(zctx, def)
+func (s *Scope) DefineConst(zctx *zed.Context, arena *zed.Arena, name *ast.ID, def dag.Expr) error {
+	val, err := kernel.EvalAtCompileTime(zctx, arena, def)
 	if err != nil {
 		return err
 	}

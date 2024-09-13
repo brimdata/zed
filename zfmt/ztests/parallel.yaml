@@ -18,4 +18,5 @@ outputs:
           put a:=b*c
       )
       | cut cake:=cake
-      | sort -r x
+      | sort -r x asc
+      | output main

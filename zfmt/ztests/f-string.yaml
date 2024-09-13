@@ -1,0 +1,7 @@
+script: |
+  zc -C 'yield f"hello {f"world"}"'
+
+outputs:
+  - name: stdout
+    data: |
+      yield f"hello {f"world"}"

@@ -20,15 +20,17 @@ type Writer struct {
 	typ       *zed.TypeRecord
 	limit     int
 	nline     int
+	arena     *zed.Arena
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
-	table := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
+	zctx := zed.NewContext()
 	return &Writer{
 		writer:    w,
-		flattener: expr.NewFlattener(zed.NewContext()),
-		table:     table,
+		flattener: expr.NewFlattener(zctx),
+		table:     tabwriter.NewWriter(w, 0, 8, 1, ' ', 0),
 		limit:     1000,
+		arena:     zed.NewArena(),
 	}
 }
 
@@ -36,7 +38,8 @@ func (w *Writer) Write(r zed.Value) error {
 	if r.Type().Kind() != zed.RecordKind {
 		return fmt.Errorf("table output encountered non-record value: %s", zson.FormatValue(r))
 	}
-	r, err := w.flattener.Flatten(r)
+	w.arena.Reset()
+	r, err := w.flattener.Flatten(w.arena, r)
 	if err != nil {
 		return err
 	}
@@ -58,13 +61,13 @@ func (w *Writer) Write(r zed.Value) error {
 	var out []string
 	for k, f := range r.Fields() {
 		var v string
-		value := r.DerefByColumn(k).MissingAsNull()
+		value := r.DerefByColumn(w.arena, k).MissingAsNull()
 		if f.Type == zed.TypeTime {
 			if !value.IsNull() {
 				v = zed.DecodeTime(value.Bytes()).Time().Format(time.RFC3339Nano)
 			}
 		} else {
-			v = zeekio.FormatValue(value)
+			v = zeekio.FormatValue(w.arena, value)
 		}
 		out = append(out, v)
 	}

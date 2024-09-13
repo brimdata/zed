@@ -4,3 +4,4 @@ outputs:
   - name: stdout
     data: |
       reader filter (x>1 and x>2)
+      | output main

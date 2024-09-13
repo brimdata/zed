@@ -161,6 +161,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "regexp_replace":
 		argmin, argmax = 3, 3
 		f = &RegexpReplace{zctx: zctx}
+	case "strftime":
+		argmin, argmax = 2, 2
+		f = &Strftime{zctx: zctx}
 	case "under":
 		f = &Under{zctx: zctx}
 	case "unflatten":
@@ -192,4 +195,11 @@ func HasBoolResult(name string) bool {
 		return true
 	}
 	return false
+}
+
+func underAll(arena *zed.Arena, args []zed.Value) []zed.Value {
+	for i := range args {
+		args[i] = args[i].Under(arena)
+	}
+	return args
 }

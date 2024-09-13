@@ -10,6 +10,7 @@ import (
 
 type ExprSwitch struct {
 	*op.Router
+	expr.Resetter
 	expr        expr.Evaluator
 	cases       map[string]*switchCase
 	defaultCase *switchCase
@@ -22,12 +23,13 @@ type switchCase struct {
 	vals  []zed.Value
 }
 
-func New(rctx *runtime.Context, parent zbuf.Puller, e expr.Evaluator) *ExprSwitch {
+func New(rctx *runtime.Context, parent zbuf.Puller, e expr.Evaluator, resetter expr.Resetter) *ExprSwitch {
 	router := op.NewRouter(rctx, parent)
 	s := &ExprSwitch{
-		Router: router,
-		expr:   e,
-		cases:  make(map[string]*switchCase),
+		Router:   router,
+		Resetter: resetter,
+		expr:     e,
+		cases:    make(map[string]*switchCase),
 	}
 	router.Link(s)
 	return s
@@ -44,9 +46,12 @@ func (s *ExprSwitch) AddCase(val *zed.Value) zbuf.Puller {
 }
 
 func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
+	arena := zed.NewArena()
+	defer arena.Unref()
+	ectx := expr.NewContextWithVars(arena, batch.Vars())
 	vals := batch.Values()
 	for i := range vals {
-		val := s.expr.Eval(batch, vals[i])
+		val := s.expr.Eval(ectx, vals[i])
 		if val.IsMissing() {
 			continue
 		}
@@ -64,11 +69,7 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 	// ref the batch for each outgoing new batch.
 	for _, c := range s.cases {
 		if len(c.vals) > 0 {
-			// XXX The new slice should come from the
-			// outgoing batch so we don't send these slices
-			// through GC.
-			batch.Ref()
-			out := zbuf.NewArray(c.vals)
+			out := zbuf.NewBatch(arena, c.vals, batch, batch.Vars())
 			c.vals = nil
 			if ok := router.Send(c.route, out, nil); !ok {
 				return false
@@ -76,8 +77,7 @@ func (s *ExprSwitch) Forward(router *op.Router, batch zbuf.Batch) bool {
 		}
 	}
 	if c := s.defaultCase; c != nil && len(c.vals) > 0 {
-		batch.Ref()
-		out := zbuf.NewArray(c.vals)
+		out := zbuf.NewBatch(arena, c.vals, batch, batch.Vars())
 		c.vals = nil
 		if ok := router.Send(c.route, out, nil); !ok {
 			return false

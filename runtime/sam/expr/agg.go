@@ -48,22 +48,39 @@ func (a *Aggregator) Apply(zctx *zed.Context, ectx Context, f agg.Function, this
 // NewAggregatorExpr returns an Evaluator from agg. The returned Evaluator
 // retains the same functionality of the aggregation only it returns it's
 // current state every time a new value is consumed.
-func NewAggregatorExpr(zctx *zed.Context, agg *Aggregator) Evaluator {
-	return &aggregatorExpr{agg: agg, zctx: zctx}
+func NewAggregatorExpr(zctx *zed.Context, agg *Aggregator) *AggregatorExpr {
+	return &AggregatorExpr{agg: agg, zctx: zctx}
 }
 
-type aggregatorExpr struct {
+type AggregatorExpr struct {
 	agg  *Aggregator
 	fn   agg.Function
 	zctx *zed.Context
 }
 
-var _ Evaluator = (*aggregatorExpr)(nil)
+var _ Evaluator = (*AggregatorExpr)(nil)
+var _ Resetter = (*AggregatorExpr)(nil)
 
-func (s *aggregatorExpr) Eval(ectx Context, val zed.Value) zed.Value {
+func (s *AggregatorExpr) Eval(ectx Context, val zed.Value) zed.Value {
 	if s.fn == nil {
 		s.fn = s.agg.NewFunction()
 	}
 	s.agg.Apply(s.zctx, ectx, s.fn, val)
-	return s.fn.Result(s.zctx)
+	return s.fn.Result(s.zctx, ectx.Arena())
+}
+
+func (s *AggregatorExpr) Reset() {
+	s.fn = nil
+}
+
+type Resetter interface {
+	Reset()
+}
+
+type Resetters []Resetter
+
+func (rs Resetters) Reset() {
+	for _, r := range rs {
+		r.Reset()
+	}
 }

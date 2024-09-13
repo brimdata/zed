@@ -340,6 +340,11 @@ for that sub-command.
 * `zed command sub-command -h` displays help for a sub-command of a
 sub-command and so forth.
 
+By default, commands that display lake metadata (e.g., [`log`](#log) or
+[`ls`](#ls)) use the human-readable [lake metadata output](zq.md#zed-lake-metadata-output)
+format.  However, the `-f` option can be used to specify any supported
+[output format](zq.md#output-formats).
+
 ### Auth
 ```
 zed auth login|logout|method|verify
@@ -570,6 +575,18 @@ API for automation.
 
 > Note that the branchlog meta-query source is not yet implemented.
 
+### Ls
+```
+zed ls [options] [pool]
+```
+The `ls` command lists pools in a lake or branches in a pool.
+
+By default, all pools in the lake are listed along with each pool's unique ID
+and [pool key](#pool-key) configuration.
+
+If a pool name or pool ID is given, then the pool's branches are listed along
+with the ID of their commit object, which points at the tip of each branch.
+
 ### Manage
 ```
 zed manage [options]
@@ -589,8 +606,16 @@ alternate check frequency in [duration format](../formats/zson.md#23-primitive-v
 If `-monitor` is not specified, a single maintenance pass is performed on the
 lake.
 
+By default, maintenance tasks are performed on all pools in the lake.  The
+`-pool` option may be specified one or more times to limit maintenance tasks
+to a subset of pools listed by name.
+
 The output from `manage` provides a per-pool summary of the maintenance
 performed, including a count of `objects_compacted`.
+
+As an alternative to running `manage` as a separate command, the `-manage`
+option is also available on the [`serve`](#serve) command to have maintenance
+tasks run at the specified interval by the service process.
 
 ### Merge
 
@@ -757,6 +782,9 @@ from most to least verbose, are `debug`, `info` (the default), `warn`,
 `error`, `dpanic`, `panic`, and `fatal`.  If the volume of logging output at
 the default `info` level seems too excessive for production use, `warn` level
 is recommended.
+
+The `-manage` option enables the running of the same maintenance tasks
+normally performed via the separate [`manage`](#manage) command.
 
 ### Use
 ```

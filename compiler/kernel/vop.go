@@ -65,6 +65,14 @@ func (b *Builder) compileVamScan(scan *dag.SeqScan, parent zbuf.Puller) (vector.
 
 func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller, error) {
 	switch o := o.(type) {
+	case *dag.Filter:
+		e, err := b.compileVamExpr(o.Expr)
+		if err != nil {
+			return nil, err
+		}
+		return vamop.NewFilter(b.rctx.Zctx, parent, e), nil
+	case *dag.Head:
+		return vamop.NewHead(parent, o.Count), nil
 	case *dag.Summarize:
 		if name, ok := optimizer.IsCountByString(o); ok {
 			return vamop.NewCountByString(b.rctx.Zctx, parent, name), nil
@@ -79,6 +87,9 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 			return nil, err
 		}
 		return vamop.NewYield(b.rctx.Zctx, parent, exprs), nil
+	case *dag.Output:
+		// XXX Ignore Output op for vectors for now.
+		return parent, nil
 	default:
 		return nil, fmt.Errorf("internal error: unknown dag.Op while compiling for vector runtime: %#v", o)
 	}

@@ -65,3 +65,4 @@ outputs:
       | over a, b with c=d, e=f => (
         where search("g")
       )
+      | output main

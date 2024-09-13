@@ -21,6 +21,7 @@ type Split struct {
 	writers    map[zed.Type]zio.WriteCloser
 	seen       map[string]struct{}
 	engine     storage.Engine
+	arena      *zed.Arena
 }
 
 var _ zio.Writer = (*Split)(nil)
@@ -43,6 +44,7 @@ func NewSplit(ctx context.Context, engine storage.Engine, dir *storage.URI, pref
 		writers:    make(map[zed.Type]zio.WriteCloser),
 		seen:       make(map[string]struct{}),
 		engine:     engine,
+		arena:      zed.NewArena(),
 	}, nil
 }
 
@@ -74,7 +76,8 @@ func (s *Split) lookupOutput(val zed.Value) (zio.WriteCloser, error) {
 // different Zed types, then we prepend it to the unique ID.
 func (s *Split) path(r zed.Value) *storage.URI {
 	uniq := strconv.Itoa(len(s.writers))
-	if _path := r.Deref("_path").AsString(); _path != "" {
+	s.arena.Reset()
+	if _path := r.Deref(s.arena, "_path").AsString(); _path != "" {
 		if _, ok := s.seen[_path]; ok {
 			uniq = _path + "-" + uniq
 		} else {

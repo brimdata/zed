@@ -1,7 +1,7 @@
 script: |
   zq  -z 'is(<"@foo">)' in.zson
   echo ===
-  zq  -z 'type "@foo" = {x:int64} type "Y Z" = {y:"@foo"} is(<"Y Z">)' in.zson
+  zq  -z 'const foo = <"@foo"={x:int64}> const yz = <"Y Z"={y:"@foo"}> is(<"Y Z">)' in.zson
 
 inputs:
   - name: in.zson

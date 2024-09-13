@@ -1,28 +1,30 @@
 package op
 
 import (
-	"context"
 	"slices"
 	"sync"
 
+	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zbuf"
 )
 
 type Selector interface {
+	expr.Resetter
 	Forward(*Router, zbuf.Batch) bool
 }
 
 type Router struct {
-	ctx      context.Context
+	rctx     *runtime.Context
 	parent   zbuf.Puller
 	selector Selector
 	routes   []*route
 	once     sync.Once
 }
 
-func NewRouter(ctx context.Context, parent zbuf.Puller) *Router {
+func NewRouter(rctx *runtime.Context, parent zbuf.Puller) *Router {
 	return &Router{
-		ctx:    ctx,
+		rctx:   rctx,
 		parent: NewCatcher(parent),
 	}
 }
@@ -93,6 +95,7 @@ func (r *Router) blocked() bool {
 // after receiving the EOS, it's done will be captured as soon as we unblock
 // all channels.
 func (r *Router) sendEOS(err error) bool {
+	defer r.selector.Reset()
 	// First, we need to send EOS to all non-blocked legs and
 	// catch any dones in progress.  This result in all routes
 	// being blocked.
@@ -113,7 +116,7 @@ func (r *Router) sendEOS(err error) bool {
 			// This path was about to be blocked with a done so
 			// just mark it blocked now.
 			p.blocked = true
-		case <-r.ctx.Done():
+		case <-r.rctx.Done():
 			return false
 		}
 	}
@@ -148,7 +151,7 @@ func (r *Router) Send(p zbuf.Puller, b zbuf.Batch, err error) bool {
 		b.Unref()
 		to.blocked = true
 		return true
-	case <-r.ctx.Done():
+	case <-r.rctx.Done():
 		return false
 	}
 }
@@ -170,14 +173,14 @@ func (r *route) Pull(done bool) (zbuf.Batch, error) {
 		select {
 		case r.doneCh <- struct{}{}:
 			return nil, nil
-		case <-r.router.ctx.Done():
-			return nil, r.router.ctx.Err()
+		case <-r.router.rctx.Done():
+			return nil, r.router.rctx.Err()
 		}
 	}
 	select {
 	case result := <-r.resultCh:
 		return result.Batch, result.Err
-	case <-r.router.ctx.Done():
-		return nil, r.router.ctx.Err()
+	case <-r.router.rctx.Done():
+		return nil, r.router.rctx.Err()
 	}
 }

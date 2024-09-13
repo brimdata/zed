@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/runtime/sam/expr/extent"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -66,19 +67,24 @@ from %q@%q:objects
 `
 
 type objectIterator struct {
-	reader      zio.ReadCloser
+	reader      zio.Reader
+	puller      zbuf.Puller
 	unmarshaler *zson.UnmarshalZNGContext
+	arena       *zed.Arena
 }
 
 func newObjectIterator(ctx context.Context, lake api.Interface, head *lakeparse.Commitish) (*objectIterator, error) {
 	query := fmt.Sprintf(iteratorQuery, head.Pool, head.Branch, head.Pool, head.Branch)
-	r, err := lake.Query(ctx, nil, query)
+	q, err := lake.Query(ctx, nil, query)
 	if err != nil {
 		return nil, err
 	}
+	arena := zed.NewArena()
 	return &objectIterator{
-		reader:      r,
-		unmarshaler: zson.NewZNGUnmarshaler(),
+		reader:      zbuf.PullerReader(q),
+		puller:      q,
+		unmarshaler: zson.NewZNGUnmarshaler().SetContext(zed.NewContext(), arena),
+		arena:       arena,
 	}, nil
 }
 
@@ -93,6 +99,7 @@ func (r *objectIterator) next() (*object, error) {
 	if err := r.unmarshaler.Unmarshal(*val, &o.Object); err != nil {
 		return nil, err
 	}
+	o.Object.Arena = r.arena
 	if err := r.unmarshaler.Unmarshal(*val, &o); err != nil {
 		return nil, err
 	}
@@ -100,7 +107,8 @@ func (r *objectIterator) next() (*object, error) {
 }
 
 func (r *objectIterator) close() error {
-	return r.reader.Close()
+	_, err := r.puller.Pull(true)
+	return err
 }
 
 type object struct {

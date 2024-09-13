@@ -12,30 +12,34 @@ outputs:
     data: |
       switch (
         case grep("a") =>
-          head 1
+          head
         case grep("c") =>
-          tail 1
+          tail
       )
       ===
       reader
       | switch (
           case search("a") =>
             head 1
+            | output main
           case search("c") =>
             tail 1
+            | output main
         )
       ===
       switch (
         case grep("a") =>
-          head 1
+          head
         default =>
-          tail 1
+          tail
       )
       ===
       reader
       | switch (
           case search("a") =>
             head 1
+            | output main
           case true =>
             tail 1
+            | output main
         )

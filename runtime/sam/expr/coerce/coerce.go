@@ -2,155 +2,57 @@ package coerce
 
 import (
 	"bytes"
-	"errors"
-	"math"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/runtime/sam/expr/result"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
+	"golang.org/x/exp/constraints"
 )
 
-var Overflow = errors.New("integer overflow: uint64 value too large for int64")
-var IncompatibleTypes = errors.New("incompatible types")
-
-// XXX Named types should probably be preserved according to the rank
-// of the underlying number type.
-
-// Pair provides a buffer to decode values into while doing comparisons
-// so the same buffers can be reused on each call without zcode.Bytes buffers
-// escaping to GC.  This method uses the zed.AppendInt(), zed.AppendUint(),
-// etc to encode zcode.Bytes as an in-place slice instead of allocating
-// new slice buffers for every value created.
-type Pair struct {
-	// a and b point to inputs that can't change
-	A zcode.Bytes
-	B zcode.Bytes
-	// Buffer is a scratch buffer that stays around between calls and is the
-	// landing place for either the a or b value if one of them needs to
-	// be coerced (you never need to coerce both).  Then we point a or b
-	// at buf and let go of the other input pointer.
-	result.Buffer
-	buf2 result.Buffer
+func Equal(a, b zed.Value) bool {
+	if a.IsNull() {
+		return b.IsNull()
+	} else if b.IsNull() {
+		// We know a isn't null.
+		return false
+	}
+	switch aid, bid := a.Type().ID(), b.Type().ID(); {
+	case !zed.IsNumber(aid) || !zed.IsNumber(bid):
+		return aid == bid && bytes.Equal(a.Bytes(), b.Bytes())
+	case zed.IsFloat(aid):
+		return a.Float() == ToNumeric[float64](b)
+	case zed.IsFloat(bid):
+		return b.Float() == ToNumeric[float64](a)
+	case zed.IsSigned(aid):
+		av := a.Int()
+		if zed.IsUnsigned(bid) {
+			return uint64(av) == b.Uint() && av >= 0
+		}
+		return av == b.Int()
+	case zed.IsSigned(bid):
+		bv := b.Int()
+		if zed.IsUnsigned(aid) {
+			return uint64(bv) == a.Uint() && bv >= 0
+		}
+		return bv == a.Int()
+	default:
+		return a.Uint() == b.Uint()
+	}
 }
 
-func (c *Pair) Equal() bool {
-	// bytes.Equal() returns true for nil compared to an empty-slice,
-	// which doesn't work for Zed null comparisons, so we explicitly check
-	// for the nil condition here.
-	if c.A == nil {
-		return c.B == nil
+func ToNumeric[T constraints.Integer | constraints.Float](val zed.Value) T {
+	if val.IsNull() {
+		return 0
 	}
-	if c.B == nil {
-		return c.A == nil
+	switch id := val.Type().ID(); {
+	case zed.IsUnsigned(id):
+		return T(val.Uint())
+	case zed.IsSigned(id):
+		return T(val.Int())
+	case zed.IsFloat(id):
+		return T(val.Float())
 	}
-	return bytes.Equal(c.A, c.B)
-}
-
-func (c *Pair) Coerce(a, b zed.Value) (int, error) {
-	a, b = a.Under(), b.Under()
-	c.A = a.Bytes()
-	c.B = b.Bytes()
-	aid := a.Type().ID()
-	bid := b.Type().ID()
-	if aid == bid {
-		return aid, nil
-	}
-	if aid == zed.IDNull {
-		return bid, nil
-	}
-	if bid == zed.IDNull {
-		return aid, nil
-	}
-	if zed.IsNumber(aid) {
-		if !zed.IsNumber(bid) {
-			return 0, IncompatibleTypes
-		}
-		id, ok := c.coerceNumbers(aid, bid)
-		if !ok {
-			return 0, Overflow
-		}
-		return id, nil
-	}
-	return 0, IncompatibleTypes
-}
-
-func intToFloat(id int, b zcode.Bytes) float64 {
-	if zed.IsSigned(id) {
-		return float64(zed.DecodeInt(b))
-	}
-	return float64(zed.DecodeUint(b))
-}
-
-func (c *Pair) promoteToSigned(in zcode.Bytes) (zcode.Bytes, bool) {
-	v := zed.DecodeUint(in)
-	if v > math.MaxInt64 {
-		return nil, false
-	}
-	return c.Int(int64(v)), true
-}
-
-func (c *Pair) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, bool) {
-	v := zed.DecodeInt(in)
-	if v < 0 {
-		return nil, false
-	}
-	return c.Uint(uint64(v)), true
-}
-
-func (c *Pair) coerceNumbers(aid, bid int) (int, bool) {
-	if zed.IsFloat(aid) {
-		if aid == zed.IDFloat16 {
-			c.A = c.buf2.Float64(float64(zed.DecodeFloat16(c.A)))
-		} else if aid == zed.IDFloat32 {
-			c.A = c.buf2.Float64(float64(zed.DecodeFloat32(c.A)))
-		}
-		c.B = c.Float64(intToFloat(bid, c.B))
-		return aid, true
-	}
-	if zed.IsFloat(bid) {
-		if bid == zed.IDFloat16 {
-			c.B = c.buf2.Float64(float64(zed.DecodeFloat16(c.B)))
-		} else if bid == zed.IDFloat32 {
-			c.B = c.buf2.Float64(float64(zed.DecodeFloat32(c.B)))
-		}
-		c.A = c.Float64(intToFloat(aid, c.A))
-		return bid, true
-	}
-	aIsSigned := zed.IsSigned(aid)
-	if aIsSigned == zed.IsSigned(bid) {
-		// They have the same signed-ness.  Promote to the wider
-		// type by rank and leave the zcode.Bytes as is since
-		// the varint encoding is the same for all the widths.
-		// Width increasese with type ID.
-		id := aid
-		if bid > id {
-			id = bid
-		}
-		return id, true
-	}
-	id := promoteInt(aid, bid)
-
-	// Otherwise, we'll promote mixed signed-ness to signed unless
-	// the unsigned value is greater than signed maxint, in which
-	// case, we report an overflow error.
-	var ok bool
-	if aIsSigned {
-		c.B, ok = c.promoteToSigned(c.B)
-	} else {
-		c.A, ok = c.promoteToSigned(c.A)
-	}
-	if !ok {
-		// We got overflow trying to turn the unsigned to signed,
-		// so try turning the signed into unsigned.
-		if aIsSigned {
-			c.A, ok = c.promoteToUnsigned(c.A)
-		} else {
-			c.B, ok = c.promoteToUnsigned(c.B)
-		}
-		id = zed.IDUint64
-	}
-	return id, ok
+	panic(zson.FormatValue(val))
 }
 
 func ToFloat(val zed.Value) (float64, bool) {

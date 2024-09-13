@@ -4,17 +4,41 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+
+	"github.com/brimdata/zed/compiler/ast"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 )
 
-func makeBinaryExprChain(first, rest interface{}) interface{} {
-	ret := first
-	for _, p := range rest.([]interface{}) {
-		part := p.([]interface{})
-		ret = map[string]interface{}{
-			"kind": "BinaryExpr",
-			"op":   part[0],
-			"lhs":  ret,
-			"rhs":  part[1],
+func sliceOf[E any](s any) []E {
+	if s == nil {
+		return nil
+	}
+	slice := s.([]any)
+	out := make([]E, len(slice))
+	for i, el := range slice {
+		out[i] = el.(E)
+	}
+	return out
+}
+
+func newPrimitive(c *current, typ, text string) *astzed.Primitive {
+	return &astzed.Primitive{
+		Kind:    "Primitive",
+		Type:    typ,
+		Text:    text,
+		TextPos: c.pos.offset,
+	}
+}
+
+func makeBinaryExprChain(first, rest any) any {
+	ret := first.(ast.Expr)
+	for _, p := range rest.([]any) {
+		part := p.([]any)
+		ret = &ast.BinaryExpr{
+			Kind: "BinaryExpr",
+			Op:   part[0].(string),
+			LHS:  ret,
+			RHS:  part[1].(ast.Expr),
 		}
 	}
 	return ret
@@ -33,18 +57,43 @@ func makeArgMap(args interface{}) (interface{}, error) {
 	return m, nil
 }
 
-func makeTemplateExprChain(in interface{}) interface{} {
-	rest := in.([]interface{})
-	ret := rest[0]
+func makeTemplateExprChain(in any) any {
+	rest := in.([]any)
+	ret := rest[0].(ast.Expr)
 	for _, part := range rest[1:] {
-		ret = map[string]interface{}{
-			"kind": "BinaryExpr",
-			"op":   "+",
-			"lhs":  ret,
-			"rhs":  part,
+		ret = &ast.BinaryExpr{
+			Kind: "BinaryExpr",
+			Op:   "+",
+			LHS:  ret,
+			RHS:  part.(ast.Expr),
 		}
 	}
 	return ret
+}
+
+func newCall(c *current, name, args, where any) ast.Expr {
+	call := &ast.Call{
+		Kind:   "Call",
+		Name:   name.(*ast.ID),
+		Args:   sliceOf[ast.Expr](args),
+		Rparen: lastPos(c, ")"),
+	}
+	if where != nil {
+		call.Where = where.(ast.Expr)
+	}
+	return call
+}
+
+func lastPos(c *current, s string) int {
+	i := bytes.LastIndex(c.text, []byte(s))
+	if i == -1 {
+		panic(fmt.Sprintf("system error: character %s not found in %s", s, string(c.text)))
+	}
+	return c.pos.offset + i
+}
+
+func prepend(first, rest any) []any {
+	return append([]any{first}, rest.([]any)...)
 }
 
 func joinChars(in interface{}) string {
@@ -66,16 +115,14 @@ func parseInt(v interface{}) interface{} {
 	if err != nil {
 		return nil
 	}
-
 	return i
 }
 
-func OR(a, b interface{}) interface{} {
-	if a != nil {
-		return a
+func nullableString(v any) string {
+	if v == nil {
+		return ""
 	}
-
-	return b
+	return v.(string)
 }
 
 func makeUnicodeChar(chars interface{}) string {

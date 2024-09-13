@@ -38,6 +38,10 @@ func project(zctx *zed.Context, paths Path, s shadow) vector.Any {
 			return vector.NewMissing(zctx, s.length())
 		}
 		return s.vec
+	case *error_:
+		v := project(zctx, paths, s.vals)
+		typ := zctx.LookupTypeError(v.Type())
+		return vector.NewError(typ, v, s.nulls.flat)
 	case *named:
 		v := project(zctx, paths, s.vals)
 		typ, err := zctx.LookupTypeNamed(s.name, v.Type())

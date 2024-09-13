@@ -1,0 +1,227 @@
+script: |
+  source service.sh
+  zed create -q test1
+  zed create -q test2
+  for file in multifrom.zed agg.zed agg-no-keys.zed two-channels.zed agg-sort.zed scope.zed auto-combined-channels.zed; do
+    echo // === $file ===
+    query="$(cat $file | jq -Rsa .)"
+    curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $ZED_LAKE/query/describe |
+      zq -J 'sources := (over sources | id := "XXX")' -
+  done
+
+
+inputs:
+  - name: service.sh
+  - name: multifrom.zed
+    data: |
+      from (
+        pool test1
+        pool test2
+      ) | put foo := "bar"
+  - name: agg.zed
+    data: |
+      count() by key1:=v1, key2
+  - name: agg-no-keys.zed
+    data: |
+      sum(this)
+  - name: two-channels.zed
+    data: |
+      fork (
+      => from test1 | sum(y) by key1 | output main
+      => from test2 | put x := "foo" | output secondary
+      )
+  - name: agg-sort.zed
+    data: |
+      sum(this) by foo | sort x
+  - name: scope.zed
+    data: |
+      type port = uint16
+      from test1 | fork (=> output main => yield "bar" | output secondary)
+  - name: auto-combined-channels.zed
+    data: |
+      from test1 | fork (=> pass => pass)
+
+outputs:
+  - name: stdout
+    data: |
+      // === multifrom.zed ===
+      {
+          "sources": [
+              {
+                  "kind": "Pool",
+                  "name": "test1",
+                  "id": "XXX",
+                  "inferred": false
+              },
+              {
+                  "kind": "Pool",
+                  "name": "test2",
+                  "id": "XXX",
+                  "inferred": false
+              }
+          ],
+          "channels": [
+              {
+                  "name": "main",
+                  "aggregation_keys": null,
+                  "sort": [
+                      {
+                          "order": "desc",
+                          "key": [
+                              "ts"
+                          ]
+                      }
+                  ]
+              }
+          ]
+      }
+      // === agg.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX",
+              "inferred": true
+          },
+          "channels": [
+              {
+                  "name": "main",
+                  "aggregation_keys": [
+                      [
+                          "key1"
+                      ],
+                      [
+                          "key2"
+                      ]
+                  ],
+                  "sort": null
+              }
+          ]
+      }
+      // === agg-no-keys.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX",
+              "inferred": true
+          },
+          "channels": [
+              {
+                  "name": "main",
+                  "aggregation_keys": [],
+                  "sort": null
+              }
+          ]
+      }
+      // === two-channels.zed ===
+      {
+          "sources": [
+              {
+                  "kind": "Pool",
+                  "name": "test1",
+                  "id": "XXX",
+                  "inferred": false
+              },
+              {
+                  "kind": "Pool",
+                  "name": "test2",
+                  "id": "XXX",
+                  "inferred": false
+              }
+          ],
+          "channels": [
+              {
+                  "name": "main",
+                  "aggregation_keys": [
+                      [
+                          "key1"
+                      ]
+                  ],
+                  "sort": null
+              },
+              {
+                  "name": "secondary",
+                  "aggregation_keys": null,
+                  "sort": [
+                      {
+                          "order": "desc",
+                          "key": [
+                              "ts"
+                          ]
+                      }
+                  ]
+              }
+          ]
+      }
+      // === agg-sort.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX",
+              "inferred": true
+          },
+          "channels": [
+              {
+                  "name": "main",
+                  "aggregation_keys": [
+                      [
+                          "foo"
+                      ]
+                  ],
+                  "sort": [
+                      {
+                          "order": "asc",
+                          "key": [
+                              "x"
+                          ]
+                      }
+                  ]
+              }
+          ]
+      }
+      // === scope.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX",
+              "inferred": false
+          },
+          "channels": [
+              {
+                  "name": "main",
+                  "aggregation_keys": null,
+                  "sort": [
+                      {
+                          "order": "desc",
+                          "key": [
+                              "ts"
+                          ]
+                      }
+                  ]
+              },
+              {
+                  "name": "secondary",
+                  "aggregation_keys": null,
+                  "sort": null
+              }
+          ]
+      }
+      // === auto-combined-channels.zed ===
+      {
+          "sources": {
+              "kind": "Pool",
+              "name": "test1",
+              "id": "XXX",
+              "inferred": false
+          },
+          "channels": [
+              {
+                  "name": "main",
+                  "aggregation_keys": null,
+                  "sort": null
+              }
+          ]
+      }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -11,18 +12,23 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/describe"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	lakeapi "github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/exec"
 	"github.com/brimdata/zed/runtime/sam/op"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/service/srverr"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/csvio"
@@ -51,12 +57,12 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	// The client must look at the return code and interpret the result
 	// accordingly and when it sees a ZNG error after underway,
 	// the error should be relay that to the caller/user.
-	query, err := c.compiler.Parse(req.Query)
+	query, sset, err := parser.ParseZed(nil, req.Query)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
 	}
-	flowgraph, err := runtime.CompileLakeQuery(r.Context(), zed.NewContext(), c.compiler, query, &req.Head)
+	flowgraph, err := runtime.CompileLakeQuery(r.Context(), zed.NewContext(), c.compiler, query, sset, &req.Head)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
@@ -121,8 +127,8 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 				}
 			}
 			if len(batch.Values()) == 0 {
-				if eoc, ok := batch.(*op.EndOfChannel); ok {
-					if err := writer.WhiteChannelEnd(int(*eoc)); err != nil {
+				if eoc, ok := batch.(*zbuf.EndOfChannel); ok {
+					if err := writer.WhiteChannelEnd(string(*eoc)); err != nil {
 						w.Logger.Warn("Error writing channel end", zap.Error(err))
 						handleError(err)
 						return
@@ -130,9 +136,9 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 				}
 				continue
 			}
-			var cid int
-			batch, cid = op.Unwrap(batch)
-			if err := writer.WriteBatch(cid, batch); err != nil {
+			var label string
+			batch, label = zbuf.Unlabel(batch)
+			if err := writer.WriteBatch(label, batch); err != nil {
 				w.Logger.Warn("Error writing batch", zap.Error(err))
 				handleError(err)
 				return
@@ -162,12 +168,26 @@ func handleCompile(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	ast, err := c.compiler.Parse(req.Query)
+	ast, _, err := c.compiler.Parse(req.Query)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return
 	}
 	w.Respond(http.StatusOK, ast)
+}
+
+func handleQueryDescribe(c *Core, w *ResponseWriter, r *Request) {
+	var req api.QueryRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	src := data.NewSource(storage.NewRemoteEngine(), c.root)
+	info, err := describe.Analyze(r.Context(), req.Query, src, &req.Head)
+	if err != nil {
+		w.Error(srverr.ErrInvalid(err))
+		return
+	}
+	w.Respond(http.StatusOK, info)
 }
 
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
@@ -224,9 +244,14 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 	var req api.PoolPostRequest
 	if !r.Unmarshal(w, &req) {
+		fmt.Println("unmarshal.err")
 		return
 	}
-	pool, err := c.root.CreatePool(r.Context(), req.Name, req.SortKey, req.SeekStride, req.Thresh)
+	var sortKeys order.SortKeys
+	if len(req.SortKeys.Keys) > 0 {
+		sortKeys = append(sortKeys, order.NewSortKey(req.SortKeys.Order, req.SortKeys.Keys[0]))
+	}
+	pool, err := c.root.CreatePool(r.Context(), req.Name, sortKeys, req.SeekStride, req.Thresh)
 	if err != nil {
 		w.Error(err)
 		return
@@ -552,12 +577,15 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 			w.Error(srverr.ErrInvalid("either object_ids or where must be set"))
 			return
 		}
-		var program ast.Seq
-		if program, err = c.compiler.Parse(payload.Where); err != nil {
-			w.Error(srverr.ErrInvalid(err))
+		program, sset, err2 := c.compiler.Parse(payload.Where)
+		if err != nil {
+			w.Error(srverr.ErrInvalid(err2))
 			return
 		}
 		commit, err = branch.DeleteWhere(r.Context(), c.compiler, program, message.Author, message.Body, message.Meta)
+		if list, ok := err.(parser.ErrorList); ok {
+			list.SetSourceSet(sset)
+		}
 		if errors.Is(err, commits.ErrEmptyTransaction) ||
 			errors.Is(err, &compiler.InvalidDeleteWhereQuery{}) {
 			err = srverr.ErrInvalid(err)

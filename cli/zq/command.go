@@ -3,6 +3,7 @@ package zq
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli"
@@ -17,6 +18,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zfmt"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zsonio"
 )
 
 var Cmd = &charm.Spec{
@@ -129,7 +131,7 @@ func (c *Command) Run(args []string) error {
 		// Prevent ParseSourcesAndInputs from treating args[0] as a path.
 		args = append(args, "-")
 	}
-	paths, flowgraph, null, err := c.queryFlags.ParseSourcesAndInputs(args)
+	paths, flowgraph, sset, null, err := c.queryFlags.ParseSourcesAndInputs(args)
 	if err != nil {
 		return fmt.Errorf("zq: %w", err)
 	}
@@ -141,7 +143,7 @@ func (c *Command) Run(args []string) error {
 	local := storage.NewLocalEngine()
 	var readers []zio.Reader
 	if null {
-		readers = []zio.Reader{zbuf.NewArray([]zed.Value{zed.Null})}
+		readers = []zio.Reader{zbuf.NewArray(nil, []zed.Value{zed.Null})}
 	} else {
 		readers, err = c.inputFlags.Open(ctx, zctx, local, paths, c.stopErr)
 		if err != nil {
@@ -154,12 +156,16 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	comp := compiler.NewFileSystemCompiler(local)
-	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, readers)
+	query, err := runtime.CompileQuery(ctx, zctx, comp, flowgraph, sset, readers)
 	if err != nil {
 		return err
 	}
 	defer query.Pull(true)
-	err = zbuf.CopyPuller(writer, query)
+	out := map[string]zio.WriteCloser{
+		"main":  writer,
+		"debug": zsonio.NewWriter(zio.NopCloser(os.Stderr), zsonio.WriterOpts{}),
+	}
+	err = zbuf.CopyMux(out, query)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

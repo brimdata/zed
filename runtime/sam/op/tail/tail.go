@@ -75,7 +75,7 @@ func (o *Op) tail() ([]zbuf.Batch, error) {
 	if n > o.limit {
 		// We have too many values so remove some from batches[0].
 		vals := batches[0].Values()[n-o.limit:]
-		batches[0] = zbuf.NewBatch(batches[0], vals)
+		batches[0] = zbuf.WrapBatch(batches[0], vals)
 	}
 	return batches, nil
 }

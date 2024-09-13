@@ -2,6 +2,7 @@ package traverse
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -22,14 +23,14 @@ type Scope struct {
 	subDoneCh   chan struct{}
 }
 
-func newScope(ctx context.Context, parent zbuf.Puller, names []string, exprs []expr.Evaluator) *Scope {
+func newScope(ctx context.Context, zctx *zed.Context, parent zbuf.Puller, names []string, exprs []expr.Evaluator) *Scope {
 	return &Scope{
 		ctx:    ctx,
 		parent: parent,
 		// Buffered so we can send without blocking before we send EOS
 		// to resultCh.
 		parentEOSCh: make(chan struct{}, 1),
-		enter:       NewEnter(names, exprs),
+		enter:       NewEnter(zctx, names, exprs),
 		resultCh:    make(chan op.Result),
 		exitDoneCh:  make(chan struct{}),
 		subDoneCh:   make(chan struct{}),
@@ -146,30 +147,34 @@ again:
 }
 
 type Enter struct {
+	zctx  *zed.Context
 	names []string
 	exprs []expr.Evaluator
 }
 
-func NewEnter(names []string, exprs []expr.Evaluator) *Enter {
+func NewEnter(zctx *zed.Context, names []string, exprs []expr.Evaluator) *Enter {
 	return &Enter{
+		zctx:  zctx,
 		names: names,
 		exprs: exprs,
 	}
 }
 
 func (e *Enter) addLocals(batch zbuf.Batch, this zed.Value) zbuf.Batch {
-	inner := newScopedBatch(batch, len(e.exprs))
-	for _, expr := range e.exprs {
+	arena := zed.NewArena()
+	defer arena.Unref()
+	vars := slices.Clone(batch.Vars())
+	for _, ex := range e.exprs {
 		// Note that we add a var to the frame on each Eval call
 		// since subsequent expressions can refer to results from
 		// previous expressions.  Also, we push any val including
 		// errors and missing as we want to propagate such conditions
 		// into the sub-graph to ease debuging. In fact, the subgraph
 		// can act accordingly in response to errors and missing.
-		val := expr.Eval(inner, this)
-		inner.push(val.Copy())
+		val := ex.Eval(expr.NewContextWithVars(arena, vars), this)
+		vars = append(vars, val)
 	}
-	return inner
+	return zbuf.NewBatch(arena, batch.Values(), batch, vars)
 }
 
 type Exit struct {
@@ -249,29 +254,6 @@ type scope struct {
 }
 
 var _ zbuf.Batch = (*scope)(nil)
-
-func newScopedBatch(batch zbuf.Batch, nvar int) *scope {
-	vars := batch.Vars()
-	if len(vars) != 0 {
-		// XXX for now we just copy the slice.  we can be
-		// more sophisticated later.
-		newvars := make([]zed.Value, len(vars), len(vars)+nvar)
-		copy(newvars, vars)
-		vars = newvars
-	}
-	return &scope{
-		Batch: batch,
-		vars:  vars,
-	}
-}
-
-func (s *scope) Vars() []zed.Value {
-	return s.vars
-}
-
-func (s *scope) push(val zed.Value) {
-	s.vars = append(s.vars, val)
-}
 
 type exitScope struct {
 	zbuf.Batch

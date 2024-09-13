@@ -22,11 +22,10 @@ import (
 
 type Interface interface {
 	Root() *lake.Root
-	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zio.ReadCloser, error)
-	QueryWithControl(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ProgressReadCloser, error)
+	Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Scanner, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
-	CreatePool(context.Context, string, order.SortKey, int, int64) (ksuid.KSUID, error)
+	CreatePool(context.Context, string, order.SortKeys, int, int64) (ksuid.KSUID, error)
 	RemovePool(context.Context, ksuid.KSUID) error
 	RenamePool(context.Context, ksuid.KSUID, string) error
 	CreateBranch(ctx context.Context, pool ksuid.KSUID, name string, parent ksuid.KSUID) error
@@ -60,8 +59,8 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 	if err != nil {
 		return nil, err
 	}
-	defer q.Close()
-	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+	defer q.Pull(true)
+	if err := zbuf.CopyPuller(b, q); err != nil {
 		return nil, err
 	}
 	switch len(b.results) {
@@ -84,8 +83,8 @@ func GetPools(ctx context.Context, api Interface) ([]*pools.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer q.Close()
-	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+	defer q.Pull(true)
+	if err := zbuf.CopyPuller(b, q); err != nil {
 		return nil, err
 	}
 	var pls []*pools.Config
@@ -102,8 +101,8 @@ func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.
 	if err != nil {
 		return nil, err
 	}
-	defer q.Close()
-	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+	defer q.Pull(true)
+	if err := zbuf.CopyPuller(b, q); err != nil {
 		return nil, err
 	}
 	switch len(b.results) {
@@ -127,8 +126,8 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 	if err != nil {
 		return nil, err
 	}
-	defer q.Close()
-	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+	defer q.Pull(true)
+	if err := zbuf.CopyPuller(b, q); err != nil {
 		return nil, err
 	}
 	switch len(b.results) {
@@ -152,8 +151,8 @@ func LookupBranchByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake
 	if err != nil {
 		return nil, err
 	}
-	defer q.Close()
-	if err := zio.Copy(b, zbuf.NoControl(q)); err != nil {
+	defer q.Pull(true)
+	if err := zbuf.CopyPuller(b, q); err != nil {
 		return nil, err
 	}
 	switch len(b.results) {

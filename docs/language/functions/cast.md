@@ -11,15 +11,15 @@ cast(val: any, name: string) -> any
 
 ### Description
 
-The _cast_ function performs type casts but handles both primitive types and
-complex types.  If the input type `t` is a primitive type, then the result
+The _cast_ function performs type casts but handles both [primitive types](../../formats/zed.md#1-primitive-types) and
+[complex types](../../formats/zed.md#2-complex-types).  If the input type `t` is a primitive type, then the result
 is equivalent to
 ```
 t(val)
 ```
 e.g., the result of `cast(1, <string>)` is the same as `string(1)` which is `"1"`.
 In the second form, where the `name` argument is a string, cast creates
-a new named type where the name for the type is given by `name` and its
+a new [named type](../data-types.md#named-types) where the name for the type is given by `name` and its
 type is given by `typeof(val)`.  This provides a convenient mechanism
 to create new named types from the input data itself without having to
 hard code the type in the Zed source text.
@@ -28,7 +28,7 @@ For complex types, the cast function visits each leaf value in `val` and
 casts that value to the corresponding type in `t`.
 When a complex value has multiple levels of nesting,
 casting is applied recursively down the tree.  For example, cast is recursively
-applied to each element in array of records and recursively applied to each record.
+applied to each element in an array of records and recursively applied to each record.
 
 If `val` is a record (or if any of its nested value is a record):
 * absent fields are ignored and omitted from the result,
@@ -40,6 +40,12 @@ to match the output type's order but rather just modifies the leaf values.
 
 If a cast fails, an error is returned when casting to primitive types
 and the input value is returned when casting to complex types.
+
+:::tip
+Many users seeking to `cast` record values prefer to use the
+[`shape` function](./shape.md) which applies the `cast`, [`fill`](./fill.md),
+and [`order`](./order.md) functions simultaneously.
+:::
 
 ### Examples
 
@@ -75,9 +81,14 @@ produces
 {a:3,b:4}(=foo)
 ```
 
-_Name data based its properties_
+_Derive type names from the properties of data_
 ```mdtest-command
-echo '{x:1,y:2}{r:3}{x:4,y:5}' | zq -z 'switch ( case has(x) => cast(this, "point")  default => cast(this, "radius") ) | sort this' -
+echo '{x:1,y:2}{r:3}{x:4,y:5}' |
+  zq -z 'switch (
+           case has(x) => cast(this, "point")
+           default => cast(this, "radius")
+         )
+         | sort this' -
 ```
 produces
 ```mdtest-output

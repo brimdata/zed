@@ -4,24 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zbuf"
 )
-
-type labeled struct {
-	zbuf.Batch
-	label int
-}
-
-func Unwrap(batch zbuf.Batch) (zbuf.Batch, int) {
-	var label int
-	if inner, ok := batch.(*labeled); ok {
-		batch = inner
-		label = inner.label
-	}
-	return batch, label
-}
 
 // Mux implements the muxing of a set of parallel paths at the output of
 // a flowgraph.  It also implements the double-EOS algorithm with proc.Latch
@@ -41,14 +26,14 @@ type Mux struct {
 
 type result struct {
 	batch zbuf.Batch
-	label int
+	label string
 	err   error
 }
 
 type puller struct {
 	zbuf.Puller
 	ch    chan<- result
-	label int
+	label string
 }
 
 func (p *puller) run(ctx context.Context) {
@@ -65,7 +50,7 @@ func (p *puller) run(ctx context.Context) {
 	}
 }
 
-func NewMux(rctx *runtime.Context, parents []zbuf.Puller) *Mux {
+func NewMux(rctx *runtime.Context, parents map[string]zbuf.Puller) *Mux {
 	if len(parents) <= 1 {
 		panic("mux.New() must be called with two or more parents")
 	}
@@ -105,9 +90,9 @@ func (m *Mux) Pull(bool) (zbuf.Batch, error) {
 				return nil, err
 			}
 			if batch != nil {
-				batch = &labeled{batch, res.label}
+				batch = zbuf.Label(res.label, batch)
 			} else {
-				eoc := EndOfChannel(res.label)
+				eoc := zbuf.EndOfChannel(res.label)
 				batch = &eoc
 				m.nparents--
 			}
@@ -120,11 +105,12 @@ func (m *Mux) Pull(bool) (zbuf.Batch, error) {
 
 type Single struct {
 	zbuf.Puller
-	eos bool
+	label string
+	eos   bool
 }
 
-func NewSingle(parent zbuf.Puller) *Single {
-	return &Single{Puller: parent}
+func NewSingle(label string, parent zbuf.Puller) *Single {
+	return &Single{Puller: parent, label: label}
 }
 
 func (s *Single) Pull(bool) (zbuf.Batch, error) {
@@ -134,20 +120,8 @@ func (s *Single) Pull(bool) (zbuf.Batch, error) {
 	batch, err := s.Puller.Pull(false)
 	if batch == nil {
 		s.eos = true
-		eoc := EndOfChannel(0)
-		batch = &eoc
+		eoc := zbuf.EndOfChannel(s.label)
+		return &eoc, err
 	}
-	return batch, err
+	return zbuf.Label(s.label, batch), err
 }
-
-// EndOfChannel is an empty batch that represents the termination of one
-// of the output paths of a muxed flowgraph and thus will be ignored downstream
-// unless explicitly detected.
-type EndOfChannel int
-
-var _ zbuf.Batch = (*EndOfChannel)(nil)
-
-func (*EndOfChannel) Ref()                {}
-func (*EndOfChannel) Unref()              {}
-func (*EndOfChannel) Values() []zed.Value { return nil }
-func (*EndOfChannel) Vars() []zed.Value   { return nil }

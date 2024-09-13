@@ -113,7 +113,8 @@ produces this "search result":
 In fact, this search syntax generalizes, and if we search over a more complex
 input:
 ```mdtest-command
-echo '1 2 [1,2,3] [4,5,6] {r:{x:1,y:2}} {r:{x:3,y:4}} "hello" "Number 2"' | zq -z 2 -
+echo '1 2 [1,2,3] [4,5,6] {r:{x:1,y:2}} {r:{x:3,y:4}} "hello" "Number 2"' |
+  zq -z 2 -
 ```
 we naturally find all the 2's whether as a value, inside a value, or inside a string:
 ```mdtest-output
@@ -124,7 +125,8 @@ we naturally find all the 2's whether as a value, inside a value, or inside a st
 ```
 You can also do keyword-text search, e.g.,
 ```mdtest-command
-echo '1 2 [1,2,3] [4,5,6] {r:{x:1,y:2}} {r:{x:3,y:4}} "hello" "Number 2"' | zq -z 'hello or Number' -
+echo '1 2 [1,2,3] [4,5,6] {r:{x:1,y:2}} {r:{x:3,y:4}} "hello" "Number 2"' |
+  zq -z 'hello or Number' -
 ```
 produces
 ```mdtest-output
@@ -445,7 +447,8 @@ produces
 But more powerfully, types can be used anywhere a value can be used and
 in particular, they can be group-by keys, e.g.,
 ```mdtest-command
-echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -f table "count() by shape:=typeof(this) | sort count" -
+echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' |
+  zq -f table "count() by shape:=typeof(this) | sort count" -
 ```
 produces
 ```mdtest-output
@@ -483,7 +486,8 @@ i.e., they match even though their underlying shape is different.
 With `zq` of course, these are different super-structured types so
 the result is false, e.g.,
 ```mdtest-command
-echo '{"a":{"s":"foo"},"b":{"x":1,"y":2}}' | zq -z 'yield typeof(a)==typeof(b)' -
+echo '{"a":{"s":"foo"},"b":{"x":1,"y":2}}' |
+  zq -z 'yield typeof(a)==typeof(b)' -
 ```
 produces
 ```mdtest-output
@@ -496,7 +500,8 @@ Sometimes you'd like to see a sample value of each shape, not its type.
 This is easy to do with the [any aggregate function](../language/aggregates/any.md),
 e.g,
 ```mdtest-command
-echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -z 'val:=any(this) by typeof(this) | sort val | yield val' -
+echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' |
+  zq -z 'val:=any(this) by typeof(this) | sort val | yield val' -
 ```
 produces
 ```mdtest-output
@@ -581,7 +586,9 @@ just use `zq` as `zq` can take URLs in addition to file name arguments.
 This command will grab descriptions of first 30 PRs created in the
 public `zed` repository and place it in a file called `prs.json`:
 ```
-zq -f json https://api.github.com/repos/brimdata/zed/pulls\?state\=all\&sort\=desc\&per_page=30 > prs.json
+zq -f json \
+  https://api.github.com/repos/brimdata/zed/pulls\?state\=all\&sort\=desc\&per_page=30 \
+  > prs.json
 ```
 Now that you have this JSON file on your local file system, how would you query it
 with `zq`?
@@ -710,7 +717,13 @@ We can take the output from `fuse | sample` and list the fields with
 and their "kind".  Note that when we do an `over this` with records as
 input, we get a new record value for each field structured as a key/value pair:
 ```mdtest-command dir=docs/tutorials
-zq -f table 'over this | fuse | sample | over this | {field:key[0],kind:kind(value)}' prs.json
+zq -f table '
+  over this
+  | fuse
+  | sample
+  | over this
+  | {field:key[0],kind:kind(value)}
+' prs.json
 ```
 produces
 ```mdtest-output
@@ -829,7 +842,11 @@ Finally, let's clean up those dates.  To track down all the candidates,
 we can run this Zed to group field names by their type and limit the output
 to primitive types:
 ```
-zq -z 'over this | kind(value)=="primitive" | fields:=union(key[0]) by type:=typeof(value)' prs2.zng
+zq -z '
+  over this
+  | kind(value)=="primitive"
+  | fields:=union(key[0]) by type:=typeof(value)
+' prs2.zng
 ```
 which gives
 ```
@@ -861,11 +878,21 @@ To fix those strings, we simply transform the fields in place using the
 (implied) [put operator](../language/operators/put.md) and redirect the final
 output the ZNG file `prs.zng`:
 ```
-zq 'closed_at:=time(closed_at),merged_at:=time(merged_at),created_at:=time(created_at),updated_at:=time(updated_at)' prs2.zng > prs.zng
+zq '
+  closed_at:=time(closed_at),
+  merged_at:=time(merged_at),
+  created_at:=time(created_at),
+  updated_at:=time(updated_at)
+' prs2.zng > prs.zng
 ```
 We can check the result with our type analysis:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over this | kind(value)=="primitive" | fields:=union(key[0]) by type:=typeof(value) | sort type' prs.zng
+zq -z '
+  over this
+  | kind(value)=="primitive"
+  | fields:=union(key[0]) by type:=typeof(value)
+  | sort type
+' prs.zng
 ```
 which now gives:
 ```mdtest-output
@@ -917,7 +944,7 @@ to put your clean data into all the right places.
 Let's start with something simple.  How about we output a "PR Report" listing
 the title of each PR along with its PR number and creation date:
 ```mdtest-command dir=docs/tutorials
-zq -f table '{DATE:created_at,NUMBER:"PR #${number}",TITLE:title}' prs.zng
+zq -f table '{DATE:created_at,NUMBER:f"PR #{number}",TITLE:title}' prs.zng
 ```
 and you'll see this output...
 ```mdtest-output head
@@ -929,14 +956,17 @@ DATE                 NUMBER TITLE
 2019-11-12T16:49:07Z PR #6  a few clarifications to the zson spec
 ...
 ```
-Note that we used [string interpolation](../language/expressions.md#string-interpolation)
+Note that we used a [formatted string literal](../language/expressions.md#formatted-string-literals)
 to convert the field `number` into a string and format it with surrounding text.
 
 Instead of old PRs, we can get the latest list of PRs using the
 [tail operator](../language/operators/tail.md) since we know the data is sorted
 chronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
-zq -f table 'tail 5 | {DATE:created_at,"NUMBER":"PR #${number}",TITLE:title}' prs.zng
+zq -f table '
+  tail 5
+  | {DATE:created_at,"NUMBER":f"PR #{number}",TITLE:title}
+' prs.zng
 ```
 and the output is:
 ```mdtest-output
@@ -951,7 +981,7 @@ DATE                 NUMBER TITLE
 How about some aggregations?  We can count the number of PRs and sort by the
 count highest first:
 ```mdtest-command dir=docs/tutorials
-zq -z "count() by user:=user.login | sort -r count" prs.zng
+zq -z "count() by user:=user.login | sort count desc" prs.zng
 ```
 produces
 ```mdtest-output
@@ -1022,7 +1052,13 @@ bringing that value into the scope using a `with` clause appended to the
 `over` expression and yielding a
 [record literal](../language/expressions.md#record-expressions) with the desired value:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers}) | sort user,len(reviewers)' prs.zng
+zq -z '
+  over requested_reviewers with user=user.login => (
+    reviewers:=union(login)
+    | {user,reviewers}
+  )
+  | sort user,len(reviewers)
+' prs.zng
 ```
 which gives us
 ```mdtest-output head
@@ -1039,7 +1075,14 @@ which gives us
 The final step is to simply aggregate the "reviewer sets" with the `user` field
 as the group-by key:
 ```mdtest-command dir=docs/tutorials
-zq -Z 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers} ) | groups:=union(reviewers) by user | sort user,len(groups)' prs.zng
+zq -Z '
+  over requested_reviewers with user=user.login => (
+    reviewers:=union(login)
+    | {user,reviewers}
+  )
+  | groups:=union(reviewers) by user
+  | sort user,len(groups)
+' prs.zng
 ```
 and we get
 ```mdtest-output
@@ -1156,7 +1199,14 @@ the average number of reviewers requested instead of the set of groups
 of reviewers.  To do this, we just average the reviewer set size
 with an aggregation:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers} ) | avg_reviewers:=avg(len(reviewers)) by user | sort avg_reviewers' prs.zng
+zq -z '
+  over requested_reviewers with user=user.login => (
+    reviewers:=union(login)
+    | {user,reviewers}
+  )
+  | avg_reviewers:=avg(len(reviewers)) by user
+  | sort avg_reviewers
+' prs.zng
 ```
 which produces
 ```mdtest-output
@@ -1167,10 +1217,17 @@ which produces
 {user:"henridf",avg_reviewers:3.}
 ```
 
-Of course, if you'd like the query output in JSON, you can just say `-f json` and
+Of course, if you'd like the query output in JSON, you can just say `-j` and
 `zq` will happily format the Zed sets as JSON arrays, e.g.,
 ```mdtest-command dir=docs/tutorials
-zq -f json 'over requested_reviewers with user=user.login => ( reviewers:=union(login) | {user,reviewers} ) | groups:=union(reviewers) by user | sort user,len(groups)' prs.zng
+zq -j '
+  over requested_reviewers with user=user.login => (
+    reviewers:=union(login)
+    | {user,reviewers}
+  )
+  | groups:=union(reviewers) by user
+  | sort user,len(groups)
+' prs.zng
 ```
 produces
 ```mdtest-output

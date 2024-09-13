@@ -59,15 +59,15 @@ func (c *CountByString) update(val vector.Any) {
 		}
 		return
 	}
-	switch v := c.field.Eval(val).(type) {
+	switch val := c.field.Eval(val).(type) {
 	case *vector.String:
-		c.table.count(v)
-	case *vector.DictString:
-		c.table.countDict(v)
-	case (*vector.Const):
-		c.table.countFixed(v)
+		c.table.count(val)
+	case *vector.Dict:
+		c.table.countDict(val.Any.(*vector.String), val.Counts)
+	case *vector.Const:
+		c.table.countFixed(val)
 	default:
-		panic(fmt.Sprintf("UNKNOWN %T\n", v))
+		panic(fmt.Sprintf("UNKNOWN %T", val))
 	}
 }
 
@@ -79,17 +79,18 @@ type countByString struct {
 func (c *countByString) count(vec *vector.String) {
 	offs := vec.Offsets
 	bytes := vec.Bytes
-	for k := range offs {
+	n := len(offs) - 1
+	for k := 0; k < n; k++ {
 		c.table[string(bytes[offs[k]:offs[k+1]])]++
 	}
 }
 
-func (c *countByString) countDict(vec *vector.DictString) {
-	offs := vec.Offs
+func (c *countByString) countDict(vec *vector.String, counts []uint32) {
+	offs := vec.Offsets
 	bytes := vec.Bytes
-	n := uint32(len(offs) - 1)
-	for tag := uint32(0); tag < n; tag++ {
-		c.table[string(bytes[offs[tag]:offs[tag+1]])] += uint64(vec.Counts[tag])
+	n := len(offs) - 1
+	for k := 0; k < n; k++ {
+		c.table[string(bytes[offs[k]:offs[k+1]])] = uint64(counts[k])
 	}
 }
 
@@ -193,17 +194,20 @@ func (c *Sum) update(vec vector.Any) {
 		for _, x := range vec.Values {
 			c.sum += x
 		}
-	case *vector.DictInt:
-		for k, val := range vec.Values {
-			c.sum += val * int64(vec.Counts[k])
-		}
 	case *vector.Uint:
 		for _, x := range vec.Values {
 			c.sum += int64(x)
 		}
-	case *vector.DictUint:
-		for k, val := range vec.Values {
-			c.sum += int64(val) * int64(vec.Counts[k])
+	case *vector.Dict:
+		switch number := vec.Any.(type) {
+		case *vector.Int:
+			for k, val := range number.Values {
+				c.sum += val * int64(vec.Counts[k])
+			}
+		case *vector.Uint:
+			for k, val := range number.Values {
+				c.sum += int64(val) * int64(vec.Counts[k])
+			}
 		}
 	}
 }

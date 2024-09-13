@@ -20,7 +20,7 @@ type Reader struct {
 
 func NewReader(zctx *zed.Context, r io.Reader) *Reader {
 	return &Reader{
-		builder: builder{zctx: zctx},
+		builder: builder{arena: zed.NewArena(), zctx: zctx},
 		// 64 KB gave the best performance when this was written.
 		lexer: jsonlexer.New(bufio.NewReaderSize(r, 64*1024)),
 		// Ensure handleToken never passes a nil buf to

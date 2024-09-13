@@ -52,7 +52,7 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 	}
 	switch e := e.(type) {
 	case *dag.Literal:
-		val, err := zson.ParseValue(b.zctx(), e.Value)
+		val, err := zson.ParseValue(b.zctx(), b.arena, e.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -73,6 +73,10 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 		return b.compileConditional(*e)
 	case *dag.Call:
 		return b.compileCall(*e)
+	case *dag.IndexExpr:
+		return b.compileIndexExpr(e)
+	case *dag.SliceExpr:
+		return b.compileSliceExpr(e)
 	case *dag.RegexpMatch:
 		return b.compileRegexpMatch(e)
 	case *dag.RegexpSearch:
@@ -92,7 +96,9 @@ func (b *Builder) compileExpr(e dag.Expr) (expr.Evaluator, error) {
 		if err != nil {
 			return nil, err
 		}
-		return expr.NewAggregatorExpr(b.zctx(), agg), nil
+		aggexpr := expr.NewAggregatorExpr(b.zctx(), agg)
+		b.resetters = append(b.resetters, aggexpr)
+		return aggexpr, nil
 	case *dag.OverExpr:
 		return b.compileOverExpr(e)
 	default:
@@ -108,9 +114,6 @@ func (b *Builder) compileExprWithEmpty(e dag.Expr) (expr.Evaluator, error) {
 }
 
 func (b *Builder) compileBinary(e *dag.BinaryExpr) (expr.Evaluator, error) {
-	if slice, ok := e.RHS.(*dag.BinaryExpr); ok && slice.Op == ":" {
-		return b.compileSlice(e.LHS, slice)
-	}
 	if e.Op == "in" {
 		// Do a faster comparison if the LHS is a compile-time constant expression.
 		if in, err := b.compileConstIn(e); in != nil && err == nil {
@@ -141,8 +144,6 @@ func (b *Builder) compileBinary(e *dag.BinaryExpr) (expr.Evaluator, error) {
 		return expr.NewCompareRelative(b.zctx(), lhs, rhs, op)
 	case "+", "-", "*", "/", "%":
 		return expr.NewArithmetic(b.zctx(), lhs, rhs, op)
-	case "[":
-		return expr.NewIndexExpr(b.zctx(), lhs, rhs), nil
 	default:
 		return nil, fmt.Errorf("invalid binary operator %s", op)
 	}
@@ -193,7 +194,7 @@ func (b *Builder) compileConstCompare(e *dag.BinaryExpr) (expr.Evaluator, error)
 }
 
 func (b *Builder) compileSearch(search *dag.Search) (expr.Evaluator, error) {
-	val, err := zson.ParseValue(b.zctx(), search.Value)
+	val, err := zson.ParseValue(b.zctx(), b.arena, search.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -210,16 +211,16 @@ func (b *Builder) compileSearch(search *dag.Search) (expr.Evaluator, error) {
 	return expr.NewSearch(search.Text, val, e)
 }
 
-func (b *Builder) compileSlice(container dag.Expr, slice *dag.BinaryExpr) (expr.Evaluator, error) {
-	from, err := b.compileExprWithEmpty(slice.LHS)
+func (b *Builder) compileSliceExpr(slice *dag.SliceExpr) (expr.Evaluator, error) {
+	e, err := b.compileExpr(slice.Expr)
 	if err != nil {
 		return nil, err
 	}
-	to, err := b.compileExprWithEmpty(slice.RHS)
+	from, err := b.compileExprWithEmpty(slice.From)
 	if err != nil {
 		return nil, err
 	}
-	e, err := b.compileExpr(container)
+	to, err := b.compileExprWithEmpty(slice.To)
 	if err != nil {
 		return nil, err
 	}
@@ -267,20 +268,17 @@ func (b *Builder) compileDotExpr(dot *dag.Dot) (expr.Evaluator, error) {
 
 func (b *Builder) compileLval(e dag.Expr) (*expr.Lval, error) {
 	switch e := e.(type) {
-	case *dag.BinaryExpr:
-		if e.Op != "[" {
-			return nil, fmt.Errorf("internal error: invalid lval %#v", e)
-		}
-		lhs, err := b.compileLval(e.LHS)
+	case *dag.IndexExpr:
+		container, err := b.compileLval(e.Expr)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := b.compileExpr(e.RHS)
+		index, err := b.compileExpr(e.Index)
 		if err != nil {
 			return nil, err
 		}
-		lhs.Elems = append(lhs.Elems, expr.NewExprLvalElem(b.zctx(), rhs))
-		return lhs, nil
+		container.Elems = append(container.Elems, expr.NewExprLvalElem(b.zctx(), index))
+		return container, nil
 	case *dag.Dot:
 		lhs, err := b.compileLval(e.LHS)
 		if err != nil {
@@ -317,8 +315,13 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 	var path field.Path
 	// First check if call is to a user defined function, otherwise check for
 	// builtin function.
-	fn, ok := b.funcs[call.Name]
-	if !ok {
+	var fn expr.Function
+	if e, ok := b.udfs[call.Name]; ok {
+		var err error
+		if fn, err = b.compileUDFCall(call.Name, e); err != nil {
+			return nil, err
+		}
+	} else {
 		var err error
 		fn, path, err = function.New(b.zctx(), call.Name, len(call.Args))
 		if err != nil {
@@ -334,7 +337,23 @@ func (b *Builder) compileCall(call dag.Call) (expr.Evaluator, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
-	return expr.NewCall(b.zctx(), fn, exprs), nil
+	return expr.NewCall(fn, exprs), nil
+}
+
+func (b *Builder) compileUDFCall(name string, body dag.Expr) (expr.Function, error) {
+	if fn, ok := b.compiledUDFs[name]; ok {
+		return fn, nil
+	}
+	fn := &expr.UDF{}
+	// We store compiled UDF calls here so as to avoid stack overflows on
+	// recursive calls.
+	b.compiledUDFs[name] = fn
+	var err error
+	if fn.Body, err = b.compileExpr(body); err != nil {
+		return nil, err
+	}
+	delete(b.compiledUDFs, name)
+	return fn, nil
 }
 
 func (b *Builder) compileMapCall(a *dag.MapCall) (expr.Evaluator, error) {
@@ -372,6 +391,18 @@ func (b *Builder) compileExprs(in []dag.Expr) ([]expr.Evaluator, error) {
 		exprs = append(exprs, ev)
 	}
 	return exprs, nil
+}
+
+func (b *Builder) compileIndexExpr(e *dag.IndexExpr) (expr.Evaluator, error) {
+	container, err := b.compileExpr(e.Expr)
+	if err != nil {
+		return nil, err
+	}
+	index, err := b.compileExpr(e.Index)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewIndexExpr(b.zctx(), container, index), nil
 }
 
 func (b *Builder) compileRegexpMatch(match *dag.RegexpMatch) (expr.Evaluator, error) {
@@ -489,7 +520,7 @@ func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
 		return nil, err
 	}
 	parent := traverse.NewExpr(b.rctx.Context, b.zctx())
-	enter := traverse.NewOver(b.rctx, parent, exprs)
+	enter := traverse.NewOver(b.rctx, parent, exprs, expr.Resetters{})
 	scope := enter.AddScope(b.rctx.Context, names, lets)
 	exits, err := b.compileSeq(over.Body, []zbuf.Puller{scope})
 	if err != nil {

@@ -10,6 +10,7 @@ operators listed below, Zed also allows for the creation of
 * [assert](assert.md) - evaluate an assertion
 * [combine](combine.md) - combine parallel paths into a single output
 * [cut](cut.md) - extract subsets of record fields into new records
+* [debug](debug.md) - write intermediate values to stderr
 * [drop](drop.md) - drop fields from record values
 * [file](from.md) - source data from a file
 * [fork](fork.md) - copy values to parallel paths

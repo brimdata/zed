@@ -16,6 +16,7 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/kr/text v0.2.0
+	github.com/lestrrat-go/strftime v1.0.6
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/peterh/liner v1.1.0
@@ -30,6 +31,7 @@ require (
 	github.com/x448/float16 v0.8.4
 	github.com/yuin/goldmark v1.4.13
 	go.uber.org/zap v1.23.0
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/sync v0.4.0
 	golang.org/x/sys v0.13.0
 	golang.org/x/term v0.13.0
@@ -60,6 +62,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rivo/uniseg v0.1.0 // indirect
@@ -67,7 +70,6 @@ require (
 	go.opentelemetry.io/otel v0.16.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect

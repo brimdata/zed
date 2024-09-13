@@ -147,6 +147,18 @@ func (n *Named) Len() uint32 {
 	return n.Values.Len()
 }
 
+type Error struct {
+	Values Metadata
+}
+
+func (e *Error) Type(zctx *zed.Context) zed.Type {
+	return zctx.LookupTypeError(e.Values.Type(zctx))
+}
+
+func (e *Error) Len() uint32 {
+	return e.Values.Len()
+}
+
 type DictEntry struct {
 	Value zed.Value
 	Count uint32
@@ -159,6 +171,10 @@ type Primitive struct {
 	Min      *zed.Value
 	Max      *zed.Value
 	Count    uint32
+
+	dictArena *zed.Arena
+	minArena  *zed.Arena
+	maxArena  *zed.Arena
 }
 
 func (p *Primitive) Type(zctx *zed.Context) zed.Type {
@@ -184,6 +200,7 @@ func (n *Nulls) Len() uint32 {
 }
 
 type Const struct {
+	Arena *zed.Arena `zed:"-"`
 	Value zed.Value
 	Count uint32
 }
@@ -220,6 +237,7 @@ var Template = []interface{}{
 	Union{},
 	Primitive{},
 	Named{},
+	Error{},
 	Nulls{},
 	Const{},
 	Variant{},

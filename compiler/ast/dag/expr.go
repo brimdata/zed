@@ -1,5 +1,7 @@
 package dag
 
+import "github.com/brimdata/zed/order"
+
 type (
 	Expr interface {
 		ExprDAG()
@@ -30,6 +32,11 @@ type (
 		LHS  Expr   `json:"lhs"`
 		RHS  Expr   `json:"rhs"`
 	}
+	// A BadExpr node is a placeholder for an expression containing semantic
+	// errors.
+	BadExpr struct {
+		Kind string `json:"kind" unpack:""`
+	}
 	BinaryExpr struct {
 		Kind string `json:"kind" unpack:""`
 		Op   string `json:"op"`
@@ -57,6 +64,11 @@ type (
 		Name   string   `json:"name"`
 		Params []string `json:"params"`
 		Expr   Expr     `json:"expr"`
+	}
+	IndexExpr struct {
+		Kind  string `json:"kind" unpack:""`
+		Expr  Expr   `json:"expr"`
+		Index Expr   `json:"index"`
 	}
 	Literal struct {
 		Kind  string `json:"kind" unpack:""`
@@ -101,6 +113,16 @@ type (
 		Kind  string       `json:"kind" unpack:""`
 		Elems []VectorElem `json:"elems"`
 	}
+	SliceExpr struct {
+		Kind string `json:"kind" unpack:""`
+		Expr Expr   `json:"expr"`
+		From Expr   `json:"from"`
+		To   Expr   `json:"to"`
+	}
+	SortExpr struct {
+		Key   Expr        `json:"key"`
+		Order order.Which `json:"order"`
+	}
 	This struct {
 		Kind string   `json:"kind" unpack:""`
 		Path []string `json:"path"`
@@ -120,11 +142,13 @@ type (
 func (*Agg) ExprDAG()          {}
 func (*ArrayExpr) ExprDAG()    {}
 func (*Assignment) ExprDAG()   {}
+func (*BadExpr) ExprDAG()      {}
 func (*BinaryExpr) ExprDAG()   {}
 func (*Call) ExprDAG()         {}
 func (*Conditional) ExprDAG()  {}
 func (*Dot) ExprDAG()          {}
 func (*Func) ExprDAG()         {}
+func (*IndexExpr) ExprDAG()    {}
 func (*Literal) ExprDAG()      {}
 func (*MapCall) ExprDAG()      {}
 func (*MapExpr) ExprDAG()      {}
@@ -134,6 +158,7 @@ func (*RegexpMatch) ExprDAG()  {}
 func (*RegexpSearch) ExprDAG() {}
 func (*Search) ExprDAG()       {}
 func (*SetExpr) ExprDAG()      {}
+func (*SliceExpr) ExprDAG()    {}
 func (*This) ExprDAG()         {}
 func (*UnaryExpr) ExprDAG()    {}
 func (*Var) ExprDAG()          {}

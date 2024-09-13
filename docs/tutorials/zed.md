@@ -108,7 +108,7 @@ We can run an aggregation to see who has created the most PRs during the time ra
 of this first data set:
 
 ```bash
-$ zed query 'count() by user:=user.login | sort -r count'
+$ zed query 'count() by user:=user.login | sort count desc'
 ```
 =>
 ```
@@ -184,7 +184,7 @@ and see who created these PRs:
 
 ```
 $ zed query 'from prs range 2020-04-19T16:00:00Z to 2020-05-20T02:00:00Z
-             | count() by user:=user.login | sort -r count'
+             | count() by user:=user.login | sort count desc'
 ```
 =>
 ```

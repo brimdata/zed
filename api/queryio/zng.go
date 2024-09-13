@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -13,6 +14,7 @@ import (
 type ZNGWriter struct {
 	*zngio.Writer
 	marshaler *zson.MarshalZNGContext
+	arena     *zed.Arena
 }
 
 var _ controlWriter = (*ZJSONWriter)(nil)
@@ -23,11 +25,13 @@ func NewZNGWriter(w io.Writer) *ZNGWriter {
 	return &ZNGWriter{
 		Writer:    zngio.NewWriter(zio.NopCloser(w)),
 		marshaler: m,
+		arena:     zed.NewArena(),
 	}
 }
 
 func (w *ZNGWriter) WriteControl(v interface{}) error {
-	val, err := w.marshaler.Marshal(v)
+	w.arena.Reset()
+	val, err := w.marshaler.Marshal(w.arena, v)
 	if err != nil {
 		return err
 	}

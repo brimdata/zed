@@ -12,7 +12,14 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      status code 400: pool name missing
-      status code 400: pool name missing
-      status code 400: unknown lake metadata type "unknownmeta" in from operator
-      status code 404: doesnotexist: pool not found
+      status code 400: no pool name given
+      pool name missing at line 1, column 1:
+      from HEAD
+      ~~~~~~~~~
+      unknown lake metadata type "unknownmeta" in from operator at line 1, column 1:
+      from :unknownmeta
+      ~~~~~~~~~~~~~~~~~
+      doesnotexist: pool not found at line 1, column 6:
+      from doesnotexist
+           ~~~~~~~~~~~~
+      

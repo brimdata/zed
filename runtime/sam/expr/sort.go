@@ -10,10 +10,17 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr/coerce"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 )
+
+type SortEvaluator struct {
+	Evaluator
+	Order order.Which
+}
+
+func NewSortEvaluator(eval Evaluator, o order.Which) SortEvaluator {
+	return SortEvaluator{eval, o}
+}
 
 func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	if len(c.exprs) == 0 {
@@ -26,7 +33,9 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 	indices := make([]uint32, n)
 	i64s := make([]int64, n)
 	val0s := make([]zed.Value, n)
-	ectx := NewContext()
+	arena := zed.NewArena()
+	defer arena.Unref()
+	ectx := NewContext(arena)
 	native := true
 	for i := range indices {
 		indices[i] = uint32(i)
@@ -52,12 +61,16 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 			native = false
 		}
 	}
+	arena = zed.NewArena()
+	defer arena.Unref()
+	ectx = NewContext(arena)
 	sort.SliceStable(indices, func(i, j int) bool {
-		if c.reverse {
-			i, j = j, i
-		}
-		iidx, jidx := indices[i], indices[j]
 		for k, expr := range c.exprs {
+			iidx, jidx := indices[i], indices[j]
+			if expr.Order == order.Desc {
+				iidx, jidx = jidx, iidx
+			}
+			arena.Reset()
 			var ival, jval zed.Value
 			if k == 0 {
 				if native {
@@ -72,7 +85,7 @@ func (c *Comparator) sortStableIndices(vals []zed.Value) []uint32 {
 				ival = expr.Eval(ectx, vals[iidx])
 				jval = expr.Eval(ectx, vals[jidx])
 			}
-			if v := compareValues(ival, jval, c.comparefns, &c.pair, c.nullsMax); v != 0 {
+			if v := compareValues(arena, ival, jval, c.nullsMax); v != 0 {
 				return v < 0
 			}
 		}
@@ -90,37 +103,34 @@ type CompareFn func(a, b zed.Value) int
 // nullsMax is true, a null value is considered larger than any non-null value,
 // and vice versa.
 func NewCompareFn(nullsMax bool, exprs ...Evaluator) CompareFn {
-	return NewComparator(nullsMax, false, exprs...).WithMissingAsNull().Compare
+	var sortExprs []SortEvaluator
+	for _, e := range exprs {
+		sortExprs = append(sortExprs, SortEvaluator{e, order.Asc})
+	}
+	return NewComparator(nullsMax, sortExprs...).WithMissingAsNull().Compare
 }
 
 func NewValueCompareFn(o order.Which, nullsMax bool) CompareFn {
-	return NewComparator(nullsMax, o == order.Desc, &This{}).Compare
+	e := SortEvaluator{&This{}, o}
+	return NewComparator(nullsMax, e).Compare
 }
 
 type Comparator struct {
-	exprs    []Evaluator
+	ectx     Context
+	exprs    []SortEvaluator
 	nullsMax bool
-	reverse  bool
-
-	comparefns map[zed.Type]comparefn
-	ectx       Context
-	pair       coerce.Pair
 }
-
-type comparefn func(a, b zcode.Bytes) int
 
 // NewComparator returns a zed.Value comparator for exprs according to nullsMax
 // and reverse.  To compare values a and b, it iterates over the elements e of
 // exprs, stopping when e(a)!=e(b).  nullsMax determines whether a null value
 // compares larger (if true) or smaller (if false) than a non-null value.
 // reverse reverses the sense of comparisons.
-func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
+func NewComparator(nullsMax bool, exprs ...SortEvaluator) *Comparator {
 	return &Comparator{
-		exprs:      slices.Clone(exprs),
-		nullsMax:   nullsMax,
-		reverse:    reverse,
-		comparefns: make(map[zed.Type]comparefn),
-		ectx:       NewContext(),
+		ectx:     NewContext(zed.NewArena()),
+		exprs:    slices.Clone(exprs),
+		nullsMax: nullsMax,
 	}
 }
 
@@ -128,7 +138,7 @@ func NewComparator(nullsMax, reverse bool, exprs ...Evaluator) *Comparator {
 // values as the null value in comparisons.
 func (c *Comparator) WithMissingAsNull() *Comparator {
 	for i, k := range c.exprs {
-		c.exprs[i] = &missingAsNull{k}
+		c.exprs[i].Evaluator = &missingAsNull{k}
 	}
 	return c
 }
@@ -146,20 +156,21 @@ func (m *missingAsNull) Eval(ectx Context, val zed.Value) zed.Value {
 // Compare returns an interger comparing two values according to the receiver's
 // configuration.  The result will be 0 if a==b, -1 if a < b, and +1 if a > b.
 func (c *Comparator) Compare(a, b zed.Value) int {
-	if c.reverse {
-		a, b = b, a
-	}
 	for _, k := range c.exprs {
+		c.ectx.Arena().Reset()
 		aval := k.Eval(c.ectx, a)
 		bval := k.Eval(c.ectx, b)
-		if v := compareValues(aval, bval, c.comparefns, &c.pair, c.nullsMax); v != 0 {
+		if k.Order == order.Desc {
+			aval, bval = bval, aval
+		}
+		if v := compareValues(c.ectx.Arena(), aval, bval, c.nullsMax); v != 0 {
 			return v
 		}
 	}
 	return 0
 }
 
-func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
+func compareValues(arena *zed.Arena, a, b zed.Value, nullsMax bool) int {
 	// Handle nulls according to nullsMax
 	nullA := a.IsNull()
 	nullB := b.IsNull()
@@ -180,27 +191,54 @@ func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coer
 			return 1
 		}
 	}
-
-	typ := a.Type()
-	abytes, bbytes := a.Bytes(), b.Bytes()
-	if a.Type().ID() != b.Type().ID() {
-		id, err := pair.Coerce(a, b)
-		if err == nil {
-			typ, err = zed.LookupPrimitiveByID(id)
+	switch aid, bid := a.Type().ID(), b.Type().ID(); {
+	case zed.IsNumber(aid) && zed.IsNumber(bid):
+		return compareNumbers(a, b, aid, bid)
+	case aid != bid:
+		return zed.CompareTypes(a.Type(), b.Type())
+	case aid == zed.IDBool:
+		if av, bv := a.Bool(), b.Bool(); av == bv {
+			return 0
+		} else if av {
+			return 1
 		}
-		if err != nil {
-			return zed.CompareTypes(a.Type(), b.Type())
+		return -1
+	case aid == zed.IDBytes:
+		return bytes.Compare(zed.DecodeBytes(a.Bytes()), zed.DecodeBytes(b.Bytes()))
+	case aid == zed.IDString:
+		return cmp.Compare(zed.DecodeString(a.Bytes()), zed.DecodeString(b.Bytes()))
+	case aid == zed.IDIP:
+		return zed.DecodeIP(a.Bytes()).Compare(zed.DecodeIP(b.Bytes()))
+	case aid == zed.IDType:
+		zctx := zed.NewContext() // XXX This is expensive.
+		// XXX This isn't cheap eventually we should add
+		// zed.CompareTypeValues(a, b zcode.Bytes).
+		av, _ := zctx.DecodeTypeValue(a.Bytes())
+		bv, _ := zctx.DecodeTypeValue(b.Bytes())
+		return zed.CompareTypes(av, bv)
+	}
+	// XXX record support easy to add here if we moved the creation of the
+	// field resolvers into this package.
+	if innerType := zed.InnerType(a.Type()); innerType != nil {
+		ait, bit := a.Iter(), b.Iter()
+		for {
+			if ait.Done() {
+				if bit.Done() {
+					return 0
+				}
+				return -1
+			}
+			if bit.Done() {
+				return 1
+			}
+			aa := arena.New(innerType, ait.Next())
+			bb := arena.New(innerType, bit.Next())
+			if v := compareValues(arena, aa, bb, nullsMax); v != 0 {
+				return v
+			}
 		}
-		abytes, bbytes = pair.A, pair.B
 	}
-
-	cfn, ok := comparefns[typ]
-	if !ok {
-		cfn = LookupCompare(typ)
-		comparefns[typ] = cfn
-	}
-
-	return cfn(abytes, bbytes)
+	return bytes.Compare(a.Bytes(), b.Bytes())
 }
 
 // SortStable sorts vals according to c, with equal values in their original
@@ -240,12 +278,6 @@ func (s *sortStableReader) Read() (*zed.Value, error) {
 	return val, nil
 }
 
-// SortStable performs a stable sort on the provided records.
-func SortStable(records []zed.Value, compare CompareFn) {
-	slice := &RecordSlice{records, compare}
-	sort.Stable(slice)
-}
-
 type RecordSlice struct {
 	vals    []zed.Value
 	compare CompareFn
@@ -281,100 +313,4 @@ func (r *RecordSlice) Pop() interface{} {
 // Index returns the ith record.
 func (r *RecordSlice) Index(i int) zed.Value {
 	return r.vals[i]
-}
-
-func LookupCompare(typ zed.Type) comparefn {
-	// XXX record support easy to add here if we moved the creation of the
-	// field resolvers into this package.
-	if innerType := zed.InnerType(typ); innerType != nil {
-		return func(a, b zcode.Bytes) int {
-			compare := LookupCompare(innerType)
-			ia := a.Iter()
-			ib := b.Iter()
-			for {
-				if ia.Done() {
-					if ib.Done() {
-						return 0
-					}
-					return -1
-				}
-				if ib.Done() {
-					return 1
-				}
-				if v := compare(ia.Next(), ib.Next()); v != 0 {
-					return v
-				}
-			}
-		}
-	}
-	switch typ.ID() {
-	case zed.IDBool:
-		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeBool(a), zed.DecodeBool(b)
-			if va == vb {
-				return 0
-			}
-			if va {
-				return 1
-			}
-			return -1
-		}
-
-	case zed.IDString:
-		return func(a, b zcode.Bytes) int {
-			return bytes.Compare(a, b)
-		}
-
-	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
-		return func(a, b zcode.Bytes) int {
-			return cmp.Compare(zed.DecodeInt(a), zed.DecodeInt(b))
-		}
-
-	case zed.IDUint16, zed.IDUint32, zed.IDUint64:
-		return func(a, b zcode.Bytes) int {
-			return cmp.Compare(zed.DecodeUint(a), zed.DecodeUint(b))
-		}
-
-	case zed.IDFloat16, zed.IDFloat32, zed.IDFloat64:
-		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeFloat(a), zed.DecodeFloat(b)
-			if va == 0.0 && vb == 0.0 || math.IsNaN(va) && math.IsNaN(vb) {
-				// Order different zeroes and NaNs so ZNG sets
-				// have a canonical form.
-				return cmp.Compare(int64(math.Float64bits(va)), int64(math.Float64bits(vb)))
-			}
-			return cmp.Compare(va, vb)
-		}
-
-	case zed.IDTime:
-		return func(a, b zcode.Bytes) int {
-			return cmp.Compare(zed.DecodeTime(a), zed.DecodeTime(b))
-		}
-
-	case zed.IDDuration:
-		return func(a, b zcode.Bytes) int {
-			return cmp.Compare(zed.DecodeDuration(a), zed.DecodeDuration(b))
-		}
-
-	case zed.IDIP:
-		return func(a, b zcode.Bytes) int {
-			va, vb := zed.DecodeIP(a), zed.DecodeIP(b)
-			return va.Compare(vb)
-		}
-
-	case zed.IDType:
-		zctx := zed.NewContext()
-		return func(a, b zcode.Bytes) int {
-			// XXX This isn't cheap eventually we should add
-			// zed.CompareTypeValues(a, b zcode.Bytes).
-			va, _ := zctx.DecodeTypeValue(a)
-			vb, _ := zctx.DecodeTypeValue(b)
-			return zed.CompareTypes(va, vb)
-		}
-
-	default:
-		return func(a, b zcode.Bytes) int {
-			return bytes.Compare(a, b)
-		}
-	}
 }

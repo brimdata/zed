@@ -21,3 +21,4 @@ outputs:
       | combine
       | summarize partials-in
           union:=union(s) by n:=n
+      | output main

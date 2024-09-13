@@ -15,7 +15,8 @@ Lateral subqueries are created using the scoped form of the
 
 For example,
 ```mdtest-command
-echo '{s:"foo",a:[1,2]} {s:"bar",a:[3]}' | zq -z 'over a with name=s => (yield {name,elem:this})' -
+echo '{s:"foo",a:[1,2]} {s:"bar",a:[3]}' |
+  zq -z 'over a with name=s => (yield {name,elem:this})' -
 ```
 produces
 ```mdtest-output
@@ -49,7 +50,8 @@ and the second subquery operators on the input value `3` with the variable
 You can also import a parent-scope field reference into the inner scope by
 simply referring to its name without assignment, e.g.,
 ```mdtest-command
-echo '{s:"foo",a:[1,2]} {s:"bar",a:[3]}' | zq -z 'over a with s => (yield {s,elem:this})' -
+echo '{s:"foo",a:[1,2]} {s:"bar",a:[3]}' |
+  zq -z 'over a with s => (yield {s,elem:this})' -
 ```
 produces
 ```mdtest-output
@@ -93,7 +95,8 @@ applied to each subsequence in the subquery, where sort
 reads all values of the subsequence, sorts them, emits them, then
 repeats the process for the next subsequence.  For example,
 ```mdtest-command
-echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z 'over this => (sort this | collect(this))' -
+echo '[3,2,1] [4,1,7] [1,2,3]' | 
+  zq -z 'over this => (sort this | collect(this))' -
 ```
 produces
 ```mdtest-output
@@ -134,7 +137,10 @@ This structure generalizes to any more complicated expression context,
 e.g., we can embed multiple lateral expressions inside of a record literal
 and use the spread operator to tighten up the output:
 ```mdtest-command
-echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z '{...(over this | sort this | sorted:=collect(this)),...(over this | sum:=sum(this))}' -
+echo '[3,2,1] [4,1,7] [1,2,3]' |
+  zq -z '
+    {...(over this | sort this | sorted:=collect(this)),
+     ...(over this | sum:=sum(this))}' -
 ```
 produces
 ```mdtest-output

@@ -1,6 +1,7 @@
 package expr_test
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"testing"
@@ -45,15 +46,18 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	t.Helper()
 
 	zctx := zed.NewContext()
-	rec, err := zson.ParseValue(zctx, record)
+	arena := zed.NewArena()
+	defer arena.Unref()
+	rec, err := zson.ParseValue(zctx, arena, record)
 	require.NoError(t, err, "record: %q", record)
 
 	for _, c := range cases {
 		t.Run(c.filter, func(t *testing.T) {
 			t.Helper()
-			p, err := compiler.Parse(c.filter)
+			p, _, err := compiler.Parse(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			job, err := compiler.NewJob(runtime.DefaultContext(), p, nil, nil)
+			rctx := runtime.NewContext(context.Background(), zctx)
+			job, err := compiler.NewJob(rctx, p, nil, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
 			err = job.Optimize()
 			require.NoError(t, err, "filter: %q", c.filter)
@@ -65,7 +69,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			f, err := filterMaker.AsEvaluator()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
-				assert.Equal(t, c.expected, filter(expr.NewContext(), rec, f),
+				assert.Equal(t, c.expected, filter(expr.NewContext(arena), rec, f),
 					"filter: %q\nrecord: %s", c.filter, zson.FormatValue(rec))
 			}
 			bf, err := filterMaker.AsBufferFilter()
@@ -401,6 +405,6 @@ func TestFilters(t *testing.T) {
 
 func TestBadFilter(t *testing.T) {
 	t.Parallel()
-	_, err := compiler.Parse(`s matches \xa8*`)
+	_, _, err := compiler.Parse(`s matches \xa8*`)
 	require.Error(t, err)
 }

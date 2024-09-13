@@ -38,3 +38,32 @@ func (a *Array) Serialize(b *zcode.Builder, slot uint32) {
 	}
 	b.EndContainer()
 }
+
+func ContainerOffset(val Any, slot uint32) (uint32, uint32, bool) {
+	switch val := val.(type) {
+	case *Array:
+		return val.Offsets[slot], val.Offsets[slot+1], val.Nulls.Value(slot)
+	case *Set:
+		return val.Offsets[slot], val.Offsets[slot+1], val.Nulls.Value(slot)
+	case *Map:
+		return val.Offsets[slot], val.Offsets[slot+1], val.Nulls.Value(slot)
+	case *View:
+		slot = val.Index[slot]
+		return ContainerOffset(val.Any, slot)
+	}
+	panic(val)
+}
+
+func Inner(val Any) Any {
+	switch val := val.(type) {
+	case *Array:
+		return val.Values
+	case *Set:
+		return val.Values
+	case *Dict:
+		return Inner(val.Any)
+	case *View:
+		return Inner(val.Any)
+	}
+	panic(val)
+}

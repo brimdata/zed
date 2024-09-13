@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -11,9 +12,9 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/data"
+	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/expr"
@@ -28,6 +29,7 @@ import (
 	"github.com/brimdata/zed/runtime/sam/op/load"
 	"github.com/brimdata/zed/runtime/sam/op/merge"
 	"github.com/brimdata/zed/runtime/sam/op/meta"
+	"github.com/brimdata/zed/runtime/sam/op/mirror"
 	"github.com/brimdata/zed/runtime/sam/op/pass"
 	"github.com/brimdata/zed/runtime/sam/op/shape"
 	"github.com/brimdata/zed/runtime/sam/op/sort"
@@ -49,16 +51,22 @@ import (
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
 type Builder struct {
-	rctx     *runtime.Context
-	mctx     *zed.Context
-	source   *data.Source
-	readers  []zio.Reader
-	progress *zbuf.Progress
-	deletes  *sync.Map
-	funcs    map[string]expr.Function
+	rctx         *runtime.Context
+	mctx         *zed.Context
+	source       *data.Source
+	readers      []zio.Reader
+	progress     *zbuf.Progress
+	arena        *zed.Arena // For zed.Values created during compilation.
+	channels     map[string][]zbuf.Puller
+	deletes      *sync.Map
+	udfs         map[string]dag.Expr
+	compiledUDFs map[string]*expr.UDF
+	resetters    expr.Resetters
 }
 
 func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
+	arena := zed.NewArena()
+	rctx.KeepAlive(arena)
 	return &Builder{
 		rctx:   rctx,
 		mctx:   zed.NewContext(),
@@ -69,25 +77,46 @@ func NewBuilder(rctx *runtime.Context, source *data.Source) *Builder {
 			RecordsRead:    0,
 			RecordsMatched: 0,
 		},
-		funcs: make(map[string]expr.Function),
+		arena:        arena,
+		channels:     make(map[string][]zbuf.Puller),
+		udfs:         make(map[string]dag.Expr),
+		compiledUDFs: make(map[string]*expr.UDF),
 	}
+}
+
+func (b *Builder) clone(arena *zed.Arena) *Builder {
+	bb := *b
+	bb.arena = arena
+	return &bb
 }
 
 // Build builds a flowgraph for seq.  If seq contains a dag.DefaultSource, it
 // will read from readers.
-func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) ([]zbuf.Puller, error) {
+func (b *Builder) Build(seq dag.Seq, readers ...zio.Reader) (map[string]zbuf.Puller, error) {
 	if !isEntry(seq) {
 		return nil, errors.New("internal error: DAG entry point is not a data source")
 	}
 	b.readers = readers
-	return b.compileSeq(seq, nil)
+
+	if _, err := b.compileSeq(seq, nil); err != nil {
+		return nil, err
+	}
+	channels := make(map[string]zbuf.Puller)
+	for key, pullers := range b.channels {
+		if len(pullers) == 1 {
+			channels[key] = pullers[0]
+		} else {
+			channels[key] = combine.New(b.rctx, pullers)
+		}
+	}
+	return channels, nil
 }
 
 func (b *Builder) BuildWithPuller(seq dag.Seq, parent vector.Puller) ([]vector.Puller, error) {
 	return b.compileVamSeq(seq, []vector.Puller{parent})
 }
 
-func (b *Builder) BuildVamToSeqFilter(filter dag.Expr, d demand.Demand, poolID, commitID ksuid.KSUID) (zbuf.Puller, error) {
+func (b *Builder) BuildVamToSeqFilter(filter dag.Expr, poolID, commitID ksuid.KSUID) (zbuf.Puller, error) {
 	pool, err := b.source.Lake().OpenPool(b.rctx.Context, poolID)
 	if err != nil {
 		return nil, err
@@ -101,7 +130,8 @@ func (b *Builder) BuildVamToSeqFilter(filter dag.Expr, d demand.Demand, poolID, 
 		return nil, err
 	}
 	cache := b.source.Lake().VectorCache()
-	search, err := vop.NewSearcher(b.rctx, cache, l, pool, e, demand.Fields(d))
+	project, _ := optimizer.FieldsOf(filter)
+	search, err := vop.NewSearcher(b.rctx, cache, l, pool, e, project)
 	if err != nil {
 		return nil, err
 	}
@@ -120,11 +150,16 @@ func (b *Builder) Deletes() *sync.Map {
 	return b.deletes
 }
 
+func (b *Builder) resetResetters() {
+	b.resetters = nil
+}
+
 func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error) {
 	switch v := o.(type) {
 	case *dag.Summarize:
 		return b.compileGroupBy(parent, v)
 	case *dag.Cut:
+		b.resetResetters()
 		assignments, err := b.compileAssignments(v.Args)
 		if err != nil {
 			return nil, err
@@ -134,7 +169,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if v.Quiet {
 			cutter.Quiet()
 		}
-		return op.NewApplier(b.rctx, parent, cutter), nil
+		return op.NewApplier(b.rctx, parent, cutter, b.resetters), nil
 	case *dag.Drop:
 		if len(v.Args) == 0 {
 			return nil, errors.New("drop: no fields given")
@@ -148,13 +183,18 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			fields = append(fields, field.Path)
 		}
 		dropper := expr.NewDropper(b.rctx.Zctx, fields)
-		return op.NewApplier(b.rctx, parent, dropper), nil
+		return op.NewApplier(b.rctx, parent, dropper, expr.Resetters{}), nil
 	case *dag.Sort:
-		fields, err := b.compileExprs(v.Args)
-		if err != nil {
-			return nil, err
+		b.resetResetters()
+		var sortExprs []expr.SortEvaluator
+		for _, s := range v.Args {
+			k, err := b.compileExpr(s.Key)
+			if err != nil {
+				return nil, err
+			}
+			sortExprs = append(sortExprs, expr.NewSortEvaluator(k, s.Order))
 		}
-		sort, err := sort.New(b.rctx, parent, fields, v.Order, v.NullsFirst)
+		sort, err := sort.New(b.rctx, parent, sortExprs, v.NullsFirst, v.Reverse, b.resetters)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
@@ -176,25 +216,29 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Pass:
 		return pass.New(parent), nil
 	case *dag.Filter:
+		b.resetResetters()
 		f, err := b.compileExpr(v.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return op.NewApplier(b.rctx, parent, expr.NewFilterApplier(b.rctx.Zctx, f)), nil
+		return op.NewApplier(b.rctx, parent, expr.NewFilterApplier(b.rctx.Zctx, f), b.resetters), nil
 	case *dag.Top:
+		b.resetResetters()
 		fields, err := b.compileExprs(v.Args)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
-		return top.New(b.rctx.Zctx, parent, v.Limit, fields, v.Flush), nil
+		return top.New(b.rctx.Zctx, parent, v.Limit, fields, v.Flush, b.resetters), nil
 	case *dag.Put:
+		b.resetResetters()
 		clauses, err := b.compileAssignments(v.Args)
 		if err != nil {
 			return nil, err
 		}
 		putter := expr.NewPutter(b.rctx.Zctx, clauses)
-		return op.NewApplier(b.rctx, parent, putter), nil
+		return op.NewApplier(b.rctx, parent, putter, b.resetters), nil
 	case *dag.Rename:
+		b.resetResetters()
 		var srcs, dsts []*expr.Lval
 		for _, a := range v.Args {
 			src, err := b.compileLval(a.RHS)
@@ -209,7 +253,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			dsts = append(dsts, dst)
 		}
 		renamer := expr.NewRenamer(b.rctx.Zctx, srcs, dsts)
-		return op.NewApplier(b.rctx, parent, renamer), nil
+		return op.NewApplier(b.rctx, parent, renamer, b.resetters), nil
 	case *dag.Fuse:
 		return fuse.New(b.rctx, parent)
 	case *dag.Shape:
@@ -223,19 +267,21 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		if err != nil {
 			return nil, err
 		}
+		b.resetResetters()
 		args, err := b.compileExprs(v.Args)
 		if err != nil {
 			return nil, err
 		}
-		return explode.New(b.rctx.Zctx, parent, args, typ, v.As)
+		return explode.New(b.rctx.Zctx, parent, args, typ, v.As, b.resetters)
 	case *dag.Over:
 		return b.compileOver(parent, v)
 	case *dag.Yield:
+		b.resetResetters()
 		exprs, err := b.compileExprs(v.Exprs)
 		if err != nil {
 			return nil, err
 		}
-		t := yield.New(parent, exprs)
+		t := yield.New(parent, exprs, b.resetters)
 		return t, nil
 	case *dag.PoolScan:
 		if parent != nil {
@@ -248,7 +294,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		var pruner expr.Evaluator
 		if v.Tap && v.KeyPruner != nil {
 			var err error
-			pruner, err = compileExpr(v.KeyPruner)
+			pruner, err = b.compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -285,7 +331,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = compileExpr(v.KeyPruner)
+			pruner, err = b.compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -300,7 +346,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = compileExpr(v.KeyPruner)
+			pruner, err = b.compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -313,7 +359,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		var pruner expr.Evaluator
 		if v.KeyPruner != nil {
-			pruner, err = compileExpr(v.KeyPruner)
+			pruner, err = b.compileExpr(v.KeyPruner)
 			if err != nil {
 				return nil, err
 			}
@@ -347,6 +393,9 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		//XXX
 		return nil, errors.New("dag.Vectorize must begin with SeqScan")
+	case *dag.Output:
+		b.channels[v.Name] = append(b.channels[v.Name], parent)
+		return parent, nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
@@ -370,6 +419,7 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 	if len(over.Defs) != 0 && over.Body == nil {
 		return nil, errors.New("internal error: over operator has defs but no body")
 	}
+	b.resetResetters()
 	withNames, withExprs, err := b.compileDefs(over.Defs)
 	if err != nil {
 		return nil, err
@@ -378,7 +428,7 @@ func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, 
 	if err != nil {
 		return nil, err
 	}
-	enter := traverse.NewOver(b.rctx, parent, exprs)
+	enter := traverse.NewOver(b.rctx, parent, exprs, b.resetters)
 	if over.Body == nil {
 		return enter, nil
 	}
@@ -433,8 +483,14 @@ func (b *Builder) compileSeq(seq dag.Seq, parents []zbuf.Puller) ([]zbuf.Puller,
 }
 
 func (b *Builder) compileScope(scope *dag.Scope, parents []zbuf.Puller) ([]zbuf.Puller, error) {
-	if err := b.compileFuncs(scope.Funcs); err != nil {
-		return nil, err
+	// Because there can be name collisions between a child and parent scope
+	// we clone the current udf map, populate the cloned map, then restore the
+	// old scope once the current scope has been built.
+	parentUDFs := b.udfs
+	b.udfs = maps.Clone(parentUDFs)
+	defer func() { b.udfs = parentUDFs }()
+	for _, f := range scope.Funcs {
+		b.udfs[f.Name] = f.Expr
 	}
 	return b.compileSeq(scope.Body, parents)
 }
@@ -481,23 +537,21 @@ func (b *Builder) compileScatter(par *dag.Scatter, parents []zbuf.Puller) ([]zbu
 	return ops, nil
 }
 
-func (b *Builder) compileFuncs(fns []*dag.Func) error {
-	udfs := make([]*expr.UDF, 0, len(fns))
-	for _, f := range fns {
-		if _, ok := b.funcs[f.Name]; ok {
-			return fmt.Errorf("internal error: func %q declared twice", f.Name)
-		}
-		u := &expr.UDF{}
-		b.funcs[f.Name] = u
-		udfs = append(udfs, u)
+func (b *Builder) compileMirror(m *dag.Mirror, parents []zbuf.Puller) ([]zbuf.Puller, error) {
+	parent := parents[0]
+	if len(parents) > 1 {
+		parent = combine.New(b.rctx, parents)
 	}
-	for i := range fns {
-		var err error
-		if udfs[i].Body, err = b.compileExpr(fns[i].Expr); err != nil {
-			return err
-		}
+	o := mirror.New(b.rctx, parent)
+	main, err := b.compileSeq(m.Main, []zbuf.Puller{o})
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	mirrored, err := b.compileSeq(m.Mirror, []zbuf.Puller{o.Mirrored()})
+	if err != nil {
+		return nil, err
+	}
+	return append(main, mirrored...), nil
 }
 
 func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbuf.Puller, error) {
@@ -505,11 +559,12 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([
 	if len(parents) > 1 {
 		parent = combine.New(b.rctx, parents)
 	}
+	b.resetResetters()
 	e, err := b.compileExpr(swtch.Expr)
 	if err != nil {
 		return nil, err
 	}
-	s := exprswitch.New(b.rctx, parent, e)
+	s := exprswitch.New(b.rctx, parent, e, b.resetters)
 	var exits []zbuf.Puller
 	for _, c := range swtch.Cases {
 		var val *zed.Value
@@ -537,20 +592,19 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []zbuf.Puller) ([]zbu
 	if len(parents) > 1 {
 		parent = combine.New(b.rctx, parents)
 	}
-	n := len(swtch.Cases)
-	switcher := switcher.New(b.rctx, parent)
-	parents = []zbuf.Puller{}
+	b.resetResetters()
+	var exprs []expr.Evaluator
 	for _, c := range swtch.Cases {
-		f, err := b.compileExpr(c.Expr)
+		e, err := b.compileExpr(c.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling switch case filter: %w", err)
 		}
-		sc := switcher.AddCase(f)
-		parents = append(parents, sc)
+		exprs = append(exprs, e)
 	}
+	switcher := switcher.New(b.rctx, parent, b.resetters)
 	var ops []zbuf.Puller
-	for k := 0; k < n; k++ {
-		o, err := b.compileSeq(swtch.Cases[k].Path, []zbuf.Puller{parents[k]})
+	for i, e := range exprs {
+		o, err := b.compileSeq(swtch.Cases[i].Path, []zbuf.Puller{switcher.AddCase(e)})
 		if err != nil {
 			return nil, err
 		}
@@ -567,6 +621,8 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		return b.compileFork(o, parents)
 	case *dag.Scatter:
 		return b.compileScatter(o, parents)
+	case *dag.Mirror:
+		return b.compileMirror(o, parents)
 	case *dag.Scope:
 		return b.compileScope(o, parents)
 	case *dag.Switch:
@@ -578,6 +634,7 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
 		}
+		b.resetResetters()
 		assignments, err := b.compileAssignments(o.Args)
 		if err != nil {
 			return nil, err
@@ -607,18 +664,19 @@ func (b *Builder) compile(o dag.Op, parents []zbuf.Puller) ([]zbuf.Puller, error
 		default:
 			return nil, fmt.Errorf("unknown kind of join: '%s'", o.Style)
 		}
-		join, err := join.New(b.rctx, anti, inner, leftParent, rightParent, leftKey, rightKey, leftDir, rightDir, lhs, rhs)
+		join, err := join.New(b.rctx, anti, inner, leftParent, rightParent, leftKey, rightKey, leftDir, rightDir, lhs, rhs, b.resetters)
 		if err != nil {
 			return nil, err
 		}
 		return []zbuf.Puller{join}, nil
 	case *dag.Merge:
+		b.resetResetters()
 		e, err := b.compileExpr(o.Expr)
 		if err != nil {
 			return nil, err
 		}
-		cmp := expr.NewComparator(true, o.Order == order.Desc, e).WithMissingAsNull()
-		return []zbuf.Puller{merge.New(b.rctx, parents, cmp.Compare)}, nil
+		cmp := expr.NewComparator(true, expr.NewSortEvaluator(e, o.Order)).WithMissingAsNull()
+		return []zbuf.Puller{merge.New(b.rctx, parents, cmp.Compare, b.resetters)}, nil
 	case *dag.Combine:
 		return []zbuf.Puller{combine.New(b.rctx, parents)}, nil
 	default:
@@ -675,25 +733,22 @@ func (b *Builder) evalAtCompileTime(in dag.Expr) (val zed.Value, err error) {
 	if err != nil {
 		return zed.Null, err
 	}
+	missing := b.zctx().Missing(b.arena)
 	// Catch panic as the runtime will panic if there is a
 	// reference to a var not in scope, a field access null this, etc.
 	defer func() {
 		if recover() != nil {
-			val = b.zctx().Missing()
+			val = missing
 		}
 	}()
-	return e.Eval(expr.NewContext(), b.zctx().Missing()), nil
+	return e.Eval(expr.NewContext(b.arena), missing), nil
 }
 
-func compileExpr(in dag.Expr) (expr.Evaluator, error) {
-	b := NewBuilder(runtime.NewContext(context.Background(), zed.NewContext()), nil)
-	return b.compileExpr(in)
-}
-
-func EvalAtCompileTime(zctx *zed.Context, in dag.Expr) (val zed.Value, err error) {
+func EvalAtCompileTime(zctx *zed.Context, arena *zed.Arena, in dag.Expr) (zed.Value, error) {
 	// We pass in a nil adaptor, which causes a panic for anything adaptor
 	// related, which is not currently allowed in an expression sub-query.
 	b := NewBuilder(runtime.NewContext(context.Background(), zctx), nil)
+	b.arena = arena
 	return b.evalAtCompileTime(in)
 }
 

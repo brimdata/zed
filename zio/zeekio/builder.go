@@ -21,7 +21,7 @@ type builder struct {
 	val             zed.Value
 }
 
-func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Value, error) {
+func (b *builder) build(arena *zed.Arena, typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Value, error) {
 	b.Truncate()
 	b.Grow(len(data))
 	fields := typ.Fields
@@ -60,7 +60,7 @@ func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, da
 	if len(leftoverFields) != 0 {
 		return nil, errors.New("too many values")
 	}
-	b.val = zed.NewValue(typ, b.Bytes())
+	b.val = arena.New(typ, b.Bytes())
 	return &b.val, nil
 }
 

@@ -1,0 +1,28 @@
+zed: |
+  yield
+    f"hello {this}",
+    f'hello {hex(bytes(this))}',
+    f"hello \{this}",
+    f'hello \{hex(this)}',
+    f'yo {f"dawg {this}"}',
+    f'{this}',
+    "==="
+
+input: |
+  "world" 127.0.0.1
+
+output: |
+   "hello world"
+   "hello 776f726c64"
+   "hello {this}"
+   "hello {hex(this)}"
+   "yo dawg world"
+   "world"
+   "==="
+   "hello 127.0.0.1"
+   "hello 7f000001"
+   "hello {this}"
+   "hello {hex(this)}"
+   "yo dawg 127.0.0.1"
+   "127.0.0.1"
+   "==="

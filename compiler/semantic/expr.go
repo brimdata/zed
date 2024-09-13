@@ -16,106 +16,113 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
+func (a *analyzer) semExpr(e ast.Expr) dag.Expr {
 	switch e := e.(type) {
 	case nil:
-		return nil, errors.New("semantic analysis: illegal null value encountered in AST")
+		panic("semantic analysis: illegal null value encountered in AST")
 	case *ast.Regexp:
 		return &dag.RegexpSearch{
 			Kind:    "RegexpSearch",
 			Pattern: e.Pattern,
 			Expr:    pathOf("this"),
-		}, nil
+		}
 	case *ast.Glob:
 		return &dag.RegexpSearch{
 			Kind:    "RegexpSearch",
 			Pattern: reglob.Reglob(e.Pattern),
 			Expr:    pathOf("this"),
-		}, nil
+		}
 	case *ast.Grep:
 		return a.semGrep(e)
 	case *astzed.Primitive:
-		val, err := zson.ParsePrimitive(e.Type, e.Text)
+		val, err := zson.ParsePrimitive(a.arena, e.Type, e.Text)
 		if err != nil {
-			return nil, err
+			a.error(e, err)
+			return badExpr()
 		}
 		return &dag.Literal{
 			Kind:  "Literal",
 			Value: zson.FormatValue(val),
-		}, nil
+		}
 	case *ast.ID:
 		return a.semID(e)
 	case *ast.Term:
 		var val string
 		switch t := e.Value.(type) {
 		case *astzed.Primitive:
-			v, err := zson.ParsePrimitive(t.Type, t.Text)
+			v, err := zson.ParsePrimitive(a.arena, t.Type, t.Text)
 			if err != nil {
-				return nil, err
+				a.error(e, err)
+				return badExpr()
 			}
 			val = zson.FormatValue(v)
 		case *astzed.TypeValue:
 			tv, err := a.semType(t.Value)
 			if err != nil {
-				return nil, err
+				a.error(e, err)
+				return badExpr()
 			}
 			val = "<" + tv + ">"
 		default:
-			return nil, fmt.Errorf("unexpected term value: %s", e.Kind)
+			panic(fmt.Errorf("unexpected term value: %s", e.Kind))
 		}
 		return &dag.Search{
 			Kind:  "Search",
 			Text:  e.Text,
 			Value: val,
 			Expr:  pathOf("this"),
-		}, nil
-	case *ast.UnaryExpr:
-		expr, err := a.semExpr(e.Operand)
-		if err != nil {
-			return nil, err
 		}
+	case *ast.UnaryExpr:
 		return &dag.UnaryExpr{
 			Kind:    "UnaryExpr",
 			Op:      e.Op,
-			Operand: expr,
-		}, nil
+			Operand: a.semExpr(e.Operand),
+		}
 	case *ast.BinaryExpr:
 		return a.semBinary(e)
 	case *ast.Conditional:
-		cond, err := a.semExpr(e.Cond)
-		if err != nil {
-			return nil, err
-		}
-		thenExpr, err := a.semExpr(e.Then)
-		if err != nil {
-			return nil, err
-		}
-		elseExpr, err := a.semExpr(e.Else)
-		if err != nil {
-			return nil, err
-		}
+		cond := a.semExpr(e.Cond)
+		thenExpr := a.semExpr(e.Then)
+		elseExpr := a.semExpr(e.Else)
 		return &dag.Conditional{
 			Kind: "Conditional",
 			Cond: cond,
 			Then: thenExpr,
 			Else: elseExpr,
-		}, nil
+		}
 	case *ast.Call:
 		return a.semCall(e)
 	case *ast.Cast:
-		expr, err := a.semExpr(e.Expr)
-		if err != nil {
-			return nil, err
-		}
-		typ, err := a.semExpr(e.Type)
-		if err != nil {
-			return nil, err
-		}
+		expr := a.semExpr(e.Expr)
+		typ := a.semExpr(e.Type)
 		return &dag.Call{
 			Kind: "Call",
 			Name: "cast",
 			Args: []dag.Expr{expr, typ},
-		}, nil
+		}
+	case *ast.IndexExpr:
+		expr := a.semExpr(e.Expr)
+		index := a.semExpr(e.Index)
+		// If expr is a path and index is a string, then just extend the path.
+		if path := a.isIndexOfThis(expr, index); path != nil {
+			return path
+		}
+		return &dag.IndexExpr{
+			Kind:  "IndexExpr",
+			Expr:  expr,
+			Index: index,
+		}
+	case *ast.SliceExpr:
+		expr := a.semExpr(e.Expr)
+		// XXX Literal indices should be type checked as int.
+		from := a.semExprNullable(e.From)
+		to := a.semExprNullable(e.To)
+		return &dag.SliceExpr{
+			Kind: "SliceExpr",
+			Expr: expr,
+			From: from,
+			To:   to,
+		}
 	case *astzed.TypeValue:
 		typ, err := a.semType(e.Value)
 		if err != nil {
@@ -129,32 +136,28 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 			// complaining about the type not existing.
 			// XXX See issue #3413
 			if e := semDynamicType(e.Value); e != nil {
-				return e, nil
+				return e
 			}
-			return nil, err
+			a.error(e, err)
+			return badExpr()
 		}
 		return &dag.Literal{
 			Kind:  "Literal",
 			Value: "<" + typ + ">",
-		}, nil
+		}
 	case *ast.Agg:
-		expr, err := a.semExprNullable(e.Expr)
-		if err != nil {
-			return nil, err
-		}
+		expr := a.semExprNullable(e.Expr)
 		if expr == nil && e.Name != "count" {
-			return nil, fmt.Errorf("aggregator '%s' requires argument", e.Name)
+			a.error(e, fmt.Errorf("aggregator '%s' requires argument", e.Name))
+			return badExpr()
 		}
-		where, err := a.semExprNullable(e.Where)
-		if err != nil {
-			return nil, err
-		}
+		where := a.semExprNullable(e.Where)
 		return &dag.Agg{
 			Kind:  "Agg",
 			Name:  e.Name,
 			Expr:  expr,
 			Where: where,
-		}, nil
+		}
 	case *ast.RecordExpr:
 		fields := map[string]struct{}{}
 		var out []dag.RecordElem
@@ -162,13 +165,11 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 			switch elem := elem.(type) {
 			case *ast.Field:
 				if _, ok := fields[elem.Name]; ok {
-					return nil, fmt.Errorf("record expression: %w", &zed.DuplicateFieldError{Name: elem.Name})
+					a.error(elem, fmt.Errorf("record expression: %w", &zed.DuplicateFieldError{Name: elem.Name}))
+					continue
 				}
 				fields[elem.Name] = struct{}{}
-				e, err := a.semExpr(elem.Value)
-				if err != nil {
-					return nil, err
-				}
+				e := a.semExpr(elem.Value)
 				out = append(out, &dag.Field{
 					Kind:  "Field",
 					Name:  elem.Name,
@@ -176,23 +177,18 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 				})
 			case *ast.ID:
 				if _, ok := fields[elem.Name]; ok {
-					return nil, fmt.Errorf("record expression: %w", &zed.DuplicateFieldError{Name: elem.Name})
+					a.error(elem, fmt.Errorf("record expression: %w", &zed.DuplicateFieldError{Name: elem.Name}))
+					continue
 				}
 				fields[elem.Name] = struct{}{}
-				v, err := a.semID(elem)
-				if err != nil {
-					return nil, err
-				}
+				v := a.semID(elem)
 				out = append(out, &dag.Field{
 					Kind:  "Field",
 					Name:  elem.Name,
 					Value: v,
 				})
 			case *ast.Spread:
-				e, err := a.semExpr(elem.Expr)
-				if err != nil {
-					return nil, err
-				}
+				e := a.semExpr(elem.Expr)
 				out = append(out, &dag.Spread{
 					Kind: "Spread",
 					Expr: e,
@@ -202,71 +198,51 @@ func (a *analyzer) semExpr(e ast.Expr) (dag.Expr, error) {
 		return &dag.RecordExpr{
 			Kind:  "RecordExpr",
 			Elems: out,
-		}, nil
-	case *ast.ArrayExpr:
-		elems, err := a.semVectorElems(e.Elems)
-		if err != nil {
-			return nil, err
 		}
+	case *ast.ArrayExpr:
+		elems := a.semVectorElems(e.Elems)
 		return &dag.ArrayExpr{
 			Kind:  "ArrayExpr",
 			Elems: elems,
-		}, nil
-	case *ast.SetExpr:
-		elems, err := a.semVectorElems(e.Elems)
-		if err != nil {
-			return nil, err
 		}
+	case *ast.SetExpr:
+		elems := a.semVectorElems(e.Elems)
 		return &dag.SetExpr{
 			Kind:  "SetExpr",
 			Elems: elems,
-		}, nil
+		}
 	case *ast.MapExpr:
 		var entries []dag.Entry
 		for _, entry := range e.Entries {
-			key, err := a.semExpr(entry.Key)
-			if err != nil {
-				return nil, err
-			}
-			val, err := a.semExpr(entry.Value)
-			if err != nil {
-				return nil, err
-			}
+			key := a.semExpr(entry.Key)
+			val := a.semExpr(entry.Value)
 			entries = append(entries, dag.Entry{Key: key, Value: val})
 		}
 		return &dag.MapExpr{
 			Kind:    "MapExpr",
 			Entries: entries,
-		}, nil
-	case *ast.OverExpr:
-		exprs, err := a.semExprs(e.Exprs)
-		if err != nil {
-			return nil, err
 		}
+	case *ast.OverExpr:
+		exprs := a.semExprs(e.Exprs)
 		if e.Body == nil {
-			return nil, errors.New("over expression missing lateral scope")
+			a.error(e, errors.New("over expression missing lateral scope"))
+			return badExpr()
 		}
 		a.enterScope()
 		defer a.exitScope()
-		locals, err := a.semVars(e.Locals)
-		if err != nil {
-			return nil, err
-		}
-		body, err := a.semSeq(e.Body)
-		if err != nil {
-			return nil, err
-		}
 		return &dag.OverExpr{
 			Kind:  "OverExpr",
-			Defs:  locals,
+			Defs:  a.semVars(e.Locals),
 			Exprs: exprs,
-			Body:  body,
-		}, nil
+			Body:  a.semSeq(e.Body),
+		}
+	case *ast.FString:
+		return a.semFString(e)
 	}
-	return nil, fmt.Errorf("invalid expression type %T", e)
+	panic(errors.New("invalid expression type"))
 }
 
-func (a *analyzer) semID(id *ast.ID) (dag.Expr, error) {
+func (a *analyzer) semID(id *ast.ID) dag.Expr {
 	// We use static scoping here to see if an identifier is
 	// a "var" reference to the name or a field access
 	// and transform the AST node appropriately.  The resulting DAG
@@ -274,12 +250,13 @@ func (a *analyzer) semID(id *ast.ID) (dag.Expr, error) {
 	// one way or the other.
 	ref, err := a.scope.LookupExpr(id.Name)
 	if err != nil {
-		return nil, err
+		a.error(id, err)
+		return badExpr()
 	}
 	if ref != nil {
-		return ref, nil
+		return ref
 	}
-	return pathOf(id.Name), nil
+	return pathOf(id.Name)
 }
 
 func semDynamicType(tv astzed.Type) *dag.Call {
@@ -303,125 +280,87 @@ func dynamicTypeName(name string) *dag.Call {
 	}
 }
 
-func (a *analyzer) semGrep(grep *ast.Grep) (dag.Expr, error) {
-	e, err := a.semExpr(grep.Expr)
-	if err != nil {
-		return nil, err
+func (a *analyzer) semGrep(grep *ast.Grep) dag.Expr {
+	e := dag.Expr(&dag.This{Kind: "This"})
+	if grep.Expr != nil {
+		e = a.semExpr(grep.Expr)
 	}
-	p, err := a.semExpr(grep.Pattern)
-	if err != nil {
-		return nil, err
-	}
+	p := a.semExpr(grep.Pattern)
 	if s, ok := p.(*dag.RegexpSearch); ok {
 		s.Expr = e
-		return s, nil
+		return s
 	}
-	if s, ok := isStringConst(a.zctx, p); ok {
+	if s, ok := a.isStringConst(p); ok {
 		return &dag.Search{
 			Kind:  "Search",
 			Text:  s,
 			Value: zson.QuotedString([]byte(s)),
 			Expr:  e,
-		}, nil
+		}
 	}
 	return &dag.Call{
 		Kind: "Call",
 		Name: "grep",
 		Args: []dag.Expr{p, e},
-	}, nil
+	}
 }
 
-func (a *analyzer) semRegexp(b *ast.BinaryExpr) (dag.Expr, error) {
+func (a *analyzer) semRegexp(b *ast.BinaryExpr) dag.Expr {
 	if b.Op != "~" {
-		return nil, nil
+		return nil
 	}
 	re, ok := b.RHS.(*ast.Regexp)
 	if !ok {
-		return nil, errors.New(`right-hand side of ~ expression must be a regular expression`)
+		a.error(b, errors.New(`right-hand side of ~ expression must be a regular expression`))
+		return badExpr()
 	}
 	if _, err := expr.CompileRegexp(re.Pattern); err != nil {
-		return nil, err
+		a.error(b.RHS, err)
+		return badExpr()
 	}
-	e, err := a.semExpr(b.LHS)
-	if err != nil {
-		return nil, err
-	}
+	e := a.semExpr(b.LHS)
 	return &dag.RegexpMatch{
 		Kind:    "RegexpMatch",
 		Pattern: re.Pattern,
 		Expr:    e,
-	}, nil
+	}
 }
 
-func (a *analyzer) semBinary(e *ast.BinaryExpr) (dag.Expr, error) {
-	if e, err := a.semRegexp(e); e != nil || err != nil {
-		return e, err
+func (a *analyzer) semBinary(e *ast.BinaryExpr) dag.Expr {
+	if e := a.semRegexp(e); e != nil {
+		return e
 	}
 	op := e.Op
 	if op == "." {
-		lhs, err := a.semExpr(e.LHS)
-		if err != nil {
-			return nil, err
-		}
+		lhs := a.semExpr(e.LHS)
 		id, ok := e.RHS.(*ast.ID)
 		if !ok {
-			return nil, errors.New("RHS of dot operator is not an identifier")
+			a.error(e, errors.New("RHS of dot operator is not an identifier"))
+			return badExpr()
 		}
 		if lhs, ok := lhs.(*dag.This); ok {
 			lhs.Path = append(lhs.Path, id.Name)
-			return lhs, nil
+			return lhs
 		}
 		return &dag.Dot{
 			Kind: "Dot",
 			LHS:  lhs,
 			RHS:  id.Name,
-		}, nil
-	}
-	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Op == ":" {
-		if op != "[" {
-			return nil, errors.New("slice outside of index operator")
-		}
-		ref, err := a.semExpr(e.LHS)
-		if err != nil {
-			return nil, err
-		}
-		slice, err := a.semSlice(slice)
-		if err != nil {
-			return nil, err
-		}
-		return &dag.BinaryExpr{
-			Kind: "BinaryExpr",
-			Op:   "[",
-			LHS:  ref,
-			RHS:  slice,
-		}, nil
-	}
-	lhs, err := a.semExpr(e.LHS)
-	if err != nil {
-		return nil, err
-	}
-	rhs, err := a.semExpr(e.RHS)
-	if err != nil {
-		return nil, err
-	}
-	// If we index this with a string constant, then just
-	// extend the path.
-	if op == "[" {
-		if path := a.isIndexOfThis(lhs, rhs); path != nil {
-			return path, nil
 		}
 	}
+	lhs := a.semExpr(e.LHS)
+	rhs := a.semExpr(e.RHS)
 	return &dag.BinaryExpr{
 		Kind: "BinaryExpr",
 		Op:   e.Op,
 		LHS:  lhs,
 		RHS:  rhs,
-	}, nil
+	}
 }
 
 func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 	if this, ok := lhs.(*dag.This); ok {
-		if s, ok := isStringConst(a.zctx, rhs); ok {
+		if s, ok := a.isStringConst(rhs); ok {
 			this.Path = append(this.Path, s)
 			return this
 		}
@@ -429,165 +368,154 @@ func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 	return nil
 }
 
-func isStringConst(zctx *zed.Context, e dag.Expr) (field string, ok bool) {
-	val, err := kernel.EvalAtCompileTime(zctx, e)
+func (a *analyzer) isStringConst(e dag.Expr) (field string, ok bool) {
+	val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, e)
 	if err == nil && !val.IsError() && zed.TypeUnder(val.Type()) == zed.TypeString {
 		return string(val.Bytes()), true
 	}
 	return "", false
 }
 
-func (a *analyzer) semSlice(slice *ast.BinaryExpr) (*dag.BinaryExpr, error) {
-	sliceFrom, err := a.semExprNullable(slice.LHS)
-	if err != nil {
-		return nil, err
-	}
-	sliceTo, err := a.semExprNullable(slice.RHS)
-	if err != nil {
-		return nil, err
-	}
+func (a *analyzer) semSlice(slice *ast.BinaryExpr) *dag.BinaryExpr {
+	sliceFrom := a.semExprNullable(slice.LHS)
+	sliceTo := a.semExprNullable(slice.RHS)
 	return &dag.BinaryExpr{
 		Kind: "BinaryExpr",
 		Op:   ":",
 		LHS:  sliceFrom,
 		RHS:  sliceTo,
-	}, nil
+	}
 }
 
-func (a *analyzer) semExprNullable(e ast.Expr) (dag.Expr, error) {
+func (a *analyzer) semExprNullable(e ast.Expr) dag.Expr {
 	if e == nil {
-		return nil, nil
+		return nil
 	}
 	return a.semExpr(e)
 }
 
-func (a *analyzer) semCall(call *ast.Call) (dag.Expr, error) {
-	if e, err := a.maybeConvertAgg(call); e != nil || err != nil {
-		return e, err
+func (a *analyzer) semCall(call *ast.Call) dag.Expr {
+	if e := a.maybeConvertAgg(call); e != nil {
+		return e
 	}
 	if call.Where != nil {
-		return nil, fmt.Errorf("'where' clause on non-aggregation function: %s", call.Name)
+		a.error(call, errors.New("'where' clause on non-aggregation function"))
+		return badExpr()
 	}
-	exprs, err := a.semExprs(call.Args)
-	if err != nil {
-		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
-	}
-	name, nargs := call.Name, len(call.Args)
+	exprs := a.semExprs(call.Args)
+	name, nargs := call.Name.Name, len(call.Args)
 	// Call could be to a user defined func. Check if we have a matching func in
 	// scope.
 	udf, err := a.scope.LookupExpr(name)
 	if err != nil {
-		return nil, err
+		a.error(call, err)
+		return badExpr()
 	}
 	switch {
 	// udf should be checked first since a udf can override builtin functions.
 	case udf != nil:
 		f, ok := udf.(*dag.Func)
 		if !ok {
-			return nil, fmt.Errorf("%s(): definition is not a function type: %T", name, udf)
+			a.error(call.Name, errors.New("not a function"))
+			return badExpr()
 		}
 		if len(f.Params) != nargs {
-			return nil, fmt.Errorf("%s(): expects %d argument(s)", name, len(f.Params))
+			a.error(call, fmt.Errorf("call expects %d argument(s)", len(f.Params)))
+			return badExpr()
 		}
 	case zed.LookupPrimitive(name) != nil:
 		// Primitive function call, change this to a cast.
 		if err := function.CheckArgCount(nargs, 1, 1); err != nil {
-			return nil, fmt.Errorf("%s(): %w", name, err)
+			a.error(call, err)
+			return badExpr()
 		}
 		exprs = append(exprs, &dag.Literal{Kind: "Literal", Value: "<" + name + ">"})
 		name = "cast"
 	case expr.NewShaperTransform(name) != 0:
 		if err := function.CheckArgCount(nargs, 1, 2); err != nil {
-			return nil, fmt.Errorf("%s(): %w", name, err)
+			a.error(call, err)
+			return badExpr()
 		}
 		if nargs == 1 {
 			exprs = append([]dag.Expr{&dag.This{Kind: "This"}}, exprs...)
 		}
 	case name == "map":
 		if err := function.CheckArgCount(nargs, 2, 2); err != nil {
-			return nil, fmt.Errorf("%s(): %w", name, err)
+			a.error(call, err)
+			return badExpr()
 		}
 		id, ok := call.Args[1].(*ast.ID)
 		if !ok {
-			return nil, fmt.Errorf("%s(): second argument must be the identifier of a function", name)
+			a.error(call.Args[1], errors.New("second argument must be the identifier of a function"))
+			return badExpr()
 		}
-		inner, err := a.semCall(&ast.Call{
+		inner := a.semCall(&ast.Call{
 			Kind: "Call",
-			Name: id.Name,
+			Name: id,
 			Args: []ast.Expr{&ast.ID{Kind: "ID", Name: "this"}},
 		})
-		if err != nil {
-			return nil, err
-		}
 		return &dag.MapCall{
 			Kind:  "MapCall",
 			Expr:  exprs[0],
 			Inner: inner,
-		}, nil
+		}
 	default:
 		if _, _, err = function.New(a.zctx, name, nargs); err != nil {
-			return nil, fmt.Errorf("%s(): %w", name, err)
+			a.error(call, err)
+			return badExpr()
 		}
 	}
 	return &dag.Call{
 		Kind: "Call",
 		Name: name,
 		Args: exprs,
-	}, nil
+	}
 }
 
-func (a *analyzer) semExprs(in []ast.Expr) ([]dag.Expr, error) {
+func (a *analyzer) semExprs(in []ast.Expr) []dag.Expr {
 	exprs := make([]dag.Expr, 0, len(in))
 	for _, e := range in {
-		expr, err := a.semExpr(e)
-		if err != nil {
-			return nil, err
-		}
-		exprs = append(exprs, expr)
+		exprs = append(exprs, a.semExpr(e))
 	}
-	return exprs, nil
+	return exprs
 }
 
-func (a *analyzer) semAssignments(assignments []ast.Assignment) ([]dag.Assignment, error) {
+func (a *analyzer) semAssignments(assignments []ast.Assignment) []dag.Assignment {
 	out := make([]dag.Assignment, 0, len(assignments))
 	for _, e := range assignments {
-		a, err := a.semAssignment(e)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, a)
+		out = append(out, a.semAssignment(e))
 	}
-	return out, nil
+	return out
 }
 
-func (a *analyzer) semAssignment(assign ast.Assignment) (dag.Assignment, error) {
-	rhs, err := a.semExpr(assign.RHS)
-	if err != nil {
-		return dag.Assignment{}, fmt.Errorf("right-hand side of assignment: %w", err)
-	}
+func (a *analyzer) semAssignment(assign ast.Assignment) dag.Assignment {
+	rhs := a.semExpr(assign.RHS)
 	var lhs dag.Expr
 	if assign.LHS == nil {
-		path, err := deriveLHSPath(rhs)
-		if err != nil {
-			return dag.Assignment{}, err
+		if path, err := deriveLHSPath(rhs); err != nil {
+			a.error(&assign, err)
+			lhs = badExpr()
+		} else {
+			lhs = &dag.This{Kind: "This", Path: path}
 		}
-		lhs = &dag.This{Kind: "This", Path: path}
-	} else if lhs, err = a.semExpr(assign.LHS); err != nil {
-		return dag.Assignment{}, fmt.Errorf("left-hand side of assignment: %w", err)
+	} else {
+		lhs = a.semExpr(assign.LHS)
 	}
 	if !isLval(lhs) {
-		return dag.Assignment{}, errors.New("illegal left-hand side of assignment")
+		a.error(&assign, errors.New("illegal left-hand side of assignment"))
+		lhs = badExpr()
 	}
 	if this, ok := lhs.(*dag.This); ok && len(this.Path) == 0 {
-		return dag.Assignment{}, errors.New("cannot assign to 'this'")
+		a.error(&assign, errors.New("cannot assign to 'this'"))
+		lhs = badExpr()
 	}
-	return dag.Assignment{Kind: "Assignment", LHS: lhs, RHS: rhs}, nil
+	return dag.Assignment{Kind: "Assignment", LHS: lhs, RHS: rhs}
 }
 
 func isLval(e dag.Expr) bool {
 	switch e := e.(type) {
-	case *dag.BinaryExpr:
-		return e.Op == "[" && isLval(e.LHS)
+	case *dag.IndexExpr:
+		return isLval(e.Expr)
 	case *dag.Dot:
 		return isLval(e.LHS)
 	case *dag.This:
@@ -622,66 +550,55 @@ func deriveLHSPath(rhs dag.Expr) ([]string, error) {
 	return nil, errors.New("cannot infer field from expression")
 }
 
-func (a *analyzer) semFields(exprs []ast.Expr) ([]dag.Expr, error) {
+func (a *analyzer) semFields(exprs []ast.Expr) []dag.Expr {
 	fields := make([]dag.Expr, 0, len(exprs))
 	for _, e := range exprs {
-		f, err := a.semField(e)
-		if err != nil {
-			return nil, err
-		}
-		fields = append(fields, f)
+		fields = append(fields, a.semField(e))
 	}
-	return fields, nil
+	return fields
 }
 
 // semField analyzes the expression f and makes sure that it's
 // a field reference returning an error if not.
-func (a *analyzer) semField(f ast.Expr) (*dag.This, error) {
-	e, err := a.semExpr(f)
-	if err != nil {
-		return nil, errors.New("invalid expression used as a field")
-	}
+func (a *analyzer) semField(f ast.Expr) dag.Expr {
+	e := a.semExpr(f)
 	field, ok := e.(*dag.This)
 	if !ok {
-		return nil, errors.New("invalid expression used as a field")
+		a.error(f, errors.New("invalid expression used as a field"))
+		return badExpr()
 	}
 	if len(field.Path) == 0 {
-		return nil, errors.New("cannot use 'this' as a field reference")
+		a.error(f, errors.New("cannot use 'this' as a field reference"))
+		return badExpr()
 	}
-	return field, nil
+	return field
 }
 
-func (a *analyzer) maybeConvertAgg(call *ast.Call) (dag.Expr, error) {
-	if _, err := agg.NewPattern(call.Name, true); err != nil {
-		return nil, nil
+func (a *analyzer) maybeConvertAgg(call *ast.Call) dag.Expr {
+	name := call.Name.Name
+	if _, err := agg.NewPattern(name, true); err != nil {
+		return nil
 	}
 	var e dag.Expr
-	if len(call.Args) > 1 {
-		if call.Name == "min" || call.Name == "max" {
+	if err := function.CheckArgCount(len(call.Args), 0, 1); err != nil {
+		if name == "min" || name == "max" {
 			// min and max are special cases as they are also functions. If the
 			// number of args is greater than 1 they're probably a function so do not
 			// return an error.
-			return nil, nil
+			return nil
 		}
-		return nil, fmt.Errorf("%s: wrong number of arguments", call.Name)
+		a.error(call, err)
+		return badExpr()
 	}
 	if len(call.Args) == 1 {
-		var err error
-		e, err = a.semExpr(call.Args[0])
-		if err != nil {
-			return nil, err
-		}
-	}
-	where, err := a.semExprNullable(call.Where)
-	if err != nil {
-		return nil, err
+		e = a.semExpr(call.Args[0])
 	}
 	return &dag.Agg{
 		Kind:  "Agg",
-		Name:  call.Name,
+		Name:  name,
 		Expr:  e,
-		Where: where,
-	}, nil
+		Where: a.semExprNullable(call.Where),
+	}
 }
 
 func DotExprToFieldPath(e ast.Expr) *dag.This {
@@ -699,18 +616,17 @@ func DotExprToFieldPath(e ast.Expr) *dag.This {
 			lhs.Path = append(lhs.Path, id.Name)
 			return lhs
 		}
-		if e.Op == "[" {
-			lhs := DotExprToFieldPath(e.LHS)
-			if lhs == nil {
-				return nil
-			}
-			id, ok := e.RHS.(*astzed.Primitive)
-			if !ok || id.Type != "string" {
-				return nil
-			}
-			lhs.Path = append(lhs.Path, id.Text)
-			return lhs
+	case *ast.IndexExpr:
+		this := DotExprToFieldPath(e.Expr)
+		if this == nil {
+			return nil
 		}
+		id, ok := e.Index.(*astzed.Primitive)
+		if !ok || id.Type != "string" {
+			return nil
+		}
+		this.Path = append(this.Path, id.Text)
+		return this
 	case *ast.ID:
 		return pathOf(e.Name)
 	}
@@ -735,23 +651,46 @@ func (a *analyzer) semType(typ astzed.Type) (string, error) {
 	return zson.FormatType(ztype), nil
 }
 
-func (a *analyzer) semVectorElems(elems []ast.VectorElem) ([]dag.VectorElem, error) {
+func (a *analyzer) semVectorElems(elems []ast.VectorElem) []dag.VectorElem {
 	var out []dag.VectorElem
 	for _, elem := range elems {
 		switch elem := elem.(type) {
 		case *ast.Spread:
-			e, err := a.semExpr(elem.Expr)
-			if err != nil {
-				return nil, err
-			}
+			e := a.semExpr(elem.Expr)
 			out = append(out, &dag.Spread{Kind: "Spread", Expr: e})
 		case *ast.VectorValue:
-			e, err := a.semExpr(elem.Expr)
-			if err != nil {
-				return nil, err
-			}
+			e := a.semExpr(elem.Expr)
 			out = append(out, &dag.VectorValue{Kind: "VectorValue", Expr: e})
 		}
 	}
-	return out, nil
+	return out
+}
+
+func (a *analyzer) semFString(f *ast.FString) dag.Expr {
+	if len(f.Elems) == 0 {
+		return &dag.Literal{Kind: "Literal", Value: `""`}
+	}
+	var out dag.Expr
+	for _, elem := range f.Elems {
+		var e dag.Expr
+		switch elem := elem.(type) {
+		case *ast.FStringExpr:
+			e = a.semExpr(elem.Expr)
+			e = &dag.Call{
+				Kind: "Call",
+				Name: "cast",
+				Args: []dag.Expr{e, &dag.Literal{Kind: "Literal", Value: "<string>"}},
+			}
+		case *ast.FStringText:
+			e = &dag.Literal{Kind: "Literal", Value: zson.QuotedString([]byte(elem.Text))}
+		default:
+			panic(fmt.Errorf("internal error: unsupported f-string elem %T", elem))
+		}
+		if out == nil {
+			out = e
+			continue
+		}
+		out = &dag.BinaryExpr{Kind: "BinaryExpr", LHS: out, Op: "+", RHS: e}
+	}
+	return out
 }

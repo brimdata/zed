@@ -43,7 +43,8 @@ produces
 Regular expressions may also appear in the [`grep`](functions/grep.md),
 [`regexp`](functions/regexp.md), and [`regexp_replace`](functions/regexp_replace.md) functions:
 ```mdtest-command
-echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z 'yield {ba_start:grep(/^ba.*/, s),last_s_char:regexp(/(.)$/,s)[1]}' -
+echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' |
+  zq -z 'yield {ba_start:grep(/^ba.*/, s),last_s_char:regexp(/(.)$/,s)[1]}' -
 ```
 produces
 ```mdtest-output
@@ -261,7 +262,8 @@ which can be abbreviated
 ```
 is equivalent to
 ```
-where (123 in this or grep("123", this)) and (10.0.0.1 in this or grep("10.0.0.1", this))
+where (123 in this or grep("123", this))
+  and (10.0.0.1 in this or grep("10.0.0.1", this))
 ```
 
 Complex values are not supported as search terms but may be queried with

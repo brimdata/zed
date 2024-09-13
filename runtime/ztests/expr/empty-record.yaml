@@ -1,0 +1,9 @@
+zed: yield {}
+
+vector: true
+
+input: |
+  {}
+
+output: |
+  {}

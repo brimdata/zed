@@ -1,6 +1,8 @@
 package sort
 
 import (
+	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -20,22 +22,23 @@ var MemMaxBytes = 128 * 1024 * 1024
 type Op struct {
 	rctx       *runtime.Context
 	parent     zbuf.Puller
-	order      order.Which
 	nullsFirst bool
+	resetter   expr.Resetter
+	reverse    bool
 
-	fieldResolvers []expr.Evaluator
-	lastBatch      zbuf.Batch
+	fieldResolvers []expr.SortEvaluator
 	once           sync.Once
 	resultCh       chan op.Result
 	comparator     *expr.Comparator
 }
 
-func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Op, error) {
+func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.SortEvaluator, nullsFirst, reverse bool, resetter expr.Resetter) (*Op, error) {
 	return &Op{
 		rctx:           rctx,
 		parent:         parent,
-		order:          order,
 		nullsFirst:     nullsFirst,
+		resetter:       resetter,
+		reverse:        reverse,
 		fieldResolvers: fields,
 		resultCh:       make(chan op.Result),
 	}, nil
@@ -60,7 +63,6 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 }
 
 func (o *Op) run() {
-	defer close(o.resultCh)
 	var spiller *spill.MergeSort
 	defer func() {
 		if spiller != nil {
@@ -68,8 +70,13 @@ func (o *Op) run() {
 		}
 		// Tell o.rctx.Cancel that we've finished our cleanup.
 		o.rctx.WaitGroup.Done()
+		if r := recover(); r != nil {
+			o.sendResult(nil, fmt.Errorf("panic: %+v\n%s", r, debug.Stack()))
+		}
+		close(o.resultCh)
 	}()
 	var nbytes int
+	var batches []zbuf.Batch
 	var out []zed.Value
 	for {
 		batch, err := o.parent.Pull(false)
@@ -82,7 +89,7 @@ func (o *Op) run() {
 		if batch == nil {
 			if spiller == nil {
 				if len(out) > 0 {
-					if ok := o.send(out); !ok {
+					if ok := o.send(batches, out); !ok {
 						return
 					}
 				}
@@ -90,6 +97,7 @@ func (o *Op) run() {
 					return
 				}
 				nbytes = 0
+				batches = nil
 				out = nil
 				continue
 			}
@@ -100,6 +108,7 @@ func (o *Op) run() {
 					}
 					spiller = nil
 					nbytes = 0
+					batches = nil
 					out = nil
 					continue
 				}
@@ -110,11 +119,12 @@ func (o *Op) run() {
 			spiller.Cleanup()
 			spiller = nil
 			nbytes = 0
+			unrefBatches(batches)
+			batches = nil
 			out = nil
 			continue
 		}
-		// Safe because batch.Unref is never called.
-		o.lastBatch = batch
+		batches = append(batches, batch)
 		var delta int
 		out, delta = o.append(out, batch)
 		if o.comparator == nil && len(out) > 0 {
@@ -125,11 +135,12 @@ func (o *Op) run() {
 			continue
 		}
 		if spiller == nil {
-			spiller, err = spill.NewMergeSort(o.comparator)
+			spiller, err = spill.NewMergeSort(o.rctx.Zctx, o.comparator)
 			if err != nil {
 				if ok := o.sendResult(nil, err); !ok {
 					return
 				}
+				batches = nil
 				out = nil
 				nbytes = 0
 				continue
@@ -140,15 +151,21 @@ func (o *Op) run() {
 				return
 			}
 		}
+		// While it's good to unref batches if this isn't here the go runtime
+		// will start garbage collecting batches before Spill is complete
+		// because batches getting set to nil.
+		unrefBatches(batches)
+		batches = nil
 		out = nil
 		nbytes = 0
 	}
 }
 
 // send sorts vals in memory and sends the result downstream.
-func (o *Op) send(vals []zed.Value) bool {
+func (o *Op) send(batches []zbuf.Batch, vals []zed.Value) bool {
 	o.comparator.SortStable(vals)
-	out := zbuf.NewBatch(o.lastBatch, vals)
+	out := zbuf.WrapBatch(batches[0], vals)
+	out.(interface{ AddBatches(batches ...zbuf.Batch) }).AddBatches(batches[1:]...)
 	return o.sendResult(out, nil)
 }
 
@@ -170,6 +187,10 @@ func (o *Op) sendSpills(spiller *spill.MergeSort) bool {
 }
 
 func (o *Op) sendResult(b zbuf.Batch, err error) bool {
+	if b == nil && err == nil {
+		// Reset stateful aggregation expressions on EOS.
+		o.resetter.Reset()
+	}
 	select {
 	case o.resultCh <- op.Result{Batch: b, Err: err}:
 		return true
@@ -194,15 +215,19 @@ func (o *Op) setComparator(r zed.Value) {
 	resolvers := o.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
-		resolver := expr.NewDottedExpr(o.rctx.Zctx, fld)
-		resolvers = []expr.Evaluator{resolver}
+		resolver := expr.NewSortEvaluator(expr.NewDottedExpr(o.rctx.Zctx, fld), order.Asc)
+		resolvers = []expr.SortEvaluator{resolver}
 	}
-	reverse := o.order == order.Desc
 	nullsMax := !o.nullsFirst
-	if reverse {
+	if o.reverse {
+		for k := range resolvers {
+			resolvers[k].Order = !resolvers[k].Order
+		}
+	}
+	if resolvers[0].Order == order.Desc {
 		nullsMax = !nullsMax
 	}
-	o.comparator = expr.NewComparator(nullsMax, reverse, resolvers...).WithMissingAsNull()
+	o.comparator = expr.NewComparator(nullsMax, resolvers...).WithMissingAsNull()
 }
 
 func GuessSortKey(val zed.Value) field.Path {
@@ -236,4 +261,10 @@ func firstMatchingField(typ *zed.TypeRecord, pred func(id int) bool) field.Path 
 		}
 	}
 	return nil
+}
+
+func unrefBatches(batches []zbuf.Batch) {
+	for _, b := range batches {
+		b.Unref()
+	}
 }

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
@@ -187,6 +188,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/revision/{revision}/vector", handleVectorDelete).Methods("DELETE")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
 	c.authhandle("/query", handleQuery).Methods("OPTIONS", "POST")
+	c.authhandle("/query/describe", handleQueryDescribe).Methods("OPTIONS", "POST")
 	c.authhandle("/query/status/{requestID}", handleQueryStatus).Methods("GET")
 }
 
@@ -219,20 +221,23 @@ func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
+	arena := zed.NewArena()
 	marshaler := zson.NewZNGMarshaler()
 	marshaler.Decorate(zson.StyleSimple)
-	zv, err := marshaler.Marshal(data)
+	zv, err := marshaler.Marshal(arena, data)
 	if err != nil {
 		w.Logger.Error("Error marshaling published event", zap.Error(err))
 		return
 	}
 	go func() {
-		ev := event{name: name, value: zv}
+		ev := event{name: name, arena: arena, value: zv}
 		c.subscriptionsMu.RLock()
 		for sub := range c.subscriptions {
+			arena.Ref()
 			sub <- ev
 		}
 		c.subscriptionsMu.RUnlock()
+		arena.Unref()
 	}()
 }
 

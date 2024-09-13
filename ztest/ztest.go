@@ -138,11 +138,16 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/optimizer/demand"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/runtime"
+	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/vngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/segmentio/ksuid"
 	"gopkg.in/yaml.v3"
 )
 
@@ -269,8 +274,8 @@ type ZTest struct {
 	Output      string `yaml:"output,omitempty"`
 	OutputFlags string `yaml:"output-flags,omitempty"`
 	ErrorRE     string `yaml:"errorRE,omitempty"`
+	Vector      bool   `yaml:"vector"`
 	errRegex    *regexp.Regexp
-	Warnings    string `yaml:"warnings,omitempty"`
 
 	// For script-style tests.
 	Script  string   `yaml:"script,omitempty"`
@@ -350,9 +355,26 @@ func (z *ZTest) RunInternal(path string) error {
 	if err := z.check(); err != nil {
 		return fmt.Errorf("bad yaml format: %w", err)
 	}
-	inputFlags := strings.Fields(z.InputFlags)
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
-	out, errout, err := runzq(path, z.Zed, z.Input, outputFlags, inputFlags)
+	inputFlags := strings.Fields(z.InputFlags)
+	if z.Vector {
+		if z.InputFlags != "" {
+			return errors.New("input-flags cannot be specified if vector test is enabled")
+		}
+		verr := z.diffInternal(runvec(z.Zed, z.Input, outputFlags))
+		if verr != nil {
+			verr = fmt.Errorf("=== vector ===\n%w", verr)
+		}
+		serr := z.diffInternal(runzq(path, z.Zed, z.Input, outputFlags, inputFlags))
+		if serr != nil {
+			serr = fmt.Errorf("=== sequence ===\n%w", serr)
+		}
+		return errors.Join(verr, serr)
+	}
+	return z.diffInternal(runzq(path, z.Zed, z.Input, outputFlags, inputFlags))
+}
+
+func (z *ZTest) diffInternal(out, errout string, err error) error {
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
@@ -366,8 +388,6 @@ func (z *ZTest) RunInternal(path string) error {
 		}
 	} else if z.errRegex != nil {
 		return fmt.Errorf("no error when expecting error regex: %s", z.ErrorRE)
-	} else if z.Warnings != errout {
-		return diffErr("warnings", z.Warnings, errout)
 	}
 	if z.Output != out {
 		return diffErr("output", z.Output, out)
@@ -475,12 +495,9 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
 		err = cmd.Run()
-		// If there was an error, errbuf could potentially hold both warnings
-		// and error messages, but that's not currently an issue with existing
-		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := compiler.NewCompiler().Parse(zedProgram)
+	proc, sset, err := compiler.Parse(zedProgram)
 	if err != nil {
 		return "", err.Error(), err
 	}
@@ -506,11 +523,14 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	if err := flags.Parse(outputFlags); err != nil {
 		return "", "", err
 	}
+	if err := outflags.Init(); err != nil {
+		return "", "", err
+	}
 	zw, err := anyio.NewWriter(zio.NopCloser(&outbuf), outflags.Options())
 	if err != nil {
 		return "", "", err
 	}
-	q, err := compiler.NewCompiler().NewQuery(runtime.NewContext(context.Background(), zctx), proc, []zio.Reader{zrc})
+	q, err := runtime.CompileQuery(context.Background(), zctx, compiler.NewCompiler(), proc, sset, []zio.Reader{zrc})
 	if err != nil {
 		zw.Close()
 		return "", err.Error(), err
@@ -536,4 +556,58 @@ func lookupzq(path string) (string, error) {
 		}
 	}
 	return "", err
+}
+
+func runvec(zedProgram string, input string, outputFlags []string) (string, string, error) {
+	var errbuf, outbuf bytes.Buffer
+	var flags flag.FlagSet
+	var outflags outputflags.Flags
+	outflags.SetFlags(&flags)
+	if err := flags.Parse(outputFlags); err != nil {
+		return "", "", err
+	}
+	zctx := zed.NewContext()
+	local := storage.NewLocalEngine()
+	cache := vcache.NewCache(local)
+	uri, cleanup, err := writeVNGFile(input)
+	if err != nil {
+		return "", "", err
+	}
+	defer cleanup()
+	object, err := cache.Fetch(context.Background(), zctx, uri, ksuid.Nil)
+	if err != nil {
+		return "", "", err
+	}
+	defer object.Close()
+	rctx := runtime.NewContext(context.Background(), zctx)
+	puller, err := compiler.VectorCompile(rctx, zedProgram, object)
+	if err != nil {
+		return "", "", err
+	}
+	zw, err := anyio.NewWriter(zio.NopCloser(&outbuf), outflags.Options())
+	if err != nil {
+		return "", "", err
+	}
+	err = zbuf.CopyPuller(zw, puller)
+	if err2 := zw.Close(); err == nil {
+		err = err2
+	}
+	if err != nil {
+		errbuf.WriteString(err.Error())
+	}
+	return outbuf.String(), errbuf.String(), nil
+}
+
+func writeVNGFile(input string) (*storage.URI, func(), error) {
+	f, err := os.CreateTemp("", "test.*.vng")
+	if err != nil {
+		return nil, nil, err
+	}
+	w := vngio.NewWriter(f)
+	r := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
+	if err = errors.Join(zio.Copy(w, r), w.Close()); err != nil {
+		return nil, nil, err
+	}
+	u, err := storage.ParseURI(f.Name())
+	return u, func() { os.Remove(f.Name()) }, err
 }

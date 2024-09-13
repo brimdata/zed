@@ -3,7 +3,6 @@ package zfmt
 import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -97,6 +96,22 @@ func (c *canonDAG) expr(e dag.Expr, parent string) {
 		c.write("%s(", e.Name)
 		c.exprs(e.Args)
 		c.write(")")
+	case *dag.IndexExpr:
+		c.expr(e.Expr, "")
+		c.write("[")
+		c.expr(e.Index, "")
+		c.write("]")
+	case *dag.SliceExpr:
+		c.expr(e.Expr, "")
+		c.write("[")
+		if e.From != nil {
+			c.expr(e.From, "")
+		}
+		c.write(":")
+		if e.To != nil {
+			c.expr(e.To, "")
+		}
+		c.write("]")
 	case *dag.OverExpr:
 		c.open("(")
 		c.ret()
@@ -181,15 +196,6 @@ func (c *canonDAG) binary(e *dag.BinaryExpr, parent string) {
 			c.write(".")
 		}
 		c.expr(e.RHS, "")
-	case "[":
-		if isDAGThis(e.LHS) {
-			c.write(".")
-		} else {
-			c.expr(e.LHS, "")
-		}
-		c.write("[")
-		c.expr(e.RHS, "")
-		c.write("]")
 	case "in", "and", "or":
 		parens := needsparens(parent, e.Op)
 		c.maybewrite("(", parens)
@@ -295,6 +301,22 @@ func (c *canonDAG) op(p dag.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *dag.Mirror:
+		c.next()
+		c.open("mirror (")
+		c.ret()
+		for _, seq := range []dag.Seq{p.Mirror, p.Main} {
+			c.ret()
+			c.write("=>")
+			c.open()
+			c.head = true
+			c.seq(seq)
+			c.close()
+		}
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	case *dag.Switch:
 		c.next()
 		c.open("switch ")
@@ -364,15 +386,19 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Sort:
 		c.next()
 		c.write("sort")
-		if p.Order == order.Desc {
+		if p.Reverse {
 			c.write(" -r")
 		}
 		if p.NullsFirst {
 			c.write(" -nulls first")
 		}
-		if len(p.Args) > 0 {
+		for i, s := range p.Args {
+			if i > 0 {
+				c.write(",")
+			}
 			c.space()
-			c.exprs(p.Args)
+			c.expr(s.Key, "")
+			c.write(" %s", s.Order)
 		}
 	case *dag.Load:
 		c.next()
@@ -485,8 +511,14 @@ func (c *canonDAG) op(p dag.Op) {
 		if p.Format != "" {
 			c.write(" format %s", p.Format)
 		}
-		if !p.SortKey.IsNil() {
-			c.write(" order %s", p.SortKey)
+		if !p.SortKeys.IsNil() {
+			c.write(" order")
+			for i, s := range p.SortKeys {
+				if i > 0 {
+					c.write(",")
+				}
+				c.write(" %s  %s", s.Key, s.Order)
+			}
 		}
 		if p.Filter != nil {
 			c.write(" filter (")
@@ -520,6 +552,9 @@ func (c *canonDAG) op(p dag.Op) {
 		c.head = true
 		c.seq(p.Body)
 		c.close()
+	case *dag.Output:
+		c.next()
+		c.write("output %s", p.Name)
 	default:
 		c.next()
 		c.open("unknown proc: %T", p)

@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/segmentio/ksuid"
 )
 
@@ -19,9 +19,13 @@ var Cmd = &charm.Spec{
 	Usage: "ls [options] [pool]",
 	Short: "list pools in a lake or branches in a pool",
 	Long: `
-"zed ls" shows a listing of a data pool's data objects as IDs.
-If a pool name or pool ID is given, then the pool's branches are listed
-along with the ID of their commit object, which points at the tip of each branch.
+"zed ls" lists pools in a lake or branches in a pool.
+
+By default, all pools in the lake are listed along with each pool's unique ID
+and pool key configuration.
+
+If a pool name or pool ID is given, then the pool's branches are listed along
+with the ID of their commit object, which points at the tip of each branch.
 `,
 	New: New,
 }
@@ -85,8 +89,8 @@ func (c *Command) Run(args []string) error {
 		w.Close()
 		return err
 	}
-	defer q.Close()
-	err = zio.Copy(w, q)
+	defer q.Pull(true)
+	err = zbuf.CopyPuller(w, q)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

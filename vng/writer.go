@@ -22,10 +22,11 @@ type Writer struct {
 var _ zio.Writer = (*Writer)(nil)
 
 func NewWriter(w io.WriteCloser) *Writer {
+	zctx := zed.NewContext()
 	return &Writer{
-		zctx:    zed.NewContext(),
+		zctx:    zctx,
 		writer:  w,
-		variant: NewVariantEncoder(),
+		variant: NewVariantEncoder(zctx),
 	}
 }
 
@@ -53,7 +54,9 @@ func (w *Writer) finalize() error {
 	// First, we write the root segmap of the vector of integer type IDs.
 	m := zson.NewZNGMarshalerWithContext(w.zctx)
 	m.Decorate(zson.StyleSimple)
-	val, err := m.Marshal(meta)
+	arena := zed.NewArena()
+	defer arena.Unref()
+	val, err := m.Marshal(arena, meta)
 	if err != nil {
 		return fmt.Errorf("system error: could not marshal VNG metadata: %w", err)
 	}

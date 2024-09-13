@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 )
@@ -20,13 +19,15 @@ type Writer struct {
 	byteCounter      *writeCounter
 	count            uint64
 	writer           *zngio.Writer
-	order            order.Which
+	sortKey          order.SortKey
 	seekIndex        *seekindex.Writer
 	seekIndexStride  int
 	seekIndexTrigger int
 	first            bool
 	seekMin          *zed.Value
-	poolKey          field.Path
+	keyArena         *zed.Arena
+	seekMinArena     *zed.Arena
+	maxArena         *zed.Arena
 }
 
 // NewWriter returns a writer for writing the data of a zng-row storage object as
@@ -34,19 +35,21 @@ type Writer struct {
 // seekIndexStride is non-zero.  We assume all records are non-volatile until
 // Close as zed.Values from the various record bodies are referenced across
 // calls to Write.
-func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, order order.Which, poolKey field.Path, seekIndexStride int) (*Writer, error) {
+func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, sortKey order.SortKey, seekIndexStride int) (*Writer, error) {
 	out, err := engine.Put(ctx, o.SequenceURI(path))
 	if err != nil {
 		return nil, err
 	}
 	counter := &writeCounter{bufwriter.New(out), 0}
 	w := &Writer{
-		object:      o,
-		byteCounter: counter,
-		writer:      zngio.NewWriter(counter),
-		order:       order,
-		poolKey:     poolKey,
-		first:       true,
+		object:       o,
+		byteCounter:  counter,
+		writer:       zngio.NewWriter(counter),
+		sortKey:      sortKey,
+		first:        true,
+		keyArena:     zed.NewArena(),
+		seekMinArena: zed.NewArena(),
+		maxArena:     zed.NewArena(),
 	}
 	if seekIndexStride == 0 {
 		seekIndexStride = DefaultSeekStride
@@ -61,7 +64,8 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 }
 
 func (w *Writer) Write(val zed.Value) error {
-	key := val.DerefPath(w.poolKey).MissingAsNull()
+	w.keyArena.Reset()
+	key := val.DerefPath(w.keyArena, w.sortKey.Key).MissingAsNull()
 	return w.WriteWithKey(key, val)
 }
 
@@ -70,7 +74,8 @@ func (w *Writer) WriteWithKey(key, val zed.Value) error {
 	if err := w.writer.Write(val); err != nil {
 		return err
 	}
-	w.object.Max.CopyFrom(key)
+	w.maxArena.Reset()
+	w.object.Max = key.Copy(w.maxArena)
 	return w.writeIndex(key)
 }
 
@@ -78,10 +83,12 @@ func (w *Writer) writeIndex(key zed.Value) error {
 	w.seekIndexTrigger += len(key.Bytes())
 	if w.first {
 		w.first = false
-		w.object.Min.CopyFrom(key)
+		w.object.Arena = zed.NewArena()
+		w.object.Min = key.Copy(w.object.Arena)
 	}
 	if w.seekMin == nil {
-		w.seekMin = key.Copy().Ptr()
+		w.seekMinArena, w.keyArena = w.keyArena, w.seekMinArena
+		w.seekMin = &key
 	}
 	if w.seekIndexTrigger < w.seekIndexStride {
 		return nil
@@ -96,8 +103,8 @@ func (w *Writer) flushSeekIndex() error {
 	if w.seekMin != nil {
 		w.seekIndexTrigger = 0
 		min := *w.seekMin
-		max := w.object.Max.Copy()
-		if w.order == order.Desc {
+		max := w.object.Max
+		if w.sortKey.Order == order.Desc {
 			min, max = max, min
 		}
 		w.seekMin = nil
@@ -128,7 +135,8 @@ func (w *Writer) Close(ctx context.Context) error {
 	}
 	w.object.Count = w.count
 	w.object.Size = w.writer.Position()
-	if w.order == order.Desc {
+	w.object.Max = w.object.Max.Copy(w.object.Arena)
+	if w.sortKey.Order == order.Desc {
 		w.object.Min, w.object.Max = w.object.Max, w.object.Min
 	}
 	return nil

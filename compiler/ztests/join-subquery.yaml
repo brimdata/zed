@@ -6,14 +6,10 @@ script: |
 outputs:
   - name: stdout
     data: |
-        from (
-          file a
-        )
+        file a
         | join (
-          from (
-            file b
-          )
-        ) on c=c
+          file b
+        ) on c
         ===
         file a
         | fork (
@@ -23,3 +19,4 @@ outputs:
             file b
         )
         | join on c=c
+        | output main

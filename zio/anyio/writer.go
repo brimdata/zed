@@ -24,6 +24,7 @@ type WriterOpts struct {
 	Format string
 	Lake   lakeio.WriterOpts
 	CSV    csvio.WriterOpts
+	JSON   jsonio.WriterOpts
 	ZNG    *zngio.WriterOpts // Nil means use defaults via zngio.NewWriter.
 	ZSON   zsonio.WriterOpts
 }
@@ -35,7 +36,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "csv":
 		return csvio.NewWriter(w, opts.CSV), nil
 	case "json":
-		return jsonio.NewWriter(w), nil
+		return jsonio.NewWriter(w, opts.JSON), nil
 	case "lake":
 		return lakeio.NewWriter(w, opts.Lake), nil
 	case "null":

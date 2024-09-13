@@ -26,6 +26,11 @@ type Seq []Op
 // Ops
 
 type (
+	// A BadOp node is a placeholder for an expression containing semantic
+	// errors.
+	BadOp struct {
+		Kind string `json:"kind" unpack:""`
+	}
 	Combine struct {
 		Kind string `json:"kind" unpack:""`
 	}
@@ -81,12 +86,21 @@ type (
 		Expr  Expr        `json:"expr"`
 		Order order.Which `json:"order"`
 	}
+	Mirror struct {
+		Kind   string `json:"kind" unpack:""`
+		Main   Seq    `json:"main"`
+		Mirror Seq    `json:"mirror"`
+	}
 	Over struct {
 		Kind  string `json:"kind" unpack:""`
 		Defs  []Def  `json:"defs"`
 		Exprs []Expr `json:"exprs"`
 		Vars  []Def  `json:"vars"`
 		Body  Seq    `json:"body"`
+	}
+	Output struct {
+		Kind string `json:"kind" unpack:""`
+		Name string `json:"name"`
 	}
 	Pass struct {
 		Kind string `json:"kind" unpack:""`
@@ -113,10 +127,10 @@ type (
 		Kind string `json:"kind" unpack:""`
 	}
 	Sort struct {
-		Kind       string      `json:"kind" unpack:""`
-		Args       []Expr      `json:"args"`
-		Order      order.Which `json:"order"`
-		NullsFirst bool        `json:"nullsfirst"`
+		Kind       string     `json:"kind" unpack:""`
+		Args       []SortExpr `json:"args"`
+		NullsFirst bool       `json:"nullsfirst"`
+		Reverse    bool       `json:"reverse"`
 	}
 	Summarize struct {
 		Kind         string       `json:"kind" unpack:""`
@@ -188,25 +202,25 @@ type (
 
 	// DefaultScan scans an input stream provided by the runtime.
 	DefaultScan struct {
-		Kind    string        `json:"kind" unpack:""`
-		Filter  Expr          `json:"filter"`
-		SortKey order.SortKey `json:"sort_key"`
+		Kind     string         `json:"kind" unpack:""`
+		Filter   Expr           `json:"filter"`
+		SortKeys order.SortKeys `json:"sort_keys"`
 	}
 	FileScan struct {
-		Kind    string        `json:"kind" unpack:""`
-		Path    string        `json:"path"`
-		Format  string        `json:"format"`
-		SortKey order.SortKey `json:"sort_key"`
-		Filter  Expr          `json:"filter"`
+		Kind     string         `json:"kind" unpack:""`
+		Path     string         `json:"path"`
+		Format   string         `json:"format"`
+		SortKeys order.SortKeys `json:"sort_keys"`
+		Filter   Expr           `json:"filter"`
 	}
 	HTTPScan struct {
-		Kind    string              `json:"kind" unpack:""`
-		URL     string              `json:"url"`
-		Format  string              `json:"format"`
-		SortKey order.SortKey       `json:"sort_key"`
-		Method  string              `json:"method"`
-		Headers map[string][]string `json:"headers"`
-		Body    string              `json:"body"`
+		Kind     string              `json:"kind" unpack:""`
+		URL      string              `json:"url"`
+		Format   string              `json:"format"`
+		SortKeys order.SortKeys      `json:"sort_keys"`
+		Method   string              `json:"method"`
+		Headers  map[string][]string `json:"headers"`
+		Body     string              `json:"body"`
 	}
 	PoolScan struct {
 		Kind   string      `json:"kind" unpack:""`
@@ -281,6 +295,7 @@ type (
 	}
 )
 
+func (*BadOp) OpNode()     {}
 func (*Fork) OpNode()      {}
 func (*Scatter) OpNode()   {}
 func (*Switch) OpNode()    {}
@@ -304,9 +319,11 @@ func (*Over) OpNode()      {}
 func (*Vectorize) OpNode() {}
 func (*Yield) OpNode()     {}
 func (*Merge) OpNode()     {}
+func (*Mirror) OpNode()    {}
 func (*Combine) OpNode()   {}
 func (*Scope) OpNode()     {}
 func (*Load) OpNode()      {}
+func (*Output) OpNode()    {}
 
 // NewFilter returns a filter node for e.
 func NewFilter(e Expr) *Filter {

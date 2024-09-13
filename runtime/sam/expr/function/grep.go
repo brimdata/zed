@@ -12,15 +12,15 @@ type Grep struct {
 	zctx    *zed.Context
 }
 
-func (g *Grep) Call(_ zed.Allocator, vals []zed.Value) zed.Value {
+func (g *Grep) Call(ectx expr.Context, vals []zed.Value) zed.Value {
 	patternVal, inputVal := vals[0], vals[1]
 	if zed.TypeUnder(patternVal.Type()) != zed.TypeString {
-		return g.zctx.WrapError("grep(): pattern argument must be a string", patternVal)
+		return g.zctx.WrapError(ectx.Arena(), "grep(): pattern argument must be a string", patternVal)
 	}
 	if p := patternVal.AsString(); g.grep == nil || g.pattern != p {
 		g.pattern = p
 		term := norm.NFC.Bytes(patternVal.Bytes())
 		g.grep = expr.NewSearchString(string(term), nil)
 	}
-	return g.grep.Eval(expr.NewContext(), inputVal)
+	return g.grep.Eval(ectx, inputVal)
 }

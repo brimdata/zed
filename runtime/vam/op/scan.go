@@ -36,7 +36,7 @@ func NewScanner(rctx *runtime.Context, cache *vcache.Cache, parent zbuf.Puller, 
 	return &Scanner{
 		cache:      cache,
 		rctx:       rctx,
-		parent:     newObjectPuller(parent),
+		parent:     newObjectPuller(rctx.Zctx, parent),
 		pruner:     pruner,
 		pool:       pool,
 		projection: vcache.NewProjection(paths),
@@ -80,7 +80,7 @@ func (s *Scanner) run() {
 			s.sendResult(nil, err)
 			return
 		}
-		object, err := s.cache.Fetch(s.rctx.Context, meta.VectorURI(s.pool.DataPath), meta.ID)
+		object, err := s.cache.Fetch(s.rctx.Context, s.rctx.Zctx, meta.VectorURI(s.pool.DataPath), meta.ID)
 		if err != nil {
 			s.sendResult(nil, err)
 			return
@@ -122,14 +122,14 @@ type result struct {
 }
 
 type objectPuller struct {
-	parent      zbuf.Puller
-	unmarshaler *zson.UnmarshalZNGContext
+	parent zbuf.Puller
+	zctx   *zed.Context
 }
 
-func newObjectPuller(parent zbuf.Puller) *objectPuller {
+func newObjectPuller(zctx *zed.Context, parent zbuf.Puller) *objectPuller {
 	return &objectPuller{
-		parent:      parent,
-		unmarshaler: zson.NewZNGUnmarshaler(),
+		parent: parent,
+		zctx:   zctx,
 	}
 }
 
@@ -151,9 +151,11 @@ func (p *objectPuller) Pull(done bool) (*data.Object, error) {
 	if named.Name != "data.Object" {
 		return nil, fmt.Errorf("system error: vam.objectPuller encountered unnamed object: %q", named.Name)
 	}
+	arena := zed.NewArena()
 	var meta data.Object
-	if err := p.unmarshaler.Unmarshal(vals[0], &meta); err != nil {
-		return nil, fmt.Errorf("system error: vam.objectPuller could not unmarshal value: %q", zson.String(vals[0]))
+	if err := zson.UnmarshalZNG(p.zctx, arena, vals[0], &meta); err != nil {
+		return nil, fmt.Errorf("system error: vam.objectPuller could not unmarshal value %q: %w", zson.String(vals[0]), err)
 	}
+	meta.Arena = arena
 	return &meta, nil
 }

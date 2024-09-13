@@ -51,9 +51,12 @@ func (c *testClient) TestPoolList() []pools.Config {
 	r, err := c.Query(context.Background(), nil, "from :pools")
 	require.NoError(c, err)
 	defer r.Body.Close()
-	var confs []pools.Config
-	zr := zngio.NewReader(zed.NewContext(), r.Body)
+	arena := zed.NewArena()
+	defer arena.Unref()
+	zctx := zed.NewContext()
+	zr := zngio.NewReader(zctx, r.Body)
 	defer zr.Close()
+	var confs []pools.Config
 	for {
 		rec, err := zr.Read()
 		require.NoError(c, err)
@@ -61,7 +64,7 @@ func (c *testClient) TestPoolList() []pools.Config {
 			return confs
 		}
 		var pool pools.Config
-		err = zson.UnmarshalZNG(*rec, &pool)
+		err = zson.UnmarshalZNG(zctx, arena, *rec, &pool)
 		require.NoError(c, err)
 		confs = append(confs, pool)
 	}

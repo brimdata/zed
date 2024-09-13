@@ -1,0 +1,31 @@
+name: Markdown lint
+
+on:
+  schedule:
+    - cron: '5 8 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '**.md'
+
+jobs:
+  markdown-link:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Lint
+      run: make markdown-lint
+    - uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        config-file: .github/workflows/markdown-link-check-config.json
+        use-quiet-mode: yes
+    - name: Inform Slack users of link check failures
+      uses: tiloio/slack-webhook-action@v1.1.2
+      if: failure() && github.ref_name == 'main'
+      with:
+        slack_web_hook_url: ${{ secrets.SLACK_WEBHOOK_BRIMLABS_DOCS }}
+        slack_json: |
+          {
+            "username": "markdown-link",
+            "text": "Markdown link check failed: ${{ github.event.workflow_run.html_url }}"
+          }

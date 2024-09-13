@@ -32,6 +32,7 @@ type Generic struct {
 	first zed.Value
 	last  zed.Value
 	cmp   expr.CompareFn
+	arena *zed.Arena
 }
 
 // Create a new Range from generic range of zed.Values according
@@ -41,10 +42,12 @@ func NewGeneric(lower, upper zed.Value, cmp expr.CompareFn) *Generic {
 	if cmp(lower, upper) > 0 {
 		lower, upper = upper, lower
 	}
+	arena := zed.NewArena()
 	return &Generic{
-		first: lower,
-		last:  upper,
+		first: lower.Copy(arena),
+		last:  upper.Copy(arena),
 		cmp:   cmp,
+		arena: arena,
 	}
 }
 
@@ -91,9 +94,9 @@ func (g *Generic) Crop(s Span) bool {
 
 func (g *Generic) Extend(val zed.Value) {
 	if g.cmp(val, g.first) < 0 {
-		g.first = val.Copy()
+		g.first = val.Copy(g.arena)
 	} else if g.cmp(val, g.last) > 0 {
-		g.last = val.Copy()
+		g.last = val.Copy(g.arena)
 	}
 }
 

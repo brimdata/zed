@@ -56,7 +56,7 @@ func (c *Cutter) FoundCut() bool {
 func (c *Cutter) Eval(ectx Context, in zed.Value) zed.Value {
 	rb, paths, err := c.lookupBuilder(ectx, in)
 	if err != nil {
-		return c.zctx.WrapError(fmt.Sprintf("cut: %s", err), in)
+		return c.zctx.WrapError(ectx.Arena(), fmt.Sprintf("cut: %s", err), in)
 	}
 	types := c.typeCache
 	rb.Reset()
@@ -81,7 +81,7 @@ func (c *Cutter) Eval(ectx Context, in zed.Value) zed.Value {
 	if err != nil {
 		panic(err)
 	}
-	rec := zed.NewValue(rb.Type(c.outTypes.Lookup(types), types), bytes)
+	rec := ectx.Arena().New(rb.Type(c.outTypes.Lookup(types), types), bytes)
 	for _, d := range droppers {
 		rec = d.Eval(ectx, rec)
 	}

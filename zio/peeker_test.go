@@ -2,6 +2,7 @@ package zio
 
 import (
 	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -20,11 +21,14 @@ func TestPeeker(t *testing.T) {
 `
 	stream := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	peeker := NewPeeker(stream)
+	defer runtime.KeepAlive(peeker)
 	rec1, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)
 	}
-	rec1 = rec1.Copy().Ptr()
+	arena := zed.NewArena()
+	defer arena.Unref()
+	rec1 = rec1.Copy(arena).Ptr()
 	rec2, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)
@@ -36,7 +40,7 @@ func TestPeeker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	rec3 = rec3.Copy().Ptr()
+	rec3 = rec3.Copy(arena).Ptr()
 	if !bytes.Equal(rec1.Bytes(), rec3.Bytes()) {
 		t.Error("rec1 != rec3")
 	}
@@ -44,7 +48,7 @@ func TestPeeker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	rec4 = rec4.Copy().Ptr()
+	rec4 = rec4.Copy(arena).Ptr()
 	if bytes.Equal(rec3.Bytes(), rec4.Bytes()) {
 		t.Error("rec3 == rec4")
 	}

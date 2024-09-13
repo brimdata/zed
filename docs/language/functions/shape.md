@@ -11,19 +11,20 @@ shape(val: any, t: type) -> any
 ### Description
 
 The _shape_ function applies the
-[cast](cast.md),
-[fill](fill.md), and
-[order](order.md) functions to its input to provide an
-overall data shaping operation.
+[`cast`](cast.md),
+[`fill`](fill.md), and
+[`order`](order.md) functions to its input to provide an
+overall [data shaping](../shaping.md) operation.
 
-Note that _shape_ does not perform a _crop_ function so
+Note that `shape` does not perform a [`crop` function](./crop.md) so
 extra fields in the input are propagated to the output.
 
 ### Examples
 
 _Shape input records_
 ```mdtest-command
-echo '{b:1,a:2}{a:3}{b:4,c:5}' | zq -z 'shape(this, <{a:int64,b:string}>)' -
+echo '{b:1,a:2}{a:3}{b:4,c:5}' |
+  zq -z 'shape(this, <{a:int64,b:string}>)' -
 ```
 produces
 ```mdtest-output

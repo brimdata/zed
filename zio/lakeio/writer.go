@@ -39,7 +39,7 @@ type Writer struct {
 func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	writer := &Writer{
 		writer:   w,
-		zson:     zson.NewFormatter(0, nil),
+		zson:     zson.NewFormatter(0, false, nil),
 		commits:  make(table),
 		branches: make(map[ksuid.KSUID][]string),
 		width:    80, //XXX
@@ -56,8 +56,9 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 }
 
 func (w *Writer) Write(rec zed.Value) error {
+	arena, _ := rec.Arena()
 	var v interface{}
-	if err := unmarshaler.Unmarshal(rec, &v); err != nil {
+	if err := newUnmarshaler(nil, arena).Unmarshal(rec, &v); err != nil {
 		return w.WriteZSON(rec)
 	}
 	var b bytes.Buffer
@@ -109,9 +110,9 @@ func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
 	b.WriteByte(' ')
 	b.WriteString(p.ID.String())
 	b.WriteString(" key ")
-	b.WriteString(p.SortKey.Keys.String())
+	b.WriteString(p.SortKeys.Primary().Key.String())
 	b.WriteString(" order ")
-	b.WriteString(p.SortKey.Order.String())
+	b.WriteString(p.SortKeys.Primary().Order.String())
 	b.WriteByte('\n')
 }
 

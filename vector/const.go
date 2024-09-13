@@ -7,6 +7,7 @@ import (
 )
 
 type Const struct {
+	arena *zed.Arena
 	val   zed.Value
 	len   uint32
 	Nulls *Bool
@@ -14,8 +15,8 @@ type Const struct {
 
 var _ Any = (*Const)(nil)
 
-func NewConst(val zed.Value, len uint32, nulls *Bool) *Const {
-	return &Const{val: val, len: len, Nulls: nulls}
+func NewConst(arena *zed.Arena, val zed.Value, len uint32, nulls *Bool) *Const {
+	return &Const{arena: arena, val: val, len: len, Nulls: nulls}
 }
 
 func (c *Const) Type() zed.Type {
@@ -45,6 +46,10 @@ func (c *Const) Serialize(b *zcode.Builder, slot uint32) {
 	}
 }
 
+func (c *Const) AsBytes() ([]byte, bool) {
+	return c.val.Bytes(), c.val.Type().ID() == zed.IDBytes
+}
+
 func (c *Const) AsFloat() (float64, bool) {
 	return coerce.ToFloat(c.val)
 }
@@ -55,4 +60,8 @@ func (c *Const) AsInt() (int64, bool) {
 
 func (c *Const) AsUint() (uint64, bool) {
 	return coerce.ToUint(c.val)
+}
+
+func (c *Const) AsString() (string, bool) {
+	return c.val.AsString(), c.val.IsString()
 }

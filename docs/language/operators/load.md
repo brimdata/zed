@@ -7,6 +7,13 @@
 ```
 load <pool>[@<branch>] [author <author>] [message <message>] [meta <meta>]
 ```
+
+:::tip Note
+The `load` operator is exclusively for working with pools in a
+[Zed lake](../../commands/zed.md) and is not available for use in
+[`zq`](../../commands/zq.md).
+:::
+
 ### Description
 
 The `load` operator populates the specified `<pool>` with the values it
@@ -30,9 +37,13 @@ export ZED_LAKE=example
 zed -q init
 zed -q create -orderby flip:asc coinflips
 zed branch -q -use coinflips onlytails
-echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' | zed load -q -use coinflips -
+echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' |
+  zed load -q -use coinflips -
 zed -q create -orderby flip:asc bigflips
-zed query -f text 'from :branches | yield pool.name + "@" + branch.name | sort'
+zed query -f text '
+  from :branches
+  | yield pool.name + "@" + branch.name
+  | sort'
 ```
 
 The lake then contains the two pools:
@@ -47,7 +58,12 @@ coinflips@onlytails
 
 _Modify some values, load them into the `main` branch of our empty `bigflips` pool, and see what was loaded_
 ```mdtest-command
-zed -lake example query 'from coinflips | result:=upper(result) | load bigflips' > /dev/null
+zed -lake example query '
+  from coinflips
+  | result:=upper(result)
+  | load bigflips
+' > /dev/null
+
 zed -lake example query -z 'from bigflips'
 ```
 =>
@@ -58,7 +74,15 @@ zed -lake example query -z 'from bigflips'
 
 _Add a filtered subset of records to our `onlytails` branch, while also adding metadata_
 ```mdtest-command
-zed -lake example query 'from coinflips | result=="tails" | load coinflips@onlytails author "Steve" message "A subset" meta "\"Additional metadata\""' > /dev/null
+zed -lake example query '
+  from coinflips
+  | result=="tails"
+  | load coinflips@onlytails
+      author "Steve"
+      message "A subset"
+      meta "\"Additional metadata\""
+' > /dev/null
+
 zed -lake example query -z 'from coinflips@onlytails'
 ```
 =>

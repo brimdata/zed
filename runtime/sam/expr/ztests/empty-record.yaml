@@ -1,7 +1,0 @@
-zed: yield {}
-
-input: |
-  {}
-
-output: |
-  {}

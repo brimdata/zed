@@ -1,0 +1,13 @@
+zed: trim(this)
+
+vector: true
+
+input: |
+  "   cushion   "
+  "foo   "((string,int64))
+  1.
+
+output: |
+  "cushion"
+  "foo"
+  error({message:"trim: string arg required",on:1.})

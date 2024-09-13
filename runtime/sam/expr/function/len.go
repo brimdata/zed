@@ -2,6 +2,7 @@ package function
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/runtime/sam/expr"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
@@ -9,10 +10,10 @@ type LenFn struct {
 	zctx *zed.Context
 }
 
-func (l *LenFn) Call(_ zed.Allocator, args []zed.Value) zed.Value {
-	val := args[0]
+func (l *LenFn) Call(ectx expr.Context, args []zed.Value) zed.Value {
+	val := args[0].Under(ectx.Arena())
 	var length int
-	switch typ := zed.TypeUnder(args[0].Type()).(type) {
+	switch typ := zed.TypeUnder(val.Type()).(type) {
 	case *zed.TypeOfNull:
 	case *zed.TypeRecord:
 		length = len(typ.Fields)
@@ -25,37 +26,37 @@ func (l *LenFn) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet:
 		length = len(val.Bytes())
 	case *zed.TypeError:
-		return l.zctx.WrapError("len()", val)
+		return l.zctx.WrapError(ectx.Arena(), "len()", val)
 	case *zed.TypeOfType:
 		t, err := l.zctx.LookupByValue(val.Bytes())
 		if err != nil {
-			return l.zctx.NewError(err)
+			return l.zctx.NewError(ectx.Arena(), err)
 		}
-		length = typeLength(t)
+		length = TypeLength(t)
 	default:
-		return l.zctx.WrapError("len: bad type", val)
+		return l.zctx.WrapError(ectx.Arena(), "len: bad type", val)
 	}
 	return zed.NewInt64(int64(length))
 }
 
-func typeLength(typ zed.Type) int {
+func TypeLength(typ zed.Type) int {
 	switch typ := typ.(type) {
 	case *zed.TypeNamed:
-		return typeLength(typ.Type)
+		return TypeLength(typ.Type)
 	case *zed.TypeRecord:
 		return len(typ.Fields)
 	case *zed.TypeUnion:
 		return len(typ.Types)
 	case *zed.TypeSet:
-		return typeLength(typ.Type)
+		return TypeLength(typ.Type)
 	case *zed.TypeArray:
-		return typeLength(typ.Type)
+		return TypeLength(typ.Type)
 	case *zed.TypeEnum:
 		return len(typ.Symbols)
 	case *zed.TypeMap:
-		return typeLength(typ.ValType)
+		return TypeLength(typ.ValType)
 	case *zed.TypeError:
-		return typeLength(typ.Type)
+		return TypeLength(typ.Type)
 	default:
 		// Primitive type
 		return 1

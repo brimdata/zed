@@ -17,6 +17,15 @@ func NewString(offsets []uint32, bytes []byte, nulls *Bool) *String {
 	return &String{Offsets: offsets, Bytes: bytes, Nulls: nulls}
 }
 
+func NewStringEmpty(length uint32, nulls *Bool) *String {
+	return NewString(make([]uint32, 1, length+1), nil, nulls)
+}
+
+func (s *String) Append(v string) {
+	s.Bytes = append(s.Bytes, v...)
+	s.Offsets = append(s.Offsets, uint32(len(s.Bytes)))
+}
+
 func (s *String) Type() zed.Type {
 	return zed.TypeString
 }
@@ -37,37 +46,26 @@ func (s *String) Serialize(b *zcode.Builder, slot uint32) {
 	}
 }
 
-type DictString struct {
-	Tags   []byte
-	Offs   []uint32
-	Bytes  []byte
-	Counts []uint32
-	Nulls  *Bool
-}
-
-var _ Any = (*DictString)(nil)
-
-func NewDictString(tags []byte, offs []uint32, bytes []byte, counts []uint32, nulls *Bool) *DictString {
-	return &DictString{Tags: tags, Offs: offs, Bytes: bytes, Counts: counts, Nulls: nulls}
-}
-
-func (d *DictString) Type() zed.Type {
-	return zed.TypeString
-}
-
-func (d *DictString) Len() uint32 {
-	return uint32(len(d.Tags))
-}
-
-func (d *DictString) Value(slot uint32) string {
-	tag := d.Tags[slot]
-	return string(d.Bytes[d.Offs[tag]:d.Offs[tag+1]])
-}
-
-func (d *DictString) Serialize(b *zcode.Builder, slot uint32) {
-	if d.Nulls != nil && d.Nulls.Value(slot) {
-		b.Append(nil)
-	} else {
-		b.Append(zed.EncodeString(d.Value(slot)))
+func StringValue(val Any, slot uint32) (string, bool) {
+	switch val := val.(type) {
+	case *String:
+		if val.Nulls.Value(slot) {
+			return "", true
+		}
+		return val.Value(slot), false
+	case *Const:
+		if val.Nulls.Value(slot) {
+			return "", true
+		}
+		s, _ := val.AsString()
+		return s, false
+	case *Dict:
+		if val.Nulls.Value(slot) {
+			return "", true
+		}
+		return StringValue(val.Any, uint32(val.Index[slot]))
+	case *View:
+		return StringValue(val.Any, val.Index[slot])
 	}
+	panic(val)
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/pkg/field"
 	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
+	vamfunc "github.com/brimdata/zed/runtime/vam/expr/function"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -16,11 +17,11 @@ func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {
 	}
 	switch e := e.(type) {
 	case *dag.Literal:
-		val, err := zson.ParseValue(b.zctx(), e.Value)
+		val, err := zson.ParseValue(b.zctx(), b.arena, e.Value)
 		if err != nil {
 			return nil, err
 		}
-		return vamexpr.NewLiteral(val), nil
+		return vamexpr.NewLiteral(b.arena, val), nil
 	//case *dag.Var:
 	//	return vamexpr.NewVar(e.Slot), nil
 	//case *dag.Search:
@@ -35,14 +36,14 @@ func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {
 		return b.compileVamBinary(e)
 	//case *dag.Conditional:
 	//	return b.compileVamConditional(*e)
-	//case *dag.Call:
-	//	return b.compileVamCall(*e)
+	case *dag.Call:
+		return b.compileVamCall(e)
 	//case *dag.RegexpMatch:
 	//	return b.compileVamRegexpMatch(e)
 	//case *dag.RegexpSearch:
 	//	return b.compileVamRegexpSearch(e)
-	//case *dag.RecordExpr:
-	//	return b.compileVamRecordExpr(e)
+	case *dag.RecordExpr:
+		return b.compileVamRecordExpr(e)
 	//case *dag.ArrayExpr:
 	//	return b.compileVamArrayExpr(e)
 	//case *dag.SetExpr:
@@ -98,8 +99,8 @@ func (b *Builder) compileVamBinary(e *dag.BinaryExpr) (vamexpr.Evaluator, error)
 	//	return vamexpr.NewIn(b.zctx(), lhs, rhs), nil
 	case "==", "!=", "<", "<=", ">", ">=":
 		return vamexpr.NewCompare(b.zctx(), lhs, rhs, op), nil
-	//case "+", "-", "*", "/", "%":
-	//	return vamexpr.NewArithmetic(b.zctx(), lhs, rhs, op)
+	case "+", "-", "*", "/", "%":
+		return vamexpr.NewArith(b.zctx(), lhs, rhs, op), nil
 	//case "[":
 	//	return vamexpr.NewIndexExpr(b.zctx(), lhs, rhs), nil
 	default:
@@ -141,4 +142,48 @@ func (b *Builder) compileVamExprs(in []dag.Expr) ([]vamexpr.Evaluator, error) {
 		exprs = append(exprs, ev)
 	}
 	return exprs, nil
+}
+
+func (b *Builder) compileVamCall(call *dag.Call) (vamexpr.Evaluator, error) {
+	fn, path, err := vamfunc.New(b.zctx(), call.Name, len(call.Args))
+	if err != nil {
+		return nil, err
+	}
+	args := call.Args
+	if path != nil {
+		dagPath := &dag.This{Kind: "This", Path: path}
+		args = append([]dag.Expr{dagPath}, args...)
+	}
+	exprs, err := b.compileVamExprs(args)
+	if err != nil {
+		return nil, err
+	}
+	return vamexpr.NewCall(fn, exprs), nil
+}
+
+func (b *Builder) compileVamRecordExpr(e *dag.RecordExpr) (vamexpr.Evaluator, error) {
+	var elems []vamexpr.RecordElem
+	for _, elem := range e.Elems {
+		var name string
+		var dagExpr dag.Expr
+		switch elem := elem.(type) {
+		case *dag.Field:
+			name = elem.Name
+			dagExpr = elem.Value
+		case *dag.Spread:
+			name = ""
+			dagExpr = elem.Expr
+		default:
+			panic(elem)
+		}
+		expr, err := b.compileVamExpr(dagExpr)
+		if err != nil {
+			return nil, err
+		}
+		elems = append(elems, vamexpr.RecordElem{
+			Name: name,
+			Expr: expr,
+		})
+	}
+	return vamexpr.NewRecordExpr(b.zctx(), elems), nil
 }

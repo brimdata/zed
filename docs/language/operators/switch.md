@@ -48,7 +48,14 @@ merged with an automatically inserted [combine operator](combine.md).
 
 _Split input into evens and odds_
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'switch ( case this%2==0 => {even:this} case this%2==1 => {odd:this}) | sort odd,even' -
+echo '1 2 3 4' |
+  zq -z '
+    switch (
+      case this%2==0 => {even:this}
+      case this%2==1 => {odd:this}
+    )
+    | sort odd,even
+  ' -
 ```
 =>
 ```mdtest-output
@@ -59,7 +66,14 @@ echo '1 2 3 4' | zq -z 'switch ( case this%2==0 => {even:this} case this%2==1 =>
 ```
 _Switch on `this` with a constant case_
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'switch this ( case 1 => yield "1!" default => yield string(this) ) | sort' -
+echo '1 2 3 4' |
+  zq -z '
+    switch this (
+      case 1 => yield "1!"
+      default => yield string(this)
+    )
+    | sort
+  ' -
 ```
 =>
 ```mdtest-output

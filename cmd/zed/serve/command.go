@@ -30,9 +30,19 @@ var Cmd = &charm.Spec{
 	Usage: "serve [options]",
 	Short: "service requests to a Zed lake",
 	Long: `
-The serve command listens for Zed lake API requests on the provided
-interface and port, executes the requests, and returns results.
-Requests may be issued to this service via the "zed api" command.
+The serve command implements Zed's server personality to service
+requests from instances of Zed's client personality. It listens
+for Zed lake API requests on the interface and port specified by
+the -l option, executes the requests, and returns results.
+
+The -log.level option controls log verbosity. Available levels,
+ordered from most to least verbose, are debug, info (the default),
+warn, error, dpanic, panic, and fatal. If the volume of logging
+output at the default info level seems too excessive for
+production use, warn level is recommended.
+
+The -manage option enables the running of the same maintenance tasks
+normally performed via the separate "zed manage" command.
 `,
 	HiddenFlags: "brimfd,portfile",
 	New:         New,

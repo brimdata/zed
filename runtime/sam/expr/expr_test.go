@@ -208,6 +208,15 @@ func TestCompareNumbers(t *testing.T) {
 	testSuccessful(t, "u <= f", rec2, "false")
 	testSuccessful(t, "u > f", rec2, "true")
 	testSuccessful(t, "u >= f", rec2, "true")
+
+	// Test comparisons with unions.
+	const rec3 = "{l:1((int64,bytes)),r:2.((string,float64))}"
+	testSuccessful(t, "l == r", rec3, "false")
+	testSuccessful(t, "l != r", rec3, "true")
+	testSuccessful(t, "l < r", rec3, "true")
+	testSuccessful(t, "l <= r", rec3, "true")
+	testSuccessful(t, "l > r", rec3, "false")
+	testSuccessful(t, "l >= r", rec3, "false")
 }
 
 func TestCompareNonNumbers(t *testing.T) {
@@ -362,6 +371,16 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, "this * 2", val, "20")
 	testSuccessful(t, "this / 2", val, "5")
 	testSuccessful(t, "this % 3", val, "1")
+
+	// Test arithmetic with null values
+	testSuccessful(t, "null + 1", "", "1")
+	testSuccessful(t, "uint64(1) + null", "", "1(uint64)")
+	testSuccessful(t, "null + 1.0", "", "1.")
+	testSuccessful(t, "1. - null", "", "1.")
+	testSuccessful(t, "uint64(1) * null", "", "0(uint64)")
+	testSuccessful(t, "null / 1.", "", "0.")
+	testSuccessful(t, "1 / uint64(null)", "", `error("divide by zero")`)
+	testSuccessful(t, "null % 1", "", "0")
 
 	// Difference of two times is a duration
 	testSuccessful(t, "a - b", "{a:2022-09-22T00:00:01Z,b:2022-09-22T00:00:00Z}", "1s")

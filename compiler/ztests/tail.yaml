@@ -11,15 +11,23 @@ outputs:
     data: |
       reader
       | tail 1
+      | output main
       ===
       reader
       | (
         const x = 1
         
         tail 2
+        | output main
       )
   - name: stderr
     data: |
-      tail: expression value is not a positive integer: 1.
-      tail: expression value is not a positive integer: "1"
-      tail: expression value is not a positive integer: error("missing")
+      expression value must be an integer value: 1. at line 1, column 6:
+      tail 1.
+           ~~
+      expression value must be an integer value: "1" at line 1, column 6:
+      tail "1"
+           ~~~
+      expression value must be an integer value: error("missing") at line 1, column 6:
+      tail x
+           ~

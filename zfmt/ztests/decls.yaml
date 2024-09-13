@@ -39,13 +39,9 @@ outputs:
         pass
       )
       op joinTest(left_file, right_file, left_key, right_key, left_dest, right_source): (
-        from (
-          file left_file
-        )
+        file left_file
         | join (
-          from (
-            file right_file
-          )
+          file right_file
         ) on left_key=right_key left_dest:=right_source
       )
       joinTest("fruit.ndjson", "people.ndjson", flavor, likes, eater, name)
@@ -70,4 +66,5 @@ outputs:
         )
         | join on flavor=likes eater:=name
         | yield {...this,assignee:"bob",ts:now()}
+        | output main
       )

@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/segmentio/ksuid"
@@ -20,10 +22,10 @@ func RequestIDFromContext(ctx context.Context) string {
 }
 
 type Error struct {
-	Type    string      `json:"type"`
-	Kind    string      `json:"kind"`
-	Message string      `json:"error"`
-	Info    interface{} `json:"info,omitempty"`
+	Type              string           `json:"type"`
+	Kind              string           `json:"kind"`
+	Message           string           `json:"error"`
+	CompilationErrors parser.ErrorList `json:"compilation_errors,omitempty"`
 }
 
 func (e Error) Error() string {
@@ -35,10 +37,15 @@ type VersionResponse struct {
 }
 
 type PoolPostRequest struct {
-	Name       string        `json:"name"`
-	SortKey    order.SortKey `json:"layout"`
-	SeekStride int           `json:"seek_stride"`
-	Thresh     int64         `json:"thresh"`
+	Name       string   `json:"name"`
+	SortKeys   SortKeys `json:"layout"`
+	SeekStride int      `json:"seek_stride"`
+	Thresh     int64    `json:"thresh"`
+}
+
+type SortKeys struct {
+	Order order.Which `json:"order" zed:"order"`
+	Keys  field.List  `json:"keys" zed:"keys"`
 }
 
 type PoolPutRequest struct {
@@ -96,11 +103,11 @@ type QueryRequest struct {
 }
 
 type QueryChannelSet struct {
-	ChannelID int `json:"channel_id" zed:"channel_id"`
+	Channel string `json:"channel" zed:"channel"`
 }
 
 type QueryChannelEnd struct {
-	ChannelID int `json:"channel_id" zed:"channel_id"`
+	Channel string `json:"channel" zed:"channel"`
 }
 
 type QueryError struct {

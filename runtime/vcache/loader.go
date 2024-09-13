@@ -85,10 +85,12 @@ func (l *loader) loadVector(g *errgroup.Group, paths Path, s shadow) {
 		s.mu.Lock()
 		vec := s.vec
 		if vec == nil {
-			vec = vector.NewConst(s.val, s.length(), s.nulls.flat)
+			vec = vector.NewConst(s.arena, s.val, s.length(), s.nulls.flat)
 			s.vec = vec
 		}
 		s.mu.Unlock()
+	case *error_:
+		l.loadVector(g, paths, s.vals)
 	case *named:
 		l.loadVector(g, paths, s.vals)
 	default:
@@ -285,7 +287,7 @@ func (l *loader) loadVals(typ zed.Type, s *primitive, nulls *vector.Bool) (vecto
 		offs[length] = off
 		return vector.NewTypeValue(offs, bytes, nulls), nil
 	case *zed.TypeOfNull:
-		return vector.NewConst(zed.Null, s.length(), nil), nil
+		return vector.NewConst(nil, zed.Null, s.length(), nil), nil
 	}
 	return nil, fmt.Errorf("internal error: vcache.loadPrimitive got unknown type %#v", typ)
 }
@@ -300,35 +302,35 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			values = append(values, zed.DecodeUint(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictUint(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewUint(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
 		values := make([]int64, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeInt(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictInt(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewInt(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfFloat64:
 		values := make([]float64, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeFloat64(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictFloat(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewFloat(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfFloat32:
 		values := make([]float64, 0, length)
 		for _, d := range dict {
 			values = append(values, float64(zed.DecodeFloat32(d.Value.Bytes())))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictFloat(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewFloat(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfFloat16:
 		values := make([]float64, 0, length)
 		for _, d := range dict {
 			values = append(values, float64(zed.DecodeFloat16(d.Value.Bytes())))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictFloat(typ, tags, values, counts, nulls)
+		return vector.NewDict(vector.NewFloat(typ, values, nil), tags, counts, nulls)
 	case *zed.TypeOfBytes:
 		//XXX fix VNG to use this single string slice and offs, and later prefix trick
 		var bytes []byte
@@ -342,7 +344,7 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
-		return vector.NewDictBytes(tags, offs, bytes, counts, nulls)
+		return vector.NewDict(vector.NewBytes(offs, bytes, nil), tags, counts, nulls)
 	case *zed.TypeOfString:
 		//XXX fix VNG to use this single string slice and offs, and later prefix trick
 		var bytes []byte
@@ -356,21 +358,21 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
-		return vector.NewDictString(tags, offs, bytes, counts, nulls)
+		return vector.NewDict(vector.NewString(offs, bytes, nil), tags, counts, nulls)
 	case *zed.TypeOfIP:
 		values := make([]netip.Addr, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeIP(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictIP(tags, values, counts, nulls)
+		return vector.NewDict(vector.NewIP(values, nil), tags, counts, nulls)
 	case *zed.TypeOfNet:
 		values := make([]netip.Prefix, 0, length)
 		for _, d := range dict {
 			values = append(values, zed.DecodeNet(d.Value.Bytes()))
 			counts = append(counts, d.Count)
 		}
-		return vector.NewDictNet(tags, values, counts, nulls)
+		return vector.NewDict(vector.NewNet(values, nil), tags, counts, nulls)
 	case *zed.TypeOfType:
 		//XXX fix VNG to use this single string slice and offs, and later prefix trick
 		var bytes []byte
@@ -384,7 +386,7 @@ func (l *loader) loadDict(typ zed.Type, dict []vng.DictEntry, tags []byte, nulls
 			counts = append(counts, d.Count)
 		}
 		offs = append(offs, off)
-		return vector.NewDictTypeValue(tags, offs, bytes, counts, nulls)
+		return vector.NewDict(vector.NewTypeValue(offs, bytes, nil), tags, counts, nulls)
 	default:
 		panic(fmt.Sprintf("vcache: encountered bad or unknown Zed type for vector dict: %T", typ))
 	}
@@ -412,7 +414,7 @@ func empty(typ zed.Type, length uint32, nulls *vector.Bool) vector.Any {
 	case *zed.TypeOfType:
 		return vector.NewTypeValue(make([]uint32, length+1), nil, nulls)
 	case *zed.TypeOfNull:
-		return vector.NewConst(zed.Null, length, nil)
+		return vector.NewConst(nil, zed.Null, length, nil)
 	default:
 		panic(fmt.Sprintf("vcache.empty: unknown type encountered: %T", typ))
 	}
@@ -519,6 +521,9 @@ func (l *loader) fetchNulls(g *errgroup.Group, paths Path, s shadow) {
 		s.nulls.fetch(g, l.r)
 	case *const_:
 		s.nulls.fetch(g, l.r)
+	case *error_:
+		s.nulls.fetch(g, l.r)
+		l.fetchNulls(g, paths, s.vals)
 	case *named:
 		l.fetchNulls(g, paths, s.vals)
 	default:
@@ -573,6 +578,9 @@ func flattenNulls(paths Path, s shadow, parent *vector.Bool) {
 		s.nulls.flatten(parent)
 	case *const_:
 		s.nulls.flatten(parent)
+	case *error_:
+		s.nulls.flatten(parent)
+		flattenNulls(paths, s.vals, nil)
 	case *named:
 		flattenNulls(paths, s.vals, parent)
 	default:

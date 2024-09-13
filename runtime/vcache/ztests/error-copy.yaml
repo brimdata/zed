@@ -1,0 +1,15 @@
+script: |
+  zq -f vng -o test.vng -
+  zed dev vector copy -z test.vng
+
+inputs:
+  - name: stdin
+    data: &input |
+      error("error1")
+      error("error2")
+      error("error3")
+      null(error(string))
+
+outputs:
+  - name: stdout
+    data: *input

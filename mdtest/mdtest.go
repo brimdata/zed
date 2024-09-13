@@ -192,6 +192,11 @@ func parseMarkdown(source []byte) (map[string]string, []*Test, error) {
 				Line:     fcbLineNumber(commandFCB, source),
 			})
 			commandFCB = nil
+		case "mdtest-go-example":
+			tests = append(tests, &Test{
+				GoExample: fcbLines(fcb, source),
+				Line:      fcbLineNumber(fcb, source),
+			})
 		}
 		return ast.WalkContinue, nil
 	})

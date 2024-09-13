@@ -80,7 +80,8 @@ produces
 ```
 You can also use this operator with a static array:
 ```mdtest-command
-echo '{accounts:[{id:1},{id:2},{id:3}]}' | zq -z 'over accounts | where id in [1,2]' -
+echo '{accounts:[{id:1},{id:2},{id:3}]}' |
+  zq -z 'over accounts | where id in [1,2]' -
 ```
 produces
 ```mdtest-output
@@ -200,7 +201,8 @@ will be evaluated.
 
 For example,
 ```mdtest-command
-echo '"foo" "bar" "foo"' | zq -z 'yield this=="foo" ? {foocount:count()} : {barcount:count()}' -
+echo '"foo" "bar" "foo"' |
+  zq -z 'yield this=="foo" ? {foocount:count()} : {barcount:count()}' -
 ```
 produces
 ```mdtest-output
@@ -267,45 +269,59 @@ as long as it is compatible with the semantics of the expression.
 
 String literals are enclosed in either single quotes or double quotes and
 must conform to UTF-8 encoding and follow the JavaScript escaping
-conventions and unicode escape syntax.  Also, if the sequence `${` appears
-in a string the `$` character must be escaped, i.e., `\$`.
+conventions and unicode escape syntax.
 
-### String Interpolation
+### Formatted String Literals
 
-Strings may include interpolation expressions, which has the form
+A formatted string literal (or f-string) is a string literal prefixed with `f`.
+These strings may include replacement expressions which are delimited by curly
+braces:
 ```
-${ <expr> }
+f"{ <expr> }"
 ```
-In this case, the characters starting with `$` and ending at `}` are substituted
+In this case, the characters starting with `{` and ending at `}` are substituted
 with the result of evaluating the expression `<expr>`.  If this result is not
 a string, it is implicitly cast to a string.
 
 For example,
 ```mdtest-command
-echo '{numerator:22.0, denominator:7.0}' | zq -z 'yield "pi is approximately ${numerator / denominator}"' -
+echo '{numerator:22.0, denominator:7.0}' |
+  zq -z 'yield f"pi is approximately {numerator / denominator}"' -
 ```
 produces
 ```mdtest-output
 "pi is approximately 3.142857142857143"
 ```
 
-If any template expression results in an error, then the value of the template
-literal is the first error encountered in left-to-right order.
+If any expression results in an error, then the value of the f-string is the
+first error encountered in left-to-right order.
 
 > TBD: we could improve an error result here by creating a structured error
 > containing the string template text along with a list of values/errors of
 > the expressions.
 
-String interpolation may be nested, where `<expr>` contains additional strings
-with interpolated expressions.
+F-strings may be nested, where a child `<expr>` may contain f-strings.
 
 For example,
 ```mdtest-command
-echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' | zq -z 'yield "oh ${this[upper("${foo + bar}")]}"' -
+echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' |
+  zq -z 'yield f"oh {this[upper(f"{foo + bar}")]}"' -
 ```
 produces
 ```mdtest-output
 "oh hi!"
+```
+
+To represent a literal `{` character inside an f-string, it must be escaped,
+i.e., `\{`.
+
+For example,
+```mdtest-command
+echo '"brackets"' | zq -z 'yield f"{this} look like: \{ }"' -
+```
+produces
+```mdtest-output
+"brackets look like: { }"
 ```
 
 ### Record Expressions
@@ -335,7 +351,8 @@ field's value.
 
 For example,
 ```mdtest-command
-echo '{x:1,y:2,r:{a:1,b:2}}' | zq -z 'yield {a:0},{x}, {...r}, {a:0,...r,b:3}' -
+echo '{x:1,y:2,r:{a:1,b:2}}' |
+  zq -z 'yield {a:0},{x}, {...r}, {a:0,...r,b:3}' -
 ```
 produces
 ```mdtest-output
@@ -551,7 +568,8 @@ produces
 ```
 and
 ```mdtest-command
-echo '{ts:"1/1/2022",r:{x:"1",y:"2"}} {ts:"1/2/2022",r:{x:3,y:4}}' | zq -z 'cast(this,<{ts:time,r:{x:float64,y:float64}}>)' -
+echo '{ts:"1/1/2022",r:{x:"1",y:"2"}} {ts:"1/2/2022",r:{x:3,y:4}}' |
+  zq -z 'cast(this,<{ts:time,r:{x:float64,y:float64}}>)' -
 ```
 produces
 ```mdtest-output

@@ -16,7 +16,9 @@ import (
 func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, error) {
 	switch e := e.(type) {
 	case *dag.BinaryExpr:
-		literal, err := isFieldEqualOrIn(zctx, e)
+		arena := zed.NewArena()
+		defer arena.Unref()
+		literal, err := isFieldEqualOrIn(zctx, arena, e)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +55,9 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 		}
 		return nil, nil
 	case *dag.Search:
-		literal, err := zson.ParseValue(zctx, e.Value)
+		arena := zed.NewArena()
+		defer arena.Unref()
+		literal, err := zson.ParseValue(zctx, arena, e.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -80,21 +84,18 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 	}
 }
 
-// XXX isFieldEqualOrIn should work for any paths not just top-level fields.
-// See issue #3412
-
-func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) {
-	if dag.IsTopLevelField(e.LHS) && e.Op == "==" {
+func isFieldEqualOrIn(zctx *zed.Context, arena *zed.Arena, e *dag.BinaryExpr) (*zed.Value, error) {
+	if _, ok := e.LHS.(*dag.This); ok && e.Op == "==" {
 		if literal, ok := e.RHS.(*dag.Literal); ok {
-			val, err := zson.ParseValue(zctx, literal.Value)
+			val, err := zson.ParseValue(zctx, arena, literal.Value)
 			if err != nil {
 				return nil, err
 			}
 			return &val, nil
 		}
-	} else if dag.IsTopLevelField(e.RHS) && e.Op == "in" {
+	} else if _, ok := e.RHS.(*dag.This); ok && e.Op == "in" {
 		if literal, ok := e.LHS.(*dag.Literal); ok {
-			val, err := zson.ParseValue(zctx, literal.Value)
+			val, err := zson.ParseValue(zctx, arena, literal.Value)
 			if err != nil {
 				return nil, err
 			}

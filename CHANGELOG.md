@@ -1,3 +1,38 @@
+## v1.17.0
+* Improve the performance of multi-pool searches (e.g., `from * | "MyFilter"`) (#5174)
+* Reduce the amount of memory consumed by the [`merge` operator](docs/language/operators/merge.md) and merge-dependent operations, such as compaction (#5171)
+* Add the `-pool` flag to [`zed manage`](docs/commands/zed.md#manage) (#5164)
+* Fix an issue where the lake API was not providing query descriptions for Zed programs that contain scopes (#5152)
+* Fix an issue where attempts to use the [`load` operator](docs/language/operators/load.md) in `zq` caused a panic (#5162)
+* Fix a parser issue with collisions between the names of [user-defined operators](docs/language/statements.md#operator-statements) and [functions](docs/language/statements.md#func-statements) and some built-in [operators](docs/language/operators/README.md) (#5161)
+* Fix an issue were using `null` values in math caused a panic (#5163)
+
+## v1.16.0
+* Improve ZNG scanning performance (#5101, #5103)
+* Improve the error message shown when `zq` is invoked with a single argument that's not a valid query and doesn't contain a source (#5119)
+* Update [Zeek integration docs](docs/integrations/zeek/README.md), including [reference shaper](docs/integrations/zeek/shaping-zeek-ndjson.md) changes for [Zeek v6.2.0](https://github.com/zeek/zeek/releases/tag/v6.2.0) data (#5106)
+* [String literals](docs/language/expressions.md#formatted-string-literals) now use the "f-string" format `f"{ <expr> }"` instead of the previous `${ <expr> }` (#5123)
+* Prototype SQL support has been dropped from the Zed language (full SQL support is expected at a later date) (#5109)
+* Empty objects and arrays in JSON output are now consistently printed on a single line (#5127)
+* Enable colorized ZSON and JSON by default when output is to a terminal (#5114)
+* Add JSON pretty print functionality (with color if supported by terminal) when activated via `-J` flag or setting format and the `-pretty` flag (#5096)
+* Add a [Grafana integration doc](docs/integrations/grafana.md) that points to the [GitHub repo for the Zed data source plugin for Grafana](https://github.com/brimdata/grafana-zed-datasource) (#5141)
+* Fix an issue where stateful expressions inside of [lateral queries](docs/language/lateral-subqueries.md) could generate incorrect results (#5069)
+* Fix an issue where stateful expressions inside [user-defined functions](docs/language/statements.md#func-statements) could generate incorrect results (#5093)
+* Fix an issue where the [Go library examples](docs/libraries/go.md) failed to compile and run (#5095, #5147)
+
+## v1.15.0
+* Improve the error message when reading NDJSON data with an incomplete last line (#5055)
+* Improve the error message when math operators are applied to complex types (e.g., attempting to concatenate arrays with `+`) (#5059)
+* Improve the error message when `zq` is called with a single argument that's neither a file nor a valid Zed query (#5053)
+* Increase the buffer size for `line` input format to 25 MB (#5045, #5048)
+* The body of a [user-defined operator](docs/language/statements.md#operator-statements) is now a scope that can include locally-defined statements (#5074)
+* The [nameof() function](docs/language/functions/nameof.md) now supports type values (#5081)
+* Fix an issue where  [`yield`](docs/language/operators/yield.md) inside a [`switch`](docs/language/operators/switch.md) inside an [`over`](docs/language/operators/over.md) caused a panic (#5058)
+* Fix an issue where accessing a variable inside a `switch` inside an `over` inside a `switch` caused a panic (#5080)
+* Fix an issue where using `over` in an expression context caused a panic (#5079)
+* Fix an issue where math and [`join`](docs/language/operators/join.md) matches involving `float16` and `float32` types could yield incorrect results (#5086)
+
 ## v1.14.0
 * Add the `-manage` flag to [`zed serve`](docs/commands/zed.md#serve) to have the Zed service process initiate [maintenance tasks](docs/commands/zed.md#manage) on a regular interval (#5017)
 * Fix an issue where the Python client would not allow loading to a pool with `/` in its name (#5020)

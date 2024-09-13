@@ -80,12 +80,17 @@ by the following commands:
 export ZED_LAKE=example
 zed -q init
 zed -q create -orderby flip:desc coinflips
-echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' | zed load -q -use coinflips -
+echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' |
+  zed load -q -use coinflips -
 zed branch -q -use coinflips trial 
 echo '{flip:3,result:"heads"}' | zed load -q -use coinflips@trial -
 zed -q create numbers
-echo '{number:1,word:"one"} {number:2,word:"two"} {number:3,word:"three"}' | zed load -q -use numbers -
-zed query -f text 'from :branches | yield pool.name + "@" + branch.name | sort'
+echo '{number:1,word:"one"} {number:2,word:"two"} {number:3,word:"three"}' |
+  zed load -q -use numbers -
+zed query -f text '
+  from :branches
+  | yield pool.name + "@" + branch.name
+  | sort'
 ```
 
 The lake then contains the two pools:
@@ -125,7 +130,8 @@ zq -z 'file hello.zson format line'
 
 _Source structured data from a URI_
 ```
-zq -z 'get https://raw.githubusercontent.com/brimdata/zui-insiders/main/package.json | yield productName'
+zq -z 'get https://raw.githubusercontent.com/brimdata/zui-insiders/main/package.json
+       | yield productName'
 ```
 =>
 ```
@@ -184,7 +190,9 @@ zed -lake example query -z '
   ) on flip=number word
   | from (
     pass
-    pool coinflips@trial => c:=count() | yield "There were ${int64(c)} flips"
+    pool coinflips@trial =>
+      c:=count()
+      | yield f"There were {int64(c)} flips"
   ) | sort this'
 ```
 =>

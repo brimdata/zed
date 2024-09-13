@@ -3,7 +3,9 @@ package mdtest
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/pmezard/go-difflib/difflib"
@@ -11,16 +13,20 @@ import (
 
 // Test represents a single test in a Markdown file.
 type Test struct {
-	Command  string
-	Dir      string
-	Expected string
-	Fails    bool
-	Head     bool
-	Line     int
+	Command   string
+	Dir       string
+	Expected  string
+	Fails     bool
+	Head      bool
+	Line      int
+	GoExample string
 }
 
 // Run runs the test, returning nil on success.
 func (t *Test) Run() error {
+	if t.GoExample != "" {
+		return t.vetGoExample()
+	}
 	c := exec.Command("bash", "-e", "-o", "pipefail")
 	c.Dir = t.Dir
 	c.Stdin = strings.NewReader(t.Command)
@@ -56,4 +62,22 @@ func (t *Test) Run() error {
 		return fmt.Errorf("expected and actual output differ:\n%s", diff)
 	}
 	return nil
+}
+
+func (t *Test) vetGoExample() error {
+	dir, err := os.MkdirTemp("", "")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+	path := filepath.Join(dir, "main.go")
+	if err := os.WriteFile(path, []byte(t.GoExample), 0666); err != nil {
+		return err
+	}
+	_, err = exec.Command("go", "vet", path).Output()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return fmt.Errorf("could not vet go example: %s", string(exitErr.Stderr))
+	}
+	return err
 }

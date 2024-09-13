@@ -7,9 +7,10 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/poolflags"
 	"github.com/brimdata/zed/cmd/zed/root"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zbuf"
 )
 
 var Cmd = &charm.Spec{
@@ -70,10 +71,13 @@ func (c *Command) Run(args []string) error {
 	defer w.Close()
 	q, err := lake.Query(ctx, nil, query)
 	if err != nil {
+		if list := (parser.ErrorList)(nil); errors.As(err, &list) && len(list) == 1 {
+			return errors.New(list[0].Msg)
+		}
 		return err
 	}
-	defer q.Close()
-	err = zio.Copy(w, q)
+	defer q.Pull(true)
+	err = zbuf.CopyPuller(w, q)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

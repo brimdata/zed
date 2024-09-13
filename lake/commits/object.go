@@ -110,9 +110,10 @@ func (o Object) Serialize() ([]byte, error) {
 	return b, nil
 }
 
-func DecodeObject(r io.Reader) (*Object, error) {
+func DecodeObject(zctx *zed.Context, r io.Reader) (*Object, error) {
+	arena := zed.NewArena()
 	o := &Object{}
-	reader := zngbytes.NewDeserializer(r, ActionTypes)
+	reader := zngbytes.NewDeserializer(zctx, arena, r, ActionTypes)
 	defer reader.Close()
 	for {
 		entry, err := reader.Read()
@@ -126,6 +127,7 @@ func DecodeObject(r io.Reader) (*Object, error) {
 		if !ok {
 			return nil, badObject(entry)
 		}
+		setActionArena(action, arena)
 		o.append(action)
 	}
 	// Fill in the commit and parent IDs from the first record,
