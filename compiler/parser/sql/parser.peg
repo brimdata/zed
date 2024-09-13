@@ -101,7 +101,7 @@ SimpleSelectHead
   / KW_SELECT OptAllClause list:OptTargetList {  // XXX why optional target?
         s := &sql.Select{}
         if list != nil {
-          s.Exprs: sliceOf[ast.Expr](list)
+          s.Exprs = sliceOf[ast.Expr](list)
         }   
         return s, nil 
   }
@@ -120,7 +120,7 @@ FromClause
     }
 
 FromList
-  = first:TableRef rest:( __ "," __ t:TableRef:{ return t, nil} )* {
+  = first:TableRef rest:( __ "," __ t:TableRef { return t, nil} )* {
       return prepend(first, rest), nil
     }
 
@@ -141,7 +141,7 @@ GroupClause
   = KW_GROUP _ KW_BY _ list:GroupByList { return list, nil }
 
 GroupByList 
-  = first:first:GroupByItem rest:( __ "," __ g:GroupByItem{ return g, nil } )* {
+  = first:GroupByItem rest:( __ "," __ g:GroupByItem { return g, nil } )* {
       return prepend(first, rest), nil
     }
 
@@ -165,7 +165,7 @@ TableRef
       if alias.(string) != "" {
         return &sql.Alias{
           Source: src,
-          Name: alias.(string)
+          Name: alias.(string),
         }, nil
       }
       return src, nil
