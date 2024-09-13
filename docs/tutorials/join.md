@@ -176,7 +176,7 @@ produces
 ## Alternate Syntax
 
 In addition to the syntax shown so far, `join` supports an alternate syntax in
-which left and right inputs are specified by the two legs of a preceding
+which left and right inputs are specified by the two branches of a preceding
 [`fork` operator](../language/operators/fork.md),
 [`from` operator](../language/operators/from.md), or
 [`switch` operator](../language/operators/switch.md).

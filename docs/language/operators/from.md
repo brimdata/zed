@@ -10,10 +10,10 @@ from <pattern>
 file <path> [format <format>]
 get <uri> [format <format>]
 from (
-   pool <pool>[@<commitish>] [ => <leg> ]
+   pool <pool>[@<commitish>] [ => <branch> ]
    pool <pattern>
-   file <path> [format <format>] [ => <leg> ]
-   get <uri> [format <format>] [ => <leg> ]
+   file <path> [format <format>] [ => <branch> ]
+   get <uri> [format <format>] [ => <branch> ]
    pass
    ...
 )
@@ -26,7 +26,7 @@ their data to its output.  A data source can be
 * the names of multiple data pools, expressed as a [regular expression](../search-expressions.md#regular-expressions) or [glob](../search-expressions.md#globs) pattern;
 * a path to a file;
 * an HTTP, HTTPS, or S3 URI; or
-* the [`pass` operator](pass.md), to treat the upstream data path as a source.
+* the [`pass` operator](pass.md), to treat the upstream pipeline branch as a source.
 
 :::tip Note
 File paths and URIs may be followed by an optional [format](../../commands/zq.md#input-formats) specifier.
@@ -45,7 +45,7 @@ In the first four forms, a single source is connected to a single output.
 In the fifth form, multiple sources are accessed in parallel and may be
 [joined](join.md), [combined](combine.md), or [merged](merge.md).
 
-A data path can be split with the [`fork` operator](fork.md) as in
+A pipeline can be split with the [`fork` operator](fork.md) as in
 ```
 from PoolOne | fork (
   => op1 | op2 | ...
@@ -61,7 +61,7 @@ from (
 ) | join on key=key | ...
 ```
 
-Similarly, data can be routed to different paths with replication
+Similarly, data can be routed to different pipeline branches with replication
 using the [`switch` operator](switch.md):
 ```
 from ... | switch color (

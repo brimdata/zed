@@ -1,28 +1,28 @@
 ### Operator
 
-&emsp; **fork** &mdash; copy values to parallel paths
+&emsp; **fork** &mdash; copy values to parallel pipeline branches
 
 ### Synopsis
 
 ```
 fork (
-  => <leg>
-  => <leg>
+  => <branch>
+  => <branch>
   ...
 )
 ```
 ### Description
 
-The `fork` operator copies each input value to multiple, parallel legs of
+The `fork` operator copies each input value to multiple, parallel branches of
 the pipeline.
 
-The output of a fork consists of multiple legs that must be merged.
-If the downstream operator expects a single input, then the output legs are
+The output of a fork consists of multiple branches that must be merged.
+If the downstream operator expects a single input, then the output branches are
 merged with an automatically inserted [combine operator](combine.md).
 
 ### Examples
 
-_Copy input to two paths and merge_
+_Copy input to two pipeline branches and combine with the implied operator_
 ```mdtest-command
 echo '1 2' | zq -z 'fork (=>pass =>pass) | sort this' -
 ```

@@ -8,19 +8,19 @@ operators listed below, Zed also allows for the creation of
 [user-defined operators](../statements.md#operator-statements).
 
 * [assert](assert.md) - evaluate an assertion
-* [combine](combine.md) - combine parallel paths into a single output
+* [combine](combine.md) - combine parallel pipeline branches into a single output
 * [cut](cut.md) - extract subsets of record fields into new records
 * [debug](debug.md) - write intermediate values to stderr
 * [drop](drop.md) - drop fields from record values
 * [file](from.md) - source data from a file
-* [fork](fork.md) - copy values to parallel paths
+* [fork](fork.md) - copy values to parallel pipeline branches
 * [from](from.md) - source data from pools, files, or URIs
 * [fuse](fuse.md) - coerce all input values into a merged type
 * [get](from.md) - source data from a URI
 * [head](head.md) - copy leading values of input sequence
 * [join](join.md) - combine data from two inputs using a join predicate
 * [load](load.md) - add and commit data to a pool
-* [merge](merge.md) - combine parallel paths into a single, ordered output
+* [merge](merge.md) - combine parallel pipeline branches into a single, ordered output
 * [over](over.md) - traverse nested values as a lateral query
 * [pass](pass.md) - copy input values to output
 * [put](put.md) - add or modify fields of records

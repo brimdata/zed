@@ -70,15 +70,15 @@ providing a convenient means to derive arbitrary output values as a function
 of each input value, much like the map concept in the MapReduce framework.
 
 The [`fork` operator](operators/fork.md) copies its input to parallel
-legs of a query.  The output of these parallel paths can be combined
+branches of a pipeline.  The output of these parallel branches can be combined
 in a number of ways:
 * merged in sorted order using the [`merge` operator](operators/merge.md),
 * joined using the [`join` operator](operators/join.md), or
 * combined in an undefined order using the implied [`combine` operator](operators/combine.md).
 
-A path can also be split to multiple query legs using the
+A pipeline can also be split to multiple branches using the
 [`switch` operator](operators/switch.md), in which data is routed to only one
-corresponding leg (or dropped) based on the switch clauses.
+corresponding branch (or dropped) based on the switch clauses.
 
 Switch operators typically
 involve multiline Zed programs, which are easiest to edit in a file.  For example,
@@ -101,7 +101,7 @@ produces
 {val:3,message:"many"}
 {val:4,message:"many"}
 ```
-Note that the output order of the switch legs is undefined (indeed they run
+Note that the output order of the switch branches is undefined (indeed they run
 in parallel on multiple threads).  To establish a consistent sequence order,
 a [`merge` operator](operators/merge.md)
 may be applied at the output of the switch specifying a sort key upon which

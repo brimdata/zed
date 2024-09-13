@@ -32,14 +32,14 @@ operator
 | join | ...
 ```
 Here, Zed programs can include multiple data sources and splitting operations
-where multiple paths run in parallel and paths can be combined (in an
+where multiple pipeline branches run in parallel and branches can be combined (in an
 undefined order), merged (in a defined order) by one or more sort keys,
 or joined using relational-style join logic.
 
 Generally speaking, a [flow graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
 defines a directed acyclic graph (DAG) composed
 of data sources and operator nodes.  The Zed syntax leverages "fat arrows",
-i.e., `=>`, to indicate the start of a parallel leg of the pipeline.
+i.e., `=>`, to indicate the start of a parallel branch of the pipeline.
 
 That said, the Zed language is
 [declarative](https://en.wikipedia.org/wiki/Declarative_programming)
