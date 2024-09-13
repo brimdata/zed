@@ -12,6 +12,7 @@ in the Zed documentation include several type classes as follows:
 * _any_ - any Zed data type
 * _float_ - any floating point Zed type
 * _int_ - any signed or unsigned Zed integer type
+* _uint_ - any unsigned Zed integer type
 * _number_ - either float or int
 * _record_ - any [record](../formats/zson.md#251-record-type) type
 
