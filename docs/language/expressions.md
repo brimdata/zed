@@ -6,7 +6,7 @@ sidebar_label: Expressions
 # Expressions
 
 Zed expressions follow the typical patterns in programming languages.
-Expressions are typically used within data flow operators
+Expressions are typically used within pipeline operators
 to perform computations on input values and are typically evaluated once per each
 input value [`this`](pipeline-model.md#the-special-value-this).
 
