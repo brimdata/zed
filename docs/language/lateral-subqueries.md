@@ -13,7 +13,7 @@ the outer sequence.
 
 :::tip Note
 This pattern rhymes with the SQL pattern of a "lateral
-join", which runs a SQL subquery for each row of the outer query's table.
+join", which runs a subquery for each row of the outer query's results.
 :::
 
 Lateral subqueries are created using the scoped form of the
