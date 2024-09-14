@@ -44,6 +44,7 @@ echo '1 2 2 3' | zq -z 'uniq -c' -
 {value:2,count:2(uint64)}
 {value:3,count:1(uint64)}
 ```
+
 _Use sort to deduplicate non-adjacent values_
 ```mdtest-command
 echo '"hello" "world" "goodbye" "world" "hello" "again"' |
