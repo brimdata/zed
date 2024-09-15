@@ -91,8 +91,6 @@ func coerceVals(zctx *zed.Context, a, b vector.Any) (vector.Any, vector.Any, vec
 	//return id, ok
 }
 
-//XXX need to handle const here
-
 func promoteWider(id int, val vector.Any) vector.Any {
 	typ, err := zed.LookupPrimitiveByID(id)
 	if err != nil {
@@ -103,6 +101,14 @@ func promoteWider(id int, val vector.Any) vector.Any {
 		return val.Promote(typ)
 	case *vector.Uint:
 		return val.Promote(typ)
+	case *vector.Const:
+		var zedVal zed.Value
+		if zed.IsSigned(id) {
+			zedVal = zed.NewInt(typ, val.Value().Int())
+		} else {
+			zedVal = zed.NewUint(typ, val.Value().Uint())
+		}
+		return vector.NewConst(zedVal, val.Len(), val.Nulls)
 	case *vector.Dict:
 		promoted := val.Any.(vector.Promotable).Promote(typ)
 		return vector.NewDict(promoted, val.Index, val.Counts, val.Nulls)

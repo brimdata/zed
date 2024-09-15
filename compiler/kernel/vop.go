@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/optimizer"
+	"github.com/brimdata/zed/runtime/vam/expr"
 	vamop "github.com/brimdata/zed/runtime/vam/op"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
@@ -81,6 +82,8 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		} else {
 			return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
 		}
+	case *dag.Put:
+		return b.compileVamPut(o, parent)
 	case *dag.Yield:
 		exprs, err := b.compileVamExprs(o.Exprs)
 		if err != nil {
@@ -92,6 +95,36 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		return parent, nil
 	default:
 		return nil, fmt.Errorf("internal error: unknown dag.Op while compiling for vector runtime: %#v", o)
+	}
+}
+
+func (b *Builder) compileVamPut(put *dag.Put, parent vector.Puller) (vector.Puller, error) {
+	elems := []dag.RecordElem{
+		&dag.Spread{Kind: "Spread", Expr: &dag.This{Kind: "This"}},
+	}
+	for _, a := range put.Args {
+		lhs, ok := a.LHS.(*dag.This)
+		if !ok {
+			return nil, fmt.Errorf("internal error: dynamic field name not yet supported in vector runtime: %#v", a.LHS)
+		}
+		elems = append(elems, newDagRecordExprForPath(lhs.Path, a.RHS).Elems...)
+	}
+	e, err := b.compileVamRecordExpr(&dag.RecordExpr{Kind: "RecordExpr", Elems: elems})
+	if err != nil {
+		return nil, err
+	}
+	return vamop.NewYield(b.rctx.Zctx, parent, []expr.Evaluator{expr.NewPutter(b.zctx(), e)}), nil
+}
+
+func newDagRecordExprForPath(path []string, expr dag.Expr) *dag.RecordExpr {
+	if len(path) > 1 {
+		expr = newDagRecordExprForPath(path[1:], expr)
+	}
+	return &dag.RecordExpr{
+		Kind: "RecordExpr",
+		Elems: []dag.RecordElem{
+			&dag.Field{Kind: "Field", Name: path[0], Value: expr},
+		},
 	}
 }
 
