@@ -195,6 +195,21 @@ produces
 -2
 ```
 
+Conditional expressions can be chained, providing behavior equivalent to
+"else if" as appears in other languages.
+
+For example,
+```mdtest-command
+echo '{s:"foo",v:1}{s:"bar",v:2}{s:"baz",v:3}' |
+  zq -z 'yield (s=="foo") ? v : (s=="bar") ? -v : v*v' -
+```
+produces
+```mdtest-output
+1
+-2
+9
+```
+
 Note that if the expression has side effects,
 as with [aggregate function calls](expressions.md#aggregate-function-calls), only the selected expression
 will be evaluated.
