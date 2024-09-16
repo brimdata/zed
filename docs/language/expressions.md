@@ -195,7 +195,7 @@ produces
 -2
 ```
 
-Conditional expressions can be chained, providing behavior equivalent of
+Conditional expressions can be chained, providing behavior equivalent to
 "else if" as appears in other languages.
 
 For example,
