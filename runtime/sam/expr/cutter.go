@@ -20,7 +20,6 @@ type Cutter struct {
 	droppers     map[string]*Dropper
 	dropperCache []*Dropper
 	dirty        bool
-	quiet        bool
 }
 
 // NewCutter returns a Cutter for fieldnames. If complement is true,
@@ -40,10 +39,6 @@ func NewCutter(zctx *zed.Context, fieldRefs []*Lval, fieldExprs []Evaluator) *Cu
 		droppers:     make(map[string]*Dropper),
 		dropperCache: make([]*Dropper, n),
 	}
-}
-
-func (c *Cutter) Quiet() {
-	c.quiet = true
 }
 
 func (c *Cutter) FoundCut() bool {

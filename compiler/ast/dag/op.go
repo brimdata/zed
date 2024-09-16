@@ -35,9 +35,8 @@ type (
 		Kind string `json:"kind" unpack:""`
 	}
 	Cut struct {
-		Kind  string       `json:"kind" unpack:""`
-		Args  []Assignment `json:"args"`
-		Quiet bool         `json:"quiet"`
+		Kind string       `json:"kind" unpack:""`
+		Args []Assignment `json:"args"`
 	}
 	Drop struct {
 		Kind string `json:"kind" unpack:""`
