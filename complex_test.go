@@ -15,12 +15,10 @@ import (
 
 func TestRecordAccessNamed(t *testing.T) {
 	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
-	arena := zed.NewArena()
-	defer arena.Unref()
-	rec := zson.MustParseValue(zed.NewContext(), arena, input)
-	s := rec.Deref(arena, "foo").AsString()
+	rec := zson.MustParseValue(zed.NewContext(), input)
+	s := rec.Deref("foo").AsString()
 	assert.Equal(t, s, "hello")
-	b := rec.Deref(arena, "bar").AsBool()
+	b := rec.Deref("bar").AsBool()
 	assert.Equal(t, b, true)
 }
 
@@ -31,8 +29,6 @@ func TestNonRecordDeref(t *testing.T) {
 null
 [1,2,3]
 |[1,2,3]|`
-	arena := zed.NewArena()
-	defer arena.Unref()
 	reader := zsonio.NewReader(zed.NewContext(), strings.NewReader(input))
 	for {
 		val, err := reader.Read()
@@ -40,7 +36,7 @@ null
 			break
 		}
 		require.NoError(t, err)
-		v := val.Deref(arena, "foo")
+		v := val.Deref("foo")
 		require.Nil(t, v)
 	}
 }

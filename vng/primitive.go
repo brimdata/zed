@@ -3,7 +3,6 @@ package vng
 import (
 	"fmt"
 	"io"
-	"slices"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -26,10 +25,6 @@ type PrimitiveEncoder struct {
 	min      *zed.Value
 	max      *zed.Value
 	count    uint32
-
-	arena    *zed.Arena
-	minArena *zed.Arena
-	maxArena *zed.Arena
 }
 
 func NewPrimitiveEncoder(typ zed.Type, useDict bool) *PrimitiveEncoder {
@@ -45,10 +40,6 @@ func NewPrimitiveEncoder(typ zed.Type, useDict bool) *PrimitiveEncoder {
 		typ:  typ,
 		dict: dict,
 		cmp:  expr.NewValueCompareFn(order.Asc, false),
-
-		arena:    zed.NewArena(),
-		minArena: zed.NewArena(),
-		maxArena: zed.NewArena(),
 	}
 }
 
@@ -62,15 +53,12 @@ func (p *PrimitiveEncoder) update(body zcode.Bytes) {
 	if body == nil {
 		panic("PrimitiveWriter should not be called with null")
 	}
-	p.arena.Reset()
-	val := p.arena.New(p.typ, body)
+	val := zed.NewValue(p.typ, body)
 	if p.min == nil || p.cmp(val, *p.min) < 0 {
-		p.minArena.Reset()
-		p.min = val.Copy(p.minArena).Ptr()
+		p.min = val.Copy().Ptr()
 	}
 	if p.max == nil || p.cmp(val, *p.max) > 0 {
-		p.maxArena.Reset()
-		p.max = val.Copy(p.maxArena).Ptr()
+		p.max = val.Copy().Ptr()
 	}
 	if p.dict != nil {
 		p.dict[string(body)]++
@@ -98,8 +86,7 @@ func (p *PrimitiveEncoder) Encode(group *errgroup.Group) {
 }
 
 func (p *PrimitiveEncoder) makeDictVector() []byte {
-	dict, arena := p.makeDict()
-	defer arena.Unref()
+	dict := p.makeDict()
 	pos := make(map[string]byte)
 	for off, entry := range dict {
 		if bytes := entry.Value.Bytes(); bytes != nil {
@@ -133,17 +120,14 @@ func (p *PrimitiveEncoder) Const() *Const {
 			bytes = []byte(b)
 		}
 	}
-	arena := zed.NewArena()
 	return &Const{
-		Arena: arena,
-		Value: arena.New(p.typ, bytes),
+		Value: zed.NewValue(p.typ, bytes),
 		Count: p.count,
 	}
 }
 
 func (p *PrimitiveEncoder) Metadata(off uint64) (uint64, Metadata) {
 	var dict []DictEntry
-	var dictArena *zed.Arena
 	if p.dict != nil {
 		if cnt := len(p.dict); cnt != 0 {
 			if cnt == 1 {
@@ -153,7 +137,7 @@ func (p *PrimitiveEncoder) Metadata(off uint64) (uint64, Metadata) {
 				p.out = nil
 				return off, p.Const()
 			}
-			dict, dictArena = p.makeDict()
+			dict = p.makeDict()
 		}
 	}
 	loc := Segment{
@@ -164,15 +148,12 @@ func (p *PrimitiveEncoder) Metadata(off uint64) (uint64, Metadata) {
 	}
 	off += uint64(len(p.out))
 	return off, &Primitive{
-		Typ:       p.typ,
-		Location:  loc,
-		Dict:      dict,
-		Count:     p.count,
-		Min:       p.min,
-		Max:       p.max,
-		dictArena: dictArena,
-		minArena:  p.minArena,
-		maxArena:  p.maxArena,
+		Typ:      p.typ,
+		Location: loc,
+		Dict:     dict,
+		Count:    p.count,
+		Min:      p.min,
+		Max:      p.max,
 	}
 }
 
@@ -184,17 +165,16 @@ func (p *PrimitiveEncoder) Emit(w io.Writer) error {
 	return err
 }
 
-func (p *PrimitiveEncoder) makeDict() ([]DictEntry, *zed.Arena) {
-	arena := zed.NewArena()
+func (p *PrimitiveEncoder) makeDict() []DictEntry {
 	dict := make([]DictEntry, 0, len(p.dict))
 	for key, cnt := range p.dict {
 		dict = append(dict, DictEntry{
-			arena.New(p.typ, zcode.Bytes(key)),
+			zed.NewValue(p.typ, zcode.Bytes(key)),
 			cnt,
 		})
 	}
-	sortDict(dict, p.cmp)
-	return dict, arena
+	sortDict(dict, expr.NewValueCompareFn(order.Asc, false))
+	return dict
 }
 
 func sortDict(entries []DictEntry, cmp expr.CompareFn) {
@@ -251,8 +231,6 @@ type DictBuilder struct {
 	dict      []DictEntry
 	selectors []byte
 	off       int
-
-	dictArena *zed.Arena
 }
 
 var _ Builder = (*DictBuilder)(nil)
@@ -263,8 +241,6 @@ func NewDictBuilder(primitive *Primitive, reader io.ReaderAt) *DictBuilder {
 		reader: reader,
 		loc:    primitive.Location,
 		dict:   primitive.Dict,
-
-		dictArena: primitive.dictArena,
 	}
 }
 
@@ -303,7 +279,7 @@ type ConstBuilder struct {
 var _ Builder = (*ConstBuilder)(nil)
 
 func NewConstBuilder(c *Const) *ConstBuilder {
-	return &ConstBuilder{Typ: c.Value.Type(), bytes: slices.Clone(c.Value.Bytes()), cnt: c.Count}
+	return &ConstBuilder{Typ: c.Value.Type(), bytes: c.Value.Bytes(), cnt: c.Count}
 }
 
 func (c *ConstBuilder) Build(b *zcode.Builder) error {

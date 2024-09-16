@@ -15,10 +15,6 @@ import (
 )
 
 func TestScannerContext(t *testing.T) {
-	arena := zed.NewArena()
-	defer arena.Unref()
-	m := zson.NewZNGMarshaler()
-
 	// We want to maximize the number of scanner goroutines running
 	// concurrently, so don't call t.Parallel.
 	count := runtime.GOMAXPROCS(0) + 1
@@ -31,7 +27,7 @@ func TestScannerContext(t *testing.T) {
 	for i := 0; i < count; i++ {
 		names = append(names, strconv.Itoa(i))
 		values = append(values, i)
-		rec, err := m.MarshalCustom(arena, names, values)
+		rec, err := zson.NewZNGMarshaler().MarshalCustom(names, values)
 		require.NoError(t, err)
 		var buf bytes.Buffer
 		w := NewWriter(zio.NopCloser(&buf))

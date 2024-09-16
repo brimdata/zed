@@ -30,7 +30,6 @@ type Writer struct {
 	writer *bufio.Writer
 	tab    int
 
-	arena *zed.Arena
 	// Use json.Encoder for primitive Values. Have to use
 	// json.Encoder instead of json.Marshal because it's
 	// the only way to turn off HTML escaping.
@@ -47,7 +46,6 @@ func NewWriter(writer io.WriteCloser, opts WriterOpts) *Writer {
 		Closer: writer,
 		writer: bufio.NewWriter(writer),
 		tab:    opts.Pretty,
-		arena:  zed.NewArena(),
 	}
 	w.primEnc = json.NewEncoder(&w.primBuf)
 	w.primEnc.SetEscapeHTML(false)
@@ -55,7 +53,6 @@ func NewWriter(writer io.WriteCloser, opts WriterOpts) *Writer {
 }
 
 func (w *Writer) Write(val zed.Value) error {
-	w.arena.Reset()
 	// writeAny doesn't return an error because any error that occurs will be
 	// surfaced with w.writer.Flush is called.
 	w.writeAny(0, val)
@@ -64,7 +61,7 @@ func (w *Writer) Write(val zed.Value) error {
 }
 
 func (w *Writer) writeAny(tab int, val zed.Value) {
-	val = val.Under(w.arena)
+	val = val.Under()
 	if val.IsNull() {
 		w.writeColor([]byte("null"), nullColor)
 		return
@@ -103,7 +100,7 @@ func (w *Writer) writeRecord(tab int, typ *zed.TypeRecord, bytes zcode.Bytes) {
 		if i != 0 {
 			w.punc(',')
 		}
-		w.writeEntry(tab, f.Name, w.arena.New(f.Type, it.Next()))
+		w.writeEntry(tab, f.Name, zed.NewValue(f.Type, it.Next()))
 	}
 	w.newline()
 	w.indent(tab - w.tab)
@@ -124,7 +121,7 @@ func (w *Writer) writeArray(tab int, typ zed.Type, bytes zcode.Bytes) {
 		}
 		w.newline()
 		w.indent(tab)
-		w.writeAny(tab, w.arena.New(typ, it.Next()))
+		w.writeAny(tab, zed.NewValue(typ, it.Next()))
 	}
 	w.newline()
 	w.indent(tab - w.tab)
@@ -144,7 +141,7 @@ func (w *Writer) writeMap(tab int, typ *zed.TypeMap, bytes zcode.Bytes) {
 			w.punc(',')
 		}
 		key := mapKey(typ.KeyType, it.Next())
-		w.writeEntry(tab, key, w.arena.New(typ.ValType, it.Next()))
+		w.writeEntry(tab, key, zed.NewValue(typ.ValType, it.Next()))
 	}
 	w.newline()
 	w.indent(tab - w.tab)
@@ -152,22 +149,23 @@ func (w *Writer) writeMap(tab int, typ *zed.TypeMap, bytes zcode.Bytes) {
 }
 
 func mapKey(typ zed.Type, b zcode.Bytes) string {
-	switch typ.Kind() {
+	val := zed.NewValue(typ, b)
+	switch val.Type().Kind() {
 	case zed.PrimitiveKind:
-		if typ.ID() == zed.IDString {
+		if val.Type().ID() == zed.IDString {
 			// Don't quote strings.
-			return zed.DecodeString(b)
+			return val.AsString()
 		}
-		return zson.FormatPrimitive(typ, b)
+		return zson.FormatPrimitive(val.Type(), val.Bytes())
 	case zed.UnionKind:
 		// Untagged, decorated ZSON so
 		// |{0:1,0(uint64):2,0(=t):3,"0":4}| gets unique keys.
 		typ, bytes := typ.(*zed.TypeUnion).Untag(b)
-		return zson.FormatTypeAndBytes(typ, bytes)
+		return zson.FormatValue(zed.NewValue(typ, bytes))
 	case zed.EnumKind:
 		return convertEnum(typ.(*zed.TypeEnum), b)
 	default:
-		return zson.FormatTypeAndBytes(typ, b)
+		return zson.FormatValue(val)
 	}
 }
 
@@ -185,7 +183,7 @@ func convertEnum(typ *zed.TypeEnum, bytes zcode.Bytes) string {
 func (w *Writer) writeError(tab int, typ *zed.TypeError, bytes zcode.Bytes) {
 	tab += w.tab
 	w.punc('{')
-	w.writeEntry(tab, "error", w.arena.New(typ.Type, bytes))
+	w.writeEntry(tab, "error", zed.NewValue(typ.Type, bytes))
 	w.newline()
 	w.indent(tab - w.tab)
 	w.punc('}')

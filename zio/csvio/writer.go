@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -22,8 +23,6 @@ type Writer struct {
 	types     map[int]struct{}
 	first     *zed.TypeRecord
 	strings   []string
-	arena     *zed.Arena
-	mapper    *zed.Mapper
 }
 
 type WriterOpts struct {
@@ -35,14 +34,11 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	if opts.Delim != 0 {
 		encoder.Comma = opts.Delim
 	}
-	zctx := zed.NewContext()
 	return &Writer{
 		writer:    w,
 		encoder:   encoder,
-		flattener: expr.NewFlattener(zctx),
+		flattener: expr.NewFlattener(zed.NewContext()),
 		types:     make(map[int]struct{}),
-		arena:     zed.NewArena(),
-		mapper:    zed.NewMapper(zctx),
 	}
 }
 
@@ -60,8 +56,7 @@ func (w *Writer) Write(rec zed.Value) error {
 	if rec.Type().Kind() != zed.RecordKind {
 		return fmt.Errorf("CSV output encountered non-record value: %s", zson.FormatValue(rec))
 	}
-	w.arena.Reset()
-	rec, err := w.flattener.Flatten(w.arena, rec)
+	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err
 	}
@@ -85,29 +80,30 @@ func (w *Writer) Write(rec zed.Value) error {
 	for i, it := 0, rec.Bytes().Iter(); i < len(fields) && !it.Done(); i++ {
 		var s string
 		if zb := it.Next(); zb != nil {
-			typ, err := w.mapper.Enter(fields[i].Type)
-			if err != nil {
-				return err
-			}
-			val := w.arena.New(typ, zb).Under(w.arena)
+			val := zed.NewValue(fields[i].Type, zb).Under()
 			switch id := val.Type().ID(); {
 			case id == zed.IDBytes && len(val.Bytes()) == 0:
 				// We want "" instead of "0x" for a zero-length value.
 			case id == zed.IDString:
 				s = string(val.Bytes())
-			case id < zed.IDTypeComplex:
-				// Avoid ZSON decoration
-				s = zson.FormatPrimitive(val.Type(), val.Bytes())
+			default:
+				s = formatValue(val.Type(), val.Bytes())
 				if zed.IsFloat(id) && strings.HasSuffix(s, ".") {
 					s = strings.TrimSuffix(s, ".")
 				}
-			default:
-				s = zson.FormatValue(val)
 			}
 		}
 		w.strings = append(w.strings, s)
 	}
 	return w.encoder.Write(w.strings)
+}
+
+func formatValue(typ zed.Type, bytes zcode.Bytes) string {
+	// Avoid ZSON decoration.
+	if typ.ID() < zed.IDTypeComplex {
+		return zson.FormatPrimitive(zed.TypeUnder(typ), bytes)
+	}
+	return zson.FormatValue(zed.NewValue(typ, bytes))
 }
 
 func fieldNamesEqual(a, b []zed.Field) bool {

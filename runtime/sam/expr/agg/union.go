@@ -56,7 +56,7 @@ func (u *Union) deleteOne() {
 	}
 }
 
-func (u *Union) Result(zctx *zed.Context, arena *zed.Arena) zed.Value {
+func (u *Union) Result(zctx *zed.Context) zed.Value {
 	if len(u.types) == 0 {
 		return zed.Null
 	}
@@ -80,7 +80,7 @@ func (u *Union) Result(zctx *zed.Context, arena *zed.Arena) zed.Value {
 			b.Append([]byte(v))
 		}
 	}
-	return arena.New(zctx.LookupTypeSet(inner), zed.NormalizeSet(b.Bytes()))
+	return zed.NewValue(zctx.LookupTypeSet(inner), zed.NormalizeSet(b.Bytes()))
 }
 
 func (u *Union) ConsumeAsPartial(val zed.Value) {
@@ -101,6 +101,6 @@ func (u *Union) ConsumeAsPartial(val zed.Value) {
 	}
 }
 
-func (u *Union) ResultAsPartial(zctx *zed.Context, arena *zed.Arena) zed.Value {
-	return u.Result(zctx, arena)
+func (u *Union) ResultAsPartial(zctx *zed.Context) zed.Value {
+	return u.Result(zctx)
 }

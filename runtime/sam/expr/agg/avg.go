@@ -11,16 +11,11 @@ import (
 )
 
 type Avg struct {
-	arena *zed.Arena
 	sum   float64
 	count uint64
 }
 
 var _ Function = (*Avg)(nil)
-
-func newAvg() *Avg {
-	return &Avg{arena: zed.NewArena()}
-}
 
 func (a *Avg) Consume(val zed.Value) {
 	if val.IsNull() {
@@ -32,7 +27,7 @@ func (a *Avg) Consume(val zed.Value) {
 	}
 }
 
-func (a *Avg) Result(*zed.Context, *zed.Arena) zed.Value {
+func (a *Avg) Result(*zed.Context) zed.Value {
 	if a.count > 0 {
 		return zed.NewFloat64(a.sum / float64(a.count))
 	}
@@ -45,15 +40,14 @@ const (
 )
 
 func (a *Avg) ConsumeAsPartial(partial zed.Value) {
-	a.arena.Reset()
-	sumVal := partial.Deref(a.arena, sumName)
+	sumVal := partial.Deref(sumName)
 	if sumVal == nil {
 		panic(errors.New("avg: partial sum is missing"))
 	}
 	if sumVal.Type() != zed.TypeFloat64 {
 		panic(fmt.Errorf("avg: partial sum has bad type: %s", zson.FormatValue(*sumVal)))
 	}
-	countVal := partial.Deref(a.arena, countName)
+	countVal := partial.Deref(countName)
 	if countVal == nil {
 		panic("avg: partial count is missing")
 	}
@@ -64,7 +58,7 @@ func (a *Avg) ConsumeAsPartial(partial zed.Value) {
 	a.count += countVal.Uint()
 }
 
-func (a *Avg) ResultAsPartial(zctx *zed.Context, arena *zed.Arena) zed.Value {
+func (a *Avg) ResultAsPartial(zctx *zed.Context) zed.Value {
 	var zv zcode.Bytes
 	zv = zed.NewFloat64(a.sum).Encode(zv)
 	zv = zed.NewUint64(a.count).Encode(zv)
@@ -72,5 +66,5 @@ func (a *Avg) ResultAsPartial(zctx *zed.Context, arena *zed.Arena) zed.Value {
 		zed.NewField(sumName, zed.TypeFloat64),
 		zed.NewField(countName, zed.TypeUint64),
 	})
-	return arena.New(typ, zv)
+	return zed.NewValue(typ, zv)
 }

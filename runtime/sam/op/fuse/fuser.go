@@ -22,7 +22,6 @@ type Fuser struct {
 	uberSchema *agg.Schema
 	shaper     *expr.ConstShaper
 	ectx       expr.Context
-	arena      *zed.Arena
 }
 
 // NewFuser returns a new Fuser.  The Fuser buffers records in memory until
@@ -34,8 +33,7 @@ func NewFuser(zctx *zed.Context, memMaxBytes int) *Fuser {
 		memMaxBytes: memMaxBytes,
 		types:       make(map[zed.Type]struct{}),
 		uberSchema:  agg.NewSchema(zctx),
-		arena:       zed.NewArena(),
-		ectx:        expr.NewContext(zed.NewArena()),
+		ectx:        expr.NewContext(),
 	}
 }
 
@@ -76,10 +74,9 @@ func (f *Fuser) stash(rec zed.Value) error {
 			}
 		}
 		f.vals = nil
-		f.arena.Reset()
 		return f.spiller.Write(rec)
 	}
-	f.vals = append(f.vals, rec.Copy(f.arena))
+	f.vals = append(f.vals, rec.Copy())
 	return nil
 }
 
@@ -99,7 +96,6 @@ func (f *Fuser) Read() (*zed.Value, error) {
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	f.ectx.Arena().Reset()
 	return f.shaper.Eval(f.ectx, *rec).Ptr(), nil
 }
 

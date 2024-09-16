@@ -156,15 +156,15 @@ func (p *Pool) ResolveRevision(ctx context.Context, revision string) (ksuid.KSUI
 	return id, nil
 }
 
-func (p *Pool) BatchifyBranches(ctx context.Context, zctx *zed.Context, arena *zed.Arena, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
+func (p *Pool) BatchifyBranches(ctx context.Context, zctx *zed.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
-	ectx := expr.NewContext(arena)
+	ectx := expr.NewContext()
 	for _, branchRef := range branches {
 		meta := BranchMeta{p.Config, branchRef}
-		rec, err := m.Marshal(arena, &meta)
+		rec, err := m.Marshal(&meta)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +188,7 @@ type BranchTip struct {
 	Commit ksuid.KSUID
 }
 
-func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, arena *zed.Arena, f expr.Evaluator) ([]zed.Value, error) {
+func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Evaluator) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
@@ -196,9 +196,9 @@ func (p *Pool) BatchifyBranchTips(ctx context.Context, zctx *zed.Context, arena 
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	recs := make([]zed.Value, 0, len(branches))
-	ectx := expr.NewContext(arena)
+	ectx := expr.NewContext()
 	for _, branchRef := range branches {
-		rec, err := m.Marshal(arena, &BranchTip{branchRef.Name, branchRef.Commit})
+		rec, err := m.Marshal(&BranchTip{branchRef.Name, branchRef.Commit})
 		if err != nil {
 			return nil, err
 		}

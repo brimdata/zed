@@ -75,8 +75,7 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 		// way, it's safe to return min's remaining values as a batch.
 		batch := min.batch
 		if len(min.vals) < len(batch.Values()) {
-			defer batch.Unref()
-			batch = zbuf.WrapBatch(batch, min.vals)
+			batch = zbuf.NewArray(min.vals)
 		}
 		ok, err := min.replenish()
 		if err != nil {

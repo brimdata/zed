@@ -24,7 +24,7 @@ type Object struct {
 // residing in storage.  The VNG header and metadata section are read and
 // the metadata is deserialized so that vectors can be loaded into the cache
 // on demand only as needed and retained in memory for future use.
-func NewObject(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI) (*Object, error) {
+func NewObject(ctx context.Context, engine storage.Engine, uri *storage.URI) (*Object, error) {
 	// XXX currently we open a storage.Reader for every object and never close it.
 	// We should either close after a timeout and reopen when needed or change the
 	// storage API to have a more reasonable semantics around the Put/Get not leaving
@@ -35,7 +35,7 @@ func NewObject(ctx context.Context, zctx *zed.Context, engine storage.Engine, ur
 	if err != nil {
 		return nil, err
 	}
-	object, err := vng.NewObject(zctx, reader)
+	object, err := vng.NewObject(reader)
 	if err != nil {
 		return nil, err
 	}

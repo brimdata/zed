@@ -66,29 +66,33 @@ func ParseType(zctx *zed.Context, zson string) (zed.Type, error) {
 	return NewAnalyzer().convertType(zctx, ast)
 }
 
-func ParseValue(zctx *zed.Context, arena *zed.Arena, zson string) (zed.Value, error) {
+func ParseValue(zctx *zed.Context, zson string) (zed.Value, error) {
 	zp := NewParser(strings.NewReader(zson))
 	ast, err := zp.ParseValue()
 	if err != nil {
 		return zed.Null, err
 	}
-	return ParseValueFromAST(zctx, arena, ast)
+	val, err := NewAnalyzer().ConvertValue(zctx, ast)
+	if err != nil {
+		return zed.Null, err
+	}
+	return Build(zcode.NewBuilder(), val)
 }
 
-func MustParseValue(zctx *zed.Context, arena *zed.Arena, zson string) zed.Value {
-	val, err := ParseValue(zctx, arena, zson)
+func MustParseValue(zctx *zed.Context, zson string) zed.Value {
+	val, err := ParseValue(zctx, zson)
 	if err != nil {
 		panic(err)
 	}
 	return val
 }
 
-func ParseValueFromAST(zctx *zed.Context, arena *zed.Arena, ast astzed.Value) (zed.Value, error) {
+func ParseValueFromAST(zctx *zed.Context, ast astzed.Value) (zed.Value, error) {
 	val, err := NewAnalyzer().ConvertValue(zctx, ast)
 	if err != nil {
 		return zed.Null, err
 	}
-	return Build(arena, zcode.NewBuilder(), val)
+	return Build(zcode.NewBuilder(), val)
 }
 
 func TranslateType(zctx *zed.Context, astType astzed.Type) (zed.Type, error) {

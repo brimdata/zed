@@ -27,25 +27,21 @@ func (o *Op) Pull(done bool) (zbuf.Batch, error) {
 			o.resetter.Reset()
 			return nil, err
 		}
-		arena := zed.NewArena()
-		ectx := expr.NewContextWithVars(arena, batch.Vars())
 		vals := batch.Values()
 		out := make([]zed.Value, 0, len(o.exprs)*len(vals))
 		for i := range vals {
 			for _, e := range o.exprs {
-				val := e.Eval(ectx, vals[i])
+				val := e.Eval(batch, vals[i])
 				if val.IsQuiet() {
 					continue
 				}
-				out = append(out, val)
+				out = append(out, val.Copy())
 			}
 		}
 		if len(out) > 0 {
-			defer arena.Unref()
 			defer batch.Unref()
-			return zbuf.NewBatch(arena, out, batch, batch.Vars()), nil
+			return zbuf.NewBatch(batch, out), nil
 		}
-		arena.Unref()
 		batch.Unref()
 	}
 }

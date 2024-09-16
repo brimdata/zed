@@ -33,7 +33,7 @@ func (d *DCount) Consume(val zed.Value) {
 	d.sketch.Insert(d.scratch)
 }
 
-func (d *DCount) Result(*zed.Context, *zed.Arena) zed.Value {
+func (d *DCount) Result(*zed.Context) zed.Value {
 	return zed.NewUint64(d.sketch.Estimate())
 }
 
@@ -48,10 +48,10 @@ func (d *DCount) ConsumeAsPartial(partial zed.Value) {
 	d.sketch.Merge(&s)
 }
 
-func (d *DCount) ResultAsPartial(_ *zed.Context, arena *zed.Arena) zed.Value {
+func (d *DCount) ResultAsPartial(zctx *zed.Context) zed.Value {
 	b, err := d.sketch.MarshalBinary()
 	if err != nil {
 		panic(fmt.Errorf("dcount: marshaling partial: %w", err))
 	}
-	return arena.NewBytes(b)
+	return zed.NewBytes(b)
 }

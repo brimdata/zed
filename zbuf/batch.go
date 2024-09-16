@@ -1,6 +1,8 @@
 package zbuf
 
 import (
+	"slices"
+	"sync"
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
@@ -23,78 +25,20 @@ import (
 //
 // Regardless of reference count or implementation, an unreachable Batch will
 // eventually be reclaimed by the garbage collector.
-
 type Batch interface {
 	Ref()
 	Unref()
 	Values() []zed.Value
+	// Vars accesses the variables reachable in the current scope.
 	Vars() []zed.Value
 }
-
-type batch struct {
-	refs    int32
-	arena   *zed.Arena
-	vals    []zed.Value
-	batch   Batch
-	vars    []zed.Value
-	batches []Batch
-	free    func()
-}
-
-func WrapBatch(b Batch, vals []zed.Value) Batch {
-	return NewBatch(nil, vals, b, b.Vars())
-}
-
-func NewBatchWithVars(arena *zed.Arena, vals []zed.Value, vars []zed.Value) Batch {
-	return NewBatch(arena, vals, nil, vars)
-}
-
-func NewBatchWithVarsAndFree(arena *zed.Arena, vals []zed.Value, vars []zed.Value, free func()) Batch {
-	b := NewBatch(arena, vals, nil, vars)
-	b.(*batch).free = free
-	return b
-}
-
-func NewBatch(arena *zed.Arena, vals []zed.Value, b Batch, vars []zed.Value) Batch {
-	if arena != nil {
-		arena.Ref()
-	}
-	if b != nil {
-		b.Ref()
-	}
-	return &batch{1, arena, vals, b, vars, nil, nil}
-}
-
-func (b *batch) AddBatches(batches ...Batch) {
-	b.batches = append(b.batches, batches...)
-}
-
-func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
-
-func (b *batch) Unref() {
-	if refs := atomic.AddInt32(&b.refs, -1); refs == 0 {
-		if b.arena != nil {
-			b.arena.Unref()
-		}
-		if b.batch != nil {
-			b.batch.Unref()
-		}
-		if b.free != nil {
-			b.free()
-		}
-	} else if refs < 0 {
-		panic("zbuf: negative batch reference count")
-	}
-}
-
-func (b *batch) Values() []zed.Value { return b.vals }
-func (b *batch) Vars() []zed.Value   { return b.vars }
 
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
 // stops and returns the error.
 func WriteBatch(zw zio.Writer, batch Batch) error {
-	for _, val := range batch.Values() {
-		if err := zw.Write(val); err != nil {
+	vals := batch.Values()
+	for i := range vals {
+		if err := zw.Write(vals[i]); err != nil {
 			return err
 		}
 	}
@@ -114,12 +58,16 @@ type Puller interface {
 	Pull(bool) (Batch, error)
 }
 
+// PullerBatchBytes is the maximum number of bytes (in the zed.Value.Byte
+// sense) per batch for a [Puller] created by [NewPuller].
+const PullerBatchBytes = 512 * 1024
+
 // PullerBatchValues is the maximum number of values per batch for a [Puller]
 // created by [NewPuller].
 var PullerBatchValues = 100
 
 // NewPuller returns a puller for zr that returns batches containing up to
-// [PullerBatchValues] values.
+// [PullerBatchBytes] bytes and [PullerBatchValues] values.
 func NewPuller(zr zio.Reader) Puller {
 	return &puller{zr}
 }
@@ -135,9 +83,7 @@ func (p *puller) Pull(done bool) (Batch, error) {
 	if p.zr == nil {
 		return nil, nil
 	}
-	arena := zed.NewArena()
-	defer arena.Unref()
-	vals := make([]zed.Value, 0, PullerBatchValues)
+	batch := newPullerBatch()
 	for {
 		val, err := p.zr.Read()
 		if err != nil {
@@ -145,17 +91,74 @@ func (p *puller) Pull(done bool) (Batch, error) {
 		}
 		if val == nil {
 			p.zr = nil
-			if len(vals) == 0 {
+			if len(batch.vals) == 0 {
 				return nil, nil
 			}
-			return NewBatch(arena, vals, nil, nil), nil
+			return batch, nil
 		}
-		vals = append(vals, val.Copy(arena))
-		if len(vals) >= PullerBatchValues {
-			return NewBatch(arena, vals, nil, nil), nil
+		if batch.appendVal(*val) {
+			return batch, nil
 		}
 	}
 }
+
+type pullerBatch struct {
+	buf  []byte
+	refs atomic.Int32
+	vals []zed.Value
+}
+
+var pullerBatchPool sync.Pool
+
+func newPullerBatch() *pullerBatch {
+	b, ok := pullerBatchPool.Get().(*pullerBatch)
+	if !ok {
+		b = &pullerBatch{
+			buf:  make([]byte, PullerBatchBytes),
+			vals: make([]zed.Value, PullerBatchValues),
+		}
+	}
+	b.buf = b.buf[:0]
+	b.refs.Store(1)
+	b.vals = b.vals[:0]
+	return b
+}
+
+// appendVal appends a copy of val to b.  appendVal returns true if b is full
+// (i.e., b.buf is full, b.buf had insufficient space for val.Bytes, or b.val is
+// full).  appendVal never reallocates b.buf or b.vals.
+func (b *pullerBatch) appendVal(val zed.Value) bool {
+	var bytes []byte
+	var bufFull bool
+	if !val.IsNull() {
+		if avail := cap(b.buf) - len(b.buf); avail >= len(val.Bytes()) {
+			// Append to b.buf since that won't reallocate.
+			start := len(b.buf)
+			b.buf = append(b.buf, val.Bytes()...)
+			bytes = b.buf[start:]
+			bufFull = avail == len(val.Bytes())
+		} else {
+			// Copy since appending to b.buf would reallocate.
+			bytes = slices.Clone(val.Bytes())
+			bufFull = true
+		}
+	}
+	b.vals = append(b.vals, zed.NewValue(val.Type(), bytes))
+	return bufFull || len(b.vals) == cap(b.vals)
+}
+
+func (b *pullerBatch) Ref() { b.refs.Add(1) }
+
+func (b *pullerBatch) Unref() {
+	if refs := b.refs.Add(-1); refs == 0 {
+		pullerBatchPool.Put(b)
+	} else if refs < 0 {
+		panic("zbuf: negative batch reference count")
+	}
+}
+
+func (p *pullerBatch) Values() []zed.Value { return p.vals }
+func (*pullerBatch) Vars() []zed.Value     { return nil }
 
 func CopyPuller(w zio.Writer, p Puller) error {
 	for {
@@ -197,4 +200,42 @@ func (r *pullerReader) Read() (*zed.Value, error) {
 	val := &r.vals[0]
 	r.vals = r.vals[1:]
 	return val, nil
+}
+
+// XXX at some point the stacked scopes should not make copies of values
+// but merely refer back to the value in the wrapped batch, and we should
+// ref the wrapped batch then downstream entities will unref it, but how
+// do we carry the var frame through... protocol needs to be that any new
+// batch created by a proc needs to preserve the var frame... we don't
+// do that right now and ref counting needs to account for the dependencies.
+// procs like summarize and sort that unref their input batches merely need
+// to copy the first frame (of each batch) and the contract is that the
+// frame will not change between multiple batches within a single-EOS event.
+
+type batch struct {
+	Batch
+	vars []zed.Value
+}
+
+func NewBatch(b Batch, vals []zed.Value) Batch {
+	return &batch{
+		Batch: NewArray(vals),
+		vars:  CopyVars(b),
+	}
+}
+
+func (b *batch) Vars() []zed.Value {
+	return b.vars
+}
+
+func CopyVars(b Batch) []zed.Value {
+	vars := b.Vars()
+	if len(vars) > 0 {
+		newvars := make([]zed.Value, len(vars))
+		for k, v := range vars {
+			newvars[k] = v.Copy()
+		}
+		vars = newvars
+	}
+	return vars
 }

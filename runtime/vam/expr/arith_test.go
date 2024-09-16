@@ -19,7 +19,7 @@ func TestArithOpsAndForms(t *testing.T) {
 	rhsFlat := vector.NewInt(zed.TypeInt64, []int64{1, 1, 1}, nil)
 	rhsDict := vector.NewDict(rhsFlat, []byte{0, 0, 0}, nil, nil)
 	rhsView := vector.NewView([]uint32{0, 1, 2}, rhsFlat)
-	Const := vector.NewConst(nil, zed.NewInt64(1), 3, nil)
+	Const := vector.NewConst(zed.NewInt64(1), 3, nil)
 
 	cases := []struct {
 		op                            string

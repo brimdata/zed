@@ -15,7 +15,6 @@ const (
 )
 
 type Reader struct {
-	arena   *zed.Arena
 	scanner *skim.Scanner
 	parser  *Parser
 }
@@ -23,7 +22,6 @@ type Reader struct {
 func NewReader(zctx *zed.Context, reader io.Reader) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
-		arena:   zed.NewArena(),
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
 		parser:  NewParser(zctx),
 	}
@@ -54,8 +52,7 @@ again:
 		}
 		goto again
 	}
-	r.arena.Reset()
-	rec, err := r.parser.ParseValue(r.arena, line)
+	rec, err := r.parser.ParseValue(line)
 	if err != nil {
 		return nil, e(err)
 	}

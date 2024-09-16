@@ -57,9 +57,8 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
-	object, err := vcache.NewObject(ctx, zctx, local, uri)
+	object, err := vcache.NewObject(ctx, local, uri)
 	if err != nil {
 		return err
 	}
@@ -68,7 +67,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	puller := vam.NewProjection(zctx, object, nil)
+	puller := vam.NewProjection(zed.NewContext(), object, nil)
 	if err := zbuf.CopyPuller(writer, puller); err != nil {
 		writer.Close()
 		return err

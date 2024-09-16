@@ -19,7 +19,7 @@ endif
 #PEG_DEP=peg
 
 vet:
-	@go vet -unsafeptr=false ./...
+	@go vet ./...
 
 fmt:
 	gofmt -s -w .

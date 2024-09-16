@@ -16,9 +16,7 @@ import (
 func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, error) {
 	switch e := e.(type) {
 	case *dag.BinaryExpr:
-		arena := zed.NewArena()
-		defer arena.Unref()
-		literal, err := isFieldEqualOrIn(zctx, arena, e)
+		literal, err := isFieldEqualOrIn(zctx, e)
 		if err != nil {
 			return nil, err
 		}
@@ -55,9 +53,7 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 		}
 		return nil, nil
 	case *dag.Search:
-		arena := zed.NewArena()
-		defer arena.Unref()
-		literal, err := zson.ParseValue(zctx, arena, e.Value)
+		literal, err := zson.ParseValue(zctx, e.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -84,10 +80,10 @@ func CompileBufferFilter(zctx *zed.Context, e dag.Expr) (*expr.BufferFilter, err
 	}
 }
 
-func isFieldEqualOrIn(zctx *zed.Context, arena *zed.Arena, e *dag.BinaryExpr) (*zed.Value, error) {
+func isFieldEqualOrIn(zctx *zed.Context, e *dag.BinaryExpr) (*zed.Value, error) {
 	if _, ok := e.LHS.(*dag.This); ok && e.Op == "==" {
 		if literal, ok := e.RHS.(*dag.Literal); ok {
-			val, err := zson.ParseValue(zctx, arena, literal.Value)
+			val, err := zson.ParseValue(zctx, literal.Value)
 			if err != nil {
 				return nil, err
 			}
@@ -95,7 +91,7 @@ func isFieldEqualOrIn(zctx *zed.Context, arena *zed.Arena, e *dag.BinaryExpr) (*
 		}
 	} else if _, ok := e.RHS.(*dag.This); ok && e.Op == "in" {
 		if literal, ok := e.LHS.(*dag.Literal); ok {
-			val, err := zson.ParseValue(zctx, arena, literal.Value)
+			val, err := zson.ParseValue(zctx, literal.Value)
 			if err != nil {
 				return nil, err
 			}

@@ -6,16 +6,15 @@ import (
 )
 
 type Literal struct {
-	arena *zed.Arena
-	val   zed.Value
+	val zed.Value
 }
 
 var _ Evaluator = (*Literal)(nil)
 
-func NewLiteral(arena *zed.Arena, val zed.Value) *Literal {
-	return &Literal{arena, val}
+func NewLiteral(val zed.Value) *Literal {
+	return &Literal{val: val}
 }
 
 func (l Literal) Eval(val vector.Any) vector.Any {
-	return vector.NewConst(l.arena, l.val, val.Len(), nil)
+	return vector.NewConst(l.val, val.Len(), nil)
 }

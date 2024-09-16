@@ -3,7 +3,6 @@ package function
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -26,7 +25,7 @@ func NewFlatten(zctx *zed.Context) *Flatten {
 	}
 }
 
-func (n *Flatten) Call(ectx expr.Context, args []zed.Value) zed.Value {
+func (n *Flatten) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[0]
 	typ := zed.TypeRecordOf(val.Type())
 	if typ == nil {
@@ -35,7 +34,7 @@ func (n *Flatten) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	inner := n.innerTypeOf(val.Bytes(), typ.Fields)
 	n.Reset()
 	n.encode(typ.Fields, inner, field.Path{}, val.Bytes())
-	return ectx.Arena().New(n.zctx.LookupTypeArray(inner), n.Bytes())
+	return zed.NewValue(n.zctx.LookupTypeArray(inner), n.Bytes())
 }
 
 func (n *Flatten) innerTypeOf(b zcode.Bytes, fields []zed.Field) zed.Type {

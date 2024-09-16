@@ -35,7 +35,7 @@ func (a *analyzer) semExpr(e ast.Expr) dag.Expr {
 	case *ast.Grep:
 		return a.semGrep(e)
 	case *astzed.Primitive:
-		val, err := zson.ParsePrimitive(a.arena, e.Type, e.Text)
+		val, err := zson.ParsePrimitive(e.Type, e.Text)
 		if err != nil {
 			a.error(e, err)
 			return badExpr()
@@ -50,7 +50,7 @@ func (a *analyzer) semExpr(e ast.Expr) dag.Expr {
 		var val string
 		switch t := e.Value.(type) {
 		case *astzed.Primitive:
-			v, err := zson.ParsePrimitive(a.arena, t.Type, t.Text)
+			v, err := zson.ParsePrimitive(t.Type, t.Text)
 			if err != nil {
 				a.error(e, err)
 				return badExpr()
@@ -290,7 +290,7 @@ func (a *analyzer) semGrep(grep *ast.Grep) dag.Expr {
 		s.Expr = e
 		return s
 	}
-	if s, ok := a.isStringConst(p); ok {
+	if s, ok := isStringConst(a.zctx, p); ok {
 		return &dag.Search{
 			Kind:  "Search",
 			Text:  s,
@@ -360,7 +360,7 @@ func (a *analyzer) semBinary(e *ast.BinaryExpr) dag.Expr {
 
 func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 	if this, ok := lhs.(*dag.This); ok {
-		if s, ok := a.isStringConst(rhs); ok {
+		if s, ok := isStringConst(a.zctx, rhs); ok {
 			this.Path = append(this.Path, s)
 			return this
 		}
@@ -368,8 +368,8 @@ func (a *analyzer) isIndexOfThis(lhs, rhs dag.Expr) *dag.This {
 	return nil
 }
 
-func (a *analyzer) isStringConst(e dag.Expr) (field string, ok bool) {
-	val, err := kernel.EvalAtCompileTime(a.zctx, a.arena, e)
+func isStringConst(zctx *zed.Context, e dag.Expr) (field string, ok bool) {
+	val, err := kernel.EvalAtCompileTime(zctx, e)
 	if err == nil && !val.IsError() && zed.TypeUnder(val.Type()) == zed.TypeString {
 		return string(val.Bytes()), true
 	}

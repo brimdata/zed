@@ -18,9 +18,8 @@ import (
 
 // Reader is a zio.Reader for the Arrow IPC stream format.
 type Reader struct {
-	arena *zed.Arena
-	zctx  *zed.Context
-	rr    pqarrow.RecordReader
+	zctx *zed.Context
+	rr   pqarrow.RecordReader
 
 	typ              zed.Type
 	unionTagMappings map[string][]int
@@ -49,7 +48,6 @@ func NewReaderFromRecordReader(zctx *zed.Context, rr pqarrow.RecordReader) (*Rea
 	fields := slices.Clone(rr.Schema().Fields())
 	uniquifyFieldNames(fields)
 	r := &Reader{
-		arena:            zed.NewArena(),
 		zctx:             zctx,
 		rr:               rr,
 		unionTagMappings: map[string][]int{},
@@ -106,8 +104,7 @@ func (r *Reader) Read() (*zed.Value, error) {
 			return nil, err
 		}
 	}
-	r.arena.Reset()
-	r.val = r.arena.New(r.typ, r.builder.Bytes())
+	r.val = zed.NewValue(r.typ, r.builder.Bytes())
 	r.i++
 	if r.i >= int(r.rec.NumRows()) {
 		r.rec.Release()

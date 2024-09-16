@@ -170,9 +170,9 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 	case *zed.TypeRecord:
 		f.formatRecord(indent, t, bytes, known, parentImplied)
 	case *zed.TypeArray:
-		null = f.formatVector(indent, "[", "]", t.Type, t, bytes, known, parentImplied)
+		null = f.formatVector(indent, "[", "]", t.Type, zed.NewValue(t, bytes), known, parentImplied)
 	case *zed.TypeSet:
-		null = f.formatVector(indent, "|[", "]|", t.Type, t, bytes, known, parentImplied)
+		null = f.formatVector(indent, "|[", "]|", t.Type, zed.NewValue(t, bytes), known, parentImplied)
 	case *zed.TypeUnion:
 		f.formatUnion(indent, t, bytes)
 	case *zed.TypeMap:
@@ -420,16 +420,21 @@ func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.By
 	f.indent(indent-f.tab, "}")
 }
 
-func (f *Formatter) formatVector(indent int, open, close string, inner, typ zed.Type, bytes zcode.Bytes, known, parentImplied bool) bool {
+func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, val zed.Value, known, parentImplied bool) bool {
 	f.build(open)
-	if len(bytes) == 0 {
+	n, err := val.ContainerLength()
+	if err != nil {
+		panic(err)
+	}
+	if n == 0 {
 		f.build(close)
 		return true
 	}
 	indent += f.tab
 	sep := f.newline
+	it := val.Iter()
 	elems := newElemBuilder(inner)
-	for it := bytes.Iter(); !it.Done(); {
+	for !it.Done() {
 		f.build(sep)
 		f.indent(indent, "")
 		typ, b := elems.add(it.Next())
@@ -441,7 +446,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner, typ zed.
 	if elems.needsDecoration() {
 		// If we haven't seen all the types in the union, print the decorator
 		// so the fullness of the union is persevered.
-		f.decorate(typ, false, true)
+		f.decorate(val.Type(), false, true)
 	}
 	return false
 }
@@ -829,11 +834,5 @@ func formatPrimitive(b *strings.Builder, typ zed.Type, bytes zcode.Bytes) {
 func FormatTypeValue(tv zcode.Bytes) string {
 	f := NewFormatter(0, true, nil)
 	f.formatTypeValue(0, tv)
-	return f.builder.String()
-}
-
-func FormatTypeAndBytes(typ zed.Type, bytes zcode.Bytes) string {
-	f := NewFormatter(0, true, nil)
-	f.formatValueAndDecorate(typ, bytes)
 	return f.builder.String()
 }

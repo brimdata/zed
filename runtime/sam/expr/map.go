@@ -26,9 +26,9 @@ func (a *mapCall) Eval(ectx Context, in zed.Value) zed.Value {
 	if val.IsError() {
 		return val
 	}
-	elems, err := val.Elements(ectx.Arena())
+	elems, err := val.Elements()
 	if err != nil {
-		return a.zctx.WrapError(ectx.Arena(), err.Error(), in)
+		return a.zctx.WrapError(err.Error(), in)
 	}
 	if len(elems) == 0 {
 		return val
@@ -43,9 +43,9 @@ func (a *mapCall) Eval(ectx Context, in zed.Value) zed.Value {
 	inner := a.innerType(a.types)
 	bytes := a.buildVal(inner, a.vals)
 	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeSet); ok {
-		return ectx.Arena().New(a.zctx.LookupTypeSet(inner), zed.NormalizeSet(bytes))
+		return zed.NewValue(a.zctx.LookupTypeSet(inner), zed.NormalizeSet(bytes))
 	}
-	return ectx.Arena().New(a.zctx.LookupTypeArray(inner), bytes)
+	return zed.NewValue(a.zctx.LookupTypeArray(inner), bytes)
 }
 
 func (a *mapCall) buildVal(inner zed.Type, vals []zed.Value) []byte {

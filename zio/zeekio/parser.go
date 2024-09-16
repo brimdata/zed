@@ -363,7 +363,7 @@ func (p *Parser) Descriptor() (*zed.TypeRecord, bool) {
 
 }
 
-func (p *Parser) ParseValue(arena *zed.Arena, line []byte) (*zed.Value, error) {
+func (p *Parser) ParseValue(line []byte) (*zed.Value, error) {
 	if p.descriptor == nil {
 		if err := p.setDescriptor(); err != nil {
 			return nil, err
@@ -375,5 +375,5 @@ func (p *Parser) ParseValue(arena *zed.Arena, line []byte) (*zed.Value, error) {
 		// each time here
 		path = []byte(p.Path)
 	}
-	return p.builder.build(arena, p.descriptor, p.sourceFields, path, line)
+	return p.builder.build(p.descriptor, p.sourceFields, path, line)
 }

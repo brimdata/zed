@@ -5,4 +5,4 @@ script: |
 outputs:
   - name: stdout
     data: |
-      null ([DictEntry={Value:{a:uint64,d:uint64},Count:uint32}])
+      null ([DictEntry={Value:{typ:null,base:uint8,len:uint64},Count:uint32}])

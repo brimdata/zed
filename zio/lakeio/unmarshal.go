@@ -1,7 +1,6 @@
 package lakeio
 
 import (
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
@@ -11,9 +10,10 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func newUnmarshaler(zctx *zed.Context, arena *zed.Arena) *zson.UnmarshalZNGContext {
-	unmarshaler := zson.NewZNGUnmarshaler()
-	unmarshaler.SetContext(zctx, arena)
+var unmarshaler *zson.UnmarshalZNGContext
+
+func init() {
+	unmarshaler = zson.NewZNGUnmarshaler()
 	unmarshaler.Bind(
 		commits.Add{},
 		commits.Commit{},
@@ -25,5 +25,4 @@ func newUnmarshaler(zctx *zed.Context, arena *zed.Arena) *zson.UnmarshalZNGConte
 		lake.BranchTip{},
 		data.Object{},
 	)
-	return unmarshaler
 }

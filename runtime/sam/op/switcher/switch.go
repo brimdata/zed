@@ -11,7 +11,6 @@ import (
 type Selector struct {
 	*op.Router
 	expr.Resetter
-	zctx  *zed.Context
 	cases []*switchCase
 }
 
@@ -28,7 +27,6 @@ func New(rctx *runtime.Context, parent zbuf.Puller, resetter expr.Resetter) *Sel
 	s := &Selector{
 		Router:   router,
 		Resetter: resetter,
-		zctx:     rctx.Zctx,
 	}
 	router.Link(s)
 	return s
@@ -41,12 +39,11 @@ func (s *Selector) AddCase(f expr.Evaluator) zbuf.Puller {
 }
 
 func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
-	arena := zed.NewArena()
-	defer arena.Unref()
-	ectx := expr.NewContextWithVars(arena, batch.Vars())
-	for _, this := range batch.Values() {
+	vals := batch.Values()
+	for i := range vals {
+		this := vals[i]
 		for _, c := range s.cases {
-			val := c.filter.Eval(ectx, this)
+			val := c.filter.Eval(batch, this)
 			if val.IsMissing() {
 				continue
 			}
@@ -69,7 +66,11 @@ func (s *Selector) Forward(router *op.Router, batch zbuf.Batch) bool {
 	// ref the batch for each outgoing new batch.
 	for _, c := range s.cases {
 		if len(c.vals) > 0 {
-			out := zbuf.NewBatch(arena, c.vals, batch, batch.Vars())
+			// XXX The new slice should come from the
+			// outgoing batch so we don't send these slices
+			// through GC.
+			batch.Ref()
+			out := zbuf.NewBatch(batch, c.vals)
 			c.vals = nil
 			if ok := router.Send(c.route, out, nil); !ok {
 				return false

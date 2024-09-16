@@ -65,9 +65,7 @@ func (b *Branch) Load(ctx context.Context, zctx *zed.Context, r zio.Reader, auth
 	if message == "" {
 		message = loadMessage(objects)
 	}
-	arena := zed.NewArena()
-	defer arena.Unref()
-	appMeta, err := loadMeta(zctx, arena, meta)
+	appMeta, err := loadMeta(zctx, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -95,13 +93,13 @@ func loadMessage(objects []data.Object) string {
 	return b.String()
 }
 
-func loadMeta(zctx *zed.Context, arena *zed.Arena, meta string) (zed.Value, error) {
+func loadMeta(zctx *zed.Context, meta string) (zed.Value, error) {
 	if meta == "" {
 		return zed.Null, nil
 	}
-	val, err := zson.ParseValue(zctx, arena, meta)
+	val, err := zson.ParseValue(zed.NewContext(), meta)
 	if err != nil {
-		return zed.Null, fmt.Errorf("%w %q: %s", ErrInvalidCommitMeta, meta, err)
+		return zctx.Missing(), fmt.Errorf("%w %q: %s", ErrInvalidCommitMeta, meta, err)
 	}
 	return val, nil
 }
@@ -132,9 +130,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 
 func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, program ast.Seq, author, message, meta string) (ksuid.KSUID, error) {
 	zctx := zed.NewContext()
-	arena := zed.NewArena()
-	defer arena.Unref()
-	appMeta, err := loadMeta(zctx, arena, meta)
+	appMeta, err := loadMeta(zctx, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -243,9 +239,8 @@ func (b *Branch) CommitCompact(ctx context.Context, src, rollup []*data.Object, 
 	if len(rollup) < 1 {
 		return ksuid.Nil, errors.New("compact: one or more rollup objects required")
 	}
-	arena := zed.NewArena()
-	defer arena.Unref()
-	appMeta, err := loadMeta(zed.NewContext(), arena, meta)
+	zctx := zed.NewContext()
+	appMeta, err := loadMeta(zctx, meta)
 	if err != nil {
 		return ksuid.Nil, err
 	}

@@ -82,7 +82,7 @@ func (l *ExprLvalElem) Eval(ectx Context, this zed.Value) (string, error) {
 }
 
 func lvalErr(ectx Context, errVal zed.Value) error {
-	val := ectx.Arena().New(errVal.Type().(*zed.TypeError).Type, errVal.Bytes())
+	val := zed.NewValue(errVal.Type().(*zed.TypeError).Type, errVal.Bytes())
 	if val.IsString() {
 		return errors.New(val.AsString())
 	}

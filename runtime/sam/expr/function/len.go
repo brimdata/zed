@@ -2,7 +2,6 @@ package function
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
@@ -10,8 +9,8 @@ type LenFn struct {
 	zctx *zed.Context
 }
 
-func (l *LenFn) Call(ectx expr.Context, args []zed.Value) zed.Value {
-	val := args[0].Under(ectx.Arena())
+func (l *LenFn) Call(_ zed.Allocator, args []zed.Value) zed.Value {
+	val := args[0].Under()
 	var length int
 	switch typ := zed.TypeUnder(val.Type()).(type) {
 	case *zed.TypeOfNull:
@@ -26,15 +25,15 @@ func (l *LenFn) Call(ectx expr.Context, args []zed.Value) zed.Value {
 	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet:
 		length = len(val.Bytes())
 	case *zed.TypeError:
-		return l.zctx.WrapError(ectx.Arena(), "len()", val)
+		return l.zctx.WrapError("len()", val)
 	case *zed.TypeOfType:
 		t, err := l.zctx.LookupByValue(val.Bytes())
 		if err != nil {
-			return l.zctx.NewError(ectx.Arena(), err)
+			return l.zctx.NewError(err)
 		}
 		length = TypeLength(t)
 	default:
-		return l.zctx.WrapError(ectx.Arena(), "len: bad type", val)
+		return l.zctx.WrapError("len: bad type", val)
 	}
 	return zed.NewInt64(int64(length))
 }

@@ -14,15 +14,12 @@ import (
 type Writer struct {
 	writer    io.WriteCloser
 	flattener *expr.Flattener
-	arena     *zed.Arena
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
-	zctx := zed.NewContext()
 	return &Writer{
 		writer:    w,
-		flattener: expr.NewFlattener(zctx),
-		arena:     zed.NewArena(),
+		flattener: expr.NewFlattener(zed.NewContext()),
 	}
 }
 
@@ -31,23 +28,22 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(val zed.Value) error {
-	w.arena.Reset()
 	if _, ok := zed.TypeUnder(val.Type()).(*zed.TypeRecord); ok {
 		return w.writeRecord(val)
 	}
-	_, err := fmt.Fprintln(w.writer, zeekio.FormatValue(w.arena, val))
+	_, err := fmt.Fprintln(w.writer, zeekio.FormatValue(val))
 	return err
 }
 
 func (w *Writer) writeRecord(rec zed.Value) error {
-	rec, err := w.flattener.Flatten(w.arena, rec)
+	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err
 	}
 	var out []string
 	for k, f := range zed.TypeRecordOf(rec.Type()).Fields {
 		var s string
-		value := rec.DerefByColumn(w.arena, k).MissingAsNull()
+		value := rec.DerefByColumn(k).MissingAsNull()
 		if f.Type == zed.TypeTime {
 			if value.IsNull() {
 				s = "-"
@@ -55,7 +51,7 @@ func (w *Writer) writeRecord(rec zed.Value) error {
 				s = zed.DecodeTime(value.Bytes()).Time().Format(time.RFC3339Nano)
 			}
 		} else {
-			s = zeekio.FormatValue(w.arena, value)
+			s = zeekio.FormatValue(value)
 		}
 		out = append(out, s)
 	}

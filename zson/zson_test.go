@@ -51,11 +51,11 @@ func TestZSONBuilder(t *testing.T) {
 	zctx := zed.NewContext()
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
-	arena := zed.NewArena()
-	zv, err := zson.Build(arena, zcode.NewBuilder(), val)
+	b := zcode.NewBuilder()
+	zv, err := zson.Build(b, val)
 	require.NoError(t, err)
-	rec := arena.New(zv.Type().(*zed.TypeRecord), zv.Bytes())
-	a := rec.Deref(arena, "a")
+	rec := zed.NewValue(zv.Type().(*zed.TypeRecord), zv.Bytes())
+	a := rec.Deref("a")
 	assert.Equal(t, `["1","2","3"]`, zson.String(a))
 }
 
@@ -72,11 +72,9 @@ func TestParseValueStringEscapeSequences(t *testing.T) {
 		{` "\u0000\u000A\u000b" `, "\u0000\u000A\u000b"},
 	}
 	for _, c := range cases {
-		arena := zed.NewArena()
-		val, err := zson.ParseValue(zed.NewContext(), arena, c.in)
+		val, err := zson.ParseValue(zed.NewContext(), c.in)
 		assert.NoError(t, err)
-		assert.True(t, val.Equal(arena.NewString(c.expected)), "in %q", c.in)
-		arena.Unref()
+		assert.Equal(t, zed.NewString(c.expected), val, "in %q", c.in)
 	}
 }
 
@@ -104,7 +102,7 @@ func TestParseValueErrors(t *testing.T) {
 		{` "\v" `, `parse error: string literal: illegal escape (\v)`},
 	}
 	for _, c := range cases {
-		_, err := zson.ParseValue(zed.NewContext(), zed.NewArena(), c.in)
+		_, err := zson.ParseValue(zed.NewContext(), c.in)
 		assert.EqualError(t, err, c.expectedError, "in: %q", c.in)
 	}
 }

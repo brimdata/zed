@@ -46,19 +46,19 @@ func (s *Slice) Eval(ectx Context, this zed.Value) zed.Value {
 		}
 		length = n
 	default:
-		return s.zctx.WrapError(ectx.Arena(), "sliced value is not array, set, bytes, or string", elem)
+		return s.zctx.WrapError("sliced value is not array, set, bytes, or string", elem)
 	}
 	if elem.IsNull() {
 		return elem
 	}
 	from, err := sliceIndex(ectx, this, s.from, length)
 	if err != nil && err != ErrSliceIndexEmpty {
-		return s.zctx.NewError(ectx.Arena(), err)
+		return s.zctx.NewError(err)
 	}
 	to, err := sliceIndex(ectx, this, s.to, length)
 	if err != nil {
 		if err != ErrSliceIndexEmpty {
-			return s.zctx.NewError(ectx.Arena(), err)
+			return s.zctx.NewError(err)
 		}
 		to = length
 	}
@@ -81,7 +81,7 @@ func (s *Slice) Eval(ectx Context, this zed.Value) zed.Value {
 	default:
 		panic(elem.Type())
 	}
-	return ectx.Arena().New(elem.Type(), bytes)
+	return zed.NewValue(elem.Type(), bytes)
 }
 
 func sliceIndex(ectx Context, this zed.Value, slot Evaluator, length int) (int, error) {

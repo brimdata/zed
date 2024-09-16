@@ -60,7 +60,7 @@ func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 	return dst, nil
 }
 
-func (f *Flattener) Flatten(arena *zed.Arena, r zed.Value) (zed.Value, error) {
+func (f *Flattener) Flatten(r zed.Value) (zed.Value, error) {
 	id := r.Type().ID()
 	flatType := f.mapper.Lookup(id)
 	if flatType == nil {
@@ -77,7 +77,7 @@ func (f *Flattener) Flatten(arena *zed.Arena, r zed.Value) (zed.Value, error) {
 	if err != nil {
 		return zed.Null, err
 	}
-	return arena.New(flatType.(*zed.TypeRecord), zv), nil
+	return zed.NewValue(flatType.(*zed.TypeRecord), zv), nil
 }
 
 // FlattenFields turns nested records into a series of fields of

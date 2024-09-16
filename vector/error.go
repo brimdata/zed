@@ -37,15 +37,13 @@ func (e *Error) Serialize(b *zcode.Builder, slot uint32) {
 }
 
 func NewStringError(zctx *zed.Context, msg string, len uint32) *Error {
-	arena := zed.NewArena()
-	vals := NewConst(arena, arena.NewString(msg), len, nil)
+	vals := NewConst(zed.NewString(msg), len, nil)
 	return &Error{Typ: zctx.LookupTypeError(zed.TypeString), Vals: vals}
 }
 
 func NewMissing(zctx *zed.Context, len uint32) *Error {
-	arena := zed.NewArena()
-	missing := zctx.Missing(arena)
-	vals := NewConst(arena, missing, len, nil)
+	missing := zctx.Missing()
+	vals := NewConst(missing, len, nil)
 	return &Error{Typ: missing.Type().(*zed.TypeError), Vals: vals}
 }
 
@@ -54,8 +52,7 @@ func NewWrappedError(zctx *zed.Context, msg string, val Any) *Error {
 		{Name: "message", Type: zed.TypeString},
 		{Name: "on", Type: val.Type()},
 	})
-	arena := zed.NewArena()
-	sval := NewConst(arena, arena.NewString(msg), val.Len(), nil)
+	sval := NewConst(zed.NewString(msg), val.Len(), nil)
 	rval := NewRecord(recType, []Any{sval, val}, val.Len(), nil)
 	return &Error{Typ: zctx.LookupTypeError(recType), Vals: rval}
 }
