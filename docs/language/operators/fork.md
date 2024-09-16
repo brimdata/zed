@@ -22,7 +22,7 @@ merged with an automatically inserted [combine operator](combine.md).
 
 ### Examples
 
-_Copy input to two pipeline branches and combine with the implied operator_
+_Copy input to two pipeline branches and merge_
 ```mdtest-command
 echo '1 2' | zq -z 'fork (=>pass =>pass) | sort this' -
 ```
