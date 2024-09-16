@@ -31,6 +31,7 @@ operators listed below, Zed also allows for the creation of
 * [summarize](summarize.md) -  perform aggregations
 * [switch](switch.md) -  route values based on cases
 * [tail](tail.md) - copy trailing values of input sequence
+* [top](top.md) - get top N sorted values of input sequence
 * [uniq](uniq.md) - deduplicate adjacent values
 * [where](where.md) - select values based on a Boolean expression
 * [yield](yield.md) - emit values from expressions
