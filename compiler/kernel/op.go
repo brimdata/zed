@@ -156,9 +156,6 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		}
 		lhs, rhs := splitAssignments(assignments)
 		cutter := expr.NewCutter(b.rctx.Zctx, lhs, rhs)
-		if v.Quiet {
-			cutter.Quiet()
-		}
 		return op.NewApplier(b.rctx, parent, cutter, b.resetters), nil
 	case *dag.Drop:
 		if len(v.Args) == 0 {
