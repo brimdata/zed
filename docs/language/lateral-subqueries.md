@@ -128,8 +128,7 @@ parenthesized form:
 ```
 
 :::tip
-The parentheses disambiguate a lateral expression from a lateral
-dataflow operator.
+The parentheses disambiguate a lateral expression from a [lateral dataflow operator](operators/over.md).
 :::
 
 This form must always include a [lateral scope](#lateral-scope) as indicated by `<lateral>`.
