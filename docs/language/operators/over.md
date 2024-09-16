@@ -13,7 +13,7 @@ of derived values (e.g., the elements of an array) and either
 (in the first form) sends the new values directly to its output or
 (in the second form) sends the values to a scoped computation as indicated
 by `<lateral>`, which may represent any Zed [subquery](../lateral-subqueries.md) operating on the
-derived sequence of values as [`this`](../dataflow-model.md#the-special-value-this).
+derived sequence of values as [`this`](../pipeline-model.md#the-special-value-this).
 
 Each expression `<expr>` is evaluated in left-to-right order and derived sequences are
 generated from each such result depending on its types:

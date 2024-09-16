@@ -15,7 +15,7 @@ in left-to-right order.  Each `<expr>` may be any valid
 [Zed expression](../expressions.md).
 
 The `yield` keyword is optional since it is an
-[implied operator](../dataflow-model.md#implied-operators).
+[implied operator](../pipeline-model.md#implied-operators).
 
 ### Examples
 

@@ -7,7 +7,7 @@ sidebar_label: Lateral Subqueries
 
 Lateral subqueries provide a powerful means to apply a Zed query
 to each subsequence of values generated from an outer sequence of values.
-The inner query may be _any_ dataflow operator sequence (excluding
+The inner query may be _any_ pipeline operator sequence (excluding
 [`from` operators](operators/from.md)) and may refer to values from
 the outer sequence.
 
@@ -91,7 +91,7 @@ In the field reference form, a single identifier `<field>` refers to a field
 in the parent scope and makes that field's value available in the lateral scope
 via the same name.
 
-Note that any such variable definitions override [implied field references](dataflow-model.md#implied-field-references) of
+Note that any such variable definitions override [implied field references](pipeline-model.md#implied-field-references) of
 `this`. If a both a field named `x` and a variable named `x` need be
 referenced in the lateral scope, the field reference should be qualified as
 `this.x` while the variable is referenced simply as `x`.
@@ -102,7 +102,7 @@ the value `this` refers to the inner sequence generated from the `over` expressi
 This query runs to completion for each inner sequence and emits
 each subquery result as each inner sequence traversal completes.
 
-This structure is powerful because _any_ dataflow operator sequence (excluding
+This structure is powerful because _any_ pipeline operator sequence (excluding
 [`from` operators](operators/from.md)) can appear in the body of
 the lateral scope.  In contrast to the [`yield`](operators/yield.md) example above, a [`sort`](operators/sort.md) could be
 applied to each subsequence in the subquery, where `sort`
@@ -128,13 +128,13 @@ parenthesized form:
 ```
 
 :::tip
-The parentheses disambiguate a lateral expression from a [lateral dataflow operator](operators/over.md).
+The parentheses disambiguate a lateral expression from a [lateral pipeline operator](operators/over.md).
 :::
 
 This form must always include a [lateral scope](#lateral-scope) as indicated by `<lateral>`.
 
 The lateral expression is evaluated by evaluating each `<expr>` and feeding
-the results as inputs to the `<lateral>` dataflow operators.  Each time the
+the results as inputs to the `<lateral>` pipeline.  Each time the
 lateral expression is evaluated, the lateral operators are run to completion,
 e.g.,
 ```mdtest-command
@@ -162,7 +162,7 @@ produces
 {sorted:[1,2,3],sum:6}
 ```
 Because Zed expressions evaluate to a single result, if multiple values remain
-at the conclusion of the lateral dataflow, they are automatically wrapped in
+at the conclusion of the lateral pipeline, they are automatically wrapped in
 an array, e.g.,
 ```mdtest-command
 echo '{x:1} {x:[2]} {x:[3,4]}' |
@@ -174,7 +174,7 @@ produces
 {s:3}
 {s:[4,5]}
 ```
-To handle such dynamic input data, you can ensure your downstream dataflow
+To handle such dynamic input data, you can ensure your downstream pipeline
 always receives consistently packaged values by explicitly wrapping the result
 of the lateral scope, e.g.,
 ```mdtest-command

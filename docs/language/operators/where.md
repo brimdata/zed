@@ -13,7 +13,7 @@ to each input value and dropping each value for which the expression evaluates
 to `false` or to an error.
 
 The `where` keyword is optional since it is an
-[implied operator](../dataflow-model.md#implied-operators).
+[implied operator](../pipeline-model.md#implied-operators).
 
 The "where" keyword requires a regular Zed expression and does not support
 [search expressions](../search-expressions.md).  Use the

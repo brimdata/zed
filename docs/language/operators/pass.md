@@ -10,7 +10,7 @@ pass
 ### Description
 
 The `pass` operator outputs a copy of each input value. It is typically used
-with operators that handle multiple legs of the dataflow path such as
+with operators that handle multiple branches of the pipeline such as
 [`fork`](fork.md) and [`join`](join.md).
 
 ### Examples
@@ -26,7 +26,7 @@ echo '1 2 3' | zq -z pass -
 3
 ```
 
-_Copy each input value to three parallel legs and leave the values unmodified on one of them_
+_Copy each input value to three parallel pipeline branches and leave the values unmodified on one of them_
 ```mdtest-command
 echo '"HeLlo, WoRlD!"' | zq -z '
   fork (

@@ -6,9 +6,9 @@ sidebar_label: Expressions
 # Expressions
 
 Zed expressions follow the typical patterns in programming languages.
-Expressions are typically used within data flow operators
+Expressions are typically used within pipeline operators
 to perform computations on input values and are typically evaluated once per each
-input value [`this`](dataflow-model.md#the-special-value-this).
+input value [`this`](pipeline-model.md#the-special-value-this).
 
 For example, `yield`, `where`, `cut`, `put`, `sort` and so forth all take
 various expressions as part of their operation.
@@ -109,7 +109,7 @@ where `<id>` is an identifier representing the field name referenced.
 If a field name is not representable as an identifier, then [indexing](#indexing)
 may be used with a quoted string to represent any valid field name.
 Such field names can be accessed using
-[`this`](dataflow-model.md#the-special-value-this) and an array-style reference, e.g.,
+[`this`](pipeline-model.md#the-special-value-this) and an array-style reference, e.g.,
 `this["field with spaces"]`.
 
 If the dot operator is applied to a value that is not a record
@@ -353,7 +353,7 @@ where a `<spec>` has one of three forms:
 ```
 The first form is a customary colon-separated field and value similar to JavaScript,
 where `<field>` may be an identifier or quoted string.
-The second form is an [implied field reference](dataflow-model.md#implied-field-references)
+The second form is an [implied field reference](pipeline-model.md#implied-field-references)
 `<ref>`, which is shorthand for `<ref>:<ref>`.  The third form is the `...`
 spread operator which expects a record value as the result of `<expr>` and
 inserts all of the fields from the resulting record.

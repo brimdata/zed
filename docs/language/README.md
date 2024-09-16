@@ -2,7 +2,7 @@
 
 The language documents:
 * provide an [overview](overview.md) of the Zed language,
-* describe Zed's [dataflow model](dataflow-model.md),
+* describe Zed's [pipeline model](pipeline-model.md),
 * explain Zed's [data types](data-types.md),
 * show the syntax of [statements](statements.md) that define constants, functions, operators, and named types,
 * describe the syntax of [expressions](expressions.md) and [search expressions](search-expressions.md),

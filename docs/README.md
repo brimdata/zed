@@ -45,7 +45,7 @@ same abstract Zed data model.
 * A [Zed lake](commands/zed.md) is a collection of Zed data stored
 across one or more [data pools](commands/zed.md#data-pools) with ACID commit semantics and
 accessed via a [Git](https://git-scm.com/)-like API.
-* The [Zed language](language/README.md) is the system's dataflow language for performing
+* The [Zed language](language/README.md) is the system's pipeline language for performing
 queries, searches, analytics, transformations, or any of the above combined together.
 * A  [Zed query](language/overview.md) is a Zed script that performs
 search and/or analytics.

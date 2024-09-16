@@ -1,16 +1,16 @@
 ---
 sidebar_position: 2
-sidebar_label: Dataflow Model
+sidebar_label: Pipeline Model
 ---
 
-# The Dataflow Model
+# The Pipeline Model
 
 In Zed, each operator takes its input from the output of its upstream operator beginning
 either with a data source or with an implied source.
 
 All available operators are listed on the [reference page](operators/README.md).
 
-## Dataflow Sources
+## Pipeline Sources
 
 In addition to the data sources specified as files on the `zq` command line,
 a source may also be specified with the [`from` operator](operators/from.md).
@@ -41,7 +41,7 @@ in the [ZSON text format](../formats/zson.md)
 and the `zq` query text expressed as the first argument of the `zq` command
 is expressed in the syntax of the Zed language described here.
 
-## Dataflow Operators
+## Pipeline Operators
 
 Each operator is identified by name and performs a specific operation
 on a stream of records.
@@ -70,15 +70,15 @@ providing a convenient means to derive arbitrary output values as a function
 of each input value, much like the map concept in the MapReduce framework.
 
 The [`fork` operator](operators/fork.md) copies its input to parallel
-legs of a query.  The output of these parallel paths can be combined
+branches of a pipeline.  The output of these parallel branches can be combined
 in a number of ways:
 * merged in sorted order using the [`merge` operator](operators/merge.md),
 * joined using the [`join` operator](operators/join.md), or
 * combined in an undefined order using the implied [`combine` operator](operators/combine.md).
 
-A path can also be split to multiple query legs using the
+A pipeline can also be split to multiple branches using the
 [`switch` operator](operators/switch.md), in which data is routed to only one
-corresponding leg (or dropped) based on the switch clauses.
+corresponding branch (or dropped) based on the switch clauses.
 
 Switch operators typically
 involve multiline Zed programs, which are easiest to edit in a file.  For example,
@@ -101,7 +101,7 @@ produces
 {val:3,message:"many"}
 {val:4,message:"many"}
 ```
-Note that the output order of the switch legs is undefined (indeed they run
+Note that the output order of the switch branches is undefined (indeed they run
 in parallel on multiple threads).  To establish a consistent sequence order,
 a [`merge` operator](operators/merge.md)
 may be applied at the output of the switch specifying a sort key upon which
@@ -252,7 +252,7 @@ the implied record field named `foo`.
 Another common query pattern involves adding or mutating fields of records
 where the input is presumed to be a sequence of records.
 The [`put` operator](operators/put.md) provides this mechanism and the `put`
-keyword is implied by the [field assignment](dataflow-model.md#field-assignments) syntax `:=`.
+keyword is implied by the [field assignment](#field-assignments) syntax `:=`.
 
 For example, the operation
 ```
