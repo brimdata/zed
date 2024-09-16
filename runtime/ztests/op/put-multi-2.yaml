@@ -1,5 +1,7 @@
-# Test overwriting multiple fields out of order
-zed: put b:=a, a:=b
+# Test overwriting multiple fields in-order
+zed: put a:=b, b:=a
+
+vector: true
 
 input: |
   {a:1(int32),b:2(int32)}

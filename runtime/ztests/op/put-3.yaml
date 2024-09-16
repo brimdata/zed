@@ -1,6 +1,8 @@
 # Tests writing a new record
 zed: put r2 := r
 
+vector: true
+
 input: |
   {r:{s:"hello"}}
   {r:{s:"world"}}

@@ -1,5 +1,7 @@
 zed: yield a
 
+vector: true
+
 input: |
   {"a": {"a": "a", "b": "b"}, "b": "b"}
 

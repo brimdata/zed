@@ -1,5 +1,7 @@
 zed: put b:=null
 
+vector: true
+
 input: |
   {a:1(int32)}
 
