@@ -44,6 +44,7 @@ echo '1 2 2 3' | zq -z 'uniq -c' -
 {value:2,count:2(uint64)}
 {value:3,count:1(uint64)}
 ```
+
 _Use sort to deduplicate non-adjacent values_
 ```mdtest-command
 echo '"hello" "world" "goodbye" "world" "hello" "again"' |
@@ -55,4 +56,21 @@ echo '"hello" "world" "goodbye" "world" "hello" "again"' |
 "goodbye"
 "hello"
 "world"
+```
+
+_Complex values must match fully to be considered duplicate (e.g., every field/value pair in adjacent records)_
+```mdtest-command
+echo '{ts:2024-09-10T21:12:33Z, action:"start"}
+      {ts:2024-09-10T21:12:34Z, action:"running"}
+      {ts:2024-09-10T21:12:34Z, action:"running"}
+      {ts:2024-09-10T21:12:35Z, action:"running"}
+      {ts:2024-09-10T21:12:36Z, action:"stop"}' |
+  zq -z 'uniq' -
+```
+=>
+```mdtest-output
+{ts:2024-09-10T21:12:33Z,action:"start"}
+{ts:2024-09-10T21:12:34Z,action:"running"}
+{ts:2024-09-10T21:12:35Z,action:"running"}
+{ts:2024-09-10T21:12:36Z,action:"stop"}
 ```

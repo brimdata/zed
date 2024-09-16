@@ -1,5 +1,7 @@
 zed: yield {}
 
+vector: true
+
 input: |
   {}
 

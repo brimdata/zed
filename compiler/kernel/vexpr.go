@@ -42,8 +42,8 @@ func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {
 	//	return b.compileVamRegexpMatch(e)
 	//case *dag.RegexpSearch:
 	//	return b.compileVamRegexpSearch(e)
-	//case *dag.RecordExpr:
-	//	return b.compileVamRecordExpr(e)
+	case *dag.RecordExpr:
+		return b.compileVamRecordExpr(e)
 	//case *dag.ArrayExpr:
 	//	return b.compileVamArrayExpr(e)
 	//case *dag.SetExpr:
@@ -159,4 +159,31 @@ func (b *Builder) compileVamCall(call *dag.Call) (vamexpr.Evaluator, error) {
 		return nil, err
 	}
 	return vamexpr.NewCall(fn, exprs), nil
+}
+
+func (b *Builder) compileVamRecordExpr(e *dag.RecordExpr) (vamexpr.Evaluator, error) {
+	var elems []vamexpr.RecordElem
+	for _, elem := range e.Elems {
+		var name string
+		var dagExpr dag.Expr
+		switch elem := elem.(type) {
+		case *dag.Field:
+			name = elem.Name
+			dagExpr = elem.Value
+		case *dag.Spread:
+			name = ""
+			dagExpr = elem.Expr
+		default:
+			panic(elem)
+		}
+		expr, err := b.compileVamExpr(dagExpr)
+		if err != nil {
+			return nil, err
+		}
+		elems = append(elems, vamexpr.RecordElem{
+			Name: name,
+			Expr: expr,
+		})
+	}
+	return vamexpr.NewRecordExpr(b.zctx(), elems), nil
 }

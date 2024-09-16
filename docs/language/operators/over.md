@@ -12,45 +12,21 @@ The `over` operator traverses complex values to create a new sequence
 of derived values (e.g., the elements of an array) and either
 (in the first form) sends the new values directly to its output or
 (in the second form) sends the values to a scoped computation as indicated
-by `<lateral>`, which may represent any Zed subquery operating on the
-derived sequence of values as `this`.
+by `<lateral>`, which may represent any Zed [subquery](../lateral-subqueries.md) operating on the
+derived sequence of values as [`this`](../dataflow-model.md#the-special-value-this).
 
 Each expression `<expr>` is evaluated in left-to-right order and derived sequences are
 generated from each such result depending on its types:
-* an array value generates each of its element,
+* an array value generates each of its elements,
 * a map value generates a sequence of records of the form `{key:<key>,value:<value>}` for each
 entry in the map, and
 * all other values generate a single value equal to itself.
 
-Records can be converted to maps with the [_flatten_ function](../functions/flatten.md)
+Records can be converted to maps with the [`flatten` function](../functions/flatten.md)
 resulting in a map that can be traversed,
 e.g., if `this` is a record, it can be traversed with `over flatten(this)`.
 
-The nested subquery depicted as `<lateral>` is called a "lateral query" as the
-outer query operates on the top-level sequence of values while the lateral
-query operates on subsequences of values derived from each input value.
-This pattern rhymes with the SQL pattern of a "lateral join", which runs a
-SQL subquery for each row of the outer query's table.
-
-In a Zed lateral query, each input value induces a derived subsequence and
-for each such input, the lateral query runs to completion and yields its results.
-In this way, operators like `sort` and `summarize`, which operate on their
-entire input, run to completion for each subsequence and yield to the output the
-lateral result set for each outer input as a sequence of values.
-
-Within the lateral query, `this` refers to the values of the subsequence thereby
-preventing lateral expressions from accessing the outer `this`.
-To accommodate such references, the _over_ operator includes a _with_ clause
-that binds arbitrary expressions evaluated in the outer scope
-to variables that may be referenced by name in the lateral scope.
-
-> Note that any such variable definitions override implied field references
-> of `this`.  If a both a field named "x" and a variable named "x" need be
-> referenced in the lateral scope, the field reference should be qualified as `this.x`
-> while the variable is referenced simply as `x`.
-
-Lateral queries may be nested to arbitrary depth and accesses to variables
-in parent lateral query bodies follows lexical scoping.
+The nested subquery depicted as `<lateral>` is called a [lateral subquery](../lateral-subqueries.md).
 
 ### Examples
 
