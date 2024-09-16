@@ -582,7 +582,7 @@ func runvec(zedProgram string, input string, outputFlags []string) (string, stri
 	rctx := runtime.NewContext(context.Background(), zctx)
 	puller, err := compiler.VectorCompile(rctx, zedProgram, object)
 	if err != nil {
-		return "", "", err
+		return "", err.Error(), err
 	}
 	zw, err := anyio.NewWriter(zio.NopCloser(&outbuf), outflags.Options())
 	if err != nil {
