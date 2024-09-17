@@ -83,7 +83,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 			return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
 		}
 	case *dag.Pass:
-		return vamop.NewPass(parent), nil
+		return parent, nil
 	case *dag.Put:
 		return b.compileVamPut(o, parent)
 	case *dag.Yield:
