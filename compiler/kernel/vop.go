@@ -72,7 +72,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		if err != nil {
 			return nil, err
 		}
-		return vamop.NewYield(b.rctx.Zctx, parent, []expr.Evaluator{e}), nil
+		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{e}), nil
 	case *dag.Filter:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {
@@ -97,7 +97,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		if err != nil {
 			return nil, err
 		}
-		return vamop.NewYield(b.rctx.Zctx, parent, []expr.Evaluator{expr.NewPutter(b.zctx(), e)}), nil
+		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{expr.NewPutter(b.zctx(), e)}), nil
 	case *dag.Yield:
 		exprs, err := b.compileVamExprs(o.Exprs)
 		if err != nil {
