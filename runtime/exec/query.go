@@ -1,8 +1,6 @@
 package exec
 
 import (
-	"io"
-
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -29,14 +27,6 @@ func NewQuery(rctx *runtime.Context, puller zbuf.Puller, meter zbuf.Meter) *Quer
 
 func (q *Query) AsReader() zio.Reader {
 	return zbuf.PullerReader(q)
-}
-
-func (q *Query) AsProgressReadCloser() zbuf.ProgressReadCloser {
-	return struct {
-		zio.Reader
-		io.Closer
-		zbuf.Meter
-	}{q.AsReader(), q, q}
 }
 
 func (q *Query) Progress() zbuf.Progress {
