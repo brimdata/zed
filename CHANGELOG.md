@@ -1,3 +1,21 @@
+## v1.18.0
+* Improve the error message shown to a user when a `zed` command is run but there's no pool/branch set for use (#5198)
+* Improve the performance of the [`load` operator](docs/language/operators/load.md) by removing an unnecessary/inefficient merge (#5200)
+* Improve the [`sort` operator](docs/language/operators/sort.md) to allow different ordering for each key (#5203, #5262)
+* Update the [Zeek reference shaper docs](docs/integrations/zeek/shaping-zeek-ndjson.md#reference-shaper-contents) to incorporate changes for [Zeek v7.0.0](https://github.com/zeek/zeek/releases/tag/v7.0.0) logs (#5212)
+* Update the [`summarize` operator docs](docs/language/operators/summarize.md) to show the use of `by` without an [aggregate function](docs/language/aggregates/README.md) (#5216)
+* Update the [`grok` function docs](docs/language/functions/grok.md) with additional examples and guidance (#5243)
+* Update the [Lateral Subquery docs](docs/language/lateral-subqueries.md) with an emphasis on when primitive values or arrays are returned by [Lateral Expressions](docs/language/lateral-subqueries.md#lateral-expressions) (#5264)
+* The terms "pipeline" and "branch" are now used throughout the [Zed docs](docs/README.md) instead of "dataflow" and "leg" (#5272)
+* Add docs for [`lake` output format](docs/commands/zq.md#zed-lake-metadata-output) and [`zed ls`](docs/commands/zed.md#ls) (#5187)
+* Add docs for the [`top` operator](docs/language/operators/top.md) (#5276)
+* Add [`fluentd` integration docs](docs/integrations/fluentd.md) (#5190, #5195)
+* Add a [`strftime` function](docs/language/functions/strftime.md) to format `time` values into strings (#5197, #5204)
+* Add a `DATESTAMP_ISO8601` [pattern](https://raw.githubusercontent.com/brimdata/zed/main/pkg/grok/base.go) for use with the [`grok` function](docs/language/functions/grok.md) (#5232)
+* Fix an issue where CSV files without a final newline could not be read (#5185)
+* Fix an issue where comparisons against union values produced incorrect results (#5210)
+* Fix an issue where concurrent Zed lake operations could cause a service crash (#5279)
+
 ## v1.17.0
 * Improve the performance of multi-pool searches (e.g., `from * | "MyFilter"`) (#5174)
 * Reduce the amount of memory consumed by the [`merge` operator](docs/language/operators/merge.md) and merge-dependent operations, such as compaction (#5171)
@@ -5,7 +23,7 @@
 * Fix an issue where the lake API was not providing query descriptions for Zed programs that contain scopes (#5152)
 * Fix an issue where attempts to use the [`load` operator](docs/language/operators/load.md) in `zq` caused a panic (#5162)
 * Fix a parser issue with collisions between the names of [user-defined operators](docs/language/statements.md#operator-statements) and [functions](docs/language/statements.md#func-statements) and some built-in [operators](docs/language/operators/README.md) (#5161)
-* Fix an issue were using `null` values in math caused a panic (#5163)
+* Fix an issue where using `null` values in math caused a panic (#5163)
 
 ## v1.16.0
 * Improve ZNG scanning performance (#5101, #5103)
