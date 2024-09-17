@@ -1,0 +1,8 @@
+zed: pass
+
+vector: true
+
+input: &input |
+  1
+
+output: *input
