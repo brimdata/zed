@@ -246,9 +246,9 @@ SortBy
   }
 
 OptAscDesc
-  = _ KW_ASC   { return "asc" }
-  / _ KW_DESC  { return "desc" }
-  / ""         { return "asc" }
+  = _ KW_ASC   { return "asc", nil }
+  / _ KW_DESC  { return "desc", nil }
+  / ""         { return "asc", nil }
 
 OptNullsOrder
   = _ KW_NULLS _ KW_FIRST   { return true }
@@ -1299,18 +1299,18 @@ KW_SELECT   = "SELECT"i     !IdentifierStart
 KW_RECURSIVE= "RECURSIVE"   !IdentifierStart
 KW_IGNORE   = "IGNORE"i     !IdentifierStart
 KW_EXPLAIN  = "EXPLAIN"i    !IdentifierStart
-KW_PARTITION = "PARTITION"i !IdentifierStart { return "PARTITION" }
+KW_PARTITION = "PARTITION"i !IdentifierStart { return "PARTITION", nil }
 
 KW_INTO     = "INTO"i       !IdentifierStart
 KW_FROM     = "FROM"i       !IdentifierStart
-KW_SET      = "SET"i        !IdentifierStart { return "SET" }
+KW_SET      = "SET"i        !IdentifierStart { return "SET", nil }
 KW_UNLOCK   = "UNLOCK"i     !IdentifierStart
 KW_LOCK     = "LOCK"i       !IdentifierStart
 
 KW_AS       = "AS"i         !IdentifierStart
-KW_TABLE    = "TABLE"i      !IdentifierStart { return "TABLE" }
-KW_TABLES   = "TABLES"i      !IdentifierStart { return "TABLES" }
-KW_COLLATE  = "COLLATE"i    !IdentifierStart { return "COLLATE" }
+KW_TABLE    = "TABLE"i      !IdentifierStart { return "TABLE", nil }
+KW_TABLES   = "TABLES"i      !IdentifierStart { return "TABLES", nil }
+KW_COLLATE  = "COLLATE"i    !IdentifierStart { return "COLLATE", nil }
 
 KW_ON       = "ON"i       !IdentifierStart
 KW_LEFT     = "LEFT"i     !IdentifierStart
@@ -1325,7 +1325,7 @@ KW_UNION    = "UNION"i    !IdentifierStart
 KW_INTERSECT    = "INTERSECT"i    !IdentifierStart
 KW_EXCEPT    = "EXCEPT"i    !IdentifierStart
 
-KW_VALUE    = "VALUE"i    !IdentifierStart { return "VALUE" }
+KW_VALUE    = "VALUE"i    !IdentifierStart { return "VALUE", nil }
 KW_VALUES   = "VALUES"i   !IdentifierStart
 KW_USING    = "USING"i    !IdentifierStart
 
@@ -1338,37 +1338,37 @@ KW_ORDER    = "ORDER"i      !IdentifierStart
 KW_HAVING   = "HAVING"i     !IdentifierStart
 KW_QUALIFY  = "QUALIFY"i     !IdentifierStart
 KW_WINDOW   = "WINDOW"i  !IdentifierStart
-KW_ORDINAL  = "ORDINAL"i !IdentifierStart { return "ORDINAL" }
-KW_SAFE_ORDINAL  = "SAFE_ORDINAL"i !IdentifierStart { return "SAFE_ORDINAL" }
+KW_ORDINAL  = "ORDINAL"i !IdentifierStart { return "ORDINAL", nil }
+KW_SAFE_ORDINAL  = "SAFE_ORDINAL"i !IdentifierStart { return "SAFE_ORDINAL", nil }
 
 KW_LIMIT    = "LIMIT"i      !IdentifierStart
-KW_OFFSET   = "OFFSET"i     !IdentifierStart { return "OFFSET" }
-KW_SAFE_OFFSET   = "SAFE_OFFSET"i     !IdentifierStart { return "SAFE_OFFSET" }
+KW_OFFSET   = "OFFSET"i     !IdentifierStart { return "OFFSET", nil }
+KW_SAFE_OFFSET   = "SAFE_OFFSET"i     !IdentifierStart { return "SAFE_OFFSET", nil }
 
-KW_ASC      = "ASC"i        !IdentifierStart { return "ASC" }
-KW_DESC     = "DESC"i       !IdentifierStart { return "DESC" }
+KW_ASC      = "ASC"i        !IdentifierStart { return "ASC", nil }
+KW_DESC     = "DESC"i       !IdentifierStart { return "DESC", nil }
 
-KW_ALL      = "ALL"i        !IdentifierStart { return "ALL" }
-KW_DISTINCT = "DISTINCT"i   !IdentifierStart { return "DISTINCT" }
+KW_ALL      = "ALL"i        !IdentifierStart { return "ALL", nil }
+KW_DISTINCT = "DISTINCT"i   !IdentifierStart { return "DISTINCT", nil }
 
-KW_BETWEEN  = "BETWEEN"i    !IdentifierStart { return "BETWEEN" }
-KW_IN       = "IN"i         !IdentifierStart { return "IN" }
-KW_IS       = "IS"i         !IdentifierStart { return "IS" }
-KW_LIKE     = "LIKE"i       !IdentifierStart { return "LIKE" }
-KW_EXISTS   = "EXISTS"i     !IdentifierStart { return "EXISTS" }
+KW_BETWEEN  = "BETWEEN"i    !IdentifierStart { return "BETWEEN", nil }
+KW_IN       = "IN"i         !IdentifierStart { return "IN", nil }
+KW_IS       = "IS"i         !IdentifierStart { return "IS", nil }
+KW_LIKE     = "LIKE"i       !IdentifierStart { return "LIKE", nil }
+KW_EXISTS   = "EXISTS"i     !IdentifierStart { return "EXISTS", nil }
 
-KW_NOT      = "NOT"i        !IdentifierStart { return "NOT" }
-KW_AND      = "AND"i        !IdentifierStart { return "AND" }
-KW_OR       = "OR"i         !IdentifierStart { return "OR" }
+KW_NOT      = "NOT"i        !IdentifierStart { return "NOT", nil }
+KW_AND      = "AND"i        !IdentifierStart { return "AND", nil }
+KW_OR       = "OR"i         !IdentifierStart { return "OR", nil }
 
-KW_COUNT    = "COUNT"i      !IdentifierStart { return "COUNT" }
-KW_MAX      = "MAX"i        !IdentifierStart { return "MAX" }
-KW_MIN      = "MIN"i        !IdentifierStart { return "MIN" }
-KW_SUM      = "SUM"i        !IdentifierStart { return "SUM" }
-KW_AVG      = "AVG"i        !IdentifierStart { return "AVG" }
+KW_COUNT    = "COUNT"i      !IdentifierStart { return "COUNT", nil }
+KW_MAX      = "MAX"i        !IdentifierStart { return "MAX", nil }
+KW_MIN      = "MIN"i        !IdentifierStart { return "MIN", nil }
+KW_SUM      = "SUM"i        !IdentifierStart { return "SUM", nil }
+KW_AVG      = "AVG"i        !IdentifierStart { return "AVG", nil }
 
-KW_EXTRACT  = "EXTRACT"i    !IdentifierStart { return "EXTRACT" }
-KW_CALL     = "CALL"i       !IdentifierStart { return "CALL" }
+KW_EXTRACT  = "EXTRACT"i    !IdentifierStart { return "EXTRACT", nil }
+KW_CALL     = "CALL"i       !IdentifierStart { return "CALL", nil }
 
 KW_CASE     = "CASE"i       !IdentifierStart
 KW_WHEN     = "WHEN"i       !IdentifierStart
@@ -1376,73 +1376,73 @@ KW_THEN     = "THEN"i       !IdentifierStart
 KW_ELSE     = "ELSE"i       !IdentifierStart
 KW_END      = "END"i        !IdentifierStart
 
-KW_CAST     = "CAST"i       !IdentifierStart { return "CAST" }
-KW_SAFE_CAST     = "SAFE_CAST"i   !IdentifierStart { return "SAFE_CAST" }
+KW_CAST     = "CAST"i       !IdentifierStart { return "CAST", nil }
+KW_SAFE_CAST     = "SAFE_CAST"i   !IdentifierStart { return "SAFE_CAST", nil }
 
-KW_ARRAY     = "ARRAY"i     !IdentifierStart { return "ARRAY" }
-KW_BYTES     = "BYTES"i     !IdentifierStart { return "BYTES" }
-KW_BOOL     = "BOOL"i     !IdentifierStart { return "BOOL" }
-KW_CHAR     = "CHAR"i     !IdentifierStart { return "CHAR" }
-KW_GEOGRAPHY = "GEOGRAPHY"i     !IdentifierStart { return "GEOGRAPHY" }
-KW_VARCHAR  = "VARCHAR"i  !IdentifierStart { return "VARCHAR" }
-KW_NUMERIC  = "NUMERIC"i  !IdentifierStart { return "NUMERIC" }
-KW_DECIMAL  = "DECIMAL"i  !IdentifierStart { return "DECIMAL" }
-KW_SIGNED   = "SIGNED"i   !IdentifierStart { return "SIGNED" }
-KW_UNSIGNED = "UNSIGNED"i !IdentifierStart { return "UNSIGNED" }
-KW_INT_64     = "INT64"i      !IdentifierStart { return "INT64" }
-KW_ZEROFILL = "ZEROFILL"i !IdentifierStart { return "ZEROFILL" }
-KW_INTEGER  = "INTEGER"i  !IdentifierStart { return "INTEGER" }
-KW_JSON     = "JSON"i     !IdentifierStart { return "JSON" }
-KW_SMALLINT = "SMALLINT"i !IdentifierStart { return "SMALLINT" }
-KW_STRING = "STRING"i !IdentifierStart { return "STRING" }
-KW_STRUCT = "STRUCT"i !IdentifierStart { return "STRUCT" }
-KW_TINYINT  = "TINYINT"i  !IdentifierStart { return "TINYINT" }
-KW_TINYTEXT = "TINYTEXT"i !IdentifierStart { return "TINYTEXT" }
-KW_TEXT     = "TEXT"i     !IdentifierStart { return "TEXT" }
-KW_MEDIUMTEXT = "MEDIUMTEXT"i  !IdentifierStart { return "MEDIUMTEXT" }
-KW_LONGTEXT  = "LONGTEXT"i  !IdentifierStart { return "LONGTEXT" }
-KW_BIGINT   = "BIGINT"i   !IdentifierStart { return "BIGINT" }
-KW_FLOAT_64   = "FLOAT64"i   !IdentifierStart { return "FLOAT64" }
-KW_DOUBLE   = "DOUBLE"i   !IdentifierStart { return "DOUBLE" }
-KW_DATE     = "DATE"i     !IdentifierStart { return "DATE" }
-KW_DATETIME = "DATETIME"i     !IdentifierStart { return "DATETIME" }
-KW_ROWS     = "ROWS"i     !IdentifierStart { return "ROWS" }
-KW_TIME     = "TIME"i     !IdentifierStart { return "TIME" }
-KW_TIMESTAMP= "TIMESTAMP"i!IdentifierStart { return "TIMESTAMP" }
+KW_ARRAY     = "ARRAY"i     !IdentifierStart { return "ARRAY", nil }
+KW_BYTES     = "BYTES"i     !IdentifierStart { return "BYTES", nil }
+KW_BOOL     = "BOOL"i     !IdentifierStart { return "BOOL", nil }
+KW_CHAR     = "CHAR"i     !IdentifierStart { return "CHAR", nil }
+KW_GEOGRAPHY = "GEOGRAPHY"i     !IdentifierStart { return "GEOGRAPHY", nil }
+KW_VARCHAR  = "VARCHAR"i  !IdentifierStart { return "VARCHAR", nil }
+KW_NUMERIC  = "NUMERIC"i  !IdentifierStart { return "NUMERIC", nil }
+KW_DECIMAL  = "DECIMAL"i  !IdentifierStart { return "DECIMAL", nil }
+KW_SIGNED   = "SIGNED"i   !IdentifierStart { return "SIGNED", nil }
+KW_UNSIGNED = "UNSIGNED"i !IdentifierStart { return "UNSIGNED", nil }
+KW_INT_64     = "INT64"i      !IdentifierStart { return "INT64", nil }
+KW_ZEROFILL = "ZEROFILL"i !IdentifierStart { return "ZEROFILL", nil }
+KW_INTEGER  = "INTEGER"i  !IdentifierStart { return "INTEGER", nil }
+KW_JSON     = "JSON"i     !IdentifierStart { return "JSON", nil }
+KW_SMALLINT = "SMALLINT"i !IdentifierStart { return "SMALLINT", nil }
+KW_STRING = "STRING"i !IdentifierStart { return "STRING", nil }
+KW_STRUCT = "STRUCT"i !IdentifierStart { return "STRUCT", nil }
+KW_TINYINT  = "TINYINT"i  !IdentifierStart { return "TINYINT", nil }
+KW_TINYTEXT = "TINYTEXT"i !IdentifierStart { return "TINYTEXT", nil }
+KW_TEXT     = "TEXT"i     !IdentifierStart { return "TEXT", nil }
+KW_MEDIUMTEXT = "MEDIUMTEXT"i  !IdentifierStart { return "MEDIUMTEXT", nil }
+KW_LONGTEXT  = "LONGTEXT"i  !IdentifierStart { return "LONGTEXT", nil }
+KW_BIGINT   = "BIGINT"i   !IdentifierStart { return "BIGINT", nil }
+KW_FLOAT_64   = "FLOAT64"i   !IdentifierStart { return "FLOAT64", nil }
+KW_DOUBLE   = "DOUBLE"i   !IdentifierStart { return "DOUBLE", nil }
+KW_DATE     = "DATE"i     !IdentifierStart { return "DATE", nil }
+KW_DATETIME = "DATETIME"i     !IdentifierStart { return "DATETIME", nil }
+KW_ROWS     = "ROWS"i     !IdentifierStart { return "ROWS", nil }
+KW_TIME     = "TIME"i     !IdentifierStart { return "TIME", nil }
+KW_TIMESTAMP= "TIMESTAMP"i!IdentifierStart { return "TIMESTAMP", nil }
 
-KW_CURRENT_DATE     = "CURRENT_DATE"i !IdentifierStart { return "CURRENT_DATE" }
-KW_ADD_DATE         = "ADDDATE"i !IdentifierStart { return "ADDDATE" }
-KW_INTERVAL         = "INTERVAL"i !IdentifierStart { return "INTERVAL" }
-KW_UNIT_YEAR        = "YEAR"i !IdentifierStart { return "YEAR" }
-KW_UNIT_ISOYEAR     = "ISOYEAR"i !IdentifierStart { return "ISOYEAR" }
-KW_UNIT_MONTH       = "MONTH"i !IdentifierStart { return "MONTH" }
-KW_UNIT_DAY         = "DAY"i !IdentifierStart { return "DAY" }
-KW_UNIT_HOUR        = "HOUR"i !IdentifierStart { return "HOUR" }
-KW_UNIT_MINUTE      = "MINUTE"i !IdentifierStart { return "MINUTE" }
-KW_UNIT_SECOND      = "SECOND"i !IdentifierStart { return "SECOND" }
-KW_UNIT_WEEK        = "WEEK"i !IdentifierStart { return "WEEK" }
-KW_CURRENT_TIME     = "CURRENT_TIME"i !IdentifierStart { return "CURRENT_TIME" }
-KW_CURRENT_TIMESTAMP= "CURRENT_TIMESTAMP"i !IdentifierStart { return "CURRENT_TIMESTAMP" }
-KW_SESSION_USER     = "SESSION_USER"i !IdentifierStart { return "SESSION_USER" }
+KW_CURRENT_DATE     = "CURRENT_DATE"i !IdentifierStart { return "CURRENT_DATE", nil }
+KW_ADD_DATE         = "ADDDATE"i !IdentifierStart { return "ADDDATE", nil }
+KW_INTERVAL         = "INTERVAL"i !IdentifierStart { return "INTERVAL", nil }
+KW_UNIT_YEAR        = "YEAR"i !IdentifierStart { return "YEAR", nil }
+KW_UNIT_ISOYEAR     = "ISOYEAR"i !IdentifierStart { return "ISOYEAR", nil }
+KW_UNIT_MONTH       = "MONTH"i !IdentifierStart { return "MONTH", nil }
+KW_UNIT_DAY         = "DAY"i !IdentifierStart { return "DAY", nil }
+KW_UNIT_HOUR        = "HOUR"i !IdentifierStart { return "HOUR", nil }
+KW_UNIT_MINUTE      = "MINUTE"i !IdentifierStart { return "MINUTE", nil }
+KW_UNIT_SECOND      = "SECOND"i !IdentifierStart { return "SECOND", nil }
+KW_UNIT_WEEK        = "WEEK"i !IdentifierStart { return "WEEK", nil }
+KW_CURRENT_TIME     = "CURRENT_TIME"i !IdentifierStart { return "CURRENT_TIME", nil }
+KW_CURRENT_TIMESTAMP= "CURRENT_TIMESTAMP"i !IdentifierStart { return "CURRENT_TIMESTAMP", nil }
+KW_SESSION_USER     = "SESSION_USER"i !IdentifierStart { return "SESSION_USER", nil }
 
-KW_GLOBAL         = "GLOBAL"i    !IdentifierStart { return "GLOBAL" }
-KW_SESSION        = "SESSION"i   !IdentifierStart { return "SESSION" }
-KW_LOCAL          = "LOCAL"i     !IdentifierStart { return "LOCAL" }
-KW_PIVOT          = "PIVOT"i   !IdentifierStart { return "PIVOT" }
-KW_PERSIST        = "PERSIST"i   !IdentifierStart { return "PERSIST" }
-KW_PERSIST_ONLY   = "PERSIST_ONLY"i   !IdentifierStart { return "PERSIST_ONLY" }
-KW_VIEW           = "VIEW"i    !IdentifierStart { return "VIEW" }
+KW_GLOBAL         = "GLOBAL"i    !IdentifierStart { return "GLOBAL", nil }
+KW_SESSION        = "SESSION"i   !IdentifierStart { return "SESSION", nil }
+KW_LOCAL          = "LOCAL"i     !IdentifierStart { return "LOCAL", nil }
+KW_PIVOT          = "PIVOT"i   !IdentifierStart { return "PIVOT", nil }
+KW_PERSIST        = "PERSIST"i   !IdentifierStart { return "PERSIST", nil }
+KW_PERSIST_ONLY   = "PERSIST_ONLY"i   !IdentifierStart { return "PERSIST_ONLY", nil }
+KW_VIEW           = "VIEW"i    !IdentifierStart { return "VIEW", nil }
 
 // MySQL Alter
-KW_ADD     = "ADD"i     !IdentifierStart { return "ADD" }
-KW_COLUMN  = "COLUMN"i  !IdentifierStart { return "COLUMN" }
-KW_INDEX   = "INDEX"i  !IdentifierStart { return "INDEX" }
-KW_KEY     = "KEY"i  !IdentifierStart { return "KEY" }
-KW_FULLTEXT = "FULLTEXT"i  !IdentifierStart { return "FULLTEXT" }
-KW_UNIQUE     = "UNIQUE"i  !IdentifierStart { return "UNIQUE" }
-KW_COMMENT     = "COMMENT"i  !IdentifierStart { return "COMMENT" }
-KW_CONSTRAINT  = "CONSTRAINT"i  !IdentifierStart { return "CONSTRAINT" }
-KW_REFERENCES  = "REFERENCES"i  !IdentifierStart { return "REFERENCES" }
+KW_ADD     = "ADD"i     !IdentifierStart { return "ADD", nil }
+KW_COLUMN  = "COLUMN"i  !IdentifierStart { return "COLUMN", nil }
+KW_INDEX   = "INDEX"i  !IdentifierStart { return "INDEX", nil }
+KW_KEY     = "KEY"i  !IdentifierStart { return "KEY", nil }
+KW_FULLTEXT = "FULLTEXT"i  !IdentifierStart { return "FULLTEXT", nil }
+KW_UNIQUE     = "UNIQUE"i  !IdentifierStart { return "UNIQUE", nil }
+KW_COMMENT     = "COMMENT"i  !IdentifierStart { return "COMMENT", nil }
+KW_CONSTRAINT  = "CONSTRAINT"i  !IdentifierStart { return "CONSTRAINT", nil }
+KW_REFERENCES  = "REFERENCES"i  !IdentifierStart { return "REFERENCES", nil }
 
 
 comment

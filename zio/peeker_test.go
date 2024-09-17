@@ -11,7 +11,7 @@ import (
 
 func TestPeeker(t *testing.T) {
 	const input = `
-{key:"key1",value:"value1"}
+{key:"key1",value:"value1"}x
 {key:"key2",value:"value2"}
 {key:"key3",value:"value3"}
 {key:"key4",value:"value4"}

@@ -101,13 +101,13 @@ type (
 	File struct {
 		Path    ast.Pattern
 		Format  string
-		SortKey *ast.SortKey
+		SortKey *ast.SortExpr
 		EndPos  int
 	}
 	HTTP struct {
 		URL     ast.Pattern
 		Format  string
-		SortKey *ast.SortKey
+		SortKey *ast.SortExpr
 		Method  string
 		Headers *ast.RecordExpr
 		Body    string
