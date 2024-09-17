@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/runtime/vam/expr"
+	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
 	vamop "github.com/brimdata/zed/runtime/vam/op"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
@@ -67,11 +68,7 @@ func (b *Builder) compileVamScan(scan *dag.SeqScan, parent zbuf.Puller) (vector.
 func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller, error) {
 	switch o := o.(type) {
 	case *dag.Cut:
-		recordExpr, err := newDagRecordExprForAssignments(nil, o.Args)
-		if err != nil {
-			return nil, err
-		}
-		e, err := b.compileVamRecordExpr(recordExpr)
+		e, err := b.compileVamAssignmentsAsRecordExpression(nil, o.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -96,11 +93,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		initial := []dag.RecordElem{
 			&dag.Spread{Kind: "Spread", Expr: &dag.This{Kind: "This"}},
 		}
-		recordExpr, err := newDagRecordExprForAssignments(initial, o.Args)
-		if err != nil {
-			return nil, err
-		}
-		e, err := b.compileVamRecordExpr(recordExpr)
+		e, err := b.compileVamAssignmentsAsRecordExpression(initial, o.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -119,16 +112,16 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 	}
 }
 
-func newDagRecordExprForAssignments(initial []dag.RecordElem, assignments []dag.Assignment) (*dag.RecordExpr, error) {
+func (b *Builder) compileVamAssignmentsAsRecordExpression(initial []dag.RecordElem, assignments []dag.Assignment) (vamexpr.Evaluator, error) {
 	elems := initial
 	for _, a := range assignments {
 		lhs, ok := a.LHS.(*dag.This)
 		if !ok {
-			return nil, fmt.Errorf("internal error: dynamic field name not yet supported in vector runtime: %#v", a.LHS)
+			return nil, fmt.Errorf("internal error: dynamic field name not supported in vector runtime: %#v", a.LHS)
 		}
 		elems = append(elems, newDagRecordExprForPath(lhs.Path, a.RHS).Elems...)
 	}
-	return &dag.RecordExpr{Kind: "RecordExpr", Elems: elems}, nil
+	return b.compileVamRecordExpr(&dag.RecordExpr{Kind: "RecordExpr", Elems: elems})
 }
 
 func newDagRecordExprForPath(path []string, expr dag.Expr) *dag.RecordExpr {
