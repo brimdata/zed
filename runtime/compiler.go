@@ -36,14 +36,6 @@ func AsReader(q Query) zio.Reader {
 	return zbuf.PullerReader(q)
 }
 
-func AsProgressReadCloser(q Query) zbuf.ProgressReadCloser {
-	return struct {
-		zio.Reader
-		io.Closer
-		zbuf.Meter
-	}{AsReader(q), q, q}
-}
-
 func CompileQuery(ctx context.Context, zctx *zed.Context, c Compiler, program ast.Seq, sset *parser.SourceSet, readers []zio.Reader) (Query, error) {
 	rctx := NewContext(ctx, zctx)
 	q, err := c.NewQuery(rctx, program, readers)
