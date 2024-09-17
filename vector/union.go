@@ -27,11 +27,3 @@ func (u *Union) Serialize(b *zcode.Builder, slot uint32) {
 	u.Variant.Serialize(b, slot)
 	b.EndContainer()
 }
-
-func (u *Union) Copy(vals []Any) *Union {
-	variant := *u.Variant
-	variant.Values = vals
-	u2 := *u
-	u2.Variant = &variant
-	return &u2
-}
