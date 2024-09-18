@@ -30,6 +30,8 @@ func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {
 		return vamexpr.NewDottedExpr(b.zctx(), field.Path(e.Path)), nil
 	case *dag.Dot:
 		return b.compileVamDotExpr(e)
+	case *dag.IndexExpr:
+		return b.compileVamIndexExpr(e)
 	case *dag.UnaryExpr:
 		return b.compileVamUnary(*e)
 	case *dag.BinaryExpr:
@@ -101,8 +103,6 @@ func (b *Builder) compileVamBinary(e *dag.BinaryExpr) (vamexpr.Evaluator, error)
 		return vamexpr.NewCompare(b.zctx(), lhs, rhs, op), nil
 	case "+", "-", "*", "/", "%":
 		return vamexpr.NewArith(b.zctx(), lhs, rhs, op), nil
-	//case "[":
-	//	return vamexpr.NewIndexExpr(b.zctx(), lhs, rhs), nil
 	default:
 		return nil, fmt.Errorf("invalid binary operator %s", op)
 	}
@@ -130,6 +130,18 @@ func (b *Builder) compileVamDotExpr(dot *dag.Dot) (vamexpr.Evaluator, error) {
 		return nil, err
 	}
 	return vamexpr.NewDotExpr(b.zctx(), record, dot.RHS), nil
+}
+
+func (b *Builder) compileVamIndexExpr(idx *dag.IndexExpr) (vamexpr.Evaluator, error) {
+	e, err := b.compileVamExpr(idx.Expr)
+	if err != nil {
+		return nil, err
+	}
+	index, err := b.compileVamExpr(idx.Index)
+	if err != nil {
+		return nil, err
+	}
+	return vamexpr.NewIndexExpr(b.zctx(), e, index), nil
 }
 
 func (b *Builder) compileVamExprs(in []dag.Expr) ([]vamexpr.Evaluator, error) {
