@@ -27,3 +27,11 @@ func (u *Union) Serialize(b *zcode.Builder, slot uint32) {
 	u.Variant.Serialize(b, slot)
 	b.EndContainer()
 }
+
+func Deunion(vec Any) Any {
+	if union, ok := vec.(*Union); ok {
+		// XXX if the Union has Nulls this will be broken.
+		return union.Variant
+	}
+	return vec
+}
