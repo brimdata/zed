@@ -24,7 +24,7 @@ func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return CompileBufferFilter(f.builder.rctx.Zctx, f.pushdown)
+	return CompileBufferFilter(f.builder.zctx(), f.pushdown)
 }
 
 type DeleteFilter struct {
