@@ -226,18 +226,9 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		return op.NewApplier(b.rctx, parent, putter, b.resetters), nil
 	case *dag.Rename:
 		b.resetResetters()
-		var srcs, dsts []*expr.Lval
-		for _, a := range v.Args {
-			src, err := b.compileLval(a.RHS)
-			if err != nil {
-				return nil, err
-			}
-			dst, err := b.compileLval(a.LHS)
-			if err != nil {
-				return nil, err
-			}
-			srcs = append(srcs, src)
-			dsts = append(dsts, dst)
+		srcs, dsts, err := b.compileAssignmentsToLvals(v.Args)
+		if err != nil {
+			return nil, err
 		}
 		renamer := expr.NewRenamer(b.rctx.Zctx, srcs, dsts)
 		return op.NewApplier(b.rctx, parent, renamer, b.resetters), nil
@@ -445,6 +436,23 @@ func (b *Builder) compileAssignments(assignments []dag.Assignment) ([]expr.Assig
 		keys = append(keys, a)
 	}
 	return keys, nil
+}
+
+func (b *Builder) compileAssignmentsToLvals(assignments []dag.Assignment) ([]*expr.Lval, []*expr.Lval, error) {
+	var srcs, dsts []*expr.Lval
+	for _, a := range assignments {
+		src, err := b.compileLval(a.RHS)
+		if err != nil {
+			return nil, nil, err
+		}
+		dst, err := b.compileLval(a.LHS)
+		if err != nil {
+			return nil, nil, err
+		}
+		srcs = append(srcs, src)
+		dsts = append(dsts, dst)
+	}
+	return srcs, dsts, nil
 }
 
 func splitAssignments(assignments []expr.Assignment) ([]*expr.Lval, []expr.Evaluator) {
