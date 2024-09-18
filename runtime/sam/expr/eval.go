@@ -641,7 +641,10 @@ func (i *Index) Eval(ectx Context, this zed.Value) zed.Value {
 func indexVector(zctx *zed.Context, ectx Context, inner zed.Type, vector zcode.Bytes, index zed.Value) zed.Value {
 	id := index.Type().ID()
 	if !zed.IsInteger(id) {
-		return zctx.WrapError("array index is not an integer", index)
+		return zctx.WrapError("index is not an integer", index)
+	}
+	if index.IsNull() {
+		return zctx.Missing()
 	}
 	var idx int
 	if zed.IsSigned(id) {

@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/runtime/vam/expr"
+	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
 	vamop "github.com/brimdata/zed/runtime/vam/op"
 	"github.com/brimdata/zed/vector"
 	"github.com/brimdata/zed/zbuf"
@@ -66,6 +67,12 @@ func (b *Builder) compileVamScan(scan *dag.SeqScan, parent zbuf.Puller) (vector.
 
 func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller, error) {
 	switch o := o.(type) {
+	case *dag.Cut:
+		e, err := b.compileVamAssignmentsToRecordExpression(nil, o.Args)
+		if err != nil {
+			return nil, err
+		}
+		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{e}), nil
 	case *dag.Filter:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {
@@ -85,7 +92,14 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 	case *dag.Pass:
 		return parent, nil
 	case *dag.Put:
-		return b.compileVamPut(o, parent)
+		initial := []dag.RecordElem{
+			&dag.Spread{Kind: "Spread", Expr: &dag.This{Kind: "This"}},
+		}
+		e, err := b.compileVamAssignmentsToRecordExpression(initial, o.Args)
+		if err != nil {
+			return nil, err
+		}
+		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{expr.NewPutter(b.zctx(), e)}), nil
 	case *dag.Rename:
 		srcs, dsts, err := b.compileAssignmentsToLvals(o.Args)
 		if err != nil {
@@ -107,22 +121,16 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 	}
 }
 
-func (b *Builder) compileVamPut(put *dag.Put, parent vector.Puller) (vector.Puller, error) {
-	elems := []dag.RecordElem{
-		&dag.Spread{Kind: "Spread", Expr: &dag.This{Kind: "This"}},
-	}
-	for _, a := range put.Args {
+func (b *Builder) compileVamAssignmentsToRecordExpression(initial []dag.RecordElem, assignments []dag.Assignment) (vamexpr.Evaluator, error) {
+	elems := initial
+	for _, a := range assignments {
 		lhs, ok := a.LHS.(*dag.This)
 		if !ok {
-			return nil, fmt.Errorf("internal error: dynamic field name not yet supported in vector runtime: %#v", a.LHS)
+			return nil, fmt.Errorf("internal error: dynamic field name not supported in vector runtime: %#v", a.LHS)
 		}
 		elems = append(elems, newDagRecordExprForPath(lhs.Path, a.RHS).Elems...)
 	}
-	e, err := b.compileVamRecordExpr(&dag.RecordExpr{Kind: "RecordExpr", Elems: elems})
-	if err != nil {
-		return nil, err
-	}
-	return vamop.NewYield(b.rctx.Zctx, parent, []expr.Evaluator{expr.NewPutter(b.zctx(), e)}), nil
+	return b.compileVamRecordExpr(&dag.RecordExpr{Kind: "RecordExpr", Elems: elems})
 }
 
 func newDagRecordExprForPath(path []string, expr dag.Expr) *dag.RecordExpr {

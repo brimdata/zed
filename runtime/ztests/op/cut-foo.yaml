@@ -1,5 +1,7 @@
 zed: cut foo
 
+vector: true
+
 input: &input |
   {foo:"foo1"}
   {foo:"foo2"}

@@ -49,3 +49,20 @@ func (i *Int) Serialize(b *zcode.Builder, slot uint32) {
 func (i *Int) Promote(typ zed.Type) Promotable {
 	return &Int{typ, i.Values, i.Nulls}
 }
+
+func IntValue(vec Any, slot uint32) (int64, bool) {
+	switch vec := Under(vec).(type) {
+	case *Int:
+		return vec.Value(slot), vec.Nulls.Value(slot)
+	case *Const:
+		return vec.Value().Ptr().AsInt(), vec.Nulls.Value(slot)
+	case *Dict:
+		return IntValue(vec.Any, uint32(vec.Index[slot]))
+	case *Variant:
+		tag := vec.Tags[slot]
+		return IntValue(vec.Values[tag], vec.TagMap.Forward[slot])
+	case *View:
+		return IntValue(vec.Any, vec.Index[slot])
+	}
+	panic(vec)
+}

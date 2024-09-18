@@ -49,7 +49,7 @@ func (f *Fields) Call(args ...vector.Any) vector.Any {
 		inner := vector.NewArray(f.innerTyp, inOffs, s, nil)
 		out := vector.NewArray(f.outerTyp, outOffs, inner, nil)
 		if len(errs) > 0 {
-			return mix(val.Len(), out, errs, vector.NewStringError(f.zctx, "missing", uint32(len(errs))))
+			return vector.Combine(out, errs, vector.NewStringError(f.zctx, "missing", uint32(len(errs))))
 		}
 		return out
 	default:
