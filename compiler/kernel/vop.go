@@ -86,6 +86,13 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		return parent, nil
 	case *dag.Put:
 		return b.compileVamPut(o, parent)
+	case *dag.Rename:
+		srcs, dsts, err := b.compileAssignmentsToLvals(o.Args)
+		if err != nil {
+			return nil, err
+		}
+		renamer := expr.NewRenamer(b.zctx(), srcs, dsts)
+		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{renamer}), nil
 	case *dag.Yield:
 		exprs, err := b.compileVamExprs(o.Exprs)
 		if err != nil {
