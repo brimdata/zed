@@ -68,7 +68,7 @@ func (b *Builder) compileVamScan(scan *dag.SeqScan, parent zbuf.Puller) (vector.
 func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller, error) {
 	switch o := o.(type) {
 	case *dag.Cut:
-		e, err := b.compileVamAssignmentsAsRecordExpression(nil, o.Args)
+		e, err := b.compileVamAssignmentsToRecordExpression(nil, o.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +93,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		initial := []dag.RecordElem{
 			&dag.Spread{Kind: "Spread", Expr: &dag.This{Kind: "This"}},
 		}
-		e, err := b.compileVamAssignmentsAsRecordExpression(initial, o.Args)
+		e, err := b.compileVamAssignmentsToRecordExpression(initial, o.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 	}
 }
 
-func (b *Builder) compileVamAssignmentsAsRecordExpression(initial []dag.RecordElem, assignments []dag.Assignment) (vamexpr.Evaluator, error) {
+func (b *Builder) compileVamAssignmentsToRecordExpression(initial []dag.RecordElem, assignments []dag.Assignment) (vamexpr.Evaluator, error) {
 	elems := initial
 	for _, a := range assignments {
 		lhs, ok := a.LHS.(*dag.This)
