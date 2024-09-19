@@ -70,9 +70,9 @@ func KindFromString(v string) Kind {
 
 func KindOfType(typ zed.Type) Kind {
 	switch zed.TypeUnder(typ).(type) {
-	case *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration:
+	case *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
 		return KindInt
-	case *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64, *zed.TypeOfTime:
+	case *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
 		return KindUint
 	case *zed.TypeOfFloat16, *zed.TypeOfFloat32, *zed.TypeOfFloat64:
 		return KindFloat
