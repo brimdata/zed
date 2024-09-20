@@ -1,4 +1,4 @@
-package parser
+package sql
 
 import (
 	"bytes"
