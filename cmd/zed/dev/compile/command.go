@@ -56,6 +56,7 @@ type Command struct {
 	parallel int
 	n        int
 	includes includes
+	sql      bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -68,6 +69,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.canon, "C", false, "display AST in Zed canonical format (implies -proc)")
 	f.BoolVar(&c.describe, "D", false, "display describe summary of Zed query (implies -proc)")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be repeated)")
+	f.BoolVar(&c.sql, "sql", false, "interpret query text as SuperSQL")
 	return c, nil
 }
 
@@ -125,7 +127,7 @@ func (c *Command) Run(args []string) error {
 			lk = lakeAPI.Root()
 		}
 	}
-	return c.parse(ctx, src, lk)
+	return c.parse(ctx, c.sql, src, lk)
 }
 
 func (c *Command) header(msg string) {
@@ -137,8 +139,8 @@ func (c *Command) header(msg string) {
 	}
 }
 
-func (c *Command) parse(ctx context.Context, z string, lk *lake.Root) error {
-	seq, sset, err := compiler.Parse(z, c.includes...)
+func (c *Command) parse(ctx context.Context, sql bool, z string, lk *lake.Root) error {
+	seq, sset, err := compiler.Parse(sql, z, c.includes...)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/cli/queryflags"
 	"github.com/brimdata/zed/cmd/zed/dev/vector"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/compiler"
@@ -21,7 +22,7 @@ import (
 var query = &charm.Spec{
 	Name:  "query",
 	Usage: "query [flags] query path",
-	Short: "run a Zed query on a VNG file",
+	Short: "run a query on a VNG file",
 	Long: `
 The query command runs a query on a VNG file presuming the 
 query is entirely vectorizable.  The VNG object is read through 
@@ -40,11 +41,13 @@ func init() {
 type Command struct {
 	*root.Command
 	outputFlags outputflags.Flags
+	queryFlags  queryflags.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.SetFlags(f)
+	c.queryFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -70,7 +73,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer object.Close()
 	rctx := runtime.NewContext(ctx, zed.NewContext())
-	puller, err := compiler.VectorCompile(rctx, text, object)
+	puller, err := compiler.VectorCompile(rctx, c.queryFlags.SQL, text, object)
 	if err != nil {
 		return err
 	}

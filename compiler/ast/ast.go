@@ -693,6 +693,7 @@ type SortExpr struct {
 	Kind  string `json:"kind" unpack:""`
 	Expr  Expr   `json:"expr"`
 	Order *ID    `json:"order"`
+	Nulls *ID    `json:"nulls"`
 }
 
 func (s SortExpr) Pos() int { return s.Expr.Pos() }
