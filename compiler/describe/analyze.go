@@ -53,8 +53,8 @@ type Channel struct {
 	Sort            order.SortKeys `json:"sort"`
 }
 
-func Analyze(ctx context.Context, query string, src *data.Source, head *lakeparse.Commitish) (*Info, error) {
-	seq, sset, err := parser.ParseZed(nil, query)
+func Analyze(ctx context.Context, sql bool, query string, src *data.Source, head *lakeparse.Commitish) (*Info, error) {
+	seq, sset, err := parser.ParseQuery(sql, nil, query)
 	if err != nil {
 		return nil, err
 	}

@@ -416,6 +416,14 @@ func (a *analyzer) semDebugOp(o *ast.Debug, mainAst ast.Seq, in dag.Seq) dag.Seq
 // with either a group-by or filter op based on the function's name.
 func (a *analyzer) semOp(o ast.Op, seq dag.Seq) dag.Seq {
 	switch o := o.(type) {
+	case *ast.Select:
+		if len(seq) > 0 {
+			// This shouldn't happen because we shouldn't allow the mixture
+			// of the two grammars but check in case.
+			a.error(o, errors.New("cannot use SQL with parent pipeline operators"))
+			return append(seq, badOp())
+		}
+		return a.semSQLSelect(o)
 	case *ast.From:
 		return a.semFrom(o, seq)
 	case *ast.Pool, *ast.File, *ast.HTTP:
