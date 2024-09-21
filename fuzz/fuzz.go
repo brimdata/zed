@@ -95,7 +95,7 @@ func RunQuery(t testing.TB, zctx *zed.Context, readers []zio.Reader, querySource
 	// Compile query
 	engine := mock.NewMockEngine(gomock.NewController(t))
 	comp := compiler.NewFileSystemCompiler(engine)
-	ast, sset, err := compiler.Parse(querySource)
+	ast, sset, err := compiler.Parse(false, querySource)
 	if err != nil {
 		t.Skipf("%v", err)
 	}
