@@ -5,12 +5,14 @@
 ### Synopsis
 
 ```
-head [ <expr> ]
+head [ <const-expr> ]
 ```
 ### Description
 
-The `head` operator copies the first `n` values, evaluated from `<expr>`, from its input to its output
-and ends the sequence thereafter. `<expr>` must evaluate to a positive integer at compile time.
+The `head` operator copies the first N values from its input to its output and ends
+the sequence thereafter. N is given by `<const-expr>`, a compile-time
+constant expression that evaluates to a positive integer. If `<const-expr>`
+is not provided, the value of N defaults to `1`.
 
 ### Examples
 
