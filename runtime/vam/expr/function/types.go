@@ -11,6 +11,6 @@ type TypeOf struct {
 }
 
 func (t *TypeOf) Call(args ...vector.Any) vector.Any {
-	v := t.zctx.LookupTypeValue(args[0].Type())
-	return vector.NewConst(v, args[0].Len(), nil)
+	val := t.zctx.LookupTypeValue(args[0].Type())
+	return vector.NewConst(val, args[0].Len(), nil)
 }
