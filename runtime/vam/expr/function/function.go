@@ -40,6 +40,8 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 		f = &Split{zctx}
 	case "trim":
 		f = &Trim{zctx}
+	case "typeof":
+		f = &TypeOf{zctx}
 	case "upper":
 		f = &ToUpper{zctx}
 	default:
