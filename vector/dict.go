@@ -28,3 +28,10 @@ func (d *Dict) Serialize(builder *zcode.Builder, slot uint32) {
 		d.Any.Serialize(builder, uint32(d.Index[slot]))
 	}
 }
+
+func (d *Dict) AppendKey(bytes []byte, slot uint32) []byte {
+	if d.Nulls.Value(slot) {
+		return append(bytes, 0)
+	}
+	return d.Any.AppendKey(bytes, uint32(d.Index[slot]))
+}
