@@ -30,7 +30,7 @@ func (t *TypeValue) Value(slot uint32) []byte {
 }
 
 func (t *TypeValue) Serialize(b *zcode.Builder, slot uint32) {
-	if t.Nulls != nil && t.Nulls.Value(slot) {
+	if t.Nulls.Value(slot) {
 		b.Append(nil)
 	} else {
 		b.Append(t.Value(slot))

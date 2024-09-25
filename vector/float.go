@@ -38,7 +38,7 @@ func (f *Float) Value(slot uint32) float64 {
 }
 
 func (f *Float) Serialize(b *zcode.Builder, slot uint32) {
-	if f.Nulls != nil && f.Nulls.Value(slot) {
+	if f.Nulls.Value(slot) {
 		b.Append(nil)
 		return
 	}

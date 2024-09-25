@@ -28,7 +28,7 @@ func (m *Map) Len() uint32 {
 }
 
 func (m *Map) Serialize(b *zcode.Builder, slot uint32) {
-	if m.Nulls != nil && m.Nulls.Value(slot) {
+	if m.Nulls.Value(slot) {
 		b.Append(nil)
 		return
 	}

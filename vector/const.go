@@ -38,7 +38,7 @@ func (c *Const) Value() zed.Value {
 }
 
 func (c *Const) Serialize(b *zcode.Builder, slot uint32) {
-	if c.Nulls != nil && c.Nulls.Value(slot) {
+	if c.Nulls.Value(slot) {
 		b.Append(nil)
 	} else {
 		b.Append(c.val.Bytes())

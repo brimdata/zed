@@ -27,7 +27,7 @@ func (n *Net) Len() uint32 {
 }
 
 func (n *Net) Serialize(b *zcode.Builder, slot uint32) {
-	if n.Nulls != nil && n.Nulls.Value(slot) {
+	if n.Nulls.Value(slot) {
 		b.Append(nil)
 	} else {
 		b.Append(zed.EncodeNet(n.Values[slot]))
