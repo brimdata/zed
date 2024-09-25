@@ -53,7 +53,7 @@ func (c *CountByString) Pull(done bool) (vector.Any, error) {
 }
 
 func (c *CountByString) update(val vector.Any) {
-	if val, ok := val.(*vector.Variant); ok {
+	if val, ok := val.(*vector.Dynamic); ok {
 		for _, val := range val.Values {
 			c.update(val)
 		}
@@ -183,7 +183,7 @@ func (c *Sum) Pull(done bool) (vector.Any, error) {
 }
 
 func (c *Sum) update(vec vector.Any) {
-	if vec, ok := vec.(*vector.Variant); ok {
+	if vec, ok := vec.(*vector.Dynamic); ok {
 		for _, vec := range vec.Values {
 			c.update(vec)
 		}

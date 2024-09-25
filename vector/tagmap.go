@@ -1,6 +1,6 @@
 package vector
 
-// TagMap is used by variants and unions to map slots between parent and child in
+// TagMap is used by dynamics and unions to map slots between parent and child in
 // both the forward and reverse directions. We need this because vectors are stored
 // in a dense format where different types hold only the values needed for that type.
 // If we stored vectors in a sparse format, the amount of overhead would increase

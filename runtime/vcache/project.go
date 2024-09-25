@@ -9,8 +9,8 @@ import (
 
 func project(zctx *zed.Context, paths Path, s shadow) vector.Any {
 	switch s := s.(type) {
-	case *variant:
-		return projectVariant(zctx, paths, s)
+	case *dynamic:
+		return projectDynamic(zctx, paths, s)
 	case *record:
 		return projectRecord(zctx, paths, s)
 	case *array:
@@ -54,12 +54,12 @@ func project(zctx *zed.Context, paths Path, s shadow) vector.Any {
 	}
 }
 
-func projectVariant(zctx *zed.Context, paths Path, s *variant) vector.Any {
+func projectDynamic(zctx *zed.Context, paths Path, s *dynamic) vector.Any {
 	vals := make([]vector.Any, 0, len(s.vals))
 	for _, m := range s.vals {
 		vals = append(vals, project(zctx, paths, m))
 	}
-	return vector.NewVariant(s.tags, vals)
+	return vector.NewDynamic(s.tags, vals)
 }
 
 func projectRecord(zctx *zed.Context, paths Path, s *record) vector.Any {

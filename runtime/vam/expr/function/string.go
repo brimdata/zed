@@ -105,7 +105,7 @@ func (r *Replace) Call(args ...vector.Any) vector.Any {
 		out.Append(strings.ReplaceAll(s, old, new))
 	}
 	errval := vector.NewStringError(r.zctx, "replace: an input arg is null", errcnt)
-	return vector.NewVariant(tags, []vector.Any{out, errval})
+	return vector.NewDynamic(tags, []vector.Any{out, errval})
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#run_len

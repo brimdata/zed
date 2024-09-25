@@ -25,9 +25,9 @@ type Builder func(*zcode.Builder) bool
 func Combine(vec Any, index []uint32, add Any) Any {
 	var vecs []Any
 	tags := make([]uint32, int(vec.Len())+len(index))
-	if variant, ok := vec.(*Variant); ok {
-		vecs = variant.Values
-		varTags := variant.Tags
+	if d, ok := vec.(*Dynamic); ok {
+		vecs = d.Values
+		varTags := d.Tags
 		n := uint32(len(vecs))
 		for i := uint32(0); i < uint32(len(tags)); i++ {
 			if len(index) > 0 && i == index[0] {
@@ -44,5 +44,5 @@ func Combine(vec Any, index []uint32, add Any) Any {
 			tags[k] = 1
 		}
 	}
-	return NewVariant(tags, append(vecs, add))
+	return NewDynamic(tags, append(vecs, add))
 }

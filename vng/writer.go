@@ -16,7 +16,7 @@ import (
 type Writer struct {
 	zctx    *zed.Context
 	writer  io.WriteCloser
-	variant *VariantEncoder
+	dynamic *DynamicEncoder
 }
 
 var _ zio.Writer = (*Writer)(nil)
@@ -25,7 +25,7 @@ func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
 		zctx:    zed.NewContext(),
 		writer:  w,
-		variant: NewVariantEncoder(),
+		dynamic: NewDynamicEncoder(),
 	}
 }
 
@@ -38,11 +38,11 @@ func (w *Writer) Close() error {
 }
 
 func (w *Writer) Write(val zed.Value) error {
-	return w.variant.Write(val)
+	return w.dynamic.Write(val)
 }
 
 func (w *Writer) finalize() error {
-	meta, dataSize, err := w.variant.Encode()
+	meta, dataSize, err := w.dynamic.Encode()
 	if err != nil {
 		return fmt.Errorf("system error: could not encode VNG metadata: %w", err)
 	}
@@ -71,7 +71,7 @@ func (w *Writer) finalize() error {
 		return fmt.Errorf("system error: could not write VNG metadata section: %w", err)
 	}
 	// Data section
-	if err := w.variant.Emit(w.writer); err != nil {
+	if err := w.dynamic.Emit(w.writer); err != nil {
 		return fmt.Errorf("system error: could not write VNG data section: %w", err)
 	}
 	return nil

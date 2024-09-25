@@ -21,16 +21,16 @@ type shadow interface {
 	length() uint32
 }
 
-type variant struct {
+type dynamic struct {
 	mu   sync.Mutex
 	len  uint32
-	tags []uint32 // need not be loaded for unordered variants
+	tags []uint32 // need not be loaded for unordered dynamics
 	loc  vng.Segment
 	vals []shadow
 }
 
-func (v *variant) length() uint32 {
-	return v.len
+func (d *dynamic) length() uint32 {
+	return d.len
 }
 
 type record struct {
@@ -133,12 +133,12 @@ func (c count) length() uint32 {
 // by the runtime.
 func newShadow(m vng.Metadata, n *vng.Nulls, nullsCnt uint32) shadow {
 	switch m := m.(type) {
-	case *vng.Variant:
+	case *vng.Dynamic:
 		vals := make([]shadow, 0, len(m.Values))
 		for _, val := range m.Values {
 			vals = append(vals, newShadow(val, nil, 0))
 		}
-		return &variant{
+		return &dynamic{
 			vals: vals,
 			len:  m.Len(),
 			loc:  m.Tags,
