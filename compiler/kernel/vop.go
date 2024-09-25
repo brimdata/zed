@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/optimizer"
+	samexpr "github.com/brimdata/zed/runtime/sam/expr"
 	"github.com/brimdata/zed/runtime/vam/expr"
 	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
 	vamop "github.com/brimdata/zed/runtime/vam/op"
@@ -100,6 +101,21 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 			return nil, err
 		}
 		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{expr.NewPutter(b.zctx(), e)}), nil
+	case *dag.Sort:
+		b.resetResetters()
+		var sortExprs []samexpr.SortEvaluator
+		for _, s := range o.Args {
+			k, err := b.compileExpr(s.Key)
+			if err != nil {
+				return nil, err
+			}
+			sortExprs = append(sortExprs, samexpr.NewSortEvaluator(k, s.Order))
+		}
+		sort, err := vamop.NewSort(b.rctx, parent, sortExprs, o.NullsFirst, o.Reverse, b.resetters)
+		if err != nil {
+			return nil, fmt.Errorf("compiling sort: %w", err)
+		}
+		return sort, nil
 	case *dag.Rename:
 		srcs, dsts, err := b.compileAssignmentsToLvals(o.Args)
 		if err != nil {

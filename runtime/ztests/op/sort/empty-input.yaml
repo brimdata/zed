@@ -1,6 +1,8 @@
 # Sort with empty input should produce no output or warning.
 zed: sort foo
 
+vector: true
+
 input: ''
 
 output: ''

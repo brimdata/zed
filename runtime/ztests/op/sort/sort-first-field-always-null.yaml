@@ -1,5 +1,7 @@
 zed: sort x, y
 
+vector: true
+
 input: |
   {x:null(int64),y:2}
   {x:null(int64),y:1}

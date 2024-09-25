@@ -1,5 +1,7 @@
 zed: sort lower(this)
 
+vector: true
+
 input: |
   "foo"
   "C"

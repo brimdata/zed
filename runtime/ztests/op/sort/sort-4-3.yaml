@@ -1,4 +1,6 @@
-zed: sort -r -nulls first s
+zed: sort -r -nulls last s
+
+vector: true
 
 input: |
   {s:"b"}
@@ -8,8 +10,8 @@ input: |
   {notS:"bleah"}
 
 output: |
-  {s:null(string)}
-  {notS:"bleah"}
   {s:"c"}
   {s:"b"}
   {s:"a"}
+  {s:null(string)}
+  {notS:"bleah"}

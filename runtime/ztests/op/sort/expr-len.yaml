@@ -1,5 +1,7 @@
 zed: sort len(this)
 
+vector: true
+
 input: |
   "333"
   "22"
