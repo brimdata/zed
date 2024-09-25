@@ -10,76 +10,76 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type VariantEncoder struct {
+type DynamicEncoder struct {
 	tags   *Int64Encoder
 	values []Encoder
 	which  map[zed.Type]int
 	len    uint32
 }
 
-var _ zio.Writer = (*VariantEncoder)(nil)
+var _ zio.Writer = (*DynamicEncoder)(nil)
 
-func NewVariantEncoder() *VariantEncoder {
-	return &VariantEncoder{
+func NewDynamicEncoder() *DynamicEncoder {
+	return &DynamicEncoder{
 		tags:  NewInt64Encoder(),
 		which: make(map[zed.Type]int),
 	}
 }
 
-// The variant encoder self-organizes around the types that are
+// The dynamic encoder self-organizes around the types that are
 // written to it.  No need to define the schema up front!
 // We track the types seen first-come, first-served and the
 // VNG metadata structure follows accordingly.
-func (v *VariantEncoder) Write(val zed.Value) error {
+func (d *DynamicEncoder) Write(val zed.Value) error {
 	typ := val.Type()
-	tag, ok := v.which[typ]
+	tag, ok := d.which[typ]
 	if !ok {
-		tag = len(v.values)
-		v.values = append(v.values, NewEncoder(typ))
-		v.which[typ] = tag
+		tag = len(d.values)
+		d.values = append(d.values, NewEncoder(typ))
+		d.which[typ] = tag
 	}
-	v.tags.Write(int64(tag))
-	v.len++
-	v.values[tag].Write(val.Bytes())
+	d.tags.Write(int64(tag))
+	d.len++
+	d.values[tag].Write(val.Bytes())
 	return nil
 }
 
-func (v *VariantEncoder) Encode() (Metadata, uint64, error) {
+func (d *DynamicEncoder) Encode() (Metadata, uint64, error) {
 	var group errgroup.Group
-	if len(v.values) > 1 {
-		v.tags.Encode(&group)
+	if len(d.values) > 1 {
+		d.tags.Encode(&group)
 	}
-	for _, val := range v.values {
+	for _, val := range d.values {
 		val.Encode(&group)
 	}
 	if err := group.Wait(); err != nil {
 		return nil, 0, err
 	}
-	if len(v.values) == 1 {
-		off, meta := v.values[0].Metadata(0)
+	if len(d.values) == 1 {
+		off, meta := d.values[0].Metadata(0)
 		return meta, off, nil
 	}
-	values := make([]Metadata, 0, len(v.values))
-	off, tags := v.tags.Metadata(0)
-	for _, val := range v.values {
+	values := make([]Metadata, 0, len(d.values))
+	off, tags := d.tags.Metadata(0)
+	for _, val := range d.values {
 		var meta Metadata
 		off, meta = val.Metadata(off)
 		values = append(values, meta)
 	}
-	return &Variant{
+	return &Dynamic{
 		Tags:   tags.(*Primitive).Location,
 		Values: values,
-		Length: v.len,
+		Length: d.len,
 	}, off, nil
 }
 
-func (v *VariantEncoder) Emit(w io.Writer) error {
-	if len(v.values) > 1 {
-		if err := v.tags.Emit(w); err != nil {
+func (d *DynamicEncoder) Emit(w io.Writer) error {
+	if len(d.values) > 1 {
+		if err := d.tags.Emit(w); err != nil {
 			return err
 		}
 	}
-	for _, value := range v.values {
+	for _, value := range d.values {
 		if err := value.Emit(w); err != nil {
 			return err
 		}
@@ -87,17 +87,17 @@ func (v *VariantEncoder) Emit(w io.Writer) error {
 	return nil
 }
 
-type variantBuilder struct {
+type dynamicBuilder struct {
 	types   []zed.Type
 	tags    *Int64Decoder
 	values  []Builder
 	builder *zcode.Builder
 }
 
-func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) (*variantBuilder, error) {
-	values := make([]Builder, 0, len(variant.Values))
-	types := make([]zed.Type, 0, len(variant.Values))
-	for _, val := range variant.Values {
+func newDynamicBuilder(zctx *zed.Context, d *Dynamic, reader io.ReaderAt) (*dynamicBuilder, error) {
+	values := make([]Builder, 0, len(d.Values))
+	types := make([]zed.Type, 0, len(d.Values))
+	for _, val := range d.Values {
 		r, err := NewBuilder(val, reader)
 		if err != nil {
 			return nil, err
@@ -105,36 +105,36 @@ func newVariantBuilder(zctx *zed.Context, variant *Variant, reader io.ReaderAt) 
 		values = append(values, r)
 		types = append(types, val.Type(zctx))
 	}
-	return &variantBuilder{
+	return &dynamicBuilder{
 		types:   types,
-		tags:    NewInt64Decoder(variant.Tags, reader),
+		tags:    NewInt64Decoder(d.Tags, reader),
 		values:  values,
 		builder: zcode.NewBuilder(),
 	}, nil
 }
 
-func (v *variantBuilder) Read() (*zed.Value, error) {
-	b := v.builder
+func (d *dynamicBuilder) Read() (*zed.Value, error) {
+	b := d.builder
 	b.Truncate()
-	tag, err := v.tags.Next()
+	tag, err := d.tags.Next()
 	if err != nil {
 		if err == io.EOF {
 			err = nil
 		}
 		return nil, err
 	}
-	if int(tag) >= len(v.types) {
-		return nil, fmt.Errorf("bad tag encountered scanning VNG variant: tag %d when only %d types", tag, len(v.types))
+	if int(tag) >= len(d.types) {
+		return nil, fmt.Errorf("bad tag encountered scanning VNG dynamic: tag %d when only %d types", tag, len(d.types))
 	}
-	if err := v.values[tag].Build(b); err != nil {
+	if err := d.values[tag].Build(b); err != nil {
 		return nil, err
 	}
-	return zed.NewValue(v.types[tag], b.Bytes().Body()).Ptr(), nil
+	return zed.NewValue(d.types[tag], b.Bytes().Body()).Ptr(), nil
 }
 
 func NewZedReader(zctx *zed.Context, meta Metadata, r io.ReaderAt) (zio.Reader, error) {
-	if variant, ok := meta.(*Variant); ok {
-		return newVariantBuilder(zctx, variant, r)
+	if d, ok := meta.(*Dynamic); ok {
+		return newDynamicBuilder(zctx, d, r)
 	}
 	values, err := NewBuilder(meta, r)
 	if err != nil {

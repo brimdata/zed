@@ -49,7 +49,7 @@ func filterQuiet(val vector.Any) vector.Any {
 	return val
 }
 
-// XXX should work for input variants
+// XXX should work for vector.Dynamic
 func interleave(vals []vector.Any) vector.Any {
 	if len(vals) < 2 {
 		panic("interleave requires two or more vals")
@@ -61,5 +61,5 @@ func interleave(vals []vector.Any) vector.Any {
 		tags[k] = k % nvals
 
 	}
-	return vector.NewVariant(tags, vals)
+	return vector.NewDynamic(tags, vals)
 }

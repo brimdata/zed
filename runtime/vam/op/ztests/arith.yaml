@@ -1,4 +1,4 @@
-# Test that arithmetic works on union and variant vectors.
+# Test that arithmetic works on union and dynamic vectors.
 
 script: |
   zq -o t.vng -f vng -

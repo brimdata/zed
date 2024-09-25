@@ -30,7 +30,7 @@ func (b *Base64) Call(args ...vector.Any) vector.Any {
 			out.Append(base64.StdEncoding.EncodeToString(bytes))
 		}
 		err := vector.NewStringError(b.zctx, "base64: illegal null argument", errcnt)
-		return vector.NewVariant(tags, []vector.Any{out, err})
+		return vector.NewDynamic(tags, []vector.Any{out, err})
 	case zed.IDString:
 		errvals := vector.NewStringEmpty(0, nil)
 		tags := make([]uint32, val.Len())
@@ -49,7 +49,7 @@ func (b *Base64) Call(args ...vector.Any) vector.Any {
 			out.Append(bytes)
 		}
 		err := vector.NewWrappedError(b.zctx, "base64: string argument is not base64", errvals)
-		return vector.NewVariant(tags, []vector.Any{out, err})
+		return vector.NewDynamic(tags, []vector.Any{out, err})
 	default:
 		return vector.NewWrappedError(b.zctx, "base64: argument must a bytes or string type", val)
 	}
@@ -77,7 +77,7 @@ func (h *Hex) Call(args ...vector.Any) vector.Any {
 			out.Append(hex.EncodeToString(bytes))
 		}
 		err := vector.NewStringError(h.zctx, "hex: illegal null argument", errcnt)
-		return vector.NewVariant(tags, []vector.Any{out, err})
+		return vector.NewDynamic(tags, []vector.Any{out, err})
 	case zed.IDString:
 		errvals := vector.NewStringEmpty(0, nil)
 		tags := make([]uint32, val.Len())
@@ -96,7 +96,7 @@ func (h *Hex) Call(args ...vector.Any) vector.Any {
 			out.Append(bytes)
 		}
 		err := vector.NewWrappedError(h.zctx, "hex: string argument is not hexidecimal", errvals)
-		return vector.NewVariant(tags, []vector.Any{out, err})
+		return vector.NewDynamic(tags, []vector.Any{out, err})
 	default:
 		return vector.NewWrappedError(h.zctx, "hex: argument must a bytes or string type", val)
 	}

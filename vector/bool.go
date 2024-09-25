@@ -81,7 +81,7 @@ func BoolValue(vec Any, slot uint32) bool {
 		return vec.Value().Ptr().AsBool()
 	case *Dict:
 		return BoolValue(vec.Any, uint32(vec.Index[slot]))
-	case *Variant:
+	case *Dynamic:
 		tag := vec.Tags[slot]
 		return BoolValue(vec.Values[tag], vec.TagMap.Forward[slot])
 	case *View:

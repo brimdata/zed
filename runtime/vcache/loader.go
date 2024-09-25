@@ -59,7 +59,7 @@ func (l *loader) load(paths Path, s shadow) (vector.Any, error) {
 
 func (l *loader) loadVector(g *errgroup.Group, paths Path, s shadow) {
 	switch s := s.(type) {
-	case *variant:
+	case *dynamic:
 		//XXX we need an ordered option to load tags only when needed
 		l.loadUint32(g, &s.mu, &s.tags, s.loc)
 		for _, m := range s.vals {
@@ -476,7 +476,7 @@ func (l *loader) loadOffsets(g *errgroup.Group, mu *sync.Mutex, slice *[]uint32,
 
 func (l *loader) fetchNulls(g *errgroup.Group, paths Path, s shadow) {
 	switch s := s.(type) {
-	case *variant:
+	case *dynamic:
 		for _, m := range s.vals {
 			l.fetchNulls(g, paths, m)
 		}
@@ -533,7 +533,7 @@ func (l *loader) fetchNulls(g *errgroup.Group, paths Path, s shadow) {
 
 func flattenNulls(paths Path, s shadow, parent *vector.Bool) {
 	switch s := s.(type) {
-	case *variant:
+	case *dynamic:
 		for _, m := range s.vals {
 			flattenNulls(paths, m, nil)
 		}

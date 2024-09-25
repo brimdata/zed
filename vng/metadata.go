@@ -208,20 +208,20 @@ func (c *Const) Len() uint32 {
 	return c.Count
 }
 
-type Variant struct {
+type Dynamic struct {
 	Tags   Segment
 	Values []Metadata
 	Length uint32
 }
 
-var _ Metadata = (*Variant)(nil)
+var _ Metadata = (*Dynamic)(nil)
 
-func (*Variant) Type(zctx *zed.Context) zed.Type {
-	panic("Type should not be called on Variant")
+func (*Dynamic) Type(zctx *zed.Context) zed.Type {
+	panic("Type should not be called on Dynamic")
 }
 
-func (v *Variant) Len() uint32 {
-	return v.Length
+func (d *Dynamic) Len() uint32 {
+	return d.Length
 }
 
 var Template = []interface{}{
@@ -235,5 +235,5 @@ var Template = []interface{}{
 	Error{},
 	Nulls{},
 	Const{},
-	Variant{},
+	Dynamic{},
 }

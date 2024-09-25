@@ -24,10 +24,10 @@ func NewView(index []uint32, val Any) Any {
 		}
 		return NewDict(val.Any, index2, nil, nulls)
 	case *Union:
-		tags, values := viewForUnionOrVariant(index, val.Tags, val.TagMap.Forward, val.Values)
+		tags, values := viewForUnionOrDynamic(index, val.Tags, val.TagMap.Forward, val.Values)
 		return NewUnion(val.Typ, tags, values, nil)
-	case *Variant:
-		return NewVariant(viewForUnionOrVariant(index, val.Tags, val.TagMap.Forward, val.Values))
+	case *Dynamic:
+		return NewDynamic(viewForUnionOrDynamic(index, val.Tags, val.TagMap.Forward, val.Values))
 	case *View:
 		index2 := make([]uint32, len(index))
 		for k, idx := range index {
@@ -38,7 +38,7 @@ func NewView(index []uint32, val Any) Any {
 	return &View{val, index}
 }
 
-func viewForUnionOrVariant(index, tags, forward []uint32, values []Any) ([]uint32, []Any) {
+func viewForUnionOrDynamic(index, tags, forward []uint32, values []Any) ([]uint32, []Any) {
 	indexes := make([][]uint32, len(values))
 	resultTags := make([]uint32, len(index))
 	for k, index := range index {

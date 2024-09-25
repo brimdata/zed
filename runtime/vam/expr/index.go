@@ -92,5 +92,5 @@ func indexRecord(zctx *zed.Context, record *vector.Record, index vector.Any) vec
 	for i, field := range record.Fields {
 		out[i] = vector.NewView(viewIndexes[i], field)
 	}
-	return vector.NewVariant(tags, out)
+	return vector.NewDynamic(tags, out)
 }

@@ -50,7 +50,7 @@ func NewLogicalOr(zctx *zed.Context, lhs, rhs Evaluator) *Or {
 }
 
 func (a *And) Eval(val vector.Any) vector.Any {
-	//XXX change this logic to handle variant instead of simple ok decision,
+	//XXX change this logic to handle dynamic instead of simple ok decision,
 	// if there are any valid bools then we need to and them together
 	lhs, ok := EvalBool(a.zctx, val, a.lhs)
 	if !ok {
@@ -102,15 +102,15 @@ func (o *Or) Eval(val vector.Any) vector.Any {
 // slot and they are returned as an error.  If all of the value slots are errors,
 // then the return value is nil.
 func EvalBool(zctx *zed.Context, val vector.Any, e Evaluator) (vector.Any, bool) {
-	//XXX Eval could return a variant of errors and bools and we should
+	//XXX Eval could return a dynamic vector of errors and bools and we should
 	// handle this correctly so the logic above is really the fast path
-	// and a slower path will handle picking apart the variant.
-	// maybe we could have a generic way to traverse variants for
+	// and a slower path will handle picking apart the dynamic vector.
+	// maybe we could have a generic way to traverse dynamics for
 	// appliers doing their thing along the slow path
 	if val, ok := vector.Under(e.Eval(val)).(*vector.Bool); ok {
 		return val, true
 	}
-	//XXX need to implement a sparse variant (vector.Collection?)
+	//XXX need to implement a sparse dynamic (vector.Collection?)
 	// and check for that here.
 	// for now, if the vector is not uniformly boolean, we return error.
 	// XXX example is a field ref a union of structs where the type of

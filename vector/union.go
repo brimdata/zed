@@ -6,7 +6,7 @@ import (
 )
 
 type Union struct {
-	*Variant
+	*Dynamic
 	Typ   *zed.TypeUnion
 	Nulls *Bool
 }
@@ -14,7 +14,7 @@ type Union struct {
 var _ Any = (*Union)(nil)
 
 func NewUnion(typ *zed.TypeUnion, tags []uint32, vals []Any, nulls *Bool) *Union {
-	return &Union{NewVariant(tags, vals), typ, nulls}
+	return &Union{NewDynamic(tags, vals), typ, nulls}
 }
 
 func (u *Union) Type() zed.Type {
@@ -24,14 +24,14 @@ func (u *Union) Type() zed.Type {
 func (u *Union) Serialize(b *zcode.Builder, slot uint32) {
 	b.BeginContainer()
 	b.Append(zed.EncodeInt(int64(u.Tags[slot])))
-	u.Variant.Serialize(b, slot)
+	u.Dynamic.Serialize(b, slot)
 	b.EndContainer()
 }
 
 func Deunion(vec Any) Any {
 	if union, ok := vec.(*Union); ok {
 		// XXX if the Union has Nulls this will be broken.
-		return union.Variant
+		return union.Dynamic
 	}
 	return vec
 }
