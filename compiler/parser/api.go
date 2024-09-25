@@ -15,7 +15,7 @@ func ParseZed(filenames []string, src string) (ast.Seq, *SourceSet, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	p, err := Parse("", []byte(sset.Text))
+	p, err := Parse("", []byte(sset.Text), Recover(false))
 	if err != nil {
 		return nil, nil, convertErrList(err, sset)
 	}
