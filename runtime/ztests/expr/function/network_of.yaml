@@ -1,0 +1,25 @@
+zed: |
+  yield
+    network_of(this, 24),
+    network_of(this, 48),
+    network_of(this),
+    network_of(ff::),
+    network_of(this, 255.255.255.128),
+    network_of(this, 255.128.255.255),
+    network_of(this, ff::),
+    network_of(this, "invalid")
+
+vector: true
+
+input: |
+  10.1.2.129
+
+output: |
+  10.1.2.0/24
+  error({message:"network_of: CIDR bit count out of range",on:{address:10.1.2.129,mask:48}})
+  10.0.0.0/8
+  error({message:"network_of: not an IPv4 address",on:ff::})
+  10.1.2.128/25
+  error({message:"network_of: mask is non-contiguous",on:255.128.255.255})
+  error({message:"network_of: address and mask have different lengths",on:{address:10.1.2.129,mask:ff::}})
+  error({message:"network_of: bad arg for CIDR mask",on:"invalid"})
