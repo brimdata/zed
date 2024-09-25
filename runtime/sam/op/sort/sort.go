@@ -31,7 +31,7 @@ type Op struct {
 	comparator     *expr.Comparator
 }
 
-func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.SortEvaluator, nullsFirst, reverse bool, resetter expr.Resetter) (*Op, error) {
+func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.SortEvaluator, nullsFirst, reverse bool, resetter expr.Resetter) *Op {
 	return &Op{
 		rctx:           rctx,
 		parent:         parent,
@@ -40,7 +40,7 @@ func New(rctx *runtime.Context, parent zbuf.Puller, fields []expr.SortEvaluator,
 		reverse:        reverse,
 		fieldResolvers: fields,
 		resultCh:       make(chan op.Result),
-	}, nil
+	}
 }
 
 func (o *Op) Pull(done bool) (zbuf.Batch, error) {

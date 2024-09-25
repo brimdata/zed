@@ -181,11 +181,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 			}
 			sortExprs = append(sortExprs, expr.NewSortEvaluator(k, s.Order))
 		}
-		sort, err := sort.New(b.rctx, parent, sortExprs, v.NullsFirst, v.Reverse, b.resetters)
-		if err != nil {
-			return nil, fmt.Errorf("compiling sort: %w", err)
-		}
-		return sort, nil
+		return sort.New(b.rctx, parent, sortExprs, v.NullsFirst, v.Reverse, b.resetters), nil
 	case *dag.Head:
 		limit := v.Count
 		if limit == 0 {
