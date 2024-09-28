@@ -39,10 +39,14 @@ func NewObject(ctx context.Context, engine storage.Engine, uri *storage.URI) (*O
 	if err != nil {
 		return nil, err
 	}
+	return NewObjectFromVNG(object), nil
+}
+
+func NewObjectFromVNG(object *vng.Object) *Object {
 	return &Object{
 		object: object,
 		root:   newShadow(object.Metadata(), nil, 0),
-	}, nil
+	}
 }
 
 func (o *Object) Close() error {
