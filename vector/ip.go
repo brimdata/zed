@@ -27,7 +27,7 @@ func (i *IP) Len() uint32 {
 }
 
 func (i *IP) Serialize(b *zcode.Builder, slot uint32) {
-	if i.Nulls != nil && i.Nulls.Value(slot) {
+	if i.Nulls.Value(slot) {
 		b.Append(nil)
 	} else {
 		b.Append(zed.EncodeIP(i.Values[slot]))

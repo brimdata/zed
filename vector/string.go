@@ -39,7 +39,7 @@ func (s *String) Value(slot uint32) string {
 }
 
 func (s *String) Serialize(b *zcode.Builder, slot uint32) {
-	if s.Nulls != nil && s.Nulls.Value(slot) {
+	if s.Nulls.Value(slot) {
 		b.Append(nil)
 	} else {
 		b.Append(zed.EncodeString(s.Value(slot)))

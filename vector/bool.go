@@ -48,7 +48,7 @@ func (b *Bool) CopyWithBits(bits []uint64) *Bool {
 }
 
 func (b *Bool) Serialize(builder *zcode.Builder, slot uint32) {
-	if b.Nulls != nil && b.Nulls.Value(slot) {
+	if b.Nulls.Value(slot) {
 		builder.Append(nil)
 	} else {
 		builder.Append(zed.EncodeBool(b.Value(slot)))

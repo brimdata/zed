@@ -39,7 +39,7 @@ func (b *Bytes) Serialize(builder *zcode.Builder, slot uint32) {
 }
 
 func (b *Bytes) Value(slot uint32) []byte {
-	if b.Nulls != nil && b.Nulls.Value(slot) {
+	if b.Nulls.Value(slot) {
 		return nil
 	}
 	return b.Bytes[b.Offs[slot]:b.Offs[slot+1]]

@@ -39,7 +39,7 @@ func (u *Uint) Value(slot uint32) uint64 {
 }
 
 func (u *Uint) Serialize(b *zcode.Builder, slot uint32) {
-	if u.Nulls != nil && u.Nulls.Value(slot) {
+	if u.Nulls.Value(slot) {
 		b.Append(nil)
 	} else {
 		b.Append(zed.EncodeUint(u.Values[slot]))

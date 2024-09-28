@@ -27,7 +27,7 @@ func (s *Set) Len() uint32 {
 }
 
 func (s *Set) Serialize(b *zcode.Builder, slot uint32) {
-	if s.Nulls != nil && s.Nulls.Value(slot) {
+	if s.Nulls.Value(slot) {
 		b.Append(nil)
 		return
 	}

@@ -22,7 +22,7 @@ func (d *Dict) Len() uint32 {
 }
 
 func (d *Dict) Serialize(builder *zcode.Builder, slot uint32) {
-	if d.Nulls != nil && d.Nulls.Value(slot) {
+	if d.Nulls.Value(slot) {
 		builder.Append(nil)
 	} else {
 		d.Any.Serialize(builder, uint32(d.Index[slot]))
