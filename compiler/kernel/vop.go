@@ -111,11 +111,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 			}
 			sortExprs = append(sortExprs, samexpr.NewSortEvaluator(k, s.Order))
 		}
-		sort, err := vamop.NewSort(b.rctx, parent, sortExprs, o.NullsFirst, o.Reverse, b.resetters)
-		if err != nil {
-			return nil, fmt.Errorf("compiling sort: %w", err)
-		}
-		return sort, nil
+		return vamop.NewSort(b.rctx, parent, sortExprs, o.NullsFirst, o.Reverse, b.resetters), nil
 	case *dag.Rename:
 		srcs, dsts, err := b.compileAssignmentsToLvals(o.Args)
 		if err != nil {
