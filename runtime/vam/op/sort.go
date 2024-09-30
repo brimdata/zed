@@ -19,13 +19,10 @@ type Sort struct {
 	samsort *sort.Op
 }
 
-func NewSort(rctx *runtime.Context, parent vector.Puller, fields []expr.SortEvaluator, nullsFirst, reverse bool, resetter expr.Resetter) (*Sort, error) {
+func NewSort(rctx *runtime.Context, parent vector.Puller, fields []expr.SortEvaluator, nullsFirst, reverse bool, resetter expr.Resetter) *Sort {
 	materializer := vam.NewMaterializer(parent)
-	s, err := sort.New(rctx, materializer, fields, nullsFirst, reverse, resetter)
-	if err != nil {
-		return nil, err
-	}
-	return &Sort{rctx: rctx, samsort: s}, nil
+	s := sort.New(rctx, materializer, fields, nullsFirst, reverse, resetter)
+	return &Sort{rctx: rctx, samsort: s}
 }
 
 func (s *Sort) Pull(done bool) (vector.Any, error) {
