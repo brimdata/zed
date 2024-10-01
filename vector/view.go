@@ -46,16 +46,16 @@ func nullsView(nulls *Bool, index []uint32) *Bool {
 	if nulls == nil {
 		return nil
 	}
-	out := NewBoolEmpty(uint32(len(index)), nil)
+	var out *Bool
 	for k, slot := range index {
 		if nulls.Value(slot) {
+			if out == nil {
+				out = NewBoolEmpty(uint32(len(index)), nil)
+			}
 			out.Set(uint32(k))
 		}
 	}
-	if out.Len() > 0 {
-		return out
-	}
-	return nil
+	return out
 }
 
 func viewForUnionOrDynamic(index, tags, forward []uint32, values []Any) ([]uint32, []Any) {
