@@ -13,6 +13,17 @@ var _ Any = (*View)(nil)
 
 func NewView(index []uint32, val Any) Any {
 	switch val := val.(type) {
+	case *Const:
+		var nulls *Bool
+		if val.Nulls != nil {
+			nulls = NewBoolEmpty(uint32(len(index)), nil)
+			for k, slot := range index {
+				if val.Nulls.Value(slot) {
+					nulls.Set(uint32(k))
+				}
+			}
+		}
+		return NewConst(val.val, uint32(len(index)), nulls)
 	case *Dict:
 		index2 := make([]byte, len(index))
 		nulls := NewBoolEmpty(uint32(len(index)), nil)
