@@ -13,16 +13,22 @@ type Function interface {
 }
 
 type Call struct {
-	fn    Function
-	exprs []Evaluator
-	args  []vector.Any
+	fn        Function
+	exprs     []Evaluator
+	ripUnions bool
+	args      []vector.Any
 }
 
 func NewCall(fn Function, exprs []Evaluator) *Call {
+	ripUnions := true
+	if fn, ok := fn.(interface{ RipUnions() bool }); ok {
+		ripUnions = fn.RipUnions()
+	}
 	return &Call{
-		fn:    fn,
-		exprs: exprs,
-		args:  make([]vector.Any, len(exprs)),
+		fn:        fn,
+		exprs:     exprs,
+		ripUnions: ripUnions,
+		args:      make([]vector.Any, len(exprs)),
 	}
 }
 
@@ -30,5 +36,5 @@ func (c *Call) Eval(this vector.Any) vector.Any {
 	for k, e := range c.exprs {
 		c.args[k] = e.Eval(this)
 	}
-	return vector.Apply(true, c.fn.Call, c.args...)
+	return vector.Apply(c.ripUnions, c.fn.Call, c.args...)
 }

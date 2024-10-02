@@ -1,5 +1,7 @@
 zed: yield {val:this, kind:kind(this)}
 
+vector: true
+
 input: |
   null
   null(bytes)
