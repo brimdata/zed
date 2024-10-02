@@ -142,8 +142,8 @@ func (p *PrimitiveEncoder) Metadata(off uint64) (uint64, Metadata) {
 	}
 	loc := Segment{
 		Offset:            int64(off),
-		Length:            int32(len(p.out)),
-		MemLength:         int32(p.bytesLen),
+		Length:            uint64(len(p.out)),
+		MemLength:         p.bytesLen,
 		CompressionFormat: p.format,
 	}
 	off += uint64(len(p.out))

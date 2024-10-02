@@ -16,10 +16,10 @@ const (
 )
 
 type Segment struct {
-	Offset            int64 // Offset relative to start of file
-	Length            int32 // Length in file
-	MemLength         int32 // Length in memory
-	CompressionFormat uint8 // Compression format in file
+	Offset            int64  // Offset relative to start of file
+	Length            uint64 // Length in file
+	MemLength         uint64 // Length in memory
+	CompressionFormat uint8  // Compression format in file
 }
 
 var zbufPool = sync.Pool{
