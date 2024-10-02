@@ -44,11 +44,6 @@ func (y *Yield) Pull(done bool) (vector.Any, error) {
 	}
 }
 
-func filterQuiet(val vector.Any) vector.Any {
-	// XXX this can't happen until we have functions
-	return val
-}
-
 // XXX should work for vector.Dynamic
 func interleave(vals []vector.Any) vector.Any {
 	if len(vals) < 2 {
@@ -62,4 +57,46 @@ func interleave(vals []vector.Any) vector.Any {
 
 	}
 	return vector.NewDynamic(tags, vals)
+}
+
+func filterQuiet(vec vector.Any) vector.Any {
+	var filtered bool
+	mask := vector.Apply(true, func(vecs ...vector.Any) vector.Any {
+		mask, hasfiltered := quietMask(vecs[0])
+		filtered = filtered || hasfiltered
+		return mask
+	}, vec)
+	if !filtered {
+		return vec
+	}
+	masked, _ := applyMask(vec, mask)
+	return masked
+}
+
+func quietMask(vec vector.Any) (vector.Any, bool) {
+	errvec, ok := vec.(*vector.Error)
+	if !ok {
+		return vector.NewConst(zed.True, vec.Len(), nil), false
+	}
+	if _, ok := errvec.Vals.Type().(*zed.TypeOfString); !ok {
+		return vector.NewConst(zed.True, vec.Len(), nil), false
+	}
+	if c, ok := errvec.Vals.(*vector.Const); ok {
+		if s, _ := c.AsString(); s == "quiet" {
+			return vector.NewConst(zed.False, vec.Len(), nil), true
+		}
+		return vector.NewConst(zed.True, vec.Len(), nil), false
+	}
+	n := vec.Len()
+	mask := vector.NewBoolEmpty(n, nil)
+	switch vec := vec.(type) {
+	case *vector.Error:
+		for i := uint32(0); i < n; i++ {
+			if s, _ := vector.StringValue(vec.Vals, i); s == "quiet" {
+				continue
+			}
+			mask.Set(i)
+		}
+	}
+	return mask, true
 }

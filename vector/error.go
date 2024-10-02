@@ -42,9 +42,7 @@ func NewStringError(zctx *zed.Context, msg string, len uint32) *Error {
 }
 
 func NewMissing(zctx *zed.Context, len uint32) *Error {
-	missing := zctx.Missing()
-	vals := NewConst(missing, len, nil)
-	return &Error{Typ: missing.Type().(*zed.TypeError), Vals: vals}
+	return NewStringError(zctx, "missing", len)
 }
 
 func NewWrappedError(zctx *zed.Context, msg string, val Any) *Error {

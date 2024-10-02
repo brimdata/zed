@@ -415,6 +415,7 @@ func CompareTypes(a, b Type) int {
 	if cmp := cmp.Compare(a.Kind(), b.Kind()); cmp != 0 {
 		return cmp
 	}
+	a, b = TypeUnder(a), TypeUnder(b)
 	switch a.Kind() {
 	case PrimitiveKind:
 		return cmp.Compare(aID, bID)

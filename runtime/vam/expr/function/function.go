@@ -30,6 +30,8 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 		f = &Levenshtein{zctx}
 	case "lower":
 		f = &ToLower{zctx}
+	case "quiet":
+		f = &Quiet{zctx}
 	case "replace":
 		argmin, argmax = 3, 3
 		f = &Replace{zctx}
