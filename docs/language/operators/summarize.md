@@ -114,6 +114,43 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 {key:"foo",set:|[3]|}
 ```
 
+Use separate `where` clauses on each aggregate function:
+```mdtest-command
+echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
+  zq -z 'set:=union(v) where v > 1,
+         array:=collect(v) where k=="foo"
+         by key:=k' - | sort
+```
+=>
+```mdtest-output
+{key:"bar",set:|[2]|,array:null}
+{key:"baz",set:|[4]|,array:null}
+{key:"foo",set:|[3]|,array:[1,3]}
+```
+
+Results are included for `by` groupings that generate null results when `where`
+filters are used inside `summarize`.
+```mdtest-command
+echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
+  zq -z 'sum(v) where k=="bar" by key:=k' - | sort
+```
+=>
+```mdtest-output
+{key:"bar",sum:2}
+{key:"baz",sum:null}
+{key:"foo",sum:null}
+```
+
+To avoid null results for `by` groupings like just shown, filter before `summarize`.
+```mdtest-command
+echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
+  zq -z 'k=="bar" | sum(v) by key:=k' - | sort
+```
+=>
+```mdtest-output
+{key:"bar",sum:2}
+```
+
 Output just the unique key values:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
