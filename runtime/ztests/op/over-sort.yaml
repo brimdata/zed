@@ -1,5 +1,7 @@
 zed: over a => (sort this)
 
+vector: true
+
 input: |
   {a:[10,9,11]}
   {a:[3,2,1]}

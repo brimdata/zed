@@ -1,6 +1,8 @@
 zed: |
   over this
 
+vector: true
+
 input: |
   [1, "foo"] ([(int64,string)])
   [3, 4] (([int64],ip))
