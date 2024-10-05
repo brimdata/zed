@@ -119,6 +119,8 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		}
 		renamer := expr.NewRenamer(b.zctx(), srcs, dsts)
 		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{renamer}), nil
+	case *dag.Tail:
+		return vamop.NewTail(parent, o.Count), nil
 	case *dag.Yield:
 		exprs, err := b.compileVamExprs(o.Exprs)
 		if err != nil {
