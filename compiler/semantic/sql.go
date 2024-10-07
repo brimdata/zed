@@ -90,6 +90,11 @@ func (a *analyzer) semSQLFrom(froms []ast.Op, seq dag.Seq) dag.Seq {
 
 func (a *analyzer) semSQLOp(op ast.Op, seq dag.Seq) dag.Seq {
 	switch op := op.(type) {
+	case *ast.Select:
+		if len(seq) > 0 {
+			panic("semSQLOp: select can't have parents")
+		}
+		return a.semSQLSelect(op)
 	case *ast.Table:
 		// For now assume a "table" is always an input file.  When we
 		// add lake support here, we can have a syntactic way to differentiate
@@ -134,13 +139,14 @@ func (a *analyzer) semSQLOp(op ast.Op, seq dag.Seq) dag.Seq {
 		if limit < 1 {
 			a.error(op.Count, errors.New("expression value must be a positive integer"))
 		}
-		return append(seq, &dag.Head{
+		head := &dag.Head{
 			Kind:  "Head",
 			Count: int(limit),
-		})
+		}
+		//XXX len(seq) should be zero like select right?
+		return append(a.semSQLOp(op.Op, seq), head)
 	default:
 		panic(fmt.Sprintf("semSQLOp: unknown op: %T", op))
-
 	}
 }
 

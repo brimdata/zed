@@ -17,28 +17,28 @@ type Select struct {
 
 type Limit struct {
 	Kind   string `json:"kind" unpack:""`
-	Op     Op
-	Count  Expr
-	Offset Expr
+	Op     Op     `json:"op"`
+	Count  Expr   `json:"count"`
+	Offset Expr   `json:"offset"`
 }
 
 type With struct {
 	Kind      string `json:"kind" unpack:""`
-	Body      Op
-	Recursive bool
-	CTEs      []CTE
+	Body      Op     `json:"body"`
+	Recursive bool   `json:"recursive"`
+	CTEs      []CTE  `json:"ctes"`
 }
 
 type CTE struct {
-	Name         string
-	Materialized *bool
-	Op           Op
+	Name         string `json:"name"`
+	Materialized *bool  `json:"materialized"`
+	Op           Op     `json:"op"`
 }
 
 type OrderBy struct {
-	Kind  string `json:"kind" unpack:""`
-	Op    Op
-	Exprs []SortExpr
+	Kind  string     `json:"kind" unpack:""`
+	Op    Op         `json:"op"`
+	Exprs []SortExpr `json:"exprs"`
 }
 
 // An Op is a node in the flowgraph that takes Zed values in, operates upon them,
