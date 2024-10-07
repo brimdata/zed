@@ -30,7 +30,6 @@ import (
 	"github.com/brimdata/zed/runtime/sam/op/merge"
 	"github.com/brimdata/zed/runtime/sam/op/meta"
 	"github.com/brimdata/zed/runtime/sam/op/mirror"
-	"github.com/brimdata/zed/runtime/sam/op/pass"
 	"github.com/brimdata/zed/runtime/sam/op/shape"
 	"github.com/brimdata/zed/runtime/sam/op/sort"
 	"github.com/brimdata/zed/runtime/sam/op/switcher"
@@ -197,7 +196,7 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 	case *dag.Uniq:
 		return uniq.New(b.rctx, parent, v.Cflag), nil
 	case *dag.Pass:
-		return pass.New(parent), nil
+		return parent, nil
 	case *dag.Filter:
 		b.resetResetters()
 		f, err := b.compileExpr(v.Expr)
