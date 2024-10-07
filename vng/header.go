@@ -9,15 +9,15 @@ import (
 
 const (
 	Version     = 4
-	HeaderSize  = 16
+	HeaderSize  = 24
 	MaxMetaSize = 100 * 1024 * 1024
 	MaxDataSize = 2 * 1024 * 1024 * 1024
 )
 
 type Header struct {
 	Version  uint32
-	MetaSize uint32
-	DataSize uint32
+	MetaSize uint64
+	DataSize uint64
 }
 
 func (h Header) Serialize() []byte {
@@ -26,8 +26,8 @@ func (h Header) Serialize() []byte {
 	bytes[1] = 'N'
 	bytes[2] = 'G'
 	binary.LittleEndian.PutUint32(bytes[4:], h.Version)
-	binary.LittleEndian.PutUint32(bytes[8:], h.MetaSize)
-	binary.LittleEndian.PutUint32(bytes[12:], h.DataSize)
+	binary.LittleEndian.PutUint64(bytes[8:], h.MetaSize)
+	binary.LittleEndian.PutUint64(bytes[16:], h.DataSize)
 	return bytes[:]
 }
 
@@ -36,8 +36,8 @@ func (h *Header) Deserialize(bytes []byte) error {
 		return errors.New("invalid VNG header")
 	}
 	h.Version = binary.LittleEndian.Uint32(bytes[4:])
-	h.MetaSize = binary.LittleEndian.Uint32(bytes[8:])
-	h.DataSize = binary.LittleEndian.Uint32(bytes[12:])
+	h.MetaSize = binary.LittleEndian.Uint64(bytes[8:])
+	h.DataSize = binary.LittleEndian.Uint64(bytes[16:])
 	if h.Version != Version {
 		return fmt.Errorf("unsupport VNG version %d: expected version %d", h.Version, Version)
 	}

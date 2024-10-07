@@ -16,10 +16,10 @@ const (
 )
 
 type Segment struct {
-	Offset            int64 // Offset relative to start of file
-	Length            int32 // Length in file
-	MemLength         int32 // Length in memory
-	CompressionFormat uint8 // Compression format in file
+	Offset            uint64 // Offset relative to start of file
+	Length            uint64 // Length in file
+	MemLength         uint64 // Length in memory
+	CompressionFormat uint8  // Compression format in file
 }
 
 var zbufPool = sync.Pool{
@@ -36,13 +36,13 @@ func (s *Segment) Read(r io.ReaderAt, b []byte) error {
 	b = b[:s.MemLength]
 	switch s.CompressionFormat {
 	case CompressionFormatNone:
-		_, err := r.ReadAt(b, s.Offset)
+		_, err := r.ReadAt(b, int64(s.Offset))
 		return err
 	case CompressionFormatLZ4:
 		zbuf := zbufPool.Get().(*[]byte)
 		defer zbufPool.Put(zbuf)
 		*zbuf = slices.Grow((*zbuf)[:0], int(s.Length))[:s.Length]
-		if _, err := r.ReadAt(*zbuf, s.Offset); err != nil {
+		if _, err := r.ReadAt(*zbuf, int64(s.Offset)); err != nil {
 			return err
 		}
 		n, err := lz4.UncompressBlock(*zbuf, b)
