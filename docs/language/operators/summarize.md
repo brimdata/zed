@@ -129,7 +129,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 ```
 
 Results are included for `by` groupings that generate null results when `where`
-filters are used inside `summarize`.
+clauses are used inside `summarize`:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
   zq -z 'sum(v) where k=="bar" by key:=k' - | sort
@@ -141,7 +141,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 {key:"foo",sum:null}
 ```
 
-To avoid null results for `by` groupings like just shown, filter before `summarize`.
+To avoid null results for `by` groupings a just shown, filter before `summarize`:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
   zq -z 'k=="bar" | sum(v) by key:=k' - | sort
