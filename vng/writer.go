@@ -63,7 +63,7 @@ func (w *Writer) finalize() error {
 	zw.EndStream()
 	metaSize := zw.Position()
 	// Header
-	if _, err := w.writer.Write(Header{Version, uint64(metaSize), uint64(dataSize)}.Serialize()); err != nil {
+	if _, err := w.writer.Write(Header{Version, uint64(metaSize), dataSize}.Serialize()); err != nil {
 		return fmt.Errorf("system error: could not write VNG header: %w", err)
 	}
 	// Metadata section
