@@ -1,0 +1,10 @@
+zed: tail 3
+
+vector: true
+
+input: &input |
+  1
+  2
+  3
+
+output: *input
