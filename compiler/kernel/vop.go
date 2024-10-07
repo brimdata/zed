@@ -19,7 +19,7 @@ func (b *Builder) compileVam(o dag.Op, parents []vector.Puller) ([]vector.Puller
 	case *dag.Combine:
 		//return []zbuf.Puller{combine.New(b.rctx, parents)}, nil
 	case *dag.Fork:
-		//return b.compileVecFork(o, parents)
+		return b.compileVamFork(o, parents)
 	case *dag.Join:
 		// see sam version for ref
 	case *dag.Merge:
@@ -44,8 +44,7 @@ func (b *Builder) compileVam(o dag.Op, parents []vector.Puller) ([]vector.Puller
 		if len(parents) == 1 {
 			parent = parents[0]
 		} else if len(parents) > 1 {
-			//parent = combine.New(b.rctx, parents)
-			panic("TBD")
+			parent = vamop.NewCombine(b.rctx, parents)
 		}
 		p, err := b.compileVamLeaf(o, parent)
 		if err != nil {
@@ -63,6 +62,33 @@ func (b *Builder) compileVamScan(scan *dag.SeqScan, parent zbuf.Puller) (vector.
 	}
 	//XXX check VectorCache not nil
 	return vamop.NewScanner(b.rctx, b.source.Lake().VectorCache(), parent, pool, scan.Fields, nil, nil), nil
+}
+
+func (b *Builder) compileVamFork(fork *dag.Fork, parents []vector.Puller) ([]vector.Puller, error) {
+	var f *vamop.Fork
+	switch len(parents) {
+	case 0:
+		// No parents: no need for a fork since every op gets a nil parent.
+	case 1:
+		// Single parent: insert a fork for n-way fanout.
+		f = vamop.NewFork(b.rctx, parents[0])
+	default:
+		// Multiple parents: insert a combine followed by a fork for n-way fanout.
+		f = vamop.NewFork(b.rctx, vamop.NewCombine(b.rctx, parents))
+	}
+	var exits []vector.Puller
+	for _, seq := range fork.Paths {
+		var parent vector.Puller
+		if f != nil && !isEntry(seq) {
+			parent = f.AddExit()
+		}
+		exit, err := b.compileVamSeq(seq, []vector.Puller{parent})
+		if err != nil {
+			return nil, err
+		}
+		exits = append(exits, exit...)
+	}
+	return exits, nil
 }
 
 func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller, error) {

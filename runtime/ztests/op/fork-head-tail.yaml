@@ -1,0 +1,12 @@
+zed: fork (=> head 1 => tail 1) | sort
+
+vector: true
+
+input: |
+  1
+  2
+  3
+
+output: |
+  1
+  3
