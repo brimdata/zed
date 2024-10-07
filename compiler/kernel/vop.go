@@ -6,7 +6,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/optimizer"
 	samexpr "github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/vam/expr"
 	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
 	vamop "github.com/brimdata/zed/runtime/vam/op"
 	"github.com/brimdata/zed/vector"
@@ -17,17 +16,10 @@ import (
 // the leaves.
 func (b *Builder) compileVam(o dag.Op, parents []vector.Puller) ([]vector.Puller, error) {
 	switch o := o.(type) {
+	case *dag.Combine:
+		//return []zbuf.Puller{combine.New(b.rctx, parents)}, nil
 	case *dag.Fork:
 		//return b.compileVecFork(o, parents)
-	case *dag.Scatter:
-		//return b.compileVecScatter(o, parents)
-	case *dag.Scope:
-		//return b.compileVecScope(o, parents)
-	case *dag.Switch:
-		//if o.Expr != nil {
-		//	return b.compileVamExprSwitch(o, parents)
-		//}
-		//return b.compileVecSwitch(o, parents)
 	case *dag.Join:
 		// see sam version for ref
 	case *dag.Merge:
@@ -38,8 +30,15 @@ func (b *Builder) compileVam(o dag.Op, parents []vector.Puller) ([]vector.Puller
 		//XXX this needs to be native
 		//cmp := vamexpr.NewComparator(true, o.Order == order.Desc, e).WithMissingAsNull()
 		//return []vector.Puller{vamop.NewMerge(b.rctx, parents, cmp.Compare)}, nil
-	case *dag.Combine:
-		//return []zbuf.Puller{combine.New(b.rctx, parents)}, nil
+	case *dag.Scatter:
+		//return b.compileVecScatter(o, parents)
+	case *dag.Scope:
+		//return b.compileVecScope(o, parents)
+	case *dag.Switch:
+		//if o.Expr != nil {
+		//	return b.compileVamExprSwitch(o, parents)
+		//}
+		//return b.compileVecSwitch(o, parents)
 	default:
 		var parent vector.Puller
 		if len(parents) == 1 {
@@ -73,7 +72,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		if err != nil {
 			return nil, err
 		}
-		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{e}), nil
+		return vamop.NewYield(b.zctx(), parent, []vamexpr.Evaluator{e}), nil
 	case *dag.Filter:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {
@@ -82,14 +81,9 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		return vamop.NewFilter(b.zctx(), parent, e), nil
 	case *dag.Head:
 		return vamop.NewHead(parent, o.Count), nil
-	case *dag.Summarize:
-		if name, ok := optimizer.IsCountByString(o); ok {
-			return vamop.NewCountByString(b.zctx(), parent, name), nil
-		} else if name, ok := optimizer.IsSum(o); ok {
-			return vamop.NewSum(b.zctx(), parent, name), nil
-		} else {
-			return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
-		}
+	case *dag.Output:
+		// XXX Ignore Output op for vectors for now.
+		return parent, nil
 	case *dag.Pass:
 		return parent, nil
 	case *dag.Put:
@@ -100,7 +94,14 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 		if err != nil {
 			return nil, err
 		}
-		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{expr.NewPutter(b.zctx(), e)}), nil
+		return vamop.NewYield(b.zctx(), parent, []vamexpr.Evaluator{vamexpr.NewPutter(b.zctx(), e)}), nil
+	case *dag.Rename:
+		srcs, dsts, err := b.compileAssignmentsToLvals(o.Args)
+		if err != nil {
+			return nil, err
+		}
+		renamer := vamexpr.NewRenamer(b.zctx(), srcs, dsts)
+		return vamop.NewYield(b.zctx(), parent, []vamexpr.Evaluator{renamer}), nil
 	case *dag.Sort:
 		b.resetResetters()
 		var sortExprs []samexpr.SortEvaluator
@@ -112,13 +113,14 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 			sortExprs = append(sortExprs, samexpr.NewSortEvaluator(k, s.Order))
 		}
 		return vamop.NewSort(b.rctx, parent, sortExprs, o.NullsFirst, o.Reverse, b.resetters), nil
-	case *dag.Rename:
-		srcs, dsts, err := b.compileAssignmentsToLvals(o.Args)
-		if err != nil {
-			return nil, err
+	case *dag.Summarize:
+		if name, ok := optimizer.IsCountByString(o); ok {
+			return vamop.NewCountByString(b.zctx(), parent, name), nil
+		} else if name, ok := optimizer.IsSum(o); ok {
+			return vamop.NewSum(b.zctx(), parent, name), nil
+		} else {
+			return nil, fmt.Errorf("internal error: unhandled dag.Summarize: %#v", o)
 		}
-		renamer := expr.NewRenamer(b.zctx(), srcs, dsts)
-		return vamop.NewYield(b.zctx(), parent, []expr.Evaluator{renamer}), nil
 	case *dag.Tail:
 		return vamop.NewTail(parent, o.Count), nil
 	case *dag.Yield:
@@ -127,9 +129,6 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 			return nil, err
 		}
 		return vamop.NewYield(b.zctx(), parent, exprs), nil
-	case *dag.Output:
-		// XXX Ignore Output op for vectors for now.
-		return parent, nil
 	default:
 		return nil, fmt.Errorf("internal error: unknown dag.Op while compiling for vector runtime: %#v", o)
 	}
