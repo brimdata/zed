@@ -93,7 +93,7 @@ echo '1 2 3 4' | zq -z 'sum(this)' -
 Create integer sets by key and sort the output to get a deterministic order:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'set:=union(v) by key:=k' - | sort
+  zq -z 'set:=union(v) by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -105,7 +105,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 Use a `where` clause:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'set:=union(v) where v > 1 by key:=k' - | sort
+  zq -z 'set:=union(v) where v > 1 by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -119,7 +119,7 @@ Use separate `where` clauses on each aggregate function:
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
   zq -z 'set:=union(v) where v > 1,
          array:=collect(v) where k=="foo"
-         by key:=k' - | sort
+         by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -132,7 +132,7 @@ Results are included for `by` groupings that generate null results when `where`
 clauses are used inside `summarize`:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'sum(v) where k=="bar" by key:=k' - | sort
+  zq -z 'sum(v) where k=="bar" by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -144,7 +144,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 To avoid null results for `by` groupings a just shown, filter before `summarize`:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'k=="bar" | sum(v) by key:=k' - | sort
+  zq -z 'k=="bar" | sum(v) by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -154,7 +154,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 Output just the unique key values:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'by k' - | sort
+  zq -z 'by k | sort' -
 ```
 =>
 ```mdtest-output
