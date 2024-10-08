@@ -141,7 +141,6 @@ type (
 
 func (*Agg) ExprDAG()          {}
 func (*ArrayExpr) ExprDAG()    {}
-func (*Assignment) ExprDAG()   {}
 func (*BadExpr) ExprDAG()      {}
 func (*BinaryExpr) ExprDAG()   {}
 func (*Call) ExprDAG()         {}
