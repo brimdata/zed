@@ -2030,7 +2030,7 @@ OptAsClause
   / ""  { return nil, nil }
 
 OptSortClause 
-  = _ KW_ORDER _ KW_BY _ list:SortByList { return list, nil }
+  = _ KW_ORDER _ KW_BY _ list:OrderByList { return list, nil }
   / ""          { return nil, nil }
 
 OrderByList 

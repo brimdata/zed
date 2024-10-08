@@ -55,22 +55,23 @@ type (
 		Value Expr
 	}
 	SQLJoin struct { //XXX
-		Kind  string `json:"kind" unpack:""`
-		Style string // "full", "left", "right", "inner"
-		Left  Op
-		Right Op
-		Cond  JoinExpr
+		Kind  string   `json:"kind" unpack:""`
+		Style string   `json:"style"` // "full", "left", "right", "inner"
+		Left  Op       `json:"left"`
+		Right Op       `json:"right"`
+		Cond  JoinExpr `json:"cond"`
 	}
 	CrossJoin struct {
 		Kind  string `json:"kind" unpack:""`
-		Left  Op
-		Right Op
+		Left  Op     `json:"left"`
+		Right Op     `json:"right"`
 	}
+
 	Union struct {
 		Kind     string `json:"kind" unpack:""`
-		Distinct bool
-		Left     Op
-		Right    Op
+		Distinct bool   `json:"distinct"`
+		Left     Op     `json:"left"`
+		Right    Op     `json:"right"`
 	}
 )
 
@@ -80,35 +81,33 @@ type JoinExpr interface {
 
 type JoinOn struct {
 	Kind string `json:"kind" unpack:""`
-	Expr Expr
+	Expr Expr   `json:"expr"`
 }
 
 func (*JoinOn) JoinOp() {}
 
 type JoinUsing struct {
 	Kind   string `json:"kind" unpack:""`
-	Fields []Expr
+	Fields []Expr `json:"fields"`
 }
 
 func (*JoinUsing) JoinOp() {}
 
-// Source structure
+type Table struct {
+	Kind string `json:"kind" unpack:""`
+	Name string `json:"name"`
+}
 
-type (
-	Table struct {
-		Kind string `json:"kind" unpack:""`
-		Name string `json:"name"`
-	}
-	Ordinality struct {
-		Kind string `json:"kind" unpack:""`
-		Op
-	}
-	Alias struct {
-		Kind string `json:"kind" unpack:""`
-		Op
-		Name string
-	}
-)
+type Ordinality struct {
+	Kind string `json:"kind" unpack:""`
+	Op   Op     `json:"op"`
+}
+
+type Alias struct {
+	Kind string `json:"kind" unpack:""`
+	Op   Op     `json:"op"`
+	Name string `json:"name"`
+}
 
 func (*Select) OpAST()     {}
 func (*Table) OpAST()      {}
