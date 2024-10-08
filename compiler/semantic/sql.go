@@ -105,8 +105,26 @@ func (a *analyzer) semSQLOp(op ast.Op, seq dag.Seq) dag.Seq {
 			// Format:   s.Format, XXX we should have a way to specify it or infer?
 			// SortKeys: a.semSortKeys(s.SortKeys), XXX should have way to hint order
 		})
+	case *ast.Alias:
+		// Wrap the values in a single-field record with the name of the alias.
+		seq = a.semSQLOp(op.Op, seq)
+		return append(seq, &dag.Yield{
+			Kind: "Yield",
+			Exprs: []dag.Expr{
+				&dag.RecordExpr{
+					Kind: "RecordExpr",
+					Elems: []dag.RecordElem{
+						&dag.Field{
+							Kind:  "Field",
+							Name:  op.Name,
+							Value: &dag.This{Kind: "This"},
+						},
+					},
+				},
+			},
+		})
 	case *ast.SQLJoin:
-		return a.semSQLJoin(seq, op)
+		return a.semSQLJoin(op, seq)
 	case *ast.OrderBy:
 		nullsFirst, ok := inferNullsFirst(op.Exprs)
 		if !ok {
@@ -117,7 +135,7 @@ func (a *analyzer) semSQLOp(op ast.Op, seq dag.Seq) dag.Seq {
 		for _, e := range op.Exprs {
 			exprs = append(exprs, a.semSortExpr(e))
 		}
-		return append(seq, &dag.Sort{
+		return append(a.semSQLOp(op.Op, seq), &dag.Sort{
 			Kind:       "Sort",
 			Args:       exprs,
 			NullsFirst: nullsFirst,
@@ -143,7 +161,6 @@ func (a *analyzer) semSQLOp(op ast.Op, seq dag.Seq) dag.Seq {
 			Kind:  "Head",
 			Count: int(limit),
 		}
-		//XXX len(seq) should be zero like select right?
 		return append(a.semSQLOp(op.Op, seq), head)
 	default:
 		panic(fmt.Sprintf("semSQLOp: unknown op: %T", op))
@@ -306,7 +323,7 @@ func (a *analyzer) semSQLAlias(e ast.Expr) (*dag.Cut, string, error) {
 
 // For now, each joining table is on the right...
 // We don't have logic to not care about the side of the JOIN ON keys...
-func (a *analyzer) semSQLJoin(seq dag.Seq, join *ast.SQLJoin) dag.Seq {
+func (a *analyzer) semSQLJoin(join *ast.SQLJoin, seq dag.Seq) dag.Seq {
 	// XXX This is super goofy but for now we require an alias on the
 	// right side and combine the entire right side value into the row
 	// using the existing join semantics of assignment where the lval
@@ -322,27 +339,30 @@ func (a *analyzer) semSQLJoin(seq dag.Seq, join *ast.SQLJoin) dag.Seq {
 		a.error(join, errors.New("SQL joins currently limited to equijoin on fields"))
 		return append(seq, badOp())
 	}
-	leftPath := a.semSQLOp(join.Left, []dag.Op{})
-	leftPath = append(leftPath, sortBy(leftKey))
-	rightPath := a.semSQLOp(join.Right, []dag.Op{})
-	rightPath = append(rightPath, sortBy(rightKey))
-	fork := &dag.Fork{
-		Kind:  "Fork",
-		Paths: []dag.Seq{leftPath, rightPath},
-	}
+	leftPath := a.semSQLOp(join.Left, nil)
+	rightPath := a.semSQLOp(join.Right, nil)
+
 	assignment := dag.Assignment{
 		Kind: "Assignment",
 		LHS:  pathOf(alias),
 		RHS:  &dag.This{Kind: "This", Path: field.Path{alias}},
 	}
+	par := &dag.Fork{
+		Kind:  "Fork",
+		Paths: []dag.Seq{{dag.PassOp}, rightPath},
+	}
 	dagJoin := &dag.Join{
 		Kind:     "Join",
 		Style:    join.Style,
+		LeftDir:  order.Unknown,
 		LeftKey:  leftKey,
+		RightDir: order.Unknown,
 		RightKey: rightKey,
 		Args:     []dag.Assignment{assignment},
 	}
-	return dag.Seq{fork, dagJoin}
+	seq = leftPath
+	seq = append(seq, par)
+	return append(seq, dagJoin)
 }
 
 // XXX I think alias has to be last... not sure we need the recursion
