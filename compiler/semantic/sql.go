@@ -25,8 +25,7 @@ func (a *analyzer) semSQLSelect(sel *ast.Select) dag.Seq {
 		return dag.Seq{badOp()}
 	}
 	if sel.Value {
-		a.error(sel, errors.New("SELECT VALUE not yet supported"))
-		return dag.Seq{badOp()}
+		return a.semSelectValue(sel)
 	}
 	selection, err := a.newSQLSelection(sel.Args)
 	if err != nil {
@@ -78,6 +77,42 @@ func (a *analyzer) semSQLSelect(sel *ast.Select) dag.Seq {
 		seq = []dag.Op{dag.PassOp}
 	}
 	return seq
+}
+
+func (a *analyzer) semSelectValue(sel *ast.Select) dag.Seq {
+	var seq dag.Seq
+	//XXX when from not present, need to check that select exprs are either constant
+	// or refer to a from stream at an outer scope
+	if sel.From != nil {
+		seq = a.semSQLFrom(sel.From, seq)
+	} else {
+		//XXX we need to create a source from the select expression presuming
+		// it's a constant value
+		a.error(sel, errors.New("SELECT without a FROM claue not yet supported"))
+		seq = append(seq, badOp())
+	}
+	if sel.Where != nil {
+		seq = append(seq, dag.NewFilter(a.semExpr(sel.Where)))
+	}
+	if sel.GroupBy != nil {
+		a.error(sel, errors.New("SELECT VALUE cannot be used with GROUP BY"))
+		seq = append(seq, badOp())
+	}
+	if sel.Having != nil {
+		a.error(sel, errors.New("SELECT VALUE cannot be used with HAVING"))
+		seq = append(seq, badOp())
+	}
+	exprs := make([]dag.Expr, 0, len(sel.Args))
+	for _, assignment := range sel.Args {
+		if assignment.LHS != nil {
+			a.error(sel, errors.New("SELECT VALUE cannot AS clause in selection"))
+		}
+		exprs = append(exprs, a.semExpr(assignment.RHS))
+	}
+	return append(seq, &dag.Yield{
+		Kind:  "Yield",
+		Exprs: exprs,
+	})
 }
 
 func (a *analyzer) semSQLFrom(froms []ast.Op, seq dag.Seq) dag.Seq {
