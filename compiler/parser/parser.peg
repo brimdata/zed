@@ -8,11 +8,13 @@
     )
 }
 
-start
-  = SuperSQL
-  / SuperPipe
+//start
+//  = SuperSQL
+//  = SuperPipe
 
-SiperPipe
+start = SuperSQL / SuperPipe 
+
+SuperPipe
   = __ scope:Scope __ EOF { return []any{scope}, nil }
   / __ seq:Seq __ EOF { return seq, nil }
 
