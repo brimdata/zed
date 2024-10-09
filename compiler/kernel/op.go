@@ -157,16 +157,9 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 		cutter := expr.NewCutter(b.zctx(), lhs, rhs)
 		return op.NewApplier(b.rctx, parent, cutter, b.resetters), nil
 	case *dag.Drop:
-		if len(v.Args) == 0 {
-			return nil, errors.New("drop: no fields given")
-		}
 		fields := make(field.List, 0, len(v.Args))
 		for _, e := range v.Args {
-			field, ok := e.(*dag.This)
-			if !ok {
-				return nil, errors.New("drop: arg not a field")
-			}
-			fields = append(fields, field.Path)
+			fields = append(fields, e.(*dag.This).Path)
 		}
 		dropper := expr.NewDropper(b.zctx(), fields)
 		return op.NewApplier(b.rctx, parent, dropper, expr.Resetters{}), nil
@@ -389,9 +382,6 @@ func (b *Builder) compileDefs(defs []dag.Def) ([]string, []expr.Evaluator, error
 }
 
 func (b *Builder) compileOver(parent zbuf.Puller, over *dag.Over) (zbuf.Puller, error) {
-	if len(over.Defs) != 0 && over.Body == nil {
-		return nil, errors.New("internal error: over operator has defs but no body")
-	}
 	b.resetResetters()
 	withNames, withExprs, err := b.compileDefs(over.Defs)
 	if err != nil {
