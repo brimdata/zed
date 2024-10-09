@@ -271,8 +271,8 @@ func (v Value) IsNull() bool {
 
 // Copy returns a copy of v that shares no storage.
 func (v Value) Copy() Value {
-	if x, ok := v.native(); ok {
-		return newNativeValue(v.Type(), x)
+	if _, ok := v.native(); ok {
+		return v
 	}
 	return NewValue(v.Type(), bytes.Clone(v.bytes()))
 }
