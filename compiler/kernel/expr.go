@@ -508,9 +508,6 @@ func (b *Builder) compileMapExpr(m *dag.MapExpr) (expr.Evaluator, error) {
 }
 
 func (b *Builder) compileOverExpr(over *dag.OverExpr) (expr.Evaluator, error) {
-	if over.Body == nil {
-		return nil, errors.New("over expression requires a lateral query body")
-	}
 	names, lets, err := b.compileDefs(over.Defs)
 	if err != nil {
 		return nil, err
