@@ -1,5 +1,7 @@
 zed: drop foo
 
+vector: true
+
 input: |
   {foo:"foo1"}
   {foo:"foo2"}
