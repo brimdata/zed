@@ -40,7 +40,7 @@ func NewView(index []uint32, val Any) Any {
 		return &View{val.Any, index2}
 	case *Named:
 		// Wrapped View under Named so vector.Under still works.
-		return &Named{Typ: val.Typ, Any: NewView(index, val.Any)}
+		return &Named{val.Typ, NewView(index, val.Any)}
 	}
 	return &View{val, index}
 }
